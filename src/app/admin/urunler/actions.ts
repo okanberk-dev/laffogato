@@ -3,12 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { bulkProductSchema } from "@/lib/admin/bulk-schema";
 import { productFormSchema } from "@/lib/admin/product-schema";
 import {
+  bulkUpdateProducts,
   createProduct,
   deleteProduct,
   updateProduct,
   type AdminProductVariant,
+  type BulkProductOp,
+  type ShopCategoryId,
 } from "@/lib/admin/store";
 
 function revalidateShop() {
@@ -114,4 +118,33 @@ export async function deleteProductAction(formData: FormData) {
   if (!id) return;
   await deleteProduct(id);
   revalidateShop();
+}
+
+export interface BulkActionState {
+  error?: string;
+  ok?: { op: string; updated: number };
+}
+
+export async function bulkProductsAction(
+  _prev: BulkActionState,
+  formData: FormData,
+): Promise<BulkActionState> {
+  const parsed = bulkProductSchema.safeParse({
+    ids: String(formData.get("ids") ?? ""),
+    op: String(formData.get("op") ?? ""),
+    value: formData.get("value") ? String(formData.get("value")) : undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Geçersiz istek." };
+  }
+  const { ids, op, value } = parsed.data;
+  let storeOp: BulkProductOp;
+  if (op === "set_category") {
+    storeOp = { kind: "set_category", cat: value as ShopCategoryId };
+  } else {
+    storeOp = { kind: op };
+  }
+  const { updated } = await bulkUpdateProducts(ids, storeOp);
+  revalidateShop();
+  return { ok: { op, updated } };
 }
