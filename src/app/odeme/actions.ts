@@ -41,7 +41,7 @@ export async function placeOrderAction(formData: FormData) {
     redirect("/?cart=empty");
   }
 
-  const order = await placeOrder({
+  const result = await placeOrder({
     items: items.map((it) => ({
       name: it.name,
       priceMinor: Math.round(it.price * 100),
@@ -52,7 +52,17 @@ export async function placeOrderAction(formData: FormData) {
     customerPhone: String(formData.get("customerPhone") ?? "") || undefined,
   });
 
+  if (!result.ok) {
+    const params = new URLSearchParams({
+      cart: result.reason,
+      item: result.productName,
+      available: String(result.available),
+    });
+    redirect(`/?${params.toString()}`);
+  }
+
   revalidatePath("/admin/siparisler");
   revalidatePath("/admin");
-  redirect(`/odeme/basarili?ref=${order.id}`);
+  revalidatePath("/");
+  redirect(`/odeme/basarili?ref=${result.order.id}`);
 }
