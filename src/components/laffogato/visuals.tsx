@@ -142,15 +142,22 @@ export function CupEmblem({
   color = "#14100B",
   bg = "#F5E6D3",
   ringColor,
+  className,
 }: {
   size?: number;
   color?: string;
   bg?: string;
   ringColor?: string;
+  className?: string;
 }) {
   const rc = ringColor || color;
   return (
-    <svg viewBox="0 0 240 240" width={size} height={size}>
+    <svg
+      viewBox="0 0 240 240"
+      width={className ? undefined : size}
+      height={className ? undefined : size}
+      className={className}
+    >
       <defs>
         <path id="ce-top" d="M 28 120 A 92 92 0 0 1 212 120" fill="none" />
         <path id="ce-bot" d="M 28 120 A 92 92 0 0 0 212 120" fill="none" />

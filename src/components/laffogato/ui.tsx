@@ -204,8 +204,8 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
         }}
       >
         <header
+          className="cart-drawer-header"
           style={{
-            padding: "28px 32px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -224,7 +224,7 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
             </svg>
           </button>
         </header>
-        <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px" }}>
+        <div className="cart-drawer-body" style={{ flex: 1, overflowY: "auto" }}>
           {items.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 20px" }}>
               <div
@@ -270,17 +270,15 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
               {items.map((it, i) => (
                 <div
                   key={i}
+                  className="cart-item-grid"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "80px 1fr auto",
-                    gap: 14,
                     alignItems: "center",
                     padding: 12,
                     border: "1px solid var(--ink-line)",
                     borderRadius: "var(--r-md)",
                   }}
                 >
-                  <div style={{ width: 80, height: 80, borderRadius: "var(--r-sm)", overflow: "hidden" }}>
+                  <div className="cart-item-thumb" style={{ borderRadius: "var(--r-sm)", overflow: "hidden" }}>
                     <PhotoSurface hue="warm">
                       <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", padding: 6 }}>
                         <EspressoCup />
@@ -343,7 +341,7 @@ function CartFooter({ items, total }: { items: CartItem[]; total: number }) {
   );
 
   return (
-    <footer style={{ padding: "24px 32px 30px", borderTop: "1px solid var(--ink-line)" }}>
+    <footer className="cart-drawer-foot" style={{ borderTop: "1px solid var(--ink-line)" }}>
       <div
         style={{
           display: "flex",
@@ -730,7 +728,6 @@ export function ProductModal({
           </div>
         </div>
       </div>
-      <style>{`@media (max-width: 800px) { .product-modal { grid-template-columns: 1fr !important; max-height: 96vh !important; overflow-y: auto !important; } .product-modal > div:first-of-type { aspect-ratio: auto !important; height: 360px !important; } }`}</style>
     </div>
   );
 }
