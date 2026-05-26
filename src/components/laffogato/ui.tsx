@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+
+import { placeOrderAction } from "@/app/odeme/actions";
 
 import type { Product } from "./data";
 import {
@@ -341,13 +343,38 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
               <span style={{ fontFamily: "var(--serif-display)", fontSize: 20 }}>Toplam</span>
               <span style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 28 }}>{total}₺</span>
             </div>
-            <button className="btn btn-primary btn-lg" style={{ width: "100%", justifyContent: "center" }}>
-              Ödemeye geç <span className="arrow">→</span>
-            </button>
+            <CheckoutButton items={items} />
           </footer>
         )}
       </aside>
     </>
+  );
+}
+
+function CheckoutButton({ items }: { items: CartItem[] }) {
+  const [pending, setPending] = useState(false);
+
+  const itemsJson = JSON.stringify(
+    items.map((it) => ({
+      name: it.name,
+      price: it.price ?? 0,
+      qty: it.qty ?? 1,
+    })),
+  );
+
+  return (
+    <form action={placeOrderAction} onSubmit={() => setPending(true)}>
+      <input type="hidden" name="items" value={itemsJson} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="btn btn-primary btn-lg"
+        style={{ width: "100%", justifyContent: "center", opacity: pending ? 0.7 : 1 }}
+      >
+        {pending ? "Sipariş gönderiliyor…" : "Ödemeye geç"}
+        <span className="arrow">→</span>
+      </button>
+    </form>
   );
 }
 

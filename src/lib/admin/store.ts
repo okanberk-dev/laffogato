@@ -293,6 +293,52 @@ export async function updateOrderStatus(
   return orders[idx];
 }
 
+export interface PlaceOrderInput {
+  items: Array<{ name: string; priceMinor: number; qty: number }>;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+}
+
+/**
+ * Creates a `pending_payment` order from the customer cart. Real payment
+ * flow will mark it as `paid` via the webhook handler. For now we leave
+ * it in pending so the admin can manually advance the status.
+ */
+export async function placeOrder(input: PlaceOrderInput): Promise<AdminOrder> {
+  const items: AdminOrderItem[] = input.items
+    .filter((it) => it.qty > 0 && it.priceMinor >= 0)
+    .map((it) => ({
+      productName: it.name,
+      qty: it.qty,
+      unitPriceMinor: it.priceMinor,
+    }));
+
+  const subtotalMinor = items.reduce(
+    (s, it) => s + it.unitPriceMinor * it.qty,
+    0,
+  );
+
+  const nextNo = orders.length === 0
+    ? 10_001
+    : Math.max(...orders.map((o) => o.orderNo)) + 1;
+
+  const order: AdminOrder = {
+    id: slugifyId("ord", orders.length + 1),
+    orderNo: nextNo,
+    customerName: input.customerName?.trim() || "Misafir",
+    customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
+    status: "pending_payment",
+    items,
+    subtotalMinor,
+    shippingMinor: 0,
+    totalMinor: subtotalMinor,
+    createdAt: new Date().toISOString(),
+  };
+  orders.push(order);
+  return order;
+}
+
 // ── Settings ──────────────────────────────────────────────────────────────
 
 export async function getSettings(): Promise<AdminSettings> {
