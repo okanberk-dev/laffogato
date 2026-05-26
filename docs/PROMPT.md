@@ -22,34 +22,40 @@ Laffogato, bir kafe markasının online vitrinidir. İki temel kullanım vardır
 ### Müşteri tarafı (`/`)
 
 - [ ] Ana sayfa — hero, öne çıkan ürünler, hakkımızda kısa
-- [ ] Menü (`/menu`) — kafe içi menü kategorileri (görsel ağırlıklı, satın al butonu yok)
-- [ ] Ürünler (`/urunler`) — satılan ürünler kataloğu, kategori filtresi, arama
-- [ ] Ürün detay (`/urunler/[slug]`) — galeri, açıklama, varyant seçimi, sepete ekle
-- [ ] Sepet (`/sepet`) — kalemler, miktar değiştir, toplam
-- [ ] Ödeme (`/odeme`) — teslimat adresi, ödeme yöntemi seçimi, "sipariş ver" → mock provider
-- [ ] Hesabım (`/hesabim`) — siparişler, profil, adresler
-- [ ] İletişim (`/iletisim`) — adres, harita, form
-- [ ] Hakkımızda (`/hakkimizda`)
+- [x] Ana sayfa — premium dark hero, marquee, signature affogato, matcha bar, shop teaser, reels, franchise teaser, press
+- [x] Menü (`#menu` hash route) — sticky tab nav, 5 kategori × kalem, kafe MENU'sü artık admin'den yönetiliyor
+- [x] Ürünler / Shop (`#shop`) — sidebar filter (kategori + fiyat slider + tag), Affogato Kit feature, trust badges, was-price strike
+- [x] Ürün hızlı bakış modal (galeri yok ama varyant + detay var)
+- [x] Sepet (CartDrawer) — kalemler, sil, toplam, kargo bilgisi, "Ödemeye geç"; localStorage'da kalıcı
+- [x] Ödeme (`/odeme/basarili?ref=<id>`) — `placeOrderAction` ile gerçek sipariş yaratır, premium başarı sayfası, sepet otomatik temizlenir
+- [x] Hikaye (`#story`) · Visit (`#visit`, interaktif rezervasyon kartı) · Reels (`#reels`, lightbox) · Franchise (`#franchise`, 3 paket + apply form)
+- [ ] Hesabım — müşteri auth + sipariş geçmişi (önümüzdeki sprint)
 
 ### Admin tarafı (`/admin`)
 
-- [ ] Giriş (`/admin/giris`) — email + şifre + opsiyonel 2FA (TOTP)
-- [ ] Dashboard (`/admin`) — günlük sipariş, ciro, en çok satan
-- [ ] Ürünler (`/admin/urunler`) — listele, oluştur, düzenle, sil, görsel yükle, stok güncelle
-- [ ] Kategoriler (`/admin/kategoriler`) — CRUD + sıralama
-- [ ] Siparişler (`/admin/siparisler`) — listele, durum güncelle (hazırlanıyor / kargolandı / tamamlandı / iptal), detay
-- [ ] Ayarlar (`/admin/ayarlar`) — kafe bilgileri, çalışma saatleri, hero banner
+- [x] Giriş (`/admin/giris`) — env-credentialed signed cookie (constant-time compare, 7 gün TTL). 2FA opsiyonel olarak sonra
+- [x] Dashboard (`/admin`) — 5 stat kart (ürün, stoksuz, kategori, aktif sipariş, ciro), son siparişler, hızlı erişim
+- [x] Ürünler (`/admin/urunler`) — liste (arama + filtre + sıralama), 5-step wizard ile yeni, tabs ile düzenle (slug/SKU/compareAt/cost/SEO/varyant/images)
+- [x] Kategoriler (`/admin/kategoriler`) — Shop kategorileri CRUD + sıralama + ikon
+- [x] **Menü** (`/admin/menu`) — Kafe menüsü (affogato/matcha/espresso/cold/gelato) kalem CRUD, tag editörü, sıralama
+- [x] Siparişler (`/admin/siparisler`) — 7 durumlu dropdown ile güncelleme, kalem dökümü
+- [x] Ayarlar (`/admin/ayarlar`) — kafe adı, slogan, telefon, email, adres, çalışma saatleri, mağaza açık toggle
+- [ ] Görsel yükleme (Supabase Storage) — şu an URL alanı
+- [ ] Bulk actions (toplu sil/aktif yap) — gelecek
 
 ### Auth
 
-- Müşteri: Supabase Auth (email + şifre, magic link opsiyonel)
-- Admin: aynı auth + `admin_users` tablosunda kayıtlı olma + 2FA (TOTP, ileride zorunlu)
+- [x] Admin: env-credentialed signed cookie (`ADMIN_EMAIL` + `ADMIN_PASSWORD` + HMAC SHA256 + `ADMIN_SESSION_SECRET`)
+- [ ] Müşteri: Supabase Auth (Supabase bağlandığında)
+- [ ] Admin 2FA (TOTP) — gelecek
 
 ### Ödeme
 
-- `PaymentProvider` arayüzü + `MockPaymentProvider` (rastgele başarı/başarısızlık döndürür)
-- Webhook endpoint'i (`/api/webhooks/payment`) — imza doğrulama + idempotent uygulama
-- Sipariş durumu: `pending_payment` → `paid` → `preparing` → `shipped` → `completed` / `cancelled` / `refunded`
+- [x] `PaymentProvider` arayüzü + `MockPaymentProvider` (`src/lib/payment/`)
+- [x] Webhook endpoint'i (`/api/webhooks/payment`) — HMAC SHA256 imza doğrulama, idempotent insert (`payment_transactions.provider_ref` unique)
+- [x] Sipariş durum makinesi: `pending_payment` → `paid` → `preparing` → `shipped` → `completed` | `cancelled` | `refunded`
+- [x] Stok düşümü `placeOrder` içinde atomik (önce tüm kalemler valide, sonra düşürme — partial write yok)
+- [ ] Gerçek sanal POS sağlayıcısı (iyzico / PayTR / craftgate — kullanıcı seçimi bekleniyor)
 
 ## 4. MVP Dışı (sonraya)
 
