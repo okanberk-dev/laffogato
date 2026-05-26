@@ -10,9 +10,12 @@ import {
   recordLoginFailure,
 } from "./rate-limit";
 import { canAccess, type AdminRole, type AdminSection } from "./roles";
+import { has2FA, verifyToken as verify2FAToken } from "./twofa";
 
 const COOKIE_NAME = "laffogato_admin_session";
+const PENDING_COOKIE_NAME = "laffogato_admin_pending_2fa";
 const COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+const PENDING_MAX_AGE_SECONDS = 5 * 60;
 
 const VALID_ROLES: AdminRole[] = ["owner", "manager", "staff"];
 
@@ -132,6 +135,7 @@ function constantTimeEqual(a: string, b: string): boolean {
 export interface SignInResult {
   ok: boolean;
   error?: string;
+  needs2FA?: boolean;
 }
 
 async function getClientIp(): Promise<string> {
@@ -199,13 +203,75 @@ export async function signInAdmin(
 
   clearLoginLimit(ip, email);
 
+  const cookieStore = await cookies();
+
+  // If the account has 2FA enrolled, we don't issue the real session
+  // cookie yet — we set a short-lived "pending" cookie and the login
+  // page sends the user to /admin/iki-asama where they have to enter
+  // the 6-digit code.
+  if (has2FA(matched.email)) {
+    const pending = signPendingToken(matched);
+    cookieStore.set(PENDING_COOKIE_NAME, pending, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: PENDING_MAX_AGE_SECONDS,
+    });
+    return { ok: true, needs2FA: true };
+  }
+
+  await setActiveSession(matched, cookieStore);
+  return { ok: true };
+}
+
+interface PendingAuthSession {
+  email: string;
+  role: AdminRole;
+  expiresAt: number;
+}
+
+function signPendingToken(user: AdminUserRecord): string {
+  const expiresAt = Date.now() + PENDING_MAX_AGE_SECONDS * 1000;
+  const payload = `pending|${user.email}|${user.role}|${expiresAt}`;
+  const sig = createHmac("sha256", getSecret()).update(payload).digest("hex");
+  return `${payload}|${sig}`;
+}
+
+function verifyPendingToken(token: string): PendingAuthSession | null {
+  const parts = token.split("|");
+  if (parts.length !== 5 || parts[0] !== "pending") return null;
+  const [, email, roleRaw, expiresAtStr, sig] = parts;
+  const role = roleRaw as AdminRole;
+  const expiresAt = Number(expiresAtStr);
+  if (
+    !email ||
+    !VALID_ROLES.includes(role) ||
+    !Number.isFinite(expiresAt) ||
+    expiresAt < Date.now()
+  ) {
+    return null;
+  }
+  const expected = createHmac("sha256", getSecret())
+    .update(`pending|${email}|${role}|${expiresAt}`)
+    .digest("hex");
+  const sigBuf = Buffer.from(sig, "hex");
+  const expBuf = Buffer.from(expected, "hex");
+  if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
+    return null;
+  }
+  return { email, role, expiresAt };
+}
+
+async function setActiveSession(
+  user: { email: string; role: AdminRole },
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+): Promise<void> {
   const session: AdminSession = {
-    email: matched.email,
-    role: matched.role,
+    email: user.email,
+    role: user.role,
     expiresAt: Date.now() + COOKIE_MAX_AGE_SECONDS * 1000,
   };
-
-  const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, signToken(session), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -213,8 +279,41 @@ export async function signInAdmin(
     path: "/",
     maxAge: COOKIE_MAX_AGE_SECONDS,
   });
+  cookieStore.delete(PENDING_COOKIE_NAME);
+}
 
+export async function getPendingSession(): Promise<PendingAuthSession | null> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(PENDING_COOKIE_NAME)?.value;
+    if (!token) return null;
+    return verifyPendingToken(token);
+  } catch {
+    return null;
+  }
+}
+
+export interface TwoFAResult {
+  ok: boolean;
+  error?: string;
+}
+
+export async function complete2FA(token: string): Promise<TwoFAResult> {
+  const pending = await getPendingSession();
+  if (!pending) {
+    return { ok: false, error: "Oturum süresi doldu. Yeniden giriş yap." };
+  }
+  if (!verify2FAToken(pending.email, token)) {
+    return { ok: false, error: "Doğrulama kodu yanlış." };
+  }
+  const cookieStore = await cookies();
+  await setActiveSession(pending, cookieStore);
   return { ok: true };
+}
+
+export async function cancelPending2FA(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete(PENDING_COOKIE_NAME);
 }
 
 /**
