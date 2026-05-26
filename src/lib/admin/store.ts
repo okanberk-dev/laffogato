@@ -7,6 +7,8 @@ import {
   type Product as DesignProduct,
 } from "@/components/laffogato/data";
 
+import type { WeeklyHours } from "./days";
+
 /**
  * In-memory mutable store for the admin panel.
  *
@@ -113,15 +115,38 @@ export interface AdminOrder {
   createdAt: string;
 }
 
+export type { DayOfWeek, OpeningHour, WeeklyHours } from "./days";
+export { DAYS_OF_WEEK, DAY_LABELS } from "./days";
+
 export interface AdminSettings {
   name: string;
   tagline: string;
   phone: string;
   email: string;
   address: string;
+  /** Legacy single-line display string (kept for footer back-compat). */
   openingHours: string;
   isShopOpen: boolean;
   heroImageUrl: string;
+
+  /** Per-day open/close used by Visit page + footer table. */
+  weeklyHours: WeeklyHours;
+
+  /** Tax (VAT) percentage applied to subtotals at checkout. */
+  taxRatePct: number;
+
+  /** Flat shipping fee in minor units; suppressed above threshold. */
+  shippingFlatMinor: number;
+  shippingFreeThresholdMinor: number;
+
+  /** SEO defaults. */
+  seoTitle: string;
+  seoOgImageUrl: string;
+  /** When false, robots noindex headers are emitted (sitemap suppressed). */
+  seoIndexable: boolean;
+
+  /** Operational notifications email. */
+  notificationEmail: string;
 }
 
 function parsePrice(price: string): number {
@@ -285,6 +310,18 @@ const orders: AdminOrder[] = [
   },
 ];
 
+function defaultWeeklyHours(): WeeklyHours {
+  return {
+    mon: { open: "10:00", close: "23:00", closed: false },
+    tue: { open: "10:00", close: "23:00", closed: false },
+    wed: { open: "10:00", close: "23:00", closed: false },
+    thu: { open: "10:00", close: "23:00", closed: false },
+    fri: { open: "10:00", close: "24:00", closed: false },
+    sat: { open: "10:00", close: "24:00", closed: false },
+    sun: { open: "10:00", close: "23:00", closed: false },
+  };
+}
+
 let settings: AdminSettings = {
   name: "L'Affogato",
   tagline: "Drink it. Eat the cup.",
@@ -294,6 +331,14 @@ let settings: AdminSettings = {
   openingHours: "Pzt–Pş 10:00–23:00 · Cu–Ct 10:00–24:00 · Pz 10:00–23:00",
   isShopOpen: true,
   heroImageUrl: "",
+  weeklyHours: defaultWeeklyHours(),
+  taxRatePct: 20,
+  shippingFlatMinor: 4900,
+  shippingFreeThresholdMinor: 50000,
+  seoTitle: "L'Affogato — Maltepe Park",
+  seoOgImageUrl: "",
+  seoIndexable: true,
+  notificationEmail: "",
 };
 
 // ── Products ──────────────────────────────────────────────────────────────
