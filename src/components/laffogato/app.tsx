@@ -54,10 +54,20 @@ function readStoredCart(): CartItem[] {
 export function LaffogatoApp({
   products,
   settings,
+  notice,
 }: {
   products?: Product[];
   settings?: FooterSettings;
+  notice?: string;
 }) {
+  const [noticeOpen, setNoticeOpen] = useState(Boolean(notice));
+
+  useEffect(() => {
+    setNoticeOpen(Boolean(notice));
+    if (!notice) return;
+    const t = window.setTimeout(() => setNoticeOpen(false), 7000);
+    return () => window.clearTimeout(t);
+  }, [notice]);
   const [route, setRoute] = useState<Route>("home");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -179,6 +189,53 @@ export function LaffogatoApp({
         onClose={() => setProductOpen(null)}
         addToCart={addToCart}
       />
+      {notice && noticeOpen && (
+        <div
+          role="alert"
+          style={{
+            position: "fixed",
+            top: 96,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 80,
+            maxWidth: "min(540px, calc(100vw - 32px))",
+            background: "var(--ink)",
+            color: "#FFF",
+            padding: "14px 18px",
+            borderRadius: 999,
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            boxShadow: "0 20px 40px rgba(20, 16, 11, 0.25)",
+            fontSize: 13,
+            lineHeight: 1.45,
+          }}
+        >
+          <span style={{ flex: 1 }}>{notice}</span>
+          <button
+            onClick={() => setNoticeOpen(false)}
+            aria-label="Kapat"
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.12)",
+              color: "#FFF",
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            <svg width="10" height="10" viewBox="0 0 16 16">
+              <path
+                d="M3 3 L13 13 M13 3 L3 13"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
     </>
   );
 }

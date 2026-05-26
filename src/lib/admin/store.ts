@@ -300,19 +300,60 @@ export interface PlaceOrderInput {
   customerPhone?: string;
 }
 
+export type PlaceOrderResult =
+  | { ok: true; order: AdminOrder }
+  | { ok: false; reason: "out_of_stock"; productName: string; available: number };
+
 /**
  * Creates a `pending_payment` order from the customer cart. Real payment
  * flow will mark it as `paid` via the webhook handler. For now we leave
  * it in pending so the admin can manually advance the status.
+ *
+ * Stock is validated up-front (all items checked before any mutation) and
+ * then decremented atomically. The in-memory store runs in a single Node
+ * process so there's no race; when this swaps to Supabase the whole thing
+ * becomes a transaction.
  */
-export async function placeOrder(input: PlaceOrderInput): Promise<AdminOrder> {
-  const items: AdminOrderItem[] = input.items
-    .filter((it) => it.qty > 0 && it.priceMinor >= 0)
-    .map((it) => ({
-      productName: it.name,
-      qty: it.qty,
-      unitPriceMinor: it.priceMinor,
-    }));
+export async function placeOrder(
+  input: PlaceOrderInput,
+): Promise<PlaceOrderResult> {
+  const cleanItems = input.items.filter(
+    (it) => it.qty > 0 && it.priceMinor >= 0,
+  );
+
+  // Validate stock for every known product first so we either succeed
+  // entirely or fail entirely (no partial decrement).
+  for (const it of cleanItems) {
+    const product = products.find((p) => p.name === it.name);
+    if (product && product.stock < it.qty) {
+      return {
+        ok: false,
+        reason: "out_of_stock",
+        productName: product.name,
+        available: product.stock,
+      };
+    }
+  }
+
+  // Decrement stock for products we recognise. Unknown product names
+  // (e.g. a renamed item still in someone's cart) pass through so the
+  // order isn't lost — admin can reconcile manually.
+  for (const it of cleanItems) {
+    const idx = products.findIndex((p) => p.name === it.name);
+    if (idx !== -1) {
+      products[idx] = {
+        ...products[idx],
+        stock: Math.max(0, products[idx].stock - it.qty),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+  }
+
+  const items: AdminOrderItem[] = cleanItems.map((it) => ({
+    productName: it.name,
+    qty: it.qty,
+    unitPriceMinor: it.priceMinor,
+  }));
 
   const subtotalMinor = items.reduce(
     (s, it) => s + it.unitPriceMinor * it.qty,
@@ -336,7 +377,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<AdminOrder> {
     createdAt: new Date().toISOString(),
   };
   orders.push(order);
-  return order;
+  return { ok: true, order };
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────
