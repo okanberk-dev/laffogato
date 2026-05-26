@@ -1,14 +1,9 @@
 import Link from "next/link";
 
-import {
-  Card,
-  DangerButton,
-  PageHeader,
-  formatTRY,
-} from "@/components/admin/forms";
+import { Card, PageHeader } from "@/components/admin/forms";
+import { ProductsList } from "@/components/admin/products-list";
+import { requireRole } from "@/lib/admin/auth";
 import { listCategories, listProducts } from "@/lib/admin/store";
-
-import { deleteProductAction } from "./actions";
 
 export const metadata = { title: "Admin · Ürünler" };
 export const dynamic = "force-dynamic";
@@ -43,6 +38,7 @@ const SORT_LABEL: Record<SortKey, string> = {
 };
 
 export default async function AdminProductsPage({ searchParams }: PageProps) {
+  await requireRole("products");
   const sp = await searchParams;
   const q = (sp.q ?? "").trim().toLowerCase();
   const cat = (sp.cat ?? "all").trim();
@@ -93,7 +89,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
       <PageHeader
         eyebrow="Shop · La bottega"
         title="Ürünler"
-        description="Online mağazada satılan ürünler. Yeni: 5 adımlı sihirbaz; düzenleme: tüm sekmeler tek formda."
+        description="Online mağazada satılan ürünler. Yeni: 5 adımlı sihirbaz; düzenleme: tüm sekmeler tek formda. Birden fazla seç ⇒ toplu işlem."
         action={
           <Link
             href="/admin/urunler/yeni"
@@ -173,129 +169,11 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
       </Card>
 
       <Card>
-        {list.length === 0 ? (
-          <p className="text-sm text-neutral-500">Bu filtreyle ürün yok.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr
-                  className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-[0.22em] text-neutral-500"
-                  style={{ fontFamily: "var(--mono), monospace" }}
-                >
-                  <th className="py-3 pr-3">Ürün</th>
-                  <th className="pr-3">SKU</th>
-                  <th className="pr-3">Kategori</th>
-                  <th className="pr-3 text-right">Fiyat</th>
-                  <th className="pr-3 text-right">Stok</th>
-                  <th className="pr-3">Durum</th>
-                  <th className="text-right">İşlem</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((p) => {
-                  const stockTone =
-                    p.stock === 0
-                      ? "text-red-600"
-                      : p.stock <= p.lowStockThreshold
-                        ? "text-amber-700"
-                        : "text-neutral-700";
-                  return (
-                    <tr
-                      key={p.id}
-                      className="border-b border-neutral-100 last:border-b-0 align-top"
-                    >
-                      <td className="py-3 pr-3">
-                        <div className="font-medium text-neutral-900">{p.name}</div>
-                        <div
-                          className="text-[10px] uppercase tracking-[0.2em] text-neutral-500"
-                          style={{ fontFamily: "var(--mono), monospace" }}
-                        >
-                          {p.tag} {p.variants.length > 0 && `· ${p.variants.length} varyant`}
-                        </div>
-                      </td>
-                      <td
-                        className="pr-3 text-xs text-neutral-500"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {p.sku}
-                      </td>
-                      <td className="pr-3 text-neutral-700">
-                        {labelByCat[p.cat] ?? p.cat}
-                      </td>
-                      <td
-                        className="pr-3 text-right"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {formatTRY(p.priceMinor)}
-                        {p.compareAtPriceMinor > p.priceMinor && (
-                          <div className="text-[10px] text-neutral-400 line-through">
-                            {formatTRY(p.compareAtPriceMinor)}
-                          </div>
-                        )}
-                      </td>
-                      <td
-                        className={`pr-3 text-right ${stockTone}`}
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {p.stock}
-                      </td>
-                      <td className="pr-3">
-                        <div className="flex flex-wrap gap-1">
-                          {p.isActive ? (
-                            <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-green-700">
-                              Aktif
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-neutral-500">
-                              Pasif
-                            </span>
-                          )}
-                          {p.featured && (
-                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-amber-700">
-                              Öne çıkan
-                            </span>
-                          )}
-                          {p.isNew && (
-                            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-blue-700">
-                              Yeni
-                            </span>
-                          )}
-                          {p.stock === 0 && (
-                            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-red-700">
-                              Stoksuz
-                            </span>
-                          )}
-                          {p.stock > 0 && p.stock <= p.lowStockThreshold && (
-                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-amber-700">
-                              Düşük stok
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Link
-                            href={`/admin/urunler/${p.id}/duzenle`}
-                            className="inline-flex items-center justify-center rounded-full border border-neutral-200 px-3 py-1.5 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
-                          >
-                            Düzenle
-                          </Link>
-                          <form action={deleteProductAction}>
-                            <input type="hidden" name="id" value={p.id} />
-                            <DangerButton type="submit" className="text-xs">
-                              Sil
-                            </DangerButton>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <ProductsList
+          products={list}
+          categories={categories}
+          labelByCat={labelByCat}
+        />
       </Card>
     </main>
   );

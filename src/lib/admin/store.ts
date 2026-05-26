@@ -7,6 +7,8 @@ import {
   type Product as DesignProduct,
 } from "@/components/laffogato/data";
 
+import type { WeeklyHours } from "./days";
+
 /**
  * In-memory mutable store for the admin panel.
  *
@@ -71,10 +73,13 @@ export interface AdminCategory {
   sortOrder: number;
 }
 
+export type AdminOrderItemStatus = "pending" | "ready" | "cancelled";
+
 export interface AdminOrderItem {
   productName: string;
   qty: number;
   unitPriceMinor: number;
+  status: AdminOrderItemStatus;
 }
 
 export type AdminOrderStatus =
@@ -86,18 +91,36 @@ export type AdminOrderStatus =
   | "cancelled"
   | "refunded";
 
+export interface AdminRefund {
+  id: string;
+  amountMinor: number;
+  reason: string;
+  createdAt: string;
+}
+
 export interface AdminOrder {
   id: string;
   orderNo: number;
   customerName: string;
   customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+  internalNote: string;
   status: AdminOrderStatus;
   items: AdminOrderItem[];
   subtotalMinor: number;
+  /** Positive minor units; 0 when no promo. */
+  discountMinor: number;
+  /** Promo code applied at checkout; empty when none. */
+  promoCode: string;
   shippingMinor: number;
   totalMinor: number;
+  refunds: AdminRefund[];
   createdAt: string;
 }
+
+export type { DayOfWeek, OpeningHour, WeeklyHours } from "./days";
+export { DAYS_OF_WEEK, DAY_LABELS } from "./days";
 
 export interface AdminSettings {
   name: string;
@@ -105,9 +128,29 @@ export interface AdminSettings {
   phone: string;
   email: string;
   address: string;
+  /** Legacy single-line display string (kept for footer back-compat). */
   openingHours: string;
   isShopOpen: boolean;
   heroImageUrl: string;
+
+  /** Per-day open/close used by Visit page + footer table. */
+  weeklyHours: WeeklyHours;
+
+  /** Tax (VAT) percentage applied to subtotals at checkout. */
+  taxRatePct: number;
+
+  /** Flat shipping fee in minor units; suppressed above threshold. */
+  shippingFlatMinor: number;
+  shippingFreeThresholdMinor: number;
+
+  /** SEO defaults. */
+  seoTitle: string;
+  seoOgImageUrl: string;
+  /** When false, robots noindex headers are emitted (sitemap suppressed). */
+  seoIndexable: boolean;
+
+  /** Operational notifications email. */
+  notificationEmail: string;
 }
 
 function parsePrice(price: string): number {
@@ -192,14 +235,31 @@ const orders: AdminOrder[] = [
     orderNo: 10_001,
     customerName: "Ali Yılmaz",
     customerEmail: "ali@example.com",
+    customerPhone: "+90 532 111 22 33",
+    shippingAddress:
+      "Kadıköy Mah. Bağdat Cd. No: 142 Daire 7\nKadıköy / İstanbul 34710",
+    internalNote: "",
     status: "preparing",
     items: [
-      { productName: "Sirena — Espresso Blend", qty: 1, unitPriceMinor: 32000 },
-      { productName: "Edible Cups — 6 Box", qty: 1, unitPriceMinor: 24000 },
+      {
+        productName: "Sirena — Espresso Blend",
+        qty: 1,
+        unitPriceMinor: 32000,
+        status: "pending",
+      },
+      {
+        productName: "Edible Cups — 6 Box",
+        qty: 1,
+        unitPriceMinor: 24000,
+        status: "ready",
+      },
     ],
     subtotalMinor: 56000,
+    discountMinor: 0,
+    promoCode: "",
     shippingMinor: 0,
     totalMinor: 56000,
+    refunds: [],
     createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
   },
   {
@@ -207,11 +267,24 @@ const orders: AdminOrder[] = [
     orderNo: 10_002,
     customerName: "Merve Kaya",
     customerEmail: "merve@example.com",
+    customerPhone: "+90 533 222 33 44",
+    shippingAddress: "Etiler Mah. Nispetiye Cd. No: 38\nBeşiktaş / İstanbul 34337",
+    internalNote: "Hediye paketi istendi. Kart: 'İyi ki varsın 🤍'",
     status: "paid",
-    items: [{ productName: "Affogato Kit — For Two", qty: 1, unitPriceMinor: 78000 }],
+    items: [
+      {
+        productName: "Affogato Kit — For Two",
+        qty: 1,
+        unitPriceMinor: 78000,
+        status: "pending",
+      },
+    ],
     subtotalMinor: 78000,
+    discountMinor: 0,
+    promoCode: "",
     shippingMinor: 0,
     totalMinor: 78000,
+    refunds: [],
     createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
   },
   {
@@ -219,17 +292,45 @@ const orders: AdminOrder[] = [
     orderNo: 10_003,
     customerName: "Deniz Aydın",
     customerEmail: "deniz@example.com",
+    customerPhone: "+90 535 444 55 66",
+    shippingAddress: "Cihangir Mah. Akarsu Yokuşu No: 22\nBeyoğlu / İstanbul 34433",
+    internalNote: "",
     status: "completed",
     items: [
-      { productName: "Uji Matcha — Ceremonial", qty: 1, unitPriceMinor: 42000 },
-      { productName: "Bambu Chasen", qty: 1, unitPriceMinor: 32000 },
+      {
+        productName: "Uji Matcha — Ceremonial",
+        qty: 1,
+        unitPriceMinor: 42000,
+        status: "ready",
+      },
+      {
+        productName: "Bambu Chasen",
+        qty: 1,
+        unitPriceMinor: 32000,
+        status: "ready",
+      },
     ],
     subtotalMinor: 74000,
+    discountMinor: 0,
+    promoCode: "",
     shippingMinor: 0,
     totalMinor: 74000,
+    refunds: [],
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
   },
 ];
+
+function defaultWeeklyHours(): WeeklyHours {
+  return {
+    mon: { open: "10:00", close: "23:00", closed: false },
+    tue: { open: "10:00", close: "23:00", closed: false },
+    wed: { open: "10:00", close: "23:00", closed: false },
+    thu: { open: "10:00", close: "23:00", closed: false },
+    fri: { open: "10:00", close: "24:00", closed: false },
+    sat: { open: "10:00", close: "24:00", closed: false },
+    sun: { open: "10:00", close: "23:00", closed: false },
+  };
+}
 
 let settings: AdminSettings = {
   name: "L'Affogato",
@@ -240,6 +341,14 @@ let settings: AdminSettings = {
   openingHours: "Pzt–Pş 10:00–23:00 · Cu–Ct 10:00–24:00 · Pz 10:00–23:00",
   isShopOpen: true,
   heroImageUrl: "",
+  weeklyHours: defaultWeeklyHours(),
+  taxRatePct: 20,
+  shippingFlatMinor: 4900,
+  shippingFreeThresholdMinor: 50000,
+  seoTitle: "L'Affogato — Maltepe Park",
+  seoOgImageUrl: "",
+  seoIndexable: true,
+  notificationEmail: "",
 };
 
 // ── Products ──────────────────────────────────────────────────────────────
@@ -329,6 +438,155 @@ export async function deleteProduct(id: string): Promise<boolean> {
   return true;
 }
 
+export type BulkProductOp =
+  | { kind: "delete" }
+  | { kind: "activate" }
+  | { kind: "deactivate" }
+  | { kind: "set_category"; cat: ShopCategoryId };
+
+export interface BulkResult {
+  updated: number;
+}
+
+export async function bulkUpdateProducts(
+  ids: string[],
+  op: BulkProductOp,
+): Promise<BulkResult> {
+  if (ids.length === 0) return { updated: 0 };
+  const idSet = new Set(ids);
+  const now = new Date().toISOString();
+  let updated = 0;
+
+  if (op.kind === "delete") {
+    for (let i = products.length - 1; i >= 0; i -= 1) {
+      if (idSet.has(products[i].id)) {
+        products.splice(i, 1);
+        updated += 1;
+      }
+    }
+    return { updated };
+  }
+
+  for (let i = 0; i < products.length; i += 1) {
+    if (!idSet.has(products[i].id)) continue;
+    if (op.kind === "activate") {
+      if (!products[i].isActive) {
+        products[i] = { ...products[i], isActive: true, updatedAt: now };
+        updated += 1;
+      }
+    } else if (op.kind === "deactivate") {
+      if (products[i].isActive) {
+        products[i] = { ...products[i], isActive: false, updatedAt: now };
+        updated += 1;
+      }
+    } else if (op.kind === "set_category") {
+      if (products[i].cat !== op.cat) {
+        products[i] = { ...products[i], cat: op.cat, updatedAt: now };
+        updated += 1;
+      }
+    }
+  }
+  return { updated };
+}
+
+// ── Stock movements ──────────────────────────────────────────────────────
+
+export type StockMoveReason =
+  | "order_placed"
+  | "manual_adjust"
+  | "refund_restock"
+  | "seed";
+
+export interface AdminStockMove {
+  id: string;
+  productId: string;
+  productName: string;
+  /** Negative for outgoing (sale), positive for incoming (restock/manual). */
+  delta: number;
+  /** Stock level AFTER this move was applied. */
+  stockAfter: number;
+  reason: StockMoveReason;
+  note: string;
+  /** Linked order id (for order_placed / refund_restock). */
+  orderId?: string;
+  /** Admin email or "system" / "customer". */
+  actor: string;
+  createdAt: string;
+}
+
+const stockMoves: AdminStockMove[] = [];
+let stockMoveCounter = 0;
+
+function recordStockMove(input: Omit<AdminStockMove, "id" | "createdAt">): AdminStockMove {
+  stockMoveCounter += 1;
+  const move: AdminStockMove = {
+    id: `mov-${String(stockMoveCounter).padStart(6, "0")}`,
+    createdAt: new Date().toISOString(),
+    ...input,
+  };
+  stockMoves.unshift(move);
+  if (stockMoves.length > 2000) stockMoves.length = 2000;
+  return move;
+}
+
+export async function listStockMoves(filter?: {
+  productId?: string;
+  reason?: StockMoveReason;
+  limit?: number;
+}): Promise<AdminStockMove[]> {
+  let out = stockMoves;
+  if (filter?.productId) {
+    out = out.filter((m) => m.productId === filter.productId);
+  }
+  if (filter?.reason) {
+    out = out.filter((m) => m.reason === filter.reason);
+  }
+  return out.slice(0, filter?.limit ?? 500);
+}
+
+export interface AdjustStockInput {
+  productId: string;
+  delta: number;
+  note: string;
+  actor: string;
+}
+
+export type AdjustStockResult =
+  | { ok: true; move: AdminStockMove; product: AdminProduct }
+  | { ok: false; error: string };
+
+export async function adjustStock(
+  input: AdjustStockInput,
+): Promise<AdjustStockResult> {
+  const idx = products.findIndex((p) => p.id === input.productId);
+  if (idx === -1) return { ok: false, error: "Ürün bulunamadı." };
+  if (!Number.isFinite(input.delta) || input.delta === 0) {
+    return { ok: false, error: "Geçerli bir değer gir (0 olamaz)." };
+  }
+  const next = products[idx].stock + input.delta;
+  if (next < 0) {
+    return {
+      ok: false,
+      error: `Stok eksiye düşemez (mevcut: ${products[idx].stock}).`,
+    };
+  }
+  products[idx] = {
+    ...products[idx],
+    stock: next,
+    updatedAt: new Date().toISOString(),
+  };
+  const move = recordStockMove({
+    productId: products[idx].id,
+    productName: products[idx].name,
+    delta: input.delta,
+    stockAfter: next,
+    reason: "manual_adjust",
+    note: input.note.trim().slice(0, 500),
+    actor: input.actor,
+  });
+  return { ok: true, move, product: products[idx] };
+}
+
 // ── Categories ────────────────────────────────────────────────────────────
 
 export async function listCategories(): Promise<AdminCategory[]> {
@@ -378,6 +636,67 @@ export async function listOrders(): Promise<AdminOrder[]> {
   return [...orders].sort((a, b) => b.orderNo - a.orderNo);
 }
 
+export interface CustomerSummary {
+  email: string;
+  name: string;
+  phone: string;
+  orderCount: number;
+  lifetimeValueMinor: number;
+  refundedMinor: number;
+  lastOrderAt: string;
+  firstOrderAt: string;
+}
+
+/**
+ * Pre-groups orders by customer email so the admin "Müşteriler" page
+ * (and any future customer-self-service surface) can hit it cheaply.
+ * Guest-only orders (no email collected) are filtered out.
+ */
+export async function listCustomers(): Promise<CustomerSummary[]> {
+  const byEmail = new Map<string, CustomerSummary>();
+  for (const o of orders) {
+    const email = o.customerEmail?.trim().toLowerCase();
+    if (!email || email === "guest@laffogato.local") continue;
+    const existing = byEmail.get(email);
+    const refundedHere = o.refunds.reduce((s, r) => s + r.amountMinor, 0);
+    if (!existing) {
+      byEmail.set(email, {
+        email,
+        name: o.customerName,
+        phone: o.customerPhone,
+        orderCount: 1,
+        lifetimeValueMinor: o.totalMinor,
+        refundedMinor: refundedHere,
+        lastOrderAt: o.createdAt,
+        firstOrderAt: o.createdAt,
+      });
+    } else {
+      existing.orderCount += 1;
+      existing.lifetimeValueMinor += o.totalMinor;
+      existing.refundedMinor += refundedHere;
+      if (o.createdAt > existing.lastOrderAt) {
+        existing.lastOrderAt = o.createdAt;
+        existing.name = o.customerName || existing.name;
+        existing.phone = o.customerPhone || existing.phone;
+      }
+      if (o.createdAt < existing.firstOrderAt) {
+        existing.firstOrderAt = o.createdAt;
+      }
+    }
+  }
+  return Array.from(byEmail.values()).sort(
+    (a, b) => b.lastOrderAt.localeCompare(a.lastOrderAt),
+  );
+}
+
+export async function customerOrdersByEmail(email: string): Promise<AdminOrder[]> {
+  const needle = email.trim().toLowerCase();
+  if (!needle) return [];
+  return orders
+    .filter((o) => o.customerEmail.trim().toLowerCase() === needle)
+    .sort((a, b) => b.orderNo - a.orderNo);
+}
+
 export async function getOrder(id: string): Promise<AdminOrder | null> {
   return orders.find((o) => o.id === id) ?? null;
 }
@@ -392,11 +711,32 @@ export async function updateOrderStatus(
   return orders[idx];
 }
 
+export type BulkOrderOp = { kind: "set_status"; status: AdminOrderStatus };
+
+export async function bulkUpdateOrders(
+  ids: string[],
+  op: BulkOrderOp,
+): Promise<BulkResult> {
+  if (ids.length === 0) return { updated: 0 };
+  const idSet = new Set(ids);
+  let updated = 0;
+  for (let i = 0; i < orders.length; i += 1) {
+    if (!idSet.has(orders[i].id)) continue;
+    if (orders[i].status !== op.status) {
+      orders[i] = { ...orders[i], status: op.status };
+      updated += 1;
+    }
+  }
+  return { updated };
+}
+
 export interface PlaceOrderInput {
   items: Array<{ name: string; priceMinor: number; qty: number }>;
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
+  shippingAddress?: string;
+  promoCode?: string;
 }
 
 export type PlaceOrderResult =
@@ -436,15 +776,19 @@ export async function placeOrder(
 
   // Decrement stock for products we recognise. Unknown product names
   // (e.g. a renamed item still in someone's cart) pass through so the
-  // order isn't lost — admin can reconcile manually.
+  // order isn't lost — admin can reconcile manually. We collect the
+  // decrements so we can record stock moves once the order id is known.
+  const decrements: Array<{ idx: number; qty: number; stockAfter: number }> = [];
   for (const it of cleanItems) {
     const idx = products.findIndex((p) => p.name === it.name);
     if (idx !== -1) {
+      const stockAfter = Math.max(0, products[idx].stock - it.qty);
       products[idx] = {
         ...products[idx],
-        stock: Math.max(0, products[idx].stock - it.qty),
+        stock: stockAfter,
         updatedAt: new Date().toISOString(),
       };
+      decrements.push({ idx, qty: it.qty, stockAfter });
     }
   }
 
@@ -452,6 +796,7 @@ export async function placeOrder(
     productName: it.name,
     qty: it.qty,
     unitPriceMinor: it.priceMinor,
+    status: "pending",
   }));
 
   const subtotalMinor = items.reduce(
@@ -463,20 +808,182 @@ export async function placeOrder(
     ? 10_001
     : Math.max(...orders.map((o) => o.orderNo)) + 1;
 
+  const orderId = slugifyId("ord", orders.length + 1);
+  for (const d of decrements) {
+    recordStockMove({
+      productId: products[d.idx].id,
+      productName: products[d.idx].name,
+      delta: -d.qty,
+      stockAfter: d.stockAfter,
+      reason: "order_placed",
+      note: `Sipariş #${nextNo}`,
+      orderId,
+      actor: input.customerEmail ?? "customer",
+    });
+  }
+
+  // Re-validate promo server-side; never trust a client-supplied discount.
+  let promoCode = "";
+  let discountMinor = 0;
+  if (input.promoCode && input.promoCode.trim()) {
+    const promoCheck = await applyPromoCode(input.promoCode, subtotalMinor);
+    if (promoCheck.ok) {
+      promoCode = promoCheck.promo.code;
+      discountMinor = promoCheck.discountMinor;
+      await consumePromoUsage(promoCode);
+    }
+    // Silently ignore an invalid promo at checkout; the cart should have
+    // surfaced the error already. We don't fail the order because the
+    // code might have expired between the cart preview and submit.
+  }
+
+  const totalMinor = Math.max(0, subtotalMinor - discountMinor);
+
   const order: AdminOrder = {
-    id: slugifyId("ord", orders.length + 1),
+    id: orderId,
     orderNo: nextNo,
     customerName: input.customerName?.trim() || "Misafir",
     customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
+    customerPhone: input.customerPhone?.trim() ?? "",
+    shippingAddress: input.shippingAddress?.trim() ?? "",
+    internalNote: "",
     status: "pending_payment",
     items,
     subtotalMinor,
+    discountMinor,
+    promoCode,
     shippingMinor: 0,
-    totalMinor: subtotalMinor,
+    totalMinor,
+    refunds: [],
     createdAt: new Date().toISOString(),
   };
   orders.push(order);
   return { ok: true, order };
+}
+
+// ── Order detail operations ──────────────────────────────────────────────
+
+export type OrderTransition =
+  | "start_preparing"
+  | "mark_shipped"
+  | "complete"
+  | "cancel"
+  | "mark_paid";
+
+const TRANSITION_MAP: Record<OrderTransition, {
+  from: AdminOrderStatus[];
+  to: AdminOrderStatus;
+}> = {
+  mark_paid: { from: ["pending_payment"], to: "paid" },
+  start_preparing: { from: ["paid", "pending_payment"], to: "preparing" },
+  mark_shipped: { from: ["preparing", "paid"], to: "shipped" },
+  complete: { from: ["shipped", "preparing"], to: "completed" },
+  cancel: {
+    from: ["pending_payment", "paid", "preparing", "shipped"],
+    to: "cancelled",
+  },
+};
+
+export function availableTransitions(status: AdminOrderStatus): OrderTransition[] {
+  return (Object.entries(TRANSITION_MAP) as Array<[OrderTransition, typeof TRANSITION_MAP[OrderTransition]]>)
+    .filter(([, { from }]) => from.includes(status))
+    .map(([t]) => t);
+}
+
+export interface TransitionResult {
+  ok: boolean;
+  order?: AdminOrder;
+  error?: string;
+}
+
+export async function transitionOrder(
+  id: string,
+  transition: OrderTransition,
+): Promise<TransitionResult> {
+  const idx = orders.findIndex((o) => o.id === id);
+  if (idx === -1) return { ok: false, error: "Sipariş bulunamadı." };
+  const map = TRANSITION_MAP[transition];
+  if (!map) return { ok: false, error: "Geçersiz işlem." };
+  if (!map.from.includes(orders[idx].status)) {
+    return {
+      ok: false,
+      error: `Bu işlem '${orders[idx].status}' durumunda yapılamaz.`,
+    };
+  }
+  orders[idx] = { ...orders[idx], status: map.to };
+  return { ok: true, order: orders[idx] };
+}
+
+export async function setOrderInternalNote(
+  id: string,
+  note: string,
+): Promise<AdminOrder | null> {
+  const idx = orders.findIndex((o) => o.id === id);
+  if (idx === -1) return null;
+  orders[idx] = { ...orders[idx], internalNote: note.slice(0, 2000) };
+  return orders[idx];
+}
+
+export async function setOrderItemStatus(
+  orderId: string,
+  itemIndex: number,
+  status: AdminOrderItemStatus,
+): Promise<AdminOrder | null> {
+  const idx = orders.findIndex((o) => o.id === orderId);
+  if (idx === -1) return null;
+  if (itemIndex < 0 || itemIndex >= orders[idx].items.length) return null;
+  const nextItems = orders[idx].items.map((it, i) =>
+    i === itemIndex ? { ...it, status } : it,
+  );
+  orders[idx] = { ...orders[idx], items: nextItems };
+  return orders[idx];
+}
+
+export interface RefundInput {
+  amountMinor: number;
+  reason: string;
+}
+
+export type RefundResult =
+  | { ok: true; order: AdminOrder; refund: AdminRefund }
+  | { ok: false; error: string };
+
+export async function refundOrder(
+  orderId: string,
+  input: RefundInput,
+): Promise<RefundResult> {
+  const idx = orders.findIndex((o) => o.id === orderId);
+  if (idx === -1) return { ok: false, error: "Sipariş bulunamadı." };
+  const order = orders[idx];
+  if (order.status === "cancelled") {
+    return { ok: false, error: "İptal edilen siparişe iade yapılamaz." };
+  }
+  const already = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
+  const remaining = order.totalMinor - already;
+  if (input.amountMinor <= 0) {
+    return { ok: false, error: "İade tutarı pozitif olmalı." };
+  }
+  if (input.amountMinor > remaining) {
+    return {
+      ok: false,
+      error: `İade tutarı kalan bakiyeyi aşıyor (kalan: ${(remaining / 100).toFixed(2)} ₺).`,
+    };
+  }
+  const refund: AdminRefund = {
+    id: `rfn-${order.refunds.length + 1}-${Date.now()}`,
+    amountMinor: input.amountMinor,
+    reason: input.reason.slice(0, 500),
+    createdAt: new Date().toISOString(),
+  };
+  const nextRefunds = [...order.refunds, refund];
+  const fullyRefunded =
+    nextRefunds.reduce((s, r) => s + r.amountMinor, 0) >= order.totalMinor;
+  orders[idx] = {
+    ...order,
+    refunds: nextRefunds,
+    status: fullyRefunded ? "refunded" : order.status,
+  };
+  return { ok: true, order: orders[idx], refund };
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────
@@ -660,6 +1167,57 @@ export async function deleteMenuItem(id: string): Promise<boolean> {
   return true;
 }
 
+export type BulkMenuOp =
+  | { kind: "delete" }
+  | { kind: "activate" }
+  | { kind: "deactivate" }
+  | { kind: "set_category"; categoryKey: MenuCategoryKey };
+
+export async function bulkUpdateMenuItems(
+  ids: string[],
+  op: BulkMenuOp,
+): Promise<BulkResult> {
+  if (ids.length === 0) return { updated: 0 };
+  const idSet = new Set(ids);
+  const now = new Date().toISOString();
+  let updated = 0;
+
+  if (op.kind === "delete") {
+    for (let i = menuItems.length - 1; i >= 0; i -= 1) {
+      if (idSet.has(menuItems[i].id)) {
+        menuItems.splice(i, 1);
+        updated += 1;
+      }
+    }
+    return { updated };
+  }
+
+  for (let i = 0; i < menuItems.length; i += 1) {
+    if (!idSet.has(menuItems[i].id)) continue;
+    if (op.kind === "activate") {
+      if (!menuItems[i].isActive) {
+        menuItems[i] = { ...menuItems[i], isActive: true, updatedAt: now };
+        updated += 1;
+      }
+    } else if (op.kind === "deactivate") {
+      if (menuItems[i].isActive) {
+        menuItems[i] = { ...menuItems[i], isActive: false, updatedAt: now };
+        updated += 1;
+      }
+    } else if (op.kind === "set_category") {
+      if (menuItems[i].categoryKey !== op.categoryKey) {
+        menuItems[i] = {
+          ...menuItems[i],
+          categoryKey: op.categoryKey,
+          updatedAt: now,
+        };
+        updated += 1;
+      }
+    }
+  }
+  return { updated };
+}
+
 /**
  * Returns the cafe menu in the design's MENU shape, with category meta
  * (title, sub, italian, note) preserved from SEED_MENU and items pulled
@@ -699,3 +1257,323 @@ export const MENU_CATEGORY_LABELS: Record<MenuCategoryKey, string> = {
   cold: SEED_MENU.cold.title,
   gelato: SEED_MENU.gelato.title,
 };
+
+
+// ── Promo codes ──────────────────────────────────────────────────────────
+
+export type PromoDiscountKind = "pct" | "fixed";
+
+export interface AdminPromo {
+  id: string;
+  code: string;
+  kind: PromoDiscountKind;
+  /** Percentage 1–100 when kind="pct", minor units (kuruş) when kind="fixed". */
+  value: number;
+  /** Minor units. 0 = no minimum. */
+  minSubtotalMinor: number;
+  /** 0 = unlimited. */
+  usageLimit: number;
+  usageCount: number;
+  expiresAt: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const promos: AdminPromo[] = [];
+let promoCounter = 0;
+
+export async function listPromos(): Promise<AdminPromo[]> {
+  return [...promos].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function getPromo(id: string): Promise<AdminPromo | null> {
+  return promos.find((p) => p.id === id) ?? null;
+}
+
+export interface PromoInput {
+  code: string;
+  kind: PromoDiscountKind;
+  value: number;
+  minSubtotalMinor: number;
+  usageLimit: number;
+  expiresAt: string;
+  isActive: boolean;
+}
+
+function normalizeCode(raw: string): string {
+  return raw.trim().toUpperCase().replace(/\s+/g, "");
+}
+
+export type PromoMutationResult =
+  | { ok: true; promo: AdminPromo }
+  | { ok: false; error: string };
+
+export async function createPromo(input: PromoInput): Promise<PromoMutationResult> {
+  const code = normalizeCode(input.code);
+  if (!code) return { ok: false, error: "Kod boş olamaz." };
+  if (promos.some((p) => p.code === code)) {
+    return { ok: false, error: "Bu kod zaten kullanılıyor." };
+  }
+  promoCounter += 1;
+  const now = new Date().toISOString();
+  const promo: AdminPromo = {
+    id: `prm-${String(promoCounter).padStart(4, "0")}`,
+    code,
+    kind: input.kind,
+    value: input.value,
+    minSubtotalMinor: input.minSubtotalMinor,
+    usageLimit: input.usageLimit,
+    usageCount: 0,
+    expiresAt: input.expiresAt,
+    isActive: input.isActive,
+    createdAt: now,
+    updatedAt: now,
+  };
+  promos.push(promo);
+  return { ok: true, promo };
+}
+
+export async function updatePromo(
+  id: string,
+  input: PromoInput,
+): Promise<PromoMutationResult> {
+  const idx = promos.findIndex((p) => p.id === id);
+  if (idx === -1) return { ok: false, error: "Kod bulunamadı." };
+  const code = normalizeCode(input.code);
+  if (!code) return { ok: false, error: "Kod boş olamaz." };
+  if (promos.some((p) => p.code === code && p.id !== id)) {
+    return { ok: false, error: "Başka bir kod aynı koda sahip." };
+  }
+  promos[idx] = {
+    ...promos[idx],
+    code,
+    kind: input.kind,
+    value: input.value,
+    minSubtotalMinor: input.minSubtotalMinor,
+    usageLimit: input.usageLimit,
+    expiresAt: input.expiresAt,
+    isActive: input.isActive,
+    updatedAt: new Date().toISOString(),
+  };
+  return { ok: true, promo: promos[idx] };
+}
+
+export async function deletePromo(id: string): Promise<boolean> {
+  const idx = promos.findIndex((p) => p.id === id);
+  if (idx === -1) return false;
+  promos.splice(idx, 1);
+  return true;
+}
+
+export type PromoApplyResult =
+  | { ok: true; promo: AdminPromo; discountMinor: number }
+  | { ok: false; error: string };
+
+/**
+ * Pure function (no mutation) — checks if a code is valid for the given
+ * subtotal and returns the discount in minor units. The caller is the
+ * one that ultimately records usage via consumePromoUsage() once the
+ * order is actually placed; this two-step keeps the cart UI honest
+ * about the price preview without committing the limit.
+ */
+export async function applyPromoCode(
+  code: string,
+  subtotalMinor: number,
+): Promise<PromoApplyResult> {
+  const needle = normalizeCode(code);
+  if (!needle) return { ok: false, error: "Kod gir." };
+  const promo = promos.find((p) => p.code === needle);
+  if (!promo) return { ok: false, error: "Geçersiz kod." };
+  if (!promo.isActive) return { ok: false, error: "Bu kod kapalı." };
+  if (promo.expiresAt && new Date(promo.expiresAt).getTime() < Date.now()) {
+    return { ok: false, error: "Kodun süresi doldu." };
+  }
+  if (promo.usageLimit > 0 && promo.usageCount >= promo.usageLimit) {
+    return { ok: false, error: "Kod kullanım limiti doldu." };
+  }
+  if (subtotalMinor < promo.minSubtotalMinor) {
+    return {
+      ok: false,
+      error: `Bu koda uygulanabilmek için en az ${(promo.minSubtotalMinor / 100).toFixed(2)} ₺ alışveriş gerek.`,
+    };
+  }
+  let discountMinor =
+    promo.kind === "pct"
+      ? Math.floor((subtotalMinor * promo.value) / 100)
+      : Math.min(promo.value, subtotalMinor);
+  if (discountMinor < 0) discountMinor = 0;
+  if (discountMinor > subtotalMinor) discountMinor = subtotalMinor;
+  return { ok: true, promo, discountMinor };
+}
+
+export async function consumePromoUsage(code: string): Promise<void> {
+  const needle = normalizeCode(code);
+  const idx = promos.findIndex((p) => p.code === needle);
+  if (idx === -1) return;
+  promos[idx] = {
+    ...promos[idx],
+    usageCount: promos[idx].usageCount + 1,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+
+
+// ── Analytics aggregations ──────────────────────────────────────────────
+
+export type BucketGranularity = "day" | "week" | "month";
+
+export interface RevenueBucket {
+  /** ISO-like bucket id (YYYY-MM-DD, YYYY-Www, YYYY-MM). */
+  bucket: string;
+  /** Human label for axis labels. */
+  label: string;
+  revenueMinor: number;
+  orderCount: number;
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function startOfWeek(d: Date): Date {
+  const x = new Date(d);
+  // ISO week: Monday = 1 .. Sunday = 7
+  const day = (x.getDay() + 6) % 7;
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - day);
+  return x;
+}
+
+function isoWeek(d: Date): { year: number; week: number } {
+  const target = new Date(d);
+  target.setHours(0, 0, 0, 0);
+  // Thursday of current week determines ISO week-year
+  target.setDate(target.getDate() + 3 - ((target.getDay() + 6) % 7));
+  const week1 = new Date(target.getFullYear(), 0, 4);
+  const diff = (target.getTime() - week1.getTime()) / (24 * 60 * 60 * 1000);
+  const week = 1 + Math.round((diff - 3 + ((week1.getDay() + 6) % 7)) / 7);
+  return { year: target.getFullYear(), week };
+}
+
+function bucketKey(d: Date, g: BucketGranularity): string {
+  if (g === "day") {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  }
+  if (g === "week") {
+    const { year, week } = isoWeek(d);
+    return `${year}-W${pad2(week)}`;
+  }
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+}
+
+function bucketLabel(d: Date, g: BucketGranularity): string {
+  if (g === "day") {
+    return `${pad2(d.getDate())} ${MONTH_SHORT[d.getMonth()]}`;
+  }
+  if (g === "week") {
+    const start = startOfWeek(d);
+    return `${pad2(start.getDate())} ${MONTH_SHORT[start.getMonth()]}`;
+  }
+  return `${MONTH_SHORT[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+}
+
+const MONTH_SHORT = [
+  "Oca", "Şub", "Mar", "Nis", "May", "Haz",
+  "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara",
+];
+
+/**
+ * Generates `count` consecutive buckets ending at "today" and tallies orders
+ * that fall in each. Cancelled orders are excluded; refunded orders count
+ * gross (the refund chart is a separate line if needed later).
+ */
+export async function revenueBuckets(
+  granularity: BucketGranularity,
+  count: number,
+): Promise<RevenueBucket[]> {
+  const now = new Date();
+  const buckets: RevenueBucket[] = [];
+  for (let i = count - 1; i >= 0; i -= 1) {
+    const d = new Date(now);
+    if (granularity === "day") d.setDate(d.getDate() - i);
+    else if (granularity === "week") d.setDate(d.getDate() - i * 7);
+    else d.setMonth(d.getMonth() - i);
+    buckets.push({
+      bucket: bucketKey(d, granularity),
+      label: bucketLabel(d, granularity),
+      revenueMinor: 0,
+      orderCount: 0,
+    });
+  }
+  const byKey = new Map(buckets.map((b) => [b.bucket, b]));
+
+  for (const o of orders) {
+    if (o.status === "cancelled") continue;
+    const k = bucketKey(new Date(o.createdAt), granularity);
+    const slot = byKey.get(k);
+    if (slot) {
+      slot.revenueMinor += o.totalMinor;
+      slot.orderCount += 1;
+    }
+  }
+  return buckets;
+}
+
+export interface TopProductRow {
+  productName: string;
+  qty: number;
+  revenueMinor: number;
+}
+
+export async function topProducts(limit = 5): Promise<TopProductRow[]> {
+  const tally = new Map<string, TopProductRow>();
+  for (const o of orders) {
+    if (o.status === "cancelled") continue;
+    for (const it of o.items) {
+      if (it.status === "cancelled") continue;
+      const row = tally.get(it.productName);
+      if (row) {
+        row.qty += it.qty;
+        row.revenueMinor += it.unitPriceMinor * it.qty;
+      } else {
+        tally.set(it.productName, {
+          productName: it.productName,
+          qty: it.qty,
+          revenueMinor: it.unitPriceMinor * it.qty,
+        });
+      }
+    }
+  }
+  return Array.from(tally.values())
+    .sort((a, b) => b.revenueMinor - a.revenueMinor)
+    .slice(0, limit);
+}
+
+export interface AnalyticsHeadline {
+  totalRevenueMinor: number;
+  totalOrders: number;
+  averageOrderMinor: number;
+  refundedMinor: number;
+  /** Placeholder until traffic data is wired (sessions endpoint). */
+  conversionRatePct: number | null;
+}
+
+export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
+  const valid = orders.filter((o) => o.status !== "cancelled");
+  const totalRevenueMinor = valid.reduce((s, o) => s + o.totalMinor, 0);
+  const totalOrders = valid.length;
+  const refundedMinor = orders.reduce(
+    (s, o) => s + o.refunds.reduce((r, x) => r + x.amountMinor, 0),
+    0,
+  );
+  return {
+    totalRevenueMinor,
+    totalOrders,
+    averageOrderMinor: totalOrders > 0 ? Math.round(totalRevenueMinor / totalOrders) : 0,
+    refundedMinor,
+    conversionRatePct: null,
+  };
+}
+

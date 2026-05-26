@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/admin/forms";
+import { requireRole } from "@/lib/admin/auth";
 import { getSettings } from "@/lib/admin/store";
 
 import { SettingsForm } from "./settings-form";
@@ -7,6 +8,7 @@ export const metadata = { title: "Admin · Ayarlar" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
+  await requireRole("settings");
   const settings = await getSettings();
 
   return (

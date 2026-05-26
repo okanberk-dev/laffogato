@@ -1,16 +1,22 @@
 import Link from "next/link";
 
 import { getAdminSession } from "@/lib/admin/auth";
+import { canAccess, ROLE_LABELS, type AdminSection } from "@/lib/admin/roles";
 
 import { logoutAction } from "./actions";
 
-const NAV: Array<[string, string]> = [
-  ["/admin", "Genel bakış"],
-  ["/admin/menu", "Menü"],
-  ["/admin/urunler", "Ürünler"],
-  ["/admin/kategoriler", "Kategoriler"],
-  ["/admin/siparisler", "Siparişler"],
-  ["/admin/ayarlar", "Ayarlar"],
+const NAV: Array<{ href: string; label: string; section: AdminSection }> = [
+  { href: "/admin", label: "Genel bakış", section: "dashboard" },
+  { href: "/admin/menu", label: "Menü", section: "menu" },
+  { href: "/admin/urunler", label: "Ürünler", section: "products" },
+  { href: "/admin/kategoriler", label: "Kategoriler", section: "categories" },
+  { href: "/admin/siparisler", label: "Siparişler", section: "orders" },
+  { href: "/admin/musteriler", label: "Müşteriler", section: "customers" },
+  { href: "/admin/promosyon", label: "Promosyon", section: "promos" },
+  { href: "/admin/stok-hareketleri", label: "Stok", section: "stock" },
+  { href: "/admin/raporlar", label: "Raporlar", section: "reports" },
+  { href: "/admin/olay-kaydi", label: "Olay kaydı", section: "audit" },
+  { href: "/admin/ayarlar", label: "Ayarlar", section: "settings" },
 ];
 
 export default async function AdminLayout({
@@ -19,6 +25,9 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = await getAdminSession();
+  const visibleNav = session
+    ? NAV.filter((n) => canAccess(n.section, session.role))
+    : [];
 
   return (
     <div className="flex min-h-screen flex-col bg-neutral-50">
@@ -46,13 +55,13 @@ export default async function AdminLayout({
 
           {session && (
             <nav className="flex flex-wrap items-center gap-1 text-sm text-neutral-600">
-              {NAV.map(([href, label]) => (
+              {visibleNav.map((n) => (
                 <Link
-                  key={href}
-                  href={href}
+                  key={n.href}
+                  href={n.href}
                   className="rounded-full px-3 py-1.5 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
                 >
-                  {label}
+                  {n.label}
                 </Link>
               ))}
             </nav>
@@ -64,7 +73,7 @@ export default async function AdminLayout({
                 className="hidden text-[10px] uppercase tracking-[0.22em] text-neutral-500 sm:inline"
                 style={{ fontFamily: "var(--mono), monospace" }}
               >
-                {session.email}
+                {session.email} · {ROLE_LABELS[session.role]}
               </span>
               <form action={logoutAction}>
                 <button

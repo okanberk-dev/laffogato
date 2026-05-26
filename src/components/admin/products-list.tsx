@@ -1,0 +1,274 @@
+"use client";
+
+import Link from "next/link";
+import { useActionState, useEffect, useRef } from "react";
+
+import {
+  bulkProductsAction,
+  deleteProductAction,
+  type BulkActionState,
+} from "@/app/admin/urunler/actions";
+import type { AdminCategory, AdminProduct } from "@/lib/admin/store";
+
+import { BulkActionBar, RowCheckbox, SelectAllCheckbox, useSelection } from "./bulk";
+import { DangerButton, formatTRY } from "./forms";
+
+interface Props {
+  products: AdminProduct[];
+  categories: AdminCategory[];
+  labelByCat: Record<string, string>;
+}
+
+const initialBulkState: BulkActionState = {};
+
+export function ProductsList({ products, categories, labelByCat }: Props) {
+  const selection = useSelection();
+  const [state, formAction, pending] = useActionState(
+    bulkProductsAction,
+    initialBulkState,
+  );
+  const lastFlash = useRef<string>("");
+
+  // When a bulk action succeeds, clear the selection so the bar disappears
+  // and the next interaction starts from a clean slate.
+  useEffect(() => {
+    if (state.ok && state.ok.updated >= 0) {
+      const flashKey = `${state.ok.op}:${state.ok.updated}:${Date.now()}`;
+      if (flashKey !== lastFlash.current) {
+        lastFlash.current = flashKey;
+        selection.clear();
+      }
+    }
+  }, [state, selection]);
+
+  const ids = products.map((p) => p.id);
+  const idsCsv = selection.ids.join(",");
+
+  const flash = state.ok
+    ? `${OP_LABEL[state.ok.op] ?? state.ok.op}: ${state.ok.updated} ürün güncellendi.`
+    : state.error;
+
+  return (
+    <>
+      {flash && (
+        <div
+          className={`mb-3 rounded-md border px-3 py-2 text-sm ${
+            state.error
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          }`}
+        >
+          {flash}
+        </div>
+      )}
+
+      {products.length === 0 ? (
+        <p className="text-sm text-neutral-500">Bu filtreyle ürün yok.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr
+                className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+                style={{ fontFamily: "var(--mono), monospace" }}
+              >
+                <th className="py-3 pr-3">
+                  <SelectAllCheckbox ids={ids} selection={selection} />
+                </th>
+                <th className="py-3 pr-3">Ürün</th>
+                <th className="pr-3">SKU</th>
+                <th className="pr-3">Kategori</th>
+                <th className="pr-3 text-right">Fiyat</th>
+                <th className="pr-3 text-right">Stok</th>
+                <th className="pr-3">Durum</th>
+                <th className="text-right">İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((p) => {
+                const stockTone =
+                  p.stock === 0
+                    ? "text-red-600"
+                    : p.stock <= p.lowStockThreshold
+                      ? "text-amber-700"
+                      : "text-neutral-700";
+                const isSelected = selection.has(p.id);
+                return (
+                  <tr
+                    key={p.id}
+                    className={`border-b border-neutral-100 last:border-b-0 align-top ${
+                      isSelected ? "bg-neutral-50" : ""
+                    }`}
+                  >
+                    <td className="py-3 pr-3 align-middle">
+                      <RowCheckbox id={p.id} selection={selection} label={p.name} />
+                    </td>
+                    <td className="py-3 pr-3">
+                      <div className="font-medium text-neutral-900">{p.name}</div>
+                      <div
+                        className="text-[10px] uppercase tracking-[0.2em] text-neutral-500"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {p.tag}{" "}
+                        {p.variants.length > 0 && `· ${p.variants.length} varyant`}
+                      </div>
+                    </td>
+                    <td
+                      className="pr-3 text-xs text-neutral-500"
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      {p.sku}
+                    </td>
+                    <td className="pr-3 text-neutral-700">
+                      {labelByCat[p.cat] ?? p.cat}
+                    </td>
+                    <td
+                      className="pr-3 text-right"
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      {formatTRY(p.priceMinor)}
+                      {p.compareAtPriceMinor > p.priceMinor && (
+                        <div className="text-[10px] text-neutral-400 line-through">
+                          {formatTRY(p.compareAtPriceMinor)}
+                        </div>
+                      )}
+                    </td>
+                    <td
+                      className={`pr-3 text-right ${stockTone}`}
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      {p.stock}
+                    </td>
+                    <td className="pr-3">
+                      <div className="flex flex-wrap gap-1">
+                        {p.isActive ? (
+                          <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-green-700">
+                            Aktif
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-neutral-500">
+                            Pasif
+                          </span>
+                        )}
+                        {p.featured && (
+                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-amber-700">
+                            Öne çıkan
+                          </span>
+                        )}
+                        {p.isNew && (
+                          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-blue-700">
+                            Yeni
+                          </span>
+                        )}
+                        {p.stock === 0 && (
+                          <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-red-700">
+                            Stoksuz
+                          </span>
+                        )}
+                        {p.stock > 0 && p.stock <= p.lowStockThreshold && (
+                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-amber-700">
+                            Düşük stok
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Link
+                          href={`/admin/urunler/${p.id}/duzenle`}
+                          className="inline-flex items-center justify-center rounded-full border border-neutral-200 px-3 py-1.5 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+                        >
+                          Düzenle
+                        </Link>
+                        <form action={deleteProductAction}>
+                          <input type="hidden" name="id" value={p.id} />
+                          <DangerButton type="submit" className="text-xs">
+                            Sil
+                          </DangerButton>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <form action={formAction}>
+        <input type="hidden" name="ids" value={idsCsv} />
+        <BulkActionBar selection={selection} pending={pending}>
+          <button
+            type="submit"
+            name="op"
+            value="activate"
+            disabled={pending}
+            className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900 disabled:opacity-40"
+          >
+            Aktif yap
+          </button>
+          <button
+            type="submit"
+            name="op"
+            value="deactivate"
+            disabled={pending}
+            className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900 disabled:opacity-40"
+          >
+            Pasif yap
+          </button>
+          <div className="flex items-center gap-1">
+            <select
+              name="value"
+              defaultValue=""
+              className="rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-700 focus:border-neutral-900 focus:outline-none"
+            >
+              <option value="" disabled>
+                Kategoriye taşı…
+              </option>
+              {categories.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              name="op"
+              value="set_category"
+              disabled={pending}
+              className="rounded-full bg-neutral-200 px-3 py-1.5 text-xs text-neutral-800 hover:bg-neutral-300 disabled:opacity-40"
+            >
+              Taşı
+            </button>
+          </div>
+          <button
+            type="submit"
+            name="op"
+            value="delete"
+            disabled={pending}
+            onClick={(e) => {
+              if (
+                !confirm(
+                  `${selection.count} ürünü silmek istediğine emin misin? Bu işlem geri alınamaz.`,
+                )
+              ) {
+                e.preventDefault();
+              }
+            }}
+            className="rounded-full border border-red-200 px-3 py-1.5 text-xs text-red-700 hover:border-red-600 hover:bg-red-600 hover:text-white disabled:opacity-40"
+          >
+            Sil
+          </button>
+        </BulkActionBar>
+      </form>
+    </>
+  );
+}
+
+const OP_LABEL: Record<string, string> = {
+  activate: "Aktif yapıldı",
+  deactivate: "Pasif yapıldı",
+  delete: "Silindi",
+  set_category: "Kategori değiştirildi",
+};

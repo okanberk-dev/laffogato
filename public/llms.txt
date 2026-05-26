@@ -1,0 +1,99 @@
+# L'Affogato — Caffè · Gelato · Dolci
+
+> İtalyan kahve ve gelato barı. 1987'de Bologna'da Giancarlo Mancuso tarafından kuruldu; 2026'da torunu Eda Mancuso ilk yurt dışı şubeyi İstanbul Maltepe Park'ta açtı. İmza ritüel: yenilebilir waffle kup içinde Sirena espresso ve fior di latte gelato — "Drink it. Eat the cup." İtalya dışındaki tek L'Affogato şubesi.
+
+## Konum ve İletişim
+
+- **Adres**: Maltepe Park AVM · Açık-hava teras · Cevizli, Tugay Yolu Caddesi No:67, 34846 Maltepe, İstanbul, Türkiye
+- **Telefon**: +90 216 459 30 60
+- **E-posta**: maltepe@laffogato.it
+- **Koordinatlar**: 40.9337, 29.1517
+- **Ulaşım**: Tramvay Cevizli 5 dk, Marmaray 8 dk, E-5 Cevizli çıkışı 3 dk, ücretsiz vale
+
+## Çalışma Saatleri
+
+- Pazartesi — Perşembe: 10:00 — 23:00
+- Cuma — Cumartesi: 10:00 — 24:00
+- Pazar: 10:00 — 23:00
+
+## Ana Sayfalar
+
+- [Ana Sayfa](/): Genel tanıtım, öne çıkan affogato'lar, hikayemizin özeti
+- [Menü](/#menu): Affogato, Matcha Bar, Espresso, Cold Bar, Gelato & Dolci kategorileri
+- [Mağaza](/#shop): Çekirdek kahve, edible cup, hediye seti, ekipman, giyim
+- [Hikaye](/#story): 1987 Bologna'dan 2026 İstanbul'a markanın hikayesi
+- [Ziyaret](/#visit): Maltepe Park lokasyonu, ulaşım, rezervasyon
+- [Reels](/#reels): Mekan film ve sosyal medya içerikleri
+- [Franchise](/#franchise): Kiosk, Bottega, Salone paketleri ve başvuru süreci
+
+## Menü Özeti
+
+**Affogato (imza)**: Affogato Classico 130₺, Cioccolato 140₺, Nocciola 150₺, Pistacchio 160₺, Matcha 155₺, Strawberry 155₺. Tümü yenilebilir waffle kup içinde.
+
+**Matcha Bar**: Uji ceremonial grade. Matcha Latte 120₺, Strawberry Matcha 140₺, Matcha Tonic 130₺, Matcha Affogato 155₺, Hojicha 110₺.
+
+**Espresso & Coffee**: Espresso 80₺, Americano 90₺, Cappuccino 110₺, Latte 120₺, Mocha 140₺, Filter 110₺. 18g in, 36g out, 27sn extraction.
+
+**Cold Bar**: Cold Brew Sirena 120₺, Espresso Tonic 140₺, Iced Latte 120₺, Shakerato 130₺, Iced Strawberry Matcha 140₺, Iced Affogato 155₺.
+
+**Gelato & Dolci**: Single scoop 95₺, Double 160₺, Tiramisù 180₺, Bombolone 120₺, Cannolo Siciliano 140₺, Cantucci & Vin Santo 210₺.
+
+## Mağaza Ürünleri
+
+- Sirena Espresso Blend (250g, 320₺): Brezilya doğal + Etiyopya yıkanmış
+- Notturna Filter Lot (200g, 380₺): Kenya AA Nyeri
+- Edible Cups 6'lı kutu (240₺): Yenilebilir waffle kup
+- Affogato Kit For Two (780₺): Hediye seti, en çok satan
+- Uji Matcha Ceremonial (40g, 420₺): Japonya Uji bahçesi
+- Moka Bialetti × L'Affogato (3-cup, 690₺)
+- Porselen Espresso Set (2'li, 420₺)
+- Bambu Chasen (320₺): 80 dişli, Nara yapımı
+- Cotton Apron (480₺)
+- Enamel Tumbler (350ml, 320₺)
+- Cantucci Bronte Pistachio (180g, 180₺)
+
+## Marka Geçmişi
+
+- **1987** — Bologna, Via Galliera 21: Giancarlo Mancuso ilk L'Affogato barını açar
+- **1994** — Yenilebilir waffle kup glaze kaplaması patentlenir
+- **2008** — Sicilya Bronte pistacchio çiftlikleriyle doğrudan tedarik anlaşması
+- **2026** — Eda Mancuso İstanbul Maltepe Park'ta ilk yurt dışı şubeyi açar
+
+## Franchise Paketleri
+
+- **Kiosk** (24–38 m², 6–10 koltuk): €85.000 yatırım, €2.400 aylık. AVM teras, premium plaza için.
+- **Bottega** (40–80 m², 12–24 koltuk): €140.000 yatırım, €3.800 aylık. Cadde, mahalle merkezi için.
+- **Salone** (90–160 m², 40–80 koltuk): €280.000 yatırım, €6.500 aylık. Premium AVM, butik otel için.
+
+Beklenen geri dönüş: 14 ay. Süreç: başvuru → video görüşme → Maltepe Park ziyareti → sözleşme → Bologna'da 4–8 hafta eğitim → açılış.
+
+## Diyet ve Alerjen
+
+- Vegan: Affogato Cioccolato (vegan opsiyon), sorbe (çilek/mango/limon)
+- Glutensiz: Sınırlı edible cup stoğu (rezervasyon ile)
+- Süt: Yerel Maltepe mandırasından günlük taze
+- Kahve: Bologna'da Mancuso ailesi tarafından haftalık kavrulur
+
+## Yapısal Veri (JSON-LD)
+
+Ana sayfada tek `<script type="application/ld+json">` içinde aşağıdaki schema.org tipleri yayınlanır:
+- Organization (Mancuso ailesi, Bologna 1987)
+- CafeOrCoffeeShop + Restaurant (LocalBusiness, açık-hava teras, koordinat, saatler)
+- WebSite (SearchAction + ReserveAction)
+- Menu + MenuSection + MenuItem (canlı; 5 kategori × ortalama 6 kalem)
+- Product × 11 (mağaza SKU'ları + Offer + shipping + return policy)
+- FAQPage × 12 soru
+- AboutPage + Event timeline (1987/1994/2008/2026)
+- HowTo (Affogato Classico hazırlama, 4 adım)
+- Service (Franchise) + Offer × 3 (Kiosk/Bottega/Salone)
+- VideoObject × 8 (reels)
+- SpeakableSpecification (sesli asistanlar için)
+- BreadcrumbList (7 seviye)
+
+## Kaynaklar
+
+- [Tam içerik (LLM-friendly)](/llms-full.txt): Tüm sayfa içeriklerinin düz metin versiyonu
+- [Sitemap](/sitemap.xml): Tüm sayfa URL'leri
+- [Robots](/robots.txt): Tarama kuralları
+- [Manifest](/manifest.webmanifest): PWA manifesti
+- [Dynamic OG](/opengraph-image): 1200×630 PNG, brand renderlı

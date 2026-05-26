@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/admin/forms";
 import { CategoryForm } from "@/components/admin/category-form";
+import { requireRole } from "@/lib/admin/auth";
 import { getCategory } from "@/lib/admin/store";
 
 import { updateCategoryAction } from "../../actions";
@@ -13,6 +14,7 @@ interface PageProps {
 }
 
 export default async function EditCategoryPage({ params }: PageProps) {
+  await requireRole("categories");
   const { id } = await params;
   const category = await getCategory(id);
   if (!category) notFound();

@@ -3,12 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { logAudit } from "@/lib/admin/audit";
+import { bulkProductSchema } from "@/lib/admin/bulk-schema";
 import { productFormSchema } from "@/lib/admin/product-schema";
 import {
+  bulkUpdateProducts,
   createProduct,
   deleteProduct,
   updateProduct,
   type AdminProductVariant,
+  type BulkProductOp,
+  type ShopCategoryId,
 } from "@/lib/admin/store";
 
 function revalidateShop() {
@@ -81,7 +86,13 @@ export async function createProductAction(
       fieldErrors,
     };
   }
-  await createProduct(toInput(parsed.data));
+  const created = await createProduct(toInput(parsed.data));
+  await logAudit({
+    action: "create",
+    entity: "product",
+    entityId: created.id,
+    payload: { name: created.name, sku: created.sku },
+  });
   revalidateShop();
   redirect("/admin/urunler");
 }
@@ -104,6 +115,12 @@ export async function updateProductAction(
     };
   }
   await updateProduct(id, toInput(parsed.data));
+  await logAudit({
+    action: "update",
+    entity: "product",
+    entityId: id,
+    payload: { name: parsed.data.name, sku: parsed.data.sku },
+  });
   revalidateShop();
   revalidatePath(`/admin/urunler/${id}/duzenle`);
   redirect("/admin/urunler");
@@ -113,5 +130,40 @@ export async function deleteProductAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteProduct(id);
+  await logAudit({ action: "delete", entity: "product", entityId: id });
   revalidateShop();
+}
+
+export interface BulkActionState {
+  error?: string;
+  ok?: { op: string; updated: number };
+}
+
+export async function bulkProductsAction(
+  _prev: BulkActionState,
+  formData: FormData,
+): Promise<BulkActionState> {
+  const parsed = bulkProductSchema.safeParse({
+    ids: String(formData.get("ids") ?? ""),
+    op: String(formData.get("op") ?? ""),
+    value: formData.get("value") ? String(formData.get("value")) : undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Geçersiz istek." };
+  }
+  const { ids, op, value } = parsed.data;
+  let storeOp: BulkProductOp;
+  if (op === "set_category") {
+    storeOp = { kind: "set_category", cat: value as ShopCategoryId };
+  } else {
+    storeOp = { kind: op };
+  }
+  const { updated } = await bulkUpdateProducts(ids, storeOp);
+  await logAudit({
+    action: op === "delete" ? "bulk_delete" : "bulk_update",
+    entity: "product",
+    payload: { op, value, updated, idCount: ids.length },
+  });
+  revalidateShop();
+  return { ok: { op, updated } };
 }

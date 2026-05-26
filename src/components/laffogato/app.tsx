@@ -56,11 +56,14 @@ export function LaffogatoApp({
   settings,
   notice,
   menu,
+  seoSlot,
 }: {
   products?: Product[];
   settings?: FooterSettings;
   notice?: string;
   menu?: Record<string, MenuCategory>;
+  /** Server-rendered SEO content (FAQ, address block) inserted just above the footer on every route. */
+  seoSlot?: React.ReactNode;
 }) {
   const [noticeOpen, setNoticeOpen] = useState(Boolean(notice));
 
@@ -160,6 +163,7 @@ export function LaffogatoApp({
           products={products}
           menu={menu}
         />
+        {seoSlot}
         <Footer navigate={navigate} settings={settings} />
       </>
     );
@@ -181,6 +185,7 @@ export function LaffogatoApp({
         products={products}
         menu={menu}
       />
+      {seoSlot}
       <Footer navigate={navigate} settings={settings} />
       <CartDrawer
         open={cartOpen}

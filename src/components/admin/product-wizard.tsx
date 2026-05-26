@@ -29,6 +29,7 @@ import {
   TextInput,
   Textarea,
 } from "./forms";
+import { ImageUpload } from "./image-upload";
 
 const HUE_OPTIONS = [
   ["cream", "Krem"],
@@ -149,7 +150,7 @@ export function ProductWizard({
   );
 
   const [img, setImg] = useState(product?.img ?? "cream");
-  const [images, setImages] = useState((product?.images ?? []).join("\n"));
+  const initialImages = useMemo(() => product?.images ?? [], [product?.images]);
   const [seoTitle, setSeoTitle] = useState(product?.seoTitle ?? "");
   const [seoDescription, setSeoDescription] = useState(
     product?.seoDescription ?? "",
@@ -544,18 +545,20 @@ export function ProductWizard({
             </Select>
           </Field>
 
-          <Field
-            label="Görsel URL'leri"
-            hint="Satır başına bir URL. Birincisi kart görseli olur (Supabase Storage gelene kadar)."
-          >
-            <Textarea
-              name="images"
-              value={images}
-              onChange={(e) => setImages(e.target.value)}
-              rows={4}
-              placeholder="https://images.example.com/sirena-1.jpg"
-            />
-          </Field>
+          <div className="flex flex-col gap-2">
+            <div
+              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              style={{ fontFamily: "var(--mono), monospace" }}
+            >
+              Görseller
+            </div>
+            <ImageUpload name="images" initial={initialImages} />
+            <span className="text-xs text-neutral-500">
+              Sürükle bırak, tıkla veya URL yapıştır. İlk görsel kart görseli
+              olur. Yüklenen dosyalar tarayıcıda küçültülüp base64 olarak
+              saklanır (Supabase Storage gelene kadar).
+            </span>
+          </div>
 
           <div className="border-t border-neutral-200 pt-5">
             <div

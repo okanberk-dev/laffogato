@@ -1,11 +1,13 @@
 import { PageHeader } from "@/components/admin/forms";
 import { CategoryForm } from "@/components/admin/category-form";
+import { requireRole } from "@/lib/admin/auth";
 
 import { createCategoryAction } from "../actions";
 
 export const metadata = { title: "Admin · Yeni Kategori" };
 
-export default function NewCategoryPage() {
+export default async function NewCategoryPage() {
+  await requireRole("categories");
   return (
     <main className="mx-auto max-w-7xl px-6 py-10">
       <PageHeader
