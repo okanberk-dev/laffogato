@@ -8,7 +8,7 @@ import {
   Playfair_Display,
 } from "next/font/google";
 
-import { SITE } from "@/lib/seo/site";
+import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -112,18 +112,27 @@ export const metadata: Metadata = {
     description: SITE.shortDescription,
     // twitter:image is auto-discovered from src/app/twitter-image.tsx
   },
-  robots: {
-    index: true,
-    follow: true,
-    nocache: false,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-      "max-video-preview": -1,
-    },
-  },
+  robots: IS_PRODUCTION_DEPLOY
+    ? {
+        index: true,
+        follow: true,
+        nocache: false,
+        googleBot: {
+          index: true,
+          follow: true,
+          "max-image-preview": "large",
+          "max-snippet": -1,
+          "max-video-preview": -1,
+        },
+      }
+    : {
+        // Preview / development deployment — keep search engines out so they
+        // don't index transient URLs.
+        index: false,
+        follow: false,
+        nocache: true,
+        googleBot: { index: false, follow: false },
+      },
   verification: {
     ...(SITE.verification.google ? { google: SITE.verification.google } : {}),
     ...(SITE.verification.yandex ? { yandex: SITE.verification.yandex } : {}),

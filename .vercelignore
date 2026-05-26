@@ -1,0 +1,13 @@
+.next
+node_modules
+.env*.local
+.env.example
+docs
+supabase
+.claude
+.github
+README.md
+AGENTS.md
+CLAUDE.md
+tsconfig.tsbuildinfo
+*.log
