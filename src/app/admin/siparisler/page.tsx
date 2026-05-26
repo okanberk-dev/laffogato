@@ -1,5 +1,6 @@
 import { Card, PageHeader } from "@/components/admin/forms";
 import { OrdersList } from "@/components/admin/orders-list";
+import { requireRole } from "@/lib/admin/auth";
 import { listOrders, type AdminOrderStatus } from "@/lib/admin/store";
 
 export const metadata = { title: "Admin · Siparişler" };
@@ -26,6 +27,7 @@ const STATUS_TONE: Record<AdminOrderStatus, string> = {
 };
 
 export default async function AdminOrdersPage() {
+  await requireRole("orders");
   const orders = await listOrders();
 
   return (

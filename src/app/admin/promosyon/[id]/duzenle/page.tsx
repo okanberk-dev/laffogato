@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/admin/forms";
 import { PromoForm } from "@/components/admin/promo-form";
+import { requireRole } from "@/lib/admin/auth";
 import { getPromo } from "@/lib/admin/store";
 
 import { updatePromoAction, type PromoActionState } from "../../actions";
@@ -14,6 +15,7 @@ interface PageProps {
 }
 
 export default async function EditPromoPage({ params }: PageProps) {
+  await requireRole("promos");
   const { id } = await params;
   const promo = await getPromo(id);
   if (!promo) notFound();

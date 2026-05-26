@@ -1,14 +1,75 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { createHmac, timingSafeEqual } from "node:crypto";
+
+import { canAccess, type AdminRole, type AdminSection } from "./roles";
 
 const COOKIE_NAME = "laffogato_admin_session";
 const COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
+const VALID_ROLES: AdminRole[] = ["owner", "manager", "staff"];
+
 export interface AdminSession {
   email: string;
+  role: AdminRole;
   expiresAt: number;
+}
+
+interface AdminUserRecord {
+  email: string;
+  password: string;
+  role: AdminRole;
+}
+
+/**
+ * Resolves the list of admin users from env. Two sources:
+ *   - ADMIN_USERS (JSON array of {email,password,role})
+ *   - Legacy ADMIN_EMAIL + ADMIN_PASSWORD (role = "owner")
+ * The two are merged with ADMIN_USERS taking precedence on conflicts.
+ */
+function loadAdminUsers(): AdminUserRecord[] {
+  const out: AdminUserRecord[] = [];
+  const raw = process.env.ADMIN_USERS;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        for (const item of parsed) {
+          if (!item || typeof item !== "object") continue;
+          const email = String(
+            (item as Record<string, unknown>).email ?? "",
+          ).trim().toLowerCase();
+          const password = String(
+            (item as Record<string, unknown>).password ?? "",
+          );
+          const role = String(
+            (item as Record<string, unknown>).role ?? "owner",
+          ) as AdminRole;
+          if (email && password && VALID_ROLES.includes(role)) {
+            out.push({ email, password, role });
+          }
+        }
+      }
+    } catch {
+      // ignore — fall back to single-user env below
+    }
+  }
+  const fallbackEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const fallbackPassword = process.env.ADMIN_PASSWORD;
+  if (
+    fallbackEmail &&
+    fallbackPassword &&
+    !out.some((u) => u.email === fallbackEmail)
+  ) {
+    out.push({
+      email: fallbackEmail,
+      password: fallbackPassword,
+      role: "owner",
+    });
+  }
+  return out;
 }
 
 function getSecret(): string {
@@ -22,29 +83,38 @@ function getSecret(): string {
 }
 
 function signToken(session: AdminSession): string {
-  const payload = `${session.email}|${session.expiresAt}`;
+  const payload = `${session.email}|${session.role}|${session.expiresAt}`;
   const sig = createHmac("sha256", getSecret()).update(payload).digest("hex");
   return `${payload}|${sig}`;
 }
 
 function verifyToken(token: string): AdminSession | null {
   const parts = token.split("|");
-  if (parts.length !== 3) return null;
-  const [email, expiresAtStr, sig] = parts;
+  // Back-compat: old tokens had 3 segments (email|exp|sig). New tokens
+  // have 4 (email|role|exp|sig). Old tokens get rejected so users have
+  // to sign in once after deploy.
+  if (parts.length !== 4) return null;
+  const [email, roleRaw, expiresAtStr, sig] = parts;
+  const role = roleRaw as AdminRole;
   const expiresAt = Number(expiresAtStr);
-  if (!email || !Number.isFinite(expiresAt) || expiresAt < Date.now()) {
+  if (
+    !email ||
+    !VALID_ROLES.includes(role) ||
+    !Number.isFinite(expiresAt) ||
+    expiresAt < Date.now()
+  ) {
     return null;
   }
 
   const expected = createHmac("sha256", getSecret())
-    .update(`${email}|${expiresAt}`)
+    .update(`${email}|${role}|${expiresAt}`)
     .digest("hex");
   const sigBuf = Buffer.from(sig, "hex");
   const expBuf = Buffer.from(expected, "hex");
   if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
     return null;
   }
-  return { email, expiresAt };
+  return { email, role, expiresAt };
 }
 
 function constantTimeEqual(a: string, b: string): boolean {
@@ -63,28 +133,30 @@ export async function signInAdmin(
   email: string,
   password: string,
 ): Promise<SignInResult> {
-  const expectedEmail = process.env.ADMIN_EMAIL;
-  const expectedPassword = process.env.ADMIN_PASSWORD;
-
-  if (!expectedEmail || !expectedPassword) {
+  const users = loadAdminUsers();
+  if (users.length === 0) {
     return {
       ok: false,
       error: "Admin kimlik bilgileri yapılandırılmamış (env eksik).",
     };
   }
 
-  const emailOk = constantTimeEqual(
-    email.trim().toLowerCase(),
-    expectedEmail.trim().toLowerCase(),
-  );
-  const passOk = constantTimeEqual(password, expectedPassword);
-
-  if (!emailOk || !passOk) {
+  const needle = email.trim().toLowerCase();
+  // Run timingSafeEqual against every user so the per-request work is
+  // constant regardless of whether an email exists.
+  let matched: AdminUserRecord | null = null;
+  for (const u of users) {
+    const emailOk = constantTimeEqual(needle, u.email);
+    const passOk = constantTimeEqual(password, u.password);
+    if (emailOk && passOk) matched = u;
+  }
+  if (!matched) {
     return { ok: false, error: "E-posta veya şifre hatalı." };
   }
 
   const session: AdminSession = {
-    email: expectedEmail.toLowerCase(),
+    email: matched.email,
+    role: matched.role,
     expiresAt: Date.now() + COOKIE_MAX_AGE_SECONDS * 1000,
   };
 
@@ -98,6 +170,22 @@ export async function signInAdmin(
   });
 
   return { ok: true };
+}
+
+/**
+ * Server gate for admin sections. Call at the top of a page (or
+ * server action) to enforce that the current session has access; on
+ * deny it redirects to /admin (dashboard is the lowest-privilege page).
+ */
+export async function requireRole(section: AdminSection): Promise<AdminSession> {
+  const session = await getAdminSession();
+  if (!session) {
+    redirect("/admin/giris");
+  }
+  if (!canAccess(section, session.role)) {
+    redirect("/admin?denied=1");
+  }
+  return session;
 }
 
 export async function signOutAdmin(): Promise<void> {
