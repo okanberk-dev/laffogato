@@ -1,0 +1,340 @@
+import "server-only";
+
+import {
+  MENU as SEED_MENU,
+  PRODUCTS as SEED_PRODUCTS,
+} from "@/components/laffogato/data";
+
+/**
+ * In-memory mutable store for the admin panel.
+ *
+ * Why: Supabase is not yet connected (the free-tier project limit was hit).
+ * This store seeds from the design's hardcoded data and lets the admin
+ * panel demonstrate full CRUD locally. It DOES NOT PERSIST across server
+ * restarts or across serverless invocations.
+ *
+ * When Supabase comes online, swap the function bodies to hit the DB —
+ * the call sites in admin pages already use the async interface.
+ */
+
+export type ShopCategoryId = "beans" | "gift" | "gear" | "merch" | "pantry";
+
+export interface AdminProduct {
+  id: string;
+  name: string;
+  tag: string;
+  /** Minor units (kuruş) — e.g. 32000 = 320,00 ₺ */
+  priceMinor: number;
+  desc: string;
+  cat: ShopCategoryId;
+  /** Hue token from PhotoSurface palette (cream, caramel, matcha, ...). */
+  img: string;
+  stock: number;
+  featured: boolean;
+  isNew: boolean;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface AdminCategory {
+  id: string;
+  slug: ShopCategoryId;
+  label: string;
+  icon: string;
+  sortOrder: number;
+}
+
+export interface AdminOrderItem {
+  productName: string;
+  qty: number;
+  unitPriceMinor: number;
+}
+
+export type AdminOrderStatus =
+  | "pending_payment"
+  | "paid"
+  | "preparing"
+  | "shipped"
+  | "completed"
+  | "cancelled"
+  | "refunded";
+
+export interface AdminOrder {
+  id: string;
+  orderNo: number;
+  customerName: string;
+  customerEmail: string;
+  status: AdminOrderStatus;
+  items: AdminOrderItem[];
+  subtotalMinor: number;
+  shippingMinor: number;
+  totalMinor: number;
+  createdAt: string;
+}
+
+export interface AdminSettings {
+  name: string;
+  tagline: string;
+  phone: string;
+  email: string;
+  address: string;
+  openingHours: string;
+  isShopOpen: boolean;
+  heroImageUrl: string;
+}
+
+function parsePrice(price: string): number {
+  // "320₺" → 32000 (minor units)
+  const numeric = parseFloat(price.replace(/[^\d.,-]/g, "").replace(",", "."));
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.round(numeric * 100);
+}
+
+function slugifyId(prefix: string, n: number): string {
+  return `${prefix}-${String(n).padStart(4, "0")}`;
+}
+
+const products: AdminProduct[] = SEED_PRODUCTS.map((p, i) => ({
+  id: slugifyId("prd", i + 1),
+  name: p.name,
+  tag: p.tag,
+  priceMinor: parsePrice(p.price),
+  desc: p.desc,
+  cat: p.cat as ShopCategoryId,
+  img: p.img,
+  stock: 25,
+  featured: Boolean(p.featured),
+  isNew: Boolean(p.isNew),
+  isActive: true,
+  updatedAt: new Date().toISOString(),
+}));
+
+const categories: AdminCategory[] = [
+  { id: slugifyId("cat", 1), slug: "beans", label: "Çekirdek", icon: "◉", sortOrder: 0 },
+  { id: slugifyId("cat", 2), slug: "gift", label: "Hediye", icon: "◈", sortOrder: 1 },
+  { id: slugifyId("cat", 3), slug: "gear", label: "Ekipman", icon: "◇", sortOrder: 2 },
+  { id: slugifyId("cat", 4), slug: "merch", label: "Giyim", icon: "◐", sortOrder: 3 },
+  { id: slugifyId("cat", 5), slug: "pantry", label: "Kiler", icon: "◇", sortOrder: 4 },
+];
+
+// A handful of demo orders so the orders page isn't empty.
+const orders: AdminOrder[] = [
+  {
+    id: slugifyId("ord", 1),
+    orderNo: 10_001,
+    customerName: "Ali Yılmaz",
+    customerEmail: "ali@example.com",
+    status: "preparing",
+    items: [
+      { productName: "Sirena — Espresso Blend", qty: 1, unitPriceMinor: 32000 },
+      { productName: "Edible Cups — 6 Box", qty: 1, unitPriceMinor: 24000 },
+    ],
+    subtotalMinor: 56000,
+    shippingMinor: 0,
+    totalMinor: 56000,
+    createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+  },
+  {
+    id: slugifyId("ord", 2),
+    orderNo: 10_002,
+    customerName: "Merve Kaya",
+    customerEmail: "merve@example.com",
+    status: "paid",
+    items: [{ productName: "Affogato Kit — For Two", qty: 1, unitPriceMinor: 78000 }],
+    subtotalMinor: 78000,
+    shippingMinor: 0,
+    totalMinor: 78000,
+    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+  },
+  {
+    id: slugifyId("ord", 3),
+    orderNo: 10_003,
+    customerName: "Deniz Aydın",
+    customerEmail: "deniz@example.com",
+    status: "completed",
+    items: [
+      { productName: "Uji Matcha — Ceremonial", qty: 1, unitPriceMinor: 42000 },
+      { productName: "Bambu Chasen", qty: 1, unitPriceMinor: 32000 },
+    ],
+    subtotalMinor: 74000,
+    shippingMinor: 0,
+    totalMinor: 74000,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
+  },
+];
+
+let settings: AdminSettings = {
+  name: "L'Affogato",
+  tagline: "Drink it. Eat the cup.",
+  phone: "+90 216 459 30 60",
+  email: "maltepe@laffogato.it",
+  address: "Maltepe Park AVM, Cevizli, Tugay Yolu Cd. No:67, Maltepe / İstanbul",
+  openingHours: "Pzt–Pş 10:00–23:00 · Cu–Ct 10:00–24:00 · Pz 10:00–23:00",
+  isShopOpen: true,
+  heroImageUrl: "",
+};
+
+// ── Products ──────────────────────────────────────────────────────────────
+
+export async function listProducts(): Promise<AdminProduct[]> {
+  return [...products];
+}
+
+export async function getProduct(id: string): Promise<AdminProduct | null> {
+  return products.find((p) => p.id === id) ?? null;
+}
+
+export interface ProductInput {
+  name: string;
+  tag: string;
+  priceMinor: number;
+  desc: string;
+  cat: ShopCategoryId;
+  img: string;
+  stock: number;
+  featured: boolean;
+  isNew: boolean;
+  isActive: boolean;
+}
+
+export async function createProduct(input: ProductInput): Promise<AdminProduct> {
+  const id = slugifyId("prd", products.length + 1);
+  const product: AdminProduct = {
+    id,
+    ...input,
+    updatedAt: new Date().toISOString(),
+  };
+  products.push(product);
+  return product;
+}
+
+export async function updateProduct(
+  id: string,
+  input: ProductInput,
+): Promise<AdminProduct | null> {
+  const idx = products.findIndex((p) => p.id === id);
+  if (idx === -1) return null;
+  products[idx] = {
+    ...products[idx],
+    ...input,
+    updatedAt: new Date().toISOString(),
+  };
+  return products[idx];
+}
+
+export async function deleteProduct(id: string): Promise<boolean> {
+  const idx = products.findIndex((p) => p.id === id);
+  if (idx === -1) return false;
+  products.splice(idx, 1);
+  return true;
+}
+
+// ── Categories ────────────────────────────────────────────────────────────
+
+export async function listCategories(): Promise<AdminCategory[]> {
+  return [...categories].sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export async function getCategory(id: string): Promise<AdminCategory | null> {
+  return categories.find((c) => c.id === id) ?? null;
+}
+
+export interface CategoryInput {
+  slug: ShopCategoryId;
+  label: string;
+  icon: string;
+  sortOrder: number;
+}
+
+export async function createCategory(
+  input: CategoryInput,
+): Promise<AdminCategory> {
+  const id = slugifyId("cat", categories.length + 1);
+  const c: AdminCategory = { id, ...input };
+  categories.push(c);
+  return c;
+}
+
+export async function updateCategory(
+  id: string,
+  input: CategoryInput,
+): Promise<AdminCategory | null> {
+  const idx = categories.findIndex((c) => c.id === id);
+  if (idx === -1) return null;
+  categories[idx] = { ...categories[idx], ...input };
+  return categories[idx];
+}
+
+export async function deleteCategory(id: string): Promise<boolean> {
+  const idx = categories.findIndex((c) => c.id === id);
+  if (idx === -1) return false;
+  categories.splice(idx, 1);
+  return true;
+}
+
+// ── Orders ────────────────────────────────────────────────────────────────
+
+export async function listOrders(): Promise<AdminOrder[]> {
+  return [...orders].sort((a, b) => b.orderNo - a.orderNo);
+}
+
+export async function getOrder(id: string): Promise<AdminOrder | null> {
+  return orders.find((o) => o.id === id) ?? null;
+}
+
+export async function updateOrderStatus(
+  id: string,
+  status: AdminOrderStatus,
+): Promise<AdminOrder | null> {
+  const idx = orders.findIndex((o) => o.id === id);
+  if (idx === -1) return null;
+  orders[idx] = { ...orders[idx], status };
+  return orders[idx];
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────
+
+export async function getSettings(): Promise<AdminSettings> {
+  return { ...settings };
+}
+
+export async function updateSettings(
+  input: Partial<AdminSettings>,
+): Promise<AdminSettings> {
+  settings = { ...settings, ...input };
+  return { ...settings };
+}
+
+// ── Dashboard stats ───────────────────────────────────────────────────────
+
+export interface DashboardStats {
+  productCount: number;
+  activeProductCount: number;
+  outOfStockCount: number;
+  categoryCount: number;
+  orderCount: number;
+  pendingOrderCount: number;
+  revenueMinor: number;
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const completedOrPaidOrPreparing = orders.filter((o) =>
+    ["paid", "preparing", "shipped", "completed"].includes(o.status),
+  );
+  return {
+    productCount: products.length,
+    activeProductCount: products.filter((p) => p.isActive).length,
+    outOfStockCount: products.filter((p) => p.stock === 0).length,
+    categoryCount: categories.length,
+    orderCount: orders.length,
+    pendingOrderCount: orders.filter(
+      (o) => o.status === "pending_payment" || o.status === "paid" || o.status === "preparing",
+    ).length,
+    revenueMinor: completedOrPaidOrPreparing.reduce(
+      (s, o) => s + o.totalMinor,
+      0,
+    ),
+  };
+}
+
+export { SEED_MENU as CAFE_MENU };
