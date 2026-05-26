@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
 
-import { PageHeader } from "@/components/admin/forms";
-import { ProductForm } from "@/components/admin/product-form";
+import { PageHeader, formatDateTime } from "@/components/admin/forms";
+import { ProductWizard } from "@/components/admin/product-wizard";
 import { getProduct, listCategories } from "@/lib/admin/store";
 
-import { updateProductAction } from "../../actions";
+import { updateProductAction, type ProductActionState } from "../../actions";
 
 export const metadata = { title: "Admin · Ürün Düzenle" };
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -23,21 +24,24 @@ export default async function EditProductPage({ params }: PageProps) {
     notFound();
   }
 
-  const boundUpdate = updateProductAction.bind(null, product.id);
+  const boundUpdate = (
+    prev: ProductActionState,
+    formData: FormData,
+  ): Promise<ProductActionState> => updateProductAction(product.id, prev, formData);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-10">
       <PageHeader
-        eyebrow={`Düzenle · ${product.id}`}
+        eyebrow={`SKU ${product.sku} · son güncelleme ${formatDateTime(product.updatedAt)}`}
         title={product.name}
-        description="Bu üründe yaptığın değişiklikler kaydedildiği anda Shop sayfasında görünür."
+        description="Tüm alanlar tek sayfada. Kaydedince /, /admin/urunler ve genel bakış tazelenir."
       />
-      <ProductForm
-        action={boundUpdate}
+      <ProductWizard
         product={product}
         categories={categories}
+        action={boundUpdate}
         submitLabel="Değişiklikleri kaydet"
-        cancelHref="/admin/urunler"
+        mode="tabs"
       />
     </main>
   );

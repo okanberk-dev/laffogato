@@ -21,20 +21,45 @@ import {
 
 export type ShopCategoryId = "beans" | "gift" | "gear" | "merch" | "pantry";
 
+export interface AdminProductVariant {
+  id: string;
+  name: string;
+  /** Delta on top of the parent product's priceMinor. Can be negative. */
+  priceDeltaMinor: number;
+  stock: number;
+  sku: string;
+  isActive: boolean;
+}
+
 export interface AdminProduct {
   id: string;
   name: string;
+  slug: string;
+  sku: string;
   tag: string;
   /** Minor units (kuruş) — e.g. 32000 = 320,00 ₺ */
   priceMinor: number;
+  /** Optional "was" price for striked-out display. 0 = none. */
+  compareAtPriceMinor: number;
+  /** Internal cost (margin calc); not shown to customers. */
+  costMinor: number;
   desc: string;
   cat: ShopCategoryId;
   /** Hue token from PhotoSurface palette (cream, caramel, matcha, ...). */
   img: string;
+  /** External image URLs (gallery). The customer card uses the first one
+   *  if present, otherwise falls back to the SVG hue tile. */
+  images: string[];
   stock: number;
+  lowStockThreshold: number;
+  /** Approximate shipping weight in grams. */
+  weightGrams: number;
   featured: boolean;
   isNew: boolean;
   isActive: boolean;
+  seoTitle: string;
+  seoDescription: string;
+  variants: AdminProductVariant[];
   updatedAt: string;
 }
 
@@ -96,18 +121,59 @@ function slugifyId(prefix: string, n: number): string {
   return `${prefix}-${String(n).padStart(4, "0")}`;
 }
 
+const TR_DIACRITICS: Record<string, string> = {
+  ç: "c", Ç: "c",
+  ğ: "g", Ğ: "g",
+  ı: "i", I: "i",
+  i̇: "i", İ: "i",
+  ö: "o", Ö: "o",
+  ş: "s", Ş: "s",
+  ü: "u", Ü: "u",
+};
+
+export function slugify(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/[çÇğĞıIİöÖşŞüÜ]/g, (c) => TR_DIACRITICS[c] ?? c)
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function deriveSku(name: string, n: number): string {
+  const prefix = name
+    .replace(/[^A-Za-z0-9]+/g, "")
+    .slice(0, 4)
+    .toUpperCase()
+    .padEnd(4, "X");
+  return `${prefix}-${String(n).padStart(5, "0")}`;
+}
+
 const products: AdminProduct[] = SEED_PRODUCTS.map((p, i) => ({
   id: slugifyId("prd", i + 1),
   name: p.name,
+  slug: slugify(p.name) || `urun-${i + 1}`,
+  sku: deriveSku(p.name, i + 1),
   tag: p.tag,
   priceMinor: parsePrice(p.price),
+  compareAtPriceMinor: 0,
+  costMinor: 0,
   desc: p.desc,
   cat: p.cat as ShopCategoryId,
   img: p.img,
+  images: [],
   stock: 25,
+  lowStockThreshold: 5,
+  weightGrams: 250,
   featured: Boolean(p.featured),
   isNew: Boolean(p.isNew),
   isActive: true,
+  seoTitle: "",
+  seoDescription: "",
+  variants: [],
   updatedAt: new Date().toISOString(),
 }));
 
@@ -188,22 +254,51 @@ export async function getProduct(id: string): Promise<AdminProduct | null> {
 
 export interface ProductInput {
   name: string;
+  slug: string;
+  sku: string;
   tag: string;
   priceMinor: number;
+  compareAtPriceMinor: number;
+  costMinor: number;
   desc: string;
   cat: ShopCategoryId;
   img: string;
+  images: string[];
   stock: number;
+  lowStockThreshold: number;
+  weightGrams: number;
   featured: boolean;
   isNew: boolean;
   isActive: boolean;
+  seoTitle: string;
+  seoDescription: string;
+  variants: AdminProductVariant[];
+}
+
+function uniqueSlug(candidate: string, ignoreId?: string): string {
+  const base = candidate || "urun";
+  let attempt = base;
+  let n = 1;
+  // Uniqueness loop — bounded by product count, so safe.
+  while (
+    products.some((p) => p.slug === attempt && p.id !== ignoreId)
+  ) {
+    n += 1;
+    attempt = `${base}-${n}`;
+  }
+  return attempt;
 }
 
 export async function createProduct(input: ProductInput): Promise<AdminProduct> {
-  const id = slugifyId("prd", products.length + 1);
+  const seq = products.length + 1;
+  const id = slugifyId("prd", seq);
+  const slug = uniqueSlug(input.slug || slugify(input.name) || `urun-${seq}`);
+  const sku = input.sku || deriveSku(input.name, seq);
   const product: AdminProduct = {
-    id,
     ...input,
+    id,
+    slug,
+    sku,
     updatedAt: new Date().toISOString(),
   };
   products.push(product);
@@ -216,9 +311,12 @@ export async function updateProduct(
 ): Promise<AdminProduct | null> {
   const idx = products.findIndex((p) => p.id === id);
   if (idx === -1) return null;
+  const slug = uniqueSlug(input.slug || slugify(input.name) || products[idx].slug, id);
   products[idx] = {
     ...products[idx],
     ...input,
+    slug,
+    sku: input.sku || products[idx].sku,
     updatedAt: new Date().toISOString(),
   };
   return products[idx];
@@ -442,6 +540,10 @@ export async function listShopProducts(): Promise<DesignProduct[]> {
       name: p.name,
       tag: p.tag,
       price: `${Math.round(p.priceMinor / 100)}₺`,
+      compareAtPrice:
+        p.compareAtPriceMinor > p.priceMinor
+          ? `${Math.round(p.compareAtPriceMinor / 100)}₺`
+          : undefined,
       desc: p.desc,
       cat: p.cat,
       img: p.img,
