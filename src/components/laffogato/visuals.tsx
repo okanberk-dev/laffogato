@@ -172,7 +172,7 @@ export function CupEmblem({
       </text>
       <text fontFamily="'JetBrains Mono', monospace" fontSize="9" letterSpacing="5" fill={color} opacity="0.7">
         <textPath href="#ce-bot" startOffset="50%" textAnchor="middle">
-          BOLOGNA · MCMLXXXVII · ISTANBUL · MMXXVI
+          L'AFFOGATO · MCMLXXXVII · ISTANBUL · MMXXVI
         </textPath>
       </text>
       <text

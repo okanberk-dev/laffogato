@@ -485,7 +485,7 @@ export function ProductModal({
             {p.cat === "beans" && (
               <>
                 <DetailRow k="Köken" v="Brezilya doğal + Etiyopya yıkanmış" />
-                <DetailRow k="Kavurma" v="Bologna · 14 Mayıs 2026" />
+                <DetailRow k="Kavurma" v="İtalya · 14 Mayıs 2026" />
                 <DetailRow k="Tat notları" v="Kakao · kuru incir · esmer şeker" />
                 <DetailRow k="Demleme" v="Espresso, moka, AeroPress" />
               </>

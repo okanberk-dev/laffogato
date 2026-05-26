@@ -2,7 +2,7 @@
  * JSON-LD structured data generators.
  *
  * Bundled into a single @graph emitted at `/`. Currently produces:
- *  - Organization (corporate identity, Bologna parent)
+ *  - Organization (corporate identity, Italy parent)
  *  - CafeOrCoffeeShop + Restaurant (LocalBusiness for Maps/local SEO)
  *  - WebSite (with SearchAction for sitelinks)
  *  - BreadcrumbList
@@ -76,7 +76,7 @@ export function organizationLd(): Json {
     foundingDate: SITE.founded,
     foundingLocation: {
       "@type": "Place",
-      name: "Bologna, Italia",
+      name: "Italia",
       address: SITE.parent.address,
     },
     founder: {
@@ -186,7 +186,7 @@ export function localBusinessLd(): Json {
       {
         "@type": "PropertyValue",
         name: "Heritage",
-        value: "Bologna 1987",
+        value: "Italia 1987",
       },
       {
         "@type": "PropertyValue",
@@ -410,7 +410,7 @@ export function aboutPageLd(): Json {
     name: `${SITE.name} — Hikayemiz`,
     inLanguage: SITE.locale,
     description:
-      "1987'den 2026'ya L'Affogato'nun Bologna'dan İstanbul'a uzanan üç kuşaklık hikayesi.",
+      "1987'den 2026'ya L'Affogato'nun İtalya'dan İstanbul'a uzanan üç kuşaklık hikayesi.",
     isPartOf: { "@id": `${SITE.url}/#website` },
     about: { "@id": `${SITE.url}/#organization` },
     mainEntity: {
@@ -437,7 +437,7 @@ export function howToAffogatoLd(): Json {
     "@id": `${SITE.url}/#howto-affogato`,
     name: "Klasik Affogato nasıl yapılır?",
     description:
-      "L'Affogato Bologna'nın 1987'den beri uyguladığı orijinal affogato tarifi: tek scoop fior di latte gelato üzerine çift shot Sirena espresso, yenilebilir waffle kup içinde.",
+      "L'Affogato L'''Affogato'nun 1987'den beri uyguladığı orijinal affogato tarifi: tek scoop fior di latte gelato üzerine çift shot Sirena espresso, yenilebilir waffle kup içinde.",
     inLanguage: SITE.locale,
     totalTime: "PT2M",
     estimatedCost: {

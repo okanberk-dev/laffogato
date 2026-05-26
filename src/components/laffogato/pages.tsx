@@ -76,7 +76,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
               >
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--gold)" }} />
                 <span className="eyebrow on-dark" style={{ color: "#FFF", opacity: 0.86 }}>
-                  Bologna · 1987 → İstanbul · 2026
+                  Italia · 1987 → İstanbul · 2026
                 </span>
               </div>
               <h1 className="h-display reveal r1" style={{ marginTop: 24 }}>
@@ -211,7 +211,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
             </span>,
             <span key={`f${k}`} className="marquee-dot" />,
             <span key={`g${k}`} className="marquee-item">
-              <em style={{ fontStyle: "italic" }}>Bologna · 1987</em>
+              <em style={{ fontStyle: "italic" }}>Italia · 1987</em>
             </span>,
             <span key={`h${k}`} className="marquee-dot" />,
           ])}
@@ -246,7 +246,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
               ["Konum", "Maltepe Park · open-air teras"],
               ["Kapasite", "24 koltuk · 12 bar + 12 lounge"],
               ["Saat", "Her gün · 10:00 — 23:00"],
-              ["Mimari", "Studio Pellegrini · Bologna"],
+              ["Mimari", "Studio Pellegrini"],
             ].map(([k, v]) => (
               <div key={k}>
                 <div className="eyebrow" style={{ marginBottom: 6 }}>
@@ -504,7 +504,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
               <span className="script">şehrinize</span> getirin.
             </h2>
             <p className="lede" style={{ marginTop: 26 }}>
-              Bologna’dan ithal İtalyan kahve barı franchise konsepti. Üç paket — Kiosk, Bottega, Salone —
+              İtalya’dan ithal İtalyan kahve barı franchise konsepti. Üç paket — Kiosk, Bottega, Salone —
               4 hafta İtalya eğitimi, açılış desteği ve bitmeyen know-how. İlk yıl 8 şube hedefi.
             </p>
             <div data-row="franchise-teaser-stats">
@@ -589,7 +589,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
                 <span className="script">Menü.</span>
               </h1>
               <p className="lede" style={{ marginTop: 22 }}>
-                Bologna 1987 reçetesi, Maltepe Park terası için sezonluk matcha bar ve buzlu içecekler.
+                Italia 1987 reçetesi, Maltepe Park terası için sezonluk matcha bar ve buzlu içecekler.
                 Üç ritüel — espresso, gelato, yenilebilir kup. 39 yıldır değişmedi.
               </p>
             </div>
@@ -752,7 +752,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
           <div className="reveal r1">
             <div className="eyebrow">Köken</div>
             <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
-              Espresso: Sirena harmanı (Bologna kavurma). Matcha: Uji ceremonial grade. Pistacchio: Bronte IGP. Süt: Maltepe yerel mandıra.
+              Espresso: Sirena harmanı (İtalyan kavurma). Matcha: Uji ceremonial grade. Pistacchio: Bronte IGP. Süt: Maltepe yerel mandıra.
             </p>
           </div>
           <div className="reveal r2">
@@ -821,7 +821,7 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
                 <span className="script">Mağaza.</span>
               </h1>
               <p className="lede" style={{ marginTop: 22 }}>
-                Maltepe Park terasında servis ettiğimiz her şey — Bologna’da kavrulan çekirdek, 1994 patentli edible kup,
+                Maltepe Park terasında servis ettiğimiz her şey — İtalya’da kavrulan çekirdek, 1994 patentli edible kup,
                 bambu chasen, Bialetti × L’Affogato moka pot. Eve, ofise, hediyeye.
               </p>
             </div>
@@ -1060,7 +1060,7 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
           data-row="trust-row"
         >
           {[
-            { k: "Italia import", v: "Bologna kavurma · haftalık taze" },
+            { k: "Italia import", v: "İtalyan kavurma · haftalık taze" },
             { k: "Aynı gün", v: "İstanbul içi · 14:00'a kadar" },
             { k: "Avrupa kargo", v: "5–7 iş günü · DHL Express" },
             { k: "14 gün iade", v: "Açılmamış ürünlerde kolay iade" },
@@ -1094,11 +1094,11 @@ export function PageStory(_props: PageProps) {
 
   const values = [
     { n: "01", t: "Tek bir bar, tek bir ritüel", d: "Menü kısa kalır. Sezonluk değişir ama liste hiçbir zaman altı affogato’dan fazla olmaz." },
-    { n: "02", t: "İtalyan reçete, yerel süt", d: "Bologna’dan haftalık kavurma. Trakya küçük mandıradan günlük süt. Her ürün izlenebilir." },
+    { n: "02", t: "İtalyan reçete, yerel süt", d: "Haftalık taze kavurma. Trakya küçük mandıradan günlük süt. Her ürün izlenebilir." },
     { n: "03", t: "Laptop yok, ses az", d: "Akşam 18:00’dan sonra çalışma yok. Müzik 65dB üzerine çıkmaz. Bar, sohbet için." },
     { n: "04", t: "Zero waste", d: "Yenilebilir kup, kompost gelato bardağı, yeniden doldurulan teneke. 2025'ten beri tek kullanımlık plastik yok." },
     { n: "05", t: "Yavaş büyüme", d: "Franchise dahil dikkatli seçim. İlk yıl 8 şube hedefi; ama Maltepe Park ana mekan kalacak." },
-    { n: "06", t: "Personel mutluluğu", d: "İlk yıl çalışan turnover’ı %0. Yıllık 6 hafta tatil, sigorta artı, Bologna ziyareti." },
+    { n: "06", t: "Personel mutluluğu", d: "İlk yıl çalışan turnover’ı %0. Yıllık 6 hafta tatil, sigorta artı, İtalya ziyareti." },
   ];
 
   const pourSteps = [
@@ -1115,7 +1115,7 @@ export function PageStory(_props: PageProps) {
           <div className="reveal" style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}>
             <div className="eyebrow" style={{ marginBottom: 30 }}>IV — La storia · since 1987</div>
             <h1 className="h-display" style={{ fontSize: "clamp(56px, 11vw, 160px)" }}>
-              From <span className="script">Bologna</span>
+              From <span className="script">Italia</span>
               <br />
               to Maltepe.
             </h1>
@@ -1139,7 +1139,7 @@ export function PageStory(_props: PageProps) {
             }}
             data-row="story-stats"
           >
-            <Stat n="1987" l="Anno fondazione" d="Bologna · Via Galliera 21" />
+            <Stat n="1987" l="Anno fondazione" d="Italia · 1987" />
             <Stat n="1994" l="Brevetto edible cup" d="Mancuso ailesi patenti" />
             <Stat n="2026" l="İstanbul açılışı" d="Maltepe Park · ilk yurt dışı şube" />
             <Stat n="III" l="Generazione" d="Eda Mancuso · 3. kuşak" />
@@ -1746,7 +1746,7 @@ export function PageReels(_props: PageProps) {
                 Reels & <span className="script">film.</span>
               </h1>
               <p className="lede" style={{ marginTop: 22 }}>
-                Maltepe Park terasından, Bologna kavurma odasından, Bronte pistacchio hasadından kısa filmler.
+                Maltepe Park terasından, İtalyan kavurma odasından, Bronte pistacchio hasadından kısa filmler.
                 Aylık bir 4K bölüm, haftalık reels. @laffogato — 24.6K takipçi, hızla büyüyor.
               </p>
             </div>
@@ -2082,14 +2082,14 @@ export function PageFranchise(_props: PageProps) {
 
   const advantages: Array<[string, string]> = [
     ["Signature edible cup", "1994 patentli waffle kup teknolojisi. Sadece L’Affogato."],
-    ["İtalyan menü, yerel süt", "Reçete Bologna’dan, süt ve gelato yerel."],
+    ["İtalyan menü, yerel süt", "Reçete İtalya’dan, süt ve gelato yerel."],
     ["Düşük metrekare", "12–80 koltuk, 24m²'den başlar."],
     ["Marka çekim gücü", "Sosyal medyada 100K+ etkileşim, Monocle basın."],
   ];
 
   const faqs: Array<[string, string]> = [
-    ["Daha önce F&B tecrübem yok, başvurabilir miyim?", "Evet. Bologna’daki 4 haftalık eğitim sıfırdan başlar. Aradığımız özellik; tutkulu, detaycı, marka değerleriyle uyumlu insan."],
-    ["Kavurma kendim mi yapacağım?", "Hayır. Tüm çekirdek Bologna’dan haftalık taze gönderilir. Salone paketinde isteğe bağlı yerel kavurma eklenebilir."],
+    ["Daha önce F&B tecrübem yok, başvurabilir miyim?", "Evet. İtalyan 4 haftalık eğitim sıfırdan başlar. Aradığımız özellik; tutkulu, detaycı, marka değerleriyle uyumlu insan."],
+    ["Kavurma kendim mi yapacağım?", "Hayır. Tüm çekirdek Haftalık taze taze gönderilir. Salone paketinde isteğe bağlı yerel kavurma eklenebilir."],
     ["Menüyü değiştirebilir miyim?", "Ana menü standart. Lokal lezzetler için sezonluk 2 ürün eklenebilir (Maltepe Park’ta strawberry affogato gibi)."],
     ["Sözleşme süresi ne kadar?", "7 yıl + 7 yıl opsiyon. İlk 18 ayda iki performans değerlendirmesi."],
     ["Hangi şehirler için açığız?", "Türkiye: tüm büyük şehirler. Yurt dışı: Avrupa (DE, NL, UK), Körfez (UAE, KSA, QA)."],
@@ -2346,7 +2346,7 @@ export function PageFranchise(_props: PageProps) {
               <span className="script">Franchise</span> başvurusu.
             </h2>
             <p className="lede" style={{ marginTop: 22, color: "rgba(255, 255, 255, 0.78)" }}>
-              Bologna ekibi her başvuruyu 14 gün içinde değerlendirir. Onay alanlarla video görüşme,
+              İtalyan ekibi her başvuruyu 14 gün içinde değerlendirir. Onay alanlarla video görüşme,
               ardından Maltepe Park’ı görmeye davet — kararsız mısınız, gelin bir affogato içelim.
             </p>
             <div
@@ -2364,7 +2364,7 @@ export function PageFranchise(_props: PageProps) {
               {[
                 ["İletişim", "franchise@laffogato.it"],
                 ["Türkiye", "+90 216 459 30 60"],
-                ["Bologna", "+39 051 233 887"],
+                ["Italia", "+39 051 233 887"],
                 ["Yanıt süresi", "14 iş günü"],
               ].map(([k, v]) => (
                 <div key={k}>
@@ -2394,7 +2394,7 @@ export function PageFranchise(_props: PageProps) {
                   Başvurun alındı.
                 </h3>
                 <p style={{ marginTop: 18, color: "rgba(255,255,255,0.78)", lineHeight: 1.6 }}>
-                  Bologna ekibi 14 iş günü içinde dönüş yapacak. Bu arada Maltepe Park terasında bir affogato seni bekliyor.
+                  İtalyan ekibi 14 iş günü içinde dönüş yapacak. Bu arada Maltepe Park terasında bir affogato seni bekliyor.
                 </p>
                 <div style={{ marginTop: 30, fontFamily: "var(--script)", fontSize: 36, color: "var(--gold)" }}>— Eda</div>
                 <button

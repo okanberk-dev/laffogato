@@ -1,14 +1,24 @@
 import type { Metadata } from "next";
 
+import { SiteChrome } from "@/components/laffogato/site-chrome";
+import { getSettings } from "@/lib/admin/store";
+
 export const metadata: Metadata = {
   title: "Üyelik",
   robots: { index: false, follow: false },
 };
 
-export default function UyeLayout({ children }: { children: React.ReactNode }) {
+export default async function UyeLayout({ children }: { children: React.ReactNode }) {
+  const settings = await getSettings();
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-warm)" }}>
-      {children}
-    </div>
+    <SiteChrome
+      settings={{
+        phone: settings.phone,
+        email: settings.email,
+        address: settings.address,
+      }}
+    >
+      <div style={{ background: "var(--bg-warm)" }}>{children}</div>
+    </SiteChrome>
   );
 }

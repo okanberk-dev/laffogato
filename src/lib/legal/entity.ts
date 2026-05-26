@@ -39,10 +39,10 @@ export const LEGAL_ENTITY = {
   dataController: "L'Affogato Gıda ve Servis A.Ş.",
   /** KEP adresi (Kayıtlı Elektronik Posta). */
   kep: "laffogato@hs01.kep.tr",
-  /** Bologna referansı — orijinal kuruluş bilgisi (yalnızca marka geçmişi). */
+  /** İtalya referansı — orijinal kuruluş bilgisi (yalnızca marka geçmişi). */
   italyOrigin: {
     legalName: "L'Affogato Italia S.r.l.",
-    address: "Via Galliera 21, 40121 Bologna, Italia",
+    address: "İtalya merkez",
     vatNo: "IT 0123 4567 891",
     founded: 1987,
   },
