@@ -1,15 +1,16 @@
 import type { MetadataRoute } from "next";
 
 import { LEGAL_DOCS } from "@/lib/legal/documents";
-import { ROUTES, SITE } from "@/lib/seo/site";
+import { allSeoRoutes } from "@/lib/seo/pages";
+import { SITE } from "@/lib/seo/site";
 
 export const dynamic = "force-static";
 export const revalidate = 3600;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const main = ROUTES.map((r) => ({
-    url: `${SITE.url}${r.path}`,
+  const main = allSeoRoutes().map((r) => ({
+    url: `${SITE.url}${r.url}`,
     lastModified: now,
     changeFrequency: r.changefreq,
     priority: r.priority,

@@ -9,8 +9,8 @@ const CART_STORAGE_KEY = "laffogato_cart_v1";
 /**
  * Site-wide chrome (nav + footer) for pages OUTSIDE the homepage SPA —
  * /uye/*, /odeme, /hukuk/* etc. Nav and Footer used here render without
- * a `navigate` prop, so their links degrade to anchor "/#hash" targets
- * that drop you back on the homepage SPA at the right section.
+ * a `navigate` prop, so their links degrade to plain anchor navigation
+ * targeting real route URLs (/menu, /magaza, ...).
  *
  * Live cart count is read from localStorage so the cart badge stays in
  * sync across pages. We listen to the storage event so an update on
