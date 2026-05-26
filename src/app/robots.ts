@@ -1,10 +1,19 @@
 import type { MetadataRoute } from "next";
 
-import { SITE } from "@/lib/seo/site";
+import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 
 export const dynamic = "force-static";
 
 export default function robots(): MetadataRoute.Robots {
+  // Preview / development deployments: tell every crawler to stay away so
+  // they don't compete with the production domain in search results.
+  if (!IS_PRODUCTION_DEPLOY) {
+    return {
+      rules: [{ userAgent: "*", disallow: "/" }],
+      sitemap: `${SITE.url}/sitemap.xml`,
+    };
+  }
+
   return {
     rules: [
       {

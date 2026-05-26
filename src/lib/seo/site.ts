@@ -6,9 +6,39 @@
  * canonical brand information stays in one place.
  */
 
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
-  "https://laffogato.com.tr";
+/**
+ * Resolves the public base URL across local, Vercel preview, and Vercel
+ * production deployments. Priority:
+ *
+ *   1. NEXT_PUBLIC_SITE_URL — explicit override (production custom domain)
+ *   2. VERCEL_PROJECT_PRODUCTION_URL — Vercel's canonical production URL
+ *   3. VERCEL_URL — the per-deployment URL (used on preview deploys)
+ *   4. https://laffogato.com.tr — local-build fallback
+ *
+ * Always ends without a trailing slash.
+ */
+function resolveSiteUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  const vercelProd = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (vercelProd) return `https://${vercelProd.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) return `https://${vercelUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
+
+  return "https://laffogato.com.tr";
+}
+
+export const SITE_URL = resolveSiteUrl();
+
+/**
+ * `true` when the build is running on a Vercel preview/development deployment.
+ * Used to disable indexing on non-production deployments so previews don't
+ * compete with the canonical domain in search results.
+ */
+export const IS_PRODUCTION_DEPLOY =
+  process.env.VERCEL_ENV === "production" || !process.env.VERCEL_ENV;
 
 export const SITE = {
   url: SITE_URL,
