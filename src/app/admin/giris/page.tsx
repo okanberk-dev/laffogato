@@ -1,13 +1,51 @@
+import { redirect } from "next/navigation";
+
+import { getAdminSession } from "@/lib/admin/auth";
+
+import { LoginForm } from "./login-form";
+
 export const metadata = { title: "Admin Girişi" };
 
-export default function AdminLoginPage() {
+interface PageProps {
+  searchParams: Promise<{ next?: string }>;
+}
+
+export default async function AdminLoginPage({ searchParams }: PageProps) {
+  const session = await getAdminSession();
+  const { next } = await searchParams;
+
+  if (session) {
+    redirect(next && next.startsWith("/admin") ? next : "/admin");
+  }
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-md items-center px-6 py-16">
-      <div className="w-full rounded-lg border border-neutral-200 p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold">Admin Girişi</h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          E-posta ve şifre ile giriş. 2FA tanımlı hesaplar için TOTP kodu
-          istenir. Form alanları auth entegrasyonu yapılınca eklenecek.
+    <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 py-16">
+      <div className="w-full rounded-2xl border border-neutral-200 bg-white p-10 shadow-sm">
+        <div className="mb-8 text-center">
+          <div
+            className="text-3xl"
+            style={{
+              fontFamily: "var(--serif), 'Playfair Display', serif",
+              fontStyle: "italic",
+              fontWeight: 500,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            L’Affogato
+          </div>
+          <div
+            className="mt-2 text-xs uppercase tracking-[0.24em] text-neutral-500"
+            style={{ fontFamily: "var(--mono), monospace" }}
+          >
+            Admin · Maltepe Park
+          </div>
+        </div>
+
+        <LoginForm next={next} />
+
+        <p className="mt-8 text-center text-xs text-neutral-400">
+          Şifreni unuttuysan {process.env.ADMIN_EMAIL ?? "yöneticine"} env
+          dosyasına bakmasını rica et.
         </p>
       </div>
     </main>
