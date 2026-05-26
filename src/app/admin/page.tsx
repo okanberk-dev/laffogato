@@ -179,6 +179,15 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                 <span aria-hidden>→</span>
               </Link>
             </li>
+            <li>
+              <Link
+                href="/admin/2fa-kurulum"
+                className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2.5 hover:border-neutral-900"
+              >
+                <span>İki adımlı doğrulama</span>
+                <span aria-hidden>→</span>
+              </Link>
+            </li>
           </ul>
         </Card>
       </div>

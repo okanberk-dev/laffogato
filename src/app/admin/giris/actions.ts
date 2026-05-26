@@ -25,5 +25,12 @@ export async function loginAction(
     return { error: result.error ?? "Giriş başarısız." };
   }
 
+  if (result.needs2FA) {
+    const target = `/admin/iki-asama?next=${encodeURIComponent(
+      next.startsWith("/admin") ? next : "/admin",
+    )}`;
+    redirect(target);
+  }
+
   redirect(next.startsWith("/admin") ? next : "/admin");
 }
