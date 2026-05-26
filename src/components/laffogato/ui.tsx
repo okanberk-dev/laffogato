@@ -355,6 +355,7 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
 }
 
 function CheckoutButton({ items }: { items: CartItem[] }) {
+  const [step, setStep] = useState<"summary" | "details">("summary");
   const [pending, setPending] = useState(false);
 
   const itemsJson = JSON.stringify(
@@ -365,19 +366,124 @@ function CheckoutButton({ items }: { items: CartItem[] }) {
     })),
   );
 
-  return (
-    <form action={placeOrderAction} onSubmit={() => setPending(true)}>
-      <input type="hidden" name="items" value={itemsJson} />
+  if (step === "summary") {
+    return (
       <button
-        type="submit"
-        disabled={pending}
+        type="button"
+        onClick={() => setStep("details")}
         className="btn btn-primary btn-lg"
-        style={{ width: "100%", justifyContent: "center", opacity: pending ? 0.7 : 1 }}
+        style={{ width: "100%", justifyContent: "center" }}
       >
-        {pending ? "Sipariş gönderiliyor…" : "Ödemeye geç"}
+        Ödemeye geç
         <span className="arrow">→</span>
       </button>
+    );
+  }
+
+  return (
+    <form
+      action={placeOrderAction}
+      onSubmit={() => setPending(true)}
+      style={{ display: "grid", gap: 10 }}
+    >
+      <input type="hidden" name="items" value={itemsJson} />
+      <CheckoutInput
+        name="customerName"
+        type="text"
+        placeholder="Ad soyad"
+        required
+        autoComplete="name"
+      />
+      <CheckoutInput
+        name="customerEmail"
+        type="email"
+        placeholder="E-posta"
+        required
+        autoComplete="email"
+      />
+      <CheckoutInput
+        name="customerPhone"
+        type="tel"
+        placeholder="Telefon (+90…)"
+        required
+        autoComplete="tel"
+      />
+      <textarea
+        name="shippingAddress"
+        placeholder="Teslimat adresi (mahalle, cadde, no, ilçe / il, posta kodu)"
+        required
+        rows={3}
+        autoComplete="street-address"
+        style={{
+          width: "100%",
+          padding: "12px 14px",
+          borderRadius: 10,
+          border: "1px solid var(--ink-line)",
+          background: "var(--bg-warm)",
+          fontFamily: "inherit",
+          fontSize: 14,
+          color: "var(--ink)",
+          resize: "vertical",
+          minHeight: 70,
+        }}
+      />
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          type="button"
+          onClick={() => setStep("summary")}
+          disabled={pending}
+          className="btn"
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            background: "transparent",
+            border: "1px solid var(--ink-line)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          ← Geri
+        </button>
+        <button
+          type="submit"
+          disabled={pending}
+          className="btn btn-primary"
+          style={{ flex: 2, justifyContent: "center", opacity: pending ? 0.7 : 1 }}
+        >
+          {pending ? "Gönderiliyor…" : "Siparişi tamamla"}
+          <span className="arrow">→</span>
+        </button>
+      </div>
+      <p
+        style={{
+          margin: 0,
+          fontSize: 11,
+          color: "var(--ink-mute)",
+          lineHeight: 1.5,
+        }}
+      >
+        Bilgilerin yalnızca siparişin işlenmesi için kullanılır. Ödeme adımı
+        sanal POS entegrasyonu sonrası aktif olacak.
+      </p>
     </form>
+  );
+}
+
+function CheckoutInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      style={{
+        width: "100%",
+        padding: "12px 14px",
+        borderRadius: 10,
+        border: "1px solid var(--ink-line)",
+        background: "var(--bg-warm)",
+        fontFamily: "inherit",
+        fontSize: 14,
+        color: "var(--ink)",
+        ...props.style,
+      }}
+    />
   );
 }
 

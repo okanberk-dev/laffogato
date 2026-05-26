@@ -626,6 +626,67 @@ export async function listOrders(): Promise<AdminOrder[]> {
   return [...orders].sort((a, b) => b.orderNo - a.orderNo);
 }
 
+export interface CustomerSummary {
+  email: string;
+  name: string;
+  phone: string;
+  orderCount: number;
+  lifetimeValueMinor: number;
+  refundedMinor: number;
+  lastOrderAt: string;
+  firstOrderAt: string;
+}
+
+/**
+ * Pre-groups orders by customer email so the admin "Müşteriler" page
+ * (and any future customer-self-service surface) can hit it cheaply.
+ * Guest-only orders (no email collected) are filtered out.
+ */
+export async function listCustomers(): Promise<CustomerSummary[]> {
+  const byEmail = new Map<string, CustomerSummary>();
+  for (const o of orders) {
+    const email = o.customerEmail?.trim().toLowerCase();
+    if (!email || email === "guest@laffogato.local") continue;
+    const existing = byEmail.get(email);
+    const refundedHere = o.refunds.reduce((s, r) => s + r.amountMinor, 0);
+    if (!existing) {
+      byEmail.set(email, {
+        email,
+        name: o.customerName,
+        phone: o.customerPhone,
+        orderCount: 1,
+        lifetimeValueMinor: o.totalMinor,
+        refundedMinor: refundedHere,
+        lastOrderAt: o.createdAt,
+        firstOrderAt: o.createdAt,
+      });
+    } else {
+      existing.orderCount += 1;
+      existing.lifetimeValueMinor += o.totalMinor;
+      existing.refundedMinor += refundedHere;
+      if (o.createdAt > existing.lastOrderAt) {
+        existing.lastOrderAt = o.createdAt;
+        existing.name = o.customerName || existing.name;
+        existing.phone = o.customerPhone || existing.phone;
+      }
+      if (o.createdAt < existing.firstOrderAt) {
+        existing.firstOrderAt = o.createdAt;
+      }
+    }
+  }
+  return Array.from(byEmail.values()).sort(
+    (a, b) => b.lastOrderAt.localeCompare(a.lastOrderAt),
+  );
+}
+
+export async function customerOrdersByEmail(email: string): Promise<AdminOrder[]> {
+  const needle = email.trim().toLowerCase();
+  if (!needle) return [];
+  return orders
+    .filter((o) => o.customerEmail.trim().toLowerCase() === needle)
+    .sort((a, b) => b.orderNo - a.orderNo);
+}
+
 export async function getOrder(id: string): Promise<AdminOrder | null> {
   return orders.find((o) => o.id === id) ?? null;
 }
