@@ -3,7 +3,35 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { placeOrder } from "@/lib/admin/store";
+import { applyPromoCode, placeOrder } from "@/lib/admin/store";
+
+export interface PromoPreviewState {
+  error?: string;
+  ok?: { code: string; discountMinor: number; finalMinor: number };
+}
+
+export async function previewPromoAction(
+  _prev: PromoPreviewState,
+  formData: FormData,
+): Promise<PromoPreviewState> {
+  const code = String(formData.get("code") ?? "").trim();
+  if (!code) return { error: "Kod gir." };
+  const subtotal = parseFloat(
+    String(formData.get("subtotal") ?? "0").replace(",", "."),
+  );
+  const subtotalMinor = Number.isFinite(subtotal)
+    ? Math.round(subtotal * 100)
+    : 0;
+  const result = await applyPromoCode(code, subtotalMinor);
+  if (!result.ok) return { error: result.error };
+  return {
+    ok: {
+      code: result.promo.code,
+      discountMinor: result.discountMinor,
+      finalMinor: Math.max(0, subtotalMinor - result.discountMinor),
+    },
+  };
+}
 
 interface ClientCartItem {
   name: string;
@@ -52,6 +80,7 @@ export async function placeOrderAction(formData: FormData) {
     customerPhone: String(formData.get("customerPhone") ?? "") || undefined,
     shippingAddress:
       String(formData.get("shippingAddress") ?? "") || undefined,
+    promoCode: String(formData.get("promoCode") ?? "") || undefined,
   });
 
   if (!result.ok) {
