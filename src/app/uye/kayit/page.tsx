@@ -36,7 +36,11 @@ export default async function KayitPage() {
         </Link>
         <h1
           className="h-1"
-          style={{ marginTop: 4, marginBottom: 8, fontSize: "clamp(32px, 5vw, 44px)" }}
+          style={{
+            marginTop: 4,
+            marginBottom: 48,
+            fontSize: "clamp(32px, 5vw, 44px)",
+          }}
         >
           Üye <span className="script">ol.</span>
         </h1>
