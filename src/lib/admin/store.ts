@@ -434,6 +434,104 @@ export async function bulkUpdateProducts(
   return { updated };
 }
 
+// ── Stock movements ──────────────────────────────────────────────────────
+
+export type StockMoveReason =
+  | "order_placed"
+  | "manual_adjust"
+  | "refund_restock"
+  | "seed";
+
+export interface AdminStockMove {
+  id: string;
+  productId: string;
+  productName: string;
+  /** Negative for outgoing (sale), positive for incoming (restock/manual). */
+  delta: number;
+  /** Stock level AFTER this move was applied. */
+  stockAfter: number;
+  reason: StockMoveReason;
+  note: string;
+  /** Linked order id (for order_placed / refund_restock). */
+  orderId?: string;
+  /** Admin email or "system" / "customer". */
+  actor: string;
+  createdAt: string;
+}
+
+const stockMoves: AdminStockMove[] = [];
+let stockMoveCounter = 0;
+
+function recordStockMove(input: Omit<AdminStockMove, "id" | "createdAt">): AdminStockMove {
+  stockMoveCounter += 1;
+  const move: AdminStockMove = {
+    id: `mov-${String(stockMoveCounter).padStart(6, "0")}`,
+    createdAt: new Date().toISOString(),
+    ...input,
+  };
+  stockMoves.unshift(move);
+  if (stockMoves.length > 2000) stockMoves.length = 2000;
+  return move;
+}
+
+export async function listStockMoves(filter?: {
+  productId?: string;
+  reason?: StockMoveReason;
+  limit?: number;
+}): Promise<AdminStockMove[]> {
+  let out = stockMoves;
+  if (filter?.productId) {
+    out = out.filter((m) => m.productId === filter.productId);
+  }
+  if (filter?.reason) {
+    out = out.filter((m) => m.reason === filter.reason);
+  }
+  return out.slice(0, filter?.limit ?? 500);
+}
+
+export interface AdjustStockInput {
+  productId: string;
+  delta: number;
+  note: string;
+  actor: string;
+}
+
+export type AdjustStockResult =
+  | { ok: true; move: AdminStockMove; product: AdminProduct }
+  | { ok: false; error: string };
+
+export async function adjustStock(
+  input: AdjustStockInput,
+): Promise<AdjustStockResult> {
+  const idx = products.findIndex((p) => p.id === input.productId);
+  if (idx === -1) return { ok: false, error: "Ürün bulunamadı." };
+  if (!Number.isFinite(input.delta) || input.delta === 0) {
+    return { ok: false, error: "Geçerli bir değer gir (0 olamaz)." };
+  }
+  const next = products[idx].stock + input.delta;
+  if (next < 0) {
+    return {
+      ok: false,
+      error: `Stok eksiye düşemez (mevcut: ${products[idx].stock}).`,
+    };
+  }
+  products[idx] = {
+    ...products[idx],
+    stock: next,
+    updatedAt: new Date().toISOString(),
+  };
+  const move = recordStockMove({
+    productId: products[idx].id,
+    productName: products[idx].name,
+    delta: input.delta,
+    stockAfter: next,
+    reason: "manual_adjust",
+    note: input.note.trim().slice(0, 500),
+    actor: input.actor,
+  });
+  return { ok: true, move, product: products[idx] };
+}
+
 // ── Categories ────────────────────────────────────────────────────────────
 
 export async function listCategories(): Promise<AdminCategory[]> {
@@ -561,15 +659,19 @@ export async function placeOrder(
 
   // Decrement stock for products we recognise. Unknown product names
   // (e.g. a renamed item still in someone's cart) pass through so the
-  // order isn't lost — admin can reconcile manually.
+  // order isn't lost — admin can reconcile manually. We collect the
+  // decrements so we can record stock moves once the order id is known.
+  const decrements: Array<{ idx: number; qty: number; stockAfter: number }> = [];
   for (const it of cleanItems) {
     const idx = products.findIndex((p) => p.name === it.name);
     if (idx !== -1) {
+      const stockAfter = Math.max(0, products[idx].stock - it.qty);
       products[idx] = {
         ...products[idx],
-        stock: Math.max(0, products[idx].stock - it.qty),
+        stock: stockAfter,
         updatedAt: new Date().toISOString(),
       };
+      decrements.push({ idx, qty: it.qty, stockAfter });
     }
   }
 
@@ -589,8 +691,22 @@ export async function placeOrder(
     ? 10_001
     : Math.max(...orders.map((o) => o.orderNo)) + 1;
 
+  const orderId = slugifyId("ord", orders.length + 1);
+  for (const d of decrements) {
+    recordStockMove({
+      productId: products[d.idx].id,
+      productName: products[d.idx].name,
+      delta: -d.qty,
+      stockAfter: d.stockAfter,
+      reason: "order_placed",
+      note: `Sipariş #${nextNo}`,
+      orderId,
+      actor: input.customerEmail ?? "customer",
+    });
+  }
+
   const order: AdminOrder = {
-    id: slugifyId("ord", orders.length + 1),
+    id: orderId,
     orderNo: nextNo,
     customerName: input.customerName?.trim() || "Misafir",
     customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
