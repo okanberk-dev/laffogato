@@ -36,7 +36,11 @@ export default async function GirisPage() {
         </Link>
         <h1
           className="h-1"
-          style={{ marginTop: 4, marginBottom: 8, fontSize: "clamp(32px, 5vw, 44px)" }}
+          style={{
+            marginTop: 4,
+            marginBottom: 64,
+            fontSize: "clamp(32px, 5vw, 44px)",
+          }}
         >
           Giriş <span className="script">yap.</span>
         </h1>

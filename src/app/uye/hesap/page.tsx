@@ -76,7 +76,7 @@ export default async function HesapPage() {
           <h1 className="h-1" style={{ fontSize: "clamp(36px, 6vw, 64px)" }}>
             Hesabım<span className="script">.</span>
           </h1>
-          <p style={{ marginTop: 8, color: "var(--ink-soft)" }}>
+          <p style={{ marginTop: 16, color: "var(--ink-soft)" }}>
             Merhaba {customer.name || customer.email}.
           </p>
         </div>
