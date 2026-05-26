@@ -232,8 +232,17 @@ export function Footer({ navigate, settings }: FooterProps) {
   const phone = settings?.phone ?? "+90 216 459 30 60";
   const email = settings?.email ?? "maltepe@laffogato.it";
   const addressLines = splitAddress(settings?.address);
+  const year = new Date().getFullYear();
   return (
     <footer className="footer">
+      {/* Decorative top rule */}
+      <div className="footer-deco" aria-hidden="true">
+        <span className="footer-deco-line" />
+        <span className="footer-deco-monogram">L'A</span>
+        <span className="footer-deco-line" />
+      </div>
+
+      {/* Newsletter block */}
       <div className="footer-newsletter">
         <div>
           <div className="eyebrow on-dark" style={{ marginBottom: 14 }}>
@@ -242,8 +251,9 @@ export function Footer({ navigate, settings }: FooterProps) {
           <h3>
             Bir mektup, <span className="script">ayda bir.</span>
           </h3>
-          <p style={{ marginTop: 18, color: "rgba(255, 255, 255, 0.7)", maxWidth: 460, lineHeight: 1.55 }}>
-            Yeni sezon affogati, Bologna kavurma notları, küçük gelato denemeleri. Hiçbir zaman ayda birden fazla.
+          <p style={{ marginTop: 18, color: "rgba(255, 255, 255, 0.72)", maxWidth: 460, lineHeight: 1.65 }}>
+            Yeni sezon affogati, Bologna kavurma notları, küçük gelato denemeleri.
+            Hiçbir zaman ayda birden fazla — söz veriyoruz.
           </p>
         </div>
         <form className="newsletter-form" onSubmit={(e) => e.preventDefault()}>
@@ -258,24 +268,26 @@ export function Footer({ navigate, settings }: FooterProps) {
         </form>
       </div>
 
+      {/* Trust strip */}
+      <div className="footer-trust">
+        <FooterTrust icon="lock" title="Güvenli ödeme" hint="256-bit SSL · 3D Secure" />
+        <FooterTrust icon="truck" title="Ücretsiz kargo" hint="500₺ üzeri Türkiye geneli" />
+        <FooterTrust icon="leaf" title="Taze kavurma" hint="Haftalık Bologna roast" />
+        <FooterTrust icon="return" title="14 gün cayma" hint="Mevzuata uygun iade" />
+      </div>
+
+      {/* Main link grid */}
       <div className="footer-grid">
-        <div>
-          <div className="footer-mark">L’Affogato</div>
-          <div
-            style={{
-              fontFamily: "Pinyon Script",
-              fontSize: 28,
-              color: "var(--gold-soft)",
-              marginTop: -4,
-              marginBottom: 18,
-            }}
-          >
-            But first, affogato.
+        <div className="footer-brand-col">
+          <div className="footer-mark">
+            L<span style={{ fontStyle: "italic" }}>’</span>Affogato
           </div>
-          <p style={{ maxWidth: 320, opacity: 0.7, fontSize: 14, lineHeight: 1.55 }}>
-            Bologna 1987’den İstanbul Maltepe Park’a. İlk yurt dışı şubemiz, açık-hava teras kahve barı.
+          <div className="footer-mark-script">caffè · gelato · est. 1987</div>
+          <p>
+            Bologna 1987'den İstanbul Maltepe Park'a. İlk yurt dışı şubemiz —
+            açık-hava teras kahve barı.
           </p>
-          <div style={{ display: "flex", gap: 8, marginTop: 22 }}>
+          <div className="footer-social">
             <a className="nav-icon-btn" href="#reels" onClick={go("reels")} aria-label="Instagram">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" strokeWidth="1.4" />
@@ -313,7 +325,7 @@ export function Footer({ navigate, settings }: FooterProps) {
           </ul>
         </div>
         <div>
-          <h5>Shop</h5>
+          <h5>Bottega</h5>
           <ul>
             <li><a href="#shop" onClick={go("shop")}>Çekirdek</a></li>
             <li><a href="#shop" onClick={go("shop")}>Edible Cups</a></li>
@@ -323,32 +335,116 @@ export function Footer({ navigate, settings }: FooterProps) {
           </ul>
         </div>
         <div>
-          <h5>Marka</h5>
+          <h5>L'azienda</h5>
           <ul>
             <li><a href="#story" onClick={go("story")}>Hikayemiz</a></li>
             <li><a href="#reels" onClick={go("reels")}>Reels & Film</a></li>
             <li><a href="#franchise" onClick={go("franchise")}>Franchise</a></li>
             <li><a href="#visit" onClick={go("visit")}>Maltepe Park</a></li>
-            <li><a href="#" onClick={(e) => e.preventDefault()}>Press</a></li>
+            <li><a href="/uye/hesap">Hesabım</a></li>
           </ul>
         </div>
         <div>
+          <h5>Yasal</h5>
+          <ul>
+            <li><a href="/hukuk/kullanim-sartlari">Kullanım Şartları</a></li>
+            <li><a href="/hukuk/gizlilik-politikasi">Gizlilik Politikası</a></li>
+            <li><a href="/hukuk/mesafeli-satis-sozlesmesi">Mesafeli Satış Sözleşmesi</a></li>
+            <li><a href="/hukuk/iade-ve-cayma">İade & Cayma</a></li>
+            <li><a href="/hukuk/teslimat-ve-kargo">Teslimat & Kargo</a></li>
+            <li><a href="/hukuk/cerez-politikasi">Çerez Politikası</a></li>
+            <li><a href="/hukuk/kvkk-aydinlatma-metni">KVKK Aydınlatma</a></li>
+          </ul>
+        </div>
+        <div className="footer-contact-col">
           <h5>İletişim</h5>
           <ul>
             {addressLines.map((line, i) => (
               <li key={i}>{line}</li>
             ))}
-            <li style={{ marginTop: 6, fontFamily: "JetBrains Mono", fontSize: 12 }}>{phone}</li>
-            <li style={{ fontFamily: "JetBrains Mono", fontSize: 12 }}>{email}</li>
+            <li className="footer-contact-mono">{phone}</li>
+            <li className="footer-contact-mono">{email}</li>
+            <li className="footer-contact-hours">
+              <span>Her gün</span>
+              <span className="tabular">10:00 — 23:00</span>
+            </li>
           </ul>
         </div>
       </div>
 
+      {/* Bottom strip */}
       <div className="footer-meta">
-        <span>© MMXXVI L’Affogato Italia · Bologna MCMLXXXVII</span>
-        <span>Drink it. Eat the cup.</span>
-        <span>Gizlilik · Şartlar · Alerjenler · Çerezler</span>
+        <div className="footer-meta-left">
+          <span>© {year} {SITE_LEGAL_NAME}</span>
+          <span className="footer-meta-dot" />
+          <span>Bologna MCMLXXXVII — İstanbul MMXXVI</span>
+        </div>
+        <div className="footer-meta-script">Drink it. Eat the cup.</div>
+        <div className="footer-meta-right">
+          <FooterPay label="Visa" />
+          <FooterPay label="Mastercard" />
+          <FooterPay label="Troy" />
+          <FooterPay label="AmEx" />
+        </div>
       </div>
     </footer>
+  );
+}
+
+const SITE_LEGAL_NAME = "L'Affogato Gıda ve Servis A.Ş.";
+
+function FooterTrust({
+  icon,
+  title,
+  hint,
+}: {
+  icon: "lock" | "truck" | "leaf" | "return";
+  title: string;
+  hint: string;
+}) {
+  return (
+    <div className="footer-trust-item">
+      <span className="footer-trust-icon" aria-hidden="true">
+        {icon === "lock" && (
+          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <rect x="4" y="9" width="12" height="8" rx="2" />
+            <path d="M6.5 9 V6.5 a3.5 3.5 0 0 1 7 0 V9" />
+            <circle cx="10" cy="13" r="1" fill="currentColor" />
+          </svg>
+        )}
+        {icon === "truck" && (
+          <svg viewBox="0 0 20 20" width="18" height="16" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <path d="M1 5 H11 V14 H1 z" />
+            <path d="M11 8 H16 L18 11 V14 H11 z" />
+            <circle cx="5" cy="15" r="1.4" />
+            <circle cx="14" cy="15" r="1.4" />
+          </svg>
+        )}
+        {icon === "leaf" && (
+          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <path d="M3 17 C4 9 9 4 17 3 C17 11 13 16 5 17 Z" />
+            <path d="M5 17 L11 11" />
+          </svg>
+        )}
+        {icon === "return" && (
+          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <path d="M4 10 a6 6 0 1 0 2-4" />
+            <path d="M2 4 L6 6 L4 10" strokeLinejoin="round" />
+          </svg>
+        )}
+      </span>
+      <div>
+        <div className="footer-trust-title">{title}</div>
+        <div className="footer-trust-hint">{hint}</div>
+      </div>
+    </div>
+  );
+}
+
+function FooterPay({ label }: { label: string }) {
+  return (
+    <span className="footer-pay" aria-label={`${label} kabul edilir`}>
+      {label}
+    </span>
   );
 }
