@@ -73,7 +73,7 @@ export default async function HesapPage() {
           <Link href="/" className="eyebrow" style={{ display: "inline-block", marginBottom: 14 }}>
             ← Anasayfa
           </Link>
-          <h1 className="h-1" style={{ fontSize: "clamp(36px, 6vw, 64px)" }}>
+          <h1 className="h1" style={{ fontSize: "clamp(36px, 6vw, 64px)" }}>
             Hesabım<span className="script">.</span>
           </h1>
           <p style={{ marginTop: 16, color: "var(--ink-soft)" }}>
@@ -96,7 +96,7 @@ export default async function HesapPage() {
           marginBottom: 32,
         }}
       >
-        <h2 className="h-3" style={{ marginBottom: 18 }}>
+        <h2 className="h3" style={{ marginBottom: 18 }}>
           Bilgilerim
         </h2>
         <ProfileForm
@@ -114,7 +114,7 @@ export default async function HesapPage() {
           padding: "clamp(22px, 4vw, 32px)",
         }}
       >
-        <h2 className="h-3" style={{ marginBottom: 18 }}>
+        <h2 className="h3" style={{ marginBottom: 18 }}>
           Sipariş geçmişim
         </h2>
         {orders.length === 0 ? (

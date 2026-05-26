@@ -223,7 +223,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
           <div className="reveal" data-row="locale-head">
             <div>
               <div className="eyebrow">01 — Il locale</div>
-              <h2 className="h-1" style={{ marginTop: 16 }}>
+              <h2 className="h1" style={{ marginTop: 16 }}>
                 Maltepe Park, <span className="script">altın saat.</span>
               </h2>
             </div>
@@ -267,7 +267,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow">02 — La firma · since 1987</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               The <span className="script">edible</span>
               <br />
               affogato.
@@ -307,7 +307,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
           <div className="reveal" data-row="section-head-split">
             <div>
               <div className="eyebrow">03 — Dal menù</div>
-              <h2 className="h-1" style={{ marginTop: 16 }}>
+              <h2 className="h1" style={{ marginTop: 16 }}>
                 Altı <span className="script">affogato,</span>
                 <br />
                 tek ritüel.
@@ -378,7 +378,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
           </div>
           <div className="reveal">
             <div className="eyebrow">04 — Il banco matcha</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Matcha & <span className="script">strawberry.</span>
             </h2>
             <p className="lede" style={{ marginTop: 26 }}>
@@ -408,7 +408,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
           <div className="reveal" data-row="section-head-split">
             <div>
               <div className="eyebrow">05 — La bottega</div>
-              <h2 className="h-1" style={{ marginTop: 16 }}>
+              <h2 className="h1" style={{ marginTop: 16 }}>
                 Bring it <span className="script">home.</span>
               </h2>
             </div>
@@ -429,7 +429,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
           <div className="reveal" data-row="section-head-split">
             <div>
               <div className="eyebrow on-dark">06 — Il film</div>
-              <h2 className="h-1" style={{ marginTop: 16, color: "#FFF" }}>
+              <h2 className="h1" style={{ marginTop: 16, color: "#FFF" }}>
                 Barın arkasında, <span className="script">sahnede.</span>
               </h2>
             </div>
@@ -499,7 +499,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow">07 — Franchise</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               L’Affogato’yu <br />
               <span className="script">şehrinize</span> getirin.
             </h2>
@@ -638,7 +638,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
                   <div className="eyebrow" style={{ marginBottom: 16 }}>
                     {c.sub}
                   </div>
-                  <h2 className="h-1">
+                  <h2 className="h1">
                     {firstWord}
                     {restWords && (
                       <>
@@ -1019,7 +1019,7 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
           </div>
           <div className="reveal r1">
             <div className="eyebrow">Affogato Kit · For Two</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Evde <span className="script">tableside</span> servis.
             </h2>
             <p className="lede" style={{ marginTop: 22 }}>
@@ -1162,7 +1162,7 @@ export function PageStory(_props: PageProps) {
           </div>
           <div className="reveal r1">
             <div className="eyebrow">Founder · Roaster · Üçüncü kuşak</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Eda <span className="script">Mancuso.</span>
             </h2>
             <p className="lede" style={{ marginTop: 22 }}>{STORY.founder.bio}</p>
@@ -1191,7 +1191,7 @@ export function PageStory(_props: PageProps) {
         <div className="wrap-wide">
           <div className="reveal" style={{ marginBottom: 70 }}>
             <div className="eyebrow on-dark">Linea del tempo</div>
-            <h2 className="h-1" style={{ marginTop: 16, color: "#FFF" }}>
+            <h2 className="h1" style={{ marginTop: 16, color: "#FFF" }}>
               How we got <span className="script">here.</span>
             </h2>
           </div>
@@ -1203,7 +1203,7 @@ export function PageStory(_props: PageProps) {
                   <span></span>
                 </div>
                 <div className="timeline-content">
-                  <h3 className="h-3" style={{ color: "#FFF" }}>{ev.t}</h3>
+                  <h3 className="h3" style={{ color: "#FFF" }}>{ev.t}</h3>
                   <p style={{ marginTop: 10, color: "rgba(255, 255, 255, 0.7)", lineHeight: 1.6, maxWidth: 540 }}>{ev.d}</p>
                 </div>
               </div>
@@ -1231,7 +1231,7 @@ export function PageStory(_props: PageProps) {
                 style={{ transitionDelay: `${(i % 3) * 60}ms` }}
               >
                 <div className="value-num">{v.n}</div>
-                <h3 className="h-3">{v.t}</h3>
+                <h3 className="h3">{v.t}</h3>
                 <p>{v.d}</p>
               </div>
             ))}
@@ -1359,7 +1359,7 @@ export function PageStory(_props: PageProps) {
       <section className="section" style={{ background: "var(--bg-cream)" }}>
         <div className="wrap-narrow" style={{ textAlign: "center" }}>
           <div className="eyebrow reveal" style={{ marginBottom: 24 }}>Per chiudere</div>
-          <h2 className="h-1 reveal r1">
+          <h2 className="h1 reveal r1">
             “Drink it. <span className="script">Eat the cup.</span>
             <br />
             That’s the whole brand.”
@@ -1442,7 +1442,7 @@ export function PageVisit(_props: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow">{LOCATION.short}</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Cevizli, <span className="script">Maltepe.</span>
             </h2>
             <div style={{ marginTop: 22, fontFamily: "var(--serif-display)", fontSize: 18, lineHeight: 1.6 }}>
@@ -1508,7 +1508,7 @@ export function PageVisit(_props: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow">Saatler · AVM açık saatleri</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Her gün, <span className="script">10–23.</span>
             </h2>
             <div className="hours-table">
@@ -1682,7 +1682,7 @@ export function PageVisit(_props: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow on-dark">Eventi privati</div>
-            <h2 className="h-1" style={{ marginTop: 16, color: "#FFF" }}>
+            <h2 className="h1" style={{ marginTop: 16, color: "#FFF" }}>
               Özel <span className="script">kiralama.</span>
             </h2>
             <p className="lede" style={{ marginTop: 24, color: "rgba(255, 255, 255, 0.78)" }}>
@@ -1836,7 +1836,7 @@ export function PageReels(_props: PageProps) {
         <div className="wrap-wide">
           <div className="reveal" style={{ marginBottom: 30 }}>
             <div className="eyebrow">Featured · Ep. 04 · Mayıs 2026</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Bu ayın <span className="script">kısa filmi.</span>
             </h2>
           </div>
@@ -1873,7 +1873,7 @@ export function PageReels(_props: PageProps) {
             </div>
             <div className="featured-film-meta">
               <div className="eyebrow">Director · Kerem Aksoy</div>
-              <h3 className="h-2" style={{ marginTop: 16 }}>How an affogato is born.</h3>
+              <h3 className="h2" style={{ marginTop: 16 }}>How an affogato is born.</h3>
               <p className="lede" style={{ marginTop: 20 }}>
                 Sabah 6’da gelato bazını çevirmeye başlıyoruz, 7:30’da Sirena’yı kavurmaya. 10’da ilk müşteri.
                 Bu 4 dakikalık kısa film bir günü 27 saniyelik ekstraksiyona indirgemenin hikayesini anlatıyor.
@@ -1897,7 +1897,7 @@ export function PageReels(_props: PageProps) {
           <div className="reveal" data-row="reels-header" style={{ marginBottom: 40 }}>
             <div>
               <div className="eyebrow">Reels · son yayınlananlar</div>
-              <h2 className="h-1" style={{ marginTop: 16 }}>
+              <h2 className="h1" style={{ marginTop: 16 }}>
                 Akışın <span className="script">en yenisi.</span>
               </h2>
             </div>
@@ -2216,7 +2216,7 @@ export function PageFranchise(_props: PageProps) {
           </div>
           <div className="reveal r1">
             <div className="eyebrow">Perché L’Affogato</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Premium hissiyat, <span className="script">ulaşılabilir</span> fiyat.
             </h2>
             <p className="lede" style={{ marginTop: 22 }}>
@@ -2326,7 +2326,7 @@ export function PageFranchise(_props: PageProps) {
               <div key={p.n} className="reveal process-step" style={{ transitionDelay: `${i * 60}ms` }}>
                 <div className="process-step-num">{p.n}</div>
                 {i < FRANCHISE.process.length - 1 && <div className="process-step-line" />}
-                <h3 className="h-3" style={{ marginTop: 24 }}>{p.t}</h3>
+                <h3 className="h3" style={{ marginTop: 24 }}>{p.t}</h3>
                 <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.6, marginTop: 8 }}>{p.d}</p>
               </div>
             ))}
@@ -2342,7 +2342,7 @@ export function PageFranchise(_props: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow on-dark">Modulo di candidatura</div>
-            <h2 className="h-1" style={{ marginTop: 16, color: "#FFF" }}>
+            <h2 className="h1" style={{ marginTop: 16, color: "#FFF" }}>
               <span className="script">Franchise</span> başvurusu.
             </h2>
             <p className="lede" style={{ marginTop: 22, color: "rgba(255, 255, 255, 0.78)" }}>
