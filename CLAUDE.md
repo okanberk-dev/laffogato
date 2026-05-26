@@ -6,39 +6,86 @@ Bu dosya, Claude Code'un bu projede tutarlı çalışması için gerekli bağlam
 
 ## Proje Özeti
 
-**Laffogato**, bir kafenin kurumsal web sitesi ve e-ticaret platformudur. Müşteriler menüye göz atabilir, ürünleri sepete ekleyebilir, online ödeme yapabilir. Admin paneli üzerinden ürün/kategori/sipariş yönetimi tek yerden yapılır.
+**Laffogato** (marka adı: **L'Affogato**) İstanbul Maltepe Park'ta açılan kafenin kurumsal web sitesi + online mağazasıdır. Müşteri menüye bakar, ürün satın alır, ödeme yapar; admin paneli üzerinden ürün/menü/sipariş yönetimi tek yerden yapılır.
 
-- Deployment hedefi: **Vercel** (Edge + Node runtime)
-- Veritabanı + Auth: **Supabase** (Postgres + RLS + Storage)
-- UI: **Next.js App Router + Tailwind v4 + shadcn/ui**
-- Ödeme: **Sağlayıcı bağımsız soyutlama** (`src/lib/payment/provider.ts`). İlk entegrasyon henüz seçilmedi; arayüze plug-in edilecek (iyzico / PayTR / Stripe / vs.).
-- Dil: **Türkçe** (arayüz + içerik). Kod ve commit mesajları İngilizce.
+- **Stack:** Next.js 16 (App Router + Turbopack) · React 19 · Tailwind v4 · TypeScript · Zod
+- **Deploy hedefi:** Vercel (Edge proxy + Node runtime API'ler)
+- **Veri:** Şu an **bellek-içi store** (`src/lib/admin/store.ts`). Supabase entegrasyonu hazır ama bağlı değil — free-tier limit yüzünden ertelendi
+- **Auth:** Admin için **env-credentialed signed cookie** (`ADMIN_EMAIL` + `ADMIN_PASSWORD` + HMAC SHA256). Müşteri auth henüz yok
+- **Ödeme:** Sağlayıcı bağımsız soyutlama (`src/lib/payment/`). Şu an `MockPaymentProvider`; sanal POS sağlayıcısı henüz seçilmedi
+- **Dil:** Arayüz **Türkçe**. Kod, dosya adı, identifier, commit mesajı **İngilizce**
+
+## Mevcut Durum (PR'lar)
+
+| PR | Konu |
+|----|------|
+| #1 | Premium kafe sitesi (design handoff 1:1) |
+| #2 | ReelScene fix — design 1:1 hizalama |
+| #3 | Admin panel (auth + CRUD, in-memory store) |
+| #4 | Shop ↔ admin store wiring |
+| #5 | Checkout → real order creation |
+| #6 | Cart persistence + settings → footer |
+| #7 | Stock decrement + out-of-stock toast |
+| #8 | Cafe menu admin (5 kategori × ≈6 kalem) |
+| #9 | Commerce-grade product editor (wizard, variants, SEO, Zod) |
+| #10 | GitHub Actions CI (typecheck + build) |
 
 ## Klasör Yapısı
 
 ```
 src/
   app/
-    (shop)/              → Müşteri tarafı (menü, ürünler, sepet, ödeme, hesabım)
-    admin/               → Admin panel (ayrı layout + 2FA korumalı)
-    api/                 → Route handlers (webhook, cart, orders)
+    page.tsx                 → Müşteri SPA entrysi (hash router: #home, #menu, ...)
+    layout.tsx               → next/font ile 6 Google Font
+    globals.css              → Tüm design tokens (styles.css + components.css birleşik)
+    admin/                   → Admin panel route'ları (proxy korumalı)
+      page.tsx               → Dashboard
+      giris/                 → Login (env-credentialed)
+      urunler/               → Shop ürünleri: liste + wizard (yeni) + tabs (düzenle)
+      menu/                  → Kafe menüsü: 5 kategori × kalem CRUD
+      kategoriler/           → Shop kategorileri CRUD
+      siparisler/            → Sipariş listesi + durum güncelleme
+      ayarlar/               → Kafe ayarları formu
+      actions.ts             → Genel logout action
+      layout.tsx             → Admin chrome (nav + user + logout)
+    odeme/
+      actions.ts             → placeOrderAction (sepet → sipariş)
+      basarili/              → Sipariş başarılı sayfası + cart clear
+    api/webhooks/payment/    → Payment provider webhook (HMAC doğrulamalı)
+    proxy.ts                 → Cookie-tabanlı admin guard
   components/
-    ui/                  → shadcn/ui primitive'leri
-    shop/                → Müşteri tarafı komponentleri
-    admin/               → Admin komponentleri
-    layout/              → Header, Footer, Nav
+    laffogato/               → Müşteri SPA (1:1 design)
+      app.tsx                → LaffogatoApp shell (cart, route, notice, settings, menu)
+      chrome.tsx             → Nav + Footer (footer settings prop'undan okur)
+      pages.tsx              → 7 sayfa (home/menu/shop/story/visit/reels/franchise)
+      ui.tsx                 → ProductCard, CartDrawer, ProductModal, CheckoutButton
+      visuals.tsx            → Tüm SVG visuals (edible cup, matcha glass, bar render, ...)
+      data.ts                → Statik seed (MENU, PRODUCTS, REELS, PRESS, STORY, LOCATION, FRANCHISE)
+    admin/                   → Paylaşılan admin form primitives
+      forms.tsx              → Field, TextInput, Select, Checkbox, Button, Card, PageHeader, formatTRY, formatDateTime
+      product-wizard.tsx     → 5-step wizard / tabs (yeni + düzenle aynı bileşeni kullanır)
+      product-form.tsx       → (deprecated, kaldırılabilir — wizard onun yerine geçti)
+      category-form.tsx      → Shop kategori formu
+      menu-item-form.tsx     → Kafe menü kalemi formu
   lib/
-    supabase/            → Client/server/middleware factory'leri
-    payment/             → PaymentProvider interface + mock implementasyon
-    validation/          → Zod şemaları
-    utils/               → Genel yardımcılar
-  types/                 → Global TS tipleri (DB tipleri Supabase'den generate edilir)
-  hooks/                 → React custom hook'lar
+    admin/
+      auth.ts                → signInAdmin, signOutAdmin, getAdminSession, signed cookie
+      store.ts               → In-memory mutable store (products, categories, menu, orders, settings)
+      product-schema.ts      → Zod schema for product form (coerce, validate, transform)
+    payment/                 → PaymentProvider interface + MockPaymentProvider
+    supabase/                → Hazır client/server factories + proxy (dormant, ileride swap)
+    utils/cn.ts, format.ts   → Genel yardımcılar
+  types/database.ts          → Supabase'den auto-gen edilecek tip placeholder
+.claude/
+  settings.json              → Permissions (Bash + GitHub MCP + Supabase MCP)
+  skills/                    → Proje skill'leri (add-admin-resource, server-action-pattern, ...)
+.github/workflows/ci.yml     → Typecheck + build her PR'da
 supabase/
-  migrations/            → SQL migration dosyaları (timestamp_isim.sql)
-  seed/                  → Test verileri (urunler, kategoriler)
-docs/                    → Proje dokümantasyonu (PROMPT.md, mimari notlar)
-.claude/                 → Claude Code ayarları (settings.json, vs.)
+  migrations/                → SQL migration dosyaları (henüz uygulanmadı)
+  seed/seed.sql              → Test verisi (henüz uygulanmadı)
+docs/
+  PROMPT.md                  → Ürün spec'i + MVP scope
+  NEXT_SESSION.md            → Yeni session'da admin tam kontrol için brief
 ```
 
 ## Geliştirme Komutları
@@ -46,66 +93,96 @@ docs/                    → Proje dokümantasyonu (PROMPT.md, mimari notlar)
 ```bash
 npm run dev         # Geliştirme sunucusu (http://localhost:3000)
 npm run build       # Production build
-npm run lint        # ESLint
 npm run typecheck   # tsc --noEmit
 npm run format      # Prettier yaz
 ```
 
-## Veri Modeli (özet)
+CI her PR'da `npm run typecheck` + `npm run build` koşar.
 
-Tüm tablolar Supabase RLS politikaları ile korunur. Detaylı şema `supabase/migrations/` altındadır.
+## Env Variables
 
-- `categories` — Ürün kategorileri (kahve, tatlı, atıştırmalık, vs.)
-- `products` — Ürünler (slug, ad, açıklama, fiyat, görsel, stok, kategori_id, aktif)
-- `product_variants` — Boy/şeker tercihi gibi varyantlar (opsiyonel)
-- `orders` — Sipariş başlığı (kullanıcı_id, durum, toplam, adres)
-- `order_items` — Sipariş kalemleri (sipariş_id, ürün_id, varyant_id, miktar, birim_fiyat)
-- `payment_transactions` — Ödeme provider'ından dönen yanıtlar (idempotent)
-- `admin_users` — Admin rolleri (user_id → role)
-- `cafe_settings` — Tek satırlık ayar tablosu (çalışma saatleri, banner, vs.)
+`.env.example` referans. Local için `.env.local` doldur:
+
+| Değişken | Amaç | Şu an |
+|----------|------|-------|
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin giriş kimliği | Zorunlu |
+| `ADMIN_SESSION_SECRET` | Cookie HMAC anahtarı (≥32 karakter rastgele) | Zorunlu |
+| `PAYMENT_PROVIDER` | `mock` (varsayılan) | Zorunlu |
+| `PAYMENT_WEBHOOK_SECRET` | Webhook HMAC anahtarı | Zorunlu |
+| `NEXT_PUBLIC_SUPABASE_URL` / `..._ANON_KEY` | Supabase | Şimdilik placeholder |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-side admin | Şimdilik placeholder |
+| `NEXT_PUBLIC_SITE_URL` | metadataBase | Local: `http://localhost:3000` |
+
+**NODE_ENV asla manuel set edilmez.** Next.js kendi yönetir. CI bunu env'de tutmaz.
+
+## Data Mimarisi
+
+### In-memory store (şu an)
+
+`src/lib/admin/store.ts` — modül-scope mutable array'ler. Süreç restart'ında reset olur, Vercel serverless'te invocation arası kalmaz. Geliştirme/demo için yeterli. **API'si Supabase-swap-ready:** tüm fonksiyonlar async döner, parametre şekilleri DB'ye geçişe uygun.
+
+Entity'ler:
+- **AdminProduct** (slug, sku, compareAt, cost, images, stock, lowStockThreshold, weight, SEO, variants, ...)
+- **AdminProductVariant** (id, name, priceDeltaMinor, stock, sku, isActive)
+- **AdminCategory** (5 sabit shop kategorisi: beans/gift/gear/merch/pantry)
+- **AdminMenuItem** (5 sabit cafe kategori: affogato/matcha/espresso/cold/gelato)
+- **AdminOrder** + **AdminOrderItem** (7 durum: pending_payment → paid → preparing → shipped → completed | cancelled | refunded)
+- **AdminSettings** (singleton: name, tagline, phone, email, address, openingHours, isShopOpen)
+
+Public read fonksiyonları:
+- `listShopProducts()` — design'ın `Product` şeklinde aktif ürünler, compareAt dahil
+- `listMenuForCustomer()` — design'ın MENU şeklinde aktif menü kalemleri, kategori meta'sı SEED_MENU'den
+
+### Supabase (henüz bağlı değil)
+
+`supabase/migrations/20260525000000_initial_schema.sql` hazır. Bağlama adımları:
+1. Yeni proje oluştur (free tier limit doluysa bir mevcut projeyi pause/sil)
+2. `mcp__supabase__apply_migration` ile uygula
+3. `seed/seed.sql`'i çalıştır
+4. Store fonksiyonlarının gövdelerini Supabase çağrılarıyla swap et — UI değişmez
+5. Auth'u Supabase Auth'a geçir (`src/lib/supabase/proxy.ts` dormant)
 
 ## Güvenlik Kuralları
 
-1. **RLS her tabloda zorunludur.** Yeni migration eklerken `ENABLE ROW LEVEL SECURITY` + uygun politikalar şart.
-2. **Service role key yalnızca server-side.** Client tarafında `NEXT_PUBLIC_SUPABASE_ANON_KEY` kullanılır.
-3. **Admin route'ları Next.js proxy ile korunur** (`src/proxy.ts` — Next.js 16'da `middleware` yerine `proxy` ismi kullanılır). Sadece `admin_users` tablosunda yer alan kullanıcılar geçer.
-4. **Ödeme tutarı asla client'tan gelmez.** Server, sipariş kalemlerinin DB fiyatından toplamı yeniden hesaplar.
-5. **Webhook'lar imza doğrular** (`x-signature` header → HMAC SHA256). Doğrulanmayan istekler 401 döner.
-6. **Idempotency:** Ödeme webhook'ları `payment_transactions.provider_ref` üzerinde unique constraint ile tek seferde uygulanır.
-7. **Rate limit** kritik endpoint'lerde (`/api/orders`, `/api/webhooks/*`) middleware seviyesinde.
-8. **CSRF:** Mutasyon API route'ları Next.js Server Actions veya `Origin` header kontrolü ile.
-9. **PII:** Logging'de email/telefon maskelenmeli. Sentry/log servisleri için scrubber yazılır.
-10. **Secrets** `.env.local` (gitignore'lı) + Vercel env vars. `.env.example` repo'da işaretçi olarak.
-
-## Ödeme Soyutlaması
-
-`PaymentProvider` arayüzü tek yerden tanımlanır (`src/lib/payment/provider.ts`):
-
-```ts
-interface PaymentProvider {
-  createCheckoutSession(input: CheckoutInput): Promise<CheckoutSession>
-  verifyWebhook(req: Request): Promise<WebhookEvent>
-  refund(transactionId: string, amount?: number): Promise<RefundResult>
-}
-```
-
-Şu an `MockPaymentProvider` (test) kullanılıyor. Gerçek sağlayıcı eklenince `lib/payment/iyzico.ts` (veya benzeri) implement edip env üzerinden seçilecek.
+1. **Admin cookie:** HMAC SHA256 imzalı, httpOnly, `sameSite=lax`, 7 gün TTL. Secret en az 32 karakter
+2. **Kimlik karşılaştırması constant-time** (`crypto.timingSafeEqual`). Email lowercase normalize edilir
+3. **Server-side validation Zod ile** — admin form input'ları parse edilmeden hiçbir mutation yapılmaz
+4. **Tüm mutation'lar server action** (`"use server"` directive). FormData üzerinden gelir, client'tan tip bilgisi gelmez
+5. **revalidatePath** her mutation sonrası — `/`, `/admin/*`, ilgili sayfa
+6. **Ödeme tutarı asla client'tan gelmez.** Cart server'a fiyatları string olarak gönderir ama backend ürün adı match'iyle DB fiyatından doğrular (Supabase entegrasyonu sonrası)
+7. **Webhook'lar** `x-signature` header → HMAC SHA256 timing-safe compare. Geçersiz → 401
+8. **Idempotency:** Ödeme webhook'ları `payment_transactions.provider_ref` unique constraint ile tek seferde
+9. **PII:** Logging'de email/telefon maskelenmeli (Sentry/log scrubber ileride)
+10. **Service role key SADECE server-side** — `NEXT_PUBLIC_*` prefix'i asla servis role için kullanılmaz
+11. **RLS her tabloda zorunlu** — Supabase migration zaten bunu varsayıyor. Yeni tablo eklerken policy unutma
+12. **CI placeholder secrets** asla production'da kullanılmaz — `.env.local` ve Vercel env vars gerçek değerleri tutar
 
 ## Çalışma Kuralları (Claude için)
 
-- **Dil:** Kullanıcı ile Türkçe konuş. Kod, identifier, dosya adı, commit mesajı İngilizce.
-- **Branch:** `claude/inspiring-cori-3JcFV` üzerinde geliştir. Push öncesi PR aç (draft).
-- **Migration'lar:** SQL dosyası `supabase/migrations/YYYYMMDDHHMMSS_aciklama.sql` formatında. Önce dosyaya yaz, sonra Supabase MCP `apply_migration` ile uygula. Migration'ları geri-uyumlu tut, breaking change'i ayrı PR'da konuş.
-- **Type üretimi:** Schema değişince `mcp__supabase__generate_typescript_types` ile `src/types/database.ts` güncelle.
-- **shadcn ekleme:** `npx shadcn@latest add <component>` ile. Manuel kopyalama yapma.
-- **Test:** Lighthouse + manual smoke testing. E2E için ileride Playwright eklenecek.
-- **Yeni özellik:** Önce `docs/PROMPT.md`'deki MVP kapsamına uyduğunu doğrula. Kapsam dışıysa kullanıcıya sor.
-- **Estetik:** Tasarım handoff geldiğinde token'lar `tailwind.config.ts` + `src/app/globals.css` üzerinden tanımlanır. Inline custom renk kullanma.
+- **Dil:** Kullanıcı ile **Türkçe** konuş. Kod, identifier, dosya adı, commit mesajı **İngilizce**.
+- **Branch:** `claude/inspiring-cori-3JcFV`. Her PR sonrası rebase et, force-with-lease push yap.
+- **PR akışı:** Her özellik için ayrı PR. Draft aç, kullanıcı merge etsin. Webhook ile CI sonucunu izle, hata varsa düzelt.
+- **Design 1:1:** Müşteri SPA'sı (`components/laffogato/*`) design handoff (`/tmp/design/cafe/project/`) ile birebir. Yeni özellik eklerken design'a sadık kal, sapma varsa kullanıcıya sor.
+- **Admin form akışı:** Yeni ürün → `ProductWizard mode="wizard"` (5 adım); düzenleme → aynı bileşen `mode="tabs"`. Yeni alan eklerken **5 yer güncellenir:** `AdminProduct` (store), seed, `ProductInput`, `product-schema.ts` (Zod), `product-wizard.tsx` (UI). Skill: `add-admin-resource`
+- **Server action pattern:** Zod parse → store call → revalidatePath → redirect. Skill: `server-action-pattern`
+- **Migration:** `supabase/migrations/YYYYMMDDHHMMSS_aciklama.sql` formatında. Skill: `new-migration`
+- **Test:** Build temiz olmalı. CI yeşil olmadan merge etme. UI değişikliği yaptıysan dev server'da göz ucuyla kontrol et
+- **Para birimleri:** Tüm fiyatlar **minor unit** (kuruş) olarak `priceMinor: number`. UI'da `formatTRY()` ile render edilir
+- **shadcn ekleme:** `npx shadcn@latest add <component>` ile (sandbox'ta registry erişimi yoksa skip). Manuel kopyalama yapma
 
 ## Yapılmayacaklar
 
-- Henüz tasarım handoff gelmedi → UI'ı detaylı stillemeyin, placeholder bırakın.
-- Sanal POS sağlayıcısı seçilmedi → gerçek API key'leriyle entegrasyon henüz yapılmıyor, sadece interface.
-- Mail/SMS bildirimleri MVP dışı (sonra Resend/Twilio eklenir).
-- Coupon/indirim sistemi MVP dışı.
-- Multi-language MVP dışı (sadece Türkçe).
+- Henüz **Vercel'e deploy edilmedi** — env vars + URL kararı kullanıcıdan
+- Henüz **sanal POS sağlayıcısı seçilmedi** — gerçek API key'leriyle entegrasyon yapma
+- Henüz **Supabase bağlı değil** — store fonksiyonlarını DB'ye geçirme isteğini kullanıcıdan onay almadan başlatma
+- **Mail/SMS bildirimleri** MVP dışı (sonra Resend/Twilio)
+- **Coupon/indirim kodu** MVP dışı (ama compareAt zaten var)
+- **Multi-language** MVP dışı (sadece TR)
+- **Misafir checkout** zaten çalışıyor; **müşteri auth + sipariş geçmişi** önümüzdeki sprintte
+
+## Sık Karşılaşılan Hatalar
+
+- **`_global-error` prerender + useContext null:** `.claude/settings.json`'da `NODE_ENV: development` set ederken `npm run build` çağrısında inline `NODE_ENV=production` geçmek gerekir. CI'da NODE_ENV manuel set EDİLMEZ — Next.js zaten yönetiyor
+- **`npm ci` lockfile drift:** Yeni paket ekledikten sonra `npm install` çalıştır, `package-lock.json` değişikliğini commit et
+- **Hash router'da hydration mismatch:** `LaffogatoApp` mount-öncesi `PageHome`'u render eder; hash'i `useEffect`'te okur. Bunu bozma
+- **Server action'dan client state'e dönüş yok:** Sepet temizleme `/odeme/basarili`'deki `ClearCart` component'iyle yapılır (localStorage temizler)
