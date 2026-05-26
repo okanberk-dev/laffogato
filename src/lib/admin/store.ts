@@ -3,6 +3,7 @@ import "server-only";
 import {
   MENU as SEED_MENU,
   PRODUCTS as SEED_PRODUCTS,
+  type Product as DesignProduct,
 } from "@/components/laffogato/data";
 
 /**
@@ -338,3 +339,25 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 }
 
 export { SEED_MENU as CAFE_MENU };
+
+// ── Public read for customer site ─────────────────────────────────────────
+
+/**
+ * Returns active products in the design's `Product` shape so the SPA
+ * (Shop + Home teaser) can render them without any TS gymnastics.
+ * Inactive products are filtered out automatically.
+ */
+export async function listShopProducts(): Promise<DesignProduct[]> {
+  return products
+    .filter((p) => p.isActive)
+    .map((p) => ({
+      name: p.name,
+      tag: p.tag,
+      price: `${Math.round(p.priceMinor / 100)}₺`,
+      desc: p.desc,
+      cat: p.cat,
+      img: p.img,
+      featured: p.featured || undefined,
+      isNew: p.isNew || undefined,
+    }));
+}

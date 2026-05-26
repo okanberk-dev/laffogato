@@ -31,7 +31,7 @@ function readInitialRoute(): Route {
   return VALID_ROUTES.includes(initial) ? initial : "home";
 }
 
-export function LaffogatoApp() {
+export function LaffogatoApp({ products }: { products?: Product[] }) {
   const [route, setRoute] = useState<Route>("home");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -92,7 +92,12 @@ export function LaffogatoApp() {
     return (
       <>
         <Nav route="home" navigate={navigate} dark cart={0} onCart={() => setCartOpen(true)} />
-        <PageHome navigate={navigate} addToCart={addToCart} openProduct={setProductOpen} />
+        <PageHome
+          navigate={navigate}
+          addToCart={addToCart}
+          openProduct={setProductOpen}
+          products={products}
+        />
         <Footer navigate={navigate} />
       </>
     );
@@ -107,7 +112,12 @@ export function LaffogatoApp() {
         cart={cartCount}
         onCart={() => setCartOpen(true)}
       />
-      <Page navigate={navigate} addToCart={addToCart} openProduct={setProductOpen} />
+      <Page
+        navigate={navigate}
+        addToCart={addToCart}
+        openProduct={setProductOpen}
+        products={products}
+      />
       <Footer navigate={navigate} />
       <CartDrawer
         open={cartOpen}

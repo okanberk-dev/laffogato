@@ -45,23 +45,27 @@ function parseInput(formData: FormData) {
   return { name, tag, priceMinor, desc, cat, img, stock, featured, isNew, isActive };
 }
 
+function revalidateShop() {
+  revalidatePath("/");
+  revalidatePath("/admin/urunler");
+  revalidatePath("/admin");
+}
+
 export async function createProductAction(formData: FormData) {
   const input = parseInput(formData);
   if (!input.name) {
     return;
   }
   await createProduct(input);
-  revalidatePath("/admin/urunler");
-  revalidatePath("/admin");
+  revalidateShop();
   redirect("/admin/urunler");
 }
 
 export async function updateProductAction(id: string, formData: FormData) {
   const input = parseInput(formData);
   await updateProduct(id, input);
-  revalidatePath("/admin/urunler");
+  revalidateShop();
   revalidatePath(`/admin/urunler/${id}/duzenle`);
-  revalidatePath("/admin");
   redirect("/admin/urunler");
 }
 
@@ -69,6 +73,5 @@ export async function deleteProductAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteProduct(id);
-  revalidatePath("/admin/urunler");
-  revalidatePath("/admin");
+  revalidateShop();
 }
