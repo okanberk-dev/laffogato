@@ -1,5 +1,9 @@
 import { LaffogatoApp } from "@/components/laffogato/app";
-import { getSettings, listShopProducts } from "@/lib/admin/store";
+import {
+  getSettings,
+  listMenuForCustomer,
+  listShopProducts,
+} from "@/lib/admin/store";
 
 export const dynamic = "force-dynamic";
 
@@ -8,10 +12,11 @@ interface PageProps {
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const [{ cart, item, available }, products, settings] = await Promise.all([
+  const [{ cart, item, available }, products, settings, menu] = await Promise.all([
     searchParams,
     listShopProducts(),
     getSettings(),
+    listMenuForCustomer(),
   ]);
 
   let notice: string | undefined;
@@ -31,6 +36,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         email: settings.email,
         address: settings.address,
       }}
+      menu={menu}
       notice={notice}
     />
   );

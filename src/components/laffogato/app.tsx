@@ -13,7 +13,7 @@ import {
   PageVisit,
 } from "./pages";
 import { CartDrawer, ProductModal, type CartItem } from "./ui";
-import type { Product } from "./data";
+import type { MenuCategory, Product } from "./data";
 
 const VALID_ROUTES: Route[] = [
   "home",
@@ -55,10 +55,12 @@ export function LaffogatoApp({
   products,
   settings,
   notice,
+  menu,
 }: {
   products?: Product[];
   settings?: FooterSettings;
   notice?: string;
+  menu?: Record<string, MenuCategory>;
 }) {
   const [noticeOpen, setNoticeOpen] = useState(Boolean(notice));
 
@@ -156,6 +158,7 @@ export function LaffogatoApp({
           addToCart={addToCart}
           openProduct={setProductOpen}
           products={products}
+          menu={menu}
         />
         <Footer navigate={navigate} settings={settings} />
       </>
@@ -176,6 +179,7 @@ export function LaffogatoApp({
         addToCart={addToCart}
         openProduct={setProductOpen}
         products={products}
+        menu={menu}
       />
       <Footer navigate={navigate} settings={settings} />
       <CartDrawer
