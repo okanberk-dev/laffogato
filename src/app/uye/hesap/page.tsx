@@ -1,210 +1,147 @@
 import Link from "next/link";
 
+import { AccountShell, AccountStat, AccountCard, EmptyState } from "@/components/uye/account-shell";
+import { customerOrdersByEmail, listPromos } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
-import { customerOrdersByEmail } from "@/lib/admin/store";
 
-import { logoutAction } from "../actions";
-import { ProfileForm } from "./profile-form";
+import { formatTRY, STATUS_LABEL } from "./shared";
 
 export const metadata = { title: "Hesabım · L'Affogato" };
 export const dynamic = "force-dynamic";
 
-const STATUS_LABEL: Record<string, string> = {
-  pending_payment: "Ödeme bekleniyor",
-  paid: "Ödendi",
-  preparing: "Hazırlanıyor",
-  shipped: "Kargoda",
-  completed: "Tamamlandı",
-  cancelled: "İptal",
-  refunded: "İade",
-};
-
-const STATUS_TONE: Record<string, string> = {
-  pending_payment: "background:#fef3c7;color:#92400e",
-  paid: "background:#dbeafe;color:#1e40af",
-  preparing: "background:#ede9fe;color:#5b21b6",
-  shipped: "background:#e0e7ff;color:#3730a3",
-  completed: "background:#d1fae5;color:#065f46",
-  cancelled: "background:#f3f4f6;color:#6b7280",
-  refunded: "background:#fee2e2;color:#991b1b",
-};
-
-function formatTRY(minor: number): string {
-  return new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-    minimumFractionDigits: 2,
-  }).format(minor / 100);
-}
-
-function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("tr-TR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
-
 export default async function HesapPage() {
   const customer = await requireCustomer();
-  const orders = await customerOrdersByEmail(customer.email);
+  const [orders, promos] = await Promise.all([
+    customerOrdersByEmail(customer.email),
+    listPromos(),
+  ]);
+
+  const totalSpent = orders
+    .filter((o) => ["paid", "preparing", "shipped", "completed"].includes(o.status))
+    .reduce((sum, o) => sum + o.totalMinor, 0);
+  const inFlight = orders.filter((o) =>
+    ["pending_payment", "paid", "preparing", "shipped"].includes(o.status),
+  ).length;
+  const completed = orders.filter((o) => o.status === "completed").length;
+  const usablePromos = promos.filter(
+    (p) =>
+      p.isActive &&
+      (p.usageLimit === 0 || p.usageCount < p.usageLimit) &&
+      (!p.expiresAt || new Date(p.expiresAt) > new Date()),
+  );
+
+  const recentOrders = orders.slice(0, 3);
 
   return (
-    <main
-      style={{
-        maxWidth: 900,
-        margin: "0 auto",
-        padding: "clamp(40px, 6vw, 80px) var(--gutter) clamp(60px, 8vw, 100px)",
-      }}
-    >
-      <header
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: 16,
-          marginBottom: 32,
-        }}
-      >
-        <div>
-          <Link href="/" className="eyebrow" style={{ display: "inline-block", marginBottom: 14 }}>
-            ← Anasayfa
-          </Link>
-          <h1 className="h1" style={{ fontSize: "clamp(36px, 6vw, 64px)" }}>
-            Hesabım<span className="script">.</span>
-          </h1>
-          <p style={{ marginTop: 16, color: "var(--ink-soft)" }}>
-            Merhaba {customer.name || customer.email}.
-          </p>
-        </div>
-        <form action={logoutAction}>
-          <button type="submit" className="btn btn-ghost btn-sm">
-            Çıkış yap
-          </button>
-        </form>
-      </header>
-
-      <section
-        style={{
-          background: "#FFF",
-          border: "1px solid var(--ink-line)",
-          borderRadius: "var(--r-lg)",
-          padding: "clamp(22px, 4vw, 32px)",
-          marginBottom: 32,
-        }}
-      >
-        <h2 className="h3" style={{ marginBottom: 18 }}>
-          Bilgilerim
-        </h2>
-        <ProfileForm
-          defaultName={customer.name}
-          defaultPhone={customer.phone}
-          email={customer.email}
+    <AccountShell customer={customer} active="dashboard">
+      <div className="account-stat-grid">
+        <AccountStat label="Toplam sipariş" value={orders.length} />
+        <AccountStat label="Aktif sipariş" value={inFlight} hint="Henüz tamamlanmamış" />
+        <AccountStat label="Tamamlanan" value={completed} hint="Teslim alındı" />
+        <AccountStat
+          label="Toplam harcama"
+          value={formatTRY(totalSpent)}
+          hint={`${customer.wishlist.length} favori · ${customer.addresses.length} adres`}
         />
-      </section>
+      </div>
 
-      <section
-        style={{
-          background: "#FFF",
-          border: "1px solid var(--ink-line)",
-          borderRadius: "var(--r-lg)",
-          padding: "clamp(22px, 4vw, 32px)",
-        }}
-      >
-        <h2 className="h3" style={{ marginBottom: 18 }}>
-          Sipariş geçmişim
-        </h2>
-        {orders.length === 0 ? (
-          <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>
-            Henüz siparişin yok. Mağazaya göz at —{" "}
-            <Link
-              href="/#shop"
-              style={{ color: "var(--gold-deep)", textDecoration: "underline", textUnderlineOffset: 3 }}
-            >
-              alışverişe başla →
+      <AccountCard
+        title="Son siparişler"
+        action={
+          orders.length > 0 ? (
+            <Link href="/uye/hesap/siparislerim" className="btn btn-ghost btn-sm">
+              Tümünü gör →
             </Link>
-          </p>
+          ) : null
+        }
+      >
+        {recentOrders.length === 0 ? (
+          <EmptyState
+            title="Henüz siparişin yok"
+            hint="Mağazadan bir affogato seç, ilk sipariş senin olsun."
+            cta={
+              <Link href="/#shop" className="btn btn-primary btn-sm">
+                Mağazaya git →
+              </Link>
+            }
+          />
         ) : (
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 14 }}>
-            {orders.map((o) => {
-              const itemText = o.items
-                .map((it) => `${it.qty}× ${it.productName}`)
-                .join(", ");
-              return (
-                <li
-                  key={o.id}
-                  style={{
-                    border: "1px solid var(--ink-line)",
-                    borderRadius: "var(--r-md)",
-                    padding: 18,
-                    display: "grid",
-                    gap: 8,
-                  }}
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {recentOrders.map((o) => (
+              <li key={o.id}>
+                <Link
+                  href={`/uye/hesap/siparislerim/${o.orderNo}`}
+                  className="account-order-card"
+                  style={{ textDecoration: "none", color: "inherit" }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                      gap: 8,
-                    }}
-                  >
-                    <div style={{ fontFamily: "var(--mono)", fontSize: 13 }}>
-                      #{o.orderNo}
-                    </div>
-                    <span
-                      style={
-                        {
-                          padding: "3px 10px",
-                          borderRadius: 999,
-                          fontFamily: "var(--mono)",
-                          fontSize: 10,
-                          letterSpacing: "0.18em",
-                          textTransform: "uppercase",
-                        } as React.CSSProperties
-                      }
-                      data-style={STATUS_TONE[o.status]}
-                      // Inline-css fallback for the lookup (since style attr can't accept string)
-                    >
-                      <span style={parseInlineStyle(STATUS_TONE[o.status] ?? "")}>
-                        {STATUS_LABEL[o.status] ?? o.status}
-                      </span>
+                  <div className="account-order-head">
+                    <span className="account-order-no">#{o.orderNo}</span>
+                    <span className="status-chip" data-tone={o.status}>
+                      {STATUS_LABEL[o.status] ?? o.status}
                     </span>
                   </div>
-                  <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>{itemText}</div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontFamily: "var(--mono)",
-                      fontSize: 12,
-                      color: "var(--ink-mute)",
-                    }}
-                  >
-                    <span>{formatDate(o.createdAt)}</span>
+                  <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>
+                    {o.items.map((it) => `${it.qty}× ${it.productName}`).join(", ")}
+                  </div>
+                  <div className="account-order-meta">
+                    <span>
+                      {new Intl.DateTimeFormat("tr-TR", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      }).format(new Date(o.createdAt))}
+                    </span>
                     <span>{formatTRY(o.totalMinor)}</span>
                   </div>
-                </li>
-              );
-            })}
+                </Link>
+              </li>
+            ))}
           </ul>
         )}
-      </section>
-    </main>
-  );
-}
+      </AccountCard>
 
-function parseInlineStyle(s: string): React.CSSProperties {
-  const out: Record<string, string> = {};
-  for (const part of s.split(";")) {
-    const [k, v] = part.split(":").map((x) => x.trim());
-    if (!k || !v) continue;
-    const camel = k.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-    out[camel] = v;
-  }
-  return out as React.CSSProperties;
+      <AccountCard title="Kullanılabilir promosyonlar" hint="Sepet sayfasında kodu uygula">
+        {usablePromos.length === 0 ? (
+          <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 14 }}>
+            Şu an aktif bir promosyon kodu yok.
+          </p>
+        ) : (
+          <div>
+            {usablePromos.slice(0, 3).map((p) => (
+              <div key={p.id} className="account-promo-card">
+                <div className="account-promo-code">{p.code}</div>
+                <div className="account-promo-meta">
+                  <span style={{ fontFamily: "var(--serif-display)", fontSize: 16, color: "var(--ink)" }}>
+                    {p.kind === "pct" ? `%${p.value} indirim` : `${formatTRY(p.value)} indirim`}
+                  </span>
+                  {p.minSubtotalMinor > 0 && (
+                    <span>{formatTRY(p.minSubtotalMinor)}+ sepete</span>
+                  )}
+                  {p.expiresAt && (
+                    <span>
+                      {new Intl.DateTimeFormat("tr-TR", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      }).format(new Date(p.expiresAt))}{" "}
+                      bitiyor
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+            {usablePromos.length > 3 && (
+              <Link
+                href="/uye/hesap/promosyonlar"
+                className="btn btn-ghost btn-sm"
+                style={{ marginTop: 12 }}
+              >
+                Tümünü gör ({usablePromos.length}) →
+              </Link>
+            )}
+          </div>
+        )}
+      </AccountCard>
+    </AccountShell>
+  );
 }

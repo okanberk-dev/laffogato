@@ -1201,6 +1201,7 @@ export async function listShopProducts(): Promise<DesignProduct[]> {
   return all
     .filter((p) => p.isActive)
     .map((p) => ({
+      id: p.id,
       name: p.name,
       tag: p.tag,
       price: `${Math.round(p.priceMinor / 100)}₺`,
