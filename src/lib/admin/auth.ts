@@ -1,9 +1,14 @@
 import "server-only";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import {
+  checkLoginLimit,
+  clearLoginLimit,
+  recordLoginFailure,
+} from "./rate-limit";
 import { canAccess, type AdminRole, type AdminSection } from "./roles";
 
 const COOKIE_NAME = "laffogato_admin_session";
@@ -129,6 +134,19 @@ export interface SignInResult {
   error?: string;
 }
 
+async function getClientIp(): Promise<string> {
+  try {
+    const h = await headers();
+    const xff = h.get("x-forwarded-for");
+    if (xff) return xff.split(",")[0].trim();
+    const real = h.get("x-real-ip");
+    if (real) return real.trim();
+    return "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 export async function signInAdmin(
   email: string,
   password: string,
@@ -138,6 +156,18 @@ export async function signInAdmin(
     return {
       ok: false,
       error: "Admin kimlik bilgileri yapılandırılmamış (env eksik).",
+    };
+  }
+
+  const ip = await getClientIp();
+
+  // Block before checking creds so a brute-forcer can't drain the
+  // password comparison loop while the bucket is full.
+  const limit = checkLoginLimit(ip, email);
+  if (limit.blocked) {
+    return {
+      ok: false,
+      error: `Çok fazla başarısız deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
     };
   }
 
@@ -151,8 +181,23 @@ export async function signInAdmin(
     if (emailOk && passOk) matched = u;
   }
   if (!matched) {
-    return { ok: false, error: "E-posta veya şifre hatalı." };
+    const after = recordLoginFailure(ip, email);
+    if (after.blocked) {
+      return {
+        ok: false,
+        error: `Çok fazla başarısız deneme. ${after.retryAfterSeconds} saniye sonra tekrar dene.`,
+      };
+    }
+    return {
+      ok: false,
+      error:
+        after.remaining > 1
+          ? `E-posta veya şifre hatalı. (${after.remaining} hak kaldı.)`
+          : "E-posta veya şifre hatalı. (Son hak — sonraki yanlış denemede kilitlenirsin.)",
+    };
   }
+
+  clearLoginLimit(ip, email);
 
   const session: AdminSession = {
     email: matched.email,
