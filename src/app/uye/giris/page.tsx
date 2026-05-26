@@ -35,7 +35,7 @@ export default async function GirisPage() {
           ← Anasayfa
         </Link>
         <h1
-          className="h-1"
+          className="h1"
           style={{
             marginTop: 4,
             marginBottom: 64,

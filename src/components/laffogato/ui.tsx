@@ -88,7 +88,7 @@ export function SectionHead({
     return (
       <div className="reveal" style={{ textAlign: "center", marginBottom: 50 }}>
         {eyebrow && <div className="eyebrow" style={{ marginBottom: 16 }}>{eyebrow}</div>}
-        <h2 className="h-1">{title}</h2>
+        <h2 className="h1">{title}</h2>
       </div>
     );
   }
@@ -96,7 +96,7 @@ export function SectionHead({
     <div className="reveal section-head">
       <div>
         {eyebrow && <div className="eyebrow">{eyebrow}</div>}
-        <h2 className="h-1" style={{ marginTop: 16 }}>
+        <h2 className="h1" style={{ marginTop: 16 }}>
           {title}
         </h2>
       </div>
@@ -657,7 +657,7 @@ export function ProductModal({
           }}
         >
           <div className="eyebrow" style={{ marginBottom: 14 }}>{p.tag}</div>
-          <h2 className="h-2">{p.name}</h2>
+          <h2 className="h2">{p.name}</h2>
           <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 28, marginTop: 16 }}>
             {p.price}
           </div>

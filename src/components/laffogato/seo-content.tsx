@@ -37,7 +37,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
         </div>
         <h2
           id="sss-heading"
-          className="h-1"
+          className="h1"
           style={{ fontSize: "clamp(36px, 5vw, 56px)", marginBottom: 12 }}
         >
           L&rsquo;Affogato hakkında merak edilenler.
