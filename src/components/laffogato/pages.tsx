@@ -802,12 +802,12 @@ export function PageShop({ addToCart, openProduct }: PageProps) {
   const [priceMax, setPriceMax] = useState(900);
 
   const cats = [
-    { id: "all", label: "Hepsi" },
-    { id: "beans", label: "Çekirdek" },
-    { id: "gift", label: "Hediye" },
-    { id: "gear", label: "Ekipman" },
-    { id: "merch", label: "Giyim" },
-    { id: "pantry", label: "Kiler" },
+    { id: "all", label: "Hepsi", icon: "◯" },
+    { id: "beans", label: "Çekirdek", icon: "◉" },
+    { id: "gift", label: "Hediye", icon: "◈" },
+    { id: "gear", label: "Ekipman", icon: "◇" },
+    { id: "merch", label: "Giyim", icon: "◐" },
+    { id: "pantry", label: "Kiler", icon: "◇" },
   ];
 
   let list = PRODUCTS.filter((p) => cat === "all" || p.cat === cat);
