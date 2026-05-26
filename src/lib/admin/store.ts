@@ -1418,3 +1418,162 @@ export async function consumePromoUsage(code: string): Promise<void> {
   };
 }
 
+
+
+// ── Analytics aggregations ──────────────────────────────────────────────
+
+export type BucketGranularity = "day" | "week" | "month";
+
+export interface RevenueBucket {
+  /** ISO-like bucket id (YYYY-MM-DD, YYYY-Www, YYYY-MM). */
+  bucket: string;
+  /** Human label for axis labels. */
+  label: string;
+  revenueMinor: number;
+  orderCount: number;
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function startOfWeek(d: Date): Date {
+  const x = new Date(d);
+  // ISO week: Monday = 1 .. Sunday = 7
+  const day = (x.getDay() + 6) % 7;
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - day);
+  return x;
+}
+
+function isoWeek(d: Date): { year: number; week: number } {
+  const target = new Date(d);
+  target.setHours(0, 0, 0, 0);
+  // Thursday of current week determines ISO week-year
+  target.setDate(target.getDate() + 3 - ((target.getDay() + 6) % 7));
+  const week1 = new Date(target.getFullYear(), 0, 4);
+  const diff = (target.getTime() - week1.getTime()) / (24 * 60 * 60 * 1000);
+  const week = 1 + Math.round((diff - 3 + ((week1.getDay() + 6) % 7)) / 7);
+  return { year: target.getFullYear(), week };
+}
+
+function bucketKey(d: Date, g: BucketGranularity): string {
+  if (g === "day") {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  }
+  if (g === "week") {
+    const { year, week } = isoWeek(d);
+    return `${year}-W${pad2(week)}`;
+  }
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+}
+
+function bucketLabel(d: Date, g: BucketGranularity): string {
+  if (g === "day") {
+    return `${pad2(d.getDate())} ${MONTH_SHORT[d.getMonth()]}`;
+  }
+  if (g === "week") {
+    const start = startOfWeek(d);
+    return `${pad2(start.getDate())} ${MONTH_SHORT[start.getMonth()]}`;
+  }
+  return `${MONTH_SHORT[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+}
+
+const MONTH_SHORT = [
+  "Oca", "Şub", "Mar", "Nis", "May", "Haz",
+  "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara",
+];
+
+/**
+ * Generates `count` consecutive buckets ending at "today" and tallies orders
+ * that fall in each. Cancelled orders are excluded; refunded orders count
+ * gross (the refund chart is a separate line if needed later).
+ */
+export async function revenueBuckets(
+  granularity: BucketGranularity,
+  count: number,
+): Promise<RevenueBucket[]> {
+  const now = new Date();
+  const buckets: RevenueBucket[] = [];
+  for (let i = count - 1; i >= 0; i -= 1) {
+    const d = new Date(now);
+    if (granularity === "day") d.setDate(d.getDate() - i);
+    else if (granularity === "week") d.setDate(d.getDate() - i * 7);
+    else d.setMonth(d.getMonth() - i);
+    buckets.push({
+      bucket: bucketKey(d, granularity),
+      label: bucketLabel(d, granularity),
+      revenueMinor: 0,
+      orderCount: 0,
+    });
+  }
+  const byKey = new Map(buckets.map((b) => [b.bucket, b]));
+
+  for (const o of orders) {
+    if (o.status === "cancelled") continue;
+    const k = bucketKey(new Date(o.createdAt), granularity);
+    const slot = byKey.get(k);
+    if (slot) {
+      slot.revenueMinor += o.totalMinor;
+      slot.orderCount += 1;
+    }
+  }
+  return buckets;
+}
+
+export interface TopProductRow {
+  productName: string;
+  qty: number;
+  revenueMinor: number;
+}
+
+export async function topProducts(limit = 5): Promise<TopProductRow[]> {
+  const tally = new Map<string, TopProductRow>();
+  for (const o of orders) {
+    if (o.status === "cancelled") continue;
+    for (const it of o.items) {
+      if (it.status === "cancelled") continue;
+      const row = tally.get(it.productName);
+      if (row) {
+        row.qty += it.qty;
+        row.revenueMinor += it.unitPriceMinor * it.qty;
+      } else {
+        tally.set(it.productName, {
+          productName: it.productName,
+          qty: it.qty,
+          revenueMinor: it.unitPriceMinor * it.qty,
+        });
+      }
+    }
+  }
+  return Array.from(tally.values())
+    .sort((a, b) => b.revenueMinor - a.revenueMinor)
+    .slice(0, limit);
+}
+
+export interface AnalyticsHeadline {
+  totalRevenueMinor: number;
+  totalOrders: number;
+  averageOrderMinor: number;
+  refundedMinor: number;
+  /** Placeholder until traffic data is wired (sessions endpoint). */
+  conversionRatePct: number | null;
+}
+
+export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
+  const valid = orders.filter((o) => o.status !== "cancelled");
+  const totalRevenueMinor = valid.reduce((s, o) => s + o.totalMinor, 0);
+  const totalOrders = valid.length;
+  const refundedMinor = orders.reduce(
+    (s, o) => s + o.refunds.reduce((r, x) => r + x.amountMinor, 0),
+    0,
+  );
+  return {
+    totalRevenueMinor,
+    totalOrders,
+    averageOrderMinor: totalOrders > 0 ? Math.round(totalRevenueMinor / totalOrders) : 0,
+    refundedMinor,
+    conversionRatePct: null,
+  };
+}
+
