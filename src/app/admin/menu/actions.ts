@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { logAudit } from "@/lib/admin/audit";
 import { bulkMenuSchema } from "@/lib/admin/bulk-schema";
 import {
   bulkUpdateMenuItems,
@@ -62,7 +63,13 @@ function revalidateMenu() {
 export async function createMenuItemAction(formData: FormData) {
   const input = parseInput(formData);
   if (!input.name) return;
-  await createMenuItem(input);
+  const created = await createMenuItem(input);
+  await logAudit({
+    action: "create",
+    entity: "menu_item",
+    entityId: created.id,
+    payload: { name: created.name, categoryKey: created.categoryKey },
+  });
   revalidateMenu();
   redirect("/admin/menu");
 }
@@ -70,6 +77,12 @@ export async function createMenuItemAction(formData: FormData) {
 export async function updateMenuItemAction(id: string, formData: FormData) {
   const input = parseInput(formData);
   await updateMenuItem(id, input);
+  await logAudit({
+    action: "update",
+    entity: "menu_item",
+    entityId: id,
+    payload: { name: input.name, categoryKey: input.categoryKey },
+  });
   revalidateMenu();
   revalidatePath(`/admin/menu/${id}/duzenle`);
   redirect("/admin/menu");
@@ -79,6 +92,7 @@ export async function deleteMenuItemAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteMenuItem(id);
+  await logAudit({ action: "delete", entity: "menu_item", entityId: id });
   revalidateMenu();
 }
 
@@ -107,6 +121,11 @@ export async function bulkMenuAction(
     storeOp = { kind: op };
   }
   const { updated } = await bulkUpdateMenuItems(ids, storeOp);
+  await logAudit({
+    action: op === "delete" ? "bulk_delete" : "bulk_update",
+    entity: "menu_item",
+    payload: { op, value, updated, idCount: ids.length },
+  });
   revalidateMenu();
   return { ok: { op, updated } };
 }

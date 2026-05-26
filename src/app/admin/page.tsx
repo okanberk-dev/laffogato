@@ -2,7 +2,13 @@ import Link from "next/link";
 
 import { Card, PageHeader, formatTRY } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
-import { getDashboardStats, listOrders } from "@/lib/admin/store";
+import { canAccess } from "@/lib/admin/roles";
+import {
+  getDashboardStats,
+  getSettings,
+  listOrders,
+  type AdminOrderStatus,
+} from "@/lib/admin/store";
 
 export const metadata = { title: "Admin · Genel Bakış" };
 export const dynamic = "force-dynamic";
@@ -11,28 +17,117 @@ interface PageProps {
   searchParams: Promise<{ denied?: string }>;
 }
 
+const ORDER_STATUS_LABEL: Record<AdminOrderStatus, string> = {
+  pending_payment: "Ödeme bekleniyor",
+  paid: "Ödendi",
+  preparing: "Hazırlanıyor",
+  shipped: "Kargoda",
+  completed: "Tamamlandı",
+  cancelled: "İptal",
+  refunded: "İade",
+};
+
+const ORDER_STATUS_TONE: Record<AdminOrderStatus, string> = {
+  pending_payment: "bg-amber-50 text-amber-700",
+  paid: "bg-blue-50 text-blue-700",
+  preparing: "bg-purple-50 text-purple-700",
+  shipped: "bg-indigo-50 text-indigo-700",
+  completed: "bg-green-50 text-green-700",
+  cancelled: "bg-neutral-100 text-neutral-500",
+  refunded: "bg-rose-50 text-rose-700",
+};
+
+function turkishGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 6) return "İyi geceler";
+  if (hour < 12) return "Günaydın";
+  if (hour < 18) return "İyi günler";
+  return "İyi akşamlar";
+}
+
+function todayLabel(): string {
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "numeric",
+    month: "long",
+    weekday: "long",
+  }).format(new Date());
+}
+
 export default async function AdminDashboardPage({ searchParams }: PageProps) {
-  await requireRole("dashboard");
+  const session = await requireRole("dashboard");
   const sp = await searchParams;
-  const [stats, orders] = await Promise.all([
+  const [stats, orders, settings] = await Promise.all([
     getDashboardStats(),
     listOrders(),
+    getSettings(),
   ]);
   const recent = orders.slice(0, 5);
 
+  const userLabel = session.email.split("@")[0];
+
   const cards = [
-    { label: "Toplam ürün", value: stats.productCount, hint: `${stats.activeProductCount} aktif` },
-    { label: "Stok dışı", value: stats.outOfStockCount, hint: "Acil dolum" },
-    { label: "Kategori", value: stats.categoryCount, hint: "Shop kategorileri" },
-    { label: "Aktif sipariş", value: stats.pendingOrderCount, hint: `${stats.orderCount} toplam` },
-    { label: "Ciro (demo)", value: formatTRY(stats.revenueMinor), hint: "Tamamlanan & hazırlanan" },
+    {
+      label: "Toplam ürün",
+      value: String(stats.productCount),
+      hint: `${stats.activeProductCount} aktif`,
+    },
+    { label: "Stok dışı", value: String(stats.outOfStockCount), hint: "Acil dolum" },
+    { label: "Kategori", value: String(stats.categoryCount), hint: "Shop kategorileri" },
+    {
+      label: "Aktif sipariş",
+      value: String(stats.pendingOrderCount),
+      hint: `${stats.orderCount} toplam`,
+    },
+    {
+      label: "Ciro (demo)",
+      value: formatTRY(stats.revenueMinor),
+      hint: "Tamamlanan & hazırlanan",
+    },
   ];
+
+  const quickLinks: Array<{ href: string; label: string; show: boolean }> = [
+    {
+      href: "/admin/urunler/yeni",
+      label: "+ Yeni ürün ekle",
+      show: canAccess("products", session.role),
+    },
+    {
+      href: "/admin/kategoriler/yeni",
+      label: "+ Yeni kategori",
+      show: canAccess("categories", session.role),
+    },
+    {
+      href: "/admin/promosyon/yeni",
+      label: "+ Yeni promosyon kodu",
+      show: canAccess("promos", session.role),
+    },
+    {
+      href: "/admin/siparisler",
+      label: "Siparişler",
+      show: canAccess("orders", session.role),
+    },
+    {
+      href: "/admin/raporlar",
+      label: "Raporlar",
+      show: canAccess("reports", session.role),
+    },
+    {
+      href: "/admin/ayarlar",
+      label: "Kafe ayarları",
+      show: canAccess("settings", session.role),
+    },
+    {
+      href: "/admin/2fa-kurulum",
+      label: "İki adımlı doğrulama",
+      show: true,
+    },
+  ].filter((q) => q.show);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-10">
       <PageHeader
-        eyebrow="Maltepe Park · 26 May"
-        title="Günaydın, Eda."
+        eyebrow={`${settings.name} · ${todayLabel()}`}
+        title={`${turkishGreeting()}, ${userLabel}.`}
         description="Bellek içi demo verisi. Supabase entegre edildikten sonra gerçek üretim verisini gösterecek."
       />
 
@@ -110,12 +205,19 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                       className="py-3 font-medium"
                       style={{ fontFamily: "var(--mono), monospace" }}
                     >
-                      #{o.orderNo}
+                      <Link
+                        href={`/admin/siparisler/${o.id}`}
+                        className="text-neutral-900 hover:underline"
+                      >
+                        #{o.orderNo}
+                      </Link>
                     </td>
-                    <td>{o.customerName}</td>
+                    <td className="text-neutral-700">{o.customerName}</td>
                     <td>
-                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-neutral-700">
-                        {o.status}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${ORDER_STATUS_TONE[o.status]}`}
+                      >
+                        {ORDER_STATUS_LABEL[o.status]}
                       </span>
                     </td>
                     <td
@@ -143,51 +245,17 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             Hızlı erişim
           </h2>
           <ul className="flex flex-col gap-2 text-sm">
-            <li>
-              <Link
-                href="/admin/urunler/yeni"
-                className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2.5 hover:border-neutral-900"
-              >
-                <span>+ Yeni ürün ekle</span>
-                <span aria-hidden>→</span>
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/admin/kategoriler/yeni"
-                className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2.5 hover:border-neutral-900"
-              >
-                <span>+ Yeni kategori</span>
-                <span aria-hidden>→</span>
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/admin/ayarlar"
-                className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2.5 hover:border-neutral-900"
-              >
-                <span>Kafe ayarları</span>
-                <span aria-hidden>→</span>
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/admin/siparisler"
-                className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2.5 hover:border-neutral-900"
-              >
-                <span>Siparişler</span>
-                <span aria-hidden>→</span>
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/admin/2fa-kurulum"
-                className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2.5 hover:border-neutral-900"
-              >
-                <span>İki adımlı doğrulama</span>
-                <span aria-hidden>→</span>
-              </Link>
-            </li>
+            {quickLinks.map((q) => (
+              <li key={q.href}>
+                <Link
+                  href={q.href}
+                  className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2.5 hover:border-neutral-900"
+                >
+                  <span>{q.label}</span>
+                  <span aria-hidden>→</span>
+                </Link>
+              </li>
+            ))}
           </ul>
         </Card>
       </div>
