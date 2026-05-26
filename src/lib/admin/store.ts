@@ -1714,3 +1714,153 @@ export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
     conversionRatePct: null,
   };
 }
+
+// ─── Shop hero slides ─────────────────────────────────────────────────────
+
+export interface AdminShopHeroSlide {
+  id: string;
+  /** H1 başlık (italik serif olarak render edilir, son kelime script vurgu alabilir). */
+  title: string;
+  /** Başlığın altındaki küçük yazı; eyebrow tarzı veya küçük açıklama. */
+  subtitle: string;
+  /** Arkadaki görsel URL'si (full-width). Boşsa altın gradient fallback render edilir. */
+  imageUrl: string;
+  /** CTA buton yazısı — boşsa buton render edilmez. */
+  ctaLabel: string;
+  /** CTA hedef URL — full URL veya yerel "/odeme" gibi. */
+  ctaHref: string;
+  /** Metin teması: arka plan koyu görsel ise "light", aydınlık ise "dark". */
+  textTheme: "light" | "dark";
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const SEED_SHOP_HERO_SLIDES: AdminShopHeroSlide[] = [
+  {
+    id: "shero-001",
+    title: "Eve servis · İtalyan ritüeli",
+    subtitle: "Bütün mağaza ürünleri 500₺ üzeri ücretsiz kargo, İstanbul içi aynı gün.",
+    imageUrl: "",
+    ctaLabel: "Mağazaya gir",
+    ctaHref: "#products",
+    textTheme: "light",
+    sortOrder: 0,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "shero-002",
+    title: "Yenilebilir kup koleksiyonu",
+    subtitle: "1994 patentli waffle kup — 6'lı ve 12'li hediye kutuları.",
+    imageUrl: "",
+    ctaLabel: "Edible Cups",
+    ctaHref: "#products",
+    textTheme: "light",
+    sortOrder: 1,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+let shopHeroSeedPromise: Promise<void> | null = null;
+async function ensureShopHeroSeed(): Promise<void> {
+  if (shopHeroSeedPromise) return shopHeroSeedPromise;
+  shopHeroSeedPromise = (async () => {
+    const db = await getDb();
+    const count = await db.collection(COLLECTIONS.shopHeroSlides).countDocuments({});
+    if (count === 0) {
+      await db
+        .collection<AdminShopHeroSlide>(COLLECTIONS.shopHeroSlides)
+        .insertMany(SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })));
+    }
+  })();
+  return shopHeroSeedPromise;
+}
+
+export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
+  await ensureShopHeroSeed();
+  const db = await getDb();
+  const docs = await db
+    .collection<AdminShopHeroSlide>(COLLECTIONS.shopHeroSlides)
+    .find({})
+    .sort({ sortOrder: 1, createdAt: 1 })
+    .toArray();
+  return stripMany(docs);
+}
+
+export async function listActiveShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
+  const all = await listShopHeroSlides();
+  return all.filter((s) => s.isActive);
+}
+
+export async function getShopHeroSlide(id: string): Promise<AdminShopHeroSlide | null> {
+  await ensureShopHeroSeed();
+  const db = await getDb();
+  const doc = await db
+    .collection<AdminShopHeroSlide>(COLLECTIONS.shopHeroSlides)
+    .findOne({ id });
+  return strip(doc);
+}
+
+export interface ShopHeroSlideInput {
+  title: string;
+  subtitle: string;
+  imageUrl: string;
+  ctaLabel: string;
+  ctaHref: string;
+  textTheme: "light" | "dark";
+  sortOrder: number;
+  isActive: boolean;
+}
+
+function normalizeSlide(input: ShopHeroSlideInput): ShopHeroSlideInput {
+  return {
+    title: input.title.trim().slice(0, 120),
+    subtitle: input.subtitle.trim().slice(0, 300),
+    imageUrl: input.imageUrl.trim().slice(0, 500),
+    ctaLabel: input.ctaLabel.trim().slice(0, 40),
+    ctaHref: input.ctaHref.trim().slice(0, 200),
+    textTheme: input.textTheme === "dark" ? "dark" : "light",
+    sortOrder: Number.isFinite(input.sortOrder) ? Math.max(0, Math.floor(input.sortOrder)) : 0,
+    isActive: !!input.isActive,
+  };
+}
+
+export async function createShopHeroSlide(
+  input: ShopHeroSlideInput,
+): Promise<AdminShopHeroSlide> {
+  await ensureShopHeroSeed();
+  const db = await getDb();
+  const now = new Date().toISOString();
+  const slide: AdminShopHeroSlide = {
+    id: `shero-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    ...normalizeSlide(input),
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.collection<AdminShopHeroSlide>(COLLECTIONS.shopHeroSlides).insertOne(slide);
+  return slide;
+}
+
+export async function updateShopHeroSlide(
+  id: string,
+  input: ShopHeroSlideInput,
+): Promise<AdminShopHeroSlide | null> {
+  await ensureShopHeroSeed();
+  const db = await getDb();
+  const update = { ...normalizeSlide(input), updatedAt: new Date().toISOString() };
+  await db
+    .collection<AdminShopHeroSlide>(COLLECTIONS.shopHeroSlides)
+    .updateOne({ id }, { $set: update });
+  return getShopHeroSlide(id);
+}
+
+export async function deleteShopHeroSlide(id: string): Promise<void> {
+  await ensureShopHeroSeed();
+  const db = await getDb();
+  await db.collection<AdminShopHeroSlide>(COLLECTIONS.shopHeroSlides).deleteOne({ id });
+}

@@ -2,6 +2,7 @@
 
 import { useState, Fragment } from "react";
 
+import { ShopHeroSlider, type ShopHeroSlide } from "./shop-hero-slider";
 import { MENU, PRODUCTS, REELS, PRESS, STORY, LOCATION, BRAND, FRANCHISE } from "./data";
 import type { MenuCategory } from "./data";
 import { ProductCard, SectionHead, Stat, CartItem } from "./ui";
@@ -32,6 +33,8 @@ interface PageProps {
   products?: Product[];
   /** Live cafe menu fed from the admin store; falls back to design seed. */
   menu?: Record<string, MenuCategory>;
+  /** Admin-managed shop hero slides (PageShop kullanır). */
+  shopHeroSlides?: ShopHeroSlide[];
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -781,9 +784,10 @@ function ShopBadge({ icon, k, v }: { icon: string; k: string; v: string }) {
   );
 }
 
-export function PageShop({ addToCart, openProduct, products }: PageProps) {
+export function PageShop({ addToCart, openProduct, products, shopHeroSlides }: PageProps) {
   useReveal();
   const shopProducts = products && products.length > 0 ? products : PRODUCTS;
+  const slides = shopHeroSlides ?? [];
   const [cat, setCat] = useState<string>("all");
   const [sort, setSort] = useState<string>("featured");
   const [priceMin, setPriceMin] = useState(0);
@@ -808,7 +812,8 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
 
   return (
     <div className="page" data-screen-label="03 Shop">
-      <header className="page-head">
+      {slides.length > 0 && <ShopHeroSlider slides={slides} />}
+      <header className="page-head" id="products">
         <div className="wrap">
           <div
             className="reveal"
@@ -817,9 +822,9 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
           >
             <div>
               <div className="eyebrow">III — La bottega</div>
-              <h1 style={{ marginTop: 24 }}>
+              <h2 className="h1" style={{ marginTop: 24 }}>
                 <span className="script">Mağaza.</span>
-              </h1>
+              </h2>
               <p className="lede" style={{ marginTop: 22 }}>
                 Maltepe Park terasında servis ettiğimiz her şey — İtalya’da kavrulan çekirdek, 1994 patentli edible kup,
                 bambu chasen, Bialetti × L’Affogato moka pot. Eve, ofise, hediyeye.

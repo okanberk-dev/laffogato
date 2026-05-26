@@ -14,6 +14,7 @@ export const COLLECTIONS = {
   auditLogs: "audit_logs",
   customers: "customers",
   counters: "counters",
+  shopHeroSlides: "shop_hero_slides",
 } as const;
 
 export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];

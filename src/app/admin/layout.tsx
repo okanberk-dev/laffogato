@@ -11,6 +11,7 @@ const NAV: Array<{ href: string; label: string; section: AdminSection }> = [
   { href: "/admin/menu", label: "Menü", section: "menu" },
   { href: "/admin/urunler", label: "Ürünler", section: "products" },
   { href: "/admin/kategoriler", label: "Kategoriler", section: "categories" },
+  { href: "/admin/magaza-hero", label: "Mağaza Hero", section: "shopHero" },
   { href: "/admin/siparisler", label: "Siparişler", section: "orders" },
   { href: "/admin/musteriler", label: "Müşteriler", section: "customers" },
   { href: "/admin/promosyon", label: "Promosyon", section: "promos" },

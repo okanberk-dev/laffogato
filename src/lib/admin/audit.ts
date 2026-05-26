@@ -16,6 +16,7 @@ export type AuditEntity =
   | "product"
   | "menu_item"
   | "category"
+  | "shop_hero_slide"
   | "order"
   | "order_item"
   | "promo"
