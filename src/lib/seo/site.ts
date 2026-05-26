@@ -47,9 +47,9 @@ export const SITE = {
   brand: "L'Affogato — Caffè · Gelato · Dolci",
   tagline: "Drink it. Eat the cup.",
   shortDescription:
-    "Bologna 1987'den İstanbul'a. Yenilebilir waffle kupada espresso ve gelato. Maltepe Park açık-hava teras.",
+    "Italia 1987'den İstanbul'a. Yenilebilir waffle kupada espresso ve gelato. Maltepe Park açık-hava teras.",
   longDescription:
-    "L'Affogato, 1987'de Bologna'da Giancarlo Mancuso tarafından kurulan ve 2026'da İstanbul Maltepe Park'ta ilk yurt dışı şubesini açan İtalyan kahve ve gelato barıdır. İmza ritüelimiz: yenilebilir waffle kupa içinde Sirena espresso ve fior di latte gelato. Drink it. Eat the cup.",
+    "L'Affogato, 1987'de İtalya'da Giancarlo Mancuso tarafından kurulan ve 2026'da İstanbul Maltepe Park'ta ilk yurt dışı şubesini açan İtalyan kahve ve gelato barıdır. İmza ritüelimiz: yenilebilir waffle kupa içinde Sirena espresso ve fior di latte gelato. Drink it. Eat the cup.",
   founded: "1987",
   openedTurkey: "2026",
   locale: "tr_TR",
@@ -80,7 +80,7 @@ export const SITE = {
   ],
   parent: {
     name: "L'Affogato Italia",
-    address: "Via Galliera 21, 40121 Bologna, Italia",
+    address: "İtalya merkez",
   },
   social: {
     instagram: "https://instagram.com/laffogato",
@@ -116,7 +116,7 @@ export const SITE = {
     "yenilebilir kup",
     "edible cup",
     "İtalyan kahve İstanbul",
-    "Bologna kahvesi",
+    "İtalyan kahvesi",
     "gelato İstanbul",
     "matcha bar Maltepe",
     "Uji matcha İstanbul",

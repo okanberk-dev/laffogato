@@ -6,7 +6,7 @@
  *  2. FAQPage JSON-LD structured data (Google rich result + GEO/LLM ingestion)
  *
  * Answers are written in natural Turkish prose, include named entities
- * (Maltepe Park, Bologna, Uji, Bronte), and stay short enough to be quoted by
+ * (Maltepe Park, Italia, Uji, Bronte), and stay short enough to be quoted by
  * generative search engines.
  */
 
@@ -26,7 +26,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Affogato Classico nedir, yenilebilir kup ne demek?",
-    a: "Affogato Classico, tek scoop fior di latte gelato üzerine çift shot Sirena espresso dökülerek hazırlanan İtalyan tatlısıdır. 1987'den beri Bologna'daki orijinal tariftir. Biz bunu yenilebilir waffle kup içinde servis ederiz: bittiğinde kupayı da yiyebilirsiniz, kaşığa gerek kalmaz. Mancuso ailesinin 1994'te patentlediği glaze kaplama kupayı en az 20 dakika çıtır tutar.",
+    a: "Affogato Classico, tek scoop fior di latte gelato üzerine çift shot Sirena espresso dökülerek hazırlanan İtalyan tatlısıdır. 1987'den beri İtalya'daki orijinal tariftir. Biz bunu yenilebilir waffle kup içinde servis ederiz: bittiğinde kupayı da yiyebilirsiniz, kaşığa gerek kalmaz. Mancuso ailesinin 1994'te patentlediği glaze kaplama kupayı en az 20 dakika çıtır tutar.",
   },
   {
     q: "Rezervasyon yapabilir miyim?",
@@ -46,15 +46,15 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Kahve nereden geliyor, kim kavuruyor?",
-    a: "Sirena espresso harmanımız Brezilya doğal + Etiyopya yıkanmış çekirdeklerden oluşur. Notturna filtre lotu Kenya AA Nyeri'dir. Kahveyi Bologna'daki ana lokasyonda Mancuso ailesi her hafta taze kavurur ve uçakla İstanbul'a getirir. Maltepe Park'a haftalık ulaşır, kavurma tarihi her paketin üzerinde yazılıdır.",
+    a: "Sirena espresso harmanımız Brezilya doğal + Etiyopya yıkanmış çekirdeklerden oluşur. Notturna filtre lotu Kenya AA Nyeri'dir. Kahveyi İtalya'daki ana lokasyonda Mancuso ailesi her hafta taze kavurur ve uçakla İstanbul'a getirir. Maltepe Park'a haftalık ulaşır, kavurma tarihi her paketin üzerinde yazılıdır.",
   },
   {
     q: "L'Affogato hangi yıldan beri var, geçmişi nedir?",
-    a: "L'Affogato 1987'de Giancarlo Mancuso tarafından Bologna Via Galliera 21'de açıldı. 1994'te yenilebilir kup patentlendi, 2008'de Sicilya Bronte pistacchio çiftlikleriyle doğrudan tedarik anlaşması yapıldı. 2026'da torunu Eda Mancuso ilk yurt dışı şubeyi İstanbul Maltepe Park'ta açtı. Bugün İtalya dışındaki tek L'Affogato budur.",
+    a: "L'Affogato 1987'de Giancarlo Mancuso tarafından İtalya'da açıldı. 1994'te yenilebilir kup patentlendi, 2008'de Sicilya Bronte pistacchio çiftlikleriyle doğrudan tedarik anlaşması yapıldı. 2026'da torunu Eda Mancuso ilk yurt dışı şubeyi İstanbul Maltepe Park'ta açtı. Bugün İtalya dışındaki tek L'Affogato budur.",
   },
   {
     q: "Franchise vermek istiyorum, nasıl başvururum?",
-    a: "Üç paketimiz var: Kiosk (24–38 m², €85.000), Bottega (40–80 m², €140.000) ve Salone (90–160 m², €280.000). Başvuru online form ile başlar; ardından Bologna ekibiyle 60 dakikalık video görüşme, Maltepe Park ziyareti, sözleşme ve Bologna'da 4–8 haftalık eğitimle açılış. Franchise sayfasından detaylı bilgi alabilirsiniz.",
+    a: "Üç paketimiz var: Kiosk (24–38 m², €85.000), Bottega (40–80 m², €140.000) ve Salone (90–160 m², €280.000). Başvuru online form ile başlar; ardından İtalyan ekibiyle 60 dakikalık video görüşme, Maltepe Park ziyareti, sözleşme ve 4–8 haftalık eğitimle açılış. Franchise sayfasından detaylı bilgi alabilirsiniz.",
   },
   {
     q: "Çocuk ve evcil hayvan dostu mu?",

@@ -3198,3 +3198,35 @@ input[type='url'], input[type='date'], input[type='time'], textarea, select {
 @media (max-width: 540px) {
   .wishlist-heart { width: 40px; height: 40px; }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Shared SiteChrome — nav+footer on /uye, /odeme, /hukuk etc.
+   ───────────────────────────────────────────────────────────── */
+
+.site-chrome-body {
+  /* Offset for fixed topbar (~32px) + nav (~64px). Subtle so the page
+     doesn't feel like it starts on a cliff. */
+  padding-top: 104px;
+  min-height: 100vh;
+}
+@media (max-width: 760px) {
+  .site-chrome-body { padding-top: 88px; }
+}
+@media (max-width: 480px) {
+  .site-chrome-body { padding-top: 80px; }
+}
+
+/* The checkout page already has its own internal top padding; collapse the
+   site-chrome offset there to avoid double-padding. */
+.site-chrome-body .checkout-page { background: transparent; }
+.site-chrome-body .checkout-page-wrap { padding-top: 8px; }
+
+/* Account/legal pages — same: collapse the shell's outer offset since the
+   shell adds its own padding. */
+.site-chrome-body .account-shell-wrap,
+.site-chrome-body .legal-wrap { padding-top: clamp(20px, 3vw, 36px); }
+
+/* Login / register cards — center vertically minus the nav offset. */
+.site-chrome-body main.auth-card-page {
+  padding-top: clamp(24px, 4vw, 60px);
+}

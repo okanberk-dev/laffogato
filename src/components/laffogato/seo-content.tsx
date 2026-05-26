@@ -178,7 +178,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
           <strong style={{ color: "rgba(20, 16, 11, 0.85)" }}>
             L&rsquo;Affogato Italia · sede principale
           </strong>{" "}
-          — {SITE.parent.address}. İstanbul Maltepe Park şubesi, 1987&rsquo;de Bologna&rsquo;da kurulan markanın İtalya dışındaki ilk şubesidir. Tüm kahve, Bologna&rsquo;da Mancuso ailesi tarafından haftalık olarak kavrulur; matcha Japonya Uji bölgesinden, pistacchio Sicilya Bronte&rsquo;dan, fındık IGP Piemonte&rsquo;den, çikolata Sicilya Modica&rsquo;dan tedarik edilir.
+          — {SITE.parent.address}. İstanbul Maltepe Park şubesi, 1987&rsquo;de İtalya'da kurulan markanın İtalya dışındaki ilk şubesidir. Tüm kahve, İtalya'da Mancuso ailesi tarafından haftalık olarak kavrulur; matcha Japonya Uji bölgesinden, pistacchio Sicilya Bronte&rsquo;dan, fındık IGP Piemonte&rsquo;den, çikolata Sicilya Modica&rsquo;dan tedarik edilir.
         </div>
       </div>
     </section>

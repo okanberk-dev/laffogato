@@ -34,7 +34,7 @@ export function NotificationsForm({
       <Toggle
         name="newsletter"
         label="L'Affogato bülteni"
-        hint="Ayda bir, Bologna-İstanbul mutfak günlüğü."
+        hint="Ayda bir, İtalya-İstanbul mutfak günlüğü."
         defaultChecked={defaults.newsletter}
       />
       {state.error && (
