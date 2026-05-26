@@ -74,8 +74,26 @@ Beklenen geri dönüş: 14 ay. Süreç: başvuru → video görüşme → Maltep
 - Süt: Yerel Maltepe mandırasından günlük taze
 - Kahve: Bologna'da Mancuso ailesi tarafından haftalık kavrulur
 
+## Yapısal Veri (JSON-LD)
+
+Ana sayfada tek `<script type="application/ld+json">` içinde aşağıdaki schema.org tipleri yayınlanır:
+- Organization (Mancuso ailesi, Bologna 1987)
+- CafeOrCoffeeShop + Restaurant (LocalBusiness, açık-hava teras, koordinat, saatler)
+- WebSite (SearchAction + ReserveAction)
+- Menu + MenuSection + MenuItem (canlı; 5 kategori × ortalama 6 kalem)
+- Product × 11 (mağaza SKU'ları + Offer + shipping + return policy)
+- FAQPage × 12 soru
+- AboutPage + Event timeline (1987/1994/2008/2026)
+- HowTo (Affogato Classico hazırlama, 4 adım)
+- Service (Franchise) + Offer × 3 (Kiosk/Bottega/Salone)
+- VideoObject × 8 (reels)
+- SpeakableSpecification (sesli asistanlar için)
+- BreadcrumbList (7 seviye)
+
 ## Kaynaklar
 
 - [Tam içerik (LLM-friendly)](/llms-full.txt): Tüm sayfa içeriklerinin düz metin versiyonu
 - [Sitemap](/sitemap.xml): Tüm sayfa URL'leri
 - [Robots](/robots.txt): Tarama kuralları
+- [Manifest](/manifest.webmanifest): PWA manifesti
+- [Dynamic OG](/opengraph-image): 1200×630 PNG, brand renderlı

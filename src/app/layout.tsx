@@ -102,15 +102,7 @@ export const metadata: Metadata = {
     siteName: SITE.name,
     title: `${SITE.name} — Caffè · Gelato · Dolci · Maltepe Park, İstanbul`,
     description: SITE.longDescription,
-    images: [
-      {
-        url: SITE.ogImage,
-        width: SITE.ogImageWidth,
-        height: SITE.ogImageHeight,
-        alt: `${SITE.name} — ${SITE.tagline}`,
-        type: "image/png",
-      },
-    ],
+    // og:image is auto-discovered from src/app/opengraph-image.tsx
   },
   twitter: {
     card: "summary_large_image",
@@ -118,7 +110,7 @@ export const metadata: Metadata = {
     creator: SITE.twitter,
     title: `${SITE.name} — Caffè · Gelato · Dolci · Maltepe Park, İstanbul`,
     description: SITE.shortDescription,
-    images: [SITE.ogImage],
+    // twitter:image is auto-discovered from src/app/twitter-image.tsx
   },
   robots: {
     index: true,
@@ -131,6 +123,11 @@ export const metadata: Metadata = {
       "max-snippet": -1,
       "max-video-preview": -1,
     },
+  },
+  verification: {
+    ...(SITE.verification.google ? { google: SITE.verification.google } : {}),
+    ...(SITE.verification.yandex ? { yandex: SITE.verification.yandex } : {}),
+    ...(SITE.verification.bing ? { other: { "msvalidate.01": SITE.verification.bing } } : {}),
   },
   icons: {
     icon: [
@@ -158,6 +155,23 @@ export const metadata: Metadata = {
     "format-detection": "telephone=no",
     "apple-mobile-web-app-title": SITE.name,
     "msapplication-TileColor": "#14100B",
+    "msapplication-config": "/browserconfig.xml",
+    // Pinterest + Facebook domain verification (env-driven, optional)
+    ...(SITE.verification.pinterest
+      ? { "p:domain_verify": SITE.verification.pinterest }
+      : {}),
+    ...(SITE.verification.facebook
+      ? { "facebook-domain-verification": SITE.verification.facebook }
+      : {}),
+    // Editorial / brand metadata
+    rating: "General",
+    distribution: "Global",
+    "revisit-after": "7 days",
+    "og:locale:alternate": "it_IT",
+    // Mobile + theme defaults
+    "mobile-web-app-capable": "yes",
+    "HandheldFriendly": "true",
+    "MobileOptimized": "width",
   },
 };
 

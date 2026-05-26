@@ -65,6 +65,18 @@ export const SITE = {
   ogImageWidth: 1200,
   ogImageHeight: 630,
   twitter: "@laffogato",
+  /**
+   * Search engine verification tokens. Set the corresponding env var on
+   * Vercel/CI to emit the verification meta tag; otherwise leave as empty
+   * string and Next.js skips it.
+   */
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ?? "",
+    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION ?? "",
+    bing: process.env.NEXT_PUBLIC_BING_VERIFICATION ?? "",
+    pinterest: process.env.NEXT_PUBLIC_PINTEREST_VERIFICATION ?? "",
+    facebook: process.env.NEXT_PUBLIC_FACEBOOK_DOMAIN_VERIFICATION ?? "",
+  },
   keywords: [
     "L'Affogato",
     "Laffogato",
