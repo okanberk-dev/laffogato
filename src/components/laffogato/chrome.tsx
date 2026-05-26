@@ -137,16 +137,37 @@ export function Nav({ route, navigate, dark, cart = 0, onCart, onSearch }: NavPr
   );
 }
 
-interface FooterProps {
-  navigate: (r: Route) => void;
+export interface FooterSettings {
+  phone?: string;
+  email?: string;
+  address?: string;
 }
 
-export function Footer({ navigate }: FooterProps) {
+interface FooterProps {
+  navigate: (r: Route) => void;
+  settings?: FooterSettings;
+}
+
+const DEFAULT_ADDRESS_LINES = ["Maltepe Park AVM", "Open-air rooftop", "Cevizli, İstanbul"];
+
+function splitAddress(address?: string): string[] {
+  if (!address) return DEFAULT_ADDRESS_LINES;
+  const parts = address
+    .split(/[\n,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return parts.length > 0 ? parts : DEFAULT_ADDRESS_LINES;
+}
+
+export function Footer({ navigate, settings }: FooterProps) {
   const go = (r: Route) => (e: React.MouseEvent) => {
     e.preventDefault();
     navigate(r);
     window.scrollTo({ top: 0 });
   };
+  const phone = settings?.phone ?? "+90 216 459 30 60";
+  const email = settings?.email ?? "maltepe@laffogato.it";
+  const addressLines = splitAddress(settings?.address);
   return (
     <footer className="footer">
       <div className="footer-newsletter">
@@ -246,11 +267,11 @@ export function Footer({ navigate }: FooterProps) {
         <div>
           <h5>İletişim</h5>
           <ul>
-            <li>Maltepe Park AVM</li>
-            <li>Open-air rooftop</li>
-            <li>Cevizli, İstanbul</li>
-            <li style={{ marginTop: 6, fontFamily: "JetBrains Mono", fontSize: 12 }}>+90 216 459 30 60</li>
-            <li style={{ fontFamily: "JetBrains Mono", fontSize: 12 }}>maltepe@laffogato.it</li>
+            {addressLines.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+            <li style={{ marginTop: 6, fontFamily: "JetBrains Mono", fontSize: 12 }}>{phone}</li>
+            <li style={{ fontFamily: "JetBrains Mono", fontSize: 12 }}>{email}</li>
           </ul>
         </div>
       </div>

@@ -25,5 +25,6 @@ export async function updateSettingsAction(
   await updateSettings(input);
   revalidatePath("/admin/ayarlar");
   revalidatePath("/admin");
+  revalidatePath("/");
   return { message: "Ayarlar kaydedildi." };
 }

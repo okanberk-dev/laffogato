@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { formatTRY } from "@/components/admin/forms";
 import { getOrder } from "@/lib/admin/store";
 
+import { ClearCart } from "./clear-cart";
+
 export const metadata = { title: "Siparişin Alındı" };
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
       className="mx-auto min-h-screen max-w-3xl px-6 py-24"
       style={{ background: "var(--bg-warm)" }}
     >
+      <ClearCart />
       <div
         className="rounded-2xl border border-neutral-200 bg-white p-10 shadow-sm md:p-14"
         style={{ boxShadow: "var(--shadow-lg)" }}
