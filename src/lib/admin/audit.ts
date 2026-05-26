@@ -1,14 +1,15 @@
 import "server-only";
 
+import { COLLECTIONS } from "@/lib/mongodb/collections";
+import { getDb } from "@/lib/mongodb/client";
+import { nextSeq } from "@/lib/mongodb/counters";
+
 import { getAdminSession } from "./auth";
 
 /**
- * Append-only event log of admin mutations. Read-only from the UI;
- * only the server-side helper logAudit() writes to it.
- *
- * In-memory and bounded — the oldest entries fall off once we hit
- * 5000 rows. Swap the body for an `audit_log` table when Supabase
- * lands; the call sites stay identical.
+ * Append-only event log of admin mutations. MongoDB collection'a yazılır.
+ * Eski kayıtların temizlenmesi için TTL index'i konabilir (build-time'da
+ * `audit_logs.createIndex({createdAt: 1}, {expireAfterSeconds: ...})`).
  */
 
 export type AuditEntity =
@@ -49,10 +50,6 @@ export interface AdminAuditLog {
   createdAt: string;
 }
 
-const entries: AdminAuditLog[] = [];
-let counter = 0;
-const CAP = 5000;
-
 export interface LogAuditInput {
   action: AuditAction;
   entity: AuditEntity;
@@ -68,9 +65,9 @@ export async function logAudit(input: LogAuditInput): Promise<void> {
     const session = await getAdminSession();
     actor = session?.email ?? "anonymous";
   }
-  counter += 1;
+  const seq = await nextSeq("aud");
   const row: AdminAuditLog = {
-    id: `aud-${String(counter).padStart(7, "0")}`,
+    id: `aud-${String(seq).padStart(7, "0")}`,
     actor,
     action: input.action,
     entity: input.entity,
@@ -78,8 +75,8 @@ export async function logAudit(input: LogAuditInput): Promise<void> {
     payload: input.payload ?? {},
     createdAt: new Date().toISOString(),
   };
-  entries.unshift(row);
-  if (entries.length > CAP) entries.length = CAP;
+  const db = await getDb();
+  await db.collection<AdminAuditLog>(COLLECTIONS.auditLogs).insertOne(row);
 }
 
 export interface AuditFilter {
@@ -92,12 +89,21 @@ export interface AuditFilter {
 export async function listAuditLogs(
   filter: AuditFilter = {},
 ): Promise<AdminAuditLog[]> {
-  let out = entries;
+  const db = await getDb();
+  const query: Record<string, unknown> = {};
   if (filter.actor) {
-    const needle = filter.actor.toLowerCase();
-    out = out.filter((e) => e.actor.toLowerCase().includes(needle));
+    query.actor = { $regex: filter.actor.toLowerCase(), $options: "i" };
   }
-  if (filter.entity) out = out.filter((e) => e.entity === filter.entity);
-  if (filter.action) out = out.filter((e) => e.action === filter.action);
-  return out.slice(0, filter.limit ?? 500);
+  if (filter.entity) query.entity = filter.entity;
+  if (filter.action) query.action = filter.action;
+  const docs = await db
+    .collection<AdminAuditLog>(COLLECTIONS.auditLogs)
+    .find(query)
+    .sort({ createdAt: -1 })
+    .limit(filter.limit ?? 500)
+    .toArray();
+  return docs.map(({ _id, ...rest }) => {
+    void _id;
+    return rest as AdminAuditLog;
+  });
 }

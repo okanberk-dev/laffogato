@@ -51,14 +51,14 @@ export function ProductCard({ product, idx = 0, addToCart, onOpen }: ProductCard
     >
       <div className="product-card-img">
         <ProductSurface cat={p.cat} tone={p.img} label={label} sub={p.tag} />
-        {p.featured && <div className="product-card-flag gold">FEATURED</div>}
+        {p.featured && <div className="product-card-flag gold">ÖNE ÇIKAN</div>}
         {p.isNew && <div className="product-card-flag new">NUOVO</div>}
         {!p.featured && !p.isNew && (
           <div className="product-card-flag">{p.cat.toUpperCase()}</div>
         )}
         <div className="product-card-quick">
           <button onClick={onAdd}>+ Sepete ekle</button>
-          <button onClick={onClick}>Hızlı bakış</button>
+          <button onClick={onClick}>Hızlı bak</button>
         </div>
       </div>
       <div className="product-card-meta">
@@ -167,7 +167,11 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    document.body.classList.add("is-no-scroll");
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.classList.remove("is-no-scroll");
+    };
   }, [open, onClose]);
 
   const total = items.reduce((s, it) => s + (it.price || 0) * (it.qty || 1), 0);
@@ -593,6 +597,7 @@ export function ProductModal({
   return (
     <div
       onClick={onClose}
+      className="product-modal-overlay"
       style={{
         position: "fixed",
         inset: 0,
@@ -661,24 +666,24 @@ export function ProductModal({
           <div style={{ marginTop: 28, display: "grid", gap: 14 }}>
             {p.cat === "beans" && (
               <>
-                <DetailRow k="Origin" v="Brazil natural + Ethiopia washed" />
-                <DetailRow k="Roast" v="Bologna · 14 Mayıs 2026" />
-                <DetailRow k="Notes" v="Kakao · kuru incir · esmer şeker" />
-                <DetailRow k="Brew" v="Espresso, moka, AeroPress" />
+                <DetailRow k="Köken" v="Brezilya doğal + Etiyopya yıkanmış" />
+                <DetailRow k="Kavurma" v="Bologna · 14 Mayıs 2026" />
+                <DetailRow k="Tat notları" v="Kakao · kuru incir · esmer şeker" />
+                <DetailRow k="Demleme" v="Espresso, moka, AeroPress" />
               </>
             )}
             {p.cat === "gift" && (
               <>
                 <DetailRow k="İçerik" v="6 adet edible cup · sleeve" />
                 <DetailRow k="Saklama" v="Kuru, serin · 90 gün" />
-                <DetailRow k="Allergens" v="Gluten · süt · soya izi" />
+                <DetailRow k="Alerjenler" v="Gluten · süt · soya izi" />
               </>
             )}
             {p.cat === "gear" && (
               <>
                 <DetailRow k="Marka" v="Bialetti × L’Affogato" />
                 <DetailRow k="Garanti" v="2 yıl" />
-                <DetailRow k="Servis" v="Türkiye genel" />
+                <DetailRow k="Servis" v="Türkiye geneli" />
               </>
             )}
           </div>
@@ -721,7 +726,7 @@ export function ProductModal({
           </div>
 
           <div style={{ marginTop: 24, padding: 18, background: "var(--bg-warm)", borderRadius: "var(--r-sm)" }}>
-            <div className="eyebrow" style={{ marginBottom: 8 }}>Kargo · İade</div>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Teslimat · İade</div>
             <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
               İstanbul içi aynı gün · Yurt içi 2–3 iş günü · 14 gün açılmamış ürünlerde iade.
             </div>

@@ -308,9 +308,9 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
             <div>
               <div className="eyebrow">03 — Dal menù</div>
               <h2 className="h-1" style={{ marginTop: 16 }}>
-                Six <span className="script">affogati,</span>
+                Altı <span className="script">affogato,</span>
                 <br />
-                one ritual.
+                tek ritüel.
               </h2>
             </div>
             <a href="#menu" onClick={go("menu")} className="btn-link">
@@ -430,7 +430,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
             <div>
               <div className="eyebrow on-dark">06 — Il film</div>
               <h2 className="h-1" style={{ marginTop: 16, color: "#FFF" }}>
-                Behind the bar, <span className="script">in motion.</span>
+                Barın arkasında, <span className="script">sahnede.</span>
               </h2>
             </div>
             <a href="#reels" onClick={go("reels")} className="btn-link" style={{ color: "#FFF", borderColor: "#FFF" }}>
@@ -500,15 +500,15 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
           <div className="reveal">
             <div className="eyebrow">07 — Franchise</div>
             <h2 className="h-1" style={{ marginTop: 16 }}>
-              Bring L’Affogato <br />
-              to <span className="script">your city.</span>
+              L’Affogato’yu <br />
+              <span className="script">şehrinize</span> getirin.
             </h2>
             <p className="lede" style={{ marginTop: 26 }}>
               Bologna’dan ithal İtalyan kahve barı franchise konsepti. Üç paket — Kiosk, Bottega, Salone —
-              €85K’dan başlayan başlangıç yatırımı, 4 hafta İtalya eğitimi. İlk yıl 8 şube hedefi.
+              4 hafta İtalya eğitimi, açılış desteği ve bitmeyen know-how. İlk yıl 8 şube hedefi.
             </p>
             <div data-row="franchise-teaser-stats">
-              <Stat n="€85K" l="Başlangıç (Kiosk)" />
+              <Stat n="3" l="Paket seçeneği" />
               <Stat n="14ay" l="Geri dönüş" />
               <Stat n="4hf" l="İtalya eğitimi" />
             </div>
@@ -530,7 +530,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
       <section className="section-tight" style={{ background: "var(--bg-warm)" }}>
         <div className="wrap">
           <div className="eyebrow reveal" style={{ textAlign: "center", marginBottom: 50 }}>
-            Press — Stamping kindly
+            Basın · Hakkımızda yazılanlar
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 30 }} data-row="press-row">
             {PRESS.map((p, i) => (
@@ -586,7 +586,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
             <div>
               <div className="eyebrow">II — Il menù · summer 2026</div>
               <h1 style={{ marginTop: 24 }}>
-                The <span className="script">menu.</span>
+                <span className="script">Menü.</span>
               </h1>
               <p className="lede" style={{ marginTop: 22 }}>
                 Bologna 1987 reçetesi, Maltepe Park terası için sezonluk matcha bar ve buzlu içecekler.
@@ -744,19 +744,19 @@ export function PageMenu({ addToCart, menu }: PageProps) {
       <section className="section-tight" style={{ background: "var(--bg-cream)" }}>
         <div className="wrap" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 50 }} data-row="menu-notes">
           <div className="reveal">
-            <div className="eyebrow">Allergens</div>
+            <div className="eyebrow">Alerjenler</div>
             <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
               Süt, gluten, kuruyemiş, soya — mutfağımızda çapraz temas olabilir. Cölyak için baristaya bildirin, pirinç bisküvili alternatif hazırlarız.
             </p>
           </div>
           <div className="reveal r1">
-            <div className="eyebrow">Origin</div>
+            <div className="eyebrow">Köken</div>
             <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
               Espresso: Sirena harmanı (Bologna kavurma). Matcha: Uji ceremonial grade. Pistacchio: Bronte IGP. Süt: Maltepe yerel mandıra.
             </p>
           </div>
           <div className="reveal r2">
-            <div className="eyebrow">Service</div>
+            <div className="eyebrow">Servis</div>
             <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
               Bar köşesi 6 koltuk yürüyüş trafiği için ayrı. Akşam 19:00 sonrası rezervasyon. Köpekler hoş geldi.
             </p>
@@ -818,7 +818,7 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
             <div>
               <div className="eyebrow">III — La bottega</div>
               <h1 style={{ marginTop: 24 }}>
-                The <span className="script">shop.</span>
+                <span className="script">Mağaza.</span>
               </h1>
               <p className="lede" style={{ marginTop: 22 }}>
                 Maltepe Park terasında servis ettiğimiz her şey — Bologna’da kavrulan çekirdek, 1994 patentli edible kup,
@@ -1219,7 +1219,7 @@ export function PageStory(_props: PageProps) {
             eyebrow="Cosa contiamo"
             title={
               <>
-                Five things we <span className="script">protect.</span>
+                Koruduğumuz <span className="script">beş ilke.</span>
               </>
             }
           />
@@ -1619,7 +1619,7 @@ export function PageVisit(_props: PageProps) {
             eyebrow="Il locale · open-air teras"
             title={
               <>
-                The <span className="script">room.</span>
+                <span className="script">Mekan.</span>
               </>
             }
             action={
@@ -1883,7 +1883,7 @@ export function PageReels(_props: PageProps) {
                   <svg width="10" height="10" viewBox="0 0 16 16" style={{ fill: "currentColor" }}>
                     <path d="M3 2 L13 8 L3 14 Z" />
                   </svg>
-                  Play · 4:12
+                  Oynat · 4:12
                 </button>
                 <button className="btn btn-ghost">Daha fazla bölüm</button>
               </div>
@@ -1898,7 +1898,7 @@ export function PageReels(_props: PageProps) {
             <div>
               <div className="eyebrow">Reels · son yayınlananlar</div>
               <h2 className="h-1" style={{ marginTop: 16 }}>
-                Latest <span className="script">on the feed.</span>
+                Akışın <span className="script">en yenisi.</span>
               </h2>
             </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -1906,7 +1906,7 @@ export function PageReels(_props: PageProps) {
                 ["all", "Tümü"],
                 ["bar", "Bar"],
                 ["gelato", "Gelato"],
-                ["origin", "Origin"],
+                ["origin", "Köken"],
               ].map(([id, label]) => (
                 <button
                   key={id}
@@ -2243,7 +2243,7 @@ export function PageFranchise(_props: PageProps) {
             eyebrow="Pacchetti · three formats"
             title={
               <>
-                Choose your <span className="script">format.</span>
+                <span className="script">Formatınızı</span> seçin.
               </>
             }
           />
@@ -2343,7 +2343,7 @@ export function PageFranchise(_props: PageProps) {
           <div className="reveal">
             <div className="eyebrow on-dark">Modulo di candidatura</div>
             <h2 className="h-1" style={{ marginTop: 16, color: "#FFF" }}>
-              Apply for <span className="script">franchise.</span>
+              <span className="script">Franchise</span> başvurusu.
             </h2>
             <p className="lede" style={{ marginTop: 22, color: "rgba(255, 255, 255, 0.78)" }}>
               Bologna ekibi her başvuruyu 14 gün içinde değerlendirir. Onay alanlarla video görüşme,
