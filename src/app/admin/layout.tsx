@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 import { getAdminSession } from "@/lib/admin/auth";
 import { canAccess, ROLE_LABELS, type AdminSection } from "@/lib/admin/roles";
 
@@ -32,10 +33,10 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen flex-col bg-neutral-50">
       <header className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
           <Link href="/admin" className="flex items-baseline gap-2">
             <span
-              className="text-xl"
+              className="text-lg sm:text-xl"
               style={{
                 fontFamily: "var(--serif), 'Playfair Display', serif",
                 fontStyle: "italic",
@@ -54,7 +55,7 @@ export default async function AdminLayout({
           </Link>
 
           {session && (
-            <nav className="flex flex-wrap items-center gap-1 text-sm text-neutral-600">
+            <nav className="hidden flex-wrap items-center gap-1 text-sm text-neutral-600 lg:flex">
               {visibleNav.map((n) => (
                 <Link
                   key={n.href}
@@ -68,14 +69,14 @@ export default async function AdminLayout({
           )}
 
           {session ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <span
-                className="hidden text-[10px] uppercase tracking-[0.22em] text-neutral-500 sm:inline"
+                className="hidden text-[10px] uppercase tracking-[0.22em] text-neutral-500 xl:inline"
                 style={{ fontFamily: "var(--mono), monospace" }}
               >
                 {session.email} · {ROLE_LABELS[session.role]}
               </span>
-              <form action={logoutAction}>
+              <form action={logoutAction} className="hidden lg:block">
                 <button
                   type="submit"
                   className="rounded-full border border-neutral-200 px-3 py-1.5 text-xs text-neutral-700 transition-colors hover:border-neutral-900 hover:text-neutral-900"
@@ -83,6 +84,11 @@ export default async function AdminLayout({
                   Çıkış
                 </button>
               </form>
+              <AdminMobileNav
+                items={visibleNav.map((n) => ({ href: n.href, label: n.label }))}
+                email={session.email}
+                roleLabel={ROLE_LABELS[session.role]}
+              />
             </div>
           ) : (
             <Link
@@ -97,9 +103,9 @@ export default async function AdminLayout({
 
       <div className="flex-1">{children}</div>
 
-      <footer className="border-t border-neutral-200 bg-white px-6 py-4">
+      <footer className="border-t border-neutral-200 bg-white px-4 py-4 sm:px-6">
         <div
-          className="mx-auto flex max-w-7xl items-center justify-between text-[10px] uppercase tracking-[0.22em] text-neutral-400"
+          className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-2 text-[10px] uppercase tracking-[0.22em] text-neutral-400 sm:flex-row sm:items-center"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           <span>Maltepe Park · Yönetim Paneli</span>

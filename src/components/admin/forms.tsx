@@ -24,7 +24,7 @@ export function Field({
 }
 
 const baseInput =
-  "w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm outline-none transition-colors focus:border-neutral-900 focus:bg-white";
+  "w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-base outline-none transition-colors focus:border-neutral-900 focus:bg-white sm:text-sm";
 
 export function TextInput(
   props: React.InputHTMLAttributes<HTMLInputElement>,
@@ -52,11 +52,11 @@ export function Checkbox({
   ...rest
 }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className="flex items-center gap-2 text-sm text-neutral-700">
+    <label className="flex min-h-[44px] cursor-pointer items-center gap-3 py-2 text-sm text-neutral-700">
       <input
         type="checkbox"
         {...rest}
-        className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-700"
+        className="h-5 w-5 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-700"
       />
       {label}
     </label>
@@ -70,7 +70,7 @@ export function PrimaryButton({
   return (
     <button
       {...rest}
-      className={`inline-flex items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 ${rest.className ?? ""}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -84,7 +84,7 @@ export function GhostButton({
   return (
     <button
       {...rest}
-      className={`inline-flex items-center justify-center gap-2 rounded-full border border-neutral-300 px-4 py-2 text-sm text-neutral-700 transition-colors hover:border-neutral-900 hover:text-neutral-900 disabled:opacity-50 ${rest.className ?? ""}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-neutral-300 px-4 py-2 text-sm text-neutral-700 transition-colors hover:border-neutral-900 hover:text-neutral-900 disabled:opacity-50 ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -98,7 +98,7 @@ export function DangerButton({
   return (
     <button
       {...rest}
-      className={`inline-flex items-center justify-center gap-2 rounded-full border border-red-200 px-4 py-2 text-sm text-red-700 transition-colors hover:border-red-600 hover:bg-red-600 hover:text-white disabled:opacity-50 ${rest.className ?? ""}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-red-200 px-4 py-2 text-sm text-red-700 transition-colors hover:border-red-600 hover:bg-red-600 hover:text-white disabled:opacity-50 ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -116,7 +116,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-xl border border-neutral-200 bg-white p-6 shadow-sm ${className ?? ""}`}
+      className={`rounded-xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6 ${className ?? ""}`}
       style={style}
     >
       {children}
@@ -136,8 +136,8 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div>
+    <header className="mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-8 sm:gap-4">
+      <div className="min-w-0">
         {eyebrow && (
           <div
             className="mb-2 text-[10px] uppercase tracking-[0.22em] text-neutral-500"
@@ -147,7 +147,7 @@ export function PageHeader({
           </div>
         )}
         <h1
-          className="text-3xl"
+          className="text-2xl sm:text-3xl"
           style={{
             fontFamily: "var(--serif), 'Playfair Display', serif",
             fontStyle: "italic",
@@ -161,7 +161,7 @@ export function PageHeader({
           <p className="mt-2 max-w-2xl text-sm text-neutral-600">{description}</p>
         )}
       </div>
-      {action && <div>{action}</div>}
+      {action && <div className="w-full sm:w-auto">{action}</div>}
     </header>
   );
 }
