@@ -3,6 +3,7 @@ import "server-only";
 import {
   MENU as SEED_MENU,
   PRODUCTS as SEED_PRODUCTS,
+  type MenuCategory as DesignMenuCategory,
   type Product as DesignProduct,
 } from "@/components/laffogato/data";
 
@@ -448,3 +449,151 @@ export async function listShopProducts(): Promise<DesignProduct[]> {
       isNew: p.isNew || undefined,
     }));
 }
+
+// ── Cafe menu items (affogato / matcha / espresso / cold / gelato) ────────
+
+export type MenuCategoryKey =
+  | "affogato"
+  | "matcha"
+  | "espresso"
+  | "cold"
+  | "gelato";
+
+export const MENU_CATEGORY_KEYS: MenuCategoryKey[] = [
+  "affogato",
+  "matcha",
+  "espresso",
+  "cold",
+  "gelato",
+];
+
+export interface AdminMenuItem {
+  id: string;
+  categoryKey: MenuCategoryKey;
+  name: string;
+  desc: string;
+  /** Minor units (kuruş) — e.g. 13000 = 130,00 ₺ */
+  priceMinor: number;
+  /** Hue token from PhotoSurface palette (used by MenuPlate). */
+  hue: string;
+  /** Free-form tags: "signature", "new", "iced", "nuts", "IGP", … */
+  tags: string[];
+  isActive: boolean;
+  sortOrder: number;
+  updatedAt: string;
+}
+
+let menuItemCounter = 0;
+const menuItems: AdminMenuItem[] = MENU_CATEGORY_KEYS.flatMap((key) =>
+  SEED_MENU[key].items.map((it, idx) => {
+    menuItemCounter += 1;
+    return {
+      id: slugifyId("mnu", menuItemCounter),
+      categoryKey: key,
+      name: it.name,
+      desc: it.desc,
+      priceMinor: parsePrice(it.price),
+      hue: it.hue,
+      tags: it.tags ? [...it.tags] : [],
+      isActive: true,
+      sortOrder: idx,
+      updatedAt: new Date().toISOString(),
+    };
+  }),
+);
+
+export async function listMenuItems(): Promise<AdminMenuItem[]> {
+  return [...menuItems].sort((a, b) => {
+    const aIdx = MENU_CATEGORY_KEYS.indexOf(a.categoryKey);
+    const bIdx = MENU_CATEGORY_KEYS.indexOf(b.categoryKey);
+    if (aIdx !== bIdx) return aIdx - bIdx;
+    return a.sortOrder - b.sortOrder;
+  });
+}
+
+export async function getMenuItem(id: string): Promise<AdminMenuItem | null> {
+  return menuItems.find((it) => it.id === id) ?? null;
+}
+
+export interface MenuItemInput {
+  categoryKey: MenuCategoryKey;
+  name: string;
+  desc: string;
+  priceMinor: number;
+  hue: string;
+  tags: string[];
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export async function createMenuItem(input: MenuItemInput): Promise<AdminMenuItem> {
+  menuItemCounter += 1;
+  const item: AdminMenuItem = {
+    id: slugifyId("mnu", menuItemCounter),
+    ...input,
+    updatedAt: new Date().toISOString(),
+  };
+  menuItems.push(item);
+  return item;
+}
+
+export async function updateMenuItem(
+  id: string,
+  input: MenuItemInput,
+): Promise<AdminMenuItem | null> {
+  const idx = menuItems.findIndex((it) => it.id === id);
+  if (idx === -1) return null;
+  menuItems[idx] = {
+    ...menuItems[idx],
+    ...input,
+    updatedAt: new Date().toISOString(),
+  };
+  return menuItems[idx];
+}
+
+export async function deleteMenuItem(id: string): Promise<boolean> {
+  const idx = menuItems.findIndex((it) => it.id === id);
+  if (idx === -1) return false;
+  menuItems.splice(idx, 1);
+  return true;
+}
+
+/**
+ * Returns the cafe menu in the design's MENU shape, with category meta
+ * (title, sub, italian, note) preserved from SEED_MENU and items pulled
+ * live from the admin store. Inactive items are filtered out.
+ */
+export async function listMenuForCustomer(): Promise<
+  Record<string, DesignMenuCategory>
+> {
+  const out: Record<string, DesignMenuCategory> = {};
+  for (const key of MENU_CATEGORY_KEYS) {
+    const meta = SEED_MENU[key];
+    const activeItems = menuItems
+      .filter((it) => it.categoryKey === key && it.isActive)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((it) => ({
+        name: it.name,
+        desc: it.desc,
+        price: `${Math.round(it.priceMinor / 100)}₺`,
+        ...(it.tags.length > 0 ? { tags: [...it.tags] } : {}),
+        hue: it.hue,
+      }));
+    out[key] = {
+      title: meta.title,
+      sub: meta.sub,
+      italian: meta.italian,
+      note: meta.note,
+      items: activeItems,
+    };
+  }
+  return out;
+}
+
+export const MENU_CATEGORY_LABELS: Record<MenuCategoryKey, string> = {
+  affogato: SEED_MENU.affogato.title,
+  matcha: SEED_MENU.matcha.title,
+  espresso: SEED_MENU.espresso.title,
+  cold: SEED_MENU.cold.title,
+  gelato: SEED_MENU.gelato.title,
+};

@@ -3,6 +3,7 @@
 import { useState, Fragment } from "react";
 
 import { MENU, PRODUCTS, REELS, PRESS, STORY, LOCATION, BRAND, FRANCHISE } from "./data";
+import type { MenuCategory } from "./data";
 import { ProductCard, SectionHead, Stat, CartItem } from "./ui";
 import type { Product } from "./data";
 import type { Route } from "./chrome";
@@ -29,15 +30,18 @@ interface PageProps {
   openProduct: (p: Product | null) => void;
   /** Live products fed from the admin store; falls back to design seed. */
   products?: Product[];
+  /** Live cafe menu fed from the admin store; falls back to design seed. */
+  menu?: Record<string, MenuCategory>;
 }
 
 /* ──────────────────────────────────────────────────────────────
    HOME
    ────────────────────────────────────────────────────────────── */
 
-export function PageHome({ navigate, addToCart, products }: PageProps) {
+export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
   useReveal();
   const shopProducts = products && products.length > 0 ? products : PRODUCTS;
+  const liveMenu = menu ?? MENU;
   const go = (r: Route) => (e: React.MouseEvent) => {
     e.preventDefault();
     navigate(r);
@@ -329,7 +333,7 @@ export function PageHome({ navigate, addToCart, products }: PageProps) {
             </a>
           </div>
           <div className="shop-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
-            {MENU.affogato.items.slice(0, 3).map((it, i) => (
+            {(liveMenu.affogato?.items ?? MENU.affogato.items).slice(0, 3).map((it, i) => (
               <div
                 key={it.name}
                 className="product-card reveal"
@@ -397,7 +401,7 @@ export function PageHome({ navigate, addToCart, products }: PageProps) {
               ipeksi süt katmanları, taze çilek püresi. Sıcak veya buzlu; bardakta veya yenilebilir waffle kupta.
             </p>
             <div style={{ marginTop: 30, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-              {MENU.matcha.items.slice(0, 4).map((it) => (
+              {(liveMenu.matcha?.items ?? MENU.matcha.items).slice(0, 4).map((it) => (
                 <div key={it.name} style={{ padding: "20px 0", borderTop: "1px solid var(--ink-line)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                     <div style={{ fontFamily: "var(--serif-display)", fontSize: 18 }}>{it.name}</div>
@@ -586,13 +590,14 @@ export function PageHome({ navigate, addToCart, products }: PageProps) {
    MENU
    ────────────────────────────────────────────────────────────── */
 
-export function PageMenu({ addToCart }: PageProps) {
+export function PageMenu({ addToCart, menu }: PageProps) {
   useReveal();
-  const cats = Object.keys(MENU);
+  const liveMenu = menu ?? MENU;
+  const cats = Object.keys(liveMenu);
   const [active, setActive] = useState<string>("all");
   const visible = active === "all" ? cats : [active];
 
-  const totalCount = Object.values(MENU).reduce((s, c) => s + c.items.length, 0);
+  const totalCount = Object.values(liveMenu).reduce((s, c) => s + c.items.length, 0);
 
   return (
     <div className="page" data-screen-label="02 Menu">
@@ -631,15 +636,15 @@ export function PageMenu({ addToCart }: PageProps) {
           </button>
           {cats.map((c) => (
             <button key={c} className={`menu-tab ${active === c ? "on" : ""}`} onClick={() => setActive(c)}>
-              <span>{MENU[c].title}</span>
-              <span className="count">{MENU[c].items.length}</span>
+              <span>{liveMenu[c].title}</span>
+              <span className="count">{liveMenu[c].items.length}</span>
             </button>
           ))}
         </div>
       </div>
 
       {visible.map((key, idx) => {
-        const c = MENU[key];
+        const c = liveMenu[key];
         const firstWord = c.title.split(" ")[0];
         const restWords = c.title.split(" ").slice(1).join(" ");
         return (

@@ -6,6 +6,7 @@ import { logoutAction } from "./actions";
 
 const NAV: Array<[string, string]> = [
   ["/admin", "Genel bakış"],
+  ["/admin/menu", "Menü"],
   ["/admin/urunler", "Ürünler"],
   ["/admin/kategoriler", "Kategoriler"],
   ["/admin/siparisler", "Siparişler"],
