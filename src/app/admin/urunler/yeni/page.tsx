@@ -1,10 +1,11 @@
 import { PageHeader } from "@/components/admin/forms";
-import { ProductForm } from "@/components/admin/product-form";
+import { ProductWizard } from "@/components/admin/product-wizard";
 import { listCategories } from "@/lib/admin/store";
 
 import { createProductAction } from "../actions";
 
 export const metadata = { title: "Admin · Yeni Ürün" };
+export const dynamic = "force-dynamic";
 
 export default async function NewProductPage() {
   const categories = await listCategories();
@@ -14,13 +15,13 @@ export default async function NewProductPage() {
       <PageHeader
         eyebrow="Shop · La bottega"
         title="Yeni ürün"
-        description="Stokta olan veya öncesi ön sipariş alacağın yeni bir ürün ekle."
+        description="5 adımda yeni bir ürün: temel bilgi → fiyat & stok → varyantlar → görsel & SEO → özet."
       />
-      <ProductForm
-        action={createProductAction}
+      <ProductWizard
         categories={categories}
+        action={createProductAction}
         submitLabel="Ürünü kaydet"
-        cancelHref="/admin/urunler"
+        mode="wizard"
       />
     </main>
   );

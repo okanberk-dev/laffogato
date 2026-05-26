@@ -60,7 +60,10 @@ export function ProductCard({ product, idx = 0, addToCart, onOpen }: ProductCard
       <div className="product-card-meta">
         <div className="product-card-cat">{p.tag}</div>
         <h3 className="product-card-name">{p.name.split("—")[0].trim()}</h3>
-        <div className="product-card-price">{p.price}</div>
+        <div className="product-card-price">
+          <span>{p.price}</span>
+          {p.compareAtPrice && <span className="was">{p.compareAtPrice}</span>}
+        </div>
       </div>
     </div>
   );

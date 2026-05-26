@@ -102,6 +102,8 @@ export interface Product {
   name: string;
   tag: string;
   price: string;
+  /** Optional original/was price for striked-out display. */
+  compareAtPrice?: string;
   desc: string;
   cat: string;
   img: string;
