@@ -558,16 +558,16 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
             <stop offset="1" stopColor="#C5435A" />
           </linearGradient>
         </defs>
-        <g transform="translate(15 88)">
-          <MatchaGlass strawberry size={190} />
+        <g transform="translate(110 196)">
+          <MatchaGlassInline strawberry size={280} />
         </g>
       </svg>
     ),
     () => (
       <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice">
         <rect width="220" height="392" fill="#F5E6D3" />
-        <g transform="translate(-72 -20) scale(0.85)">
-          <EdibleCupHero scoop="strawberry" topping="strawberry" size={440} />
+        <g transform="translate(110 196)">
+          <CupHeroInline />
         </g>
       </svg>
     ),
@@ -653,11 +653,34 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
   return variants[idx]();
 }
 
+function MatchaGlassInline({
+  strawberry,
+  size = 200,
+}: {
+  strawberry?: boolean;
+  size?: number;
+}) {
+  return (
+    <g transform={`scale(${size / 200}) translate(-110 -160)`}>
+      <MatchaGlass size={200} strawberry={strawberry} />
+    </g>
+  );
+}
+
+function CupHeroInline() {
+  return (
+    <g transform="scale(0.5) translate(-180 -220)">
+      <EdibleCupHero scoop="strawberry" topping="strawberry" />
+    </g>
+  );
+}
+
 /* ─────────────────────────────────────────────────────────────
    Bar render scene
    ───────────────────────────────────────────────────────────── */
 
-export function BarRenderScene() {
+export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
+  void time;
   return (
     <svg viewBox="0 0 1200 700" style={{ width: "100%", height: "100%", display: "block" }} preserveAspectRatio="xMidYMid slice">
       <defs>
