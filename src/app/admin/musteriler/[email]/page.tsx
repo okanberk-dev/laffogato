@@ -7,6 +7,7 @@ import {
   formatDateTime,
   formatTRY,
 } from "@/components/admin/forms";
+import { requireRole } from "@/lib/admin/auth";
 import {
   customerOrdersByEmail,
   type AdminOrderStatus,
@@ -44,6 +45,7 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function CustomerDetailPage({ params }: PageProps) {
+  await requireRole("customers");
   const { email: raw } = await params;
   const email = decodeURIComponent(raw);
   const orders = await customerOrdersByEmail(email);

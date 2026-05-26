@@ -5,6 +5,7 @@ import {
   DangerButton,
   PageHeader,
 } from "@/components/admin/forms";
+import { requireRole } from "@/lib/admin/auth";
 import { listCategories, listProducts } from "@/lib/admin/store";
 
 import { deleteCategoryAction } from "./actions";
@@ -13,6 +14,7 @@ export const metadata = { title: "Admin · Kategoriler" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminCategoriesPage() {
+  await requireRole("categories");
   const [categories, products] = await Promise.all([
     listCategories(),
     listProducts(),

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Card, PageHeader, formatTRY } from "@/components/admin/forms";
 import { RevenueChart } from "@/components/admin/revenue-chart";
+import { requireRole } from "@/lib/admin/auth";
 import {
   analyticsHeadline,
   revenueBuckets,
@@ -23,6 +24,7 @@ const G_OPTIONS: Array<{ value: BucketGranularity; label: string; count: number 
 ];
 
 export default async function ReportsPage({ searchParams }: PageProps) {
+  await requireRole("reports");
   const sp = await searchParams;
   const g: BucketGranularity = sp.g ?? "day";
   const opt = G_OPTIONS.find((x) => x.value === g) ?? G_OPTIONS[0];

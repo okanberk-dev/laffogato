@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Card, PageHeader } from "@/components/admin/forms";
 import { ProductsList } from "@/components/admin/products-list";
+import { requireRole } from "@/lib/admin/auth";
 import { listCategories, listProducts } from "@/lib/admin/store";
 
 export const metadata = { title: "Admin · Ürünler" };
@@ -37,6 +38,7 @@ const SORT_LABEL: Record<SortKey, string> = {
 };
 
 export default async function AdminProductsPage({ searchParams }: PageProps) {
+  await requireRole("products");
   const sp = await searchParams;
   const q = (sp.q ?? "").trim().toLowerCase();
   const cat = (sp.cat ?? "all").trim();

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
 import { StockAdjustForm } from "@/components/admin/stock-adjust-form";
+import { requireRole } from "@/lib/admin/auth";
 import {
   listProducts,
   listStockMoves,
@@ -30,6 +31,7 @@ interface PageProps {
 }
 
 export default async function StockMovesPage({ searchParams }: PageProps) {
+  await requireRole("stock");
   const sp = await searchParams;
   const productId = sp.productId?.trim();
   const reason = sp.reason;

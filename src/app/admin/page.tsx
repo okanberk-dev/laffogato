@@ -1,12 +1,19 @@
 import Link from "next/link";
 
 import { Card, PageHeader, formatTRY } from "@/components/admin/forms";
+import { requireRole } from "@/lib/admin/auth";
 import { getDashboardStats, listOrders } from "@/lib/admin/store";
 
 export const metadata = { title: "Admin · Genel Bakış" };
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboardPage() {
+interface PageProps {
+  searchParams: Promise<{ denied?: string }>;
+}
+
+export default async function AdminDashboardPage({ searchParams }: PageProps) {
+  await requireRole("dashboard");
+  const sp = await searchParams;
   const [stats, orders] = await Promise.all([
     getDashboardStats(),
     listOrders(),
@@ -28,6 +35,13 @@ export default async function AdminDashboardPage() {
         title="Günaydın, Eda."
         description="Bellek içi demo verisi. Supabase entegre edildikten sonra gerçek üretim verisini gösterecek."
       />
+
+      {sp.denied && (
+        <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          O sayfa için yetkin yok. Bu paneldeki yetkinle erişebileceğin
+          bölümler nav'da görünüyor.
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
         {cards.map((c) => (

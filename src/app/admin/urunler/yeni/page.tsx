@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/admin/forms";
 import { ProductWizard } from "@/components/admin/product-wizard";
+import { requireRole } from "@/lib/admin/auth";
 import { listCategories } from "@/lib/admin/store";
 
 import { createProductAction } from "../actions";
@@ -8,6 +9,7 @@ export const metadata = { title: "Admin · Yeni Ürün" };
 export const dynamic = "force-dynamic";
 
 export default async function NewProductPage() {
+  await requireRole("products");
   const categories = await listCategories();
 
   return (

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/admin/forms";
 import { MenuList } from "@/components/admin/menu-list";
+import { requireRole } from "@/lib/admin/auth";
 import {
   listMenuItems,
   MENU_CATEGORY_KEYS,
@@ -14,6 +15,7 @@ export const metadata = { title: "Admin · Kafe Menüsü" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminMenuPage() {
+  await requireRole("menu");
   const all = await listMenuItems();
   const byCategory: Record<MenuCategoryKey, AdminMenuItem[]> = {
     affogato: [],

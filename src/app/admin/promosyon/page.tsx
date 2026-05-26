@@ -7,6 +7,7 @@ import {
   formatDateTime,
   formatTRY,
 } from "@/components/admin/forms";
+import { requireRole } from "@/lib/admin/auth";
 import { listPromos } from "@/lib/admin/store";
 
 import { deletePromoAction } from "./actions";
@@ -19,6 +20,7 @@ function discountLabel(p: { kind: "pct" | "fixed"; value: number }): string {
 }
 
 export default async function PromoCodesPage() {
+  await requireRole("promos");
   const promos = await listPromos();
 
   return (

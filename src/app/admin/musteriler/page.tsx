@@ -6,6 +6,7 @@ import {
   formatDateTime,
   formatTRY,
 } from "@/components/admin/forms";
+import { requireRole } from "@/lib/admin/auth";
 import { listCustomers } from "@/lib/admin/store";
 
 export const metadata = { title: "Admin · Müşteriler" };
@@ -25,6 +26,7 @@ const SORT_LABEL: Record<SortKey, string> = {
 };
 
 export default async function CustomersPage({ searchParams }: PageProps) {
+  await requireRole("customers");
   const sp = await searchParams;
   const q = (sp.q ?? "").trim().toLowerCase();
   const sort: SortKey = (sp.sort ?? "recent") as SortKey;
