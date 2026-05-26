@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { Footer, Nav, type Route } from "./chrome";
+import { Footer, Nav, type FooterSettings, type Route } from "./chrome";
 import {
   PageFranchise,
   PageHome,
@@ -25,29 +25,78 @@ const VALID_ROUTES: Route[] = [
   "franchise",
 ];
 
+const CART_STORAGE_KEY = "laffogato_cart_v1";
+
 function readInitialRoute(): Route {
   if (typeof window === "undefined") return "home";
   const initial = (window.location.hash || "#home").replace("#", "") as Route;
   return VALID_ROUTES.includes(initial) ? initial : "home";
 }
 
-export function LaffogatoApp({ products }: { products?: Product[] }) {
+function readStoredCart(): CartItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return [];
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data)) return [];
+    return data.filter(
+      (it): it is CartItem =>
+        typeof it === "object" &&
+        it !== null &&
+        typeof (it as CartItem).name === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
+export function LaffogatoApp({
+  products,
+  settings,
+}: {
+  products?: Product[];
+  settings?: FooterSettings;
+}) {
   const [route, setRoute] = useState<Route>("home");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [productOpen, setProductOpen] = useState<Product | null>(null);
   const [mounted, setMounted] = useState(false);
+  const hydratedRef = useRef(false);
 
   useEffect(() => {
     setRoute(readInitialRoute());
+    setCart(readStoredCart());
+    hydratedRef.current = true;
     setMounted(true);
     const onHash = () => {
       const r = (window.location.hash || "#home").replace("#", "") as Route;
       if (VALID_ROUTES.includes(r)) setRoute(r);
     };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === CART_STORAGE_KEY) setCart(readStoredCart());
+    };
     window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    try {
+      if (cart.length === 0) {
+        window.localStorage.removeItem(CART_STORAGE_KEY);
+      } else {
+        window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+      }
+    } catch {
+      // localStorage may be unavailable (private mode, etc.) — silent no-op.
+    }
+  }, [cart]);
 
   const navigate = (r: Route) => {
     setRoute(r);
@@ -98,7 +147,7 @@ export function LaffogatoApp({ products }: { products?: Product[] }) {
           openProduct={setProductOpen}
           products={products}
         />
-        <Footer navigate={navigate} />
+        <Footer navigate={navigate} settings={settings} />
       </>
     );
   }
@@ -118,7 +167,7 @@ export function LaffogatoApp({ products }: { products?: Product[] }) {
         openProduct={setProductOpen}
         products={products}
       />
-      <Footer navigate={navigate} />
+      <Footer navigate={navigate} settings={settings} />
       <CartDrawer
         open={cartOpen}
         onClose={() => setCartOpen(false)}
