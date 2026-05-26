@@ -27,14 +27,17 @@ interface PageProps {
   navigate: (r: Route) => void;
   addToCart: (item: CartItem) => void;
   openProduct: (p: Product | null) => void;
+  /** Live products fed from the admin store; falls back to design seed. */
+  products?: Product[];
 }
 
 /* ──────────────────────────────────────────────────────────────
    HOME
    ────────────────────────────────────────────────────────────── */
 
-export function PageHome({ navigate, addToCart }: PageProps) {
+export function PageHome({ navigate, addToCart, products }: PageProps) {
   useReveal();
+  const shopProducts = products && products.length > 0 ? products : PRODUCTS;
   const go = (r: Route) => (e: React.MouseEvent) => {
     e.preventDefault();
     navigate(r);
@@ -428,7 +431,7 @@ export function PageHome({ navigate, addToCart }: PageProps) {
             </a>
           </div>
           <div className="shop-grid">
-            {PRODUCTS.slice(0, 4).map((p, i) => (
+            {shopProducts.slice(0, 4).map((p, i) => (
               <ProductCard key={p.name} product={p} idx={i} addToCart={addToCart} />
             ))}
           </div>
@@ -794,8 +797,9 @@ function ShopBadge({ icon, k, v }: { icon: string; k: string; v: string }) {
   );
 }
 
-export function PageShop({ addToCart, openProduct }: PageProps) {
+export function PageShop({ addToCart, openProduct, products }: PageProps) {
   useReveal();
+  const shopProducts = products && products.length > 0 ? products : PRODUCTS;
   const [cat, setCat] = useState<string>("all");
   const [sort, setSort] = useState<string>("featured");
   const [priceMin, setPriceMin] = useState(0);
@@ -810,7 +814,7 @@ export function PageShop({ addToCart, openProduct }: PageProps) {
     { id: "pantry", label: "Kiler", icon: "◇" },
   ];
 
-  let list = PRODUCTS.filter((p) => cat === "all" || p.cat === cat);
+  let list = shopProducts.filter((p) => cat === "all" || p.cat === cat);
   list = list.filter((p) => {
     const price = parseFloat(p.price);
     return price >= priceMin && price <= priceMax;
@@ -853,7 +857,7 @@ export function PageShop({ addToCart, openProduct }: PageProps) {
               <div className="eyebrow" style={{ marginBottom: 14 }}>Kategoriler</div>
               <div className="shop-cat-list">
                 {cats.map((c) => {
-                  const count = c.id === "all" ? PRODUCTS.length : PRODUCTS.filter((p) => p.cat === c.id).length;
+                  const count = c.id === "all" ? shopProducts.length : shopProducts.filter((p) => p.cat === c.id).length;
                   return (
                     <button
                       key={c.id}
