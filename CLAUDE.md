@@ -29,6 +29,19 @@ Bu dosya, Claude Code'un bu projede tutarlı çalışması için gerekli bağlam
 | #8 | Cafe menu admin (5 kategori × ≈6 kalem) |
 | #9 | Commerce-grade product editor (wizard, variants, SEO, Zod) |
 | #10 | GitHub Actions CI (typecheck + build) |
+| #12 | Wizard adım 4'te drag-and-drop görsel yükleme + client-side resize |
+| #13 | Üç listede toplu işlemler (checkbox + sticky bar) |
+| #14 | Sipariş detay sayfası v2 (state machine, per-item, not, iade, fiş) |
+| #15 | Stok hareketleri kaydı + manuel düzeltme |
+| #16 | Ayarlar v2 — 6 sekme (Genel / Saatler / Vergi / Kargo / SEO / Bildirim) |
+| #17 | Misafir checkout'ta ad/e-posta/telefon/adres toplama + müşteri özetleri |
+| #18 | Müşteri listesi + e-posta-bazlı sipariş geçmişi |
+| #19 | Promosyon kodu sistemi (uçtan uca) |
+| #20 | Analytics raporları — ciro grafiği + en çok satan 5 |
+| #21 | RBAC — owner / manager / staff |
+| #22 | Login rate limit (5 fail / 5 dk → 1 dk lockout) |
+| #23 | TOTP 2FA (otplib + QR enrollment) |
+| #24 | Audit log — append-only olay kaydı |
 
 ## Klasör Yapısı
 
@@ -45,9 +58,16 @@ src/
       menu/                  → Kafe menüsü: 5 kategori × kalem CRUD
       kategoriler/           → Shop kategorileri CRUD
       siparisler/            → Sipariş listesi + durum güncelleme
-      ayarlar/               → Kafe ayarları formu
+      ayarlar/               → Kafe ayarları (6 sekme: Genel / Saatler / Vergi / Kargo / SEO / Bildirim)
+      musteriler/            → Müşteri listesi + e-posta detayı (CRM-lite)
+      promosyon/             → Promosyon kodları CRUD (cart-uygulanabilir)
+      raporlar/              → Ciro grafiği + en çok satan 5 + AOV
+      stok-hareketleri/      → Stok audit + manuel düzeltme formu
+      olay-kaydi/            → Admin mutasyon audit log (owner-only)
+      iki-asama/             → 2FA login akışı (pending cookie + 6 hane)
+      2fa-kurulum/           → 2FA enrollment (QR + verify)
       actions.ts             → Genel logout action
-      layout.tsx             → Admin chrome (nav + user + logout)
+      layout.tsx             → Admin chrome (nav + user + logout, RBAC-filtered)
     odeme/
       actions.ts             → placeOrderAction (sepet → sipariş)
       basarili/              → Sipariş başarılı sayfası + cart clear

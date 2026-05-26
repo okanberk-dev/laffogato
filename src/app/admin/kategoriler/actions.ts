@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { logAudit } from "@/lib/admin/audit";
 import {
   createCategory,
   deleteCategory,
@@ -24,7 +25,13 @@ function parseInput(formData: FormData) {
 export async function createCategoryAction(formData: FormData) {
   const input = parseInput(formData);
   if (!input.label) return;
-  await createCategory(input);
+  const created = await createCategory(input);
+  await logAudit({
+    action: "create",
+    entity: "category",
+    entityId: created.id,
+    payload: { slug: created.slug, label: created.label },
+  });
   revalidatePath("/admin/kategoriler");
   revalidatePath("/admin/urunler");
   redirect("/admin/kategoriler");
@@ -33,6 +40,12 @@ export async function createCategoryAction(formData: FormData) {
 export async function updateCategoryAction(id: string, formData: FormData) {
   const input = parseInput(formData);
   await updateCategory(id, input);
+  await logAudit({
+    action: "update",
+    entity: "category",
+    entityId: id,
+    payload: { slug: input.slug, label: input.label },
+  });
   revalidatePath("/admin/kategoriler");
   revalidatePath("/admin/urunler");
   redirect("/admin/kategoriler");
@@ -42,6 +55,7 @@ export async function deleteCategoryAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteCategory(id);
+  await logAudit({ action: "delete", entity: "category", entityId: id });
   revalidatePath("/admin/kategoriler");
   revalidatePath("/admin/urunler");
 }
