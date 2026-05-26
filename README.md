@@ -1,5 +1,7 @@
 # Laffogato
 
+[![CI](https://github.com/RiosenBeq/laffogato/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/RiosenBeq/laffogato/actions/workflows/ci.yml)
+
 Bir kafenin kurumsal sitesi + online mağazası. **Next.js 16** + **Supabase** + **Tailwind v4** üzerine kuruludur ve **Vercel**'de barındırılır.
 
 ## Hızlı Başlangıç
