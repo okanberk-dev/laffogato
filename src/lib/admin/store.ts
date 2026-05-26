@@ -109,6 +109,10 @@ export interface AdminOrder {
   status: AdminOrderStatus;
   items: AdminOrderItem[];
   subtotalMinor: number;
+  /** Positive minor units; 0 when no promo. */
+  discountMinor: number;
+  /** Promo code applied at checkout; empty when none. */
+  promoCode: string;
   shippingMinor: number;
   totalMinor: number;
   refunds: AdminRefund[];
@@ -251,6 +255,8 @@ const orders: AdminOrder[] = [
       },
     ],
     subtotalMinor: 56000,
+    discountMinor: 0,
+    promoCode: "",
     shippingMinor: 0,
     totalMinor: 56000,
     refunds: [],
@@ -274,6 +280,8 @@ const orders: AdminOrder[] = [
       },
     ],
     subtotalMinor: 78000,
+    discountMinor: 0,
+    promoCode: "",
     shippingMinor: 0,
     totalMinor: 78000,
     refunds: [],
@@ -303,6 +311,8 @@ const orders: AdminOrder[] = [
       },
     ],
     subtotalMinor: 74000,
+    discountMinor: 0,
+    promoCode: "",
     shippingMinor: 0,
     totalMinor: 74000,
     refunds: [],
@@ -726,6 +736,7 @@ export interface PlaceOrderInput {
   customerEmail?: string;
   customerPhone?: string;
   shippingAddress?: string;
+  promoCode?: string;
 }
 
 export type PlaceOrderResult =
@@ -811,6 +822,23 @@ export async function placeOrder(
     });
   }
 
+  // Re-validate promo server-side; never trust a client-supplied discount.
+  let promoCode = "";
+  let discountMinor = 0;
+  if (input.promoCode && input.promoCode.trim()) {
+    const promoCheck = await applyPromoCode(input.promoCode, subtotalMinor);
+    if (promoCheck.ok) {
+      promoCode = promoCheck.promo.code;
+      discountMinor = promoCheck.discountMinor;
+      await consumePromoUsage(promoCode);
+    }
+    // Silently ignore an invalid promo at checkout; the cart should have
+    // surfaced the error already. We don't fail the order because the
+    // code might have expired between the cart preview and submit.
+  }
+
+  const totalMinor = Math.max(0, subtotalMinor - discountMinor);
+
   const order: AdminOrder = {
     id: orderId,
     orderNo: nextNo,
@@ -822,8 +850,10 @@ export async function placeOrder(
     status: "pending_payment",
     items,
     subtotalMinor,
+    discountMinor,
+    promoCode,
     shippingMinor: 0,
-    totalMinor: subtotalMinor,
+    totalMinor,
     refunds: [],
     createdAt: new Date().toISOString(),
   };
@@ -1227,3 +1257,164 @@ export const MENU_CATEGORY_LABELS: Record<MenuCategoryKey, string> = {
   cold: SEED_MENU.cold.title,
   gelato: SEED_MENU.gelato.title,
 };
+
+
+// ── Promo codes ──────────────────────────────────────────────────────────
+
+export type PromoDiscountKind = "pct" | "fixed";
+
+export interface AdminPromo {
+  id: string;
+  code: string;
+  kind: PromoDiscountKind;
+  /** Percentage 1–100 when kind="pct", minor units (kuruş) when kind="fixed". */
+  value: number;
+  /** Minor units. 0 = no minimum. */
+  minSubtotalMinor: number;
+  /** 0 = unlimited. */
+  usageLimit: number;
+  usageCount: number;
+  expiresAt: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const promos: AdminPromo[] = [];
+let promoCounter = 0;
+
+export async function listPromos(): Promise<AdminPromo[]> {
+  return [...promos].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function getPromo(id: string): Promise<AdminPromo | null> {
+  return promos.find((p) => p.id === id) ?? null;
+}
+
+export interface PromoInput {
+  code: string;
+  kind: PromoDiscountKind;
+  value: number;
+  minSubtotalMinor: number;
+  usageLimit: number;
+  expiresAt: string;
+  isActive: boolean;
+}
+
+function normalizeCode(raw: string): string {
+  return raw.trim().toUpperCase().replace(/\s+/g, "");
+}
+
+export type PromoMutationResult =
+  | { ok: true; promo: AdminPromo }
+  | { ok: false; error: string };
+
+export async function createPromo(input: PromoInput): Promise<PromoMutationResult> {
+  const code = normalizeCode(input.code);
+  if (!code) return { ok: false, error: "Kod boş olamaz." };
+  if (promos.some((p) => p.code === code)) {
+    return { ok: false, error: "Bu kod zaten kullanılıyor." };
+  }
+  promoCounter += 1;
+  const now = new Date().toISOString();
+  const promo: AdminPromo = {
+    id: `prm-${String(promoCounter).padStart(4, "0")}`,
+    code,
+    kind: input.kind,
+    value: input.value,
+    minSubtotalMinor: input.minSubtotalMinor,
+    usageLimit: input.usageLimit,
+    usageCount: 0,
+    expiresAt: input.expiresAt,
+    isActive: input.isActive,
+    createdAt: now,
+    updatedAt: now,
+  };
+  promos.push(promo);
+  return { ok: true, promo };
+}
+
+export async function updatePromo(
+  id: string,
+  input: PromoInput,
+): Promise<PromoMutationResult> {
+  const idx = promos.findIndex((p) => p.id === id);
+  if (idx === -1) return { ok: false, error: "Kod bulunamadı." };
+  const code = normalizeCode(input.code);
+  if (!code) return { ok: false, error: "Kod boş olamaz." };
+  if (promos.some((p) => p.code === code && p.id !== id)) {
+    return { ok: false, error: "Başka bir kod aynı koda sahip." };
+  }
+  promos[idx] = {
+    ...promos[idx],
+    code,
+    kind: input.kind,
+    value: input.value,
+    minSubtotalMinor: input.minSubtotalMinor,
+    usageLimit: input.usageLimit,
+    expiresAt: input.expiresAt,
+    isActive: input.isActive,
+    updatedAt: new Date().toISOString(),
+  };
+  return { ok: true, promo: promos[idx] };
+}
+
+export async function deletePromo(id: string): Promise<boolean> {
+  const idx = promos.findIndex((p) => p.id === id);
+  if (idx === -1) return false;
+  promos.splice(idx, 1);
+  return true;
+}
+
+export type PromoApplyResult =
+  | { ok: true; promo: AdminPromo; discountMinor: number }
+  | { ok: false; error: string };
+
+/**
+ * Pure function (no mutation) — checks if a code is valid for the given
+ * subtotal and returns the discount in minor units. The caller is the
+ * one that ultimately records usage via consumePromoUsage() once the
+ * order is actually placed; this two-step keeps the cart UI honest
+ * about the price preview without committing the limit.
+ */
+export async function applyPromoCode(
+  code: string,
+  subtotalMinor: number,
+): Promise<PromoApplyResult> {
+  const needle = normalizeCode(code);
+  if (!needle) return { ok: false, error: "Kod gir." };
+  const promo = promos.find((p) => p.code === needle);
+  if (!promo) return { ok: false, error: "Geçersiz kod." };
+  if (!promo.isActive) return { ok: false, error: "Bu kod kapalı." };
+  if (promo.expiresAt && new Date(promo.expiresAt).getTime() < Date.now()) {
+    return { ok: false, error: "Kodun süresi doldu." };
+  }
+  if (promo.usageLimit > 0 && promo.usageCount >= promo.usageLimit) {
+    return { ok: false, error: "Kod kullanım limiti doldu." };
+  }
+  if (subtotalMinor < promo.minSubtotalMinor) {
+    return {
+      ok: false,
+      error: `Bu koda uygulanabilmek için en az ${(promo.minSubtotalMinor / 100).toFixed(2)} ₺ alışveriş gerek.`,
+    };
+  }
+  let discountMinor =
+    promo.kind === "pct"
+      ? Math.floor((subtotalMinor * promo.value) / 100)
+      : Math.min(promo.value, subtotalMinor);
+  if (discountMinor < 0) discountMinor = 0;
+  if (discountMinor > subtotalMinor) discountMinor = subtotalMinor;
+  return { ok: true, promo, discountMinor };
+}
+
+export async function consumePromoUsage(code: string): Promise<void> {
+  const needle = normalizeCode(code);
+  const idx = promos.findIndex((p) => p.code === needle);
+  if (idx === -1) return;
+  promos[idx] = {
+    ...promos[idx],
+    usageCount: promos[idx].usageCount + 1,
+    updatedAt: new Date().toISOString(),
+  };
+}
+

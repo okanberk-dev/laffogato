@@ -210,6 +210,16 @@ export function OrderDetail({
                     {formatTRY(order.subtotalMinor)}
                   </td>
                 </tr>
+                {order.discountMinor > 0 && (
+                  <tr className="text-emerald-700">
+                    <td colSpan={3} className="text-right">
+                      İndirim {order.promoCode && `· ${order.promoCode}`}
+                    </td>
+                    <td className="text-right" colSpan={2}>
+                      −{formatTRY(order.discountMinor)}
+                    </td>
+                  </tr>
+                )}
                 <tr>
                   <td colSpan={3} className="text-right text-neutral-500">
                     Kargo

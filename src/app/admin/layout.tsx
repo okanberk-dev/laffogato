@@ -11,6 +11,7 @@ const NAV: Array<[string, string]> = [
   ["/admin/kategoriler", "Kategoriler"],
   ["/admin/siparisler", "Siparişler"],
   ["/admin/musteriler", "Müşteriler"],
+  ["/admin/promosyon", "Promosyon"],
   ["/admin/stok-hareketleri", "Stok"],
   ["/admin/ayarlar", "Ayarlar"],
 ];
