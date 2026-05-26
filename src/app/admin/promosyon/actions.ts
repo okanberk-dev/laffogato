@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { logAudit } from "@/lib/admin/audit";
 import { promoFormSchema } from "@/lib/admin/promo-schema";
 import { createPromo, deletePromo, updatePromo } from "@/lib/admin/store";
 
@@ -39,6 +40,12 @@ export async function createPromoAction(
   }
   const r = await createPromo(parsed.data);
   if (!r.ok) return { error: r.error };
+  await logAudit({
+    action: "create",
+    entity: "promo",
+    entityId: r.promo.id,
+    payload: { code: r.promo.code, kind: r.promo.kind, value: r.promo.value },
+  });
   revalidatePromos();
   redirect("/admin/promosyon");
 }
@@ -59,6 +66,12 @@ export async function updatePromoAction(
   }
   const r = await updatePromo(id, parsed.data);
   if (!r.ok) return { error: r.error };
+  await logAudit({
+    action: "update",
+    entity: "promo",
+    entityId: id,
+    payload: { code: r.promo.code, kind: r.promo.kind, value: r.promo.value },
+  });
   revalidatePromos();
   redirect("/admin/promosyon");
 }
@@ -67,5 +80,6 @@ export async function deletePromoAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deletePromo(id);
+  await logAudit({ action: "delete", entity: "promo", entityId: id });
   revalidatePromos();
 }

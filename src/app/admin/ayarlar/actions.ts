@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logAudit } from "@/lib/admin/audit";
 import {
   DAYS_OF_WEEK,
   updateSettings,
@@ -14,7 +15,12 @@ export interface SettingsState {
   error?: string;
 }
 
-function ok(message: string): SettingsState {
+async function ok(section: string, message: string): Promise<SettingsState> {
+  await logAudit({
+    action: "update",
+    entity: "settings",
+    entityId: section,
+  });
   return { message };
 }
 
@@ -59,7 +65,7 @@ export async function saveGeneralAction(
     isShopOpen: formData.get("isShopOpen") === "on",
   });
   revalidateAll();
-  return ok("Genel bilgiler kaydedildi.");
+  return ok("general", "Genel bilgiler kaydedildi.");
 }
 
 export async function saveHoursAction(
@@ -80,7 +86,7 @@ export async function saveHoursAction(
     openingHours: summary.join(" · "),
   });
   revalidateAll();
-  return ok("Çalışma saatleri kaydedildi.");
+  return ok("hours", "Çalışma saatleri kaydedildi.");
 }
 
 export async function saveTaxAction(
@@ -94,7 +100,7 @@ export async function saveTaxAction(
   }
   await updateSettings({ taxRatePct: Math.round(v * 100) / 100 });
   revalidateAll();
-  return ok("Vergi oranı kaydedildi.");
+  return ok("tax", "Vergi oranı kaydedildi.");
 }
 
 export async function saveShippingAction(
@@ -108,7 +114,7 @@ export async function saveShippingAction(
     ),
   });
   revalidateAll();
-  return ok("Kargo ayarları kaydedildi.");
+  return ok("shipping", "Kargo ayarları kaydedildi.");
 }
 
 export async function saveSeoAction(
@@ -126,7 +132,7 @@ export async function saveSeoAction(
     seoIndexable: formData.get("seoIndexable") === "on",
   });
   revalidateAll();
-  return ok("SEO ayarları kaydedildi.");
+  return ok("seo", "SEO ayarları kaydedildi.");
 }
 
 export async function saveNotificationsAction(
@@ -139,5 +145,5 @@ export async function saveNotificationsAction(
   }
   await updateSettings({ notificationEmail: email });
   revalidateAll();
-  return ok("Bildirim ayarları kaydedildi.");
+  return ok("notifications", "Bildirim ayarları kaydedildi.");
 }

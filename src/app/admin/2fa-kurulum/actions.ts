@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { logAudit } from "@/lib/admin/audit";
 import { getAdminSession } from "@/lib/admin/auth";
 import {
   cancelEnrollment,
@@ -33,6 +34,11 @@ export async function verifyEnrollAction(
   if (!/^\d{6}$/.test(token)) return { error: "6 haneli kodu gir." };
   const ok = verifyAndEnable(session.email, token);
   if (!ok) return { error: "Kod doğrulanmadı. Saatin senkron olduğundan emin ol." };
+  await logAudit({
+    action: "2fa_enable",
+    entity: "2fa",
+    entityId: session.email,
+  });
   revalidatePath("/admin/2fa-kurulum");
   revalidatePath("/admin/ayarlar");
   return { enabled: true };
@@ -42,6 +48,11 @@ export async function disable2FAAction() {
   const session = await getAdminSession();
   if (!session) redirect("/admin/giris");
   disable2FA(session.email);
+  await logAudit({
+    action: "2fa_disable",
+    entity: "2fa",
+    entityId: session.email,
+  });
   revalidatePath("/admin/2fa-kurulum");
   revalidatePath("/admin/ayarlar");
 }
