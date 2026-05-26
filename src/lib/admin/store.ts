@@ -329,6 +329,57 @@ export async function deleteProduct(id: string): Promise<boolean> {
   return true;
 }
 
+export type BulkProductOp =
+  | { kind: "delete" }
+  | { kind: "activate" }
+  | { kind: "deactivate" }
+  | { kind: "set_category"; cat: ShopCategoryId };
+
+export interface BulkResult {
+  updated: number;
+}
+
+export async function bulkUpdateProducts(
+  ids: string[],
+  op: BulkProductOp,
+): Promise<BulkResult> {
+  if (ids.length === 0) return { updated: 0 };
+  const idSet = new Set(ids);
+  const now = new Date().toISOString();
+  let updated = 0;
+
+  if (op.kind === "delete") {
+    for (let i = products.length - 1; i >= 0; i -= 1) {
+      if (idSet.has(products[i].id)) {
+        products.splice(i, 1);
+        updated += 1;
+      }
+    }
+    return { updated };
+  }
+
+  for (let i = 0; i < products.length; i += 1) {
+    if (!idSet.has(products[i].id)) continue;
+    if (op.kind === "activate") {
+      if (!products[i].isActive) {
+        products[i] = { ...products[i], isActive: true, updatedAt: now };
+        updated += 1;
+      }
+    } else if (op.kind === "deactivate") {
+      if (products[i].isActive) {
+        products[i] = { ...products[i], isActive: false, updatedAt: now };
+        updated += 1;
+      }
+    } else if (op.kind === "set_category") {
+      if (products[i].cat !== op.cat) {
+        products[i] = { ...products[i], cat: op.cat, updatedAt: now };
+        updated += 1;
+      }
+    }
+  }
+  return { updated };
+}
+
 // ── Categories ────────────────────────────────────────────────────────────
 
 export async function listCategories(): Promise<AdminCategory[]> {
@@ -390,6 +441,25 @@ export async function updateOrderStatus(
   if (idx === -1) return null;
   orders[idx] = { ...orders[idx], status };
   return orders[idx];
+}
+
+export type BulkOrderOp = { kind: "set_status"; status: AdminOrderStatus };
+
+export async function bulkUpdateOrders(
+  ids: string[],
+  op: BulkOrderOp,
+): Promise<BulkResult> {
+  if (ids.length === 0) return { updated: 0 };
+  const idSet = new Set(ids);
+  let updated = 0;
+  for (let i = 0; i < orders.length; i += 1) {
+    if (!idSet.has(orders[i].id)) continue;
+    if (orders[i].status !== op.status) {
+      orders[i] = { ...orders[i], status: op.status };
+      updated += 1;
+    }
+  }
+  return { updated };
 }
 
 export interface PlaceOrderInput {
@@ -658,6 +728,57 @@ export async function deleteMenuItem(id: string): Promise<boolean> {
   if (idx === -1) return false;
   menuItems.splice(idx, 1);
   return true;
+}
+
+export type BulkMenuOp =
+  | { kind: "delete" }
+  | { kind: "activate" }
+  | { kind: "deactivate" }
+  | { kind: "set_category"; categoryKey: MenuCategoryKey };
+
+export async function bulkUpdateMenuItems(
+  ids: string[],
+  op: BulkMenuOp,
+): Promise<BulkResult> {
+  if (ids.length === 0) return { updated: 0 };
+  const idSet = new Set(ids);
+  const now = new Date().toISOString();
+  let updated = 0;
+
+  if (op.kind === "delete") {
+    for (let i = menuItems.length - 1; i >= 0; i -= 1) {
+      if (idSet.has(menuItems[i].id)) {
+        menuItems.splice(i, 1);
+        updated += 1;
+      }
+    }
+    return { updated };
+  }
+
+  for (let i = 0; i < menuItems.length; i += 1) {
+    if (!idSet.has(menuItems[i].id)) continue;
+    if (op.kind === "activate") {
+      if (!menuItems[i].isActive) {
+        menuItems[i] = { ...menuItems[i], isActive: true, updatedAt: now };
+        updated += 1;
+      }
+    } else if (op.kind === "deactivate") {
+      if (menuItems[i].isActive) {
+        menuItems[i] = { ...menuItems[i], isActive: false, updatedAt: now };
+        updated += 1;
+      }
+    } else if (op.kind === "set_category") {
+      if (menuItems[i].categoryKey !== op.categoryKey) {
+        menuItems[i] = {
+          ...menuItems[i],
+          categoryKey: op.categoryKey,
+          updatedAt: now,
+        };
+        updated += 1;
+      }
+    }
+  }
+  return { updated };
 }
 
 /**

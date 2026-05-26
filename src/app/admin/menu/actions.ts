@@ -3,11 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { bulkMenuSchema } from "@/lib/admin/bulk-schema";
 import {
+  bulkUpdateMenuItems,
   createMenuItem,
   deleteMenuItem,
   MENU_CATEGORY_KEYS,
   updateMenuItem,
+  type BulkMenuOp,
   type MenuCategoryKey,
 } from "@/lib/admin/store";
 
@@ -77,4 +80,33 @@ export async function deleteMenuItemAction(formData: FormData) {
   if (!id) return;
   await deleteMenuItem(id);
   revalidateMenu();
+}
+
+export interface BulkMenuActionState {
+  error?: string;
+  ok?: { op: string; updated: number };
+}
+
+export async function bulkMenuAction(
+  _prev: BulkMenuActionState,
+  formData: FormData,
+): Promise<BulkMenuActionState> {
+  const parsed = bulkMenuSchema.safeParse({
+    ids: String(formData.get("ids") ?? ""),
+    op: String(formData.get("op") ?? ""),
+    value: formData.get("value") ? String(formData.get("value")) : undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Geçersiz istek." };
+  }
+  const { ids, op, value } = parsed.data;
+  let storeOp: BulkMenuOp;
+  if (op === "set_category") {
+    storeOp = { kind: "set_category", categoryKey: value as MenuCategoryKey };
+  } else {
+    storeOp = { kind: op };
+  }
+  const { updated } = await bulkUpdateMenuItems(ids, storeOp);
+  revalidateMenu();
+  return { ok: { op, updated } };
 }
