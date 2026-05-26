@@ -110,6 +110,78 @@ export function MenuList({
                   Bu kategoride kalem yok.
                 </p>
               ) : (
+                <>
+                {/* Mobile cards */}
+                <ul className="flex flex-col gap-3 md:hidden">
+                  {items.map((it) => {
+                    const isSelected = selection.has(it.id);
+                    return (
+                      <li
+                        key={it.id}
+                        className={`rounded-lg border p-3 ${
+                          isSelected ? "border-neutral-900 bg-neutral-50" : "border-neutral-200"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <RowCheckbox id={it.id} selection={selection} label={it.name} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="font-medium text-neutral-900">{it.name}</div>
+                                <div className="line-clamp-2 text-xs text-neutral-500">{it.desc}</div>
+                              </div>
+                              <div className="shrink-0 text-right text-sm" style={{ fontFamily: "var(--mono), monospace" }}>
+                                {formatTRY(it.priceMinor)}
+                              </div>
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-1">
+                              <span
+                                className="text-[10px] text-neutral-500"
+                                style={{ fontFamily: "var(--mono), monospace" }}
+                              >
+                                Sıra {String(it.sortOrder).padStart(2, "0")}
+                              </span>
+                              {it.isActive ? (
+                                <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-green-700">
+                                  Aktif
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-neutral-500">
+                                  Gizli
+                                </span>
+                              )}
+                              {it.tags.map((t) => (
+                                <span
+                                  key={t}
+                                  className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] text-neutral-600"
+                                >
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="mt-3 flex gap-2">
+                              <Link
+                                href={`/admin/menu/${it.id}/duzenle`}
+                                className="inline-flex min-h-[40px] flex-1 items-center justify-center rounded-full border border-neutral-200 px-3 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+                              >
+                                Düzenle
+                              </Link>
+                              <form action={deleteMenuItemAction}>
+                                <input type="hidden" name="id" value={it.id} />
+                                <DangerButton type="submit" className="text-xs">
+                                  Sil
+                                </DangerButton>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                {/* Desktop table */}
+                <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-sm">
                   <thead>
                     <tr
@@ -210,6 +282,8 @@ export function MenuList({
                     })}
                   </tbody>
                 </table>
+                </div>
+                </>
               )}
             </div>
           );

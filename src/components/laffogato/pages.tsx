@@ -101,13 +101,11 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
               </div>
               <div
                 className="reveal r4"
+                data-row="home-hero-stats"
                 style={{
                   marginTop: 60,
                   paddingTop: 30,
                   borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: 30,
                 }}
               >
                 {[
@@ -222,10 +220,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
 
       <section className="section-tight" style={{ background: "var(--bg)" }}>
         <div className="wrap-wide">
-          <div
-            className="reveal"
-            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 30, alignItems: "end", marginBottom: 30 }}
-          >
+          <div className="reveal" data-row="locale-head">
             <div>
               <div className="eyebrow">01 — Il locale</div>
               <h2 className="h-1" style={{ marginTop: 16 }}>
@@ -244,15 +239,8 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
           </div>
           <div
             className="reveal r2"
-            style={{
-              marginTop: 30,
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 30,
-              padding: 24,
-              borderRadius: "var(--r-md)",
-              background: "var(--bg-warm)",
-            }}
+            data-row="locale-grid"
+            style={{ marginTop: 30 }}
           >
             {[
               ["Konum", "Maltepe Park · open-air teras"],
@@ -289,7 +277,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
               bir scoop fior di latte. Çift shot Sirena masada dökülür. İçersin, yersin, geriye hiçbir şey kalmaz.
               1994’ten beri Mancuso ailesinin patentli reçetesi.
             </p>
-            <div style={{ marginTop: 30, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <div data-row="sig-stats">
               <Stat n="27s" l="Tableside pour" />
               <Stat n="93°C" l="Servis sıcaklığı" />
               <Stat n="36g" l="Sirena espresso" />
@@ -316,10 +304,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
 
       <section className="section" style={{ background: "var(--bg-warm)" }}>
         <div className="wrap">
-          <div
-            className="reveal"
-            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 30, alignItems: "end", marginBottom: 50 }}
-          >
+          <div className="reveal" data-row="section-head-split">
             <div>
               <div className="eyebrow">03 — Dal menù</div>
               <h2 className="h-1" style={{ marginTop: 16 }}>
@@ -332,7 +317,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
               Tam menü <span>→</span>
             </a>
           </div>
-          <div className="shop-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+          <div className="shop-grid-preview">
             {(liveMenu.affogato?.items ?? MENU.affogato.items).slice(0, 3).map((it, i) => (
               <div
                 key={it.name}
@@ -375,7 +360,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
           style={{ display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: 80, alignItems: "center" }}
           data-row="matcha-row"
         >
-          <div className="reveal r1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          <div className="reveal r1" data-row="matcha-imgs">
             <div style={{ aspectRatio: "4/5", borderRadius: "var(--r-lg)", overflow: "hidden" }}>
               <PhotoSurface hue="matcha" dotLabel="Uji · ceremonial" dotPos="bl">
                 <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", padding: 24 }}>
@@ -420,10 +405,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
 
       <section className="section" style={{ background: "var(--bg-warm)" }}>
         <div className="wrap">
-          <div
-            className="reveal"
-            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 30, alignItems: "end", marginBottom: 50 }}
-          >
+          <div className="reveal" data-row="section-head-split">
             <div>
               <div className="eyebrow">05 — La bottega</div>
               <h2 className="h-1" style={{ marginTop: 16 }}>
@@ -444,10 +426,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
 
       <section className="section" style={{ background: "var(--bg-espresso)", color: "#FFF" }}>
         <div className="wrap-wide">
-          <div
-            className="reveal"
-            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 30, alignItems: "end", marginBottom: 50 }}
-          >
+          <div className="reveal" data-row="section-head-split">
             <div>
               <div className="eyebrow on-dark">06 — Il film</div>
               <h2 className="h-1" style={{ marginTop: 16, color: "#FFF" }}>
@@ -528,12 +507,12 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
               Bologna’dan ithal İtalyan kahve barı franchise konsepti. Üç paket — Kiosk, Bottega, Salone —
               €85K’dan başlayan başlangıç yatırımı, 4 hafta İtalya eğitimi. İlk yıl 8 şube hedefi.
             </p>
-            <div style={{ marginTop: 30, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+            <div data-row="franchise-teaser-stats">
               <Stat n="€85K" l="Başlangıç (Kiosk)" />
               <Stat n="14ay" l="Geri dönüş" />
               <Stat n="4hf" l="İtalya eğitimi" />
             </div>
-            <div style={{ display: "flex", gap: 12, marginTop: 36 }}>
+            <div className="btn-group-wrap" style={{ marginTop: 36 }}>
               <a href="#franchise" onClick={go("franchise")} className="btn btn-primary">
                 Başvuru formu <span className="arrow">→</span>
               </a>
@@ -543,7 +522,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
             </div>
           </div>
           <div className="reveal r1" style={{ display: "grid", placeItems: "center", padding: 30 }}>
-            <CupEmblem size={360} bg="#FAF7F2" />
+            <CupEmblem className="cup-emblem-responsive" bg="#FAF7F2" />
           </div>
         </div>
       </section>
@@ -603,7 +582,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
     <div className="page" data-screen-label="02 Menu">
       <header className="page-head">
         <div className="wrap">
-          <div className="reveal" style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "end", gap: 30 }}>
+          <div className="reveal" data-row="section-head-split">
             <div>
               <div className="eyebrow">II — Il menù · summer 2026</div>
               <h1 style={{ marginTop: 24 }}>
@@ -846,7 +825,7 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
                 bambu chasen, Bialetti × L’Affogato moka pot. Eve, ofise, hediyeye.
               </p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+            <div data-row="shop-badges">
               <ShopBadge icon="↗" k="Aynı gün" v="İstanbul içi" />
               <ShopBadge icon="✦" k="Free shipping" v="500₺+ siparişte" />
               <ShopBadge icon="↻" k="14 gün iade" v="Açılmamış ürün" />
@@ -976,7 +955,7 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
               </div>
             </div>
 
-            <div className="shop-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+            <div className="shop-grid-3">
               {list.map((p, i) => (
                 <ProductCard key={p.name} product={p} idx={i} addToCart={addToCart} onOpen={openProduct} />
               ))}
@@ -1018,10 +997,10 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
                   height: "100%",
                   padding: 30,
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
                   gap: 18,
                   placeItems: "stretch",
                 }}
+                data-row="featured-inner"
               >
                 <div style={{ display: "grid", placeItems: "center" }}>
                   <CoffeeBag label="Sirena" sub="ESPRESSO BLEND · 250G" tone="dark" />
@@ -1472,7 +1451,7 @@ export function PageVisit(_props: PageProps) {
               ))}
             </div>
 
-            <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30 }}>
+            <div data-row="visit-address">
               <div>
                 <div className="eyebrow" style={{ marginBottom: 10 }}>Telefon</div>
                 <div style={{ fontFamily: "var(--mono)", fontSize: 15 }}>{LOCATION.phone}</div>
@@ -1497,7 +1476,7 @@ export function PageVisit(_props: PageProps) {
               <a href="#" className="chip" onClick={(e) => e.preventDefault()}>E-5 Cevizli çıkışı</a>
             </div>
 
-            <div style={{ display: "flex", gap: 10, marginTop: 30 }}>
+            <div className="btn-group-wrap" style={{ marginTop: 30 }}>
               <button className="btn btn-primary">
                 Apple Maps <span className="arrow">→</span>
               </button>
@@ -1714,7 +1693,7 @@ export function PageVisit(_props: PageProps) {
               Detaylı bilgi <span className="arrow">→</span>
             </button>
           </div>
-          <div className="reveal r1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="reveal r1" data-row="private-stats">
             {[
               ["24", "Koltuk"],
               ["90dk", "Demo süresi"],
@@ -1760,7 +1739,7 @@ export function PageReels(_props: PageProps) {
     <div className="page" data-screen-label="06 Reels">
       <header className="page-head">
         <div className="wrap">
-          <div className="reveal" style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "end", gap: 30 }}>
+          <div className="reveal" data-row="reels-header">
             <div>
               <div className="eyebrow">VI — Il film & social</div>
               <h1 style={{ marginTop: 24 }}>
@@ -1915,10 +1894,7 @@ export function PageReels(_props: PageProps) {
 
       <section className="section-tight">
         <div className="wrap-wide">
-          <div
-            className="reveal"
-            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 30, alignItems: "end", marginBottom: 40 }}
-          >
+          <div className="reveal" data-row="reels-header" style={{ marginBottom: 40 }}>
             <div>
               <div className="eyebrow">Reels · son yayınlananlar</div>
               <h2 className="h-1" style={{ marginTop: 16 }}>
@@ -2178,13 +2154,11 @@ export function PageFranchise(_props: PageProps) {
               </div>
               <div
                 className="reveal r4"
+                data-row="franchise-hero-stats"
                 style={{
                   marginTop: 60,
                   paddingTop: 30,
                   borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: 30,
                 }}
               >
                 <div>
@@ -2202,7 +2176,7 @@ export function PageFranchise(_props: PageProps) {
               </div>
             </div>
             <div className="reveal r1" style={{ display: "grid", placeItems: "center" }}>
-              <CupEmblem size={420} bg="#F5E6D3" />
+              <CupEmblem className="cup-emblem-responsive" bg="#F5E6D3" />
             </div>
           </div>
         </div>
@@ -2249,7 +2223,7 @@ export function PageFranchise(_props: PageProps) {
               Bir affogato 130₺. Bir matcha latte 120₺. Premium İtalyan kahve barı tecrübesini fast-casual fiyatla sunan
               tek franchise konsepti. Misafir başına ortalama harcama €8–12.
             </p>
-            <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
+            <div data-row="why-advantages">
               {advantages.map(([t, d]) => (
                 <div key={t} style={{ paddingTop: 22, borderTop: "1px solid var(--ink-line)" }}>
                   <div className="eyebrow" style={{ marginBottom: 10 }}>Vantaggio</div>

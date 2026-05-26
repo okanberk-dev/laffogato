@@ -183,8 +183,12 @@ export function Footer({ navigate, settings }: FooterProps) {
           </p>
         </div>
         <form className="newsletter-form" onSubmit={(e) => e.preventDefault()}>
-          <input type="email" placeholder="merhaba@example.com" />
-          <button type="submit" className="btn btn-gold btn-sm" style={{ borderRadius: 999 }}>
+          <input type="email" placeholder="merhaba@example.com" autoComplete="email" />
+          <button
+            type="submit"
+            className="btn btn-gold btn-sm"
+            style={{ borderRadius: 999, whiteSpace: "nowrap" }}
+          >
             Abone ol <span className="arrow">→</span>
           </button>
         </form>

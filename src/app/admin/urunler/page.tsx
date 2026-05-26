@@ -85,7 +85,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
   );
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Shop · La bottega"
         title="Ürünler"
@@ -93,7 +93,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
         action={
           <Link
             href="/admin/urunler/yeni"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800"
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 sm:w-auto"
           >
             + Yeni ürün
           </Link>
@@ -101,18 +101,18 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
       />
 
       <Card className="mb-4">
-        <form className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto]">
+        <form className="grid gap-3 sm:grid-cols-2 md:grid-cols-[1fr_auto_auto_auto]">
           <input
             type="text"
             name="q"
             defaultValue={q}
-            placeholder="Ürün adı, SKU, slug veya etiket ile ara…"
-            className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm outline-none focus:border-neutral-900 focus:bg-white"
+            placeholder="Ürün adı, SKU, slug…"
+            className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-base outline-none focus:border-neutral-900 focus:bg-white sm:col-span-2 sm:text-sm md:col-span-1"
           />
           <select
             name="cat"
             defaultValue={cat}
-            className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+            className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-base focus:border-neutral-900 focus:bg-white focus:outline-none sm:text-sm"
           >
             <option value="all">Kategori: hepsi</option>
             {categories.map((c) => (
@@ -124,7 +124,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
           <select
             name="status"
             defaultValue={status}
-            className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+            className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-base focus:border-neutral-900 focus:bg-white focus:outline-none sm:text-sm"
           >
             {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (
               <option key={s} value={s}>
@@ -135,7 +135,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
           <select
             name="sort"
             defaultValue={sort}
-            className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+            className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-base focus:border-neutral-900 focus:bg-white focus:outline-none sm:text-sm"
           >
             {(Object.keys(SORT_LABEL) as SortKey[]).map((s) => (
               <option key={s} value={s}>
@@ -143,7 +143,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
               </option>
             ))}
           </select>
-          <div className="md:col-span-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="sm:col-span-2 md:col-span-4 flex flex-wrap items-center justify-between gap-3">
             <div
               className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
               style={{ fontFamily: "var(--mono), monospace" }}
@@ -153,13 +153,13 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
             <div className="flex gap-2">
               <Link
                 href="/admin/urunler"
-                className="rounded-full border border-neutral-200 px-3 py-1.5 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+                className="inline-flex min-h-[40px] items-center rounded-full border border-neutral-200 px-3 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
               >
                 Sıfırla
               </Link>
               <button
                 type="submit"
-                className="rounded-full bg-neutral-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+                className="inline-flex min-h-[40px] items-center rounded-full bg-neutral-900 px-4 text-xs font-medium text-white hover:bg-neutral-800"
               >
                 Uygula
               </button>
