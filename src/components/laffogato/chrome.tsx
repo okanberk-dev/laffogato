@@ -21,12 +21,12 @@ interface NavProps {
 }
 
 const LINKS: Array<[Route, string]> = [
-  ["home", "Home"],
-  ["menu", "Menu"],
-  ["shop", "Shop"],
-  ["story", "Story"],
+  ["home", "Anasayfa"],
+  ["menu", "Menü"],
+  ["shop", "Mağaza"],
+  ["story", "Hikaye"],
   ["reels", "Reels"],
-  ["visit", "Visit"],
+  ["visit", "Ziyaret"],
   ["franchise", "Franchise"],
 ];
 
@@ -73,13 +73,21 @@ export function Nav({ route, navigate, dark, cart = 0, onCart, onSearch }: NavPr
           ))}
         </div>
         <div className="nav-right">
-          <button className="nav-icon-btn" aria-label="Search" onClick={onSearch}>
+          <a
+            href="/uye/giris"
+            className="nav-link nav-link-account"
+            aria-label="Hesabım"
+            title="Hesabım"
+          >
+            Hesabım
+          </a>
+          <button className="nav-icon-btn" aria-label="Ara" onClick={onSearch}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4" />
               <path d="M11 11 L14 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
             </svg>
           </button>
-          <button className="nav-icon-btn cart" aria-label="Sepet" onClick={onCart}>
+          <button className="nav-icon-btn cart" aria-label="Sepetim" onClick={onCart}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path
                 d="M2 3 L4 3 L5.5 11 L13 11 L14 5 L5 5"
@@ -100,7 +108,7 @@ export function Nav({ route, navigate, dark, cart = 0, onCart, onSearch }: NavPr
           <button
             className={`nav-burger ${open ? "open" : ""}`}
             onClick={() => setOpen((v) => !v)}
-            aria-label="Menu"
+            aria-label="Menü"
           >
             <span></span>
             <span></span>
@@ -116,8 +124,24 @@ export function Nav({ route, navigate, dark, cart = 0, onCart, onSearch }: NavPr
               {label}
             </a>
           ))}
+          <a
+            href="/uye/giris"
+            onClick={() => setOpen(false)}
+            style={{ fontFamily: "var(--serif)", fontStyle: "italic" }}
+          >
+            Hesabım
+          </a>
         </div>
-        <div style={{ marginTop: 40 }}>
+        <div style={{ marginTop: 32, display: "grid", gap: 12 }}>
+          <a
+            href="/uye/kayit"
+            onClick={() => setOpen(false)}
+            className="btn btn-gold btn-lg"
+            style={{ width: "100%", justifyContent: "space-between" }}
+          >
+            Üye ol · sipariş geçmişin elinde
+            <span className="arrow">→</span>
+          </a>
           <a
             href="#visit"
             onClick={go("visit")}
@@ -283,7 +307,7 @@ export function Footer({ navigate, settings }: FooterProps) {
       <div className="footer-meta">
         <span>© MMXXVI L’Affogato Italia · Bologna MCMLXXXVII</span>
         <span>Drink it. Eat the cup.</span>
-        <span>Privacy · Terms · Allergens · Cookies</span>
+        <span>Gizlilik · Şartlar · Alerjenler · Çerezler</span>
       </div>
     </footer>
   );

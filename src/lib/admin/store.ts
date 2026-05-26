@@ -1,5 +1,8 @@
 import "server-only";
 
+import { COLLECTIONS } from "@/lib/mongodb/collections";
+import { getDb } from "@/lib/mongodb/client";
+import { nextSeq } from "@/lib/mongodb/counters";
 import {
   MENU as SEED_MENU,
   PRODUCTS as SEED_PRODUCTS,
@@ -10,15 +13,11 @@ import {
 import type { WeeklyHours } from "./days";
 
 /**
- * In-memory mutable store for the admin panel.
+ * Veri katmanı — MongoDB Atlas üzerinden çalışır.
  *
- * Why: Supabase is not yet connected (the free-tier project limit was hit).
- * This store seeds from the design's hardcoded data and lets the admin
- * panel demonstrate full CRUD locally. It DOES NOT PERSIST across server
- * restarts or across serverless invocations.
- *
- * When Supabase comes online, swap the function bodies to hit the DB —
- * the call sites in admin pages already use the async interface.
+ * Public API'lerin tamamı async ve mevcut admin sayfalarıyla uyumlu kalır.
+ * Koleksiyon boşsa SEED verisi otomatik yüklenir (idempotent — yalnızca
+ * count === 0 ise tetiklenir).
  */
 
 export type ShopCategoryId = "beans" | "gift" | "gear" | "merch" | "pantry";
@@ -153,6 +152,8 @@ export interface AdminSettings {
   notificationEmail: string;
 }
 
+// ─── ID + slug helpers ────────────────────────────────────────────────────
+
 function parsePrice(price: string): number {
   // "320₺" → 32000 (minor units)
   const numeric = parseFloat(price.replace(/[^\d.,-]/g, "").replace(",", "."));
@@ -195,130 +196,7 @@ function deriveSku(name: string, n: number): string {
   return `${prefix}-${String(n).padStart(5, "0")}`;
 }
 
-const products: AdminProduct[] = SEED_PRODUCTS.map((p, i) => ({
-  id: slugifyId("prd", i + 1),
-  name: p.name,
-  slug: slugify(p.name) || `urun-${i + 1}`,
-  sku: deriveSku(p.name, i + 1),
-  tag: p.tag,
-  priceMinor: parsePrice(p.price),
-  compareAtPriceMinor: 0,
-  costMinor: 0,
-  desc: p.desc,
-  cat: p.cat as ShopCategoryId,
-  img: p.img,
-  images: [],
-  stock: 25,
-  lowStockThreshold: 5,
-  weightGrams: 250,
-  featured: Boolean(p.featured),
-  isNew: Boolean(p.isNew),
-  isActive: true,
-  seoTitle: "",
-  seoDescription: "",
-  variants: [],
-  updatedAt: new Date().toISOString(),
-}));
-
-const categories: AdminCategory[] = [
-  { id: slugifyId("cat", 1), slug: "beans", label: "Çekirdek", icon: "◉", sortOrder: 0 },
-  { id: slugifyId("cat", 2), slug: "gift", label: "Hediye", icon: "◈", sortOrder: 1 },
-  { id: slugifyId("cat", 3), slug: "gear", label: "Ekipman", icon: "◇", sortOrder: 2 },
-  { id: slugifyId("cat", 4), slug: "merch", label: "Giyim", icon: "◐", sortOrder: 3 },
-  { id: slugifyId("cat", 5), slug: "pantry", label: "Kiler", icon: "◇", sortOrder: 4 },
-];
-
-// A handful of demo orders so the orders page isn't empty.
-const orders: AdminOrder[] = [
-  {
-    id: slugifyId("ord", 1),
-    orderNo: 10_001,
-    customerName: "Ali Yılmaz",
-    customerEmail: "ali@example.com",
-    customerPhone: "+90 532 111 22 33",
-    shippingAddress:
-      "Kadıköy Mah. Bağdat Cd. No: 142 Daire 7\nKadıköy / İstanbul 34710",
-    internalNote: "",
-    status: "preparing",
-    items: [
-      {
-        productName: "Sirena — Espresso Blend",
-        qty: 1,
-        unitPriceMinor: 32000,
-        status: "pending",
-      },
-      {
-        productName: "Edible Cups — 6 Box",
-        qty: 1,
-        unitPriceMinor: 24000,
-        status: "ready",
-      },
-    ],
-    subtotalMinor: 56000,
-    discountMinor: 0,
-    promoCode: "",
-    shippingMinor: 0,
-    totalMinor: 56000,
-    refunds: [],
-    createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-  },
-  {
-    id: slugifyId("ord", 2),
-    orderNo: 10_002,
-    customerName: "Merve Kaya",
-    customerEmail: "merve@example.com",
-    customerPhone: "+90 533 222 33 44",
-    shippingAddress: "Etiler Mah. Nispetiye Cd. No: 38\nBeşiktaş / İstanbul 34337",
-    internalNote: "Hediye paketi istendi. Kart: 'İyi ki varsın 🤍'",
-    status: "paid",
-    items: [
-      {
-        productName: "Affogato Kit — For Two",
-        qty: 1,
-        unitPriceMinor: 78000,
-        status: "pending",
-      },
-    ],
-    subtotalMinor: 78000,
-    discountMinor: 0,
-    promoCode: "",
-    shippingMinor: 0,
-    totalMinor: 78000,
-    refunds: [],
-    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-  },
-  {
-    id: slugifyId("ord", 3),
-    orderNo: 10_003,
-    customerName: "Deniz Aydın",
-    customerEmail: "deniz@example.com",
-    customerPhone: "+90 535 444 55 66",
-    shippingAddress: "Cihangir Mah. Akarsu Yokuşu No: 22\nBeyoğlu / İstanbul 34433",
-    internalNote: "",
-    status: "completed",
-    items: [
-      {
-        productName: "Uji Matcha — Ceremonial",
-        qty: 1,
-        unitPriceMinor: 42000,
-        status: "ready",
-      },
-      {
-        productName: "Bambu Chasen",
-        qty: 1,
-        unitPriceMinor: 32000,
-        status: "ready",
-      },
-    ],
-    subtotalMinor: 74000,
-    discountMinor: 0,
-    promoCode: "",
-    shippingMinor: 0,
-    totalMinor: 74000,
-    refunds: [],
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
-  },
-];
+// ─── Seed (idempotent — yalnızca koleksiyon boşsa çalışır) ────────────────
 
 function defaultWeeklyHours(): WeeklyHours {
   return {
@@ -332,33 +210,239 @@ function defaultWeeklyHours(): WeeklyHours {
   };
 }
 
-let settings: AdminSettings = {
-  name: "L'Affogato",
-  tagline: "Drink it. Eat the cup.",
-  phone: "+90 216 459 30 60",
-  email: "maltepe@laffogato.it",
-  address: "Maltepe Park AVM, Cevizli, Tugay Yolu Cd. No:67, Maltepe / İstanbul",
-  openingHours: "Pzt–Pş 10:00–23:00 · Cu–Ct 10:00–24:00 · Pz 10:00–23:00",
-  isShopOpen: true,
-  heroImageUrl: "",
-  weeklyHours: defaultWeeklyHours(),
-  taxRatePct: 20,
-  shippingFlatMinor: 4900,
-  shippingFreeThresholdMinor: 50000,
-  seoTitle: "L'Affogato — Maltepe Park",
-  seoOgImageUrl: "",
-  seoIndexable: true,
-  notificationEmail: "",
-};
+function defaultSettings(): AdminSettings {
+  return {
+    name: "L'Affogato",
+    tagline: "Drink it. Eat the cup.",
+    phone: "+90 216 459 30 60",
+    email: "maltepe@laffogato.it",
+    address: "Maltepe Park AVM, Cevizli, Tugay Yolu Cd. No:67, Maltepe / İstanbul",
+    openingHours: "Pzt–Pş 10:00–23:00 · Cu–Ct 10:00–24:00 · Pz 10:00–23:00",
+    isShopOpen: true,
+    heroImageUrl: "",
+    weeklyHours: defaultWeeklyHours(),
+    taxRatePct: 20,
+    shippingFlatMinor: 4900,
+    shippingFreeThresholdMinor: 50000,
+    seoTitle: "L'Affogato — Maltepe Park",
+    seoOgImageUrl: "",
+    seoIndexable: true,
+    notificationEmail: "",
+  };
+}
 
-// ── Products ──────────────────────────────────────────────────────────────
+let seedPromise: Promise<void> | null = null;
+
+async function ensureSeed(): Promise<void> {
+  if (seedPromise) return seedPromise;
+  seedPromise = (async () => {
+    const db = await getDb();
+    const now = new Date().toISOString();
+
+    const productsCount = await db.collection(COLLECTIONS.products).countDocuments({});
+    if (productsCount === 0) {
+      const seeded: AdminProduct[] = SEED_PRODUCTS.map((p, i) => ({
+        id: slugifyId("prd", i + 1),
+        name: p.name,
+        slug: slugify(p.name) || `urun-${i + 1}`,
+        sku: deriveSku(p.name, i + 1),
+        tag: p.tag,
+        priceMinor: parsePrice(p.price),
+        compareAtPriceMinor: 0,
+        costMinor: 0,
+        desc: p.desc,
+        cat: p.cat as ShopCategoryId,
+        img: p.img,
+        images: [],
+        stock: 25,
+        lowStockThreshold: 5,
+        weightGrams: 250,
+        featured: Boolean(p.featured),
+        isNew: Boolean(p.isNew),
+        isActive: true,
+        seoTitle: "",
+        seoDescription: "",
+        variants: [],
+        updatedAt: now,
+      }));
+      if (seeded.length > 0) {
+        await db.collection(COLLECTIONS.products).insertMany(seeded);
+        await db.collection(COLLECTIONS.counters).updateOne(
+          { _id: "prd" } as never,
+          { $set: { seq: seeded.length } },
+          { upsert: true },
+        );
+      }
+    }
+
+    const catCount = await db.collection(COLLECTIONS.categories).countDocuments({});
+    if (catCount === 0) {
+      const seededCats: AdminCategory[] = [
+        { id: slugifyId("cat", 1), slug: "beans",  label: "Çekirdek",    icon: "◉", sortOrder: 0 },
+        { id: slugifyId("cat", 2), slug: "gift",   label: "Hediye",      icon: "◈", sortOrder: 1 },
+        { id: slugifyId("cat", 3), slug: "gear",   label: "Ekipman",     icon: "◇", sortOrder: 2 },
+        { id: slugifyId("cat", 4), slug: "merch",  label: "Giyim",       icon: "◐", sortOrder: 3 },
+        { id: slugifyId("cat", 5), slug: "pantry", label: "Kiler",       icon: "◇", sortOrder: 4 },
+      ];
+      await db.collection(COLLECTIONS.categories).insertMany(seededCats);
+      await db.collection(COLLECTIONS.counters).updateOne(
+        { _id: "cat" } as never,
+        { $set: { seq: seededCats.length } },
+        { upsert: true },
+      );
+    }
+
+    const menuCount = await db.collection(COLLECTIONS.menuItems).countDocuments({});
+    if (menuCount === 0) {
+      let counter = 0;
+      const seededMenu: AdminMenuItem[] = MENU_CATEGORY_KEYS.flatMap((key) =>
+        SEED_MENU[key].items.map((it, idx) => {
+          counter += 1;
+          return {
+            id: slugifyId("mnu", counter),
+            categoryKey: key,
+            name: it.name,
+            desc: it.desc,
+            priceMinor: parsePrice(it.price),
+            hue: it.hue,
+            tags: it.tags ? [...it.tags] : [],
+            isActive: true,
+            sortOrder: idx,
+            updatedAt: now,
+          };
+        }),
+      );
+      if (seededMenu.length > 0) {
+        await db.collection(COLLECTIONS.menuItems).insertMany(seededMenu);
+        await db.collection(COLLECTIONS.counters).updateOne(
+          { _id: "mnu" } as never,
+          { $set: { seq: counter } },
+          { upsert: true },
+        );
+      }
+    }
+
+    const settingsCount = await db.collection(COLLECTIONS.settings).countDocuments({});
+    if (settingsCount === 0) {
+      await db.collection(COLLECTIONS.settings).insertOne({
+        _id: "main" as never,
+        ...defaultSettings(),
+      });
+    }
+
+    const ordersCount = await db.collection(COLLECTIONS.orders).countDocuments({});
+    if (ordersCount === 0) {
+      const demoOrders: AdminOrder[] = [
+        {
+          id: slugifyId("ord", 1),
+          orderNo: 10_001,
+          customerName: "Ali Yılmaz",
+          customerEmail: "ali@example.com",
+          customerPhone: "+90 532 111 22 33",
+          shippingAddress:
+            "Kadıköy Mah. Bağdat Cd. No: 142 Daire 7\nKadıköy / İstanbul 34710",
+          internalNote: "",
+          status: "preparing",
+          items: [
+            { productName: "Sirena — Espresso Blend", qty: 1, unitPriceMinor: 32000, status: "pending" },
+            { productName: "Edible Cups — 6 Box",     qty: 1, unitPriceMinor: 24000, status: "ready"   },
+          ],
+          subtotalMinor: 56000,
+          discountMinor: 0,
+          promoCode: "",
+          shippingMinor: 0,
+          totalMinor: 56000,
+          refunds: [],
+          createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+        },
+        {
+          id: slugifyId("ord", 2),
+          orderNo: 10_002,
+          customerName: "Merve Kaya",
+          customerEmail: "merve@example.com",
+          customerPhone: "+90 533 222 33 44",
+          shippingAddress: "Etiler Mah. Nispetiye Cd. No: 38\nBeşiktaş / İstanbul 34337",
+          internalNote: "Hediye paketi istendi. Kart: 'İyi ki varsın 🤍'",
+          status: "paid",
+          items: [
+            { productName: "Affogato Kit — For Two", qty: 1, unitPriceMinor: 78000, status: "pending" },
+          ],
+          subtotalMinor: 78000,
+          discountMinor: 0,
+          promoCode: "",
+          shippingMinor: 0,
+          totalMinor: 78000,
+          refunds: [],
+          createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+        },
+        {
+          id: slugifyId("ord", 3),
+          orderNo: 10_003,
+          customerName: "Deniz Aydın",
+          customerEmail: "deniz@example.com",
+          customerPhone: "+90 535 444 55 66",
+          shippingAddress: "Cihangir Mah. Akarsu Yokuşu No: 22\nBeyoğlu / İstanbul 34433",
+          internalNote: "",
+          status: "completed",
+          items: [
+            { productName: "Uji Matcha — Ceremonial", qty: 1, unitPriceMinor: 42000, status: "ready" },
+            { productName: "Bambu Chasen",             qty: 1, unitPriceMinor: 32000, status: "ready" },
+          ],
+          subtotalMinor: 74000,
+          discountMinor: 0,
+          promoCode: "",
+          shippingMinor: 0,
+          totalMinor: 74000,
+          refunds: [],
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
+        },
+      ];
+      await db.collection(COLLECTIONS.orders).insertMany(demoOrders);
+      await db.collection(COLLECTIONS.counters).updateOne(
+        { _id: "ord" } as never,
+        { $set: { seq: demoOrders.length } },
+        { upsert: true },
+      );
+      await db.collection(COLLECTIONS.counters).updateOne(
+        { _id: "orderNo" } as never,
+        { $set: { seq: 10_003 } },
+        { upsert: true },
+      );
+    }
+  })();
+  return seedPromise;
+}
+
+// Mongo dokümanlarındaki `_id` alanını client'a sızdırmamak için strip eden helper.
+function strip<T>(doc: T | null | undefined): T | null {
+  if (!doc) return null;
+  const { _id, ...rest } = doc as Record<string, unknown> & { _id?: unknown };
+  void _id;
+  return rest as T;
+}
+
+function stripMany<T>(docs: T[]): T[] {
+  return docs.map((d) => strip(d) as T);
+}
+
+// ─── Products ─────────────────────────────────────────────────────────────
 
 export async function listProducts(): Promise<AdminProduct[]> {
-  return [...products];
+  await ensureSeed();
+  const db = await getDb();
+  const docs = await db
+    .collection<AdminProduct>(COLLECTIONS.products)
+    .find({})
+    .sort({ updatedAt: -1 })
+    .toArray();
+  return stripMany(docs);
 }
 
 export async function getProduct(id: string): Promise<AdminProduct | null> {
-  return products.find((p) => p.id === id) ?? null;
+  await ensureSeed();
+  const db = await getDb();
+  const doc = await db.collection<AdminProduct>(COLLECTIONS.products).findOne({ id });
+  return strip(doc);
 }
 
 export interface ProductInput {
@@ -384,14 +468,17 @@ export interface ProductInput {
   variants: AdminProductVariant[];
 }
 
-function uniqueSlug(candidate: string, ignoreId?: string): string {
+async function uniqueSlug(candidate: string, ignoreId?: string): Promise<string> {
   const base = candidate || "urun";
   let attempt = base;
   let n = 1;
-  // Uniqueness loop — bounded by product count, so safe.
-  while (
-    products.some((p) => p.slug === attempt && p.id !== ignoreId)
-  ) {
+  const db = await getDb();
+  // 20 deneme yeter — gerçekçi tekrar sayısı çok düşük.
+  for (let i = 0; i < 20; i += 1) {
+    const conflict = await db
+      .collection<AdminProduct>(COLLECTIONS.products)
+      .findOne({ slug: attempt, ...(ignoreId ? { id: { $ne: ignoreId } } : {}) });
+    if (!conflict) return attempt;
     n += 1;
     attempt = `${base}-${n}`;
   }
@@ -399,9 +486,11 @@ function uniqueSlug(candidate: string, ignoreId?: string): string {
 }
 
 export async function createProduct(input: ProductInput): Promise<AdminProduct> {
-  const seq = products.length + 1;
+  await ensureSeed();
+  const db = await getDb();
+  const seq = await nextSeq("prd");
   const id = slugifyId("prd", seq);
-  const slug = uniqueSlug(input.slug || slugify(input.name) || `urun-${seq}`);
+  const slug = await uniqueSlug(input.slug || slugify(input.name) || `urun-${seq}`);
   const sku = input.sku || deriveSku(input.name, seq);
   const product: AdminProduct = {
     ...input,
@@ -410,7 +499,7 @@ export async function createProduct(input: ProductInput): Promise<AdminProduct> 
     sku,
     updatedAt: new Date().toISOString(),
   };
-  products.push(product);
+  await db.collection<AdminProduct>(COLLECTIONS.products).insertOne(product);
   return product;
 }
 
@@ -418,24 +507,31 @@ export async function updateProduct(
   id: string,
   input: ProductInput,
 ): Promise<AdminProduct | null> {
-  const idx = products.findIndex((p) => p.id === id);
-  if (idx === -1) return null;
-  const slug = uniqueSlug(input.slug || slugify(input.name) || products[idx].slug, id);
-  products[idx] = {
-    ...products[idx],
+  await ensureSeed();
+  const db = await getDb();
+  const existing = await db
+    .collection<AdminProduct>(COLLECTIONS.products)
+    .findOne({ id });
+  if (!existing) return null;
+  const slug = await uniqueSlug(input.slug || slugify(input.name) || existing.slug, id);
+  const next: AdminProduct = {
+    ...existing,
     ...input,
     slug,
-    sku: input.sku || products[idx].sku,
+    sku: input.sku || existing.sku,
     updatedAt: new Date().toISOString(),
   };
-  return products[idx];
+  await db
+    .collection<AdminProduct>(COLLECTIONS.products)
+    .updateOne({ id }, { $set: next });
+  return strip(next as unknown as AdminProduct);
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
-  const idx = products.findIndex((p) => p.id === id);
-  if (idx === -1) return false;
-  products.splice(idx, 1);
-  return true;
+  await ensureSeed();
+  const db = await getDb();
+  const res = await db.collection(COLLECTIONS.products).deleteOne({ id });
+  return res.deletedCount > 0;
 }
 
 export type BulkProductOp =
@@ -453,43 +549,41 @@ export async function bulkUpdateProducts(
   op: BulkProductOp,
 ): Promise<BulkResult> {
   if (ids.length === 0) return { updated: 0 };
-  const idSet = new Set(ids);
+  await ensureSeed();
+  const db = await getDb();
+  const filter = { id: { $in: ids } };
   const now = new Date().toISOString();
-  let updated = 0;
 
   if (op.kind === "delete") {
-    for (let i = products.length - 1; i >= 0; i -= 1) {
-      if (idSet.has(products[i].id)) {
-        products.splice(i, 1);
-        updated += 1;
-      }
-    }
-    return { updated };
+    const res = await db.collection(COLLECTIONS.products).deleteMany(filter);
+    return { updated: res.deletedCount };
   }
 
-  for (let i = 0; i < products.length; i += 1) {
-    if (!idSet.has(products[i].id)) continue;
-    if (op.kind === "activate") {
-      if (!products[i].isActive) {
-        products[i] = { ...products[i], isActive: true, updatedAt: now };
-        updated += 1;
-      }
-    } else if (op.kind === "deactivate") {
-      if (products[i].isActive) {
-        products[i] = { ...products[i], isActive: false, updatedAt: now };
-        updated += 1;
-      }
-    } else if (op.kind === "set_category") {
-      if (products[i].cat !== op.cat) {
-        products[i] = { ...products[i], cat: op.cat, updatedAt: now };
-        updated += 1;
-      }
-    }
+  if (op.kind === "activate") {
+    const res = await db
+      .collection(COLLECTIONS.products)
+      .updateMany({ ...filter, isActive: false }, { $set: { isActive: true, updatedAt: now } });
+    return { updated: res.modifiedCount };
   }
-  return { updated };
+
+  if (op.kind === "deactivate") {
+    const res = await db
+      .collection(COLLECTIONS.products)
+      .updateMany({ ...filter, isActive: true }, { $set: { isActive: false, updatedAt: now } });
+    return { updated: res.modifiedCount };
+  }
+
+  // set_category
+  const res = await db
+    .collection(COLLECTIONS.products)
+    .updateMany(
+      { ...filter, cat: { $ne: op.cat } },
+      { $set: { cat: op.cat, updatedAt: now } },
+    );
+  return { updated: res.modifiedCount };
 }
 
-// ── Stock movements ──────────────────────────────────────────────────────
+// ─── Stock movements ──────────────────────────────────────────────────────
 
 export type StockMoveReason =
   | "order_placed"
@@ -514,18 +608,15 @@ export interface AdminStockMove {
   createdAt: string;
 }
 
-const stockMoves: AdminStockMove[] = [];
-let stockMoveCounter = 0;
-
-function recordStockMove(input: Omit<AdminStockMove, "id" | "createdAt">): AdminStockMove {
-  stockMoveCounter += 1;
+async function recordStockMove(input: Omit<AdminStockMove, "id" | "createdAt">): Promise<AdminStockMove> {
+  const db = await getDb();
+  const seq = await nextSeq("mov");
   const move: AdminStockMove = {
-    id: `mov-${String(stockMoveCounter).padStart(6, "0")}`,
+    id: `mov-${String(seq).padStart(6, "0")}`,
     createdAt: new Date().toISOString(),
     ...input,
   };
-  stockMoves.unshift(move);
-  if (stockMoves.length > 2000) stockMoves.length = 2000;
+  await db.collection<AdminStockMove>(COLLECTIONS.stockMoves).insertOne(move);
   return move;
 }
 
@@ -534,14 +625,18 @@ export async function listStockMoves(filter?: {
   reason?: StockMoveReason;
   limit?: number;
 }): Promise<AdminStockMove[]> {
-  let out = stockMoves;
-  if (filter?.productId) {
-    out = out.filter((m) => m.productId === filter.productId);
-  }
-  if (filter?.reason) {
-    out = out.filter((m) => m.reason === filter.reason);
-  }
-  return out.slice(0, filter?.limit ?? 500);
+  await ensureSeed();
+  const db = await getDb();
+  const query: Record<string, unknown> = {};
+  if (filter?.productId) query.productId = filter.productId;
+  if (filter?.reason) query.reason = filter.reason;
+  const docs = await db
+    .collection<AdminStockMove>(COLLECTIONS.stockMoves)
+    .find(query)
+    .sort({ createdAt: -1 })
+    .limit(filter?.limit ?? 500)
+    .toArray();
+  return stripMany(docs);
 }
 
 export interface AdjustStockInput {
@@ -558,43 +653,60 @@ export type AdjustStockResult =
 export async function adjustStock(
   input: AdjustStockInput,
 ): Promise<AdjustStockResult> {
-  const idx = products.findIndex((p) => p.id === input.productId);
-  if (idx === -1) return { ok: false, error: "Ürün bulunamadı." };
+  await ensureSeed();
+  const db = await getDb();
+  const product = await db
+    .collection<AdminProduct>(COLLECTIONS.products)
+    .findOne({ id: input.productId });
+  if (!product) return { ok: false, error: "Ürün bulunamadı." };
   if (!Number.isFinite(input.delta) || input.delta === 0) {
     return { ok: false, error: "Geçerli bir değer gir (0 olamaz)." };
   }
-  const next = products[idx].stock + input.delta;
+  const next = product.stock + input.delta;
   if (next < 0) {
     return {
       ok: false,
-      error: `Stok eksiye düşemez (mevcut: ${products[idx].stock}).`,
+      error: `Stok eksiye düşemez (mevcut: ${product.stock}).`,
     };
   }
-  products[idx] = {
-    ...products[idx],
-    stock: next,
-    updatedAt: new Date().toISOString(),
-  };
-  const move = recordStockMove({
-    productId: products[idx].id,
-    productName: products[idx].name,
+  const updatedAt = new Date().toISOString();
+  await db
+    .collection(COLLECTIONS.products)
+    .updateOne({ id: input.productId }, { $set: { stock: next, updatedAt } });
+  const move = await recordStockMove({
+    productId: product.id,
+    productName: product.name,
     delta: input.delta,
     stockAfter: next,
     reason: "manual_adjust",
     note: input.note.trim().slice(0, 500),
     actor: input.actor,
   });
-  return { ok: true, move, product: products[idx] };
+  return {
+    ok: true,
+    move,
+    product: strip({ ...product, stock: next, updatedAt }) as AdminProduct,
+  };
 }
 
-// ── Categories ────────────────────────────────────────────────────────────
+// ─── Categories ───────────────────────────────────────────────────────────
 
 export async function listCategories(): Promise<AdminCategory[]> {
-  return [...categories].sort((a, b) => a.sortOrder - b.sortOrder);
+  await ensureSeed();
+  const db = await getDb();
+  const docs = await db
+    .collection<AdminCategory>(COLLECTIONS.categories)
+    .find({})
+    .sort({ sortOrder: 1 })
+    .toArray();
+  return stripMany(docs);
 }
 
 export async function getCategory(id: string): Promise<AdminCategory | null> {
-  return categories.find((c) => c.id === id) ?? null;
+  await ensureSeed();
+  const db = await getDb();
+  const doc = await db.collection<AdminCategory>(COLLECTIONS.categories).findOne({ id });
+  return strip(doc);
 }
 
 export interface CategoryInput {
@@ -604,12 +716,12 @@ export interface CategoryInput {
   sortOrder: number;
 }
 
-export async function createCategory(
-  input: CategoryInput,
-): Promise<AdminCategory> {
-  const id = slugifyId("cat", categories.length + 1);
-  const c: AdminCategory = { id, ...input };
-  categories.push(c);
+export async function createCategory(input: CategoryInput): Promise<AdminCategory> {
+  await ensureSeed();
+  const db = await getDb();
+  const seq = await nextSeq("cat");
+  const c: AdminCategory = { id: slugifyId("cat", seq), ...input };
+  await db.collection<AdminCategory>(COLLECTIONS.categories).insertOne(c);
   return c;
 }
 
@@ -617,23 +729,35 @@ export async function updateCategory(
   id: string,
   input: CategoryInput,
 ): Promise<AdminCategory | null> {
-  const idx = categories.findIndex((c) => c.id === id);
-  if (idx === -1) return null;
-  categories[idx] = { ...categories[idx], ...input };
-  return categories[idx];
+  await ensureSeed();
+  const db = await getDb();
+  const existing = await db
+    .collection<AdminCategory>(COLLECTIONS.categories)
+    .findOne({ id });
+  if (!existing) return null;
+  const next: AdminCategory = { ...existing, ...input };
+  await db.collection(COLLECTIONS.categories).updateOne({ id }, { $set: next });
+  return strip(next);
 }
 
 export async function deleteCategory(id: string): Promise<boolean> {
-  const idx = categories.findIndex((c) => c.id === id);
-  if (idx === -1) return false;
-  categories.splice(idx, 1);
-  return true;
+  await ensureSeed();
+  const db = await getDb();
+  const res = await db.collection(COLLECTIONS.categories).deleteOne({ id });
+  return res.deletedCount > 0;
 }
 
-// ── Orders ────────────────────────────────────────────────────────────────
+// ─── Orders ───────────────────────────────────────────────────────────────
 
 export async function listOrders(): Promise<AdminOrder[]> {
-  return [...orders].sort((a, b) => b.orderNo - a.orderNo);
+  await ensureSeed();
+  const db = await getDb();
+  const docs = await db
+    .collection<AdminOrder>(COLLECTIONS.orders)
+    .find({})
+    .sort({ orderNo: -1 })
+    .toArray();
+  return stripMany(docs);
 }
 
 export interface CustomerSummary {
@@ -647,12 +771,8 @@ export interface CustomerSummary {
   firstOrderAt: string;
 }
 
-/**
- * Pre-groups orders by customer email so the admin "Müşteriler" page
- * (and any future customer-self-service surface) can hit it cheaply.
- * Guest-only orders (no email collected) are filtered out.
- */
 export async function listCustomers(): Promise<CustomerSummary[]> {
+  const orders = await listOrders();
   const byEmail = new Map<string, CustomerSummary>();
   for (const o of orders) {
     const email = o.customerEmail?.trim().toLowerCase();
@@ -692,23 +812,36 @@ export async function listCustomers(): Promise<CustomerSummary[]> {
 export async function customerOrdersByEmail(email: string): Promise<AdminOrder[]> {
   const needle = email.trim().toLowerCase();
   if (!needle) return [];
-  return orders
-    .filter((o) => o.customerEmail.trim().toLowerCase() === needle)
-    .sort((a, b) => b.orderNo - a.orderNo);
+  await ensureSeed();
+  const db = await getDb();
+  // Email her zaman lowercase sakla → case-insensitive match için regex değil exact.
+  const docs = await db
+    .collection<AdminOrder>(COLLECTIONS.orders)
+    .find({
+      customerEmail: { $regex: `^${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
+    })
+    .sort({ orderNo: -1 })
+    .toArray();
+  return stripMany(docs);
 }
 
 export async function getOrder(id: string): Promise<AdminOrder | null> {
-  return orders.find((o) => o.id === id) ?? null;
+  await ensureSeed();
+  const db = await getDb();
+  const doc = await db.collection<AdminOrder>(COLLECTIONS.orders).findOne({ id });
+  return strip(doc);
 }
 
 export async function updateOrderStatus(
   id: string,
   status: AdminOrderStatus,
 ): Promise<AdminOrder | null> {
-  const idx = orders.findIndex((o) => o.id === id);
-  if (idx === -1) return null;
-  orders[idx] = { ...orders[idx], status };
-  return orders[idx];
+  await ensureSeed();
+  const db = await getDb();
+  const res = await db
+    .collection<AdminOrder>(COLLECTIONS.orders)
+    .findOneAndUpdate({ id }, { $set: { status } }, { returnDocument: "after" });
+  return strip((res as unknown as AdminOrder | { value: AdminOrder } | null) as AdminOrder | null);
 }
 
 export type BulkOrderOp = { kind: "set_status"; status: AdminOrderStatus };
@@ -718,16 +851,15 @@ export async function bulkUpdateOrders(
   op: BulkOrderOp,
 ): Promise<BulkResult> {
   if (ids.length === 0) return { updated: 0 };
-  const idSet = new Set(ids);
-  let updated = 0;
-  for (let i = 0; i < orders.length; i += 1) {
-    if (!idSet.has(orders[i].id)) continue;
-    if (orders[i].status !== op.status) {
-      orders[i] = { ...orders[i], status: op.status };
-      updated += 1;
-    }
-  }
-  return { updated };
+  await ensureSeed();
+  const db = await getDb();
+  const res = await db
+    .collection(COLLECTIONS.orders)
+    .updateMany(
+      { id: { $in: ids }, status: { $ne: op.status } },
+      { $set: { status: op.status } },
+    );
+  return { updated: res.modifiedCount };
 }
 
 export interface PlaceOrderInput {
@@ -743,27 +875,24 @@ export type PlaceOrderResult =
   | { ok: true; order: AdminOrder }
   | { ok: false; reason: "out_of_stock"; productName: string; available: number };
 
-/**
- * Creates a `pending_payment` order from the customer cart. Real payment
- * flow will mark it as `paid` via the webhook handler. For now we leave
- * it in pending so the admin can manually advance the status.
- *
- * Stock is validated up-front (all items checked before any mutation) and
- * then decremented atomically. The in-memory store runs in a single Node
- * process so there's no race; when this swaps to Supabase the whole thing
- * becomes a transaction.
- */
 export async function placeOrder(
   input: PlaceOrderInput,
 ): Promise<PlaceOrderResult> {
+  await ensureSeed();
+  const db = await getDb();
   const cleanItems = input.items.filter(
     (it) => it.qty > 0 && it.priceMinor >= 0,
   );
 
-  // Validate stock for every known product first so we either succeed
-  // entirely or fail entirely (no partial decrement).
+  // Up-front stock check
+  const knownNames = Array.from(new Set(cleanItems.map((it) => it.name)));
+  const productDocs = await db
+    .collection<AdminProduct>(COLLECTIONS.products)
+    .find({ name: { $in: knownNames } })
+    .toArray();
+  const byName = new Map(productDocs.map((p) => [p.name, p]));
   for (const it of cleanItems) {
-    const product = products.find((p) => p.name === it.name);
+    const product = byName.get(it.name);
     if (product && product.stock < it.qty) {
       return {
         ok: false,
@@ -774,22 +903,17 @@ export async function placeOrder(
     }
   }
 
-  // Decrement stock for products we recognise. Unknown product names
-  // (e.g. a renamed item still in someone's cart) pass through so the
-  // order isn't lost — admin can reconcile manually. We collect the
-  // decrements so we can record stock moves once the order id is known.
-  const decrements: Array<{ idx: number; qty: number; stockAfter: number }> = [];
+  // Decrement stock
+  const decrements: Array<{ id: string; name: string; qty: number; stockAfter: number }> = [];
+  const now = new Date().toISOString();
   for (const it of cleanItems) {
-    const idx = products.findIndex((p) => p.name === it.name);
-    if (idx !== -1) {
-      const stockAfter = Math.max(0, products[idx].stock - it.qty);
-      products[idx] = {
-        ...products[idx],
-        stock: stockAfter,
-        updatedAt: new Date().toISOString(),
-      };
-      decrements.push({ idx, qty: it.qty, stockAfter });
-    }
+    const p = byName.get(it.name);
+    if (!p) continue;
+    const stockAfter = Math.max(0, p.stock - it.qty);
+    await db
+      .collection(COLLECTIONS.products)
+      .updateOne({ id: p.id }, { $set: { stock: stockAfter, updatedAt: now } });
+    decrements.push({ id: p.id, name: p.name, qty: it.qty, stockAfter });
   }
 
   const items: AdminOrderItem[] = cleanItems.map((it) => ({
@@ -804,25 +928,23 @@ export async function placeOrder(
     0,
   );
 
-  const nextNo = orders.length === 0
-    ? 10_001
-    : Math.max(...orders.map((o) => o.orderNo)) + 1;
+  const orderSeq = await nextSeq("ord");
+  const orderNo = await nextSeq("orderNo");
+  const orderId = slugifyId("ord", orderSeq);
 
-  const orderId = slugifyId("ord", orders.length + 1);
   for (const d of decrements) {
-    recordStockMove({
-      productId: products[d.idx].id,
-      productName: products[d.idx].name,
+    await recordStockMove({
+      productId: d.id,
+      productName: d.name,
       delta: -d.qty,
       stockAfter: d.stockAfter,
       reason: "order_placed",
-      note: `Sipariş #${nextNo}`,
+      note: `Sipariş #${orderNo}`,
       orderId,
       actor: input.customerEmail ?? "customer",
     });
   }
 
-  // Re-validate promo server-side; never trust a client-supplied discount.
   let promoCode = "";
   let discountMinor = 0;
   if (input.promoCode && input.promoCode.trim()) {
@@ -832,16 +954,13 @@ export async function placeOrder(
       discountMinor = promoCheck.discountMinor;
       await consumePromoUsage(promoCode);
     }
-    // Silently ignore an invalid promo at checkout; the cart should have
-    // surfaced the error already. We don't fail the order because the
-    // code might have expired between the cart preview and submit.
   }
 
   const totalMinor = Math.max(0, subtotalMinor - discountMinor);
 
   const order: AdminOrder = {
     id: orderId,
-    orderNo: nextNo,
+    orderNo,
     customerName: input.customerName?.trim() || "Misafir",
     customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
     customerPhone: input.customerPhone?.trim() ?? "",
@@ -857,11 +976,9 @@ export async function placeOrder(
     refunds: [],
     createdAt: new Date().toISOString(),
   };
-  orders.push(order);
+  await db.collection<AdminOrder>(COLLECTIONS.orders).insertOne(order);
   return { ok: true, order };
 }
-
-// ── Order detail operations ──────────────────────────────────────────────
 
 export type OrderTransition =
   | "start_preparing"
@@ -900,28 +1017,37 @@ export async function transitionOrder(
   id: string,
   transition: OrderTransition,
 ): Promise<TransitionResult> {
-  const idx = orders.findIndex((o) => o.id === id);
-  if (idx === -1) return { ok: false, error: "Sipariş bulunamadı." };
+  await ensureSeed();
+  const db = await getDb();
+  const existing = await db
+    .collection<AdminOrder>(COLLECTIONS.orders)
+    .findOne({ id });
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
   const map = TRANSITION_MAP[transition];
   if (!map) return { ok: false, error: "Geçersiz işlem." };
-  if (!map.from.includes(orders[idx].status)) {
+  if (!map.from.includes(existing.status)) {
     return {
       ok: false,
-      error: `Bu işlem '${orders[idx].status}' durumunda yapılamaz.`,
+      error: `Bu işlem '${existing.status}' durumunda yapılamaz.`,
     };
   }
-  orders[idx] = { ...orders[idx], status: map.to };
-  return { ok: true, order: orders[idx] };
+  await db.collection(COLLECTIONS.orders).updateOne({ id }, { $set: { status: map.to } });
+  return { ok: true, order: strip({ ...existing, status: map.to }) as AdminOrder };
 }
 
 export async function setOrderInternalNote(
   id: string,
   note: string,
 ): Promise<AdminOrder | null> {
-  const idx = orders.findIndex((o) => o.id === id);
-  if (idx === -1) return null;
-  orders[idx] = { ...orders[idx], internalNote: note.slice(0, 2000) };
-  return orders[idx];
+  await ensureSeed();
+  const db = await getDb();
+  const trimmed = note.slice(0, 2000);
+  const existing = await db
+    .collection<AdminOrder>(COLLECTIONS.orders)
+    .findOne({ id });
+  if (!existing) return null;
+  await db.collection(COLLECTIONS.orders).updateOne({ id }, { $set: { internalNote: trimmed } });
+  return strip({ ...existing, internalNote: trimmed }) as AdminOrder;
 }
 
 export async function setOrderItemStatus(
@@ -929,14 +1055,18 @@ export async function setOrderItemStatus(
   itemIndex: number,
   status: AdminOrderItemStatus,
 ): Promise<AdminOrder | null> {
-  const idx = orders.findIndex((o) => o.id === orderId);
-  if (idx === -1) return null;
-  if (itemIndex < 0 || itemIndex >= orders[idx].items.length) return null;
-  const nextItems = orders[idx].items.map((it, i) =>
+  await ensureSeed();
+  const db = await getDb();
+  const existing = await db
+    .collection<AdminOrder>(COLLECTIONS.orders)
+    .findOne({ id: orderId });
+  if (!existing) return null;
+  if (itemIndex < 0 || itemIndex >= existing.items.length) return null;
+  const nextItems = existing.items.map((it, i) =>
     i === itemIndex ? { ...it, status } : it,
   );
-  orders[idx] = { ...orders[idx], items: nextItems };
-  return orders[idx];
+  await db.collection(COLLECTIONS.orders).updateOne({ id: orderId }, { $set: { items: nextItems } });
+  return strip({ ...existing, items: nextItems }) as AdminOrder;
 }
 
 export interface RefundInput {
@@ -952,14 +1082,17 @@ export async function refundOrder(
   orderId: string,
   input: RefundInput,
 ): Promise<RefundResult> {
-  const idx = orders.findIndex((o) => o.id === orderId);
-  if (idx === -1) return { ok: false, error: "Sipariş bulunamadı." };
-  const order = orders[idx];
-  if (order.status === "cancelled") {
+  await ensureSeed();
+  const db = await getDb();
+  const existing = await db
+    .collection<AdminOrder>(COLLECTIONS.orders)
+    .findOne({ id: orderId });
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  if (existing.status === "cancelled") {
     return { ok: false, error: "İptal edilen siparişe iade yapılamaz." };
   }
-  const already = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
-  const remaining = order.totalMinor - already;
+  const already = existing.refunds.reduce((s, r) => s + r.amountMinor, 0);
+  const remaining = existing.totalMinor - already;
   if (input.amountMinor <= 0) {
     return { ok: false, error: "İade tutarı pozitif olmalı." };
   }
@@ -970,36 +1103,49 @@ export async function refundOrder(
     };
   }
   const refund: AdminRefund = {
-    id: `rfn-${order.refunds.length + 1}-${Date.now()}`,
+    id: `rfn-${existing.refunds.length + 1}-${Date.now()}`,
     amountMinor: input.amountMinor,
     reason: input.reason.slice(0, 500),
     createdAt: new Date().toISOString(),
   };
-  const nextRefunds = [...order.refunds, refund];
+  const nextRefunds = [...existing.refunds, refund];
   const fullyRefunded =
-    nextRefunds.reduce((s, r) => s + r.amountMinor, 0) >= order.totalMinor;
-  orders[idx] = {
-    ...order,
-    refunds: nextRefunds,
-    status: fullyRefunded ? "refunded" : order.status,
+    nextRefunds.reduce((s, r) => s + r.amountMinor, 0) >= existing.totalMinor;
+  const status = fullyRefunded ? "refunded" : existing.status;
+  await db
+    .collection(COLLECTIONS.orders)
+    .updateOne({ id: orderId }, { $set: { refunds: nextRefunds, status } });
+  return {
+    ok: true,
+    order: strip({ ...existing, refunds: nextRefunds, status }) as AdminOrder,
+    refund,
   };
-  return { ok: true, order: orders[idx], refund };
 }
 
-// ── Settings ──────────────────────────────────────────────────────────────
+// ─── Settings ─────────────────────────────────────────────────────────────
 
 export async function getSettings(): Promise<AdminSettings> {
-  return { ...settings };
+  await ensureSeed();
+  const db = await getDb();
+  const doc = await db.collection(COLLECTIONS.settings).findOne({ _id: "main" as never });
+  if (!doc) return defaultSettings();
+  const { _id, ...rest } = doc as Record<string, unknown> & { _id?: unknown };
+  void _id;
+  return rest as unknown as AdminSettings;
 }
 
 export async function updateSettings(
   input: Partial<AdminSettings>,
 ): Promise<AdminSettings> {
-  settings = { ...settings, ...input };
-  return { ...settings };
+  await ensureSeed();
+  const db = await getDb();
+  await db
+    .collection(COLLECTIONS.settings)
+    .updateOne({ _id: "main" as never }, { $set: input }, { upsert: true });
+  return getSettings();
 }
 
-// ── Dashboard stats ───────────────────────────────────────────────────────
+// ─── Dashboard stats ──────────────────────────────────────────────────────
 
 export interface DashboardStats {
   productCount: number;
@@ -1012,36 +1158,47 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const completedOrPaidOrPreparing = orders.filter((o) =>
-    ["paid", "preparing", "shipped", "completed"].includes(o.status),
-  );
+  await ensureSeed();
+  const db = await getDb();
+  const productsColl = db.collection<AdminProduct>(COLLECTIONS.products);
+  const ordersColl = db.collection<AdminOrder>(COLLECTIONS.orders);
+
+  const [productCount, activeProductCount, outOfStockCount, categoryCount, orderCount, pendingOrderCount, revenueAgg] =
+    await Promise.all([
+      productsColl.countDocuments({}),
+      productsColl.countDocuments({ isActive: true }),
+      productsColl.countDocuments({ stock: 0 }),
+      db.collection(COLLECTIONS.categories).countDocuments({}),
+      ordersColl.countDocuments({}),
+      ordersColl.countDocuments({
+        status: { $in: ["pending_payment", "paid", "preparing"] },
+      }),
+      ordersColl
+        .aggregate<{ _id: null; total: number }>([
+          { $match: { status: { $in: ["paid", "preparing", "shipped", "completed"] } } },
+          { $group: { _id: null, total: { $sum: "$totalMinor" } } },
+        ])
+        .toArray(),
+    ]);
+
   return {
-    productCount: products.length,
-    activeProductCount: products.filter((p) => p.isActive).length,
-    outOfStockCount: products.filter((p) => p.stock === 0).length,
-    categoryCount: categories.length,
-    orderCount: orders.length,
-    pendingOrderCount: orders.filter(
-      (o) => o.status === "pending_payment" || o.status === "paid" || o.status === "preparing",
-    ).length,
-    revenueMinor: completedOrPaidOrPreparing.reduce(
-      (s, o) => s + o.totalMinor,
-      0,
-    ),
+    productCount,
+    activeProductCount,
+    outOfStockCount,
+    categoryCount,
+    orderCount,
+    pendingOrderCount,
+    revenueMinor: revenueAgg[0]?.total ?? 0,
   };
 }
 
 export { SEED_MENU as CAFE_MENU };
 
-// ── Public read for customer site ─────────────────────────────────────────
+// ─── Public read for customer site ────────────────────────────────────────
 
-/**
- * Returns active products in the design's `Product` shape so the SPA
- * (Shop + Home teaser) can render them without any TS gymnastics.
- * Inactive products are filtered out automatically.
- */
 export async function listShopProducts(): Promise<DesignProduct[]> {
-  return products
+  const all = await listProducts();
+  return all
     .filter((p) => p.isActive)
     .map((p) => ({
       name: p.name,
@@ -1059,7 +1216,7 @@ export async function listShopProducts(): Promise<DesignProduct[]> {
     }));
 }
 
-// ── Cafe menu items (affogato / matcha / espresso / cold / gelato) ────────
+// ─── Cafe menu items ──────────────────────────────────────────────────────
 
 export type MenuCategoryKey =
   | "affogato"
@@ -1092,36 +1249,27 @@ export interface AdminMenuItem {
   updatedAt: string;
 }
 
-let menuItemCounter = 0;
-const menuItems: AdminMenuItem[] = MENU_CATEGORY_KEYS.flatMap((key) =>
-  SEED_MENU[key].items.map((it, idx) => {
-    menuItemCounter += 1;
-    return {
-      id: slugifyId("mnu", menuItemCounter),
-      categoryKey: key,
-      name: it.name,
-      desc: it.desc,
-      priceMinor: parsePrice(it.price),
-      hue: it.hue,
-      tags: it.tags ? [...it.tags] : [],
-      isActive: true,
-      sortOrder: idx,
-      updatedAt: new Date().toISOString(),
-    };
-  }),
-);
-
 export async function listMenuItems(): Promise<AdminMenuItem[]> {
-  return [...menuItems].sort((a, b) => {
+  await ensureSeed();
+  const db = await getDb();
+  const docs = await db
+    .collection<AdminMenuItem>(COLLECTIONS.menuItems)
+    .find({})
+    .toArray();
+  const ordered = docs.sort((a, b) => {
     const aIdx = MENU_CATEGORY_KEYS.indexOf(a.categoryKey);
     const bIdx = MENU_CATEGORY_KEYS.indexOf(b.categoryKey);
     if (aIdx !== bIdx) return aIdx - bIdx;
     return a.sortOrder - b.sortOrder;
   });
+  return stripMany(ordered);
 }
 
 export async function getMenuItem(id: string): Promise<AdminMenuItem | null> {
-  return menuItems.find((it) => it.id === id) ?? null;
+  await ensureSeed();
+  const db = await getDb();
+  const doc = await db.collection<AdminMenuItem>(COLLECTIONS.menuItems).findOne({ id });
+  return strip(doc);
 }
 
 export interface MenuItemInput {
@@ -1136,13 +1284,15 @@ export interface MenuItemInput {
 }
 
 export async function createMenuItem(input: MenuItemInput): Promise<AdminMenuItem> {
-  menuItemCounter += 1;
+  await ensureSeed();
+  const db = await getDb();
+  const seq = await nextSeq("mnu");
   const item: AdminMenuItem = {
-    id: slugifyId("mnu", menuItemCounter),
+    id: slugifyId("mnu", seq),
     ...input,
     updatedAt: new Date().toISOString(),
   };
-  menuItems.push(item);
+  await db.collection<AdminMenuItem>(COLLECTIONS.menuItems).insertOne(item);
   return item;
 }
 
@@ -1150,21 +1300,26 @@ export async function updateMenuItem(
   id: string,
   input: MenuItemInput,
 ): Promise<AdminMenuItem | null> {
-  const idx = menuItems.findIndex((it) => it.id === id);
-  if (idx === -1) return null;
-  menuItems[idx] = {
-    ...menuItems[idx],
+  await ensureSeed();
+  const db = await getDb();
+  const existing = await db
+    .collection<AdminMenuItem>(COLLECTIONS.menuItems)
+    .findOne({ id });
+  if (!existing) return null;
+  const next: AdminMenuItem = {
+    ...existing,
     ...input,
     updatedAt: new Date().toISOString(),
   };
-  return menuItems[idx];
+  await db.collection(COLLECTIONS.menuItems).updateOne({ id }, { $set: next });
+  return strip(next);
 }
 
 export async function deleteMenuItem(id: string): Promise<boolean> {
-  const idx = menuItems.findIndex((it) => it.id === id);
-  if (idx === -1) return false;
-  menuItems.splice(idx, 1);
-  return true;
+  await ensureSeed();
+  const db = await getDb();
+  const res = await db.collection(COLLECTIONS.menuItems).deleteOne({ id });
+  return res.deletedCount > 0;
 }
 
 export type BulkMenuOp =
@@ -1178,58 +1333,47 @@ export async function bulkUpdateMenuItems(
   op: BulkMenuOp,
 ): Promise<BulkResult> {
   if (ids.length === 0) return { updated: 0 };
-  const idSet = new Set(ids);
+  await ensureSeed();
+  const db = await getDb();
+  const filter = { id: { $in: ids } };
   const now = new Date().toISOString();
-  let updated = 0;
 
   if (op.kind === "delete") {
-    for (let i = menuItems.length - 1; i >= 0; i -= 1) {
-      if (idSet.has(menuItems[i].id)) {
-        menuItems.splice(i, 1);
-        updated += 1;
-      }
-    }
-    return { updated };
+    const res = await db.collection(COLLECTIONS.menuItems).deleteMany(filter);
+    return { updated: res.deletedCount };
   }
 
-  for (let i = 0; i < menuItems.length; i += 1) {
-    if (!idSet.has(menuItems[i].id)) continue;
-    if (op.kind === "activate") {
-      if (!menuItems[i].isActive) {
-        menuItems[i] = { ...menuItems[i], isActive: true, updatedAt: now };
-        updated += 1;
-      }
-    } else if (op.kind === "deactivate") {
-      if (menuItems[i].isActive) {
-        menuItems[i] = { ...menuItems[i], isActive: false, updatedAt: now };
-        updated += 1;
-      }
-    } else if (op.kind === "set_category") {
-      if (menuItems[i].categoryKey !== op.categoryKey) {
-        menuItems[i] = {
-          ...menuItems[i],
-          categoryKey: op.categoryKey,
-          updatedAt: now,
-        };
-        updated += 1;
-      }
-    }
+  if (op.kind === "activate") {
+    const res = await db
+      .collection(COLLECTIONS.menuItems)
+      .updateMany({ ...filter, isActive: false }, { $set: { isActive: true, updatedAt: now } });
+    return { updated: res.modifiedCount };
   }
-  return { updated };
+
+  if (op.kind === "deactivate") {
+    const res = await db
+      .collection(COLLECTIONS.menuItems)
+      .updateMany({ ...filter, isActive: true }, { $set: { isActive: false, updatedAt: now } });
+    return { updated: res.modifiedCount };
+  }
+
+  const res = await db
+    .collection(COLLECTIONS.menuItems)
+    .updateMany(
+      { ...filter, categoryKey: { $ne: op.categoryKey } },
+      { $set: { categoryKey: op.categoryKey, updatedAt: now } },
+    );
+  return { updated: res.modifiedCount };
 }
 
-/**
- * Returns the cafe menu in the design's MENU shape, with category meta
- * (title, sub, italian, note) preserved from SEED_MENU and items pulled
- * live from the admin store. Inactive items are filtered out.
- */
 export async function listMenuForCustomer(): Promise<
   Record<string, DesignMenuCategory>
 > {
+  const all = await listMenuItems();
   const out: Record<string, DesignMenuCategory> = {};
   for (const key of MENU_CATEGORY_KEYS) {
     const meta = SEED_MENU[key];
-    const activeItems = menuItems
+    const activeItems = all
       .filter((it) => it.categoryKey === key && it.isActive)
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((it) => ({
@@ -1258,8 +1402,7 @@ export const MENU_CATEGORY_LABELS: Record<MenuCategoryKey, string> = {
   gelato: SEED_MENU.gelato.title,
 };
 
-
-// ── Promo codes ──────────────────────────────────────────────────────────
+// ─── Promo codes ──────────────────────────────────────────────────────────
 
 export type PromoDiscountKind = "pct" | "fixed";
 
@@ -1267,11 +1410,8 @@ export interface AdminPromo {
   id: string;
   code: string;
   kind: PromoDiscountKind;
-  /** Percentage 1–100 when kind="pct", minor units (kuruş) when kind="fixed". */
   value: number;
-  /** Minor units. 0 = no minimum. */
   minSubtotalMinor: number;
-  /** 0 = unlimited. */
   usageLimit: number;
   usageCount: number;
   expiresAt: string;
@@ -1280,15 +1420,22 @@ export interface AdminPromo {
   updatedAt: string;
 }
 
-const promos: AdminPromo[] = [];
-let promoCounter = 0;
-
 export async function listPromos(): Promise<AdminPromo[]> {
-  return [...promos].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  await ensureSeed();
+  const db = await getDb();
+  const docs = await db
+    .collection<AdminPromo>(COLLECTIONS.promos)
+    .find({})
+    .sort({ createdAt: -1 })
+    .toArray();
+  return stripMany(docs);
 }
 
 export async function getPromo(id: string): Promise<AdminPromo | null> {
-  return promos.find((p) => p.id === id) ?? null;
+  await ensureSeed();
+  const db = await getDb();
+  const doc = await db.collection<AdminPromo>(COLLECTIONS.promos).findOne({ id });
+  return strip(doc);
 }
 
 export interface PromoInput {
@@ -1310,15 +1457,16 @@ export type PromoMutationResult =
   | { ok: false; error: string };
 
 export async function createPromo(input: PromoInput): Promise<PromoMutationResult> {
+  await ensureSeed();
   const code = normalizeCode(input.code);
   if (!code) return { ok: false, error: "Kod boş olamaz." };
-  if (promos.some((p) => p.code === code)) {
-    return { ok: false, error: "Bu kod zaten kullanılıyor." };
-  }
-  promoCounter += 1;
+  const db = await getDb();
+  const conflict = await db.collection(COLLECTIONS.promos).findOne({ code });
+  if (conflict) return { ok: false, error: "Bu kod zaten kullanılıyor." };
+  const seq = await nextSeq("prm");
   const now = new Date().toISOString();
   const promo: AdminPromo = {
-    id: `prm-${String(promoCounter).padStart(4, "0")}`,
+    id: `prm-${String(seq).padStart(4, "0")}`,
     code,
     kind: input.kind,
     value: input.value,
@@ -1330,7 +1478,7 @@ export async function createPromo(input: PromoInput): Promise<PromoMutationResul
     createdAt: now,
     updatedAt: now,
   };
-  promos.push(promo);
+  await db.collection<AdminPromo>(COLLECTIONS.promos).insertOne(promo);
   return { ok: true, promo };
 }
 
@@ -1338,15 +1486,18 @@ export async function updatePromo(
   id: string,
   input: PromoInput,
 ): Promise<PromoMutationResult> {
-  const idx = promos.findIndex((p) => p.id === id);
-  if (idx === -1) return { ok: false, error: "Kod bulunamadı." };
+  await ensureSeed();
+  const db = await getDb();
+  const existing = await db.collection<AdminPromo>(COLLECTIONS.promos).findOne({ id });
+  if (!existing) return { ok: false, error: "Kod bulunamadı." };
   const code = normalizeCode(input.code);
   if (!code) return { ok: false, error: "Kod boş olamaz." };
-  if (promos.some((p) => p.code === code && p.id !== id)) {
-    return { ok: false, error: "Başka bir kod aynı koda sahip." };
-  }
-  promos[idx] = {
-    ...promos[idx],
+  const conflict = await db
+    .collection(COLLECTIONS.promos)
+    .findOne({ code, id: { $ne: id } });
+  if (conflict) return { ok: false, error: "Başka bir kod aynı koda sahip." };
+  const next: AdminPromo = {
+    ...existing,
     code,
     kind: input.kind,
     value: input.value,
@@ -1356,34 +1507,30 @@ export async function updatePromo(
     isActive: input.isActive,
     updatedAt: new Date().toISOString(),
   };
-  return { ok: true, promo: promos[idx] };
+  await db.collection(COLLECTIONS.promos).updateOne({ id }, { $set: next });
+  return { ok: true, promo: strip(next) as AdminPromo };
 }
 
 export async function deletePromo(id: string): Promise<boolean> {
-  const idx = promos.findIndex((p) => p.id === id);
-  if (idx === -1) return false;
-  promos.splice(idx, 1);
-  return true;
+  await ensureSeed();
+  const db = await getDb();
+  const res = await db.collection(COLLECTIONS.promos).deleteOne({ id });
+  return res.deletedCount > 0;
 }
 
 export type PromoApplyResult =
   | { ok: true; promo: AdminPromo; discountMinor: number }
   | { ok: false; error: string };
 
-/**
- * Pure function (no mutation) — checks if a code is valid for the given
- * subtotal and returns the discount in minor units. The caller is the
- * one that ultimately records usage via consumePromoUsage() once the
- * order is actually placed; this two-step keeps the cart UI honest
- * about the price preview without committing the limit.
- */
 export async function applyPromoCode(
   code: string,
   subtotalMinor: number,
 ): Promise<PromoApplyResult> {
+  await ensureSeed();
   const needle = normalizeCode(code);
   if (!needle) return { ok: false, error: "Kod gir." };
-  const promo = promos.find((p) => p.code === needle);
+  const db = await getDb();
+  const promo = await db.collection<AdminPromo>(COLLECTIONS.promos).findOne({ code: needle });
   if (!promo) return { ok: false, error: "Geçersiz kod." };
   if (!promo.isActive) return { ok: false, error: "Bu kod kapalı." };
   if (promo.expiresAt && new Date(promo.expiresAt).getTime() < Date.now()) {
@@ -1404,30 +1551,25 @@ export async function applyPromoCode(
       : Math.min(promo.value, subtotalMinor);
   if (discountMinor < 0) discountMinor = 0;
   if (discountMinor > subtotalMinor) discountMinor = subtotalMinor;
-  return { ok: true, promo, discountMinor };
+  return { ok: true, promo: strip(promo) as AdminPromo, discountMinor };
 }
 
 export async function consumePromoUsage(code: string): Promise<void> {
+  await ensureSeed();
   const needle = normalizeCode(code);
-  const idx = promos.findIndex((p) => p.code === needle);
-  if (idx === -1) return;
-  promos[idx] = {
-    ...promos[idx],
-    usageCount: promos[idx].usageCount + 1,
-    updatedAt: new Date().toISOString(),
-  };
+  const db = await getDb();
+  await db.collection(COLLECTIONS.promos).updateOne(
+    { code: needle },
+    { $inc: { usageCount: 1 }, $set: { updatedAt: new Date().toISOString() } },
+  );
 }
 
-
-
-// ── Analytics aggregations ──────────────────────────────────────────────
+// ─── Analytics aggregations ───────────────────────────────────────────────
 
 export type BucketGranularity = "day" | "week" | "month";
 
 export interface RevenueBucket {
-  /** ISO-like bucket id (YYYY-MM-DD, YYYY-Www, YYYY-MM). */
   bucket: string;
-  /** Human label for axis labels. */
   label: string;
   revenueMinor: number;
   orderCount: number;
@@ -1439,7 +1581,6 @@ function pad2(n: number): string {
 
 function startOfWeek(d: Date): Date {
   const x = new Date(d);
-  // ISO week: Monday = 1 .. Sunday = 7
   const day = (x.getDay() + 6) % 7;
   x.setHours(0, 0, 0, 0);
   x.setDate(x.getDate() - day);
@@ -1449,7 +1590,6 @@ function startOfWeek(d: Date): Date {
 function isoWeek(d: Date): { year: number; week: number } {
   const target = new Date(d);
   target.setHours(0, 0, 0, 0);
-  // Thursday of current week determines ISO week-year
   target.setDate(target.getDate() + 3 - ((target.getDay() + 6) % 7));
   const week1 = new Date(target.getFullYear(), 0, 4);
   const diff = (target.getTime() - week1.getTime()) / (24 * 60 * 60 * 1000);
@@ -1484,15 +1624,11 @@ const MONTH_SHORT = [
   "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara",
 ];
 
-/**
- * Generates `count` consecutive buckets ending at "today" and tallies orders
- * that fall in each. Cancelled orders are excluded; refunded orders count
- * gross (the refund chart is a separate line if needed later).
- */
 export async function revenueBuckets(
   granularity: BucketGranularity,
   count: number,
 ): Promise<RevenueBucket[]> {
+  const orders = await listOrders();
   const now = new Date();
   const buckets: RevenueBucket[] = [];
   for (let i = count - 1; i >= 0; i -= 1) {
@@ -1528,6 +1664,7 @@ export interface TopProductRow {
 }
 
 export async function topProducts(limit = 5): Promise<TopProductRow[]> {
+  const orders = await listOrders();
   const tally = new Map<string, TopProductRow>();
   for (const o of orders) {
     if (o.status === "cancelled") continue;
@@ -1556,11 +1693,11 @@ export interface AnalyticsHeadline {
   totalOrders: number;
   averageOrderMinor: number;
   refundedMinor: number;
-  /** Placeholder until traffic data is wired (sessions endpoint). */
   conversionRatePct: number | null;
 }
 
 export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
+  const orders = await listOrders();
   const valid = orders.filter((o) => o.status !== "cancelled");
   const totalRevenueMinor = valid.reduce((s, o) => s + o.totalMinor, 0);
   const totalOrders = valid.length;
@@ -1576,4 +1713,3 @@ export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
     conversionRatePct: null,
   };
 }
-
