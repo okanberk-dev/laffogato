@@ -1236,3 +1236,32 @@ input, textarea, select { font: inherit; color: inherit; }
   margin: 16px 0 0; color: var(--ink-soft); line-height: 1.6;
   font-size: 15px; max-width: 70ch;
 }
+
+
+/* ────────────────────────────────────────────────────────────────
+   Print rules — used by admin order detail "Fiş yazdır"
+   ──────────────────────────────────────────────────────────────── */
+@media print {
+  body {
+    background: #fff !important;
+  }
+  /* Hide everything; only the receipt section will be re-shown. */
+  body * {
+    visibility: hidden;
+  }
+  [data-print-receipt],
+  [data-print-receipt] * {
+    visibility: visible;
+  }
+  [data-print-receipt] {
+    display: block !important;
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 24px;
+    background: #fff;
+    color: #000;
+    font-size: 12pt;
+  }
+}
+
