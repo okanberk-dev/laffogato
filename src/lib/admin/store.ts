@@ -71,10 +71,13 @@ export interface AdminCategory {
   sortOrder: number;
 }
 
+export type AdminOrderItemStatus = "pending" | "ready" | "cancelled";
+
 export interface AdminOrderItem {
   productName: string;
   qty: number;
   unitPriceMinor: number;
+  status: AdminOrderItemStatus;
 }
 
 export type AdminOrderStatus =
@@ -86,16 +89,27 @@ export type AdminOrderStatus =
   | "cancelled"
   | "refunded";
 
+export interface AdminRefund {
+  id: string;
+  amountMinor: number;
+  reason: string;
+  createdAt: string;
+}
+
 export interface AdminOrder {
   id: string;
   orderNo: number;
   customerName: string;
   customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+  internalNote: string;
   status: AdminOrderStatus;
   items: AdminOrderItem[];
   subtotalMinor: number;
   shippingMinor: number;
   totalMinor: number;
+  refunds: AdminRefund[];
   createdAt: string;
 }
 
@@ -192,14 +206,29 @@ const orders: AdminOrder[] = [
     orderNo: 10_001,
     customerName: "Ali Yılmaz",
     customerEmail: "ali@example.com",
+    customerPhone: "+90 532 111 22 33",
+    shippingAddress:
+      "Kadıköy Mah. Bağdat Cd. No: 142 Daire 7\nKadıköy / İstanbul 34710",
+    internalNote: "",
     status: "preparing",
     items: [
-      { productName: "Sirena — Espresso Blend", qty: 1, unitPriceMinor: 32000 },
-      { productName: "Edible Cups — 6 Box", qty: 1, unitPriceMinor: 24000 },
+      {
+        productName: "Sirena — Espresso Blend",
+        qty: 1,
+        unitPriceMinor: 32000,
+        status: "pending",
+      },
+      {
+        productName: "Edible Cups — 6 Box",
+        qty: 1,
+        unitPriceMinor: 24000,
+        status: "ready",
+      },
     ],
     subtotalMinor: 56000,
     shippingMinor: 0,
     totalMinor: 56000,
+    refunds: [],
     createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
   },
   {
@@ -207,11 +236,22 @@ const orders: AdminOrder[] = [
     orderNo: 10_002,
     customerName: "Merve Kaya",
     customerEmail: "merve@example.com",
+    customerPhone: "+90 533 222 33 44",
+    shippingAddress: "Etiler Mah. Nispetiye Cd. No: 38\nBeşiktaş / İstanbul 34337",
+    internalNote: "Hediye paketi istendi. Kart: 'İyi ki varsın 🤍'",
     status: "paid",
-    items: [{ productName: "Affogato Kit — For Two", qty: 1, unitPriceMinor: 78000 }],
+    items: [
+      {
+        productName: "Affogato Kit — For Two",
+        qty: 1,
+        unitPriceMinor: 78000,
+        status: "pending",
+      },
+    ],
     subtotalMinor: 78000,
     shippingMinor: 0,
     totalMinor: 78000,
+    refunds: [],
     createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
   },
   {
@@ -219,14 +259,28 @@ const orders: AdminOrder[] = [
     orderNo: 10_003,
     customerName: "Deniz Aydın",
     customerEmail: "deniz@example.com",
+    customerPhone: "+90 535 444 55 66",
+    shippingAddress: "Cihangir Mah. Akarsu Yokuşu No: 22\nBeyoğlu / İstanbul 34433",
+    internalNote: "",
     status: "completed",
     items: [
-      { productName: "Uji Matcha — Ceremonial", qty: 1, unitPriceMinor: 42000 },
-      { productName: "Bambu Chasen", qty: 1, unitPriceMinor: 32000 },
+      {
+        productName: "Uji Matcha — Ceremonial",
+        qty: 1,
+        unitPriceMinor: 42000,
+        status: "ready",
+      },
+      {
+        productName: "Bambu Chasen",
+        qty: 1,
+        unitPriceMinor: 32000,
+        status: "ready",
+      },
     ],
     subtotalMinor: 74000,
     shippingMinor: 0,
     totalMinor: 74000,
+    refunds: [],
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
   },
 ];
@@ -467,6 +521,7 @@ export interface PlaceOrderInput {
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
+  shippingAddress?: string;
 }
 
 export type PlaceOrderResult =
@@ -522,6 +577,7 @@ export async function placeOrder(
     productName: it.name,
     qty: it.qty,
     unitPriceMinor: it.priceMinor,
+    status: "pending",
   }));
 
   const subtotalMinor = items.reduce(
@@ -538,15 +594,144 @@ export async function placeOrder(
     orderNo: nextNo,
     customerName: input.customerName?.trim() || "Misafir",
     customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
+    customerPhone: input.customerPhone?.trim() ?? "",
+    shippingAddress: input.shippingAddress?.trim() ?? "",
+    internalNote: "",
     status: "pending_payment",
     items,
     subtotalMinor,
     shippingMinor: 0,
     totalMinor: subtotalMinor,
+    refunds: [],
     createdAt: new Date().toISOString(),
   };
   orders.push(order);
   return { ok: true, order };
+}
+
+// ── Order detail operations ──────────────────────────────────────────────
+
+export type OrderTransition =
+  | "start_preparing"
+  | "mark_shipped"
+  | "complete"
+  | "cancel"
+  | "mark_paid";
+
+const TRANSITION_MAP: Record<OrderTransition, {
+  from: AdminOrderStatus[];
+  to: AdminOrderStatus;
+}> = {
+  mark_paid: { from: ["pending_payment"], to: "paid" },
+  start_preparing: { from: ["paid", "pending_payment"], to: "preparing" },
+  mark_shipped: { from: ["preparing", "paid"], to: "shipped" },
+  complete: { from: ["shipped", "preparing"], to: "completed" },
+  cancel: {
+    from: ["pending_payment", "paid", "preparing", "shipped"],
+    to: "cancelled",
+  },
+};
+
+export function availableTransitions(status: AdminOrderStatus): OrderTransition[] {
+  return (Object.entries(TRANSITION_MAP) as Array<[OrderTransition, typeof TRANSITION_MAP[OrderTransition]]>)
+    .filter(([, { from }]) => from.includes(status))
+    .map(([t]) => t);
+}
+
+export interface TransitionResult {
+  ok: boolean;
+  order?: AdminOrder;
+  error?: string;
+}
+
+export async function transitionOrder(
+  id: string,
+  transition: OrderTransition,
+): Promise<TransitionResult> {
+  const idx = orders.findIndex((o) => o.id === id);
+  if (idx === -1) return { ok: false, error: "Sipariş bulunamadı." };
+  const map = TRANSITION_MAP[transition];
+  if (!map) return { ok: false, error: "Geçersiz işlem." };
+  if (!map.from.includes(orders[idx].status)) {
+    return {
+      ok: false,
+      error: `Bu işlem '${orders[idx].status}' durumunda yapılamaz.`,
+    };
+  }
+  orders[idx] = { ...orders[idx], status: map.to };
+  return { ok: true, order: orders[idx] };
+}
+
+export async function setOrderInternalNote(
+  id: string,
+  note: string,
+): Promise<AdminOrder | null> {
+  const idx = orders.findIndex((o) => o.id === id);
+  if (idx === -1) return null;
+  orders[idx] = { ...orders[idx], internalNote: note.slice(0, 2000) };
+  return orders[idx];
+}
+
+export async function setOrderItemStatus(
+  orderId: string,
+  itemIndex: number,
+  status: AdminOrderItemStatus,
+): Promise<AdminOrder | null> {
+  const idx = orders.findIndex((o) => o.id === orderId);
+  if (idx === -1) return null;
+  if (itemIndex < 0 || itemIndex >= orders[idx].items.length) return null;
+  const nextItems = orders[idx].items.map((it, i) =>
+    i === itemIndex ? { ...it, status } : it,
+  );
+  orders[idx] = { ...orders[idx], items: nextItems };
+  return orders[idx];
+}
+
+export interface RefundInput {
+  amountMinor: number;
+  reason: string;
+}
+
+export type RefundResult =
+  | { ok: true; order: AdminOrder; refund: AdminRefund }
+  | { ok: false; error: string };
+
+export async function refundOrder(
+  orderId: string,
+  input: RefundInput,
+): Promise<RefundResult> {
+  const idx = orders.findIndex((o) => o.id === orderId);
+  if (idx === -1) return { ok: false, error: "Sipariş bulunamadı." };
+  const order = orders[idx];
+  if (order.status === "cancelled") {
+    return { ok: false, error: "İptal edilen siparişe iade yapılamaz." };
+  }
+  const already = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
+  const remaining = order.totalMinor - already;
+  if (input.amountMinor <= 0) {
+    return { ok: false, error: "İade tutarı pozitif olmalı." };
+  }
+  if (input.amountMinor > remaining) {
+    return {
+      ok: false,
+      error: `İade tutarı kalan bakiyeyi aşıyor (kalan: ${(remaining / 100).toFixed(2)} ₺).`,
+    };
+  }
+  const refund: AdminRefund = {
+    id: `rfn-${order.refunds.length + 1}-${Date.now()}`,
+    amountMinor: input.amountMinor,
+    reason: input.reason.slice(0, 500),
+    createdAt: new Date().toISOString(),
+  };
+  const nextRefunds = [...order.refunds, refund];
+  const fullyRefunded =
+    nextRefunds.reduce((s, r) => s + r.amountMinor, 0) >= order.totalMinor;
+  orders[idx] = {
+    ...order,
+    refunds: nextRefunds,
+    status: fullyRefunded ? "refunded" : order.status,
+  };
+  return { ok: true, order: orders[idx], refund };
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────

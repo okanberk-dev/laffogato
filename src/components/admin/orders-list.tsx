@@ -1,10 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
 
 import {
   bulkOrdersAction,
-  updateOrderStatusAction,
   type BulkOrderActionState,
 } from "@/app/admin/siparisler/actions";
 import type { AdminOrder, AdminOrderStatus } from "@/lib/admin/store";
@@ -155,35 +155,29 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
                 </ul>
               </div>
 
-              <form
-                action={updateOrderStatusAction}
-                className="mt-4 flex flex-wrap items-center gap-3 border-t border-neutral-100 pt-4"
-              >
-                <input type="hidden" name="id" value={o.id} />
-                <label
-                  className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
-                  style={{ fontFamily: "var(--mono), monospace" }}
-                >
-                  Durum güncelle
-                </label>
-                <select
-                  name="status"
-                  defaultValue={o.status}
-                  className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
-                >
-                  {statusOptions.map(([k, l]) => (
-                    <option key={k} value={k}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="submit"
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+                {o.refunds.length > 0 ? (
+                  <span
+                    className="text-[10px] uppercase tracking-[0.22em] text-rose-600"
+                    style={{ fontFamily: "var(--mono), monospace" }}
+                  >
+                    {o.refunds.length} iade kaydı
+                  </span>
+                ) : (
+                  <span
+                    className="text-[10px] uppercase tracking-[0.22em] text-neutral-400"
+                    style={{ fontFamily: "var(--mono), monospace" }}
+                  >
+                    Detaylı yönetim için sipariş sayfasına git
+                  </span>
+                )}
+                <Link
+                  href={`/admin/siparisler/${o.id}`}
                   className="rounded-full bg-neutral-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
                 >
-                  Kaydet
-                </button>
-              </form>
+                  Sipariş detayı →
+                </Link>
+              </div>
             </div>
           );
         })}

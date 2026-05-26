@@ -50,6 +50,8 @@ export async function placeOrderAction(formData: FormData) {
     customerName: String(formData.get("customerName") ?? "") || undefined,
     customerEmail: String(formData.get("customerEmail") ?? "") || undefined,
     customerPhone: String(formData.get("customerPhone") ?? "") || undefined,
+    shippingAddress:
+      String(formData.get("shippingAddress") ?? "") || undefined,
   });
 
   if (!result.ok) {
