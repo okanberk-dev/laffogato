@@ -19,8 +19,9 @@ jobs:
 
     # Dummy env so the build can resolve required vars without leaking secrets.
     # Real secrets live in Vercel; CI only proves the code compiles + builds.
+    # NODE_ENV is intentionally NOT set — Next.js manages it itself during build.
     env:
-      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
@@ -40,6 +41,13 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+
+      - name: Print toolchain
+        run: |
+          node --version
+          npm --version
+          echo "package-lock.json md5:"
+          md5sum package-lock.json || true
 
       - name: Install dependencies
         run: npm ci
