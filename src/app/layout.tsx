@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import {
-  DM_Sans,
   DM_Serif_Display,
+  Fraunces,
+  Inter,
   JetBrains_Mono,
   Marcellus,
   Pinyon_Script,
@@ -19,6 +20,14 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
+const fraunces = Fraunces({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-fraunces",
+  axes: ["SOFT", "WONK", "opsz"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
+
 const dmSerif = DM_Serif_Display({
   subsets: ["latin", "latin-ext"],
   variable: "--font-dm-serif",
@@ -27,10 +36,10 @@ const dmSerif = DM_Serif_Display({
   display: "swap",
 });
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-dm-sans",
-  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
+  axes: ["opsz"],
   display: "swap",
 });
 
@@ -186,8 +195,9 @@ export const metadata: Metadata = {
 
 const fontVariables = [
   playfair.variable,
+  fraunces.variable,
   dmSerif.variable,
-  dmSans.variable,
+  inter.variable,
   pinyon.variable,
   marcellus.variable,
   jetbrains.variable,

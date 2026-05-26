@@ -1,12 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
-import {
-  placeOrderAction,
-  previewPromoAction,
-  type PromoPreviewState,
-} from "@/app/odeme/actions";
 import { toggleWishlistAction } from "@/app/uye/actions";
 
 import type { Product } from "./data";
@@ -322,246 +317,54 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
   );
 }
 
-const promoInitial: PromoPreviewState = {};
-
-function CartFooter({ items, total }: { items: CartItem[]; total: number }) {
-  const [step, setStep] = useState<"summary" | "details">("summary");
-  const [pending, setPending] = useState(false);
-
-  const [promoState, promoAction, promoPending] = useActionState(
-    previewPromoAction,
-    promoInitial,
-  );
-
-  const promoOk = promoState.ok;
-  const discountMajor = promoOk ? promoOk.discountMinor / 100 : 0;
-  const finalTotal = Math.max(0, total - discountMajor);
-
-  const itemsJson = JSON.stringify(
-    items.map((it) => ({
-      name: it.name,
-      price: it.price ?? 0,
-      qty: it.qty ?? 1,
-    })),
-  );
-
+function CartFooter({ total }: { items: CartItem[]; total: number }) {
   return (
     <footer className="cart-drawer-foot" style={{ borderTop: "1px solid var(--ink-line)" }}>
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          marginBottom: 8,
+          marginBottom: 10,
           fontSize: 14,
           color: "var(--ink-soft)",
         }}
       >
         <span>Ara toplam</span>
-        <span style={{ fontFamily: "var(--mono)" }}>{total}₺</span>
+        <span className="tabular" style={{ fontFamily: "var(--mono)" }}>{total}₺</span>
       </div>
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          marginBottom: 12,
-          fontSize: 14,
-          color: "var(--ink-soft)",
+          marginBottom: 20,
+          fontSize: 12,
+          color: "var(--ink-mute)",
         }}
       >
-        <span>Kargo · İstanbul içi</span>
-        <span style={{ fontFamily: "var(--mono)" }}>Ücretsiz</span>
+        <span>Kargo</span>
+        <span>Ödeme adımında hesaplanır</span>
       </div>
-
-      {/* Promo code input */}
-      <form action={promoAction} style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-        <input type="hidden" name="subtotal" value={String(total)} />
-        <input
-          name="code"
-          placeholder="Promosyon kodu"
-          defaultValue={promoOk?.code ?? ""}
-          style={{
-            flex: 1,
-            padding: "10px 12px",
-            borderRadius: 8,
-            border: "1px solid var(--ink-line)",
-            background: "var(--bg-warm)",
-            fontFamily: "var(--mono)",
-            fontSize: 12,
-            textTransform: "uppercase",
-            color: "var(--ink)",
-          }}
-        />
-        <button
-          type="submit"
-          disabled={promoPending}
-          className="btn"
-          style={{
-            padding: "10px 14px",
-            fontSize: 12,
-            background: "transparent",
-            border: "1px solid var(--ink-line)",
-            color: "var(--ink-soft)",
-            opacity: promoPending ? 0.6 : 1,
-          }}
-        >
-          {promoPending ? "…" : "Uygula"}
-        </button>
-      </form>
-      {promoState.error && (
-        <div style={{ marginBottom: 12, fontSize: 12, color: "#b91c1c" }}>
-          {promoState.error}
-        </div>
-      )}
-      {promoOk && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 12,
-            fontSize: 13,
-            color: "#15803d",
-          }}
-        >
-          <span>
-            <strong style={{ fontFamily: "var(--mono)" }}>{promoOk.code}</strong>{" "}
-            uygulandı
-          </span>
-          <span style={{ fontFamily: "var(--mono)" }}>
-            −{Math.round(promoOk.discountMinor / 100)}₺
-          </span>
-        </div>
-      )}
-
-      <div
+      <a
+        href="/odeme"
+        className="btn btn-primary btn-lg"
+        style={{ width: "100%", justifyContent: "center" }}
+      >
+        Ödemeye geç
+        <span className="arrow">→</span>
+      </a>
+      <p
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 22,
-          alignItems: "baseline",
+          margin: "12px 0 0",
+          fontSize: 11,
+          letterSpacing: "0.04em",
+          color: "var(--ink-mute)",
+          textAlign: "center",
+          lineHeight: 1.55,
         }}
       >
-        <span style={{ fontFamily: "var(--serif-display)", fontSize: 20 }}>Toplam</span>
-        <span style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 28 }}>
-          {Math.round(finalTotal)}₺
-        </span>
-      </div>
-
-      {step === "summary" ? (
-        <button
-          type="button"
-          onClick={() => setStep("details")}
-          className="btn btn-primary btn-lg"
-          style={{ width: "100%", justifyContent: "center" }}
-        >
-          Ödemeye geç
-          <span className="arrow">→</span>
-        </button>
-      ) : (
-        <form
-          action={placeOrderAction}
-          onSubmit={() => setPending(true)}
-          style={{ display: "grid", gap: 10 }}
-        >
-          <input type="hidden" name="items" value={itemsJson} />
-          {promoOk && (
-            <input type="hidden" name="promoCode" value={promoOk.code} />
-          )}
-          <CheckoutInput
-            name="customerName"
-            type="text"
-            placeholder="Ad soyad"
-            required
-            autoComplete="name"
-          />
-          <CheckoutInput
-            name="customerEmail"
-            type="email"
-            placeholder="E-posta"
-            required
-            autoComplete="email"
-          />
-          <CheckoutInput
-            name="customerPhone"
-            type="tel"
-            placeholder="Telefon (+90…)"
-            required
-            autoComplete="tel"
-          />
-          <textarea
-            name="shippingAddress"
-            placeholder="Teslimat adresi (mahalle, cadde, no, ilçe / il, posta kodu)"
-            required
-            rows={3}
-            autoComplete="street-address"
-            style={{
-              width: "100%",
-              padding: "12px 14px",
-              borderRadius: 10,
-              border: "1px solid var(--ink-line)",
-              background: "var(--bg-warm)",
-              fontFamily: "inherit",
-              fontSize: 14,
-              color: "var(--ink)",
-              resize: "vertical",
-              minHeight: 70,
-            }}
-          />
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              type="button"
-              onClick={() => setStep("summary")}
-              disabled={pending}
-              className="btn"
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                background: "transparent",
-                border: "1px solid var(--ink-line)",
-                color: "var(--ink-soft)",
-              }}
-            >
-              ← Geri
-            </button>
-            <button
-              type="submit"
-              disabled={pending}
-              className="btn btn-primary"
-              style={{
-                flex: 2,
-                justifyContent: "center",
-                opacity: pending ? 0.7 : 1,
-              }}
-            >
-              {pending ? "Gönderiliyor…" : "Siparişi tamamla"}
-              <span className="arrow">→</span>
-            </button>
-          </div>
-          <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5 }}>
-            Bilgilerin yalnızca siparişin işlenmesi için kullanılır. Ödeme adımı
-            sanal POS entegrasyonu sonrası aktif olacak.
-          </p>
-        </form>
-      )}
+        Adres ve indirim kodu bir sonraki adımda eklenir.
+      </p>
     </footer>
-  );
-}
-
-function CheckoutInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      style={{
-        width: "100%",
-        padding: "12px 14px",
-        borderRadius: 10,
-        border: "1px solid var(--ink-line)",
-        background: "var(--bg-warm)",
-        fontFamily: "inherit",
-        fontSize: 14,
-        color: "var(--ink)",
-        ...props.style,
-      }}
-    />
   );
 }
 

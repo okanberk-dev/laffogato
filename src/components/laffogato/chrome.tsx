@@ -53,11 +53,51 @@ export function Nav({ route, navigate, dark, cart = 0, onCart, onSearch }: NavPr
 
   return (
     <>
+      {/* Sottile topbar — italian heritage strip, hidden once you scroll */}
+      <div
+        className={`nav-topbar ${scrolled ? "is-hidden" : ""} ${dark && !scrolled ? "on-dark" : ""}`}
+        aria-hidden="true"
+      >
+        <div className="nav-topbar-inner">
+          <span className="nav-topbar-item">Bologna · 1987</span>
+          <span className="nav-topbar-dot" />
+          <span className="nav-topbar-item">Maltepe Park · 10:00 — 23:00</span>
+          <span className="nav-topbar-dot" />
+          <span className="nav-topbar-item">500₺ üzeri Türkiye geneli ücretsiz kargo</span>
+        </div>
+      </div>
       <nav className={`nav ${scrolled ? "scrolled" : ""} ${dark && !scrolled ? "on-dark" : ""}`}>
         <div className="nav-left">
-          <a href="#home" onClick={go("home")} className="nav-brand">
-            L<span style={{ fontStyle: "italic" }}>’</span>Affogato
-            <span className="dot"></span>
+          <a
+            href="#home"
+            onClick={go("home")}
+            className="nav-brand"
+            aria-label="L'Affogato anasayfası"
+          >
+            <span className="nav-brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 32 32" width="26" height="26">
+                <circle cx="16" cy="16" r="15" fill="none" stroke="currentColor" strokeWidth="0.9" />
+                <text
+                  x="16"
+                  y="20.5"
+                  textAnchor="middle"
+                  fontFamily="var(--serif)"
+                  fontStyle="italic"
+                  fontSize="15"
+                  fontWeight="600"
+                  fill="currentColor"
+                >
+                  L
+                </text>
+                <circle cx="22" cy="9" r="1.1" fill="currentColor" />
+              </svg>
+            </span>
+            <span className="nav-brand-lockup">
+              <span className="nav-brand-text">
+                L<span style={{ fontStyle: "italic" }}>’</span>Affogato
+              </span>
+              <span className="nav-brand-tag">caffè · gelato · est. 1987</span>
+            </span>
           </a>
         </div>
         <div className="nav-center">
