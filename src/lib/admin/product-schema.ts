@@ -36,16 +36,39 @@ const intInput = z
     return Number.isFinite(v) ? Math.max(0, v) : 0;
   });
 
-const linesToArray = z
+const MAX_IMAGES = 8;
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+
+const imagesJsonArray = z
   .string()
   .optional()
-  .transform((s) =>
-    (s ?? "")
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter(Boolean)
-      .slice(0, 8),
-  );
+  .transform((raw) => {
+    const value = (raw ?? "").trim();
+    if (!value) return [] as string[];
+    // Back-compat: the field used to be newline-separated; treat anything
+    // that isn't a JSON array as legacy text input.
+    if (!value.startsWith("[")) {
+      return value
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .slice(0, MAX_IMAGES);
+    }
+    try {
+      const data = JSON.parse(value);
+      if (!Array.isArray(data)) return [];
+      return data
+        .map((v) => (typeof v === "string" ? v.trim() : ""))
+        .filter((v) => {
+          if (!v) return false;
+          if (v.startsWith("data:image/")) return v.length <= MAX_IMAGE_BYTES;
+          return /^https?:\/\//i.test(v);
+        })
+        .slice(0, MAX_IMAGES);
+    } catch {
+      return [];
+    }
+  });
 
 const variantsJson = z
   .string()
@@ -92,7 +115,7 @@ export const productFormSchema = z
     desc: z.string().trim().min(1, "Açıklama gerekli."),
     cat: z.enum(CAT_VALUES).default("beans"),
     img: z.enum(HUE_VALUES).default("cream"),
-    images: linesToArray,
+    images: imagesJsonArray,
     price: moneyToMinor,
     compareAtPrice: moneyToMinor.optional(),
     cost: moneyToMinor.optional(),
