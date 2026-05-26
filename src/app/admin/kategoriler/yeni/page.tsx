@@ -9,7 +9,7 @@ export const metadata = { title: "Admin · Yeni Kategori" };
 export default async function NewCategoryPage() {
   await requireRole("categories");
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Shop · Tassonomia"
         title="Yeni kategori"
