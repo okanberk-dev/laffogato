@@ -1,8 +1,9 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { Footer, Nav, type FooterSettings, type Route } from "./chrome";
+import { Footer, Nav, ROUTE_PATHS, type FooterSettings, type Route } from "./chrome";
 import {
   PageFranchise,
   PageHome,
@@ -27,12 +28,6 @@ const VALID_ROUTES: Route[] = [
 ];
 
 const CART_STORAGE_KEY = "laffogato_cart_v1";
-
-function readInitialRoute(): Route {
-  if (typeof window === "undefined") return "home";
-  const initial = (window.location.hash || "#home").replace("#", "") as Route;
-  return VALID_ROUTES.includes(initial) ? initial : "home";
-}
 
 function readStoredCart(): CartItem[] {
   if (typeof window === "undefined") return [];
@@ -61,6 +56,7 @@ export function LaffogatoApp({
   wishlist,
   isAuthenticated,
   shopHeroSlides,
+  initialRoute = "home",
 }: {
   products?: Product[];
   settings?: FooterSettings;
@@ -74,7 +70,12 @@ export function LaffogatoApp({
   isAuthenticated?: boolean;
   /** Admin-managed shop hero slides — PageShop renders them at the top. */
   shopHeroSlides?: ShopHeroSlide[];
+  /** The SPA section to render on first paint. Set by sub-page routes
+      (e.g. /menu → initialRoute="menu"); defaults to "home" for `/`. */
+  initialRoute?: Route;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [noticeOpen, setNoticeOpen] = useState(Boolean(notice));
 
   useEffect(() => {
@@ -83,7 +84,8 @@ export function LaffogatoApp({
     const t = window.setTimeout(() => setNoticeOpen(false), 7000);
     return () => window.clearTimeout(t);
   }, [notice]);
-  const [route, setRoute] = useState<Route>("home");
+
+  const [route, setRoute] = useState<Route>(initialRoute);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [productOpen, setProductOpen] = useState<Product | null>(null);
@@ -91,24 +93,26 @@ export function LaffogatoApp({
   const hydratedRef = useRef(false);
 
   useEffect(() => {
-    setRoute(readInitialRoute());
+    // Backward-compat: if user lands on `/` with a legacy hash like #menu,
+    // route them to the real sub-page so their bookmark still works.
+    if (typeof window !== "undefined" && initialRoute === "home") {
+      const hash = window.location.hash.replace("#", "") as Route;
+      if (hash && VALID_ROUTES.includes(hash) && hash !== "home") {
+        router.replace(ROUTE_PATHS[hash]);
+        return;
+      }
+    }
     setCart(readStoredCart());
     hydratedRef.current = true;
     setMounted(true);
-    const onHash = () => {
-      const r = (window.location.hash || "#home").replace("#", "") as Route;
-      if (VALID_ROUTES.includes(r)) setRoute(r);
-    };
     const onStorage = (e: StorageEvent) => {
       if (e.key === CART_STORAGE_KEY) setCart(readStoredCart());
     };
-    window.addEventListener("hashchange", onHash);
     window.addEventListener("storage", onStorage);
     return () => {
-      window.removeEventListener("hashchange", onHash);
       window.removeEventListener("storage", onStorage);
     };
-  }, []);
+  }, [initialRoute, router]);
 
   useEffect(() => {
     if (!hydratedRef.current) return;
@@ -124,9 +128,15 @@ export function LaffogatoApp({
   }, [cart]);
 
   const navigate = (r: Route) => {
+    const target = ROUTE_PATHS[r];
+    if (pathname === target) {
+      // Already on the exact same URL — just scroll to the top so the click
+      // feels responsive (e.g. user clicking "Menü" while on /menu).
+      window.scrollTo({ top: 0, behavior: "instant" });
+      return;
+    }
     setRoute(r);
-    window.location.hash = r;
-    window.scrollTo({ top: 0, behavior: "instant" });
+    router.push(target);
   };
 
   const addToCart = (item: CartItem) => {
@@ -161,12 +171,13 @@ export function LaffogatoApp({
 
   const cartCount = cart.reduce((s, it) => s + (it.qty || 1), 0);
 
-  // Avoid hydration mismatch — render only after we read the hash on the client.
+  // Avoid hydration mismatch — render only after we read localStorage on the
+  // client. The initial markup matches what the server emitted (cart=0).
   if (!mounted) {
     return (
       <>
-        <Nav route="home" navigate={navigate} dark cart={0} onCart={() => setCartOpen(true)} />
-        <PageHome
+        <Nav route={route} navigate={navigate} dark={dark} cart={0} onCart={() => setCartOpen(true)} />
+        <Page
           navigate={navigate}
           addToCart={addToCart}
           openProduct={setProductOpen}

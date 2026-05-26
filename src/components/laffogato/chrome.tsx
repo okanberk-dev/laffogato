@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type Route =
   | "home"
@@ -11,12 +11,64 @@ export type Route =
   | "visit"
   | "franchise";
 
+/** Real Next.js route URLs per SPA section. Used by both server-side links
+    (sitemap, breadcrumbs) and the Nav's `hrefFor` helper. */
+export const ROUTE_PATHS: Record<Route, string> = {
+  home: "/",
+  menu: "/menu",
+  shop: "/magaza",
+  story: "/hikayemiz",
+  reels: "/reels",
+  visit: "/ziyaret",
+  franchise: "/franchise",
+};
+
+export interface DropdownEntry {
+  slug: string;
+  label: string;
+  italian: string;
+  hue: "caramel" | "dark" | "cream" | "matcha" | "strawberry" | "pistachio";
+}
+
+export const MENU_DROPDOWN: DropdownEntry[] = [
+  { slug: "affogato", label: "Affogato", italian: "La firma della casa", hue: "caramel" },
+  { slug: "matcha", label: "Matcha Bar", italian: "Uji ceremonial grade", hue: "matcha" },
+  { slug: "espresso", label: "Espresso & Coffee", italian: "Dalla macchina", hue: "dark" },
+  { slug: "cold", label: "Cold Bar", italian: "Il banco freddo", hue: "strawberry" },
+  { slug: "gelato", label: "Gelato & Dolci", italian: "Dal banco", hue: "pistachio" },
+];
+
+export const SHOP_DROPDOWN: DropdownEntry[] = [
+  { slug: "cekirdek", label: "Çekirdek Kahve", italian: "Caffè in grani", hue: "dark" },
+  { slug: "hediye", label: "Hediye Seti", italian: "Confezioni regalo", hue: "cream" },
+  { slug: "ekipman", label: "Ekipman", italian: "Strumenti", hue: "caramel" },
+  { slug: "giyim", label: "Giyim", italian: "Capi d'autore", hue: "dark" },
+  { slug: "kiler", label: "Kiler", italian: "Dispensa", hue: "matcha" },
+];
+
+interface LinkEntry {
+  route: Route;
+  label: string;
+  dropdown?: DropdownEntry[];
+  basePath?: string;
+}
+
+const LINKS: LinkEntry[] = [
+  { route: "home", label: "Anasayfa" },
+  { route: "menu", label: "Menü", dropdown: MENU_DROPDOWN, basePath: "/menu" },
+  { route: "shop", label: "Mağaza", dropdown: SHOP_DROPDOWN, basePath: "/magaza" },
+  { route: "story", label: "Hikaye" },
+  { route: "reels", label: "Reels" },
+  { route: "visit", label: "Ziyaret" },
+  { route: "franchise", label: "Franchise" },
+];
+
 interface NavProps {
   /** Current SPA route — drives the active link underline. When the nav
       lives outside the homepage SPA (e.g. /uye, /hukuk, /odeme), leave undefined. */
   route?: Route;
   /** SPA-internal navigate (sets hash + scrolls). When undefined, links
-      degrade to normal anchors targeting "/#hash" so they work from any page. */
+      degrade to normal anchors targeting real route URLs. */
   navigate?: (r: Route) => void;
   dark?: boolean;
   cart?: number;
@@ -24,19 +76,13 @@ interface NavProps {
   onSearch?: () => void;
 }
 
-const LINKS: Array<[Route, string]> = [
-  ["home", "Anasayfa"],
-  ["menu", "Menü"],
-  ["shop", "Mağaza"],
-  ["story", "Hikaye"],
-  ["reels", "Reels"],
-  ["visit", "Ziyaret"],
-  ["franchise", "Franchise"],
-];
-
 export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<Route | null>(null);
+  const [mobileSection, setMobileSection] = useState<Route | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -49,21 +95,48 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
     document.body.classList.toggle("is-no-scroll", open);
   }, [open]);
 
-  /** Build the href for a SPA route — "/#hash" so it works from any page. */
-  const hrefFor = (r: Route) => (r === "home" ? "/" : `/#${r}`);
+  useEffect(() => {
+    if (!openDropdown) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenDropdown(null);
+    };
+    const onClick = (e: MouseEvent) => {
+      if (!dropdownRef.current) return;
+      if (!dropdownRef.current.contains(e.target as Node)) setOpenDropdown(null);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClick);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClick);
+    };
+  }, [openDropdown]);
 
-  /** Click handler — SPA-internal when `navigate` is provided, else a no-op
-      that lets the anchor's normal navigation happen. */
+  useEffect(() => () => {
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+  }, []);
+
+  const hrefFor = (r: Route) => ROUTE_PATHS[r];
+
   const go = (r: Route) => (e: React.MouseEvent) => {
     setOpen(false);
+    setOpenDropdown(null);
     if (navigate) {
       e.preventDefault();
       navigate(r);
     }
   };
 
-  /** Cart button — if no handler provided (because we're not in the SPA),
-      send the user to /odeme directly. */
+  const onHoverOpen = (r: Route) => {
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    setOpenDropdown(r);
+  };
+
+  const onHoverClose = () => {
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = window.setTimeout(() => setOpenDropdown(null), 180);
+  };
+
   const cartCount = cart ?? 0;
   const cartHandler = onCart
     ? { onClick: onCart, type: "button" as const, role: undefined }
@@ -84,7 +157,10 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
           <span className="nav-topbar-item">500₺ üzeri Türkiye geneli ücretsiz kargo</span>
         </div>
       </div>
-      <nav className={`nav ${scrolled ? "scrolled" : ""} ${dark && !scrolled ? "on-dark" : ""}`}>
+      <nav
+        className={`nav ${scrolled ? "scrolled" : ""} ${dark && !scrolled ? "on-dark" : ""}`}
+        ref={dropdownRef}
+      >
         <div className="nav-left">
           <a
             href={hrefFor("home")}
@@ -120,17 +196,60 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
             </span>
           </a>
         </div>
-        <div className="nav-center">
-          {LINKS.map(([r, label]) => (
-            <a
-              key={r}
-              href={hrefFor(r)}
-              onClick={go(r)}
-              className={`nav-link ${route === r ? "active" : ""}`}
-            >
-              {label}
-            </a>
-          ))}
+        <div
+          className="nav-center"
+          onMouseLeave={onHoverClose}
+        >
+          {LINKS.map((link) => {
+            const hasDropdown = !!link.dropdown;
+            const isActive = route === link.route;
+            const isOpen = openDropdown === link.route;
+            return (
+              <div
+                key={link.route}
+                className={`nav-link-wrap ${hasDropdown ? "has-dropdown" : ""}`}
+                onMouseEnter={hasDropdown ? () => onHoverOpen(link.route) : undefined}
+              >
+                <a
+                  href={hrefFor(link.route)}
+                  onClick={go(link.route)}
+                  className={`nav-link ${isActive ? "active" : ""} ${isOpen ? "is-open" : ""}`}
+                  aria-haspopup={hasDropdown ? "true" : undefined}
+                  aria-expanded={hasDropdown ? isOpen : undefined}
+                >
+                  {link.label}
+                  {hasDropdown && (
+                    <svg
+                      className="nav-link-caret"
+                      width="9"
+                      height="9"
+                      viewBox="0 0 10 10"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M2 4 L5 7 L8 4"
+                        stroke="currentColor"
+                        strokeWidth="1.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        fill="none"
+                      />
+                    </svg>
+                  )}
+                </a>
+                {hasDropdown && isOpen && (
+                  <DropdownPanel
+                    title={link.label}
+                    basePath={link.basePath ?? hrefFor(link.route)}
+                    entries={link.dropdown!}
+                    parentRoute={link.route}
+                    parentHref={hrefFor(link.route)}
+                    onClose={() => setOpenDropdown(null)}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
         <div className="nav-right">
           <a
@@ -169,6 +288,7 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
             className={`nav-burger ${open ? "open" : ""}`}
             onClick={() => setOpen((v) => !v)}
             aria-label="Menü"
+            aria-expanded={open}
           >
             <span></span>
             <span></span>
@@ -179,11 +299,64 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
 
       <div className={`mobile-sheet ${open ? "open" : ""}`}>
         <div className="mobile-sheet-links">
-          {LINKS.map(([r, label]) => (
-            <a key={r} href={hrefFor(r)} onClick={go(r)}>
-              {label}
-            </a>
-          ))}
+          {LINKS.map((link) => {
+            const hasDropdown = !!link.dropdown;
+            const isExpanded = mobileSection === link.route;
+            if (!hasDropdown) {
+              return (
+                <a key={link.route} href={hrefFor(link.route)} onClick={go(link.route)}>
+                  {link.label}
+                </a>
+              );
+            }
+            return (
+              <div key={link.route} className="mobile-sheet-section">
+                <button
+                  type="button"
+                  className={`mobile-sheet-section-head ${isExpanded ? "open" : ""}`}
+                  onClick={() =>
+                    setMobileSection(isExpanded ? null : link.route)
+                  }
+                  aria-expanded={isExpanded}
+                >
+                  <span>{link.label}</span>
+                  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                    <path
+                      d="M3 5 L7 9 L11 5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      fill="none"
+                    />
+                  </svg>
+                </button>
+                <div className={`mobile-sheet-sublist ${isExpanded ? "open" : ""}`}>
+                  <a
+                    href={hrefFor(link.route)}
+                    onClick={go(link.route)}
+                    className="mobile-sheet-sublink mobile-sheet-sublink-all"
+                  >
+                    Tümünü gör →
+                  </a>
+                  {link.dropdown!.map((entry) => (
+                    <a
+                      key={entry.slug}
+                      href={`${link.basePath ?? hrefFor(link.route)}/${entry.slug}`}
+                      onClick={() => setOpen(false)}
+                      className="mobile-sheet-sublink"
+                    >
+                      <span className={`mobile-sheet-sublink-swatch hue-${entry.hue}`} aria-hidden="true" />
+                      <span>
+                        <span className="mobile-sheet-sublink-label">{entry.label}</span>
+                        <span className="mobile-sheet-sublink-it">{entry.italian}</span>
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
           <a
             href="/uye/giris"
             onClick={() => setOpen(false)}
@@ -221,6 +394,68 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
   );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Dropdown panel — mega-menu for Menü / Mağaza
+   ───────────────────────────────────────────────────────────── */
+
+function DropdownPanel({
+  title,
+  basePath,
+  entries,
+  parentRoute,
+  parentHref,
+  onClose,
+}: {
+  title: string;
+  basePath: string;
+  entries: DropdownEntry[];
+  parentRoute: Route;
+  parentHref: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="nav-dropdown" role="menu" aria-label={`${title} alt menüsü`}>
+      <div className="nav-dropdown-inner">
+        <div className="nav-dropdown-head">
+          <div className="eyebrow">
+            {parentRoute === "menu" ? "Il menù · 5 kategori" : "La bottega · 5 kategori"}
+          </div>
+          <a href={parentHref} className="nav-dropdown-all" onClick={onClose}>
+            <span>Tüm {title.toLowerCase()}</span>
+            <span className="arrow">→</span>
+          </a>
+        </div>
+        <div className="nav-dropdown-grid">
+          {entries.map((entry) => (
+            <a
+              key={entry.slug}
+              href={`${basePath}/${entry.slug}`}
+              className="nav-dropdown-item"
+              onClick={onClose}
+              role="menuitem"
+            >
+              <span className={`nav-dropdown-swatch hue-${entry.hue}`} aria-hidden="true">
+                <span className="nav-dropdown-swatch-dot" />
+              </span>
+              <span className="nav-dropdown-text">
+                <span className="nav-dropdown-label">{entry.label}</span>
+                <span className="nav-dropdown-italian">{entry.italian}</span>
+              </span>
+              <span className="nav-dropdown-arrow" aria-hidden="true">→</span>
+            </a>
+          ))}
+        </div>
+        <div className="nav-dropdown-foot">
+          <span className="nav-dropdown-foot-mark">L'A</span>
+          <span className="nav-dropdown-foot-line">
+            Italia 1987 — {parentRoute === "menu" ? "tre rituali, un menù" : "dalla bottega alla casa"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export interface FooterSettings {
   phone?: string;
   email?: string;
@@ -229,7 +464,7 @@ export interface FooterSettings {
 
 interface FooterProps {
   /** Optional SPA navigate — when provided, links call it (no full nav).
-      When absent (non-SPA pages), links are plain anchors to "/#hash". */
+      When absent (non-SPA pages), links are plain anchors to real routes. */
   navigate?: (r: Route) => void;
   settings?: FooterSettings;
 }
@@ -246,7 +481,7 @@ function splitAddress(address?: string): string[] {
 }
 
 export function Footer({ navigate, settings }: FooterProps) {
-  const hrefFor = (r: Route) => (r === "home" ? "/" : `/#${r}`);
+  const hrefFor = (r: Route) => ROUTE_PATHS[r];
   const go = (r: Route) => (e: React.MouseEvent) => {
     if (!navigate) return; // allow default anchor navigation
     e.preventDefault();
@@ -312,14 +547,14 @@ export function Footer({ navigate, settings }: FooterProps) {
             açık-hava teras kahve barı.
           </p>
           <div className="footer-social">
-            <a className="nav-icon-btn" href="/#reels" onClick={go("reels")} aria-label="Instagram">
+            <a className="nav-icon-btn" href={hrefFor("reels")} onClick={go("reels")} aria-label="Instagram">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" strokeWidth="1.4" />
                 <circle cx="8" cy="8" r="2.6" stroke="currentColor" strokeWidth="1.4" />
                 <circle cx="11.5" cy="4.5" r="0.7" fill="currentColor" />
               </svg>
             </a>
-            <a className="nav-icon-btn" href="/#reels" onClick={go("reels")} aria-label="TikTok">
+            <a className="nav-icon-btn" href={hrefFor("reels")} onClick={go("reels")} aria-label="TikTok">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <path
                   d="M9 1 L9 11 A 2.5 2.5 0 1 1 6.5 8.5"
@@ -330,7 +565,7 @@ export function Footer({ navigate, settings }: FooterProps) {
                 <path d="M9 1 Q 9 4 13 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
               </svg>
             </a>
-            <a className="nav-icon-btn" href="/#reels" onClick={go("reels")} aria-label="YouTube">
+            <a className="nav-icon-btn" href={hrefFor("reels")} onClick={go("reels")} aria-label="YouTube">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <rect x="1.5" y="3.5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.4" />
                 <path d="M7 6 L10 8 L7 10 Z" fill="currentColor" />
@@ -341,30 +576,30 @@ export function Footer({ navigate, settings }: FooterProps) {
         <div>
           <h5>Menu</h5>
           <ul>
-            <li><a href="/#menu" onClick={go("menu")}>Affogato</a></li>
-            <li><a href="/#menu" onClick={go("menu")}>Matcha Bar</a></li>
-            <li><a href="/#menu" onClick={go("menu")}>Espresso</a></li>
-            <li><a href="/#menu" onClick={go("menu")}>Cold Bar</a></li>
-            <li><a href="/#menu" onClick={go("menu")}>Gelato & Dolci</a></li>
+            {MENU_DROPDOWN.map((m) => (
+              <li key={m.slug}>
+                <a href={`/menu/${m.slug}`}>{m.label}</a>
+              </li>
+            ))}
           </ul>
         </div>
         <div>
           <h5>Bottega</h5>
           <ul>
-            <li><a href="/#shop" onClick={go("shop")}>Çekirdek</a></li>
-            <li><a href="/#shop" onClick={go("shop")}>Edible Cups</a></li>
-            <li><a href="/#shop" onClick={go("shop")}>Gift Box</a></li>
-            <li><a href="/#shop" onClick={go("shop")}>Ekipman</a></li>
-            <li><a href="/#shop" onClick={go("shop")}>Giyim</a></li>
+            {SHOP_DROPDOWN.map((s) => (
+              <li key={s.slug}>
+                <a href={`/magaza/${s.slug}`}>{s.label}</a>
+              </li>
+            ))}
           </ul>
         </div>
         <div>
           <h5>L'azienda</h5>
           <ul>
-            <li><a href="/#story" onClick={go("story")}>Hikayemiz</a></li>
-            <li><a href="/#reels" onClick={go("reels")}>Reels & Film</a></li>
-            <li><a href="/#franchise" onClick={go("franchise")}>Franchise</a></li>
-            <li><a href="/#visit" onClick={go("visit")}>Maltepe Park</a></li>
+            <li><a href={hrefFor("story")} onClick={go("story")}>Hikayemiz</a></li>
+            <li><a href={hrefFor("reels")} onClick={go("reels")}>Reels & Film</a></li>
+            <li><a href={hrefFor("franchise")} onClick={go("franchise")}>Franchise</a></li>
+            <li><a href={hrefFor("visit")} onClick={go("visit")}>Maltepe Park</a></li>
             <li><a href="/uye/hesap">Hesabım</a></li>
           </ul>
         </div>
