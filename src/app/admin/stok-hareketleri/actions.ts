@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logAudit } from "@/lib/admin/audit";
 import { getAdminSession } from "@/lib/admin/auth";
 import { adjustStock } from "@/lib/admin/store";
 
@@ -33,6 +34,17 @@ export async function adjustStockAction(
 
   const result = await adjustStock({ productId, delta, note, actor });
   if (!result.ok) return { error: result.error };
+
+  await logAudit({
+    action: "update",
+    entity: "stock",
+    entityId: productId,
+    payload: {
+      delta,
+      stockAfter: result.product.stock,
+      note,
+    },
+  });
 
   revalidatePath("/admin/stok-hareketleri");
   revalidatePath("/admin/urunler");

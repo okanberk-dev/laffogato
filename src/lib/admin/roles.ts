@@ -23,6 +23,7 @@ export type AdminSection =
   | "promos"
   | "stock"
   | "reports"
+  | "audit"
   | "settings";
 
 const SECTION_ROLES: Record<AdminSection, AdminRole[]> = {
@@ -35,6 +36,7 @@ const SECTION_ROLES: Record<AdminSection, AdminRole[]> = {
   promos: ["owner", "manager"],
   stock: ["owner", "manager", "staff"],
   reports: ["owner", "manager"],
+  audit: ["owner"],
   settings: ["owner"],
 };
 

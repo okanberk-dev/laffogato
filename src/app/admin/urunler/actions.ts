@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { logAudit } from "@/lib/admin/audit";
 import { bulkProductSchema } from "@/lib/admin/bulk-schema";
 import { productFormSchema } from "@/lib/admin/product-schema";
 import {
@@ -85,7 +86,13 @@ export async function createProductAction(
       fieldErrors,
     };
   }
-  await createProduct(toInput(parsed.data));
+  const created = await createProduct(toInput(parsed.data));
+  await logAudit({
+    action: "create",
+    entity: "product",
+    entityId: created.id,
+    payload: { name: created.name, sku: created.sku },
+  });
   revalidateShop();
   redirect("/admin/urunler");
 }
@@ -108,6 +115,12 @@ export async function updateProductAction(
     };
   }
   await updateProduct(id, toInput(parsed.data));
+  await logAudit({
+    action: "update",
+    entity: "product",
+    entityId: id,
+    payload: { name: parsed.data.name, sku: parsed.data.sku },
+  });
   revalidateShop();
   revalidatePath(`/admin/urunler/${id}/duzenle`);
   redirect("/admin/urunler");
@@ -117,6 +130,7 @@ export async function deleteProductAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteProduct(id);
+  await logAudit({ action: "delete", entity: "product", entityId: id });
   revalidateShop();
 }
 
@@ -145,6 +159,11 @@ export async function bulkProductsAction(
     storeOp = { kind: op };
   }
   const { updated } = await bulkUpdateProducts(ids, storeOp);
+  await logAudit({
+    action: op === "delete" ? "bulk_delete" : "bulk_update",
+    entity: "product",
+    payload: { op, value, updated, idCount: ids.length },
+  });
   revalidateShop();
   return { ok: { op, updated } };
 }
