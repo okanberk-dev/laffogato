@@ -99,6 +99,9 @@ export const MENU: Record<string, MenuCategory> = {
 };
 
 export interface Product {
+  /** Stable AdminProduct id (e.g. "prd-001"). Optional because seed data
+      in this file isn't persisted with an id; populated by listShopProducts. */
+  id?: string;
   name: string;
   tag: string;
   price: string;

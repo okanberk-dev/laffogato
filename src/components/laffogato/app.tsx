@@ -57,6 +57,8 @@ export function LaffogatoApp({
   notice,
   menu,
   seoSlot,
+  wishlist,
+  isAuthenticated,
 }: {
   products?: Product[];
   settings?: FooterSettings;
@@ -64,6 +66,10 @@ export function LaffogatoApp({
   menu?: Record<string, MenuCategory>;
   /** Server-rendered SEO content (FAQ, address block) inserted just above the footer on every route. */
   seoSlot?: React.ReactNode;
+  /** Wishlist product IDs for the authenticated customer. Empty when guest. */
+  wishlist?: string[];
+  /** Whether the visitor is signed in. Drives the heart button login redirect. */
+  isAuthenticated?: boolean;
 }) {
   const [noticeOpen, setNoticeOpen] = useState(Boolean(notice));
 
@@ -197,6 +203,8 @@ export function LaffogatoApp({
         product={productOpen}
         onClose={() => setProductOpen(null)}
         addToCart={addToCart}
+        wishlist={wishlist}
+        isAuthenticated={isAuthenticated}
       />
       {notice && noticeOpen && (
         <div

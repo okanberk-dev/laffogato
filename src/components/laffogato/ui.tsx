@@ -7,6 +7,7 @@ import {
   previewPromoAction,
   type PromoPreviewState,
 } from "@/app/odeme/actions";
+import { toggleWishlistAction } from "@/app/uye/actions";
 
 import type { Product } from "./data";
 import {
@@ -572,10 +573,14 @@ export function ProductModal({
   product,
   onClose,
   addToCart,
+  wishlist,
+  isAuthenticated,
 }: {
   product: Product | null;
   onClose: () => void;
   addToCart: (item: CartItem) => void;
+  wishlist?: string[];
+  isAuthenticated?: boolean;
 }) {
   useEffect(() => {
     if (!product) return;
@@ -593,6 +598,7 @@ export function ProductModal({
   if (!product) return null;
   const p = product;
   const label = p.name.split("—")[0].trim().split(" ")[0];
+  const isFavorite = !!(p.id && wishlist?.includes(p.id));
 
   return (
     <div
@@ -647,6 +653,15 @@ export function ProductModal({
         </button>
         <div style={{ aspectRatio: "4/5", position: "relative" }}>
           <ProductSurface cat={p.cat} tone={p.img} label={label} sub={p.tag} />
+          {p.id && (
+            <div style={{ position: "absolute", top: 14, left: 14, zIndex: 4 }}>
+              <WishlistHeart
+                productId={p.id}
+                isFavorite={isFavorite}
+                isAuthenticated={!!isAuthenticated}
+              />
+            </div>
+          )}
         </div>
         <div
           style={{
@@ -734,5 +749,50 @@ export function ProductModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function WishlistHeart({
+  productId,
+  isFavorite,
+  isAuthenticated,
+}: {
+  productId: string;
+  isFavorite: boolean;
+  isAuthenticated: boolean;
+}) {
+  if (!isAuthenticated) {
+    return (
+      <a
+        href="/uye/giris"
+        aria-label="Favorilere eklemek için giriş yap"
+        title="Favorilere eklemek için giriş yap"
+        className="wishlist-heart"
+        style={{ position: "relative", top: 0, left: 0 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+          <path d="M12 21s-7-4.5-9.5-9.5C.7 7.2 4 3 8 4.5c2 .8 3 2.5 4 4 1-1.5 2-3.2 4-4 4-1.5 7.3 2.7 5.5 7C19 16.5 12 21 12 21Z" />
+        </svg>
+      </a>
+    );
+  }
+  return (
+    <form action={toggleWishlistAction} onClick={(e) => e.stopPropagation()}>
+      <input type="hidden" name="productId" value={productId} />
+      <input type="hidden" name="back" value="/" />
+      <button
+        type="submit"
+        aria-label={isFavorite ? "Favoriden çıkar" : "Favorilere ekle"}
+        title={isFavorite ? "Favoriden çıkar" : "Favorilere ekle"}
+        className="wishlist-heart"
+        data-active={isFavorite ? "true" : undefined}
+        style={{ position: "relative", top: 0, left: 0 }}
+      >
+        <svg viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+          <path d="M12 21s-7-4.5-9.5-9.5C.7 7.2 4 3 8 4.5c2 .8 3 2.5 4 4 1-1.5 2-3.2 4-4 4-1.5 7.3 2.7 5.5 7C19 16.5 12 21 12 21Z" />
+        </svg>
+      </button>
+    </form>
   );
 }

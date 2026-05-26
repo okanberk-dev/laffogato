@@ -7,6 +7,7 @@ import {
   listMenuForCustomer,
   listShopProducts,
 } from "@/lib/admin/store";
+import { getActiveCustomer } from "@/lib/customer/auth";
 import { FAQ } from "@/lib/seo/faq";
 import { SITE } from "@/lib/seo/site";
 import { siteGraphLd } from "@/lib/seo/structured-data";
@@ -30,11 +31,12 @@ interface PageProps {
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const [{ cart, item, available }, products, settings, menu] = await Promise.all([
+  const [{ cart, item, available }, products, settings, menu, customer] = await Promise.all([
     searchParams,
     listShopProducts(),
     getSettings(),
     listMenuForCustomer(),
+    getActiveCustomer(),
   ]);
 
   let notice: string | undefined;
@@ -64,6 +66,8 @@ export default async function HomePage({ searchParams }: PageProps) {
         menu={menu}
         notice={notice}
         seoSlot={<SeoContent faq={FAQ} />}
+        wishlist={customer?.wishlist}
+        isAuthenticated={!!customer}
       />
     </>
   );
