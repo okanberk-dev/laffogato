@@ -4,6 +4,7 @@ import { LaffogatoApp } from "@/components/laffogato/app";
 import { SeoContent } from "@/components/laffogato/seo-content";
 import {
   getSettings,
+  listActiveShopHeroSlides,
   listMenuForCustomer,
   listShopProducts,
 } from "@/lib/admin/store";
@@ -31,12 +32,13 @@ interface PageProps {
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const [{ cart, item, available }, products, settings, menu, customer] = await Promise.all([
+  const [{ cart, item, available }, products, settings, menu, customer, heroSlides] = await Promise.all([
     searchParams,
     listShopProducts(),
     getSettings(),
     listMenuForCustomer(),
     getActiveCustomer(),
+    listActiveShopHeroSlides(),
   ]);
 
   let notice: string | undefined;
@@ -68,6 +70,15 @@ export default async function HomePage({ searchParams }: PageProps) {
         seoSlot={<SeoContent faq={FAQ} />}
         wishlist={customer?.wishlist}
         isAuthenticated={!!customer}
+        shopHeroSlides={heroSlides.map((s) => ({
+          id: s.id,
+          title: s.title,
+          subtitle: s.subtitle,
+          imageUrl: s.imageUrl,
+          ctaLabel: s.ctaLabel,
+          ctaHref: s.ctaHref,
+          textTheme: s.textTheme,
+        }))}
       />
     </>
   );

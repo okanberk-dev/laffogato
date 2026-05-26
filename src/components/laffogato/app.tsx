@@ -13,6 +13,7 @@ import {
   PageVisit,
 } from "./pages";
 import { CartDrawer, ProductModal, type CartItem } from "./ui";
+import type { ShopHeroSlide } from "./shop-hero-slider";
 import type { MenuCategory, Product } from "./data";
 
 const VALID_ROUTES: Route[] = [
@@ -59,6 +60,7 @@ export function LaffogatoApp({
   seoSlot,
   wishlist,
   isAuthenticated,
+  shopHeroSlides,
 }: {
   products?: Product[];
   settings?: FooterSettings;
@@ -70,6 +72,8 @@ export function LaffogatoApp({
   wishlist?: string[];
   /** Whether the visitor is signed in. Drives the heart button login redirect. */
   isAuthenticated?: boolean;
+  /** Admin-managed shop hero slides — PageShop renders them at the top. */
+  shopHeroSlides?: ShopHeroSlide[];
 }) {
   const [noticeOpen, setNoticeOpen] = useState(Boolean(notice));
 
@@ -168,6 +172,7 @@ export function LaffogatoApp({
           openProduct={setProductOpen}
           products={products}
           menu={menu}
+          shopHeroSlides={shopHeroSlides}
         />
         {seoSlot}
         <Footer navigate={navigate} settings={settings} />
@@ -190,6 +195,7 @@ export function LaffogatoApp({
         openProduct={setProductOpen}
         products={products}
         menu={menu}
+        shopHeroSlides={shopHeroSlides}
       />
       {seoSlot}
       <Footer navigate={navigate} settings={settings} />

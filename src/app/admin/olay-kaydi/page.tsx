@@ -15,6 +15,7 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
   product: "Ürün",
   menu_item: "Menü",
   category: "Kategori",
+  shop_hero_slide: "Mağaza Hero",
   order: "Sipariş",
   order_item: "Sipariş kalemi",
   promo: "Promosyon",
