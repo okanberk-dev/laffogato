@@ -53,14 +53,14 @@ export default async function CustomersPage({ searchParams }: PageProps) {
   const totalOrders = all.reduce((s, c) => s + c.orderCount, 0);
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Pazarlama · CRM lite"
         title="Müşteriler"
         description="Misafir siparişlerden e-postaya göre çıkarılan müşteri profilleri. Auth bağlandığında gerçek hesaplarla birleşecek."
       />
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+      <div className="mb-4 grid gap-3 grid-cols-2 sm:grid-cols-4">
         <Stat label="Müşteri" value={String(all.length)} />
         <Stat label="Toplam sipariş" value={String(totalOrders)} />
         <Stat label="Lifetime value" value={formatTRY(totalValue)} mono />
@@ -73,8 +73,8 @@ export default async function CustomersPage({ searchParams }: PageProps) {
       </div>
 
       <Card className="mb-4">
-        <form className="flex flex-wrap items-end gap-3">
-          <label className="flex-1 min-w-[240px] grid gap-1">
+        <form className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
+          <label className="grid gap-1">
             <span
               className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
               style={{ fontFamily: "var(--mono), monospace" }}
@@ -86,7 +86,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
               name="q"
               defaultValue={q}
               placeholder="E-posta, ad veya telefon"
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-base focus:border-neutral-900 focus:bg-white focus:outline-none sm:text-sm"
             />
           </label>
           <label className="grid gap-1">
@@ -99,7 +99,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
             <select
               name="sort"
               defaultValue={sort}
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-base focus:border-neutral-900 focus:bg-white focus:outline-none sm:text-sm"
             >
               {(Object.keys(SORT_LABEL) as SortKey[]).map((s) => (
                 <option key={s} value={s}>
@@ -110,13 +110,13 @@ export default async function CustomersPage({ searchParams }: PageProps) {
           </label>
           <button
             type="submit"
-            className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-medium text-white hover:bg-neutral-800"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-neutral-900 px-4 text-sm font-medium text-white hover:bg-neutral-800"
           >
             Uygula
           </button>
           <Link
             href="/admin/musteriler"
-            className="rounded-full border border-neutral-200 px-4 py-2 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-neutral-200 px-4 text-sm text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
           >
             Sıfırla
           </Link>
@@ -131,7 +131,62 @@ export default async function CustomersPage({ searchParams }: PageProps) {
               : "Henüz misafir e-postası içeren sipariş yok."}
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile cards */}
+          <ul className="flex flex-col gap-3 md:hidden">
+            {list.map((c) => (
+              <li key={c.email} className="rounded-lg border border-neutral-200 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-medium text-neutral-900">{c.name || "—"}</div>
+                    <div className="truncate text-xs text-neutral-700">{c.email}</div>
+                    {c.phone && (
+                      <div className="text-xs text-neutral-500">{c.phone}</div>
+                    )}
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div
+                      className="text-sm text-neutral-900"
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      {formatTRY(c.lifetimeValueMinor)}
+                    </div>
+                    <div
+                      className="text-[10px] text-neutral-500"
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      {c.orderCount} sipariş
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                  <div
+                    className="text-neutral-500"
+                    style={{ fontFamily: "var(--mono), monospace" }}
+                  >
+                    Son: {formatDateTime(c.lastOrderAt)}
+                  </div>
+                  {c.refundedMinor > 0 && (
+                    <span
+                      className="text-rose-700"
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      İade −{formatTRY(c.refundedMinor)}
+                    </span>
+                  )}
+                </div>
+                <Link
+                  href={`/admin/musteriler/${encodeURIComponent(c.email)}`}
+                  className="mt-3 inline-flex min-h-[40px] w-full items-center justify-center rounded-full border border-neutral-200 px-3 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+                >
+                  Geçmiş →
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr
@@ -211,6 +266,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Card>
     </main>

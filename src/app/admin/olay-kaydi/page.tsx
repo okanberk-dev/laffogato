@@ -75,7 +75,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
   });
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Denetim"
         title="Olay Kaydı"
@@ -83,7 +83,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
       />
 
       <Card className="mb-4">
-        <form className="flex flex-wrap items-end gap-3">
+        <form className="grid gap-3 sm:grid-cols-2 sm:items-end md:grid-cols-[1fr_1fr_1fr_auto_auto]">
           <label className="grid gap-1">
             <span
               className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
@@ -96,7 +96,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
               name="actor"
               defaultValue={sp.actor ?? ""}
               placeholder="ali@…"
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-base focus:border-neutral-900 focus:bg-white focus:outline-none sm:text-sm"
             />
           </label>
           <label className="grid gap-1">
@@ -109,7 +109,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
             <select
               name="entity"
               defaultValue={sp.entity ?? ""}
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-base focus:border-neutral-900 focus:bg-white focus:outline-none sm:text-sm"
             >
               <option value="">Tümü</option>
               {(Object.keys(ENTITY_LABEL) as AuditEntity[]).map((e) => (
@@ -129,7 +129,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
             <select
               name="action"
               defaultValue={sp.action ?? ""}
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-base focus:border-neutral-900 focus:bg-white focus:outline-none sm:text-sm"
             >
               <option value="">Tümü</option>
               {(Object.keys(ACTION_LABEL) as AuditAction[]).map((a) => (
@@ -141,13 +141,13 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
           </label>
           <button
             type="submit"
-            className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-medium text-white hover:bg-neutral-800"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-neutral-900 px-4 text-sm font-medium text-white hover:bg-neutral-800"
           >
             Uygula
           </button>
           <Link
             href="/admin/olay-kaydi"
-            className="rounded-full border border-neutral-200 px-4 py-2 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-neutral-200 px-4 text-sm text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
           >
             Sıfırla
           </Link>
@@ -161,7 +161,59 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
             burada görünecek.
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile cards */}
+          <ul className="flex flex-col gap-3 md:hidden">
+            {rows.map((r) => (
+              <li key={r.id} className="rounded-lg border border-neutral-200 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-sm text-neutral-900">
+                      <span className="font-medium">{ENTITY_LABEL[r.entity]}</span>
+                      {r.entityId && (
+                        <span
+                          className="ml-2 text-[10px] text-neutral-500"
+                          style={{ fontFamily: "var(--mono), monospace" }}
+                        >
+                          {r.entityId}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className="mt-0.5 text-[10px] text-neutral-500"
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      {formatDateTime(r.createdAt)} · {r.actor}
+                    </div>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${ACTION_TONE[r.action]}`}
+                  >
+                    {ACTION_LABEL[r.action]}
+                  </span>
+                </div>
+                {Object.keys(r.payload).length > 0 && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-[11px] text-neutral-500 hover:text-neutral-900">
+                      Payload göster
+                    </summary>
+                    <code
+                      className="mt-2 block break-all rounded bg-neutral-50 p-2"
+                      style={{
+                        fontFamily: "var(--mono), monospace",
+                        fontSize: 11,
+                      }}
+                    >
+                      {JSON.stringify(r.payload)}
+                    </code>
+                  </details>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr
@@ -230,6 +282,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Card>
     </main>
