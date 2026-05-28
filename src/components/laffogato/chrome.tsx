@@ -2,26 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export type Route =
-  | "home"
-  | "menu"
-  | "shop"
-  | "story"
-  | "reels"
-  | "visit"
-  | "franchise";
+import { ROUTE_PATHS, type Route } from "./route-paths";
 
-/** Real Next.js route URLs per SPA section. Used by both server-side links
-    (sitemap, breadcrumbs) and the Nav's `hrefFor` helper. */
-export const ROUTE_PATHS: Record<Route, string> = {
-  home: "/",
-  menu: "/menu",
-  shop: "/magaza",
-  story: "/hikayemiz",
-  reels: "/reels",
-  visit: "/ziyaret",
-  franchise: "/franchise",
-};
+export type { Route };
+/** Re-export for legacy importers that still pull `ROUTE_PATHS` from here.
+    New server-side code should import directly from `./route-paths`. */
+export { ROUTE_PATHS };
 
 export interface DropdownEntry {
   slug: string;

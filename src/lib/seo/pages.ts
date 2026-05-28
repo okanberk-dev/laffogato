@@ -7,8 +7,7 @@
  * later without touching the route files.
  */
 
-import type { Route } from "@/components/laffogato/chrome";
-import { ROUTE_PATHS } from "@/components/laffogato/chrome";
+import { ROUTE_PATHS, type Route } from "@/components/laffogato/route-paths";
 
 import { SITE } from "./site";
 

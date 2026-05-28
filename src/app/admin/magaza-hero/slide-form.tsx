@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 
 import {
   Card,
@@ -24,6 +24,45 @@ export interface SlideDefaults {
   isActive?: boolean;
 }
 
+/* Hero slider için 21:9 cinematic oran — long edge 1920px'e küçültülür. */
+const MAX_DIMENSION = 1920;
+const JPEG_QUALITY = 0.85;
+const MAX_SOURCE_BYTES = 15 * 1024 * 1024;
+const ACCEPTED_MIME = /^image\/(jpe?g|png|webp|avif|gif)$/i;
+
+async function resizeImage(file: File): Promise<string> {
+  if (file.size > MAX_SOURCE_BYTES) {
+    throw new Error(`${file.name} 15 MB'ı aşıyor — daha küçük bir görsel seç.`);
+  }
+  if (!ACCEPTED_MIME.test(file.type)) {
+    throw new Error(`${file.name} desteklenmeyen format (JPG, PNG, WebP, AVIF veya GIF).`);
+  }
+  const bitmap = await createImageBitmap(file).catch(() => null);
+  if (!bitmap) throw new Error("Görsel okunamadı.");
+  const longest = Math.max(bitmap.width, bitmap.height);
+  const scale = longest > MAX_DIMENSION ? MAX_DIMENSION / longest : 1;
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close?.();
+    throw new Error("Canvas context açılamadı.");
+  }
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close?.();
+  return canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+}
+
+function approxKB(value: string): number {
+  if (!value.startsWith("data:")) return 0;
+  const i = value.indexOf(",");
+  if (i === -1) return 0;
+  return Math.round(((value.length - i - 1) * 0.75) / 1024);
+}
+
 export function SlideForm({
   defaults,
   action,
@@ -38,6 +77,45 @@ export function SlideForm({
   const [subtitle, setSubtitle] = useState(d.subtitle ?? "");
   const [imageUrl, setImageUrl] = useState(d.imageUrl ?? "");
   const [textTheme, setTextTheme] = useState<"light" | "dark">(d.textTheme ?? "light");
+  const [dragOver, setDragOver] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const ingestFile = useCallback(async (file: File) => {
+    setProcessing(true);
+    setError(null);
+    try {
+      const url = await resizeImage(file);
+      setImageUrl(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Görsel işlenemedi.");
+    } finally {
+      setProcessing(false);
+    }
+  }, []);
+
+  const onFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) void ingestFile(file);
+    e.target.value = "";
+  };
+  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) void ingestFile(file);
+  };
+  const onDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!dragOver) setDragOver(true);
+  };
+  const onDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const isDataUrl = imageUrl.startsWith("data:");
 
   return (
     <form action={action} className="grid gap-4">
@@ -71,16 +149,118 @@ export function SlideForm({
             onChange={(e) => setSubtitle(e.target.value)}
           />
         </Field>
-        <Field label="Görsel URL'si" hint="Tam URL — Vercel Blob, Cloudinary veya kendi CDN'i. Boş bırakırsan altın gradient fallback görünür.">
-          <TextInput
-            name="imageUrl"
-            type="url"
-            placeholder="https://..."
-            maxLength={500}
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
+
+        {/* Görsel — file upload + URL */}
+        <div className="grid gap-2">
+          <span
+            className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+            style={{ fontFamily: "var(--mono), monospace" }}
+          >
+            Görsel
+          </span>
+
+          {imageUrl ? (
+            <div className="relative overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
+              <div
+                style={{
+                  aspectRatio: "21 / 9",
+                  width: "100%",
+                  backgroundImage: `url(${imageUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              />
+              <div className="flex items-center justify-between gap-2 border-t border-neutral-200 bg-white px-3 py-2">
+                <span
+                  className="font-mono text-[10px] uppercase tracking-[0.18em] text-neutral-500"
+                >
+                  {isDataUrl ? `Yüklenmiş · ${approxKB(imageUrl)} KB` : "URL"}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    className="rounded-full border border-neutral-300 px-3 py-1 text-xs hover:border-neutral-900"
+                  >
+                    Değiştir
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl("")}
+                    className="rounded-full border border-red-200 px-3 py-1 text-xs text-red-700 hover:border-red-600 hover:bg-red-600 hover:text-white"
+                  >
+                    Kaldır
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onClick={() => fileRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileRef.current?.click();
+                }
+              }}
+              className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-12 text-center transition-colors ${
+                dragOver
+                  ? "border-neutral-900 bg-neutral-50"
+                  : "border-neutral-300 bg-neutral-50/50 hover:border-neutral-500"
+              }`}
+            >
+              <div
+                className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+                style={{ fontFamily: "var(--mono), monospace" }}
+              >
+                {processing ? "İşleniyor…" : "Sürükle bırak veya tıkla"}
+              </div>
+              <div className="mt-2 text-sm text-neutral-700">
+                Hero için <span className="font-medium">21:9 oran</span> (örn. 1920×823 px)
+              </div>
+              <div className="mt-1 text-xs text-neutral-500">
+                JPG, PNG, WebP, AVIF veya GIF · max 15 MB. Otomatik 1920px&apos;e küçültülür, JPEG&apos;e dönüştürülür.
+              </div>
+            </div>
+          )}
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            onChange={onFileInputChange}
+            className="hidden"
           />
-        </Field>
+          {error && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {error}
+            </div>
+          )}
+
+          {/* URL girme alternatifi */}
+          <div className="mt-2 flex items-center gap-2 border-t border-neutral-100 pt-3">
+            <span
+              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              style={{ fontFamily: "var(--mono), monospace" }}
+            >
+              veya URL
+            </span>
+            <input
+              type="url"
+              value={isDataUrl ? "" : imageUrl}
+              placeholder="https://images.example.com/hero.jpg"
+              onChange={(e) => setImageUrl(e.target.value)}
+              className="flex-1 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs outline-none focus:border-neutral-900 focus:bg-white"
+            />
+          </div>
+
+          <input type="hidden" name="imageUrl" value={imageUrl} />
+        </div>
       </Card>
 
       <Card>

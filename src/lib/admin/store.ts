@@ -1821,7 +1821,11 @@ function normalizeSlide(input: ShopHeroSlideInput): ShopHeroSlideInput {
   return {
     title: input.title.trim().slice(0, 120),
     subtitle: input.subtitle.trim().slice(0, 300),
-    imageUrl: input.imageUrl.trim().slice(0, 500),
+    /* 4 MB clamp — yeterli data URL'i ve normal CDN URL'lerini kapsar.
+       Hero görseli için 1920px JPEG @ 0.85 kalite tipik olarak ~600-1500KB
+       base64 boyutuna ulaşır; sabit 500 char limiti URL'i kesip görseli
+       bozardı. */
+    imageUrl: input.imageUrl.trim().slice(0, 4 * 1024 * 1024),
     ctaLabel: input.ctaLabel.trim().slice(0, 40),
     ctaHref: input.ctaHref.trim().slice(0, 200),
     textTheme: input.textTheme === "dark" ? "dark" : "light",
