@@ -89,6 +89,7 @@ export default async function MagazaCategoryPage({ params }: RouteParams) {
         seoSlot={<SeoContent faq={FAQ} />}
         wishlist={customer?.wishlist}
         isAuthenticated={!!customer}
+        freeShippingThreshold={Math.round(settings.shippingFreeThresholdMinor / 100)}
         shopHeroSlides={heroSlides.map((s) => ({
           id: s.id,
           title: s.title,

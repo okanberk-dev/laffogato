@@ -98,6 +98,17 @@ export const MENU: Record<string, MenuCategory> = {
   },
 };
 
+/** Customer-facing product variant (a subset of AdminProductVariant). */
+export interface ProductVariant {
+  id: string;
+  name: string;
+  /** Price delta on top of the base price, in major units (₺). Can be negative. */
+  priceDelta: number;
+  /** Remaining stock for this variant; undefined = not tracked. */
+  stock?: number;
+  isActive?: boolean;
+}
+
 export interface Product {
   /** Stable AdminProduct id (e.g. "prd-001"). Optional because seed data
       in this file isn't persisted with an id; populated by listShopProducts. */
@@ -112,6 +123,26 @@ export interface Product {
   img: string;
   featured?: boolean;
   isNew?: boolean;
+
+  // ── Rich fields (populated by listShopProducts; absent on static seed) ──
+  /** URL-safe slug for the product detail page (/magaza/urun/<slug>). */
+  slug?: string;
+  /** Stock keeping unit. */
+  sku?: string;
+  /** External image gallery URLs. The card/PDP uses these when present. */
+  images?: string[];
+  /** Remaining stock. 0 = out of stock; undefined = not tracked. */
+  stock?: number;
+  /** Low-stock threshold for the "son N adet" urgency badge. */
+  lowStockThreshold?: number;
+  /** Approximate shipping weight (grams). */
+  weightGrams?: number;
+  /** Selectable variants (size, grind, etc.). */
+  variants?: ProductVariant[];
+  /** Base price in minor units (kuruş) for precise client-side math. */
+  priceMinor?: number;
+  /** Compare-at price in minor units (kuruş). */
+  compareAtPriceMinor?: number;
 }
 
 export const PRODUCTS: Product[] = [

@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { applyPromoCode, placeOrder } from "@/lib/admin/store";
+import { applyPromoCode, getSettings, placeOrder } from "@/lib/admin/store";
+import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
 
 export interface PromoPreviewState {
   error?: string;
@@ -33,7 +34,22 @@ export async function previewPromoAction(
   };
 }
 
+/**
+ * Returns the authoritative shipping config so the checkout can show real
+ * shipping/free-shipping math (matching what the server will charge).
+ */
+export async function getCheckoutConfigAction(): Promise<CheckoutConfig> {
+  const s = await getSettings();
+  return {
+    shippingFlatMinor: s.shippingFlatMinor,
+    shippingFreeThresholdMinor: s.shippingFreeThresholdMinor,
+    taxRatePct: s.taxRatePct,
+  };
+}
+
 interface ClientCartItem {
+  productId?: string;
+  variantId?: string;
   name: string;
   /** Major units (₺) as the design's `Product.price` stores them. */
   price: number;
@@ -44,19 +60,25 @@ function parseItems(raw: string): ClientCartItem[] {
   try {
     const data = JSON.parse(raw);
     if (!Array.isArray(data)) return [];
-    return data
-      .map((it: unknown) => {
-        if (typeof it !== "object" || it === null) return null;
-        const o = it as Record<string, unknown>;
-        const name = typeof o.name === "string" ? o.name : null;
-        const price = typeof o.price === "number" ? o.price : Number(o.price);
-        const qty = typeof o.qty === "number" ? o.qty : Number(o.qty ?? 1);
-        if (!name || !Number.isFinite(price) || !Number.isFinite(qty)) {
-          return null;
-        }
-        return { name, price, qty };
-      })
-      .filter((it): it is ClientCartItem => it !== null && it.qty > 0);
+    const out: ClientCartItem[] = [];
+    for (const it of data as unknown[]) {
+      if (typeof it !== "object" || it === null) continue;
+      const o = it as Record<string, unknown>;
+      const name = typeof o.name === "string" ? o.name : null;
+      const price = typeof o.price === "number" ? o.price : Number(o.price);
+      const qty = typeof o.qty === "number" ? o.qty : Number(o.qty ?? 1);
+      if (!name || !Number.isFinite(price) || !Number.isFinite(qty) || qty <= 0) {
+        continue;
+      }
+      out.push({
+        productId: typeof o.productId === "string" ? o.productId : undefined,
+        variantId: typeof o.variantId === "string" ? o.variantId : undefined,
+        name,
+        price,
+        qty,
+      });
+    }
+    return out;
   } catch {
     return [];
   }
@@ -71,6 +93,8 @@ export async function placeOrderAction(formData: FormData) {
 
   const result = await placeOrder({
     items: items.map((it) => ({
+      productId: it.productId,
+      variantId: it.variantId,
       name: it.name,
       priceMinor: Math.round(it.price * 100),
       qty: it.qty,
@@ -84,10 +108,12 @@ export async function placeOrderAction(formData: FormData) {
   });
 
   if (!result.ok) {
+    if (result.reason === "empty") redirect("/?cart=empty");
     const params = new URLSearchParams({
       cart: result.reason,
-      item: result.productName,
-      available: String(result.available),
+      item: "productName" in result ? result.productName : "",
+      available:
+        "available" in result ? String(result.available) : "",
     });
     redirect(`/?${params.toString()}`);
   }

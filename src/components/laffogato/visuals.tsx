@@ -1007,11 +1007,14 @@ export function ProductSurface({
   tone = "cream",
   label,
   sub,
+  images,
 }: {
   cat?: string;
   tone?: string;
   label?: string;
   sub?: string;
+  /** Admin-uploaded image URLs; when present the first is shown instead of SVG. */
+  images?: string[];
 }) {
   const surface =
     cat === "beans"
@@ -1025,6 +1028,19 @@ export function ProductSurface({
             : cat === "pantry"
               ? "pistachio"
               : "warm";
+
+  const cover = images?.find((u) => typeof u === "string" && u.length > 0);
+  if (cover) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={cover}
+        alt={label ?? "Ürün görseli"}
+        loading="lazy"
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+      />
+    );
+  }
 
   return (
     <PhotoSurface hue={surface}>

@@ -4,10 +4,6 @@ import type { Metadata } from "next";
 
 import { LEGAL_DOCS, findLegalDoc } from "@/lib/legal/documents";
 
-export function generateStaticParams() {
-  return LEGAL_DOCS.map((d) => ({ slug: d.slug }));
-}
-
 export async function generateMetadata({
   params,
 }: {

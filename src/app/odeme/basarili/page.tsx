@@ -139,6 +139,21 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
               </li>
             ))}
           </ul>
+          <div className="mt-4 grid gap-1.5 border-t border-neutral-200 pt-4 text-sm">
+            <SummaryRow label="Ara toplam" value={formatTRY(order.subtotalMinor)} />
+            {order.discountMinor > 0 && (
+              <SummaryRow
+                label={`İndirim${order.promoCode ? ` · ${order.promoCode}` : ""}`}
+                value={`−${formatTRY(order.discountMinor)}`}
+                tone="green"
+              />
+            )}
+            <SummaryRow
+              label="Kargo"
+              value={order.shippingMinor > 0 ? formatTRY(order.shippingMinor) : "Ücretsiz"}
+            />
+            <SummaryRow label="Toplam" value={formatTRY(order.totalMinor)} strong />
+          </div>
         </div>
 
         <div className="mt-10 flex flex-wrap gap-3">
@@ -165,5 +180,35 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         </p>
       </div>
     </main>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  strong,
+  tone,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  tone?: "green";
+}) {
+  return (
+    <div
+      className="flex items-baseline justify-between gap-4"
+      style={{
+        borderTop: strong ? "1px solid var(--ink-line, #E8E1D5)" : undefined,
+        paddingTop: strong ? 10 : undefined,
+        marginTop: strong ? 4 : undefined,
+        fontWeight: strong ? 600 : 400,
+        color: tone === "green" ? "#15803d" : undefined,
+      }}
+    >
+      <span>{label}</span>
+      <span style={{ fontFamily: "var(--mono), monospace", fontSize: strong ? 16 : undefined }}>
+        {value}
+      </span>
+    </div>
   );
 }

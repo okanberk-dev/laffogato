@@ -4,10 +4,18 @@ import Link from "next/link";
 import { useActionState, useEffect, useMemo, useState } from "react";
 
 import type { PublicCustomer, CustomerAddress } from "@/lib/customer/store";
+import {
+  computeOrderTotals,
+  type CheckoutConfig,
+  DEFAULT_CHECKOUT_CONFIG,
+} from "@/lib/utils/commerce";
 
 import { placeOrderAction, previewPromoAction, type PromoPreviewState } from "./actions";
 
 interface CartItem {
+  productId?: string;
+  variantId?: string;
+  variantName?: string;
   name: string;
   price: number;
   qty?: number;
@@ -61,7 +69,13 @@ function formatTRY(value: number): string {
   })}₺`;
 }
 
-export function CheckoutWizard({ customer }: { customer: PublicCustomer | null }) {
+export function CheckoutWizard({
+  customer,
+  config = DEFAULT_CHECKOUT_CONFIG,
+}: {
+  customer: PublicCustomer | null;
+  config?: CheckoutConfig;
+}) {
   const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<CartItem[]>([]);
   const [step, setStep] = useState<Step>("review");
@@ -88,7 +102,21 @@ export function CheckoutWizard({ customer }: { customer: PublicCustomer | null }
   const [promoState, promoAction, promoPending] = useActionState(previewPromoAction, promoInitial);
   const promoOk = promoState.ok;
   const discountMajor = promoOk ? promoOk.discountMinor / 100 : 0;
-  const total = Math.max(0, subtotal - discountMajor);
+
+  // Authoritative money math (shipping + total) using the same helper the
+  // server uses at placeOrder — keeps the displayed total === charged total.
+  const totals = useMemo(
+    () =>
+      computeOrderTotals(
+        Math.round(subtotal * 100),
+        Math.round(discountMajor * 100),
+        config,
+      ),
+    [subtotal, discountMajor, config],
+  );
+  const shippingMajor = totals.shippingMinor / 100;
+  const total = totals.totalMinor / 100;
+  const freeShippingRemainingMajor = totals.freeShippingRemainingMinor / 100;
 
   const setQty = (idx: number, qty: number) => {
     setItems((prev) =>
@@ -171,6 +199,8 @@ export function CheckoutWizard({ customer }: { customer: PublicCustomer | null }
     () =>
       JSON.stringify(
         items.map((it) => ({
+          productId: it.productId,
+          variantId: it.variantId,
           name: it.name,
           price: it.price ?? 0,
           qty: it.qty ?? 1,
@@ -283,13 +313,22 @@ export function CheckoutWizard({ customer }: { customer: PublicCustomer | null }
           )}
           <div className="checkout-summary-row">
             <span>Kargo</span>
-            <span className="tabular">Ücretsiz</span>
+            <span className="tabular">
+              {shippingMajor > 0 ? formatTRY(shippingMajor) : "Ücretsiz"}
+            </span>
           </div>
+          {freeShippingRemainingMajor > 0 && (
+            <div className="checkout-freeship-hint">
+              <strong>{formatTRY(freeShippingRemainingMajor)}</strong> daha ekle, kargo ücretsiz olsun
+            </div>
+          )}
           <div className="checkout-summary-total">
             <span>Toplam</span>
             <span className="tabular">{formatTRY(total)}</span>
           </div>
-          <div className="checkout-summary-note">KDV dahil · Türkiye geneli ücretsiz kargo</div>
+          <div className="checkout-summary-note">
+            KDV dahil{config.taxRatePct > 0 ? ` (%${config.taxRatePct})` : ""} · Türkiye geneli teslimat
+          </div>
         </div>
       </aside>
     </div>

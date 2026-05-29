@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { getSettings } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
 
 import { CheckoutWizard } from "./checkout-wizard";
@@ -8,7 +9,12 @@ export const metadata = { title: "Ödeme · L'Affogato" };
 export const dynamic = "force-dynamic";
 
 export default async function OdemePage() {
-  const customer = await getActiveCustomer();
+  const [customer, settings] = await Promise.all([getActiveCustomer(), getSettings()]);
+  const config = {
+    shippingFlatMinor: settings.shippingFlatMinor,
+    shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
+    taxRatePct: settings.taxRatePct,
+  };
   return (
     <main className="checkout-page">
       <div className="checkout-page-wrap">
@@ -37,7 +43,7 @@ export default async function OdemePage() {
             </span>
           </div>
         </header>
-        <CheckoutWizard customer={customer} />
+        <CheckoutWizard customer={customer} config={config} />
       </div>
     </main>
   );
