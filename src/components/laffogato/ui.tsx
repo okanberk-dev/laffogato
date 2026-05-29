@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { toggleWishlistAction } from "@/app/uye/actions";
+import { productPath } from "./route-paths";
 
-import type { Product } from "./data";
+import type { MenuCategory, Product } from "./data";
 import {
   EspressoCup,
   PhotoSurface,
@@ -12,10 +13,48 @@ import {
 } from "./visuals";
 
 export interface CartItem {
+  /** Stable product id — preferred match key for merge + server resolution. */
+  productId?: string;
+  /** Selected variant id, if any. */
+  variantId?: string;
+  /** Variant display name appended in the cart (e.g. "250g"). */
+  variantName?: string;
   name: string;
+  /** Unit price in major units (₺), including any variant delta. */
   price: number;
   tag?: string;
   qty?: number;
+  /** Product slug for deep-linking back to the PDP from the cart. */
+  slug?: string;
+  /** Hue token for the cart thumbnail surface. */
+  img?: string;
+  /** Shop category — drives the cart thumbnail illustration. */
+  cat?: string;
+  /** Max purchasable qty (stock); clamps the stepper. */
+  maxStock?: number;
+}
+
+/** Stable cart key — same product+variant lines merge into one. */
+export function cartItemKey(it: { productId?: string; variantId?: string; name: string }): string {
+  return `${it.productId ?? it.name}::${it.variantId ?? ""}`;
+}
+
+/** Build a CartItem from a Product (+ optional variant) with all metadata. */
+export function toCartItem(p: Product, variant?: { id: string; name: string; priceDelta: number; stock?: number }): CartItem {
+  const base = p.priceMinor !== undefined ? p.priceMinor / 100 : parseFloat(p.price) || 0;
+  const price = base + (variant?.priceDelta ?? 0);
+  return {
+    productId: p.id,
+    variantId: variant?.id,
+    variantName: variant?.name,
+    name: p.name,
+    price,
+    tag: p.tag,
+    slug: p.slug,
+    img: p.img,
+    cat: p.cat,
+    maxStock: variant?.stock ?? p.stock,
+  };
 }
 
 export interface ProductCardProps {
@@ -27,17 +66,23 @@ export interface ProductCardProps {
 
 export function ProductCard({ product, idx = 0, addToCart, onOpen }: ProductCardProps) {
   const p = product;
+  const outOfStock = p.stock !== undefined && p.stock <= 0;
+  const lowStock =
+    !outOfStock &&
+    p.stock !== undefined &&
+    p.lowStockThreshold !== undefined &&
+    p.stock <= p.lowStockThreshold;
   const onAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (addToCart) {
-      addToCart({ name: p.name, price: parseFloat(p.price), tag: p.tag });
-    }
+    if (outOfStock) return;
+    if (addToCart) addToCart(toCartItem(p));
   };
   const onClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (onOpen) onOpen(p);
   };
   const label = p.name.split("—")[0].trim().split(" ")[0];
+  const href = p.slug ? productPath(p.slug) : undefined;
 
   return (
     <div
@@ -46,20 +91,45 @@ export function ProductCard({ product, idx = 0, addToCart, onOpen }: ProductCard
       onClick={onClick}
     >
       <div className="product-card-img">
-        <ProductSurface cat={p.cat} tone={p.img} label={label} sub={p.tag} />
-        {p.featured && <div className="product-card-flag gold">ÖNE ÇIKAN</div>}
-        {p.isNew && <div className="product-card-flag new">NUOVO</div>}
-        {!p.featured && !p.isNew && (
-          <div className="product-card-flag">{p.cat.toUpperCase()}</div>
+        <ProductSurface cat={p.cat} tone={p.img} label={label} sub={p.tag} images={p.images} />
+        {outOfStock ? (
+          <div className="product-card-flag" style={{ background: "var(--ink-mute)" }}>TÜKENDİ</div>
+        ) : (
+          <>
+            {p.featured && <div className="product-card-flag gold">ÖNE ÇIKAN</div>}
+            {p.isNew && <div className="product-card-flag new">NUOVO</div>}
+            {!p.featured && !p.isNew && lowStock && (
+              <div className="product-card-flag" style={{ background: "var(--rose)" }}>
+                SON {p.stock}
+              </div>
+            )}
+            {!p.featured && !p.isNew && !lowStock && (
+              <div className="product-card-flag">{p.cat.toUpperCase()}</div>
+            )}
+          </>
         )}
         <div className="product-card-quick">
-          <button onClick={onAdd}>+ Sepete ekle</button>
+          <button onClick={onAdd} disabled={outOfStock}>
+            {outOfStock ? "Tükendi" : "+ Sepete ekle"}
+          </button>
           <button onClick={onClick}>Hızlı bak</button>
         </div>
       </div>
       <div className="product-card-meta">
         <div className="product-card-cat">{p.tag}</div>
-        <h3 className="product-card-name">{p.name.split("—")[0].trim()}</h3>
+        <h3 className="product-card-name">
+          {href ? (
+            <a
+              href={href}
+              onClick={(e) => e.stopPropagation()}
+              style={{ color: "inherit", textDecoration: "none" }}
+            >
+              {p.name.split("—")[0].trim()}
+            </a>
+          ) : (
+            p.name.split("—")[0].trim()
+          )}
+        </h3>
         <div className="product-card-price">
           <span>{p.price}</span>
           {p.compareAtPrice && <span className="was">{p.compareAtPrice}</span>}
@@ -154,9 +224,19 @@ interface CartDrawerProps {
   onClose: () => void;
   items: CartItem[];
   removeItem: (idx: number) => void;
+  setQty?: (idx: number, qty: number) => void;
+  /** Free-shipping threshold in major units (₺); 0/undefined hides the bar. */
+  freeShippingThreshold?: number;
 }
 
-export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps) {
+export function CartDrawer({
+  open,
+  onClose,
+  items,
+  removeItem,
+  setQty,
+  freeShippingThreshold = 0,
+}: CartDrawerProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -171,6 +251,7 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
   }, [open, onClose]);
 
   const total = items.reduce((s, it) => s + (it.price || 0) * (it.qty || 1), 0);
+  const itemCount = items.reduce((s, it) => s + (it.qty || 1), 0);
 
   return (
     <>
@@ -215,7 +296,7 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
           <div>
             <div className="eyebrow" style={{ marginBottom: 4 }}>Sepetin</div>
             <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 24, lineHeight: 1 }}>
-              {items.length} ürün
+              {itemCount} ürün
             </div>
           </div>
           <button onClick={onClose} className="nav-icon-btn" aria-label="Kapat">
@@ -224,6 +305,9 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
             </svg>
           </button>
         </header>
+        {items.length > 0 && freeShippingThreshold > 0 && (
+          <FreeShippingBar total={total} threshold={freeShippingThreshold} />
+        )}
         <div className="cart-drawer-body" style={{ flex: 1, overflowY: "auto" }}>
           {items.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 20px" }}>
@@ -266,58 +350,114 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
               </p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {items.map((it, i) => (
-                <div
-                  key={i}
-                  className="cart-item-grid"
-                  style={{
-                    alignItems: "center",
-                    padding: 12,
-                    border: "1px solid var(--ink-line)",
-                    borderRadius: "var(--r-md)",
-                  }}
-                >
-                  <div className="cart-item-thumb" style={{ borderRadius: "var(--r-sm)", overflow: "hidden" }}>
-                    <PhotoSurface hue="warm">
-                      <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", padding: 6 }}>
-                        <EspressoCup />
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {items.map((it, i) => {
+                const qty = it.qty || 1;
+                const lineTotal = (it.price || 0) * qty;
+                const atMax = it.maxStock !== undefined && qty >= it.maxStock;
+                return (
+                  <div
+                    key={cartItemKey(it) + i}
+                    className="cart-item-grid"
+                    style={{
+                      alignItems: "center",
+                      padding: 12,
+                      border: "1px solid var(--ink-line)",
+                      borderRadius: "var(--r-md)",
+                    }}
+                  >
+                    <div className="cart-item-thumb" style={{ borderRadius: "var(--r-sm)", overflow: "hidden" }}>
+                      <ProductSurface cat={it.cat ?? "gift"} tone={it.img ?? "cream"} label={it.name} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontFamily: "var(--serif-display)", fontSize: 16, lineHeight: 1.2 }}>
+                        {it.name.split("—")[0].trim()}
                       </div>
-                    </PhotoSurface>
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: "var(--serif-display)", fontSize: 16, lineHeight: 1.2 }}>{it.name}</div>
-                    <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>
-                      x{it.qty || 1}
+                      {it.variantName && (
+                        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>{it.variantName}</div>
+                      )}
+                      {setQty ? (
+                        <div className="cart-qty-stepper" style={{ marginTop: 8 }}>
+                          <button
+                            type="button"
+                            aria-label="Azalt"
+                            onClick={() => setQty(i, qty - 1)}
+                          >
+                            −
+                          </button>
+                          <span className="tabular">{qty}</span>
+                          <button
+                            type="button"
+                            aria-label="Arttır"
+                            onClick={() => setQty(i, qty + 1)}
+                            disabled={atMax}
+                          >
+                            +
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>
+                          x{qty}
+                        </div>
+                      )}
+                      {atMax && (
+                        <div style={{ fontSize: 10, color: "var(--rose)", marginTop: 4 }}>
+                          Stok sınırı
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 13 }}>{Math.round(lineTotal)}₺</div>
+                      <button
+                        onClick={() => removeItem(i)}
+                        style={{
+                          fontFamily: "var(--mono)",
+                          fontSize: 10,
+                          letterSpacing: "0.18em",
+                          textTransform: "uppercase",
+                          color: "var(--ink-mute)",
+                        }}
+                      >
+                        Sil
+                      </button>
                     </div>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                    <div style={{ fontFamily: "var(--mono)", fontSize: 13 }}>{it.price}₺</div>
-                    <button
-                      onClick={() => removeItem(i)}
-                      style={{
-                        fontFamily: "var(--mono)",
-                        fontSize: 10,
-                        letterSpacing: "0.18em",
-                        textTransform: "uppercase",
-                        color: "var(--ink-mute)",
-                      }}
-                    >
-                      Sil
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
-        {items.length > 0 && <CartFooter items={items} total={total} />}
+        {items.length > 0 && <CartFooter total={total} />}
       </aside>
     </>
   );
 }
 
-function CartFooter({ total }: { items: CartItem[]; total: number }) {
+function FreeShippingBar({ total, threshold }: { total: number; threshold: number }) {
+  const remaining = Math.max(0, threshold - total);
+  const pct = Math.min(100, Math.round((total / threshold) * 100));
+  const reached = remaining <= 0;
+  return (
+    <div className="cart-freeship">
+      <div className="cart-freeship-text">
+        {reached ? (
+          <>
+            <span aria-hidden>✓</span> Ücretsiz kargoyu kazandın
+          </>
+        ) : (
+          <>
+            <strong>{Math.round(remaining)}₺</strong> daha ekle, kargo bizden
+          </>
+        )}
+      </div>
+      <div className="cart-freeship-track">
+        <div className="cart-freeship-fill" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function CartFooter({ total }: { total: number }) {
   return (
     <footer className="cart-drawer-foot" style={{ borderTop: "1px solid var(--ink-line)" }}>
       <div
@@ -330,7 +470,7 @@ function CartFooter({ total }: { items: CartItem[]; total: number }) {
         }}
       >
         <span>Ara toplam</span>
-        <span className="tabular" style={{ fontFamily: "var(--mono)" }}>{total}₺</span>
+        <span className="tabular" style={{ fontFamily: "var(--mono)" }}>{Math.round(total)}₺</span>
       </div>
       <div
         style={{
@@ -399,10 +539,6 @@ export function ProductModal({
   }, [product, onClose]);
 
   if (!product) return null;
-  const p = product;
-  const label = p.name.split("—")[0].trim().split(" ")[0];
-  const isFavorite = !!(p.id && wishlist?.includes(p.id));
-
   return (
     <div
       onClick={onClose}
@@ -454,104 +590,201 @@ export function ProductModal({
             <path d="M3 3 L13 13 M13 3 L3 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
           </svg>
         </button>
-        <div style={{ aspectRatio: "4/5", position: "relative" }}>
-          <ProductSurface cat={p.cat} tone={p.img} label={label} sub={p.tag} />
-          {p.id && (
-            <div style={{ position: "absolute", top: 14, left: 14, zIndex: 4 }}>
-              <WishlistHeart
-                productId={p.id}
-                isFavorite={isFavorite}
-                isAuthenticated={!!isAuthenticated}
-              />
-            </div>
+        <ProductModalBody
+          product={product}
+          onClose={onClose}
+          addToCart={addToCart}
+          wishlist={wishlist}
+          isAuthenticated={isAuthenticated}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProductModalBody({
+  product: p,
+  onClose,
+  addToCart,
+  wishlist,
+  isAuthenticated,
+}: {
+  product: Product;
+  onClose: () => void;
+  addToCart: (item: CartItem) => void;
+  wishlist?: string[];
+  isAuthenticated?: boolean;
+}) {
+  const label = p.name.split("—")[0].trim().split(" ")[0];
+  const isFavorite = !!(p.id && wishlist?.includes(p.id));
+  const variants = (p.variants ?? []).filter((v) => v.isActive !== false);
+  const [variantId, setVariantId] = useState<string | undefined>(
+    variants.find((v) => (v.stock ?? 1) > 0)?.id ?? variants[0]?.id,
+  );
+  const [qty, setQty] = useState(1);
+
+  const selectedVariant = variants.find((v) => v.id === variantId);
+  const basePrice = p.priceMinor !== undefined ? p.priceMinor / 100 : parseFloat(p.price) || 0;
+  const unitPrice = basePrice + (selectedVariant?.priceDelta ?? 0);
+  const stock = selectedVariant?.stock ?? p.stock;
+  const outOfStock = stock !== undefined && stock <= 0;
+  const maxQty = stock ?? 99;
+
+  return (
+    <>
+      <div style={{ aspectRatio: "4/5", position: "relative" }}>
+        <ProductSurface cat={p.cat} tone={p.img} label={label} sub={p.tag} images={p.images} />
+        {p.id && (
+          <div style={{ position: "absolute", top: 14, left: 14, zIndex: 4 }}>
+            <WishlistHeart
+              productId={p.id}
+              isFavorite={isFavorite}
+              isAuthenticated={!!isAuthenticated}
+            />
+          </div>
+        )}
+      </div>
+      <div
+        style={{
+          padding: "clamp(28px, 4vw, 50px)",
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div className="eyebrow" style={{ marginBottom: 14 }}>{p.tag}</div>
+        <h2 className="h2">{p.name}</h2>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 16 }}>
+          <span style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 28 }}>
+            {Math.round(unitPrice)}₺
+          </span>
+          {p.compareAtPrice && (
+            <span style={{ textDecoration: "line-through", color: "var(--ink-mute)", fontSize: 18 }}>
+              {p.compareAtPrice}
+            </span>
           )}
         </div>
-        <div
-          style={{
-            padding: "clamp(28px, 4vw, 50px)",
-            overflowY: "auto",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <div className="eyebrow" style={{ marginBottom: 14 }}>{p.tag}</div>
-          <h2 className="h2">{p.name}</h2>
-          <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 28, marginTop: 16 }}>
-            {p.price}
-          </div>
-          <p style={{ marginTop: 22, lineHeight: 1.65, color: "var(--ink-soft)" }}>{p.desc}</p>
+        <p style={{ marginTop: 22, lineHeight: 1.65, color: "var(--ink-soft)" }}>{p.desc}</p>
 
-          <div style={{ marginTop: 28, display: "grid", gap: 14 }}>
-            {p.cat === "beans" && (
-              <>
-                <DetailRow k="Köken" v="Brezilya doğal + Etiyopya yıkanmış" />
-                <DetailRow k="Kavurma" v="İtalya · 14 Mayıs 2026" />
-                <DetailRow k="Tat notları" v="Kakao · kuru incir · esmer şeker" />
-                <DetailRow k="Demleme" v="Espresso, moka, AeroPress" />
-              </>
-            )}
-            {p.cat === "gift" && (
-              <>
-                <DetailRow k="İçerik" v="6 adet edible cup · sleeve" />
-                <DetailRow k="Saklama" v="Kuru, serin · 90 gün" />
-                <DetailRow k="Alerjenler" v="Gluten · süt · soya izi" />
-              </>
-            )}
-            {p.cat === "gear" && (
-              <>
-                <DetailRow k="Marka" v="Bialetti × L’Affogato" />
-                <DetailRow k="Garanti" v="2 yıl" />
-                <DetailRow k="Servis" v="Türkiye geneli" />
-              </>
-            )}
-          </div>
-
-          <div style={{ marginTop: 28, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <div
-              style={{
-                display: "flex",
-                border: "1px solid var(--ink-line-strong)",
-                borderRadius: 999,
-                overflow: "hidden",
-              }}
-            >
-              <button style={{ padding: "12px 16px", fontFamily: "var(--mono)", fontSize: 14 }}>−</button>
-              <div
-                style={{
-                  padding: "12px 16px",
-                  fontFamily: "var(--mono)",
-                  fontSize: 14,
-                  minWidth: 40,
-                  textAlign: "center",
-                  borderLeft: "1px solid var(--ink-line)",
-                  borderRight: "1px solid var(--ink-line)",
-                }}
-              >
-                1
-              </div>
-              <button style={{ padding: "12px 16px", fontFamily: "var(--mono)", fontSize: 14 }}>+</button>
+        {variants.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div className="eyebrow" style={{ marginBottom: 10 }}>Seçenek</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {variants.map((v) => {
+                const vOut = v.stock !== undefined && v.stock <= 0;
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    className="variant-chip"
+                    data-active={v.id === variantId ? "true" : undefined}
+                    disabled={vOut}
+                    onClick={() => {
+                      setVariantId(v.id);
+                      setQty(1);
+                    }}
+                  >
+                    {v.name}
+                    {v.priceDelta ? ` · ${v.priceDelta > 0 ? "+" : ""}${Math.round(v.priceDelta)}₺` : ""}
+                  </button>
+                );
+              })}
             </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 24, display: "grid", gap: 14 }}>
+          {p.cat === "beans" && (
+            <>
+              <DetailRow k="Köken" v="Brezilya doğal + Etiyopya yıkanmış" />
+              <DetailRow k="Tat notları" v="Kakao · kuru incir · esmer şeker" />
+              <DetailRow k="Demleme" v="Espresso, moka, AeroPress" />
+            </>
+          )}
+          {p.cat === "gift" && (
+            <>
+              <DetailRow k="İçerik" v="Edible cup · sleeve" />
+              <DetailRow k="Saklama" v="Kuru, serin · 90 gün" />
+              <DetailRow k="Alerjenler" v="Gluten · süt · soya izi" />
+            </>
+          )}
+          {p.cat === "gear" && (
+            <>
+              <DetailRow k="Marka" v="Bialetti × L'Affogato" />
+              <DetailRow k="Garanti" v="2 yıl" />
+            </>
+          )}
+        </div>
+
+        {stock !== undefined && (
+          <div style={{ marginTop: 18, fontSize: 13 }}>
+            {outOfStock ? (
+              <span style={{ color: "var(--ink-mute)" }}>● Şu an tükendi</span>
+            ) : p.lowStockThreshold !== undefined && stock <= p.lowStockThreshold ? (
+              <span style={{ color: "var(--rose)" }}>● Son {stock} adet</span>
+            ) : (
+              <span style={{ color: "var(--green)" }}>● Stokta</span>
+            )}
+          </div>
+        )}
+
+        <div style={{ marginTop: 24, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div className="qty-stepper-pill">
             <button
-              className="btn btn-primary btn-lg"
-              style={{ flex: 1, justifyContent: "center" }}
-              onClick={() => {
-                addToCart({ name: p.name, price: parseFloat(p.price), tag: p.tag });
-                onClose();
-              }}
+              type="button"
+              aria-label="Azalt"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              disabled={outOfStock}
             >
-              Sepete ekle · {p.price} <span className="arrow">→</span>
+              −
+            </button>
+            <span className="qty-stepper-val tabular">{qty}</span>
+            <button
+              type="button"
+              aria-label="Arttır"
+              onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
+              disabled={outOfStock || qty >= maxQty}
+            >
+              +
             </button>
           </div>
+          <button
+            className="btn btn-primary btn-lg"
+            style={{ flex: 1, justifyContent: "center" }}
+            disabled={outOfStock}
+            onClick={() => {
+              if (outOfStock) return;
+              const item = toCartItem(p, selectedVariant);
+              for (let i = 0; i < qty; i += 1) addToCart(item);
+              onClose();
+            }}
+          >
+            {outOfStock ? "Tükendi" : (
+              <>
+                Sepete ekle · {Math.round(unitPrice * qty)}₺ <span className="arrow">→</span>
+              </>
+            )}
+          </button>
+        </div>
 
-          <div style={{ marginTop: 24, padding: 18, background: "var(--bg-warm)", borderRadius: "var(--r-sm)" }}>
-            <div className="eyebrow" style={{ marginBottom: 8 }}>Teslimat · İade</div>
-            <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-              İstanbul içi aynı gün · Yurt içi 2–3 iş günü · 14 gün açılmamış ürünlerde iade.
-            </div>
+        {p.slug && (
+          <a
+            href={productPath(p.slug)}
+            className="modal-pdp-link"
+            style={{ marginTop: 16 }}
+          >
+            Tüm detayları gör →
+          </a>
+        )}
+
+        <div style={{ marginTop: 20, padding: 18, background: "var(--bg-warm)", borderRadius: "var(--r-sm)" }}>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>Teslimat · İade</div>
+          <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+            İstanbul içi aynı gün · Yurt içi 2–3 iş günü · 14 gün açılmamış ürünlerde iade.
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -597,5 +830,191 @@ function WishlistHeart({
         </svg>
       </button>
     </form>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Search overlay — site-wide product + menu search
+   ───────────────────────────────────────────────────────────── */
+
+interface SearchResult {
+  kind: "product" | "menu";
+  name: string;
+  sub: string;
+  price?: string;
+  href?: string;
+  product?: Product;
+}
+
+export function SearchOverlay({
+  open,
+  onClose,
+  products,
+  menu,
+  onOpenProduct,
+}: {
+  open: boolean;
+  onClose: () => void;
+  products: Product[];
+  menu: Record<string, MenuCategory>;
+  onOpenProduct?: (p: Product) => void;
+}) {
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setQ("");
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.classList.add("is-no-scroll");
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.classList.remove("is-no-scroll");
+    };
+  }, [open, onClose]);
+
+  const term = q.trim().toLowerCase();
+  const results: SearchResult[] = [];
+  if (term.length >= 2) {
+    for (const p of products) {
+      const hay = `${p.name} ${p.tag} ${p.desc} ${p.cat}`.toLowerCase();
+      if (hay.includes(term)) {
+        results.push({
+          kind: "product",
+          name: p.name,
+          sub: p.tag,
+          price: p.price,
+          href: p.slug ? productPath(p.slug) : undefined,
+          product: p,
+        });
+      }
+    }
+    for (const [, cat] of Object.entries(menu)) {
+      for (const it of cat.items) {
+        const hay = `${it.name} ${it.desc} ${(it.tags ?? []).join(" ")}`.toLowerCase();
+        if (hay.includes(term)) {
+          results.push({ kind: "menu", name: it.name, sub: cat.title, price: it.price });
+        }
+      }
+    }
+  }
+  const productResults = results.filter((r) => r.kind === "product").slice(0, 8);
+  const menuResults = results.filter((r) => r.kind === "menu").slice(0, 6);
+
+  if (!open) return null;
+
+  return (
+    <div className="search-overlay" onClick={onClose}>
+      <div className="search-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="search-input-row">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4" />
+            <path d="M11 11 L14 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Ürün veya menü ara — espresso, matcha, edible cup…"
+            aria-label="Ara"
+          />
+          <button onClick={onClose} className="search-close" aria-label="Kapat">
+            ESC
+          </button>
+        </div>
+
+        <div className="search-results">
+          {term.length < 2 ? (
+            <div className="search-hint">
+              <span className="eyebrow">İpucu</span>
+              <p>En az 2 harf yaz — çekirdek, matcha, hediye, affogato…</p>
+              <div className="search-suggest">
+                {["Affogato", "Matcha", "Edible cup", "Espresso", "Hediye"].map((s) => (
+                  <button key={s} className="chip" onClick={() => setQ(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : productResults.length === 0 && menuResults.length === 0 ? (
+            <div className="search-empty">
+              <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 24 }}>
+                "{q}" için sonuç yok.
+              </div>
+              <p>Farklı bir kelime dene ya da mağazaya göz at.</p>
+              <a href="/magaza" className="btn btn-ghost btn-sm">Mağazaya git →</a>
+            </div>
+          ) : (
+            <>
+              {productResults.length > 0 && (
+                <div className="search-group">
+                  <div className="eyebrow search-group-head">Mağaza · {productResults.length}</div>
+                  {productResults.map((r, i) => {
+                    const inner = (
+                      <>
+                        <div className="search-result-thumb">
+                          <ProductSurface
+                            cat={r.product?.cat ?? "gift"}
+                            tone={r.product?.img ?? "cream"}
+                            label={r.name}
+                            images={r.product?.images}
+                          />
+                        </div>
+                        <div className="search-result-info">
+                          <div className="search-result-name">{r.name}</div>
+                          <div className="search-result-sub">{r.sub}</div>
+                        </div>
+                        {r.price && <div className="search-result-price">{r.price}</div>}
+                      </>
+                    );
+                    return r.href ? (
+                      <a key={`p-${i}`} href={r.href} className="search-result">
+                        {inner}
+                      </a>
+                    ) : (
+                      <button
+                        key={`p-${i}`}
+                        className="search-result"
+                        onClick={() => {
+                          if (r.product && onOpenProduct) {
+                            onOpenProduct(r.product);
+                            onClose();
+                          }
+                        }}
+                      >
+                        {inner}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {menuResults.length > 0 && (
+                <div className="search-group">
+                  <div className="eyebrow search-group-head">Menü · {menuResults.length}</div>
+                  {menuResults.map((r, i) => (
+                    <a key={`m-${i}`} href="/menu" className="search-result">
+                      <div className="search-result-thumb">
+                        <PhotoSurface hue="caramel">
+                          <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", padding: 6 }}>
+                            <EspressoCup />
+                          </div>
+                        </PhotoSurface>
+                      </div>
+                      <div className="search-result-info">
+                        <div className="search-result-name">{r.name}</div>
+                        <div className="search-result-sub">{r.sub}</div>
+                      </div>
+                      {r.price && <div className="search-result-price">{r.price}</div>}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

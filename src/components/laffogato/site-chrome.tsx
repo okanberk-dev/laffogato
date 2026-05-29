@@ -58,7 +58,12 @@ export function SiteChrome({
 
   return (
     <>
-      <Nav cart={cartCount} />
+      <Nav
+        cart={cartCount}
+        onSearch={() => {
+          window.location.href = "/magaza";
+        }}
+      />
       <div className="site-chrome-body">{children}</div>
       <Footer settings={settings} />
     </>

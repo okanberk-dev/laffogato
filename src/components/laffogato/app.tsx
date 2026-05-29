@@ -13,7 +13,7 @@ import {
   PageStory,
   PageVisit,
 } from "./pages";
-import { CartDrawer, ProductModal, type CartItem } from "./ui";
+import { CartDrawer, ProductModal, SearchOverlay, cartItemKey, type CartItem } from "./ui";
 import type { ShopHeroSlide } from "./shop-hero-slider";
 import type { MenuCategory, Product } from "./data";
 
@@ -56,6 +56,7 @@ export function LaffogatoApp({
   wishlist,
   isAuthenticated,
   shopHeroSlides,
+  freeShippingThreshold = 0,
   initialRoute = "home",
 }: {
   products?: Product[];
@@ -70,6 +71,8 @@ export function LaffogatoApp({
   isAuthenticated?: boolean;
   /** Admin-managed shop hero slides — PageShop renders them at the top. */
   shopHeroSlides?: ShopHeroSlide[];
+  /** Free-shipping threshold in major units (₺) — drives the cart progress bar. */
+  freeShippingThreshold?: number;
   /** The SPA section to render on first paint. Set by sub-page routes
       (e.g. /menu → initialRoute="menu"); defaults to "home" for `/`. */
   initialRoute?: Route;
@@ -88,6 +91,7 @@ export function LaffogatoApp({
   const [route, setRoute] = useState<Route>(initialRoute);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [productOpen, setProductOpen] = useState<Product | null>(null);
   const [mounted, setMounted] = useState(false);
   const hydratedRef = useRef(false);
@@ -140,16 +144,31 @@ export function LaffogatoApp({
   };
 
   const addToCart = (item: CartItem) => {
+    const key = cartItemKey(item);
     setCart((prev) => {
-      const existing = prev.find((p) => p.name === item.name);
+      const existing = prev.find((p) => cartItemKey(p) === key);
       if (existing) {
+        const cap = existing.maxStock ?? item.maxStock ?? 99;
+        const nextQty = Math.min(cap, (existing.qty || 1) + 1);
         return prev.map((p) =>
-          p.name === item.name ? { ...p, qty: (p.qty || 1) + 1 } : p,
+          cartItemKey(p) === key ? { ...p, ...item, qty: nextQty } : p,
         );
       }
       return [...prev, { ...item, qty: 1 }];
     });
     setCartOpen(true);
+  };
+
+  const setCartQty = (idx: number, qty: number) => {
+    setCart((prev) =>
+      prev
+        .map((it, i) => {
+          if (i !== idx) return it;
+          const cap = it.maxStock ?? 99;
+          return { ...it, qty: Math.min(cap, Math.max(0, qty)) };
+        })
+        .filter((it) => (it.qty ?? 1) > 0),
+    );
   };
 
   const removeFromCart = (idx: number) => {
@@ -176,7 +195,7 @@ export function LaffogatoApp({
   if (!mounted) {
     return (
       <>
-        <Nav route={route} navigate={navigate} dark={dark} cart={0} onCart={() => setCartOpen(true)} />
+        <Nav route={route} navigate={navigate} dark={dark} cart={0} onCart={() => setCartOpen(true)} onSearch={() => setSearchOpen(true)} />
         <Page
           navigate={navigate}
           addToCart={addToCart}
@@ -199,6 +218,7 @@ export function LaffogatoApp({
         dark={dark}
         cart={cartCount}
         onCart={() => setCartOpen(true)}
+        onSearch={() => setSearchOpen(true)}
       />
       <Page
         navigate={navigate}
@@ -215,6 +235,8 @@ export function LaffogatoApp({
         onClose={() => setCartOpen(false)}
         items={cart}
         removeItem={removeFromCart}
+        setQty={setCartQty}
+        freeShippingThreshold={freeShippingThreshold}
       />
       <ProductModal
         product={productOpen}
@@ -222,6 +244,13 @@ export function LaffogatoApp({
         addToCart={addToCart}
         wishlist={wishlist}
         isAuthenticated={isAuthenticated}
+      />
+      <SearchOverlay
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        products={products ?? []}
+        menu={menu ?? {}}
+        onOpenProduct={setProductOpen}
       />
       {notice && noticeOpen && (
         <div

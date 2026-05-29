@@ -24,3 +24,8 @@ export const ROUTE_PATHS: Record<Route, string> = {
   visit: "/ziyaret",
   franchise: "/franchise",
 };
+
+/** Ürün detay sayfası (PDP) yolu. */
+export function productPath(slug: string): string {
+  return `/magaza/urun/${slug}`;
+}

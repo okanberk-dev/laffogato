@@ -3,6 +3,7 @@ import "server-only";
 import { COLLECTIONS } from "@/lib/mongodb/collections";
 import { getDb } from "@/lib/mongodb/client";
 import { nextSeq } from "@/lib/mongodb/counters";
+import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
 import {
   MENU as SEED_MENU,
   PRODUCTS as SEED_PRODUCTS,
@@ -862,8 +863,20 @@ export async function bulkUpdateOrders(
   return { updated: res.modifiedCount };
 }
 
+export interface PlaceOrderItemInput {
+  /** Stable product id — preferred match key. */
+  productId?: string;
+  /** Product name — fallback match key for legacy carts. */
+  name: string;
+  /** Selected variant id, if any. */
+  variantId?: string;
+  qty: number;
+  /** Client-sent price — IGNORED for charging; only used to detect drift. */
+  priceMinor?: number;
+}
+
 export interface PlaceOrderInput {
-  items: Array<{ name: string; priceMinor: number; qty: number }>;
+  items: PlaceOrderItemInput[];
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
@@ -872,72 +885,104 @@ export interface PlaceOrderInput {
 }
 
 export type PlaceOrderResult =
-  | { ok: true; order: AdminOrder }
-  | { ok: false; reason: "out_of_stock"; productName: string; available: number };
+  | { ok: true; order: AdminOrder; priceAdjusted: boolean }
+  | { ok: false; reason: "out_of_stock"; productName: string; available: number }
+  | { ok: false; reason: "empty" }
+  | { ok: false; reason: "not_found"; productName: string };
 
+/**
+ * Creates an order from a cart. SECURITY: unit prices are resolved from the
+ * database (base price + active variant delta), never trusted from the client.
+ * Stock is validated up-front for ALL lines before any decrement (no partial
+ * writes). Shipping is computed from settings; the cart total is authoritative.
+ */
 export async function placeOrder(
   input: PlaceOrderInput,
 ): Promise<PlaceOrderResult> {
   await ensureSeed();
   const db = await getDb();
-  const cleanItems = input.items.filter(
-    (it) => it.qty > 0 && it.priceMinor >= 0,
-  );
+  const cleanItems = input.items.filter((it) => it.qty > 0 && it.qty <= 99);
+  if (cleanItems.length === 0) return { ok: false, reason: "empty" };
 
-  // Up-front stock check
-  const knownNames = Array.from(new Set(cleanItems.map((it) => it.name)));
+  // Resolve each line against the DB by id (preferred) or name.
+  const ids = cleanItems.map((it) => it.productId).filter(Boolean) as string[];
+  const names = cleanItems.map((it) => it.name);
   const productDocs = await db
     .collection<AdminProduct>(COLLECTIONS.products)
-    .find({ name: { $in: knownNames } })
+    .find({ $or: [{ id: { $in: ids } }, { name: { $in: names } }] })
     .toArray();
+  const byId = new Map(productDocs.map((p) => [p.id, p]));
   const byName = new Map(productDocs.map((p) => [p.name, p]));
+
+  interface ResolvedLine {
+    product: AdminProduct;
+    variant: AdminProductVariant | null;
+    qty: number;
+    unitPriceMinor: number;
+    label: string;
+  }
+  const resolved: ResolvedLine[] = [];
+  let priceAdjusted = false;
+
   for (const it of cleanItems) {
-    const product = byName.get(it.name);
-    if (product && product.stock < it.qty) {
+    const product =
+      (it.productId ? byId.get(it.productId) : undefined) ?? byName.get(it.name);
+    if (!product || !product.isActive) {
+      return { ok: false, reason: "not_found", productName: it.name };
+    }
+    const variant = it.variantId
+      ? product.variants.find((v) => v.id === it.variantId && v.isActive) ?? null
+      : null;
+    // Server-authoritative price: base + variant delta.
+    const unitPriceMinor = Math.max(0, product.priceMinor + (variant?.priceDeltaMinor ?? 0));
+    if (it.priceMinor !== undefined && it.priceMinor !== unitPriceMinor) {
+      priceAdjusted = true;
+    }
+    // Stock check (variant stock when a variant is chosen, else product stock).
+    const available = variant ? variant.stock : product.stock;
+    if (available < it.qty) {
       return {
         ok: false,
         reason: "out_of_stock",
-        productName: product.name,
-        available: product.stock,
+        productName: variant ? `${product.name} · ${variant.name}` : product.name,
+        available,
       };
     }
+    resolved.push({
+      product,
+      variant,
+      qty: it.qty,
+      unitPriceMinor,
+      label: variant ? `${product.name} · ${variant.name}` : product.name,
+    });
   }
 
-  // Decrement stock
-  const decrements: Array<{ id: string; name: string; qty: number; stockAfter: number }> = [];
   const now = new Date().toISOString();
-  for (const it of cleanItems) {
-    const p = byName.get(it.name);
-    if (!p) continue;
-    const stockAfter = Math.max(0, p.stock - it.qty);
-    await db
-      .collection(COLLECTIONS.products)
-      .updateOne({ id: p.id }, { $set: { stock: stockAfter, updatedAt: now } });
-    decrements.push({ id: p.id, name: p.name, qty: it.qty, stockAfter });
-  }
-
-  const items: AdminOrderItem[] = cleanItems.map((it) => ({
-    productName: it.name,
-    qty: it.qty,
-    unitPriceMinor: it.priceMinor,
-    status: "pending",
-  }));
-
-  const subtotalMinor = items.reduce(
-    (s, it) => s + it.unitPriceMinor * it.qty,
-    0,
-  );
-
   const orderSeq = await nextSeq("ord");
   const orderNo = await nextSeq("orderNo");
   const orderId = slugifyId("ord", orderSeq);
 
-  for (const d of decrements) {
+  // Decrement stock — product stock always; variant stock when applicable.
+  for (const line of resolved) {
+    const stockAfter = Math.max(0, line.product.stock - line.qty);
+    const update: Record<string, unknown> = { stock: stockAfter, updatedAt: now };
+    if (line.variant) {
+      const nextVariants = line.product.variants.map((v) =>
+        v.id === line.variant!.id ? { ...v, stock: Math.max(0, v.stock - line.qty) } : v,
+      );
+      update.variants = nextVariants;
+      // Keep the in-memory copy coherent if the same product appears twice.
+      line.product.variants = nextVariants as AdminProductVariant[];
+    }
+    line.product.stock = stockAfter;
+    await db
+      .collection(COLLECTIONS.products)
+      .updateOne({ id: line.product.id }, { $set: update });
     await recordStockMove({
-      productId: d.id,
-      productName: d.name,
-      delta: -d.qty,
-      stockAfter: d.stockAfter,
+      productId: line.product.id,
+      productName: line.label,
+      delta: -line.qty,
+      stockAfter,
       reason: "order_placed",
       note: `Sipariş #${orderNo}`,
       orderId,
@@ -945,6 +990,15 @@ export async function placeOrder(
     });
   }
 
+  const items: AdminOrderItem[] = resolved.map((line) => ({
+    productName: line.label,
+    qty: line.qty,
+    unitPriceMinor: line.unitPriceMinor,
+    status: "pending",
+  }));
+  const subtotalMinor = items.reduce((s, it) => s + it.unitPriceMinor * it.qty, 0);
+
+  // Promo (validated server-side against the authoritative subtotal).
   let promoCode = "";
   let discountMinor = 0;
   if (input.promoCode && input.promoCode.trim()) {
@@ -956,7 +1010,14 @@ export async function placeOrder(
     }
   }
 
-  const totalMinor = Math.max(0, subtotalMinor - discountMinor);
+  // Shipping + total from settings (single source of truth).
+  const settings = await getSettings();
+  const cfg: CheckoutConfig = {
+    shippingFlatMinor: settings.shippingFlatMinor,
+    shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
+    taxRatePct: settings.taxRatePct,
+  };
+  const totals = computeOrderTotals(subtotalMinor, discountMinor, cfg);
 
   const order: AdminOrder = {
     id: orderId,
@@ -968,16 +1029,16 @@ export async function placeOrder(
     internalNote: "",
     status: "pending_payment",
     items,
-    subtotalMinor,
-    discountMinor,
+    subtotalMinor: totals.subtotalMinor,
+    discountMinor: totals.discountMinor,
     promoCode,
-    shippingMinor: 0,
-    totalMinor,
+    shippingMinor: totals.shippingMinor,
+    totalMinor: totals.totalMinor,
     refunds: [],
     createdAt: new Date().toISOString(),
   };
   await db.collection<AdminOrder>(COLLECTIONS.orders).insertOne(order);
-  return { ok: true, order };
+  return { ok: true, order, priceAdjusted };
 }
 
 export type OrderTransition =
@@ -1196,25 +1257,74 @@ export { SEED_MENU as CAFE_MENU };
 
 // ─── Public read for customer site ────────────────────────────────────────
 
+function toDesignProduct(p: AdminProduct): DesignProduct {
+  return {
+    id: p.id,
+    name: p.name,
+    tag: p.tag,
+    price: `${Math.round(p.priceMinor / 100)}₺`,
+    compareAtPrice:
+      p.compareAtPriceMinor > p.priceMinor
+        ? `${Math.round(p.compareAtPriceMinor / 100)}₺`
+        : undefined,
+    desc: p.desc,
+    cat: p.cat,
+    img: p.img,
+    featured: p.featured || undefined,
+    isNew: p.isNew || undefined,
+    // Rich fields for the PDP + cart.
+    slug: p.slug,
+    sku: p.sku,
+    images: p.images.length > 0 ? [...p.images] : undefined,
+    stock: p.stock,
+    lowStockThreshold: p.lowStockThreshold,
+    weightGrams: p.weightGrams,
+    priceMinor: p.priceMinor,
+    compareAtPriceMinor: p.compareAtPriceMinor > p.priceMinor ? p.compareAtPriceMinor : undefined,
+    variants: p.variants
+      .filter((v) => v.isActive)
+      .map((v) => ({
+        id: v.id,
+        name: v.name,
+        priceDelta: v.priceDeltaMinor / 100,
+        stock: v.stock,
+        isActive: v.isActive,
+      })),
+  };
+}
+
 export async function listShopProducts(): Promise<DesignProduct[]> {
   const all = await listProducts();
-  return all
-    .filter((p) => p.isActive)
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      tag: p.tag,
-      price: `${Math.round(p.priceMinor / 100)}₺`,
-      compareAtPrice:
-        p.compareAtPriceMinor > p.priceMinor
-          ? `${Math.round(p.compareAtPriceMinor / 100)}₺`
-          : undefined,
-      desc: p.desc,
-      cat: p.cat,
-      img: p.img,
-      featured: p.featured || undefined,
-      isNew: p.isNew || undefined,
-    }));
+  return all.filter((p) => p.isActive).map(toDesignProduct);
+}
+
+/** Single active product by slug — for the PDP (/magaza/urun/<slug>). */
+export async function getShopProductBySlug(
+  slug: string,
+): Promise<DesignProduct | null> {
+  await ensureSeed();
+  const db = await getDb();
+  const doc = await db
+    .collection<AdminProduct>(COLLECTIONS.products)
+    .findOne({ slug, isActive: true });
+  if (!doc) return null;
+  return toDesignProduct(strip(doc) as AdminProduct);
+}
+
+/** Up to `limit` other active products sharing the category (for cross-sell). */
+export async function listRelatedShopProducts(
+  cat: ShopCategoryId,
+  excludeId: string,
+  limit = 4,
+): Promise<DesignProduct[]> {
+  await ensureSeed();
+  const db = await getDb();
+  const docs = await db
+    .collection<AdminProduct>(COLLECTIONS.products)
+    .find({ cat, isActive: true, id: { $ne: excludeId } })
+    .limit(limit)
+    .toArray();
+  return stripMany(docs).map(toDesignProduct);
 }
 
 // ─── Cafe menu items ──────────────────────────────────────────────────────

@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { getSettings } from "@/lib/admin/store";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: { default: "Hukuki bilgiler · L'Affogato", template: "%s · L'Affogato" },
 };

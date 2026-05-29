@@ -70,6 +70,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         seoSlot={<SeoContent faq={FAQ} />}
         wishlist={customer?.wishlist}
         isAuthenticated={!!customer}
+        freeShippingThreshold={Math.round(settings.shippingFreeThresholdMinor / 100)}
         shopHeroSlides={heroSlides.map((s) => ({
           id: s.id,
           title: s.title,
