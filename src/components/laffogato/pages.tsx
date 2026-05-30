@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 
 import { ShopHeroSlider, type ShopHeroSlide } from "./shop-hero-slider";
 import { MENU, PRODUCTS, REELS, PRESS, STORY, LOCATION, BRAND, FRANCHISE } from "./data";
-import type { MenuCategory } from "./data";
+import type { MenuCategory, MenuItem } from "./data";
 import { ProductCard, SectionHead, Stat, CartItem } from "./ui";
 import type { Product } from "./data";
 import type { Route } from "./chrome";
@@ -572,61 +572,285 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
    MENU
    ────────────────────────────────────────────────────────────── */
 
+/** Dekoratif QR amblemi — self-servis menü kartı için. Gerçek veri taşımaz,
+    masadaki fiziksel QR'ın görsel karşılığıdır. Desen deterministiktir
+    (SSR/hydration güvenli). */
+function MenuQrMark() {
+  const finder = (x: number, y: number) => (
+    <g>
+      <rect x={x} y={y} width="8" height="8" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <rect x={x + 2.4} y={y + 2.4} width="3.2" height="3.2" rx="0.6" fill="currentColor" />
+    </g>
+  );
+  // Sabit "data" modülleri — okunabilir bir QR dokusu hissi verir.
+  const dots = [
+    [11, 1], [13, 1], [16, 1], [11, 3], [14, 3], [17, 3], [12, 5], [16, 5], [18, 5],
+    [1, 11], [3, 11], [5, 11], [11, 11], [13, 11], [16, 11], [18, 11], [21, 11], [25, 11], [27, 11],
+    [2, 13], [4, 13], [12, 13], [15, 13], [17, 13], [23, 13], [26, 13],
+    [1, 16], [4, 16], [11, 16], [14, 16], [18, 16], [22, 16], [25, 16], [27, 16],
+    [3, 18], [5, 18], [13, 18], [16, 18], [24, 18], [26, 18],
+    [11, 21], [13, 21], [16, 21], [18, 21], [11, 23], [15, 23], [17, 23],
+    [12, 25], [14, 25], [17, 25], [11, 27], [16, 27], [18, 27],
+  ];
+  return (
+    <svg viewBox="-1 -1 31 31" role="img" aria-label="QR menü" className="menu-qr-svg">
+      {finder(0, 0)}
+      {finder(21, 0)}
+      {finder(0, 21)}
+      {dots.map(([x, y]) => (
+        <rect key={`${x}-${y}`} x={x} y={y} width="1.7" height="1.7" rx="0.4" fill="currentColor" />
+      ))}
+    </svg>
+  );
+}
+
 export function PageMenu({ addToCart, menu }: PageProps) {
   useReveal();
   const liveMenu = menu ?? MENU;
   const cats = Object.keys(liveMenu);
   const [active, setActive] = useState<string>("all");
-  const visible = active === "all" ? cats : [active];
+  const [query, setQuery] = useState("");
+  const [diet, setDiet] = useState<string>("all");
+  const [view, setView] = useState<"gallery" | "list">("gallery");
+  const [table, setTable] = useState<string | null>(null);
+
+  // Self-servis QR derin bağlantısı: /menu?masa=12 → masa farkındalığı.
+  // window.location üzerinden mount sonrası okunur (useSearchParams Suspense
+  // gerektirir; statik prerender'ı bozmamak için bu yol seçildi).
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get("masa") ?? params.get("table") ?? params.get("m");
+      if (raw && /^[A-Za-z0-9-]{1,5}$/.test(raw)) setTable(raw.toUpperCase());
+    } catch {
+      /* no-op */
+    }
+  }, []);
 
   const totalCount = Object.values(liveMenu).reduce((s, c) => s + c.items.length, 0);
+  const visible = active === "all" ? cats : [active];
+
+  const sections = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return visible
+      .map((key) => {
+        const c = liveMenu[key];
+        const items = c.items.filter((it) => {
+          const okDiet =
+            diet === "all"
+              ? true
+              : diet === "vegan"
+                ? (it.tags ?? []).some((t) => /vegan/i.test(t))
+                : (it.tags ?? []).includes(diet);
+          const okQuery =
+            !q || it.name.toLowerCase().includes(q) || it.desc.toLowerCase().includes(q);
+          return okDiet && okQuery;
+        });
+        return { key, c, items };
+      })
+      .filter((s) => s.items.length > 0);
+  }, [visible, liveMenu, diet, query]);
+
+  const shownCount = sections.reduce((s, sec) => s + sec.items.length, 0);
+
+  const dietFilters: Array<{ id: string; label: string }> = [
+    { id: "all", label: "Tümü" },
+    { id: "signature", label: "Firma" },
+    { id: "new", label: "Yeni" },
+    { id: "iced", label: "Buzlu" },
+    { id: "vegan", label: "Vegan" },
+  ];
+
+  const add = (it: MenuItem) => addToCart({ name: it.name, price: parseFloat(it.price) });
 
   return (
     <div className="page" data-screen-label="02 Menu">
-      <header className="page-head">
-        <div className="wrap">
-          <div className="reveal" data-row="section-head-split">
-            <div>
-              <div className="eyebrow">II — Il menù · summer 2026</div>
-              <h1 style={{ marginTop: 24 }}>
-                <span className="script">Menü.</span>
-              </h1>
-              <p className="lede" style={{ marginTop: 22 }}>
-                Italia 1987 reçetesi, Maltepe Park terası için sezonluk matcha bar ve buzlu içecekler.
-                Üç ritüel — espresso, gelato, yenilebilir kup. 39 yıldır değişmedi.
-              </p>
+      {/* ── Sinematik koyu hero + self-servis QR kartı ── */}
+      <header className="menu-hero">
+        <div className="menu-hero-glow" aria-hidden="true" />
+        <div className="wrap menu-hero-inner">
+          <div className="menu-hero-copy reveal">
+            <div className="menu-hero-eyebrow">
+              <span className="menu-hero-pip" />
+              <span>II — Il menù · summer 2026</span>
             </div>
-            <div className="menu-head-meta">
+            <h1 className="menu-hero-title">
+              Il <span className="script">menù.</span>
+            </h1>
+            <p className="menu-hero-lede">
+              Italia 1987 reçetesi, Maltepe Park terası için sezonluk matcha bar ve buzlu içecekler.
+              Üç ritüel — espresso, gelato, yenilebilir kup. 39 yıldır değişmedi.
+            </p>
+            <div className="menu-hero-stats">
               <div>
-                <div className="eyebrow" style={{ marginBottom: 6 }}>Toplam</div>
-                <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 36 }}>{totalCount} ürün</div>
+                <b>{totalCount}</b>
+                <span>lezzet</span>
               </div>
               <div>
-                <div className="eyebrow" style={{ marginBottom: 6 }}>Kategori</div>
-                <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 36 }}>{cats.length}</div>
+                <b>{cats.length}</b>
+                <span>ritüel</span>
+              </div>
+              <div>
+                <b>~4dk</b>
+                <span>hazırlık</span>
+              </div>
+              <div>
+                <b>06:00</b>
+                <span>taze gelato</span>
               </div>
             </div>
           </div>
+
+          <aside className="menu-selfservice reveal r1" aria-label="Self-servis QR menü">
+            <div className="menu-ss-top">
+              <div className="menu-ss-qr">
+                <MenuQrMark />
+                <span className="menu-ss-scan" aria-hidden="true" />
+              </div>
+              <div className="menu-ss-headings">
+                <div className="menu-ss-kicker">Self-servis · QR menü</div>
+                <div className="menu-ss-title">{table ? `Masa ${table}` : "Masandan tara"}</div>
+                <div className="menu-ss-sub">
+                  {table
+                    ? "QR ile bağlandın — siparişini buradan, telefonundan ver."
+                    : "Her masadaki QR seni doğrudan bu dijital menüye getirir."}
+                </div>
+              </div>
+            </div>
+            <ol className="menu-ss-steps">
+              <li>
+                <span className="menu-ss-n">1</span>
+                Beğendiğini <strong>sepete ekle</strong>
+              </li>
+              <li>
+                <span className="menu-ss-n">2</span>
+                Sepetten <strong>siparişini onayla</strong>
+              </li>
+              <li>
+                <span className="menu-ss-n">3</span>
+                {table ? <>Masa {table}&apos;ye <strong>getirelim</strong></> : <>Masana <strong>biz getirelim</strong></>}
+              </li>
+            </ol>
+            <div className="menu-ss-foot">
+              {table ? (
+                <span className="menu-ss-badge on">
+                  <span className="menu-ss-badge-dot" /> Masa {table} · bağlı
+                </span>
+              ) : (
+                <span className="menu-ss-badge">
+                  <span className="menu-ss-badge-dot" /> Temassız · garson beklemeden
+                </span>
+              )}
+            </div>
+          </aside>
         </div>
       </header>
 
-      <div className="menu-tabs-wrap">
-        <div className="wrap" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className={`menu-tab ${active === "all" ? "on" : ""}`} onClick={() => setActive("all")}>
-            <span>Tümü</span>
-            <span className="count">{totalCount}</span>
-          </button>
-          {cats.map((c) => (
-            <button key={c} className={`menu-tab ${active === c ? "on" : ""}`} onClick={() => setActive(c)}>
-              <span>{liveMenu[c].title}</span>
-              <span className="count">{liveMenu[c].items.length}</span>
+      {/* ── Sticky kontrol çubuğu: kategoriler + arama + görünüm + diyet ── */}
+      <div className="menu-controls">
+        <div className="wrap menu-controls-inner">
+          <div className="menu-tabs" role="tablist" aria-label="Menü kategorileri">
+            <button className={`menu-tab ${active === "all" ? "on" : ""}`} onClick={() => setActive("all")}>
+              <span>Tümü</span>
+              <span className="count">{totalCount}</span>
             </button>
-          ))}
+            {cats.map((c) => (
+              <button key={c} className={`menu-tab ${active === c ? "on" : ""}`} onClick={() => setActive(c)}>
+                <span>{liveMenu[c].title}</span>
+                <span className="count">{liveMenu[c].items.length}</span>
+              </button>
+            ))}
+          </div>
+          <div className="menu-tools">
+            <div className="menu-search">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4" />
+                <path d="M11 11 L14 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              </svg>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Menüde ara…"
+                aria-label="Menüde ara"
+              />
+              {query && (
+                <button className="menu-search-clear" onClick={() => setQuery("")} aria-label="Aramayı temizle">
+                  ×
+                </button>
+              )}
+            </div>
+            <div className="menu-view-toggle" role="group" aria-label="Görünüm">
+              <button
+                className={view === "gallery" ? "on" : ""}
+                onClick={() => setView("gallery")}
+                aria-label="Galeri görünümü"
+                aria-pressed={view === "gallery"}
+              >
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                  <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+                  <rect x="9" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+                  <rect x="1.5" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+                  <rect x="9" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+                </svg>
+              </button>
+              <button
+                className={view === "list" ? "on" : ""}
+                onClick={() => setView("list")}
+                aria-label="Liste görünümü"
+                aria-pressed={view === "list"}
+              >
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 4 H14 M2 8 H14 M2 12 H14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="wrap menu-diet-row">
+          <div className="menu-diet-chips">
+            {dietFilters.map((f) => (
+              <button
+                key={f.id}
+                className={`menu-diet ${diet === f.id ? "on" : ""}`}
+                onClick={() => setDiet(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <span className="menu-diet-count">{shownCount} sonuç</span>
         </div>
       </div>
 
-      {visible.map((key, idx) => {
-        const c = liveMenu[key];
+      {/* ── Boş sonuç ── */}
+      {sections.length === 0 && (
+        <section className="section-tight">
+          <div className="wrap menu-empty">
+            <div className="menu-empty-mark">∅</div>
+            <h2 className="h2" style={{ fontFamily: "var(--serif)", fontStyle: "italic" }}>
+              Aradığın tatla eşleşen ürün yok.
+            </h2>
+            <p style={{ color: "var(--ink-mute)", marginTop: 10 }}>
+              Farklı bir kelime dene ya da filtreleri sıfırla.
+            </p>
+            <button
+              className="btn btn-ghost"
+              style={{ marginTop: 22 }}
+              onClick={() => {
+                setQuery("");
+                setDiet("all");
+                setActive("all");
+              }}
+            >
+              Filtreleri temizle
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* ── Kategoriler ── */}
+      {sections.map(({ key, c, items }, idx) => {
         const firstWord = c.title.split(" ")[0];
         const restWords = c.title.split(" ").slice(1).join(" ");
         return (
@@ -638,6 +862,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
             <div className="wrap">
               <div className="menu-cat-hero reveal">
                 <div className="menu-cat-info">
+                  <div className="menu-cat-index">{String(idx + 1).padStart(2, "0")}</div>
                   <div className="eyebrow" style={{ marginBottom: 16 }}>
                     {c.sub}
                   </div>
@@ -650,115 +875,130 @@ export function PageMenu({ addToCart, menu }: PageProps) {
                       </>
                     )}
                   </h2>
-                  <div
-                    style={{
-                      fontFamily: "var(--serif)",
-                      fontStyle: "italic",
-                      color: "var(--ink-mute)",
-                      marginTop: 14,
-                      fontSize: 18,
-                    }}
-                  >
-                    {c.italian}
-                  </div>
-                  {c.note && (
-                    <p
-                      style={{
-                        marginTop: 20,
-                        padding: "16px 20px",
-                        background: "var(--bg-stone)",
-                        borderRadius: "var(--r-sm)",
-                        fontFamily: "var(--serif)",
-                        fontStyle: "italic",
-                        fontSize: 14,
-                        lineHeight: 1.6,
-                        color: "var(--ink-soft)",
-                        maxWidth: 540,
-                      }}
-                    >
-                      {c.note}
-                    </p>
-                  )}
+                  <div className="menu-cat-italian">{c.italian}</div>
+                  {c.note && <p className="menu-cat-note">{c.note}</p>}
                 </div>
                 <div className="menu-cat-hero-img">
                   <PhotoSurface
-                    hue={c.items[0].hue || "warm"}
-                    dotLabel={`${String(idx + 1).padStart(2, "0")} / ${visible.length.toString().padStart(2, "0")}`}
+                    hue={items[0].hue || "warm"}
+                    dotLabel={`${String(idx + 1).padStart(2, "0")} / ${sections.length.toString().padStart(2, "0")}`}
                     dotPos="tr"
                   >
                     <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", padding: 30 }}>
-                      <MenuPlate hue={c.items[0].hue} name={c.items[0].name} />
+                      <MenuPlate hue={items[0].hue} name={items[0].name} />
                     </div>
                   </PhotoSurface>
                 </div>
               </div>
 
-              <div className="menu-grid">
-                {c.items.map((it, i) => (
-                  <article
-                    key={it.name}
-                    className="menu-item-card reveal"
-                    style={{ transitionDelay: `${(i % 4) * 60}ms` }}
-                  >
-                    <div className="menu-item-img">
-                      <MenuPlate hue={it.hue} name={it.name} />
-                      {it.tags?.includes("signature") && <div className="product-card-flag gold">FIRMA</div>}
-                      {it.tags?.includes("new") && !it.tags.includes("signature") && (
-                        <div className="product-card-flag new">NUOVO</div>
-                      )}
-                    </div>
-                    <div className="menu-item-body">
-                      <div className="menu-item-row">
-                        <h3 className="menu-item-name">{it.name}</h3>
-                        <div className="menu-item-price">{it.price}</div>
-                      </div>
-                      <p className="menu-item-desc">{it.desc}</p>
-                      <div className="menu-item-foot">
-                        {it.tags && it.tags.length > 0 && (
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            {it.tags
-                              .filter((t) => !["signature", "new"].includes(t))
-                              .map((t) => (
-                                <span key={t} className="chip chip-outline" style={{ padding: "4px 10px", fontSize: 9 }}>
-                                  {t}
-                                </span>
-                              ))}
-                          </div>
+              {view === "gallery" ? (
+                <div className="menu-grid">
+                  {items.map((it, i) => (
+                    <article
+                      key={it.name}
+                      className="menu-item-card reveal"
+                      style={{ transitionDelay: `${(i % 4) * 60}ms` }}
+                    >
+                      <div className="menu-item-img">
+                        <MenuPlate hue={it.hue} name={it.name} />
+                        {it.tags?.includes("signature") && <div className="product-card-flag gold">FIRMA</div>}
+                        {it.tags?.includes("new") && !it.tags.includes("signature") && (
+                          <div className="product-card-flag new">NUOVO</div>
                         )}
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            addToCart({ name: it.name, price: parseFloat(it.price) });
-                          }}
-                        >
-                          + Sepete ekle
-                        </button>
                       </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
+                      <div className="menu-item-body">
+                        <div className="menu-item-row">
+                          <h3 className="menu-item-name">{it.name}</h3>
+                          <div className="menu-item-price">{it.price}</div>
+                        </div>
+                        <p className="menu-item-desc">{it.desc}</p>
+                        <div className="menu-item-foot">
+                          {it.tags && it.tags.length > 0 && (
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                              {it.tags
+                                .filter((t) => !["signature", "new"].includes(t))
+                                .map((t) => (
+                                  <span key={t} className="chip chip-outline" style={{ padding: "4px 10px", fontSize: 9 }}>
+                                    {t}
+                                  </span>
+                                ))}
+                            </div>
+                          )}
+                          <button
+                            className="btn btn-primary btn-sm menu-add-btn"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              add(it);
+                            }}
+                          >
+                            + Sepete ekle
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <ul className="menu-list reveal">
+                  {items.map((it) => (
+                    <li key={it.name} className="menu-list-row">
+                      <div className="menu-list-main">
+                        <div className="menu-list-name-row">
+                          <span className="menu-list-name">{it.name}</span>
+                          {it.tags?.includes("signature") && <span className="menu-list-tag gold">firma</span>}
+                          {it.tags?.includes("new") && <span className="menu-list-tag new">yeni</span>}
+                          <span className="menu-list-leader" aria-hidden="true" />
+                          <span className="menu-list-price">{it.price}</span>
+                        </div>
+                        <p className="menu-list-desc">{it.desc}</p>
+                      </div>
+                      <button
+                        className="menu-list-add"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          add(it);
+                        }}
+                        aria-label={`${it.name} sepete ekle`}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M8 3 V13 M3 8 H13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </section>
         );
       })}
 
+      {/* ── Bilgi notları ── */}
       <section className="section-tight" style={{ background: "var(--bg-cream)" }}>
-        <div className="wrap" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 50 }} data-row="menu-notes">
+        <div
+          className="wrap"
+          style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 40 }}
+          data-row="menu-notes"
+        >
           <div className="reveal">
+            <div className="eyebrow">Self-servis</div>
+            <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
+              Masandaki QR ile menüye ulaş, sepete ekle, siparişini onayla. Dilersen bardan da sipariş verebilirsin — ikisi de aynı mutfağa düşer.
+            </p>
+          </div>
+          <div className="reveal r1">
             <div className="eyebrow">Alerjenler</div>
             <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
               Süt, gluten, kuruyemiş, soya — mutfağımızda çapraz temas olabilir. Cölyak için baristaya bildirin, pirinç bisküvili alternatif hazırlarız.
             </p>
           </div>
-          <div className="reveal r1">
+          <div className="reveal r2">
             <div className="eyebrow">Köken</div>
             <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
               Espresso: Sirena harmanı (İtalyan kavurma). Matcha: Uji ceremonial grade. Pistacchio: Bronte IGP. Süt: Maltepe yerel mandıra.
             </p>
           </div>
-          <div className="reveal r2">
+          <div className="reveal r3">
             <div className="eyebrow">Servis</div>
             <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
               Bar köşesi 6 koltuk yürüyüş trafiği için ayrı. Akşam 19:00 sonrası rezervasyon. Köpekler hoş geldi.
