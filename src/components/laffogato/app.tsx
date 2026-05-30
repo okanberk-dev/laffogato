@@ -175,7 +175,7 @@ export function LaffogatoApp({
     setCart((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const dark = route === "home" || route === "franchise" || route === "visit";
+  const dark = route === "home" || route === "franchise" || route === "visit" || route === "menu";
 
   const pages: Record<Route, typeof PageHome> = {
     home: PageHome,
