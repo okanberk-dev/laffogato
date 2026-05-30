@@ -1032,6 +1032,7 @@ export function PageShop({ addToCart, openProduct, products, shopHeroSlides }: P
   const [sort, setSort] = useState<string>("featured");
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(900);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const cats = [
     { id: "all", label: "Hepsi", icon: "◯" },
@@ -1050,10 +1051,123 @@ export function PageShop({ addToCart, openProduct, products, shopHeroSlides }: P
   if (sort === "price-asc") list = [...list].sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
   if (sort === "price-desc") list = [...list].sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
 
+  const priceTouched = priceMin > 0 || priceMax < 900;
+  const activeFilterCount = (cat !== "all" ? 1 : 0) + (priceTouched ? 1 : 0);
+
+  const resetFilters = () => {
+    setCat("all");
+    setPriceMin(0);
+    setPriceMax(900);
+  };
+
+  // Lock body scroll while the mobile filter sheet is open.
+  useEffect(() => {
+    if (filtersOpen) document.body.classList.add("is-no-scroll");
+    else document.body.classList.remove("is-no-scroll");
+    return () => document.body.classList.remove("is-no-scroll");
+  }, [filtersOpen]);
+
+  // Filter controls — shared by the desktop sidebar and the mobile sheet.
+  const renderFilters = () => (
+    <>
+      <div className="shop-filter-block">
+        <div className="eyebrow" style={{ marginBottom: 14 }}>Kategoriler</div>
+        <div className="shop-cat-list">
+          {cats.map((c) => {
+            const count = c.id === "all" ? shopProducts.length : shopProducts.filter((p) => p.cat === c.id).length;
+            return (
+              <button
+                key={c.id}
+                className={`shop-cat ${cat === c.id ? "on" : ""}`}
+                onClick={() => setCat(c.id)}
+              >
+                <span>{c.label}</span>
+                <span className="count">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="shop-filter-block">
+        <div className="eyebrow" style={{ marginBottom: 14 }}>Fiyat aralığı</div>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 13, marginBottom: 16 }}>
+          {priceMin}₺ — {priceMax}₺
+        </div>
+        <div style={{ position: "relative", height: 28 }}>
+          <div
+            style={{ position: "absolute", top: 12, left: 0, right: 0, height: 2, background: "var(--ink-line)" }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: 12,
+              left: `${(priceMin / 900) * 100}%`,
+              right: `${100 - (priceMax / 900) * 100}%`,
+              height: 2,
+              background: "var(--ink)",
+            }}
+          />
+          <input
+            type="range"
+            min="0"
+            max="900"
+            step="20"
+            value={priceMin}
+            onChange={(e) => setPriceMin(Math.min(parseInt(e.target.value), priceMax - 40))}
+            className="price-range"
+            aria-label="En düşük fiyat"
+            style={{ position: "absolute", top: 0, left: 0, right: 0 }}
+          />
+          <input
+            type="range"
+            min="0"
+            max="900"
+            step="20"
+            value={priceMax}
+            onChange={(e) => setPriceMax(Math.max(parseInt(e.target.value), priceMin + 40))}
+            className="price-range"
+            aria-label="En yüksek fiyat"
+            style={{ position: "absolute", top: 0, left: 0, right: 0 }}
+          />
+        </div>
+      </div>
+
+      <div className="shop-filter-block">
+        <div className="eyebrow" style={{ marginBottom: 14 }}>Etiketler</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {["Yeni", "Limited", "En çok satan", "Italia import", "Gift ready"].map((t) => (
+            <span key={t} className="chip" style={{ cursor: "pointer" }}>
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="shop-filter-block" style={{ borderTop: 0 }}>
+        <div className="shop-helpline">
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Yardım</div>
+          <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 22, lineHeight: 1.2 }}>
+            Hangi çekirdek?
+          </div>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 10, lineHeight: 1.55 }}>
+            Espresso mu, filtre mi karar veremediysen — barista chat’i aç, sana yardımcı olalım.
+          </p>
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{ marginTop: 16, width: "100%", justifyContent: "center" }}
+          >
+            Chat’i aç <span className="arrow">→</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="page" data-screen-label="03 Shop">
       {slides.length > 0 && <ShopHeroSlider slides={slides} />}
-      <header className="page-head" id="products">
+      <header className="page-head shop-head-wrap" id="products">
         <div className="wrap">
           <div
             className="reveal"
@@ -1079,99 +1193,46 @@ export function PageShop({ addToCart, openProduct, products, shopHeroSlides }: P
         </div>
       </header>
 
+      {/* ── Mobil yapışkan kontrol çubuğu: kategori pill'leri + filtre + sırala ── */}
+      <div className="shop-mobilebar">
+        <div className="shop-mobilebar-cats" role="tablist" aria-label="Ürün kategorileri">
+          {cats.map((c) => {
+            const count = c.id === "all" ? shopProducts.length : shopProducts.filter((p) => p.cat === c.id).length;
+            return (
+              <button
+                key={c.id}
+                className={`shop-pill ${cat === c.id ? "on" : ""}`}
+                onClick={() => setCat(c.id)}
+              >
+                {c.label}
+                <span className="shop-pill-count">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="shop-mobilebar-actions">
+          <button className="shop-filter-trigger" onClick={() => setFiltersOpen(true)}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M2 4 H14 M4 8 H12 M6 12 H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            Filtrele
+            {activeFilterCount > 0 && <span className="shop-filter-badge">{activeFilterCount}</span>}
+          </button>
+          <label className="shop-sort-inline">
+            <span className="eyebrow">Sırala</span>
+            <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sırala">
+              <option value="featured">Önerilen</option>
+              <option value="price-asc">Fiyat ↑</option>
+              <option value="price-desc">Fiyat ↓</option>
+              <option value="new">Yeni</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
       <section className="section-tight">
         <div className="wrap-wide shop-layout">
-          <aside className="shop-sidebar reveal">
-            <div className="shop-filter-block">
-              <div className="eyebrow" style={{ marginBottom: 14 }}>Kategoriler</div>
-              <div className="shop-cat-list">
-                {cats.map((c) => {
-                  const count = c.id === "all" ? shopProducts.length : shopProducts.filter((p) => p.cat === c.id).length;
-                  return (
-                    <button
-                      key={c.id}
-                      className={`shop-cat ${cat === c.id ? "on" : ""}`}
-                      onClick={() => setCat(c.id)}
-                    >
-                      <span>{c.label}</span>
-                      <span className="count">{count}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="shop-filter-block">
-              <div className="eyebrow" style={{ marginBottom: 14 }}>Fiyat aralığı</div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 13, marginBottom: 16 }}>
-                {priceMin}₺ — {priceMax}₺
-              </div>
-              <div style={{ position: "relative", height: 28 }}>
-                <div
-                  style={{ position: "absolute", top: 12, left: 0, right: 0, height: 2, background: "var(--ink-line)" }}
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 12,
-                    left: `${(priceMin / 900) * 100}%`,
-                    right: `${100 - (priceMax / 900) * 100}%`,
-                    height: 2,
-                    background: "var(--ink)",
-                  }}
-                />
-                <input
-                  type="range"
-                  min="0"
-                  max="900"
-                  step="20"
-                  value={priceMin}
-                  onChange={(e) => setPriceMin(Math.min(parseInt(e.target.value), priceMax - 40))}
-                  className="price-range"
-                  style={{ position: "absolute", top: 0, left: 0, right: 0 }}
-                />
-                <input
-                  type="range"
-                  min="0"
-                  max="900"
-                  step="20"
-                  value={priceMax}
-                  onChange={(e) => setPriceMax(Math.max(parseInt(e.target.value), priceMin + 40))}
-                  className="price-range"
-                  style={{ position: "absolute", top: 0, left: 0, right: 0 }}
-                />
-              </div>
-            </div>
-
-            <div className="shop-filter-block">
-              <div className="eyebrow" style={{ marginBottom: 14 }}>Etiketler</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {["Yeni", "Limited", "En çok satan", "Italia import", "Gift ready"].map((t) => (
-                  <span key={t} className="chip" style={{ cursor: "pointer" }}>
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="shop-filter-block" style={{ borderTop: 0 }}>
-              <div className="shop-helpline">
-                <div className="eyebrow" style={{ marginBottom: 10 }}>Yardım</div>
-                <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 22, lineHeight: 1.2 }}>
-                  Hangi çekirdek?
-                </div>
-                <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 10, lineHeight: 1.55 }}>
-                  Espresso mu, filtre mi karar veremediysen — barista chat’i aç, sana yardımcı olalım.
-                </p>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  style={{ marginTop: 16, width: "100%", justifyContent: "center" }}
-                >
-                  Chat’i aç <span className="arrow">→</span>
-                </button>
-              </div>
-            </div>
-          </aside>
+          <aside className="shop-sidebar reveal">{renderFilters()}</aside>
 
           <div className="shop-main">
             <div className="shop-toolbar reveal">
@@ -1211,15 +1272,7 @@ export function PageShop({ addToCart, openProduct, products, shopHeroSlides }: P
                 <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 36 }}>
                   Bu filtreyle ürün yok.
                 </div>
-                <button
-                  className="btn btn-ghost"
-                  style={{ marginTop: 24 }}
-                  onClick={() => {
-                    setCat("all");
-                    setPriceMin(0);
-                    setPriceMax(900);
-                  }}
-                >
+                <button className="btn btn-ghost" style={{ marginTop: 24 }} onClick={resetFilters}>
                   Filtreleri temizle
                 </button>
               </div>
@@ -1227,6 +1280,38 @@ export function PageShop({ addToCart, openProduct, products, shopHeroSlides }: P
           </div>
         </div>
       </section>
+
+      {/* ── Mobil filtre alt-sayfası (bottom sheet) ── */}
+      <div
+        className={`shop-sheet-overlay ${filtersOpen ? "open" : ""}`}
+        onClick={() => setFiltersOpen(false)}
+        aria-hidden={!filtersOpen}
+      />
+      <div className={`shop-sheet ${filtersOpen ? "open" : ""}`} role="dialog" aria-modal="true" aria-label="Filtreler">
+        <div className="shop-sheet-grip" aria-hidden="true" />
+        <header className="shop-sheet-head">
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>Filtrele & sırala</div>
+            <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 22, lineHeight: 1 }}>
+              {list.length} ürün
+            </div>
+          </div>
+          <button onClick={() => setFiltersOpen(false)} className="nav-icon-btn" aria-label="Kapat">
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M3 3 L13 13 M13 3 L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </header>
+        <div className="shop-sheet-body">{renderFilters()}</div>
+        <footer className="shop-sheet-foot">
+          <button className="btn btn-ghost" onClick={resetFilters} disabled={activeFilterCount === 0}>
+            Sıfırla
+          </button>
+          <button className="btn btn-primary" style={{ flex: 1, justifyContent: "center" }} onClick={() => setFiltersOpen(false)}>
+            {list.length} ürünü göster
+          </button>
+        </footer>
+      </div>
 
       <section className="section" style={{ background: "var(--bg-warm)" }}>
         <div
