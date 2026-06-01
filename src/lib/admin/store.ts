@@ -1,8 +1,9 @@
 import "server-only";
 
-import { COLLECTIONS } from "@/lib/mongodb/collections";
-import { getDb } from "@/lib/mongodb/client";
-import { nextSeq } from "@/lib/mongodb/counters";
+import type { PostgrestError } from "@supabase/supabase-js";
+
+import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
+import { nextSeq } from "@/lib/supabase/counters";
 import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
 import {
   MENU as SEED_MENU,
@@ -14,11 +15,13 @@ import {
 import type { WeeklyHours } from "./days";
 
 /**
- * Veri katmanı — MongoDB Atlas üzerinden çalışır.
+ * Veri katmanı — Supabase (Postgres) üzerinden çalışır.
  *
  * Public API'lerin tamamı async ve mevcut admin sayfalarıyla uyumlu kalır.
- * Koleksiyon boşsa SEED verisi otomatik yüklenir (idempotent — yalnızca
- * count === 0 ise tetiklenir).
+ * Tablo boşsa SEED verisi otomatik yüklenir (idempotent — yalnızca
+ * count === 0 ise tetiklenir; insert'ler upsert/ignoreDuplicates ile
+ * yarış-güvenli). İç-içe alanlar (variants, items, refunds, ...) JSONB
+ * kolonlarda tutulur; tarih alanları ISO-8601 metni olarak saklanır.
  */
 
 export type ShopCategoryId = "beans" | "gift" | "gear" | "merch" | "pantry";
@@ -153,6 +156,49 @@ export interface AdminSettings {
   notificationEmail: string;
 }
 
+// ─── Supabase helpers ──────────────────────────────────────────────────────
+
+function rows<T>(
+  res: { data: T[] | null; error: PostgrestError | null },
+  ctx: string,
+): T[] {
+  if (res.error) throw new Error(`${ctx}: ${res.error.message}`);
+  return res.data ?? [];
+}
+
+function one<T>(
+  res: { data: T | null; error: PostgrestError | null },
+  ctx: string,
+): T | null {
+  if (res.error) throw new Error(`${ctx}: ${res.error.message}`);
+  return res.data;
+}
+
+function check(res: { error: PostgrestError | null }, ctx: string): void {
+  if (res.error) throw new Error(`${ctx}: ${res.error.message}`);
+}
+
+async function countRows(table: string): Promise<number> {
+  const sb = getSupabaseAdmin();
+  const { count, error, status } = await sb
+    .from(table)
+    .select("*", { count: "exact", head: true });
+  // head:true issues a HEAD request whose error body is empty, so error.message
+  // is blank — fall back to the HTTP status for a useful message.
+  if (error) {
+    throw new Error(`count(${table}) [${status}]: ${error.message || "request failed"}`);
+  }
+  return count ?? 0;
+}
+
+async function setCounter(id: string, seq: number): Promise<void> {
+  const sb = getSupabaseAdmin();
+  check(
+    await sb.from(TABLES.counters).upsert({ id, seq }, { onConflict: "id" }),
+    `setCounter(${id})`,
+  );
+}
+
 // ─── ID + slug helpers ────────────────────────────────────────────────────
 
 function parsePrice(price: string): number {
@@ -197,7 +243,7 @@ function deriveSku(name: string, n: number): string {
   return `${prefix}-${String(n).padStart(5, "0")}`;
 }
 
-// ─── Seed (idempotent — yalnızca koleksiyon boşsa çalışır) ────────────────
+// ─── Seed (idempotent — yalnızca tablo boşsa çalışır) ─────────────────────
 
 function defaultWeeklyHours(): WeeklyHours {
   return {
@@ -237,11 +283,10 @@ let seedPromise: Promise<void> | null = null;
 async function ensureSeed(): Promise<void> {
   if (seedPromise) return seedPromise;
   seedPromise = (async () => {
-    const db = await getDb();
+    const sb = getSupabaseAdmin();
     const now = new Date().toISOString();
 
-    const productsCount = await db.collection(COLLECTIONS.products).countDocuments({});
-    if (productsCount === 0) {
+    if ((await countRows(TABLES.products)) === 0) {
       const seeded: AdminProduct[] = SEED_PRODUCTS.map((p, i) => ({
         id: slugifyId("prd", i + 1),
         name: p.name,
@@ -267,34 +312,34 @@ async function ensureSeed(): Promise<void> {
         updatedAt: now,
       }));
       if (seeded.length > 0) {
-        await db.collection(COLLECTIONS.products).insertMany(seeded);
-        await db.collection(COLLECTIONS.counters).updateOne(
-          { _id: "prd" } as never,
-          { $set: { seq: seeded.length } },
-          { upsert: true },
+        check(
+          await sb
+            .from(TABLES.products)
+            .upsert(seeded, { onConflict: "id", ignoreDuplicates: true }),
+          "seed.products",
         );
+        await setCounter("prd", seeded.length);
       }
     }
 
-    const catCount = await db.collection(COLLECTIONS.categories).countDocuments({});
-    if (catCount === 0) {
+    if ((await countRows(TABLES.categories)) === 0) {
       const seededCats: AdminCategory[] = [
-        { id: slugifyId("cat", 1), slug: "beans",  label: "Çekirdek",    icon: "◉", sortOrder: 0 },
-        { id: slugifyId("cat", 2), slug: "gift",   label: "Hediye",      icon: "◈", sortOrder: 1 },
-        { id: slugifyId("cat", 3), slug: "gear",   label: "Ekipman",     icon: "◇", sortOrder: 2 },
-        { id: slugifyId("cat", 4), slug: "merch",  label: "Giyim",       icon: "◐", sortOrder: 3 },
-        { id: slugifyId("cat", 5), slug: "pantry", label: "Kiler",       icon: "◇", sortOrder: 4 },
+        { id: slugifyId("cat", 1), slug: "beans",  label: "Çekirdek", icon: "◉", sortOrder: 0 },
+        { id: slugifyId("cat", 2), slug: "gift",   label: "Hediye",   icon: "◈", sortOrder: 1 },
+        { id: slugifyId("cat", 3), slug: "gear",   label: "Ekipman",  icon: "◇", sortOrder: 2 },
+        { id: slugifyId("cat", 4), slug: "merch",  label: "Giyim",    icon: "◐", sortOrder: 3 },
+        { id: slugifyId("cat", 5), slug: "pantry", label: "Kiler",    icon: "◇", sortOrder: 4 },
       ];
-      await db.collection(COLLECTIONS.categories).insertMany(seededCats);
-      await db.collection(COLLECTIONS.counters).updateOne(
-        { _id: "cat" } as never,
-        { $set: { seq: seededCats.length } },
-        { upsert: true },
+      check(
+        await sb
+          .from(TABLES.categories)
+          .upsert(seededCats, { onConflict: "id", ignoreDuplicates: true }),
+        "seed.categories",
       );
+      await setCounter("cat", seededCats.length);
     }
 
-    const menuCount = await db.collection(COLLECTIONS.menuItems).countDocuments({});
-    if (menuCount === 0) {
+    if ((await countRows(TABLES.menuItems)) === 0) {
       let counter = 0;
       const seededMenu: AdminMenuItem[] = MENU_CATEGORY_KEYS.flatMap((key) =>
         SEED_MENU[key].items.map((it, idx) => {
@@ -314,25 +359,29 @@ async function ensureSeed(): Promise<void> {
         }),
       );
       if (seededMenu.length > 0) {
-        await db.collection(COLLECTIONS.menuItems).insertMany(seededMenu);
-        await db.collection(COLLECTIONS.counters).updateOne(
-          { _id: "mnu" } as never,
-          { $set: { seq: counter } },
-          { upsert: true },
+        check(
+          await sb
+            .from(TABLES.menuItems)
+            .upsert(seededMenu, { onConflict: "id", ignoreDuplicates: true }),
+          "seed.menu",
         );
+        await setCounter("mnu", counter);
       }
     }
 
-    const settingsCount = await db.collection(COLLECTIONS.settings).countDocuments({});
-    if (settingsCount === 0) {
-      await db.collection(COLLECTIONS.settings).insertOne({
-        _id: "main" as never,
-        ...defaultSettings(),
-      });
+    if ((await countRows(TABLES.settings)) === 0) {
+      check(
+        await sb
+          .from(TABLES.settings)
+          .upsert(
+            { id: "main", ...defaultSettings() },
+            { onConflict: "id", ignoreDuplicates: true },
+          ),
+        "seed.settings",
+      );
     }
 
-    const ordersCount = await db.collection(COLLECTIONS.orders).countDocuments({});
-    if (ordersCount === 0) {
+    if ((await countRows(TABLES.orders)) === 0) {
       const demoOrders: AdminOrder[] = [
         {
           id: slugifyId("ord", 1),
@@ -398,52 +447,37 @@ async function ensureSeed(): Promise<void> {
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
         },
       ];
-      await db.collection(COLLECTIONS.orders).insertMany(demoOrders);
-      await db.collection(COLLECTIONS.counters).updateOne(
-        { _id: "ord" } as never,
-        { $set: { seq: demoOrders.length } },
-        { upsert: true },
+      check(
+        await sb
+          .from(TABLES.orders)
+          .upsert(demoOrders, { onConflict: "id", ignoreDuplicates: true }),
+        "seed.orders",
       );
-      await db.collection(COLLECTIONS.counters).updateOne(
-        { _id: "orderNo" } as never,
-        { $set: { seq: 10_003 } },
-        { upsert: true },
-      );
+      await setCounter("ord", demoOrders.length);
+      await setCounter("orderNo", 10_003);
     }
   })();
   return seedPromise;
-}
-
-// Mongo dokümanlarındaki `_id` alanını client'a sızdırmamak için strip eden helper.
-function strip<T>(doc: T | null | undefined): T | null {
-  if (!doc) return null;
-  const { _id, ...rest } = doc as Record<string, unknown> & { _id?: unknown };
-  void _id;
-  return rest as T;
-}
-
-function stripMany<T>(docs: T[]): T[] {
-  return docs.map((d) => strip(d) as T);
 }
 
 // ─── Products ─────────────────────────────────────────────────────────────
 
 export async function listProducts(): Promise<AdminProduct[]> {
   await ensureSeed();
-  const db = await getDb();
-  const docs = await db
-    .collection<AdminProduct>(COLLECTIONS.products)
-    .find({})
-    .sort({ updatedAt: -1 })
-    .toArray();
-  return stripMany(docs);
+  const sb = getSupabaseAdmin();
+  return rows<AdminProduct>(
+    await sb.from(TABLES.products).select("*").order("updatedAt", { ascending: false }),
+    "listProducts",
+  );
 }
 
 export async function getProduct(id: string): Promise<AdminProduct | null> {
   await ensureSeed();
-  const db = await getDb();
-  const doc = await db.collection<AdminProduct>(COLLECTIONS.products).findOne({ id });
-  return strip(doc);
+  const sb = getSupabaseAdmin();
+  return one<AdminProduct>(
+    await sb.from(TABLES.products).select("*").eq("id", id).maybeSingle(),
+    "getProduct",
+  );
 }
 
 export interface ProductInput {
@@ -473,13 +507,13 @@ async function uniqueSlug(candidate: string, ignoreId?: string): Promise<string>
   const base = candidate || "urun";
   let attempt = base;
   let n = 1;
-  const db = await getDb();
+  const sb = getSupabaseAdmin();
   // 20 deneme yeter — gerçekçi tekrar sayısı çok düşük.
   for (let i = 0; i < 20; i += 1) {
-    const conflict = await db
-      .collection<AdminProduct>(COLLECTIONS.products)
-      .findOne({ slug: attempt, ...(ignoreId ? { id: { $ne: ignoreId } } : {}) });
-    if (!conflict) return attempt;
+    let q = sb.from(TABLES.products).select("id").eq("slug", attempt);
+    if (ignoreId) q = q.neq("id", ignoreId);
+    const found = rows<{ id: string }>(await q.limit(1), "uniqueSlug");
+    if (found.length === 0) return attempt;
     n += 1;
     attempt = `${base}-${n}`;
   }
@@ -488,7 +522,7 @@ async function uniqueSlug(candidate: string, ignoreId?: string): Promise<string>
 
 export async function createProduct(input: ProductInput): Promise<AdminProduct> {
   await ensureSeed();
-  const db = await getDb();
+  const sb = getSupabaseAdmin();
   const seq = await nextSeq("prd");
   const id = slugifyId("prd", seq);
   const slug = await uniqueSlug(input.slug || slugify(input.name) || `urun-${seq}`);
@@ -500,7 +534,7 @@ export async function createProduct(input: ProductInput): Promise<AdminProduct> 
     sku,
     updatedAt: new Date().toISOString(),
   };
-  await db.collection<AdminProduct>(COLLECTIONS.products).insertOne(product);
+  check(await sb.from(TABLES.products).insert(product), "createProduct");
   return product;
 }
 
@@ -509,10 +543,8 @@ export async function updateProduct(
   input: ProductInput,
 ): Promise<AdminProduct | null> {
   await ensureSeed();
-  const db = await getDb();
-  const existing = await db
-    .collection<AdminProduct>(COLLECTIONS.products)
-    .findOne({ id });
+  const sb = getSupabaseAdmin();
+  const existing = await getProduct(id);
   if (!existing) return null;
   const slug = await uniqueSlug(input.slug || slugify(input.name) || existing.slug, id);
   const next: AdminProduct = {
@@ -522,17 +554,18 @@ export async function updateProduct(
     sku: input.sku || existing.sku,
     updatedAt: new Date().toISOString(),
   };
-  await db
-    .collection<AdminProduct>(COLLECTIONS.products)
-    .updateOne({ id }, { $set: next });
-  return strip(next as unknown as AdminProduct);
+  check(await sb.from(TABLES.products).update(next).eq("id", id), "updateProduct");
+  return next;
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
   await ensureSeed();
-  const db = await getDb();
-  const res = await db.collection(COLLECTIONS.products).deleteOne({ id });
-  return res.deletedCount > 0;
+  const sb = getSupabaseAdmin();
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.products).delete().eq("id", id).select("id"),
+    "deleteProduct",
+  );
+  return deleted.length > 0;
 }
 
 export type BulkProductOp =
@@ -551,37 +584,54 @@ export async function bulkUpdateProducts(
 ): Promise<BulkResult> {
   if (ids.length === 0) return { updated: 0 };
   await ensureSeed();
-  const db = await getDb();
-  const filter = { id: { $in: ids } };
+  const sb = getSupabaseAdmin();
   const now = new Date().toISOString();
 
   if (op.kind === "delete") {
-    const res = await db.collection(COLLECTIONS.products).deleteMany(filter);
-    return { updated: res.deletedCount };
+    const res = rows<{ id: string }>(
+      await sb.from(TABLES.products).delete().in("id", ids).select("id"),
+      "bulkUpdateProducts.delete",
+    );
+    return { updated: res.length };
   }
 
   if (op.kind === "activate") {
-    const res = await db
-      .collection(COLLECTIONS.products)
-      .updateMany({ ...filter, isActive: false }, { $set: { isActive: true, updatedAt: now } });
-    return { updated: res.modifiedCount };
+    const res = rows<{ id: string }>(
+      await sb
+        .from(TABLES.products)
+        .update({ isActive: true, updatedAt: now })
+        .in("id", ids)
+        .eq("isActive", false)
+        .select("id"),
+      "bulkUpdateProducts.activate",
+    );
+    return { updated: res.length };
   }
 
   if (op.kind === "deactivate") {
-    const res = await db
-      .collection(COLLECTIONS.products)
-      .updateMany({ ...filter, isActive: true }, { $set: { isActive: false, updatedAt: now } });
-    return { updated: res.modifiedCount };
+    const res = rows<{ id: string }>(
+      await sb
+        .from(TABLES.products)
+        .update({ isActive: false, updatedAt: now })
+        .in("id", ids)
+        .eq("isActive", true)
+        .select("id"),
+      "bulkUpdateProducts.deactivate",
+    );
+    return { updated: res.length };
   }
 
   // set_category
-  const res = await db
-    .collection(COLLECTIONS.products)
-    .updateMany(
-      { ...filter, cat: { $ne: op.cat } },
-      { $set: { cat: op.cat, updatedAt: now } },
-    );
-  return { updated: res.modifiedCount };
+  const res = rows<{ id: string }>(
+    await sb
+      .from(TABLES.products)
+      .update({ cat: op.cat, updatedAt: now })
+      .in("id", ids)
+      .neq("cat", op.cat)
+      .select("id"),
+    "bulkUpdateProducts.set_category",
+  );
+  return { updated: res.length };
 }
 
 // ─── Stock movements ──────────────────────────────────────────────────────
@@ -609,15 +659,17 @@ export interface AdminStockMove {
   createdAt: string;
 }
 
-async function recordStockMove(input: Omit<AdminStockMove, "id" | "createdAt">): Promise<AdminStockMove> {
-  const db = await getDb();
+async function recordStockMove(
+  input: Omit<AdminStockMove, "id" | "createdAt">,
+): Promise<AdminStockMove> {
+  const sb = getSupabaseAdmin();
   const seq = await nextSeq("mov");
   const move: AdminStockMove = {
     id: `mov-${String(seq).padStart(6, "0")}`,
     createdAt: new Date().toISOString(),
     ...input,
   };
-  await db.collection<AdminStockMove>(COLLECTIONS.stockMoves).insertOne(move);
+  check(await sb.from(TABLES.stockMoves).insert(move), "recordStockMove");
   return move;
 }
 
@@ -627,17 +679,14 @@ export async function listStockMoves(filter?: {
   limit?: number;
 }): Promise<AdminStockMove[]> {
   await ensureSeed();
-  const db = await getDb();
-  const query: Record<string, unknown> = {};
-  if (filter?.productId) query.productId = filter.productId;
-  if (filter?.reason) query.reason = filter.reason;
-  const docs = await db
-    .collection<AdminStockMove>(COLLECTIONS.stockMoves)
-    .find(query)
-    .sort({ createdAt: -1 })
-    .limit(filter?.limit ?? 500)
-    .toArray();
-  return stripMany(docs);
+  const sb = getSupabaseAdmin();
+  let q = sb.from(TABLES.stockMoves).select("*");
+  if (filter?.productId) q = q.eq("productId", filter.productId);
+  if (filter?.reason) q = q.eq("reason", filter.reason);
+  return rows<AdminStockMove>(
+    await q.order("createdAt", { ascending: false }).limit(filter?.limit ?? 500),
+    "listStockMoves",
+  );
 }
 
 export interface AdjustStockInput {
@@ -655,10 +704,8 @@ export async function adjustStock(
   input: AdjustStockInput,
 ): Promise<AdjustStockResult> {
   await ensureSeed();
-  const db = await getDb();
-  const product = await db
-    .collection<AdminProduct>(COLLECTIONS.products)
-    .findOne({ id: input.productId });
+  const sb = getSupabaseAdmin();
+  const product = await getProduct(input.productId);
   if (!product) return { ok: false, error: "Ürün bulunamadı." };
   if (!Number.isFinite(input.delta) || input.delta === 0) {
     return { ok: false, error: "Geçerli bir değer gir (0 olamaz)." };
@@ -671,9 +718,13 @@ export async function adjustStock(
     };
   }
   const updatedAt = new Date().toISOString();
-  await db
-    .collection(COLLECTIONS.products)
-    .updateOne({ id: input.productId }, { $set: { stock: next, updatedAt } });
+  check(
+    await sb
+      .from(TABLES.products)
+      .update({ stock: next, updatedAt })
+      .eq("id", input.productId),
+    "adjustStock.update",
+  );
   const move = await recordStockMove({
     productId: product.id,
     productName: product.name,
@@ -686,7 +737,7 @@ export async function adjustStock(
   return {
     ok: true,
     move,
-    product: strip({ ...product, stock: next, updatedAt }) as AdminProduct,
+    product: { ...product, stock: next, updatedAt },
   };
 }
 
@@ -694,20 +745,20 @@ export async function adjustStock(
 
 export async function listCategories(): Promise<AdminCategory[]> {
   await ensureSeed();
-  const db = await getDb();
-  const docs = await db
-    .collection<AdminCategory>(COLLECTIONS.categories)
-    .find({})
-    .sort({ sortOrder: 1 })
-    .toArray();
-  return stripMany(docs);
+  const sb = getSupabaseAdmin();
+  return rows<AdminCategory>(
+    await sb.from(TABLES.categories).select("*").order("sortOrder", { ascending: true }),
+    "listCategories",
+  );
 }
 
 export async function getCategory(id: string): Promise<AdminCategory | null> {
   await ensureSeed();
-  const db = await getDb();
-  const doc = await db.collection<AdminCategory>(COLLECTIONS.categories).findOne({ id });
-  return strip(doc);
+  const sb = getSupabaseAdmin();
+  return one<AdminCategory>(
+    await sb.from(TABLES.categories).select("*").eq("id", id).maybeSingle(),
+    "getCategory",
+  );
 }
 
 export interface CategoryInput {
@@ -719,10 +770,10 @@ export interface CategoryInput {
 
 export async function createCategory(input: CategoryInput): Promise<AdminCategory> {
   await ensureSeed();
-  const db = await getDb();
+  const sb = getSupabaseAdmin();
   const seq = await nextSeq("cat");
   const c: AdminCategory = { id: slugifyId("cat", seq), ...input };
-  await db.collection<AdminCategory>(COLLECTIONS.categories).insertOne(c);
+  check(await sb.from(TABLES.categories).insert(c), "createCategory");
   return c;
 }
 
@@ -731,34 +782,33 @@ export async function updateCategory(
   input: CategoryInput,
 ): Promise<AdminCategory | null> {
   await ensureSeed();
-  const db = await getDb();
-  const existing = await db
-    .collection<AdminCategory>(COLLECTIONS.categories)
-    .findOne({ id });
+  const sb = getSupabaseAdmin();
+  const existing = await getCategory(id);
   if (!existing) return null;
   const next: AdminCategory = { ...existing, ...input };
-  await db.collection(COLLECTIONS.categories).updateOne({ id }, { $set: next });
-  return strip(next);
+  check(await sb.from(TABLES.categories).update(next).eq("id", id), "updateCategory");
+  return next;
 }
 
 export async function deleteCategory(id: string): Promise<boolean> {
   await ensureSeed();
-  const db = await getDb();
-  const res = await db.collection(COLLECTIONS.categories).deleteOne({ id });
-  return res.deletedCount > 0;
+  const sb = getSupabaseAdmin();
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.categories).delete().eq("id", id).select("id"),
+    "deleteCategory",
+  );
+  return deleted.length > 0;
 }
 
 // ─── Orders ───────────────────────────────────────────────────────────────
 
 export async function listOrders(): Promise<AdminOrder[]> {
   await ensureSeed();
-  const db = await getDb();
-  const docs = await db
-    .collection<AdminOrder>(COLLECTIONS.orders)
-    .find({})
-    .sort({ orderNo: -1 })
-    .toArray();
-  return stripMany(docs);
+  const sb = getSupabaseAdmin();
+  return rows<AdminOrder>(
+    await sb.from(TABLES.orders).select("*").order("orderNo", { ascending: false }),
+    "listOrders",
+  );
 }
 
 export interface CustomerSummary {
@@ -814,23 +864,27 @@ export async function customerOrdersByEmail(email: string): Promise<AdminOrder[]
   const needle = email.trim().toLowerCase();
   if (!needle) return [];
   await ensureSeed();
-  const db = await getDb();
-  // Email her zaman lowercase sakla → case-insensitive match için regex değil exact.
-  const docs = await db
-    .collection<AdminOrder>(COLLECTIONS.orders)
-    .find({
-      customerEmail: { $regex: `^${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
-    })
-    .sort({ orderNo: -1 })
-    .toArray();
-  return stripMany(docs);
+  const sb = getSupabaseAdmin();
+  // ilike ile case-insensitive ön-filtre; JS'te tam (lowercase) eşleşme.
+  const escaped = needle.replace(/[%_]/g, (c) => `\\${c}`);
+  const candidates = rows<AdminOrder>(
+    await sb
+      .from(TABLES.orders)
+      .select("*")
+      .ilike("customerEmail", escaped)
+      .order("orderNo", { ascending: false }),
+    "customerOrdersByEmail",
+  );
+  return candidates.filter((o) => o.customerEmail?.trim().toLowerCase() === needle);
 }
 
 export async function getOrder(id: string): Promise<AdminOrder | null> {
   await ensureSeed();
-  const db = await getDb();
-  const doc = await db.collection<AdminOrder>(COLLECTIONS.orders).findOne({ id });
-  return strip(doc);
+  const sb = getSupabaseAdmin();
+  return one<AdminOrder>(
+    await sb.from(TABLES.orders).select("*").eq("id", id).maybeSingle(),
+    "getOrder",
+  );
 }
 
 export async function updateOrderStatus(
@@ -838,11 +892,16 @@ export async function updateOrderStatus(
   status: AdminOrderStatus,
 ): Promise<AdminOrder | null> {
   await ensureSeed();
-  const db = await getDb();
-  const res = await db
-    .collection<AdminOrder>(COLLECTIONS.orders)
-    .findOneAndUpdate({ id }, { $set: { status } }, { returnDocument: "after" });
-  return strip((res as unknown as AdminOrder | { value: AdminOrder } | null) as AdminOrder | null);
+  const sb = getSupabaseAdmin();
+  return one<AdminOrder>(
+    await sb
+      .from(TABLES.orders)
+      .update({ status })
+      .eq("id", id)
+      .select("*")
+      .maybeSingle(),
+    "updateOrderStatus",
+  );
 }
 
 export type BulkOrderOp = { kind: "set_status"; status: AdminOrderStatus };
@@ -853,14 +912,17 @@ export async function bulkUpdateOrders(
 ): Promise<BulkResult> {
   if (ids.length === 0) return { updated: 0 };
   await ensureSeed();
-  const db = await getDb();
-  const res = await db
-    .collection(COLLECTIONS.orders)
-    .updateMany(
-      { id: { $in: ids }, status: { $ne: op.status } },
-      { $set: { status: op.status } },
-    );
-  return { updated: res.modifiedCount };
+  const sb = getSupabaseAdmin();
+  const res = rows<{ id: string }>(
+    await sb
+      .from(TABLES.orders)
+      .update({ status: op.status })
+      .in("id", ids)
+      .neq("status", op.status)
+      .select("id"),
+    "bulkUpdateOrders",
+  );
+  return { updated: res.length };
 }
 
 export interface PlaceOrderItemInput {
@@ -900,19 +962,34 @@ export async function placeOrder(
   input: PlaceOrderInput,
 ): Promise<PlaceOrderResult> {
   await ensureSeed();
-  const db = await getDb();
+  const sb = getSupabaseAdmin();
   const cleanItems = input.items.filter((it) => it.qty > 0 && it.qty <= 99);
   if (cleanItems.length === 0) return { ok: false, reason: "empty" };
 
-  // Resolve each line against the DB by id (preferred) or name.
+  // Resolve each line against the DB by id (preferred) or name. Two filtered
+  // reads merged by id avoids escaping issues with names in a combined .or().
   const ids = cleanItems.map((it) => it.productId).filter(Boolean) as string[];
   const names = cleanItems.map((it) => it.name);
-  const productDocs = await db
-    .collection<AdminProduct>(COLLECTIONS.products)
-    .find({ $or: [{ id: { $in: ids } }, { name: { $in: names } }] })
-    .toArray();
-  const byId = new Map(productDocs.map((p) => [p.id, p]));
-  const byName = new Map(productDocs.map((p) => [p.name, p]));
+  const [byIdDocs, byNameDocs] = await Promise.all([
+    ids.length > 0
+      ? rows<AdminProduct>(
+          await sb.from(TABLES.products).select("*").in("id", ids),
+          "placeOrder.byId",
+        )
+      : Promise.resolve([] as AdminProduct[]),
+    names.length > 0
+      ? rows<AdminProduct>(
+          await sb.from(TABLES.products).select("*").in("name", names),
+          "placeOrder.byName",
+        )
+      : Promise.resolve([] as AdminProduct[]),
+  ]);
+  const byId = new Map<string, AdminProduct>();
+  const byName = new Map<string, AdminProduct>();
+  for (const p of [...byIdDocs, ...byNameDocs]) {
+    byId.set(p.id, p);
+    byName.set(p.name, p);
+  }
 
   interface ResolvedLine {
     product: AdminProduct;
@@ -975,9 +1052,10 @@ export async function placeOrder(
       line.product.variants = nextVariants as AdminProductVariant[];
     }
     line.product.stock = stockAfter;
-    await db
-      .collection(COLLECTIONS.products)
-      .updateOne({ id: line.product.id }, { $set: update });
+    check(
+      await sb.from(TABLES.products).update(update).eq("id", line.product.id),
+      "placeOrder.decrement",
+    );
     await recordStockMove({
       productId: line.product.id,
       productName: line.label,
@@ -1037,7 +1115,7 @@ export async function placeOrder(
     refunds: [],
     createdAt: new Date().toISOString(),
   };
-  await db.collection<AdminOrder>(COLLECTIONS.orders).insertOne(order);
+  check(await sb.from(TABLES.orders).insert(order), "placeOrder.insert");
   return { ok: true, order, priceAdjusted };
 }
 
@@ -1079,10 +1157,8 @@ export async function transitionOrder(
   transition: OrderTransition,
 ): Promise<TransitionResult> {
   await ensureSeed();
-  const db = await getDb();
-  const existing = await db
-    .collection<AdminOrder>(COLLECTIONS.orders)
-    .findOne({ id });
+  const sb = getSupabaseAdmin();
+  const existing = await getOrder(id);
   if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
   const map = TRANSITION_MAP[transition];
   if (!map) return { ok: false, error: "Geçersiz işlem." };
@@ -1092,8 +1168,11 @@ export async function transitionOrder(
       error: `Bu işlem '${existing.status}' durumunda yapılamaz.`,
     };
   }
-  await db.collection(COLLECTIONS.orders).updateOne({ id }, { $set: { status: map.to } });
-  return { ok: true, order: strip({ ...existing, status: map.to }) as AdminOrder };
+  check(
+    await sb.from(TABLES.orders).update({ status: map.to }).eq("id", id),
+    "transitionOrder",
+  );
+  return { ok: true, order: { ...existing, status: map.to } };
 }
 
 export async function setOrderInternalNote(
@@ -1101,14 +1180,15 @@ export async function setOrderInternalNote(
   note: string,
 ): Promise<AdminOrder | null> {
   await ensureSeed();
-  const db = await getDb();
+  const sb = getSupabaseAdmin();
   const trimmed = note.slice(0, 2000);
-  const existing = await db
-    .collection<AdminOrder>(COLLECTIONS.orders)
-    .findOne({ id });
+  const existing = await getOrder(id);
   if (!existing) return null;
-  await db.collection(COLLECTIONS.orders).updateOne({ id }, { $set: { internalNote: trimmed } });
-  return strip({ ...existing, internalNote: trimmed }) as AdminOrder;
+  check(
+    await sb.from(TABLES.orders).update({ internalNote: trimmed }).eq("id", id),
+    "setOrderInternalNote",
+  );
+  return { ...existing, internalNote: trimmed };
 }
 
 export async function setOrderItemStatus(
@@ -1117,17 +1197,18 @@ export async function setOrderItemStatus(
   status: AdminOrderItemStatus,
 ): Promise<AdminOrder | null> {
   await ensureSeed();
-  const db = await getDb();
-  const existing = await db
-    .collection<AdminOrder>(COLLECTIONS.orders)
-    .findOne({ id: orderId });
+  const sb = getSupabaseAdmin();
+  const existing = await getOrder(orderId);
   if (!existing) return null;
   if (itemIndex < 0 || itemIndex >= existing.items.length) return null;
   const nextItems = existing.items.map((it, i) =>
     i === itemIndex ? { ...it, status } : it,
   );
-  await db.collection(COLLECTIONS.orders).updateOne({ id: orderId }, { $set: { items: nextItems } });
-  return strip({ ...existing, items: nextItems }) as AdminOrder;
+  check(
+    await sb.from(TABLES.orders).update({ items: nextItems }).eq("id", orderId),
+    "setOrderItemStatus",
+  );
+  return { ...existing, items: nextItems };
 }
 
 export interface RefundInput {
@@ -1144,10 +1225,8 @@ export async function refundOrder(
   input: RefundInput,
 ): Promise<RefundResult> {
   await ensureSeed();
-  const db = await getDb();
-  const existing = await db
-    .collection<AdminOrder>(COLLECTIONS.orders)
-    .findOne({ id: orderId });
+  const sb = getSupabaseAdmin();
+  const existing = await getOrder(orderId);
   if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
   if (existing.status === "cancelled") {
     return { ok: false, error: "İptal edilen siparişe iade yapılamaz." };
@@ -1173,12 +1252,16 @@ export async function refundOrder(
   const fullyRefunded =
     nextRefunds.reduce((s, r) => s + r.amountMinor, 0) >= existing.totalMinor;
   const status = fullyRefunded ? "refunded" : existing.status;
-  await db
-    .collection(COLLECTIONS.orders)
-    .updateOne({ id: orderId }, { $set: { refunds: nextRefunds, status } });
+  check(
+    await sb
+      .from(TABLES.orders)
+      .update({ refunds: nextRefunds, status })
+      .eq("id", orderId),
+    "refundOrder",
+  );
   return {
     ok: true,
-    order: strip({ ...existing, refunds: nextRefunds, status }) as AdminOrder,
+    order: { ...existing, refunds: nextRefunds, status },
     refund,
   };
 }
@@ -1187,10 +1270,13 @@ export async function refundOrder(
 
 export async function getSettings(): Promise<AdminSettings> {
   await ensureSeed();
-  const db = await getDb();
-  const doc = await db.collection(COLLECTIONS.settings).findOne({ _id: "main" as never });
+  const sb = getSupabaseAdmin();
+  const doc = one<Record<string, unknown>>(
+    await sb.from(TABLES.settings).select("*").eq("id", "main").maybeSingle(),
+    "getSettings",
+  );
   if (!doc) return defaultSettings();
-  const { _id, ...rest } = doc as Record<string, unknown> & { _id?: unknown };
+  const { id: _id, ...rest } = doc;
   void _id;
   return rest as unknown as AdminSettings;
 }
@@ -1199,10 +1285,13 @@ export async function updateSettings(
   input: Partial<AdminSettings>,
 ): Promise<AdminSettings> {
   await ensureSeed();
-  const db = await getDb();
-  await db
-    .collection(COLLECTIONS.settings)
-    .updateOne({ _id: "main" as never }, { $set: input }, { upsert: true });
+  const sb = getSupabaseAdmin();
+  check(
+    await sb
+      .from(TABLES.settings)
+      .upsert({ id: "main", ...input }, { onConflict: "id" }),
+    "updateSettings",
+  );
   return getSettings();
 }
 
@@ -1220,27 +1309,55 @@ export interface DashboardStats {
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   await ensureSeed();
-  const db = await getDb();
-  const productsColl = db.collection<AdminProduct>(COLLECTIONS.products);
-  const ordersColl = db.collection<AdminOrder>(COLLECTIONS.orders);
+  const sb = getSupabaseAdmin();
 
-  const [productCount, activeProductCount, outOfStockCount, categoryCount, orderCount, pendingOrderCount, revenueAgg] =
-    await Promise.all([
-      productsColl.countDocuments({}),
-      productsColl.countDocuments({ isActive: true }),
-      productsColl.countDocuments({ stock: 0 }),
-      db.collection(COLLECTIONS.categories).countDocuments({}),
-      ordersColl.countDocuments({}),
-      ordersColl.countDocuments({
-        status: { $in: ["pending_payment", "paid", "preparing"] },
+  const [
+    productCount,
+    activeProductCount,
+    outOfStockCount,
+    categoryCount,
+    orderCount,
+    pendingOrderCount,
+    revenueRows,
+  ] = await Promise.all([
+    countRows(TABLES.products),
+    sb
+      .from(TABLES.products)
+      .select("*", { count: "exact", head: true })
+      .eq("isActive", true)
+      .then((r) => {
+        if (r.error) throw new Error(`getDashboardStats.active: ${r.error.message}`);
+        return r.count ?? 0;
       }),
-      ordersColl
-        .aggregate<{ _id: null; total: number }>([
-          { $match: { status: { $in: ["paid", "preparing", "shipped", "completed"] } } },
-          { $group: { _id: null, total: { $sum: "$totalMinor" } } },
-        ])
-        .toArray(),
-    ]);
+    sb
+      .from(TABLES.products)
+      .select("*", { count: "exact", head: true })
+      .eq("stock", 0)
+      .then((r) => {
+        if (r.error) throw new Error(`getDashboardStats.oos: ${r.error.message}`);
+        return r.count ?? 0;
+      }),
+    countRows(TABLES.categories),
+    countRows(TABLES.orders),
+    sb
+      .from(TABLES.orders)
+      .select("*", { count: "exact", head: true })
+      .in("status", ["pending_payment", "paid", "preparing"])
+      .then((r) => {
+        if (r.error) throw new Error(`getDashboardStats.pending: ${r.error.message}`);
+        return r.count ?? 0;
+      }),
+    sb
+      .from(TABLES.orders)
+      .select("totalMinor")
+      .in("status", ["paid", "preparing", "shipped", "completed"])
+      .then((r) => {
+        if (r.error) throw new Error(`getDashboardStats.revenue: ${r.error.message}`);
+        return (r.data ?? []) as Array<{ totalMinor: number }>;
+      }),
+  ]);
+
+  const revenueMinor = revenueRows.reduce((s, o) => s + (o.totalMinor ?? 0), 0);
 
   return {
     productCount,
@@ -1249,7 +1366,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     categoryCount,
     orderCount,
     pendingOrderCount,
-    revenueMinor: revenueAgg[0]?.total ?? 0,
+    revenueMinor,
   };
 }
 
@@ -1303,12 +1420,18 @@ export async function getShopProductBySlug(
   slug: string,
 ): Promise<DesignProduct | null> {
   await ensureSeed();
-  const db = await getDb();
-  const doc = await db
-    .collection<AdminProduct>(COLLECTIONS.products)
-    .findOne({ slug, isActive: true });
+  const sb = getSupabaseAdmin();
+  const doc = one<AdminProduct>(
+    await sb
+      .from(TABLES.products)
+      .select("*")
+      .eq("slug", slug)
+      .eq("isActive", true)
+      .maybeSingle(),
+    "getShopProductBySlug",
+  );
   if (!doc) return null;
-  return toDesignProduct(strip(doc) as AdminProduct);
+  return toDesignProduct(doc);
 }
 
 /** Up to `limit` other active products sharing the category (for cross-sell). */
@@ -1318,13 +1441,18 @@ export async function listRelatedShopProducts(
   limit = 4,
 ): Promise<DesignProduct[]> {
   await ensureSeed();
-  const db = await getDb();
-  const docs = await db
-    .collection<AdminProduct>(COLLECTIONS.products)
-    .find({ cat, isActive: true, id: { $ne: excludeId } })
-    .limit(limit)
-    .toArray();
-  return stripMany(docs).map(toDesignProduct);
+  const sb = getSupabaseAdmin();
+  const docs = rows<AdminProduct>(
+    await sb
+      .from(TABLES.products)
+      .select("*")
+      .eq("cat", cat)
+      .eq("isActive", true)
+      .neq("id", excludeId)
+      .limit(limit),
+    "listRelatedShopProducts",
+  );
+  return docs.map(toDesignProduct);
 }
 
 // ─── Cafe menu items ──────────────────────────────────────────────────────
@@ -1362,25 +1490,26 @@ export interface AdminMenuItem {
 
 export async function listMenuItems(): Promise<AdminMenuItem[]> {
   await ensureSeed();
-  const db = await getDb();
-  const docs = await db
-    .collection<AdminMenuItem>(COLLECTIONS.menuItems)
-    .find({})
-    .toArray();
-  const ordered = docs.sort((a, b) => {
+  const sb = getSupabaseAdmin();
+  const docs = rows<AdminMenuItem>(
+    await sb.from(TABLES.menuItems).select("*"),
+    "listMenuItems",
+  );
+  return docs.sort((a, b) => {
     const aIdx = MENU_CATEGORY_KEYS.indexOf(a.categoryKey);
     const bIdx = MENU_CATEGORY_KEYS.indexOf(b.categoryKey);
     if (aIdx !== bIdx) return aIdx - bIdx;
     return a.sortOrder - b.sortOrder;
   });
-  return stripMany(ordered);
 }
 
 export async function getMenuItem(id: string): Promise<AdminMenuItem | null> {
   await ensureSeed();
-  const db = await getDb();
-  const doc = await db.collection<AdminMenuItem>(COLLECTIONS.menuItems).findOne({ id });
-  return strip(doc);
+  const sb = getSupabaseAdmin();
+  return one<AdminMenuItem>(
+    await sb.from(TABLES.menuItems).select("*").eq("id", id).maybeSingle(),
+    "getMenuItem",
+  );
 }
 
 export interface MenuItemInput {
@@ -1396,14 +1525,14 @@ export interface MenuItemInput {
 
 export async function createMenuItem(input: MenuItemInput): Promise<AdminMenuItem> {
   await ensureSeed();
-  const db = await getDb();
+  const sb = getSupabaseAdmin();
   const seq = await nextSeq("mnu");
   const item: AdminMenuItem = {
     id: slugifyId("mnu", seq),
     ...input,
     updatedAt: new Date().toISOString(),
   };
-  await db.collection<AdminMenuItem>(COLLECTIONS.menuItems).insertOne(item);
+  check(await sb.from(TABLES.menuItems).insert(item), "createMenuItem");
   return item;
 }
 
@@ -1412,25 +1541,26 @@ export async function updateMenuItem(
   input: MenuItemInput,
 ): Promise<AdminMenuItem | null> {
   await ensureSeed();
-  const db = await getDb();
-  const existing = await db
-    .collection<AdminMenuItem>(COLLECTIONS.menuItems)
-    .findOne({ id });
+  const sb = getSupabaseAdmin();
+  const existing = await getMenuItem(id);
   if (!existing) return null;
   const next: AdminMenuItem = {
     ...existing,
     ...input,
     updatedAt: new Date().toISOString(),
   };
-  await db.collection(COLLECTIONS.menuItems).updateOne({ id }, { $set: next });
-  return strip(next);
+  check(await sb.from(TABLES.menuItems).update(next).eq("id", id), "updateMenuItem");
+  return next;
 }
 
 export async function deleteMenuItem(id: string): Promise<boolean> {
   await ensureSeed();
-  const db = await getDb();
-  const res = await db.collection(COLLECTIONS.menuItems).deleteOne({ id });
-  return res.deletedCount > 0;
+  const sb = getSupabaseAdmin();
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.menuItems).delete().eq("id", id).select("id"),
+    "deleteMenuItem",
+  );
+  return deleted.length > 0;
 }
 
 export type BulkMenuOp =
@@ -1445,36 +1575,53 @@ export async function bulkUpdateMenuItems(
 ): Promise<BulkResult> {
   if (ids.length === 0) return { updated: 0 };
   await ensureSeed();
-  const db = await getDb();
-  const filter = { id: { $in: ids } };
+  const sb = getSupabaseAdmin();
   const now = new Date().toISOString();
 
   if (op.kind === "delete") {
-    const res = await db.collection(COLLECTIONS.menuItems).deleteMany(filter);
-    return { updated: res.deletedCount };
+    const res = rows<{ id: string }>(
+      await sb.from(TABLES.menuItems).delete().in("id", ids).select("id"),
+      "bulkUpdateMenuItems.delete",
+    );
+    return { updated: res.length };
   }
 
   if (op.kind === "activate") {
-    const res = await db
-      .collection(COLLECTIONS.menuItems)
-      .updateMany({ ...filter, isActive: false }, { $set: { isActive: true, updatedAt: now } });
-    return { updated: res.modifiedCount };
+    const res = rows<{ id: string }>(
+      await sb
+        .from(TABLES.menuItems)
+        .update({ isActive: true, updatedAt: now })
+        .in("id", ids)
+        .eq("isActive", false)
+        .select("id"),
+      "bulkUpdateMenuItems.activate",
+    );
+    return { updated: res.length };
   }
 
   if (op.kind === "deactivate") {
-    const res = await db
-      .collection(COLLECTIONS.menuItems)
-      .updateMany({ ...filter, isActive: true }, { $set: { isActive: false, updatedAt: now } });
-    return { updated: res.modifiedCount };
+    const res = rows<{ id: string }>(
+      await sb
+        .from(TABLES.menuItems)
+        .update({ isActive: false, updatedAt: now })
+        .in("id", ids)
+        .eq("isActive", true)
+        .select("id"),
+      "bulkUpdateMenuItems.deactivate",
+    );
+    return { updated: res.length };
   }
 
-  const res = await db
-    .collection(COLLECTIONS.menuItems)
-    .updateMany(
-      { ...filter, categoryKey: { $ne: op.categoryKey } },
-      { $set: { categoryKey: op.categoryKey, updatedAt: now } },
-    );
-  return { updated: res.modifiedCount };
+  const res = rows<{ id: string }>(
+    await sb
+      .from(TABLES.menuItems)
+      .update({ categoryKey: op.categoryKey, updatedAt: now })
+      .in("id", ids)
+      .neq("categoryKey", op.categoryKey)
+      .select("id"),
+    "bulkUpdateMenuItems.set_category",
+  );
+  return { updated: res.length };
 }
 
 export async function listMenuForCustomer(): Promise<
@@ -1533,20 +1680,20 @@ export interface AdminPromo {
 
 export async function listPromos(): Promise<AdminPromo[]> {
   await ensureSeed();
-  const db = await getDb();
-  const docs = await db
-    .collection<AdminPromo>(COLLECTIONS.promos)
-    .find({})
-    .sort({ createdAt: -1 })
-    .toArray();
-  return stripMany(docs);
+  const sb = getSupabaseAdmin();
+  return rows<AdminPromo>(
+    await sb.from(TABLES.promos).select("*").order("createdAt", { ascending: false }),
+    "listPromos",
+  );
 }
 
 export async function getPromo(id: string): Promise<AdminPromo | null> {
   await ensureSeed();
-  const db = await getDb();
-  const doc = await db.collection<AdminPromo>(COLLECTIONS.promos).findOne({ id });
-  return strip(doc);
+  const sb = getSupabaseAdmin();
+  return one<AdminPromo>(
+    await sb.from(TABLES.promos).select("*").eq("id", id).maybeSingle(),
+    "getPromo",
+  );
 }
 
 export interface PromoInput {
@@ -1571,8 +1718,11 @@ export async function createPromo(input: PromoInput): Promise<PromoMutationResul
   await ensureSeed();
   const code = normalizeCode(input.code);
   if (!code) return { ok: false, error: "Kod boş olamaz." };
-  const db = await getDb();
-  const conflict = await db.collection(COLLECTIONS.promos).findOne({ code });
+  const sb = getSupabaseAdmin();
+  const conflict = one<{ id: string }>(
+    await sb.from(TABLES.promos).select("id").eq("code", code).maybeSingle(),
+    "createPromo.conflict",
+  );
   if (conflict) return { ok: false, error: "Bu kod zaten kullanılıyor." };
   const seq = await nextSeq("prm");
   const now = new Date().toISOString();
@@ -1589,7 +1739,7 @@ export async function createPromo(input: PromoInput): Promise<PromoMutationResul
     createdAt: now,
     updatedAt: now,
   };
-  await db.collection<AdminPromo>(COLLECTIONS.promos).insertOne(promo);
+  check(await sb.from(TABLES.promos).insert(promo), "createPromo.insert");
   return { ok: true, promo };
 }
 
@@ -1598,14 +1748,20 @@ export async function updatePromo(
   input: PromoInput,
 ): Promise<PromoMutationResult> {
   await ensureSeed();
-  const db = await getDb();
-  const existing = await db.collection<AdminPromo>(COLLECTIONS.promos).findOne({ id });
+  const sb = getSupabaseAdmin();
+  const existing = await getPromo(id);
   if (!existing) return { ok: false, error: "Kod bulunamadı." };
   const code = normalizeCode(input.code);
   if (!code) return { ok: false, error: "Kod boş olamaz." };
-  const conflict = await db
-    .collection(COLLECTIONS.promos)
-    .findOne({ code, id: { $ne: id } });
+  const conflict = one<{ id: string }>(
+    await sb
+      .from(TABLES.promos)
+      .select("id")
+      .eq("code", code)
+      .neq("id", id)
+      .maybeSingle(),
+    "updatePromo.conflict",
+  );
   if (conflict) return { ok: false, error: "Başka bir kod aynı koda sahip." };
   const next: AdminPromo = {
     ...existing,
@@ -1618,15 +1774,18 @@ export async function updatePromo(
     isActive: input.isActive,
     updatedAt: new Date().toISOString(),
   };
-  await db.collection(COLLECTIONS.promos).updateOne({ id }, { $set: next });
-  return { ok: true, promo: strip(next) as AdminPromo };
+  check(await sb.from(TABLES.promos).update(next).eq("id", id), "updatePromo.update");
+  return { ok: true, promo: next };
 }
 
 export async function deletePromo(id: string): Promise<boolean> {
   await ensureSeed();
-  const db = await getDb();
-  const res = await db.collection(COLLECTIONS.promos).deleteOne({ id });
-  return res.deletedCount > 0;
+  const sb = getSupabaseAdmin();
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.promos).delete().eq("id", id).select("id"),
+    "deletePromo",
+  );
+  return deleted.length > 0;
 }
 
 export type PromoApplyResult =
@@ -1640,8 +1799,11 @@ export async function applyPromoCode(
   await ensureSeed();
   const needle = normalizeCode(code);
   if (!needle) return { ok: false, error: "Kod gir." };
-  const db = await getDb();
-  const promo = await db.collection<AdminPromo>(COLLECTIONS.promos).findOne({ code: needle });
+  const sb = getSupabaseAdmin();
+  const promo = one<AdminPromo>(
+    await sb.from(TABLES.promos).select("*").eq("code", needle).maybeSingle(),
+    "applyPromoCode",
+  );
   if (!promo) return { ok: false, error: "Geçersiz kod." };
   if (!promo.isActive) return { ok: false, error: "Bu kod kapalı." };
   if (promo.expiresAt && new Date(promo.expiresAt).getTime() < Date.now()) {
@@ -1662,16 +1824,24 @@ export async function applyPromoCode(
       : Math.min(promo.value, subtotalMinor);
   if (discountMinor < 0) discountMinor = 0;
   if (discountMinor > subtotalMinor) discountMinor = subtotalMinor;
-  return { ok: true, promo: strip(promo) as AdminPromo, discountMinor };
+  return { ok: true, promo, discountMinor };
 }
 
 export async function consumePromoUsage(code: string): Promise<void> {
   await ensureSeed();
   const needle = normalizeCode(code);
-  const db = await getDb();
-  await db.collection(COLLECTIONS.promos).updateOne(
-    { code: needle },
-    { $inc: { usageCount: 1 }, $set: { updatedAt: new Date().toISOString() } },
+  const sb = getSupabaseAdmin();
+  const promo = one<AdminPromo>(
+    await sb.from(TABLES.promos).select("usageCount").eq("code", needle).maybeSingle(),
+    "consumePromoUsage.fetch",
+  );
+  if (!promo) return;
+  check(
+    await sb
+      .from(TABLES.promos)
+      .update({ usageCount: promo.usageCount + 1, updatedAt: new Date().toISOString() })
+      .eq("code", needle),
+    "consumePromoUsage.update",
   );
 }
 
@@ -1880,12 +2050,17 @@ let shopHeroSeedPromise: Promise<void> | null = null;
 async function ensureShopHeroSeed(): Promise<void> {
   if (shopHeroSeedPromise) return shopHeroSeedPromise;
   shopHeroSeedPromise = (async () => {
-    const db = await getDb();
-    const count = await db.collection(COLLECTIONS.shopHeroSlides).countDocuments({});
-    if (count === 0) {
-      await db
-        .collection<AdminShopHeroSlide>(COLLECTIONS.shopHeroSlides)
-        .insertMany(SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })));
+    const sb = getSupabaseAdmin();
+    if ((await countRows(TABLES.shopHeroSlides)) === 0) {
+      check(
+        await sb
+          .from(TABLES.shopHeroSlides)
+          .upsert(
+            SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })),
+            { onConflict: "id", ignoreDuplicates: true },
+          ),
+        "seed.shopHeroSlides",
+      );
     }
   })();
   return shopHeroSeedPromise;
@@ -1893,13 +2068,15 @@ async function ensureShopHeroSeed(): Promise<void> {
 
 export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
   await ensureShopHeroSeed();
-  const db = await getDb();
-  const docs = await db
-    .collection<AdminShopHeroSlide>(COLLECTIONS.shopHeroSlides)
-    .find({})
-    .sort({ sortOrder: 1, createdAt: 1 })
-    .toArray();
-  return stripMany(docs);
+  const sb = getSupabaseAdmin();
+  return rows<AdminShopHeroSlide>(
+    await sb
+      .from(TABLES.shopHeroSlides)
+      .select("*")
+      .order("sortOrder", { ascending: true })
+      .order("createdAt", { ascending: true }),
+    "listShopHeroSlides",
+  );
 }
 
 export async function listActiveShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
@@ -1909,11 +2086,11 @@ export async function listActiveShopHeroSlides(): Promise<AdminShopHeroSlide[]> 
 
 export async function getShopHeroSlide(id: string): Promise<AdminShopHeroSlide | null> {
   await ensureShopHeroSeed();
-  const db = await getDb();
-  const doc = await db
-    .collection<AdminShopHeroSlide>(COLLECTIONS.shopHeroSlides)
-    .findOne({ id });
-  return strip(doc);
+  const sb = getSupabaseAdmin();
+  return one<AdminShopHeroSlide>(
+    await sb.from(TABLES.shopHeroSlides).select("*").eq("id", id).maybeSingle(),
+    "getShopHeroSlide",
+  );
 }
 
 export interface ShopHeroSlideInput {
@@ -1948,7 +2125,7 @@ export async function createShopHeroSlide(
   input: ShopHeroSlideInput,
 ): Promise<AdminShopHeroSlide> {
   await ensureShopHeroSeed();
-  const db = await getDb();
+  const sb = getSupabaseAdmin();
   const now = new Date().toISOString();
   const slide: AdminShopHeroSlide = {
     id: `shero-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -1956,7 +2133,7 @@ export async function createShopHeroSlide(
     createdAt: now,
     updatedAt: now,
   };
-  await db.collection<AdminShopHeroSlide>(COLLECTIONS.shopHeroSlides).insertOne(slide);
+  check(await sb.from(TABLES.shopHeroSlides).insert(slide), "createShopHeroSlide");
   return slide;
 }
 
@@ -1965,16 +2142,20 @@ export async function updateShopHeroSlide(
   input: ShopHeroSlideInput,
 ): Promise<AdminShopHeroSlide | null> {
   await ensureShopHeroSeed();
-  const db = await getDb();
+  const sb = getSupabaseAdmin();
   const update = { ...normalizeSlide(input), updatedAt: new Date().toISOString() };
-  await db
-    .collection<AdminShopHeroSlide>(COLLECTIONS.shopHeroSlides)
-    .updateOne({ id }, { $set: update });
+  check(
+    await sb.from(TABLES.shopHeroSlides).update(update).eq("id", id),
+    "updateShopHeroSlide",
+  );
   return getShopHeroSlide(id);
 }
 
 export async function deleteShopHeroSlide(id: string): Promise<void> {
   await ensureShopHeroSeed();
-  const db = await getDb();
-  await db.collection<AdminShopHeroSlide>(COLLECTIONS.shopHeroSlides).deleteOne({ id });
+  const sb = getSupabaseAdmin();
+  check(
+    await sb.from(TABLES.shopHeroSlides).delete().eq("id", id),
+    "deleteShopHeroSlide",
+  );
 }

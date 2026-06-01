@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
       "Bash(npm run dev:*)",
       "Bash(npm run build:*)",
       "Bash(npm run lint:*)",
@@ -58,16 +59,15 @@
       "mcp__32e5c71b-e66a-4a9d-9f63-fe8ba4dfeb40__get_publishable_keys",
       "mcp__32e5c71b-e66a-4a9d-9f63-fe8ba4dfeb40__execute_sql",
       "mcp__32e5c71b-e66a-4a9d-9f63-fe8ba4dfeb40__generate_typescript_types",
-      "mcp__32e5c71b-e66a-4a9d-9f63-fe8ba4dfeb40__search_docs"
+      "mcp__32e5c71b-e66a-4a9d-9f63-fe8ba4dfeb40__search_docs",
+      "mcp__32e5c71b-e66a-4a9d-9f63-fe8ba4dfeb40__apply_migration"
     ],
     "ask": [
       "Bash(rm:*)",
       "Bash(git push --force:*)",
       "Bash(git reset --hard:*)",
       "Bash(git branch -D:*)",
-      "Bash(npm uninstall:*)",
       "Bash(npm audit fix --force:*)",
-      "mcp__32e5c71b-e66a-4a9d-9f63-fe8ba4dfeb40__apply_migration",
       "mcp__32e5c71b-e66a-4a9d-9f63-fe8ba4dfeb40__deploy_edge_function",
       "mcp__32e5c71b-e66a-4a9d-9f63-fe8ba4dfeb40__create_branch",
       "mcp__32e5c71b-e66a-4a9d-9f63-fe8ba4dfeb40__delete_branch",

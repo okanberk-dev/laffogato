@@ -1,9 +1,9 @@
 import "server-only";
 
 import bcrypt from "bcryptjs";
+import type { PostgrestError } from "@supabase/supabase-js";
 
-import { COLLECTIONS } from "@/lib/mongodb/collections";
-import { getDb } from "@/lib/mongodb/client";
+import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
 
 export interface CustomerAddress {
   id: string;
@@ -83,6 +83,22 @@ function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
 }
 
+function checkErr(error: PostgrestError | null, ctx: string): void {
+  if (error) throw new Error(`${ctx}: ${error.message}`);
+}
+
+/** Fetch a full customer row by (already-normalized) email, or null. */
+async function fetchCustomer(email: string): Promise<Customer | null> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from(TABLES.customers)
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
+  checkErr(error, "fetchCustomer");
+  return (data as Customer | null) ?? null;
+}
+
 export interface RegisterInput {
   email: string;
   name: string;
@@ -115,8 +131,7 @@ export async function registerCustomer(input: RegisterInput): Promise<RegisterRe
     return { ok: false, error: "Şifre çok uzun." };
   }
 
-  const db = await getDb();
-  const existing = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email });
+  const existing = await fetchCustomer(email);
   if (existing) {
     return { ok: false, error: "Bu e-posta zaten kayıtlı. Giriş yapmayı denedin mi?" };
   }
@@ -136,7 +151,15 @@ export async function registerCustomer(input: RegisterInput): Promise<RegisterRe
     createdAt: now,
     updatedAt: now,
   };
-  await db.collection<Customer>(COLLECTIONS.customers).insertOne(customer);
+  const sb = getSupabaseAdmin();
+  const { error } = await sb.from(TABLES.customers).insert(customer);
+  if (error) {
+    // Unique violation = race on email → treat as already registered.
+    if (error.code === "23505") {
+      return { ok: false, error: "Bu e-posta zaten kayıtlı. Giriş yapmayı denedin mi?" };
+    }
+    throw new Error(`registerCustomer: ${error.message}`);
+  }
   return { ok: true, customer: toPublic(customer) };
 }
 
@@ -154,8 +177,7 @@ export async function verifyCustomerLogin(input: LoginInput): Promise<LoginResul
   if (!email || !input.password) {
     return { ok: false, error: "E-posta ve şifre gerekli." };
   }
-  const db = await getDb();
-  const customer = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email });
+  const customer = await fetchCustomer(email);
   if (!customer) {
     await bcrypt.compare(input.password, "$2a$10$invalidhashforuserenumprotection000000000000000000000");
     return { ok: false, error: "E-posta veya şifre hatalı." };
@@ -168,8 +190,7 @@ export async function verifyCustomerLogin(input: LoginInput): Promise<LoginResul
 export async function getCustomerByEmail(email: string): Promise<PublicCustomer | null> {
   const needle = normalizeEmail(email);
   if (!needle) return null;
-  const db = await getDb();
-  const doc = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email: needle });
+  const doc = await fetchCustomer(needle);
   return doc ? toPublic(doc) : null;
 }
 
@@ -184,23 +205,17 @@ export async function updateCustomerProfile(
   input: UpdateProfileInput,
 ): Promise<PublicCustomer | null> {
   const needle = normalizeEmail(email);
-  const db = await getDb();
-  const update: Partial<Customer> = {
+  const sb = getSupabaseAdmin();
+  const update = {
     name: input.name.trim().slice(0, 100),
     phone: input.phone.trim().slice(0, 30),
     birthday: input.birthday.trim().slice(0, 10),
     updatedAt: new Date().toISOString(),
   };
-  const res = await db
-    .collection<Customer>(COLLECTIONS.customers)
-    .findOneAndUpdate({ email: needle }, { $set: update }, { returnDocument: "after" });
-  const doc = res as unknown as Customer | { value: Customer } | null;
-  if (!doc) return null;
-  if (typeof (doc as { value?: unknown }).value !== "undefined") {
-    const v = (doc as { value: Customer | null }).value;
-    return v ? toPublic(v) : null;
-  }
-  return toPublic(doc as Customer);
+  const { error } = await sb.from(TABLES.customers).update(update).eq("email", needle);
+  checkErr(error, "updateCustomerProfile");
+  const updated = await fetchCustomer(needle);
+  return updated ? toPublic(updated) : null;
 }
 
 // ─── Password change ──────────────────────────────────────────────────────
@@ -216,8 +231,7 @@ export async function changeCustomerPassword(
   if (newPassword.length < 8) return { ok: false, error: "Yeni şifre en az 8 karakter olmalı." };
   if (newPassword.length > 200) return { ok: false, error: "Şifre çok uzun." };
 
-  const db = await getDb();
-  const customer = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email: needle });
+  const customer = await fetchCustomer(needle);
   if (!customer) return { ok: false, error: "Hesap bulunamadı." };
   const ok = await bcrypt.compare(currentPassword, customer.passwordHash);
   if (!ok) return { ok: false, error: "Mevcut şifre hatalı." };
@@ -225,10 +239,12 @@ export async function changeCustomerPassword(
     return { ok: false, error: "Yeni şifre, eskisinden farklı olmalı." };
   }
   const passwordHash = await bcrypt.hash(newPassword, 10);
-  await db.collection<Customer>(COLLECTIONS.customers).updateOne(
-    { email: needle },
-    { $set: { passwordHash, updatedAt: new Date().toISOString() } },
-  );
+  const sb = getSupabaseAdmin();
+  const { error } = await sb
+    .from(TABLES.customers)
+    .update({ passwordHash, updatedAt: new Date().toISOString() })
+    .eq("email", needle);
+  checkErr(error, "changeCustomerPassword");
   return { ok: true };
 }
 
@@ -273,6 +289,22 @@ function validateAddress(input: AddressInput): string | null {
   return null;
 }
 
+/** Persist a new addresses array on a customer and return the public view. */
+async function persistAddresses(
+  email: string,
+  addresses: CustomerAddress[],
+  failMsg: string,
+): Promise<AddressResult> {
+  const sb = getSupabaseAdmin();
+  const { error } = await sb
+    .from(TABLES.customers)
+    .update({ addresses, updatedAt: new Date().toISOString() })
+    .eq("email", email);
+  checkErr(error, "persistAddresses");
+  const updated = await fetchCustomer(email);
+  return updated ? { ok: true, customer: toPublic(updated) } : { ok: false, error: failMsg };
+}
+
 export async function addCustomerAddress(
   email: string,
   input: AddressInput,
@@ -280,8 +312,7 @@ export async function addCustomerAddress(
   const err = validateAddress(input);
   if (err) return { ok: false, error: err };
   const needle = normalizeEmail(email);
-  const db = await getDb();
-  const customer = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email: needle });
+  const customer = await fetchCustomer(needle);
   if (!customer) return { ok: false, error: "Hesap bulunamadı." };
   const existing = withDefaults(customer).addresses;
   if (existing.length >= 20) return { ok: false, error: "En fazla 20 adres kaydedebilirsin." };
@@ -294,12 +325,7 @@ export async function addCustomerAddress(
       ? existing.map((a) => ({ ...a, isDefault: false })).concat({ ...next, isDefault: true })
       : existing.concat(next);
 
-  await db.collection<Customer>(COLLECTIONS.customers).updateOne(
-    { email: needle },
-    { $set: { addresses, updatedAt: new Date().toISOString() } },
-  );
-  const updated = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email: needle });
-  return updated ? { ok: true, customer: toPublic(updated) } : { ok: false, error: "Kaydedilemedi." };
+  return persistAddresses(needle, addresses, "Kaydedilemedi.");
 }
 
 export async function updateCustomerAddress(
@@ -310,8 +336,7 @@ export async function updateCustomerAddress(
   const err = validateAddress(input);
   if (err) return { ok: false, error: err };
   const needle = normalizeEmail(email);
-  const db = await getDb();
-  const customer = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email: needle });
+  const customer = await fetchCustomer(needle);
   if (!customer) return { ok: false, error: "Hesap bulunamadı." };
   const existing = withDefaults(customer).addresses;
   const idx = existing.findIndex((a) => a.id === addressId);
@@ -329,12 +354,7 @@ export async function updateCustomerAddress(
     if (!addresses.some((a) => a.isDefault)) addresses[0] = { ...addresses[0], isDefault: true };
   }
 
-  await db.collection<Customer>(COLLECTIONS.customers).updateOne(
-    { email: needle },
-    { $set: { addresses, updatedAt: new Date().toISOString() } },
-  );
-  const updated = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email: needle });
-  return updated ? { ok: true, customer: toPublic(updated) } : { ok: false, error: "Güncellenemedi." };
+  return persistAddresses(needle, addresses, "Güncellenemedi.");
 }
 
 export async function deleteCustomerAddress(
@@ -342,8 +362,7 @@ export async function deleteCustomerAddress(
   addressId: string,
 ): Promise<AddressResult> {
   const needle = normalizeEmail(email);
-  const db = await getDb();
-  const customer = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email: needle });
+  const customer = await fetchCustomer(needle);
   if (!customer) return { ok: false, error: "Hesap bulunamadı." };
   const existing = withDefaults(customer).addresses;
   const removed = existing.find((a) => a.id === addressId);
@@ -352,12 +371,7 @@ export async function deleteCustomerAddress(
   if (removed.isDefault && addresses.length > 0) {
     addresses = addresses.map((a, i) => ({ ...a, isDefault: i === 0 }));
   }
-  await db.collection<Customer>(COLLECTIONS.customers).updateOne(
-    { email: needle },
-    { $set: { addresses, updatedAt: new Date().toISOString() } },
-  );
-  const updated = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email: needle });
-  return updated ? { ok: true, customer: toPublic(updated) } : { ok: false, error: "Silinemedi." };
+  return persistAddresses(needle, addresses, "Silinemedi.");
 }
 
 export async function setCustomerDefaultAddress(
@@ -365,18 +379,12 @@ export async function setCustomerDefaultAddress(
   addressId: string,
 ): Promise<AddressResult> {
   const needle = normalizeEmail(email);
-  const db = await getDb();
-  const customer = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email: needle });
+  const customer = await fetchCustomer(needle);
   if (!customer) return { ok: false, error: "Hesap bulunamadı." };
   const existing = withDefaults(customer).addresses;
   if (!existing.some((a) => a.id === addressId)) return { ok: false, error: "Adres bulunamadı." };
   const addresses = existing.map((a) => ({ ...a, isDefault: a.id === addressId }));
-  await db.collection<Customer>(COLLECTIONS.customers).updateOne(
-    { email: needle },
-    { $set: { addresses, updatedAt: new Date().toISOString() } },
-  );
-  const updated = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email: needle });
-  return updated ? { ok: true, customer: toPublic(updated) } : { ok: false, error: "Güncellenemedi." };
+  return persistAddresses(needle, addresses, "Güncellenemedi.");
 }
 
 // ─── Wishlist ─────────────────────────────────────────────────────────────
@@ -386,18 +394,19 @@ export async function toggleWishlist(
   productId: string,
 ): Promise<{ ok: boolean; isFavorite?: boolean; error?: string }> {
   const needle = normalizeEmail(email);
-  const db = await getDb();
-  const customer = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email: needle });
+  const customer = await fetchCustomer(needle);
   if (!customer) return { ok: false, error: "Hesap bulunamadı." };
   const current = withDefaults(customer).wishlist;
   const isFavorite = current.includes(productId);
   const wishlist = isFavorite
     ? current.filter((id) => id !== productId)
     : current.concat(productId).slice(0, 200);
-  await db.collection<Customer>(COLLECTIONS.customers).updateOne(
-    { email: needle },
-    { $set: { wishlist, updatedAt: new Date().toISOString() } },
-  );
+  const sb = getSupabaseAdmin();
+  const { error } = await sb
+    .from(TABLES.customers)
+    .update({ wishlist, updatedAt: new Date().toISOString() })
+    .eq("email", needle);
+  checkErr(error, "toggleWishlist");
   return { ok: true, isFavorite: !isFavorite };
 }
 
@@ -408,16 +417,17 @@ export async function updateNotificationPrefs(
   prefs: NotificationPrefs,
 ): Promise<PublicCustomer | null> {
   const needle = normalizeEmail(email);
-  const db = await getDb();
+  const sb = getSupabaseAdmin();
   const sanitized: NotificationPrefs = {
     orderUpdates: !!prefs.orderUpdates,
     marketing: !!prefs.marketing,
     newsletter: !!prefs.newsletter,
   };
-  await db.collection<Customer>(COLLECTIONS.customers).updateOne(
-    { email: needle },
-    { $set: { notificationPrefs: sanitized, updatedAt: new Date().toISOString() } },
-  );
-  const updated = await db.collection<Customer>(COLLECTIONS.customers).findOne({ email: needle });
+  const { error } = await sb
+    .from(TABLES.customers)
+    .update({ notificationPrefs: sanitized, updatedAt: new Date().toISOString() })
+    .eq("email", needle);
+  checkErr(error, "updateNotificationPrefs");
+  const updated = await fetchCustomer(needle);
   return updated ? toPublic(updated) : null;
 }

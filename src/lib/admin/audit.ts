@@ -1,15 +1,13 @@
 import "server-only";
 
-import { COLLECTIONS } from "@/lib/mongodb/collections";
-import { getDb } from "@/lib/mongodb/client";
-import { nextSeq } from "@/lib/mongodb/counters";
+import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
+import { nextSeq } from "@/lib/supabase/counters";
 
 import { getAdminSession } from "./auth";
 
 /**
- * Append-only event log of admin mutations. MongoDB collection'a yazılır.
- * Eski kayıtların temizlenmesi için TTL index'i konabilir (build-time'da
- * `audit_logs.createIndex({createdAt: 1}, {expireAfterSeconds: ...})`).
+ * Append-only event log of admin mutations. Persisted to the Postgres
+ * `audit_logs` table. Old rows can later be pruned by a scheduled job.
  */
 
 export type AuditEntity =
@@ -76,8 +74,9 @@ export async function logAudit(input: LogAuditInput): Promise<void> {
     payload: input.payload ?? {},
     createdAt: new Date().toISOString(),
   };
-  const db = await getDb();
-  await db.collection<AdminAuditLog>(COLLECTIONS.auditLogs).insertOne(row);
+  const sb = getSupabaseAdmin();
+  const { error } = await sb.from(TABLES.auditLogs).insert(row);
+  if (error) throw new Error(`logAudit: ${error.message}`);
 }
 
 export interface AuditFilter {
@@ -90,21 +89,17 @@ export interface AuditFilter {
 export async function listAuditLogs(
   filter: AuditFilter = {},
 ): Promise<AdminAuditLog[]> {
-  const db = await getDb();
-  const query: Record<string, unknown> = {};
+  const sb = getSupabaseAdmin();
+  let q = sb.from(TABLES.auditLogs).select("*");
   if (filter.actor) {
-    query.actor = { $regex: filter.actor.toLowerCase(), $options: "i" };
+    const escaped = filter.actor.toLowerCase().replace(/[%_]/g, (c) => `\\${c}`);
+    q = q.ilike("actor", `%${escaped}%`);
   }
-  if (filter.entity) query.entity = filter.entity;
-  if (filter.action) query.action = filter.action;
-  const docs = await db
-    .collection<AdminAuditLog>(COLLECTIONS.auditLogs)
-    .find(query)
-    .sort({ createdAt: -1 })
-    .limit(filter.limit ?? 500)
-    .toArray();
-  return docs.map(({ _id, ...rest }) => {
-    void _id;
-    return rest as AdminAuditLog;
-  });
+  if (filter.entity) q = q.eq("entity", filter.entity);
+  if (filter.action) q = q.eq("action", filter.action);
+  const { data, error } = await q
+    .order("createdAt", { ascending: false })
+    .limit(filter.limit ?? 500);
+  if (error) throw new Error(`listAuditLogs: ${error.message}`);
+  return (data ?? []) as AdminAuditLog[];
 }

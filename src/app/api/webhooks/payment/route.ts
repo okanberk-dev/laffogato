@@ -1,24 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getPaymentProvider } from "@/lib/payment";
-import { COLLECTIONS } from "@/lib/mongodb/collections";
-import { getDb } from "@/lib/mongodb/client";
+import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-interface PaymentTransactionDoc {
-  orderId: string;
-  provider: string;
-  providerRef: string;
-  status: "succeeded" | "failed" | "refunded";
-  amountMinor: number;
-  currency: string;
-  raw: unknown;
-  createdAt: string;
-}
-
-const TXN_COLLECTION = "payment_transactions";
 
 export async function POST(req: Request) {
   const provider = getPaymentProvider();
@@ -31,59 +17,41 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
-  const db = await getDb();
-  const txnColl = db.collection<PaymentTransactionDoc>(TXN_COLLECTION);
+  const sb = getSupabaseAdmin();
 
-  // Idempotency: unique (provider, providerRef). Index'i ilk çağrıda
-  // oluştur; zaten varsa fail-soft.
-  try {
-    await txnColl.createIndex(
-      { provider: 1, providerRef: 1 },
-      { unique: true, name: "uniq_provider_ref" },
-    );
-  } catch {
-    // Index zaten varsa veya yetersizse sessizce geç — duplicate hata
-    // insert sırasında yine yakalanır.
-  }
-
-  const status: PaymentTransactionDoc["status"] =
+  const status: "succeeded" | "failed" | "refunded" =
     event.type === "payment.succeeded"
       ? "succeeded"
       : event.type === "payment.failed"
         ? "failed"
         : "refunded";
 
-  try {
-    await txnColl.insertOne({
-      orderId: event.orderId,
-      provider: provider.name,
-      providerRef: event.providerRef,
-      status,
-      amountMinor: event.amountMinor,
-      currency: event.currency,
-      raw: event.raw,
-      createdAt: new Date().toISOString(),
-    });
-  } catch (err: unknown) {
-    // E11000 = duplicate key = idempotent retry → tamam, devam.
-    const code = (err as { code?: number } | null)?.code;
-    if (code !== 11000) {
-      console.error("[payment-webhook] insert failed", err);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
-    }
+  // Idempotency is enforced by the unique (provider, "providerRef") index on
+  // payment_transactions. A duplicate webhook hits 23505 (unique_violation),
+  // which we treat as an already-processed retry.
+  const { error } = await sb.from(TABLES.paymentTransactions).insert({
+    orderId: event.orderId,
+    provider: provider.name,
+    providerRef: event.providerRef,
+    status,
+    amountMinor: event.amountMinor,
+    currency: event.currency,
+    raw: event.raw,
+    createdAt: new Date().toISOString(),
+  });
+  if (error && error.code !== "23505") {
+    console.error("[payment-webhook] insert failed", error);
+    return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
 
   if (event.type === "payment.succeeded") {
-    await db
-      .collection(COLLECTIONS.orders)
-      .updateOne(
-        { id: event.orderId, status: "pending_payment" },
-        { $set: { status: "paid" } },
-      );
+    await sb
+      .from(TABLES.orders)
+      .update({ status: "paid" })
+      .eq("id", event.orderId)
+      .eq("status", "pending_payment");
   } else if (event.type === "payment.refunded") {
-    await db
-      .collection(COLLECTIONS.orders)
-      .updateOne({ id: event.orderId }, { $set: { status: "refunded" } });
+    await sb.from(TABLES.orders).update({ status: "refunded" }).eq("id", event.orderId);
   }
 
   return NextResponse.json({ ok: true });
