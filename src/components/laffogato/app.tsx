@@ -88,7 +88,11 @@ export function LaffogatoApp({
     return () => window.clearTimeout(t);
   }, [notice]);
 
-  const [route, setRoute] = useState<Route>(initialRoute);
+  // `route` is fixed for an instance's lifetime: every navigation goes through a
+  // real Next route that re-mounts this shell with the correct initialRoute, so
+  // there is no in-instance route switching (and thus no optimistic setRoute —
+  // see navigate()).
+  const [route] = useState<Route>(initialRoute);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -139,7 +143,11 @@ export function LaffogatoApp({
       window.scrollTo({ top: 0, behavior: "instant" });
       return;
     }
-    setRoute(r);
+    // Navigate via the real route ONLY. We deliberately do not optimistically
+    // setRoute() here: the target is a real Next route that re-mounts this shell
+    // with the right initialRoute, so an optimistic swap would paint the new
+    // page once immediately and then a second time when the route loads — the
+    // "every page renders twice" double the user was seeing.
     router.push(target);
   };
 
