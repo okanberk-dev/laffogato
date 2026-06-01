@@ -1035,27 +1035,44 @@ export async function placeOrder(
   }
 
   const now = new Date().toISOString();
+
+  // Atomically claim stock for ALL lines in one transaction. The RPC checks +
+  // decrements product stock (and the chosen variant's JSONB stock) under a row
+  // lock and raises INSUFFICIENT_STOCK if any line can't be met, rolling back
+  // every line — prevents overselling, all-or-nothing. (The up-front check above
+  // is the friendly fast path; this RPC closes the check→decrement race.)
+  const claim = await sb.rpc("claim_order_stock", {
+    p_lines: resolved.map((l) => ({
+      productId: l.product.id,
+      variantId: l.variant?.id ?? null,
+      qty: l.qty,
+    })),
+    p_now: now,
+  });
+  if (claim.error) {
+    const m = /INSUFFICIENT_STOCK:(.*)$/.exec(claim.error.message);
+    if (m) {
+      const pid = m[1].trim();
+      const line = resolved.find((l) => l.product.id === pid) ?? resolved[0];
+      return {
+        ok: false,
+        reason: "out_of_stock",
+        productName: line.label,
+        available: line.variant ? line.variant.stock : line.product.stock,
+      };
+    }
+    throw new Error(`placeOrder.claim: ${claim.error.message}`);
+  }
+  const stockAfters = (claim.data ?? []) as number[];
+
   const orderSeq = await nextSeq("ord");
   const orderNo = await nextSeq("orderNo");
   const orderId = slugifyId("ord", orderSeq);
 
-  // Decrement stock — product stock always; variant stock when applicable.
-  for (const line of resolved) {
-    const stockAfter = Math.max(0, line.product.stock - line.qty);
-    const update: Record<string, unknown> = { stock: stockAfter, updatedAt: now };
-    if (line.variant) {
-      const nextVariants = line.product.variants.map((v) =>
-        v.id === line.variant!.id ? { ...v, stock: Math.max(0, v.stock - line.qty) } : v,
-      );
-      update.variants = nextVariants;
-      // Keep the in-memory copy coherent if the same product appears twice.
-      line.product.variants = nextVariants as AdminProductVariant[];
-    }
-    line.product.stock = stockAfter;
-    check(
-      await sb.from(TABLES.products).update(update).eq("id", line.product.id),
-      "placeOrder.decrement",
-    );
+  // Record one stock movement per line using the post-claim product stock.
+  for (let i = 0; i < resolved.length; i += 1) {
+    const line = resolved[i];
+    const stockAfter = stockAfters[i] ?? Math.max(0, line.product.stock - line.qty);
     await recordStockMove({
       productId: line.product.id,
       productName: line.label,
@@ -1831,18 +1848,12 @@ export async function consumePromoUsage(code: string): Promise<void> {
   await ensureSeed();
   const needle = normalizeCode(code);
   const sb = getSupabaseAdmin();
-  const promo = one<AdminPromo>(
-    await sb.from(TABLES.promos).select("usageCount").eq("code", needle).maybeSingle(),
-    "consumePromoUsage.fetch",
-  );
-  if (!promo) return;
-  check(
-    await sb
-      .from(TABLES.promos)
-      .update({ usageCount: promo.usageCount + 1, updatedAt: new Date().toISOString() })
-      .eq("code", needle),
-    "consumePromoUsage.update",
-  );
+  // Atomic increment (avoids the lost-update race of a read-modify-write).
+  const { error } = await sb.rpc("increment_promo_usage", {
+    promo_code: needle,
+    p_now: new Date().toISOString(),
+  });
+  if (error) throw new Error(`consumePromoUsage: ${error.message}`);
 }
 
 // ─── Analytics aggregations ───────────────────────────────────────────────
