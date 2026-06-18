@@ -56,6 +56,11 @@ export function LaffogatoApp({
   wishlist,
   isAuthenticated,
   shopHeroSlides,
+  reels,
+  press,
+  storyTimeline,
+  franchisePackages,
+  franchiseSteps,
   freeShippingThreshold = 0,
   initialRoute = "home",
 }: {
@@ -71,6 +76,21 @@ export function LaffogatoApp({
   isAuthenticated?: boolean;
   /** Admin-managed shop hero slides — PageShop renders them at the top. */
   shopHeroSlides?: ShopHeroSlide[];
+  /** Admin-managed editorial content (reels / press / story / franchise). */
+  reels?: { caption: string; meta: string; accent: string }[];
+  press?: { name: string; quote: string }[];
+  storyTimeline?: { y: string; t: string; d: string }[];
+  franchisePackages?: {
+    name: string;
+    area: string;
+    seats: string;
+    invest: string;
+    monthly: string;
+    ideal: string;
+    includes: string[];
+    featured?: boolean;
+  }[];
+  franchiseSteps?: { n: string; t: string; d: string }[];
   /** Free-shipping threshold in major units (₺) — drives the cart progress bar. */
   freeShippingThreshold?: number;
   /** The SPA section to render on first paint. Set by sub-page routes
@@ -211,6 +231,11 @@ export function LaffogatoApp({
           products={products}
           menu={menu}
           shopHeroSlides={shopHeroSlides}
+          reels={reels}
+          press={press}
+          storyTimeline={storyTimeline}
+          franchisePackages={franchisePackages}
+          franchiseSteps={franchiseSteps}
         />
         {seoSlot}
         <Footer navigate={navigate} settings={settings} />
@@ -235,6 +260,11 @@ export function LaffogatoApp({
         products={products}
         menu={menu}
         shopHeroSlides={shopHeroSlides}
+        reels={reels}
+        press={press}
+        storyTimeline={storyTimeline}
+        franchisePackages={franchisePackages}
+        franchiseSteps={franchiseSteps}
       />
       {seoSlot}
       <Footer navigate={navigate} settings={settings} />

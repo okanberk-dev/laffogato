@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
 
 import { ShopHeroSlider, type ShopHeroSlide } from "./shop-hero-slider";
-import { MENU, PRODUCTS, REELS, PRESS, STORY, LOCATION, BRAND, FRANCHISE } from "./data";
+import { MENU, PRODUCTS, REELS as SEED_REELS, PRESS as SEED_PRESS, STORY, LOCATION, BRAND, FRANCHISE } from "./data";
 import type { MenuCategory, MenuItem } from "./data";
 import { ProductCard, SectionHead, Stat, CartItem } from "./ui";
 import type { Product } from "./data";
@@ -35,13 +35,21 @@ interface PageProps {
   menu?: Record<string, MenuCategory>;
   /** Admin-managed shop hero slides (PageShop kullanır). */
   shopHeroSlides?: ShopHeroSlide[];
+  /** Admin-managed editorial content; undefined ise data.ts seed'ine düşer. */
+  reels?: typeof SEED_REELS;
+  press?: typeof SEED_PRESS;
+  storyTimeline?: typeof STORY.heritage;
+  franchisePackages?: typeof FRANCHISE.packages;
+  franchiseSteps?: typeof FRANCHISE.process;
 }
 
 /* ──────────────────────────────────────────────────────────────
    HOME
    ────────────────────────────────────────────────────────────── */
 
-export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
+export function PageHome({ navigate, addToCart, products, menu, reels, press }: PageProps) {
+  const REELS = reels ?? SEED_REELS;
+  const PRESS = press ?? SEED_PRESS;
   useReveal();
   const shopProducts = products && products.length > 0 ? products : PRODUCTS;
   const liveMenu = menu ?? MENU;
@@ -1419,7 +1427,9 @@ export function PageShop({ addToCart, openProduct, products, shopHeroSlides }: P
    STORY
    ────────────────────────────────────────────────────────────── */
 
-export function PageStory(_props: PageProps) {
+export function PageStory({ press, storyTimeline }: PageProps) {
+  const PRESS = press ?? SEED_PRESS;
+  const heritage = storyTimeline ?? STORY.heritage;
   useReveal();
 
   const values = [
@@ -1526,7 +1536,7 @@ export function PageStory(_props: PageProps) {
             </h2>
           </div>
           <div className="timeline">
-            {STORY.heritage.map((ev, i) => (
+            {heritage.map((ev, i) => (
               <div key={ev.y} className="timeline-row reveal" style={{ transitionDelay: `${i * 60}ms` }}>
                 <div className="timeline-year">{ev.y}</div>
                 <div className="timeline-dot">
@@ -2053,7 +2063,9 @@ export function PageVisit(_props: PageProps) {
    REELS
    ────────────────────────────────────────────────────────────── */
 
-export function PageReels(_props: PageProps) {
+export function PageReels({ reels, press }: PageProps) {
+  const REELS = reels ?? SEED_REELS;
+  const PRESS = press ?? SEED_PRESS;
   useReveal();
   const [active, setActive] = useState<number | null>(null);
   const [filter, setFilter] = useState("all");
@@ -2390,7 +2402,9 @@ export function PageReels(_props: PageProps) {
    FRANCHISE
    ────────────────────────────────────────────────────────────── */
 
-export function PageFranchise(_props: PageProps) {
+export function PageFranchise({ franchisePackages, franchiseSteps }: PageProps) {
+  const packages = franchisePackages ?? FRANCHISE.packages;
+  const steps = franchiseSteps ?? FRANCHISE.process;
   useReveal();
   const [selected, setSelected] = useState("Bottega");
   const [form, setForm] = useState({
@@ -2581,7 +2595,7 @@ export function PageFranchise(_props: PageProps) {
             Her şehir farklı. Üç paketten birini seçin — Kiosk, Bottega ya da Salone. Tüm paketlerde aynı menü, aynı eğitim, aynı kalite.
           </p>
           <div className="packages-grid">
-            {FRANCHISE.packages.map((p, i) => (
+            {packages.map((p, i) => (
               <div
                 key={p.name}
                 className={`pkg-card reveal ${p.featured ? "featured" : ""} ${selected === p.name ? "selected" : ""}`}
@@ -2652,10 +2666,10 @@ export function PageFranchise(_props: PageProps) {
             }
           />
           <div className="process-grid" style={{ marginTop: 50 }}>
-            {FRANCHISE.process.map((p, i) => (
+            {steps.map((p, i) => (
               <div key={p.n} className="reveal process-step" style={{ transitionDelay: `${i * 60}ms` }}>
                 <div className="process-step-num">{p.n}</div>
-                {i < FRANCHISE.process.length - 1 && <div className="process-step-line" />}
+                {i < steps.length - 1 && <div className="process-step-line" />}
                 <h3 className="h3" style={{ marginTop: 24 }}>{p.t}</h3>
                 <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.6, marginTop: 8 }}>{p.d}</p>
               </div>
@@ -2804,7 +2818,7 @@ export function PageFranchise(_props: PageProps) {
                       value={form.budget}
                       onChange={(e) => setForm({ ...form, budget: e.target.value })}
                     >
-                      {FRANCHISE.packages.map((p) => (
+                      {packages.map((p) => (
                         <option key={p.name}>
                           {p.name} · {p.invest}
                         </option>
@@ -2816,7 +2830,7 @@ export function PageFranchise(_props: PageProps) {
                 <div>
                   <div className="label">Paket seçimi</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {FRANCHISE.packages.map((p) => (
+                    {packages.map((p) => (
                       <button
                         type="button"
                         key={p.name}

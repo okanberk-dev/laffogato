@@ -8,6 +8,10 @@ import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
 import {
   MENU as SEED_MENU,
   PRODUCTS as SEED_PRODUCTS,
+  REELS as SEED_REELS,
+  PRESS as SEED_PRESS,
+  STORY as SEED_STORY,
+  FRANCHISE as SEED_FRANCHISE,
   type MenuCategory as DesignMenuCategory,
   type Product as DesignProduct,
 } from "@/components/laffogato/data";
@@ -2170,3 +2174,286 @@ export async function deleteShopHeroSlide(id: string): Promise<void> {
     "deleteShopHeroSlide",
   );
 }
+
+// ─── Editorial content (reels / press / story / franchise) ─────────────────
+//
+// All five are simple sortable + toggleable lists. A single generic factory
+// gives each one a seed-on-first-read + CRUD surface backed by Supabase, so
+// the admin panel can manage what used to be hardcoded in data.ts. The
+// customer SPA reads the *Active* lists via page.tsx props.
+
+interface ContentRowBase {
+  id: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function contentResource<Row extends ContentRowBase>(
+  table: string,
+  seed: Row[],
+  idPrefix: string,
+) {
+  let seedPromise: Promise<void> | null = null;
+  const ensure = async (): Promise<void> => {
+    if (seedPromise) return seedPromise;
+    seedPromise = (async () => {
+      const sb = getSupabaseAdmin();
+      if ((await countRows(table)) === 0) {
+        check(
+          await sb
+            .from(table)
+            .upsert(seed.map((s) => ({ ...s })), {
+              onConflict: "id",
+              ignoreDuplicates: true,
+            }),
+          `seed.${table}`,
+        );
+      }
+    })();
+    return seedPromise;
+  };
+
+  type Input = Omit<Row, "id" | "createdAt" | "updatedAt">;
+
+  const list = async (): Promise<Row[]> => {
+    await ensure();
+    const sb = getSupabaseAdmin();
+    return rows<Row>(
+      await sb
+        .from(table)
+        .select("*")
+        .order("sortOrder", { ascending: true })
+        .order("createdAt", { ascending: true }),
+      `list.${table}`,
+    );
+  };
+
+  const listActive = async (): Promise<Row[]> =>
+    (await list()).filter((r) => r.isActive);
+
+  const get = async (id: string): Promise<Row | null> => {
+    await ensure();
+    const sb = getSupabaseAdmin();
+    return one<Row>(
+      await sb.from(table).select("*").eq("id", id).maybeSingle(),
+      `get.${table}`,
+    );
+  };
+
+  const create = async (input: Input): Promise<Row> => {
+    await ensure();
+    const sb = getSupabaseAdmin();
+    const now = new Date().toISOString();
+    const row = {
+      ...(input as object),
+      id: `${idPrefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      createdAt: now,
+      updatedAt: now,
+    } as Row;
+    check(await sb.from(table).insert(row), `create.${table}`);
+    return row;
+  };
+
+  const update = async (id: string, input: Input): Promise<Row | null> => {
+    await ensure();
+    const sb = getSupabaseAdmin();
+    check(
+      await sb
+        .from(table)
+        .update({ ...(input as object), updatedAt: new Date().toISOString() })
+        .eq("id", id),
+      `update.${table}`,
+    );
+    return get(id);
+  };
+
+  const remove = async (id: string): Promise<void> => {
+    await ensure();
+    const sb = getSupabaseAdmin();
+    check(await sb.from(table).delete().eq("id", id), `delete.${table}`);
+  };
+
+  return { list, listActive, get, create, update, remove };
+}
+
+// ── Reels ──────────────────────────────────────────────────────────────────
+export interface AdminReel extends ContentRowBase {
+  caption: string;
+  meta: string;
+  accent: string;
+  videoUrl: string;
+}
+export interface ReelInput {
+  caption: string;
+  meta: string;
+  accent: string;
+  videoUrl: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+const SEED_REEL_ROWS: AdminReel[] = SEED_REELS.map((r, i) => ({
+  id: `reel-${String(i + 1).padStart(3, "0")}`,
+  caption: r.caption,
+  meta: r.meta,
+  accent: r.accent,
+  videoUrl: "",
+  sortOrder: i,
+  isActive: true,
+  createdAt: "",
+  updatedAt: "",
+}));
+const reelsResource = contentResource<AdminReel>(TABLES.reels, SEED_REEL_ROWS, "reel");
+export const listReels = reelsResource.list;
+export const listActiveReels = reelsResource.listActive;
+export const getReel = reelsResource.get;
+export const createReel = (i: ReelInput) => reelsResource.create(i);
+export const updateReel = (id: string, i: ReelInput) => reelsResource.update(id, i);
+export const deleteReel = reelsResource.remove;
+
+// ── Press ────────────────────────────────────────────────────────────────--
+export interface AdminPress extends ContentRowBase {
+  name: string;
+  quote: string;
+}
+export interface PressInput {
+  name: string;
+  quote: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+const SEED_PRESS_ROWS: AdminPress[] = SEED_PRESS.map((p, i) => ({
+  id: `press-${String(i + 1).padStart(3, "0")}`,
+  name: p.name,
+  quote: p.quote,
+  sortOrder: i,
+  isActive: true,
+  createdAt: "",
+  updatedAt: "",
+}));
+const pressResource = contentResource<AdminPress>(TABLES.press, SEED_PRESS_ROWS, "press");
+export const listPress = pressResource.list;
+export const listActivePress = pressResource.listActive;
+export const getPress = pressResource.get;
+export const createPress = (i: PressInput) => pressResource.create(i);
+export const updatePress = (id: string, i: PressInput) => pressResource.update(id, i);
+export const deletePress = pressResource.remove;
+
+// ── Story timeline ──────────────────────────────────────────────────────--
+export interface AdminStoryEvent extends ContentRowBase {
+  year: string;
+  title: string;
+  body: string;
+}
+export interface StoryEventInput {
+  year: string;
+  title: string;
+  body: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+const SEED_STORY_ROWS: AdminStoryEvent[] = SEED_STORY.heritage.map((e, i) => ({
+  id: `story-${String(i + 1).padStart(3, "0")}`,
+  year: e.y,
+  title: e.t,
+  body: e.d,
+  sortOrder: i,
+  isActive: true,
+  createdAt: "",
+  updatedAt: "",
+}));
+const storyResource = contentResource<AdminStoryEvent>(TABLES.storyTimeline, SEED_STORY_ROWS, "story");
+export const listStoryEvents = storyResource.list;
+export const listActiveStoryEvents = storyResource.listActive;
+export const getStoryEvent = storyResource.get;
+export const createStoryEvent = (i: StoryEventInput) => storyResource.create(i);
+export const updateStoryEvent = (id: string, i: StoryEventInput) => storyResource.update(id, i);
+export const deleteStoryEvent = storyResource.remove;
+
+// ── Franchise packages ──────────────────────────────────────────────────--
+export interface AdminFranchisePackage extends ContentRowBase {
+  name: string;
+  area: string;
+  seats: string;
+  invest: string;
+  monthly: string;
+  ideal: string;
+  includes: string[];
+  featured: boolean;
+}
+export interface FranchisePackageInput {
+  name: string;
+  area: string;
+  seats: string;
+  invest: string;
+  monthly: string;
+  ideal: string;
+  includes: string[];
+  featured: boolean;
+  sortOrder: number;
+  isActive: boolean;
+}
+const SEED_FR_PACKAGE_ROWS: AdminFranchisePackage[] = SEED_FRANCHISE.packages.map((p, i) => ({
+  id: `frpkg-${String(i + 1).padStart(3, "0")}`,
+  name: p.name,
+  area: p.area,
+  seats: p.seats,
+  invest: p.invest,
+  monthly: p.monthly,
+  ideal: p.ideal,
+  includes: [...p.includes],
+  featured: "featured" in p ? Boolean((p as { featured?: boolean }).featured) : false,
+  sortOrder: i,
+  isActive: true,
+  createdAt: "",
+  updatedAt: "",
+}));
+const frPackagesResource = contentResource<AdminFranchisePackage>(
+  TABLES.franchisePackages,
+  SEED_FR_PACKAGE_ROWS,
+  "frpkg",
+);
+export const listFranchisePackages = frPackagesResource.list;
+export const listActiveFranchisePackages = frPackagesResource.listActive;
+export const getFranchisePackage = frPackagesResource.get;
+export const createFranchisePackage = (i: FranchisePackageInput) => frPackagesResource.create(i);
+export const updateFranchisePackage = (id: string, i: FranchisePackageInput) =>
+  frPackagesResource.update(id, i);
+export const deleteFranchisePackage = frPackagesResource.remove;
+
+// ── Franchise process steps ──────────────────────────────────────────────--
+export interface AdminFranchiseStep extends ContentRowBase {
+  step: string;
+  title: string;
+  body: string;
+}
+export interface FranchiseStepInput {
+  step: string;
+  title: string;
+  body: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+const SEED_FR_STEP_ROWS: AdminFranchiseStep[] = SEED_FRANCHISE.process.map((p, i) => ({
+  id: `frstep-${String(i + 1).padStart(3, "0")}`,
+  step: p.n,
+  title: p.t,
+  body: p.d,
+  sortOrder: i,
+  isActive: true,
+  createdAt: "",
+  updatedAt: "",
+}));
+const frStepsResource = contentResource<AdminFranchiseStep>(
+  TABLES.franchiseProcess,
+  SEED_FR_STEP_ROWS,
+  "frstep",
+);
+export const listFranchiseSteps = frStepsResource.list;
+export const listActiveFranchiseSteps = frStepsResource.listActive;
+export const getFranchiseStep = frStepsResource.get;
+export const createFranchiseStep = (i: FranchiseStepInput) => frStepsResource.create(i);
+export const updateFranchiseStep = (id: string, i: FranchiseStepInput) =>
+  frStepsResource.update(id, i);
+export const deleteFranchiseStep = frStepsResource.remove;
