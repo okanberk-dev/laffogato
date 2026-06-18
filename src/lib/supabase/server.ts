@@ -1,50 +1,70 @@
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import "server-only";
 
-import type { Database } from "@/types/database";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-export async function createClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            );
-          } catch {
-            // Server Components can't set cookies — middleware refreshes the session instead.
-          }
-        },
-      },
-    },
-  );
+/**
+ * Server-side Supabase client (service-role). Bypasses RLS — used only from
+ * server components, server actions and route handlers (every caller is
+ * "server-only").
+ *
+ * Lazy global singleton: the client is NOT created at module load, so
+ * `next build` can collect page data without live credentials. It is created
+ * on first `getSupabaseAdmin()` call and cached on `globalThis` to survive
+ * dev hot-reloads / serverless warm invocations.
+ */
+declare global {
+  // eslint-disable-next-line no-var
+  var __supabaseAdmin: SupabaseClient | undefined;
 }
 
-export function createAdminClient() {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
+function resolveUrl(): string {
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "";
+  if (!url) {
+    throw new Error(
+      "Supabase URL yok — NEXT_PUBLIC_SUPABASE_URL (veya SUPABASE_URL) set edilmeli.",
+    );
   }
-
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    {
-      cookies: {
-        getAll() {
-          return [];
-        },
-        setAll() {
-          // Service role client is stateless.
-        },
-      },
-    },
-  );
+  return url;
 }
+
+function resolveServiceKey(): string {
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.SUPABASE_SECRET_KEY ??
+    "";
+  if (!key) {
+    throw new Error(
+      "Supabase service-role anahtarı yok — SUPABASE_SERVICE_ROLE_KEY (veya SUPABASE_SECRET_KEY) set edilmeli.",
+    );
+  }
+  return key;
+}
+
+export function getSupabaseAdmin(): SupabaseClient {
+  if (!global.__supabaseAdmin) {
+    global.__supabaseAdmin = createClient(resolveUrl(), resolveServiceKey(), {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }
+  return global.__supabaseAdmin;
+}
+
+/**
+ * Postgres table names in one place (mirrors the former Mongo collection map
+ * so the rest of the data layer reads the same).
+ */
+export const TABLES = {
+  products: "products",
+  categories: "categories",
+  orders: "orders",
+  menuItems: "menu_items",
+  promos: "promos",
+  stockMoves: "stock_moves",
+  settings: "settings",
+  auditLogs: "audit_logs",
+  customers: "customers",
+  counters: "counters",
+  shopHeroSlides: "shop_hero_slides",
+  paymentTransactions: "payment_transactions",
+} as const;

@@ -32,7 +32,7 @@ export default async function EditProductPage({ params }: PageProps) {
   ): Promise<ProductActionState> => updateProductAction(product.id, prev, formData);
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow={`SKU ${product.sku} · son güncelleme ${formatDateTime(product.updatedAt)}`}
         title={product.name}

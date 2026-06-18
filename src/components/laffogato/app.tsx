@@ -1,8 +1,9 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { Footer, Nav, type FooterSettings, type Route } from "./chrome";
+import { Footer, Nav, ROUTE_PATHS, type FooterSettings, type Route } from "./chrome";
 import {
   PageFranchise,
   PageHome,
@@ -12,7 +13,8 @@ import {
   PageStory,
   PageVisit,
 } from "./pages";
-import { CartDrawer, ProductModal, type CartItem } from "./ui";
+import { CartDrawer, ProductModal, SearchOverlay, cartItemKey, type CartItem } from "./ui";
+import type { ShopHeroSlide } from "./shop-hero-slider";
 import type { MenuCategory, Product } from "./data";
 
 const VALID_ROUTES: Route[] = [
@@ -26,12 +28,6 @@ const VALID_ROUTES: Route[] = [
 ];
 
 const CART_STORAGE_KEY = "laffogato_cart_v1";
-
-function readInitialRoute(): Route {
-  if (typeof window === "undefined") return "home";
-  const initial = (window.location.hash || "#home").replace("#", "") as Route;
-  return VALID_ROUTES.includes(initial) ? initial : "home";
-}
 
 function readStoredCart(): CartItem[] {
   if (typeof window === "undefined") return [];
@@ -57,6 +53,11 @@ export function LaffogatoApp({
   notice,
   menu,
   seoSlot,
+  wishlist,
+  isAuthenticated,
+  shopHeroSlides,
+  freeShippingThreshold = 0,
+  initialRoute = "home",
 }: {
   products?: Product[];
   settings?: FooterSettings;
@@ -64,7 +65,20 @@ export function LaffogatoApp({
   menu?: Record<string, MenuCategory>;
   /** Server-rendered SEO content (FAQ, address block) inserted just above the footer on every route. */
   seoSlot?: React.ReactNode;
+  /** Wishlist product IDs for the authenticated customer. Empty when guest. */
+  wishlist?: string[];
+  /** Whether the visitor is signed in. Drives the heart button login redirect. */
+  isAuthenticated?: boolean;
+  /** Admin-managed shop hero slides — PageShop renders them at the top. */
+  shopHeroSlides?: ShopHeroSlide[];
+  /** Free-shipping threshold in major units (₺) — drives the cart progress bar. */
+  freeShippingThreshold?: number;
+  /** The SPA section to render on first paint. Set by sub-page routes
+      (e.g. /menu → initialRoute="menu"); defaults to "home" for `/`. */
+  initialRoute?: Route;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [noticeOpen, setNoticeOpen] = useState(Boolean(notice));
 
   useEffect(() => {
@@ -73,32 +87,40 @@ export function LaffogatoApp({
     const t = window.setTimeout(() => setNoticeOpen(false), 7000);
     return () => window.clearTimeout(t);
   }, [notice]);
-  const [route, setRoute] = useState<Route>("home");
+
+  // `route` is fixed for an instance's lifetime: every navigation goes through a
+  // real Next route that re-mounts this shell with the correct initialRoute, so
+  // there is no in-instance route switching (and thus no optimistic setRoute —
+  // see navigate()).
+  const [route] = useState<Route>(initialRoute);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [productOpen, setProductOpen] = useState<Product | null>(null);
   const [mounted, setMounted] = useState(false);
   const hydratedRef = useRef(false);
 
   useEffect(() => {
-    setRoute(readInitialRoute());
+    // Backward-compat: if user lands on `/` with a legacy hash like #menu,
+    // route them to the real sub-page so their bookmark still works.
+    if (typeof window !== "undefined" && initialRoute === "home") {
+      const hash = window.location.hash.replace("#", "") as Route;
+      if (hash && VALID_ROUTES.includes(hash) && hash !== "home") {
+        router.replace(ROUTE_PATHS[hash]);
+        return;
+      }
+    }
     setCart(readStoredCart());
     hydratedRef.current = true;
     setMounted(true);
-    const onHash = () => {
-      const r = (window.location.hash || "#home").replace("#", "") as Route;
-      if (VALID_ROUTES.includes(r)) setRoute(r);
-    };
     const onStorage = (e: StorageEvent) => {
       if (e.key === CART_STORAGE_KEY) setCart(readStoredCart());
     };
-    window.addEventListener("hashchange", onHash);
     window.addEventListener("storage", onStorage);
     return () => {
-      window.removeEventListener("hashchange", onHash);
       window.removeEventListener("storage", onStorage);
     };
-  }, []);
+  }, [initialRoute, router]);
 
   useEffect(() => {
     if (!hydratedRef.current) return;
@@ -114,17 +136,30 @@ export function LaffogatoApp({
   }, [cart]);
 
   const navigate = (r: Route) => {
-    setRoute(r);
-    window.location.hash = r;
-    window.scrollTo({ top: 0, behavior: "instant" });
+    const target = ROUTE_PATHS[r];
+    if (pathname === target) {
+      // Already on the exact same URL — just scroll to the top so the click
+      // feels responsive (e.g. user clicking "Menü" while on /menu).
+      window.scrollTo({ top: 0, behavior: "instant" });
+      return;
+    }
+    // Navigate via the real route ONLY. We deliberately do not optimistically
+    // setRoute() here: the target is a real Next route that re-mounts this shell
+    // with the right initialRoute, so an optimistic swap would paint the new
+    // page once immediately and then a second time when the route loads — the
+    // "every page renders twice" double the user was seeing.
+    router.push(target);
   };
 
   const addToCart = (item: CartItem) => {
+    const key = cartItemKey(item);
     setCart((prev) => {
-      const existing = prev.find((p) => p.name === item.name);
+      const existing = prev.find((p) => cartItemKey(p) === key);
       if (existing) {
+        const cap = existing.maxStock ?? item.maxStock ?? 99;
+        const nextQty = Math.min(cap, (existing.qty || 1) + 1);
         return prev.map((p) =>
-          p.name === item.name ? { ...p, qty: (p.qty || 1) + 1 } : p,
+          cartItemKey(p) === key ? { ...p, ...item, qty: nextQty } : p,
         );
       }
       return [...prev, { ...item, qty: 1 }];
@@ -132,11 +167,23 @@ export function LaffogatoApp({
     setCartOpen(true);
   };
 
+  const setCartQty = (idx: number, qty: number) => {
+    setCart((prev) =>
+      prev
+        .map((it, i) => {
+          if (i !== idx) return it;
+          const cap = it.maxStock ?? 99;
+          return { ...it, qty: Math.min(cap, Math.max(0, qty)) };
+        })
+        .filter((it) => (it.qty ?? 1) > 0),
+    );
+  };
+
   const removeFromCart = (idx: number) => {
     setCart((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const dark = route === "home" || route === "franchise" || route === "visit";
+  const dark = route === "home" || route === "franchise" || route === "visit" || route === "menu";
 
   const pages: Record<Route, typeof PageHome> = {
     home: PageHome,
@@ -151,17 +198,19 @@ export function LaffogatoApp({
 
   const cartCount = cart.reduce((s, it) => s + (it.qty || 1), 0);
 
-  // Avoid hydration mismatch — render only after we read the hash on the client.
+  // Avoid hydration mismatch — render only after we read localStorage on the
+  // client. The initial markup matches what the server emitted (cart=0).
   if (!mounted) {
     return (
       <>
-        <Nav route="home" navigate={navigate} dark cart={0} onCart={() => setCartOpen(true)} />
-        <PageHome
+        <Nav route={route} navigate={navigate} dark={dark} cart={0} onCart={() => setCartOpen(true)} onSearch={() => setSearchOpen(true)} />
+        <Page
           navigate={navigate}
           addToCart={addToCart}
           openProduct={setProductOpen}
           products={products}
           menu={menu}
+          shopHeroSlides={shopHeroSlides}
         />
         {seoSlot}
         <Footer navigate={navigate} settings={settings} />
@@ -177,6 +226,7 @@ export function LaffogatoApp({
         dark={dark}
         cart={cartCount}
         onCart={() => setCartOpen(true)}
+        onSearch={() => setSearchOpen(true)}
       />
       <Page
         navigate={navigate}
@@ -184,6 +234,7 @@ export function LaffogatoApp({
         openProduct={setProductOpen}
         products={products}
         menu={menu}
+        shopHeroSlides={shopHeroSlides}
       />
       {seoSlot}
       <Footer navigate={navigate} settings={settings} />
@@ -192,11 +243,22 @@ export function LaffogatoApp({
         onClose={() => setCartOpen(false)}
         items={cart}
         removeItem={removeFromCart}
+        setQty={setCartQty}
+        freeShippingThreshold={freeShippingThreshold}
       />
       <ProductModal
         product={productOpen}
         onClose={() => setProductOpen(null)}
         addToCart={addToCart}
+        wishlist={wishlist}
+        isAuthenticated={isAuthenticated}
+      />
+      <SearchOverlay
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        products={products ?? []}
+        menu={menu ?? {}}
+        onOpenProduct={setProductOpen}
       />
       {notice && noticeOpen && (
         <div

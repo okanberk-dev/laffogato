@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getPaymentProvider } from "@/lib/payment";
-import { createAdminClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,55 +17,41 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
-  const supabase = createAdminClient();
+  const sb = getSupabaseAdmin();
 
-  // Idempotency: unique (provider, provider_ref).
-  const { error: insertError } = await supabase
-    .from("payment_transactions")
-    .insert({
-      order_id: event.orderId,
-      provider: provider.name,
-      provider_ref: event.providerRef,
-      status:
-        event.type === "payment.succeeded"
-          ? "succeeded"
-          : event.type === "payment.failed"
-            ? "failed"
-            : "refunded",
-      amount_minor: event.amountMinor,
-      currency: event.currency,
-      raw_payload: event.raw as never,
-    });
+  const status: "succeeded" | "failed" | "refunded" =
+    event.type === "payment.succeeded"
+      ? "succeeded"
+      : event.type === "payment.failed"
+        ? "failed"
+        : "refunded";
 
-  if (insertError) {
-    // Unique violation = idempotent retry; everything else surfaces.
-    if (insertError.code !== "23505") {
-      console.error("[payment-webhook] insert failed", insertError);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
-    }
+  // Idempotency is enforced by the unique (provider, "providerRef") index on
+  // payment_transactions. A duplicate webhook hits 23505 (unique_violation),
+  // which we treat as an already-processed retry.
+  const { error } = await sb.from(TABLES.paymentTransactions).insert({
+    orderId: event.orderId,
+    provider: provider.name,
+    providerRef: event.providerRef,
+    status,
+    amountMinor: event.amountMinor,
+    currency: event.currency,
+    raw: event.raw,
+    createdAt: new Date().toISOString(),
+  });
+  if (error && error.code !== "23505") {
+    console.error("[payment-webhook] insert failed", error);
+    return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
 
   if (event.type === "payment.succeeded") {
-    const { error: orderError } = await supabase
-      .from("orders")
+    await sb
+      .from(TABLES.orders)
       .update({ status: "paid" })
       .eq("id", event.orderId)
       .eq("status", "pending_payment");
-
-    if (orderError) {
-      console.error("[payment-webhook] order update failed", orderError);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
-    }
   } else if (event.type === "payment.refunded") {
-    const { error: orderError } = await supabase
-      .from("orders")
-      .update({ status: "refunded" })
-      .eq("id", event.orderId);
-
-    if (orderError) {
-      console.error("[payment-webhook] order refund failed", orderError);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
-    }
+    await sb.from(TABLES.orders).update({ status: "refunded" }).eq("id", event.orderId);
   }
 
   return NextResponse.json({ ok: true });

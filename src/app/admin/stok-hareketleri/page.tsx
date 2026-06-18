@@ -42,7 +42,7 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
   ]);
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Operasyon"
         title="Stok Hareketleri"
@@ -54,7 +54,7 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
       </div>
 
       <Card className="mb-4">
-        <form className="flex flex-wrap items-end gap-3">
+        <form className="grid gap-3 sm:grid-cols-2 sm:items-end md:grid-cols-[1fr_1fr_auto_auto]">
           <label className="grid gap-1">
             <span
               className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
@@ -65,7 +65,7 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
             <select
               name="productId"
               defaultValue={productId ?? ""}
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-base focus:border-neutral-900 focus:bg-white focus:outline-none sm:text-sm"
             >
               <option value="">Tüm ürünler</option>
               {products.map((p) => (
@@ -85,7 +85,7 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
             <select
               name="reason"
               defaultValue={reason ?? ""}
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-base focus:border-neutral-900 focus:bg-white focus:outline-none sm:text-sm"
             >
               <option value="">Tümü</option>
               {(Object.keys(REASON_LABEL) as StockMoveReason[]).map((r) => (
@@ -97,13 +97,13 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
           </label>
           <button
             type="submit"
-            className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-medium text-white hover:bg-neutral-800"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-neutral-900 px-4 text-sm font-medium text-white hover:bg-neutral-800"
           >
             Uygula
           </button>
           <Link
             href="/admin/stok-hareketleri"
-            className="rounded-full border border-neutral-200 px-4 py-2 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-neutral-200 px-4 text-sm text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
           >
             Sıfırla
           </Link>
@@ -117,7 +117,61 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
             düzeltmeler burada belirir.
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile cards */}
+          <ul className="flex flex-col gap-3 md:hidden">
+            {moves.map((m) => (
+              <li key={m.id} className="rounded-lg border border-neutral-200 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-medium text-neutral-900">{m.productName}</div>
+                    <div
+                      className="mt-0.5 text-[10px] text-neutral-500"
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      {formatDateTime(m.createdAt)} · {m.actor}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div
+                      className={`text-base ${m.delta < 0 ? "text-red-600" : "text-emerald-700"}`}
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      {m.delta > 0 ? "+" : ""}
+                      {m.delta}
+                    </div>
+                    <div
+                      className="text-[10px] text-neutral-500"
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      → {m.stockAfter}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${REASON_TONE[m.reason]}`}
+                  >
+                    {REASON_LABEL[m.reason]}
+                  </span>
+                  {m.orderId && (
+                    <Link
+                      href={`/admin/siparisler/${m.orderId}`}
+                      className="text-[10px] text-neutral-600 underline-offset-2 hover:text-neutral-900 hover:underline"
+                    >
+                      siparişe git →
+                    </Link>
+                  )}
+                </div>
+                {m.note && (
+                  <p className="mt-2 text-xs text-neutral-600">{m.note}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr
@@ -193,6 +247,7 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Card>
     </main>

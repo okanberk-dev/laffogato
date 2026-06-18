@@ -2,7 +2,7 @@
  * JSON-LD structured data generators.
  *
  * Bundled into a single @graph emitted at `/`. Currently produces:
- *  - Organization (corporate identity, Bologna parent)
+ *  - Organization (corporate identity, Italy parent)
  *  - CafeOrCoffeeShop + Restaurant (LocalBusiness for Maps/local SEO)
  *  - WebSite (with SearchAction for sitelinks)
  *  - BreadcrumbList
@@ -76,7 +76,7 @@ export function organizationLd(): Json {
     foundingDate: SITE.founded,
     foundingLocation: {
       "@type": "Place",
-      name: "Bologna, Italia",
+      name: "Italia",
       address: SITE.parent.address,
     },
     founder: {
@@ -384,6 +384,81 @@ export function productListLd(products: Product[]): Json {
   };
 }
 
+/**
+ * Single-product JSON-LD for the PDP. Mirrors the offer/shipping/return shape
+ * used by productListLd but for one product, with a stable canonical URL.
+ */
+export function singleProductLd(p: Product, canonicalPath: string): Json {
+  const { amount, currency } = priceToMinor(p.price);
+  const compareAt = p.compareAtPrice ? priceToMinor(p.compareAtPrice) : null;
+  const slug = p.slug ?? slugify(p.name);
+  const url = `${SITE.url}${canonicalPath}`;
+  const productId = `${url}#product`;
+  const image =
+    p.images && p.images.length > 0 && /^https?:\/\//i.test(p.images[0])
+      ? p.images[0]
+      : `${SITE.url}${SITE.ogImage}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": productId,
+    name: p.name,
+    description: p.desc,
+    category: p.cat,
+    sku: p.sku || `LAF-${slug.toUpperCase().slice(0, 20)}`,
+    mpn: p.sku || `LAF-${slug.toUpperCase().slice(0, 20)}`,
+    brand: { "@type": "Brand", name: SITE.name, "@id": `${SITE.url}/#organization` },
+    image,
+    url,
+    inLanguage: SITE.locale,
+    ...(p.weightGrams
+      ? { weight: { "@type": "QuantitativeValue", value: p.weightGrams, unitCode: "GRM" } }
+      : {}),
+    offers: {
+      "@type": "Offer",
+      "@id": `${productId}-offer`,
+      price: amount,
+      priceCurrency: currency,
+      priceValidUntil: PRICE_VALID_UNTIL,
+      availability:
+        p.stock !== undefined && p.stock <= 0
+          ? "https://schema.org/OutOfStock"
+          : "https://schema.org/InStock",
+      itemCondition: "https://schema.org/NewCondition",
+      url,
+      seller: { "@id": `${SITE.url}/#organization` },
+      ...(compareAt
+        ? {
+            priceSpecification: {
+              "@type": "UnitPriceSpecification",
+              price: amount,
+              priceCurrency: currency,
+              referencePrice: compareAt.amount,
+            },
+          }
+        : {}),
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        shippingRate: { "@type": "MonetaryAmount", value: "49", currency: "TRY" },
+        shippingDestination: { "@type": "DefinedRegion", addressCountry: "TR" },
+        deliveryTime: {
+          "@type": "ShippingDeliveryTime",
+          handlingTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 1, unitCode: "DAY" },
+          transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 3, unitCode: "DAY" },
+        },
+      },
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        applicableCountry: "TR",
+        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+        merchantReturnDays: 14,
+        returnMethod: "https://schema.org/ReturnByMail",
+        returnFees: "https://schema.org/FreeReturn",
+      },
+    },
+  };
+}
+
 export function faqLd(entries: FaqEntry[] = FAQ): Json {
   return {
     "@context": "https://schema.org",
@@ -410,7 +485,7 @@ export function aboutPageLd(): Json {
     name: `${SITE.name} — Hikayemiz`,
     inLanguage: SITE.locale,
     description:
-      "1987'den 2026'ya L'Affogato'nun Bologna'dan İstanbul'a uzanan üç kuşaklık hikayesi.",
+      "1987'den 2026'ya L'Affogato'nun İtalya'dan İstanbul'a uzanan üç kuşaklık hikayesi.",
     isPartOf: { "@id": `${SITE.url}/#website` },
     about: { "@id": `${SITE.url}/#organization` },
     mainEntity: {
@@ -437,7 +512,7 @@ export function howToAffogatoLd(): Json {
     "@id": `${SITE.url}/#howto-affogato`,
     name: "Klasik Affogato nasıl yapılır?",
     description:
-      "L'Affogato Bologna'nın 1987'den beri uyguladığı orijinal affogato tarifi: tek scoop fior di latte gelato üzerine çift shot Sirena espresso, yenilebilir waffle kup içinde.",
+      "L'Affogato L'''Affogato'nun 1987'den beri uyguladığı orijinal affogato tarifi: tek scoop fior di latte gelato üzerine çift shot Sirena espresso, yenilebilir waffle kup içinde.",
     inLanguage: SITE.locale,
     totalTime: "PT2M",
     estimatedCost: {

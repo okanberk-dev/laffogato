@@ -124,7 +124,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
   ].filter((q) => q.show);
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow={`${settings.name} · ${todayLabel()}`}
         title={`${turkishGreeting()}, ${userLabel}.`}
@@ -186,7 +186,44 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
           {recent.length === 0 ? (
             <p className="text-sm text-neutral-500">Henüz sipariş yok.</p>
           ) : (
-            <table className="w-full text-sm">
+            <>
+            {/* Mobile cards */}
+            <ul className="flex flex-col gap-2 sm:hidden">
+              {recent.map((o) => (
+                <li key={o.id}>
+                  <Link
+                    href={`/admin/siparisler/${o.id}`}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-neutral-200 p-3 hover:border-neutral-900"
+                  >
+                    <div className="min-w-0">
+                      <div
+                        className="font-medium text-neutral-900"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        #{o.orderNo}
+                      </div>
+                      <div className="truncate text-xs text-neutral-700">
+                        {o.customerName}
+                      </div>
+                      <span
+                        className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${ORDER_STATUS_TONE[o.status]}`}
+                      >
+                        {ORDER_STATUS_LABEL[o.status]}
+                      </span>
+                    </div>
+                    <div
+                      className="shrink-0 text-right text-sm text-neutral-900"
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      {formatTRY(o.totalMinor)}
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop table */}
+            <table className="hidden w-full text-sm sm:table">
               <thead>
                 <tr
                   className="text-left text-[10px] uppercase tracking-[0.22em] text-neutral-500"
@@ -230,6 +267,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                 ))}
               </tbody>
             </table>
+            </>
           )}
         </Card>
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 
+import { ShopHeroSlider, type ShopHeroSlide } from "./shop-hero-slider";
 import { MENU, PRODUCTS, REELS, PRESS, STORY, LOCATION, BRAND, FRANCHISE } from "./data";
-import type { MenuCategory } from "./data";
+import type { MenuCategory, MenuItem } from "./data";
 import { ProductCard, SectionHead, Stat, CartItem } from "./ui";
 import type { Product } from "./data";
 import type { Route } from "./chrome";
@@ -32,6 +33,8 @@ interface PageProps {
   products?: Product[];
   /** Live cafe menu fed from the admin store; falls back to design seed. */
   menu?: Record<string, MenuCategory>;
+  /** Admin-managed shop hero slides (PageShop kullanır). */
+  shopHeroSlides?: ShopHeroSlide[];
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -101,13 +104,11 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
               </div>
               <div
                 className="reveal r4"
+                data-row="home-hero-stats"
                 style={{
                   marginTop: 60,
                   paddingTop: 30,
                   borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: 30,
                 }}
               >
                 {[
@@ -222,13 +223,10 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
 
       <section className="section-tight" style={{ background: "var(--bg)" }}>
         <div className="wrap-wide">
-          <div
-            className="reveal"
-            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 30, alignItems: "end", marginBottom: 30 }}
-          >
+          <div className="reveal" data-row="locale-head">
             <div>
               <div className="eyebrow">01 — Il locale</div>
-              <h2 className="h-1" style={{ marginTop: 16 }}>
+              <h2 className="h1" style={{ marginTop: 16 }}>
                 Tuzla, <span className="script">altın saat.</span>
               </h2>
             </div>
@@ -244,21 +242,14 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
           </div>
           <div
             className="reveal r2"
-            style={{
-              marginTop: 30,
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 30,
-              padding: 24,
-              borderRadius: "var(--r-md)",
-              background: "var(--bg-warm)",
-            }}
+            data-row="locale-grid"
+            style={{ marginTop: 30 }}
           >
             {[
-              ["Konum", "Tuzla · terası"],
+              ["Konum", "Tuzla · açık-hava teras"],
               ["Kapasite", "24 koltuk · 12 bar + 12 lounge"],
               ["Saat", "Her gün · 10:00 — 23:00"],
-              ["Mimari", "Studio Pellegrini · Bologna"],
+              ["Mimari", "Studio Pellegrini"],
             ].map(([k, v]) => (
               <div key={k}>
                 <div className="eyebrow" style={{ marginBottom: 6 }}>
@@ -279,7 +270,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow">02 — La firma · since 1987</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               The <span className="script">edible</span>
               <br />
               affogato.
@@ -289,7 +280,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
               bir scoop fior di latte. Çift shot Sirena masada dökülür. İçersin, yersin, geriye hiçbir şey kalmaz.
               1994’ten beri Mancuso ailesinin patentli reçetesi.
             </p>
-            <div style={{ marginTop: 30, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <div data-row="sig-stats">
               <Stat n="27s" l="Tableside pour" />
               <Stat n="93°C" l="Servis sıcaklığı" />
               <Stat n="36g" l="Sirena espresso" />
@@ -316,23 +307,20 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
 
       <section className="section" style={{ background: "var(--bg-warm)" }}>
         <div className="wrap">
-          <div
-            className="reveal"
-            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 30, alignItems: "end", marginBottom: 50 }}
-          >
+          <div className="reveal" data-row="section-head-split">
             <div>
               <div className="eyebrow">03 — Dal menù</div>
-              <h2 className="h-1" style={{ marginTop: 16 }}>
-                Six <span className="script">affogati,</span>
+              <h2 className="h1" style={{ marginTop: 16 }}>
+                Altı <span className="script">affogato,</span>
                 <br />
-                one ritual.
+                tek ritüel.
               </h2>
             </div>
             <a href="#menu" onClick={go("menu")} className="btn-link">
               Tam menü <span>→</span>
             </a>
           </div>
-          <div className="shop-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+          <div className="shop-grid-preview">
             {(liveMenu.affogato?.items ?? MENU.affogato.items).slice(0, 3).map((it, i) => (
               <div
                 key={it.name}
@@ -375,7 +363,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
           style={{ display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: 80, alignItems: "center" }}
           data-row="matcha-row"
         >
-          <div className="reveal r1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          <div className="reveal r1" data-row="matcha-imgs">
             <div style={{ aspectRatio: "4/5", borderRadius: "var(--r-lg)", overflow: "hidden" }}>
               <PhotoSurface hue="matcha" dotLabel="Uji · ceremonial" dotPos="bl">
                 <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", padding: 24 }}>
@@ -393,7 +381,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
           </div>
           <div className="reveal">
             <div className="eyebrow">04 — Il banco matcha</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Matcha & <span className="script">strawberry.</span>
             </h2>
             <p className="lede" style={{ marginTop: 26 }}>
@@ -420,13 +408,10 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
 
       <section className="section" style={{ background: "var(--bg-warm)" }}>
         <div className="wrap">
-          <div
-            className="reveal"
-            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 30, alignItems: "end", marginBottom: 50 }}
-          >
+          <div className="reveal" data-row="section-head-split">
             <div>
               <div className="eyebrow">05 — La bottega</div>
-              <h2 className="h-1" style={{ marginTop: 16 }}>
+              <h2 className="h1" style={{ marginTop: 16 }}>
                 Bring it <span className="script">home.</span>
               </h2>
             </div>
@@ -444,14 +429,11 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
 
       <section className="section" style={{ background: "var(--bg-espresso)", color: "#FFF" }}>
         <div className="wrap-wide">
-          <div
-            className="reveal"
-            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 30, alignItems: "end", marginBottom: 50 }}
-          >
+          <div className="reveal" data-row="section-head-split">
             <div>
               <div className="eyebrow on-dark">06 — Il film</div>
-              <h2 className="h-1" style={{ marginTop: 16, color: "#FFF" }}>
-                Behind the bar, <span className="script">in motion.</span>
+              <h2 className="h1" style={{ marginTop: 16, color: "#FFF" }}>
+                Barın arkasında, <span className="script">sahnede.</span>
               </h2>
             </div>
             <a href="#reels" onClick={go("reels")} className="btn-link" style={{ color: "#FFF", borderColor: "#FFF" }}>
@@ -520,20 +502,20 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow">07 — Franchise</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
-              Bring L’Affogato <br />
-              to <span className="script">your city.</span>
+            <h2 className="h1" style={{ marginTop: 16 }}>
+              L’Affogato’yu <br />
+              <span className="script">şehrinize</span> getirin.
             </h2>
             <p className="lede" style={{ marginTop: 26 }}>
-              Bologna’dan ithal İtalyan kahve barı franchise konsepti. Üç paket — Kiosk, Bottega, Salone —
-              €85K’dan başlayan başlangıç yatırımı, 4 hafta İtalya eğitimi. İlk yıl 8 şube hedefi.
+              İtalya’dan ithal İtalyan kahve barı franchise konsepti. Üç paket — Kiosk, Bottega, Salone —
+              4 hafta İtalya eğitimi, açılış desteği ve bitmeyen know-how. İlk yıl 8 şube hedefi.
             </p>
-            <div style={{ marginTop: 30, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-              <Stat n="€85K" l="Başlangıç (Kiosk)" />
+            <div data-row="franchise-teaser-stats">
+              <Stat n="3" l="Paket seçeneği" />
               <Stat n="14ay" l="Geri dönüş" />
               <Stat n="4hf" l="İtalya eğitimi" />
             </div>
-            <div style={{ display: "flex", gap: 12, marginTop: 36 }}>
+            <div className="btn-group-wrap" style={{ marginTop: 36 }}>
               <a href="#franchise" onClick={go("franchise")} className="btn btn-primary">
                 Başvuru formu <span className="arrow">→</span>
               </a>
@@ -543,7 +525,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
             </div>
           </div>
           <div className="reveal r1" style={{ display: "grid", placeItems: "center", padding: 30 }}>
-            <CupEmblem size={360} bg="#FAF7F2" />
+            <CupEmblem className="cup-emblem-responsive" bg="#FAF7F2" />
           </div>
         </div>
       </section>
@@ -551,7 +533,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
       <section className="section-tight" style={{ background: "var(--bg-warm)" }}>
         <div className="wrap">
           <div className="eyebrow reveal" style={{ textAlign: "center", marginBottom: 50 }}>
-            Press — Stamping kindly
+            Basın · Hakkımızda yazılanlar
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 30 }} data-row="press-row">
             {PRESS.map((p, i) => (
@@ -590,61 +572,285 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
    MENU
    ────────────────────────────────────────────────────────────── */
 
+/** Dekoratif QR amblemi — self-servis menü kartı için. Gerçek veri taşımaz,
+    masadaki fiziksel QR'ın görsel karşılığıdır. Desen deterministiktir
+    (SSR/hydration güvenli). */
+function MenuQrMark() {
+  const finder = (x: number, y: number) => (
+    <g>
+      <rect x={x} y={y} width="8" height="8" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <rect x={x + 2.4} y={y + 2.4} width="3.2" height="3.2" rx="0.6" fill="currentColor" />
+    </g>
+  );
+  // Sabit "data" modülleri — okunabilir bir QR dokusu hissi verir.
+  const dots = [
+    [11, 1], [13, 1], [16, 1], [11, 3], [14, 3], [17, 3], [12, 5], [16, 5], [18, 5],
+    [1, 11], [3, 11], [5, 11], [11, 11], [13, 11], [16, 11], [18, 11], [21, 11], [25, 11], [27, 11],
+    [2, 13], [4, 13], [12, 13], [15, 13], [17, 13], [23, 13], [26, 13],
+    [1, 16], [4, 16], [11, 16], [14, 16], [18, 16], [22, 16], [25, 16], [27, 16],
+    [3, 18], [5, 18], [13, 18], [16, 18], [24, 18], [26, 18],
+    [11, 21], [13, 21], [16, 21], [18, 21], [11, 23], [15, 23], [17, 23],
+    [12, 25], [14, 25], [17, 25], [11, 27], [16, 27], [18, 27],
+  ];
+  return (
+    <svg viewBox="-1 -1 31 31" role="img" aria-label="QR menü" className="menu-qr-svg">
+      {finder(0, 0)}
+      {finder(21, 0)}
+      {finder(0, 21)}
+      {dots.map(([x, y]) => (
+        <rect key={`${x}-${y}`} x={x} y={y} width="1.7" height="1.7" rx="0.4" fill="currentColor" />
+      ))}
+    </svg>
+  );
+}
+
 export function PageMenu({ addToCart, menu }: PageProps) {
   useReveal();
   const liveMenu = menu ?? MENU;
   const cats = Object.keys(liveMenu);
   const [active, setActive] = useState<string>("all");
-  const visible = active === "all" ? cats : [active];
+  const [query, setQuery] = useState("");
+  const [diet, setDiet] = useState<string>("all");
+  const [view, setView] = useState<"gallery" | "list">("gallery");
+  const [table, setTable] = useState<string | null>(null);
+
+  // Self-servis QR derin bağlantısı: /menu?masa=12 → masa farkındalığı.
+  // window.location üzerinden mount sonrası okunur (useSearchParams Suspense
+  // gerektirir; statik prerender'ı bozmamak için bu yol seçildi).
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get("masa") ?? params.get("table") ?? params.get("m");
+      if (raw && /^[A-Za-z0-9-]{1,5}$/.test(raw)) setTable(raw.toUpperCase());
+    } catch {
+      /* no-op */
+    }
+  }, []);
 
   const totalCount = Object.values(liveMenu).reduce((s, c) => s + c.items.length, 0);
+  const visible = active === "all" ? cats : [active];
+
+  const sections = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return visible
+      .map((key) => {
+        const c = liveMenu[key];
+        const items = c.items.filter((it) => {
+          const okDiet =
+            diet === "all"
+              ? true
+              : diet === "vegan"
+                ? (it.tags ?? []).some((t) => /vegan/i.test(t))
+                : (it.tags ?? []).includes(diet);
+          const okQuery =
+            !q || it.name.toLowerCase().includes(q) || it.desc.toLowerCase().includes(q);
+          return okDiet && okQuery;
+        });
+        return { key, c, items };
+      })
+      .filter((s) => s.items.length > 0);
+  }, [visible, liveMenu, diet, query]);
+
+  const shownCount = sections.reduce((s, sec) => s + sec.items.length, 0);
+
+  const dietFilters: Array<{ id: string; label: string }> = [
+    { id: "all", label: "Tümü" },
+    { id: "signature", label: "Firma" },
+    { id: "new", label: "Yeni" },
+    { id: "iced", label: "Buzlu" },
+    { id: "vegan", label: "Vegan" },
+  ];
+
+  const add = (it: MenuItem) => addToCart({ name: it.name, price: parseFloat(it.price) });
 
   return (
     <div className="page" data-screen-label="02 Menu">
-      <header className="page-head">
-        <div className="wrap">
-          <div className="reveal" style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "end", gap: 30 }}>
-            <div>
-              <div className="eyebrow">II — Il menù · summer 2026</div>
-              <h1 style={{ marginTop: 24 }}>
-                The <span className="script">menu.</span>
-              </h1>
-              <p className="lede" style={{ marginTop: 22 }}>
-                Bologna 1987 reçetesi, Tuzla terası için sezonluk matcha bar ve buzlu içecekler.
-                Üç ritüel — espresso, gelato, yenilebilir kup. 39 yıldır değişmedi.
-              </p>
+      {/* ── Sinematik koyu hero + self-servis QR kartı ── */}
+      <header className="menu-hero">
+        <div className="menu-hero-glow" aria-hidden="true" />
+        <div className="wrap menu-hero-inner">
+          <div className="menu-hero-copy reveal">
+            <div className="menu-hero-eyebrow">
+              <span className="menu-hero-pip" />
+              <span>II — Il menù · summer 2026</span>
             </div>
-            <div className="menu-head-meta">
+            <h1 className="menu-hero-title">
+              Il <span className="script">menù.</span>
+            </h1>
+            <p className="menu-hero-lede">
+              Bologna 1987 reçetesi, Tuzla terası için sezonluk matcha bar ve buzlu içecekler.
+              Üç ritüel — espresso, gelato, yenilebilir kup. 39 yıldır değişmedi.
+            </p>
+            <div className="menu-hero-stats">
               <div>
-                <div className="eyebrow" style={{ marginBottom: 6 }}>Toplam</div>
-                <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 36 }}>{totalCount} ürün</div>
+                <b>{totalCount}</b>
+                <span>lezzet</span>
               </div>
               <div>
-                <div className="eyebrow" style={{ marginBottom: 6 }}>Kategori</div>
-                <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 36 }}>{cats.length}</div>
+                <b>{cats.length}</b>
+                <span>ritüel</span>
+              </div>
+              <div>
+                <b>~4dk</b>
+                <span>hazırlık</span>
+              </div>
+              <div>
+                <b>06:00</b>
+                <span>taze gelato</span>
               </div>
             </div>
           </div>
+
+          <aside className="menu-selfservice reveal r1" aria-label="Self-servis QR menü">
+            <div className="menu-ss-top">
+              <div className="menu-ss-qr">
+                <MenuQrMark />
+                <span className="menu-ss-scan" aria-hidden="true" />
+              </div>
+              <div className="menu-ss-headings">
+                <div className="menu-ss-kicker">Self-servis · QR menü</div>
+                <div className="menu-ss-title">{table ? `Masa ${table}` : "Masandan tara"}</div>
+                <div className="menu-ss-sub">
+                  {table
+                    ? "QR ile bağlandın — siparişini buradan, telefonundan ver."
+                    : "Her masadaki QR seni doğrudan bu dijital menüye getirir."}
+                </div>
+              </div>
+            </div>
+            <ol className="menu-ss-steps">
+              <li>
+                <span className="menu-ss-n">1</span>
+                Beğendiğini <strong>sepete ekle</strong>
+              </li>
+              <li>
+                <span className="menu-ss-n">2</span>
+                Sepetten <strong>siparişini onayla</strong>
+              </li>
+              <li>
+                <span className="menu-ss-n">3</span>
+                {table ? <>Masa {table}&apos;ye <strong>getirelim</strong></> : <>Masana <strong>biz getirelim</strong></>}
+              </li>
+            </ol>
+            <div className="menu-ss-foot">
+              {table ? (
+                <span className="menu-ss-badge on">
+                  <span className="menu-ss-badge-dot" /> Masa {table} · bağlı
+                </span>
+              ) : (
+                <span className="menu-ss-badge">
+                  <span className="menu-ss-badge-dot" /> Temassız · garson beklemeden
+                </span>
+              )}
+            </div>
+          </aside>
         </div>
       </header>
 
-      <div className="menu-tabs-wrap">
-        <div className="wrap" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className={`menu-tab ${active === "all" ? "on" : ""}`} onClick={() => setActive("all")}>
-            <span>Tümü</span>
-            <span className="count">{totalCount}</span>
-          </button>
-          {cats.map((c) => (
-            <button key={c} className={`menu-tab ${active === c ? "on" : ""}`} onClick={() => setActive(c)}>
-              <span>{liveMenu[c].title}</span>
-              <span className="count">{liveMenu[c].items.length}</span>
+      {/* ── Sticky kontrol çubuğu: kategoriler + arama + görünüm + diyet ── */}
+      <div className="menu-controls">
+        <div className="wrap menu-controls-inner">
+          <div className="menu-tabs" role="tablist" aria-label="Menü kategorileri">
+            <button className={`menu-tab ${active === "all" ? "on" : ""}`} onClick={() => setActive("all")}>
+              <span>Tümü</span>
+              <span className="count">{totalCount}</span>
             </button>
-          ))}
+            {cats.map((c) => (
+              <button key={c} className={`menu-tab ${active === c ? "on" : ""}`} onClick={() => setActive(c)}>
+                <span>{liveMenu[c].title}</span>
+                <span className="count">{liveMenu[c].items.length}</span>
+              </button>
+            ))}
+          </div>
+          <div className="menu-tools">
+            <div className="menu-search">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4" />
+                <path d="M11 11 L14 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              </svg>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Menüde ara…"
+                aria-label="Menüde ara"
+              />
+              {query && (
+                <button className="menu-search-clear" onClick={() => setQuery("")} aria-label="Aramayı temizle">
+                  ×
+                </button>
+              )}
+            </div>
+            <div className="menu-view-toggle" role="group" aria-label="Görünüm">
+              <button
+                className={view === "gallery" ? "on" : ""}
+                onClick={() => setView("gallery")}
+                aria-label="Galeri görünümü"
+                aria-pressed={view === "gallery"}
+              >
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                  <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+                  <rect x="9" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+                  <rect x="1.5" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+                  <rect x="9" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+                </svg>
+              </button>
+              <button
+                className={view === "list" ? "on" : ""}
+                onClick={() => setView("list")}
+                aria-label="Liste görünümü"
+                aria-pressed={view === "list"}
+              >
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 4 H14 M2 8 H14 M2 12 H14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="wrap menu-diet-row">
+          <div className="menu-diet-chips">
+            {dietFilters.map((f) => (
+              <button
+                key={f.id}
+                className={`menu-diet ${diet === f.id ? "on" : ""}`}
+                onClick={() => setDiet(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <span className="menu-diet-count">{shownCount} sonuç</span>
         </div>
       </div>
 
-      {visible.map((key, idx) => {
-        const c = liveMenu[key];
+      {/* ── Boş sonuç ── */}
+      {sections.length === 0 && (
+        <section className="section-tight">
+          <div className="wrap menu-empty">
+            <div className="menu-empty-mark">∅</div>
+            <h2 className="h2" style={{ fontFamily: "var(--serif)", fontStyle: "italic" }}>
+              Aradığın tatla eşleşen ürün yok.
+            </h2>
+            <p style={{ color: "var(--ink-mute)", marginTop: 10 }}>
+              Farklı bir kelime dene ya da filtreleri sıfırla.
+            </p>
+            <button
+              className="btn btn-ghost"
+              style={{ marginTop: 22 }}
+              onClick={() => {
+                setQuery("");
+                setDiet("all");
+                setActive("all");
+              }}
+            >
+              Filtreleri temizle
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* ── Kategoriler ── */}
+      {sections.map(({ key, c, items }, idx) => {
         const firstWord = c.title.split(" ")[0];
         const restWords = c.title.split(" ").slice(1).join(" ");
         return (
@@ -656,10 +862,11 @@ export function PageMenu({ addToCart, menu }: PageProps) {
             <div className="wrap">
               <div className="menu-cat-hero reveal">
                 <div className="menu-cat-info">
+                  <div className="menu-cat-index">{String(idx + 1).padStart(2, "0")}</div>
                   <div className="eyebrow" style={{ marginBottom: 16 }}>
                     {c.sub}
                   </div>
-                  <h2 className="h-1">
+                  <h2 className="h1">
                     {firstWord}
                     {restWords && (
                       <>
@@ -668,116 +875,131 @@ export function PageMenu({ addToCart, menu }: PageProps) {
                       </>
                     )}
                   </h2>
-                  <div
-                    style={{
-                      fontFamily: "var(--serif)",
-                      fontStyle: "italic",
-                      color: "var(--ink-mute)",
-                      marginTop: 14,
-                      fontSize: 18,
-                    }}
-                  >
-                    {c.italian}
-                  </div>
-                  {c.note && (
-                    <p
-                      style={{
-                        marginTop: 20,
-                        padding: "16px 20px",
-                        background: "var(--bg-stone)",
-                        borderRadius: "var(--r-sm)",
-                        fontFamily: "var(--serif)",
-                        fontStyle: "italic",
-                        fontSize: 14,
-                        lineHeight: 1.6,
-                        color: "var(--ink-soft)",
-                        maxWidth: 540,
-                      }}
-                    >
-                      {c.note}
-                    </p>
-                  )}
+                  <div className="menu-cat-italian">{c.italian}</div>
+                  {c.note && <p className="menu-cat-note">{c.note}</p>}
                 </div>
                 <div className="menu-cat-hero-img">
                   <PhotoSurface
-                    hue={c.items[0].hue || "warm"}
-                    dotLabel={`${String(idx + 1).padStart(2, "0")} / ${visible.length.toString().padStart(2, "0")}`}
+                    hue={items[0].hue || "warm"}
+                    dotLabel={`${String(idx + 1).padStart(2, "0")} / ${sections.length.toString().padStart(2, "0")}`}
                     dotPos="tr"
                   >
                     <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", padding: 30 }}>
-                      <MenuPlate hue={c.items[0].hue} name={c.items[0].name} />
+                      <MenuPlate hue={items[0].hue} name={items[0].name} />
                     </div>
                   </PhotoSurface>
                 </div>
               </div>
 
-              <div className="menu-grid">
-                {c.items.map((it, i) => (
-                  <article
-                    key={it.name}
-                    className="menu-item-card reveal"
-                    style={{ transitionDelay: `${(i % 4) * 60}ms` }}
-                  >
-                    <div className="menu-item-img">
-                      <MenuPlate hue={it.hue} name={it.name} />
-                      {it.tags?.includes("signature") && <div className="product-card-flag gold">FIRMA</div>}
-                      {it.tags?.includes("new") && !it.tags.includes("signature") && (
-                        <div className="product-card-flag new">NUOVO</div>
-                      )}
-                    </div>
-                    <div className="menu-item-body">
-                      <div className="menu-item-row">
-                        <h3 className="menu-item-name">{it.name}</h3>
-                        <div className="menu-item-price">{it.price}</div>
-                      </div>
-                      <p className="menu-item-desc">{it.desc}</p>
-                      <div className="menu-item-foot">
-                        {it.tags && it.tags.length > 0 && (
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            {it.tags
-                              .filter((t) => !["signature", "new"].includes(t))
-                              .map((t) => (
-                                <span key={t} className="chip chip-outline" style={{ padding: "4px 10px", fontSize: 9 }}>
-                                  {t}
-                                </span>
-                              ))}
-                          </div>
+              {view === "gallery" ? (
+                <div className="menu-grid">
+                  {items.map((it, i) => (
+                    <article
+                      key={it.name}
+                      className="menu-item-card reveal"
+                      style={{ transitionDelay: `${(i % 4) * 60}ms` }}
+                    >
+                      <div className="menu-item-img">
+                        <MenuPlate hue={it.hue} name={it.name} />
+                        {it.tags?.includes("signature") && <div className="product-card-flag gold">FIRMA</div>}
+                        {it.tags?.includes("new") && !it.tags.includes("signature") && (
+                          <div className="product-card-flag new">NUOVO</div>
                         )}
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            addToCart({ name: it.name, price: parseFloat(it.price) });
-                          }}
-                        >
-                          + Sepete ekle
-                        </button>
                       </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
+                      <div className="menu-item-body">
+                        <div className="menu-item-row">
+                          <h3 className="menu-item-name">{it.name}</h3>
+                          <div className="menu-item-price">{it.price}</div>
+                        </div>
+                        <p className="menu-item-desc">{it.desc}</p>
+                        <div className="menu-item-foot">
+                          {it.tags && it.tags.length > 0 && (
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                              {it.tags
+                                .filter((t) => !["signature", "new"].includes(t))
+                                .map((t) => (
+                                  <span key={t} className="chip chip-outline" style={{ padding: "4px 10px", fontSize: 9 }}>
+                                    {t}
+                                  </span>
+                                ))}
+                            </div>
+                          )}
+                          <button
+                            className="btn btn-primary btn-sm menu-add-btn"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              add(it);
+                            }}
+                          >
+                            + Sepete ekle
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <ul className="menu-list reveal">
+                  {items.map((it) => (
+                    <li key={it.name} className="menu-list-row">
+                      <div className="menu-list-main">
+                        <div className="menu-list-name-row">
+                          <span className="menu-list-name">{it.name}</span>
+                          {it.tags?.includes("signature") && <span className="menu-list-tag gold">firma</span>}
+                          {it.tags?.includes("new") && <span className="menu-list-tag new">yeni</span>}
+                          <span className="menu-list-leader" aria-hidden="true" />
+                          <span className="menu-list-price">{it.price}</span>
+                        </div>
+                        <p className="menu-list-desc">{it.desc}</p>
+                      </div>
+                      <button
+                        className="menu-list-add"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          add(it);
+                        }}
+                        aria-label={`${it.name} sepete ekle`}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M8 3 V13 M3 8 H13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </section>
         );
       })}
 
+      {/* ── Bilgi notları ── */}
       <section className="section-tight" style={{ background: "var(--bg-cream)" }}>
-        <div className="wrap" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 50 }} data-row="menu-notes">
+        <div
+          className="wrap"
+          style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 40 }}
+          data-row="menu-notes"
+        >
           <div className="reveal">
-            <div className="eyebrow">Allergens</div>
+            <div className="eyebrow">Self-servis</div>
+            <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
+              Masandaki QR ile menüye ulaş, sepete ekle, siparişini onayla. Dilersen bardan da sipariş verebilirsin — ikisi de aynı mutfağa düşer.
+            </p>
+          </div>
+          <div className="reveal r1">
+            <div className="eyebrow">Alerjenler</div>
             <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
               Süt, gluten, kuruyemiş, soya — mutfağımızda çapraz temas olabilir. Cölyak için baristaya bildirin, pirinç bisküvili alternatif hazırlarız.
             </p>
           </div>
-          <div className="reveal r1">
-            <div className="eyebrow">Origin</div>
+          <div className="reveal r2">
+            <div className="eyebrow">Köken</div>
             <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
               Espresso: Sirena harmanı (Bologna kavurma). Matcha: Uji ceremonial grade. Pistacchio: Bronte IGP. Süt: Tuzla yerel mandıra.
             </p>
           </div>
-          <div className="reveal r2">
-            <div className="eyebrow">Service</div>
+          <div className="reveal r3">
+            <div className="eyebrow">Servis</div>
             <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
               Bar köşesi 6 koltuk yürüyüş trafiği için ayrı. Akşam 19:00 sonrası rezervasyon. Köpekler hoş geldi.
             </p>
@@ -802,13 +1024,15 @@ function ShopBadge({ icon, k, v }: { icon: string; k: string; v: string }) {
   );
 }
 
-export function PageShop({ addToCart, openProduct, products }: PageProps) {
+export function PageShop({ addToCart, openProduct, products, shopHeroSlides }: PageProps) {
   useReveal();
   const shopProducts = products && products.length > 0 ? products : PRODUCTS;
+  const slides = shopHeroSlides ?? [];
   const [cat, setCat] = useState<string>("all");
   const [sort, setSort] = useState<string>("featured");
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(900);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const cats = [
     { id: "all", label: "Hepsi", icon: "◯" },
@@ -827,9 +1051,123 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
   if (sort === "price-asc") list = [...list].sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
   if (sort === "price-desc") list = [...list].sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
 
+  const priceTouched = priceMin > 0 || priceMax < 900;
+  const activeFilterCount = (cat !== "all" ? 1 : 0) + (priceTouched ? 1 : 0);
+
+  const resetFilters = () => {
+    setCat("all");
+    setPriceMin(0);
+    setPriceMax(900);
+  };
+
+  // Lock body scroll while the mobile filter sheet is open.
+  useEffect(() => {
+    if (filtersOpen) document.body.classList.add("is-no-scroll");
+    else document.body.classList.remove("is-no-scroll");
+    return () => document.body.classList.remove("is-no-scroll");
+  }, [filtersOpen]);
+
+  // Filter controls — shared by the desktop sidebar and the mobile sheet.
+  const renderFilters = () => (
+    <>
+      <div className="shop-filter-block">
+        <div className="eyebrow" style={{ marginBottom: 14 }}>Kategoriler</div>
+        <div className="shop-cat-list">
+          {cats.map((c) => {
+            const count = c.id === "all" ? shopProducts.length : shopProducts.filter((p) => p.cat === c.id).length;
+            return (
+              <button
+                key={c.id}
+                className={`shop-cat ${cat === c.id ? "on" : ""}`}
+                onClick={() => setCat(c.id)}
+              >
+                <span>{c.label}</span>
+                <span className="count">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="shop-filter-block">
+        <div className="eyebrow" style={{ marginBottom: 14 }}>Fiyat aralığı</div>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 13, marginBottom: 16 }}>
+          {priceMin}₺ — {priceMax}₺
+        </div>
+        <div style={{ position: "relative", height: 28 }}>
+          <div
+            style={{ position: "absolute", top: 12, left: 0, right: 0, height: 2, background: "var(--ink-line)" }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: 12,
+              left: `${(priceMin / 900) * 100}%`,
+              right: `${100 - (priceMax / 900) * 100}%`,
+              height: 2,
+              background: "var(--ink)",
+            }}
+          />
+          <input
+            type="range"
+            min="0"
+            max="900"
+            step="20"
+            value={priceMin}
+            onChange={(e) => setPriceMin(Math.min(parseInt(e.target.value), priceMax - 40))}
+            className="price-range"
+            aria-label="En düşük fiyat"
+            style={{ position: "absolute", top: 0, left: 0, right: 0 }}
+          />
+          <input
+            type="range"
+            min="0"
+            max="900"
+            step="20"
+            value={priceMax}
+            onChange={(e) => setPriceMax(Math.max(parseInt(e.target.value), priceMin + 40))}
+            className="price-range"
+            aria-label="En yüksek fiyat"
+            style={{ position: "absolute", top: 0, left: 0, right: 0 }}
+          />
+        </div>
+      </div>
+
+      <div className="shop-filter-block">
+        <div className="eyebrow" style={{ marginBottom: 14 }}>Etiketler</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {["Yeni", "Limited", "En çok satan", "Bologna import", "Gift ready"].map((t) => (
+            <span key={t} className="chip" style={{ cursor: "pointer" }}>
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="shop-filter-block" style={{ borderTop: 0 }}>
+        <div className="shop-helpline">
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Yardım</div>
+          <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 22, lineHeight: 1.2 }}>
+            Hangi çekirdek?
+          </div>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 10, lineHeight: 1.55 }}>
+            Espresso mu, filtre mi karar veremediysen — barista chat’i aç, sana yardımcı olalım.
+          </p>
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{ marginTop: 16, width: "100%", justifyContent: "center" }}
+          >
+            Chat’i aç <span className="arrow">→</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="page" data-screen-label="03 Shop">
-      <header className="page-head">
+      {slides.length > 0 && <ShopHeroSlider slides={slides} />}
+      <header className="page-head shop-head-wrap" id="products">
         <div className="wrap">
           <div
             className="reveal"
@@ -838,15 +1176,15 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
           >
             <div>
               <div className="eyebrow">III — La bottega</div>
-              <h1 style={{ marginTop: 24 }}>
-                The <span className="script">shop.</span>
-              </h1>
+              <h2 className="h1" style={{ marginTop: 24 }}>
+                <span className="script">Mağaza.</span>
+              </h2>
               <p className="lede" style={{ marginTop: 22 }}>
                 Tuzla terasında servis ettiğimiz her şey — Bologna’da kavrulan çekirdek, 1994 patentli edible kup,
                 bambu chasen, Bialetti × L’Affogato moka pot. Eve, ofise, hediyeye.
               </p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+            <div data-row="shop-badges">
               <ShopBadge icon="↗" k="Aynı gün" v="İstanbul içi" />
               <ShopBadge icon="✦" k="Free shipping" v="500₺+ siparişte" />
               <ShopBadge icon="↻" k="14 gün iade" v="Açılmamış ürün" />
@@ -855,99 +1193,46 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
         </div>
       </header>
 
+      {/* ── Mobil yapışkan kontrol çubuğu: kategori pill'leri + filtre + sırala ── */}
+      <div className="shop-mobilebar">
+        <div className="shop-mobilebar-cats" role="tablist" aria-label="Ürün kategorileri">
+          {cats.map((c) => {
+            const count = c.id === "all" ? shopProducts.length : shopProducts.filter((p) => p.cat === c.id).length;
+            return (
+              <button
+                key={c.id}
+                className={`shop-pill ${cat === c.id ? "on" : ""}`}
+                onClick={() => setCat(c.id)}
+              >
+                {c.label}
+                <span className="shop-pill-count">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="shop-mobilebar-actions">
+          <button className="shop-filter-trigger" onClick={() => setFiltersOpen(true)}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M2 4 H14 M4 8 H12 M6 12 H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            Filtrele
+            {activeFilterCount > 0 && <span className="shop-filter-badge">{activeFilterCount}</span>}
+          </button>
+          <label className="shop-sort-inline">
+            <span className="eyebrow">Sırala</span>
+            <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sırala">
+              <option value="featured">Önerilen</option>
+              <option value="price-asc">Fiyat ↑</option>
+              <option value="price-desc">Fiyat ↓</option>
+              <option value="new">Yeni</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
       <section className="section-tight">
         <div className="wrap-wide shop-layout">
-          <aside className="shop-sidebar reveal">
-            <div className="shop-filter-block">
-              <div className="eyebrow" style={{ marginBottom: 14 }}>Kategoriler</div>
-              <div className="shop-cat-list">
-                {cats.map((c) => {
-                  const count = c.id === "all" ? shopProducts.length : shopProducts.filter((p) => p.cat === c.id).length;
-                  return (
-                    <button
-                      key={c.id}
-                      className={`shop-cat ${cat === c.id ? "on" : ""}`}
-                      onClick={() => setCat(c.id)}
-                    >
-                      <span>{c.label}</span>
-                      <span className="count">{count}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="shop-filter-block">
-              <div className="eyebrow" style={{ marginBottom: 14 }}>Fiyat aralığı</div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 13, marginBottom: 16 }}>
-                {priceMin}₺ — {priceMax}₺
-              </div>
-              <div style={{ position: "relative", height: 28 }}>
-                <div
-                  style={{ position: "absolute", top: 12, left: 0, right: 0, height: 2, background: "var(--ink-line)" }}
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 12,
-                    left: `${(priceMin / 900) * 100}%`,
-                    right: `${100 - (priceMax / 900) * 100}%`,
-                    height: 2,
-                    background: "var(--ink)",
-                  }}
-                />
-                <input
-                  type="range"
-                  min="0"
-                  max="900"
-                  step="20"
-                  value={priceMin}
-                  onChange={(e) => setPriceMin(Math.min(parseInt(e.target.value), priceMax - 40))}
-                  className="price-range"
-                  style={{ position: "absolute", top: 0, left: 0, right: 0 }}
-                />
-                <input
-                  type="range"
-                  min="0"
-                  max="900"
-                  step="20"
-                  value={priceMax}
-                  onChange={(e) => setPriceMax(Math.max(parseInt(e.target.value), priceMin + 40))}
-                  className="price-range"
-                  style={{ position: "absolute", top: 0, left: 0, right: 0 }}
-                />
-              </div>
-            </div>
-
-            <div className="shop-filter-block">
-              <div className="eyebrow" style={{ marginBottom: 14 }}>Etiketler</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {["Yeni", "Limited", "En çok satan", "Italia import", "Gift ready"].map((t) => (
-                  <span key={t} className="chip" style={{ cursor: "pointer" }}>
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="shop-filter-block" style={{ borderTop: 0 }}>
-              <div className="shop-helpline">
-                <div className="eyebrow" style={{ marginBottom: 10 }}>Yardım</div>
-                <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 22, lineHeight: 1.2 }}>
-                  Hangi çekirdek?
-                </div>
-                <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 10, lineHeight: 1.55 }}>
-                  Espresso mu, filtre mi karar veremediysen — barista chat’i aç, sana yardımcı olalım.
-                </p>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  style={{ marginTop: 16, width: "100%", justifyContent: "center" }}
-                >
-                  Chat’i aç <span className="arrow">→</span>
-                </button>
-              </div>
-            </div>
-          </aside>
+          <aside className="shop-sidebar reveal">{renderFilters()}</aside>
 
           <div className="shop-main">
             <div className="shop-toolbar reveal">
@@ -976,7 +1261,7 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
               </div>
             </div>
 
-            <div className="shop-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+            <div className="shop-grid-3">
               {list.map((p, i) => (
                 <ProductCard key={p.name} product={p} idx={i} addToCart={addToCart} onOpen={openProduct} />
               ))}
@@ -987,15 +1272,7 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
                 <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 36 }}>
                   Bu filtreyle ürün yok.
                 </div>
-                <button
-                  className="btn btn-ghost"
-                  style={{ marginTop: 24 }}
-                  onClick={() => {
-                    setCat("all");
-                    setPriceMin(0);
-                    setPriceMax(900);
-                  }}
-                >
+                <button className="btn btn-ghost" style={{ marginTop: 24 }} onClick={resetFilters}>
                   Filtreleri temizle
                 </button>
               </div>
@@ -1003,6 +1280,38 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
           </div>
         </div>
       </section>
+
+      {/* ── Mobil filtre alt-sayfası (bottom sheet) ── */}
+      <div
+        className={`shop-sheet-overlay ${filtersOpen ? "open" : ""}`}
+        onClick={() => setFiltersOpen(false)}
+        aria-hidden={!filtersOpen}
+      />
+      <div className={`shop-sheet ${filtersOpen ? "open" : ""}`} role="dialog" aria-modal="true" aria-label="Filtreler">
+        <div className="shop-sheet-grip" aria-hidden="true" />
+        <header className="shop-sheet-head">
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>Filtrele & sırala</div>
+            <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 22, lineHeight: 1 }}>
+              {list.length} ürün
+            </div>
+          </div>
+          <button onClick={() => setFiltersOpen(false)} className="nav-icon-btn" aria-label="Kapat">
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M3 3 L13 13 M13 3 L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </header>
+        <div className="shop-sheet-body">{renderFilters()}</div>
+        <footer className="shop-sheet-foot">
+          <button className="btn btn-ghost" onClick={resetFilters} disabled={activeFilterCount === 0}>
+            Sıfırla
+          </button>
+          <button className="btn btn-primary" style={{ flex: 1, justifyContent: "center" }} onClick={() => setFiltersOpen(false)}>
+            {list.length} ürünü göster
+          </button>
+        </footer>
+      </div>
 
       <section className="section" style={{ background: "var(--bg-warm)" }}>
         <div
@@ -1018,10 +1327,10 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
                   height: "100%",
                   padding: 30,
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
                   gap: 18,
                   placeItems: "stretch",
                 }}
+                data-row="featured-inner"
               >
                 <div style={{ display: "grid", placeItems: "center" }}>
                   <CoffeeBag label="Sirena" sub="ESPRESSO BLEND · 250G" tone="dark" />
@@ -1040,7 +1349,7 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
           </div>
           <div className="reveal r1">
             <div className="eyebrow">Affogato Kit · For Two</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Evde <span className="script">tableside</span> servis.
             </h2>
             <p className="lede" style={{ marginTop: 22 }}>
@@ -1081,7 +1390,7 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
           data-row="trust-row"
         >
           {[
-            { k: "Italia import", v: "Bologna kavurma · haftalık taze" },
+            { k: "Bologna import", v: "Bologna kavurma · haftalık taze" },
             { k: "Aynı gün", v: "İstanbul içi · 14:00'a kadar" },
             { k: "Avrupa kargo", v: "5–7 iş günü · DHL Express" },
             { k: "14 gün iade", v: "Açılmamış ürünlerde kolay iade" },
@@ -1115,7 +1424,7 @@ export function PageStory(_props: PageProps) {
 
   const values = [
     { n: "01", t: "Tek bir bar, tek bir ritüel", d: "Menü kısa kalır. Sezonluk değişir ama liste hiçbir zaman altı affogato’dan fazla olmaz." },
-    { n: "02", t: "İtalyan reçete, yerel süt", d: "Bologna’dan haftalık kavurma. Trakya küçük mandıradan günlük süt. Her ürün izlenebilir." },
+    { n: "02", t: "İtalyan reçete, yerel süt", d: "Haftalık taze kavurma. Trakya küçük mandıradan günlük süt. Her ürün izlenebilir." },
     { n: "03", t: "Laptop yok, ses az", d: "Akşam 18:00’dan sonra çalışma yok. Müzik 65dB üzerine çıkmaz. Bar, sohbet için." },
     { n: "04", t: "Zero waste", d: "Yenilebilir kup, kompost gelato bardağı, yeniden doldurulan teneke. 2025'ten beri tek kullanımlık plastik yok." },
     { n: "05", t: "Yavaş büyüme", d: "Franchise dahil dikkatli seçim. İlk yıl 8 şube hedefi; ama Tuzla ana mekan kalacak." },
@@ -1160,7 +1469,7 @@ export function PageStory(_props: PageProps) {
             }}
             data-row="story-stats"
           >
-            <Stat n="1987" l="Anno fondazione" d="Bologna · Via Galliera 21" />
+            <Stat n="1987" l="Anno fondazione" d="Bologna · 1987" />
             <Stat n="1994" l="Brevetto edible cup" d="Mancuso ailesi patenti" />
             <Stat n="2026" l="İstanbul açılışı" d="Tuzla · ilk yurt dışı şube" />
             <Stat n="III" l="Generazione" d="Eda Mancuso · 3. kuşak" />
@@ -1183,7 +1492,7 @@ export function PageStory(_props: PageProps) {
           </div>
           <div className="reveal r1">
             <div className="eyebrow">Founder · Roaster · Üçüncü kuşak</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Eda <span className="script">Mancuso.</span>
             </h2>
             <p className="lede" style={{ marginTop: 22 }}>{STORY.founder.bio}</p>
@@ -1212,7 +1521,7 @@ export function PageStory(_props: PageProps) {
         <div className="wrap-wide">
           <div className="reveal" style={{ marginBottom: 70 }}>
             <div className="eyebrow on-dark">Linea del tempo</div>
-            <h2 className="h-1" style={{ marginTop: 16, color: "#FFF" }}>
+            <h2 className="h1" style={{ marginTop: 16, color: "#FFF" }}>
               How we got <span className="script">here.</span>
             </h2>
           </div>
@@ -1224,7 +1533,7 @@ export function PageStory(_props: PageProps) {
                   <span></span>
                 </div>
                 <div className="timeline-content">
-                  <h3 className="h-3" style={{ color: "#FFF" }}>{ev.t}</h3>
+                  <h3 className="h3" style={{ color: "#FFF" }}>{ev.t}</h3>
                   <p style={{ marginTop: 10, color: "rgba(255, 255, 255, 0.7)", lineHeight: 1.6, maxWidth: 540 }}>{ev.d}</p>
                 </div>
               </div>
@@ -1240,7 +1549,7 @@ export function PageStory(_props: PageProps) {
             eyebrow="Cosa contiamo"
             title={
               <>
-                Five things we <span className="script">protect.</span>
+                Koruduğumuz <span className="script">beş ilke.</span>
               </>
             }
           />
@@ -1252,7 +1561,7 @@ export function PageStory(_props: PageProps) {
                 style={{ transitionDelay: `${(i % 3) * 60}ms` }}
               >
                 <div className="value-num">{v.n}</div>
-                <h3 className="h-3">{v.t}</h3>
+                <h3 className="h3">{v.t}</h3>
                 <p>{v.d}</p>
               </div>
             ))}
@@ -1380,7 +1689,7 @@ export function PageStory(_props: PageProps) {
       <section className="section" style={{ background: "var(--bg-cream)" }}>
         <div className="wrap-narrow" style={{ textAlign: "center" }}>
           <div className="eyebrow reveal" style={{ marginBottom: 24 }}>Per chiudere</div>
-          <h2 className="h-1 reveal r1">
+          <h2 className="h1 reveal r1">
             “Drink it. <span className="script">Eat the cup.</span>
             <br />
             That’s the whole brand.”
@@ -1463,8 +1772,8 @@ export function PageVisit(_props: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow">{LOCATION.short}</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
-              Aydınlı, <span className="script">Tuzla.</span>
+            <h2 className="h1" style={{ marginTop: 16 }}>
+              Postane, <span className="script">Tuzla.</span>
             </h2>
             <div style={{ marginTop: 22, fontFamily: "var(--serif-display)", fontSize: 18, lineHeight: 1.6 }}>
               {LOCATION.address.map((l, i) => (
@@ -1472,7 +1781,7 @@ export function PageVisit(_props: PageProps) {
               ))}
             </div>
 
-            <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30 }}>
+            <div data-row="visit-address">
               <div>
                 <div className="eyebrow" style={{ marginBottom: 10 }}>Telefon</div>
                 <div style={{ fontFamily: "var(--mono)", fontSize: 15 }}>{LOCATION.phone}</div>
@@ -1497,7 +1806,7 @@ export function PageVisit(_props: PageProps) {
               <a href="#" className="chip" onClick={(e) => e.preventDefault()}>E-5 / TEM Tuzla çıkışı</a>
             </div>
 
-            <div style={{ display: "flex", gap: 10, marginTop: 30 }}>
+            <div className="btn-group-wrap" style={{ marginTop: 30 }}>
               <button className="btn btn-primary">
                 Apple Maps <span className="arrow">→</span>
               </button>
@@ -1529,7 +1838,7 @@ export function PageVisit(_props: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow">Saatler · AVM açık saatleri</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Her gün, <span className="script">10–23.</span>
             </h2>
             <div className="hours-table">
@@ -1640,7 +1949,7 @@ export function PageVisit(_props: PageProps) {
             eyebrow="Il locale · open-air teras"
             title={
               <>
-                The <span className="script">room.</span>
+                <span className="script">Mekan.</span>
               </>
             }
             action={
@@ -1703,7 +2012,7 @@ export function PageVisit(_props: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow on-dark">Eventi privati</div>
-            <h2 className="h-1" style={{ marginTop: 16, color: "#FFF" }}>
+            <h2 className="h1" style={{ marginTop: 16, color: "#FFF" }}>
               Özel <span className="script">kiralama.</span>
             </h2>
             <p className="lede" style={{ marginTop: 24, color: "rgba(255, 255, 255, 0.78)" }}>
@@ -1714,7 +2023,7 @@ export function PageVisit(_props: PageProps) {
               Detaylı bilgi <span className="arrow">→</span>
             </button>
           </div>
-          <div className="reveal r1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="reveal r1" data-row="private-stats">
             {[
               ["24", "Koltuk"],
               ["90dk", "Demo süresi"],
@@ -1760,7 +2069,7 @@ export function PageReels(_props: PageProps) {
     <div className="page" data-screen-label="06 Reels">
       <header className="page-head">
         <div className="wrap">
-          <div className="reveal" style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "end", gap: 30 }}>
+          <div className="reveal" data-row="reels-header">
             <div>
               <div className="eyebrow">VI — Il film & social</div>
               <h1 style={{ marginTop: 24 }}>
@@ -1857,7 +2166,7 @@ export function PageReels(_props: PageProps) {
         <div className="wrap-wide">
           <div className="reveal" style={{ marginBottom: 30 }}>
             <div className="eyebrow">Featured · Ep. 04 · Mayıs 2026</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Bu ayın <span className="script">kısa filmi.</span>
             </h2>
           </div>
@@ -1894,7 +2203,7 @@ export function PageReels(_props: PageProps) {
             </div>
             <div className="featured-film-meta">
               <div className="eyebrow">Director · Kerem Aksoy</div>
-              <h3 className="h-2" style={{ marginTop: 16 }}>How an affogato is born.</h3>
+              <h3 className="h2" style={{ marginTop: 16 }}>How an affogato is born.</h3>
               <p className="lede" style={{ marginTop: 20 }}>
                 Sabah 6’da gelato bazını çevirmeye başlıyoruz, 7:30’da Sirena’yı kavurmaya. 10’da ilk müşteri.
                 Bu 4 dakikalık kısa film bir günü 27 saniyelik ekstraksiyona indirgemenin hikayesini anlatıyor.
@@ -1904,7 +2213,7 @@ export function PageReels(_props: PageProps) {
                   <svg width="10" height="10" viewBox="0 0 16 16" style={{ fill: "currentColor" }}>
                     <path d="M3 2 L13 8 L3 14 Z" />
                   </svg>
-                  Play · 4:12
+                  Oynat · 4:12
                 </button>
                 <button className="btn btn-ghost">Daha fazla bölüm</button>
               </div>
@@ -1915,14 +2224,11 @@ export function PageReels(_props: PageProps) {
 
       <section className="section-tight">
         <div className="wrap-wide">
-          <div
-            className="reveal"
-            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 30, alignItems: "end", marginBottom: 40 }}
-          >
+          <div className="reveal" data-row="reels-header" style={{ marginBottom: 40 }}>
             <div>
               <div className="eyebrow">Reels · son yayınlananlar</div>
-              <h2 className="h-1" style={{ marginTop: 16 }}>
-                Latest <span className="script">on the feed.</span>
+              <h2 className="h1" style={{ marginTop: 16 }}>
+                Akışın <span className="script">en yenisi.</span>
               </h2>
             </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -1930,7 +2236,7 @@ export function PageReels(_props: PageProps) {
                 ["all", "Tümü"],
                 ["bar", "Bar"],
                 ["gelato", "Gelato"],
-                ["origin", "Origin"],
+                ["origin", "Köken"],
               ].map(([id, label]) => (
                 <button
                   key={id}
@@ -2106,7 +2412,7 @@ export function PageFranchise(_props: PageProps) {
 
   const advantages: Array<[string, string]> = [
     ["Signature edible cup", "1994 patentli waffle kup teknolojisi. Sadece L’Affogato."],
-    ["İtalyan menü, yerel süt", "Reçete Bologna’dan, süt ve gelato yerel."],
+    ["İtalyan menü, yerel süt", "Reçete İtalya’dan, süt ve gelato yerel."],
     ["Düşük metrekare", "12–80 koltuk, 24m²'den başlar."],
     ["Marka çekim gücü", "Sosyal medyada 100K+ etkileşim, Monocle basın."],
   ];
@@ -2178,13 +2484,11 @@ export function PageFranchise(_props: PageProps) {
               </div>
               <div
                 className="reveal r4"
+                data-row="franchise-hero-stats"
                 style={{
                   marginTop: 60,
                   paddingTop: 30,
                   borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: 30,
                 }}
               >
                 <div>
@@ -2202,7 +2506,7 @@ export function PageFranchise(_props: PageProps) {
               </div>
             </div>
             <div className="reveal r1" style={{ display: "grid", placeItems: "center" }}>
-              <CupEmblem size={420} bg="#F5E6D3" />
+              <CupEmblem className="cup-emblem-responsive" bg="#F5E6D3" />
             </div>
           </div>
         </div>
@@ -2242,14 +2546,14 @@ export function PageFranchise(_props: PageProps) {
           </div>
           <div className="reveal r1">
             <div className="eyebrow">Perché L’Affogato</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
+            <h2 className="h1" style={{ marginTop: 16 }}>
               Premium hissiyat, <span className="script">ulaşılabilir</span> fiyat.
             </h2>
             <p className="lede" style={{ marginTop: 22 }}>
               Bir affogato 130₺. Bir matcha latte 120₺. Premium İtalyan kahve barı tecrübesini fast-casual fiyatla sunan
               tek franchise konsepti. Misafir başına ortalama harcama €8–12.
             </p>
-            <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
+            <div data-row="why-advantages">
               {advantages.map(([t, d]) => (
                 <div key={t} style={{ paddingTop: 22, borderTop: "1px solid var(--ink-line)" }}>
                   <div className="eyebrow" style={{ marginBottom: 10 }}>Vantaggio</div>
@@ -2269,7 +2573,7 @@ export function PageFranchise(_props: PageProps) {
             eyebrow="Pacchetti · three formats"
             title={
               <>
-                Choose your <span className="script">format.</span>
+                <span className="script">Formatınızı</span> seçin.
               </>
             }
           />
@@ -2352,7 +2656,7 @@ export function PageFranchise(_props: PageProps) {
               <div key={p.n} className="reveal process-step" style={{ transitionDelay: `${i * 60}ms` }}>
                 <div className="process-step-num">{p.n}</div>
                 {i < FRANCHISE.process.length - 1 && <div className="process-step-line" />}
-                <h3 className="h-3" style={{ marginTop: 24 }}>{p.t}</h3>
+                <h3 className="h3" style={{ marginTop: 24 }}>{p.t}</h3>
                 <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.6, marginTop: 8 }}>{p.d}</p>
               </div>
             ))}
@@ -2368,8 +2672,8 @@ export function PageFranchise(_props: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow on-dark">Modulo di candidatura</div>
-            <h2 className="h-1" style={{ marginTop: 16, color: "#FFF" }}>
-              Apply for <span className="script">franchise.</span>
+            <h2 className="h1" style={{ marginTop: 16, color: "#FFF" }}>
+              <span className="script">Franchise</span> başvurusu.
             </h2>
             <p className="lede" style={{ marginTop: 22, color: "rgba(255, 255, 255, 0.78)" }}>
               Bologna ekibi her başvuruyu 14 gün içinde değerlendirir. Onay alanlarla video görüşme,
@@ -2390,7 +2694,7 @@ export function PageFranchise(_props: PageProps) {
               {[
                 ["İletişim", "franchise@laffogato.it"],
                 ["Türkiye", "+90 216 459 30 60"],
-                ["Bologna", "+39 051 233 887"],
+                ["Italia", "+39 051 233 887"],
                 ["Yanıt süresi", "14 iş günü"],
               ].map(([k, v]) => (
                 <div key={k}>

@@ -44,7 +44,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const maxQty = Math.max(1, ...top.map((t) => t.qty));
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Operasyon · İçgörüler"
         title="Raporlar"

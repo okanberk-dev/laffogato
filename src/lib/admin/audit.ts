@@ -1,20 +1,20 @@
 import "server-only";
 
+import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
+import { nextSeq } from "@/lib/supabase/counters";
+
 import { getAdminSession } from "./auth";
 
 /**
- * Append-only event log of admin mutations. Read-only from the UI;
- * only the server-side helper logAudit() writes to it.
- *
- * In-memory and bounded — the oldest entries fall off once we hit
- * 5000 rows. Swap the body for an `audit_log` table when Supabase
- * lands; the call sites stay identical.
+ * Append-only event log of admin mutations. Persisted to the Postgres
+ * `audit_logs` table. Old rows can later be pruned by a scheduled job.
  */
 
 export type AuditEntity =
   | "product"
   | "menu_item"
   | "category"
+  | "shop_hero_slide"
   | "order"
   | "order_item"
   | "promo"
@@ -49,10 +49,6 @@ export interface AdminAuditLog {
   createdAt: string;
 }
 
-const entries: AdminAuditLog[] = [];
-let counter = 0;
-const CAP = 5000;
-
 export interface LogAuditInput {
   action: AuditAction;
   entity: AuditEntity;
@@ -68,9 +64,9 @@ export async function logAudit(input: LogAuditInput): Promise<void> {
     const session = await getAdminSession();
     actor = session?.email ?? "anonymous";
   }
-  counter += 1;
+  const seq = await nextSeq("aud");
   const row: AdminAuditLog = {
-    id: `aud-${String(counter).padStart(7, "0")}`,
+    id: `aud-${String(seq).padStart(7, "0")}`,
     actor,
     action: input.action,
     entity: input.entity,
@@ -78,8 +74,9 @@ export async function logAudit(input: LogAuditInput): Promise<void> {
     payload: input.payload ?? {},
     createdAt: new Date().toISOString(),
   };
-  entries.unshift(row);
-  if (entries.length > CAP) entries.length = CAP;
+  const sb = getSupabaseAdmin();
+  const { error } = await sb.from(TABLES.auditLogs).insert(row);
+  if (error) throw new Error(`logAudit: ${error.message}`);
 }
 
 export interface AuditFilter {
@@ -92,12 +89,17 @@ export interface AuditFilter {
 export async function listAuditLogs(
   filter: AuditFilter = {},
 ): Promise<AdminAuditLog[]> {
-  let out = entries;
+  const sb = getSupabaseAdmin();
+  let q = sb.from(TABLES.auditLogs).select("*");
   if (filter.actor) {
-    const needle = filter.actor.toLowerCase();
-    out = out.filter((e) => e.actor.toLowerCase().includes(needle));
+    const escaped = filter.actor.toLowerCase().replace(/[%_]/g, (c) => `\\${c}`);
+    q = q.ilike("actor", `%${escaped}%`);
   }
-  if (filter.entity) out = out.filter((e) => e.entity === filter.entity);
-  if (filter.action) out = out.filter((e) => e.action === filter.action);
-  return out.slice(0, filter.limit ?? 500);
+  if (filter.entity) q = q.eq("entity", filter.entity);
+  if (filter.action) q = q.eq("action", filter.action);
+  const { data, error } = await q
+    .order("createdAt", { ascending: false })
+    .limit(filter.limit ?? 500);
+  if (error) throw new Error(`listAuditLogs: ${error.message}`);
+  return (data ?? []) as AdminAuditLog[];
 }

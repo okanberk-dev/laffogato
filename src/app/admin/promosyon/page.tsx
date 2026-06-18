@@ -24,7 +24,7 @@ export default async function PromoCodesPage() {
   const promos = await listPromos();
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Pazarlama"
         title="Promosyon Kodları"
@@ -32,7 +32,7 @@ export default async function PromoCodesPage() {
         action={
           <Link
             href="/admin/promosyon/yeni"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800"
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 sm:w-auto"
           >
             + Yeni kod
           </Link>
@@ -45,7 +45,84 @@ export default async function PromoCodesPage() {
             Henüz promosyon kodu yok. "+ Yeni kod" ile ekle.
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile cards */}
+          <ul className="flex flex-col gap-3 md:hidden">
+            {promos.map((p) => {
+              const expired =
+                p.expiresAt && new Date(p.expiresAt).getTime() < Date.now();
+              const exhausted =
+                p.usageLimit > 0 && p.usageCount >= p.usageLimit;
+              return (
+                <li key={p.id} className="rounded-lg border border-neutral-200 p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div
+                        className="font-medium text-neutral-900"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {p.code}
+                      </div>
+                      <div
+                        className="mt-1 text-sm text-neutral-700"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {discountLabel(p)}
+                        {p.minSubtotalMinor > 0 && (
+                          <span className="text-neutral-500">
+                            {" "}
+                            · min {formatTRY(p.minSubtotalMinor)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {!p.isActive ? (
+                      <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-neutral-500">
+                        Pasif
+                      </span>
+                    ) : expired ? (
+                      <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-red-700">
+                        Süresi dolmuş
+                      </span>
+                    ) : exhausted ? (
+                      <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-amber-700">
+                        Limit doldu
+                      </span>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-green-700">
+                        Aktif
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className="mt-2 text-[10px] text-neutral-500"
+                    style={{ fontFamily: "var(--mono), monospace" }}
+                  >
+                    {p.usageCount}
+                    {p.usageLimit > 0 ? `/${p.usageLimit}` : ""} kullanım ·{" "}
+                    {p.expiresAt ? formatDateTime(p.expiresAt) : "süresiz"}
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <Link
+                      href={`/admin/promosyon/${p.id}/duzenle`}
+                      className="inline-flex min-h-[40px] flex-1 items-center justify-center rounded-full border border-neutral-200 px-3 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+                    >
+                      Düzenle
+                    </Link>
+                    <form action={deletePromoAction}>
+                      <input type="hidden" name="id" value={p.id} />
+                      <DangerButton type="submit" className="text-xs">
+                        Sil
+                      </DangerButton>
+                    </form>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr
@@ -148,6 +225,7 @@ export default async function PromoCodesPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Card>
     </main>

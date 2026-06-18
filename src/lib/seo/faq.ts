@@ -26,7 +26,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Affogato Classico nedir, yenilebilir kup ne demek?",
-    a: "Affogato Classico, tek scoop fior di latte gelato üzerine çift shot Sirena espresso dökülerek hazırlanan İtalyan tatlısıdır. 1987'den beri Bologna'daki orijinal tariftir. Biz bunu yenilebilir waffle kup içinde servis ederiz: bittiğinde kupayı da yiyebilirsiniz, kaşığa gerek kalmaz. Mancuso ailesinin 1994'te patentlediği glaze kaplama kupayı en az 20 dakika çıtır tutar.",
+    a: "Affogato Classico, tek scoop fior di latte gelato üzerine çift shot Sirena espresso dökülerek hazırlanan İtalyan tatlısıdır. 1987'den beri İtalya'daki orijinal tariftir. Biz bunu yenilebilir waffle kup içinde servis ederiz: bittiğinde kupayı da yiyebilirsiniz, kaşığa gerek kalmaz. Mancuso ailesinin 1994'te patentlediği glaze kaplama kupayı en az 20 dakika çıtır tutar.",
   },
   {
     q: "Rezervasyon yapabilir miyim?",

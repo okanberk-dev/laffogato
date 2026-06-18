@@ -20,7 +20,7 @@ export default async function NewMenuItemPage({ searchParams }: PageProps) {
       : "affogato";
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Bar · Il menù"
         title="Yeni menü kalemi"

@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import {
-  DM_Sans,
   DM_Serif_Display,
+  Fraunces,
+  Inter,
   JetBrains_Mono,
   Marcellus,
   Pinyon_Script,
   Playfair_Display,
 } from "next/font/google";
 
-import { SITE } from "@/lib/seo/site";
+import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -16,6 +17,14 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
   style: ["normal", "italic"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-fraunces",
+  axes: ["SOFT", "WONK", "opsz"],
+  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -27,10 +36,10 @@ const dmSerif = DM_Serif_Display({
   display: "swap",
 });
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-dm-sans",
-  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
+  axes: ["opsz"],
   display: "swap",
 });
 
@@ -112,18 +121,27 @@ export const metadata: Metadata = {
     description: SITE.shortDescription,
     // twitter:image is auto-discovered from src/app/twitter-image.tsx
   },
-  robots: {
-    index: true,
-    follow: true,
-    nocache: false,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-      "max-video-preview": -1,
-    },
-  },
+  robots: IS_PRODUCTION_DEPLOY
+    ? {
+        index: true,
+        follow: true,
+        nocache: false,
+        googleBot: {
+          index: true,
+          follow: true,
+          "max-image-preview": "large",
+          "max-snippet": -1,
+          "max-video-preview": -1,
+        },
+      }
+    : {
+        // Preview / development deployment — keep search engines out so they
+        // don't index transient URLs.
+        index: false,
+        follow: false,
+        nocache: true,
+        googleBot: { index: false, follow: false },
+      },
   verification: {
     ...(SITE.verification.google ? { google: SITE.verification.google } : {}),
     ...(SITE.verification.yandex ? { yandex: SITE.verification.yandex } : {}),
@@ -177,8 +195,9 @@ export const metadata: Metadata = {
 
 const fontVariables = [
   playfair.variable,
+  fraunces.variable,
   dmSerif.variable,
-  dmSans.variable,
+  inter.variable,
   pinyon.variable,
   marcellus.variable,
   jetbrains.variable,

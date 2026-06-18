@@ -10,7 +10,7 @@ Bu dosya, Claude Code'un bu projede tutarlı çalışması için gerekli bağlam
 
 - **Stack:** Next.js 16 (App Router + Turbopack) · React 19 · Tailwind v4 · TypeScript · Zod
 - **Deploy hedefi:** Vercel (Edge proxy + Node runtime API'ler)
-- **Veri:** Şu an **bellek-içi store** (`src/lib/admin/store.ts`). Supabase entegrasyonu hazır ama bağlı değil — free-tier limit yüzünden ertelendi
+- **Veri:** **Supabase (Postgres)** — `src/lib/admin/store.ts` + `src/lib/customer/store.ts` + `src/lib/admin/audit.ts` service-role client (`src/lib/supabase/server.ts`) üzerinden bağlanır. Tablo boşsa ilk istekte idempotent otomatik seed
 - **Auth:** Admin için **env-credentialed signed cookie** (`ADMIN_EMAIL` + `ADMIN_PASSWORD` + HMAC SHA256). Müşteri auth henüz yok
 - **Ödeme:** Sağlayıcı bağımsız soyutlama (`src/lib/payment/`). Şu an `MockPaymentProvider`; sanal POS sağlayıcısı henüz seçilmedi
 - **Dil:** Arayüz **Türkçe**. Kod, dosya adı, identifier, commit mesajı **İngilizce**
@@ -90,19 +90,21 @@ src/
   lib/
     admin/
       auth.ts                → signInAdmin, signOutAdmin, getAdminSession, signed cookie
-      store.ts               → In-memory mutable store (products, categories, menu, orders, settings)
+      store.ts               → Supabase store (products, categories, menu, orders, promos, settings, hero)
+      audit.ts               → Append-only audit log (audit_logs tablosu)
       product-schema.ts      → Zod schema for product form (coerce, validate, transform)
+    customer/store.ts        → Müşteri hesapları (customers tablosu, bcrypt, adres/wishlist)
     payment/                 → PaymentProvider interface + MockPaymentProvider
-    supabase/                → Hazır client/server factories + proxy (dormant, ileride swap)
+    supabase/                → server.ts (lazy service-role client + TABLES) + counters.ts (next_seq RPC)
     utils/cn.ts, format.ts   → Genel yardımcılar
-  types/database.ts          → Supabase'den auto-gen edilecek tip placeholder
+  types/database.ts          → Supabase'den auto-gen tipler (generate_typescript_types)
 .claude/
   settings.json              → Permissions (Bash + GitHub MCP + Supabase MCP)
   skills/                    → Proje skill'leri (add-admin-resource, server-action-pattern, ...)
 .github/workflows/ci.yml     → Typecheck + build her PR'da
 supabase/
-  migrations/                → SQL migration dosyaları (henüz uygulanmadı)
-  seed/seed.sql              → Test verisi (henüz uygulanmadı)
+  migrations/                → SQL migration dosyaları (20260601120000_initial_schema uygulandı)
+  seed/seed.sql              → Test verisi (app otomatik seed ediyor; bu dosya opsiyonel)
 docs/
   PROMPT.md                  → Ürün spec'i + MVP scope
   NEXT_SESSION.md            → Yeni session'da admin tam kontrol için brief
@@ -129,17 +131,17 @@ CI her PR'da `npm run typecheck` + `npm run build` koşar.
 | `ADMIN_SESSION_SECRET` | Cookie HMAC anahtarı (≥32 karakter rastgele) | Zorunlu |
 | `PAYMENT_PROVIDER` | `mock` (varsayılan) | Zorunlu |
 | `PAYMENT_WEBHOOK_SECRET` | Webhook HMAC anahtarı | Zorunlu |
-| `NEXT_PUBLIC_SUPABASE_URL` / `..._ANON_KEY` | Supabase | Şimdilik placeholder |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-side admin | Şimdilik placeholder |
+| `NEXT_PUBLIC_SUPABASE_URL` (veya `SUPABASE_URL`) | Supabase proje URL'i | Zorunlu (canlı) |
+| `SUPABASE_SERVICE_ROLE_KEY` (veya `SUPABASE_SECRET_KEY`) | Server-side veri erişimi (RLS bypass) | Zorunlu (canlı) |
 | `NEXT_PUBLIC_SITE_URL` | metadataBase | Local: `http://localhost:3000` |
 
 **NODE_ENV asla manuel set edilmez.** Next.js kendi yönetir. CI bunu env'de tutmaz.
 
 ## Data Mimarisi
 
-### In-memory store (şu an)
+### Supabase (Postgres) — aktif
 
-`src/lib/admin/store.ts` — modül-scope mutable array'ler. Süreç restart'ında reset olur, Vercel serverless'te invocation arası kalmaz. Geliştirme/demo için yeterli. **API'si Supabase-swap-ready:** tüm fonksiyonlar async döner, parametre şekilleri DB'ye geçişe uygun.
+`src/lib/admin/store.ts` + `src/lib/customer/store.ts` + `src/lib/admin/audit.ts` + payment webhook — hepsi `src/lib/supabase/server.ts`'deki **lazy service-role client**'ı kullanır (RLS bypass, "server-only"). Eski Mongo doküman modeli **1:1** korundu: **camelCase quoted kolonlar** + iç-içe alanlar (`variants`, `items`, `refunds`, `addresses`, `weeklyHours`, …) **JSONB** + tarihler **ISO-8601 metin** (string sıralaması = kronolojik). Sıralı ID'ler (`prd-0001`, `orderNo` 10001+) `next_seq(counter_key)` RPC'siyle **atomik**. Tablo boşsa ilk istekte **idempotent seed** (upsert/ignoreDuplicates → yarış-güvenli). Build DB'ye bağlanmaz (lazy client + tüm veri sayfaları dynamic).
 
 Entity'ler:
 - **AdminProduct** (slug, sku, compareAt, cost, images, stock, lowStockThreshold, weight, SEO, variants, ...)
@@ -153,14 +155,13 @@ Public read fonksiyonları:
 - `listShopProducts()` — design'ın `Product` şeklinde aktif ürünler, compareAt dahil
 - `listMenuForCustomer()` — design'ın MENU şeklinde aktif menü kalemleri, kategori meta'sı SEED_MENU'den
 
-### Supabase (henüz bağlı değil)
+### Supabase (bağlı)
 
-`supabase/migrations/20260525000000_initial_schema.sql` hazır. Bağlama adımları:
-1. Yeni proje oluştur (free tier limit doluysa bir mevcut projeyi pause/sil)
-2. `mcp__supabase__apply_migration` ile uygula
-3. `seed/seed.sql`'i çalıştır
-4. Store fonksiyonlarının gövdelerini Supabase çağrılarıyla swap et — UI değişmez
-5. Auth'u Supabase Auth'a geçir (`src/lib/supabase/proxy.ts` dormant)
+`supabase/migrations/20260601120000_initial_schema.sql` **uygulandı** (12 tablo + `next_seq` RPC, her tabloda RLS açık/deny-all → yalnız service-role erişir). Tablolar: products, categories, menu_items, orders, stock_moves, promos, settings, audit_logs, customers, shop_hero_slides, counters, payment_transactions.
+
+Kalan/ileri adımlar:
+- Auth'u Supabase Auth'a geçir (şu an admin env-cookie + müşteri bcrypt; ikisi de çalışıyor)
+- Yeni tablo/kolon eklerken: yeni migration + RLS policy + `generate_typescript_types` ile `src/types/database.ts` güncelle
 
 ## Güvenlik Kuralları
 
@@ -194,7 +195,7 @@ Public read fonksiyonları:
 
 - Henüz **Vercel'e deploy edilmedi** — env vars + URL kararı kullanıcıdan
 - Henüz **sanal POS sağlayıcısı seçilmedi** — gerçek API key'leriyle entegrasyon yapma
-- Henüz **Supabase bağlı değil** — store fonksiyonlarını DB'ye geçirme isteğini kullanıcıdan onay almadan başlatma
+- **Supabase bağlı (Postgres)** — admin auth hâlâ env-cookie, müşteri auth bcrypt; **auth'u Supabase Auth'a geçirme** isteğini kullanıcıdan onay almadan başlatma
 - **Mail/SMS bildirimleri** MVP dışı (sonra Resend/Twilio)
 - **Coupon/indirim kodu** MVP dışı (ama compareAt zaten var)
 - **Multi-language** MVP dışı (sadece TR)

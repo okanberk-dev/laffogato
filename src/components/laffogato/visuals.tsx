@@ -142,15 +142,22 @@ export function CupEmblem({
   color = "#14100B",
   bg = "#F5E6D3",
   ringColor,
+  className,
 }: {
   size?: number;
   color?: string;
   bg?: string;
   ringColor?: string;
+  className?: string;
 }) {
   const rc = ringColor || color;
   return (
-    <svg viewBox="0 0 240 240" width={size} height={size}>
+    <svg
+      viewBox="0 0 240 240"
+      width={className ? undefined : size}
+      height={className ? undefined : size}
+      className={className}
+    >
       <defs>
         <path id="ce-top" d="M 28 120 A 92 92 0 0 1 212 120" fill="none" />
         <path id="ce-bot" d="M 28 120 A 92 92 0 0 0 212 120" fill="none" />
@@ -165,7 +172,7 @@ export function CupEmblem({
       </text>
       <text fontFamily="'JetBrains Mono', monospace" fontSize="9" letterSpacing="5" fill={color} opacity="0.7">
         <textPath href="#ce-bot" startOffset="50%" textAnchor="middle">
-          BOLOGNA · MCMLXXXVII · ISTANBUL · MMXXVI
+          L'AFFOGATO · MCMLXXXVII · ISTANBUL · MMXXVI
         </textPath>
       </text>
       <text
@@ -1000,11 +1007,14 @@ export function ProductSurface({
   tone = "cream",
   label,
   sub,
+  images,
 }: {
   cat?: string;
   tone?: string;
   label?: string;
   sub?: string;
+  /** Admin-uploaded image URLs; when present the first is shown instead of SVG. */
+  images?: string[];
 }) {
   const surface =
     cat === "beans"
@@ -1018,6 +1028,19 @@ export function ProductSurface({
             : cat === "pantry"
               ? "pistachio"
               : "warm";
+
+  const cover = images?.find((u) => typeof u === "string" && u.length > 0);
+  if (cover) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={cover}
+        alt={label ?? "Ürün görseli"}
+        loading="lazy"
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+      />
+    );
+  }
 
   return (
     <PhotoSurface hue={surface}>

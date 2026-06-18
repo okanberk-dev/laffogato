@@ -41,13 +41,13 @@ export function SettingsForm({ settings }: { settings: AdminSettings }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
-      <nav className="flex flex-row flex-wrap gap-1 lg:flex-col">
+      <nav className="-mx-1 flex flex-row gap-1 overflow-x-auto px-1 [scrollbar-width:none] lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
-            className={`rounded-md px-3 py-2 text-left text-sm transition-colors ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm transition-colors lg:shrink ${
               tab === t.id
                 ? "bg-neutral-900 text-white"
                 : "border border-neutral-200 text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
@@ -178,29 +178,31 @@ function HoursTab({ settings }: { settings: AdminSettings }) {
             return (
               <div
                 key={day}
-                className="grid grid-cols-[100px_auto_auto_1fr] items-center gap-3 border-b border-neutral-100 pb-3 last:border-b-0"
+                className="grid gap-2 border-b border-neutral-100 pb-3 last:border-b-0 sm:grid-cols-[90px_1fr_1fr_auto] sm:items-center sm:gap-3"
               >
-                <span className="text-sm text-neutral-700">
+                <span className="text-sm font-medium text-neutral-700">
                   {DAY_LABELS[day]}
                 </span>
-                <input
-                  type="time"
-                  name={`${day}-open`}
-                  defaultValue={hour.open}
-                  className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1.5 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
-                />
-                <input
-                  type="time"
-                  name={`${day}-close`}
-                  defaultValue={hour.close}
-                  className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1.5 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
-                />
-                <label className="text-xs text-neutral-600">
+                <div className="grid grid-cols-2 gap-2 sm:contents">
+                  <input
+                    type="time"
+                    name={`${day}-open`}
+                    defaultValue={hour.open}
+                    className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-2.5 text-base focus:border-neutral-900 focus:bg-white focus:outline-none sm:py-1.5 sm:text-sm"
+                  />
+                  <input
+                    type="time"
+                    name={`${day}-close`}
+                    defaultValue={hour.close}
+                    className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-2.5 text-base focus:border-neutral-900 focus:bg-white focus:outline-none sm:py-1.5 sm:text-sm"
+                  />
+                </div>
+                <label className="flex min-h-[40px] items-center gap-2 text-xs text-neutral-600">
                   <input
                     type="checkbox"
                     name={`${day}-closed`}
                     defaultChecked={hour.closed}
-                    className="mr-2 h-4 w-4 rounded border-neutral-300"
+                    className="h-5 w-5 rounded border-neutral-300"
                   />
                   Kapalı
                 </label>

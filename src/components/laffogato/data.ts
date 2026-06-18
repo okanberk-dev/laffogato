@@ -1,7 +1,7 @@
 // L'Affogato — content data
 
 export const BRAND = {
-  heritage: "Bologna, 1987",
+  heritage: "Italia, 1987",
   imported: "Italia → İstanbul, 2026",
   tag: "Drink it. Eat the cup.",
   italian: "Caffè · Gelato · Dolci",
@@ -31,7 +31,7 @@ export const MENU: Record<string, MenuCategory> = {
     italian: "La firma della casa — 1987",
     note: "Tüm affogato'larımız yenilebilir waffle kupada servis edilir. Bittiğinde kaşığa gerek yok.",
     items: [
-      { name: "Affogato Classico", desc: "Tek scoop fior di latte gelato, çift shot Sirena espresso, yenilebilir waffle kup. Orijinal Bolonya tarifi.", price: "130₺", tags: ["signature", "eat the cup"], hue: "cream" },
+      { name: "Affogato Classico", desc: "Tek scoop fior di latte gelato, çift shot Sirena espresso, yenilebilir waffle kup. Orijinal İtalyan tarifi.", price: "130₺", tags: ["signature", "eat the cup"], hue: "cream" },
       { name: "Affogato Cioccolato", desc: "Bitter çikolata gelato, sıcak espresso, Modicano kakao kırığı, deniz tuzu.", price: "140₺", tags: ["vegan opt."], hue: "dark" },
       { name: "Affogato Nocciola", desc: "IGP Piemonte fındık gelato, espresso, kavrulmuş fındık kırığı.", price: "150₺", tags: ["nuts"], hue: "caramel" },
       { name: "Affogato Pistacchio", desc: "Bronte Sicilya pistacchio gelato, espresso, kandi pistacchio.", price: "160₺", tags: ["nuts", "IGP"], hue: "pistachio" },
@@ -98,7 +98,21 @@ export const MENU: Record<string, MenuCategory> = {
   },
 };
 
+/** Customer-facing product variant (a subset of AdminProductVariant). */
+export interface ProductVariant {
+  id: string;
+  name: string;
+  /** Price delta on top of the base price, in major units (₺). Can be negative. */
+  priceDelta: number;
+  /** Remaining stock for this variant; undefined = not tracked. */
+  stock?: number;
+  isActive?: boolean;
+}
+
 export interface Product {
+  /** Stable AdminProduct id (e.g. "prd-001"). Optional because seed data
+      in this file isn't persisted with an id; populated by listShopProducts. */
+  id?: string;
   name: string;
   tag: string;
   price: string;
@@ -109,6 +123,26 @@ export interface Product {
   img: string;
   featured?: boolean;
   isNew?: boolean;
+
+  // ── Rich fields (populated by listShopProducts; absent on static seed) ──
+  /** URL-safe slug for the product detail page (/magaza/urun/<slug>). */
+  slug?: string;
+  /** Stock keeping unit. */
+  sku?: string;
+  /** External image gallery URLs. The card/PDP uses these when present. */
+  images?: string[];
+  /** Remaining stock. 0 = out of stock; undefined = not tracked. */
+  stock?: number;
+  /** Low-stock threshold for the "son N adet" urgency badge. */
+  lowStockThreshold?: number;
+  /** Approximate shipping weight (grams). */
+  weightGrams?: number;
+  /** Selectable variants (size, grind, etc.). */
+  variants?: ProductVariant[];
+  /** Base price in minor units (kuruş) for precise client-side math. */
+  priceMinor?: number;
+  /** Compare-at price in minor units (kuruş). */
+  compareAtPriceMinor?: number;
 }
 
 export const PRODUCTS: Product[] = [
@@ -136,7 +170,7 @@ export const REELS: Reel[] = [
   { caption: "Strawberry matcha latte build", meta: "0:32 · 28.1K", accent: "strawberry" },
   { caption: "Eat the cup, no spoon required", meta: "0:18 · 21.0K", accent: "caramel" },
   { caption: "Uji matcha — Japan harvest", meta: "0:52 · 9.4K", accent: "matcha" },
-  { caption: "Sirena single origin — Bologna roast", meta: "0:46 · 8.1K", accent: "dark" },
+  { caption: "Sirena single origin — İtalyan roast", meta: "0:46 · 8.1K", accent: "dark" },
   { caption: "Behind the bar at golden hour", meta: "0:40 · 15.7K", accent: "caramel" },
   { caption: "Gelato batch #214 — fior di latte", meta: "0:28 · 9.3K", accent: "cream" },
   { caption: "Tuzla, opening week", meta: "0:36 · 31.6K", accent: "caramel" },
@@ -153,10 +187,10 @@ export const STORY = {
   founder: {
     name: "Eda Mancuso",
     role: "Founder & Roaster",
-    bio: "Bolonyalı baba, İstanbullu anne. 1987'de büyükbabasının açtığı Bologna L'Affogato barını üçüncü kuşak olarak devraldı. 2026'da markayı doğduğu şehre, İstanbul'a getirdi.",
+    bio: "İtalyan baba, İstanbullu anne. 1987'de büyükbabasının açtığı L'Affogato barını üçüncü kuşak olarak devraldı. 2026'da markayı doğduğu şehre, İstanbul'a getirdi.",
   },
   heritage: [
-    { y: "1987", t: "Bologna · Via Galliera 21", d: "Giancarlo Mancuso ilk L'Affogato barını açar. Tek bar, tek ritüel, edible kup hâlâ ahşap kaşıkla servis ediliyor." },
+    { y: "1987", t: "Bologna · 1987", d: "Giancarlo Mancuso ilk L'Affogato barını açar. Tek bar, tek ritüel, edible kup hâlâ ahşap kaşıkla servis ediliyor." },
     { y: "1994", t: "Edible cup ilk kez piyasada", d: "Mancuso ailesi waffle kupa edible glaze kaplamasını patentler. Bugün hâlâ aynı reçete." },
     { y: "2008", t: "Sicily — Bronte pistacchio anlaşması", d: "Üç aile çiftliği ile doğrudan tedarik. Bugün hâlâ aynı çiftlikler." },
     { y: "2026", t: "İstanbul · Tuzla", d: "Eda, marka teamül haklarıyla ilk yurt dışı şubeyi açar. İtalya dışındaki tek L'Affogato." },
@@ -178,9 +212,9 @@ export const LOCATION = {
 };
 
 export const FRANCHISE = {
-  pitch: "1987'den beri Bologna'da; 2026'dan beri İstanbul'da. Şimdi sıra sizin şehrinizde.",
+  pitch: "1987'den beri İtalya'da; 2026'dan beri İstanbul'da. Şimdi sıra sizin şehrinizde.",
   stats: [
-    { n: "39", l: "Yıl", d: "Bolonya'dan İstanbul'a." },
+    { n: "39", l: "Yıl", d: "İtalya'dan İstanbul'a." },
     { n: "12", l: "Koltuk", d: "Optimum mekan kapasitesi." },
     { n: "38m²", l: "Minimum", d: "Açılış metrekaresi." },
     { n: "14ay", l: "Geri dönüş", d: "Beklenen yatırım süresi." },
@@ -190,29 +224,29 @@ export const FRANCHISE = {
       name: "Kiosk",
       area: "24–38 m²",
       seats: "6–10",
-      invest: "€85.000",
-      monthly: "€2.400",
+      invest: "Talep üzerine",
+      monthly: "İletişim",
       ideal: "AVM teras, premium plaza",
-      includes: ["Faema espresso makinesi", "Gelato vitrini (6 lezzet)", "Brand guidelines", "2 hafta açılış eğitimi", "Marketing kit"],
+      includes: ["Faema espresso makinesi", "Gelato vitrini (6 lezzet)", "Marka rehberi", "2 hafta açılış eğitimi", "Pazarlama kiti"],
     },
     {
       name: "Bottega",
       area: "40–80 m²",
       seats: "12–24",
-      invest: "€140.000",
-      monthly: "€3.800",
+      invest: "Talep üzerine",
+      monthly: "İletişim",
       ideal: "Cadde, mahalle merkezi",
-      includes: ["Tam menü ekipmanı", "Edible cup kapasitesi", "Probat 5kg kavurma", "4 hafta İtalya eğitimi", "Locale design"],
+      includes: ["Tam menü ekipmanı", "Edible cup kapasitesi", "Probat 5kg kavurma", "4 hafta İtalya eğitimi", "Locale tasarımı"],
       featured: true,
     },
     {
       name: "Salone",
       area: "90–160 m²",
       seats: "40–80",
-      invest: "€280.000",
-      monthly: "€6.500",
+      invest: "Talep üzerine",
+      monthly: "İletişim",
       ideal: "Premium AVM, butik otel",
-      includes: ["Full bar + kokteyl", "Akşam servisi (Vin Santo)", "Özel mimari", "8 hafta Bologna eğitimi", "Dedicated brand mgr"],
+      includes: ["Full bar + kokteyl", "Akşam servisi (Vin Santo)", "Özel mimari", "8 hafta İtalya eğitimi", "Marka yöneticisi"],
     },
   ],
   process: [
@@ -220,6 +254,6 @@ export const FRANCHISE = {
     { n: "02", t: "Görüşme", d: "Bologna ekibi ile video görüşme — 60 dakika." },
     { n: "03", t: "Site Visit", d: "Tuzla'yı ziyaret, mekanı görmek." },
     { n: "04", t: "Anlaşma", d: "Franchise sözleşmesi, lokasyon onayı." },
-    { n: "05", t: "Açılış", d: "Bologna'da 4 haftalık eğitim, açılış." },
+    { n: "05", t: "Açılış", d: "4 haftalık eğitim, açılış." },
   ],
 };
