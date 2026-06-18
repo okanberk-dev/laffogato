@@ -41,15 +41,25 @@ interface PageProps {
   storyTimeline?: typeof STORY.heritage;
   franchisePackages?: typeof FRANCHISE.packages;
   franchiseSteps?: typeof FRANCHISE.process;
+  /** Admin-managed editable copy (key → value); undefined ise inline fallback. */
+  content?: Record<string, string>;
+  /** Visit page contact block from admin settings; undefined ise LOCATION seed. */
+  visit?: {
+    addressLines: string[];
+    phone: string;
+    email: string;
+    hours: [string, string][];
+  };
 }
 
 /* ──────────────────────────────────────────────────────────────
    HOME
    ────────────────────────────────────────────────────────────── */
 
-export function PageHome({ navigate, addToCart, products, menu, reels, press }: PageProps) {
+export function PageHome({ navigate, addToCart, products, menu, reels, press, content }: PageProps) {
   const REELS = reels ?? SEED_REELS;
   const PRESS = press ?? SEED_PRESS;
+  const c = (k: string, fallback: string) => content?.[k] ?? fallback;
   useReveal();
   const shopProducts = products && products.length > 0 ? products : PRODUCTS;
   const liveMenu = menu ?? MENU;
@@ -87,15 +97,17 @@ export function PageHome({ navigate, addToCart, products, menu, reels, press }: 
               >
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--gold)" }} />
                 <span className="eyebrow on-dark" style={{ color: "#FFF", opacity: 0.86 }}>
-                  Bologna · 1987 → İstanbul · 2026
+                  {c("home.hero.eyebrow", "Bologna · 1987 → İstanbul · 2026")}
                 </span>
               </div>
               <h1 className="h-display reveal r1" style={{ marginTop: 24 }}>
                 Drink<br />it. Eat<br />the <span className="script">cup.</span>
               </h1>
               <p className="lede reveal r2" style={{ marginTop: 30, color: "rgba(255, 255, 255, 0.78)", maxWidth: 480 }}>
-                İtalya’dan ithal kahve barı konsepti. Tek-origin Sirena espresso’yu fior di latte gelato üzerine,
-                1994 patentli yenilebilir waffle kup içinde döküyoruz. Bittiğinde kaşığa gerek yok — kupu yiyorsunuz.
+                {c(
+                  "home.hero.lede",
+                  "İtalya’dan ithal kahve barı konsepti. Tek-origin Sirena espresso’yu fior di latte gelato üzerine, 1994 patentli yenilebilir waffle kup içinde döküyoruz. Bittiğinde kaşığa gerek yok — kupu yiyorsunuz.",
+                )}
               </p>
               <div className="reveal r3" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 34 }}>
                 <a href="#menu" onClick={go("menu")} className="btn btn-light btn-lg">
@@ -1427,9 +1439,10 @@ export function PageShop({ addToCart, openProduct, products, shopHeroSlides }: P
    STORY
    ────────────────────────────────────────────────────────────── */
 
-export function PageStory({ press, storyTimeline }: PageProps) {
+export function PageStory({ press, storyTimeline, content }: PageProps) {
   const PRESS = press ?? SEED_PRESS;
   const heritage = storyTimeline ?? STORY.heritage;
+  const c = (k: string, fallback: string) => content?.[k] ?? fallback;
   useReveal();
 
   const values = [
@@ -1460,7 +1473,7 @@ export function PageStory({ press, storyTimeline }: PageProps) {
               to Tuzla.
             </h1>
             <p className="lede" style={{ marginTop: 36, margin: "36px auto 0", maxWidth: 580 }}>
-              Üç kuşak Mancuso ailesi. Patentli bir kup. 39 yıldır değişmeyen tek bir ritüel. Şimdi İstanbul’da.
+              {c("story.hero.lede", "Üç kuşak Mancuso ailesi. Patentli bir kup. 39 yıldır değişmeyen tek bir ritüel. Şimdi İstanbul’da.")}
             </p>
           </div>
         </div>
@@ -1505,7 +1518,7 @@ export function PageStory({ press, storyTimeline }: PageProps) {
             <h2 className="h1" style={{ marginTop: 16 }}>
               Eda <span className="script">Mancuso.</span>
             </h2>
-            <p className="lede" style={{ marginTop: 22 }}>{STORY.founder.bio}</p>
+            <p className="lede" style={{ marginTop: 22 }}>{c("story.founder.bio", STORY.founder.bio)}</p>
             <blockquote
               style={{
                 margin: "32px 0",
@@ -1727,7 +1740,11 @@ export function PageStory({ press, storyTimeline }: PageProps) {
    VISIT
    ────────────────────────────────────────────────────────────── */
 
-export function PageVisit(_props: PageProps) {
+export function PageVisit({ visit }: PageProps) {
+  const addressLines = visit?.addressLines ?? LOCATION.address;
+  const visitPhone = visit?.phone ?? LOCATION.phone;
+  const visitEmail = visit?.email ?? LOCATION.email;
+  const visitHours = visit?.hours ?? LOCATION.hours;
   useReveal();
   const [partySize, setPartySize] = useState(2);
   const [day, setDay] = useState("Bu akşam");
@@ -1786,7 +1803,7 @@ export function PageVisit(_props: PageProps) {
               Postane, <span className="script">Tuzla.</span>
             </h2>
             <div style={{ marginTop: 22, fontFamily: "var(--serif-display)", fontSize: 18, lineHeight: 1.6 }}>
-              {LOCATION.address.map((l, i) => (
+              {addressLines.map((l, i) => (
                 <div key={i}>{l}</div>
               ))}
             </div>
@@ -1794,11 +1811,11 @@ export function PageVisit(_props: PageProps) {
             <div data-row="visit-address">
               <div>
                 <div className="eyebrow" style={{ marginBottom: 10 }}>Telefon</div>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 15 }}>{LOCATION.phone}</div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 15 }}>{visitPhone}</div>
               </div>
               <div>
                 <div className="eyebrow" style={{ marginBottom: 10 }}>E-posta</div>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 15 }}>{LOCATION.email}</div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 15 }}>{visitEmail}</div>
               </div>
             </div>
 
@@ -1852,7 +1869,7 @@ export function PageVisit(_props: PageProps) {
               Her gün, <span className="script">10–23.</span>
             </h2>
             <div className="hours-table">
-              {LOCATION.hours.map(([d, h]) => (
+              {visitHours.map(([d, h]) => (
                 <Fragment key={d}>
                   <div className="hours-day">{d}</div>
                   <div className="hours-h">{h}</div>
@@ -2402,9 +2419,17 @@ export function PageReels({ reels, press }: PageProps) {
    FRANCHISE
    ────────────────────────────────────────────────────────────── */
 
-export function PageFranchise({ franchisePackages, franchiseSteps }: PageProps) {
+export function PageFranchise({ franchisePackages, franchiseSteps, content }: PageProps) {
   const packages = franchisePackages ?? FRANCHISE.packages;
   const steps = franchiseSteps ?? FRANCHISE.process;
+  const c = (k: string, fallback: string) => content?.[k] ?? fallback;
+  const stats = content
+    ? [1, 2, 3, 4].map((i) => ({
+        n: c(`franchise.stat.${i}.value`, ""),
+        l: c(`franchise.stat.${i}.label`, ""),
+        d: c(`franchise.stat.${i}.desc`, ""),
+      }))
+    : FRANCHISE.stats;
   useReveal();
   const [selected, setSelected] = useState("Bottega");
   const [form, setForm] = useState({
@@ -2481,7 +2506,7 @@ export function PageFranchise({ franchisePackages, franchiseSteps }: PageProps) 
                 to your city.
               </h1>
               <p className="lede reveal r2" style={{ marginTop: 30, color: "rgba(255, 255, 255, 0.78)", maxWidth: 540 }}>
-                {FRANCHISE.pitch} İtalyan reçete, İtalyan ekipmanı, İtalyan eğitimi.
+                {c("franchise.pitch", FRANCHISE.pitch)} İtalyan reçete, İtalyan ekipmanı, İtalyan eğitimi.
                 Tuzla bizim ilk yurt dışı şubemiz — sırada Anadolu, Avrupa, Körfez var.
               </p>
               <div className="reveal r3" style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 36 }}>
@@ -2532,7 +2557,7 @@ export function PageFranchise({ franchisePackages, franchiseSteps }: PageProps) 
           style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 30 }}
           data-row="franchise-stats"
         >
-          {FRANCHISE.stats.map((s, i) => (
+          {stats.map((s, i) => (
             <div
               key={s.l}
               className="reveal"

@@ -61,6 +61,8 @@ export function LaffogatoApp({
   storyTimeline,
   franchisePackages,
   franchiseSteps,
+  content,
+  visit,
   freeShippingThreshold = 0,
   initialRoute = "home",
 }: {
@@ -91,6 +93,15 @@ export function LaffogatoApp({
     featured?: boolean;
   }[];
   franchiseSteps?: { n: string; t: string; d: string }[];
+  /** Admin-managed editable site copy (key → value). */
+  content?: Record<string, string>;
+  /** Visit page contact block, derived from admin settings. */
+  visit?: {
+    addressLines: string[];
+    phone: string;
+    email: string;
+    hours: [string, string][];
+  };
   /** Free-shipping threshold in major units (₺) — drives the cart progress bar. */
   freeShippingThreshold?: number;
   /** The SPA section to render on first paint. Set by sub-page routes
@@ -236,6 +247,8 @@ export function LaffogatoApp({
           storyTimeline={storyTimeline}
           franchisePackages={franchisePackages}
           franchiseSteps={franchiseSteps}
+          content={content}
+          visit={visit}
         />
         {seoSlot}
         <Footer navigate={navigate} settings={settings} />
@@ -265,6 +278,8 @@ export function LaffogatoApp({
         storyTimeline={storyTimeline}
         franchisePackages={franchisePackages}
         franchiseSteps={franchiseSteps}
+        content={content}
+        visit={visit}
       />
       {seoSlot}
       <Footer navigate={navigate} settings={settings} />

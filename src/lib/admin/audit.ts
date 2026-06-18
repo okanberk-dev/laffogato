@@ -19,6 +19,7 @@ export type AuditEntity =
   | "press"
   | "story"
   | "franchise"
+  | "content"
   | "order"
   | "order_item"
   | "promo"

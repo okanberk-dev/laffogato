@@ -13,6 +13,8 @@ import {
   listMenuForCustomer,
   listShopProducts,
 } from "@/lib/admin/store";
+import { DAYS_OF_WEEK, DAY_LABELS } from "@/lib/admin/days";
+import { getSiteContent } from "@/lib/admin/site-content";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { FAQ } from "@/lib/seo/faq";
 import { SITE } from "@/lib/seo/site";
@@ -49,6 +51,7 @@ export default async function HomePage({ searchParams }: PageProps) {
     storyEvents,
     franchisePackages,
     franchiseSteps,
+    content,
   ] = await Promise.all([
     searchParams,
     listShopProducts(),
@@ -61,6 +64,7 @@ export default async function HomePage({ searchParams }: PageProps) {
     listActiveStoryEvents(),
     listActiveFranchisePackages(),
     listActiveFranchiseSteps(),
+    getSiteContent(),
   ]);
 
   let notice: string | undefined;
@@ -73,6 +77,20 @@ export default async function HomePage({ searchParams }: PageProps) {
   }
 
   const graph = siteGraphLd(menu, products);
+
+  // Visit page contact block — driven by admin Ayarlar (settings).
+  const visit = {
+    addressLines: settings.address
+      .split(/[\n,/]+/)
+      .map((s) => s.trim())
+      .filter(Boolean),
+    phone: settings.phone,
+    email: settings.email,
+    hours: DAYS_OF_WEEK.map((d) => {
+      const h = settings.weeklyHours[d];
+      return [DAY_LABELS[d], h.closed ? "Kapalı" : `${h.open} — ${h.close}`] as [string, string];
+    }),
+  };
 
   return (
     <>
@@ -116,6 +134,8 @@ export default async function HomePage({ searchParams }: PageProps) {
           featured: p.featured,
         }))}
         franchiseSteps={franchiseSteps.map((s) => ({ n: s.step, t: s.title, d: s.body }))}
+        content={content}
+        visit={visit}
       />
     </>
   );

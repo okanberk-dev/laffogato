@@ -24,6 +24,7 @@ export type AdminSection =
   | "press"
   | "story"
   | "franchise"
+  | "content"
   | "customers"
   | "promos"
   | "stock"
@@ -42,6 +43,7 @@ const SECTION_ROLES: Record<AdminSection, AdminRole[]> = {
   press: ["owner", "manager"],
   story: ["owner", "manager"],
   franchise: ["owner", "manager"],
+  content: ["owner", "manager"],
   customers: ["owner", "manager"],
   promos: ["owner", "manager"],
   stock: ["owner", "manager", "staff"],

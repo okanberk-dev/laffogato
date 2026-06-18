@@ -72,4 +72,5 @@ export const TABLES = {
   storyTimeline: "story_timeline",
   franchisePackages: "franchise_packages",
   franchiseProcess: "franchise_process",
+  siteContent: "site_content",
 } as const;
