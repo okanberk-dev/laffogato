@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { logAudit } from "@/lib/admin/audit";
+import { requireRole } from "@/lib/admin/auth";
 import { bulkOrderSchema } from "@/lib/admin/bulk-schema";
 import {
   bulkUpdateOrders,
@@ -27,6 +28,7 @@ const STATUSES: AdminOrderStatus[] = [
 ];
 
 export async function updateOrderStatusAction(formData: FormData) {
+  await requireRole("orders");
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "") as AdminOrderStatus;
   if (!id || !STATUSES.includes(status)) return;
@@ -44,6 +46,7 @@ export async function bulkOrdersAction(
   _prev: BulkOrderActionState,
   formData: FormData,
 ): Promise<BulkOrderActionState> {
+  await requireRole("orders");
   const parsed = bulkOrderSchema.safeParse({
     ids: String(formData.get("ids") ?? ""),
     op: String(formData.get("op") ?? ""),
@@ -84,6 +87,7 @@ function revalidateOrder(id: string) {
 }
 
 export async function transitionOrderAction(formData: FormData) {
+  await requireRole("orders");
   const id = String(formData.get("id") ?? "");
   const transition = String(formData.get("transition") ?? "") as OrderTransition;
   if (!id || !TRANSITIONS.includes(transition)) return;
@@ -106,6 +110,7 @@ export async function saveOrderNoteAction(
   _prev: NoteActionState,
   formData: FormData,
 ): Promise<NoteActionState> {
+  await requireRole("orders");
   const id = String(formData.get("id") ?? "");
   const note = String(formData.get("note") ?? "");
   if (!id) return { error: "Sipariş ID eksik." };
@@ -122,6 +127,7 @@ export async function saveOrderNoteAction(
 }
 
 export async function setItemStatusAction(formData: FormData) {
+  await requireRole("orders");
   const id = String(formData.get("id") ?? "");
   const index = parseInt(String(formData.get("index") ?? "-1"), 10);
   const status = String(formData.get("status") ?? "") as AdminOrderItemStatus;
@@ -145,6 +151,7 @@ export async function refundOrderAction(
   _prev: RefundActionState,
   formData: FormData,
 ): Promise<RefundActionState> {
+  await requireRole("orders");
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "Sipariş ID eksik." };
   const amountText = String(formData.get("amount") ?? "").replace(",", ".");

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/admin/audit";
+import { requireRole } from "@/lib/admin/auth";
 import { promoFormSchema } from "@/lib/admin/promo-schema";
 import { createPromo, deletePromo, updatePromo } from "@/lib/admin/store";
 
@@ -29,6 +30,7 @@ export async function createPromoAction(
   _prev: PromoActionState,
   formData: FormData,
 ): Promise<PromoActionState> {
+  await requireRole("promos");
   const parsed = promoFormSchema.safeParse(readForm(formData));
   if (!parsed.success) {
     const fe: Record<string, string> = {};
@@ -55,6 +57,7 @@ export async function updatePromoAction(
   _prev: PromoActionState,
   formData: FormData,
 ): Promise<PromoActionState> {
+  await requireRole("promos");
   const parsed = promoFormSchema.safeParse(readForm(formData));
   if (!parsed.success) {
     const fe: Record<string, string> = {};
@@ -77,6 +80,7 @@ export async function updatePromoAction(
 }
 
 export async function deletePromoAction(formData: FormData) {
+  await requireRole("promos");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deletePromo(id);

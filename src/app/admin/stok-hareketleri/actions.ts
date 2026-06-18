@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { logAudit } from "@/lib/admin/audit";
-import { getAdminSession } from "@/lib/admin/auth";
+import { requireRole } from "@/lib/admin/auth";
 import { adjustStock } from "@/lib/admin/store";
 
 export interface AdjustStockState {
@@ -15,8 +15,8 @@ export async function adjustStockAction(
   _prev: AdjustStockState,
   formData: FormData,
 ): Promise<AdjustStockState> {
-  const session = await getAdminSession();
-  const actor = session?.email ?? "admin";
+  const session = await requireRole("stock");
+  const actor = session.email;
 
   const productId = String(formData.get("productId") ?? "").trim();
   const deltaRaw = String(formData.get("delta") ?? "").replace(",", ".").trim();

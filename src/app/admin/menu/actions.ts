@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/admin/audit";
+import { requireRole } from "@/lib/admin/auth";
 import { bulkMenuSchema } from "@/lib/admin/bulk-schema";
 import {
   bulkUpdateMenuItems,
@@ -61,6 +62,7 @@ function revalidateMenu() {
 }
 
 export async function createMenuItemAction(formData: FormData) {
+  await requireRole("menu");
   const input = parseInput(formData);
   if (!input.name) return;
   const created = await createMenuItem(input);
@@ -75,6 +77,7 @@ export async function createMenuItemAction(formData: FormData) {
 }
 
 export async function updateMenuItemAction(id: string, formData: FormData) {
+  await requireRole("menu");
   const input = parseInput(formData);
   await updateMenuItem(id, input);
   await logAudit({
@@ -89,6 +92,7 @@ export async function updateMenuItemAction(id: string, formData: FormData) {
 }
 
 export async function deleteMenuItemAction(formData: FormData) {
+  await requireRole("menu");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteMenuItem(id);
@@ -105,6 +109,7 @@ export async function bulkMenuAction(
   _prev: BulkMenuActionState,
   formData: FormData,
 ): Promise<BulkMenuActionState> {
+  await requireRole("menu");
   const parsed = bulkMenuSchema.safeParse({
     ids: String(formData.get("ids") ?? ""),
     op: String(formData.get("op") ?? ""),

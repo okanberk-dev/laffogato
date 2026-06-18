@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/admin/audit";
+import { requireRole } from "@/lib/admin/auth";
 import {
   createCategory,
   deleteCategory,
@@ -23,6 +24,7 @@ function parseInput(formData: FormData) {
 }
 
 export async function createCategoryAction(formData: FormData) {
+  await requireRole("categories");
   const input = parseInput(formData);
   if (!input.label) return;
   const created = await createCategory(input);
@@ -38,6 +40,7 @@ export async function createCategoryAction(formData: FormData) {
 }
 
 export async function updateCategoryAction(id: string, formData: FormData) {
+  await requireRole("categories");
   const input = parseInput(formData);
   await updateCategory(id, input);
   await logAudit({
@@ -52,6 +55,7 @@ export async function updateCategoryAction(id: string, formData: FormData) {
 }
 
 export async function deleteCategoryAction(formData: FormData) {
+  await requireRole("categories");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteCategory(id);
