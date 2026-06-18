@@ -20,6 +20,7 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
   press: "Basın",
   story: "Hikaye",
   franchise: "Franchise",
+  content: "Site metni",
   order: "Sipariş",
   order_item: "Sipariş kalemi",
   promo: "Promosyon",
