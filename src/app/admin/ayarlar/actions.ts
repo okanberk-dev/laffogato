@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { logAudit } from "@/lib/admin/audit";
+import { requireRole } from "@/lib/admin/auth";
 import {
   DAYS_OF_WEEK,
   updateSettings,
@@ -52,6 +53,7 @@ export async function saveGeneralAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  await requireRole("settings");
   const name = String(formData.get("name") ?? "").trim();
   if (name.length < 2) return { error: "Kafe adı en az 2 karakter olmalı." };
 
@@ -72,6 +74,7 @@ export async function saveHoursAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  await requireRole("settings");
   const weekly: WeeklyHours = {} as WeeklyHours;
   const summary: string[] = [];
   for (const day of DAYS_OF_WEEK) {
@@ -93,6 +96,7 @@ export async function saveTaxAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  await requireRole("settings");
   const raw = String(formData.get("taxRatePct") ?? "").replace(",", ".").trim();
   const v = parseFloat(raw);
   if (!Number.isFinite(v) || v < 0 || v > 100) {
@@ -107,6 +111,7 @@ export async function saveShippingAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  await requireRole("settings");
   await updateSettings({
     shippingFlatMinor: parseMoneyMinor(formData.get("shippingFlat")),
     shippingFreeThresholdMinor: parseMoneyMinor(
@@ -121,6 +126,7 @@ export async function saveSeoAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  await requireRole("settings");
   const seoTitle = String(formData.get("seoTitle") ?? "").trim();
   const ogImage = String(formData.get("seoOgImageUrl") ?? "").trim();
   if (ogImage && !/^https?:\/\//i.test(ogImage)) {
@@ -139,6 +145,7 @@ export async function saveNotificationsAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  await requireRole("settings");
   const email = String(formData.get("notificationEmail") ?? "").trim();
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { error: "Geçerli bir e-posta gir." };
