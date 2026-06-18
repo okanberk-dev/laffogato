@@ -36,7 +36,7 @@ export const MENU: Record<string, MenuCategory> = {
       { name: "Affogato Nocciola", desc: "IGP Piemonte fındık gelato, espresso, kavrulmuş fındık kırığı.", price: "150₺", tags: ["nuts"], hue: "caramel" },
       { name: "Affogato Pistacchio", desc: "Bronte Sicilya pistacchio gelato, espresso, kandi pistacchio.", price: "160₺", tags: ["nuts", "IGP"], hue: "pistachio" },
       { name: "Affogato Matcha", desc: "Uji matcha latte üzerine fior di latte gelato. Yeni sezon — yaz 2026.", price: "155₺", tags: ["new"], hue: "matcha" },
-      { name: "Affogato Strawberry", desc: "Çilek soslu gelato, fresh strawberry, espresso. Maltepe Park özel.", price: "155₺", tags: ["new", "limited"], hue: "strawberry" },
+      { name: "Affogato Strawberry", desc: "Çilek soslu gelato, fresh strawberry, espresso. Tuzla özel.", price: "155₺", tags: ["new", "limited"], hue: "strawberry" },
     ],
   },
   matcha: {
@@ -72,7 +72,7 @@ export const MENU: Record<string, MenuCategory> = {
     title: "Cold Bar",
     sub: "Buzlu içecekler",
     italian: "Il banco freddo",
-    note: "Maltepe Park yazları için soğuk içecek menüsü — Mart'tan Ekim'e.",
+    note: "Tuzla yazları için soğuk içecek menüsü — Mart'tan Ekim'e.",
     items: [
       { name: "Cold Brew Sirena", desc: "24 saat yavaş demleme, tek buz küresi üzerinde.", price: "120₺", tags: ["iced"], hue: "dark" },
       { name: "Espresso Tonic", desc: "Akdeniz toniği, çift shot, portakal yağı, buz.", price: "140₺", tags: ["iced"], hue: "caramel" },
@@ -86,7 +86,7 @@ export const MENU: Record<string, MenuCategory> = {
     title: "Gelato & Dolci",
     sub: "Dal banco",
     italian: "Dolci della casa",
-    note: "Her sabah 06:00'da çevrilen taze gelato. Maltepe'deki yerel mandıradan günlük süt.",
+    note: "Her sabah 06:00'da çevrilen taze gelato. Tuzla'daki yerel mandıradan günlük süt.",
     items: [
       { name: "Single scoop", desc: "Bir tat — fior di latte, stracciatella, nocciola, pistacchio, fondente, matcha.", price: "95₺", hue: "cream" },
       { name: "Double scoop", desc: "İki tat, bardakta veya kornet.", price: "160₺", hue: "caramel" },
@@ -139,7 +139,7 @@ export const REELS: Reel[] = [
   { caption: "Sirena single origin — Bologna roast", meta: "0:46 · 8.1K", accent: "dark" },
   { caption: "Behind the bar at golden hour", meta: "0:40 · 15.7K", accent: "caramel" },
   { caption: "Gelato batch #214 — fior di latte", meta: "0:28 · 9.3K", accent: "cream" },
-  { caption: "Maltepe Park, opening week", meta: "0:36 · 31.6K", accent: "caramel" },
+  { caption: "Tuzla, opening week", meta: "0:36 · 31.6K", accent: "caramel" },
 ];
 
 export const PRESS = [
@@ -159,21 +159,21 @@ export const STORY = {
     { y: "1987", t: "Bologna · Via Galliera 21", d: "Giancarlo Mancuso ilk L'Affogato barını açar. Tek bar, tek ritüel, edible kup hâlâ ahşap kaşıkla servis ediliyor." },
     { y: "1994", t: "Edible cup ilk kez piyasada", d: "Mancuso ailesi waffle kupa edible glaze kaplamasını patentler. Bugün hâlâ aynı reçete." },
     { y: "2008", t: "Sicily — Bronte pistacchio anlaşması", d: "Üç aile çiftliği ile doğrudan tedarik. Bugün hâlâ aynı çiftlikler." },
-    { y: "2026", t: "İstanbul · Maltepe Park", d: "Eda, marka teamül haklarıyla ilk yurt dışı şubeyi açar. İtalya dışındaki tek L'Affogato." },
+    { y: "2026", t: "İstanbul · Tuzla", d: "Eda, marka teamül haklarıyla ilk yurt dışı şubeyi açar. İtalya dışındaki tek L'Affogato." },
   ],
 };
 
 export const LOCATION = {
-  name: "L'Affogato — Maltepe Park",
-  short: "Maltepe Park · İstanbul",
-  address: ["Maltepe Park AVM", "Open-air rooftop teras", "Cevizli, Tugay Yolu Caddesi No:67", "Maltepe · İstanbul 34846"],
+  name: "L'Affogato — Tuzla",
+  short: "Tuzla · İstanbul",
+  address: ["Tuzla", "Açık-hava terası", "Postane Mah., Tuzla", "İstanbul 34953"],
   hours: [
     ["Pazartesi — Perşembe", "10:00 — 23:00"],
     ["Cuma — Cumartesi", "10:00 — 24:00"],
     ["Pazar", "10:00 — 23:00"],
   ] as Array<[string, string]>,
   phone: "+90 216 459 30 60",
-  email: "maltepe@laffogato.it",
+  email: "tuzla@laffogato.it",
   parent: "L'Affogato Italia · Via Galliera 21, Bologna",
 };
 
@@ -218,7 +218,7 @@ export const FRANCHISE = {
   process: [
     { n: "01", t: "Başvuru", d: "Online form. Lokasyon, deneyim, hedef şehir." },
     { n: "02", t: "Görüşme", d: "Bologna ekibi ile video görüşme — 60 dakika." },
-    { n: "03", t: "Site Visit", d: "Maltepe Park'ı ziyaret, mekanı görmek." },
+    { n: "03", t: "Site Visit", d: "Tuzla'yı ziyaret, mekanı görmek." },
     { n: "04", t: "Anlaşma", d: "Franchise sözleşmesi, lokasyon onayı." },
     { n: "05", t: "Açılış", d: "Bologna'da 4 haftalık eğitim, açılış." },
   ],

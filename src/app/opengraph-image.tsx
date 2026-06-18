@@ -80,7 +80,7 @@ export default async function OgImage() {
               display: "flex",
             }}
           >
-            Caffè · Gelato · Dolci · Maltepe Park, İstanbul
+            Caffè · Gelato · Dolci · Tuzla, İstanbul
           </div>
         </div>
 
@@ -95,7 +95,7 @@ export default async function OgImage() {
           }}
         >
           <div style={{ display: "flex" }}>{SITE.url.replace(/^https?:\/\//, "")}</div>
-          <div style={{ display: "flex" }}>Maltepe Park · Açık-hava teras</div>
+          <div style={{ display: "flex" }}>Tuzla · İstanbul</div>
         </div>
       </div>
     ),

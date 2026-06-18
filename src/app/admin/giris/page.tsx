@@ -37,7 +37,7 @@ export default async function AdminLoginPage({ searchParams }: PageProps) {
             className="mt-2 text-xs uppercase tracking-[0.24em] text-neutral-500"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
-            Admin · Maltepe Park
+            Admin · Tuzla
           </div>
         </div>
 

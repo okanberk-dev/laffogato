@@ -71,7 +71,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         <p className="mt-6 max-w-md text-neutral-700">
           Siparişini aldık. Sanal POS bağlandığında ödeme buradan tamamlanacak;
           şimdilik <em>ödeme bekleniyor</em> olarak kaydettik. Admin panelinde
-          durumu manuel olarak ilerletip Maltepe Park terasında bekleniyorsun.
+          durumu manuel olarak ilerletip Tuzla terasında bekleniyorsun.
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">

@@ -2,6 +2,35 @@
 
 import { useEffect, useState } from "react";
 
+/**
+ * Coffee-bean glyph used in place of the apostrophe in the L'Affogato
+ * wordmark — the brand's logo signature. Gold bean, espresso seam, so it
+ * reads on both the light nav and the dark footer.
+ */
+function BeanMark({ h = 18 }: { h?: number }) {
+  return (
+    <svg
+      width={h * 0.46}
+      height={h * 0.72}
+      viewBox="0 0 12 19"
+      style={{ display: "inline-block", verticalAlign: "0.30em", margin: "0 0.04em" }}
+      aria-hidden="true"
+    >
+      <g transform="rotate(-20 6 9.5)">
+        <ellipse cx="6" cy="9.5" rx="4.3" ry="8.2" fill="var(--gold-soft, #C49A5A)" />
+        <path
+          d="M6 3 C8.2 6.5, 3.8 12.5, 6 16"
+          fill="none"
+          stroke="var(--espresso, #3A2A20)"
+          strokeWidth="1.1"
+          strokeLinecap="round"
+          opacity="0.8"
+        />
+      </g>
+    </svg>
+  );
+}
+
 export type Route =
   | "home"
   | "menu"
@@ -56,7 +85,7 @@ export function Nav({ route, navigate, dark, cart = 0, onCart, onSearch }: NavPr
       <nav className={`nav ${scrolled ? "scrolled" : ""} ${dark && !scrolled ? "on-dark" : ""}`}>
         <div className="nav-left">
           <a href="#home" onClick={go("home")} className="nav-brand">
-            L<span style={{ fontStyle: "italic" }}>’</span>Affogato
+            L<BeanMark />Affogato
             <span className="dot"></span>
           </a>
         </div>
@@ -124,12 +153,12 @@ export function Nav({ route, navigate, dark, cart = 0, onCart, onSearch }: NavPr
             className="btn btn-light btn-lg"
             style={{ width: "100%", justifyContent: "space-between" }}
           >
-            Maltepe Park · rezerve et
+            Tuzla · rezerve et
             <span className="arrow">→</span>
           </a>
         </div>
         <div className="mobile-sheet-foot">
-          <span>Maltepe Park · İstanbul</span>
+          <span>Tuzla · İstanbul</span>
           <span>Bologna · 1987</span>
         </div>
       </div>
@@ -148,7 +177,7 @@ interface FooterProps {
   settings?: FooterSettings;
 }
 
-const DEFAULT_ADDRESS_LINES = ["Maltepe Park AVM", "Open-air rooftop", "Cevizli, İstanbul"];
+const DEFAULT_ADDRESS_LINES = ["Tuzla", "Açık-hava terası", "Tuzla, İstanbul"];
 
 function splitAddress(address?: string): string[] {
   if (!address) return DEFAULT_ADDRESS_LINES;
@@ -166,7 +195,7 @@ export function Footer({ navigate, settings }: FooterProps) {
     window.scrollTo({ top: 0 });
   };
   const phone = settings?.phone ?? "+90 216 459 30 60";
-  const email = settings?.email ?? "maltepe@laffogato.it";
+  const email = settings?.email ?? "tuzla@laffogato.it";
   const addressLines = splitAddress(settings?.address);
   return (
     <footer className="footer">
@@ -192,20 +221,32 @@ export function Footer({ navigate, settings }: FooterProps) {
 
       <div className="footer-grid">
         <div>
-          <div className="footer-mark">L’Affogato</div>
+          <div className="footer-mark">L<BeanMark h={30} />Affogato</div>
+          <div
+            style={{
+              fontFamily: "var(--sans), sans-serif",
+              fontSize: 12,
+              letterSpacing: "0.32em",
+              textTransform: "uppercase",
+              color: "var(--gold-soft)",
+              marginTop: 6,
+            }}
+          >
+            Coffee Italiano
+          </div>
           <div
             style={{
               fontFamily: "Pinyon Script",
               fontSize: 28,
               color: "var(--gold-soft)",
-              marginTop: -4,
+              marginTop: 2,
               marginBottom: 18,
             }}
           >
             But first, affogato.
           </div>
           <p style={{ maxWidth: 320, opacity: 0.7, fontSize: 14, lineHeight: 1.55 }}>
-            Bologna 1987’den İstanbul Maltepe Park’a. İlk yurt dışı şubemiz, açık-hava teras kahve barı.
+            Bologna 1987’den İstanbul Tuzla’ya. İlk yurt dışı şubemiz, açık-hava teras kahve barı.
           </p>
           <div style={{ display: "flex", gap: 8, marginTop: 22 }}>
             <a className="nav-icon-btn" href="#reels" onClick={go("reels")} aria-label="Instagram">
@@ -260,7 +301,7 @@ export function Footer({ navigate, settings }: FooterProps) {
             <li><a href="#story" onClick={go("story")}>Hikayemiz</a></li>
             <li><a href="#reels" onClick={go("reels")}>Reels & Film</a></li>
             <li><a href="#franchise" onClick={go("franchise")}>Franchise</a></li>
-            <li><a href="#visit" onClick={go("visit")}>Maltepe Park</a></li>
+            <li><a href="#visit" onClick={go("visit")}>Tuzla</a></li>
             <li><a href="#" onClick={(e) => e.preventDefault()}>Press</a></li>
           </ul>
         </div>

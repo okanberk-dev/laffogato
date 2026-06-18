@@ -102,7 +102,7 @@ export default async function AdminLayout({
           className="mx-auto flex max-w-7xl items-center justify-between text-[10px] uppercase tracking-[0.22em] text-neutral-400"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
-          <span>Maltepe Park · Yönetim Paneli</span>
+          <span>Tuzla · Yönetim Paneli</span>
           <span>Bellek-içi demo · Supabase entegrasyonu sonrası kalıcı olur</span>
         </div>
       </footer>

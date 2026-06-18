@@ -1,14 +1,14 @@
 # L'Affogato — Caffè · Gelato · Dolci
 
-> İtalyan kahve ve gelato barı. 1987'de Bologna'da Giancarlo Mancuso tarafından kuruldu; 2026'da torunu Eda Mancuso ilk yurt dışı şubeyi İstanbul Maltepe Park'ta açtı. İmza ritüel: yenilebilir waffle kup içinde Sirena espresso ve fior di latte gelato — "Drink it. Eat the cup." İtalya dışındaki tek L'Affogato şubesi.
+> İtalyan kahve ve gelato barı. 1987'de Bologna'da Giancarlo Mancuso tarafından kuruldu; 2026'da torunu Eda Mancuso ilk yurt dışı şubeyi İstanbul Tuzla'da açtı. İmza ritüel: yenilebilir waffle kup içinde Sirena espresso ve fior di latte gelato — "Drink it. Eat the cup." İtalya dışındaki tek L'Affogato şubesi.
 
 ## Konum ve İletişim
 
-- **Adres**: Maltepe Park AVM · Açık-hava teras · Cevizli, Tugay Yolu Caddesi No:67, 34846 Maltepe, İstanbul, Türkiye
+- **Adres**: Tuzla · Açık-hava terası · Postane Mah., Tuzla, 34953 İstanbul, Türkiye
 - **Telefon**: +90 216 459 30 60
-- **E-posta**: maltepe@laffogato.it
-- **Koordinatlar**: 40.9337, 29.1517
-- **Ulaşım**: Tramvay Cevizli 5 dk, Marmaray 8 dk, E-5 Cevizli çıkışı 3 dk, ücretsiz vale
+- **E-posta**: tuzla@laffogato.it
+- **Koordinatlar**: 40.8233, 29.3098
+- **Ulaşım**: Marmaray Tuzla 6 dk, E-5 / TEM Tuzla çıkışı 4 dk, Sabiha Gökçen Havalimanı 15 dk, ücretsiz vale park hizmeti
 
 ## Çalışma Saatleri
 
@@ -22,7 +22,7 @@
 - [Menü](/#menu): Affogato, Matcha Bar, Espresso, Cold Bar, Gelato & Dolci kategorileri
 - [Mağaza](/#shop): Çekirdek kahve, edible cup, hediye seti, ekipman, giyim
 - [Hikaye](/#story): 1987 Bologna'dan 2026 İstanbul'a markanın hikayesi
-- [Ziyaret](/#visit): Maltepe Park lokasyonu, ulaşım, rezervasyon
+- [Ziyaret](/#visit): Tuzla lokasyonu, ulaşım, rezervasyon
 - [Reels](/#reels): Mekan film ve sosyal medya içerikleri
 - [Franchise](/#franchise): Kiosk, Bottega, Salone paketleri ve başvuru süreci
 
@@ -57,7 +57,7 @@
 - **1987** — Bologna, Via Galliera 21: Giancarlo Mancuso ilk L'Affogato barını açar
 - **1994** — Yenilebilir waffle kup glaze kaplaması patentlenir
 - **2008** — Sicilya Bronte pistacchio çiftlikleriyle doğrudan tedarik anlaşması
-- **2026** — Eda Mancuso İstanbul Maltepe Park'ta ilk yurt dışı şubeyi açar
+- **2026** — Eda Mancuso İstanbul Tuzla'da ilk yurt dışı şubeyi açar
 
 ## Franchise Paketleri
 
@@ -65,13 +65,13 @@
 - **Bottega** (40–80 m², 12–24 koltuk): €140.000 yatırım, €3.800 aylık. Cadde, mahalle merkezi için.
 - **Salone** (90–160 m², 40–80 koltuk): €280.000 yatırım, €6.500 aylık. Premium AVM, butik otel için.
 
-Beklenen geri dönüş: 14 ay. Süreç: başvuru → video görüşme → Maltepe Park ziyareti → sözleşme → Bologna'da 4–8 hafta eğitim → açılış.
+Beklenen geri dönüş: 14 ay. Süreç: başvuru → video görüşme → Tuzla ziyareti → sözleşme → Bologna'da 4–8 hafta eğitim → açılış.
 
 ## Diyet ve Alerjen
 
 - Vegan: Affogato Cioccolato (vegan opsiyon), sorbe (çilek/mango/limon)
 - Glutensiz: Sınırlı edible cup stoğu (rezervasyon ile)
-- Süt: Yerel Maltepe mandırasından günlük taze
+- Süt: Yerel Tuzla mandırasından günlük taze
 - Kahve: Bologna'da Mancuso ailesi tarafından haftalık kavrulur
 
 ## Yapısal Veri (JSON-LD)

@@ -111,7 +111,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
                 }}
               >
                 {[
-                  ["Şube", "Maltepe Park"],
+                  ["Şube", "Tuzla"],
                   ["Açık", "10:00 — 23:00"],
                   ["Yeni", "Strawberry Matcha"],
                 ].map(([k, v]) => (
@@ -229,7 +229,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
             <div>
               <div className="eyebrow">01 — Il locale</div>
               <h2 className="h-1" style={{ marginTop: 16 }}>
-                Maltepe Park, <span className="script">altın saat.</span>
+                Tuzla, <span className="script">altın saat.</span>
               </h2>
             </div>
             <a href="#visit" onClick={go("visit")} className="btn-link">
@@ -255,7 +255,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
             }}
           >
             {[
-              ["Konum", "Maltepe Park · open-air teras"],
+              ["Konum", "Tuzla · terası"],
               ["Kapasite", "24 koltuk · 12 bar + 12 lounge"],
               ["Saat", "Her gün · 10:00 — 23:00"],
               ["Mimari", "Studio Pellegrini · Bologna"],
@@ -397,7 +397,7 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
               Matcha & <span className="script">strawberry.</span>
             </h2>
             <p className="lede" style={{ marginTop: 26 }}>
-              Maltepe Park için yaz menüsü — Japonya Uji’dan ceremonial grade matcha, bambu chasen ile dövülmüş,
+              Tuzla için yaz menüsü — Japonya Uji’dan ceremonial grade matcha, bambu chasen ile dövülmüş,
               ipeksi süt katmanları, taze çilek püresi. Sıcak veya buzlu; bardakta veya yenilebilir waffle kupta.
             </p>
             <div style={{ marginTop: 30, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
@@ -610,7 +610,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
                 The <span className="script">menu.</span>
               </h1>
               <p className="lede" style={{ marginTop: 22 }}>
-                Bologna 1987 reçetesi, Maltepe Park terası için sezonluk matcha bar ve buzlu içecekler.
+                Bologna 1987 reçetesi, Tuzla terası için sezonluk matcha bar ve buzlu içecekler.
                 Üç ritüel — espresso, gelato, yenilebilir kup. 39 yıldır değişmedi.
               </p>
             </div>
@@ -773,7 +773,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
           <div className="reveal r1">
             <div className="eyebrow">Origin</div>
             <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)" }}>
-              Espresso: Sirena harmanı (Bologna kavurma). Matcha: Uji ceremonial grade. Pistacchio: Bronte IGP. Süt: Maltepe yerel mandıra.
+              Espresso: Sirena harmanı (Bologna kavurma). Matcha: Uji ceremonial grade. Pistacchio: Bronte IGP. Süt: Tuzla yerel mandıra.
             </p>
           </div>
           <div className="reveal r2">
@@ -842,7 +842,7 @@ export function PageShop({ addToCart, openProduct, products }: PageProps) {
                 The <span className="script">shop.</span>
               </h1>
               <p className="lede" style={{ marginTop: 22 }}>
-                Maltepe Park terasında servis ettiğimiz her şey — Bologna’da kavrulan çekirdek, 1994 patentli edible kup,
+                Tuzla terasında servis ettiğimiz her şey — Bologna’da kavrulan çekirdek, 1994 patentli edible kup,
                 bambu chasen, Bialetti × L’Affogato moka pot. Eve, ofise, hediyeye.
               </p>
             </div>
@@ -1118,7 +1118,7 @@ export function PageStory(_props: PageProps) {
     { n: "02", t: "İtalyan reçete, yerel süt", d: "Bologna’dan haftalık kavurma. Trakya küçük mandıradan günlük süt. Her ürün izlenebilir." },
     { n: "03", t: "Laptop yok, ses az", d: "Akşam 18:00’dan sonra çalışma yok. Müzik 65dB üzerine çıkmaz. Bar, sohbet için." },
     { n: "04", t: "Zero waste", d: "Yenilebilir kup, kompost gelato bardağı, yeniden doldurulan teneke. 2025'ten beri tek kullanımlık plastik yok." },
-    { n: "05", t: "Yavaş büyüme", d: "Franchise dahil dikkatli seçim. İlk yıl 8 şube hedefi; ama Maltepe Park ana mekan kalacak." },
+    { n: "05", t: "Yavaş büyüme", d: "Franchise dahil dikkatli seçim. İlk yıl 8 şube hedefi; ama Tuzla ana mekan kalacak." },
     { n: "06", t: "Personel mutluluğu", d: "İlk yıl çalışan turnover’ı %0. Yıllık 6 hafta tatil, sigorta artı, Bologna ziyareti." },
   ];
 
@@ -1138,7 +1138,7 @@ export function PageStory(_props: PageProps) {
             <h1 className="h-display" style={{ fontSize: "clamp(56px, 11vw, 160px)" }}>
               From <span className="script">Bologna</span>
               <br />
-              to Maltepe.
+              to Tuzla.
             </h1>
             <p className="lede" style={{ marginTop: 36, margin: "36px auto 0", maxWidth: 580 }}>
               Üç kuşak Mancuso ailesi. Patentli bir kup. 39 yıldır değişmeyen tek bir ritüel. Şimdi İstanbul’da.
@@ -1162,7 +1162,7 @@ export function PageStory(_props: PageProps) {
           >
             <Stat n="1987" l="Anno fondazione" d="Bologna · Via Galliera 21" />
             <Stat n="1994" l="Brevetto edible cup" d="Mancuso ailesi patenti" />
-            <Stat n="2026" l="İstanbul açılışı" d="Maltepe Park · ilk yurt dışı şube" />
+            <Stat n="2026" l="İstanbul açılışı" d="Tuzla · ilk yurt dışı şube" />
             <Stat n="III" l="Generazione" d="Eda Mancuso · 3. kuşak" />
           </div>
         </div>
@@ -1432,11 +1432,11 @@ export function PageVisit(_props: PageProps) {
               V — Vieni a trovarci · İstanbul
             </div>
             <h1 className="h-display" style={{ color: "#FFF", fontSize: "clamp(56px, 9vw, 132px)" }}>
-              Maltepe <span className="script" style={{ color: "var(--gold-soft)" }}>Park.</span>
+              Tuzla, <span className="script" style={{ color: "var(--gold-soft)" }}>İstanbul.</span>
             </h1>
             <p className="lede" style={{ marginTop: 26, color: "rgba(255, 255, 255, 0.86)", maxWidth: 580 }}>
-              İlk yurt dışı şubemiz — Maltepe Park AVM’nin açık-hava teras katı. Akdeniz bougainvillea’sı,
-              altın saat ışıkları, on iki sandalyeli bar. Tramvay Cevizli + E-5 girişinden 3 dakika.
+              İlk yurt dışı şubemiz — Tuzla’nın açık-hava teras katı. Akdeniz bougainvillea’sı,
+              altın saat ışıkları, on iki sandalyeli bar. Marmaray Tuzla + E-5 girişinden 4 dakika.
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 36 }}>
               <a href="#book" onClick={scrollTo("book")} className="btn btn-light btn-lg">
@@ -1464,7 +1464,7 @@ export function PageVisit(_props: PageProps) {
           <div className="reveal">
             <div className="eyebrow">{LOCATION.short}</div>
             <h2 className="h-1" style={{ marginTop: 16 }}>
-              Cevizli, <span className="script">Maltepe.</span>
+              Aydınlı, <span className="script">Tuzla.</span>
             </h2>
             <div style={{ marginTop: 22, fontFamily: "var(--serif-display)", fontSize: 18, lineHeight: 1.6 }}>
               {LOCATION.address.map((l, i) => (
@@ -1491,10 +1491,10 @@ export function PageVisit(_props: PageProps) {
             </div>
 
             <div style={{ marginTop: 30, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <a href="#" className="chip" onClick={(e) => e.preventDefault()}>Tramvay Cevizli · 5 dk</a>
+              <a href="#" className="chip" onClick={(e) => e.preventDefault()}>Marmaray Tuzla · 6 dk</a>
               <a href="#" className="chip" onClick={(e) => e.preventDefault()}>Vale · ücretsiz</a>
-              <a href="#" className="chip" onClick={(e) => e.preventDefault()}>Marmaray · 8 dk</a>
-              <a href="#" className="chip" onClick={(e) => e.preventDefault()}>E-5 Cevizli çıkışı</a>
+              <a href="#" className="chip" onClick={(e) => e.preventDefault()}>Sabiha Gökçen · 15 dk</a>
+              <a href="#" className="chip" onClick={(e) => e.preventDefault()}>E-5 / TEM Tuzla çıkışı</a>
             </div>
 
             <div style={{ display: "flex", gap: 10, marginTop: 30 }}>
@@ -1561,7 +1561,7 @@ export function PageVisit(_props: PageProps) {
               <div>
                 <div className="eyebrow" style={{ marginBottom: 6 }}>Rezervasyon</div>
                 <h3 style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 28, margin: 0 }}>
-                  Bu akşam · Maltepe Park
+                  Bu akşam · Tuzla
                 </h3>
               </div>
               <div style={{ fontFamily: "var(--script)", fontSize: 28, color: "var(--gold)" }}>prenotare</div>
@@ -1767,7 +1767,7 @@ export function PageReels(_props: PageProps) {
                 Reels & <span className="script">film.</span>
               </h1>
               <p className="lede" style={{ marginTop: 22 }}>
-                Maltepe Park terasından, Bologna kavurma odasından, Bronte pistacchio hasadından kısa filmler.
+                Tuzla terasından, Bologna kavurma odasından, Bronte pistacchio hasadından kısa filmler.
                 Aylık bir 4K bölüm, haftalık reels. @laffogato — 24.6K takipçi, hızla büyüyor.
               </p>
             </div>
@@ -2114,7 +2114,7 @@ export function PageFranchise(_props: PageProps) {
   const faqs: Array<[string, string]> = [
     ["Daha önce F&B tecrübem yok, başvurabilir miyim?", "Evet. Bologna’daki 4 haftalık eğitim sıfırdan başlar. Aradığımız özellik; tutkulu, detaycı, marka değerleriyle uyumlu insan."],
     ["Kavurma kendim mi yapacağım?", "Hayır. Tüm çekirdek Bologna’dan haftalık taze gönderilir. Salone paketinde isteğe bağlı yerel kavurma eklenebilir."],
-    ["Menüyü değiştirebilir miyim?", "Ana menü standart. Lokal lezzetler için sezonluk 2 ürün eklenebilir (Maltepe Park’ta strawberry affogato gibi)."],
+    ["Menüyü değiştirebilir miyim?", "Ana menü standart. Lokal lezzetler için sezonluk 2 ürün eklenebilir (Tuzla’da strawberry affogato gibi)."],
     ["Sözleşme süresi ne kadar?", "7 yıl + 7 yıl opsiyon. İlk 18 ayda iki performans değerlendirmesi."],
     ["Hangi şehirler için açığız?", "Türkiye: tüm büyük şehirler. Yurt dışı: Avrupa (DE, NL, UK), Körfez (UAE, KSA, QA)."],
     ["Master franchise hakları var mı?", "Evet. Şehir veya ülke bazlı master haklar müzakere edilebilir. Min. 5 şube taahhüdü."],
@@ -2162,7 +2162,7 @@ export function PageFranchise(_props: PageProps) {
               </h1>
               <p className="lede reveal r2" style={{ marginTop: 30, color: "rgba(255, 255, 255, 0.78)", maxWidth: 540 }}>
                 {FRANCHISE.pitch} İtalyan reçete, İtalyan ekipmanı, İtalyan eğitimi.
-                Maltepe Park bizim ilk yurt dışı şubemiz — sırada Anadolu, Avrupa, Körfez var.
+                Tuzla bizim ilk yurt dışı şubemiz — sırada Anadolu, Avrupa, Körfez var.
               </p>
               <div className="reveal r3" style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 36 }}>
                 <a href="#apply" className="btn btn-gold btn-lg">
@@ -2193,7 +2193,7 @@ export function PageFranchise(_props: PageProps) {
                 </div>
                 <div>
                   <div className="eyebrow on-dark" style={{ marginBottom: 6, opacity: 0.65 }}>Master TR</div>
-                  <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 22 }}>Maltepe Park</div>
+                  <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 22 }}>Tuzla</div>
                 </div>
                 <div>
                   <div className="eyebrow on-dark" style={{ marginBottom: 6, opacity: 0.65 }}>Hedef · 2027</div>
@@ -2373,7 +2373,7 @@ export function PageFranchise(_props: PageProps) {
             </h2>
             <p className="lede" style={{ marginTop: 22, color: "rgba(255, 255, 255, 0.78)" }}>
               Bologna ekibi her başvuruyu 14 gün içinde değerlendirir. Onay alanlarla video görüşme,
-              ardından Maltepe Park’ı görmeye davet — kararsız mısınız, gelin bir affogato içelim.
+              ardından Tuzla’yı görmeye davet — kararsız mısınız, gelin bir affogato içelim.
             </p>
             <div
               style={{
@@ -2420,7 +2420,7 @@ export function PageFranchise(_props: PageProps) {
                   Başvurun alındı.
                 </h3>
                 <p style={{ marginTop: 18, color: "rgba(255,255,255,0.78)", lineHeight: 1.6 }}>
-                  Bologna ekibi 14 iş günü içinde dönüş yapacak. Bu arada Maltepe Park terasında bir affogato seni bekliyor.
+                  Bologna ekibi 14 iş günü içinde dönüş yapacak. Bu arada Tuzla terasında bir affogato seni bekliyor.
                 </p>
                 <div style={{ marginTop: 30, fontFamily: "var(--script)", fontSize: 36, color: "var(--gold)" }}>— Eda</div>
                 <button

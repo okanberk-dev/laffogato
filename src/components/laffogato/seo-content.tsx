@@ -51,7 +51,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
             fontSize: 17,
           }}
         >
-          Maltepe Park&rsquo;taki kafe, menü, yenilebilir kup, rezervasyon, online sipariş ve franchise süreçleri hakkında en çok sorulan soruların yanıtları.
+          Tuzla&rsquo;daki kafe, menü, yenilebilir kup, rezervasyon, online sipariş ve franchise süreçleri hakkında en çok sorulan soruların yanıtları.
         </p>
 
         <div style={{ display: "grid", gap: 12 }}>
@@ -153,11 +153,11 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
               Ulaşım
             </h3>
             <div style={{ lineHeight: 1.6, fontSize: 14 }}>
-              Tramvay Cevizli · 5 dk
+              Marmaray Tuzla · 6 dk
               <br />
-              Marmaray · 8 dk
+              E-5 / TEM Tuzla · 4 dk
               <br />
-              E-5 Cevizli çıkışı · 3 dk
+              Sabiha Gökçen · 15 dk
               <br />
               Ücretsiz vale
             </div>
@@ -178,7 +178,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
           <strong style={{ color: "rgba(20, 16, 11, 0.85)" }}>
             L&rsquo;Affogato Italia · sede principale
           </strong>{" "}
-          — {SITE.parent.address}. İstanbul Maltepe Park şubesi, 1987&rsquo;de Bologna&rsquo;da kurulan markanın İtalya dışındaki ilk şubesidir. Tüm kahve, Bologna&rsquo;da Mancuso ailesi tarafından haftalık olarak kavrulur; matcha Japonya Uji bölgesinden, pistacchio Sicilya Bronte&rsquo;dan, fındık IGP Piemonte&rsquo;den, çikolata Sicilya Modica&rsquo;dan tedarik edilir.
+          — {SITE.parent.address}. İstanbul Tuzla şubesi, 1987&rsquo;de Bologna&rsquo;da kurulan markanın İtalya dışındaki ilk şubesidir. Tüm kahve, Bologna&rsquo;da Mancuso ailesi tarafından haftalık olarak kavrulur; matcha Japonya Uji bölgesinden, pistacchio Sicilya Bronte&rsquo;dan, fındık IGP Piemonte&rsquo;den, çikolata Sicilya Modica&rsquo;dan tedarik edilir.
         </div>
       </div>
     </section>

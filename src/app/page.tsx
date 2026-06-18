@@ -14,7 +14,7 @@ import { siteGraphLd } from "@/lib/seo/structured-data";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: `${SITE.name} — Caffè · Gelato · Dolci · Maltepe Park, İstanbul`,
+  title: `${SITE.name} — Caffè · Gelato · Dolci · Tuzla, İstanbul`,
   description: SITE.longDescription,
   alternates: { canonical: "/" },
   openGraph: {
