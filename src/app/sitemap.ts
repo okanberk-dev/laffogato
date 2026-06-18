@@ -1,20 +1,41 @@
 import type { MetadataRoute } from "next";
 
+import { listProducts } from "@/lib/admin/store";
 import { LEGAL_DOCS } from "@/lib/legal/documents";
 import { allSeoRoutes } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
 
-export const dynamic = "force-static";
-export const revalidate = 3600;
+// Dynamic: the product list is read from Supabase at request time. The build
+// does not connect to the DB, so the fetch is guarded — an empty result simply
+// omits product URLs rather than failing the build.
+export const dynamic = "force-dynamic";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+
   const main = allSeoRoutes().map((r) => ({
     url: `${SITE.url}${r.url}`,
     lastModified: now,
     changeFrequency: r.changefreq,
     priority: r.priority,
   }));
+
+  // Active product detail pages (/magaza/urun/<slug>).
+  let products: MetadataRoute.Sitemap = [];
+  try {
+    const all = await listProducts();
+    products = all
+      .filter((p) => p.isActive)
+      .map((p) => ({
+        url: `${SITE.url}/magaza/urun/${p.slug}`,
+        lastModified: p.updatedAt ? new Date(p.updatedAt) : now,
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      }));
+  } catch {
+    // No DB at build / connection issue — ship the sitemap without products.
+  }
+
   const legalIndex = {
     url: `${SITE.url}/hukuk`,
     lastModified: now,
@@ -27,5 +48,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: "monthly" as const,
     priority: 0.5,
   }));
-  return [...main, legalIndex, ...legal];
+
+  return [...main, ...products, legalIndex, ...legal];
 }

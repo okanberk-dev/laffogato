@@ -19,7 +19,15 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: ["/"],
-        disallow: ["/admin", "/admin/", "/api/", "/odeme/basarili"],
+        disallow: [
+          "/admin",
+          "/admin/",
+          "/api/",
+          "/uye",
+          "/uye/",
+          "/odeme",
+          "/design-preview",
+        ],
       },
       // Generative AI / LLM crawlers — allowed; llms.txt provides curated
       // content for them.
