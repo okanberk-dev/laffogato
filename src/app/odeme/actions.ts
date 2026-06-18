@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { applyPromoCode, getSettings, placeOrder } from "@/lib/admin/store";
+import { getActiveCustomer } from "@/lib/customer/auth";
 import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
 
 export interface PromoPreviewState {
@@ -85,6 +86,15 @@ function parseItems(raw: string): ClientCartItem[] {
 }
 
 export async function placeOrderAction(formData: FormData) {
+  // Siparişler yalnızca e-postası doğrulanmış hesaplarla verilebilir.
+  const customer = await getActiveCustomer();
+  if (!customer) {
+    redirect("/uye/giris?next=/odeme");
+  }
+  if (!customer.emailVerified) {
+    redirect("/odeme?verify=required");
+  }
+
   const items = parseItems(String(formData.get("items") ?? "[]"));
 
   if (items.length === 0) {
@@ -99,9 +109,10 @@ export async function placeOrderAction(formData: FormData) {
       priceMinor: Math.round(it.price * 100),
       qty: it.qty,
     })),
-    customerName: String(formData.get("customerName") ?? "") || undefined,
-    customerEmail: String(formData.get("customerEmail") ?? "") || undefined,
-    customerPhone: String(formData.get("customerPhone") ?? "") || undefined,
+    customerName: String(formData.get("customerName") ?? "") || customer.name || undefined,
+    // Doğrulanmış hesabın e-postası yetkilidir (client değeri override edilir).
+    customerEmail: customer.email,
+    customerPhone: String(formData.get("customerPhone") ?? "") || customer.phone || undefined,
     shippingAddress:
       String(formData.get("shippingAddress") ?? "") || undefined,
     promoCode: String(formData.get("promoCode") ?? "") || undefined,

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { randomBytes } from "node:crypto";
+
 import bcrypt from "bcryptjs";
 import type { PostgrestError } from "@supabase/supabase-js";
 
@@ -34,6 +36,13 @@ export interface Customer {
   addresses: CustomerAddress[];
   wishlist: string[];
   notificationPrefs: NotificationPrefs;
+  /** True once the customer clicked the e-mail verification link. */
+  emailVerified: boolean;
+  /** Single-use verification token (cleared after use). */
+  verifyToken: string;
+  /** ISO expiry for the verification token. */
+  verifyExpires: string;
+  verifiedAt: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +56,7 @@ export interface PublicCustomer {
   addresses: CustomerAddress[];
   wishlist: string[];
   notificationPrefs: NotificationPrefs;
+  emailVerified: boolean;
   createdAt: string;
 }
 
@@ -61,6 +71,10 @@ function withDefaults(c: Customer): Customer {
     addresses: c.addresses ?? [],
     wishlist: c.wishlist ?? [],
     notificationPrefs: c.notificationPrefs ?? defaultPrefs(),
+    emailVerified: c.emailVerified ?? false,
+    verifyToken: c.verifyToken ?? "",
+    verifyExpires: c.verifyExpires ?? "",
+    verifiedAt: c.verifiedAt ?? "",
   };
 }
 
@@ -75,7 +89,17 @@ function toPublic(c: Customer): PublicCustomer {
     addresses: full.addresses,
     wishlist: full.wishlist,
     notificationPrefs: full.notificationPrefs,
+    emailVerified: full.emailVerified,
     createdAt: full.createdAt,
+  };
+}
+
+const VERIFY_TTL_MS = 24 * 60 * 60 * 1000; // 24 saat
+
+function newVerifyToken(): { token: string; expires: string } {
+  return {
+    token: randomBytes(32).toString("hex"),
+    expires: new Date(Date.now() + VERIFY_TTL_MS).toISOString(),
   };
 }
 
@@ -107,7 +131,7 @@ export interface RegisterInput {
 }
 
 export type RegisterResult =
-  | { ok: true; customer: PublicCustomer }
+  | { ok: true; customer: PublicCustomer; verifyToken: string }
   | { ok: false; error: string };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -138,6 +162,7 @@ export async function registerCustomer(input: RegisterInput): Promise<RegisterRe
 
   const passwordHash = await bcrypt.hash(password, 10);
   const now = new Date().toISOString();
+  const { token, expires } = newVerifyToken();
   const customer: Customer = {
     id: `cst-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     email,
@@ -148,6 +173,10 @@ export async function registerCustomer(input: RegisterInput): Promise<RegisterRe
     addresses: [],
     wishlist: [],
     notificationPrefs: defaultPrefs(),
+    emailVerified: false,
+    verifyToken: token,
+    verifyExpires: expires,
+    verifiedAt: "",
     createdAt: now,
     updatedAt: now,
   };
@@ -160,7 +189,64 @@ export async function registerCustomer(input: RegisterInput): Promise<RegisterRe
     }
     throw new Error(`registerCustomer: ${error.message}`);
   }
-  return { ok: true, customer: toPublic(customer) };
+  return { ok: true, customer: toPublic(customer), verifyToken: token };
+}
+
+export type VerifyResult =
+  | { ok: true; email: string }
+  | { ok: false; error: string };
+
+/** Marks a customer verified given a valid, unexpired token (single-use). */
+export async function verifyCustomerEmail(token: string): Promise<VerifyResult> {
+  const clean = (token ?? "").trim();
+  if (!clean || clean.length < 16) return { ok: false, error: "Geçersiz doğrulama bağlantısı." };
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from(TABLES.customers)
+    .select("*")
+    .eq("verifyToken", clean)
+    .maybeSingle();
+  checkErr(error, "verifyCustomerEmail");
+  const customer = data as Customer | null;
+  if (!customer) return { ok: false, error: "Bağlantı geçersiz ya da zaten kullanılmış." };
+  if (customer.emailVerified) return { ok: true, email: customer.email };
+  if (customer.verifyExpires && new Date(customer.verifyExpires).getTime() < Date.now()) {
+    return { ok: false, error: "Doğrulama bağlantısının süresi dolmuş. Yeni bir bağlantı iste." };
+  }
+  const { error: upErr } = await sb
+    .from(TABLES.customers)
+    .update({
+      emailVerified: true,
+      verifyToken: "",
+      verifyExpires: "",
+      verifiedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    .eq("id", customer.id);
+  checkErr(upErr, "verifyCustomerEmail.update");
+  return { ok: true, email: customer.email };
+}
+
+export type ResendResult =
+  | { ok: true; token: string; name: string; email: string }
+  | { ok: false; error: string; alreadyVerified?: boolean };
+
+/** Issues a fresh verification token for an unverified customer (resend). */
+export async function createVerificationToken(email: string): Promise<ResendResult> {
+  const needle = normalizeEmail(email);
+  const customer = await fetchCustomer(needle);
+  if (!customer) return { ok: false, error: "Kayıt bulunamadı." };
+  if (customer.emailVerified) {
+    return { ok: false, error: "E-posta zaten doğrulanmış.", alreadyVerified: true };
+  }
+  const { token, expires } = newVerifyToken();
+  const sb = getSupabaseAdmin();
+  const { error } = await sb
+    .from(TABLES.customers)
+    .update({ verifyToken: token, verifyExpires: expires, updatedAt: new Date().toISOString() })
+    .eq("id", customer.id);
+  checkErr(error, "createVerificationToken");
+  return { ok: true, token, name: customer.name, email: customer.email };
 }
 
 export interface LoginInput {
