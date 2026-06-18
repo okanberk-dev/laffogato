@@ -6,7 +6,7 @@ Bu dosya, Claude Code'un bu projede tutarlı çalışması için gerekli bağlam
 
 ## Proje Özeti
 
-**Laffogato** (marka adı: **L'Affogato**) İstanbul Maltepe Park'ta açılan kafenin kurumsal web sitesi + online mağazasıdır. Müşteri menüye bakar, ürün satın alır, ödeme yapar; admin paneli üzerinden ürün/menü/sipariş yönetimi tek yerden yapılır.
+**Laffogato** (marka adı: **L'Affogato**) İstanbul Tuzla'da açılan kafenin kurumsal web sitesi + online mağazasıdır. Müşteri menüye bakar, ürün satın alır, ödeme yapar; admin paneli üzerinden ürün/menü/sipariş yönetimi tek yerden yapılır.
 
 - **Stack:** Next.js 16 (App Router + Turbopack) · React 19 · Tailwind v4 · TypeScript · Zod
 - **Deploy hedefi:** Vercel (Edge proxy + Node runtime API'ler)

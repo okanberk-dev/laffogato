@@ -52,7 +52,7 @@ export default async function OgImage() {
           }}
         >
           <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#C9A05A", display: "flex" }} />
-          Italia · 1987 → İstanbul · 2026
+          Bologna · 1987 → İstanbul · 2026
         </div>
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative" }}>
@@ -80,7 +80,7 @@ export default async function OgImage() {
               display: "flex",
             }}
           >
-            Caffè · Gelato · Dolci · Maltepe Park, İstanbul
+            Caffè · Gelato · Dolci · Tuzla, İstanbul
           </div>
         </div>
 
@@ -95,7 +95,7 @@ export default async function OgImage() {
           }}
         >
           <div style={{ display: "flex" }}>{SITE.url.replace(/^https?:\/\//, "")}</div>
-          <div style={{ display: "flex" }}>Maltepe Park · Açık-hava teras</div>
+          <div style={{ display: "flex" }}>Tuzla · İstanbul</div>
         </div>
       </div>
     ),

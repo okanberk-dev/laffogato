@@ -49,6 +49,35 @@ const LINKS: LinkEntry[] = [
   { route: "franchise", label: "Franchise" },
 ];
 
+/**
+ * Coffee-bean glyph used in place of the apostrophe in the L'Affogato
+ * wordmark — the brand's logo signature. Gold bean, espresso seam, so it
+ * reads on both the light nav and the dark footer.
+ */
+function BeanMark({ h = 18 }: { h?: number }) {
+  return (
+    <svg
+      width={h * 0.46}
+      height={h * 0.72}
+      viewBox="0 0 12 19"
+      style={{ display: "inline-block", verticalAlign: "0.30em", margin: "0 0.04em" }}
+      aria-hidden="true"
+    >
+      <g transform="rotate(-20 6 9.5)">
+        <ellipse cx="6" cy="9.5" rx="4.3" ry="8.2" fill="var(--gold-soft, #C49A5A)" />
+        <path
+          d="M6 3 C8.2 6.5, 3.8 12.5, 6 16"
+          fill="none"
+          stroke="var(--espresso, #3A2A20)"
+          strokeWidth="1.1"
+          strokeLinecap="round"
+          opacity="0.8"
+        />
+      </g>
+    </svg>
+  );
+}
+
 interface NavProps {
   /** Current SPA route — drives the active link underline. When the nav
       lives outside the homepage SPA (e.g. /uye, /hukuk, /odeme), leave undefined. */
@@ -136,9 +165,9 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
         aria-hidden="true"
       >
         <div className="nav-topbar-inner">
-          <span className="nav-topbar-item">Italia · 1987</span>
+          <span className="nav-topbar-item">Bologna · 1987</span>
           <span className="nav-topbar-dot" />
-          <span className="nav-topbar-item">Maltepe Park · 10:00 — 23:00</span>
+          <span className="nav-topbar-item">Tuzla · 10:00 — 23:00</span>
           <span className="nav-topbar-dot" />
           <span className="nav-topbar-item">500₺ üzeri Türkiye geneli ücretsiz kargo</span>
         </div>
@@ -176,9 +205,9 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
             </span>
             <span className="nav-brand-lockup">
               <span className="nav-brand-text">
-                L<span style={{ fontStyle: "italic" }}>’</span>Affogato
+                L<BeanMark />Affogato
               </span>
-              <span className="nav-brand-tag">caffè · gelato · est. 1987</span>
+              <span className="nav-brand-tag">coffee italiano · est. 1987</span>
             </span>
           </a>
         </div>
@@ -367,13 +396,13 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
             className="btn btn-light btn-lg"
             style={{ width: "100%", justifyContent: "space-between" }}
           >
-            Maltepe Park · rezerve et
+            Tuzla · rezerve et
             <span className="arrow">→</span>
           </a>
         </div>
         <div className="mobile-sheet-foot">
-          <span>Maltepe Park · İstanbul</span>
-          <span>Italia · 1987</span>
+          <span>Tuzla · İstanbul</span>
+          <span>Bologna · 1987</span>
         </div>
       </div>
     </>
@@ -434,7 +463,7 @@ function DropdownPanel({
         <div className="nav-dropdown-foot">
           <span className="nav-dropdown-foot-mark">L'A</span>
           <span className="nav-dropdown-foot-line">
-            Italia 1987 — {parentRoute === "menu" ? "tre rituali, un menù" : "dalla bottega alla casa"}
+            Bologna 1987 — {parentRoute === "menu" ? "tre rituali, un menù" : "dalla bottega alla casa"}
           </span>
         </div>
       </div>
@@ -455,7 +484,7 @@ interface FooterProps {
   settings?: FooterSettings;
 }
 
-const DEFAULT_ADDRESS_LINES = ["Maltepe Park AVM", "Open-air rooftop", "Cevizli, İstanbul"];
+const DEFAULT_ADDRESS_LINES = ["Tuzla", "Açık-hava terası", "Tuzla, İstanbul"];
 
 function splitAddress(address?: string): string[] {
   if (!address) return DEFAULT_ADDRESS_LINES;
@@ -475,7 +504,7 @@ export function Footer({ navigate, settings }: FooterProps) {
     window.scrollTo({ top: 0 });
   };
   const phone = settings?.phone ?? "+90 216 459 30 60";
-  const email = settings?.email ?? "maltepe@laffogato.it";
+  const email = settings?.email ?? "tuzla@laffogato.it";
   const addressLines = splitAddress(settings?.address);
   const year = new Date().getFullYear();
   return (
@@ -497,7 +526,7 @@ export function Footer({ navigate, settings }: FooterProps) {
             Bir mektup, <span className="script">ayda bir.</span>
           </h3>
           <p style={{ marginTop: 18, color: "rgba(255, 255, 255, 0.72)", maxWidth: 460, lineHeight: 1.65 }}>
-            Yeni sezon affogati, İtalyan kavurma notları, küçük gelato denemeleri.
+            Yeni sezon affogati, Bologna kavurma notları, küçük gelato denemeleri.
             Hiçbir zaman ayda birden fazla — söz veriyoruz.
           </p>
         </div>
@@ -525,11 +554,11 @@ export function Footer({ navigate, settings }: FooterProps) {
       <div className="footer-grid">
         <div className="footer-brand-col">
           <div className="footer-mark">
-            L<span style={{ fontStyle: "italic" }}>’</span>Affogato
+            L<BeanMark h={30} />Affogato
           </div>
-          <div className="footer-mark-script">caffè · gelato · est. 1987</div>
+          <div className="footer-mark-script">coffee italiano · est. 1987</div>
           <p>
-            Italia 1987'den İstanbul Maltepe Park'a. İlk yurt dışı şubemiz —
+            Bologna 1987’den İstanbul Tuzla’ya. İlk yurt dışı şubemiz —
             açık-hava teras kahve barı.
           </p>
           <div className="footer-social">
@@ -585,7 +614,7 @@ export function Footer({ navigate, settings }: FooterProps) {
             <li><a href={hrefFor("story")} onClick={go("story")}>Hikayemiz</a></li>
             <li><a href={hrefFor("reels")} onClick={go("reels")}>Reels & Film</a></li>
             <li><a href={hrefFor("franchise")} onClick={go("franchise")}>Franchise</a></li>
-            <li><a href={hrefFor("visit")} onClick={go("visit")}>Maltepe Park</a></li>
+            <li><a href={hrefFor("visit")} onClick={go("visit")}>Tuzla</a></li>
             <li><a href="/uye/hesap">Hesabım</a></li>
           </ul>
         </div>

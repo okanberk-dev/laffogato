@@ -890,15 +890,15 @@ export function MapPlaceholder() {
 
       <path d="M 100 360 Q 320 350, 540 360 T 800 372" stroke="#C5435A" strokeWidth="3" fill="none" />
       <text x="70" y="356" fontFamily="JetBrains Mono" fontSize="10" letterSpacing="2" fill="#C5435A">
-        TRAMVAY · M4
+        MARMARAY · TUZLA
       </text>
 
       <rect x="340" y="288" width="160" height="78" fill="#E0CCA8" stroke="#3A2410" strokeWidth="1.2" />
       <text x="420" y="328" textAnchor="middle" fontFamily="Playfair Display" fontStyle="italic" fontSize="18" fill="#3A2410">
-        Maltepe Park
+        Tuzla
       </text>
       <text x="420" y="346" textAnchor="middle" fontFamily="JetBrains Mono" fontSize="8" letterSpacing="2.5" fill="#5A3818">
-        AVM · TERAS
+        POSTANE MAH.
       </text>
 
       <g transform="translate(430 296)">

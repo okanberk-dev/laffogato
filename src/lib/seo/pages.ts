@@ -28,7 +28,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
   home: {
     route: "home",
     path: ROUTE_PATHS.home,
-    title: `${SITE.name} — Caffè · Gelato · Dolci · Maltepe Park, İstanbul`,
+    title: `${SITE.name} — Caffè · Gelato · Dolci · Tuzla, İstanbul`,
     description: SITE.longDescription,
     breadcrumbLabel: "Ana Sayfa",
     priority: 1.0,
@@ -39,9 +39,9 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.menu,
     title: "Menü — Affogato, Matcha, Espresso, Gelato",
     description:
-      "L'Affogato Maltepe Park menüsü: yenilebilir waffle kupada affogato, Uji ceremonial matcha bar, Sirena espresso, cold brew, fior di latte gelato. 5 kategori, 30+ ürün.",
+      "L'Affogato Tuzla menüsü: yenilebilir waffle kupada affogato, Uji ceremonial matcha bar, Sirena espresso, cold brew, fior di latte gelato. 5 kategori, 30+ ürün.",
     keywords: [
-      "Maltepe Park menü",
+      "Tuzla menü",
       "affogato menü",
       "matcha bar İstanbul",
       "espresso menü",
@@ -57,7 +57,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.shop,
     title: "Mağaza — Çekirdek Kahve, Edible Cup, Ekipman",
     description:
-      "L'Affogato online mağaza: İtalyan kavurma çekirdek kahve, 1994 patentli edible cup, Bialetti × L'Affogato moka pot, bambu chasen, hediye seti. Türkiye'ye 1-3 iş günü kargo.",
+      "L'Affogato online mağaza: Bologna kavurma çekirdek kahve, 1994 patentli edible cup, Bialetti × L'Affogato moka pot, bambu chasen, hediye seti. Türkiye'ye 1-3 iş günü kargo.",
     keywords: [
       "L'Affogato mağaza",
       "çekirdek kahve online",
@@ -75,7 +75,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.story,
     title: "Hikayemiz — 1987 Italia, 2026 İstanbul",
     description:
-      "Üç kuşaklık aile geleneği: 1987'de Giancarlo Mancuso İtalya'da ilk L'Affogato barını açar; 2026'da Eda Mancuso markayı İstanbul Maltepe Park'a taşır. 1994 patentli edible cup, Bronte pistacchio, Sirena harmanı.",
+      "Üç kuşaklık aile geleneği: 1987'de Giancarlo Mancuso Bologna'da ilk L'Affogato barını açar; 2026'da Eda Mancuso markayı İstanbul Tuzla'a taşır. 1994 patentli edible cup, Bronte pistacchio, Sirena harmanı.",
     keywords: [
       "L'Affogato hikayesi",
       "İtalyan kafe markası",
@@ -91,7 +91,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.reels,
     title: "Reels & Film — Bar Ardından",
     description:
-      "L'Affogato Maltepe Park bar ardı: affogato hazırlanışı, strawberry matcha latte yapım sahnesi, fior di latte gelato batch, golden hour bar atmosferi. Kısa film arşivi.",
+      "L'Affogato Tuzla bar ardı: affogato hazırlanışı, strawberry matcha latte yapım sahnesi, fior di latte gelato batch, golden hour bar atmosferi. Kısa film arşivi.",
     keywords: [
       "L'Affogato Instagram",
       "affogato yapımı video",
@@ -105,16 +105,16 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
   visit: {
     route: "visit",
     path: ROUTE_PATHS.visit,
-    title: "Ziyaret — Maltepe Park, İstanbul",
+    title: "Ziyaret — Tuzla, İstanbul",
     description:
-      "L'Affogato Maltepe Park açık-hava teras kahve barı. Adres: Cevizli Tugay Yolu Caddesi No:67, Maltepe. Her gün 10:00 — 23:00 açık. Tramvay Cevizli 5 dk, Marmaray Maltepe 8 dk. Rezervasyon mümkün.",
+      "L'Affogato Tuzla açık-hava teras kahve barı. Adres: Postane Mah., Tuzla. Her gün 10:00 — 23:00 açık. Marmaray Tuzla 6 dk, E-5 / TEM Tuzla çıkışı 4 dk, Sabiha Gökçen 15 dk. Rezervasyon mümkün.",
     keywords: [
-      "Maltepe Park kafe adres",
-      "Maltepe affogato yer",
-      "Maltepe Park teras kafe",
-      "kahve rezervasyon Maltepe",
+      "Tuzla kafe adres",
+      "Tuzla affogato yer",
+      "Tuzla teras kafe",
+      "kahve rezervasyon Tuzla",
     ],
-    breadcrumbLabel: "Ziyaret · Maltepe Park",
+    breadcrumbLabel: "Ziyaret · Tuzla",
     priority: 0.85,
     changefreq: "monthly",
   },
@@ -153,9 +153,9 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     menuKey: "affogato",
     title: "Affogato — Yenilebilir Waffle Kupada İmza Ritüeli",
     description:
-      "1994 patentli yenilebilir waffle kupada Sirena espresso ve fior di latte gelato. 6 affogato çeşidi: classico, cioccolato, nocciola, pistacchio, matcha, strawberry. Maltepe Park imza menüsü.",
+      "1994 patentli yenilebilir waffle kupada Sirena espresso ve fior di latte gelato. 6 affogato çeşidi: classico, cioccolato, nocciola, pistacchio, matcha, strawberry. Tuzla imza menüsü.",
     keywords: [
-      "affogato Maltepe Park",
+      "affogato Tuzla",
       "yenilebilir kup",
       "edible cup affogato",
       "affogato pistacchio",
@@ -170,7 +170,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     description:
       "Japonya Uji bahçesi ceremonial grade matcha. Matcha latte, strawberry matcha latte, matcha tonic, matcha affogato, hojicha latte. Bambu chasen ile bar ardı dövülür.",
     keywords: [
-      "matcha bar Maltepe",
+      "matcha bar Tuzla",
       "Uji matcha İstanbul",
       "strawberry matcha latte",
       "ceremonial matcha",
@@ -186,10 +186,10 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
       "18g in, 36g out, 27 saniye. Tek-origin Sirena harmanı her sabah taze kavrulur. Espresso, americano, cappuccino, latte, mocha, white mocha, filter coffee.",
     keywords: [
       "Sirena espresso",
-      "İtalyan espresso Maltepe",
-      "cappuccino Maltepe",
+      "İtalyan espresso Tuzla",
+      "cappuccino Tuzla",
       "white mocha İstanbul",
-      "filter coffee Maltepe",
+      "filter coffee Tuzla",
     ],
     breadcrumbLabel: "Espresso & Coffee",
   },
@@ -198,13 +198,13 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     menuKey: "cold",
     title: "Cold Bar — Buzlu İçecekler",
     description:
-      "24 saat yavaş demleme cold brew, espresso tonic, iced latte, shakerato, iced strawberry matcha, iced affogato. Mart'tan Ekim'e Maltepe Park terası için yaz menüsü.",
+      "24 saat yavaş demleme cold brew, espresso tonic, iced latte, shakerato, iced strawberry matcha, iced affogato. Mart'tan Ekim'e Tuzla terası için yaz menüsü.",
     keywords: [
       "cold brew İstanbul",
-      "iced latte Maltepe",
+      "iced latte Tuzla",
       "shakerato",
       "iced affogato",
-      "yaz menüsü Maltepe Park",
+      "yaz menüsü Tuzla",
     ],
     breadcrumbLabel: "Cold Bar",
   },
@@ -216,7 +216,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
       "Her sabah 06:00'da çevrilen taze gelato. Fior di latte, stracciatella, nocciola, pistacchio, fondente, matcha. Tiramisù, bombolone, cannolo siciliano, cantucci & vin santo.",
     keywords: [
       "gelato İstanbul",
-      "tiramisu Maltepe",
+      "tiramisu Tuzla",
       "cannolo İstanbul",
       "bombolone",
       "fior di latte gelato",
@@ -241,10 +241,10 @@ export const SHOP_CATEGORY_ROUTES: ShopCategoryRoute[] = [
     productCat: "beans",
     title: "Çekirdek Kahve — Sirena & Notturna",
     description:
-      "İtalya'da kavrulan tek-origin çekirdek kahve. Sirena espresso blend (Brezilya + Etiyopya), Notturna filter lot (Kenya AA Nyeri). Whole bean, 200-250g paketler.",
+      "Bologna'da kavrulan tek-origin çekirdek kahve. Sirena espresso blend (Brezilya + Etiyopya), Notturna filter lot (Kenya AA Nyeri). Whole bean, 200-250g paketler.",
     keywords: [
       "çekirdek kahve satın al",
-      "İtalyan kavurma çekirdek",
+      "Bologna kavurma çekirdek",
       "Sirena espresso blend",
       "Kenya AA filter",
       "whole bean coffee Türkiye",

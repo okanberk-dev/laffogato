@@ -14,21 +14,21 @@ export const LEGAL_ENTITY = {
   activity: "Kahve ve gelato bar işletmeciliği, gıda ürünleri online satışı",
   /** Türkiye merkez adresi (yasal merkez). */
   address: {
-    line1: "Cevizli Mah., Tugay Yolu Cad. No:67",
-    line2: "Maltepe Park AVM · Açık-hava teras katı",
-    district: "Maltepe",
+    line1: "Postane Mah.",
+    line2: "Açık-hava teras katı",
+    district: "Tuzla",
     city: "İstanbul",
-    zip: "34846",
+    zip: "34953",
     country: "Türkiye",
   },
   phone: "+90 216 459 30 60",
-  email: "maltepe@laffogato.it",
+  email: "tuzla@laffogato.it",
   legalEmail: "kvkk@laffogato.com.tr",
   /** Mersis ve sicil numaraları — gerçek değerlerle değiştir. */
   mersisNo: "0123-4567-8901-2345",
   tradeRegistryNo: "İstanbul · 999999",
   /** Vergi dairesi + numarası. */
-  taxOffice: "Pendik Vergi Dairesi",
+  taxOffice: "Tuzla Vergi Dairesi",
   taxNo: "1234567890",
   /** Banka bilgileri — para iadesi için. */
   bank: {
@@ -42,7 +42,7 @@ export const LEGAL_ENTITY = {
   /** İtalya referansı — orijinal kuruluş bilgisi (yalnızca marka geçmişi). */
   italyOrigin: {
     legalName: "L'Affogato Italia S.r.l.",
-    address: "İtalya merkez",
+    address: "Via Galliera 21, 40121 Bologna, Italia",
     vatNo: "IT 0123 4567 891",
     founded: 1987,
   },

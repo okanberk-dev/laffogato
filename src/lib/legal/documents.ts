@@ -57,7 +57,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         heading: "2. Hizmetin tanımı",
         paragraphs: [
-          "L'Affogato, Maltepe Park AVM'de faaliyet gösteren bir kahve ve gelato bar işletmecisidir; aynı zamanda kavrulmuş kahve çekirdeği, yenilebilir waffle kupa, gelato kiti, ekipman ve marka ürünlerinin online satışını gerçekleştirir.",
+          "L'Affogato, Tuzla'da faaliyet gösteren bir kahve ve gelato bar işletmecisidir; aynı zamanda kavrulmuş kahve çekirdeği, yenilebilir waffle kupa, gelato kiti, ekipman ve marka ürünlerinin online satışını gerçekleştirir.",
           "Site üzerinden masa rezervasyonu, online sipariş, üyelik açılışı, sipariş takibi ve müşteri iletişim talepleri yönetilir.",
         ],
       },
