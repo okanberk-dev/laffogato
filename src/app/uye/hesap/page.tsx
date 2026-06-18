@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AccountShell, AccountStat, AccountCard, EmptyState } from "@/components/uye/account-shell";
+import { VerifyNotice } from "@/components/customer/verify-notice";
 import { customerOrdersByEmail, listPromos } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
 
@@ -34,6 +35,11 @@ export default async function HesapPage() {
 
   return (
     <AccountShell customer={customer} active="dashboard">
+      {!customer.emailVerified && (
+        <div style={{ marginBottom: 24 }}>
+          <VerifyNotice email={customer.email} />
+        </div>
+      )}
       <div className="account-stat-grid">
         <AccountStat label="Toplam sipariş" value={orders.length} />
         <AccountStat label="Aktif sipariş" value={inFlight} hint="Henüz tamamlanmamış" />

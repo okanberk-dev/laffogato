@@ -11,6 +11,7 @@ import {
 import {
   addCustomerAddress,
   changeCustomerPassword,
+  createVerificationToken,
   deleteCustomerAddress,
   registerCustomer,
   setCustomerDefaultAddress,
@@ -22,6 +23,12 @@ import {
   type AddressInput,
   type NotificationPrefs,
 } from "@/lib/customer/store";
+import { sendVerificationEmail } from "@/lib/email/send";
+import { SITE } from "@/lib/seo/site";
+
+function verifyUrl(token: string): string {
+  return `${SITE.url}/uye/dogrula?token=${encodeURIComponent(token)}`;
+}
 
 export type RegisterFormState = {
   error?: string;
@@ -49,8 +56,34 @@ export async function registerAction(
   if (!result.ok) {
     return { error: result.error, values: { email, name, phone } };
   }
+  // Send the verification e-mail (best-effort; link is logged if no provider).
+  await sendVerificationEmail(
+    result.customer.email,
+    result.customer.name,
+    verifyUrl(result.verifyToken),
+  );
   await setActiveCustomerSession(result.customer.email);
-  redirect("/uye/hesap");
+  redirect("/uye/hesap?verify=sent");
+}
+
+export type ResendState = { error?: string; message?: string };
+
+/** Re-sends the verification e-mail to the logged-in (unverified) customer. */
+export async function resendVerificationAction(
+  _prev: ResendState,
+  _formData: FormData,
+): Promise<ResendState> {
+  const current = await getActiveCustomer();
+  if (!current) return { error: "Önce giriş yap." };
+  if (current.emailVerified) return { message: "E-postan zaten doğrulanmış." };
+  const result = await createVerificationToken(current.email);
+  if (!result.ok) {
+    return result.alreadyVerified
+      ? { message: "E-postan zaten doğrulanmış." }
+      : { error: result.error };
+  }
+  await sendVerificationEmail(result.email, result.name, verifyUrl(result.token));
+  return { message: "Doğrulama bağlantısı e-postana gönderildi." };
 }
 
 export type LoginFormState = {

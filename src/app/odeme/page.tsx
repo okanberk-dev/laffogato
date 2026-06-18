@@ -1,9 +1,27 @@
 import Link from "next/link";
 
+import { VerifyNotice } from "@/components/customer/verify-notice";
 import { getSettings } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
 
 import { CheckoutWizard } from "./checkout-wizard";
+
+function GatePanel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        maxWidth: 520,
+        margin: "0 auto",
+        background: "#fff",
+        border: "1px solid rgba(20,16,11,0.08)",
+        borderRadius: 18,
+        padding: "32px 28px",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export const metadata = { title: "Ödeme · L'Affogato" };
 export const dynamic = "force-dynamic";
@@ -43,7 +61,27 @@ export default async function OdemePage() {
             </span>
           </div>
         </header>
-        <CheckoutWizard customer={customer} config={config} />
+        {!customer ? (
+          <GatePanel>
+            <h2 style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 26, marginBottom: 10 }}>
+              Sipariş için giriş yap
+            </h2>
+            <p style={{ color: "rgba(20,16,11,0.7)", lineHeight: 1.6, fontSize: 15, marginBottom: 22 }}>
+              Güvenliğin için siparişler yalnızca doğrulanmış hesaplarla verilebilir. Giriş yap ya da
+              hızlıca bir hesap oluştur — e-postanı onayladıktan sonra ödemeye devam edebilirsin.
+            </p>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <Link href="/uye/giris?next=/odeme" className="btn btn-primary btn-sm">Giriş yap</Link>
+              <Link href="/uye/kayit?next=/odeme" className="btn btn-ghost btn-sm">Hesap oluştur</Link>
+            </div>
+          </GatePanel>
+        ) : !customer.emailVerified ? (
+          <GatePanel>
+            <VerifyNotice email={customer.email} />
+          </GatePanel>
+        ) : (
+          <CheckoutWizard customer={customer} config={config} />
+        )}
       </div>
     </main>
   );
