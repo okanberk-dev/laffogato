@@ -5,6 +5,11 @@ import { SeoContent } from "@/components/laffogato/seo-content";
 import {
   getSettings,
   listActiveShopHeroSlides,
+  listActiveReels,
+  listActivePress,
+  listActiveStoryEvents,
+  listActiveFranchisePackages,
+  listActiveFranchiseSteps,
   listMenuForCustomer,
   listShopProducts,
 } from "@/lib/admin/store";
@@ -32,13 +37,30 @@ interface PageProps {
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const [{ cart, item, available }, products, settings, menu, customer, heroSlides] = await Promise.all([
+  const [
+    { cart, item, available },
+    products,
+    settings,
+    menu,
+    customer,
+    heroSlides,
+    reels,
+    press,
+    storyEvents,
+    franchisePackages,
+    franchiseSteps,
+  ] = await Promise.all([
     searchParams,
     listShopProducts(),
     getSettings(),
     listMenuForCustomer(),
     getActiveCustomer(),
     listActiveShopHeroSlides(),
+    listActiveReels(),
+    listActivePress(),
+    listActiveStoryEvents(),
+    listActiveFranchisePackages(),
+    listActiveFranchiseSteps(),
   ]);
 
   let notice: string | undefined;
@@ -80,6 +102,20 @@ export default async function HomePage({ searchParams }: PageProps) {
           ctaHref: s.ctaHref,
           textTheme: s.textTheme,
         }))}
+        reels={reels.map((r) => ({ caption: r.caption, meta: r.meta, accent: r.accent }))}
+        press={press.map((p) => ({ name: p.name, quote: p.quote }))}
+        storyTimeline={storyEvents.map((e) => ({ y: e.year, t: e.title, d: e.body }))}
+        franchisePackages={franchisePackages.map((p) => ({
+          name: p.name,
+          area: p.area,
+          seats: p.seats,
+          invest: p.invest,
+          monthly: p.monthly,
+          ideal: p.ideal,
+          includes: p.includes,
+          featured: p.featured,
+        }))}
+        franchiseSteps={franchiseSteps.map((s) => ({ n: s.step, t: s.title, d: s.body }))}
       />
     </>
   );

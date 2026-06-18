@@ -20,6 +20,10 @@ export type AdminSection =
   | "menu"
   | "categories"
   | "shopHero"
+  | "reels"
+  | "press"
+  | "story"
+  | "franchise"
   | "customers"
   | "promos"
   | "stock"
@@ -34,6 +38,10 @@ const SECTION_ROLES: Record<AdminSection, AdminRole[]> = {
   menu: ["owner", "manager"],
   categories: ["owner", "manager"],
   shopHero: ["owner", "manager"],
+  reels: ["owner", "manager"],
+  press: ["owner", "manager"],
+  story: ["owner", "manager"],
+  franchise: ["owner", "manager"],
   customers: ["owner", "manager"],
   promos: ["owner", "manager"],
   stock: ["owner", "manager", "staff"],

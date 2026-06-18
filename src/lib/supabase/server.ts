@@ -67,4 +67,9 @@ export const TABLES = {
   counters: "counters",
   shopHeroSlides: "shop_hero_slides",
   paymentTransactions: "payment_transactions",
+  reels: "reels",
+  press: "press",
+  storyTimeline: "story_timeline",
+  franchisePackages: "franchise_packages",
+  franchiseProcess: "franchise_process",
 } as const;
