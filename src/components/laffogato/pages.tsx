@@ -2240,8 +2240,23 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
             className="reveal"
             style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}
           >
-            <div className="eyebrow" style={{ marginBottom: 30 }}>
-              IV — La storia · since 1987
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 30,
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 28,
+                  height: 1,
+                  background: "linear-gradient(90deg, var(--gold), transparent)",
+                }}
+              />
+              <span className="eyebrow">IV — La storia · since 1987</span>
             </div>
             <h1
               className="h-display"
@@ -2639,10 +2654,27 @@ export function PageVisit({ visit }: PageProps) {
         <div className="wrap visit-hero-content">
           <div className="reveal">
             <div
-              className="eyebrow on-dark"
-              style={{ color: "#FFF", opacity: 0.85, marginBottom: 22 }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 22,
+              }}
             >
-              V — Vieni a trovarci · İstanbul
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 28,
+                  height: 1,
+                  background: "linear-gradient(90deg, var(--gold), transparent)",
+                }}
+              />
+              <span
+                className="eyebrow on-dark"
+                style={{ color: "rgba(255,255,255,0.7)" }}
+              >
+                V — Vieni a trovarci · İstanbul
+              </span>
             </div>
             <h1
               className="h-display"
@@ -3198,7 +3230,24 @@ export function PageReels({ reels, press }: PageProps) {
         <div className="wrap">
           <div className="reveal" data-row="reels-header">
             <div>
-              <div className="eyebrow">VI — Il film & social</div>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 28,
+                    height: 1,
+                    background:
+                      "linear-gradient(90deg, var(--gold), transparent)",
+                  }}
+                />
+                <span className="eyebrow">VI — Il film & social</span>
+              </div>
               <h1 style={{ marginTop: 24 }}>
                 Reels & <span className="script">film.</span>
               </h1>
@@ -3764,23 +3813,20 @@ export function PageFranchise({
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 12,
-                  padding: "8px 14px",
-                  borderRadius: 999,
-                  background: "rgba(255, 255, 255, 0.06)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
                 }}
               >
                 <span
+                  aria-hidden="true"
                   style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: "var(--gold)",
+                    width: 28,
+                    height: 1,
+                    background:
+                      "linear-gradient(90deg, var(--gold), transparent)",
                   }}
                 />
                 <span
                   className="eyebrow on-dark"
-                  style={{ color: "#FFF", opacity: 0.86 }}
+                  style={{ color: "rgba(255,255,255,0.7)" }}
                 >
                   VII — Franchise · Concessione di marca
                 </span>
