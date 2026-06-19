@@ -173,13 +173,8 @@ export default function RootLayout({
   return (
     <html lang={SITE.language} className={fontVariables}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin=""
-        />
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        {/* next/font self-hosts the fonts — no Google Fonts origin is hit at
+            runtime, so preconnect/dns-prefetch hints would be dead weight. */}
         <link
           rel="alternate"
           type="text/plain"

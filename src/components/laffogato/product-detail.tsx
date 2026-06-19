@@ -130,6 +130,7 @@ export function ProductDetail({
                   tone={p.img}
                   label={p.name}
                   images={[gallery[activeImg]]}
+                  priority
                 />
               ) : (
                 <ProductSurface

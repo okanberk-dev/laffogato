@@ -1767,6 +1767,7 @@ export function ProductSurface({
   label,
   sub,
   images,
+  priority = false,
 }: {
   cat?: string;
   tone?: string;
@@ -1774,6 +1775,8 @@ export function ProductSurface({
   sub?: string;
   /** Admin-uploaded image URLs; when present the first is shown instead of SVG. */
   images?: string[];
+  /** Set for above-the-fold (LCP) images — eager + high fetch priority. */
+  priority?: boolean;
 }) {
   const surface =
     cat === "beans"
@@ -1795,7 +1798,9 @@ export function ProductSurface({
       <img
         src={cover}
         alt={label ?? "Ürün görseli"}
-        loading="lazy"
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "auto"}
+        decoding="async"
         style={{
           width: "100%",
           height: "100%",

@@ -71,7 +71,7 @@ export function organizationLd(): Json {
     url: SITE.url,
     logo: {
       "@type": "ImageObject",
-      url: `${SITE.url}/icon.png`,
+      url: `${SITE.url}/icon-512.png`,
       width: 512,
       height: 512,
     },
@@ -123,7 +123,7 @@ export function localBusinessLd(): Json {
     "@id": `${SITE.url}/#localbusiness`,
     name: `${SITE.name} — Tuzla`,
     image: [`${SITE.url}${SITE.ogImage}`],
-    logo: `${SITE.url}/icon.png`,
+    logo: `${SITE.url}/icon-512.png`,
     url: SITE.url,
     telephone: SITE.phoneE164,
     email: SITE.email,
@@ -138,6 +138,7 @@ export function localBusinessLd(): Json {
     isAccessibleForFree: true,
     keywords: SITE.keywords.slice(0, 10).join(", "),
     slogan: SITE.tagline,
+    sameAs: [SITE.social.instagram, SITE.social.tiktok, SITE.social.youtube],
     address: {
       "@type": "PostalAddress",
       streetAddress: SITE.address.streetAddress,
@@ -167,7 +168,9 @@ export function localBusinessLd(): Json {
         return map[d] ?? d;
       }),
       opens: slot.opens,
-      closes: slot.closes === "24:00" ? "00:00" : slot.closes,
+      // schema.org Time has no "24:00"; map midnight-close to "23:59" so the
+      // slot reads as open-till-late, not "closes at 00:00" (= closed).
+      closes: slot.closes === "24:00" ? "23:59" : slot.closes,
     })),
     parentOrganization: { "@id": `${SITE.url}/#organization` },
     areaServed: { "@type": "City", name: "İstanbul" },
@@ -247,18 +250,10 @@ export function websiteLd(): Json {
     copyrightHolder: { "@id": `${SITE.url}/#organization` },
     potentialAction: [
       {
-        "@type": "SearchAction",
-        target: {
-          "@type": "EntryPoint",
-          urlTemplate: `${SITE.url}/?q={search_term_string}`,
-        },
-        "query-input": "required name=search_term_string",
-      },
-      {
         "@type": "ReserveAction",
         target: {
           "@type": "EntryPoint",
-          urlTemplate: `${SITE.url}/#visit`,
+          urlTemplate: `${SITE.url}/ziyaret`,
           actionPlatform: [
             "http://schema.org/DesktopWebPlatform",
             "http://schema.org/MobileWebPlatform",
@@ -336,12 +331,17 @@ export function productListLd(products: Product[]): Json {
       const compareAt = p.compareAtPrice
         ? priceToMinor(p.compareAtPrice)
         : null;
-      const slug = slugify(p.name);
+      const slug = p.slug ?? slugify(p.name);
       const productId = `${SITE.url}/#product-${slug}`;
+      const pdpUrl = `${SITE.url}/magaza/urun/${slug}`;
+      const image =
+        p.images && p.images.length > 0 && /^https?:\/\//i.test(p.images[0])
+          ? p.images[0]
+          : `${SITE.url}${SITE.ogImage}`;
       return {
         "@type": "ListItem",
         position: idx + 1,
-        url: `${SITE.url}/#shop`,
+        url: pdpUrl,
         item: {
           "@type": "Product",
           "@id": productId,
@@ -356,8 +356,8 @@ export function productListLd(products: Product[]): Json {
             "@id": `${SITE.url}/#organization`,
           },
           manufacturer: { "@id": `${SITE.url}/#organization` },
-          image: `${SITE.url}${SITE.ogImage}`,
-          url: `${SITE.url}/#shop`,
+          image,
+          url: pdpUrl,
           inLanguage: SITE.locale,
           offers: {
             "@type": "Offer",
@@ -367,7 +367,7 @@ export function productListLd(products: Product[]): Json {
             priceValidUntil: PRICE_VALID_UNTIL,
             availability: "https://schema.org/InStock",
             itemCondition: "https://schema.org/NewCondition",
-            url: `${SITE.url}/#shop`,
+            url: pdpUrl,
             seller: { "@id": `${SITE.url}/#organization` },
             ...(compareAt
               ? {
@@ -551,7 +551,7 @@ export function aboutPageLd(): Json {
     "@context": "https://schema.org",
     "@type": "AboutPage",
     "@id": `${SITE.url}/#about`,
-    url: `${SITE.url}/#story`,
+    url: `${SITE.url}/hikayemiz`,
     name: `${SITE.name} — Hikayemiz`,
     inLanguage: SITE.locale,
     description:
@@ -730,12 +730,12 @@ export function siteGraphLd(
       speakableLd(),
       breadcrumbLd([
         { name: "Ana Sayfa", url: "/" },
-        { name: "Menü", url: "/#menu" },
-        { name: "Mağaza", url: "/#shop" },
-        { name: "Hikaye", url: "/#story" },
-        { name: "Ziyaret · Tuzla", url: "/#visit" },
-        { name: "Reels", url: "/#reels" },
-        { name: "Franchise", url: "/#franchise" },
+        { name: "Menü", url: "/menu" },
+        { name: "Mağaza", url: "/magaza" },
+        { name: "Hikaye", url: "/hikayemiz" },
+        { name: "Ziyaret · Tuzla", url: "/ziyaret" },
+        { name: "Reels", url: "/reels" },
+        { name: "Franchise", url: "/franchise" },
       ]),
     ],
   };

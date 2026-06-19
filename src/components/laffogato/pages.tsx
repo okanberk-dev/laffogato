@@ -158,14 +158,14 @@ export function PageHome({
                 }}
               >
                 <a
-                  href="#menu"
+                  href="/menu"
                   onClick={go("menu")}
                   className="btn btn-light btn-lg"
                 >
                   Menüyü gör <span className="arrow">→</span>
                 </a>
                 <a
-                  href="#shop"
+                  href="/magaza"
                   onClick={go("shop")}
                   className="btn btn-ghost btn-lg"
                   style={{
@@ -332,7 +332,7 @@ export function PageHome({
                 Tuzla, <span className="script">altın saat.</span>
               </h2>
             </div>
-            <a href="#visit" onClick={go("visit")} className="btn-link">
+            <a href="/ziyaret" onClick={go("visit")} className="btn-link">
               Yol tarifi & saatler <span>→</span>
             </a>
           </div>
@@ -412,10 +412,10 @@ export function PageHome({
                 flexWrap: "wrap",
               }}
             >
-              <a href="#menu" onClick={go("menu")} className="btn btn-primary">
+              <a href="/menu" onClick={go("menu")} className="btn btn-primary">
                 Affogato menüsü <span className="arrow">→</span>
               </a>
-              <a href="#story" onClick={go("story")} className="btn btn-ghost">
+              <a href="/hikayemiz" onClick={go("story")} className="btn btn-ghost">
                 Hikayemiz
               </a>
             </div>
@@ -456,7 +456,7 @@ export function PageHome({
                 tek ritüel.
               </h2>
             </div>
-            <a href="#menu" onClick={go("menu")} className="btn-link">
+            <a href="/menu" onClick={go("menu")} className="btn-link">
               Tam menü <span>→</span>
             </a>
           </div>
@@ -649,7 +649,7 @@ export function PageHome({
                 ))}
             </div>
             <a
-              href="#menu"
+              href="/menu"
               onClick={go("menu")}
               className="btn btn-primary"
               style={{ marginTop: 36 }}
@@ -669,7 +669,7 @@ export function PageHome({
                 Bring it <span className="script">home.</span>
               </h2>
             </div>
-            <a href="#shop" onClick={go("shop")} className="btn-link">
+            <a href="/magaza" onClick={go("shop")} className="btn-link">
               Shop <span>→</span>
             </a>
           </div>
@@ -699,7 +699,7 @@ export function PageHome({
               </h2>
             </div>
             <a
-              href="#reels"
+              href="/reels"
               onClick={go("reels")}
               className="btn-link"
               style={{ color: "#FFF", borderColor: "#FFF" }}
@@ -718,7 +718,7 @@ export function PageHome({
             {REELS.slice(0, 4).map((r, i) => (
               <a
                 key={i}
-                href="#reels"
+                href="/reels"
                 onClick={go("reels")}
                 className="reveal"
                 style={{
@@ -803,14 +803,14 @@ export function PageHome({
             </div>
             <div className="btn-group-wrap" style={{ marginTop: 36 }}>
               <a
-                href="#franchise"
+                href="/franchise"
                 onClick={go("franchise")}
                 className="btn btn-primary"
               >
                 Başvuru formu <span className="arrow">→</span>
               </a>
               <a
-                href="#franchise"
+                href="/franchise"
                 onClick={go("franchise")}
                 className="btn btn-ghost"
               >
@@ -2646,6 +2646,11 @@ export function PageVisit({ visit }: PageProps) {
   const visitEmail = visit?.email ?? LOCATION.email;
   const visitHours = visit?.hours ?? LOCATION.hours;
   useReveal();
+  // Real directions links so /ziyaret carries a genuine local signal + works
+  // (the map illustration links straight to Google Maps directions).
+  const mapQuery = ["L'Affogato", ...addressLines, "İstanbul"].join(", ");
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`;
+  const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(mapQuery)}`;
   const [partySize, setPartySize] = useState(2);
   const [day, setDay] = useState("Bu akşam");
   const [time, setTime] = useState("19:30");
@@ -2814,31 +2819,40 @@ export function PageVisit({ visit }: PageProps) {
                 flexWrap: "wrap",
               }}
             >
-              <a href="#" className="chip" onClick={(e) => e.preventDefault()}>
-                Marmaray Tuzla · 6 dk
-              </a>
-              <a href="#" className="chip" onClick={(e) => e.preventDefault()}>
-                Vale · ücretsiz
-              </a>
-              <a href="#" className="chip" onClick={(e) => e.preventDefault()}>
-                Sabiha Gökçen · 15 dk
-              </a>
-              <a href="#" className="chip" onClick={(e) => e.preventDefault()}>
-                E-5 / TEM Tuzla çıkışı
-              </a>
+              <span className="chip">Marmaray Tuzla · 6 dk</span>
+              <span className="chip">Vale · ücretsiz</span>
+              <span className="chip">Sabiha Gökçen · 15 dk</span>
+              <span className="chip">E-5 / TEM Tuzla çıkışı</span>
             </div>
 
             <div className="btn-group-wrap" style={{ marginTop: 30 }}>
-              <button className="btn btn-primary">
+              <a
+                className="btn btn-primary"
+                href={appleMapsUrl}
+                target="_blank"
+                rel="noopener"
+              >
                 Apple Maps <span className="arrow">→</span>
-              </button>
-              <button className="btn btn-ghost">Google Maps</button>
+              </a>
+              <a
+                className="btn btn-ghost"
+                href={directionsUrl}
+                target="_blank"
+                rel="noopener"
+              >
+                Google Maps · yol tarifi
+              </a>
             </div>
           </div>
 
-          <div
+          <a
             className="reveal r1"
+            href={directionsUrl}
+            target="_blank"
+            rel="noopener"
+            aria-label="Google Haritalar'da yol tarifi al"
             style={{
+              display: "block",
               aspectRatio: "4/5",
               borderRadius: "var(--r-lg)",
               overflow: "hidden",
@@ -2848,7 +2862,7 @@ export function PageVisit({ visit }: PageProps) {
             <PhotoSurface hue="warm" vignette={false}>
               <MapPlaceholder />
             </PhotoSurface>
-          </div>
+          </a>
         </div>
       </section>
 
@@ -3070,7 +3084,7 @@ export function PageVisit({ visit }: PageProps) {
             }
             action={
               <a
-                href="#reels"
+                href="/reels"
                 className="btn-link"
                 onClick={(e) => {
                   e.preventDefault();
