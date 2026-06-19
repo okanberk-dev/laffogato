@@ -94,7 +94,7 @@ export function PageHome({
             position: "absolute",
             inset: 0,
             background:
-              "radial-gradient(ellipse at 25% 35%, rgba(184, 138, 74, 0.18), transparent 60%), radial-gradient(ellipse at 85% 80%, rgba(229, 95, 126, 0.08), transparent 55%)",
+              "radial-gradient(58% 50% at 18% 26%, rgba(184, 138, 74, 0.15), transparent 72%)",
             pointerEvents: "none",
           }}
         />
@@ -110,28 +110,25 @@ export function PageHome({
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 12,
-                  padding: "8px 14px",
-                  borderRadius: 999,
-                  background: "rgba(255, 255, 255, 0.06)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
                 }}
               >
                 <span
+                  aria-hidden="true"
                   style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: "var(--gold)",
+                    width: 28,
+                    height: 1,
+                    background:
+                      "linear-gradient(90deg, var(--gold), transparent)",
                   }}
                 />
                 <span
                   className="eyebrow on-dark"
-                  style={{ color: "#FFF", opacity: 0.86 }}
+                  style={{ color: "rgba(255,255,255,0.7)" }}
                 >
                   {c("home.hero.eyebrow", "Bologna · 1987 → İstanbul · 2026")}
                 </span>
               </div>
-              <h1 className="h-display reveal r1" style={{ marginTop: 24 }}>
+              <h1 className="h-display reveal r1" style={{ marginTop: 32 }}>
                 Drink
                 <br />
                 it. Eat
@@ -141,9 +138,9 @@ export function PageHome({
               <p
                 className="lede reveal r2"
                 style={{
-                  marginTop: 30,
-                  color: "rgba(255, 255, 255, 0.78)",
-                  maxWidth: 480,
+                  marginTop: 28,
+                  color: "rgba(255, 255, 255, 0.72)",
+                  maxWidth: 430,
                 }}
               >
                 {c(
@@ -157,7 +154,7 @@ export function PageHome({
                   display: "flex",
                   gap: 12,
                   flexWrap: "wrap",
-                  marginTop: 34,
+                  marginTop: 40,
                 }}
               >
                 <a
@@ -183,9 +180,9 @@ export function PageHome({
                 className="reveal r4"
                 data-row="home-hero-stats"
                 style={{
-                  marginTop: 60,
-                  paddingTop: 30,
-                  borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+                  marginTop: 72,
+                  paddingTop: 32,
+                  borderTop: "1px solid rgba(255, 255, 255, 0.1)",
                 }}
               >
                 {[
