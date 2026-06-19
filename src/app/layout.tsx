@@ -5,9 +5,16 @@ import {
   JetBrains_Mono,
 } from "next/font/google";
 
+import { GoogleTagManager } from "@next/third-parties/google";
+
 import { RevealMotion } from "@/components/laffogato/reveal-motion";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
+
+// Google Tag Manager container — all analytics/marketing tags (GA4, Meta Pixel,
+// conversions, …) are managed inside GTM, not in code. Override the public
+// container id with NEXT_PUBLIC_GTM_ID; empty value disables the integration.
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
 
 // Editorial-modern type system: Instrument Serif (display) + Hanken Grotesk
 // (UI/body) + JetBrains Mono (eyebrows, prices, SKU). Turkish via latin-ext.
@@ -172,6 +179,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang={SITE.language} className={fontVariables}>
+      {GTM_ID ? <GoogleTagManager gtmId={GTM_ID} /> : null}
       <head>
         {/* next/font self-hosts the fonts — no Google Fonts origin is hit at
             runtime, so preconnect/dns-prefetch hints would be dead weight. */}
