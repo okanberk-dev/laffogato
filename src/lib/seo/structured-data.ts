@@ -14,7 +14,6 @@
  *  - HowTo (how an affogato is made)
  *  - Service (franchise model)
  *  - Offer × 3 (Kiosk / Bottega / Salone franchise packages)
- *  - VideoObject × N (reels)
  *  - SpeakableSpecification (for voice assistants)
  *
  * All generators return plain JSON-serializable objects; consumer wraps in
@@ -23,7 +22,7 @@
 
 import { FAQ, type FaqEntry } from "./faq";
 import { SITE } from "./site";
-import { FRANCHISE, REELS, STORY, type MenuCategory, type Product } from "@/components/laffogato/data";
+import { FRANCHISE, STORY, type MenuCategory, type Product } from "@/components/laffogato/data";
 
 type Json = Record<string, unknown>;
 
@@ -163,12 +162,12 @@ export function localBusinessLd(): Json {
         return map[d] ?? d;
       }),
       opens: slot.opens,
-      closes: slot.closes,
+      closes: slot.closes === "24:00" ? "00:00" : slot.closes,
     })),
     parentOrganization: { "@id": `${SITE.url}/#organization` },
     areaServed: { "@type": "City", name: "İstanbul" },
     amenityFeature: [
-      { "@type": "LocationFeatureSpecification", name: "Açık-hava teras", value: true },
+      { "@type": "LocationFeatureSpecification", name: "Tarihi Rum köşkü", value: true },
       { "@type": "LocationFeatureSpecification", name: "Ücretsiz Wi-Fi", value: true },
       { "@type": "LocationFeatureSpecification", name: "Vale park", value: true },
       { "@type": "LocationFeatureSpecification", name: "Evcil hayvan dostu", value: true },
@@ -267,7 +266,6 @@ export function menuLd(menu: Record<string, MenuCategory>): Json {
         const tags = item.tags ?? [];
         const diet: string[] = [];
         if (tags.includes("vegan opt.")) diet.push("https://schema.org/VeganDiet");
-        if (tags.includes("nuts")) diet.push("https://schema.org/LowCalorieDiet");
         return {
           "@type": "MenuItem",
           name: item.name,
@@ -279,7 +277,6 @@ export function menuLd(menu: Record<string, MenuCategory>): Json {
             availability: "https://schema.org/InStock",
           },
           ...(diet.length ? { suitableForDiet: diet } : {}),
-          menuAddOn: tags.includes("signature") ? "signature" : undefined,
         };
       }),
     })),
@@ -333,7 +330,6 @@ export function productListLd(products: Product[]): Json {
                     "@type": "UnitPriceSpecification",
                     price: amount,
                     priceCurrency: currency,
-                    referencePrice: compareAt.amount,
                   },
                 }
               : {}),
@@ -433,7 +429,6 @@ export function singleProductLd(p: Product, canonicalPath: string): Json {
               "@type": "UnitPriceSpecification",
               price: amount,
               priceCurrency: currency,
-              referencePrice: compareAt.amount,
             },
           }
         : {}),
@@ -512,7 +507,7 @@ export function howToAffogatoLd(): Json {
     "@id": `${SITE.url}/#howto-affogato`,
     name: "Klasik Affogato nasıl yapılır?",
     description:
-      "L'Affogato L'''Affogato'nun 1987'den beri uyguladığı orijinal affogato tarifi: tek scoop fior di latte gelato üzerine çift shot Sirena espresso, yenilebilir waffle kup içinde.",
+      "L'Affogato'nun 1987'den beri uyguladığı orijinal affogato tarifi: tek scoop fior di latte gelato üzerine çift shot Sirena espresso, yenilebilir waffle kup içinde.",
     inLanguage: SITE.locale,
     totalTime: "PT2M",
     estimatedCost: {
@@ -577,57 +572,43 @@ export function franchiseServiceLd(): Json {
     offers: FRANCHISE.packages.map((pkg) => {
       const investment = eurAmount(pkg.invest);
       const monthly = eurAmount(pkg.monthly);
+      const priceSpecification: Json[] = [];
+      if (investment.amount !== "0") {
+        priceSpecification.push({
+          "@type": "PriceSpecification",
+          name: "Başlangıç yatırımı",
+          price: investment.amount,
+          priceCurrency: investment.currency,
+        });
+      }
+      if (monthly.amount !== "0") {
+        priceSpecification.push({
+          "@type": "UnitPriceSpecification",
+          name: "Aylık franchise ücreti",
+          price: monthly.amount,
+          priceCurrency: monthly.currency,
+          referenceQuantity: {
+            "@type": "QuantitativeValue",
+            value: 1,
+            unitCode: "MON",
+          },
+        });
+      }
       return {
         "@type": "Offer",
         "@id": `${SITE.url}/#franchise-${slugify(pkg.name)}`,
         name: `Franchise — ${pkg.name}`,
         description: `${pkg.area}, ${pkg.seats} koltuk. İdeal: ${pkg.ideal}. Dahil: ${pkg.includes.join(", ")}.`,
-        priceSpecification: [
-          {
-            "@type": "PriceSpecification",
-            name: "Başlangıç yatırımı",
-            price: investment.amount,
-            priceCurrency: investment.currency,
-          },
-          {
-            "@type": "UnitPriceSpecification",
-            name: "Aylık franchise ücreti",
-            price: monthly.amount,
-            priceCurrency: monthly.currency,
-            referenceQuantity: {
-              "@type": "QuantitativeValue",
-              value: 1,
-              unitCode: "MON",
-            },
-          },
-        ],
+        ...(priceSpecification.length ? { priceSpecification } : {}),
         availability: "https://schema.org/InStock",
         seller: { "@id": `${SITE.url}/#organization` },
         eligibleRegion: [
-          { "@type": "Country", name: "TR" },
-          { "@type": "Country", name: "IT" },
+          { "@type": "Country", name: "Türkiye" },
+          { "@type": "Country", name: "İtalya" },
         ],
       };
     }),
   };
-}
-
-export function videoReelsLd(): Json[] {
-  const now = new Date().toISOString();
-  return REELS.map((reel, idx) => ({
-    "@context": "https://schema.org",
-    "@type": "VideoObject",
-    "@id": `${SITE.url}/#reel-${idx + 1}`,
-    name: reel.caption,
-    description: `${reel.caption} — L'Affogato Tuzla.`,
-    thumbnailUrl: `${SITE.url}${SITE.ogImage}`,
-    uploadDate: now,
-    contentUrl: `${SITE.url}/#reels`,
-    embedUrl: `${SITE.url}/#reels`,
-    publisher: { "@id": `${SITE.url}/#organization` },
-    inLanguage: SITE.locale,
-    isFamilyFriendly: true,
-  }));
 }
 
 export function speakableLd(): Json {
@@ -675,7 +656,6 @@ export function siteGraphLd(
       howToAffogatoLd(),
       franchiseServiceLd(),
       speakableLd(),
-      ...videoReelsLd(),
       breadcrumbLd([
         { name: "Ana Sayfa", url: "/" },
         { name: "Menü", url: "/#menu" },

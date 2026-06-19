@@ -9,6 +9,7 @@ import {
   Playfair_Display,
 } from "next/font/google";
 
+import { RevealMotion } from "@/components/laffogato/reveal-motion";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
 
@@ -66,8 +67,8 @@ const jetbrains = JetBrains_Mono({
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FAF6EE" },
-    { media: "(prefers-color-scheme: dark)", color: "#14100B" },
+    { media: "(prefers-color-scheme: light)", color: "#FBF4E6" },
+    { media: "(prefers-color-scheme: dark)", color: "#20140D" },
   ],
   colorScheme: "light dark",
   width: "device-width",
@@ -85,7 +86,6 @@ export const metadata: Metadata = {
   applicationName: SITE.name,
   generator: "Next.js",
   referrer: "origin-when-cross-origin",
-  keywords: [...SITE.keywords],
   authors: [{ name: SITE.legalName, url: SITE.url }],
   creator: SITE.legalName,
   publisher: SITE.legalName,
@@ -110,7 +110,7 @@ export const metadata: Metadata = {
     url: SITE.url,
     siteName: SITE.name,
     title: `${SITE.name} — Caffè · Gelato · Dolci · Tuzla, İstanbul`,
-    description: SITE.longDescription,
+    description: SITE.shortDescription,
     // og:image is auto-discovered from src/app/opengraph-image.tsx
   },
   twitter: {
@@ -172,7 +172,7 @@ export const metadata: Metadata = {
     // Misc
     "format-detection": "telephone=no",
     "apple-mobile-web-app-title": SITE.name,
-    "msapplication-TileColor": "#14100B",
+    "msapplication-TileColor": "#2C1D11",
     "msapplication-config": "/browserconfig.xml",
     // Pinterest + Facebook domain verification (env-driven, optional)
     ...(SITE.verification.pinterest
@@ -185,7 +185,6 @@ export const metadata: Metadata = {
     rating: "General",
     distribution: "Global",
     "revisit-after": "7 days",
-    "og:locale:alternate": "it_IT",
     // Mobile + theme defaults
     "mobile-web-app-capable": "yes",
     "HandheldFriendly": "true",
@@ -227,7 +226,10 @@ export default function RootLayout({
           title="LLM full content"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <RevealMotion />
+      </body>
     </html>
   );
 }

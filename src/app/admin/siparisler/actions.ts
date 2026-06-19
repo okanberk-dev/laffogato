@@ -10,6 +10,7 @@ import {
   refundOrder,
   setOrderInternalNote,
   setOrderItemStatus,
+  setOrderTracking,
   transitionOrder,
   updateOrderStatus,
   type AdminOrderItemStatus,
@@ -174,4 +175,22 @@ export async function refundOrderAction(
   });
   revalidateOrder(id);
   return { ok: { refundedMinor: amountMinor } };
+}
+
+export async function saveOrderTrackingAction(formData: FormData) {
+  await requireRole("orders");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  const trackingNumber = String(formData.get("trackingNumber") ?? "");
+  const carrier = String(formData.get("carrier") ?? "");
+  const result = await setOrderTracking(id, trackingNumber, carrier);
+  if (!result) return;
+  await logAudit({
+    action: "update",
+    entity: "order",
+    entityId: id,
+    // Don't log the raw tracking number — just whether it was set.
+    payload: { tracking: trackingNumber.trim() ? "set" : "cleared", carrier },
+  });
+  revalidateOrder(id);
 }

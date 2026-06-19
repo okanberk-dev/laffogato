@@ -18,11 +18,11 @@ export interface FaqEntry {
 export const FAQ: FaqEntry[] = [
   {
     q: "L'Affogato nerede, nasıl ulaşırım?",
-    a: "L'Affogato, Tuzla'nın açık-hava teras katında bulunuyor: Postane Mah., Tuzla, 34953 Tuzla, İstanbul. Marmaray Tuzla istasyonu 6 dakika, E-5 / TEM Tuzla çıkışı 4 dakika, Sabiha Gökçen Havalimanı 15 dakika mesafededir. Ücretsiz vale park hizmeti sunulur.",
+    a: "L'Affogato, Tuzla'da 200 yıllık, restore edilmiş bir Rum köşkünde bulunuyor: Postane Mah. 29 Ekim Cad. No:28, 34953 Tuzla, İstanbul. Marmaray Tuzla istasyonu 6 dakika, E-5 / TEM Tuzla çıkışı 4 dakika, Sabiha Gökçen Havalimanı 15 dakika mesafededir. Ücretsiz vale park hizmeti sunulur.",
   },
   {
     q: "Çalışma saatleri nedir?",
-    a: "Pazartesi'den Perşembe'ye 10:00 — 23:00, Cuma ve Cumartesi 10:00 — 24:00, Pazar 10:00 — 23:00 saatleri arasında açığız. Tüm yıl boyunca hizmet veriyoruz; teras katı yaz aylarında tamamen açık, kış aylarında ısıtmalı çadır altında kullanılır.",
+    a: "Pazartesi'den Perşembe'ye 10:00 — 23:00, Cuma ve Cumartesi 10:00 — 24:00, Pazar 10:00 — 23:00 saatleri arasında açığız. Tüm yıl boyunca hizmet veriyoruz; köşkün avlusu yaz aylarında, yüksek tavanlı iç salonları kış aylarında kullanılır.",
   },
   {
     q: "Affogato Classico nedir, yenilebilir kup ne demek?",
@@ -30,7 +30,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Rezervasyon yapabilir miyim?",
-    a: "Evet. +90 216 459 30 60 numarasından ya da web sitesindeki Visit sayfasından masa rezervasyonu yapılabilir. Hafta sonu akşam servisleri için 24 saat öncesinden rezervasyon öneririz. 12 koltuklu küçük bir teras barız, masaları sınırlıdır.",
+    a: "Evet. +90 216 459 30 60 numarasından ya da web sitesindeki Visit sayfasından masa rezervasyonu yapılabilir. Hafta sonu akşam servisleri için 24 saat öncesinden rezervasyon öneririz. 12 koltuklu küçük bir köşk barıyız, masaları sınırlıdır.",
   },
   {
     q: "Vegan veya glutensiz seçeneğiniz var mı?",
@@ -54,11 +54,11 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Franchise vermek istiyorum, nasıl başvururum?",
-    a: "Üç paketimiz var: Kiosk (24–38 m², €85.000), Bottega (40–80 m², €140.000) ve Salone (90–160 m², €280.000). Başvuru online form ile başlar; ardından Bologna ekibiyle 60 dakikalık video görüşme, Tuzla ziyareti, sözleşme ve Bologna'da 4–8 haftalık eğitimle açılış. Franchise sayfasından detaylı bilgi alabilirsiniz.",
+    a: "Üç paketimiz var: Kiosk, Bottega ve Salone. Fiyatlandırma talep üzerine paylaşılır. Süreç: online başvuru → Bologna ekibiyle video görüşme → Tuzla ziyareti → sözleşme → Bologna'da 4–8 hafta eğitim ve açılış. Franchise sayfasından detaylı bilgi alabilirsiniz.",
   },
   {
     q: "Çocuk ve evcil hayvan dostu mu?",
-    a: "Evet. Açık-hava teras, bebek arabası erişimine uygundur. Çocuk menüsünde kafeinsiz babyccino, fior di latte single scoop ve bombolone alla crema bulunur. Köpekler teras kısmında karşılanır; su kabı ve ev yapımı dog biscuit ikram edilir.",
+    a: "Evet. Köşkün avlusu, bebek arabası erişimine uygundur. Çocuk menüsünde kafeinsiz babyccino, fior di latte single scoop ve bombolone alla crema bulunur. Köpekler köşkün bahçesinde karşılanır; su kabı ve ev yapımı dog biscuit ikram edilir.",
   },
   {
     q: "Ödeme yöntemleri nelerdir?",

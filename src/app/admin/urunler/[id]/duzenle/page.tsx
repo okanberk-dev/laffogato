@@ -5,7 +5,7 @@ import { ProductWizard } from "@/components/admin/product-wizard";
 import { requireRole } from "@/lib/admin/auth";
 import { getProduct, listCategories } from "@/lib/admin/store";
 
-import { updateProductAction, type ProductActionState } from "../../actions";
+import { updateProductAction } from "../../actions";
 
 export const metadata = { title: "Admin · Ürün Düzenle" };
 export const dynamic = "force-dynamic";
@@ -26,10 +26,7 @@ export default async function EditProductPage({ params }: PageProps) {
     notFound();
   }
 
-  const boundUpdate = (
-    prev: ProductActionState,
-    formData: FormData,
-  ): Promise<ProductActionState> => updateProductAction(product.id, prev, formData);
+  const boundUpdate = updateProductAction.bind(null, product.id);
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">

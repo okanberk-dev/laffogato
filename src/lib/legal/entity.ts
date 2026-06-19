@@ -14,8 +14,8 @@ export const LEGAL_ENTITY = {
   activity: "Kahve ve gelato bar işletmeciliği, gıda ürünleri online satışı",
   /** Türkiye merkez adresi (yasal merkez). */
   address: {
-    line1: "Postane Mah.",
-    line2: "Açık-hava teras katı",
+    line1: "Postane Mah. 29 Ekim Cad. No:28",
+    line2: "200 yıllık Rum köşkü",
     district: "Tuzla",
     city: "İstanbul",
     zip: "34953",

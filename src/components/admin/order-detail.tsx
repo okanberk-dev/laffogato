@@ -12,6 +12,7 @@ import {
 import {
   refundOrderAction,
   saveOrderNoteAction,
+  saveOrderTrackingAction,
   setItemStatusAction,
   transitionOrderAction,
   type NoteActionState,
@@ -326,6 +327,47 @@ export function OrderDetail({
                 Teslimat adresi toplanmamış. (Müşteri checkout'unda alınacak.)
               </p>
             )}
+          </Card>
+
+          <Card>
+            <SectionTitle>Kargo</SectionTitle>
+            <form action={saveOrderTrackingAction} className="grid gap-2.5 text-sm">
+              <input type="hidden" name="id" value={order.id} />
+              <label className="grid gap-1">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
+                  Kurye
+                </span>
+                <input
+                  name="carrier"
+                  defaultValue={order.carrier ?? ""}
+                  placeholder="Yurtiçi Kargo, Aras, MNG…"
+                  className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 outline-none focus:border-neutral-900 focus:bg-white"
+                />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
+                  Takip no
+                </span>
+                <input
+                  name="trackingNumber"
+                  defaultValue={order.trackingNumber ?? ""}
+                  placeholder="Kargo takip numarası"
+                  className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 font-mono outline-none focus:border-neutral-900 focus:bg-white"
+                  style={{ fontFamily: "var(--mono, monospace)" }}
+                />
+              </label>
+              {order.shippedAt ? (
+                <p className="text-xs text-neutral-500">
+                  Kargolandı · {formatDateTime(order.shippedAt)}
+                </p>
+              ) : null}
+              <button
+                type="submit"
+                className="mt-1 justify-self-start rounded-full bg-neutral-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-neutral-800"
+              >
+                Kargo bilgisini kaydet
+              </button>
+            </form>
           </Card>
         </aside>
       </div>

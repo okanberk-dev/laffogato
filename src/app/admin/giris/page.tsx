@@ -22,17 +22,12 @@ export default async function AdminLoginPage({ searchParams }: PageProps) {
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 py-16">
       <div className="w-full rounded-2xl border border-neutral-200 bg-white p-10 shadow-sm">
         <div className="mb-8 text-center">
-          <div
-            className="text-3xl"
-            style={{
-              fontFamily: "var(--serif), 'Playfair Display', serif",
-              fontStyle: "italic",
-              fontWeight: 500,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            L’Affogato
-          </div>
+          <span
+            className="brand-mark mx-auto"
+            role="img"
+            aria-label="L’Affogato"
+            style={{ height: 54, color: "var(--brand)" }}
+          />
           <div
             className="mt-2 text-xs uppercase tracking-[0.24em] text-neutral-500"
             style={{ fontFamily: "var(--mono), monospace" }}

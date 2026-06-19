@@ -128,7 +128,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
       <PageHeader
         eyebrow={`${settings.name} · ${todayLabel()}`}
         title={`${turkishGreeting()}, ${userLabel}.`}
-        description="Bellek içi demo verisi. Supabase entegre edildikten sonra gerçek üretim verisini gösterecek."
+        description="Canlı Supabase verisi — tüm değişiklikler anında siteye yansır."
       />
 
       {sp.denied && (

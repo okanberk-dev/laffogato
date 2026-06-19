@@ -95,7 +95,7 @@ export default async function OgImage() {
           }}
         >
           <div style={{ display: "flex" }}>{SITE.url.replace(/^https?:\/\//, "")}</div>
-          <div style={{ display: "flex" }}>Tuzla · İstanbul</div>
+          <div style={{ display: "flex" }}>Tuzla · tarihi köşk</div>
         </div>
       </div>
     ),

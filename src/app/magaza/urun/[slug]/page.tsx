@@ -24,7 +24,19 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
   const product = await getShopProductBySlug(slug);
   if (!product) return { title: "Ürün bulunamadı · L'Affogato" };
   const title = `${product.name} — L'Affogato`;
-  const description = product.desc.slice(0, 160);
+  const rawDesc = product.desc?.trim() ?? "";
+  let description: string;
+  if (rawDesc) {
+    if (rawDesc.length <= 155) {
+      description = rawDesc;
+    } else {
+      const sliced = rawDesc.slice(0, 155);
+      const lastSpace = sliced.lastIndexOf(" ");
+      description = `${(lastSpace > 0 ? sliced.slice(0, lastSpace) : sliced).trimEnd()}…`;
+    }
+  } else {
+    description = `${product.name} — L'Affogato mağazasından, Türkiye'ye kargo.`;
+  }
   const path = PATH(slug);
   const ogImage =
     product.images?.find((u) => /^https?:\/\//i.test(u)) ?? undefined;

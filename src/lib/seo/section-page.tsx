@@ -10,7 +10,6 @@
 
 import { LaffogatoApp } from "@/components/laffogato/app";
 import type { Route } from "@/components/laffogato/chrome";
-import { SeoContent } from "@/components/laffogato/seo-content";
 import {
   getSettings,
   listActiveShopHeroSlides,
@@ -18,7 +17,6 @@ import {
   listShopProducts,
 } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
-import { FAQ } from "@/lib/seo/faq";
 import { PAGE_SEO } from "@/lib/seo/pages";
 import { breadcrumbLd } from "@/lib/seo/structured-data";
 
@@ -75,7 +73,6 @@ export async function renderSectionPage(route: Route) {
           address: settings.address,
         }}
         menu={menu}
-        seoSlot={<SeoContent faq={FAQ} />}
         wishlist={customer?.wishlist}
         isAuthenticated={!!customer}
         freeShippingThreshold={Math.round(settings.shippingFreeThresholdMinor / 100)}

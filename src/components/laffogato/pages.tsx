@@ -266,7 +266,7 @@ export function PageHome({ navigate, addToCart, products, menu, reels, press, co
             style={{ marginTop: 30 }}
           >
             {[
-              ["Konum", "Tuzla · açık-hava teras"],
+              ["Konum", "Tuzla · 200 yıllık Rum köşkü"],
               ["Kapasite", "24 koltuk · 12 bar + 12 lounge"],
               ["Saat", "Her gün · 10:00 — 23:00"],
               ["Mimari", "Studio Pellegrini"],
@@ -698,7 +698,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
               Il <span className="script">menù.</span>
             </h1>
             <p className="menu-hero-lede">
-              Bologna 1987 reçetesi, Tuzla terası için sezonluk matcha bar ve buzlu içecekler.
+              Bologna 1987 reçetesi, Tuzla köşkü için sezonluk matcha bar ve buzlu içecekler.
               Üç ritüel — espresso, gelato, yenilebilir kup. 39 yıldır değişmedi.
             </p>
             <div className="menu-hero-stats">
@@ -1196,11 +1196,11 @@ export function PageShop({ addToCart, openProduct, products, shopHeroSlides }: P
           >
             <div>
               <div className="eyebrow">III — La bottega</div>
-              <h2 className="h1" style={{ marginTop: 24 }}>
+              <h1 className="h1" style={{ marginTop: 24 }}>
                 <span className="script">Mağaza.</span>
-              </h2>
+              </h1>
               <p className="lede" style={{ marginTop: 22 }}>
-                Tuzla terasında servis ettiğimiz her şey — Bologna’da kavrulan çekirdek, 1994 patentli edible kup,
+                Tuzla köşkünde servis ettiğimiz her şey — Bologna’da kavrulan çekirdek, 1994 patentli edible kup,
                 bambu chasen, Bialetti × L’Affogato moka pot. Eve, ofise, hediyeye.
               </p>
             </div>
@@ -1771,7 +1771,7 @@ export function PageVisit({ visit }: PageProps) {
               Tuzla, <span className="script" style={{ color: "var(--gold-soft)" }}>İstanbul.</span>
             </h1>
             <p className="lede" style={{ marginTop: 26, color: "rgba(255, 255, 255, 0.86)", maxWidth: 580 }}>
-              İlk yurt dışı şubemiz — Tuzla’nın açık-hava teras katı. Akdeniz bougainvillea’sı,
+              İlk yurt dışı şubemiz — Tuzla’da restore edilmiş 200 yıllık bir Rum köşkü. Köşkün bahçesinde Akdeniz bougainvillea’sı,
               altın saat ışıkları, on iki sandalyeli bar. Marmaray Tuzla + E-5 girişinden 4 dakika.
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 36 }}>
@@ -1887,7 +1887,7 @@ export function PageVisit({ visit }: PageProps) {
               <div className="eyebrow" style={{ marginBottom: 10 }}>Yarın · 27 Mayıs</div>
               <div style={{ fontFamily: "var(--serif-display)", fontSize: 18 }}>10:00 — 23:00</div>
               <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 10, lineHeight: 1.6 }}>
-                Yağmur tahmini. Teras hava müsait olursa açılır, kötüleşirse iç loungeda devam ediyoruz.
+                Yağmur tahmini. Köşkün avlusu hava müsait olursa açılır, kötüleşirse köşk salonlarında devam ediyoruz.
               </p>
             </div>
           </div>
@@ -1973,7 +1973,7 @@ export function PageVisit({ visit }: PageProps) {
       <section className="section">
         <div className="wrap-wide">
           <SectionHead
-            eyebrow="Il locale · open-air teras"
+            eyebrow="Il locale · tarihi köşk"
             title={
               <>
                 <span className="script">Mekan.</span>
@@ -2043,7 +2043,7 @@ export function PageVisit({ visit }: PageProps) {
               Özel <span className="script">kiralama.</span>
             </h2>
             <p className="lede" style={{ marginTop: 24, color: "rgba(255, 255, 255, 0.78)" }}>
-              Pazartesi günleri terası tamamen kiralayabilirsiniz. 24 koltuk, özel menü, barista demonstrasyonu, gelato workshop’u.
+              Pazartesi günleri köşkü tamamen kiralayabilirsiniz. 24 koltuk, özel menü, barista demonstrasyonu, gelato workshop’u.
               Marka lansmanları, sosyal medya çekimleri ve yakın gruplar için ideal.
             </p>
             <button className="btn btn-light btn-lg" style={{ marginTop: 30 }}>
@@ -2105,7 +2105,7 @@ export function PageReels({ reels, press }: PageProps) {
                 Reels & <span className="script">film.</span>
               </h1>
               <p className="lede" style={{ marginTop: 22 }}>
-                Tuzla terasından, Bologna kavurma odasından, Bronte pistacchio hasadından kısa filmler.
+                Tuzla köşkünden, Bologna kavurma odasından, Bronte pistacchio hasadından kısa filmler.
                 Aylık bir 4K bölüm, haftalık reels. @laffogato — 24.6K takipçi, hızla büyüyor.
               </p>
             </div>
@@ -2763,7 +2763,7 @@ export function PageFranchise({ franchisePackages, franchiseSteps, content }: Pa
                   Başvurun alındı.
                 </h3>
                 <p style={{ marginTop: 18, color: "rgba(255,255,255,0.78)", lineHeight: 1.6 }}>
-                  Bologna ekibi 14 iş günü içinde dönüş yapacak. Bu arada Tuzla terasında bir affogato seni bekliyor.
+                  Bologna ekibi 14 iş günü içinde dönüş yapacak. Bu arada Tuzla köşkünde bir affogato seni bekliyor.
                 </p>
                 <div style={{ marginTop: 30, fontFamily: "var(--script)", fontSize: 36, color: "var(--gold)" }}>— Eda</div>
                 <button

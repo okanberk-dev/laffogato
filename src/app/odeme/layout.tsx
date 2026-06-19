@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
+
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { getSettings } from "@/lib/admin/store";
+
+export const metadata: Metadata = {
+  title: "Ödeme",
+  robots: { index: false, follow: false },
+};
 
 export default async function OdemeLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSettings();

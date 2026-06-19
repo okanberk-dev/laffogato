@@ -10,8 +10,14 @@ import { SITE } from "@/lib/seo/site";
 // omits product URLs rather than failing the build.
 export const dynamic = "force-dynamic";
 
+// Stable content-revision stamp for static/section routes — bump on major
+// content updates. A request-time `new Date()` would report every URL as
+// "just modified" on each crawl, noise that search engines learn to distrust.
+// Product detail pages still use their real per-row updatedAt below.
+const CONTENT_REVISION = new Date("2026-06-19T00:00:00.000Z");
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
+  const now = CONTENT_REVISION;
 
   const main = allSeoRoutes().map((r) => ({
     url: `${SITE.url}${r.url}`,

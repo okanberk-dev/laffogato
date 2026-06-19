@@ -110,7 +110,7 @@ function Slide({ slide, active }: { slide: ShopHeroSlide; active: boolean }) {
     >
       <div className="shop-hero-content">
         <span className="eyebrow shop-hero-eyebrow">III · La bottega</span>
-        <h1 className="shop-hero-title">
+        <h2 className="shop-hero-title">
           {lead || slide.title || (
             <span style={{ opacity: 0.5 }}>Başlık</span>
           )}
@@ -122,7 +122,7 @@ function Slide({ slide, active }: { slide: ShopHeroSlide; active: boolean }) {
               </span>
             </>
           )}
-        </h1>
+        </h2>
         {slide.subtitle && <p className="shop-hero-subtitle">{slide.subtitle}</p>}
         {slide.ctaLabel && slide.ctaHref && (
           <a

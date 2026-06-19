@@ -141,6 +141,12 @@ export default async function OrderDetailPage({
           {order.shippingAddress && (
             <DetailRow k="Adres" v={order.shippingAddress} multiline />
           )}
+          {order.trackingNumber && (
+            <DetailRow
+              k="Kargo takip"
+              v={`${order.carrier ? `${order.carrier} · ` : ""}${order.trackingNumber}`}
+            />
+          )}
         </div>
       </AccountCard>
 

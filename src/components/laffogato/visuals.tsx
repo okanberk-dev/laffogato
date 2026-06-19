@@ -157,6 +157,8 @@ export function CupEmblem({
       width={className ? undefined : size}
       height={className ? undefined : size}
       className={className}
+      aria-hidden="true"
+      focusable="false"
     >
       <defs>
         <path id="ce-top" d="M 28 120 A 92 92 0 0 1 212 120" fill="none" />
@@ -230,7 +232,7 @@ export function EdibleCupHero({
   const scoopColor = colorMap[scoop] || colorMap.cream;
 
   return (
-    <svg viewBox="0 0 360 440" style={{ width: size || "100%", height: size || "100%" }}>
+    <svg viewBox="0 0 360 440" style={{ width: size || "100%", height: size || "100%" }} aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id={`ec-waffle-${scoop}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#D4A275" />
@@ -298,6 +300,23 @@ export function EdibleCupHero({
         </g>
       )}
 
+      {/* Gentle aroma wisps — the affogato is alive (hot espresso over gelato). */}
+      {[0, 1, 2].map((i) => (
+        <path
+          key={`steam-${i}`}
+          d={`M ${166 + i * 14} 128 q -8 -18 0 -34 q 8 -16 0 -32`}
+          fill="none"
+          stroke="#FFFFFF"
+          strokeWidth="3"
+          strokeLinecap="round"
+          opacity="0.45"
+          style={{
+            animation: `steam 3.2s ${i * 0.6}s ease-out infinite`,
+            transformOrigin: `${166 + i * 14}px 128px`,
+          }}
+        />
+      ))}
+
       <ellipse cx="180" cy="418" rx="106" ry="6" fill="#000" opacity="0.16" />
     </svg>
   );
@@ -309,7 +328,7 @@ export function EdibleCupHero({
 
 export function EspressoCup({ size = "100%" }: { size?: number | string }) {
   return (
-    <svg viewBox="0 0 280 260" style={{ width: size, height: size }}>
+    <svg viewBox="0 0 280 260" style={{ width: size, height: size }} aria-hidden="true" focusable="false">
       <defs>
         <radialGradient id="ec-cup-fill" cx="0.5" cy="0.4" r="0.6">
           <stop offset="0" stopColor="#FAF5EC" />
@@ -362,7 +381,7 @@ export function MatchaGlass({
   strawberry?: boolean;
 }) {
   return (
-    <svg viewBox="0 0 220 320" style={{ width: size, height: size }}>
+    <svg viewBox="0 0 220 320" style={{ width: size, height: size }} aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="mg-matcha" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#A8C980" />
@@ -430,7 +449,7 @@ export function GelatoScoop({
   };
   const [c1, c2] = colors[flavor] || colors.cream;
   return (
-    <svg viewBox="0 0 240 260" style={{ width: size, height: size }}>
+    <svg viewBox="0 0 240 260" style={{ width: size, height: size }} aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id={`gs2-${flavor}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={c1} />
@@ -464,7 +483,7 @@ export function BeanIllo({
   dark?: boolean;
 }) {
   return (
-    <svg viewBox="0 0 220 220" style={{ width: size, height: size }}>
+    <svg viewBox="0 0 220 220" style={{ width: size, height: size }} aria-hidden="true" focusable="false">
       {Array.from({ length: 14 }).map((_, i) => {
         const r = Math.floor(i / 4);
         const c = i % 4;
@@ -503,7 +522,7 @@ export function CoffeeBag({
   const ink = tone === "dark" ? "#F5E6D3" : tone === "gold" ? "#FFF" : "#14100B";
   const accent = tone === "dark" ? "#B88A4A" : tone === "gold" ? "#FFF" : "#B88A4A";
   return (
-    <svg viewBox="0 0 240 320" style={{ width: size, height: size }}>
+    <svg viewBox="0 0 240 320" style={{ width: size, height: size }} aria-hidden="true" focusable="false">
       <ellipse cx="120" cy="306" rx="86" ry="6" fill="#000" opacity="0.18" />
       <path d="M 60 60 Q 56 50 64 46 L 176 46 Q 184 50 180 60 L 192 300 L 48 300 Z" fill={bg} />
       <path d="M 56 60 L 184 60" stroke={ink} strokeOpacity="0.2" strokeWidth="1" />
@@ -534,7 +553,7 @@ export function CoffeeBag({
 export function ReelScene({ variant = 0 }: { variant?: number }) {
   const variants: Array<() => ReactElement> = [
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice">
+      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
         <rect width="220" height="392" fill="url(#rg0)" />
         <defs>
           <linearGradient id="rg0" x1="0" y1="0" x2="0" y2="1">
@@ -557,7 +576,7 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice">
+      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
         <rect width="220" height="392" fill="url(#rg1)" />
         <defs>
           <linearGradient id="rg1" x1="0" y1="0" x2="0" y2="1">
@@ -571,7 +590,7 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice">
+      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
         <rect width="220" height="392" fill="#F5E6D3" />
         <g transform="translate(110 196)">
           <CupHeroInline />
@@ -579,7 +598,7 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice">
+      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
         <rect width="220" height="392" fill="#8AAE60" />
         {Array.from({ length: 18 }).map((_, i) => (
           <ellipse
@@ -595,7 +614,7 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice">
+      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
         <rect width="220" height="392" fill="url(#rg4)" />
         <defs>
           <linearGradient id="rg4" x1="0" y1="0" x2="0" y2="1">
@@ -611,7 +630,7 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice">
+      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
         <defs>
           <linearGradient id="rg5" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#E9B872" />
@@ -631,7 +650,7 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice">
+      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
         <rect width="220" height="392" fill="#FBF3DF" />
         <g transform="translate(110 196)">
           <ellipse rx="90" ry="68" fill="#F5E6D3" />
@@ -641,7 +660,7 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice">
+      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
         <defs>
           <linearGradient id="rg7" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#1A0F08" />
@@ -689,7 +708,7 @@ function CupHeroInline() {
 export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
   void time;
   return (
-    <svg viewBox="0 0 1200 700" style={{ width: "100%", height: "100%", display: "block" }} preserveAspectRatio="xMidYMid slice">
+    <svg viewBox="0 0 1200 700" style={{ width: "100%", height: "100%", display: "block" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="brs-sky" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#F2C7A0" />
@@ -867,7 +886,7 @@ export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
 
 export function MapPlaceholder() {
   return (
-    <svg viewBox="0 0 800 600" style={{ width: "100%", height: "100%" }}>
+    <svg viewBox="0 0 800 600" style={{ width: "100%", height: "100%" }} aria-hidden="true" focusable="false">
       <rect width="800" height="600" fill="#F4EFE7" />
       <path d="M 0 420 Q 260 410, 540 450 T 800 470 L 800 600 L 0 600 Z" fill="#C2D2DC" opacity="0.7" />
       <path d="M 0 420 Q 260 410, 540 450 T 800 470" stroke="#7A96A8" strokeWidth="1" fill="none" />
@@ -909,7 +928,7 @@ export function MapPlaceholder() {
           L’Affogato
         </text>
         <text x="28" y="18" fontFamily="JetBrains Mono" fontSize="10" letterSpacing="2" fill="#5A3818">
-          ROOFTOP TERAS · CEVİZLİ
+          TARİHİ KÖŞK · CEVİZLİ
         </text>
       </g>
 
@@ -1067,7 +1086,7 @@ export function ProductSurface({
 
 export function FounderPortrait() {
   return (
-    <svg viewBox="0 0 320 400" style={{ width: "78%", height: "78%" }}>
+    <svg viewBox="0 0 320 400" style={{ width: "78%", height: "78%" }} aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="fp-bg" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#F5E6D3" />

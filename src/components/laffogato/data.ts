@@ -200,7 +200,7 @@ export const STORY = {
 export const LOCATION = {
   name: "L'Affogato — Tuzla",
   short: "Tuzla · İstanbul",
-  address: ["Tuzla", "Açık-hava terası", "Postane Mah., Tuzla", "İstanbul 34953"],
+  address: ["Postane Mah. 29 Ekim Cad. No:28", "200 yıllık Rum köşkü", "Tuzla / İstanbul"],
   hours: [
     ["Pazartesi — Perşembe", "10:00 — 23:00"],
     ["Cuma — Cumartesi", "10:00 — 24:00"],

@@ -49,34 +49,9 @@ const LINKS: LinkEntry[] = [
   { route: "franchise", label: "Franchise" },
 ];
 
-/**
- * Coffee-bean glyph used in place of the apostrophe in the L'Affogato
- * wordmark — the brand's logo signature. Gold bean, espresso seam, so it
- * reads on both the light nav and the dark footer.
- */
-function BeanMark({ h = 18 }: { h?: number }) {
-  return (
-    <svg
-      width={h * 0.46}
-      height={h * 0.72}
-      viewBox="0 0 12 19"
-      style={{ display: "inline-block", verticalAlign: "0.30em", margin: "0 0.04em" }}
-      aria-hidden="true"
-    >
-      <g transform="rotate(-20 6 9.5)">
-        <ellipse cx="6" cy="9.5" rx="4.3" ry="8.2" fill="var(--gold-soft, #C49A5A)" />
-        <path
-          d="M6 3 C8.2 6.5, 3.8 12.5, 6 16"
-          fill="none"
-          stroke="var(--espresso, #3A2A20)"
-          strokeWidth="1.1"
-          strokeLinecap="round"
-          opacity="0.8"
-        />
-      </g>
-    </svg>
-  );
-}
+/* The L'Affogato wordmark + monogram are now rendered from the brand logo
+   assets (public/logo-wordmark.png · public/logo-mark.png) via the
+   `.brand-wordmark` / `.brand-mark` CSS-mask utilities in globals.css. */
 
 interface NavProps {
   /** Current SPA route — drives the active link underline. When the nav
@@ -183,32 +158,11 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
             className="nav-brand"
             aria-label="L'Affogato anasayfası"
           >
-            <span className="nav-brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 44 44" width="34" height="34">
-                <circle cx="22" cy="22" r="20.5" fill="none" stroke="currentColor" strokeWidth="0.9" />
-                <circle cx="22" cy="22" r="17.5" fill="none" stroke="currentColor" strokeWidth="0.4" opacity="0.55" />
-                <text
-                  x="22"
-                  y="28"
-                  textAnchor="middle"
-                  fontFamily="var(--serif)"
-                  fontStyle="italic"
-                  fontSize="18"
-                  fontWeight="600"
-                  fill="currentColor"
-                  letterSpacing="-0.5"
-                >
-                  L<tspan dy="-0.06em" fontSize="11">&#8217;</tspan>A
-                </text>
-                <circle cx="30.5" cy="13" r="1.15" fill="currentColor" />
-              </svg>
-            </span>
-            <span className="nav-brand-lockup">
-              <span className="nav-brand-text">
-                L<BeanMark />Affogato
-              </span>
-              <span className="nav-brand-tag">coffee italiano · est. 1987</span>
-            </span>
+            <span
+              className="nav-brand-mark brand-mark"
+              role="img"
+              aria-label="L'Affogato"
+            />
           </a>
         </div>
         <div
@@ -484,7 +438,7 @@ interface FooterProps {
   settings?: FooterSettings;
 }
 
-const DEFAULT_ADDRESS_LINES = ["Tuzla", "Açık-hava terası", "Tuzla, İstanbul"];
+const DEFAULT_ADDRESS_LINES = ["Postane Mah. 29 Ekim Cad. No:28", "200 yıllık Rum köşkü", "Tuzla / İstanbul"];
 
 function splitAddress(address?: string): string[] {
   if (!address) return DEFAULT_ADDRESS_LINES;
@@ -554,12 +508,16 @@ export function Footer({ navigate, settings }: FooterProps) {
       <div className="footer-grid">
         <div className="footer-brand-col">
           <div className="footer-mark">
-            L<BeanMark h={30} />Affogato
+            <span
+              className="brand-mark"
+              role="img"
+              aria-label="L'Affogato"
+            />
           </div>
-          <div className="footer-mark-script">coffee italiano · est. 1987</div>
+          <div className="footer-mark-script">caffè italiano · est. 1987</div>
           <p>
             Bologna 1987’den İstanbul Tuzla’ya. İlk yurt dışı şubemiz —
-            açık-hava teras kahve barı.
+            200 yıllık, Rum’lardan kalma restore bir köşkte.
           </p>
           <div className="footer-social">
             <a className="nav-icon-btn" href={hrefFor("reels")} onClick={go("reels")} aria-label="Instagram">

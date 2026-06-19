@@ -124,6 +124,10 @@ export interface AdminOrder {
   totalMinor: number;
   refunds: AdminRefund[];
   createdAt: string;
+  /** Fulfillment — recorded when the shop owner ships the order. */
+  trackingNumber?: string;
+  carrier?: string;
+  shippedAt?: string;
 }
 
 export type { DayOfWeek, OpeningHour, WeeklyHours } from "./days";
@@ -267,7 +271,7 @@ function defaultSettings(): AdminSettings {
     tagline: "Drink it. Eat the cup.",
     phone: "+90 216 459 30 60",
     email: "tuzla@laffogato.it",
-    address: "Postane Mah., Tuzla / İstanbul 34953",
+    address: "Postane Mah. 29 Ekim Cad. No:28, Tuzla / İstanbul",
     openingHours: "Pzt–Pş 10:00–23:00 · Cu–Ct 10:00–24:00 · Pz 10:00–23:00",
     isShopOpen: true,
     heroImageUrl: "",
@@ -1210,6 +1214,28 @@ export async function setOrderInternalNote(
     "setOrderInternalNote",
   );
   return { ...existing, internalNote: trimmed };
+}
+
+export async function setOrderTracking(
+  id: string,
+  trackingNumber: string,
+  carrier: string,
+): Promise<AdminOrder | null> {
+  await ensureSeed();
+  const sb = getSupabaseAdmin();
+  const existing = await getOrder(id);
+  if (!existing) return null;
+  const tn = trackingNumber.trim().slice(0, 120);
+  const ca = carrier.trim().slice(0, 80);
+  const shippedAt = existing.shippedAt || (tn ? new Date().toISOString() : "");
+  check(
+    await sb
+      .from(TABLES.orders)
+      .update({ trackingNumber: tn, carrier: ca, shippedAt })
+      .eq("id", id),
+    "setOrderTracking",
+  );
+  return { ...existing, trackingNumber: tn, carrier: ca, shippedAt };
 }
 
 export async function setOrderItemStatus(

@@ -346,7 +346,7 @@ export function CartDrawer({
                   marginRight: "auto",
                 }}
               >
-                Bir affogato, bir matcha, bir çekirdek paketi — eve ya da terasta servise hazır.
+                Bir affogato, bir matcha, bir çekirdek paketi — eve ya da köşkün bahçesine servise hazır.
               </p>
             </div>
           ) : (

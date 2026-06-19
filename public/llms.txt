@@ -4,7 +4,7 @@
 
 ## Konum ve İletişim
 
-- **Adres**: Tuzla · Açık-hava terası · Postane Mah., Tuzla, 34953 İstanbul, Türkiye
+- **Adres**: Tuzla · 200 yıllık Rum köşkü · Postane Mah. 29 Ekim Cad. No:28, 34953 Tuzla / İstanbul, Türkiye
 - **Telefon**: +90 216 459 30 60
 - **E-posta**: tuzla@laffogato.it
 - **Koordinatlar**: 40.8233, 29.3098
@@ -78,7 +78,7 @@ Beklenen geri dönüş: 14 ay. Süreç: başvuru → video görüşme → Tuzla 
 
 Ana sayfada tek `<script type="application/ld+json">` içinde aşağıdaki schema.org tipleri yayınlanır:
 - Organization (Mancuso ailesi, Bologna 1987)
-- CafeOrCoffeeShop + Restaurant (LocalBusiness, açık-hava teras, koordinat, saatler)
+- CafeOrCoffeeShop + Restaurant (LocalBusiness, tarihi Rum köşkü, koordinat, saatler)
 - WebSite (SearchAction + ReserveAction)
 - Menu + MenuSection + MenuItem (canlı; 5 kategori × ortalama 6 kalem)
 - Product × 11 (mağaza SKU'ları + Offer + shipping + return policy)

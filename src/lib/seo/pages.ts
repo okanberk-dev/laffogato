@@ -57,7 +57,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.shop,
     title: "Mağaza — Çekirdek Kahve, Edible Cup, Ekipman",
     description:
-      "L'Affogato online mağaza: Bologna kavurma çekirdek kahve, 1994 patentli edible cup, Bialetti × L'Affogato moka pot, bambu chasen, hediye seti. Türkiye'ye 1-3 iş günü kargo.",
+      "Çekirdek kahve, yenilebilir kup, moka pot ve hediye setleri L'Affogato online mağazada. Tüm Türkiye'ye hızlı kargo.",
     keywords: [
       "L'Affogato mağaza",
       "çekirdek kahve online",
@@ -75,7 +75,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.story,
     title: "Hikayemiz — 1987 Italia, 2026 İstanbul",
     description:
-      "Üç kuşaklık aile geleneği: 1987'de Giancarlo Mancuso Bologna'da ilk L'Affogato barını açar; 2026'da Eda Mancuso markayı İstanbul Tuzla'a taşır. 1994 patentli edible cup, Bronte pistacchio, Sirena harmanı.",
+      "L'Affogato'nun hikayesi: 1987 Bologna'da Mancuso ailesinin açtığı ilk bardan 2026 İstanbul Tuzla'daki Rum köşküne uzanan üç kuşaklık gelenek.",
     keywords: [
       "L'Affogato hikayesi",
       "İtalyan kafe markası",
@@ -107,11 +107,11 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.visit,
     title: "Ziyaret — Tuzla, İstanbul",
     description:
-      "L'Affogato Tuzla açık-hava teras kahve barı. Adres: Postane Mah., Tuzla. Her gün 10:00 — 23:00 açık. Marmaray Tuzla 6 dk, E-5 / TEM Tuzla çıkışı 4 dk, Sabiha Gökçen 15 dk. Rezervasyon mümkün.",
+      "L'Affogato Tuzla'da 200 yıllık Rum köşkünde kahve barı. Adres: Postane Mah. 29 Ekim Cad. No:28, Tuzla. Her gün 10:00 — 23:00 açık. Rezervasyon mümkün.",
     keywords: [
       "Tuzla kafe adres",
       "Tuzla affogato yer",
-      "Tuzla teras kafe",
+      "Tuzla köşk kafe",
       "kahve rezervasyon Tuzla",
     ],
     breadcrumbLabel: "Ziyaret · Tuzla",
@@ -123,7 +123,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.franchise,
     title: "Franchise — Kiosk, Bottega, Salone",
     description:
-      "L'Affogato franchise paketleri: 24-160 m² 6-80 koltuk seçenekleri. Faema espresso makinesi, gelato vitrini, marka rehberi, 2-4 hafta açılış eğitimi dahil. Türkiye ve Avrupa için başvuru.",
+      "L'Affogato franchise: kiosk, bottega ve salone paketleriyle kendi İtalyan kahve barınızı açın. Türkiye ve Avrupa için bayilik başvurusu.",
     keywords: [
       "kahve franchise",
       "İtalyan kafe franchise",
@@ -151,9 +151,9 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "affogato",
     menuKey: "affogato",
-    title: "Affogato — Yenilebilir Waffle Kupada İmza Ritüeli",
+    title: "Affogato — Yenilebilir Waffle Kupada",
     description:
-      "1994 patentli yenilebilir waffle kupada Sirena espresso ve fior di latte gelato. 6 affogato çeşidi: classico, cioccolato, nocciola, pistacchio, matcha, strawberry. Tuzla imza menüsü.",
+      "Yenilebilir waffle kupada espresso ve gelato buluşması. L'Affogato Tuzla'nın imza affogato menüsü, altı farklı çeşidiyle.",
     keywords: [
       "affogato Tuzla",
       "yenilebilir kup",
@@ -168,7 +168,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     menuKey: "matcha",
     title: "Matcha Bar — Uji Ceremonial Grade",
     description:
-      "Japonya Uji bahçesi ceremonial grade matcha. Matcha latte, strawberry matcha latte, matcha tonic, matcha affogato, hojicha latte. Bambu chasen ile bar ardı dövülür.",
+      "Japonya Uji bahçesinden ceremonial grade matcha, bambu chasen ile bar ardında dövülür. L'Affogato Tuzla matcha bar menüsü.",
     keywords: [
       "matcha bar Tuzla",
       "Uji matcha İstanbul",
@@ -198,7 +198,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     menuKey: "cold",
     title: "Cold Bar — Buzlu İçecekler",
     description:
-      "24 saat yavaş demleme cold brew, espresso tonic, iced latte, shakerato, iced strawberry matcha, iced affogato. Mart'tan Ekim'e Tuzla terası için yaz menüsü.",
+      "24 saat yavaş demleme cold brew, espresso tonic, iced latte, shakerato, iced strawberry matcha, iced affogato. Mart'tan Ekim'e Tuzla köşkü için yaz menüsü.",
     keywords: [
       "cold brew İstanbul",
       "iced latte Tuzla",

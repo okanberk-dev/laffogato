@@ -5,25 +5,29 @@
    ───────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surfaces */
-  --bg: #FFFFFF;
-  --bg-warm: #FAF7F2;
-  --bg-stone: #F4EFE7;
-  --bg-cream: #F5E6D3;
-  --bg-ink: #14100B;
-  --bg-espresso: #1A0F08;
+  /* Surfaces — warmed to the L'Affogato logo cream (#FDF4E6) + espresso-brown
+     (#44301C). Heritage köşk palette: cream paper, white cards layer on top. */
+  --bg: #FBF4E6;
+  --bg-warm: #F5EAD6;
+  --bg-stone: #EFE2CC;
+  --bg-cream: #EBDABE;
+  --bg-ink: #20140D;
+  --bg-espresso: #160C06;
 
-  /* Ink */
-  --ink: #14100B;
-  --ink-soft: #4A3E33;
-  --ink-mute: #8A7C6E;
-  --ink-line: #E8E1D5;
-  --ink-line-strong: #D6CCBC;
+  /* Ink — logo espresso-brown family (was near-black #14100B) */
+  --ink: #2C1D11;
+  --ink-soft: #5A4636;
+  --ink-mute: #8A7A64;
+  --ink-line: #E7DAC2;
+  --ink-line-strong: #D7C7A9;
 
   /* Accent */
   --gold: #B88A4A;
   --gold-deep: #8A6332;
   --gold-soft: #E6D4B0;
+
+  /* Brand — exact logo brown, used for the masked logo lockups */
+  --brand: #44301C;
 
   /* Semantic */
   --green: #2F7A4E;
@@ -254,6 +258,20 @@ input, textarea, select { font: inherit; color: inherit; }
 
 .btn-gold { background: var(--gold); color: #FFF; }
 .btn-gold:hover { background: var(--gold-deep); }
+.btn:active { transform: translateY(0) scale(0.985); }
+
+/* Keyboard-focus ring — shown only for keyboard users (modern + accessible).
+   Modern browsers round the outline to each element's own border-radius. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
 
 .btn-sm { padding: 10px 16px; font-size: 12px; }
 .btn-lg { padding: 18px 28px; font-size: 14px; }
@@ -359,38 +377,50 @@ input, textarea, select { font: inherit; color: inherit; }
   position: relative;
   line-height: 1;
 }
+/* Brand logos rendered as CSS masks: one brown asset, recolored to any surface
+   via currentColor (brown on cream, cream/white on dark). */
+.brand-wordmark,
+.brand-mark {
+  display: inline-block;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+          mask-position: center;
+  -webkit-mask-size: contain;
+          mask-size: contain;
+}
+.brand-wordmark {
+  -webkit-mask-image: url(/logo-wordmark.png);
+          mask-image: url(/logo-wordmark.png);
+  aspect-ratio: 456 / 113;
+}
+.brand-mark {
+  -webkit-mask-image: url(/logo-mark.png);
+          mask-image: url(/logo-mark.png);
+  aspect-ratio: 729 / 591;
+}
+
 .nav-brand-mark {
-  display: inline-grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(184, 138, 74, 0.08);
-  color: var(--gold);
+  height: 40px;
+  color: var(--brand);
   flex-shrink: 0;
-  transition: background 0.3s, color 0.3s;
+  transition: color 0.3s;
 }
-.nav.on-dark .nav-brand-mark {
-  background: rgba(255,255,255,0.06);
-  color: var(--gold-soft);
-}
-.nav-brand:hover .nav-brand-mark {
-  background: var(--gold);
-  color: #FFF;
-}
+.nav.on-dark .nav-brand-mark { color: #FFF; }
+.nav-brand:hover .nav-brand-mark { color: var(--gold); }
 .nav-brand-lockup {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 .nav-brand-text {
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: -0.018em;
+  display: block;
+  height: 25px;
+  color: var(--brand);
+  transition: color 0.3s;
 }
+.nav.on-dark .nav-brand-text { color: #FFF; }
 .nav-brand-tag {
   font-family: var(--mono);
   font-size: 9px;
@@ -402,7 +432,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .nav.on-dark .nav-brand-tag { color: var(--gold-soft); opacity: 0.7; }
 @media (max-width: 760px) {
   .nav-brand-tag { display: none; }
-  .nav-brand-text { font-size: 22px; }
+  .nav-brand-text { height: 23px; }
 }
 
 .nav-link {
@@ -792,13 +822,26 @@ input, textarea, select { font: inherit; color: inherit; }
    Reveal observer
    ───────────────────────────────────────────────────────────── */
 
-.reveal { opacity: 1; transform: none; }
-.r1 { transition-delay: 60ms; }
-.r2 { transition-delay: 120ms; }
-.r3 { transition-delay: 180ms; }
-.r4 { transition-delay: 240ms; }
-.r5 { transition-delay: 300ms; }
-.r6 { transition-delay: 360ms; }
+/* SSR / no-JS / crawler safe: reveal content is VISIBLE by default. Motion is
+   opt-in — the inline <head> script adds `reveal-on` only when JS is available
+   and the user hasn't requested reduced motion; <RevealMotion> then adds `is-in`
+   to each element as it scrolls into view. Without JS, content stays visible. */
+.reveal {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+}
+/* Only elements <RevealMotion> marks as below-the-fold get the hidden "from"
+   state, so above-the-fold content is never blank — no flash, and SSR / no-JS /
+   crawlers never hide anything. */
+.reveal.will-reveal { opacity: 0; transform: translateY(22px); }
+.reveal.will-reveal.is-in { opacity: 1; transform: none; }
+.r1 { transition-delay: 70ms; }
+.r2 { transition-delay: 140ms; }
+.r3 { transition-delay: 210ms; }
+.r4 { transition-delay: 280ms; }
+.r5 { transition-delay: 350ms; }
+.r6 { transition-delay: 420ms; }
 
 /* ─────────────────────────────────────────────────────────────
    Page enter
@@ -960,10 +1003,8 @@ input, textarea, select { font: inherit; color: inherit; }
   max-width: 320px; opacity: 0.7; font-size: 14px;
   line-height: 1.6; margin: 14px 0 0;
 }
-.footer-mark {
-  font-family: var(--serif); font-style: italic; font-weight: 500;
-  font-size: clamp(36px, 4vw, 48px); line-height: 1; letter-spacing: -0.018em;
-}
+.footer-mark { line-height: 1; color: #FFF; }
+.footer-mark .brand-mark { height: clamp(52px, 6vw, 68px); }
 .footer-mark-script {
   font-family: var(--mono); font-size: 10px; letter-spacing: 0.28em;
   text-transform: uppercase; color: var(--gold-soft); margin-top: 8px;
@@ -1034,7 +1075,7 @@ input, textarea, select { font: inherit; color: inherit; }
   .footer { padding-top: clamp(44px, 8vw, 64px); }
   .footer-grid { grid-template-columns: 1fr; gap: 28px; }
   .footer-trust { grid-template-columns: 1fr; }
-  .footer-mark { font-size: 38px; }
+  .footer-mark .brand-mark { height: 50px; }
   .footer-deco-line { display: none; }
   .footer-deco { justify-content: center; }
 }
@@ -1080,6 +1121,9 @@ input, textarea, select { font: inherit; color: inherit; }
   transition: transform 0.4s var(--ease-out), box-shadow 0.4s;
 }
 .product-card:hover .product-card-img { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+/* Image gently zooms within the clipped card frame on hover — premium feel. */
+.product-card-img > * { transition: transform 0.55s var(--ease-out); }
+.product-card:hover .product-card-img > * { transform: scale(1.045); }
 .product-card-flag {
   position: absolute; top: 14px; left: 14px;
   padding: 5px 10px; background: var(--ink); color: #FFF;
@@ -1174,6 +1218,17 @@ input, textarea, select { font: inherit; color: inherit; }
 @keyframes steam { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 0.5; } 100% { transform: translateY(-60px) translateX(4px); opacity: 0; } }
 @keyframes sway { 0%, 100% { transform: rotate(-1.5deg); } 50% { transform: rotate(1.5deg); } }
 @keyframes pour { 0% { transform: scaleY(0.85); opacity: 0; } 25% { opacity: 1; } 100% { transform: scaleY(1.05); opacity: 1; } }
+
+/* Respect reduced-motion: stop looping/scroll motion (steam, marquee, sway,
+   reveals, page transitions) and snap transitions for users who request it. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 .is-no-scroll { overflow: hidden; }
 

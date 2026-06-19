@@ -35,7 +35,7 @@ export const CONTENT_FIELDS: ContentField[] = [
     label: "Hikaye hero açıklama",
     kind: "textarea",
     default:
-      "Üç kuşak Mancuso ailesi. Patentli bir kup. 39 yıldır değişmeyen tek bir ritüel. Şimdi İstanbul’da.",
+      "Üç kuşak Mancuso ailesi. Patentli bir kup. 39 yıldır değişmeyen tek bir ritüel. Şimdi İstanbul’da, Tuzla’da 200 yıllık bir Rum köşkünde.",
   },
   {
     key: "story.founder.bio",
@@ -43,7 +43,7 @@ export const CONTENT_FIELDS: ContentField[] = [
     label: "Kurucu biyografisi",
     kind: "textarea",
     default:
-      "İtalyan baba, İstanbullu anne. 1987'de büyükbabasının açtığı L'Affogato barını üçüncü kuşak olarak devraldı. 2026'da markayı doğduğu şehre, İstanbul'a getirdi.",
+      "İtalyan baba, İstanbullu anne. 1987'de büyükbabasının açtığı L'Affogato barını üçüncü kuşak olarak devraldı. 2026'da markayı doğduğu şehre, İstanbul'a; Tuzla'da 200 yıllık, Rum'lardan kalma restore bir köşke getirdi.",
   },
   // ── Franchise ──
   {

@@ -21,6 +21,35 @@ interface Props {
 
 const initialBulkState: BulkActionState = {};
 
+/** 40×40 product thumbnail: the first uploaded photo, or a placeholder icon
+    when the product only has a gradient/hue surface (no real photo yet). */
+function ProductThumb({ src, alt }: { src?: string; alt: string }) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        className="h-10 w-10 shrink-0 rounded-md object-cover ring-1 ring-neutral-200"
+      />
+    );
+  }
+  return (
+    <div
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-neutral-100 text-neutral-300 ring-1 ring-neutral-200"
+      aria-hidden="true"
+      title="Görsel yok"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <circle cx="8.5" cy="9.5" r="1.5" />
+        <path d="m21 15-5-5L6 19" />
+      </svg>
+    </div>
+  );
+}
+
 export function ProductsList({ products, categories, labelByCat }: Props) {
   const selection = useSelection();
   const [state, formAction, pending] = useActionState(
@@ -85,6 +114,7 @@ export function ProductsList({ products, categories, labelByCat }: Props) {
               >
                 <div className="flex items-start gap-3">
                   <RowCheckbox id={p.id} selection={selection} label={p.name} />
+                  <ProductThumb src={p.images?.[0]} alt={p.name} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
@@ -215,13 +245,18 @@ export function ProductsList({ products, categories, labelByCat }: Props) {
                       <RowCheckbox id={p.id} selection={selection} label={p.name} />
                     </td>
                     <td className="py-3 pr-3">
-                      <div className="font-medium text-neutral-900">{p.name}</div>
-                      <div
-                        className="text-[10px] uppercase tracking-[0.2em] text-neutral-500"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {p.tag}{" "}
-                        {p.variants.length > 0 && `· ${p.variants.length} varyant`}
+                      <div className="flex items-center gap-3">
+                        <ProductThumb src={p.images?.[0]} alt={p.name} />
+                        <div className="min-w-0">
+                          <div className="font-medium text-neutral-900">{p.name}</div>
+                          <div
+                            className="text-[10px] uppercase tracking-[0.2em] text-neutral-500"
+                            style={{ fontFamily: "var(--mono), monospace" }}
+                          >
+                            {p.tag}{" "}
+                            {p.variants.length > 0 && `· ${p.variants.length} varyant`}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td
