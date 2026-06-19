@@ -51,7 +51,9 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
             fontSize: 17,
           }}
         >
-          Tuzla&rsquo;daki kafe, menü, yenilebilir kup, rezervasyon, online sipariş ve franchise süreçleri hakkında en çok sorulan soruların yanıtları.
+          Tuzla&rsquo;daki kafe, menü, yenilebilir kup, rezervasyon, online
+          sipariş ve franchise süreçleri hakkında en çok sorulan soruların
+          yanıtları.
         </p>
 
         <div style={{ display: "grid", gap: 12 }}>
@@ -111,7 +113,9 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
             <h3 className="eyebrow" style={{ marginBottom: 10 }}>
               Adres
             </h3>
-            <address style={{ fontStyle: "normal", lineHeight: 1.6, fontSize: 14 }}>
+            <address
+              style={{ fontStyle: "normal", lineHeight: 1.6, fontSize: 14 }}
+            >
               {SITE.address.venue}
               <br />
               {SITE.address.streetAddress}
@@ -178,7 +182,12 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
           <strong style={{ color: "rgba(20, 16, 11, 0.85)" }}>
             L&rsquo;Affogato Italia · sede principale
           </strong>{" "}
-          — {SITE.parent.address}. İstanbul Tuzla şubesi, 1987&rsquo;de Bologna&rsquo;da kurulan markanın İtalya dışındaki ilk şubesidir. Tüm kahve, Bologna&rsquo;da Mancuso ailesi tarafından haftalık olarak kavrulur; matcha Japonya Uji bölgesinden, pistacchio Sicilya Bronte&rsquo;dan, fındık IGP Piemonte&rsquo;den, çikolata Sicilya Modica&rsquo;dan tedarik edilir.
+          — {SITE.parent.address}. İstanbul Tuzla şubesi, 1987&rsquo;de
+          Bologna&rsquo;da kurulan markanın İtalya dışındaki ilk şubesidir. Tüm
+          kahve, Bologna&rsquo;da Mancuso ailesi tarafından haftalık olarak
+          kavrulur; matcha Japonya Uji bölgesinden, pistacchio Sicilya
+          Bronte&rsquo;dan, fındık IGP Piemonte&rsquo;den, çikolata Sicilya
+          Modica&rsquo;dan tedarik edilir.
         </div>
       </div>
     </section>

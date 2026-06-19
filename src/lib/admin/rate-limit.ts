@@ -53,7 +53,8 @@ export function checkLoginLimit(ip: string, email: string): RateLimitStatus {
   sweepIfDue(now);
   const key = bucketKey(ip, email);
   const entry = entries.get(key);
-  if (!entry) return { blocked: false, retryAfterSeconds: 0, remaining: MAX_FAILS };
+  if (!entry)
+    return { blocked: false, retryAfterSeconds: 0, remaining: MAX_FAILS };
 
   if (entry.lockedUntil > now) {
     return {

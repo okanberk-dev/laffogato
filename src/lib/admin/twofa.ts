@@ -37,7 +37,10 @@ export interface EnrollmentDraft {
  * `otpauth://` URL that the QR code encodes. The secret stays in
  * draft state (enabled=false) until verifyAndEnable() succeeds.
  */
-export function startEnrollment(email: string, issuer: string): EnrollmentDraft {
+export function startEnrollment(
+  email: string,
+  issuer: string,
+): EnrollmentDraft {
   const secret = generateSecret();
   store.set(keyOf(email), { secret, enabled: false });
   const otpauthUrl = generateURI({ issuer, label: email, secret });

@@ -44,7 +44,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
             style={{ background: "var(--gold)" }}
           />
           <span
-            className="text-[10px] uppercase tracking-[0.24em] text-neutral-500"
+            className="text-[10px] tracking-[0.24em] text-neutral-500 uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             Sipariş alındı · {placedAt}
@@ -63,7 +63,12 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         >
           Grazie, {order.customerName.split(" ")[0]}.
           <br />
-          <span style={{ fontFamily: "var(--script), cursive", color: "var(--gold)" }}>
+          <span
+            style={{
+              fontFamily: "var(--script), cursive",
+              color: "var(--gold)",
+            }}
+          >
             See you soon.
           </span>
         </h1>
@@ -77,7 +82,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           <div className="rounded-md border border-neutral-200 p-4">
             <div
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Sipariş No
@@ -91,7 +96,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
           </div>
           <div className="rounded-md border border-neutral-200 p-4">
             <div
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Kalem
@@ -105,7 +110,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
           </div>
           <div className="rounded-md border border-neutral-200 p-4">
             <div
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Toplam
@@ -121,7 +126,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
 
         <div className="mt-10 border-t border-neutral-200 pt-6">
           <div
-            className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+            className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             Özet
@@ -140,7 +145,10 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
             ))}
           </ul>
           <div className="mt-4 grid gap-1.5 border-t border-neutral-200 pt-4 text-sm">
-            <SummaryRow label="Ara toplam" value={formatTRY(order.subtotalMinor)} />
+            <SummaryRow
+              label="Ara toplam"
+              value={formatTRY(order.subtotalMinor)}
+            />
             {order.discountMinor > 0 && (
               <SummaryRow
                 label={`İndirim${order.promoCode ? ` · ${order.promoCode}` : ""}`}
@@ -150,9 +158,17 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
             )}
             <SummaryRow
               label="Kargo"
-              value={order.shippingMinor > 0 ? formatTRY(order.shippingMinor) : "Ücretsiz"}
+              value={
+                order.shippingMinor > 0
+                  ? formatTRY(order.shippingMinor)
+                  : "Ücretsiz"
+              }
             />
-            <SummaryRow label="Toplam" value={formatTRY(order.totalMinor)} strong />
+            <SummaryRow
+              label="Toplam"
+              value={formatTRY(order.totalMinor)}
+              strong
+            />
           </div>
         </div>
 
@@ -173,10 +189,11 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         </div>
 
         <p
-          className="mt-8 text-[10px] uppercase tracking-[0.22em] text-neutral-400"
+          className="mt-8 text-[10px] tracking-[0.22em] text-neutral-400 uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
-          Sanal POS entegrasyonu sonrası ödeme makbuzu e-postan üzerinden iletilecek.
+          Sanal POS entegrasyonu sonrası ödeme makbuzu e-postan üzerinden
+          iletilecek.
         </p>
       </div>
     </main>
@@ -206,7 +223,12 @@ function SummaryRow({
       }}
     >
       <span>{label}</span>
-      <span style={{ fontFamily: "var(--mono), monospace", fontSize: strong ? 16 : undefined }}>
+      <span
+        style={{
+          fontFamily: "var(--mono), monospace",
+          fontSize: strong ? 16 : undefined,
+        }}
+      >
         {value}
       </span>
     </div>

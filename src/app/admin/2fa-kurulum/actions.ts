@@ -33,7 +33,8 @@ export async function verifyEnrollAction(
   const token = String(formData.get("token") ?? "").trim();
   if (!/^\d{6}$/.test(token)) return { error: "6 haneli kodu gir." };
   const ok = verifyAndEnable(session.email, token);
-  if (!ok) return { error: "Kod doğrulanmadı. Saatin senkron olduğundan emin ol." };
+  if (!ok)
+    return { error: "Kod doğrulanmadı. Saatin senkron olduğundan emin ol." };
   await logAudit({
     action: "2fa_enable",
     entity: "2fa",

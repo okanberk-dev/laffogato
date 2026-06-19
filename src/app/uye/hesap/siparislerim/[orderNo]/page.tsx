@@ -27,7 +27,8 @@ export default async function OrderDetailPage({
   const order = orders.find((o) => String(o.orderNo) === orderNo);
   if (!order) notFound();
 
-  const isCancelled = order.status === "cancelled" || order.status === "refunded";
+  const isCancelled =
+    order.status === "cancelled" || order.status === "refunded";
 
   return (
     <AccountShell customer={customer} active="siparislerim">
@@ -72,12 +73,22 @@ export default async function OrderDetailPage({
             })}
           </ol>
         ) : (
-          <div className="account-msg" data-tone="error" style={{ marginBottom: 18 }}>
+          <div
+            className="account-msg"
+            data-tone="error"
+            style={{ marginBottom: 18 }}
+          >
             Bu sipariş {STATUS_LABEL[order.status]?.toLowerCase()} durumunda.
           </div>
         )}
 
-        <h3 style={{ fontFamily: "var(--serif-display)", fontSize: 18, marginBottom: 10 }}>
+        <h3
+          style={{
+            fontFamily: "var(--serif-display)",
+            fontSize: 18,
+            marginBottom: 10,
+          }}
+        >
           Kalemler
         </h3>
         <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px" }}>
@@ -93,7 +104,9 @@ export default async function OrderDetailPage({
               }}
             >
               <div>
-                <div style={{ fontFamily: "var(--serif-display)", fontSize: 15 }}>
+                <div
+                  style={{ fontFamily: "var(--serif-display)", fontSize: 15 }}
+                >
                   {it.productName}
                 </div>
                 <div
@@ -125,11 +138,7 @@ export default async function OrderDetailPage({
           {order.shippingMinor > 0 && (
             <Row label="Kargo" value={formatTRY(order.shippingMinor)} />
           )}
-          <Row
-            label="Toplam"
-            value={formatTRY(order.totalMinor)}
-            strong
-          />
+          <Row label="Toplam" value={formatTRY(order.totalMinor)} strong />
         </div>
       </AccountCard>
 
@@ -137,7 +146,9 @@ export default async function OrderDetailPage({
         <div style={{ display: "grid", gap: 14, fontSize: 14 }}>
           <DetailRow k="Alıcı" v={order.customerName || "—"} />
           <DetailRow k="E-posta" v={order.customerEmail} />
-          {order.customerPhone && <DetailRow k="Telefon" v={order.customerPhone} />}
+          {order.customerPhone && (
+            <DetailRow k="Telefon" v={order.customerPhone} />
+          )}
           {order.shippingAddress && (
             <DetailRow k="Adres" v={order.shippingAddress} multiline />
           )}
@@ -151,7 +162,14 @@ export default async function OrderDetailPage({
       </AccountCard>
 
       <AccountCard title="Yardım gerekiyor mu?">
-        <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 14, lineHeight: 1.6 }}>
+        <p
+          style={{
+            margin: 0,
+            color: "var(--ink-soft)",
+            fontSize: 14,
+            lineHeight: 1.6,
+          }}
+        >
           Siparişinde değişiklik veya iade için bizimle iletişime geç —{" "}
           <a
             href="mailto:hello@laffogato.com.tr"
@@ -193,13 +211,23 @@ function Row({
         fontWeight: strong ? 600 : 400,
       }}
     >
-      <span style={{ color: strong ? "var(--ink)" : "var(--ink-soft)" }}>{label}</span>
+      <span style={{ color: strong ? "var(--ink)" : "var(--ink-soft)" }}>
+        {label}
+      </span>
       <span>{value}</span>
     </div>
   );
 }
 
-function DetailRow({ k, v, multiline }: { k: string; v: string; multiline?: boolean }) {
+function DetailRow({
+  k,
+  v,
+  multiline,
+}: {
+  k: string;
+  v: string;
+  multiline?: boolean;
+}) {
   return (
     <div
       style={{
@@ -220,7 +248,12 @@ function DetailRow({ k, v, multiline }: { k: string; v: string; multiline?: bool
       >
         {k}
       </span>
-      <span style={{ lineHeight: 1.55, whiteSpace: multiline ? "pre-line" : undefined }}>
+      <span
+        style={{
+          lineHeight: 1.55,
+          whiteSpace: multiline ? "pre-line" : undefined,
+        }}
+      >
         {v}
       </span>
     </div>

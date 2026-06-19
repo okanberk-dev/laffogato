@@ -51,7 +51,10 @@ export async function POST(req: Request) {
       .eq("id", event.orderId)
       .eq("status", "pending_payment");
   } else if (event.type === "payment.refunded") {
-    await sb.from(TABLES.orders).update({ status: "refunded" }).eq("id", event.orderId);
+    await sb
+      .from(TABLES.orders)
+      .update({ status: "refunded" })
+      .eq("id", event.orderId);
   }
 
   return NextResponse.json({ ok: true });

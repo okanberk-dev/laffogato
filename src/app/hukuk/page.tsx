@@ -47,9 +47,14 @@ export default function HukukIndexPage() {
               <ul>
                 {docs.map((d) => (
                   <li key={d.slug}>
-                    <Link href={`/hukuk/${d.slug}`} className="legal-index-link">
+                    <Link
+                      href={`/hukuk/${d.slug}`}
+                      className="legal-index-link"
+                    >
                       <span className="legal-index-link-title">{d.title}</span>
-                      <span className="legal-index-link-summary">{d.summary}</span>
+                      <span className="legal-index-link-summary">
+                        {d.summary}
+                      </span>
                       <span className="eyebrow" style={{ opacity: 0.55 }}>
                         Güncel: {d.updatedAt} →
                       </span>

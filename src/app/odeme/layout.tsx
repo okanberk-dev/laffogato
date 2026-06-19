@@ -8,7 +8,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function OdemeLayout({ children }: { children: React.ReactNode }) {
+export default async function OdemeLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const settings = await getSettings();
   return (
     <SiteChrome

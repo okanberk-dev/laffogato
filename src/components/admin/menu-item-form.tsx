@@ -86,7 +86,11 @@ export function MenuItemForm({
           label="Etiketler"
           hint="Virgülle ayır. Örn: signature, new, iced, nuts, IGP"
         >
-          <TextInput name="tags" defaultValue={tagsValue} placeholder="signature, new" />
+          <TextInput
+            name="tags"
+            defaultValue={tagsValue}
+            placeholder="signature, new"
+          />
         </Field>
       </Card>
 
@@ -114,7 +118,7 @@ export function MenuItemForm({
           </Select>
         </Field>
 
-        <div className="border-t border-neutral-200 pt-5">
+        <div className="border-t border-[var(--admin-border)] pt-5">
           <Checkbox
             name="isActive"
             label="Menüde göster"

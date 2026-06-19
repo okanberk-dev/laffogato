@@ -11,5 +11,7 @@ export default async function DesignPreview({
   params: Promise<{ route: string }>;
 }) {
   const { route } = await params;
-  return <LaffogatoApp initialRoute={route as Route} freeShippingThreshold={500} />;
+  return (
+    <LaffogatoApp initialRoute={route as Route} freeShippingThreshold={500} />
+  );
 }

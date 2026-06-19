@@ -80,7 +80,9 @@ function isHttpUrl(value: string): boolean {
 }
 
 export function ImageUpload({ name, initial }: ImageUploadProps) {
-  const [images, setImages] = useState<string[]>(() => initial.slice(0, MAX_IMAGES));
+  const [images, setImages] = useState<string[]>(() =>
+    initial.slice(0, MAX_IMAGES),
+  );
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [dragOver, setDragOver] = useState(false);
   const [urlDraft, setUrlDraft] = useState("");
@@ -114,8 +116,7 @@ export function ImageUpload({ name, initial }: ImageUploadProps) {
         } catch (err) {
           setStatus({
             kind: "error",
-            message:
-              err instanceof Error ? err.message : "Görsel işlenemedi.",
+            message: err instanceof Error ? err.message : "Görsel işlenemedi.",
           });
           return;
         }
@@ -219,11 +220,11 @@ export function ImageUpload({ name, initial }: ImageUploadProps) {
             ? "border-neutral-900 bg-neutral-50"
             : remainingSlots > 0
               ? "border-neutral-300 bg-neutral-50/50 hover:border-neutral-500"
-              : "border-neutral-200 bg-neutral-100 opacity-60"
+              : "border-[var(--admin-border)] bg-neutral-100 opacity-60"
         }`}
       >
         <div
-          className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           {remainingSlots > 0
@@ -256,7 +257,7 @@ export function ImageUpload({ name, initial }: ImageUploadProps) {
       </div>
 
       {status.kind === "processing" && (
-        <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+        <div className="rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
           İşleniyor… ({status.current}/{status.total})
         </div>
       )}
@@ -275,7 +276,9 @@ export function ImageUpload({ name, initial }: ImageUploadProps) {
               <li
                 key={`${i}-${src.slice(0, 32)}`}
                 className={`group relative overflow-hidden rounded-lg border bg-white ${
-                  isPrimary ? "border-neutral-900" : "border-neutral-200"
+                  isPrimary
+                    ? "border-neutral-900"
+                    : "border-[var(--admin-border)]"
                 }`}
               >
                 <div className="relative aspect-square w-full bg-neutral-100">
@@ -287,14 +290,14 @@ export function ImageUpload({ name, initial }: ImageUploadProps) {
                   />
                   {isPrimary && (
                     <span
-                      className="absolute left-2 top-2 rounded-full bg-neutral-900 px-2 py-0.5 text-[9px] uppercase tracking-[0.18em] text-white"
+                      className="absolute top-2 left-2 rounded-full bg-[var(--admin-primary)] px-2 py-0.5 text-[9px] tracking-[0.18em] text-white uppercase"
                       style={{ fontFamily: "var(--mono), monospace" }}
                     >
                       Birincil
                     </span>
                   )}
                   <span
-                    className="absolute right-2 top-2 rounded-full bg-white/85 px-2 py-0.5 text-[9px] uppercase tracking-[0.18em] text-neutral-600 backdrop-blur"
+                    className="absolute top-2 right-2 rounded-full bg-white/85 px-2 py-0.5 text-[9px] tracking-[0.18em] text-neutral-600 uppercase backdrop-blur"
                     style={{ fontFamily: "var(--mono), monospace" }}
                   >
                     {isData ? `${approxKB(src)} KB` : "URL"}
@@ -307,7 +310,7 @@ export function ImageUpload({ name, initial }: ImageUploadProps) {
                       onClick={() => moveTo(i, i - 1)}
                       disabled={i === 0}
                       aria-label="Yukarı taşı"
-                      className="grid h-7 w-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-30 disabled:hover:bg-transparent"
+                      className="grid h-7 w-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-[var(--admin-primary)] disabled:opacity-30 disabled:hover:bg-transparent"
                     >
                       ←
                     </button>
@@ -316,7 +319,7 @@ export function ImageUpload({ name, initial }: ImageUploadProps) {
                       onClick={() => moveTo(i, i + 1)}
                       disabled={i === images.length - 1}
                       aria-label="Aşağı taşı"
-                      className="grid h-7 w-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-30 disabled:hover:bg-transparent"
+                      className="grid h-7 w-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-[var(--admin-primary)] disabled:opacity-30 disabled:hover:bg-transparent"
                     >
                       →
                     </button>
@@ -324,7 +327,7 @@ export function ImageUpload({ name, initial }: ImageUploadProps) {
                       <button
                         type="button"
                         onClick={() => makePrimary(i)}
-                        className="rounded-md px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+                        className="rounded-md px-2 py-1 text-[10px] tracking-[0.16em] text-neutral-500 uppercase hover:bg-neutral-100 hover:text-[var(--admin-primary)]"
                         style={{ fontFamily: "var(--mono), monospace" }}
                       >
                         Birincil yap
@@ -348,7 +351,7 @@ export function ImageUpload({ name, initial }: ImageUploadProps) {
 
       <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
         <span
-          className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           URL ile ekle
@@ -364,13 +367,13 @@ export function ImageUpload({ name, initial }: ImageUploadProps) {
             }
           }}
           placeholder="https://images.example.com/sirena-1.jpg"
-          className="flex-1 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs outline-none focus:border-neutral-900 focus:bg-white"
+          className="flex-1 rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-1.5 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
         />
         <button
           type="button"
           onClick={addUrl}
           disabled={!urlDraft.trim() || images.length >= MAX_IMAGES}
-          className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900 disabled:opacity-40"
+          className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] disabled:opacity-40"
         >
           Ekle
         </button>

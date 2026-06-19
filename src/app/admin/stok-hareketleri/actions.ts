@@ -19,7 +19,9 @@ export async function adjustStockAction(
   const actor = session.email;
 
   const productId = String(formData.get("productId") ?? "").trim();
-  const deltaRaw = String(formData.get("delta") ?? "").replace(",", ".").trim();
+  const deltaRaw = String(formData.get("delta") ?? "")
+    .replace(",", ".")
+    .trim();
   const note = String(formData.get("note") ?? "").trim();
 
   if (!productId) return { error: "Ürün seçilmedi." };

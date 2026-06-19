@@ -43,11 +43,17 @@ export function AdminMobileNav({ items, email, roleLabel }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-neutral-200 text-neutral-700 transition-colors hover:border-neutral-900 hover:text-neutral-900 lg:hidden"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--admin-border)] text-neutral-700 transition-colors hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] lg:hidden"
         aria-label="Menüyü aç"
         aria-expanded={open}
       >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 18 18"
+          fill="none"
+          aria-hidden="true"
+        >
           <path
             d="M2 5h14M2 9h14M2 13h14"
             stroke="currentColor"
@@ -58,7 +64,7 @@ export function AdminMobileNav({ items, email, roleLabel }: Props) {
       </button>
 
       <div
-        className={`fixed inset-0 z-[80] bg-neutral-900/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
+        className={`fixed inset-0 z-[80] bg-[var(--admin-primary)]/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={() => setOpen(false)}
@@ -73,10 +79,10 @@ export function AdminMobileNav({ items, email, roleLabel }: Props) {
         aria-modal="true"
         aria-label="Yönetim menüsü"
       >
-        <header className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+        <header className="flex items-center justify-between border-b border-[var(--admin-border)] px-5 py-4">
           <div>
             <div
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               {roleLabel}
@@ -92,7 +98,7 @@ export function AdminMobileNav({ items, email, roleLabel }: Props) {
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-neutral-200 text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--admin-border)] text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
             aria-label="Kapat"
           >
             <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
@@ -119,7 +125,7 @@ export function AdminMobileNav({ items, email, roleLabel }: Props) {
                     href={n.href}
                     className={`flex min-h-[48px] items-center rounded-lg px-4 text-base transition-colors ${
                       isActive
-                        ? "bg-neutral-900 text-white"
+                        ? "bg-[var(--admin-primary)] text-white"
                         : "text-neutral-700 hover:bg-neutral-100"
                     }`}
                   >
@@ -131,11 +137,11 @@ export function AdminMobileNav({ items, email, roleLabel }: Props) {
           </ul>
         </nav>
 
-        <footer className="border-t border-neutral-200 p-4">
+        <footer className="border-t border-[var(--admin-border)] p-4">
           <form action={logoutAction}>
             <button
               type="submit"
-              className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-neutral-300 px-4 text-sm font-medium text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+              className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-neutral-300 px-4 text-sm font-medium text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
             >
               Çıkış yap
             </button>

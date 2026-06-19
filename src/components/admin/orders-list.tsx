@@ -9,7 +9,12 @@ import {
 } from "@/app/admin/siparisler/actions";
 import type { AdminOrder, AdminOrderStatus } from "@/lib/admin/store";
 
-import { BulkActionBar, RowCheckbox, SelectAllCheckbox, useSelection } from "./bulk";
+import {
+  BulkActionBar,
+  RowCheckbox,
+  SelectAllCheckbox,
+  useSelection,
+} from "./bulk";
 import { formatDateTime, formatTRY } from "./forms";
 
 interface Props {
@@ -58,10 +63,10 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
         </div>
       )}
 
-      <div className="mb-3 flex items-center gap-3 rounded-md border border-neutral-200 bg-white px-4 py-2.5">
+      <div className="mb-3 flex items-center gap-3 rounded-md border border-[var(--admin-border)] bg-white px-4 py-2.5">
         <SelectAllCheckbox ids={ids} selection={selection} label="Tümünü seç" />
         <span
-          className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           {orders.length} sipariş
@@ -78,7 +83,9 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
             <div
               key={o.id}
               className={`rounded-xl border bg-white p-6 shadow-sm ${
-                isSelected ? "border-neutral-900" : "border-neutral-200"
+                isSelected
+                  ? "border-neutral-900"
+                  : "border-[var(--admin-border)]"
               }`}
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -99,7 +106,7 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
                         #{o.orderNo}
                       </span>
                       <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] ${tone}`}
+                        className={`rounded-full px-2.5 py-0.5 text-[10px] tracking-[0.18em] uppercase ${tone}`}
                       >
                         {statusLabel}
                       </span>
@@ -112,7 +119,7 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
                       </span>
                     </div>
                     <div
-                      className="mt-1 text-[10px] uppercase tracking-[0.18em] text-neutral-400"
+                      className="mt-1 text-[10px] tracking-[0.18em] text-neutral-400 uppercase"
                       style={{ fontFamily: "var(--mono), monospace" }}
                     >
                       {formatDateTime(o.createdAt)}
@@ -131,7 +138,7 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
                     {formatTRY(o.totalMinor)}
                   </div>
                   <div
-                    className="text-[10px] uppercase tracking-[0.18em] text-neutral-400"
+                    className="text-[10px] tracking-[0.18em] text-neutral-400 uppercase"
                     style={{ fontFamily: "var(--mono), monospace" }}
                   >
                     {o.items.length} kalem
@@ -158,14 +165,14 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
                 {o.refunds.length > 0 ? (
                   <span
-                    className="text-[10px] uppercase tracking-[0.22em] text-rose-600"
+                    className="text-[10px] tracking-[0.22em] text-rose-600 uppercase"
                     style={{ fontFamily: "var(--mono), monospace" }}
                   >
                     {o.refunds.length} iade kaydı
                   </span>
                 ) : (
                   <span
-                    className="text-[10px] uppercase tracking-[0.22em] text-neutral-400"
+                    className="text-[10px] tracking-[0.22em] text-neutral-400 uppercase"
                     style={{ fontFamily: "var(--mono), monospace" }}
                   >
                     Detaylı yönetim için sipariş sayfasına git
@@ -173,7 +180,7 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
                 )}
                 <Link
                   href={`/admin/siparisler/${o.id}`}
-                  className="rounded-full bg-neutral-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+                  className="rounded-full bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
                 >
                   Sipariş detayı →
                 </Link>
@@ -194,7 +201,7 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
           <select
             name="value"
             defaultValue=""
-            className="rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-700 focus:border-neutral-900 focus:outline-none"
+            className="rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-700 focus:border-[var(--admin-primary)] focus:outline-none"
           >
             <option value="" disabled>
               Yeni durum…
@@ -208,7 +215,7 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
           <button
             type="submit"
             disabled={pending}
-            className="rounded-full bg-neutral-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-40"
+            className="rounded-full bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
           >
             Uygula
           </button>

@@ -43,6 +43,12 @@ export interface Customer {
   /** ISO expiry for the verification token. */
   verifyExpires: string;
   verifiedAt: string;
+  /** False once an admin deactivates the account (blocks login + ordering). */
+  isActive: boolean;
+  /** ISO timestamp the member accepted the terms + privacy policy at signup. */
+  termsAcceptedAt: string;
+  /** ISO timestamp of explicit marketing opt-in (empty when not consented). */
+  marketingConsentAt: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -57,6 +63,7 @@ export interface PublicCustomer {
   wishlist: string[];
   notificationPrefs: NotificationPrefs;
   emailVerified: boolean;
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -75,6 +82,9 @@ function withDefaults(c: Customer): Customer {
     verifyToken: c.verifyToken ?? "",
     verifyExpires: c.verifyExpires ?? "",
     verifiedAt: c.verifiedAt ?? "",
+    isActive: c.isActive ?? true,
+    termsAcceptedAt: c.termsAcceptedAt ?? "",
+    marketingConsentAt: c.marketingConsentAt ?? "",
   };
 }
 
@@ -90,6 +100,7 @@ function toPublic(c: Customer): PublicCustomer {
     wishlist: full.wishlist,
     notificationPrefs: full.notificationPrefs,
     emailVerified: full.emailVerified,
+    isActive: full.isActive,
     createdAt: full.createdAt,
   };
 }
@@ -128,6 +139,12 @@ export interface RegisterInput {
   name: string;
   phone: string;
   password: string;
+  /** Required: terms of use + privacy policy acceptance (KVKK aydınlatma). */
+  acceptedTerms: boolean;
+  /** Optional explicit marketing opt-in. */
+  marketing: boolean;
+  /** Optional newsletter opt-in. */
+  newsletter: boolean;
 }
 
 export type RegisterResult =
@@ -136,7 +153,9 @@ export type RegisterResult =
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export async function registerCustomer(input: RegisterInput): Promise<RegisterResult> {
+export async function registerCustomer(
+  input: RegisterInput,
+): Promise<RegisterResult> {
   const email = normalizeEmail(input.email);
   const name = input.name.trim().slice(0, 100);
   const phone = input.phone.trim().slice(0, 30);
@@ -154,10 +173,20 @@ export async function registerCustomer(input: RegisterInput): Promise<RegisterRe
   if (password.length > 200) {
     return { ok: false, error: "Şifre çok uzun." };
   }
+  if (!input.acceptedTerms) {
+    return {
+      ok: false,
+      error:
+        "Devam etmek için kullanım şartları ve gizlilik politikasını kabul etmelisin.",
+    };
+  }
 
   const existing = await fetchCustomer(email);
   if (existing) {
-    return { ok: false, error: "Bu e-posta zaten kayıtlı. Giriş yapmayı denedin mi?" };
+    return {
+      ok: false,
+      error: "Bu e-posta zaten kayıtlı. Giriş yapmayı denedin mi?",
+    };
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -172,11 +201,18 @@ export async function registerCustomer(input: RegisterInput): Promise<RegisterRe
     birthday: "",
     addresses: [],
     wishlist: [],
-    notificationPrefs: defaultPrefs(),
+    notificationPrefs: {
+      orderUpdates: true,
+      marketing: !!input.marketing,
+      newsletter: !!input.newsletter,
+    },
     emailVerified: false,
     verifyToken: token,
     verifyExpires: expires,
     verifiedAt: "",
+    isActive: true,
+    termsAcceptedAt: now,
+    marketingConsentAt: input.marketing ? now : "",
     createdAt: now,
     updatedAt: now,
   };
@@ -185,7 +221,10 @@ export async function registerCustomer(input: RegisterInput): Promise<RegisterRe
   if (error) {
     // Unique violation = race on email → treat as already registered.
     if (error.code === "23505") {
-      return { ok: false, error: "Bu e-posta zaten kayıtlı. Giriş yapmayı denedin mi?" };
+      return {
+        ok: false,
+        error: "Bu e-posta zaten kayıtlı. Giriş yapmayı denedin mi?",
+      };
     }
     throw new Error(`registerCustomer: ${error.message}`);
   }
@@ -197,9 +236,12 @@ export type VerifyResult =
   | { ok: false; error: string };
 
 /** Marks a customer verified given a valid, unexpired token (single-use). */
-export async function verifyCustomerEmail(token: string): Promise<VerifyResult> {
+export async function verifyCustomerEmail(
+  token: string,
+): Promise<VerifyResult> {
   const clean = (token ?? "").trim();
-  if (!clean || clean.length < 16) return { ok: false, error: "Geçersiz doğrulama bağlantısı." };
+  if (!clean || clean.length < 16)
+    return { ok: false, error: "Geçersiz doğrulama bağlantısı." };
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from(TABLES.customers)
@@ -208,10 +250,17 @@ export async function verifyCustomerEmail(token: string): Promise<VerifyResult> 
     .maybeSingle();
   checkErr(error, "verifyCustomerEmail");
   const customer = data as Customer | null;
-  if (!customer) return { ok: false, error: "Bağlantı geçersiz ya da zaten kullanılmış." };
+  if (!customer)
+    return { ok: false, error: "Bağlantı geçersiz ya da zaten kullanılmış." };
   if (customer.emailVerified) return { ok: true, email: customer.email };
-  if (customer.verifyExpires && new Date(customer.verifyExpires).getTime() < Date.now()) {
-    return { ok: false, error: "Doğrulama bağlantısının süresi dolmuş. Yeni bir bağlantı iste." };
+  if (
+    customer.verifyExpires &&
+    new Date(customer.verifyExpires).getTime() < Date.now()
+  ) {
+    return {
+      ok: false,
+      error: "Doğrulama bağlantısının süresi dolmuş. Yeni bir bağlantı iste.",
+    };
   }
   const { error: upErr } = await sb
     .from(TABLES.customers)
@@ -232,18 +281,28 @@ export type ResendResult =
   | { ok: false; error: string; alreadyVerified?: boolean };
 
 /** Issues a fresh verification token for an unverified customer (resend). */
-export async function createVerificationToken(email: string): Promise<ResendResult> {
+export async function createVerificationToken(
+  email: string,
+): Promise<ResendResult> {
   const needle = normalizeEmail(email);
   const customer = await fetchCustomer(needle);
   if (!customer) return { ok: false, error: "Kayıt bulunamadı." };
   if (customer.emailVerified) {
-    return { ok: false, error: "E-posta zaten doğrulanmış.", alreadyVerified: true };
+    return {
+      ok: false,
+      error: "E-posta zaten doğrulanmış.",
+      alreadyVerified: true,
+    };
   }
   const { token, expires } = newVerifyToken();
   const sb = getSupabaseAdmin();
   const { error } = await sb
     .from(TABLES.customers)
-    .update({ verifyToken: token, verifyExpires: expires, updatedAt: new Date().toISOString() })
+    .update({
+      verifyToken: token,
+      verifyExpires: expires,
+      updatedAt: new Date().toISOString(),
+    })
     .eq("id", customer.id);
   checkErr(error, "createVerificationToken");
   return { ok: true, token, name: customer.name, email: customer.email };
@@ -258,22 +317,35 @@ export type LoginResult =
   | { ok: true; customer: PublicCustomer }
   | { ok: false; error: string };
 
-export async function verifyCustomerLogin(input: LoginInput): Promise<LoginResult> {
+export async function verifyCustomerLogin(
+  input: LoginInput,
+): Promise<LoginResult> {
   const email = normalizeEmail(input.email);
   if (!email || !input.password) {
     return { ok: false, error: "E-posta ve şifre gerekli." };
   }
   const customer = await fetchCustomer(email);
   if (!customer) {
-    await bcrypt.compare(input.password, "$2a$10$invalidhashforuserenumprotection000000000000000000000");
+    await bcrypt.compare(
+      input.password,
+      "$2a$10$invalidhashforuserenumprotection000000000000000000000",
+    );
     return { ok: false, error: "E-posta veya şifre hatalı." };
   }
   const ok = await bcrypt.compare(input.password, customer.passwordHash);
   if (!ok) return { ok: false, error: "E-posta veya şifre hatalı." };
+  if (withDefaults(customer).isActive === false) {
+    return {
+      ok: false,
+      error: "Hesabın devre dışı bırakılmış. Lütfen bizimle iletişime geç.",
+    };
+  }
   return { ok: true, customer: toPublic(customer) };
 }
 
-export async function getCustomerByEmail(email: string): Promise<PublicCustomer | null> {
+export async function getCustomerByEmail(
+  email: string,
+): Promise<PublicCustomer | null> {
   const needle = normalizeEmail(email);
   if (!needle) return null;
   const doc = await fetchCustomer(needle);
@@ -298,7 +370,10 @@ export async function updateCustomerProfile(
     birthday: input.birthday.trim().slice(0, 10),
     updatedAt: new Date().toISOString(),
   };
-  const { error } = await sb.from(TABLES.customers).update(update).eq("email", needle);
+  const { error } = await sb
+    .from(TABLES.customers)
+    .update(update)
+    .eq("email", needle);
   checkErr(error, "updateCustomerProfile");
   const updated = await fetchCustomer(needle);
   return updated ? toPublic(updated) : null;
@@ -314,7 +389,8 @@ export async function changeCustomerPassword(
   newPassword: string,
 ): Promise<ChangePasswordResult> {
   const needle = normalizeEmail(email);
-  if (newPassword.length < 8) return { ok: false, error: "Yeni şifre en az 8 karakter olmalı." };
+  if (newPassword.length < 8)
+    return { ok: false, error: "Yeni şifre en az 8 karakter olmalı." };
   if (newPassword.length > 200) return { ok: false, error: "Şifre çok uzun." };
 
   const customer = await fetchCustomer(needle);
@@ -388,7 +464,9 @@ async function persistAddresses(
     .eq("email", email);
   checkErr(error, "persistAddresses");
   const updated = await fetchCustomer(email);
-  return updated ? { ok: true, customer: toPublic(updated) } : { ok: false, error: failMsg };
+  return updated
+    ? { ok: true, customer: toPublic(updated) }
+    : { ok: false, error: failMsg };
 }
 
 export async function addCustomerAddress(
@@ -401,14 +479,17 @@ export async function addCustomerAddress(
   const customer = await fetchCustomer(needle);
   if (!customer) return { ok: false, error: "Hesap bulunamadı." };
   const existing = withDefaults(customer).addresses;
-  if (existing.length >= 20) return { ok: false, error: "En fazla 20 adres kaydedebilirsin." };
+  if (existing.length >= 20)
+    return { ok: false, error: "En fazla 20 adres kaydedebilirsin." };
 
   const id = `adr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const next = normalizeAddress(input, id);
   // First address is auto-default; or if marked default, demote others.
   const addresses =
     existing.length === 0 || next.isDefault
-      ? existing.map((a) => ({ ...a, isDefault: false })).concat({ ...next, isDefault: true })
+      ? existing
+          .map((a) => ({ ...a, isDefault: false }))
+          .concat({ ...next, isDefault: true })
       : existing.concat(next);
 
   return persistAddresses(needle, addresses, "Kaydedilemedi.");
@@ -437,7 +518,8 @@ export async function updateCustomerAddress(
     addresses = [...existing];
     addresses[idx] = next;
     // Ensure at least one default exists
-    if (!addresses.some((a) => a.isDefault)) addresses[0] = { ...addresses[0], isDefault: true };
+    if (!addresses.some((a) => a.isDefault))
+      addresses[0] = { ...addresses[0], isDefault: true };
   }
 
   return persistAddresses(needle, addresses, "Güncellenemedi.");
@@ -468,8 +550,12 @@ export async function setCustomerDefaultAddress(
   const customer = await fetchCustomer(needle);
   if (!customer) return { ok: false, error: "Hesap bulunamadı." };
   const existing = withDefaults(customer).addresses;
-  if (!existing.some((a) => a.id === addressId)) return { ok: false, error: "Adres bulunamadı." };
-  const addresses = existing.map((a) => ({ ...a, isDefault: a.id === addressId }));
+  if (!existing.some((a) => a.id === addressId))
+    return { ok: false, error: "Adres bulunamadı." };
+  const addresses = existing.map((a) => ({
+    ...a,
+    isDefault: a.id === addressId,
+  }));
   return persistAddresses(needle, addresses, "Güncellenemedi.");
 }
 
@@ -509,11 +595,150 @@ export async function updateNotificationPrefs(
     marketing: !!prefs.marketing,
     newsletter: !!prefs.newsletter,
   };
+  // KVKK: record WHEN explicit marketing consent is active. Stamp on opt-in
+  // (preserving the original grant time across toggles), clear on opt-out.
+  const existing = await fetchCustomer(needle);
+  const now = new Date().toISOString();
+  const marketingConsentAt = sanitized.marketing
+    ? existing?.marketingConsentAt || now
+    : "";
   const { error } = await sb
     .from(TABLES.customers)
-    .update({ notificationPrefs: sanitized, updatedAt: new Date().toISOString() })
+    .update({
+      notificationPrefs: sanitized,
+      marketingConsentAt,
+      updatedAt: now,
+    })
     .eq("email", needle);
   checkErr(error, "updateNotificationPrefs");
   const updated = await fetchCustomer(needle);
   return updated ? toPublic(updated) : null;
+}
+
+// ─── Admin management ───────────────────────────────────────────────────────
+//
+// Server-only views + mutations used by the admin panel to manage real member
+// accounts (TABLES.customers). The password hash is never exposed; everything
+// else (profile, addresses, wishlist, prefs, verification, active state) is.
+
+export interface AdminCustomer {
+  id: string;
+  email: string;
+  name: string;
+  phone: string;
+  birthday: string;
+  addresses: CustomerAddress[];
+  wishlist: string[];
+  notificationPrefs: NotificationPrefs;
+  emailVerified: boolean;
+  verifiedAt: string;
+  isActive: boolean;
+  termsAcceptedAt: string;
+  marketingConsentAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function toAdminCustomer(c: Customer): AdminCustomer {
+  const full = withDefaults(c);
+  return {
+    id: full.id,
+    email: full.email,
+    name: full.name,
+    phone: full.phone,
+    birthday: full.birthday,
+    addresses: full.addresses,
+    wishlist: full.wishlist,
+    notificationPrefs: full.notificationPrefs,
+    emailVerified: full.emailVerified,
+    verifiedAt: full.verifiedAt,
+    isActive: full.isActive,
+    termsAcceptedAt: full.termsAcceptedAt,
+    marketingConsentAt: full.marketingConsentAt,
+    createdAt: full.createdAt,
+    updatedAt: full.updatedAt,
+  };
+}
+
+/** All member accounts, newest first. */
+export async function listAllCustomers(): Promise<AdminCustomer[]> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from(TABLES.customers)
+    .select("*")
+    .order("createdAt", { ascending: false });
+  checkErr(error, "listAllCustomers");
+  return ((data as Customer[] | null) ?? []).map(toAdminCustomer);
+}
+
+/** A single member account for the admin detail view, or null. */
+export async function getAdminCustomerByEmail(
+  email: string,
+): Promise<AdminCustomer | null> {
+  const needle = normalizeEmail(email);
+  if (!needle) return null;
+  const doc = await fetchCustomer(needle);
+  return doc ? toAdminCustomer(doc) : null;
+}
+
+export interface AdminCustomerUpdateInput {
+  name: string;
+  phone: string;
+  birthday: string;
+  notificationPrefs: NotificationPrefs;
+}
+
+/** Admin edit of a member's profile (e-mail + password are NOT editable here). */
+export async function adminUpdateCustomer(
+  email: string,
+  input: AdminCustomerUpdateInput,
+): Promise<AdminCustomer | null> {
+  const needle = normalizeEmail(email);
+  const sb = getSupabaseAdmin();
+  const update = {
+    name: input.name.trim().slice(0, 100),
+    phone: input.phone.trim().slice(0, 30),
+    birthday: input.birthday.trim().slice(0, 10),
+    notificationPrefs: {
+      orderUpdates: !!input.notificationPrefs.orderUpdates,
+      marketing: !!input.notificationPrefs.marketing,
+      newsletter: !!input.notificationPrefs.newsletter,
+    },
+    updatedAt: new Date().toISOString(),
+  };
+  const { error } = await sb
+    .from(TABLES.customers)
+    .update(update)
+    .eq("email", needle);
+  checkErr(error, "adminUpdateCustomer");
+  return getAdminCustomerByEmail(needle);
+}
+
+/** Toggle a member account active/inactive. */
+export async function setCustomerActive(
+  email: string,
+  isActive: boolean,
+): Promise<AdminCustomer | null> {
+  const needle = normalizeEmail(email);
+  const sb = getSupabaseAdmin();
+  const { error } = await sb
+    .from(TABLES.customers)
+    .update({ isActive: !!isActive, updatedAt: new Date().toISOString() })
+    .eq("email", needle);
+  checkErr(error, "setCustomerActive");
+  return getAdminCustomerByEmail(needle);
+}
+
+/** Permanently delete a member account. Returns true when a row was removed. */
+export async function adminDeleteCustomer(email: string): Promise<boolean> {
+  const needle = normalizeEmail(email);
+  if (!needle) return false;
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from(TABLES.customers)
+    .delete()
+    .eq("email", needle)
+    .select("id");
+  checkErr(error, "adminDeleteCustomer");
+  return ((data as { id: string }[] | null) ?? []).length > 0;
 }

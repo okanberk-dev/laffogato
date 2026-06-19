@@ -155,7 +155,9 @@ export function AccountCard({
           <div>
             {title && <h2 className="h3">{title}</h2>}
             {hint && (
-              <p style={{ marginTop: 4, fontSize: 13, color: "var(--ink-soft)" }}>
+              <p
+                style={{ marginTop: 4, fontSize: 13, color: "var(--ink-soft)" }}
+              >
                 {hint}
               </p>
             )}

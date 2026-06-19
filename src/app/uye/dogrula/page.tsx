@@ -52,16 +52,37 @@ export default async function VerifyPage({ searchParams }: PageProps) {
         >
           {ok ? "✓" : "!"}
         </div>
-        <h1 style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 28, marginBottom: 12 }}>
+        <h1
+          style={{
+            fontFamily: "var(--serif)",
+            fontStyle: "italic",
+            fontSize: 28,
+            marginBottom: 12,
+          }}
+        >
           {ok ? "E-postan doğrulandı" : "Doğrulanamadı"}
         </h1>
-        <p style={{ color: "rgba(20,16,11,0.7)", lineHeight: 1.6, fontSize: 15, marginBottom: 28 }}>
+        <p
+          style={{
+            color: "rgba(20,16,11,0.7)",
+            lineHeight: 1.6,
+            fontSize: 15,
+            marginBottom: 28,
+          }}
+        >
           {ok
             ? "Hesabın artık aktif. Giriş yapıp siparişini tamamlayabilirsin."
             : ("error" in result ? result.error : "Bağlantı geçersiz.") +
               " Hesabına giriş yapıp yeni bir doğrulama bağlantısı isteyebilirsin."}
         </p>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            justifyContent: "center",
+            flexWrap: "wrap",
+          }}
+        >
           <Link href="/uye/giris" className="btn btn-primary btn-sm">
             Giriş yap
           </Link>

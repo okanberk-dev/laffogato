@@ -71,8 +71,16 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
       value: String(stats.productCount),
       hint: `${stats.activeProductCount} aktif`,
     },
-    { label: "Stok dışı", value: String(stats.outOfStockCount), hint: "Acil dolum" },
-    { label: "Kategori", value: String(stats.categoryCount), hint: "Shop kategorileri" },
+    {
+      label: "Stok dışı",
+      value: String(stats.outOfStockCount),
+      hint: "Acil dolum",
+    },
+    {
+      label: "Kategori",
+      value: String(stats.categoryCount),
+      hint: "Shop kategorileri",
+    },
     {
       label: "Aktif sipariş",
       value: String(stats.pendingOrderCount),
@@ -133,8 +141,8 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
 
       {sp.denied && (
         <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          O sayfa için yetkin yok. Bu paneldeki yetkinle erişebileceğin
-          bölümler nav'da görünüyor.
+          O sayfa için yetkin yok. Bu paneldeki yetkinle erişebileceğin bölümler
+          nav'da görünüyor.
         </div>
       )}
 
@@ -142,7 +150,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         {cards.map((c) => (
           <Card key={c.label} className="flex flex-col gap-2">
             <div
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               {c.label}
@@ -178,7 +186,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             </h2>
             <Link
               href="/admin/siparisler"
-              className="text-xs text-neutral-600 underline-offset-4 hover:text-neutral-900 hover:underline"
+              className="text-xs text-neutral-600 underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
             >
               Tümünü gör →
             </Link>
@@ -187,86 +195,86 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             <p className="text-sm text-neutral-500">Henüz sipariş yok.</p>
           ) : (
             <>
-            {/* Mobile cards */}
-            <ul className="flex flex-col gap-2 sm:hidden">
-              {recent.map((o) => (
-                <li key={o.id}>
-                  <Link
-                    href={`/admin/siparisler/${o.id}`}
-                    className="flex items-start justify-between gap-3 rounded-lg border border-neutral-200 p-3 hover:border-neutral-900"
-                  >
-                    <div className="min-w-0">
+              {/* Mobile cards */}
+              <ul className="flex flex-col gap-2 sm:hidden">
+                {recent.map((o) => (
+                  <li key={o.id}>
+                    <Link
+                      href={`/admin/siparisler/${o.id}`}
+                      className="flex items-start justify-between gap-3 rounded-lg border border-[var(--admin-border)] p-3 hover:border-[var(--admin-primary)]"
+                    >
+                      <div className="min-w-0">
+                        <div
+                          className="font-medium text-neutral-900"
+                          style={{ fontFamily: "var(--mono), monospace" }}
+                        >
+                          #{o.orderNo}
+                        </div>
+                        <div className="truncate text-xs text-neutral-700">
+                          {o.customerName}
+                        </div>
+                        <span
+                          className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ORDER_STATUS_TONE[o.status]}`}
+                        >
+                          {ORDER_STATUS_LABEL[o.status]}
+                        </span>
+                      </div>
                       <div
-                        className="font-medium text-neutral-900"
+                        className="shrink-0 text-right text-sm text-neutral-900"
                         style={{ fontFamily: "var(--mono), monospace" }}
                       >
-                        #{o.orderNo}
+                        {formatTRY(o.totalMinor)}
                       </div>
-                      <div className="truncate text-xs text-neutral-700">
-                        {o.customerName}
-                      </div>
-                      <span
-                        className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${ORDER_STATUS_TONE[o.status]}`}
-                      >
-                        {ORDER_STATUS_LABEL[o.status]}
-                      </span>
-                    </div>
-                    <div
-                      className="shrink-0 text-right text-sm text-neutral-900"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {formatTRY(o.totalMinor)}
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-
-            {/* Desktop table */}
-            <table className="hidden w-full text-sm sm:table">
-              <thead>
-                <tr
-                  className="text-left text-[10px] uppercase tracking-[0.22em] text-neutral-500"
-                  style={{ fontFamily: "var(--mono), monospace" }}
-                >
-                  <th className="py-2">No</th>
-                  <th>Müşteri</th>
-                  <th>Durum</th>
-                  <th className="text-right">Tutar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map((o) => (
-                  <tr key={o.id} className="border-t border-neutral-100">
-                    <td
-                      className="py-3 font-medium"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      <Link
-                        href={`/admin/siparisler/${o.id}`}
-                        className="text-neutral-900 hover:underline"
-                      >
-                        #{o.orderNo}
-                      </Link>
-                    </td>
-                    <td className="text-neutral-700">{o.customerName}</td>
-                    <td>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${ORDER_STATUS_TONE[o.status]}`}
-                      >
-                        {ORDER_STATUS_LABEL[o.status]}
-                      </span>
-                    </td>
-                    <td
-                      className="text-right"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {formatTRY(o.totalMinor)}
-                    </td>
-                  </tr>
+                    </Link>
+                  </li>
                 ))}
-              </tbody>
-            </table>
+              </ul>
+
+              {/* Desktop table */}
+              <table className="hidden w-full text-sm sm:table">
+                <thead>
+                  <tr
+                    className="text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+                    style={{ fontFamily: "var(--mono), monospace" }}
+                  >
+                    <th className="py-2">No</th>
+                    <th>Müşteri</th>
+                    <th>Durum</th>
+                    <th className="text-right">Tutar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recent.map((o) => (
+                    <tr key={o.id} className="border-t border-neutral-100">
+                      <td
+                        className="py-3 font-medium"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        <Link
+                          href={`/admin/siparisler/${o.id}`}
+                          className="text-neutral-900 hover:underline"
+                        >
+                          #{o.orderNo}
+                        </Link>
+                      </td>
+                      <td className="text-neutral-700">{o.customerName}</td>
+                      <td>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ORDER_STATUS_TONE[o.status]}`}
+                        >
+                          {ORDER_STATUS_LABEL[o.status]}
+                        </span>
+                      </td>
+                      <td
+                        className="text-right"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {formatTRY(o.totalMinor)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </>
           )}
         </Card>
@@ -287,7 +295,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
               <li key={q.href}>
                 <Link
                   href={q.href}
-                  className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2.5 hover:border-neutral-900"
+                  className="flex items-center justify-between rounded-md border border-[var(--admin-border)] px-3 py-2.5 hover:border-[var(--admin-primary)]"
                 >
                   <span>{q.label}</span>
                   <span aria-hidden>→</span>

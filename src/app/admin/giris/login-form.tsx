@@ -7,7 +7,10 @@ import { loginAction, type LoginState } from "./actions";
 const initialState: LoginState = {};
 
 export function LoginForm({ next }: { next?: string }) {
-  const [state, formAction, pending] = useActionState(loginAction, initialState);
+  const [state, formAction, pending] = useActionState(
+    loginAction,
+    initialState,
+  );
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -15,7 +18,7 @@ export function LoginForm({ next }: { next?: string }) {
 
       <label className="flex flex-col gap-2">
         <span
-          className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           E-posta
@@ -26,13 +29,13 @@ export function LoginForm({ next }: { next?: string }) {
           required
           autoComplete="email"
           placeholder="merhaba@example.com"
-          className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none transition-colors focus:border-neutral-900 focus:bg-white"
+          className="rounded-md border border-[var(--admin-border)] bg-neutral-50 px-4 py-3 text-sm transition-colors outline-none focus:border-[var(--admin-primary)] focus:bg-white"
         />
       </label>
 
       <label className="flex flex-col gap-2">
         <span
-          className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           Şifre
@@ -43,7 +46,7 @@ export function LoginForm({ next }: { next?: string }) {
           required
           autoComplete="current-password"
           placeholder="••••••••"
-          className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none transition-colors focus:border-neutral-900 focus:bg-white"
+          className="rounded-md border border-[var(--admin-border)] bg-neutral-50 px-4 py-3 text-sm transition-colors outline-none focus:border-[var(--admin-primary)] focus:bg-white"
         />
       </label>
 
@@ -56,7 +59,7 @@ export function LoginForm({ next }: { next?: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+        className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--admin-primary)] px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-[var(--admin-primary-hover)] disabled:opacity-50"
       >
         {pending ? "Giriş yapılıyor…" : "Giriş yap"}
         <span aria-hidden>→</span>

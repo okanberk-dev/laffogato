@@ -21,7 +21,10 @@ export function AddressForm({
   ) => Promise<AddressFormState>;
   submitLabel: string;
 }) {
-  const [state, formAction, pending] = useActionState(action ?? createAddressAction, initial);
+  const [state, formAction, pending] = useActionState(
+    action ?? createAddressAction,
+    initial,
+  );
   const d = defaults ?? {};
   return (
     <form action={formAction} style={{ display: "grid", gap: 16 }}>

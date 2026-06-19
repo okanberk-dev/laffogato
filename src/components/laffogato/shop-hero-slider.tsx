@@ -45,7 +45,13 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
             onClick={() => setIndex((i) => (i - 1 + total) % total)}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M10 2 L4 8 L10 14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M10 2 L4 8 L10 14"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </button>
           <button
@@ -55,10 +61,20 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
             onClick={() => setIndex((i) => (i + 1) % total)}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M6 2 L12 8 L6 14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M6 2 L12 8 L6 14"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </button>
-          <div className="shop-hero-dots" role="tablist" aria-label="Slayt seçici">
+          <div
+            className="shop-hero-dots"
+            role="tablist"
+            aria-label="Slayt seçici"
+          >
             {slides.map((s, i) => (
               <button
                 key={s.id}
@@ -73,7 +89,8 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
             ))}
           </div>
           <div className="shop-hero-counter tabular" aria-live="polite">
-            {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+            {String(index + 1).padStart(2, "0")} /{" "}
+            {String(total).padStart(2, "0")}
           </div>
         </>
       )}
@@ -111,19 +128,22 @@ function Slide({ slide, active }: { slide: ShopHeroSlide; active: boolean }) {
       <div className="shop-hero-content">
         <span className="eyebrow shop-hero-eyebrow">III · La bottega</span>
         <h2 className="shop-hero-title">
-          {lead || slide.title || (
-            <span style={{ opacity: 0.5 }}>Başlık</span>
-          )}
+          {lead || slide.title || <span style={{ opacity: 0.5 }}>Başlık</span>}
           {accent && (
             <>
               {" "}
-              <span className="shop-hero-title-accent" style={{ color: accentColor }}>
+              <span
+                className="shop-hero-title-accent"
+                style={{ color: accentColor }}
+              >
                 {accent}
               </span>
             </>
           )}
         </h2>
-        {slide.subtitle && <p className="shop-hero-subtitle">{slide.subtitle}</p>}
+        {slide.subtitle && (
+          <p className="shop-hero-subtitle">{slide.subtitle}</p>
+        )}
         {slide.ctaLabel && slide.ctaHref && (
           <a
             href={slide.ctaHref}

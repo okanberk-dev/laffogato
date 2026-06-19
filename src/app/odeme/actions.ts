@@ -68,7 +68,12 @@ function parseItems(raw: string): ClientCartItem[] {
       const name = typeof o.name === "string" ? o.name : null;
       const price = typeof o.price === "number" ? o.price : Number(o.price);
       const qty = typeof o.qty === "number" ? o.qty : Number(o.qty ?? 1);
-      if (!name || !Number.isFinite(price) || !Number.isFinite(qty) || qty <= 0) {
+      if (
+        !name ||
+        !Number.isFinite(price) ||
+        !Number.isFinite(qty) ||
+        qty <= 0
+      ) {
         continue;
       }
       out.push({
@@ -109,12 +114,15 @@ export async function placeOrderAction(formData: FormData) {
       priceMinor: Math.round(it.price * 100),
       qty: it.qty,
     })),
-    customerName: String(formData.get("customerName") ?? "") || customer.name || undefined,
+    customerName:
+      String(formData.get("customerName") ?? "") || customer.name || undefined,
     // Doğrulanmış hesabın e-postası yetkilidir (client değeri override edilir).
     customerEmail: customer.email,
-    customerPhone: String(formData.get("customerPhone") ?? "") || customer.phone || undefined,
-    shippingAddress:
-      String(formData.get("shippingAddress") ?? "") || undefined,
+    customerPhone:
+      String(formData.get("customerPhone") ?? "") ||
+      customer.phone ||
+      undefined,
+    shippingAddress: String(formData.get("shippingAddress") ?? "") || undefined,
     promoCode: String(formData.get("promoCode") ?? "") || undefined,
   });
 
@@ -123,8 +131,7 @@ export async function placeOrderAction(formData: FormData) {
     const params = new URLSearchParams({
       cart: result.reason,
       item: "productName" in result ? result.productName : "",
-      available:
-        "available" in result ? String(result.available) : "",
+      available: "available" in result ? String(result.available) : "",
     });
     redirect(`/?${params.toString()}`);
   }

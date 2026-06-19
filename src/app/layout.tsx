@@ -145,12 +145,12 @@ export const metadata: Metadata = {
   verification: {
     ...(SITE.verification.google ? { google: SITE.verification.google } : {}),
     ...(SITE.verification.yandex ? { yandex: SITE.verification.yandex } : {}),
-    ...(SITE.verification.bing ? { other: { "msvalidate.01": SITE.verification.bing } } : {}),
+    ...(SITE.verification.bing
+      ? { other: { "msvalidate.01": SITE.verification.bing } }
+      : {}),
   },
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-    ],
+    icon: [{ url: "/favicon.ico", sizes: "any" }],
     apple: [{ url: "/favicon.ico" }],
   },
   manifest: "/manifest.webmanifest",
@@ -187,8 +187,8 @@ export const metadata: Metadata = {
     "revisit-after": "7 days",
     // Mobile + theme defaults
     "mobile-web-app-capable": "yes",
-    "HandheldFriendly": "true",
-    "MobileOptimized": "width",
+    HandheldFriendly: "true",
+    MobileOptimized: "width",
   },
 };
 
@@ -211,7 +211,11 @@ export default function RootLayout({
     <html lang={SITE.language} className={fontVariables}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin=""
+        />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link
           rel="alternate"

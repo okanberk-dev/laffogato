@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 import { AccountShell, AccountCard } from "@/components/uye/account-shell";
 import { requireCustomer } from "@/lib/customer/auth";
 
-import { updateAddressAction, type AddressFormState } from "../../../../actions";
+import {
+  updateAddressAction,
+  type AddressFormState,
+} from "../../../../actions";
 import { AddressForm } from "../../address-form";
 
 export const metadata = { title: "Adresi düzenle · L'Affogato" };

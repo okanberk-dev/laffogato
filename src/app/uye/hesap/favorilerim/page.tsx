@@ -1,6 +1,10 @@
 import Link from "next/link";
 
-import { AccountShell, AccountCard, EmptyState } from "@/components/uye/account-shell";
+import {
+  AccountShell,
+  AccountCard,
+  EmptyState,
+} from "@/components/uye/account-shell";
 import { listProducts } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
 
@@ -18,10 +22,7 @@ export default async function FavorilerimPage() {
 
   return (
     <AccountShell customer={customer} active="favorilerim">
-      <AccountCard
-        title="Favorilerim"
-        hint={`${favs.length} ürün`}
-      >
+      <AccountCard title="Favorilerim" hint={`${favs.length} ürün`}>
         {favs.length === 0 ? (
           <EmptyState
             title="Henüz favori eklemedin"

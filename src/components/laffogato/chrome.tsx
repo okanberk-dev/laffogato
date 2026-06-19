@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { NewsletterForm } from "./newsletter-form";
 import { ROUTE_PATHS, type Route } from "./route-paths";
 
 export type { Route };
@@ -17,16 +18,51 @@ export interface DropdownEntry {
 }
 
 export const MENU_DROPDOWN: DropdownEntry[] = [
-  { slug: "affogato", label: "Affogato", italian: "La firma della casa", hue: "caramel" },
-  { slug: "matcha", label: "Matcha Bar", italian: "Uji ceremonial grade", hue: "matcha" },
-  { slug: "espresso", label: "Espresso & Coffee", italian: "Dalla macchina", hue: "dark" },
-  { slug: "cold", label: "Cold Bar", italian: "Il banco freddo", hue: "strawberry" },
-  { slug: "gelato", label: "Gelato & Dolci", italian: "Dal banco", hue: "pistachio" },
+  {
+    slug: "affogato",
+    label: "Affogato",
+    italian: "La firma della casa",
+    hue: "caramel",
+  },
+  {
+    slug: "matcha",
+    label: "Matcha Bar",
+    italian: "Uji ceremonial grade",
+    hue: "matcha",
+  },
+  {
+    slug: "espresso",
+    label: "Espresso & Coffee",
+    italian: "Dalla macchina",
+    hue: "dark",
+  },
+  {
+    slug: "cold",
+    label: "Cold Bar",
+    italian: "Il banco freddo",
+    hue: "strawberry",
+  },
+  {
+    slug: "gelato",
+    label: "Gelato & Dolci",
+    italian: "Dal banco",
+    hue: "pistachio",
+  },
 ];
 
 export const SHOP_DROPDOWN: DropdownEntry[] = [
-  { slug: "cekirdek", label: "Çekirdek Kahve", italian: "Caffè in grani", hue: "dark" },
-  { slug: "hediye", label: "Hediye Seti", italian: "Confezioni regalo", hue: "cream" },
+  {
+    slug: "cekirdek",
+    label: "Çekirdek Kahve",
+    italian: "Caffè in grani",
+    hue: "dark",
+  },
+  {
+    slug: "hediye",
+    label: "Hediye Seti",
+    italian: "Confezioni regalo",
+    hue: "cream",
+  },
   { slug: "ekipman", label: "Ekipman", italian: "Strumenti", hue: "caramel" },
   { slug: "giyim", label: "Giyim", italian: "Capi d'autore", hue: "dark" },
   { slug: "kiler", label: "Kiler", italian: "Dispensa", hue: "matcha" },
@@ -42,7 +78,12 @@ interface LinkEntry {
 const LINKS: LinkEntry[] = [
   { route: "home", label: "Anasayfa" },
   { route: "menu", label: "Menü", dropdown: MENU_DROPDOWN, basePath: "/menu" },
-  { route: "shop", label: "Mağaza", dropdown: SHOP_DROPDOWN, basePath: "/magaza" },
+  {
+    route: "shop",
+    label: "Mağaza",
+    dropdown: SHOP_DROPDOWN,
+    basePath: "/magaza",
+  },
   { route: "story", label: "Hikaye" },
   { route: "reels", label: "Reels" },
   { route: "visit", label: "Ziyaret" },
@@ -66,7 +107,14 @@ interface NavProps {
   onSearch?: () => void;
 }
 
-export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps) {
+export function Nav({
+  route,
+  navigate,
+  dark,
+  cart,
+  onCart,
+  onSearch,
+}: NavProps) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<Route | null>(null);
@@ -92,7 +140,8 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
     };
     const onClick = (e: MouseEvent) => {
       if (!dropdownRef.current) return;
-      if (!dropdownRef.current.contains(e.target as Node)) setOpenDropdown(null);
+      if (!dropdownRef.current.contains(e.target as Node))
+        setOpenDropdown(null);
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onClick);
@@ -102,9 +151,12 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
     };
   }, [openDropdown]);
 
-  useEffect(() => () => {
-    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    },
+    [],
+  );
 
   const hrefFor = (r: Route) => ROUTE_PATHS[r];
 
@@ -130,7 +182,13 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
   const cartCount = cart ?? 0;
   const cartHandler = onCart
     ? { onClick: onCart, type: "button" as const, role: undefined }
-    : { onClick: () => { window.location.href = "/odeme"; }, type: "button" as const, role: undefined };
+    : {
+        onClick: () => {
+          window.location.href = "/odeme";
+        },
+        type: "button" as const,
+        role: undefined,
+      };
 
   return (
     <>
@@ -144,7 +202,9 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
           <span className="nav-topbar-dot" />
           <span className="nav-topbar-item">Tuzla · 10:00 — 23:00</span>
           <span className="nav-topbar-dot" />
-          <span className="nav-topbar-item">500₺ üzeri Türkiye geneli ücretsiz kargo</span>
+          <span className="nav-topbar-item">
+            500₺ üzeri Türkiye geneli ücretsiz kargo
+          </span>
         </div>
       </div>
       <nav
@@ -165,10 +225,7 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
             />
           </a>
         </div>
-        <div
-          className="nav-center"
-          onMouseLeave={onHoverClose}
-        >
+        <div className="nav-center" onMouseLeave={onHoverClose}>
           {LINKS.map((link) => {
             const hasDropdown = !!link.dropdown;
             const isActive = route === link.route;
@@ -177,7 +234,9 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
               <div
                 key={link.route}
                 className={`nav-link-wrap ${hasDropdown ? "has-dropdown" : ""}`}
-                onMouseEnter={hasDropdown ? () => onHoverOpen(link.route) : undefined}
+                onMouseEnter={
+                  hasDropdown ? () => onHoverOpen(link.route) : undefined
+                }
               >
                 <a
                   href={hrefFor(link.route)}
@@ -231,11 +290,26 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
           </a>
           <button className="nav-icon-btn" aria-label="Ara" onClick={onSearch}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4" />
-              <path d="M11 11 L14 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              <circle
+                cx="7"
+                cy="7"
+                r="5"
+                stroke="currentColor"
+                strokeWidth="1.4"
+              />
+              <path
+                d="M11 11 L14 14"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
-          <button className="nav-icon-btn cart" aria-label="Sepetim" {...cartHandler}>
+          <button
+            className="nav-icon-btn cart"
+            aria-label="Sepetim"
+            {...cartHandler}
+          >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path
                 d="M2 3 L4 3 L5.5 11 L13 11 L14 5 L5 5"
@@ -249,7 +323,11 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
             </svg>
             {cartCount > 0 && <span className="badge">{cartCount}</span>}
           </button>
-          <a href={hrefFor("visit")} onClick={go("visit")} className="btn btn-primary btn-sm nav-link-cta">
+          <a
+            href={hrefFor("visit")}
+            onClick={go("visit")}
+            className="btn btn-primary btn-sm nav-link-cta"
+          >
             Rezerve et
             <span className="arrow">→</span>
           </a>
@@ -273,7 +351,11 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
             const isExpanded = mobileSection === link.route;
             if (!hasDropdown) {
               return (
-                <a key={link.route} href={hrefFor(link.route)} onClick={go(link.route)}>
+                <a
+                  key={link.route}
+                  href={hrefFor(link.route)}
+                  onClick={go(link.route)}
+                >
                   {link.label}
                 </a>
               );
@@ -289,7 +371,12 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
                   aria-expanded={isExpanded}
                 >
                   <span>{link.label}</span>
-                  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    aria-hidden="true"
+                  >
                     <path
                       d="M3 5 L7 9 L11 5"
                       stroke="currentColor"
@@ -300,7 +387,9 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
                     />
                   </svg>
                 </button>
-                <div className={`mobile-sheet-sublist ${isExpanded ? "open" : ""}`}>
+                <div
+                  className={`mobile-sheet-sublist ${isExpanded ? "open" : ""}`}
+                >
                   <a
                     href={hrefFor(link.route)}
                     onClick={go(link.route)}
@@ -315,10 +404,17 @@ export function Nav({ route, navigate, dark, cart, onCart, onSearch }: NavProps)
                       onClick={() => setOpen(false)}
                       className="mobile-sheet-sublink"
                     >
-                      <span className={`mobile-sheet-sublink-swatch hue-${entry.hue}`} aria-hidden="true" />
+                      <span
+                        className={`mobile-sheet-sublink-swatch hue-${entry.hue}`}
+                        aria-hidden="true"
+                      />
                       <span>
-                        <span className="mobile-sheet-sublink-label">{entry.label}</span>
-                        <span className="mobile-sheet-sublink-it">{entry.italian}</span>
+                        <span className="mobile-sheet-sublink-label">
+                          {entry.label}
+                        </span>
+                        <span className="mobile-sheet-sublink-it">
+                          {entry.italian}
+                        </span>
                       </span>
                     </a>
                   ))}
@@ -383,11 +479,17 @@ function DropdownPanel({
   onClose: () => void;
 }) {
   return (
-    <div className="nav-dropdown" role="menu" aria-label={`${title} alt menüsü`}>
+    <div
+      className="nav-dropdown"
+      role="menu"
+      aria-label={`${title} alt menüsü`}
+    >
       <div className="nav-dropdown-inner">
         <div className="nav-dropdown-head">
           <div className="eyebrow">
-            {parentRoute === "menu" ? "Il menù · 5 kategori" : "La bottega · 5 kategori"}
+            {parentRoute === "menu"
+              ? "Il menù · 5 kategori"
+              : "La bottega · 5 kategori"}
           </div>
           <a href={parentHref} className="nav-dropdown-all" onClick={onClose}>
             <span>Tüm {title.toLowerCase()}</span>
@@ -403,21 +505,29 @@ function DropdownPanel({
               onClick={onClose}
               role="menuitem"
             >
-              <span className={`nav-dropdown-swatch hue-${entry.hue}`} aria-hidden="true">
+              <span
+                className={`nav-dropdown-swatch hue-${entry.hue}`}
+                aria-hidden="true"
+              >
                 <span className="nav-dropdown-swatch-dot" />
               </span>
               <span className="nav-dropdown-text">
                 <span className="nav-dropdown-label">{entry.label}</span>
                 <span className="nav-dropdown-italian">{entry.italian}</span>
               </span>
-              <span className="nav-dropdown-arrow" aria-hidden="true">→</span>
+              <span className="nav-dropdown-arrow" aria-hidden="true">
+                →
+              </span>
             </a>
           ))}
         </div>
         <div className="nav-dropdown-foot">
           <span className="nav-dropdown-foot-mark">L'A</span>
           <span className="nav-dropdown-foot-line">
-            Bologna 1987 — {parentRoute === "menu" ? "tre rituali, un menù" : "dalla bottega alla casa"}
+            Bologna 1987 —{" "}
+            {parentRoute === "menu"
+              ? "tre rituali, un menù"
+              : "dalla bottega alla casa"}
           </span>
         </div>
       </div>
@@ -438,7 +548,11 @@ interface FooterProps {
   settings?: FooterSettings;
 }
 
-const DEFAULT_ADDRESS_LINES = ["Postane Mah. 29 Ekim Cad. No:28", "200 yıllık Rum köşkü", "Tuzla / İstanbul"];
+const DEFAULT_ADDRESS_LINES = [
+  "Postane Mah. 29 Ekim Cad. No:28",
+  "200 yıllık Rum köşkü",
+  "Tuzla / İstanbul",
+];
 
 function splitAddress(address?: string): string[] {
   if (!address) return DEFAULT_ADDRESS_LINES;
@@ -479,55 +593,89 @@ export function Footer({ navigate, settings }: FooterProps) {
           <h3>
             Bir mektup, <span className="script">ayda bir.</span>
           </h3>
-          <p style={{ marginTop: 18, color: "rgba(255, 255, 255, 0.72)", maxWidth: 460, lineHeight: 1.65 }}>
-            Yeni sezon affogati, Bologna kavurma notları, küçük gelato denemeleri.
-            Hiçbir zaman ayda birden fazla — söz veriyoruz.
+          <p
+            style={{
+              marginTop: 18,
+              color: "rgba(255, 255, 255, 0.72)",
+              maxWidth: 460,
+              lineHeight: 1.65,
+            }}
+          >
+            Yeni sezon affogati, Bologna kavurma notları, küçük gelato
+            denemeleri. Hiçbir zaman ayda birden fazla — söz veriyoruz.
           </p>
         </div>
-        <form className="newsletter-form" onSubmit={(e) => e.preventDefault()}>
-          <input type="email" placeholder="merhaba@example.com" autoComplete="email" />
-          <button
-            type="submit"
-            className="btn btn-gold btn-sm"
-            style={{ borderRadius: 999, whiteSpace: "nowrap" }}
-          >
-            Abone ol <span className="arrow">→</span>
-          </button>
-        </form>
+        <NewsletterForm />
       </div>
 
       {/* Trust strip */}
       <div className="footer-trust">
-        <FooterTrust icon="lock" title="Güvenli ödeme" hint="256-bit SSL · 3D Secure" />
-        <FooterTrust icon="truck" title="Ücretsiz kargo" hint="500₺ üzeri Türkiye geneli" />
-        <FooterTrust icon="leaf" title="Taze kavurma" hint="Haftalık İtalyan roast" />
-        <FooterTrust icon="return" title="14 gün cayma" hint="Mevzuata uygun iade" />
+        <FooterTrust
+          icon="lock"
+          title="Güvenli ödeme"
+          hint="256-bit SSL · 3D Secure"
+        />
+        <FooterTrust
+          icon="truck"
+          title="Ücretsiz kargo"
+          hint="500₺ üzeri Türkiye geneli"
+        />
+        <FooterTrust
+          icon="leaf"
+          title="Taze kavurma"
+          hint="Haftalık İtalyan roast"
+        />
+        <FooterTrust
+          icon="return"
+          title="14 gün cayma"
+          hint="Mevzuata uygun iade"
+        />
       </div>
 
       {/* Main link grid */}
       <div className="footer-grid">
         <div className="footer-brand-col">
           <div className="footer-mark">
-            <span
-              className="brand-mark"
-              role="img"
-              aria-label="L'Affogato"
-            />
+            <span className="brand-mark" role="img" aria-label="L'Affogato" />
           </div>
           <div className="footer-mark-script">caffè italiano · est. 1987</div>
           <p>
-            Bologna 1987’den İstanbul Tuzla’ya. İlk yurt dışı şubemiz —
-            200 yıllık, Rum’lardan kalma restore bir köşkte.
+            Bologna 1987’den İstanbul Tuzla’ya. İlk yurt dışı şubemiz — 200
+            yıllık, Rum’lardan kalma restore bir köşkte.
           </p>
           <div className="footer-social">
-            <a className="nav-icon-btn" href={hrefFor("reels")} onClick={go("reels")} aria-label="Instagram">
+            <a
+              className="nav-icon-btn"
+              href={hrefFor("reels")}
+              onClick={go("reels")}
+              aria-label="Instagram"
+            >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" strokeWidth="1.4" />
-                <circle cx="8" cy="8" r="2.6" stroke="currentColor" strokeWidth="1.4" />
+                <rect
+                  x="2"
+                  y="2"
+                  width="12"
+                  height="12"
+                  rx="3"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                />
+                <circle
+                  cx="8"
+                  cy="8"
+                  r="2.6"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                />
                 <circle cx="11.5" cy="4.5" r="0.7" fill="currentColor" />
               </svg>
             </a>
-            <a className="nav-icon-btn" href={hrefFor("reels")} onClick={go("reels")} aria-label="TikTok">
+            <a
+              className="nav-icon-btn"
+              href={hrefFor("reels")}
+              onClick={go("reels")}
+              aria-label="TikTok"
+            >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <path
                   d="M9 1 L9 11 A 2.5 2.5 0 1 1 6.5 8.5"
@@ -535,12 +683,30 @@ export function Footer({ navigate, settings }: FooterProps) {
                   strokeWidth="1.4"
                   strokeLinecap="round"
                 />
-                <path d="M9 1 Q 9 4 13 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                <path
+                  d="M9 1 Q 9 4 13 4"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
               </svg>
             </a>
-            <a className="nav-icon-btn" href={hrefFor("reels")} onClick={go("reels")} aria-label="YouTube">
+            <a
+              className="nav-icon-btn"
+              href={hrefFor("reels")}
+              onClick={go("reels")}
+              aria-label="YouTube"
+            >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <rect x="1.5" y="3.5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.4" />
+                <rect
+                  x="1.5"
+                  y="3.5"
+                  width="13"
+                  height="9"
+                  rx="2"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                />
                 <path d="M7 6 L10 8 L7 10 Z" fill="currentColor" />
               </svg>
             </a>
@@ -569,23 +735,57 @@ export function Footer({ navigate, settings }: FooterProps) {
         <div>
           <h5>L'azienda</h5>
           <ul>
-            <li><a href={hrefFor("story")} onClick={go("story")}>Hikayemiz</a></li>
-            <li><a href={hrefFor("reels")} onClick={go("reels")}>Reels & Film</a></li>
-            <li><a href={hrefFor("franchise")} onClick={go("franchise")}>Franchise</a></li>
-            <li><a href={hrefFor("visit")} onClick={go("visit")}>Tuzla</a></li>
-            <li><a href="/uye/hesap">Hesabım</a></li>
+            <li>
+              <a href={hrefFor("story")} onClick={go("story")}>
+                Hikayemiz
+              </a>
+            </li>
+            <li>
+              <a href={hrefFor("reels")} onClick={go("reels")}>
+                Reels & Film
+              </a>
+            </li>
+            <li>
+              <a href={hrefFor("franchise")} onClick={go("franchise")}>
+                Franchise
+              </a>
+            </li>
+            <li>
+              <a href={hrefFor("visit")} onClick={go("visit")}>
+                Tuzla
+              </a>
+            </li>
+            <li>
+              <a href="/uye/hesap">Hesabım</a>
+            </li>
           </ul>
         </div>
         <div>
           <h5>Yasal</h5>
           <ul>
-            <li><a href="/hukuk/kullanim-sartlari">Kullanım Şartları</a></li>
-            <li><a href="/hukuk/gizlilik-politikasi">Gizlilik Politikası</a></li>
-            <li><a href="/hukuk/mesafeli-satis-sozlesmesi">Mesafeli Satış Sözleşmesi</a></li>
-            <li><a href="/hukuk/iade-ve-cayma">İade & Cayma</a></li>
-            <li><a href="/hukuk/teslimat-ve-kargo">Teslimat & Kargo</a></li>
-            <li><a href="/hukuk/cerez-politikasi">Çerez Politikası</a></li>
-            <li><a href="/hukuk/kvkk-aydinlatma-metni">KVKK Aydınlatma</a></li>
+            <li>
+              <a href="/hukuk/kullanim-sartlari">Kullanım Şartları</a>
+            </li>
+            <li>
+              <a href="/hukuk/gizlilik-politikasi">Gizlilik Politikası</a>
+            </li>
+            <li>
+              <a href="/hukuk/mesafeli-satis-sozlesmesi">
+                Mesafeli Satış Sözleşmesi
+              </a>
+            </li>
+            <li>
+              <a href="/hukuk/iade-ve-cayma">İade & Cayma</a>
+            </li>
+            <li>
+              <a href="/hukuk/teslimat-ve-kargo">Teslimat & Kargo</a>
+            </li>
+            <li>
+              <a href="/hukuk/cerez-politikasi">Çerez Politikası</a>
+            </li>
+            <li>
+              <a href="/hukuk/kvkk-aydinlatma-metni">KVKK Aydınlatma</a>
+            </li>
           </ul>
         </div>
         <div className="footer-contact-col">
@@ -607,7 +807,9 @@ export function Footer({ navigate, settings }: FooterProps) {
       {/* Bottom strip */}
       <div className="footer-meta">
         <div className="footer-meta-left">
-          <span>© {year} {SITE_LEGAL_NAME}</span>
+          <span>
+            © {year} {SITE_LEGAL_NAME}
+          </span>
           <span className="footer-meta-dot" />
           <span>Italia MCMLXXXVII — İstanbul MMXXVI</span>
         </div>
@@ -637,14 +839,28 @@ function FooterTrust({
     <div className="footer-trust-item">
       <span className="footer-trust-icon" aria-hidden="true">
         {icon === "lock" && (
-          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.4">
+          <svg
+            viewBox="0 0 20 20"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+          >
             <rect x="4" y="9" width="12" height="8" rx="2" />
             <path d="M6.5 9 V6.5 a3.5 3.5 0 0 1 7 0 V9" />
             <circle cx="10" cy="13" r="1" fill="currentColor" />
           </svg>
         )}
         {icon === "truck" && (
-          <svg viewBox="0 0 20 20" width="18" height="16" fill="none" stroke="currentColor" strokeWidth="1.4">
+          <svg
+            viewBox="0 0 20 20"
+            width="18"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+          >
             <path d="M1 5 H11 V14 H1 z" />
             <path d="M11 8 H16 L18 11 V14 H11 z" />
             <circle cx="5" cy="15" r="1.4" />
@@ -652,13 +868,27 @@ function FooterTrust({
           </svg>
         )}
         {icon === "leaf" && (
-          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.4">
+          <svg
+            viewBox="0 0 20 20"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+          >
             <path d="M3 17 C4 9 9 4 17 3 C17 11 13 16 5 17 Z" />
             <path d="M5 17 L11 11" />
           </svg>
         )}
         {icon === "return" && (
-          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.4">
+          <svg
+            viewBox="0 0 20 20"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+          >
             <path d="M4 10 a6 6 0 1 0 2-4" />
             <path d="M2 4 L6 6 L4 10" strokeLinejoin="round" />
           </svg>

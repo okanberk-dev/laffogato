@@ -32,10 +32,18 @@ async function send({ to, subject, html, text }: SendArgs): Promise<boolean> {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from: FROM, to, subject, html, ...(text ? { text } : {}) }),
+      body: JSON.stringify({
+        from: FROM,
+        to,
+        subject,
+        html,
+        ...(text ? { text } : {}),
+      }),
     });
     if (!res.ok) {
-      console.error(`[email] Resend failed (${res.status}): ${await res.text()}`);
+      console.error(
+        `[email] Resend failed (${res.status}): ${await res.text()}`,
+      );
       return false;
     }
     return true;

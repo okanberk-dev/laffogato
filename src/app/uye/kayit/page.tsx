@@ -31,7 +31,11 @@ export default async function KayitPage() {
           border: "1px solid var(--ink-line)",
         }}
       >
-        <Link href="/" className="eyebrow" style={{ display: "inline-block", marginBottom: 18 }}>
+        <Link
+          href="/"
+          className="eyebrow"
+          style={{ display: "inline-block", marginBottom: 18 }}
+        >
           ← Anasayfa
         </Link>
         <h1
@@ -44,9 +48,17 @@ export default async function KayitPage() {
         >
           Üye <span className="script">ol.</span>
         </h1>
-        <p style={{ color: "var(--ink-soft)", fontSize: 14, lineHeight: 1.6, marginTop: 0, marginBottom: 28 }}>
-          Sipariş geçmişini takip et, tekrar siparişlerde formu hızlı doldur, özel
-          kampanyalardan haberdar ol.
+        <p
+          style={{
+            color: "var(--ink-soft)",
+            fontSize: 14,
+            lineHeight: 1.6,
+            marginTop: 0,
+            marginBottom: 28,
+          }}
+        >
+          Sipariş geçmişini takip et, tekrar siparişlerde formu hızlı doldur,
+          özel kampanyalardan haberdar ol.
         </p>
         <RegisterForm />
         <div
@@ -60,7 +72,14 @@ export default async function KayitPage() {
           }}
         >
           Hesabın var mı?{" "}
-          <Link href="/uye/giris" style={{ color: "var(--gold-deep)", textDecoration: "underline", textUnderlineOffset: 3 }}>
+          <Link
+            href="/uye/giris"
+            style={{
+              color: "var(--gold-deep)",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+            }}
+          >
             Giriş yap
           </Link>
         </div>

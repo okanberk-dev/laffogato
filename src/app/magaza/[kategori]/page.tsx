@@ -24,7 +24,9 @@ export function generateStaticParams() {
   return SHOP_CATEGORY_ROUTES.map((c) => ({ kategori: c.slug }));
 }
 
-export async function generateMetadata({ params }: RouteParams): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: RouteParams): Promise<Metadata> {
   const { kategori } = await params;
   const cat = SHOP_CATEGORY_ROUTES.find((c) => c.slug === kategori);
   if (!cat) return { title: "Kategori bulunamadı" };
@@ -53,13 +55,15 @@ export default async function MagazaCategoryPage({ params }: RouteParams) {
   const cat = SHOP_CATEGORY_ROUTES.find((c) => c.slug === kategori);
   if (!cat) notFound();
 
-  const [allProducts, settings, menu, customer, heroSlides] = await Promise.all([
-    listShopProducts(),
-    getSettings(),
-    listMenuForCustomer(),
-    getActiveCustomer(),
-    listActiveShopHeroSlides(),
-  ]);
+  const [allProducts, settings, menu, customer, heroSlides] = await Promise.all(
+    [
+      listShopProducts(),
+      getSettings(),
+      listMenuForCustomer(),
+      getActiveCustomer(),
+      listActiveShopHeroSlides(),
+    ],
+  );
 
   // Pre-filter shop products to the selected category for a focused landing
   // page. PageShop still renders its category sidebar so users can switch.
@@ -89,7 +93,9 @@ export default async function MagazaCategoryPage({ params }: RouteParams) {
         seoSlot={<SeoContent faq={FAQ} />}
         wishlist={customer?.wishlist}
         isAuthenticated={!!customer}
-        freeShippingThreshold={Math.round(settings.shippingFreeThresholdMinor / 100)}
+        freeShippingThreshold={Math.round(
+          settings.shippingFreeThresholdMinor / 100,
+        )}
         shopHeroSlides={heroSlides.map((s) => ({
           id: s.id,
           title: s.title,

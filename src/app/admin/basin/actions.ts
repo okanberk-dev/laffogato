@@ -13,8 +13,12 @@ import {
 
 function parse(fd: FormData): PressInput {
   return {
-    name: String(fd.get("name") ?? "").trim().slice(0, 80),
-    quote: String(fd.get("quote") ?? "").trim().slice(0, 300),
+    name: String(fd.get("name") ?? "")
+      .trim()
+      .slice(0, 80),
+    quote: String(fd.get("quote") ?? "")
+      .trim()
+      .slice(0, 300),
     sortOrder: parseInt(String(fd.get("sortOrder") ?? "0"), 10) || 0,
     isActive: fd.get("isActive") === "on",
   };
@@ -30,7 +34,12 @@ export async function createPressAction(fd: FormData) {
   const input = parse(fd);
   if (!input.name) return;
   const created = await createPress(input);
-  await logAudit({ action: "create", entity: "press", entityId: created.id, payload: { name: created.name } });
+  await logAudit({
+    action: "create",
+    entity: "press",
+    entityId: created.id,
+    payload: { name: created.name },
+  });
   revalidate();
 }
 

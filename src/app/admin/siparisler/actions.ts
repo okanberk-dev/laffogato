@@ -2,16 +2,21 @@
 
 import { revalidatePath } from "next/cache";
 
+import { redirect } from "next/navigation";
+
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { bulkOrderSchema } from "@/lib/admin/bulk-schema";
+import { manualOrderSchema } from "@/lib/admin/manual-order-schema";
 import {
   bulkUpdateOrders,
+  createManualOrder,
   refundOrder,
   setOrderInternalNote,
   setOrderItemStatus,
   setOrderTracking,
   transitionOrder,
+  updateOrderDetails,
   updateOrderStatus,
   type AdminOrderItemStatus,
   type AdminOrderStatus,
@@ -90,7 +95,9 @@ function revalidateOrder(id: string) {
 export async function transitionOrderAction(formData: FormData) {
   await requireRole("orders");
   const id = String(formData.get("id") ?? "");
-  const transition = String(formData.get("transition") ?? "") as OrderTransition;
+  const transition = String(
+    formData.get("transition") ?? "",
+  ) as OrderTransition;
   if (!id || !TRANSITIONS.includes(transition)) return;
   await transitionOrder(id, transition);
   await logAudit({
@@ -175,6 +182,101 @@ export async function refundOrderAction(
   });
   revalidateOrder(id);
   return { ok: { refundedMinor: amountMinor } };
+}
+
+export interface OrderDetailsActionState {
+  error?: string;
+  savedAt?: string;
+}
+
+export async function saveOrderDetailsAction(
+  _prev: OrderDetailsActionState,
+  formData: FormData,
+): Promise<OrderDetailsActionState> {
+  await requireRole("orders");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Sipariş ID eksik." };
+  const customerName = String(formData.get("customerName") ?? "").trim();
+  if (customerName.length < 2) {
+    return { error: "Müşteri adı en az 2 karakter olmalı." };
+  }
+  const result = await updateOrderDetails(id, {
+    customerName,
+    customerEmail: String(formData.get("customerEmail") ?? ""),
+    customerPhone: String(formData.get("customerPhone") ?? ""),
+    shippingAddress: String(formData.get("shippingAddress") ?? ""),
+  });
+  if (!result) return { error: "Sipariş bulunamadı." };
+  await logAudit({
+    action: "update",
+    entity: "order",
+    entityId: id,
+    payload: { fields: "customer_delivery" },
+  });
+  revalidateOrder(id);
+  return { savedAt: new Date().toISOString() };
+}
+
+export interface ManualOrderActionState {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+}
+
+export async function createManualOrderAction(
+  _prev: ManualOrderActionState,
+  formData: FormData,
+): Promise<ManualOrderActionState> {
+  const session = await requireRole("orders");
+  const fields: Record<string, string> = {};
+  for (const [k, v] of formData.entries()) {
+    if (typeof v === "string") fields[k] = v;
+  }
+  const parsed = manualOrderSchema.safeParse(fields);
+  if (!parsed.success) {
+    const fe: Record<string, string> = {};
+    for (const i of parsed.error.issues) {
+      const k = i.path.join(".") || "form";
+      if (!fe[k]) fe[k] = i.message;
+    }
+    return { error: "Formdaki uyarıları gider.", fieldErrors: fe };
+  }
+  const d = parsed.data;
+  const result = await createManualOrder({
+    items: d.lines,
+    customerName: d.customerName,
+    customerEmail: d.customerEmail,
+    customerPhone: d.customerPhone,
+    shippingAddress: d.shippingAddress,
+    internalNote: d.internalNote,
+    promoCode: d.promoCode,
+    status: d.status,
+    actor: session.email,
+  });
+  if (!result.ok) {
+    if (result.reason === "empty") {
+      return { error: "En az bir ürün ekle." };
+    }
+    if (result.reason === "not_found") {
+      return { error: `Ürün bulunamadı: ${result.productName}` };
+    }
+    return {
+      error: `Yetersiz stok: ${result.productName} (mevcut: ${result.available}).`,
+    };
+  }
+  await logAudit({
+    action: "create",
+    entity: "order",
+    entityId: result.order.id,
+    payload: {
+      orderNo: result.order.orderNo,
+      manual: true,
+      total: result.order.totalMinor,
+    },
+  });
+  revalidatePath("/admin/siparisler");
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirect(`/admin/siparisler/${result.order.id}`);
 }
 
 export async function saveOrderTrackingAction(formData: FormData) {

@@ -16,5 +16,7 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("tr-TR", {
 });
 
 export function formatDate(value: string | Date): string {
-  return DATE_FORMATTER.format(typeof value === "string" ? new Date(value) : value);
+  return DATE_FORMATTER.format(
+    typeof value === "string" ? new Date(value) : value,
+  );
 }

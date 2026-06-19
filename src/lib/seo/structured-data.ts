@@ -22,7 +22,12 @@
 
 import { FAQ, type FaqEntry } from "./faq";
 import { SITE } from "./site";
-import { FRANCHISE, STORY, type MenuCategory, type Product } from "@/components/laffogato/data";
+import {
+  FRANCHISE,
+  STORY,
+  type MenuCategory,
+  type Product,
+} from "@/components/laffogato/data";
 
 type Json = Record<string, unknown>;
 
@@ -167,14 +172,46 @@ export function localBusinessLd(): Json {
     parentOrganization: { "@id": `${SITE.url}/#organization` },
     areaServed: { "@type": "City", name: "İstanbul" },
     amenityFeature: [
-      { "@type": "LocationFeatureSpecification", name: "Tarihi Rum köşkü", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Ücretsiz Wi-Fi", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Vale park", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Evcil hayvan dostu", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Vegan seçenek", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Bebek arabası erişimi", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Glutensiz seçenek", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Çocuk menüsü", value: true },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Tarihi Rum köşkü",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Ücretsiz Wi-Fi",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Vale park",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Evcil hayvan dostu",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Vegan seçenek",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Bebek arabası erişimi",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Glutensiz seçenek",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Çocuk menüsü",
+        value: true,
+      },
     ],
     publicTransitClosestStop: [
       "Marmaray Tuzla (6 dk)",
@@ -265,7 +302,8 @@ export function menuLd(menu: Record<string, MenuCategory>): Json {
         const { amount, currency } = priceToMinor(item.price);
         const tags = item.tags ?? [];
         const diet: string[] = [];
-        if (tags.includes("vegan opt.")) diet.push("https://schema.org/VeganDiet");
+        if (tags.includes("vegan opt."))
+          diet.push("https://schema.org/VeganDiet");
         return {
           "@type": "MenuItem",
           name: item.name,
@@ -289,12 +327,15 @@ export function productListLd(products: Product[]): Json {
     "@type": "ItemList",
     "@id": `${SITE.url}/#products`,
     name: `${SITE.name} Mağaza`,
-    description: "L'Affogato online mağaza — çekirdek kahve, edible cup, ekipman, hediye seti, giyim.",
+    description:
+      "L'Affogato online mağaza — çekirdek kahve, edible cup, ekipman, hediye seti, giyim.",
     numberOfItems: products.length,
     itemListOrder: "https://schema.org/ItemListOrderDescending",
     itemListElement: products.map((p, idx) => {
       const { amount, currency } = priceToMinor(p.price);
-      const compareAt = p.compareAtPrice ? priceToMinor(p.compareAtPrice) : null;
+      const compareAt = p.compareAtPrice
+        ? priceToMinor(p.compareAtPrice)
+        : null;
       const slug = slugify(p.name);
       const productId = `${SITE.url}/#product-${slug}`;
       return {
@@ -309,7 +350,11 @@ export function productListLd(products: Product[]): Json {
           category: p.cat,
           sku: `LAF-${slug.toUpperCase().slice(0, 20)}`,
           mpn: `LAF-${slug.toUpperCase().slice(0, 20)}`,
-          brand: { "@type": "Brand", name: SITE.name, "@id": `${SITE.url}/#organization` },
+          brand: {
+            "@type": "Brand",
+            name: SITE.name,
+            "@id": `${SITE.url}/#organization`,
+          },
           manufacturer: { "@id": `${SITE.url}/#organization` },
           image: `${SITE.url}${SITE.ogImage}`,
           url: `${SITE.url}/#shop`,
@@ -363,7 +408,8 @@ export function productListLd(products: Product[]): Json {
             hasMerchantReturnPolicy: {
               "@type": "MerchantReturnPolicy",
               applicableCountry: "TR",
-              returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+              returnPolicyCategory:
+                "https://schema.org/MerchantReturnFiniteReturnWindow",
               merchantReturnDays: 14,
               returnMethod: "https://schema.org/ReturnByMail",
               returnFees: "https://schema.org/FreeReturn",
@@ -371,8 +417,12 @@ export function productListLd(products: Product[]): Json {
           },
           additionalProperty: [
             { "@type": "PropertyValue", name: "tag", value: p.tag },
-            ...(p.featured ? [{ "@type": "PropertyValue", name: "featured", value: "true" }] : []),
-            ...(p.isNew ? [{ "@type": "PropertyValue", name: "isNew", value: "true" }] : []),
+            ...(p.featured
+              ? [{ "@type": "PropertyValue", name: "featured", value: "true" }]
+              : []),
+            ...(p.isNew
+              ? [{ "@type": "PropertyValue", name: "isNew", value: "true" }]
+              : []),
           ],
         },
       };
@@ -403,12 +453,22 @@ export function singleProductLd(p: Product, canonicalPath: string): Json {
     category: p.cat,
     sku: p.sku || `LAF-${slug.toUpperCase().slice(0, 20)}`,
     mpn: p.sku || `LAF-${slug.toUpperCase().slice(0, 20)}`,
-    brand: { "@type": "Brand", name: SITE.name, "@id": `${SITE.url}/#organization` },
+    brand: {
+      "@type": "Brand",
+      name: SITE.name,
+      "@id": `${SITE.url}/#organization`,
+    },
     image,
     url,
     inLanguage: SITE.locale,
     ...(p.weightGrams
-      ? { weight: { "@type": "QuantitativeValue", value: p.weightGrams, unitCode: "GRM" } }
+      ? {
+          weight: {
+            "@type": "QuantitativeValue",
+            value: p.weightGrams,
+            unitCode: "GRM",
+          },
+        }
       : {}),
     offers: {
       "@type": "Offer",
@@ -434,18 +494,33 @@ export function singleProductLd(p: Product, canonicalPath: string): Json {
         : {}),
       shippingDetails: {
         "@type": "OfferShippingDetails",
-        shippingRate: { "@type": "MonetaryAmount", value: "49", currency: "TRY" },
+        shippingRate: {
+          "@type": "MonetaryAmount",
+          value: "49",
+          currency: "TRY",
+        },
         shippingDestination: { "@type": "DefinedRegion", addressCountry: "TR" },
         deliveryTime: {
           "@type": "ShippingDeliveryTime",
-          handlingTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 1, unitCode: "DAY" },
-          transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 3, unitCode: "DAY" },
+          handlingTime: {
+            "@type": "QuantitativeValue",
+            minValue: 0,
+            maxValue: 1,
+            unitCode: "DAY",
+          },
+          transitTime: {
+            "@type": "QuantitativeValue",
+            minValue: 1,
+            maxValue: 3,
+            unitCode: "DAY",
+          },
         },
       },
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
         applicableCountry: "TR",
-        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+        returnPolicyCategory:
+          "https://schema.org/MerchantReturnFiniteReturnWindow",
         merchantReturnDays: 14,
         returnMethod: "https://schema.org/ReturnByMail",
         returnFees: "https://schema.org/FreeReturn",
@@ -622,10 +697,7 @@ export function speakableLd(): Json {
     speakable: {
       "@type": "SpeakableSpecification",
       cssSelector: ["#sss-heading", "#sss"],
-      xpath: [
-        "//*[@id='sss-heading']",
-        "//*[@id='sss']//details//summary",
-      ],
+      xpath: ["//*[@id='sss-heading']", "//*[@id='sss']//details//summary"],
     },
     primaryImageOfPage: {
       "@type": "ImageObject",

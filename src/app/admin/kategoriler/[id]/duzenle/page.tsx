@@ -23,10 +23,7 @@ export default async function EditCategoryPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
-      <PageHeader
-        eyebrow={`Düzenle · ${category.id}`}
-        title={category.label}
-      />
+      <PageHeader eyebrow={`Düzenle · ${category.id}`} title={category.label} />
       <CategoryForm
         action={boundUpdate}
         category={category}

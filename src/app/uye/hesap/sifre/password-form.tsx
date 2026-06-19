@@ -7,7 +7,10 @@ import { changePasswordAction, type PasswordFormState } from "../../actions";
 const initial: PasswordFormState = {};
 
 export function PasswordForm() {
-  const [state, action, pending] = useActionState(changePasswordAction, initial);
+  const [state, action, pending] = useActionState(
+    changePasswordAction,
+    initial,
+  );
   return (
     <form action={action} style={{ display: "grid", gap: 16, maxWidth: 480 }}>
       <div className="account-field">

@@ -21,7 +21,14 @@ export interface PageSeo {
   /** Sitemap priority (0–1). Top-level shopping/menu pages get 0.9; brand
       pages get 0.7; supporting pages get 0.6. */
   priority: number;
-  changefreq: "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
+  changefreq:
+    | "always"
+    | "hourly"
+    | "daily"
+    | "weekly"
+    | "monthly"
+    | "yearly"
+    | "never";
 }
 
 export const PAGE_SEO: Record<Route, PageSeo> = {

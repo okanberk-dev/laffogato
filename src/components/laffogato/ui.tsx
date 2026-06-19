@@ -6,11 +6,7 @@ import { toggleWishlistAction } from "@/app/uye/actions";
 import { productPath } from "./route-paths";
 
 import type { MenuCategory, Product } from "./data";
-import {
-  EspressoCup,
-  PhotoSurface,
-  ProductSurface,
-} from "./visuals";
+import { EspressoCup, PhotoSurface, ProductSurface } from "./visuals";
 
 export interface CartItem {
   /** Stable product id — preferred match key for merge + server resolution. */
@@ -35,13 +31,21 @@ export interface CartItem {
 }
 
 /** Stable cart key — same product+variant lines merge into one. */
-export function cartItemKey(it: { productId?: string; variantId?: string; name: string }): string {
+export function cartItemKey(it: {
+  productId?: string;
+  variantId?: string;
+  name: string;
+}): string {
   return `${it.productId ?? it.name}::${it.variantId ?? ""}`;
 }
 
 /** Build a CartItem from a Product (+ optional variant) with all metadata. */
-export function toCartItem(p: Product, variant?: { id: string; name: string; priceDelta: number; stock?: number }): CartItem {
-  const base = p.priceMinor !== undefined ? p.priceMinor / 100 : parseFloat(p.price) || 0;
+export function toCartItem(
+  p: Product,
+  variant?: { id: string; name: string; priceDelta: number; stock?: number },
+): CartItem {
+  const base =
+    p.priceMinor !== undefined ? p.priceMinor / 100 : parseFloat(p.price) || 0;
   const price = base + (variant?.priceDelta ?? 0);
   return {
     productId: p.id,
@@ -64,7 +68,12 @@ export interface ProductCardProps {
   onOpen?: (product: Product) => void;
 }
 
-export function ProductCard({ product, idx = 0, addToCart, onOpen }: ProductCardProps) {
+export function ProductCard({
+  product,
+  idx = 0,
+  addToCart,
+  onOpen,
+}: ProductCardProps) {
   const p = product;
   const outOfStock = p.stock !== undefined && p.stock <= 0;
   const lowStock =
@@ -91,15 +100,31 @@ export function ProductCard({ product, idx = 0, addToCart, onOpen }: ProductCard
       onClick={onClick}
     >
       <div className="product-card-img">
-        <ProductSurface cat={p.cat} tone={p.img} label={label} sub={p.tag} images={p.images} />
+        <ProductSurface
+          cat={p.cat}
+          tone={p.img}
+          label={label}
+          sub={p.tag}
+          images={p.images}
+        />
         {outOfStock ? (
-          <div className="product-card-flag" style={{ background: "var(--ink-mute)" }}>TÜKENDİ</div>
+          <div
+            className="product-card-flag"
+            style={{ background: "var(--ink-mute)" }}
+          >
+            TÜKENDİ
+          </div>
         ) : (
           <>
-            {p.featured && <div className="product-card-flag gold">ÖNE ÇIKAN</div>}
+            {p.featured && (
+              <div className="product-card-flag gold">ÖNE ÇIKAN</div>
+            )}
             {p.isNew && <div className="product-card-flag new">NUOVO</div>}
             {!p.featured && !p.isNew && lowStock && (
-              <div className="product-card-flag" style={{ background: "var(--rose)" }}>
+              <div
+                className="product-card-flag"
+                style={{ background: "var(--rose)" }}
+              >
                 SON {p.stock}
               </div>
             )}
@@ -153,7 +178,11 @@ export function SectionHead({
   if (alignment === "center") {
     return (
       <div className="reveal" style={{ textAlign: "center", marginBottom: 50 }}>
-        {eyebrow && <div className="eyebrow" style={{ marginBottom: 16 }}>{eyebrow}</div>}
+        {eyebrow && (
+          <div className="eyebrow" style={{ marginBottom: 16 }}>
+            {eyebrow}
+          </div>
+        )}
         <h2 className="h1">{title}</h2>
       </div>
     );
@@ -171,7 +200,15 @@ export function SectionHead({
   );
 }
 
-export function Stat({ n, l, d }: { n: ReactNode; l: ReactNode; d?: ReactNode }) {
+export function Stat({
+  n,
+  l,
+  d,
+}: {
+  n: ReactNode;
+  l: ReactNode;
+  d?: ReactNode;
+}) {
   return (
     <div>
       <div
@@ -186,9 +223,18 @@ export function Stat({ n, l, d }: { n: ReactNode; l: ReactNode; d?: ReactNode })
       >
         {n}
       </div>
-      <div className="eyebrow" style={{ marginTop: 10 }}>{l}</div>
+      <div className="eyebrow" style={{ marginTop: 10 }}>
+        {l}
+      </div>
       {d && (
-        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 8, lineHeight: 1.5 }}>
+        <div
+          style={{
+            fontSize: 13,
+            color: "var(--ink-soft)",
+            marginTop: 8,
+            lineHeight: 1.5,
+          }}
+        >
           {d}
         </div>
       )}
@@ -294,21 +340,38 @@ export function CartDrawer({
           }}
         >
           <div>
-            <div className="eyebrow" style={{ marginBottom: 4 }}>Sepetin</div>
-            <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 24, lineHeight: 1 }}>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>
+              Sepetin
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--serif)",
+                fontStyle: "italic",
+                fontSize: 24,
+                lineHeight: 1,
+              }}
+            >
               {itemCount} ürün
             </div>
           </div>
           <button onClick={onClose} className="nav-icon-btn" aria-label="Kapat">
             <svg width="14" height="14" viewBox="0 0 16 16">
-              <path d="M3 3 L13 13 M13 3 L3 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              <path
+                d="M3 3 L13 13 M13 3 L3 13"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </header>
         {items.length > 0 && freeShippingThreshold > 0 && (
           <FreeShippingBar total={total} threshold={freeShippingThreshold} />
         )}
-        <div className="cart-drawer-body" style={{ flex: 1, overflowY: "auto" }}>
+        <div
+          className="cart-drawer-body"
+          style={{ flex: 1, overflowY: "auto" }}
+        >
           {items.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 20px" }}>
               <div
@@ -332,7 +395,14 @@ export function CartDrawer({
                   />
                 </svg>
               </div>
-              <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 28, lineHeight: 1.1 }}>
+              <div
+                style={{
+                  fontFamily: "var(--serif)",
+                  fontStyle: "italic",
+                  fontSize: 28,
+                  lineHeight: 1.1,
+                }}
+              >
                 Sepetin boş.
               </div>
               <p
@@ -346,7 +416,8 @@ export function CartDrawer({
                   marginRight: "auto",
                 }}
               >
-                Bir affogato, bir matcha, bir çekirdek paketi — eve ya da köşkün bahçesine servise hazır.
+                Bir affogato, bir matcha, bir çekirdek paketi — eve ya da köşkün
+                bahçesine servise hazır.
               </p>
             </div>
           ) : (
@@ -366,18 +437,45 @@ export function CartDrawer({
                       borderRadius: "var(--r-md)",
                     }}
                   >
-                    <div className="cart-item-thumb" style={{ borderRadius: "var(--r-sm)", overflow: "hidden" }}>
-                      <ProductSurface cat={it.cat ?? "gift"} tone={it.img ?? "cream"} label={it.name} />
+                    <div
+                      className="cart-item-thumb"
+                      style={{
+                        borderRadius: "var(--r-sm)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <ProductSurface
+                        cat={it.cat ?? "gift"}
+                        tone={it.img ?? "cream"}
+                        label={it.name}
+                      />
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontFamily: "var(--serif-display)", fontSize: 16, lineHeight: 1.2 }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--serif-display)",
+                          fontSize: 16,
+                          lineHeight: 1.2,
+                        }}
+                      >
                         {it.name.split("—")[0].trim()}
                       </div>
                       {it.variantName && (
-                        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>{it.variantName}</div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: "var(--ink-soft)",
+                            marginTop: 2,
+                          }}
+                        >
+                          {it.variantName}
+                        </div>
                       )}
                       {setQty ? (
-                        <div className="cart-qty-stepper" style={{ marginTop: 8 }}>
+                        <div
+                          className="cart-qty-stepper"
+                          style={{ marginTop: 8 }}
+                        >
                           <button
                             type="button"
                             aria-label="Azalt"
@@ -396,18 +494,40 @@ export function CartDrawer({
                           </button>
                         </div>
                       ) : (
-                        <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>
+                        <div
+                          style={{
+                            fontFamily: "var(--mono)",
+                            fontSize: 11,
+                            color: "var(--ink-mute)",
+                            marginTop: 4,
+                          }}
+                        >
                           x{qty}
                         </div>
                       )}
                       {atMax && (
-                        <div style={{ fontSize: 10, color: "var(--rose)", marginTop: 4 }}>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: "var(--rose)",
+                            marginTop: 4,
+                          }}
+                        >
                           Stok sınırı
                         </div>
                       )}
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                      <div style={{ fontFamily: "var(--mono)", fontSize: 13 }}>{Math.round(lineTotal)}₺</div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-end",
+                        gap: 6,
+                      }}
+                    >
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 13 }}>
+                        {Math.round(lineTotal)}₺
+                      </div>
                       <button
                         onClick={() => removeItem(i)}
                         style={{
@@ -433,7 +553,13 @@ export function CartDrawer({
   );
 }
 
-function FreeShippingBar({ total, threshold }: { total: number; threshold: number }) {
+function FreeShippingBar({
+  total,
+  threshold,
+}: {
+  total: number;
+  threshold: number;
+}) {
   const remaining = Math.max(0, threshold - total);
   const pct = Math.min(100, Math.round((total / threshold) * 100));
   const reached = remaining <= 0;
@@ -459,7 +585,10 @@ function FreeShippingBar({ total, threshold }: { total: number; threshold: numbe
 
 function CartFooter({ total }: { total: number }) {
   return (
-    <footer className="cart-drawer-foot" style={{ borderTop: "1px solid var(--ink-line)" }}>
+    <footer
+      className="cart-drawer-foot"
+      style={{ borderTop: "1px solid var(--ink-line)" }}
+    >
       <div
         style={{
           display: "flex",
@@ -470,7 +599,9 @@ function CartFooter({ total }: { total: number }) {
         }}
       >
         <span>Ara toplam</span>
-        <span className="tabular" style={{ fontFamily: "var(--mono)" }}>{Math.round(total)}₺</span>
+        <span className="tabular" style={{ fontFamily: "var(--mono)" }}>
+          {Math.round(total)}₺
+        </span>
       </div>
       <div
         style={{
@@ -587,7 +718,12 @@ export function ProductModal({
           }}
         >
           <svg width="14" height="14" viewBox="0 0 16 16">
-            <path d="M3 3 L13 13 M13 3 L3 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            <path
+              d="M3 3 L13 13 M13 3 L3 13"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            />
           </svg>
         </button>
         <ProductModalBody
@@ -624,7 +760,8 @@ function ProductModalBody({
   const [qty, setQty] = useState(1);
 
   const selectedVariant = variants.find((v) => v.id === variantId);
-  const basePrice = p.priceMinor !== undefined ? p.priceMinor / 100 : parseFloat(p.price) || 0;
+  const basePrice =
+    p.priceMinor !== undefined ? p.priceMinor / 100 : parseFloat(p.price) || 0;
   const unitPrice = basePrice + (selectedVariant?.priceDelta ?? 0);
   const stock = selectedVariant?.stock ?? p.stock;
   const outOfStock = stock !== undefined && stock <= 0;
@@ -633,7 +770,13 @@ function ProductModalBody({
   return (
     <>
       <div style={{ aspectRatio: "4/5", position: "relative" }}>
-        <ProductSurface cat={p.cat} tone={p.img} label={label} sub={p.tag} images={p.images} />
+        <ProductSurface
+          cat={p.cat}
+          tone={p.img}
+          label={label}
+          sub={p.tag}
+          images={p.images}
+        />
         {p.id && (
           <div style={{ position: "absolute", top: 14, left: 14, zIndex: 4 }}>
             <WishlistHeart
@@ -652,23 +795,50 @@ function ProductModalBody({
           flexDirection: "column",
         }}
       >
-        <div className="eyebrow" style={{ marginBottom: 14 }}>{p.tag}</div>
+        <div className="eyebrow" style={{ marginBottom: 14 }}>
+          {p.tag}
+        </div>
         <h2 className="h2">{p.name}</h2>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 16 }}>
-          <span style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 28 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: 12,
+            marginTop: 16,
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--serif)",
+              fontStyle: "italic",
+              fontSize: 28,
+            }}
+          >
             {Math.round(unitPrice)}₺
           </span>
           {p.compareAtPrice && (
-            <span style={{ textDecoration: "line-through", color: "var(--ink-mute)", fontSize: 18 }}>
+            <span
+              style={{
+                textDecoration: "line-through",
+                color: "var(--ink-mute)",
+                fontSize: 18,
+              }}
+            >
               {p.compareAtPrice}
             </span>
           )}
         </div>
-        <p style={{ marginTop: 22, lineHeight: 1.65, color: "var(--ink-soft)" }}>{p.desc}</p>
+        <p
+          style={{ marginTop: 22, lineHeight: 1.65, color: "var(--ink-soft)" }}
+        >
+          {p.desc}
+        </p>
 
         {variants.length > 0 && (
           <div style={{ marginTop: 24 }}>
-            <div className="eyebrow" style={{ marginBottom: 10 }}>Seçenek</div>
+            <div className="eyebrow" style={{ marginBottom: 10 }}>
+              Seçenek
+            </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {variants.map((v) => {
                 const vOut = v.stock !== undefined && v.stock <= 0;
@@ -685,7 +855,9 @@ function ProductModalBody({
                     }}
                   >
                     {v.name}
-                    {v.priceDelta ? ` · ${v.priceDelta > 0 ? "+" : ""}${Math.round(v.priceDelta)}₺` : ""}
+                    {v.priceDelta
+                      ? ` · ${v.priceDelta > 0 ? "+" : ""}${Math.round(v.priceDelta)}₺`
+                      : ""}
                   </button>
                 );
               })}
@@ -720,7 +892,8 @@ function ProductModalBody({
           <div style={{ marginTop: 18, fontSize: 13 }}>
             {outOfStock ? (
               <span style={{ color: "var(--ink-mute)" }}>● Şu an tükendi</span>
-            ) : p.lowStockThreshold !== undefined && stock <= p.lowStockThreshold ? (
+            ) : p.lowStockThreshold !== undefined &&
+              stock <= p.lowStockThreshold ? (
               <span style={{ color: "var(--rose)" }}>● Son {stock} adet</span>
             ) : (
               <span style={{ color: "var(--green)" }}>● Stokta</span>
@@ -728,7 +901,15 @@ function ProductModalBody({
           </div>
         )}
 
-        <div style={{ marginTop: 24, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div
+          style={{
+            marginTop: 24,
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
           <div className="qty-stepper-pill">
             <button
               type="button"
@@ -759,9 +940,12 @@ function ProductModalBody({
               onClose();
             }}
           >
-            {outOfStock ? "Tükendi" : (
+            {outOfStock ? (
+              "Tükendi"
+            ) : (
               <>
-                Sepete ekle · {Math.round(unitPrice * qty)}₺ <span className="arrow">→</span>
+                Sepete ekle · {Math.round(unitPrice * qty)}₺{" "}
+                <span className="arrow">→</span>
               </>
             )}
           </button>
@@ -777,10 +961,22 @@ function ProductModalBody({
           </a>
         )}
 
-        <div style={{ marginTop: 20, padding: 18, background: "var(--bg-warm)", borderRadius: "var(--r-sm)" }}>
-          <div className="eyebrow" style={{ marginBottom: 8 }}>Teslimat · İade</div>
-          <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-            İstanbul içi aynı gün · Yurt içi 2–3 iş günü · 14 gün açılmamış ürünlerde iade.
+        <div
+          style={{
+            marginTop: 20,
+            padding: 18,
+            background: "var(--bg-warm)",
+            borderRadius: "var(--r-sm)",
+          }}
+        >
+          <div className="eyebrow" style={{ marginBottom: 8 }}>
+            Teslimat · İade
+          </div>
+          <div
+            style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}
+          >
+            İstanbul içi aynı gün · Yurt içi 2–3 iş günü · 14 gün açılmamış
+            ürünlerde iade.
           </div>
         </div>
       </div>
@@ -807,7 +1003,13 @@ function WishlistHeart({
         style={{ position: "relative", top: 0, left: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        >
           <path d="M12 21s-7-4.5-9.5-9.5C.7 7.2 4 3 8 4.5c2 .8 3 2.5 4 4 1-1.5 2-3.2 4-4 4-1.5 7.3 2.7 5.5 7C19 16.5 12 21 12 21Z" />
         </svg>
       </a>
@@ -825,7 +1027,13 @@ function WishlistHeart({
         data-active={isFavorite ? "true" : undefined}
         style={{ position: "relative", top: 0, left: 0 }}
       >
-        <svg viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+        <svg
+          viewBox="0 0 24 24"
+          fill={isFavorite ? "currentColor" : "none"}
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        >
           <path d="M12 21s-7-4.5-9.5-9.5C.7 7.2 4 3 8 4.5c2 .8 3 2.5 4 4 1-1.5 2-3.2 4-4 4-1.5 7.3 2.7 5.5 7C19 16.5 12 21 12 21Z" />
         </svg>
       </button>
@@ -893,14 +1101,22 @@ export function SearchOverlay({
     }
     for (const [, cat] of Object.entries(menu)) {
       for (const it of cat.items) {
-        const hay = `${it.name} ${it.desc} ${(it.tags ?? []).join(" ")}`.toLowerCase();
+        const hay =
+          `${it.name} ${it.desc} ${(it.tags ?? []).join(" ")}`.toLowerCase();
         if (hay.includes(term)) {
-          results.push({ kind: "menu", name: it.name, sub: cat.title, price: it.price });
+          results.push({
+            kind: "menu",
+            name: it.name,
+            sub: cat.title,
+            price: it.price,
+          });
         }
       }
     }
   }
-  const productResults = results.filter((r) => r.kind === "product").slice(0, 8);
+  const productResults = results
+    .filter((r) => r.kind === "product")
+    .slice(0, 8);
   const menuResults = results.filter((r) => r.kind === "menu").slice(0, 6);
 
   if (!open) return null;
@@ -909,9 +1125,26 @@ export function SearchOverlay({
     <div className="search-overlay" onClick={onClose}>
       <div className="search-panel" onClick={(e) => e.stopPropagation()}>
         <div className="search-input-row">
-          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden>
-            <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4" />
-            <path d="M11 11 L14 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden
+          >
+            <circle
+              cx="7"
+              cy="7"
+              r="5"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            />
+            <path
+              d="M11 11 L14 14"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            />
           </svg>
           <input
             autoFocus
@@ -931,26 +1164,38 @@ export function SearchOverlay({
               <span className="eyebrow">İpucu</span>
               <p>En az 2 harf yaz — çekirdek, matcha, hediye, affogato…</p>
               <div className="search-suggest">
-                {["Affogato", "Matcha", "Edible cup", "Espresso", "Hediye"].map((s) => (
-                  <button key={s} className="chip" onClick={() => setQ(s)}>
-                    {s}
-                  </button>
-                ))}
+                {["Affogato", "Matcha", "Edible cup", "Espresso", "Hediye"].map(
+                  (s) => (
+                    <button key={s} className="chip" onClick={() => setQ(s)}>
+                      {s}
+                    </button>
+                  ),
+                )}
               </div>
             </div>
           ) : productResults.length === 0 && menuResults.length === 0 ? (
             <div className="search-empty">
-              <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 24 }}>
+              <div
+                style={{
+                  fontFamily: "var(--serif)",
+                  fontStyle: "italic",
+                  fontSize: 24,
+                }}
+              >
                 "{q}" için sonuç yok.
               </div>
               <p>Farklı bir kelime dene ya da mağazaya göz at.</p>
-              <a href="/magaza" className="btn btn-ghost btn-sm">Mağazaya git →</a>
+              <a href="/magaza" className="btn btn-ghost btn-sm">
+                Mağazaya git →
+              </a>
             </div>
           ) : (
             <>
               {productResults.length > 0 && (
                 <div className="search-group">
-                  <div className="eyebrow search-group-head">Mağaza · {productResults.length}</div>
+                  <div className="eyebrow search-group-head">
+                    Mağaza · {productResults.length}
+                  </div>
                   {productResults.map((r, i) => {
                     const inner = (
                       <>
@@ -966,7 +1211,9 @@ export function SearchOverlay({
                           <div className="search-result-name">{r.name}</div>
                           <div className="search-result-sub">{r.sub}</div>
                         </div>
-                        {r.price && <div className="search-result-price">{r.price}</div>}
+                        {r.price && (
+                          <div className="search-result-price">{r.price}</div>
+                        )}
                       </>
                     );
                     return r.href ? (
@@ -992,12 +1239,22 @@ export function SearchOverlay({
               )}
               {menuResults.length > 0 && (
                 <div className="search-group">
-                  <div className="eyebrow search-group-head">Menü · {menuResults.length}</div>
+                  <div className="eyebrow search-group-head">
+                    Menü · {menuResults.length}
+                  </div>
                   {menuResults.map((r, i) => (
                     <a key={`m-${i}`} href="/menu" className="search-result">
                       <div className="search-result-thumb">
                         <PhotoSurface hue="caramel">
-                          <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", padding: 6 }}>
+                          <div
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              display: "grid",
+                              placeItems: "center",
+                              padding: 6,
+                            }}
+                          >
                             <EspressoCup />
                           </div>
                         </PhotoSurface>
@@ -1006,7 +1263,9 @@ export function SearchOverlay({
                         <div className="search-result-name">{r.name}</div>
                         <div className="search-result-sub">{r.sub}</div>
                       </div>
-                      {r.price && <div className="search-result-price">{r.price}</div>}
+                      {r.price && (
+                        <div className="search-result-price">{r.price}</div>
+                      )}
                     </a>
                   ))}
                 </div>

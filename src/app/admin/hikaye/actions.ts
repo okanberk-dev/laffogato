@@ -13,9 +13,15 @@ import {
 
 function parse(fd: FormData): StoryEventInput {
   return {
-    year: String(fd.get("year") ?? "").trim().slice(0, 12),
-    title: String(fd.get("title") ?? "").trim().slice(0, 120),
-    body: String(fd.get("body") ?? "").trim().slice(0, 500),
+    year: String(fd.get("year") ?? "")
+      .trim()
+      .slice(0, 12),
+    title: String(fd.get("title") ?? "")
+      .trim()
+      .slice(0, 120),
+    body: String(fd.get("body") ?? "")
+      .trim()
+      .slice(0, 500),
     sortOrder: parseInt(String(fd.get("sortOrder") ?? "0"), 10) || 0,
     isActive: fd.get("isActive") === "on",
   };
@@ -31,7 +37,12 @@ export async function createStoryAction(fd: FormData) {
   const input = parse(fd);
   if (!input.title) return;
   const created = await createStoryEvent(input);
-  await logAudit({ action: "create", entity: "story", entityId: created.id, payload: { year: created.year } });
+  await logAudit({
+    action: "create",
+    entity: "story",
+    entityId: created.id,
+    payload: { year: created.year },
+  });
   revalidate();
 }
 

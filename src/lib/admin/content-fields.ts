@@ -51,23 +51,98 @@ export const CONTENT_FIELDS: ContentField[] = [
     group: "Franchise",
     label: "Franchise sloganı",
     kind: "textarea",
-    default: "1987'den beri İtalya'da; 2026'dan beri İstanbul'da. Şimdi sıra sizin şehrinizde.",
+    default:
+      "1987'den beri İtalya'da; 2026'dan beri İstanbul'da. Şimdi sıra sizin şehrinizde.",
   },
-  { key: "franchise.stat.1.value", group: "Franchise", label: "İstatistik 1 · değer", kind: "text", default: "39" },
-  { key: "franchise.stat.1.label", group: "Franchise", label: "İstatistik 1 · etiket", kind: "text", default: "Yıl" },
-  { key: "franchise.stat.1.desc", group: "Franchise", label: "İstatistik 1 · açıklama", kind: "text", default: "Bologna’dan İstanbul’a." },
-  { key: "franchise.stat.2.value", group: "Franchise", label: "İstatistik 2 · değer", kind: "text", default: "12" },
-  { key: "franchise.stat.2.label", group: "Franchise", label: "İstatistik 2 · etiket", kind: "text", default: "Koltuk" },
-  { key: "franchise.stat.2.desc", group: "Franchise", label: "İstatistik 2 · açıklama", kind: "text", default: "Optimum mekan kapasitesi." },
-  { key: "franchise.stat.3.value", group: "Franchise", label: "İstatistik 3 · değer", kind: "text", default: "38m²" },
-  { key: "franchise.stat.3.label", group: "Franchise", label: "İstatistik 3 · etiket", kind: "text", default: "Minimum" },
-  { key: "franchise.stat.3.desc", group: "Franchise", label: "İstatistik 3 · açıklama", kind: "text", default: "Açılış metrekaresi." },
-  { key: "franchise.stat.4.value", group: "Franchise", label: "İstatistik 4 · değer", kind: "text", default: "14ay" },
-  { key: "franchise.stat.4.label", group: "Franchise", label: "İstatistik 4 · etiket", kind: "text", default: "Geri dönüş" },
-  { key: "franchise.stat.4.desc", group: "Franchise", label: "İstatistik 4 · açıklama", kind: "text", default: "Beklenen yatırım süresi." },
+  {
+    key: "franchise.stat.1.value",
+    group: "Franchise",
+    label: "İstatistik 1 · değer",
+    kind: "text",
+    default: "39",
+  },
+  {
+    key: "franchise.stat.1.label",
+    group: "Franchise",
+    label: "İstatistik 1 · etiket",
+    kind: "text",
+    default: "Yıl",
+  },
+  {
+    key: "franchise.stat.1.desc",
+    group: "Franchise",
+    label: "İstatistik 1 · açıklama",
+    kind: "text",
+    default: "Bologna’dan İstanbul’a.",
+  },
+  {
+    key: "franchise.stat.2.value",
+    group: "Franchise",
+    label: "İstatistik 2 · değer",
+    kind: "text",
+    default: "12",
+  },
+  {
+    key: "franchise.stat.2.label",
+    group: "Franchise",
+    label: "İstatistik 2 · etiket",
+    kind: "text",
+    default: "Koltuk",
+  },
+  {
+    key: "franchise.stat.2.desc",
+    group: "Franchise",
+    label: "İstatistik 2 · açıklama",
+    kind: "text",
+    default: "Optimum mekan kapasitesi.",
+  },
+  {
+    key: "franchise.stat.3.value",
+    group: "Franchise",
+    label: "İstatistik 3 · değer",
+    kind: "text",
+    default: "38m²",
+  },
+  {
+    key: "franchise.stat.3.label",
+    group: "Franchise",
+    label: "İstatistik 3 · etiket",
+    kind: "text",
+    default: "Minimum",
+  },
+  {
+    key: "franchise.stat.3.desc",
+    group: "Franchise",
+    label: "İstatistik 3 · açıklama",
+    kind: "text",
+    default: "Açılış metrekaresi.",
+  },
+  {
+    key: "franchise.stat.4.value",
+    group: "Franchise",
+    label: "İstatistik 4 · değer",
+    kind: "text",
+    default: "14ay",
+  },
+  {
+    key: "franchise.stat.4.label",
+    group: "Franchise",
+    label: "İstatistik 4 · etiket",
+    kind: "text",
+    default: "Geri dönüş",
+  },
+  {
+    key: "franchise.stat.4.desc",
+    group: "Franchise",
+    label: "İstatistik 4 · açıklama",
+    kind: "text",
+    default: "Beklenen yatırım süresi.",
+  },
 ];
 
-export const CONTENT_GROUPS: string[] = [...new Set(CONTENT_FIELDS.map((f) => f.group))];
+export const CONTENT_GROUPS: string[] = [
+  ...new Set(CONTENT_FIELDS.map((f) => f.group)),
+];
 
 export function contentDefaults(): Record<string, string> {
   return Object.fromEntries(CONTENT_FIELDS.map((f) => [f.key, f.default]));

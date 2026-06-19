@@ -24,7 +24,9 @@ export function generateStaticParams() {
   return MENU_CATEGORY_ROUTES.map((c) => ({ kategori: c.slug }));
 }
 
-export async function generateMetadata({ params }: RouteParams): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: RouteParams): Promise<Metadata> {
   const { kategori } = await params;
   const cat = MENU_CATEGORY_ROUTES.find((c) => c.slug === kategori);
   if (!cat) return { title: "Menü kategorisi bulunamadı" };
@@ -53,13 +55,14 @@ export default async function MenuCategoryPage({ params }: RouteParams) {
   const cat = MENU_CATEGORY_ROUTES.find((c) => c.slug === kategori);
   if (!cat) notFound();
 
-  const [products, settings, fullMenu, customer, heroSlides] = await Promise.all([
-    listShopProducts(),
-    getSettings(),
-    listMenuForCustomer(),
-    getActiveCustomer(),
-    listActiveShopHeroSlides(),
-  ]);
+  const [products, settings, fullMenu, customer, heroSlides] =
+    await Promise.all([
+      listShopProducts(),
+      getSettings(),
+      listMenuForCustomer(),
+      getActiveCustomer(),
+      listActiveShopHeroSlides(),
+    ]);
 
   if (!fullMenu[cat.menuKey]) notFound();
 
@@ -104,4 +107,3 @@ export default async function MenuCategoryPage({ params }: RouteParams) {
     </>
   );
 }
-

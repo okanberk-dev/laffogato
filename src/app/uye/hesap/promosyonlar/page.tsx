@@ -1,4 +1,8 @@
-import { AccountShell, AccountCard, EmptyState } from "@/components/uye/account-shell";
+import {
+  AccountShell,
+  AccountCard,
+  EmptyState,
+} from "@/components/uye/account-shell";
 import { listPromos } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
 
@@ -81,7 +85,9 @@ export default async function PromosyonlarPage() {
               <div key={p.id} className="account-promo-card">
                 <div className="account-promo-code">{p.code}</div>
                 <div className="account-promo-meta">
-                  <span style={{ fontFamily: "var(--serif-display)", fontSize: 16 }}>
+                  <span
+                    style={{ fontFamily: "var(--serif-display)", fontSize: 16 }}
+                  >
                     {p.kind === "pct"
                       ? `%${p.value} indirim`
                       : `${formatTRY(p.value)} indirim`}

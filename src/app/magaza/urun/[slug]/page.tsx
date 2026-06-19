@@ -19,7 +19,9 @@ interface RouteParams {
 
 const PATH = (slug: string) => `/magaza/urun/${slug}`;
 
-export async function generateMetadata({ params }: RouteParams): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: RouteParams): Promise<Metadata> {
   const { slug } = await params;
   const product = await getShopProductBySlug(slug);
   if (!product) return { title: "Ürün bulunamadı · L'Affogato" };
@@ -61,7 +63,11 @@ export default async function ProductDetailPage({ params }: RouteParams) {
   if (!product) notFound();
 
   const [related, settings] = await Promise.all([
-    listRelatedShopProducts((product.cat as ShopCategoryId) ?? "beans", product.id ?? "", 4),
+    listRelatedShopProducts(
+      (product.cat as ShopCategoryId) ?? "beans",
+      product.id ?? "",
+      4,
+    ),
     getSettings(),
   ]);
 

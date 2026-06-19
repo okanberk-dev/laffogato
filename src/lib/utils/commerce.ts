@@ -44,7 +44,10 @@ export function computeShippingMinor(
  * Türkiye perakendesinde fiyatlar KDV dahil gösterilir; bu yalnızca
  * "bu fiyatın içinde ₺X KDV var" bilgisini üretmek içindir.
  */
-export function extractTaxMinor(grossMinor: number, taxRatePct: number): number {
+export function extractTaxMinor(
+  grossMinor: number,
+  taxRatePct: number,
+): number {
   if (taxRatePct <= 0 || grossMinor <= 0) return 0;
   const rate = taxRatePct / 100;
   return Math.round(grossMinor - grossMinor / (1 + rate));
@@ -71,13 +74,17 @@ export function computeOrderTotals(
   cfg: CheckoutConfig,
 ): OrderTotals {
   const safeSubtotal = Math.max(0, Math.round(subtotalMinor));
-  const safeDiscount = Math.min(Math.max(0, Math.round(discountMinor)), safeSubtotal);
+  const safeDiscount = Math.min(
+    Math.max(0, Math.round(discountMinor)),
+    safeSubtotal,
+  );
   const netMinor = safeSubtotal - safeDiscount;
   const shippingMinor = computeShippingMinor(netMinor, cfg);
   const totalMinor = netMinor + shippingMinor;
   const taxMinor = extractTaxMinor(totalMinor, cfg.taxRatePct);
   const freeShippingRemainingMinor =
-    cfg.shippingFreeThresholdMinor > 0 && netMinor < cfg.shippingFreeThresholdMinor
+    cfg.shippingFreeThresholdMinor > 0 &&
+    netMinor < cfg.shippingFreeThresholdMinor
       ? cfg.shippingFreeThresholdMinor - netMinor
       : 0;
   return {
