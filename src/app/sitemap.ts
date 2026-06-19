@@ -32,12 +32,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const all = await listProducts();
     products = all
       .filter((p) => p.isActive)
-      .map((p) => ({
-        url: `${SITE.url}/magaza/urun/${p.slug}`,
-        lastModified: p.updatedAt ? new Date(p.updatedAt) : now,
-        changeFrequency: "weekly" as const,
-        priority: 0.8,
-      }));
+      .map((p) => {
+        const imgs = (p.images ?? []).filter((u) => /^https?:\/\//i.test(u));
+        return {
+          url: `${SITE.url}/magaza/urun/${p.slug}`,
+          lastModified: p.updatedAt ? new Date(p.updatedAt) : now,
+          changeFrequency: "weekly" as const,
+          priority: 0.8,
+          ...(imgs.length ? { images: imgs } : {}),
+        };
+      });
   } catch {
     // No DB at build / connection issue — ship the sitemap without products.
   }

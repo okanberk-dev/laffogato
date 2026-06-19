@@ -23,6 +23,11 @@ import { siteGraphLd } from "@/lib/seo/structured-data";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
+  // Keyword-first local title (≤60 chars); `absolute` bypasses the layout
+  // title template so the brand isn't appended twice.
+  title: {
+    absolute: "Tuzla'da İtalyan Kahve, Affogato & Gelato — L'Affogato",
+  },
   description: SITE.shortDescription,
   alternates: { canonical: "/" },
   openGraph: {

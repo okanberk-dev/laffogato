@@ -18,7 +18,12 @@ import {
 } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { PAGE_SEO } from "@/lib/seo/pages";
-import { breadcrumbLd } from "@/lib/seo/structured-data";
+import { SITE } from "@/lib/seo/site";
+import {
+  breadcrumbLd,
+  localBusinessLd,
+  menuLd,
+} from "@/lib/seo/structured-data";
 
 import type { Metadata } from "next";
 
@@ -34,6 +39,17 @@ export function pageMetadata(route: Route): Metadata {
       description: seo.description,
       url: seo.path,
       type: "website",
+      // openGraph is shallow-merged across segments: re-declare the layout's
+      // siteName/locale/image so they are not dropped on section pages.
+      siteName: SITE.name,
+      locale: SITE.locale,
+      images: [
+        {
+          url: SITE.ogImage,
+          width: SITE.ogImageWidth,
+          height: SITE.ogImageHeight,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
@@ -58,12 +74,26 @@ export async function renderSectionPage(route: Route) {
     { name: seo.breadcrumbLabel, url: seo.path },
   ]);
 
+  // Route-specific entity schema so each indexable URL carries the relevant
+  // JSON-LD (not only the home page): the CafeOrCoffeeShop entity on /ziyaret,
+  // the full Menu on /menu. Shared @ids let Google treat these as one entity.
+  const extraLd: object[] = [];
+  if (route === "visit") extraLd.push(localBusinessLd());
+  if (route === "menu") extraLd.push(menuLd(menu));
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
       />
+      {extraLd.map((ld, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
+        />
+      ))}
       <LaffogatoApp
         initialRoute={route}
         products={products}

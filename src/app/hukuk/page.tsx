@@ -7,6 +7,14 @@ export const metadata: Metadata = {
   title: "Hukuki bilgiler",
   description:
     "L'Affogato kullanım şartları, gizlilik politikası, mesafeli satış sözleşmesi, iade hakları ve diğer hukuki belgeler.",
+  alternates: { canonical: "/hukuk" },
+  openGraph: {
+    title: "Hukuki bilgiler · L'Affogato",
+    description:
+      "Kullanım şartları, gizlilik politikası, mesafeli satış sözleşmesi ve iade hakları.",
+    url: "/hukuk",
+    type: "website",
+  },
 };
 
 export default function HukukIndexPage() {

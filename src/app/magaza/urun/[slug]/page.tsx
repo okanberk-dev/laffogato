@@ -25,7 +25,13 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getShopProductBySlug(slug);
   if (!product) return { title: "Ürün bulunamadı · L'Affogato" };
-  const title = `${product.name} — L'Affogato`;
+  const SUFFIX = " — L'Affogato";
+  const title =
+    product.name.length + SUFFIX.length <= 60
+      ? `${product.name}${SUFFIX}`
+      : product.name.length <= 60
+        ? product.name
+        : `${product.name.slice(0, 57).trimEnd()}…`;
   const rawDesc = product.desc?.trim() ?? "";
   let description: string;
   if (rawDesc) {
@@ -42,6 +48,10 @@ export async function generateMetadata({
   const path = PATH(slug);
   const ogImage =
     product.images?.find((u) => /^https?:\/\//i.test(u)) ?? undefined;
+  const ogPrice =
+    (product.price ?? "").replace(/[^\d.,]/g, "").replace(",", ".") ||
+    undefined;
+  const inStock = !(product.stock !== undefined && product.stock <= 0);
   return {
     title,
     description,
@@ -50,8 +60,21 @@ export async function generateMetadata({
       title,
       description,
       url: path,
-      type: "website",
+      siteName: "L'Affogato",
+      // og:type=product is emitted via `other` (not in Next's OpenGraph union).
       ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+    },
+    other: {
+      "og:type": "product",
+      "product:availability": inStock ? "in stock" : "out of stock",
+      ...(ogPrice
+        ? {
+            "product:price:amount": ogPrice,
+            "product:price:currency": "TRY",
+            "og:price:amount": ogPrice,
+            "og:price:currency": "TRY",
+          }
+        : {}),
     },
     twitter: { card: "summary_large_image", title, description },
   };
