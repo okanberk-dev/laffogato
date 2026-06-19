@@ -1,52 +1,27 @@
 import type { Metadata, Viewport } from "next";
 import {
-  DM_Serif_Display,
-  Fraunces,
-  Inter,
+  Hanken_Grotesk,
+  Instrument_Serif,
   JetBrains_Mono,
-  Pinyon_Script,
-  Playfair_Display,
 } from "next/font/google";
 
 import { RevealMotion } from "@/components/laffogato/reveal-motion";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
 
-const playfair = Playfair_Display({
+// Editorial-modern type system: Instrument Serif (display) + Hanken Grotesk
+// (UI/body) + JetBrains Mono (eyebrows, prices, SKU). Turkish via latin-ext.
+const instrument = Instrument_Serif({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-playfair",
+  variable: "--font-instrument",
+  weight: "400",
   style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const fraunces = Fraunces({
+const hanken = Hanken_Grotesk({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-fraunces",
-  axes: ["opsz"],
-  style: ["normal"],
-  display: "swap",
-});
-
-const dmSerif = DM_Serif_Display({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-dm-serif",
-  weight: "400",
-  style: ["normal"],
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-inter",
-  axes: ["opsz"],
-  display: "swap",
-});
-
-const pinyon = Pinyon_Script({
-  subsets: ["latin"],
-  variable: "--font-pinyon",
-  weight: "400",
+  variable: "--font-hanken",
   display: "swap",
 });
 
@@ -59,8 +34,8 @@ const jetbrains = JetBrains_Mono({
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FBF4E6" },
-    { media: "(prefers-color-scheme: dark)", color: "#20140D" },
+    { media: "(prefers-color-scheme: light)", color: "#F7F3EA" },
+    { media: "(prefers-color-scheme: dark)", color: "#1C1610" },
   ],
   colorScheme: "light dark",
   width: "device-width",
@@ -185,11 +160,8 @@ export const metadata: Metadata = {
 };
 
 const fontVariables = [
-  playfair.variable,
-  fraunces.variable,
-  dmSerif.variable,
-  inter.variable,
-  pinyon.variable,
+  instrument.variable,
+  hanken.variable,
   jetbrains.variable,
 ].join(" ");
 
