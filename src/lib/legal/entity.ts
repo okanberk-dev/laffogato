@@ -23,7 +23,7 @@ export const LEGAL_ENTITY = {
   },
   phone: "+90 216 459 30 60",
   email: "tuzla@laffogato.it",
-  legalEmail: "kvkk@laffogato.com.tr",
+  legalEmail: "kvkk@laffogato.net",
   /** Mersis ve sicil numaraları — gerçek değerlerle değiştir. */
   mersisNo: "0123-4567-8901-2345",
   tradeRegistryNo: "İstanbul · 999999",

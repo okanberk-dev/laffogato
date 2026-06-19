@@ -172,14 +172,14 @@ export default async function OrderDetailPage({
         >
           Siparişinde değişiklik veya iade için bizimle iletişime geç —{" "}
           <a
-            href="mailto:hello@laffogato.com.tr"
+            href="mailto:hello@laffogato.net"
             style={{
               color: "var(--gold-deep)",
               textDecoration: "underline",
               textUnderlineOffset: 3,
             }}
           >
-            hello@laffogato.com.tr
+            hello@laffogato.net
           </a>
           . Ekibimiz 24 saat içinde döner.
         </p>

@@ -13,7 +13,7 @@
  *   1. NEXT_PUBLIC_SITE_URL — explicit override (production custom domain)
  *   2. VERCEL_PROJECT_PRODUCTION_URL — Vercel's canonical production URL
  *   3. VERCEL_URL — the per-deployment URL (used on preview deploys)
- *   4. https://laffogato.com.tr — local-build fallback
+ *   4. https://laffogato.net — local-build fallback (canonical domain)
  *
  * Always ends without a trailing slash.
  */
@@ -29,7 +29,7 @@ function resolveSiteUrl(): string {
   if (vercelUrl)
     return `https://${vercelUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
 
-  return "https://laffogato.com.tr";
+  return "https://laffogato.net";
 }
 
 export const SITE_URL = resolveSiteUrl();
