@@ -23,7 +23,7 @@ const labelStyle: React.CSSProperties = {
   fontSize: 10,
   letterSpacing: "0.22em",
   textTransform: "uppercase",
-  color: "var(--ink-mute)",
+  color: "var(--ink-soft)",
   marginBottom: 8,
 };
 
@@ -194,7 +194,7 @@ const consentRowStyle: React.CSSProperties = {
   gap: 10,
   fontSize: 12.5,
   lineHeight: 1.5,
-  color: "var(--ink-mute)",
+  color: "var(--ink-soft)",
   cursor: "pointer",
 };
 

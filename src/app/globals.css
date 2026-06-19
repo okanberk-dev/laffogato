@@ -51,7 +51,6 @@
   --serif-display:
     var(--font-dm-serif), "DM Serif Display", "Times New Roman", serif;
   --script: var(--font-pinyon), "Pinyon Script", cursive;
-  --marcellus: var(--font-marcellus), "Marcellus", serif;
   --sans:
     var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
     "Helvetica Neue", sans-serif;
@@ -152,12 +151,34 @@ select {
   font-size: 11px;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--ink-mute);
+  /* WCAG AA: --ink-soft (8:1 on cream) instead of --ink-mute (3.8:1) for this
+     small text. Dark surfaces use the .on-dark override below. */
+  color: var(--ink-soft);
   font-weight: 500;
   font-feature-settings: "tnum", "lnum", "zero";
 }
 .eyebrow.on-dark {
   color: var(--gold-soft);
+}
+
+/* Skip-to-content link: visually hidden until keyboard focus (WCAG 2.4.1) */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -56px;
+  z-index: 100;
+  background: var(--brand);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 0 0 12px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  transition: top 0.18s ease;
+}
+.skip-link:focus {
+  top: 0;
 }
 
 .h-display {
@@ -1837,7 +1858,7 @@ summary:focus-visible,
   font-size: 10px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--ink-mute);
+  color: var(--ink-soft);
   margin-bottom: 6px;
 }
 .product-card-name {
@@ -1857,7 +1878,7 @@ summary:focus-visible,
 }
 .product-card-price .was {
   text-decoration: line-through;
-  color: var(--ink-mute);
+  color: var(--ink-soft);
   font-size: 12px;
 }
 
@@ -1896,7 +1917,7 @@ summary:focus-visible,
   font-size: 10px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--ink-mute);
+  color: var(--ink-soft);
   margin-bottom: 8px;
 }
 

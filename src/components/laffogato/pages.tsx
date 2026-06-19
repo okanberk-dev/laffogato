@@ -2934,8 +2934,14 @@ export function PageVisit({ visit }: PageProps) {
             </div>
 
             <div className="reserve-section">
-              <div className="label">Kişi sayısı</div>
-              <div className="reserve-party">
+              <div className="label" id="rv-party-label">
+                Kişi sayısı
+              </div>
+              <div
+                className="reserve-party"
+                role="group"
+                aria-labelledby="rv-party-label"
+              >
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                   <button
                     key={n}
@@ -2949,8 +2955,14 @@ export function PageVisit({ visit }: PageProps) {
             </div>
 
             <div className="reserve-section">
-              <div className="label">Gün</div>
-              <div className="reserve-chips">
+              <div className="label" id="rv-day-label">
+                Gün
+              </div>
+              <div
+                className="reserve-chips"
+                role="group"
+                aria-labelledby="rv-day-label"
+              >
                 {["Bu akşam", "Yarın", "Cuma", "Cumartesi", "Pazar"].map(
                   (d) => (
                     <button
@@ -2966,8 +2978,14 @@ export function PageVisit({ visit }: PageProps) {
             </div>
 
             <div className="reserve-section">
-              <div className="label">Saat</div>
-              <div className="reserve-chips">
+              <div className="label" id="rv-time-label">
+                Saat
+              </div>
+              <div
+                className="reserve-chips"
+                role="group"
+                aria-labelledby="rv-time-label"
+              >
                 {[
                   "18:00",
                   "18:30",
@@ -2990,8 +3008,11 @@ export function PageVisit({ visit }: PageProps) {
             </div>
 
             <div className="reserve-section">
-              <div className="label">Özel istek (isteğe bağlı)</div>
+              <label className="label" htmlFor="rv-note">
+                Özel istek (isteğe bağlı)
+              </label>
               <input
+                id="rv-note"
                 type="text"
                 className="input"
                 placeholder="Doğum günü, balkon masası, alerjenler…"
@@ -4316,8 +4337,11 @@ export function PageFranchise({
                 />
                 <div className="form-row">
                   <div>
-                    <div className="label">Ad Soyad</div>
+                    <label className="label" htmlFor="fr-name">
+                      Ad Soyad
+                    </label>
                     <input
+                      id="fr-name"
                       className="input"
                       required
                       value={form.name}
@@ -4328,8 +4352,11 @@ export function PageFranchise({
                     />
                   </div>
                   <div>
-                    <div className="label">Hedef şehir</div>
+                    <label className="label" htmlFor="fr-city">
+                      Hedef şehir
+                    </label>
                     <input
+                      id="fr-city"
                       className="input"
                       required
                       value={form.city}
@@ -4342,8 +4369,11 @@ export function PageFranchise({
                 </div>
                 <div className="form-row">
                   <div>
-                    <div className="label">E-posta</div>
+                    <label className="label" htmlFor="fr-email">
+                      E-posta
+                    </label>
                     <input
+                      id="fr-email"
                       className="input"
                       type="email"
                       required
@@ -4355,8 +4385,11 @@ export function PageFranchise({
                     />
                   </div>
                   <div>
-                    <div className="label">Telefon</div>
+                    <label className="label" htmlFor="fr-phone">
+                      Telefon
+                    </label>
                     <input
+                      id="fr-phone"
                       className="input"
                       required
                       value={form.phone}
@@ -4369,8 +4402,11 @@ export function PageFranchise({
                 </div>
                 <div className="form-row">
                   <div>
-                    <div className="label">F&B deneyimi</div>
+                    <label className="label" htmlFor="fr-experience">
+                      F&B deneyimi
+                    </label>
                     <select
+                      id="fr-experience"
                       className="select"
                       value={form.experience}
                       onChange={(e) =>
@@ -4385,8 +4421,11 @@ export function PageFranchise({
                     </select>
                   </div>
                   <div>
-                    <div className="label">Bütçe</div>
+                    <label className="label" htmlFor="fr-budget">
+                      Bütçe
+                    </label>
                     <select
+                      id="fr-budget"
                       className="select"
                       value={form.budget}
                       onChange={(e) =>
@@ -4403,8 +4442,14 @@ export function PageFranchise({
                   </div>
                 </div>
                 <div>
-                  <div className="label">Paket seçimi</div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div className="label" id="fr-package-label">
+                    Paket seçimi
+                  </div>
+                  <div
+                    role="group"
+                    aria-labelledby="fr-package-label"
+                    style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
+                  >
                     {packages.map((p) => (
                       <button
                         type="button"
@@ -4441,8 +4486,11 @@ export function PageFranchise({
                   </div>
                 </div>
                 <div>
-                  <div className="label">Deneyim & lokasyon notu</div>
+                  <label className="label" htmlFor="fr-message">
+                    Deneyim & lokasyon notu
+                  </label>
                   <textarea
+                    id="fr-message"
                     className="textarea"
                     rows={4}
                     value={form.message}

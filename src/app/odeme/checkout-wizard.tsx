@@ -836,6 +836,7 @@ function PromoBlock({
       <input type="hidden" name="subtotal" value={String(subtotal)} />
       <input
         name="code"
+        aria-label="Promosyon kodu"
         placeholder="Promosyon kodu"
         defaultValue={promoState.ok?.code ?? ""}
         autoCapitalize="characters"

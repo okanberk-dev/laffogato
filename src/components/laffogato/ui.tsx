@@ -110,7 +110,7 @@ export function ProductCard({
         {outOfStock ? (
           <div
             className="product-card-flag"
-            style={{ background: "var(--ink-mute)" }}
+            style={{ background: "var(--ink-soft)" }}
           >
             TÜKENDİ
           </div>
@@ -315,6 +315,9 @@ export function CartDrawer({
         }}
       />
       <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Sepetin"
         style={{
           position: "fixed",
           top: 0,
@@ -699,6 +702,9 @@ export function ProductModal({
           position: "relative",
         }}
         className="product-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ürün detayı"
       >
         <button
           onClick={onClose}
@@ -1123,7 +1129,13 @@ export function SearchOverlay({
 
   return (
     <div className="search-overlay" onClick={onClose}>
-      <div className="search-panel" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="search-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Site içi arama"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="search-input-row">
           <svg
             width="18"
