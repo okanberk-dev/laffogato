@@ -7,27 +7,31 @@
 :root {
   /* Surfaces — warmed to the L'Affogato logo cream (#FDF4E6) + espresso-brown
      (#44301C). Heritage köşk palette: cream paper, white cards layer on top. */
-  --bg: #fbf4e6;
-  --bg-warm: #f5ead6;
-  --bg-stone: #efe2cc;
-  --bg-cream: #ebdabe;
-  --bg-ink: #20140d;
-  --bg-espresso: #160c06;
+  --bg: #f7f3ea;
+  --bg-warm: #f1ebdd;
+  --bg-stone: #ece3d2;
+  --bg-cream: #e6d8bf;
+  --bg-ink: #1c1610;
+  --bg-espresso: #120d08;
 
-  /* Ink — logo espresso-brown family (was near-black #14100B) */
-  --ink: #2c1d11;
-  --ink-soft: #5a4636;
-  --ink-mute: #8a7a64;
-  --ink-line: #e7dac2;
-  --ink-line-strong: #d7c7a9;
+  /* Ink — editorial espresso family */
+  --ink: #241c15;
+  --ink-soft: #5c4a39;
+  --ink-mute: #877a61;
+  --ink-line: #e6dac6;
+  --ink-line-strong: #d8c8ac;
 
-  /* Accent */
-  --gold: #b88a4a;
-  --gold-deep: #8a6332;
-  --gold-soft: #e6d4b0;
+  /* Accent — metallic gold */
+  --gold: #c0995a;
+  --gold-deep: #8c6630;
+  --gold-soft: #e8d8b6;
 
-  /* Brand — exact logo brown, used for the masked logo lockups */
-  --brand: #44301c;
+  /* Warm display accent — terracotta (display accent words, select CTAs) */
+  --terracotta: #c0613d;
+  --terracotta-deep: #a44e2f;
+
+  /* Brand — espresso logo brown, used for the masked logo lockups */
+  --brand: #2e2218;
 
   /* Semantic */
   --green: #2f7a4e;
@@ -44,16 +48,18 @@
      --sans:          Inter (premium corporate UI sans, replaces DM Sans;
                       better number-rendering + ligatures via opsz axis)
      --mono:          JetBrains Mono (tabular prices, code, SKU)            */
-  --serif: var(--font-playfair), "Playfair Display", "Times New Roman", serif;
-  --serif-modern:
-    var(--font-fraunces), "Fraunces", "Playfair Display", "Times New Roman",
+  --serif:
+    var(--font-instrument), "Instrument Serif", Georgia, "Times New Roman",
     serif;
+  --serif-modern:
+    var(--font-instrument), "Instrument Serif", Georgia, serif;
   --serif-display:
-    var(--font-dm-serif), "DM Serif Display", "Times New Roman", serif;
-  --script: var(--font-pinyon), "Pinyon Script", cursive;
+    var(--font-instrument), "Instrument Serif", Georgia, serif;
+  --script:
+    var(--font-instrument), "Instrument Serif", Georgia, serif;
   --sans:
-    var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "Helvetica Neue", sans-serif;
+    var(--font-hanken), "Hanken Grotesk", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "Helvetica Neue", sans-serif;
   --mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, monospace;
 
   /* Layout */
@@ -193,12 +199,12 @@ select {
 }
 .h-display .script {
   font-family: var(--script);
-  font-style: normal;
-  color: var(--gold);
+  font-style: italic;
+  color: var(--terracotta);
   /* Pinyon Script glyphs are inherently smaller in x-height; matching the
      visual weight of the surrounding italic also shrinks the swash/descender
      so it doesn't bleed into the adjacent block element. */
-  font-size: 0.85em;
+  font-size: 1em;
 }
 
 /* Renamed from .h-1 / .h-2 / .h-3 to avoid Tailwind v4 utility collision
@@ -216,9 +222,9 @@ select {
 }
 .h1 .script {
   font-family: var(--script);
-  font-style: normal;
-  color: var(--gold);
-  font-size: 0.85em;
+  font-style: italic;
+  color: var(--terracotta);
+  font-size: 1em;
 }
 
 .h2 {
@@ -233,9 +239,9 @@ select {
 }
 .h2 .script {
   font-family: var(--script);
-  font-style: normal;
-  color: var(--gold);
-  font-size: 0.85em;
+  font-style: italic;
+  color: var(--terracotta);
+  font-size: 1em;
 }
 
 .h3 {
@@ -260,7 +266,8 @@ select {
 
 .script-accent {
   font-family: var(--script);
-  color: var(--gold);
+  font-style: italic;
+  color: var(--terracotta);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1468,9 +1475,9 @@ summary:focus-visible,
 }
 .footer-newsletter h3 .script {
   font-family: var(--script);
-  font-style: normal;
+  font-style: italic;
   color: var(--gold-soft);
-  font-size: 0.85em;
+  font-size: 1em;
 }
 .newsletter-form {
   display: flex;
@@ -1965,8 +1972,8 @@ summary:focus-visible,
 }
 .page-head h1 .script {
   font-family: var(--script);
-  font-style: normal;
-  color: var(--gold);
+  font-style: italic;
+  color: var(--terracotta);
 }
 .page-head .lede {
   max-width: 64ch;
@@ -2380,8 +2387,8 @@ summary:focus-visible,
 }
 .menu-hero-title .script {
   font-family: var(--script);
-  font-style: normal;
-  color: var(--gold);
+  font-style: italic;
+  color: var(--terracotta);
 }
 .menu-hero-lede {
   margin: 26px 0 0;
