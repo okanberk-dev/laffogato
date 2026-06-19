@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Fragment } from "react";
+import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 
 import { submitFranchiseApplicationAction } from "@/app/franchise/actions";
 import { ShopHeroSlider, type ShopHeroSlide } from "./shop-hero-slider";
@@ -1006,6 +1006,17 @@ export function PageMenu({ addToCart, menu }: PageProps) {
   const [diet, setDiet] = useState<string>("all");
   const [view, setView] = useState<"gallery" | "list">("gallery");
   const [table, setTable] = useState<string | null>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+
+  // Restaurant-menu feel: tapping a category brings the freshly filtered list
+  // up under the sticky bar instead of leaving the guest stranded mid-scroll.
+  const selectCat = (key: string) => {
+    setActive(key);
+    const el = controlsRef.current;
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 64;
+    if (window.scrollY > top + 4) window.scrollTo({ top, behavior: "smooth" });
+  };
 
   // Self-servis QR derin bağlantısı: /menu?masa=12 → masa farkındalığı.
   // window.location üzerinden mount sonrası okunur (useSearchParams Suspense
@@ -1161,7 +1172,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
       </header>
 
       {/* ── Sticky kontrol çubuğu: kategoriler + arama + görünüm + diyet ── */}
-      <div className="menu-controls">
+      <div className="menu-controls" ref={controlsRef}>
         <div className="wrap menu-controls-inner">
           <div
             className="menu-tabs"
@@ -1170,7 +1181,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
           >
             <button
               className={`menu-tab ${active === "all" ? "on" : ""}`}
-              onClick={() => setActive("all")}
+              onClick={() => selectCat("all")}
             >
               <span>Tümü</span>
               <span className="count">{totalCount}</span>
@@ -1179,7 +1190,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
               <button
                 key={c}
                 className={`menu-tab ${active === c ? "on" : ""}`}
-                onClick={() => setActive(c)}
+                onClick={() => selectCat(c)}
               >
                 <span>{liveMenu[c].title}</span>
                 <span className="count">{liveMenu[c].items.length}</span>
