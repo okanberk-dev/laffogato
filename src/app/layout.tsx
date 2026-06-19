@@ -1,9 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Hanken_Grotesk,
-  Instrument_Serif,
-  JetBrains_Mono,
-} from "next/font/google";
+import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 
 import { GoogleTagManager } from "@next/third-parties/google";
 
@@ -16,19 +12,14 @@ import "./globals.css";
 // container id with NEXT_PUBLIC_GTM_ID; empty value disables the integration.
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
 
-// Editorial-modern type system: Instrument Serif (display) + Hanken Grotesk
-// (UI/body) + JetBrains Mono (eyebrows, prices, SKU). Turkish via latin-ext.
-const instrument = Instrument_Serif({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-instrument",
-  weight: "400",
-  style: ["normal", "italic"],
-  display: "swap",
-});
-
+// Clean single-sans system in the spirit of premium cafe brands (Starbucks'
+// SoDo Sans, Caribou): one humanist grotesque everywhere, differentiated by
+// weight — Hanken Grotesk for display + body, JetBrains Mono for eyebrows /
+// prices / SKU. Turkish via latin-ext.
 const hanken = Hanken_Grotesk({
   subsets: ["latin", "latin-ext"],
   variable: "--font-hanken",
+  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -166,11 +157,7 @@ export const metadata: Metadata = {
   },
 };
 
-const fontVariables = [
-  instrument.variable,
-  hanken.variable,
-  jetbrains.variable,
-].join(" ");
+const fontVariables = [hanken.variable, jetbrains.variable].join(" ");
 
 export default function RootLayout({
   children,

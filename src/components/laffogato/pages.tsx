@@ -272,7 +272,7 @@ export function PageHome({
                   <div
                     style={{
                       fontFamily: "var(--serif)",
-                      fontStyle: "italic",
+                      fontStyle: "normal",
                       fontSize: 28,
                       lineHeight: 1,
                     }}
@@ -300,11 +300,11 @@ export function PageHome({
         <div className="marquee-track">
           {Array.from({ length: 2 }).flatMap((_, k) => [
             <span key={`a${k}`} className="marquee-item">
-              <em style={{ fontStyle: "italic" }}>Drink it.</em>
+              <em style={{ fontStyle: "normal" }}>Drink it.</em>
             </span>,
             <span key={`d${k}`} className="marquee-dot" />,
             <span key={`b${k}`} className="marquee-item">
-              <em style={{ fontStyle: "italic" }}>Eat the cup.</em>
+              <em style={{ fontStyle: "normal" }}>Eat the cup.</em>
             </span>,
             <span key={`e${k}`} className="marquee-dot" />,
             <span
@@ -316,7 +316,7 @@ export function PageHome({
             </span>,
             <span key={`f${k}`} className="marquee-dot" />,
             <span key={`g${k}`} className="marquee-item">
-              <em style={{ fontStyle: "italic" }}>Bologna · 1987</em>
+              <em style={{ fontStyle: "normal" }}>Bologna · 1987</em>
             </span>,
             <span key={`h${k}`} className="marquee-dot" />,
           ])}
@@ -869,7 +869,7 @@ export function PageHome({
                 <div
                   style={{
                     fontFamily: "var(--serif)",
-                    fontStyle: "italic",
+                    fontStyle: "normal",
                     fontSize: 15,
                     lineHeight: 1.4,
                     color: "var(--ink-soft)",
@@ -1082,10 +1082,10 @@ export function PageMenu({ addToCart, menu }: PageProps) {
           <div className="menu-hero-copy reveal">
             <div className="menu-hero-eyebrow">
               <span className="menu-hero-pip" />
-              <span>II — Il menù · summer 2026</span>
+              <span>II — Menü · Summer 2026</span>
             </div>
             <h1 className="menu-hero-title">
-              Il <span className="script">menù.</span>
+              Genel <span className="script">menü.</span>
             </h1>
             <p className="menu-hero-lede">
               Bologna 1987 reçetesi, Tuzla köşkü için sezonluk matcha bar ve
@@ -1324,7 +1324,7 @@ export function PageMenu({ addToCart, menu }: PageProps) {
             <div className="menu-empty-mark">∅</div>
             <h2
               className="h2"
-              style={{ fontFamily: "var(--serif)", fontStyle: "italic" }}
+              style={{ fontFamily: "var(--serif)", fontStyle: "normal" }}
             >
               Aradığın tatla eşleşen ürün yok.
             </h2>
@@ -1779,7 +1779,7 @@ export function PageShop({
           <div
             style={{
               fontFamily: "var(--serif)",
-              fontStyle: "italic",
+              fontStyle: "normal",
               fontSize: 22,
               lineHeight: 1.2,
             }}
@@ -1915,7 +1915,7 @@ export function PageShop({
             <div className="shop-toolbar reveal">
               <div style={{ fontFamily: "var(--serif-display)", fontSize: 18 }}>
                 <span
-                  style={{ fontFamily: "var(--serif)", fontStyle: "italic" }}
+                  style={{ fontFamily: "var(--serif)", fontStyle: "normal" }}
                 >
                   {list.length}
                 </span>{" "}
@@ -1963,7 +1963,7 @@ export function PageShop({
                 <div
                   style={{
                     fontFamily: "var(--serif)",
-                    fontStyle: "italic",
+                    fontStyle: "normal",
                     fontSize: 36,
                   }}
                 >
@@ -2003,7 +2003,7 @@ export function PageShop({
             <div
               style={{
                 fontFamily: "var(--serif)",
-                fontStyle: "italic",
+                fontStyle: "normal",
                 fontSize: 22,
                 lineHeight: 1,
               }}
@@ -2120,7 +2120,7 @@ export function PageShop({
               <span
                 style={{
                   fontFamily: "var(--serif)",
-                  fontStyle: "italic",
+                  fontStyle: "normal",
                   fontSize: 44,
                 }}
               >
@@ -2365,7 +2365,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
                 padding: "24px 28px",
                 borderLeft: "2px solid var(--gold)",
                 fontFamily: "var(--serif)",
-                fontStyle: "italic",
+                fontStyle: "normal",
                 fontSize: 20,
                 lineHeight: 1.5,
                 color: "var(--ink)",
@@ -2594,7 +2594,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
                 <div
                   style={{
                     fontFamily: "var(--serif)",
-                    fontStyle: "italic",
+                    fontStyle: "normal",
                     fontSize: 22,
                     lineHeight: 1.35,
                   }}
@@ -2802,7 +2802,7 @@ export function PageVisit({ visit }: PageProps) {
               <div
                 style={{
                   fontFamily: "var(--serif)",
-                  fontStyle: "italic",
+                  fontStyle: "normal",
                   fontSize: 18,
                   lineHeight: 1.4,
                 }}
@@ -2939,7 +2939,7 @@ export function PageVisit({ visit }: PageProps) {
                 <h3
                   style={{
                     fontFamily: "var(--serif)",
-                    fontStyle: "italic",
+                    fontStyle: "normal",
                     fontSize: 28,
                     margin: 0,
                   }}
@@ -3223,7 +3223,7 @@ export function PageVisit({ visit }: PageProps) {
                 <div
                   style={{
                     fontFamily: "var(--serif)",
-                    fontStyle: "italic",
+                    fontStyle: "normal",
                     fontSize: 42,
                     lineHeight: 1,
                   }}
@@ -3311,7 +3311,7 @@ export function PageReels({ reels, press }: PageProps) {
                 <div
                   style={{
                     fontFamily: "var(--serif)",
-                    fontStyle: "italic",
+                    fontStyle: "normal",
                     fontSize: 36,
                   }}
                 >
@@ -3712,7 +3712,7 @@ export function PageReels({ reels, press }: PageProps) {
                 <div
                   style={{
                     fontFamily: "var(--serif)",
-                    fontStyle: "italic",
+                    fontStyle: "normal",
                     fontSize: 17,
                     lineHeight: 1.4,
                   }}
@@ -3939,7 +3939,7 @@ export function PageFranchise({
                   <div
                     style={{
                       fontFamily: "var(--serif)",
-                      fontStyle: "italic",
+                      fontStyle: "normal",
                       fontSize: 22,
                     }}
                   >
@@ -3956,7 +3956,7 @@ export function PageFranchise({
                   <div
                     style={{
                       fontFamily: "var(--serif)",
-                      fontStyle: "italic",
+                      fontStyle: "normal",
                       fontSize: 22,
                     }}
                   >
@@ -3973,7 +3973,7 @@ export function PageFranchise({
                   <div
                     style={{
                       fontFamily: "var(--serif)",
-                      fontStyle: "italic",
+                      fontStyle: "normal",
                       fontSize: 22,
                     }}
                   >
@@ -4301,7 +4301,7 @@ export function PageFranchise({
                 <h3
                   style={{
                     fontFamily: "var(--serif)",
-                    fontStyle: "italic",
+                    fontStyle: "normal",
                     fontSize: 40,
                     lineHeight: 1.1,
                     margin: 0,

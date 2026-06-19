@@ -338,7 +338,7 @@ export function OrderDetail({
               ) : null}
               <button
                 type="submit"
-                className="mt-1 justify-self-start rounded-full bg-[var(--admin-primary)] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--admin-primary-hover)]"
+                className="mt-1 justify-self-start rounded-xl bg-[var(--admin-primary)] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--admin-primary-hover)]"
               >
                 Kargo bilgisini kaydet
               </button>
@@ -463,7 +463,7 @@ function NoteForm({ orderId, initial }: { orderId: string; initial: string }) {
         <button
           type="submit"
           disabled={pending || !dirty}
-          className="rounded-full bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
+          className="rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
         >
           {pending ? "Kaydediliyor…" : "Notu kaydet"}
         </button>

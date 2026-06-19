@@ -112,7 +112,7 @@ export function OrderCustomerEditor({
             <button
               type="submit"
               disabled={pending}
-              className="rounded-full bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
+              className="rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
             >
               {pending ? "Kaydediliyor…" : "Kaydet"}
             </button>

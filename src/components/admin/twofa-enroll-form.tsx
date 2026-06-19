@@ -28,7 +28,7 @@ export function TwoFAEnrollForm() {
         </div>
         <Link
           href="/admin"
-          className="inline-flex items-center justify-center rounded-full bg-[var(--admin-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
+          className="inline-flex items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
         >
           Genel bakışa dön →
         </Link>

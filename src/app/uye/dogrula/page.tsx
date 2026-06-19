@@ -55,7 +55,7 @@ export default async function VerifyPage({ searchParams }: PageProps) {
         <h1
           style={{
             fontFamily: "var(--serif)",
-            fontStyle: "italic",
+            fontStyle: "normal",
             fontSize: 28,
             marginBottom: 12,
           }}

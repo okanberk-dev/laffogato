@@ -75,7 +75,7 @@ export default async function LegalDocsPage() {
                   )}
                   <Link
                     href={`/admin/hukuk/${doc.slug}`}
-                    className="inline-flex items-center justify-center rounded-full bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
+                    className="inline-flex items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
                   >
                     Düzenle
                   </Link>

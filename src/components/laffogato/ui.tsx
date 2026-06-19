@@ -214,7 +214,7 @@ export function Stat({
       <div
         style={{
           fontFamily: "var(--serif)",
-          fontStyle: "italic",
+          fontStyle: "normal",
           fontWeight: 500,
           fontSize: "clamp(36px, 4vw, 56px)",
           lineHeight: 1,
@@ -349,7 +349,7 @@ export function CartDrawer({
             <div
               style={{
                 fontFamily: "var(--serif)",
-                fontStyle: "italic",
+                fontStyle: "normal",
                 fontSize: 24,
                 lineHeight: 1,
               }}
@@ -401,7 +401,7 @@ export function CartDrawer({
               <div
                 style={{
                   fontFamily: "var(--serif)",
-                  fontStyle: "italic",
+                  fontStyle: "normal",
                   fontSize: 28,
                   lineHeight: 1.1,
                 }}
@@ -816,7 +816,7 @@ function ProductModalBody({
           <span
             style={{
               fontFamily: "var(--serif)",
-              fontStyle: "italic",
+              fontStyle: "normal",
               fontSize: 28,
             }}
           >
@@ -1190,7 +1190,7 @@ export function SearchOverlay({
               <div
                 style={{
                   fontFamily: "var(--serif)",
-                  fontStyle: "italic",
+                  fontStyle: "normal",
                   fontSize: 24,
                 }}
               >

@@ -26,9 +26,11 @@
   --gold-deep: #8c6630;
   --gold-soft: #e8d8b6;
 
-  /* Warm display accent — terracotta (display accent words, select CTAs) */
-  --terracotta: #c0613d;
-  --terracotta-deep: #a44e2f;
+  /* Brand accent — Starbucks-style deep house green on warm cream (accent
+     words, primary CTAs, links). Gold stays as the warm Italian secondary. */
+  --accent: #00754a;
+  --accent-deep: #005c3a;
+  --accent-soft: #d6e7df;
 
   /* Brand — espresso logo brown, used for the masked logo lockups */
   --brand: #2e2218;
@@ -48,18 +50,16 @@
      --sans:          Inter (premium corporate UI sans, replaces DM Sans;
                       better number-rendering + ligatures via opsz axis)
      --mono:          JetBrains Mono (tabular prices, code, SKU)            */
+  /* Single clean humanist sans everywhere (Starbucks/Caribou model) — the
+     display/heading/accent tokens all resolve to Hanken Grotesk; weight does
+     the differentiating, not a serif/sans contrast. */
   --serif:
-    var(--font-instrument), "Instrument Serif", Georgia, "Times New Roman",
-    serif;
-  --serif-modern:
-    var(--font-instrument), "Instrument Serif", Georgia, serif;
-  --serif-display:
-    var(--font-instrument), "Instrument Serif", Georgia, serif;
-  --script:
-    var(--font-instrument), "Instrument Serif", Georgia, serif;
-  --sans:
     var(--font-hanken), "Hanken Grotesk", -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", sans-serif;
+  --serif-modern: var(--serif);
+  --serif-display: var(--serif);
+  --script: var(--serif);
+  --sans: var(--serif);
   --mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, monospace;
 
   /* Layout */
@@ -187,24 +187,21 @@ select {
   top: 0;
 }
 
+/* Flat, bold sans headlines (Starbucks/Caribou style) — upright Hanken
+   Grotesk, weight for impact, no serif/italic. Accent words keep the
+   terracotta colour pop but stay upright in the same family. */
 .h-display {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
-  font-size: clamp(56px, 9vw, 132px);
-  line-height: 1.02;
-  letter-spacing: -0.025em;
+  font-weight: 700;
+  font-size: clamp(50px, 8.5vw, 120px);
+  line-height: 1.03;
+  letter-spacing: -0.03em;
   margin: 0;
   font-feature-settings: "lnum", "kern", "liga";
 }
 .h-display .script {
   font-family: var(--script);
-  font-style: italic;
-  color: var(--terracotta);
-  /* Pinyon Script glyphs are inherently smaller in x-height; matching the
-     visual weight of the surrounding italic also shrinks the swash/descender
-     so it doesn't bleed into the adjacent block element. */
-  font-size: 1em;
+  color: var(--accent);
 }
 
 /* Renamed from .h-1 / .h-2 / .h-3 to avoid Tailwind v4 utility collision
@@ -212,47 +209,40 @@ select {
    The typography classes intentionally use a non-hyphenated form. */
 .h1 {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
-  font-size: clamp(40px, 6vw, 80px);
+  font-weight: 700;
+  font-size: clamp(38px, 5.6vw, 74px);
   line-height: 1.08;
-  letter-spacing: -0.022em;
+  letter-spacing: -0.028em;
   margin: 0;
   font-feature-settings: "lnum", "kern", "liga";
 }
 .h1 .script {
   font-family: var(--script);
-  font-style: italic;
-  color: var(--terracotta);
-  font-size: 1em;
+  color: var(--accent);
 }
 
 .h2 {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
-  font-size: clamp(32px, 4vw, 56px);
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  font-size: clamp(30px, 3.8vw, 52px);
+  line-height: 1.12;
+  letter-spacing: -0.022em;
   margin: 0;
   font-feature-settings: "lnum", "kern", "liga";
 }
 .h2 .script {
   font-family: var(--script);
-  font-style: italic;
-  color: var(--terracotta);
-  font-size: 1em;
+  color: var(--accent);
 }
 
 .h3 {
   font-family: var(--serif-modern);
-  font-weight: 500;
+  font-weight: 600;
   font-size: clamp(22px, 2.4vw, 30px);
-  line-height: 1.18;
+  line-height: 1.2;
   letter-spacing: -0.015em;
   margin: 0;
   font-feature-settings: "lnum", "kern", "liga";
-  font-variation-settings: "opsz" 36;
 }
 
 .lede {
@@ -266,8 +256,7 @@ select {
 
 .script-accent {
   font-family: var(--script);
-  font-style: italic;
-  color: var(--terracotta);
+  color: var(--accent);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -315,7 +304,9 @@ select {
   align-items: center;
   gap: 10px;
   padding: 14px 24px;
-  border-radius: 999px;
+  /* Minimalist CTA: clean slightly-rounded rectangle (not a pill), flat —
+     no hover lift or shadow; feedback is a quiet colour shift + the arrow. */
+  border-radius: 10px;
   font-family: var(--sans);
   font-size: 13px;
   font-weight: 500;
@@ -324,16 +315,12 @@ select {
   border: 1px solid transparent;
   cursor: pointer;
   transition:
-    transform 0.25s var(--ease-out),
-    background 0.25s,
-    color 0.25s,
-    border-color 0.25s,
-    box-shadow 0.25s;
+    transform 0.2s var(--ease-out),
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
   white-space: nowrap;
   font-feature-settings: "calt", "kern";
-}
-.btn:hover {
-  transform: translateY(-1px);
 }
 .btn .arrow {
   transition: transform 0.3s var(--ease-out);
@@ -344,12 +331,11 @@ select {
 }
 
 .btn-primary {
-  background: var(--ink);
+  background: var(--accent);
   color: #fff;
 }
 .btn-primary:hover {
-  background: var(--bg-espresso);
-  box-shadow: var(--shadow-md);
+  background: var(--accent-deep);
 }
 
 .btn-secondary {
@@ -377,7 +363,6 @@ select {
 }
 .btn-light:hover {
   background: var(--bg-warm);
-  box-shadow: var(--shadow-md);
 }
 
 .btn-gold {
@@ -430,8 +415,8 @@ summary:focus-visible,
 }
 .btn-link:hover {
   gap: 12px;
-  color: var(--gold-deep);
-  border-bottom-color: var(--gold-deep);
+  color: var(--accent-deep);
+  border-bottom-color: var(--accent-deep);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -850,7 +835,6 @@ summary:focus-visible,
   align-items: center;
   gap: 6px;
   font-family: var(--serif);
-  font-style: italic;
   font-size: 13px;
   color: var(--gold-deep);
   border-bottom: 1px solid transparent;
@@ -939,7 +923,6 @@ summary:focus-visible,
 .nav-dropdown-label {
   font-family: var(--serif);
   font-size: 16px;
-  font-style: italic;
   font-weight: 500;
   letter-spacing: -0.005em;
   line-height: 1.1;
@@ -977,7 +960,6 @@ summary:focus-visible,
 }
 .nav-dropdown-foot-mark {
   font-family: var(--serif);
-  font-style: italic;
   font-size: 13px;
   color: var(--gold);
   letter-spacing: -0.02em;
@@ -1118,8 +1100,7 @@ summary:focus-visible,
 }
 .mobile-sheet-links > a {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   font-size: clamp(32px, 8vw, 48px);
   padding: 10px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -1136,8 +1117,7 @@ summary:focus-visible,
   align-items: center;
   padding: 10px 0;
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   font-size: clamp(32px, 8vw, 48px);
   color: inherit;
   background: transparent;
@@ -1179,7 +1159,6 @@ summary:focus-visible,
 }
 .mobile-sheet-sublink-all {
   font-family: var(--serif) !important;
-  font-style: italic !important;
   font-size: 17px !important;
   letter-spacing: 0;
   color: var(--gold-soft) !important;
@@ -1216,7 +1195,6 @@ summary:focus-visible,
 .mobile-sheet-sublink-label {
   display: block;
   font-family: var(--serif);
-  font-style: italic;
   font-size: 18px;
   letter-spacing: 0;
   text-transform: none;
@@ -1392,7 +1370,6 @@ summary:focus-visible,
 }
 .marquee-item {
   font-family: var(--serif);
-  font-style: italic;
   font-size: clamp(28px, 3.4vw, 44px);
   font-weight: 500;
 }
@@ -1446,8 +1423,7 @@ summary:focus-visible,
 }
 .footer-deco-monogram {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   font-size: 22px;
   letter-spacing: -0.02em;
   color: var(--gold-soft);
@@ -1466,8 +1442,7 @@ summary:focus-visible,
 }
 .footer-newsletter h3 {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   font-size: clamp(32px, 4.6vw, 56px);
   line-height: 1.04;
   letter-spacing: -0.022em;
@@ -1475,7 +1450,6 @@ summary:focus-visible,
 }
 .footer-newsletter h3 .script {
   font-family: var(--script);
-  font-style: italic;
   color: var(--gold-soft);
   font-size: 1em;
 }
@@ -1663,8 +1637,7 @@ summary:focus-visible,
 }
 .footer-meta-script {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   font-size: 16px;
   letter-spacing: -0.005em;
   text-transform: none;
@@ -1871,8 +1844,9 @@ summary:focus-visible,
 }
 .product-card-name {
   font-family: var(--serif-display);
-  font-size: 20px;
-  line-height: 1.15;
+  font-weight: 600;
+  font-size: 19px;
+  line-height: 1.2;
   margin: 0 0 4px;
 }
 .product-card-price {
@@ -1963,8 +1937,7 @@ summary:focus-visible,
 }
 .page-head h1 {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   font-size: clamp(56px, 9vw, 128px);
   line-height: 0.94;
   letter-spacing: -0.018em;
@@ -1972,8 +1945,7 @@ summary:focus-visible,
 }
 .page-head h1 .script {
   font-family: var(--script);
-  font-style: italic;
-  color: var(--terracotta);
+  color: var(--accent);
 }
 .page-head .lede {
   max-width: 64ch;
@@ -2378,8 +2350,7 @@ summary:focus-visible,
 }
 .menu-hero-title {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   font-size: clamp(64px, 11vw, 150px);
   line-height: 0.9;
   letter-spacing: -0.02em;
@@ -2387,8 +2358,7 @@ summary:focus-visible,
 }
 .menu-hero-title .script {
   font-family: var(--script);
-  font-style: italic;
-  color: var(--terracotta);
+  color: var(--accent);
 }
 .menu-hero-lede {
   margin: 26px 0 0;
@@ -2487,9 +2457,9 @@ summary:focus-visible,
 }
 .menu-ss-title {
   font-family: var(--serif);
-  font-style: italic;
-  font-size: clamp(26px, 3vw, 32px);
-  line-height: 1.05;
+  font-weight: 700;
+  font-size: clamp(24px, 3vw, 30px);
+  line-height: 1.1;
   margin-top: 6px;
 }
 .menu-ss-sub {
@@ -2822,7 +2792,6 @@ summary:focus-visible,
 }
 .menu-cat-italian {
   font-family: var(--serif);
-  font-style: italic;
   color: var(--ink-mute);
   margin-top: 14px;
   font-size: 18px;
@@ -2834,7 +2803,6 @@ summary:focus-visible,
   border-left: 2px solid var(--gold);
   border-radius: var(--r-sm);
   font-family: var(--serif);
-  font-style: italic;
   font-size: 14px;
   line-height: 1.6;
   color: var(--ink-soft);
@@ -3318,8 +3286,7 @@ summary:focus-visible,
 }
 .timeline-year {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   font-size: 48px;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -3374,8 +3341,7 @@ summary:focus-visible,
 }
 .value-num {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   font-size: 36px;
   line-height: 1;
   color: var(--gold);
@@ -3795,8 +3761,7 @@ summary:focus-visible,
 }
 .pkg-name {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   font-size: 36px;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -3880,7 +3845,6 @@ summary:focus-visible,
   display: grid;
   place-items: center;
   font-family: var(--serif);
-  font-style: italic;
   font-size: 22px;
   background: #fff;
   z-index: 2;
@@ -4783,7 +4747,6 @@ select {
   display: grid;
   place-items: center;
   font-family: var(--serif);
-  font-style: italic;
   font-size: 22px;
   letter-spacing: -0.02em;
   flex-shrink: 0;
@@ -5622,7 +5585,6 @@ select {
 }
 .checkout-address-plus {
   font-family: var(--serif);
-  font-style: italic;
   font-size: 30px;
   color: var(--ink-mute);
   line-height: 1;
@@ -5761,7 +5723,6 @@ select {
 }
 .checkout-payment-amount > span:last-child {
   font-family: var(--serif);
-  font-style: italic;
   font-size: clamp(28px, 4vw, 40px);
   letter-spacing: -0.02em;
 }
@@ -5837,7 +5798,6 @@ select {
   margin-top: 4px;
   border-top: 1px solid var(--ink-line);
   font-family: var(--serif);
-  font-style: italic;
   font-size: 22px;
 }
 .checkout-summary-note {
@@ -6439,8 +6399,7 @@ select {
 }
 .shop-hero-title {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   font-size: clamp(34px, 5.6vw, 68px);
   line-height: 1.05;
   letter-spacing: -0.024em;
@@ -6812,8 +6771,7 @@ select {
 
 .pdp-title {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   font-size: clamp(32px, 5vw, 52px);
   line-height: 1.04;
   letter-spacing: -0.02em;

@@ -410,7 +410,7 @@ export function Nav({
           <a
             href="/uye/giris"
             onClick={() => setOpen(false)}
-            style={{ fontFamily: "var(--serif)", fontStyle: "italic" }}
+            style={{ fontFamily: "var(--serif)", fontStyle: "normal" }}
           >
             Hesabım
           </a>

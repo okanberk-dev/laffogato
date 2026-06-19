@@ -51,7 +51,7 @@ export default async function OdemePage() {
             <span
               style={{
                 fontFamily: "var(--serif)",
-                fontStyle: "italic",
+                fontStyle: "normal",
                 fontSize: 22,
                 letterSpacing: "-0.015em",
               }}
@@ -76,7 +76,7 @@ export default async function OdemePage() {
             <h2
               style={{
                 fontFamily: "var(--serif)",
-                fontStyle: "italic",
+                fontStyle: "normal",
                 fontSize: 26,
                 marginBottom: 10,
               }}
