@@ -59,7 +59,7 @@ export function LoginForm({ next }: { next?: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--admin-primary)] px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-[var(--admin-primary-hover)] disabled:opacity-50"
+        className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-[var(--admin-primary-hover)] disabled:opacity-50"
       >
         {pending ? "Giriş yapılıyor…" : "Giriş yap"}
         <span aria-hidden>→</span>

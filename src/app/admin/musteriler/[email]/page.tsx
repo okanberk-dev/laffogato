@@ -93,7 +93,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
             {member && (
               <Link
                 href={`/admin/musteriler/${encodeURIComponent(email)}/duzenle`}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--admin-primary)] px-4 py-2 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-4 py-2 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
               >
                 Düzenle
               </Link>

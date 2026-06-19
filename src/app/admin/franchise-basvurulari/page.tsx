@@ -138,7 +138,7 @@ export default async function FranchiseApplicationsPage() {
                   </Select>
                   <button
                     type="submit"
-                    className="rounded-full bg-[var(--admin-primary)] px-4 py-2 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
+                    className="rounded-xl bg-[var(--admin-primary)] px-4 py-2 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
                   >
                     Durumu güncelle
                   </button>

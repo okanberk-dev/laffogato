@@ -180,7 +180,7 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
                 )}
                 <Link
                   href={`/admin/siparisler/${o.id}`}
-                  className="rounded-full bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
+                  className="rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
                 >
                   Sipariş detayı →
                 </Link>
@@ -215,7 +215,7 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
           <button
             type="submit"
             disabled={pending}
-            className="rounded-full bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
+            className="rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
           >
             Uygula
           </button>

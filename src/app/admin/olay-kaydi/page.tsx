@@ -151,7 +151,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
           </label>
           <button
             type="submit"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-primary)] px-4 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
           >
             Uygula
           </button>

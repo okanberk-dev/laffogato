@@ -55,7 +55,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
           className="mt-5 text-5xl"
           style={{
             fontFamily: "var(--serif), 'Playfair Display', serif",
-            fontStyle: "italic",
+            fontStyle: "normal",
             fontWeight: 500,
             letterSpacing: "-0.018em",
             lineHeight: 1.02,

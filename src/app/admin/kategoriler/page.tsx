@@ -33,7 +33,7 @@ export default async function AdminCategoriesPage() {
         action={
           <Link
             href="/admin/kategoriler/yeni"
-            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
           >
             + Yeni kategori
           </Link>

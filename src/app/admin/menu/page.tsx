@@ -37,7 +37,7 @@ export default async function AdminMenuPage() {
         action={
           <Link
             href="/admin/menu/yeni"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
           >
             + Yeni menü kalemi
           </Link>
