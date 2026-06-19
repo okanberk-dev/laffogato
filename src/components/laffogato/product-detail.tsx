@@ -310,8 +310,8 @@ export function ProductDetail({
                 <p>
                   Açılmamış ürünleri teslim aldıktan sonra 14 gün içinde
                   ücretsiz iade edebilirsin. İade talebin için{" "}
-                  <a href="mailto:hello@laffogato.com.tr">
-                    hello@laffogato.com.tr
+                  <a href="mailto:hello@laffogato.net">
+                    hello@laffogato.net
                   </a>{" "}
                   adresine yazman yeterli.
                 </p>

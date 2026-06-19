@@ -57,7 +57,8 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
         </p>
 
         <div style={{ display: "grid", gap: 12 }}>
-          {faq.map((entry, idx) => (
+          {/* Show a concise, minimal set on-page; full set still feeds FAQ JSON-LD. */}
+          {faq.slice(0, 6).map((entry, idx) => (
             <details
               key={idx}
               style={{
