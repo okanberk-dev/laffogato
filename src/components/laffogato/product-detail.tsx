@@ -168,7 +168,19 @@ export function ProductDetail({
 
           {/* Buy box */}
           <div className="pdp-info">
-            <div className="eyebrow">{p.tag}</div>
+            <div
+              style={{ display: "inline-flex", alignItems: "center", gap: 12 }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 28,
+                  height: 1,
+                  background: "linear-gradient(90deg, var(--gold), transparent)",
+                }}
+              />
+              <span className="eyebrow">{p.tag}</span>
+            </div>
             <h1 className="pdp-title">{p.name}</h1>
 
             <div className="pdp-price-row">
@@ -325,7 +337,24 @@ export function ProductDetail({
           <section className="pdp-related">
             <div className="section-head" style={{ marginBottom: 30 }}>
               <div>
-                <div className="eyebrow">Birlikte iyi gider</div>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 28,
+                      height: 1,
+                      background:
+                        "linear-gradient(90deg, var(--gold), transparent)",
+                    }}
+                  />
+                  <span className="eyebrow">Birlikte iyi gider</span>
+                </div>
                 <h2 className="h2" style={{ marginTop: 12 }}>
                   Bunları da sevebilirsin
                 </h2>
