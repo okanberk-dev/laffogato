@@ -636,18 +636,11 @@ export function Footer({ navigate, settings }: FooterProps) {
   const year = new Date().getFullYear();
   return (
     <footer className="footer">
-      {/* Decorative top rule */}
-      <div className="footer-deco" aria-hidden="true">
-        <span className="footer-deco-line" />
-        <span className="footer-deco-monogram">L'A</span>
-        <span className="footer-deco-line" />
-      </div>
-
       {/* Newsletter block */}
       <div className="footer-newsletter">
         <div>
           <div className="eyebrow on-dark" style={{ marginBottom: 14 }}>
-            Lettera mensile · Ayda bir mektup
+            Ayda bir mektup
           </div>
           <h3>
             Bir mektup, <span className="script">ayda bir.</span>
