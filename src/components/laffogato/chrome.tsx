@@ -192,21 +192,6 @@ export function Nav({
 
   return (
     <>
-      {/* Sottile topbar — italian heritage strip, hidden once you scroll */}
-      <div
-        className={`nav-topbar ${scrolled ? "is-hidden" : ""} ${dark && !scrolled ? "on-dark" : ""}`}
-        aria-hidden="true"
-      >
-        <div className="nav-topbar-inner">
-          <span className="nav-topbar-item">Bologna · 1987</span>
-          <span className="nav-topbar-dot" />
-          <span className="nav-topbar-item">Tuzla · 10:00 — 23:00</span>
-          <span className="nav-topbar-dot" />
-          <span className="nav-topbar-item">
-            500₺ üzeri Türkiye geneli ücretsiz kargo
-          </span>
-        </div>
-      </div>
       <nav
         className={`nav ${scrolled ? "scrolled" : ""} ${dark && !scrolled ? "on-dark" : ""}`}
         ref={dropdownRef}
@@ -455,6 +440,80 @@ export function Nav({
           <span>Bologna · 1987</span>
         </div>
       </div>
+
+      {/* Mobile bottom navigation — quick access to primary destinations */}
+      <nav className="bottom-nav" aria-label="Mobil gezinme">
+        <a
+          href={hrefFor("home")}
+          onClick={go("home")}
+          className={`bottom-nav-item ${route === "home" ? "active" : ""}`}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 10.5 12 3l9 7.5" />
+            <path d="M5 9.8V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.8" />
+          </svg>
+          <span>Anasayfa</span>
+        </a>
+        <a
+          href={hrefFor("menu")}
+          onClick={go("menu")}
+          className={`bottom-nav-item ${route === "menu" ? "active" : ""}`}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 8h12v4a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5V8Z" />
+            <path d="M17 9h2.5a2 2 0 0 1 0 4H17" />
+            <path d="M8 3v2M12 3v2" />
+          </svg>
+          <span>Menü</span>
+        </a>
+        <a
+          href={hrefFor("shop")}
+          onClick={go("shop")}
+          className={`bottom-nav-item ${route === "shop" ? "active" : ""}`}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 8h12l-1 12H7L6 8Z" />
+            <path d="M9 8a3 3 0 0 1 6 0" />
+          </svg>
+          <span>Mağaza</span>
+        </a>
+        <a href="/uye/giris" className="bottom-nav-item">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.2" />
+            <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
+          </svg>
+          <span>Hesabım</span>
+        </a>
+        <button
+          className="bottom-nav-item"
+          aria-label="Sepetim"
+          {...cartHandler}
+        >
+          <span className="bottom-nav-cart">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 4.5h2.2l2 11h10l1.5-8H6.5" />
+              <circle
+                cx="9"
+                cy="20"
+                r="1.4"
+                fill="currentColor"
+                stroke="none"
+              />
+              <circle
+                cx="17"
+                cy="20"
+                r="1.4"
+                fill="currentColor"
+                stroke="none"
+              />
+            </svg>
+            {cartCount > 0 && (
+              <span className="bottom-nav-badge">{cartCount}</span>
+            )}
+          </span>
+          <span>Sepet</span>
+        </button>
+      </nav>
     </>
   );
 }
