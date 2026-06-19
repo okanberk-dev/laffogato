@@ -69,7 +69,8 @@ export default async function HomePage({ searchParams }: PageProps) {
   let notice: string | undefined;
   if (cart === "out_of_stock") {
     const remain = Number(available);
-    const tail = Number.isFinite(remain) && remain >= 0 ? ` (kalan: ${remain})` : "";
+    const tail =
+      Number.isFinite(remain) && remain >= 0 ? ` (kalan: ${remain})` : "";
     notice = `Üzgünüz, "${item ?? "ürün"}" için yeterli stok yok${tail}. Sepetinden adedini azaltıp tekrar dene.`;
   } else if (cart === "empty") {
     notice = "Sepetin boş — bir affogato seçip dene.";
@@ -87,7 +88,10 @@ export default async function HomePage({ searchParams }: PageProps) {
     email: settings.email,
     hours: DAYS_OF_WEEK.map((d) => {
       const h = settings.weeklyHours[d];
-      return [DAY_LABELS[d], h.closed ? "Kapalı" : `${h.open} — ${h.close}`] as [string, string];
+      return [
+        DAY_LABELS[d],
+        h.closed ? "Kapalı" : `${h.open} — ${h.close}`,
+      ] as [string, string];
     }),
   };
 
@@ -109,7 +113,9 @@ export default async function HomePage({ searchParams }: PageProps) {
         seoSlot={<SeoContent faq={FAQ} />}
         wishlist={customer?.wishlist}
         isAuthenticated={!!customer}
-        freeShippingThreshold={Math.round(settings.shippingFreeThresholdMinor / 100)}
+        freeShippingThreshold={Math.round(
+          settings.shippingFreeThresholdMinor / 100,
+        )}
         shopHeroSlides={heroSlides.map((s) => ({
           id: s.id,
           title: s.title,
@@ -119,9 +125,17 @@ export default async function HomePage({ searchParams }: PageProps) {
           ctaHref: s.ctaHref,
           textTheme: s.textTheme,
         }))}
-        reels={reels.map((r) => ({ caption: r.caption, meta: r.meta, accent: r.accent }))}
+        reels={reels.map((r) => ({
+          caption: r.caption,
+          meta: r.meta,
+          accent: r.accent,
+        }))}
         press={press.map((p) => ({ name: p.name, quote: p.quote }))}
-        storyTimeline={storyEvents.map((e) => ({ y: e.year, t: e.title, d: e.body }))}
+        storyTimeline={storyEvents.map((e) => ({
+          y: e.year,
+          t: e.title,
+          d: e.body,
+        }))}
         franchisePackages={franchisePackages.map((p) => ({
           name: p.name,
           area: p.area,
@@ -132,7 +146,11 @@ export default async function HomePage({ searchParams }: PageProps) {
           includes: p.includes,
           featured: p.featured,
         }))}
-        franchiseSteps={franchiseSteps.map((s) => ({ n: s.step, t: s.title, d: s.body }))}
+        franchiseSteps={franchiseSteps.map((s) => ({
+          n: s.step,
+          t: s.title,
+          d: s.body,
+        }))}
         content={content}
         visit={visit}
       />

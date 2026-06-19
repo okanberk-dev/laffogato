@@ -46,9 +46,9 @@ function loadAdminUsers(): AdminUserRecord[] {
       if (Array.isArray(parsed)) {
         for (const item of parsed) {
           if (!item || typeof item !== "object") continue;
-          const email = String(
-            (item as Record<string, unknown>).email ?? "",
-          ).trim().toLowerCase();
+          const email = String((item as Record<string, unknown>).email ?? "")
+            .trim()
+            .toLowerCase();
           const password = String(
             (item as Record<string, unknown>).password ?? "",
           );
@@ -321,7 +321,9 @@ export async function cancelPending2FA(): Promise<void> {
  * server action) to enforce that the current session has access; on
  * deny it redirects to /admin (dashboard is the lowest-privilege page).
  */
-export async function requireRole(section: AdminSection): Promise<AdminSession> {
+export async function requireRole(
+  section: AdminSection,
+): Promise<AdminSession> {
   const session = await getAdminSession();
   if (!session) {
     redirect("/admin/giris");

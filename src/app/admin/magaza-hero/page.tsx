@@ -1,10 +1,6 @@
 import Link from "next/link";
 
-import {
-  Card,
-  DangerButton,
-  PageHeader,
-} from "@/components/admin/forms";
+import { Card, DangerButton, PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
 import { listShopHeroSlides } from "@/lib/admin/store";
 
@@ -26,7 +22,7 @@ export default async function AdminShopHeroPage() {
         action={
           <Link
             href="/admin/magaza-hero/yeni"
-            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 sm:w-auto"
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
           >
             + Yeni slayt
           </Link>
@@ -45,7 +41,7 @@ export default async function AdminShopHeroPage() {
             <Card key={s.id}>
               <div className="grid gap-4 sm:grid-cols-[120px_1fr_auto] sm:items-center">
                 <div
-                  className="relative h-24 w-full overflow-hidden rounded-lg border border-neutral-200 bg-gradient-to-br from-amber-100 to-amber-300 sm:h-20"
+                  className="relative h-24 w-full overflow-hidden rounded-lg border border-[var(--admin-border)] bg-gradient-to-br from-amber-100 to-amber-300 sm:h-20"
                   style={
                     s.imageUrl
                       ? {
@@ -57,35 +53,40 @@ export default async function AdminShopHeroPage() {
                   }
                 >
                   {!s.imageUrl && (
-                    <span className="absolute inset-0 grid place-items-center text-xs uppercase tracking-widest text-amber-900/70">
+                    <span className="absolute inset-0 grid place-items-center text-xs tracking-widest text-amber-900/70 uppercase">
                       görsel yok
                     </span>
                   )}
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs uppercase tracking-widest text-neutral-500">
+                    <span className="font-mono text-xs tracking-widest text-neutral-500 uppercase">
                       #{s.sortOrder}
                     </span>
                     {s.isActive ? (
-                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-mono uppercase tracking-widest text-emerald-700">
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-mono text-[10px] tracking-widest text-emerald-700 uppercase">
                         Aktif
                       </span>
                     ) : (
-                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-mono uppercase tracking-widest text-neutral-500">
+                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 font-mono text-[10px] tracking-widest text-neutral-500 uppercase">
                         Pasif
                       </span>
                     )}
-                    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-mono uppercase tracking-widest text-neutral-600">
-                      Tema: {s.textTheme === "light" ? "Açık metin" : "Koyu metin"}
+                    <span className="rounded-full bg-neutral-100 px-2 py-0.5 font-mono text-[10px] tracking-widest text-neutral-600 uppercase">
+                      Tema:{" "}
+                      {s.textTheme === "light" ? "Açık metin" : "Koyu metin"}
                     </span>
                   </div>
-                  <h3 className="mt-1.5 text-lg font-medium leading-tight">{s.title}</h3>
+                  <h3 className="mt-1.5 text-lg leading-tight font-medium">
+                    {s.title}
+                  </h3>
                   {s.subtitle && (
-                    <p className="mt-1 text-sm text-neutral-600 line-clamp-2">{s.subtitle}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-neutral-600">
+                      {s.subtitle}
+                    </p>
                   )}
                   {s.ctaLabel && (
-                    <p className="mt-1 font-mono text-xs uppercase tracking-widest text-neutral-500">
+                    <p className="mt-1 font-mono text-xs tracking-widest text-neutral-500 uppercase">
                       CTA: {s.ctaLabel} → {s.ctaHref}
                     </p>
                   )}
@@ -93,7 +94,7 @@ export default async function AdminShopHeroPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
                     href={`/admin/magaza-hero/${s.id}`}
-                    className="inline-flex min-h-[40px] items-center justify-center gap-1 rounded-full border border-neutral-200 px-4 text-sm hover:border-neutral-900"
+                    className="inline-flex min-h-[40px] items-center justify-center gap-1 rounded-full border border-[var(--admin-border)] px-4 text-sm hover:border-[var(--admin-primary)]"
                   >
                     Düzenle
                   </Link>

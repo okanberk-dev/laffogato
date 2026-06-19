@@ -102,6 +102,27 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M14 7.5v9" />
     </>
   ),
+  newsletter: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </>
+  ),
+  leads: (
+    <>
+      <path d="M15 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="8.5" cy="7" r="3.2" />
+      <path d="M19 8v6M22 11h-6" />
+    </>
+  ),
+  legal: (
+    <>
+      <path d="M12 3v17M7 20h10" />
+      <path d="M5 7h14l-3 1.5L12 7 8 8.5 5 7Z" />
+      <path d="m5 7-2.2 5.5a3 3 0 0 0 5.4 0L6 7" />
+      <path d="m19 7-2.2 5.5a3 3 0 0 0 5.4 0L20 7" />
+    </>
+  ),
   stock: (
     <>
       <path d="m12 3 9 4.5-9 4.5-9-4.5L12 3Z" />
@@ -184,7 +205,7 @@ function SidebarBody({
           aria-hidden="true"
         />
         <span
-          className="text-[11px] uppercase tracking-[0.26em] text-neutral-400"
+          className="text-[11px] tracking-[0.26em] text-neutral-400 uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           Admin
@@ -195,7 +216,7 @@ function SidebarBody({
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
         {groups.map((group) => (
           <div key={group.title} className="mb-1">
-            <div className="px-3 pb-1.5 pt-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-400">
+            <div className="px-3 pt-4 pb-1.5 text-[10px] font-semibold tracking-[0.16em] text-neutral-400 uppercase">
               {group.title}
             </div>
             <ul className="flex flex-col gap-0.5">
@@ -210,11 +231,14 @@ function SidebarBody({
                       className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition-colors ${
                         active
                           ? "font-medium"
-                          : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
+                          : "text-neutral-600 hover:bg-neutral-100 hover:text-[var(--admin-primary)]"
                       }`}
                       style={
                         active
-                          ? { backgroundColor: "#F3EADB", color: "var(--brand, #43301D)" }
+                          ? {
+                              backgroundColor: "#F3EADB",
+                              color: "var(--brand, #43301D)",
+                            }
                           : undefined
                       }
                     >
@@ -230,13 +254,13 @@ function SidebarBody({
       </nav>
 
       {/* User + logout */}
-      <div className="border-t border-neutral-200 px-4 py-3">
+      <div className="border-t border-[var(--admin-border)] px-4 py-3">
         <div className="mb-2 min-w-0">
           <div className="truncate text-[13px] font-medium text-neutral-800">
             {email}
           </div>
           <div
-            className="text-[10px] uppercase tracking-[0.18em] text-neutral-400"
+            className="text-[10px] tracking-[0.18em] text-neutral-400 uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             {roleLabel}
@@ -245,7 +269,7 @@ function SidebarBody({
         <form action={logout}>
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-[13px] text-neutral-600 transition-colors hover:border-neutral-900 hover:text-neutral-900"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--admin-border)] px-3 py-2 text-[13px] text-neutral-600 transition-colors hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
           >
             <svg
               width="16"
@@ -281,25 +305,45 @@ export function AdminSidebar(props: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-neutral-200 bg-white lg:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-[var(--admin-border)] bg-white lg:block">
         <SidebarBody {...props} pathname={pathname} />
       </aside>
 
       {/* Mobile top bar */}
-      <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-neutral-200 bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
+      <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--admin-border)] bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Menüyü aç"
-          className="grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 text-neutral-700 hover:border-neutral-900"
+          className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--admin-border)] text-neutral-700 hover:border-[var(--admin-primary)]"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <Link href="/admin" className="flex items-center gap-2" aria-label="L'Affogato Admin">
-          <span className="brand-mark h-7" style={{ color: "var(--brand, #43301D)" }} aria-hidden="true" />
-          <span className="text-[10px] uppercase tracking-[0.24em] text-neutral-400" style={{ fontFamily: "var(--mono), monospace" }}>
+        <Link
+          href="/admin"
+          className="flex items-center gap-2"
+          aria-label="L'Affogato Admin"
+        >
+          <span
+            className="brand-mark h-7"
+            style={{ color: "var(--brand, #43301D)" }}
+            aria-hidden="true"
+          />
+          <span
+            className="text-[10px] tracking-[0.24em] text-neutral-400 uppercase"
+            style={{ fontFamily: "var(--mono), monospace" }}
+          >
             Admin
           </span>
         </Link>
@@ -309,7 +353,7 @@ export function AdminSidebar(props: SidebarProps) {
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-neutral-900/40"
+            className="absolute inset-0 bg-[var(--admin-primary)]/40"
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
@@ -318,13 +362,26 @@ export function AdminSidebar(props: SidebarProps) {
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Menüyü kapat"
-              className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-lg text-neutral-500 hover:bg-neutral-100"
+              className="absolute top-3 right-3 grid h-8 w-8 place-items-center rounded-lg text-neutral-500 hover:bg-neutral-100"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
                 <path d="M6 6l12 12M18 6 6 18" />
               </svg>
             </button>
-            <SidebarBody {...props} pathname={pathname} onNavigate={() => setOpen(false)} />
+            <SidebarBody
+              {...props}
+              pathname={pathname}
+              onNavigate={() => setOpen(false)}
+            />
           </aside>
         </div>
       )}

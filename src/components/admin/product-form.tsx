@@ -47,7 +47,7 @@ export function ProductForm({
 
   return (
     <form action={action} className="grid gap-6 lg:grid-cols-3">
-      <Card className="lg:col-span-2 grid gap-5">
+      <Card className="grid gap-5 lg:col-span-2">
         <Field label="Ürün adı" hint="Örn: Sirena — Espresso Blend">
           <TextInput name="name" defaultValue={p?.name} required />
         </Field>
@@ -106,7 +106,7 @@ export function ProductForm({
           </Select>
         </Field>
 
-        <div className="flex flex-col gap-3 border-t border-neutral-200 pt-5">
+        <div className="flex flex-col gap-3 border-t border-[var(--admin-border)] pt-5">
           <Checkbox
             name="isActive"
             label="Aktif (vitrinde göster)"

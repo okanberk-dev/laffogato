@@ -9,9 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
-import {
-  type ProductActionState,
-} from "@/app/admin/urunler/actions";
+import { type ProductActionState } from "@/app/admin/urunler/actions";
 import type {
   AdminCategory,
   AdminProduct,
@@ -47,8 +45,19 @@ const HUE_OPTIONS = [
 
 function slugifyClient(input: string): string {
   const map: Record<string, string> = {
-    ç: "c", Ç: "c", ğ: "g", Ğ: "g", ı: "i", I: "i", İ: "i",
-    ö: "o", Ö: "o", ş: "s", Ş: "s", ü: "u", Ü: "u",
+    ç: "c",
+    Ç: "c",
+    ğ: "g",
+    Ğ: "g",
+    ı: "i",
+    I: "i",
+    İ: "i",
+    ö: "o",
+    Ö: "o",
+    ş: "s",
+    Ş: "s",
+    ü: "u",
+    Ü: "u",
   };
   return input
     .trim()
@@ -433,7 +442,7 @@ export function ProductWizard({
               <button
                 type="button"
                 onClick={addVariant}
-                className="mt-4 inline-flex items-center justify-center rounded-full border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+                className="mt-4 inline-flex items-center justify-center rounded-full border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
               >
                 + Varyant ekle
               </button>
@@ -443,12 +452,17 @@ export function ProductWizard({
               {/* Mobile cards */}
               <ul className="flex flex-col gap-3 md:hidden">
                 {variants.map((v, i) => (
-                  <li key={v.id} className="rounded-lg border border-neutral-200 p-3">
+                  <li
+                    key={v.id}
+                    className="rounded-lg border border-[var(--admin-border)] p-3"
+                  >
                     <div className="grid gap-3 sm:grid-cols-2">
                       <Field label="Ad">
                         <TextInput
                           value={v.name}
-                          onChange={(e) => updateVariant(i, "name", e.target.value)}
+                          onChange={(e) =>
+                            updateVariant(i, "name", e.target.value)
+                          }
                           placeholder="250g"
                         />
                       </Field>
@@ -456,7 +470,11 @@ export function ProductWizard({
                         <TextInput
                           value={v.sku}
                           onChange={(e) =>
-                            updateVariant(i, "sku", e.target.value.toUpperCase())
+                            updateVariant(
+                              i,
+                              "sku",
+                              e.target.value.toUpperCase(),
+                            )
                           }
                           placeholder="SIRE-V1"
                         />
@@ -464,7 +482,9 @@ export function ProductWizard({
                       <Field label="Fiyat Δ (₺)">
                         <TextInput
                           value={v.priceDelta}
-                          onChange={(e) => updateVariant(i, "priceDelta", e.target.value)}
+                          onChange={(e) =>
+                            updateVariant(i, "priceDelta", e.target.value)
+                          }
                           inputMode="decimal"
                           placeholder="0,00"
                         />
@@ -472,7 +492,9 @@ export function ProductWizard({
                       <Field label="Stok">
                         <TextInput
                           value={v.stock}
-                          onChange={(e) => updateVariant(i, "stock", e.target.value)}
+                          onChange={(e) =>
+                            updateVariant(i, "stock", e.target.value)
+                          }
                           type="number"
                           min={0}
                         />
@@ -483,7 +505,9 @@ export function ProductWizard({
                         <input
                           type="checkbox"
                           checked={v.isActive}
-                          onChange={(e) => updateVariant(i, "isActive", e.target.checked)}
+                          onChange={(e) =>
+                            updateVariant(i, "isActive", e.target.checked)
+                          }
                           className="h-5 w-5 rounded border-neutral-300"
                         />
                         Aktif
@@ -505,7 +529,7 @@ export function ProductWizard({
                 <table className="w-full text-sm">
                   <thead>
                     <tr
-                      className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+                      className="border-b border-[var(--admin-border)] text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
                       style={{ fontFamily: "var(--mono), monospace" }}
                     >
                       <th className="py-2 pr-3">Ad</th>
@@ -518,18 +542,25 @@ export function ProductWizard({
                   </thead>
                   <tbody>
                     {variants.map((v, i) => (
-                      <tr key={v.id} className="border-b border-neutral-100 last:border-b-0">
+                      <tr
+                        key={v.id}
+                        className="border-b border-neutral-100 last:border-b-0"
+                      >
                         <td className="py-2 pr-3">
                           <TextInput
                             value={v.name}
-                            onChange={(e) => updateVariant(i, "name", e.target.value)}
+                            onChange={(e) =>
+                              updateVariant(i, "name", e.target.value)
+                            }
                             placeholder="250g"
                           />
                         </td>
                         <td className="pr-3">
                           <TextInput
                             value={v.priceDelta}
-                            onChange={(e) => updateVariant(i, "priceDelta", e.target.value)}
+                            onChange={(e) =>
+                              updateVariant(i, "priceDelta", e.target.value)
+                            }
                             inputMode="decimal"
                             placeholder="0,00"
                           />
@@ -537,7 +568,9 @@ export function ProductWizard({
                         <td className="pr-3">
                           <TextInput
                             value={v.stock}
-                            onChange={(e) => updateVariant(i, "stock", e.target.value)}
+                            onChange={(e) =>
+                              updateVariant(i, "stock", e.target.value)
+                            }
                             type="number"
                             min={0}
                           />
@@ -546,7 +579,11 @@ export function ProductWizard({
                           <TextInput
                             value={v.sku}
                             onChange={(e) =>
-                              updateVariant(i, "sku", e.target.value.toUpperCase())
+                              updateVariant(
+                                i,
+                                "sku",
+                                e.target.value.toUpperCase(),
+                              )
                             }
                             placeholder="SIRE-V1"
                           />
@@ -555,7 +592,9 @@ export function ProductWizard({
                           <input
                             type="checkbox"
                             checked={v.isActive}
-                            onChange={(e) => updateVariant(i, "isActive", e.target.checked)}
+                            onChange={(e) =>
+                              updateVariant(i, "isActive", e.target.checked)
+                            }
                             className="h-4 w-4 rounded border-neutral-300"
                           />
                         </td>
@@ -576,7 +615,7 @@ export function ProductWizard({
               <button
                 type="button"
                 onClick={addVariant}
-                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full border border-neutral-300 px-4 text-sm text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full border border-neutral-300 px-4 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
               >
                 + Varyant ekle
               </button>
@@ -610,7 +649,7 @@ export function ProductWizard({
 
           <div className="flex flex-col gap-2">
             <div
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Görseller
@@ -623,9 +662,9 @@ export function ProductWizard({
             </span>
           </div>
 
-          <div className="border-t border-neutral-200 pt-5">
+          <div className="border-t border-[var(--admin-border)] pt-5">
             <div
-              className="mb-3 text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="mb-3 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               SEO
@@ -658,7 +697,7 @@ export function ProductWizard({
             </div>
           </div>
 
-          <div className="grid gap-3 border-t border-neutral-200 pt-5 md:grid-cols-2">
+          <div className="grid gap-3 border-t border-[var(--admin-border)] pt-5 md:grid-cols-2">
             <Checkbox
               name="featured"
               label="Öne çıkan ürün"
@@ -696,7 +735,7 @@ export function ProductWizard({
                       </span>
                     )}
                     {discountPct !== null && (
-                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-amber-700">
+                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] tracking-[0.18em] text-amber-700 uppercase">
                         −%{discountPct}
                       </span>
                     )}
@@ -750,7 +789,7 @@ export function ProductWizard({
     <form action={formAction} className="grid gap-6">
       {mode === "wizard" && (
         <Card>
-          <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 flex [scrollbar-width:none] items-center gap-2 overflow-x-auto px-1 [&::-webkit-scrollbar]:hidden">
             {steps.map((s) => (
               <button
                 key={s.id}
@@ -758,16 +797,17 @@ export function ProductWizard({
                 onClick={() => setStep(s.id)}
                 className={`flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-xs transition-colors ${
                   step === s.id
-                    ? "bg-neutral-900 text-white"
+                    ? "bg-[var(--admin-primary)] text-white"
                     : step > s.id
                       ? "bg-neutral-100 text-neutral-700"
-                      : "border border-neutral-200 text-neutral-500"
+                      : "border border-[var(--admin-border)] text-neutral-500"
                 }`}
               >
                 <span
                   className="inline-grid h-5 w-5 place-items-center rounded-full text-[10px]"
                   style={{
-                    background: step >= s.id ? "rgba(255,255,255,0.15)" : "transparent",
+                    background:
+                      step >= s.id ? "rgba(255,255,255,0.15)" : "transparent",
                     border: step >= s.id ? "none" : "1px solid currentColor",
                   }}
                 >
@@ -783,7 +823,12 @@ export function ProductWizard({
       {steps.map((s) => {
         const visible = mode === "tabs" || step === s.id;
         return (
-          <Card key={s.id} style={visible ? undefined : ({ display: "none" } as React.CSSProperties)}>
+          <Card
+            key={s.id}
+            style={
+              visible ? undefined : ({ display: "none" } as React.CSSProperties)
+            }
+          >
             {mode === "tabs" && (
               <h2
                 className="mb-5 text-xl"
@@ -815,9 +860,7 @@ export function ProductWizard({
               {step < totalSteps && (
                 <PrimaryButton
                   type="button"
-                  onClick={() =>
-                    setStep((s) => Math.min(totalSteps, s + 1))
-                  }
+                  onClick={() => setStep((s) => Math.min(totalSteps, s + 1))}
                 >
                   Sonraki adım →
                 </PrimaryButton>
@@ -837,10 +880,12 @@ export function ProductWizard({
         ) : (
           <>
             <div
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
-              {state.error ? state.error : "Tüm sekmeler tek formda kaydedilir."}
+              {state.error
+                ? state.error
+                : "Tüm sekmeler tek formda kaydedilir."}
             </div>
             <div className="flex gap-2">
               <Link href="/admin/urunler">
@@ -869,9 +914,9 @@ function SummaryRow({
   muted?: boolean;
 }) {
   return (
-    <div className="grid gap-1 py-2 border-b border-neutral-200 last:border-b-0 sm:grid-cols-[150px_1fr] sm:gap-3">
+    <div className="grid gap-1 border-b border-[var(--admin-border)] py-2 last:border-b-0 sm:grid-cols-[150px_1fr] sm:gap-3">
       <div
-        className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         {k}

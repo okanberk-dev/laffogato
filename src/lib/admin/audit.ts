@@ -25,6 +25,10 @@ export type AuditEntity =
   | "promo"
   | "settings"
   | "stock"
+  | "customer"
+  | "newsletter"
+  | "franchise_application"
+  | "legal_doc"
   | "auth"
   | "2fa";
 
@@ -97,7 +101,9 @@ export async function listAuditLogs(
   const sb = getSupabaseAdmin();
   let q = sb.from(TABLES.auditLogs).select("*");
   if (filter.actor) {
-    const escaped = filter.actor.toLowerCase().replace(/[%_]/g, (c) => `\\${c}`);
+    const escaped = filter.actor
+      .toLowerCase()
+      .replace(/[%_]/g, (c) => `\\${c}`);
     q = q.ilike("actor", `%${escaped}%`);
   }
   if (filter.entity) q = q.eq("entity", filter.entity);

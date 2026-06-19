@@ -10,7 +10,11 @@ import {
   DEFAULT_CHECKOUT_CONFIG,
 } from "@/lib/utils/commerce";
 
-import { placeOrderAction, previewPromoAction, type PromoPreviewState } from "./actions";
+import {
+  placeOrderAction,
+  previewPromoAction,
+  type PromoPreviewState,
+} from "./actions";
 
 interface CartItem {
   productId?: string;
@@ -42,7 +46,9 @@ function readCart(): CartItem[] {
     if (!Array.isArray(data)) return [];
     return data.filter(
       (it): it is CartItem =>
-        typeof it === "object" && it !== null && typeof (it as CartItem).name === "string",
+        typeof it === "object" &&
+        it !== null &&
+        typeof (it as CartItem).name === "string",
     );
   } catch {
     return [];
@@ -99,7 +105,10 @@ export function CheckoutWizard({
     [items],
   );
 
-  const [promoState, promoAction, promoPending] = useActionState(previewPromoAction, promoInitial);
+  const [promoState, promoAction, promoPending] = useActionState(
+    previewPromoAction,
+    promoInitial,
+  );
   const promoOk = promoState.ok;
   const discountMajor = promoOk ? promoOk.discountMinor / 100 : 0;
 
@@ -127,7 +136,8 @@ export function CheckoutWizard({
   };
 
   // Shipping form state
-  const defaultAddress = customer?.addresses.find((a) => a.isDefault) ?? customer?.addresses[0];
+  const defaultAddress =
+    customer?.addresses.find((a) => a.isDefault) ?? customer?.addresses[0];
   const [selectedAddressId, setSelectedAddressId] = useState<string>(
     defaultAddress ? defaultAddress.id : "new",
   );
@@ -153,7 +163,7 @@ export function CheckoutWizard({
 
   const selectedAddress: CustomerAddress | null =
     selectedAddressId !== "new"
-      ? customer?.addresses.find((a) => a.id === selectedAddressId) ?? null
+      ? (customer?.addresses.find((a) => a.id === selectedAddressId) ?? null)
       : null;
 
   const shippingSummary = useMemo(() => {
@@ -226,8 +236,8 @@ export function CheckoutWizard({
           Sepetin <span className="script">boş.</span>
         </h1>
         <p className="lede" style={{ margin: "0 auto 24px" }}>
-          Birkaç adım sonra evine espresso, gelato veya yenilebilir kup gelebilir. Mağazaya göz at,
-          gerisi bizde.
+          Birkaç adım sonra evine espresso, gelato veya yenilebilir kup
+          gelebilir. Mağazaya göz at, gerisi bizde.
         </p>
         <Link href="/#shop" className="btn btn-primary">
           Mağazaya git →
@@ -287,7 +297,9 @@ export function CheckoutWizard({
               <li key={`${it.name}-${i}`}>
                 <div>
                   <div className="checkout-summary-name">{it.name}</div>
-                  <div className="checkout-summary-qty tabular">{it.qty || 1} adet</div>
+                  <div className="checkout-summary-qty tabular">
+                    {it.qty || 1} adet
+                  </div>
                 </div>
                 <div className="tabular checkout-summary-price">
                   {formatTRY((it.price || 0) * (it.qty || 1))}
@@ -319,7 +331,8 @@ export function CheckoutWizard({
           </div>
           {freeShippingRemainingMajor > 0 && (
             <div className="checkout-freeship-hint">
-              <strong>{formatTRY(freeShippingRemainingMajor)}</strong> daha ekle, kargo ücretsiz olsun
+              <strong>{formatTRY(freeShippingRemainingMajor)}</strong> daha
+              ekle, kargo ücretsiz olsun
             </div>
           )}
           <div className="checkout-summary-total">
@@ -327,7 +340,8 @@ export function CheckoutWizard({
             <span className="tabular">{formatTRY(total)}</span>
           </div>
           <div className="checkout-summary-note">
-            KDV dahil{config.taxRatePct > 0 ? ` (%${config.taxRatePct})` : ""} · Türkiye geneli teslimat
+            KDV dahil{config.taxRatePct > 0 ? ` (%${config.taxRatePct})` : ""} ·
+            Türkiye geneli teslimat
           </div>
         </div>
       </aside>
@@ -460,7 +474,8 @@ function ShippingStep({
   onBack: () => void;
   onContinue: () => void;
 }) {
-  const showNewForm = selectedAddressId === "new" || !customer || customer.addresses.length === 0;
+  const showNewForm =
+    selectedAddressId === "new" || !customer || customer.addresses.length === 0;
   return (
     <section className="checkout-step">
       <header className="checkout-step-head">
@@ -482,7 +497,9 @@ function ShippingStep({
                 data-active={active ? "true" : undefined}
               >
                 <div className="checkout-address-head">
-                  <span className="checkout-address-label">{a.label || a.city || "Adres"}</span>
+                  <span className="checkout-address-label">
+                    {a.label || a.city || "Adres"}
+                  </span>
                   {a.isDefault && (
                     <span className="checkout-address-default">Varsayılan</span>
                   )}
@@ -521,7 +538,11 @@ function ShippingStep({
                 Sipariş geçmişine erişebilmek istersen{" "}
                 <Link
                   href="/uye/kayit"
-                  style={{ color: "var(--gold-deep)", textDecoration: "underline", textUnderlineOffset: 3 }}
+                  style={{
+                    color: "var(--gold-deep)",
+                    textDecoration: "underline",
+                    textUnderlineOffset: 3,
+                  }}
                 >
                   ücretsiz üye ol
                 </Link>{" "}
@@ -682,8 +703,8 @@ function PaymentStep({
               margin: 0,
             }}
           >
-            Geçici demo ortamı — sipariş kaydolur, kart bilgisi alınmaz. Üretimde iyzico /
-            PayTR / Stripe entegrasyonu aynı sayfada açılır.
+            Geçici demo ortamı — sipariş kaydolur, kart bilgisi alınmaz.
+            Üretimde iyzico / PayTR / Stripe entegrasyonu aynı sayfada açılır.
           </p>
           <div className="checkout-payment-amount">
             <span className="eyebrow">Tahsil edilecek</span>
@@ -698,11 +719,29 @@ function PaymentStep({
         className="checkout-payment-form"
       >
         <input type="hidden" name="items" value={itemsJson} />
-        {promoCode && <input type="hidden" name="promoCode" value={promoCode} />}
-        <input type="hidden" name="customerName" value={shipping.customerName} />
-        <input type="hidden" name="customerEmail" value={shipping.customerEmail} />
-        <input type="hidden" name="customerPhone" value={shipping.customerPhone} />
-        <input type="hidden" name="shippingAddress" value={shipping.shippingAddress} />
+        {promoCode && (
+          <input type="hidden" name="promoCode" value={promoCode} />
+        )}
+        <input
+          type="hidden"
+          name="customerName"
+          value={shipping.customerName}
+        />
+        <input
+          type="hidden"
+          name="customerEmail"
+          value={shipping.customerEmail}
+        />
+        <input
+          type="hidden"
+          name="customerPhone"
+          value={shipping.customerPhone}
+        />
+        <input
+          type="hidden"
+          name="shippingAddress"
+          value={shipping.shippingAddress}
+        />
         <div className="checkout-step-actions">
           <button
             type="button"
@@ -718,7 +757,9 @@ function PaymentStep({
             className="btn btn-primary btn-lg"
             style={{ minWidth: 240, justifyContent: "center" }}
           >
-            {placing ? "Sipariş veriliyor…" : (
+            {placing ? (
+              "Sipariş veriliyor…"
+            ) : (
               <>
                 Siparişi tamamla · {formatTRY(total)}{" "}
                 <span className="arrow">→</span>
@@ -748,13 +789,23 @@ function CheckoutField({
   type?: string;
   required?: boolean;
   autoComplete?: string;
-  inputMode?: "numeric" | "tel" | "email" | "text" | "url" | "search" | "decimal";
+  inputMode?:
+    | "numeric"
+    | "tel"
+    | "email"
+    | "text"
+    | "url"
+    | "search"
+    | "decimal";
   maxLength?: number;
   placeholder?: string;
 }) {
   return (
     <label className="checkout-field">
-      <span>{label}{required ? " *" : ""}</span>
+      <span>
+        {label}
+        {required ? " *" : ""}
+      </span>
       <input
         type={type}
         value={value}

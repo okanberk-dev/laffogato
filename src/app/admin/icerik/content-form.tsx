@@ -2,7 +2,13 @@
 
 import { useActionState } from "react";
 
-import { Card, Field, PrimaryButton, Textarea, TextInput } from "@/components/admin/forms";
+import {
+  Card,
+  Field,
+  PrimaryButton,
+  Textarea,
+  TextInput,
+} from "@/components/admin/forms";
 import { CONTENT_FIELDS, CONTENT_GROUPS } from "@/lib/admin/content-fields";
 
 import { saveContentAction, type ContentState } from "./actions";
@@ -17,16 +23,22 @@ export function ContentForm({ content }: { content: Record<string, string> }) {
     <form action={action} className="grid gap-6">
       {CONTENT_GROUPS.map((group) => (
         <Card key={group}>
-          <h3 className="mb-4 text-sm font-medium uppercase tracking-widest text-neutral-500">
+          <h3 className="mb-4 text-sm font-medium tracking-widest text-neutral-500 uppercase">
             {group}
           </h3>
           <div className="grid gap-4">
             {CONTENT_FIELDS.filter((f) => f.group === group).map((f) => (
               <Field key={f.key} label={f.label} hint={f.key}>
                 {f.kind === "textarea" ? (
-                  <Textarea name={f.key} defaultValue={content[f.key] ?? f.default} />
+                  <Textarea
+                    name={f.key}
+                    defaultValue={content[f.key] ?? f.default}
+                  />
                 ) : (
-                  <TextInput name={f.key} defaultValue={content[f.key] ?? f.default} />
+                  <TextInput
+                    name={f.key}
+                    defaultValue={content[f.key] ?? f.default}
+                  />
                 )}
               </Field>
             ))}

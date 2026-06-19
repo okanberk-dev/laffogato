@@ -30,7 +30,11 @@ function writeCart(items: CartItem[]) {
   }
 }
 
-function cartKey(it: { productId?: string; variantId?: string; name: string }): string {
+function cartKey(it: {
+  productId?: string;
+  variantId?: string;
+  name: string;
+}): string {
   return `${it.productId ?? it.name}::${it.variantId ?? ""}`;
 }
 
@@ -48,7 +52,9 @@ export function ProductDetail({
   related: Product[];
 }) {
   const variants = (p.variants ?? []).filter((v) => v.isActive !== false);
-  const gallery = (p.images ?? []).filter((u) => typeof u === "string" && u.length > 0);
+  const gallery = (p.images ?? []).filter(
+    (u) => typeof u === "string" && u.length > 0,
+  );
   const [activeImg, setActiveImg] = useState(0);
   const [variantId, setVariantId] = useState<string | undefined>(
     variants.find((v) => (v.stock ?? 1) > 0)?.id ?? variants[0]?.id,
@@ -57,16 +63,25 @@ export function ProductDetail({
   const [added, setAdded] = useState(false);
 
   const selectedVariant = variants.find((v) => v.id === variantId);
-  const basePrice = p.priceMinor !== undefined ? p.priceMinor / 100 : parseFloat(p.price) || 0;
+  const basePrice =
+    p.priceMinor !== undefined ? p.priceMinor / 100 : parseFloat(p.price) || 0;
   const unitPrice = basePrice + (selectedVariant?.priceDelta ?? 0);
-  const compareAt = p.compareAtPriceMinor !== undefined ? p.compareAtPriceMinor / 100 : undefined;
+  const compareAt =
+    p.compareAtPriceMinor !== undefined
+      ? p.compareAtPriceMinor / 100
+      : undefined;
   const stock = selectedVariant?.stock ?? p.stock;
   const outOfStock = stock !== undefined && stock <= 0;
   const lowStock =
-    !outOfStock && stock !== undefined && p.lowStockThreshold !== undefined && stock <= p.lowStockThreshold;
+    !outOfStock &&
+    stock !== undefined &&
+    p.lowStockThreshold !== undefined &&
+    stock <= p.lowStockThreshold;
   const maxQty = stock ?? 99;
   const savingsPct =
-    compareAt && compareAt > unitPrice ? Math.round(((compareAt - unitPrice) / compareAt) * 100) : 0;
+    compareAt && compareAt > unitPrice
+      ? Math.round(((compareAt - unitPrice) / compareAt) * 100)
+      : 0;
 
   const addToCart = (goCheckout: boolean) => {
     if (outOfStock) return;
@@ -83,7 +98,9 @@ export function ProductDetail({
     }
     writeCart(cart);
     // Notify other components in this tab (storage event only fires cross-tab).
-    window.dispatchEvent(new StorageEvent("storage", { key: CART_STORAGE_KEY }));
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: CART_STORAGE_KEY }),
+    );
     if (goCheckout) {
       window.location.href = "/odeme";
     } else {
@@ -108,11 +125,23 @@ export function ProductDetail({
           <div className="pdp-gallery">
             <div className="pdp-gallery-main">
               {gallery.length > 0 ? (
-                <ProductSurface cat={p.cat} tone={p.img} label={p.name} images={[gallery[activeImg]]} />
+                <ProductSurface
+                  cat={p.cat}
+                  tone={p.img}
+                  label={p.name}
+                  images={[gallery[activeImg]]}
+                />
               ) : (
-                <ProductSurface cat={p.cat} tone={p.img} label={p.name} sub={p.tag} />
+                <ProductSurface
+                  cat={p.cat}
+                  tone={p.img}
+                  label={p.name}
+                  sub={p.tag}
+                />
               )}
-              {savingsPct > 0 && <span className="pdp-save-badge">%{savingsPct} indirim</span>}
+              {savingsPct > 0 && (
+                <span className="pdp-save-badge">%{savingsPct} indirim</span>
+              )}
             </div>
             {gallery.length > 1 && (
               <div className="pdp-gallery-thumbs">
@@ -125,7 +154,12 @@ export function ProductDetail({
                     onClick={() => setActiveImg(i)}
                     aria-label={`Görsel ${i + 1}`}
                   >
-                    <ProductSurface cat={p.cat} tone={p.img} label={p.name} images={[img]} />
+                    <ProductSurface
+                      cat={p.cat}
+                      tone={p.img}
+                      label={p.name}
+                      images={[img]}
+                    />
                   </button>
                 ))}
               </div>
@@ -142,7 +176,9 @@ export function ProductDetail({
               {compareAt && compareAt > unitPrice && (
                 <span className="pdp-compare">{Math.round(compareAt)}₺</span>
               )}
-              {savingsPct > 0 && <span className="pdp-save-pill">−%{savingsPct}</span>}
+              {savingsPct > 0 && (
+                <span className="pdp-save-pill">−%{savingsPct}</span>
+              )}
             </div>
             <div className="pdp-tax-note">KDV dahil fiyat</div>
 
@@ -164,7 +200,9 @@ export function ProductDetail({
             {/* Variants */}
             {variants.length > 0 && (
               <div className="pdp-variants">
-                <div className="eyebrow" style={{ marginBottom: 10 }}>Seçenek</div>
+                <div className="eyebrow" style={{ marginBottom: 10 }}>
+                  Seçenek
+                </div>
                 <div className="pdp-variant-list">
                   {variants.map((v) => {
                     const vOut = v.stock !== undefined && v.stock <= 0;
@@ -181,7 +219,9 @@ export function ProductDetail({
                         }}
                       >
                         {v.name}
-                        {v.priceDelta ? ` · ${v.priceDelta > 0 ? "+" : ""}${Math.round(v.priceDelta)}₺` : ""}
+                        {v.priceDelta
+                          ? ` · ${v.priceDelta > 0 ? "+" : ""}${Math.round(v.priceDelta)}₺`
+                          : ""}
                         {vOut ? " (tükendi)" : ""}
                       </button>
                     );
@@ -193,7 +233,12 @@ export function ProductDetail({
             {/* Qty + add */}
             <div className="pdp-buy">
               <div className="qty-stepper-pill">
-                <button type="button" aria-label="Azalt" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={outOfStock}>
+                <button
+                  type="button"
+                  aria-label="Azalt"
+                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                  disabled={outOfStock}
+                >
                   −
                 </button>
                 <span className="qty-stepper-val tabular">{qty}</span>
@@ -213,23 +258,39 @@ export function ProductDetail({
                 disabled={outOfStock}
                 onClick={() => addToCart(false)}
               >
-                {outOfStock ? "Tükendi" : added ? "Sepete eklendi ✓" : (
+                {outOfStock ? (
+                  "Tükendi"
+                ) : added ? (
+                  "Sepete eklendi ✓"
+                ) : (
                   <>Sepete ekle · {Math.round(unitPrice * qty)}₺</>
                 )}
               </button>
             </div>
             {!outOfStock && (
-              <button type="button" className="btn btn-ghost btn-lg pdp-buynow" onClick={() => addToCart(true)}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-lg pdp-buynow"
+                onClick={() => addToCart(true)}
+              >
                 Hemen satın al <span className="arrow">→</span>
               </button>
             )}
 
             {/* Trust badges */}
             <ul className="pdp-trust">
-              <li><span aria-hidden>↗</span> İstanbul içi aynı gün teslimat</li>
-              <li><span aria-hidden>✦</span> 500₺ üzeri ücretsiz kargo</li>
-              <li><span aria-hidden>↻</span> 14 gün koşulsuz iade</li>
-              <li><span aria-hidden>🔒</span> 256-bit SSL · 3D Secure ödeme</li>
+              <li>
+                <span aria-hidden>↗</span> İstanbul içi aynı gün teslimat
+              </li>
+              <li>
+                <span aria-hidden>✦</span> 500₺ üzeri ücretsiz kargo
+              </li>
+              <li>
+                <span aria-hidden>↻</span> 14 gün koşulsuz iade
+              </li>
+              <li>
+                <span aria-hidden>🔒</span> 256-bit SSL · 3D Secure ödeme
+              </li>
             </ul>
 
             {/* Accordions */}
@@ -239,15 +300,19 @@ export function ProductDetail({
               </Accordion>
               <Accordion title="Teslimat & kargo">
                 <p>
-                  İstanbul içi siparişler aynı gün, Türkiye geneli 2–3 iş günü içinde teslim edilir.
-                  500₺ ve üzeri siparişlerde kargo ücretsizdir. Sipariş durumunu üyelik hesabından
-                  takip edebilirsin.
+                  İstanbul içi siparişler aynı gün, Türkiye geneli 2–3 iş günü
+                  içinde teslim edilir. 500₺ ve üzeri siparişlerde kargo
+                  ücretsizdir. Sipariş durumunu üyelik hesabından takip
+                  edebilirsin.
                 </p>
               </Accordion>
               <Accordion title="İade & değişim">
                 <p>
-                  Açılmamış ürünleri teslim aldıktan sonra 14 gün içinde ücretsiz iade edebilirsin.
-                  İade talebin için <a href="mailto:hello@laffogato.com.tr">hello@laffogato.com.tr</a>{" "}
+                  Açılmamış ürünleri teslim aldıktan sonra 14 gün içinde
+                  ücretsiz iade edebilirsin. İade talebin için{" "}
+                  <a href="mailto:hello@laffogato.com.tr">
+                    hello@laffogato.com.tr
+                  </a>{" "}
                   adresine yazman yeterli.
                 </p>
               </Accordion>
@@ -261,9 +326,13 @@ export function ProductDetail({
             <div className="section-head" style={{ marginBottom: 30 }}>
               <div>
                 <div className="eyebrow">Birlikte iyi gider</div>
-                <h2 className="h2" style={{ marginTop: 12 }}>Bunları da sevebilirsin</h2>
+                <h2 className="h2" style={{ marginTop: 12 }}>
+                  Bunları da sevebilirsin
+                </h2>
               </div>
-              <a href="/magaza" className="btn btn-ghost btn-sm">Tüm mağaza →</a>
+              <a href="/magaza" className="btn btn-ghost btn-sm">
+                Tüm mağaza →
+              </a>
             </div>
             <div className="shop-grid-3">
               {related.map((rp, i) => (
@@ -289,9 +358,16 @@ function Accordion({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="pdp-acc" data-open={open ? "true" : undefined}>
-      <button type="button" className="pdp-acc-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+      <button
+        type="button"
+        className="pdp-acc-head"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
         <span>{title}</span>
-        <span className="pdp-acc-icon" aria-hidden>{open ? "−" : "+"}</span>
+        <span className="pdp-acc-icon" aria-hidden>
+          {open ? "−" : "+"}
+        </span>
       </button>
       {open && <div className="pdp-acc-body">{children}</div>}
     </div>

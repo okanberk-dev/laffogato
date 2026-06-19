@@ -194,7 +194,9 @@ async function countRows(table: string): Promise<number> {
   // head:true issues a HEAD request whose error body is empty, so error.message
   // is blank — fall back to the HTTP status for a useful message.
   if (error) {
-    throw new Error(`count(${table}) [${status}]: ${error.message || "request failed"}`);
+    throw new Error(
+      `count(${table}) [${status}]: ${error.message || "request failed"}`,
+    );
   }
   return count ?? 0;
 }
@@ -221,13 +223,20 @@ function slugifyId(prefix: string, n: number): string {
 }
 
 const TR_DIACRITICS: Record<string, string> = {
-  ç: "c", Ç: "c",
-  ğ: "g", Ğ: "g",
-  ı: "i", I: "i",
-  i̇: "i", İ: "i",
-  ö: "o", Ö: "o",
-  ş: "s", Ş: "s",
-  ü: "u", Ü: "u",
+  ç: "c",
+  Ç: "c",
+  ğ: "g",
+  Ğ: "g",
+  ı: "i",
+  I: "i",
+  i̇: "i",
+  İ: "i",
+  ö: "o",
+  Ö: "o",
+  ş: "s",
+  Ş: "s",
+  ü: "u",
+  Ü: "u",
 };
 
 export function slugify(input: string): string {
@@ -332,11 +341,41 @@ async function ensureSeed(): Promise<void> {
 
     if ((await countRows(TABLES.categories)) === 0) {
       const seededCats: AdminCategory[] = [
-        { id: slugifyId("cat", 1), slug: "beans",  label: "Çekirdek", icon: "◉", sortOrder: 0 },
-        { id: slugifyId("cat", 2), slug: "gift",   label: "Hediye",   icon: "◈", sortOrder: 1 },
-        { id: slugifyId("cat", 3), slug: "gear",   label: "Ekipman",  icon: "◇", sortOrder: 2 },
-        { id: slugifyId("cat", 4), slug: "merch",  label: "Giyim",    icon: "◐", sortOrder: 3 },
-        { id: slugifyId("cat", 5), slug: "pantry", label: "Kiler",    icon: "◇", sortOrder: 4 },
+        {
+          id: slugifyId("cat", 1),
+          slug: "beans",
+          label: "Çekirdek",
+          icon: "◉",
+          sortOrder: 0,
+        },
+        {
+          id: slugifyId("cat", 2),
+          slug: "gift",
+          label: "Hediye",
+          icon: "◈",
+          sortOrder: 1,
+        },
+        {
+          id: slugifyId("cat", 3),
+          slug: "gear",
+          label: "Ekipman",
+          icon: "◇",
+          sortOrder: 2,
+        },
+        {
+          id: slugifyId("cat", 4),
+          slug: "merch",
+          label: "Giyim",
+          icon: "◐",
+          sortOrder: 3,
+        },
+        {
+          id: slugifyId("cat", 5),
+          slug: "pantry",
+          label: "Kiler",
+          icon: "◇",
+          sortOrder: 4,
+        },
       ];
       check(
         await sb
@@ -402,8 +441,18 @@ async function ensureSeed(): Promise<void> {
           internalNote: "",
           status: "preparing",
           items: [
-            { productName: "Sirena — Espresso Blend", qty: 1, unitPriceMinor: 32000, status: "pending" },
-            { productName: "Edible Cups — 6 Box",     qty: 1, unitPriceMinor: 24000, status: "ready"   },
+            {
+              productName: "Sirena — Espresso Blend",
+              qty: 1,
+              unitPriceMinor: 32000,
+              status: "pending",
+            },
+            {
+              productName: "Edible Cups — 6 Box",
+              qty: 1,
+              unitPriceMinor: 24000,
+              status: "ready",
+            },
           ],
           subtotalMinor: 56000,
           discountMinor: 0,
@@ -419,11 +468,17 @@ async function ensureSeed(): Promise<void> {
           customerName: "Merve Kaya",
           customerEmail: "merve@example.com",
           customerPhone: "+90 533 222 33 44",
-          shippingAddress: "Etiler Mah. Nispetiye Cd. No: 38\nBeşiktaş / İstanbul 34337",
+          shippingAddress:
+            "Etiler Mah. Nispetiye Cd. No: 38\nBeşiktaş / İstanbul 34337",
           internalNote: "Hediye paketi istendi. Kart: 'İyi ki varsın 🤍'",
           status: "paid",
           items: [
-            { productName: "Affogato Kit — For Two", qty: 1, unitPriceMinor: 78000, status: "pending" },
+            {
+              productName: "Affogato Kit — For Two",
+              qty: 1,
+              unitPriceMinor: 78000,
+              status: "pending",
+            },
           ],
           subtotalMinor: 78000,
           discountMinor: 0,
@@ -439,12 +494,23 @@ async function ensureSeed(): Promise<void> {
           customerName: "Deniz Aydın",
           customerEmail: "deniz@example.com",
           customerPhone: "+90 535 444 55 66",
-          shippingAddress: "Cihangir Mah. Akarsu Yokuşu No: 22\nBeyoğlu / İstanbul 34433",
+          shippingAddress:
+            "Cihangir Mah. Akarsu Yokuşu No: 22\nBeyoğlu / İstanbul 34433",
           internalNote: "",
           status: "completed",
           items: [
-            { productName: "Uji Matcha — Ceremonial", qty: 1, unitPriceMinor: 42000, status: "ready" },
-            { productName: "Bambu Chasen",             qty: 1, unitPriceMinor: 32000, status: "ready" },
+            {
+              productName: "Uji Matcha — Ceremonial",
+              qty: 1,
+              unitPriceMinor: 42000,
+              status: "ready",
+            },
+            {
+              productName: "Bambu Chasen",
+              qty: 1,
+              unitPriceMinor: 32000,
+              status: "ready",
+            },
           ],
           subtotalMinor: 74000,
           discountMinor: 0,
@@ -474,7 +540,10 @@ export async function listProducts(): Promise<AdminProduct[]> {
   await ensureSeed();
   const sb = getSupabaseAdmin();
   return rows<AdminProduct>(
-    await sb.from(TABLES.products).select("*").order("updatedAt", { ascending: false }),
+    await sb
+      .from(TABLES.products)
+      .select("*")
+      .order("updatedAt", { ascending: false }),
     "listProducts",
   );
 }
@@ -511,7 +580,10 @@ export interface ProductInput {
   variants: AdminProductVariant[];
 }
 
-async function uniqueSlug(candidate: string, ignoreId?: string): Promise<string> {
+async function uniqueSlug(
+  candidate: string,
+  ignoreId?: string,
+): Promise<string> {
   const base = candidate || "urun";
   let attempt = base;
   let n = 1;
@@ -528,12 +600,16 @@ async function uniqueSlug(candidate: string, ignoreId?: string): Promise<string>
   return attempt;
 }
 
-export async function createProduct(input: ProductInput): Promise<AdminProduct> {
+export async function createProduct(
+  input: ProductInput,
+): Promise<AdminProduct> {
   await ensureSeed();
   const sb = getSupabaseAdmin();
   const seq = await nextSeq("prd");
   const id = slugifyId("prd", seq);
-  const slug = await uniqueSlug(input.slug || slugify(input.name) || `urun-${seq}`);
+  const slug = await uniqueSlug(
+    input.slug || slugify(input.name) || `urun-${seq}`,
+  );
   const sku = input.sku || deriveSku(input.name, seq);
   const product: AdminProduct = {
     ...input,
@@ -554,7 +630,10 @@ export async function updateProduct(
   const sb = getSupabaseAdmin();
   const existing = await getProduct(id);
   if (!existing) return null;
-  const slug = await uniqueSlug(input.slug || slugify(input.name) || existing.slug, id);
+  const slug = await uniqueSlug(
+    input.slug || slugify(input.name) || existing.slug,
+    id,
+  );
   const next: AdminProduct = {
     ...existing,
     ...input,
@@ -562,7 +641,10 @@ export async function updateProduct(
     sku: input.sku || existing.sku,
     updatedAt: new Date().toISOString(),
   };
-  check(await sb.from(TABLES.products).update(next).eq("id", id), "updateProduct");
+  check(
+    await sb.from(TABLES.products).update(next).eq("id", id),
+    "updateProduct",
+  );
   return next;
 }
 
@@ -692,7 +774,9 @@ export async function listStockMoves(filter?: {
   if (filter?.productId) q = q.eq("productId", filter.productId);
   if (filter?.reason) q = q.eq("reason", filter.reason);
   return rows<AdminStockMove>(
-    await q.order("createdAt", { ascending: false }).limit(filter?.limit ?? 500),
+    await q
+      .order("createdAt", { ascending: false })
+      .limit(filter?.limit ?? 500),
     "listStockMoves",
   );
 }
@@ -755,7 +839,10 @@ export async function listCategories(): Promise<AdminCategory[]> {
   await ensureSeed();
   const sb = getSupabaseAdmin();
   return rows<AdminCategory>(
-    await sb.from(TABLES.categories).select("*").order("sortOrder", { ascending: true }),
+    await sb
+      .from(TABLES.categories)
+      .select("*")
+      .order("sortOrder", { ascending: true }),
     "listCategories",
   );
 }
@@ -776,7 +863,9 @@ export interface CategoryInput {
   sortOrder: number;
 }
 
-export async function createCategory(input: CategoryInput): Promise<AdminCategory> {
+export async function createCategory(
+  input: CategoryInput,
+): Promise<AdminCategory> {
   await ensureSeed();
   const sb = getSupabaseAdmin();
   const seq = await nextSeq("cat");
@@ -794,7 +883,10 @@ export async function updateCategory(
   const existing = await getCategory(id);
   if (!existing) return null;
   const next: AdminCategory = { ...existing, ...input };
-  check(await sb.from(TABLES.categories).update(next).eq("id", id), "updateCategory");
+  check(
+    await sb.from(TABLES.categories).update(next).eq("id", id),
+    "updateCategory",
+  );
   return next;
 }
 
@@ -814,7 +906,10 @@ export async function listOrders(): Promise<AdminOrder[]> {
   await ensureSeed();
   const sb = getSupabaseAdmin();
   return rows<AdminOrder>(
-    await sb.from(TABLES.orders).select("*").order("orderNo", { ascending: false }),
+    await sb
+      .from(TABLES.orders)
+      .select("*")
+      .order("orderNo", { ascending: false }),
     "listOrders",
   );
 }
@@ -863,12 +958,14 @@ export async function listCustomers(): Promise<CustomerSummary[]> {
       }
     }
   }
-  return Array.from(byEmail.values()).sort(
-    (a, b) => b.lastOrderAt.localeCompare(a.lastOrderAt),
+  return Array.from(byEmail.values()).sort((a, b) =>
+    b.lastOrderAt.localeCompare(a.lastOrderAt),
   );
 }
 
-export async function customerOrdersByEmail(email: string): Promise<AdminOrder[]> {
+export async function customerOrdersByEmail(
+  email: string,
+): Promise<AdminOrder[]> {
   const needle = email.trim().toLowerCase();
   if (!needle) return [];
   await ensureSeed();
@@ -883,7 +980,9 @@ export async function customerOrdersByEmail(email: string): Promise<AdminOrder[]
       .order("orderNo", { ascending: false }),
     "customerOrdersByEmail",
   );
-  return candidates.filter((o) => o.customerEmail?.trim().toLowerCase() === needle);
+  return candidates.filter(
+    (o) => o.customerEmail?.trim().toLowerCase() === needle,
+  );
 }
 
 export async function getOrder(id: string): Promise<AdminOrder | null> {
@@ -956,23 +1055,41 @@ export interface PlaceOrderInput {
 
 export type PlaceOrderResult =
   | { ok: true; order: AdminOrder; priceAdjusted: boolean }
-  | { ok: false; reason: "out_of_stock"; productName: string; available: number }
+  | {
+      ok: false;
+      reason: "out_of_stock";
+      productName: string;
+      available: number;
+    }
   | { ok: false; reason: "empty" }
   | { ok: false; reason: "not_found"; productName: string };
 
+interface ResolvedLine {
+  product: AdminProduct;
+  variant: AdminProductVariant | null;
+  qty: number;
+  unitPriceMinor: number;
+  label: string;
+}
+
+type ResolveLinesResult =
+  | { ok: true; resolved: ResolvedLine[]; priceAdjusted: boolean }
+  | { ok: false; result: PlaceOrderResult };
+
 /**
- * Creates an order from a cart. SECURITY: unit prices are resolved from the
- * database (base price + active variant delta), never trusted from the client.
- * Stock is validated up-front for ALL lines before any decrement (no partial
- * writes). Shipping is computed from settings; the cart total is authoritative.
+ * Resolves cart/manual lines against the DB. SECURITY: unit prices are taken
+ * from the database (base price + active variant delta), never trusted from the
+ * client. Stock is validated up-front for ALL lines (friendly fast path); the
+ * atomic claim below closes the check→decrement race.
  */
-export async function placeOrder(
-  input: PlaceOrderInput,
-): Promise<PlaceOrderResult> {
-  await ensureSeed();
+async function resolveOrderLines(
+  items: PlaceOrderItemInput[],
+): Promise<ResolveLinesResult> {
   const sb = getSupabaseAdmin();
-  const cleanItems = input.items.filter((it) => it.qty > 0 && it.qty <= 99);
-  if (cleanItems.length === 0) return { ok: false, reason: "empty" };
+  const cleanItems = items.filter((it) => it.qty > 0 && it.qty <= 99);
+  if (cleanItems.length === 0) {
+    return { ok: false, result: { ok: false, reason: "empty" } };
+  }
 
   // Resolve each line against the DB by id (preferred) or name. Two filtered
   // reads merged by id avoids escaping issues with names in a combined .or().
@@ -999,27 +1116,42 @@ export async function placeOrder(
     byName.set(p.name, p);
   }
 
-  interface ResolvedLine {
-    product: AdminProduct;
-    variant: AdminProductVariant | null;
-    qty: number;
-    unitPriceMinor: number;
-    label: string;
-  }
   const resolved: ResolvedLine[] = [];
   let priceAdjusted = false;
 
   for (const it of cleanItems) {
     const product =
-      (it.productId ? byId.get(it.productId) : undefined) ?? byName.get(it.name);
+      (it.productId ? byId.get(it.productId) : undefined) ??
+      byName.get(it.name);
     if (!product || !product.isActive) {
-      return { ok: false, reason: "not_found", productName: it.name };
+      // Fall back to the id when no name is available (manual orders send no name).
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          reason: "not_found",
+          productName: it.name || it.productId || "",
+        },
+      };
     }
     const variant = it.variantId
-      ? product.variants.find((v) => v.id === it.variantId && v.isActive) ?? null
+      ? (product.variants.find((v) => v.id === it.variantId && v.isActive) ??
+        null)
       : null;
+    // A chosen variant that no longer resolves to an active one must NOT silently
+    // fall back to the base price/stock — reject the line so the stale selection
+    // surfaces instead of mischarging.
+    if (it.variantId && !variant) {
+      return {
+        ok: false,
+        result: { ok: false, reason: "not_found", productName: product.name },
+      };
+    }
     // Server-authoritative price: base + variant delta.
-    const unitPriceMinor = Math.max(0, product.priceMinor + (variant?.priceDeltaMinor ?? 0));
+    const unitPriceMinor = Math.max(
+      0,
+      product.priceMinor + (variant?.priceDeltaMinor ?? 0),
+    );
     if (it.priceMinor !== undefined && it.priceMinor !== unitPriceMinor) {
       priceAdjusted = true;
     }
@@ -1028,9 +1160,14 @@ export async function placeOrder(
     if (available < it.qty) {
       return {
         ok: false,
-        reason: "out_of_stock",
-        productName: variant ? `${product.name} · ${variant.name}` : product.name,
-        available,
+        result: {
+          ok: false,
+          reason: "out_of_stock",
+          productName: variant
+            ? `${product.name} · ${variant.name}`
+            : product.name,
+          available,
+        },
       };
     }
     resolved.push({
@@ -1042,20 +1179,30 @@ export async function placeOrder(
     });
   }
 
-  const now = new Date().toISOString();
+  return { ok: true, resolved, priceAdjusted };
+}
 
-  // Atomically claim stock for ALL lines in one transaction. The RPC checks +
-  // decrements product stock (and the chosen variant's JSONB stock) under a row
-  // lock and raises INSUFFICIENT_STOCK if any line can't be met, rolling back
-  // every line — prevents overselling, all-or-nothing. (The up-front check above
-  // is the friendly fast path; this RPC closes the check→decrement race.)
+type ClaimStockResult =
+  | { ok: true; stockAfters: number[] }
+  | { ok: false; result: PlaceOrderResult };
+
+/**
+ * Atomically claims stock for ALL lines in one transaction. The RPC checks +
+ * decrements product stock (and the chosen variant's JSONB stock) under a row
+ * lock and raises INSUFFICIENT_STOCK if any line can't be met, rolling back
+ * every line — prevents overselling, all-or-nothing.
+ */
+async function claimOrderStock(
+  resolved: ResolvedLine[],
+): Promise<ClaimStockResult> {
+  const sb = getSupabaseAdmin();
   const claim = await sb.rpc("claim_order_stock", {
     p_lines: resolved.map((l) => ({
       productId: l.product.id,
       variantId: l.variant?.id ?? null,
       qty: l.qty,
     })),
-    p_now: now,
+    p_now: new Date().toISOString(),
   });
   if (claim.error) {
     const m = /INSUFFICIENT_STOCK:(.*)$/.exec(claim.error.message);
@@ -1064,48 +1211,81 @@ export async function placeOrder(
       const line = resolved.find((l) => l.product.id === pid) ?? resolved[0];
       return {
         ok: false,
-        reason: "out_of_stock",
-        productName: line.label,
-        available: line.variant ? line.variant.stock : line.product.stock,
+        result: {
+          ok: false,
+          reason: "out_of_stock",
+          productName: line.label,
+          available: line.variant ? line.variant.stock : line.product.stock,
+        },
       };
     }
     throw new Error(`placeOrder.claim: ${claim.error.message}`);
   }
-  const stockAfters = (claim.data ?? []) as number[];
+  return { ok: true, stockAfters: (claim.data ?? []) as number[] };
+}
 
-  const orderSeq = await nextSeq("ord");
-  const orderNo = await nextSeq("orderNo");
-  const orderId = slugifyId("ord", orderSeq);
-
-  // Record one stock movement per line using the post-claim product stock.
+/** One stock movement per claimed line, using the post-claim product stock. */
+async function recordOrderStockMoves(
+  resolved: ResolvedLine[],
+  stockAfters: number[],
+  orderId: string,
+  note: string,
+  actor: string,
+): Promise<void> {
   for (let i = 0; i < resolved.length; i += 1) {
     const line = resolved[i];
-    const stockAfter = stockAfters[i] ?? Math.max(0, line.product.stock - line.qty);
+    const stockAfter =
+      stockAfters[i] ?? Math.max(0, line.product.stock - line.qty);
     await recordStockMove({
       productId: line.product.id,
       productName: line.label,
       delta: -line.qty,
       stockAfter,
       reason: "order_placed",
-      note: `Sipariş #${orderNo}`,
+      note,
       orderId,
-      actor: input.customerEmail ?? "customer",
+      actor,
     });
   }
+}
 
+interface FinalizeOrderInput {
+  orderId: string;
+  orderNo: number;
+  status: AdminOrderStatus;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+  internalNote: string;
+  promoCode?: string;
+}
+
+/**
+ * Builds + persists the order row from already-resolved lines. Promo is
+ * re-validated against the authoritative subtotal; shipping + total come from
+ * settings (single source of truth).
+ */
+async function finalizeOrder(
+  resolved: ResolvedLine[],
+  f: FinalizeOrderInput,
+): Promise<AdminOrder> {
+  const sb = getSupabaseAdmin();
   const items: AdminOrderItem[] = resolved.map((line) => ({
     productName: line.label,
     qty: line.qty,
     unitPriceMinor: line.unitPriceMinor,
     status: "pending",
   }));
-  const subtotalMinor = items.reduce((s, it) => s + it.unitPriceMinor * it.qty, 0);
+  const subtotalMinor = items.reduce(
+    (s, it) => s + it.unitPriceMinor * it.qty,
+    0,
+  );
 
-  // Promo (validated server-side against the authoritative subtotal).
   let promoCode = "";
   let discountMinor = 0;
-  if (input.promoCode && input.promoCode.trim()) {
-    const promoCheck = await applyPromoCode(input.promoCode, subtotalMinor);
+  if (f.promoCode && f.promoCode.trim()) {
+    const promoCheck = await applyPromoCode(f.promoCode, subtotalMinor);
     if (promoCheck.ok) {
       promoCode = promoCheck.promo.code;
       discountMinor = promoCheck.discountMinor;
@@ -1113,7 +1293,6 @@ export async function placeOrder(
     }
   }
 
-  // Shipping + total from settings (single source of truth).
   const settings = await getSettings();
   const cfg: CheckoutConfig = {
     shippingFlatMinor: settings.shippingFlatMinor,
@@ -1123,14 +1302,14 @@ export async function placeOrder(
   const totals = computeOrderTotals(subtotalMinor, discountMinor, cfg);
 
   const order: AdminOrder = {
-    id: orderId,
-    orderNo,
-    customerName: input.customerName?.trim() || "Misafir",
-    customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
-    customerPhone: input.customerPhone?.trim() ?? "",
-    shippingAddress: input.shippingAddress?.trim() ?? "",
-    internalNote: "",
-    status: "pending_payment",
+    id: f.orderId,
+    orderNo: f.orderNo,
+    customerName: f.customerName,
+    customerEmail: f.customerEmail,
+    customerPhone: f.customerPhone,
+    shippingAddress: f.shippingAddress,
+    internalNote: f.internalNote,
+    status: f.status,
     items,
     subtotalMinor: totals.subtotalMinor,
     discountMinor: totals.discountMinor,
@@ -1140,8 +1319,117 @@ export async function placeOrder(
     refunds: [],
     createdAt: new Date().toISOString(),
   };
-  check(await sb.from(TABLES.orders).insert(order), "placeOrder.insert");
+  check(await sb.from(TABLES.orders).insert(order), "finalizeOrder.insert");
+  return order;
+}
+
+/**
+ * Creates an order from a customer cart. Status starts at `pending_payment`;
+ * the payment webhook advances it. See {@link resolveOrderLines} for the
+ * server-authoritative price + stock guarantees.
+ */
+export async function placeOrder(
+  input: PlaceOrderInput,
+): Promise<PlaceOrderResult> {
+  await ensureSeed();
+
+  const resolveRes = await resolveOrderLines(input.items);
+  if (!resolveRes.ok) return resolveRes.result;
+  const { resolved, priceAdjusted } = resolveRes;
+
+  const claimRes = await claimOrderStock(resolved);
+  if (!claimRes.ok) return claimRes.result;
+
+  const orderSeq = await nextSeq("ord");
+  const orderNo = await nextSeq("orderNo");
+  const orderId = slugifyId("ord", orderSeq);
+
+  await recordOrderStockMoves(
+    resolved,
+    claimRes.stockAfters,
+    orderId,
+    `Sipariş #${orderNo}`,
+    input.customerEmail ?? "customer",
+  );
+
+  const order = await finalizeOrder(resolved, {
+    orderId,
+    orderNo,
+    status: "pending_payment",
+    customerName: input.customerName?.trim() || "Misafir",
+    customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
+    customerPhone: input.customerPhone?.trim() ?? "",
+    shippingAddress: input.shippingAddress?.trim() ?? "",
+    internalNote: "",
+    promoCode: input.promoCode,
+  });
   return { ok: true, order, priceAdjusted };
+}
+
+/** Manual orders may start in any of these states (admin records a real sale). */
+export type ManualOrderStatus = "pending_payment" | "paid" | "preparing";
+
+export interface CreateManualOrderInput {
+  items: Array<{ productId: string; variantId?: string; qty: number }>;
+  customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  shippingAddress?: string;
+  internalNote?: string;
+  promoCode?: string;
+  status: ManualOrderStatus;
+  /** Admin email recorded as the stock-move actor. */
+  actor: string;
+}
+
+/**
+ * Creates an order entered by an admin (phone/in-store sale). Mirrors
+ * {@link placeOrder} — prices resolved server-side, stock atomically claimed —
+ * but the admin chooses the initial status and customer details directly.
+ */
+export async function createManualOrder(
+  input: CreateManualOrderInput,
+): Promise<PlaceOrderResult> {
+  await ensureSeed();
+
+  const resolveRes = await resolveOrderLines(
+    input.items.map((it) => ({
+      productId: it.productId,
+      variantId: it.variantId,
+      name: "",
+      qty: it.qty,
+    })),
+  );
+  if (!resolveRes.ok) return resolveRes.result;
+  const { resolved } = resolveRes;
+
+  const claimRes = await claimOrderStock(resolved);
+  if (!claimRes.ok) return claimRes.result;
+
+  const orderSeq = await nextSeq("ord");
+  const orderNo = await nextSeq("orderNo");
+  const orderId = slugifyId("ord", orderSeq);
+
+  await recordOrderStockMoves(
+    resolved,
+    claimRes.stockAfters,
+    orderId,
+    `Manuel sipariş #${orderNo}`,
+    input.actor || "admin",
+  );
+
+  const order = await finalizeOrder(resolved, {
+    orderId,
+    orderNo,
+    status: input.status,
+    customerName: input.customerName.trim() || "Müşteri",
+    customerEmail: input.customerEmail?.trim() ?? "",
+    customerPhone: input.customerPhone?.trim() ?? "",
+    shippingAddress: input.shippingAddress?.trim() ?? "",
+    internalNote: input.internalNote?.trim().slice(0, 2000) ?? "",
+    promoCode: input.promoCode,
+  });
+  return { ok: true, order, priceAdjusted: false };
 }
 
 export type OrderTransition =
@@ -1151,10 +1439,13 @@ export type OrderTransition =
   | "cancel"
   | "mark_paid";
 
-const TRANSITION_MAP: Record<OrderTransition, {
-  from: AdminOrderStatus[];
-  to: AdminOrderStatus;
-}> = {
+const TRANSITION_MAP: Record<
+  OrderTransition,
+  {
+    from: AdminOrderStatus[];
+    to: AdminOrderStatus;
+  }
+> = {
   mark_paid: { from: ["pending_payment"], to: "paid" },
   start_preparing: { from: ["paid", "pending_payment"], to: "preparing" },
   mark_shipped: { from: ["preparing", "paid"], to: "shipped" },
@@ -1165,8 +1456,14 @@ const TRANSITION_MAP: Record<OrderTransition, {
   },
 };
 
-export function availableTransitions(status: AdminOrderStatus): OrderTransition[] {
-  return (Object.entries(TRANSITION_MAP) as Array<[OrderTransition, typeof TRANSITION_MAP[OrderTransition]]>)
+export function availableTransitions(
+  status: AdminOrderStatus,
+): OrderTransition[] {
+  return (
+    Object.entries(TRANSITION_MAP) as Array<
+      [OrderTransition, (typeof TRANSITION_MAP)[OrderTransition]]
+    >
+  )
     .filter(([, { from }]) => from.includes(status))
     .map(([t]) => t);
 }
@@ -1236,6 +1533,35 @@ export async function setOrderTracking(
     "setOrderTracking",
   );
   return { ...existing, trackingNumber: tn, carrier: ca, shippedAt };
+}
+
+export interface OrderDetailsInput {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+}
+
+/** Admin edit of an order's customer + delivery fields (no totals change). */
+export async function updateOrderDetails(
+  id: string,
+  input: OrderDetailsInput,
+): Promise<AdminOrder | null> {
+  await ensureSeed();
+  const sb = getSupabaseAdmin();
+  const existing = await getOrder(id);
+  if (!existing) return null;
+  const update = {
+    customerName: input.customerName.trim().slice(0, 120),
+    customerEmail: input.customerEmail.trim().slice(0, 160),
+    customerPhone: input.customerPhone.trim().slice(0, 40),
+    shippingAddress: input.shippingAddress.trim().slice(0, 600),
+  };
+  check(
+    await sb.from(TABLES.orders).update(update).eq("id", id),
+    "updateOrderDetails",
+  );
+  return { ...existing, ...update };
 }
 
 export async function setOrderItemStatus(
@@ -1373,7 +1699,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .select("*", { count: "exact", head: true })
       .eq("isActive", true)
       .then((r) => {
-        if (r.error) throw new Error(`getDashboardStats.active: ${r.error.message}`);
+        if (r.error)
+          throw new Error(`getDashboardStats.active: ${r.error.message}`);
         return r.count ?? 0;
       }),
     sb
@@ -1381,7 +1708,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .select("*", { count: "exact", head: true })
       .eq("stock", 0)
       .then((r) => {
-        if (r.error) throw new Error(`getDashboardStats.oos: ${r.error.message}`);
+        if (r.error)
+          throw new Error(`getDashboardStats.oos: ${r.error.message}`);
         return r.count ?? 0;
       }),
     countRows(TABLES.categories),
@@ -1391,7 +1719,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .select("*", { count: "exact", head: true })
       .in("status", ["pending_payment", "paid", "preparing"])
       .then((r) => {
-        if (r.error) throw new Error(`getDashboardStats.pending: ${r.error.message}`);
+        if (r.error)
+          throw new Error(`getDashboardStats.pending: ${r.error.message}`);
         return r.count ?? 0;
       }),
     sb
@@ -1399,7 +1728,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .select("totalMinor")
       .in("status", ["paid", "preparing", "shipped", "completed"])
       .then((r) => {
-        if (r.error) throw new Error(`getDashboardStats.revenue: ${r.error.message}`);
+        if (r.error)
+          throw new Error(`getDashboardStats.revenue: ${r.error.message}`);
         return (r.data ?? []) as Array<{ totalMinor: number }>;
       }),
   ]);
@@ -1444,7 +1774,8 @@ function toDesignProduct(p: AdminProduct): DesignProduct {
     lowStockThreshold: p.lowStockThreshold,
     weightGrams: p.weightGrams,
     priceMinor: p.priceMinor,
-    compareAtPriceMinor: p.compareAtPriceMinor > p.priceMinor ? p.compareAtPriceMinor : undefined,
+    compareAtPriceMinor:
+      p.compareAtPriceMinor > p.priceMinor ? p.compareAtPriceMinor : undefined,
     variants: p.variants
       .filter((v) => v.isActive)
       .map((v) => ({
@@ -1570,7 +1901,9 @@ export interface MenuItemInput {
   sortOrder: number;
 }
 
-export async function createMenuItem(input: MenuItemInput): Promise<AdminMenuItem> {
+export async function createMenuItem(
+  input: MenuItemInput,
+): Promise<AdminMenuItem> {
   await ensureSeed();
   const sb = getSupabaseAdmin();
   const seq = await nextSeq("mnu");
@@ -1596,7 +1929,10 @@ export async function updateMenuItem(
     ...input,
     updatedAt: new Date().toISOString(),
   };
-  check(await sb.from(TABLES.menuItems).update(next).eq("id", id), "updateMenuItem");
+  check(
+    await sb.from(TABLES.menuItems).update(next).eq("id", id),
+    "updateMenuItem",
+  );
   return next;
 }
 
@@ -1729,7 +2065,10 @@ export async function listPromos(): Promise<AdminPromo[]> {
   await ensureSeed();
   const sb = getSupabaseAdmin();
   return rows<AdminPromo>(
-    await sb.from(TABLES.promos).select("*").order("createdAt", { ascending: false }),
+    await sb
+      .from(TABLES.promos)
+      .select("*")
+      .order("createdAt", { ascending: false }),
     "listPromos",
   );
 }
@@ -1761,7 +2100,9 @@ export type PromoMutationResult =
   | { ok: true; promo: AdminPromo }
   | { ok: false; error: string };
 
-export async function createPromo(input: PromoInput): Promise<PromoMutationResult> {
+export async function createPromo(
+  input: PromoInput,
+): Promise<PromoMutationResult> {
   await ensureSeed();
   const code = normalizeCode(input.code);
   if (!code) return { ok: false, error: "Kod boş olamaz." };
@@ -1821,7 +2162,10 @@ export async function updatePromo(
     isActive: input.isActive,
     updatedAt: new Date().toISOString(),
   };
-  check(await sb.from(TABLES.promos).update(next).eq("id", id), "updatePromo.update");
+  check(
+    await sb.from(TABLES.promos).update(next).eq("id", id),
+    "updatePromo.update",
+  );
   return { ok: true, promo: next };
 }
 
@@ -1942,8 +2286,18 @@ function bucketLabel(d: Date, g: BucketGranularity): string {
 }
 
 const MONTH_SHORT = [
-  "Oca", "Şub", "Mar", "Nis", "May", "Haz",
-  "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara",
+  "Oca",
+  "Şub",
+  "Mar",
+  "Nis",
+  "May",
+  "Haz",
+  "Tem",
+  "Ağu",
+  "Eyl",
+  "Eki",
+  "Kas",
+  "Ara",
 ];
 
 export async function revenueBuckets(
@@ -2030,7 +2384,8 @@ export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
   return {
     totalRevenueMinor,
     totalOrders,
-    averageOrderMinor: totalOrders > 0 ? Math.round(totalRevenueMinor / totalOrders) : 0,
+    averageOrderMinor:
+      totalOrders > 0 ? Math.round(totalRevenueMinor / totalOrders) : 0,
     refundedMinor,
     conversionRatePct: null,
   };
@@ -2062,7 +2417,8 @@ const SEED_SHOP_HERO_SLIDES: AdminShopHeroSlide[] = [
   {
     id: "shero-001",
     title: "Eve servis · İtalyan ritüeli",
-    subtitle: "Bütün mağaza ürünleri 500₺ üzeri ücretsiz kargo, İstanbul içi aynı gün.",
+    subtitle:
+      "Bütün mağaza ürünleri 500₺ üzeri ücretsiz kargo, İstanbul içi aynı gün.",
     imageUrl: "",
     ctaLabel: "Mağazaya gir",
     ctaHref: "#products",
@@ -2094,12 +2450,10 @@ async function ensureShopHeroSeed(): Promise<void> {
     const sb = getSupabaseAdmin();
     if ((await countRows(TABLES.shopHeroSlides)) === 0) {
       check(
-        await sb
-          .from(TABLES.shopHeroSlides)
-          .upsert(
-            SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })),
-            { onConflict: "id", ignoreDuplicates: true },
-          ),
+        await sb.from(TABLES.shopHeroSlides).upsert(
+          SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })),
+          { onConflict: "id", ignoreDuplicates: true },
+        ),
         "seed.shopHeroSlides",
       );
     }
@@ -2120,12 +2474,16 @@ export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
   );
 }
 
-export async function listActiveShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
+export async function listActiveShopHeroSlides(): Promise<
+  AdminShopHeroSlide[]
+> {
   const all = await listShopHeroSlides();
   return all.filter((s) => s.isActive);
 }
 
-export async function getShopHeroSlide(id: string): Promise<AdminShopHeroSlide | null> {
+export async function getShopHeroSlide(
+  id: string,
+): Promise<AdminShopHeroSlide | null> {
   await ensureShopHeroSeed();
   const sb = getSupabaseAdmin();
   return one<AdminShopHeroSlide>(
@@ -2157,7 +2515,9 @@ function normalizeSlide(input: ShopHeroSlideInput): ShopHeroSlideInput {
     ctaLabel: input.ctaLabel.trim().slice(0, 40),
     ctaHref: input.ctaHref.trim().slice(0, 200),
     textTheme: input.textTheme === "dark" ? "dark" : "light",
-    sortOrder: Number.isFinite(input.sortOrder) ? Math.max(0, Math.floor(input.sortOrder)) : 0,
+    sortOrder: Number.isFinite(input.sortOrder)
+      ? Math.max(0, Math.floor(input.sortOrder))
+      : 0,
     isActive: !!input.isActive,
   };
 }
@@ -2174,7 +2534,10 @@ export async function createShopHeroSlide(
     createdAt: now,
     updatedAt: now,
   };
-  check(await sb.from(TABLES.shopHeroSlides).insert(slide), "createShopHeroSlide");
+  check(
+    await sb.from(TABLES.shopHeroSlides).insert(slide),
+    "createShopHeroSlide",
+  );
   return slide;
 }
 
@@ -2184,7 +2547,10 @@ export async function updateShopHeroSlide(
 ): Promise<AdminShopHeroSlide | null> {
   await ensureShopHeroSeed();
   const sb = getSupabaseAdmin();
-  const update = { ...normalizeSlide(input), updatedAt: new Date().toISOString() };
+  const update = {
+    ...normalizeSlide(input),
+    updatedAt: new Date().toISOString(),
+  };
   check(
     await sb.from(TABLES.shopHeroSlides).update(update).eq("id", id),
     "updateShopHeroSlide",
@@ -2228,12 +2594,13 @@ function contentResource<Row extends ContentRowBase>(
       const sb = getSupabaseAdmin();
       if ((await countRows(table)) === 0) {
         check(
-          await sb
-            .from(table)
-            .upsert(seed.map((s) => ({ ...s })), {
+          await sb.from(table).upsert(
+            seed.map((s) => ({ ...s })),
+            {
               onConflict: "id",
               ignoreDuplicates: true,
-            }),
+            },
+          ),
           `seed.${table}`,
         );
       }
@@ -2330,12 +2697,17 @@ const SEED_REEL_ROWS: AdminReel[] = SEED_REELS.map((r, i) => ({
   createdAt: "",
   updatedAt: "",
 }));
-const reelsResource = contentResource<AdminReel>(TABLES.reels, SEED_REEL_ROWS, "reel");
+const reelsResource = contentResource<AdminReel>(
+  TABLES.reels,
+  SEED_REEL_ROWS,
+  "reel",
+);
 export const listReels = reelsResource.list;
 export const listActiveReels = reelsResource.listActive;
 export const getReel = reelsResource.get;
 export const createReel = (i: ReelInput) => reelsResource.create(i);
-export const updateReel = (id: string, i: ReelInput) => reelsResource.update(id, i);
+export const updateReel = (id: string, i: ReelInput) =>
+  reelsResource.update(id, i);
 export const deleteReel = reelsResource.remove;
 
 // ── Press ────────────────────────────────────────────────────────────────--
@@ -2358,12 +2730,17 @@ const SEED_PRESS_ROWS: AdminPress[] = SEED_PRESS.map((p, i) => ({
   createdAt: "",
   updatedAt: "",
 }));
-const pressResource = contentResource<AdminPress>(TABLES.press, SEED_PRESS_ROWS, "press");
+const pressResource = contentResource<AdminPress>(
+  TABLES.press,
+  SEED_PRESS_ROWS,
+  "press",
+);
 export const listPress = pressResource.list;
 export const listActivePress = pressResource.listActive;
 export const getPress = pressResource.get;
 export const createPress = (i: PressInput) => pressResource.create(i);
-export const updatePress = (id: string, i: PressInput) => pressResource.update(id, i);
+export const updatePress = (id: string, i: PressInput) =>
+  pressResource.update(id, i);
 export const deletePress = pressResource.remove;
 
 // ── Story timeline ──────────────────────────────────────────────────────--
@@ -2389,12 +2766,17 @@ const SEED_STORY_ROWS: AdminStoryEvent[] = SEED_STORY.heritage.map((e, i) => ({
   createdAt: "",
   updatedAt: "",
 }));
-const storyResource = contentResource<AdminStoryEvent>(TABLES.storyTimeline, SEED_STORY_ROWS, "story");
+const storyResource = contentResource<AdminStoryEvent>(
+  TABLES.storyTimeline,
+  SEED_STORY_ROWS,
+  "story",
+);
 export const listStoryEvents = storyResource.list;
 export const listActiveStoryEvents = storyResource.listActive;
 export const getStoryEvent = storyResource.get;
 export const createStoryEvent = (i: StoryEventInput) => storyResource.create(i);
-export const updateStoryEvent = (id: string, i: StoryEventInput) => storyResource.update(id, i);
+export const updateStoryEvent = (id: string, i: StoryEventInput) =>
+  storyResource.update(id, i);
 export const deleteStoryEvent = storyResource.remove;
 
 // ── Franchise packages ──────────────────────────────────────────────────--
@@ -2420,21 +2802,23 @@ export interface FranchisePackageInput {
   sortOrder: number;
   isActive: boolean;
 }
-const SEED_FR_PACKAGE_ROWS: AdminFranchisePackage[] = SEED_FRANCHISE.packages.map((p, i) => ({
-  id: `frpkg-${String(i + 1).padStart(3, "0")}`,
-  name: p.name,
-  area: p.area,
-  seats: p.seats,
-  invest: p.invest,
-  monthly: p.monthly,
-  ideal: p.ideal,
-  includes: [...p.includes],
-  featured: "featured" in p ? Boolean((p as { featured?: boolean }).featured) : false,
-  sortOrder: i,
-  isActive: true,
-  createdAt: "",
-  updatedAt: "",
-}));
+const SEED_FR_PACKAGE_ROWS: AdminFranchisePackage[] =
+  SEED_FRANCHISE.packages.map((p, i) => ({
+    id: `frpkg-${String(i + 1).padStart(3, "0")}`,
+    name: p.name,
+    area: p.area,
+    seats: p.seats,
+    invest: p.invest,
+    monthly: p.monthly,
+    ideal: p.ideal,
+    includes: [...p.includes],
+    featured:
+      "featured" in p ? Boolean((p as { featured?: boolean }).featured) : false,
+    sortOrder: i,
+    isActive: true,
+    createdAt: "",
+    updatedAt: "",
+  }));
 const frPackagesResource = contentResource<AdminFranchisePackage>(
   TABLES.franchisePackages,
   SEED_FR_PACKAGE_ROWS,
@@ -2443,7 +2827,8 @@ const frPackagesResource = contentResource<AdminFranchisePackage>(
 export const listFranchisePackages = frPackagesResource.list;
 export const listActiveFranchisePackages = frPackagesResource.listActive;
 export const getFranchisePackage = frPackagesResource.get;
-export const createFranchisePackage = (i: FranchisePackageInput) => frPackagesResource.create(i);
+export const createFranchisePackage = (i: FranchisePackageInput) =>
+  frPackagesResource.create(i);
 export const updateFranchisePackage = (id: string, i: FranchisePackageInput) =>
   frPackagesResource.update(id, i);
 export const deleteFranchisePackage = frPackagesResource.remove;
@@ -2461,16 +2846,18 @@ export interface FranchiseStepInput {
   sortOrder: number;
   isActive: boolean;
 }
-const SEED_FR_STEP_ROWS: AdminFranchiseStep[] = SEED_FRANCHISE.process.map((p, i) => ({
-  id: `frstep-${String(i + 1).padStart(3, "0")}`,
-  step: p.n,
-  title: p.t,
-  body: p.d,
-  sortOrder: i,
-  isActive: true,
-  createdAt: "",
-  updatedAt: "",
-}));
+const SEED_FR_STEP_ROWS: AdminFranchiseStep[] = SEED_FRANCHISE.process.map(
+  (p, i) => ({
+    id: `frstep-${String(i + 1).padStart(3, "0")}`,
+    step: p.n,
+    title: p.t,
+    body: p.d,
+    sortOrder: i,
+    isActive: true,
+    createdAt: "",
+    updatedAt: "",
+  }),
+);
 const frStepsResource = contentResource<AdminFranchiseStep>(
   TABLES.franchiseProcess,
   SEED_FR_STEP_ROWS,
@@ -2479,7 +2866,8 @@ const frStepsResource = contentResource<AdminFranchiseStep>(
 export const listFranchiseSteps = frStepsResource.list;
 export const listActiveFranchiseSteps = frStepsResource.listActive;
 export const getFranchiseStep = frStepsResource.get;
-export const createFranchiseStep = (i: FranchiseStepInput) => frStepsResource.create(i);
+export const createFranchiseStep = (i: FranchiseStepInput) =>
+  frStepsResource.create(i);
 export const updateFranchiseStep = (id: string, i: FranchiseStepInput) =>
   frStepsResource.update(id, i);
 export const deleteFranchiseStep = frStepsResource.remove;

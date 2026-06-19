@@ -20,7 +20,7 @@ export default async function AdminLoginPage({ searchParams }: PageProps) {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 py-16">
-      <div className="w-full rounded-2xl border border-neutral-200 bg-white p-10 shadow-sm">
+      <div className="w-full rounded-2xl border border-[var(--admin-border)] bg-white p-10 shadow-sm">
         <div className="mb-8 text-center">
           <span
             className="brand-mark mx-auto"
@@ -29,7 +29,7 @@ export default async function AdminLoginPage({ searchParams }: PageProps) {
             style={{ height: 54, color: "var(--brand)" }}
           />
           <div
-            className="mt-2 text-xs uppercase tracking-[0.24em] text-neutral-500"
+            className="mt-2 text-xs tracking-[0.24em] text-neutral-500 uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             Admin · Tuzla

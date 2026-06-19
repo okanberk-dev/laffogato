@@ -27,7 +27,10 @@ export const metadata = { title: "Ödeme · L'Affogato" };
 export const dynamic = "force-dynamic";
 
 export default async function OdemePage() {
-  const [customer, settings] = await Promise.all([getActiveCustomer(), getSettings()]);
+  const [customer, settings] = await Promise.all([
+    getActiveCustomer(),
+    getSettings(),
+  ]);
   const config = {
     shippingFlatMinor: settings.shippingFlatMinor,
     shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
@@ -45,7 +48,14 @@ export default async function OdemePage() {
             ← Alışverişe dön
           </Link>
           <div className="checkout-brand">
-            <span style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 22, letterSpacing: "-0.015em" }}>
+            <span
+              style={{
+                fontFamily: "var(--serif)",
+                fontStyle: "italic",
+                fontSize: 22,
+                letterSpacing: "-0.015em",
+              }}
+            >
               L&apos;Affogato
             </span>
             <span
@@ -63,16 +73,41 @@ export default async function OdemePage() {
         </header>
         {!customer ? (
           <GatePanel>
-            <h2 style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 26, marginBottom: 10 }}>
+            <h2
+              style={{
+                fontFamily: "var(--serif)",
+                fontStyle: "italic",
+                fontSize: 26,
+                marginBottom: 10,
+              }}
+            >
               Sipariş için giriş yap
             </h2>
-            <p style={{ color: "rgba(20,16,11,0.7)", lineHeight: 1.6, fontSize: 15, marginBottom: 22 }}>
-              Güvenliğin için siparişler yalnızca doğrulanmış hesaplarla verilebilir. Giriş yap ya da
-              hızlıca bir hesap oluştur — e-postanı onayladıktan sonra ödemeye devam edebilirsin.
+            <p
+              style={{
+                color: "rgba(20,16,11,0.7)",
+                lineHeight: 1.6,
+                fontSize: 15,
+                marginBottom: 22,
+              }}
+            >
+              Güvenliğin için siparişler yalnızca doğrulanmış hesaplarla
+              verilebilir. Giriş yap ya da hızlıca bir hesap oluştur — e-postanı
+              onayladıktan sonra ödemeye devam edebilirsin.
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <Link href="/uye/giris?next=/odeme" className="btn btn-primary btn-sm">Giriş yap</Link>
-              <Link href="/uye/kayit?next=/odeme" className="btn btn-ghost btn-sm">Hesap oluştur</Link>
+              <Link
+                href="/uye/giris?next=/odeme"
+                className="btn btn-primary btn-sm"
+              >
+                Giriş yap
+              </Link>
+              <Link
+                href="/uye/kayit?next=/odeme"
+                className="btn btn-ghost btn-sm"
+              >
+                Hesap oluştur
+              </Link>
             </div>
           </GatePanel>
         ) : !customer.emailVerified ? (

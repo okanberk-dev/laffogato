@@ -104,6 +104,58 @@ export function RegisterForm() {
           style={inputStyle}
         />
       </div>
+      <div style={{ display: "grid", gap: 10, marginTop: 2 }}>
+        <label style={consentRowStyle}>
+          <input
+            type="checkbox"
+            name="acceptedTerms"
+            required
+            defaultChecked={v.acceptedTerms}
+            style={checkboxStyle}
+          />
+          <span>
+            <a
+              href="/hukuk/kullanim-sartlari"
+              target="_blank"
+              rel="noreferrer"
+              style={consentLinkStyle}
+            >
+              Kullanım Şartları
+            </a>{" "}
+            ve{" "}
+            <a
+              href="/hukuk/gizlilik-politikasi"
+              target="_blank"
+              rel="noreferrer"
+              style={consentLinkStyle}
+            >
+              Gizlilik Politikası
+            </a>
+            &apos;nı (KVKK aydınlatma metni dahil) okudum, kabul ediyorum.
+          </span>
+        </label>
+        <label style={consentRowStyle}>
+          <input
+            type="checkbox"
+            name="marketing"
+            defaultChecked={v.marketing}
+            style={checkboxStyle}
+          />
+          <span>
+            Kampanya ve yeni ürünlerden e-posta ile haberdar olmak istiyorum.
+          </span>
+        </label>
+        <label style={consentRowStyle}>
+          <input
+            type="checkbox"
+            name="newsletter"
+            defaultChecked={v.newsletter}
+            style={checkboxStyle}
+          />
+          <span>Aylık bülten aboneliğine katılmak istiyorum.</span>
+        </label>
+      </div>
+
       {state.error && (
         <div
           style={{
@@ -132,13 +184,31 @@ export function RegisterForm() {
         {pending ? "Oluşturuluyor…" : "Üyeliğimi oluştur"}
         <span className="arrow">→</span>
       </button>
-      <p style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5, margin: 0, textAlign: "center" }}>
-        Üye olarak{" "}
-        <a href="#" style={{ textDecoration: "underline" }}>kullanım şartları</a>{" "}
-        ve{" "}
-        <a href="#" style={{ textDecoration: "underline" }}>gizlilik politikasını</a>{" "}
-        kabul ediyorsun.
-      </p>
     </form>
   );
 }
+
+const consentRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 10,
+  fontSize: 12.5,
+  lineHeight: 1.5,
+  color: "var(--ink-mute)",
+  cursor: "pointer",
+};
+
+const checkboxStyle: React.CSSProperties = {
+  width: 18,
+  height: 18,
+  marginTop: 1,
+  flexShrink: 0,
+  accentColor: "var(--ink)",
+  cursor: "pointer",
+};
+
+const consentLinkStyle: React.CSSProperties = {
+  textDecoration: "underline",
+  textUnderlineOffset: 2,
+  color: "var(--ink)",
+};

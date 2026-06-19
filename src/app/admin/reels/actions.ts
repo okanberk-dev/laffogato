@@ -13,10 +13,16 @@ import {
 
 function parse(fd: FormData): ReelInput {
   return {
-    caption: String(fd.get("caption") ?? "").trim().slice(0, 160),
-    meta: String(fd.get("meta") ?? "").trim().slice(0, 60),
+    caption: String(fd.get("caption") ?? "")
+      .trim()
+      .slice(0, 160),
+    meta: String(fd.get("meta") ?? "")
+      .trim()
+      .slice(0, 60),
     accent: String(fd.get("accent") ?? "caramel"),
-    videoUrl: String(fd.get("videoUrl") ?? "").trim().slice(0, 400),
+    videoUrl: String(fd.get("videoUrl") ?? "")
+      .trim()
+      .slice(0, 400),
     sortOrder: parseInt(String(fd.get("sortOrder") ?? "0"), 10) || 0,
     isActive: fd.get("isActive") === "on",
   };
@@ -32,7 +38,12 @@ export async function createReelAction(fd: FormData) {
   const input = parse(fd);
   if (!input.caption) return;
   const created = await createReel(input);
-  await logAudit({ action: "create", entity: "reel", entityId: created.id, payload: { caption: created.caption } });
+  await logAudit({
+    action: "create",
+    entity: "reel",
+    entityId: created.id,
+    payload: { caption: created.caption },
+  });
   revalidate();
 }
 

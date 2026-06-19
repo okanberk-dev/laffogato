@@ -3,7 +3,13 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { Footer, Nav, ROUTE_PATHS, type FooterSettings, type Route } from "./chrome";
+import {
+  Footer,
+  Nav,
+  ROUTE_PATHS,
+  type FooterSettings,
+  type Route,
+} from "./chrome";
 import {
   PageFranchise,
   PageHome,
@@ -13,7 +19,13 @@ import {
   PageStory,
   PageVisit,
 } from "./pages";
-import { CartDrawer, ProductModal, SearchOverlay, cartItemKey, type CartItem } from "./ui";
+import {
+  CartDrawer,
+  ProductModal,
+  SearchOverlay,
+  cartItemKey,
+  type CartItem,
+} from "./ui";
 import type { ShopHeroSlide } from "./shop-hero-slider";
 import type { MenuCategory, Product } from "./data";
 
@@ -214,7 +226,11 @@ export function LaffogatoApp({
     setCart((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const dark = route === "home" || route === "franchise" || route === "visit" || route === "menu";
+  const dark =
+    route === "home" ||
+    route === "franchise" ||
+    route === "visit" ||
+    route === "menu";
 
   const pages: Record<Route, typeof PageHome> = {
     home: PageHome,
@@ -234,7 +250,14 @@ export function LaffogatoApp({
   if (!mounted) {
     return (
       <>
-        <Nav route={route} navigate={navigate} dark={dark} cart={0} onCart={() => setCartOpen(true)} onSearch={() => setSearchOpen(true)} />
+        <Nav
+          route={route}
+          navigate={navigate}
+          dark={dark}
+          cart={0}
+          onCart={() => setCartOpen(true)}
+          onSearch={() => setSearchOpen(true)}
+        />
         <Page
           navigate={navigate}
           addToCart={addToCart}

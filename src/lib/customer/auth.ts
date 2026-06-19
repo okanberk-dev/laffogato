@@ -36,7 +36,8 @@ function verifyToken(token: string): CustomerSession | null {
   if (parts.length !== 3) return null;
   const [email, expiresAtStr, sig] = parts;
   const expiresAt = Number(expiresAtStr);
-  if (!email || !Number.isFinite(expiresAt) || expiresAt < Date.now()) return null;
+  if (!email || !Number.isFinite(expiresAt) || expiresAt < Date.now())
+    return null;
   const expected = createHmac("sha256", getSecret())
     .update(`${email}|${expiresAt}`)
     .digest("hex");
@@ -58,7 +59,12 @@ export async function getCustomerSession(): Promise<CustomerSession | null> {
 export async function getActiveCustomer(): Promise<PublicCustomer | null> {
   const session = await getCustomerSession();
   if (!session) return null;
-  return getCustomerByEmail(session.email);
+  const customer = await getCustomerByEmail(session.email);
+  // A deactivated account is treated as logged-out everywhere (login is also
+  // blocked in verifyCustomerLogin) — this closes the live-session gap so a
+  // member deactivated mid-session can no longer place orders or view account.
+  if (!customer || !customer.isActive) return null;
+  return customer;
 }
 
 export async function setActiveCustomerSession(email: string): Promise<void> {

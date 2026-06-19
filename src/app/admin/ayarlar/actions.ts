@@ -32,7 +32,9 @@ function revalidateAll() {
 }
 
 function parseMoneyMinor(raw: unknown): number {
-  const s = String(raw ?? "").replace(",", ".").trim();
+  const s = String(raw ?? "")
+    .replace(",", ".")
+    .trim();
   if (!s) return 0;
   const v = parseFloat(s);
   if (!Number.isFinite(v) || v < 0) return 0;
@@ -97,7 +99,9 @@ export async function saveTaxAction(
   formData: FormData,
 ): Promise<SettingsState> {
   await requireRole("settings");
-  const raw = String(formData.get("taxRatePct") ?? "").replace(",", ".").trim();
+  const raw = String(formData.get("taxRatePct") ?? "")
+    .replace(",", ".")
+    .trim();
   const v = parseFloat(raw);
   if (!Number.isFinite(v) || v < 0 || v > 100) {
     return { error: "Vergi oranı 0 ile 100 arasında olmalı." };

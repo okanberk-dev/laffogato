@@ -215,9 +215,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       },
       {
         heading: "7. KVKK m.11 — Haklarınız",
-        paragraphs: [
-          "Veri sahibi olarak aşağıdaki haklara sahipsiniz:",
-        ],
+        paragraphs: ["Veri sahibi olarak aşağıdaki haklara sahipsiniz:"],
         bullets: [
           "Kişisel verilerin işlenip işlenmediğini öğrenme.",
           "İşlenmişse buna ilişkin bilgi talep etme.",
@@ -244,7 +242,8 @@ export const LEGAL_DOCS: LegalDoc[] = [
           "Yönetici erişimleri 2FA (TOTP) ile korunur.",
           "Veri tabanı, sektör standardı şifreleme (TLS 1.2+, at-rest encryption) ile erişilir.",
           "Erişim kayıtları (audit log) tüm yönetici işlemleri için tutulur.",
-          "Güvenlik açıkları için sorumlu açıklama programımız vardır: " + A.legalEmail,
+          "Güvenlik açıkları için sorumlu açıklama programımız vardır: " +
+            A.legalEmail,
         ],
       },
       {
@@ -380,7 +379,9 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         heading: "2. Cayma hakkını nasıl kullanırsınız?",
         ordered: [
-          "Süre içinde " + A.email + " adresine e-posta atın; konuda sipariş numaranızı belirtin.",
+          "Süre içinde " +
+            A.email +
+            " adresine e-posta atın; konuda sipariş numaranızı belirtin.",
           "Alternatif olarak üye panelinden iletişime geçin (Hesabım → Siparişlerim → ilgili sipariş).",
           "Ürünü orijinal ambalajı, etiketi ve aksesuarları ile birlikte 14 gün içinde anlaşmalı kargomuza teslim edin.",
           "Kargo şirketi ve iade adresi e-postada paylaşılır.",
@@ -427,7 +428,9 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         heading: "7. Kusurlu ürün",
         paragraphs: [
-          "Teslimat sırasında veya sonrasında ürünü kusurlu bulursanız, 30 gün içinde " + A.email + " adresine fotoğraf ile birlikte bildirim yapın.",
+          "Teslimat sırasında veya sonrasında ürünü kusurlu bulursanız, 30 gün içinde " +
+            A.email +
+            " adresine fotoğraf ile birlikte bildirim yapın.",
           "Tüketicinin Korunması Hakkında Kanun m.11 kapsamında onarım, değişim, indirim veya iade haklarınızı kullanabilirsiniz.",
         ],
       },
@@ -472,7 +475,8 @@ export const LEGAL_DOCS: LegalDoc[] = [
           },
           {
             key: "Tercih çerezleri",
-            value: "Dil, tema, görüntü tercihlerini hatırlar. Rıza isteğe bağlı.",
+            value:
+              "Dil, tema, görüntü tercihlerini hatırlar. Rıza isteğe bağlı.",
           },
           {
             key: "Analitik çerezler",
@@ -538,7 +542,10 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         heading: "2. Teslim süresi",
         table: [
-          { key: "İstanbul içi", value: "1 iş günü (motokurye opsiyonu mevcut)" },
+          {
+            key: "İstanbul içi",
+            value: "1 iş günü (motokurye opsiyonu mevcut)",
+          },
           { key: "Marmara, Ankara, İzmir", value: "1-2 iş günü" },
           { key: "Diğer iller", value: "2-3 iş günü" },
           { key: "KKTC ve yurt dışı", value: "5-10 iş günü, anlaşmalı kargo" },
@@ -575,7 +582,9 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         heading: "6. Teslimat sorunları",
         paragraphs: [
-          "Kargo gecikmesi, hasar veya kayıp yaşadığınızda 24 saat içinde " + A.email + " adresine fotoğraf ve sipariş numarası ile başvurun.",
+          "Kargo gecikmesi, hasar veya kayıp yaşadığınızda 24 saat içinde " +
+            A.email +
+            " adresine fotoğraf ve sipariş numarası ile başvurun.",
           "Hasar tespiti halinde ürün ücretsiz değişim veya iade ile karşılanır.",
         ],
       },
@@ -645,7 +654,9 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         heading: "6. Veri sahibinin hakları (m.11)",
         paragraphs: [
-          "Kanunun 11. maddesindeki haklarınızı kullanmak için " + A.legalEmail + " adresine yazılı başvuruda bulunabilirsiniz. Detaylar Gizlilik Politikası → Madde 7'de yer almaktadır.",
+          "Kanunun 11. maddesindeki haklarınızı kullanmak için " +
+            A.legalEmail +
+            " adresine yazılı başvuruda bulunabilirsiniz. Detaylar Gizlilik Politikası → Madde 7'de yer almaktadır.",
         ],
       },
     ],

@@ -22,10 +22,12 @@ function resolveSiteUrl(): string {
   if (explicit) return explicit.replace(/\/$/, "");
 
   const vercelProd = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
-  if (vercelProd) return `https://${vercelProd.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
+  if (vercelProd)
+    return `https://${vercelProd.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
 
   const vercelUrl = process.env.VERCEL_URL?.trim();
-  if (vercelUrl) return `https://${vercelUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
+  if (vercelUrl)
+    return `https://${vercelUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
 
   return "https://laffogato.com.tr";
 }
@@ -128,5 +130,11 @@ export const SITE = {
  * If we ever split sections into real routes, add them here.
  */
 export const ROUTES = [
-  { path: "/", section: "home", title: "Ana Sayfa", priority: 1.0, changefreq: "daily" },
+  {
+    path: "/",
+    section: "home",
+    title: "Ana Sayfa",
+    priority: 1.0,
+    changefreq: "daily",
+  },
 ] as const;

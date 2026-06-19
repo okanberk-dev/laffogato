@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { ADMIN_COOKIE_NAME, readSessionFromCookieValue } from "@/lib/admin/auth";
+import {
+  ADMIN_COOKIE_NAME,
+  readSessionFromCookieValue,
+} from "@/lib/admin/auth";
 
 /**
  * Admin route guard.

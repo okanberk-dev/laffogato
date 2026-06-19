@@ -16,7 +16,10 @@ export function NotificationsForm({
 }: {
   defaults: NotificationPrefs;
 }) {
-  const [state, action, pending] = useActionState(updateNotificationsAction, initial);
+  const [state, action, pending] = useActionState(
+    updateNotificationsAction,
+    initial,
+  );
   return (
     <form action={action} style={{ display: "grid", gap: 18, maxWidth: 560 }}>
       <Toggle

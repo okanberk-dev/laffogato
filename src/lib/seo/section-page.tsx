@@ -75,7 +75,9 @@ export async function renderSectionPage(route: Route) {
         menu={menu}
         wishlist={customer?.wishlist}
         isAuthenticated={!!customer}
-        freeShippingThreshold={Math.round(settings.shippingFreeThresholdMinor / 100)}
+        freeShippingThreshold={Math.round(
+          settings.shippingFreeThresholdMinor / 100,
+        )}
         shopHeroSlides={heroSlides.map((s) => ({
           id: s.id,
           title: s.title,

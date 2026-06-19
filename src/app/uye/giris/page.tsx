@@ -31,7 +31,11 @@ export default async function GirisPage() {
           border: "1px solid var(--ink-line)",
         }}
       >
-        <Link href="/" className="eyebrow" style={{ display: "inline-block", marginBottom: 18 }}>
+        <Link
+          href="/"
+          className="eyebrow"
+          style={{ display: "inline-block", marginBottom: 18 }}
+        >
           ← Anasayfa
         </Link>
         <h1
@@ -44,7 +48,15 @@ export default async function GirisPage() {
         >
           Giriş <span className="script">yap.</span>
         </h1>
-        <p style={{ color: "var(--ink-soft)", fontSize: 14, lineHeight: 1.6, marginTop: 0, marginBottom: 28 }}>
+        <p
+          style={{
+            color: "var(--ink-soft)",
+            fontSize: 14,
+            lineHeight: 1.6,
+            marginTop: 0,
+            marginBottom: 28,
+          }}
+        >
           Hesabınla giriş yap; sipariş geçmişini gör, bilgileri saniyede doldur.
         </p>
         <LoginForm />
@@ -59,7 +71,14 @@ export default async function GirisPage() {
           }}
         >
           Hesabın yok mu?{" "}
-          <Link href="/uye/kayit" style={{ color: "var(--gold-deep)", textDecoration: "underline", textUnderlineOffset: 3 }}>
+          <Link
+            href="/uye/kayit"
+            style={{
+              color: "var(--gold-deep)",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+            }}
+          >
             Üye ol
           </Link>
         </div>

@@ -1,12 +1,13 @@
 import Link from "next/link";
 
-import { AccountShell, AccountCard, EmptyState } from "@/components/uye/account-shell";
+import {
+  AccountShell,
+  AccountCard,
+  EmptyState,
+} from "@/components/uye/account-shell";
 import { requireCustomer } from "@/lib/customer/auth";
 
-import {
-  deleteAddressAction,
-  setDefaultAddressAction,
-} from "../../actions";
+import { deleteAddressAction, setDefaultAddressAction } from "../../actions";
 
 export const metadata = { title: "Adreslerim · L'Affogato" };
 export const dynamic = "force-dynamic";
@@ -21,7 +22,10 @@ export default async function AdreslerimPage() {
         title="Adreslerim"
         hint={`${addresses.length}/20 adres kayıtlı`}
         action={
-          <Link href="/uye/hesap/adreslerim/yeni" className="btn btn-primary btn-sm">
+          <Link
+            href="/uye/hesap/adreslerim/yeni"
+            className="btn btn-primary btn-sm"
+          >
             + Yeni adres
           </Link>
         }
@@ -50,12 +54,16 @@ export default async function AdreslerimPage() {
                 <div className="account-address-label">
                   <span>{a.label || a.city || "Adres"}</span>
                   {a.isDefault && (
-                    <span className="account-address-default-badge">Varsayılan</span>
+                    <span className="account-address-default-badge">
+                      Varsayılan
+                    </span>
                   )}
                 </div>
                 <div className="account-address-body">
                   {a.recipientName && <div>{a.recipientName}</div>}
-                  {a.phone && <div style={{ color: "var(--ink-mute)" }}>{a.phone}</div>}
+                  {a.phone && (
+                    <div style={{ color: "var(--ink-mute)" }}>{a.phone}</div>
+                  )}
                   <div>
                     {a.line1}
                     {a.line2 ? `, ${a.line2}` : ""}

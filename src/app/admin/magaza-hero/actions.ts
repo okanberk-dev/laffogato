@@ -19,7 +19,9 @@ function parseInput(formData: FormData): ShopHeroSlideInput {
     ctaLabel: String(formData.get("ctaLabel") ?? ""),
     ctaHref: String(formData.get("ctaHref") ?? ""),
     textTheme:
-      String(formData.get("textTheme") ?? "light") === "dark" ? "dark" : "light",
+      String(formData.get("textTheme") ?? "light") === "dark"
+        ? "dark"
+        : "light",
     sortOrder: parseInt(String(formData.get("sortOrder") ?? "0"), 10) || 0,
     isActive: formData.get("isActive") === "on",
   };

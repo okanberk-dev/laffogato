@@ -12,7 +12,13 @@ import {
   type ShopCategoryId,
 } from "@/lib/admin/store";
 
-const CAT_SLUGS: ShopCategoryId[] = ["beans", "gift", "gear", "merch", "pantry"];
+const CAT_SLUGS: ShopCategoryId[] = [
+  "beans",
+  "gift",
+  "gear",
+  "merch",
+  "pantry",
+];
 
 function parseInput(formData: FormData) {
   const slugRaw = String(formData.get("slug") ?? "beans") as ShopCategoryId;

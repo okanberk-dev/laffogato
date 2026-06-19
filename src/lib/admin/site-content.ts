@@ -13,7 +13,11 @@ import { CONTENT_FIELDS, contentDefaults } from "./content-fields";
  * has a full map and never shows an empty string.
  */
 
-export { CONTENT_FIELDS, CONTENT_GROUPS, contentDefaults } from "./content-fields";
+export {
+  CONTENT_FIELDS,
+  CONTENT_GROUPS,
+  contentDefaults,
+} from "./content-fields";
 export type { ContentField, ContentKind } from "./content-fields";
 
 const VALID_KEYS = new Set(CONTENT_FIELDS.map((f) => f.key));
@@ -23,7 +27,9 @@ export async function getSiteContent(): Promise<Record<string, string>> {
   const out = contentDefaults();
   try {
     const sb = getSupabaseAdmin();
-    const { data, error } = await sb.from(TABLES.siteContent).select("key, value");
+    const { data, error } = await sb
+      .from(TABLES.siteContent)
+      .select("key, value");
     if (error) throw new Error(error.message);
     for (const row of data ?? []) {
       if (VALID_KEYS.has(row.key) && typeof row.value === "string") {
@@ -37,13 +43,21 @@ export async function getSiteContent(): Promise<Record<string, string>> {
 }
 
 /** Upserts the given key→value entries (unknown keys ignored). */
-export async function updateSiteContent(entries: Record<string, string>): Promise<void> {
+export async function updateSiteContent(
+  entries: Record<string, string>,
+): Promise<void> {
   const now = new Date().toISOString();
   const rows = Object.entries(entries)
     .filter(([k]) => VALID_KEYS.has(k))
-    .map(([key, value]) => ({ key, value: String(value ?? "").slice(0, 2000), updatedAt: now }));
+    .map(([key, value]) => ({
+      key,
+      value: String(value ?? "").slice(0, 2000),
+      updatedAt: now,
+    }));
   if (rows.length === 0) return;
   const sb = getSupabaseAdmin();
-  const { error } = await sb.from(TABLES.siteContent).upsert(rows, { onConflict: "key" });
+  const { error } = await sb
+    .from(TABLES.siteContent)
+    .upsert(rows, { onConflict: "key" });
   if (error) throw new Error(`updateSiteContent: ${error.message}`);
 }

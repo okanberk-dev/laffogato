@@ -24,6 +24,10 @@ import {
   type NotificationPrefs,
 } from "@/lib/customer/store";
 import { sendVerificationEmail } from "@/lib/email/send";
+import {
+  subscribeNewsletter,
+  unsubscribeNewsletterByEmail,
+} from "@/lib/newsletter/store";
 import { SITE } from "@/lib/seo/site";
 
 function verifyUrl(token: string): string {
@@ -32,7 +36,14 @@ function verifyUrl(token: string): string {
 
 export type RegisterFormState = {
   error?: string;
-  values?: { email?: string; name?: string; phone?: string };
+  values?: {
+    email?: string;
+    name?: string;
+    phone?: string;
+    acceptedTerms?: boolean;
+    marketing?: boolean;
+    newsletter?: boolean;
+  };
 };
 
 export async function registerAction(
@@ -44,17 +55,45 @@ export async function registerAction(
   const phone = String(formData.get("phone") ?? "");
   const password = String(formData.get("password") ?? "");
   const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
+  const acceptedTerms = formData.get("acceptedTerms") === "on";
+  const marketing = formData.get("marketing") === "on";
+  const newsletter = formData.get("newsletter") === "on";
+  const values = { email, name, phone, acceptedTerms, marketing, newsletter };
 
   if (password !== passwordConfirm) {
+    return { error: "Şifreler eşleşmiyor.", values };
+  }
+  if (!acceptedTerms) {
     return {
-      error: "Şifreler eşleşmiyor.",
-      values: { email, name, phone },
+      error:
+        "Devam etmek için kullanım şartları ve gizlilik politikasını kabul etmelisin.",
+      values,
     };
   }
 
-  const result = await registerCustomer({ email, name, phone, password });
+  const result = await registerCustomer({
+    email,
+    name,
+    phone,
+    password,
+    acceptedTerms,
+    marketing,
+    newsletter,
+  });
   if (!result.ok) {
-    return { error: result.error, values: { email, name, phone } };
+    return { error: result.error, values };
+  }
+  // Newsletter opt-in also lands in the subscriber list (best-effort).
+  if (newsletter) {
+    try {
+      await subscribeNewsletter(
+        result.customer.email,
+        result.customer.name,
+        "register",
+      );
+    } catch {
+      // non-fatal — the account + notificationPrefs already captured the intent
+    }
   }
   // Send the verification e-mail (best-effort; link is logged if no provider).
   await sendVerificationEmail(
@@ -82,7 +121,11 @@ export async function resendVerificationAction(
       ? { message: "E-postan zaten doğrulanmış." }
       : { error: result.error };
   }
-  await sendVerificationEmail(result.email, result.name, verifyUrl(result.token));
+  await sendVerificationEmail(
+    result.email,
+    result.name,
+    verifyUrl(result.token),
+  );
   return { message: "Doğrulama bağlantısı e-postana gönderildi." };
 }
 
@@ -125,7 +168,11 @@ export async function updateProfileAction(
   const name = String(formData.get("name") ?? "");
   const phone = String(formData.get("phone") ?? "");
   const birthday = String(formData.get("birthday") ?? "");
-  const updated = await updateCustomerProfile(current.email, { name, phone, birthday });
+  const updated = await updateCustomerProfile(current.email, {
+    name,
+    phone,
+    birthday,
+  });
   if (!updated) return { error: "Güncellenemedi." };
   revalidatePath("/uye/hesap", "layout");
   return { message: "Bilgilerin güncellendi." };
@@ -160,7 +207,9 @@ function readAddress(formData: FormData): AddressInput {
     district: String(formData.get("district") ?? ""),
     city: String(formData.get("city") ?? ""),
     zip: String(formData.get("zip") ?? ""),
-    isDefault: formData.get("isDefault") === "on" || formData.get("isDefault") === "true",
+    isDefault:
+      formData.get("isDefault") === "on" ||
+      formData.get("isDefault") === "true",
   };
 }
 
@@ -185,7 +234,11 @@ export async function updateAddressAction(
 ): Promise<AddressFormState> {
   const current = await getActiveCustomer();
   if (!current) return { error: "Oturumun süresi dolmuş." };
-  const result = await updateCustomerAddress(current.email, addressId, readAddress(formData));
+  const result = await updateCustomerAddress(
+    current.email,
+    addressId,
+    readAddress(formData),
+  );
   if (!result.ok) return { error: result.error };
   revalidatePath("/uye/hesap", "layout");
   redirect("/uye/hesap/adreslerim");
@@ -200,7 +253,9 @@ export async function deleteAddressAction(formData: FormData): Promise<void> {
   revalidatePath("/uye/hesap", "layout");
 }
 
-export async function setDefaultAddressAction(formData: FormData): Promise<void> {
+export async function setDefaultAddressAction(
+  formData: FormData,
+): Promise<void> {
   const current = await getActiveCustomer();
   if (!current) return;
   const addressId = String(formData.get("addressId") ?? "");
@@ -242,6 +297,16 @@ export async function updateNotificationsAction(
   };
   const updated = await updateNotificationPrefs(current.email, prefs);
   if (!updated) return { error: "Güncellenemedi." };
+  // Keep the marketing newsletter list in sync with the member's toggle.
+  try {
+    if (prefs.newsletter) {
+      await subscribeNewsletter(current.email, current.name, "account");
+    } else {
+      await unsubscribeNewsletterByEmail(current.email);
+    }
+  } catch {
+    // non-fatal
+  }
   revalidatePath("/uye/hesap", "layout");
   return { message: "Tercihlerin kaydedildi." };
 }

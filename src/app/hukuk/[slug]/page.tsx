@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { LEGAL_DOCS, findLegalDoc } from "@/lib/legal/documents";
+import { LegalMarkdown } from "@/lib/legal/markdown";
+import { getPublishedLegalOverride } from "@/lib/legal/store";
 
 export async function generateMetadata({
   params,
@@ -12,9 +14,10 @@ export async function generateMetadata({
   const { slug } = await params;
   const doc = findLegalDoc(slug);
   if (!doc) return {};
+  const override = await getPublishedLegalOverride(slug);
   return {
-    title: doc.title,
-    description: doc.summary,
+    title: override?.title || doc.title,
+    description: override?.summary || doc.summary,
     alternates: { canonical: `/hukuk/${slug}` },
     robots: { index: true, follow: true },
   };
@@ -29,6 +32,12 @@ export default async function LegalDocPage({
   const doc = findLegalDoc(slug);
   if (!doc) notFound();
 
+  // Admin override (published + non-empty) replaces the coded default content.
+  const override = await getPublishedLegalOverride(slug);
+  const title = override?.title || doc.title;
+  const summary = override?.summary || doc.summary;
+  const updatedAt = override?.effectiveDate || doc.updatedAt;
+
   return (
     <main className="legal-page">
       <div className="legal-wrap legal-wrap-narrow">
@@ -40,21 +49,24 @@ export default async function LegalDocPage({
           >
             ← Hukuki bilgiler
           </Link>
-          <div className="eyebrow" style={{ color: "var(--gold-deep)", marginBottom: 12 }}>
+          <div
+            className="eyebrow"
+            style={{ color: "var(--gold-deep)", marginBottom: 12 }}
+          >
             {doc.category}
           </div>
           <h1 className="h1" style={{ marginBottom: 18 }}>
-            {doc.title}
+            {title}
             <span className="script">.</span>
           </h1>
-          <p className="lede">{doc.summary}</p>
+          <p className="lede">{summary}</p>
           <div className="legal-meta">
             <span className="eyebrow">Son güncelleme</span>
-            <span>{doc.updatedAt}</span>
+            <span>{updatedAt}</span>
           </div>
         </header>
 
-        {doc.references && doc.references.length > 0 && (
+        {!override && doc.references && doc.references.length > 0 && (
           <aside className="legal-refs">
             <div className="eyebrow" style={{ marginBottom: 10 }}>
               Yasal dayanaklar
@@ -67,44 +79,48 @@ export default async function LegalDocPage({
           </aside>
         )}
 
-        <article className="legal-article">
-          {doc.sections.map((s, i) => (
-            <section key={i} className="legal-section">
-              <h2>{s.heading}</h2>
-              {s.paragraphs?.map((p, j) => (
-                <p key={`p${j}`}>{p}</p>
-              ))}
-              {s.bullets && (
-                <ul className="legal-bullets">
-                  {s.bullets.map((b, j) => (
-                    <li key={`b${j}`}>{b}</li>
-                  ))}
-                </ul>
-              )}
-              {s.ordered && (
-                <ol className="legal-ordered">
-                  {s.ordered.map((o, j) => (
-                    <li key={`o${j}`}>{o}</li>
-                  ))}
-                </ol>
-              )}
-              {s.table && (
-                <div className="legal-table-wrap">
-                  <table className="legal-table">
-                    <tbody>
-                      {s.table.map((row, j) => (
-                        <tr key={`t${j}`}>
-                          <th scope="row">{row.key}</th>
-                          <td>{row.value}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
-          ))}
-        </article>
+        {override ? (
+          <LegalMarkdown body={override.bodyMarkdown} />
+        ) : (
+          <article className="legal-article">
+            {doc.sections.map((s, i) => (
+              <section key={i} className="legal-section">
+                <h2>{s.heading}</h2>
+                {s.paragraphs?.map((p, j) => (
+                  <p key={`p${j}`}>{p}</p>
+                ))}
+                {s.bullets && (
+                  <ul className="legal-bullets">
+                    {s.bullets.map((b, j) => (
+                      <li key={`b${j}`}>{b}</li>
+                    ))}
+                  </ul>
+                )}
+                {s.ordered && (
+                  <ol className="legal-ordered">
+                    {s.ordered.map((o, j) => (
+                      <li key={`o${j}`}>{o}</li>
+                    ))}
+                  </ol>
+                )}
+                {s.table && (
+                  <div className="legal-table-wrap">
+                    <table className="legal-table">
+                      <tbody>
+                        {s.table.map((row, j) => (
+                          <tr key={`t${j}`}>
+                            <th scope="row">{row.key}</th>
+                            <td>{row.value}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            ))}
+          </article>
+        )}
 
         <footer className="legal-foot">
           <div className="legal-foot-related">
@@ -128,8 +144,8 @@ export default async function LegalDocPage({
             }}
           >
             Bu belge bilgilendirme amaçlıdır ve hukuki tavsiye niteliği taşımaz.
-            Spesifik bir mesele için lütfen avukatınıza danışın. Belgede
-            güncel olmayan veya hata içerdiğini düşündüğünüz bir bilgi varsa{" "}
+            Spesifik bir mesele için lütfen avukatınıza danışın. Belgede güncel
+            olmayan veya hata içerdiğini düşündüğünüz bir bilgi varsa{" "}
             <a
               href="mailto:kvkk@laffogato.com.tr"
               style={{

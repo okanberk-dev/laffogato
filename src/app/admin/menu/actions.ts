@@ -33,7 +33,9 @@ const HUE_VALUES = [
 ];
 
 function parseInput(formData: FormData) {
-  const categoryRaw = String(formData.get("categoryKey") ?? "affogato") as MenuCategoryKey;
+  const categoryRaw = String(
+    formData.get("categoryKey") ?? "affogato",
+  ) as MenuCategoryKey;
   const categoryKey: MenuCategoryKey = MENU_CATEGORY_KEYS.includes(categoryRaw)
     ? categoryRaw
     : "affogato";
@@ -41,7 +43,9 @@ function parseInput(formData: FormData) {
   const desc = String(formData.get("desc") ?? "").trim();
   const priceText = String(formData.get("price") ?? "0").replace(",", ".");
   const priceMajor = parseFloat(priceText);
-  const priceMinor = Number.isFinite(priceMajor) ? Math.round(priceMajor * 100) : 0;
+  const priceMinor = Number.isFinite(priceMajor)
+    ? Math.round(priceMajor * 100)
+    : 0;
   const hueRaw = String(formData.get("hue") ?? "cream");
   const hue = HUE_VALUES.includes(hueRaw) ? hueRaw : "cream";
   const tagsRaw = String(formData.get("tags") ?? "");
@@ -52,7 +56,16 @@ function parseInput(formData: FormData) {
   const sortOrder = parseInt(String(formData.get("sortOrder") ?? "0"), 10) || 0;
   const isActive = formData.get("isActive") === "on";
 
-  return { categoryKey, name, desc, priceMinor, hue, tags, sortOrder, isActive };
+  return {
+    categoryKey,
+    name,
+    desc,
+    priceMinor,
+    hue,
+    tags,
+    sortOrder,
+    isActive,
+  };
 }
 
 function revalidateMenu() {

@@ -1,6 +1,10 @@
 import Link from "next/link";
 
-import { AccountShell, AccountCard, EmptyState } from "@/components/uye/account-shell";
+import {
+  AccountShell,
+  AccountCard,
+  EmptyState,
+} from "@/components/uye/account-shell";
 import { customerOrdersByEmail } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
 
@@ -45,7 +49,9 @@ export default async function SiparislerimPage() {
                     </span>
                   </div>
                   <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>
-                    {o.items.map((it) => `${it.qty}× ${it.productName}`).join(", ")}
+                    {o.items
+                      .map((it) => `${it.qty}× ${it.productName}`)
+                      .join(", ")}
                   </div>
                   <div className="account-order-meta">
                     <span>{formatDate(o.createdAt)}</span>

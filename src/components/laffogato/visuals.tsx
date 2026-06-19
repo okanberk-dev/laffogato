@@ -165,14 +165,40 @@ export function CupEmblem({
         <path id="ce-bot" d="M 28 120 A 92 92 0 0 0 212 120" fill="none" />
       </defs>
       <circle cx="120" cy="120" r="116" fill={bg} />
-      <circle cx="120" cy="120" r="112" fill="none" stroke={rc} strokeWidth="0.5" opacity="0.4" />
-      <circle cx="120" cy="120" r="100" fill="none" stroke={rc} strokeWidth="1.5" />
-      <text fontFamily="'JetBrains Mono', monospace" fontSize="9" letterSpacing="5" fill={color}>
+      <circle
+        cx="120"
+        cy="120"
+        r="112"
+        fill="none"
+        stroke={rc}
+        strokeWidth="0.5"
+        opacity="0.4"
+      />
+      <circle
+        cx="120"
+        cy="120"
+        r="100"
+        fill="none"
+        stroke={rc}
+        strokeWidth="1.5"
+      />
+      <text
+        fontFamily="'JetBrains Mono', monospace"
+        fontSize="9"
+        letterSpacing="5"
+        fill={color}
+      >
         <textPath href="#ce-top" startOffset="50%" textAnchor="middle">
           DRINK IT · EAT THE CUP · DRINK IT · EAT
         </textPath>
       </text>
-      <text fontFamily="'JetBrains Mono', monospace" fontSize="9" letterSpacing="5" fill={color} opacity="0.7">
+      <text
+        fontFamily="'JetBrains Mono', monospace"
+        fontSize="9"
+        letterSpacing="5"
+        fill={color}
+        opacity="0.7"
+      >
         <textPath href="#ce-bot" startOffset="50%" textAnchor="middle">
           L'AFFOGATO · MCMLXXXVII · ISTANBUL · MMXXVI
         </textPath>
@@ -189,8 +215,12 @@ export function CupEmblem({
         letterSpacing="-0.5"
       >
         L
-        <tspan dy="-2" dx="-2" fontSize="22">’</tspan>
-        <tspan dy="2" dx="-2">Affogato</tspan>
+        <tspan dy="-2" dx="-2" fontSize="22">
+          ’
+        </tspan>
+        <tspan dy="2" dx="-2">
+          Affogato
+        </tspan>
       </text>
       <circle cx="160" cy="92" r="2.5" fill={color} />
       <g transform="translate(120 136)">
@@ -198,10 +228,26 @@ export function CupEmblem({
         <circle cx="0" cy="0" r="2.2" fill={color} />
         <circle cx="14" cy="0" r="2.2" fill="#6A8A4A" />
       </g>
-      <text x="120" y="162" textAnchor="middle" fontFamily="'Pinyon Script', cursive" fontSize="22" fill={color}>
+      <text
+        x="120"
+        y="162"
+        textAnchor="middle"
+        fontFamily="'Pinyon Script', cursive"
+        fontSize="22"
+        fill={color}
+      >
         caffè · gelato
       </text>
-      <text x="120" y="186" textAnchor="middle" fontFamily="'JetBrains Mono', monospace" fontSize="8" letterSpacing="3.5" fill={color} opacity="0.55">
+      <text
+        x="120"
+        y="186"
+        textAnchor="middle"
+        fontFamily="'JetBrains Mono', monospace"
+        fontSize="8"
+        letterSpacing="3.5"
+        fill={color}
+        opacity="0.55"
+      >
         DAL · 1987
       </text>
     </svg>
@@ -232,16 +278,43 @@ export function EdibleCupHero({
   const scoopColor = colorMap[scoop] || colorMap.cream;
 
   return (
-    <svg viewBox="0 0 360 440" style={{ width: size || "100%", height: size || "100%" }} aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 360 440"
+      style={{ width: size || "100%", height: size || "100%" }}
+      aria-hidden="true"
+      focusable="false"
+    >
       <defs>
         <linearGradient id={`ec-waffle-${scoop}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#D4A275" />
           <stop offset="1" stopColor="#8A5A2A" />
         </linearGradient>
-        <pattern id={`ec-pat-${scoop}`} patternUnits="userSpaceOnUse" width="12" height="12" patternTransform="rotate(45)">
+        <pattern
+          id={`ec-pat-${scoop}`}
+          patternUnits="userSpaceOnUse"
+          width="12"
+          height="12"
+          patternTransform="rotate(45)"
+        >
           <rect width="12" height="12" fill={`url(#ec-waffle-${scoop})`} />
-          <line x1="0" y1="0" x2="12" y2="0" stroke="#3A2410" strokeOpacity="0.4" strokeWidth="0.7" />
-          <line x1="0" y1="6" x2="12" y2="6" stroke="#3A2410" strokeOpacity="0.3" strokeWidth="0.7" />
+          <line
+            x1="0"
+            y1="0"
+            x2="12"
+            y2="0"
+            stroke="#3A2410"
+            strokeOpacity="0.4"
+            strokeWidth="0.7"
+          />
+          <line
+            x1="0"
+            y1="6"
+            x2="12"
+            y2="6"
+            stroke="#3A2410"
+            strokeOpacity="0.3"
+            strokeWidth="0.7"
+          />
         </pattern>
         <linearGradient id={`ec-scoop-${scoop}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={scoopColor[0]} />
@@ -252,8 +325,16 @@ export function EdibleCupHero({
         </clipPath>
       </defs>
 
-      <path d="M 90 200 L 270 200 L 252 400 L 108 400 Z" fill={`url(#ec-pat-${scoop})`} />
-      <path d="M 90 200 L 270 200 L 252 400 L 108 400 Z" fill="none" stroke="#2A1808" strokeWidth="2" />
+      <path
+        d="M 90 200 L 270 200 L 252 400 L 108 400 Z"
+        fill={`url(#ec-pat-${scoop})`}
+      />
+      <path
+        d="M 90 200 L 270 200 L 252 400 L 108 400 Z"
+        fill="none"
+        stroke="#2A1808"
+        strokeWidth="2"
+      />
       <ellipse cx="180" cy="200" rx="90" ry="10" fill="#7A4A1F" />
       <ellipse cx="180" cy="200" rx="85" ry="6" fill="#3A2410" />
 
@@ -265,17 +346,47 @@ export function EdibleCupHero({
         <circle cx="230" cy="266" r="4" fill="#C5435A" />
         <circle cx="240" cy="276" r="2" fill="#B88A4A" />
         <circle cx="106" cy="276" r="2" fill="#B88A4A" />
-        <text x="180" y="298" textAnchor="middle" fontFamily="'Playfair Display', serif" fontStyle="italic" fontWeight="500" fontSize="26" fill="#14100B">
+        <text
+          x="180"
+          y="298"
+          textAnchor="middle"
+          fontFamily="'Playfair Display', serif"
+          fontStyle="italic"
+          fontWeight="500"
+          fontSize="26"
+          fill="#14100B"
+        >
           L’Affogato
         </text>
-        <line x1="138" y1="306" x2="222" y2="306" stroke="#14100B" strokeWidth="0.5" />
-        <text x="180" y="322" textAnchor="middle" fontFamily="'JetBrains Mono', monospace" fontSize="7" letterSpacing="3" fill="#14100B">
+        <line
+          x1="138"
+          y1="306"
+          x2="222"
+          y2="306"
+          stroke="#14100B"
+          strokeWidth="0.5"
+        />
+        <text
+          x="180"
+          y="322"
+          textAnchor="middle"
+          fontFamily="'JetBrains Mono', monospace"
+          fontSize="7"
+          letterSpacing="3"
+          fill="#14100B"
+        >
           DRINK IT · EAT THE CUP
         </text>
       </g>
 
       <g clipPath={`url(#ec-clip-${scoop})`}>
-        <ellipse cx="180" cy="190" rx="86" ry="50" fill={`url(#ec-scoop-${scoop})`} />
+        <ellipse
+          cx="180"
+          cy="190"
+          rx="86"
+          ry="50"
+          fill={`url(#ec-scoop-${scoop})`}
+        />
       </g>
       <path
         d="M 100 200 Q 120 142 152 188 Q 168 142 180 184 Q 200 142 220 192 Q 240 142 260 200"
@@ -288,13 +399,30 @@ export function EdibleCupHero({
       {topping === "wafer" && (
         <g transform="rotate(-15 168 154)">
           <rect x="162" y="100" width="10" height="64" rx="5" fill="#C89460" />
-          <line x1="166" y1="108" x2="166" y2="158" stroke="#8A5A2A" strokeWidth="0.6" />
-          <line x1="170" y1="108" x2="170" y2="158" stroke="#8A5A2A" strokeWidth="0.6" />
+          <line
+            x1="166"
+            y1="108"
+            x2="166"
+            y2="158"
+            stroke="#8A5A2A"
+            strokeWidth="0.6"
+          />
+          <line
+            x1="170"
+            y1="108"
+            x2="170"
+            y2="158"
+            stroke="#8A5A2A"
+            strokeWidth="0.6"
+          />
         </g>
       )}
       {topping === "strawberry" && (
         <g>
-          <path d="M 196 152 Q 210 144 220 156 Q 216 170 204 168 Q 194 164 196 152 Z" fill="#D6647A" />
+          <path
+            d="M 196 152 Q 210 144 220 156 Q 216 170 204 168 Q 194 164 196 152 Z"
+            fill="#D6647A"
+          />
           <circle cx="206" cy="158" r="1" fill="#FFF" />
           <circle cx="212" cy="162" r="1" fill="#FFF" />
         </g>
@@ -328,7 +456,12 @@ export function EdibleCupHero({
 
 export function EspressoCup({ size = "100%" }: { size?: number | string }) {
   return (
-    <svg viewBox="0 0 280 260" style={{ width: size, height: size }} aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 280 260"
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+      focusable="false"
+    >
       <defs>
         <radialGradient id="ec-cup-fill" cx="0.5" cy="0.4" r="0.6">
           <stop offset="0" stopColor="#FAF5EC" />
@@ -343,11 +476,19 @@ export function EspressoCup({ size = "100%" }: { size?: number | string }) {
       <ellipse cx="140" cy="230" rx="120" ry="14" fill="#000" opacity="0.16" />
       <ellipse cx="140" cy="220" rx="116" ry="16" fill="url(#ec-cup-fill)" />
       <ellipse cx="140" cy="218" rx="100" ry="12" fill="#E0CCA8" />
-      <path d="M 80 150 Q 80 218 140 218 Q 200 218 200 150 Z" fill="url(#ec-cup-fill)" />
+      <path
+        d="M 80 150 Q 80 218 140 218 Q 200 218 200 150 Z"
+        fill="url(#ec-cup-fill)"
+      />
       <ellipse cx="140" cy="150" rx="60" ry="9" fill="#14100B" />
       <ellipse cx="140" cy="150" rx="54" ry="6" fill="url(#ec-crema)" />
       <ellipse cx="124" cy="148" rx="14" ry="3" fill="#FBE5A0" opacity="0.6" />
-      <path d="M 200 165 Q 232 165 232 192 Q 232 218 200 215" fill="none" stroke="#E0CCA8" strokeWidth="6" />
+      <path
+        d="M 200 165 Q 232 165 232 192 Q 232 218 200 215"
+        fill="none"
+        stroke="#E0CCA8"
+        strokeWidth="6"
+      />
       {[0, 1, 2].map((i) => (
         <circle
           key={i}
@@ -362,7 +503,16 @@ export function EspressoCup({ size = "100%" }: { size?: number | string }) {
           }}
         />
       ))}
-      <text x="140" y="195" textAnchor="middle" fontFamily="Playfair Display" fontStyle="italic" fontSize="14" fill="#14100B" opacity="0.5">
+      <text
+        x="140"
+        y="195"
+        textAnchor="middle"
+        fontFamily="Playfair Display"
+        fontStyle="italic"
+        fontSize="14"
+        fill="#14100B"
+        opacity="0.5"
+      >
         L’A
       </text>
     </svg>
@@ -381,7 +531,12 @@ export function MatchaGlass({
   strawberry?: boolean;
 }) {
   return (
-    <svg viewBox="0 0 220 320" style={{ width: size, height: size }} aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 220 320"
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+      focusable="false"
+    >
       <defs>
         <linearGradient id="mg-matcha" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#A8C980" />
@@ -397,15 +552,32 @@ export function MatchaGlass({
         </linearGradient>
       </defs>
       <ellipse cx="110" cy="296" rx="68" ry="5" fill="#000" opacity="0.16" />
-      <path d="M 56 70 L 164 70 L 156 290 L 64 290 Z" fill="rgba(255,255,255,0.1)" stroke="#14100B" strokeWidth="1.4" />
+      <path
+        d="M 56 70 L 164 70 L 156 290 L 64 290 Z"
+        fill="rgba(255,255,255,0.1)"
+        stroke="#14100B"
+        strokeWidth="1.4"
+      />
       {strawberry ? (
         <>
-          <path d="M 60 240 L 160 240 L 156 290 L 64 290 Z" fill="url(#mg-straw)" />
-          <path d="M 59 160 L 161 160 L 160 240 L 60 240 Z" fill="url(#mg-milk)" />
-          <path d="M 58 90 L 162 90 L 161 160 L 59 160 Z" fill="url(#mg-matcha)" />
+          <path
+            d="M 60 240 L 160 240 L 156 290 L 64 290 Z"
+            fill="url(#mg-straw)"
+          />
+          <path
+            d="M 59 160 L 161 160 L 160 240 L 60 240 Z"
+            fill="url(#mg-milk)"
+          />
+          <path
+            d="M 58 90 L 162 90 L 161 160 L 59 160 Z"
+            fill="url(#mg-matcha)"
+          />
           <ellipse cx="110" cy="90" rx="52" ry="5" fill="#5A7A3A" />
           <g transform="translate(110 76)">
-            <path d="M -14 -6 Q 0 -16 14 -6 Q 10 8 0 8 Q -10 6 -14 -6 Z" fill="#D6647A" />
+            <path
+              d="M -14 -6 Q 0 -16 14 -6 Q 10 8 0 8 Q -10 6 -14 -6 Z"
+              fill="#D6647A"
+            />
             <circle cx="-4" cy="-2" r="1" fill="#FFF" />
             <circle cx="4" cy="2" r="1" fill="#FFF" />
             <circle cx="2" cy="-4" r="1" fill="#FFF" />
@@ -413,16 +585,52 @@ export function MatchaGlass({
         </>
       ) : (
         <>
-          <path d="M 59 110 L 161 110 L 156 290 L 64 290 Z" fill="url(#mg-matcha)" />
-          <ellipse cx="110" cy="110" rx="51" ry="6" fill="#FBF3DF" opacity="0.6" />
-          <path d="M 110 102 Q 92 122 110 144 Q 128 122 110 102" fill="#FBF3DF" opacity="0.85" />
+          <path
+            d="M 59 110 L 161 110 L 156 290 L 64 290 Z"
+            fill="url(#mg-matcha)"
+          />
+          <ellipse
+            cx="110"
+            cy="110"
+            rx="51"
+            ry="6"
+            fill="#FBF3DF"
+            opacity="0.6"
+          />
+          <path
+            d="M 110 102 Q 92 122 110 144 Q 128 122 110 102"
+            fill="#FBF3DF"
+            opacity="0.85"
+          />
         </>
       )}
-      <line x1="68" y1="86" x2="68" y2="270" stroke="#FFF" strokeWidth="1.6" opacity="0.45" />
-      <rect x="138" y="40" width="4" height="80" fill="#14100B" transform="rotate(8 140 80)" />
+      <line
+        x1="68"
+        y1="86"
+        x2="68"
+        y2="270"
+        stroke="#FFF"
+        strokeWidth="1.6"
+        opacity="0.45"
+      />
+      <rect
+        x="138"
+        y="40"
+        width="4"
+        height="80"
+        fill="#14100B"
+        transform="rotate(8 140 80)"
+      />
       {strawberry &&
         [0, 1, 2, 3].map((i) => (
-          <circle key={i} cx={70 + i * 24} cy={200 + (i % 2) * 20} r="2" fill="#FFF" opacity="0.5" />
+          <circle
+            key={i}
+            cx={70 + i * 24}
+            cy={200 + (i % 2) * 20}
+            r="2"
+            fill="#FFF"
+            opacity="0.5"
+          />
         ))}
     </svg>
   );
@@ -449,7 +657,12 @@ export function GelatoScoop({
   };
   const [c1, c2] = colors[flavor] || colors.cream;
   return (
-    <svg viewBox="0 0 240 260" style={{ width: size, height: size }} aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 240 260"
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+      focusable="false"
+    >
       <defs>
         <linearGradient id={`gs2-${flavor}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={c1} />
@@ -457,8 +670,17 @@ export function GelatoScoop({
         </linearGradient>
       </defs>
       <ellipse cx="120" cy="248" rx="80" ry="6" fill="#000" opacity="0.16" />
-      <path d="M 70 120 L 170 120 L 158 240 L 82 240 Z" fill="rgba(255,255,255,0.16)" stroke="#14100B" strokeWidth="1.4" />
-      <path d="M 73 145 L 167 145 L 158 240 L 82 240 Z" fill="#FBF3DF" opacity="0.4" />
+      <path
+        d="M 70 120 L 170 120 L 158 240 L 82 240 Z"
+        fill="rgba(255,255,255,0.16)"
+        stroke="#14100B"
+        strokeWidth="1.4"
+      />
+      <path
+        d="M 73 145 L 167 145 L 158 240 L 82 240 Z"
+        fill="#FBF3DF"
+        opacity="0.4"
+      />
       <circle cx="120" cy="110" r="42" fill={`url(#gs2-${flavor})`} />
       <circle cx="95" cy="92" r="24" fill={`url(#gs2-${flavor})`} />
       <circle cx="148" cy="92" r="22" fill={`url(#gs2-${flavor})`} />
@@ -483,7 +705,12 @@ export function BeanIllo({
   dark?: boolean;
 }) {
   return (
-    <svg viewBox="0 0 220 220" style={{ width: size, height: size }} aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 220 220"
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+      focusable="false"
+    >
       {Array.from({ length: 14 }).map((_, i) => {
         const r = Math.floor(i / 4);
         const c = i % 4;
@@ -493,8 +720,20 @@ export function BeanIllo({
         return (
           <g key={i} transform={`translate(${x} ${y}) rotate(${rot})`}>
             <ellipse rx="22" ry="14" fill={dark ? "#1A0F08" : "#3A2410"} />
-            <ellipse rx="22" ry="14" fill="none" stroke={dark ? "#3A2410" : "#1A0F08"} strokeWidth="0.6" opacity="0.5" />
-            <path d="M -22 0 Q 0 0 22 0" stroke={dark ? "#0E0905" : "#14100B"} strokeWidth="2" fill="none" />
+            <ellipse
+              rx="22"
+              ry="14"
+              fill="none"
+              stroke={dark ? "#3A2410" : "#1A0F08"}
+              strokeWidth="0.6"
+              opacity="0.5"
+            />
+            <path
+              d="M -22 0 Q 0 0 22 0"
+              stroke={dark ? "#0E0905" : "#14100B"}
+              strokeWidth="2"
+              fill="none"
+            />
             <ellipse rx="6" ry="3" fill={dark ? "#0E0905" : "#14100B"} cy="0" />
           </g>
         );
@@ -518,28 +757,109 @@ export function CoffeeBag({
   sub?: string;
   tone?: string;
 }) {
-  const bg = tone === "dark" ? "#14100B" : tone === "gold" ? "#B88A4A" : "#FAF5EC";
-  const ink = tone === "dark" ? "#F5E6D3" : tone === "gold" ? "#FFF" : "#14100B";
-  const accent = tone === "dark" ? "#B88A4A" : tone === "gold" ? "#FFF" : "#B88A4A";
+  const bg =
+    tone === "dark" ? "#14100B" : tone === "gold" ? "#B88A4A" : "#FAF5EC";
+  const ink =
+    tone === "dark" ? "#F5E6D3" : tone === "gold" ? "#FFF" : "#14100B";
+  const accent =
+    tone === "dark" ? "#B88A4A" : tone === "gold" ? "#FFF" : "#B88A4A";
   return (
-    <svg viewBox="0 0 240 320" style={{ width: size, height: size }} aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 240 320"
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+      focusable="false"
+    >
       <ellipse cx="120" cy="306" rx="86" ry="6" fill="#000" opacity="0.18" />
-      <path d="M 60 60 Q 56 50 64 46 L 176 46 Q 184 50 180 60 L 192 300 L 48 300 Z" fill={bg} />
-      <path d="M 56 60 L 184 60" stroke={ink} strokeOpacity="0.2" strokeWidth="1" />
-      <rect x="100" y="38" width="40" height="12" fill={bg} stroke={ink} strokeOpacity="0.4" strokeWidth="0.6" />
-      <rect x="76" y="120" width="88" height="124" fill="none" stroke={accent} strokeOpacity="0.4" strokeWidth="0.6" />
-      <text x="120" y="146" textAnchor="middle" fontFamily="JetBrains Mono" fontSize="7" letterSpacing="3" fill={accent} opacity="0.7">
+      <path
+        d="M 60 60 Q 56 50 64 46 L 176 46 Q 184 50 180 60 L 192 300 L 48 300 Z"
+        fill={bg}
+      />
+      <path
+        d="M 56 60 L 184 60"
+        stroke={ink}
+        strokeOpacity="0.2"
+        strokeWidth="1"
+      />
+      <rect
+        x="100"
+        y="38"
+        width="40"
+        height="12"
+        fill={bg}
+        stroke={ink}
+        strokeOpacity="0.4"
+        strokeWidth="0.6"
+      />
+      <rect
+        x="76"
+        y="120"
+        width="88"
+        height="124"
+        fill="none"
+        stroke={accent}
+        strokeOpacity="0.4"
+        strokeWidth="0.6"
+      />
+      <text
+        x="120"
+        y="146"
+        textAnchor="middle"
+        fontFamily="JetBrains Mono"
+        fontSize="7"
+        letterSpacing="3"
+        fill={accent}
+        opacity="0.7"
+      >
         L’AFFOGATO ITALIA
       </text>
-      <line x1="92" y1="155" x2="148" y2="155" stroke={ink} strokeOpacity="0.4" />
-      <text x="120" y="186" textAnchor="middle" fontFamily="Playfair Display" fontStyle="italic" fontSize="26" fill={ink}>
+      <line
+        x1="92"
+        y1="155"
+        x2="148"
+        y2="155"
+        stroke={ink}
+        strokeOpacity="0.4"
+      />
+      <text
+        x="120"
+        y="186"
+        textAnchor="middle"
+        fontFamily="Playfair Display"
+        fontStyle="italic"
+        fontSize="26"
+        fill={ink}
+      >
         {label}
       </text>
-      <text x="120" y="206" textAnchor="middle" fontFamily="JetBrains Mono" fontSize="7" letterSpacing="2" fill={ink} opacity="0.7">
+      <text
+        x="120"
+        y="206"
+        textAnchor="middle"
+        fontFamily="JetBrains Mono"
+        fontSize="7"
+        letterSpacing="2"
+        fill={ink}
+        opacity="0.7"
+      >
         {sub}
       </text>
-      <line x1="92" y1="218" x2="148" y2="218" stroke={ink} strokeOpacity="0.4" />
-      <text x="120" y="234" textAnchor="middle" fontFamily="Pinyon Script" fontSize="14" fill={accent}>
+      <line
+        x1="92"
+        y1="218"
+        x2="148"
+        y2="218"
+        stroke={ink}
+        strokeOpacity="0.4"
+      />
+      <text
+        x="120"
+        y="234"
+        textAnchor="middle"
+        fontFamily="Pinyon Script"
+        fontSize="14"
+        fill={accent}
+      >
         since 1987
       </text>
     </svg>
@@ -553,7 +873,13 @@ export function CoffeeBag({
 export function ReelScene({ variant = 0 }: { variant?: number }) {
   const variants: Array<() => ReactElement> = [
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <svg
+        viewBox="0 0 220 392"
+        style={{ width: "100%", height: "100%" }}
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+        focusable="false"
+      >
         <rect width="220" height="392" fill="url(#rg0)" />
         <defs>
           <linearGradient id="rg0" x1="0" y1="0" x2="0" y2="1">
@@ -576,7 +902,13 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <svg
+        viewBox="0 0 220 392"
+        style={{ width: "100%", height: "100%" }}
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+        focusable="false"
+      >
         <rect width="220" height="392" fill="url(#rg1)" />
         <defs>
           <linearGradient id="rg1" x1="0" y1="0" x2="0" y2="1">
@@ -590,7 +922,13 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <svg
+        viewBox="0 0 220 392"
+        style={{ width: "100%", height: "100%" }}
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+        focusable="false"
+      >
         <rect width="220" height="392" fill="#F5E6D3" />
         <g transform="translate(110 196)">
           <CupHeroInline />
@@ -598,7 +936,13 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <svg
+        viewBox="0 0 220 392"
+        style={{ width: "100%", height: "100%" }}
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+        focusable="false"
+      >
         <rect width="220" height="392" fill="#8AAE60" />
         {Array.from({ length: 18 }).map((_, i) => (
           <ellipse
@@ -614,7 +958,13 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <svg
+        viewBox="0 0 220 392"
+        style={{ width: "100%", height: "100%" }}
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+        focusable="false"
+      >
         <rect width="220" height="392" fill="url(#rg4)" />
         <defs>
           <linearGradient id="rg4" x1="0" y1="0" x2="0" y2="1">
@@ -625,12 +975,32 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
         <rect x="60" y="140" width="100" height="20" fill="#0a0604" rx="3" />
         <rect x="20" y="146" width="50" height="10" fill="#3A2410" rx="2" />
         <ellipse cx="148" cy="152" rx="22" ry="14" fill="#5A3A20" />
-        <rect x="142" y="166" width="3" height="120" fill="#3A2410" style={{ animation: "pour 1.8s ease infinite alternate" }} />
-        <rect x="150" y="166" width="3" height="120" fill="#3A2410" style={{ animation: "pour 1.8s 0.2s ease infinite alternate" }} />
+        <rect
+          x="142"
+          y="166"
+          width="3"
+          height="120"
+          fill="#3A2410"
+          style={{ animation: "pour 1.8s ease infinite alternate" }}
+        />
+        <rect
+          x="150"
+          y="166"
+          width="3"
+          height="120"
+          fill="#3A2410"
+          style={{ animation: "pour 1.8s 0.2s ease infinite alternate" }}
+        />
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <svg
+        viewBox="0 0 220 392"
+        style={{ width: "100%", height: "100%" }}
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+        focusable="false"
+      >
         <defs>
           <linearGradient id="rg5" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#E9B872" />
@@ -639,7 +1009,14 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
           </linearGradient>
         </defs>
         <rect width="220" height="392" fill="url(#rg5)" />
-        <rect x="0" y="240" width="220" height="152" fill="#1A0F08" opacity="0.7" />
+        <rect
+          x="0"
+          y="240"
+          width="220"
+          height="152"
+          fill="#1A0F08"
+          opacity="0.7"
+        />
         <circle cx="50" cy="180" r="14" fill="#0E0905" />
         <rect x="70" y="170" width="14" height="46" fill="#0E0905" />
         <rect x="100" y="158" width="18" height="58" fill="#0E0905" />
@@ -650,17 +1027,35 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <svg
+        viewBox="0 0 220 392"
+        style={{ width: "100%", height: "100%" }}
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+        focusable="false"
+      >
         <rect width="220" height="392" fill="#FBF3DF" />
         <g transform="translate(110 196)">
           <ellipse rx="90" ry="68" fill="#F5E6D3" />
-          <path d="M -88 0 Q -60 -80 0 0 Q 60 80 90 0" stroke="#E9D6AC" strokeWidth="22" fill="none" strokeLinecap="round" />
+          <path
+            d="M -88 0 Q -60 -80 0 0 Q 60 80 90 0"
+            stroke="#E9D6AC"
+            strokeWidth="22"
+            fill="none"
+            strokeLinecap="round"
+          />
           <circle r="88" fill="none" stroke="#B88A4A" strokeWidth="2" />
         </g>
       </svg>
     ),
     () => (
-      <svg viewBox="0 0 220 392" style={{ width: "100%", height: "100%" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <svg
+        viewBox="0 0 220 392"
+        style={{ width: "100%", height: "100%" }}
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+        focusable="false"
+      >
         <defs>
           <linearGradient id="rg7" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#1A0F08" />
@@ -668,10 +1063,30 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
           </linearGradient>
         </defs>
         <rect width="220" height="392" fill="url(#rg7)" />
-        <rect x="70" y="150" width="80" height="160" fill="none" stroke="#E9B872" strokeWidth="1.5" />
+        <rect
+          x="70"
+          y="150"
+          width="80"
+          height="160"
+          fill="none"
+          stroke="#E9B872"
+          strokeWidth="1.5"
+        />
         <rect x="72" y="200" width="76" height="108" fill="#C5435A" />
-        <rect x="92" y="216" width="22" height="22" fill="#E9B872" opacity="0.55" />
-        <path d="M 130 200 Q 160 170 144 134" stroke="#E9B872" strokeWidth="4" fill="none" />
+        <rect
+          x="92"
+          y="216"
+          width="22"
+          height="22"
+          fill="#E9B872"
+          opacity="0.55"
+        />
+        <path
+          d="M 130 200 Q 160 170 144 134"
+          stroke="#E9B872"
+          strokeWidth="4"
+          fill="none"
+        />
       </svg>
     ),
   ];
@@ -708,7 +1123,13 @@ function CupHeroInline() {
 export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
   void time;
   return (
-    <svg viewBox="0 0 1200 700" style={{ width: "100%", height: "100%", display: "block" }} preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 1200 700"
+      style={{ width: "100%", height: "100%", display: "block" }}
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+      focusable="false"
+    >
       <defs>
         <linearGradient id="brs-sky" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#F2C7A0" />
@@ -733,70 +1154,206 @@ export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
 
       {[60, 200, 360, 540, 720, 880, 1020].map((x, i) => (
         <g key={x}>
-          <rect x={x} y={180 + (i % 3) * 20} width={90 + (i % 2) * 40} height={240 - (i % 3) * 20} fill="#7A5230" opacity={0.6 - (i % 3) * 0.12} />
+          <rect
+            x={x}
+            y={180 + (i % 3) * 20}
+            width={90 + (i % 2) * 40}
+            height={240 - (i % 3) * 20}
+            fill="#7A5230"
+            opacity={0.6 - (i % 3) * 0.12}
+          />
           {Array.from({ length: 8 }).map((_, w) => (
-            <rect key={w} x={x + 10 + (w % 3) * 22} y={210 + Math.floor(w / 3) * 28} width="6" height="10" fill="#FFE7A6" opacity={0.4 + (w % 3) * 0.15} />
+            <rect
+              key={w}
+              x={x + 10 + (w % 3) * 22}
+              y={210 + Math.floor(w / 3) * 28}
+              width="6"
+              height="10"
+              fill="#FFE7A6"
+              opacity={0.4 + (w % 3) * 0.15}
+            />
           ))}
         </g>
       ))}
 
-      <path d="M 0 110 Q 300 134 600 110 T 1200 124" stroke="#3A2410" strokeWidth="1" fill="none" opacity="0.5" />
+      <path
+        d="M 0 110 Q 300 134 600 110 T 1200 124"
+        stroke="#3A2410"
+        strokeWidth="1"
+        fill="none"
+        opacity="0.5"
+      />
       {Array.from({ length: 30 }).map((_, i) => {
         const x = 20 + i * 40;
         const y = 110 + Math.sin(i / 2.5) * 8;
         return (
           <g key={i}>
             <circle cx={x} cy={y + 28} r="20" fill="url(#brs-glow)" />
-            <line x1={x} y1={y} x2={x} y2={y + 22} stroke="#3A2410" strokeWidth="0.6" />
+            <line
+              x1={x}
+              y1={y}
+              x2={x}
+              y2={y + 22}
+              stroke="#3A2410"
+              strokeWidth="0.6"
+            />
             <circle cx={x} cy={y + 28} r="4" fill="#FFE7A6" />
           </g>
         );
       })}
 
       <g>
-        <rect x="80" y="160" width="500" height="180" fill="#2F4220" opacity="0.4" />
+        <rect
+          x="80"
+          y="160"
+          width="500"
+          height="180"
+          fill="#2F4220"
+          opacity="0.4"
+        />
         {Array.from({ length: 140 }).map((_, i) => {
-          const x = 60 + (i * 31) % 500;
-          const y = 130 + (i * 17) % 210;
+          const x = 60 + ((i * 31) % 500);
+          const y = 130 + ((i * 17) % 210);
           const r = 3 + (i % 5);
-          const colors = ["#C5435A", "#E5708A", "#A2294A", "#F08AA8", "#D94F70"];
-          return <circle key={i} cx={x} cy={y} r={r} fill={colors[i % 5]} opacity="0.88" />;
+          const colors = [
+            "#C5435A",
+            "#E5708A",
+            "#A2294A",
+            "#F08AA8",
+            "#D94F70",
+          ];
+          return (
+            <circle
+              key={i}
+              cx={x}
+              cy={y}
+              r={r}
+              fill={colors[i % 5]}
+              opacity="0.88"
+            />
+          );
         })}
         {Array.from({ length: 30 }).map((_, i) => {
-          const x = 70 + (i * 23) % 500;
-          const y = 150 + (i * 19) % 180;
-          return <ellipse key={`l${i}`} cx={x} cy={y} rx="8" ry="3" fill="#2F4220" transform={`rotate(${(i * 30) % 180} ${x} ${y})`} />;
+          const x = 70 + ((i * 23) % 500);
+          const y = 150 + ((i * 19) % 180);
+          return (
+            <ellipse
+              key={`l${i}`}
+              cx={x}
+              cy={y}
+              rx="8"
+              ry="3"
+              fill="#2F4220"
+              transform={`rotate(${(i * 30) % 180} ${x} ${y})`}
+            />
+          );
         })}
       </g>
 
       <rect x="120" y="330" width="560" height="270" fill="url(#brs-bar)" />
       <rect x="120" y="330" width="560" height="14" fill="#7A4A1F" />
       <rect x="146" y="296" width="508" height="76" fill="#0E0905" />
-      <rect x="146" y="296" width="508" height="76" fill="url(#brs-glow)" opacity="0.7" />
-      <text x="400" y="338" textAnchor="middle" fontFamily="'Playfair Display', serif" fontStyle="italic" fontWeight="500" fontSize="42" fill="#FFE7A6">
+      <rect
+        x="146"
+        y="296"
+        width="508"
+        height="76"
+        fill="url(#brs-glow)"
+        opacity="0.7"
+      />
+      <text
+        x="400"
+        y="338"
+        textAnchor="middle"
+        fontFamily="'Playfair Display', serif"
+        fontStyle="italic"
+        fontWeight="500"
+        fontSize="42"
+        fill="#FFE7A6"
+      >
         L’Affogato
       </text>
-      <text x="400" y="362" textAnchor="middle" fontFamily="'JetBrains Mono', monospace" fontSize="11" letterSpacing="8" fill="#FFE7A6">
+      <text
+        x="400"
+        y="362"
+        textAnchor="middle"
+        fontFamily="'JetBrains Mono', monospace"
+        fontSize="11"
+        letterSpacing="8"
+        fill="#FFE7A6"
+      >
         COFFEE &amp; DESSERT
       </text>
 
       <rect x="350" y="380" width="320" height="180" fill="#1A0F08" />
-      <rect x="350" y="382" width="320" height="6" fill="#FFE7A6" opacity="0.6" />
-      <rect x="350" y="420" width="320" height="2" fill="#FFE7A6" opacity="0.45" />
-      <rect x="350" y="448" width="320" height="2" fill="#FFE7A6" opacity="0.45" />
+      <rect
+        x="350"
+        y="382"
+        width="320"
+        height="6"
+        fill="#FFE7A6"
+        opacity="0.6"
+      />
+      <rect
+        x="350"
+        y="420"
+        width="320"
+        height="2"
+        fill="#FFE7A6"
+        opacity="0.45"
+      />
+      <rect
+        x="350"
+        y="448"
+        width="320"
+        height="2"
+        fill="#FFE7A6"
+        opacity="0.45"
+      />
       {Array.from({ length: 10 }).map((_, i) => (
-        <rect key={i} x={360 + i * 30} y={394} width="14" height="24" fill="#3A2410" rx="2" />
+        <rect
+          key={i}
+          x={360 + i * 30}
+          y={394}
+          width="14"
+          height="24"
+          fill="#3A2410"
+          rx="2"
+        />
       ))}
       <rect x="420" y="478" width="180" height="68" fill="#0a0604" rx="4" />
       <rect x="436" y="494" width="32" height="24" fill="#3A2410" />
       <rect x="500" y="494" width="32" height="24" fill="#3A2410" />
-      <text x="510" y="466" textAnchor="middle" fontFamily="Playfair Display" fontStyle="italic" fontSize="14" fill="#B88A4A">
+      <text
+        x="510"
+        y="466"
+        textAnchor="middle"
+        fontFamily="Playfair Display"
+        fontStyle="italic"
+        fontSize="14"
+        fill="#B88A4A"
+      >
         L’Affogato
       </text>
       <rect x="476" y="522" width="68" height="12" fill="#1A0F08" />
 
-      <rect x="160" y="390" width="170" height="200" fill="#0E0905" stroke="#3A2410" strokeWidth="2" />
-      <text x="245" y="416" textAnchor="middle" fontFamily="Playfair Display" fontSize="14" fill="#FFE7A6">
+      <rect
+        x="160"
+        y="390"
+        width="170"
+        height="200"
+        fill="#0E0905"
+        stroke="#3A2410"
+        strokeWidth="2"
+      />
+      <text
+        x="245"
+        y="416"
+        textAnchor="middle"
+        fontFamily="Playfair Display"
+        fontSize="14"
+        fill="#FFE7A6"
+      >
         COFFEE
       </text>
       {[
@@ -811,19 +1368,42 @@ export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
         ["COLD BREW", "120"],
       ].map(([n, p], i) => (
         <g key={n}>
-          <text x="172" y={436 + i * 14} fontFamily="JetBrains Mono" fontSize="8" fill="#E9D6AC">
+          <text
+            x="172"
+            y={436 + i * 14}
+            fontFamily="JetBrains Mono"
+            fontSize="8"
+            fill="#E9D6AC"
+          >
             {n}
           </text>
-          <text x="318" y={436 + i * 14} textAnchor="end" fontFamily="JetBrains Mono" fontSize="8" fill="#FFE7A6">
+          <text
+            x="318"
+            y={436 + i * 14}
+            textAnchor="end"
+            fontFamily="JetBrains Mono"
+            fontSize="8"
+            fill="#FFE7A6"
+          >
             {p}
           </text>
         </g>
       ))}
-      <text x="245" y="582" textAnchor="middle" fontFamily="Pinyon Script" fontSize="18" fill="#FFE7A6">
+      <text
+        x="245"
+        y="582"
+        textAnchor="middle"
+        fontFamily="Pinyon Script"
+        fontSize="18"
+        fill="#FFE7A6"
+      >
         Life is better with
       </text>
 
-      <g transform="translate(780 410)" style={{ filter: "drop-shadow(0 0 8px #FFE7A6)" }}>
+      <g
+        transform="translate(780 410)"
+        style={{ filter: "drop-shadow(0 0 8px #FFE7A6)" }}
+      >
         <text fontFamily="Pinyon Script" fontSize="32" fill="#FFE7A6">
           But first,
         </text>
@@ -850,12 +1430,25 @@ export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
           <rect x="50" y="60" width="22" height="80" fill="#9A6F44" />
           <ellipse cx="60" cy="68" rx="32" ry="6" fill="#E0CCA8" />
           <rect x="56" y="38" width="8" height="22" fill="#3A2410" />
-          <circle cx="60" cy="36" r="4" fill="#FFE7A6" style={{ filter: "drop-shadow(0 0 6px #FFE7A6)" }} />
+          <circle
+            cx="60"
+            cy="36"
+            r="4"
+            fill="#FFE7A6"
+            style={{ filter: "drop-shadow(0 0 6px #FFE7A6)" }}
+          />
         </g>
       ))}
 
       <g>
-        <rect x="1080" y="0" width="120" height="700" fill="#2F4220" opacity="0.28" />
+        <rect
+          x="1080"
+          y="0"
+          width="120"
+          height="700"
+          fill="#2F4220"
+          opacity="0.28"
+        />
         {Array.from({ length: 50 }).map((_, i) => {
           const y = (i * 17) % 700;
           return (
@@ -874,7 +1467,15 @@ export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
 
       <rect x="0" y="640" width="1200" height="60" fill="#D8C8A8" />
       {Array.from({ length: 24 }).map((_, i) => (
-        <line key={i} x1={i * 50} y1="640" x2={i * 50 + 12} y2="700" stroke="#A8956C" strokeWidth="0.6" />
+        <line
+          key={i}
+          x1={i * 50}
+          y1="640"
+          x2={i * 50 + 12}
+          y2="700"
+          stroke="#A8956C"
+          strokeWidth="0.6"
+        />
       ))}
     </svg>
   );
@@ -886,48 +1487,158 @@ export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
 
 export function MapPlaceholder() {
   return (
-    <svg viewBox="0 0 800 600" style={{ width: "100%", height: "100%" }} aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 800 600"
+      style={{ width: "100%", height: "100%" }}
+      aria-hidden="true"
+      focusable="false"
+    >
       <rect width="800" height="600" fill="#F4EFE7" />
-      <path d="M 0 420 Q 260 410, 540 450 T 800 470 L 800 600 L 0 600 Z" fill="#C2D2DC" opacity="0.7" />
-      <path d="M 0 420 Q 260 410, 540 450 T 800 470" stroke="#7A96A8" strokeWidth="1" fill="none" />
-      <text x="640" y="530" fontFamily="Playfair Display" fontStyle="italic" fontSize="18" fill="#5A7A8A">
+      <path
+        d="M 0 420 Q 260 410, 540 450 T 800 470 L 800 600 L 0 600 Z"
+        fill="#C2D2DC"
+        opacity="0.7"
+      />
+      <path
+        d="M 0 420 Q 260 410, 540 450 T 800 470"
+        stroke="#7A96A8"
+        strokeWidth="1"
+        fill="none"
+      />
+      <text
+        x="640"
+        y="530"
+        fontFamily="Playfair Display"
+        fontStyle="italic"
+        fontSize="18"
+        fill="#5A7A8A"
+      >
         Marmara
       </text>
 
       {Array.from({ length: 7 }).map((_, i) => (
-        <line key={`h${i}`} x1="0" y1={60 + i * 50} x2="800" y2={80 + i * 50} stroke="#D8C8A8" strokeWidth="1.5" opacity="0.5" />
+        <line
+          key={`h${i}`}
+          x1="0"
+          y1={60 + i * 50}
+          x2="800"
+          y2={80 + i * 50}
+          stroke="#D8C8A8"
+          strokeWidth="1.5"
+          opacity="0.5"
+        />
       ))}
       {Array.from({ length: 10 }).map((_, i) => (
-        <line key={`v${i}`} x1={80 + i * 75} y1="0" x2={50 + i * 75} y2="420" stroke="#D8C8A8" strokeWidth="1.5" opacity="0.5" />
+        <line
+          key={`v${i}`}
+          x1={80 + i * 75}
+          y1="0"
+          x2={50 + i * 75}
+          y2="420"
+          stroke="#D8C8A8"
+          strokeWidth="1.5"
+          opacity="0.5"
+        />
       ))}
 
-      <path d="M 0 260 Q 260 254, 540 280 T 800 296" stroke="#FFF" strokeWidth="10" fill="none" />
-      <path d="M 0 260 Q 260 254, 540 280 T 800 296" stroke="#B88A4A" strokeWidth="1.2" strokeDasharray="6 6" fill="none" />
-      <text x="70" y="254" fontFamily="JetBrains Mono" fontSize="11" letterSpacing="3" fill="#5A3818">
+      <path
+        d="M 0 260 Q 260 254, 540 280 T 800 296"
+        stroke="#FFF"
+        strokeWidth="10"
+        fill="none"
+      />
+      <path
+        d="M 0 260 Q 260 254, 540 280 T 800 296"
+        stroke="#B88A4A"
+        strokeWidth="1.2"
+        strokeDasharray="6 6"
+        fill="none"
+      />
+      <text
+        x="70"
+        y="254"
+        fontFamily="JetBrains Mono"
+        fontSize="11"
+        letterSpacing="3"
+        fill="#5A3818"
+      >
         E-5 / D100
       </text>
 
-      <path d="M 100 360 Q 320 350, 540 360 T 800 372" stroke="#C5435A" strokeWidth="3" fill="none" />
-      <text x="70" y="356" fontFamily="JetBrains Mono" fontSize="10" letterSpacing="2" fill="#C5435A">
+      <path
+        d="M 100 360 Q 320 350, 540 360 T 800 372"
+        stroke="#C5435A"
+        strokeWidth="3"
+        fill="none"
+      />
+      <text
+        x="70"
+        y="356"
+        fontFamily="JetBrains Mono"
+        fontSize="10"
+        letterSpacing="2"
+        fill="#C5435A"
+      >
         MARMARAY · TUZLA
       </text>
 
-      <rect x="340" y="288" width="160" height="78" fill="#E0CCA8" stroke="#3A2410" strokeWidth="1.2" />
-      <text x="420" y="328" textAnchor="middle" fontFamily="Playfair Display" fontStyle="italic" fontSize="18" fill="#3A2410">
+      <rect
+        x="340"
+        y="288"
+        width="160"
+        height="78"
+        fill="#E0CCA8"
+        stroke="#3A2410"
+        strokeWidth="1.2"
+      />
+      <text
+        x="420"
+        y="328"
+        textAnchor="middle"
+        fontFamily="Playfair Display"
+        fontStyle="italic"
+        fontSize="18"
+        fill="#3A2410"
+      >
         Tuzla
       </text>
-      <text x="420" y="346" textAnchor="middle" fontFamily="JetBrains Mono" fontSize="8" letterSpacing="2.5" fill="#5A3818">
+      <text
+        x="420"
+        y="346"
+        textAnchor="middle"
+        fontFamily="JetBrains Mono"
+        fontSize="8"
+        letterSpacing="2.5"
+        fill="#5A3818"
+      >
         POSTANE MAH.
       </text>
 
       <g transform="translate(430 296)">
         <circle r="28" fill="#14100B" opacity="0.18" />
-        <path d="M 0 -22 C -12 -22 -20 -12 -20 -2 C -20 10 0 28 0 28 C 0 28 20 10 20 -2 C 20 -12 12 -22 0 -22 Z" fill="#14100B" />
+        <path
+          d="M 0 -22 C -12 -22 -20 -12 -20 -2 C -20 10 0 28 0 28 C 0 28 20 10 20 -2 C 20 -12 12 -22 0 -22 Z"
+          fill="#14100B"
+        />
         <circle cx="0" cy="-4" r="7" fill="#B88A4A" />
-        <text x="28" y="-2" fontFamily="Playfair Display" fontStyle="italic" fontSize="24" fill="#14100B">
+        <text
+          x="28"
+          y="-2"
+          fontFamily="Playfair Display"
+          fontStyle="italic"
+          fontSize="24"
+          fill="#14100B"
+        >
           L’Affogato
         </text>
-        <text x="28" y="18" fontFamily="JetBrains Mono" fontSize="10" letterSpacing="2" fill="#5A3818">
+        <text
+          x="28"
+          y="18"
+          fontFamily="JetBrains Mono"
+          fontSize="10"
+          letterSpacing="2"
+          fill="#5A3818"
+        >
           TARİHİ KÖŞK · CEVİZLİ
         </text>
       </g>
@@ -935,7 +1646,14 @@ export function MapPlaceholder() {
       <g transform="translate(720 80)">
         <circle r="28" fill="#FFF" stroke="#3A2410" strokeWidth="1.2" />
         <path d="M 0 -16 L 5 0 L 0 5 L -5 0 Z" fill="#3A2410" />
-        <text x="0" y="-32" textAnchor="middle" fontFamily="JetBrains Mono" fontSize="11" fill="#3A2410">
+        <text
+          x="0"
+          y="-32"
+          textAnchor="middle"
+          fontFamily="JetBrains Mono"
+          fontSize="11"
+          fill="#3A2410"
+        >
           N
         </text>
       </g>
@@ -948,7 +1666,15 @@ export function MapPlaceholder() {
         [120, 320],
         [620, 320],
       ].map(([x, y], i) => (
-        <rect key={i} x={x} y={y} width={50 + (i % 3) * 18} height={36 + (i % 2) * 14} fill="#E0CCA8" opacity="0.7" />
+        <rect
+          key={i}
+          x={x}
+          y={y}
+          width={50 + (i % 3) * 18}
+          height={36 + (i % 2) * 14}
+          fill="#E0CCA8"
+          opacity="0.7"
+        />
       ))}
     </svg>
   );
@@ -970,7 +1696,10 @@ export function MenuPlate({
   const isStraw = /strawberry|çilek/.test(lower);
   const isMatcha = /matcha|hojicha/.test(lower);
   const isCold = /iced|cold brew|shakerato|tonic/.test(lower);
-  const isEspresso = /espresso|americano|cappuccino|latte|macchiato|mocha|cortado|flat white|doppio|filter/.test(lower);
+  const isEspresso =
+    /espresso|americano|cappuccino|latte|macchiato|mocha|cortado|flat white|doppio|filter/.test(
+      lower,
+    );
   const isGelato = /scoop|cannolo|tiramisù|bombolone|cantucci/.test(lower);
 
   const surfaceHue = isStraw
@@ -996,9 +1725,20 @@ export function MenuPlate({
 
   return (
     <PhotoSurface hue={surfaceHue}>
-      <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", padding: 24 }}>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "grid",
+          placeItems: "center",
+          padding: 24,
+        }}
+      >
         {isAffogato ? (
-          <EdibleCupHero scoop={scoop} topping={scoop === "strawberry" ? "strawberry" : "wafer"} />
+          <EdibleCupHero
+            scoop={scoop}
+            topping={scoop === "strawberry" ? "strawberry" : "wafer"}
+          />
         ) : isStraw && isMatcha ? (
           <MatchaGlass strawberry />
         ) : isStraw ? (
@@ -1056,16 +1796,33 @@ export function ProductSurface({
         src={cover}
         alt={label ?? "Ürün görseli"}
         loading="lazy"
-        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          display: "block",
+        }}
       />
     );
   }
 
   return (
     <PhotoSurface hue={surface}>
-      <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", padding: 32 }}>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "grid",
+          placeItems: "center",
+          padding: 32,
+        }}
+      >
         {cat === "beans" ? (
-          <CoffeeBag label={label} sub={sub} tone={tone === "gold" ? "gold" : "dark"} />
+          <CoffeeBag
+            label={label}
+            sub={sub}
+            tone={tone === "gold" ? "gold" : "dark"}
+          />
         ) : cat === "gift" ? (
           <EdibleCupHero scoop="cream" topping="wafer" />
         ) : cat === "gear" ? (
@@ -1086,7 +1843,12 @@ export function ProductSurface({
 
 export function FounderPortrait() {
   return (
-    <svg viewBox="0 0 320 400" style={{ width: "78%", height: "78%" }} aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 320 400"
+      style={{ width: "78%", height: "78%" }}
+      aria-hidden="true"
+      focusable="false"
+    >
       <defs>
         <linearGradient id="fp-bg" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#F5E6D3" />
@@ -1095,16 +1857,43 @@ export function FounderPortrait() {
       </defs>
       <rect width="320" height="400" fill="url(#fp-bg)" rx="8" />
       <ellipse cx="160" cy="360" rx="120" ry="40" fill="#3A2410" />
-      <path d="M 80 360 L 80 220 Q 80 180 130 170 L 130 130 Q 130 80 160 80 Q 190 80 190 130 L 190 170 Q 240 180 240 220 L 240 360 Z" fill="#3A2410" />
+      <path
+        d="M 80 360 L 80 220 Q 80 180 130 170 L 130 130 Q 130 80 160 80 Q 190 80 190 130 L 190 170 Q 240 180 240 220 L 240 360 Z"
+        fill="#3A2410"
+      />
       <circle cx="160" cy="130" r="48" fill="#E0CCA8" />
-      <path d="M 112 110 Q 130 90 160 90 Q 190 90 208 110 Q 208 86 188 78 Q 160 70 132 78 Q 112 86 112 110 Z" fill="#1A0F08" />
+      <path
+        d="M 112 110 Q 130 90 160 90 Q 190 90 208 110 Q 208 86 188 78 Q 160 70 132 78 Q 112 86 112 110 Z"
+        fill="#1A0F08"
+      />
       <circle cx="146" cy="138" r="3" fill="#1A0F08" />
       <circle cx="174" cy="138" r="3" fill="#1A0F08" />
-      <path d="M 150 158 Q 160 162 170 158" stroke="#1A0F08" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-      <text x="160" y="232" textAnchor="middle" fontFamily="JetBrains Mono" fontSize="9" letterSpacing="3" fill="#E9D6AC">
+      <path
+        d="M 150 158 Q 160 162 170 158"
+        stroke="#1A0F08"
+        strokeWidth="1.6"
+        fill="none"
+        strokeLinecap="round"
+      />
+      <text
+        x="160"
+        y="232"
+        textAnchor="middle"
+        fontFamily="JetBrains Mono"
+        fontSize="9"
+        letterSpacing="3"
+        fill="#E9D6AC"
+      >
         L’AFFOGATO
       </text>
-      <text x="160" y="260" textAnchor="middle" fontFamily="Pinyon Script" fontSize="32" fill="#B88A4A">
+      <text
+        x="160"
+        y="260"
+        textAnchor="middle"
+        fontFamily="Pinyon Script"
+        fontSize="32"
+        fill="#B88A4A"
+      >
         eda
       </text>
     </svg>

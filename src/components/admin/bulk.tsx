@@ -133,10 +133,10 @@ export function BulkActionBar({
   if (selection.count === 0) return null;
   return (
     <div className="sticky bottom-4 z-30 mt-4">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-white/95 px-5 py-3 shadow-lg backdrop-blur">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--admin-border)] bg-white/95 px-5 py-3 shadow-lg backdrop-blur">
         <div className="flex items-center gap-3">
           <span
-            className="rounded-full bg-neutral-900 px-3 py-1 text-xs font-medium text-white"
+            className="rounded-full bg-[var(--admin-primary)] px-3 py-1 text-xs font-medium text-white"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             {selection.count} seçili
@@ -144,7 +144,7 @@ export function BulkActionBar({
           <button
             type="button"
             onClick={selection.clear}
-            className="text-xs text-neutral-500 underline-offset-4 hover:text-neutral-900 hover:underline"
+            className="text-xs text-neutral-500 underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
           >
             Seçimi temizle
           </button>

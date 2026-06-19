@@ -38,7 +38,10 @@ export function PromoForm({ promo, action, submitLabel }: Props) {
       <Card className="grid gap-5">
         <Field
           label="Kod"
-          hint={fe("code") ?? "Müşterinin sepete gireceği kod. Büyük harfe çevrilir."}
+          hint={
+            fe("code") ??
+            "Müşterinin sepete gireceği kod. Büyük harfe çevrilir."
+          }
         >
           <TextInput
             name="code"
@@ -61,7 +64,10 @@ export function PromoForm({ promo, action, submitLabel }: Props) {
             </Select>
           </Field>
           {kind === "pct" ? (
-            <Field label="Yüzde" hint={fe("valuePct") ?? "1–100 arası tam sayı."}>
+            <Field
+              label="Yüzde"
+              hint={fe("valuePct") ?? "1–100 arası tam sayı."}
+            >
               <TextInput
                 name="valuePct"
                 inputMode="numeric"
@@ -122,9 +128,7 @@ export function PromoForm({ promo, action, submitLabel }: Props) {
               name="expiresAt"
               type="datetime-local"
               defaultValue={
-                promo?.expiresAt
-                  ? promo.expiresAt.slice(0, 16)
-                  : ""
+                promo?.expiresAt ? promo.expiresAt.slice(0, 16) : ""
               }
             />
           </Field>

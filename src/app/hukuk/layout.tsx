@@ -6,10 +6,17 @@ import { getSettings } from "@/lib/admin/store";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: { default: "Hukuki bilgiler · L'Affogato", template: "%s · L'Affogato" },
+  title: {
+    default: "Hukuki bilgiler · L'Affogato",
+    template: "%s · L'Affogato",
+  },
 };
 
-export default async function HukukLayout({ children }: { children: React.ReactNode }) {
+export default async function HukukLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const settings = await getSettings();
   return (
     <SiteChrome

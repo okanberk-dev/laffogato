@@ -1,6 +1,11 @@
 import Link from "next/link";
 
-import { AccountShell, AccountStat, AccountCard, EmptyState } from "@/components/uye/account-shell";
+import {
+  AccountShell,
+  AccountStat,
+  AccountCard,
+  EmptyState,
+} from "@/components/uye/account-shell";
 import { VerifyNotice } from "@/components/customer/verify-notice";
 import { customerOrdersByEmail, listPromos } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
@@ -18,7 +23,9 @@ export default async function HesapPage() {
   ]);
 
   const totalSpent = orders
-    .filter((o) => ["paid", "preparing", "shipped", "completed"].includes(o.status))
+    .filter((o) =>
+      ["paid", "preparing", "shipped", "completed"].includes(o.status),
+    )
     .reduce((sum, o) => sum + o.totalMinor, 0);
   const inFlight = orders.filter((o) =>
     ["pending_payment", "paid", "preparing", "shipped"].includes(o.status),
@@ -42,8 +49,16 @@ export default async function HesapPage() {
       )}
       <div className="account-stat-grid">
         <AccountStat label="Toplam sipariş" value={orders.length} />
-        <AccountStat label="Aktif sipariş" value={inFlight} hint="Henüz tamamlanmamış" />
-        <AccountStat label="Tamamlanan" value={completed} hint="Teslim alındı" />
+        <AccountStat
+          label="Aktif sipariş"
+          value={inFlight}
+          hint="Henüz tamamlanmamış"
+        />
+        <AccountStat
+          label="Tamamlanan"
+          value={completed}
+          hint="Teslim alındı"
+        />
         <AccountStat
           label="Toplam harcama"
           value={formatTRY(totalSpent)}
@@ -55,7 +70,10 @@ export default async function HesapPage() {
         title="Son siparişler"
         action={
           orders.length > 0 ? (
-            <Link href="/uye/hesap/siparislerim" className="btn btn-ghost btn-sm">
+            <Link
+              href="/uye/hesap/siparislerim"
+              className="btn btn-ghost btn-sm"
+            >
               Tümünü gör →
             </Link>
           ) : null
@@ -87,7 +105,9 @@ export default async function HesapPage() {
                     </span>
                   </div>
                   <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>
-                    {o.items.map((it) => `${it.qty}× ${it.productName}`).join(", ")}
+                    {o.items
+                      .map((it) => `${it.qty}× ${it.productName}`)
+                      .join(", ")}
                   </div>
                   <div className="account-order-meta">
                     <span>
@@ -106,7 +126,10 @@ export default async function HesapPage() {
         )}
       </AccountCard>
 
-      <AccountCard title="Kullanılabilir promosyonlar" hint="Sepet sayfasında kodu uygula">
+      <AccountCard
+        title="Kullanılabilir promosyonlar"
+        hint="Sepet sayfasında kodu uygula"
+      >
         {usablePromos.length === 0 ? (
           <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 14 }}>
             Şu an aktif bir promosyon kodu yok.
@@ -117,8 +140,16 @@ export default async function HesapPage() {
               <div key={p.id} className="account-promo-card">
                 <div className="account-promo-code">{p.code}</div>
                 <div className="account-promo-meta">
-                  <span style={{ fontFamily: "var(--serif-display)", fontSize: 16, color: "var(--ink)" }}>
-                    {p.kind === "pct" ? `%${p.value} indirim` : `${formatTRY(p.value)} indirim`}
+                  <span
+                    style={{
+                      fontFamily: "var(--serif-display)",
+                      fontSize: 16,
+                      color: "var(--ink)",
+                    }}
+                  >
+                    {p.kind === "pct"
+                      ? `%${p.value} indirim`
+                      : `${formatTRY(p.value)} indirim`}
                   </span>
                   {p.minSubtotalMinor > 0 && (
                     <span>{formatTRY(p.minSubtotalMinor)}+ sepete</span>

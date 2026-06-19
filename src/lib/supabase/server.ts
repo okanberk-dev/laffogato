@@ -73,4 +73,7 @@ export const TABLES = {
   franchisePackages: "franchise_packages",
   franchiseProcess: "franchise_process",
   siteContent: "site_content",
+  newsletterSubscribers: "newsletter_subscribers",
+  franchiseApplications: "franchise_applications",
+  legalDocs: "legal_docs",
 } as const;

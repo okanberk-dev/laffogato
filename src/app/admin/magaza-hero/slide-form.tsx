@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+} from "react";
 
 import {
   Card,
@@ -35,7 +41,9 @@ async function resizeImage(file: File): Promise<string> {
     throw new Error(`${file.name} 15 MB'ı aşıyor — daha küçük bir görsel seç.`);
   }
   if (!ACCEPTED_MIME.test(file.type)) {
-    throw new Error(`${file.name} desteklenmeyen format (JPG, PNG, WebP, AVIF veya GIF).`);
+    throw new Error(
+      `${file.name} desteklenmeyen format (JPG, PNG, WebP, AVIF veya GIF).`,
+    );
   }
   const bitmap = await createImageBitmap(file).catch(() => null);
   if (!bitmap) throw new Error("Görsel okunamadı.");
@@ -76,7 +84,9 @@ export function SlideForm({
   const [title, setTitle] = useState(d.title ?? "");
   const [subtitle, setSubtitle] = useState(d.subtitle ?? "");
   const [imageUrl, setImageUrl] = useState(d.imageUrl ?? "");
-  const [textTheme, setTextTheme] = useState<"light" | "dark">(d.textTheme ?? "light");
+  const [textTheme, setTextTheme] = useState<"light" | "dark">(
+    d.textTheme ?? "light",
+  );
   const [dragOver, setDragOver] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +131,10 @@ export function SlideForm({
     <form action={action} className="grid gap-4">
       <Card>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Başlık (H1)" hint="Mağaza üstünde görünen ana başlık. Son kelime altın script ile vurgulanır.">
+          <Field
+            label="Başlık (H1)"
+            hint="Mağaza üstünde görünen ana başlık. Son kelime altın script ile vurgulanır."
+          >
             <TextInput
               name="title"
               required
@@ -140,7 +153,10 @@ export function SlideForm({
             />
           </Field>
         </div>
-        <Field label="Küçük yazı / alt başlık" hint="Başlığın altına gelen tek-iki cümlelik açıklama.">
+        <Field
+          label="Küçük yazı / alt başlık"
+          hint="Başlığın altına gelen tek-iki cümlelik açıklama."
+        >
           <Textarea
             name="subtitle"
             rows={2}
@@ -153,14 +169,14 @@ export function SlideForm({
         {/* Görsel — file upload + URL */}
         <div className="grid gap-2">
           <span
-            className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+            className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             Görsel
           </span>
 
           {imageUrl ? (
-            <div className="relative overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
+            <div className="relative overflow-hidden rounded-xl border border-[var(--admin-border)] bg-neutral-50">
               <div
                 style={{
                   aspectRatio: "21 / 9",
@@ -170,17 +186,15 @@ export function SlideForm({
                   backgroundPosition: "center",
                 }}
               />
-              <div className="flex items-center justify-between gap-2 border-t border-neutral-200 bg-white px-3 py-2">
-                <span
-                  className="font-mono text-[10px] uppercase tracking-[0.18em] text-neutral-500"
-                >
+              <div className="flex items-center justify-between gap-2 border-t border-[var(--admin-border)] bg-white px-3 py-2">
+                <span className="font-mono text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
                   {isDataUrl ? `Yüklenmiş · ${approxKB(imageUrl)} KB` : "URL"}
                 </span>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="rounded-full border border-neutral-300 px-3 py-1 text-xs hover:border-neutral-900"
+                    className="rounded-full border border-neutral-300 px-3 py-1 text-xs hover:border-[var(--admin-primary)]"
                   >
                     Değiştir
                   </button>
@@ -215,16 +229,18 @@ export function SlideForm({
               }`}
             >
               <div
-                className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+                className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
                 style={{ fontFamily: "var(--mono), monospace" }}
               >
                 {processing ? "İşleniyor…" : "Sürükle bırak veya tıkla"}
               </div>
               <div className="mt-2 text-sm text-neutral-700">
-                Hero için <span className="font-medium">21:9 oran</span> (örn. 1920×823 px)
+                Hero için <span className="font-medium">21:9 oran</span> (örn.
+                1920×823 px)
               </div>
               <div className="mt-1 text-xs text-neutral-500">
-                JPG, PNG, WebP, AVIF veya GIF · max 15 MB. Otomatik 1920px&apos;e küçültülür, JPEG&apos;e dönüştürülür.
+                JPG, PNG, WebP, AVIF veya GIF · max 15 MB. Otomatik
+                1920px&apos;e küçültülür, JPEG&apos;e dönüştürülür.
               </div>
             </div>
           )}
@@ -245,7 +261,7 @@ export function SlideForm({
           {/* URL girme alternatifi */}
           <div className="mt-2 flex items-center gap-2 border-t border-neutral-100 pt-3">
             <span
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               veya URL
@@ -255,7 +271,7 @@ export function SlideForm({
               value={isDataUrl ? "" : imageUrl}
               placeholder="https://images.example.com/hero.jpg"
               onChange={(e) => setImageUrl(e.target.value)}
-              className="flex-1 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs outline-none focus:border-neutral-900 focus:bg-white"
+              className="flex-1 rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-1.5 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
             />
           </div>
 
@@ -266,10 +282,18 @@ export function SlideForm({
       <Card>
         <div className="grid gap-4 sm:grid-cols-[1fr_1fr_180px]">
           <Field label="CTA buton yazısı" hint="Örn: Mağazaya git">
-            <TextInput name="ctaLabel" defaultValue={d.ctaLabel ?? ""} maxLength={40} />
+            <TextInput
+              name="ctaLabel"
+              defaultValue={d.ctaLabel ?? ""}
+              maxLength={40}
+            />
           </Field>
           <Field label="CTA URL'si" hint="/odeme veya https://...">
-            <TextInput name="ctaHref" defaultValue={d.ctaHref ?? ""} maxLength={200} />
+            <TextInput
+              name="ctaHref"
+              defaultValue={d.ctaHref ?? ""}
+              maxLength={200}
+            />
           </Field>
           <Field label="Metin teması" hint="Görsel koyuysa light seç.">
             <Select
@@ -282,15 +306,24 @@ export function SlideForm({
             </Select>
           </Field>
         </div>
-        <Checkbox name="isActive" defaultChecked={d.isActive ?? true} label="Aktif (mağaza sayfasında görünür)" />
+        <Checkbox
+          name="isActive"
+          defaultChecked={d.isActive ?? true}
+          label="Aktif (mağaza sayfasında görünür)"
+        />
       </Card>
 
       {/* Live preview */}
       <Card>
-        <div className="font-mono text-xs uppercase tracking-widest text-neutral-500 mb-3">
+        <div className="mb-3 font-mono text-xs tracking-widest text-neutral-500 uppercase">
           Önizleme
         </div>
-        <SlidePreview title={title} subtitle={subtitle} imageUrl={imageUrl} textTheme={textTheme} />
+        <SlidePreview
+          title={title}
+          subtitle={subtitle}
+          imageUrl={imageUrl}
+          textTheme={textTheme}
+        />
       </Card>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -384,7 +417,9 @@ function SlidePreview({
                 maxWidth: "52ch",
                 fontSize: 14,
                 lineHeight: 1.55,
-                color: isLight ? "rgba(255,255,255,0.85)" : "rgba(20,16,11,0.7)",
+                color: isLight
+                  ? "rgba(255,255,255,0.85)"
+                  : "rgba(20,16,11,0.7)",
               }}
             >
               {subtitle}
