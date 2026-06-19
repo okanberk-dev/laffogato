@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { describe, it, expect } from "vitest";
 
 import { SITE } from "@/lib/seo/site";
@@ -18,5 +21,14 @@ describe("Canonical domain — laffogato.net", () => {
     const all = JSON.stringify(LEGAL_DOCS);
     expect(all).not.toMatch(/laffogato\.com\.tr/);
     expect(all).toMatch(/laffogato\.net/);
+  });
+
+  it("the public AI-crawler file (llms-full.txt) uses laffogato.net only", () => {
+    const txt = readFileSync(
+      resolve(process.cwd(), "public/llms-full.txt"),
+      "utf8",
+    );
+    expect(txt).not.toMatch(/laffogato\.com\.tr/);
+    expect(txt).toMatch(/laffogato\.net/);
   });
 });

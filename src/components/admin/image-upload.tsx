@@ -286,6 +286,8 @@ export function ImageUpload({ name, initial }: ImageUploadProps) {
                   <img
                     src={src}
                     alt={`Görsel ${i + 1}`}
+                    loading="lazy"
+                    decoding="async"
                     className="h-full w-full object-cover"
                   />
                   {isPrimary && (

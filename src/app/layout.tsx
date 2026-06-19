@@ -4,7 +4,6 @@ import {
   Fraunces,
   Inter,
   JetBrains_Mono,
-  Marcellus,
   Pinyon_Script,
   Playfair_Display,
 } from "next/font/google";
@@ -24,8 +23,8 @@ const playfair = Playfair_Display({
 const fraunces = Fraunces({
   subsets: ["latin", "latin-ext"],
   variable: "--font-fraunces",
-  axes: ["SOFT", "WONK", "opsz"],
-  style: ["normal", "italic"],
+  axes: ["opsz"],
+  style: ["normal"],
   display: "swap",
 });
 
@@ -33,7 +32,7 @@ const dmSerif = DM_Serif_Display({
   subsets: ["latin", "latin-ext"],
   variable: "--font-dm-serif",
   weight: "400",
-  style: ["normal", "italic"],
+  style: ["normal"],
   display: "swap",
 });
 
@@ -47,13 +46,6 @@ const inter = Inter({
 const pinyon = Pinyon_Script({
   subsets: ["latin"],
   variable: "--font-pinyon",
-  weight: "400",
-  display: "swap",
-});
-
-const marcellus = Marcellus({
-  subsets: ["latin"],
-  variable: "--font-marcellus",
   weight: "400",
   display: "swap",
 });
@@ -198,7 +190,6 @@ const fontVariables = [
   dmSerif.variable,
   inter.variable,
   pinyon.variable,
-  marcellus.variable,
   jetbrains.variable,
 ].join(" ");
 

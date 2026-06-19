@@ -250,6 +250,9 @@ export function LaffogatoApp({
   if (!mounted) {
     return (
       <>
+        <a href="#main" className="skip-link">
+          İçeriğe geç
+        </a>
         <Nav
           route={route}
           navigate={navigate}
@@ -258,6 +261,43 @@ export function LaffogatoApp({
           onCart={() => setCartOpen(true)}
           onSearch={() => setSearchOpen(true)}
         />
+        <main id="main">
+          <Page
+            navigate={navigate}
+            addToCart={addToCart}
+            openProduct={setProductOpen}
+            products={products}
+            menu={menu}
+            shopHeroSlides={shopHeroSlides}
+            reels={reels}
+            press={press}
+            storyTimeline={storyTimeline}
+            franchisePackages={franchisePackages}
+            franchiseSteps={franchiseSteps}
+            content={content}
+            visit={visit}
+          />
+          {seoSlot}
+        </main>
+        <Footer navigate={navigate} settings={settings} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <a href="#main" className="skip-link">
+        İçeriğe geç
+      </a>
+      <Nav
+        route={route}
+        navigate={navigate}
+        dark={dark}
+        cart={cartCount}
+        onCart={() => setCartOpen(true)}
+        onSearch={() => setSearchOpen(true)}
+      />
+      <main id="main">
         <Page
           navigate={navigate}
           addToCart={addToCart}
@@ -274,37 +314,7 @@ export function LaffogatoApp({
           visit={visit}
         />
         {seoSlot}
-        <Footer navigate={navigate} settings={settings} />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <Nav
-        route={route}
-        navigate={navigate}
-        dark={dark}
-        cart={cartCount}
-        onCart={() => setCartOpen(true)}
-        onSearch={() => setSearchOpen(true)}
-      />
-      <Page
-        navigate={navigate}
-        addToCart={addToCart}
-        openProduct={setProductOpen}
-        products={products}
-        menu={menu}
-        shopHeroSlides={shopHeroSlides}
-        reels={reels}
-        press={press}
-        storyTimeline={storyTimeline}
-        franchisePackages={franchisePackages}
-        franchiseSteps={franchiseSteps}
-        content={content}
-        visit={visit}
-      />
-      {seoSlot}
+      </main>
       <Footer navigate={navigate} settings={settings} />
       <CartDrawer
         open={cartOpen}

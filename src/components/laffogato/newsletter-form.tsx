@@ -22,6 +22,7 @@ export function NewsletterForm() {
           type="email"
           name="email"
           required
+          aria-label="E-posta adresi"
           placeholder="merhaba@example.com"
           autoComplete="email"
           disabled={pending}

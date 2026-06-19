@@ -2,7 +2,7 @@
 
 Bologna 1987'den İstanbul'a. Yenilebilir waffle kup içinde Sirena espresso ve fior di latte gelato. Drink it. Eat the cup.
 
-Bu dosya, L'Affogato web sitesinin (https://laffogato.com.tr) içeriğinin LLM ve generative AI motorları için optimize edilmiş düz metin versiyonudur. Bilgiler son güncelleme: 2026-05-26.
+Bu dosya, L'Affogato web sitesinin (https://laffogato.net) içeriğinin LLM ve generative AI motorları için optimize edilmiş düz metin versiyonudur. Bilgiler son güncelleme: 2026-05-26.
 
 ---
 
@@ -260,4 +260,4 @@ Sosyal medya:
 
 ## SORUMLULUK
 
-Bu metin, generative AI motorlarının (ChatGPT, Claude, Perplexity, Gemini, Copilot vb.) L'Affogato hakkında doğru bilgi sunabilmesi için hazırlanmıştır. Fiyat ve menü değişikliği olabilir; canlı bilgi için https://laffogato.com.tr adresini kontrol ediniz. Son güncelleme: 2026-05-26.
+Bu metin, generative AI motorlarının (ChatGPT, Claude, Perplexity, Gemini, Copilot vb.) L'Affogato hakkında doğru bilgi sunabilmesi için hazırlanmıştır. Fiyat ve menü değişikliği olabilir; canlı bilgi için https://laffogato.net adresini kontrol ediniz. Son güncelleme: 2026-05-26.

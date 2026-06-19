@@ -148,6 +148,7 @@ function Slide({ slide, active }: { slide: ShopHeroSlide; active: boolean }) {
           <a
             href={slide.ctaHref}
             className={`btn ${isLight ? "btn-light" : "btn-primary"} btn-lg shop-hero-cta`}
+            tabIndex={active ? undefined : -1}
           >
             {slide.ctaLabel}
             <span className="arrow">→</span>
