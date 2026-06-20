@@ -4,6 +4,7 @@ import type { PostgrestError } from "@supabase/supabase-js";
 
 import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
 import { nextSeq } from "@/lib/supabase/counters";
+import { sendOrderPaidEmail } from "@/lib/email/send";
 import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
 import {
   MENU as SEED_MENU,
@@ -1476,6 +1477,9 @@ export async function applyPaymentSucceeded(input: {
     raw: input.raw ?? null,
     createdAt: new Date().toISOString(),
   });
+  // A clean insert means this is the FIRST confirmation; a 23505 is a duplicate
+  // webhook/return — used below to send the "paid" e-mail exactly once.
+  const isFirstConfirmation = !ins.error;
   if (ins.error && ins.error.code !== "23505") {
     return { ok: false, error: ins.error.message };
   }
@@ -1485,6 +1489,32 @@ export async function applyPaymentSucceeded(input: {
     .eq("id", input.orderId)
     .eq("status", "pending_payment");
   if (upd.error) return { ok: false, error: upd.error.message };
+
+  if (isFirstConfirmation) {
+    // Best-effort payment-confirmed e-mail (logs in dev when Resend is unset).
+    try {
+      const order = await getOrder(input.orderId);
+      if (
+        order &&
+        order.customerEmail &&
+        order.customerEmail !== "guest@laffogato.local"
+      ) {
+        await sendOrderPaidEmail({
+          to: order.customerEmail,
+          customerName: order.customerName,
+          orderNo: order.orderNo,
+          items: order.items.map((it) => ({
+            productName: it.productName,
+            qty: it.qty,
+            unitPriceMinor: it.unitPriceMinor,
+          })),
+          totalMinor: order.totalMinor,
+        });
+      }
+    } catch (err) {
+      console.error("[email] order paid notification failed", err);
+    }
+  }
   return { ok: true };
 }
 
