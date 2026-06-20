@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 
 import { submitFranchiseApplicationAction } from "@/app/franchise/actions";
@@ -160,14 +161,14 @@ export function PageHome({
                   marginTop: 40,
                 }}
               >
-                <a
+                <Link
                   href="/menu"
                   onClick={go("menu")}
                   className="btn btn-light btn-lg"
                 >
                   Menüyü gör <span className="arrow">→</span>
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/magaza"
                   onClick={go("shop")}
                   className="btn btn-ghost btn-lg"
@@ -177,7 +178,7 @@ export function PageHome({
                   }}
                 >
                   Online sipariş
-                </a>
+                </Link>
               </div>
               <div
                 className="reveal r4"
@@ -415,9 +416,9 @@ export function PageHome({
                 flexWrap: "wrap",
               }}
             >
-              <a href="/menu" onClick={go("menu")} className="btn btn-primary">
+              <Link href="/menu" onClick={go("menu")} className="btn btn-primary">
                 Affogato menüsü <span className="arrow">→</span>
-              </a>
+              </Link>
               <a href="/hikayemiz" onClick={go("story")} className="btn btn-ghost">
                 Hikayemiz
               </a>
@@ -459,9 +460,9 @@ export function PageHome({
                 tek ritüel.
               </h2>
             </div>
-            <a href="/menu" onClick={go("menu")} className="btn-link">
+            <Link href="/menu" onClick={go("menu")} className="btn-link">
               Tam menü <span>→</span>
-            </a>
+            </Link>
           </div>
           <div className="shop-grid-preview">
             {(liveMenu.affogato?.items ?? MENU.affogato.items)
@@ -651,14 +652,14 @@ export function PageHome({
                   </div>
                 ))}
             </div>
-            <a
+            <Link
               href="/menu"
               onClick={go("menu")}
               className="btn btn-primary"
               style={{ marginTop: 36 }}
             >
               Tüm matcha menüsü <span className="arrow">→</span>
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -672,9 +673,9 @@ export function PageHome({
                 Bring it <span className="script">home.</span>
               </h2>
             </div>
-            <a href="/magaza" onClick={go("shop")} className="btn-link">
+            <Link href="/magaza" onClick={go("shop")} className="btn-link">
               Shop <span>→</span>
-            </a>
+            </Link>
           </div>
           <div className="shop-grid">
             {shopProducts.slice(0, 4).map((p, i) => (

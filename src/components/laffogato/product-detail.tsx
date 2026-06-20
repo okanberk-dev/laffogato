@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import type { Product } from "./data";
@@ -113,9 +114,9 @@ export function ProductDetail({
     <main className="pdp">
       <div className="wrap-wide">
         <nav className="pdp-breadcrumb" aria-label="breadcrumb">
-          <a href="/">Ana Sayfa</a>
+          <Link href="/">Ana Sayfa</Link>
           <span aria-hidden>/</span>
-          <a href="/magaza">Mağaza</a>
+          <Link href="/magaza">Mağaza</Link>
           <span aria-hidden>/</span>
           <span>{p.name.split("—")[0].trim()}</span>
         </nav>
@@ -360,9 +361,9 @@ export function ProductDetail({
                   Bunları da sevebilirsin
                 </h2>
               </div>
-              <a href="/magaza" className="btn btn-ghost btn-sm">
+              <Link href="/magaza" className="btn btn-ghost btn-sm">
                 Tüm mağaza →
-              </a>
+              </Link>
             </div>
             <div className="shop-grid-3">
               {related.map((rp, i) => (

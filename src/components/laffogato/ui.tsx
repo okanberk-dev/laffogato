@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { toggleWishlistAction } from "@/app/uye/actions";
@@ -1197,9 +1198,9 @@ export function SearchOverlay({
                 "{q}" için sonuç yok.
               </div>
               <p>Farklı bir kelime dene ya da mağazaya göz at.</p>
-              <a href="/magaza" className="btn btn-ghost btn-sm">
+              <Link href="/magaza" className="btn btn-ghost btn-sm">
                 Mağazaya git →
-              </a>
+              </Link>
             </div>
           ) : (
             <>
@@ -1255,7 +1256,7 @@ export function SearchOverlay({
                     Menü · {menuResults.length}
                   </div>
                   {menuResults.map((r, i) => (
-                    <a key={`m-${i}`} href="/menu" className="search-result">
+                    <Link key={`m-${i}`} href="/menu" className="search-result">
                       <div className="search-result-thumb">
                         <PhotoSurface hue="caramel">
                           <div
@@ -1278,7 +1279,7 @@ export function SearchOverlay({
                       {r.price && (
                         <div className="search-result-price">{r.price}</div>
                       )}
-                    </a>
+                    </Link>
                   ))}
                 </div>
               )}
