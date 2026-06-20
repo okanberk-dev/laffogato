@@ -7,6 +7,8 @@ import type { PostgrestError } from "@supabase/supabase-js";
 
 import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
 
+import { grantWelcomeCoupon } from "./coupons";
+
 export interface CustomerAddress {
   id: string;
   label: string;
@@ -273,6 +275,13 @@ export async function verifyCustomerEmail(
     })
     .eq("id", customer.id);
   checkErr(upErr, "verifyCustomerEmail.update");
+  // Reward a freshly-verified member with a one-time welcome coupon. Idempotent
+  // and best-effort — a coupon hiccup must never block account verification.
+  try {
+    await grantWelcomeCoupon(customer.email);
+  } catch (err) {
+    console.error("[coupons] welcome grant failed", err);
+  }
   return { ok: true, email: customer.email };
 }
 

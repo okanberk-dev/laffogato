@@ -4,6 +4,10 @@ import type { PostgrestError } from "@supabase/supabase-js";
 
 import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
 import { nextSeq } from "@/lib/supabase/counters";
+import {
+  applyCustomerCoupon,
+  redeemCustomerCoupon,
+} from "@/lib/customer/coupons";
 import { sendOrderPaidEmail } from "@/lib/email/send";
 import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
 import {
@@ -1292,14 +1296,40 @@ async function finalizeOrder(
   let discountMinor = 0;
   let promoDropped = false;
   if (f.promoCode && f.promoCode.trim()) {
-    const promoCheck = await applyPromoCode(f.promoCode, subtotalMinor);
-    if (promoCheck.ok) {
-      promoCode = promoCheck.promo.code;
-      discountMinor = promoCheck.discountMinor;
-      await consumePromoUsage(promoCode);
-    } else {
-      promoDropped = true;
+    const code = f.promoCode.trim();
+    let applied = false;
+    // 1) A personal coupon owned by this member is tried first and claimed
+    //    atomically (single-use) before any discount is honored.
+    if (f.customerEmail) {
+      const couponCheck = await applyCustomerCoupon(
+        code,
+        f.customerEmail,
+        subtotalMinor,
+      );
+      if (couponCheck.ok && couponCheck.coupon) {
+        const claimed = await redeemCustomerCoupon(
+          couponCheck.coupon.code,
+          f.customerEmail,
+          f.orderNo,
+        );
+        if (claimed) {
+          promoCode = couponCheck.coupon.code;
+          discountMinor = couponCheck.discountMinor ?? 0;
+          applied = true;
+        }
+      }
     }
+    // 2) Otherwise fall back to a global promo code (shared code input).
+    if (!applied) {
+      const promoCheck = await applyPromoCode(code, subtotalMinor);
+      if (promoCheck.ok) {
+        promoCode = promoCheck.promo.code;
+        discountMinor = promoCheck.discountMinor;
+        await consumePromoUsage(promoCode);
+        applied = true;
+      }
+    }
+    if (!applied) promoDropped = true;
   }
 
   const settings = await getSettings();

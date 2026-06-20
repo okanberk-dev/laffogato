@@ -7,6 +7,11 @@ import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { customerEditSchema } from "@/lib/admin/customer-schema";
 import {
+  grantCoupon,
+  revokeCustomerCoupon,
+  type CouponKind,
+} from "@/lib/customer/coupons";
+import {
   adminDeleteCustomer,
   adminUpdateCustomer,
   createVerificationToken,
@@ -111,6 +116,91 @@ export async function resendVerificationAction(
     payload: { verification: "resent" },
   });
   return { message: "Yeni doğrulama bağlantısı oluşturuldu.", url };
+}
+
+export interface CouponGrantState {
+  error?: string;
+  message?: string;
+}
+
+/** Hand-grant a single-use coupon to a member (admin "Kupon tanımla" form). */
+export async function grantCustomerCouponAction(
+  email: string,
+  _prev: CouponGrantState,
+  formData: FormData,
+): Promise<CouponGrantState> {
+  await requireRole("customers");
+  if (!email) return { error: "E-posta eksik." };
+
+  const kind: CouponKind =
+    String(formData.get("kind") ?? "pct") === "fixed" ? "fixed" : "pct";
+  const rawValue = parseFloat(
+    String(formData.get("value") ?? "").replace(",", "."),
+  );
+  const rawMin = parseFloat(
+    String(formData.get("minSubtotal") ?? "0").replace(",", "."),
+  );
+  const title = String(formData.get("title") ?? "")
+    .trim()
+    .slice(0, 80);
+  const expiresRaw = String(formData.get("expiresAt") ?? "").trim();
+
+  if (!Number.isFinite(rawValue) || rawValue <= 0) {
+    return { error: "Geçerli bir indirim değeri gir." };
+  }
+  if (kind === "pct" && (rawValue < 1 || rawValue > 100)) {
+    return { error: "Yüzde indirimi 1-100 arası olmalı." };
+  }
+  const value =
+    kind === "pct" ? Math.round(rawValue) : Math.round(rawValue * 100);
+  const minSubtotalMinor =
+    Number.isFinite(rawMin) && rawMin > 0 ? Math.round(rawMin * 100) : 0;
+
+  let expiresAt = "";
+  if (expiresRaw) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(expiresRaw);
+    if (!m) return { error: "Geçersiz son kullanma tarihi." };
+    // End of the chosen local day.
+    expiresAt = new Date(
+      Number(m[1]),
+      Number(m[2]) - 1,
+      Number(m[3]),
+      23,
+      59,
+      59,
+    ).toISOString();
+  }
+
+  const coupon = await grantCoupon({
+    email,
+    kind,
+    value,
+    minSubtotalMinor,
+    title: title || (kind === "pct" ? `%${value} indirim` : "İndirim kuponu"),
+    source: "manual",
+    expiresAt,
+  });
+  await logAudit({
+    action: "create",
+    entity: "coupon",
+    entityId: coupon.code,
+    payload: { customer: email, kind, value },
+  });
+  revalidateCustomer(email);
+  return { message: `Kupon tanımlandı: ${coupon.code}` };
+}
+
+/** Remove a coupon from a member (admin). */
+export async function revokeCustomerCouponAction(formData: FormData) {
+  await requireRole("customers");
+  const id = String(formData.get("id") ?? "");
+  const email = String(formData.get("email") ?? "");
+  if (!id) return;
+  const removed = await revokeCustomerCoupon(id);
+  if (removed) {
+    await logAudit({ action: "delete", entity: "coupon", entityId: id });
+  }
+  if (email) revalidateCustomer(email);
 }
 
 export async function deleteCustomerAction(formData: FormData) {

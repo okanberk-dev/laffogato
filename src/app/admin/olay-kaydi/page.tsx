@@ -24,6 +24,7 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
   order: "Sipariş",
   order_item: "Sipariş kalemi",
   promo: "Promosyon",
+  coupon: "Kupon",
   settings: "Ayar",
   stock: "Stok",
   customer: "Üye",

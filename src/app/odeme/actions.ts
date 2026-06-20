@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { applyPromoCode, getSettings, placeOrder } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
+import { applyCustomerCoupon } from "@/lib/customer/coupons";
 import { sendOrderPlacedEmail } from "@/lib/email/send";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
@@ -27,6 +28,24 @@ export async function previewPromoAction(
   const subtotalMinor = Number.isFinite(subtotal)
     ? Math.round(subtotal * 100)
     : 0;
+  // A logged-in member's personal coupon wins over a global promo with the same
+  // string. If the coupon is theirs but invalid (used/expired/under minimum) we
+  // surface that reason; only a "not mine" miss falls through to global promos.
+  const customer = await getActiveCustomer();
+  if (customer) {
+    const coupon = await applyCustomerCoupon(code, customer.email, subtotalMinor);
+    if (coupon.ok && coupon.coupon) {
+      const discountMinor = coupon.discountMinor ?? 0;
+      return {
+        ok: {
+          code: coupon.coupon.code,
+          discountMinor,
+          finalMinor: Math.max(0, subtotalMinor - discountMinor),
+        },
+      };
+    }
+    if (coupon.found) return { error: coupon.error };
+  }
   const result = await applyPromoCode(code, subtotalMinor);
   if (!result.ok) return { error: result.error };
   return {

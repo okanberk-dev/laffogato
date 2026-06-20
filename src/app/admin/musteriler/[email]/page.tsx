@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CustomerActions } from "@/components/admin/customer-actions";
+import { CustomerCoupons } from "@/components/admin/customer-coupons";
 import {
   Card,
   PageHeader,
@@ -14,6 +15,7 @@ import {
   listProducts,
   type AdminOrderStatus,
 } from "@/lib/admin/store";
+import { adminListCustomerCoupons } from "@/lib/customer/coupons";
 import { getAdminCustomerByEmail } from "@/lib/customer/store";
 
 export const dynamic = "force-dynamic";
@@ -58,9 +60,10 @@ export default async function CustomerDetailPage({ params }: PageProps) {
   const { email: raw } = await params;
   const email = decodeURIComponent(raw);
 
-  const [member, orders] = await Promise.all([
+  const [member, orders, coupons] = await Promise.all([
     getAdminCustomerByEmail(email),
     customerOrdersByEmail(email),
+    adminListCustomerCoupons(email),
   ]);
 
   // Neither a member account nor any order for this e-mail → 404.
@@ -220,6 +223,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
               isActive={member.isActive}
               emailVerified={member.emailVerified}
             />
+            <CustomerCoupons email={member.email} coupons={coupons} />
             <Card>
               <SectionTitle>Bildirim tercihleri</SectionTitle>
               <ul className="grid gap-2 text-sm">
