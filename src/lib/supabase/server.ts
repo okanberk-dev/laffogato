@@ -13,7 +13,6 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  * dev hot-reloads / serverless warm invocations.
  */
 declare global {
-  // eslint-disable-next-line no-var
   var __supabaseAdmin: SupabaseClient | undefined;
 }
 
