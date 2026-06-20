@@ -416,10 +416,18 @@ export function PageHome({
                 flexWrap: "wrap",
               }}
             >
-              <Link href="/menu" onClick={go("menu")} className="btn btn-primary">
+              <Link
+                href="/menu"
+                onClick={go("menu")}
+                className="btn btn-primary"
+              >
                 Affogato menüsü <span className="arrow">→</span>
               </Link>
-              <a href="/hikayemiz" onClick={go("story")} className="btn btn-ghost">
+              <a
+                href="/hikayemiz"
+                onClick={go("story")}
+                className="btn btn-ghost"
+              >
                 Hikayemiz
               </a>
             </div>
@@ -1008,7 +1016,6 @@ export function PageMenu({ addToCart, menu }: PageProps) {
   const [active, setActive] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [diet, setDiet] = useState<string>("all");
-  const [view, setView] = useState<"gallery" | "list">("gallery");
   const [table, setTable] = useState<string | null>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
 
@@ -1241,68 +1248,6 @@ export function PageMenu({ addToCart, menu }: PageProps) {
                 </button>
               )}
             </div>
-            <div className="menu-view-toggle" role="group" aria-label="Görünüm">
-              <button
-                className={view === "gallery" ? "on" : ""}
-                onClick={() => setView("gallery")}
-                aria-label="Galeri görünümü"
-                aria-pressed={view === "gallery"}
-              >
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-                  <rect
-                    x="1.5"
-                    y="1.5"
-                    width="5.5"
-                    height="5.5"
-                    rx="1"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                  />
-                  <rect
-                    x="9"
-                    y="1.5"
-                    width="5.5"
-                    height="5.5"
-                    rx="1"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                  />
-                  <rect
-                    x="1.5"
-                    y="9"
-                    width="5.5"
-                    height="5.5"
-                    rx="1"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                  />
-                  <rect
-                    x="9"
-                    y="9"
-                    width="5.5"
-                    height="5.5"
-                    rx="1"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                  />
-                </svg>
-              </button>
-              <button
-                className={view === "list" ? "on" : ""}
-                onClick={() => setView("list")}
-                aria-label="Liste görünümü"
-                aria-pressed={view === "list"}
-              >
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M2 4 H14 M2 8 H14 M2 12 H14"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
-            </div>
           </div>
         </div>
         <div className="wrap menu-diet-row">
@@ -1402,115 +1347,65 @@ export function PageMenu({ addToCart, menu }: PageProps) {
                 </div>
               </div>
 
-              {view === "gallery" ? (
-                <div className="menu-grid">
-                  {items.map((it, i) => (
-                    <article
-                      key={it.name}
-                      className="menu-item-card reveal"
-                      style={{ transitionDelay: `${(i % 4) * 60}ms` }}
-                    >
-                      <div className="menu-item-img">
-                        <MenuPlate hue={it.hue} name={it.name} />
-                        {it.tags?.includes("signature") && (
-                          <div className="product-card-flag gold">FIRMA</div>
+              <div className="menu-grid">
+                {items.map((it, i) => (
+                  <article
+                    key={it.name}
+                    className="menu-item-card reveal"
+                    style={{ transitionDelay: `${(i % 4) * 60}ms` }}
+                  >
+                    <div className="menu-item-img">
+                      <MenuPlate hue={it.hue} name={it.name} />
+                      {it.tags?.includes("signature") && (
+                        <div className="product-card-flag gold">FIRMA</div>
+                      )}
+                      {it.tags?.includes("new") &&
+                        !it.tags.includes("signature") && (
+                          <div className="product-card-flag new">NUOVO</div>
                         )}
-                        {it.tags?.includes("new") &&
-                          !it.tags.includes("signature") && (
-                            <div className="product-card-flag new">NUOVO</div>
-                          )}
+                    </div>
+                    <div className="menu-item-body">
+                      <div className="menu-item-row">
+                        <h3 className="menu-item-name">{it.name}</h3>
+                        <div className="menu-item-price">{it.price}</div>
                       </div>
-                      <div className="menu-item-body">
-                        <div className="menu-item-row">
-                          <h3 className="menu-item-name">{it.name}</h3>
-                          <div className="menu-item-price">{it.price}</div>
-                        </div>
-                        <p className="menu-item-desc">{it.desc}</p>
-                        <div className="menu-item-foot">
-                          {it.tags && it.tags.length > 0 && (
-                            <div
-                              style={{
-                                display: "flex",
-                                gap: 6,
-                                flexWrap: "wrap",
-                              }}
-                            >
-                              {it.tags
-                                .filter(
-                                  (t) => !["signature", "new"].includes(t),
-                                )
-                                .map((t) => (
-                                  <span
-                                    key={t}
-                                    className="chip chip-outline"
-                                    style={{ padding: "4px 10px", fontSize: 9 }}
-                                  >
-                                    {t}
-                                  </span>
-                                ))}
-                            </div>
-                          )}
-                          <button
-                            className="btn btn-primary btn-sm menu-add-btn"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              add(it);
+                      <p className="menu-item-desc">{it.desc}</p>
+                      <div className="menu-item-foot">
+                        {it.tags && it.tags.length > 0 && (
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 6,
+                              flexWrap: "wrap",
                             }}
                           >
-                            + Sepete ekle
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <ul className="menu-list reveal">
-                  {items.map((it) => (
-                    <li key={it.name} className="menu-list-row">
-                      <div className="menu-list-main">
-                        <div className="menu-list-name-row">
-                          <span className="menu-list-name">{it.name}</span>
-                          {it.tags?.includes("signature") && (
-                            <span className="menu-list-tag gold">firma</span>
-                          )}
-                          {it.tags?.includes("new") && (
-                            <span className="menu-list-tag new">yeni</span>
-                          )}
-                          <span
-                            className="menu-list-leader"
-                            aria-hidden="true"
-                          />
-                          <span className="menu-list-price">{it.price}</span>
-                        </div>
-                        <p className="menu-list-desc">{it.desc}</p>
-                      </div>
-                      <button
-                        className="menu-list-add"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          add(it);
-                        }}
-                        aria-label={`${it.name} sepete ekle`}
-                      >
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 16 16"
-                          fill="none"
+                            {it.tags
+                              .filter((t) => !["signature", "new"].includes(t))
+                              .map((t) => (
+                                <span
+                                  key={t}
+                                  className="chip chip-outline"
+                                  style={{ padding: "4px 10px", fontSize: 9 }}
+                                >
+                                  {t}
+                                </span>
+                              ))}
+                          </div>
+                        )}
+                        <button
+                          className="btn btn-primary btn-sm menu-add-btn"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            add(it);
+                          }}
                         >
-                          <path
-                            d="M8 3 V13 M3 8 H13"
-                            stroke="currentColor"
-                            strokeWidth="1.6"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                          + Sepete ekle
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
           </section>
         );
@@ -2268,7 +2163,8 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
                 style={{
                   width: 28,
                   height: 1,
-                  background: "linear-gradient(90deg, var(--gold), transparent)",
+                  background:
+                    "linear-gradient(90deg, var(--gold), transparent)",
                 }}
               />
               <span className="eyebrow">IV — La storia · since 1987</span>
@@ -2686,7 +2582,8 @@ export function PageVisit({ visit }: PageProps) {
                 style={{
                   width: 28,
                   height: 1,
-                  background: "linear-gradient(90deg, var(--gold), transparent)",
+                  background:
+                    "linear-gradient(90deg, var(--gold), transparent)",
                 }}
               />
               <span
