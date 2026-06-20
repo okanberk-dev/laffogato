@@ -139,5 +139,6 @@ export async function placeOrderAction(formData: FormData) {
   revalidatePath("/admin/siparisler");
   revalidatePath("/admin");
   revalidatePath("/");
-  redirect(`/odeme/basarili?ref=${result.order.id}`);
+  const promoSuffix = result.promoDropped ? "&promo=dropped" : "";
+  redirect(`/odeme/basarili?ref=${result.order.id}${promoSuffix}`);
 }

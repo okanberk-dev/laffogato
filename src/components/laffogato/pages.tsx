@@ -58,6 +58,8 @@ interface PageProps {
     addressLines: string[];
     phone: string;
     email: string;
+    /** Opening hours for the current day (server-computed). */
+    todayHours?: string;
     hours: [string, string][];
   };
 }
@@ -74,6 +76,7 @@ export function PageHome({
   reels,
   press,
   content,
+  visit,
 }: PageProps) {
   const REELS = reels ?? SEED_REELS;
   const PRESS = press ?? SEED_PRESS;
@@ -186,9 +189,9 @@ export function PageHome({
                 }}
               >
                 {[
-                  ["Şube", "Tuzla"],
-                  ["Açık", "10:00 — 23:00"],
-                  ["Yeni", "Strawberry Matcha"],
+                  ["Şube", c("home.hero.stat.branch", "Tuzla")],
+                  ["Açık", visit?.todayHours ?? "10:00 — 23:00"],
+                  ["Yeni", c("home.hero.stat.featured", "Strawberry Matcha")],
                 ].map(([k, v]) => (
                   <div key={k}>
                     <div

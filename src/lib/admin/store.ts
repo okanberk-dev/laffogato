@@ -1054,7 +1054,7 @@ export interface PlaceOrderInput {
 }
 
 export type PlaceOrderResult =
-  | { ok: true; order: AdminOrder; priceAdjusted: boolean }
+  | { ok: true; order: AdminOrder; priceAdjusted: boolean; promoDropped: boolean }
   | {
       ok: false;
       reason: "out_of_stock";
@@ -1062,7 +1062,8 @@ export type PlaceOrderResult =
       available: number;
     }
   | { ok: false; reason: "empty" }
-  | { ok: false; reason: "not_found"; productName: string };
+  | { ok: false; reason: "not_found"; productName: string }
+  | { ok: false; reason: "shop_closed" };
 
 interface ResolvedLine {
   product: AdminProduct;
@@ -1269,7 +1270,7 @@ interface FinalizeOrderInput {
 async function finalizeOrder(
   resolved: ResolvedLine[],
   f: FinalizeOrderInput,
-): Promise<AdminOrder> {
+): Promise<{ order: AdminOrder; promoDropped: boolean }> {
   const sb = getSupabaseAdmin();
   const items: AdminOrderItem[] = resolved.map((line) => ({
     productName: line.label,
@@ -1282,14 +1283,21 @@ async function finalizeOrder(
     0,
   );
 
+  // Promo is re-validated here against the authoritative subtotal. If the
+  // customer applied a code at the cart preview but it expired / hit its limit
+  // before submit, we drop it (no discount) AND flag `promoDropped` so the
+  // caller can warn instead of silently charging full price.
   let promoCode = "";
   let discountMinor = 0;
+  let promoDropped = false;
   if (f.promoCode && f.promoCode.trim()) {
     const promoCheck = await applyPromoCode(f.promoCode, subtotalMinor);
     if (promoCheck.ok) {
       promoCode = promoCheck.promo.code;
       discountMinor = promoCheck.discountMinor;
       await consumePromoUsage(promoCode);
+    } else {
+      promoDropped = true;
     }
   }
 
@@ -1320,7 +1328,7 @@ async function finalizeOrder(
     createdAt: new Date().toISOString(),
   };
   check(await sb.from(TABLES.orders).insert(order), "finalizeOrder.insert");
-  return order;
+  return { order, promoDropped };
 }
 
 /**
@@ -1332,6 +1340,13 @@ export async function placeOrder(
   input: PlaceOrderInput,
 ): Promise<PlaceOrderResult> {
   await ensureSeed();
+
+  // Refuse customer checkout while the shop is flagged closed in settings.
+  // (Admin manual orders bypass this — see createManualOrder.)
+  const settings = await getSettings();
+  if (!settings.isShopOpen) {
+    return { ok: false, reason: "shop_closed" };
+  }
 
   const resolveRes = await resolveOrderLines(input.items);
   if (!resolveRes.ok) return resolveRes.result;
@@ -1352,7 +1367,7 @@ export async function placeOrder(
     input.customerEmail ?? "customer",
   );
 
-  const order = await finalizeOrder(resolved, {
+  const { order, promoDropped } = await finalizeOrder(resolved, {
     orderId,
     orderNo,
     status: "pending_payment",
@@ -1363,7 +1378,7 @@ export async function placeOrder(
     internalNote: "",
     promoCode: input.promoCode,
   });
-  return { ok: true, order, priceAdjusted };
+  return { ok: true, order, priceAdjusted, promoDropped };
 }
 
 /** Manual orders may start in any of these states (admin records a real sale). */
@@ -1418,7 +1433,7 @@ export async function createManualOrder(
     input.actor || "admin",
   );
 
-  const order = await finalizeOrder(resolved, {
+  const { order, promoDropped } = await finalizeOrder(resolved, {
     orderId,
     orderNo,
     status: input.status,
@@ -1429,7 +1444,7 @@ export async function createManualOrder(
     internalNote: input.internalNote?.trim().slice(0, 2000) ?? "",
     promoCode: input.promoCode,
   });
-  return { ok: true, order, priceAdjusted: false };
+  return { ok: true, order, priceAdjusted: false, promoDropped };
 }
 
 export type OrderTransition =

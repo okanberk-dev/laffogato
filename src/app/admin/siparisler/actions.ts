@@ -259,9 +259,12 @@ export async function createManualOrderAction(
     if (result.reason === "not_found") {
       return { error: `Ürün bulunamadı: ${result.productName}` };
     }
-    return {
-      error: `Yetersiz stok: ${result.productName} (mevcut: ${result.available}).`,
-    };
+    if (result.reason === "out_of_stock") {
+      return {
+        error: `Yetersiz stok: ${result.productName} (mevcut: ${result.available}).`,
+      };
+    }
+    return { error: "Sipariş oluşturulamadı." };
   }
   await logAudit({
     action: "create",
