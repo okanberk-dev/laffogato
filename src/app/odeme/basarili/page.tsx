@@ -10,12 +10,13 @@ export const metadata = { title: "Siparişin Alındı" };
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ ref?: string }>;
+  searchParams: Promise<{ ref?: string; promo?: string }>;
 }
 
 export default async function OrderSuccessPage({ searchParams }: PageProps) {
-  const { ref } = await searchParams;
+  const { ref, promo } = await searchParams;
   if (!ref) notFound();
+  const promoDropped = promo === "dropped";
 
   const order = await getOrder(ref);
   if (!order) notFound();
@@ -34,6 +35,20 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
       style={{ background: "var(--bg-warm)" }}
     >
       <ClearCart />
+      {promoDropped && (
+        <div
+          className="mb-6 rounded-xl border px-5 py-4 text-sm"
+          style={{
+            borderColor: "#f1c8a0",
+            background: "#fdf3e7",
+            color: "#9a5b1e",
+          }}
+        >
+          Promosyon kodun sipariş anında geçerli değildi (süresi dolmuş veya
+          limiti dolmuş olabilir), bu yüzden indirim uygulanmadı. Sorun olduğunu
+          düşünüyorsan bizimle iletişime geç.
+        </div>
+      )}
       <div
         className="rounded-2xl border border-neutral-200 bg-white p-10 shadow-sm md:p-14"
         style={{ boxShadow: "var(--shadow-lg)" }}

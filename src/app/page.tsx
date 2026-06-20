@@ -79,11 +79,24 @@ export default async function HomePage({ searchParams }: PageProps) {
     notice = `Üzgünüz, "${item ?? "ürün"}" için yeterli stok yok${tail}. Sepetinden adedini azaltıp tekrar dene.`;
   } else if (cart === "empty") {
     notice = "Sepetin boş — bir affogato seçip dene.";
+  } else if (cart === "shop_closed") {
+    notice =
+      "Mağaza şu an siparişe kapalı. Birazdan tekrar dener misin? Sepetin korunuyor.";
+  } else if (cart === "not_found") {
+    notice =
+      "Sepetindeki bir ürün artık mevcut değil. Sepetini güncelleyip tekrar dene.";
   }
 
   const graph = siteGraphLd(menu, products);
 
   // Visit page contact block — driven by admin Ayarlar (settings).
+  // `todayHours` is computed server-side (stable, no hydration mismatch) so the
+  // home hero's "Açık" stat reflects the real opening hours for today.
+  const todayKey = DAYS_OF_WEEK[(new Date().getDay() + 6) % 7];
+  const todayH = settings.weeklyHours[todayKey];
+  const todayHours = todayH.closed
+    ? "Bugün kapalı"
+    : `${todayH.open} — ${todayH.close}`;
   const visit = {
     addressLines: settings.address
       .split(/[\n,/]+/)
@@ -91,6 +104,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       .filter(Boolean),
     phone: settings.phone,
     email: settings.email,
+    todayHours,
     hours: DAYS_OF_WEEK.map((d) => {
       const h = settings.weeklyHours[d];
       return [
