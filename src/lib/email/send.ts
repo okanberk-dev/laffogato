@@ -1,5 +1,7 @@
 import "server-only";
 
+import { formatTRYMinor } from "@/lib/utils/commerce";
+
 /**
  * Minimal transactional e-mail sender.
  *
@@ -82,4 +84,89 @@ yok sayabilirsin.
   <p style="font-size:13px;color:#3A2A20;margin-top:24px">— L'Affogato · Coffee Italiano</p>
 </div>`;
   return send({ to, subject, html, text });
+}
+
+// ── Order notifications ────────────────────────────────────────────────────
+
+export interface OrderEmailData {
+  to: string;
+  customerName: string;
+  orderNo: number;
+  items: { productName: string; qty: number; unitPriceMinor: number }[];
+  totalMinor: number;
+}
+
+function orderLinesText(items: OrderEmailData["items"]): string {
+  return items
+    .map(
+      (it) =>
+        `  • ${it.productName} × ${it.qty} — ${formatTRYMinor(it.unitPriceMinor * it.qty)}`,
+    )
+    .join("\n");
+}
+
+function orderLinesHtml(items: OrderEmailData["items"]): string {
+  return items
+    .map(
+      (it) =>
+        `<tr><td style="padding:6px 0;font-size:14px;color:#3A2A20">${it.productName} <span style="color:#a89a8c">× ${it.qty}</span></td><td style="padding:6px 0;font-size:14px;text-align:right;color:#3A2A20">${formatTRYMinor(it.unitPriceMinor * it.qty)}</td></tr>`,
+    )
+    .join("");
+}
+
+function orderShellHtml(
+  greeting: string,
+  intro: string,
+  o: OrderEmailData,
+): string {
+  return `<div style="font-family:Georgia,'Times New Roman',serif;max-width:520px;margin:0 auto;color:#3A2A20">
+  <p style="font-size:16px">${greeting}</p>
+  <p style="font-size:15px;line-height:1.6">${intro}</p>
+  <p style="font-size:13px;color:#8a7a6c;margin:18px 0 6px">Sipariş No: <strong>#${o.orderNo}</strong></p>
+  <table style="width:100%;border-collapse:collapse;border-top:1px solid #e7ddcf;border-bottom:1px solid #e7ddcf;margin:6px 0">
+    ${orderLinesHtml(o.items)}
+  </table>
+  <p style="font-size:15px;text-align:right;margin:10px 0"><strong>Toplam: ${formatTRYMinor(o.totalMinor)}</strong></p>
+  <p style="font-size:13px;color:#3A2A20;margin-top:24px">— L'Affogato · Coffee Italiano</p>
+</div>`;
+}
+
+/** Sent when an order is created (payment still pending). */
+export async function sendOrderPlacedEmail(o: OrderEmailData): Promise<boolean> {
+  if (!o.to) return false;
+  const greeting = o.customerName ? `Merhaba ${o.customerName},` : "Merhaba,";
+  const subject = `L'Affogato — Siparişin alındı (#${o.orderNo})`;
+  const intro =
+    "Siparişini aldık. Ödemen onaylandığında siparişini hazırlamaya başlayacağız.";
+  const text = `${greeting}
+
+${intro}
+
+Sipariş No: #${o.orderNo}
+${orderLinesText(o.items)}
+
+Toplam: ${formatTRYMinor(o.totalMinor)}
+
+— L'Affogato`;
+  return send({ to: o.to, subject, html: orderShellHtml(greeting, intro, o), text });
+}
+
+/** Sent when an order's payment is confirmed (status → paid). */
+export async function sendOrderPaidEmail(o: OrderEmailData): Promise<boolean> {
+  if (!o.to) return false;
+  const greeting = o.customerName ? `Merhaba ${o.customerName},` : "Merhaba,";
+  const subject = `L'Affogato — Ödemen onaylandı (#${o.orderNo})`;
+  const intro =
+    "Ödemen alındı ve siparişin onaylandı. Hazırlanmaya başlandı — Tuzla köşkünde bekleniyorsun.";
+  const text = `${greeting}
+
+${intro}
+
+Sipariş No: #${o.orderNo}
+${orderLinesText(o.items)}
+
+Toplam: ${formatTRYMinor(o.totalMinor)}
+
+— L'Affogato`;
+  return send({ to: o.to, subject, html: orderShellHtml(greeting, intro, o), text });
 }

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { applyPromoCode, getSettings, placeOrder } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
+import { sendOrderPlacedEmail } from "@/lib/email/send";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
 import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
@@ -148,6 +149,24 @@ export async function placeOrderAction(formData: FormData) {
   // provider's `redirectUrl`. The promo-dropped flag rides through the return
   // URL so the success page can still warn.
   const order = result.order;
+
+  // Best-effort "order received" e-mail (logs in dev when Resend is unset).
+  try {
+    await sendOrderPlacedEmail({
+      to: order.customerEmail,
+      customerName: order.customerName,
+      orderNo: order.orderNo,
+      items: order.items.map((it) => ({
+        productName: it.productName,
+        qty: it.qty,
+        unitPriceMinor: it.unitPriceMinor,
+      })),
+      totalMinor: order.totalMinor,
+    });
+  } catch (err) {
+    console.error("[email] order placed notification failed", err);
+  }
+
   const promoQuery = result.promoDropped ? "?promo=dropped" : "";
   const provider = getPaymentProvider();
   const session = await provider.createCheckoutSession({
