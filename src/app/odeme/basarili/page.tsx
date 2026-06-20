@@ -89,9 +89,18 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         </h1>
 
         <p className="mt-6 max-w-md text-neutral-700">
-          Siparişini aldık. Sanal POS bağlandığında ödeme buradan tamamlanacak;
-          şimdilik <em>ödeme bekleniyor</em> olarak kaydettik. Admin panelinde
-          durumu manuel olarak ilerletip Tuzla köşkünde bekleniyorsun.
+          {order.status === "paid" ? (
+            <>
+              Ödemen alındı ve siparişin onaylandı. Tuzla köşkünde
+              bekleniyorsun — hazır olunca seni bilgilendireceğiz.
+            </>
+          ) : (
+            <>
+              Siparişini aldık; ödemen henüz tamamlanmadı (
+              <em>ödeme bekleniyor</em>). Ödeme tamamlandığında siparişin işleme
+              alınır.
+            </>
+          )}
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">

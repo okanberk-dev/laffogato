@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 
 import { applyPromoCode, getSettings, placeOrder } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
+import { getPaymentProvider } from "@/lib/payment";
+import { SITE } from "@/lib/seo/site";
 import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
 
 export interface PromoPreviewState {
@@ -139,6 +141,36 @@ export async function placeOrderAction(formData: FormData) {
   revalidatePath("/admin/siparisler");
   revalidatePath("/admin");
   revalidatePath("/");
-  const promoSuffix = result.promoDropped ? "&promo=dropped" : "";
-  redirect(`/odeme/basarili?ref=${result.order.id}${promoSuffix}`);
+
+  // Hand off to the payment provider. The order is `pending_payment`; the
+  // provider's checkout settles it (mock → /odeme/donus auto-confirms in dev,
+  // a real POS → its signed webhook). We redirect the customer to the
+  // provider's `redirectUrl`. The promo-dropped flag rides through the return
+  // URL so the success page can still warn.
+  const order = result.order;
+  const promoQuery = result.promoDropped ? "?promo=dropped" : "";
+  const provider = getPaymentProvider();
+  const session = await provider.createCheckoutSession({
+    orderId: order.id,
+    amountMinor: order.totalMinor,
+    currency: "TRY",
+    customer: {
+      id: customer.id,
+      email: customer.email,
+      fullName: customer.name,
+      phone: customer.phone || undefined,
+    },
+    billingAddress: { city: "", district: "", line1: order.shippingAddress },
+    shippingAddress: { city: "", district: "", line1: order.shippingAddress },
+    items: order.items.map((it) => ({
+      productId: "",
+      name: it.productName,
+      unitPriceMinor: it.unitPriceMinor,
+      quantity: it.qty,
+    })),
+    successUrl: `${SITE.url}/odeme/donus${promoQuery}`,
+    failureUrl: `${SITE.url}/odeme?error=payment`,
+  });
+
+  redirect(session.redirectUrl);
 }
