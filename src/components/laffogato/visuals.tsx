@@ -56,7 +56,7 @@ export function PhotoSurface({
   children,
   dotLabel,
   dotPos = "br",
-  vignette = true,
+  vignette = false,
 }: PhotoSurfaceProps) {
   const h = HUES[hue] || HUES.warm;
   const posStyle: React.CSSProperties = {};
@@ -96,17 +96,6 @@ export function PhotoSurface({
           }}
         />
       )}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          opacity: 0.06,
-          backgroundImage:
-            "repeating-linear-gradient(135deg, transparent 0 16px, currentColor 16px 17px)",
-          color: h.ink,
-        }}
-      />
       <div style={{ position: "relative", width: "100%", height: "100%" }}>
         {children}
       </div>
@@ -428,23 +417,6 @@ export function EdibleCupHero({
         </g>
       )}
 
-      {/* Gentle aroma wisps — the affogato is alive (hot espresso over gelato). */}
-      {[0, 1, 2].map((i) => (
-        <path
-          key={`steam-${i}`}
-          d={`M ${166 + i * 14} 128 q -8 -18 0 -34 q 8 -16 0 -32`}
-          fill="none"
-          stroke="#FFFFFF"
-          strokeWidth="3"
-          strokeLinecap="round"
-          opacity="0.45"
-          style={{
-            animation: `steam 3.2s ${i * 0.6}s ease-out infinite`,
-            transformOrigin: `${166 + i * 14}px 128px`,
-          }}
-        />
-      ))}
-
       <ellipse cx="180" cy="418" rx="106" ry="6" fill="#000" opacity="0.16" />
     </svg>
   );
@@ -489,20 +461,6 @@ export function EspressoCup({ size = "100%" }: { size?: number | string }) {
         stroke="#E0CCA8"
         strokeWidth="6"
       />
-      {[0, 1, 2].map((i) => (
-        <circle
-          key={i}
-          cx={130 + i * 10}
-          cy={108}
-          r={3}
-          fill="#FFF"
-          opacity="0.6"
-          style={{
-            animation: `steam 2.6s ${i * 0.4}s ease-out infinite`,
-            transformOrigin: `${130 + i * 10}px 108px`,
-          }}
-        />
-      ))}
       <text
         x="140"
         y="195"
@@ -896,7 +854,6 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
           width="8"
           height="130"
           fill="#14100B"
-          style={{ animation: "pour 2.4s ease infinite alternate" }}
         />
         <circle cx="180" cy="80" r="3" fill="#E9B872" opacity="0.65" />
       </svg>
@@ -981,7 +938,6 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
           width="3"
           height="120"
           fill="#3A2410"
-          style={{ animation: "pour 1.8s ease infinite alternate" }}
         />
         <rect
           x="150"
@@ -989,7 +945,6 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
           width="3"
           height="120"
           fill="#3A2410"
-          style={{ animation: "pour 1.8s 0.2s ease infinite alternate" }}
         />
       </svg>
     ),
