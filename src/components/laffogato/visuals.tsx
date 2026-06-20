@@ -28,19 +28,22 @@ export function useReveal() {
    Photo placeholder — refined gradient surface with subtle grain
    ───────────────────────────────────────────────────────────── */
 
+// Aggressive minimal: the palette is neutralized to a warm grey-beige tonal set
+// (light / medium / dark). Product + menu surfaces no longer carry hue colour;
+// differentiation comes from value, not saturation.
 export const HUES: Record<string, { from: string; to: string; ink: string }> = {
-  cream: { from: "#F5E6D3", to: "#E0CDB0", ink: "#5A4030" },
-  warm: { from: "#FAF2E5", to: "#EBDCC4", ink: "#5A4030" },
-  stone: { from: "#EDE5D7", to: "#D2C5AE", ink: "#3A2F22" },
-  caramel: { from: "#D4A266", to: "#8E5F2E", ink: "#FFF" },
-  espresso: { from: "#3E2614", to: "#14100B", ink: "#E6D4B0" },
-  matcha: { from: "#B8CFA1", to: "#6A8A4A", ink: "#FFF" },
-  pistachio: { from: "#D5E2A6", to: "#94B25E", ink: "#3A4220" },
-  rose: { from: "#F2B3C0", to: "#C5435A", ink: "#FFF" },
-  bougainvillea: { from: "#E55F7E", to: "#8E2A45", ink: "#FFF" },
-  gold: { from: "#E0BC75", to: "#B88A4A", ink: "#FFF" },
-  sky: { from: "#E0C9A2", to: "#B88243", ink: "#FFF" },
-  dawn: { from: "#F2C7A0", to: "#D67F4A", ink: "#FFF" },
+  cream: { from: "#EFE7D9", to: "#DBCFBB", ink: "#4A4036" },
+  warm: { from: "#F0E9DC", to: "#DED2BE", ink: "#4A4036" },
+  stone: { from: "#E7DECF", to: "#CFC3AE", ink: "#3A322A" },
+  caramel: { from: "#D8CDBA", to: "#B6A992", ink: "#3A322A" },
+  espresso: { from: "#3A2E25", to: "#1C1712", ink: "#E2DACB" },
+  matcha: { from: "#DCD7C8", to: "#BDB6A4", ink: "#3A322A" },
+  pistachio: { from: "#E2DCCB", to: "#C7BEA9", ink: "#3A322A" },
+  rose: { from: "#E7DCD3", to: "#CDBEB0", ink: "#3A322A" },
+  bougainvillea: { from: "#D9CDC2", to: "#B6A595", ink: "#3A322A" },
+  gold: { from: "#E4DAC6", to: "#CBBEA4", ink: "#3A322A" },
+  sky: { from: "#E4DDD0", to: "#CCC1AE", ink: "#3A322A" },
+  dawn: { from: "#EBE2D4", to: "#D5C9B5", ink: "#3A322A" },
 };
 
 interface PhotoSurfaceProps {
@@ -71,20 +74,11 @@ export function PhotoSurface({
         width: "100%",
         height: "100%",
         position: "relative",
-        background: `linear-gradient(160deg, ${h.from} 0%, ${h.to} 100%)`,
+        background: h.from,
         overflow: "hidden",
         borderRadius: "inherit",
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          background:
-            "radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.25), transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(0,0,0,0.15), transparent 60%)",
-        }}
-      />
       {vignette && (
         <div
           style={{
@@ -848,13 +842,7 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
         <ellipse cx="110" cy="280" rx="80" ry="10" fill="#0E0905" />
         <rect x="50" y="170" width="120" height="110" fill="#1A0F08" rx="6" />
         <ellipse cx="110" cy="180" rx="52" ry="6" fill="#B88A4A" />
-        <rect
-          x="106"
-          y="40"
-          width="8"
-          height="130"
-          fill="#14100B"
-        />
+        <rect x="106" y="40" width="8" height="130" fill="#14100B" />
         <circle cx="180" cy="80" r="3" fill="#E9B872" opacity="0.65" />
       </svg>
     ),
@@ -932,20 +920,8 @@ export function ReelScene({ variant = 0 }: { variant?: number }) {
         <rect x="60" y="140" width="100" height="20" fill="#0a0604" rx="3" />
         <rect x="20" y="146" width="50" height="10" fill="#3A2410" rx="2" />
         <ellipse cx="148" cy="152" rx="22" ry="14" fill="#5A3A20" />
-        <rect
-          x="142"
-          y="166"
-          width="3"
-          height="120"
-          fill="#3A2410"
-        />
-        <rect
-          x="150"
-          y="166"
-          width="3"
-          height="120"
-          fill="#3A2410"
-        />
+        <rect x="142" y="166" width="3" height="120" fill="#3A2410" />
+        <rect x="150" y="166" width="3" height="120" fill="#3A2410" />
       </svg>
     ),
     () => (
