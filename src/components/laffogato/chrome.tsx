@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { NewsletterForm } from "./newsletter-form";
@@ -816,27 +817,27 @@ export function Footer({ navigate, settings }: FooterProps) {
           <h5>Yasal</h5>
           <ul>
             <li>
-              <a href="/hukuk/kullanim-sartlari">Kullanım Şartları</a>
+              <Link href="/hukuk/kullanim-sartlari">Kullanım Şartları</Link>
             </li>
             <li>
-              <a href="/hukuk/gizlilik-politikasi">Gizlilik Politikası</a>
+              <Link href="/hukuk/gizlilik-politikasi">Gizlilik Politikası</Link>
             </li>
             <li>
-              <a href="/hukuk/mesafeli-satis-sozlesmesi">
+              <Link href="/hukuk/mesafeli-satis-sozlesmesi">
                 Mesafeli Satış Sözleşmesi
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="/hukuk/iade-ve-cayma">İade & Cayma</a>
+              <Link href="/hukuk/iade-ve-cayma">İade & Cayma</Link>
             </li>
             <li>
-              <a href="/hukuk/teslimat-ve-kargo">Teslimat & Kargo</a>
+              <Link href="/hukuk/teslimat-ve-kargo">Teslimat & Kargo</Link>
             </li>
             <li>
-              <a href="/hukuk/cerez-politikasi">Çerez Politikası</a>
+              <Link href="/hukuk/cerez-politikasi">Çerez Politikası</Link>
             </li>
             <li>
-              <a href="/hukuk/kvkk-aydinlatma-metni">KVKK Aydınlatma</a>
+              <Link href="/hukuk/kvkk-aydinlatma-metni">KVKK Aydınlatma</Link>
             </li>
           </ul>
         </div>
