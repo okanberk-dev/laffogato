@@ -63,6 +63,7 @@ export const TABLES = {
   settings: "settings",
   auditLogs: "audit_logs",
   customers: "customers",
+  customerCoupons: "customer_coupons",
   counters: "counters",
   shopHeroSlides: "shop_hero_slides",
   paymentTransactions: "payment_transactions",

@@ -23,6 +23,7 @@ export type AuditEntity =
   | "order"
   | "order_item"
   | "promo"
+  | "coupon"
   | "settings"
   | "stock"
   | "customer"
