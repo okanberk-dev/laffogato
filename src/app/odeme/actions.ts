@@ -8,7 +8,7 @@ import { getActiveCustomer } from "@/lib/customer/auth";
 import { sendOrderPlacedEmail } from "@/lib/email/send";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
-import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
+import { type CheckoutConfig } from "@/lib/utils/commerce";
 
 export interface PromoPreviewState {
   error?: string;
