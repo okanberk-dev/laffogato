@@ -16,7 +16,8 @@ import {
   SelectAllCheckbox,
   useSelection,
 } from "./bulk";
-import { DangerButton, formatTRY } from "./forms";
+import { DeleteRowForm } from "./delete-row-form";
+import { formatTRY } from "./forms";
 
 interface Props {
   itemsByCategory: Record<MenuCategoryKey, AdminMenuItem[]>;
@@ -188,19 +189,11 @@ export function MenuList({
                                 >
                                   Düzenle
                                 </Link>
-                                <form action={deleteMenuItemAction}>
-                                  <input
-                                    type="hidden"
-                                    name="id"
-                                    value={it.id}
-                                  />
-                                  <DangerButton
-                                    type="submit"
-                                    className="text-xs"
-                                  >
-                                    Sil
-                                  </DangerButton>
-                                </form>
+                                <DeleteRowForm
+                                  action={deleteMenuItemAction}
+                                  id={it.id}
+                                  confirmMessage={`"${it.name}" kalemini silmek istediğine emin misin?`}
+                                />
                               </div>
                             </div>
                           </div>
@@ -232,8 +225,10 @@ export function MenuList({
                           return (
                             <tr
                               key={it.id}
-                              className={`border-t border-neutral-100 ${
-                                isSelected ? "bg-neutral-50" : ""
+                              className={`border-t border-neutral-100 transition-colors ${
+                                isSelected
+                                  ? "bg-neutral-50"
+                                  : "hover:bg-neutral-50/60"
                               }`}
                             >
                               <td className="py-3 pr-3 align-middle">
@@ -300,19 +295,11 @@ export function MenuList({
                                   >
                                     Düzenle
                                   </Link>
-                                  <form action={deleteMenuItemAction}>
-                                    <input
-                                      type="hidden"
-                                      name="id"
-                                      value={it.id}
-                                    />
-                                    <DangerButton
-                                      type="submit"
-                                      className="text-xs"
-                                    >
-                                      Sil
-                                    </DangerButton>
-                                  </form>
+                                  <DeleteRowForm
+                                    action={deleteMenuItemAction}
+                                    id={it.id}
+                                    confirmMessage={`"${it.name}" kalemini silmek istediğine emin misin?`}
+                                  />
                                 </div>
                               </td>
                             </tr>
@@ -369,7 +356,7 @@ export function MenuList({
               name="op"
               value="set_category"
               disabled={pending}
-              className="rounded-full bg-neutral-200 px-3 py-1.5 text-xs text-neutral-800 hover:bg-neutral-300 disabled:opacity-40"
+              className="rounded-full bg-[var(--admin-primary)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
             >
               Taşı
             </button>

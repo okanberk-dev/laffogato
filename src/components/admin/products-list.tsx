@@ -16,7 +16,8 @@ import {
   SelectAllCheckbox,
   useSelection,
 } from "./bulk";
-import { DangerButton, formatTRY } from "./forms";
+import { DeleteRowForm } from "./delete-row-form";
+import { formatTRY } from "./forms";
 
 interface Props {
   products: AdminProduct[];
@@ -219,12 +220,11 @@ export function ProductsList({ products, categories, labelByCat }: Props) {
                         >
                           Düzenle
                         </Link>
-                        <form action={deleteProductAction}>
-                          <input type="hidden" name="id" value={p.id} />
-                          <DangerButton type="submit" className="text-xs">
-                            Sil
-                          </DangerButton>
-                        </form>
+                        <DeleteRowForm
+                          action={deleteProductAction}
+                          id={p.id}
+                          confirmMessage={`"${p.name}" ürününü silmek istediğine emin misin? Bu işlem geri alınamaz.`}
+                        />
                       </div>
                     </div>
                   </div>
@@ -265,8 +265,8 @@ export function ProductsList({ products, categories, labelByCat }: Props) {
                   return (
                     <tr
                       key={p.id}
-                      className={`border-b border-neutral-100 align-top last:border-b-0 ${
-                        isSelected ? "bg-neutral-50" : ""
+                      className={`border-b border-neutral-100 align-top transition-colors last:border-b-0 ${
+                        isSelected ? "bg-neutral-50" : "hover:bg-neutral-50/60"
                       }`}
                     >
                       <td className="py-3 pr-3 align-middle">
@@ -361,12 +361,11 @@ export function ProductsList({ products, categories, labelByCat }: Props) {
                           >
                             Düzenle
                           </Link>
-                          <form action={deleteProductAction}>
-                            <input type="hidden" name="id" value={p.id} />
-                            <DangerButton type="submit" className="text-xs">
-                              Sil
-                            </DangerButton>
-                          </form>
+                          <DeleteRowForm
+                            action={deleteProductAction}
+                            id={p.id}
+                            confirmMessage={`"${p.name}" ürününü silmek istediğine emin misin? Bu işlem geri alınamaz.`}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -419,7 +418,7 @@ export function ProductsList({ products, categories, labelByCat }: Props) {
               name="op"
               value="set_category"
               disabled={pending}
-              className="rounded-full bg-neutral-200 px-3 py-1.5 text-xs text-neutral-800 hover:bg-neutral-300 disabled:opacity-40"
+              className="rounded-full bg-[var(--admin-primary)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
             >
               Taşı
             </button>

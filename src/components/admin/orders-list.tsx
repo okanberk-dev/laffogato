@@ -82,7 +82,7 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
           return (
             <div
               key={o.id}
-              className={`rounded-xl border bg-white p-6 shadow-sm ${
+              className={`rounded-xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md ${
                 isSelected
                   ? "border-neutral-900"
                   : "border-[var(--admin-border)]"
