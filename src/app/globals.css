@@ -2628,8 +2628,14 @@ summary:focus-visible,
   border-bottom: 1px solid var(--ink-line);
 }
 @media (max-width: 720px) {
+  /* On phones the control block is no longer sticky — it scrolls away with the
+     page so it never eats into the small viewport. Category tabs + search stay
+     reachable at the top of the menu, not pinned over every section. */
   .menu-controls {
-    top: 60px;
+    position: static;
+    top: auto;
+    background: transparent;
+    backdrop-filter: none;
   }
 }
 .menu-controls-inner {
@@ -2689,28 +2695,6 @@ summary:focus-visible,
   width: 18px;
   height: 18px;
 }
-.menu-view-toggle {
-  display: inline-flex;
-  padding: 3px;
-  border-radius: 999px;
-  border: 1px solid var(--ink-line);
-  background: #fff;
-}
-.menu-view-toggle button {
-  width: 34px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  color: var(--ink-mute);
-  transition:
-    background 0.2s,
-    color 0.2s;
-}
-.menu-view-toggle button.on {
-  background: var(--ink);
-  color: #fff;
-}
 .menu-diet-row {
   display: flex;
   align-items: center;
@@ -2754,6 +2738,10 @@ summary:focus-visible,
 @media (max-width: 720px) {
   .menu-controls-inner {
     gap: 12px;
+    padding: 14px 0 4px;
+  }
+  .menu-diet-row {
+    padding-bottom: 16px;
   }
   .menu-tabs {
     flex-wrap: nowrap;
