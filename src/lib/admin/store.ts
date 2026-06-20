@@ -1447,6 +1447,66 @@ export async function createManualOrder(
   return { ok: true, order, priceAdjusted: false, promoDropped };
 }
 
+// ── Payment application ───────────────────────────────────────────────────
+
+export type PaymentApplyResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Records a successful payment and advances the order to `paid`. Idempotent:
+ * the unique (provider, providerRef) index makes a duplicate insert a no-op
+ * (23505) and the order update is guarded on `pending_payment`. Used by the
+ * dev-only mock return handler (and reusable by a real provider webhook).
+ */
+export async function applyPaymentSucceeded(input: {
+  orderId: string;
+  provider: string;
+  providerRef: string;
+  amountMinor: number;
+  currency: string;
+  raw?: unknown;
+}): Promise<PaymentApplyResult> {
+  const sb = getSupabaseAdmin();
+  const ins = await sb.from(TABLES.paymentTransactions).insert({
+    orderId: input.orderId,
+    provider: input.provider,
+    providerRef: input.providerRef,
+    status: "succeeded",
+    amountMinor: input.amountMinor,
+    currency: input.currency,
+    raw: input.raw ?? null,
+    createdAt: new Date().toISOString(),
+  });
+  if (ins.error && ins.error.code !== "23505") {
+    return { ok: false, error: ins.error.message };
+  }
+  const upd = await sb
+    .from(TABLES.orders)
+    .update({ status: "paid" })
+    .eq("id", input.orderId)
+    .eq("status", "pending_payment");
+  if (upd.error) return { ok: false, error: upd.error.message };
+  return { ok: true };
+}
+
+/** Latest succeeded payment provider reference for an order (for refunds). */
+export async function getOrderPaymentRef(
+  orderId: string,
+): Promise<{ provider: string; providerRef: string } | null> {
+  const sb = getSupabaseAdmin();
+  const res = await sb
+    .from(TABLES.paymentTransactions)
+    .select("provider, providerRef")
+    .eq("orderId", orderId)
+    .eq("status", "succeeded")
+    .order("createdAt", { ascending: false })
+    .limit(1);
+  if (res.error) throw new Error(`getOrderPaymentRef: ${res.error.message}`);
+  const row = res.data?.[0] as
+    | { provider: string; providerRef: string }
+    | undefined;
+  return row ? { provider: row.provider, providerRef: row.providerRef } : null;
+}
+
 export type OrderTransition =
   | "start_preparing"
   | "mark_shipped"

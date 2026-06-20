@@ -11,6 +11,7 @@ import { manualOrderSchema } from "@/lib/admin/manual-order-schema";
 import {
   bulkUpdateOrders,
   createManualOrder,
+  getOrderPaymentRef,
   refundOrder,
   setOrderInternalNote,
   setOrderItemStatus,
@@ -22,6 +23,7 @@ import {
   type AdminOrderStatus,
   type OrderTransition,
 } from "@/lib/admin/store";
+import { getPaymentProvider } from "@/lib/payment";
 
 const STATUSES: AdminOrderStatus[] = [
   "pending_payment",
@@ -174,6 +176,15 @@ export async function refundOrderAction(
   const amountMinor = Math.round(amountMajor * 100);
   const result = await refundOrder(id, { amountMinor, reason });
   if (!result.ok) return { error: result.error };
+  // Tell the payment provider to issue the money refund. Mock is a no-op
+  // success; a real POS refunds via its API. Best-effort: a provider failure
+  // does NOT roll back the recorded refund — the admin can retry / reconcile.
+  try {
+    const ref = await getOrderPaymentRef(id);
+    if (ref) await getPaymentProvider().refund(ref.providerRef, amountMinor);
+  } catch (err) {
+    console.error("[refund] provider refund failed", err);
+  }
   await logAudit({
     action: "refund",
     entity: "order",
