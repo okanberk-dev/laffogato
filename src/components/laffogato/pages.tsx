@@ -300,33 +300,6 @@ export function PageHome({
         </div>
       </section>
 
-      <div className="marquee">
-        <div className="marquee-track">
-          {Array.from({ length: 2 }).flatMap((_, k) => [
-            <span key={`a${k}`} className="marquee-item">
-              <em style={{ fontStyle: "normal" }}>Drink it.</em>
-            </span>,
-            <span key={`d${k}`} className="marquee-dot" />,
-            <span key={`b${k}`} className="marquee-item">
-              <em style={{ fontStyle: "normal" }}>Eat the cup.</em>
-            </span>,
-            <span key={`e${k}`} className="marquee-dot" />,
-            <span
-              key={`c${k}`}
-              className="marquee-item"
-              style={{ fontFamily: "Pinyon Script", fontSize: 56 }}
-            >
-              But first, affogato
-            </span>,
-            <span key={`f${k}`} className="marquee-dot" />,
-            <span key={`g${k}`} className="marquee-item">
-              <em style={{ fontStyle: "normal" }}>Bologna · 1987</em>
-            </span>,
-            <span key={`h${k}`} className="marquee-dot" />,
-          ])}
-        </div>
-      </div>
-
       <section className="section-tight" style={{ background: "var(--bg)" }}>
         <div className="wrap-wide">
           <div className="reveal" data-row="locale-head">

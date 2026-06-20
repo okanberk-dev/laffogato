@@ -461,12 +461,7 @@ summary:focus-visible,
   opacity: 0.86;
 }
 .nav-topbar-dot {
-  display: inline-block;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--gold);
-  opacity: 0.6;
+  display: none;
 }
 @media (max-width: 760px) {
   .nav-topbar {
@@ -1235,37 +1230,37 @@ summary:focus-visible,
   opacity: 1;
   transform: none;
   transition:
-    opacity 0.7s var(--ease-out),
-    transform 0.7s var(--ease-out);
+    opacity 0.45s var(--ease-out),
+    transform 0.45s var(--ease-out);
 }
 /* Only elements <RevealMotion> marks as below-the-fold get the hidden "from"
    state, so above-the-fold content is never blank — no flash, and SSR / no-JS /
    crawlers never hide anything. */
 .reveal.will-reveal {
   opacity: 0;
-  transform: translateY(22px);
+  transform: translateY(10px);
 }
 .reveal.will-reveal.is-in {
   opacity: 1;
   transform: none;
 }
 .r1 {
-  transition-delay: 70ms;
+  transition-delay: 40ms;
 }
 .r2 {
-  transition-delay: 140ms;
+  transition-delay: 80ms;
 }
 .r3 {
-  transition-delay: 210ms;
+  transition-delay: 120ms;
 }
 .r4 {
-  transition-delay: 280ms;
+  transition-delay: 160ms;
 }
 .r5 {
-  transition-delay: 350ms;
+  transition-delay: 200ms;
 }
 .r6 {
-  transition-delay: 420ms;
+  transition-delay: 240ms;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1394,17 +1389,6 @@ summary:focus-visible,
   background: var(--bg-espresso);
   color: #fff;
   padding: clamp(64px, 8vw, 110px) var(--gutter) 0;
-  background-image:
-    radial-gradient(
-      circle at 12% 0%,
-      rgba(184, 138, 74, 0.08),
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at 92% 100%,
-      rgba(184, 138, 74, 0.05),
-      transparent 60%
-    );
 }
 
 /* Decorative top — monogram between thin lines */
@@ -1628,12 +1612,7 @@ summary:focus-visible,
   flex-wrap: wrap;
 }
 .footer-meta-dot {
-  display: inline-block;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--gold);
-  opacity: 0.6;
+  display: none;
 }
 .footer-meta-script {
   font-family: var(--serif);
@@ -2308,20 +2287,7 @@ summary:focus-visible,
   padding: clamp(150px, 17vw, 220px) 0 clamp(56px, 8vw, 96px);
 }
 .menu-hero-glow {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      ellipse at 18% 30%,
-      rgba(184, 138, 74, 0.22),
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse at 92% 88%,
-      rgba(229, 95, 126, 0.1),
-      transparent 55%
-    );
+  display: none;
 }
 .menu-hero-inner {
   position: relative;
@@ -2342,11 +2308,7 @@ summary:focus-visible,
   color: var(--gold-soft);
 }
 .menu-hero-pip {
-  width: 28px;
-  height: 1px;
-  border-radius: 0;
-  background: linear-gradient(90deg, var(--gold), transparent);
-  box-shadow: none;
+  display: none;
 }
 .menu-hero-title {
   font-family: var(--serif);
@@ -2427,15 +2389,7 @@ summary:focus-visible,
   height: 100%;
 }
 .menu-ss-scan {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  top: 10px;
-  height: 2px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, transparent, var(--gold), transparent);
-  box-shadow: 0 0 10px 1px rgba(184, 138, 74, 0.6);
-  animation: qrscan 2.6s var(--ease-out) infinite;
+  display: none;
 }
 @keyframes qrscan {
   0%,
@@ -2526,7 +2480,6 @@ summary:focus-visible,
 }
 .menu-ss-badge.on .menu-ss-badge-dot {
   background: var(--green);
-  animation: ss-pulse 1.8s ease-in-out infinite;
 }
 @keyframes ss-pulse {
   0%,
