@@ -70,13 +70,6 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M4 18a2 2 0 0 0 2 2h12" />
     </>
   ),
-  franchise: (
-    <>
-      <path d="m3 9 1.5-5h15L21 9" />
-      <path d="M4.5 9v9a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V9" />
-      <path d="M9.5 20v-5h5v5" />
-    </>
-  ),
   content: (
     <>
       <rect x="4" y="3" width="16" height="18" rx="2" />

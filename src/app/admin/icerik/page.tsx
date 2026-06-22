@@ -16,7 +16,7 @@ export default async function AdminContentPage() {
       <PageHeader
         eyebrow="İçerik · Site metinleri"
         title="Site Metinleri"
-        description="Ana sayfa, hikaye ve franchise bölümlerindeki düzenlenebilir başlık ve açıklamalar. Kaydettiğinde anında siteye yansır."
+        description="Ana sayfa ve hikaye bölümlerindeki düzenlenebilir başlık ve açıklamalar. Kaydettiğinde anında siteye yansır."
       />
       <ContentForm content={content} />
     </main>

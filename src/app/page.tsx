@@ -8,8 +8,6 @@ import {
   listActiveReels,
   listActivePress,
   listActiveStoryEvents,
-  listActiveFranchisePackages,
-  listActiveFranchiseSteps,
   listMenuForCustomer,
   listShopProducts,
 } from "@/lib/admin/store";
@@ -53,8 +51,6 @@ export default async function HomePage({ searchParams }: PageProps) {
     reels,
     press,
     storyEvents,
-    franchisePackages,
-    franchiseSteps,
     content,
   ] = await Promise.all([
     searchParams,
@@ -66,8 +62,6 @@ export default async function HomePage({ searchParams }: PageProps) {
     listActiveReels(),
     listActivePress(),
     listActiveStoryEvents(),
-    listActiveFranchisePackages(),
-    listActiveFranchiseSteps(),
     getSiteContent(),
   ]);
 
@@ -154,21 +148,6 @@ export default async function HomePage({ searchParams }: PageProps) {
           y: e.year,
           t: e.title,
           d: e.body,
-        }))}
-        franchisePackages={franchisePackages.map((p) => ({
-          name: p.name,
-          area: p.area,
-          seats: p.seats,
-          invest: p.invest,
-          monthly: p.monthly,
-          ideal: p.ideal,
-          includes: p.includes,
-          featured: p.featured,
-        }))}
-        franchiseSteps={franchiseSteps.map((s) => ({
-          n: s.step,
-          t: s.title,
-          d: s.body,
         }))}
         content={content}
         visit={visit}

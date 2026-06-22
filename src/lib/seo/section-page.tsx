@@ -1,6 +1,6 @@
 /**
  * Shared rendering shell for SPA section pages (/menu, /magaza, /hikayemiz,
- * /ziyaret, /franchise, /reels).
+ * /ziyaret, /reels).
  *
  * Each `src/app/<section>/page.tsx` is a 5-line file that calls
  * `renderSectionPage("menu")` and exports the metadata from `pageMetadata`.

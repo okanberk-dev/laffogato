@@ -53,10 +53,6 @@ export const FAQ: FaqEntry[] = [
     a: "L'Affogato 1987'de Giancarlo Mancuso tarafından Bologna Via Galliera 21'de açıldı. 1994'te yenilebilir kup patentlendi, 2008'de Sicilya Bronte pistacchio çiftlikleriyle doğrudan tedarik anlaşması yapıldı. 2026'da torunu Eda Mancuso ilk yurt dışı şubeyi İstanbul Tuzla'da açtı. Bugün İtalya dışındaki tek L'Affogato budur.",
   },
   {
-    q: "Franchise vermek istiyorum, nasıl başvururum?",
-    a: "Üç paketimiz var: Kiosk, Bottega ve Salone. Fiyatlandırma talep üzerine paylaşılır. Süreç: online başvuru → Bologna ekibiyle video görüşme → Tuzla ziyareti → sözleşme → Bologna'da 4–8 hafta eğitim ve açılış. Franchise sayfasından detaylı bilgi alabilirsiniz.",
-  },
-  {
     q: "Çocuk ve evcil hayvan dostu mu?",
     a: "Evet. Köşkün avlusu, bebek arabası erişimine uygundur. Çocuk menüsünde kafeinsiz babyccino, fior di latte single scoop ve bombolone alla crema bulunur. Köpekler köşkün bahçesinde karşılanır; su kabı ve ev yapımı dog biscuit ikram edilir.",
   },

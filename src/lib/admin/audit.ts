@@ -18,7 +18,6 @@ export type AuditEntity =
   | "reel"
   | "press"
   | "story"
-  | "franchise"
   | "content"
   | "order"
   | "order_item"
@@ -28,7 +27,6 @@ export type AuditEntity =
   | "stock"
   | "customer"
   | "newsletter"
-  | "franchise_application"
   | "legal_doc"
   | "auth"
   | "2fa";

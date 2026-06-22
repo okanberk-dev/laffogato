@@ -11,7 +11,6 @@ import {
   type Route,
 } from "./chrome";
 import {
-  PageFranchise,
   PageHome,
   PageMenu,
   PageReels,
@@ -36,7 +35,6 @@ const VALID_ROUTES: Route[] = [
   "story",
   "reels",
   "visit",
-  "franchise",
 ];
 
 const CART_STORAGE_KEY = "laffogato_cart_v1";
@@ -71,8 +69,6 @@ export function LaffogatoApp({
   reels,
   press,
   storyTimeline,
-  franchisePackages,
-  franchiseSteps,
   content,
   visit,
   freeShippingThreshold = 0,
@@ -90,21 +86,10 @@ export function LaffogatoApp({
   isAuthenticated?: boolean;
   /** Admin-managed shop hero slides — PageShop renders them at the top. */
   shopHeroSlides?: ShopHeroSlide[];
-  /** Admin-managed editorial content (reels / press / story / franchise). */
+  /** Admin-managed editorial content (reels / press / story). */
   reels?: { caption: string; meta: string; accent: string }[];
   press?: { name: string; quote: string }[];
   storyTimeline?: { y: string; t: string; d: string }[];
-  franchisePackages?: {
-    name: string;
-    area: string;
-    seats: string;
-    invest: string;
-    monthly: string;
-    ideal: string;
-    includes: string[];
-    featured?: boolean;
-  }[];
-  franchiseSteps?: { n: string; t: string; d: string }[];
   /** Admin-managed editable site copy (key → value). */
   content?: Record<string, string>;
   /** Visit page contact block, derived from admin settings. */
@@ -229,10 +214,7 @@ export function LaffogatoApp({
   };
 
   const dark =
-    route === "home" ||
-    route === "franchise" ||
-    route === "visit" ||
-    route === "menu";
+    route === "home" || route === "visit" || route === "menu";
 
   const pages: Record<Route, typeof PageHome> = {
     home: PageHome,
@@ -241,7 +223,6 @@ export function LaffogatoApp({
     story: PageStory,
     reels: PageReels,
     visit: PageVisit,
-    franchise: PageFranchise,
   };
   const Page = pages[route];
 
@@ -274,8 +255,6 @@ export function LaffogatoApp({
             reels={reels}
             press={press}
             storyTimeline={storyTimeline}
-            franchisePackages={franchisePackages}
-            franchiseSteps={franchiseSteps}
             content={content}
             visit={visit}
           />
@@ -310,8 +289,6 @@ export function LaffogatoApp({
           reels={reels}
           press={press}
           storyTimeline={storyTimeline}
-          franchisePackages={franchisePackages}
-          franchiseSteps={franchiseSteps}
           content={content}
           visit={visit}
         />

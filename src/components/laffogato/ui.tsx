@@ -903,7 +903,7 @@ function ProductModalBody({
               stock <= p.lowStockThreshold ? (
               <span style={{ color: "var(--rose)" }}>● Son {stock} adet</span>
             ) : (
-              <span style={{ color: "var(--green)" }}>● Stokta</span>
+              <span style={{ color: "var(--accent)" }}>● Stokta</span>
             )}
           </div>
         )}

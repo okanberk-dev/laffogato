@@ -28,17 +28,17 @@
   --gold-deep: #5b554d;
   --gold-soft: #d4cec3;
 
-  /* Brand accent — Starbucks-style deep house green on warm cream (accent
-     words, primary CTAs, links). Gold stays as the warm Italian secondary. */
-  --accent: #00754a;
-  --accent-deep: #005c3a;
-  --accent-soft: #d6e7df;
+  /* Brand accent — warm terracotta on cream (accent words, primary CTAs,
+     links). Replaces the previous house green. Gold (neutral grey) stays the
+     warm Italian secondary. */
+  --accent: #c0643a;
+  --accent-deep: #97461f;
+  --accent-soft: #ead3c4;
 
   /* Brand — espresso logo brown, used for the masked logo lockups */
   --brand: #2e2218;
 
   /* Semantic */
-  --green: #2f7a4e;
   --rose: #c5435a;
   --matcha: #6a8a4a;
 
@@ -1782,7 +1782,7 @@ summary:focus-visible,
   background: var(--gold);
 }
 .product-card-flag.new {
-  background: var(--green);
+  background: var(--accent);
 }
 .product-card-quick {
   position: absolute;
@@ -2156,6 +2156,8 @@ summary:focus-visible,
   background: #fff;
   border: 1px solid var(--ink-line);
   border-radius: var(--r-lg);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
   transition:
     transform 0.3s var(--ease-out),
     box-shadow 0.3s,
@@ -2164,7 +2166,7 @@ summary:focus-visible,
 .menu-item-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
-  border-color: var(--ink-line-strong);
+  border-color: var(--accent-soft);
 }
 .menu-item-img {
   width: 180px;
@@ -2193,8 +2195,8 @@ summary:focus-visible,
 .menu-item-price {
   font-family: var(--mono);
   font-size: 15px;
-  color: var(--gold-deep);
-  font-weight: 500;
+  color: var(--ink);
+  font-weight: 600;
   white-space: nowrap;
 }
 .menu-item-desc {
@@ -2203,14 +2205,16 @@ summary:focus-visible,
   color: var(--ink-soft);
   margin: 10px 0 14px;
 }
-.menu-item-foot {
+.menu-item-tags {
   margin-top: auto;
-  padding-top: 10px;
+  padding-top: 12px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+  gap: 6px;
   flex-wrap: wrap;
+}
+.menu-item-tags .chip {
+  padding: 4px 10px;
+  font-size: 9px;
 }
 
 /* Mobile: immersive 2-up gallery — image-top cards, magazine feel. */
@@ -2292,10 +2296,7 @@ summary:focus-visible,
 .menu-hero-inner {
   position: relative;
   z-index: 2;
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: clamp(36px, 6vw, 80px);
-  align-items: center;
+  max-width: 760px;
 }
 .menu-hero-eyebrow {
   display: inline-flex;
@@ -2470,7 +2471,7 @@ summary:focus-visible,
 }
 .menu-ss-badge.on {
   background: rgba(47, 122, 78, 0.12);
-  color: var(--green);
+  color: var(--accent);
 }
 .menu-ss-badge-dot {
   width: 7px;
@@ -2479,7 +2480,7 @@ summary:focus-visible,
   background: var(--gold);
 }
 .menu-ss-badge.on .menu-ss-badge-dot {
-  background: var(--green);
+  background: var(--accent);
 }
 @keyframes ss-pulse {
   0%,
@@ -3360,8 +3361,8 @@ summary:focus-visible,
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #2f7a4e;
-  box-shadow: 0 0 0 4px rgba(47, 122, 78, 0.2);
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(192, 100, 58, 0.22);
 }
 
 .reserve-card {
@@ -6752,7 +6753,7 @@ select {
   font-size: 13px;
 }
 .pdp-stock [data-tone="in"] {
-  color: var(--green);
+  color: var(--accent-deep);
 }
 .pdp-stock [data-tone="low"] {
   color: var(--rose);

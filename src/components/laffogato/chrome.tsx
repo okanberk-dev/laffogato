@@ -88,7 +88,6 @@ const LINKS: LinkEntry[] = [
   { route: "story", label: "Hikaye" },
   { route: "reels", label: "Reels" },
   { route: "visit", label: "Ziyaret" },
-  { route: "franchise", label: "Franchise" },
 ];
 
 /* The L'Affogato wordmark + monogram are now rendered from the brand logo
@@ -796,11 +795,6 @@ export function Footer({ navigate, settings }: FooterProps) {
             <li>
               <a href={hrefFor("reels")} onClick={go("reels")}>
                 Reels & Film
-              </a>
-            </li>
-            <li>
-              <a href={hrefFor("franchise")} onClick={go("franchise")}>
-                Franchise
               </a>
             </li>
             <li>
