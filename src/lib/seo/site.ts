@@ -120,7 +120,6 @@ export const SITE = {
     "matcha bar Tuzla",
     "Tuzla köşk kafe",
     "espresso Tuzla",
-    "franchise kahve",
   ],
 } as const;
 

@@ -51,9 +51,8 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
             fontSize: 17,
           }}
         >
-          Tuzla&rsquo;daki kafe, menü, yenilebilir kup, rezervasyon, online
-          sipariş ve franchise süreçleri hakkında en çok sorulan soruların
-          yanıtları.
+          Tuzla&rsquo;daki kafe, menü, yenilebilir kup, rezervasyon ve online
+          sipariş hakkında en çok sorulan soruların yanıtları.
         </p>
 
         <div style={{ display: "grid", gap: 12 }}>

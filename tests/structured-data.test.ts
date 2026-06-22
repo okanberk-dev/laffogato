@@ -1,17 +1,14 @@
 import { describe, it, expect } from "vitest";
 
 import { MENU, PRODUCTS } from "@/components/laffogato/data";
-import {
-  franchiseServiceLd,
-  menuLd,
-  siteGraphLd,
-} from "@/lib/seo/structured-data";
+import { menuLd, siteGraphLd } from "@/lib/seo/structured-data";
 
 const graph = JSON.stringify(siteGraphLd(MENU, PRODUCTS));
 
 describe("JSON-LD structured data — SEO audit fixes", () => {
-  it("does not advertise a €0 franchise (price '0' is guarded out)", () => {
-    expect(JSON.stringify(franchiseServiceLd())).not.toContain('"price":"0"');
+  it("emits no franchise markup (franchise fully removed from the site)", () => {
+    expect(graph).not.toMatch(/franchise/i);
+    expect(graph).not.toContain("/#franchise");
   });
 
   it("emits no fabricated VideoObject markup", () => {

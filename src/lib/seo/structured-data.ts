@@ -12,8 +12,6 @@
  *  - FAQPage
  *  - AboutPage (story/heritage timeline)
  *  - HowTo (how an affogato is made)
- *  - Service (franchise model)
- *  - Offer × 3 (Kiosk / Bottega / Salone franchise packages)
  *  - SpeakableSpecification (for voice assistants)
  *
  * All generators return plain JSON-serializable objects; consumer wraps in
@@ -23,7 +21,6 @@
 import { FAQ, type FaqEntry } from "./faq";
 import { SITE } from "./site";
 import {
-  FRANCHISE,
   STORY,
   type MenuCategory,
   type Product,
@@ -47,11 +44,6 @@ function slugify(s: string): string {
     .replace(/[çÇ]/g, "c")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
-}
-
-function eurAmount(s: string): { amount: string; currency: string } {
-  const cleaned = s.replace(/[^\d]/g, "");
-  return { amount: cleaned || "0", currency: "EUR" };
 }
 
 const PRICE_VALID_UNTIL = (() => {
@@ -95,13 +87,6 @@ export function organizationLd(): Json {
         email: SITE.email,
         contactType: "customer service",
         areaServed: "TR",
-        availableLanguage: ["Turkish", "English", "Italian"],
-      },
-      {
-        "@type": "ContactPoint",
-        email: "franchise@laffogato.it",
-        contactType: "franchise inquiries",
-        areaServed: ["TR", "EU"],
         availableLanguage: ["Turkish", "English", "Italian"],
       },
     ],
@@ -629,63 +614,6 @@ export function howToAffogatoLd(): Json {
   };
 }
 
-export function franchiseServiceLd(): Json {
-  return {
-    "@context": "https://schema.org",
-    "@type": "Service",
-    "@id": `${SITE.url}/#franchise`,
-    name: "L'Affogato Franchise",
-    description: FRANCHISE.pitch,
-    serviceType: "Franchise",
-    provider: { "@id": `${SITE.url}/#organization` },
-    areaServed: [
-      { "@type": "Country", name: "Türkiye" },
-      { "@type": "Country", name: "İtalya" },
-      { "@type": "AdministrativeArea", name: "European Union" },
-    ],
-    inLanguage: SITE.locale,
-    offers: FRANCHISE.packages.map((pkg) => {
-      const investment = eurAmount(pkg.invest);
-      const monthly = eurAmount(pkg.monthly);
-      const priceSpecification: Json[] = [];
-      if (investment.amount !== "0") {
-        priceSpecification.push({
-          "@type": "PriceSpecification",
-          name: "Başlangıç yatırımı",
-          price: investment.amount,
-          priceCurrency: investment.currency,
-        });
-      }
-      if (monthly.amount !== "0") {
-        priceSpecification.push({
-          "@type": "UnitPriceSpecification",
-          name: "Aylık franchise ücreti",
-          price: monthly.amount,
-          priceCurrency: monthly.currency,
-          referenceQuantity: {
-            "@type": "QuantitativeValue",
-            value: 1,
-            unitCode: "MON",
-          },
-        });
-      }
-      return {
-        "@type": "Offer",
-        "@id": `${SITE.url}/#franchise-${slugify(pkg.name)}`,
-        name: `Franchise — ${pkg.name}`,
-        description: `${pkg.area}, ${pkg.seats} koltuk. İdeal: ${pkg.ideal}. Dahil: ${pkg.includes.join(", ")}.`,
-        ...(priceSpecification.length ? { priceSpecification } : {}),
-        availability: "https://schema.org/InStock",
-        seller: { "@id": `${SITE.url}/#organization` },
-        eligibleRegion: [
-          { "@type": "Country", name: "Türkiye" },
-          { "@type": "Country", name: "İtalya" },
-        ],
-      };
-    }),
-  };
-}
-
 export function speakableLd(): Json {
   return {
     "@context": "https://schema.org",
@@ -726,7 +654,6 @@ export function siteGraphLd(
       faqLd(),
       aboutPageLd(),
       howToAffogatoLd(),
-      franchiseServiceLd(),
       speakableLd(),
       breadcrumbLd([
         { name: "Ana Sayfa", url: "/" },
@@ -735,7 +662,6 @@ export function siteGraphLd(
         { name: "Hikaye", url: "/hikayemiz" },
         { name: "Ziyaret · Tuzla", url: "/ziyaret" },
         { name: "Reels", url: "/reels" },
-        { name: "Franchise", url: "/franchise" },
       ]),
     ],
   };

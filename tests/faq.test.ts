@@ -5,7 +5,8 @@ import { FAQ } from "@/lib/seo/faq";
 const all = JSON.stringify(FAQ);
 
 describe("Customer FAQ content", () => {
-  it("franchise answer no longer hard-codes euro prices (matches 'on request')", () => {
+  it("carries no franchise content (franchise fully removed)", () => {
+    expect(all).not.toMatch(/franchise/i);
     expect(all).not.toContain("85.000");
     expect(all).not.toContain("140.000");
     expect(all).not.toContain("280.000");

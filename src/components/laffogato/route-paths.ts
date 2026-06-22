@@ -11,8 +11,7 @@ export type Route =
   | "shop"
   | "story"
   | "reels"
-  | "visit"
-  | "franchise";
+  | "visit";
 
 /** Her SPA bölümünün gerçek Next.js route'u. */
 export const ROUTE_PATHS: Record<Route, string> = {
@@ -22,7 +21,6 @@ export const ROUTE_PATHS: Record<Route, string> = {
   story: "/hikayemiz",
   reels: "/reels",
   visit: "/ziyaret",
-  franchise: "/franchise",
 };
 
 /** Ürün detay sayfası (PDP) yolu. */

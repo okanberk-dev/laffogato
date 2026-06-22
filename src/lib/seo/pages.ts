@@ -125,23 +125,6 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     priority: 0.85,
     changefreq: "monthly",
   },
-  franchise: {
-    route: "franchise",
-    path: ROUTE_PATHS.franchise,
-    title: "Franchise — Kiosk, Bottega, Salone",
-    description:
-      "L'Affogato franchise: kiosk, bottega ve salone paketleriyle kendi İtalyan kahve barınızı açın. Türkiye ve Avrupa için bayilik başvurusu.",
-    keywords: [
-      "kahve franchise",
-      "İtalyan kafe franchise",
-      "kiosk franchise",
-      "L'Affogato bayilik",
-      "gelato franchise Türkiye",
-    ],
-    breadcrumbLabel: "Franchise",
-    priority: 0.75,
-    changefreq: "monthly",
-  },
 };
 
 /** Category sub-routes under /menu — match data.ts MENU keys. */

@@ -16,7 +16,6 @@ import {
   REELS as SEED_REELS,
   PRESS as SEED_PRESS,
   STORY as SEED_STORY,
-  FRANCHISE as SEED_FRANCHISE,
   type MenuCategory as DesignMenuCategory,
   type Product as DesignProduct,
 } from "@/components/laffogato/data";
@@ -2702,7 +2701,7 @@ export async function deleteShopHeroSlide(id: string): Promise<void> {
   );
 }
 
-// ─── Editorial content (reels / press / story / franchise) ─────────────────
+// ─── Editorial content (reels / press / story) ─────────────────
 //
 // All five are simple sortable + toggleable lists. A single generic factory
 // gives each one a seed-on-first-read + CRUD surface backed by Supabase, so
@@ -2913,96 +2912,3 @@ export const createStoryEvent = (i: StoryEventInput) => storyResource.create(i);
 export const updateStoryEvent = (id: string, i: StoryEventInput) =>
   storyResource.update(id, i);
 export const deleteStoryEvent = storyResource.remove;
-
-// ── Franchise packages ──────────────────────────────────────────────────--
-export interface AdminFranchisePackage extends ContentRowBase {
-  name: string;
-  area: string;
-  seats: string;
-  invest: string;
-  monthly: string;
-  ideal: string;
-  includes: string[];
-  featured: boolean;
-}
-export interface FranchisePackageInput {
-  name: string;
-  area: string;
-  seats: string;
-  invest: string;
-  monthly: string;
-  ideal: string;
-  includes: string[];
-  featured: boolean;
-  sortOrder: number;
-  isActive: boolean;
-}
-const SEED_FR_PACKAGE_ROWS: AdminFranchisePackage[] =
-  SEED_FRANCHISE.packages.map((p, i) => ({
-    id: `frpkg-${String(i + 1).padStart(3, "0")}`,
-    name: p.name,
-    area: p.area,
-    seats: p.seats,
-    invest: p.invest,
-    monthly: p.monthly,
-    ideal: p.ideal,
-    includes: [...p.includes],
-    featured:
-      "featured" in p ? Boolean((p as { featured?: boolean }).featured) : false,
-    sortOrder: i,
-    isActive: true,
-    createdAt: "",
-    updatedAt: "",
-  }));
-const frPackagesResource = contentResource<AdminFranchisePackage>(
-  TABLES.franchisePackages,
-  SEED_FR_PACKAGE_ROWS,
-  "frpkg",
-);
-export const listFranchisePackages = frPackagesResource.list;
-export const listActiveFranchisePackages = frPackagesResource.listActive;
-export const getFranchisePackage = frPackagesResource.get;
-export const createFranchisePackage = (i: FranchisePackageInput) =>
-  frPackagesResource.create(i);
-export const updateFranchisePackage = (id: string, i: FranchisePackageInput) =>
-  frPackagesResource.update(id, i);
-export const deleteFranchisePackage = frPackagesResource.remove;
-
-// ── Franchise process steps ──────────────────────────────────────────────--
-export interface AdminFranchiseStep extends ContentRowBase {
-  step: string;
-  title: string;
-  body: string;
-}
-export interface FranchiseStepInput {
-  step: string;
-  title: string;
-  body: string;
-  sortOrder: number;
-  isActive: boolean;
-}
-const SEED_FR_STEP_ROWS: AdminFranchiseStep[] = SEED_FRANCHISE.process.map(
-  (p, i) => ({
-    id: `frstep-${String(i + 1).padStart(3, "0")}`,
-    step: p.n,
-    title: p.t,
-    body: p.d,
-    sortOrder: i,
-    isActive: true,
-    createdAt: "",
-    updatedAt: "",
-  }),
-);
-const frStepsResource = contentResource<AdminFranchiseStep>(
-  TABLES.franchiseProcess,
-  SEED_FR_STEP_ROWS,
-  "frstep",
-);
-export const listFranchiseSteps = frStepsResource.list;
-export const listActiveFranchiseSteps = frStepsResource.listActive;
-export const getFranchiseStep = frStepsResource.get;
-export const createFranchiseStep = (i: FranchiseStepInput) =>
-  frStepsResource.create(i);
-export const updateFranchiseStep = (id: string, i: FranchiseStepInput) =>
-  frStepsResource.update(id, i);
-export const deleteFranchiseStep = frStepsResource.remove;
