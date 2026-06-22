@@ -24,7 +24,6 @@
 - [Hikaye](/#story): 1987 Bologna'dan 2026 İstanbul'a markanın hikayesi
 - [Ziyaret](/#visit): Maltepe Park lokasyonu, ulaşım, rezervasyon
 - [Reels](/#reels): Mekan film ve sosyal medya içerikleri
-- [Franchise](/#franchise): Kiosk, Bottega, Salone paketleri ve başvuru süreci
 
 ## Menü Özeti
 
@@ -59,14 +58,6 @@
 - **2008** — Sicilya Bronte pistacchio çiftlikleriyle doğrudan tedarik anlaşması
 - **2026** — Eda Mancuso İstanbul Maltepe Park'ta ilk yurt dışı şubeyi açar
 
-## Franchise Paketleri
-
-- **Kiosk** (24–38 m², 6–10 koltuk): €85.000 yatırım, €2.400 aylık. AVM teras, premium plaza için.
-- **Bottega** (40–80 m², 12–24 koltuk): €140.000 yatırım, €3.800 aylık. Cadde, mahalle merkezi için.
-- **Salone** (90–160 m², 40–80 koltuk): €280.000 yatırım, €6.500 aylık. Premium AVM, butik otel için.
-
-Beklenen geri dönüş: 14 ay. Süreç: başvuru → video görüşme → Maltepe Park ziyareti → sözleşme → Bologna'da 4–8 hafta eğitim → açılış.
-
 ## Diyet ve Alerjen
 
 - Vegan: Affogato Cioccolato (vegan opsiyon), sorbe (çilek/mango/limon)
@@ -85,10 +76,9 @@ Ana sayfada tek `<script type="application/ld+json">` içinde aşağıdaki schem
 - FAQPage × 12 soru
 - AboutPage + Event timeline (1987/1994/2008/2026)
 - HowTo (Affogato Classico hazırlama, 4 adım)
-- Service (Franchise) + Offer × 3 (Kiosk/Bottega/Salone)
 - VideoObject × 8 (reels)
 - SpeakableSpecification (sesli asistanlar için)
-- BreadcrumbList (7 seviye)
+- BreadcrumbList (6 seviye)
 
 ## Kaynaklar
 

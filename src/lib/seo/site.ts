@@ -100,7 +100,6 @@ export const SITE = {
     "Bronte pistacchio",
     "İtalyan dondurma İstanbul",
     "rezervasyon Maltepe kafe",
-    "franchise kahve",
   ],
 } as const;
 

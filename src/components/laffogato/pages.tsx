@@ -2,7 +2,7 @@
 
 import { useState, Fragment } from "react";
 
-import { MENU, PRODUCTS, REELS, PRESS, STORY, LOCATION, BRAND, FRANCHISE } from "./data";
+import { MENU, PRODUCTS, REELS, PRESS, STORY, LOCATION, BRAND } from "./data";
 import type { MenuCategory } from "./data";
 import { ProductCard, SectionHead, Stat, CartItem } from "./ui";
 import type { Product } from "./data";
@@ -512,42 +512,6 @@ export function PageHome({ navigate, addToCart, products, menu }: PageProps) {
         </div>
       </section>
 
-      <section className="section">
-        <div
-          className="wrap"
-          style={{ display: "grid", gridTemplateColumns: "1fr 0.95fr", gap: 80, alignItems: "center" }}
-          data-row="franchise-teaser"
-        >
-          <div className="reveal">
-            <div className="eyebrow">07 — Franchise</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
-              Bring L’Affogato <br />
-              to <span className="script">your city.</span>
-            </h2>
-            <p className="lede" style={{ marginTop: 26 }}>
-              Bologna’dan ithal İtalyan kahve barı franchise konsepti. Üç paket — Kiosk, Bottega, Salone —
-              €85K’dan başlayan başlangıç yatırımı, 4 hafta İtalya eğitimi. İlk yıl 8 şube hedefi.
-            </p>
-            <div style={{ marginTop: 30, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-              <Stat n="€85K" l="Başlangıç (Kiosk)" />
-              <Stat n="14ay" l="Geri dönüş" />
-              <Stat n="4hf" l="İtalya eğitimi" />
-            </div>
-            <div style={{ display: "flex", gap: 12, marginTop: 36 }}>
-              <a href="#franchise" onClick={go("franchise")} className="btn btn-primary">
-                Başvuru formu <span className="arrow">→</span>
-              </a>
-              <a href="#franchise" onClick={go("franchise")} className="btn btn-ghost">
-                Paketler
-              </a>
-            </div>
-          </div>
-          <div className="reveal r1" style={{ display: "grid", placeItems: "center", padding: 30 }}>
-            <CupEmblem size={360} bg="#FAF7F2" />
-          </div>
-        </div>
-      </section>
-
       <section className="section-tight" style={{ background: "var(--bg-warm)" }}>
         <div className="wrap">
           <div className="eyebrow reveal" style={{ textAlign: "center", marginBottom: 50 }}>
@@ -629,17 +593,30 @@ export function PageMenu({ addToCart, menu }: PageProps) {
       </header>
 
       <div className="menu-tabs-wrap">
-        <div className="wrap" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className={`menu-tab ${active === "all" ? "on" : ""}`} onClick={() => setActive("all")}>
-            <span>Tümü</span>
-            <span className="count">{totalCount}</span>
-          </button>
-          {cats.map((c) => (
-            <button key={c} className={`menu-tab ${active === c ? "on" : ""}`} onClick={() => setActive(c)}>
-              <span>{liveMenu[c].title}</span>
-              <span className="count">{liveMenu[c].items.length}</span>
+        <div className="wrap">
+          <div className="menu-tabs-scroll" role="tablist" aria-label="Menü kategorileri">
+            <button
+              role="tab"
+              aria-selected={active === "all"}
+              className={`menu-tab ${active === "all" ? "on" : ""}`}
+              onClick={() => setActive("all")}
+            >
+              <span>Tümü</span>
+              <span className="count">{totalCount}</span>
             </button>
-          ))}
+            {cats.map((c) => (
+              <button
+                key={c}
+                role="tab"
+                aria-selected={active === c}
+                className={`menu-tab ${active === c ? "on" : ""}`}
+                onClick={() => setActive(c)}
+              >
+                <span>{liveMenu[c].title}</span>
+                <span className="count">{liveMenu[c].items.length}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -668,35 +645,8 @@ export function PageMenu({ addToCart, menu }: PageProps) {
                       </>
                     )}
                   </h2>
-                  <div
-                    style={{
-                      fontFamily: "var(--serif)",
-                      fontStyle: "italic",
-                      color: "var(--ink-mute)",
-                      marginTop: 14,
-                      fontSize: 18,
-                    }}
-                  >
-                    {c.italian}
-                  </div>
-                  {c.note && (
-                    <p
-                      style={{
-                        marginTop: 20,
-                        padding: "16px 20px",
-                        background: "var(--bg-stone)",
-                        borderRadius: "var(--r-sm)",
-                        fontFamily: "var(--serif)",
-                        fontStyle: "italic",
-                        fontSize: 14,
-                        lineHeight: 1.6,
-                        color: "var(--ink-soft)",
-                        maxWidth: 540,
-                      }}
-                    >
-                      {c.note}
-                    </p>
-                  )}
+                  <div className="menu-cat-italian">{c.italian}</div>
+                  {c.note && <p className="menu-cat-note">{c.note}</p>}
                 </div>
                 <div className="menu-cat-hero-img">
                   <PhotoSurface
@@ -712,50 +662,60 @@ export function PageMenu({ addToCart, menu }: PageProps) {
               </div>
 
               <div className="menu-grid">
-                {c.items.map((it, i) => (
-                  <article
-                    key={it.name}
-                    className="menu-item-card reveal"
-                    style={{ transitionDelay: `${(i % 4) * 60}ms` }}
-                  >
-                    <div className="menu-item-img">
-                      <MenuPlate hue={it.hue} name={it.name} />
-                      {it.tags?.includes("signature") && <div className="product-card-flag gold">FIRMA</div>}
-                      {it.tags?.includes("new") && !it.tags.includes("signature") && (
-                        <div className="product-card-flag new">NUOVO</div>
-                      )}
-                    </div>
-                    <div className="menu-item-body">
-                      <div className="menu-item-row">
-                        <h3 className="menu-item-name">{it.name}</h3>
-                        <div className="menu-item-price">{it.price}</div>
+                {c.items.map((it, i) => {
+                  const shownTags = (it.tags ?? []).filter(
+                    (t) => !["signature", "new"].includes(t),
+                  );
+                  return (
+                    <article
+                      key={it.name}
+                      className="menu-item-card reveal"
+                      style={{ transitionDelay: `${(i % 4) * 60}ms` }}
+                    >
+                      <div className="menu-item-img">
+                        <MenuPlate hue={it.hue} name={it.name} />
+                        {it.tags?.includes("signature") && (
+                          <div className="product-card-flag gold">FIRMA</div>
+                        )}
+                        {it.tags?.includes("new") && !it.tags.includes("signature") && (
+                          <div className="product-card-flag new">NUOVO</div>
+                        )}
                       </div>
-                      <p className="menu-item-desc">{it.desc}</p>
-                      <div className="menu-item-foot">
-                        {it.tags && it.tags.length > 0 && (
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            {it.tags
-                              .filter((t) => !["signature", "new"].includes(t))
-                              .map((t) => (
-                                <span key={t} className="chip chip-outline" style={{ padding: "4px 10px", fontSize: 9 }}>
+                      <div className="menu-item-body">
+                        <div className="menu-item-row">
+                          <h3 className="menu-item-name">{it.name}</h3>
+                          <span className="menu-item-lead" aria-hidden="true" />
+                          <span className="menu-item-price">{it.price}</span>
+                        </div>
+                        <p className="menu-item-desc">{it.desc}</p>
+                        <div className="menu-item-foot">
+                          {shownTags.length > 0 && (
+                            <div className="menu-item-tags">
+                              {shownTags.map((t) => (
+                                <span
+                                  key={t}
+                                  className="chip chip-outline"
+                                  style={{ padding: "4px 10px", fontSize: 9 }}
+                                >
                                   {t}
                                 </span>
                               ))}
-                          </div>
-                        )}
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            addToCart({ name: it.name, price: parseFloat(it.price) });
-                          }}
-                        >
-                          + Sepete ekle
-                        </button>
+                            </div>
+                          )}
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              addToCart({ name: it.name, price: parseFloat(it.price) });
+                            }}
+                          >
+                            + Sepete ekle
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             </div>
           </section>
@@ -1118,7 +1078,7 @@ export function PageStory(_props: PageProps) {
     { n: "02", t: "İtalyan reçete, yerel süt", d: "Bologna’dan haftalık kavurma. Trakya küçük mandıradan günlük süt. Her ürün izlenebilir." },
     { n: "03", t: "Laptop yok, ses az", d: "Akşam 18:00’dan sonra çalışma yok. Müzik 65dB üzerine çıkmaz. Bar, sohbet için." },
     { n: "04", t: "Zero waste", d: "Yenilebilir kup, kompost gelato bardağı, yeniden doldurulan teneke. 2025'ten beri tek kullanımlık plastik yok." },
-    { n: "05", t: "Yavaş büyüme", d: "Franchise dahil dikkatli seçim. İlk yıl 8 şube hedefi; ama Maltepe Park ana mekan kalacak." },
+    { n: "05", t: "Yavaş büyüme", d: "Acele açılış yok. Her yeni fikir önce Maltepe Park terasında denenir; ana mekân her zaman ana mekân kalır." },
     { n: "06", t: "Personel mutluluğu", d: "İlk yıl çalışan turnover’ı %0. Yıllık 6 hafta tatil, sigorta artı, Bologna ziyareti." },
   ];
 
@@ -2072,518 +2032,6 @@ export function PageReels(_props: PageProps) {
                   “{p.quote}”
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-/* ──────────────────────────────────────────────────────────────
-   FRANCHISE
-   ────────────────────────────────────────────────────────────── */
-
-export function PageFranchise(_props: PageProps) {
-  useReveal();
-  const [selected, setSelected] = useState("Bottega");
-  const [form, setForm] = useState({
-    name: "",
-    city: "",
-    email: "",
-    phone: "",
-    package: "Bottega",
-    experience: "F&B 1-5 yıl",
-    budget: "Bottega · €140K",
-    message: "",
-  });
-  const [submitted, setSubmitted] = useState(false);
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
-
-  const advantages: Array<[string, string]> = [
-    ["Signature edible cup", "1994 patentli waffle kup teknolojisi. Sadece L’Affogato."],
-    ["İtalyan menü, yerel süt", "Reçete Bologna’dan, süt ve gelato yerel."],
-    ["Düşük metrekare", "12–80 koltuk, 24m²'den başlar."],
-    ["Marka çekim gücü", "Sosyal medyada 100K+ etkileşim, Monocle basın."],
-  ];
-
-  const faqs: Array<[string, string]> = [
-    ["Daha önce F&B tecrübem yok, başvurabilir miyim?", "Evet. Bologna’daki 4 haftalık eğitim sıfırdan başlar. Aradığımız özellik; tutkulu, detaycı, marka değerleriyle uyumlu insan."],
-    ["Kavurma kendim mi yapacağım?", "Hayır. Tüm çekirdek Bologna’dan haftalık taze gönderilir. Salone paketinde isteğe bağlı yerel kavurma eklenebilir."],
-    ["Menüyü değiştirebilir miyim?", "Ana menü standart. Lokal lezzetler için sezonluk 2 ürün eklenebilir (Maltepe Park’ta strawberry affogato gibi)."],
-    ["Sözleşme süresi ne kadar?", "7 yıl + 7 yıl opsiyon. İlk 18 ayda iki performans değerlendirmesi."],
-    ["Hangi şehirler için açığız?", "Türkiye: tüm büyük şehirler. Yurt dışı: Avrupa (DE, NL, UK), Körfez (UAE, KSA, QA)."],
-    ["Master franchise hakları var mı?", "Evet. Şehir veya ülke bazlı master haklar müzakere edilebilir. Min. 5 şube taahhüdü."],
-  ];
-
-  return (
-    <div className="page" data-screen-label="07 Franchise">
-      <section className="franchise-hero">
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "radial-gradient(ellipse at 25% 35%, rgba(184, 138, 74, 0.2), transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(229, 95, 126, 0.1), transparent 55%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div className="wrap" style={{ position: "relative", zIndex: 2 }}>
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 60, alignItems: "center" }}
-            data-row="franchise-hero-row"
-          >
-            <div>
-              <div
-                className="reveal"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "8px 14px",
-                  borderRadius: 999,
-                  background: "rgba(255, 255, 255, 0.06)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                }}
-              >
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--gold)" }} />
-                <span className="eyebrow on-dark" style={{ color: "#FFF", opacity: 0.86 }}>
-                  VII — Franchise · Concessione di marca
-                </span>
-              </div>
-              <h1 className="h-display reveal r1" style={{ marginTop: 24, color: "#FFF" }}>
-                Bring <span className="script">L’Affogato</span>
-                <br />
-                to your city.
-              </h1>
-              <p className="lede reveal r2" style={{ marginTop: 30, color: "rgba(255, 255, 255, 0.78)", maxWidth: 540 }}>
-                {FRANCHISE.pitch} İtalyan reçete, İtalyan ekipmanı, İtalyan eğitimi.
-                Maltepe Park bizim ilk yurt dışı şubemiz — sırada Anadolu, Avrupa, Körfez var.
-              </p>
-              <div className="reveal r3" style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 36 }}>
-                <a href="#apply" className="btn btn-gold btn-lg">
-                  Başvuru formu <span className="arrow">→</span>
-                </a>
-                <a
-                  href="#packages"
-                  className="btn btn-ghost btn-lg"
-                  style={{ color: "#FFF", borderColor: "rgba(255, 255, 255, 0.3)" }}
-                >
-                  Paketleri incele
-                </a>
-              </div>
-              <div
-                className="reveal r4"
-                style={{
-                  marginTop: 60,
-                  paddingTop: 30,
-                  borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: 30,
-                }}
-              >
-                <div>
-                  <div className="eyebrow on-dark" style={{ marginBottom: 6, opacity: 0.65 }}>Heritage</div>
-                  <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 22 }}>{BRAND.heritage}</div>
-                </div>
-                <div>
-                  <div className="eyebrow on-dark" style={{ marginBottom: 6, opacity: 0.65 }}>Master TR</div>
-                  <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 22 }}>Maltepe Park</div>
-                </div>
-                <div>
-                  <div className="eyebrow on-dark" style={{ marginBottom: 6, opacity: 0.65 }}>Hedef · 2027</div>
-                  <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 22 }}>8 şube</div>
-                </div>
-              </div>
-            </div>
-            <div className="reveal r1" style={{ display: "grid", placeItems: "center" }}>
-              <CupEmblem size={420} bg="#F5E6D3" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section-tight" style={{ background: "var(--bg-warm)" }}>
-        <div
-          className="wrap"
-          style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 30 }}
-          data-row="franchise-stats"
-        >
-          {FRANCHISE.stats.map((s, i) => (
-            <div
-              key={s.l}
-              className="reveal"
-              style={{
-                transitionDelay: `${i * 60}ms`,
-                padding: 28,
-                background: "#FFF",
-                borderRadius: "var(--r-md)",
-              }}
-            >
-              <Stat n={s.n} l={s.l} d={s.d} />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="section">
-        <div
-          className="wrap"
-          style={{ display: "grid", gridTemplateColumns: "0.95fr 1.05fr", gap: 80, alignItems: "center" }}
-          data-row="why-row"
-        >
-          <div className="reveal" style={{ aspectRatio: "4/5", borderRadius: "var(--r-lg)", overflow: "hidden" }}>
-            <BarRenderScene />
-          </div>
-          <div className="reveal r1">
-            <div className="eyebrow">Perché L’Affogato</div>
-            <h2 className="h-1" style={{ marginTop: 16 }}>
-              Premium hissiyat, <span className="script">ulaşılabilir</span> fiyat.
-            </h2>
-            <p className="lede" style={{ marginTop: 22 }}>
-              Bir affogato 130₺. Bir matcha latte 120₺. Premium İtalyan kahve barı tecrübesini fast-casual fiyatla sunan
-              tek franchise konsepti. Misafir başına ortalama harcama €8–12.
-            </p>
-            <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
-              {advantages.map(([t, d]) => (
-                <div key={t} style={{ paddingTop: 22, borderTop: "1px solid var(--ink-line)" }}>
-                  <div className="eyebrow" style={{ marginBottom: 10 }}>Vantaggio</div>
-                  <div style={{ fontFamily: "var(--serif-display)", fontSize: 20, lineHeight: 1.2 }}>{t}</div>
-                  <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.55, marginTop: 8 }}>{d}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="packages" className="section" style={{ background: "var(--bg-warm)" }}>
-        <div className="wrap">
-          <SectionHead
-            alignment="center"
-            eyebrow="Pacchetti · three formats"
-            title={
-              <>
-                Choose your <span className="script">format.</span>
-              </>
-            }
-          />
-          <p className="lede reveal r1" style={{ textAlign: "center", margin: "20px auto 60px", maxWidth: 580 }}>
-            Her şehir farklı. Üç paketten birini seçin — Kiosk, Bottega ya da Salone. Tüm paketlerde aynı menü, aynı eğitim, aynı kalite.
-          </p>
-          <div className="packages-grid">
-            {FRANCHISE.packages.map((p, i) => (
-              <div
-                key={p.name}
-                className={`pkg-card reveal ${p.featured ? "featured" : ""} ${selected === p.name ? "selected" : ""}`}
-                style={{ transitionDelay: `${i * 80}ms` }}
-                onClick={() => {
-                  setSelected(p.name);
-                  setForm((f) => ({ ...f, package: p.name, budget: `${p.name} · ${p.invest}` }));
-                }}
-              >
-                {p.featured && <div className="pkg-flag">En çok seçilen</div>}
-                <div className="pkg-name">{p.name}</div>
-                <div className="pkg-area">
-                  {p.area} · {p.seats} koltuk
-                </div>
-
-                <div className="pkg-price">
-                  <div className="pkg-amount">{p.invest}</div>
-                  <div className="pkg-period">başlangıç yatırımı</div>
-                </div>
-
-                <ul className="pkg-list">
-                  {p.includes.map((x) => (
-                    <li key={x}>
-                      <span>✓</span>
-                      {x}
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="pkg-meta">
-                  <div>
-                    <span className="eyebrow on-dark">Aylık royalty</span>
-                    <strong>{p.monthly}</strong>
-                  </div>
-                  <div>
-                    <span className="eyebrow on-dark">İdeal lokasyon</span>
-                    <strong>{p.ideal}</strong>
-                  </div>
-                </div>
-
-                <button
-                  className={`btn ${p.featured ? "btn-light" : "btn-primary"}`}
-                  style={{ width: "100%", justifyContent: "center", marginTop: "auto" }}
-                >
-                  {p.name} ile başvur <span className="arrow">→</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="wrap">
-          <SectionHead
-            eyebrow="Il processo"
-            title={
-              <>
-                From <span className="script">application</span>
-                <br />
-                to opening.
-              </>
-            }
-            action={
-              <a href="#apply" className="btn-link">
-                Hemen başvur <span>→</span>
-              </a>
-            }
-          />
-          <div className="process-grid" style={{ marginTop: 50 }}>
-            {FRANCHISE.process.map((p, i) => (
-              <div key={p.n} className="reveal process-step" style={{ transitionDelay: `${i * 60}ms` }}>
-                <div className="process-step-num">{p.n}</div>
-                {i < FRANCHISE.process.length - 1 && <div className="process-step-line" />}
-                <h3 className="h-3" style={{ marginTop: 24 }}>{p.t}</h3>
-                <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.6, marginTop: 8 }}>{p.d}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="apply" className="section" style={{ background: "var(--bg-espresso)", color: "#FFF" }}>
-        <div
-          className="wrap"
-          style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 80 }}
-          data-row="apply-row"
-        >
-          <div className="reveal">
-            <div className="eyebrow on-dark">Modulo di candidatura</div>
-            <h2 className="h-1" style={{ marginTop: 16, color: "#FFF" }}>
-              Apply for <span className="script">franchise.</span>
-            </h2>
-            <p className="lede" style={{ marginTop: 22, color: "rgba(255, 255, 255, 0.78)" }}>
-              Bologna ekibi her başvuruyu 14 gün içinde değerlendirir. Onay alanlarla video görüşme,
-              ardından Maltepe Park’ı görmeye davet — kararsız mısınız, gelin bir affogato içelim.
-            </p>
-            <div
-              style={{
-                marginTop: 50,
-                padding: 30,
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: "var(--r-md)",
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 24,
-              }}
-            >
-              {[
-                ["İletişim", "franchise@laffogato.it"],
-                ["Türkiye", "+90 216 459 30 60"],
-                ["Bologna", "+39 051 233 887"],
-                ["Yanıt süresi", "14 iş günü"],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <div className="eyebrow on-dark" style={{ marginBottom: 6 }}>{k}</div>
-                  <div style={{ fontFamily: "var(--mono)", fontSize: 13 }}>{v}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <form className="reveal r1 apply-form dark-form" onSubmit={submit}>
-            {submitted ? (
-              <div className="apply-success">
-                <svg width="56" height="56" viewBox="0 0 16 16" fill="none">
-                  <circle cx="8" cy="8" r="7" fill="var(--gold)" />
-                  <path
-                    d="M4 8 L7 11 L12 5"
-                    stroke="#FFF"
-                    strokeWidth="1.4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    fill="none"
-                  />
-                </svg>
-                <div className="eyebrow on-dark" style={{ marginTop: 24, marginBottom: 14 }}>Grazie · Teşekkürler</div>
-                <h3 style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 40, lineHeight: 1.1, margin: 0 }}>
-                  Başvurun alındı.
-                </h3>
-                <p style={{ marginTop: 18, color: "rgba(255,255,255,0.78)", lineHeight: 1.6 }}>
-                  Bologna ekibi 14 iş günü içinde dönüş yapacak. Bu arada Maltepe Park terasında bir affogato seni bekliyor.
-                </p>
-                <div style={{ marginTop: 30, fontFamily: "var(--script)", fontSize: 36, color: "var(--gold)" }}>— Eda</div>
-                <button
-                  onClick={() => setSubmitted(false)}
-                  className="btn btn-ghost btn-sm"
-                  style={{ marginTop: 30, color: "#FFF", borderColor: "rgba(255,255,255,0.3)" }}
-                >
-                  Başka başvuru
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="form-row">
-                  <div>
-                    <div className="label">Ad Soyad</div>
-                    <input
-                      className="input"
-                      required
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      placeholder="Mario Rossi"
-                    />
-                  </div>
-                  <div>
-                    <div className="label">Hedef şehir</div>
-                    <input
-                      className="input"
-                      required
-                      value={form.city}
-                      onChange={(e) => setForm({ ...form, city: e.target.value })}
-                      placeholder="Ankara · Izmir · Milano…"
-                    />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div>
-                    <div className="label">E-posta</div>
-                    <input
-                      className="input"
-                      type="email"
-                      required
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      placeholder="merhaba@example.com"
-                    />
-                  </div>
-                  <div>
-                    <div className="label">Telefon</div>
-                    <input
-                      className="input"
-                      required
-                      value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      placeholder="+90 ___ ___ __ __"
-                    />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div>
-                    <div className="label">F&B deneyimi</div>
-                    <select
-                      className="select"
-                      value={form.experience}
-                      onChange={(e) => setForm({ ...form, experience: e.target.value })}
-                    >
-                      <option>Yok</option>
-                      <option>F&B 1-5 yıl</option>
-                      <option>F&B 5-10 yıl</option>
-                      <option>F&B 10+ yıl</option>
-                      <option>Master franchise</option>
-                    </select>
-                  </div>
-                  <div>
-                    <div className="label">Bütçe</div>
-                    <select
-                      className="select"
-                      value={form.budget}
-                      onChange={(e) => setForm({ ...form, budget: e.target.value })}
-                    >
-                      {FRANCHISE.packages.map((p) => (
-                        <option key={p.name}>
-                          {p.name} · {p.invest}
-                        </option>
-                      ))}
-                      <option>Karar vermedim</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <div className="label">Paket seçimi</div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {FRANCHISE.packages.map((p) => (
-                      <button
-                        type="button"
-                        key={p.name}
-                        className={`reserve-chip ${form.package === p.name ? "on" : ""}`}
-                        style={{
-                          background: form.package === p.name ? "var(--gold)" : "transparent",
-                          borderColor: form.package === p.name ? "var(--gold)" : "rgba(255,255,255,0.2)",
-                          color: form.package === p.name ? "#FFF" : "rgba(255,255,255,0.86)",
-                        }}
-                        onClick={() => setForm({ ...form, package: p.name, budget: `${p.name} · ${p.invest}` })}
-                      >
-                        {p.name} · <span style={{ opacity: 0.7, marginLeft: 4 }}>{p.invest}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <div className="label">Deneyim & lokasyon notu</div>
-                  <textarea
-                    className="textarea"
-                    rows={4}
-                    value={form.message}
-                    onChange={(e) => setForm({ ...form, message: e.target.value })}
-                    placeholder="F&B deneyiminiz, düşündüğünüz lokasyon, başlangıç tarihiniz…"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="btn btn-gold btn-lg"
-                  style={{ width: "100%", justifyContent: "space-between", marginTop: 8 }}
-                >
-                  <span>Başvuruyu gönder</span>
-                  <span className="arrow">→</span>
-                </button>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "rgba(255,255,255,0.5)",
-                    lineHeight: 1.5,
-                    marginTop: 10,
-                    fontFamily: "var(--mono)",
-                  }}
-                >
-                  Bilgileriniz yalnızca franchise değerlendirme için kullanılır. KVKK & GDPR uyumlu.
-                </div>
-              </>
-            )}
-          </form>
-        </div>
-      </section>
-
-      <section className="section-tight">
-        <div className="wrap-narrow">
-          <SectionHead
-            alignment="center"
-            eyebrow="Domande frequenti"
-            title={
-              <>
-                Sıkça <span className="script">sorulanlar.</span>
-              </>
-            }
-          />
-          <div style={{ marginTop: 50 }}>
-            {faqs.map(([q, a], i) => (
-              <details key={i} className="reveal faq" style={{ transitionDelay: `${i * 50}ms` }}>
-                <summary>
-                  <span>{q}</span>
-                  <span className="faq-icon">+</span>
-                </summary>
-                <p>{a}</p>
-              </details>
             ))}
           </div>
         </div>

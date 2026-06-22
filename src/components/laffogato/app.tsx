@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { Footer, Nav, type FooterSettings, type Route } from "./chrome";
 import {
-  PageFranchise,
   PageHome,
   PageMenu,
   PageReels,
@@ -22,7 +21,6 @@ const VALID_ROUTES: Route[] = [
   "story",
   "reels",
   "visit",
-  "franchise",
 ];
 
 const CART_STORAGE_KEY = "laffogato_cart_v1";
@@ -136,7 +134,7 @@ export function LaffogatoApp({
     setCart((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const dark = route === "home" || route === "franchise" || route === "visit";
+  const dark = route === "home" || route === "visit";
 
   const pages: Record<Route, typeof PageHome> = {
     home: PageHome,
@@ -145,7 +143,6 @@ export function LaffogatoApp({
     story: PageStory,
     reels: PageReels,
     visit: PageVisit,
-    franchise: PageFranchise,
   };
   const Page = pages[route];
 

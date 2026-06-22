@@ -8,8 +8,7 @@ export type Route =
   | "shop"
   | "story"
   | "reels"
-  | "visit"
-  | "franchise";
+  | "visit";
 
 interface NavProps {
   route: Route;
@@ -27,7 +26,6 @@ const LINKS: Array<[Route, string]> = [
   ["story", "Story"],
   ["reels", "Reels"],
   ["visit", "Visit"],
-  ["franchise", "Franchise"],
 ];
 
 export function Nav({ route, navigate, dark, cart = 0, onCart, onSearch }: NavProps) {
@@ -259,7 +257,6 @@ export function Footer({ navigate, settings }: FooterProps) {
           <ul>
             <li><a href="#story" onClick={go("story")}>Hikayemiz</a></li>
             <li><a href="#reels" onClick={go("reels")}>Reels & Film</a></li>
-            <li><a href="#franchise" onClick={go("franchise")}>Franchise</a></li>
             <li><a href="#visit" onClick={go("visit")}>Maltepe Park</a></li>
             <li><a href="#" onClick={(e) => e.preventDefault()}>Press</a></li>
           </ul>

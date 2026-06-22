@@ -51,7 +51,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
             fontSize: 17,
           }}
         >
-          Maltepe Park&rsquo;taki kafe, menü, yenilebilir kup, rezervasyon, online sipariş ve franchise süreçleri hakkında en çok sorulan soruların yanıtları.
+          Maltepe Park&rsquo;taki kafe, menü, yenilebilir kup, rezervasyon ve online sipariş hakkında en çok sorulan soruların yanıtları.
         </p>
 
         <div style={{ display: "grid", gap: 12 }}>
