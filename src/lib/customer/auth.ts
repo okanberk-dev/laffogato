@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { publicRead } from "@/lib/db/health";
+
 import { getCustomerByEmail, type PublicCustomer } from "./store";
 
 const COOKIE_NAME = "laffogato_customer_session";
@@ -59,7 +61,12 @@ export async function getCustomerSession(): Promise<CustomerSession | null> {
 export async function getActiveCustomer(): Promise<PublicCustomer | null> {
   const session = await getCustomerSession();
   if (!session) return null;
-  const customer = await getCustomerByEmail(session.email);
+  // Fails CLOSED when the database is unreachable: the visitor is treated as
+  // logged out rather than the page erroring. Nothing is granted by this path —
+  // every action that matters re-checks the account server-side.
+  const customer = await publicRead("getActiveCustomer", null, () =>
+    getCustomerByEmail(session.email),
+  );
   // A deactivated account is treated as logged-out everywhere (login is also
   // blocked in verifyCustomerLogin) — this closes the live-session gap so a
   // member deactivated mid-session can no longer place orders or view account.

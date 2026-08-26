@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getDb, TABLES } from "@/lib/db";
+import { isDbUnreachable, markDegraded, raiseDbError } from "@/lib/db/health";
 
 import { CONTENT_FIELDS, contentDefaults } from "./content-fields";
 
@@ -27,17 +28,20 @@ export async function getSiteContent(): Promise<Record<string, string>> {
   const out = contentDefaults();
   try {
     const sb = getDb();
-    const { data, error } = await sb
+    const { data, error, status } = await sb
       .from(TABLES.siteContent)
       .select("key, value");
-    if (error) throw new Error(error.message);
+    if (error) raiseDbError("getSiteContent", error, status);
     for (const row of data ?? []) {
       if (VALID_KEYS.has(row.key) && typeof row.value === "string") {
         out[row.key] = row.value;
       }
     }
-  } catch {
-    // Boş tablo / bağlantı yoksa default'larla devam et.
+  } catch (err) {
+    // An unreachable database falls back to the bundled defaults; a rejected
+    // query is a bug and must not be swallowed.
+    if (!isDbUnreachable(err)) throw err;
+    markDegraded();
   }
   return out;
 }

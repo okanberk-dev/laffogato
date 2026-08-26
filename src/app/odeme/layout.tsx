@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { SiteChrome } from "@/components/laffogato/site-chrome";
-import { getSettings } from "@/lib/admin/store";
+import { getPublicSettings } from "@/lib/admin/store";
 
 export const metadata: Metadata = {
   title: "Ödeme",
@@ -13,7 +13,7 @@ export default async function OdemeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const settings = await getSettings();
+  const settings = await getPublicSettings();
   return (
     <SiteChrome
       settings={{

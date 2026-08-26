@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { VerifyNotice } from "@/components/customer/verify-notice";
-import { getSettings } from "@/lib/admin/store";
+import { getPublicSettings } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
 
 import { CheckoutWizard } from "./checkout-wizard";
@@ -27,10 +27,11 @@ export const metadata = { title: "Ödeme · L'Affogato" };
 export const dynamic = "force-dynamic";
 
 export default async function OdemePage() {
-  const [customer, settings] = await Promise.all([
-    getActiveCustomer(),
-    getSettings(),
-  ]);
+  // Settings first: if the shop is closed — including because the database is
+  // unreachable, which forces it closed — nothing else needs loading, and the
+  // wizard must not render against fallback tax and shipping values.
+  const settings = await getPublicSettings();
+  const customer = settings.isShopOpen ? await getActiveCustomer() : null;
   const config = {
     shippingFlatMinor: settings.shippingFlatMinor,
     shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
@@ -71,7 +72,34 @@ export default async function OdemePage() {
             </span>
           </div>
         </header>
-        {!customer ? (
+        {!settings.isShopOpen ? (
+          <GatePanel>
+            <h2
+              style={{
+                fontFamily: "var(--serif)",
+                fontStyle: "normal",
+                fontSize: 26,
+                marginBottom: 10,
+              }}
+            >
+              Şu an sipariş alamıyoruz
+            </h2>
+            <p
+              style={{
+                color: "rgba(20,16,11,0.7)",
+                lineHeight: 1.6,
+                fontSize: 15,
+                marginBottom: 22,
+              }}
+            >
+              Mağaza geçici olarak siparişe kapalı. Sepetin korunuyor — birazdan
+              tekrar denersen kaldığın yerden devam edebilirsin.
+            </p>
+            <Link href="/#shop" className="btn btn-primary btn-sm">
+              Mağazaya dön
+            </Link>
+          </GatePanel>
+        ) : !customer ? (
           <GatePanel>
             <h2
               style={{

@@ -11,7 +11,7 @@
 import { LaffogatoApp } from "@/components/laffogato/app";
 import type { Route } from "@/components/laffogato/chrome";
 import {
-  getSettings,
+  getPublicSettings,
   listActiveShopHeroSlides,
   listMenuForCustomer,
   listShopProducts,
@@ -26,6 +26,7 @@ import {
 } from "@/lib/seo/structured-data";
 
 import type { Metadata } from "next";
+import { isDegradedRequest } from "@/lib/db/health";
 
 export function pageMetadata(route: Route): Metadata {
   const seo = PAGE_SEO[route];
@@ -63,7 +64,7 @@ export async function renderSectionPage(route: Route) {
   const seo = PAGE_SEO[route];
   const [products, settings, menu, customer, heroSlides] = await Promise.all([
     listShopProducts(),
-    getSettings(),
+    getPublicSettings(),
     listMenuForCustomer(),
     getActiveCustomer(),
     listActiveShopHeroSlides(),
@@ -95,6 +96,7 @@ export async function renderSectionPage(route: Route) {
         />
       ))}
       <LaffogatoApp
+        degraded={isDegradedRequest()}
         initialRoute={route}
         products={products}
         settings={{

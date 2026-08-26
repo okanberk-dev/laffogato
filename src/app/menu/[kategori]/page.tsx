@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { LaffogatoApp } from "@/components/laffogato/app";
 import { SeoContent } from "@/components/laffogato/seo-content";
 import {
-  getSettings,
+  getPublicSettings,
   listActiveShopHeroSlides,
   listMenuForCustomer,
   listShopProducts,
@@ -13,6 +13,7 @@ import { getActiveCustomer } from "@/lib/customer/auth";
 import { FAQ } from "@/lib/seo/faq";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { breadcrumbLd } from "@/lib/seo/structured-data";
+import { isDegradedRequest } from "@/lib/db/health";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +59,7 @@ export default async function MenuCategoryPage({ params }: RouteParams) {
   const [products, settings, fullMenu, customer, heroSlides] =
     await Promise.all([
       listShopProducts(),
-      getSettings(),
+      getPublicSettings(),
       listMenuForCustomer(),
       getActiveCustomer(),
       listActiveShopHeroSlides(),
@@ -83,6 +84,7 @@ export default async function MenuCategoryPage({ params }: RouteParams) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
       />
       <LaffogatoApp
+        degraded={isDegradedRequest()}
         initialRoute="menu"
         products={products}
         settings={{

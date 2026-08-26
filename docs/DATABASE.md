@@ -90,3 +90,39 @@ Detay için `new-migration` skill'i.
 ```bash
 pg_dump "$DATABASE_URL" > backup-$(date +%F).sql
 ```
+
+## Veritabanı ulaşılamazsa ne oluyor
+
+Eski davranış: tek bir bağlantı hatası **her sayfayı HTTP 500** yapıyordu.
+Üretimde bu bir ay sürdü. Artık genel (public) sayfalar pakette gelen içerikle
+ayakta kalır; ticari yollar ise sesli şekilde başarısız olur.
+
+Ayrım `src/lib/db/health.ts` içinde yapılır ve tek bir sinyale dayanır:
+Postgres'e ulaşan her hata bir **SQLSTATE** taşır. SQLSTATE yoksa istek hiç
+ulaşmamıştır (`status: 0`, boş `code`) — yalnız bu durum bozulmaya (degrade)
+uygundur. Hatalı kolon, kısıt ihlali, kimlik doğrulama reddi gibi gerçek hatalar
+**maskelenmez**, eskisi gibi hata verir.
+
+| Alan | Ulaşılamazken |
+|------|---------------|
+| Ana sayfa, hikaye, ziyaret, reels | Pakette gelen içerikle render edilir |
+| Kafe menüsü | Yapı gösterilir, **fiyatlar `—`** (bayat fiyat göstermek yerine) |
+| Mağaza | **Boş** — asla paketteki kurgusal ürünlere düşmez |
+| Ürün detay | "Şu an gösteremiyoruz" (404 değil — gerçek URL'ler deindekslenmesin) |
+| Yasal metinler | Paketteki asıl metin (DB yalnız override tutar) |
+| Ayarlar | Varsayılanlar, **`isShopOpen: false`** |
+| Ödeme | "Şu an sipariş alamıyoruz" kapısı |
+| Üye oturumu | Çıkış yapmış sayılır (fail-closed) |
+| Admin panel, tüm mutasyonlar, webhook | **Hata verir** — bozulma yok |
+
+Ziyaretçiye durumu açıklayan bir bant gösterilir; ayrıca her düşüş
+`[db-degraded]` etiketiyle sunucu loglarına yazılır, böylece arıza görünmez
+kalmaz.
+
+**Bu davranışı genişletirken kural:** `publicRead()` yalnızca salt-okunur,
+sunumsal veriler için kullanılır. Bir fiyat, stok, yetki ya da siparişin
+verilebilir olup olmadığı **asla** yedek veriden karar bağlanmaz.
+
+Seed yardımcıları artık reddedilen promise'i önbelleğe almıyor
+(`memoizeUntilRejected`): eskiden tek bir hata o sunucu örneğini kalıcı olarak
+bozuyor, düzelme için yeniden deploy gerekiyordu.

@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+
+import { isDegradedRequest } from "@/lib/db/health";
 
 import { ProductDetail } from "@/components/laffogato/product-detail";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import {
-  getSettings,
+  getPublicSettings,
   getShopProductBySlug,
   listRelatedShopProducts,
   type ShopCategoryId,
@@ -80,10 +83,52 @@ export async function generateMetadata({
   };
 }
 
+function ProductUnavailable() {
+  return (
+    <main
+      style={{
+        maxWidth: 560,
+        margin: "0 auto",
+        padding: "96px 24px",
+        textAlign: "center",
+      }}
+    >
+      <h1
+        style={{
+          fontFamily: "var(--serif)",
+          fontStyle: "normal",
+          fontSize: 30,
+          marginBottom: 12,
+        }}
+      >
+        Bu ürünü şu an gösteremiyoruz
+      </h1>
+      <p
+        style={{
+          color: "rgba(20,16,11,0.7)",
+          lineHeight: 1.6,
+          marginBottom: 24,
+        }}
+      >
+        Geçici bir aksaklık yaşıyoruz. Birazdan tekrar dener misin?
+      </p>
+      <Link href="/magaza" className="btn btn-primary btn-sm">
+        Mağazaya dön
+      </Link>
+    </main>
+  );
+}
+
 export default async function ProductDetailPage({ params }: RouteParams) {
   const { slug } = await params;
   const product = await getShopProductBySlug(slug);
-  if (!product) notFound();
+  if (!product) {
+    // A missing product is a genuine 404 — but during a database outage every
+    // product reads as missing, and 404-ing real product URLs would get them
+    // deindexed. Serve an honest "temporarily unavailable" page instead.
+    if (isDegradedRequest()) return <ProductUnavailable />;
+    notFound();
+  }
 
   const [related, settings] = await Promise.all([
     listRelatedShopProducts(
@@ -91,7 +136,7 @@ export default async function ProductDetailPage({ params }: RouteParams) {
       product.id ?? "",
       4,
     ),
-    getSettings(),
+    getPublicSettings(),
   ]);
 
   const breadcrumb = breadcrumbLd([

@@ -163,6 +163,20 @@ Erişim tek bir owner bağlantısı üzerinden ve tamamen server-side olduğu i�
 Kalan/ileri adımlar:
 - Auth şu an admin env-cookie + müşteri bcrypt; ikisi de çalışıyor
 
+## Veritabanı Kesintisinde Davranış
+
+Genel sayfalar DB'ye ulaşılamazsa pakette gelen içerikle ayakta kalır; ticari
+yollar sesli başarısız olur. Ayrım `src/lib/db/health.ts`'te: SQLSTATE taşıyan
+her hata gerçek hatadır ve maskelenmez, yalnız `status: 0` + boş `code`
+(istek Postgres'e hiç ulaşmadı) bozulmaya uygundur.
+
+- `publicRead()` **yalnızca** salt-okunur sunum verisi içindir.
+- Fiyat, stok, yetki ya da siparişin verilebilirliği **asla** yedek veriden
+  karar bağlanmaz — `getSettings()` (throw eden) ticari yollarda kalır,
+  `getPublicSettings()` yalnız sunum içindir.
+- Mağaza bozulmada **boş** kalır, paketteki kurgusal ürünlere düşmez.
+- Detay: `docs/DATABASE.md`.
+
 ## Güvenlik Kuralları
 
 1. **Admin cookie:** HMAC SHA256 imzalı, httpOnly, `sameSite=lax`, 7 gün TTL. Secret en az 32 karakter

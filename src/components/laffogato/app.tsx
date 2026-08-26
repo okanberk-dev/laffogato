@@ -57,6 +57,25 @@ function readStoredCart(): CartItem[] {
   }
 }
 
+function DegradedNotice() {
+  return (
+    <div
+      role="status"
+      style={{
+        background: "var(--ink, #14100b)",
+        color: "#fff",
+        padding: "10px 16px",
+        textAlign: "center",
+        fontSize: 13,
+        lineHeight: 1.5,
+      }}
+    >
+      Şu an canlı verilerimize ulaşamıyoruz — menü ve mağaza geçici olarak
+      güncel olmayabilir, sipariş alamıyoruz. Kısa süre içinde döneceğiz.
+    </div>
+  );
+}
+
 export function LaffogatoApp({
   products,
   settings,
@@ -72,9 +91,14 @@ export function LaffogatoApp({
   content,
   visit,
   freeShippingThreshold = 0,
+  degraded = false,
   initialRoute = "home",
 }: {
   products?: Product[];
+  /** True when the database was unreachable and this page is running on
+   *  bundled content. Drives the notice that tells visitors what they are
+   *  looking at, so an out-of-date page is never passed off as live. */
+  degraded?: boolean;
   settings?: FooterSettings;
   notice?: string;
   menu?: Record<string, MenuCategory>;
@@ -236,6 +260,7 @@ export function LaffogatoApp({
         <a href="#main" className="skip-link">
           İçeriğe geç
         </a>
+        {degraded ? <DegradedNotice /> : null}
         <Nav
           route={route}
           navigate={navigate}
@@ -270,6 +295,7 @@ export function LaffogatoApp({
       <a href="#main" className="skip-link">
         İçeriğe geç
       </a>
+      {degraded ? <DegradedNotice /> : null}
       <Nav
         route={route}
         navigate={navigate}

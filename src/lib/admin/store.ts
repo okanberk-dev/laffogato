@@ -3,6 +3,11 @@ import "server-only";
 import type { DbError } from "@/lib/db";
 
 import { getDb, TABLES } from "@/lib/db";
+import {
+  memoizeUntilRejected,
+  publicRead,
+  raiseDbError,
+} from "@/lib/db/health";
 import { nextSeq } from "@/lib/db/counters";
 import {
   applyCustomerCoupon,
@@ -170,24 +175,30 @@ export interface AdminSettings {
 
 // ─── Supabase helpers ──────────────────────────────────────────────────────
 
+// Every failed result goes through raiseDbError, which distinguishes a query
+// the database rejected (fatal) from a database that was never reached
+// (degradable). See src/lib/db/health.ts.
 function rows<T>(
-  res: { data: T[] | null; error: DbError | null },
+  res: { data: T[] | null; error: DbError | null; status: number },
   ctx: string,
 ): T[] {
-  if (res.error) throw new Error(`${ctx}: ${res.error.message}`);
+  if (res.error) raiseDbError(ctx, res.error, res.status);
   return res.data ?? [];
 }
 
 function one<T>(
-  res: { data: T | null; error: DbError | null },
+  res: { data: T | null; error: DbError | null; status: number },
   ctx: string,
 ): T | null {
-  if (res.error) throw new Error(`${ctx}: ${res.error.message}`);
+  if (res.error) raiseDbError(ctx, res.error, res.status);
   return res.data;
 }
 
-function check(res: { error: DbError | null }, ctx: string): void {
-  if (res.error) throw new Error(`${ctx}: ${res.error.message}`);
+function check(
+  res: { error: DbError | null; status: number },
+  ctx: string,
+): void {
+  if (res.error) raiseDbError(ctx, res.error, res.status);
 }
 
 async function countRows(table: string): Promise<number> {
@@ -195,13 +206,7 @@ async function countRows(table: string): Promise<number> {
   const { count, error, status } = await sb
     .from(table)
     .select("*", { count: "exact", head: true });
-  // head:true issues a HEAD request whose error body is empty, so error.message
-  // is blank — fall back to the HTTP status for a useful message.
-  if (error) {
-    throw new Error(
-      `count(${table}) [${status}]: ${error.message || "request failed"}`,
-    );
-  }
+  if (error) raiseDbError(`count(${table})`, error, status);
   return count ?? 0;
 }
 
@@ -299,11 +304,8 @@ function defaultSettings(): AdminSettings {
   };
 }
 
-let seedPromise: Promise<void> | null = null;
-
-async function ensureSeed(): Promise<void> {
-  if (seedPromise) return seedPromise;
-  seedPromise = (async () => {
+const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
+  {
     const sb = getDb();
     const now = new Date().toISOString();
 
@@ -534,9 +536,8 @@ async function ensureSeed(): Promise<void> {
       await setCounter("ord", demoOrders.length);
       await setCounter("orderNo", 10_003);
     }
-  })();
-  return seedPromise;
-}
+  }
+});
 
 // ─── Products ─────────────────────────────────────────────────────────────
 
@@ -1775,6 +1776,22 @@ export async function refundOrder(
 
 // ─── Settings ─────────────────────────────────────────────────────────────
 
+/**
+ * Settings for public, presentational rendering (footer, opening hours, SEO).
+ *
+ * Degrades to the defaults with the shop forced CLOSED, so a database outage
+ * can never leave checkout looking open. Commerce and admin must keep calling
+ * `getSettings()`, which throws — deciding tax, shipping or whether an order
+ * may be placed from fallback values would be a real financial error.
+ */
+export async function getPublicSettings(): Promise<AdminSettings> {
+  return publicRead(
+    "getPublicSettings",
+    { ...defaultSettings(), isShopOpen: false },
+    () => getSettings(),
+  );
+}
+
 export async function getSettings(): Promise<AdminSettings> {
   await ensureSeed();
   const sb = getDb();
@@ -1923,12 +1940,25 @@ function toDesignProduct(p: AdminProduct): DesignProduct {
 }
 
 export async function listShopProducts(): Promise<DesignProduct[]> {
-  const all = await listProducts();
-  return all.filter((p) => p.isActive).map(toDesignProduct);
+  // Falls back to an EMPTY shop, never to the bundled seed products: a price or
+  // a stock count from the seed would be fiction, and the shop must not sell
+  // against fiction. An empty shop plus the outage banner is honest.
+  return publicRead("listShopProducts", [] as DesignProduct[], async () => {
+    const all = await listProducts();
+    return all.filter((p) => p.isActive).map(toDesignProduct);
+  });
 }
 
 /** Single active product by slug — for the PDP (/magaza/urun/<slug>). */
 export async function getShopProductBySlug(
+  slug: string,
+): Promise<DesignProduct | null> {
+  return publicRead("getShopProductBySlug", null, () =>
+    getShopProductBySlugLive(slug),
+  );
+}
+
+async function getShopProductBySlugLive(
   slug: string,
 ): Promise<DesignProduct | null> {
   await ensureSeed();
@@ -1951,6 +1981,16 @@ export async function listRelatedShopProducts(
   cat: ShopCategoryId,
   excludeId: string,
   limit = 4,
+): Promise<DesignProduct[]> {
+  return publicRead("listRelatedShopProducts", [] as DesignProduct[], () =>
+    listRelatedShopProductsLive(cat, excludeId, limit),
+  );
+}
+
+async function listRelatedShopProductsLive(
+  cat: ShopCategoryId,
+  excludeId: string,
+  limit: number,
 ): Promise<DesignProduct[]> {
   await ensureSeed();
   const sb = getDb();
@@ -2141,7 +2181,36 @@ export async function bulkUpdateMenuItems(
   return { updated: res.length };
 }
 
+/**
+ * The bundled cafe menu with every price replaced by an em dash.
+ *
+ * The menu is a view-only listing, so its structure is still worth showing
+ * during an outage — but a price from the bundled seed may be out of date, and
+ * showing a wrong price to someone standing at the counter is worse than
+ * showing none.
+ */
+function menuWithoutPrices(): Record<string, DesignMenuCategory> {
+  const out: Record<string, DesignMenuCategory> = {};
+  for (const key of MENU_CATEGORY_KEYS) {
+    const meta = SEED_MENU[key];
+    if (!meta) continue;
+    out[key] = {
+      ...meta,
+      items: meta.items.map((it) => ({ ...it, price: "—" })),
+    };
+  }
+  return out;
+}
+
 export async function listMenuForCustomer(): Promise<
+  Record<string, DesignMenuCategory>
+> {
+  return publicRead("listMenuForCustomer", menuWithoutPrices(), () =>
+    listMenuForCustomerLive(),
+  );
+}
+
+async function listMenuForCustomerLive(): Promise<
   Record<string, DesignMenuCategory>
 > {
   const all = await listMenuItems();
@@ -2577,10 +2646,8 @@ const SEED_SHOP_HERO_SLIDES: AdminShopHeroSlide[] = [
   },
 ];
 
-let shopHeroSeedPromise: Promise<void> | null = null;
-async function ensureShopHeroSeed(): Promise<void> {
-  if (shopHeroSeedPromise) return shopHeroSeedPromise;
-  shopHeroSeedPromise = (async () => {
+const ensureShopHeroSeed = memoizeUntilRejected(async (): Promise<void> => {
+  {
     const sb = getDb();
     if ((await countRows(TABLES.shopHeroSlides)) === 0) {
       check(
@@ -2591,9 +2658,8 @@ async function ensureShopHeroSeed(): Promise<void> {
         "seed.shopHeroSlides",
       );
     }
-  })();
-  return shopHeroSeedPromise;
-}
+  }
+});
 
 export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
   await ensureShopHeroSeed();
@@ -2611,8 +2677,10 @@ export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
 export async function listActiveShopHeroSlides(): Promise<
   AdminShopHeroSlide[]
 > {
-  const all = await listShopHeroSlides();
-  return all.filter((s) => s.isActive);
+  return publicRead("listActiveShopHeroSlides", [], async () => {
+    const all = await listShopHeroSlides();
+    return all.filter((s) => s.isActive);
+  });
 }
 
 export async function getShopHeroSlide(
@@ -2721,10 +2789,8 @@ function contentResource<Row extends ContentRowBase>(
   seed: Row[],
   idPrefix: string,
 ) {
-  let seedPromise: Promise<void> | null = null;
-  const ensure = async (): Promise<void> => {
-    if (seedPromise) return seedPromise;
-    seedPromise = (async () => {
+  const ensure = memoizeUntilRejected(async (): Promise<void> => {
+    {
       const sb = getDb();
       if ((await countRows(table)) === 0) {
         check(
@@ -2738,9 +2804,8 @@ function contentResource<Row extends ContentRowBase>(
           `seed.${table}`,
         );
       }
-    })();
-    return seedPromise;
-  };
+    }
+  });
 
   type Input = Omit<Row, "id" | "createdAt" | "updatedAt">;
 
@@ -2837,7 +2902,12 @@ const reelsResource = contentResource<AdminReel>(
   "reel",
 );
 export const listReels = reelsResource.list;
-export const listActiveReels = reelsResource.listActive;
+export const listActiveReels = (): Promise<AdminReel[]> =>
+  publicRead(
+    "listActiveReels",
+    SEED_REEL_ROWS.filter((r) => r.isActive),
+    () => reelsResource.listActive(),
+  );
 export const getReel = reelsResource.get;
 export const createReel = (i: ReelInput) => reelsResource.create(i);
 export const updateReel = (id: string, i: ReelInput) =>
@@ -2870,7 +2940,12 @@ const pressResource = contentResource<AdminPress>(
   "press",
 );
 export const listPress = pressResource.list;
-export const listActivePress = pressResource.listActive;
+export const listActivePress = (): Promise<AdminPress[]> =>
+  publicRead(
+    "listActivePress",
+    SEED_PRESS_ROWS.filter((r) => r.isActive),
+    () => pressResource.listActive(),
+  );
 export const getPress = pressResource.get;
 export const createPress = (i: PressInput) => pressResource.create(i);
 export const updatePress = (id: string, i: PressInput) =>
@@ -2906,7 +2981,12 @@ const storyResource = contentResource<AdminStoryEvent>(
   "story",
 );
 export const listStoryEvents = storyResource.list;
-export const listActiveStoryEvents = storyResource.listActive;
+export const listActiveStoryEvents = (): Promise<AdminStoryEvent[]> =>
+  publicRead(
+    "listActiveStoryEvents",
+    SEED_STORY_ROWS.filter((r) => r.isActive),
+    () => storyResource.listActive(),
+  );
 export const getStoryEvent = storyResource.get;
 export const createStoryEvent = (i: StoryEventInput) => storyResource.create(i);
 export const updateStoryEvent = (id: string, i: StoryEventInput) =>

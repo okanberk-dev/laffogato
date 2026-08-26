@@ -79,7 +79,10 @@ export function PageHome({
   const PRESS = press ?? SEED_PRESS;
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
   useReveal();
-  const shopProducts = products && products.length > 0 ? products : PRODUCTS;
+  // `[]` means "the shop really has nothing to show" — during a database
+  // outage in particular — and must stay empty. Only `undefined` (no data
+  // passed at all) falls back to the bundled design catalogue.
+  const shopProducts = products ?? PRODUCTS;
   const liveMenu = menu ?? MENU;
   const go = (r: Route) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -1208,7 +1211,10 @@ export function PageShop({
   shopHeroSlides,
 }: PageProps) {
   useReveal();
-  const shopProducts = products && products.length > 0 ? products : PRODUCTS;
+  // `[]` means "the shop really has nothing to show" — during a database
+  // outage in particular — and must stay empty. Only `undefined` (no data
+  // passed at all) falls back to the bundled design catalogue.
+  const shopProducts = products ?? PRODUCTS;
   const slides = shopHeroSlides ?? [];
   const [cat, setCat] = useState<string>("all");
   const [sort, setSort] = useState<string>("featured");

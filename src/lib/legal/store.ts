@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getDb, TABLES } from "@/lib/db";
+import { publicRead, raiseDbError } from "@/lib/db/health";
 
 /**
  * Admin overrides for the coded legal documents. A published override with a
@@ -29,14 +30,26 @@ export interface LegalDocInput {
 export async function getPublishedLegalOverride(
   slug: string,
 ): Promise<LegalDocOverride | null> {
+  // Degrades to "no override", which renders the document bundled in
+  // src/lib/legal/documents.ts. That text is the authoritative default the site
+  // ships with — the database only ever holds edits on top of it — so an outage
+  // shows the real policy, never a fabricated one.
+  return publicRead("getPublishedLegalOverride", null, () =>
+    getPublishedLegalOverrideLive(slug),
+  );
+}
+
+async function getPublishedLegalOverrideLive(
+  slug: string,
+): Promise<LegalDocOverride | null> {
   const sb = getDb();
-  const { data, error } = await sb
+  const { data, error, status } = await sb
     .from(TABLES.legalDocs)
     .select("*")
     .eq("slug", slug)
     .eq("isPublished", true)
     .maybeSingle();
-  if (error) throw new Error(`getPublishedLegalOverride: ${error.message}`);
+  if (error) raiseDbError("getPublishedLegalOverride", error, status);
   const row = (data as LegalDocOverride | null) ?? null;
   if (!row || !row.bodyMarkdown.trim()) return null;
   return row;

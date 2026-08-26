@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { LaffogatoApp } from "@/components/laffogato/app";
 import { SeoContent } from "@/components/laffogato/seo-content";
 import {
-  getSettings,
+  getPublicSettings,
   listActiveShopHeroSlides,
   listActiveReels,
   listActivePress,
@@ -17,6 +17,7 @@ import { getActiveCustomer } from "@/lib/customer/auth";
 import { FAQ } from "@/lib/seo/faq";
 import { SITE } from "@/lib/seo/site";
 import { siteGraphLd } from "@/lib/seo/structured-data";
+import { isDegradedRequest } from "@/lib/db/health";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   ] = await Promise.all([
     searchParams,
     listShopProducts(),
-    getSettings(),
+    getPublicSettings(),
     listMenuForCustomer(),
     getActiveCustomer(),
     listActiveShopHeroSlides(),
@@ -115,6 +116,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(graph) }}
       />
       <LaffogatoApp
+        degraded={isDegradedRequest()}
         products={products}
         settings={{
           phone: settings.phone,
