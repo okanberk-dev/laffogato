@@ -8,25 +8,27 @@
   /* Surfaces — warmed to the L'Affogato logo cream (#FDF4E6) + espresso-brown
      (#44301C). Heritage köşk palette: cream paper, white cards layer on top. */
   --bg: #f7f3ea;
-  --bg-warm: #f1ebdd;
-  /* Collapsed onto --bg-warm: aggressive minimal keeps just bg / warm / dark. */
-  --bg-stone: #f1ebdd;
-  --bg-cream: #f1ebdd;
+  /* Four distinct paper tints, so stacked sections separate by value instead of
+     all resolving to the same beige. */
+  --bg-warm: #f2e8d6;
+  --bg-stone: #eae2d1;
+  --bg-cream: #fcf6ea;
   --bg-ink: #1c1610;
   --bg-espresso: #120d08;
 
   /* Ink — editorial espresso family */
   --ink: #241c15;
   --ink-soft: #5c4a39;
-  --ink-mute: #877a61;
+  /* Darkened from #877a61 (3.80:1 on cream — below AA) to clear 4.5:1. */
+  --ink-mute: #7a6e56;
   --ink-line: #e6dac6;
   --ink-line-strong: #d8c8ac;
 
-  /* Accent — desaturated to a warm grey (aggressive minimal: gold neutralized;
-     the green --accent below is the single remaining accent). */
-  --gold: #8a8278;
-  --gold-deep: #5b554d;
-  --gold-soft: #d4cec3;
+  /* Gold — the warm Italian secondary. Deep enough to carry body text on cream
+     (4.78:1); --gold-soft is for fills and for large type on dark surfaces. */
+  --gold: #8a6526;
+  --gold-deep: #6b4e1a;
+  --gold-soft: #e8d3a4;
 
   /* Brand accent — warm terracotta on cream (accent words, primary CTAs,
      links). Replaces the previous house green. Gold (neutral grey) stays the
@@ -76,13 +78,16 @@
   --r-lg: 20px;
   --r-xl: 32px;
 
-  /* Shadows */
+  /* Shadows — tinted with the espresso brown rather than neutral black, and
+     given enough weight to actually read on a cream ground. The previous
+     values (0.04–0.08 alpha, cool grey) were effectively invisible here, which
+     is why every surface sat flat on the page. */
   --shadow-sm:
-    0 1px 2px rgba(20, 16, 11, 0.04), 0 1px 3px rgba(20, 16, 11, 0.06);
+    0 1px 2px rgba(74, 52, 22, 0.06), 0 2px 6px rgba(74, 52, 22, 0.07);
   --shadow-md:
-    0 4px 12px rgba(20, 16, 11, 0.06), 0 8px 24px rgba(20, 16, 11, 0.06);
+    0 6px 16px rgba(74, 52, 22, 0.1), 0 12px 32px rgba(74, 52, 22, 0.08);
   --shadow-lg:
-    0 12px 28px rgba(20, 16, 11, 0.08), 0 30px 60px rgba(20, 16, 11, 0.08);
+    0 16px 36px rgba(74, 52, 22, 0.13), 0 36px 72px rgba(74, 52, 22, 0.1);
 
   /* Easing */
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -1225,22 +1230,24 @@ summary:focus-visible,
    ───────────────────────────────────────────────────────────── */
 
 /* SSR / no-JS / crawler safe: reveal content is VISIBLE by default. Motion is
-   opt-in — the inline <head> script adds `reveal-on` only when JS is available
-   and the user hasn't requested reduced motion; <RevealMotion> then adds `is-in`
-   to each element as it scrolls into view. Without JS, content stays visible. */
+   opt-in — <RevealMotion> runs client-side only, bails out entirely under
+   prefers-reduced-motion, and adds `will-reveal` ONLY to elements still below
+   the fold. So no-JS visitors, crawlers, reduced-motion users and anything
+   already on screen never receive the hidden state. */
 .reveal {
   opacity: 1;
   transform: none;
   transition:
-    opacity 0.45s var(--ease-out),
-    transform 0.45s var(--ease-out);
+    opacity 0.5s var(--ease-out),
+    transform 0.5s var(--ease-out);
 }
 /* Only elements <RevealMotion> marks as below-the-fold get the hidden "from"
    state, so above-the-fold content is never blank — no flash, and SSR / no-JS /
-   crawlers never hide anything. */
+   crawlers never hide anything. Travel is deliberately short: enough to read as
+   arrival, not enough to feel like a slide deck. */
 .reveal.will-reveal {
-  opacity: 1;
-  transform: none;
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
 }
 .reveal.will-reveal.is-in {
   opacity: 1;
@@ -3092,6 +3099,55 @@ summary:focus-visible,
   position: relative;
   z-index: 2;
   width: 100%;
+}
+
+/* ── Visit map ─────────────────────────────────────────────────────────────
+   A real embedded map rather than an illustration: this page exists to get
+   someone to the door. */
+.visit-map {
+  position: relative;
+}
+.visit-map-frame {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-lg);
+  background: var(--bg-warm);
+  /* The embed is a light-mode Google map; a hair of warmth stops it reading as
+     a cold rectangle dropped into the cream page. */
+  filter: saturate(0.92) contrast(1.02);
+}
+.visit-map-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 18px;
+  margin-top: 14px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.visit-map-caption strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.visit-map-caption a {
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.visit-map-caption a:hover {
+  color: var(--accent-deep);
+}
+
+@media (max-width: 720px) {
+  .visit-map-frame {
+    /* Portrait 4:5 eats a phone screen; a squarer crop keeps the address and
+       the map visible together. */
+    aspect-ratio: 1 / 1;
+  }
 }
 
 .hours-table {
@@ -5711,16 +5767,20 @@ select {
   justify-items: center;
 }
 .shop-hero-eyebrow {
-  background: rgba(255, 255, 255, 0.12);
+  /* .eyebrow sets a dark ink colour for cream pages; on a photographic hero
+     that left the label almost invisible against the artwork. Inherit the
+     slide's own colour instead, which is white on light-themed slides. */
+  color: inherit;
+  background: rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(12px) saturate(1.2);
   -webkit-backdrop-filter: blur(12px) saturate(1.2);
   padding: 8px 18px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.28);
 }
 .shop-hero-slide[data-theme="dark"] .shop-hero-eyebrow {
-  background: rgba(20, 16, 11, 0.06);
-  border-color: rgba(20, 16, 11, 0.12);
+  background: rgba(20, 16, 11, 0.08);
+  border-color: rgba(20, 16, 11, 0.16);
 }
 .shop-hero-title {
   font-family: var(--serif);
@@ -5836,7 +5896,10 @@ select {
 /* Counter */
 .shop-hero-counter {
   position: absolute;
-  top: clamp(18px, 3vw, 32px);
+  /* Bottom-right, not top-right: the fixed nav occupies the top ~81px and the
+     "Rezerve et" button sits exactly where this used to land, so the counter
+     was colliding with it on every load. */
+  bottom: clamp(18px, 3vw, 32px);
   right: clamp(18px, 3vw, 32px);
   font-family: var(--mono);
   font-size: 11px;

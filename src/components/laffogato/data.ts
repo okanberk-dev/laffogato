@@ -507,15 +507,19 @@ export const LOCATION = {
   name: "L'Affogato — Tuzla",
   short: "Tuzla · İstanbul",
   address: [
-    "Postane Mah. 29 Ekim Cad. No:28",
-    "200 yıllık Rum köşkü",
-    "Tuzla / İstanbul",
+    "Postane Mah. 29 Ekim Cd. No: 28",
+    "Menemenci Cumhur’un yanı",
+    "34940 Tuzla / İstanbul",
   ],
   hours: [
     ["Pazartesi — Perşembe", "10:00 — 23:00"],
     ["Cuma — Cumartesi", "10:00 — 24:00"],
     ["Pazar", "10:00 — 23:00"],
   ] as Array<[string, string]>,
+  /** Fixed query used for the map embed and directions links. Kept separate
+   *  from `address` so editing the displayed lines cannot break geocoding. */
+  mapsQuery: "L'Affogato, 29 Ekim Cd. No:28, 34940 Tuzla, İstanbul",
+  landmark: "Menemenci Cumhur’un yanı",
   phone: "+90 216 459 30 60",
   email: "tuzla@laffogato.it",
   parent: "L'Affogato Italia · Via Galliera 21, Bologna",

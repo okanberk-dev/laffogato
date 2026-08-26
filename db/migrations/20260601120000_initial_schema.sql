@@ -1,12 +1,12 @@
--- L'Affogato — initial Supabase (Postgres) schema.
+-- L'Affogato — initial Postgres schema.
 --
 -- Mirrors the former MongoDB document model 1:1: camelCase quoted columns,
 -- JSONB for nested arrays/objects, ISO-8601 text timestamps (so existing
 -- string ordering / `new Date(...)` parsing keeps working unchanged).
 --
--- All access is server-side through the service-role key. RLS is enabled on
--- every table with NO public policies, so the anon / publishable key can read
--- nothing — the service role bypasses RLS, the app keeps working.
+-- All access is server-side through a single owner connection. RLS is enabled
+-- on every table with no policies as defence in depth; the owner role bypasses
+-- it, so the app is unaffected.
 
 -- ── counters (atomic sequence generator) ──────────────────────────────────
 create table if not exists public.counters (

@@ -32,18 +32,22 @@ export function useReveal() {
 // (light / medium / dark). Product + menu surfaces no longer carry hue colour;
 // differentiation comes from value, not saturation.
 export const HUES: Record<string, { from: string; to: string; ink: string }> = {
-  cream: { from: "#EFE7D9", to: "#DBCFBB", ink: "#4A4036" },
-  warm: { from: "#F0E9DC", to: "#DED2BE", ink: "#4A4036" },
-  stone: { from: "#E7DECF", to: "#CFC3AE", ink: "#3A322A" },
-  caramel: { from: "#D8CDBA", to: "#B6A992", ink: "#3A322A" },
-  espresso: { from: "#3A2E25", to: "#1C1712", ink: "#E2DACB" },
-  matcha: { from: "#DCD7C8", to: "#BDB6A4", ink: "#3A322A" },
-  pistachio: { from: "#E2DCCB", to: "#C7BEA9", ink: "#3A322A" },
-  rose: { from: "#E7DCD3", to: "#CDBEB0", ink: "#3A322A" },
-  bougainvillea: { from: "#D9CDC2", to: "#B6A595", ink: "#3A322A" },
-  gold: { from: "#E4DAC6", to: "#CBBEA4", ink: "#3A322A" },
-  sky: { from: "#E4DDD0", to: "#CCC1AE", ink: "#3A322A" },
-  dawn: { from: "#EBE2D4", to: "#D5C9B5", ink: "#3A322A" },
+  // Twelve genuinely different surfaces, not twelve names for beige: a wall of
+  // product cards should read like a gelato counter. Each ink is checked
+  // against the darker end of its own gradient and clears WCAG AA (worst pair
+  // 6.18:1), so text stays legible wherever the gradient lands behind it.
+  cream: { from: "#F6EEDF", to: "#E7DAC2", ink: "#463C31" },
+  warm: { from: "#F7EADB", to: "#EFD9BC", ink: "#473727" },
+  stone: { from: "#EAE5DB", to: "#D2CABB", ink: "#38322A" },
+  caramel: { from: "#F2DBB6", to: "#DEB77F", ink: "#4A3416" },
+  espresso: { from: "#3A2E25", to: "#1C1712", ink: "#EDE4D3" },
+  matcha: { from: "#DDE9C9", to: "#B7CF94", ink: "#2C3A19" },
+  pistachio: { from: "#E5EED3", to: "#C7DBA7", ink: "#30401D" },
+  rose: { from: "#F7DDDF", to: "#EABAC0", ink: "#5A2932" },
+  bougainvillea: { from: "#F4D4E3", to: "#E3A7C5", ink: "#582144" },
+  gold: { from: "#F7E5B9", to: "#E8C978", ink: "#4A3712" },
+  sky: { from: "#DAE8EF", to: "#B4CFDD", ink: "#22404E" },
+  dawn: { from: "#FCE4D3", to: "#F3C5A5", ink: "#59321F" },
 };
 
 interface PhotoSurfaceProps {
@@ -74,19 +78,35 @@ export function PhotoSurface({
         width: "100%",
         height: "100%",
         position: "relative",
-        background: h.from,
+        // A diagonal wash between the hue's two stops rather than a flat fill:
+        // the surface reads as lit from the top-left, which is what makes the
+        // card look like an object instead of a swatch.
+        background: `linear-gradient(148deg, ${h.from} 0%, ${h.from} 34%, ${h.to} 100%)`,
         overflow: "hidden",
         borderRadius: "inherit",
       }}
     >
+      {/* Soft highlight where the light lands. Kept very low contrast — it
+          should be felt, not seen. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          background:
+            "radial-gradient(120% 90% at 18% 8%, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0) 58%)",
+        }}
+      />
       {vignette && (
         <div
+          aria-hidden="true"
           style={{
             position: "absolute",
             inset: 0,
             pointerEvents: "none",
             background:
-              "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.18) 100%)",
+              "radial-gradient(ellipse at center, transparent 52%, rgba(38,26,14,0.16) 100%)",
           }}
         />
       )}
@@ -1416,200 +1436,6 @@ export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
    Map placeholder
    ───────────────────────────────────────────────────────────── */
 
-export function MapPlaceholder() {
-  return (
-    <svg
-      viewBox="0 0 800 600"
-      style={{ width: "100%", height: "100%" }}
-      aria-hidden="true"
-      focusable="false"
-    >
-      <rect width="800" height="600" fill="#F4EFE7" />
-      <path
-        d="M 0 420 Q 260 410, 540 450 T 800 470 L 800 600 L 0 600 Z"
-        fill="#C2D2DC"
-        opacity="0.7"
-      />
-      <path
-        d="M 0 420 Q 260 410, 540 450 T 800 470"
-        stroke="#7A96A8"
-        strokeWidth="1"
-        fill="none"
-      />
-      <text
-        x="640"
-        y="530"
-        fontFamily="Playfair Display"
-        fontStyle="italic"
-        fontSize="18"
-        fill="#5A7A8A"
-      >
-        Marmara
-      </text>
-
-      {Array.from({ length: 7 }).map((_, i) => (
-        <line
-          key={`h${i}`}
-          x1="0"
-          y1={60 + i * 50}
-          x2="800"
-          y2={80 + i * 50}
-          stroke="#D8C8A8"
-          strokeWidth="1.5"
-          opacity="0.5"
-        />
-      ))}
-      {Array.from({ length: 10 }).map((_, i) => (
-        <line
-          key={`v${i}`}
-          x1={80 + i * 75}
-          y1="0"
-          x2={50 + i * 75}
-          y2="420"
-          stroke="#D8C8A8"
-          strokeWidth="1.5"
-          opacity="0.5"
-        />
-      ))}
-
-      <path
-        d="M 0 260 Q 260 254, 540 280 T 800 296"
-        stroke="#FFF"
-        strokeWidth="10"
-        fill="none"
-      />
-      <path
-        d="M 0 260 Q 260 254, 540 280 T 800 296"
-        stroke="#B88A4A"
-        strokeWidth="1.2"
-        strokeDasharray="6 6"
-        fill="none"
-      />
-      <text
-        x="70"
-        y="254"
-        fontFamily="JetBrains Mono"
-        fontSize="11"
-        letterSpacing="3"
-        fill="#5A3818"
-      >
-        E-5 / D100
-      </text>
-
-      <path
-        d="M 100 360 Q 320 350, 540 360 T 800 372"
-        stroke="#C5435A"
-        strokeWidth="3"
-        fill="none"
-      />
-      <text
-        x="70"
-        y="356"
-        fontFamily="JetBrains Mono"
-        fontSize="10"
-        letterSpacing="2"
-        fill="#C5435A"
-      >
-        MARMARAY · TUZLA
-      </text>
-
-      <rect
-        x="340"
-        y="288"
-        width="160"
-        height="78"
-        fill="#E0CCA8"
-        stroke="#3A2410"
-        strokeWidth="1.2"
-      />
-      <text
-        x="420"
-        y="328"
-        textAnchor="middle"
-        fontFamily="Playfair Display"
-        fontStyle="italic"
-        fontSize="18"
-        fill="#3A2410"
-      >
-        Tuzla
-      </text>
-      <text
-        x="420"
-        y="346"
-        textAnchor="middle"
-        fontFamily="JetBrains Mono"
-        fontSize="8"
-        letterSpacing="2.5"
-        fill="#5A3818"
-      >
-        POSTANE MAH.
-      </text>
-
-      <g transform="translate(430 296)">
-        <circle r="28" fill="#14100B" opacity="0.18" />
-        <path
-          d="M 0 -22 C -12 -22 -20 -12 -20 -2 C -20 10 0 28 0 28 C 0 28 20 10 20 -2 C 20 -12 12 -22 0 -22 Z"
-          fill="#14100B"
-        />
-        <circle cx="0" cy="-4" r="7" fill="#B88A4A" />
-        <text
-          x="28"
-          y="-2"
-          fontFamily="Playfair Display"
-          fontStyle="italic"
-          fontSize="24"
-          fill="#14100B"
-        >
-          L’Affogato
-        </text>
-        <text
-          x="28"
-          y="18"
-          fontFamily="JetBrains Mono"
-          fontSize="10"
-          letterSpacing="2"
-          fill="#5A3818"
-        >
-          TARİHİ KÖŞK · CEVİZLİ
-        </text>
-      </g>
-
-      <g transform="translate(720 80)">
-        <circle r="28" fill="#FFF" stroke="#3A2410" strokeWidth="1.2" />
-        <path d="M 0 -16 L 5 0 L 0 5 L -5 0 Z" fill="#3A2410" />
-        <text
-          x="0"
-          y="-32"
-          textAnchor="middle"
-          fontFamily="JetBrains Mono"
-          fontSize="11"
-          fill="#3A2410"
-        >
-          N
-        </text>
-      </g>
-
-      {[
-        [140, 160],
-        [240, 100],
-        [560, 120],
-        [640, 200],
-        [120, 320],
-        [620, 320],
-      ].map(([x, y], i) => (
-        <rect
-          key={i}
-          x={x}
-          y={y}
-          width={50 + (i % 3) * 18}
-          height={36 + (i % 2) * 14}
-          fill="#E0CCA8"
-          opacity="0.7"
-        />
-      ))}
-    </svg>
-  );
-}
 
 /* ─────────────────────────────────────────────────────────────
    Auto plate — picks scene by item name

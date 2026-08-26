@@ -62,16 +62,18 @@ export const SITE = {
   phone: "+90 216 459 30 60",
   phoneE164: "+902164593060",
   address: {
-    streetAddress: "Postane Mah. 29 Ekim Cad. No:28",
+    streetAddress: "Postane Mah. 29 Ekim Cd. No: 28",
     addressLocality: "Tuzla",
     addressRegion: "İstanbul",
-    postalCode: "34953",
+    postalCode: "34940",
     addressCountry: "TR",
     venue: "200 yıllık restore Rum köşkü",
+    /** Nearest well-known landmark — how locals actually give directions. */
+    landmark: "Menemenci Cumhur’un yanı",
   },
   geo: {
-    latitude: 40.8233,
-    longitude: 29.3098,
+    latitude: 40.8165716,
+    longitude: 29.3032493,
     placename: "Tuzla",
     region: "TR-34",
     countryCode: "TR",

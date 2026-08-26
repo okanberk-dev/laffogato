@@ -608,9 +608,9 @@ interface FooterProps {
 }
 
 const DEFAULT_ADDRESS_LINES = [
-  "Postane Mah. 29 Ekim Cad. No:28",
-  "200 yıllık Rum köşkü",
-  "Tuzla / İstanbul",
+  "Postane Mah. 29 Ekim Cd. No: 28",
+  "Menemenci Cumhur’un yanı",
+  "34940 Tuzla / İstanbul",
 ];
 
 function splitAddress(address?: string): string[] {

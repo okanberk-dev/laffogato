@@ -1,6 +1,6 @@
 import "server-only";
 
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { Pool, type PoolConfig } from "pg";
 
 import { createDb, type Db, type Executor } from "./client";
 import type { CompiledQuery } from "./sql";
@@ -8,19 +8,21 @@ import type { CompiledQuery } from "./sql";
 export { type Db, type DbError, type DbResult } from "./client";
 
 /**
- * Server-side database access (Neon serverless Postgres over HTTP).
+ * Server-side database access over the standard Postgres wire protocol.
  *
- * Lazy global singleton: the connection is NOT resolved at module load, so
- * `next build` can collect page data without live credentials. It is created on
- * first `getDb()` call and cached on `globalThis` to survive dev hot-reloads and
- * warm serverless invocations.
+ * Deliberately a plain driver rather than a vendor SDK. The site was down for a
+ * month because its data lived behind one provider's client and one provider's
+ * account limit; `pg` talks to Neon's pooled endpoint, to any managed Postgres,
+ * and to a local one in tests, so moving hosts is a connection-string change.
  *
- * The HTTP driver issues one request per query with no connection pool to
- * exhaust, which is what a serverless deployment wants. Every caller is
- * "server-only" — the connection string must never reach the client.
+ * Lazy global singleton: the pool is NOT created at module load, so `next build`
+ * can collect page data without live credentials. It is created on first
+ * `getDb()` call and cached on `globalThis` to survive dev hot-reloads and warm
+ * serverless invocations.
  */
 declare global {
   var __laffogatoDb: Db | undefined;
+  var __laffogatoPool: Pool | undefined;
 }
 
 function resolveConnectionString(): string {
@@ -37,14 +39,46 @@ function resolveConnectionString(): string {
   return url;
 }
 
-function createExecutor(): Executor {
-  let sql: NeonQueryFunction<false, true> | undefined;
+function poolConfig(connectionString: string): PoolConfig {
+  let sslmode = "";
+  try {
+    sslmode = new URL(connectionString).searchParams.get("sslmode") ?? "";
+  } catch {
+    // Not URL-shaped (a key=value DSN); fall back to a substring probe.
+    sslmode = /sslmode=([a-z-]+)/.exec(connectionString)?.[1] ?? "";
+  }
+  const wantsSsl = sslmode !== "" && sslmode !== "disable";
 
+  return {
+    connectionString,
+    // Serverless invocations are single-threaded and short-lived, so one
+    // connection per instance is the right shape; the provider's pooler does
+    // the real multiplexing.
+    max: 1,
+    idleTimeoutMillis: 10_000,
+    // Fail fast rather than holding a request open against a dead host: an
+    // unreachable database degrades the public pages, but only once it errors.
+    connectionTimeoutMillis: 5_000,
+    ssl: wantsSsl ? { rejectUnauthorized: true } : undefined,
+  };
+}
+
+function getPool(): Pool {
+  if (!global.__laffogatoPool) {
+    const pool = new Pool(poolConfig(resolveConnectionString()));
+    // An idle client erroring (a pooler recycling it) must not take the process
+    // down; the next query opens a fresh connection.
+    pool.on("error", (err) => {
+      console.error(`[db] idle client error: ${err.message}`);
+    });
+    global.__laffogatoPool = pool;
+  }
+  return global.__laffogatoPool;
+}
+
+function createExecutor(): Executor {
   return async (query: CompiledQuery) => {
-    // Resolved on first use, not at module load, so a build without
-    // credentials still succeeds.
-    sql ??= neon(resolveConnectionString(), { fullResults: true });
-    const result = await sql.query(query.text, query.params as unknown[]);
+    const result = await getPool().query(query.text, query.params as unknown[]);
     return {
       rows: (result.rows ?? []) as Record<string, unknown>[],
       rowCount: result.rowCount ?? 0,

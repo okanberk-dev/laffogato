@@ -11,26 +11,42 @@ yani aynı arıza tekrarlanamaz.
 
 ## Kurulum (tek seferlik)
 
+> **Sıra önemli: önce şemayı kur, sonra `DATABASE_URL`'i Vercel'e ekle.**
+> Uygulama "tablo yok" hatasını (SQLSTATE `42P01`) *gerçek* bir hata sayar ve
+> haklı olarak 500 döndürür — bu bilinçli bir tercih, çünkü şema hatasını
+> yedek veriyle gizlemek işi daha da kötüleştirir. Boş bir veritabanına
+> bağlanmak siteyi bozar; hiç bağlanmamak bozmaz (pakete düşer). Yani şema
+> hazır olmadan env değişkenini eklemeyin.
+
 1. **Neon projesi aç** — <https://neon.com> → yeni proje.
-   - **Bölge olarak bir AWS bölgesi seç** (ör. `AWS eu-central-1 / Frankfurt`).
-     Bu önemli: Neon'un kullanımdan kaldırılan Azure bölgelerinde 90 gün
-     hareketsiz kalan ücretsiz projeler silinebiliyor; AWS bölgeleri bu
-     politikanın dışında.
-   - Postgres 17 varsayılanı uygundur.
+   - **Bölge olarak bir AWS bölgesi seç** (ör. `AWS us-east-2` ya da
+     `eu-central-1`). Bu önemli: Neon'un kullanımdan kaldırılan Azure
+     bölgelerinde 90 gün hareketsiz kalan ücretsiz projeler silinebiliyor; AWS
+     bölgeleri bu politikanın dışında.
 
 2. **Connection string'i kopyala** — Neon panelinde *Connection Details*.
    Sonu `-pooler` ile biten **pooled** endpoint'i kullan; serverless
    fonksiyonlar için doğru olan odur.
 
-3. **Şemayı kur:**
+3. **Şemayı kur.** İki yol var, ikisi de aynı sonucu verir:
+
+   **a) Komut satırından (tercih edilen):**
 
    ```bash
-   DATABASE_URL='postgres://...-pooler.../neondb?sslmode=require' npm run db:migrate
+   DATABASE_URL='postgresql://...-pooler.../neondb?sslmode=require' npm run db:migrate
    ```
 
    `db/migrations/*.sql` dosyalarını sırayla, her dosyayı tek transaction içinde
    uygular ve uygulananları `_migrations` tablosunda tutar. Tekrar çalıştırmak
    güvenlidir.
+
+   **b) Neon SQL Editor'dan:** `db/schema.sql` dosyasının tamamını kopyalayıp
+   Neon panelindeki SQL Editor'a yapıştır ve çalıştır. Bu dosya tüm
+   migration'ların sıralı birleşimidir ve uygulananları `_migrations`'a
+   yazdığı için sonradan `npm run db:migrate` çalıştırmak sorunsuzdur.
+   (Dosya üretilir: `npm run db:bundle`.)
+
+   Ağ kısıtı olan bir ortamdan Neon'a erişemiyorsanız (b) yolunu kullanın.
 
 4. **Vercel'de env değişkenini ayarla** — Vercel → proje → Settings →
    Environment Variables:
@@ -44,7 +60,8 @@ yani aynı arıza tekrarlanamaz.
    artık okunmuyorlar.
 
 5. **Yeniden deploy et.** İlk istekte tablolar boşsa uygulama kendini idempotent
-   şekilde seed eder.
+   şekilde seed eder. Sitedeki "canlı verilere ulaşamıyoruz" bandı kaybolursa
+   bağlantı çalışıyor demektir.
 
 Alternatif olarak Vercel Marketplace'teki **Neon** entegrasyonu da kurulabilir;
 o `DATABASE_URL`'i otomatik enjekte eder.

@@ -26,7 +26,6 @@ import {
   EspressoCup,
   FounderPortrait,
   GelatoScoop,
-  MapPlaceholder,
   MatchaGlass,
   MenuPlate,
   PhotoSurface,
@@ -2238,11 +2237,13 @@ export function PageVisit({ visit }: PageProps) {
   const visitEmail = visit?.email ?? LOCATION.email;
   const visitHours = visit?.hours ?? LOCATION.hours;
   useReveal();
-  // Real directions links so /ziyaret carries a genuine local signal + works
-  // (the map illustration links straight to Google Maps directions).
-  const mapQuery = ["L'Affogato", ...addressLines, "İstanbul"].join(", ");
+  // A fixed query rather than the displayed address lines: those are editable
+  // from the admin panel, and a stray edit must not send visitors to the wrong
+  // place or break the embed's geocoding.
+  const mapQuery = LOCATION.mapsQuery;
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`;
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(mapQuery)}`;
+  const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&hl=tr&z=16&output=embed`;
   const [partySize, setPartySize] = useState(2);
   const [day, setDay] = useState("Bu akşam");
   const [time, setTime] = useState("19:30");
@@ -2438,24 +2439,24 @@ export function PageVisit({ visit }: PageProps) {
             </div>
           </div>
 
-          <a
-            className="reveal r1"
-            href={directionsUrl}
-            target="_blank"
-            rel="noopener"
-            aria-label="Google Haritalar'da yol tarifi al"
-            style={{
-              display: "block",
-              aspectRatio: "4/5",
-              borderRadius: "var(--r-lg)",
-              overflow: "hidden",
-              border: "1px solid var(--ink-line)",
-            }}
-          >
-            <PhotoSurface hue="warm" vignette={false}>
-              <MapPlaceholder />
-            </PhotoSurface>
-          </a>
+          <figure className="reveal r1 visit-map" style={{ margin: 0 }}>
+            <iframe
+              title="L’Affogato — Tuzla konumu, Google Haritalar"
+              src={mapEmbedUrl}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allow="fullscreen"
+              className="visit-map-frame"
+            />
+            <figcaption className="visit-map-caption">
+              <span>
+                <strong>{LOCATION.landmark}</strong> · 29 Ekim Cd. No: 28
+              </span>
+              <a href={directionsUrl} target="_blank" rel="noopener">
+                Yol tarifi al <span className="arrow">→</span>
+              </a>
+            </figcaption>
+          </figure>
         </div>
       </section>
 
