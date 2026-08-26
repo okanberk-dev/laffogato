@@ -2,6 +2,7 @@ import "server-only";
 
 import { Pool, type PoolConfig } from "pg";
 
+import { ensureSchema, isMissingRelation } from "./bootstrap";
 import { createDb, type Db, type Executor } from "./client";
 import type { CompiledQuery } from "./sql";
 
@@ -77,12 +78,24 @@ function getPool(): Pool {
 }
 
 function createExecutor(): Executor {
-  return async (query: CompiledQuery) => {
+  const run = async (query: CompiledQuery) => {
     const result = await getPool().query(query.text, query.params as unknown[]);
     return {
       rows: (result.rows ?? []) as Record<string, unknown>[],
       rowCount: result.rowCount ?? 0,
     };
+  };
+
+  return async (query: CompiledQuery) => {
+    try {
+      return await run(query);
+    } catch (err) {
+      // An empty database — DATABASE_URL set before the migrations ran. Create
+      // the schema and retry exactly once; any second failure is real.
+      if (!isMissingRelation(err)) throw err;
+      await ensureSchema(getPool());
+      return await run(query);
+    }
   };
 }
 

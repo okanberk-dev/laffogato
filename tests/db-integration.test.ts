@@ -205,6 +205,21 @@ maybe("query layer against a real Postgres", () => {
     await pool.query(`drop function shim_list(jsonb)`);
   });
 
+  it("bootstraps a schema that satisfies the code's table map", async () => {
+    // The bundle the app applies to an empty database must cover every table
+    // the data layer addresses, or the site self-heals into a different kind
+    // of broken.
+    const { SCHEMA_SQL } = await import("@/lib/db/schema-sql");
+    const { TABLES } = await import("@/lib/db/index");
+    for (const table of Object.values(TABLES)) {
+      expect(SCHEMA_SQL, `schema must create ${table}`).toContain(
+        `create table if not exists public.${table}`,
+      );
+    }
+    // And it must record itself, so a later CLI migration run is a no-op.
+    expect(SCHEMA_SQL).toContain("insert into public._migrations");
+  });
+
   it("propagates a raised exception message from a function", async () => {
     await pool.query(`
       create or replace function shim_raise() returns void

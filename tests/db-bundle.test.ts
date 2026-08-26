@@ -2,7 +2,12 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { buildBundle, BUNDLE_PATH } from "../scripts/db-bundle.mjs";
+import {
+  buildBundle,
+  buildModule,
+  BUNDLE_PATH,
+  MODULE_PATH,
+} from "../scripts/db-bundle.mjs";
 
 describe("db/schema.sql", () => {
   it("matches the migrations it is generated from", () => {
@@ -22,6 +27,14 @@ describe("db/schema.sql", () => {
     ]) {
       expect(bundle).toContain(`insert into public._migrations (name) values ('${name}')`);
     }
+  });
+
+  it("stays in sync with the TypeScript module the app bootstraps from", () => {
+    // src/lib/db/schema-sql.ts ships the schema inside the serverless bundle so
+    // the app can create it against an empty database. If it drifts from the
+    // migrations, a self-bootstrapped database is silently wrong.
+    const onDisk = readFileSync(MODULE_PATH, "utf8");
+    expect(onDisk).toBe(buildModule(buildBundle()));
   });
 
   it("carries the atomic stock function intact", () => {

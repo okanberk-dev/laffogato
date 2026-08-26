@@ -138,7 +138,10 @@ derler. Tanımlayıcılar `sql.ts`'te doğrulanır, değerler orada parametrelen
 **idempotent seed**.
 
 19 tablo + `next_seq` / `claim_order_stock` / `increment_promo_usage`
-fonksiyonları. Erişim tek bir owner bağlantısı üzerinden olduğu için RLS
+fonksiyonları. Şema yoksa uygulama onu ilk sorguda kendisi kurar
+(`src/lib/db/bootstrap.ts` → `src/lib/db/schema-sql.ts`, `npm run db:bundle`
+ile üretilir), böylece `DATABASE_URL`'i migration'lardan önce tanımlamak siteyi
+düşürmez. Erişim tek bir owner bağlantısı üzerinden olduğu için RLS
 satırları işlevsizdir (owner rolü RLS'i baypas eder) — savunma katmanı olarak
 bırakıldı.
 

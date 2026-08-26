@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const MIGRATIONS_DIR = join(ROOT, "db", "migrations");
 export const BUNDLE_PATH = join(ROOT, "db", "schema.sql");
+export const MODULE_PATH = join(ROOT, "src", "lib", "db", "schema-sql.ts");
 
 export function buildBundle() {
   const files = readdirSync(MIGRATIONS_DIR)
@@ -60,8 +61,29 @@ export function buildBundle() {
   return parts.join("\n");
 }
 
+/**
+ * The same SQL as a TypeScript module, so the running app can create its own
+ * schema against an empty database. A serverless bundle has no reliable access
+ * to files outside the compiled output, so the SQL has to ship as source.
+ */
+export function buildModule(bundle) {
+  return [
+    "// GENERATED FILE — do not edit by hand.",
+    "// Regenerate with: npm run db:bundle",
+    "//",
+    "// The full schema as a string, generated from db/migrations. Used by",
+    "// src/lib/db/bootstrap.ts to create the schema on an empty database.",
+    "",
+    `export const SCHEMA_SQL = ${JSON.stringify(bundle)};`,
+    "",
+  ].join("\n");
+}
+
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop())) {
   const bundle = buildBundle();
   writeFileSync(BUNDLE_PATH, bundle, "utf8");
-  console.log(`db/schema.sql yazıldı (${bundle.split("\n").length} satır).`);
+  writeFileSync(MODULE_PATH, buildModule(bundle), "utf8");
+  console.log(
+    `db/schema.sql (${bundle.split("\n").length} satır) + src/lib/db/schema-sql.ts yazıldı.`,
+  );
 }
