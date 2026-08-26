@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+
+import { isDbUnreachable } from "@/lib/db/health";
 import { revalidatePath } from "next/cache";
 
 import {
@@ -46,6 +48,9 @@ export type RegisterFormState = {
   };
 };
 
+const DB_DOWN_MESSAGE =
+  "Hesap servisimize şu an ulaşamıyoruz. Kısa süre içinde tekrar dener misin?";
+
 export async function registerAction(
   _prev: RegisterFormState,
   formData: FormData,
@@ -71,15 +76,21 @@ export async function registerAction(
     };
   }
 
-  const result = await registerCustomer({
-    email,
-    name,
-    phone,
-    password,
-    acceptedTerms,
-    marketing,
-    newsletter,
-  });
+  let result;
+  try {
+    result = await registerCustomer({
+      email,
+      name,
+      phone,
+      password,
+      acceptedTerms,
+      marketing,
+      newsletter,
+    });
+  } catch (err) {
+    if (!isDbUnreachable(err)) throw err;
+    return { error: DB_DOWN_MESSAGE, values };
+  }
   if (!result.ok) {
     return { error: result.error, values };
   }
@@ -141,7 +152,15 @@ export async function loginAction(
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
 
-  const result = await verifyCustomerLogin({ email, password });
+  let result;
+  try {
+    result = await verifyCustomerLogin({ email, password });
+  } catch (err) {
+    // Only the redirect below may throw past this point; a database outage
+    // becomes a message on the form rather than an error page.
+    if (!isDbUnreachable(err)) throw err;
+    return { error: DB_DOWN_MESSAGE, values: { email } };
+  }
   if (!result.ok) {
     return { error: result.error, values: { email } };
   }

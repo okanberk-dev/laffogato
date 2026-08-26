@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { DegradedAuthNotice } from "@/components/customer/degraded-auth-notice";
 import { RegisterForm } from "./register-form";
 import { getActiveCustomer } from "@/lib/customer/auth";
 
@@ -38,6 +39,7 @@ export default async function KayitPage() {
         >
           ← Anasayfa
         </Link>
+        <DegradedAuthNotice />
         <h1
           className="h1"
           style={{

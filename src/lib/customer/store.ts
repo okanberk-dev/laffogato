@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import type { DbError } from "@/lib/db";
 
 import { getDb, TABLES } from "@/lib/db";
+import { raiseDbError } from "@/lib/db/health";
 
 import { grantWelcomeCoupon } from "./coupons";
 
@@ -121,7 +122,9 @@ function normalizeEmail(raw: string): string {
 }
 
 function checkErr(error: DbError | null, ctx: string): void {
-  if (error) throw new Error(`${ctx}: ${error.message}`);
+  // An empty code means the request never reached Postgres, so it is classified
+  // as unreachable rather than as a rejected query. See src/lib/db/health.ts.
+  if (error) raiseDbError(ctx, error, error.code === "" ? 0 : 400);
 }
 
 /** Fetch a full customer row by (already-normalized) email, or null. */
