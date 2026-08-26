@@ -5,7 +5,7 @@ import { LEGAL_DOCS } from "@/lib/legal/documents";
 import { allSeoRoutes } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
 
-// Dynamic: the product list is read from Supabase at request time. The build
+// Dynamic: the product list is read from the database at request time. The build
 // does not connect to the DB, so the fetch is guarded — an empty result simply
 // omits product URLs rather than failing the build.
 export const dynamic = "force-dynamic";

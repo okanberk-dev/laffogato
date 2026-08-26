@@ -173,7 +173,7 @@ export interface AdminSettings {
   notificationEmail: string;
 }
 
-// ─── Supabase helpers ──────────────────────────────────────────────────────
+// ─── Query helpers ─────────────────────────────────────────────────────────
 
 // Every failed result goes through raiseDbError, which distinguishes a query
 // the database rejected (fatal) from a database that was never reached
@@ -2772,7 +2772,7 @@ export async function deleteShopHeroSlide(id: string): Promise<void> {
 // ─── Editorial content (reels / press / story) ─────────────────
 //
 // All five are simple sortable + toggleable lists. A single generic factory
-// gives each one a seed-on-first-read + CRUD surface backed by Supabase, so
+// gives each one a seed-on-first-read + CRUD surface backed by the database, so
 // the admin panel can manage what used to be hardcoded in data.ts. The
 // customer SPA reads the *Active* lists via page.tsx props.
 
