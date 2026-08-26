@@ -40,10 +40,19 @@ function resolveConnectionString(): string {
   return url;
 }
 
-function poolConfig(connectionString: string): PoolConfig {
+export function poolConfig(connectionString: string): PoolConfig {
   let sslmode = "";
+  let cleaned = connectionString;
   try {
-    sslmode = new URL(connectionString).searchParams.get("sslmode") ?? "";
+    const url = new URL(connectionString);
+    sslmode = url.searchParams.get("sslmode") ?? "";
+    // Hand pg a URL without the SSL params and configure `ssl` explicitly
+    // below. pg-connection-string treats sslmode=require as a deprecated alias
+    // and warns about it on every cold start, which shows up as an error-level
+    // line in the platform logs — noise that hides the entries that matter.
+    url.searchParams.delete("sslmode");
+    url.searchParams.delete("channel_binding");
+    cleaned = url.toString();
   } catch {
     // Not URL-shaped (a key=value DSN); fall back to a substring probe.
     sslmode = /sslmode=([a-z-]+)/.exec(connectionString)?.[1] ?? "";
@@ -51,7 +60,7 @@ function poolConfig(connectionString: string): PoolConfig {
   const wantsSsl = sslmode !== "" && sslmode !== "disable";
 
   return {
-    connectionString,
+    connectionString: cleaned,
     // Serverless invocations are single-threaded and short-lived, so one
     // connection per instance is the right shape; the provider's pooler does
     // the real multiplexing.
@@ -59,7 +68,12 @@ function poolConfig(connectionString: string): PoolConfig {
     idleTimeoutMillis: 10_000,
     // Fail fast rather than holding a request open against a dead host: an
     // unreachable database degrades the public pages, but only once it errors.
-    connectionTimeoutMillis: 5_000,
+    // A cold serverless instance opening a TLS connection to a pooler that is
+    // itself waking a suspended compute can take longer than 5s; the first
+    // request should wait rather than degrade.
+    connectionTimeoutMillis: 15_000,
+    // Full verification: the certificate chain is checked against the system
+    // roots, which is what sslmode=verify-full means.
     ssl: wantsSsl ? { rejectUnauthorized: true } : undefined,
   };
 }
