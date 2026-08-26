@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 
 import type { Product } from "./data";
-import { productPath } from "./route-paths";
 import { ProductCard, toCartItem, type CartItem } from "./ui";
 import { ProductSurface } from "./visuals";
 
@@ -178,7 +177,8 @@ export function ProductDetail({
                 style={{
                   width: 28,
                   height: 1,
-                  background: "linear-gradient(90deg, var(--gold), transparent)",
+                  background:
+                    "linear-gradient(90deg, var(--gold), transparent)",
                 }}
               />
               <span className="eyebrow">{p.tag}</span>
@@ -324,9 +324,7 @@ export function ProductDetail({
                 <p>
                   Açılmamış ürünleri teslim aldıktan sonra 14 gün içinde
                   ücretsiz iade edebilirsin. İade talebin için{" "}
-                  <a href="mailto:hello@laffogato.net">
-                    hello@laffogato.net
-                  </a>{" "}
+                  <a href="mailto:hello@laffogato.net">hello@laffogato.net</a>{" "}
                   adresine yazman yeterli.
                 </p>
               </Accordion>

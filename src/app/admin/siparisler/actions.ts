@@ -18,32 +18,11 @@ import {
   setOrderTracking,
   transitionOrder,
   updateOrderDetails,
-  updateOrderStatus,
   type AdminOrderItemStatus,
   type AdminOrderStatus,
   type OrderTransition,
 } from "@/lib/admin/store";
 import { getPaymentProvider } from "@/lib/payment";
-
-const STATUSES: AdminOrderStatus[] = [
-  "pending_payment",
-  "paid",
-  "preparing",
-  "shipped",
-  "completed",
-  "cancelled",
-  "refunded",
-];
-
-export async function updateOrderStatusAction(formData: FormData) {
-  await requireRole("orders");
-  const id = String(formData.get("id") ?? "");
-  const status = String(formData.get("status") ?? "") as AdminOrderStatus;
-  if (!id || !STATUSES.includes(status)) return;
-  await updateOrderStatus(id, status);
-  revalidatePath("/admin/siparisler");
-  revalidatePath("/admin");
-}
 
 export interface BulkOrderActionState {
   error?: string;

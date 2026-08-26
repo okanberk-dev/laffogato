@@ -19,11 +19,6 @@ export interface EnrollState {
   enabled?: boolean;
 }
 
-export async function startEnrollAction(): Promise<void> {
-  // No-op marker action; the page renders the draft inline.
-  // Kept to keep the form-action contract simple.
-}
-
 export async function verifyEnrollAction(
   _prev: EnrollState,
   formData: FormData,

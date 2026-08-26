@@ -283,7 +283,9 @@ export function compile(spec: QuerySpec): CompiledQuery {
         // Object/array args are bound as JSON text, so they need an explicit
         // cast: unlike a column target there is no type to infer from.
         const cast =
-          value !== null && typeof value === "object" && !(value instanceof Date)
+          value !== null &&
+          typeof value === "object" &&
+          !(value instanceof Date)
             ? "::jsonb"
             : "";
         return `${quoteIdent(name, "argument")} => ${placeholder}${cast}`;

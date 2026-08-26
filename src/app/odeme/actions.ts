@@ -3,13 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { applyPromoCode, getSettings, placeOrder } from "@/lib/admin/store";
+import { applyPromoCode, placeOrder } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { applyCustomerCoupon } from "@/lib/customer/coupons";
 import { sendOrderPlacedEmail } from "@/lib/email/send";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
-import { type CheckoutConfig } from "@/lib/utils/commerce";
 
 export interface PromoPreviewState {
   error?: string;
@@ -33,7 +32,11 @@ export async function previewPromoAction(
   // surface that reason; only a "not mine" miss falls through to global promos.
   const customer = await getActiveCustomer();
   if (customer) {
-    const coupon = await applyCustomerCoupon(code, customer.email, subtotalMinor);
+    const coupon = await applyCustomerCoupon(
+      code,
+      customer.email,
+      subtotalMinor,
+    );
     if (coupon.ok && coupon.coupon) {
       const discountMinor = coupon.discountMinor ?? 0;
       return {
@@ -54,19 +57,6 @@ export async function previewPromoAction(
       discountMinor: result.discountMinor,
       finalMinor: Math.max(0, subtotalMinor - result.discountMinor),
     },
-  };
-}
-
-/**
- * Returns the authoritative shipping config so the checkout can show real
- * shipping/free-shipping math (matching what the server will charge).
- */
-export async function getCheckoutConfigAction(): Promise<CheckoutConfig> {
-  const s = await getSettings();
-  return {
-    shippingFlatMinor: s.shippingFlatMinor,
-    shippingFreeThresholdMinor: s.shippingFreeThresholdMinor,
-    taxRatePct: s.taxRatePct,
   };
 }
 

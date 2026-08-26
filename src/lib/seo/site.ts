@@ -124,18 +124,3 @@ export const SITE = {
     "espresso Tuzla",
   ],
 } as const;
-
-/**
- * Sitemap entries. Hash-routed sections share the same HTML document and
- * Google strips the fragment, so we emit a single canonical entry for `/`.
- * If we ever split sections into real routes, add them here.
- */
-export const ROUTES = [
-  {
-    path: "/",
-    section: "home",
-    title: "Ana Sayfa",
-    priority: 1.0,
-    changefreq: "daily",
-  },
-] as const;

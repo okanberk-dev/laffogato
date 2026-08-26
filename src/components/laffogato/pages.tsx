@@ -11,7 +11,6 @@ import {
   PRESS as SEED_PRESS,
   STORY,
   LOCATION,
-  BRAND,
 } from "./data";
 import type { MenuCategory } from "./data";
 import { ProductCard, SectionHead, Stat, CartItem } from "./ui";
@@ -901,7 +900,6 @@ export function PageMenu({ menu }: PageProps) {
               </div>
             </div>
           </div>
-
         </div>
       </header>
 

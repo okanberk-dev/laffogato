@@ -105,8 +105,3 @@ export function formatTRYMinor(amountMinor: number): string {
     minimumFractionDigits: 2,
   }).format(amountMinor / 100);
 }
-
-/** Tam sayı ₺ → "₺320" tarzı kısa biçim (kart/özet için). */
-export function formatTRYShort(amountMinor: number): string {
-  return `${Math.round(amountMinor / 100).toLocaleString("tr-TR")}₺`;
-}

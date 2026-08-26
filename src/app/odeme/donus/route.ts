@@ -52,6 +52,9 @@ export async function GET(req: NextRequest) {
 
   const suffix = promo === "dropped" ? "&promo=dropped" : "";
   return NextResponse.redirect(
-    new URL(`/odeme/basarili?ref=${encodeURIComponent(orderId)}${suffix}`, base),
+    new URL(
+      `/odeme/basarili?ref=${encodeURIComponent(orderId)}${suffix}`,
+      base,
+    ),
   );
 }

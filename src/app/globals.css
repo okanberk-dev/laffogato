@@ -13,7 +13,6 @@
   --bg-warm: #f2e8d6;
   --bg-stone: #eae2d1;
   --bg-cream: #fcf6ea;
-  --bg-ink: #1c1610;
   --bg-espresso: #120d08;
 
   /* Ink — editorial espresso family */
@@ -40,9 +39,13 @@
   /* Brand — espresso logo brown, used for the masked logo lockups */
   --brand: #2e2218;
 
-  /* Semantic */
+  /* Semantic state. --matcha is the positive/in-stock signal: it used to be
+     unused, which left the system with no success colour, so "in stock" was
+     painted in the same warm red family as the "almost gone" warning and the
+     two read alike at a glance. Deepened from #6a8a4a (3.55:1 on cream —
+     below AA) to clear it. */
   --rose: #c5435a;
-  --matcha: #6a8a4a;
+  --matcha: #4f6b34;
 
   /* Type — premium corporate stack
      --serif:         Playfair Display (editorial italic, brand heritage)
@@ -261,11 +264,6 @@ select {
   margin: 0;
 }
 
-.script-accent {
-  font-family: var(--script);
-  color: var(--accent);
-}
-
 /* ─────────────────────────────────────────────────────────────
    Layout
    ───────────────────────────────────────────────────────────── */
@@ -291,15 +289,6 @@ select {
 }
 .section-tight {
   padding: clamp(56px, 8vw, 110px) 0;
-}
-.section-loose {
-  padding: clamp(110px, 14vw, 200px) 0;
-}
-
-.divider {
-  height: 1px;
-  background: var(--ink-line);
-  width: 100%;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -343,14 +332,6 @@ select {
 }
 .btn-primary:hover {
   background: var(--accent-deep);
-}
-
-.btn-secondary {
-  background: var(--bg-stone);
-  color: var(--ink);
-}
-.btn-secondary:hover {
-  background: var(--ink-line);
 }
 
 .btn-ghost {
@@ -424,67 +405,6 @@ summary:focus-visible,
   gap: 12px;
   color: var(--accent-deep);
   border-bottom-color: var(--accent-deep);
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Nav
-   ───────────────────────────────────────────────────────────── */
-
-/* Topbar — thin italian heritage strip above nav */
-.nav-topbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 61;
-  background: var(--ink);
-  color: var(--bg-cream);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  transition:
-    transform 0.35s var(--ease-out),
-    opacity 0.3s;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-}
-.nav-topbar.is-hidden {
-  transform: translateY(-100%);
-  opacity: 0;
-  pointer-events: none;
-}
-.nav-topbar-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 9px var(--gutter);
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 14px;
-  white-space: nowrap;
-}
-.nav-topbar-item {
-  opacity: 0.86;
-}
-.nav-topbar-dot {
-  display: none;
-}
-@media (max-width: 760px) {
-  .nav-topbar {
-    font-size: 9.5px;
-    letter-spacing: 0.2em;
-  }
-  .nav-topbar-inner {
-    gap: 10px;
-    padding: 8px var(--gutter);
-  }
-  .nav-topbar-item:nth-child(5) {
-    display: none;
-  }
-  .nav-topbar-dot:nth-child(4) {
-    display: none;
-  }
 }
 
 .nav {
@@ -668,39 +588,12 @@ summary:focus-visible,
 .nav-brand:hover .nav-brand-mark {
   color: var(--gold);
 }
-.nav-brand-lockup {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.nav-brand-text {
-  display: block;
-  height: 25px;
-  color: var(--brand);
-  transition: color 0.3s;
-}
 .nav.on-dark .nav-brand-text {
   color: #fff;
-}
-.nav-brand-tag {
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--ink-mute);
-  margin-top: 1px;
 }
 .nav.on-dark .nav-brand-tag {
   color: var(--gold-soft);
   opacity: 0.7;
-}
-@media (max-width: 760px) {
-  .nav-brand-tag {
-    display: none;
-  }
-  .nav-brand-text {
-    height: 23px;
-  }
 }
 
 .nav-link {
@@ -1307,10 +1200,6 @@ summary:focus-visible,
   text-transform: uppercase;
   color: var(--ink-soft);
 }
-.chip-dark {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.9);
-}
 .chip-gold {
   background: var(--gold);
   color: #fff;
@@ -1351,45 +1240,6 @@ summary:focus-visible,
     grid-template-columns: 1fr;
   }
 }
-
-/* ─────────────────────────────────────────────────────────────
-   Marquee
-   ───────────────────────────────────────────────────────────── */
-
-.marquee {
-  display: flex;
-  overflow: hidden;
-  padding: 28px 0;
-  border-top: 1px solid var(--ink-line);
-  border-bottom: 1px solid var(--ink-line);
-  background: var(--bg-warm);
-}
-.marquee-track {
-  display: flex;
-  gap: 56px;
-  animation: marquee 40s linear infinite;
-  white-space: nowrap;
-  flex-shrink: 0;
-  align-items: center;
-}
-.marquee-item {
-  font-family: var(--serif);
-  font-size: clamp(28px, 3.4vw, 44px);
-  font-weight: 500;
-}
-.marquee-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--gold);
-  flex-shrink: 0;
-}
-@keyframes marquee {
-  to {
-    transform: translateX(-50%);
-  }
-}
-
 /* ─────────────────────────────────────────────────────────────
    Footer — premium italian café
    ───────────────────────────────────────────────────────────── */
@@ -1398,29 +1248,6 @@ summary:focus-visible,
   background: var(--bg-espresso);
   color: #fff;
   padding: clamp(64px, 8vw, 110px) var(--gutter) 0;
-}
-
-/* Decorative top — monogram between thin lines */
-.footer-deco {
-  max-width: var(--content);
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding-bottom: clamp(40px, 5vw, 64px);
-}
-.footer-deco-line {
-  flex: 1;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.16);
-}
-.footer-deco-monogram {
-  font-family: var(--serif);
-  font-weight: 700;
-  font-size: 22px;
-  letter-spacing: -0.02em;
-  color: var(--gold-soft);
-  padding: 0 6px;
 }
 
 .footer-newsletter {
@@ -1693,12 +1520,6 @@ summary:focus-visible,
   .footer-mark .brand-mark {
     height: 50px;
   }
-  .footer-deco-line {
-    display: none;
-  }
-  .footer-deco {
-    justify-content: center;
-  }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1709,13 +1530,6 @@ summary:focus-visible,
   border-radius: var(--r-md);
   overflow: hidden;
   background: var(--bg-stone);
-  position: relative;
-}
-.tile-img {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
   position: relative;
 }
 
@@ -1789,7 +1603,8 @@ summary:focus-visible,
   background: var(--gold);
 }
 .product-card-flag.new {
-  background: var(--accent);
+  /* --accent behind white 10px text is 4.10:1; --accent-deep is 6.54:1. */
+  background: var(--accent-deep);
 }
 .product-card-quick {
   position: absolute;
@@ -2027,39 +1842,6 @@ summary:focus-visible,
   }
 }
 
-/* Menu page */
-.menu-head-meta {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 40px;
-  text-align: right;
-}
-@media (max-width: 720px) {
-  .menu-head-meta {
-    display: none;
-  }
-}
-
-.menu-tabs-wrap {
-  position: sticky;
-  /* Nav padding 16+content+16 ≈ 64px; scrolled durumda 10+content+10 ≈ 56px.
-     Aradaki farkı yumuşatmak için 64px sabit — scroll esnasında küçük bir
-     overlap görsel olarak fark edilmez ve içerikle çakışma olmaz. */
-  top: 64px;
-  z-index: 30;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(20px);
-  padding: 18px 0;
-  border-top: 1px solid var(--ink-line);
-  border-bottom: 1px solid var(--ink-line);
-}
-@media (max-width: 720px) {
-  .menu-tabs-wrap {
-    top: 60px;
-    padding: 12px 0;
-  }
-}
-
 .menu-tab {
   display: inline-flex;
   align-items: center;
@@ -2240,19 +2022,6 @@ summary:focus-visible,
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
-  }
-  .menu-item-foot {
-    margin-top: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-  .menu-item-foot .menu-add-btn {
-    width: 100%;
-    justify-content: center;
-    font-size: 11px;
-    padding: 10px;
   }
 }
 @media (max-width: 360px) {
@@ -2530,37 +2299,6 @@ summary:focus-visible,
   display: grid;
   gap: 2px;
 }
-.menu-list-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 20px;
-  align-items: center;
-  padding: 20px 8px 20px 0;
-  border-bottom: 1px solid var(--ink-line);
-  transition: background 0.2s;
-}
-.menu-list-row:hover {
-  background: rgba(184, 138, 74, 0.05);
-}
-.menu-list-name-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.menu-list-name {
-  font-family: var(--serif-display);
-  font-size: clamp(18px, 2vw, 23px);
-  color: var(--ink);
-}
-.menu-list-tag {
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  padding: 3px 7px;
-  border-radius: 999px;
-}
 .menu-list-tag.gold {
   background: var(--gold);
   color: #fff;
@@ -2568,59 +2306,6 @@ summary:focus-visible,
 .menu-list-tag.new {
   background: var(--ink);
   color: #fff;
-}
-.menu-list-leader {
-  flex: 1;
-  min-width: 24px;
-  align-self: flex-end;
-  margin-bottom: 5px;
-  border-bottom: 1.5px dotted var(--ink-line-strong);
-}
-.menu-list-price {
-  font-family: var(--mono);
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--gold-deep);
-  white-space: nowrap;
-}
-.menu-list-desc {
-  margin: 7px 0 0;
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: var(--ink-mute);
-  max-width: 62ch;
-}
-.menu-list-add {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid var(--ink-line);
-  background: #fff;
-  color: var(--ink);
-  transition:
-    background 0.2s,
-    color 0.2s,
-    border-color 0.2s,
-    transform 0.2s;
-}
-.menu-list-add:hover {
-  background: var(--ink);
-  color: #fff;
-  border-color: var(--ink);
-  transform: scale(1.06);
-}
-@media (max-width: 540px) {
-  .menu-list-row {
-    grid-template-columns: 1fr auto;
-    gap: 12px;
-    padding: 16px 0;
-  }
-  .menu-list-add {
-    width: 38px;
-    height: 38px;
-  }
 }
 
 /* Empty state */
@@ -3946,12 +3631,6 @@ select {
   }
 }
 
-/* CupEmblem responsive sizing helper class */
-.cup-emblem-responsive {
-  width: clamp(220px, 50vw, 420px);
-  height: clamp(220px, 50vw, 420px);
-}
-
 /* Reduce hero section bottom padding on phones */
 @media (max-width: 640px) {
   .hero {
@@ -4578,7 +4257,9 @@ select {
   font-size: 18px;
   letter-spacing: 0.12em;
   background: #fff;
-  border: 1px solid var(--gold-soft);
+  /* --gold-soft is a on-dark tone: on white it was 1.47:1, i.e. no border at
+     all. --gold reads at 5.29:1. */
+  border: 1px solid var(--gold);
   border-radius: 8px;
   padding: 6px 14px;
 }
@@ -6058,7 +5739,8 @@ select {
   font-size: 12px;
   color: var(--gold-deep);
   background: var(--bg-warm);
-  border: 1px dashed var(--gold-soft);
+  /* As above: --gold-soft vanishes on a cream ground. */
+  border: 1px dashed var(--gold);
   border-radius: var(--r-sm);
   padding: 8px 12px;
   margin: 4px 0 8px;

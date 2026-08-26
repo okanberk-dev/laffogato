@@ -1060,7 +1060,12 @@ export interface PlaceOrderInput {
 }
 
 export type PlaceOrderResult =
-  | { ok: true; order: AdminOrder; priceAdjusted: boolean; promoDropped: boolean }
+  | {
+      ok: true;
+      order: AdminOrder;
+      priceAdjusted: boolean;
+      promoDropped: boolean;
+    }
   | {
       ok: false;
       reason: "out_of_stock";
@@ -2909,7 +2914,6 @@ export const listActiveReels = (): Promise<AdminReel[]> =>
     SEED_REEL_ROWS.filter((r) => r.isActive),
     () => reelsResource.listActive(),
   );
-export const getReel = reelsResource.get;
 export const createReel = (i: ReelInput) => reelsResource.create(i);
 export const updateReel = (id: string, i: ReelInput) =>
   reelsResource.update(id, i);
@@ -2947,7 +2951,6 @@ export const listActivePress = (): Promise<AdminPress[]> =>
     SEED_PRESS_ROWS.filter((r) => r.isActive),
     () => pressResource.listActive(),
   );
-export const getPress = pressResource.get;
 export const createPress = (i: PressInput) => pressResource.create(i);
 export const updatePress = (id: string, i: PressInput) =>
   pressResource.update(id, i);
@@ -2988,7 +2991,6 @@ export const listActiveStoryEvents = (): Promise<AdminStoryEvent[]> =>
     SEED_STORY_ROWS.filter((r) => r.isActive),
     () => storyResource.listActive(),
   );
-export const getStoryEvent = storyResource.get;
 export const createStoryEvent = (i: StoryEventInput) => storyResource.create(i);
 export const updateStoryEvent = (id: string, i: StoryEventInput) =>
   storyResource.update(id, i);

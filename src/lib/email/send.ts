@@ -132,7 +132,9 @@ function orderShellHtml(
 }
 
 /** Sent when an order is created (payment still pending). */
-export async function sendOrderPlacedEmail(o: OrderEmailData): Promise<boolean> {
+export async function sendOrderPlacedEmail(
+  o: OrderEmailData,
+): Promise<boolean> {
   if (!o.to) return false;
   const greeting = o.customerName ? `Merhaba ${o.customerName},` : "Merhaba,";
   const subject = `L'Affogato — Siparişin alındı (#${o.orderNo})`;
@@ -148,7 +150,12 @@ ${orderLinesText(o.items)}
 Toplam: ${formatTRYMinor(o.totalMinor)}
 
 — L'Affogato`;
-  return send({ to: o.to, subject, html: orderShellHtml(greeting, intro, o), text });
+  return send({
+    to: o.to,
+    subject,
+    html: orderShellHtml(greeting, intro, o),
+    text,
+  });
 }
 
 /** Sent when an order's payment is confirmed (status → paid). */
@@ -168,5 +175,10 @@ ${orderLinesText(o.items)}
 Toplam: ${formatTRYMinor(o.totalMinor)}
 
 — L'Affogato`;
-  return send({ to: o.to, subject, html: orderShellHtml(greeting, intro, o), text });
+  return send({
+    to: o.to,
+    subject,
+    html: orderShellHtml(greeting, intro, o),
+    text,
+  });
 }

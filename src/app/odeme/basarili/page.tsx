@@ -91,8 +91,8 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         <p className="mt-6 max-w-md text-neutral-700">
           {order.status === "paid" ? (
             <>
-              Ödemen alındı ve siparişin onaylandı. Tuzla köşkünde
-              bekleniyorsun — hazır olunca seni bilgilendireceğiz.
+              Ödemen alındı ve siparişin onaylandı. Tuzla köşkünde bekleniyorsun
+              — hazır olunca seni bilgilendireceğiz.
             </>
           ) : (
             <>
