@@ -93,22 +93,6 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     priority: 0.7,
     changefreq: "monthly",
   },
-  reels: {
-    route: "reels",
-    path: ROUTE_PATHS.reels,
-    title: "Reels & Film — Bar Ardından",
-    description:
-      "L'Affogato Tuzla bar ardı: affogato hazırlanışı, strawberry matcha latte yapım sahnesi, fior di latte gelato batch, golden hour bar atmosferi. Kısa film arşivi.",
-    keywords: [
-      "L'Affogato Instagram",
-      "affogato yapımı video",
-      "matcha latte reels",
-      "İstanbul kafe reels",
-    ],
-    breadcrumbLabel: "Reels",
-    priority: 0.65,
-    changefreq: "weekly",
-  },
   visit: {
     route: "visit",
     path: ROUTE_PATHS.visit,

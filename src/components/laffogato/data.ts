@@ -412,51 +412,6 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
-export interface Reel {
-  caption: string;
-  meta: string;
-  accent: string;
-}
-
-export const REELS: Reel[] = [
-  {
-    caption: "How an affogato is born",
-    meta: "0:24 · 12.4K",
-    accent: "caramel",
-  },
-  {
-    caption: "Strawberry matcha latte build",
-    meta: "0:32 · 28.1K",
-    accent: "strawberry",
-  },
-  {
-    caption: "Eat the cup, no spoon required",
-    meta: "0:18 · 21.0K",
-    accent: "caramel",
-  },
-  {
-    caption: "Uji matcha — Japan harvest",
-    meta: "0:52 · 9.4K",
-    accent: "matcha",
-  },
-  {
-    caption: "Sirena single origin — İtalyan roast",
-    meta: "0:46 · 8.1K",
-    accent: "dark",
-  },
-  {
-    caption: "Behind the bar at golden hour",
-    meta: "0:40 · 15.7K",
-    accent: "caramel",
-  },
-  {
-    caption: "Gelato batch #214 — fior di latte",
-    meta: "0:28 · 9.3K",
-    accent: "cream",
-  },
-  { caption: "Tuzla, opening week", meta: "0:36 · 31.6K", accent: "caramel" },
-];
-
 export const PRESS = [
   {
     name: "Monocle",

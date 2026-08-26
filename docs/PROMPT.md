@@ -28,13 +28,13 @@ Laffogato, bir kafe markasının online vitrinidir. İki temel kullanım vardır
 ### Müşteri tarafı (`/`)
 
 - [ ] Ana sayfa — hero, öne çıkan ürünler, hakkımızda kısa
-- [x] Ana sayfa — premium dark hero, signature affogato, matcha bar, shop teaser, reels, press
+- [x] Ana sayfa — premium dark hero, signature affogato, matcha bar, shop teaser, press
 - [x] Menü (`#menu` hash route) — sticky tab nav, 5 kategori × kalem, kafe MENU'sü artık admin'den yönetiliyor
 - [x] Ürünler / Shop (`#shop`) — sidebar filter (kategori + fiyat slider + tag), Affogato Kit feature, trust badges, was-price strike
 - [x] Ürün hızlı bakış modal (galeri yok ama varyant + detay var)
 - [x] Sepet (CartDrawer) — kalemler, sil, toplam, kargo bilgisi, "Ödemeye geç"; localStorage'da kalıcı
 - [x] Ödeme (`/odeme/basarili?ref=<id>`) — `placeOrderAction` ile gerçek sipariş yaratır, premium başarı sayfası, sepet otomatik temizlenir
-- [x] Hikaye (`#story`) · Visit (`#visit`, interaktif rezervasyon kartı + gömülü harita) · Reels (`#reels`, lightbox)
+- [x] Hikaye (`#story`) · Visit (`#visit`, interaktif rezervasyon kartı + gömülü harita)
 - [ ] Hesabım — müşteri auth + sipariş geçmişi (önümüzdeki sprint)
 
 ### Admin tarafı (`/admin`)

@@ -88,9 +88,9 @@ export const SITE = {
     address: "İtalya merkez",
   },
   social: {
-    instagram: "https://instagram.com/laffogato",
-    tiktok: "https://tiktok.com/@laffogato",
-    youtube: "https://youtube.com/@laffogato",
+    instagram: "https://instagram.com/laffogatto",
+    tiktok: "https://tiktok.com/@laffogatto",
+    youtube: "https://youtube.com/@laffogatto",
   },
   priceRange: "₺₺",
   cuisine: ["Italian", "Coffee", "Gelato", "Dessert"],
@@ -99,7 +99,7 @@ export const SITE = {
   ogImage: "/opengraph-image",
   ogImageWidth: 1200,
   ogImageHeight: 630,
-  twitter: "@laffogato",
+  twitter: "@laffogatto",
   /**
    * Search engine verification tokens. Set the corresponding env var on
    * Vercel/CI to emit the verification meta tag; otherwise leave as empty

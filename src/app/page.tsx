@@ -5,7 +5,6 @@ import { SeoContent } from "@/components/laffogato/seo-content";
 import {
   getPublicSettings,
   listActiveShopHeroSlides,
-  listActiveReels,
   listActivePress,
   listActiveStoryEvents,
   listMenuForCustomer,
@@ -49,7 +48,6 @@ export default async function HomePage({ searchParams }: PageProps) {
     menu,
     customer,
     heroSlides,
-    reels,
     press,
     storyEvents,
     content,
@@ -60,7 +58,6 @@ export default async function HomePage({ searchParams }: PageProps) {
     listMenuForCustomer(),
     getActiveCustomer(),
     listActiveShopHeroSlides(),
-    listActiveReels(),
     listActivePress(),
     listActiveStoryEvents(),
     getSiteContent(),
@@ -139,11 +136,6 @@ export default async function HomePage({ searchParams }: PageProps) {
           ctaLabel: s.ctaLabel,
           ctaHref: s.ctaHref,
           textTheme: s.textTheme,
-        }))}
-        reels={reels.map((r) => ({
-          caption: r.caption,
-          meta: r.meta,
-          accent: r.accent,
         }))}
         press={press.map((p) => ({ name: p.name, quote: p.quote }))}
         storyTimeline={storyEvents.map((e) => ({

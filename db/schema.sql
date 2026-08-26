@@ -612,3 +612,20 @@ drop table if exists public.franchise_packages cascade;
 
 insert into public._migrations (name) values ('20260826120000_drop_franchise_tables.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260826180000_drop_reels_table.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Drop the reels table.
+--
+-- The Reels section (customer page, home teaser, admin management) was
+-- removed from the app; nothing in src/ references this table any more, so
+-- it is schema for a feature that no longer exists.
+--
+-- `if exists` so the migration is safe on a database created after this
+-- point, and `cascade` to take the index and RLS policy with it.
+
+drop table if exists public.reels cascade;
+
+insert into public._migrations (name) values ('20260826180000_drop_reels_table.sql')
+  on conflict (name) do nothing;

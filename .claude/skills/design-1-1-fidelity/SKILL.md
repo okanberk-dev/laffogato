@@ -27,7 +27,7 @@ Süreç boyunca dosyalar `/tmp` altında. Sandbox sıfırlanırsa Claude Design'
 2. **CSS değişkenleri** — `--gold`, `--ink`, `--bg-warm`, `--serif`, `--script`, vb. `globals.css`'de
 3. **Layout / spacing** — `clamp()` ile responsive font'lar, `data-row` attribute ile grid override'ları
 4. **Animasyonlar** — `marquee`, `pageIn`, `steam`, `pour`, `sway` keyframe'leri + `.reveal.in` transition
-5. **Hash router** — `#home`, `#menu`, `#shop`, `#story`, `#reels`, `#visit`
+5. **Hash router** — `#home`, `#menu`, `#shop`, `#story`, `#visit`
 6. **Hover state'ler** — `.product-card:hover .product-card-img { transform: translateY(-4px); ... }` gibi
 
 ## Zorunlu Next.js adaptasyonları (1:1 dışında bırakılanlar)

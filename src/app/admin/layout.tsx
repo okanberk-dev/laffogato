@@ -76,7 +76,6 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
   {
     title: "İçerik",
     items: [
-      { href: "/admin/reels", label: "Reels", section: "reels" },
       { href: "/admin/basin", label: "Basın", section: "press" },
       { href: "/admin/hikaye", label: "Hikaye", section: "story" },
       { href: "/admin/icerik", label: "Site Metinleri", section: "content" },

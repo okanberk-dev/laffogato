@@ -18,6 +18,9 @@
 > uygulandı; ayrıntı `CLAUDE.md` → "Veritabanı Kesintisinde Davranış".
 > G1, G2, G4–G7 açık. Ayrıca franchise modülü üründen çıkarıldı;
 > aşağıdaki şema ve tablolarda geçen `franchise_*` artıkları geçersizdir.
+> Reels bölümü de (müşteri sayfası, ana sayfa teaser'ı, admin yönetimi,
+> `reels` tablosu) tamamen kaldırıldı; aşağıdaki `reels` referansları da
+> geçersizdir.
 
 ---
 

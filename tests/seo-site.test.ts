@@ -27,6 +27,13 @@ describe("SITE constants — NAP + lean-SEO fixes", () => {
     expect(SITE.email).toBe("tuzla@laffogato.it");
   });
 
+  it("uses the laffogatto social handles", () => {
+    expect(SITE.social.instagram).toBe("https://instagram.com/laffogatto");
+    expect(SITE.social.tiktok).toBe("https://tiktok.com/@laffogatto");
+    expect(SITE.social.youtube).toBe("https://youtube.com/@laffogatto");
+    expect(SITE.twitter).toBe("@laffogatto");
+  });
+
   it("has a lean, de-duplicated keyword set (<= 12, no dupes)", () => {
     const kw = SITE.keywords;
     expect(kw.length).toBeLessThanOrEqual(12);

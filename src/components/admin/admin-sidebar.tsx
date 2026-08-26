@@ -50,13 +50,6 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="m21 15-5-5L5 18" />
     </>
   ),
-  reels: (
-    <>
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <path d="M3 9h18M8 4l1 5M15 4l1 5" />
-      <path d="m11 12.5 3.5 2-3.5 2v-4Z" />
-    </>
-  ),
   press: (
     <>
       <path d="M5 5h12v14H6a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1Z" />

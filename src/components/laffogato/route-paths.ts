@@ -5,7 +5,7 @@
  * breadcrumb) hem de chrome.tsx (client) tarafından import edilir.
  */
 
-export type Route = "home" | "menu" | "shop" | "story" | "reels" | "visit";
+export type Route = "home" | "menu" | "shop" | "story" | "visit";
 
 /** Her SPA bölümünün gerçek Next.js route'u. */
 export const ROUTE_PATHS: Record<Route, string> = {
@@ -13,7 +13,6 @@ export const ROUTE_PATHS: Record<Route, string> = {
   menu: "/menu",
   shop: "/magaza",
   story: "/hikayemiz",
-  reels: "/reels",
   visit: "/ziyaret",
 };
 

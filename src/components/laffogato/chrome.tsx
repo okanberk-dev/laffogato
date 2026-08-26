@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { SITE } from "@/lib/seo/site";
+
 import { NewsletterForm } from "./newsletter-form";
 import { ROUTE_PATHS, type Route } from "./route-paths";
 
@@ -86,7 +88,6 @@ const LINKS: LinkEntry[] = [
     basePath: "/magaza",
   },
   { route: "story", label: "Hikaye" },
-  { route: "reels", label: "Reels" },
   { route: "visit", label: "Ziyaret" },
 ];
 
@@ -698,8 +699,9 @@ export function Footer({ navigate, settings }: FooterProps) {
           <div className="footer-social">
             <a
               className="nav-icon-btn"
-              href={hrefFor("reels")}
-              onClick={go("reels")}
+              href={SITE.social.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label="Instagram"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -724,8 +726,9 @@ export function Footer({ navigate, settings }: FooterProps) {
             </a>
             <a
               className="nav-icon-btn"
-              href={hrefFor("reels")}
-              onClick={go("reels")}
+              href={SITE.social.tiktok}
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label="TikTok"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -745,8 +748,9 @@ export function Footer({ navigate, settings }: FooterProps) {
             </a>
             <a
               className="nav-icon-btn"
-              href={hrefFor("reels")}
-              onClick={go("reels")}
+              href={SITE.social.youtube}
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label="YouTube"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -790,11 +794,6 @@ export function Footer({ navigate, settings }: FooterProps) {
             <li>
               <a href={hrefFor("story")} onClick={go("story")}>
                 Hikayemiz
-              </a>
-            </li>
-            <li>
-              <a href={hrefFor("reels")} onClick={go("reels")}>
-                Reels & Film
               </a>
             </li>
             <li>

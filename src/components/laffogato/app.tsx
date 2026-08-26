@@ -10,14 +10,7 @@ import {
   type FooterSettings,
   type Route,
 } from "./chrome";
-import {
-  PageHome,
-  PageMenu,
-  PageReels,
-  PageShop,
-  PageStory,
-  PageVisit,
-} from "./pages";
+import { PageHome, PageMenu, PageShop, PageStory, PageVisit } from "./pages";
 import {
   CartDrawer,
   ProductModal,
@@ -28,14 +21,7 @@ import {
 import type { ShopHeroSlide } from "./shop-hero-slider";
 import type { MenuCategory, Product } from "./data";
 
-const VALID_ROUTES: Route[] = [
-  "home",
-  "menu",
-  "shop",
-  "story",
-  "reels",
-  "visit",
-];
+const VALID_ROUTES: Route[] = ["home", "menu", "shop", "story", "visit"];
 
 const CART_STORAGE_KEY = "laffogato_cart_v1";
 
@@ -85,7 +71,6 @@ export function LaffogatoApp({
   wishlist,
   isAuthenticated,
   shopHeroSlides,
-  reels,
   press,
   storyTimeline,
   content,
@@ -110,8 +95,7 @@ export function LaffogatoApp({
   isAuthenticated?: boolean;
   /** Admin-managed shop hero slides — PageShop renders them at the top. */
   shopHeroSlides?: ShopHeroSlide[];
-  /** Admin-managed editorial content (reels / press / story). */
-  reels?: { caption: string; meta: string; accent: string }[];
+  /** Admin-managed editorial content (press / story). */
   press?: { name: string; quote: string }[];
   storyTimeline?: { y: string; t: string; d: string }[];
   /** Admin-managed editable site copy (key → value). */
@@ -244,7 +228,6 @@ export function LaffogatoApp({
     menu: PageMenu,
     shop: PageShop,
     story: PageStory,
-    reels: PageReels,
     visit: PageVisit,
   };
   const Page = pages[route];
@@ -276,7 +259,6 @@ export function LaffogatoApp({
             products={products}
             menu={menu}
             shopHeroSlides={shopHeroSlides}
-            reels={reels}
             press={press}
             storyTimeline={storyTimeline}
             content={content}
@@ -311,7 +293,6 @@ export function LaffogatoApp({
           products={products}
           menu={menu}
           shopHeroSlides={shopHeroSlides}
-          reels={reels}
           press={press}
           storyTimeline={storyTimeline}
           content={content}

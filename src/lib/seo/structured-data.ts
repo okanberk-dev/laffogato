@@ -661,7 +661,6 @@ export function siteGraphLd(
         { name: "Mağaza", url: "/magaza" },
         { name: "Hikaye", url: "/hikayemiz" },
         { name: "Ziyaret · Tuzla", url: "/ziyaret" },
-        { name: "Reels", url: "/reels" },
       ]),
     ],
   };

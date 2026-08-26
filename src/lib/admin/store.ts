@@ -18,7 +18,6 @@ import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
 import {
   MENU as SEED_MENU,
   PRODUCTS as SEED_PRODUCTS,
-  REELS as SEED_REELS,
   PRESS as SEED_PRESS,
   STORY as SEED_STORY,
   type MenuCategory as DesignMenuCategory,
@@ -2875,49 +2874,6 @@ function contentResource<Row extends ContentRowBase>(
 
   return { list, listActive, get, create, update, remove };
 }
-
-// ── Reels ──────────────────────────────────────────────────────────────────
-export interface AdminReel extends ContentRowBase {
-  caption: string;
-  meta: string;
-  accent: string;
-  videoUrl: string;
-}
-export interface ReelInput {
-  caption: string;
-  meta: string;
-  accent: string;
-  videoUrl: string;
-  sortOrder: number;
-  isActive: boolean;
-}
-const SEED_REEL_ROWS: AdminReel[] = SEED_REELS.map((r, i) => ({
-  id: `reel-${String(i + 1).padStart(3, "0")}`,
-  caption: r.caption,
-  meta: r.meta,
-  accent: r.accent,
-  videoUrl: "",
-  sortOrder: i,
-  isActive: true,
-  createdAt: "",
-  updatedAt: "",
-}));
-const reelsResource = contentResource<AdminReel>(
-  TABLES.reels,
-  SEED_REEL_ROWS,
-  "reel",
-);
-export const listReels = reelsResource.list;
-export const listActiveReels = (): Promise<AdminReel[]> =>
-  publicRead(
-    "listActiveReels",
-    SEED_REEL_ROWS.filter((r) => r.isActive),
-    () => reelsResource.listActive(),
-  );
-export const createReel = (i: ReelInput) => reelsResource.create(i);
-export const updateReel = (id: string, i: ReelInput) =>
-  reelsResource.update(id, i);
-export const deleteReel = reelsResource.remove;
 
 // ── Press ────────────────────────────────────────────────────────────────--
 export interface AdminPress extends ContentRowBase {

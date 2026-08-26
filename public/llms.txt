@@ -4,10 +4,10 @@
 
 ## Konum ve İletişim
 
-- **Adres**: Tuzla · 200 yıllık Rum köşkü · Postane Mah. 29 Ekim Cad. No:28, 34953 Tuzla / İstanbul, Türkiye
+- **Adres**: Tuzla · 200 yıllık Rum köşkü · Postane Mah. 29 Ekim Cd. No: 28 (Menemenci Cumhur'un yanı), 34940 Tuzla / İstanbul, Türkiye
 - **Telefon**: +90 216 459 30 60
 - **E-posta**: tuzla@laffogato.it
-- **Koordinatlar**: 40.8233, 29.3098
+- **Koordinatlar**: 40.8165716, 29.3032493
 - **Ulaşım**: Marmaray Tuzla 6 dk, E-5 / TEM Tuzla çıkışı 4 dk, Sabiha Gökçen Havalimanı 15 dk, ücretsiz vale park hizmeti
 
 ## Çalışma Saatleri
@@ -22,8 +22,7 @@
 - [Menü](/#menu): Affogato, Matcha Bar, Espresso, Cold Bar, Gelato & Dolci kategorileri
 - [Mağaza](/#shop): Çekirdek kahve, edible cup, hediye seti, ekipman, giyim
 - [Hikaye](/#story): 1987 Bologna'dan 2026 İstanbul'a markanın hikayesi
-- [Ziyaret](/#visit): Tuzla lokasyonu, ulaşım, rezervasyon
-- [Reels](/#reels): Mekan film ve sosyal medya içerikleri
+- [Ziyaret](/#visit): Tuzla lokasyonu, ulaşım, rezervasyon, gömülü harita
 
 ## Menü Özeti
 
@@ -76,7 +75,6 @@ Ana sayfada tek `<script type="application/ld+json">` içinde aşağıdaki schem
 - FAQPage × 12 soru
 - AboutPage + Event timeline (1987/1994/2008/2026)
 - HowTo (Affogato Classico hazırlama, 4 adım)
-- VideoObject × 8 (reels)
 - SpeakableSpecification (sesli asistanlar için)
 - BreadcrumbList (6 seviye)
 

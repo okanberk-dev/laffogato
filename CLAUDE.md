@@ -36,7 +36,7 @@ src/
     layout.tsx               → next/font ile 2 font (Hanken Grotesk + JetBrains Mono)
     globals.css              → Tüm design tokens + müşteri SPA stilleri
     menu/ magaza/ hikayemiz/ → Müşteri rotaları (SPA içeriğinin SEO'lu karşılıkları)
-    ziyaret/ reels/ hukuk/
+    ziyaret/ hukuk/
     odeme/                   → Checkout + placeOrderAction + /basarili
     uye/                     → Müşteri hesabı (giriş, kayıt, sipariş geçmişi,
                                adresler, favoriler, promosyonlar, bildirimler)
@@ -49,7 +49,7 @@ src/
       stok-hareketleri/      → Stok audit + manuel düzeltme
       olay-kaydi/            → Mutasyon audit log (owner-only)
       icerik/ hikaye/ basin/ → Site içeriği, hikaye zaman çizelgesi, basın
-      reels/ magaza-hero/    → Reels · mağaza hero slaytları
+      magaza-hero/           → Mağaza hero slaytları
       hukuk/ bulten/ ayarlar/→ Hukuki metinler · bülten · ayarlar
       giris/ iki-asama/      → Login + 2FA akışı
       2fa-kurulum/

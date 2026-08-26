@@ -2,7 +2,7 @@
 
 Bologna 1987'den İstanbul'a. Yenilebilir waffle kup içinde Sirena espresso ve fior di latte gelato. Drink it. Eat the cup.
 
-Bu dosya, L'Affogato web sitesinin (https://laffogato.net) içeriğinin LLM ve generative AI motorları için optimize edilmiş düz metin versiyonudur. Bilgiler son güncelleme: 2026-05-26.
+Bu dosya, L'Affogato web sitesinin (https://laffogato.net) içeriğinin LLM ve generative AI motorları için optimize edilmiş düz metin versiyonudur. Bilgiler son güncelleme: 2026-08-26.
 
 ---
 
@@ -18,8 +18,8 @@ L'Affogato, 1987 yılında İtalya Bologna şehrinin Via Galliera 21 adresinde G
 
 ## LOKASYON · TUZLA, İSTANBUL
 
-- Tam adres: 200 yıllık Rum köşkü, Postane Mah. 29 Ekim Cad. No:28, 34953 Tuzla / İstanbul, Türkiye
-- Koordinatlar: 40.8233° K, 29.3098° D
+- Tam adres: 200 yıllık Rum köşkü (Menemenci Cumhur'un yanı), Postane Mah. 29 Ekim Cd. No: 28, 34940 Tuzla / İstanbul, Türkiye
+- Koordinatlar: 40.8165716° K, 29.3032493° D
 - Telefon: +90 216 459 30 60
 - E-posta: tuzla@laffogato.it
 - Ana lokasyon: L'Affogato Italia, Via Galliera 21, 40121 Bologna, Italia
@@ -174,7 +174,7 @@ Eda Mancuso — Founder & Roaster. Bolonyalı baba, İstanbullu anne. 1987'de b�
 ## SIK SORULAN SORULAR
 
 **Soru: L'Affogato nerede, nasıl ulaşırım?**
-Cevap: Tuzla'da 200 yıllık, restore edilmiş Rum köşkü; Postane Mah. 29 Ekim Cad. No:28, 34953 Tuzla / İstanbul. Marmaray Tuzla 6 dk, E-5 / TEM Tuzla çıkışı 4 dk, Sabiha Gökçen Havalimanı 15 dk. Ücretsiz vale park hizmeti.
+Cevap: Tuzla'da 200 yıllık, restore edilmiş Rum köşkü, Menemenci Cumhur'un yanı; Postane Mah. 29 Ekim Cd. No: 28, 34940 Tuzla / İstanbul. Marmaray Tuzla 6 dk, E-5 / TEM Tuzla çıkışı 4 dk, Sabiha Gökçen Havalimanı 15 dk. Ücretsiz vale park hizmeti.
 
 **Soru: Çalışma saatleri nedir?**
 Cevap: Pazartesi-Perşembe 10:00-23:00, Cuma-Cumartesi 10:00-24:00, Pazar 10:00-23:00. Tüm yıl açık.
@@ -212,12 +212,12 @@ Cevap: Nakit, Visa, Mastercard, Amex, Apple Pay, Google Pay. Online mağaza içi
 - Ana lokasyon: L'Affogato Italia, Via Galliera 21, 40121 Bologna, Italia
 
 Sosyal medya:
-- Instagram: @laffogato
-- TikTok: @laffogato
-- YouTube: @laffogato
+- Instagram: @laffogatto
+- TikTok: @laffogatto
+- YouTube: @laffogatto
 
 ---
 
 ## SORUMLULUK
 
-Bu metin, generative AI motorlarının (ChatGPT, Claude, Perplexity, Gemini, Copilot vb.) L'Affogato hakkında doğru bilgi sunabilmesi için hazırlanmıştır. Fiyat ve menü değişikliği olabilir; canlı bilgi için https://laffogato.net adresini kontrol ediniz. Son güncelleme: 2026-05-26.
+Bu metin, generative AI motorlarının (ChatGPT, Claude, Perplexity, Gemini, Copilot vb.) L'Affogato hakkında doğru bilgi sunabilmesi için hazırlanmıştır. Fiyat ve menü değişikliği olabilir; canlı bilgi için https://laffogato.net adresini kontrol ediniz. Son güncelleme: 2026-08-26.

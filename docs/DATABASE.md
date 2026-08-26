@@ -138,7 +138,7 @@ uygundur. Hatalı kolon, kısıt ihlali, kimlik doğrulama reddi gibi gerçek ha
 
 | Alan                                  | Ulaşılamazken                                                        |
 | ------------------------------------- | -------------------------------------------------------------------- |
-| Ana sayfa, hikaye, ziyaret, reels     | Pakette gelen içerikle render edilir                                 |
+| Ana sayfa, hikaye, ziyaret            | Pakette gelen içerikle render edilir                                 |
 | Kafe menüsü                           | Yapı gösterilir, **fiyatlar `—`** (bayat fiyat göstermek yerine)     |
 | Mağaza                                | **Boş** — asla paketteki kurgusal ürünlere düşmez                    |
 | Ürün detay                            | "Şu an gösteremiyoruz" (404 değil — gerçek URL'ler deindekslenmesin) |
