@@ -29,7 +29,7 @@ export function quoteIdent(value: string, kind = "column"): string {
 }
 
 /** `"*"` stays `*`; `"a, b"` becomes `"a", "b"`. No embedded-relation syntax. */
-export function quoteColumnList(columns: string): string {
+function quoteColumnList(columns: string): string {
   const trimmed = columns.trim();
   if (trimmed === "*" || trimmed === "") return "*";
   return trimmed

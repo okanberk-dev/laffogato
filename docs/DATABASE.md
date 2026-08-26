@@ -1,4 +1,4 @@
-# Veritabanı — Neon (serverless Postgres)
+# Veritabanı — Postgres (Neon'da barındırılıyor)
 
 Proje **Neon** üzerinde çalışır. Daha önce Supabase kullanılıyordu; Supabase'in
 ücretsiz planı organizasyon başına **2 aktif proje** ile sınırlı olduğu ve iki
@@ -9,10 +9,26 @@ Neon'un ücretsiz planı **proje başına** kota verir ve limitlere takılmak ve
 silmez (Neon'un kendi ifadesiyle: _"None of these limits delete your data."_),
 yani aynı arıza tekrarlanamaz.
 
+## Sürücü seçimi — neden `pg`
+
+Veri katmanı, sağlayıcıya özel bir SDK yerine standart `pg` sürücüsünü
+kullanır. Neon'un pooled endpoint'i normal Postgres wire protokolü konuştuğu
+için bu Neon'da sorunsuz çalışır; aynı kod başka bir yönetilen Postgres'te de,
+yerel bir Postgres'te de çalışır.
+
+Bunun iki somut faydası var:
+
+1. **Taşınabilirlik.** Bu sitenin bir ay boyunca kapalı kalmasının sebebi,
+   verinin tek bir sağlayıcının istemcisinin ve hesap limitinin arkasında
+   olmasıydı. Artık taşınma, bağlantı dizesini değiştirmekten ibaret.
+2. **Test edilebilirlik.** Sorgu katmanı gerçek bir Postgres'e karşı
+   sınanabiliyor (`tests/db-integration.test.ts`) — JSONB gidiş-dönüşü,
+   `on conflict` davranışı, SQLSTATE'ler ve fonksiyon çağrıları dâhil.
+
 ## Kurulum (tek seferlik)
 
 > **Sıra önemli: önce şemayı kur, sonra `DATABASE_URL`'i Vercel'e ekle.**
-> Uygulama "tablo yok" hatasını (SQLSTATE `42P01`) *gerçek* bir hata sayar ve
+> Uygulama "tablo yok" hatasını (SQLSTATE `42P01`) _gerçek_ bir hata sayar ve
 > haklı olarak 500 döndürür — bu bilinçli bir tercih, çünkü şema hatasını
 > yedek veriyle gizlemek işi daha da kötüleştirir. Boş bir veritabanına
 > bağlanmak siteyi bozar; hiç bağlanmamak bozmaz (pakete düşer). Yani şema
@@ -24,7 +40,7 @@ yani aynı arıza tekrarlanamaz.
      bölgelerinde 90 gün hareketsiz kalan ücretsiz projeler silinebiliyor; AWS
      bölgeleri bu politikanın dışında.
 
-2. **Connection string'i kopyala** — Neon panelinde *Connection Details*.
+2. **Connection string'i kopyala** — Neon panelinde _Connection Details_.
    Sonu `-pooler` ile biten **pooled** endpoint'i kullan; serverless
    fonksiyonlar için doğru olan odur.
 
@@ -51,8 +67,8 @@ yani aynı arıza tekrarlanamaz.
 4. **Vercel'de env değişkenini ayarla** — Vercel → proje → Settings →
    Environment Variables:
 
-   | Değişken | Değer | Ortam |
-   |----------|-------|-------|
+   | Değişken       | Değer                         | Ortam                |
+   | -------------- | ----------------------------- | -------------------- |
    | `DATABASE_URL` | Neon pooled connection string | Production + Preview |
 
    Eski `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
@@ -76,12 +92,12 @@ Kod, Supabase'in PostgREST sorgu kurucusuna göre yazılmıştı (~122 çağrı 
 sipariş/stok/ödeme yolları dahil). Bunları elle SQL'e çevirmek yerine aynı
 arayüzü koruyan ince bir uyumluluk katmanı yazıldı:
 
-| Dosya | Sorumluluk |
-|-------|-----------|
-| `src/lib/db/sql.ts` | Saf SQL derleyici — QuerySpec → parametreli SQL. Tanımlayıcılar katı bir desene karşı doğrulanır, değerler **her zaman** parametre olarak bağlanır. |
-| `src/lib/db/client.ts` | `.from().select().eq()...` zinciri, PostgREST sonuç şekliyle (`{ data, error, status, count }`). |
-| `src/lib/db/index.ts` | Neon HTTP sürücüsü + `getDb()` + `TABLES`. |
-| `src/lib/db/counters.ts` | `next_seq()` ile atomik sıra üretimi. |
+| Dosya                    | Sorumluluk                                                                                                                                          |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/db/sql.ts`      | Saf SQL derleyici — QuerySpec → parametreli SQL. Tanımlayıcılar katı bir desene karşı doğrulanır, değerler **her zaman** parametre olarak bağlanır. |
+| `src/lib/db/client.ts`   | `.from().select().eq()...` zinciri, PostgREST sonuç şekliyle (`{ data, error, status, count }`).                                                    |
+| `src/lib/db/index.ts`    | `pg` bağlantı havuzu + `getDb()` + `TABLES`.                                                                                                        |
+| `src/lib/db/counters.ts` | `next_seq()` ile atomik sıra üretimi.                                                                                                               |
 
 Korunan davranışlar (çağrı noktaları bunlara bağlı):
 
@@ -120,17 +136,17 @@ ulaşmamıştır (`status: 0`, boş `code`) — yalnız bu durum bozulmaya (degr
 uygundur. Hatalı kolon, kısıt ihlali, kimlik doğrulama reddi gibi gerçek hatalar
 **maskelenmez**, eskisi gibi hata verir.
 
-| Alan | Ulaşılamazken |
-|------|---------------|
-| Ana sayfa, hikaye, ziyaret, reels | Pakette gelen içerikle render edilir |
-| Kafe menüsü | Yapı gösterilir, **fiyatlar `—`** (bayat fiyat göstermek yerine) |
-| Mağaza | **Boş** — asla paketteki kurgusal ürünlere düşmez |
-| Ürün detay | "Şu an gösteremiyoruz" (404 değil — gerçek URL'ler deindekslenmesin) |
-| Yasal metinler | Paketteki asıl metin (DB yalnız override tutar) |
-| Ayarlar | Varsayılanlar, **`isShopOpen: false`** |
-| Ödeme | "Şu an sipariş alamıyoruz" kapısı |
-| Üye oturumu | Çıkış yapmış sayılır (fail-closed) |
-| Admin panel, tüm mutasyonlar, webhook | **Hata verir** — bozulma yok |
+| Alan                                  | Ulaşılamazken                                                        |
+| ------------------------------------- | -------------------------------------------------------------------- |
+| Ana sayfa, hikaye, ziyaret, reels     | Pakette gelen içerikle render edilir                                 |
+| Kafe menüsü                           | Yapı gösterilir, **fiyatlar `—`** (bayat fiyat göstermek yerine)     |
+| Mağaza                                | **Boş** — asla paketteki kurgusal ürünlere düşmez                    |
+| Ürün detay                            | "Şu an gösteremiyoruz" (404 değil — gerçek URL'ler deindekslenmesin) |
+| Yasal metinler                        | Paketteki asıl metin (DB yalnız override tutar)                      |
+| Ayarlar                               | Varsayılanlar, **`isShopOpen: false`**                               |
+| Ödeme                                 | "Şu an sipariş alamıyoruz" kapısı                                    |
+| Üye oturumu                           | Çıkış yapmış sayılır (fail-closed)                                   |
+| Admin panel, tüm mutasyonlar, webhook | **Hata verir** — bozulma yok                                         |
 
 Ziyaretçiye durumu açıklayan bir bant gösterilir; ayrıca her düşüş
 `[db-degraded]` etiketiyle sunucu loglarına yazılır, böylece arıza görünmez

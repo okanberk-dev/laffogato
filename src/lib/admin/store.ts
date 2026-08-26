@@ -2427,7 +2427,7 @@ export async function applyPromoCode(
   return { ok: true, promo, discountMinor };
 }
 
-export async function consumePromoUsage(code: string): Promise<void> {
+async function consumePromoUsage(code: string): Promise<void> {
   await ensureSeed();
   const needle = normalizeCode(code);
   const sb = getDb();

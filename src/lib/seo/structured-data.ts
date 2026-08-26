@@ -52,7 +52,7 @@ const PRICE_VALID_UNTIL = (() => {
   return d.toISOString().slice(0, 10);
 })();
 
-export function organizationLd(): Json {
+function organizationLd(): Json {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -221,7 +221,7 @@ export function localBusinessLd(): Json {
   };
 }
 
-export function websiteLd(): Json {
+function websiteLd(): Json {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -301,7 +301,7 @@ export function menuLd(menu: Record<string, MenuCategory>): Json {
   };
 }
 
-export function productListLd(products: Product[]): Json {
+function productListLd(products: Product[]): Json {
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -514,7 +514,7 @@ export function singleProductLd(p: Product, canonicalPath: string): Json {
   };
 }
 
-export function faqLd(entries: FaqEntry[] = FAQ): Json {
+function faqLd(entries: FaqEntry[] = FAQ): Json {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -531,7 +531,7 @@ export function faqLd(entries: FaqEntry[] = FAQ): Json {
   };
 }
 
-export function aboutPageLd(): Json {
+function aboutPageLd(): Json {
   return {
     "@context": "https://schema.org",
     "@type": "AboutPage",
@@ -560,7 +560,7 @@ export function aboutPageLd(): Json {
   };
 }
 
-export function howToAffogatoLd(): Json {
+function howToAffogatoLd(): Json {
   return {
     "@context": "https://schema.org",
     "@type": "HowTo",
@@ -614,7 +614,7 @@ export function howToAffogatoLd(): Json {
   };
 }
 
-export function speakableLd(): Json {
+function speakableLd(): Json {
   return {
     "@context": "https://schema.org",
     "@type": "WebPage",

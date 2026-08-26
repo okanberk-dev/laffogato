@@ -1,58 +1,64 @@
-# Laffogato
+# L'Affogato
 
-[![CI](https://github.com/RiosenBeq/laffogato/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/RiosenBeq/laffogato/actions/workflows/ci.yml)
+İstanbul Tuzla'daki L'Affogato kafesinin kurumsal sitesi ve online mağazası.
 
-Bir kafenin kurumsal sitesi + online mağazası. **Next.js 16** + **Supabase** + **Tailwind v4** üzerine kuruludur ve **Vercel**'de barındırılır.
+**Next.js 16** (App Router) · **React 19** · **Tailwind v4** · **TypeScript** ·
+**Postgres** — Vercel'de barındırılır.
 
-## Hızlı Başlangıç
+- Müşteri tarafı: menü, mağaza, ürün detayı, sepet, misafir veya üye checkout,
+  üye hesabı (sipariş geçmişi, adresler, favoriler, promosyonlar)
+- Admin tarafı: ürün / menü / kategori / sipariş / müşteri / promosyon / içerik
+  yönetimi, stok hareketleri, ciro raporları, audit log, RBAC, TOTP 2FA
+
+## Kurulum
 
 ```bash
-cp .env.example .env.local       # Değişkenleri doldur
 npm install
-npm run dev
+cp .env.example .env.local     # değerleri doldur
+npm run db:migrate             # şemayı kur (DATABASE_URL gerekir)
+npm run dev                    # http://localhost:3000
 ```
 
-Tarayıcıdan [http://localhost:3000](http://localhost:3000) açın.
+Veritabanı kurulumunun ayrıntısı (Neon dâhil): **[docs/DATABASE.md](docs/DATABASE.md)**
 
 ## Komutlar
 
-| Komut | Açıklama |
-|-------|----------|
-| `npm run dev` | Geliştirme sunucusu |
-| `npm run build` | Production build |
-| `npm run start` | Production sunucusu |
-| `npm run lint` | ESLint |
-| `npm run typecheck` | TypeScript tip kontrolü |
-| `npm run format` | Prettier ile biçimlendir |
+| Komut                | Ne yapar                                          |
+| -------------------- | ------------------------------------------------- |
+| `npm run dev`        | Geliştirme sunucusu                               |
+| `npm run build`      | Production build                                  |
+| `npm run typecheck`  | `tsc --noEmit`                                    |
+| `npm test`           | Vitest                                            |
+| `npm run lint`       | ESLint                                            |
+| `npm run format`     | Prettier yazar                                    |
+| `npm run db:migrate` | `db/migrations/*.sql` dosyalarını sırayla uygular |
+| `npm run db:bundle`  | `db/schema.sql`'i migration'lardan yeniden üretir |
 
-## Klasör Yapısı
-
-```
-src/
-  app/                 → App Router (shop + admin route grupları)
-  components/          → UI, shop, admin component'ları
-  lib/
-    supabase/          → Server/client/middleware factory'leri
-    payment/           → PaymentProvider arayüzü + MockPaymentProvider
-    validation/        → Zod şemaları
-    utils/             → cn, format
-  types/database.ts    → Supabase'den auto-generate edilen tipler
-  proxy.ts             → Next.js proxy (eski "middleware") — auth + admin guard
-supabase/
-  migrations/          → SQL migration'lar
-  seed/seed.sql        → Test verisi
-docs/PROMPT.md         → Ürün spec'i + MVP kapsamı
-.claude/               → Claude Code ayarları
-```
-
-Daha fazla detay için [`CLAUDE.md`](./CLAUDE.md) ve [`docs/PROMPT.md`](./docs/PROMPT.md).
-
-## Deploy
-
-Vercel'e bağla, env değişkenlerini gir, push'la:
+Veritabanına dokunan testler yalnızca `TEST_DATABASE_URL` verilince çalışır:
 
 ```bash
-git push origin claude/inspiring-cori-3JcFV
+TEST_DATABASE_URL=postgres://user@host:5432/db npm test
 ```
 
-Build komutu: `npm run build`. Output: `.next`. Node runtime API route'lar için gerekli (`runtime = "nodejs"` payment webhook'unda işaretli).
+## Yapı
+
+```
+src/app/          Rotalar — müşteri, üye, admin, webhook
+src/components/   laffogato/ (müşteri arayüzü) · admin/ (panel)
+src/lib/          db/ · admin/ · customer/ · payment/ · seo/ · utils/
+db/migrations/    Sıralı SQL migration'lar
+docs/             DATABASE.md · PROMPT.md · BACKEND_FRONTEND_AUDIT.md
+tests/            Vitest
+```
+
+Mimari kararlar, güvenlik kuralları ve çalışma alışkanlıkları için
+**[CLAUDE.md](CLAUDE.md)**.
+
+## Ortam değişkenleri
+
+`.env.example` referanstır. Zorunlular: `ADMIN_EMAIL`, `ADMIN_PASSWORD`,
+`ADMIN_SESSION_SECRET`, `PAYMENT_PROVIDER`, `PAYMENT_WEBHOOK_SECRET`,
+`DATABASE_URL`, `NEXT_PUBLIC_SITE_URL`.
+
+`DATABASE_URL` **yalnızca server-side** okunur; asla `NEXT_PUBLIC_*` ile
+expose edilmez.

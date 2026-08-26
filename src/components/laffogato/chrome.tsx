@@ -18,7 +18,7 @@ export interface DropdownEntry {
   hue: "caramel" | "dark" | "cream" | "matcha" | "strawberry" | "pistachio";
 }
 
-export const MENU_DROPDOWN: DropdownEntry[] = [
+const MENU_DROPDOWN: DropdownEntry[] = [
   {
     slug: "affogato",
     label: "Affogato",
@@ -51,7 +51,7 @@ export const MENU_DROPDOWN: DropdownEntry[] = [
   },
 ];
 
-export const SHOP_DROPDOWN: DropdownEntry[] = [
+const SHOP_DROPDOWN: DropdownEntry[] = [
   {
     slug: "cekirdek",
     label: "Çekirdek Kahve",

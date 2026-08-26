@@ -32,7 +32,7 @@ function resolveSiteUrl(): string {
   return "https://laffogato.net";
 }
 
-export const SITE_URL = resolveSiteUrl();
+const SITE_URL = resolveSiteUrl();
 
 /**
  * `true` when the build is running on a Vercel preview/development deployment.

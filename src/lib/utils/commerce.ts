@@ -25,7 +25,7 @@ export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
  * İndirim sonrası net ara toplama göre kargo ücretini hesaplar.
  * Net 0 ise (boş/sıfır sepet) kargo da 0.
  */
-export function computeShippingMinor(
+function computeShippingMinor(
   netSubtotalMinor: number,
   cfg: CheckoutConfig,
 ): number {
@@ -44,10 +44,7 @@ export function computeShippingMinor(
  * Türkiye perakendesinde fiyatlar KDV dahil gösterilir; bu yalnızca
  * "bu fiyatın içinde ₺X KDV var" bilgisini üretmek içindir.
  */
-export function extractTaxMinor(
-  grossMinor: number,
-  taxRatePct: number,
-): number {
+function extractTaxMinor(grossMinor: number, taxRatePct: number): number {
   if (taxRatePct <= 0 || grossMinor <= 0) return 0;
   const rate = taxRatePct / 100;
   return Math.round(grossMinor - grossMinor / (1 + rate));

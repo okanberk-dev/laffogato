@@ -51,7 +51,7 @@ function verifyToken(token: string): CustomerSession | null {
   return { email, expiresAt };
 }
 
-export async function getCustomerSession(): Promise<CustomerSession | null> {
+async function getCustomerSession(): Promise<CustomerSession | null> {
   const jar = await cookies();
   const c = jar.get(COOKIE_NAME);
   if (!c?.value) return null;

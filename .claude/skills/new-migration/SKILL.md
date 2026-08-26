@@ -61,7 +61,7 @@ Bu projede her schema değişikliği `db/migrations/YYYYMMDDHHMMSS_aciklama.sql`
 
 7. **Doğrula:** `npm run db:migrate` çıktısında dosyanın uygulandığını gör; ardından `npm run typecheck && npm test && npm run build` ile kodun temiz kaldığını teyit et.
 
-**Not:** `anon` / `authenticated` / `service_role` rolleri Neon'da yoktur — `grant ... to service_role` gibi Supabase'e özgü satırlar yazma. Tüm erişim tek bir owner bağlantısı üzerinden gider.
+**Not:** Tüm erişim tek bir owner bağlantısı üzerinden gider. `anon` / `authenticated` / `service_role` gibi roller bu veritabanında yoktur; onlara `grant` veren satırlar yazma.
 
 ## Yapma
 
