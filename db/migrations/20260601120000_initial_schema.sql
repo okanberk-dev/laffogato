@@ -29,9 +29,6 @@ begin
 end;
 $$;
 
-revoke execute on function public.next_seq(text) from public, anon, authenticated;
-grant execute on function public.next_seq(text) to service_role;
-
 -- ── products ──────────────────────────────────────────────────────────────
 create table if not exists public.products (
   id                    text primary key,

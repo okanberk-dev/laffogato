@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
+import { getDb, TABLES } from "@/lib/db";
 
 /**
  * Admin overrides for the coded legal documents. A published override with a
@@ -29,7 +29,7 @@ export interface LegalDocInput {
 export async function getPublishedLegalOverride(
   slug: string,
 ): Promise<LegalDocOverride | null> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.legalDocs)
     .select("*")
@@ -46,7 +46,7 @@ export async function getPublishedLegalOverride(
 export async function getLegalDocOverride(
   slug: string,
 ): Promise<LegalDocOverride | null> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.legalDocs)
     .select("*")
@@ -60,7 +60,7 @@ export async function getLegalDocOverride(
 export async function listLegalDocOverrides(): Promise<
   Record<string, LegalDocOverride>
 > {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb.from(TABLES.legalDocs).select("*");
   if (error) throw new Error(`listLegalDocOverrides: ${error.message}`);
   const out: Record<string, LegalDocOverride> = {};
@@ -74,7 +74,7 @@ export async function upsertLegalDoc(
   slug: string,
   input: LegalDocInput,
 ): Promise<LegalDocOverride> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const row: LegalDocOverride = {
     slug,
     title: input.title.trim().slice(0, 200),
@@ -93,7 +93,7 @@ export async function upsertLegalDoc(
 
 /** Remove the override entirely → the public page reverts to the coded default. */
 export async function resetLegalDoc(slug: string): Promise<boolean> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.legalDocs)
     .delete()

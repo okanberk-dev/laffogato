@@ -658,7 +658,7 @@ export function ProductWizard({
             <span className="text-xs text-neutral-500">
               Sürükle bırak, tıkla veya URL yapıştır. İlk görsel kart görseli
               olur. Yüklenen dosyalar tarayıcıda küçültülüp base64 olarak
-              saklanır (Supabase Storage gelene kadar).
+              saklanır (nesne depolama gelene kadar).
             </span>
           </div>
 

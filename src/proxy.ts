@@ -9,9 +9,8 @@ import {
  * Admin route guard.
  *
  * Reads the signed session cookie and redirects unauthenticated visitors
- * to /admin/giris. Supabase Auth integration will replace this once the
- * Supabase project is connected — see src/lib/supabase/proxy.ts for the
- * (currently dormant) Supabase-based middleware.
+ * to /admin/giris. The cookie is verified in full by the admin layout; this
+ * only checks for its presence, which is all the edge runtime can do cheaply.
  */
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;

@@ -6,7 +6,7 @@ import { generateSecret, generateURI, verifySync } from "otplib";
  * In-memory TOTP secret store keyed by lowercased email. Each admin can
  * have at most one enrolled authenticator at a time.
  *
- * When Supabase comes online, swap the body for a row in `admin_2fa`
+ * Swap the body for a row in `admin_2fa`
  * keyed by user_id. Interface stays the same.
  */
 

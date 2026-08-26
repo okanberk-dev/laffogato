@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getSupabaseAdmin } from "./server";
+import { getDb } from "./index";
 
 /**
  * Atomic counter — generates id sequences and order numbers. Backed by the
@@ -10,11 +10,12 @@ import { getSupabaseAdmin } from "./server";
  * which is race-free across concurrent serverless invocations.
  */
 export async function nextSeq(key: string): Promise<number> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.rpc("next_seq", { counter_key: key });
+  const db = getDb();
+  const { data, error } = await db.rpc("next_seq", { counter_key: key });
   if (error) {
     throw new Error(`next_seq(${key}) failed: ${error.message}`);
   }
+  // bigint arrives as a string over the wire.
   const seq = typeof data === "number" ? data : Number(data);
   return Number.isFinite(seq) && seq > 0 ? seq : 1;
 }

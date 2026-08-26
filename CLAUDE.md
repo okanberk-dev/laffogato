@@ -10,7 +10,7 @@ Bu dosya, Claude Code'un bu projede tutarlı çalışması için gerekli bağlam
 
 - **Stack:** Next.js 16 (App Router + Turbopack) · React 19 · Tailwind v4 · TypeScript · Zod
 - **Deploy hedefi:** Vercel (Edge proxy + Node runtime API'ler)
-- **Veri:** **Supabase (Postgres)** — `src/lib/admin/store.ts` + `src/lib/customer/store.ts` + `src/lib/admin/audit.ts` service-role client (`src/lib/supabase/server.ts`) üzerinden bağlanır. Tablo boşsa ilk istekte idempotent otomatik seed
+- **Veri:** **Neon (serverless Postgres)** — `src/lib/admin/store.ts` + `src/lib/customer/store.ts` + `src/lib/admin/audit.ts`, `src/lib/db/index.ts`'deki lazy bağlantı üzerinden çalışır. Tablo boşsa ilk istekte idempotent otomatik seed. Kurulum: `docs/DATABASE.md`
 - **Auth:** Admin için **env-credentialed signed cookie** (`ADMIN_EMAIL` + `ADMIN_PASSWORD` + HMAC SHA256). Müşteri auth henüz yok
 - **Ödeme:** Sağlayıcı bağımsız soyutlama (`src/lib/payment/`). Şu an `MockPaymentProvider`; sanal POS sağlayıcısı henüz seçilmedi
 - **Dil:** Arayüz **Türkçe**. Kod, dosya adı, identifier, commit mesajı **İngilizce**
@@ -90,22 +90,22 @@ src/
   lib/
     admin/
       auth.ts                → signInAdmin, signOutAdmin, getAdminSession, signed cookie
-      store.ts               → Supabase store (products, categories, menu, orders, promos, settings, hero)
+      store.ts               → Veri katmanı (products, categories, menu, orders, promos, settings, hero)
       audit.ts               → Append-only audit log (audit_logs tablosu)
       product-schema.ts      → Zod schema for product form (coerce, validate, transform)
     customer/store.ts        → Müşteri hesapları (customers tablosu, bcrypt, adres/wishlist)
     payment/                 → PaymentProvider interface + MockPaymentProvider
-    supabase/                → server.ts (lazy service-role client + TABLES) + counters.ts (next_seq RPC)
+    db/                      → index.ts (lazy Neon bağlantısı + getDb + TABLES) · client.ts (PostgREST-uyumlu sorgu kurucu) · sql.ts (saf SQL derleyici) · counters.ts (next_seq)
     utils/cn.ts, format.ts   → Genel yardımcılar
-  types/database.ts          → Supabase'den auto-gen tipler (generate_typescript_types)
 .claude/
-  settings.json              → Permissions (Bash + GitHub MCP + Supabase MCP)
+  settings.json              → Permissions (Bash + GitHub MCP)
   skills/                    → Proje skill'leri (add-admin-resource, server-action-pattern, ...)
 .github/workflows/ci.yml     → Typecheck + build her PR'da
-supabase/
-  migrations/                → SQL migration dosyaları (20260601120000_initial_schema uygulandı)
-  seed/seed.sql              → Test verisi (app otomatik seed ediyor; bu dosya opsiyonel)
+db/
+  migrations/                → SQL migration dosyaları (`npm run db:migrate` ile uygulanır)
+scripts/db-migrate.mjs       → Migration runner (dosya başına tek transaction, `_migrations` tablosu)
 docs/
+  DATABASE.md                → Neon kurulumu + veri katmanı mimarisi
   PROMPT.md                  → Ürün spec'i + MVP scope
   NEXT_SESSION.md            → Yeni session'da admin tam kontrol için brief
 ```
@@ -131,17 +131,16 @@ CI her PR'da `npm run typecheck` + `npm run build` koşar.
 | `ADMIN_SESSION_SECRET` | Cookie HMAC anahtarı (≥32 karakter rastgele) | Zorunlu |
 | `PAYMENT_PROVIDER` | `mock` (varsayılan) | Zorunlu |
 | `PAYMENT_WEBHOOK_SECRET` | Webhook HMAC anahtarı | Zorunlu |
-| `NEXT_PUBLIC_SUPABASE_URL` (veya `SUPABASE_URL`) | Supabase proje URL'i | Zorunlu (canlı) |
-| `SUPABASE_SERVICE_ROLE_KEY` (veya `SUPABASE_SECRET_KEY`) | Server-side veri erişimi (RLS bypass) | Zorunlu (canlı) |
+| `DATABASE_URL` (veya `POSTGRES_URL`) | Neon Postgres bağlantı dizesi (pooled endpoint) | Zorunlu (canlı) |
 | `NEXT_PUBLIC_SITE_URL` | metadataBase | Local: `http://localhost:3000` |
 
 **NODE_ENV asla manuel set edilmez.** Next.js kendi yönetir. CI bunu env'de tutmaz.
 
 ## Data Mimarisi
 
-### Supabase (Postgres) — aktif
+### Neon (Postgres) — aktif
 
-`src/lib/admin/store.ts` + `src/lib/customer/store.ts` + `src/lib/admin/audit.ts` + payment webhook — hepsi `src/lib/supabase/server.ts`'deki **lazy service-role client**'ı kullanır (RLS bypass, "server-only"). Eski Mongo doküman modeli **1:1** korundu: **camelCase quoted kolonlar** + iç-içe alanlar (`variants`, `items`, `refunds`, `addresses`, `weeklyHours`, …) **JSONB** + tarihler **ISO-8601 metin** (string sıralaması = kronolojik). Sıralı ID'ler (`prd-0001`, `orderNo` 10001+) `next_seq(counter_key)` RPC'siyle **atomik**. Tablo boşsa ilk istekte **idempotent seed** (upsert/ignoreDuplicates → yarış-güvenli). Build DB'ye bağlanmaz (lazy client + tüm veri sayfaları dynamic).
+`src/lib/admin/store.ts` + `src/lib/customer/store.ts` + `src/lib/admin/audit.ts` + payment webhook — hepsi `src/lib/db/index.ts`'deki **lazy Neon bağlantısını** kullanır ("server-only"). Kod PostgREST sorgu kurucusuna göre yazıldığı için `src/lib/db/client.ts` aynı arayüzü parametreli SQL üzerinde yeniden üretir; `.from().select().eq()` çağrı noktaları değişmedi. Detay: `docs/DATABASE.md`. Eski Mongo doküman modeli **1:1** korundu: **camelCase quoted kolonlar** + iç-içe alanlar (`variants`, `items`, `refunds`, `addresses`, `weeklyHours`, …) **JSONB** + tarihler **ISO-8601 metin** (string sıralaması = kronolojik). Sıralı ID'ler (`prd-0001`, `orderNo` 10001+) `next_seq(counter_key)` fonksiyonuyla **atomik**. Tablo boşsa ilk istekte **idempotent seed** (upsert/ignoreDuplicates → yarış-güvenli). Build DB'ye bağlanmaz (lazy client + tüm veri sayfaları dynamic).
 
 Entity'ler:
 - **AdminProduct** (slug, sku, compareAt, cost, images, stock, lowStockThreshold, weight, SEO, variants, ...)
@@ -155,13 +154,14 @@ Public read fonksiyonları:
 - `listShopProducts()` — design'ın `Product` şeklinde aktif ürünler, compareAt dahil
 - `listMenuForCustomer()` — design'ın MENU şeklinde aktif menü kalemleri, kategori meta'sı SEED_MENU'den
 
-### Supabase (bağlı)
+### Şema
 
-`supabase/migrations/20260601120000_initial_schema.sql` **uygulandı** (12 tablo + `next_seq` RPC, her tabloda RLS açık/deny-all → yalnız service-role erişir). Tablolar: products, categories, menu_items, orders, stock_moves, promos, settings, audit_logs, customers, shop_hero_slides, counters, payment_transactions.
+`db/migrations/` altında 9 migration (19 tablo + `next_seq` / `claim_order_stock` / `increment_promo_usage` fonksiyonları). `npm run db:migrate` ile sırayla uygulanır; uygulananlar `_migrations` tablosunda tutulur, tekrar çalıştırmak güvenlidir.
+
+Erişim tek bir owner bağlantısı üzerinden ve tamamen server-side olduğu için RLS satırları işlevsizdir (owner rolü RLS'i baypas eder) — savunma katmanı olarak bırakıldı. `anon` / `authenticated` / `service_role` rolleri Neon'da **yoktur**; migration'lara Supabase'e özgü `grant` satırı yazma.
 
 Kalan/ileri adımlar:
-- Auth'u Supabase Auth'a geçir (şu an admin env-cookie + müşteri bcrypt; ikisi de çalışıyor)
-- Yeni tablo/kolon eklerken: yeni migration + RLS policy + `generate_typescript_types` ile `src/types/database.ts` güncelle
+- Auth şu an admin env-cookie + müşteri bcrypt; ikisi de çalışıyor
 
 ## Güvenlik Kuralları
 
@@ -170,12 +170,12 @@ Kalan/ileri adımlar:
 3. **Server-side validation Zod ile** — admin form input'ları parse edilmeden hiçbir mutation yapılmaz
 4. **Tüm mutation'lar server action** (`"use server"` directive). FormData üzerinden gelir, client'tan tip bilgisi gelmez
 5. **revalidatePath** her mutation sonrası — `/`, `/admin/*`, ilgili sayfa
-6. **Ödeme tutarı asla client'tan gelmez.** Cart server'a fiyatları string olarak gönderir ama backend ürün adı match'iyle DB fiyatından doğrular (Supabase entegrasyonu sonrası)
+6. **Ödeme tutarı asla client'tan gelmez.** Cart server'a fiyatları string olarak gönderir ama backend ürün adı match'iyle DB fiyatından doğrular
 7. **Webhook'lar** `x-signature` header → HMAC SHA256 timing-safe compare. Geçersiz → 401
 8. **Idempotency:** Ödeme webhook'ları `payment_transactions.provider_ref` unique constraint ile tek seferde
 9. **PII:** Logging'de email/telefon maskelenmeli (Sentry/log scrubber ileride)
-10. **Service role key SADECE server-side** — `NEXT_PUBLIC_*` prefix'i asla servis role için kullanılmaz
-11. **RLS her tabloda zorunlu** — Supabase migration zaten bunu varsayıyor. Yeni tablo eklerken policy unutma
+10. **`DATABASE_URL` SADECE server-side** — asla `NEXT_PUBLIC_*` prefix'iyle expose edilmez
+11. **Veri erişimi yalnız `src/lib/db` üzerinden** — ham SQL'i çağrı noktalarına yayma; tanımlayıcılar orada doğrulanıyor, değerler orada parametreleniyor
 12. **CI placeholder secrets** asla production'da kullanılmaz — `.env.local` ve Vercel env vars gerçek değerleri tutar
 
 ## Çalışma Kuralları (Claude için)
@@ -186,7 +186,7 @@ Kalan/ileri adımlar:
 - **Design 1:1:** Müşteri SPA'sı (`components/laffogato/*`) design handoff (`/tmp/design/cafe/project/`) ile birebir. Yeni özellik eklerken design'a sadık kal, sapma varsa kullanıcıya sor.
 - **Admin form akışı:** Yeni ürün → `ProductWizard mode="wizard"` (5 adım); düzenleme → aynı bileşen `mode="tabs"`. Yeni alan eklerken **5 yer güncellenir:** `AdminProduct` (store), seed, `ProductInput`, `product-schema.ts` (Zod), `product-wizard.tsx` (UI). Skill: `add-admin-resource`
 - **Server action pattern:** Zod parse → store call → revalidatePath → redirect. Skill: `server-action-pattern`
-- **Migration:** `supabase/migrations/YYYYMMDDHHMMSS_aciklama.sql` formatında. Skill: `new-migration`
+- **Migration:** `db/migrations/YYYYMMDDHHMMSS_aciklama.sql` formatında, `npm run db:migrate` ile uygulanır. Skill: `new-migration`
 - **Test:** Build temiz olmalı. CI yeşil olmadan merge etme. UI değişikliği yaptıysan dev server'da göz ucuyla kontrol et
 - **Para birimleri:** Tüm fiyatlar **minor unit** (kuruş) olarak `priceMinor: number`. UI'da `formatTRY()` ile render edilir
 - **shadcn ekleme:** `npx shadcn@latest add <component>` ile (sandbox'ta registry erişimi yoksa skip). Manuel kopyalama yapma
@@ -195,7 +195,7 @@ Kalan/ileri adımlar:
 
 - Henüz **Vercel'e deploy edilmedi** — env vars + URL kararı kullanıcıdan
 - Henüz **sanal POS sağlayıcısı seçilmedi** — gerçek API key'leriyle entegrasyon yapma
-- **Supabase bağlı (Postgres)** — admin auth hâlâ env-cookie, müşteri auth bcrypt; **auth'u Supabase Auth'a geçirme** isteğini kullanıcıdan onay almadan başlatma
+- **Veritabanı Neon (Postgres)** — admin auth env-cookie, müşteri auth bcrypt; auth sağlayıcısı değiştirme işine kullanıcıdan onay almadan başlama
 - **Mail/SMS bildirimleri** MVP dışı (sonra Resend/Twilio)
 - **Coupon/indirim kodu** MVP dışı (ama compareAt zaten var)
 - **Multi-language** MVP dışı (sadece TR)

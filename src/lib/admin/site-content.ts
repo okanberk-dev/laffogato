@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
+import { getDb, TABLES } from "@/lib/db";
 
 import { CONTENT_FIELDS, contentDefaults } from "./content-fields";
 
@@ -26,7 +26,7 @@ const VALID_KEYS = new Set(CONTENT_FIELDS.map((f) => f.key));
 export async function getSiteContent(): Promise<Record<string, string>> {
   const out = contentDefaults();
   try {
-    const sb = getSupabaseAdmin();
+    const sb = getDb();
     const { data, error } = await sb
       .from(TABLES.siteContent)
       .select("key, value");
@@ -55,7 +55,7 @@ export async function updateSiteContent(
       updatedAt: now,
     }));
   if (rows.length === 0) return;
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { error } = await sb
     .from(TABLES.siteContent)
     .upsert(rows, { onConflict: "key" });

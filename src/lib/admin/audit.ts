@@ -1,7 +1,7 @@
 import "server-only";
 
-import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
-import { nextSeq } from "@/lib/supabase/counters";
+import { getDb, TABLES } from "@/lib/db";
+import { nextSeq } from "@/lib/db/counters";
 
 import { getAdminSession } from "./auth";
 
@@ -82,7 +82,7 @@ export async function logAudit(input: LogAuditInput): Promise<void> {
     payload: input.payload ?? {},
     createdAt: new Date().toISOString(),
   };
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { error } = await sb.from(TABLES.auditLogs).insert(row);
   if (error) throw new Error(`logAudit: ${error.message}`);
 }
@@ -97,7 +97,7 @@ export interface AuditFilter {
 export async function listAuditLogs(
   filter: AuditFilter = {},
 ): Promise<AdminAuditLog[]> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   let q = sb.from(TABLES.auditLogs).select("*");
   if (filter.actor) {
     const escaped = filter.actor

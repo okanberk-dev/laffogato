@@ -1,55 +1,38 @@
 ---
 name: seed-db
-description: Seed the Supabase database with Laffogato test data (categories, products, cafe settings). Use when the user wants to "seed", "test verisi ekle", "ürünleri yükle", or set up a fresh dev environment.
+description: Seed or reset the Laffogato Postgres database with test data (categories, products, cafe settings). Use when the user wants to "seed", "test verisi ekle", "ürünleri yükle", or set up a fresh dev environment.
 ---
 
 # Veritabanını Seed Et
 
-`supabase/seed/seed.sql` dosyasını çalıştırarak kategori, ürün ve kafe ayarlarını test verisiyle doldurur.
+Uygulama **kendi kendini seed eder**: `src/lib/admin/store.ts` içindeki
+`ensureSeed()` / `ensureShopHeroSeed()` / içerik seed'i, ilgili tablo boşsa ilk
+istekte `SEED_*` sabitlerini idempotent şekilde (`ON CONFLICT DO NOTHING`) yazar.
+Yani çoğu durumda ayrı bir seed adımı **gerekmez**.
 
-## Ön koşullar
+## Sıfırdan bir ortam
 
-- `supabase/migrations/` altındaki migration'lar uygulanmış olmalı (`list_migrations` ile kontrol et).
-- Hangi Supabase projesinde çalışacağını kullanıcıya sor — birden fazla proje varsa.
-
-## Adımlar
-
-1. Migration durumunu kontrol et:
+1. Neon projesi + `DATABASE_URL` hazır olmalı (`docs/DATABASE.md`).
+2. Şemayı kur:
+   ```bash
+   DATABASE_URL='postgres://...' npm run db:migrate
    ```
-   mcp__32e5c71b-e66a-4a9d-9f63-fe8ba4dfeb40__list_migrations({ project_id: "<ref>" })
-   ```
+3. `npm run dev` ile siteyi aç — ilk istek tabloları doldurur.
 
-2. `supabase/seed/seed.sql` dosyasını oku.
+## Seed verisini değiştirmek
 
-3. SQL'i MCP ile çalıştır:
-   ```
-   mcp__32e5c71b-e66a-4a9d-9f63-fe8ba4dfeb40__execute_sql({
-     project_id: "<ref>",
-     query: "<seed.sql içeriği>"
-   })
-   ```
+Seed sabitleri `src/lib/admin/store.ts` içinde (`SEED_PRODUCTS`,
+`SEED_CATEGORIES`, `SEED_MENU`, `SEED_SHOP_HERO_SLIDES`, `defaultSettings()`).
+Tasarımın orijinal statik verisi ise `src/components/laffogato/data.ts`.
 
-4. Doğrulama: Aşağıdaki query'leri çalıştır ve sonuçları kullanıcıya göster:
-   ```sql
-   select count(*) from public.categories;
-   select count(*) from public.products;
-   select * from public.cafe_settings;
-   ```
+## Bir tabloyu yeniden seed etmek
 
-## İlk admin kullanıcısı
+Seed yalnızca tablo **boşken** çalışır. Yeniden çalıştırmak için önce tabloyu
+boşalt — bunu yapmadan önce **kullanıcıya sor**, canlı veri kaybı olabilir:
 
-Seed dosyası admin kullanıcısı oluşturmaz (auth.users'ı doğrudan değiştirmek istenmez). Bunun yerine:
+```sql
+truncate table products;   -- örnek; siparişler/müşteriler için ASLA
+```
 
-1. Kullanıcıdan `SEED_ADMIN_EMAIL` ve `SEED_ADMIN_PASSWORD` al.
-2. Supabase Auth API üzerinden sign-up yap (ya da kullanıcıya manuel sign-up yaptır).
-3. Oluşan `user_id`'yi `admin_users` tablosuna `owner` rolüyle ekle:
-   ```sql
-   insert into public.admin_users (user_id, role)
-   values ('<user_id>', 'owner')
-   on conflict (user_id) do update set role = excluded.role;
-   ```
-
-## Yapma
-
-- Production projesinde seed çalıştırmadan önce **mutlaka** kullanıcıya teyit ettir.
-- Seed dosyası `on conflict do update` kullanır — mevcut veriyi siler değil günceller. Buna güvenebilirsin.
+`orders`, `customers`, `payment_transactions`, `audit_logs` gerçek kayıt tutar;
+bunları temizleme.

@@ -60,9 +60,6 @@ begin
 end;
 $$;
 
-revoke execute on function public.claim_order_stock(jsonb, text) from public, anon, authenticated;
-grant execute on function public.claim_order_stock(jsonb, text) to service_role;
-
 -- ── increment_promo_usage ─────────────────────────────────────────────────
 -- Atomic usageCount increment (replaces a non-atomic read-modify-write that
 -- could lose concurrent updates).
@@ -79,5 +76,3 @@ begin
 end;
 $$;
 
-revoke execute on function public.increment_promo_usage(text, text) from public, anon, authenticated;
-grant execute on function public.increment_promo_usage(text, text) to service_role;

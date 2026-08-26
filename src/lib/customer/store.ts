@@ -3,9 +3,9 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 
 import bcrypt from "bcryptjs";
-import type { PostgrestError } from "@supabase/supabase-js";
+import type { DbError } from "@/lib/db";
 
-import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
+import { getDb, TABLES } from "@/lib/db";
 
 import { grantWelcomeCoupon } from "./coupons";
 
@@ -120,13 +120,13 @@ function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
 }
 
-function checkErr(error: PostgrestError | null, ctx: string): void {
+function checkErr(error: DbError | null, ctx: string): void {
   if (error) throw new Error(`${ctx}: ${error.message}`);
 }
 
 /** Fetch a full customer row by (already-normalized) email, or null. */
 async function fetchCustomer(email: string): Promise<Customer | null> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.customers)
     .select("*")
@@ -218,7 +218,7 @@ export async function registerCustomer(
     createdAt: now,
     updatedAt: now,
   };
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { error } = await sb.from(TABLES.customers).insert(customer);
   if (error) {
     // Unique violation = race on email → treat as already registered.
@@ -244,7 +244,7 @@ export async function verifyCustomerEmail(
   const clean = (token ?? "").trim();
   if (!clean || clean.length < 16)
     return { ok: false, error: "Geçersiz doğrulama bağlantısı." };
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.customers)
     .select("*")
@@ -304,7 +304,7 @@ export async function createVerificationToken(
     };
   }
   const { token, expires } = newVerifyToken();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { error } = await sb
     .from(TABLES.customers)
     .update({
@@ -372,7 +372,7 @@ export async function updateCustomerProfile(
   input: UpdateProfileInput,
 ): Promise<PublicCustomer | null> {
   const needle = normalizeEmail(email);
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const update = {
     name: input.name.trim().slice(0, 100),
     phone: input.phone.trim().slice(0, 30),
@@ -410,7 +410,7 @@ export async function changeCustomerPassword(
     return { ok: false, error: "Yeni şifre, eskisinden farklı olmalı." };
   }
   const passwordHash = await bcrypt.hash(newPassword, 10);
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { error } = await sb
     .from(TABLES.customers)
     .update({ passwordHash, updatedAt: new Date().toISOString() })
@@ -466,7 +466,7 @@ async function persistAddresses(
   addresses: CustomerAddress[],
   failMsg: string,
 ): Promise<AddressResult> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { error } = await sb
     .from(TABLES.customers)
     .update({ addresses, updatedAt: new Date().toISOString() })
@@ -582,7 +582,7 @@ export async function toggleWishlist(
   const wishlist = isFavorite
     ? current.filter((id) => id !== productId)
     : current.concat(productId).slice(0, 200);
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { error } = await sb
     .from(TABLES.customers)
     .update({ wishlist, updatedAt: new Date().toISOString() })
@@ -598,7 +598,7 @@ export async function updateNotificationPrefs(
   prefs: NotificationPrefs,
 ): Promise<PublicCustomer | null> {
   const needle = normalizeEmail(email);
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const sanitized: NotificationPrefs = {
     orderUpdates: !!prefs.orderUpdates,
     marketing: !!prefs.marketing,
@@ -671,7 +671,7 @@ function toAdminCustomer(c: Customer): AdminCustomer {
 
 /** All member accounts, newest first. */
 export async function listAllCustomers(): Promise<AdminCustomer[]> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.customers)
     .select("*")
@@ -703,7 +703,7 @@ export async function adminUpdateCustomer(
   input: AdminCustomerUpdateInput,
 ): Promise<AdminCustomer | null> {
   const needle = normalizeEmail(email);
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const update = {
     name: input.name.trim().slice(0, 100),
     phone: input.phone.trim().slice(0, 30),
@@ -729,7 +729,7 @@ export async function setCustomerActive(
   isActive: boolean,
 ): Promise<AdminCustomer | null> {
   const needle = normalizeEmail(email);
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { error } = await sb
     .from(TABLES.customers)
     .update({ isActive: !!isActive, updatedAt: new Date().toISOString() })
@@ -742,7 +742,7 @@ export async function setCustomerActive(
 export async function adminDeleteCustomer(email: string): Promise<boolean> {
   const needle = normalizeEmail(email);
   if (!needle) return false;
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.customers)
     .delete()

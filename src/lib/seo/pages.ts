@@ -3,7 +3,7 @@
  *
  * Each entry feeds the Next.js `Metadata` export of its corresponding
  * `src/app/<path>/page.tsx` file, plus the breadcrumb JSON-LD emitted on
- * that page. The shape mirrors a CMS row so it can be swapped to Supabase
+ * that page. The shape mirrors a CMS row so it can be swapped to the database
  * later without touching the route files.
  */
 

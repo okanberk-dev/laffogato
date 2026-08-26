@@ -2,10 +2,10 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 
-import type { PostgrestError } from "@supabase/supabase-js";
+import type { DbError } from "@/lib/db";
 
-import { nextSeq } from "@/lib/supabase/counters";
-import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
+import { nextSeq } from "@/lib/db/counters";
+import { getDb, TABLES } from "@/lib/db";
 
 import {
   birthdayMonth,
@@ -88,7 +88,7 @@ function endOfMonthISO(d: Date): string {
 
 // ─── DB layer ────────────────────────────────────────────────────────────────
 
-function checkErr(error: PostgrestError | null, ctx: string): void {
+function checkErr(error: DbError | null, ctx: string): void {
   if (error) throw new Error(`${ctx}: ${error.message}`);
 }
 
@@ -98,7 +98,7 @@ export async function listCustomerCoupons(
 ): Promise<CustomerCoupon[]> {
   const owner = normalizeEmail(email);
   if (!owner) return [];
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.customerCoupons)
     .select("*")
@@ -130,7 +130,7 @@ export async function applyCustomerCoupon(
   const needle = normalizeCouponCode(code);
   const owner = normalizeEmail(email);
   if (!needle || !owner) return { ok: false, found: false };
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.customerCoupons)
     .select("*")
@@ -161,7 +161,7 @@ export async function redeemCustomerCoupon(
   const owner = normalizeEmail(email);
   if (!needle || !owner) return false;
   const now = new Date().toISOString();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.customerCoupons)
     .update({ redeemedAt: now, redeemedOrderNo: orderNo, updatedAt: now })
@@ -213,7 +213,7 @@ export async function grantCoupon(
     createdAt: now,
     updatedAt: now,
   };
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { error } = await sb.from(TABLES.customerCoupons).insert(coupon);
   if (error) {
     // Unique-code collision → regenerate once (only for auto codes).
@@ -233,7 +233,7 @@ async function hasCouponFromSource(
   email: string,
   source: CouponSource,
 ): Promise<boolean> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.customerCoupons)
     .select("id")
@@ -268,7 +268,7 @@ async function hasBirthdayCouponThisYear(
   email: string,
   year: number,
 ): Promise<boolean> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   // ISO-8601 text sorts lexicographically, so a string >= "YYYY-01-01" works.
   const { data, error } = await sb
     .from(TABLES.customerCoupons)
@@ -318,7 +318,7 @@ export async function adminListCustomerCoupons(
 /** Hard-delete a coupon by id. Returns true when a row was removed. */
 export async function revokeCustomerCoupon(id: string): Promise<boolean> {
   if (!id) return false;
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.customerCoupons)
     .delete()

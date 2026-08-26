@@ -5,7 +5,7 @@ import "server-only";
  *
  * Why: brute-force shielding without pulling in Redis. The map is
  * module-scoped, so each Node process has its own counter — fine for the
- * single-VM Vercel layout we're on. When Supabase comes online, we'll
+ * single-VM Vercel layout we're on. For multi-instance we'll
  * swap this for a Postgres-backed table (or move to Upstash) with the
  * same interface.
  *

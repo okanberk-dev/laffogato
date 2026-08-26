@@ -1,9 +1,9 @@
 import "server-only";
 
-import type { PostgrestError } from "@supabase/supabase-js";
+import type { DbError } from "@/lib/db";
 
-import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
-import { nextSeq } from "@/lib/supabase/counters";
+import { getDb, TABLES } from "@/lib/db";
+import { nextSeq } from "@/lib/db/counters";
 import {
   applyCustomerCoupon,
   redeemCustomerCoupon,
@@ -23,7 +23,7 @@ import {
 import type { WeeklyHours } from "./days";
 
 /**
- * Veri katmanı — Supabase (Postgres) üzerinden çalışır.
+ * Veri katmanı — Neon (Postgres) üzerinden çalışır.
  *
  * Public API'lerin tamamı async ve mevcut admin sayfalarıyla uyumlu kalır.
  * Tablo boşsa SEED verisi otomatik yüklenir (idempotent — yalnızca
@@ -171,7 +171,7 @@ export interface AdminSettings {
 // ─── Supabase helpers ──────────────────────────────────────────────────────
 
 function rows<T>(
-  res: { data: T[] | null; error: PostgrestError | null },
+  res: { data: T[] | null; error: DbError | null },
   ctx: string,
 ): T[] {
   if (res.error) throw new Error(`${ctx}: ${res.error.message}`);
@@ -179,19 +179,19 @@ function rows<T>(
 }
 
 function one<T>(
-  res: { data: T | null; error: PostgrestError | null },
+  res: { data: T | null; error: DbError | null },
   ctx: string,
 ): T | null {
   if (res.error) throw new Error(`${ctx}: ${res.error.message}`);
   return res.data;
 }
 
-function check(res: { error: PostgrestError | null }, ctx: string): void {
+function check(res: { error: DbError | null }, ctx: string): void {
   if (res.error) throw new Error(`${ctx}: ${res.error.message}`);
 }
 
 async function countRows(table: string): Promise<number> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { count, error, status } = await sb
     .from(table)
     .select("*", { count: "exact", head: true });
@@ -206,7 +206,7 @@ async function countRows(table: string): Promise<number> {
 }
 
 async function setCounter(id: string, seq: number): Promise<void> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   check(
     await sb.from(TABLES.counters).upsert({ id, seq }, { onConflict: "id" }),
     `setCounter(${id})`,
@@ -304,7 +304,7 @@ let seedPromise: Promise<void> | null = null;
 async function ensureSeed(): Promise<void> {
   if (seedPromise) return seedPromise;
   seedPromise = (async () => {
-    const sb = getSupabaseAdmin();
+    const sb = getDb();
     const now = new Date().toISOString();
 
     if ((await countRows(TABLES.products)) === 0) {
@@ -542,7 +542,7 @@ async function ensureSeed(): Promise<void> {
 
 export async function listProducts(): Promise<AdminProduct[]> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   return rows<AdminProduct>(
     await sb
       .from(TABLES.products)
@@ -554,7 +554,7 @@ export async function listProducts(): Promise<AdminProduct[]> {
 
 export async function getProduct(id: string): Promise<AdminProduct | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   return one<AdminProduct>(
     await sb.from(TABLES.products).select("*").eq("id", id).maybeSingle(),
     "getProduct",
@@ -591,7 +591,7 @@ async function uniqueSlug(
   const base = candidate || "urun";
   let attempt = base;
   let n = 1;
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   // 20 deneme yeter — gerçekçi tekrar sayısı çok düşük.
   for (let i = 0; i < 20; i += 1) {
     let q = sb.from(TABLES.products).select("id").eq("slug", attempt);
@@ -608,7 +608,7 @@ export async function createProduct(
   input: ProductInput,
 ): Promise<AdminProduct> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const seq = await nextSeq("prd");
   const id = slugifyId("prd", seq);
   const slug = await uniqueSlug(
@@ -631,7 +631,7 @@ export async function updateProduct(
   input: ProductInput,
 ): Promise<AdminProduct | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const existing = await getProduct(id);
   if (!existing) return null;
   const slug = await uniqueSlug(
@@ -654,7 +654,7 @@ export async function updateProduct(
 
 export async function deleteProduct(id: string): Promise<boolean> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const deleted = rows<{ id: string }>(
     await sb.from(TABLES.products).delete().eq("id", id).select("id"),
     "deleteProduct",
@@ -678,7 +678,7 @@ export async function bulkUpdateProducts(
 ): Promise<BulkResult> {
   if (ids.length === 0) return { updated: 0 };
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const now = new Date().toISOString();
 
   if (op.kind === "delete") {
@@ -756,7 +756,7 @@ export interface AdminStockMove {
 async function recordStockMove(
   input: Omit<AdminStockMove, "id" | "createdAt">,
 ): Promise<AdminStockMove> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const seq = await nextSeq("mov");
   const move: AdminStockMove = {
     id: `mov-${String(seq).padStart(6, "0")}`,
@@ -773,7 +773,7 @@ export async function listStockMoves(filter?: {
   limit?: number;
 }): Promise<AdminStockMove[]> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   let q = sb.from(TABLES.stockMoves).select("*");
   if (filter?.productId) q = q.eq("productId", filter.productId);
   if (filter?.reason) q = q.eq("reason", filter.reason);
@@ -800,7 +800,7 @@ export async function adjustStock(
   input: AdjustStockInput,
 ): Promise<AdjustStockResult> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const product = await getProduct(input.productId);
   if (!product) return { ok: false, error: "Ürün bulunamadı." };
   if (!Number.isFinite(input.delta) || input.delta === 0) {
@@ -841,7 +841,7 @@ export async function adjustStock(
 
 export async function listCategories(): Promise<AdminCategory[]> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   return rows<AdminCategory>(
     await sb
       .from(TABLES.categories)
@@ -853,7 +853,7 @@ export async function listCategories(): Promise<AdminCategory[]> {
 
 export async function getCategory(id: string): Promise<AdminCategory | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   return one<AdminCategory>(
     await sb.from(TABLES.categories).select("*").eq("id", id).maybeSingle(),
     "getCategory",
@@ -871,7 +871,7 @@ export async function createCategory(
   input: CategoryInput,
 ): Promise<AdminCategory> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const seq = await nextSeq("cat");
   const c: AdminCategory = { id: slugifyId("cat", seq), ...input };
   check(await sb.from(TABLES.categories).insert(c), "createCategory");
@@ -883,7 +883,7 @@ export async function updateCategory(
   input: CategoryInput,
 ): Promise<AdminCategory | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const existing = await getCategory(id);
   if (!existing) return null;
   const next: AdminCategory = { ...existing, ...input };
@@ -896,7 +896,7 @@ export async function updateCategory(
 
 export async function deleteCategory(id: string): Promise<boolean> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const deleted = rows<{ id: string }>(
     await sb.from(TABLES.categories).delete().eq("id", id).select("id"),
     "deleteCategory",
@@ -908,7 +908,7 @@ export async function deleteCategory(id: string): Promise<boolean> {
 
 export async function listOrders(): Promise<AdminOrder[]> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   return rows<AdminOrder>(
     await sb
       .from(TABLES.orders)
@@ -973,7 +973,7 @@ export async function customerOrdersByEmail(
   const needle = email.trim().toLowerCase();
   if (!needle) return [];
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   // ilike ile case-insensitive ön-filtre; JS'te tam (lowercase) eşleşme.
   const escaped = needle.replace(/[%_]/g, (c) => `\\${c}`);
   const candidates = rows<AdminOrder>(
@@ -991,7 +991,7 @@ export async function customerOrdersByEmail(
 
 export async function getOrder(id: string): Promise<AdminOrder | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   return one<AdminOrder>(
     await sb.from(TABLES.orders).select("*").eq("id", id).maybeSingle(),
     "getOrder",
@@ -1003,7 +1003,7 @@ export async function updateOrderStatus(
   status: AdminOrderStatus,
 ): Promise<AdminOrder | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   return one<AdminOrder>(
     await sb
       .from(TABLES.orders)
@@ -1023,7 +1023,7 @@ export async function bulkUpdateOrders(
 ): Promise<BulkResult> {
   if (ids.length === 0) return { updated: 0 };
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const res = rows<{ id: string }>(
     await sb
       .from(TABLES.orders)
@@ -1090,7 +1090,7 @@ type ResolveLinesResult =
 async function resolveOrderLines(
   items: PlaceOrderItemInput[],
 ): Promise<ResolveLinesResult> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const cleanItems = items.filter((it) => it.qty > 0 && it.qty <= 99);
   if (cleanItems.length === 0) {
     return { ok: false, result: { ok: false, reason: "empty" } };
@@ -1200,7 +1200,7 @@ type ClaimStockResult =
 async function claimOrderStock(
   resolved: ResolvedLine[],
 ): Promise<ClaimStockResult> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const claim = await sb.rpc("claim_order_stock", {
     p_lines: resolved.map((l) => ({
       productId: l.product.id,
@@ -1275,7 +1275,7 @@ async function finalizeOrder(
   resolved: ResolvedLine[],
   f: FinalizeOrderInput,
 ): Promise<{ order: AdminOrder; promoDropped: boolean }> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const items: AdminOrderItem[] = resolved.map((line) => ({
     productName: line.label,
     qty: line.qty,
@@ -1495,7 +1495,7 @@ export async function applyPaymentSucceeded(input: {
   currency: string;
   raw?: unknown;
 }): Promise<PaymentApplyResult> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const ins = await sb.from(TABLES.paymentTransactions).insert({
     orderId: input.orderId,
     provider: input.provider,
@@ -1551,7 +1551,7 @@ export async function applyPaymentSucceeded(input: {
 export async function getOrderPaymentRef(
   orderId: string,
 ): Promise<{ provider: string; providerRef: string } | null> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const res = await sb
     .from(TABLES.paymentTransactions)
     .select("provider, providerRef")
@@ -1613,7 +1613,7 @@ export async function transitionOrder(
   transition: OrderTransition,
 ): Promise<TransitionResult> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const existing = await getOrder(id);
   if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
   const map = TRANSITION_MAP[transition];
@@ -1636,7 +1636,7 @@ export async function setOrderInternalNote(
   note: string,
 ): Promise<AdminOrder | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const trimmed = note.slice(0, 2000);
   const existing = await getOrder(id);
   if (!existing) return null;
@@ -1653,7 +1653,7 @@ export async function setOrderTracking(
   carrier: string,
 ): Promise<AdminOrder | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const existing = await getOrder(id);
   if (!existing) return null;
   const tn = trackingNumber.trim().slice(0, 120);
@@ -1682,7 +1682,7 @@ export async function updateOrderDetails(
   input: OrderDetailsInput,
 ): Promise<AdminOrder | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const existing = await getOrder(id);
   if (!existing) return null;
   const update = {
@@ -1704,7 +1704,7 @@ export async function setOrderItemStatus(
   status: AdminOrderItemStatus,
 ): Promise<AdminOrder | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const existing = await getOrder(orderId);
   if (!existing) return null;
   if (itemIndex < 0 || itemIndex >= existing.items.length) return null;
@@ -1732,7 +1732,7 @@ export async function refundOrder(
   input: RefundInput,
 ): Promise<RefundResult> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const existing = await getOrder(orderId);
   if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
   if (existing.status === "cancelled") {
@@ -1777,7 +1777,7 @@ export async function refundOrder(
 
 export async function getSettings(): Promise<AdminSettings> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const doc = one<Record<string, unknown>>(
     await sb.from(TABLES.settings).select("*").eq("id", "main").maybeSingle(),
     "getSettings",
@@ -1792,7 +1792,7 @@ export async function updateSettings(
   input: Partial<AdminSettings>,
 ): Promise<AdminSettings> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   check(
     await sb
       .from(TABLES.settings)
@@ -1816,7 +1816,7 @@ export interface DashboardStats {
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
 
   const [
     productCount,
@@ -1932,7 +1932,7 @@ export async function getShopProductBySlug(
   slug: string,
 ): Promise<DesignProduct | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const doc = one<AdminProduct>(
     await sb
       .from(TABLES.products)
@@ -1953,7 +1953,7 @@ export async function listRelatedShopProducts(
   limit = 4,
 ): Promise<DesignProduct[]> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const docs = rows<AdminProduct>(
     await sb
       .from(TABLES.products)
@@ -2002,7 +2002,7 @@ export interface AdminMenuItem {
 
 export async function listMenuItems(): Promise<AdminMenuItem[]> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const docs = rows<AdminMenuItem>(
     await sb.from(TABLES.menuItems).select("*"),
     "listMenuItems",
@@ -2017,7 +2017,7 @@ export async function listMenuItems(): Promise<AdminMenuItem[]> {
 
 export async function getMenuItem(id: string): Promise<AdminMenuItem | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   return one<AdminMenuItem>(
     await sb.from(TABLES.menuItems).select("*").eq("id", id).maybeSingle(),
     "getMenuItem",
@@ -2039,7 +2039,7 @@ export async function createMenuItem(
   input: MenuItemInput,
 ): Promise<AdminMenuItem> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const seq = await nextSeq("mnu");
   const item: AdminMenuItem = {
     id: slugifyId("mnu", seq),
@@ -2055,7 +2055,7 @@ export async function updateMenuItem(
   input: MenuItemInput,
 ): Promise<AdminMenuItem | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const existing = await getMenuItem(id);
   if (!existing) return null;
   const next: AdminMenuItem = {
@@ -2072,7 +2072,7 @@ export async function updateMenuItem(
 
 export async function deleteMenuItem(id: string): Promise<boolean> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const deleted = rows<{ id: string }>(
     await sb.from(TABLES.menuItems).delete().eq("id", id).select("id"),
     "deleteMenuItem",
@@ -2092,7 +2092,7 @@ export async function bulkUpdateMenuItems(
 ): Promise<BulkResult> {
   if (ids.length === 0) return { updated: 0 };
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const now = new Date().toISOString();
 
   if (op.kind === "delete") {
@@ -2197,7 +2197,7 @@ export interface AdminPromo {
 
 export async function listPromos(): Promise<AdminPromo[]> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   return rows<AdminPromo>(
     await sb
       .from(TABLES.promos)
@@ -2209,7 +2209,7 @@ export async function listPromos(): Promise<AdminPromo[]> {
 
 export async function getPromo(id: string): Promise<AdminPromo | null> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   return one<AdminPromo>(
     await sb.from(TABLES.promos).select("*").eq("id", id).maybeSingle(),
     "getPromo",
@@ -2240,7 +2240,7 @@ export async function createPromo(
   await ensureSeed();
   const code = normalizeCode(input.code);
   if (!code) return { ok: false, error: "Kod boş olamaz." };
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const conflict = one<{ id: string }>(
     await sb.from(TABLES.promos).select("id").eq("code", code).maybeSingle(),
     "createPromo.conflict",
@@ -2270,7 +2270,7 @@ export async function updatePromo(
   input: PromoInput,
 ): Promise<PromoMutationResult> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const existing = await getPromo(id);
   if (!existing) return { ok: false, error: "Kod bulunamadı." };
   const code = normalizeCode(input.code);
@@ -2305,7 +2305,7 @@ export async function updatePromo(
 
 export async function deletePromo(id: string): Promise<boolean> {
   await ensureSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const deleted = rows<{ id: string }>(
     await sb.from(TABLES.promos).delete().eq("id", id).select("id"),
     "deletePromo",
@@ -2324,7 +2324,7 @@ export async function applyPromoCode(
   await ensureSeed();
   const needle = normalizeCode(code);
   if (!needle) return { ok: false, error: "Kod gir." };
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const promo = one<AdminPromo>(
     await sb.from(TABLES.promos).select("*").eq("code", needle).maybeSingle(),
     "applyPromoCode",
@@ -2355,7 +2355,7 @@ export async function applyPromoCode(
 export async function consumePromoUsage(code: string): Promise<void> {
   await ensureSeed();
   const needle = normalizeCode(code);
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   // Atomic increment (avoids the lost-update race of a read-modify-write).
   const { error } = await sb.rpc("increment_promo_usage", {
     promo_code: needle,
@@ -2581,7 +2581,7 @@ let shopHeroSeedPromise: Promise<void> | null = null;
 async function ensureShopHeroSeed(): Promise<void> {
   if (shopHeroSeedPromise) return shopHeroSeedPromise;
   shopHeroSeedPromise = (async () => {
-    const sb = getSupabaseAdmin();
+    const sb = getDb();
     if ((await countRows(TABLES.shopHeroSlides)) === 0) {
       check(
         await sb.from(TABLES.shopHeroSlides).upsert(
@@ -2597,7 +2597,7 @@ async function ensureShopHeroSeed(): Promise<void> {
 
 export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
   await ensureShopHeroSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   return rows<AdminShopHeroSlide>(
     await sb
       .from(TABLES.shopHeroSlides)
@@ -2619,7 +2619,7 @@ export async function getShopHeroSlide(
   id: string,
 ): Promise<AdminShopHeroSlide | null> {
   await ensureShopHeroSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   return one<AdminShopHeroSlide>(
     await sb.from(TABLES.shopHeroSlides).select("*").eq("id", id).maybeSingle(),
     "getShopHeroSlide",
@@ -2660,7 +2660,7 @@ export async function createShopHeroSlide(
   input: ShopHeroSlideInput,
 ): Promise<AdminShopHeroSlide> {
   await ensureShopHeroSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const now = new Date().toISOString();
   const slide: AdminShopHeroSlide = {
     id: `shero-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -2680,7 +2680,7 @@ export async function updateShopHeroSlide(
   input: ShopHeroSlideInput,
 ): Promise<AdminShopHeroSlide | null> {
   await ensureShopHeroSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const update = {
     ...normalizeSlide(input),
     updatedAt: new Date().toISOString(),
@@ -2694,7 +2694,7 @@ export async function updateShopHeroSlide(
 
 export async function deleteShopHeroSlide(id: string): Promise<void> {
   await ensureShopHeroSeed();
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   check(
     await sb.from(TABLES.shopHeroSlides).delete().eq("id", id),
     "deleteShopHeroSlide",
@@ -2725,7 +2725,7 @@ function contentResource<Row extends ContentRowBase>(
   const ensure = async (): Promise<void> => {
     if (seedPromise) return seedPromise;
     seedPromise = (async () => {
-      const sb = getSupabaseAdmin();
+      const sb = getDb();
       if ((await countRows(table)) === 0) {
         check(
           await sb.from(table).upsert(
@@ -2746,7 +2746,7 @@ function contentResource<Row extends ContentRowBase>(
 
   const list = async (): Promise<Row[]> => {
     await ensure();
-    const sb = getSupabaseAdmin();
+    const sb = getDb();
     return rows<Row>(
       await sb
         .from(table)
@@ -2762,7 +2762,7 @@ function contentResource<Row extends ContentRowBase>(
 
   const get = async (id: string): Promise<Row | null> => {
     await ensure();
-    const sb = getSupabaseAdmin();
+    const sb = getDb();
     return one<Row>(
       await sb.from(table).select("*").eq("id", id).maybeSingle(),
       `get.${table}`,
@@ -2771,7 +2771,7 @@ function contentResource<Row extends ContentRowBase>(
 
   const create = async (input: Input): Promise<Row> => {
     await ensure();
-    const sb = getSupabaseAdmin();
+    const sb = getDb();
     const now = new Date().toISOString();
     const row = {
       ...(input as object),
@@ -2785,7 +2785,7 @@ function contentResource<Row extends ContentRowBase>(
 
   const update = async (id: string, input: Input): Promise<Row | null> => {
     await ensure();
-    const sb = getSupabaseAdmin();
+    const sb = getDb();
     check(
       await sb
         .from(table)
@@ -2798,7 +2798,7 @@ function contentResource<Row extends ContentRowBase>(
 
   const remove = async (id: string): Promise<void> => {
     await ensure();
-    const sb = getSupabaseAdmin();
+    const sb = getDb();
     check(await sb.from(table).delete().eq("id", id), `delete.${table}`);
   };
 

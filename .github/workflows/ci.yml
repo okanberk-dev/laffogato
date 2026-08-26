@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   verify:
-    name: typecheck + build
+    name: typecheck + test + build
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -23,9 +23,7 @@ jobs:
     env:
       NEXT_TELEMETRY_DISABLED: "1"
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
-      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+      DATABASE_URL: postgres://ci:ci@localhost:5432/ci
       ADMIN_EMAIL: ci@laffogato.local
       ADMIN_PASSWORD: ci-placeholder-password
       ADMIN_SESSION_SECRET: ci-placeholder-session-secret-do-not-use-in-prod
@@ -54,6 +52,9 @@ jobs:
 
       - name: Type check
         run: npm run typecheck
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build

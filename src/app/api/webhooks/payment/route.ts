@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getPaymentProvider } from "@/lib/payment";
-import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
+import { getDb, TABLES } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
 
   const status: "succeeded" | "failed" | "refunded" =
     event.type === "payment.succeeded"

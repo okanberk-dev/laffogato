@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getSupabaseAdmin, TABLES } from "@/lib/supabase/server";
+import { getDb, TABLES } from "@/lib/db";
 
 export type NewsletterSource = "footer" | "register" | "account";
 
@@ -38,7 +38,7 @@ export async function subscribeNewsletter(
   if (!email || !EMAIL_RE.test(email)) {
     return { ok: false, error: "Geçerli bir e-posta gir." };
   }
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data: existing, error: selErr } = await sb
     .from(TABLES.newsletterSubscribers)
     .select("*")
@@ -88,7 +88,7 @@ export async function subscribeNewsletter(
 export async function listNewsletterSubscribers(): Promise<
   NewsletterSubscriber[]
 > {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.newsletterSubscribers)
     .select("*")
@@ -101,7 +101,7 @@ export async function setNewsletterSubscriberActive(
   id: string,
   isActive: boolean,
 ): Promise<void> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { error } = await sb
     .from(TABLES.newsletterSubscribers)
     .update({
@@ -113,7 +113,7 @@ export async function setNewsletterSubscriberActive(
 }
 
 export async function deleteNewsletterSubscriber(id: string): Promise<boolean> {
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.newsletterSubscribers)
     .delete()
@@ -129,7 +129,7 @@ export async function unsubscribeNewsletterByEmail(
 ): Promise<boolean> {
   const email = normalizeEmail(rawEmail);
   if (!email) return false;
-  const sb = getSupabaseAdmin();
+  const sb = getDb();
   const { data, error } = await sb
     .from(TABLES.newsletterSubscribers)
     .update({ isActive: false, unsubscribedAt: new Date().toISOString() })
