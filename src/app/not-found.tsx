@@ -6,7 +6,7 @@ import { CupEmblem } from "@/components/laffogato/visuals";
 import { getPublicSettings } from "@/lib/admin/store";
 
 export const metadata: Metadata = {
-  title: "Sayfa bulunamadı · L'Affogato",
+  title: "Sayfa bulunamadı",
   description:
     "Aradığınız sayfa bulunamadı. Menümüze veya mağazamıza göz atın, ya da anasayfaya dönün.",
   robots: { index: false, follow: true },
