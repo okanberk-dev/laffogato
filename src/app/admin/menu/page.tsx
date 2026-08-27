@@ -17,13 +17,9 @@ export const dynamic = "force-dynamic";
 export default async function AdminMenuPage() {
   await requireRole("menu");
   const all = await listMenuItems();
-  const byCategory: Record<MenuCategoryKey, AdminMenuItem[]> = {
-    affogato: [],
-    matcha: [],
-    espresso: [],
-    cold: [],
-    gelato: [],
-  };
+  const byCategory = Object.fromEntries(
+    MENU_CATEGORY_KEYS.map((k) => [k, [] as AdminMenuItem[]]),
+  ) as Record<MenuCategoryKey, AdminMenuItem[]>;
   for (const it of all) {
     byCategory[it.categoryKey].push(it);
   }
@@ -33,7 +29,7 @@ export default async function AdminMenuPage() {
       <PageHeader
         eyebrow="Bar · Il menù"
         title="Kafe Menüsü"
-        description="Her gün servis ettiğiniz affogato, matcha, espresso, soğuk içecek ve gelato kalemleri. Birden fazla seçerek toplu işlem yapabilirsin."
+        description="Basılı menünün tamamı — matcha bar, espresso, buzlu kahveler, soğuk/sıcak içecekler, frappe, smoothie, frozen, ice tea, tatlılar ve atıştırmalıklar. Birden fazla seçerek toplu işlem yapabilirsin."
         action={
           <Link
             href="/admin/menu/yeni"

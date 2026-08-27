@@ -17,14 +17,14 @@ export default async function NewMenuItemPage({ searchParams }: PageProps) {
   const defaultCategoryKey: MenuCategoryKey =
     cat && MENU_CATEGORY_KEYS.includes(cat as MenuCategoryKey)
       ? (cat as MenuCategoryKey)
-      : "affogato";
+      : "matcha";
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Bar · Il menù"
         title="Yeni menü kalemi"
-        description="Mevsimlik yeni bir affogato, matcha varyantı veya soğuk içecek ekle."
+        description="Menüye yeni bir içecek, tatlı veya atıştırmalık ekle."
       />
       <MenuItemForm
         action={createMenuItemAction}

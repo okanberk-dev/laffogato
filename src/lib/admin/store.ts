@@ -403,7 +403,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
             name: it.name,
             desc: it.desc,
             priceMinor: parsePrice(it.price),
+            priceMinorL: it.priceL ? parsePrice(it.priceL) : 0,
             hue: it.hue,
+            image: it.image ?? "",
             tags: it.tags ? [...it.tags] : [],
             isActive: true,
             sortOrder: idx,
@@ -2015,18 +2017,32 @@ async function listRelatedShopProductsLive(
 // ─── Cafe menu items ──────────────────────────────────────────────────────
 
 export type MenuCategoryKey =
-  | "affogato"
   | "matcha"
   | "espresso"
+  | "ice-coffee"
   | "cold"
-  | "gelato";
+  | "hot"
+  | "frappe"
+  | "smoothie"
+  | "frozen"
+  | "ice-tea"
+  | "dessert"
+  | "snack"
+  | "extras";
 
 export const MENU_CATEGORY_KEYS: MenuCategoryKey[] = [
-  "affogato",
   "matcha",
   "espresso",
+  "ice-coffee",
   "cold",
-  "gelato",
+  "hot",
+  "frappe",
+  "smoothie",
+  "frozen",
+  "ice-tea",
+  "dessert",
+  "snack",
+  "extras",
 ];
 
 export interface AdminMenuItem {
@@ -2034,10 +2050,14 @@ export interface AdminMenuItem {
   categoryKey: MenuCategoryKey;
   name: string;
   desc: string;
-  /** Minor units (kuruş) — e.g. 13000 = 130,00 ₺ */
+  /** Minor units (kuruş) — e.g. 13000 = 130,00 ₺. M size when two sizes exist. */
   priceMinor: number;
+  /** L (large) price in minor units. 0 means the item has a single size. */
+  priceMinorL: number;
   /** Hue token from PhotoSurface palette (used by MenuPlate). */
   hue: string;
+  /** Site-relative product photo, e.g. "/menu/matcha-latte.webp". Empty = drawn fallback. */
+  image: string;
   /** Free-form tags: "signature", "new", "iced", "nuts", "IGP", … */
   tags: string[];
   isActive: boolean;
@@ -2074,7 +2094,9 @@ export interface MenuItemInput {
   name: string;
   desc: string;
   priceMinor: number;
+  priceMinorL: number;
   hue: string;
+  image: string;
   tags: string[];
   isActive: boolean;
   sortOrder: number;
@@ -2201,7 +2223,11 @@ function menuWithoutPrices(): Record<string, DesignMenuCategory> {
     if (!meta) continue;
     out[key] = {
       ...meta,
-      items: meta.items.map((it) => ({ ...it, price: "—" })),
+      items: meta.items.map((it) => ({
+        ...it,
+        price: "—",
+        ...(it.priceL ? { priceL: "—" } : {}),
+      })),
     };
   }
   return out;
@@ -2229,8 +2255,12 @@ async function listMenuForCustomerLive(): Promise<
         name: it.name,
         desc: it.desc,
         price: `${Math.round(it.priceMinor / 100)}₺`,
+        ...(it.priceMinorL > 0
+          ? { priceL: `${Math.round(it.priceMinorL / 100)}₺` }
+          : {}),
         ...(it.tags.length > 0 ? { tags: [...it.tags] } : {}),
         hue: it.hue,
+        ...(it.image ? { image: it.image } : {}),
       }));
     out[key] = {
       title: meta.title,
@@ -2244,11 +2274,18 @@ async function listMenuForCustomerLive(): Promise<
 }
 
 export const MENU_CATEGORY_LABELS: Record<MenuCategoryKey, string> = {
-  affogato: SEED_MENU.affogato.title,
   matcha: SEED_MENU.matcha.title,
   espresso: SEED_MENU.espresso.title,
+  "ice-coffee": SEED_MENU["ice-coffee"].title,
   cold: SEED_MENU.cold.title,
-  gelato: SEED_MENU.gelato.title,
+  hot: SEED_MENU.hot.title,
+  frappe: SEED_MENU.frappe.title,
+  smoothie: SEED_MENU.smoothie.title,
+  frozen: SEED_MENU.frozen.title,
+  "ice-tea": SEED_MENU["ice-tea"].title,
+  dessert: SEED_MENU.dessert.title,
+  snack: SEED_MENU.snack.title,
+  extras: SEED_MENU.extras.title,
 };
 
 // ─── Promo codes ──────────────────────────────────────────────────────────

@@ -1214,9 +1214,12 @@ export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
 export function MenuPlate({
   hue = "cream",
   name = "",
+  image,
 }: {
   hue?: string;
   name?: string;
+  /** Real product photo (transparent PNG/WebP). Falls back to the drawn scene. */
+  image?: string;
 }) {
   const lower = name.toLowerCase();
   const isAffogato = /affogato/.test(lower);
@@ -1249,6 +1252,37 @@ export function MenuPlate({
   if (/pistacchio|pistachio/.test(lower)) scoop = "pistachio";
   if (/matcha/.test(lower)) scoop = "matcha";
   if (/strawberry|çilek/.test(lower)) scoop = "strawberry";
+
+  if (image) {
+    return (
+      <PhotoSurface hue={surfaceHue}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "grid",
+            placeItems: "center",
+            padding: 14,
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={image}
+            alt={name}
+            loading="lazy"
+            decoding="async"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              display: "block",
+              filter: "drop-shadow(0 18px 26px rgba(58,40,26,0.32))",
+            }}
+          />
+        </div>
+      </PhotoSurface>
+    );
+  }
 
   return (
     <PhotoSurface hue={surfaceHue}>

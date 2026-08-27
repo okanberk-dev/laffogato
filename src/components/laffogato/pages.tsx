@@ -420,11 +420,11 @@ export function PageHome({
         <div className="wrap">
           <div className="reveal" data-row="section-head-split">
             <div>
-              <div className="eyebrow">03 — Dal menù</div>
+              <div className="eyebrow">03 — Dal menù · Strawberry Aşkı</div>
               <h2 className="h1" style={{ marginTop: 16 }}>
-                Altı <span className="script">affogato,</span>
+                Strawberry <span className="script">aşkı,</span>
                 <br />
-                tek ritüel.
+                üç kadeh.
               </h2>
             </div>
             <Link href="/menu" onClick={go("menu")} className="btn-link">
@@ -432,7 +432,7 @@ export function PageHome({
             </Link>
           </div>
           <div className="shop-grid-preview">
-            {(liveMenu.affogato?.items ?? MENU.affogato.items)
+            {(liveMenu.matcha?.items ?? MENU.matcha.items)
               .slice(0, 3)
               .map((it, i) => (
                 <div
@@ -441,7 +441,7 @@ export function PageHome({
                   style={{ transitionDelay: `${i * 80}ms` }}
                 >
                   <div className="product-card-img">
-                    <MenuPlate hue={it.hue} name={it.name} />
+                    <MenuPlate hue={it.hue} name={it.name} image={it.image} />
                     {it.tags?.includes("new") && (
                       <div className="product-card-flag new">NUOVO</div>
                     )}
@@ -451,7 +451,7 @@ export function PageHome({
                   </div>
                   <div className="product-card-meta">
                     <div className="product-card-cat">
-                      Affogato · No.{String(i + 1).padStart(2, "0")}
+                      Matcha Bar · No.{String(i + 1).padStart(2, "0")}
                     </div>
                     <h3 className="product-card-name">{it.name}</h3>
                     <p
@@ -517,17 +517,11 @@ export function PageHome({
                 dotLabel="Uji · ceremonial"
                 dotPos="bl"
               >
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    display: "grid",
-                    placeItems: "center",
-                    padding: 24,
-                  }}
-                >
-                  <MatchaGlass />
-                </div>
+                <MenuPlate
+                  hue="matcha"
+                  name="Matcha Latte"
+                  image="/menu/matcha-latte.webp"
+                />
               </PhotoSurface>
             </div>
             <div
@@ -539,17 +533,11 @@ export function PageHome({
               }}
             >
               <PhotoSurface hue="rose" dotLabel="Strawberry · yaz" dotPos="bl">
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    display: "grid",
-                    placeItems: "center",
-                    padding: 24,
-                  }}
-                >
-                  <MatchaGlass strawberry />
-                </div>
+                <MenuPlate
+                  hue="rose"
+                  name="Strawberry Matcha"
+                  image="/menu/strawberry-matcha.webp"
+                />
               </PhotoSurface>
             </div>
           </div>
@@ -559,9 +547,9 @@ export function PageHome({
               Matcha & <span className="script">strawberry.</span>
             </h2>
             <p className="lede" style={{ marginTop: 26 }}>
-              Tuzla için yaz menüsü — Japonya Uji’dan ceremonial grade matcha,
-              bambu chasen ile dövülmüş, ipeksi süt katmanları, taze çilek
-              püresi. Sıcak veya buzlu; bardakta veya yenilebilir waffle kupta.
+              Ceremonial grade matcha, siparişten sonra çırpılıyor: ipeksi süt
+              katmanları, taze çilek ve üzerine bir top dondurma. Strawberry
+              Aşkı üçlüsü — Matcha Latte, Strawberry Matcha, Matcha Affogato.
             </p>
             <div
               style={{
@@ -778,9 +766,10 @@ export function PageMenu({ menu }: PageProps) {
               Genel <span className="script">menü.</span>
             </h1>
             <p className="menu-hero-lede">
-              Bologna 1987 reçetesi, Tuzla köşkü için sezonluk matcha bar ve
-              buzlu içecekler. Üç ritüel — espresso, gelato, yenilebilir kup. 39
-              yıldır değişmedi.
+              Basılı menünün tamamı: matcha bar, espresso, buzlu kahveler,
+              soğuk ve sıcak içecekler, frappe, smoothie, frozen, ice tea,
+              tatlılar ve atıştırmalıklar. İçeceklerin çoğu M ve L boy servis
+              edilir.
             </p>
             <div className="menu-hero-stats">
               <div>
@@ -789,7 +778,7 @@ export function PageMenu({ menu }: PageProps) {
               </div>
               <div>
                 <b>{cats.length}</b>
-                <span>ritüel</span>
+                <span>kategori</span>
               </div>
               <div>
                 <b>~4dk</b>
@@ -948,7 +937,11 @@ export function PageMenu({ menu }: PageProps) {
                         padding: 30,
                       }}
                     >
-                      <MenuPlate hue={items[0].hue} name={items[0].name} />
+                      <MenuPlate
+                        hue={items[0].hue}
+                        name={items[0].name}
+                        image={items[0].image}
+                      />
                     </div>
                   </PhotoSurface>
                 </div>
@@ -962,7 +955,7 @@ export function PageMenu({ menu }: PageProps) {
                     style={{ transitionDelay: `${(i % 4) * 60}ms` }}
                   >
                     <div className="menu-item-img">
-                      <MenuPlate hue={it.hue} name={it.name} />
+                      <MenuPlate hue={it.hue} name={it.name} image={it.image} />
                       {it.tags?.includes("signature") && (
                         <div className="product-card-flag gold">FIRMA</div>
                       )}
@@ -974,7 +967,28 @@ export function PageMenu({ menu }: PageProps) {
                     <div className="menu-item-body">
                       <div className="menu-item-row">
                         <h3 className="menu-item-name">{it.name}</h3>
-                        <div className="menu-item-price">{it.price}</div>
+                        <div
+                          className="menu-item-price"
+                          style={{ whiteSpace: "nowrap" }}
+                        >
+                          {it.priceL ? (
+                            <>
+                              <span style={{ opacity: 0.5, fontSize: "0.8em" }}>
+                                M{" "}
+                              </span>
+                              {it.price}
+                              <span style={{ opacity: 0.32, margin: "0 5px" }}>
+                                ·
+                              </span>
+                              <span style={{ opacity: 0.5, fontSize: "0.8em" }}>
+                                L{" "}
+                              </span>
+                              {it.priceL}
+                            </>
+                          ) : (
+                            it.price
+                          )}
+                        </div>
                       </div>
                       <p className="menu-item-desc">{it.desc}</p>
                       {(it.tags ?? []).filter(

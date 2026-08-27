@@ -25,8 +25,8 @@ export const FAQ: FaqEntry[] = [
     a: "Pazartesi'den Perşembe'ye 10:00 — 23:00, Cuma ve Cumartesi 10:00 — 24:00, Pazar 10:00 — 23:00 saatleri arasında açığız. Tüm yıl boyunca hizmet veriyoruz; köşkün avlusu yaz aylarında, yüksek tavanlı iç salonları kış aylarında kullanılır.",
   },
   {
-    q: "Affogato Classico nedir, yenilebilir kup ne demek?",
-    a: "Affogato Classico, tek scoop fior di latte gelato üzerine çift shot Sirena espresso dökülerek hazırlanan İtalyan tatlısıdır. 1987'den beri İtalya'daki orijinal tariftir. Biz bunu yenilebilir waffle kup içinde servis ederiz: bittiğinde kupayı da yiyebilirsiniz, kaşığa gerek kalmaz. Mancuso ailesinin 1994'te patentlediği glaze kaplama kupayı en az 20 dakika çıtır tutar.",
+    q: "L'Affogato nedir, menüde nasıl servis ediliyor?",
+    a: "L'Affogato, bir top dondurma üzerine sıcak espresso dökülerek hazırlanan İtalyan klasiğidir; evin imza içeceğidir ve 280₺'dir. Matcha sevenler için Matcha Affogato da menüdedir: buzlu matcha latte üzerine bir top dondurma ve matcha tozu, 245₺. Her ikisi de siparişten hemen sonra hazırlanır; sıcak-soğuk kontrastı için birkaç dakika içinde tüketilmesi önerilir.",
   },
   {
     q: "Rezervasyon yapabilir miyim?",
@@ -34,15 +34,15 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Vegan veya glutensiz seçeneğiniz var mı?",
-    a: "Var. Affogato Cioccolato bitter çikolata gelatomuzla vegan olarak hazırlanabilir. Sorbe seçeneklerimiz (çilek, mango, limon) süt içermez. Glutensiz waffle kupa stoğumuz sınırlıdır; rezervasyon sırasında bildirirseniz ayırırız. Tüm alerjen bilgisi mekanda mevcuttur.",
+    a: "Sütlü içeceklerin tamamı 25₺ fark ile yulaf, badem veya laktozsuz sütle hazırlanabilir. Frozen serisi (çilek, ahududu, çarkıfelek, ananas), L'Af Limon ve Cool Lime süt içermez. Fındık içeren kalemler menüde ayrıca işaretlidir; tüm alerjen bilgisi mekanda mevcuttur.",
   },
   {
     q: "Matcha bar'da hangi çay kullanılıyor?",
-    a: "Japonya Uji bölgesinden ceremonial grade matcha kullanıyoruz. Her bardağı bambu chasen (80 dişli, Nara yapımı) ile siparişten sonra dövüyoruz. Premix yok. Hojicha menümüzde de mevcuttur — kavrulmuş yeşil çay, kafeini hafif.",
+    a: "Ceremonial grade matcha kullanıyoruz ve her bardağı siparişten sonra çırpıyoruz; premix yok. Matcha bar'da üç kalem var: Matcha Latte 215₺, Strawberry Matcha 245₺ ve Matcha Affogato 245₺. Strawberry Matcha, taze çilek katmanı üzerine matcha ve soğuk sütle hazırlanır.",
   },
   {
     q: "Online sipariş ve kargo var mı?",
-    a: "Çekirdek kahve (Sirena espresso blend, Notturna filter lot), Uji matcha, edible cup kutuları, ekipman (Bialetti moka, porselen takım, bambu chasen) ve hediye setleri online satıyoruz. Türkiye geneli 1–3 iş günü kargo. Gelato ve bombolone gibi taze ürünler sadece mekanda servis edilir.",
+    a: "Çekirdek kahve (Sirena espresso blend, Notturna filter lot), Uji matcha, edible cup kutuları, ekipman (Bialetti moka, porselen takım, bambu chasen) ve hediye setleri online satıyoruz. Türkiye geneli 1–3 iş günü kargo. Tatlılar, sandviçler ve tüm bar içecekleri sadece mekanda servis edilir.",
   },
   {
     q: "Kahve nereden geliyor, kim kavuruyor?",
@@ -54,7 +54,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Çocuk ve evcil hayvan dostu mu?",
-    a: "Evet. Köşkün avlusu, bebek arabası erişimine uygundur. Çocuk menüsünde kafeinsiz babyccino, fior di latte single scoop ve bombolone alla crema bulunur. Köpekler köşkün bahçesinde karşılanır; su kabı ve ev yapımı dog biscuit ikram edilir.",
+    a: "Evet. Köşkün avlusu, bebek arabası erişimine uygundur. Çocuk için kafeinsiz sıcak çikolata, salep ve vitrindeki tatlılar tercih edilebilir. Köpekler köşkün bahçesinde karşılanır; su kabı ve ev yapımı dog biscuit ikram edilir.",
   },
   {
     q: "Ödeme yöntemleri nelerdir?",

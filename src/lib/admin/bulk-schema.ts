@@ -2,11 +2,18 @@ import { z } from "zod";
 
 const SHOP_CATEGORIES = ["beans", "gift", "gear", "merch", "pantry"] as const;
 const MENU_CATEGORIES = [
-  "affogato",
   "matcha",
   "espresso",
+  "ice-coffee",
   "cold",
-  "gelato",
+  "hot",
+  "frappe",
+  "smoothie",
+  "frozen",
+  "ice-tea",
+  "dessert",
+  "snack",
+  "extras",
 ] as const;
 const ORDER_STATUSES = [
   "pending_payment",
