@@ -2,10 +2,13 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
+import { MIGRATION_NAMES } from "@/lib/db/schema-sql";
+
 import {
   buildBundle,
   buildModule,
   BUNDLE_PATH,
+  migrationNames,
   MODULE_PATH,
 } from "../scripts/db-bundle.mjs";
 
@@ -35,6 +38,19 @@ describe("db/schema.sql", () => {
     // migrations, a self-bootstrapped database is silently wrong.
     const onDisk = readFileSync(MODULE_PATH, "utf8");
     expect(onDisk).toBe(buildModule(buildBundle()));
+  });
+
+  it("ships the migration list the app checks the database against", () => {
+    // bootstrap.ts compares MIGRATION_NAMES to public._migrations to decide
+    // whether a deploy still owes the database a migration. A stale list would
+    // report an out-of-date database as up to date.
+    expect(MIGRATION_NAMES).toEqual(migrationNames());
+    expect(MIGRATION_NAMES.length).toBeGreaterThan(0);
+    for (const name of MIGRATION_NAMES) {
+      expect(buildBundle()).toContain(
+        `insert into public._migrations (name) values ('${name}')`,
+      );
+    }
   });
 
   it("carries the atomic stock function intact", () => {
