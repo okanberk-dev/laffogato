@@ -3363,3 +3363,447 @@ export const createStoryEvent = (i: StoryEventInput) => storyResource.create(i);
 export const updateStoryEvent = (id: string, i: StoryEventInput) =>
   storyResource.update(id, i);
 export const deleteStoryEvent = storyResource.remove;
+
+// ─── Mobile app home content ──────────────────────────────────────────────
+//
+// The app's home screen carries a hero carousel and an announcements strip.
+// Both are editorial: swapping a seasonal slide must not require an app store
+// submission, so they live here and the app reads them over the API.
+//
+// Kept separate from `shop_hero_slides`, which is web-shaped (a full-width
+// image, an absolute ctaHref). The app needs a brand `tone` instead of an
+// image, and a route KEY rather than a URL — CMS text must never be able to
+// drive native navigation directly.
+
+/** Brand ground a slide paints itself on. Mirrors the app's theme tokens. */
+export type AppSlideTone = "premium" | "inverse" | "brand" | "paper";
+
+export const APP_SLIDE_TONES: AppSlideTone[] = [
+  "premium",
+  "inverse",
+  "brand",
+  "paper",
+];
+
+export const APP_SLIDE_TONE_LABELS: Record<AppSlideTone, string> = {
+  premium: "Bordo (premium)",
+  inverse: "Koyu yeşil",
+  brand: "Marka yeşili",
+  paper: "Kağıt (açık)",
+};
+
+/**
+ * Routes a slide may point at. The app resolves the key through its own
+ * allow-list; anything not in this set is ignored rather than followed.
+ */
+export const APP_SLIDE_ROUTES = [
+  "",
+  "/menu",
+  "/magaza",
+  "/kart",
+  "/hesabim",
+] as const;
+
+export const APP_SLIDE_ROUTE_LABELS: Record<string, string> = {
+  "": "Yok (tıklanamaz)",
+  "/menu": "Menü",
+  "/magaza": "Mağaza",
+  "/kart": "Üyelik kartı",
+  "/hesabim": "Hesabım",
+};
+
+export interface AdminAppSlide {
+  id: string;
+  /** Small kicker above the headline, e.g. "EVİN İMZASI". */
+  eyebrow: string;
+  title: string;
+  body: string;
+  /** Empty means the slide renders without a call to action. */
+  ctaLabel: string;
+  ctaRoute: string;
+  tone: AppSlideTone;
+  image: string;
+  sortOrder: number;
+  isActive: boolean;
+  /** ISO-8601; empty means unbounded. */
+  startsAt: string;
+  endsAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AppAnnouncementKind = "info" | "campaign" | "hours";
+
+export const APP_ANNOUNCEMENT_KINDS: AppAnnouncementKind[] = [
+  "info",
+  "campaign",
+  "hours",
+];
+
+export const APP_ANNOUNCEMENT_KIND_LABELS: Record<AppAnnouncementKind, string> =
+  {
+    info: "Bilgi",
+    campaign: "Yeni / kampanya",
+    hours: "Çalışma saatleri",
+  };
+
+export interface AdminAppAnnouncement {
+  id: string;
+  kind: AppAnnouncementKind;
+  title: string;
+  body: string;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt: string;
+  endsAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Seed order is chosen so the burgundy slide never neighbours a green one:
+ * premium → paper → brand → inverse. Burgundy against green measures 1.23:1
+ * and the two blur into one another; the app's carousel shows the edges of
+ * neighbouring slides, so the ordering matters visually.
+ */
+const SEED_APP_SLIDES: AdminAppSlide[] = [
+  {
+    id: "aslide-001",
+    eyebrow: "EVİN İMZASI",
+    title: "L'Affogato",
+    body: "Bir top fior di latte üzerine Sirena espresso. Yenilebilir waffle kupada servis edilir.",
+    ctaLabel: "Menüde gör",
+    ctaRoute: "/menu",
+    tone: "premium",
+    image: "",
+    sortOrder: 1,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "aslide-002",
+    eyebrow: "TUZLA",
+    title: "200 yıllık bir köşkte",
+    body: "1987 Bologna'dan İstanbul'a. İtalya dışındaki tek L'Affogato.",
+    ctaLabel: "Ziyaret",
+    ctaRoute: "/hesabim",
+    tone: "paper",
+    image: "",
+    sortOrder: 2,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "aslide-003",
+    eyebrow: "MATCHA BAR",
+    title: "Strawberry Aşkı",
+    body: "Uji ceremonial grade matcha, siparişten sonra çırpılır. Sezon boyunca menüde.",
+    ctaLabel: "Matcha Bar",
+    ctaRoute: "/menu",
+    tone: "brand",
+    image: "",
+    sortOrder: 3,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "aslide-004",
+    eyebrow: "RİTÜEL",
+    title: "Drink it. Eat the cup.",
+    body: "Waffle kupanın glaze kaplaması 1994'te patentlendi. Bugün hâlâ aynı reçete.",
+    ctaLabel: "",
+    ctaRoute: "",
+    tone: "inverse",
+    image: "",
+    sortOrder: 4,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+const SEED_APP_ANNOUNCEMENTS: AdminAppAnnouncement[] = [
+  {
+    id: "aann-001",
+    kind: "hours",
+    title: "Hafta sonu 24:00'e kadar",
+    body: "Cuma ve cumartesi köşk bir saat daha uzun açık.",
+    sortOrder: 1,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "aann-002",
+    kind: "campaign",
+    title: "Yeni: Çıtır Latte",
+    body: "Karamelize çıtır katmanlı buzlu latte menüye eklendi.",
+    sortOrder: 2,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
+  const sb = getDb();
+  if ((await countRows(TABLES.appHeroSlides)) === 0) {
+    check(
+      await sb.from(TABLES.appHeroSlides).upsert(
+        SEED_APP_SLIDES.map((s) => ({ ...s })),
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+      "seed.appHeroSlides",
+    );
+  }
+  if ((await countRows(TABLES.appAnnouncements)) === 0) {
+    check(
+      await sb.from(TABLES.appAnnouncements).upsert(
+        SEED_APP_ANNOUNCEMENTS.map((a) => ({ ...a })),
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+      "seed.appAnnouncements",
+    );
+  }
+});
+
+/** True when now falls inside the row's optional window. */
+function inWindow(row: { startsAt: string; endsAt: string }): boolean {
+  const now = Date.now();
+  if (row.startsAt && Date.parse(row.startsAt) > now) return false;
+  if (row.endsAt && Date.parse(row.endsAt) < now) return false;
+  return true;
+}
+
+export async function listAppSlides(): Promise<AdminAppSlide[]> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  return rows<AdminAppSlide>(
+    await sb
+      .from(TABLES.appHeroSlides)
+      .select("*")
+      .order("sortOrder", { ascending: true })
+      .order("createdAt", { ascending: true }),
+    "listAppSlides",
+  );
+}
+
+/** What the mobile API serves: active, in-window, in order. */
+export async function listActiveAppSlides(): Promise<AdminAppSlide[]> {
+  return publicRead("listActiveAppSlides", [], async () => {
+    const all = await listAppSlides();
+    return all.filter((s) => s.isActive && inWindow(s));
+  });
+}
+
+export async function getAppSlide(id: string): Promise<AdminAppSlide | null> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  return one<AdminAppSlide>(
+    await sb.from(TABLES.appHeroSlides).select("*").eq("id", id).maybeSingle(),
+    "getAppSlide",
+  );
+}
+
+export interface AppSlideInput {
+  eyebrow: string;
+  title: string;
+  body: string;
+  ctaLabel: string;
+  ctaRoute: string;
+  tone: AppSlideTone;
+  image: string;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt: string;
+  endsAt: string;
+}
+
+function normalizeAppSlide(input: AppSlideInput): AppSlideInput {
+  const route = input.ctaRoute.trim();
+  return {
+    eyebrow: input.eyebrow.trim().slice(0, 32),
+    title: input.title.trim().slice(0, 80),
+    body: input.body.trim().slice(0, 240),
+    ctaLabel: input.ctaLabel.trim().slice(0, 32),
+    // Fail closed: an unrecognised route becomes "no action" rather than
+    // reaching the app as an unknown target.
+    ctaRoute: (APP_SLIDE_ROUTES as readonly string[]).includes(route)
+      ? route
+      : "",
+    tone: APP_SLIDE_TONES.includes(input.tone) ? input.tone : "paper",
+    image: input.image.trim().slice(0, 4 * 1024 * 1024),
+    sortOrder: Number.isFinite(input.sortOrder)
+      ? Math.max(0, Math.floor(input.sortOrder))
+      : 0,
+    isActive: !!input.isActive,
+    startsAt: input.startsAt.trim().slice(0, 40),
+    endsAt: input.endsAt.trim().slice(0, 40),
+  };
+}
+
+export async function createAppSlide(
+  input: AppSlideInput,
+): Promise<AdminAppSlide> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  const now = new Date().toISOString();
+  const slide: AdminAppSlide = {
+    id: `aslide-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    ...normalizeAppSlide(input),
+    createdAt: now,
+    updatedAt: now,
+  };
+  check(await sb.from(TABLES.appHeroSlides).insert(slide), "createAppSlide");
+  return slide;
+}
+
+export async function updateAppSlide(
+  id: string,
+  input: AppSlideInput,
+): Promise<AdminAppSlide | null> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  check(
+    await sb
+      .from(TABLES.appHeroSlides)
+      .update({ ...normalizeAppSlide(input), updatedAt: new Date().toISOString() })
+      .eq("id", id),
+    "updateAppSlide",
+  );
+  return getAppSlide(id);
+}
+
+export async function deleteAppSlide(id: string): Promise<void> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  check(
+    await sb.from(TABLES.appHeroSlides).delete().eq("id", id),
+    "deleteAppSlide",
+  );
+}
+
+export async function listAppAnnouncements(): Promise<AdminAppAnnouncement[]> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  return rows<AdminAppAnnouncement>(
+    await sb
+      .from(TABLES.appAnnouncements)
+      .select("*")
+      .order("sortOrder", { ascending: true })
+      .order("createdAt", { ascending: true }),
+    "listAppAnnouncements",
+  );
+}
+
+export async function listActiveAppAnnouncements(): Promise<
+  AdminAppAnnouncement[]
+> {
+  return publicRead("listActiveAppAnnouncements", [], async () => {
+    const all = await listAppAnnouncements();
+    return all.filter((a) => a.isActive && inWindow(a));
+  });
+}
+
+export async function getAppAnnouncement(
+  id: string,
+): Promise<AdminAppAnnouncement | null> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  return one<AdminAppAnnouncement>(
+    await sb
+      .from(TABLES.appAnnouncements)
+      .select("*")
+      .eq("id", id)
+      .maybeSingle(),
+    "getAppAnnouncement",
+  );
+}
+
+export interface AppAnnouncementInput {
+  kind: AppAnnouncementKind;
+  title: string;
+  body: string;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt: string;
+  endsAt: string;
+}
+
+function normalizeAppAnnouncement(
+  input: AppAnnouncementInput,
+): AppAnnouncementInput {
+  return {
+    kind: APP_ANNOUNCEMENT_KINDS.includes(input.kind) ? input.kind : "info",
+    title: input.title.trim().slice(0, 80),
+    body: input.body.trim().slice(0, 200),
+    sortOrder: Number.isFinite(input.sortOrder)
+      ? Math.max(0, Math.floor(input.sortOrder))
+      : 0,
+    isActive: !!input.isActive,
+    startsAt: input.startsAt.trim().slice(0, 40),
+    endsAt: input.endsAt.trim().slice(0, 40),
+  };
+}
+
+export async function createAppAnnouncement(
+  input: AppAnnouncementInput,
+): Promise<AdminAppAnnouncement> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  const now = new Date().toISOString();
+  const row: AdminAppAnnouncement = {
+    id: `aann-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    ...normalizeAppAnnouncement(input),
+    createdAt: now,
+    updatedAt: now,
+  };
+  check(
+    await sb.from(TABLES.appAnnouncements).insert(row),
+    "createAppAnnouncement",
+  );
+  return row;
+}
+
+export async function updateAppAnnouncement(
+  id: string,
+  input: AppAnnouncementInput,
+): Promise<AdminAppAnnouncement | null> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  check(
+    await sb
+      .from(TABLES.appAnnouncements)
+      .update({
+        ...normalizeAppAnnouncement(input),
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", id),
+    "updateAppAnnouncement",
+  );
+  return getAppAnnouncement(id);
+}
+
+export async function deleteAppAnnouncement(id: string): Promise<void> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  check(
+    await sb.from(TABLES.appAnnouncements).delete().eq("id", id),
+    "deleteAppAnnouncement",
+  );
+}

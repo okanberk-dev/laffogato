@@ -150,4 +150,6 @@ export const TABLES = {
   legalDocs: "legal_docs",
   admin2fa: "admin_2fa",
   authAttempts: "auth_attempts",
+  appHeroSlides: "app_hero_slides",
+  appAnnouncements: "app_announcements",
 } as const;
