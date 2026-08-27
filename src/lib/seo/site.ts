@@ -58,9 +58,9 @@ export const SITE = {
   locale: "tr_TR",
   language: "tr",
   alternateLocale: [],
-  email: "tuzla@laffogato.it",
-  phone: "+90 216 459 30 60",
-  phoneE164: "+902164593060",
+  email: "info@nextgenlab.com.tr",
+  phone: "+90 536 429 09 19",
+  phoneE164: "+905364290919",
   address: {
     streetAddress: "Postane Mah. 29 Ekim Cd. No: 28",
     addressLocality: "Tuzla",

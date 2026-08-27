@@ -147,14 +147,14 @@ export default async function LegalDocPage({
             Spesifik bir mesele için lütfen avukatınıza danışın. Belgede güncel
             olmayan veya hata içerdiğini düşündüğünüz bir bilgi varsa{" "}
             <a
-              href="mailto:kvkk@laffogato.net"
+              href="mailto:info@nextgenlab.com.tr"
               style={{
                 color: "var(--gold-deep)",
                 textDecoration: "underline",
                 textUnderlineOffset: 3,
               }}
             >
-              kvkk@laffogato.net
+              info@nextgenlab.com.tr
             </a>{" "}
             adresine yazın.
           </p>

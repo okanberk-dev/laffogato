@@ -23,8 +23,8 @@ describe("SITE constants — NAP + lean-SEO fixes", () => {
     expect(SITE.geo.longitude).toBeLessThan(29.35);
   });
 
-  it("uses the Tuzla contact email", () => {
-    expect(SITE.email).toBe("tuzla@laffogato.it");
+  it("uses the operator's contact email", () => {
+    expect(SITE.email).toBe("info@nextgenlab.com.tr");
   });
 
   it("uses the laffogatto social handles", () => {

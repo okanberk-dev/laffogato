@@ -30,7 +30,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Rezervasyon yapabilir miyim?",
-    a: "Evet. +90 216 459 30 60 numarasından ya da web sitesindeki Visit sayfasından masa rezervasyonu yapılabilir. Hafta sonu akşam servisleri için 24 saat öncesinden rezervasyon öneririz. 12 koltuklu küçük bir köşk barıyız, masaları sınırlıdır.",
+    a: "Evet. +90 536 429 09 19 numarasından ya da web sitesindeki Visit sayfasından masa rezervasyonu yapılabilir. Hafta sonu akşam servisleri için 24 saat öncesinden rezervasyon öneririz. 12 koltuklu küçük bir köşk barıyız, masaları sınırlıdır.",
   },
   {
     q: "Vegan veya glutensiz seçeneğiniz var mı?",

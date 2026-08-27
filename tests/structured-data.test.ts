@@ -43,7 +43,7 @@ describe("JSON-LD structured data — SEO audit fixes", () => {
   });
 
   it("carries consistent NAP (phone + new street address)", () => {
-    expect(graph).toContain("+902164593060");
+    expect(graph).toContain("+905364290919");
     expect(graph).toContain("29 Ekim");
   });
 

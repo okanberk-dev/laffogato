@@ -172,14 +172,14 @@ export default async function OrderDetailPage({
         >
           Siparişinde değişiklik veya iade için bizimle iletişime geç —{" "}
           <a
-            href="mailto:hello@laffogato.net"
+            href="mailto:info@nextgenlab.com.tr"
             style={{
               color: "var(--gold-deep)",
               textDecoration: "underline",
               textUnderlineOffset: 3,
             }}
           >
-            hello@laffogato.net
+            info@nextgenlab.com.tr
           </a>
           . Ekibimiz 24 saat içinde döner.
         </p>

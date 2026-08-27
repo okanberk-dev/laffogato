@@ -286,8 +286,8 @@ function defaultSettings(): AdminSettings {
   return {
     name: "L'Affogato",
     tagline: "Drink it. Eat the cup.",
-    phone: "+90 216 459 30 60",
-    email: "tuzla@laffogato.it",
+    phone: "+90 536 429 09 19",
+    email: "info@nextgenlab.com.tr",
     address:
       "Postane Mah. 29 Ekim Cd. No: 28 (Menemenci Cumhur’un yanı), 34940 Tuzla / İstanbul",
     openingHours: "Pzt–Pş 10:00–23:00 · Cu–Ct 10:00–24:00 · Pz 10:00–23:00",

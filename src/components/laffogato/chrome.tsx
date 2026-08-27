@@ -631,8 +631,8 @@ export function Footer({ navigate, settings }: FooterProps) {
     navigate(r);
     window.scrollTo({ top: 0 });
   };
-  const phone = settings?.phone ?? "+90 216 459 30 60";
-  const email = settings?.email ?? "tuzla@laffogato.it";
+  const phone = settings?.phone ?? "+90 536 429 09 19";
+  const email = settings?.email ?? "info@nextgenlab.com.tr";
   const addressLines = splitAddress(settings?.address);
   const year = new Date().getFullYear();
   return (

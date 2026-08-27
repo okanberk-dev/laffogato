@@ -13,8 +13,13 @@ describe("Canonical domain — laffogato.net", () => {
     expect(SITE.url).toMatch(/^https?:\/\//);
   });
 
-  it("legal entity contact e-mail uses the laffogato.net domain", () => {
-    expect(LEGAL_ENTITY.legalEmail).toBe("kvkk@laffogato.net");
+  it("legal entity contact e-mail is the operator's single contact address", () => {
+    // Deliberately NOT on laffogato.net: the operator consolidated every
+    // contact route onto one mailbox. The invariant this test still protects
+    // is that the address is a real, configured one — never the .com.tr
+    // placeholder the site shipped with.
+    expect(LEGAL_ENTITY.legalEmail).toBe("info@nextgenlab.com.tr");
+    expect(LEGAL_ENTITY.legalEmail).not.toMatch(/laffogato\.com\.tr/);
   });
 
   it("legal documents reference laffogato.net, never .com.tr", () => {

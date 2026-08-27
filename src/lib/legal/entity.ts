@@ -21,9 +21,9 @@ export const LEGAL_ENTITY = {
     zip: "34953",
     country: "Türkiye",
   },
-  phone: "+90 216 459 30 60",
-  email: "tuzla@laffogato.it",
-  legalEmail: "kvkk@laffogato.net",
+  phone: "+90 536 429 09 19",
+  email: "info@nextgenlab.com.tr",
+  legalEmail: "info@nextgenlab.com.tr",
   /** Mersis ve sicil numaraları — gerçek değerlerle değiştir. */
   mersisNo: "0123-4567-8901-2345",
   tradeRegistryNo: "İstanbul · 999999",
