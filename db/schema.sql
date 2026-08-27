@@ -651,29 +651,26 @@ alter table public.menu_items
 alter table public.menu_items
   add column if not exists image text not null default '';
 
--- Clear the old menu. Those rows carry the retired category keys, so they
--- cannot be migrated in place. ensureSeed() re-seeds the table from SEED_MENU
--- on the next boot because the table is left empty.
+-- Clear the old menu. Those rows carry the retired category keys and prices, so
+-- they cannot be migrated in place; ensureSeed() re-seeds the table from
+-- SEED_MENU on the next boot because the table is left empty.
 --
--- Scoped to the retired keys rather than the whole table: db/schema.sql
--- concatenates every migration and promises that running it twice is safe, and
--- the app re-applies that bundle to heal a schema gap. An unconditional delete
--- would wipe the live menu — including items added through the admin panel —
--- every time it ran. Restricted this way, a second run matches nothing.
+-- Guarded on this migration's own _migrations row, which db:migrate and the
+-- db/schema.sql bundle both insert *after* the body runs. So the delete fires
+-- exactly once — on the run that first applies this file — and matches nothing
+-- on every re-apply. That matters because db/schema.sql promises running it
+-- twice is safe and the app re-applies it to heal a schema gap; an
+-- unconditional delete would wipe the live menu each time.
+--
+-- Filtering by category key cannot do this: matcha, espresso and cold appear in
+-- both the old and the new key sets, so the old items under them would survive
+-- and leave the table non-empty — which suppresses the re-seed entirely and
+-- strands the menu half-migrated.
 delete from public.menu_items
-where "categoryKey" not in (
-  'matcha',
-  'espresso',
-  'ice-coffee',
-  'cold',
-  'hot',
-  'frappe',
-  'smoothie',
-  'frozen',
-  'ice-tea',
-  'dessert',
-  'snack',
-  'extras'
+where not exists (
+  select 1
+  from public._migrations
+  where name = '20260827124000_menu_two_sizes_and_photos.sql'
 );
 
 insert into public._migrations (name) values ('20260827124000_menu_two_sizes_and_photos.sql')
