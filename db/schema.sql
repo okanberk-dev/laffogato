@@ -651,10 +651,30 @@ alter table public.menu_items
 alter table public.menu_items
   add column if not exists image text not null default '';
 
--- Clear the old menu. Rows carry the retired category keys and prices, so
--- they cannot be migrated in place. ensureSeed() re-seeds the table from
--- SEED_MENU on the next boot because the table is empty.
-delete from public.menu_items;
+-- Clear the old menu. Those rows carry the retired category keys, so they
+-- cannot be migrated in place. ensureSeed() re-seeds the table from SEED_MENU
+-- on the next boot because the table is left empty.
+--
+-- Scoped to the retired keys rather than the whole table: db/schema.sql
+-- concatenates every migration and promises that running it twice is safe, and
+-- the app re-applies that bundle to heal a schema gap. An unconditional delete
+-- would wipe the live menu — including items added through the admin panel —
+-- every time it ran. Restricted this way, a second run matches nothing.
+delete from public.menu_items
+where "categoryKey" not in (
+  'matcha',
+  'espresso',
+  'ice-coffee',
+  'cold',
+  'hot',
+  'frappe',
+  'smoothie',
+  'frozen',
+  'ice-tea',
+  'dessert',
+  'snack',
+  'extras'
+);
 
 insert into public._migrations (name) values ('20260827124000_menu_two_sizes_and_photos.sql')
   on conflict (name) do nothing;
