@@ -79,7 +79,13 @@ export function toDbError(err: unknown): { error: DbError; status: number } {
     details?: string;
     hint?: string;
   };
-  const code = typeof e?.code === "string" ? e.code : "";
+  // A SQLSTATE is always five alphanumerics. Anything else on `code` is a Node
+  // errno — ECONNREFUSED, ETIMEDOUT, ENOTFOUND, ECONNRESET — which pg sets when
+  // the socket never carried a query. Blanking it keeps the transport signature
+  // below honest; otherwise an unreachable host is misread as a rejected query
+  // and the degraded-mode fallback never engages.
+  const raw = typeof e?.code === "string" ? e.code : "";
+  const code = /^[0-9A-Za-z]{5}$/.test(raw) ? raw : "";
   const message =
     typeof e?.message === "string" && e.message ? e.message : "request failed";
   return {
