@@ -23,10 +23,14 @@ const MIGRATIONS_DIR = join(ROOT, "db", "migrations");
 export const BUNDLE_PATH = join(ROOT, "db", "schema.sql");
 export const MODULE_PATH = join(ROOT, "src", "lib", "db", "schema-sql.ts");
 
-export function buildBundle() {
-  const files = readdirSync(MIGRATIONS_DIR)
+export function migrationNames() {
+  return readdirSync(MIGRATIONS_DIR)
     .filter((f) => f.endsWith(".sql"))
     .sort();
+}
+
+export function buildBundle() {
+  const files = migrationNames();
 
   const parts = [
     "-- GENERATED FILE — do not edit by hand.",
@@ -75,6 +79,11 @@ export function buildModule(bundle) {
     "// src/lib/db/bootstrap.ts to create the schema on an empty database.",
     "",
     `export const SCHEMA_SQL = ${JSON.stringify(bundle)};`,
+    "",
+    "// Every migration the bundle applies, in order. bootstrap.ts compares this",
+    "// against public._migrations to tell whether the database is up to date.",
+    "",
+    `export const MIGRATION_NAMES = ${JSON.stringify(migrationNames(), null, 2)};`,
     "",
   ].join("\n");
 }

@@ -177,6 +177,28 @@ describe("toDbError", () => {
   it("classifies an error without a SQLSTATE as unreachable", () => {
     expect(toDbError(new Error("ENOTFOUND")).status).toBe(0);
   });
+
+  it("treats a Node errno on `code` as unreachable, not a rejected query", () => {
+    // pg puts the errno on `code` when the socket never carried a query. Read
+    // as a SQLSTATE it looked like a rejected query, so an unreachable host
+    // bypassed the degraded-mode fallback and took every page to HTTP 500.
+    for (const errno of [
+      "ECONNREFUSED",
+      "ETIMEDOUT",
+      "ENOTFOUND",
+      "ECONNRESET",
+    ]) {
+      const { error, status } = toDbError(pgError(errno, "connect failed"));
+      expect(status).toBe(0);
+      expect(error.code).toBe("");
+    }
+  });
+
+  it("keeps a real SQLSTATE intact so callers can still match on it", () => {
+    const { error, status } = toDbError(pgError("23505", "duplicate key"));
+    expect(error.code).toBe("23505");
+    expect(status).toBe(400);
+  });
 });
 
 describe("rpc", () => {

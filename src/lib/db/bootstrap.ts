@@ -1,8 +1,8 @@
 import "server-only";
 
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 
-import { SCHEMA_SQL } from "./schema-sql";
+import { MIGRATION_NAMES, SCHEMA_SQL } from "./schema-sql";
 
 /**
  * Creates the schema when the app finds an empty database.
@@ -23,24 +23,98 @@ import { SCHEMA_SQL } from "./schema-sql";
 /** Arbitrary but fixed key, so every instance contends on the same lock. */
 const LOCK_KEY = 0x1af09a70;
 
-/** SQLSTATE 42P01 — undefined_table. */
-export function isMissingRelation(err: unknown): boolean {
+function hasSqlState(err: unknown, state: string): boolean {
   return (
     typeof err === "object" &&
     err !== null &&
-    (err as { code?: string }).code === "42P01"
+    (err as { code?: string }).code === state
   );
+}
+
+/** SQLSTATE 42P01 — undefined_table. */
+export function isMissingRelation(err: unknown): boolean {
+  return hasSqlState(err, "42P01");
+}
+
+/** SQLSTATE 42703 — undefined_column. */
+export function isMissingColumn(err: unknown): boolean {
+  return hasSqlState(err, "42703");
+}
+
+/**
+ * A query that failed because the database is behind the migrations — either a
+ * table or a column this build expects does not exist yet.
+ */
+export function isSchemaGap(err: unknown): boolean {
+  return isMissingRelation(err) || isMissingColumn(err);
+}
+
+/**
+ * Whether the database has recorded every migration this build ships.
+ *
+ * An empty database has no `_migrations` table at all, which reads as "not up
+ * to date" rather than an error.
+ */
+async function isUpToDate(client: PoolClient): Promise<boolean> {
+  try {
+    const res = await client.query(
+      "select name from public._migrations where name = any($1::text[])",
+      [MIGRATION_NAMES],
+    );
+    return (res.rowCount ?? 0) === MIGRATION_NAMES.length;
+  } catch (err) {
+    if (isMissingRelation(err)) return false;
+    throw err;
+  }
+}
+
+let freshness: Promise<void> | null = null;
+
+/**
+ * Applies any migration the database has not recorded yet, once per instance.
+ *
+ * The on-error path below only fires when a query actually names something
+ * missing, and plenty of migrations are invisible to it — a `select *` never
+ * mentions a new column, and a data migration touches no schema at all. Without
+ * this check a deploy would keep serving the old data until someone remembered
+ * to run `npm run db:migrate` by hand.
+ *
+ * Failures here are swallowed deliberately: this runs ahead of every query, and
+ * an unreachable database has to reach the caller as an ordinary query failure
+ * so the degraded-mode fallback can classify it. A genuine gap that slips past
+ * is still caught by the retry in `createExecutor`.
+ */
+export function ensureSchemaFresh(pool: Pool): Promise<void> {
+  if (!freshness) {
+    freshness = checkFreshness(pool).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(`[db-bootstrap] şema tazelik kontrolü atlandı: ${message}`);
+    });
+  }
+  return freshness;
+}
+
+async function checkFreshness(pool: Pool): Promise<void> {
+  const client = await pool.connect();
+  let fresh: boolean;
+  try {
+    fresh = await isUpToDate(client);
+  } finally {
+    client.release();
+  }
+  if (!fresh) await ensureSchema(pool);
 }
 
 let inFlight: Promise<void> | null = null;
 
 export function ensureSchema(pool: Pool): Promise<void> {
-  // Memoised per instance, but dropped on failure so the next request retries
-  // rather than replaying a cached rejection forever.
+  // Dedupes concurrent callers only — the memo is dropped once settled, on
+  // success as well as failure. A cached rejection would replay forever, and a
+  // cached success would declare the schema final for the life of the instance,
+  // leaving a later gap unhealable.
   if (!inFlight) {
-    inFlight = applySchema(pool).catch((err) => {
+    inFlight = applySchema(pool).finally(() => {
       inFlight = null;
-      throw err;
     });
   }
   return inFlight;
@@ -54,13 +128,10 @@ async function applySchema(pool: Pool): Promise<void> {
     await client.query("select pg_advisory_lock($1)", [LOCK_KEY]);
 
     // Re-check under the lock — another instance may have just finished.
-    const probe = await client.query(
-      "select to_regclass('public.products') as present",
-    );
-    if (probe.rows[0]?.present) return;
+    if (await isUpToDate(client)) return;
 
     console.warn(
-      "[db-bootstrap] veritabanı boş — şema uygulanıyor (db/schema.sql)",
+      "[db-bootstrap] şema güncel değil — db/schema.sql uygulanıyor",
     );
     await client.query(SCHEMA_SQL);
     console.warn("[db-bootstrap] şema uygulandı");

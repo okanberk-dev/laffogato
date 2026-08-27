@@ -2,7 +2,7 @@ import "server-only";
 
 import { Pool, type PoolConfig } from "pg";
 
-import { ensureSchema, isMissingRelation } from "./bootstrap";
+import { ensureSchema, ensureSchemaFresh, isSchemaGap } from "./bootstrap";
 import { createDb, type Db, type Executor } from "./client";
 import type { CompiledQuery } from "./sql";
 
@@ -101,12 +101,17 @@ function createExecutor(): Executor {
   };
 
   return async (query: CompiledQuery) => {
+    // Applies anything the database has not recorded yet, once per instance, so
+    // a deploy carries its own migrations instead of waiting for a hand-run
+    // `db:migrate`. Never throws — see ensureSchemaFresh.
+    await ensureSchemaFresh(getPool());
     try {
       return await run(query);
     } catch (err) {
-      // An empty database — DATABASE_URL set before the migrations ran. Create
-      // the schema and retry exactly once; any second failure is real.
-      if (!isMissingRelation(err)) throw err;
+      // The database is behind the migrations — a missing table (DATABASE_URL
+      // set before they ran) or a missing column. Apply the schema and retry
+      // exactly once; any second failure is real.
+      if (!isSchemaGap(err)) throw err;
       await ensureSchema(getPool());
       return await run(query);
     }
