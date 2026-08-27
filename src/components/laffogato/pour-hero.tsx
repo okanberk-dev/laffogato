@@ -56,8 +56,37 @@ function loadWidget(): Promise<void> {
 
 export function PourHero() {
   const host = useRef<HTMLDivElement>(null);
+  const section = useRef<HTMLElement>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [moved, setMoved] = useState(false);
+
+  // A hero that fills the screen hides the fact that anything follows it. The
+  // cue below says so — and retires the moment the visitor starts scrolling,
+  // however they do it.
+  useEffect(() => {
+    const onScroll = () => {
+      if (window.scrollY > 24) {
+        setMoved(true);
+        window.removeEventListener("scroll", onScroll);
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const toNextSection = () => {
+    const el = section.current;
+    if (!el) return;
+    const reduced = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    window.scrollTo({
+      top: el.offsetTop + el.offsetHeight,
+      behavior: reduced ? "auto" : "smooth",
+    });
+  };
 
   useEffect(() => {
     const mount = host.current;
@@ -116,17 +145,41 @@ export function PourHero() {
     };
   }, []);
 
-  // The widget is decorative — everything it says is also in the dark hero
-  // below it, so a visitor who never gets the bundle loses nothing.
-  if (failed) return null;
-
+  // The section always stays. Unmounting it would pull a whole viewport out
+  // from under the visitor after it had already painted — and the paper wash
+  // and wordmark are exactly what someone who never gets the bundle should
+  // see, whether it is still loading or failed outright.
   return (
-    <section className="pour-hero" aria-label="L'Affogato — kahveni kendin dök">
+    <section
+      className="pour-hero"
+      ref={section}
+      aria-label="L'Affogato — kahveni kendin dök"
+    >
       <div className="pour-hero-stage" ref={host} />
       {!ready && (
         <div className="pour-hero-fallback" aria-hidden="true">
           L&apos;Affogato
         </div>
+      )}
+      {!failed && (
+        <button
+          type="button"
+          className={`pour-hero-scroll${moved ? "is-gone" : ""}`}
+          onClick={toNextSection}
+          aria-label="Aşağı kaydır"
+          tabIndex={moved ? -1 : 0}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M6 9.5 12 15.5 18 9.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
       )}
     </section>
   );

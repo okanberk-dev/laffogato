@@ -5990,18 +5990,95 @@ select {
   /* Let the section's gradient show through the WebGL canvas. */
   background: transparent;
 }
+/* Sits where the widget's own wordmark will land, so when the bundle arrives
+   the word stays put and only its typography resolves — rather than leaping
+   from the middle of the section up to the top. */
 .pour-hero-fallback {
   position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
+  top: 94px;
+  left: 0;
+  right: 0;
+  text-align: center;
   font-family: var(--serif);
   font-style: italic;
-  font-size: 20px;
-  color: #8a6f52;
+  font-size: clamp(42px, 5.6vw, 66px);
+  line-height: 1;
+  color: #2e1a0d;
+  opacity: 0.5;
+}
+
+/* Scroll cue. Bottom right, which is clear of the widget's own controls on
+   every size — the pour button owns the centre and the orbit hint the left. */
+.pour-hero-scroll {
+  position: absolute;
+  right: 20px;
+  bottom: 24px;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(46, 26, 13, 0.18);
+  border-radius: 50%;
+  background: rgba(255, 253, 248, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: #2e1a0d;
+  cursor: pointer;
+  opacity: 0.85;
+  transition:
+    opacity 0.4s var(--ease-out, ease),
+    transform 0.4s var(--ease-out, ease),
+    background 0.2s;
+}
+.pour-hero-scroll svg {
+  width: 20px;
+  height: 20px;
+  animation: pour-hero-nudge 2.4s ease-in-out infinite;
+}
+.pour-hero-scroll:hover {
+  background: rgba(255, 253, 248, 0.85);
+  opacity: 1;
+}
+.pour-hero-scroll:focus-visible {
+  outline: 2px solid #2e1a0d;
+  outline-offset: 3px;
+}
+/* Retired once the visitor has started scrolling — it has said its piece. */
+.pour-hero-scroll.is-gone {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+@keyframes pour-hero-nudge {
+  0%,
+  100% {
+    transform: translateY(-2px);
+  }
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pour-hero-scroll svg {
+    animation: none;
+  }
+  .pour-hero-scroll {
+    transition: opacity 0.4s linear;
+  }
 }
 @media (max-width: 760px) {
   .pour-hero-stage {
     inset: 56px 0 calc(64px + env(safe-area-inset-bottom)) 0;
+  }
+  .pour-hero-fallback {
+    top: 86px;
+    font-size: 34px;
+  }
+  .pour-hero-scroll {
+    bottom: calc(76px + env(safe-area-inset-bottom));
   }
 }
