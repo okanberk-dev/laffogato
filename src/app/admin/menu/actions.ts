@@ -25,6 +25,7 @@ const HUE_VALUES = [
   "matcha",
   "pistachio",
   "rose",
+  "bougainvillea",
   "dawn",
   "gold",
   "sky",
@@ -34,11 +35,11 @@ const HUE_VALUES = [
 
 function parseInput(formData: FormData) {
   const categoryRaw = String(
-    formData.get("categoryKey") ?? "affogato",
+    formData.get("categoryKey") ?? "matcha",
   ) as MenuCategoryKey;
   const categoryKey: MenuCategoryKey = MENU_CATEGORY_KEYS.includes(categoryRaw)
     ? categoryRaw
-    : "affogato";
+    : "matcha";
   const name = String(formData.get("name") ?? "").trim();
   const desc = String(formData.get("desc") ?? "").trim();
   const priceText = String(formData.get("price") ?? "0").replace(",", ".");
@@ -46,6 +47,22 @@ function parseInput(formData: FormData) {
   const priceMinor = Number.isFinite(priceMajor)
     ? Math.round(priceMajor * 100)
     : 0;
+  const priceLText = String(formData.get("priceL") ?? "")
+    .trim()
+    .replace(",", ".");
+  const priceLMajor = parseFloat(priceLText);
+  const priceMinorL =
+    priceLText !== "" && Number.isFinite(priceLMajor) && priceLMajor > 0
+      ? Math.round(priceLMajor * 100)
+      : 0;
+  // Site-relative asset paths only — never an off-site URL.
+  const imageRaw = String(formData.get("image") ?? "").trim();
+  const image =
+    imageRaw.startsWith("/") &&
+    !imageRaw.startsWith("//") &&
+    imageRaw.length <= 300
+      ? imageRaw
+      : "";
   const hueRaw = String(formData.get("hue") ?? "cream");
   const hue = HUE_VALUES.includes(hueRaw) ? hueRaw : "cream";
   const tagsRaw = String(formData.get("tags") ?? "");
@@ -61,7 +78,9 @@ function parseInput(formData: FormData) {
     name,
     desc,
     priceMinor,
+    priceMinorL,
     hue,
+    image,
     tags,
     sortOrder,
     isActive,

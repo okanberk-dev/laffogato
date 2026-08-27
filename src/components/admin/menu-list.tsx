@@ -153,6 +153,11 @@ export function MenuList({
                                   }}
                                 >
                                   {formatTRY(it.priceMinor)}
+                                  {it.priceMinorL > 0 && (
+                                    <div className="text-[11px] text-neutral-500">
+                                      L · {formatTRY(it.priceMinorL)}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <div className="mt-2 flex flex-wrap items-center gap-1">
@@ -275,6 +280,11 @@ export function MenuList({
                                 style={{ fontFamily: "var(--mono), monospace" }}
                               >
                                 {formatTRY(it.priceMinor)}
+                                {it.priceMinorL > 0 && (
+                                  <div className="text-[11px] text-neutral-500">
+                                    L · {formatTRY(it.priceMinorL)}
+                                  </div>
+                                )}
                               </td>
                               <td className="pr-3">
                                 {it.isActive ? (

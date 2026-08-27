@@ -28,6 +28,7 @@ const HUE_OPTIONS = [
   ["pistachio", "Pistachio"],
   ["strawberry", "Çilek"],
   ["rose", "Rose"],
+  ["bougainvillea", "Begonvil"],
   ["dawn", "Şafak"],
   ["gold", "Altın"],
   ["sky", "Gök"],
@@ -49,12 +50,14 @@ export function MenuItemForm({
   cancelHref,
 }: MenuItemFormProps) {
   const priceValue = item ? (item.priceMinor / 100).toFixed(2) : "";
+  const priceLValue =
+    item && item.priceMinorL > 0 ? (item.priceMinorL / 100).toFixed(2) : "";
   const tagsValue = item ? item.tags.join(", ") : "";
 
   return (
     <form action={action} className="grid gap-6 lg:grid-cols-3">
       <Card className="grid gap-5 lg:col-span-2">
-        <Field label="Ürün adı" hint="Örn: Affogato Strawberry">
+        <Field label="Ürün adı" hint="Örn: Strawberry Matcha">
           <TextInput name="name" defaultValue={item?.name} required />
         </Field>
 
@@ -62,14 +65,23 @@ export function MenuItemForm({
           <Textarea name="desc" defaultValue={item?.desc} required />
         </Field>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          <Field label="Fiyat (₺)" hint="Örn: 155,00">
+        <div className="grid gap-5 md:grid-cols-3">
+          <Field label="Fiyat M (₺)" hint="Tek boy ise buraya yaz. Örn: 245,00">
             <TextInput
               name="price"
               type="text"
               inputMode="decimal"
               defaultValue={priceValue}
               required
+            />
+          </Field>
+          <Field label="Fiyat L (₺)" hint="İkinci boy yoksa boş bırak.">
+            <TextInput
+              name="priceL"
+              type="text"
+              inputMode="decimal"
+              defaultValue={priceLValue}
+              placeholder="—"
             />
           </Field>
           <Field label="Sıralama" hint="Kategori içinde küçükten büyüğe">
@@ -81,6 +93,17 @@ export function MenuItemForm({
             />
           </Field>
         </div>
+
+        <Field
+          label="Fotoğraf yolu"
+          hint="public/ altındaki dosya yolu. Örn: /menu/matcha-latte.webp — boşsa çizim görsel kullanılır."
+        >
+          <TextInput
+            name="image"
+            defaultValue={item?.image ?? ""}
+            placeholder="/menu/matcha-latte.webp"
+          />
+        </Field>
 
         <Field
           label="Etiketler"
@@ -98,7 +121,7 @@ export function MenuItemForm({
         <Field label="Kategori">
           <Select
             name="categoryKey"
-            defaultValue={item?.categoryKey ?? defaultCategoryKey ?? "affogato"}
+            defaultValue={item?.categoryKey ?? defaultCategoryKey ?? "matcha"}
           >
             {MENU_CATEGORY_KEYS.map((k) => (
               <option key={k} value={k}>
