@@ -198,7 +198,7 @@ export function PageHome({
               >
                 {[
                   ["Şube", c("home.hero.stat.branch", "Tuzla")],
-                  ["Açık", visit?.todayHours ?? "10:00 — 23:00"],
+                  ["Açık", visit?.todayHours ?? "09:00 — 01:00"],
                   ["Yeni", c("home.hero.stat.featured", "Strawberry Matcha")],
                 ].map(([k, v]) => (
                   <div key={k}>
@@ -339,7 +339,7 @@ export function PageHome({
             {[
               ["Konum", "Tuzla · 200 yıllık Rum köşkü"],
               ["Kapasite", "24 koltuk · 12 bar + 12 lounge"],
-              ["Saat", "Her gün · 10:00 — 23:00"],
+              ["Saat", "Her gün · 09:00 — 01:00"],
               ["Mimari", "Studio Pellegrini"],
             ].map(([k, v]) => (
               <div key={k}>
@@ -2471,7 +2471,7 @@ export function PageVisit({ visit }: PageProps) {
                 Yarın · 27 Mayıs
               </div>
               <div style={{ fontFamily: "var(--serif-display)", fontSize: 18 }}>
-                10:00 — 23:00
+                09:00 — 01:00
               </div>
               <p
                 style={{

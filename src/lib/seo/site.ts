@@ -88,10 +88,19 @@ export const SITE = {
     region: "TR-34",
     countryCode: "TR",
   },
+  /**
+   * 09:00–01:00, every day.
+   *
+   * The close is on the FOLLOWING day. schema.org accepts this form, and
+   * anything computing an open/closed state from it must treat the window as
+   * wrapping rather than comparing the two times numerically.
+   */
   openingHours: [
-    { days: ["Mo", "Tu", "We", "Th"], opens: "10:00", closes: "23:00" },
-    { days: ["Fr", "Sa"], opens: "10:00", closes: "24:00" },
-    { days: ["Su"], opens: "10:00", closes: "23:00" },
+    {
+      days: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+      opens: "09:00",
+      closes: "01:00",
+    },
   ],
   parent: {
     name: "L'Affogato Italia",

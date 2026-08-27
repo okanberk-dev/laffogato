@@ -148,11 +148,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
               Saatler
             </h3>
             <div style={{ lineHeight: 1.6, fontSize: 14 }}>
-              Pzt — Per: 10:00 — 23:00
-              <br />
-              Cum — Cmt: 10:00 — 24:00
-              <br />
-              Pazar: 10:00 — 23:00
+              Her gün: 09:00 — 01:00
             </div>
           </div>
           <div>

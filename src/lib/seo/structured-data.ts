@@ -332,6 +332,11 @@ export function localBusinessLd(settings?: LdSettings): Json {
       },
       {
         "@type": "LocationFeatureSpecification",
+        name: "Karaoke odası",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
         name: "Vale park",
         value: true,
       },

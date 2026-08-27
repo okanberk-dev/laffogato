@@ -896,11 +896,21 @@ export const LOCATION = {
     "Menemenci Cumhur’un yanı",
     "34940 Tuzla / İstanbul",
   ],
-  hours: [
-    ["Pazartesi — Perşembe", "10:00 — 23:00"],
-    ["Cuma — Cumartesi", "10:00 — 24:00"],
-    ["Pazar", "10:00 — 23:00"],
-  ] as Array<[string, string]>,
+  hours: [["Her gün", "09:00 — 01:00"]] as Array<[string, string]>,
+  /**
+   * Karaoke room on the upper floor of the köşk.
+   *
+   * Worth stating on the site as well as in the app: the 09:00–01:00 window is
+   * an evening business as much as a coffee one, and the karaoke room is the
+   * reason to come after dinner rather than before it.
+   */
+  karaoke: {
+    available: true,
+    title: "Karaoke odası",
+    body:
+      "Köşkün üst katında özel karaoke odası. Gece 01:00'e kadar açığız — " +
+      "grup rezervasyonu için bize ulaşın.",
+  },
   /** Fixed query used for the map embed and directions links. Kept separate
    *  from `address` so editing the displayed lines cannot break geocoding. */
   mapsQuery: "L'Affogato, Atatürk Cad. No: 28, 34940 Tuzla, İstanbul",

@@ -847,7 +847,7 @@ export function Footer({ navigate, settings }: FooterProps) {
             <li className="footer-contact-mono">{email}</li>
             <li className="footer-contact-hours">
               <span>Her gün</span>
-              <span className="tabular">10:00 — 23:00</span>
+              <span className="tabular">09:00 — 01:00</span>
             </li>
           </ul>
         </div>
