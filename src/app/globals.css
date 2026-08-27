@@ -5957,3 +5957,51 @@ select {
   font-size: 13px;
   color: var(--ink);
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Pour hero — the interactive 3D cup that opens the home page
+   ───────────────────────────────────────────────────────────── */
+.pour-hero {
+  position: relative;
+  height: min(100svh, 900px);
+  /* The paper wash the 3D scene was designed against. It lives on the
+     section rather than on the widget so the gradient spans the whole
+     section while the widget's own box is inset past the site chrome —
+     one gradient, no seam where the two boxes disagree. */
+  background: radial-gradient(
+    120% 90% at 50% 30%,
+    #faf4e9 0%,
+    #f2e6d4 55%,
+    #e3d0b6 100%
+  );
+}
+/* The widget anchors its title and its DÖK button to its own box edges, so
+   the box is inset past the fixed chrome instead of the controls being
+   nudged: the nav covers the top, and on mobile the bottom bar covers the
+   base — which otherwise lands straight on the pour button. */
+.pour-hero-stage {
+  position: absolute;
+  inset: 64px 0 0 0;
+}
+.pour-hero-stage affogato-pour {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Let the section's gradient show through the WebGL canvas. */
+  background: transparent;
+}
+.pour-hero-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 20px;
+  color: #8a6f52;
+}
+@media (max-width: 760px) {
+  .pour-hero-stage {
+    inset: 56px 0 calc(64px + env(safe-area-inset-bottom)) 0;
+  }
+}

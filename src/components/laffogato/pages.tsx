@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 
 import { ShopHeroSlider, type ShopHeroSlide } from "./shop-hero-slider";
+import { PourHero } from "./pour-hero";
 import { MENU, PRODUCTS, PRESS as SEED_PRESS, STORY, LOCATION } from "./data";
 import type { MenuCategory } from "./data";
 import { ProductCard, SectionHead, Stat, CartItem } from "./ui";
@@ -78,6 +79,7 @@ export function PageHome({
 
   return (
     <div className="page" data-screen-label="01 Home">
+      <PourHero />
       <section className="hero hero-dark">
         <div
           style={{
@@ -766,10 +768,9 @@ export function PageMenu({ menu }: PageProps) {
               Genel <span className="script">menü.</span>
             </h1>
             <p className="menu-hero-lede">
-              Basılı menünün tamamı: matcha bar, espresso, buzlu kahveler,
-              soğuk ve sıcak içecekler, frappe, smoothie, frozen, ice tea,
-              tatlılar ve atıştırmalıklar. İçeceklerin çoğu M ve L boy servis
-              edilir.
+              Basılı menünün tamamı: matcha bar, espresso, buzlu kahveler, soğuk
+              ve sıcak içecekler, frappe, smoothie, frozen, ice tea, tatlılar ve
+              atıştırmalıklar. İçeceklerin çoğu M ve L boy servis edilir.
             </p>
             <div className="menu-hero-stats">
               <div>

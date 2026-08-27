@@ -221,7 +221,10 @@ export function LaffogatoApp({
     setCart((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const dark = route === "home" || route === "visit" || route === "menu";
+  // The home page now opens on the cream pour hero, not the dark one, so the
+  // nav keeps its light-background styling there — its white logo and links
+  // would otherwise be invisible until the visitor scrolled.
+  const dark = route === "visit" || route === "menu";
 
   const pages: Record<Route, typeof PageHome> = {
     home: PageHome,
