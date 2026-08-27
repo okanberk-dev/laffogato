@@ -19,10 +19,18 @@ describe("JSON-LD structured data — SEO audit fixes", () => {
     expect(graph).not.toContain("referencePrice");
   });
 
-  it("represents a midnight close as 23:59 (24:00 invalid; 00:00 reads as closed)", () => {
+  it("publishes the 09:00–01:00 window, with the close on the following day", () => {
+    // schema.org expresses a past-midnight close by letting `closes` be earlier
+    // than `opens`; no encoding trick is needed. "24:00" is not a valid Time and
+    // "00:00" would read as closed, so neither may appear.
     expect(graph).not.toContain('"closes":"24:00"');
     expect(graph).not.toContain('"closes":"00:00"');
-    expect(graph).toContain('"closes":"23:59"');
+    expect(graph).toContain('"opens":"09:00"');
+    expect(graph).toContain('"closes":"01:00"');
+  });
+
+  it("lists the karaoke room as an amenity", () => {
+    expect(graph).toContain("Karaoke odası");
   });
 
   it("drops the misleading nuts -> LowCalorieDiet diet claim", () => {

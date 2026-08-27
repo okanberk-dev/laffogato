@@ -98,7 +98,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.visit,
     title: "Ziyaret — Tuzla, İstanbul",
     description:
-      "L'Affogato Tuzla'da 200 yıllık Rum köşkünde kahve barı. Adres: Postane Mah. 29 Ekim Cad. No:28, Tuzla. Her gün 10:00 — 23:00 açık. Rezervasyon mümkün.",
+      "L'Affogato Tuzla'da 200 yıllık Rum köşkünde kahve barı. Adres: Postane Mah. 29 Ekim Cad. No:28, Tuzla. Her gün 09:00 — 01:00 açık. Karaoke odası mevcut. Rezervasyon mümkün.",
     keywords: [
       "Tuzla kafe adres",
       "Tuzla affogato yer",

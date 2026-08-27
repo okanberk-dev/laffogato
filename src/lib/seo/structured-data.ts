@@ -153,9 +153,11 @@ export function localBusinessLd(): Json {
         return map[d] ?? d;
       }),
       opens: slot.opens,
-      // schema.org Time has no "24:00"; map midnight-close to "23:59" so the
-      // slot reads as open-till-late, not "closes at 00:00" (= closed).
-      closes: slot.closes === "24:00" ? "23:59" : slot.closes,
+      // 01:00 is on the FOLLOWING day, and schema.org expresses that by simply
+      // letting `closes` be earlier than `opens` — no special encoding needed.
+      // (The old "24:00" → "23:59" workaround is gone with the 10:00–24:00
+      // schedule it existed for.)
+      closes: slot.closes,
     })),
     parentOrganization: { "@id": `${SITE.url}/#organization` },
     areaServed: { "@type": "City", name: "İstanbul" },
@@ -168,6 +170,11 @@ export function localBusinessLd(): Json {
       {
         "@type": "LocationFeatureSpecification",
         name: "Ücretsiz Wi-Fi",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Karaoke odası",
         value: true,
       },
       {
