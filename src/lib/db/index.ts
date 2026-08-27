@@ -148,4 +148,6 @@ export const TABLES = {
   siteContent: "site_content",
   newsletterSubscribers: "newsletter_subscribers",
   legalDocs: "legal_docs",
+  appHeroSlides: "app_hero_slides",
+  appAnnouncements: "app_announcements",
 } as const;

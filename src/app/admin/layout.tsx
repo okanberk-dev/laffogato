@@ -82,6 +82,13 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
     ],
   },
   {
+    title: "Mobil Uygulama",
+    items: [
+      { href: "/admin/mobil/slaytlar", label: "Slaytlar", section: "mobileApp" },
+      { href: "/admin/mobil/duyurular", label: "Duyurular", section: "mobileApp" },
+    ],
+  },
+  {
     title: "Satış",
     items: [
       { href: "/admin/siparisler", label: "Siparişler", section: "orders" },
