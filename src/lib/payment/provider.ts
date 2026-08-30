@@ -39,6 +39,16 @@ export interface CheckoutInput {
    * the request carries no forwarding header (local dev).
    */
   buyerIp?: string;
+  /**
+   * The provider's key for this member's stored cards, when we already have
+   * one. Passing it makes the hosted form show the cards the member saved
+   * last time; leaving it out gives a first-time form.
+   *
+   * It is a KEY, not a card. The PAN never reaches this codebase — it is
+   * typed on the provider's own page — so "saved cards" costs us an opaque
+   * string and no PCI surface at all.
+   */
+  cardUserKey?: string;
 }
 
 export interface CheckoutSession {
@@ -82,6 +92,11 @@ export interface ReturnConfirmation {
   amountMinor: number;
   currency: Currency;
   raw: unknown;
+  /**
+   * Present when the buyer chose to save their card. Persisting it is what
+   * lets the NEXT checkout show that card — an opaque key, never a PAN.
+   */
+  cardUserKey?: string;
 }
 
 export interface PaymentProvider {

@@ -6,6 +6,7 @@ import {
   orderChannel,
 } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
+import { rememberCardUserKey } from "@/lib/customer/store";
 import {
   appOrderDeepLink,
   type PaymentReturnStatus,
@@ -153,6 +154,19 @@ export async function POST(req: NextRequest) {
       });
       if (!applied.ok) {
         console.error("[odeme/donus] apply failed", applied.error);
+      }
+      // The buyer ticked "kartımı kaydet": remember the key so the next
+      // checkout shows that card. Best-effort — failing to remember a card
+      // must never turn a settled payment into an error.
+      if (result.cardUserKey && applied.ok) {
+        try {
+          const paid = await getOrder(result.orderId);
+          if (paid?.customerEmail) {
+            await rememberCardUserKey(paid.customerEmail, result.cardUserKey);
+          }
+        } catch (err) {
+          console.error("[odeme/donus] cardUserKey not stored", err);
+        }
       }
       if (await isAppOrder(result.orderId, app)) {
         return appRedirect(result.orderId, "success");

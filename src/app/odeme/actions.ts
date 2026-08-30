@@ -9,6 +9,7 @@ import { getActiveCustomer } from "@/lib/customer/auth";
 import { applyCustomerCoupon } from "@/lib/customer/coupons";
 import { sendOrderPlacedEmail } from "@/lib/email/send";
 import { CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED } from "@/lib/legal/meta";
+import { getCardUserKey } from "@/lib/customer/store";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
 import {
@@ -256,6 +257,9 @@ export async function placeOrderAction(formData: FormData) {
     successUrl: `${SITE.url}/odeme/donus${promoQuery}`,
     failureUrl: `${SITE.url}/odeme?error=payment`,
     buyerIp: legalConsent.ip,
+    // The same saved cards as in the app: one member, one set of cards,
+    // whichever surface they check out from.
+    cardUserKey: (await getCardUserKey(customer.email)) || undefined,
   });
 
   redirect(session.redirectUrl);

@@ -825,6 +825,47 @@ export async function setCustomerDefaultAddress(
   return persistAddresses(needle, addresses, "Güncellenemedi.");
 }
 
+// ─── Saved cards ──────────────────────────────────────────────────────────
+
+/**
+ * The payment provider's key for this member's stored cards.
+ *
+ * Server-only on purpose. It is deliberately NOT part of `PublicCustomer` and
+ * never reaches `/me`: the app has no use for it, and a value that only the
+ * server needs is a value the client should never be handed. It is not a card
+ * number — the card is typed on the provider's own page and stays there — but
+ * it does point at one, so it is treated as identifying data and cleared when
+ * the account is closed.
+ */
+export async function getCardUserKey(email: string): Promise<string> {
+  const row = await fetchCustomer(normalizeEmail(email));
+  const key = (row as { cardUserKey?: unknown } | null)?.cardUserKey;
+  return typeof key === "string" ? key : "";
+}
+
+/**
+ * Remembers the key the provider handed back, if there is one to remember.
+ *
+ * Absent means the buyer did not ask to save a card, and absent must never
+ * erase a key stored earlier — the member would silently lose the cards they
+ * had saved. Writing the same key again is a no-op, so this is safe on every
+ * settlement.
+ */
+export async function rememberCardUserKey(
+  email: string,
+  cardUserKey: string,
+): Promise<void> {
+  const key = cardUserKey.trim();
+  const needle = normalizeEmail(email);
+  if (!key || !needle) return;
+  if ((await getCardUserKey(needle)) === key) return;
+  const { error } = await getDb()
+    .from(TABLES.customers)
+    .update({ cardUserKey: key, updatedAt: new Date().toISOString() })
+    .eq("email", needle);
+  checkErr(error, "rememberCardUserKey");
+}
+
 // ─── Wishlist ─────────────────────────────────────────────────────────────
 
 export async function toggleWishlist(

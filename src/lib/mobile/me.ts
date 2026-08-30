@@ -194,6 +194,10 @@ export async function deleteMe(customer: PublicCustomer): Promise<void> {
       resetToken: "",
       resetExpires: "",
       supabaseUserId: "",
+      // The saved-card key points at cards held by the provider. A closed
+      // account keeps none of it, and re-registering the address must not
+      // hand the next person the previous member's cards.
+      cardUserKey: "",
       inviteCode: "",
       invitedBy: "",
       usual: usualColumnValue(null),

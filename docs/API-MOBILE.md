@@ -481,3 +481,33 @@ Yanıt: `{ "productId": "prd-0001", "isFavorite": true }`.
 kalemi değiştirir; liste yazımı olsaydı biri diğerinin listesini ezerdi.
 Yanıt hangi yöne gittiğini söylüyor, böylece uygulama varsaymak yerine
 doğruluyor (iyimser güncelleme yanlış çıkarsa önbellek düzeltiliyor).
+
+## 15. Kayıtlı kart — kart **bizde durmaz**, sağlayıcıda durur
+
+Operatör talimatı (3 Eyl): *"Kart bizim sistemde kaydedilmesin, ödeme
+sağlayıcıda kaydedilecek."* Uygulama da site de tam olarak böyle çalışır.
+
+**Kartın gitmediği yerler:** uygulama paketi, uygulamanın belleği, kafenin
+sunucusu, Neon veritabanı, loglar. Kart numarası (PAN), son kullanma tarihi ve
+CVV **iyzico'nun kendi barındırdığı ödeme sayfasında** girilir ve orada kalır.
+Uygulama o sayfayı `expo-web-browser` ile açar; formun HTML'i bize ait değildir.
+
+**Bizde duran tek şey:** `customers."cardUserKey"` — iyzico'nun o üyenin
+saklı kartları için verdiği **opak anahtar**. Kendi başına hiçbir şey ifade
+etmez; bizim satıcı kimlik bilgilerimiz olmadan kullanılamaz, kart numarası
+üretmez, kart göstermez.
+
+| Adım | Ne olur |
+| --- | --- |
+| Ödeme açılır | Elimizde anahtar varsa `cardUserKey` iyzico'ya gönderilir; form üyenin daha önce kaydettiği kartları listeler. |
+| Üye "kartımı kaydet" der | Kartı iyzico saklar. Biz görmeyiz. |
+| Ödeme döner | `confirmReturn` yanıtında `cardUserKey` gelir; `rememberCardUserKey` onu satıra yazar. |
+| Üye kutuyu işaretlemez | Yanıtta anahtar gelmez. **Boş anahtar, kayıtlı anahtarı asla silmez** — yoksa üye eski kartlarını kaybederdi. |
+| Hesap silinir | `cardUserKey` boşaltılır (`deleteMe`). Adres yeniden kayda açıldığında sonraki kişi öncekinin kartlarını devralmaz. |
+
+**`/me` bu anahtarı taşımaz** ve `PublicCustomer` tipinde yer almaz — sunucunun
+ihtiyacı olan bir değer istemciye verilmez. `tests/saved-cards.test.ts` bunların
+hepsini sabitler: `/me` çıktısında anahtar yok, tipte yok, silmede boşalıyor,
+şemada kart alanı (`cardNumber`, `cvv`, `cvc`, `expiryMonth`) yok.
+
+Aynı anahtar hem uygulamada hem sitede kullanılır: tek üye, tek kart seti.

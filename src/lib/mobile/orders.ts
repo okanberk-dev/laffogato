@@ -21,6 +21,7 @@ import {
   type AppOrderFailure,
   type OrderLegalConsent,
 } from "@/lib/admin/store";
+import { getCardUserKey } from "@/lib/customer/store";
 import {
   applyCustomerCoupon,
   couponAllowedForKind,
@@ -131,6 +132,9 @@ async function createAppPaymentSession(
   buyerIp: string,
 ): Promise<AppPayment> {
   const provider = getPaymentProvider();
+  // Saved cards: hand the provider the member's key so its form lists the
+  // cards they saved before. Empty on a first order, which is exactly right.
+  const cardUserKey = await getCardUserKey(customer.email);
   const address = {
     city: "",
     district: "",
@@ -158,6 +162,7 @@ async function createAppPaymentSession(
     successUrl: `${SITE.url}/odeme/donus?app=1`,
     failureUrl: `${SITE.url}/odeme/app-hata?orderId=${encodeURIComponent(order.id)}`,
     buyerIp: buyerIp || undefined,
+    cardUserKey: cardUserKey || undefined,
   });
   await recordPendingCheckout(order.id, provider.name, session.providerRef);
   return { redirectUrl: session.redirectUrl, expiresAt: session.expiresAt };
