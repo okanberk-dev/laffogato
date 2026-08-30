@@ -123,6 +123,54 @@ export function anonymizedEmail(customerId: string): string {
  * which the site does not hold (docs/API-MOBILE.md §0). The app signs the
  * session out; a later sign-in with the same address starts a fresh row.
  */
+/**
+ * Every place a member's e-mail is stored outside their own row.
+ *
+ * Kept as data so the set itself can be tested: forgetting a table here is a
+ * silent privacy leak, not a crash. `orders` is the one that matters most —
+ * the row is retained for the books, but its address must be rewritten,
+ * because `deleteMe` frees the e-mail for re-registration and `GET /orders`
+ * is keyed on it.
+ */
+export const ANON_SWEEPS: ReadonlyArray<{
+  table: string;
+  column: string;
+  caseInsensitive?: boolean;
+  patch: (anon: string) => Record<string, unknown>;
+}> = [
+  {
+    table: TABLES.orders,
+    column: "customerEmail",
+    caseInsensitive: true,
+    patch: (anon) => ({ customerEmail: anon }),
+  },
+  {
+    table: TABLES.loyaltyStamps,
+    column: "customerEmail",
+    patch: (anon) => ({ customerEmail: anon }),
+  },
+  {
+    table: TABLES.customerCoupons,
+    column: "customerEmail",
+    patch: (anon) => ({ customerEmail: anon, isActive: false }),
+  },
+  {
+    table: TABLES.karaokeReservations,
+    column: "customerEmail",
+    patch: (anon) => ({ customerEmail: anon, customerName: "" }),
+  },
+  {
+    table: TABLES.invites,
+    column: "inviteeEmail",
+    patch: (anon) => ({ inviteeEmail: anon }),
+  },
+  {
+    table: TABLES.invites,
+    column: "inviterEmail",
+    patch: (anon) => ({ inviterEmail: anon }),
+  },
+];
+
 export async function deleteMe(customer: PublicCustomer): Promise<void> {
   const now = new Date().toISOString();
   const { error } = await getDb()
@@ -156,33 +204,35 @@ export async function deleteMe(customer: PublicCustomer): Promise<void> {
   checkErr(error, "deleteMe");
 
   // The same address sits in the loyalty ledger, the invite graph, the
-  // karaoke book and the coupon table. Orders stay (fiscal retention), the
-  // rest follows the customer row. Best-effort per table: a failure here
-  // must not leave the account itself un-anonymised.
+  // karaoke book, the coupon table — and on every order.
+  //
+  // Orders are KEPT (fiscal retention) but their address is rewritten to the
+  // same placeholder. Leaving the live address on them was a leak, not a
+  // retention policy: `deleteMe` frees the e-mail for re-registration and
+  // `listAppOrders` keys on it, so whoever next signed up with that address
+  // was handed the deleted member's order history, delivery addresses
+  // included. The placeholder is unique per customer id, so the operator can
+  // still group a closed member's orders for the books.
+  //
+  // Best-effort per table: a failure here must not leave the account itself
+  // un-anonymised.
   const anon = anonymizedEmail(customer.id);
   const db = getDb();
-  const sweeps: Array<PromiseLike<{ error: DbError | null }>> = [
-    db
-      .from(TABLES.loyaltyStamps)
-      .update({ customerEmail: anon })
-      .eq("customerEmail", customer.email),
-    db
-      .from(TABLES.customerCoupons)
-      .update({ customerEmail: anon, isActive: false })
-      .eq("customerEmail", customer.email),
-    db
-      .from(TABLES.karaokeReservations)
-      .update({ customerEmail: anon, customerName: "" })
-      .eq("customerEmail", customer.email),
-    db
-      .from(TABLES.invites)
-      .update({ inviteeEmail: anon })
-      .eq("inviteeEmail", customer.email),
-    db
-      .from(TABLES.invites)
-      .update({ inviterEmail: anon })
-      .eq("inviterEmail", customer.email),
-  ];
+  const sweeps: Array<PromiseLike<{ error: DbError | null }>> = ANON_SWEEPS.map(
+    (sweep) => {
+      const q = db.from(sweep.table).update(sweep.patch(anon));
+      // `ilike`, not `eq`, where the column is written with whatever case the
+      // caller captured — `customerOrdersByEmail` reads orders that way too,
+      // and an `eq` sweep would leave `Ayse@…` behind for `ayse@…` to inherit.
+      return sweep.caseInsensitive
+        ? q.ilike(
+            sweep.column,
+            customer.email.replace(/[%_]/g, (c) => `\\${c}`),
+          )
+        : q.eq(sweep.column, customer.email);
+    },
+  );
+
   for (const sweep of sweeps) {
     const res = await sweep;
     if (res.error)

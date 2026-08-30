@@ -68,3 +68,30 @@ describe("legal document", () => {
     expect(legalDoc("../../etc/passwd")).toBeNull();
   });
 });
+
+describe("cayma hakkı istisnaları", () => {
+  /**
+   * The app's checkout tells a cafe customer they have no withdrawal right,
+   * and makes them accept the Ön Bilgilendirme Formu on the same screen. If
+   * that form's exception list does not carry the ground the notice relies
+   * on, the app is denying a right the accepted document grants.
+   */
+  it("the accepted pre-contract form covers prepared food and drink", () => {
+    const doc = legalDoc("on-bilgilendirme-formu");
+    expect(doc).not.toBeNull();
+    const bullets = doc!.sections.flatMap((s) => s.bullets ?? []);
+    expect(bullets.some((b) => b.includes("yiyecek-içecek tedariki"))).toBe(
+      true,
+    );
+    expect(
+      bullets.some((b) => b.includes("Doğrudan tüketime yönelik olarak")),
+    ).toBe(true);
+  });
+
+  it("says the same thing as the withdrawal document it sits beside", () => {
+    for (const slug of ["on-bilgilendirme-formu", "iade-ve-cayma"]) {
+      const bullets = legalDoc(slug)!.sections.flatMap((s) => s.bullets ?? []);
+      expect(bullets.some((b) => b.includes("yiyecek-içecek tedariki")), slug).toBe(true);
+    }
+  });
+});

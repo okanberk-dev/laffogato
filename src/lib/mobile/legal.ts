@@ -1,6 +1,10 @@
 import "server-only";
 
-import { LEGAL_DOCS, LEGAL_UPDATED, type LegalDoc } from "@/lib/legal/documents";
+import {
+  LEGAL_DOCS,
+  LEGAL_UPDATED,
+  type LegalDoc,
+} from "@/lib/legal/documents";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
 
 /**

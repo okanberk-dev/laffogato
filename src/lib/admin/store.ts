@@ -2218,6 +2218,20 @@ export async function applyPaymentSucceeded(input: {
  *
  * Idempotent on the provider reference: a retried webhook hits the unique
  * (provider, providerRef) index and returns without touching the order again.
+ *
+ * The ledger row is keyed on `${providerRef}:refund`, NOT on the bare
+ * reference. `payment_txn_provider_ref_key` is (provider, "providerRef") with
+ * no status column, and iyzico derives the same `paymentId` for a charge and
+ * for its later refund — so the bare reference collided with the succeeded
+ * row that is always inserted first, every provider-side refund was mistaken
+ * for a duplicate notification, and the order silently stayed `paid` while
+ * the money had left. Suffixing the refund gives the two events distinct
+ * identities without a migration.
+ *
+ * Limitation worth naming: iyzico's notification carries no per-refund id, so
+ * two SEPARATE partial refunds from the provider produce the same suffixed
+ * reference and only the first is recorded. Partial refunds issued from the
+ * admin panel go through `refundOrder`, which is unaffected.
  */
 export async function recordProviderRefund(input: {
   orderId: string;
@@ -2228,10 +2242,11 @@ export async function recordProviderRefund(input: {
   raw?: unknown;
 }): Promise<PaymentApplyResult> {
   const sb = getDb();
+  const refundRef = `${input.providerRef}:refund`;
   const ins = await sb.from(TABLES.paymentTransactions).insert({
     orderId: input.orderId,
     provider: input.provider,
-    providerRef: input.providerRef,
+    providerRef: refundRef,
     status: "refunded",
     amountMinor: input.amountMinor,
     currency: input.currency,
@@ -2272,6 +2287,10 @@ export async function recordProviderRefund(input: {
     .update({ refunds, status: fullyRefunded ? "refunded" : order.status })
     .eq("id", input.orderId);
   if (upd.error) return { ok: false, error: upd.error.message };
+  // Same rule as the admin path: a fully refunded order keeps nothing, so the
+  // stamp it earned goes back. Without this a member could farm stamps by
+  // ordering and refunding through the provider.
+  if (fullyRefunded) await reverseLoyalty(order, "provider-refund");
   return { ok: true };
 }
 

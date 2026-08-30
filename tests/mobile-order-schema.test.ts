@@ -245,6 +245,41 @@ describe("previewOrderBodySchema", () => {
     expect("legalConsent" in r.data).toBe(false);
   });
 
+  it("prices a basket that has no address yet — the cart screen has none", () => {
+    // Shipping is derived from `fulfillment` and the settings, never from the
+    // address, so demanding one here only broke the basket screen.
+    const shop = previewOrderBodySchema.safeParse({
+      kind: "shop",
+      fulfillment: "shipping",
+      lines: [shopLine],
+      address: null,
+      scheduledFor: null,
+      promoCode: "",
+      note: "",
+    });
+    expect(shop.success).toBe(true);
+
+    const courier = previewOrderBodySchema.safeParse({
+      kind: "cafe",
+      fulfillment: "delivery",
+      lines: [cafeLine],
+      address: null,
+      scheduledFor: null,
+      promoCode: "",
+      note: "",
+    });
+    expect(courier.success).toBe(true);
+  });
+
+  it("but placing that same order still needs somewhere to send it", () => {
+    const r = placeOrderBodySchema.safeParse(
+      cafeDelivery({ address: null }),
+    );
+    expect(r.success).toBe(false);
+    if (r.success) return;
+    expect(firstIssueMessage(r.error)).toBe("Teslimat adresi gerekli.");
+  });
+
   it("applies the same cross-field rules", () => {
     const r = previewOrderBodySchema.safeParse({
       kind: "cafe",

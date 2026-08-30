@@ -407,10 +407,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Çabuk bozulabilen veya son kullanma tarihi geçebilecek gıda ürünleri: yenilebilir waffle kupa, gelato kiti, soğuk zincir gerektiren ürünler ve benzeri.",
+          "Doğrudan tüketime yönelik olarak hazırlanan ve tekrar satışa sunulması gıda güvenliği bakımından mümkün olmayan yiyecek ve içecekler: kafe menüsünden hazırlanarak gel-al ya da kurye ile teslim edilen kahve, gelato ve tatlılar.",
           "Tesliminden sonra ambalajı, bandı, mührü veya koruyucu folyosu açılmış olan ve iadesi sağlık/hijyen açısından uygun olmayan ürünler: açılmış kahve paketleri, açılmış pistacchio kreması ve şuruplar, ağızla temas eden ekipman parçaları.",
           "Tüketicinin istekleri veya kişisel ihtiyaçları doğrultusunda hazırlanan kişiye özel ürünler: isim/mesaj baskılı fincan, önlük veya tote çanta; talebe göre özel öğütülen veya özel harmanlanan kahve.",
           "Tesliminden sonra başka ürünlerle karışan ve doğası gereği ayrıştırılması mümkün olmayan ürünler.",
-          "Belirli bir tarihte veya dönemde yapılması gereken, ağırlama ve eğlence amaçlı hizmetler: kahve tadım atölyesi, barista eğitimi, rezervasyonlu etkinlik ve benzeri tarihli hizmetler.",
+          "Belirli bir tarihte veya dönemde yapılması gereken, konaklama, yiyecek-içecek tedariki ve eğlence amaçlı hizmetler: belirli gün ve saate ayrılan masa rezervasyonu, kahve tadım atölyesi, barista eğitimi, rezervasyonlu etkinlik ve benzeri tarihli hizmetler.",
           "Elektronik ortamda anında ifa edilen ve tüketiciye anında teslim edilen gayri maddi ürünler (dijital tarif kitapçığı, dijital hediye kodu gibi), ALICI'nın önceden onayı alınarak ifaya başlanmışsa.",
         ],
       },

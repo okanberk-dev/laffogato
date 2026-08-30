@@ -204,8 +204,20 @@ type OrderFieldsParsed = {
 /**
  * Rules that span fields. `kind` is what the basket says it is — the client's
  * `kind` must agree, so a stale app cannot ship a cappuccino.
+ *
+ * `requireAddress` separates the two callers. Placing an order needs somewhere
+ * to send it; pricing one does not, because shipping is derived from
+ * `fulfillment` and the settings alone (see `shippingModeFor`) and never from
+ * the address. Demanding it on the preview meant the basket screen — which
+ * runs before any address is picked — got a 400 for every shop basket and
+ * every courier basket, and fell back to the device's own estimate under an
+ * \"offline\" label while perfectly online.
  */
-function crossFieldRules(v: OrderFieldsParsed, ctx: z.RefinementCtx): void {
+function crossFieldRules(
+  v: OrderFieldsParsed,
+  ctx: z.RefinementCtx,
+  requireAddress: boolean,
+): void {
   const cafe = v.lines.filter(isCafeLine).length;
   const shop = v.lines.length - cafe;
   if (cafe > 0 && shop > 0) {
@@ -236,7 +248,7 @@ function crossFieldRules(v: OrderFieldsParsed, ctx: z.RefinementCtx): void {
     });
     return;
   }
-  if (v.fulfillment !== "pickup" && v.address === null) {
+  if (requireAddress && v.fulfillment !== "pickup" && v.address === null) {
     ctx.addIssue({
       code: "custom",
       message: "Teslimat adresi gerekli.",
@@ -245,10 +257,13 @@ function crossFieldRules(v: OrderFieldsParsed, ctx: z.RefinementCtx): void {
   }
 }
 
-/** `POST /orders/preview` — the order body without the consent flag. */
+/**
+ * `POST /orders/preview` — the order body without the consent flag, and
+ * without the address: the basket is priced before there is one.
+ */
 export const previewOrderBodySchema = z
   .object(orderFields)
-  .superRefine(crossFieldRules);
+  .superRefine((v, ctx) => crossFieldRules(v, ctx, false));
 
 /** `POST /orders` — the same body, plus the distance-selling confirmation. */
 export const placeOrderBodySchema = z
@@ -259,7 +274,7 @@ export const placeOrderBodySchema = z
         "Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'ni onaylaman gerekiyor.",
     }),
   })
-  .superRefine(crossFieldRules);
+  .superRefine((v, ctx) => crossFieldRules(v, ctx, true));
 
 export type PreviewOrderBody = z.infer<typeof previewOrderBodySchema>;
 export type PlaceOrderBody = z.infer<typeof placeOrderBodySchema>;
