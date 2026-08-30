@@ -22,7 +22,9 @@ describe("Kafe çalışma saatleri — tek kaynak", () => {
   it("kapanış açılıştan küçüktür — 01:00 ertesi gündür", () => {
     // Bu bir hata değil, kasıtlı. Saatleri sayısal karşılaştıran her kod
     // bunu bilmek zorunda; schema.org da böyle ifade eder.
-    expect(LEGAL_ENTITY.cafeHours.closes < LEGAL_ENTITY.cafeHours.opens).toBe(true);
+    expect(LEGAL_ENTITY.cafeHours.closes < LEGAL_ENTITY.cafeHours.opens).toBe(
+      true,
+    );
   });
 
   it("SEO sabiti kopyalamaz, türetir", () => {
@@ -67,7 +69,9 @@ describe("Veri tabanı sağlayıcısı — tek kaynak", () => {
   it("hukuki metinlerde sağlayıcı adı düz metin olarak gömülü değil", () => {
     const raw = JSON.stringify(LEGAL_CONTENT);
     for (const provider of ["Neon", "Supabase"]) {
-      expect(raw, `${provider} düz metin olarak gömülü`).not.toContain(provider);
+      expect(raw, `${provider} düz metin olarak gömülü`).not.toContain(
+        provider,
+      );
     }
   });
 

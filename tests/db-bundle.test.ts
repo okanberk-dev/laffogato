@@ -70,6 +70,8 @@ describe("_migrations RLS migration paketi", () => {
       "alter table public._migrations enable row level security",
     );
     // Neon'da anon/authenticated yoktur; korumasız revoke migration'ı düşürür.
-    expect(sql).toMatch(/if exists \(select 1 from pg_roles where rolname = 'anon'\)/);
+    expect(sql).toMatch(
+      /if exists \(select 1 from pg_roles where rolname = 'anon'\)/,
+    );
   });
 });

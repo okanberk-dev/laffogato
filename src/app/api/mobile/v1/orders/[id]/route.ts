@@ -26,7 +26,7 @@ export async function GET(
     if (!order) {
       return apiError(404, "not_found", "Sipariş bulunamadı.");
     }
-    return apiJson({ order });
+    return apiJson({ order }, { private: true });
   } catch (err) {
     return routeFailure(err, "api/mobile/v1/orders/[id]");
   }

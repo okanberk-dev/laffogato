@@ -13,9 +13,7 @@ export async function GET(request: Request) {
   try {
     const auth = await requireMobileCustomer(request);
     if (!auth.ok) return auth.response;
-    return apiJson(await buildMe(auth.customer), {
-      headers: { "Cache-Control": "private, no-store" },
-    });
+    return apiJson(await buildMe(auth.customer), { private: true });
   } catch (err) {
     return routeFailure("api/mobile/v1/me GET", err);
   }
@@ -40,9 +38,7 @@ export async function PATCH(request: Request) {
       }
       return apiError(404, "not_found", "Hesap bulunamadı.");
     }
-    return apiJson(await buildMe(result.customer), {
-      headers: { "Cache-Control": "private, no-store" },
-    });
+    return apiJson(await buildMe(result.customer), { private: true });
   } catch (err) {
     return routeFailure("api/mobile/v1/me PATCH", err);
   }
@@ -54,7 +50,7 @@ export async function DELETE(request: Request) {
     const auth = await requireMobileCustomer(request);
     if (!auth.ok) return auth.response;
     await deleteMe(auth.customer);
-    return apiJson({ ok: true as const });
+    return apiJson({ ok: true as const }, { private: true });
   } catch (err) {
     return routeFailure("api/mobile/v1/me DELETE", err);
   }

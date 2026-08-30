@@ -33,7 +33,10 @@ export async function PATCH(request: Request, { params }: Context) {
       fromMeAddress(body.data),
     );
     if (!result.ok) return apiError(400, "invalid_address", result.error);
-    return apiJson({ addresses: toMeAddresses(result.customer.addresses) });
+    return apiJson(
+      { addresses: toMeAddresses(result.customer.addresses) },
+      { private: true },
+    );
   } catch (err) {
     return routeFailure("api/mobile/v1/me/addresses/[id] PATCH", err);
   }
@@ -49,7 +52,10 @@ export async function DELETE(request: Request, { params }: Context) {
 
     const result = await deleteCustomerAddress(auth.customer.email, id);
     if (!result.ok) return apiError(400, "invalid_address", result.error);
-    return apiJson({ addresses: toMeAddresses(result.customer.addresses) });
+    return apiJson(
+      { addresses: toMeAddresses(result.customer.addresses) },
+      { private: true },
+    );
   } catch (err) {
     return routeFailure("api/mobile/v1/me/addresses/[id] DELETE", err);
   }

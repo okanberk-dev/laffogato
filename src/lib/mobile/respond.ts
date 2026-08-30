@@ -22,12 +22,29 @@ export function apiError(
   return NextResponse.json({ error: code, message }, { status, headers });
 }
 
+/**
+ * What an authenticated answer must never be stored in: a member's orders,
+ * addresses and coupons are theirs alone, and a shared cache (a CDN, a
+ * corporate proxy) that kept one would hand it to the next caller.
+ * docs/API-MOBILE.md §0 requires it on every endpoint behind a bearer.
+ */
+export const PRIVATE_CACHE_HEADERS = {
+  "Cache-Control": "private, no-store",
+} as const;
+
 export function apiJson<T>(
   body: T,
-  init?: { status?: number; headers?: Record<string, string> },
+  init?: {
+    status?: number;
+    headers?: Record<string, string>;
+    /** Adds `Cache-Control: private, no-store` — use on every bearer route. */
+    private?: boolean;
+  },
 ): NextResponse<T> {
   return NextResponse.json(body, {
     status: init?.status ?? 200,
-    headers: init?.headers,
+    headers: init?.private
+      ? { ...PRIVATE_CACHE_HEADERS, ...init?.headers }
+      : init?.headers,
   });
 }

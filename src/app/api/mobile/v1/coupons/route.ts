@@ -14,10 +14,7 @@ export async function GET(request: Request) {
     const auth = await requireMobileCustomer(request);
     if (!auth.ok) return auth.response;
     const coupons = await listCustomerCoupons(auth.customer.email);
-    return apiJson(
-      { coupons: coupons.map(toMeCoupon) },
-      { headers: { "Cache-Control": "private, no-store" } },
-    );
+    return apiJson({ coupons: coupons.map(toMeCoupon) }, { private: true });
   } catch (err) {
     return routeFailure("api/mobile/v1/coupons GET", err);
   }

@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const auth = await requireMobileCustomer(request);
     if (!auth.ok) return auth.response;
     const items = await deriveNotifications(auth.customer.email);
-    return apiJson({ items });
+    return apiJson({ items }, { private: true });
   } catch (err) {
     if (isDbUnreachable(err)) {
       return apiError(

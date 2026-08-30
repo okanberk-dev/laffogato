@@ -118,6 +118,41 @@ export async function onOrderPaid(order: AdminOrder): Promise<void> {
   });
 }
 
+/**
+ * Takes back the stamp an order earned, when that order is undone.
+ *
+ * Pay → earn a stamp → ask for a refund was a way to collect free drinks: the
+ * ledger only ever added. A reversal row is written instead of deleting the
+ * earn, so the history still shows what happened, and it is idempotent on the
+ * order (one reversal per order, guarded by the same unique index shape).
+ */
+export async function onOrderReversed(order: AdminOrder): Promise<void> {
+  const owner = normalizeEmail(order.customerEmail);
+  if (!owner || owner === "guest@laffogato.local") return;
+
+  const stamps = await listStamps(owner);
+  const earned = stamps.find(
+    (s) => s.orderId === order.id && s.kind === "earn",
+  );
+  if (!earned) return;
+  if (stamps.some((s) => s.orderId === order.id && s.kind === "reversal"))
+    return;
+
+  const row: LoyaltyStamp = {
+    id: await newStampId(),
+    customerEmail: owner,
+    kind: "reversal",
+    delta: -1,
+    source: "order",
+    orderId: order.id,
+    note: `Sipariş #${order.orderNo} iade/iptal`,
+    actor: "",
+    createdAt: new Date().toISOString(),
+  };
+  const { error } = await getDb().from(TABLES.loyaltyStamps).insert(row);
+  if (error && error.code !== "23505") checkErr(error, "onOrderReversed");
+}
+
 export type RedeemStampsResult =
   | { ok: true; coupon: CustomerCoupon; loyalty: LoyaltyView }
   | { ok: false; error: "not_enough_stamps" };
@@ -163,7 +198,17 @@ export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
     return { ok: false, error: "not_enough_stamps" };
   }
 
-  const coupon = await grantFreeDrinkCoupon(owner, "loyalty");
+  let coupon: CustomerCoupon;
+  try {
+    coupon = await grantFreeDrinkCoupon(owner, "loyalty");
+  } catch (err) {
+    // The stamps were spent for a coupon that never existed. Give them back
+    // and let the caller fail loudly, rather than leaving the member six
+    // stamps poorer with nothing to show for it.
+    const del = await db.from(TABLES.loyaltyStamps).delete().eq("id", id);
+    checkErr(del.error, "redeemStamps.grantRollback");
+    throw err;
+  }
   return { ok: true, coupon, loyalty: await getLoyalty(owner) };
 }
 

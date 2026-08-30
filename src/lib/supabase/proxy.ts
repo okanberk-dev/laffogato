@@ -11,6 +11,37 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config";
  * there is nothing to refresh — so the proxy skips building a client and
  * touching the auth server on every page view of the marketing site.
  */
+/**
+ * How long a page render may wait on the identity service.
+ *
+ * `updateSession` runs on every HTML request that carries a Supabase cookie.
+ * Without a bound, an identity service having a bad minute becomes the site
+ * having a bad minute: each request sits on `getUser()` until the platform's
+ * own timeout. Past this, the request continues with the cookies it already
+ * has — the session is refreshed on the next visit instead.
+ */
+const GET_USER_TIMEOUT_MS = 3000;
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => {
+          console.error("[supabase] getUser timed out; continuing unrefreshed");
+          resolve(null);
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export function hasSupabaseSessionCookie(request: NextRequest): boolean {
   return request.cookies.getAll().some((c) => c.name.startsWith("sb-"));
 }
@@ -59,7 +90,7 @@ export async function updateSession(
   // triggers the refresh. Its result is deliberately unused — identity for a
   // page is re-checked where the page is rendered.
   try {
-    await supabase.auth.getUser();
+    await withTimeout(supabase.auth.getUser(), GET_USER_TIMEOUT_MS);
   } catch (err) {
     // Auth server unreachable: the visitor keeps their current cookies and the
     // page renders as it would for a stale session. Never an error page.

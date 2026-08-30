@@ -2441,8 +2441,30 @@ export async function transitionOrder(
     await sb.from(TABLES.orders).update({ status: map.to }).eq("id", id),
     "transitionOrder",
   );
-  if (map.to === "cancelled") await releaseOrderInventory(existing);
+  if (map.to === "cancelled") {
+    await releaseOrderInventory(existing);
+    await reverseLoyalty(existing, "cancelled");
+  }
   return { ok: true, order: { ...existing, status: map.to } };
+}
+
+/**
+ * Gives back the stamp an app order earned, when the order is undone.
+ *
+ * Best-effort and lazily imported for the same reasons the earning hook is:
+ * loyalty reads orders from this module, and a bookkeeping failure must not
+ * block the refund itself.
+ */
+async function reverseLoyalty(order: AdminOrder, why: string): Promise<void> {
+  try {
+    const { onOrderReversed } = await import("@/lib/mobile/loyalty");
+    await onOrderReversed(order);
+  } catch (err) {
+    console.error(
+      `[loyalty] reversal failed order=${order.id} orderNo=${order.orderNo} (${why})`,
+      err,
+    );
+  }
 }
 
 export async function setOrderInternalNote(
@@ -2589,6 +2611,8 @@ export async function refundOrder(
       .eq("id", orderId),
     "refundOrder",
   );
+  // A fully refunded order keeps nothing: the stamp it earned goes back too.
+  if (fullyRefunded) await reverseLoyalty(existing, "refunded");
   return {
     ok: true,
     order: { ...existing, refunds: nextRefunds, status },

@@ -22,7 +22,10 @@ export async function POST(request: Request, { params }: Context) {
 
     const result = await setCustomerDefaultAddress(auth.customer.email, id);
     if (!result.ok) return apiError(400, "invalid_address", result.error);
-    return apiJson({ addresses: toMeAddresses(result.customer.addresses) });
+    return apiJson(
+      { addresses: toMeAddresses(result.customer.addresses) },
+      { private: true },
+    );
   } catch (err) {
     return routeFailure("api/mobile/v1/me/addresses/[id]/default POST", err);
   }

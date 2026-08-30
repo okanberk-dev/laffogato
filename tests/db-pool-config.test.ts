@@ -64,7 +64,8 @@ describe("Supabase TLS emniyeti", () => {
 
   it("DATABASE_SSL_CA verildiğinde tam doğrulamayı özel kökle yapar", () => {
     const prev = process.env.DATABASE_SSL_CA;
-    process.env.DATABASE_SSL_CA = "-----BEGIN CERTIFICATE-----\nFAKE\n-----END CERTIFICATE-----";
+    process.env.DATABASE_SSL_CA =
+      "-----BEGIN CERTIFICATE-----\nFAKE\n-----END CERTIFICATE-----";
     try {
       const cfg = poolConfig(POOLER + "?sslmode=require");
       expect(cfg.ssl).toMatchObject({
@@ -96,7 +97,8 @@ describe("Supabase TLS emniyeti", () => {
 
   it("DATABASE_SSL_CA Neon dizesine SIZMAZ — tek adımlık geri dönüş korunur", () => {
     const prev = process.env.DATABASE_SSL_CA;
-    process.env.DATABASE_SSL_CA = "-----BEGIN CERTIFICATE-----\nFAKE\n-----END CERTIFICATE-----";
+    process.env.DATABASE_SSL_CA =
+      "-----BEGIN CERTIFICATE-----\nFAKE\n-----END CERTIFICATE-----";
     try {
       const cfg = poolConfig(
         "postgresql://user:pw@ep-x-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require",

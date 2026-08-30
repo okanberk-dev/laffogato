@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     if (!result.ok) return apiError(400, "invalid_address", result.error);
     return apiJson(
       { addresses: toMeAddresses(result.customer.addresses) },
-      { status: 201 },
+      { status: 201, private: true },
     );
   } catch (err) {
     return routeFailure("api/mobile/v1/me/addresses POST", err);

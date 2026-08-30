@@ -10,8 +10,13 @@ export interface LoyaltyStamp {
   id: string;
   /** Normalized (lowercase) owner e-mail. */
   customerEmail: string;
-  kind: "earn" | "redeem";
-  /** +1 for an earned stamp, −6 for a redeemed reward. */
+  /**
+   * `earn` adds a stamp, `redeem` spends a full card, `reversal` takes back a
+   * stamp whose order was refunded or cancelled — the ledger stays
+   * append-only, so nothing is ever deleted to make a balance come out right.
+   */
+  kind: "earn" | "redeem" | "reversal";
+  /** +1 for an earned stamp, −6 for a redeemed reward, −1 for a reversal. */
   delta: number;
   /** order | counter | invite | admin | app */
   source: string;
@@ -113,13 +118,19 @@ export function computeStampBalance(
 ): StampBalance {
   let lifetimeStamps = 0;
   let redeemCount = 0;
+  let reversed = 0;
   for (const row of rows) {
     if (row.kind === "earn") {
       lifetimeStamps += Math.max(0, Math.round(row.delta));
     } else if (row.kind === "redeem") {
       redeemCount += 1;
+    } else if (row.kind === "reversal") {
+      // A refunded order's stamp leaves the balance, and the lifetime count
+      // with it: it was never a visit that happened.
+      reversed += Math.max(0, Math.round(Math.abs(row.delta)));
     }
   }
+  lifetimeStamps = Math.max(0, lifetimeStamps - reversed);
   const available = Math.max(0, lifetimeStamps - STAMP_TARGET * redeemCount);
   return {
     lifetimeStamps,

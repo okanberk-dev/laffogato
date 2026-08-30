@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       const f = FAILURES[result.error];
       return apiError(f.status, f.code, f.message);
     }
-    return apiJson({ ok: true as const });
+    return apiJson({ ok: true as const }, { private: true });
   } catch (err) {
     return routeFailure("api/mobile/v1/invite/claim POST", err);
   }

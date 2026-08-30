@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         payment: result.payment,
         promoDropped: result.promoDropped,
       },
-      { status: 201 },
+      { status: 201, private: true },
     );
   } catch (err) {
     return routeFailure(err, LABEL);
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     const auth = await requireMobileCustomer(request);
     if (!auth.ok) return auth.response;
     const orders = await listAppOrders(auth.customer);
-    return apiJson({ orders });
+    return apiJson({ orders }, { private: true });
   } catch (err) {
     return routeFailure(err, LABEL);
   }

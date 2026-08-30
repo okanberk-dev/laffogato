@@ -8,6 +8,7 @@ import { isDbUnreachable } from "@/lib/db/health";
 
 import { requireMobileCustomer } from "./auth";
 import { apiError } from "./respond";
+import { routeFailure as routeFailureByLabel } from "./route-helpers";
 
 /**
  * Small pieces every order route repeats: reading a JSON body, an optional
@@ -59,17 +60,14 @@ export async function optionalMobileCustomer(
   return { ok: false, response: auth.response };
 }
 
-const MSG_DB_DOWN =
-  "Sipariş servisimize şu an ulaşamıyoruz. Kısa süre içinde tekrar dener misin?";
-
 /**
- * The catch-all of a route: an unreachable database is a 503 the app can
- * retry, anything else is a bug that is logged and answered with a 500.
+ * The catch-all of a route, kept at this call site's argument order.
+ *
+ * There were two of these with the arguments the other way round: importing
+ * the wrong one silently turned every database outage into a 500, because
+ * `isDbUnreachable("api/…")` is false for a string. One implementation now,
+ * in route-helpers; this is the adapter the order routes already call.
  */
 export function routeFailure(err: unknown, label: string): NextResponse {
-  if (isDbUnreachable(err)) {
-    return apiError(503, "unavailable", MSG_DB_DOWN);
-  }
-  console.error(`[${label}]`, err);
-  return apiError(500, "internal", "Beklenmeyen bir hata oluştu.");
+  return routeFailureByLabel(label, err);
 }

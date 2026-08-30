@@ -200,3 +200,32 @@ describe("order channel defaults", () => {
     });
   });
 });
+
+describe("private cache headers on bearer routes (API-MOBILE §0)", () => {
+  const AUTH_ROUTES = [
+    "src/app/api/mobile/v1/me/route.ts",
+    "src/app/api/mobile/v1/me/addresses/route.ts",
+    "src/app/api/mobile/v1/me/addresses/[id]/route.ts",
+    "src/app/api/mobile/v1/me/addresses/[id]/default/route.ts",
+    "src/app/api/mobile/v1/orders/route.ts",
+    "src/app/api/mobile/v1/orders/[id]/route.ts",
+    "src/app/api/mobile/v1/coupons/route.ts",
+    "src/app/api/mobile/v1/notifications/route.ts",
+    "src/app/api/mobile/v1/loyalty/redeem/route.ts",
+    "src/app/api/mobile/v1/invite/claim/route.ts",
+    "src/app/api/mobile/v1/karaoke/reservations/route.ts",
+  ];
+
+  it("every authenticated route marks its answers private", () => {
+    for (const route of AUTH_ROUTES) {
+      const source = readFileSync(join(process.cwd(), route), "utf8");
+      // A member's own data must never sit in a shared cache.
+      expect(source, route).toContain("private: true");
+      const jsonCalls = source.match(/apiJson\(/g)?.length ?? 0;
+      const privateFlags = source.match(/private: true/g)?.length ?? 0;
+      expect(privateFlags, `${route}: every apiJson must be private`).toBe(
+        jsonCalls,
+      );
+    }
+  });
+});

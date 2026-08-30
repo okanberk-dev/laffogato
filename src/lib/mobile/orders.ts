@@ -232,10 +232,35 @@ export type CreateAppOrderResult =
  * idempotent path a provider confirmation takes, so it earns its stamp and
  * its e-mail like any paid order, and `payment` is null.
  */
+/**
+ * How many unpaid orders one member may have open at once.
+ *
+ * Each `pending_payment` order sends a confirmation e-mail, opens a checkout
+ * session at the provider and — for shop lines — holds stock for the whole
+ * 45-minute expiry window. Three covers a customer who abandons a checkout
+ * and starts over twice; past that it is a script, not a shopper.
+ */
+export const MAX_OPEN_ORDERS = 3;
+
 export async function createAppOrder(
   customer: PublicCustomer,
   body: PlaceOrderBody,
 ): Promise<CreateAppOrderResult> {
+  const open = (await customerOrdersByEmail(customer.email)).filter(
+    (o) => o.status === "pending_payment",
+  ).length;
+  if (open >= MAX_OPEN_ORDERS) {
+    return {
+      ok: false,
+      failure: {
+        status: 429,
+        code: "too_many_pending",
+        message:
+          "Ödemesi tamamlanmamış siparişlerin var. Önce onları tamamla ya da iptal et.",
+      },
+    };
+  }
+
   const addressRes = resolveOrderAddress(
     customer.addresses,
     body.fulfillment === "pickup" ? null : body.address,

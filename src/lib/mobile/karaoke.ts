@@ -508,6 +508,24 @@ export async function getReservation(
   );
 }
 
+/**
+ * Which status a booking may move to, from where.
+ *
+ * Without this, the confirm action was an unguarded write: a cancelled
+ * booking whose hour had since been given to someone else could be confirmed
+ * back into a double booking, and a completed evening could be "cancelled"
+ * days later. The panel only offers the legal moves; this makes them the
+ * only ones the endpoint accepts.
+ */
+const RESERVATION_TRANSITIONS: Record<
+  KaraokeReservationStatus,
+  readonly KaraokeReservationStatus[]
+> = {
+  requested: ["requested"],
+  confirmed: ["requested"],
+  cancelled: ["requested", "confirmed"],
+};
+
 export async function setReservationStatus(
   id: string,
   status: KaraokeReservationStatus,
@@ -515,13 +533,29 @@ export async function setReservationStatus(
 ): Promise<KaraokeReservation | null> {
   const existing = await getReservation(id);
   if (!existing) return null;
+  if (!RESERVATION_TRANSITIONS[status].includes(existing.status)) return null;
+
+  // Confirming takes the hour: refuse if another confirmed booking has it.
+  if (status === "confirmed") {
+    const sameDay = await listByDate(existing.date);
+    const clash = rangeConflicts(
+      existing.startHour,
+      existing.hours,
+      sameDay.filter((r) => r.id !== existing.id && r.status === "confirmed"),
+    );
+    if (clash) return null;
+  }
+
   const sb = getDb();
-  check(
+  const updated = rows<{ id: string }>(
     await sb
       .from(TABLES.karaokeReservations)
       .update({ status, updatedAt: now.toISOString() })
-      .eq("id", id),
+      .eq("id", id)
+      .eq("status", existing.status)
+      .select("id"),
     "karaoke.setReservationStatus",
   );
+  if (updated.length === 0) return null;
   return { ...existing, status, updatedAt: now.toISOString() };
 }

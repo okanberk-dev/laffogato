@@ -289,3 +289,45 @@ describe("buildLoyaltyView", () => {
     expect(view.badges).toHaveLength(6);
   });
 });
+
+describe("stamp reversal (refund / cancel)", () => {
+  it("a reversal takes the stamp back out of the balance", () => {
+    const earned = computeStampBalance([
+      { kind: "earn", delta: 1 },
+      { kind: "earn", delta: 1 },
+      { kind: "earn", delta: 1 },
+    ]);
+    expect(earned.stamps).toBe(3);
+    expect(earned.lifetimeStamps).toBe(3);
+
+    const afterRefund = computeStampBalance([
+      { kind: "earn", delta: 1 },
+      { kind: "earn", delta: 1 },
+      { kind: "earn", delta: 1 },
+      { kind: "reversal", delta: -1 },
+    ]);
+    expect(afterRefund.stamps).toBe(2);
+    expect(afterRefund.lifetimeStamps).toBe(2);
+  });
+
+  it("pay → earn → refund cannot be farmed into a reward", () => {
+    // Six paid-then-refunded orders must leave nothing to redeem.
+    const rows = Array.from({ length: 6 }, () => [
+      { kind: "earn" as const, delta: 1 },
+      { kind: "reversal" as const, delta: -1 },
+    ]).flat();
+    const balance = computeStampBalance(rows);
+    expect(balance.available).toBe(0);
+    expect(balance.rewardsReady).toBe(0);
+  });
+
+  it("never reports a negative balance", () => {
+    const balance = computeStampBalance([
+      { kind: "earn", delta: 1 },
+      { kind: "reversal", delta: -1 },
+      { kind: "reversal", delta: -1 },
+    ]);
+    expect(balance.lifetimeStamps).toBe(0);
+    expect(balance.available).toBe(0);
+  });
+});

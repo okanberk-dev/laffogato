@@ -24,7 +24,10 @@ export async function GET(request: Request) {
     const auth = await requireMobileCustomer(request);
     if (!auth.ok) return auth.response;
     const reservations = await listMine(auth.customer.email);
-    return apiJson({ reservations: reservations.map(toReservationJson) });
+    return apiJson(
+      { reservations: reservations.map(toReservationJson) },
+      { private: true },
+    );
   } catch (err) {
     if (isDbUnreachable(err)) return apiError(503, "unavailable", MSG.dbDown);
     console.error("[api/mobile/v1/karaoke/reservations GET]", err);
@@ -50,7 +53,7 @@ export async function POST(request: Request) {
     }
     return apiJson(
       { reservation: toReservationJson(result.reservation) },
-      { status: 201 },
+      { status: 201, private: true },
     );
   } catch (err) {
     if (isDbUnreachable(err)) return apiError(503, "unavailable", MSG.dbDown);

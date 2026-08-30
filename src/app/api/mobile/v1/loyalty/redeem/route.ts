@@ -21,14 +21,17 @@ export async function POST(request: Request) {
         "Ödül için 6 damga gerekiyor. Biraz daha kahve, biraz daha yakın.",
       );
     }
-    return apiJson({
-      coupon: {
-        code: result.coupon.code,
-        title: result.coupon.title,
-        expiresAt: result.coupon.expiresAt || null,
+    return apiJson(
+      {
+        coupon: {
+          code: result.coupon.code,
+          title: result.coupon.title,
+          expiresAt: result.coupon.expiresAt || null,
+        },
+        loyalty: result.loyalty,
       },
-      loyalty: result.loyalty,
-    });
+      { private: true },
+    );
   } catch (err) {
     return routeFailure("api/mobile/v1/loyalty/redeem POST", err);
   }
