@@ -4081,7 +4081,7 @@ select {
   border: 1px dashed var(--gold);
   border-radius: var(--r-md);
   padding: 18px 20px;
-  background: linear-gradient(135deg, #fffaf0, #fdf4e3);
+  background: linear-gradient(135deg, var(--bg-cream), var(--bg-warm));
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -6340,15 +6340,19 @@ select {
   height: min(100svh, 900px);
   /* `svh`, not `vh`: on a phone the toolbars collapse as you scroll, and `vh`
      would size the hero to the taller state and leave it clipped. */
-  /* The paper wash the 3D scene was designed against. It lives on the
-     section rather than on the widget so the gradient spans the whole
-     section while the widget's own box is inset past the site chrome —
-     one gradient, no seam where the two boxes disagree. */
+  /* The paper wash the 3D scene sits against. It lives on the section rather
+     than on the widget so the gradient spans the whole section while the
+     widget's own box is inset past the site chrome — one gradient, no seam
+     where the two boxes disagree.
+
+     Built from the surface tokens, not a hardcoded cream: this is the first
+     thing on the page, and the palette swap left it the one warm ground
+     under a green-and-burgundy chrome. */
   background: radial-gradient(
     120% 90% at 50% 30%,
-    #faf4e9 0%,
-    #f2e6d4 55%,
-    #e3d0b6 100%
+    var(--bg-cream) 0%,
+    var(--bg-warm) 55%,
+    var(--bg-stone) 100%
   );
 }
 /* The widget anchors its title and its DÖK button to its own box edges, so
