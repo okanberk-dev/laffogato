@@ -130,6 +130,15 @@ export interface MeCustomer {
   memberSince: string;
   notificationPrefs: NotificationPrefs;
   addresses: MeAddress[];
+  /**
+   * Product ids the member has favourited.
+   *
+   * The same list the site's /uye/hesap/favorilerim renders — one wishlist per
+   * member, not one per surface. It was missing from this payload, so a
+   * product favourited on the web was invisible in the app and the app's own
+   * "Favorilerim" had nothing to show.
+   */
+  wishlist: string[];
 }
 
 export interface MeResponse {
@@ -159,6 +168,7 @@ export function toMe(
         newsletter: !!customer.notificationPrefs.newsletter,
       },
       addresses: toMeAddresses(customer.addresses),
+      wishlist: [...customer.wishlist],
     },
     loyalty,
     invite,

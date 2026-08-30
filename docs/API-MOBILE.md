@@ -457,3 +457,27 @@ kullanıcı meta verisine yazar: `terms_accepted_at`, `marketing_consent_at`
 **Meta veri yoksa sütun boş kalır** — sunucu artık "hesap açıldığına göre
 sözleşme kabul edilmiştir" varsayımını yapmaz. Ticari ileti onayı ayrıdır ve
 `notificationPrefs.marketing` anahtarını da o belirler.
+
+## 14. `POST /me/favorites` (kimlik) — favori aç/kapat
+
+Sitede `/uye/hesap/favorilerim` sayfası ve `customers.wishlist` sütunu vardı;
+mobil sözleşme bunu hiç taşımıyordu. Sonuç: laffogato.net'te kalbe bastığın
+ürün uygulamada görünmüyordu, uygulamadaki "Favorilerim" ise yalnızca
+"yakında" diyordu — tek üye, iki cevap.
+
+**`GET /me`** artık `customer.wishlist: string[]` içeriyor (ürün id'leri).
+
+**`POST /api/mobile/v1/me/favorites`**
+
+```json
+{ "productId": "prd-0001" }
+```
+
+Yanıt: `{ "productId": "prd-0001", "isFavorite": true }`.
+`Cache-Control: private, no-store`. Bilinmeyen üye → `404 not_found`.
+
+**Neden toggle, neden liste yazımı değil:** site aynı listeyi aynı yardımcıdan
+(`toggleWishlist`) düzenliyor. İki yüzey aynı anda dokunduğunda her biri tek
+kalemi değiştirir; liste yazımı olsaydı biri diğerinin listesini ezerdi.
+Yanıt hangi yöne gittiğini söylüyor, böylece uygulama varsaymak yerine
+doğruluyor (iyimser güncelleme yanlış çıkarsa önbellek düzeltiliyor).
