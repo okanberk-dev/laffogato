@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/admin/audit";
+import { requireRole } from "@/lib/admin/auth";
 import {
   createAppAnnouncement,
   deleteAppAnnouncement,
@@ -12,6 +13,14 @@ import {
   type AppAnnouncementKind,
 } from "@/lib/admin/store";
 
+/**
+ * Her action kendi rol kapısını açar.
+ *
+ * Sayfadaki `requireRole` bunları KORUMAZ: bir Server Action, sayfadan
+ * bağımsız olarak çağrılabilen bir POST uç noktasıdır. Kapı burada yoksa,
+ * panelin kendisini hiç açmamış biri de her telefona düşen ana sayfa
+ * içeriğini değiştirebilir.
+ */
 function parseInput(formData: FormData): AppAnnouncementInput {
   return {
     // The store normalises an unknown kind to "info"; this cast shapes the
@@ -27,6 +36,7 @@ function parseInput(formData: FormData): AppAnnouncementInput {
 }
 
 export async function createAnnouncementAction(formData: FormData) {
+  await requireRole("mobileApp");
   const input = parseInput(formData);
   if (!input.title.trim()) return;
   const created = await createAppAnnouncement(input);
@@ -41,6 +51,7 @@ export async function createAnnouncementAction(formData: FormData) {
 }
 
 export async function updateAnnouncementAction(id: string, formData: FormData) {
+  await requireRole("mobileApp");
   const input = parseInput(formData);
   await updateAppAnnouncement(id, input);
   await logAudit({
@@ -54,6 +65,7 @@ export async function updateAnnouncementAction(id: string, formData: FormData) {
 }
 
 export async function deleteAnnouncementAction(formData: FormData) {
+  await requireRole("mobileApp");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteAppAnnouncement(id);

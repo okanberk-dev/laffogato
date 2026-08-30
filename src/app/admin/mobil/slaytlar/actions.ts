@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/admin/audit";
+import { requireRole } from "@/lib/admin/auth";
 import {
   createAppSlide,
   deleteAppSlide,
@@ -12,6 +13,14 @@ import {
   type AppSlideTone,
 } from "@/lib/admin/store";
 
+/**
+ * Her action kendi rol kapısını açar.
+ *
+ * Sayfadaki `requireRole` bunları KORUMAZ: bir Server Action, sayfadan
+ * bağımsız olarak çağrılabilen bir POST uç noktasıdır. Kapı burada yoksa,
+ * panelin kendisini hiç açmamış biri de her telefona düşen ana sayfa
+ * içeriğini değiştirebilir.
+ */
 function parseInput(formData: FormData): AppSlideInput {
   return {
     eyebrow: String(formData.get("eyebrow") ?? ""),
@@ -31,6 +40,7 @@ function parseInput(formData: FormData): AppSlideInput {
 }
 
 export async function createSlideAction(formData: FormData) {
+  await requireRole("mobileApp");
   const input = parseInput(formData);
   if (!input.title.trim()) return;
   const created = await createAppSlide(input);
@@ -45,6 +55,7 @@ export async function createSlideAction(formData: FormData) {
 }
 
 export async function updateSlideAction(id: string, formData: FormData) {
+  await requireRole("mobileApp");
   const input = parseInput(formData);
   await updateAppSlide(id, input);
   await logAudit({
@@ -58,6 +69,7 @@ export async function updateSlideAction(id: string, formData: FormData) {
 }
 
 export async function deleteSlideAction(formData: FormData) {
+  await requireRole("mobileApp");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteAppSlide(id);
