@@ -548,7 +548,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "20. Kişisel Verilerin Korunması ve Ticari Elektronik İletiler",
         paragraphs: [
           "Sipariş sürecinde işlenen kimlik, iletişim, teslimat adresi, sipariş ve işlem güvenliği verileri; 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında veri sorumlusu sıfatıyla {{LEGAL_NAME}} tarafından, sözleşmenin kurulması ve ifası, hukuki yükümlülüklerin yerine getirilmesi ve meşru menfaat hukuki sebeplerine dayanılarak, Kanun'un genel ilkelerine uygun biçimde ve amaçla bağlantılı, sınırlı ve ölçülü olarak işlenir. Ayrıntılı bilgi için Aydınlatma Metni ve Gizlilik Politikası'na {{SITE_URL}} adresinden ve mobil uygulamadan ulaşabilirsiniz.",
-          "Veriler; siparişin teslimi amacıyla kargo ve kurye şirketleriyle, ödemenin alınması, iadesi ve itiraz süreçlerinin yürütülmesi amacıyla ödeme kuruluşu iyzico ve ilgili bankalarla, işlemsel e-postaların gönderimi amacıyla e-posta altyapı sağlayıcısı Resend ile, barındırma hizmeti kapsamında Vercel ile, veri tabanı hizmeti kapsamında Neon (PostgreSQL) ile ve mevzuattan doğan yükümlülükler kapsamında yetkili kamu kurum ve kuruluşlarıyla paylaşılabilir. Barındırma ve veri tabanı hizmetleri nedeniyle yurt dışına aktarım söz konusu olduğunda, Kanun'un yurt dışına aktarıma ilişkin hükmünde öngörülen şartlara uyulur.",
+          "Veriler; siparişin teslimi amacıyla kargo ve kurye şirketleriyle, ödemenin alınması, iadesi ve itiraz süreçlerinin yürütülmesi amacıyla ödeme kuruluşu iyzico ve ilgili bankalarla, işlemsel e-postaların gönderimi amacıyla e-posta altyapı sağlayıcısı Resend ile, barındırma hizmeti kapsamında Vercel ile, veri tabanı hizmeti kapsamında {{DB_PROVIDER}} (PostgreSQL) ile ve mevzuattan doğan yükümlülükler kapsamında yetkili kamu kurum ve kuruluşlarıyla paylaşılabilir. Barındırma ve veri tabanı hizmetleri nedeniyle yurt dışına aktarım söz konusu olduğunda, Kanun'un yurt dışına aktarıma ilişkin hükmünde öngörülen şartlara uyulur.",
           "Mobil uygulamanın kullanılması hâlinde ayrıca cihaz tanımlayıcıları (IDFA/AAID), push bildirim tokeni, uygulama sürümü, işletim sistemi bilgisi ve çökme (crash) kayıtları; ALICI'nın izin vermesi hâlinde yaklaşık konum ve QR kod okutulması amacıyla kamera erişimi işlenir. Ödül programı kapsamında puan bakiyesi ile puan kazanım ve kullanım geçmişi işlenir; harcama geçmişine dayalı profilleme ve kişiselleştirilmiş kampanya sunulması yalnızca ALICI'nın açık rızası ile yapılır ve bu rıza her zaman geri alınabilir.",
           "ALICI, Kanun'un ilgili kişinin haklarını düzenleyen hükmü kapsamındaki taleplerini, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ'e uygun olarak {{EMAIL}} adresine veya {{ADDRESS}} adresine yazılı olarak iletebilir. Başvurular, niteliğine göre en kısa sürede ve en geç 30 (otuz) gün içinde ücretsiz olarak sonuçlandırılır; işlemin ayrıca bir maliyet gerektirmesi hâlinde Kurulca belirlenen tarifedeki ücret alınabilir. Başvurunun reddedilmesi, verilen yanıtın yetersiz bulunması veya süresinde yanıt verilmemesi hâlinde ALICI, yanıtı öğrendiği tarihten itibaren otuz ve her hâlde başvuru tarihinden itibaren altmış gün içinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilir.",
           "Kampanya, tanıtım ve pazarlama içerikli ticari elektronik iletiler; 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca yalnızca ALICI'nın önceden açık onayı ile ve İleti Yönetim Sistemi (İYS) üzerinden kaydedilerek gönderilir. Sipariş onayı, kargo bildirimi, iade ve fatura bilgilendirmesi gibi işlemsel iletiler bu onay kapsamı dışındadır ve sözleşmenin ifası için gönderilir. Mobil uygulama üzerinden gönderilen push bildirimlerden kampanya ve tanıtım içerikli olanlar ticari elektronik ileti sayılır ve yalnızca onay ile gönderilir; işlemsel bildirimler bu kapsamda değildir. ALICI, ticari elektronik ileti onayını her zaman ve ücretsiz olarak; iletideki ret bağlantısı, İYS, uygulama içi bildirim ayarları, cihaz ayarları veya {{EMAIL}} adresi üzerinden geri alabilir.",
@@ -1109,7 +1109,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "SATICI, işbu Sözleşme'nin kurulması ve ifası kapsamında elde ettiği kişisel verileri, 6698 sayılı Kişisel Verilerin Korunması Kanunu'nun genel ilkelere ilişkin hükmü (m.4) ve işleme şartlarına ilişkin hükümleri (m.5 ve m.6) çerçevesinde, hukuka ve dürüstlük kurallarına uygun, doğru ve gerektiğinde güncel, belirli, açık ve meşru amaçlar için, işlendikleri amaçla bağlantılı, sınırlı ve ölçülü olarak işler. Bu kapsamda SATICI veri sorumlusu sıfatını haizdir.",
           "Sipariş sürecinde işlenen kişisel veriler; kimlik (ad-soyad), iletişim (e-posta, telefon, teslimat ve fatura adresi), müşteri işlem (sipariş içeriği, tutar, sipariş geçmişi, harcama geçmişi, ödül puanı kazanım ve kullanım kayıtları, iade ve talep kayıtları), finans (maskelenmiş kart bilgisi, işlem referansı, tahsilat kaydı) ve işlem güvenliği (IP adresi, tarayıcı bilgisi, oturum kayıtları, onay kayıtları) kategorilerindedir. Bu verilerin işlenmesi, sözleşmenin kurulması ve ifası ile SATICI'nın hukuki yükümlülüklerini yerine getirmesi hukuki sebeplerine dayanır.",
           "Kişisel veriler; kargo ve lojistik hizmet sağlayıcılarına (teslimat amacıyla), ödeme kuruluşu iyzico'ya ve bankalara (tahsilat, iade ve itiraz süreçleri amacıyla), e-fatura ve muhasebe hizmet sağlayıcılarına (yasal yükümlülük amacıyla), işlemsel e-posta altyapı sağlayıcısına (sipariş bildirimleri amacıyla) ile yetkili kamu kurum ve kuruluşlarına, mevzuatta öngörülen sınırlar dâhilinde aktarılabilir.",
-          "Barındırma (Vercel), PostgreSQL veri tabanı (Neon) ve e-posta gönderim (Resend) altyapılarının sunucularının yurt dışında bulunması nedeniyle kişisel veriler yurt dışına aktarılabilir. Bu aktarımlar, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükmü (m.9) uyarınca öngörülen şartlar sağlanarak gerçekleştirilir.",
+          "Barındırma (Vercel), PostgreSQL veri tabanı ({{DB_PROVIDER}}) ve e-posta gönderim (Resend) altyapılarının sunucularının yurt dışında bulunması nedeniyle kişisel veriler yurt dışına aktarılabilir. Bu aktarımlar, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükmü (m.9) uyarınca öngörülen şartlar sağlanarak gerçekleştirilir.",
           "Siparişin mobil uygulama üzerinden verilmesi hâlinde ayrıca; cihaz tanımlayıcıları (IDFA/AAID), anlık bildirim (push) tokeni, uygulama sürümü, işletim sistemi ve cihaz modeli ile çökme (crash) kayıtları işlenir. ALICI'nın cihaz ayarlarından izin vermesi hâlinde yaklaşık konum verisi (en yakın şube ve teslimat bölgesi önerisi için) ve kafede puan kazanımına ilişkin QR kodun okunabilmesi için kamera erişimi kullanılır. Kamera görüntüsü kaydedilmez; yalnızca okunan QR kod verisi işlenir. Bu izinler cihaz ayarlarından her zaman geri alınabilir; izin geri alındığında ilgili işlev kullanılamaz, ancak sipariş verme imkânı ortadan kalkmaz.",
           "ALICI'nın alışveriş ve ödül puanı geçmişi kullanılarak kişiye özel kampanya, öneri veya segmentasyon yapılması (profilleme) yalnızca ALICI'nın açık rızasına dayanılarak gerçekleştirilir. Açık rıza verilmemesi veya rızanın geri alınması sipariş verilmesine engel değildir; bu durumda yalnızca kişiselleştirilmiş içerik sunulmaz.",
           "Veri güvenliği bakımından SATICI, 6698 sayılı Kanun'un veri güvenliğine ilişkin hükmü (m.12) uyarınca idari ve teknik tedbirler alır: şifreler geri döndürülemez biçimde özetlenir (bcrypt), yönetici erişimi TOTP tabanlı iki aşamalı doğrulama ile korunur, PostgreSQL veri tabanında satır düzeyi güvenlik (RLS) politikaları uygulanır, kart verisi hiçbir aşamada SATICI sistemlerine girmez, tüm yönetici mutasyonları değiştirilemez olay kaydına (audit log) yazılır ve veriye erişim yetki matrisi ile sınırlandırılır.",
@@ -1868,7 +1868,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Saklama: Sipariş, fatura ve iade kayıtları, vergi ve ticaret mevzuatının öngördüğü yasal saklama süreleri boyunca muhafaza edilir.",
-          "Güvenlik: Veriler, Neon üzerinde barındırılan şifrelenmiş PostgreSQL veri tabanında tutulur; uygulama barındırma Vercel, işlemsel e-posta gönderimi Resend altyapısı üzerinden sağlanır. Üyelik parolaları geri döndürülemez biçimde hash'lenir, yönetici erişimi iki aşamalı doğrulama (TOTP 2FA) ile korunur.",
+          "Güvenlik: Veriler, {{DB_PROVIDER}} üzerinde barındırılan şifrelenmiş PostgreSQL veri tabanında tutulur; uygulama barındırma Vercel, işlemsel e-posta gönderimi Resend altyapısı üzerinden sağlanır. Üyelik parolaları geri döndürülemez biçimde hash'lenir, yönetici erişimi iki aşamalı doğrulama (TOTP 2FA) ile korunur.",
           "İzlenebilirlik: İade sürecindeki her yönetici işlemi, işlemi yapan kişi ve zaman damgasıyla birlikte değiştirilemez olay kaydına yazılır.",
           "Ticari ileti: İade süreçlerine ilişkin e-posta ve push bildirimleri işlemsel nitelikte olup 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun kapsamında ticari elektronik ileti sayılmaz; kampanya içerikli push bildirimleri yalnızca onayınıza bağlı gönderilir.",
           "Fikri haklar: Bu belgenin metni, {{BRAND}} marka unsurları ve site içerikleri 5846 sayılı Fikir ve Sanat Eserleri Kanunu ile 6769 sayılı Sınai Mülkiyet Kanunu kapsamında korunmaktadır.",
@@ -2455,7 +2455,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Aktarım amacı: yalnızca gönderinin teslim edilmesi ve teslimat sürecine ilişkin bilgilendirme.",
           "Hukuki sebep: sözleşmenin kurulması ve ifası ile hukuki yükümlülüğün yerine getirilmesi.",
           "Yurt dışı gönderilerinde veriler, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükümlerine uygun olarak varış ülkesindeki taşıyıcı ve gümrük makamlarına aktarılabilir.",
-          "Barındırma, veri tabanı ve işlemsel e-posta altyapısı (Vercel, Neon (PostgreSQL), Resend) kullanımından doğan aktarımlar Aydınlatma Metni'nde ayrıca açıklanmıştır.",
+          "Barındırma, veri tabanı ve işlemsel e-posta altyapısı (Vercel, {{DB_PROVIDER}} (PostgreSQL), Resend) kullanımından doğan aktarımlar Aydınlatma Metni'nde ayrıca açıklanmıştır.",
           "Teslimat verilerine erişim, yetkilendirilmiş yönetici hesaplarıyla sınırlıdır; yönetici erişimi TOTP tabanlı iki aşamalı doğrulama ile korunur ve tüm yönetici işlemleri değiştirilemez olay kaydına yazılır.",
         ],
       },
@@ -3506,7 +3506,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Taksit seçenekleri, taksit sayısı ve varsa vade farkı kartı veren bankanın ve iyzico'nun o dönemde sunduğu koşullara bağlıdır; bu seçenekler {{SHORT_NAME}} tarafından belirlenmez ve her kart için aynı seçeneklerin sunulacağı taahhüt edilmez. Uygulanan taksit koşulu ödeme öncesinde ekranda gösterilir.",
           "Ödeme sonucu, iyzico tarafından imzalı bildirim ile iletilir. Bildirimin imzası doğrulanır ve işlemin durumu iyzico'ya yeniden sorularak teyit edilir; sipariş yalnızca teyit edilen başarılı ödeme üzerine oluşturulur. Aynı bildirimin birden çok kez ulaşması hâlinde işlem yalnızca bir kez kaydedilir, mükerrer sipariş veya mükerrer tahsilat oluşmaz.",
           "İade ve kısmî iade işlemleri iyzico üzerinden, ödemenin alındığı karta yapılır. Nakit, havale veya farklı bir karta iade yapılmaz. Tutarın kart hesabınıza yansıma süresi bankanızın işleyişine bağlıdır ve {{SHORT_NAME}} kontrolünde değildir.",
-          "Ödeme işlemine ilişkin kayıtlar; işlem referansı, tutar, tarih ve sonuç bilgisi olarak sipariş kaydıyla eşleştirilerek Neon (PostgreSQL) üzerinde barındırılan veri tabanında saklanır. Bu kayıtlar kart itirazı süreçlerinde ve vergi ile muhasebe yükümlülüklerinin yerine getirilmesinde kullanılır; kart verisi bu kayıtlara dâhil değildir.",
+          "Ödeme işlemine ilişkin kayıtlar; işlem referansı, tutar, tarih ve sonuç bilgisi olarak sipariş kaydıyla eşleştirilerek {{DB_PROVIDER}} (PostgreSQL) üzerinde barındırılan veri tabanında saklanır. Bu kayıtlar kart itirazı süreçlerinde ve vergi ile muhasebe yükümlülüklerinin yerine getirilmesinde kullanılır; kart verisi bu kayıtlara dâhil değildir.",
           "Ödeme kuruluşuna iletilen tutar her zaman sunucu tarafında yeniden hesaplanan tutardır. Hesaplama; veri tabanındaki güncel ürün fiyatı, geçerli promosyon, kullanılan hediye çeki ve ödül puanı ile kargo kuralı esas alınarak yapılır.",
         ],
       },
@@ -3990,7 +3990,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Ödeme adımında, iyzico Checkout Form akışı kullanılır: sepetinizi onayladıktan sonra iyzico'nun barındırdığı güvenli ödeme sayfasına yönlendirilirsiniz veya bu sayfa, {{SITE}} üzerinde yalıtılmış bir çerçeve içinde açılır. Kart bilgilerinizi girdiğiniz ekran her hâlde iyzico'nun kendi ortamıdır; Satıcının bu ekranın içeriğine erişimi yoktur.",
           "Kart numarası, son kullanma tarihi, CVV/CVC güvenlik kodu ve 3D Secure şifresi hiçbir aşamada {{SITE}} sunucularından geçmez, bu sunucularda işlenmez ve saklanmaz. Bu verileri Satıcı görmez; dolayısıyla Satıcının bu verileri paylaşması, kaybetmesi veya yeniden kullanması teknik olarak mümkün değildir.",
           "Kart verisinin işlenmesi, iletilmesi ve saklanmasına ilişkin PCI-DSS standardına uygunluk yükümlülüğü, bu verileri işleyen iyzico'ya aittir. Satıcı, entegrasyonu iyzico'nun belirlediği güvenli yönteme göre kurar ve kart verisini kendi sistemlerine hiç almaz.",
-          "Satıcının sistemlerinde ödeme işlemine ilişkin olarak yalnızca kart verisi niteliği taşımayan işlem üstverileri tutulur: iyzico işlem referans numarası, işlem durumu, tutar, para birimi, işlem zamanı, taksit adedi, 3D Secure doğrulama sonucu ve kart markası ile kart numarasının maskelenmiş son dört hanesi gibi kayıtlar. Bu kayıtlar mutabakat, iade ve itiraz süreçleri için gereklidir ve Neon (PostgreSQL) veri tabanında saklanır.",
+          "Satıcının sistemlerinde ödeme işlemine ilişkin olarak yalnızca kart verisi niteliği taşımayan işlem üstverileri tutulur: iyzico işlem referans numarası, işlem durumu, tutar, para birimi, işlem zamanı, taksit adedi, 3D Secure doğrulama sonucu ve kart markası ile kart numarasının maskelenmiş son dört hanesi gibi kayıtlar. Bu kayıtlar mutabakat, iade ve itiraz süreçleri için gereklidir ve {{DB_PROVIDER}} (PostgreSQL) veri tabanında saklanır.",
           "Kart saklama (tokenizasyon) özelliği kullanıma sunulursa, kart bilgisi yine Satıcıda değil iyzico nezdinde saklanır ve Satıcıya yalnızca kart verisi içermeyen, tek başına ödeme yapmaya elverişli olmayan bir simge (token) iletilir. Bu özellik, açık onayınız olmadan devreye alınmaz ve üyelik hesabınızdan istediğiniz an kapatılabilir.",
         ],
       },
@@ -4177,7 +4177,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "iyzico'dan gelen ödeme bildirimleri (webhook) HMAC-SHA256 imzası ile doğrulanır ve karşılaştırma zamanlama saldırılarına kapalı yöntemle yapılır; imzası geçersiz bildirim 401 ile reddedilir.",
           "İmzası doğrulanan her bildirimin sonucu, işlem referansıyla iyzico'ya yeniden sorularak teyit edilir; teyit edilmeyen bildirim siparişin durumunu değiştirmez.",
           "Tutar, promosyon, ödül puanı ve stok doğrulaması yalnızca sunucuda yapılır; istemciden gelen hiçbir fiyat bilgisine güvenilmez.",
-          "Veriler Neon (PostgreSQL) üzerinde barındırılır; satır düzeyinde güvenlik etkindir ve veriye yalnızca sunucu tarafı yetkili anahtarla erişilir.",
+          "Veriler {{DB_PROVIDER}} (PostgreSQL) üzerinde barındırılır; satır düzeyinde güvenlik etkindir ve veriye yalnızca sunucu tarafı yetkili anahtarla erişilir.",
           "Uygulama Vercel altyapısında yayımlanır, işlemsel e-postalar Resend üzerinden gönderilir; her iki hizmetle de veri işleme ilişkisi sözleşmeyle kurulmuştur.",
           "Yönetici hesapları TOTP tabanlı iki aşamalı doğrulama ile korunur; giriş denemelerine hız sınırı uygulanır.",
           "Tüm yönetici işlemleri, sonradan değiştirilemeyen olay kaydına (audit log) yazılır.",
@@ -4191,7 +4191,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Ödeme işlemine ilişkin üstveriler, 6698 sayılı Kanun'un genel ilkeleri (m.4) ve işleme şartları (m.5) çerçevesinde; sözleşmenin kurulması ve ifası, hukuki yükümlülüklerin yerine getirilmesi ve meşru menfaat hukuki sebeplerine dayanılarak işlenir. Ödül programı kapsamındaki puan ve harcama geçmişi de bu kapsamda işlenir; bu verilerin kişiye özel kampanya üretimi amacıyla profilleme yoluyla işlenmesi ise yalnızca açık rızanıza dayanır ve rızanızı her zaman geri alabilirsiniz. Ayrıntılı bilgi, sitede ve mobil uygulamada yayımlanan Aydınlatma Metni ile Gizlilik Politikası'nda yer alır.",
           "Ödeme kayıtları, 213 sayılı Vergi Usul Kanunu ile 6102 sayılı Türk Ticaret Kanunu'nun defter ve belge saklama süreleri boyunca muhafaza edilir. Sürenin dolması hâlinde kayıtlar, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik uyarınca silinir, yok edilir veya anonim hâle getirilir.",
-          "iyzico ile paylaşılan veriler, işlemin gerçekleştirilmesi için zorunlu olan asgari veriyle sınırlıdır. Barındırma hizmeti Vercel, veri tabanı hizmeti Neon (PostgreSQL) ve işlemsel e-posta hizmeti Resend üzerinden alınmaktadır; bu hizmetlerin sunucularının yurt dışında bulunması hâlinde aktarım, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükmüne (m.9) uygun biçimde yapılır.",
+          "iyzico ile paylaşılan veriler, işlemin gerçekleştirilmesi için zorunlu olan asgari veriyle sınırlıdır. Barındırma hizmeti Vercel, veri tabanı hizmeti {{DB_PROVIDER}} (PostgreSQL) ve işlemsel e-posta hizmeti Resend üzerinden alınmaktadır; bu hizmetlerin sunucularının yurt dışında bulunması hâlinde aktarım, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükmüne (m.9) uygun biçimde yapılır.",
           "Mobil uygulama kullanımında ayrıca cihaz tanımlayıcıları (IDFA/AAID), push bildirim tokeni, uygulama sürümü, işletim sistemi bilgisi ve çökme (crash) kayıtları işlenebilir; yaklaşık konum verisi yalnızca izin vermeniz hâlinde işlenir. Bu veriler ödemenin güvenliği, hata ayıklama ve hizmetin sürekliliği amacıyla kullanılır.",
           "Kişisel verilerinize ilişkin olarak 6698 sayılı Kanun'un ilgili kişinin haklarını düzenleyen hükmü (m.11) kapsamındaki taleplerinizi {{EMAIL}} adresine iletebilirsiniz. Başvurular, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca en geç otuz gün içinde sonuçlandırılır.",
         ],
@@ -4490,7 +4490,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "9. Veri Tabanı Güvenliği, Erişim Kısıtı ve Anahtar Yönetimi",
         paragraphs: [
-          "Müşteri, sipariş, puan ve ürün verileri, Neon (PostgreSQL) üzerinde barındırılan yönetilen bir PostgreSQL veri tabanında saklanır; uygulama bu veri tabanına standart PostgreSQL sürücüsü ile bağlanır. Veri tabanı doğrudan internete açık bir hizmet olarak yayımlanmaz; erişim yalnızca uygulama sunucusu üzerinden ve zorunlu TLS ile gerçekleşir.",
+          "Müşteri, sipariş, puan ve ürün verileri, {{DB_PROVIDER}} (PostgreSQL) üzerinde barındırılan yönetilen bir PostgreSQL veri tabanında saklanır; uygulama bu veri tabanına standart PostgreSQL sürücüsü ile bağlanır. Veri tabanı doğrudan internete açık bir hizmet olarak yayımlanmaz; erişim yalnızca uygulama sunucusu üzerinden ve zorunlu TLS ile gerçekleşir.",
           "Tarayıcıya veya mobil uygulamaya hiçbir veri tabanı kimlik bilgisi gönderilmez; istemciler veriye yalnızca kimlik doğrulaması ve yetki kontrolü yapılan sunucu uç noktaları üzerinden ulaşır. Uygulamanın kullandığı veri tabanı rolü, işini görmek için gereken asgari yetkiyle sınırlandırılır.",
         ],
         bullets: [
@@ -4608,7 +4608,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "16. Yedekleme, Felaket Kurtarma ve İş Sürekliliği",
         paragraphs: [
-          "Verinin erişilebilirliği de gizliliği kadar önemli bir güvenlik unsurudur. Sipariş, müşteri, puan ve ürün verileri Neon (PostgreSQL) tarafında sunulan yönetilen yedekleme altyapısıyla düzenli olarak yedeklenir; yedekler şifreli olarak saklanır ve erişimleri kısıtlıdır. Uygulama ve site, Vercel altyapısı üzerinde yayımlanır.",
+          "Verinin erişilebilirliği de gizliliği kadar önemli bir güvenlik unsurudur. Sipariş, müşteri, puan ve ürün verileri {{DB_PROVIDER}} (PostgreSQL) tarafında sunulan yönetilen yedekleme altyapısıyla düzenli olarak yedeklenir; yedekler şifreli olarak saklanır ve erişimleri kısıtlıdır. Uygulama ve site, Vercel altyapısı üzerinde yayımlanır.",
           "Uygulama kodu sürüm kontrol sisteminde tutulur ve her yayın sürümlenmiş olarak dağıtılır. Bu sayede sorunlu bir yayın hızla önceki kararlı sürüme geri alınabilir; mobil uygulamada ise düzeltme, mağaza üzerinden yeni bir sürüm olarak yayımlanır. Bir kesinti halinde önceliğimiz, ödemesi alınmış siparişlerin kaybolmaması ve kayıtların bütünlüğünün korunmasıdır.",
         ],
         bullets: [
@@ -4723,7 +4723,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Veri tabanı",
             value:
-              "Neon (PostgreSQL); yönetilen PostgreSQL hizmeti, zorunlu şifreli bağlantı, disk üzerinde şifreli saklama ve yönetilen yedekleme.",
+              "{{DB_PROVIDER}} (PostgreSQL); yönetilen PostgreSQL hizmeti, zorunlu şifreli bağlantı, disk üzerinde şifreli saklama ve yönetilen yedekleme.",
           },
           {
             key: "Ödeme kuruluşu",
@@ -5245,7 +5245,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Bulut barındırma ve altyapı sağlayıcıları",
             value:
-              "Web sitesinin ve mobil uygulama arka ucunun yayımlanması ile verinin depolanması; uygulama ve barındırma katmanı için Vercel, veri tabanı katmanı için Neon (PostgreSQL) altyapısı kullanılır.",
+              "Web sitesinin ve mobil uygulama arka ucunun yayımlanması ile verinin depolanması; uygulama ve barındırma katmanı için Vercel, veri tabanı katmanı için {{DB_PROVIDER}} (PostgreSQL) altyapısı kullanılır.",
           },
           {
             key: "İşlemsel e-posta ve iletişim sağlayıcıları",
@@ -5407,7 +5407,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Yönetici erişiminin zaman tabanlı tek kullanımlık şifre (TOTP) ile iki aşamalı doğrulamaya bağlanması ve giriş denemelerinin hız sınırlamasıyla korunması.",
           "Rol bazlı erişim denetimi ve bilmesi gereken ilkesi; yönetici yetkilerinin görev alanına göre ayrıştırılması.",
           "Tüm yönetici mutasyonlarının, kim tarafından ne zaman yapıldığı bilgisiyle birlikte değiştirilemez olay kaydına (audit log) yazılması.",
-          "Neon (PostgreSQL) veri tabanı katmanında satır düzeyi güvenliğin açık tutulması ve varsayılan olarak tüm erişimin reddedilmesi; ayrıcalıklı anahtarların yalnızca sunucu tarafında kullanılması ve bağlantıların TLS ile şifrelenmesi.",
+          "{{DB_PROVIDER}} (PostgreSQL) veri tabanı katmanında satır düzeyi güvenliğin açık tutulması ve varsayılan olarak tüm erişimin reddedilmesi; ayrıcalıklı anahtarların yalnızca sunucu tarafında kullanılması ve bağlantıların TLS ile şifrelenmesi.",
           "Kart verisinin Şirket sistemlerinde hiçbir aşamada tutulmaması; ödemenin, 6493 sayılı Kanun kapsamında yetkilendirilmiş ödeme kuruluşu iyzico'nun PCI-DSS uyumlu Checkout Form altyapısı üzerinden ve 3D Secure doğrulamasıyla gerçekleştirilmesi.",
           "Sunucu tarafı doğrulama: tüm form girdilerinin şema bazlı doğrulamadan geçirilmesi; tutar ve fiyat bilgilerinin istemciden gelen değere değil, sunucudaki kayıtlı değere göre hesaplanması.",
           "Ödeme bildirimlerinin imzalı webhook ile alınması, imza doğrulaması yapılması, işlem sonucunun iyzico'ya yeniden sorularak teyit edilmesi ve mükerrer işlem koruması (idempotency) uygulanması.",
@@ -6090,7 +6090,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "Ürünün teslim edilmesi, gönderi takibi ve teslimat sorunlarının çözülmesi. Hukuki sebep: KVKK m.5/2-c. Aktarılan veri: alıcı adı, teslimat adresi, telefon numarası, gönderi içerik/ağırlık bilgisi.",
           },
           {
-            key: "Barındırma ve altyapı sağlayıcıları (Vercel - uygulama barındırma, Neon - PostgreSQL veri tabanı)",
+            key: "Barındırma ve altyapı sağlayıcıları (Vercel - uygulama barındırma, {{DB_PROVIDER}} - PostgreSQL veri tabanı)",
             value:
               "İnternet sitesinin, mobil uygulama servislerinin ve PostgreSQL veri tabanının çalıştırılması, yedeklenmesi ve güvenliğinin sağlanması. Hukuki sebep: KVKK m.5/2-c ve m.5/2-f. Veri tabanında satır düzeyi güvenlik (RLS) etkindir ve ayrıcalıklı erişim anahtarları yalnızca sunucu tarafında tutulur.",
           },
@@ -6738,7 +6738,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Aktarım amacı: İnternet sitesinin, online mağazanın ve mobil uygulamanın sunulması, veri tabanının barındırılması, işlemsel e-postaların ve bildirimlerin iletilmesi, onay verdiyseniz reklam ölçümlemesi.",
-          "Kullanılan başlıca altyapılar: Barındırma ve dağıtım için Vercel, veri tabanı için Neon (PostgreSQL), işlemsel ve toplu e-posta gönderimi için Resend, ödeme işlemleri için 6493 sayılı Kanun kapsamında yetkilendirilmiş ödeme kuruluşu iyzico.",
+          "Kullanılan başlıca altyapılar: Barındırma ve dağıtım için Vercel, veri tabanı için {{DB_PROVIDER}} (PostgreSQL), işlemsel ve toplu e-posta gönderimi için Resend, ödeme işlemleri için 6493 sayılı Kanun kapsamında yetkilendirilmiş ödeme kuruluşu iyzico.",
           "Aktarılan veri kategorileri: Kimlik ve iletişim bilgileri, üyelik, puan ve sipariş kayıtları, işlem güvenliği kayıtları, çerez ve cihaz bilgileri.",
           "Alıcı grupları: Barındırma ve dağıtım sağlayıcıları, PostgreSQL veri tabanı sağlayıcısı, e-posta ve bildirim gönderim sağlayıcıları, onaya bağlı olarak reklam ve analiz platformları.",
           "Aktarılmayan veriler: Kart numarası, son kullanma tarihi ve güvenlik kodu gibi ödeme aracı bilgileri şirketimizce hiçbir aşamada tutulmadığından şirketimiz tarafından yurt dışına aktarılmaz; bu bilgiler doğrudan iyzico altyapısında işlenir.",
@@ -7031,7 +7031,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Ödeme güvenliği: Ödeme sayfası iyzico Checkout Form üzerinde açılır; kart numarası, son kullanma tarihi ve güvenlik kodu hiçbir aşamada sitemizin veya uygulamamızın sunucularından geçmez ve saklanmaz. PCI-DSS yükümlülüğü iyzico'ya aittir, 3D Secure doğrulaması iyzico tarafından yürütülür.",
           "Kimlik doğrulama: Üye şifreleri geri döndürülemez özet fonksiyonuyla saklanır; yönetici erişimi zaman tabanlı tek kullanımlık kod ile iki aşamalı doğrulamaya tabidir.",
           "Yetki yönetimi: Personel erişimleri görev tanımıyla sınırlıdır ve en az yetki ilkesine göre tanımlanır; erişim yetkileri düzenli olarak gözden geçirilir.",
-          "Veri tabanı güvenliği: Veriler Neon (PostgreSQL) üzerinde barındırılan veri tabanında tutulur; uygulama dışından doğrudan erişim kapalıdır, bağlantılar şifrelenir ve erişim yetkileri sınırlandırılmıştır.",
+          "Veri tabanı güvenliği: Veriler {{DB_PROVIDER}} (PostgreSQL) üzerinde barındırılan veri tabanında tutulur; uygulama dışından doğrudan erişim kapalıdır, bağlantılar şifrelenir ve erişim yetkileri sınırlandırılmıştır.",
           "İzlenebilirlik: Rıza kayıtları dâhil tüm yönetici işlemleri değiştirilemez olay kaydına yazılır.",
           "Tedarikçi yönetimi: Veri işleyenlerle gizlilik ve veri işleme sözleşmeleri akdedilir; talimat dışı işleme yasaklanır.",
           "İhlal yönetimi: Kişisel veri ihlali hâlinde Kurul'a ve ilgili kişilere mevzuatta öngörülen sürelerde bildirim yapılır.",
@@ -7893,7 +7893,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kişisel veriler, aşağıda sayılan elektronik ve fiziki kayıt ortamlarında, güvenliklerinin sağlanmasına yönelik teknik ve idari tedbirler alınarak muhafaza edilir. Yeni bir kayıt ortamı devreye alındığında bu liste güncellenir ve ortama ilişkin saklama süresi ile imha yöntemi belirlenir.",
         ],
         bullets: [
-          "Uygulama veri tabanı: Müşteri hesapları, siparişler, ürün ve stok kayıtları, promosyon kullanımları, ödül puanı hareketleri ile olay kayıtlarının tutulduğu, Neon (PostgreSQL) altyapısında barındırılan veri tabanı. Erişim yalnızca sunucu tarafında saklanan bağlantı bilgisiyle, şifreli bağlantı üzerinden ve en az yetki ilkesine göre tanımlanmış veri tabanı kullanıcısıyla gerçekleşir; istemciye doğrudan veri tabanı erişimi verilmez.",
+          "Uygulama veri tabanı: Müşteri hesapları, siparişler, ürün ve stok kayıtları, promosyon kullanımları, ödül puanı hareketleri ile olay kayıtlarının tutulduğu, {{DB_PROVIDER}} (PostgreSQL) altyapısında barındırılan veri tabanı. Erişim yalnızca sunucu tarafında saklanan bağlantı bilgisiyle, şifreli bağlantı üzerinden ve en az yetki ilkesine göre tanımlanmış veri tabanı kullanıcısıyla gerçekleşir; istemciye doğrudan veri tabanı erişimi verilmez.",
           "Uygulama sunucuları ve barındırma ortamı: İnternet sitesinin ve mobil uygulama arka ucunun çalıştığı Vercel bulut barındırma altyapısı ile bu altyapıda oluşan uygulama günlükleri, hata kayıtları ve isteğe ilişkin teknik kayıtlar.",
           "E-posta ve işlemsel ileti sağlayıcısı: Sipariş onayı, e-posta doğrulama, şifre sıfırlama ve bilgilendirme iletilerinin gönderildiği Resend e-posta altyapısı ile gönderim kayıtları.",
           "Kurumsal e-posta kutuları: {{EMAIL}} adresine ulaşan talep, şikâyet, cayma bildirimi ve ilgili kişi başvurularının bulunduğu posta kutuları.",
@@ -8170,7 +8170,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Veri İşleyenler ve Yurt Dışına Aktarım Hâlinde İmha",
         paragraphs: [
-          "Şirket, faaliyetlerini yürütmek için barındırma (Vercel), veri tabanı (Neon üzerinde barındırılan PostgreSQL), işlemsel e-posta gönderimi (Resend), ödeme hizmeti (iyzico), mobil uygulama dağıtımı ile push bildirim iletimi, kargo, muhasebe ve müşteri iletişimi alanlarında hizmet sağlayıcılarla çalışır. Bu taraflar Şirketin talimatları doğrultusunda ve yalnızca sözleşmede belirlenen amaçlarla kişisel veri işleyebilir.",
+          "Şirket, faaliyetlerini yürütmek için barındırma (Vercel), veri tabanı ({{DB_PROVIDER}} üzerinde barındırılan PostgreSQL), işlemsel e-posta gönderimi (Resend), ödeme hizmeti (iyzico), mobil uygulama dağıtımı ile push bildirim iletimi, kargo, muhasebe ve müşteri iletişimi alanlarında hizmet sağlayıcılarla çalışır. Bu taraflar Şirketin talimatları doğrultusunda ve yalnızca sözleşmede belirlenen amaçlarla kişisel veri işleyebilir.",
           "Veri işleyenlerle akdedilen sözleşmelerde; verinin yalnızca talimat doğrultusunda işlenmesi, Kanunun veri güvenliğine ilişkin hükmü uyarınca uygun teknik ve idari tedbirlerin alınması, alt işleyen kullanımının önceden bildirime tabi olması, hizmetin sona ermesi hâlinde verilerin Şirkete iadesi veya imhası ve imhanın yazılı olarak teyit edilmesi yükümlülükleri yer alır.",
           "Barındırma, veri tabanı, işlemsel e-posta, mobil uygulama dağıtımı ve push bildirim hizmetlerinin sunucuları yurt dışında bulunabilir. Bu hâllerde aktarım, Kanunun kişisel verilerin yurt dışına aktarılmasına ilişkin hükmü çerçevesinde ve mevzuatın öngördüğü aktarım mekanizmalarına uygun olarak gerçekleştirilir. Aktarılan verilerin imhası, bu Politikadaki sürelere ve veri işleyenle akdedilen sözleşmeye göre yürütülür.",
           "Şirket, veri işleyenler nezdindeki saklama sürelerini yılda en az bir kez gözden geçirir; hizmet sözleşmesinin sona ermesi hâlinde en geç 30 gün içinde verilerin iadesini veya imhasını talep eder ve imha teyidini dosyalar.",
@@ -8235,7 +8235,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Teknik: Tüm veri trafiğinin TLS ile şifrelenmesi; internet sitesinin ve mobil uygulama arka uç iletişiminin yalnızca güvenli bağlantı üzerinden sunulması.",
-          "Teknik: Neon (PostgreSQL) veri tabanına erişimin yalnızca sunucu tarafında saklanan bağlantı bilgisiyle, şifreli bağlantı üzerinden ve en az yetki ilkesine göre tanımlanmış veri tabanı kullanıcısıyla gerçekleşmesi; istemci tarafına doğrudan veri tabanı erişimi verilmemesi.",
+          "Teknik: {{DB_PROVIDER}} (PostgreSQL) veri tabanına erişimin yalnızca sunucu tarafında saklanan bağlantı bilgisiyle, şifreli bağlantı üzerinden ve en az yetki ilkesine göre tanımlanmış veri tabanı kullanıcısıyla gerçekleşmesi; istemci tarafına doğrudan veri tabanı erişimi verilmemesi.",
           "Teknik: Kullanıcı şifrelerinin bcrypt ile geri döndürülemez biçimde özetlenmesi; düz metin şifre saklanmaması ve şifre sıfırlama jetonlarının kısa ömürlü olması.",
           "Teknik: Yönetici erişiminin zaman tabanlı tek kullanımlık parola (TOTP) ile çok faktörlü kimlik doğrulamaya bağlanması ve oturum çerezlerinin HMAC ile imzalanması.",
           "Teknik: Yönetici giriş denemelerinde hız sınırlama ve geçici kilitleme uygulanması, başarısız denemelerin kaydedilmesi.",
@@ -8794,9 +8794,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "Kategori: zorunlu. Sitenin yayınlanması, yönlendirme ve performans. Teknik oturum çerezleri kullanılabilir.",
           },
           {
-            key: "Neon (PostgreSQL veri tabanı)",
+            key: "{{DB_PROVIDER}} (PostgreSQL veri tabanı)",
             value:
-              "Kategori: zorunlu. Ürün, sipariş, üyelik ve puan verilerinin saklandığı, Neon üzerinde barındırılan PostgreSQL veri tabanı; erişim yalnızca sunucu tarafındaki yetkili servisle sınırlıdır ve bağlantı şifrelidir. Tarayıcınıza doğrudan çerez yerleştirmez.",
+              "Kategori: zorunlu. Ürün, sipariş, üyelik ve puan verilerinin saklandığı, {{DB_PROVIDER}} üzerinde barındırılan PostgreSQL veri tabanı; erişim yalnızca sunucu tarafındaki yetkili servisle sınırlıdır ve bağlantı şifrelidir. Tarayıcınıza doğrudan çerez yerleştirmez.",
           },
           {
             key: "Resend (işlemsel e-posta)",
@@ -8935,7 +8935,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Siteler arası istek sahteciliğine karşı koruma: sunucu eylemleri kaynak (origin) doğrulaması ve SameSite sınırlaması ile korunur.",
           "Yetkilendirme: yönetici paneline erişim rol bazlı yetkilendirmeye tabidir; yönetici hesapları iki aşamalı doğrulama (TOTP) ile korunur ve başarısız giriş denemeleri sınırlandırılır.",
           "Şifre güvenliği: üye ve yönetici şifreleri geri döndürülemez biçimde özetlenerek (bcrypt) saklanır; çerezlerde hiçbir şekilde şifre veya kart bilgisi taşınmaz.",
-          "Veri tabanı güvenliği: veriler Neon üzerinde barındırılan PostgreSQL veri tabanında, şifreli bağlantı üzerinden ve yalnızca sunucu tarafındaki yetkili servisin erişebildiği biçimde tutulur.",
+          "Veri tabanı güvenliği: veriler {{DB_PROVIDER}} üzerinde barındırılan PostgreSQL veri tabanında, şifreli bağlantı üzerinden ve yalnızca sunucu tarafındaki yetkili servisin erişebildiği biçimde tutulur.",
           "İzlenebilirlik: yönetici tarafından yapılan tüm veri değişiklikleri, sonradan değiştirilemeyen olay kaydına (audit log) yazılır.",
           "Erişim sınırlaması: çerez verilerine erişim, görevi gereği erişmesi gereken kişilerle sınırlıdır ve bu kişiler gizlilik yükümlülüğü altındadır.",
         ],
@@ -9637,7 +9637,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Veri tabanı",
             value:
-              "Neon (PostgreSQL) üzerinde barındırılan yönetilen PostgreSQL veri tabanı; standart PostgreSQL sürücüsü ile yalnızca sunucu tarafındaki yetkili servis üzerinden erişilir",
+              "{{DB_PROVIDER}} (PostgreSQL) üzerinde barındırılan yönetilen PostgreSQL veri tabanı; standart PostgreSQL sürücüsü ile yalnızca sunucu tarafındaki yetkili servis üzerinden erişilir",
           },
           {
             key: "E-posta gönderim sağlayıcısı",
@@ -10083,7 +10083,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Şirket, kendi ürettiği ve yayımladığı içerikler bakımından 5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun anlamında içerik sağlayıcı sıfatını haizdir ve bu içeriklerden sorumludur.",
           "Kullanıcılar tarafından Platforma yüklenen yorum, değerlendirme ve benzeri Kullanıcı İçeriği bakımından Şirket, anılan Kanun anlamında yer sağlayıcı konumundadır. Şirketin, barındırdığı Kullanıcı İçeriğini kontrol etme veya hukuka aykırı bir faaliyetin söz konusu olup olmadığını araştırma yönünde genel bir yükümlülüğü bulunmamaktadır. Bununla birlikte Şirket, hukuka aykırılıktan haberdar edilmesi hâlinde ilgili içeriği yayından kaldırmakla yükümlüdür.",
-          "Platform altyapısı Vercel bulut barındırma hizmeti üzerinde çalışmakta; veri tabanı hizmeti, Neon (PostgreSQL) üzerinde satır düzeyi güvenlik politikaları etkin biçimde yürütülmektedir. İşlemsel e-posta gönderimi Resend altyapısı, ödeme işlemleri ise iyzico altyapısı üzerinden gerçekleştirilir. Barındırma ve altyapı sağlayıcılarına ilişkin güncel bilgiye {{EMAIL}} adresine yapılacak başvuru ile ulaşılabilir.",
+          "Platform altyapısı Vercel bulut barındırma hizmeti üzerinde çalışmakta; veri tabanı hizmeti, {{DB_PROVIDER}} (PostgreSQL) üzerinde satır düzeyi güvenlik politikaları etkin biçimde yürütülmektedir. İşlemsel e-posta gönderimi Resend altyapısı, ödeme işlemleri ise iyzico altyapısı üzerinden gerçekleştirilir. Barındırma ve altyapı sağlayıcılarına ilişkin güncel bilgiye {{EMAIL}} adresine yapılacak başvuru ile ulaşılabilir.",
           "Mobil Uygulama, App Store ve Google Play uygulama mağazaları üzerinden dağıtılır. Mağaza işletmecileri yalnızca dağıtım kanalı konumundadır; Platform içeriğinin sağlayıcısı Şirkettir.",
           "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca Şirket; kendi mal ve hizmetlerini kendi elektronik ticaret ortamında satan hizmet sağlayıcı sıfatıyla faaliyet göstermektedir. Şirket, üçüncü kişilere ait mal veya hizmetlerin satışına aracılık etmemektedir.",
           "6102 sayılı Türk Ticaret Kanunu'nun internet sitesine ilişkin hükümleri ile elektronik ticaret mevzuatı uyarınca yayımlanması gereken tanıtıcı bilgiler, işbu Şartların 22. maddesindeki iletişim tablosunda ve Platformun ilgili bölümlerinde erişime açık tutulur.",
@@ -10125,7 +10125,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Şirket, kötüye kullanım veya güvenlik tehdidi tespiti hâlinde belirli IP adresleri ya da bölgelerden erişimi geçici olarak kısıtlayabilir.",
           "Mobil Uygulamanın eski sürümlerine verilen destek, güvenlik ve uyumluluk gerekçeleriyle sona erdirilebilir; bu durumda Kullanıcıdan güncelleme yapması istenir.",
           "Uygulama mağazalarının politika değişiklikleri ya da teknik kısıtlamaları nedeniyle Mobil Uygulamanın belirli işlevleri değişebilir veya kullanımdan kaldırılabilir.",
-          "Şirket, teknik altyapı sağlayıcılarını (Vercel barındırma, Neon PostgreSQL veri tabanı, Resend e-posta ve iyzico ödeme hizmetleri dâhil) önceden bildirimde bulunmaksızın değiştirebilir; bu değişiklik veri güvenliği standartlarını düşürecek biçimde yapılamaz.",
+          "Şirket, teknik altyapı sağlayıcılarını (Vercel barındırma, {{DB_PROVIDER}} PostgreSQL veri tabanı, Resend e-posta ve iyzico ödeme hizmetleri dâhil) önceden bildirimde bulunmaksızın değiştirebilir; bu değişiklik veri güvenliği standartlarını düşürecek biçimde yapılamaz.",
           "Yönetim paneline erişim çok faktörlü kimlik doğrulama (TOTP) ile korunur ve tüm yönetici işlemleri değiştirilemez olay kaydına (audit log) yazılır.",
         ],
       },
@@ -10575,7 +10575,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Şifre sıfırlama bağlantıları tek kullanımlıktır ve sınırlı süre sonunda geçersiz hâle gelir.",
           "Ardışık başarısız giriş denemelerinde hesap, kaba kuvvet saldırılarına karşı geçici olarak kilitlenir.",
           "Yönetim paneline erişim, zaman tabanlı tek kullanımlık parola (TOTP) ile iki aşamalı doğrulamaya tabidir ve tüm yönetici işlemleri değiştirilemez olay kaydına yazılır.",
-          "Üyelik verileri Neon (PostgreSQL) altyapısında barındırılan veri tabanında tutulur; veri tabanına erişim yalnızca uygulama sunucusu üzerinden ve yetkilendirilmiş bağlantı bilgileriyle yapılır, uygulama dışından doğrudan erişim engellenir.",
+          "Üyelik verileri {{DB_PROVIDER}} (PostgreSQL) altyapısında barındırılan veri tabanında tutulur; veri tabanına erişim yalnızca uygulama sunucusu üzerinden ve yetkilendirilmiş bağlantı bilgileriyle yapılır, uygulama dışından doğrudan erişim engellenir.",
           "Platform ile cihaz arasındaki tüm trafik TLS ile şifrelenir; Mobil Uygulama oturum bilgisi cihazın güvenli depolama alanında tutulur.",
           "Üye, hesabına yetkisiz erişimden şüphelenmesi hâlinde derhâl şifresini değiştirmeli ve durumu {{EMAIL}} adresine veya {{PHONE}} numarasına bildirmelidir.",
         ],
@@ -10735,7 +10735,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Mobil Uygulama kullanıldığında ayrıca cihaz tanımlayıcıları (IDFA/AAID), push bildirim tokeni, uygulama sürümü, işletim sistemi bilgisi ve çökme (crash) kayıtları; Üye izin verirse yaklaşık konum bilgisi; karekod okutulması sırasında ise kamera erişimi söz konusu olur. Kamera görüntüsü kaydedilmez; yalnızca okunan karekodun işlem sonucu tutulur.",
           "Puan ve harcama geçmişinin, Üye'ye özel teklif ve kampanya oluşturmak amacıyla analiz edilmesi ve profilleme yapılması yalnızca Üye'nin ayrıca vereceği açık rızaya dayanılarak gerçekleştirilir. Açık rıza verilmemesi veya geri alınması, üyeliğin kullanımını ve puan kazanımını engellemez.",
           "Verilerin işlenmesine ilişkin ayrıntılı bilgi; işlenen veri kategorileri, hukuki sebepler, aktarım yapılan taraflar, saklama süreleri ve ilgili kişinin hakları Platform'da yayımlanan Gizlilik ve Kişisel Verilerin Korunması Politikası ile Aydınlatma Metni'nde yer alır.",
-          "Barındırma (Vercel), veri tabanı (Neon üzerinde çalışan PostgreSQL), işlemsel e-posta (Resend) ve ödeme (iyzico) hizmetleri nedeniyle kişisel verilerin yurt dışında bulunan sunuculara aktarılması söz konusu olabilir. Bu aktarımlar, Kanun'un yurt dışına aktarıma ilişkin hükmü çerçevesinde ve uygun güvencelerle gerçekleştirilir; ayrıntılar aydınlatma metninde açıklanır.",
+          "Barındırma (Vercel), veri tabanı ({{DB_PROVIDER}} üzerinde çalışan PostgreSQL), işlemsel e-posta (Resend) ve ödeme (iyzico) hizmetleri nedeniyle kişisel verilerin yurt dışında bulunan sunuculara aktarılması söz konusu olabilir. Bu aktarımlar, Kanun'un yurt dışına aktarıma ilişkin hükmü çerçevesinde ve uygun güvencelerle gerçekleştirilir; ayrıntılar aydınlatma metninde açıklanır.",
           "İlgili kişi sıfatıyla Üye, Kanun'un ilgili kişinin haklarını düzenleyen hükmünde sayılan taleplerini {{EMAIL}} adresine veya {{ADDRESS}} adresine yazılı olarak iletebilir. Başvurular, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca en geç otuz gün içinde sonuçlandırılır.",
         ],
       },
@@ -10776,7 +10776,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Doğal afet, yangın, salgın hastalık ve olağanüstü hâl ilanı.",
           "Genel elektrik veya internet altyapısında yaşanan ülke çapında kesintiler.",
-          "Barındırma (Vercel), veri tabanı (Neon üzerinde çalışan PostgreSQL), işlemsel e-posta (Resend) veya ödeme (iyzico) altyapısı sağlayıcılarında meydana gelen ve Şirket'in kontrolü dışında kalan arızalar.",
+          "Barındırma (Vercel), veri tabanı ({{DB_PROVIDER}} üzerinde çalışan PostgreSQL), işlemsel e-posta (Resend) veya ödeme (iyzico) altyapısı sağlayıcılarında meydana gelen ve Şirket'in kontrolü dışında kalan arızalar.",
           "Uygulama mağazalarının erişilebilirliğinde veya dağıtım süreçlerinde yaşanan ve Şirket'in kontrolü dışında kalan kesintiler.",
           "Yetkili mercilerin idari kararları, ithalat veya gümrük kısıtlamaları.",
           "Kargo şirketlerinin faaliyetlerini durduran grev, lokavt veya ulaşım engelleri.",
@@ -11395,7 +11395,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Kafede QR kod okutulması için kamera erişimi yalnızca okuma anında kullanılır; görüntü kaydedilmez.",
           "Yaklaşık konum bilgisi, yalnızca Katılımcı izin verirse ve en yakın şubenin gösterilmesi gibi işlevler için işlenir; konum izni verilmemesi puan kazanımını etkilemez.",
-          "Barındırma hizmeti Vercel, veri tabanı hizmeti Neon (PostgreSQL) ve işlemsel e-posta gönderimi Resend altyapısı üzerinden sağlanır; bu nedenle kişisel verilerin yurt dışındaki sunuculara aktarılması söz konusu olabilir. Aktarımlar, Kanun'un yurt dışına aktarıma ilişkin hükmü çerçevesinde ve uygun güvencelerle gerçekleştirilir.",
+          "Barındırma hizmeti Vercel, veri tabanı hizmeti {{DB_PROVIDER}} (PostgreSQL) ve işlemsel e-posta gönderimi Resend altyapısı üzerinden sağlanır; bu nedenle kişisel verilerin yurt dışındaki sunuculara aktarılması söz konusu olabilir. Aktarımlar, Kanun'un yurt dışına aktarıma ilişkin hükmü çerçevesinde ve uygun güvencelerle gerçekleştirilir.",
           "Puan hareketleri, mevzuattan doğan saklama yükümlülükleri ile olası uyuşmazlıklarda ispat amacıyla saklanır; saklama süreleri Veri Saklama ve İmha Politikası'nda gösterilir.",
           "Program verileri, Katılımcı'nın açık rızası olmaksızın pazarlama amaçlı olarak üçüncü kişilere satılmaz veya devredilmez.",
         ],
@@ -11403,7 +11403,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "21. Puan Hareketlerinin Kaydı, İtiraz ve Delil Sözleşmesi",
         paragraphs: [
-          "Her puan kazanımı, harcaması, geri yüklemesi, geri alınması ve sona ermesi; tarih, saat, tutar, ilgili sipariş veya adisyon numarası ve gerekçe bilgisiyle birlikte kayıt altına alınır. Bu kayıtlar Neon (PostgreSQL) veri tabanında, sonradan değiştirilemeyecek biçimde ve erişim izleri tutularak saklanır.",
+          "Her puan kazanımı, harcaması, geri yüklemesi, geri alınması ve sona ermesi; tarih, saat, tutar, ilgili sipariş veya adisyon numarası ve gerekçe bilgisiyle birlikte kayıt altına alınır. Bu kayıtlar {{DB_PROVIDER}} (PostgreSQL) veri tabanında, sonradan değiştirilemeyecek biçimde ve erişim izleri tutularak saklanır.",
           "Katılımcı, puan bakiyesine veya herhangi bir puan hareketine ilişkin itirazını, hareketi öğrendiği tarihten itibaren makul bir süre içinde {{EMAIL}} adresine iletebilir. İtiraz, sipariş ve kasa kayıtları üzerinden incelenir ve sonucu Katılımcı'ya yazılı olarak bildirilir. İnceleme sonucunda Katılımcı lehine bir hata tespit edilirse puan gecikmeksizin düzeltilir.",
           "Taraflar, Programdan doğabilecek uyuşmazlıklarda Şirket'in defter, kayıt ve belgeleri ile sunucu ve veri tabanı kayıtlarının 6100 sayılı Hukuk Muhakemeleri Kanunu'nun delil sözleşmesine ilişkin hükmü çerçevesinde delil teşkil edeceğini kabul eder.",
           "Katılımcı'nın tüketici sıfatını haiz olduğu uyuşmazlıklarda bu kayıtlar kesin delil niteliği taşımaz; Katılımcı her türlü karşı delili serbestçe ileri sürebilir. İşbu madde, tüketicinin ispat imkânlarını ve yasal haklarını sınırlandıracak biçimde yorumlanamaz.",
@@ -11930,7 +11930,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "16. Üçüncü Taraf SDK'ları, Kütüphaneler ve Altyapı",
         paragraphs: [
           "Uygulama'nın çalışabilmesi için işletim sistemi bileşenleri ile bazı üçüncü taraf yazılım geliştirme kitleri ve kütüphaneler kullanılır. Bu bileşenler, yalnızca ilgili işlevin gerektirdiği verilere erişir ve kendi hizmet koşulları ile gizlilik politikalarına tabidir.",
-          "Uygulama ve arka uç hizmetleri Vercel altyapısında barındırılmakta; veriler Neon (PostgreSQL) üzerinde tutulmakta; işlemsel e-postalar Resend üzerinden gönderilmekte; ödeme işlemleri iyzico üzerinden yürütülmektedir. Bu hizmet sağlayıcıları, Şirket'in veri işleyeni sıfatıyla ve Şirket'in talimatları doğrultusunda hareket eder.",
+          "Uygulama ve arka uç hizmetleri Vercel altyapısında barındırılmakta; veriler {{DB_PROVIDER}} (PostgreSQL) üzerinde tutulmakta; işlemsel e-postalar Resend üzerinden gönderilmekte; ödeme işlemleri iyzico üzerinden yürütülmektedir. Bu hizmet sağlayıcıları, Şirket'in veri işleyeni sıfatıyla ve Şirket'in talimatları doğrultusunda hareket eder.",
           "Kullanılan hizmet sağlayıcıları nedeniyle kişisel verilerin yurt dışında bulunan sunuculara aktarılması söz konusu olabilir. Bu aktarımlar 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükmü çerçevesinde ve uygun güvencelerle gerçekleştirilir; ayrıntılar Aydınlatma Metni'nde açıklanır.",
           "Şirket, kullandığı üçüncü taraf bileşenleri güvenlik ve uyumluluk gereklilikleri doğrultusunda değiştirebilir. Kişisel veri işlenmesini etkileyen değişiklikler, Gizlilik ve Kişisel Verilerin Korunması Politikası ile Aydınlatma Metni'nde güncellenir.",
         ],
@@ -12430,7 +12430,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Veri tabanı",
             value:
-              "Neon (PostgreSQL) yönetilen veri tabanı hizmeti; erişim yalnızca sunucu tarafı kimlik bilgileriyle sağlanır",
+              "{{DB_PROVIDER}} (PostgreSQL) yönetilen veri tabanı hizmeti; erişim yalnızca sunucu tarafı kimlik bilgileriyle sağlanır",
           },
           {
             key: "İşlemsel e-posta",
@@ -12835,16 +12835,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "{{ADDRESS}}",
           },
           {
-            key: "Pazartesi - Perşembe",
-            value: "08:00 - 22:00",
-          },
-          {
-            key: "Cuma - Cumartesi",
-            value: "08:00 - 23:00",
-          },
-          {
-            key: "Pazar",
-            value: "09:00 - 22:00",
+            // Tek satır ve token ile: gün gün yazılmış sabit değerler, saat
+            // değiştiğinde güncellenmeyi unutulan yer oldu. Kanonik kaynak
+            // entity.ts içindeki cafeHours.
+            key: "Kafe çalışma saatleri",
+            value: "{{CAFE_HOURS}}",
           },
           {
             key: "Online mağaza (sipariş alma)",
@@ -12991,7 +12986,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Veri tabanı",
             value:
-              "Neon (PostgreSQL) - üyelik, sipariş, ürün, stok, puan ve olay kaydı verilerinin saklanması; veri tabanına yalnızca sunucu tarafındaki uygulama katmanı erişir",
+              "{{DB_PROVIDER}} (PostgreSQL) - üyelik, sipariş, ürün, stok, puan ve olay kaydı verilerinin saklanması; veri tabanına yalnızca sunucu tarafındaki uygulama katmanı erişir",
           },
           {
             key: "İşlemsel e-posta",
@@ -14086,7 +14081,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Şikâyet kayıtlarınız, KVKK m.5 kapsamında sözleşmenin kurulması ve ifası ile hukuki yükümlülüklerimizin yerine getirilmesi ve meşru menfaatimiz hukuki sebeplerine dayanılarak işlenir.",
           "Şikâyet dosyasında yer alan fotoğraf, video ve yazışmalar, olası bir uyuşmazlıkta delil olarak kullanılabilmesi amacıyla Veri Saklama ve İmha Politikamızda belirtilen süreler boyunca saklanır, süre sonunda silinir, yok edilir veya anonim hale getirilir.",
           "Sağlık verisi niteliğindeki bilgiler (alerjik reaksiyon bildirimi, rapor) KVKK m.6 kapsamında özel nitelikli kişisel veridir; yalnızca açık rızanız veya Kanun'un öngördüğü diğer şartların varlığı hâlinde ve sınırlı erişimli olarak işlenir.",
-          "Barındırma (Vercel), veri tabanı — Neon (PostgreSQL) — ve işlemsel e-posta (Resend) hizmetleri ile ödeme işlemlerinin yürütülmesi kapsamında yurt dışına veri aktarımı söz konusu olabilir; bu aktarımlar KVKK m.9 çerçevesinde ve Aydınlatma Metni'nde açıklandığı şekilde yürütülür.",
+          "Barındırma (Vercel), veri tabanı — {{DB_PROVIDER}} (PostgreSQL) — ve işlemsel e-posta (Resend) hizmetleri ile ödeme işlemlerinin yürütülmesi kapsamında yurt dışına veri aktarımı söz konusu olabilir; bu aktarımlar KVKK m.9 çerçevesinde ve Aydınlatma Metni'nde açıklandığı şekilde yürütülür.",
           "Yönetici erişimi TOTP tabanlı iki aşamalı doğrulama ile korunur, tüm yönetici mutasyonları değiştirilemez olay kaydına yazılır ve şifreler bcrypt ile özetlenerek saklanır; veri güvenliğine ilişkin bu tedbirler KVKK m.12 yükümlülüğümüz kapsamındadır.",
           "Bir veri ihlali yaşanması hâlinde, mevzuatın öngördüğü şekilde Kişisel Verileri Koruma Kurulu'na ve etkilenen ilgili kişilere en kısa sürede bildirim yapılır.",
           "Mobil uygulamayı kullanmanız hâlinde cihaz tanımlayıcıları (IDFA/AAID), push bildirim tokeni, uygulama sürümü, işletim sistemi bilgisi ve çökme (crash) kayıtları işlenir; yaklaşık konum ve QR okutma için kamera erişimi yalnızca cihaz izni vermeniz hâlinde ve verdiğiniz izinle sınırlı olarak kullanılır. İzinleri cihaz ayarlarınızdan her zaman geri alabilirsiniz.",
@@ -14209,7 +14204,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "22. Şikâyet Kayıtlarının Tutulması, Saklanması ve İyileştirme Amaçlı Kullanımı",
         paragraphs: [
           "Her şikâyet kaydı; başvuru kanalı, başvuru tarihi ve saati, sipariş ilişkisi, kategori, öncelik, atanan sorumlu, tüm yazışmalar, ekler, verilen karar, kararın gerekçesi, uygulanan çözüm ve kapanış tarihi ile birlikte elektronik ortamda tutulur. Kayıt üzerindeki yönetici işlemleri değiştirilemez olay kaydına (audit log) yazılır; böylece bir kaydın geriye dönük olarak değiştirilip değiştirilmediği denetlenebilir.",
-          "Şikâyet kayıtları, Neon (PostgreSQL) altyapısında barındırılan veri tabanımızda satır düzeyi güvenlik (RLS) açık olacak şekilde saklanır ve yalnızca yetkili personel tarafından erişilebilir. Yönetici erişimleri iki aşamalı doğrulama ile korunur. Kayıtlar, Veri Saklama ve İmha Politikamızda belirlenen saklama süreleri boyunca muhafaza edilir; süre sonunda silinir, yok edilir veya anonim hale getirilir.",
+          "Şikâyet kayıtları, {{DB_PROVIDER}} (PostgreSQL) altyapısında barındırılan veri tabanımızda satır düzeyi güvenlik (RLS) açık olacak şekilde saklanır ve yalnızca yetkili personel tarafından erişilebilir. Yönetici erişimleri iki aşamalı doğrulama ile korunur. Kayıtlar, Veri Saklama ve İmha Politikamızda belirlenen saklama süreleri boyunca muhafaza edilir; süre sonunda silinir, yok edilir veya anonim hale getirilir.",
           "Şikâyet verileri, bireysel çözümün ötesinde hizmet kalitemizi geliştirmek için de kullanılır. Belirli aralıklarla tekrarlayan şikâyet kalıpları analiz edilir; kök neden tespit edildiğinde ürün açıklaması, paketleme standardı, tedarikçi seçimi veya süreç tasarımı düzeltilir. Bu analizler, mümkün olan her durumda kimliği belirsiz hâle getirilmiş veriler üzerinden yürütülür.",
         ],
         bullets: [

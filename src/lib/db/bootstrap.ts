@@ -123,25 +123,50 @@ export function ensureSchema(pool: Pool): Promise<void> {
 async function applySchema(pool: Pool): Promise<void> {
   const client = await pool.connect();
   try {
-    // Serialise across instances: concurrent CREATE TABLE on the same names can
-    // deadlock even with `if not exists`.
-    await client.query("select pg_advisory_lock($1)", [LOCK_KEY]);
+    // Everything runs inside ONE transaction, and the lock is the
+    // transaction-scoped `pg_advisory_xact_lock` rather than the session-scoped
+    // `pg_advisory_lock`.
+    //
+    // This is not a style preference. Under a transaction-pooling proxy —
+    // Supabase's pooler on :6543, PgBouncer in transaction mode, any pooled
+    // endpoint — a checked-out client is bound to a server backend only for the
+    // duration of a transaction. A session lock taken by one statement can
+    // therefore be held on a backend that the NEXT statement does not reach:
+    // the mutual exclusion silently stops existing, which is the worst possible
+    // failure for the one code path whose entire job is to stop two instances
+    // running CREATE TABLE at the same time. A transaction lock is pinned to
+    // the transaction, so it is correct on a direct connection and behind any
+    // pooler, and it is released by COMMIT/ROLLBACK rather than by a best-effort
+    // unlock that may address the wrong backend.
+    //
+    // Wrapping the bundle also makes the apply atomic: a crash halfway through
+    // leaves no half-built schema. Verified transaction-safe — the bundle has no
+    // CREATE INDEX CONCURRENTLY / VACUUM, and every `begin` in it is a PL/pgSQL
+    // body, not transaction control.
+    await client.query("begin");
+    try {
+      await client.query("select pg_advisory_xact_lock($1)", [LOCK_KEY]);
 
-    // Re-check under the lock — another instance may have just finished.
-    if (await isUpToDate(client)) return;
+      // Re-check under the lock — another instance may have just finished.
+      if (await isUpToDate(client)) {
+        await client.query("commit");
+        return;
+      }
 
-    console.warn(
-      "[db-bootstrap] şema güncel değil — db/schema.sql uygulanıyor",
-    );
-    await client.query(SCHEMA_SQL);
-    console.warn("[db-bootstrap] şema uygulandı");
-  } finally {
-    await client
-      .query("select pg_advisory_unlock($1)", [LOCK_KEY])
-      .catch(() => {
-        // Releasing is best-effort; the lock is session-scoped and the
-        // connection closing drops it anyway.
+      console.warn(
+        "[db-bootstrap] şema güncel değil — db/schema.sql uygulanıyor",
+      );
+      await client.query(SCHEMA_SQL);
+      await client.query("commit");
+      console.warn("[db-bootstrap] şema uygulandı");
+    } catch (err) {
+      await client.query("rollback").catch(() => {
+        // Already aborted or the connection is gone; the transaction — and
+        // with it the lock — is finished either way.
       });
+      throw err;
+    }
+  } finally {
     client.release();
   }
 }

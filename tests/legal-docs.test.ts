@@ -9,33 +9,22 @@ import {
   findLegalDoc,
 } from "@/lib/legal/documents";
 import { LEGAL_CONTENT } from "@/lib/legal/content";
-import { LEGAL_ENTITY, fillTokens, hasEmptyToken } from "@/lib/legal/entity";
+import {
+  LEGAL_ENTITY,
+  LEGAL_TOKEN_NAMES,
+  fillTokens,
+  hasEmptyToken,
+} from "@/lib/legal/entity";
 import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
 
-/** Every `{{TOKEN}}` the entity module knows how to fill. */
-const KNOWN_TOKENS = new Set([
-  "LEGAL_NAME",
-  "SHORT_NAME",
-  "BRAND",
-  "ADDRESS",
-  "PHONE",
-  "EMAIL",
-  "TAX_OFFICE",
-  "TAX_NO",
-  "TAX_TYPE",
-  "STARTED_AT",
-  "MERSIS",
-  "TRADE_REGISTRY",
-  "KEP",
-  "IBAN",
-  "BANK",
-  "SITE",
-  "SITE_URL",
-  "HANDLE",
-  "IG",
-  "TIKTOK",
-  "YOUTUBE",
-]);
+/**
+ * Every `{{TOKEN}}` the entity module knows how to fill.
+ *
+ * Derived from the entity module rather than hand-copied. A copied list is a
+ * third place to forget when a token is added, and the point of this test is
+ * to check content.ts against the authority — so it must read the authority.
+ */
+const KNOWN_TOKENS = new Set(LEGAL_TOKEN_NAMES);
 
 /** Every free-text string in a source document, paired with its locator. */
 function sourceStrings(): Array<[string, string]> {

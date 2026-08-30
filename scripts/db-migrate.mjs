@@ -38,9 +38,7 @@ function sslFor(connectionString) {
 
 async function main() {
   const url =
-    process.env.DATABASE_URL ??
-    process.env.POSTGRES_URL ??
-    process.env.NEON_DATABASE_URL;
+    process.env.DATABASE_URL || process.env.POSTGRES_URL;
   if (!url) {
     console.error(
       "DATABASE_URL yok. Örnek:\n  DATABASE_URL='postgres://...' npm run db:migrate",

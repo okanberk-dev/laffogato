@@ -34,6 +34,45 @@ export const LEGAL_ENTITY = {
     country: "Türkiye",
   },
 
+  /**
+   * Veri tabanı barındırma sağlayıcısının adı.
+   *
+   * KVKK aydınlatma metni, gizlilik politikası, çerez politikası ve veri
+   * işleyen listesi dâhil 35 hukuki pasajda geçer. Bunlar bağlayıcı beyandır:
+   * verinin nerede tutulduğunu ve yurt dışına aktarımın hangi sağlayıcı
+   * nedeniyle olduğunu söyler.
+   *
+   * Bu yüzden token: sağlayıcı değişirse 35 pasajın 34'ünü güncelleyip birini
+   * atlamak, yanlış bir hukuki beyan bırakmak demektir.
+   *
+   * DEĞERİ GERÇEĞİ İZLEMELİ. Veri fiilen taşınmadan burayı değiştirmeyin —
+   * belgede "Supabase" yazarken verinin Neon'da durması, bayat bir saatten
+   * çok daha ağır bir hatadır. Taşıma yapılırken bu satır, DATABASE_URL ile
+   * AYNI anda değişir.
+   */
+  dbProvider: "Neon",
+
+  /**
+   * Kafenin açılış saatleri — koddaki TEK kaynak.
+   *
+   * `closes` `opens`'tan KÜÇÜKTÜR: 01:00 ertesi sabaha aittir. schema.org bunu
+   * doğrudan böyle ifade eder, ayrı bir kodlama gerekmez.
+   *
+   * Burada durmasının sebebi bağımlılık yönü: `seo/site.ts` bu dosyadan import
+   * eder, tersi döngü olurdu. Bu yüzden alt katman olan burası kanonik kaynak,
+   * `SITE.openingHours` de buradan türetilir.
+   *
+   * Operasyonel saat (footer, JSON-LD) ayrıca panelden `settings.weeklyHours`
+   * ile yönetilir ve onu ezer — burası kod tarafındaki yedek ve hukuki
+   * belgelerin beslendiği yerdir.
+   */
+  cafeHours: {
+    opens: "09:00",
+    closes: "01:00",
+    /** Hukuki belge tablosunda basılan hâli. */
+    display: "Her gün 09:00 - 01:00",
+  },
+
   phone: "+90 536 429 09 19",
   /** Tüm resmi yazışma, KVKK başvurusu ve müşteri hizmetleri adresi. */
   email: "info@nextgenlab.com.tr",
@@ -98,6 +137,8 @@ const TOKENS: Record<string, string> = {
   SHORT_NAME: LEGAL_ENTITY.shortName,
   BRAND: LEGAL_ENTITY.brand,
   ADDRESS: LEGAL_ADDRESS_LINE,
+  CAFE_HOURS: LEGAL_ENTITY.cafeHours.display,
+  DB_PROVIDER: LEGAL_ENTITY.dbProvider,
   PHONE: LEGAL_ENTITY.phone,
   EMAIL: LEGAL_ENTITY.email,
   TAX_OFFICE: LEGAL_ENTITY.taxOffice,
@@ -117,6 +158,15 @@ const TOKENS: Record<string, string> = {
   TIKTOK: LEGAL_ENTITY.social.tiktok,
   YOUTUBE: LEGAL_ENTITY.social.youtube,
 };
+
+/**
+ * Doldurulabilen token adları.
+ *
+ * Dışa aktarılıyor ki testler bu listeyi elle kopyalamak zorunda kalmasın.
+ * Elle tutulan bir kopya, yeni bir token eklendiğinde güncellenmeyi unutulan
+ * üçüncü bir yerdir — bu dosyadaki saat hatasının aynısı.
+ */
+export const LEGAL_TOKEN_NAMES: readonly string[] = Object.keys(TOKENS);
 
 /** Her çağrıda taze bir regex — paylaşılan `lastIndex` durumu taşımasın. */
 const tokenRe = () => /\{\{([A-Z_]+)\}\}/g;

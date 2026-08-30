@@ -13,8 +13,9 @@ export { type Db, type DbError, type DbResult } from "./client";
  *
  * Deliberately a plain driver rather than a vendor SDK. The site was down for a
  * month because its data lived behind one provider's client and one provider's
- * account limit; `pg` talks to Neon's pooled endpoint, to any managed Postgres,
- * and to a local one in tests, so moving hosts is a connection-string change.
+ * account limit; `pg` talks to Supabase's pooler, to Neon's pooled endpoint, to
+ * any managed Postgres, and to a local one in tests, so moving hosts is a
+ * connection-string change rather than a rewrite.
  *
  * Lazy global singleton: the pool is NOT created at module load, so `next build`
  * can collect page data without live credentials. It is created on first
@@ -27,9 +28,15 @@ declare global {
 }
 
 function resolveConnectionString(): string {
+  // Order matters: the explicit variable wins, then the one Vercel's Postgres
+  // integrations (Supabase included) set automatically, then the provider
+  // specific ones. NEON_DATABASE_URL stays last and is legacy — it is kept only
+  // so that removing it cannot be the thing that takes the site down during a
+  // host migration. Delete it once the cutover is done and verified.
   const url =
     process.env.DATABASE_URL ??
     process.env.POSTGRES_URL ??
+    process.env.SUPABASE_DB_URL ??
     process.env.NEON_DATABASE_URL ??
     "";
   if (!url) {

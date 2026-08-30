@@ -98,8 +98,11 @@ export const SITE = {
   openingHours: [
     {
       days: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
-      opens: "09:00",
-      closes: "01:00",
+      // Türetilmiş, kopyalanmış değil: saat iki yerde yazılıysa biri
+      // güncellenmeden kalır — /hukuk/sirket-bilgileri tam olarak böyle
+      // eskimişti.
+      opens: LEGAL_ENTITY.cafeHours.opens,
+      closes: LEGAL_ENTITY.cafeHours.closes,
     },
   ],
   parent: {

@@ -3,7 +3,7 @@
  *
  * Deliberately free of any driver import so the whole surface is unit-testable
  * without a database: `compile()` turns a QuerySpec into parameterised SQL and
- * nothing else. The driver lives in `./neon.ts`, the chainable API in
+ * nothing else. The driver lives in `./index.ts`, the chainable API in
  * `./client.ts`.
  *
  * Identifier safety: table/column/function names can never be parameterised in

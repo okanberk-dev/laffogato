@@ -45,7 +45,8 @@ import {
 import type { WeeklyHours } from "./days";
 
 /**
- * Veri katmanı — Neon (Postgres) üzerinden çalışır.
+ * Veri katmanı — yönetilen bir Postgres üzerinden çalışır (bugün Neon).
+ * Sağlayıcıya özel bağımlılık yok; bkz. src/lib/db/index.ts.
  *
  * Public API'lerin tamamı async ve mevcut admin sayfalarıyla uyumlu kalır.
  * Tablo boşsa SEED verisi otomatik yüklenir (idempotent — yalnızca

@@ -1,13 +1,42 @@
-# Veritabanı — Postgres (Neon'da barındırılıyor)
+# Veritabanı — Postgres (bugün Neon'da barındırılıyor)
 
-Proje **Neon** üzerinde çalışır. Daha önce Supabase kullanılıyordu; Supabase'in
-ücretsiz planı organizasyon başına **2 aktif proje** ile sınırlı olduğu ve iki
-slot da başka projelerde dolu olduğu için Laffogato'nun projesi kaldırılmıştı —
-canlı sitedeki toplu HTTP 500'lerin sebebi buydu.
+Proje **yönetilen bir Postgres** üzerinde çalışır. Kodda sağlayıcıya özel
+bağımlılık yoktur; taşınma bağlantı dizesini değiştirmekten ibarettir.
+
+## ⚠️ Sağlayıcı geçmişi — okumadan taşıma yapma
+
+Bu proje **daha önce Supabase'deydi ve oradan taşındı.** Sebep bir tercih
+değil, bir kesintiydi:
+
+> Supabase'in ücretsiz planı organizasyon başına **2 aktif proje** ile
+> sınırlıdır. İki slot da başka projelerle doluyken L'Affogato'nun projesi
+> kaldırıldı; canlı sitedeki toplu HTTP 500'lerin ve **bir aylık kesintinin**
+> sebebi buydu.
 
 Neon'un ücretsiz planı **proje başına** kota verir ve limitlere takılmak veriyi
 silmez (Neon'un kendi ifadesiyle: _"None of these limits delete your data."_),
-yani aynı arıza tekrarlanamaz.
+yani aynı arıza Neon'da tekrarlanamaz.
+
+**Supabase'e geri dönmek isteniyorsa** — ki mobil uygulamayla ortak kimlik için
+iyi bir sebep var — geçişten önce şunun yazılı olarak doğrulanması gerekir:
+
+1. Hedef Supabase organizasyonu **ücretli planda** mı, yoksa
+2. Ücretsiz plandaysa, o organizasyonda **boş proje slotu** var mı ve
+   L'Affogato'nun projesi başka bir proje uğruna kaldırılmayacak mı?
+
+Bu doğrulanmadan taşıma, siteyi bir kez daha aynı şekilde kapatır. Karar
+operatöründür; bu belge yalnızca bedelin ne olduğunu kayda geçirir.
+
+## Sağlayıcı adı hukuki belgelerde geçer
+
+Sağlayıcının adı KVKK aydınlatma metni, gizlilik politikası, çerez politikası
+ve veri işleyen listesi dâhil **35 hukuki pasajda** geçer. Bunlar bağlayıcı
+beyandır. Bu yüzden ad düz metin değil, `{{DB_PROVIDER}}` token'ıdır ve tek
+kaynağı `src/lib/legal/entity.ts` içindeki `dbProvider` alanıdır.
+
+**Bu alan gerçeği izlemelidir.** Veri fiilen taşınmadan değeri değiştirmeyin:
+belgede "Supabase" yazarken verinin Neon'da durması yanlış hukuki beyandır.
+Taşıma sırasında `dbProvider` ile `DATABASE_URL` **aynı anda** değişir.
 
 ## Sürücü seçimi — neden `pg`
 
@@ -69,7 +98,7 @@ Bunun iki somut faydası var:
 
    | Değişken       | Değer                         | Ortam                |
    | -------------- | ----------------------------- | -------------------- |
-   | `DATABASE_URL` | Neon pooled connection string | Production + Preview |
+   | `DATABASE_URL` | Sağlayıcının pooled connection string'i | Production + Preview |
 
    Eski `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
    `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEY` değişkenlerini **sil** —
@@ -159,3 +188,27 @@ verilebilir olup olmadığı **asla** yedek veriden karar bağlanmaz.
 Seed yardımcıları artık reddedilen promise'i önbelleğe almıyor
 (`memoizeUntilRejected`): eskiden tek bir hata o sunucu örneğini kalıcı olarak
 bozuyor, düzelme için yeniden deploy gerekiyordu.
+
+## Supabase'e taşıma — sırası önemli
+
+Kod hazır (düz `pg`, adsız parametreli sorgular, işlem kapsamlı advisory lock).
+Eksik olan tek şey bağlantı dizesi ve verinin kendisi.
+
+1. **Slot/plan doğrula** — yukarıdaki uyarı. Bu adım atlanırsa gerisi anlamsız.
+2. **Bağlantı dizesini al** — Supabase panosu → Project Settings → Database →
+   Connection string. Pooler (`:6543`, transaction mode) ya da session pooler
+   (`:5432`) ikisi de çalışır; şema kurucu artık işlem kapsamlı kilit
+   kullandığı için transaction pooler'da da güvenlidir.
+3. **Şemayı kur** — `DATABASE_URL='<supabase>' npm run db:migrate`, ya da
+   `db/schema.sql` dosyasını Supabase SQL Editor'a yapıştır.
+4. **Veriyi taşı** — Neon'dan `pg_dump --data-only --no-owner`, Supabase'e
+   `psql`. Sıra: önce şema (3), sonra veri.
+5. **Doğrula** — satır sayıları iki tarafta eşit mi? Özellikle `orders`,
+   `customers`, `order_items`, `loyalty_*`.
+6. **Aynı anda:** `dbProvider` alanını `"Supabase"` yap **ve** Vercel'deki
+   `DATABASE_URL`'i değiştir, sonra deploy et.
+7. **Doğrulama sonrası** `NEON_DATABASE_URL` fallback'ini `src/lib/db/index.ts`
+   ve `scripts/db-migrate.mjs` içinden kaldır.
+
+Neon projesini **hemen silme.** Birkaç gün elde tut; geri dönmek gerekirse tek
+yapılacak şey bağlantı dizesini geri almak olsun.

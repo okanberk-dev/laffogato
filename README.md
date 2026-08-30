@@ -4,7 +4,8 @@
 yönetim paneli.
 
 **Next.js 16** (App Router) · **React 19** · **Tailwind v4** · **TypeScript** ·
-**Postgres (Neon)** — Vercel'de barındırılır.
+**Postgres** (bugün Neon'da) — uygulama Vercel'de barındırılır. Sağlayıcıya
+özel bağımlılık yok; taşınma bağlantı dizesi değişikliğidir.
 
 | Taraf       | Ne var                                                                                                                                      |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -26,7 +27,7 @@ npm run db:migrate             # şemayı kur (DATABASE_URL gerekir)
 npm run dev                    # http://localhost:3000
 ```
 
-Veritabanı kurulumunun ayrıntısı (Neon dâhil): **[docs/DATABASE.md](docs/DATABASE.md)**
+Veritabanı kurulumu, sağlayıcı geçmişi ve taşıma yordamı: **[docs/DATABASE.md](docs/DATABASE.md)**
 
 > **Build hakkında:** Bu ortamda `NODE_ENV=development` set edilmişse
 > `npm run build` `/_not-found` prerender'ında düşer. Doğrusu:
@@ -112,7 +113,7 @@ verildiği kadar kolay geri alınır (footer → "Çerez Tercihleri").
 
 | Değişken                         | Ne için                                             |
 | -------------------------------- | --------------------------------------------------- |
-| `DATABASE_URL`                   | Neon Postgres bağlantısı (**yalnızca server-side**) |
+| `DATABASE_URL`                   | Postgres bağlantısı (**yalnızca server-side**)      |
 | `NEXT_PUBLIC_SITE_URL`           | Kanonik site adresi                                 |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin girişi                                        |
 | `ADMIN_SESSION_SECRET`           | İmzalı cookie anahtarı (≥32 karakter)               |
@@ -142,7 +143,7 @@ iyzico kullanılacaksa ayrıca `IYZICO_API_KEY`, `IYZICO_SECRET_KEY`,
 | Belge                                    | İçerik                                                                   |
 | ---------------------------------------- | ------------------------------------------------------------------------ |
 | **[CLAUDE.md](CLAUDE.md)**               | Mimari kararlar, güvenlik kuralları, çalışma alışkanlıkları              |
-| **[docs/DATABASE.md](docs/DATABASE.md)** | Neon kurulumu, migration akışı, sürücü seçimi                            |
+| **[docs/DATABASE.md](docs/DATABASE.md)** | Kurulum, sağlayıcı geçmişi, taşıma yordamı, migration akışı, sürücü seçimi |
 | **[docs/SEO.md](docs/SEO.md)**           | Teknik + içerik SEO, anahtar kelime haritası, yeni sayfa kontrol listesi |
 | **[docs/AUDIT.md](docs/AUDIT.md)**       | Eylül 2026 denetimi: 71 bulgu, ne düzeltildi, ne açık kaldı              |
 | **[docs/PROMPT.md](docs/PROMPT.md)**     | Ürün spec'i ve MVP kapsamı                                               |
