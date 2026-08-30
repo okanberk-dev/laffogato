@@ -4,9 +4,11 @@ import type { DbError } from "@/lib/db";
 
 import {
   APP_ANNOUNCEMENT_KINDS,
+  APP_POST_KINDS,
   APP_SLIDE_ROUTES,
   APP_SLIDE_TONES,
   type AppAnnouncementKind,
+  type AppPostKind,
   type AppSlideTone,
 } from "./app-content-schema";
 
@@ -3400,10 +3402,13 @@ export {
   APP_SLIDE_ROUTE_LABELS,
   APP_ANNOUNCEMENT_KINDS,
   APP_ANNOUNCEMENT_KIND_LABELS,
+  APP_POST_KINDS,
+  APP_POST_KIND_LABELS,
 } from "./app-content-schema";
 export type {
   AppSlideTone,
   AppAnnouncementKind,
+  AppPostKind,
 } from "./app-content-schema";
 
 export interface AdminAppSlide {
@@ -3559,6 +3564,15 @@ const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
       "seed.appAnnouncements",
     );
   }
+  if ((await countRows(TABLES.appPosts)) === 0) {
+    check(
+      await sb.from(TABLES.appPosts).upsert(
+        SEED_APP_POSTS.map((p) => ({ ...p })),
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+      "seed.appPosts",
+    );
+  }
 });
 
 /** True when now falls inside the row's optional window. */
@@ -3675,6 +3689,185 @@ export async function deleteAppSlide(id: string): Promise<void> {
     await sb.from(TABLES.appHeroSlides).delete().eq("id", id),
     "deleteAppSlide",
   );
+}
+
+// ─── Mobile app posts: campaigns, collaborations, events ──────────────────
+//
+// Image-first cards in a horizontally scrollable strip below the hero. Unlike a
+// hero slide, a post may point OUTWARD — at an Instagram collaboration or a
+// ticket page — which is why its destination is a validated https URL opened in
+// an in-app browser rather than a route key resolved natively.
+
+export interface AdminAppPost {
+  id: string;
+  kind: AppPostKind;
+  title: string;
+  body: string;
+  /** Absolute https URL, or a data: URL uploaded from the panel. */
+  image: string;
+  /** Optional outward link. https only. */
+  linkUrl: string;
+  linkLabel: string;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt: string;
+  endsAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AppPostInput {
+  kind: AppPostKind;
+  title: string;
+  body: string;
+  image: string;
+  linkUrl: string;
+  linkLabel: string;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt: string;
+  endsAt: string;
+}
+
+const SEED_APP_POSTS: AdminAppPost[] = [
+  {
+    id: "apost-001",
+    kind: "campaign",
+    title: "Sabah ritüeli",
+    body: "Hafta içi 09:00–11:00 arası espresso bazlı içeceklerde ikinci kahve yarı fiyatına.",
+    image: "",
+    linkUrl: "",
+    linkLabel: "",
+    sortOrder: 0,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "apost-002",
+    kind: "event",
+    title: "Karaoke geceleri",
+    body: "Cuma ve cumartesi 21:00'den sonra üst kattaki karaoke odası açık. Rezervasyon öneriyoruz.",
+    image: "",
+    linkUrl: "",
+    linkLabel: "",
+    sortOrder: 1,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+/**
+ * Fails closed on anything that is not plainly an https URL.
+ *
+ * This is the one field where panel text becomes a destination, so the check is
+ * a parse rather than a pattern: `new URL` rejects the malformed cases a regex
+ * waves through, and the protocol test rejects `javascript:` and `data:` — the
+ * two that turn a link into an injection.
+ */
+function safeHttpsUrl(raw: string): string {
+  const value = raw.trim();
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString().slice(0, 2048) : "";
+  } catch {
+    return "";
+  }
+}
+
+function normalizeAppPost(input: AppPostInput): AppPostInput {
+  return {
+    kind: APP_POST_KINDS.includes(input.kind) ? input.kind : "campaign",
+    title: input.title.trim().slice(0, 80),
+    body: input.body.trim().slice(0, 280),
+    // The image goes through the same parse as the link. The form promises
+    // "https ile başlayan tam adres", and a promise the store does not enforce
+    // is a promise the panel breaks the first time someone pastes a path.
+    image: safeHttpsUrl(input.image),
+    linkUrl: safeHttpsUrl(input.linkUrl),
+    linkLabel: input.linkLabel.trim().slice(0, 32),
+    sortOrder: Number.isFinite(input.sortOrder)
+      ? Math.max(0, Math.floor(input.sortOrder))
+      : 0,
+    isActive: !!input.isActive,
+    startsAt: input.startsAt.trim().slice(0, 40),
+    endsAt: input.endsAt.trim().slice(0, 40),
+  };
+}
+
+export async function listAppPosts(): Promise<AdminAppPost[]> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  return rows<AdminAppPost>(
+    await sb
+      .from(TABLES.appPosts)
+      .select("*")
+      .order("sortOrder", { ascending: true })
+      .order("createdAt", { ascending: true }),
+    "listAppPosts",
+  );
+}
+
+/** What the mobile API serves: active, in-window, in order. */
+export async function listActiveAppPosts(): Promise<AdminAppPost[]> {
+  return publicRead("listActiveAppPosts", [], async () => {
+    const all = await listAppPosts();
+    return all.filter((p) => p.isActive && inWindow(p));
+  });
+}
+
+export async function getAppPost(id: string): Promise<AdminAppPost | null> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  return one<AdminAppPost>(
+    await sb.from(TABLES.appPosts).select("*").eq("id", id).maybeSingle(),
+    "getAppPost",
+  );
+}
+
+export async function createAppPost(input: AppPostInput): Promise<AdminAppPost> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  const now = new Date().toISOString();
+  const post: AdminAppPost = {
+    id: `apost-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    ...normalizeAppPost(input),
+    createdAt: now,
+    updatedAt: now,
+  };
+  check(await sb.from(TABLES.appPosts).insert(post), "createAppPost");
+  return post;
+}
+
+export async function updateAppPost(
+  id: string,
+  input: AppPostInput,
+): Promise<AdminAppPost | null> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  check(
+    await sb
+      .from(TABLES.appPosts)
+      .update({
+        ...normalizeAppPost(input),
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", id),
+    "updateAppPost",
+  );
+  return getAppPost(id);
+}
+
+export async function deleteAppPost(id: string): Promise<void> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  check(await sb.from(TABLES.appPosts).delete().eq("id", id), "deleteAppPost");
 }
 
 export async function listAppAnnouncements(): Promise<AdminAppAnnouncement[]> {

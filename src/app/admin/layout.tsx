@@ -86,6 +86,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
     items: [
       { href: "/admin/mobil/slaytlar", label: "Slaytlar", section: "mobileApp" },
       { href: "/admin/mobil/duyurular", label: "Duyurular", section: "mobileApp" },
+      { href: "/admin/mobil/gonderiler", label: "Gönderiler", section: "mobileApp" },
     ],
   },
   {

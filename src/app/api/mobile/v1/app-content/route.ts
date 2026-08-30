@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   listActiveAppAnnouncements,
+  listActiveAppPosts,
   listActiveAppSlides,
 } from "@/lib/admin/store";
 
@@ -23,9 +24,10 @@ export const maxDuration = 15;
  */
 export async function GET() {
   try {
-    const [slides, announcements] = await Promise.all([
+    const [slides, announcements, posts] = await Promise.all([
       listActiveAppSlides(),
       listActiveAppAnnouncements(),
+      listActiveAppPosts(),
     ]);
 
     return NextResponse.json(
@@ -47,6 +49,18 @@ export async function GET() {
           title: a.title,
           body: a.body,
           sortOrder: a.sortOrder,
+        })),
+        posts: posts.map((p) => ({
+          id: p.id,
+          kind: p.kind,
+          title: p.title,
+          body: p.body,
+          image: p.image || null,
+          // Already https-validated on write. Sent as null rather than "" so
+          // the app can test for a link without also testing for emptiness.
+          linkUrl: p.linkUrl || null,
+          linkLabel: p.linkLabel || null,
+          sortOrder: p.sortOrder,
         })),
       },
       {

@@ -18,6 +18,7 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
   shop_hero_slide: "Mağaza Hero",
   app_hero_slide: "Uygulama slaytı",
   app_announcement: "Uygulama duyurusu",
+  app_post: "Uygulama gönderisi",
   reel: "Reel",
   press: "Basın",
   story: "Hikaye",

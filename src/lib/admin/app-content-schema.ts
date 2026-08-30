@@ -69,3 +69,15 @@ export const APP_ANNOUNCEMENT_KIND_LABELS: Record<AppAnnouncementKind, string> =
     campaign: "Yeni / kampanya",
     hours: "Çalışma saatleri",
   };
+
+// ── Posts: campaigns, collaborations, events ───────────────────────────────
+
+export type AppPostKind = "campaign" | "collab" | "event";
+
+export const APP_POST_KINDS: AppPostKind[] = ["campaign", "collab", "event"];
+
+export const APP_POST_KIND_LABELS: Record<AppPostKind, string> = {
+  campaign: "Kampanya",
+  collab: "İş birliği",
+  event: "Etkinlik",
+};

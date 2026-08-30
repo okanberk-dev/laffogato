@@ -152,4 +152,5 @@ export const TABLES = {
   authAttempts: "auth_attempts",
   appHeroSlides: "app_hero_slides",
   appAnnouncements: "app_announcements",
+  appPosts: "app_posts",
 } as const;
