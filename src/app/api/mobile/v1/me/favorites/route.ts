@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { getProduct } from "@/lib/admin/store";
 import { toggleWishlist } from "@/lib/customer/store";
 import { requireMobileCustomer } from "@/lib/mobile/auth";
 import { apiError, apiJson } from "@/lib/mobile/respond";
