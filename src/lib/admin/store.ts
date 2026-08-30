@@ -21,6 +21,7 @@ import {
 import { nextSeq } from "@/lib/db/counters";
 import {
   applyCustomerCoupon,
+  couponAllowedForKind,
   redeemCustomerCoupon,
   releaseCustomerCoupon,
 } from "@/lib/customer/coupons";
@@ -1515,14 +1516,12 @@ async function insertOrderRow(
       );
       // A free-drink coupon (loyalty / invite) pays for a drink at the cafe;
       // on a shop order it would be ₺280 off a bag of beans. Dropped with the
-      // usual promoDropped flag so the app can say why.
-      const cafeOnly =
-        couponCheck.coupon?.source === "loyalty" ||
-        couponCheck.coupon?.source === "invite";
+      // usual promoDropped flag so the app can say why. The rule itself lives
+      // in coupon-utils so the preview cannot drift away from it again.
       if (
         couponCheck.ok &&
         couponCheck.coupon &&
-        (!cafeOnly || (f.kind ?? "shop") === "cafe")
+        couponAllowedForKind(couponCheck.coupon, f.kind)
       ) {
         const claimed = await redeemCustomerCoupon(
           couponCheck.coupon.code,

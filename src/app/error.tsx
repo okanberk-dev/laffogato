@@ -29,8 +29,8 @@ export default function AppError({
         display: "grid",
         placeItems: "center",
         padding: "48px 24px",
-        background: "var(--bg-warm, #f7f3ec)",
-        color: "var(--ink, #14100b)",
+        background: "var(--bg-warm, #f9f8f7)",
+        color: "var(--ink, #1d1c1c)",
       }}
     >
       <div style={{ maxWidth: 460, textAlign: "center" }}>
@@ -74,7 +74,7 @@ export default function AppError({
             style={{
               padding: "12px 22px",
               borderRadius: 999,
-              background: "var(--ink, #14100b)",
+              background: "var(--ink, #1d1c1c)",
               color: "#fff",
               fontSize: 14,
               fontWeight: 500,
@@ -87,8 +87,8 @@ export default function AppError({
             style={{
               padding: "12px 22px",
               borderRadius: 999,
-              border: "1px solid var(--ink-line, #e3dccf)",
-              color: "var(--ink, #14100b)",
+              border: "1px solid var(--ink-line, #e1e5e0)",
+              color: "var(--ink, #1d1c1c)",
               fontSize: 14,
               fontWeight: 500,
               textDecoration: "none",

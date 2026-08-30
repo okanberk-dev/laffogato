@@ -175,8 +175,8 @@ function Slide({
       ? "linear-gradient(to right, rgba(20,16,11,0.45), rgba(20,16,11,0.25) 60%, rgba(20,16,11,0.55))"
       : "linear-gradient(to right, rgba(255,255,255,0.35), rgba(255,255,255,0.1) 60%, rgba(255,255,255,0.35))"
     : isLight
-      ? "linear-gradient(135deg, #6E4220 0%, #2F1F10 100%)"
-      : "linear-gradient(135deg, #F5E6D3 0%, #E6D4B0 100%)";
+      ? "linear-gradient(135deg, #235347 0%, #12291f 100%)"
+      : "linear-gradient(135deg, #f3f5f2 0%, #e7eae7 100%)";
 
   const words = slide.title.trim().split(/\s+/);
   const lead = words.slice(0, -1).join(" ");

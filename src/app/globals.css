@@ -5,47 +5,52 @@
    ───────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surfaces — warmed to the L'Affogato logo cream (#FDF4E6) + espresso-brown
-     (#44301C). Heritage köşk palette: cream paper, white cards layer on top. */
-  --bg: #f7f3ea;
-  /* Four distinct paper tints, so stacked sections separate by value instead of
-     all resolving to the same beige. */
-  --bg-warm: #f2e8d6;
-  --bg-stone: #eae2d1;
-  --bg-cream: #fcf6ea;
-  --bg-espresso: #120d08;
+  /* Palette: the mobile app's, brought across.
+     Operator instruction, 2 Eyl 2026 — the app was built on the Starbucks-
+     derived theme in laffogato-mobil/docs/THEME.md and the site is now
+     revised to match it, so one brand reads the same on both surfaces. The
+     previous cream/terracotta/gold set is the heritage köşk palette; it
+     survives in laffogato-mobil/docs/BRAND.md Ek A as reference.
 
-  /* Ink — editorial espresso family */
-  --ink: #241c15;
-  --ink-soft: #5c4a39;
-  /* Darkened from #877a61 (3.80:1 on cream — below AA) to clear 4.5:1. */
-  --ink-mute: #7a6e56;
-  --ink-line: #e6dac6;
-  --ink-line-strong: #d8c8ac;
+     Every value below is a token from the app's `light` palette
+     (laffogato-mobil/src/theme/tokens.ts). The variable NAMES are unchanged,
+     so every component keeps working; only what they resolve to moved. */
 
-  /* Gold — the warm Italian secondary. Deep enough to carry body text on cream
-     (4.78:1); --gold-soft is for fills and for large type on dark surfaces. */
-  --gold: #8a6526;
-  --gold-deep: #6b4e1a;
-  --gold-soft: #e8d3a4;
+  /* Surfaces — app bg.canvas / subtle / sunken / surface / night */
+  --bg: #f9f8f7;
+  --bg-warm: #f3f5f2;
+  --bg-stone: #e7eae7;
+  --bg-cream: #ffffff;
+  --bg-espresso: #12291f;
 
-  /* Brand accent — warm terracotta on cream (accent words, primary CTAs,
-     links). Replaces the previous house green. Gold (neutral grey) stays the
-     warm Italian secondary. */
-  --accent: #c0643a;
-  --accent-deep: #97461f;
-  --accent-soft: #ead3c4;
+  /* Ink — app text.primary / secondary / tertiary, borders subtle + default */
+  --ink: #1d1c1c;
+  --ink-soft: #5b6660;
+  --ink-mute: #67716b;
+  --ink-line: #e1e5e0;
+  --ink-line-strong: #c4cbc4;
 
-  /* Brand — espresso logo brown, used for the masked logo lockups */
-  --brand: #2e2218;
+  /* Gold — app accent.goldFg carries text (it is the accessible one);
+     accent.gold is the fill. --gold-deep is the pressed step. */
+  --gold: #7d5f27;
+  --gold-deep: #634a1e;
+  --gold-soft: #e8c877;
 
-  /* Semantic state. --matcha is the positive/in-stock signal: it used to be
-     unused, which left the system with no success colour, so "in stock" was
-     painted in the same warm red family as the "almost gone" warning and the
-     two read alike at a glance. Deepened from #6a8a4a (3.55:1 on cream —
-     below AA) to clear it. */
-  --rose: #c5435a;
-  --matcha: #4f6b34;
+  /* Brand accent — app accent.burgundy. Replaces the terracotta: it is what
+     the app paints its premium and offer surfaces with. */
+  --accent: #84233c;
+  --accent-deep: #6e1d32;
+  --accent-soft: #f6e9ec;
+
+  /* Brand — the logo mask colour. The app tints the mark with brand.primary,
+     so the site's lockups follow it instead of staying espresso brown. */
+  --brand: #235347;
+
+  /* Semantic state — app state.danger and state.success. Success is the house
+     green, exactly as in the app; the hue gap to --rose keeps "in stock" and
+     "almost gone" from reading alike. */
+  --rose: #bb251b;
+  --matcha: #235347;
 
   /* Type — premium corporate stack
      --serif:         Playfair Display (editorial italic, brand heritage)

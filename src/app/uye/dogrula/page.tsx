@@ -24,7 +24,7 @@ export default async function VerifyPage({ searchParams }: PageProps) {
         display: "grid",
         placeItems: "center",
         padding: "48px 20px",
-        background: "var(--bg, #FAF6EE)",
+        background: "var(--bg, #f9f8f7)",
       }}
     >
       <div
@@ -45,8 +45,8 @@ export default async function VerifyPage({ searchParams }: PageProps) {
             borderRadius: "50%",
             display: "grid",
             placeItems: "center",
-            background: ok ? "#E7F2EA" : "#FBE9E7",
-            color: ok ? "#2F7A52" : "#B5402F",
+            background: ok ? "#dfeae2" : "#f6e9ec",
+            color: ok ? "#235347" : "#bb251b",
             fontSize: 26,
           }}
         >

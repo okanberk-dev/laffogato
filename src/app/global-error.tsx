@@ -27,8 +27,8 @@ export default function GlobalError({
           display: "grid",
           placeItems: "center",
           fontFamily: "system-ui, sans-serif",
-          background: "#f7f3ec",
-          color: "#14100b",
+          background: "#f9f8f7",
+          color: "#1d1c1c",
           padding: "48px 24px",
         }}
       >
@@ -44,7 +44,7 @@ export default function GlobalError({
               padding: "12px 22px",
               borderRadius: 999,
               border: "none",
-              background: "#14100b",
+              background: "#1d1c1c",
               color: "#fff",
               fontSize: 14,
               fontWeight: 500,

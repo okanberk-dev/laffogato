@@ -406,25 +406,18 @@ describe("buildBootstrap (contract §10)", () => {
       hoursLabel: "Her gün 09:00 – 01:00",
       courierFeeMinor: 6000,
       courierEtaMinutes: [25, 35],
-      happyHour: {
-        days: "weekday",
-        from: "14:00",
-        to: "17:00",
-        pct: 25,
-        categories: [
-          "ice-coffee",
-          "cold",
-          "frappe",
-          "frozen",
-          "ice-tea",
-          "smoothie",
-        ],
-      },
+      // Not advertised while nothing prices it: the app drew "%25, kod
+      // gerekmez" and the till charged full price. Both app screens skip the
+      // card when this is null.
+      happyHour: null,
     });
     expect(COURIER_ETA_MINUTES).toEqual([25, 35]);
-    // Copies, not the shared constant: a caller mutating the response must
-    // not rewrite the next one.
-    expect(b.happyHour.categories).not.toBe(HAPPY_HOUR.categories);
+    // The campaign shape is kept for the day it is priced; publishing it
+    // again must hand out a copy, not the shared constant.
+    expect(HAPPY_HOUR.categories).toContain("ice-coffee");
+    expect({ ...HAPPY_HOUR, categories: [...HAPPY_HOUR.categories] }.categories).not.toBe(
+      HAPPY_HOUR.categories,
+    );
     expect(Object.keys(b).sort()).toEqual(
       [
         "minSupportedAppVersion",

@@ -291,6 +291,13 @@ export const promoPreviewBodySchema = z.object({
     .int({ error: "Ara toplam kuruş cinsinden tam sayı olmalı." })
     .min(0, { error: "Ara toplam negatif olamaz." })
     .max(100_000_000, { error: "Ara toplam geçersiz." }),
+  /**
+   * Optional: what the basket is. A free-drink coupon is cafe-only at the
+   * till, so a preview that does not know the kind cannot promise it. Absent
+   * (an older build), the coupon is treated as unusable rather than promised
+   * and then dropped.
+   */
+  kind: z.enum(["cafe", "shop"]).optional(),
 });
 
 export type PromoPreviewBody = z.infer<typeof promoPreviewBodySchema>;

@@ -21,7 +21,11 @@ import {
   type AppOrderFailure,
   type OrderLegalConsent,
 } from "@/lib/admin/store";
-import { applyCustomerCoupon } from "@/lib/customer/coupons";
+import {
+  applyCustomerCoupon,
+  couponAllowedForKind,
+  CAFE_ONLY_COUPON_MESSAGE,
+} from "@/lib/customer/coupons";
 import { sendOrderPlacedEmail } from "@/lib/email/send";
 import { CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED } from "@/lib/legal/meta";
 import { getDb, TABLES } from "@/lib/db";
@@ -375,11 +379,16 @@ export type PromoPreview =
 /**
  * Previews a code WITHOUT taking a use: a member's personal coupon first,
  * then the shared promo codes — the order the checkout applies them in.
+ *
+ * `kind` is what the basket is. It matters because a free-drink coupon is
+ * cafe-only at the till; previewing without it told a member with a shop
+ * basket that ₺280 was coming off, and then checkout charged full price.
  */
 export async function previewPromo(
   code: string,
   subtotalMinor: number,
   customer: PublicCustomer | null,
+  kind?: "cafe" | "shop",
 ): Promise<PromoPreview> {
   const trimmed = code.trim();
   if (!trimmed) return { ok: false, code: "", message: "Kod gir." };
@@ -390,6 +399,14 @@ export async function previewPromo(
       subtotalMinor,
     );
     if (coupon.ok && coupon.coupon) {
+      // Same gate the till applies, from the same predicate.
+      if (!couponAllowedForKind(coupon.coupon, kind)) {
+        return {
+          ok: false,
+          code: coupon.coupon.code,
+          message: CAFE_ONLY_COUPON_MESSAGE,
+        };
+      }
       return {
         ok: true,
         code: coupon.coupon.code,
@@ -428,13 +445,14 @@ export async function previewPromoRateLimited(
   code: string,
   subtotalMinor: number,
   customer: PublicCustomer | null,
+  kind?: "cafe" | "shop",
 ): Promise<LimitedPromoPreview> {
   const ip = await clientIp();
   const limit = await checkLoginLimit("promo-preview", ip, "");
   if (limit.blocked) {
     return { limited: true, retryAfterSeconds: limit.retryAfterSeconds };
   }
-  const preview = await previewPromo(code, subtotalMinor, customer);
+  const preview = await previewPromo(code, subtotalMinor, customer, kind);
   if (!preview.ok) await recordLoginFailure("promo-preview", ip, "");
   return { limited: false, preview };
 }
@@ -492,6 +510,7 @@ export async function previewAppOrder(
       body.promoCode,
       subtotalMinor,
       customer,
+      body.kind,
     );
     promo = limited.limited
       ? {

@@ -34,8 +34,8 @@ const jetbrains = JetBrains_Mono({
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F7F3EA" },
-    { media: "(prefers-color-scheme: dark)", color: "#1C1610" },
+    { media: "(prefers-color-scheme: light)", color: "#f9f8f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#12291f" },
   ],
   colorScheme: "light dark",
   width: "device-width",
@@ -139,7 +139,7 @@ export const metadata: Metadata = {
     // Misc
     "format-detection": "telephone=no",
     "apple-mobile-web-app-title": SITE.name,
-    "msapplication-TileColor": "#2C1D11",
+    "msapplication-TileColor": "#235347",
     "msapplication-config": "/browserconfig.xml",
     // Pinterest + Facebook domain verification (env-driven, optional)
     ...(SITE.verification.pinterest

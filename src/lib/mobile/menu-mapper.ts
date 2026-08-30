@@ -53,6 +53,20 @@ export interface HappyHour {
   categories: string[];
 }
 
+/**
+ * The Happy Hour campaign as designed — NOT as priced.
+ *
+ * Nothing anywhere applies this discount: not the mobile order path, not the
+ * web checkout. Grep for HAPPY_HOUR and this file is the only hit. The app,
+ * meanwhile, drew it on the home screen and the campaigns screen with the
+ * words "kod gerekmez", so a member bought a cold drink between 14:00 and
+ * 17:00 expecting a quarter off and was charged the full price.
+ *
+ * `happyHour` is therefore published as null (see `bootstrapVenue`) and both
+ * app screens already skip the card when it is. The shape is kept because the
+ * campaign itself is the operator's to run: once the discount exists in the
+ * pricing path, publish HAPPY_HOUR again and the cards come back.
+ */
 export const HAPPY_HOUR: HappyHour = {
   days: "weekday",
   from: "14:00",
@@ -298,7 +312,8 @@ export interface MobileBootstrap {
   hoursLabel: string;
   courierFeeMinor: number;
   courierEtaMinutes: [number, number];
-  happyHour: HappyHour;
+  /** null while the campaign is advertised but not priced — see HAPPY_HOUR. */
+  happyHour: HappyHour | null;
 }
 
 export interface BootstrapSite {
@@ -343,6 +358,9 @@ export function buildBootstrap(
     hoursLabel: hoursLabel(settings.weeklyHours),
     courierFeeMinor: settings.courierFeeMinor,
     courierEtaMinutes: [...COURIER_ETA_MINUTES],
-    happyHour: { ...HAPPY_HOUR, categories: [...HAPPY_HOUR.categories] },
+    // Advertise nothing the till will not honour. Restore with:
+    //   happyHour: { ...HAPPY_HOUR, categories: [...HAPPY_HOUR.categories] },
+    // once the discount is applied where the order is priced.
+    happyHour: null,
   };
 }

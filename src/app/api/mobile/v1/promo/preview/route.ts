@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       parsed.data.code,
       parsed.data.subtotalMinor,
       who.customer,
+      parsed.data.kind,
     );
     if (result.limited) {
       return apiError(
