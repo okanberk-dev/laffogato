@@ -107,6 +107,32 @@ describe("colour contrast", () => {
     }
   });
 
+  it("the accent is legible as text on the night ground", () => {
+    // The palette swap made `--accent` a dark burgundy. On `--bg-espresso`
+    // it measured 1.68:1 — the menu hero's script word was rendered and
+    // could not be seen. `--accent-on-dark` is the same hue, lightened.
+    const night = token("--bg-espresso");
+    expect(contrast(token("--accent"), night)).toBeLessThan(AA);
+    expect(contrast(token("--accent-on-dark"), night)).toBeGreaterThanOrEqual(
+      AA,
+    );
+    // Still recognisably the accent, not a plain white.
+    expect(hueGap(token("--accent-on-dark"), token("--accent"))).toBeLessThan(
+      40,
+    );
+  });
+
+  it("no .script rule paints the accent ink on a dark section", () => {
+    // The generic `.h1 .script` / `.h2 .script` rules use `--accent`; the
+    // dark sections must override them.
+    for (const sel of [".hero-dark .script", ".menu-hero .script"]) {
+      const re = new RegExp(
+        `${sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^}]*color:\\s*var\\(--accent-on-dark\\)`,
+      );
+      expect(re.test(css), `${sel} must use --accent-on-dark`).toBe(true);
+    }
+  });
+
   it("the paper tints are actually distinguishable from one another", () => {
     const tints = ["--bg", "--bg-warm", "--bg-stone", "--bg-cream"].map(token);
     const unique = new Set(tints);

@@ -41,6 +41,12 @@
   --accent: #84233c;
   --accent-deep: #6e1d32;
   --accent-soft: #f6e9ec;
+  /* The accent as TEXT on a dark ground.
+     `--accent` is a dark ink: on `--bg-espresso` it measured 1.68:1, so the
+     script word in the menu hero was present and invisible. This is the app's
+     own answer for the burgundy family on a dark surface
+     (tokens.ts → text.onPremiumSecondary): same hue, lightened. */
+  --accent-on-dark: #d9aeb8;
 
   /* Brand — the logo mask colour. The app tints the mark with brand.primary,
      so the site's lockups follow it instead of staying espresso brown. */
@@ -1250,6 +1256,14 @@ summary:focus-visible,
   padding: 120px 0 60px;
   overflow: hidden;
 }
+/* Anything drawn on the night ground reads its accent light, not dark. The
+   generic `.h1 .script` / `.h2 .script` rules paint with `--accent`, which is
+   an ink meant for paper. */
+.hero-dark .script,
+.menu-hero .script,
+.footer .script {
+  color: var(--accent-on-dark);
+}
 .hero-dark {
   background: var(--bg-espresso);
   color: #fff;
@@ -2102,7 +2116,7 @@ summary:focus-visible,
 }
 .menu-hero-title .script {
   font-family: var(--script);
-  color: var(--accent);
+  color: var(--accent-on-dark);
 }
 .menu-hero-lede {
   margin: 26px 0 0;
