@@ -628,7 +628,7 @@ export function Footer({ navigate, settings }: FooterProps) {
     navigate(r);
     window.scrollTo({ top: 0 });
   };
-  const phone = settings?.phone ?? "+90 216 459 30 60";
+  const phone = settings?.phone ?? "+90 536 429 09 19";
   const email = settings?.email ?? SITE.email;
   const addressLines = splitAddress(settings?.address);
   const year = new Date().getFullYear();

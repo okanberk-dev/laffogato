@@ -677,6 +677,74 @@ insert into public._migrations (name) values ('20260827124000_menu_two_sizes_and
   on conflict (name) do nothing;
 
 -- ─────────────────────────────────────────────────────────────────────
+-- 20260828120000_mobile_app_content.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Mobile app home content, owned by the admin panel at /admin/mobil.
+--
+-- The mobile app's home screen shows a hero carousel and an announcements
+-- strip. Both are editorial and change on a human timescale, so they belong in
+-- the panel rather than in a release: swapping a seasonal slide must not need
+-- an app store submission.
+--
+-- These tables are deliberately separate from `shop_hero_slides`. That table
+-- drives the website's shop header and carries web-shaped fields (a full-width
+-- imageUrl, an absolute ctaHref). The app needs a brand `tone` instead of an
+-- image, and a route key the app resolves through an allow-list rather than an
+-- arbitrary URL — a CMS-authored URL cannot be allowed to drive native
+-- navigation.
+--
+-- NOTE: no `insert into public._migrations` line here. scripts/db-migrate.mjs
+-- performs that insert itself, with no `on conflict`, inside the same
+-- transaction — a duplicate from this file would roll the whole migration back.
+
+create table if not exists public.app_hero_slides (
+  id           text    primary key,
+  eyebrow      text    not null default '',
+  title        text    not null default '',
+  body         text    not null default '',
+  "ctaLabel"   text    not null default '',
+  -- Route KEY, not a URL. The app maps it through an allow-list; an unknown
+  -- value is a no-op rather than a crash.
+  "ctaRoute"   text    not null default '',
+  -- 'premium' | 'inverse' | 'brand' | 'paper' — see docs/THEME.md.
+  tone         text    not null default 'paper',
+  image        text    not null default '',
+  "sortOrder"  integer not null default 0,
+  "isActive"   boolean not null default true,
+  -- ISO-8601; empty string means unbounded, matching the house convention.
+  "startsAt"   text    not null default '',
+  "endsAt"     text    not null default '',
+  "createdAt"  text    not null default '',
+  "updatedAt"  text    not null default ''
+);
+
+create index if not exists app_hero_slides_active_idx
+  on public.app_hero_slides ("isActive", "sortOrder");
+
+create table if not exists public.app_announcements (
+  id           text    primary key,
+  -- 'info' | 'campaign' | 'hours'
+  kind         text    not null default 'info',
+  title        text    not null default '',
+  body         text    not null default '',
+  "sortOrder"  integer not null default 0,
+  "isActive"   boolean not null default true,
+  "startsAt"   text    not null default '',
+  "endsAt"     text    not null default '',
+  "createdAt"  text    not null default '',
+  "updatedAt"  text    not null default ''
+);
+
+create index if not exists app_announcements_active_idx
+  on public.app_announcements ("isActive", "sortOrder");
+
+alter table public.app_hero_slides  enable row level security;
+alter table public.app_announcements enable row level security;
+
+insert into public._migrations (name) values ('20260828120000_mobile_app_content.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
 -- 20260901120000_order_legal_consent.sql
 -- ─────────────────────────────────────────────────────────────────────
 -- ── orders."legalConsent" ─────────────────────────────────────────────────
@@ -1076,4 +1144,58 @@ update public.settings
     and address like '%29 Ekim%';
 
 insert into public._migrations (name) values ('20260901180000_settings_identity_backfill.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260901190000_settings_phone_and_hours.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Correct the reservation phone and the opening hours on the live settings row.
+--
+-- Same shape as 20260901180000_settings_identity_backfill.sql, and for the same
+-- reason: defaultSettings() only seeds when the table is empty, so an
+-- installation seeded earlier keeps the old values forever and goes on serving
+-- them in the footer, the contact block and the JSON-LD.
+--
+-- Two corrections:
+--
+--   phone        +90 216 459 30 60  →  +90 536 429 09 19
+--   weeklyHours  10:00–23:00 (24:00 Fri/Sat)  →  09:00–01:00 every day
+--
+-- 01:00 is the FOLLOWING morning. schema.org expresses that by letting
+-- `closes` be earlier than `opens`, which openingHoursLd() passes through
+-- untouched — its "24:00" → "23:59" mapping existed for the 10:00–24:00
+-- schedule this replaces.
+--
+-- Deliberately narrow, exactly like its predecessor: each column is touched
+-- only while it still holds the exact superseded value, so anything the owner
+-- has since typed in the panel is left alone and running this twice changes
+-- nothing.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, with no `on conflict`, inside the same transaction.
+
+update public.settings
+  set phone = '+90 536 429 09 19'
+  where id = 'main'
+    and phone in ('+90 216 459 30 60', '02164593060', '+902164593060');
+
+update public.settings
+  set "weeklyHours" = jsonb_build_object(
+        'mon', jsonb_build_object('open', '09:00', 'close', '01:00', 'closed', false),
+        'tue', jsonb_build_object('open', '09:00', 'close', '01:00', 'closed', false),
+        'wed', jsonb_build_object('open', '09:00', 'close', '01:00', 'closed', false),
+        'thu', jsonb_build_object('open', '09:00', 'close', '01:00', 'closed', false),
+        'fri', jsonb_build_object('open', '09:00', 'close', '01:00', 'closed', false),
+        'sat', jsonb_build_object('open', '09:00', 'close', '01:00', 'closed', false),
+        'sun', jsonb_build_object('open', '09:00', 'close', '01:00', 'closed', false)
+      )
+  where id = 'main'
+    -- Only while every day still reads exactly as the superseded schedule.
+    -- If the owner has edited so much as one day, this leaves the row alone.
+    and "weeklyHours" -> 'mon' ->> 'open'  = '10:00'
+    and "weeklyHours" -> 'mon' ->> 'close' = '23:00'
+    and "weeklyHours" -> 'fri' ->> 'close' = '24:00'
+    and "weeklyHours" -> 'sun' ->> 'close' = '23:00';
+
+insert into public._migrations (name) values ('20260901190000_settings_phone_and_hours.sql')
   on conflict (name) do nothing;

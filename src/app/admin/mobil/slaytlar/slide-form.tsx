@@ -15,7 +15,7 @@ import {
   APP_SLIDE_TONE_LABELS,
   APP_SLIDE_TONES,
   type AppSlideTone,
-} from "@/lib/admin/store";
+} from "@/lib/admin/app-content-schema";
 
 export interface AppSlideDefaults {
   eyebrow?: string;

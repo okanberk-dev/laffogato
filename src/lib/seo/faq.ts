@@ -30,7 +30,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Rezervasyon yapabilir miyim?",
-    a: "Rezervasyon yalnızca telefonla alınıyor: +90 216 459 30 60. Site üzerinden masa ayırtma özelliği yok. Hafta sonu akşam servisleri için 24 saat öncesinden aramanızı öneririz — 12 koltuklu küçük bir köşk barıyız, masalar sınırlı.",
+    a: "Rezervasyon yalnızca telefonla alınıyor: +90 536 429 09 19. Site üzerinden masa ayırtma özelliği yok. Hafta sonu akşam servisleri için 24 saat öncesinden aramanızı öneririz — 12 koltuklu küçük bir köşk barıyız, masalar sınırlı.",
   },
   {
     q: "Vegan veya glutensiz seçeneğiniz var mı?",

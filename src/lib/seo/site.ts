@@ -69,8 +69,8 @@ export const SITE = {
   language: "tr",
   alternateLocale: [],
   email: "info@nextgenlab.com.tr",
-  phone: "+90 216 459 30 60",
-  phoneE164: "+902164593060",
+  phone: "+90 536 429 09 19",
+  phoneE164: "+905364290919",
   address: {
     streetAddress: "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
     addressLocality: "Tuzla",

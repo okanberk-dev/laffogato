@@ -13,7 +13,7 @@ import {
   APP_ANNOUNCEMENT_KIND_LABELS,
   APP_ANNOUNCEMENT_KINDS,
   type AppAnnouncementKind,
-} from "@/lib/admin/store";
+} from "@/lib/admin/app-content-schema";
 
 export interface AppAnnouncementDefaults {
   kind?: AppAnnouncementKind;

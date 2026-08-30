@@ -34,7 +34,7 @@ export const LEGAL_ENTITY = {
     country: "Türkiye",
   },
 
-  phone: "+90 216 459 30 60",
+  phone: "+90 536 429 09 19",
   /** Tüm resmi yazışma, KVKK başvurusu ve müşteri hizmetleri adresi. */
   email: "info@nextgenlab.com.tr",
 

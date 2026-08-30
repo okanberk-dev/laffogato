@@ -53,7 +53,10 @@ describe("JSON-LD structured data — SEO audit fixes", () => {
   });
 
   it("carries consistent NAP (phone + tax-certificate street address)", () => {
-    expect(graph).toContain("+902164593060");
+    // Reservation line moved to the operator's mobile; the tax-certificate
+    // street address stays as the identity backfill established it.
+    expect(graph).toContain("+905364290919");
+    expect(graph).not.toContain("+902164593060");
     expect(graph).toContain("Atatürk Cad.");
     expect(graph).not.toContain("29 Ekim");
   });

@@ -915,7 +915,7 @@ export const LOCATION = {
    *  from `address` so editing the displayed lines cannot break geocoding. */
   mapsQuery: "L'Affogato, Atatürk Cad. No: 28, 34940 Tuzla, İstanbul",
   landmark: "Menemenci Cumhur’un yanı",
-  phone: "+90 216 459 30 60",
+  phone: "+90 536 429 09 19",
   email: "info@nextgenlab.com.tr",
   parent: "L'Affogato Italia · Via Galliera 21, Bologna",
 };

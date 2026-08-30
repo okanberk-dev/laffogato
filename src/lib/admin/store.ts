@@ -2,6 +2,14 @@ import "server-only";
 
 import type { DbError } from "@/lib/db";
 
+import {
+  APP_ANNOUNCEMENT_KINDS,
+  APP_SLIDE_ROUTES,
+  APP_SLIDE_TONES,
+  type AppAnnouncementKind,
+  type AppSlideTone,
+} from "./app-content-schema";
+
 import { getDb, TABLES } from "@/lib/db";
 import {
   memoizeUntilRejected,
@@ -332,14 +340,20 @@ function deriveSku(name: string, n: number): string {
 // ─── Seed (idempotent — yalnızca tablo boşsa çalışır) ─────────────────────
 
 function defaultWeeklyHours(): WeeklyHours {
+  // Every day 09:00–01:00. The close time is EARLIER than the open time
+  // because 01:00 belongs to the following morning — schema.org expresses that
+  // by simply letting `closes` be the smaller value, and openingHoursLd()
+  // passes it through untouched. (Its "24:00" → "23:59" mapping exists for the
+  // old 10:00–24:00 schedule and no longer applies to any day here.)
+  const everyDay = { open: "09:00", close: "01:00", closed: false };
   return {
-    mon: { open: "10:00", close: "23:00", closed: false },
-    tue: { open: "10:00", close: "23:00", closed: false },
-    wed: { open: "10:00", close: "23:00", closed: false },
-    thu: { open: "10:00", close: "23:00", closed: false },
-    fri: { open: "10:00", close: "24:00", closed: false },
-    sat: { open: "10:00", close: "24:00", closed: false },
-    sun: { open: "10:00", close: "23:00", closed: false },
+    mon: { ...everyDay },
+    tue: { ...everyDay },
+    wed: { ...everyDay },
+    thu: { ...everyDay },
+    fri: { ...everyDay },
+    sat: { ...everyDay },
+    sun: { ...everyDay },
   };
 }
 
@@ -347,7 +361,7 @@ function defaultSettings(): AdminSettings {
   return {
     name: "L'Affogato",
     tagline: "Drink it. Eat the cup.",
-    phone: "+90 216 459 30 60",
+    phone: "+90 536 429 09 19",
     email: "info@nextgenlab.com.tr",
     address:
       "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1 (Menemenci Cumhur’un yanı), 34940 Tuzla / İstanbul",
@@ -3375,42 +3389,22 @@ export const deleteStoryEvent = storyResource.remove;
 // image, and a route KEY rather than a URL — CMS text must never be able to
 // drive native navigation directly.
 
-/** Brand ground a slide paints itself on. Mirrors the app's theme tokens. */
-export type AppSlideTone = "premium" | "inverse" | "brand" | "paper";
-
-export const APP_SLIDE_TONES: AppSlideTone[] = [
-  "premium",
-  "inverse",
-  "brand",
-  "paper",
-];
-
-export const APP_SLIDE_TONE_LABELS: Record<AppSlideTone, string> = {
-  premium: "Bordo (premium)",
-  inverse: "Koyu yeşil",
-  brand: "Marka yeşili",
-  paper: "Kağıt (açık)",
-};
-
-/**
- * Routes a slide may point at. The app resolves the key through its own
- * allow-list; anything not in this set is ignored rather than followed.
- */
-export const APP_SLIDE_ROUTES = [
-  "",
-  "/menu",
-  "/magaza",
-  "/kart",
-  "/hesabim",
-] as const;
-
-export const APP_SLIDE_ROUTE_LABELS: Record<string, string> = {
-  "": "Yok (tıklanamaz)",
-  "/menu": "Menü",
-  "/magaza": "Mağaza",
-  "/kart": "Üyelik kartı",
-  "/hesabim": "Hesabım",
-};
+// The tones, routes, kinds and their labels live in a client-safe module and
+// are re-exported here, so server code can keep importing them from the store
+// while "use client" forms import them WITHOUT dragging `server-only` and `pg`
+// into the browser bundle. See src/lib/admin/app-content-schema.ts.
+export {
+  APP_SLIDE_TONES,
+  APP_SLIDE_TONE_LABELS,
+  APP_SLIDE_ROUTES,
+  APP_SLIDE_ROUTE_LABELS,
+  APP_ANNOUNCEMENT_KINDS,
+  APP_ANNOUNCEMENT_KIND_LABELS,
+} from "./app-content-schema";
+export type {
+  AppSlideTone,
+  AppAnnouncementKind,
+} from "./app-content-schema";
 
 export interface AdminAppSlide {
   id: string;
@@ -3431,21 +3425,6 @@ export interface AdminAppSlide {
   createdAt: string;
   updatedAt: string;
 }
-
-export type AppAnnouncementKind = "info" | "campaign" | "hours";
-
-export const APP_ANNOUNCEMENT_KINDS: AppAnnouncementKind[] = [
-  "info",
-  "campaign",
-  "hours",
-];
-
-export const APP_ANNOUNCEMENT_KIND_LABELS: Record<AppAnnouncementKind, string> =
-  {
-    info: "Bilgi",
-    campaign: "Yeni / kampanya",
-    hours: "Çalışma saatleri",
-  };
 
 export interface AdminAppAnnouncement {
   id: string;
