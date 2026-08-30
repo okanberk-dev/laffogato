@@ -27,6 +27,11 @@ iyi bir sebep var — geçişten önce şunun yazılı olarak doğrulanması ger
 Bu doğrulanmadan taşıma, siteyi bir kez daha aynı şekilde kapatır. Karar
 operatöründür; bu belge yalnızca bedelin ne olduğunu kayda geçirir.
 
+## Supabase'e geçiş yordamı
+
+Adım adım, ölçülmüş tuzaklarıyla (IPv6-yalnız doğrudan uç, pooler dizesi,
+RLS-baypas doğrulaması, bcrypt içe aktarımı): **[SUPABASE-GECIS.md](SUPABASE-GECIS.md)**.
+
 ## Sağlayıcı adı hukuki belgelerde geçer
 
 Sağlayıcının adı KVKK aydınlatma metni, gizlilik politikası, çerez politikası
