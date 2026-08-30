@@ -420,6 +420,41 @@ export function breadcrumbLd(
   };
 }
 
+/** One MenuSection node, shared by the full menu and a single category page. */
+function menuSectionNode(key: string, cat: MenuCategory): Json {
+  return {
+    "@type": "MenuSection",
+    "@id": `${SITE.url}/#menu-${key}`,
+    name: cat.title,
+    description: cat.note,
+    hasMenuItem: cat.items.map((item) => {
+      const price = offerPrice(item.price);
+      const tags = item.tags ?? [];
+      const diet: string[] = [];
+      if (tags.includes("vegan opt."))
+        diet.push("https://schema.org/VeganDiet");
+      return {
+        "@type": "MenuItem",
+        name: item.name,
+        description: item.desc,
+        // No price, no offer. During an outage every price renders as "—";
+        // publishing that as 0 advertised the whole menu as free.
+        ...(price
+          ? {
+              offers: {
+                "@type": "Offer",
+                price,
+                priceCurrency: CURRENCY,
+                availability: "https://schema.org/InStock",
+              },
+            }
+          : {}),
+        ...(diet.length ? { suitableForDiet: diet } : {}),
+      };
+    }),
+  };
+}
+
 export function menuLd(menu: Record<string, MenuCategory>): Json {
   return {
     "@context": "https://schema.org",
@@ -427,48 +462,71 @@ export function menuLd(menu: Record<string, MenuCategory>): Json {
     "@id": `${SITE.url}/#menu`,
     name: `${SITE.name} Menü`,
     inLanguage: LANG_TAG,
-    hasMenuSection: Object.entries(menu).map(([key, cat]) => ({
-      "@type": "MenuSection",
-      "@id": `${SITE.url}/#menu-${key}`,
-      name: cat.title,
-      description: cat.note,
-      hasMenuItem: cat.items.map((item) => {
-        const price = offerPrice(item.price);
-        const tags = item.tags ?? [];
-        const diet: string[] = [];
-        if (tags.includes("vegan opt."))
-          diet.push("https://schema.org/VeganDiet");
-        return {
-          "@type": "MenuItem",
-          name: item.name,
-          description: item.desc,
-          // No price, no offer. During an outage every price renders as "—";
-          // publishing that as 0 advertised the whole menu as free.
-          ...(price
-            ? {
-                offers: {
-                  "@type": "Offer",
-                  price,
-                  priceCurrency: CURRENCY,
-                  availability: "https://schema.org/InStock",
-                },
-              }
-            : {}),
-          ...(diet.length ? { suitableForDiet: diet } : {}),
-        };
-      }),
-    })),
+    hasMenuSection: Object.entries(menu).map(([key, cat]) =>
+      menuSectionNode(key, cat),
+    ),
   };
 }
 
-function productListLd(products: Product[], settings?: LdSettings): Json {
+/**
+ * A single menu category, for `/menu/[kategori]`.
+ *
+ * The category page shows one section, so it publishes that section — not a
+ * Menu whose `hasMenuSection` holds a single entry while sharing the `#menu`
+ * @id with the full menu at /menu. `isPartOf` keeps the two joined.
+ */
+export function menuSectionLd(
+  key: string,
+  cat: MenuCategory,
+  path: string,
+): Json | null {
+  // An empty section is a claim that the category has nothing in it. During a
+  // database outage that is false, and it is the one moment the claim would be
+  // published. Say nothing instead.
+  if (!cat?.items?.length) return null;
+  return {
+    "@context": "https://schema.org",
+    ...menuSectionNode(key, cat),
+    url: `${SITE.url}${path}`,
+    inLanguage: LANG_TAG,
+    isPartOf: { "@type": "Menu", "@id": `${SITE.url}/#menu` },
+  };
+}
+
+/**
+ * Scope for a product ItemList.
+ *
+ * The home page publishes the whole catalogue under `/#products`. A listing
+ * page publishes what *that* URL actually shows, so it carries its own @id,
+ * name and url instead of claiming to be the catalogue.
+ */
+export interface ProductListScope {
+  /** Path the list describes, e.g. `/magaza/cekirdek-kahve`. */
+  path: string;
+  name: string;
+  description: string;
+}
+
+export function productListLd(
+  products: Product[],
+  settings?: LdSettings,
+  scope?: ProductListScope,
+): Json | null {
+  // Same reasoning as menuSectionLd: `numberOfItems: 0` tells Google the shop
+  // is empty. The shop deliberately renders empty rather than falling back to
+  // bundled products, so this is exactly the state an outage produces.
+  if (!products.length) return null;
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    "@id": `${SITE.url}/#products`,
-    name: `${SITE.name} Mağaza`,
-    description:
-      "L'Affogato online mağaza — çekirdek kahve, edible cup, ekipman, hediye seti, giyim.",
+    "@id": scope
+      ? `${SITE.url}${scope.path}#products`
+      : `${SITE.url}/#products`,
+    name: scope ? scope.name : `${SITE.name} Mağaza`,
+    description: scope
+      ? scope.description
+      : "L'Affogato online mağaza — çekirdek kahve, edible cup, ekipman, hediye seti, giyim.",
+    ...(scope ? { url: `${SITE.url}${scope.path}` } : {}),
     numberOfItems: products.length,
     itemListOrder: "https://schema.org/ItemListOrderDescending",
     itemListElement: products.map((p, idx) => {
@@ -810,6 +868,6 @@ export function siteGraphLd(
       // as if it were one path, which is not what any of those pages are.
       // Section pages emit their own two-step trail via `breadcrumbLd`.
       siteNavigationLd(),
-    ],
+    ].filter((node): node is Json => node !== null),
   };
 }
