@@ -43,7 +43,9 @@ export default async function AdminAppPostsPage() {
                     {APP_POST_KIND_LABELS[p.kind]}
                   </p>
                   <p className="truncate font-medium">{p.title}</p>
-                  <p className="line-clamp-2 text-sm text-neutral-500">{p.body}</p>
+                  <p className="line-clamp-2 text-sm text-neutral-500">
+                    {p.body}
+                  </p>
                   <p className="mt-1 text-xs text-neutral-400">
                     Sıra {p.sortOrder}
                     {p.isActive ? "" : " · YAYINDA DEĞİL"}

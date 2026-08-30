@@ -173,3 +173,17 @@ mevcut durumu ve seçenekleri:
 - O işe girmeden önce iki sistemin e-posta NORMALİZASYONU eşitlenmelidir
   (tr-TR küçük harf ↔ invariant küçük harf farkı "INFO@…" adresini iki ayrı
   hesaba böler) — bu düzeltme lafmobil tarafında ayrıca yürüyor.
+
+**Köprü (30 Ağu 2026, `claude/mobil-panel-v2`):** kimlik tarafı artık
+kodda birleşik — `docs/AUTH-BRIDGE.md`. Özet:
+
+- Site girişi **önce Supabase** (`signInWithPassword`), reddederse mevcut
+  bcrypt akışı aynen; bcrypt başarısında tek seferlik `signUp` köprüsü
+  (`customers."supabaseUserId"` / `"supabaseLinkAttemptedAt"`).
+- Uygulama `Authorization: Bearer <Supabase JWT>` gönderir;
+  `src/lib/mobile/auth.ts` → `supabase.auth.getUser(jwt)` → e-postayla
+  `customers` satırı (yoksa oluşturulur). Tek üyelik: aynı e-posta, aynı satır.
+- Supabase **yalnız kimliktir**; sipariş, kupon, damga ve para bu projenin
+  Postgres'inde kalır. Service role anahtarı depoda yoktur.
+- Bu köprü veri taşımaya (§4) bağlı değildir; iki sistem birleşene kadar
+  bcrypt hash'leri yerinde durur, toplu aktarım ayrı iş olarak kalır.

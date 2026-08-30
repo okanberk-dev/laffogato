@@ -16,6 +16,7 @@ import type { AdminSettings } from "@/lib/admin/store";
 import {
   saveGeneralAction,
   saveHoursAction,
+  saveKaraokeAction,
   saveNotificationsAction,
   saveSeoAction,
   saveShippingAction,
@@ -30,6 +31,7 @@ const TABS = [
   { id: "hours", label: "Saatler" },
   { id: "tax", label: "Vergi" },
   { id: "shipping", label: "Kargo" },
+  { id: "karaoke", label: "Karaoke" },
   { id: "seo", label: "SEO" },
   { id: "notifications", label: "Bildirim" },
 ] as const;
@@ -63,6 +65,7 @@ export function SettingsForm({ settings }: { settings: AdminSettings }) {
         {tab === "hours" && <HoursTab settings={settings} />}
         {tab === "tax" && <TaxTab settings={settings} />}
         {tab === "shipping" && <ShippingTab settings={settings} />}
+        {tab === "karaoke" && <KaraokeTab settings={settings} />}
         {tab === "seo" && <SeoTab settings={settings} />}
         {tab === "notifications" && <NotificationsTab settings={settings} />}
       </div>
@@ -242,7 +245,7 @@ function ShippingTab({ settings }: { settings: AdminSettings }) {
   const [state, action, pending] = useActionState(saveShippingAction, initial);
   return (
     <form action={action}>
-      <Section title="Kargo">
+      <Section title="Kargo ve kurye">
         <div className="grid gap-5 sm:grid-cols-2">
           <Field
             label="Standart kargo ücreti (₺)"
@@ -264,6 +267,51 @@ function ShippingTab({ settings }: { settings: AdminSettings }) {
               defaultValue={(settings.shippingFreeThresholdMinor / 100).toFixed(
                 2,
               )}
+            />
+          </Field>
+          <Field
+            label="Kurye ücreti (₺)"
+            hint="Uygulamadan verilen kafe siparişlerinde kuryeyle teslimat için. Ücretsiz kargo eşiği buna uygulanmaz."
+          >
+            <TextInput
+              name="courierFee"
+              inputMode="decimal"
+              defaultValue={(settings.courierFeeMinor / 100).toFixed(2)}
+            />
+          </Field>
+        </div>
+        <SaveBar state={state} pending={pending} />
+      </Section>
+    </form>
+  );
+}
+
+function KaraokeTab({ settings }: { settings: AdminSettings }) {
+  const [state, action, pending] = useActionState(saveKaraokeAction, initial);
+  return (
+    <form action={action}>
+      <Section title="Karaoke">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field
+            label="Saatlik ücret (₺)"
+            hint="Uygulamadaki rezervasyon ekranında gösterilir; ORO üyelere indirim sunucuda uygulanır."
+          >
+            <TextInput
+              name="karaokeHourly"
+              inputMode="decimal"
+              defaultValue={(settings.karaokeHourlyMinor / 100).toFixed(2)}
+              required
+            />
+          </Field>
+          <Field
+            label="Kapasite (kişi)"
+            hint="Bir rezervasyonda kabul edilen en fazla misafir sayısı."
+          >
+            <TextInput
+              name="karaokeCapacity"
+              inputMode="numeric"
+              defaultValue={String(settings.karaokeCapacity)}
+              required
             />
           </Field>
         </div>

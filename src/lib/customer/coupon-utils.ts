@@ -10,7 +10,8 @@ export type CouponSource =
   | "birthday" // auto during the member's birthday month
   | "loyalty" // reward (admin/automation)
   | "manual" // hand-granted by an admin
-  | "review"; // reward for leaving a review (phase 2)
+  | "review" // reward for leaving a review (phase 2)
+  | "invite"; // referral reward — inviter and invitee (mobile app)
 
 export interface CustomerCoupon {
   id: string;

@@ -77,7 +77,10 @@ export function AppSlideForm({
             />
           </Field>
 
-          <Field label="Metin" hint="En fazla 240 karakter. İki satırda okunabilecek kadar kısa tut.">
+          <Field
+            label="Metin"
+            hint="En fazla 240 karakter. İki satırda okunabilecek kadar kısa tut."
+          >
             <Textarea
               name="body"
               defaultValue={defaults?.body ?? ""}
@@ -112,7 +115,10 @@ export function AppSlideForm({
             />
           </Field>
 
-          <Field label="Buton yazısı" hint="Boş bırakırsan slayt tıklanamaz olur.">
+          <Field
+            label="Buton yazısı"
+            hint="Boş bırakırsan slayt tıklanamaz olur."
+          >
             <TextInput
               name="ctaLabel"
               defaultValue={defaults?.ctaLabel ?? ""}

@@ -121,7 +121,10 @@ export function AppPostForm({
             />
           </Field>
 
-          <Field label="Bağlantı yazısı" hint="Örn. Detaylar. Boşsa buton görünmez.">
+          <Field
+            label="Bağlantı yazısı"
+            hint="Örn. Detaylar. Boşsa buton görünmez."
+          >
             <TextInput
               name="linkLabel"
               defaultValue={defaults?.linkLabel ?? ""}

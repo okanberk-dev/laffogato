@@ -34,6 +34,8 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
   legal_doc: "Yasal belge",
   auth: "Giriş",
   "2fa": "2FA",
+  venue_status: "Canlı durum",
+  karaoke_reservation: "Karaoke rezervasyonu",
 };
 
 const ACTION_LABEL: Record<AuditAction, string> = {

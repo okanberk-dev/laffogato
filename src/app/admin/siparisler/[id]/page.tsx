@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { OrderChannelBadges } from "@/components/admin/order-badges";
 import { OrderDetail } from "@/components/admin/order-detail";
 import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
@@ -73,6 +74,23 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
           </Link>
         }
       />
+
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <OrderChannelBadges order={order} />
+        {order.scheduledFor ? (
+          <span
+            className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase"
+            style={{ fontFamily: "var(--mono), monospace" }}
+          >
+            Planlanan · {formatDateTime(order.scheduledFor)}
+          </span>
+        ) : null}
+        {order.deliveryNote ? (
+          <span className="text-xs text-neutral-600">
+            Kurye notu: {order.deliveryNote}
+          </span>
+        ) : null}
+      </div>
 
       <OrderDetail
         order={order}

@@ -25,7 +25,16 @@ import {
   releaseCustomerCoupon,
 } from "@/lib/customer/coupons";
 import { sendOrderPaidEmail } from "@/lib/email/send";
-import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
+import type { LineOptions } from "@/lib/mobile/customization";
+import {
+  computeTotalsWithShipping,
+  fulfillmentAllowed,
+  normalizeScheduledFor,
+  priceCafeLine,
+  shippingModeFor,
+  type ShippingMode,
+} from "@/lib/mobile/order-pricing";
+import type { CheckoutConfig } from "@/lib/utils/commerce";
 import { priceLabel } from "@/lib/utils/format";
 import {
   heroImagePath,
@@ -43,6 +52,11 @@ import {
 } from "@/components/laffogato/data";
 
 import type { WeeklyHours } from "./days";
+import type {
+  OrderChannel,
+  OrderFulfillment,
+  OrderKind,
+} from "./order-channel";
 
 /**
  * Veri katmanı — yönetilen bir Postgres üzerinden çalışır (bugün Neon).
@@ -119,6 +133,9 @@ export interface AdminCategory {
 
 export type AdminOrderItemStatus = "pending" | "ready" | "cancelled";
 
+/** Cup size of a cafe line; "single" when the menu item has one size only. */
+export type OrderItemSize = "M" | "L" | "single";
+
 export interface AdminOrderItem {
   productName: string;
   qty: number;
@@ -133,7 +150,24 @@ export interface AdminOrderItem {
    */
   productId?: string;
   variantId?: string;
+  /**
+   * Cafe lines (mobile app, docs/API-MOBILE.md §3). A cafe line references a
+   * `menu_items` row instead of a product, carries the chosen size and the
+   * customisation the price was computed from, and a human-readable `detail`
+   * ("M · yulaf · +1 shot") for receipts and the panel. All absent on shop
+   * lines and on every order placed before the app existed.
+   */
+  menuItemId?: string;
+  size?: OrderItemSize;
+  options?: Record<string, unknown>;
+  detail?: string;
 }
+
+export type {
+  OrderChannel,
+  OrderFulfillment,
+  OrderKind,
+} from "./order-channel";
 
 export type AdminOrderStatus =
   | "pending_payment"
@@ -204,7 +238,32 @@ export interface AdminOrder {
   trackingNumber?: string;
   carrier?: string;
   shippedAt?: string;
+  /**
+   * Mobile app fields (docs/API-MOBILE.md §3). Every one is optional with a
+   * database default describing a web shop order, so the existing order
+   * machine keeps writing rows exactly as before and an old row reads as
+   * `channel: "web", kind: "shop", fulfillment: "shipping"`. Read through
+   * `orderChannel()` / `orderFulfillment()` rather than defaulting inline.
+   */
+  channel?: OrderChannel;
+  kind?: OrderKind;
+  fulfillment?: OrderFulfillment;
+  /** ISO-8601 requested time; "" means as soon as possible. */
+  scheduledFor?: string;
+  /** Courier instructions ("Kapı kodu 4821"). */
+  deliveryNote?: string;
+  /** ISO-8601 instant the payment succeeded; "" while unpaid. */
+  paidAt?: string;
 }
+
+export {
+  ORDER_CHANNEL_LABELS,
+  ORDER_FULFILLMENT_LABELS,
+  ORDER_KIND_LABELS,
+  orderChannel,
+  orderFulfillment,
+  orderKind,
+} from "./order-channel";
 
 export type { DayOfWeek, OpeningHour, WeeklyHours } from "./days";
 export { DAYS_OF_WEEK, DAY_LABELS } from "./days";
@@ -242,6 +301,15 @@ export interface AdminSettings {
 
   /** Operational notifications email. */
   notificationEmail: string;
+
+  /**
+   * Mobile app (docs/API-MOBILE.md §3, §7). Courier fee charged on a cafe
+   * `delivery` order; karaoke room hourly price and the number of guests the
+   * room takes. All in minor units except the capacity.
+   */
+  courierFeeMinor: number;
+  karaokeHourlyMinor: number;
+  karaokeCapacity: number;
 }
 
 // ─── Query helpers ─────────────────────────────────────────────────────────
@@ -379,6 +447,9 @@ function defaultSettings(): AdminSettings {
     seoOgImageUrl: "",
     seoIndexable: true,
     notificationEmail: "",
+    courierFeeMinor: 5500,
+    karaokeHourlyMinor: 90000,
+    karaokeCapacity: 8,
   };
 }
 
@@ -1154,6 +1225,9 @@ export type PlaceOrderResult =
   | { ok: false; reason: "qty_too_high"; productName: string; max: number }
   | { ok: false; reason: "shop_closed" };
 
+/** Every way a shop order can be refused. */
+export type PlaceOrderFailure = Exclude<PlaceOrderResult, { ok: true }>;
+
 /** Per-line quantity ceiling. A retail cart, not a wholesale order. */
 export const MAX_LINE_QTY = 99;
 
@@ -1167,7 +1241,7 @@ interface ResolvedLine {
 
 type ResolveLinesResult =
   | { ok: true; resolved: ResolvedLine[]; priceAdjusted: boolean }
-  | { ok: false; result: PlaceOrderResult };
+  | { ok: false; result: PlaceOrderFailure };
 
 /**
  * Resolves cart/manual lines against the DB. SECURITY: unit prices are taken
@@ -1291,7 +1365,7 @@ async function resolveOrderLines(
 
 type ClaimStockResult =
   | { ok: true; stockAfters: number[] }
-  | { ok: false; result: PlaceOrderResult };
+  | { ok: false; result: PlaceOrderFailure };
 
 /**
  * Atomically claims stock for ALL lines in one transaction. The RPC checks +
@@ -1367,6 +1441,30 @@ interface FinalizeOrderInput {
   internalNote: string;
   promoCode?: string;
   legalConsent?: OrderLegalConsent;
+  /**
+   * Mobile app columns (docs/API-MOBILE.md §3). All optional: the web and
+   * admin paths leave them out and the row takes the database defaults, so
+   * an order written by those paths is byte-for-byte what it was before.
+   */
+  channel?: OrderChannel;
+  kind?: OrderKind;
+  fulfillment?: OrderFulfillment;
+  scheduledFor?: string;
+  deliveryNote?: string;
+  /** How shipping is charged; the shop's settings when omitted. */
+  shipping?: ShippingMode;
+}
+
+/** Order lines as they are written, from lines resolved against `products`. */
+function shopLineItems(resolved: ResolvedLine[]): AdminOrderItem[] {
+  return resolved.map((line) => ({
+    productName: line.label,
+    qty: line.qty,
+    unitPriceMinor: line.unitPriceMinor,
+    status: "pending",
+    productId: line.product.id,
+    ...(line.variant ? { variantId: line.variant.id } : {}),
+  }));
 }
 
 /**
@@ -1378,15 +1476,20 @@ async function finalizeOrder(
   resolved: ResolvedLine[],
   f: FinalizeOrderInput,
 ): Promise<{ order: AdminOrder; promoDropped: boolean }> {
+  return insertOrderRow(shopLineItems(resolved), f);
+}
+
+/**
+ * The write behind every order: claims the promo/coupon against the
+ * authoritative subtotal, computes the totals and inserts the row. Shared by
+ * the web checkout, the admin's manual order and the app, which differ only in
+ * where their lines come from and how shipping is charged.
+ */
+async function insertOrderRow(
+  items: AdminOrderItem[],
+  f: FinalizeOrderInput,
+): Promise<{ order: AdminOrder; promoDropped: boolean }> {
   const sb = getDb();
-  const items: AdminOrderItem[] = resolved.map((line) => ({
-    productName: line.label,
-    qty: line.qty,
-    unitPriceMinor: line.unitPriceMinor,
-    status: "pending",
-    productId: line.product.id,
-    ...(line.variant ? { variantId: line.variant.id } : {}),
-  }));
   const subtotalMinor = items.reduce(
     (s, it) => s + it.unitPriceMinor * it.qty,
     0,
@@ -1410,7 +1513,17 @@ async function finalizeOrder(
         f.customerEmail,
         subtotalMinor,
       );
-      if (couponCheck.ok && couponCheck.coupon) {
+      // A free-drink coupon (loyalty / invite) pays for a drink at the cafe;
+      // on a shop order it would be ₺280 off a bag of beans. Dropped with the
+      // usual promoDropped flag so the app can say why.
+      const cafeOnly =
+        couponCheck.coupon?.source === "loyalty" ||
+        couponCheck.coupon?.source === "invite";
+      if (
+        couponCheck.ok &&
+        couponCheck.coupon &&
+        (!cafeOnly || (f.kind ?? "shop") === "cafe")
+      ) {
         const claimed = await redeemCustomerCoupon(
           couponCheck.coupon.code,
           f.customerEmail,
@@ -1444,7 +1557,12 @@ async function finalizeOrder(
     shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
     taxRatePct: settings.taxRatePct,
   };
-  const totals = computeOrderTotals(subtotalMinor, discountMinor, cfg);
+  const totals = computeTotalsWithShipping(
+    subtotalMinor,
+    discountMinor,
+    f.shipping ?? { mode: "settings" },
+    cfg,
+  );
 
   const order: AdminOrder = {
     id: f.orderId,
@@ -1464,6 +1582,12 @@ async function finalizeOrder(
     refunds: [],
     createdAt: new Date().toISOString(),
     legalConsent: f.legalConsent ?? {},
+    // Only the app sets these; a web/admin row keeps the column defaults.
+    ...(f.channel ? { channel: f.channel } : {}),
+    ...(f.kind ? { kind: f.kind } : {}),
+    ...(f.fulfillment ? { fulfillment: f.fulfillment } : {}),
+    ...(f.scheduledFor !== undefined ? { scheduledFor: f.scheduledFor } : {}),
+    ...(f.deliveryNote !== undefined ? { deliveryNote: f.deliveryNote } : {}),
   };
   check(await sb.from(TABLES.orders).insert(order), "finalizeOrder.insert");
   return { order, promoDropped };
@@ -1643,6 +1767,327 @@ export async function createManualOrder(
   return { ok: true, order, priceAdjusted: false, promoDropped };
 }
 
+// ── App orders (docs/API-MOBILE.md §3) ────────────────────────────────────
+
+export interface AppCafeLineInput {
+  menuItemId: string;
+  qty: number;
+  size: OrderItemSize;
+  options: LineOptions;
+}
+
+export interface AppShopLineInput {
+  productId: string;
+  variantId?: string;
+  qty: number;
+  /** Grind choice etc.; shown on the line, no effect on price. */
+  note?: string;
+}
+
+export type AppOrderLineInput = AppCafeLineInput | AppShopLineInput;
+
+export function isAppCafeLine(
+  line: AppOrderLineInput,
+): line is AppCafeLineInput {
+  return "menuItemId" in line;
+}
+
+export interface AppOrderInput {
+  lines: AppOrderLineInput[];
+  fulfillment: OrderFulfillment;
+  customerName: string;
+  /** The authenticated member's e-mail — never read from the request body. */
+  customerEmail: string;
+  customerPhone: string;
+  /** Already formatted for the row; "" on a pickup. */
+  shippingAddress: string;
+  deliveryNote: string;
+  /** ISO instant, or null/"" for as soon as possible. */
+  scheduledFor: string | null;
+  promoCode: string;
+  legalConsent: OrderLegalConsent;
+}
+
+export type PlaceAppOrderResult =
+  | { ok: true; order: AdminOrder; promoDropped: boolean }
+  | Exclude<PlaceOrderResult, { ok: true }>
+  | { ok: false; reason: "cafe_closed" }
+  | { ok: false; reason: "bad_line"; productName: string; message: string }
+  | { ok: false; reason: "bad_request"; message: string };
+
+/** Every way an app order can be refused. */
+export type AppOrderFailure = Exclude<PlaceAppOrderResult, { ok: true }>;
+
+type CafeLinesResult =
+  | { ok: true; items: AdminOrderItem[] }
+  | { ok: false; result: AppOrderFailure };
+
+/**
+ * Prices cafe lines against `menu_items`. SECURITY: the unit price is the
+ * menu row's size price plus the option surcharges from the server-side
+ * customisation table — nothing from the request. Cafe lines hold no stock,
+ * so there is nothing to claim.
+ */
+async function resolveCafeLines(
+  lines: AppCafeLineInput[],
+): Promise<CafeLinesResult> {
+  const clean = lines.filter((l) => l.qty > 0);
+  if (clean.length === 0) {
+    return { ok: false, result: { ok: false, reason: "empty" } };
+  }
+  const ids = Array.from(new Set(clean.map((l) => l.menuItemId)));
+  const sb = getDb();
+  const docs = rows<AdminMenuItem>(
+    await sb.from(TABLES.menuItems).select("*").in("id", ids),
+    "placeAppOrder.menuItems",
+  );
+  const byId = new Map(docs.map((d) => [d.id, d]));
+
+  const items: AdminOrderItem[] = [];
+  for (const line of clean) {
+    const item = byId.get(line.menuItemId);
+    if (!item) {
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          reason: "not_found",
+          productName: line.menuItemId,
+        },
+      };
+    }
+    if (line.qty > MAX_LINE_QTY) {
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          reason: "qty_too_high",
+          productName: item.name,
+          max: MAX_LINE_QTY,
+        },
+      };
+    }
+    const priced = priceCafeLine(item, line.size, line.options);
+    if (!priced.ok) {
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          reason: "bad_line",
+          productName: item.name,
+          message: priced.message,
+        },
+      };
+    }
+    items.push({
+      productName: item.name,
+      qty: line.qty,
+      unitPriceMinor: priced.unitPriceMinor,
+      status: "pending",
+      menuItemId: item.id,
+      size: priced.size,
+      options: { ...priced.options },
+      detail: priced.detail,
+    });
+  }
+  return { ok: true, items };
+}
+
+function toPlaceOrderItem(line: AppShopLineInput): PlaceOrderItemInput {
+  return {
+    productId: line.productId,
+    variantId: line.variantId,
+    name: "",
+    qty: line.qty,
+  };
+}
+
+/**
+ * Carries the app's per-line note (the grind) onto the written line. The
+ * resolver keeps line order, and the app never sends a zero quantity, so the
+ * two lists line up one to one; if they ever did not, the notes are dropped
+ * rather than attached to the wrong product.
+ */
+function withShopNotes(
+  items: AdminOrderItem[],
+  lines: AppShopLineInput[],
+): AdminOrderItem[] {
+  const clean = lines.filter((l) => l.qty > 0);
+  if (clean.length !== items.length) return items;
+  return items.map((it, i) => {
+    const note = clean[i].note?.trim();
+    return note ? { ...it, detail: note.slice(0, 120) } : it;
+  });
+}
+
+function splitAppLines(lines: AppOrderLineInput[]): {
+  cafe: AppCafeLineInput[];
+  shop: AppShopLineInput[];
+} {
+  const cafe: AppCafeLineInput[] = [];
+  const shop: AppShopLineInput[] = [];
+  for (const line of lines) {
+    if (isAppCafeLine(line)) cafe.push(line);
+    else shop.push(line);
+  }
+  return { cafe, shop };
+}
+
+const MIXED_BASKET_MSG =
+  "Kafe ürünleri ile mağaza ürünleri aynı siparişte verilemez.";
+
+export type AppOrderLinesResult =
+  | { ok: true; items: AdminOrderItem[]; kind: OrderKind }
+  | { ok: false; result: AppOrderFailure };
+
+/**
+ * Resolves and prices app lines WITHOUT claiming stock, a promo or a
+ * sequence number — the basket preview (`POST /orders/preview`). Stock is
+ * still checked so an out-of-stock line is reported before checkout.
+ */
+export async function previewAppOrderLines(
+  lines: AppOrderLineInput[],
+): Promise<AppOrderLinesResult> {
+  await ensureSeed();
+  const { cafe, shop } = splitAppLines(lines);
+  if (cafe.length > 0 && shop.length > 0) {
+    return {
+      ok: false,
+      result: { ok: false, reason: "bad_request", message: MIXED_BASKET_MSG },
+    };
+  }
+  if (cafe.length > 0) {
+    const res = await resolveCafeLines(cafe);
+    return res.ok
+      ? { ok: true, items: res.items, kind: "cafe" }
+      : { ok: false, result: res.result };
+  }
+  const res = await resolveOrderLines(shop.map(toPlaceOrderItem));
+  if (!res.ok) return { ok: false, result: res.result };
+  return {
+    ok: true,
+    items: withShopNotes(shopLineItems(res.resolved), shop),
+    kind: "shop",
+  };
+}
+
+/**
+ * Creates an order placed from the mobile app. Cafe lines are priced from
+ * `menu_items` and hold no stock; shop lines go through exactly the web
+ * checkout's resolve → atomic claim → stock-move path. Status starts at
+ * `pending_payment`; the payment webhook advances it.
+ */
+export async function placeAppOrder(
+  input: AppOrderInput,
+): Promise<PlaceAppOrderResult> {
+  await ensureSeed();
+
+  // Same housekeeping as the web checkout — and just as non-fatal.
+  try {
+    await expireStalePendingOrders();
+  } catch (err) {
+    console.error("[orders] expiring stale pending orders failed", err);
+  }
+
+  const settings = await getSettings();
+  if (!settings.isShopOpen) {
+    return { ok: false, reason: "shop_closed" };
+  }
+
+  const { cafe, shop } = splitAppLines(input.lines);
+  if (cafe.length === 0 && shop.length === 0) {
+    return { ok: false, reason: "empty" };
+  }
+  if (cafe.length > 0 && shop.length > 0) {
+    return { ok: false, reason: "bad_request", message: MIXED_BASKET_MSG };
+  }
+  const kind: OrderKind = cafe.length > 0 ? "cafe" : "shop";
+  if (!fulfillmentAllowed(kind, input.fulfillment)) {
+    return {
+      ok: false,
+      reason: "bad_request",
+      message:
+        kind === "cafe"
+          ? "Kafe siparişi gel-al ya da kurye ile teslim edilir."
+          : "Mağaza siparişi kargo ile gönderilir.",
+    };
+  }
+  const scheduled = normalizeScheduledFor(input.scheduledFor, new Date());
+  if (!scheduled.ok) {
+    return { ok: false, reason: "bad_request", message: scheduled.message };
+  }
+
+  if (kind === "cafe") {
+    // The house must be open — at the requested time for a scheduled order,
+    // right now otherwise — with the staff override honoured either way.
+    // Imported lazily: the venue module reads settings from this store.
+    const { getVenueStatus, isCafeOpenNow } =
+      await import("@/lib/mobile/venue");
+    const venue = await getVenueStatus();
+    const at = scheduled.value ? new Date(scheduled.value) : new Date();
+    if (!isCafeOpenNow(settings.weeklyHours, venue.manualOverride, at)) {
+      return { ok: false, reason: "cafe_closed" };
+    }
+  }
+
+  const common = {
+    status: "pending_payment" as const,
+    customerName: input.customerName.trim() || "Üye",
+    customerEmail: input.customerEmail.trim().toLowerCase(),
+    customerPhone: input.customerPhone.trim(),
+    shippingAddress: input.shippingAddress.trim(),
+    internalNote: "",
+    promoCode: input.promoCode,
+    legalConsent: input.legalConsent,
+    channel: "app" as const,
+    kind,
+    fulfillment: input.fulfillment,
+    scheduledFor: scheduled.value,
+    deliveryNote: input.deliveryNote.trim().slice(0, 500),
+    shipping: shippingModeFor(input.fulfillment, settings),
+  };
+
+  if (kind === "cafe") {
+    const cafeRes = await resolveCafeLines(cafe);
+    if (!cafeRes.ok) return cafeRes.result;
+
+    const orderSeq = await nextSeq("ord");
+    const orderNo = await nextSeq("orderNo");
+    const orderId = slugifyId("ord", orderSeq);
+    const { order, promoDropped } = await insertOrderRow(cafeRes.items, {
+      orderId,
+      orderNo,
+      ...common,
+    });
+    return { ok: true, order, promoDropped };
+  }
+
+  const resolveRes = await resolveOrderLines(shop.map(toPlaceOrderItem));
+  if (!resolveRes.ok) return resolveRes.result;
+  const { resolved } = resolveRes;
+
+  const claimRes = await claimOrderStock(resolved);
+  if (!claimRes.ok) return claimRes.result;
+
+  const orderSeq = await nextSeq("ord");
+  const orderNo = await nextSeq("orderNo");
+  const orderId = slugifyId("ord", orderSeq);
+
+  await recordOrderStockMoves(
+    resolved,
+    claimRes.stockAfters,
+    orderId,
+    `Uygulama siparişi #${orderNo}`,
+    common.customerEmail,
+  );
+
+  const { order, promoDropped } = await insertOrderRow(
+    withShopNotes(shopLineItems(resolved), shop),
+    { orderId, orderNo, ...common },
+  );
+  return { ok: true, order, promoDropped };
+}
+
 // ── Payment application ───────────────────────────────────────────────────
 
 export type PaymentApplyResult = { ok: true } | { ok: false; error: string };
@@ -1702,12 +2147,38 @@ export async function applyPaymentSucceeded(input: {
     return { ok: false, error: "amount_mismatch" };
   }
 
+  const paidAt = new Date().toISOString();
   const upd = await sb
     .from(TABLES.orders)
-    .update({ status: "paid" })
+    .update({ status: "paid", paidAt })
     .eq("id", input.orderId)
-    .eq("status", "pending_payment");
+    .eq("status", "pending_payment")
+    .select("id");
   if (upd.error) return { ok: false, error: upd.error.message };
+  // Zero rows means the order was no longer pending — expired to `cancelled`
+  // by the stale sweep, or already paid. Loyalty must follow a payment that
+  // actually advanced the order, never a late or repeated confirmation.
+  const advanced = ((upd.data as { id: string }[] | null) ?? []).length > 0;
+
+  // Loyalty follows the payment but must never undo it: a stamp that fails
+  // to land is logged, the money stays recorded. Imported lazily because the
+  // loyalty module reads orders from this store (a static import would be a
+  // cycle), and the hook is idempotent so a retried webhook is harmless.
+  try {
+    if (advanced) {
+      const { onOrderPaid } = await import("@/lib/mobile/loyalty");
+      await onOrderPaid({ ...order, status: "paid", paidAt });
+    } else {
+      console.warn(
+        `[payment] order ${input.orderId} was not pending — loyalty skipped`,
+      );
+    }
+  } catch (err) {
+    console.error(
+      `[loyalty] onOrderPaid failed order=${input.orderId} orderNo=${order.orderNo}`,
+      err,
+    );
+  }
 
   if (isFirstConfirmation) {
     // Best-effort payment-confirmed e-mail (logs in dev when Resend is unset).
@@ -2153,7 +2624,11 @@ export async function getSettings(): Promise<AdminSettings> {
   if (!doc) return defaultSettings();
   const { id: _id, ...rest } = doc;
   void _id;
-  return rest as unknown as AdminSettings;
+  // A row seeded before a settings column existed reads that column from the
+  // migration default once the column lands; keys the driver did not return
+  // at all (a partial select in a test executor) fall back to the same
+  // defaults here, so callers never see `undefined` for a number field.
+  return { ...defaultSettings(), ...rest } as AdminSettings;
 }
 
 export async function updateSettings(
@@ -3676,7 +4151,10 @@ export async function updateAppSlide(
   check(
     await sb
       .from(TABLES.appHeroSlides)
-      .update({ ...normalizeAppSlide(input), updatedAt: new Date().toISOString() })
+      .update({
+        ...normalizeAppSlide(input),
+        updatedAt: new Date().toISOString(),
+      })
       .eq("id", id),
     "updateAppSlide",
   );
@@ -3832,7 +4310,9 @@ export async function getAppPost(id: string): Promise<AdminAppPost | null> {
   );
 }
 
-export async function createAppPost(input: AppPostInput): Promise<AdminAppPost> {
+export async function createAppPost(
+  input: AppPostInput,
+): Promise<AdminAppPost> {
   await ensureAppContentSeed();
   const sb = getDb();
   const now = new Date().toISOString();

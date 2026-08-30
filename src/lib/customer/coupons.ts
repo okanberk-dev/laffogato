@@ -57,6 +57,7 @@ const SOURCE_PREFIX: Record<CouponSource, string> = {
   loyalty: "SD", // sadakat
   manual: "HD", // hediye
   review: "DY", // değerlendirme
+  invite: "DV", // davet
 };
 
 // ─── Pure helpers (no DB — unit-tested directly) ─────────────────────────────

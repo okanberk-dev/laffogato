@@ -121,9 +121,33 @@ export async function saveShippingAction(
     shippingFreeThresholdMinor: parseMoneyMinor(
       formData.get("shippingFreeThreshold"),
     ),
+    // Cafe delivery (mobile app): a flat courier fee, never free — the
+    // free-shipping threshold above applies to shop parcels only.
+    courierFeeMinor: parseMoneyMinor(formData.get("courierFee")),
   });
   revalidateAll();
-  return ok("shipping", "Kargo ayarları kaydedildi.");
+  return ok("shipping", "Kargo ve kurye ayarları kaydedildi.");
+}
+
+export async function saveKaraokeAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  await requireRole("settings");
+  const hourlyMinor = parseMoneyMinor(formData.get("karaokeHourly"));
+  if (hourlyMinor <= 0) {
+    return { error: "Karaoke saatlik ücreti sıfırdan büyük olmalı." };
+  }
+  const capacity = parseInt(String(formData.get("karaokeCapacity") ?? ""), 10);
+  if (!Number.isFinite(capacity) || capacity < 1 || capacity > 50) {
+    return { error: "Karaoke kapasitesi 1 ile 50 arasında olmalı." };
+  }
+  await updateSettings({
+    karaokeHourlyMinor: hourlyMinor,
+    karaokeCapacity: capacity,
+  });
+  revalidateAll();
+  return ok("karaoke", "Karaoke ayarları kaydedildi.");
 }
 
 export async function saveSeoAction(

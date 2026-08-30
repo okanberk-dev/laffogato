@@ -32,7 +32,9 @@ export type AuditEntity =
   | "newsletter"
   | "legal_doc"
   | "auth"
-  | "2fa";
+  | "2fa"
+  | "venue_status"
+  | "karaoke_reservation";
 
 export type AuditAction =
   | "create"

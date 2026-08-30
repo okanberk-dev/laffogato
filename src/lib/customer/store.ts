@@ -29,6 +29,17 @@ export interface NotificationPrefs {
   newsletter: boolean;
 }
 
+/**
+ * The member's saved "usual" cafe order (docs/API-MOBILE.md §4). References a
+ * `menu_items` row; the price is never stored here — it is resolved from the
+ * database at order time like every other line.
+ */
+export interface CustomerUsual {
+  menuItemId: string;
+  size: "M" | "L" | "single";
+  options: Record<string, unknown>;
+}
+
 export interface Customer {
   id: string;
   email: string;
@@ -39,6 +50,23 @@ export interface Customer {
   addresses: CustomerAddress[];
   wishlist: string[];
   notificationPrefs: NotificationPrefs;
+  /**
+   * Supabase Auth user id this row is linked to; "" for a legacy web member
+   * that has not signed in through the app yet. Identity only — orders and
+   * money stay in this database (docs/API-MOBILE.md §0).
+   */
+  supabaseUserId: string;
+  /**
+   * ISO instant of the last attempt to link this row to a Supabase user, so a
+   * failed link is not retried on every request. "" when never attempted.
+   */
+  supabaseLinkAttemptedAt: string;
+  /** Referral code the member shares ("LAF-EDA24"); "" until generated. */
+  inviteCode: string;
+  /** E-mail of the member whose invite this account claimed; "" if none. */
+  invitedBy: string;
+  /** Saved usual cafe order, or null. */
+  usual: CustomerUsual | null;
   /** True once the customer clicked the e-mail verification link. */
   emailVerified: boolean;
   /** Single-use verification token (cleared after use). */
@@ -77,6 +105,8 @@ export interface PublicCustomer {
   emailVerified: boolean;
   isActive: boolean;
   createdAt: string;
+  inviteCode: string;
+  usual: CustomerUsual | null;
 }
 
 function defaultPrefs(): NotificationPrefs {
@@ -99,7 +129,45 @@ function withDefaults(c: Customer): Customer {
     isActive: c.isActive ?? true,
     termsAcceptedAt: c.termsAcceptedAt ?? "",
     marketingConsentAt: c.marketingConsentAt ?? "",
+    supabaseUserId: c.supabaseUserId ?? "",
+    supabaseLinkAttemptedAt: c.supabaseLinkAttemptedAt ?? "",
+    inviteCode: c.inviteCode ?? "",
+    invitedBy: c.invitedBy ?? "",
+    usual: normalizeUsual(c.usual),
   };
+}
+
+/**
+ * The `usual` column is JSONB with a JSON-null default, so a row reads as
+ * `null`, an object, or — from a hand edit — anything at all. Only a shape the
+ * order path can resolve is kept; the rest reads as "no usual".
+ */
+function normalizeUsual(raw: unknown): CustomerUsual | null {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return null;
+  }
+  const u = raw as Partial<CustomerUsual>;
+  if (typeof u.menuItemId !== "string" || !u.menuItemId) return null;
+  const size = u.size === "L" || u.size === "single" ? u.size : "M";
+  const options =
+    typeof u.options === "object" && u.options !== null
+      ? (u.options as Record<string, unknown>)
+      : {};
+  return { menuItemId: u.menuItemId, size, options };
+}
+
+/**
+ * What to write into `customers.usual`.
+ *
+ * The column is `jsonb not null default 'null'::jsonb` and the query builder
+ * binds a JS `null` as SQL NULL, which the constraint rejects. A JSON-null is
+ * therefore written as the text `"null"`, which Postgres parses into the
+ * jsonb null the column expects; an object is bound as JSON text as usual.
+ */
+export function usualColumnValue(
+  usual: CustomerUsual | null,
+): CustomerUsual | string {
+  return usual === null ? "null" : usual;
 }
 
 function toPublic(c: Customer): PublicCustomer {
@@ -116,6 +184,8 @@ function toPublic(c: Customer): PublicCustomer {
     emailVerified: full.emailVerified,
     isActive: full.isActive,
     createdAt: full.createdAt,
+    inviteCode: full.inviteCode,
+    usual: full.usual,
   };
 }
 
@@ -231,11 +301,22 @@ export async function registerCustomer(
     isActive: true,
     termsAcceptedAt: now,
     marketingConsentAt: input.marketing ? now : "",
+    supabaseUserId: "",
+    supabaseLinkAttemptedAt: "",
+    inviteCode: "",
+    invitedBy: "",
+    usual: null,
     createdAt: now,
     updatedAt: now,
   };
   const sb = getDb();
-  const { error } = await sb.from(TABLES.customers).insert(customer);
+  // `usual` is `jsonb not null default 'null'::jsonb`; the query builder binds
+  // a JS null as SQL NULL, which that column rejects. Leaving the key off the
+  // row takes the column default (JSON null) instead. Writers that clear it
+  // later must go through `usualColumnValue()` for the same reason.
+  const { usual: _usual, ...row } = customer;
+  void _usual;
+  const { error } = await sb.from(TABLES.customers).insert(row);
   if (error) {
     // Unique violation = race on email → treat as already registered.
     if (error.code === "23505") {
@@ -485,6 +566,25 @@ export async function verifyCustomerLogin(
     };
   }
   return { ok: true, customer: toPublic(customer) };
+}
+
+/**
+ * Whether the site's own (bcrypt) password agrees with what was just typed.
+ *
+ * `none` — the row has no site password (created through Supabase), so there
+ * is nothing to disagree with. Used by the login bridge: a Supabase sign-in
+ * is honoured only when the site password, if any, matches too — otherwise a
+ * password changed on the site would keep working through Supabase.
+ */
+export async function checkSitePassword(
+  email: string,
+  password: string,
+): Promise<"none" | "match" | "mismatch"> {
+  const customer = await fetchCustomer(normalizeEmail(email));
+  if (!customer || !customer.passwordHash) return "none";
+  return (await bcrypt.compare(password, customer.passwordHash))
+    ? "match"
+    : "mismatch";
 }
 
 export async function getCustomerByEmail(

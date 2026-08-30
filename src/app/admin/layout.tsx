@@ -84,9 +84,27 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
   {
     title: "Mobil Uygulama",
     items: [
-      { href: "/admin/mobil/slaytlar", label: "Slaytlar", section: "mobileApp" },
-      { href: "/admin/mobil/duyurular", label: "Duyurular", section: "mobileApp" },
-      { href: "/admin/mobil/gonderiler", label: "Gönderiler", section: "mobileApp" },
+      {
+        href: "/admin/mobil/slaytlar",
+        label: "Slaytlar",
+        section: "mobileApp",
+      },
+      {
+        href: "/admin/mobil/duyurular",
+        label: "Duyurular",
+        section: "mobileApp",
+      },
+      {
+        href: "/admin/mobil/gonderiler",
+        label: "Gönderiler",
+        section: "mobileApp",
+      },
+      {
+        href: "/admin/mobil/canli-durum",
+        label: "Canlı durum",
+        section: "mobileApp",
+      },
+      { href: "/admin/mobil/karaoke", label: "Karaoke", section: "mobileApp" },
     ],
   },
   {

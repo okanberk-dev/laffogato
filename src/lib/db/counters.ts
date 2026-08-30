@@ -1,5 +1,6 @@
 import "server-only";
 
+import { raiseDbError } from "./health";
 import { getDb } from "./index";
 
 /**
@@ -13,7 +14,9 @@ export async function nextSeq(key: string): Promise<number> {
   const db = getDb();
   const { data, error } = await db.rpc("next_seq", { counter_key: key });
   if (error) {
-    throw new Error(`next_seq(${key}) failed: ${error.message}`);
+    // A transport failure (no SQLSTATE) must surface as "unreachable" so the
+    // callers' degraded paths engage; a rejected call stays a hard error.
+    raiseDbError(`next_seq(${key})`, error, error.code === "" ? 0 : 400);
   }
   // bigint arrives as a string over the wire.
   const seq = typeof data === "number" ? data : Number(data);

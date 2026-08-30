@@ -124,7 +124,9 @@ export function poolConfig(connectionString: string): PoolConfig {
     ssl: wantsSsl
       ? {
           rejectUnauthorized: true,
-          ...(supabaseHost && validCa() ? { ca: process.env.DATABASE_SSL_CA } : {}),
+          ...(supabaseHost && validCa()
+            ? { ca: process.env.DATABASE_SSL_CA }
+            : {}),
         }
       : undefined,
   };
@@ -205,4 +207,8 @@ export const TABLES = {
   appHeroSlides: "app_hero_slides",
   appAnnouncements: "app_announcements",
   appPosts: "app_posts",
+  loyaltyStamps: "loyalty_stamps",
+  invites: "invites",
+  venueStatus: "venue_status",
+  karaokeReservations: "karaoke_reservations",
 } as const;

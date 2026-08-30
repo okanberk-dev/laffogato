@@ -54,7 +54,9 @@ export default async function AdminAppSlidesPage() {
                 >
                   <span
                     className="text-[10px] tracking-widest uppercase"
-                    style={{ color: s.tone === "paper" ? "#16211E" : "#FFFFFF" }}
+                    style={{
+                      color: s.tone === "paper" ? "#16211E" : "#FFFFFF",
+                    }}
                   >
                     {s.tone}
                   </span>
@@ -65,10 +67,14 @@ export default async function AdminAppSlidesPage() {
                     {s.eyebrow || "—"}
                   </p>
                   <p className="truncate font-medium">{s.title}</p>
-                  <p className="line-clamp-2 text-sm text-neutral-500">{s.body}</p>
+                  <p className="line-clamp-2 text-sm text-neutral-500">
+                    {s.body}
+                  </p>
                   <p className="mt-1 text-xs text-neutral-400">
                     Sıra {s.sortOrder} · {APP_SLIDE_TONE_LABELS[s.tone]}
-                    {s.ctaLabel ? ` · ${s.ctaLabel} → ${s.ctaRoute || "—"}` : " · butonsuz"}
+                    {s.ctaLabel
+                      ? ` · ${s.ctaLabel} → ${s.ctaRoute || "—"}`
+                      : " · butonsuz"}
                     {s.isActive ? "" : " · YAYINDA DEĞİL"}
                     {s.startsAt || s.endsAt
                       ? ` · ${s.startsAt || "…"} → ${s.endsAt || "…"}`

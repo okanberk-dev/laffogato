@@ -69,6 +69,10 @@ export async function deleteAnnouncementAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteAppAnnouncement(id);
-  await logAudit({ action: "delete", entity: "app_announcement", entityId: id });
+  await logAudit({
+    action: "delete",
+    entity: "app_announcement",
+    entityId: id,
+  });
   revalidatePath("/admin/mobil/duyurular");
 }

@@ -60,11 +60,17 @@ src/
     rehber/                  → SEO rehber hub'ı + /rehber/[slug] (Article +
                                FAQPage + Recipe yapısal verisi)
     api/webhooks/payment/    → Sunucudan sunucuya ödeme bildirimi (HMAC)
+    api/mobile/v1/           → Mobil uygulama API'si (docs/API-MOBILE.md):
+                               menu · shop · bootstrap · live-status ·
+                               karaoke/* (herkese açık) · me/* · orders/* ·
+                               loyalty/redeem · coupons · invite/claim ·
+                               notifications (Bearer Supabase JWT) · app-content
+    odeme/app-hata/          → Uygulama ödemesi başarısız → derin bağlantı
     odeme/donus/             → Sanal POS'un MÜŞTERİYİ POST ettiği dönüş
                                (IYZICO_CALLBACK_URL burayı göstermeli)
     gorsel/                  → Yüklenen görsellerin önbelleklenebilir servisi
     bulten/cikis/            → Tek tıkla bülten aboneliğinden çıkış (6563)
-    proxy.ts                 → Cookie-tabanlı admin guard
+    proxy.ts                 → Supabase oturum yenileme + cookie-tabanlı admin guard
   components/
     laffogato/               → Müşteri SPA
       app.tsx                → Shell (cart, route, notice, settings)
@@ -83,6 +89,15 @@ src/
     admin/                   → auth · store (veri katmanı) · audit · roles ·
                                product-schema (Zod)
     customer/                → Müşteri hesapları, kuponlar, auth
+                               supabase-bridge.ts + supabase-link-plan.ts
+                               (Supabase kullanıcısı ↔ customers satırı)
+    supabase/                → config · anon (bearer doğrulama) · server ·
+                               client · proxy (oturum yenileme) — YALNIZ kimlik
+    mobile/                  → Mobil API iş mantığı: auth (requireMobileCustomer) ·
+                               respond · menu(-mapper) · customization ·
+                               orders · order-{schema,pricing,mapper,address} ·
+                               me(-mapper/-schema) · loyalty(-core) · invite(-code) ·
+                               venue · karaoke · notifications · deep-link
     payment/                 → PaymentProvider arayüzü + Mock/iyzico sağlayıcıları
     legal/                   → entity.ts (yasal kimlik TEK KAYNAK + {{TOKEN}}) ·
                                content.ts (sözleşme metinleri, ham veri) ·
@@ -103,8 +118,9 @@ db/
   schema.sql                 → Üretilen tek dosyalık şema (`npm run db:bundle`)
 scripts/                     → db-migrate.mjs · db-bundle.mjs
 tests/                       → 30 vitest dosyası
-docs/                        → DATABASE.md · SEO.md · PROMPT.md ·
-                               AUDIT.md
+docs/                        → DATABASE.md · SEO.md · PROMPT.md · AUDIT.md ·
+                               API-MOBILE.md (mobil sözleşme) · AUTH-BRIDGE.md ·
+                               SUPABASE-GECIS.md
 ```
 
 ## Geliştirme Komutları

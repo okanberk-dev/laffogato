@@ -16,6 +16,7 @@ import {
   useSelection,
 } from "./bulk";
 import { formatDateTime, formatTRY } from "./forms";
+import { OrderChannelBadges } from "./order-badges";
 
 interface Props {
   orders: AdminOrder[];
@@ -98,7 +99,7 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
                     />
                   </div>
                   <div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       <span
                         className="text-lg font-medium"
                         style={{ fontFamily: "var(--mono), monospace" }}
@@ -110,6 +111,7 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
                       >
                         {statusLabel}
                       </span>
+                      <OrderChannelBadges order={o} />
                     </div>
                     <div className="mt-1 text-sm text-neutral-700">
                       {o.customerName}{" "}
@@ -151,7 +153,13 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
                   {o.items.map((it, i) => (
                     <li key={i} className="flex justify-between">
                       <span>
-                        {it.productName}{" "}
+                        {it.productName}
+                        {it.detail ? (
+                          <span className="text-neutral-500">
+                            {" "}
+                            · {it.detail}
+                          </span>
+                        ) : null}{" "}
                         <span className="text-neutral-400">× {it.qty}</span>
                       </span>
                       <span style={{ fontFamily: "var(--mono), monospace" }}>

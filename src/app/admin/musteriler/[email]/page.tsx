@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { CustomerActions } from "@/components/admin/customer-actions";
 import { CustomerCoupons } from "@/components/admin/customer-coupons";
+import { CustomerStamps } from "@/components/admin/customer-stamps";
 import {
   Card,
   PageHeader,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/admin/store";
 import { adminListCustomerCoupons } from "@/lib/customer/coupons";
 import { getAdminCustomerByEmail } from "@/lib/customer/store";
+import { getLoyalty, listStamps } from "@/lib/mobile/loyalty";
 
 export const dynamic = "force-dynamic";
 
@@ -60,10 +62,12 @@ export default async function CustomerDetailPage({ params }: PageProps) {
   const { email: raw } = await params;
   const email = decodeURIComponent(raw);
 
-  const [member, orders, coupons] = await Promise.all([
+  const [member, orders, coupons, loyalty, stamps] = await Promise.all([
     getAdminCustomerByEmail(email),
     customerOrdersByEmail(email),
     adminListCustomerCoupons(email),
+    getLoyalty(email),
+    listStamps(email),
   ]);
 
   // Neither a member account nor any order for this e-mail → 404.
@@ -222,6 +226,11 @@ export default async function CustomerDetailPage({ params }: PageProps) {
               email={member.email}
               isActive={member.isActive}
               emailVerified={member.emailVerified}
+            />
+            <CustomerStamps
+              email={member.email}
+              loyalty={loyalty}
+              history={stamps}
             />
             <CustomerCoupons email={member.email} coupons={coupons} />
             <Card>

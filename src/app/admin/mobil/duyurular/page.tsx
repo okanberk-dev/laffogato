@@ -46,7 +46,9 @@ export default async function AdminAppAnnouncementsPage() {
                     {APP_ANNOUNCEMENT_KIND_LABELS[a.kind]}
                   </p>
                   <p className="truncate font-medium">{a.title}</p>
-                  <p className="line-clamp-2 text-sm text-neutral-500">{a.body}</p>
+                  <p className="line-clamp-2 text-sm text-neutral-500">
+                    {a.body}
+                  </p>
                   <p className="mt-1 text-xs text-neutral-400">
                     Sıra {a.sortOrder}
                     {a.isActive ? "" : " · YAYINDA DEĞİL"}

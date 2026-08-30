@@ -43,7 +43,10 @@ export function AppAnnouncementForm({
     <form action={action} className="grid gap-4">
       <Card>
         <div className="grid gap-4">
-          <Field label="Tür" hint="Uygulamada rozet olarak görünür: BİLGİ · YENİ · SAATLER.">
+          <Field
+            label="Tür"
+            hint="Uygulamada rozet olarak görünür: BİLGİ · YENİ · SAATLER."
+          >
             <Select name="kind" defaultValue={defaults?.kind ?? "info"}>
               {APP_ANNOUNCEMENT_KINDS.map((kind) => (
                 <option key={kind} value={kind}>
@@ -53,7 +56,10 @@ export function AppAnnouncementForm({
             </Select>
           </Field>
 
-          <Field label="Başlık" hint="En fazla 80 karakter. Tek satırda okunsun.">
+          <Field
+            label="Başlık"
+            hint="En fazla 80 karakter. Tek satırda okunsun."
+          >
             <TextInput
               name="title"
               defaultValue={defaults?.title ?? ""}
@@ -85,8 +91,14 @@ export function AppAnnouncementForm({
 
       <Card>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Başlangıç" hint="Boşsa hemen yayında. Biçim: 2026-09-01T00:00:00Z">
-            <TextInput name="startsAt" defaultValue={defaults?.startsAt ?? ""} />
+          <Field
+            label="Başlangıç"
+            hint="Boşsa hemen yayında. Biçim: 2026-09-01T00:00:00Z"
+          >
+            <TextInput
+              name="startsAt"
+              defaultValue={defaults?.startsAt ?? ""}
+            />
           </Field>
           <Field label="Bitiş" hint="Boşsa süresiz.">
             <TextInput name="endsAt" defaultValue={defaults?.endsAt ?? ""} />

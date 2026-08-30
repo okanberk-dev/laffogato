@@ -22,9 +22,13 @@ import {
   updateCustomerProfile,
   updateNotificationPrefs,
   verifyCustomerLogin,
+  checkSitePassword,
   type AddressInput,
   type NotificationPrefs,
 } from "@/lib/customer/store";
+import { linkCustomerToSupabase } from "@/lib/customer/supabase-bridge";
+import { ensureCustomerForSupabaseUser } from "@/lib/customer/supabase-bridge";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendVerificationEmail } from "@/lib/email/send";
 import {
   subscribeNewsletter,
@@ -202,6 +206,18 @@ export async function registerAction(
     result.customer.name,
     verifyUrl(result.verifyToken),
   );
+  // Shared membership: the same e-mail + password also opens the app. A
+  // Supabase refusal is logged and never blocks the site sign-up; the site's
+  // own verification e-mail above keeps going out regardless.
+  try {
+    await linkCustomerToSupabase({
+      email: result.customer.email,
+      password,
+      name: result.customer.name,
+    });
+  } catch (err) {
+    console.error("[uye] supabase link after register failed", err);
+  }
   await setActiveCustomerSession(result.customer.email);
   redirect("/uye/hesap?verify=sent");
 }
@@ -246,7 +262,7 @@ export async function loginAction(
   // against a member's address as fast as the server would answer, and the
   // account holds their order history, addresses and phone number.
   const ip = await clientIp();
-  let result;
+  let sessionEmail: string;
   try {
     const limit = await checkLoginLimit("customer-login", ip, email);
     if (limit.blocked) {
@@ -255,15 +271,71 @@ export async function loginAction(
         values: { email },
       };
     }
-    result = await verifyCustomerLogin({ email, password });
-    if (!result.ok) {
-      const after = await recordLoginFailure("customer-login", ip, email);
-      return {
-        error: after.blocked
-          ? `Çok fazla başarısız deneme. ${after.retryAfterSeconds} saniye sonra tekrar dene.`
-          : result.error,
-        values: { email },
-      };
+
+    // Supabase first (docs/AUTH-BRIDGE.md): the same credentials the app uses.
+    // On success the server client has already written the session cookies;
+    // the site's own signed cookie is set below exactly as before.
+    const viaSupabase = await signInWithSupabase(email, password);
+    let supabaseSession = "";
+    if (viaSupabase.ok) {
+      const linked = await ensureCustomerForSupabaseUser(viaSupabase.user);
+      if (linked.ok) {
+        // The site's own password, when the row has one, is the newer truth:
+        // a password changed or reset here is not mirrored to Supabase (no
+        // service role), so the old one must not keep working through it.
+        const agree = await checkSitePassword(linked.customer.email, password);
+        if (agree === "mismatch") {
+          await signOutSupabase();
+          const after = await recordLoginFailure("customer-login", ip, email);
+          return {
+            error: after.blocked
+              ? `Çok fazla başarısız deneme. ${after.retryAfterSeconds} saniye sonra tekrar dene.`
+              : "E-posta veya şifre hatalı.",
+            values: { email },
+          };
+        }
+        supabaseSession = linked.customer.email;
+      } else {
+        await signOutSupabase();
+        if (linked.reason === "account_disabled") {
+          return {
+            error:
+              "Hesabın devre dışı bırakılmış. Lütfen bizimle iletişime geç.",
+            values: { email },
+          };
+        }
+        // Unconfirmed at Supabase (or no e-mail there): the bcrypt path below
+        // decides, exactly as it did before the bridge existed.
+      }
+    }
+    if (supabaseSession) {
+      sessionEmail = supabaseSession;
+    } else {
+      // Not a Supabase member (yet), wrong password there, or the address is
+      // unconfirmed there: the bcrypt path is unchanged.
+      const result = await verifyCustomerLogin({ email, password });
+      if (!result.ok) {
+        const after = await recordLoginFailure("customer-login", ip, email);
+        return {
+          error: after.blocked
+            ? `Çok fazla başarısız deneme. ${after.retryAfterSeconds} saniye sonra tekrar dene.`
+            : result.error,
+          values: { email },
+        };
+      }
+      sessionEmail = result.customer.email;
+      // The password was just proven: give this legacy member a Supabase
+      // account with it, once. Never blocks the login.
+      try {
+        await linkCustomerToSupabase({
+          email: sessionEmail,
+          password,
+          name: result.customer.name,
+        });
+      } catch (err) {
+        if (isDbUnreachable(err)) throw err;
+        console.error("[uye] supabase link after login failed", err);
+      }
     }
     await clearLoginLimit("customer-login", ip, email);
   } catch (err) {
@@ -272,11 +344,70 @@ export async function loginAction(
     if (!isDbUnreachable(err)) throw err;
     return { error: DB_DOWN_MESSAGE, values: { email } };
   }
-  await setActiveCustomerSession(result.customer.email);
+  await setActiveCustomerSession(sessionEmail);
   redirect("/uye/hesap");
 }
 
+type SupabaseSignIn =
+  | {
+      ok: true;
+      user: {
+        id: string;
+        email?: string;
+        email_confirmed_at?: string;
+        user_metadata: Record<string, unknown>;
+      };
+    }
+  | { ok: false };
+
+/**
+ * `signInWithPassword` against the shared Supabase project. Any failure —
+ * "Invalid login credentials", "Email not confirmed", or the auth server
+ * being unreachable — hands the attempt to the bcrypt path; only the
+ * non-credential failures are logged, since a wrong password is not an
+ * incident.
+ */
+async function signInWithSupabase(
+  email: string,
+  password: string,
+): Promise<SupabaseSignIn> {
+  if (!email.trim() || !password) return { ok: false };
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    if (error || !data.user) {
+      const status = error?.status;
+      if (status === undefined || status === 0 || status >= 500) {
+        console.error(
+          `[uye] supabase sign-in unavailable: ${error?.message ?? "no user"}`,
+        );
+      }
+      return { ok: false };
+    }
+    return { ok: true, user: data.user };
+  } catch (err) {
+    console.error("[uye] supabase sign-in threw", err);
+    return { ok: false };
+  }
+}
+
+/** Best-effort: clears the Supabase cookies; never throws. */
+async function signOutSupabase(): Promise<void> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.error("[uye] supabase sign-out failed", err);
+  }
+}
+
 export async function logoutAction(): Promise<void> {
+  // Both sessions go: the site's signed cookie and the Supabase one, so the
+  // next visit does not silently sign the member back in through the proxy.
+  await signOutSupabase();
   await clearCustomerSession();
   redirect("/");
 }
@@ -319,6 +450,20 @@ export async function changePasswordAction(
   if (newPw !== confirm) return { error: "Yeni şifreler eşleşmiyor." };
   const result = await changeCustomerPassword(current.email, currentPw, newPw);
   if (!result.ok) return { error: result.error };
+  // Mirror to Supabase when this browser holds a Supabase session (it does
+  // after a bridged login); without one there is no way to update it here,
+  // and the login bridge refuses the stale password on the site regardless.
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase.auth.getUser();
+    if (data.user) {
+      const { error } = await supabase.auth.updateUser({ password: newPw });
+      if (error)
+        console.error(`[uye] supabase password sync failed: ${error.message}`);
+    }
+  } catch (err) {
+    console.error("[uye] supabase password sync threw", err);
+  }
   // The change invalidates every cookie issued against the old password,
   // including this browser's — so re-issue one for the person who just did it.
   await setActiveCustomerSession(current.email);

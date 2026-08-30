@@ -2442,7 +2442,10 @@ export function PageVisit({ visit }: PageProps) {
                   düzenlemesinde başlık tabloyla çelişirdi. */}
               {visitHours.length === 1 ? (
                 <>
-                  {visitHours[0][0]}, <span className="script">{visitHours[0][1].replace(" — ", "–")}.</span>
+                  {visitHours[0][0]},{" "}
+                  <span className="script">
+                    {visitHours[0][1].replace(" — ", "–")}.
+                  </span>
                 </>
               ) : (
                 <>
