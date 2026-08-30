@@ -157,10 +157,62 @@ describe("planCustomerLink", () => {
       supabaseUserId: "u-1",
       supabaseLinkAttemptedAt: NOW,
       isActive: true,
-      termsAcceptedAt: NOW,
+      // No consent in the metadata, so none is recorded — the row must not
+      // claim an agreement the member never gave.
+      termsAcceptedAt: "",
+      marketingConsentAt: "",
       createdAt: NOW,
     });
     expect("usual" in plan.row).toBe(false);
+  });
+
+  it("records the consent the app sent, and only that", () => {
+    const plan = planCustomerLink(
+      null,
+      user({
+        user_metadata: {
+          full_name: "Eda Mancuso",
+          terms_accepted_at: "2026-09-02T10:15:00.000Z",
+          marketing_consent_at: "2026-09-02T10:15:00.000Z",
+        },
+      }),
+      NOW,
+      "cst-new",
+    );
+    expect(plan.action).toBe("create");
+    if (plan.action !== "create") return;
+    expect(plan.row.termsAcceptedAt).toBe("2026-09-02T10:15:00.000Z");
+    expect(plan.row.marketingConsentAt).toBe("2026-09-02T10:15:00.000Z");
+    // An opt-in is a preference too, so the notification switch follows it.
+    expect(plan.row.notificationPrefs.marketing).toBe(true);
+  });
+
+  it("leaves marketing off, and its stamp empty, when the box was not ticked", () => {
+    const plan = planCustomerLink(
+      null,
+      user({
+        user_metadata: {
+          terms_accepted_at: "2026-09-02T10:15:00.000Z",
+          marketing_consent_at: "",
+        },
+      }),
+      NOW,
+      "cst-new",
+    );
+    if (plan.action !== "create") throw new Error("expected create");
+    expect(plan.row.marketingConsentAt).toBe("");
+    expect(plan.row.notificationPrefs.marketing).toBe(false);
+  });
+
+  it("ignores a consent stamp that is not a real instant", () => {
+    const plan = planCustomerLink(
+      null,
+      user({ user_metadata: { terms_accepted_at: "evet, kabul ediyorum" } }),
+      NOW,
+      "cst-new",
+    );
+    if (plan.action !== "create") throw new Error("expected create");
+    expect(plan.row.termsAcceptedAt).toBe("");
   });
 
   it("creates an unverified row (no welcome coupon) when the address is unconfirmed", () => {

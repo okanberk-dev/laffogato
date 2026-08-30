@@ -408,3 +408,52 @@ alter table public.karaoke_reservations enable row level security;
 | 21 Sipariş Geçmişi                         | `/orders`                                                                                                |
 | 22 Cüzdan · 23 Hediye Kartı                | **Yakında** (karar 8) — uç yok                                                                           |
 | 26 Karaoke                                 | `/karaoke/availability` · `POST /karaoke/reservations`                                                   |
+
+## 13. Hukuki belgeler — `GET /legal` · `GET /legal/{slug}` (herkese açık)
+
+Uygulama kendi sözleşme kopyasını yazmaz. Sipariş kaydı sitenin sözleşme
+revizyonuna rıza kaydeder; iki taraf farklı metin gösterirse o kayıt anlamsız
+kalır. Bu yüzden tek kaynak `src/lib/legal/content.ts`'tir ve mobil onu okur.
+
+**`GET /api/mobile/v1/legal`** — 24 belgelik dizin.
+
+```json
+{
+  "updatedAt": "1 Eylül 2026",
+  "consentDocs": ["on-bilgilendirme-formu", "mesafeli-satis-sozlesmesi"],
+  "docs": [{ "slug": "...", "title": "...", "shortTitle": "...", "category": "Sipariş", "summary": "..." }]
+}
+```
+
+**`GET /api/mobile/v1/legal/{slug}`** — tek belgenin tam metni; bilinmeyen slug
+`404 not_found`. İkisi de `force-static` ve `public, s-maxage=86400,
+stale-while-revalidate=604800` ile yayınlanır; kimlik istemez.
+
+### Çevrimdışı taban
+
+`npm run legal:export` (site deposu) `scripts/legal-export.mjs`'yi çalıştırıp
+`laffogato-mobil/src/data/legal.seed.json` üretir: 24 belgelik dizin + **14
+belgenin tam metni** (`BUNDLED_SLUGS`). Paketlenen 14, uygulamanın içeriden
+bağlandığı belgelerdir — ağ yokken de açılabilmeleri gerekir:
+
+| Nerede bağlanır | Belge |
+| --- | --- |
+| Kayıt onay kutusu | `uyelik-sozlesmesi` · `kvkk-aydinlatma-metni` |
+| Kayıt, ileti onayı | `ticari-elektronik-ileti` |
+| Ödeme onay satırı | `on-bilgilendirme-formu` · `mesafeli-satis-sozlesmesi` |
+| Ödeme, cayma bildirimi | `iade-ve-cayma` |
+| Ürün detayı, alerjen | `gida-guvenligi-ve-alerjen` |
+
+Sözleşme metni sitede değiştiğinde `npm run legal:export` yeniden çalıştırılır
+ve mobil depoya ayrı bir commit olarak girer. Seed dosyası **elle
+düzenlenmez**.
+
+### Rıza kaydı (kayıt akışı)
+
+Uygulama hesabı oluştururken onay kutusunun işaretlendiği anı Supabase
+kullanıcı meta verisine yazar: `terms_accepted_at`, `marketing_consent_at`
+(ISO-8601, işaretlenmediyse boş). `planCustomerLink` bu iki alanı
+`customers.termsAcceptedAt` / `marketingConsentAt` sütunlarına kopyalar.
+**Meta veri yoksa sütun boş kalır** — sunucu artık "hesap açıldığına göre
+sözleşme kabul edilmiştir" varsayımını yapmaz. Ticari ileti onayı ayrıdır ve
+`notificationPrefs.marketing` anahtarını da o belirler.

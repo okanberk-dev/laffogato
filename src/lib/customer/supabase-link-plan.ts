@@ -43,6 +43,35 @@ export function phoneOf(user: SupabaseUserLike): string {
   return metaString(user.user_metadata, "phone", 30);
 }
 
+/** An ISO-8601 instant, or "" when the metadata holds anything else. */
+function metaInstant(
+  meta: Record<string, unknown> | null | undefined,
+  key: string,
+): string {
+  const raw = metaString(meta, key, 40);
+  if (!raw) return "";
+  const t = Date.parse(raw);
+  return Number.isNaN(t) ? "" : new Date(t).toISOString();
+}
+
+/**
+ * When the member ticked the membership-agreement / KVKK box at sign-up.
+ *
+ * The app writes `terms_accepted_at` into the Supabase user's metadata as it
+ * creates the account. If it is absent the field stays empty: an unproven
+ * consent is worse than a missing one, because the row would then claim an
+ * agreement nobody can show. `verifiedAt`-style back-fill happens on the
+ * site, where the member ticks the same box in the register form.
+ */
+export function termsAcceptedAtOf(user: SupabaseUserLike): string {
+  return metaInstant(user.user_metadata, "terms_accepted_at");
+}
+
+/** Commercial-message opt-in (6563 sayılı Kanun); separate and optional. */
+export function marketingConsentAtOf(user: SupabaseUserLike): string {
+  return metaInstant(user.user_metadata, "marketing_consent_at");
+}
+
 /** A `customers` insert — `usual` is left off so the column default applies. */
 export type CustomerInsertRow = Omit<Customer, "usual">;
 
@@ -63,8 +92,9 @@ export function newCustomerId(now: Date = new Date()): string {
  * same member.
  *
  * - No row → create one. Password-less (`passwordHash: ""`): the site signs
- *   such a member in through Supabase, never through bcrypt. Terms are
- *   accepted at sign-up in the app, so `termsAcceptedAt` is stamped now.
+ *   such a member in through Supabase, never through bcrypt. Consent is
+ *   copied from the token's metadata — what the member actually ticked —
+ *   rather than assumed from the fact that an account is being created.
  * - Row exists but deactivated → `disabled`; nothing is written.
  * - Row exists → record the Supabase id when missing, and promote the
  *   verification flag when Supabase has confirmed the address (that is the
@@ -86,6 +116,7 @@ export function planCustomerLink(
   const confirmed = !!user.email_confirmed_at;
 
   if (!existing) {
+    const marketingConsentAt = marketingConsentAtOf(user);
     return {
       action: "create",
       grantWelcome: confirmed,
@@ -100,7 +131,7 @@ export function planCustomerLink(
         wishlist: [],
         notificationPrefs: {
           orderUpdates: true,
-          marketing: false,
+          marketing: !!marketingConsentAt,
           newsletter: false,
         },
         emailVerified: confirmed,
@@ -110,8 +141,8 @@ export function planCustomerLink(
         resetToken: "",
         resetExpires: "",
         isActive: true,
-        termsAcceptedAt: now,
-        marketingConsentAt: "",
+        termsAcceptedAt: termsAcceptedAtOf(user),
+        marketingConsentAt,
         supabaseUserId: user.id,
         supabaseLinkAttemptedAt: now,
         inviteCode: "",
