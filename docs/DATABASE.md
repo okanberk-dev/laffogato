@@ -1,4 +1,10 @@
-# Veritabanı — Postgres (bugün Neon'da barındırılıyor)
+# Veritabanı — Postgres (hedef: Supabase)
+
+> Operatör kararı: veritabanı, mobil uygulamanın kimlik için kullandığı
+> Supabase projesinde yaşayacak. Cutover tamamlanana kadar canlı veri eski
+> sağlayıcıda durur ve hukuki belgeler gerçeği söylemeye devam eder
+> (aşağıda "Sağlayıcı adı" bölümü). Geçişin çalıştırılabilir yordamı:
+> **[SUPABASE-GECIS.md](SUPABASE-GECIS.md)**
 
 Proje **yönetilen bir Postgres** üzerinde çalışır. Kodda sağlayıcıya özel
 bağımlılık yoktur; taşınma bağlantı dizesini değiştirmekten ibarettir.
@@ -46,9 +52,9 @@ Taşıma sırasında `dbProvider` ile `DATABASE_URL` **aynı anda** değişir.
 ## Sürücü seçimi — neden `pg`
 
 Veri katmanı, sağlayıcıya özel bir SDK yerine standart `pg` sürücüsünü
-kullanır. Neon'un pooled endpoint'i normal Postgres wire protokolü konuştuğu
-için bu Neon'da sorunsuz çalışır; aynı kod başka bir yönetilen Postgres'te de,
-yerel bir Postgres'te de çalışır.
+kullanır. Supabase'in Supavisor pooler'ı da, eski sağlayıcının pooled
+endpoint'i de normal Postgres wire protokolü konuşur; aynı kod yerel bir
+Postgres'te de çalışır.
 
 Bunun iki somut faydası var:
 
@@ -68,53 +74,58 @@ Bunun iki somut faydası var:
 > bağlanmak siteyi bozar; hiç bağlanmamak bozmaz (pakete düşer). Yani şema
 > hazır olmadan env değişkenini eklemeyin.
 
-1. **Neon projesi aç** — <https://neon.com> → yeni proje.
-   - **Bölge olarak bir AWS bölgesi seç** (ör. `AWS us-east-2` ya da
-     `eu-central-1`). Bu önemli: Neon'un kullanımdan kaldırılan Azure
-     bölgelerinde 90 gün hareketsiz kalan ücretsiz projeler silinebiliyor; AWS
-     bölgeleri bu politikanın dışında.
+1. **Plan/slot doğrula** — hedef Supabase organizasyonu için
+   [SUPABASE-GECIS.md §0](SUPABASE-GECIS.md) ön koşulunu geç. Bu adım
+   atlanamaz: aynı sınır bu siteyi bir kez bir ay kapattı.
 
-2. **Connection string'i kopyala** — Neon panelinde _Connection Details_.
-   Sonu `-pooler` ile biten **pooled** endpoint'i kullan; serverless
-   fonksiyonlar için doğru olan odur.
+2. **Transaction pooler dizesini kopyala** — Supabase paneli → Project
+   Settings → Database → Connection string → **"Transaction pooler"**
+   (`postgresql://postgres.<ref>:<şifre>@aws-0-<bölge>.pooler.supabase.com:6543/postgres?sslmode=require`).
 
-3. **Şemayı kur.** İki yol var, ikisi de aynı sonucu verir:
+   **"Direct connection" dizesini KULLANMA:** o uç yalnızca IPv6 yayınlıyor ve
+   Vercel fonksiyonları IPv6'ya çıkamıyor — hata "yanlış şifre" gibi değil,
+   zaman aşımı gibi görünür (ölçüm: SUPABASE-GECIS.md §2).
+
+3. **CA sertifikasını indir** — aynı sayfada SSL Configuration → CA
+   certificate. PEM içeriği `DATABASE_SSL_CA` değişkenine konur; Supabase'in
+   zinciri kendi köküne dayandığı için bu olmadan bağlantı hiç kurulmaz
+   (SUPABASE-GECIS.md §2b).
+
+4. **Şemayı kur.** İki yol var, ikisi de aynı sonucu verir:
 
    **a) Komut satırından (tercih edilen):**
 
    ```bash
-   DATABASE_URL='postgresql://...-pooler.../neondb?sslmode=require' npm run db:migrate
+   DATABASE_SSL_CA="$(cat prod-ca.pem)" \
+   DATABASE_URL='postgresql://postgres.<ref>:...@...pooler.supabase.com:6543/postgres?sslmode=require' \
+   npm run db:migrate
    ```
 
    `db/migrations/*.sql` dosyalarını sırayla, her dosyayı tek transaction içinde
    uygular ve uygulananları `_migrations` tablosunda tutar. Tekrar çalıştırmak
    güvenlidir.
 
-   **b) Neon SQL Editor'dan:** `db/schema.sql` dosyasının tamamını kopyalayıp
-   Neon panelindeki SQL Editor'a yapıştır ve çalıştır. Bu dosya tüm
+   **b) Supabase SQL Editor'dan:** `db/schema.sql` dosyasının tamamını
+   kopyalayıp panelin SQL Editor'ına yapıştır ve çalıştır. Bu dosya tüm
    migration'ların sıralı birleşimidir ve uygulananları `_migrations`'a
    yazdığı için sonradan `npm run db:migrate` çalıştırmak sorunsuzdur.
    (Dosya üretilir: `npm run db:bundle`.)
 
-   Ağ kısıtı olan bir ortamdan Neon'a erişemiyorsanız (b) yolunu kullanın.
-
-4. **Vercel'de env değişkenini ayarla** — Vercel → proje → Settings →
+5. **Vercel'de env değişkenlerini ayarla** — Vercel → proje → Settings →
    Environment Variables:
 
-   | Değişken       | Değer                         | Ortam                |
-   | -------------- | ----------------------------- | -------------------- |
-   | `DATABASE_URL` | Sağlayıcının pooled connection string'i | Production + Preview |
+   | Değişken          | Değer                                    | Ortam                |
+   | ----------------- | ---------------------------------------- | -------------------- |
+   | `DATABASE_URL`    | Transaction pooler dizesi (adım 2)       | Production + Preview |
+   | `DATABASE_SSL_CA` | CA sertifikasının PEM içeriği (adım 3)   | Production + Preview |
 
-   Eski `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEY` değişkenlerini **sil** —
-   artık okunmuyorlar.
+   `NEXT_PUBLIC_SUPABASE_*` değişkenleri bu veri katmanının konusu değildir —
+   onlar kimlik (Auth) katmanına aittir ve mobil uygulama kullanır; site tarafı
+   Supabase Auth'a geçtiğinde siteye de eklenirler.
 
-5. **Yeniden deploy et.** İlk istekte tablolar boşsa uygulama kendini idempotent
-   şekilde seed eder. Sitedeki "canlı verilere ulaşamıyoruz" bandı kaybolursa
-   bağlantı çalışıyor demektir.
-
-Alternatif olarak Vercel Marketplace'teki **Neon** entegrasyonu da kurulabilir;
-o `DATABASE_URL`'i otomatik enjekte eder.
+6. **Yeniden deploy et ve SUPABASE-GECIS.md §4/6'daki doğrulama kapısından
+   geç.** "Sayfa açılıyor" yetmez: sağlık katmanı DB hatasında pakete düşer,
+   yanlış yapılandırma 500 değil "boş site" olarak görünür.
 
 ## Veri katmanı nasıl çalışıyor
 

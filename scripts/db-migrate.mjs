@@ -24,16 +24,35 @@ const MIGRATIONS_DIR = join(
   "migrations",
 );
 
+// src/lib/db/index.ts poolConfig() ile AYNI kurallar. Bu betik TS modülünü
+// import edemediği için mantık burada tekrarlanır; iki yer ayrışırsa runbook'un
+// ilk canlı adımı (pooler'a migrate) sessizce bozulur — değişiklik ikisine
+// birden yapılır. (Ölçülmüş gerçek: Supabase uçları kendi kök CA'sını sunar ve
+// düz metin oturumu kabul eder; bkz. docs/SUPABASE-GECIS.md §2b.)
 function sslFor(connectionString) {
   let sslmode = "";
+  let host = "";
   try {
-    sslmode = new URL(connectionString).searchParams.get("sslmode") ?? "";
+    const url = new URL(connectionString);
+    // postgresql: "özel olmayan" şema — WHATWG host'u küçültmez, biz küçültürüz.
+    host = url.hostname.toLowerCase();
+    sslmode = url.searchParams.get("sslmode") ?? "";
   } catch {
     sslmode = /sslmode=([a-z-]+)/.exec(connectionString)?.[1] ?? "";
   }
-  return sslmode !== "" && sslmode !== "disable"
-    ? { rejectUnauthorized: true }
-    : undefined;
+  const supabaseHost =
+    host.endsWith(".supabase.co") || host.endsWith(".pooler.supabase.com");
+  const wantsSsl = (sslmode !== "" && sslmode !== "disable") || supabaseHost;
+  if (!wantsSsl) return undefined;
+  const ca = process.env.DATABASE_SSL_CA;
+  const caOk = ca && ca.includes("-----BEGIN CERTIFICATE-----");
+  if (ca && !caOk) {
+    console.error("[db:migrate] DATABASE_SSL_CA PEM görünmüyor — yok sayılıyor");
+  }
+  return {
+    rejectUnauthorized: true,
+    ...(supabaseHost && caOk ? { ca } : {}),
+  };
 }
 
 async function main() {

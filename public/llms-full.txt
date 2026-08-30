@@ -2,7 +2,7 @@
 
 Bologna 1987'den İstanbul'a. Yenilebilir waffle kup içinde Sirena espresso ve fior di latte gelato. Drink it. Eat the cup.
 
-Bu dosya, L'Affogato web sitesinin (https://laffogato.net) içeriğinin LLM ve generative AI motorları için optimize edilmiş düz metin versiyonudur. Bilgiler son güncelleme: 2026-08-26.
+Bu dosya, L'Affogato web sitesinin (https://laffogato.net) içeriğinin LLM ve generative AI motorları için optimize edilmiş düz metin versiyonudur. Kanonik kaynak sitenin kod deposudur; bu dosya onunla test altında eş tutulur.
 
 ---
 
@@ -20,7 +20,7 @@ L'Affogato, 1987 yılında İtalya Bologna şehrinin Via Galliera 21 adresinde G
 
 - Tam adres: 200 yıllık Rum köşkü (Menemenci Cumhur'un yanı), Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, 34940 Tuzla / İstanbul, Türkiye
 - Koordinatlar: 40.8165716° K, 29.3032493° D
-- Telefon: +90 216 459 30 60
+- Telefon: +90 536 429 09 19
 - E-posta: info@nextgenlab.com.tr
 - Ana lokasyon: L'Affogato Italia, Via Galliera 21, 40121 Bologna, Italia
 
@@ -43,15 +43,12 @@ Mekan özellikleri:
 
 ## ÇALIŞMA SAATLERİ
 
-- Pazartesi: 10:00 — 23:00
-- Salı: 10:00 — 23:00
-- Çarşamba: 10:00 — 23:00
-- Perşembe: 10:00 — 23:00
-- Cuma: 10:00 — 24:00
-- Cumartesi: 10:00 — 24:00
-- Pazar: 10:00 — 23:00
+- Her gün: 09:00 — 01:00
 
-Tüm yıl boyunca açık. Resmi tatillerde de hizmet veriyoruz (1 Ocak hariç).
+Kapanış saati ertesi sabaha sarkar: gece 01:00, bir sonraki günün ilk saatidir.
+Üst katta rezervasyonla kullanılabilen bir karaoke odası vardır.
+
+Tüm yıl açığız; tek istisna 1 Ocak günüdür. 31 Aralık gecesi servis 1 Ocak saat 01:00'de biter, 1 Ocak günü kapalıyız.
 
 ---
 
@@ -265,13 +262,13 @@ Eda Mancuso — Founder & Roaster. Bolonyalı baba, İstanbullu anne. 1987'de b�
 Cevap: Tuzla'da 200 yıllık, restore edilmiş Rum köşkü, Menemenci Cumhur'un yanı; Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, 34940 Tuzla / İstanbul. Marmaray Tuzla 6 dk, E-5 / TEM Tuzla çıkışı 4 dk, Sabiha Gökçen Havalimanı 15 dk. Ücretsiz vale park hizmeti.
 
 **Soru: Çalışma saatleri nedir?**
-Cevap: Pazartesi-Perşembe 10:00-23:00, Cuma-Cumartesi 10:00-24:00, Pazar 10:00-23:00. Tüm yıl açık.
+Cevap: Her gün 09:00 - 01:00; kapanış ertesi sabaha sarkar. Tüm yıl açık.
 
 **Soru: L'Affogato nedir, menüde nasıl servis ediliyor?**
 Cevap: Bir top dondurma üzerine sıcak espresso dökülerek hazırlanan İtalyan klasiği; evin imza içeceği, 280₺. Matcha sevenler için Matcha Affogato da menüde: buzlu matcha latte üzerine bir top dondurma ve matcha tozu, 245₺.
 
 **Soru: Rezervasyon yapabilir miyim?**
-Cevap: Rezervasyon yalnızca telefonla: +90 216 459 30 60. Site üzerinden masa ayırtma yoktur. Hafta sonu akşam servisi için 24 saat öncesinden aramanız önerilir; 12 koltuklu küçük bir bar olduğumuz için masalar sınırlıdır.
+Cevap: Rezervasyon yalnızca telefonla: +90 536 429 09 19. Site üzerinden masa ayırtma yoktur. Hafta sonu akşam servisi için 24 saat öncesinden aramanız önerilir; 12 koltuklu küçük bir bar olduğumuz için masalar sınırlıdır.
 
 **Soru: Vegan veya glutensiz seçeneğiniz var mı?**
 Cevap: Sütlü içecekler 25₺ fark ile yulaf, badem veya laktozsuz sütle hazırlanır. Frozen serisi (çilek, ahududu, çarkıfelek, ananas), L'Af Limon ve Cool Lime süt içermez. Fındıklı kalemler menüde işaretlidir.
@@ -295,7 +292,7 @@ Cevap: Nakit, Visa, Mastercard, Amex, Apple Pay, Google Pay. Online mağaza içi
 
 ## İLETİŞİM
 
-- Tuzla: info@nextgenlab.com.tr · +90 216 459 30 60
+- Tuzla: info@nextgenlab.com.tr · +90 536 429 09 19
 - Press & PR: info@nextgenlab.com.tr
 - Ana lokasyon: L'Affogato Italia, Via Galliera 21, 40121 Bologna, Italia
 
@@ -341,7 +338,7 @@ Siteyi işleten ve satışı gerçekleştiren tüzel kişi:
 - İş yeri adresi: Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla/İstanbul, Türkiye
 - Vergi dairesi: Tuzla Vergi Dairesi · Vergi kimlik no: 6312110904
 - MERSİS no: 0734069467300012
-- İletişim: info@nextgenlab.com.tr · +90 216 459 30 60
+- İletişim: info@nextgenlab.com.tr · +90 536 429 09 19
 - "L'Affogato" bu şirket tarafından işletilen ticari markadır.
 
 Yayındaki hukuki belgeler (https://laffogato.net/hukuk):

@@ -15,6 +15,10 @@ olarak doğrulanacak tek şey:
 > `wvivcgctebyxojtyidfg` projesinin bulunduğu organizasyon ücretli planda mı,
 > değilse o organizasyonda bu proje **kalıcı** mı?
 
+(Karşılaştırma için ölçüm: bu makinenin MCP erişimindeki DİĞER organizasyon
+"free" planda ve tam 2 projeyle dolu — sınır gerçek ve bugün de yürürlükte.
+`wvivcgctebyxojtyidfg`'nin organizasyonu ayrı bir hesapta; planı DOĞRULANMADI.)
+
 Proje bugün canlı ve sağlıklı (auth ucu cevap veriyor, publishable anahtar
 geçerli — bu oturumda doğrulandı). Ama "bugün canlı" ile "plan gereği kalıcı"
 aynı şey değil.
@@ -57,10 +61,42 @@ postgresql://postgres.wvivcgctebyxojtyidfg:<ŞİFRE>@aws-0-<bölge>.pooler.supab
 ```
 
 - Kullanıcı adı `postgres.<proje-ref>` biçimindedir (pooler kiracıyı bundan bulur).
-- `sslmode=require` kalsın: `poolConfig()` bunu görüp TLS'i tam doğrulamayla
-  açar; pooler alan adları herkese açık kök sertifikayla imzalıdır.
 - Bölgeyi Supabase paneli söyler (Project Settings → Database → Connection
   string → "Transaction pooler").
+
+### 2b. İkinci tuzak: Supabase'in sertifika zinciri kendi köküne dayanır
+
+Ölçüldü (SSLRequest + sistem-kök doğrulaması, üç pooler ucunda aynı):
+
+```
+aws-0-us-east-1.pooler.supabase.com:6543  → self signed certificate in certificate chain
+aws-0-us-east-1.pooler.supabase.com:5432  → self signed certificate in certificate chain
+aws-0-eu-central-1.pooler.supabase.com:6543 → self signed certificate in certificate chain
+```
+
+Yani sistem kökleriyle `rejectUnauthorized: true` **başarısız olur**. Kodun bu
+duruma iki cevabı var (`src/lib/db/index.ts` ve aynı kurallarla
+`scripts/db-migrate.mjs`):
+
+1. **ZORUNLU — `DATABASE_SSL_CA`:** Supabase panelinden indirilen kök
+   sertifikanın PEM içeriği bu env değişkenine konur; tam doğrulama o kökle
+   yapılır. Bu olmadan Supabase'e HİÇBİR bağlantı kurulamaz — cutover'da değil,
+   **ilk pooler bağlantısında** (yani §4 adım 2'de) gerekir.
+   (Panel: Project Settings → Database → SSL Configuration → CA certificate.)
+   CA yalnızca Supabase host'larında uygulanır; Neon'a dönüşte env'in unutulmuş
+   olması hiçbir şeyi bozmaz — Node'da `ca` sistem köklerinin YERİNE geçtiği
+   için bu kapsamlama, tek adımlık geri dönüşün ta kendisidir.
+2. **Ek emniyet:** `*.supabase.co` / `*.pooler.supabase.com` host'larında TLS,
+   `sslmode` yazılmasa bile (hatta `sslmode=disable` yazılsa bile) **zorla
+   açılır** — Supavisor düz metin oturumu kabul ettiği için aksi, üretimi
+   sessizce şifresiz taşımak olurdu. `sslmode=require` yazmaya devam etmek
+   yine de iyi pratik: niyeti dizede görünür kılar.
+
+`rejectUnauthorized: false` diye bir yol bilerek YOK: sağlık katmanı
+(`client.ts`) bağlantı hatasını "veritabanı ulaşılamıyor" sayıp paket veriye
+düşer — yanlış TLS yapılandırması 500 olarak değil, **"boş ama ayakta site"**
+olarak görünür ve teşhisi geciktirir. Bu yüzden cutover'daki doğrulama kapısı
+(aşağıda §4/6) atlanamaz.
 
 ## 3. Publishable anahtar bu iş İÇİN DEĞİL
 
@@ -75,9 +111,16 @@ Sıfır kesinti hedefiyle, adım adım:
 
 1. **Ön koşul** — §0'daki plan/slot doğrulaması + pooler bağlantı dizesi elde.
 2. **Şemayı kur (canlıya dokunmaz):** yerelde
-   `DATABASE_URL='<pooler-dizesi>' npm run db:migrate`
+
+   ```
+   DATABASE_SSL_CA="$(cat prod-ca.pem)" \
+   DATABASE_URL='<pooler-dizesi>' npm run db:migrate
+   ```
+
    ya da `db/schema.sql`'i Supabase SQL Editor'a yapıştır. İkisi de
-   idempotenttir ve `_migrations`'a ne uyguladığını yazar.
+   idempotenttir ve `_migrations`'a ne uyguladığını yazar. (CA olmadan migrate
+   §2b'deki zincir hatasıyla düşer — bu beklenen davranıştır, şifresiz
+   bağlanmaya düşmez.)
 3. **Veriyi kopyala:** Neon hâlâ canlı kaynakken:
    ```
    pg_dump  "$NEON_URL"    --data-only --no-owner --no-privileges \
@@ -91,14 +134,24 @@ Sıfır kesinti hedefiyle, adım adım:
    customers, orders, order_items, settings, products, app_*).
 5. **Cutover (tek atomik değişiklik seti):**
    - Vercel'de `DATABASE_URL` → pooler dizesi
+   - Vercel'de `DATABASE_SSL_CA` → Supabase kök sertifikasının PEM içeriği (§2b)
    - `src/lib/legal/entity.ts` → `dbProvider: "Supabase"` (35 hukuki pasaj
      kendiliğinden güncellenir; bkz. DATABASE.md — bu ikisi AYNI anda değişir,
      veri taşınmadan belge değişmez)
    - Redeploy
-6. **Donanım kontrolü:** `/`, `/menu`, `/admin/giris`, `/api/mobile/v1/app-content`
-   ve bir test siparişi. Sipariş yazma çalışıyorsa geçiş bitti.
+6. **Doğrulama kapısı — "sayfa açılıyor" YETMEZ:** sağlık katmanı DB
+   hatasında paket veriye düştüğü için site, veritabanına hiç bağlanamazken de
+   ayakta görünür. Kapı şudur:
+   - Vercel fonksiyon loglarında bağlantı/TLS hatası OLMAMALI,
+   - `/admin/giris` ile giriş yapılabilmeli (admin oturumu DB'siz çalışmaz),
+   - bir test siparişi yazılıp `/admin/siparisler`'de görünmeli,
+   - `/api/mobile/v1/app-content` panelden az önce yapılmış bir düzenlemeyi
+     yansıtmalı (paket veri değil, canlı veri kanıtı).
+   Dördü de geçmeden `dbProvider` değiştirilmez, Neon kapatılmaz.
 7. **Geriye dönüş planı:** Vercel'de `DATABASE_URL`'i Neon'a geri almak tek
-   adımdır; Neon'daki veri cutover'dan sonra da silinmemiş olacak (bkz. adım 8).
+   adımdır; `DATABASE_SSL_CA`'yı silmek GEREKMEZ (yalnız Supabase host'larında
+   uygulanır) ve Neon'daki veri cutover'dan sonra da silinmemiş olacak
+   (bkz. adım 8).
 8. **Söküm (en az 1 hafta sonra):** Neon projesi kapatılır,
    `NEON_DATABASE_URL` env zincirinden silinir (`src/lib/db/index.ts` +
    `scripts/db-migrate.mjs` — kod içi not zaten "cutover doğrulanınca sil" diyor).

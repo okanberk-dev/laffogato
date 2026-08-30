@@ -4,7 +4,7 @@
 yönetim paneli.
 
 **Next.js 16** (App Router) · **React 19** · **Tailwind v4** · **TypeScript** ·
-**Postgres** (bugün Neon'da) — uygulama Vercel'de barındırılır. Sağlayıcıya
+**Postgres** (hedef: Supabase — geçiş: docs/SUPABASE-GECIS.md) — uygulama Vercel'de barındırılır. Sağlayıcıya
 özel bağımlılık yok; taşınma bağlantı dizesi değişikliğidir.
 
 | Taraf       | Ne var                                                                                                                                      |

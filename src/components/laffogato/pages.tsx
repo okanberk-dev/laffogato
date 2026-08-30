@@ -2434,9 +2434,21 @@ export function PageVisit({ visit }: PageProps) {
           data-row="visit-book-row"
         >
           <div className="reveal">
-            <div className="eyebrow">Saatler · AVM açık saatleri</div>
+            <div className="eyebrow">Saatler · Köşk</div>
             <h2 className="h1" style={{ marginTop: 16 }}>
-              Her gün, <span className="script">10–23.</span>
+              {/* Tek satırlık tarifede başlık tablodan türetilir; panelden saat
+                  değişirse ikisi birlikte değişir. Çok satırlı tarifede genel
+                  başlığa düşer — sabit "09–01" yazsaydık, panelin ilk
+                  düzenlemesinde başlık tabloyla çelişirdi. */}
+              {visitHours.length === 1 ? (
+                <>
+                  {visitHours[0][0]}, <span className="script">{visitHours[0][1].replace(" — ", "–")}.</span>
+                </>
+              ) : (
+                <>
+                  Açık olduğumuz <span className="script">saatler.</span>
+                </>
+              )}
             </h2>
             <div className="hours-table">
               {visitHours.map(([d, h]) => (
@@ -2455,7 +2467,9 @@ export function PageVisit({ visit }: PageProps) {
                   Şu an açık
                 </div>
                 <div className="eyebrow" style={{ marginTop: 4 }}>
-                  Son siparişler 22:30
+                  {/* Kapanıştan yarım saat önce — 01:00 kapanışla 00:30.
+                      (22:30, eski 23:00 kapanışından kalmıştı.) */}
+                  Son siparişler 00:30
                 </div>
               </div>
             </div>

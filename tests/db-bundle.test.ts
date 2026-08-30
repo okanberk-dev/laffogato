@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -59,5 +60,16 @@ describe("db/schema.sql", () => {
     const bundle = buildBundle();
     expect(bundle).toContain("claim_order_stock");
     expect(bundle).toContain("INSUFFICIENT_STOCK");
+  });
+});
+
+describe("_migrations RLS migration paketi", () => {
+  it("paket, _migrations'a RLS açan ifadeyi taşıyor", () => {
+    const sql = readFileSync(join(process.cwd(), "db", "schema.sql"), "utf-8");
+    expect(sql).toContain(
+      "alter table public._migrations enable row level security",
+    );
+    // Neon'da anon/authenticated yoktur; korumasız revoke migration'ı düşürür.
+    expect(sql).toMatch(/if exists \(select 1 from pg_roles where rolname = 'anon'\)/);
   });
 });
