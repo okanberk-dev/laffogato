@@ -882,13 +882,20 @@ function PromoBlock({
       <button type="submit" disabled={promoPending}>
         {promoPending ? "…" : "Uygula"}
       </button>
+      {/* Both outcomes were visual only: a rejected code looked exactly like
+          a pending one to a screen-reader user. */}
       {promoState.error && (
-        <div className="checkout-promo-msg" data-tone="error">
+        <div className="checkout-promo-msg" data-tone="error" role="alert">
           {promoState.error}
         </div>
       )}
       {promoState.ok && (
-        <div className="checkout-promo-msg" data-tone="ok">
+        <div
+          className="checkout-promo-msg"
+          data-tone="ok"
+          role="status"
+          aria-live="polite"
+        >
           {promoState.ok.code} uygulandı
         </div>
       )}

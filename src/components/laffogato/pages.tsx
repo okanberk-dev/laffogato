@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useMemo, useRef, Fragment } from "react";
+import {
+  useCallback,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  Fragment,
+} from "react";
 
 import { SITE } from "@/lib/seo/site";
 import { parsePriceLabel } from "@/lib/utils/format";
+import { useDialog } from "./use-dialog";
 
 import { ShopHeroSlider, type ShopHeroSlide } from "./shop-hero-slider";
 import { PourHero } from "./pour-hero";
@@ -816,11 +824,17 @@ export function PageMenu({ menu }: PageProps) {
         <div className="wrap menu-controls-inner">
           <div
             className="menu-tabs"
-            role="tablist"
+            /* Not a tablist: there are no tabpanels behind these, and the
+               `tab` role obliges arrow-key navigation and a linked panel that
+               do not exist. They are filter toggles, so they say so — and the
+               selected one is now conveyed, which `role="tablist"` alone on
+               the container never was. */
+            role="group"
             aria-label="Menü kategorileri"
           >
             <button
               className={`menu-tab ${active === "all" ? "on" : ""}`}
+              aria-pressed={active === "all"}
               onClick={() => selectCat("all")}
             >
               <span>Tümü</span>
@@ -830,6 +844,7 @@ export function PageMenu({ menu }: PageProps) {
               <button
                 key={c}
                 className={`menu-tab ${active === c ? "on" : ""}`}
+                aria-pressed={active === c}
                 onClick={() => selectCat(c)}
               >
                 <span>{liveMenu[c].title}</span>
@@ -1194,12 +1209,12 @@ export function PageShop({
     setPriceMax(null);
   };
 
-  // Lock body scroll while the mobile filter sheet is open.
-  useEffect(() => {
-    if (filtersOpen) document.body.classList.add("is-no-scroll");
-    else document.body.classList.remove("is-no-scroll");
-    return () => document.body.classList.remove("is-no-scroll");
-  }, [filtersOpen]);
+  // Escape, body-scroll lock, focus in and focus back out. The sheet stays
+  // mounted so it can animate, so it also has to be marked inert while closed
+  // — its controls were otherwise reachable by Tab from off-screen.
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const closeFilters = useCallback(() => setFiltersOpen(false), []);
+  useDialog(filtersOpen, closeFilters, sheetRef);
 
   // Filter controls — shared by the desktop sidebar and the mobile sheet.
   const renderFilters = () => (
@@ -1382,7 +1397,7 @@ export function PageShop({
       <div className="shop-mobilebar">
         <div
           className="shop-mobilebar-cats"
-          role="tablist"
+          role="group"
           aria-label="Ürün kategorileri"
         >
           {cats.map((c) => {
@@ -1394,6 +1409,7 @@ export function PageShop({
               <button
                 key={c.id}
                 className={`shop-pill ${cat === c.id ? "on" : ""}`}
+                aria-pressed={cat === c.id}
                 onClick={() => setCat(c.id)}
               >
                 {c.label}
@@ -1524,10 +1540,14 @@ export function PageShop({
         aria-hidden={!filtersOpen}
       />
       <div
+        ref={sheetRef}
         className={`shop-sheet ${filtersOpen ? "open" : ""}`}
-        role="dialog"
-        aria-modal="true"
+        role={filtersOpen ? "dialog" : undefined}
+        aria-modal={filtersOpen ? true : undefined}
         aria-label="Filtreler"
+        aria-hidden={filtersOpen ? undefined : true}
+        inert={!filtersOpen}
+        tabIndex={-1}
       >
         <div className="shop-sheet-grip" aria-hidden="true" />
         <header className="shop-sheet-head">

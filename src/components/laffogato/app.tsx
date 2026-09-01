@@ -118,6 +118,7 @@ export function LaffogatoApp({
   const router = useRouter();
   const pathname = usePathname();
   const [noticeOpen, setNoticeOpen] = useState(Boolean(notice));
+  const [cartAnnouncement, setCartAnnouncement] = useState("");
 
   useEffect(() => {
     setNoticeOpen(Boolean(notice));
@@ -191,6 +192,10 @@ export function LaffogatoApp({
 
   const addToCart = (item: CartItem) => {
     const key = cartItemKey(item);
+    // Announced in a live region: adding to the cart used to change only
+    // pixels, so a screen-reader user got no confirmation that the button
+    // they pressed had done anything.
+    setCartAnnouncement(`${item.name} sepete eklendi.`);
     setCart((prev) => {
       const existing = prev.find((p) => cartItemKey(p) === key);
       if (existing) {
@@ -304,6 +309,17 @@ export function LaffogatoApp({
         {seoSlot}
       </main>
       <Footer navigate={navigate} settings={settings} />
+      {/* Polite so it waits for a pause rather than cutting off whatever the
+          reader is on; atomic so the whole sentence is read, not the diff. */}
+      <p
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {cartAnnouncement}
+      </p>
+
       <CartDrawer
         open={cartOpen}
         onClose={() => setCartOpen(false)}

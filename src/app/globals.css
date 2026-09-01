@@ -177,6 +177,20 @@ select {
   color: var(--gold-soft);
 }
 
+/* Available to assistive technology, invisible on screen. Used by the live
+   regions that announce cart and form changes. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Skip-to-content link: visually hidden until keyboard focus (WCAG 2.4.1) */
 .skip-link {
   position: absolute;
@@ -644,10 +658,27 @@ summary:focus-visible,
     opacity 0.25s;
   margin-left: -2px;
 }
-.nav-link:hover .nav-link-caret {
+.nav-link-caret-btn {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 4px 2px;
+  margin-left: -2px;
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.nav-link-caret-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+.nav-link-wrap:hover .nav-link-caret,
+.nav-link-caret-btn:hover .nav-link-caret {
   opacity: 0.85;
 }
-.nav-link.is-open .nav-link-caret {
+.nav-link-caret-btn.is-open .nav-link-caret {
   opacity: 1;
   transform: rotate(180deg);
 }
@@ -1605,7 +1636,10 @@ summary:focus-visible,
     opacity 0.3s,
     transform 0.3s;
 }
-.product-card:hover .product-card-quick {
+.product-card:hover .product-card-quick,
+/* Keyboard parity: the buttons are in the tab order whether or not they are
+   painted, so a keyboard user used to tab into two invisible controls. */
+.product-card:focus-within .product-card-quick {
   opacity: 1;
   transform: none;
 }
@@ -2795,7 +2829,9 @@ summary:focus-visible,
   font-weight: 600;
 }
 .visit-map-caption a {
-  color: var(--accent);
+  /* --accent is 3.70:1 on cream — fine for the display-size headings that use
+     it, below AA for a 13px link. */
+  color: var(--accent-deep);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -3669,18 +3705,43 @@ select {
   border-radius: var(--r-md);
   padding: 14px 16px;
 }
-.account-topnav-select {
-  width: 100%;
-  appearance: none;
-  background: transparent;
-  border: none;
-  font-family: var(--serif-display);
-  font-size: 18px;
-  color: var(--ink);
-  padding: 4px 0;
+.account-topnav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-.account-topnav-select:focus {
-  outline: none;
+.account-topnav-list::-webkit-scrollbar {
+  display: none;
+}
+.account-topnav-link {
+  display: block;
+  white-space: nowrap;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--ink-line);
+  font-size: 14px;
+  color: var(--ink-soft);
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+}
+.account-topnav-link:hover {
+  border-color: var(--ink-line-strong);
+  color: var(--ink);
+}
+.account-topnav-link[data-active="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.account-topnav-link:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 2px;
 }
 
 /* Cards */
@@ -5656,6 +5717,35 @@ select {
   background: var(--gold);
   border-color: var(--gold);
   border-radius: 999px;
+}
+
+/* Play / pause — WCAG 2.2.2 needs a way to stop a moving thing. */
+.shop-hero-playpause {
+  position: absolute;
+  bottom: clamp(18px, 3vw, 32px);
+  right: calc(clamp(18px, 3vw, 32px) + 82px);
+  z-index: 4;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.shop-hero-playpause:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+}
+.shop-hero-playpause:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 
 /* Counter */

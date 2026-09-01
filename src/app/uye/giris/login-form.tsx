@@ -58,8 +58,11 @@ export function LoginForm() {
           style={inputStyle}
         />
       </div>
+      {/* role="alert" so the failure is spoken the moment it appears; without
+          it the form simply looked unchanged to a screen-reader user. */}
       {state.error && (
         <div
+          role="alert"
           style={{
             padding: "10px 12px",
             borderRadius: 8,

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { toggleWishlistAction } from "@/app/uye/actions";
 import { productPath } from "./route-paths";
+import { useDialog } from "./use-dialog";
 
 import type { MenuCategory, Product } from "./data";
 import { EspressoCup, PhotoSurface, ProductSurface } from "./visuals";
@@ -285,18 +286,8 @@ export function CartDrawer({
   setQty,
   freeShippingThreshold = 0,
 }: CartDrawerProps) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.classList.add("is-no-scroll");
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.classList.remove("is-no-scroll");
-    };
-  }, [open, onClose]);
+  const panelRef = useRef<HTMLElement | null>(null);
+  useDialog(open, onClose, panelRef);
 
   const total = items.reduce((s, it) => s + (it.price || 0) * (it.qty || 1), 0);
   const itemCount = items.reduce((s, it) => s + (it.qty || 1), 0);
@@ -317,9 +308,17 @@ export function CartDrawer({
         }}
       />
       <aside
-        role="dialog"
-        aria-modal="true"
+        ref={panelRef}
+        // The drawer stays mounted so it can animate out. While it is closed
+        // its buttons and links were still in the tab order off-screen, and
+        // `aria-modal` was announced permanently — a screen reader believed a
+        // dialog was open on every page.
+        role={open ? "dialog" : undefined}
+        aria-modal={open ? true : undefined}
         aria-label="Sepetin"
+        aria-hidden={open ? undefined : true}
+        inert={!open}
+        tabIndex={-1}
         style={{
           position: "fixed",
           top: 0,
@@ -661,18 +660,8 @@ export function ProductModal({
   wishlist?: string[];
   isAuthenticated?: boolean;
 }) {
-  useEffect(() => {
-    if (!product) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.classList.add("is-no-scroll");
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.classList.remove("is-no-scroll");
-    };
-  }, [product, onClose]);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  useDialog(Boolean(product), onClose, panelRef);
 
   if (!product) return null;
   return (
@@ -692,6 +681,11 @@ export function ProductModal({
       }}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={product.name}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(1080px, 100%)",
@@ -704,9 +698,6 @@ export function ProductModal({
           position: "relative",
         }}
         className="product-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Ürün detayı"
       >
         <button
           onClick={onClose}
@@ -1077,19 +1068,12 @@ export function SearchOverlay({
 }) {
   const [q, setQ] = useState("");
 
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  useDialog(open, onClose, panelRef);
+
   useEffect(() => {
-    if (!open) return;
-    setQ("");
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.classList.add("is-no-scroll");
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.classList.remove("is-no-scroll");
-    };
-  }, [open, onClose]);
+    if (open) setQ("");
+  }, [open]);
 
   const term = q.trim().toLowerCase();
   const results: SearchResult[] = [];
@@ -1132,10 +1116,12 @@ export function SearchOverlay({
   return (
     <div className="search-overlay" onClick={onClose}>
       <div
+        ref={panelRef}
         className="search-panel"
         role="dialog"
         aria-modal="true"
         aria-label="Site içi arama"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="search-input-row">

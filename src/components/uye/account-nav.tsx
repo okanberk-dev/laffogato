@@ -1,8 +1,4 @@
-"use client";
-
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
 
 import type { PublicCustomer } from "@/lib/customer/store";
 
@@ -58,33 +54,35 @@ function SidebarLink({
   );
 }
 
+/**
+ * The compact account menu shown above the content on narrow screens.
+ *
+ * This was a <select> that navigated on `change`. Arrowing through a select
+ * fires `change` per option in several browsers, so a keyboard user was thrown
+ * onto a different page mid-choice — and the focus ring had been removed
+ * outright, leaving no way to see where you were. It is a scrollable row of
+ * links now: one target per activation, and the current page marked for
+ * assistive technology.
+ */
 export function AccountTopNav({ active }: { active: AccountSection }) {
-  const router = useRouter();
-  const ref = useRef<HTMLSelectElement | null>(null);
-  useEffect(() => {
-    if (ref.current) ref.current.value = active;
-  }, [active]);
   return (
-    <label className="account-topnav" aria-label="Hesap menüsü">
-      <span className="eyebrow" style={{ marginBottom: 8 }}>
-        Hesap menüsü
-      </span>
-      <select
-        ref={ref}
-        defaultValue={active}
-        className="account-topnav-select"
-        onChange={(e) => {
-          const target = ACCOUNT_NAV.find((i) => i.key === e.target.value);
-          if (target) router.push(target.href);
-        }}
-      >
+    <nav className="account-topnav" aria-label="Hesap menüsü">
+      <span className="eyebrow">Hesap menüsü</span>
+      <ul className="account-topnav-list">
         {ACCOUNT_NAV.map((i) => (
-          <option key={i.key} value={i.key}>
-            {i.label}
-          </option>
+          <li key={i.key}>
+            <Link
+              href={i.href}
+              className="account-topnav-link"
+              aria-current={i.key === active ? "page" : undefined}
+              data-active={i.key === active ? "true" : undefined}
+            >
+              {i.label}
+            </Link>
+          </li>
         ))}
-      </select>
-    </label>
+      </ul>
+    </nav>
   );
 }
 

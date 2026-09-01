@@ -38,7 +38,11 @@ function hue(hex: string): number {
   const d = max - min;
   if (d === 0) return 0;
   const deg =
-    max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    max === r
+      ? ((g - b) / d) % 6
+      : max === g
+        ? (b - r) / d + 2
+        : (r - g) / d + 4;
   return (deg * 60 + 360) % 360;
 }
 
@@ -50,7 +54,8 @@ function hueGap(a: string, b: string): number {
 
 /** Midpoint of a two-stop gradient — the value text actually sits on. */
 function mix(a: string, b: string): string {
-  const part = (h: string, i: number) => parseInt(h.replace("#", "").slice(i, i + 2), 16);
+  const part = (h: string, i: number) =>
+    parseInt(h.replace("#", "").slice(i, i + 2), 16);
   const avg = (i: number) => Math.round((part(a, i) + part(b, i)) / 2);
   return `#${[0, 2, 4].map((i) => avg(i).toString(16).padStart(2, "0")).join("")}`;
 }
@@ -65,7 +70,10 @@ describe("colour contrast", () => {
 
   it("body inks clear AA on the page ground", () => {
     for (const name of ["--ink", "--ink-soft", "--ink-mute"]) {
-      expect(contrast(token(name), bg), `${name} on --bg`).toBeGreaterThanOrEqual(AA);
+      expect(
+        contrast(token(name), bg),
+        `${name} on --bg`,
+      ).toBeGreaterThanOrEqual(AA);
     }
   });
 
@@ -92,19 +100,27 @@ describe("colour contrast", () => {
 
   it("white badge text clears AA on every badge fill", () => {
     for (const name of ["--ink", "--gold", "--accent-deep"]) {
-      expect(contrast("#ffffff", token(name)), `white on ${name}`).toBeGreaterThanOrEqual(AA);
+      expect(
+        contrast("#ffffff", token(name)),
+        `white on ${name}`,
+      ).toBeGreaterThanOrEqual(AA);
     }
   });
 
   it("the paper tints are actually distinguishable from one another", () => {
     const tints = ["--bg", "--bg-warm", "--bg-stone", "--bg-cream"].map(token);
     const unique = new Set(tints);
-    expect(unique.size, "each paper tint must be its own value").toBe(tints.length);
+    expect(unique.size, "each paper tint must be its own value").toBe(
+      tints.length,
+    );
   });
 
   it("every HUES ink clears AA against its own gradient", () => {
     for (const [name, h] of Object.entries(HUES)) {
-      const worst = Math.min(contrast(h.ink, mix(h.from, h.to)), contrast(h.ink, h.to));
+      const worst = Math.min(
+        contrast(h.ink, mix(h.from, h.to)),
+        contrast(h.ink, h.to),
+      );
       expect(worst, `${name} ink on its gradient`).toBeGreaterThanOrEqual(AA);
     }
   });
@@ -116,5 +132,21 @@ describe("colour contrast", () => {
     expect(new Set(Object.values(HUES).map((h) => h.from)).size).toBe(
       Object.keys(HUES).length,
     );
+  });
+});
+
+describe("small text uses the darker accent", () => {
+  // --accent is 3.70:1 on cream: enough for the display-size headings that
+  // carry it, below AA for body-size text and links. This catches the next
+  // person reaching for the brighter one on a 13px link.
+  it("keeps --accent above 3:1 (large text) and --accent-deep above 4.5:1", () => {
+    const bg = token("--bg-cream");
+    expect(contrast(token("--accent"), bg)).toBeGreaterThanOrEqual(3);
+    expect(contrast(token("--accent-deep"), bg)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("does not colour the map caption link with the light accent", () => {
+    const rule = /\.visit-map-caption a \{[^}]*\}/.exec(css)?.[0] ?? "";
+    expect(rule).toContain("var(--accent-deep)");
   });
 });

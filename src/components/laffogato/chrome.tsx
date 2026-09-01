@@ -214,11 +214,22 @@ export function Nav({
                   href={hrefFor(link.route)}
                   onClick={go(link.route)}
                   className={`nav-link ${isActive ? "active" : ""} ${isOpen ? "is-open" : ""}`}
-                  aria-haspopup={hasDropdown ? "true" : undefined}
-                  aria-expanded={hasDropdown ? isOpen : undefined}
                 >
                   {link.label}
-                  {hasDropdown && (
+                </a>
+                {/* The panel used to open on hover alone, so a keyboard user
+                    could never reach it and `aria-expanded` was false forever.
+                    The caret is its own control: the link still navigates, the
+                    button opens the panel. */}
+                {hasDropdown && (
+                  <button
+                    type="button"
+                    className={`nav-link-caret-btn ${isOpen ? "is-open" : ""}`}
+                    aria-haspopup="true"
+                    aria-expanded={isOpen}
+                    aria-label={`${link.label} alt menüsünü ${isOpen ? "kapat" : "aç"}`}
+                    onClick={() => setOpenDropdown(isOpen ? null : link.route)}
+                  >
                     <svg
                       className="nav-link-caret"
                       width="9"
@@ -235,8 +246,8 @@ export function Nav({
                         fill="none"
                       />
                     </svg>
-                  )}
-                </a>
+                  </button>
+                )}
                 {hasDropdown && isOpen && (
                   <DropdownPanel
                     title={link.label}

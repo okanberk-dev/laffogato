@@ -158,6 +158,7 @@ export function RegisterForm() {
 
       {state.error && (
         <div
+          role="alert"
           style={{
             padding: "10px 12px",
             borderRadius: 8,

@@ -58,13 +58,21 @@ export function SiteChrome({
 
   return (
     <>
+      {/* The SPA shell had a skip link; checkout, the legal documents and the
+          member pages did not, so a keyboard user tabbed the whole header on
+          every one of them. */}
+      <a href="#main" className="skip-link">
+        İçeriğe geç
+      </a>
       <Nav
         cart={cartCount}
         onSearch={() => {
           window.location.href = "/magaza";
         }}
       />
-      <div className="site-chrome-body">{children}</div>
+      <div className="site-chrome-body" id="main">
+        {children}
+      </div>
       <Footer settings={settings} />
     </>
   );

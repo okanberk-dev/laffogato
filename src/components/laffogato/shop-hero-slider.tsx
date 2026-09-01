@@ -16,20 +16,38 @@ const ROTATE_MS = 6500;
 
 export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
   const total = slides.length;
 
   useEffect(() => {
-    if (total <= 1) return;
+    if (total <= 1 || paused) return;
+    // Rotation stops for anyone who asks the platform not to animate — it is
+    // decoration, and WCAG 2.2.2 gives a moving thing a way to be stopped.
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const t = window.setInterval(() => {
       setIndex((i) => (i + 1) % total);
     }, ROTATE_MS);
     return () => window.clearInterval(t);
-  }, [total]);
+  }, [total, paused]);
 
   if (total === 0) return null;
 
   return (
-    <section className="shop-hero-slider" aria-roledescription="carousel">
+    <section
+      className="shop-hero-slider"
+      aria-roledescription="carousel"
+      aria-label="Mağaza vitrini"
+      // Hovering or tabbing in stops the rotation, so a slide cannot slide out
+      // from under someone reading or operating it.
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setPaused(false);
+        }
+      }}
+    >
       <div className="shop-hero-track">
         {slides.map((s, i) => (
           <Slide key={s.id} slide={s} active={i === index} />
@@ -70,17 +88,26 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
               />
             </svg>
           </button>
+          <button
+            type="button"
+            className="shop-hero-playpause"
+            aria-label={
+              paused ? "Slaytları otomatik oynat" : "Otomatik geçişi durdur"
+            }
+            onClick={() => setPaused((p) => !p)}
+          >
+            {paused ? "▶" : "❚❚"}
+          </button>
           <div
             className="shop-hero-dots"
-            role="tablist"
+            role="group"
             aria-label="Slayt seçici"
           >
             {slides.map((s, i) => (
               <button
                 key={s.id}
                 type="button"
-                role="tab"
-                aria-selected={i === index}
+                aria-current={i === index ? "true" : undefined}
                 aria-label={`Slayt ${i + 1}: ${s.title}`}
                 className="shop-hero-dot"
                 data-active={i === index ? "true" : undefined}
@@ -88,7 +115,12 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
               />
             ))}
           </div>
-          <div className="shop-hero-counter tabular" aria-live="polite">
+          {/* Live only while paused. Announcing "02 / 03" every 6.5 seconds
+              interrupted whatever a screen-reader user was actually reading. */}
+          <div
+            className="shop-hero-counter tabular"
+            aria-live={paused ? "polite" : "off"}
+          >
             {String(index + 1).padStart(2, "0")} /{" "}
             {String(total).padStart(2, "0")}
           </div>
