@@ -27,7 +27,7 @@ export async function verifyEnrollAction(
   if (!session) return { error: "Oturum yok." };
   const token = String(formData.get("token") ?? "").trim();
   if (!/^\d{6}$/.test(token)) return { error: "6 haneli kodu gir." };
-  const ok = verifyAndEnable(session.email, token);
+  const ok = await verifyAndEnable(session.email, token);
   if (!ok)
     return { error: "Kod doğrulanmadı. Saatin senkron olduğundan emin ol." };
   await logAudit({
@@ -43,7 +43,7 @@ export async function verifyEnrollAction(
 export async function disable2FAAction() {
   const session = await getAdminSession();
   if (!session) redirect("/admin/giris");
-  disable2FA(session.email);
+  await disable2FA(session.email);
   await logAudit({
     action: "2fa_disable",
     entity: "2fa",
@@ -56,7 +56,7 @@ export async function disable2FAAction() {
 export async function cancelEnrollAction() {
   const session = await getAdminSession();
   if (!session) redirect("/admin/giris");
-  cancelEnrollment(session.email);
+  await cancelEnrollment(session.email);
   revalidatePath("/admin/2fa-kurulum");
 }
 

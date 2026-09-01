@@ -38,9 +38,12 @@ export default async function AdminLoginPage({ searchParams }: PageProps) {
 
         <LoginForm next={next} />
 
+        {/* Bu sayfa kimlik doğrulaması olmadan açılıyor; burada yönetici
+            e-postasını yazmak, brute-force için gereken iki bilgiden birini
+            hediye etmek demekti. */}
         <p className="mt-8 text-center text-xs text-neutral-400">
-          Şifreni unuttuysan {process.env.ADMIN_EMAIL ?? "yöneticine"} env
-          dosyasına bakmasını rica et.
+          Şifreni unuttuysan, ortam değişkenlerine erişimi olan yöneticiyle
+          iletişime geç.
         </p>
       </div>
     </main>

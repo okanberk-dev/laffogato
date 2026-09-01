@@ -30,7 +30,16 @@ const eslintConfig = defineConfig([
       "react-hooks/immutability": "warn",
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    // Vendored, minified widget bundle built from its own project. Linting a
+    // build artifact only produced noise — 10 `no-this-alias` errors in a
+    // minifier's output — which drowned out real findings in `src`.
+    "public/laffogato-pour.js",
+  ]),
 ]);
 
 export default eslintConfig;

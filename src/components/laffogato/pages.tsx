@@ -2395,7 +2395,8 @@ export function PageVisit({ visit }: PageProps) {
             />
             <figcaption className="visit-map-caption">
               <span>
-                <strong>{LOCATION.landmark}</strong> · 29 Ekim Cd. No: 28
+                <strong>{LOCATION.landmark}</strong> ·{" "}
+                {SITE.address.streetAddress}
               </span>
               <a href={directionsUrl} target="_blank" rel="noopener">
                 Yol tarifi al <span className="arrow">→</span>

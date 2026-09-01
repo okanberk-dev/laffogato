@@ -31,6 +31,12 @@ import {
   unsubscribeNewsletterByEmail,
 } from "@/lib/newsletter/store";
 import { SITE } from "@/lib/seo/site";
+import {
+  checkLoginLimit,
+  clearLoginLimit,
+  clientIp,
+  recordLoginFailure,
+} from "@/lib/admin/rate-limit";
 
 function verifyUrl(token: string): string {
   return `${SITE.url}/uye/dogrula?token=${encodeURIComponent(token)}`;
@@ -152,17 +158,35 @@ export async function loginAction(
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
 
+  // Customer login had no limit at all: an attacker could try passwords
+  // against a member's address as fast as the server would answer, and the
+  // account holds their order history, addresses and phone number.
+  const ip = await clientIp();
   let result;
   try {
+    const limit = await checkLoginLimit("customer-login", ip, email);
+    if (limit.blocked) {
+      return {
+        error: `Çok fazla başarısız deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
+        values: { email },
+      };
+    }
     result = await verifyCustomerLogin({ email, password });
+    if (!result.ok) {
+      const after = await recordLoginFailure("customer-login", ip, email);
+      return {
+        error: after.blocked
+          ? `Çok fazla başarısız deneme. ${after.retryAfterSeconds} saniye sonra tekrar dene.`
+          : result.error,
+        values: { email },
+      };
+    }
+    await clearLoginLimit("customer-login", ip, email);
   } catch (err) {
     // Only the redirect below may throw past this point; a database outage
     // becomes a message on the form rather than an error page.
     if (!isDbUnreachable(err)) throw err;
     return { error: DB_DOWN_MESSAGE, values: { email } };
-  }
-  if (!result.ok) {
-    return { error: result.error, values: { email } };
   }
   await setActiveCustomerSession(result.customer.email);
   redirect("/uye/hesap");

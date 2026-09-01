@@ -15,7 +15,7 @@ export default async function TwoFAEnrollPage() {
   const session = await getAdminSession();
   if (!session) redirect("/admin/giris");
 
-  const enabled = has2FA(session.email);
+  const enabled = await has2FA(session.email);
 
   if (enabled) {
     return (

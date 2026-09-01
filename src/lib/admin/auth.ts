@@ -7,6 +7,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import {
   checkLoginLimit,
   clearLoginLimit,
+  clientIp,
   recordLoginFailure,
 } from "./rate-limit";
 import { canAccess, type AdminRole, type AdminSection } from "./roles";
@@ -138,18 +139,7 @@ export interface SignInResult {
   needs2FA?: boolean;
 }
 
-async function getClientIp(): Promise<string> {
-  try {
-    const h = await headers();
-    const xff = h.get("x-forwarded-for");
-    if (xff) return xff.split(",")[0].trim();
-    const real = h.get("x-real-ip");
-    if (real) return real.trim();
-    return "unknown";
-  } catch {
-    return "unknown";
-  }
-}
+const getClientIp = clientIp;
 
 export async function signInAdmin(
   email: string,
@@ -167,7 +157,7 @@ export async function signInAdmin(
 
   // Block before checking creds so a brute-forcer can't drain the
   // password comparison loop while the bucket is full.
-  const limit = checkLoginLimit(ip, email);
+  const limit = await checkLoginLimit("admin-login", ip, email);
   if (limit.blocked) {
     return {
       ok: false,
@@ -185,7 +175,7 @@ export async function signInAdmin(
     if (emailOk && passOk) matched = u;
   }
   if (!matched) {
-    const after = recordLoginFailure(ip, email);
+    const after = await recordLoginFailure("admin-login", ip, email);
     if (after.blocked) {
       return {
         ok: false,
@@ -201,7 +191,7 @@ export async function signInAdmin(
     };
   }
 
-  clearLoginLimit(ip, email);
+  await clearLoginLimit("admin-login", ip, email);
 
   const cookieStore = await cookies();
 
@@ -209,7 +199,7 @@ export async function signInAdmin(
   // cookie yet — we set a short-lived "pending" cookie and the login
   // page sends the user to /admin/iki-asama where they have to enter
   // the 6-digit code.
-  if (has2FA(matched.email)) {
+  if (await has2FA(matched.email)) {
     const pending = signPendingToken(matched);
     cookieStore.set(PENDING_COOKIE_NAME, pending, {
       httpOnly: true,
@@ -303,9 +293,31 @@ export async function complete2FA(token: string): Promise<TwoFAResult> {
   if (!pending) {
     return { ok: false, error: "Oturum süresi doldu. Yeniden giriş yap." };
   }
-  if (!verify2FAToken(pending.email, token)) {
-    return { ok: false, error: "Doğrulama kodu yanlış." };
+
+  // A 6-digit code is a 1-in-a-million guess, and the pending cookie lives
+  // long enough to try a great many of them. The password behind it is
+  // already rate-limited; the second factor was not, which made it the
+  // cheaper of the two to attack.
+  const ip = await getClientIp();
+  const limit = await checkLoginLimit("admin-2fa", ip, pending.email);
+  if (limit.blocked) {
+    return {
+      ok: false,
+      error: `Çok fazla hatalı kod. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
+    };
   }
+
+  if (!(await verify2FAToken(pending.email, token))) {
+    const after = await recordLoginFailure("admin-2fa", ip, pending.email);
+    return {
+      ok: false,
+      error: after.blocked
+        ? `Çok fazla hatalı kod. ${after.retryAfterSeconds} saniye sonra tekrar dene.`
+        : "Doğrulama kodu yanlış.",
+    };
+  }
+
+  await clearLoginLimit("admin-2fa", ip, pending.email);
   const cookieStore = await cookies();
   await setActiveSession(pending, cookieStore);
   return { ok: true };
