@@ -39,7 +39,7 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 - [Menü](/menu): Matcha Bar, Espresso Based, Ice Coffee, Cold Drinks, Hot Drinks, Frappe, Smoothie, Frozen, Ice Tea, Tatlılar, Atıştırmalıklar, Extras kategorileri
 - [Mağaza](/magaza): Çekirdek kahve, edible cup, hediye seti, ekipman, giyim
 - [Hikaye](/hikayemiz): 1987 Bologna'dan 2026 İstanbul'a markanın hikayesi
-- [Ziyaret](/ziyaret): Tuzla lokasyonu, ulaşım, rezervasyon, gömülü harita
+- [Ziyaret](/ziyaret): Tuzla lokasyonu, ulaşım, gömülü harita (rezervasyon telefonla)
 
 ## Menü Özeti
 
@@ -103,7 +103,7 @@ Basılı menü 12 kategori ve 82 kalemden oluşur. İçeceklerin çoğu M ve L b
 Ana sayfada tek `<script type="application/ld+json">` içinde aşağıdaki schema.org tipleri yayınlanır:
 - Organization (Mancuso ailesi, Bologna 1987)
 - CafeOrCoffeeShop + Restaurant (LocalBusiness, tarihi Rum köşkü, koordinat, saatler)
-- WebSite (SearchAction + ReserveAction)
+- WebSite (yayıncı, telif; site içi arama ve rezervasyon aksiyonu yok)
 - Menu + MenuSection + MenuItem (canlı; 12 kategori, 82 kalem)
 - Product × 11 (mağaza SKU'ları + Offer + shipping + return policy)
 - FAQPage × 12 soru

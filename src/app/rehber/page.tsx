@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { guideHubLd } from "@/lib/seo/guide-structured-data";
 import { GUIDES } from "@/lib/seo/guides";
 import { SITE } from "@/lib/seo/site";
+import { JsonLd } from "@/lib/seo/json-ld";
 
 const TITLE = "Rehber — Affogato, Matcha, Espresso ve Tatlılar";
 const DESCRIPTION =
@@ -39,10 +40,7 @@ export const metadata: Metadata = {
 export default function GuideHubPage() {
   return (
     <main className="guide-page">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(guideHubLd(GUIDES)) }}
-      />
+      <JsonLd data={guideHubLd(GUIDES)} />
 
       <div className="guide-wrap">
         <nav className="guide-breadcrumb" aria-label="breadcrumb">

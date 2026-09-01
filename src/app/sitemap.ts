@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
 
-import { listProducts } from "@/lib/admin/store";
+import { getPublicSettings, listProducts } from "@/lib/admin/store";
 import { LEGAL_DOCS } from "@/lib/legal/documents";
 import { GUIDES } from "@/lib/seo/guides";
 import { allSeoRoutes } from "@/lib/seo/pages";
-import { SITE } from "@/lib/seo/site";
+import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 
 // Dynamic: the product list is read from the database at request time. The build
 // does not connect to the DB, so the fetch is guarded — an empty result simply
@@ -18,6 +18,13 @@ export const dynamic = "force-dynamic";
 const CONTENT_REVISION = new Date("2026-06-19T00:00:00.000Z");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // A closed site publishes no sitemap. Both switches matter: the admin's
+  // "open to search engines" setting, and the preview-deployment guard that
+  // keeps a Vercel preview from competing with the live domain.
+  if (!IS_PRODUCTION_DEPLOY) return [];
+  const settings = await getPublicSettings();
+  if (!settings.seoIndexable) return [];
+
   const now = CONTENT_REVISION;
 
   const main = allSeoRoutes().map((r) => ({

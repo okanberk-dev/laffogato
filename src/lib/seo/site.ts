@@ -140,3 +140,25 @@ export const SITE = {
     "espresso Tuzla",
   ],
 } as const;
+
+/**
+ * The Open Graph fields every page has to re-declare.
+ *
+ * Next shallow-merges `openGraph` across segments: a page that sets its own
+ * `openGraph` block replaces the layout's entirely, so `og:site_name`,
+ * `og:locale` and the default image vanish unless they are repeated. Spread
+ * this first, then override `title`/`description`/`url`.
+ */
+export function openGraphDefaults() {
+  return {
+    siteName: SITE.name,
+    locale: SITE.locale,
+    images: [
+      {
+        url: SITE.ogImage,
+        width: SITE.ogImageWidth,
+        height: SITE.ogImageHeight,
+      },
+    ],
+  };
+}

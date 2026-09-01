@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { isDegradedRequest } from "@/lib/db/health";
 
+import type { Product } from "@/components/laffogato/data";
 import { ProductDetail } from "@/components/laffogato/product-detail";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import {
@@ -13,6 +14,8 @@ import {
   type ShopCategoryId,
 } from "@/lib/admin/store";
 import { breadcrumbLd, singleProductLd } from "@/lib/seo/structured-data";
+import { JsonLd } from "@/lib/seo/json-ld";
+import { SITE } from "@/lib/seo/site";
 
 export const dynamic = "force-dynamic";
 
@@ -51,10 +54,6 @@ export async function generateMetadata({
   const path = PATH(slug);
   const ogImage =
     product.images?.find((u) => /^https?:\/\//i.test(u)) ?? undefined;
-  const ogPrice =
-    (product.price ?? "").replace(/[^\d.,]/g, "").replace(",", ".") ||
-    undefined;
-  const inStock = !(product.stock !== undefined && product.stock <= 0);
   return {
     title,
     description,
@@ -63,24 +62,49 @@ export async function generateMetadata({
       title,
       description,
       url: path,
-      siteName: "L'Affogato",
-      // og:type=product is emitted via `other` (not in Next's OpenGraph union).
+      siteName: SITE.name,
+      locale: SITE.locale,
       ...(ogImage ? { images: [{ url: ogImage }] } : {}),
     },
-    other: {
-      "og:type": "product",
-      "product:availability": inStock ? "in stock" : "out of stock",
-      ...(ogPrice
-        ? {
-            "product:price:amount": ogPrice,
-            "product:price:currency": "TRY",
-            "og:price:amount": ogPrice,
-            "og:price:currency": "TRY",
-          }
-        : {}),
-    },
+    // The og:type / product:* tags are NOT emitted through `other`: Next
+    // renders that map as <meta name="…">, and every Open Graph consumer reads
+    // `property`, so the whole product block was silently ignored. They are
+    // rendered as real property tags in the page body instead (React hoists
+    // them into <head>).
     twitter: { card: "summary_large_image", title, description },
   };
+}
+
+/**
+ * Open Graph product tags.
+ *
+ * These carry `property`, not `name` — Next's `metadata.other` can only emit
+ * the latter, which no Open Graph consumer reads. React hoists these into
+ * <head>.
+ */
+function ProductOpenGraph({ product }: { product: Product }) {
+  const price =
+    typeof product.priceMinor === "number" && product.priceMinor > 0
+      ? (product.priceMinor / 100).toFixed(2)
+      : null;
+  const inStock = !(product.stock !== undefined && product.stock <= 0);
+  return (
+    <>
+      <meta property="og:type" content="product" />
+      <meta
+        property="product:availability"
+        content={inStock ? "in stock" : "out of stock"}
+      />
+      {price ? (
+        <>
+          <meta property="product:price:amount" content={price} />
+          <meta property="product:price:currency" content="TRY" />
+          <meta property="og:price:amount" content={price} />
+          <meta property="og:price:currency" content="TRY" />
+        </>
+      ) : null}
+    </>
+  );
 }
 
 function ProductUnavailable() {
@@ -144,7 +168,7 @@ export default async function ProductDetailPage({ params }: RouteParams) {
     { name: "Mağaza", url: "/magaza" },
     { name: product.name.split("—")[0].trim(), url: PATH(slug) },
   ]);
-  const productJsonLd = singleProductLd(product, PATH(slug));
+  const productJsonLd = singleProductLd(product, PATH(slug), settings);
 
   return (
     <SiteChrome
@@ -154,14 +178,9 @@ export default async function ProductDetailPage({ params }: RouteParams) {
         address: settings.address,
       }}
     >
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
-      />
+      <JsonLd data={breadcrumb} />
+      <JsonLd data={productJsonLd} />
+      <ProductOpenGraph product={product} />
       <ProductDetail product={product} related={related} />
     </SiteChrome>
   );

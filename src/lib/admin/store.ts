@@ -190,7 +190,11 @@ export interface AdminSettings {
   /** SEO defaults. */
   seoTitle: string;
   seoOgImageUrl: string;
-  /** When false, robots noindex headers are emitted (sitemap suppressed). */
+  /**
+   * When false, robots.txt disallows every crawler and the sitemap is served
+   * empty. Page-level meta stays as-is: making it conditional would force a
+   * settings read into the root layout and turn every static page dynamic.
+   */
   seoIndexable: boolean;
 
   /** Operational notifications email. */

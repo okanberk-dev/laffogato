@@ -98,7 +98,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.visit,
     title: "Ziyaret — Tuzla, İstanbul",
     description:
-      "L'Affogato Tuzla'da 200 yıllık Rum köşkünde kahve barı. Adres: Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla. Her gün 10:00 — 23:00 açık. Rezervasyon mümkün.",
+      "L'Affogato Tuzla'da 200 yıllık Rum köşkünde kahve barı. Adres: Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla. Her gün 10:00 — 23:00 açık. Rezervasyon telefonla.",
     keywords: [
       "Tuzla kafe adres",
       "Tuzla affogato yer",
@@ -119,6 +119,18 @@ export interface MenuCategoryRoute {
   description: string;
   keywords: string[];
   breadcrumbLabel: string;
+  /**
+   * Presentation for the header dropdown and the footer "Menu" column, set
+   * only on the categories that appear there. The navigation is built from
+   * this list rather than its own hand-kept copy — the copy had drifted and
+   * two of its five entries (`affogato`, `gelato`) pointed at routes that had
+   * never existed, so the header's most prominent links returned 404.
+   */
+  nav?: {
+    label: string;
+    italian: string;
+    hue: "caramel" | "dark" | "cream" | "matcha" | "strawberry" | "pistachio";
+  };
 }
 
 export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
@@ -136,6 +148,11 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
       "ceremonial matcha",
     ],
     breadcrumbLabel: "Matcha Bar",
+    nav: {
+      label: "Matcha Bar",
+      italian: "Uji ceremonial grade",
+      hue: "matcha",
+    },
   },
   {
     slug: "espresso",
@@ -151,6 +168,11 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
       "filtre kahve İstanbul",
     ],
     breadcrumbLabel: "Espresso Based",
+    nav: {
+      label: "Espresso Based",
+      italian: "Dalla macchina",
+      hue: "dark",
+    },
   },
   {
     slug: "ice-coffee",
@@ -166,6 +188,11 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
       "iced americano",
     ],
     breadcrumbLabel: "Ice Coffee",
+    nav: {
+      label: "Ice Coffee",
+      italian: "Il banco freddo",
+      hue: "caramel",
+    },
   },
   {
     slug: "cold",
@@ -180,6 +207,11 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
       "kahvesiz içecek Tuzla",
     ],
     breadcrumbLabel: "Cold Drinks",
+    nav: {
+      label: "Cold Drinks",
+      italian: "Rinfrescanti",
+      hue: "strawberry",
+    },
   },
   {
     slug: "hot",
@@ -245,6 +277,11 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
       "brownie İstanbul",
     ],
     breadcrumbLabel: "Tatlılar",
+    nav: {
+      label: "Tatlılar & Gelato",
+      italian: "Dal banco",
+      hue: "pistachio",
+    },
   },
   {
     slug: "atistirmaliklar",
@@ -259,6 +296,11 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
       "karabuğday simit",
     ],
     breadcrumbLabel: "Atıştırmalıklar",
+    nav: {
+      label: "Atıştırmalıklar",
+      italian: "Da mangiare",
+      hue: "cream",
+    },
   },
   {
     slug: "extras",

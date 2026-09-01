@@ -18,7 +18,7 @@ export interface FaqEntry {
 export const FAQ: FaqEntry[] = [
   {
     q: "L'Affogato nerede, nasıl ulaşırım?",
-    a: "L'Affogato, Tuzla'da 200 yıllık, restore edilmiş bir Rum köşkünde bulunuyor: Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, 34953 Tuzla, İstanbul. Marmaray Tuzla istasyonu 6 dakika, E-5 / TEM Tuzla çıkışı 4 dakika, Sabiha Gökçen Havalimanı 15 dakika mesafededir. Ücretsiz vale park hizmeti sunulur.",
+    a: "L'Affogato, Tuzla'da 200 yıllık, restore edilmiş bir Rum köşkünde bulunuyor: Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, 34940 Tuzla, İstanbul. Marmaray Tuzla istasyonu 6 dakika, E-5 / TEM Tuzla çıkışı 4 dakika, Sabiha Gökçen Havalimanı 15 dakika mesafededir. Ücretsiz vale park hizmeti sunulur.",
   },
   {
     q: "Çalışma saatleri nedir?",
@@ -30,7 +30,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Rezervasyon yapabilir miyim?",
-    a: "Evet. +90 216 459 30 60 numarasından ya da web sitesindeki Visit sayfasından masa rezervasyonu yapılabilir. Hafta sonu akşam servisleri için 24 saat öncesinden rezervasyon öneririz. 12 koltuklu küçük bir köşk barıyız, masaları sınırlıdır.",
+    a: "Rezervasyon yalnızca telefonla alınıyor: +90 216 459 30 60. Site üzerinden masa ayırtma özelliği yok. Hafta sonu akşam servisleri için 24 saat öncesinden aramanızı öneririz — 12 koltuklu küçük bir köşk barıyız, masalar sınırlı.",
   },
   {
     q: "Vegan veya glutensiz seçeneğiniz var mı?",

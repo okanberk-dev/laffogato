@@ -14,6 +14,8 @@ import { FAQ } from "@/lib/seo/faq";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { breadcrumbLd } from "@/lib/seo/structured-data";
 import { isDegradedRequest } from "@/lib/db/health";
+import { JsonLd } from "@/lib/seo/json-ld";
+import { openGraphDefaults } from "@/lib/seo/site";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +40,7 @@ export async function generateMetadata({
     keywords: cat.keywords,
     alternates: { canonical: path },
     openGraph: {
+      ...openGraphDefaults(),
       title: cat.title,
       description: cat.description,
       url: path,
@@ -79,10 +82,7 @@ export default async function MenuCategoryPage({ params }: RouteParams) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
-      />
+      <JsonLd data={breadcrumb} />
       <LaffogatoApp
         degraded={isDegradedRequest()}
         initialRoute="menu"

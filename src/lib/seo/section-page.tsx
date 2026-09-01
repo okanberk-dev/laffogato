@@ -27,6 +27,7 @@ import {
 
 import type { Metadata } from "next";
 import { isDegradedRequest } from "@/lib/db/health";
+import { JsonLd } from "@/lib/seo/json-ld";
 
 export function pageMetadata(route: Route): Metadata {
   const seo = PAGE_SEO[route];
@@ -79,21 +80,14 @@ export async function renderSectionPage(route: Route) {
   // JSON-LD (not only the home page): the CafeOrCoffeeShop entity on /ziyaret,
   // the full Menu on /menu. Shared @ids let Google treat these as one entity.
   const extraLd: object[] = [];
-  if (route === "visit") extraLd.push(localBusinessLd());
+  if (route === "visit") extraLd.push(localBusinessLd(settings));
   if (route === "menu") extraLd.push(menuLd(menu));
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
-      />
+      <JsonLd data={breadcrumb} />
       {extraLd.map((ld, i) => (
-        <script
-          key={i}
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
-        />
+        <JsonLd key={i} data={ld} />
       ))}
       <LaffogatoApp
         degraded={isDegradedRequest()}

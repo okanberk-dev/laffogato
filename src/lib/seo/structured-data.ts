@@ -4,8 +4,10 @@
  * Bundled into a single @graph emitted at `/`. Currently produces:
  *  - Organization (corporate identity, Italy parent)
  *  - CafeOrCoffeeShop + Restaurant (LocalBusiness for Maps/local SEO)
- *  - WebSite (with SearchAction for sitelinks)
- *  - BreadcrumbList
+ *  - WebSite (no potentialAction: the site has neither a search endpoint nor
+ *    a reservation flow, and claiming either produced dead affordances)
+ *  - SiteNavigationElement (the home page is the root, so it has no
+ *    BreadcrumbList; deep routes emit their own)
  *  - Menu + MenuSection + MenuItem (live from admin store)
  *  - Product (one per shop SKU — with image, brand, sku, full offer,
  *    shipping policy, return policy)
@@ -25,13 +27,89 @@ import {
   type MenuCategory,
   type Product,
 } from "@/components/laffogato/data";
+import {
+  DAYS_OF_WEEK,
+  DAY_SCHEMA_ORG,
+  type WeeklyHours,
+} from "@/lib/admin/days";
 import { LEGAL_ENTITY, LEGAL_ADDRESS_LINE } from "@/lib/legal/entity";
 
 type Json = Record<string, unknown>;
 
-function priceToMinor(price: string): { amount: string; currency: string } {
-  const cleaned = price.replace(/[^\d.,]/g, "").replace(",", ".");
-  return { amount: cleaned || "0", currency: "TRY" };
+/**
+ * BCP-47 language tag. `SITE.locale` is the OpenGraph form (`tr_TR`), which is
+ * not valid for schema.org's `inLanguage` — consumers that validate the tag
+ * dropped the field.
+ */
+const LANG_TAG = SITE.locale.replace("_", "-");
+
+const CURRENCY = "TRY";
+
+/**
+ * The parts of the admin settings that structured data has to agree with.
+ * Optional at every call site so a page that has not loaded settings still
+ * renders — it then omits the fields it cannot state truthfully rather than
+ * publishing a stale constant.
+ */
+export interface LdSettings {
+  weeklyHours: WeeklyHours;
+  shippingFlatMinor: number;
+  shippingFreeThresholdMinor: number;
+}
+
+/** Shipping block built from the live settings, or omitted when unknown. */
+function shippingDetailsLd(settings?: LdSettings): Json | null {
+  if (!settings) return null;
+  return {
+    "@type": "OfferShippingDetails",
+    shippingRate: {
+      "@type": "MonetaryAmount",
+      value: (settings.shippingFlatMinor / 100).toFixed(2),
+      currency: CURRENCY,
+    },
+    shippingDestination: { "@type": "DefinedRegion", addressCountry: "TR" },
+    deliveryTime: {
+      "@type": "ShippingDeliveryTime",
+      handlingTime: {
+        "@type": "QuantitativeValue",
+        minValue: 0,
+        maxValue: 1,
+        unitCode: "DAY",
+      },
+      transitTime: {
+        "@type": "QuantitativeValue",
+        minValue: 1,
+        maxValue: 3,
+        unitCode: "DAY",
+      },
+    },
+  };
+}
+
+/**
+ * Formats an exact offer price.
+ *
+ * Prefers the minor-unit integer when the caller has it: the display string
+ * is rounded to whole lira, so a ₺184,90 product used to be published to
+ * Google as ₺185 while checkout charged ₺184,90 — a price mismatch Merchant
+ * Center rejects, and a small lie either way.
+ *
+ * Returns `null` when there is no real price to publish. During a database
+ * outage the menu renders prices as "—"; the old parser turned that into
+ * "0" and the site advertised its entire menu as free.
+ */
+function offerPrice(display: string, minor?: number): string | null {
+  if (typeof minor === "number" && Number.isFinite(minor) && minor > 0) {
+    return (minor / 100).toFixed(2);
+  }
+  const cleaned = display
+    .replace(/[^\d.,]/g, "")
+    // Turkish formatting: "." groups thousands, "," is the decimal mark.
+    .replace(/\.(?=\d{3}\b)/g, "")
+    .replace(",", ".");
+  const value = Number(cleaned);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return value.toFixed(2);
 }
 
 function slugify(s: string): string {
@@ -52,6 +130,47 @@ const PRICE_VALID_UNTIL = (() => {
   d.setFullYear(d.getFullYear() + 1);
   return d.toISOString().slice(0, 10);
 })();
+
+/**
+ * Opening hours for Maps and rich results.
+ *
+ * Reads the admin's weekly hours when they are available, so a change made in
+ * Ayarlar reaches Google. Falls back to the build-time constant only when a
+ * caller has no settings to hand — the site used to publish that constant
+ * unconditionally, so edited hours never left the panel.
+ */
+function openingHoursLd(settings?: LdSettings): Json[] {
+  // schema.org Time has no "24:00"; map midnight-close to "23:59" so the slot
+  // reads as open-till-late, not "closes at 00:00" (= closed).
+  const closeAt = (c: string) => (c === "24:00" || c === "00:00" ? "23:59" : c);
+
+  if (settings) {
+    return DAYS_OF_WEEK.filter((d) => !settings.weeklyHours[d]?.closed).map(
+      (d) => ({
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: [DAY_SCHEMA_ORG[d]],
+        opens: settings.weeklyHours[d].open,
+        closes: closeAt(settings.weeklyHours[d].close),
+      }),
+    );
+  }
+
+  const map: Record<string, string> = {
+    Mo: "Monday",
+    Tu: "Tuesday",
+    We: "Wednesday",
+    Th: "Thursday",
+    Fr: "Friday",
+    Sa: "Saturday",
+    Su: "Sunday",
+  };
+  return SITE.openingHours.map((slot) => ({
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: slot.days.map((d) => map[d] ?? d),
+    opens: slot.opens,
+    closes: closeAt(slot.closes),
+  }));
+}
 
 function organizationLd(): Json {
   return {
@@ -127,7 +246,7 @@ function organizationLd(): Json {
   };
 }
 
-export function localBusinessLd(): Json {
+export function localBusinessLd(settings?: LdSettings): Json {
   return {
     "@context": "https://schema.org",
     "@type": ["CafeOrCoffeeShop", "Restaurant"],
@@ -143,7 +262,11 @@ export function localBusinessLd(): Json {
     servesCuisine: [...SITE.cuisine],
     paymentAccepted: SITE.paymentAccepted.join(", "),
     currenciesAccepted: SITE.currencies.join(", "),
-    acceptsReservations: true,
+    // The site takes no reservations — there is no form, no store and no
+    // admin screen for them, and the Kullanım Şartları say so explicitly.
+    // Publishing `true` put a "Reserve" affordance in Google's business card
+    // that led to a dead button.
+    acceptsReservations: false,
     smokingAllowed: false,
     publicAccess: true,
     isAccessibleForFree: true,
@@ -169,25 +292,7 @@ export function localBusinessLd(): Json {
       longitude: SITE.geo.longitude,
     },
     hasMap: `https://www.google.com/maps/search/?api=1&query=${SITE.geo.latitude},${SITE.geo.longitude}`,
-    openingHoursSpecification: SITE.openingHours.map((slot) => ({
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: slot.days.map((d) => {
-        const map: Record<string, string> = {
-          Mo: "Monday",
-          Tu: "Tuesday",
-          We: "Wednesday",
-          Th: "Thursday",
-          Fr: "Friday",
-          Sa: "Saturday",
-          Su: "Sunday",
-        };
-        return map[d] ?? d;
-      }),
-      opens: slot.opens,
-      // schema.org Time has no "24:00"; map midnight-close to "23:59" so the
-      // slot reads as open-till-late, not "closes at 00:00" (= closed).
-      closes: slot.closes === "24:00" ? "23:59" : slot.closes,
-    })),
+    openingHoursSpecification: openingHoursLd(settings),
     parentOrganization: { "@id": `${SITE.url}/#organization` },
     areaServed: { "@type": "City", name: "İstanbul" },
     amenityFeature: [
@@ -260,24 +365,13 @@ function websiteLd(): Json {
     url: SITE.url,
     name: SITE.name,
     description: SITE.shortDescription,
-    inLanguage: SITE.locale,
+    inLanguage: LANG_TAG,
     publisher: { "@id": `${SITE.url}/#organization` },
     copyrightYear: 2026,
     copyrightHolder: { "@id": `${SITE.url}/#organization` },
-    potentialAction: [
-      {
-        "@type": "ReserveAction",
-        target: {
-          "@type": "EntryPoint",
-          urlTemplate: `${SITE.url}/ziyaret`,
-          actionPlatform: [
-            "http://schema.org/DesktopWebPlatform",
-            "http://schema.org/MobileWebPlatform",
-          ],
-        },
-        result: { "@type": "FoodEstablishmentReservation" },
-      },
-    ],
+    // No `potentialAction`. A SearchAction would need a search endpoint the
+    // site does not have, and the ReserveAction that used to sit here
+    // advertised a reservation flow that was never built.
   };
 }
 
@@ -303,14 +397,14 @@ export function menuLd(menu: Record<string, MenuCategory>): Json {
     "@type": "Menu",
     "@id": `${SITE.url}/#menu`,
     name: `${SITE.name} Menü`,
-    inLanguage: SITE.locale,
+    inLanguage: LANG_TAG,
     hasMenuSection: Object.entries(menu).map(([key, cat]) => ({
       "@type": "MenuSection",
       "@id": `${SITE.url}/#menu-${key}`,
       name: cat.title,
       description: cat.note,
       hasMenuItem: cat.items.map((item) => {
-        const { amount, currency } = priceToMinor(item.price);
+        const price = offerPrice(item.price);
         const tags = item.tags ?? [];
         const diet: string[] = [];
         if (tags.includes("vegan opt."))
@@ -319,12 +413,18 @@ export function menuLd(menu: Record<string, MenuCategory>): Json {
           "@type": "MenuItem",
           name: item.name,
           description: item.desc,
-          offers: {
-            "@type": "Offer",
-            price: amount,
-            priceCurrency: currency,
-            availability: "https://schema.org/InStock",
-          },
+          // No price, no offer. During an outage every price renders as "—";
+          // publishing that as 0 advertised the whole menu as free.
+          ...(price
+            ? {
+                offers: {
+                  "@type": "Offer",
+                  price,
+                  priceCurrency: CURRENCY,
+                  availability: "https://schema.org/InStock",
+                },
+              }
+            : {}),
           ...(diet.length ? { suitableForDiet: diet } : {}),
         };
       }),
@@ -332,7 +432,7 @@ export function menuLd(menu: Record<string, MenuCategory>): Json {
   };
 }
 
-function productListLd(products: Product[]): Json {
+function productListLd(products: Product[], settings?: LdSettings): Json {
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -343,9 +443,9 @@ function productListLd(products: Product[]): Json {
     numberOfItems: products.length,
     itemListOrder: "https://schema.org/ItemListOrderDescending",
     itemListElement: products.map((p, idx) => {
-      const { amount, currency } = priceToMinor(p.price);
+      const amount = offerPrice(p.price, p.priceMinor);
       const compareAt = p.compareAtPrice
-        ? priceToMinor(p.compareAtPrice)
+        ? offerPrice(p.compareAtPrice, p.compareAtPriceMinor)
         : null;
       const slug = p.slug ?? slugify(p.name);
       const productId = `${SITE.url}/#product-${slug}`;
@@ -374,53 +474,34 @@ function productListLd(products: Product[]): Json {
           manufacturer: { "@id": `${SITE.url}/#organization` },
           image,
           url: pdpUrl,
-          inLanguage: SITE.locale,
+          inLanguage: LANG_TAG,
           offers: {
             "@type": "Offer",
             "@id": `${productId}-offer`,
-            price: amount,
-            priceCurrency: currency,
+            ...(amount ? { price: amount } : {}),
+            priceCurrency: CURRENCY,
             priceValidUntil: PRICE_VALID_UNTIL,
-            availability: "https://schema.org/InStock",
+            // Out of stock is a fact the shop already knows; declaring it
+            // InStock sent shoppers to a product they could not buy.
+            availability:
+              p.stock !== undefined && p.stock <= 0
+                ? "https://schema.org/OutOfStock"
+                : "https://schema.org/InStock",
             itemCondition: "https://schema.org/NewCondition",
             url: pdpUrl,
             seller: { "@id": `${SITE.url}/#organization` },
-            ...(compareAt
+            ...(compareAt && amount
               ? {
                   priceSpecification: {
                     "@type": "UnitPriceSpecification",
                     price: amount,
-                    priceCurrency: currency,
+                    priceCurrency: CURRENCY,
                   },
                 }
               : {}),
-            shippingDetails: {
-              "@type": "OfferShippingDetails",
-              shippingRate: {
-                "@type": "MonetaryAmount",
-                value: "29",
-                currency: "TRY",
-              },
-              shippingDestination: {
-                "@type": "DefinedRegion",
-                addressCountry: "TR",
-              },
-              deliveryTime: {
-                "@type": "ShippingDeliveryTime",
-                handlingTime: {
-                  "@type": "QuantitativeValue",
-                  minValue: 0,
-                  maxValue: 1,
-                  unitCode: "DAY",
-                },
-                transitTime: {
-                  "@type": "QuantitativeValue",
-                  minValue: 1,
-                  maxValue: 3,
-                  unitCode: "DAY",
-                },
-              },
-            },
+            ...(shippingDetailsLd(settings)
+              ? { shippingDetails: shippingDetailsLd(settings) }
+              : {}),
             hasMerchantReturnPolicy: {
               "@type": "MerchantReturnPolicy",
               applicableCountry: "TR",
@@ -450,9 +531,15 @@ function productListLd(products: Product[]): Json {
  * Single-product JSON-LD for the PDP. Mirrors the offer/shipping/return shape
  * used by productListLd but for one product, with a stable canonical URL.
  */
-export function singleProductLd(p: Product, canonicalPath: string): Json {
-  const { amount, currency } = priceToMinor(p.price);
-  const compareAt = p.compareAtPrice ? priceToMinor(p.compareAtPrice) : null;
+export function singleProductLd(
+  p: Product,
+  canonicalPath: string,
+  settings?: LdSettings,
+): Json {
+  const amount = offerPrice(p.price, p.priceMinor);
+  const compareAt = p.compareAtPrice
+    ? offerPrice(p.compareAtPrice, p.compareAtPriceMinor)
+    : null;
   const slug = p.slug ?? slugify(p.name);
   const url = `${SITE.url}${canonicalPath}`;
   const productId = `${url}#product`;
@@ -476,7 +563,7 @@ export function singleProductLd(p: Product, canonicalPath: string): Json {
     },
     image,
     url,
-    inLanguage: SITE.locale,
+    inLanguage: LANG_TAG,
     ...(p.weightGrams
       ? {
           weight: {
@@ -489,8 +576,8 @@ export function singleProductLd(p: Product, canonicalPath: string): Json {
     offers: {
       "@type": "Offer",
       "@id": `${productId}-offer`,
-      price: amount,
-      priceCurrency: currency,
+      ...(amount ? { price: amount } : {}),
+      priceCurrency: CURRENCY,
       priceValidUntil: PRICE_VALID_UNTIL,
       availability:
         p.stock !== undefined && p.stock <= 0
@@ -499,39 +586,18 @@ export function singleProductLd(p: Product, canonicalPath: string): Json {
       itemCondition: "https://schema.org/NewCondition",
       url,
       seller: { "@id": `${SITE.url}/#organization` },
-      ...(compareAt
+      ...(compareAt && amount
         ? {
             priceSpecification: {
               "@type": "UnitPriceSpecification",
               price: amount,
-              priceCurrency: currency,
+              priceCurrency: CURRENCY,
             },
           }
         : {}),
-      shippingDetails: {
-        "@type": "OfferShippingDetails",
-        shippingRate: {
-          "@type": "MonetaryAmount",
-          value: "49",
-          currency: "TRY",
-        },
-        shippingDestination: { "@type": "DefinedRegion", addressCountry: "TR" },
-        deliveryTime: {
-          "@type": "ShippingDeliveryTime",
-          handlingTime: {
-            "@type": "QuantitativeValue",
-            minValue: 0,
-            maxValue: 1,
-            unitCode: "DAY",
-          },
-          transitTime: {
-            "@type": "QuantitativeValue",
-            minValue: 1,
-            maxValue: 3,
-            unitCode: "DAY",
-          },
-        },
-      },
+      ...(shippingDetailsLd(settings)
+        ? { shippingDetails: shippingDetailsLd(settings) }
+        : {}),
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
         applicableCountry: "TR",
@@ -550,7 +616,7 @@ function faqLd(entries: FaqEntry[] = FAQ): Json {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "@id": `${SITE.url}/#faq`,
-    inLanguage: SITE.locale,
+    inLanguage: LANG_TAG,
     mainEntity: entries.map((entry) => ({
       "@type": "Question",
       name: entry.q,
@@ -569,7 +635,7 @@ function aboutPageLd(): Json {
     "@id": `${SITE.url}/#about`,
     url: `${SITE.url}/hikayemiz`,
     name: `${SITE.name} — Hikayemiz`,
-    inLanguage: SITE.locale,
+    inLanguage: LANG_TAG,
     description:
       "1987'den 2026'ya L'Affogato'nun İtalya'dan İstanbul'a uzanan üç kuşaklık hikayesi.",
     isPartOf: { "@id": `${SITE.url}/#website` },
@@ -599,7 +665,7 @@ function howToAffogatoLd(): Json {
     name: "L'Affogato nasıl yapılır?",
     description:
       "Evin imza içeceği: bir top dondurma üzerine taze çekilmiş sıcak espresso. İki dakikada hazırlanır, hemen tüketilir.",
-    inLanguage: SITE.locale,
+    inLanguage: LANG_TAG,
     totalTime: "PT2M",
     estimatedCost: {
       "@type": "MonetaryAmount",
@@ -701,15 +767,16 @@ export function siteNavigationLd(): Json {
 export function siteGraphLd(
   menu: Record<string, MenuCategory>,
   products: Product[],
+  settings?: LdSettings,
 ): Json {
   return {
     "@context": "https://schema.org",
     "@graph": [
       organizationLd(),
-      localBusinessLd(),
+      localBusinessLd(settings),
       websiteLd(),
       menuLd(menu),
-      productListLd(products),
+      productListLd(products, settings),
       faqLd(),
       aboutPageLd(),
       howToAffogatoLd(),

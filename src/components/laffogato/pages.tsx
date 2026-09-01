@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 
+import { SITE } from "@/lib/seo/site";
+
 import { ShopHeroSlider, type ShopHeroSlide } from "./shop-hero-slider";
 import { PourHero } from "./pour-hero";
 import { MENU, PRODUCTS, PRESS as SEED_PRESS, STORY, LOCATION } from "./data";
@@ -2553,20 +2555,12 @@ export function PageVisit({ visit }: PageProps) {
               </div>
             </div>
 
-            <div className="reserve-section">
-              <label className="label" htmlFor="rv-note">
-                Özel istek (isteğe bağlı)
-              </label>
-              <input
-                id="rv-note"
-                type="text"
-                className="input"
-                placeholder="Doğum günü, balkon masası, alerjenler…"
-              />
-            </div>
-
-            <button
+            {/* Rezervasyon telefonla alınıyor: site üzerinden masa ayırtma
+                yok ve Kullanım Şartları da bunu böyle yazıyor. Buradaki
+                seçimler, aramadan önce ne söyleyeceğinizi hazırlar. */}
+            <a
               className="btn btn-primary btn-lg"
+              href={`tel:${SITE.phoneE164}`}
               style={{
                 width: "100%",
                 justifyContent: "space-between",
@@ -2574,10 +2568,10 @@ export function PageVisit({ visit }: PageProps) {
               }}
             >
               <span>
-                {partySize} kişi · {day} · {time}
+                {partySize} kişi · {day} · {time} için ara
               </span>
               <span className="arrow">→</span>
-            </button>
+            </a>
 
             <div
               style={{
@@ -2587,7 +2581,8 @@ export function PageVisit({ visit }: PageProps) {
                 marginTop: 14,
               }}
             >
-              90 dk masa. İptal için en az 3 saat önce bildirim. Bar köşesi
+              Rezervasyon yalnızca telefonla: <strong>{SITE.phone}</strong>. 90
+              dk masa; iptal için en az 3 saat önce haber verin. Bar köşesi
               rezervasyona kapalı — yürüyüşle gelin.
             </div>
           </div>

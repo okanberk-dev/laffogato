@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { LEGAL_CATEGORY_ORDER, LEGAL_DOCS } from "@/lib/legal/documents";
+import { openGraphDefaults } from "@/lib/seo/site";
 
 export const metadata: Metadata = {
   title: "Hukuki bilgiler",
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
     "L'Affogato kullanım şartları, gizlilik politikası, mesafeli satış sözleşmesi, iade hakları ve diğer hukuki belgeler.",
   alternates: { canonical: "/hukuk" },
   openGraph: {
+    ...openGraphDefaults(),
     title: "Hukuki bilgiler · L'Affogato",
     description:
       "Kullanım şartları, gizlilik politikası, mesafeli satış sözleşmesi ve iade hakları.",

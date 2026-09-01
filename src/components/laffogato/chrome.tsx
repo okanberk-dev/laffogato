@@ -7,6 +7,7 @@ import { CONSENT_OPEN_EVENT } from "@/lib/consent/script";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
 import { GUIDE_LINKS } from "@/lib/seo/guide-nav";
+import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
 
 import { NewsletterForm } from "./newsletter-form";
@@ -24,38 +25,19 @@ export interface DropdownEntry {
   hue: "caramel" | "dark" | "cream" | "matcha" | "strawberry" | "pistachio";
 }
 
-const MENU_DROPDOWN: DropdownEntry[] = [
-  {
-    slug: "affogato",
-    label: "Affogato",
-    italian: "La firma della casa",
-    hue: "caramel",
-  },
-  {
-    slug: "matcha",
-    label: "Matcha Bar",
-    italian: "Uji ceremonial grade",
-    hue: "matcha",
-  },
-  {
-    slug: "espresso",
-    label: "Espresso & Coffee",
-    italian: "Dalla macchina",
-    hue: "dark",
-  },
-  {
-    slug: "cold",
-    label: "Cold Bar",
-    italian: "Il banco freddo",
-    hue: "strawberry",
-  },
-  {
-    slug: "gelato",
-    label: "Gelato & Dolci",
-    italian: "Dal banco",
-    hue: "pistachio",
-  },
-];
+/**
+ * Built from the real category routes, so a nav entry cannot point at a page
+ * that does not exist. `nav` marks which of the twelve categories are worth a
+ * place in the header; the dropdown's "Tüm menü" link covers the rest.
+ */
+const MENU_DROPDOWN: DropdownEntry[] = MENU_CATEGORY_ROUTES.filter(
+  (c) => c.nav,
+).map((c) => ({
+  slug: c.slug,
+  label: c.nav!.label,
+  italian: c.nav!.italian,
+  hue: c.nav!.hue,
+}));
 
 const SHOP_DROPDOWN: DropdownEntry[] = [
   {

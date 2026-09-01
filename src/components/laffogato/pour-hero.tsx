@@ -11,10 +11,12 @@ import { useEffect, useRef, useState } from "react";
  * Two things shape how it is loaded:
  *
  * 1. The bundle is ~860 KB (three.js plus the brand font, inlined so the
- *    widget never depends on a font host). That must not sit in the
- *    homepage's critical path, so the script is fetched only once the
- *    section is about to scroll into view — the page's LCP is the dark hero
- *    below, which stays untouched.
+ *    widget never depends on a font host). This section is the FIRST thing on
+ *    the home page, so "load when it scrolls into view" meant "load
+ *    immediately", in competition with the page's own LCP. It is now fetched
+ *    when the section is near the viewport AND the page has finished loading
+ *    AND the browser is idle — and not at all on a metered or very slow
+ *    connection, where the static wash below is the better hero.
  * 2. It is a custom element, not a React component. Creating it imperatively
  *    keeps it out of React's reconciler entirely: no JSX typings for an
  *    unknown tag, no SSR mismatch, and React never tries to diff a subtree
@@ -95,6 +97,26 @@ export function PourHero() {
     let cancelled = false;
     let element: HTMLElement | undefined;
 
+    // Keeps the 860 KB off the critical path: wait for the load event, then
+    // for an idle moment. Both have hard timeouts so the cup still arrives on
+    // a busy page.
+    const startWhenIdle = () => {
+      const idle = () => {
+        const ric = (
+          window as unknown as {
+            requestIdleCallback?: (
+              cb: () => void,
+              o?: { timeout: number },
+            ) => void;
+          }
+        ).requestIdleCallback;
+        if (ric) ric(() => start(), { timeout: 2000 });
+        else window.setTimeout(start, 200);
+      };
+      if (document.readyState === "complete") idle();
+      else window.addEventListener("load", idle, { once: true });
+    };
+
     const start = () => {
       loadWidget()
         .then(() => customElements.whenDefined("affogato-pour"))
@@ -111,10 +133,28 @@ export function PourHero() {
         });
     };
 
+    // Metered or very slow connection: never fetch it. A 860 KB decorative
+    // hero is not worth someone's data plan; the paper wash and wordmark
+    // underneath are a complete hero on their own.
+    const conn = (
+      navigator as Navigator & {
+        connection?: { saveData?: boolean; effectiveType?: string };
+      }
+    ).connection;
+    if (
+      conn?.saveData === true ||
+      conn?.effectiveType === "slow-2g" ||
+      conn?.effectiveType === "2g"
+    ) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
     // No IntersectionObserver (very old browser, or a JSDOM-ish env): just
     // load it — a working hero beats a clever one.
     if (typeof IntersectionObserver !== "function") {
-      start();
+      startWhenIdle();
       return () => {
         cancelled = true;
       };
@@ -124,7 +164,7 @@ export function PourHero() {
       (entries) => {
         if (!entries.some((e) => e.isIntersecting)) return;
         io.disconnect();
-        start();
+        startWhenIdle();
       },
       // Start fetching a screen early so the cup is there by the time the
       // visitor arrives at it.
@@ -168,6 +208,7 @@ export function PourHero() {
           onClick={toNextSection}
           aria-label="Aşağı kaydır"
           tabIndex={moved ? -1 : 0}
+          aria-hidden={moved || undefined}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path

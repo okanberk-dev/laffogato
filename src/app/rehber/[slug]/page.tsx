@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { guideGraphLd } from "@/lib/seo/guide-structured-data";
 import { GUIDES, findGuide, relatedGuides } from "@/lib/seo/guides";
 import { SITE } from "@/lib/seo/site";
+import { JsonLd } from "@/lib/seo/json-ld";
 
 /** Static at build time: the guides are code, not database rows. */
 export function generateStaticParams() {
@@ -64,12 +65,7 @@ export default async function GuidePage({
 
   return (
     <main className="guide-page">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(guideGraphLd(guide)),
-        }}
-      />
+      <JsonLd data={guideGraphLd(guide)} />
 
       <div className="guide-wrap">
         <nav className="guide-breadcrumb" aria-label="breadcrumb">

@@ -14,25 +14,34 @@ import { DAYS_OF_WEEK, DAY_LABELS } from "@/lib/admin/days";
 import { getSiteContent } from "@/lib/admin/site-content";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { FAQ } from "@/lib/seo/faq";
-import { SITE } from "@/lib/seo/site";
+import { SITE, openGraphDefaults } from "@/lib/seo/site";
 import { siteGraphLd } from "@/lib/seo/structured-data";
 import { isDegradedRequest } from "@/lib/db/health";
+import { JsonLd } from "@/lib/seo/json-ld";
 
 export const dynamic = "force-dynamic";
 
+// Keyword-first local title (≤60 chars); `absolute` bypasses the layout title
+// template so the brand isn't appended twice. The same string is used for
+// og:title and twitter:title — the page used to publish three different
+// titles, so a shared link and a search result named different things.
+const HOME_TITLE = "Tuzla'da İtalyan Kahve, Affogato & Gelato — L'Affogato";
+
 export const metadata: Metadata = {
-  // Keyword-first local title (≤60 chars); `absolute` bypasses the layout
-  // title template so the brand isn't appended twice.
-  title: {
-    absolute: "Tuzla'da İtalyan Kahve, Affogato & Gelato — L'Affogato",
-  },
+  title: { absolute: HOME_TITLE },
   description: SITE.shortDescription,
   alternates: { canonical: "/" },
   openGraph: {
-    title: `${SITE.name} — ${SITE.tagline}`,
+    ...openGraphDefaults(),
+    title: HOME_TITLE,
     description: SITE.shortDescription,
     url: "/",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: HOME_TITLE,
+    description: SITE.shortDescription,
   },
 };
 
@@ -79,7 +88,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       "Sepetindeki bir ürün artık mevcut değil. Sepetini güncelleyip tekrar dene.";
   }
 
-  const graph = siteGraphLd(menu, products);
+  const graph = siteGraphLd(menu, products, settings);
 
   // Visit page contact block — driven by admin Ayarlar (settings).
   // `todayHours` is computed server-side (stable, no hydration mismatch) so the
@@ -108,10 +117,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(graph) }}
-      />
+      <JsonLd data={graph} />
       <LaffogatoApp
         degraded={isDegradedRequest()}
         products={products}
