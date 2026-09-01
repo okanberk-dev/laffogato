@@ -22,7 +22,6 @@ const KNOWN_TOKENS = new Set([
   "TAX_NO",
   "TAX_TYPE",
   "STARTED_AT",
-  "NACE",
   "MERSIS",
   "TRADE_REGISTRY",
   "KEP",
@@ -167,6 +166,22 @@ describe("legal content — identity is the tax certificate, never a placeholder
 
   it("spells every social handle with the double t", () => {
     expect(rendered).not.toMatch(/@laffogato(?!t)/);
+  });
+
+  it("keeps the activity code (NACE) off the public site", () => {
+    // The tax certificate says 621000 — software. It is an internal record and
+    // is deliberately not published alongside the tax office and VKN.
+    expect(rendered).not.toMatch(/621000/);
+    expect(rendered).not.toMatch(/NACE/i);
+    expect(rendered).not.toMatch(/faaliyet kodu/i);
+  });
+
+  it("names the infrastructure and payment provider the project actually uses", () => {
+    // The data layer moved off Supabase to Neon-hosted Postgres, and the
+    // virtual POS is iyzico — no other provider may be described as ours.
+    expect(rendered).not.toMatch(/Supabase/i);
+    expect(rendered).not.toMatch(/PayTR/i);
+    expect(rendered).not.toMatch(/Stripe/i);
   });
 
   it("drops table rows whose value is an unknown token", () => {

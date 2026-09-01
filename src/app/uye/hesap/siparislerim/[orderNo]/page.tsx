@@ -22,6 +22,7 @@ const ORDER_DOCS = [
   { slug: "mesafeli-satis-sozlesmesi", label: "Mesafeli Satış Sözleşmesi" },
   { slug: "iade-ve-cayma", label: "İptal, İade ve Cayma Hakkı" },
   { slug: "teslimat-ve-kargo", label: "Teslimat ve Kargo Koşulları" },
+  { slug: "garanti-ve-ayipli-mal", label: "Garanti ve Ayıplı Mal" },
 ];
 
 export const metadata = { title: "Sipariş detayı · L'Affogato" };
@@ -199,7 +200,9 @@ export default async function OrderDetailPage({
             ? "Siparişini verirken onayladığın belgeler — kalıcı veri saklayıcısı olarak buradan istediğin zaman okuyabilir, yazdırabilirsin."
             : "Siparişlerine uygulanan sözleşme ve politikalar:"}
         </p>
-        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, lineHeight: 1.9 }}>
+        <ul
+          style={{ margin: 0, paddingLeft: 18, fontSize: 14, lineHeight: 1.9 }}
+        >
           {ORDER_DOCS.map((d) => (
             <li key={d.slug}>
               <Link
