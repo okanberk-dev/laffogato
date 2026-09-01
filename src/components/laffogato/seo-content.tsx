@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 import type { FaqEntry } from "@/lib/seo/faq";
+import { GUIDE_LINKS } from "@/lib/seo/guide-nav";
 import { SITE } from "@/lib/seo/site";
 
 /**
@@ -166,6 +169,46 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
               Ücretsiz vale
             </div>
           </div>
+        </div>
+
+        {/* Internal links into the rehber hub. This block renders on the home
+            page and on every menu and shop category page, so the guides — which
+            are the pages built to earn search traffic — are reachable from the
+            site's highest-traffic surfaces rather than the footer alone. */}
+        <div style={{ marginTop: 48 }}>
+          <h3 className="eyebrow" style={{ marginBottom: 14 }}>
+            Daha fazlası — Rehber
+          </h3>
+          <ul
+            style={{
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+            }}
+          >
+            {GUIDE_LINKS.map((g) => (
+              <li key={g.slug}>
+                <Link
+                  href={`/rehber/${g.slug}`}
+                  style={{
+                    display: "inline-block",
+                    padding: "8px 14px",
+                    borderRadius: 999,
+                    border: "1px solid rgba(20, 16, 11, 0.14)",
+                    background: "#fff",
+                    fontSize: 13.5,
+                    color: "var(--ink-soft, rgba(20,16,11,0.72))",
+                    textDecoration: "none",
+                  }}
+                >
+                  {g.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div
