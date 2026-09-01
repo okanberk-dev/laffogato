@@ -5,10 +5,13 @@
  * dosyadan okur. Değerler kullanıcının ibraz ettiği **vergi levhası** ile
  * birebir doğrulanmıştır (GİB onay kodu: 1JCHRQFDHVZI).
  *
- * ⚠️ Boş bırakılan alanlar (`mersisNo`, `tradeRegistryNo`, `kep`, `bank`)
- * bilinmiyor. Uydurma değer YAZMAYIN — boş kaldıkları sürece belgelerdeki
- * ilgili tablo satırları otomatik olarak gizlenir (bkz. `fillTokens`).
- * Gerçek değerler öğrenildiğinde yalnızca burayı doldurmak yeterlidir.
+ * MERSİS numarası işletme sahibinin ibraz ettiği ticaret sicil kaydından
+ * alınmıştır.
+ *
+ * ⚠️ Boş bırakılan alanlar (`kep`, `bank`) bilinmiyor. Uydurma değer YAZMAYIN
+ * — boş kaldıkları sürece belgelerdeki ilgili tablo satırları otomatik olarak
+ * gizlenir (bkz. `fillTokens`). Gerçek değerler öğrenildiğinde yalnızca burayı
+ * doldurmak yeterlidir.
  */
 
 export const LEGAL_ENTITY = {
@@ -42,11 +45,24 @@ export const LEGAL_ENTITY = {
   /** İşe başlama tarihi (vergi levhası). */
   startedAt: "25.06.2026",
 
-  /** TODO: Ticaret sicil kaydından doldur — boş kaldıkça belgelerde gizlenir. */
-  mersisNo: "",
-  /** TODO: Ticaret sicil müdürlüğü + sicil numarası. */
+  /** MERSİS numarası — ticaret sicil kaydından. */
+  mersisNo: "0734069467300012",
+  /**
+   * Ticaret sicil / dosya numarası.
+   *
+   * İşletme sahibinin tercihi ile yayımlanmıyor; MERSİS numarası zaten sicil
+   * kaydına işaret ediyor. Boş kaldığı için belgelerdeki ilgili tablo satırı
+   * hiç basılmaz. (TTK m.39 ticari belgelerde sicil numarasını da arar —
+   * yayımlanması istenirse buraya "48639" yazmak yeterli.)
+   */
   tradeRegistryNo: "",
-  /** TODO: Kayıtlı Elektronik Posta (KEP) adresi. */
+  /**
+   * Kayıtlı Elektronik Posta (KEP) adresi.
+   *
+   * Şirketin henüz KEP adresi yok. Boş kaldığı sürece belgelerdeki KEP satırı
+   * hiç basılmaz; uydurma bir adres yazmak, tebligatın oraya yapılabileceği
+   * anlamına gelirdi.
+   */
   kep: "",
   /** TODO: Para iadesi/havale için banka ve IBAN bilgisi. */
   bank: { name: "", iban: "" },

@@ -22,16 +22,20 @@ describe("Canonical domain — laffogato.net", () => {
     expect(LEGAL_ENTITY.email).toBe("info@nextgenlab.com.tr");
   });
 
-  it("never ships an invented MERSİS / trade-registry / KEP / IBAN value", () => {
-    // Unknown identifiers stay empty so the renderer hides those table rows.
-    for (const v of [
-      LEGAL_ENTITY.mersisNo,
-      LEGAL_ENTITY.tradeRegistryNo,
-      LEGAL_ENTITY.kep,
-      LEGAL_ENTITY.bank.iban,
-    ]) {
-      expect(v).toBe("");
-    }
+  it("carries the MERSİS number the company actually holds", () => {
+    // From the trade registry record. A MERSİS number is exactly 16 digits.
+    expect(LEGAL_ENTITY.mersisNo).toBe("0734069467300012");
+    expect(LEGAL_ENTITY.mersisNo).toMatch(/^\d{16}$/);
+  });
+
+  it("publishes nothing the company has not given us", () => {
+    // The trade registry number is withheld by the owner's choice; the KEP
+    // address and bank account do not exist yet. All three stay empty so the
+    // renderer drops their rows — an invented KEP would say tebligat can be
+    // served there, an invented IBAN that a refund can be sent to it.
+    expect(LEGAL_ENTITY.tradeRegistryNo).toBe("");
+    expect(LEGAL_ENTITY.kep).toBe("");
+    expect(LEGAL_ENTITY.bank.iban).toBe("");
   });
 
   it("legal documents reference laffogato.net, never .com.tr", () => {

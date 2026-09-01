@@ -2283,7 +2283,7 @@ export function PageVisit({ visit }: PageProps) {
                 onClick={scrollTo("book")}
                 className="btn btn-light btn-lg"
               >
-                Masa rezerve et <span className="arrow">→</span>
+                Rezervasyon <span className="arrow">→</span>
               </a>
               <a
                 href="#map"

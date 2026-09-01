@@ -199,15 +199,23 @@ function organizationLd(): Json {
     legalName: LEGAL_ENTITY.legalName,
     taxID: LEGAL_ENTITY.taxNo,
     vatID: LEGAL_ENTITY.taxNo,
-    ...(LEGAL_ENTITY.mersisNo
-      ? {
-          identifier: {
-            "@type": "PropertyValue",
-            propertyID: "MERSİS",
-            value: LEGAL_ENTITY.mersisNo,
-          },
-        }
-      : {}),
+    // Only the identifiers we actually hold. An empty one is omitted rather
+    // than published as a blank PropertyValue.
+    ...(() => {
+      const ids = [
+        LEGAL_ENTITY.mersisNo && {
+          "@type": "PropertyValue",
+          propertyID: "MERSİS",
+          value: LEGAL_ENTITY.mersisNo,
+        },
+        LEGAL_ENTITY.tradeRegistryNo && {
+          "@type": "PropertyValue",
+          propertyID: "Ticaret Sicil No",
+          value: LEGAL_ENTITY.tradeRegistryNo,
+        },
+      ].filter(Boolean);
+      return ids.length ? { identifier: ids } : {};
+    })(),
     address: {
       "@type": "PostalAddress",
       streetAddress: LEGAL_ENTITY.address.line1,

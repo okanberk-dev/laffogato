@@ -156,14 +156,27 @@ describe("legal content — identity is the tax certificate, never a placeholder
   });
 
   it("never invents a registration number, IBAN or KEP address", () => {
+    // Placeholder shapes that have shown up in draft contracts before.
     expect(rendered).not.toMatch(/0123-4567-8901-2345/);
     expect(rendered).not.toMatch(/\b1234567890\b/);
+    expect(rendered).not.toMatch(/\b\d{4}-\d{4}-\d{4}-\d{4}\b/);
+    // The company has no KEP address and no published bank account. An
+    // invented KEP would say tebligat can be served there; an invented IBAN
+    // would say a refund can be sent to it.
+    expect(LEGAL_ENTITY.kep).toBe("");
+    expect(LEGAL_ENTITY.bank.iban).toBe("");
     expect(rendered).not.toMatch(/kep\.tr/i);
     expect(rendered).not.toMatch(/\bTR\d{2}[\s\d]{10,}/);
-    // A MERSİS number is 16 digits, often dash-grouped. Mentioning MERSİS in
-    // prose is fine; printing one we do not have is not.
-    expect(rendered).not.toMatch(/\b\d{4}-\d{4}-\d{4}-\d{4}\b/);
-    expect(rendered).not.toMatch(/MERSİS[^.\n]{0,20}\b\d{10,}\b/i);
+  });
+
+  it("prints the real MERSİS number, and no other of its shape", () => {
+    expect(LEGAL_ENTITY.mersisNo).toMatch(/^\d{16}$/);
+    expect(rendered).toContain(LEGAL_ENTITY.mersisNo);
+    for (const found of rendered.match(/\b\d{16}\b/g) ?? []) {
+      expect(found).toBe(LEGAL_ENTITY.mersisNo);
+    }
+    // The trade registry row is withheld, so it must not be rendered at all.
+    expect(rendered).not.toMatch(/Ticaret [Ss]icil [Nn]o[^,.\n]{0,12}\d/);
   });
 
   it("spells every social handle with the double t", () => {
@@ -206,7 +219,9 @@ describe("fillTokens", () => {
   });
 
   it("reports tokens whose value is unknown", () => {
-    expect(hasEmptyToken("MERSİS: {{MERSIS}}")).toBe(true);
+    // KEP is the field that is still blank; MERSİS is now known.
+    expect(hasEmptyToken("KEP: {{KEP}}")).toBe(true);
+    expect(hasEmptyToken("MERSİS: {{MERSIS}}")).toBe(false);
     expect(hasEmptyToken("VKN: {{TAX_NO}}")).toBe(false);
     expect(hasEmptyToken("düz metin")).toBe(false);
   });

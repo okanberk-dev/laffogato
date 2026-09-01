@@ -13,11 +13,20 @@ import type { NextConfig } from "next";
  * of the policy is enforced strictly, so an injected script cannot exfiltrate
  * to an arbitrary host, load a remote payload, or reframe the site.
  */
+/**
+ * React's development build uses `eval()` — for hot reload and for
+ * reconstructing stack traces across environments — so a CSP without
+ * 'unsafe-eval' breaks `npm run dev` outright. It is added ONLY outside a
+ * production build; the deployed policy never carries it.
+ */
+const DEV_SCRIPT_SRC =
+  process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
+
 const CSP = [
   "default-src 'self'",
   // Google Tag Manager, and only it. 'unsafe-inline' covers the consent
   // bootstrap and the JSON-LD blocks until a nonce is threaded through.
-  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
+  `script-src 'self' 'unsafe-inline'${DEV_SCRIPT_SRC} https://www.googletagmanager.com`,
   "style-src 'self' 'unsafe-inline'",
   // next/font self-hosts every face; nothing is fetched from a font CDN.
   "font-src 'self' data:",

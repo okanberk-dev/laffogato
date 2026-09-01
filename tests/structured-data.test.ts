@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import { MENU, PRODUCTS } from "@/components/laffogato/data";
 import { DAYS_OF_WEEK, type WeeklyHours } from "@/lib/admin/days";
+import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { serializeJsonLd } from "@/lib/seo/json-ld";
 import { menuLd, siteGraphLd } from "@/lib/seo/structured-data";
 
@@ -54,8 +55,6 @@ describe("JSON-LD structured data — SEO audit fixes", () => {
       "NEXTGEN YAZILIM EĞİTİM İNŞAAT SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
     );
     expect(graph).toContain('"taxID":"6312110904"');
-    // MERSİS is unknown, so the identifier node must be omitted entirely.
-    expect(graph).not.toContain("MERSİS");
   });
 
   it("lists every official social profile under sameAs", () => {
@@ -168,5 +167,20 @@ describe("declared capabilities", () => {
   it("uses a valid BCP-47 language tag", () => {
     expect(graph).not.toContain('"inLanguage":"tr_TR"');
     expect(graph).toContain('"inLanguage":"tr-TR"');
+  });
+});
+
+describe("company identifiers", () => {
+  it("publishes the MERSİS number we hold", () => {
+    expect(graph).toContain("MERSİS");
+    expect(graph).toContain(LEGAL_ENTITY.mersisNo);
+  });
+
+  it("publishes no identifier we were not given", () => {
+    // The trade registry number is withheld and the KEP address does not
+    // exist; a PropertyValue with an empty value would claim both.
+    expect(graph).not.toContain('"value":""');
+    expect(graph).not.toContain("Ticaret Sicil No");
+    expect(graph).not.toMatch(/kep\.tr/i);
   });
 });

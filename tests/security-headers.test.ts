@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { readFileSync } from "node:fs";
+
 import nextConfig from "../next.config";
 
 async function headerMap() {
@@ -25,6 +27,20 @@ describe("security headers", () => {
     const sources = scriptSrc.split(/\s+/).slice(1);
     expect(sources).not.toContain("https:");
     expect(sources.some((src) => src.includes("*"))).toBe(false);
+  });
+
+  it("never ships 'unsafe-eval' in a production build", () => {
+    // React's dev build needs eval(); adding it unconditionally would carry
+    // the weakest possible script policy into production.
+    const config = readFileSync("next.config.ts", "utf8");
+    // The production branch of the ternary is the empty string, so the
+    // directive cannot carry it in a deployed build.
+    expect(config).toContain(
+      'process.env.NODE_ENV === "production" ? "" : " \'unsafe-eval\'"',
+    );
+    // And nothing else in the policy names it.
+    const withoutComments = config.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(withoutComments.match(/unsafe-eval/g) ?? []).toHaveLength(1);
   });
 
   it("blocks the injection primitives an XSS would reach for", async () => {
