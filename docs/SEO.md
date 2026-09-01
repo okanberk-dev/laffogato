@@ -161,10 +161,13 @@ yanı" — insanlar tarifi böyle veriyor).
 
 Boş bırakılan doğrulama token'ı için Next.js meta etiketini hiç basmaz.
 
-> **Çerez rızası:** Analitik ve pazarlama çerezleri KVKK kapsamında **açık rıza**
-> ister. Çerez politikası bunu taahhüt ediyor; rıza bandı yayına alınmadan
-> GTM'in pazarlama etiketlerini yüklememesi gerekir. Bu, açık bir iş kalemidir
-> — bkz. `docs/BACKEND_FRONTEND_AUDIT.md`.
+> **Çerez rızası uygulanmıştır.** Analitik ve pazarlama çerezleri KVKK
+> kapsamında açık rıza ister. Consent Mode v2 varsayılanları GTM
+> konteynerinden **önce** `<head>` içinde basılır ve rızaya bağlı her sinyal
+> `denied` başlar; `src/components/laffogato/cookie-consent.tsx` bandı ve
+> tercih merkezini, footer'daki "Çerez Tercihleri" düğmesi de geri almayı
+> sağlar. Yani GTM yüklense bile rıza verilmeden hiçbir etiket ölçüm yapamaz.
+> Bunu `tests/consent.test.ts` kilitler.
 
 ---
 

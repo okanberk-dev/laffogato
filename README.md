@@ -12,7 +12,8 @@ yönetim paneli.
 | **Rehber**  | Arama verisine dayalı 5 uzun içerik — `/rehber`                                                                                             |
 | **Hukuk**   | 24 sözleşme ve politika — `/hukuk`, tek kaynaktan doldurulan yasal kimlikle                                                                 |
 | **Admin**   | Ürün / menü / kategori / sipariş / müşteri / promosyon / içerik yönetimi, stok hareketleri, ciro raporları, olay kaydı, RBAC, TOTP 2FA      |
-| **Ödeme**   | Sağlayıcı bağımsız soyutlama; sanal POS **iyzico** (Checkout Form), geliştirmede mock                                                       |
+| **Ödeme**   | Sağlayıcı bağımsız soyutlama; sanal POS **iyzico** (Checkout Form), geliştirmede mock. Üretimde mock'a düşmez — açıkça reddeder             |
+| **Rıza**    | Consent Mode v2 (KVKK) · mesafeli satış onayı kanıtla · 6563 bülten onayı ve tek tıkla çıkış                                                |
 
 ---
 
@@ -64,14 +65,16 @@ src/lib/
   db/                    pg havuzu · sorgu kurucu · SQL derleyici · sağlık
   admin/ · customer/     Veri katmanı ve iş kuralları
   payment/               PaymentProvider · MockPaymentProvider · IyzicoPaymentProvider
-  legal/                 Yasal kimlik (tek kaynak) · 24 sözleşme · render
+  legal/                 Yasal kimlik (tek kaynak) · 24 sözleşme · render · meta
+  consent/               Çerez rızası durumu + Consent Mode v2 bootstrap
+  newsletter/            6563 onay kaydı + tek tıkla çıkış
   seo/                   site sabitleri · yapısal veri · sayfa SEO · rehber
 db/migrations/           Sıralı SQL migration'lar
-docs/                    DATABASE.md · SEO.md · PROMPT.md · BACKEND_FRONTEND_AUDIT.md
+docs/                    DATABASE.md · SEO.md · AUDIT.md · PROMPT.md
 tests/                   Vitest
 ```
 
-### Bilmeye değer üç tasarım kararı
+### Bilmeye değer beş tasarım kararı
 
 **1. Yasal kimlik tek kaynaktan gelir.** `src/lib/legal/entity.ts` vergi
 levhasındaki bilgiyi tutar; sözleşme metinleri `{{TOKEN}}` yer tutucularıyla
@@ -89,6 +92,18 @@ işaretli olamaz; sunucu onaysız siparişi reddeder ve onayı — tarih, IP, ta
 belge sürümü — `orders."legalConsent"` kolonuna yazar. Sanal POS incelemesinde
 ve chargeback itirazında istenen kayıt budur.
 
+**4. Eşzamanlılık altındaki her sayaç SQL'de artar.** Stok, promosyon kullanımı,
+giriş denemesi. JavaScript'te oku-değiştir-yaz, tam da yarışın olduğu anda —
+aynı ürüne iki sipariş, son hakka iki checkout, bir brute-force — yazım
+kaybeder; kaybedilen yazım da her zaman yanlış tarafa çalışır. `db/migrations`
+altındaki `claim_order_stock`, `release_order_stock`, `redeem_promo`,
+`adjust_product_stock` ve `record_auth_failure` bunun için var.
+
+**5. Ölçüm rızaya bağlıdır.** Google Tag Manager yüklenir, ama Consent Mode v2
+varsayılanları konteynerden **önce** basılır ve rızaya bağlı her sinyal `denied`
+başlar. Bant ve tercih merkezi bunları yalnızca açık seçimle yükseltir; rıza,
+verildiği kadar kolay geri alınır (footer → "Çerez Tercihleri").
+
 ---
 
 ## Ortam değişkenleri
@@ -105,7 +120,12 @@ ve chargeback itirazında istenen kayıt budur.
 | `PAYMENT_WEBHOOK_SECRET`         | Webhook imza doğrulaması                            |
 
 iyzico kullanılacaksa ayrıca `IYZICO_API_KEY`, `IYZICO_SECRET_KEY`,
-`IYZICO_BASE_URL`, `IYZICO_CALLBACK_URL`.
+`IYZICO_BASE_URL` ve `IYZICO_CALLBACK_URL`.
+
+> **`IYZICO_CALLBACK_URL` webhook adresi değildir.** iyzico ödeme bitince
+> müşterinin **tarayıcısını** oraya POST eder; değer `https://…/odeme/donus`
+> olmalıdır. Webhook (`/api/webhooks/payment`) iyzico panelinde ayrıca tanımlanır
+> ve imzası `PAYMENT_WEBHOOK_SECRET` ile doğrulanır.
 
 `DATABASE_URL` ve servis anahtarları **asla** `NEXT_PUBLIC_*` ile expose edilmez.
 
@@ -113,11 +133,11 @@ iyzico kullanılacaksa ayrıca `IYZICO_API_KEY`, `IYZICO_SECRET_KEY`,
 
 ## Belgeler
 
-| Belge                                                                | İçerik                                                                   |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **[CLAUDE.md](CLAUDE.md)**                                           | Mimari kararlar, güvenlik kuralları, çalışma alışkanlıkları              |
-| **[docs/DATABASE.md](docs/DATABASE.md)**                             | Neon kurulumu, migration akışı, sürücü seçimi                            |
-| **[docs/SEO.md](docs/SEO.md)**                                       | Teknik + içerik SEO, anahtar kelime haritası, yeni sayfa kontrol listesi |
-| **[docs/BACKEND_FRONTEND_AUDIT.md](docs/BACKEND_FRONTEND_AUDIT.md)** | Açık iş kalemleri ve bilinen boşluklar                                   |
-| **[docs/PROMPT.md](docs/PROMPT.md)**                                 | Ürün spec'i ve MVP kapsamı                                               |
-| **[AGENTS.md](AGENTS.md)**                                           | Bu Next.js sürümüne özgü uyarı                                           |
+| Belge                                    | İçerik                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------------------ |
+| **[CLAUDE.md](CLAUDE.md)**               | Mimari kararlar, güvenlik kuralları, çalışma alışkanlıkları              |
+| **[docs/DATABASE.md](docs/DATABASE.md)** | Neon kurulumu, migration akışı, sürücü seçimi                            |
+| **[docs/SEO.md](docs/SEO.md)**           | Teknik + içerik SEO, anahtar kelime haritası, yeni sayfa kontrol listesi |
+| **[docs/AUDIT.md](docs/AUDIT.md)**       | Eylül 2026 denetimi: 71 bulgu, ne düzeltildi, ne açık kaldı              |
+| **[docs/PROMPT.md](docs/PROMPT.md)**     | Ürün spec'i ve MVP kapsamı                                               |
+| **[AGENTS.md](AGENTS.md)**               | Bu Next.js sürümüne özgü uyarı                                           |

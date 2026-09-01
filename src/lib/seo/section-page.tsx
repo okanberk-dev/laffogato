@@ -56,7 +56,9 @@ export function pageMetadata(route: Route): Metadata {
 
 export async function renderSectionPage(route: Route) {
   const seo = PAGE_SEO[route];
-  const { settings, menu, appProps } = await loadAppProps();
+  const { settings, menu, appProps } = await loadAppProps({
+    withShopHero: route === "shop",
+  });
 
   const breadcrumb = breadcrumbLd([
     { name: "Ana Sayfa", url: "/" },

@@ -25,7 +25,12 @@ import { isDegradedRequest } from "@/lib/db/health";
  * contact page kept the old number — and /hikayemiz ignored the press quotes
  * and the timeline the admin panel exists to edit.
  */
-export async function loadAppProps() {
+export async function loadAppProps({
+  // Only the shop page renders the hero carousel. Fetching its slides for
+  // /menu, /ziyaret and /hikayemiz was a query and a client payload for
+  // something those pages never show.
+  withShopHero = true,
+}: { withShopHero?: boolean } = {}) {
   const [
     products,
     settings,
@@ -40,7 +45,7 @@ export async function loadAppProps() {
     getPublicSettings(),
     listMenuForCustomer(),
     getActiveCustomer(),
-    listActiveShopHeroSlides(),
+    withShopHero ? listActiveShopHeroSlides() : Promise.resolve([]),
     listActivePress(),
     listActiveStoryEvents(),
     getSiteContent(),

@@ -56,7 +56,11 @@ src/
       2fa-kurulum/
     rehber/                  → SEO rehber hub'ı + /rehber/[slug] (Article +
                                FAQPage + Recipe yapısal verisi)
-    api/webhooks/payment/    → Payment webhook (HMAC doğrulamalı)
+    api/webhooks/payment/    → Sunucudan sunucuya ödeme bildirimi (HMAC)
+    odeme/donus/             → Sanal POS'un MÜŞTERİYİ POST ettiği dönüş
+                               (IYZICO_CALLBACK_URL burayı göstermeli)
+    gorsel/                  → Yüklenen görsellerin önbelleklenebilir servisi
+    bulten/cikis/            → Tek tıkla bülten aboneliğinden çıkış (6563)
     proxy.ts                 → Cookie-tabanlı admin guard
   components/
     laffogato/               → Müşteri SPA
@@ -88,14 +92,16 @@ src/
                                section-page · pages.ts (route SEO) · faq.ts ·
                                guides.ts + guide-content.ts (rehber içeriği) ·
                                guide-structured-data.ts · guide-nav.ts
-    utils/                   → commerce.ts (vergi/kargo) · format.ts · cn.ts
+    consent/                 → cookie.ts (rıza durumu) · script.ts (Consent Mode v2)
+    newsletter/              → store.ts (6563 onay kaydı + tek tıkla çıkış)
+    utils/                   → commerce.ts (vergi/kargo) · format.ts (priceLabel)
 db/
-  migrations/                → 13 SQL migration (`npm run db:migrate`)
+  migrations/                → 18 SQL migration (`npm run db:migrate`)
   schema.sql                 → Üretilen tek dosyalık şema (`npm run db:bundle`)
 scripts/                     → db-migrate.mjs · db-bundle.mjs
-tests/                       → 23 vitest dosyası
+tests/                       → 30 vitest dosyası
 docs/                        → DATABASE.md · SEO.md · PROMPT.md ·
-                               BACKEND_FRONTEND_AUDIT.md
+                               AUDIT.md
 ```
 
 ## Geliştirme Komutları
@@ -148,8 +154,10 @@ derler. Tanımlayıcılar `sql.ts`'te doğrulanır, değerler orada parametrelen
 `orderNo` 10001+) `next_seq()` ile **atomik**. Tablo boşsa ilk istekte
 **idempotent seed**.
 
-19 tablo + `next_seq` / `claim_order_stock` / `increment_promo_usage`
-fonksiyonları. Şema yoksa uygulama onu ilk sorguda kendisi kurar
+20 tablo + `next_seq` / `claim_order_stock` / `release_order_stock` /
+`redeem_promo` / `release_promo_usage` / `adjust_product_stock` /
+`record_auth_failure` fonksiyonları. Her biri, JavaScript'te yapılan bir
+oku-değiştir-yaz'ın eşzamanlılık altında kaybettiği yazımlar yüzünden var. Şema yoksa uygulama onu ilk sorguda kendisi kurar
 (`src/lib/db/bootstrap.ts` → `src/lib/db/schema-sql.ts`, `npm run db:bundle`
 ile üretilir), böylece `DATABASE_URL`'i migration'lardan önce tanımlamak siteyi
 düşürmez. Erişim tek bir owner bağlantısı üzerinden olduğu için RLS
@@ -203,7 +211,24 @@ durum bozulmaya uygundur.
 15. **SEO içeriği veriye dayanır.** Yeni bir rehber/landing sayfası açmadan önce
     Semrush (TR veritabanı) ile hacim ve zorluk doğrulanır; hedef küme
     `docs/SEO.md` tablosuna işlenir. Hacimsiz sayfa açılmaz
-16. **Gıda işletmesi sağlık iddiası yapamaz** — "zayıflatır", "önler",
+16. **JSON-LD tek yerden basılır** — `<JsonLd>` (`src/lib/seo/json-ld.tsx`).
+    `JSON.stringify` `<` karakterini kaçırmaz; veritabanından gelen bir ürün
+    adı script etiketini kapatabilir. Ham `dangerouslySetInnerHTML` ile ld+json
+    yazma
+17. **Ödeme sağlayıcısı fail-closed** — `PAYMENT_PROVIDER` tanımsızsa ya da
+    üretimde `mock` ise uygulama başlamayı reddeder. Mock, para almadan
+    siparişi `paid` yapar
+18. **Rıza olmadan ölçüm yok** — Consent Mode v2 varsayılanları GTM'den önce
+    basılır, rızaya bağlı her sinyal `denied` başlar. Yeni bir etiket veya
+    piksel eklerken bunu baypas etme
+19. **Ticari e-posta için açık rıza** (6563) — onay kutusu ön işaretli olamaz,
+    onayın tarihi/IP'si/hangi metne verildiği kaydedilir ve her iletide tek
+    tıkla çıkış bulunur. İşlemsel e-posta (sipariş, kargo, parola) bu kapsamda
+    **değildir**; onlara "abonelikten çık" koymak yanıltıcı olur
+20. **Eşzamanlılık altındaki sayaçlar SQL'de artar** — stok, promosyon kullanımı
+    ve giriş denemesi. JS'te oku-değiştir-yaz, tam da yarışın olduğu anda yazım
+    kaybeder
+21. **Gıda işletmesi sağlık iddiası yapamaz** — "zayıflatır", "önler",
     "tedavi eder", "detoks" gibi ifadeler `tests/guides.test.ts` tarafından
     reddedilir. Ölçülü ifade + tıbbi tavsiye olmadığı notu
 
