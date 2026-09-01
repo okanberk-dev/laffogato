@@ -903,7 +903,7 @@ export const LOCATION = {
   ] as Array<[string, string]>,
   /** Fixed query used for the map embed and directions links. Kept separate
    *  from `address` so editing the displayed lines cannot break geocoding. */
-  mapsQuery: "L'Affogato, 29 Ekim Cd. No:28, 34940 Tuzla, İstanbul",
+  mapsQuery: "L'Affogato, Atatürk Cad. No: 28, 34940 Tuzla, İstanbul",
   landmark: "Menemenci Cumhur’un yanı",
   phone: "+90 216 459 30 60",
   email: "info@nextgenlab.com.tr",

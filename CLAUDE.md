@@ -18,8 +18,8 @@ yapılır.
 - **Veri:** **Postgres**, `pg` sürücüsüyle. Barındırma Neon'da ama koda özgü bir
   bağımlılık yok — bağlantı dizesi değişince başka bir Postgres'e taşınır.
   Kurulum: `docs/DATABASE.md`
-- **Adres:** Postane Mah. 29 Ekim Cd. No: 28 (Menemenci Cumhur'un yanı),
-  34940 Tuzla / İstanbul
+- **Adres:** Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1 (Menemenci
+  Cumhur'un yanı), 34940 Tuzla / İstanbul — vergi levhasıyla doğrulandı
 - **Auth:** Admin için env-credentialed imzalı cookie (`ADMIN_EMAIL` +
   `ADMIN_PASSWORD` + HMAC SHA256) ve TOTP 2FA. Müşteri için bcrypt hesap
 - **Ödeme:** Sağlayıcı bağımsız soyutlama (`src/lib/payment/`). Sanal POS

@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 
 import { SITE } from "@/lib/seo/site";
+import { LOCATION } from "@/components/laffogato/data";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { LEGAL_DOCS } from "@/lib/legal/documents";
 
@@ -51,5 +52,31 @@ describe("Canonical domain — laffogato.net", () => {
     );
     expect(txt).not.toMatch(/laffogato\.com\.tr/);
     expect(txt).toMatch(/laffogato\.net/);
+  });
+});
+
+describe("one street name, everywhere", () => {
+  // The tax certificate says Atatürk Caddesi. The map query kept the older
+  // "29 Ekim Cd." — so the page printed one address and the directions link
+  // sent people to another, which is the failure that actually loses a
+  // customer at the door.
+  it("routes the map and directions to the address the page shows", () => {
+    expect(LOCATION.mapsQuery).toContain("Atatürk Cad.");
+    expect(LOCATION.mapsQuery).not.toContain("29 Ekim");
+    expect(LOCATION.address.join(" ")).toContain("Atatürk Cad.");
+  });
+
+  it("leaves no copy of the superseded street name in the tree", () => {
+    for (const file of [
+      "src/components/laffogato/data.ts",
+      "src/lib/seo/site.ts",
+      "src/lib/legal/entity.ts",
+      "src/lib/admin/store.ts",
+      "public/llms.txt",
+      "public/llms-full.txt",
+      "CLAUDE.md",
+    ]) {
+      expect(readFileSync(file, "utf8"), file).not.toContain("29 Ekim");
+    }
   });
 });
