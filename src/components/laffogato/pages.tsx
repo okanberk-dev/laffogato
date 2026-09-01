@@ -443,7 +443,12 @@ export function PageHome({
                   style={{ transitionDelay: `${i * 80}ms` }}
                 >
                   <div className="product-card-img">
-                    <MenuPlate hue={it.hue} name={it.name} image={it.image} />
+                    <MenuPlate
+                      hue={it.hue}
+                      name={it.name}
+                      cat="matcha"
+                      image={it.image}
+                    />
                     {it.tags?.includes("new") && (
                       <div className="product-card-flag new">NUOVO</div>
                     )}
@@ -522,6 +527,7 @@ export function PageHome({
                 <MenuPlate
                   hue="matcha"
                   name="Matcha Latte"
+                  cat="matcha"
                   image="/menu/matcha-latte.webp"
                 />
               </PhotoSurface>
@@ -538,6 +544,7 @@ export function PageHome({
                 <MenuPlate
                   hue="rose"
                   name="Strawberry Matcha"
+                  cat="matcha"
                   image="/menu/strawberry-matcha.webp"
                 />
               </PhotoSurface>
@@ -941,6 +948,7 @@ export function PageMenu({ menu }: PageProps) {
                       <MenuPlate
                         hue={items[0].hue}
                         name={items[0].name}
+                        cat={key}
                         image={items[0].image}
                       />
                     </div>
@@ -956,7 +964,12 @@ export function PageMenu({ menu }: PageProps) {
                     style={{ transitionDelay: `${(i % 4) * 60}ms` }}
                   >
                     <div className="menu-item-img">
-                      <MenuPlate hue={it.hue} name={it.name} image={it.image} />
+                      <MenuPlate
+                        hue={it.hue}
+                        name={it.name}
+                        cat={key}
+                        image={it.image}
+                      />
                       {it.tags?.includes("signature") && (
                         <div className="product-card-flag gold">FIRMA</div>
                       )}

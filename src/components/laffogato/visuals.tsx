@@ -1,10 +1,22 @@
 "use client";
 
-import { useEffect, type ReactElement } from "react";
+import { useEffect } from "react";
+
+import {
+  BottleDrink,
+  CakeSlice,
+  ExtraItem,
+  HotMug,
+  IcedDrink,
+  SmoothieGlass,
+  SnackPlate,
+  TeaGlass,
+} from "./menu-visuals";
 
 /* ─────────────────────────────────────────────────────────────
    Reveal observer hook
    ───────────────────────────────────────────────────────────── */
+
 export function useReveal() {
   useEffect(() => {
     const els = document.querySelectorAll(".reveal");
@@ -1211,51 +1223,295 @@ export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
    Auto plate — picks scene by item name
    ───────────────────────────────────────────────────────────── */
 
+/* ─────────────────────────────────────────────────────────────
+   Menu art router — which drawing a menu item gets
+   ───────────────────────────────────────────────────────────── */
+
+/**
+ * Picks the drawing for a menu item.
+ *
+ * The category key decides the *family* (a dessert is a slice, a smoothie is a
+ * blended glass); the item name only refines the flavour inside that family.
+ * Before this existed the router matched on the name alone, so every item that
+ * did not look like an espresso, a matcha or an affogato — lemonade, salep,
+ * cheesecake, a sandwich — fell through to `EspressoCup` and a soda rendered as
+ * a hot coffee.
+ */
+/**
+ * The drawing family a menu item resolves to — the same decision `menuArt`
+ * makes, exposed as a plain string so `tests/menu-visuals.test.ts` can assert
+ * that no category silently collapses back onto the espresso cup.
+ */
+export function menuFamily(cat: string, name: string): string {
+  const lower = name.toLowerCase();
+  if (/affogato/.test(lower)) return "affogato";
+  switch (cat) {
+    case "matcha":
+      return "matcha";
+    case "ice-coffee":
+      return "iced";
+    case "cold":
+      return /^su$|water|soda/.test(lower) ? "bottle" : "iced";
+    case "hot":
+      return /^tea$|çay/.test(lower) ? "tea" : "mug";
+    case "frappe":
+      return "frappe";
+    case "smoothie":
+      return "smoothie";
+    case "frozen":
+      return "frozen";
+    case "ice-tea":
+      return "iced";
+    case "dessert":
+      return "cake";
+    case "snack":
+      return "snack";
+    case "extras":
+      return "extra";
+    case "espresso":
+    default:
+      if (/matcha/.test(lower)) return "matcha";
+      if (/iced|cold/.test(lower)) return "iced";
+      if (/scoop|gelato|dondurma/.test(lower)) return "gelato";
+      return "espresso";
+  }
+}
+
+function menuArt(cat: string, lower: string): React.ReactNode {
+  // Affogato is the signature ritual and outranks its category.
+  if (/affogato/.test(lower)) {
+    const scoop = /strawberry|çilek/.test(lower)
+      ? "strawberry"
+      : /matcha/.test(lower)
+        ? "matcha"
+        : "cream";
+    return (
+      <EdibleCupHero
+        scoop={scoop}
+        topping={scoop === "strawberry" ? "strawberry" : "wafer"}
+      />
+    );
+  }
+
+  switch (cat) {
+    case "matcha":
+      return <MatchaGlass strawberry={/strawberry|çilek/.test(lower)} />;
+
+    case "ice-coffee": {
+      if (/chai/.test(lower)) return <IcedDrink tone="chai" layered />;
+      if (/cold brew/.test(lower))
+        return <IcedDrink tone="coffee" straw={false} />;
+      return (
+        <IcedDrink
+          tone={coffeeTone(lower)}
+          layered={/latte|mocha/.test(lower)}
+        />
+      );
+    }
+
+    case "cold": {
+      if (/^su$/.test(lower) || /water/.test(lower))
+        return <BottleDrink tone="water" />;
+      if (/soda/.test(lower)) return <BottleDrink tone="water" sparkling />;
+      if (/lime/.test(lower)) return <IcedDrink tone="lime" />;
+      if (/limon/.test(lower)) return <IcedDrink tone="lemon" />;
+      return <IcedDrink tone="peach" />;
+    }
+
+    case "hot": {
+      if (/^tea$|çay/.test(lower)) return <TeaGlass />;
+      if (/salep/.test(lower))
+        return <HotMug tone="salep" topping="cinnamon" />;
+      if (/chai/.test(lower)) return <HotMug tone="chai" topping="cinnamon" />;
+      if (/white/.test(lower)) return <HotMug tone="milk" topping="cream" />;
+      if (/caramel/.test(lower))
+        return <HotMug tone="caramel" topping="cream" />;
+      return <HotMug tone="chocolate" topping="cream" />;
+    }
+
+    case "frappe":
+      return <IcedDrink tone={coffeeTone(lower)} whipped ice={false} />;
+
+    case "smoothie": {
+      const tone = /blueberry/.test(lower)
+        ? "berry"
+        : /mango/.test(lower)
+          ? "mango"
+          : /apple|elma/.test(lower)
+            ? "apple"
+            : "protein";
+      return <SmoothieGlass tone={tone} />;
+    }
+
+    case "frozen": {
+      const tone = /strawberry|çilek/.test(lower)
+        ? "strawberry"
+        : /raspberry|frambuaz/.test(lower)
+          ? "raspberry"
+          : /passion/.test(lower)
+            ? "passion"
+            : "pineapple";
+      return <SmoothieGlass tone={tone} frozen />;
+    }
+
+    case "ice-tea":
+      return (
+        <IcedDrink tone={/peach|şeftali/.test(lower) ? "peach" : "lemon"} />
+      );
+
+    case "dessert":
+      return dessertArt(lower);
+
+    case "snack": {
+      if (/simit/.test(lower)) return <SnackPlate kind="simit" />;
+      if (/sandviç|sandwich/.test(lower)) {
+        return (
+          <SnackPlate
+            kind="sandwich"
+            tone={/hindi/.test(lower) ? "#E8C9A0" : "#C46B5A"}
+          />
+        );
+      }
+      if (/fındık|koska|kuruyemiş/.test(lower))
+        return <SnackPlate kind="nuts" />;
+      return (
+        <SnackPlate
+          kind="bar"
+          tone={/kakao|protein/.test(lower) ? "#6B4A2E" : "#C98B44"}
+        />
+      );
+    }
+
+    case "extras": {
+      if (/shot/.test(lower)) return <ExtraItem kind="shot" />;
+      if (/süt|milk/.test(lower)) return <ExtraItem kind="milk" />;
+      return <ExtraItem kind="syrup" />;
+    }
+
+    case "espresso":
+    default: {
+      if (/matcha/.test(lower)) return <MatchaGlass />;
+      if (/iced|cold/.test(lower))
+        return <IcedDrink tone={coffeeTone(lower)} />;
+      if (/türk kahvesi/.test(lower)) return <HotMug tone="coffee" />;
+      if (/scoop|gelato|dondurma/.test(lower))
+        return <GelatoScoop flavor="cream" />;
+      return <EspressoCup />;
+    }
+  }
+}
+
+/** Coffee drinks differ by how much milk and chocolate is in the cup. */
+function coffeeTone(lower: string): string {
+  if (/mocha|çikolata|chocolate/.test(lower)) return "mocha";
+  if (/caramel|toffee|karamel/.test(lower)) return "caramel";
+  if (/spanish|latte|flat white|cortado|cappuccino/.test(lower)) return "milk";
+  return "coffee";
+}
+
+/** The dessert case is the largest single family on the menu (16 items). */
+function dessertArt(lower: string): React.ReactNode {
+  if (/tiramis/.test(lower)) {
+    return (
+      <CakeSlice tone="mocha" layers={4} crumb="#8A5623" glaze="#4A2F1B" />
+    );
+  }
+  if (/brownie/.test(lower)) {
+    return <CakeSlice tone="chocolate" layers={1} crumb="#3A2114" />;
+  }
+  if (/cookie/.test(lower)) {
+    return (
+      <CakeSlice tone="caramel" layers={2} crumb="#8A5623" glaze="#FBF3DF" />
+    );
+  }
+  if (/marlenka/.test(lower)) {
+    return <CakeSlice tone="caramel" layers={6} crumb="#B9762F" />;
+  }
+  if (/frambuaz|raspberry/.test(lower)) {
+    return <CakeSlice tone="milk" layers={2} glaze="#A82F53" />;
+  }
+  if (/limon|lemon/.test(lower)) {
+    return <CakeSlice tone="milk" layers={2} glaze="#EBD070" />;
+  }
+  if (/çilek|strawberry/.test(lower)) {
+    return <CakeSlice tone="strawberry" layers={3} glaze="#C5435A" />;
+  }
+  if (/muz|banana/.test(lower)) {
+    return <CakeSlice tone="milk" layers={3} glaze="#EFD08A" />;
+  }
+  if (/lotus/.test(lower)) {
+    return (
+      <CakeSlice tone="caramel" layers={3} crumb="#8A5623" glaze="#B9762F" />
+    );
+  }
+  if (/mango/.test(lower)) {
+    return <CakeSlice tone="mango" layers={2} glaze="#E29A25" />;
+  }
+  if (/blueberry|yaban/.test(lower)) {
+    return <CakeSlice tone="berry" layers={2} glaze="#5B3A73" />;
+  }
+  if (/fıstık|pistachio/.test(lower)) {
+    return <CakeSlice tone="matcha" layers={2} glaze="#6A8A4A" />;
+  }
+  if (/coffee|kahve/.test(lower)) {
+    return <CakeSlice tone="mocha" layers={3} crumb="#8A5623" />;
+  }
+  // San Sebastian / Donostia: the burnt top is the whole point.
+  return (
+    <CakeSlice tone="caramel" layers={1} crumb="#B9762F" glaze="#6B3F17" />
+  );
+}
+
+/** Surface tint behind the drawing — category first, then flavour. */
+function menuHue(cat: string, lower: string, fallback: string): string {
+  if (/affogato/.test(lower)) return "caramel";
+  if (/strawberry|çilek/.test(lower)) return "rose";
+  if (/matcha/.test(lower)) return "matcha";
+  switch (cat) {
+    case "ice-coffee":
+    case "frappe":
+      return "stone";
+    case "cold":
+      return "sky";
+    case "hot":
+      return "dawn";
+    case "smoothie":
+      return "pistachio";
+    case "frozen":
+      return "bougainvillea";
+    case "ice-tea":
+      return "gold";
+    case "dessert":
+      return "warm";
+    case "snack":
+      return "cream";
+    case "extras":
+      return "stone";
+    case "espresso":
+      return "espresso";
+    default:
+      return fallback;
+  }
+}
+
 export function MenuPlate({
   hue = "cream",
   name = "",
+  cat = "",
   image,
 }: {
   hue?: string;
   name?: string;
+  /** Menu category key — the authoritative signal for which drawing to use. */
+  cat?: string;
   /** Real product photo (transparent PNG/WebP). Falls back to the drawn scene. */
   image?: string;
 }) {
   const lower = name.toLowerCase();
-  const isAffogato = /affogato/.test(lower);
-  const isStraw = /strawberry|çilek/.test(lower);
-  const isMatcha = /matcha|hojicha/.test(lower);
-  const isCold = /iced|cold brew|shakerato|tonic/.test(lower);
-  const isEspresso =
-    /espresso|americano|cappuccino|latte|macchiato|mocha|cortado|flat white|doppio|filter/.test(
-      lower,
-    );
-  const isGelato = /scoop|cannolo|tiramisù|bombolone|cantucci/.test(lower);
-
-  const surfaceHue = isStraw
-    ? "rose"
-    : isMatcha
-      ? "matcha"
-      : isAffogato
-        ? "caramel"
-        : isCold
-          ? "stone"
-          : isGelato
-            ? "warm"
-            : isEspresso
-              ? "espresso"
-              : hue;
-
-  let scoop = "cream";
-  if (/cioccolato|fondente|mocha|chocolate/.test(lower)) scoop = "cioccolato";
-  if (/nocciola|hazelnut|fındık/.test(lower)) scoop = "nocciola";
-  if (/pistacchio|pistachio/.test(lower)) scoop = "pistachio";
-  if (/matcha/.test(lower)) scoop = "matcha";
-  if (/strawberry|çilek/.test(lower)) scoop = "strawberry";
 
   if (image) {
     return (
-      <PhotoSurface hue={surfaceHue}>
+      <PhotoSurface hue={menuHue(cat, lower, hue)}>
         <div
           style={{
             width: "100%",
@@ -1268,7 +1524,7 @@ export function MenuPlate({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={image}
-            alt={name}
+            alt=""
             loading="lazy"
             decoding="async"
             style={{
@@ -1285,7 +1541,7 @@ export function MenuPlate({
   }
 
   return (
-    <PhotoSurface hue={surfaceHue}>
+    <PhotoSurface hue={menuHue(cat, lower, hue)}>
       <div
         style={{
           width: "100%",
@@ -1295,24 +1551,7 @@ export function MenuPlate({
           padding: 24,
         }}
       >
-        {isAffogato ? (
-          <EdibleCupHero
-            scoop={scoop}
-            topping={scoop === "strawberry" ? "strawberry" : "wafer"}
-          />
-        ) : isStraw && isMatcha ? (
-          <MatchaGlass strawberry />
-        ) : isStraw ? (
-          <MatchaGlass strawberry />
-        ) : isMatcha ? (
-          <MatchaGlass />
-        ) : isCold && /matcha/.test(lower) ? (
-          <MatchaGlass />
-        ) : isGelato ? (
-          <GelatoScoop flavor={scoop} />
-        ) : (
-          <EspressoCup />
-        )}
+        {menuArt(cat, lower)}
       </div>
     </PhotoSurface>
   );
