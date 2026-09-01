@@ -68,9 +68,31 @@ export interface RefundResult {
   status: "succeeded" | "pending" | "failed";
 }
 
+/**
+ * What a provider tells us when the customer's browser comes back.
+ *
+ * The browser return carries only a reference; the truth is fetched from the
+ * provider with it. That is the whole point — return parameters are under the
+ * customer's control, a payment confirmation must never be.
+ */
+export interface ReturnConfirmation {
+  status: "succeeded" | "failed";
+  orderId: string;
+  providerRef: string;
+  amountMinor: number;
+  currency: Currency;
+  raw: unknown;
+}
+
 export interface PaymentProvider {
   readonly name: string;
   createCheckoutSession(input: CheckoutInput): Promise<CheckoutSession>;
   verifyWebhook(req: Request): Promise<WebhookEvent>;
   refund(providerRef: string, amountMinor?: number): Promise<RefundResult>;
+  /**
+   * Resolves the browser return into a settled payment, by asking the provider
+   * — never by trusting the returned parameters. Providers that settle only
+   * through a webhook leave this undefined.
+   */
+  confirmReturn?(params: Record<string, string>): Promise<ReturnConfirmation>;
 }

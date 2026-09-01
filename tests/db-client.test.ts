@@ -83,10 +83,7 @@ describe("maybeSingle", () => {
 
   it("errors when more than one row matches", async () => {
     const { exec } = fakeExecutor({ rows: [{ id: "a" }, { id: "b" }] });
-    const res = await createDb(exec)
-      .from("products")
-      .select("*")
-      .maybeSingle();
+    const res = await createDb(exec).from("products").select("*").maybeSingle();
     expect(res.data).toBeNull();
     expect(res.error?.code).toBe("PGRST116");
   });

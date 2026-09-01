@@ -87,9 +87,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
       hint: `${stats.orderCount} toplam`,
     },
     {
-      label: "Ciro (demo)",
+      label: "Net ciro",
       value: formatTRY(stats.revenueMinor),
-      hint: "Tamamlanan & hazırlanan",
+      hint: "Ödenen siparişler, iadeler düşülmüş",
     },
   ];
 

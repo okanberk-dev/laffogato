@@ -1,6 +1,6 @@
 import "server-only";
 
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
@@ -139,8 +139,6 @@ export interface SignInResult {
   needs2FA?: boolean;
 }
 
-const getClientIp = clientIp;
-
 export async function signInAdmin(
   email: string,
   password: string,
@@ -153,7 +151,7 @@ export async function signInAdmin(
     };
   }
 
-  const ip = await getClientIp();
+  const ip = await clientIp();
 
   // Block before checking creds so a brute-forcer can't drain the
   // password comparison loop while the bucket is full.
@@ -298,7 +296,7 @@ export async function complete2FA(token: string): Promise<TwoFAResult> {
   // long enough to try a great many of them. The password behind it is
   // already rate-limited; the second factor was not, which made it the
   // cheaper of the two to attack.
-  const ip = await getClientIp();
+  const ip = await clientIp();
   const limit = await checkLoginLimit("admin-2fa", ip, pending.email);
   if (limit.blocked) {
     return {

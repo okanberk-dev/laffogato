@@ -14,7 +14,11 @@ describe("manualOrderSchema", () => {
     expect(r.success).toBe(true);
     if (!r.success) return;
     expect(r.data.lines).toHaveLength(2);
-    expect(r.data.lines[0]).toEqual({ productId: "prd-0001", variantId: undefined, qty: 2 });
+    expect(r.data.lines[0]).toEqual({
+      productId: "prd-0001",
+      variantId: undefined,
+      qty: 2,
+    });
     expect(r.data.lines[1].variantId).toBe("var-1");
     expect(r.data.status).toBe("paid");
   });

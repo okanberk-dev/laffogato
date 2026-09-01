@@ -19,7 +19,6 @@ import {
   transitionOrder,
   updateOrderDetails,
   type AdminOrderItemStatus,
-  type AdminOrderStatus,
   type OrderTransition,
 } from "@/lib/admin/store";
 import { getPaymentProvider } from "@/lib/payment";

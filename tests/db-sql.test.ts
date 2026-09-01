@@ -41,7 +41,9 @@ describe("identifier safety", () => {
       kind: "select",
       table: "products",
       columns: "*",
-      filters: [{ op: "eq", column: "slug", value: "'; drop table orders; --" }],
+      filters: [
+        { op: "eq", column: "slug", value: "'; drop table orders; --" },
+      ],
       orders: [],
       limit: null,
       count: null,
@@ -306,7 +308,11 @@ describe("rpc", () => {
 
   it("rejects an injected function name", () => {
     expect(() =>
-      compile({ kind: "rpc", fn: "next_seq(); drop table orders; --", args: {} }),
+      compile({
+        kind: "rpc",
+        fn: "next_seq(); drop table orders; --",
+        args: {},
+      }),
     ).toThrow(UnsafeIdentifierError);
   });
 });

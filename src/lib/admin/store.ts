@@ -44,6 +44,16 @@ import type { WeeklyHours } from "./days";
  * kolonlarda tutulur; tarih alanları ISO-8601 metni olarak saklanır.
  */
 
+/**
+ * Whether the seed writes the two demo orders.
+ *
+ * Off everywhere by default. Set `SEED_DEMO_ORDERS=1` in a local `.env.local`
+ * when you want the admin panel to have something to look at; a real shop's
+ * first day should start from zero, not from two invented ₺740 orders that
+ * count as revenue and two invented customers in the CRM.
+ */
+const SEED_DEMO_ORDERS = process.env.SEED_DEMO_ORDERS === "1";
+
 export type ShopCategoryId = "beans" | "gift" | "gear" | "merch" | "pantry";
 
 export interface AdminProductVariant {
@@ -487,7 +497,11 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
       );
     }
 
-    if ((await countRows(TABLES.orders)) === 0) {
+    // Demo orders are for a local walk-through of the panel, nothing else.
+    // They used to be written on every fresh database, production included,
+    // where two invented ₺740 orders became the shop's opening revenue figure
+    // and two invented customers its CRM.
+    if (SEED_DEMO_ORDERS && (await countRows(TABLES.orders)) === 0) {
       const demoOrders: AdminOrder[] = [
         {
           id: slugifyId("ord", 1),
@@ -856,26 +870,34 @@ export async function adjustStock(
 ): Promise<AdjustStockResult> {
   await ensureSeed();
   const sb = getDb();
-  const product = await getProduct(input.productId);
-  if (!product) return { ok: false, error: "Ürün bulunamadı." };
   if (!Number.isFinite(input.delta) || input.delta === 0) {
     return { ok: false, error: "Geçerli bir değer gir (0 olamaz)." };
   }
-  const next = product.stock + input.delta;
-  if (next < 0) {
+  const product = await getProduct(input.productId);
+  if (!product) return { ok: false, error: "Ürün bulunamadı." };
+
+  // Applied inside the database, not read-modify-written here. Two adjustments
+  // in flight — or one racing a customer's order, which decrements under a row
+  // lock — used to lose a write, and the lost one was always the smaller
+  // change, so the count drifted upward. Upward is the direction that oversells.
+  const updatedAt = new Date().toISOString();
+  const { data, error } = await sb.rpc("adjust_product_stock", {
+    p_product_id: input.productId,
+    p_delta: input.delta,
+    p_now: updatedAt,
+  });
+  if (error) return { ok: false, error: error.message };
+  const next = typeof data === "number" ? data : Number(data);
+  if (next === -1) return { ok: false, error: "Ürün bulunamadı." };
+  if (next === -2) {
+    // Re-read so the message names the stock as it actually stands now.
+    const fresh = await getProduct(input.productId);
     return {
       ok: false,
-      error: `Stok eksiye düşemez (mevcut: ${product.stock}).`,
+      error: `Stok eksiye düşemez (mevcut: ${fresh?.stock ?? product.stock}).`,
     };
   }
-  const updatedAt = new Date().toISOString();
-  check(
-    await sb
-      .from(TABLES.products)
-      .update({ stock: next, updatedAt })
-      .eq("id", input.productId),
-    "adjustStock.update",
-  );
+
   const move = await recordStockMove({
     productId: product.id,
     productName: product.name,
@@ -1623,6 +1645,21 @@ export async function applyPaymentSucceeded(input: {
   raw?: unknown;
 }): Promise<PaymentApplyResult> {
   const sb = getDb();
+
+  // What the POS actually collected, against what the order costs.
+  //
+  // Nothing compared the two: a notification claiming ₺1 for a ₺500 order
+  // marked it paid and sent the customer a confirmation. The transaction is
+  // still recorded — the money did arrive and the row is the audit trail —
+  // but the order does not advance, and the mismatch is logged loudly for a
+  // human, because it means either a tampered notification or a real
+  // short-collection that has to be reconciled by hand.
+  const order = await getOrder(input.orderId);
+  if (!order) return { ok: false, error: `order ${input.orderId} not found` };
+  const shortfall = order.totalMinor - input.amountMinor;
+  // One lira of slack for a provider that rounds its own way.
+  const amountMatches = Math.abs(shortfall) <= 100;
+
   const ins = await sb.from(TABLES.paymentTransactions).insert({
     orderId: input.orderId,
     provider: input.provider,
@@ -1639,6 +1676,15 @@ export async function applyPaymentSucceeded(input: {
   if (ins.error && ins.error.code !== "23505") {
     return { ok: false, error: ins.error.message };
   }
+  if (!amountMatches) {
+    console.error(
+      `[payment] AMOUNT MISMATCH order=${input.orderId} orderNo=${order.orderNo} ` +
+        `expected=${order.totalMinor} collected=${input.amountMinor} ` +
+        `provider=${input.provider} ref=${input.providerRef} — order left unpaid`,
+    );
+    return { ok: false, error: "amount_mismatch" };
+  }
+
   const upd = await sb
     .from(TABLES.orders)
     .update({ status: "paid" })
@@ -1649,9 +1695,7 @@ export async function applyPaymentSucceeded(input: {
   if (isFirstConfirmation) {
     // Best-effort payment-confirmed e-mail (logs in dev when Resend is unset).
     try {
-      const order = await getOrder(input.orderId);
       if (
-        order &&
         order.customerEmail &&
         order.customerEmail !== "guest@laffogato.local"
       ) {
@@ -2166,16 +2210,28 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       }),
     sb
       .from(TABLES.orders)
-      .select("totalMinor")
+      .select("totalMinor, refunds")
       .in("status", ["paid", "preparing", "shipped", "completed"])
       .then((r) => {
         if (r.error)
           throw new Error(`getDashboardStats.revenue: ${r.error.message}`);
-        return (r.data ?? []) as Array<{ totalMinor: number }>;
+        return (r.data ?? []) as Array<{
+          totalMinor: number;
+          refunds: AdminRefund[] | null;
+        }>;
       }),
   ]);
 
-  const revenueMinor = revenueRows.reduce((s, o) => s + (o.totalMinor ?? 0), 0);
+  // Net of refunds. The dashboard summed order totals and ignored the refund
+  // ledger entirely, so money handed back still counted as revenue — and a
+  // partially refunded order counted in full.
+  const revenueMinor = revenueRows.reduce((sum, o) => {
+    const refunded = (o.refunds ?? []).reduce(
+      (r, entry) => r + (entry?.amountMinor ?? 0),
+      0,
+    );
+    return sum + Math.max(0, (o.totalMinor ?? 0) - refunded);
+  }, 0);
 
   return {
     productCount,
@@ -2881,7 +2937,11 @@ export async function revenueBuckets(
     const k = bucketKey(new Date(o.createdAt), granularity);
     const slot = byKey.get(k);
     if (slot) {
-      slot.revenueMinor += o.totalMinor;
+      // Net of refunds, like the dashboard figure. A refund is booked against
+      // the order's own bucket rather than the day it was issued: the two
+      // numbers have to agree, and the order date is what the reports group by.
+      const refunded = o.refunds.reduce((r, entry) => r + entry.amountMinor, 0);
+      slot.revenueMinor += Math.max(0, o.totalMinor - refunded);
       slot.orderCount += 1;
     }
   }

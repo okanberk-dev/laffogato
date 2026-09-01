@@ -29,7 +29,9 @@ describe("productFormSchema", () => {
   });
 
   it("rejects a too-short product name", () => {
-    expect(productFormSchema.safeParse(form({ name: "A" })).success).toBe(false);
+    expect(productFormSchema.safeParse(form({ name: "A" })).success).toBe(
+      false,
+    );
   });
 
   it("keeps a small data-url image and drops an oversized one (2MB cap)", () => {

@@ -23,19 +23,34 @@ const WINDOW_MS = 5 * 60 * 1000;
 const MAX_FAILS = 5;
 const LOCKOUT_MS = 60 * 1000;
 
-export type AuthPurpose = "admin-login" | "customer-login" | "admin-2fa";
+export type AuthPurpose =
+  | "admin-login"
+  | "customer-login"
+  | "admin-2fa"
+  | "promo-preview";
 
-/** The caller's IP, as the proxy reports it. "unknown" when it cannot be read. */
+/** Failures allowed before a lockout, per purpose. */
+const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
+  // Guessing a promo code is not guessing a password: a real customer
+  // mistyping their own coupon must not be locked out of checkout, while
+  // scripted enumeration still hits a wall quickly.
+  "promo-preview": 15,
+};
+
+/**
+ * The caller's IP as the edge saw it. The first hop in `x-forwarded-for` is
+ * the client; Vercel also sets `x-real-ip`. Empty when neither is present
+ * (local development) — callers that store it as evidence keep the blank
+ * rather than writing a placeholder, and the rate-limit key buckets it.
+ */
 export async function clientIp(): Promise<string> {
   try {
     const h = await headers();
     const xff = h.get("x-forwarded-for");
     if (xff) return xff.split(",")[0].trim();
-    const real = h.get("x-real-ip");
-    if (real) return real.trim();
-    return "unknown";
+    return h.get("x-real-ip")?.trim() ?? "";
   } catch {
-    return "unknown";
+    return "";
   }
 }
 
@@ -55,10 +70,15 @@ function bucketKey(purpose: AuthPurpose, ip: string, identity: string): string {
   return `${purpose}::${ip || "unknown"}::${identity.trim().toLowerCase()}`;
 }
 
+function maxFails(purpose: AuthPurpose): number {
+  return MAX_FAILS_BY_PURPOSE[purpose] ?? MAX_FAILS;
+}
+
 function statusFrom(
   failedCount: number,
   lockedUntil: string,
   now: number,
+  purpose: AuthPurpose,
 ): RateLimitStatus {
   const until = lockedUntil ? Date.parse(lockedUntil) : 0;
   if (Number.isFinite(until) && until > now) {
@@ -71,7 +91,7 @@ function statusFrom(
   return {
     blocked: false,
     retryAfterSeconds: 0,
-    remaining: Math.max(0, MAX_FAILS - failedCount),
+    remaining: Math.max(0, maxFails(purpose) - failedCount),
   };
 }
 
@@ -105,7 +125,7 @@ export async function checkLoginLimit(
   // A window that has fully expired is not a partial count any more.
   const started = row.firstFailedAt ? Date.parse(row.firstFailedAt) : 0;
   const stale = !started || now - started > WINDOW_MS;
-  return statusFrom(stale ? 0 : row.failedCount, row.lockedUntil, now);
+  return statusFrom(stale ? 0 : row.failedCount, row.lockedUntil, now, purpose);
 }
 
 export async function recordLoginFailure(
@@ -119,7 +139,7 @@ export async function recordLoginFailure(
     p_key: bucketKey(purpose, ip, identity),
     p_now: new Date(now).toISOString(),
     p_window_ms: WINDOW_MS,
-    p_max_fails: MAX_FAILS,
+    p_max_fails: maxFails(purpose),
     p_lockout_ms: LOCKOUT_MS,
   });
   if (error) {
@@ -128,7 +148,7 @@ export async function recordLoginFailure(
   }
   const row = (Array.isArray(data) ? data[0] : data) as AttemptRow | undefined;
   if (!row) return OPEN;
-  return statusFrom(row.failedCount, row.lockedUntil, now);
+  return statusFrom(row.failedCount, row.lockedUntil, now, purpose);
 }
 
 /** Clears the counter after a successful authentication. */

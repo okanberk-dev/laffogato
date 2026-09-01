@@ -43,7 +43,9 @@ maybe("query layer against a real Postgres", () => {
         "sortOrder"  integer not null default 0
       )
     `);
-    await pool.query(`create unique index shim_probe_name_key on shim_probe (name)`);
+    await pool.query(
+      `create unique index shim_probe_name_key on shim_probe (name)`,
+    );
   });
 
   afterAll(async () => {
@@ -99,15 +101,13 @@ maybe("query layer against a real Postgres", () => {
   });
 
   it("upserts with ignoreDuplicates as DO NOTHING", async () => {
-    const res = await db
-      .from("shim_probe")
-      .upsert(
-        [
-          { id: "a", name: "Sirena", priceMinor: 999 },
-          { id: "b", name: "Notturna", priceMinor: 38000 },
-        ],
-        { onConflict: "id", ignoreDuplicates: true },
-      );
+    const res = await db.from("shim_probe").upsert(
+      [
+        { id: "a", name: "Sirena", priceMinor: 999 },
+        { id: "b", name: "Notturna", priceMinor: 38000 },
+      ],
+      { onConflict: "id", ignoreDuplicates: true },
+    );
     expect(res.error).toBeNull();
 
     const kept = await db
@@ -122,7 +122,10 @@ maybe("query layer against a real Postgres", () => {
   it("upserts without ignoreDuplicates as DO UPDATE", async () => {
     await db
       .from("shim_probe")
-      .upsert({ id: "a", name: "Sirena", priceMinor: 41000 }, { onConflict: "id" });
+      .upsert(
+        { id: "a", name: "Sirena", priceMinor: 41000 },
+        { onConflict: "id" },
+      );
     const row = await db
       .from("shim_probe")
       .select("*")
@@ -144,9 +147,14 @@ maybe("query layer against a real Postgres", () => {
     expect(empty.data).toHaveLength(0);
 
     const gte = await db.from("shim_probe").select("*").gte("priceMinor", 200);
-    expect(gte.data.every((r: { priceMinor: number }) => r.priceMinor >= 200)).toBe(true);
+    expect(
+      gte.data.every((r: { priceMinor: number }) => r.priceMinor >= 200),
+    ).toBe(true);
 
-    const like = await db.from("shim_probe").select("*").ilike("name", "%olce%");
+    const like = await db
+      .from("shim_probe")
+      .select("*")
+      .ilike("name", "%olce%");
     expect(like.data[0].name).toBe("Dolce");
 
     const ordered = await db

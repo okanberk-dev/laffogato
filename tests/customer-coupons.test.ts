@@ -89,9 +89,9 @@ describe("evaluateCoupon", () => {
     expect(r.ok).toBe(false);
   });
   it("rejects a cart under the minimum subtotal", () => {
-    expect(evaluateCoupon(coupon({ minSubtotalMinor: 20000 }), 10000, NOW).ok).toBe(
-      false,
-    );
+    expect(
+      evaluateCoupon(coupon({ minSubtotalMinor: 20000 }), 10000, NOW).ok,
+    ).toBe(false);
   });
   it("honors a fixed coupon with no minimum", () => {
     const r = evaluateCoupon(
@@ -105,9 +105,9 @@ describe("evaluateCoupon", () => {
 
 describe("couponStatus", () => {
   it("classifies redeemed / inactive / expired / active", () => {
-    expect(couponStatus(coupon({ redeemedAt: "2026-06-01T00:00:00Z" }), NOW)).toBe(
-      "redeemed",
-    );
+    expect(
+      couponStatus(coupon({ redeemedAt: "2026-06-01T00:00:00Z" }), NOW),
+    ).toBe("redeemed");
     expect(couponStatus(coupon({ isActive: false }), NOW)).toBe("inactive");
     expect(
       couponStatus(coupon({ expiresAt: "2020-01-01T00:00:00Z" }), NOW),

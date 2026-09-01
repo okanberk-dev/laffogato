@@ -11,6 +11,11 @@ import { sendOrderPlacedEmail } from "@/lib/email/send";
 import { CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED } from "@/lib/legal/documents";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
+import {
+  checkLoginLimit,
+  clientIp,
+  recordLoginFailure,
+} from "@/lib/admin/rate-limit";
 
 export interface PromoPreviewState {
   error?: string;
@@ -23,6 +28,19 @@ export async function previewPromoAction(
 ): Promise<PromoPreviewState> {
   const code = String(formData.get("code") ?? "").trim();
   if (!code) return { error: "Kod gir." };
+
+  // Unauthenticated and previously unlimited: the form answered "geçersiz kod"
+  // or a real discount, which is a working oracle for guessing codes. The same
+  // counter that guards the login forms bounds it — generously, because a
+  // customer mistyping their own coupon is the common case.
+  const ip = await clientIp();
+  const limit = await checkLoginLimit("promo-preview", ip, "");
+  if (limit.blocked) {
+    return {
+      error: `Çok fazla deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
+    };
+  }
+
   const subtotal = parseFloat(
     String(formData.get("subtotal") ?? "0").replace(",", "."),
   );
@@ -52,7 +70,10 @@ export async function previewPromoAction(
     if (coupon.found) return { error: coupon.error };
   }
   const result = await applyPromoCode(code, subtotalMinor);
-  if (!result.ok) return { error: result.error };
+  if (!result.ok) {
+    await recordLoginFailure("promo-preview", ip, "");
+    return { error: result.error };
+  }
   return {
     ok: {
       code: result.promo.code,
@@ -120,18 +141,6 @@ async function readLegalConsent(formData: FormData) {
     ip: await clientIp(),
     userAgent: (h.get("user-agent") ?? "").slice(0, 300),
   };
-}
-
-/**
- * The buyer's IP as the edge saw it — consent evidence, and iyzico's fraud
- * scoring input. The first hop in x-forwarded-for is the client; Vercel also
- * sets x-real-ip. Both are absent locally, which is fine: neither use treats a
- * missing IP as a failure.
- */
-async function clientIp(): Promise<string> {
-  const h = await headers();
-  const forwarded = h.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || h.get("x-real-ip") || "";
 }
 
 export async function placeOrderAction(formData: FormData) {

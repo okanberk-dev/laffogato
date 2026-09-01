@@ -28,7 +28,9 @@ describe("db/schema.sql", () => {
       "20260601120000_initial_schema.sql",
       "20260620120000_customer_coupons.sql",
     ]) {
-      expect(bundle).toContain(`insert into public._migrations (name) values ('${name}')`);
+      expect(bundle).toContain(
+        `insert into public._migrations (name) values ('${name}')`,
+      );
     }
   });
 

@@ -5,6 +5,7 @@ import type {
   CheckoutSession,
   PaymentProvider,
   RefundResult,
+  ReturnConfirmation,
   WebhookEvent,
 } from "./provider";
 
@@ -283,6 +284,43 @@ export class IyzicoPaymentProvider implements PaymentProvider {
       currency: "TRY",
       raw: { notice, detail },
       occurredAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * iyzico, ödeme bittiğinde müşterinin TARAYICISINI `callbackUrl`e POST eder.
+   * Gövdede yalnızca `token` vardır; tutar, durum ve sipariş referansı bu
+   * token ile iyzico'ya sorularak alınır — POST edilen gövdeye güvenilmez.
+   */
+  async confirmReturn(
+    params: Record<string, string>,
+  ): Promise<ReturnConfirmation> {
+    const token = params.token?.trim();
+    if (!token) throw new Error("missing_token");
+
+    const detail = await this.post<IyzicoRetrieveResponse>(
+      "/payment/iyzipos/checkoutform/auth/ecom/detail",
+      {
+        locale: "tr",
+        token,
+        conversationId: params.conversationId || undefined,
+      },
+    );
+
+    const orderId = detail.basketId || detail.conversationId || "";
+    if (!orderId) throw new Error("missing_order_reference");
+
+    return {
+      status:
+        detail.status === "success" && detail.paymentStatus === "SUCCESS"
+          ? "succeeded"
+          : "failed",
+      orderId,
+      // paymentId iadeler için gereken kalıcı referans; token tek seferlik.
+      providerRef: detail.paymentId || token,
+      amountMinor: toMinor(detail.paidPrice),
+      currency: "TRY",
+      raw: { source: "iyzico_return", detail },
     };
   }
 

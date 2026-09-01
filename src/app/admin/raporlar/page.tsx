@@ -52,7 +52,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
       <PageHeader
         eyebrow="Operasyon · İçgörüler"
         title="Raporlar"
-        description="Ciro, sipariş hacmi ve en çok satan ürünler. İptal edilen siparişler hariç tutulur, iadeler ayrıca gösterilir."
+        description="Net ciro, sipariş hacmi ve en çok satan ürünler. İptal edilen siparişler hariç tutulur; iade edilen tutarlar siparişin kendi döneminden düşülür."
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-4">

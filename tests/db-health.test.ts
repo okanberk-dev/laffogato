@@ -36,7 +36,11 @@ describe("raiseDbError", () => {
     // hide a misconfigured deployment behind a working-looking site.
     let thrown: unknown;
     try {
-      raiseDbError("q", { message: "password authentication failed", code: "28P01" }, 400);
+      raiseDbError(
+        "q",
+        { message: "password authentication failed", code: "28P01" },
+        400,
+      );
     } catch (err) {
       thrown = err;
     }
@@ -101,9 +105,9 @@ describe("memoizeUntilRejected", () => {
 
 describe("publicRead", () => {
   it("returns the live value when the read succeeds", async () => {
-    await expect(publicRead("x", ["fallback"], async () => ["live"])).resolves.toEqual(
-      ["live"],
-    );
+    await expect(
+      publicRead("x", ["fallback"], async () => ["live"]),
+    ).resolves.toEqual(["live"]);
   });
 
   it("falls back when the database is unreachable", async () => {
