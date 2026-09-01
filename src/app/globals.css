@@ -468,6 +468,12 @@ summary:focus-visible,
 .bottom-nav {
   display: none;
 }
+/* The mobile tab bar's own height, named so full-height sections can subtract
+   it. It is `position: fixed`, so it covers the last 56px of anything sized to
+   the viewport — including, until this was fixed, the pour hero's scroll cue. */
+:root {
+  --bottom-nav-h: 56px;
+}
 @media (max-width: 760px) {
   .bottom-nav {
     position: fixed;
@@ -6327,6 +6333,8 @@ select {
 .pour-hero {
   position: relative;
   height: min(100svh, 900px);
+  /* `svh`, not `vh`: on a phone the toolbars collapse as you scroll, and `vh`
+     would size the hero to the taller state and leave it clipped. */
   /* The paper wash the 3D scene was designed against. It lives on the
      section rather than on the widget so the gradient spans the whole
      section while the widget's own box is inset past the site chrome —
@@ -6352,6 +6360,16 @@ select {
   height: 100%;
   /* Let the section's gradient show through the WebGL canvas. */
   background: transparent;
+}
+/* The widget owns its own canvas and sets `touch-action` on it from inside the
+   bundle. Three.js OrbitControls, which it is built on, sets `none` on
+   connect — and `none` on a full-screen hero means a phone cannot scroll past
+   it at all: the first thing a visitor sees becomes a trap. Pinned here so a
+   rebuild of the vendored bundle cannot take vertical panning away again.
+   `pan-y` still leaves the widget its horizontal drag and its taps. */
+.pour-hero-stage affogato-pour,
+.pour-hero-stage affogato-pour canvas {
+  touch-action: pan-y !important;
 }
 /* Sits where the widget's own wordmark will land, so when the bundle arrives
    the word stays put and only its typography resolves — rather than leaping
@@ -6413,6 +6431,36 @@ select {
   opacity: 0;
   transform: translateY(8px);
   pointer-events: none;
+}
+
+/* On a phone the hero filled the screen exactly, so nothing below it was ever
+   visible: no edge of the next section, no hint that the page continued — and
+   the only affordance was a 44px circle in a corner. Leaving a sliver of the
+   next section showing is what tells a thumb there is somewhere to go. */
+@media (pointer: coarse) {
+  /* The hero used to be a full `100svh`, but the tab bar is fixed over the
+     bottom 56px of it — so the scroll cue sat behind the bar, unreachable, and
+     the section looked like the whole page with no way onward. Subtract the
+     bar, its safe-area inset, and a deliberate 40px so the next section shows:
+     a visible edge is what tells a thumb there is more below. */
+  .pour-hero {
+    height: calc(
+      min(100svh, 900px) - var(--bottom-nav-h) - env(safe-area-inset-bottom) -
+        40px
+    );
+  }
+  .pour-hero-stage {
+    inset: 56px 0 0 0;
+  }
+  /* Left in its corner rather than centred: the consent banner is a
+     full-width sheet at the bottom of a phone screen, and a centred cue
+     lands underneath its buttons. The strip of the next section showing
+     below the hero is the affordance that matters here anyway. */
+  .pour-hero-scroll {
+    width: 40px;
+    height: 40px;
+    bottom: 16px;
+  }
 }
 
 @keyframes pour-hero-nudge {

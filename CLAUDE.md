@@ -251,6 +251,11 @@ durum bozulmaya uygundur.
 
 ## Yapılmayacaklar
 
+- **iyzico canlıya alınmadı, sonraya bırakıldı.** Kod hazır; sandbox testi ve
+  canlı anahtarlar bekliyor. Açılış kontrol listesi `docs/AUDIT.md` §5'te.
+  Ödeme akışında değişiklik yaparken oradaki iki tuzağı unutma:
+  `IYZICO_CALLBACK_URL` tarayıcı dönüşüdür (webhook değil), ve
+  `PAYMENT_PROVIDER` her ortamda tanımlı olmalıdır
 - **iyzico canlı anahtarlarıyla test etme** — sandbox (`IYZICO_BASE_URL`) dışında
   gerçek çekim denemesi yapma
 - **Mail/SMS bildirimleri** MVP dışı (sonra Resend/Twilio)

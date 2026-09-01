@@ -150,3 +150,28 @@ describe("small text uses the darker accent", () => {
     expect(rule).toContain("var(--accent-deep)");
   });
 });
+
+describe("mobile hero clears the fixed tab bar", () => {
+  // The tab bar is `position: fixed` over the bottom of the viewport. A hero
+  // sized to the full viewport therefore hid its own scroll cue behind it, and
+  // the first thing a visitor saw looked like a page with no way onward.
+  it("subtracts the tab bar and a deliberate peek on touch devices", () => {
+    const coarse = css.slice(css.indexOf("@media (pointer: coarse)"));
+    const rule = coarse.slice(0, coarse.indexOf("@keyframes"));
+    expect(rule).toContain("var(--bottom-nav-h)");
+    expect(rule).toContain("env(safe-area-inset-bottom)");
+    // Not a full 100svh any more.
+    expect(rule).toMatch(/\.pour-hero\s*\{[^}]*calc\(/);
+  });
+
+  it("names the tab bar height once, where the bar is defined", () => {
+    expect(css).toMatch(/--bottom-nav-h:\s*\d+px/);
+  });
+
+  it("keeps vertical panning available over the 3D widget", () => {
+    // Three.js OrbitControls sets `touch-action: none` on connect, which on a
+    // full-bleed hero means a phone cannot scroll past it at all.
+    const block = css.slice(css.indexOf("affogato-pour canvas"));
+    expect(block.slice(0, 200)).toContain("touch-action: pan-y !important");
+  });
+});

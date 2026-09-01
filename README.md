@@ -122,6 +122,12 @@ verildiği kadar kolay geri alınır (footer → "Çerez Tercihleri").
 iyzico kullanılacaksa ayrıca `IYZICO_API_KEY`, `IYZICO_SECRET_KEY`,
 `IYZICO_BASE_URL` ve `IYZICO_CALLBACK_URL`.
 
+> **iyzico henüz canlıya alınmadı.** Sağlayıcı kodu hazır ve derleniyor; sandbox
+> testi ve canlı anahtarlar sonraya bırakıldı — ayrıntı ve açılış kontrol
+> listesi için [docs/AUDIT.md](docs/AUDIT.md) §5. O zamana kadar
+> `PAYMENT_PROVIDER=mock` ile yalnızca geliştirmede çalışılır; üretimde mock
+> reddedilir.
+
 > **`IYZICO_CALLBACK_URL` webhook adresi değildir.** iyzico ödeme bitince
 > müşterinin **tarayıcısını** oraya POST eder; değer `https://…/odeme/donus`
 > olmalıdır. Webhook (`/api/webhooks/payment`) iyzico panelinde ayrıca tanımlanır

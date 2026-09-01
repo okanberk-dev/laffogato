@@ -192,6 +192,38 @@ hiçbir şeyle çalışmıyordu.
 
 ## 5. Açık kalanlar
 
+**iyzico canlıya alınmadı — sonraya bırakıldı.** Sağlayıcı kodu, imza şeması,
+Checkout Form akışı, tarayıcı dönüşü (`/odeme/donus`), imzalı webhook ve iade
+çağrısı yazıldı ve derleniyor; ama sandbox'ta uçtan uca denenmedi ve canlı
+anahtarlar tanımlanmadı. Bu bilinçli bir sıra: ödeme, geri kalan her şey
+oturduktan sonra açılacak.
+
+Açmak için gereken, kodda değil ortam değişkenlerinde:
+
+```
+PAYMENT_PROVIDER=iyzico
+IYZICO_API_KEY=...
+IYZICO_SECRET_KEY=...
+IYZICO_BASE_URL=https://sandbox-api.iyzipay.com   # önce sandbox
+IYZICO_CALLBACK_URL=https://laffogato.net/odeme/donus
+PAYMENT_WEBHOOK_SECRET=...                        # iyzico panelindekiyle aynı
+```
+
+İki tuzak, ikisi de bu denetimde bulundu:
+
+1. `IYZICO_CALLBACK_URL` **webhook adresi değildir**. iyzico oraya müşterinin
+   _tarayıcısını_ POST eder; webhook adresi verilirse müşteri ödemeden sonra
+   401 JSON görür. Sunucudan sunucuya bildirim iyzico panelinde ayrıca
+   tanımlanır ve `/api/webhooks/payment` adresine gider.
+2. `PAYMENT_PROVIDER` **her ortamda tanımlı olmalı**. Tanımsız bırakmak artık
+   sessizce mock'a düşmüyor, üretimde açıkça hata veriyor — çünkü mock, para
+   almadan siparişi `paid` yapar.
+
+Sandbox'ta doğrulanacaklar: başarılı ödeme → sipariş `paid` + stok düşümü +
+onay e-postası; başarısız ödeme → sipariş `pending_payment` kalır; kısmi iade →
+iade defterine yazılır ama sipariş `refunded` olmaz; ve webhook ile tarayıcı
+dönüşü aynı ödemeyi iki kez işlemez (`provider_ref` unique kısıtı).
+
 **11 mağaza ürününün ve 2 hero slaydının görseli yok.** Bu bir kod hatası
 değil, eksik içerik: ürün fotoğrafı çekilip panelden yüklenmeli. Yükleyici
 artık çalışıyor ve görseller önbelleklenebilir bir adresten servis ediliyor;
