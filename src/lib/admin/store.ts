@@ -1026,23 +1026,6 @@ export async function getOrder(id: string): Promise<AdminOrder | null> {
   );
 }
 
-export async function updateOrderStatus(
-  id: string,
-  status: AdminOrderStatus,
-): Promise<AdminOrder | null> {
-  await ensureSeed();
-  const sb = getDb();
-  return one<AdminOrder>(
-    await sb
-      .from(TABLES.orders)
-      .update({ status })
-      .eq("id", id)
-      .select("*")
-      .maybeSingle(),
-    "updateOrderStatus",
-  );
-}
-
 export type BulkOrderOp = { kind: "set_status"; status: AdminOrderStatus };
 
 export async function bulkUpdateOrders(

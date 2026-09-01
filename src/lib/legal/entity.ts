@@ -64,9 +64,6 @@ export const LEGAL_ENTITY = {
   siteUrl: "https://laffogato.net",
 } as const;
 
-/** Veri sorumlusu (KVKK) — tüzel kişinin kendisi. */
-export const DATA_CONTROLLER = LEGAL_ENTITY.legalName;
-
 /** Tek satırlık, tam yasal adres. */
 export const LEGAL_ADDRESS_LINE = [
   LEGAL_ENTITY.address.line1,

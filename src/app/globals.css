@@ -588,14 +588,6 @@ summary:focus-visible,
 .nav-brand:hover .nav-brand-mark {
   color: var(--gold);
 }
-.nav.on-dark .nav-brand-text {
-  color: #fff;
-}
-.nav.on-dark .nav-brand-tag {
-  color: var(--gold-soft);
-  opacity: 0.7;
-}
-
 .nav-link {
   padding: 9px 16px;
   border-radius: 999px;
@@ -1157,12 +1149,6 @@ summary:focus-visible,
 }
 .r4 {
   transition-delay: 160ms;
-}
-.r5 {
-  transition-delay: 200ms;
-}
-.r6 {
-  transition-delay: 240ms;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -2298,15 +2284,6 @@ summary:focus-visible,
   display: grid;
   gap: 2px;
 }
-.menu-list-tag.gold {
-  background: var(--gold);
-  color: #fff;
-}
-.menu-list-tag.new {
-  background: var(--ink);
-  color: #fff;
-}
-
 /* Empty state */
 .menu-empty {
   text-align: center;
@@ -3145,23 +3122,6 @@ select {
   [data-row="menu-notes"] {
     grid-template-columns: 1fr !important;
     gap: 24px !important;
-  }
-}
-
-/* Menu tabs wrap: scrollable on narrow viewports */
-@media (max-width: 720px) {
-  .menu-tabs-wrap .wrap {
-    flex-wrap: nowrap !important;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 4px;
-  }
-  .menu-tabs-wrap .wrap::-webkit-scrollbar {
-    display: none;
-  }
-  .menu-tab {
-    flex-shrink: 0;
   }
 }
 
@@ -5213,11 +5173,6 @@ select {
 .site-chrome-body .account-shell-wrap,
 .site-chrome-body .legal-wrap {
   padding-top: clamp(20px, 3vw, 36px);
-}
-
-/* Login / register cards — center vertically minus the nav offset. */
-.site-chrome-body main.auth-card-page {
-  padding-top: clamp(24px, 4vw, 60px);
 }
 
 /* 404 — centered, editorial, no illustration heavier than the brand seal.

@@ -704,8 +704,8 @@ function PaymentStep({
               margin: 0,
             }}
           >
-            Geçici demo ortamı — sipariş kaydolur, kart bilgisi alınmaz.
-            Üretimde iyzico / PayTR / Stripe entegrasyonu aynı sayfada açılır.
+            Ödemen iyzico&apos;nun güvenli ödeme sayfasında tamamlanır. Kart
+            bilgin hiçbir aşamada bu siteye girilmez ve burada saklanmaz.
           </p>
           <div className="checkout-payment-amount">
             <span className="eyebrow">Tahsil edilecek</span>

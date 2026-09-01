@@ -22,8 +22,9 @@ yapılır.
   34940 Tuzla / İstanbul
 - **Auth:** Admin için env-credentialed imzalı cookie (`ADMIN_EMAIL` +
   `ADMIN_PASSWORD` + HMAC SHA256) ve TOTP 2FA. Müşteri için bcrypt hesap
-- **Ödeme:** Sağlayıcı bağımsız soyutlama (`src/lib/payment/`). Şu an
-  `MockPaymentProvider`; sanal POS sağlayıcısı henüz seçilmedi
+- **Ödeme:** Sağlayıcı bağımsız soyutlama (`src/lib/payment/`). Sanal POS
+  **iyzico** (Checkout Form — kart verisi siteye hiç girmez); geliştirmede
+  `MockPaymentProvider`
 - **Dil:** Arayüz **Türkçe**. Kod, dosya adı, identifier, commit mesajı
   **İngilizce**
 
@@ -213,8 +214,8 @@ durum bozulmaya uygundur.
 
 ## Yapılmayacaklar
 
-- Henüz **sanal POS sağlayıcısı seçilmedi** — gerçek API key'leriyle entegrasyon
-  yapma
+- **iyzico canlı anahtarlarıyla test etme** — sandbox (`IYZICO_BASE_URL`) dışında
+  gerçek çekim denemesi yapma
 - **Mail/SMS bildirimleri** MVP dışı (sonra Resend/Twilio)
 - **Multi-language** MVP dışı (sadece TR)
 - Auth sağlayıcısını değiştirme işine kullanıcıdan onay almadan başlama
