@@ -10,13 +10,6 @@
 
 import { LaffogatoApp } from "@/components/laffogato/app";
 import type { Route } from "@/components/laffogato/chrome";
-import {
-  getPublicSettings,
-  listActiveShopHeroSlides,
-  listMenuForCustomer,
-  listShopProducts,
-} from "@/lib/admin/store";
-import { getActiveCustomer } from "@/lib/customer/auth";
 import { PAGE_SEO } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
 import {
@@ -26,7 +19,7 @@ import {
 } from "@/lib/seo/structured-data";
 
 import type { Metadata } from "next";
-import { isDegradedRequest } from "@/lib/db/health";
+import { loadAppProps } from "@/lib/seo/app-props";
 import { JsonLd } from "@/lib/seo/json-ld";
 
 export function pageMetadata(route: Route): Metadata {
@@ -63,13 +56,7 @@ export function pageMetadata(route: Route): Metadata {
 
 export async function renderSectionPage(route: Route) {
   const seo = PAGE_SEO[route];
-  const [products, settings, menu, customer, heroSlides] = await Promise.all([
-    listShopProducts(),
-    getPublicSettings(),
-    listMenuForCustomer(),
-    getActiveCustomer(),
-    listActiveShopHeroSlides(),
-  ]);
+  const { settings, menu, appProps } = await loadAppProps();
 
   const breadcrumb = breadcrumbLd([
     { name: "Ana Sayfa", url: "/" },
@@ -89,31 +76,7 @@ export async function renderSectionPage(route: Route) {
       {extraLd.map((ld, i) => (
         <JsonLd key={i} data={ld} />
       ))}
-      <LaffogatoApp
-        degraded={isDegradedRequest()}
-        initialRoute={route}
-        products={products}
-        settings={{
-          phone: settings.phone,
-          email: settings.email,
-          address: settings.address,
-        }}
-        menu={menu}
-        wishlist={customer?.wishlist}
-        isAuthenticated={!!customer}
-        freeShippingThreshold={Math.round(
-          settings.shippingFreeThresholdMinor / 100,
-        )}
-        shopHeroSlides={heroSlides.map((s) => ({
-          id: s.id,
-          title: s.title,
-          subtitle: s.subtitle,
-          imageUrl: s.imageUrl,
-          ctaLabel: s.ctaLabel,
-          ctaHref: s.ctaHref,
-          textTheme: s.textTheme,
-        }))}
-      />
+      <LaffogatoApp {...appProps} initialRoute={route} />
     </>
   );
 }

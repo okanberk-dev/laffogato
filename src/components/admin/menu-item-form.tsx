@@ -16,6 +16,7 @@ import {
   TextInput,
   Textarea,
 } from "./forms";
+import { ImageUpload } from "@/components/admin/image-upload";
 
 const HUE_OPTIONS = [
   ["cream", "Krem"],
@@ -95,13 +96,17 @@ export function MenuItemForm({
         </div>
 
         <Field
-          label="Fotoğraf yolu"
-          hint="public/ altındaki dosya yolu. Örn: /menu/matcha-latte.webp — boşsa çizim görsel kullanılır."
+          label="Fotoğraf"
+          hint="Yüklediğin görsel 1600 px'e küçültülür. Boş bırakırsan kategorisine uygun çizim kullanılır."
         >
-          <TextInput
+          {/* Bu alan eskiden yalnızca `public/` altındaki bir dosya yolunu
+              kabul ediyordu — Vercel'de panelden oraya dosya koymanın yolu yok
+              — ve girilen https adresi sessizce siliniyordu. Artık ürünlerdeki
+              yükleyicinin aynısı, tek görsellik hâli. */}
+          <ImageUpload
             name="image"
-            defaultValue={item?.image ?? ""}
-            placeholder="/menu/matcha-latte.webp"
+            max={1}
+            initial={item?.image ? [item.image] : []}
           />
         </Field>
 

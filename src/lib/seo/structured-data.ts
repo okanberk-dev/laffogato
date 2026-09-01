@@ -46,6 +46,22 @@ const LANG_TAG = SITE.locale.replace("_", "-");
 const CURRENCY = "TRY";
 
 /**
+ * Absolute URL for a product image.
+ *
+ * Uploaded images are served from a site-relative path (`/gorsel/urun/...`);
+ * pasted ones are already absolute. Structured data needs an absolute URL
+ * either way — the old check accepted only `https://`, so every uploaded photo
+ * was silently replaced by the generic OG card.
+ */
+function imageUrl(images: string[] | undefined): string {
+  const first = images?.[0]?.trim();
+  if (!first) return `${SITE.url}${SITE.ogImage}`;
+  if (/^https?:\/\//i.test(first)) return first;
+  if (first.startsWith("/")) return `${SITE.url}${first}`;
+  return `${SITE.url}${SITE.ogImage}`;
+}
+
+/**
  * The parts of the admin settings that structured data has to agree with.
  * Optional at every call site so a page that has not loaded settings still
  * renders — it then omits the fields it cannot state truthfully rather than
@@ -450,10 +466,7 @@ function productListLd(products: Product[], settings?: LdSettings): Json {
       const slug = p.slug ?? slugify(p.name);
       const productId = `${SITE.url}/#product-${slug}`;
       const pdpUrl = `${SITE.url}/magaza/urun/${slug}`;
-      const image =
-        p.images && p.images.length > 0 && /^https?:\/\//i.test(p.images[0])
-          ? p.images[0]
-          : `${SITE.url}${SITE.ogImage}`;
+      const image = imageUrl(p.images);
       return {
         "@type": "ListItem",
         position: idx + 1,
@@ -543,10 +556,7 @@ export function singleProductLd(
   const slug = p.slug ?? slugify(p.name);
   const url = `${SITE.url}${canonicalPath}`;
   const productId = `${url}#product`;
-  const image =
-    p.images && p.images.length > 0 && /^https?:\/\//i.test(p.images[0])
-      ? p.images[0]
-      : `${SITE.url}${SITE.ogImage}`;
+  const image = imageUrl(p.images);
   return {
     "@context": "https://schema.org",
     "@type": "Product",

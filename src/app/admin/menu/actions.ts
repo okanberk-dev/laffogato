@@ -55,14 +55,7 @@ function parseInput(formData: FormData) {
     priceLText !== "" && Number.isFinite(priceLMajor) && priceLMajor > 0
       ? Math.round(priceLMajor * 100)
       : 0;
-  // Site-relative asset paths only — never an off-site URL.
-  const imageRaw = String(formData.get("image") ?? "").trim();
-  const image =
-    imageRaw.startsWith("/") &&
-    !imageRaw.startsWith("//") &&
-    imageRaw.length <= 300
-      ? imageRaw
-      : "";
+  const image = parseMenuImage(String(formData.get("image") ?? ""));
   const hueRaw = String(formData.get("hue") ?? "cream");
   const hue = HUE_VALUES.includes(hueRaw) ? hueRaw : "cream";
   const tagsRaw = String(formData.get("tags") ?? "");
@@ -85,6 +78,46 @@ function parseInput(formData: FormData) {
     sortOrder,
     isActive,
   };
+}
+
+/** Uploaded JPEG, resized to 1600 px by the client, is about this big. */
+const MAX_MENU_IMAGE_BYTES = 2 * 1024 * 1024;
+
+/**
+ * The photo for one menu item.
+ *
+ * The uploader submits a JSON array (`["data:image/jpeg;base64,..."]`) because
+ * it is the same component the product wizard uses. A bare string is still
+ * accepted so the site-relative paths already in the database survive an edit
+ * — those used to be the ONLY accepted form, which meant the panel could not
+ * add a photo at all on a deployment with no writable `public/`, and an https
+ * URL typed into the field was discarded without a word.
+ */
+function parseMenuImage(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  let value = trimmed;
+  if (trimmed.startsWith("[")) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      value =
+        Array.isArray(parsed) && typeof parsed[0] === "string"
+          ? parsed[0].trim()
+          : "";
+    } catch {
+      return "";
+    }
+  }
+  if (!value) return "";
+  if (value.startsWith("data:image/")) {
+    return value.length <= MAX_MENU_IMAGE_BYTES ? value : "";
+  }
+  if (/^https:\/\//i.test(value)) return value.length <= 500 ? value : "";
+  // A site-relative asset path, e.g. /menu/matcha-latte.webp
+  if (value.startsWith("/") && !value.startsWith("//") && value.length <= 300) {
+    return value;
+  }
+  return "";
 }
 
 function revalidateMenu() {

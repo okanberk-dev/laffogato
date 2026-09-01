@@ -11,7 +11,7 @@ import {
   type DragEvent,
 } from "react";
 
-const MAX_IMAGES = 8;
+const DEFAULT_MAX_IMAGES = 8;
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 0.82;
 const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
@@ -20,6 +20,8 @@ const ACCEPTED_MIME = /^image\/(jpe?g|png|webp|avif|gif)$/i;
 interface ImageUploadProps {
   name: string;
   initial: string[];
+  /** How many images this field accepts. Menu items take exactly one. */
+  max?: number;
 }
 
 type Status =
@@ -79,7 +81,11 @@ function isHttpUrl(value: string): boolean {
   return /^https?:\/\//i.test(value.trim());
 }
 
-export function ImageUpload({ name, initial }: ImageUploadProps) {
+export function ImageUpload({
+  name,
+  initial,
+  max: MAX_IMAGES = DEFAULT_MAX_IMAGES,
+}: ImageUploadProps) {
   const [images, setImages] = useState<string[]>(() =>
     initial.slice(0, MAX_IMAGES),
   );
@@ -132,7 +138,7 @@ export function ImageUpload({ name, initial }: ImageUploadProps) {
           : { kind: "idle" },
       );
     },
-    [images.length],
+    [images.length, MAX_IMAGES],
   );
 
   const onFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {

@@ -56,7 +56,7 @@ function loadWidget(): Promise<void> {
   });
 }
 
-export function PourHero() {
+export function PourHero({ imageUrl }: { imageUrl?: string } = {}) {
   const host = useRef<HTMLDivElement>(null);
   const section = useRef<HTMLElement>(null);
   const [ready, setReady] = useState(false);
@@ -194,6 +194,17 @@ export function PourHero() {
       className="pour-hero"
       ref={section}
       aria-label="L'Affogato — kahveni kendin dök"
+      // Ayarlar → "Hero görsel URL". Boşsa tasarımın kendi yüzeyi kalır; bu
+      // alan panelde yıllardır yazılıyor ama hiçbir yerde okunmuyordu.
+      style={
+        imageUrl
+          ? {
+              backgroundImage: `linear-gradient(rgba(247,243,234,0.55), rgba(247,243,234,0.75)), url(${JSON.stringify(imageUrl)})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }
+          : undefined
+      }
     >
       <div className="pour-hero-stage" ref={host} />
       {!ready && (

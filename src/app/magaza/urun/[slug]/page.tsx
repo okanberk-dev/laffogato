@@ -32,13 +32,18 @@ export async function generateMetadata({
   const product = await getShopProductBySlug(slug);
   if (!product) return { title: "Ürün bulunamadı · L'Affogato" };
   const SUFFIX = " — L'Affogato";
+  // The wizard's SEO tab wins when it has been filled in. It used to be
+  // written and never read, so the fields promised control the pages ignored.
+  const seoTitle = product.seoTitle?.trim();
   const title =
-    product.name.length + SUFFIX.length <= 60
+    seoTitle ||
+    (product.name.length + SUFFIX.length <= 60
       ? `${product.name}${SUFFIX}`
       : product.name.length <= 60
         ? product.name
-        : `${product.name.slice(0, 57).trimEnd()}…`;
-  const rawDesc = product.desc?.trim() ?? "";
+        : `${product.name.slice(0, 57).trimEnd()}…`);
+  const rawDesc =
+    product.seoDescription?.trim() || (product.desc?.trim() ?? "");
   let description: string;
   if (rawDesc) {
     if (rawDesc.length <= 155) {
@@ -52,8 +57,10 @@ export async function generateMetadata({
     description = `${product.name} — L'Affogato mağazasından, Türkiye'ye kargo.`;
   }
   const path = PATH(slug);
-  const ogImage =
-    product.images?.find((u) => /^https?:\/\//i.test(u)) ?? undefined;
+  // Uploaded images are site-relative (`/gorsel/urun/...`); Next resolves them
+  // against `metadataBase`. Only absolute-vs-relative matters here, so an
+  // uploaded photo is no longer skipped in favour of the generic card.
+  const ogImage = product.images?.[0]?.trim() || undefined;
   return {
     title,
     description,

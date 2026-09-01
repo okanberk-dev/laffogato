@@ -744,6 +744,10 @@ export interface Product {
   priceMinor?: number;
   /** Compare-at price in minor units (kuruş). */
   compareAtPriceMinor?: number;
+  /** Admin-authored meta title for the PDP; falls back to the product name. */
+  seoTitle?: string;
+  /** Admin-authored meta description; falls back to the product blurb. */
+  seoDescription?: string;
 }
 
 export const PRODUCTS: Product[] = [

@@ -75,6 +75,7 @@ export function LaffogatoApp({
   storyTimeline,
   content,
   visit,
+  heroImageUrl,
   freeShippingThreshold = 0,
   degraded = false,
   initialRoute = "home",
@@ -100,6 +101,8 @@ export function LaffogatoApp({
   storyTimeline?: { y: string; t: string; d: string }[];
   /** Admin-managed editable site copy (key → value). */
   content?: Record<string, string>;
+  /** Ayarlar → "Hero görsel URL"; ana sayfa hero'sunun arka planı. */
+  heroImageUrl?: string;
   /** Visit page contact block, derived from admin settings. */
   visit?: {
     addressLines: string[];
@@ -271,6 +274,7 @@ export function LaffogatoApp({
             storyTimeline={storyTimeline}
             content={content}
             visit={visit}
+            heroImageUrl={heroImageUrl}
           />
           {seoSlot}
         </main>
@@ -305,6 +309,7 @@ export function LaffogatoApp({
           storyTimeline={storyTimeline}
           content={content}
           visit={visit}
+          heroImageUrl={heroImageUrl}
         />
         {seoSlot}
       </main>

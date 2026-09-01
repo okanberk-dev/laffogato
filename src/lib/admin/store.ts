@@ -18,6 +18,12 @@ import { sendOrderPaidEmail } from "@/lib/email/send";
 import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
 import { priceLabel } from "@/lib/utils/format";
 import {
+  heroImagePath,
+  menuImagePath,
+  productImagePath,
+  servedImage,
+} from "./image-url";
+import {
   MENU as SEED_MENU,
   PRODUCTS as SEED_PRODUCTS,
   PRESS as SEED_PRESS,
@@ -2204,13 +2210,20 @@ function toDesignProduct(p: AdminProduct): DesignProduct {
     // Rich fields for the PDP + cart.
     slug: p.slug,
     sku: p.sku,
-    images: p.images.length > 0 ? [...p.images] : undefined,
+    // Uploaded images are served from /gorsel/urun/... rather than inlined as
+    // base64: see src/lib/admin/image-url.ts.
+    images:
+      p.images.length > 0
+        ? p.images.map((img, i) => servedImage(img, productImagePath(p.id, i)))
+        : undefined,
     stock: p.stock,
     lowStockThreshold: p.lowStockThreshold,
     weightGrams: p.weightGrams,
     priceMinor: p.priceMinor,
     compareAtPriceMinor:
       p.compareAtPriceMinor > p.priceMinor ? p.compareAtPriceMinor : undefined,
+    seoTitle: p.seoTitle || undefined,
+    seoDescription: p.seoDescription || undefined,
     variants: p.variants
       .filter((v) => v.isActive)
       .map((v) => ({
@@ -2535,7 +2548,9 @@ async function listMenuForCustomerLive(): Promise<
         ...(it.priceMinorL > 0 ? { priceL: priceLabel(it.priceMinorL) } : {}),
         ...(it.tags.length > 0 ? { tags: [...it.tags] } : {}),
         hue: it.hue,
-        ...(it.image ? { image: it.image } : {}),
+        ...(it.image
+          ? { image: servedImage(it.image, menuImagePath(it.id)) }
+          : {}),
       }));
     out[key] = {
       title: meta.title,
@@ -3016,7 +3031,12 @@ export async function listActiveShopHeroSlides(): Promise<
 > {
   return publicRead("listActiveShopHeroSlides", [], async () => {
     const all = await listShopHeroSlides();
-    return all.filter((s) => s.isActive);
+    return all
+      .filter((s) => s.isActive)
+      .map((s) => ({
+        ...s,
+        imageUrl: servedImage(s.imageUrl, heroImagePath(s.id)),
+      }));
   });
 }
 

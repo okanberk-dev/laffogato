@@ -54,6 +54,15 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    /**
+     * The admin uploads product photos as base64 data URLs — eight of them,
+     * each up to ~2 MB after the client-side resize. Next's default server
+     * action body limit is 1 MB, so a product with more than two or three
+     * photos failed to save with an error the form never surfaced.
+     */
+    serverActions: { bodySizeLimit: "12mb" },
+  },
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },

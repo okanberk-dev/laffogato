@@ -58,6 +58,8 @@ interface PageProps {
   storyTimeline?: typeof STORY.heritage;
   /** Admin-managed editable copy (key → value); undefined ise inline fallback. */
   content?: Record<string, string>;
+  /** Ayarlar → "Hero görsel URL"; boşsa tasarımın kendi yüzeyi kullanılır. */
+  heroImageUrl?: string;
   /** Visit page contact block from admin settings; undefined ise LOCATION seed. */
   visit?: {
     addressLines: string[];
@@ -81,6 +83,7 @@ export function PageHome({
   press,
   content,
   visit,
+  heroImageUrl,
 }: PageProps) {
   const PRESS = press ?? SEED_PRESS;
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
@@ -97,7 +100,7 @@ export function PageHome({
 
   return (
     <div className="page" data-screen-label="01 Home">
-      <PourHero />
+      <PourHero imageUrl={heroImageUrl} />
       <section className="hero hero-dark">
         <div
           style={{
