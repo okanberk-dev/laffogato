@@ -4714,6 +4714,274 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Rehber (/rehber/*) — editorial guides
+   The legal pages already solved "long-form Turkish prose on warm paper";
+   these reuse that measure and rhythm, and add a table of contents, a FAQ
+   list and cards for the hub.
+   ────────────────────────────────────────────────────────────── */
+
+.guide-page {
+  padding: clamp(90px, 12vw, 140px) 0 clamp(60px, 8vw, 96px);
+}
+.guide-wrap {
+  width: min(100% - 40px, 820px);
+  margin: 0 auto;
+}
+.guide-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.guide-breadcrumb a {
+  color: var(--ink-soft);
+}
+.guide-breadcrumb a:hover {
+  color: var(--gold-deep);
+}
+
+.guide-head,
+.guide-hub-head {
+  margin-bottom: clamp(32px, 5vw, 48px);
+}
+.guide-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--ink-mute);
+}
+
+/* Table of contents — also the jump-links a search result can surface. */
+.guide-toc {
+  background: #fff;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-lg);
+  padding: clamp(20px, 3vw, 28px);
+  margin-bottom: clamp(32px, 5vw, 44px);
+}
+.guide-toc ol {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.guide-toc a {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.guide-toc a:hover {
+  color: var(--gold-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.guide-section {
+  margin-bottom: clamp(30px, 4vw, 42px);
+  scroll-margin-top: 96px;
+}
+.guide-section h2 {
+  font-family: var(--serif);
+  font-size: clamp(21px, 2.6vw, 27px);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 0 0 14px;
+  scroll-margin-top: 96px;
+}
+.guide-section p {
+  margin: 0 0 14px;
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--ink-soft);
+}
+.guide-bullets,
+.guide-ordered {
+  margin: 0 0 16px;
+  padding-left: 22px;
+  display: grid;
+  gap: 9px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.guide-table-wrap {
+  overflow-x: auto;
+  margin: 18px 0 20px;
+  border: 1px solid var(--ink-line);
+  border-radius: 12px;
+  background: #fff;
+}
+.guide-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+.guide-table th,
+.guide-table td {
+  padding: 12px 16px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--ink-line);
+  line-height: 1.6;
+}
+.guide-table tr:last-child th,
+.guide-table tr:last-child td {
+  border-bottom: none;
+}
+.guide-table th {
+  width: 34%;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--bg-warm);
+}
+.guide-table td {
+  color: var(--ink-soft);
+}
+
+.guide-faq {
+  margin-top: clamp(40px, 6vw, 60px);
+  padding-top: clamp(30px, 4vw, 40px);
+  border-top: 1px solid var(--ink-line);
+}
+.guide-faq h2 {
+  font-family: var(--serif);
+  font-size: clamp(22px, 2.8vw, 28px);
+  margin: 0 0 22px;
+}
+.guide-faq dl {
+  margin: 0;
+  display: grid;
+  gap: 20px;
+}
+.guide-faq-item dt {
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.4;
+  margin-bottom: 7px;
+  color: var(--ink);
+}
+.guide-faq-item dd {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.72;
+  color: var(--ink-soft);
+}
+
+.guide-foot {
+  margin-top: clamp(44px, 6vw, 64px);
+  padding-top: clamp(30px, 4vw, 40px);
+  border-top: 1px solid var(--ink-line);
+}
+.guide-related ul {
+  list-style: none;
+  margin: 0 0 34px;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.guide-related a {
+  display: grid;
+  gap: 5px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid var(--ink-line);
+  border-radius: 12px;
+  text-decoration: none;
+  transition: border-color 0.2s ease;
+}
+.guide-related a:hover {
+  border-color: var(--gold);
+}
+.guide-related-title {
+  font-family: var(--serif);
+  font-size: 17px;
+  color: var(--ink);
+}
+.guide-related-excerpt {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-mute);
+}
+
+.guide-cta {
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: var(--r-lg);
+  padding: clamp(24px, 4vw, 34px);
+}
+.guide-cta p {
+  margin: 0 0 18px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 46ch;
+}
+.guide-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.guide-hub-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: clamp(14px, 2vw, 20px);
+}
+.guide-card {
+  display: grid;
+  gap: 9px;
+  height: 100%;
+  padding: clamp(22px, 3vw, 28px);
+  background: #fff;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-lg);
+  text-decoration: none;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+.guide-card:hover {
+  border-color: var(--gold);
+  transform: translateY(-2px);
+}
+.guide-card-title {
+  font-family: var(--serif);
+  font-size: clamp(19px, 2.2vw, 22px);
+  line-height: 1.25;
+  color: var(--ink);
+}
+.guide-card-excerpt {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+.guide-card-meta {
+  margin-top: auto;
+  padding-top: 6px;
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-card:hover {
+    transform: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
    Legal pages (/hukuk/*) — Turkish-law contracts & policies
    ─────────────────────────────────────────────��─────────────── */
 

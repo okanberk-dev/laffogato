@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
+import { GUIDE_LINKS } from "@/lib/seo/guide-nav";
 import { SITE } from "@/lib/seo/site";
 
 import { NewsletterForm } from "./newsletter-form";
@@ -805,6 +806,16 @@ export function Footer({ navigate, settings }: FooterProps) {
             <li>
               <a href="/uye/hesap">Hesabım</a>
             </li>
+          </ul>
+        </div>
+        <div>
+          <h5>Rehber</h5>
+          <ul>
+            {GUIDE_LINKS.map((g) => (
+              <li key={g.slug}>
+                <Link href={`/rehber/${g.slug}`}>{g.title}</Link>
+              </li>
+            ))}
           </ul>
         </div>
         <div>

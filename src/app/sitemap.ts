@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { listProducts } from "@/lib/admin/store";
 import { LEGAL_DOCS } from "@/lib/legal/documents";
+import { GUIDES } from "@/lib/seo/guides";
 import { allSeoRoutes } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
 
@@ -46,6 +47,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // No DB at build / connection issue — ship the sitemap without products.
   }
 
+  // Guides — the editorial hub. Higher priority than the legal pages because
+  // these are the pages built to earn search traffic.
+  const guideHub = {
+    url: `${SITE.url}/rehber`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.8,
+  };
+  const guides = GUIDES.map((g) => ({
+    url: `${SITE.url}/rehber/${g.slug}`,
+    lastModified: new Date(g.updatedAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.75,
+  }));
+
   const legalIndex = {
     url: `${SITE.url}/hukuk`,
     lastModified: now,
@@ -59,5 +75,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  return [...main, ...products, legalIndex, ...legal];
+  return [...main, ...products, guideHub, ...guides, legalIndex, ...legal];
 }

@@ -11,6 +11,16 @@
 - **Ulaşım**: Marmaray Tuzla 6 dk, E-5 / TEM Tuzla çıkışı 4 dk, Sabiha Gökçen Havalimanı 15 dk, ücretsiz vale park hizmeti
 - **Sosyal medya**: Instagram / TikTok / YouTube / X — hepsi @laffogatto
 
+## Rehber
+
+Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
+
+- [Affogato nedir?](/rehber/affogato-nedir): Affogato, bir top gelatonun üzerine taze espresso dökülerek servis edilen İtalyan tatlısıdır; Türkçede yaygın adıyla dondurmalı kahve. Tanımı, telaffuzu, klasik oranı ve evde yapımı bu rehberde.
+- [Espresso bazlı kahveler](/rehber/espresso-cesitleri): Espresso, ristretto, cortado, flat white, latte ve cappuccino aynı çekirdekten çıkar; farkı süt miktarı, köpük dokusu ve hacim yaratır. Hepsini tek karşılaştırma tablosunda topladık.
+- [Matcha nedir?](/rehber/matcha-nedir): Gölgede yetiştirilen yeşil çay yaprağının taş değirmende öğütülmüş tozu: matcha. Dereceleri, tadının nedenleri, doğru su sıcaklığı ve evde matcha latte tarifi.
+- [San Sebastian cheesecake](/rehber/san-sebastian-cheesecake): Bask bölgesinden çıkan, tabansız, yüksek sıcaklıkta pişen, üstü bilerek yanık ortası akışkan cheesecake. Oranlar, fırın ayarı, adım adım tarif ve sık yapılan hatalar.
+- [Yenilebilir kahve fincanı](/rehber/yenilebilir-kahve-fincani): Waffle hamurundan pişirilen, iç yüzeyi çikolatayla kaplanan ve içecek bittikten sonra yenen fincan. Nasıl sızdırmaz kaldığı, ne kadar dayandığı, alerjenleri ve evde yapımı.
+
 ## Yasal Kimlik
 
 - **Ticaret unvanı**: NEXTGEN YAZILIM EĞİTİM İNŞAAT SANAYİ VE TİCARET LİMİTED ŞİRKETİ ("L'Affogato" markasını işleten tüzel kişi)

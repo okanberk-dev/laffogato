@@ -51,9 +51,11 @@ src/
       olay-kaydi/            → Mutasyon audit log (owner-only)
       icerik/ hikaye/ basin/ → Site içeriği, hikaye zaman çizelgesi, basın
       magaza-hero/           → Mağaza hero slaytları
-      hukuk/ bulten/ ayarlar/→ Hukuki metinler · bülten · ayarlar
+    hukuk/ bulten/ ayarlar/→ Hukuki metinler · bülten · ayarlar
       giris/ iki-asama/      → Login + 2FA akışı
       2fa-kurulum/
+    rehber/                  → SEO rehber hub'ı + /rehber/[slug] (Article +
+                               FAQPage + Recipe yapısal verisi)
     api/webhooks/payment/    → Payment webhook (HMAC doğrulamalı)
     proxy.ts                 → Cookie-tabanlı admin guard
   components/
@@ -82,14 +84,18 @@ src/
     db/                      → index.ts (pg havuzu + getDb + TABLES) ·
                                client.ts (sorgu kurucu) · sql.ts (SQL derleyici) ·
                                health.ts (bozulma sınıflandırması) · counters.ts
-    seo/                     → site.ts (NAP + sabitler) · structured-data · section-page
+    seo/                     → site.ts (NAP + sabitler) · structured-data ·
+                               section-page · pages.ts (route SEO) · faq.ts ·
+                               guides.ts + guide-content.ts (rehber içeriği) ·
+                               guide-structured-data.ts · guide-nav.ts
     utils/                   → commerce.ts (vergi/kargo) · format.ts · cn.ts
 db/
-  migrations/                → 10 SQL migration (`npm run db:migrate`)
+  migrations/                → 13 SQL migration (`npm run db:migrate`)
   schema.sql                 → Üretilen tek dosyalık şema (`npm run db:bundle`)
 scripts/                     → db-migrate.mjs · db-bundle.mjs
-tests/                       → 19 vitest dosyası
-docs/                        → DATABASE.md · PROMPT.md · BACKEND_FRONTEND_AUDIT.md
+tests/                       → 23 vitest dosyası
+docs/                        → DATABASE.md · SEO.md · PROMPT.md ·
+                               BACKEND_FRONTEND_AUDIT.md
 ```
 
 ## Geliştirme Komutları
@@ -194,6 +200,12 @@ durum bozulmaya uygundur.
 12. **Mesafeli satış onayı zorunlu.** Ödeme adımındaki onay kutusu ön işaretli olamaz; `placeOrderAction` onaysız siparişi reddeder ve onayı (tarih, IP, tarayıcı, belge sürümü) `orders."legalConsent"` JSONB kolonuna yazar — sanal POS / chargeback delili
 13. **Yasal kimlik uydurulmaz.** `src/lib/legal/entity.ts` içinde MERSİS / ticaret sicil / KEP / IBAN bilinmiyorsa **boş bırakılır**; boş token içeren tablo satırı render edilmeden düşürülür. Sahte numara yazmak yerine satırı gizle
 14. **NACE / faaliyet kodu sitede yayımlanmaz** — yalnızca iç kayıt
+15. **SEO içeriği veriye dayanır.** Yeni bir rehber/landing sayfası açmadan önce
+    Semrush (TR veritabanı) ile hacim ve zorluk doğrulanır; hedef küme
+    `docs/SEO.md` tablosuna işlenir. Hacimsiz sayfa açılmaz
+16. **Gıda işletmesi sağlık iddiası yapamaz** — "zayıflatır", "önler",
+    "tedavi eder", "detoks" gibi ifadeler `tests/guides.test.ts` tarafından
+    reddedilir. Ölçülü ifade + tıbbi tavsiye olmadığı notu
 
 ## Çalışma Kuralları (Claude için)
 

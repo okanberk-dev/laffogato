@@ -670,6 +670,34 @@ function speakableLd(): Json {
  * Bundle every site-wide structured data block into one @graph so we emit a
  * single <script> tag instead of a dozen.
  */
+/**
+ * The primary navigation, as `SiteNavigationElement`.
+ *
+ * This is what the home page actually wanted to say — "these are my main
+ * sections" — and it is the type search engines read for sitelinks. It is not
+ * a breadcrumb, which is a path to a single page.
+ */
+export function siteNavigationLd(): Json {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "@id": `${SITE.url}/#navigation`,
+    name: `${SITE.name} — bölümler`,
+    itemListElement: [
+      { name: "Menü", url: "/menu" },
+      { name: "Mağaza", url: "/magaza" },
+      { name: "Rehber", url: "/rehber" },
+      { name: "Hikaye", url: "/hikayemiz" },
+      { name: "Ziyaret · Tuzla", url: "/ziyaret" },
+    ].map((it, idx) => ({
+      "@type": "SiteNavigationElement",
+      position: idx + 1,
+      name: it.name,
+      url: `${SITE.url}${it.url}`,
+    })),
+  };
+}
+
 export function siteGraphLd(
   menu: Record<string, MenuCategory>,
   products: Product[],
@@ -686,13 +714,12 @@ export function siteGraphLd(
       aboutPageLd(),
       howToAffogatoLd(),
       speakableLd(),
-      breadcrumbLd([
-        { name: "Ana Sayfa", url: "/" },
-        { name: "Menü", url: "/menu" },
-        { name: "Mağaza", url: "/magaza" },
-        { name: "Hikaye", url: "/hikayemiz" },
-        { name: "Ziyaret · Tuzla", url: "/ziyaret" },
-      ]),
+      // No BreadcrumbList here. A BreadcrumbList is the path from the root to
+      // *this* page; the home page is the root, so it has no trail. Listing the
+      // sections here published "Ana Sayfa › Menü › Mağaza › Hikaye › Ziyaret"
+      // as if it were one path, which is not what any of those pages are.
+      // Section pages emit their own two-step trail via `breadcrumbLd`.
+      siteNavigationLd(),
     ],
   };
 }
