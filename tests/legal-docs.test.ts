@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, it, expect } from "vitest";
 
 import {
@@ -207,5 +209,31 @@ describe("fillTokens", () => {
     expect(hasEmptyToken("MERSİS: {{MERSIS}}")).toBe(true);
     expect(hasEmptyToken("VKN: {{TAX_NO}}")).toBe(false);
     expect(hasEmptyToken("düz metin")).toBe(false);
+  });
+});
+
+describe("legal metadata is separable from the contracts", () => {
+  it("keeps the checkout constants out of the 1.5 MB registry", () => {
+    // The checkout route imports these; pulling them from `documents.ts` would
+    // put every contract into the bundle of the hottest route on the site.
+    const meta = readFileSync("src/lib/legal/meta.ts", "utf8");
+    expect(meta).not.toContain("./content");
+    expect(meta).not.toContain("LEGAL_CONTENT");
+    const checkout = readFileSync("src/app/odeme/actions.ts", "utf8");
+    expect(checkout).toContain('from "@/lib/legal/meta"');
+    expect(checkout).not.toContain('from "@/lib/legal/documents"');
+  });
+
+  it("names checkout consent documents that actually exist", () => {
+    for (const slug of CHECKOUT_CONSENT_DOCS) {
+      expect(LEGAL_DOCS.some((d) => d.slug === slug)).toBe(true);
+    }
+  });
+
+  it("orders categories by a list that covers every document", () => {
+    const known = new Set<string>(LEGAL_CATEGORY_ORDER);
+    for (const doc of LEGAL_DOCS) {
+      expect(known.has(doc.category)).toBe(true);
+    }
   });
 });

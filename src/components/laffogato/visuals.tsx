@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-
 import {
   BottleDrink,
   CakeSlice,
@@ -12,29 +10,6 @@ import {
   SnackPlate,
   TeaGlass,
 } from "./menu-visuals";
-
-/* ─────────────────────────────────────────────────────────────
-   Reveal observer hook
-   ───────────────────────────────────────────────────────────── */
-
-export function useReveal() {
-  useEffect(() => {
-    const els = document.querySelectorAll(".reveal");
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add("in");
-            io.unobserve(e.target);
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: "0px 0px -6% 0px" },
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, []);
-}
 
 /* ─────────────────────────────────────────────────────────────
    Photo placeholder — refined gradient surface with subtle grain

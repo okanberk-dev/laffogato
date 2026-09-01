@@ -19,6 +19,36 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
   const [paused, setPaused] = useState(false);
   const total = slides.length;
 
+  /**
+   * Which slides may fetch their background.
+   *
+   * Every slide used to carry its `background-image` from the first paint, so
+   * a three-slide hero downloaded three full-bleed photographs before the
+   * visitor had seen one. Only the current slide and the one on either side
+   * load; a slide stays loaded once shown, so going back is instant and
+   * nothing re-flashes.
+   */
+  const [loaded, setLoaded] = useState<boolean[]>(() =>
+    slides.map((_, i) => i === 0),
+  );
+  useEffect(() => {
+    setLoaded((prev) => {
+      const next = [...prev];
+      let changed = false;
+      for (const i of [
+        index,
+        (index + 1) % total,
+        (index - 1 + total) % total,
+      ]) {
+        if (!next[i]) {
+          next[i] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [index, total]);
+
   useEffect(() => {
     if (total <= 1 || paused) return;
     // Rotation stops for anyone who asks the platform not to animate — it is
@@ -50,7 +80,7 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
     >
       <div className="shop-hero-track">
         {slides.map((s, i) => (
-          <Slide key={s.id} slide={s} active={i === index} />
+          <Slide key={s.id} slide={s} active={i === index} loaded={loaded[i]} />
         ))}
       </div>
 
@@ -130,7 +160,15 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
   );
 }
 
-function Slide({ slide, active }: { slide: ShopHeroSlide; active: boolean }) {
+function Slide({
+  slide,
+  active,
+  loaded,
+}: {
+  slide: ShopHeroSlide;
+  active: boolean;
+  loaded: boolean;
+}) {
   const isLight = slide.textTheme === "light";
   const overlay = slide.imageUrl
     ? isLight
@@ -152,9 +190,13 @@ function Slide({ slide, active }: { slide: ShopHeroSlide; active: boolean }) {
       data-theme={slide.textTheme}
       aria-hidden={!active}
       style={{
-        backgroundImage: slide.imageUrl
-          ? `${overlay}, url(${slide.imageUrl})`
-          : overlay,
+        // The gradient alone until this slide is near: it is the fallback the
+        // design already uses for a slide with no photo, so an unloaded slide
+        // looks deliberate rather than broken.
+        backgroundImage:
+          slide.imageUrl && loaded
+            ? `${overlay}, url(${slide.imageUrl})`
+            : overlay,
       }}
     >
       <div className="shop-hero-content">

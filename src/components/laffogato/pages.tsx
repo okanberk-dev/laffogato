@@ -33,7 +33,6 @@ import {
   MatchaGlass,
   MenuPlate,
   PhotoSurface,
-  useReveal,
 } from "./visuals";
 
 /** Major-unit price of a product, exact when the minor-unit figure is known. */
@@ -87,7 +86,6 @@ export function PageHome({
 }: PageProps) {
   const PRESS = press ?? SEED_PRESS;
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
-  useReveal();
   // `[]` means "the shop really has nothing to show" — during a database
   // outage in particular — and must stay empty. Only `undefined` (no data
   // passed at all) falls back to the bundled design catalogue.
@@ -739,7 +737,6 @@ export function PageHome({
    ────────────────────────────────────────────────────────────── */
 
 export function PageMenu({ menu }: PageProps) {
-  useReveal();
   const liveMenu = menu ?? MENU;
   const cats = Object.keys(liveMenu);
   const [active, setActive] = useState<string>("all");
@@ -1164,7 +1161,6 @@ export function PageShop({
   products,
   shopHeroSlides,
 }: PageProps) {
-  useReveal();
   // `[]` means "the shop really has nothing to show" — during a database
   // outage in particular — and must stay empty. Only `undefined` (no data
   // passed at all) falls back to the bundled design catalogue.
@@ -1759,7 +1755,6 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
   const PRESS = press ?? SEED_PRESS;
   const heritage = storyTimeline ?? STORY.heritage;
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
-  useReveal();
 
   const values = [
     {
@@ -2204,7 +2199,6 @@ export function PageVisit({ visit }: PageProps) {
   const visitPhone = visit?.phone ?? LOCATION.phone;
   const visitEmail = visit?.email ?? LOCATION.email;
   const visitHours = visit?.hours ?? LOCATION.hours;
-  useReveal();
   // A fixed query rather than the displayed address lines: those are editable
   // from the admin panel, and a stray edit must not send visitors to the wrong
   // place or break the embed's geocoding.

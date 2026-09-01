@@ -1,3 +1,4 @@
+import { LEGAL_CATEGORY_ORDER, LEGAL_UPDATED } from "./meta";
 import { LEGAL_CONTENT, type LegalDocSource } from "./content";
 import { fillTokens, hasEmptyToken } from "./entity";
 
@@ -41,32 +42,16 @@ export interface LegalDoc {
 
 export type { LegalDocSource };
 
-/** Tüm belgelerin ortak yürürlük/revizyon tarihi. */
-export const LEGAL_UPDATED = "1 Eylül 2026";
-
 /**
- * /hukuk dizin sayfasındaki kategori sırası. Listede olmayan bir kategori
- * sona eklenir, böylece yeni kategori eklemek burayı güncellemeyi zorunlu
- * kılmaz.
+ * Re-exported from `./meta`, which carries no document text. Checkout imports
+ * them from there directly so it does not pull 1.5 MB of contracts into the
+ * bundle of the hottest route on the site.
  */
-export const LEGAL_CATEGORY_ORDER = [
-  "Sipariş",
-  "Ödeme & Güvenlik",
-  "Veri & Gizlilik",
-  "Site & Üyelik",
-  "Kurumsal",
-] as const;
-
-/**
- * Ödeme adımında onaylanması zorunlu belgeler. Mesafeli Sözleşmeler
- * Yönetmeliği, siparişten **önce** ön bilgilendirmenin yapıldığının ve
- * tüketicinin bunu teyit ettiğinin kanıtlanmasını arar; sanal POS
- * başvurularında da aynı kayıt istenir.
- */
-export const CHECKOUT_CONSENT_DOCS = [
-  "on-bilgilendirme-formu",
-  "mesafeli-satis-sozlesmesi",
-] as const;
+export {
+  CHECKOUT_CONSENT_DOCS,
+  LEGAL_CATEGORY_ORDER,
+  LEGAL_UPDATED,
+} from "./meta";
 
 // ── Token doldurma ──────────────────────────────────────────────────────────
 
