@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { formatTRY } from "@/components/admin/forms";
 import { getOrder } from "@/lib/admin/store";
+import { getActiveCustomer } from "@/lib/customer/auth";
 
 import { ClearCart } from "./clear-cart";
 
@@ -20,6 +21,18 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
 
   const order = await getOrder(ref);
   if (!order) notFound();
+
+  // Order ids are sequential (`ord-0001`, `ord-0002`, …), so the reference in
+  // the URL is guessable. Without this check anyone could walk the ids and read
+  // another customer's name, address, phone and basket. Orders can only be
+  // placed by a verified member, so the viewer must be that member.
+  const customer = await getActiveCustomer();
+  if (
+    !customer ||
+    customer.email.toLowerCase() !== order.customerEmail.toLowerCase()
+  ) {
+    notFound();
+  }
 
   const placedAt = new Intl.DateTimeFormat("tr-TR", {
     day: "2-digit",

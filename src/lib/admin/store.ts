@@ -1568,6 +1568,75 @@ export async function applyPaymentSucceeded(input: {
   return { ok: true };
 }
 
+/**
+ * Records a refund the payment provider told us about, over its webhook.
+ *
+ * Distinct from `refundOrder`, which is the admin *initiating* a refund. Here
+ * the money has already moved at the provider, so this only has to make the
+ * order reflect it: append to the refund ledger and flip the status to
+ * `refunded` **only** once the refunded total reaches the order total. A
+ * partial refund leaves the order in its current state, which is what the
+ * admin page, the reports and the customer's own order page all read.
+ *
+ * Idempotent on the provider reference: a retried webhook hits the unique
+ * (provider, providerRef) index and returns without touching the order again.
+ */
+export async function recordProviderRefund(input: {
+  orderId: string;
+  provider: string;
+  providerRef: string;
+  amountMinor: number;
+  currency: string;
+  raw?: unknown;
+}): Promise<PaymentApplyResult> {
+  const sb = getDb();
+  const ins = await sb.from(TABLES.paymentTransactions).insert({
+    orderId: input.orderId,
+    provider: input.provider,
+    providerRef: input.providerRef,
+    status: "refunded",
+    amountMinor: input.amountMinor,
+    currency: input.currency,
+    raw: input.raw ?? null,
+    createdAt: new Date().toISOString(),
+  });
+  if (ins.error) {
+    // 23505 = duplicate notification; the ledger already has this refund.
+    if (ins.error.code === "23505") return { ok: true };
+    return { ok: false, error: ins.error.message };
+  }
+
+  const order = await getOrder(input.orderId);
+  if (!order) return { ok: false, error: "Sipariş bulunamadı." };
+
+  const already = order.refunds.reduce((sum, r) => sum + r.amountMinor, 0);
+  // Never record more than the order is worth, however the provider reports it.
+  const amount = Math.min(
+    Math.max(0, input.amountMinor),
+    Math.max(0, order.totalMinor - already),
+  );
+  if (amount === 0) return { ok: true };
+
+  const refunds = [
+    ...order.refunds,
+    {
+      id: `rfn-${order.refunds.length + 1}-${input.providerRef}`,
+      amountMinor: amount,
+      reason: `Sağlayıcı iadesi (${input.provider})`,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+  const fullyRefunded =
+    refunds.reduce((sum, r) => sum + r.amountMinor, 0) >= order.totalMinor;
+
+  const upd = await sb
+    .from(TABLES.orders)
+    .update({ refunds, status: fullyRefunded ? "refunded" : order.status })
+    .eq("id", input.orderId);
+  if (upd.error) return { ok: false, error: upd.error.message };
+  return { ok: true };
+}
+
 /** Latest succeeded payment provider reference for an order (for refunds). */
 export async function getOrderPaymentRef(
   orderId: string,

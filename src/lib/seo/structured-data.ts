@@ -59,7 +59,7 @@ function organizationLd(): Json {
     "@type": "Organization",
     "@id": `${SITE.url}/#organization`,
     name: SITE.name,
-    alternateName: [SITE.legalName, LEGAL_ENTITY.shortName],
+    alternateName: [SITE.tradeName, LEGAL_ENTITY.shortName],
     // Ticaret sicilindeki tüzel kişi — vergi levhası ile doğrulandı.
     legalName: LEGAL_ENTITY.legalName,
     taxID: LEGAL_ENTITY.taxNo,

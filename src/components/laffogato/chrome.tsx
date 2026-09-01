@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { CONSENT_OPEN_EVENT } from "@/lib/consent/script";
+import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
 import { GUIDE_LINKS } from "@/lib/seo/guide-nav";
 import { SITE } from "@/lib/seo/site";
@@ -827,6 +829,17 @@ export function Footer({ navigate, settings }: FooterProps) {
               </li>
             ))}
             <li>
+              <button
+                type="button"
+                className="footer-linkish"
+                onClick={() =>
+                  window.dispatchEvent(new Event(CONSENT_OPEN_EVENT))
+                }
+              >
+                Çerez Tercihleri
+              </button>
+            </li>
+            <li>
               <Link href="/hukuk">Tüm belgeler →</Link>
             </li>
           </ul>
@@ -867,7 +880,9 @@ export function Footer({ navigate, settings }: FooterProps) {
   );
 }
 
-const SITE_LEGAL_NAME = "L'Affogato Gıda ve Servis A.Ş.";
+/** Vergi levhasındaki gerçek tüzel kişi. Footer'da uydurma bir ticaret
+    unvanı yazıyordu ve bu, /hukuk altındaki sözleşmelerle çelişiyordu. */
+const SITE_LEGAL_NAME = `${SITE.name} — ${LEGAL_ENTITY.shortName}`;
 
 function FooterTrust({
   icon,

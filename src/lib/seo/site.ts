@@ -6,6 +6,8 @@
  * canonical brand information stays in one place.
  */
 
+import { LEGAL_ENTITY } from "@/lib/legal/entity";
+
 /**
  * Resolves the public base URL across local, Vercel preview, and Vercel
  * production deployments. Priority:
@@ -45,7 +47,15 @@ export const IS_PRODUCTION_DEPLOY =
 export const SITE = {
   url: SITE_URL,
   name: "L'Affogato",
-  legalName: "L'Affogato Italia",
+  /**
+   * The registered company behind the brand, taken from the tax certificate.
+   * Used wherever a *publisher* is named (metadata, Dublin Core, JSON-LD) —
+   * the site used to publish "L'Affogato Italia" here, which is a brand line
+   * and not a legal person, so the pages contradicted the contracts.
+   */
+  legalName: LEGAL_ENTITY.legalName,
+  /** Brand alternate — descriptive, deliberately not a registered entity. */
+  tradeName: "L'Affogato Italia",
   brand: "L'Affogato — Caffè · Gelato · Dolci",
   descriptor: "Coffee Italiano",
   tagline: "Drink it. Eat the cup.",

@@ -14,7 +14,31 @@ function required(name: string, provider: string): string {
 export function getPaymentProvider(): PaymentProvider {
   if (cached) return cached;
 
-  const providerName = process.env.PAYMENT_PROVIDER ?? "mock";
+  // Fail closed. The mock provider settles an order as paid without taking any
+  // money, so defaulting to it means a forgotten env var on production turns
+  // every checkout into a free order. Outside development the provider must be
+  // named explicitly.
+  const configured = process.env.PAYMENT_PROVIDER;
+  if (!configured) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "PAYMENT_PROVIDER is not set. Refusing to fall back to the mock " +
+          "provider in production — it would mark orders paid without charging.",
+      );
+    }
+    console.warn(
+      "[payment] PAYMENT_PROVIDER unset — using the mock provider (development only).",
+    );
+  }
+  const providerName = configured ?? "mock";
+
+  // A production deployment must never run the mock, even if it is named.
+  if (providerName === "mock" && process.env.NODE_ENV === "production") {
+    throw new Error(
+      "PAYMENT_PROVIDER=mock is not allowed in production: the mock settles " +
+        "orders as paid without taking payment.",
+    );
+  }
 
   switch (providerName) {
     case "mock": {

@@ -3,7 +3,9 @@ import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 
 import { GoogleTagManager } from "@next/third-parties/google";
 
+import { CookieConsent } from "@/components/laffogato/cookie-consent";
 import { RevealMotion } from "@/components/laffogato/reveal-motion";
+import { CONSENT_BOOTSTRAP } from "@/lib/consent/script";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
 
@@ -166,8 +168,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang={SITE.language} className={fontVariables}>
-      {GTM_ID ? <GoogleTagManager gtmId={GTM_ID} /> : null}
       <head>
+        {/* Consent Mode v2 defaults — must be on the dataLayer before the GTM
+            container initialises, otherwise the first tag fires with no
+            consent signal at all. Everything except strictly-necessary storage
+            starts denied and is only raised by an explicit choice. */}
+        {GTM_ID ? (
+          <script
+            id="consent-bootstrap"
+            dangerouslySetInnerHTML={{ __html: CONSENT_BOOTSTRAP }}
+          />
+        ) : null}
         {/* next/font self-hosts the fonts — no Google Fonts origin is hit at
             runtime, so preconnect/dns-prefetch hints would be dead weight. */}
         <link
@@ -183,8 +194,10 @@ export default function RootLayout({
           title="LLM full content"
         />
       </head>
+      {GTM_ID ? <GoogleTagManager gtmId={GTM_ID} /> : null}
       <body>
         {children}
+        <CookieConsent />
         <RevealMotion />
       </body>
     </html>

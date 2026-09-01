@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/admin/audit";
+import { requireRole } from "@/lib/admin/auth";
 import {
   createShopHeroSlide,
   deleteShopHeroSlide,
@@ -28,6 +29,9 @@ function parseInput(formData: FormData): ShopHeroSlideInput {
 }
 
 export async function createSlideAction(formData: FormData) {
+  // Server actions are public endpoints: without this, anyone who can POST
+  // could rewrite the home page slider.
+  await requireRole("shopHero");
   const input = parseInput(formData);
   if (!input.title.trim()) return;
   const created = await createShopHeroSlide(input);
@@ -43,6 +47,9 @@ export async function createSlideAction(formData: FormData) {
 }
 
 export async function updateSlideAction(id: string, formData: FormData) {
+  // Server actions are public endpoints: without this, anyone who can POST
+  // could rewrite the home page slider.
+  await requireRole("shopHero");
   const input = parseInput(formData);
   await updateShopHeroSlide(id, input);
   await logAudit({
@@ -57,6 +64,9 @@ export async function updateSlideAction(id: string, formData: FormData) {
 }
 
 export async function deleteSlideAction(formData: FormData) {
+  // Server actions are public endpoints: without this, anyone who can POST
+  // could rewrite the home page slider.
+  await requireRole("shopHero");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteShopHeroSlide(id);
