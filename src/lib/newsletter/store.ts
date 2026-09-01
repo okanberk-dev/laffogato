@@ -1,5 +1,7 @@
 import "server-only";
 
+import { randomBytes } from "node:crypto";
+
 import { getDb, TABLES } from "@/lib/db";
 
 export type NewsletterSource = "footer" | "register" | "account";
@@ -12,12 +14,38 @@ export interface NewsletterSubscriber {
   isActive: boolean;
   createdAt: string;
   unsubscribedAt: string;
+  /**
+   * 6563 sayılı kanunun aradığı onay kaydı: ne zaman, nereden, hangi metne.
+   * Şikâyet hâlinde onayın varlığını ispat yükümlülüğü hizmet sağlayıcıdadır.
+   */
+  consentAt: string;
+  consentIp: string;
+  consentText: string;
+  /** Tek tıkla çıkış bağlantısının taşıdığı jeton. */
+  unsubToken: string;
+}
+
+/**
+ * Onay kutusunun yanında görünen metin, kayda birebir yazılır — hangi ifadeye
+ * onay verildiği, onayın kendisi kadar önemli.
+ */
+export const NEWSLETTER_CONSENT_TEXT =
+  "L'Affogato'dan kampanya, yeni ürün ve etkinlik duyurularını e-posta ile almak istiyorum. Onayımı istediğim zaman geri çekebileceğimi biliyorum.";
+
+export interface ConsentRecord {
+  /** ISO-8601; boş bırakılamaz — onaysız kayıt açılmaz. */
+  at: string;
+  ip: string;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
+}
+
+function newUnsubToken(): string {
+  return randomBytes(24).toString("hex");
 }
 
 export type SubscribeResult =
@@ -33,10 +61,15 @@ export async function subscribeNewsletter(
   rawEmail: string,
   name = "",
   source: NewsletterSource = "footer",
+  consent?: ConsentRecord,
 ): Promise<SubscribeResult> {
   const email = normalizeEmail(rawEmail);
   if (!email || !EMAIL_RE.test(email)) {
     return { ok: false, error: "Geçerli bir e-posta gir." };
+  }
+  // Onay olmadan ticari elektronik ileti listesine kayıt yapılmaz.
+  if (!consent?.at) {
+    return { ok: false, error: "Devam etmek için onay kutusunu işaretle." };
   }
   const sb = getDb();
   const { data: existing, error: selErr } = await sb
@@ -56,6 +89,11 @@ export async function subscribeNewsletter(
         isActive: true,
         unsubscribedAt: "",
         name: name.trim() || row.name,
+        // Yeniden abonelik yeni bir onaydır; eskisinin üstüne yazılır.
+        consentAt: consent.at,
+        consentIp: consent.ip,
+        consentText: NEWSLETTER_CONSENT_TEXT,
+        unsubToken: row.unsubToken || newUnsubToken(),
       })
       .eq("id", row.id);
     if (error)
@@ -71,6 +109,10 @@ export async function subscribeNewsletter(
     isActive: true,
     createdAt: now,
     unsubscribedAt: "",
+    consentAt: consent.at,
+    consentIp: consent.ip,
+    consentText: NEWSLETTER_CONSENT_TEXT,
+    unsubToken: newUnsubToken(),
   };
   const { error } = await sb
     .from(TABLES.newsletterSubscribers)
@@ -121,6 +163,37 @@ export async function deleteNewsletterSubscriber(id: string): Promise<boolean> {
     .select("id");
   if (error) throw new Error(`deleteNewsletterSubscriber: ${error.message}`);
   return ((data as { id: string }[] | null) ?? []).length > 0;
+}
+
+/**
+ * Unsubscribe by the token carried in the link.
+ *
+ * No login and no e-mail entry: the whole point is that withdrawing consent
+ * must be at least as easy as giving it. The token is cleared with the same
+ * write, so a link is spent once and a shared or leaked one is inert
+ * afterwards.
+ *
+ * Returns the address that was unsubscribed, so the page can confirm which
+ * one it was; `null` when the token is unknown or already spent.
+ */
+export async function unsubscribeByToken(
+  rawToken: string,
+): Promise<string | null> {
+  const token = rawToken.trim();
+  if (!token) return null;
+  const sb = getDb();
+  const { data, error } = await sb
+    .from(TABLES.newsletterSubscribers)
+    .update({
+      isActive: false,
+      unsubscribedAt: new Date().toISOString(),
+      unsubToken: "",
+    })
+    .eq("unsubToken", token)
+    .select("email");
+  if (error) throw new Error(`unsubscribeByToken: ${error.message}`);
+  const rows = (data as { email: string }[] | null) ?? [];
+  return rows[0]?.email ?? null;
 }
 
 /** Unsubscribe by e-mail (used by the public unsubscribe flow). */

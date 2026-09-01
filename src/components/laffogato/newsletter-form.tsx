@@ -16,8 +16,8 @@ export function NewsletterForm() {
   );
 
   return (
-    <div>
-      <form className="newsletter-form" action={action}>
+    <form action={action}>
+      <div className="newsletter-form">
         <input
           type="email"
           name="email"
@@ -36,10 +36,23 @@ export function NewsletterForm() {
           {pending ? "Gönderiliyor…" : "Abone ol"}{" "}
           <span className="arrow">→</span>
         </button>
-      </form>
+      </div>
+
+      {/* Ön işaretli olamaz: 6563 sayılı kanun ticari elektronik ileti için
+          önceden AÇIK onay ister, ve onayın hangi metne verildiği kayda
+          yazılır (src/lib/newsletter/store.ts → NEWSLETTER_CONSENT_TEXT). */}
+      <label className="newsletter-consent">
+        <input type="checkbox" name="consent" disabled={pending} />
+        <span>
+          Kampanya, yeni ürün ve etkinlik duyurularını e-posta ile almak
+          istiyorum. Onayımı istediğim zaman geri çekebilirim.
+        </span>
+      </label>
+
       {(state.message || state.error) && (
         <p
           role="status"
+          aria-live="polite"
           style={{
             marginTop: 12,
             fontSize: 13,
@@ -49,6 +62,6 @@ export function NewsletterForm() {
           {state.error ?? state.message}
         </p>
       )}
-    </div>
+    </form>
   );
 }

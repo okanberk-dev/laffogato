@@ -996,3 +996,55 @@ $$;
 
 insert into public._migrations (name) values ('20260901150000_atomic_stock_adjust.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260901160000_customer_password_reset.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Password reset.
+--
+-- Four of the published documents promise it — the Gizlilik Politikası says
+-- outright that a forgotten password can only be recovered by "sıfırlama
+-- bağlantısı" — and there was no such flow, no column, no page. A member who
+-- forgot their password had no way back into their own order history.
+--
+-- Kept separate from the e-mail verification token: reusing that one would let
+-- a pending verification link double as a password reset, and issuing a reset
+-- would silently invalidate a verification the member had not finished.
+alter table public.customers
+  add column if not exists "resetToken"   text not null default '',
+  add column if not exists "resetExpires" text not null default '';
+
+-- Partial: only the handful of rows with a live token, and the lookup is
+-- always by the token itself.
+create unique index if not exists customers_reset_token_idx
+  on public.customers ("resetToken")
+  where "resetToken" <> '';
+
+insert into public._migrations (name) values ('20260901160000_customer_password_reset.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260901170000_newsletter_consent.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Explicit consent for commercial e-mail, and a way out of it.
+--
+-- 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun requires prior
+-- explicit consent before commercial electronic messages, a record of when and
+-- how it was given, and a free, always-available way to withdraw it. The
+-- footer form took an address and subscribed it, with no consent checkbox, no
+-- record, and no unsubscribe route anywhere on the site.
+alter table public.newsletter_subscribers
+  add column if not exists "consentAt"     text not null default '',
+  add column if not exists "consentIp"     text not null default '',
+  add column if not exists "consentText"   text not null default '',
+  -- Bearer token for the one-click unsubscribe link in every message. Not a
+  -- secret worth protecting beyond its purpose: the worst it can do is
+  -- unsubscribe an address that asked to be unsubscribed.
+  add column if not exists "unsubToken"    text not null default '';
+
+create unique index if not exists newsletter_unsub_token_idx
+  on public.newsletter_subscribers ("unsubToken")
+  where "unsubToken" <> '';
+
+insert into public._migrations (name) values ('20260901170000_newsletter_consent.sql')
+  on conflict (name) do nothing;

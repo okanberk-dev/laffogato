@@ -46,6 +46,15 @@ export interface Customer {
   /** ISO expiry for the verification token. */
   verifyExpires: string;
   verifiedAt: string;
+  /**
+   * Single-use password-reset token, cleared the moment it is spent.
+   * Deliberately separate from `verifyToken`: sharing one would let a pending
+   * verification link double as a password reset, and issuing a reset would
+   * silently invalidate a verification the member had not finished.
+   */
+  resetToken: string;
+  /** ISO expiry for the reset token. */
+  resetExpires: string;
   /** False once an admin deactivates the account (blocks login + ordering). */
   isActive: boolean;
   /** ISO timestamp the member accepted the terms + privacy policy at signup. */
@@ -85,6 +94,8 @@ function withDefaults(c: Customer): Customer {
     verifyToken: c.verifyToken ?? "",
     verifyExpires: c.verifyExpires ?? "",
     verifiedAt: c.verifiedAt ?? "",
+    resetToken: c.resetToken ?? "",
+    resetExpires: c.resetExpires ?? "",
     isActive: c.isActive ?? true,
     termsAcceptedAt: c.termsAcceptedAt ?? "",
     marketingConsentAt: c.marketingConsentAt ?? "",
@@ -215,6 +226,8 @@ export async function registerCustomer(
     verifyToken: token,
     verifyExpires: expires,
     verifiedAt: "",
+    resetToken: "",
+    resetExpires: "",
     isActive: true,
     termsAcceptedAt: now,
     marketingConsentAt: input.marketing ? now : "",
@@ -318,6 +331,125 @@ export async function createVerificationToken(
     .eq("id", customer.id);
   checkErr(error, "createVerificationToken");
   return { ok: true, token, name: customer.name, email: customer.email };
+}
+
+// ─── Password reset ───────────────────────────────────────────────────────
+
+/** A reset link is short-lived on purpose: it is a bearer key to an account. */
+const RESET_TTL_MS = 60 * 60 * 1000;
+
+export interface ResetRequest {
+  token: string;
+  name: string;
+  email: string;
+}
+
+/**
+ * Issues a password-reset token, or nothing.
+ *
+ * Returns `null` for an address with no account AND for a deactivated one —
+ * the caller shows the same message either way, so the form cannot be used to
+ * find out who has an account here.
+ *
+ * Any previously issued token is replaced, so the newest link is the only one
+ * that works.
+ */
+export async function createPasswordResetToken(
+  email: string,
+): Promise<ResetRequest | null> {
+  const needle = normalizeEmail(email);
+  if (!needle) return null;
+  const customer = await fetchCustomer(needle);
+  if (!customer || !customer.isActive) return null;
+
+  const token = randomBytes(32).toString("hex");
+  const expires = new Date(Date.now() + RESET_TTL_MS).toISOString();
+  const sb = getDb();
+  const { error } = await sb
+    .from(TABLES.customers)
+    .update({
+      resetToken: token,
+      resetExpires: expires,
+      updatedAt: new Date().toISOString(),
+    })
+    .eq("id", customer.id);
+  checkErr(error, "createPasswordResetToken");
+  return { token, name: customer.name, email: customer.email };
+}
+
+export type ResetResult =
+  | { ok: true; email: string }
+  | { ok: false; error: string };
+
+/**
+ * Spends a reset token and sets the new password.
+ *
+ * The token is cleared in the same UPDATE that writes the hash, and the write
+ * is conditioned on the token still being present, so a link cannot be used
+ * twice — including by two requests racing each other.
+ *
+ * Resetting also marks the address verified: the member proved they can read
+ * mail at it, which is exactly what the verification link tests.
+ */
+export async function resetPasswordWithToken(
+  token: string,
+  newPassword: string,
+): Promise<ResetResult> {
+  const clean = token.trim();
+  if (!clean) return { ok: false, error: "Bağlantı geçersiz." };
+  if (newPassword.length < 8) {
+    return { ok: false, error: "Şifre en az 8 karakter olmalı." };
+  }
+  if (newPassword.length > 200) return { ok: false, error: "Şifre çok uzun." };
+
+  const sb = getDb();
+  const { data, error } = await sb
+    .from(TABLES.customers)
+    .select("*")
+    .eq("resetToken", clean)
+    .maybeSingle();
+  checkErr(error, "resetPasswordWithToken.lookup");
+  const customer = data as Customer | null;
+  if (!customer) {
+    return { ok: false, error: "Bağlantı geçersiz veya kullanılmış." };
+  }
+  if (!customer.isActive) {
+    return { ok: false, error: "Bu hesap kapalı." };
+  }
+  if (
+    !customer.resetExpires ||
+    new Date(customer.resetExpires).getTime() < Date.now()
+  ) {
+    return {
+      ok: false,
+      error: "Bağlantının süresi dolmuş. Yeni bir sıfırlama isteyin.",
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  const now = new Date().toISOString();
+  const { data: written, error: writeErr } = await sb
+    .from(TABLES.customers)
+    .update({
+      passwordHash,
+      resetToken: "",
+      resetExpires: "",
+      // Reading mail at the address is what the verification link tests, and
+      // this proves it.
+      emailVerified: true,
+      verifiedAt: customer.verifiedAt || now,
+      verifyToken: "",
+      verifyExpires: "",
+      updatedAt: now,
+    })
+    .eq("id", customer.id)
+    .eq("resetToken", clean)
+    .select("id");
+  checkErr(writeErr, "resetPasswordWithToken.write");
+  if (((written as { id: string }[] | null) ?? []).length === 0) {
+    return { ok: false, error: "Bağlantı geçersiz veya kullanılmış." };
+  }
+  return { ok: true, email: customer.email };
 }
 
 export interface LoginInput {

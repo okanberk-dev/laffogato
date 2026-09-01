@@ -27,7 +27,8 @@ export type AuthPurpose =
   | "admin-login"
   | "customer-login"
   | "admin-2fa"
-  | "promo-preview";
+  | "promo-preview"
+  | "password-reset";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -35,6 +36,9 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // mistyping their own coupon must not be locked out of checkout, while
   // scripted enumeration still hits a wall quickly.
   "promo-preview": 15,
+  // Every request costs an e-mail to somebody else's inbox, so this one counts
+  // successes as well as failures — five links per address per five minutes.
+  "password-reset": 5,
 };
 
 /**

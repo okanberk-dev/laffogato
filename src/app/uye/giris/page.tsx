@@ -72,6 +72,18 @@ export default async function GirisPage() {
             textAlign: "center",
           }}
         >
+          <div style={{ marginBottom: 10 }}>
+            <Link
+              href="/uye/sifremi-unuttum"
+              style={{
+                color: "var(--gold-deep)",
+                textDecoration: "underline",
+                textUnderlineOffset: 3,
+              }}
+            >
+              Şifreni mi unuttun?
+            </Link>
+          </div>
           Hesabın yok mu?{" "}
           <Link
             href="/uye/kayit"

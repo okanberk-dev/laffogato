@@ -24,9 +24,21 @@ interface SendArgs {
   subject: string;
   html: string;
   text?: string;
+  /**
+   * Set on commercial messages only. Transactional mail (order confirmation,
+   * shipping, password reset) must NOT carry it — those are not subject to
+   * consent and offering to unsubscribe from them is misleading.
+   */
+  unsubscribeUrl?: string;
 }
 
-async function send({ to, subject, html, text }: SendArgs): Promise<boolean> {
+async function send({
+  to,
+  subject,
+  html,
+  text,
+  unsubscribeUrl,
+}: SendArgs): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     // No provider configured — log so the link is recoverable in dev/staging.
@@ -46,6 +58,17 @@ async function send({ to, subject, html, text }: SendArgs): Promise<boolean> {
         subject,
         html,
         ...(text ? { text } : {}),
+        // Ticari ileti için tek tıkla çıkış: hem mail istemcisinin kendi
+        // "abonelikten çık" düğmesi bunu okur, hem de 6563'ün aradığı
+        // "kolayca reddetme imkânı" bu başlıkla karşılanır.
+        ...(unsubscribeUrl
+          ? {
+              headers: {
+                "List-Unsubscribe": `<${unsubscribeUrl}>`,
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              },
+            }
+          : {}),
       }),
     });
     if (!res.ok) {
@@ -87,6 +110,37 @@ yok sayabilirsin.
   </p>
   <p style="font-size:13px;color:#8a7a6c;line-height:1.6">Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:<br><a href="${verifyUrl}" style="color:#C49A5A">${verifyUrl}</a></p>
   <p style="font-size:12px;color:#a89a8c">Bağlantı 24 saat geçerlidir. Bu hesabı sen oluşturmadıysan e-postayı yok say.</p>
+  <p style="font-size:13px;color:#3A2A20;margin-top:24px">— L'Affogato · Coffee Italiano</p>
+</div>`;
+  return send({ to, subject, html, text });
+}
+
+export async function sendPasswordResetEmail(
+  to: string,
+  name: string,
+  resetUrl: string,
+): Promise<boolean> {
+  const greeting = name ? `Merhaba ${name},` : "Merhaba,";
+  const subject = "L'Affogato — şifre sıfırlama";
+  const text = `${greeting}
+
+L'Affogato hesabın için şifre sıfırlama talebi aldık. Yeni şifreni belirlemek
+için aşağıdaki bağlantıya tıkla:
+
+${resetUrl}
+
+Bağlantı 1 saat geçerlidir ve yalnızca bir kez kullanılabilir. Bu talebi sen
+yapmadıysan hiçbir şey yapmana gerek yok — mevcut şifren değişmez.
+
+— L'Affogato`;
+  const html = `<div style="font-family:Georgia,'Times New Roman',serif;max-width:520px;margin:0 auto;color:#3A2A20">
+  <p style="font-size:16px">${greeting}</p>
+  <p style="font-size:15px;line-height:1.6">L'Affogato hesabın için şifre sıfırlama talebi aldık. Yeni şifreni belirlemek için aşağıdaki butona tıkla.</p>
+  <p style="margin:28px 0">
+    <a href="${resetUrl}" style="background:#3A2A20;color:#F6EFE4;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;letter-spacing:0.04em">Yeni şifre belirle</a>
+  </p>
+  <p style="font-size:13px;color:#8a7a6c;line-height:1.6">Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:<br><a href="${resetUrl}" style="color:#C49A5A">${resetUrl}</a></p>
+  <p style="font-size:12px;color:#a89a8c">Bağlantı 1 saat geçerlidir ve bir kez kullanılabilir. Bu talebi sen yapmadıysan hiçbir şey yapmana gerek yok; mevcut şifren değişmez.</p>
   <p style="font-size:13px;color:#3A2A20;margin-top:24px">— L'Affogato · Coffee Italiano</p>
 </div>`;
   return send({ to, subject, html, text });

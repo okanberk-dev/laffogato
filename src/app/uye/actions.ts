@@ -37,9 +37,90 @@ import {
   clientIp,
   recordLoginFailure,
 } from "@/lib/admin/rate-limit";
+import {
+  createPasswordResetToken,
+  resetPasswordWithToken,
+} from "@/lib/customer/store";
+import { sendPasswordResetEmail } from "@/lib/email/send";
 
 function verifyUrl(token: string): string {
   return `${SITE.url}/uye/dogrula?token=${encodeURIComponent(token)}`;
+}
+
+function resetUrl(token: string): string {
+  return `${SITE.url}/uye/sifre-sifirla?token=${encodeURIComponent(token)}`;
+}
+
+export type ForgotPasswordState = { error?: string; message?: string };
+
+/**
+ * Starts a password reset.
+ *
+ * Always answers the same way, whether or not the address has an account:
+ * anything else turns the form into a membership oracle. Rate-limited on the
+ * durable counter so it cannot be used to mail-bomb someone either.
+ */
+export async function requestPasswordResetAction(
+  _prev: ForgotPasswordState,
+  formData: FormData,
+): Promise<ForgotPasswordState> {
+  const email = String(formData.get("email") ?? "").trim();
+  const SAME_ANSWER =
+    "Bu adrese kayıtlı bir hesap varsa, sıfırlama bağlantısını gönderdik. Gelen kutunu ve spam klasörünü kontrol et.";
+  if (!email || !email.includes("@")) {
+    return { error: "Geçerli bir e-posta adresi gir." };
+  }
+
+  const ip = await clientIp();
+  const limit = await checkLoginLimit("password-reset", ip, email);
+  if (limit.blocked) {
+    return {
+      error: `Çok fazla istek. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
+    };
+  }
+  await recordLoginFailure("password-reset", ip, email);
+
+  try {
+    const request = await createPasswordResetToken(email);
+    if (request) {
+      await sendPasswordResetEmail(
+        request.email,
+        request.name,
+        resetUrl(request.token),
+      );
+    }
+  } catch (err) {
+    if (isDbUnreachable(err)) return { error: DB_DOWN_MESSAGE };
+    // A mail failure must not reveal that the address exists either.
+    console.error("[uye] password reset request failed", err);
+  }
+  return { message: SAME_ANSWER };
+}
+
+export type ResetPasswordState = { error?: string; message?: string };
+
+export async function resetPasswordAction(
+  _prev: ResetPasswordState,
+  formData: FormData,
+): Promise<ResetPasswordState> {
+  const token = String(formData.get("token") ?? "");
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("passwordConfirm") ?? "");
+  if (password !== confirm) return { error: "Şifreler eşleşmiyor." };
+
+  let result;
+  try {
+    result = await resetPasswordWithToken(token, password);
+  } catch (err) {
+    if (!isDbUnreachable(err)) throw err;
+    return { error: DB_DOWN_MESSAGE };
+  }
+  if (!result.ok) return { error: result.error };
+
+  // Signed in straight away: they have just proved control of the address and
+  // chosen a new password, so a second login form would be busywork.
+  await setActiveCustomerSession(result.email);
+  redirect("/uye/hesap");
 }
 
 export type RegisterFormState = {
@@ -103,10 +184,13 @@ export async function registerAction(
   // Newsletter opt-in also lands in the subscriber list (best-effort).
   if (newsletter) {
     try {
+      // The signup form's own opt-in checkbox is the consent; the record
+      // names the moment and the origin, which is what has to be provable.
       await subscribeNewsletter(
         result.customer.email,
         result.customer.name,
         "register",
+        { at: new Date().toISOString(), ip: await clientIp() },
       );
     } catch {
       // non-fatal — the account + notificationPrefs already captured the intent
@@ -343,7 +427,10 @@ export async function updateNotificationsAction(
   // Keep the marketing newsletter list in sync with the member's toggle.
   try {
     if (prefs.newsletter) {
-      await subscribeNewsletter(current.email, current.name, "account");
+      await subscribeNewsletter(current.email, current.name, "account", {
+        at: new Date().toISOString(),
+        ip: await clientIp(),
+      });
     } else {
       await unsubscribeNewsletterByEmail(current.email);
     }

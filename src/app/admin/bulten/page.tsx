@@ -79,6 +79,7 @@ export default async function NewsletterPage() {
                   <th className="pr-3">Kaynak</th>
                   <th className="pr-3">Durum</th>
                   <th className="pr-3">Tarih</th>
+                  <th className="pr-3">Onay (6563)</th>
                   <th className="text-right">İşlem</th>
                 </tr>
               </thead>
@@ -113,6 +114,21 @@ export default async function NewsletterPage() {
                       style={{ fontFamily: "var(--mono), monospace" }}
                     >
                       {formatDateTime(s.createdAt)}
+                    </td>
+                    {/* Onayın ne zaman ve nereden alındığı: şikâyet hâlinde
+                        ispat yükümlülüğü bizde. */}
+                    <td
+                      className="pr-3 text-xs text-neutral-500"
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      {s.consentAt ? (
+                        <span title={s.consentText}>
+                          {formatDateTime(s.consentAt)}
+                          {s.consentIp ? ` · ${s.consentIp}` : ""}
+                        </span>
+                      ) : (
+                        <span className="text-amber-700">kayıt yok</span>
+                      )}
                     </td>
                     <td className="text-right">
                       <div className="flex justify-end gap-2">
