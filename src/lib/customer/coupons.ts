@@ -177,6 +177,38 @@ export async function redeemCustomerCoupon(
   return ((data as { id: string }[] | null) ?? []).length > 0;
 }
 
+/**
+ * Hands a single-use coupon back to its owner.
+ *
+ * A coupon is claimed when the order is created, before payment. If that order
+ * is then cancelled — the customer abandoned the POS page, the card was
+ * declined — the coupon was simply gone. This reverses the claim, but only for
+ * the order that took it, so an unrelated redemption is never undone.
+ */
+export async function releaseCustomerCoupon(
+  code: string,
+  email: string,
+  orderNo: number,
+): Promise<boolean> {
+  const needle = normalizeCouponCode(code);
+  const owner = normalizeEmail(email);
+  if (!needle || !owner) return false;
+  const sb = getDb();
+  const { data, error } = await sb
+    .from(TABLES.customerCoupons)
+    .update({
+      redeemedAt: "",
+      redeemedOrderNo: 0,
+      updatedAt: new Date().toISOString(),
+    })
+    .eq("code", needle)
+    .eq("customerEmail", owner)
+    .eq("redeemedOrderNo", orderNo)
+    .select("id");
+  checkErr(error, "releaseCustomerCoupon");
+  return ((data as { id: string }[] | null) ?? []).length > 0;
+}
+
 export interface GrantCouponInput {
   email: string;
   kind: CouponKind;

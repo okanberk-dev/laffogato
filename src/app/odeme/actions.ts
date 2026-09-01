@@ -184,7 +184,14 @@ export async function placeOrderAction(formData: FormData) {
     const params = new URLSearchParams({
       cart: result.reason,
       item: "productName" in result ? result.productName : "",
-      available: "available" in result ? String(result.available) : "",
+      // `available` doubles as the numeric detail for the notice: the stock
+      // left, or the per-line cap.
+      available:
+        "available" in result
+          ? String(result.available)
+          : "max" in result
+            ? String(result.max)
+            : "",
     });
     redirect(`/?${params.toString()}`);
   }

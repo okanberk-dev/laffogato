@@ -38,7 +38,7 @@ function quoteColumnList(columns: string): string {
     .join(", ");
 }
 
-export type FilterOp = "eq" | "neq" | "in" | "gte" | "ilike";
+export type FilterOp = "eq" | "neq" | "in" | "gte" | "lt" | "ilike";
 
 export interface Filter {
   op: FilterOp;
@@ -131,6 +131,8 @@ function whereClause(filters: Filter[], bag: ParamBag): string {
           : `${col} <> ${bag.add(f.value)}`;
       case "gte":
         return `${col} >= ${bag.add(f.value)}`;
+      case "lt":
+        return `${col} < ${bag.add(f.value)}`;
       case "ilike":
         return `${col} ILIKE ${bag.add(f.value)}`;
       case "in": {

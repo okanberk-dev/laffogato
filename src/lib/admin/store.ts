@@ -12,9 +12,11 @@ import { nextSeq } from "@/lib/db/counters";
 import {
   applyCustomerCoupon,
   redeemCustomerCoupon,
+  releaseCustomerCoupon,
 } from "@/lib/customer/coupons";
 import { sendOrderPaidEmail } from "@/lib/email/send";
 import { computeOrderTotals, type CheckoutConfig } from "@/lib/utils/commerce";
+import { priceLabel } from "@/lib/utils/format";
 import {
   MENU as SEED_MENU,
   PRODUCTS as SEED_PRODUCTS,
@@ -95,6 +97,15 @@ export interface AdminOrderItem {
   qty: number;
   unitPriceMinor: number;
   status: AdminOrderItemStatus;
+  /**
+   * What was actually taken from stock. Needed to give it back when the order
+   * is cancelled — matching on `productName` would be guesswork the moment a
+   * product is renamed. Absent on orders placed before this was recorded and
+   * on manual admin orders that reference no catalogue product; those lines
+   * are skipped rather than restored to the wrong SKU.
+   */
+  productId?: string;
+  variantId?: string;
 }
 
 export type AdminOrderStatus =
@@ -152,6 +163,11 @@ export interface AdminOrder {
   totalMinor: number;
   refunds: AdminRefund[];
   createdAt: string;
+  /**
+   * ISO-8601 instant the order's stock and promo were given back, "" while
+   * they are still held. Guards the release path against running twice.
+   */
+  stockReleasedAt?: string;
   /**
    * Consent evidence; `{}` on manual/admin orders and on orders placed before
    * the consent box existed.
@@ -764,6 +780,7 @@ export async function bulkUpdateProducts(
 
 export type StockMoveReason =
   | "order_placed"
+  | "order_cancelled"
   | "manual_adjust"
   | "refund_restock"
   | "seed";
@@ -1089,7 +1106,11 @@ export type PlaceOrderResult =
     }
   | { ok: false; reason: "empty" }
   | { ok: false; reason: "not_found"; productName: string }
+  | { ok: false; reason: "qty_too_high"; productName: string; max: number }
   | { ok: false; reason: "shop_closed" };
+
+/** Per-line quantity ceiling. A retail cart, not a wholesale order. */
+export const MAX_LINE_QTY = 99;
 
 interface ResolvedLine {
   product: AdminProduct;
@@ -1113,7 +1134,21 @@ async function resolveOrderLines(
   items: PlaceOrderItemInput[],
 ): Promise<ResolveLinesResult> {
   const sb = getDb();
-  const cleanItems = items.filter((it) => it.qty > 0 && it.qty <= 99);
+  // A line over the cap used to be filtered out silently: the customer paid
+  // for a cart that no longer contained what they asked for. Say so instead.
+  const tooMany = items.find((it) => it.qty > MAX_LINE_QTY);
+  if (tooMany) {
+    return {
+      ok: false,
+      result: {
+        ok: false,
+        reason: "qty_too_high",
+        productName: tooMany.name,
+        max: MAX_LINE_QTY,
+      },
+    };
+  }
+  const cleanItems = items.filter((it) => it.qty > 0);
   if (cleanItems.length === 0) {
     return { ok: false, result: { ok: false, reason: "empty" } };
   }
@@ -1304,6 +1339,8 @@ async function finalizeOrder(
     qty: line.qty,
     unitPriceMinor: line.unitPriceMinor,
     status: "pending",
+    productId: line.product.id,
+    ...(line.variant ? { variantId: line.variant.id } : {}),
   }));
   const subtotalMinor = items.reduce(
     (s, it) => s + it.unitPriceMinor * it.qty,
@@ -1344,10 +1381,12 @@ async function finalizeOrder(
     // 2) Otherwise fall back to a global promo code (shared code input).
     if (!applied) {
       const promoCheck = await applyPromoCode(code, subtotalMinor);
-      if (promoCheck.ok) {
+      // The use is taken FIRST: the limit is enforced by the take, so a code
+      // whose last use went to a concurrent checkout is dropped here rather
+      // than discounted twice.
+      if (promoCheck.ok && (await consumePromoUsage(promoCheck.promo.code))) {
         promoCode = promoCheck.promo.code;
         discountMinor = promoCheck.discountMinor;
-        await consumePromoUsage(promoCode);
         applied = true;
       }
     }
@@ -1390,10 +1429,67 @@ async function finalizeOrder(
  * the payment webhook advances it. See {@link resolveOrderLines} for the
  * server-authoritative price + stock guarantees.
  */
+/**
+ * How long an unpaid order may hold its stock.
+ *
+ * Long enough for a slow 3-D Secure step and a retry, short enough that an
+ * abandoned checkout does not keep the last unit of a product off the shelf
+ * overnight.
+ */
+const PENDING_ORDER_TTL_MINUTES = 45;
+
+/**
+ * Cancels checkouts that were never paid for, and returns what they held.
+ *
+ * There is no scheduler in this deployment, so the sweep runs at the start of
+ * a checkout — the moment stock accuracy actually matters. It is bounded and
+ * idempotent, and a failure here must never block the order being placed.
+ */
+export async function expireStalePendingOrders(): Promise<number> {
+  const cutoff = new Date(
+    Date.now() - PENDING_ORDER_TTL_MINUTES * 60_000,
+  ).toISOString();
+  const sb = getDb();
+  const stale = rows<AdminOrder>(
+    await sb
+      .from(TABLES.orders)
+      .select("*")
+      .eq("status", "pending_payment")
+      .lt("createdAt", cutoff)
+      .order("createdAt", { ascending: true })
+      .limit(20),
+    "expireStalePendingOrders",
+  );
+  let expired = 0;
+  for (const order of stale) {
+    const moved = rows<{ id: string }>(
+      await sb
+        .from(TABLES.orders)
+        .update({ status: "cancelled" })
+        .eq("id", order.id)
+        .eq("status", "pending_payment")
+        .select("id"),
+      "expireStalePendingOrders.cancel",
+    );
+    if (moved.length === 0) continue;
+    await releaseOrderInventory(order);
+    expired += 1;
+  }
+  return expired;
+}
+
 export async function placeOrder(
   input: PlaceOrderInput,
 ): Promise<PlaceOrderResult> {
   await ensureSeed();
+
+  // Reclaim stock from checkouts that were abandoned before this one started.
+  // Never fatal: a customer's order must not fail because housekeeping did.
+  try {
+    await expireStalePendingOrders();
+  } catch (err) {
+    console.error("[orders] expiring stale pending orders failed", err);
+  }
 
   // Refuse customer checkout while the shop is flagged closed in settings.
   // (Admin manual orders bypass this — see createManualOrder.)
@@ -1702,6 +1798,91 @@ export interface TransitionResult {
   error?: string;
 }
 
+/**
+ * Gives back everything an order took, when it will never be fulfilled.
+ *
+ * Placing an order claims stock, burns the customer's single-use coupon and
+ * takes one use of a promo code — all before payment, so nothing can be
+ * double-spent while the customer is on the POS page. Cancelling used to
+ * reverse none of it: a cancelled order held its stock forever (the shop read
+ * as sold out while the shelf was full), and the customer's coupon was gone
+ * for an order they never paid for.
+ *
+ * Guarded on `stockReleasedAt`, and the guard is part of the UPDATE, so two
+ * concurrent cancels cannot both credit the stock.
+ */
+async function releaseOrderInventory(order: AdminOrder): Promise<void> {
+  const sb = getDb();
+  const now = new Date().toISOString();
+
+  // Claim the right to release. Only the writer that flips the empty marker
+  // proceeds.
+  const claimed = rows<{ id: string }>(
+    await sb
+      .from(TABLES.orders)
+      .update({ stockReleasedAt: now })
+      .eq("id", order.id)
+      .eq("stockReleasedAt", "")
+      .select("id"),
+    "releaseOrderInventory.claim",
+  );
+  if (claimed.length === 0) return;
+
+  // Lines from before productId was recorded, and manual admin lines that
+  // reference no catalogue product, are skipped: restoring by name would
+  // credit the wrong SKU the moment a product had been renamed.
+  const lines = order.items
+    .filter((it) => it.productId && it.status !== "cancelled" && it.qty > 0)
+    .map((it) => ({
+      productId: it.productId as string,
+      variantId: it.variantId ?? null,
+      qty: it.qty,
+      productName: it.productName,
+    }));
+
+  if (lines.length > 0) {
+    const released = await sb.rpc("release_order_stock", {
+      p_lines: lines.map(({ productId, variantId, qty }) => ({
+        productId,
+        variantId,
+        qty,
+      })),
+      p_now: now,
+    });
+    if (released.error) {
+      throw new Error(`releaseOrderInventory: ${released.error.message}`);
+    }
+    const stockAfters = (released.data ?? []) as number[];
+    for (let i = 0; i < lines.length; i += 1) {
+      // -1 means the product row is gone; there is no stock level to log.
+      if (stockAfters[i] === -1 || stockAfters[i] === undefined) continue;
+      await recordStockMove({
+        productId: lines[i].productId,
+        productName: lines[i].productName,
+        delta: lines[i].qty,
+        stockAfter: stockAfters[i],
+        reason: "order_cancelled",
+        note: `Sipariş #${order.orderNo} iptal edildi`,
+        orderId: order.id,
+        actor: "system",
+      });
+    }
+  }
+
+  if (order.promoCode) {
+    // A personal coupon is returned to its owner; a shared promo gets its use
+    // back. Only one of the two can have been applied.
+    const returned = order.customerEmail
+      ? await releaseCustomerCoupon(
+          order.promoCode,
+          order.customerEmail,
+          order.orderNo,
+        )
+      : false;
+    if (!returned) await releasePromoUsage(order.promoCode);
+  }
+}
+
 export async function transitionOrder(
   id: string,
   transition: OrderTransition,
@@ -1722,6 +1903,7 @@ export async function transitionOrder(
     await sb.from(TABLES.orders).update({ status: map.to }).eq("id", id),
     "transitionOrder",
   );
+  if (map.to === "cancelled") await releaseOrderInventory(existing);
   return { ok: true, order: { ...existing, status: map.to } };
 }
 
@@ -1831,6 +2013,15 @@ export async function refundOrder(
   if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
   if (existing.status === "cancelled") {
     return { ok: false, error: "İptal edilen siparişe iade yapılamaz." };
+  }
+  // Nothing was ever collected on an order still awaiting payment, so there is
+  // nothing to give back — recording one would invent a negative in the
+  // reports and, on a real POS, attempt a refund against no transaction.
+  if (existing.status === "pending_payment") {
+    return {
+      ok: false,
+      error: "Ödemesi alınmamış siparişe iade yapılamaz; siparişi iptal edin.",
+    };
   }
   const already = existing.refunds.reduce((s, r) => s + r.amountMinor, 0);
   const remaining = existing.totalMinor - already;
@@ -2000,10 +2191,10 @@ function toDesignProduct(p: AdminProduct): DesignProduct {
     id: p.id,
     name: p.name,
     tag: p.tag,
-    price: `${Math.round(p.priceMinor / 100)}₺`,
+    price: priceLabel(p.priceMinor),
     compareAtPrice:
       p.compareAtPriceMinor > p.priceMinor
-        ? `${Math.round(p.compareAtPriceMinor / 100)}₺`
+        ? priceLabel(p.compareAtPriceMinor)
         : undefined,
     desc: p.desc,
     cat: p.cat,
@@ -2340,10 +2531,8 @@ async function listMenuForCustomerLive(): Promise<
       .map((it) => ({
         name: it.name,
         desc: it.desc,
-        price: `${Math.round(it.priceMinor / 100)}₺`,
-        ...(it.priceMinorL > 0
-          ? { priceL: `${Math.round(it.priceMinorL / 100)}₺` }
-          : {}),
+        price: priceLabel(it.priceMinor),
+        ...(it.priceMinorL > 0 ? { priceL: priceLabel(it.priceMinorL) } : {}),
         ...(it.tags.length > 0 ? { tags: [...it.tags] } : {}),
         hue: it.hue,
         ...(it.image ? { image: it.image } : {}),
@@ -2549,16 +2738,36 @@ export async function applyPromoCode(
   return { ok: true, promo, discountMinor };
 }
 
-async function consumePromoUsage(code: string): Promise<void> {
+/**
+ * Takes one use of a promo code, enforcing the limit in the same statement.
+ *
+ * `applyPromoCode` checks the limit in a separate read, so two checkouts
+ * racing on the last use of a code both passed that check and both
+ * incremented. Returns false when the code was already exhausted or switched
+ * off — the caller must then not honour the discount.
+ */
+async function consumePromoUsage(code: string): Promise<boolean> {
   await ensureSeed();
   const needle = normalizeCode(code);
   const sb = getDb();
-  // Atomic increment (avoids the lost-update race of a read-modify-write).
-  const { error } = await sb.rpc("increment_promo_usage", {
+  const { data, error } = await sb.rpc("redeem_promo", {
     promo_code: needle,
     p_now: new Date().toISOString(),
   });
   if (error) throw new Error(`consumePromoUsage: ${error.message}`);
+  return data === true;
+}
+
+/** Gives a use back when the order that took it is cancelled. */
+async function releasePromoUsage(code: string): Promise<void> {
+  const needle = normalizeCode(code);
+  if (!needle) return;
+  const sb = getDb();
+  const { error } = await sb.rpc("release_promo_usage", {
+    promo_code: needle,
+    p_now: new Date().toISOString(),
+  });
+  if (error) throw new Error(`releasePromoUsage: ${error.message}`);
 }
 
 // ─── Analytics aggregations ───────────────────────────────────────────────

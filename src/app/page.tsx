@@ -86,6 +86,10 @@ export default async function HomePage({ searchParams }: PageProps) {
   } else if (cart === "not_found") {
     notice =
       "Sepetindeki bir ürün artık mevcut değil. Sepetini güncelleyip tekrar dene.";
+  } else if (cart === "qty_too_high") {
+    const max = Number(available);
+    const cap = Number.isFinite(max) && max > 0 ? max : 99;
+    notice = `"${item ?? "Bir ürün"}" için tek seferde en fazla ${cap} adet sipariş verilebilir. Daha fazlası için bizimle iletişime geç.`;
   }
 
   const graph = siteGraphLd(menu, products, settings);

@@ -16,6 +16,7 @@ export const ROLE_LABELS: Record<AdminRole, string> = {
 export type AdminSection =
   | "dashboard"
   | "orders"
+  | "refunds"
   | "products"
   | "menu"
   | "categories"
@@ -36,6 +37,9 @@ export type AdminSection =
 const SECTION_ROLES: Record<AdminSection, AdminRole[]> = {
   dashboard: ["owner", "manager", "staff"],
   orders: ["owner", "manager", "staff"],
+  // Moving money back out is not a shift task: a refund is irreversible and
+  // has no approval step behind it.
+  refunds: ["owner", "manager"],
   products: ["owner", "manager"],
   menu: ["owner", "manager"],
   categories: ["owner", "manager"],

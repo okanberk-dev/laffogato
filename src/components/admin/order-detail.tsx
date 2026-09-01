@@ -69,6 +69,8 @@ interface Props {
   statusTone: string;
   refundedMinor: number;
   remainingRefundableMinor: number;
+  /** False for staff — refunds are an owner/manager action. */
+  canRefund: boolean;
 }
 
 /**
@@ -158,6 +160,7 @@ export function OrderDetail({
   statusTone,
   refundedMinor,
   remainingRefundableMinor,
+  canRefund,
 }: Props) {
   const [refundOpen, setRefundOpen] = useState(false);
 
@@ -218,15 +221,18 @@ export function OrderDetail({
                   </form>
                 ))
               )}
-              {order.status !== "cancelled" && remainingRefundableMinor > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setRefundOpen(true)}
-                  className="rounded-full border border-rose-200 bg-white px-4 py-1.5 text-xs font-medium text-rose-700 hover:border-rose-600 hover:bg-rose-600 hover:text-white"
-                >
-                  İade başlat
-                </button>
-              )}
+              {canRefund &&
+                order.status !== "cancelled" &&
+                order.status !== "pending_payment" &&
+                remainingRefundableMinor > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setRefundOpen(true)}
+                    className="rounded-full border border-rose-200 bg-white px-4 py-1.5 text-xs font-medium text-rose-700 hover:border-rose-600 hover:bg-rose-600 hover:text-white"
+                  >
+                    İade başlat
+                  </button>
+                )}
             </div>
           </Card>
 
@@ -588,7 +594,7 @@ function RefundModal({
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     if (
       !confirm(
-        "Bu iade tutarını kaydetmek istediğine emin misin? Sanal POS entegre edildiğinde bu işlem otomatik POS iadesini de tetikleyecek.",
+        "Bu iade sanal POS üzerinden gerçekten yapılacak ve geri alınamaz. Devam edilsin mi?",
       )
     ) {
       e.preventDefault();

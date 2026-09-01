@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { OrderDetail } from "@/components/admin/order-detail";
 import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
+import { canAccess } from "@/lib/admin/roles";
 import {
   availableTransitions,
   getOrder,
@@ -45,7 +46,7 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function AdminOrderDetailPage({ params }: PageProps) {
-  await requireRole("orders");
+  const session = await requireRole("orders");
   const { id } = await params;
   const [order, settings] = await Promise.all([getOrder(id), getSettings()]);
   if (!order) notFound();
@@ -81,6 +82,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         statusTone={STATUS_TONE[order.status]}
         refundedMinor={refundedMinor}
         remainingRefundableMinor={remainingRefundableMinor}
+        canRefund={canAccess("refunds", session.role)}
       />
     </main>
   );

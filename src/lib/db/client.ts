@@ -149,6 +149,11 @@ abstract class QueryBuilder<T> implements PromiseLike<DbResult<T>> {
     return this;
   }
 
+  lt(column: string, value: unknown): this {
+    this.filters.push({ op: "lt", column, value });
+    return this;
+  }
+
   ilike(column: string, value: string): this {
     this.filters.push({ op: "ilike", column, value });
     return this;

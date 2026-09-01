@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 const REASON_LABEL: Record<StockMoveReason, string> = {
   order_placed: "Sipariş",
+  order_cancelled: "İptal · stoğa geri",
   manual_adjust: "Manuel düzeltme",
   refund_restock: "İade · stoğa geri",
   seed: "Açılış",
@@ -21,6 +22,7 @@ const REASON_LABEL: Record<StockMoveReason, string> = {
 
 const REASON_TONE: Record<StockMoveReason, string> = {
   order_placed: "bg-blue-50 text-blue-700",
+  order_cancelled: "bg-emerald-50 text-emerald-700",
   manual_adjust: "bg-amber-50 text-amber-700",
   refund_restock: "bg-emerald-50 text-emerald-700",
   seed: "bg-neutral-100 text-neutral-600",

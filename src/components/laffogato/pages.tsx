@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 
 import { SITE } from "@/lib/seo/site";
+import { parsePriceLabel } from "@/lib/utils/format";
 
 import { ShopHeroSlider, type ShopHeroSlide } from "./shop-hero-slider";
 import { PourHero } from "./pour-hero";
@@ -26,6 +27,13 @@ import {
   PhotoSurface,
   useReveal,
 } from "./visuals";
+
+/** Major-unit price of a product, exact when the minor-unit figure is known. */
+function priceOf(p: Product): number {
+  return p.priceMinor !== undefined
+    ? p.priceMinor / 100
+    : parsePriceLabel(p.price);
+}
 
 interface PageProps {
   navigate: (r: Route) => void;
@@ -1146,8 +1154,16 @@ export function PageShop({
   const slides = shopHeroSlides ?? [];
   const [cat, setCat] = useState<string>("all");
   const [sort, setSort] = useState<string>("featured");
+  // The slider's ceiling follows the catalogue. It was hard-coded at 900, and
+  // the filter is inclusive-of-max, so the moment a product was priced above
+  // ₺900 it became invisible in the shop with no filter applied.
+  const priceCeiling = useMemo(() => {
+    const top = shopProducts.reduce((max, p) => Math.max(max, priceOf(p)), 0);
+    return Math.max(900, Math.ceil(top / 100) * 100);
+  }, [shopProducts]);
   const [priceMin, setPriceMin] = useState(0);
-  const [priceMax, setPriceMax] = useState(900);
+  const [priceMax, setPriceMax] = useState<number | null>(null);
+  const priceTop = priceMax ?? priceCeiling;
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const cats = [
@@ -1161,21 +1177,21 @@ export function PageShop({
 
   let list = shopProducts.filter((p) => cat === "all" || p.cat === cat);
   list = list.filter((p) => {
-    const price = parseFloat(p.price);
-    return price >= priceMin && price <= priceMax;
+    const price = priceOf(p);
+    return price >= priceMin && price <= priceTop;
   });
   if (sort === "price-asc")
-    list = [...list].sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+    list = [...list].sort((a, b) => priceOf(a) - priceOf(b));
   if (sort === "price-desc")
-    list = [...list].sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+    list = [...list].sort((a, b) => priceOf(b) - priceOf(a));
 
-  const priceTouched = priceMin > 0 || priceMax < 900;
+  const priceTouched = priceMin > 0 || priceTop < priceCeiling;
   const activeFilterCount = (cat !== "all" ? 1 : 0) + (priceTouched ? 1 : 0);
 
   const resetFilters = () => {
     setCat("all");
     setPriceMin(0);
-    setPriceMax(900);
+    setPriceMax(null);
   };
 
   // Lock body scroll while the mobile filter sheet is open.
@@ -1219,7 +1235,7 @@ export function PageShop({
         <div
           style={{ fontFamily: "var(--mono)", fontSize: 13, marginBottom: 16 }}
         >
-          {priceMin}₺ — {priceMax}₺
+          {priceMin}₺ — {priceTop}₺
         </div>
         <div style={{ position: "relative", height: 28 }}>
           <div
@@ -1236,8 +1252,8 @@ export function PageShop({
             style={{
               position: "absolute",
               top: 12,
-              left: `${(priceMin / 900) * 100}%`,
-              right: `${100 - (priceMax / 900) * 100}%`,
+              left: `${(priceMin / priceCeiling) * 100}%`,
+              right: `${100 - (priceTop / priceCeiling) * 100}%`,
               height: 2,
               background: "var(--ink)",
             }}
@@ -1245,11 +1261,11 @@ export function PageShop({
           <input
             type="range"
             min="0"
-            max="900"
+            max={priceCeiling}
             step="20"
             value={priceMin}
             onChange={(e) =>
-              setPriceMin(Math.min(parseInt(e.target.value), priceMax - 40))
+              setPriceMin(Math.min(parseInt(e.target.value), priceTop - 40))
             }
             className="price-range"
             aria-label="En düşük fiyat"
@@ -1258,9 +1274,9 @@ export function PageShop({
           <input
             type="range"
             min="0"
-            max="900"
+            max={priceCeiling}
             step="20"
-            value={priceMax}
+            value={priceTop}
             onChange={(e) =>
               setPriceMax(Math.max(parseInt(e.target.value), priceMin + 40))
             }

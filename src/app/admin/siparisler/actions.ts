@@ -140,7 +140,7 @@ export async function refundOrderAction(
   _prev: RefundActionState,
   formData: FormData,
 ): Promise<RefundActionState> {
-  await requireRole("orders");
+  await requireRole("refunds");
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "Sipariş ID eksik." };
   const amountText = String(formData.get("amount") ?? "").replace(",", ".");
@@ -153,22 +153,43 @@ export async function refundOrderAction(
     return { error: "İade nedeni en az 3 karakter olmalı." };
   }
   const amountMinor = Math.round(amountMajor * 100);
-  const result = await refundOrder(id, { amountMinor, reason });
-  if (!result.ok) return { error: result.error };
-  // Tell the payment provider to issue the money refund. Mock is a no-op
-  // success; a real POS refunds via its API. Best-effort: a provider failure
-  // does NOT roll back the recorded refund — the admin can retry / reconcile.
-  try {
-    const ref = await getOrderPaymentRef(id);
-    if (ref) await getPaymentProvider().refund(ref.providerRef, amountMinor);
-  } catch (err) {
-    console.error("[refund] provider refund failed", err);
+
+  // The POS call comes FIRST, and its failure stops the refund.
+  //
+  // It used to run after the ledger write, inside a try/catch that only
+  // logged: the admin was told "iade edildi", the order showed a refund, the
+  // reports subtracted it — and the customer's card was never credited. The
+  // refund record now only exists when the money actually moved.
+  const ref = await getOrderPaymentRef(id);
+  if (ref) {
+    try {
+      await getPaymentProvider().refund(ref.providerRef, amountMinor);
+    } catch (err) {
+      console.error("[refund] provider refund failed", err);
+      return {
+        error:
+          "Ödeme sağlayıcısı iadeyi reddetti; hiçbir kayıt oluşturulmadı. Sağlayıcı panelinden kontrol edip tekrar deneyin.",
+      };
+    }
   }
+
+  const result = await refundOrder(id, { amountMinor, reason });
+  if (!result.ok) {
+    // The money is out but the ledger write failed. Loud, because the two are
+    // now out of step and only a human can reconcile them.
+    if (ref) {
+      console.error(
+        `[refund] PROVIDER REFUNDED BUT NOT RECORDED order=${id} amountMinor=${amountMinor} providerRef=${ref.providerRef}`,
+      );
+    }
+    return { error: result.error };
+  }
+
   await logAudit({
     action: "refund",
     entity: "order",
     entityId: id,
-    payload: { amountMinor, reason },
+    payload: { amountMinor, reason, provider: ref?.provider ?? "none" },
   });
   revalidateOrder(id);
   return { ok: { refundedMinor: amountMinor } };

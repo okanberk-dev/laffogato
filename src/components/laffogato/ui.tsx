@@ -8,6 +8,7 @@ import { productPath } from "./route-paths";
 
 import type { MenuCategory, Product } from "./data";
 import { EspressoCup, PhotoSurface, ProductSurface } from "./visuals";
+import { parsePriceLabel } from "@/lib/utils/format";
 
 export interface CartItem {
   /** Stable product id — preferred match key for merge + server resolution. */
@@ -46,7 +47,7 @@ export function toCartItem(
   variant?: { id: string; name: string; priceDelta: number; stock?: number },
 ): CartItem {
   const base =
-    p.priceMinor !== undefined ? p.priceMinor / 100 : parseFloat(p.price) || 0;
+    p.priceMinor !== undefined ? p.priceMinor / 100 : parsePriceLabel(p.price);
   const price = base + (variant?.priceDelta ?? 0);
   return {
     productId: p.id,
@@ -768,7 +769,7 @@ function ProductModalBody({
 
   const selectedVariant = variants.find((v) => v.id === variantId);
   const basePrice =
-    p.priceMinor !== undefined ? p.priceMinor / 100 : parseFloat(p.price) || 0;
+    p.priceMinor !== undefined ? p.priceMinor / 100 : parsePriceLabel(p.price);
   const unitPrice = basePrice + (selectedVariant?.priceDelta ?? 0);
   const stock = selectedVariant?.stock ?? p.stock;
   const outOfStock = stock !== undefined && stock <= 0;

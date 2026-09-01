@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { Product } from "./data";
 import { ProductCard, toCartItem, type CartItem } from "./ui";
 import { ProductSurface } from "./visuals";
+import { parsePriceLabel } from "@/lib/utils/format";
 
 const CART_STORAGE_KEY = "laffogato_cart_v1";
 
@@ -64,7 +65,7 @@ export function ProductDetail({
 
   const selectedVariant = variants.find((v) => v.id === variantId);
   const basePrice =
-    p.priceMinor !== undefined ? p.priceMinor / 100 : parseFloat(p.price) || 0;
+    p.priceMinor !== undefined ? p.priceMinor / 100 : parsePriceLabel(p.price);
   const unitPrice = basePrice + (selectedVariant?.priceDelta ?? 0);
   const compareAt =
     p.compareAtPriceMinor !== undefined
