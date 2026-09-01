@@ -1,6 +1,6 @@
 import "server-only";
 
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 import bcrypt from "bcryptjs";
 import type { DbError } from "@/lib/db";
@@ -494,6 +494,28 @@ export async function getCustomerByEmail(
   if (!needle) return null;
   const doc = await fetchCustomer(needle);
   return doc ? toPublic(doc) : null;
+}
+
+/**
+ * A short, non-reversible fingerprint of the account's current credentials.
+ *
+ * Session cookies carry it, so changing the password invalidates every cookie
+ * already issued: a stolen session used to survive the very act taken to stop
+ * it. Derived from the bcrypt hash, which already contains the salt, and
+ * truncated — it only has to change when the hash does, never to be reversed.
+ */
+export async function getSessionFingerprint(
+  email: string,
+): Promise<string | null> {
+  const needle = normalizeEmail(email);
+  if (!needle) return null;
+  const doc = await fetchCustomer(needle);
+  if (!doc) return null;
+  return fingerprintOf(doc.passwordHash);
+}
+
+export function fingerprintOf(passwordHash: string): string {
+  return createHash("sha256").update(passwordHash).digest("hex").slice(0, 16);
 }
 
 export interface UpdateProfileInput {

@@ -319,7 +319,12 @@ export async function changePasswordAction(
   if (newPw !== confirm) return { error: "Yeni şifreler eşleşmiyor." };
   const result = await changeCustomerPassword(current.email, currentPw, newPw);
   if (!result.ok) return { error: result.error };
-  return { message: "Şifren güncellendi." };
+  // The change invalidates every cookie issued against the old password,
+  // including this browser's — so re-issue one for the person who just did it.
+  await setActiveCustomerSession(current.email);
+  return {
+    message: "Şifren güncellendi. Diğer cihazlardaki oturumların kapatıldı.",
+  };
 }
 
 // ─── Address actions ──────────────────────────────────────────────────────

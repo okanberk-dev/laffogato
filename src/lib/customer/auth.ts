@@ -6,7 +6,11 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { publicRead } from "@/lib/db/health";
 
-import { getCustomerByEmail, type PublicCustomer } from "./store";
+import {
+  getCustomerByEmail,
+  getSessionFingerprint,
+  type PublicCustomer,
+} from "./store";
 
 const COOKIE_NAME = "laffogato_customer_session";
 const COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 gün
@@ -14,6 +18,16 @@ const COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 gün
 export interface CustomerSession {
   email: string;
   expiresAt: number;
+  /**
+   * Fingerprint of the credentials the session was issued against.
+   *
+   * Without it the cookie was pure bearer state for thirty days: changing a
+   * password — the one thing someone does when they suspect their session was
+   * stolen — left every issued cookie working. Empty on cookies minted before
+   * this existed; those are accepted until they expire so nobody is logged out
+   * by the deploy, and re-minted on the next sign-in.
+   */
+  fingerprint: string;
 }
 
 function getSecret(): string {
@@ -28,27 +42,34 @@ function getSecret(): string {
 }
 
 function signToken(session: CustomerSession): string {
-  const payload = `${session.email}|${session.expiresAt}`;
+  const payload = `${session.email}|${session.expiresAt}|${session.fingerprint}`;
   const sig = createHmac("sha256", getSecret()).update(payload).digest("hex");
   return `${payload}|${sig}`;
 }
 
 function verifyToken(token: string): CustomerSession | null {
   const parts = token.split("|");
-  if (parts.length !== 3) return null;
-  const [email, expiresAtStr, sig] = parts;
+  // 3 parts is the pre-fingerprint shape, still honoured until it expires.
+  if (parts.length !== 3 && parts.length !== 4) return null;
+  const fingerprint = parts.length === 4 ? parts[2] : "";
+  const [email, expiresAtStr] = parts;
+  const sig = parts[parts.length - 1];
   const expiresAt = Number(expiresAtStr);
   if (!email || !Number.isFinite(expiresAt) || expiresAt < Date.now())
     return null;
+  const payload =
+    parts.length === 4
+      ? `${email}|${expiresAt}|${fingerprint}`
+      : `${email}|${expiresAt}`;
   const expected = createHmac("sha256", getSecret())
-    .update(`${email}|${expiresAt}`)
+    .update(payload)
     .digest("hex");
   const sigBuf = Buffer.from(sig, "hex");
   const expBuf = Buffer.from(expected, "hex");
   if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
     return null;
   }
-  return { email, expiresAt };
+  return { email, expiresAt, fingerprint };
 }
 
 async function getCustomerSession(): Promise<CustomerSession | null> {
@@ -71,12 +92,23 @@ export async function getActiveCustomer(): Promise<PublicCustomer | null> {
   // blocked in verifyCustomerLogin) — this closes the live-session gap so a
   // member deactivated mid-session can no longer place orders or view account.
   if (!customer || !customer.isActive) return null;
+
+  // A cookie minted against the old password stops working the moment the
+  // password changes. Cookies from before the fingerprint existed carry an
+  // empty one and are honoured until they expire.
+  if (session.fingerprint) {
+    const current = await publicRead("getSessionFingerprint", null, () =>
+      getSessionFingerprint(session.email),
+    );
+    if (!current || current !== session.fingerprint) return null;
+  }
   return customer;
 }
 
 export async function setActiveCustomerSession(email: string): Promise<void> {
   const expiresAt = Date.now() + COOKIE_MAX_AGE_SECONDS * 1000;
-  const token = signToken({ email, expiresAt });
+  const fingerprint = (await getSessionFingerprint(email)) ?? "";
+  const token = signToken({ email, expiresAt, fingerprint });
   const jar = await cookies();
   jar.set({
     name: COOKIE_NAME,
