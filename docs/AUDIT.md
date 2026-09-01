@@ -5,6 +5,11 @@ erişilebilirlik, performans, UX, Next.js uyumu, ölü kod) denetlendi. Ham bulg
 çatışmalı doğrulamadan geçirildi: her iddia, çürütmeye çalışan ayrı bir okuma ile
 karşılaştırıldı ve yalnızca ayakta kalanlar buraya alındı.
 
+> **Durum:** Denetim partisi ve sonrasında yapılanlar canlıda. `main` doğrudan
+> production'a deploy oluyor (`laffogato.net`), migration'lar da uygulamanın
+> kendisi tarafından uygulanıyor — bkz. §6. Bekleyen tek operasyonel iş
+> `PAYMENT_PROVIDER`'ın Vercel'de tanımlı olması (§5).
+
 **Sonuç: 71 doğrulanmış bulgu.** Bunların 2'si kritik, 17'si yüksek, 34'ü orta,
 18'i düşük önemdeydi. Bu belgenin yazıldığı sürümde **69'u düzeltildi**; kalan
 2'si aşağıda "Açık" başlığı altında, neden açık bırakıldıklarıyla birlikte
@@ -238,7 +243,75 @@ bilinçli olarak ertelendi.
 
 ---
 
-## 6. Bu bulguları koruyan testler
+## 6. Denetim sonrası yapılanlar
+
+Denetim partisinden sonra, canlı siteye bakarken ya da kullanıcıdan bilgi
+geldikçe eklenenler.
+
+**MERSİS numarası yayımlandı.** `0734069467300012`, işletme sahibinin ibraz
+ettiği ticaret sicil kaydından. Şirket Bilgileri tablosunda ve Organization
+JSON-LD'sinde `identifier` olarak görünüyor. **Ticaret sicil / dosya numarası
+işletme sahibinin tercihiyle yayımlanmıyor**, KEP adresi de henüz yok — ikisi de
+boş bırakıldığı için ilgili tablo satırları hiç basılmıyor. (TTK m.39 ticari
+belgelerde sicil numarasını da arar; yayımlanması istenirse `entity.ts` içinde
+`tradeRegistryNo: "48639"` yazmak yeterli, gerisi otomatik.)
+
+**Mobil hero sayfayı hapsediyordu.** Hero `100svh` yüksekliğindeydi ama alt tab
+bar `position: fixed` ve hero'nun son 56 pikselini örtüyordu — yani kendi
+kaydırma göstergesi barın arkasında kalıyor ve altında hiçbir şey görünmüyordu.
+Telefonda gördüğün ilk ekran, devamı olmayan bir sayfa gibi duruyordu. Hero
+artık barı, safe-area inset'ini ve bilinçli 40px'i çıkarıyor; her cihazda aynı
+96px'lik bir sonraki bölüm kenarı görünüyor. Ayrıca widget'ın canvas'ına
+`touch-action: pan-y` sabitlendi: vendor bundle three.js OrbitControls üzerine
+kurulu ve OrbitControls bağlanırken `none` yazıyor — bugün `pan-y`'ye çekiyor,
+ama bir yeniden derleme bunu geri alsa tam ekran hero telefonda kaydırılamaz
+hâle gelirdi ve bunu telefon dışında fark etmenin yolu yok.
+
+**Harita, sayfanın yazdığı adrese bakmıyordu.** Gömülü harita ve "Yol tarifi"
+bağlantısı hâlâ `29 Ekim Cd.` adresini geocode ediyordu; sayfa Atatürk
+Caddesi yazarken kendi tarif düğmesi başka bir yere yolluyordu. İşletme
+sahibiyle teyit edildikten sonra düzeltildi — iki sokak adı arasında tahmin
+yürütmek müşteriyi yanlış kapıya göndermek demek, ki bu tutarsızlıktan kötü.
+
+**Canlıdaki iletişim bilgileri eskiydi.** `settings` satırı vergi levhası
+gelmeden önce yazılmıştı; seed yalnızca tablo boşken yazdığı için footer her
+sayfada `tuzla@laffogato.it` ve eski sokak adını gösteriyordu — `/hukuk` ise
+yasal kimlikten okuduğu için doğrusunu. `20260901180000_settings_identity_backfill.sql`
+bunu düzeltir; her kolona yalnızca hâlâ tam olarak eski değeri taşıyorsa
+dokunur, yani sonradan panelden yazılmış bir şeye karışmaz.
+
+### Migration'lar kendiliğinden uygulanır
+
+Bunu belgelemeye değer, çünkü aksini varsaymak kolay: **deploy'da elle
+`npm run db:migrate` çalıştırmak gerekmiyor.** `src/lib/db/bootstrap.ts`
+içindeki `ensureSchemaFresh()` her sorgudan önce `_migrations` tablosunu
+paketteki `MIGRATION_NAMES` listesiyle karşılaştırır; eksik varsa üretilen
+`SCHEMA_SQL` bundle'ını advisory lock altında uygular. Bundle idempotenttir ve
+neyi uyguladığını `_migrations`'a yazar, dolayısıyla sonradan koşturulan bir
+CLI migration çakışma değil no-op olur.
+
+İki sonucu var:
+
+1. Vercel'in build komutunun (`next build`) migration çalıştırmıyor olması bir
+   eksik değil — bilinçli. Build veritabanına hiç bağlanmaz.
+2. `npm run db:bundle` çalıştırmayı unutmak **gerçek** bir hatadır: yeni
+   migration bundle'a girmezse ne uygulama ne de CLI onu görür. Yeni migration
+   yazdıktan sonra her zaman `npm run db:bundle` koş ve üretilen dosyaları
+   commit'le.
+
+### Sıradaki: veritabanı değişecek
+
+Yeni bir veritabanına geçildiğinde ek bir iş yok: boş bir veritabanında
+uygulama şemayı ilk sorguda kendisi kurar ve seed doğru varsayılanları yazar —
+`defaultSettings()` zaten güncel e-posta ve adresi taşıyor. Yukarıdaki backfill
+migration'ı o durumda hiçbir satır bulamaz ve sessizce no-op olur; kalması
+zararsız, çünkü eski verinin taşındığı bir senaryoda hâlâ işe yarar.
+
+Yalnızca `DATABASE_URL`'in yeni bağlantı dizesiyle güncellenmesi yeterli.
+
+---
+
+## 7. Bu bulguları koruyan testler
 
 | Test                             | Neyi kilitliyor                                                             |
 | -------------------------------- | --------------------------------------------------------------------------- |

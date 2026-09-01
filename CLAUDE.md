@@ -243,7 +243,11 @@ durum bozulmaya uygundur.
 - **Server action pattern:** Zod parse → store call → revalidatePath →
   redirect. Skill: `server-action-pattern`
 - **Migration:** `db/migrations/YYYYMMDDHHMMSS_aciklama.sql`, ardından
-  `npm run db:bundle`. Skill: `new-migration`
+  **mutlaka** `npm run db:bundle` ve üretilen dosyaları commit'le. Uygulama
+  migration'ı kendisi uygular (`ensureSchemaFresh`, her sorgudan önce
+  `_migrations`'ı pakete karşı kontrol eder) — ama yalnızca **bundle'daki**
+  migration'ları görür. `db:bundle` unutulursa ne uygulama ne CLI onu görür.
+  Deploy'da elle `db:migrate` gerekmez. Skill: `new-migration`
 - **Para birimleri:** Tüm fiyatlar **minor unit** (kuruş) `priceMinor: number`;
   UI'da `formatTRY()` ile render edilir
 - **Görsel değişiklik yaptıysan** sayfaları gerçekten render edip bak; layout
