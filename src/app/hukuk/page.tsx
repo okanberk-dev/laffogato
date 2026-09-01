@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { LEGAL_DOCS } from "@/lib/legal/documents";
+import { LEGAL_CATEGORY_ORDER, LEGAL_DOCS } from "@/lib/legal/documents";
 
 export const metadata: Metadata = {
   title: "Hukuki bilgiler",
@@ -18,7 +18,11 @@ export const metadata: Metadata = {
 };
 
 export default function HukukIndexPage() {
-  const grouped = new Map<string, typeof LEGAL_DOCS>();
+  // Seed the map in the canonical category order so the grid reads
+  // Sipariş → Ödeme → Veri → Site → Kurumsal regardless of doc order.
+  const grouped = new Map<string, typeof LEGAL_DOCS>(
+    LEGAL_CATEGORY_ORDER.map((c) => [c, [] as typeof LEGAL_DOCS]),
+  );
   for (const d of LEGAL_DOCS) {
     const arr = grouped.get(d.category) ?? [];
     arr.push(d);
@@ -47,31 +51,35 @@ export default function HukukIndexPage() {
         </header>
 
         <div className="legal-index-grid">
-          {[...grouped.entries()].map(([cat, docs]) => (
-            <section key={cat} className="legal-index-group">
-              <div className="eyebrow" style={{ marginBottom: 18 }}>
-                {cat}
-              </div>
-              <ul>
-                {docs.map((d) => (
-                  <li key={d.slug}>
-                    <Link
-                      href={`/hukuk/${d.slug}`}
-                      className="legal-index-link"
-                    >
-                      <span className="legal-index-link-title">{d.title}</span>
-                      <span className="legal-index-link-summary">
-                        {d.summary}
-                      </span>
-                      <span className="eyebrow" style={{ opacity: 0.55 }}>
-                        Güncel: {d.updatedAt} →
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+          {[...grouped.entries()]
+            .filter(([, docs]) => docs.length > 0)
+            .map(([cat, docs]) => (
+              <section key={cat} className="legal-index-group">
+                <div className="eyebrow" style={{ marginBottom: 18 }}>
+                  {cat}
+                </div>
+                <ul>
+                  {docs.map((d) => (
+                    <li key={d.slug}>
+                      <Link
+                        href={`/hukuk/${d.slug}`}
+                        className="legal-index-link"
+                      >
+                        <span className="legal-index-link-title">
+                          {d.title}
+                        </span>
+                        <span className="legal-index-link-summary">
+                          {d.summary}
+                        </span>
+                        <span className="eyebrow" style={{ opacity: 0.55 }}>
+                          Güncel: {d.updatedAt} →
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
         </div>
       </div>
     </main>

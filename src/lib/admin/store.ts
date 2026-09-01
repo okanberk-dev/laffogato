@@ -113,6 +113,26 @@ export interface AdminRefund {
   createdAt: string;
 }
 
+/**
+ * Distance-selling consent evidence captured at checkout.
+ *
+ * Mesafeli Sözleşmeler Yönetmeliği requires proof that the consumer confirmed
+ * the Ön Bilgilendirme Formu and the Mesafeli Satış Sözleşmesi before ordering,
+ * kept on a durable medium. Acquiring banks ask for the same record during a
+ * virtual-POS review and when a chargeback is disputed.
+ */
+export interface OrderLegalConsent {
+  /** ISO-8601 instant the customer ticked the box. */
+  acceptedAt: string;
+  /** Slugs of the documents shown at that moment. */
+  documents: string[];
+  /** Revision label of those documents (their "son güncelleme" date). */
+  version: string;
+  /** Origin of the confirmation — evidence only. */
+  ip?: string;
+  userAgent?: string;
+}
+
 export interface AdminOrder {
   id: string;
   orderNo: number;
@@ -132,6 +152,11 @@ export interface AdminOrder {
   totalMinor: number;
   refunds: AdminRefund[];
   createdAt: string;
+  /**
+   * Consent evidence; `{}` on manual/admin orders and on orders placed before
+   * the consent box existed.
+   */
+  legalConsent?: OrderLegalConsent | Record<string, never>;
   /** Fulfillment — recorded when the shop owner ships the order. */
   trackingNumber?: string;
   carrier?: string;
@@ -287,9 +312,9 @@ function defaultSettings(): AdminSettings {
     name: "L'Affogato",
     tagline: "Drink it. Eat the cup.",
     phone: "+90 216 459 30 60",
-    email: "tuzla@laffogato.it",
+    email: "info@nextgenlab.com.tr",
     address:
-      "Postane Mah. 29 Ekim Cd. No: 28 (Menemenci Cumhur’un yanı), 34940 Tuzla / İstanbul",
+      "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1 (Menemenci Cumhur’un yanı), 34940 Tuzla / İstanbul",
     openingHours: "Pzt–Pş 10:00–23:00 · Cu–Ct 10:00–24:00 · Pz 10:00–23:00",
     isShopOpen: true,
     heroImageUrl: "",
@@ -1058,6 +1083,8 @@ export interface PlaceOrderInput {
   customerPhone?: string;
   shippingAddress?: string;
   promoCode?: string;
+  /** Distance-selling consent captured on the checkout form. */
+  legalConsent?: OrderLegalConsent;
 }
 
 export type PlaceOrderResult =
@@ -1272,6 +1299,7 @@ interface FinalizeOrderInput {
   shippingAddress: string;
   internalNote: string;
   promoCode?: string;
+  legalConsent?: OrderLegalConsent;
 }
 
 /**
@@ -1364,6 +1392,7 @@ async function finalizeOrder(
     totalMinor: totals.totalMinor,
     refunds: [],
     createdAt: new Date().toISOString(),
+    legalConsent: f.legalConsent ?? {},
   };
   check(await sb.from(TABLES.orders).insert(order), "finalizeOrder.insert");
   return { order, promoDropped };
@@ -1415,6 +1444,7 @@ export async function placeOrder(
     shippingAddress: input.shippingAddress?.trim() ?? "",
     internalNote: "",
     promoCode: input.promoCode,
+    legalConsent: input.legalConsent,
   });
   return { ok: true, order, priceAdjusted, promoDropped };
 }

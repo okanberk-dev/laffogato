@@ -2,7 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AccountShell, AccountCard } from "@/components/uye/account-shell";
-import { customerOrdersByEmail } from "@/lib/admin/store";
+import {
+  customerOrdersByEmail,
+  type OrderLegalConsent,
+} from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
 
 import {
@@ -12,6 +15,14 @@ import {
   formatTRY,
   statusReached,
 } from "../../shared";
+
+/** Contracts that govern every order, linked from the order's own page. */
+const ORDER_DOCS = [
+  { slug: "on-bilgilendirme-formu", label: "Ön Bilgilendirme Formu" },
+  { slug: "mesafeli-satis-sozlesmesi", label: "Mesafeli Satış Sözleşmesi" },
+  { slug: "iade-ve-cayma", label: "İptal, İade ve Cayma Hakkı" },
+  { slug: "teslimat-ve-kargo", label: "Teslimat ve Kargo Koşulları" },
+];
 
 export const metadata = { title: "Sipariş detayı · L'Affogato" };
 export const dynamic = "force-dynamic";
@@ -29,6 +40,14 @@ export default async function OrderDetailPage({
 
   const isCancelled =
     order.status === "cancelled" || order.status === "refunded";
+
+  // Consent evidence exists only for orders placed after the checkout
+  // confirmation shipped; older orders simply show the document links.
+  const raw = order.legalConsent;
+  const consent =
+    raw && "acceptedAt" in raw && raw.acceptedAt
+      ? (raw as OrderLegalConsent)
+      : null;
 
   return (
     <AccountShell customer={customer} active="siparislerim">
@@ -161,6 +180,43 @@ export default async function OrderDetailPage({
         </div>
       </AccountCard>
 
+      <AccountCard title="Sözleşmeler ve onay kaydı">
+        {consent ? (
+          <div style={{ display: "grid", gap: 14, fontSize: 14 }}>
+            <DetailRow k="Onay tarihi" v={formatDate(consent.acceptedAt)} />
+            <DetailRow k="Belge sürümü" v={consent.version} />
+          </div>
+        ) : null}
+        <p
+          style={{
+            margin: consent ? "16px 0 12px" : "0 0 12px",
+            color: "var(--ink-soft)",
+            fontSize: 14,
+            lineHeight: 1.6,
+          }}
+        >
+          {consent
+            ? "Siparişini verirken onayladığın belgeler — kalıcı veri saklayıcısı olarak buradan istediğin zaman okuyabilir, yazdırabilirsin."
+            : "Siparişlerine uygulanan sözleşme ve politikalar:"}
+        </p>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, lineHeight: 1.9 }}>
+          {ORDER_DOCS.map((d) => (
+            <li key={d.slug}>
+              <Link
+                href={`/hukuk/${d.slug}`}
+                style={{
+                  color: "var(--gold-deep)",
+                  textDecoration: "underline",
+                  textUnderlineOffset: 3,
+                }}
+              >
+                {d.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </AccountCard>
+
       <AccountCard title="Yardım gerekiyor mu?">
         <p
           style={{
@@ -172,14 +228,14 @@ export default async function OrderDetailPage({
         >
           Siparişinde değişiklik veya iade için bizimle iletişime geç —{" "}
           <a
-            href="mailto:hello@laffogato.net"
+            href="mailto:info@nextgenlab.com.tr"
             style={{
               color: "var(--gold-deep)",
               textDecoration: "underline",
               textUnderlineOffset: 3,
             }}
           >
-            hello@laffogato.net
+            info@nextgenlab.com.tr
           </a>
           . Ekibimiz 24 saat içinde döner.
         </p>

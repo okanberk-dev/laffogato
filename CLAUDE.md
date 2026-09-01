@@ -73,7 +73,11 @@ src/
     admin/                   → auth · store (veri katmanı) · audit · roles ·
                                product-schema (Zod)
     customer/                → Müşteri hesapları, kuponlar, auth
-    payment/                 → PaymentProvider arayüzü + MockPaymentProvider
+    payment/                 → PaymentProvider arayüzü + Mock/iyzico sağlayıcıları
+    legal/                   → entity.ts (yasal kimlik TEK KAYNAK + {{TOKEN}}) ·
+                               content.ts (sözleşme metinleri, ham veri) ·
+                               documents.ts (token doldurma + LEGAL_DOCS) ·
+                               nav.ts (footer linkleri) · markdown.tsx · store.ts
     db/                      → index.ts (pg havuzu + getDb + TABLES) ·
                                client.ts (sorgu kurucu) · sql.ts (SQL derleyici) ·
                                health.ts (bozulma sınıflandırması) · counters.ts
@@ -186,6 +190,9 @@ durum bozulmaya uygundur.
 9. **PII:** Logging'de email/telefon maskelenmeli
 10. **`DATABASE_URL` SADECE server-side** — asla `NEXT_PUBLIC_*` ile expose edilmez
 11. **Veri erişimi yalnız `src/lib/db` üzerinden** — ham SQL'i çağrı noktalarına yayma
+12. **Mesafeli satış onayı zorunlu.** Ödeme adımındaki onay kutusu ön işaretli olamaz; `placeOrderAction` onaysız siparişi reddeder ve onayı (tarih, IP, tarayıcı, belge sürümü) `orders."legalConsent"` JSONB kolonuna yazar — sanal POS / chargeback delili
+13. **Yasal kimlik uydurulmaz.** `src/lib/legal/entity.ts` içinde MERSİS / ticaret sicil / KEP / IBAN bilinmiyorsa **boş bırakılır**; boş token içeren tablo satırı render edilmeden düşürülür. Sahte numara yazmak yerine satırı gizle
+14. **NACE / faaliyet kodu sitede yayımlanmaz** — yalnızca iç kayıt
 
 ## Çalışma Kuralları (Claude için)
 

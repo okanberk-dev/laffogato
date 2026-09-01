@@ -22,6 +22,7 @@ import type {
   AdminOrder,
   AdminOrderItemStatus,
   AdminSettings,
+  OrderLegalConsent,
   OrderTransition,
 } from "@/lib/admin/store";
 
@@ -68,6 +69,85 @@ interface Props {
   statusTone: string;
   refundedMinor: number;
   remainingRefundableMinor: number;
+}
+
+/**
+ * Distance-selling consent evidence, verbatim.
+ *
+ * Mesafeli Sözleşmeler Yönetmeliği requires proof that the buyer confirmed the
+ * ön bilgilendirme formu and the mesafeli satış sözleşmesi before ordering; an
+ * acquiring bank asks for exactly this record when a chargeback is disputed.
+ * Orders placed before the consent box shipped — and admin-entered manual
+ * orders — carry no record, which the card says out loud rather than hiding.
+ */
+function ConsentCard({ consent }: { consent: AdminOrder["legalConsent"] }) {
+  const accepted =
+    consent && "acceptedAt" in consent && consent.acceptedAt
+      ? (consent as OrderLegalConsent)
+      : null;
+  return (
+    <Card>
+      <SectionTitle>Mesafeli satış onayı</SectionTitle>
+      {!accepted ? (
+        <p className="text-sm text-neutral-500">
+          Bu siparişte onay kaydı yok — onay kutusu yayına alınmadan önce
+          verilmiş ya da panelden manuel girilmiş bir sipariş.
+        </p>
+      ) : (
+        <dl className="grid gap-2 text-sm">
+          <div className="flex flex-wrap justify-between gap-2">
+            <dt className="text-neutral-500">Onay zamanı</dt>
+            <dd
+              className="text-neutral-900"
+              style={{ fontFamily: "var(--mono), monospace" }}
+            >
+              {formatDateTime(accepted.acceptedAt)}
+            </dd>
+          </div>
+          <div className="flex flex-wrap justify-between gap-2">
+            <dt className="text-neutral-500">Onaylanan belgeler</dt>
+            <dd className="text-right text-neutral-900">
+              {accepted.documents.map((slug) => (
+                <div key={slug}>
+                  <a
+                    href={`/hukuk/${slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:text-[var(--admin-primary)]"
+                  >
+                    /hukuk/{slug}
+                  </a>
+                </div>
+              ))}
+            </dd>
+          </div>
+          <div className="flex flex-wrap justify-between gap-2">
+            <dt className="text-neutral-500">Belge sürümü</dt>
+            <dd className="text-neutral-900">{accepted.version}</dd>
+          </div>
+          {accepted.ip && (
+            <div className="flex flex-wrap justify-between gap-2">
+              <dt className="text-neutral-500">IP adresi</dt>
+              <dd
+                className="text-neutral-900"
+                style={{ fontFamily: "var(--mono), monospace" }}
+              >
+                {accepted.ip}
+              </dd>
+            </div>
+          )}
+          {accepted.userAgent && (
+            <div className="grid gap-1">
+              <dt className="text-neutral-500">Tarayıcı</dt>
+              <dd className="text-xs break-all text-neutral-600">
+                {accepted.userAgent}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+    </Card>
+  );
 }
 
 export function OrderDetail({
@@ -285,6 +365,8 @@ export function OrderDetail({
               </ul>
             </Card>
           )}
+
+          <ConsentCard consent={order.legalConsent} />
 
           <Card>
             <SectionTitle>İçsel not</SectionTitle>

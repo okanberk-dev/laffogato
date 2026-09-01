@@ -18,7 +18,7 @@ export interface FaqEntry {
 export const FAQ: FaqEntry[] = [
   {
     q: "L'Affogato nerede, nasıl ulaşırım?",
-    a: "L'Affogato, Tuzla'da 200 yıllık, restore edilmiş bir Rum köşkünde bulunuyor: Postane Mah. 29 Ekim Cad. No:28, 34953 Tuzla, İstanbul. Marmaray Tuzla istasyonu 6 dakika, E-5 / TEM Tuzla çıkışı 4 dakika, Sabiha Gökçen Havalimanı 15 dakika mesafededir. Ücretsiz vale park hizmeti sunulur.",
+    a: "L'Affogato, Tuzla'da 200 yıllık, restore edilmiş bir Rum köşkünde bulunuyor: Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, 34953 Tuzla, İstanbul. Marmaray Tuzla istasyonu 6 dakika, E-5 / TEM Tuzla çıkışı 4 dakika, Sabiha Gökçen Havalimanı 15 dakika mesafededir. Ücretsiz vale park hizmeti sunulur.",
   },
   {
     q: "Çalışma saatleri nedir?",

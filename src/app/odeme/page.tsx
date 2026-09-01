@@ -26,12 +26,26 @@ function GatePanel({ children }: { children: React.ReactNode }) {
 export const metadata = { title: "Ödeme · L'Affogato" };
 export const dynamic = "force-dynamic";
 
-export default async function OdemePage() {
+/** Redirect reasons the checkout can bounce back with. */
+const CHECKOUT_NOTICES: Record<string, string> = {
+  consent:
+    "Siparişi tamamlamak için Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi onayı zorunludur. Lütfen onay kutusunu işaretleyin.",
+  payment:
+    "Ödeme tamamlanamadı. Kartınızdan tahsilat yapılmadı — dilerseniz tekrar deneyebilirsiniz.",
+};
+
+export default async function OdemePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   // Settings first: if the shop is closed — including because the database is
   // unreachable, which forces it closed — nothing else needs loading, and the
   // wizard must not render against fallback tax and shipping values.
   const settings = await getPublicSettings();
   const customer = settings.isShopOpen ? await getActiveCustomer() : null;
+  const { error } = await searchParams;
+  const notice = error ? CHECKOUT_NOTICES[error] : undefined;
   const config = {
     shippingFlatMinor: settings.shippingFlatMinor,
     shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
@@ -72,6 +86,24 @@ export default async function OdemePage() {
             </span>
           </div>
         </header>
+        {notice && (
+          <p
+            role="alert"
+            style={{
+              maxWidth: 640,
+              margin: "0 auto 24px",
+              padding: "14px 18px",
+              border: "1px solid rgba(180,60,40,0.28)",
+              background: "rgba(180,60,40,0.06)",
+              borderRadius: 14,
+              color: "#8c2f1e",
+              fontSize: 14,
+              lineHeight: 1.6,
+            }}
+          >
+            {notice}
+          </p>
+        )}
         {!settings.isShopOpen ? (
           <GatePanel>
             <h2

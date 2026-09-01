@@ -1,5 +1,6 @@
 import "server-only";
 
+import { SITE } from "@/lib/seo/site";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
 /**
@@ -11,7 +12,12 @@ import { formatTRYMinor } from "@/lib/utils/commerce";
  * Swapping to SES/Postmark/etc. is a one-function change.
  */
 
-const FROM = process.env.EMAIL_FROM || "L'Affogato <onboarding@resend.dev>";
+/**
+ * Sender identity. Resend only delivers from a domain verified on the account
+ * (SPF + DKIM records on nextgenlab.com.tr), so keep `EMAIL_FROM` overridable:
+ * until that DNS verification is done, point it at a verified sandbox address.
+ */
+const FROM = process.env.EMAIL_FROM || "L'Affogato <info@nextgenlab.com.tr>";
 
 interface SendArgs {
   to: string;
@@ -114,6 +120,17 @@ function orderLinesHtml(items: OrderEmailData["items"]): string {
     .join("");
 }
 
+/**
+ * The contracts the buyer confirmed at checkout. Mesafeli Sözleşmeler
+ * Yönetmeliği requires them to reach the consumer on a durable medium, so the
+ * order e-mail carries a permanent link to each.
+ */
+const CONSENT_DOC_LINKS = [
+  { label: "Ön Bilgilendirme Formu", slug: "on-bilgilendirme-formu" },
+  { label: "Mesafeli Satış Sözleşmesi", slug: "mesafeli-satis-sozlesmesi" },
+  { label: "İptal, İade ve Cayma Hakkı", slug: "iade-ve-cayma" },
+].map((d) => ({ ...d, url: `${SITE.url}/hukuk/${d.slug}` }));
+
 function orderShellHtml(
   greeting: string,
   intro: string,
@@ -127,6 +144,10 @@ function orderShellHtml(
     ${orderLinesHtml(o.items)}
   </table>
   <p style="font-size:15px;text-align:right;margin:10px 0"><strong>Toplam: ${formatTRYMinor(o.totalMinor)}</strong></p>
+  <p style="font-size:12px;line-height:1.7;color:#8a7a6c;margin:22px 0 0;padding-top:14px;border-top:1px solid #e7ddcf">
+    Sipariş sırasında onayladığın belgeler — kalıcı veri saklayıcısı olarak saklaman için:<br />
+    ${CONSENT_DOC_LINKS.map((d) => `<a href="${d.url}" style="color:#8a6a3c">${d.label}</a>`).join(" · ")}
+  </p>
   <p style="font-size:13px;color:#3A2A20;margin-top:24px">— L'Affogato · Coffee Italiano</p>
 </div>`;
 }
@@ -148,6 +169,9 @@ Sipariş No: #${o.orderNo}
 ${orderLinesText(o.items)}
 
 Toplam: ${formatTRYMinor(o.totalMinor)}
+
+Onayladığın belgeler:
+${CONSENT_DOC_LINKS.map((d) => `- ${d.label}: ${d.url}`).join("\n")}
 
 — L'Affogato`;
   return send({

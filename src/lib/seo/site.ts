@@ -58,11 +58,11 @@ export const SITE = {
   locale: "tr_TR",
   language: "tr",
   alternateLocale: [],
-  email: "tuzla@laffogato.it",
+  email: "info@nextgenlab.com.tr",
   phone: "+90 216 459 30 60",
   phoneE164: "+902164593060",
   address: {
-    streetAddress: "Postane Mah. 29 Ekim Cd. No: 28",
+    streetAddress: "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
     addressLocality: "Tuzla",
     addressRegion: "İstanbul",
     postalCode: "34940",
@@ -87,10 +87,16 @@ export const SITE = {
     name: "L'Affogato Italia",
     address: "İtalya merkez",
   },
+  /**
+   * Resmî sosyal medya hesapları. Hepsinin kullanıcı adı `@laffogatto`.
+   * JSON-LD `sameAs` ve footer ikonları buradan okur.
+   */
   social: {
+    handle: "@laffogatto",
     instagram: "https://instagram.com/laffogatto",
     tiktok: "https://tiktok.com/@laffogatto",
     youtube: "https://youtube.com/@laffogatto",
+    x: "https://x.com/laffogatto",
   },
   priceRange: "₺₺",
   cuisine: ["Italian", "Coffee", "Gelato", "Dessert"],

@@ -4715,6 +4715,44 @@ select {
   margin-top: 0;
 }
 
+/* Distance-selling consent — Mesafeli Sözleşmeler Yönetmeliği requires an
+   explicit, never pre-ticked confirmation before the order is created. */
+.checkout-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 22px 0 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md, 12px);
+  background: var(--bg-soft, rgba(0, 0, 0, 0.02));
+}
+.checkout-consent input[type="checkbox"] {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+.checkout-consent label {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.checkout-consent a {
+  color: var(--gold-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.checkout-consent-note {
+  margin: 0 0 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-mute);
+}
+
 /* ─────────────────────────────────────────────────────────────
    Legal pages (/hukuk/*) — Turkish-law contracts & policies
    ─────────────────────────────────────────────��─────────────── */

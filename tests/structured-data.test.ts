@@ -34,9 +34,30 @@ describe("JSON-LD structured data — SEO audit fixes", () => {
     expect(graph).not.toMatch(/maltepe/i);
   });
 
-  it("carries consistent NAP (phone + new street address)", () => {
+  it("carries consistent NAP (phone + tax-certificate street address)", () => {
     expect(graph).toContain("+902164593060");
-    expect(graph).toContain("29 Ekim");
+    expect(graph).toContain("Atatürk Cad.");
+    expect(graph).not.toContain("29 Ekim");
+  });
+
+  it("declares the real legal entity and tax number on the Organization node", () => {
+    expect(graph).toContain(
+      "NEXTGEN YAZILIM EĞİTİM İNŞAAT SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
+    );
+    expect(graph).toContain('"taxID":"6312110904"');
+    // MERSİS is unknown, so the identifier node must be omitted entirely.
+    expect(graph).not.toContain("MERSİS");
+  });
+
+  it("lists every official social profile under sameAs", () => {
+    for (const url of [
+      "https://instagram.com/laffogatto",
+      "https://tiktok.com/@laffogatto",
+      "https://youtube.com/@laffogatto",
+      "https://x.com/laffogatto",
+    ]) {
+      expect(graph).toContain(url);
+    }
   });
 
   it("uses the real /icon-512.png logo asset (not the missing /icon.png)", () => {

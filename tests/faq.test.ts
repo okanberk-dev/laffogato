@@ -12,9 +12,10 @@ describe("Customer FAQ content", () => {
     expect(all).not.toContain("280.000");
   });
 
-  it("location answer uses the new Tuzla street, never Maltepe", () => {
+  it("location answer uses the tax-certificate Tuzla street, never Maltepe", () => {
     expect(all).not.toMatch(/maltepe/i);
-    expect(all).toContain("29 Ekim");
+    expect(all).toContain("Atatürk Cad.");
+    expect(all).not.toContain("29 Ekim");
   });
 
   it("every entry has a non-empty question and answer", () => {

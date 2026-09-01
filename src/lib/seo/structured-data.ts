@@ -25,6 +25,7 @@ import {
   type MenuCategory,
   type Product,
 } from "@/components/laffogato/data";
+import { LEGAL_ENTITY, LEGAL_ADDRESS_LINE } from "@/lib/legal/entity";
 
 type Json = Record<string, unknown>;
 
@@ -57,9 +58,29 @@ function organizationLd(): Json {
     "@context": "https://schema.org",
     "@type": "Organization",
     "@id": `${SITE.url}/#organization`,
-    name: SITE.legalName,
-    alternateName: SITE.name,
-    legalName: SITE.legalName,
+    name: SITE.name,
+    alternateName: [SITE.legalName, LEGAL_ENTITY.shortName],
+    // Ticaret sicilindeki tüzel kişi — vergi levhası ile doğrulandı.
+    legalName: LEGAL_ENTITY.legalName,
+    taxID: LEGAL_ENTITY.taxNo,
+    vatID: LEGAL_ENTITY.taxNo,
+    ...(LEGAL_ENTITY.mersisNo
+      ? {
+          identifier: {
+            "@type": "PropertyValue",
+            propertyID: "MERSİS",
+            value: LEGAL_ENTITY.mersisNo,
+          },
+        }
+      : {}),
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: LEGAL_ENTITY.address.line1,
+      addressLocality: LEGAL_ENTITY.address.district,
+      addressRegion: LEGAL_ENTITY.address.city,
+      addressCountry: "TR",
+      name: LEGAL_ADDRESS_LINE,
+    },
     url: SITE.url,
     logo: {
       "@type": "ImageObject",
@@ -79,7 +100,12 @@ function organizationLd(): Json {
       "@type": "Person",
       name: "Giancarlo Mancuso",
     },
-    sameAs: [SITE.social.instagram, SITE.social.tiktok, SITE.social.youtube],
+    sameAs: [
+      SITE.social.instagram,
+      SITE.social.tiktok,
+      SITE.social.youtube,
+      SITE.social.x,
+    ],
     contactPoint: [
       {
         "@type": "ContactPoint",
@@ -123,7 +149,12 @@ export function localBusinessLd(): Json {
     isAccessibleForFree: true,
     keywords: SITE.keywords.slice(0, 10).join(", "),
     slogan: SITE.tagline,
-    sameAs: [SITE.social.instagram, SITE.social.tiktok, SITE.social.youtube],
+    sameAs: [
+      SITE.social.instagram,
+      SITE.social.tiktok,
+      SITE.social.youtube,
+      SITE.social.x,
+    ],
     address: {
       "@type": "PostalAddress",
       streetAddress: SITE.address.streetAddress,

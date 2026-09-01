@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { LEGAL_DOCS, findLegalDoc } from "@/lib/legal/documents";
+import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { LegalMarkdown } from "@/lib/legal/markdown";
 import { getPublishedLegalOverride } from "@/lib/legal/store";
 
@@ -147,14 +148,14 @@ export default async function LegalDocPage({
             Spesifik bir mesele için lütfen avukatınıza danışın. Belgede güncel
             olmayan veya hata içerdiğini düşündüğünüz bir bilgi varsa{" "}
             <a
-              href="mailto:kvkk@laffogato.net"
+              href={`mailto:${LEGAL_ENTITY.email}`}
               style={{
                 color: "var(--gold-deep)",
                 textDecoration: "underline",
                 textUnderlineOffset: 3,
               }}
             >
-              kvkk@laffogato.net
+              {LEGAL_ENTITY.email}
             </a>{" "}
             adresine yazın.
           </p>

@@ -330,7 +330,7 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
             name="notificationEmail"
             type="email"
             defaultValue={settings.notificationEmail}
-            placeholder="operasyon@laffogato.it"
+            placeholder="info@nextgenlab.com.tr"
           />
         </Field>
         <SaveBar state={state} pending={pending} />

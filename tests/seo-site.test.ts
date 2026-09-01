@@ -3,8 +3,10 @@ import { describe, it, expect } from "vitest";
 import { SITE } from "@/lib/seo/site";
 
 describe("SITE constants — NAP + lean-SEO fixes", () => {
-  it("uses the Tuzla street address (no Maltepe anywhere)", () => {
-    expect(SITE.address.streetAddress).toBe("Postane Mah. 29 Ekim Cd. No: 28");
+  it("uses the tax-certificate Tuzla street address (no Maltepe anywhere)", () => {
+    expect(SITE.address.streetAddress).toBe(
+      "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
+    );
     expect(SITE.address.addressLocality).toBe("Tuzla");
     expect(SITE.address.postalCode).toBe("34940");
     expect(JSON.stringify(SITE)).not.toMatch(/maltepe/i);
@@ -23,15 +25,21 @@ describe("SITE constants — NAP + lean-SEO fixes", () => {
     expect(SITE.geo.longitude).toBeLessThan(29.35);
   });
 
-  it("uses the Tuzla contact email", () => {
-    expect(SITE.email).toBe("tuzla@laffogato.it");
+  it("uses the corporate contact email", () => {
+    expect(SITE.email).toBe("info@nextgenlab.com.tr");
   });
 
   it("uses the laffogatto social handles", () => {
+    expect(SITE.social.handle).toBe("@laffogatto");
     expect(SITE.social.instagram).toBe("https://instagram.com/laffogatto");
     expect(SITE.social.tiktok).toBe("https://tiktok.com/@laffogatto");
     expect(SITE.social.youtube).toBe("https://youtube.com/@laffogatto");
+    expect(SITE.social.x).toBe("https://x.com/laffogatto");
     expect(SITE.twitter).toBe("@laffogatto");
+    // "laffogato" (single t) must not survive anywhere in a profile URL
+    for (const url of Object.values(SITE.social)) {
+      expect(url).not.toMatch(/laffogato(?!t)/);
+    }
   });
 
   it("has a lean, de-duplicated keyword set (<= 12, no dupes)", () => {

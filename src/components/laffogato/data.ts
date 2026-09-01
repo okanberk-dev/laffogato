@@ -404,7 +404,7 @@ export const LOCATION = {
   name: "L'Affogato — Tuzla",
   short: "Tuzla · İstanbul",
   address: [
-    "Postane Mah. 29 Ekim Cd. No: 28",
+    "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
     "Menemenci Cumhur’un yanı",
     "34940 Tuzla / İstanbul",
   ],
@@ -418,6 +418,6 @@ export const LOCATION = {
   mapsQuery: "L'Affogato, 29 Ekim Cd. No:28, 34940 Tuzla, İstanbul",
   landmark: "Menemenci Cumhur’un yanı",
   phone: "+90 216 459 30 60",
-  email: "tuzla@laffogato.it",
+  email: "info@nextgenlab.com.tr",
   parent: "L'Affogato Italia · Via Galliera 21, Bologna",
 };

@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { applyPromoCode, placeOrder } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { applyCustomerCoupon } from "@/lib/customer/coupons";
 import { sendOrderPlacedEmail } from "@/lib/email/send";
+import { CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED } from "@/lib/legal/documents";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
 
@@ -102,6 +104,28 @@ function parseItems(raw: string): ClientCartItem[] {
   }
 }
 
+/**
+ * Builds the durable record proving the customer confirmed the Ön Bilgilendirme
+ * Formu and the Mesafeli Satış Sözleşmesi before the order was created — the
+ * evidence Mesafeli Sözleşmeler Yönetmeliği requires and an acquiring bank asks
+ * for on a chargeback. Returns `null` when the box was not ticked.
+ */
+async function readLegalConsent(formData: FormData) {
+  if (String(formData.get("legalConsent") ?? "") !== "on") return null;
+  const h = await headers();
+  // The first hop in x-forwarded-for is the client; Vercel also sets
+  // x-real-ip. Both are absent locally, which is fine — ip is evidence, not a
+  // validity condition.
+  const forwarded = h.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return {
+    acceptedAt: new Date().toISOString(),
+    documents: [...CHECKOUT_CONSENT_DOCS],
+    version: LEGAL_UPDATED,
+    ip: forwarded || h.get("x-real-ip") || "",
+    userAgent: (h.get("user-agent") ?? "").slice(0, 300),
+  };
+}
+
 export async function placeOrderAction(formData: FormData) {
   // Siparişler yalnızca e-postası doğrulanmış hesaplarla verilebilir.
   const customer = await getActiveCustomer();
@@ -116,6 +140,14 @@ export async function placeOrderAction(formData: FormData) {
 
   if (items.length === 0) {
     redirect("/?cart=empty");
+  }
+
+  // No confirmation, no contract: the order is never created. The checkbox is
+  // also `required` client-side, so reaching this branch means a tampered or
+  // scripted submit.
+  const legalConsent = await readLegalConsent(formData);
+  if (!legalConsent) {
+    redirect("/odeme?error=consent");
   }
 
   const result = await placeOrder({
@@ -136,6 +168,7 @@ export async function placeOrderAction(formData: FormData) {
       undefined,
     shippingAddress: String(formData.get("shippingAddress") ?? "") || undefined,
     promoCode: String(formData.get("promoCode") ?? "") || undefined,
+    legalConsent,
   });
 
   if (!result.ok) {

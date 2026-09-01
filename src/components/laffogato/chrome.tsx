@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
 import { SITE } from "@/lib/seo/site";
 
 import { NewsletterForm } from "./newsletter-form";
@@ -609,7 +610,7 @@ interface FooterProps {
 }
 
 const DEFAULT_ADDRESS_LINES = [
-  "Postane Mah. 29 Ekim Cd. No: 28",
+  "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
   "Menemenci Cumhur’un yanı",
   "34940 Tuzla / İstanbul",
 ];
@@ -632,7 +633,7 @@ export function Footer({ navigate, settings }: FooterProps) {
     window.scrollTo({ top: 0 });
   };
   const phone = settings?.phone ?? "+90 216 459 30 60";
-  const email = settings?.email ?? "tuzla@laffogato.it";
+  const email = settings?.email ?? LEGAL_ENTITY.email;
   const addressLines = splitAddress(settings?.address);
   const year = new Date().getFullYear();
   return (
@@ -702,7 +703,7 @@ export function Footer({ navigate, settings }: FooterProps) {
               href={SITE.social.instagram}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Instagram"
+              aria-label="Instagram — @laffogatto"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <rect
@@ -729,7 +730,7 @@ export function Footer({ navigate, settings }: FooterProps) {
               href={SITE.social.tiktok}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="TikTok"
+              aria-label="TikTok — @laffogatto"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <path
@@ -751,7 +752,7 @@ export function Footer({ navigate, settings }: FooterProps) {
               href={SITE.social.youtube}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="YouTube"
+              aria-label="YouTube — @laffogatto"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <rect
@@ -809,28 +810,13 @@ export function Footer({ navigate, settings }: FooterProps) {
         <div>
           <h5>Yasal</h5>
           <ul>
+            {FOOTER_LEGAL_DOCS.map((d) => (
+              <li key={d.slug}>
+                <Link href={`/hukuk/${d.slug}`}>{d.label}</Link>
+              </li>
+            ))}
             <li>
-              <Link href="/hukuk/kullanim-sartlari">Kullanım Şartları</Link>
-            </li>
-            <li>
-              <Link href="/hukuk/gizlilik-politikasi">Gizlilik Politikası</Link>
-            </li>
-            <li>
-              <Link href="/hukuk/mesafeli-satis-sozlesmesi">
-                Mesafeli Satış Sözleşmesi
-              </Link>
-            </li>
-            <li>
-              <Link href="/hukuk/iade-ve-cayma">İade & Cayma</Link>
-            </li>
-            <li>
-              <Link href="/hukuk/teslimat-ve-kargo">Teslimat & Kargo</Link>
-            </li>
-            <li>
-              <Link href="/hukuk/cerez-politikasi">Çerez Politikası</Link>
-            </li>
-            <li>
-              <Link href="/hukuk/kvkk-aydinlatma-metni">KVKK Aydınlatma</Link>
+              <Link href="/hukuk">Tüm belgeler →</Link>
             </li>
           </ul>
         </div>

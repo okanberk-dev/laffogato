@@ -13,8 +13,25 @@ describe("Canonical domain — laffogato.net", () => {
     expect(SITE.url).toMatch(/^https?:\/\//);
   });
 
-  it("legal entity contact e-mail uses the laffogato.net domain", () => {
-    expect(LEGAL_ENTITY.legalEmail).toBe("kvkk@laffogato.net");
+  it("legal entity mirrors the tax certificate (vergi levhası)", () => {
+    expect(LEGAL_ENTITY.legalName).toBe(
+      "NEXTGEN YAZILIM EĞİTİM İNŞAAT SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
+    );
+    expect(LEGAL_ENTITY.taxNo).toBe("6312110904");
+    expect(LEGAL_ENTITY.taxOffice).toBe("Tuzla Vergi Dairesi");
+    expect(LEGAL_ENTITY.email).toBe("info@nextgenlab.com.tr");
+  });
+
+  it("never ships an invented MERSİS / trade-registry / KEP / IBAN value", () => {
+    // Unknown identifiers stay empty so the renderer hides those table rows.
+    for (const v of [
+      LEGAL_ENTITY.mersisNo,
+      LEGAL_ENTITY.tradeRegistryNo,
+      LEGAL_ENTITY.kep,
+      LEGAL_ENTITY.bank.iban,
+    ]) {
+      expect(v).toBe("");
+    }
   });
 
   it("legal documents reference laffogato.net, never .com.tr", () => {
