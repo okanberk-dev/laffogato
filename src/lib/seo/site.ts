@@ -6,65 +6,128 @@
  * canonical brand information stays in one place.
  */
 
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
-  "https://laffogato.com.tr";
+import { LEGAL_ENTITY } from "@/lib/legal/entity";
+
+/**
+ * Resolves the public base URL across local, Vercel preview, and Vercel
+ * production deployments. Priority:
+ *
+ *   1. NEXT_PUBLIC_SITE_URL — explicit override (production custom domain)
+ *   2. VERCEL_PROJECT_PRODUCTION_URL — Vercel's canonical production URL
+ *   3. VERCEL_URL — the per-deployment URL (used on preview deploys)
+ *   4. https://laffogato.net — local-build fallback (canonical domain)
+ *
+ * Always ends without a trailing slash.
+ */
+function resolveSiteUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  const vercelProd = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (vercelProd)
+    return `https://${vercelProd.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl)
+    return `https://${vercelUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
+
+  return "https://laffogato.net";
+}
+
+const SITE_URL = resolveSiteUrl();
+
+/**
+ * `true` when the build is running on a Vercel preview/development deployment.
+ * Used to disable indexing on non-production deployments so previews don't
+ * compete with the canonical domain in search results.
+ */
+export const IS_PRODUCTION_DEPLOY =
+  process.env.VERCEL_ENV === "production" || !process.env.VERCEL_ENV;
 
 export const SITE = {
   url: SITE_URL,
   name: "L'Affogato",
-  legalName: "L'Affogato Italia",
+  /**
+   * The registered company behind the brand, taken from the tax certificate.
+   * Used wherever a *publisher* is named (metadata, Dublin Core, JSON-LD) —
+   * the site used to publish "L'Affogato Italia" here, which is a brand line
+   * and not a legal person, so the pages contradicted the contracts.
+   */
+  legalName: LEGAL_ENTITY.legalName,
+  /** Brand alternate — descriptive, deliberately not a registered entity. */
+  tradeName: "L'Affogato Italia",
   brand: "L'Affogato — Caffè · Gelato · Dolci",
+  descriptor: "Coffee Italiano",
   tagline: "Drink it. Eat the cup.",
   shortDescription:
-    "Bologna 1987'den İstanbul'a. Yenilebilir waffle kupada espresso ve gelato. Maltepe Park açık-hava teras.",
+    "Bologna 1987'den İstanbul'a. Yenilebilir waffle kupada espresso ve gelato. Tuzla'da 200 yıllık, Rum'lardan kalma restore bir köşkte.",
   longDescription:
-    "L'Affogato, 1987'de Bologna'da Giancarlo Mancuso tarafından kurulan ve 2026'da İstanbul Maltepe Park'ta ilk yurt dışı şubesini açan İtalyan kahve ve gelato barıdır. İmza ritüelimiz: yenilebilir waffle kupa içinde Sirena espresso ve fior di latte gelato. Drink it. Eat the cup.",
+    "L'Affogato, 1987'de Bologna'da Giancarlo Mancuso tarafından kurulan ve 2026'da İstanbul Tuzla'da — 200 yıllık, Rum'lardan kalma restore edilmiş bir köşkte — ilk yurt dışı şubesini açan İtalyan kahve ve gelato barıdır. İmza ritüelimiz: yenilebilir waffle kupa içinde Sirena espresso ve fior di latte gelato. Drink it. Eat the cup.",
   founded: "1987",
   openedTurkey: "2026",
   locale: "tr_TR",
   language: "tr",
-  alternateLocale: ["it_IT", "en_US"],
-  email: "maltepe@laffogato.it",
-  phone: "+90 216 459 30 60",
-  phoneE164: "+902164593060",
+  alternateLocale: [],
+  email: "info@nextgenlab.com.tr",
+  phone: "+90 536 429 09 19",
+  phoneE164: "+905364290919",
   address: {
-    streetAddress: "Cevizli, Tugay Yolu Caddesi No:67",
-    addressLocality: "Maltepe",
+    streetAddress: "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
+    addressLocality: "Tuzla",
     addressRegion: "İstanbul",
-    postalCode: "34846",
+    postalCode: "34940",
     addressCountry: "TR",
-    venue: "Maltepe Park AVM · Açık-hava teras",
+    venue: "200 yıllık restore Rum köşkü",
+    /** Nearest well-known landmark — how locals actually give directions. */
+    landmark: "Menemenci Cumhur’un yanı",
   },
   geo: {
-    latitude: 40.9337,
-    longitude: 29.1517,
-    placename: "Maltepe Park, İstanbul",
+    latitude: 40.8165716,
+    longitude: 29.3032493,
+    placename: "Tuzla",
     region: "TR-34",
     countryCode: "TR",
   },
+  /**
+   * 09:00–01:00, every day.
+   *
+   * The close is on the FOLLOWING day. schema.org accepts this form, and
+   * anything computing an open/closed state from it must treat the window as
+   * wrapping rather than comparing the two times numerically.
+   */
   openingHours: [
-    { days: ["Mo", "Tu", "We", "Th"], opens: "10:00", closes: "23:00" },
-    { days: ["Fr", "Sa"], opens: "10:00", closes: "24:00" },
-    { days: ["Su"], opens: "10:00", closes: "23:00" },
+    {
+      days: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+      // Türetilmiş, kopyalanmış değil: saat iki yerde yazılıysa biri
+      // güncellenmeden kalır — /hukuk/sirket-bilgileri tam olarak böyle
+      // eskimişti.
+      opens: LEGAL_ENTITY.cafeHours.opens,
+      closes: LEGAL_ENTITY.cafeHours.closes,
+    },
   ],
   parent: {
     name: "L'Affogato Italia",
-    address: "Via Galliera 21, 40121 Bologna, Italia",
+    address: "İtalya merkez",
   },
+  /**
+   * Resmî sosyal medya hesapları. Hepsinin kullanıcı adı `@laffogatto`.
+   * JSON-LD `sameAs` ve footer ikonları buradan okur.
+   */
   social: {
-    instagram: "https://instagram.com/laffogato",
-    tiktok: "https://tiktok.com/@laffogato",
-    youtube: "https://youtube.com/@laffogato",
+    handle: "@laffogatto",
+    instagram: "https://instagram.com/laffogatto",
+    tiktok: "https://tiktok.com/@laffogatto",
+    youtube: "https://youtube.com/@laffogatto",
+    x: "https://x.com/laffogatto",
   },
   priceRange: "₺₺",
   cuisine: ["Italian", "Coffee", "Gelato", "Dessert"],
   paymentAccepted: ["Cash", "Credit Card", "Apple Pay", "Google Pay"],
   currencies: ["TRY"],
-  ogImage: "/og-image.png",
+  ogImage: "/opengraph-image",
   ogImageWidth: 1200,
   ogImageHeight: 630,
-  twitter: "@laffogato",
+  twitter: "@laffogatto",
   /**
    * Search engine verification tokens. Set the corresponding env var on
    * Vercel/CI to emit the verification meta tag; otherwise leave as empty
@@ -79,36 +142,35 @@ export const SITE = {
   },
   keywords: [
     "L'Affogato",
-    "Laffogato",
-    "Maltepe Park kafe",
-    "Maltepe affogato",
-    "İstanbul affogato",
-    "yenilebilir kup",
-    "edible cup",
+    "Tuzla kafe",
+    "Tuzla affogato",
     "İtalyan kahve İstanbul",
-    "Bologna kahvesi",
     "gelato İstanbul",
-    "matcha bar Maltepe",
-    "Uji matcha İstanbul",
-    "espresso Maltepe",
-    "cold brew İstanbul",
-    "tiramisu Maltepe",
-    "kafe Maltepe Park",
-    "kahve dükkanı Maltepe",
-    "Sirena espresso",
-    "fior di latte gelato",
-    "Bronte pistacchio",
-    "İtalyan dondurma İstanbul",
-    "rezervasyon Maltepe kafe",
-    "franchise kahve",
+    "yenilebilir kup",
+    "matcha bar Tuzla",
+    "Tuzla köşk kafe",
+    "espresso Tuzla",
   ],
 } as const;
 
 /**
- * Sitemap entries. Hash-routed sections share the same HTML document and
- * Google strips the fragment, so we emit a single canonical entry for `/`.
- * If we ever split sections into real routes, add them here.
+ * The Open Graph fields every page has to re-declare.
+ *
+ * Next shallow-merges `openGraph` across segments: a page that sets its own
+ * `openGraph` block replaces the layout's entirely, so `og:site_name`,
+ * `og:locale` and the default image vanish unless they are repeated. Spread
+ * this first, then override `title`/`description`/`url`.
  */
-export const ROUTES = [
-  { path: "/", section: "home", title: "Ana Sayfa", priority: 1.0, changefreq: "daily" },
-] as const;
+export function openGraphDefaults() {
+  return {
+    siteName: SITE.name,
+    locale: SITE.locale,
+    images: [
+      {
+        url: SITE.ogImage,
+        width: SITE.ogImageWidth,
+        height: SITE.ogImageHeight,
+      },
+    ],
+  };
+}

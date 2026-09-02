@@ -2,19 +2,18 @@
  * JSON-LD structured data generators.
  *
  * Bundled into a single @graph emitted at `/`. Currently produces:
- *  - Organization (corporate identity, Bologna parent)
+ *  - Organization (corporate identity, Italy parent)
  *  - CafeOrCoffeeShop + Restaurant (LocalBusiness for Maps/local SEO)
- *  - WebSite (with SearchAction for sitelinks)
- *  - BreadcrumbList
+ *  - WebSite (no potentialAction: the site has neither a search endpoint nor
+ *    a reservation flow, and claiming either produced dead affordances)
+ *  - SiteNavigationElement (the home page is the root, so it has no
+ *    BreadcrumbList; deep routes emit their own)
  *  - Menu + MenuSection + MenuItem (live from admin store)
  *  - Product (one per shop SKU — with image, brand, sku, full offer,
  *    shipping policy, return policy)
  *  - FAQPage
  *  - AboutPage (story/heritage timeline)
  *  - HowTo (how an affogato is made)
- *  - Service (franchise model)
- *  - Offer × 3 (Kiosk / Bottega / Salone franchise packages)
- *  - VideoObject × N (reels)
  *  - SpeakableSpecification (for voice assistants)
  *
  * All generators return plain JSON-serializable objects; consumer wraps in
@@ -23,13 +22,110 @@
 
 import { FAQ, type FaqEntry } from "./faq";
 import { SITE } from "./site";
-import { FRANCHISE, REELS, STORY, type MenuCategory, type Product } from "@/components/laffogato/data";
+import {
+  STORY,
+  type MenuCategory,
+  type Product,
+} from "@/components/laffogato/data";
+import {
+  DAYS_OF_WEEK,
+  DAY_SCHEMA_ORG,
+  type WeeklyHours,
+} from "@/lib/admin/days";
+import { LEGAL_ENTITY, LEGAL_ADDRESS_LINE } from "@/lib/legal/entity";
 
 type Json = Record<string, unknown>;
 
-function priceToMinor(price: string): { amount: string; currency: string } {
-  const cleaned = price.replace(/[^\d.,]/g, "").replace(",", ".");
-  return { amount: cleaned || "0", currency: "TRY" };
+/**
+ * BCP-47 language tag. `SITE.locale` is the OpenGraph form (`tr_TR`), which is
+ * not valid for schema.org's `inLanguage` — consumers that validate the tag
+ * dropped the field.
+ */
+const LANG_TAG = SITE.locale.replace("_", "-");
+
+const CURRENCY = "TRY";
+
+/**
+ * Absolute URL for a product image.
+ *
+ * Uploaded images are served from a site-relative path (`/gorsel/urun/...`);
+ * pasted ones are already absolute. Structured data needs an absolute URL
+ * either way — the old check accepted only `https://`, so every uploaded photo
+ * was silently replaced by the generic OG card.
+ */
+function imageUrl(images: string[] | undefined): string {
+  const first = images?.[0]?.trim();
+  if (!first) return `${SITE.url}${SITE.ogImage}`;
+  if (/^https?:\/\//i.test(first)) return first;
+  if (first.startsWith("/")) return `${SITE.url}${first}`;
+  return `${SITE.url}${SITE.ogImage}`;
+}
+
+/**
+ * The parts of the admin settings that structured data has to agree with.
+ * Optional at every call site so a page that has not loaded settings still
+ * renders — it then omits the fields it cannot state truthfully rather than
+ * publishing a stale constant.
+ */
+export interface LdSettings {
+  weeklyHours: WeeklyHours;
+  shippingFlatMinor: number;
+  shippingFreeThresholdMinor: number;
+}
+
+/** Shipping block built from the live settings, or omitted when unknown. */
+function shippingDetailsLd(settings?: LdSettings): Json | null {
+  if (!settings) return null;
+  return {
+    "@type": "OfferShippingDetails",
+    shippingRate: {
+      "@type": "MonetaryAmount",
+      value: (settings.shippingFlatMinor / 100).toFixed(2),
+      currency: CURRENCY,
+    },
+    shippingDestination: { "@type": "DefinedRegion", addressCountry: "TR" },
+    deliveryTime: {
+      "@type": "ShippingDeliveryTime",
+      handlingTime: {
+        "@type": "QuantitativeValue",
+        minValue: 0,
+        maxValue: 1,
+        unitCode: "DAY",
+      },
+      transitTime: {
+        "@type": "QuantitativeValue",
+        minValue: 1,
+        maxValue: 3,
+        unitCode: "DAY",
+      },
+    },
+  };
+}
+
+/**
+ * Formats an exact offer price.
+ *
+ * Prefers the minor-unit integer when the caller has it: the display string
+ * is rounded to whole lira, so a ₺184,90 product used to be published to
+ * Google as ₺185 while checkout charged ₺184,90 — a price mismatch Merchant
+ * Center rejects, and a small lie either way.
+ *
+ * Returns `null` when there is no real price to publish. During a database
+ * outage the menu renders prices as "—"; the old parser turned that into
+ * "0" and the site advertised its entire menu as free.
+ */
+function offerPrice(display: string, minor?: number): string | null {
+  if (typeof minor === "number" && Number.isFinite(minor) && minor > 0) {
+    return (minor / 100).toFixed(2);
+  }
+  const cleaned = display
+    .replace(/[^\d.,]/g, "")
+    // Turkish formatting: "." groups thousands, "," is the decimal mark.
+    .replace(/\.(?=\d{3}\b)/g, "")
+    .replace(",", ".");
+  const value = Number(cleaned);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return value.toFixed(2);
 }
 
 function slugify(s: string): string {
@@ -45,29 +141,93 @@ function slugify(s: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-function eurAmount(s: string): { amount: string; currency: string } {
-  const cleaned = s.replace(/[^\d]/g, "");
-  return { amount: cleaned || "0", currency: "EUR" };
-}
-
 const PRICE_VALID_UNTIL = (() => {
   const d = new Date();
   d.setFullYear(d.getFullYear() + 1);
   return d.toISOString().slice(0, 10);
 })();
 
-export function organizationLd(): Json {
+/**
+ * Opening hours for Maps and rich results.
+ *
+ * Reads the admin's weekly hours when they are available, so a change made in
+ * Ayarlar reaches Google. Falls back to the build-time constant only when a
+ * caller has no settings to hand — the site used to publish that constant
+ * unconditionally, so edited hours never left the panel.
+ */
+function openingHoursLd(settings?: LdSettings): Json[] {
+  // schema.org Time has no "24:00"; map midnight-close to "23:59" so the slot
+  // reads as open-till-late, not "closes at 00:00" (= closed).
+  const closeAt = (c: string) => (c === "24:00" || c === "00:00" ? "23:59" : c);
+
+  if (settings) {
+    return DAYS_OF_WEEK.filter((d) => !settings.weeklyHours[d]?.closed).map(
+      (d) => ({
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: [DAY_SCHEMA_ORG[d]],
+        opens: settings.weeklyHours[d].open,
+        closes: closeAt(settings.weeklyHours[d].close),
+      }),
+    );
+  }
+
+  const map: Record<string, string> = {
+    Mo: "Monday",
+    Tu: "Tuesday",
+    We: "Wednesday",
+    Th: "Thursday",
+    Fr: "Friday",
+    Sa: "Saturday",
+    Su: "Sunday",
+  };
+  return SITE.openingHours.map((slot) => ({
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: slot.days.map((d) => map[d] ?? d),
+    opens: slot.opens,
+    closes: closeAt(slot.closes),
+  }));
+}
+
+function organizationLd(): Json {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
     "@id": `${SITE.url}/#organization`,
-    name: SITE.legalName,
-    alternateName: SITE.name,
-    legalName: SITE.legalName,
+    name: SITE.name,
+    alternateName: [SITE.tradeName, LEGAL_ENTITY.shortName],
+    // Ticaret sicilindeki tüzel kişi — vergi levhası ile doğrulandı.
+    legalName: LEGAL_ENTITY.legalName,
+    taxID: LEGAL_ENTITY.taxNo,
+    vatID: LEGAL_ENTITY.taxNo,
+    // Only the identifiers we actually hold. An empty one is omitted rather
+    // than published as a blank PropertyValue.
+    ...(() => {
+      const ids = [
+        LEGAL_ENTITY.mersisNo && {
+          "@type": "PropertyValue",
+          propertyID: "MERSİS",
+          value: LEGAL_ENTITY.mersisNo,
+        },
+        LEGAL_ENTITY.tradeRegistryNo && {
+          "@type": "PropertyValue",
+          propertyID: "Ticaret Sicil No",
+          value: LEGAL_ENTITY.tradeRegistryNo,
+        },
+      ].filter(Boolean);
+      return ids.length ? { identifier: ids } : {};
+    })(),
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: LEGAL_ENTITY.address.line1,
+      addressLocality: LEGAL_ENTITY.address.district,
+      addressRegion: LEGAL_ENTITY.address.city,
+      addressCountry: "TR",
+      name: LEGAL_ADDRESS_LINE,
+    },
     url: SITE.url,
     logo: {
       "@type": "ImageObject",
-      url: `${SITE.url}/icon.png`,
+      url: `${SITE.url}/icon-512.png`,
       width: 512,
       height: 512,
     },
@@ -76,14 +236,19 @@ export function organizationLd(): Json {
     foundingDate: SITE.founded,
     foundingLocation: {
       "@type": "Place",
-      name: "Bologna, Italia",
+      name: "Italia",
       address: SITE.parent.address,
     },
     founder: {
       "@type": "Person",
       name: "Giancarlo Mancuso",
     },
-    sameAs: [SITE.social.instagram, SITE.social.tiktok, SITE.social.youtube],
+    sameAs: [
+      SITE.social.instagram,
+      SITE.social.tiktok,
+      SITE.social.youtube,
+      SITE.social.x,
+    ],
     contactPoint: [
       {
         "@type": "ContactPoint",
@@ -91,13 +256,6 @@ export function organizationLd(): Json {
         email: SITE.email,
         contactType: "customer service",
         areaServed: "TR",
-        availableLanguage: ["Turkish", "English", "Italian"],
-      },
-      {
-        "@type": "ContactPoint",
-        email: "franchise@laffogato.it",
-        contactType: "franchise inquiries",
-        areaServed: ["TR", "EU"],
         availableLanguage: ["Turkish", "English", "Italian"],
       },
     ],
@@ -112,14 +270,14 @@ export function organizationLd(): Json {
   };
 }
 
-export function localBusinessLd(): Json {
+export function localBusinessLd(settings?: LdSettings): Json {
   return {
     "@context": "https://schema.org",
     "@type": ["CafeOrCoffeeShop", "Restaurant"],
     "@id": `${SITE.url}/#localbusiness`,
-    name: `${SITE.name} — Maltepe Park`,
+    name: `${SITE.name} — Tuzla`,
     image: [`${SITE.url}${SITE.ogImage}`],
-    logo: `${SITE.url}/icon.png`,
+    logo: `${SITE.url}/icon-512.png`,
     url: SITE.url,
     telephone: SITE.phoneE164,
     email: SITE.email,
@@ -128,12 +286,22 @@ export function localBusinessLd(): Json {
     servesCuisine: [...SITE.cuisine],
     paymentAccepted: SITE.paymentAccepted.join(", "),
     currenciesAccepted: SITE.currencies.join(", "),
-    acceptsReservations: true,
+    // The site takes no reservations — there is no form, no store and no
+    // admin screen for them, and the Kullanım Şartları say so explicitly.
+    // Publishing `true` put a "Reserve" affordance in Google's business card
+    // that led to a dead button.
+    acceptsReservations: false,
     smokingAllowed: false,
     publicAccess: true,
     isAccessibleForFree: true,
     keywords: SITE.keywords.slice(0, 10).join(", "),
     slogan: SITE.tagline,
+    sameAs: [
+      SITE.social.instagram,
+      SITE.social.tiktok,
+      SITE.social.youtube,
+      SITE.social.x,
+    ],
     address: {
       "@type": "PostalAddress",
       streetAddress: SITE.address.streetAddress,
@@ -148,38 +316,59 @@ export function localBusinessLd(): Json {
       longitude: SITE.geo.longitude,
     },
     hasMap: `https://www.google.com/maps/search/?api=1&query=${SITE.geo.latitude},${SITE.geo.longitude}`,
-    openingHoursSpecification: SITE.openingHours.map((slot) => ({
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: slot.days.map((d) => {
-        const map: Record<string, string> = {
-          Mo: "Monday",
-          Tu: "Tuesday",
-          We: "Wednesday",
-          Th: "Thursday",
-          Fr: "Friday",
-          Sa: "Saturday",
-          Su: "Sunday",
-        };
-        return map[d] ?? d;
-      }),
-      opens: slot.opens,
-      closes: slot.closes,
-    })),
+    openingHoursSpecification: openingHoursLd(settings),
     parentOrganization: { "@id": `${SITE.url}/#organization` },
     areaServed: { "@type": "City", name: "İstanbul" },
     amenityFeature: [
-      { "@type": "LocationFeatureSpecification", name: "Açık-hava teras", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Ücretsiz Wi-Fi", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Vale park", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Evcil hayvan dostu", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Vegan seçenek", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Bebek arabası erişimi", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Glutensiz seçenek", value: true },
-      { "@type": "LocationFeatureSpecification", name: "Çocuk menüsü", value: true },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Tarihi Rum köşkü",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Ücretsiz Wi-Fi",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Karaoke odası",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Vale park",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Evcil hayvan dostu",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Vegan seçenek",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Bebek arabası erişimi",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Glutensiz seçenek",
+        value: true,
+      },
+      {
+        "@type": "LocationFeatureSpecification",
+        name: "Çocuk menüsü",
+        value: true,
+      },
     ],
     publicTransitClosestStop: [
-      "Tramvay Cevizli (5 dk)",
-      "Marmaray Maltepe (8 dk)",
+      "Marmaray Tuzla (6 dk)",
+      "Sabiha Gökçen Havalimanı (15 dk)",
     ],
     hasOfferCatalog: { "@id": `${SITE.url}/#menu` },
     additionalProperty: [
@@ -197,7 +386,7 @@ export function localBusinessLd(): Json {
   };
 }
 
-export function websiteLd(): Json {
+function websiteLd(): Json {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -205,32 +394,13 @@ export function websiteLd(): Json {
     url: SITE.url,
     name: SITE.name,
     description: SITE.shortDescription,
-    inLanguage: SITE.locale,
+    inLanguage: LANG_TAG,
     publisher: { "@id": `${SITE.url}/#organization` },
     copyrightYear: 2026,
     copyrightHolder: { "@id": `${SITE.url}/#organization` },
-    potentialAction: [
-      {
-        "@type": "SearchAction",
-        target: {
-          "@type": "EntryPoint",
-          urlTemplate: `${SITE.url}/?q={search_term_string}`,
-        },
-        "query-input": "required name=search_term_string",
-      },
-      {
-        "@type": "ReserveAction",
-        target: {
-          "@type": "EntryPoint",
-          urlTemplate: `${SITE.url}/#visit`,
-          actionPlatform: [
-            "http://schema.org/DesktopWebPlatform",
-            "http://schema.org/MobileWebPlatform",
-          ],
-        },
-        result: { "@type": "FoodEstablishmentReservation" },
-      },
-    ],
+    // No `potentialAction`. A SearchAction would need a search endpoint the
+    // site does not have, and the ReserveAction that used to sit here
+    // advertised a reservation flow that was never built.
   };
 }
 
@@ -250,60 +420,128 @@ export function breadcrumbLd(
   };
 }
 
+/** One MenuSection node, shared by the full menu and a single category page. */
+function menuSectionNode(key: string, cat: MenuCategory): Json {
+  return {
+    "@type": "MenuSection",
+    "@id": `${SITE.url}/#menu-${key}`,
+    name: cat.title,
+    description: cat.note,
+    hasMenuItem: cat.items.map((item) => {
+      const price = offerPrice(item.price);
+      const tags = item.tags ?? [];
+      const diet: string[] = [];
+      if (tags.includes("vegan opt."))
+        diet.push("https://schema.org/VeganDiet");
+      return {
+        "@type": "MenuItem",
+        name: item.name,
+        description: item.desc,
+        // No price, no offer. During an outage every price renders as "—";
+        // publishing that as 0 advertised the whole menu as free.
+        ...(price
+          ? {
+              offers: {
+                "@type": "Offer",
+                price,
+                priceCurrency: CURRENCY,
+                availability: "https://schema.org/InStock",
+              },
+            }
+          : {}),
+        ...(diet.length ? { suitableForDiet: diet } : {}),
+      };
+    }),
+  };
+}
+
 export function menuLd(menu: Record<string, MenuCategory>): Json {
   return {
     "@context": "https://schema.org",
     "@type": "Menu",
     "@id": `${SITE.url}/#menu`,
     name: `${SITE.name} Menü`,
-    inLanguage: SITE.locale,
-    hasMenuSection: Object.entries(menu).map(([key, cat]) => ({
-      "@type": "MenuSection",
-      "@id": `${SITE.url}/#menu-${key}`,
-      name: cat.title,
-      description: cat.note,
-      hasMenuItem: cat.items.map((item) => {
-        const { amount, currency } = priceToMinor(item.price);
-        const tags = item.tags ?? [];
-        const diet: string[] = [];
-        if (tags.includes("vegan opt.")) diet.push("https://schema.org/VeganDiet");
-        if (tags.includes("nuts")) diet.push("https://schema.org/LowCalorieDiet");
-        return {
-          "@type": "MenuItem",
-          name: item.name,
-          description: item.desc,
-          offers: {
-            "@type": "Offer",
-            price: amount,
-            priceCurrency: currency,
-            availability: "https://schema.org/InStock",
-          },
-          ...(diet.length ? { suitableForDiet: diet } : {}),
-          menuAddOn: tags.includes("signature") ? "signature" : undefined,
-        };
-      }),
-    })),
+    inLanguage: LANG_TAG,
+    hasMenuSection: Object.entries(menu).map(([key, cat]) =>
+      menuSectionNode(key, cat),
+    ),
   };
 }
 
-export function productListLd(products: Product[]): Json {
+/**
+ * A single menu category, for `/menu/[kategori]`.
+ *
+ * The category page shows one section, so it publishes that section — not a
+ * Menu whose `hasMenuSection` holds a single entry while sharing the `#menu`
+ * @id with the full menu at /menu. `isPartOf` keeps the two joined.
+ */
+export function menuSectionLd(
+  key: string,
+  cat: MenuCategory,
+  path: string,
+): Json | null {
+  // An empty section is a claim that the category has nothing in it. During a
+  // database outage that is false, and it is the one moment the claim would be
+  // published. Say nothing instead.
+  if (!cat?.items?.length) return null;
+  return {
+    "@context": "https://schema.org",
+    ...menuSectionNode(key, cat),
+    url: `${SITE.url}${path}`,
+    inLanguage: LANG_TAG,
+    isPartOf: { "@type": "Menu", "@id": `${SITE.url}/#menu` },
+  };
+}
+
+/**
+ * Scope for a product ItemList.
+ *
+ * The home page publishes the whole catalogue under `/#products`. A listing
+ * page publishes what *that* URL actually shows, so it carries its own @id,
+ * name and url instead of claiming to be the catalogue.
+ */
+export interface ProductListScope {
+  /** Path the list describes, e.g. `/magaza/cekirdek-kahve`. */
+  path: string;
+  name: string;
+  description: string;
+}
+
+export function productListLd(
+  products: Product[],
+  settings?: LdSettings,
+  scope?: ProductListScope,
+): Json | null {
+  // Same reasoning as menuSectionLd: `numberOfItems: 0` tells Google the shop
+  // is empty. The shop deliberately renders empty rather than falling back to
+  // bundled products, so this is exactly the state an outage produces.
+  if (!products.length) return null;
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    "@id": `${SITE.url}/#products`,
-    name: `${SITE.name} Mağaza`,
-    description: "L'Affogato online mağaza — çekirdek kahve, edible cup, ekipman, hediye seti, giyim.",
+    "@id": scope
+      ? `${SITE.url}${scope.path}#products`
+      : `${SITE.url}/#products`,
+    name: scope ? scope.name : `${SITE.name} Mağaza`,
+    description: scope
+      ? scope.description
+      : "L'Affogato online mağaza — çekirdek kahve, edible cup, ekipman, hediye seti, giyim.",
+    ...(scope ? { url: `${SITE.url}${scope.path}` } : {}),
     numberOfItems: products.length,
     itemListOrder: "https://schema.org/ItemListOrderDescending",
     itemListElement: products.map((p, idx) => {
-      const { amount, currency } = priceToMinor(p.price);
-      const compareAt = p.compareAtPrice ? priceToMinor(p.compareAtPrice) : null;
-      const slug = slugify(p.name);
+      const amount = offerPrice(p.price, p.priceMinor);
+      const compareAt = p.compareAtPrice
+        ? offerPrice(p.compareAtPrice, p.compareAtPriceMinor)
+        : null;
+      const slug = p.slug ?? slugify(p.name);
       const productId = `${SITE.url}/#product-${slug}`;
+      const pdpUrl = `${SITE.url}/magaza/urun/${slug}`;
+      const image = imageUrl(p.images);
       return {
         "@type": "ListItem",
         position: idx + 1,
-        url: `${SITE.url}/#shop`,
+        url: pdpUrl,
         item: {
           "@type": "Product",
           "@id": productId,
@@ -312,62 +550,47 @@ export function productListLd(products: Product[]): Json {
           category: p.cat,
           sku: `LAF-${slug.toUpperCase().slice(0, 20)}`,
           mpn: `LAF-${slug.toUpperCase().slice(0, 20)}`,
-          brand: { "@type": "Brand", name: SITE.name, "@id": `${SITE.url}/#organization` },
+          brand: {
+            "@type": "Brand",
+            name: SITE.name,
+            "@id": `${SITE.url}/#organization`,
+          },
           manufacturer: { "@id": `${SITE.url}/#organization` },
-          image: `${SITE.url}${SITE.ogImage}`,
-          url: `${SITE.url}/#shop`,
-          inLanguage: SITE.locale,
+          image,
+          url: pdpUrl,
+          inLanguage: LANG_TAG,
           offers: {
             "@type": "Offer",
             "@id": `${productId}-offer`,
-            price: amount,
-            priceCurrency: currency,
+            ...(amount ? { price: amount } : {}),
+            priceCurrency: CURRENCY,
             priceValidUntil: PRICE_VALID_UNTIL,
-            availability: "https://schema.org/InStock",
+            // Out of stock is a fact the shop already knows; declaring it
+            // InStock sent shoppers to a product they could not buy.
+            availability:
+              p.stock !== undefined && p.stock <= 0
+                ? "https://schema.org/OutOfStock"
+                : "https://schema.org/InStock",
             itemCondition: "https://schema.org/NewCondition",
-            url: `${SITE.url}/#shop`,
+            url: pdpUrl,
             seller: { "@id": `${SITE.url}/#organization` },
-            ...(compareAt
+            ...(compareAt && amount
               ? {
                   priceSpecification: {
                     "@type": "UnitPriceSpecification",
                     price: amount,
-                    priceCurrency: currency,
-                    referencePrice: compareAt.amount,
+                    priceCurrency: CURRENCY,
                   },
                 }
               : {}),
-            shippingDetails: {
-              "@type": "OfferShippingDetails",
-              shippingRate: {
-                "@type": "MonetaryAmount",
-                value: "29",
-                currency: "TRY",
-              },
-              shippingDestination: {
-                "@type": "DefinedRegion",
-                addressCountry: "TR",
-              },
-              deliveryTime: {
-                "@type": "ShippingDeliveryTime",
-                handlingTime: {
-                  "@type": "QuantitativeValue",
-                  minValue: 0,
-                  maxValue: 1,
-                  unitCode: "DAY",
-                },
-                transitTime: {
-                  "@type": "QuantitativeValue",
-                  minValue: 1,
-                  maxValue: 3,
-                  unitCode: "DAY",
-                },
-              },
-            },
+            ...(shippingDetailsLd(settings)
+              ? { shippingDetails: shippingDetailsLd(settings) }
+              : {}),
             hasMerchantReturnPolicy: {
               "@type": "MerchantReturnPolicy",
               applicableCountry: "TR",
-              returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+              returnPolicyCategory:
+                "https://schema.org/MerchantReturnFiniteReturnWindow",
               merchantReturnDays: 14,
               returnMethod: "https://schema.org/ReturnByMail",
               returnFees: "https://schema.org/FreeReturn",
@@ -375,8 +598,12 @@ export function productListLd(products: Product[]): Json {
           },
           additionalProperty: [
             { "@type": "PropertyValue", name: "tag", value: p.tag },
-            ...(p.featured ? [{ "@type": "PropertyValue", name: "featured", value: "true" }] : []),
-            ...(p.isNew ? [{ "@type": "PropertyValue", name: "isNew", value: "true" }] : []),
+            ...(p.featured
+              ? [{ "@type": "PropertyValue", name: "featured", value: "true" }]
+              : []),
+            ...(p.isNew
+              ? [{ "@type": "PropertyValue", name: "isNew", value: "true" }]
+              : []),
           ],
         },
       };
@@ -384,12 +611,93 @@ export function productListLd(products: Product[]): Json {
   };
 }
 
-export function faqLd(entries: FaqEntry[] = FAQ): Json {
+/**
+ * Single-product JSON-LD for the PDP. Mirrors the offer/shipping/return shape
+ * used by productListLd but for one product, with a stable canonical URL.
+ */
+export function singleProductLd(
+  p: Product,
+  canonicalPath: string,
+  settings?: LdSettings,
+): Json {
+  const amount = offerPrice(p.price, p.priceMinor);
+  const compareAt = p.compareAtPrice
+    ? offerPrice(p.compareAtPrice, p.compareAtPriceMinor)
+    : null;
+  const slug = p.slug ?? slugify(p.name);
+  const url = `${SITE.url}${canonicalPath}`;
+  const productId = `${url}#product`;
+  const image = imageUrl(p.images);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": productId,
+    name: p.name,
+    description: p.desc,
+    category: p.cat,
+    sku: p.sku || `LAF-${slug.toUpperCase().slice(0, 20)}`,
+    mpn: p.sku || `LAF-${slug.toUpperCase().slice(0, 20)}`,
+    brand: {
+      "@type": "Brand",
+      name: SITE.name,
+      "@id": `${SITE.url}/#organization`,
+    },
+    image,
+    url,
+    inLanguage: LANG_TAG,
+    ...(p.weightGrams
+      ? {
+          weight: {
+            "@type": "QuantitativeValue",
+            value: p.weightGrams,
+            unitCode: "GRM",
+          },
+        }
+      : {}),
+    offers: {
+      "@type": "Offer",
+      "@id": `${productId}-offer`,
+      ...(amount ? { price: amount } : {}),
+      priceCurrency: CURRENCY,
+      priceValidUntil: PRICE_VALID_UNTIL,
+      availability:
+        p.stock !== undefined && p.stock <= 0
+          ? "https://schema.org/OutOfStock"
+          : "https://schema.org/InStock",
+      itemCondition: "https://schema.org/NewCondition",
+      url,
+      seller: { "@id": `${SITE.url}/#organization` },
+      ...(compareAt && amount
+        ? {
+            priceSpecification: {
+              "@type": "UnitPriceSpecification",
+              price: amount,
+              priceCurrency: CURRENCY,
+            },
+          }
+        : {}),
+      ...(shippingDetailsLd(settings)
+        ? { shippingDetails: shippingDetailsLd(settings) }
+        : {}),
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        applicableCountry: "TR",
+        returnPolicyCategory:
+          "https://schema.org/MerchantReturnFiniteReturnWindow",
+        merchantReturnDays: 14,
+        returnMethod: "https://schema.org/ReturnByMail",
+        returnFees: "https://schema.org/FreeReturn",
+      },
+    },
+  };
+}
+
+function faqLd(entries: FaqEntry[] = FAQ): Json {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "@id": `${SITE.url}/#faq`,
-    inLanguage: SITE.locale,
+    inLanguage: LANG_TAG,
     mainEntity: entries.map((entry) => ({
       "@type": "Question",
       name: entry.q,
@@ -401,16 +709,16 @@ export function faqLd(entries: FaqEntry[] = FAQ): Json {
   };
 }
 
-export function aboutPageLd(): Json {
+function aboutPageLd(): Json {
   return {
     "@context": "https://schema.org",
     "@type": "AboutPage",
     "@id": `${SITE.url}/#about`,
-    url: `${SITE.url}/#story`,
+    url: `${SITE.url}/hikayemiz`,
     name: `${SITE.name} — Hikayemiz`,
-    inLanguage: SITE.locale,
+    inLanguage: LANG_TAG,
     description:
-      "1987'den 2026'ya L'Affogato'nun Bologna'dan İstanbul'a uzanan üç kuşaklık hikayesi.",
+      "1987'den 2026'ya L'Affogato'nun İtalya'dan İstanbul'a uzanan üç kuşaklık hikayesi.",
     isPartOf: { "@id": `${SITE.url}/#website` },
     about: { "@id": `${SITE.url}/#organization` },
     mainEntity: {
@@ -430,132 +738,61 @@ export function aboutPageLd(): Json {
   };
 }
 
-export function howToAffogatoLd(): Json {
+function howToAffogatoLd(): Json {
   return {
     "@context": "https://schema.org",
     "@type": "HowTo",
     "@id": `${SITE.url}/#howto-affogato`,
-    name: "Klasik Affogato nasıl yapılır?",
+    name: "L'Affogato nasıl yapılır?",
     description:
-      "L'Affogato Bologna'nın 1987'den beri uyguladığı orijinal affogato tarifi: tek scoop fior di latte gelato üzerine çift shot Sirena espresso, yenilebilir waffle kup içinde.",
-    inLanguage: SITE.locale,
+      "Evin imza içeceği: bir top dondurma üzerine taze çekilmiş sıcak espresso. İki dakikada hazırlanır, hemen tüketilir.",
+    inLanguage: LANG_TAG,
     totalTime: "PT2M",
     estimatedCost: {
       "@type": "MonetaryAmount",
       currency: "TRY",
-      value: "130",
+      value: "280",
     },
     tool: [
       { "@type": "HowToTool", name: "Espresso makinesi" },
-      { "@type": "HowToTool", name: "Gelato kaşığı" },
-      { "@type": "HowToTool", name: "Yenilebilir waffle kup" },
+      { "@type": "HowToTool", name: "Dondurma kaşığı" },
+      { "@type": "HowToTool", name: "Servis bardağı" },
     ],
     supply: [
-      { "@type": "HowToSupply", name: "Sirena espresso harmanı, 18g" },
-      { "@type": "HowToSupply", name: "Fior di latte gelato, 1 scoop" },
+      { "@type": "HowToSupply", name: "Espresso harmanı, 18g" },
+      { "@type": "HowToSupply", name: "Sade dondurma, 1 top" },
     ],
     step: [
       {
         "@type": "HowToStep",
         position: 1,
         name: "Espresso çek",
-        text: "18g öğütülmüş Sirena harmanından 27 saniyede 36g espresso çek. Doppio shot olarak sıcak servise hazırla.",
+        text: "18g öğütülmüş espresso harmanından yaklaşık 27 saniyede 36g espresso çek. Doppio shot olarak sıcak servise hazırla.",
       },
       {
         "@type": "HowToStep",
         position: 2,
-        name: "Gelato kupayı hazırla",
-        text: "Yenilebilir waffle kupun içine tek scoop fior di latte gelato yerleştir. Gelato kupanın hizasının 1cm üstüne çıkmalı.",
+        name: "Dondurmayı hazırla",
+        text: "Servis bardağına bir top sade dondurma yerleştir. Dondurma bardağın hizasının 1cm üstüne çıkmalı.",
       },
       {
         "@type": "HowToStep",
         position: 3,
         name: "Espresso'yu üzerine dök",
-        text: "Sıcak espresso'yu gelatonun üzerine sirkül hareketle dök. Espresso gelatoyu \"boğar\" — affogato'nun adı buradan gelir.",
+        text: "Sıcak espresso'yu dondurmanın üzerine sirküler hareketle dök. Espresso dondurmayı \"boğar\" — affogato'nun adı buradan gelir.",
       },
       {
         "@type": "HowToStep",
         position: 4,
         name: "Hemen tüket",
-        text: "30 saniye içinde tüket: erimiş gelato + sıcak espresso içeren içeceği iç, sonra çıtırlığını koruyan waffle kupu ye. Kaşığa gerek yok.",
+        text: "Birkaç dakika içinde tüket: erimiş dondurma ile sıcak espressonun kontrastı, karışım tamamen soğumadan en iyi tadı verir.",
       },
     ],
     image: `${SITE.url}${SITE.ogImage}`,
   };
 }
 
-export function franchiseServiceLd(): Json {
-  return {
-    "@context": "https://schema.org",
-    "@type": "Service",
-    "@id": `${SITE.url}/#franchise`,
-    name: "L'Affogato Franchise",
-    description: FRANCHISE.pitch,
-    serviceType: "Franchise",
-    provider: { "@id": `${SITE.url}/#organization` },
-    areaServed: [
-      { "@type": "Country", name: "Türkiye" },
-      { "@type": "Country", name: "İtalya" },
-      { "@type": "AdministrativeArea", name: "European Union" },
-    ],
-    inLanguage: SITE.locale,
-    offers: FRANCHISE.packages.map((pkg) => {
-      const investment = eurAmount(pkg.invest);
-      const monthly = eurAmount(pkg.monthly);
-      return {
-        "@type": "Offer",
-        "@id": `${SITE.url}/#franchise-${slugify(pkg.name)}`,
-        name: `Franchise — ${pkg.name}`,
-        description: `${pkg.area}, ${pkg.seats} koltuk. İdeal: ${pkg.ideal}. Dahil: ${pkg.includes.join(", ")}.`,
-        priceSpecification: [
-          {
-            "@type": "PriceSpecification",
-            name: "Başlangıç yatırımı",
-            price: investment.amount,
-            priceCurrency: investment.currency,
-          },
-          {
-            "@type": "UnitPriceSpecification",
-            name: "Aylık franchise ücreti",
-            price: monthly.amount,
-            priceCurrency: monthly.currency,
-            referenceQuantity: {
-              "@type": "QuantitativeValue",
-              value: 1,
-              unitCode: "MON",
-            },
-          },
-        ],
-        availability: "https://schema.org/InStock",
-        seller: { "@id": `${SITE.url}/#organization` },
-        eligibleRegion: [
-          { "@type": "Country", name: "TR" },
-          { "@type": "Country", name: "IT" },
-        ],
-      };
-    }),
-  };
-}
-
-export function videoReelsLd(): Json[] {
-  const now = new Date().toISOString();
-  return REELS.map((reel, idx) => ({
-    "@context": "https://schema.org",
-    "@type": "VideoObject",
-    "@id": `${SITE.url}/#reel-${idx + 1}`,
-    name: reel.caption,
-    description: `${reel.caption} — L'Affogato Maltepe Park.`,
-    thumbnailUrl: `${SITE.url}${SITE.ogImage}`,
-    uploadDate: now,
-    contentUrl: `${SITE.url}/#reels`,
-    embedUrl: `${SITE.url}/#reels`,
-    publisher: { "@id": `${SITE.url}/#organization` },
-    inLanguage: SITE.locale,
-    isFamilyFriendly: true,
-  }));
-}
-
-export function speakableLd(): Json {
+function speakableLd(): Json {
   return {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -566,10 +803,7 @@ export function speakableLd(): Json {
     speakable: {
       "@type": "SpeakableSpecification",
       cssSelector: ["#sss-heading", "#sss"],
-      xpath: [
-        "//*[@id='sss-heading']",
-        "//*[@id='sss']//details//summary",
-      ],
+      xpath: ["//*[@id='sss-heading']", "//*[@id='sss']//details//summary"],
     },
     primaryImageOfPage: {
       "@type": "ImageObject",
@@ -583,33 +817,57 @@ export function speakableLd(): Json {
  * Bundle every site-wide structured data block into one @graph so we emit a
  * single <script> tag instead of a dozen.
  */
+/**
+ * The primary navigation, as `SiteNavigationElement`.
+ *
+ * This is what the home page actually wanted to say — "these are my main
+ * sections" — and it is the type search engines read for sitelinks. It is not
+ * a breadcrumb, which is a path to a single page.
+ */
+export function siteNavigationLd(): Json {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "@id": `${SITE.url}/#navigation`,
+    name: `${SITE.name} — bölümler`,
+    itemListElement: [
+      { name: "Menü", url: "/menu" },
+      { name: "Mağaza", url: "/magaza" },
+      { name: "Rehber", url: "/rehber" },
+      { name: "Hikaye", url: "/hikayemiz" },
+      { name: "Ziyaret · Tuzla", url: "/ziyaret" },
+    ].map((it, idx) => ({
+      "@type": "SiteNavigationElement",
+      position: idx + 1,
+      name: it.name,
+      url: `${SITE.url}${it.url}`,
+    })),
+  };
+}
+
 export function siteGraphLd(
   menu: Record<string, MenuCategory>,
   products: Product[],
+  settings?: LdSettings,
 ): Json {
   return {
     "@context": "https://schema.org",
     "@graph": [
       organizationLd(),
-      localBusinessLd(),
+      localBusinessLd(settings),
       websiteLd(),
       menuLd(menu),
-      productListLd(products),
+      productListLd(products, settings),
       faqLd(),
       aboutPageLd(),
       howToAffogatoLd(),
-      franchiseServiceLd(),
       speakableLd(),
-      ...videoReelsLd(),
-      breadcrumbLd([
-        { name: "Ana Sayfa", url: "/" },
-        { name: "Menü", url: "/#menu" },
-        { name: "Mağaza", url: "/#shop" },
-        { name: "Hikaye", url: "/#story" },
-        { name: "Ziyaret · Maltepe Park", url: "/#visit" },
-        { name: "Reels", url: "/#reels" },
-        { name: "Franchise", url: "/#franchise" },
-      ]),
-    ],
+      // No BreadcrumbList here. A BreadcrumbList is the path from the root to
+      // *this* page; the home page is the root, so it has no trail. Listing the
+      // sections here published "Ana Sayfa › Menü › Mağaza › Hikaye › Ziyaret"
+      // as if it were one path, which is not what any of those pages are.
+      // Section pages emit their own two-step trail via `breadcrumbLd`.
+      siteNavigationLd(),
+    ].filter((node): node is Json => node !== null),
   };
 }

@@ -1,0 +1,439 @@
+import { describe, expect, it } from "vitest";
+
+import type { AdminMenuItem, AdminProduct } from "@/lib/admin/store";
+
+import type { WeeklyHours } from "@/lib/admin/days";
+import {
+  absoluteImageUrl,
+  BEAN_GRINDS,
+  buildBootstrap,
+  buildMobileMenuCategories,
+  COURIER_ETA_MINUTES,
+  HAPPY_HOUR,
+  hoursLabel,
+  latestUpdatedAt,
+  toMobileMenuItem,
+  toMobileShopProduct,
+} from "@/lib/mobile/menu-mapper";
+
+const SITE_URL = "https://laffogato.net";
+
+function menuItem(over: Partial<AdminMenuItem> = {}): AdminMenuItem {
+  return {
+    id: "mnu-0007",
+    categoryKey: "espresso",
+    name: "Cappuccino",
+    desc: "Espresso, buharlı süt ve kalın köpük.",
+    priceMinor: 19500,
+    priceMinorL: 21000,
+    hue: "caramel",
+    image: "",
+    tags: ["signature"],
+    isActive: true,
+    sortOrder: 3,
+    updatedAt: "2026-08-20T10:00:00.000Z",
+    ...over,
+  };
+}
+
+function product(over: Partial<AdminProduct> = {}): AdminProduct {
+  return {
+    id: "prd-0001",
+    name: "Sirena — Espresso Blend",
+    slug: "sirena-espresso-blend",
+    sku: "SIR-250",
+    tag: "Çekirdek · 250g",
+    priceMinor: 32000,
+    compareAtPriceMinor: 0,
+    costMinor: 12000,
+    desc: "Bologna kavurma profili.",
+    cat: "beans",
+    img: "caramel",
+    images: [],
+    stock: 12,
+    lowStockThreshold: 3,
+    weightGrams: 250,
+    featured: true,
+    isNew: false,
+    isActive: true,
+    seoTitle: "Sirena",
+    seoDescription: "Sirena çekirdek",
+    variants: [
+      {
+        id: "var-250",
+        name: "250 g",
+        priceDeltaMinor: 0,
+        stock: 12,
+        sku: "SIR-250",
+        isActive: true,
+      },
+      {
+        id: "var-1kg",
+        name: "1 kg",
+        priceDeltaMinor: 77000,
+        stock: 0,
+        sku: "SIR-1KG",
+        isActive: true,
+      },
+      {
+        id: "var-old",
+        name: "500 g",
+        priceDeltaMinor: 30000,
+        stock: 5,
+        sku: "SIR-500",
+        isActive: false,
+      },
+    ],
+    updatedAt: "2026-08-20T10:00:00.000Z",
+    ...over,
+  };
+}
+
+function everyDay(open: string, close: string): WeeklyHours {
+  const d = { open, close, closed: false };
+  return {
+    mon: { ...d },
+    tue: { ...d },
+    wed: { ...d },
+    thu: { ...d },
+    fri: { ...d },
+    sat: { ...d },
+    sun: { ...d },
+  };
+}
+
+describe("absoluteImageUrl", () => {
+  it("prefixes a served path with the site URL, once", () => {
+    expect(absoluteImageUrl("/gorsel/menu/mnu-0007", SITE_URL)).toBe(
+      "https://laffogato.net/gorsel/menu/mnu-0007",
+    );
+    expect(absoluteImageUrl("/x", "https://laffogato.net/")).toBe(
+      "https://laffogato.net/x",
+    );
+  });
+  it("passes an https URL through and maps anything else to null", () => {
+    expect(absoluteImageUrl("https://cdn.example/a.webp", SITE_URL)).toBe(
+      "https://cdn.example/a.webp",
+    );
+    expect(absoluteImageUrl("", SITE_URL)).toBeNull();
+    expect(absoluteImageUrl("data:image/png;base64,AAAA", SITE_URL)).toBeNull();
+  });
+});
+
+describe("toMobileMenuItem (contract §1)", () => {
+  it("emits exactly the contract fields — no updatedAt, isActive, sortOrder", () => {
+    const out = toMobileMenuItem(menuItem(), SITE_URL);
+    expect(Object.keys(out).sort()).toEqual(
+      [
+        "id",
+        "categoryKey",
+        "name",
+        "description",
+        "priceMinor",
+        "priceLargeMinor",
+        "tags",
+        "hue",
+        "image",
+      ].sort(),
+    );
+    expect(out).not.toHaveProperty("updatedAt");
+    expect(out).not.toHaveProperty("isActive");
+    expect(out).not.toHaveProperty("sortOrder");
+    expect(out).not.toHaveProperty("desc");
+  });
+
+  it("renames desc → description and priceMinorL → priceLargeMinor", () => {
+    const out = toMobileMenuItem(menuItem(), SITE_URL);
+    expect(out.description).toBe("Espresso, buharlı süt ve kalın köpük.");
+    expect(out.priceMinor).toBe(19500);
+    expect(out.priceLargeMinor).toBe(21000);
+  });
+
+  it("sends null, not 0, for a single-size item", () => {
+    expect(
+      toMobileMenuItem(menuItem({ priceMinorL: 0 }), SITE_URL).priceLargeMinor,
+    ).toBeNull();
+  });
+
+  it("turns an uploaded data: image into an absolute served URL", () => {
+    const out = toMobileMenuItem(
+      menuItem({ image: "data:image/webp;base64,AAAA" }),
+      SITE_URL,
+    );
+    expect(out.image).toBe("https://laffogato.net/gorsel/menu/mnu-0007");
+  });
+
+  it("keeps a bundled site-relative photo absolute and an empty one null", () => {
+    expect(
+      toMobileMenuItem(menuItem({ image: "/menu/cappuccino.webp" }), SITE_URL)
+        .image,
+    ).toBe("https://laffogato.net/menu/cappuccino.webp");
+    expect(
+      toMobileMenuItem(menuItem({ image: "" }), SITE_URL).image,
+    ).toBeNull();
+  });
+
+  it("copies tags so the nuts flag reaches the app", () => {
+    const src = menuItem({ tags: ["iced", "nuts"] });
+    const out = toMobileMenuItem(src, SITE_URL);
+    expect(out.tags).toEqual(["iced", "nuts"]);
+    expect(out.tags).not.toBe(src.tags);
+  });
+});
+
+describe("buildMobileMenuCategories", () => {
+  const keys = ["matcha", "espresso"];
+
+  it("groups in key order with seed metadata and subtitle ← sub", () => {
+    const cats = buildMobileMenuCategories(
+      [
+        menuItem({ id: "mnu-0002", categoryKey: "espresso", sortOrder: 2 }),
+        menuItem({ id: "mnu-0001", categoryKey: "matcha", sortOrder: 1 }),
+        menuItem({ id: "mnu-0003", categoryKey: "espresso", sortOrder: 1 }),
+      ],
+      keys,
+      SITE_URL,
+    );
+    expect(cats.map((c) => c.key)).toEqual(["matcha", "espresso"]);
+    expect(cats[0]).toMatchObject({
+      title: "Matcha Bar",
+      subtitle: "Strawberry Aşkı",
+      italian: "Il banco matcha",
+    });
+    expect(typeof cats[0].note).toBe("string");
+    expect(cats[1].items.map((i) => i.id)).toEqual(["mnu-0003", "mnu-0002"]);
+    expect(Object.keys(cats[0]).sort()).toEqual(
+      ["key", "title", "subtitle", "italian", "note", "items"].sort(),
+    );
+  });
+
+  it("drops inactive items but keeps an emptied category", () => {
+    const cats = buildMobileMenuCategories(
+      [menuItem({ categoryKey: "matcha", isActive: false })],
+      keys,
+      SITE_URL,
+    );
+    expect(cats.map((c) => c.items.length)).toEqual([0, 0]);
+  });
+
+  it("skips a key the seed does not know", () => {
+    expect(
+      buildMobileMenuCategories([], ["nope", "espresso"], SITE_URL).map(
+        (c) => c.key,
+      ),
+    ).toEqual(["espresso"]);
+  });
+});
+
+describe("latestUpdatedAt", () => {
+  it("picks the newest ISO stamp, or the fallback when empty", () => {
+    expect(
+      latestUpdatedAt(
+        [
+          { updatedAt: "2026-08-01T00:00:00.000Z" },
+          { updatedAt: "2026-08-20T10:00:00.000Z" },
+          { updatedAt: "" },
+        ],
+        "now",
+      ),
+    ).toBe("2026-08-20T10:00:00.000Z");
+    expect(latestUpdatedAt([], "now")).toBe("now");
+  });
+});
+
+describe("toMobileShopProduct (contract §2)", () => {
+  it("emits the contract fields only — no cost, sku, SEO, stock counts", () => {
+    const out = toMobileShopProduct(product(), SITE_URL);
+    expect(Object.keys(out).sort()).toEqual(
+      [
+        "id",
+        "slug",
+        "name",
+        "tag",
+        "description",
+        "priceMinor",
+        "compareAtPriceMinor",
+        "category",
+        "hue",
+        "image",
+        "inStock",
+        "variants",
+        "grinds",
+      ].sort(),
+    );
+    for (const leak of [
+      "costMinor",
+      "sku",
+      "seoTitle",
+      "seoDescription",
+      "stock",
+      "lowStockThreshold",
+      "updatedAt",
+      "isActive",
+      "featured",
+      "images",
+      "img",
+      "cat",
+      "desc",
+    ]) {
+      expect(out).not.toHaveProperty(leak);
+    }
+  });
+
+  it("computes variant prices as base + delta and drops inactive variants", () => {
+    const out = toMobileShopProduct(product(), SITE_URL);
+    expect(out.variants).toEqual([
+      { id: "var-250", name: "250 g", priceMinor: 32000, inStock: true },
+      { id: "var-1kg", name: "1 kg", priceMinor: 109000, inStock: false },
+    ]);
+    expect(out.variants.every((v) => !("priceDeltaMinor" in v))).toBe(true);
+    expect(out.variants.every((v) => !("stock" in v))).toBe(true);
+  });
+
+  it("offers grinds only on beans", () => {
+    expect(toMobileShopProduct(product(), SITE_URL).grinds).toEqual([
+      "Çekirdek",
+      "Espresso",
+      "Filtre",
+      "French Press",
+    ]);
+    expect(BEAN_GRINDS).toHaveLength(4);
+    expect(
+      toMobileShopProduct(product({ cat: "gift" }), SITE_URL),
+    ).not.toHaveProperty("grinds");
+  });
+
+  it("maps stock to a boolean and a was-price only when higher", () => {
+    expect(toMobileShopProduct(product({ stock: 0 }), SITE_URL).inStock).toBe(
+      false,
+    );
+    expect(
+      toMobileShopProduct(product({ compareAtPriceMinor: 39000 }), SITE_URL)
+        .compareAtPriceMinor,
+    ).toBe(39000);
+    expect(
+      toMobileShopProduct(product({ compareAtPriceMinor: 30000 }), SITE_URL)
+        .compareAtPriceMinor,
+    ).toBe(0);
+  });
+
+  it("serves the first image as an absolute URL, or null", () => {
+    expect(toMobileShopProduct(product(), SITE_URL).image).toBeNull();
+    expect(
+      toMobileShopProduct(
+        product({ images: ["data:image/png;base64,AAAA", "https://b/2.png"] }),
+        SITE_URL,
+      ).image,
+    ).toBe("https://laffogato.net/gorsel/urun/prd-0001/0");
+    expect(
+      toMobileShopProduct(product({ images: ["https://cdn/a.png"] }), SITE_URL)
+        .image,
+    ).toBe("https://cdn/a.png");
+  });
+});
+
+describe("hoursLabel", () => {
+  it("collapses an identical week into 'Her gün'", () => {
+    expect(hoursLabel(everyDay("09:00", "01:00"))).toBe(
+      "Her gün 09:00 – 01:00",
+    );
+  });
+
+  it("lists consecutive runs and closed days", () => {
+    const w = everyDay("09:00", "01:00");
+    w.sat = { open: "10:00", close: "02:00", closed: false };
+    w.sun = { open: "", close: "", closed: true };
+    expect(hoursLabel(w)).toBe(
+      "Pzt–Cum 09:00 – 01:00 · Cmt 10:00 – 02:00 · Paz Kapalı",
+    );
+  });
+
+  it("says Kapalı for a week with no open day", () => {
+    const w = everyDay("", "");
+    for (const k of Object.keys(w) as (keyof WeeklyHours)[]) {
+      w[k] = { open: "", close: "", closed: true };
+    }
+    expect(hoursLabel(w)).toBe("Kapalı");
+  });
+});
+
+describe("buildBootstrap (contract §10)", () => {
+  const site = {
+    name: "L'Affogato",
+    phone: "+90 536 429 09 19",
+    email: "info@nextgenlab.com.tr",
+    address: {
+      streetAddress: "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
+      addressLocality: "Tuzla",
+      addressRegion: "İstanbul",
+      postalCode: "34940",
+    },
+    geo: { latitude: 40.8165716, longitude: 29.3032493 },
+  };
+  const settings = {
+    phone: "+90 555 000 00 00",
+    email: "merhaba@laffogato.net",
+    weeklyHours: everyDay("09:00", "01:00"),
+    courierFeeMinor: 5500,
+  };
+
+  it("uses the tax-certificate address split into two lines", () => {
+    const b = buildBootstrap(settings, site);
+    expect(b.venue.addressLines).toEqual([
+      "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
+      "34940 Tuzla / İstanbul",
+    ]);
+    expect(b.venue).toMatchObject({
+      name: "L'Affogato",
+      lat: 40.8165716,
+      lng: 29.3032493,
+    });
+  });
+
+  it("prefers the admin-edited contact and falls back to the site's", () => {
+    expect(buildBootstrap(settings, site).venue.phone).toBe(
+      "+90 555 000 00 00",
+    );
+    expect(
+      buildBootstrap({ ...settings, phone: "  ", email: "" }, site).venue,
+    ).toMatchObject({ phone: site.phone, email: site.email });
+  });
+
+  it("carries the fixed app constants and the settings courier fee", () => {
+    const b = buildBootstrap({ ...settings, courierFeeMinor: 6000 }, site);
+    expect(b).toMatchObject({
+      minSupportedAppVersion: "1.0.0",
+      hoursLabel: "Her gün 09:00 – 01:00",
+      courierFeeMinor: 6000,
+      courierEtaMinutes: [25, 35],
+      happyHour: {
+        days: "weekday",
+        from: "14:00",
+        to: "17:00",
+        pct: 25,
+        categories: [
+          "ice-coffee",
+          "cold",
+          "frappe",
+          "frozen",
+          "ice-tea",
+          "smoothie",
+        ],
+      },
+    });
+    expect(COURIER_ETA_MINUTES).toEqual([25, 35]);
+    // Copies, not the shared constant: a caller mutating the response must
+    // not rewrite the next one.
+    expect(b.happyHour.categories).not.toBe(HAPPY_HOUR.categories);
+    expect(Object.keys(b).sort()).toEqual(
+      [
+        "minSupportedAppVersion",
+        "venue",
+        "hoursLabel",
+        "courierFeeMinor",
+        "courierEtaMinutes",
+        "happyHour",
+      ].sort(),
+    );
+  });
+});

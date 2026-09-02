@@ -22,11 +22,8 @@ export default async function EditCategoryPage({ params }: PageProps) {
   const boundUpdate = updateCategoryAction.bind(null, category.id);
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
-      <PageHeader
-        eyebrow={`Düzenle · ${category.id}`}
-        title={category.label}
-      />
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+      <PageHeader eyebrow={`Düzenle · ${category.id}`} title={category.label} />
       <CategoryForm
         action={boundUpdate}
         category={category}

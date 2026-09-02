@@ -1,7 +1,20 @@
 import { z } from "zod";
 
 const SHOP_CATEGORIES = ["beans", "gift", "gear", "merch", "pantry"] as const;
-const MENU_CATEGORIES = ["affogato", "matcha", "espresso", "cold", "gelato"] as const;
+const MENU_CATEGORIES = [
+  "matcha",
+  "espresso",
+  "ice-coffee",
+  "cold",
+  "hot",
+  "frappe",
+  "smoothie",
+  "frozen",
+  "ice-tea",
+  "dessert",
+  "snack",
+  "extras",
+] as const;
 const ORDER_STATUSES = [
   "pending_payment",
   "paid",
@@ -31,7 +44,10 @@ export const bulkProductSchema = z
   })
   .superRefine((v, ctx) => {
     if (v.op === "set_category") {
-      if (!v.value || !SHOP_CATEGORIES.includes(v.value as (typeof SHOP_CATEGORIES)[number])) {
+      if (
+        !v.value ||
+        !SHOP_CATEGORIES.includes(v.value as (typeof SHOP_CATEGORIES)[number])
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Geçerli bir kategori seç.",
@@ -49,7 +65,10 @@ export const bulkMenuSchema = z
   })
   .superRefine((v, ctx) => {
     if (v.op === "set_category") {
-      if (!v.value || !MENU_CATEGORIES.includes(v.value as (typeof MENU_CATEGORIES)[number])) {
+      if (
+        !v.value ||
+        !MENU_CATEGORIES.includes(v.value as (typeof MENU_CATEGORIES)[number])
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Geçerli bir kategori seç.",
@@ -59,12 +78,11 @@ export const bulkMenuSchema = z
     }
   });
 
-export const bulkOrderSchema = z
-  .object({
-    ids,
-    op: z.literal("set_status"),
-    value: z.enum(ORDER_STATUSES),
-  });
+export const bulkOrderSchema = z.object({
+  ids,
+  op: z.literal("set_status"),
+  value: z.enum(ORDER_STATUSES),
+});
 
 export type BulkProductInput = z.infer<typeof bulkProductSchema>;
 export type BulkMenuInput = z.infer<typeof bulkMenuSchema>;

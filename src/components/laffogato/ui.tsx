@@ -1,25 +1,67 @@
 "use client";
 
-import { useActionState, useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import {
-  placeOrderAction,
-  previewPromoAction,
-  type PromoPreviewState,
-} from "@/app/odeme/actions";
+import { toggleWishlistAction } from "@/app/uye/actions";
+import { productPath } from "./route-paths";
+import { useDialog } from "./use-dialog";
 
-import type { Product } from "./data";
-import {
-  EspressoCup,
-  PhotoSurface,
-  ProductSurface,
-} from "./visuals";
+import type { MenuCategory, Product } from "./data";
+import { EspressoCup, PhotoSurface, ProductSurface } from "./visuals";
+import { parsePriceLabel } from "@/lib/utils/format";
 
 export interface CartItem {
+  /** Stable product id — preferred match key for merge + server resolution. */
+  productId?: string;
+  /** Selected variant id, if any. */
+  variantId?: string;
+  /** Variant display name appended in the cart (e.g. "250g"). */
+  variantName?: string;
   name: string;
+  /** Unit price in major units (₺), including any variant delta. */
   price: number;
   tag?: string;
   qty?: number;
+  /** Product slug for deep-linking back to the PDP from the cart. */
+  slug?: string;
+  /** Hue token for the cart thumbnail surface. */
+  img?: string;
+  /** Shop category — drives the cart thumbnail illustration. */
+  cat?: string;
+  /** Max purchasable qty (stock); clamps the stepper. */
+  maxStock?: number;
+}
+
+/** Stable cart key — same product+variant lines merge into one. */
+export function cartItemKey(it: {
+  productId?: string;
+  variantId?: string;
+  name: string;
+}): string {
+  return `${it.productId ?? it.name}::${it.variantId ?? ""}`;
+}
+
+/** Build a CartItem from a Product (+ optional variant) with all metadata. */
+export function toCartItem(
+  p: Product,
+  variant?: { id: string; name: string; priceDelta: number; stock?: number },
+): CartItem {
+  const base =
+    p.priceMinor !== undefined ? p.priceMinor / 100 : parsePriceLabel(p.price);
+  const price = base + (variant?.priceDelta ?? 0);
+  return {
+    productId: p.id,
+    variantId: variant?.id,
+    variantName: variant?.name,
+    name: p.name,
+    price,
+    tag: p.tag,
+    slug: p.slug,
+    img: p.img,
+    cat: p.cat,
+    maxStock: variant?.stock ?? p.stock,
+  };
 }
 
 export interface ProductCardProps {
@@ -29,19 +71,30 @@ export interface ProductCardProps {
   onOpen?: (product: Product) => void;
 }
 
-export function ProductCard({ product, idx = 0, addToCart, onOpen }: ProductCardProps) {
+export function ProductCard({
+  product,
+  idx = 0,
+  addToCart,
+  onOpen,
+}: ProductCardProps) {
   const p = product;
+  const outOfStock = p.stock !== undefined && p.stock <= 0;
+  const lowStock =
+    !outOfStock &&
+    p.stock !== undefined &&
+    p.lowStockThreshold !== undefined &&
+    p.stock <= p.lowStockThreshold;
   const onAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (addToCart) {
-      addToCart({ name: p.name, price: parseFloat(p.price), tag: p.tag });
-    }
+    if (outOfStock) return;
+    if (addToCart) addToCart(toCartItem(p));
   };
   const onClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (onOpen) onOpen(p);
   };
   const label = p.name.split("—")[0].trim().split(" ")[0];
+  const href = p.slug ? productPath(p.slug) : undefined;
 
   return (
     <div
@@ -50,20 +103,61 @@ export function ProductCard({ product, idx = 0, addToCart, onOpen }: ProductCard
       onClick={onClick}
     >
       <div className="product-card-img">
-        <ProductSurface cat={p.cat} tone={p.img} label={label} sub={p.tag} />
-        {p.featured && <div className="product-card-flag gold">FEATURED</div>}
-        {p.isNew && <div className="product-card-flag new">NUOVO</div>}
-        {!p.featured && !p.isNew && (
-          <div className="product-card-flag">{p.cat.toUpperCase()}</div>
+        <ProductSurface
+          cat={p.cat}
+          tone={p.img}
+          label={label}
+          sub={p.tag}
+          images={p.images}
+        />
+        {outOfStock ? (
+          <div
+            className="product-card-flag"
+            style={{ background: "var(--ink-soft)" }}
+          >
+            TÜKENDİ
+          </div>
+        ) : (
+          <>
+            {p.featured && (
+              <div className="product-card-flag gold">ÖNE ÇIKAN</div>
+            )}
+            {p.isNew && <div className="product-card-flag new">NUOVO</div>}
+            {!p.featured && !p.isNew && lowStock && (
+              <div
+                className="product-card-flag"
+                style={{ background: "var(--rose)" }}
+              >
+                SON {p.stock}
+              </div>
+            )}
+            {!p.featured && !p.isNew && !lowStock && (
+              <div className="product-card-flag">{p.cat.toUpperCase()}</div>
+            )}
+          </>
         )}
         <div className="product-card-quick">
-          <button onClick={onAdd}>+ Sepete ekle</button>
-          <button onClick={onClick}>Hızlı bakış</button>
+          <button onClick={onAdd} disabled={outOfStock}>
+            {outOfStock ? "Tükendi" : "+ Sepete ekle"}
+          </button>
+          <button onClick={onClick}>Hızlı bak</button>
         </div>
       </div>
       <div className="product-card-meta">
         <div className="product-card-cat">{p.tag}</div>
-        <h3 className="product-card-name">{p.name.split("—")[0].trim()}</h3>
+        <h3 className="product-card-name">
+          {href ? (
+            <a
+              href={href}
+              onClick={(e) => e.stopPropagation()}
+              style={{ color: "inherit", textDecoration: "none" }}
+            >
+              {p.name.split("—")[0].trim()}
+            </a>
+          ) : (
+            p.name.split("—")[0].trim()
+          )}
+        </h3>
         <div className="product-card-price">
           <span>{p.price}</span>
           {p.compareAtPrice && <span className="was">{p.compareAtPrice}</span>}
@@ -87,8 +181,12 @@ export function SectionHead({
   if (alignment === "center") {
     return (
       <div className="reveal" style={{ textAlign: "center", marginBottom: 50 }}>
-        {eyebrow && <div className="eyebrow" style={{ marginBottom: 16 }}>{eyebrow}</div>}
-        <h2 className="h-1">{title}</h2>
+        {eyebrow && (
+          <div className="eyebrow" style={{ marginBottom: 16 }}>
+            {eyebrow}
+          </div>
+        )}
+        <h2 className="h1">{title}</h2>
       </div>
     );
   }
@@ -96,7 +194,7 @@ export function SectionHead({
     <div className="reveal section-head">
       <div>
         {eyebrow && <div className="eyebrow">{eyebrow}</div>}
-        <h2 className="h-1" style={{ marginTop: 16 }}>
+        <h2 className="h1" style={{ marginTop: 16 }}>
           {title}
         </h2>
       </div>
@@ -105,13 +203,21 @@ export function SectionHead({
   );
 }
 
-export function Stat({ n, l, d }: { n: ReactNode; l: ReactNode; d?: ReactNode }) {
+export function Stat({
+  n,
+  l,
+  d,
+}: {
+  n: ReactNode;
+  l: ReactNode;
+  d?: ReactNode;
+}) {
   return (
     <div>
       <div
         style={{
           fontFamily: "var(--serif)",
-          fontStyle: "italic",
+          fontStyle: "normal",
           fontWeight: 500,
           fontSize: "clamp(36px, 4vw, 56px)",
           lineHeight: 1,
@@ -120,9 +226,18 @@ export function Stat({ n, l, d }: { n: ReactNode; l: ReactNode; d?: ReactNode })
       >
         {n}
       </div>
-      <div className="eyebrow" style={{ marginTop: 10 }}>{l}</div>
+      <div className="eyebrow" style={{ marginTop: 10 }}>
+        {l}
+      </div>
       {d && (
-        <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 8, lineHeight: 1.5 }}>
+        <div
+          style={{
+            fontSize: 13,
+            color: "var(--ink-soft)",
+            marginTop: 8,
+            lineHeight: 1.5,
+          }}
+        >
           {d}
         </div>
       )}
@@ -158,19 +273,24 @@ interface CartDrawerProps {
   onClose: () => void;
   items: CartItem[];
   removeItem: (idx: number) => void;
+  setQty?: (idx: number, qty: number) => void;
+  /** Free-shipping threshold in major units (₺); 0/undefined hides the bar. */
+  freeShippingThreshold?: number;
 }
 
-export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+export function CartDrawer({
+  open,
+  onClose,
+  items,
+  removeItem,
+  setQty,
+  freeShippingThreshold = 0,
+}: CartDrawerProps) {
+  const panelRef = useRef<HTMLElement | null>(null);
+  useDialog(open, onClose, panelRef);
 
   const total = items.reduce((s, it) => s + (it.price || 0) * (it.qty || 1), 0);
+  const itemCount = items.reduce((s, it) => s + (it.qty || 1), 0);
 
   return (
     <>
@@ -188,6 +308,17 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
         }}
       />
       <aside
+        ref={panelRef}
+        // The drawer stays mounted so it can animate out. While it is closed
+        // its buttons and links were still in the tab order off-screen, and
+        // `aria-modal` was announced permanently — a screen reader believed a
+        // dialog was open on every page.
+        role={open ? "dialog" : undefined}
+        aria-modal={open ? true : undefined}
+        aria-label="Sepetin"
+        aria-hidden={open ? undefined : true}
+        inert={!open}
+        tabIndex={-1}
         style={{
           position: "fixed",
           top: 0,
@@ -204,8 +335,8 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
         }}
       >
         <header
+          className="cart-drawer-header"
           style={{
-            padding: "28px 32px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -213,18 +344,38 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
           }}
         >
           <div>
-            <div className="eyebrow" style={{ marginBottom: 4 }}>Sepetin</div>
-            <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 24, lineHeight: 1 }}>
-              {items.length} ürün
+            <div className="eyebrow" style={{ marginBottom: 4 }}>
+              Sepetin
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--serif)",
+                fontStyle: "normal",
+                fontSize: 24,
+                lineHeight: 1,
+              }}
+            >
+              {itemCount} ürün
             </div>
           </div>
           <button onClick={onClose} className="nav-icon-btn" aria-label="Kapat">
             <svg width="14" height="14" viewBox="0 0 16 16">
-              <path d="M3 3 L13 13 M13 3 L3 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              <path
+                d="M3 3 L13 13 M13 3 L3 13"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </header>
-        <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px" }}>
+        {items.length > 0 && freeShippingThreshold > 0 && (
+          <FreeShippingBar total={total} threshold={freeShippingThreshold} />
+        )}
+        <div
+          className="cart-drawer-body"
+          style={{ flex: 1, overflowY: "auto" }}
+        >
           {items.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 20px" }}>
               <div
@@ -248,7 +399,14 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
                   />
                 </svg>
               </div>
-              <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 28, lineHeight: 1.1 }}>
+              <div
+                style={{
+                  fontFamily: "var(--serif)",
+                  fontStyle: "normal",
+                  fontSize: 28,
+                  lineHeight: 1.1,
+                }}
+              >
                 Sepetin boş.
               </div>
               <p
@@ -262,303 +420,226 @@ export function CartDrawer({ open, onClose, items, removeItem }: CartDrawerProps
                   marginRight: "auto",
                 }}
               >
-                Bir affogato, bir matcha, bir çekirdek paketi — eve ya da terasta servise hazır.
+                Bir affogato, bir matcha, bir çekirdek paketi — eve ya da köşkün
+                bahçesine servise hazır.
               </p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {items.map((it, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "80px 1fr auto",
-                    gap: 14,
-                    alignItems: "center",
-                    padding: 12,
-                    border: "1px solid var(--ink-line)",
-                    borderRadius: "var(--r-md)",
-                  }}
-                >
-                  <div style={{ width: 80, height: 80, borderRadius: "var(--r-sm)", overflow: "hidden" }}>
-                    <PhotoSurface hue="warm">
-                      <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", padding: 6 }}>
-                        <EspressoCup />
-                      </div>
-                    </PhotoSurface>
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: "var(--serif-display)", fontSize: 16, lineHeight: 1.2 }}>{it.name}</div>
-                    <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>
-                      x{it.qty || 1}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                    <div style={{ fontFamily: "var(--mono)", fontSize: 13 }}>{it.price}₺</div>
-                    <button
-                      onClick={() => removeItem(i)}
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {items.map((it, i) => {
+                const qty = it.qty || 1;
+                const lineTotal = (it.price || 0) * qty;
+                const atMax = it.maxStock !== undefined && qty >= it.maxStock;
+                return (
+                  <div
+                    key={cartItemKey(it) + i}
+                    className="cart-item-grid"
+                    style={{
+                      alignItems: "center",
+                      padding: 12,
+                      border: "1px solid var(--ink-line)",
+                      borderRadius: "var(--r-md)",
+                    }}
+                  >
+                    <div
+                      className="cart-item-thumb"
                       style={{
-                        fontFamily: "var(--mono)",
-                        fontSize: 10,
-                        letterSpacing: "0.18em",
-                        textTransform: "uppercase",
-                        color: "var(--ink-mute)",
+                        borderRadius: "var(--r-sm)",
+                        overflow: "hidden",
                       }}
                     >
-                      Sil
-                    </button>
+                      <ProductSurface
+                        cat={it.cat ?? "gift"}
+                        tone={it.img ?? "cream"}
+                        label={it.name}
+                      />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--serif-display)",
+                          fontSize: 16,
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {it.name.split("—")[0].trim()}
+                      </div>
+                      {it.variantName && (
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: "var(--ink-soft)",
+                            marginTop: 2,
+                          }}
+                        >
+                          {it.variantName}
+                        </div>
+                      )}
+                      {setQty ? (
+                        <div
+                          className="cart-qty-stepper"
+                          style={{ marginTop: 8 }}
+                        >
+                          <button
+                            type="button"
+                            aria-label="Azalt"
+                            onClick={() => setQty(i, qty - 1)}
+                          >
+                            −
+                          </button>
+                          <span className="tabular">{qty}</span>
+                          <button
+                            type="button"
+                            aria-label="Arttır"
+                            onClick={() => setQty(i, qty + 1)}
+                            disabled={atMax}
+                          >
+                            +
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            fontFamily: "var(--mono)",
+                            fontSize: 11,
+                            color: "var(--ink-mute)",
+                            marginTop: 4,
+                          }}
+                        >
+                          x{qty}
+                        </div>
+                      )}
+                      {atMax && (
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: "var(--rose)",
+                            marginTop: 4,
+                          }}
+                        >
+                          Stok sınırı
+                        </div>
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-end",
+                        gap: 6,
+                      }}
+                    >
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 13 }}>
+                        {Math.round(lineTotal)}₺
+                      </div>
+                      <button
+                        onClick={() => removeItem(i)}
+                        style={{
+                          fontFamily: "var(--mono)",
+                          fontSize: 10,
+                          letterSpacing: "0.18em",
+                          textTransform: "uppercase",
+                          color: "var(--ink-mute)",
+                        }}
+                      >
+                        Sil
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
-        {items.length > 0 && <CartFooter items={items} total={total} />}
+        {items.length > 0 && <CartFooter total={total} />}
       </aside>
     </>
   );
 }
 
-const promoInitial: PromoPreviewState = {};
-
-function CartFooter({ items, total }: { items: CartItem[]; total: number }) {
-  const [step, setStep] = useState<"summary" | "details">("summary");
-  const [pending, setPending] = useState(false);
-
-  const [promoState, promoAction, promoPending] = useActionState(
-    previewPromoAction,
-    promoInitial,
-  );
-
-  const promoOk = promoState.ok;
-  const discountMajor = promoOk ? promoOk.discountMinor / 100 : 0;
-  const finalTotal = Math.max(0, total - discountMajor);
-
-  const itemsJson = JSON.stringify(
-    items.map((it) => ({
-      name: it.name,
-      price: it.price ?? 0,
-      qty: it.qty ?? 1,
-    })),
-  );
-
+function FreeShippingBar({
+  total,
+  threshold,
+}: {
+  total: number;
+  threshold: number;
+}) {
+  const remaining = Math.max(0, threshold - total);
+  const pct = Math.min(100, Math.round((total / threshold) * 100));
+  const reached = remaining <= 0;
   return (
-    <footer style={{ padding: "24px 32px 30px", borderTop: "1px solid var(--ink-line)" }}>
+    <div className="cart-freeship">
+      <div className="cart-freeship-text">
+        {reached ? (
+          <>
+            <span aria-hidden>✓</span> Ücretsiz kargoyu kazandın
+          </>
+        ) : (
+          <>
+            <strong>{Math.round(remaining)}₺</strong> daha ekle, kargo bizden
+          </>
+        )}
+      </div>
+      <div className="cart-freeship-track">
+        <div className="cart-freeship-fill" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function CartFooter({ total }: { total: number }) {
+  return (
+    <footer
+      className="cart-drawer-foot"
+      style={{ borderTop: "1px solid var(--ink-line)" }}
+    >
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          marginBottom: 8,
+          marginBottom: 10,
           fontSize: 14,
           color: "var(--ink-soft)",
         }}
       >
         <span>Ara toplam</span>
-        <span style={{ fontFamily: "var(--mono)" }}>{total}₺</span>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 12,
-          fontSize: 14,
-          color: "var(--ink-soft)",
-        }}
-      >
-        <span>Kargo · İstanbul içi</span>
-        <span style={{ fontFamily: "var(--mono)" }}>Ücretsiz</span>
-      </div>
-
-      {/* Promo code input */}
-      <form action={promoAction} style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-        <input type="hidden" name="subtotal" value={String(total)} />
-        <input
-          name="code"
-          placeholder="Promosyon kodu"
-          defaultValue={promoOk?.code ?? ""}
-          style={{
-            flex: 1,
-            padding: "10px 12px",
-            borderRadius: 8,
-            border: "1px solid var(--ink-line)",
-            background: "var(--bg-warm)",
-            fontFamily: "var(--mono)",
-            fontSize: 12,
-            textTransform: "uppercase",
-            color: "var(--ink)",
-          }}
-        />
-        <button
-          type="submit"
-          disabled={promoPending}
-          className="btn"
-          style={{
-            padding: "10px 14px",
-            fontSize: 12,
-            background: "transparent",
-            border: "1px solid var(--ink-line)",
-            color: "var(--ink-soft)",
-            opacity: promoPending ? 0.6 : 1,
-          }}
-        >
-          {promoPending ? "…" : "Uygula"}
-        </button>
-      </form>
-      {promoState.error && (
-        <div style={{ marginBottom: 12, fontSize: 12, color: "#b91c1c" }}>
-          {promoState.error}
-        </div>
-      )}
-      {promoOk && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 12,
-            fontSize: 13,
-            color: "#15803d",
-          }}
-        >
-          <span>
-            <strong style={{ fontFamily: "var(--mono)" }}>{promoOk.code}</strong>{" "}
-            uygulandı
-          </span>
-          <span style={{ fontFamily: "var(--mono)" }}>
-            −{Math.round(promoOk.discountMinor / 100)}₺
-          </span>
-        </div>
-      )}
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 22,
-          alignItems: "baseline",
-        }}
-      >
-        <span style={{ fontFamily: "var(--serif-display)", fontSize: 20 }}>Toplam</span>
-        <span style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 28 }}>
-          {Math.round(finalTotal)}₺
+        <span className="tabular" style={{ fontFamily: "var(--mono)" }}>
+          {Math.round(total)}₺
         </span>
       </div>
-
-      {step === "summary" ? (
-        <button
-          type="button"
-          onClick={() => setStep("details")}
-          className="btn btn-primary btn-lg"
-          style={{ width: "100%", justifyContent: "center" }}
-        >
-          Ödemeye geç
-          <span className="arrow">→</span>
-        </button>
-      ) : (
-        <form
-          action={placeOrderAction}
-          onSubmit={() => setPending(true)}
-          style={{ display: "grid", gap: 10 }}
-        >
-          <input type="hidden" name="items" value={itemsJson} />
-          {promoOk && (
-            <input type="hidden" name="promoCode" value={promoOk.code} />
-          )}
-          <CheckoutInput
-            name="customerName"
-            type="text"
-            placeholder="Ad soyad"
-            required
-            autoComplete="name"
-          />
-          <CheckoutInput
-            name="customerEmail"
-            type="email"
-            placeholder="E-posta"
-            required
-            autoComplete="email"
-          />
-          <CheckoutInput
-            name="customerPhone"
-            type="tel"
-            placeholder="Telefon (+90…)"
-            required
-            autoComplete="tel"
-          />
-          <textarea
-            name="shippingAddress"
-            placeholder="Teslimat adresi (mahalle, cadde, no, ilçe / il, posta kodu)"
-            required
-            rows={3}
-            autoComplete="street-address"
-            style={{
-              width: "100%",
-              padding: "12px 14px",
-              borderRadius: 10,
-              border: "1px solid var(--ink-line)",
-              background: "var(--bg-warm)",
-              fontFamily: "inherit",
-              fontSize: 14,
-              color: "var(--ink)",
-              resize: "vertical",
-              minHeight: 70,
-            }}
-          />
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              type="button"
-              onClick={() => setStep("summary")}
-              disabled={pending}
-              className="btn"
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                background: "transparent",
-                border: "1px solid var(--ink-line)",
-                color: "var(--ink-soft)",
-              }}
-            >
-              ← Geri
-            </button>
-            <button
-              type="submit"
-              disabled={pending}
-              className="btn btn-primary"
-              style={{
-                flex: 2,
-                justifyContent: "center",
-                opacity: pending ? 0.7 : 1,
-              }}
-            >
-              {pending ? "Gönderiliyor…" : "Siparişi tamamla"}
-              <span className="arrow">→</span>
-            </button>
-          </div>
-          <p style={{ margin: 0, fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.5 }}>
-            Bilgilerin yalnızca siparişin işlenmesi için kullanılır. Ödeme adımı
-            sanal POS entegrasyonu sonrası aktif olacak.
-          </p>
-        </form>
-      )}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 20,
+          fontSize: 12,
+          color: "var(--ink-mute)",
+        }}
+      >
+        <span>Kargo</span>
+        <span>Ödeme adımında hesaplanır</span>
+      </div>
+      <a
+        href="/odeme"
+        className="btn btn-primary btn-lg"
+        style={{ width: "100%", justifyContent: "center" }}
+      >
+        Ödemeye geç
+        <span className="arrow">→</span>
+      </a>
+      <p
+        style={{
+          margin: "12px 0 0",
+          fontSize: 11,
+          letterSpacing: "0.04em",
+          color: "var(--ink-mute)",
+          textAlign: "center",
+          lineHeight: 1.55,
+        }}
+      >
+        Adres ve indirim kodu bir sonraki adımda eklenir.
+      </p>
     </footer>
-  );
-}
-
-function CheckoutInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      style={{
-        width: "100%",
-        padding: "12px 14px",
-        borderRadius: 10,
-        border: "1px solid var(--ink-line)",
-        background: "var(--bg-warm)",
-        fontFamily: "inherit",
-        fontSize: 14,
-        color: "var(--ink)",
-        ...props.style,
-      }}
-    />
   );
 }
 
@@ -570,31 +651,23 @@ export function ProductModal({
   product,
   onClose,
   addToCart,
+  wishlist,
+  isAuthenticated,
 }: {
   product: Product | null;
   onClose: () => void;
   addToCart: (item: CartItem) => void;
+  wishlist?: string[];
+  isAuthenticated?: boolean;
 }) {
-  useEffect(() => {
-    if (!product) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.classList.add("is-no-scroll");
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.classList.remove("is-no-scroll");
-    };
-  }, [product, onClose]);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  useDialog(Boolean(product), onClose, panelRef);
 
   if (!product) return null;
-  const p = product;
-  const label = p.name.split("—")[0].trim().split(" ")[0];
-
   return (
     <div
       onClick={onClose}
+      className="product-modal-overlay"
       style={{
         position: "fixed",
         inset: 0,
@@ -608,6 +681,11 @@ export function ProductModal({
       }}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={product.name}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(1080px, 100%)",
@@ -639,98 +717,563 @@ export function ProductModal({
           }}
         >
           <svg width="14" height="14" viewBox="0 0 16 16">
-            <path d="M3 3 L13 13 M13 3 L3 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            <path
+              d="M3 3 L13 13 M13 3 L3 13"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            />
           </svg>
         </button>
-        <div style={{ aspectRatio: "4/5", position: "relative" }}>
-          <ProductSurface cat={p.cat} tone={p.img} label={label} sub={p.tag} />
+        <ProductModalBody
+          product={product}
+          onClose={onClose}
+          addToCart={addToCart}
+          wishlist={wishlist}
+          isAuthenticated={isAuthenticated}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProductModalBody({
+  product: p,
+  onClose,
+  addToCart,
+  wishlist,
+  isAuthenticated,
+}: {
+  product: Product;
+  onClose: () => void;
+  addToCart: (item: CartItem) => void;
+  wishlist?: string[];
+  isAuthenticated?: boolean;
+}) {
+  const label = p.name.split("—")[0].trim().split(" ")[0];
+  const isFavorite = !!(p.id && wishlist?.includes(p.id));
+  const variants = (p.variants ?? []).filter((v) => v.isActive !== false);
+  const [variantId, setVariantId] = useState<string | undefined>(
+    variants.find((v) => (v.stock ?? 1) > 0)?.id ?? variants[0]?.id,
+  );
+  const [qty, setQty] = useState(1);
+
+  const selectedVariant = variants.find((v) => v.id === variantId);
+  const basePrice =
+    p.priceMinor !== undefined ? p.priceMinor / 100 : parsePriceLabel(p.price);
+  const unitPrice = basePrice + (selectedVariant?.priceDelta ?? 0);
+  const stock = selectedVariant?.stock ?? p.stock;
+  const outOfStock = stock !== undefined && stock <= 0;
+  const maxQty = stock ?? 99;
+
+  return (
+    <>
+      <div style={{ aspectRatio: "4/5", position: "relative" }}>
+        <ProductSurface
+          cat={p.cat}
+          tone={p.img}
+          label={label}
+          sub={p.tag}
+          images={p.images}
+        />
+        {p.id && (
+          <div style={{ position: "absolute", top: 14, left: 14, zIndex: 4 }}>
+            <WishlistHeart
+              productId={p.id}
+              isFavorite={isFavorite}
+              isAuthenticated={!!isAuthenticated}
+            />
+          </div>
+        )}
+      </div>
+      <div
+        style={{
+          padding: "clamp(28px, 4vw, 50px)",
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div className="eyebrow" style={{ marginBottom: 14 }}>
+          {p.tag}
         </div>
+        <h2 className="h2">{p.name}</h2>
         <div
           style={{
-            padding: "clamp(28px, 4vw, 50px)",
-            overflowY: "auto",
             display: "flex",
-            flexDirection: "column",
+            alignItems: "baseline",
+            gap: 12,
+            marginTop: 16,
           }}
         >
-          <div className="eyebrow" style={{ marginBottom: 14 }}>{p.tag}</div>
-          <h2 className="h-2">{p.name}</h2>
-          <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", fontSize: 28, marginTop: 16 }}>
-            {p.price}
-          </div>
-          <p style={{ marginTop: 22, lineHeight: 1.65, color: "var(--ink-soft)" }}>{p.desc}</p>
-
-          <div style={{ marginTop: 28, display: "grid", gap: 14 }}>
-            {p.cat === "beans" && (
-              <>
-                <DetailRow k="Origin" v="Brazil natural + Ethiopia washed" />
-                <DetailRow k="Roast" v="Bologna · 14 Mayıs 2026" />
-                <DetailRow k="Notes" v="Kakao · kuru incir · esmer şeker" />
-                <DetailRow k="Brew" v="Espresso, moka, AeroPress" />
-              </>
-            )}
-            {p.cat === "gift" && (
-              <>
-                <DetailRow k="İçerik" v="6 adet edible cup · sleeve" />
-                <DetailRow k="Saklama" v="Kuru, serin · 90 gün" />
-                <DetailRow k="Allergens" v="Gluten · süt · soya izi" />
-              </>
-            )}
-            {p.cat === "gear" && (
-              <>
-                <DetailRow k="Marka" v="Bialetti × L’Affogato" />
-                <DetailRow k="Garanti" v="2 yıl" />
-                <DetailRow k="Servis" v="Türkiye genel" />
-              </>
-            )}
-          </div>
-
-          <div style={{ marginTop: 28, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <div
+          <span
+            style={{
+              fontFamily: "var(--serif)",
+              fontStyle: "normal",
+              fontSize: 28,
+            }}
+          >
+            {Math.round(unitPrice)}₺
+          </span>
+          {p.compareAtPrice && (
+            <span
               style={{
-                display: "flex",
-                border: "1px solid var(--ink-line-strong)",
-                borderRadius: 999,
-                overflow: "hidden",
+                textDecoration: "line-through",
+                color: "var(--ink-mute)",
+                fontSize: 18,
               }}
             >
-              <button style={{ padding: "12px 16px", fontFamily: "var(--mono)", fontSize: 14 }}>−</button>
-              <div
-                style={{
-                  padding: "12px 16px",
-                  fontFamily: "var(--mono)",
-                  fontSize: 14,
-                  minWidth: 40,
-                  textAlign: "center",
-                  borderLeft: "1px solid var(--ink-line)",
-                  borderRight: "1px solid var(--ink-line)",
-                }}
-              >
-                1
-              </div>
-              <button style={{ padding: "12px 16px", fontFamily: "var(--mono)", fontSize: 14 }}>+</button>
+              {p.compareAtPrice}
+            </span>
+          )}
+        </div>
+        <p
+          style={{ marginTop: 22, lineHeight: 1.65, color: "var(--ink-soft)" }}
+        >
+          {p.desc}
+        </p>
+
+        {variants.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div className="eyebrow" style={{ marginBottom: 10 }}>
+              Seçenek
             </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {variants.map((v) => {
+                const vOut = v.stock !== undefined && v.stock <= 0;
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    className="variant-chip"
+                    data-active={v.id === variantId ? "true" : undefined}
+                    disabled={vOut}
+                    onClick={() => {
+                      setVariantId(v.id);
+                      setQty(1);
+                    }}
+                  >
+                    {v.name}
+                    {v.priceDelta
+                      ? ` · ${v.priceDelta > 0 ? "+" : ""}${Math.round(v.priceDelta)}₺`
+                      : ""}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 24, display: "grid", gap: 14 }}>
+          {p.cat === "beans" && (
+            <>
+              <DetailRow k="Köken" v="Brezilya doğal + Etiyopya yıkanmış" />
+              <DetailRow k="Tat notları" v="Kakao · kuru incir · esmer şeker" />
+              <DetailRow k="Demleme" v="Espresso, moka, AeroPress" />
+            </>
+          )}
+          {p.cat === "gift" && (
+            <>
+              <DetailRow k="İçerik" v="Edible cup · sleeve" />
+              <DetailRow k="Saklama" v="Kuru, serin · 90 gün" />
+              <DetailRow k="Alerjenler" v="Gluten · süt · soya izi" />
+            </>
+          )}
+          {p.cat === "gear" && (
+            <>
+              <DetailRow k="Marka" v="Bialetti × L'Affogato" />
+              <DetailRow k="Garanti" v="2 yıl" />
+            </>
+          )}
+        </div>
+
+        {stock !== undefined && (
+          <div style={{ marginTop: 18, fontSize: 13 }}>
+            {outOfStock ? (
+              <span style={{ color: "var(--ink-mute)" }}>● Şu an tükendi</span>
+            ) : p.lowStockThreshold !== undefined &&
+              stock <= p.lowStockThreshold ? (
+              <span style={{ color: "var(--rose)" }}>● Son {stock} adet</span>
+            ) : (
+              <span style={{ color: "var(--matcha)" }}>● Stokta</span>
+            )}
+          </div>
+        )}
+
+        <div
+          style={{
+            marginTop: 24,
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <div className="qty-stepper-pill">
             <button
-              className="btn btn-primary btn-lg"
-              style={{ flex: 1, justifyContent: "center" }}
-              onClick={() => {
-                addToCart({ name: p.name, price: parseFloat(p.price), tag: p.tag });
-                onClose();
-              }}
+              type="button"
+              aria-label="Azalt"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              disabled={outOfStock}
             >
-              Sepete ekle · {p.price} <span className="arrow">→</span>
+              −
+            </button>
+            <span className="qty-stepper-val tabular">{qty}</span>
+            <button
+              type="button"
+              aria-label="Arttır"
+              onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
+              disabled={outOfStock || qty >= maxQty}
+            >
+              +
             </button>
           </div>
+          <button
+            className="btn btn-primary btn-lg"
+            style={{ flex: 1, justifyContent: "center" }}
+            disabled={outOfStock}
+            onClick={() => {
+              if (outOfStock) return;
+              const item = toCartItem(p, selectedVariant);
+              for (let i = 0; i < qty; i += 1) addToCart(item);
+              onClose();
+            }}
+          >
+            {outOfStock ? (
+              "Tükendi"
+            ) : (
+              <>
+                Sepete ekle · {Math.round(unitPrice * qty)}₺{" "}
+                <span className="arrow">→</span>
+              </>
+            )}
+          </button>
+        </div>
 
-          <div style={{ marginTop: 24, padding: 18, background: "var(--bg-warm)", borderRadius: "var(--r-sm)" }}>
-            <div className="eyebrow" style={{ marginBottom: 8 }}>Kargo · İade</div>
-            <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-              İstanbul içi aynı gün · Yurt içi 2–3 iş günü · 14 gün açılmamış ürünlerde iade.
-            </div>
+        {p.slug && (
+          <a
+            href={productPath(p.slug)}
+            className="modal-pdp-link"
+            style={{ marginTop: 16 }}
+          >
+            Tüm detayları gör →
+          </a>
+        )}
+
+        <div
+          style={{
+            marginTop: 20,
+            padding: 18,
+            background: "var(--bg-warm)",
+            borderRadius: "var(--r-sm)",
+          }}
+        >
+          <div className="eyebrow" style={{ marginBottom: 8 }}>
+            Teslimat · İade
+          </div>
+          <div
+            style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}
+          >
+            İstanbul içi aynı gün · Yurt içi 2–3 iş günü · 14 gün açılmamış
+            ürünlerde iade.
           </div>
         </div>
       </div>
-      <style>{`@media (max-width: 800px) { .product-modal { grid-template-columns: 1fr !important; max-height: 96vh !important; overflow-y: auto !important; } .product-modal > div:first-of-type { aspect-ratio: auto !important; height: 360px !important; } }`}</style>
+    </>
+  );
+}
+
+function WishlistHeart({
+  productId,
+  isFavorite,
+  isAuthenticated,
+}: {
+  productId: string;
+  isFavorite: boolean;
+  isAuthenticated: boolean;
+}) {
+  if (!isAuthenticated) {
+    return (
+      <a
+        href="/uye/giris"
+        aria-label="Favorilere eklemek için giriş yap"
+        title="Favorilere eklemek için giriş yap"
+        className="wishlist-heart"
+        style={{ position: "relative", top: 0, left: 0 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        >
+          <path d="M12 21s-7-4.5-9.5-9.5C.7 7.2 4 3 8 4.5c2 .8 3 2.5 4 4 1-1.5 2-3.2 4-4 4-1.5 7.3 2.7 5.5 7C19 16.5 12 21 12 21Z" />
+        </svg>
+      </a>
+    );
+  }
+  return (
+    <form action={toggleWishlistAction} onClick={(e) => e.stopPropagation()}>
+      <input type="hidden" name="productId" value={productId} />
+      <input type="hidden" name="back" value="/" />
+      <button
+        type="submit"
+        aria-label={isFavorite ? "Favoriden çıkar" : "Favorilere ekle"}
+        title={isFavorite ? "Favoriden çıkar" : "Favorilere ekle"}
+        className="wishlist-heart"
+        data-active={isFavorite ? "true" : undefined}
+        style={{ position: "relative", top: 0, left: 0 }}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill={isFavorite ? "currentColor" : "none"}
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        >
+          <path d="M12 21s-7-4.5-9.5-9.5C.7 7.2 4 3 8 4.5c2 .8 3 2.5 4 4 1-1.5 2-3.2 4-4 4-1.5 7.3 2.7 5.5 7C19 16.5 12 21 12 21Z" />
+        </svg>
+      </button>
+    </form>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Search overlay — site-wide product + menu search
+   ───────────────────────────────────────────────────────────── */
+
+interface SearchResult {
+  kind: "product" | "menu";
+  name: string;
+  sub: string;
+  price?: string;
+  href?: string;
+  product?: Product;
+}
+
+export function SearchOverlay({
+  open,
+  onClose,
+  products,
+  menu,
+  onOpenProduct,
+}: {
+  open: boolean;
+  onClose: () => void;
+  products: Product[];
+  menu: Record<string, MenuCategory>;
+  onOpenProduct?: (p: Product) => void;
+}) {
+  const [q, setQ] = useState("");
+
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  useDialog(open, onClose, panelRef);
+
+  useEffect(() => {
+    if (open) setQ("");
+  }, [open]);
+
+  const term = q.trim().toLowerCase();
+  const results: SearchResult[] = [];
+  if (term.length >= 2) {
+    for (const p of products) {
+      const hay = `${p.name} ${p.tag} ${p.desc} ${p.cat}`.toLowerCase();
+      if (hay.includes(term)) {
+        results.push({
+          kind: "product",
+          name: p.name,
+          sub: p.tag,
+          price: p.price,
+          href: p.slug ? productPath(p.slug) : undefined,
+          product: p,
+        });
+      }
+    }
+    for (const [, cat] of Object.entries(menu)) {
+      for (const it of cat.items) {
+        const hay =
+          `${it.name} ${it.desc} ${(it.tags ?? []).join(" ")}`.toLowerCase();
+        if (hay.includes(term)) {
+          results.push({
+            kind: "menu",
+            name: it.name,
+            sub: cat.title,
+            price: it.price,
+          });
+        }
+      }
+    }
+  }
+  const productResults = results
+    .filter((r) => r.kind === "product")
+    .slice(0, 8);
+  const menuResults = results.filter((r) => r.kind === "menu").slice(0, 6);
+
+  if (!open) return null;
+
+  return (
+    <div className="search-overlay" onClick={onClose}>
+      <div
+        ref={panelRef}
+        className="search-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Site içi arama"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="search-input-row">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden
+          >
+            <circle
+              cx="7"
+              cy="7"
+              r="5"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            />
+            <path
+              d="M11 11 L14 14"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            />
+          </svg>
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Ürün veya menü ara — espresso, matcha, edible cup…"
+            aria-label="Ara"
+          />
+          <button onClick={onClose} className="search-close" aria-label="Kapat">
+            ESC
+          </button>
+        </div>
+
+        <div className="search-results">
+          {term.length < 2 ? (
+            <div className="search-hint">
+              <span className="eyebrow">İpucu</span>
+              <p>En az 2 harf yaz — çekirdek, matcha, hediye, affogato…</p>
+              <div className="search-suggest">
+                {["Affogato", "Matcha", "Edible cup", "Espresso", "Hediye"].map(
+                  (s) => (
+                    <button key={s} className="chip" onClick={() => setQ(s)}>
+                      {s}
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
+          ) : productResults.length === 0 && menuResults.length === 0 ? (
+            <div className="search-empty">
+              <div
+                style={{
+                  fontFamily: "var(--serif)",
+                  fontStyle: "normal",
+                  fontSize: 24,
+                }}
+              >
+                "{q}" için sonuç yok.
+              </div>
+              <p>Farklı bir kelime dene ya da mağazaya göz at.</p>
+              <Link href="/magaza" className="btn btn-ghost btn-sm">
+                Mağazaya git →
+              </Link>
+            </div>
+          ) : (
+            <>
+              {productResults.length > 0 && (
+                <div className="search-group">
+                  <div className="eyebrow search-group-head">
+                    Mağaza · {productResults.length}
+                  </div>
+                  {productResults.map((r, i) => {
+                    const inner = (
+                      <>
+                        <div className="search-result-thumb">
+                          <ProductSurface
+                            cat={r.product?.cat ?? "gift"}
+                            tone={r.product?.img ?? "cream"}
+                            label={r.name}
+                            images={r.product?.images}
+                          />
+                        </div>
+                        <div className="search-result-info">
+                          <div className="search-result-name">{r.name}</div>
+                          <div className="search-result-sub">{r.sub}</div>
+                        </div>
+                        {r.price && (
+                          <div className="search-result-price">{r.price}</div>
+                        )}
+                      </>
+                    );
+                    return r.href ? (
+                      <a key={`p-${i}`} href={r.href} className="search-result">
+                        {inner}
+                      </a>
+                    ) : (
+                      <button
+                        key={`p-${i}`}
+                        className="search-result"
+                        onClick={() => {
+                          if (r.product && onOpenProduct) {
+                            onOpenProduct(r.product);
+                            onClose();
+                          }
+                        }}
+                      >
+                        {inner}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {menuResults.length > 0 && (
+                <div className="search-group">
+                  <div className="eyebrow search-group-head">
+                    Menü · {menuResults.length}
+                  </div>
+                  {menuResults.map((r, i) => (
+                    <Link key={`m-${i}`} href="/menu" className="search-result">
+                      <div className="search-result-thumb">
+                        <PhotoSurface hue="caramel">
+                          <div
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              display: "grid",
+                              placeItems: "center",
+                              padding: 6,
+                            }}
+                          >
+                            <EspressoCup />
+                          </div>
+                        </PhotoSurface>
+                      </div>
+                      <div className="search-result-info">
+                        <div className="search-result-name">{r.name}</div>
+                        <div className="search-result-sub">{r.sub}</div>
+                      </div>
+                      {r.price && (
+                        <div className="search-result-price">{r.price}</div>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

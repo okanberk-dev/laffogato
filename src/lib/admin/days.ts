@@ -31,3 +31,14 @@ export interface OpeningHour {
 }
 
 export type WeeklyHours = Record<DayOfWeek, OpeningHour>;
+
+/** schema.org `DayOfWeek` names, for `openingHoursSpecification`. */
+export const DAY_SCHEMA_ORG: Record<DayOfWeek, string> = {
+  mon: "Monday",
+  tue: "Tuesday",
+  wed: "Wednesday",
+  thu: "Thursday",
+  fri: "Friday",
+  sat: "Saturday",
+  sun: "Sunday",
+};

@@ -1,50 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import {
-  DM_Sans,
-  DM_Serif_Display,
-  JetBrains_Mono,
-  Marcellus,
-  Pinyon_Script,
-  Playfair_Display,
-} from "next/font/google";
+import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 
-import { SITE } from "@/lib/seo/site";
+import { GoogleTagManager } from "@next/third-parties/google";
+
+import { CookieConsent } from "@/components/laffogato/cookie-consent";
+import { RevealMotion } from "@/components/laffogato/reveal-motion";
+import { CONSENT_BOOTSTRAP } from "@/lib/consent/script";
+import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
 
-const playfair = Playfair_Display({
+// Google Tag Manager container — all analytics/marketing tags (GA4, Meta Pixel,
+// conversions, …) are managed inside GTM, not in code. Override the public
+// container id with NEXT_PUBLIC_GTM_ID; empty value disables the integration.
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
+
+// Clean single-sans system in the spirit of premium cafe brands (Starbucks'
+// SoDo Sans, Caribou): one humanist grotesque everywhere, differentiated by
+// weight — Hanken Grotesk for display + body, JetBrains Mono for eyebrows /
+// prices / SKU. Turkish via latin-ext.
+const hanken = Hanken_Grotesk({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-playfair",
+  variable: "--font-hanken",
   style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const dmSerif = DM_Serif_Display({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-dm-serif",
-  weight: "400",
-  style: ["normal", "italic"],
-  display: "swap",
-});
-
-const dmSans = DM_Sans({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-dm-sans",
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const pinyon = Pinyon_Script({
-  subsets: ["latin"],
-  variable: "--font-pinyon",
-  weight: "400",
-  display: "swap",
-});
-
-const marcellus = Marcellus({
-  subsets: ["latin"],
-  variable: "--font-marcellus",
-  weight: "400",
   display: "swap",
 });
 
@@ -57,8 +34,8 @@ const jetbrains = JetBrains_Mono({
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FAF6EE" },
-    { media: "(prefers-color-scheme: dark)", color: "#14100B" },
+    { media: "(prefers-color-scheme: light)", color: "#F7F3EA" },
+    { media: "(prefers-color-scheme: dark)", color: "#1C1610" },
   ],
   colorScheme: "light dark",
   width: "device-width",
@@ -69,14 +46,13 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
-    default: `${SITE.name} — Caffè · Gelato · Dolci · Maltepe Park, İstanbul`,
+    default: `${SITE.name} — Caffè · Gelato · Dolci · Tuzla, İstanbul`,
     template: `%s · ${SITE.name}`,
   },
   description: SITE.shortDescription,
   applicationName: SITE.name,
   generator: "Next.js",
   referrer: "origin-when-cross-origin",
-  keywords: [...SITE.keywords],
   authors: [{ name: SITE.legalName, url: SITE.url }],
   creator: SITE.legalName,
   publisher: SITE.legalName,
@@ -100,39 +76,48 @@ export const metadata: Metadata = {
     alternateLocale: [...SITE.alternateLocale],
     url: SITE.url,
     siteName: SITE.name,
-    title: `${SITE.name} — Caffè · Gelato · Dolci · Maltepe Park, İstanbul`,
-    description: SITE.longDescription,
+    title: `${SITE.name} — Caffè · Gelato · Dolci · Tuzla, İstanbul`,
+    description: SITE.shortDescription,
     // og:image is auto-discovered from src/app/opengraph-image.tsx
   },
   twitter: {
     card: "summary_large_image",
     site: SITE.twitter,
     creator: SITE.twitter,
-    title: `${SITE.name} — Caffè · Gelato · Dolci · Maltepe Park, İstanbul`,
+    title: `${SITE.name} — Caffè · Gelato · Dolci · Tuzla, İstanbul`,
     description: SITE.shortDescription,
     // twitter:image is auto-discovered from src/app/twitter-image.tsx
   },
-  robots: {
-    index: true,
-    follow: true,
-    nocache: false,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-      "max-video-preview": -1,
-    },
-  },
+  robots: IS_PRODUCTION_DEPLOY
+    ? {
+        index: true,
+        follow: true,
+        nocache: false,
+        googleBot: {
+          index: true,
+          follow: true,
+          "max-image-preview": "large",
+          "max-snippet": -1,
+          "max-video-preview": -1,
+        },
+      }
+    : {
+        // Preview / development deployment — keep search engines out so they
+        // don't index transient URLs.
+        index: false,
+        follow: false,
+        nocache: true,
+        googleBot: { index: false, follow: false },
+      },
   verification: {
     ...(SITE.verification.google ? { google: SITE.verification.google } : {}),
     ...(SITE.verification.yandex ? { yandex: SITE.verification.yandex } : {}),
-    ...(SITE.verification.bing ? { other: { "msvalidate.01": SITE.verification.bing } } : {}),
+    ...(SITE.verification.bing
+      ? { other: { "msvalidate.01": SITE.verification.bing } }
+      : {}),
   },
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-    ],
+    icon: [{ url: "/favicon.ico", sizes: "any" }],
     apple: [{ url: "/favicon.ico" }],
   },
   manifest: "/manifest.webmanifest",
@@ -154,7 +139,7 @@ export const metadata: Metadata = {
     // Misc
     "format-detection": "telephone=no",
     "apple-mobile-web-app-title": SITE.name,
-    "msapplication-TileColor": "#14100B",
+    "msapplication-TileColor": "#2C1D11",
     "msapplication-config": "/browserconfig.xml",
     // Pinterest + Facebook domain verification (env-driven, optional)
     ...(SITE.verification.pinterest
@@ -167,22 +152,14 @@ export const metadata: Metadata = {
     rating: "General",
     distribution: "Global",
     "revisit-after": "7 days",
-    "og:locale:alternate": "it_IT",
     // Mobile + theme defaults
     "mobile-web-app-capable": "yes",
-    "HandheldFriendly": "true",
-    "MobileOptimized": "width",
+    HandheldFriendly: "true",
+    MobileOptimized: "width",
   },
 };
 
-const fontVariables = [
-  playfair.variable,
-  dmSerif.variable,
-  dmSans.variable,
-  pinyon.variable,
-  marcellus.variable,
-  jetbrains.variable,
-].join(" ");
+const fontVariables = [hanken.variable, jetbrains.variable].join(" ");
 
 export default function RootLayout({
   children,
@@ -192,9 +169,18 @@ export default function RootLayout({
   return (
     <html lang={SITE.language} className={fontVariables}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        {/* Consent Mode v2 defaults — must be on the dataLayer before the GTM
+            container initialises, otherwise the first tag fires with no
+            consent signal at all. Everything except strictly-necessary storage
+            starts denied and is only raised by an explicit choice. */}
+        {GTM_ID ? (
+          <script
+            id="consent-bootstrap"
+            dangerouslySetInnerHTML={{ __html: CONSENT_BOOTSTRAP }}
+          />
+        ) : null}
+        {/* next/font self-hosts the fonts — no Google Fonts origin is hit at
+            runtime, so preconnect/dns-prefetch hints would be dead weight. */}
         <link
           rel="alternate"
           type="text/plain"
@@ -208,7 +194,12 @@ export default function RootLayout({
           title="LLM full content"
         />
       </head>
-      <body>{children}</body>
+      {GTM_ID ? <GoogleTagManager gtmId={GTM_ID} /> : null}
+      <body>
+        {children}
+        <CookieConsent />
+        <RevealMotion />
+      </body>
     </html>
   );
 }

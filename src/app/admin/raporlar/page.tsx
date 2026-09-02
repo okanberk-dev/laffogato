@@ -17,7 +17,11 @@ interface PageProps {
   searchParams: Promise<{ g?: BucketGranularity }>;
 }
 
-const G_OPTIONS: Array<{ value: BucketGranularity; label: string; count: number }> = [
+const G_OPTIONS: Array<{
+  value: BucketGranularity;
+  label: string;
+  count: number;
+}> = [
   { value: "day", label: "Günlük · 30 gün", count: 30 },
   { value: "week", label: "Haftalık · 12 hafta", count: 12 },
   { value: "month", label: "Aylık · 12 ay", count: 12 },
@@ -44,11 +48,11 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const maxQty = Math.max(1, ...top.map((t) => t.qty));
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Operasyon · İçgörüler"
         title="Raporlar"
-        description="Ciro, sipariş hacmi ve en çok satan ürünler. İptal edilen siparişler hariç tutulur, iadeler ayrıca gösterilir."
+        description="Net ciro, sipariş hacmi ve en çok satan ürünler. İptal edilen siparişler hariç tutulur; iade edilen tutarlar siparişin kendi döneminden düşülür."
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
@@ -61,9 +65,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
         <Stat
           label="İade"
           value={
-            head.refundedMinor > 0
-              ? `−${formatTRY(head.refundedMinor)}`
-              : "—"
+            head.refundedMinor > 0 ? `−${formatTRY(head.refundedMinor)}` : "—"
           }
           tone={head.refundedMinor > 0 ? "warn" : undefined}
         />
@@ -73,7 +75,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Ciro
@@ -88,7 +90,8 @@ export default async function ReportsPage({ searchParams }: PageProps) {
               {formatTRY(periodRevenue)}
             </div>
             <div className="text-xs text-neutral-500">
-              {periodOrders} sipariş · zirve: {peak.label} ({formatTRY(peak.revenueMinor)})
+              {periodOrders} sipariş · zirve: {peak.label} (
+              {formatTRY(peak.revenueMinor)})
             </div>
           </div>
           <nav className="flex flex-wrap gap-1">
@@ -98,8 +101,8 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                 href={`/admin/raporlar?g=${o.value}`}
                 className={`rounded-full px-3 py-1.5 text-xs ${
                   o.value === g
-                    ? "bg-neutral-900 text-white"
-                    : "border border-neutral-200 text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+                    ? "bg-[var(--admin-primary)] text-white"
+                    : "border border-[var(--admin-border)] text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                 }`}
               >
                 {o.label}
@@ -113,7 +116,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <Card>
           <h2
-            className="mb-4 text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+            className="mb-4 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             En çok satan 5 ürün
@@ -147,7 +150,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                     </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
                       <div
-                        className="h-full rounded-full bg-neutral-900 transition-all"
+                        className="h-full rounded-full bg-[var(--admin-primary)] transition-all"
                         style={{ width: `${widthPct}%` }}
                       />
                     </div>
@@ -160,7 +163,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
 
         <Card>
           <h2
-            className="mb-4 text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+            className="mb-4 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             Dönüşüm
@@ -192,9 +195,9 @@ function Stat({
   tone?: "warn";
 }) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--admin-border)] bg-white p-4 shadow-sm">
       <div
-        className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         {label}

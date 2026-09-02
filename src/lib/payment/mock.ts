@@ -73,7 +73,10 @@ export class MockPaymentProvider implements PaymentProvider {
     };
   }
 
-  async refund(providerRef: string, amountMinor?: number): Promise<RefundResult> {
+  async refund(
+    providerRef: string,
+    amountMinor?: number,
+  ): Promise<RefundResult> {
     return {
       providerRef,
       amountMinor: amountMinor ?? 0,

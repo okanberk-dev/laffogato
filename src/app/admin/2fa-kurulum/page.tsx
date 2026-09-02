@@ -15,7 +15,7 @@ export default async function TwoFAEnrollPage() {
   const session = await getAdminSession();
   if (!session) redirect("/admin/giris");
 
-  const enabled = has2FA(session.email);
+  const enabled = await has2FA(session.email);
 
   if (enabled) {
     return (
@@ -28,8 +28,8 @@ export default async function TwoFAEnrollPage() {
         <Card>
           <p className="text-sm text-neutral-700">
             Bir sonraki girişte şifrenden sonra 6 haneli kodu istediğimizi
-            unutma. Telefonunu kaybedersen önce bu sekmeden 2FA'yı kapat,
-            sonra yeniden kur.
+            unutma. Telefonunu kaybedersen önce bu sekmeden 2FA'yı kapat, sonra
+            yeniden kur.
           </p>
           <form action={disable2FAAction} className="mt-4">
             <button
@@ -75,13 +75,13 @@ export default async function TwoFAEnrollPage() {
           {draft?.secret && (
             <div className="mt-3 text-center">
               <div
-                className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+                className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
                 style={{ fontFamily: "var(--mono), monospace" }}
               >
                 Manuel anahtar
               </div>
               <div
-                className="mt-1 break-all text-xs text-neutral-700"
+                className="mt-1 text-xs break-all text-neutral-700"
                 style={{ fontFamily: "var(--mono), monospace" }}
               >
                 {draft.secret}

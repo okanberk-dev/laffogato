@@ -32,7 +32,7 @@ export function CategoryForm({
 }) {
   return (
     <form action={action}>
-      <Card className="grid gap-5 max-w-2xl">
+      <Card className="grid max-w-2xl gap-5">
         <Field
           label="Slug"
           hint="Sabit teknik isim; Shop ürün filtresinde anahtar olarak kullanılır."

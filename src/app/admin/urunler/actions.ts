@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/admin/audit";
+import { requireRole } from "@/lib/admin/auth";
 import { bulkProductSchema } from "@/lib/admin/bulk-schema";
 import { productFormSchema } from "@/lib/admin/product-schema";
 import {
@@ -74,6 +75,7 @@ export async function createProductAction(
   _prev: ProductActionState,
   formData: FormData,
 ): Promise<ProductActionState> {
+  await requireRole("products");
   const parsed = productFormSchema.safeParse(readFormDataToObject(formData));
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
@@ -102,6 +104,7 @@ export async function updateProductAction(
   _prev: ProductActionState,
   formData: FormData,
 ): Promise<ProductActionState> {
+  await requireRole("products");
   const parsed = productFormSchema.safeParse(readFormDataToObject(formData));
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
@@ -127,6 +130,7 @@ export async function updateProductAction(
 }
 
 export async function deleteProductAction(formData: FormData) {
+  await requireRole("products");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteProduct(id);
@@ -143,6 +147,7 @@ export async function bulkProductsAction(
   _prev: BulkActionState,
   formData: FormData,
 ): Promise<BulkActionState> {
+  await requireRole("products");
   const parsed = bulkProductSchema.safeParse({
     ids: String(formData.get("ids") ?? ""),
     op: String(formData.get("op") ?? ""),

@@ -1,25 +1,83 @@
 import "server-only";
 
+import type { DbError } from "@/lib/db";
+
+import {
+  APP_ANNOUNCEMENT_KINDS,
+  APP_POST_KINDS,
+  APP_SLIDE_ROUTES,
+  APP_SLIDE_TONES,
+  type AppAnnouncementKind,
+  type AppPostKind,
+  type AppSlideTone,
+} from "./app-content-schema";
+
+import { getDb, TABLES } from "@/lib/db";
+import {
+  memoizeUntilRejected,
+  publicRead,
+  raiseDbError,
+} from "@/lib/db/health";
+import { nextSeq } from "@/lib/db/counters";
+import {
+  applyCustomerCoupon,
+  redeemCustomerCoupon,
+  releaseCustomerCoupon,
+} from "@/lib/customer/coupons";
+import { sendOrderPaidEmail } from "@/lib/email/send";
+import type { LineOptions } from "@/lib/mobile/customization";
+import {
+  computeTotalsWithShipping,
+  fulfillmentAllowed,
+  normalizeScheduledFor,
+  priceCafeLine,
+  shippingModeFor,
+  type ShippingMode,
+} from "@/lib/mobile/order-pricing";
+import type { CheckoutConfig } from "@/lib/utils/commerce";
+import { priceLabel } from "@/lib/utils/format";
+import {
+  heroImagePath,
+  menuImagePath,
+  productImagePath,
+  servedImage,
+} from "./image-url";
 import {
   MENU as SEED_MENU,
   PRODUCTS as SEED_PRODUCTS,
+  PRESS as SEED_PRESS,
+  STORY as SEED_STORY,
   type MenuCategory as DesignMenuCategory,
   type Product as DesignProduct,
 } from "@/components/laffogato/data";
 
 import type { WeeklyHours } from "./days";
+import type {
+  OrderChannel,
+  OrderFulfillment,
+  OrderKind,
+} from "./order-channel";
 
 /**
- * In-memory mutable store for the admin panel.
+ * Veri katmanı — yönetilen bir Postgres üzerinden çalışır (bugün Neon).
+ * Sağlayıcıya özel bağımlılık yok; bkz. src/lib/db/index.ts.
  *
- * Why: Supabase is not yet connected (the free-tier project limit was hit).
- * This store seeds from the design's hardcoded data and lets the admin
- * panel demonstrate full CRUD locally. It DOES NOT PERSIST across server
- * restarts or across serverless invocations.
- *
- * When Supabase comes online, swap the function bodies to hit the DB —
- * the call sites in admin pages already use the async interface.
+ * Public API'lerin tamamı async ve mevcut admin sayfalarıyla uyumlu kalır.
+ * Tablo boşsa SEED verisi otomatik yüklenir (idempotent — yalnızca
+ * count === 0 ise tetiklenir; insert'ler upsert/ignoreDuplicates ile
+ * yarış-güvenli). İç-içe alanlar (variants, items, refunds, ...) JSONB
+ * kolonlarda tutulur; tarih alanları ISO-8601 metni olarak saklanır.
  */
+
+/**
+ * Whether the seed writes the two demo orders.
+ *
+ * Off everywhere by default. Set `SEED_DEMO_ORDERS=1` in a local `.env.local`
+ * when you want the admin panel to have something to look at; a real shop's
+ * first day should start from zero, not from two invented ₺740 orders that
+ * count as revenue and two invented customers in the CRM.
+ */
+const SEED_DEMO_ORDERS = process.env.SEED_DEMO_ORDERS === "1";
 
 export type ShopCategoryId = "beans" | "gift" | "gear" | "merch" | "pantry";
 
@@ -75,12 +133,41 @@ export interface AdminCategory {
 
 export type AdminOrderItemStatus = "pending" | "ready" | "cancelled";
 
+/** Cup size of a cafe line; "single" when the menu item has one size only. */
+export type OrderItemSize = "M" | "L" | "single";
+
 export interface AdminOrderItem {
   productName: string;
   qty: number;
   unitPriceMinor: number;
   status: AdminOrderItemStatus;
+  /**
+   * What was actually taken from stock. Needed to give it back when the order
+   * is cancelled — matching on `productName` would be guesswork the moment a
+   * product is renamed. Absent on orders placed before this was recorded and
+   * on manual admin orders that reference no catalogue product; those lines
+   * are skipped rather than restored to the wrong SKU.
+   */
+  productId?: string;
+  variantId?: string;
+  /**
+   * Cafe lines (mobile app, docs/API-MOBILE.md §3). A cafe line references a
+   * `menu_items` row instead of a product, carries the chosen size and the
+   * customisation the price was computed from, and a human-readable `detail`
+   * ("M · yulaf · +1 shot") for receipts and the panel. All absent on shop
+   * lines and on every order placed before the app existed.
+   */
+  menuItemId?: string;
+  size?: OrderItemSize;
+  options?: Record<string, unknown>;
+  detail?: string;
 }
+
+export type {
+  OrderChannel,
+  OrderFulfillment,
+  OrderKind,
+} from "./order-channel";
 
 export type AdminOrderStatus =
   | "pending_payment"
@@ -96,6 +183,26 @@ export interface AdminRefund {
   amountMinor: number;
   reason: string;
   createdAt: string;
+}
+
+/**
+ * Distance-selling consent evidence captured at checkout.
+ *
+ * Mesafeli Sözleşmeler Yönetmeliği requires proof that the consumer confirmed
+ * the Ön Bilgilendirme Formu and the Mesafeli Satış Sözleşmesi before ordering,
+ * kept on a durable medium. Acquiring banks ask for the same record during a
+ * virtual-POS review and when a chargeback is disputed.
+ */
+export interface OrderLegalConsent {
+  /** ISO-8601 instant the customer ticked the box. */
+  acceptedAt: string;
+  /** Slugs of the documents shown at that moment. */
+  documents: string[];
+  /** Revision label of those documents (their "son güncelleme" date). */
+  version: string;
+  /** Origin of the confirmation — evidence only. */
+  ip?: string;
+  userAgent?: string;
 }
 
 export interface AdminOrder {
@@ -117,7 +224,46 @@ export interface AdminOrder {
   totalMinor: number;
   refunds: AdminRefund[];
   createdAt: string;
+  /**
+   * ISO-8601 instant the order's stock and promo were given back, "" while
+   * they are still held. Guards the release path against running twice.
+   */
+  stockReleasedAt?: string;
+  /**
+   * Consent evidence; `{}` on manual/admin orders and on orders placed before
+   * the consent box existed.
+   */
+  legalConsent?: OrderLegalConsent | Record<string, never>;
+  /** Fulfillment — recorded when the shop owner ships the order. */
+  trackingNumber?: string;
+  carrier?: string;
+  shippedAt?: string;
+  /**
+   * Mobile app fields (docs/API-MOBILE.md §3). Every one is optional with a
+   * database default describing a web shop order, so the existing order
+   * machine keeps writing rows exactly as before and an old row reads as
+   * `channel: "web", kind: "shop", fulfillment: "shipping"`. Read through
+   * `orderChannel()` / `orderFulfillment()` rather than defaulting inline.
+   */
+  channel?: OrderChannel;
+  kind?: OrderKind;
+  fulfillment?: OrderFulfillment;
+  /** ISO-8601 requested time; "" means as soon as possible. */
+  scheduledFor?: string;
+  /** Courier instructions ("Kapı kodu 4821"). */
+  deliveryNote?: string;
+  /** ISO-8601 instant the payment succeeded; "" while unpaid. */
+  paidAt?: string;
 }
+
+export {
+  ORDER_CHANNEL_LABELS,
+  ORDER_FULFILLMENT_LABELS,
+  ORDER_KIND_LABELS,
+  orderChannel,
+  orderFulfillment,
+  orderKind,
+} from "./order-channel";
 
 export type { DayOfWeek, OpeningHour, WeeklyHours } from "./days";
 export { DAYS_OF_WEEK, DAY_LABELS } from "./days";
@@ -146,12 +292,72 @@ export interface AdminSettings {
   /** SEO defaults. */
   seoTitle: string;
   seoOgImageUrl: string;
-  /** When false, robots noindex headers are emitted (sitemap suppressed). */
+  /**
+   * When false, robots.txt disallows every crawler and the sitemap is served
+   * empty. Page-level meta stays as-is: making it conditional would force a
+   * settings read into the root layout and turn every static page dynamic.
+   */
   seoIndexable: boolean;
 
   /** Operational notifications email. */
   notificationEmail: string;
+
+  /**
+   * Mobile app (docs/API-MOBILE.md §3, §7). Courier fee charged on a cafe
+   * `delivery` order; karaoke room hourly price and the number of guests the
+   * room takes. All in minor units except the capacity.
+   */
+  courierFeeMinor: number;
+  karaokeHourlyMinor: number;
+  karaokeCapacity: number;
 }
+
+// ─── Query helpers ─────────────────────────────────────────────────────────
+
+// Every failed result goes through raiseDbError, which distinguishes a query
+// the database rejected (fatal) from a database that was never reached
+// (degradable). See src/lib/db/health.ts.
+function rows<T>(
+  res: { data: T[] | null; error: DbError | null; status: number },
+  ctx: string,
+): T[] {
+  if (res.error) raiseDbError(ctx, res.error, res.status);
+  return res.data ?? [];
+}
+
+function one<T>(
+  res: { data: T | null; error: DbError | null; status: number },
+  ctx: string,
+): T | null {
+  if (res.error) raiseDbError(ctx, res.error, res.status);
+  return res.data;
+}
+
+function check(
+  res: { error: DbError | null; status: number },
+  ctx: string,
+): void {
+  if (res.error) raiseDbError(ctx, res.error, res.status);
+}
+
+async function countRows(table: string): Promise<number> {
+  const sb = getDb();
+  const { count, error, status } = await sb
+    .from(table)
+    .select("*", { count: "exact", head: true });
+  if (error) raiseDbError(`count(${table})`, error, status);
+  return count ?? 0;
+}
+
+async function setCounter(id: string, seq: number): Promise<void> {
+  const sb = getDb();
+  check(
+    await sb.from(TABLES.counters).upsert({ id, seq }, { onConflict: "id" }),
+    `setCounter(${id})`,
+  );
+}
+
+// ─── ID + slug helpers ────────────────────────────────────────────────────
 
 function parsePrice(price: string): number {
   // "320₺" → 32000 (minor units)
@@ -165,13 +371,20 @@ function slugifyId(prefix: string, n: number): string {
 }
 
 const TR_DIACRITICS: Record<string, string> = {
-  ç: "c", Ç: "c",
-  ğ: "g", Ğ: "g",
-  ı: "i", I: "i",
-  i̇: "i", İ: "i",
-  ö: "o", Ö: "o",
-  ş: "s", Ş: "s",
-  ü: "u", Ü: "u",
+  ç: "c",
+  Ç: "c",
+  ğ: "g",
+  Ğ: "g",
+  ı: "i",
+  I: "i",
+  i̇: "i",
+  İ: "i",
+  ö: "o",
+  Ö: "o",
+  ş: "s",
+  Ş: "s",
+  ü: "u",
+  Ü: "u",
 };
 
 export function slugify(input: string): string {
@@ -195,170 +408,313 @@ function deriveSku(name: string, n: number): string {
   return `${prefix}-${String(n).padStart(5, "0")}`;
 }
 
-const products: AdminProduct[] = SEED_PRODUCTS.map((p, i) => ({
-  id: slugifyId("prd", i + 1),
-  name: p.name,
-  slug: slugify(p.name) || `urun-${i + 1}`,
-  sku: deriveSku(p.name, i + 1),
-  tag: p.tag,
-  priceMinor: parsePrice(p.price),
-  compareAtPriceMinor: 0,
-  costMinor: 0,
-  desc: p.desc,
-  cat: p.cat as ShopCategoryId,
-  img: p.img,
-  images: [],
-  stock: 25,
-  lowStockThreshold: 5,
-  weightGrams: 250,
-  featured: Boolean(p.featured),
-  isNew: Boolean(p.isNew),
-  isActive: true,
-  seoTitle: "",
-  seoDescription: "",
-  variants: [],
-  updatedAt: new Date().toISOString(),
-}));
-
-const categories: AdminCategory[] = [
-  { id: slugifyId("cat", 1), slug: "beans", label: "Çekirdek", icon: "◉", sortOrder: 0 },
-  { id: slugifyId("cat", 2), slug: "gift", label: "Hediye", icon: "◈", sortOrder: 1 },
-  { id: slugifyId("cat", 3), slug: "gear", label: "Ekipman", icon: "◇", sortOrder: 2 },
-  { id: slugifyId("cat", 4), slug: "merch", label: "Giyim", icon: "◐", sortOrder: 3 },
-  { id: slugifyId("cat", 5), slug: "pantry", label: "Kiler", icon: "◇", sortOrder: 4 },
-];
-
-// A handful of demo orders so the orders page isn't empty.
-const orders: AdminOrder[] = [
-  {
-    id: slugifyId("ord", 1),
-    orderNo: 10_001,
-    customerName: "Ali Yılmaz",
-    customerEmail: "ali@example.com",
-    customerPhone: "+90 532 111 22 33",
-    shippingAddress:
-      "Kadıköy Mah. Bağdat Cd. No: 142 Daire 7\nKadıköy / İstanbul 34710",
-    internalNote: "",
-    status: "preparing",
-    items: [
-      {
-        productName: "Sirena — Espresso Blend",
-        qty: 1,
-        unitPriceMinor: 32000,
-        status: "pending",
-      },
-      {
-        productName: "Edible Cups — 6 Box",
-        qty: 1,
-        unitPriceMinor: 24000,
-        status: "ready",
-      },
-    ],
-    subtotalMinor: 56000,
-    discountMinor: 0,
-    promoCode: "",
-    shippingMinor: 0,
-    totalMinor: 56000,
-    refunds: [],
-    createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-  },
-  {
-    id: slugifyId("ord", 2),
-    orderNo: 10_002,
-    customerName: "Merve Kaya",
-    customerEmail: "merve@example.com",
-    customerPhone: "+90 533 222 33 44",
-    shippingAddress: "Etiler Mah. Nispetiye Cd. No: 38\nBeşiktaş / İstanbul 34337",
-    internalNote: "Hediye paketi istendi. Kart: 'İyi ki varsın 🤍'",
-    status: "paid",
-    items: [
-      {
-        productName: "Affogato Kit — For Two",
-        qty: 1,
-        unitPriceMinor: 78000,
-        status: "pending",
-      },
-    ],
-    subtotalMinor: 78000,
-    discountMinor: 0,
-    promoCode: "",
-    shippingMinor: 0,
-    totalMinor: 78000,
-    refunds: [],
-    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-  },
-  {
-    id: slugifyId("ord", 3),
-    orderNo: 10_003,
-    customerName: "Deniz Aydın",
-    customerEmail: "deniz@example.com",
-    customerPhone: "+90 535 444 55 66",
-    shippingAddress: "Cihangir Mah. Akarsu Yokuşu No: 22\nBeyoğlu / İstanbul 34433",
-    internalNote: "",
-    status: "completed",
-    items: [
-      {
-        productName: "Uji Matcha — Ceremonial",
-        qty: 1,
-        unitPriceMinor: 42000,
-        status: "ready",
-      },
-      {
-        productName: "Bambu Chasen",
-        qty: 1,
-        unitPriceMinor: 32000,
-        status: "ready",
-      },
-    ],
-    subtotalMinor: 74000,
-    discountMinor: 0,
-    promoCode: "",
-    shippingMinor: 0,
-    totalMinor: 74000,
-    refunds: [],
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
-  },
-];
+// ─── Seed (idempotent — yalnızca tablo boşsa çalışır) ─────────────────────
 
 function defaultWeeklyHours(): WeeklyHours {
+  // Every day 09:00–01:00. The close time is EARLIER than the open time
+  // because 01:00 belongs to the following morning — schema.org expresses that
+  // by simply letting `closes` be the smaller value, and openingHoursLd()
+  // passes it through untouched. (Its "24:00" → "23:59" mapping exists for the
+  // old 10:00–24:00 schedule and no longer applies to any day here.)
+  const everyDay = { open: "09:00", close: "01:00", closed: false };
   return {
-    mon: { open: "10:00", close: "23:00", closed: false },
-    tue: { open: "10:00", close: "23:00", closed: false },
-    wed: { open: "10:00", close: "23:00", closed: false },
-    thu: { open: "10:00", close: "23:00", closed: false },
-    fri: { open: "10:00", close: "24:00", closed: false },
-    sat: { open: "10:00", close: "24:00", closed: false },
-    sun: { open: "10:00", close: "23:00", closed: false },
+    mon: { ...everyDay },
+    tue: { ...everyDay },
+    wed: { ...everyDay },
+    thu: { ...everyDay },
+    fri: { ...everyDay },
+    sat: { ...everyDay },
+    sun: { ...everyDay },
   };
 }
 
-let settings: AdminSettings = {
-  name: "L'Affogato",
-  tagline: "Drink it. Eat the cup.",
-  phone: "+90 216 459 30 60",
-  email: "maltepe@laffogato.it",
-  address: "Maltepe Park AVM, Cevizli, Tugay Yolu Cd. No:67, Maltepe / İstanbul",
-  openingHours: "Pzt–Pş 10:00–23:00 · Cu–Ct 10:00–24:00 · Pz 10:00–23:00",
-  isShopOpen: true,
-  heroImageUrl: "",
-  weeklyHours: defaultWeeklyHours(),
-  taxRatePct: 20,
-  shippingFlatMinor: 4900,
-  shippingFreeThresholdMinor: 50000,
-  seoTitle: "L'Affogato — Maltepe Park",
-  seoOgImageUrl: "",
-  seoIndexable: true,
-  notificationEmail: "",
-};
+function defaultSettings(): AdminSettings {
+  return {
+    name: "L'Affogato",
+    tagline: "Drink it. Eat the cup.",
+    phone: "+90 536 429 09 19",
+    email: "info@nextgenlab.com.tr",
+    address:
+      "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1 (Menemenci Cumhur’un yanı), 34940 Tuzla / İstanbul",
+    openingHours: "Pzt–Pş 10:00–23:00 · Cu–Ct 10:00–24:00 · Pz 10:00–23:00",
+    isShopOpen: true,
+    heroImageUrl: "",
+    weeklyHours: defaultWeeklyHours(),
+    taxRatePct: 20,
+    shippingFlatMinor: 4900,
+    shippingFreeThresholdMinor: 50000,
+    seoTitle: "L'Affogato — Tuzla",
+    seoOgImageUrl: "",
+    seoIndexable: true,
+    notificationEmail: "",
+    courierFeeMinor: 5500,
+    karaokeHourlyMinor: 90000,
+    karaokeCapacity: 8,
+  };
+}
 
-// ── Products ──────────────────────────────────────────────────────────────
+const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
+  {
+    const sb = getDb();
+    const now = new Date().toISOString();
+
+    if ((await countRows(TABLES.products)) === 0) {
+      const seeded: AdminProduct[] = SEED_PRODUCTS.map((p, i) => ({
+        id: slugifyId("prd", i + 1),
+        name: p.name,
+        slug: slugify(p.name) || `urun-${i + 1}`,
+        sku: deriveSku(p.name, i + 1),
+        tag: p.tag,
+        priceMinor: parsePrice(p.price),
+        compareAtPriceMinor: 0,
+        costMinor: 0,
+        desc: p.desc,
+        cat: p.cat as ShopCategoryId,
+        img: p.img,
+        images: [],
+        stock: 25,
+        lowStockThreshold: 5,
+        weightGrams: 250,
+        featured: Boolean(p.featured),
+        isNew: Boolean(p.isNew),
+        isActive: true,
+        seoTitle: "",
+        seoDescription: "",
+        variants: [],
+        updatedAt: now,
+      }));
+      if (seeded.length > 0) {
+        check(
+          await sb
+            .from(TABLES.products)
+            .upsert(seeded, { onConflict: "id", ignoreDuplicates: true }),
+          "seed.products",
+        );
+        await setCounter("prd", seeded.length);
+      }
+    }
+
+    if ((await countRows(TABLES.categories)) === 0) {
+      const seededCats: AdminCategory[] = [
+        {
+          id: slugifyId("cat", 1),
+          slug: "beans",
+          label: "Çekirdek",
+          icon: "◉",
+          sortOrder: 0,
+        },
+        {
+          id: slugifyId("cat", 2),
+          slug: "gift",
+          label: "Hediye",
+          icon: "◈",
+          sortOrder: 1,
+        },
+        {
+          id: slugifyId("cat", 3),
+          slug: "gear",
+          label: "Ekipman",
+          icon: "◇",
+          sortOrder: 2,
+        },
+        {
+          id: slugifyId("cat", 4),
+          slug: "merch",
+          label: "Giyim",
+          icon: "◐",
+          sortOrder: 3,
+        },
+        {
+          id: slugifyId("cat", 5),
+          slug: "pantry",
+          label: "Kiler",
+          icon: "◇",
+          sortOrder: 4,
+        },
+      ];
+      check(
+        await sb
+          .from(TABLES.categories)
+          .upsert(seededCats, { onConflict: "id", ignoreDuplicates: true }),
+        "seed.categories",
+      );
+      await setCounter("cat", seededCats.length);
+    }
+
+    if ((await countRows(TABLES.menuItems)) === 0) {
+      let counter = 0;
+      const seededMenu: AdminMenuItem[] = MENU_CATEGORY_KEYS.flatMap((key) =>
+        SEED_MENU[key].items.map((it, idx) => {
+          counter += 1;
+          return {
+            id: slugifyId("mnu", counter),
+            categoryKey: key,
+            name: it.name,
+            desc: it.desc,
+            priceMinor: parsePrice(it.price),
+            priceMinorL: it.priceL ? parsePrice(it.priceL) : 0,
+            hue: it.hue,
+            image: it.image ?? "",
+            tags: it.tags ? [...it.tags] : [],
+            isActive: true,
+            sortOrder: idx,
+            updatedAt: now,
+          };
+        }),
+      );
+      if (seededMenu.length > 0) {
+        check(
+          await sb
+            .from(TABLES.menuItems)
+            .upsert(seededMenu, { onConflict: "id", ignoreDuplicates: true }),
+          "seed.menu",
+        );
+        await setCounter("mnu", counter);
+      }
+    }
+
+    if ((await countRows(TABLES.settings)) === 0) {
+      check(
+        await sb
+          .from(TABLES.settings)
+          .upsert(
+            { id: "main", ...defaultSettings() },
+            { onConflict: "id", ignoreDuplicates: true },
+          ),
+        "seed.settings",
+      );
+    }
+
+    // Demo orders are for a local walk-through of the panel, nothing else.
+    // They used to be written on every fresh database, production included,
+    // where two invented ₺740 orders became the shop's opening revenue figure
+    // and two invented customers its CRM.
+    if (SEED_DEMO_ORDERS && (await countRows(TABLES.orders)) === 0) {
+      const demoOrders: AdminOrder[] = [
+        {
+          id: slugifyId("ord", 1),
+          orderNo: 10_001,
+          customerName: "Ali Yılmaz",
+          customerEmail: "ali@example.com",
+          customerPhone: "+90 532 111 22 33",
+          shippingAddress:
+            "Kadıköy Mah. Bağdat Cd. No: 142 Daire 7\nKadıköy / İstanbul 34710",
+          internalNote: "",
+          status: "preparing",
+          items: [
+            {
+              productName: "Sirena — Espresso Blend",
+              qty: 1,
+              unitPriceMinor: 32000,
+              status: "pending",
+            },
+            {
+              productName: "Edible Cups — 6 Box",
+              qty: 1,
+              unitPriceMinor: 24000,
+              status: "ready",
+            },
+          ],
+          subtotalMinor: 56000,
+          discountMinor: 0,
+          promoCode: "",
+          shippingMinor: 0,
+          totalMinor: 56000,
+          refunds: [],
+          createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+        },
+        {
+          id: slugifyId("ord", 2),
+          orderNo: 10_002,
+          customerName: "Merve Kaya",
+          customerEmail: "merve@example.com",
+          customerPhone: "+90 533 222 33 44",
+          shippingAddress:
+            "Etiler Mah. Nispetiye Cd. No: 38\nBeşiktaş / İstanbul 34337",
+          internalNote: "Hediye paketi istendi. Kart: 'İyi ki varsın 🤍'",
+          status: "paid",
+          items: [
+            {
+              productName: "Affogato Kit — For Two",
+              qty: 1,
+              unitPriceMinor: 78000,
+              status: "pending",
+            },
+          ],
+          subtotalMinor: 78000,
+          discountMinor: 0,
+          promoCode: "",
+          shippingMinor: 0,
+          totalMinor: 78000,
+          refunds: [],
+          createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+        },
+        {
+          id: slugifyId("ord", 3),
+          orderNo: 10_003,
+          customerName: "Deniz Aydın",
+          customerEmail: "deniz@example.com",
+          customerPhone: "+90 535 444 55 66",
+          shippingAddress:
+            "Cihangir Mah. Akarsu Yokuşu No: 22\nBeyoğlu / İstanbul 34433",
+          internalNote: "",
+          status: "completed",
+          items: [
+            {
+              productName: "Uji Matcha — Ceremonial",
+              qty: 1,
+              unitPriceMinor: 42000,
+              status: "ready",
+            },
+            {
+              productName: "Bambu Chasen",
+              qty: 1,
+              unitPriceMinor: 32000,
+              status: "ready",
+            },
+          ],
+          subtotalMinor: 74000,
+          discountMinor: 0,
+          promoCode: "",
+          shippingMinor: 0,
+          totalMinor: 74000,
+          refunds: [],
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
+        },
+      ];
+      check(
+        await sb
+          .from(TABLES.orders)
+          .upsert(demoOrders, { onConflict: "id", ignoreDuplicates: true }),
+        "seed.orders",
+      );
+      await setCounter("ord", demoOrders.length);
+      await setCounter("orderNo", 10_003);
+    }
+  }
+});
+
+// ─── Products ─────────────────────────────────────────────────────────────
 
 export async function listProducts(): Promise<AdminProduct[]> {
-  return [...products];
+  await ensureSeed();
+  const sb = getDb();
+  return rows<AdminProduct>(
+    await sb
+      .from(TABLES.products)
+      .select("*")
+      .order("updatedAt", { ascending: false }),
+    "listProducts",
+  );
 }
 
 export async function getProduct(id: string): Promise<AdminProduct | null> {
-  return products.find((p) => p.id === id) ?? null;
+  await ensureSeed();
+  const sb = getDb();
+  return one<AdminProduct>(
+    await sb.from(TABLES.products).select("*").eq("id", id).maybeSingle(),
+    "getProduct",
+  );
 }
 
 export interface ProductInput {
@@ -384,24 +740,36 @@ export interface ProductInput {
   variants: AdminProductVariant[];
 }
 
-function uniqueSlug(candidate: string, ignoreId?: string): string {
+async function uniqueSlug(
+  candidate: string,
+  ignoreId?: string,
+): Promise<string> {
   const base = candidate || "urun";
   let attempt = base;
   let n = 1;
-  // Uniqueness loop — bounded by product count, so safe.
-  while (
-    products.some((p) => p.slug === attempt && p.id !== ignoreId)
-  ) {
+  const sb = getDb();
+  // 20 deneme yeter — gerçekçi tekrar sayısı çok düşük.
+  for (let i = 0; i < 20; i += 1) {
+    let q = sb.from(TABLES.products).select("id").eq("slug", attempt);
+    if (ignoreId) q = q.neq("id", ignoreId);
+    const found = rows<{ id: string }>(await q.limit(1), "uniqueSlug");
+    if (found.length === 0) return attempt;
     n += 1;
     attempt = `${base}-${n}`;
   }
   return attempt;
 }
 
-export async function createProduct(input: ProductInput): Promise<AdminProduct> {
-  const seq = products.length + 1;
+export async function createProduct(
+  input: ProductInput,
+): Promise<AdminProduct> {
+  await ensureSeed();
+  const sb = getDb();
+  const seq = await nextSeq("prd");
   const id = slugifyId("prd", seq);
-  const slug = uniqueSlug(input.slug || slugify(input.name) || `urun-${seq}`);
+  const slug = await uniqueSlug(
+    input.slug || slugify(input.name) || `urun-${seq}`,
+  );
   const sku = input.sku || deriveSku(input.name, seq);
   const product: AdminProduct = {
     ...input,
@@ -410,7 +778,7 @@ export async function createProduct(input: ProductInput): Promise<AdminProduct> 
     sku,
     updatedAt: new Date().toISOString(),
   };
-  products.push(product);
+  check(await sb.from(TABLES.products).insert(product), "createProduct");
   return product;
 }
 
@@ -418,24 +786,36 @@ export async function updateProduct(
   id: string,
   input: ProductInput,
 ): Promise<AdminProduct | null> {
-  const idx = products.findIndex((p) => p.id === id);
-  if (idx === -1) return null;
-  const slug = uniqueSlug(input.slug || slugify(input.name) || products[idx].slug, id);
-  products[idx] = {
-    ...products[idx],
+  await ensureSeed();
+  const sb = getDb();
+  const existing = await getProduct(id);
+  if (!existing) return null;
+  const slug = await uniqueSlug(
+    input.slug || slugify(input.name) || existing.slug,
+    id,
+  );
+  const next: AdminProduct = {
+    ...existing,
     ...input,
     slug,
-    sku: input.sku || products[idx].sku,
+    sku: input.sku || existing.sku,
     updatedAt: new Date().toISOString(),
   };
-  return products[idx];
+  check(
+    await sb.from(TABLES.products).update(next).eq("id", id),
+    "updateProduct",
+  );
+  return next;
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
-  const idx = products.findIndex((p) => p.id === id);
-  if (idx === -1) return false;
-  products.splice(idx, 1);
-  return true;
+  await ensureSeed();
+  const sb = getDb();
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.products).delete().eq("id", id).select("id"),
+    "deleteProduct",
+  );
+  return deleted.length > 0;
 }
 
 export type BulkProductOp =
@@ -453,46 +833,62 @@ export async function bulkUpdateProducts(
   op: BulkProductOp,
 ): Promise<BulkResult> {
   if (ids.length === 0) return { updated: 0 };
-  const idSet = new Set(ids);
+  await ensureSeed();
+  const sb = getDb();
   const now = new Date().toISOString();
-  let updated = 0;
 
   if (op.kind === "delete") {
-    for (let i = products.length - 1; i >= 0; i -= 1) {
-      if (idSet.has(products[i].id)) {
-        products.splice(i, 1);
-        updated += 1;
-      }
-    }
-    return { updated };
+    const res = rows<{ id: string }>(
+      await sb.from(TABLES.products).delete().in("id", ids).select("id"),
+      "bulkUpdateProducts.delete",
+    );
+    return { updated: res.length };
   }
 
-  for (let i = 0; i < products.length; i += 1) {
-    if (!idSet.has(products[i].id)) continue;
-    if (op.kind === "activate") {
-      if (!products[i].isActive) {
-        products[i] = { ...products[i], isActive: true, updatedAt: now };
-        updated += 1;
-      }
-    } else if (op.kind === "deactivate") {
-      if (products[i].isActive) {
-        products[i] = { ...products[i], isActive: false, updatedAt: now };
-        updated += 1;
-      }
-    } else if (op.kind === "set_category") {
-      if (products[i].cat !== op.cat) {
-        products[i] = { ...products[i], cat: op.cat, updatedAt: now };
-        updated += 1;
-      }
-    }
+  if (op.kind === "activate") {
+    const res = rows<{ id: string }>(
+      await sb
+        .from(TABLES.products)
+        .update({ isActive: true, updatedAt: now })
+        .in("id", ids)
+        .eq("isActive", false)
+        .select("id"),
+      "bulkUpdateProducts.activate",
+    );
+    return { updated: res.length };
   }
-  return { updated };
+
+  if (op.kind === "deactivate") {
+    const res = rows<{ id: string }>(
+      await sb
+        .from(TABLES.products)
+        .update({ isActive: false, updatedAt: now })
+        .in("id", ids)
+        .eq("isActive", true)
+        .select("id"),
+      "bulkUpdateProducts.deactivate",
+    );
+    return { updated: res.length };
+  }
+
+  // set_category
+  const res = rows<{ id: string }>(
+    await sb
+      .from(TABLES.products)
+      .update({ cat: op.cat, updatedAt: now })
+      .in("id", ids)
+      .neq("cat", op.cat)
+      .select("id"),
+    "bulkUpdateProducts.set_category",
+  );
+  return { updated: res.length };
 }
 
-// ── Stock movements ──────────────────────────────────────────────────────
+// ─── Stock movements ──────────────────────────────────────────────────────
 
 export type StockMoveReason =
   | "order_placed"
+  | "order_cancelled"
   | "manual_adjust"
   | "refund_restock"
   | "seed";
@@ -514,18 +910,17 @@ export interface AdminStockMove {
   createdAt: string;
 }
 
-const stockMoves: AdminStockMove[] = [];
-let stockMoveCounter = 0;
-
-function recordStockMove(input: Omit<AdminStockMove, "id" | "createdAt">): AdminStockMove {
-  stockMoveCounter += 1;
+async function recordStockMove(
+  input: Omit<AdminStockMove, "id" | "createdAt">,
+): Promise<AdminStockMove> {
+  const sb = getDb();
+  const seq = await nextSeq("mov");
   const move: AdminStockMove = {
-    id: `mov-${String(stockMoveCounter).padStart(6, "0")}`,
+    id: `mov-${String(seq).padStart(6, "0")}`,
     createdAt: new Date().toISOString(),
     ...input,
   };
-  stockMoves.unshift(move);
-  if (stockMoves.length > 2000) stockMoves.length = 2000;
+  check(await sb.from(TABLES.stockMoves).insert(move), "recordStockMove");
   return move;
 }
 
@@ -534,14 +929,17 @@ export async function listStockMoves(filter?: {
   reason?: StockMoveReason;
   limit?: number;
 }): Promise<AdminStockMove[]> {
-  let out = stockMoves;
-  if (filter?.productId) {
-    out = out.filter((m) => m.productId === filter.productId);
-  }
-  if (filter?.reason) {
-    out = out.filter((m) => m.reason === filter.reason);
-  }
-  return out.slice(0, filter?.limit ?? 500);
+  await ensureSeed();
+  const sb = getDb();
+  let q = sb.from(TABLES.stockMoves).select("*");
+  if (filter?.productId) q = q.eq("productId", filter.productId);
+  if (filter?.reason) q = q.eq("reason", filter.reason);
+  return rows<AdminStockMove>(
+    await q
+      .order("createdAt", { ascending: false })
+      .limit(filter?.limit ?? 500),
+    "listStockMoves",
+  );
 }
 
 export interface AdjustStockInput {
@@ -558,43 +956,73 @@ export type AdjustStockResult =
 export async function adjustStock(
   input: AdjustStockInput,
 ): Promise<AdjustStockResult> {
-  const idx = products.findIndex((p) => p.id === input.productId);
-  if (idx === -1) return { ok: false, error: "Ürün bulunamadı." };
+  await ensureSeed();
+  const sb = getDb();
   if (!Number.isFinite(input.delta) || input.delta === 0) {
     return { ok: false, error: "Geçerli bir değer gir (0 olamaz)." };
   }
-  const next = products[idx].stock + input.delta;
-  if (next < 0) {
+  const product = await getProduct(input.productId);
+  if (!product) return { ok: false, error: "Ürün bulunamadı." };
+
+  // Applied inside the database, not read-modify-written here. Two adjustments
+  // in flight — or one racing a customer's order, which decrements under a row
+  // lock — used to lose a write, and the lost one was always the smaller
+  // change, so the count drifted upward. Upward is the direction that oversells.
+  const updatedAt = new Date().toISOString();
+  const { data, error } = await sb.rpc("adjust_product_stock", {
+    p_product_id: input.productId,
+    p_delta: input.delta,
+    p_now: updatedAt,
+  });
+  if (error) return { ok: false, error: error.message };
+  const next = typeof data === "number" ? data : Number(data);
+  if (next === -1) return { ok: false, error: "Ürün bulunamadı." };
+  if (next === -2) {
+    // Re-read so the message names the stock as it actually stands now.
+    const fresh = await getProduct(input.productId);
     return {
       ok: false,
-      error: `Stok eksiye düşemez (mevcut: ${products[idx].stock}).`,
+      error: `Stok eksiye düşemez (mevcut: ${fresh?.stock ?? product.stock}).`,
     };
   }
-  products[idx] = {
-    ...products[idx],
-    stock: next,
-    updatedAt: new Date().toISOString(),
-  };
-  const move = recordStockMove({
-    productId: products[idx].id,
-    productName: products[idx].name,
+
+  const move = await recordStockMove({
+    productId: product.id,
+    productName: product.name,
     delta: input.delta,
     stockAfter: next,
     reason: "manual_adjust",
     note: input.note.trim().slice(0, 500),
     actor: input.actor,
   });
-  return { ok: true, move, product: products[idx] };
+  return {
+    ok: true,
+    move,
+    product: { ...product, stock: next, updatedAt },
+  };
 }
 
-// ── Categories ────────────────────────────────────────────────────────────
+// ─── Categories ───────────────────────────────────────────────────────────
 
 export async function listCategories(): Promise<AdminCategory[]> {
-  return [...categories].sort((a, b) => a.sortOrder - b.sortOrder);
+  await ensureSeed();
+  const sb = getDb();
+  return rows<AdminCategory>(
+    await sb
+      .from(TABLES.categories)
+      .select("*")
+      .order("sortOrder", { ascending: true }),
+    "listCategories",
+  );
 }
 
 export async function getCategory(id: string): Promise<AdminCategory | null> {
-  return categories.find((c) => c.id === id) ?? null;
+  await ensureSeed();
+  const sb = getDb();
+  return one<AdminCategory>(
+    await sb.from(TABLES.categories).select("*").eq("id", id).maybeSingle(),
+    "getCategory",
+  );
 }
 
 export interface CategoryInput {
@@ -607,9 +1035,11 @@ export interface CategoryInput {
 export async function createCategory(
   input: CategoryInput,
 ): Promise<AdminCategory> {
-  const id = slugifyId("cat", categories.length + 1);
-  const c: AdminCategory = { id, ...input };
-  categories.push(c);
+  await ensureSeed();
+  const sb = getDb();
+  const seq = await nextSeq("cat");
+  const c: AdminCategory = { id: slugifyId("cat", seq), ...input };
+  check(await sb.from(TABLES.categories).insert(c), "createCategory");
   return c;
 }
 
@@ -617,23 +1047,40 @@ export async function updateCategory(
   id: string,
   input: CategoryInput,
 ): Promise<AdminCategory | null> {
-  const idx = categories.findIndex((c) => c.id === id);
-  if (idx === -1) return null;
-  categories[idx] = { ...categories[idx], ...input };
-  return categories[idx];
+  await ensureSeed();
+  const sb = getDb();
+  const existing = await getCategory(id);
+  if (!existing) return null;
+  const next: AdminCategory = { ...existing, ...input };
+  check(
+    await sb.from(TABLES.categories).update(next).eq("id", id),
+    "updateCategory",
+  );
+  return next;
 }
 
 export async function deleteCategory(id: string): Promise<boolean> {
-  const idx = categories.findIndex((c) => c.id === id);
-  if (idx === -1) return false;
-  categories.splice(idx, 1);
-  return true;
+  await ensureSeed();
+  const sb = getDb();
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.categories).delete().eq("id", id).select("id"),
+    "deleteCategory",
+  );
+  return deleted.length > 0;
 }
 
-// ── Orders ────────────────────────────────────────────────────────────────
+// ─── Orders ───────────────────────────────────────────────────────────────
 
 export async function listOrders(): Promise<AdminOrder[]> {
-  return [...orders].sort((a, b) => b.orderNo - a.orderNo);
+  await ensureSeed();
+  const sb = getDb();
+  return rows<AdminOrder>(
+    await sb
+      .from(TABLES.orders)
+      .select("*")
+      .order("orderNo", { ascending: false }),
+    "listOrders",
+  );
 }
 
 export interface CustomerSummary {
@@ -647,12 +1094,8 @@ export interface CustomerSummary {
   firstOrderAt: string;
 }
 
-/**
- * Pre-groups orders by customer email so the admin "Müşteriler" page
- * (and any future customer-self-service surface) can hit it cheaply.
- * Guest-only orders (no email collected) are filtered out.
- */
 export async function listCustomers(): Promise<CustomerSummary[]> {
+  const orders = await listOrders();
   const byEmail = new Map<string, CustomerSummary>();
   for (const o of orders) {
     const email = o.customerEmail?.trim().toLowerCase();
@@ -684,31 +1127,40 @@ export async function listCustomers(): Promise<CustomerSummary[]> {
       }
     }
   }
-  return Array.from(byEmail.values()).sort(
-    (a, b) => b.lastOrderAt.localeCompare(a.lastOrderAt),
+  return Array.from(byEmail.values()).sort((a, b) =>
+    b.lastOrderAt.localeCompare(a.lastOrderAt),
   );
 }
 
-export async function customerOrdersByEmail(email: string): Promise<AdminOrder[]> {
+export async function customerOrdersByEmail(
+  email: string,
+): Promise<AdminOrder[]> {
   const needle = email.trim().toLowerCase();
   if (!needle) return [];
-  return orders
-    .filter((o) => o.customerEmail.trim().toLowerCase() === needle)
-    .sort((a, b) => b.orderNo - a.orderNo);
+  await ensureSeed();
+  const sb = getDb();
+  // ilike ile case-insensitive ön-filtre; JS'te tam (lowercase) eşleşme.
+  const escaped = needle.replace(/[%_]/g, (c) => `\\${c}`);
+  const candidates = rows<AdminOrder>(
+    await sb
+      .from(TABLES.orders)
+      .select("*")
+      .ilike("customerEmail", escaped)
+      .order("orderNo", { ascending: false }),
+    "customerOrdersByEmail",
+  );
+  return candidates.filter(
+    (o) => o.customerEmail?.trim().toLowerCase() === needle,
+  );
 }
 
 export async function getOrder(id: string): Promise<AdminOrder | null> {
-  return orders.find((o) => o.id === id) ?? null;
-}
-
-export async function updateOrderStatus(
-  id: string,
-  status: AdminOrderStatus,
-): Promise<AdminOrder | null> {
-  const idx = orders.findIndex((o) => o.id === id);
-  if (idx === -1) return null;
-  orders[idx] = { ...orders[idx], status };
-  return orders[idx];
+  await ensureSeed();
+  const sb = getDb();
+  return one<AdminOrder>(
+    await sb.from(TABLES.orders).select("*").eq("id", id).maybeSingle(),
+    "getOrder",
+  );
 }
 
 export type BulkOrderOp = { kind: "set_status"; status: AdminOrderStatus };
@@ -718,150 +1170,1129 @@ export async function bulkUpdateOrders(
   op: BulkOrderOp,
 ): Promise<BulkResult> {
   if (ids.length === 0) return { updated: 0 };
-  const idSet = new Set(ids);
-  let updated = 0;
-  for (let i = 0; i < orders.length; i += 1) {
-    if (!idSet.has(orders[i].id)) continue;
-    if (orders[i].status !== op.status) {
-      orders[i] = { ...orders[i], status: op.status };
-      updated += 1;
-    }
-  }
-  return { updated };
+  await ensureSeed();
+  const sb = getDb();
+  const res = rows<{ id: string }>(
+    await sb
+      .from(TABLES.orders)
+      .update({ status: op.status })
+      .in("id", ids)
+      .neq("status", op.status)
+      .select("id"),
+    "bulkUpdateOrders",
+  );
+  return { updated: res.length };
+}
+
+export interface PlaceOrderItemInput {
+  /** Stable product id — preferred match key. */
+  productId?: string;
+  /** Product name — fallback match key for legacy carts. */
+  name: string;
+  /** Selected variant id, if any. */
+  variantId?: string;
+  qty: number;
+  /** Client-sent price — IGNORED for charging; only used to detect drift. */
+  priceMinor?: number;
 }
 
 export interface PlaceOrderInput {
-  items: Array<{ name: string; priceMinor: number; qty: number }>;
+  items: PlaceOrderItemInput[];
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
   shippingAddress?: string;
   promoCode?: string;
+  /** Distance-selling consent captured on the checkout form. */
+  legalConsent?: OrderLegalConsent;
 }
 
 export type PlaceOrderResult =
-  | { ok: true; order: AdminOrder }
-  | { ok: false; reason: "out_of_stock"; productName: string; available: number };
+  | {
+      ok: true;
+      order: AdminOrder;
+      priceAdjusted: boolean;
+      promoDropped: boolean;
+    }
+  | {
+      ok: false;
+      reason: "out_of_stock";
+      productName: string;
+      available: number;
+    }
+  | { ok: false; reason: "empty" }
+  | { ok: false; reason: "not_found"; productName: string }
+  | { ok: false; reason: "qty_too_high"; productName: string; max: number }
+  | { ok: false; reason: "shop_closed" };
+
+/** Every way a shop order can be refused. */
+export type PlaceOrderFailure = Exclude<PlaceOrderResult, { ok: true }>;
+
+/** Per-line quantity ceiling. A retail cart, not a wholesale order. */
+export const MAX_LINE_QTY = 99;
+
+interface ResolvedLine {
+  product: AdminProduct;
+  variant: AdminProductVariant | null;
+  qty: number;
+  unitPriceMinor: number;
+  label: string;
+}
+
+type ResolveLinesResult =
+  | { ok: true; resolved: ResolvedLine[]; priceAdjusted: boolean }
+  | { ok: false; result: PlaceOrderFailure };
 
 /**
- * Creates a `pending_payment` order from the customer cart. Real payment
- * flow will mark it as `paid` via the webhook handler. For now we leave
- * it in pending so the admin can manually advance the status.
- *
- * Stock is validated up-front (all items checked before any mutation) and
- * then decremented atomically. The in-memory store runs in a single Node
- * process so there's no race; when this swaps to Supabase the whole thing
- * becomes a transaction.
+ * Resolves cart/manual lines against the DB. SECURITY: unit prices are taken
+ * from the database (base price + active variant delta), never trusted from the
+ * client. Stock is validated up-front for ALL lines (friendly fast path); the
+ * atomic claim below closes the check→decrement race.
  */
-export async function placeOrder(
-  input: PlaceOrderInput,
-): Promise<PlaceOrderResult> {
-  const cleanItems = input.items.filter(
-    (it) => it.qty > 0 && it.priceMinor >= 0,
-  );
+async function resolveOrderLines(
+  items: PlaceOrderItemInput[],
+): Promise<ResolveLinesResult> {
+  const sb = getDb();
+  // A line over the cap used to be filtered out silently: the customer paid
+  // for a cart that no longer contained what they asked for. Say so instead.
+  const tooMany = items.find((it) => it.qty > MAX_LINE_QTY);
+  if (tooMany) {
+    return {
+      ok: false,
+      result: {
+        ok: false,
+        reason: "qty_too_high",
+        productName: tooMany.name,
+        max: MAX_LINE_QTY,
+      },
+    };
+  }
+  const cleanItems = items.filter((it) => it.qty > 0);
+  if (cleanItems.length === 0) {
+    return { ok: false, result: { ok: false, reason: "empty" } };
+  }
 
-  // Validate stock for every known product first so we either succeed
-  // entirely or fail entirely (no partial decrement).
+  // Resolve each line against the DB by id (preferred) or name. Two filtered
+  // reads merged by id avoids escaping issues with names in a combined .or().
+  const ids = cleanItems.map((it) => it.productId).filter(Boolean) as string[];
+  const names = cleanItems.map((it) => it.name);
+  const [byIdDocs, byNameDocs] = await Promise.all([
+    ids.length > 0
+      ? rows<AdminProduct>(
+          await sb.from(TABLES.products).select("*").in("id", ids),
+          "placeOrder.byId",
+        )
+      : Promise.resolve([] as AdminProduct[]),
+    names.length > 0
+      ? rows<AdminProduct>(
+          await sb.from(TABLES.products).select("*").in("name", names),
+          "placeOrder.byName",
+        )
+      : Promise.resolve([] as AdminProduct[]),
+  ]);
+  const byId = new Map<string, AdminProduct>();
+  const byName = new Map<string, AdminProduct>();
+  for (const p of [...byIdDocs, ...byNameDocs]) {
+    byId.set(p.id, p);
+    byName.set(p.name, p);
+  }
+
+  const resolved: ResolvedLine[] = [];
+  let priceAdjusted = false;
+
   for (const it of cleanItems) {
-    const product = products.find((p) => p.name === it.name);
-    if (product && product.stock < it.qty) {
+    const product =
+      (it.productId ? byId.get(it.productId) : undefined) ??
+      byName.get(it.name);
+    if (!product || !product.isActive) {
+      // Fall back to the id when no name is available (manual orders send no name).
       return {
         ok: false,
-        reason: "out_of_stock",
-        productName: product.name,
-        available: product.stock,
+        result: {
+          ok: false,
+          reason: "not_found",
+          productName: it.name || it.productId || "",
+        },
       };
     }
-  }
-
-  // Decrement stock for products we recognise. Unknown product names
-  // (e.g. a renamed item still in someone's cart) pass through so the
-  // order isn't lost — admin can reconcile manually. We collect the
-  // decrements so we can record stock moves once the order id is known.
-  const decrements: Array<{ idx: number; qty: number; stockAfter: number }> = [];
-  for (const it of cleanItems) {
-    const idx = products.findIndex((p) => p.name === it.name);
-    if (idx !== -1) {
-      const stockAfter = Math.max(0, products[idx].stock - it.qty);
-      products[idx] = {
-        ...products[idx],
-        stock: stockAfter,
-        updatedAt: new Date().toISOString(),
+    const variant = it.variantId
+      ? (product.variants.find((v) => v.id === it.variantId && v.isActive) ??
+        null)
+      : null;
+    // A chosen variant that no longer resolves to an active one must NOT silently
+    // fall back to the base price/stock — reject the line so the stale selection
+    // surfaces instead of mischarging.
+    if (it.variantId && !variant) {
+      return {
+        ok: false,
+        result: { ok: false, reason: "not_found", productName: product.name },
       };
-      decrements.push({ idx, qty: it.qty, stockAfter });
     }
+    // Server-authoritative price: base + variant delta.
+    const unitPriceMinor = Math.max(
+      0,
+      product.priceMinor + (variant?.priceDeltaMinor ?? 0),
+    );
+    if (it.priceMinor !== undefined && it.priceMinor !== unitPriceMinor) {
+      priceAdjusted = true;
+    }
+    // Stock check (variant stock when a variant is chosen, else product stock).
+    const available = variant ? variant.stock : product.stock;
+    if (available < it.qty) {
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          reason: "out_of_stock",
+          productName: variant
+            ? `${product.name} · ${variant.name}`
+            : product.name,
+          available,
+        },
+      };
+    }
+    resolved.push({
+      product,
+      variant,
+      qty: it.qty,
+      unitPriceMinor,
+      label: variant ? `${product.name} · ${variant.name}` : product.name,
+    });
   }
 
-  const items: AdminOrderItem[] = cleanItems.map((it) => ({
-    productName: it.name,
-    qty: it.qty,
-    unitPriceMinor: it.priceMinor,
+  return { ok: true, resolved, priceAdjusted };
+}
+
+type ClaimStockResult =
+  | { ok: true; stockAfters: number[] }
+  | { ok: false; result: PlaceOrderFailure };
+
+/**
+ * Atomically claims stock for ALL lines in one transaction. The RPC checks +
+ * decrements product stock (and the chosen variant's JSONB stock) under a row
+ * lock and raises INSUFFICIENT_STOCK if any line can't be met, rolling back
+ * every line — prevents overselling, all-or-nothing.
+ */
+async function claimOrderStock(
+  resolved: ResolvedLine[],
+): Promise<ClaimStockResult> {
+  const sb = getDb();
+  const claim = await sb.rpc("claim_order_stock", {
+    p_lines: resolved.map((l) => ({
+      productId: l.product.id,
+      variantId: l.variant?.id ?? null,
+      qty: l.qty,
+    })),
+    p_now: new Date().toISOString(),
+  });
+  if (claim.error) {
+    const m = /INSUFFICIENT_STOCK:(.*)$/.exec(claim.error.message);
+    if (m) {
+      const pid = m[1].trim();
+      const line = resolved.find((l) => l.product.id === pid) ?? resolved[0];
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          reason: "out_of_stock",
+          productName: line.label,
+          available: line.variant ? line.variant.stock : line.product.stock,
+        },
+      };
+    }
+    throw new Error(`placeOrder.claim: ${claim.error.message}`);
+  }
+  return { ok: true, stockAfters: (claim.data ?? []) as number[] };
+}
+
+/** One stock movement per claimed line, using the post-claim product stock. */
+async function recordOrderStockMoves(
+  resolved: ResolvedLine[],
+  stockAfters: number[],
+  orderId: string,
+  note: string,
+  actor: string,
+): Promise<void> {
+  for (let i = 0; i < resolved.length; i += 1) {
+    const line = resolved[i];
+    const stockAfter =
+      stockAfters[i] ?? Math.max(0, line.product.stock - line.qty);
+    await recordStockMove({
+      productId: line.product.id,
+      productName: line.label,
+      delta: -line.qty,
+      stockAfter,
+      reason: "order_placed",
+      note,
+      orderId,
+      actor,
+    });
+  }
+}
+
+interface FinalizeOrderInput {
+  orderId: string;
+  orderNo: number;
+  status: AdminOrderStatus;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+  internalNote: string;
+  promoCode?: string;
+  legalConsent?: OrderLegalConsent;
+  /**
+   * Mobile app columns (docs/API-MOBILE.md §3). All optional: the web and
+   * admin paths leave them out and the row takes the database defaults, so
+   * an order written by those paths is byte-for-byte what it was before.
+   */
+  channel?: OrderChannel;
+  kind?: OrderKind;
+  fulfillment?: OrderFulfillment;
+  scheduledFor?: string;
+  deliveryNote?: string;
+  /** How shipping is charged; the shop's settings when omitted. */
+  shipping?: ShippingMode;
+}
+
+/** Order lines as they are written, from lines resolved against `products`. */
+function shopLineItems(resolved: ResolvedLine[]): AdminOrderItem[] {
+  return resolved.map((line) => ({
+    productName: line.label,
+    qty: line.qty,
+    unitPriceMinor: line.unitPriceMinor,
     status: "pending",
+    productId: line.product.id,
+    ...(line.variant ? { variantId: line.variant.id } : {}),
   }));
+}
 
+/**
+ * Builds + persists the order row from already-resolved lines. Promo is
+ * re-validated against the authoritative subtotal; shipping + total come from
+ * settings (single source of truth).
+ */
+async function finalizeOrder(
+  resolved: ResolvedLine[],
+  f: FinalizeOrderInput,
+): Promise<{ order: AdminOrder; promoDropped: boolean }> {
+  return insertOrderRow(shopLineItems(resolved), f);
+}
+
+/**
+ * The write behind every order: claims the promo/coupon against the
+ * authoritative subtotal, computes the totals and inserts the row. Shared by
+ * the web checkout, the admin's manual order and the app, which differ only in
+ * where their lines come from and how shipping is charged.
+ */
+async function insertOrderRow(
+  items: AdminOrderItem[],
+  f: FinalizeOrderInput,
+): Promise<{ order: AdminOrder; promoDropped: boolean }> {
+  const sb = getDb();
   const subtotalMinor = items.reduce(
     (s, it) => s + it.unitPriceMinor * it.qty,
     0,
   );
 
-  const nextNo = orders.length === 0
-    ? 10_001
-    : Math.max(...orders.map((o) => o.orderNo)) + 1;
-
-  const orderId = slugifyId("ord", orders.length + 1);
-  for (const d of decrements) {
-    recordStockMove({
-      productId: products[d.idx].id,
-      productName: products[d.idx].name,
-      delta: -d.qty,
-      stockAfter: d.stockAfter,
-      reason: "order_placed",
-      note: `Sipariş #${nextNo}`,
-      orderId,
-      actor: input.customerEmail ?? "customer",
-    });
-  }
-
-  // Re-validate promo server-side; never trust a client-supplied discount.
+  // Promo is re-validated here against the authoritative subtotal. If the
+  // customer applied a code at the cart preview but it expired / hit its limit
+  // before submit, we drop it (no discount) AND flag `promoDropped` so the
+  // caller can warn instead of silently charging full price.
   let promoCode = "";
   let discountMinor = 0;
-  if (input.promoCode && input.promoCode.trim()) {
-    const promoCheck = await applyPromoCode(input.promoCode, subtotalMinor);
-    if (promoCheck.ok) {
-      promoCode = promoCheck.promo.code;
-      discountMinor = promoCheck.discountMinor;
-      await consumePromoUsage(promoCode);
+  let promoDropped = false;
+  if (f.promoCode && f.promoCode.trim()) {
+    const code = f.promoCode.trim();
+    let applied = false;
+    // 1) A personal coupon owned by this member is tried first and claimed
+    //    atomically (single-use) before any discount is honored.
+    if (f.customerEmail) {
+      const couponCheck = await applyCustomerCoupon(
+        code,
+        f.customerEmail,
+        subtotalMinor,
+      );
+      // A free-drink coupon (loyalty / invite) pays for a drink at the cafe;
+      // on a shop order it would be ₺280 off a bag of beans. Dropped with the
+      // usual promoDropped flag so the app can say why.
+      const cafeOnly =
+        couponCheck.coupon?.source === "loyalty" ||
+        couponCheck.coupon?.source === "invite";
+      if (
+        couponCheck.ok &&
+        couponCheck.coupon &&
+        (!cafeOnly || (f.kind ?? "shop") === "cafe")
+      ) {
+        const claimed = await redeemCustomerCoupon(
+          couponCheck.coupon.code,
+          f.customerEmail,
+          f.orderNo,
+        );
+        if (claimed) {
+          promoCode = couponCheck.coupon.code;
+          discountMinor = couponCheck.discountMinor ?? 0;
+          applied = true;
+        }
+      }
     }
-    // Silently ignore an invalid promo at checkout; the cart should have
-    // surfaced the error already. We don't fail the order because the
-    // code might have expired between the cart preview and submit.
+    // 2) Otherwise fall back to a global promo code (shared code input).
+    if (!applied) {
+      const promoCheck = await applyPromoCode(code, subtotalMinor);
+      // The use is taken FIRST: the limit is enforced by the take, so a code
+      // whose last use went to a concurrent checkout is dropped here rather
+      // than discounted twice.
+      if (promoCheck.ok && (await consumePromoUsage(promoCheck.promo.code))) {
+        promoCode = promoCheck.promo.code;
+        discountMinor = promoCheck.discountMinor;
+        applied = true;
+      }
+    }
+    if (!applied) promoDropped = true;
   }
 
-  const totalMinor = Math.max(0, subtotalMinor - discountMinor);
+  const settings = await getSettings();
+  const cfg: CheckoutConfig = {
+    shippingFlatMinor: settings.shippingFlatMinor,
+    shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
+    taxRatePct: settings.taxRatePct,
+  };
+  const totals = computeTotalsWithShipping(
+    subtotalMinor,
+    discountMinor,
+    f.shipping ?? { mode: "settings" },
+    cfg,
+  );
 
   const order: AdminOrder = {
-    id: orderId,
-    orderNo: nextNo,
+    id: f.orderId,
+    orderNo: f.orderNo,
+    customerName: f.customerName,
+    customerEmail: f.customerEmail,
+    customerPhone: f.customerPhone,
+    shippingAddress: f.shippingAddress,
+    internalNote: f.internalNote,
+    status: f.status,
+    items,
+    subtotalMinor: totals.subtotalMinor,
+    discountMinor: totals.discountMinor,
+    promoCode,
+    shippingMinor: totals.shippingMinor,
+    totalMinor: totals.totalMinor,
+    refunds: [],
+    createdAt: new Date().toISOString(),
+    legalConsent: f.legalConsent ?? {},
+    // Only the app sets these; a web/admin row keeps the column defaults.
+    ...(f.channel ? { channel: f.channel } : {}),
+    ...(f.kind ? { kind: f.kind } : {}),
+    ...(f.fulfillment ? { fulfillment: f.fulfillment } : {}),
+    ...(f.scheduledFor !== undefined ? { scheduledFor: f.scheduledFor } : {}),
+    ...(f.deliveryNote !== undefined ? { deliveryNote: f.deliveryNote } : {}),
+  };
+  check(await sb.from(TABLES.orders).insert(order), "finalizeOrder.insert");
+  return { order, promoDropped };
+}
+
+/**
+ * Creates an order from a customer cart. Status starts at `pending_payment`;
+ * the payment webhook advances it. See {@link resolveOrderLines} for the
+ * server-authoritative price + stock guarantees.
+ */
+/**
+ * How long an unpaid order may hold its stock.
+ *
+ * Long enough for a slow 3-D Secure step and a retry, short enough that an
+ * abandoned checkout does not keep the last unit of a product off the shelf
+ * overnight.
+ */
+const PENDING_ORDER_TTL_MINUTES = 45;
+
+/**
+ * Cancels checkouts that were never paid for, and returns what they held.
+ *
+ * There is no scheduler in this deployment, so the sweep runs at the start of
+ * a checkout — the moment stock accuracy actually matters. It is bounded and
+ * idempotent, and a failure here must never block the order being placed.
+ */
+export async function expireStalePendingOrders(): Promise<number> {
+  const cutoff = new Date(
+    Date.now() - PENDING_ORDER_TTL_MINUTES * 60_000,
+  ).toISOString();
+  const sb = getDb();
+  const stale = rows<AdminOrder>(
+    await sb
+      .from(TABLES.orders)
+      .select("*")
+      .eq("status", "pending_payment")
+      .lt("createdAt", cutoff)
+      .order("createdAt", { ascending: true })
+      .limit(20),
+    "expireStalePendingOrders",
+  );
+  let expired = 0;
+  for (const order of stale) {
+    const moved = rows<{ id: string }>(
+      await sb
+        .from(TABLES.orders)
+        .update({ status: "cancelled" })
+        .eq("id", order.id)
+        .eq("status", "pending_payment")
+        .select("id"),
+      "expireStalePendingOrders.cancel",
+    );
+    if (moved.length === 0) continue;
+    await releaseOrderInventory(order);
+    expired += 1;
+  }
+  return expired;
+}
+
+export async function placeOrder(
+  input: PlaceOrderInput,
+): Promise<PlaceOrderResult> {
+  await ensureSeed();
+
+  // Reclaim stock from checkouts that were abandoned before this one started.
+  // Never fatal: a customer's order must not fail because housekeeping did.
+  try {
+    await expireStalePendingOrders();
+  } catch (err) {
+    console.error("[orders] expiring stale pending orders failed", err);
+  }
+
+  // Refuse customer checkout while the shop is flagged closed in settings.
+  // (Admin manual orders bypass this — see createManualOrder.)
+  const settings = await getSettings();
+  if (!settings.isShopOpen) {
+    return { ok: false, reason: "shop_closed" };
+  }
+
+  const resolveRes = await resolveOrderLines(input.items);
+  if (!resolveRes.ok) return resolveRes.result;
+  const { resolved, priceAdjusted } = resolveRes;
+
+  const claimRes = await claimOrderStock(resolved);
+  if (!claimRes.ok) return claimRes.result;
+
+  const orderSeq = await nextSeq("ord");
+  const orderNo = await nextSeq("orderNo");
+  const orderId = slugifyId("ord", orderSeq);
+
+  await recordOrderStockMoves(
+    resolved,
+    claimRes.stockAfters,
+    orderId,
+    `Sipariş #${orderNo}`,
+    input.customerEmail ?? "customer",
+  );
+
+  const { order, promoDropped } = await finalizeOrder(resolved, {
+    orderId,
+    orderNo,
+    status: "pending_payment",
     customerName: input.customerName?.trim() || "Misafir",
     customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
     customerPhone: input.customerPhone?.trim() ?? "",
     shippingAddress: input.shippingAddress?.trim() ?? "",
     internalNote: "",
-    status: "pending_payment",
-    items,
-    subtotalMinor,
-    discountMinor,
-    promoCode,
-    shippingMinor: 0,
-    totalMinor,
-    refunds: [],
-    createdAt: new Date().toISOString(),
-  };
-  orders.push(order);
-  return { ok: true, order };
+    promoCode: input.promoCode,
+    legalConsent: input.legalConsent,
+  });
+  return { ok: true, order, priceAdjusted, promoDropped };
 }
 
-// ── Order detail operations ──────────────────────────────────────────────
+/** Manual orders may start in any of these states (admin records a real sale). */
+export type ManualOrderStatus = "pending_payment" | "paid" | "preparing";
+
+export interface CreateManualOrderInput {
+  items: Array<{ productId: string; variantId?: string; qty: number }>;
+  customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  shippingAddress?: string;
+  internalNote?: string;
+  promoCode?: string;
+  status: ManualOrderStatus;
+  /** Admin email recorded as the stock-move actor. */
+  actor: string;
+}
+
+/**
+ * Creates an order entered by an admin (phone/in-store sale). Mirrors
+ * {@link placeOrder} — prices resolved server-side, stock atomically claimed —
+ * but the admin chooses the initial status and customer details directly.
+ */
+export async function createManualOrder(
+  input: CreateManualOrderInput,
+): Promise<PlaceOrderResult> {
+  await ensureSeed();
+
+  const resolveRes = await resolveOrderLines(
+    input.items.map((it) => ({
+      productId: it.productId,
+      variantId: it.variantId,
+      name: "",
+      qty: it.qty,
+    })),
+  );
+  if (!resolveRes.ok) return resolveRes.result;
+  const { resolved } = resolveRes;
+
+  const claimRes = await claimOrderStock(resolved);
+  if (!claimRes.ok) return claimRes.result;
+
+  const orderSeq = await nextSeq("ord");
+  const orderNo = await nextSeq("orderNo");
+  const orderId = slugifyId("ord", orderSeq);
+
+  await recordOrderStockMoves(
+    resolved,
+    claimRes.stockAfters,
+    orderId,
+    `Manuel sipariş #${orderNo}`,
+    input.actor || "admin",
+  );
+
+  const { order, promoDropped } = await finalizeOrder(resolved, {
+    orderId,
+    orderNo,
+    status: input.status,
+    customerName: input.customerName.trim() || "Müşteri",
+    customerEmail: input.customerEmail?.trim() ?? "",
+    customerPhone: input.customerPhone?.trim() ?? "",
+    shippingAddress: input.shippingAddress?.trim() ?? "",
+    internalNote: input.internalNote?.trim().slice(0, 2000) ?? "",
+    promoCode: input.promoCode,
+  });
+  return { ok: true, order, priceAdjusted: false, promoDropped };
+}
+
+// ── App orders (docs/API-MOBILE.md §3) ────────────────────────────────────
+
+export interface AppCafeLineInput {
+  menuItemId: string;
+  qty: number;
+  size: OrderItemSize;
+  options: LineOptions;
+}
+
+export interface AppShopLineInput {
+  productId: string;
+  variantId?: string;
+  qty: number;
+  /** Grind choice etc.; shown on the line, no effect on price. */
+  note?: string;
+}
+
+export type AppOrderLineInput = AppCafeLineInput | AppShopLineInput;
+
+export function isAppCafeLine(
+  line: AppOrderLineInput,
+): line is AppCafeLineInput {
+  return "menuItemId" in line;
+}
+
+export interface AppOrderInput {
+  lines: AppOrderLineInput[];
+  fulfillment: OrderFulfillment;
+  customerName: string;
+  /** The authenticated member's e-mail — never read from the request body. */
+  customerEmail: string;
+  customerPhone: string;
+  /** Already formatted for the row; "" on a pickup. */
+  shippingAddress: string;
+  deliveryNote: string;
+  /** ISO instant, or null/"" for as soon as possible. */
+  scheduledFor: string | null;
+  promoCode: string;
+  legalConsent: OrderLegalConsent;
+}
+
+export type PlaceAppOrderResult =
+  | { ok: true; order: AdminOrder; promoDropped: boolean }
+  | Exclude<PlaceOrderResult, { ok: true }>
+  | { ok: false; reason: "cafe_closed" }
+  | { ok: false; reason: "bad_line"; productName: string; message: string }
+  | { ok: false; reason: "bad_request"; message: string };
+
+/** Every way an app order can be refused. */
+export type AppOrderFailure = Exclude<PlaceAppOrderResult, { ok: true }>;
+
+type CafeLinesResult =
+  | { ok: true; items: AdminOrderItem[] }
+  | { ok: false; result: AppOrderFailure };
+
+/**
+ * Prices cafe lines against `menu_items`. SECURITY: the unit price is the
+ * menu row's size price plus the option surcharges from the server-side
+ * customisation table — nothing from the request. Cafe lines hold no stock,
+ * so there is nothing to claim.
+ */
+async function resolveCafeLines(
+  lines: AppCafeLineInput[],
+): Promise<CafeLinesResult> {
+  const clean = lines.filter((l) => l.qty > 0);
+  if (clean.length === 0) {
+    return { ok: false, result: { ok: false, reason: "empty" } };
+  }
+  const ids = Array.from(new Set(clean.map((l) => l.menuItemId)));
+  const sb = getDb();
+  const docs = rows<AdminMenuItem>(
+    await sb.from(TABLES.menuItems).select("*").in("id", ids),
+    "placeAppOrder.menuItems",
+  );
+  const byId = new Map(docs.map((d) => [d.id, d]));
+
+  const items: AdminOrderItem[] = [];
+  for (const line of clean) {
+    const item = byId.get(line.menuItemId);
+    if (!item) {
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          reason: "not_found",
+          productName: line.menuItemId,
+        },
+      };
+    }
+    if (line.qty > MAX_LINE_QTY) {
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          reason: "qty_too_high",
+          productName: item.name,
+          max: MAX_LINE_QTY,
+        },
+      };
+    }
+    const priced = priceCafeLine(item, line.size, line.options);
+    if (!priced.ok) {
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          reason: "bad_line",
+          productName: item.name,
+          message: priced.message,
+        },
+      };
+    }
+    items.push({
+      productName: item.name,
+      qty: line.qty,
+      unitPriceMinor: priced.unitPriceMinor,
+      status: "pending",
+      menuItemId: item.id,
+      size: priced.size,
+      options: { ...priced.options },
+      detail: priced.detail,
+    });
+  }
+  return { ok: true, items };
+}
+
+function toPlaceOrderItem(line: AppShopLineInput): PlaceOrderItemInput {
+  return {
+    productId: line.productId,
+    variantId: line.variantId,
+    name: "",
+    qty: line.qty,
+  };
+}
+
+/**
+ * Carries the app's per-line note (the grind) onto the written line. The
+ * resolver keeps line order, and the app never sends a zero quantity, so the
+ * two lists line up one to one; if they ever did not, the notes are dropped
+ * rather than attached to the wrong product.
+ */
+function withShopNotes(
+  items: AdminOrderItem[],
+  lines: AppShopLineInput[],
+): AdminOrderItem[] {
+  const clean = lines.filter((l) => l.qty > 0);
+  if (clean.length !== items.length) return items;
+  return items.map((it, i) => {
+    const note = clean[i].note?.trim();
+    return note ? { ...it, detail: note.slice(0, 120) } : it;
+  });
+}
+
+function splitAppLines(lines: AppOrderLineInput[]): {
+  cafe: AppCafeLineInput[];
+  shop: AppShopLineInput[];
+} {
+  const cafe: AppCafeLineInput[] = [];
+  const shop: AppShopLineInput[] = [];
+  for (const line of lines) {
+    if (isAppCafeLine(line)) cafe.push(line);
+    else shop.push(line);
+  }
+  return { cafe, shop };
+}
+
+const MIXED_BASKET_MSG =
+  "Kafe ürünleri ile mağaza ürünleri aynı siparişte verilemez.";
+
+export type AppOrderLinesResult =
+  | { ok: true; items: AdminOrderItem[]; kind: OrderKind }
+  | { ok: false; result: AppOrderFailure };
+
+/**
+ * Resolves and prices app lines WITHOUT claiming stock, a promo or a
+ * sequence number — the basket preview (`POST /orders/preview`). Stock is
+ * still checked so an out-of-stock line is reported before checkout.
+ */
+export async function previewAppOrderLines(
+  lines: AppOrderLineInput[],
+): Promise<AppOrderLinesResult> {
+  await ensureSeed();
+  const { cafe, shop } = splitAppLines(lines);
+  if (cafe.length > 0 && shop.length > 0) {
+    return {
+      ok: false,
+      result: { ok: false, reason: "bad_request", message: MIXED_BASKET_MSG },
+    };
+  }
+  if (cafe.length > 0) {
+    const res = await resolveCafeLines(cafe);
+    return res.ok
+      ? { ok: true, items: res.items, kind: "cafe" }
+      : { ok: false, result: res.result };
+  }
+  const res = await resolveOrderLines(shop.map(toPlaceOrderItem));
+  if (!res.ok) return { ok: false, result: res.result };
+  return {
+    ok: true,
+    items: withShopNotes(shopLineItems(res.resolved), shop),
+    kind: "shop",
+  };
+}
+
+/**
+ * Creates an order placed from the mobile app. Cafe lines are priced from
+ * `menu_items` and hold no stock; shop lines go through exactly the web
+ * checkout's resolve → atomic claim → stock-move path. Status starts at
+ * `pending_payment`; the payment webhook advances it.
+ */
+export async function placeAppOrder(
+  input: AppOrderInput,
+): Promise<PlaceAppOrderResult> {
+  await ensureSeed();
+
+  // Same housekeeping as the web checkout — and just as non-fatal.
+  try {
+    await expireStalePendingOrders();
+  } catch (err) {
+    console.error("[orders] expiring stale pending orders failed", err);
+  }
+
+  const settings = await getSettings();
+  if (!settings.isShopOpen) {
+    return { ok: false, reason: "shop_closed" };
+  }
+
+  const { cafe, shop } = splitAppLines(input.lines);
+  if (cafe.length === 0 && shop.length === 0) {
+    return { ok: false, reason: "empty" };
+  }
+  if (cafe.length > 0 && shop.length > 0) {
+    return { ok: false, reason: "bad_request", message: MIXED_BASKET_MSG };
+  }
+  const kind: OrderKind = cafe.length > 0 ? "cafe" : "shop";
+  if (!fulfillmentAllowed(kind, input.fulfillment)) {
+    return {
+      ok: false,
+      reason: "bad_request",
+      message:
+        kind === "cafe"
+          ? "Kafe siparişi gel-al ya da kurye ile teslim edilir."
+          : "Mağaza siparişi kargo ile gönderilir.",
+    };
+  }
+  const scheduled = normalizeScheduledFor(input.scheduledFor, new Date());
+  if (!scheduled.ok) {
+    return { ok: false, reason: "bad_request", message: scheduled.message };
+  }
+
+  if (kind === "cafe") {
+    // The house must be open — at the requested time for a scheduled order,
+    // right now otherwise — with the staff override honoured either way.
+    // Imported lazily: the venue module reads settings from this store.
+    const { getVenueStatus, isCafeOpenNow } =
+      await import("@/lib/mobile/venue");
+    const venue = await getVenueStatus();
+    const at = scheduled.value ? new Date(scheduled.value) : new Date();
+    if (!isCafeOpenNow(settings.weeklyHours, venue.manualOverride, at)) {
+      return { ok: false, reason: "cafe_closed" };
+    }
+  }
+
+  const common = {
+    status: "pending_payment" as const,
+    customerName: input.customerName.trim() || "Üye",
+    customerEmail: input.customerEmail.trim().toLowerCase(),
+    customerPhone: input.customerPhone.trim(),
+    shippingAddress: input.shippingAddress.trim(),
+    internalNote: "",
+    promoCode: input.promoCode,
+    legalConsent: input.legalConsent,
+    channel: "app" as const,
+    kind,
+    fulfillment: input.fulfillment,
+    scheduledFor: scheduled.value,
+    deliveryNote: input.deliveryNote.trim().slice(0, 500),
+    shipping: shippingModeFor(input.fulfillment, settings),
+  };
+
+  if (kind === "cafe") {
+    const cafeRes = await resolveCafeLines(cafe);
+    if (!cafeRes.ok) return cafeRes.result;
+
+    const orderSeq = await nextSeq("ord");
+    const orderNo = await nextSeq("orderNo");
+    const orderId = slugifyId("ord", orderSeq);
+    const { order, promoDropped } = await insertOrderRow(cafeRes.items, {
+      orderId,
+      orderNo,
+      ...common,
+    });
+    return { ok: true, order, promoDropped };
+  }
+
+  const resolveRes = await resolveOrderLines(shop.map(toPlaceOrderItem));
+  if (!resolveRes.ok) return resolveRes.result;
+  const { resolved } = resolveRes;
+
+  const claimRes = await claimOrderStock(resolved);
+  if (!claimRes.ok) return claimRes.result;
+
+  const orderSeq = await nextSeq("ord");
+  const orderNo = await nextSeq("orderNo");
+  const orderId = slugifyId("ord", orderSeq);
+
+  await recordOrderStockMoves(
+    resolved,
+    claimRes.stockAfters,
+    orderId,
+    `Uygulama siparişi #${orderNo}`,
+    common.customerEmail,
+  );
+
+  const { order, promoDropped } = await insertOrderRow(
+    withShopNotes(shopLineItems(resolved), shop),
+    { orderId, orderNo, ...common },
+  );
+  return { ok: true, order, promoDropped };
+}
+
+// ── Payment application ───────────────────────────────────────────────────
+
+export type PaymentApplyResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Records a successful payment and advances the order to `paid`. Idempotent:
+ * the unique (provider, providerRef) index makes a duplicate insert a no-op
+ * (23505) and the order update is guarded on `pending_payment`. Used by the
+ * dev-only mock return handler (and reusable by a real provider webhook).
+ */
+export async function applyPaymentSucceeded(input: {
+  orderId: string;
+  provider: string;
+  providerRef: string;
+  amountMinor: number;
+  currency: string;
+  raw?: unknown;
+}): Promise<PaymentApplyResult> {
+  const sb = getDb();
+
+  // What the POS actually collected, against what the order costs.
+  //
+  // Nothing compared the two: a notification claiming ₺1 for a ₺500 order
+  // marked it paid and sent the customer a confirmation. The transaction is
+  // still recorded — the money did arrive and the row is the audit trail —
+  // but the order does not advance, and the mismatch is logged loudly for a
+  // human, because it means either a tampered notification or a real
+  // short-collection that has to be reconciled by hand.
+  const order = await getOrder(input.orderId);
+  if (!order) return { ok: false, error: `order ${input.orderId} not found` };
+  const shortfall = order.totalMinor - input.amountMinor;
+  // One lira of slack for a provider that rounds its own way.
+  const amountMatches = Math.abs(shortfall) <= 100;
+
+  const ins = await sb.from(TABLES.paymentTransactions).insert({
+    orderId: input.orderId,
+    provider: input.provider,
+    providerRef: input.providerRef,
+    status: "succeeded",
+    amountMinor: input.amountMinor,
+    currency: input.currency,
+    raw: input.raw ?? null,
+    createdAt: new Date().toISOString(),
+  });
+  // A clean insert means this is the FIRST confirmation; a 23505 is a duplicate
+  // webhook/return — used below to send the "paid" e-mail exactly once.
+  const isFirstConfirmation = !ins.error;
+  if (ins.error && ins.error.code !== "23505") {
+    return { ok: false, error: ins.error.message };
+  }
+  if (!amountMatches) {
+    console.error(
+      `[payment] AMOUNT MISMATCH order=${input.orderId} orderNo=${order.orderNo} ` +
+        `expected=${order.totalMinor} collected=${input.amountMinor} ` +
+        `provider=${input.provider} ref=${input.providerRef} — order left unpaid`,
+    );
+    return { ok: false, error: "amount_mismatch" };
+  }
+
+  const paidAt = new Date().toISOString();
+  const upd = await sb
+    .from(TABLES.orders)
+    .update({ status: "paid", paidAt })
+    .eq("id", input.orderId)
+    .eq("status", "pending_payment")
+    .select("id");
+  if (upd.error) return { ok: false, error: upd.error.message };
+  // Zero rows means the order was no longer pending — expired to `cancelled`
+  // by the stale sweep, or already paid. Loyalty must follow a payment that
+  // actually advanced the order, never a late or repeated confirmation.
+  const advanced = ((upd.data as { id: string }[] | null) ?? []).length > 0;
+
+  // Loyalty follows the payment but must never undo it: a stamp that fails
+  // to land is logged, the money stays recorded. Imported lazily because the
+  // loyalty module reads orders from this store (a static import would be a
+  // cycle), and the hook is idempotent so a retried webhook is harmless.
+  try {
+    if (advanced) {
+      const { onOrderPaid } = await import("@/lib/mobile/loyalty");
+      await onOrderPaid({ ...order, status: "paid", paidAt });
+    } else {
+      console.warn(
+        `[payment] order ${input.orderId} was not pending — loyalty skipped`,
+      );
+    }
+  } catch (err) {
+    console.error(
+      `[loyalty] onOrderPaid failed order=${input.orderId} orderNo=${order.orderNo}`,
+      err,
+    );
+  }
+
+  if (isFirstConfirmation) {
+    // Best-effort payment-confirmed e-mail (logs in dev when Resend is unset).
+    try {
+      if (
+        order.customerEmail &&
+        order.customerEmail !== "guest@laffogato.local"
+      ) {
+        await sendOrderPaidEmail({
+          to: order.customerEmail,
+          customerName: order.customerName,
+          orderNo: order.orderNo,
+          items: order.items.map((it) => ({
+            productName: it.productName,
+            qty: it.qty,
+            unitPriceMinor: it.unitPriceMinor,
+          })),
+          totalMinor: order.totalMinor,
+        });
+      }
+    } catch (err) {
+      console.error("[email] order paid notification failed", err);
+    }
+  }
+  return { ok: true };
+}
+
+/**
+ * Records a refund the payment provider told us about, over its webhook.
+ *
+ * Distinct from `refundOrder`, which is the admin *initiating* a refund. Here
+ * the money has already moved at the provider, so this only has to make the
+ * order reflect it: append to the refund ledger and flip the status to
+ * `refunded` **only** once the refunded total reaches the order total. A
+ * partial refund leaves the order in its current state, which is what the
+ * admin page, the reports and the customer's own order page all read.
+ *
+ * Idempotent on the provider reference: a retried webhook hits the unique
+ * (provider, providerRef) index and returns without touching the order again.
+ */
+export async function recordProviderRefund(input: {
+  orderId: string;
+  provider: string;
+  providerRef: string;
+  amountMinor: number;
+  currency: string;
+  raw?: unknown;
+}): Promise<PaymentApplyResult> {
+  const sb = getDb();
+  const ins = await sb.from(TABLES.paymentTransactions).insert({
+    orderId: input.orderId,
+    provider: input.provider,
+    providerRef: input.providerRef,
+    status: "refunded",
+    amountMinor: input.amountMinor,
+    currency: input.currency,
+    raw: input.raw ?? null,
+    createdAt: new Date().toISOString(),
+  });
+  if (ins.error) {
+    // 23505 = duplicate notification; the ledger already has this refund.
+    if (ins.error.code === "23505") return { ok: true };
+    return { ok: false, error: ins.error.message };
+  }
+
+  const order = await getOrder(input.orderId);
+  if (!order) return { ok: false, error: "Sipariş bulunamadı." };
+
+  const already = order.refunds.reduce((sum, r) => sum + r.amountMinor, 0);
+  // Never record more than the order is worth, however the provider reports it.
+  const amount = Math.min(
+    Math.max(0, input.amountMinor),
+    Math.max(0, order.totalMinor - already),
+  );
+  if (amount === 0) return { ok: true };
+
+  const refunds = [
+    ...order.refunds,
+    {
+      id: `rfn-${order.refunds.length + 1}-${input.providerRef}`,
+      amountMinor: amount,
+      reason: `Sağlayıcı iadesi (${input.provider})`,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+  const fullyRefunded =
+    refunds.reduce((sum, r) => sum + r.amountMinor, 0) >= order.totalMinor;
+
+  const upd = await sb
+    .from(TABLES.orders)
+    .update({ refunds, status: fullyRefunded ? "refunded" : order.status })
+    .eq("id", input.orderId);
+  if (upd.error) return { ok: false, error: upd.error.message };
+  return { ok: true };
+}
+
+/** Latest succeeded payment provider reference for an order (for refunds). */
+export async function getOrderPaymentRef(
+  orderId: string,
+): Promise<{ provider: string; providerRef: string } | null> {
+  const sb = getDb();
+  const res = await sb
+    .from(TABLES.paymentTransactions)
+    .select("provider, providerRef")
+    .eq("orderId", orderId)
+    .eq("status", "succeeded")
+    .order("createdAt", { ascending: false })
+    .limit(1);
+  if (res.error) throw new Error(`getOrderPaymentRef: ${res.error.message}`);
+  const row = res.data?.[0] as
+    | { provider: string; providerRef: string }
+    | undefined;
+  return row ? { provider: row.provider, providerRef: row.providerRef } : null;
+}
 
 export type OrderTransition =
   | "start_preparing"
@@ -870,10 +2301,13 @@ export type OrderTransition =
   | "cancel"
   | "mark_paid";
 
-const TRANSITION_MAP: Record<OrderTransition, {
-  from: AdminOrderStatus[];
-  to: AdminOrderStatus;
-}> = {
+const TRANSITION_MAP: Record<
+  OrderTransition,
+  {
+    from: AdminOrderStatus[];
+    to: AdminOrderStatus;
+  }
+> = {
   mark_paid: { from: ["pending_payment"], to: "paid" },
   start_preparing: { from: ["paid", "pending_payment"], to: "preparing" },
   mark_shipped: { from: ["preparing", "paid"], to: "shipped" },
@@ -884,8 +2318,14 @@ const TRANSITION_MAP: Record<OrderTransition, {
   },
 };
 
-export function availableTransitions(status: AdminOrderStatus): OrderTransition[] {
-  return (Object.entries(TRANSITION_MAP) as Array<[OrderTransition, typeof TRANSITION_MAP[OrderTransition]]>)
+export function availableTransitions(
+  status: AdminOrderStatus,
+): OrderTransition[] {
+  return (
+    Object.entries(TRANSITION_MAP) as Array<
+      [OrderTransition, (typeof TRANSITION_MAP)[OrderTransition]]
+    >
+  )
     .filter(([, { from }]) => from.includes(status))
     .map(([t]) => t);
 }
@@ -896,32 +2336,202 @@ export interface TransitionResult {
   error?: string;
 }
 
+/**
+ * Gives back everything an order took, when it will never be fulfilled.
+ *
+ * Placing an order claims stock, burns the customer's single-use coupon and
+ * takes one use of a promo code — all before payment, so nothing can be
+ * double-spent while the customer is on the POS page. Cancelling used to
+ * reverse none of it: a cancelled order held its stock forever (the shop read
+ * as sold out while the shelf was full), and the customer's coupon was gone
+ * for an order they never paid for.
+ *
+ * Guarded on `stockReleasedAt`, and the guard is part of the UPDATE, so two
+ * concurrent cancels cannot both credit the stock.
+ */
+async function releaseOrderInventory(order: AdminOrder): Promise<void> {
+  const sb = getDb();
+  const now = new Date().toISOString();
+
+  // Claim the right to release. Only the writer that flips the empty marker
+  // proceeds.
+  const claimed = rows<{ id: string }>(
+    await sb
+      .from(TABLES.orders)
+      .update({ stockReleasedAt: now })
+      .eq("id", order.id)
+      .eq("stockReleasedAt", "")
+      .select("id"),
+    "releaseOrderInventory.claim",
+  );
+  if (claimed.length === 0) return;
+
+  // Lines from before productId was recorded, and manual admin lines that
+  // reference no catalogue product, are skipped: restoring by name would
+  // credit the wrong SKU the moment a product had been renamed.
+  const lines = order.items
+    .filter((it) => it.productId && it.status !== "cancelled" && it.qty > 0)
+    .map((it) => ({
+      productId: it.productId as string,
+      variantId: it.variantId ?? null,
+      qty: it.qty,
+      productName: it.productName,
+    }));
+
+  if (lines.length > 0) {
+    const released = await sb.rpc("release_order_stock", {
+      p_lines: lines.map(({ productId, variantId, qty }) => ({
+        productId,
+        variantId,
+        qty,
+      })),
+      p_now: now,
+    });
+    if (released.error) {
+      throw new Error(`releaseOrderInventory: ${released.error.message}`);
+    }
+    const stockAfters = (released.data ?? []) as number[];
+    for (let i = 0; i < lines.length; i += 1) {
+      // -1 means the product row is gone; there is no stock level to log.
+      if (stockAfters[i] === -1 || stockAfters[i] === undefined) continue;
+      await recordStockMove({
+        productId: lines[i].productId,
+        productName: lines[i].productName,
+        delta: lines[i].qty,
+        stockAfter: stockAfters[i],
+        reason: "order_cancelled",
+        note: `Sipariş #${order.orderNo} iptal edildi`,
+        orderId: order.id,
+        actor: "system",
+      });
+    }
+  }
+
+  if (order.promoCode) {
+    // A personal coupon is returned to its owner; a shared promo gets its use
+    // back. Only one of the two can have been applied.
+    const returned = order.customerEmail
+      ? await releaseCustomerCoupon(
+          order.promoCode,
+          order.customerEmail,
+          order.orderNo,
+        )
+      : false;
+    if (!returned) await releasePromoUsage(order.promoCode);
+  }
+}
+
 export async function transitionOrder(
   id: string,
   transition: OrderTransition,
 ): Promise<TransitionResult> {
-  const idx = orders.findIndex((o) => o.id === id);
-  if (idx === -1) return { ok: false, error: "Sipariş bulunamadı." };
+  await ensureSeed();
+  const sb = getDb();
+  const existing = await getOrder(id);
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
   const map = TRANSITION_MAP[transition];
   if (!map) return { ok: false, error: "Geçersiz işlem." };
-  if (!map.from.includes(orders[idx].status)) {
+  if (!map.from.includes(existing.status)) {
     return {
       ok: false,
-      error: `Bu işlem '${orders[idx].status}' durumunda yapılamaz.`,
+      error: `Bu işlem '${existing.status}' durumunda yapılamaz.`,
     };
   }
-  orders[idx] = { ...orders[idx], status: map.to };
-  return { ok: true, order: orders[idx] };
+  check(
+    await sb.from(TABLES.orders).update({ status: map.to }).eq("id", id),
+    "transitionOrder",
+  );
+  if (map.to === "cancelled") {
+    await releaseOrderInventory(existing);
+    await reverseLoyalty(existing, "cancelled");
+  }
+  return { ok: true, order: { ...existing, status: map.to } };
+}
+
+/**
+ * Gives back the stamp an app order earned, when the order is undone.
+ *
+ * Best-effort and lazily imported for the same reasons the earning hook is:
+ * loyalty reads orders from this module, and a bookkeeping failure must not
+ * block the refund itself.
+ */
+async function reverseLoyalty(order: AdminOrder, why: string): Promise<void> {
+  try {
+    const { onOrderReversed } = await import("@/lib/mobile/loyalty");
+    await onOrderReversed(order);
+  } catch (err) {
+    console.error(
+      `[loyalty] reversal failed order=${order.id} orderNo=${order.orderNo} (${why})`,
+      err,
+    );
+  }
 }
 
 export async function setOrderInternalNote(
   id: string,
   note: string,
 ): Promise<AdminOrder | null> {
-  const idx = orders.findIndex((o) => o.id === id);
-  if (idx === -1) return null;
-  orders[idx] = { ...orders[idx], internalNote: note.slice(0, 2000) };
-  return orders[idx];
+  await ensureSeed();
+  const sb = getDb();
+  const trimmed = note.slice(0, 2000);
+  const existing = await getOrder(id);
+  if (!existing) return null;
+  check(
+    await sb.from(TABLES.orders).update({ internalNote: trimmed }).eq("id", id),
+    "setOrderInternalNote",
+  );
+  return { ...existing, internalNote: trimmed };
+}
+
+export async function setOrderTracking(
+  id: string,
+  trackingNumber: string,
+  carrier: string,
+): Promise<AdminOrder | null> {
+  await ensureSeed();
+  const sb = getDb();
+  const existing = await getOrder(id);
+  if (!existing) return null;
+  const tn = trackingNumber.trim().slice(0, 120);
+  const ca = carrier.trim().slice(0, 80);
+  const shippedAt = existing.shippedAt || (tn ? new Date().toISOString() : "");
+  check(
+    await sb
+      .from(TABLES.orders)
+      .update({ trackingNumber: tn, carrier: ca, shippedAt })
+      .eq("id", id),
+    "setOrderTracking",
+  );
+  return { ...existing, trackingNumber: tn, carrier: ca, shippedAt };
+}
+
+export interface OrderDetailsInput {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+}
+
+/** Admin edit of an order's customer + delivery fields (no totals change). */
+export async function updateOrderDetails(
+  id: string,
+  input: OrderDetailsInput,
+): Promise<AdminOrder | null> {
+  await ensureSeed();
+  const sb = getDb();
+  const existing = await getOrder(id);
+  if (!existing) return null;
+  const update = {
+    customerName: input.customerName.trim().slice(0, 120),
+    customerEmail: input.customerEmail.trim().slice(0, 160),
+    customerPhone: input.customerPhone.trim().slice(0, 40),
+    shippingAddress: input.shippingAddress.trim().slice(0, 600),
+  };
+  check(
+    await sb.from(TABLES.orders).update(update).eq("id", id),
+    "updateOrderDetails",
+  );
+  return { ...existing, ...update };
 }
 
 export async function setOrderItemStatus(
@@ -929,14 +2539,19 @@ export async function setOrderItemStatus(
   itemIndex: number,
   status: AdminOrderItemStatus,
 ): Promise<AdminOrder | null> {
-  const idx = orders.findIndex((o) => o.id === orderId);
-  if (idx === -1) return null;
-  if (itemIndex < 0 || itemIndex >= orders[idx].items.length) return null;
-  const nextItems = orders[idx].items.map((it, i) =>
+  await ensureSeed();
+  const sb = getDb();
+  const existing = await getOrder(orderId);
+  if (!existing) return null;
+  if (itemIndex < 0 || itemIndex >= existing.items.length) return null;
+  const nextItems = existing.items.map((it, i) =>
     i === itemIndex ? { ...it, status } : it,
   );
-  orders[idx] = { ...orders[idx], items: nextItems };
-  return orders[idx];
+  check(
+    await sb.from(TABLES.orders).update({ items: nextItems }).eq("id", orderId),
+    "setOrderItemStatus",
+  );
+  return { ...existing, items: nextItems };
 }
 
 export interface RefundInput {
@@ -952,14 +2567,24 @@ export async function refundOrder(
   orderId: string,
   input: RefundInput,
 ): Promise<RefundResult> {
-  const idx = orders.findIndex((o) => o.id === orderId);
-  if (idx === -1) return { ok: false, error: "Sipariş bulunamadı." };
-  const order = orders[idx];
-  if (order.status === "cancelled") {
+  await ensureSeed();
+  const sb = getDb();
+  const existing = await getOrder(orderId);
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  if (existing.status === "cancelled") {
     return { ok: false, error: "İptal edilen siparişe iade yapılamaz." };
   }
-  const already = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
-  const remaining = order.totalMinor - already;
+  // Nothing was ever collected on an order still awaiting payment, so there is
+  // nothing to give back — recording one would invent a negative in the
+  // reports and, on a real POS, attempt a refund against no transaction.
+  if (existing.status === "pending_payment") {
+    return {
+      ok: false,
+      error: "Ödemesi alınmamış siparişe iade yapılamaz; siparişi iptal edin.",
+    };
+  }
+  const already = existing.refunds.reduce((s, r) => s + r.amountMinor, 0);
+  const remaining = existing.totalMinor - already;
   if (input.amountMinor <= 0) {
     return { ok: false, error: "İade tutarı pozitif olmalı." };
   }
@@ -970,36 +2595,81 @@ export async function refundOrder(
     };
   }
   const refund: AdminRefund = {
-    id: `rfn-${order.refunds.length + 1}-${Date.now()}`,
+    id: `rfn-${existing.refunds.length + 1}-${Date.now()}`,
     amountMinor: input.amountMinor,
     reason: input.reason.slice(0, 500),
     createdAt: new Date().toISOString(),
   };
-  const nextRefunds = [...order.refunds, refund];
+  const nextRefunds = [...existing.refunds, refund];
   const fullyRefunded =
-    nextRefunds.reduce((s, r) => s + r.amountMinor, 0) >= order.totalMinor;
-  orders[idx] = {
-    ...order,
-    refunds: nextRefunds,
-    status: fullyRefunded ? "refunded" : order.status,
+    nextRefunds.reduce((s, r) => s + r.amountMinor, 0) >= existing.totalMinor;
+  const status = fullyRefunded ? "refunded" : existing.status;
+  check(
+    await sb
+      .from(TABLES.orders)
+      .update({ refunds: nextRefunds, status })
+      .eq("id", orderId),
+    "refundOrder",
+  );
+  // A fully refunded order keeps nothing: the stamp it earned goes back too.
+  if (fullyRefunded) await reverseLoyalty(existing, "refunded");
+  return {
+    ok: true,
+    order: { ...existing, refunds: nextRefunds, status },
+    refund,
   };
-  return { ok: true, order: orders[idx], refund };
 }
 
-// ── Settings ──────────────────────────────────────────────────────────────
+// ─── Settings ─────────────────────────────────────────────────────────────
+
+/**
+ * Settings for public, presentational rendering (footer, opening hours, SEO).
+ *
+ * Degrades to the defaults with the shop forced CLOSED, so a database outage
+ * can never leave checkout looking open. Commerce and admin must keep calling
+ * `getSettings()`, which throws — deciding tax, shipping or whether an order
+ * may be placed from fallback values would be a real financial error.
+ */
+export async function getPublicSettings(): Promise<AdminSettings> {
+  return publicRead(
+    "getPublicSettings",
+    { ...defaultSettings(), isShopOpen: false },
+    () => getSettings(),
+  );
+}
 
 export async function getSettings(): Promise<AdminSettings> {
-  return { ...settings };
+  await ensureSeed();
+  const sb = getDb();
+  const doc = one<Record<string, unknown>>(
+    await sb.from(TABLES.settings).select("*").eq("id", "main").maybeSingle(),
+    "getSettings",
+  );
+  if (!doc) return defaultSettings();
+  const { id: _id, ...rest } = doc;
+  void _id;
+  // A row seeded before a settings column existed reads that column from the
+  // migration default once the column lands; keys the driver did not return
+  // at all (a partial select in a test executor) fall back to the same
+  // defaults here, so callers never see `undefined` for a number field.
+  return { ...defaultSettings(), ...rest } as AdminSettings;
 }
 
 export async function updateSettings(
   input: Partial<AdminSettings>,
 ): Promise<AdminSettings> {
-  settings = { ...settings, ...input };
-  return { ...settings };
+  await ensureSeed();
+  const sb = getDb();
+  check(
+    await sb
+      .from(TABLES.settings)
+      .upsert({ id: "main", ...input }, { onConflict: "id" }),
+    "updateSettings",
+  );
+  return getSettings();
 }
 
-// ── Dashboard stats ───────────────────────────────────────────────────────
+// ─── Dashboard stats ──────────────────────────────────────────────────────
 
 export interface DashboardStats {
   productCount: number;
@@ -1012,68 +2682,229 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const completedOrPaidOrPreparing = orders.filter((o) =>
-    ["paid", "preparing", "shipped", "completed"].includes(o.status),
-  );
-  return {
-    productCount: products.length,
-    activeProductCount: products.filter((p) => p.isActive).length,
-    outOfStockCount: products.filter((p) => p.stock === 0).length,
-    categoryCount: categories.length,
-    orderCount: orders.length,
-    pendingOrderCount: orders.filter(
-      (o) => o.status === "pending_payment" || o.status === "paid" || o.status === "preparing",
-    ).length,
-    revenueMinor: completedOrPaidOrPreparing.reduce(
-      (s, o) => s + o.totalMinor,
+  await ensureSeed();
+  const sb = getDb();
+
+  const [
+    productCount,
+    activeProductCount,
+    outOfStockCount,
+    categoryCount,
+    orderCount,
+    pendingOrderCount,
+    revenueRows,
+  ] = await Promise.all([
+    countRows(TABLES.products),
+    sb
+      .from(TABLES.products)
+      .select("*", { count: "exact", head: true })
+      .eq("isActive", true)
+      .then((r) => {
+        if (r.error)
+          throw new Error(`getDashboardStats.active: ${r.error.message}`);
+        return r.count ?? 0;
+      }),
+    sb
+      .from(TABLES.products)
+      .select("*", { count: "exact", head: true })
+      .eq("stock", 0)
+      .then((r) => {
+        if (r.error)
+          throw new Error(`getDashboardStats.oos: ${r.error.message}`);
+        return r.count ?? 0;
+      }),
+    countRows(TABLES.categories),
+    countRows(TABLES.orders),
+    sb
+      .from(TABLES.orders)
+      .select("*", { count: "exact", head: true })
+      .in("status", ["pending_payment", "paid", "preparing"])
+      .then((r) => {
+        if (r.error)
+          throw new Error(`getDashboardStats.pending: ${r.error.message}`);
+        return r.count ?? 0;
+      }),
+    sb
+      .from(TABLES.orders)
+      .select("totalMinor, refunds")
+      .in("status", ["paid", "preparing", "shipped", "completed"])
+      .then((r) => {
+        if (r.error)
+          throw new Error(`getDashboardStats.revenue: ${r.error.message}`);
+        return (r.data ?? []) as Array<{
+          totalMinor: number;
+          refunds: AdminRefund[] | null;
+        }>;
+      }),
+  ]);
+
+  // Net of refunds. The dashboard summed order totals and ignored the refund
+  // ledger entirely, so money handed back still counted as revenue — and a
+  // partially refunded order counted in full.
+  const revenueMinor = revenueRows.reduce((sum, o) => {
+    const refunded = (o.refunds ?? []).reduce(
+      (r, entry) => r + (entry?.amountMinor ?? 0),
       0,
-    ),
+    );
+    return sum + Math.max(0, (o.totalMinor ?? 0) - refunded);
+  }, 0);
+
+  return {
+    productCount,
+    activeProductCount,
+    outOfStockCount,
+    categoryCount,
+    orderCount,
+    pendingOrderCount,
+    revenueMinor,
   };
 }
 
 export { SEED_MENU as CAFE_MENU };
 
-// ── Public read for customer site ─────────────────────────────────────────
+// ─── Public read for customer site ────────────────────────────────────────
 
-/**
- * Returns active products in the design's `Product` shape so the SPA
- * (Shop + Home teaser) can render them without any TS gymnastics.
- * Inactive products are filtered out automatically.
- */
-export async function listShopProducts(): Promise<DesignProduct[]> {
-  return products
-    .filter((p) => p.isActive)
-    .map((p) => ({
-      name: p.name,
-      tag: p.tag,
-      price: `${Math.round(p.priceMinor / 100)}₺`,
-      compareAtPrice:
-        p.compareAtPriceMinor > p.priceMinor
-          ? `${Math.round(p.compareAtPriceMinor / 100)}₺`
-          : undefined,
-      desc: p.desc,
-      cat: p.cat,
-      img: p.img,
-      featured: p.featured || undefined,
-      isNew: p.isNew || undefined,
-    }));
+function toDesignProduct(p: AdminProduct): DesignProduct {
+  return {
+    id: p.id,
+    name: p.name,
+    tag: p.tag,
+    price: priceLabel(p.priceMinor),
+    compareAtPrice:
+      p.compareAtPriceMinor > p.priceMinor
+        ? priceLabel(p.compareAtPriceMinor)
+        : undefined,
+    desc: p.desc,
+    cat: p.cat,
+    img: p.img,
+    featured: p.featured || undefined,
+    isNew: p.isNew || undefined,
+    // Rich fields for the PDP + cart.
+    slug: p.slug,
+    sku: p.sku,
+    // Uploaded images are served from /gorsel/urun/... rather than inlined as
+    // base64: see src/lib/admin/image-url.ts.
+    images:
+      p.images.length > 0
+        ? p.images.map((img, i) => servedImage(img, productImagePath(p.id, i)))
+        : undefined,
+    stock: p.stock,
+    lowStockThreshold: p.lowStockThreshold,
+    weightGrams: p.weightGrams,
+    priceMinor: p.priceMinor,
+    compareAtPriceMinor:
+      p.compareAtPriceMinor > p.priceMinor ? p.compareAtPriceMinor : undefined,
+    seoTitle: p.seoTitle || undefined,
+    seoDescription: p.seoDescription || undefined,
+    variants: p.variants
+      .filter((v) => v.isActive)
+      .map((v) => ({
+        id: v.id,
+        name: v.name,
+        priceDelta: v.priceDeltaMinor / 100,
+        stock: v.stock,
+        isActive: v.isActive,
+      })),
+  };
 }
 
-// ── Cafe menu items (affogato / matcha / espresso / cold / gelato) ────────
+export async function listShopProducts(): Promise<DesignProduct[]> {
+  // Falls back to an EMPTY shop, never to the bundled seed products: a price or
+  // a stock count from the seed would be fiction, and the shop must not sell
+  // against fiction. An empty shop plus the outage banner is honest.
+  return publicRead("listShopProducts", [] as DesignProduct[], async () => {
+    const all = await listProducts();
+    return all.filter((p) => p.isActive).map(toDesignProduct);
+  });
+}
+
+/** Single active product by slug — for the PDP (/magaza/urun/<slug>). */
+export async function getShopProductBySlug(
+  slug: string,
+): Promise<DesignProduct | null> {
+  return publicRead("getShopProductBySlug", null, () =>
+    getShopProductBySlugLive(slug),
+  );
+}
+
+async function getShopProductBySlugLive(
+  slug: string,
+): Promise<DesignProduct | null> {
+  await ensureSeed();
+  const sb = getDb();
+  const doc = one<AdminProduct>(
+    await sb
+      .from(TABLES.products)
+      .select("*")
+      .eq("slug", slug)
+      .eq("isActive", true)
+      .maybeSingle(),
+    "getShopProductBySlug",
+  );
+  if (!doc) return null;
+  return toDesignProduct(doc);
+}
+
+/** Up to `limit` other active products sharing the category (for cross-sell). */
+export async function listRelatedShopProducts(
+  cat: ShopCategoryId,
+  excludeId: string,
+  limit = 4,
+): Promise<DesignProduct[]> {
+  return publicRead("listRelatedShopProducts", [] as DesignProduct[], () =>
+    listRelatedShopProductsLive(cat, excludeId, limit),
+  );
+}
+
+async function listRelatedShopProductsLive(
+  cat: ShopCategoryId,
+  excludeId: string,
+  limit: number,
+): Promise<DesignProduct[]> {
+  await ensureSeed();
+  const sb = getDb();
+  const docs = rows<AdminProduct>(
+    await sb
+      .from(TABLES.products)
+      .select("*")
+      .eq("cat", cat)
+      .eq("isActive", true)
+      .neq("id", excludeId)
+      .limit(limit),
+    "listRelatedShopProducts",
+  );
+  return docs.map(toDesignProduct);
+}
+
+// ─── Cafe menu items ──────────────────────────────────────────────────────
 
 export type MenuCategoryKey =
-  | "affogato"
   | "matcha"
   | "espresso"
+  | "ice-coffee"
   | "cold"
-  | "gelato";
+  | "hot"
+  | "frappe"
+  | "smoothie"
+  | "frozen"
+  | "ice-tea"
+  | "dessert"
+  | "snack"
+  | "extras";
 
 export const MENU_CATEGORY_KEYS: MenuCategoryKey[] = [
-  "affogato",
   "matcha",
   "espresso",
+  "ice-coffee",
   "cold",
-  "gelato",
+  "hot",
+  "frappe",
+  "smoothie",
+  "frozen",
+  "ice-tea",
+  "dessert",
+  "snack",
+  "extras",
 ];
 
 export interface AdminMenuItem {
@@ -1081,10 +2912,14 @@ export interface AdminMenuItem {
   categoryKey: MenuCategoryKey;
   name: string;
   desc: string;
-  /** Minor units (kuruş) — e.g. 13000 = 130,00 ₺ */
+  /** Minor units (kuruş) — e.g. 13000 = 130,00 ₺. M size when two sizes exist. */
   priceMinor: number;
+  /** L (large) price in minor units. 0 means the item has a single size. */
+  priceMinorL: number;
   /** Hue token from PhotoSurface palette (used by MenuPlate). */
   hue: string;
+  /** Site-relative product photo, e.g. "/menu/matcha-latte.webp". Empty = drawn fallback. */
+  image: string;
   /** Free-form tags: "signature", "new", "iced", "nuts", "IGP", … */
   tags: string[];
   isActive: boolean;
@@ -1092,27 +2927,14 @@ export interface AdminMenuItem {
   updatedAt: string;
 }
 
-let menuItemCounter = 0;
-const menuItems: AdminMenuItem[] = MENU_CATEGORY_KEYS.flatMap((key) =>
-  SEED_MENU[key].items.map((it, idx) => {
-    menuItemCounter += 1;
-    return {
-      id: slugifyId("mnu", menuItemCounter),
-      categoryKey: key,
-      name: it.name,
-      desc: it.desc,
-      priceMinor: parsePrice(it.price),
-      hue: it.hue,
-      tags: it.tags ? [...it.tags] : [],
-      isActive: true,
-      sortOrder: idx,
-      updatedAt: new Date().toISOString(),
-    };
-  }),
-);
-
 export async function listMenuItems(): Promise<AdminMenuItem[]> {
-  return [...menuItems].sort((a, b) => {
+  await ensureSeed();
+  const sb = getDb();
+  const docs = rows<AdminMenuItem>(
+    await sb.from(TABLES.menuItems).select("*"),
+    "listMenuItems",
+  );
+  return docs.sort((a, b) => {
     const aIdx = MENU_CATEGORY_KEYS.indexOf(a.categoryKey);
     const bIdx = MENU_CATEGORY_KEYS.indexOf(b.categoryKey);
     if (aIdx !== bIdx) return aIdx - bIdx;
@@ -1121,7 +2943,12 @@ export async function listMenuItems(): Promise<AdminMenuItem[]> {
 }
 
 export async function getMenuItem(id: string): Promise<AdminMenuItem | null> {
-  return menuItems.find((it) => it.id === id) ?? null;
+  await ensureSeed();
+  const sb = getDb();
+  return one<AdminMenuItem>(
+    await sb.from(TABLES.menuItems).select("*").eq("id", id).maybeSingle(),
+    "getMenuItem",
+  );
 }
 
 export interface MenuItemInput {
@@ -1129,20 +2956,26 @@ export interface MenuItemInput {
   name: string;
   desc: string;
   priceMinor: number;
+  priceMinorL: number;
   hue: string;
+  image: string;
   tags: string[];
   isActive: boolean;
   sortOrder: number;
 }
 
-export async function createMenuItem(input: MenuItemInput): Promise<AdminMenuItem> {
-  menuItemCounter += 1;
+export async function createMenuItem(
+  input: MenuItemInput,
+): Promise<AdminMenuItem> {
+  await ensureSeed();
+  const sb = getDb();
+  const seq = await nextSeq("mnu");
   const item: AdminMenuItem = {
-    id: slugifyId("mnu", menuItemCounter),
+    id: slugifyId("mnu", seq),
     ...input,
     updatedAt: new Date().toISOString(),
   };
-  menuItems.push(item);
+  check(await sb.from(TABLES.menuItems).insert(item), "createMenuItem");
   return item;
 }
 
@@ -1150,21 +2983,30 @@ export async function updateMenuItem(
   id: string,
   input: MenuItemInput,
 ): Promise<AdminMenuItem | null> {
-  const idx = menuItems.findIndex((it) => it.id === id);
-  if (idx === -1) return null;
-  menuItems[idx] = {
-    ...menuItems[idx],
+  await ensureSeed();
+  const sb = getDb();
+  const existing = await getMenuItem(id);
+  if (!existing) return null;
+  const next: AdminMenuItem = {
+    ...existing,
     ...input,
     updatedAt: new Date().toISOString(),
   };
-  return menuItems[idx];
+  check(
+    await sb.from(TABLES.menuItems).update(next).eq("id", id),
+    "updateMenuItem",
+  );
+  return next;
 }
 
 export async function deleteMenuItem(id: string): Promise<boolean> {
-  const idx = menuItems.findIndex((it) => it.id === id);
-  if (idx === -1) return false;
-  menuItems.splice(idx, 1);
-  return true;
+  await ensureSeed();
+  const sb = getDb();
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.menuItems).delete().eq("id", id).select("id"),
+    "deleteMenuItem",
+  );
+  return deleted.length > 0;
 }
 
 export type BulkMenuOp =
@@ -1178,66 +3020,109 @@ export async function bulkUpdateMenuItems(
   op: BulkMenuOp,
 ): Promise<BulkResult> {
   if (ids.length === 0) return { updated: 0 };
-  const idSet = new Set(ids);
+  await ensureSeed();
+  const sb = getDb();
   const now = new Date().toISOString();
-  let updated = 0;
 
   if (op.kind === "delete") {
-    for (let i = menuItems.length - 1; i >= 0; i -= 1) {
-      if (idSet.has(menuItems[i].id)) {
-        menuItems.splice(i, 1);
-        updated += 1;
-      }
-    }
-    return { updated };
+    const res = rows<{ id: string }>(
+      await sb.from(TABLES.menuItems).delete().in("id", ids).select("id"),
+      "bulkUpdateMenuItems.delete",
+    );
+    return { updated: res.length };
   }
 
-  for (let i = 0; i < menuItems.length; i += 1) {
-    if (!idSet.has(menuItems[i].id)) continue;
-    if (op.kind === "activate") {
-      if (!menuItems[i].isActive) {
-        menuItems[i] = { ...menuItems[i], isActive: true, updatedAt: now };
-        updated += 1;
-      }
-    } else if (op.kind === "deactivate") {
-      if (menuItems[i].isActive) {
-        menuItems[i] = { ...menuItems[i], isActive: false, updatedAt: now };
-        updated += 1;
-      }
-    } else if (op.kind === "set_category") {
-      if (menuItems[i].categoryKey !== op.categoryKey) {
-        menuItems[i] = {
-          ...menuItems[i],
-          categoryKey: op.categoryKey,
-          updatedAt: now,
-        };
-        updated += 1;
-      }
-    }
+  if (op.kind === "activate") {
+    const res = rows<{ id: string }>(
+      await sb
+        .from(TABLES.menuItems)
+        .update({ isActive: true, updatedAt: now })
+        .in("id", ids)
+        .eq("isActive", false)
+        .select("id"),
+      "bulkUpdateMenuItems.activate",
+    );
+    return { updated: res.length };
   }
-  return { updated };
+
+  if (op.kind === "deactivate") {
+    const res = rows<{ id: string }>(
+      await sb
+        .from(TABLES.menuItems)
+        .update({ isActive: false, updatedAt: now })
+        .in("id", ids)
+        .eq("isActive", true)
+        .select("id"),
+      "bulkUpdateMenuItems.deactivate",
+    );
+    return { updated: res.length };
+  }
+
+  const res = rows<{ id: string }>(
+    await sb
+      .from(TABLES.menuItems)
+      .update({ categoryKey: op.categoryKey, updatedAt: now })
+      .in("id", ids)
+      .neq("categoryKey", op.categoryKey)
+      .select("id"),
+    "bulkUpdateMenuItems.set_category",
+  );
+  return { updated: res.length };
 }
 
 /**
- * Returns the cafe menu in the design's MENU shape, with category meta
- * (title, sub, italian, note) preserved from SEED_MENU and items pulled
- * live from the admin store. Inactive items are filtered out.
+ * The bundled cafe menu with every price replaced by an em dash.
+ *
+ * The menu is a view-only listing, so its structure is still worth showing
+ * during an outage — but a price from the bundled seed may be out of date, and
+ * showing a wrong price to someone standing at the counter is worse than
+ * showing none.
  */
-export async function listMenuForCustomer(): Promise<
-  Record<string, DesignMenuCategory>
-> {
+function menuWithoutPrices(): Record<string, DesignMenuCategory> {
   const out: Record<string, DesignMenuCategory> = {};
   for (const key of MENU_CATEGORY_KEYS) {
     const meta = SEED_MENU[key];
-    const activeItems = menuItems
+    if (!meta) continue;
+    out[key] = {
+      ...meta,
+      items: meta.items.map((it) => ({
+        ...it,
+        price: "—",
+        ...(it.priceL ? { priceL: "—" } : {}),
+      })),
+    };
+  }
+  return out;
+}
+
+export async function listMenuForCustomer(): Promise<
+  Record<string, DesignMenuCategory>
+> {
+  return publicRead("listMenuForCustomer", menuWithoutPrices(), () =>
+    listMenuForCustomerLive(),
+  );
+}
+
+async function listMenuForCustomerLive(): Promise<
+  Record<string, DesignMenuCategory>
+> {
+  const all = await listMenuItems();
+  const out: Record<string, DesignMenuCategory> = {};
+  for (const key of MENU_CATEGORY_KEYS) {
+    const meta = SEED_MENU[key];
+    const activeItems = all
       .filter((it) => it.categoryKey === key && it.isActive)
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((it) => ({
         name: it.name,
         desc: it.desc,
-        price: `${Math.round(it.priceMinor / 100)}₺`,
+        price: priceLabel(it.priceMinor),
+        ...(it.priceMinorL > 0 ? { priceL: priceLabel(it.priceMinorL) } : {}),
         ...(it.tags.length > 0 ? { tags: [...it.tags] } : {}),
         hue: it.hue,
+        ...(it.image
+          ? { image: servedImage(it.image, menuImagePath(it.id)) }
+          : {}),
       }));
     out[key] = {
       title: meta.title,
@@ -1251,15 +3136,21 @@ export async function listMenuForCustomer(): Promise<
 }
 
 export const MENU_CATEGORY_LABELS: Record<MenuCategoryKey, string> = {
-  affogato: SEED_MENU.affogato.title,
   matcha: SEED_MENU.matcha.title,
   espresso: SEED_MENU.espresso.title,
+  "ice-coffee": SEED_MENU["ice-coffee"].title,
   cold: SEED_MENU.cold.title,
-  gelato: SEED_MENU.gelato.title,
+  hot: SEED_MENU.hot.title,
+  frappe: SEED_MENU.frappe.title,
+  smoothie: SEED_MENU.smoothie.title,
+  frozen: SEED_MENU.frozen.title,
+  "ice-tea": SEED_MENU["ice-tea"].title,
+  dessert: SEED_MENU.dessert.title,
+  snack: SEED_MENU.snack.title,
+  extras: SEED_MENU.extras.title,
 };
 
-
-// ── Promo codes ──────────────────────────────────────────────────────────
+// ─── Promo codes ──────────────────────────────────────────────────────────
 
 export type PromoDiscountKind = "pct" | "fixed";
 
@@ -1267,11 +3158,8 @@ export interface AdminPromo {
   id: string;
   code: string;
   kind: PromoDiscountKind;
-  /** Percentage 1–100 when kind="pct", minor units (kuruş) when kind="fixed". */
   value: number;
-  /** Minor units. 0 = no minimum. */
   minSubtotalMinor: number;
-  /** 0 = unlimited. */
   usageLimit: number;
   usageCount: number;
   expiresAt: string;
@@ -1280,15 +3168,25 @@ export interface AdminPromo {
   updatedAt: string;
 }
 
-const promos: AdminPromo[] = [];
-let promoCounter = 0;
-
 export async function listPromos(): Promise<AdminPromo[]> {
-  return [...promos].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  await ensureSeed();
+  const sb = getDb();
+  return rows<AdminPromo>(
+    await sb
+      .from(TABLES.promos)
+      .select("*")
+      .order("createdAt", { ascending: false }),
+    "listPromos",
+  );
 }
 
 export async function getPromo(id: string): Promise<AdminPromo | null> {
-  return promos.find((p) => p.id === id) ?? null;
+  await ensureSeed();
+  const sb = getDb();
+  return one<AdminPromo>(
+    await sb.from(TABLES.promos).select("*").eq("id", id).maybeSingle(),
+    "getPromo",
+  );
 }
 
 export interface PromoInput {
@@ -1309,16 +3207,22 @@ export type PromoMutationResult =
   | { ok: true; promo: AdminPromo }
   | { ok: false; error: string };
 
-export async function createPromo(input: PromoInput): Promise<PromoMutationResult> {
+export async function createPromo(
+  input: PromoInput,
+): Promise<PromoMutationResult> {
+  await ensureSeed();
   const code = normalizeCode(input.code);
   if (!code) return { ok: false, error: "Kod boş olamaz." };
-  if (promos.some((p) => p.code === code)) {
-    return { ok: false, error: "Bu kod zaten kullanılıyor." };
-  }
-  promoCounter += 1;
+  const sb = getDb();
+  const conflict = one<{ id: string }>(
+    await sb.from(TABLES.promos).select("id").eq("code", code).maybeSingle(),
+    "createPromo.conflict",
+  );
+  if (conflict) return { ok: false, error: "Bu kod zaten kullanılıyor." };
+  const seq = await nextSeq("prm");
   const now = new Date().toISOString();
   const promo: AdminPromo = {
-    id: `prm-${String(promoCounter).padStart(4, "0")}`,
+    id: `prm-${String(seq).padStart(4, "0")}`,
     code,
     kind: input.kind,
     value: input.value,
@@ -1330,7 +3234,7 @@ export async function createPromo(input: PromoInput): Promise<PromoMutationResul
     createdAt: now,
     updatedAt: now,
   };
-  promos.push(promo);
+  check(await sb.from(TABLES.promos).insert(promo), "createPromo.insert");
   return { ok: true, promo };
 }
 
@@ -1338,15 +3242,24 @@ export async function updatePromo(
   id: string,
   input: PromoInput,
 ): Promise<PromoMutationResult> {
-  const idx = promos.findIndex((p) => p.id === id);
-  if (idx === -1) return { ok: false, error: "Kod bulunamadı." };
+  await ensureSeed();
+  const sb = getDb();
+  const existing = await getPromo(id);
+  if (!existing) return { ok: false, error: "Kod bulunamadı." };
   const code = normalizeCode(input.code);
   if (!code) return { ok: false, error: "Kod boş olamaz." };
-  if (promos.some((p) => p.code === code && p.id !== id)) {
-    return { ok: false, error: "Başka bir kod aynı koda sahip." };
-  }
-  promos[idx] = {
-    ...promos[idx],
+  const conflict = one<{ id: string }>(
+    await sb
+      .from(TABLES.promos)
+      .select("id")
+      .eq("code", code)
+      .neq("id", id)
+      .maybeSingle(),
+    "updatePromo.conflict",
+  );
+  if (conflict) return { ok: false, error: "Başka bir kod aynı koda sahip." };
+  const next: AdminPromo = {
+    ...existing,
     code,
     kind: input.kind,
     value: input.value,
@@ -1356,34 +3269,39 @@ export async function updatePromo(
     isActive: input.isActive,
     updatedAt: new Date().toISOString(),
   };
-  return { ok: true, promo: promos[idx] };
+  check(
+    await sb.from(TABLES.promos).update(next).eq("id", id),
+    "updatePromo.update",
+  );
+  return { ok: true, promo: next };
 }
 
 export async function deletePromo(id: string): Promise<boolean> {
-  const idx = promos.findIndex((p) => p.id === id);
-  if (idx === -1) return false;
-  promos.splice(idx, 1);
-  return true;
+  await ensureSeed();
+  const sb = getDb();
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.promos).delete().eq("id", id).select("id"),
+    "deletePromo",
+  );
+  return deleted.length > 0;
 }
 
 export type PromoApplyResult =
   | { ok: true; promo: AdminPromo; discountMinor: number }
   | { ok: false; error: string };
 
-/**
- * Pure function (no mutation) — checks if a code is valid for the given
- * subtotal and returns the discount in minor units. The caller is the
- * one that ultimately records usage via consumePromoUsage() once the
- * order is actually placed; this two-step keeps the cart UI honest
- * about the price preview without committing the limit.
- */
 export async function applyPromoCode(
   code: string,
   subtotalMinor: number,
 ): Promise<PromoApplyResult> {
+  await ensureSeed();
   const needle = normalizeCode(code);
   if (!needle) return { ok: false, error: "Kod gir." };
-  const promo = promos.find((p) => p.code === needle);
+  const sb = getDb();
+  const promo = one<AdminPromo>(
+    await sb.from(TABLES.promos).select("*").eq("code", needle).maybeSingle(),
+    "applyPromoCode",
+  );
   if (!promo) return { ok: false, error: "Geçersiz kod." };
   if (!promo.isActive) return { ok: false, error: "Bu kod kapalı." };
   if (promo.expiresAt && new Date(promo.expiresAt).getTime() < Date.now()) {
@@ -1407,27 +3325,44 @@ export async function applyPromoCode(
   return { ok: true, promo, discountMinor };
 }
 
-export async function consumePromoUsage(code: string): Promise<void> {
+/**
+ * Takes one use of a promo code, enforcing the limit in the same statement.
+ *
+ * `applyPromoCode` checks the limit in a separate read, so two checkouts
+ * racing on the last use of a code both passed that check and both
+ * incremented. Returns false when the code was already exhausted or switched
+ * off — the caller must then not honour the discount.
+ */
+async function consumePromoUsage(code: string): Promise<boolean> {
+  await ensureSeed();
   const needle = normalizeCode(code);
-  const idx = promos.findIndex((p) => p.code === needle);
-  if (idx === -1) return;
-  promos[idx] = {
-    ...promos[idx],
-    usageCount: promos[idx].usageCount + 1,
-    updatedAt: new Date().toISOString(),
-  };
+  const sb = getDb();
+  const { data, error } = await sb.rpc("redeem_promo", {
+    promo_code: needle,
+    p_now: new Date().toISOString(),
+  });
+  if (error) throw new Error(`consumePromoUsage: ${error.message}`);
+  return data === true;
 }
 
+/** Gives a use back when the order that took it is cancelled. */
+async function releasePromoUsage(code: string): Promise<void> {
+  const needle = normalizeCode(code);
+  if (!needle) return;
+  const sb = getDb();
+  const { error } = await sb.rpc("release_promo_usage", {
+    promo_code: needle,
+    p_now: new Date().toISOString(),
+  });
+  if (error) throw new Error(`releasePromoUsage: ${error.message}`);
+}
 
-
-// ── Analytics aggregations ──────────────────────────────────────────────
+// ─── Analytics aggregations ───────────────────────────────────────────────
 
 export type BucketGranularity = "day" | "week" | "month";
 
 export interface RevenueBucket {
-  /** ISO-like bucket id (YYYY-MM-DD, YYYY-Www, YYYY-MM). */
   bucket: string;
-  /** Human label for axis labels. */
   label: string;
   revenueMinor: number;
   orderCount: number;
@@ -1439,7 +3374,6 @@ function pad2(n: number): string {
 
 function startOfWeek(d: Date): Date {
   const x = new Date(d);
-  // ISO week: Monday = 1 .. Sunday = 7
   const day = (x.getDay() + 6) % 7;
   x.setHours(0, 0, 0, 0);
   x.setDate(x.getDate() - day);
@@ -1449,7 +3383,6 @@ function startOfWeek(d: Date): Date {
 function isoWeek(d: Date): { year: number; week: number } {
   const target = new Date(d);
   target.setHours(0, 0, 0, 0);
-  // Thursday of current week determines ISO week-year
   target.setDate(target.getDate() + 3 - ((target.getDay() + 6) % 7));
   const week1 = new Date(target.getFullYear(), 0, 4);
   const diff = (target.getTime() - week1.getTime()) / (24 * 60 * 60 * 1000);
@@ -1480,19 +3413,25 @@ function bucketLabel(d: Date, g: BucketGranularity): string {
 }
 
 const MONTH_SHORT = [
-  "Oca", "Şub", "Mar", "Nis", "May", "Haz",
-  "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara",
+  "Oca",
+  "Şub",
+  "Mar",
+  "Nis",
+  "May",
+  "Haz",
+  "Tem",
+  "Ağu",
+  "Eyl",
+  "Eki",
+  "Kas",
+  "Ara",
 ];
 
-/**
- * Generates `count` consecutive buckets ending at "today" and tallies orders
- * that fall in each. Cancelled orders are excluded; refunded orders count
- * gross (the refund chart is a separate line if needed later).
- */
 export async function revenueBuckets(
   granularity: BucketGranularity,
   count: number,
 ): Promise<RevenueBucket[]> {
+  const orders = await listOrders();
   const now = new Date();
   const buckets: RevenueBucket[] = [];
   for (let i = count - 1; i >= 0; i -= 1) {
@@ -1514,7 +3453,11 @@ export async function revenueBuckets(
     const k = bucketKey(new Date(o.createdAt), granularity);
     const slot = byKey.get(k);
     if (slot) {
-      slot.revenueMinor += o.totalMinor;
+      // Net of refunds, like the dashboard figure. A refund is booked against
+      // the order's own bucket rather than the day it was issued: the two
+      // numbers have to agree, and the order date is what the reports group by.
+      const refunded = o.refunds.reduce((r, entry) => r + entry.amountMinor, 0);
+      slot.revenueMinor += Math.max(0, o.totalMinor - refunded);
       slot.orderCount += 1;
     }
   }
@@ -1528,6 +3471,7 @@ export interface TopProductRow {
 }
 
 export async function topProducts(limit = 5): Promise<TopProductRow[]> {
+  const orders = await listOrders();
   const tally = new Map<string, TopProductRow>();
   for (const o of orders) {
     if (o.status === "cancelled") continue;
@@ -1556,11 +3500,11 @@ export interface AnalyticsHeadline {
   totalOrders: number;
   averageOrderMinor: number;
   refundedMinor: number;
-  /** Placeholder until traffic data is wired (sessions endpoint). */
   conversionRatePct: number | null;
 }
 
 export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
+  const orders = await listOrders();
   const valid = orders.filter((o) => o.status !== "cancelled");
   const totalRevenueMinor = valid.reduce((s, o) => s + o.totalMinor, 0);
   const totalOrders = valid.length;
@@ -1571,9 +3515,972 @@ export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
   return {
     totalRevenueMinor,
     totalOrders,
-    averageOrderMinor: totalOrders > 0 ? Math.round(totalRevenueMinor / totalOrders) : 0,
+    averageOrderMinor:
+      totalOrders > 0 ? Math.round(totalRevenueMinor / totalOrders) : 0,
     refundedMinor,
     conversionRatePct: null,
   };
 }
 
+// ─── Shop hero slides ─────────────────────────────────────────────────────
+
+export interface AdminShopHeroSlide {
+  id: string;
+  /** H1 başlık (italik serif olarak render edilir, son kelime script vurgu alabilir). */
+  title: string;
+  /** Başlığın altındaki küçük yazı; eyebrow tarzı veya küçük açıklama. */
+  subtitle: string;
+  /** Arkadaki görsel URL'si (full-width). Boşsa altın gradient fallback render edilir. */
+  imageUrl: string;
+  /** CTA buton yazısı — boşsa buton render edilmez. */
+  ctaLabel: string;
+  /** CTA hedef URL — full URL veya yerel "/odeme" gibi. */
+  ctaHref: string;
+  /** Metin teması: arka plan koyu görsel ise "light", aydınlık ise "dark". */
+  textTheme: "light" | "dark";
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const SEED_SHOP_HERO_SLIDES: AdminShopHeroSlide[] = [
+  {
+    id: "shero-001",
+    title: "Eve servis · İtalyan ritüeli",
+    subtitle:
+      "Bütün mağaza ürünleri 500₺ üzeri ücretsiz kargo, İstanbul içi aynı gün.",
+    imageUrl: "",
+    ctaLabel: "Mağazaya gir",
+    ctaHref: "#products",
+    textTheme: "light",
+    sortOrder: 0,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "shero-002",
+    title: "Yenilebilir kup koleksiyonu",
+    subtitle: "1994 patentli waffle kup — 6'lı ve 12'li hediye kutuları.",
+    imageUrl: "",
+    ctaLabel: "Edible Cups",
+    ctaHref: "#products",
+    textTheme: "light",
+    sortOrder: 1,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+const ensureShopHeroSeed = memoizeUntilRejected(async (): Promise<void> => {
+  {
+    const sb = getDb();
+    if ((await countRows(TABLES.shopHeroSlides)) === 0) {
+      check(
+        await sb.from(TABLES.shopHeroSlides).upsert(
+          SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })),
+          { onConflict: "id", ignoreDuplicates: true },
+        ),
+        "seed.shopHeroSlides",
+      );
+    }
+  }
+});
+
+export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
+  await ensureShopHeroSeed();
+  const sb = getDb();
+  return rows<AdminShopHeroSlide>(
+    await sb
+      .from(TABLES.shopHeroSlides)
+      .select("*")
+      .order("sortOrder", { ascending: true })
+      .order("createdAt", { ascending: true }),
+    "listShopHeroSlides",
+  );
+}
+
+export async function listActiveShopHeroSlides(): Promise<
+  AdminShopHeroSlide[]
+> {
+  return publicRead("listActiveShopHeroSlides", [], async () => {
+    const all = await listShopHeroSlides();
+    return all
+      .filter((s) => s.isActive)
+      .map((s) => ({
+        ...s,
+        imageUrl: servedImage(s.imageUrl, heroImagePath(s.id)),
+      }));
+  });
+}
+
+export async function getShopHeroSlide(
+  id: string,
+): Promise<AdminShopHeroSlide | null> {
+  await ensureShopHeroSeed();
+  const sb = getDb();
+  return one<AdminShopHeroSlide>(
+    await sb.from(TABLES.shopHeroSlides).select("*").eq("id", id).maybeSingle(),
+    "getShopHeroSlide",
+  );
+}
+
+export interface ShopHeroSlideInput {
+  title: string;
+  subtitle: string;
+  imageUrl: string;
+  ctaLabel: string;
+  ctaHref: string;
+  textTheme: "light" | "dark";
+  sortOrder: number;
+  isActive: boolean;
+}
+
+function normalizeSlide(input: ShopHeroSlideInput): ShopHeroSlideInput {
+  return {
+    title: input.title.trim().slice(0, 120),
+    subtitle: input.subtitle.trim().slice(0, 300),
+    /* 4 MB clamp — yeterli data URL'i ve normal CDN URL'lerini kapsar.
+       Hero görseli için 1920px JPEG @ 0.85 kalite tipik olarak ~600-1500KB
+       base64 boyutuna ulaşır; sabit 500 char limiti URL'i kesip görseli
+       bozardı. */
+    imageUrl: input.imageUrl.trim().slice(0, 4 * 1024 * 1024),
+    ctaLabel: input.ctaLabel.trim().slice(0, 40),
+    ctaHref: input.ctaHref.trim().slice(0, 200),
+    textTheme: input.textTheme === "dark" ? "dark" : "light",
+    sortOrder: Number.isFinite(input.sortOrder)
+      ? Math.max(0, Math.floor(input.sortOrder))
+      : 0,
+    isActive: !!input.isActive,
+  };
+}
+
+export async function createShopHeroSlide(
+  input: ShopHeroSlideInput,
+): Promise<AdminShopHeroSlide> {
+  await ensureShopHeroSeed();
+  const sb = getDb();
+  const now = new Date().toISOString();
+  const slide: AdminShopHeroSlide = {
+    id: `shero-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    ...normalizeSlide(input),
+    createdAt: now,
+    updatedAt: now,
+  };
+  check(
+    await sb.from(TABLES.shopHeroSlides).insert(slide),
+    "createShopHeroSlide",
+  );
+  return slide;
+}
+
+export async function updateShopHeroSlide(
+  id: string,
+  input: ShopHeroSlideInput,
+): Promise<AdminShopHeroSlide | null> {
+  await ensureShopHeroSeed();
+  const sb = getDb();
+  const update = {
+    ...normalizeSlide(input),
+    updatedAt: new Date().toISOString(),
+  };
+  check(
+    await sb.from(TABLES.shopHeroSlides).update(update).eq("id", id),
+    "updateShopHeroSlide",
+  );
+  return getShopHeroSlide(id);
+}
+
+export async function deleteShopHeroSlide(id: string): Promise<void> {
+  await ensureShopHeroSeed();
+  const sb = getDb();
+  check(
+    await sb.from(TABLES.shopHeroSlides).delete().eq("id", id),
+    "deleteShopHeroSlide",
+  );
+}
+
+// ─── Editorial content (reels / press / story) ─────────────────
+//
+// All five are simple sortable + toggleable lists. A single generic factory
+// gives each one a seed-on-first-read + CRUD surface backed by the database, so
+// the admin panel can manage what used to be hardcoded in data.ts. The
+// customer SPA reads the *Active* lists via page.tsx props.
+
+interface ContentRowBase {
+  id: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function contentResource<Row extends ContentRowBase>(
+  table: string,
+  seed: Row[],
+  idPrefix: string,
+) {
+  const ensure = memoizeUntilRejected(async (): Promise<void> => {
+    {
+      const sb = getDb();
+      if ((await countRows(table)) === 0) {
+        check(
+          await sb.from(table).upsert(
+            seed.map((s) => ({ ...s })),
+            {
+              onConflict: "id",
+              ignoreDuplicates: true,
+            },
+          ),
+          `seed.${table}`,
+        );
+      }
+    }
+  });
+
+  type Input = Omit<Row, "id" | "createdAt" | "updatedAt">;
+
+  const list = async (): Promise<Row[]> => {
+    await ensure();
+    const sb = getDb();
+    return rows<Row>(
+      await sb
+        .from(table)
+        .select("*")
+        .order("sortOrder", { ascending: true })
+        .order("createdAt", { ascending: true }),
+      `list.${table}`,
+    );
+  };
+
+  const listActive = async (): Promise<Row[]> =>
+    (await list()).filter((r) => r.isActive);
+
+  const get = async (id: string): Promise<Row | null> => {
+    await ensure();
+    const sb = getDb();
+    return one<Row>(
+      await sb.from(table).select("*").eq("id", id).maybeSingle(),
+      `get.${table}`,
+    );
+  };
+
+  const create = async (input: Input): Promise<Row> => {
+    await ensure();
+    const sb = getDb();
+    const now = new Date().toISOString();
+    const row = {
+      ...(input as object),
+      id: `${idPrefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      createdAt: now,
+      updatedAt: now,
+    } as Row;
+    check(await sb.from(table).insert(row), `create.${table}`);
+    return row;
+  };
+
+  const update = async (id: string, input: Input): Promise<Row | null> => {
+    await ensure();
+    const sb = getDb();
+    check(
+      await sb
+        .from(table)
+        .update({ ...(input as object), updatedAt: new Date().toISOString() })
+        .eq("id", id),
+      `update.${table}`,
+    );
+    return get(id);
+  };
+
+  const remove = async (id: string): Promise<void> => {
+    await ensure();
+    const sb = getDb();
+    check(await sb.from(table).delete().eq("id", id), `delete.${table}`);
+  };
+
+  return { list, listActive, get, create, update, remove };
+}
+
+// ── Press ────────────────────────────────────────────────────────────────--
+export interface AdminPress extends ContentRowBase {
+  name: string;
+  quote: string;
+}
+export interface PressInput {
+  name: string;
+  quote: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+const SEED_PRESS_ROWS: AdminPress[] = SEED_PRESS.map((p, i) => ({
+  id: `press-${String(i + 1).padStart(3, "0")}`,
+  name: p.name,
+  quote: p.quote,
+  sortOrder: i,
+  isActive: true,
+  createdAt: "",
+  updatedAt: "",
+}));
+const pressResource = contentResource<AdminPress>(
+  TABLES.press,
+  SEED_PRESS_ROWS,
+  "press",
+);
+export const listPress = pressResource.list;
+export const listActivePress = (): Promise<AdminPress[]> =>
+  publicRead(
+    "listActivePress",
+    SEED_PRESS_ROWS.filter((r) => r.isActive),
+    () => pressResource.listActive(),
+  );
+export const createPress = (i: PressInput) => pressResource.create(i);
+export const updatePress = (id: string, i: PressInput) =>
+  pressResource.update(id, i);
+export const deletePress = pressResource.remove;
+
+// ── Story timeline ──────────────────────────────────────────────────────--
+export interface AdminStoryEvent extends ContentRowBase {
+  year: string;
+  title: string;
+  body: string;
+}
+export interface StoryEventInput {
+  year: string;
+  title: string;
+  body: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+const SEED_STORY_ROWS: AdminStoryEvent[] = SEED_STORY.heritage.map((e, i) => ({
+  id: `story-${String(i + 1).padStart(3, "0")}`,
+  year: e.y,
+  title: e.t,
+  body: e.d,
+  sortOrder: i,
+  isActive: true,
+  createdAt: "",
+  updatedAt: "",
+}));
+const storyResource = contentResource<AdminStoryEvent>(
+  TABLES.storyTimeline,
+  SEED_STORY_ROWS,
+  "story",
+);
+export const listStoryEvents = storyResource.list;
+export const listActiveStoryEvents = (): Promise<AdminStoryEvent[]> =>
+  publicRead(
+    "listActiveStoryEvents",
+    SEED_STORY_ROWS.filter((r) => r.isActive),
+    () => storyResource.listActive(),
+  );
+export const createStoryEvent = (i: StoryEventInput) => storyResource.create(i);
+export const updateStoryEvent = (id: string, i: StoryEventInput) =>
+  storyResource.update(id, i);
+export const deleteStoryEvent = storyResource.remove;
+
+// ─── Mobile app home content ──────────────────────────────────────────────
+//
+// The app's home screen carries a hero carousel and an announcements strip.
+// Both are editorial: swapping a seasonal slide must not require an app store
+// submission, so they live here and the app reads them over the API.
+//
+// Kept separate from `shop_hero_slides`, which is web-shaped (a full-width
+// image, an absolute ctaHref). The app needs a brand `tone` instead of an
+// image, and a route KEY rather than a URL — CMS text must never be able to
+// drive native navigation directly.
+
+// The tones, routes, kinds and their labels live in a client-safe module and
+// are re-exported here, so server code can keep importing them from the store
+// while "use client" forms import them WITHOUT dragging `server-only` and `pg`
+// into the browser bundle. See src/lib/admin/app-content-schema.ts.
+export {
+  APP_SLIDE_TONES,
+  APP_SLIDE_TONE_LABELS,
+  APP_SLIDE_ROUTES,
+  APP_SLIDE_ROUTE_LABELS,
+  APP_ANNOUNCEMENT_KINDS,
+  APP_ANNOUNCEMENT_KIND_LABELS,
+  APP_POST_KINDS,
+  APP_POST_KIND_LABELS,
+} from "./app-content-schema";
+export type {
+  AppSlideTone,
+  AppAnnouncementKind,
+  AppPostKind,
+} from "./app-content-schema";
+
+export interface AdminAppSlide {
+  id: string;
+  /** Small kicker above the headline, e.g. "EVİN İMZASI". */
+  eyebrow: string;
+  title: string;
+  body: string;
+  /** Empty means the slide renders without a call to action. */
+  ctaLabel: string;
+  ctaRoute: string;
+  tone: AppSlideTone;
+  image: string;
+  sortOrder: number;
+  isActive: boolean;
+  /** ISO-8601; empty means unbounded. */
+  startsAt: string;
+  endsAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminAppAnnouncement {
+  id: string;
+  kind: AppAnnouncementKind;
+  title: string;
+  body: string;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt: string;
+  endsAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Seed order is chosen so the burgundy slide never neighbours a green one:
+ * premium → paper → brand → inverse. Burgundy against green measures 1.23:1
+ * and the two blur into one another; the app's carousel shows the edges of
+ * neighbouring slides, so the ordering matters visually.
+ */
+const SEED_APP_SLIDES: AdminAppSlide[] = [
+  {
+    id: "aslide-001",
+    eyebrow: "EVİN İMZASI",
+    title: "L'Affogato",
+    body: "Bir top fior di latte üzerine Sirena espresso. Yenilebilir waffle kupada servis edilir.",
+    ctaLabel: "Menüde gör",
+    ctaRoute: "/menu",
+    tone: "premium",
+    image: "",
+    sortOrder: 1,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "aslide-002",
+    eyebrow: "TUZLA",
+    title: "200 yıllık bir köşkte",
+    body: "1987 Bologna'dan İstanbul'a. İtalya dışındaki tek L'Affogato.",
+    ctaLabel: "Ziyaret",
+    ctaRoute: "/hesabim",
+    tone: "paper",
+    image: "",
+    sortOrder: 2,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "aslide-003",
+    eyebrow: "MATCHA BAR",
+    title: "Strawberry Aşkı",
+    body: "Uji ceremonial grade matcha, siparişten sonra çırpılır. Sezon boyunca menüde.",
+    ctaLabel: "Matcha Bar",
+    ctaRoute: "/menu",
+    tone: "brand",
+    image: "",
+    sortOrder: 3,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "aslide-004",
+    eyebrow: "RİTÜEL",
+    title: "Drink it. Eat the cup.",
+    body: "Waffle kupanın glaze kaplaması 1994'te patentlendi. Bugün hâlâ aynı reçete.",
+    ctaLabel: "",
+    ctaRoute: "",
+    tone: "inverse",
+    image: "",
+    sortOrder: 4,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+const SEED_APP_ANNOUNCEMENTS: AdminAppAnnouncement[] = [
+  {
+    id: "aann-001",
+    kind: "hours",
+    title: "Hafta sonu 24:00'e kadar",
+    body: "Cuma ve cumartesi köşk bir saat daha uzun açık.",
+    sortOrder: 1,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "aann-002",
+    kind: "campaign",
+    title: "Yeni: Çıtır Latte",
+    body: "Karamelize çıtır katmanlı buzlu latte menüye eklendi.",
+    sortOrder: 2,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
+  const sb = getDb();
+  if ((await countRows(TABLES.appHeroSlides)) === 0) {
+    check(
+      await sb.from(TABLES.appHeroSlides).upsert(
+        SEED_APP_SLIDES.map((s) => ({ ...s })),
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+      "seed.appHeroSlides",
+    );
+  }
+  if ((await countRows(TABLES.appAnnouncements)) === 0) {
+    check(
+      await sb.from(TABLES.appAnnouncements).upsert(
+        SEED_APP_ANNOUNCEMENTS.map((a) => ({ ...a })),
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+      "seed.appAnnouncements",
+    );
+  }
+  if ((await countRows(TABLES.appPosts)) === 0) {
+    check(
+      await sb.from(TABLES.appPosts).upsert(
+        SEED_APP_POSTS.map((p) => ({ ...p })),
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+      "seed.appPosts",
+    );
+  }
+});
+
+/** True when now falls inside the row's optional window. */
+function inWindow(row: { startsAt: string; endsAt: string }): boolean {
+  const now = Date.now();
+  if (row.startsAt && Date.parse(row.startsAt) > now) return false;
+  if (row.endsAt && Date.parse(row.endsAt) < now) return false;
+  return true;
+}
+
+export async function listAppSlides(): Promise<AdminAppSlide[]> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  return rows<AdminAppSlide>(
+    await sb
+      .from(TABLES.appHeroSlides)
+      .select("*")
+      .order("sortOrder", { ascending: true })
+      .order("createdAt", { ascending: true }),
+    "listAppSlides",
+  );
+}
+
+/** What the mobile API serves: active, in-window, in order. */
+export async function listActiveAppSlides(): Promise<AdminAppSlide[]> {
+  return publicRead("listActiveAppSlides", [], async () => {
+    const all = await listAppSlides();
+    return all.filter((s) => s.isActive && inWindow(s));
+  });
+}
+
+export async function getAppSlide(id: string): Promise<AdminAppSlide | null> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  return one<AdminAppSlide>(
+    await sb.from(TABLES.appHeroSlides).select("*").eq("id", id).maybeSingle(),
+    "getAppSlide",
+  );
+}
+
+export interface AppSlideInput {
+  eyebrow: string;
+  title: string;
+  body: string;
+  ctaLabel: string;
+  ctaRoute: string;
+  tone: AppSlideTone;
+  image: string;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt: string;
+  endsAt: string;
+}
+
+function normalizeAppSlide(input: AppSlideInput): AppSlideInput {
+  const route = input.ctaRoute.trim();
+  return {
+    eyebrow: input.eyebrow.trim().slice(0, 32),
+    title: input.title.trim().slice(0, 80),
+    body: input.body.trim().slice(0, 240),
+    ctaLabel: input.ctaLabel.trim().slice(0, 32),
+    // Fail closed: an unrecognised route becomes "no action" rather than
+    // reaching the app as an unknown target.
+    ctaRoute: (APP_SLIDE_ROUTES as readonly string[]).includes(route)
+      ? route
+      : "",
+    tone: APP_SLIDE_TONES.includes(input.tone) ? input.tone : "paper",
+    image: input.image.trim().slice(0, 4 * 1024 * 1024),
+    sortOrder: Number.isFinite(input.sortOrder)
+      ? Math.max(0, Math.floor(input.sortOrder))
+      : 0,
+    isActive: !!input.isActive,
+    startsAt: input.startsAt.trim().slice(0, 40),
+    endsAt: input.endsAt.trim().slice(0, 40),
+  };
+}
+
+export async function createAppSlide(
+  input: AppSlideInput,
+): Promise<AdminAppSlide> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  const now = new Date().toISOString();
+  const slide: AdminAppSlide = {
+    id: `aslide-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    ...normalizeAppSlide(input),
+    createdAt: now,
+    updatedAt: now,
+  };
+  check(await sb.from(TABLES.appHeroSlides).insert(slide), "createAppSlide");
+  return slide;
+}
+
+export async function updateAppSlide(
+  id: string,
+  input: AppSlideInput,
+): Promise<AdminAppSlide | null> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  check(
+    await sb
+      .from(TABLES.appHeroSlides)
+      .update({
+        ...normalizeAppSlide(input),
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", id),
+    "updateAppSlide",
+  );
+  return getAppSlide(id);
+}
+
+export async function deleteAppSlide(id: string): Promise<void> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  check(
+    await sb.from(TABLES.appHeroSlides).delete().eq("id", id),
+    "deleteAppSlide",
+  );
+}
+
+// ─── Mobile app posts: campaigns, collaborations, events ──────────────────
+//
+// Image-first cards in a horizontally scrollable strip below the hero. Unlike a
+// hero slide, a post may point OUTWARD — at an Instagram collaboration or a
+// ticket page — which is why its destination is a validated https URL opened in
+// an in-app browser rather than a route key resolved natively.
+
+export interface AdminAppPost {
+  id: string;
+  kind: AppPostKind;
+  title: string;
+  body: string;
+  /** Absolute https URL, or a data: URL uploaded from the panel. */
+  image: string;
+  /** Optional outward link. https only. */
+  linkUrl: string;
+  linkLabel: string;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt: string;
+  endsAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AppPostInput {
+  kind: AppPostKind;
+  title: string;
+  body: string;
+  image: string;
+  linkUrl: string;
+  linkLabel: string;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt: string;
+  endsAt: string;
+}
+
+const SEED_APP_POSTS: AdminAppPost[] = [
+  {
+    id: "apost-001",
+    kind: "campaign",
+    title: "Sabah ritüeli",
+    body: "Hafta içi 09:00–11:00 arası espresso bazlı içeceklerde ikinci kahve yarı fiyatına.",
+    image: "",
+    linkUrl: "",
+    linkLabel: "",
+    sortOrder: 0,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "apost-002",
+    kind: "event",
+    title: "Karaoke geceleri",
+    body: "Cuma ve cumartesi 21:00'den sonra üst kattaki karaoke odası açık. Rezervasyon öneriyoruz.",
+    image: "",
+    linkUrl: "",
+    linkLabel: "",
+    sortOrder: 1,
+    isActive: true,
+    startsAt: "",
+    endsAt: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+/**
+ * Fails closed on anything that is not plainly an https URL.
+ *
+ * This is the one field where panel text becomes a destination, so the check is
+ * a parse rather than a pattern: `new URL` rejects the malformed cases a regex
+ * waves through, and the protocol test rejects `javascript:` and `data:` — the
+ * two that turn a link into an injection.
+ */
+function safeHttpsUrl(raw: string): string {
+  const value = raw.trim();
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString().slice(0, 2048) : "";
+  } catch {
+    return "";
+  }
+}
+
+function normalizeAppPost(input: AppPostInput): AppPostInput {
+  return {
+    kind: APP_POST_KINDS.includes(input.kind) ? input.kind : "campaign",
+    title: input.title.trim().slice(0, 80),
+    body: input.body.trim().slice(0, 280),
+    // The image goes through the same parse as the link. The form promises
+    // "https ile başlayan tam adres", and a promise the store does not enforce
+    // is a promise the panel breaks the first time someone pastes a path.
+    image: safeHttpsUrl(input.image),
+    linkUrl: safeHttpsUrl(input.linkUrl),
+    linkLabel: input.linkLabel.trim().slice(0, 32),
+    sortOrder: Number.isFinite(input.sortOrder)
+      ? Math.max(0, Math.floor(input.sortOrder))
+      : 0,
+    isActive: !!input.isActive,
+    startsAt: input.startsAt.trim().slice(0, 40),
+    endsAt: input.endsAt.trim().slice(0, 40),
+  };
+}
+
+export async function listAppPosts(): Promise<AdminAppPost[]> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  return rows<AdminAppPost>(
+    await sb
+      .from(TABLES.appPosts)
+      .select("*")
+      .order("sortOrder", { ascending: true })
+      .order("createdAt", { ascending: true }),
+    "listAppPosts",
+  );
+}
+
+/** What the mobile API serves: active, in-window, in order. */
+export async function listActiveAppPosts(): Promise<AdminAppPost[]> {
+  return publicRead("listActiveAppPosts", [], async () => {
+    const all = await listAppPosts();
+    return all.filter((p) => p.isActive && inWindow(p));
+  });
+}
+
+export async function getAppPost(id: string): Promise<AdminAppPost | null> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  return one<AdminAppPost>(
+    await sb.from(TABLES.appPosts).select("*").eq("id", id).maybeSingle(),
+    "getAppPost",
+  );
+}
+
+export async function createAppPost(
+  input: AppPostInput,
+): Promise<AdminAppPost> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  const now = new Date().toISOString();
+  const post: AdminAppPost = {
+    id: `apost-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    ...normalizeAppPost(input),
+    createdAt: now,
+    updatedAt: now,
+  };
+  check(await sb.from(TABLES.appPosts).insert(post), "createAppPost");
+  return post;
+}
+
+export async function updateAppPost(
+  id: string,
+  input: AppPostInput,
+): Promise<AdminAppPost | null> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  check(
+    await sb
+      .from(TABLES.appPosts)
+      .update({
+        ...normalizeAppPost(input),
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", id),
+    "updateAppPost",
+  );
+  return getAppPost(id);
+}
+
+export async function deleteAppPost(id: string): Promise<void> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  check(await sb.from(TABLES.appPosts).delete().eq("id", id), "deleteAppPost");
+}
+
+export async function listAppAnnouncements(): Promise<AdminAppAnnouncement[]> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  return rows<AdminAppAnnouncement>(
+    await sb
+      .from(TABLES.appAnnouncements)
+      .select("*")
+      .order("sortOrder", { ascending: true })
+      .order("createdAt", { ascending: true }),
+    "listAppAnnouncements",
+  );
+}
+
+export async function listActiveAppAnnouncements(): Promise<
+  AdminAppAnnouncement[]
+> {
+  return publicRead("listActiveAppAnnouncements", [], async () => {
+    const all = await listAppAnnouncements();
+    return all.filter((a) => a.isActive && inWindow(a));
+  });
+}
+
+export async function getAppAnnouncement(
+  id: string,
+): Promise<AdminAppAnnouncement | null> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  return one<AdminAppAnnouncement>(
+    await sb
+      .from(TABLES.appAnnouncements)
+      .select("*")
+      .eq("id", id)
+      .maybeSingle(),
+    "getAppAnnouncement",
+  );
+}
+
+export interface AppAnnouncementInput {
+  kind: AppAnnouncementKind;
+  title: string;
+  body: string;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt: string;
+  endsAt: string;
+}
+
+function normalizeAppAnnouncement(
+  input: AppAnnouncementInput,
+): AppAnnouncementInput {
+  return {
+    kind: APP_ANNOUNCEMENT_KINDS.includes(input.kind) ? input.kind : "info",
+    title: input.title.trim().slice(0, 80),
+    body: input.body.trim().slice(0, 200),
+    sortOrder: Number.isFinite(input.sortOrder)
+      ? Math.max(0, Math.floor(input.sortOrder))
+      : 0,
+    isActive: !!input.isActive,
+    startsAt: input.startsAt.trim().slice(0, 40),
+    endsAt: input.endsAt.trim().slice(0, 40),
+  };
+}
+
+export async function createAppAnnouncement(
+  input: AppAnnouncementInput,
+): Promise<AdminAppAnnouncement> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  const now = new Date().toISOString();
+  const row: AdminAppAnnouncement = {
+    id: `aann-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    ...normalizeAppAnnouncement(input),
+    createdAt: now,
+    updatedAt: now,
+  };
+  check(
+    await sb.from(TABLES.appAnnouncements).insert(row),
+    "createAppAnnouncement",
+  );
+  return row;
+}
+
+export async function updateAppAnnouncement(
+  id: string,
+  input: AppAnnouncementInput,
+): Promise<AdminAppAnnouncement | null> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  check(
+    await sb
+      .from(TABLES.appAnnouncements)
+      .update({
+        ...normalizeAppAnnouncement(input),
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", id),
+    "updateAppAnnouncement",
+  );
+  return getAppAnnouncement(id);
+}
+
+export async function deleteAppAnnouncement(id: string): Promise<void> {
+  await ensureAppContentSeed();
+  const sb = getDb();
+  check(
+    await sb.from(TABLES.appAnnouncements).delete().eq("id", id),
+    "deleteAppAnnouncement",
+  );
+}

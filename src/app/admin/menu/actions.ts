@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/admin/audit";
+import { requireRole } from "@/lib/admin/auth";
 import { bulkMenuSchema } from "@/lib/admin/bulk-schema";
 import {
   bulkUpdateMenuItems,
@@ -24,6 +25,7 @@ const HUE_VALUES = [
   "matcha",
   "pistachio",
   "rose",
+  "bougainvillea",
   "dawn",
   "gold",
   "sky",
@@ -32,15 +34,28 @@ const HUE_VALUES = [
 ];
 
 function parseInput(formData: FormData) {
-  const categoryRaw = String(formData.get("categoryKey") ?? "affogato") as MenuCategoryKey;
+  const categoryRaw = String(
+    formData.get("categoryKey") ?? "matcha",
+  ) as MenuCategoryKey;
   const categoryKey: MenuCategoryKey = MENU_CATEGORY_KEYS.includes(categoryRaw)
     ? categoryRaw
-    : "affogato";
+    : "matcha";
   const name = String(formData.get("name") ?? "").trim();
   const desc = String(formData.get("desc") ?? "").trim();
   const priceText = String(formData.get("price") ?? "0").replace(",", ".");
   const priceMajor = parseFloat(priceText);
-  const priceMinor = Number.isFinite(priceMajor) ? Math.round(priceMajor * 100) : 0;
+  const priceMinor = Number.isFinite(priceMajor)
+    ? Math.round(priceMajor * 100)
+    : 0;
+  const priceLText = String(formData.get("priceL") ?? "")
+    .trim()
+    .replace(",", ".");
+  const priceLMajor = parseFloat(priceLText);
+  const priceMinorL =
+    priceLText !== "" && Number.isFinite(priceLMajor) && priceLMajor > 0
+      ? Math.round(priceLMajor * 100)
+      : 0;
+  const image = parseMenuImage(String(formData.get("image") ?? ""));
   const hueRaw = String(formData.get("hue") ?? "cream");
   const hue = HUE_VALUES.includes(hueRaw) ? hueRaw : "cream";
   const tagsRaw = String(formData.get("tags") ?? "");
@@ -51,7 +66,58 @@ function parseInput(formData: FormData) {
   const sortOrder = parseInt(String(formData.get("sortOrder") ?? "0"), 10) || 0;
   const isActive = formData.get("isActive") === "on";
 
-  return { categoryKey, name, desc, priceMinor, hue, tags, sortOrder, isActive };
+  return {
+    categoryKey,
+    name,
+    desc,
+    priceMinor,
+    priceMinorL,
+    hue,
+    image,
+    tags,
+    sortOrder,
+    isActive,
+  };
+}
+
+/** Uploaded JPEG, resized to 1600 px by the client, is about this big. */
+const MAX_MENU_IMAGE_BYTES = 2 * 1024 * 1024;
+
+/**
+ * The photo for one menu item.
+ *
+ * The uploader submits a JSON array (`["data:image/jpeg;base64,..."]`) because
+ * it is the same component the product wizard uses. A bare string is still
+ * accepted so the site-relative paths already in the database survive an edit
+ * — those used to be the ONLY accepted form, which meant the panel could not
+ * add a photo at all on a deployment with no writable `public/`, and an https
+ * URL typed into the field was discarded without a word.
+ */
+function parseMenuImage(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  let value = trimmed;
+  if (trimmed.startsWith("[")) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      value =
+        Array.isArray(parsed) && typeof parsed[0] === "string"
+          ? parsed[0].trim()
+          : "";
+    } catch {
+      return "";
+    }
+  }
+  if (!value) return "";
+  if (value.startsWith("data:image/")) {
+    return value.length <= MAX_MENU_IMAGE_BYTES ? value : "";
+  }
+  if (/^https:\/\//i.test(value)) return value.length <= 500 ? value : "";
+  // A site-relative asset path, e.g. /menu/matcha-latte.webp
+  if (value.startsWith("/") && !value.startsWith("//") && value.length <= 300) {
+    return value;
+  }
+  return "";
 }
 
 function revalidateMenu() {
@@ -61,6 +127,7 @@ function revalidateMenu() {
 }
 
 export async function createMenuItemAction(formData: FormData) {
+  await requireRole("menu");
   const input = parseInput(formData);
   if (!input.name) return;
   const created = await createMenuItem(input);
@@ -75,6 +142,7 @@ export async function createMenuItemAction(formData: FormData) {
 }
 
 export async function updateMenuItemAction(id: string, formData: FormData) {
+  await requireRole("menu");
   const input = parseInput(formData);
   await updateMenuItem(id, input);
   await logAudit({
@@ -89,6 +157,7 @@ export async function updateMenuItemAction(id: string, formData: FormData) {
 }
 
 export async function deleteMenuItemAction(formData: FormData) {
+  await requireRole("menu");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteMenuItem(id);
@@ -105,6 +174,7 @@ export async function bulkMenuAction(
   _prev: BulkMenuActionState,
   formData: FormData,
 ): Promise<BulkMenuActionState> {
+  await requireRole("menu");
   const parsed = bulkMenuSchema.safeParse({
     ids: String(formData.get("ids") ?? ""),
     op: String(formData.get("op") ?? ""),

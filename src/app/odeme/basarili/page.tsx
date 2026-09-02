@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { formatTRY } from "@/components/admin/forms";
 import { getOrder } from "@/lib/admin/store";
+import { getActiveCustomer } from "@/lib/customer/auth";
 
 import { ClearCart } from "./clear-cart";
 
@@ -10,15 +11,28 @@ export const metadata = { title: "Siparişin Alındı" };
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ ref?: string }>;
+  searchParams: Promise<{ ref?: string; promo?: string }>;
 }
 
 export default async function OrderSuccessPage({ searchParams }: PageProps) {
-  const { ref } = await searchParams;
+  const { ref, promo } = await searchParams;
   if (!ref) notFound();
+  const promoDropped = promo === "dropped";
 
   const order = await getOrder(ref);
   if (!order) notFound();
+
+  // Order ids are sequential (`ord-0001`, `ord-0002`, …), so the reference in
+  // the URL is guessable. Without this check anyone could walk the ids and read
+  // another customer's name, address, phone and basket. Orders can only be
+  // placed by a verified member, so the viewer must be that member.
+  const customer = await getActiveCustomer();
+  if (
+    !customer ||
+    customer.email.toLowerCase() !== order.customerEmail.toLowerCase()
+  ) {
+    notFound();
+  }
 
   const placedAt = new Intl.DateTimeFormat("tr-TR", {
     day: "2-digit",
@@ -34,6 +48,20 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
       style={{ background: "var(--bg-warm)" }}
     >
       <ClearCart />
+      {promoDropped && (
+        <div
+          className="mb-6 rounded-xl border px-5 py-4 text-sm"
+          style={{
+            borderColor: "#f1c8a0",
+            background: "#fdf3e7",
+            color: "#9a5b1e",
+          }}
+        >
+          Promosyon kodun sipariş anında geçerli değildi (süresi dolmuş veya
+          limiti dolmuş olabilir), bu yüzden indirim uygulanmadı. Sorun olduğunu
+          düşünüyorsan bizimle iletişime geç.
+        </div>
+      )}
       <div
         className="rounded-2xl border border-neutral-200 bg-white p-10 shadow-sm md:p-14"
         style={{ boxShadow: "var(--shadow-lg)" }}
@@ -44,7 +72,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
             style={{ background: "var(--gold)" }}
           />
           <span
-            className="text-[10px] uppercase tracking-[0.24em] text-neutral-500"
+            className="text-[10px] tracking-[0.24em] text-neutral-500 uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             Sipariş alındı · {placedAt}
@@ -55,7 +83,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
           className="mt-5 text-5xl"
           style={{
             fontFamily: "var(--serif), 'Playfair Display', serif",
-            fontStyle: "italic",
+            fontStyle: "normal",
             fontWeight: 500,
             letterSpacing: "-0.018em",
             lineHeight: 1.02,
@@ -63,21 +91,35 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         >
           Grazie, {order.customerName.split(" ")[0]}.
           <br />
-          <span style={{ fontFamily: "var(--script), cursive", color: "var(--gold)" }}>
+          <span
+            style={{
+              fontFamily: "var(--script), cursive",
+              color: "var(--gold)",
+            }}
+          >
             See you soon.
           </span>
         </h1>
 
         <p className="mt-6 max-w-md text-neutral-700">
-          Siparişini aldık. Sanal POS bağlandığında ödeme buradan tamamlanacak;
-          şimdilik <em>ödeme bekleniyor</em> olarak kaydettik. Admin panelinde
-          durumu manuel olarak ilerletip Maltepe Park terasında bekleniyorsun.
+          {order.status === "paid" ? (
+            <>
+              Ödemen alındı ve siparişin onaylandı. Tuzla köşkünde bekleniyorsun
+              — hazır olunca seni bilgilendireceğiz.
+            </>
+          ) : (
+            <>
+              Siparişini aldık; ödemen henüz tamamlanmadı (
+              <em>ödeme bekleniyor</em>). Ödeme tamamlandığında siparişin işleme
+              alınır.
+            </>
+          )}
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           <div className="rounded-md border border-neutral-200 p-4">
             <div
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Sipariş No
@@ -91,7 +133,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
           </div>
           <div className="rounded-md border border-neutral-200 p-4">
             <div
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Kalem
@@ -105,7 +147,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
           </div>
           <div className="rounded-md border border-neutral-200 p-4">
             <div
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Toplam
@@ -121,7 +163,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
 
         <div className="mt-10 border-t border-neutral-200 pt-6">
           <div
-            className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+            className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             Özet
@@ -139,6 +181,32 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
               </li>
             ))}
           </ul>
+          <div className="mt-4 grid gap-1.5 border-t border-neutral-200 pt-4 text-sm">
+            <SummaryRow
+              label="Ara toplam"
+              value={formatTRY(order.subtotalMinor)}
+            />
+            {order.discountMinor > 0 && (
+              <SummaryRow
+                label={`İndirim${order.promoCode ? ` · ${order.promoCode}` : ""}`}
+                value={`−${formatTRY(order.discountMinor)}`}
+                tone="green"
+              />
+            )}
+            <SummaryRow
+              label="Kargo"
+              value={
+                order.shippingMinor > 0
+                  ? formatTRY(order.shippingMinor)
+                  : "Ücretsiz"
+              }
+            />
+            <SummaryRow
+              label="Toplam"
+              value={formatTRY(order.totalMinor)}
+              strong
+            />
+          </div>
         </div>
 
         <div className="mt-10 flex flex-wrap gap-3">
@@ -158,12 +226,48 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         </div>
 
         <p
-          className="mt-8 text-[10px] uppercase tracking-[0.22em] text-neutral-400"
+          className="mt-8 text-[10px] tracking-[0.22em] text-neutral-400 uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
-          Sanal POS entegrasyonu sonrası ödeme makbuzu e-postan üzerinden iletilecek.
+          Sanal POS entegrasyonu sonrası ödeme makbuzu e-postan üzerinden
+          iletilecek.
         </p>
       </div>
     </main>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  strong,
+  tone,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  tone?: "green";
+}) {
+  return (
+    <div
+      className="flex items-baseline justify-between gap-4"
+      style={{
+        borderTop: strong ? "1px solid var(--ink-line, #E8E1D5)" : undefined,
+        paddingTop: strong ? 10 : undefined,
+        marginTop: strong ? 4 : undefined,
+        fontWeight: strong ? 600 : 400,
+        color: tone === "green" ? "#15803d" : undefined,
+      }}
+    >
+      <span>{label}</span>
+      <span
+        style={{
+          fontFamily: "var(--mono), monospace",
+          fontSize: strong ? 16 : undefined,
+        }}
+      >
+        {value}
+      </span>
+    </div>
   );
 }

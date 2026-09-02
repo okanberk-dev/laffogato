@@ -1,11 +1,11 @@
 ---
 name: new-migration
-description: Create a new Supabase SQL migration with the correct timestamp and conventions for the Laffogato project. Use when the user wants to add, alter, or drop database tables/columns/policies. Examples: "yeni bir tablo ekleyelim", "siparişlere bir kolon ekle", "RLS politikası ekle".
+description: Create a new Postgres SQL migration with the correct timestamp and conventions for the Laffogato project. Use when the user wants to add, alter, or drop database tables/columns/policies. Examples: "yeni bir tablo ekleyelim", "siparişlere bir kolon ekle", "RLS politikası ekle".
 ---
 
-# Yeni Supabase Migration Oluştur
+# Yeni Migration Oluştur
 
-Bu projede her schema değişikliği `supabase/migrations/YYYYMMDDHHMMSS_aciklama.sql` formatında yeni bir dosya olarak yazılır. Önce dosyaya yazılır, sonra Supabase MCP `apply_migration` ile uygulanır.
+Bu projede her schema değişikliği `db/migrations/YYYYMMDDHHMMSS_aciklama.sql` formatında yeni bir dosya olarak yazılır. Önce dosyaya yazılır, sonra `npm run db:migrate` ile uygulanır (Neon Postgres).
 
 ## Adımlar
 
@@ -14,7 +14,7 @@ Bu projede her schema değişikliği `supabase/migrations/YYYYMMDDHHMMSS_aciklam
    date -u +"%Y%m%d%H%M%S"
    ```
 
-2. **Dosya adı:** `supabase/migrations/<timestamp>_<kebab_case_aciklama>.sql`
+2. **Dosya adı:** `db/migrations/<timestamp>_<kebab_case_aciklama>.sql`
    - Örnek: `20260525143000_add_loyalty_points_to_users.sql`
    - Açıklama snake_case veya kebab; kısa ve anlamlı.
 
@@ -59,7 +59,9 @@ Bu projede her schema değişikliği `supabase/migrations/YYYYMMDDHHMMSS_aciklam
    ```
    Çıktıyı `src/types/database.ts` üzerine yaz.
 
-7. **Doğrula:** `mcp__supabase__list_tables` veya `mcp__supabase__get_advisors` ile yeni tablonun göründüğünü ve hiç güvenlik uyarısı kalmadığını teyit et.
+7. **Doğrula:** `npm run db:migrate` çıktısında dosyanın uygulandığını gör; ardından `npm run typecheck && npm test && npm run build` ile kodun temiz kaldığını teyit et.
+
+**Not:** Tüm erişim tek bir owner bağlantısı üzerinden gider. `anon` / `authenticated` / `service_role` gibi roller bu veritabanında yoktur; onlara `grant` veren satırlar yazma.
 
 ## Yapma
 

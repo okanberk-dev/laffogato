@@ -15,13 +15,27 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
   product: "Ürün",
   menu_item: "Menü",
   category: "Kategori",
+  shop_hero_slide: "Mağaza Hero",
+  app_hero_slide: "Uygulama slaytı",
+  app_announcement: "Uygulama duyurusu",
+  app_post: "Uygulama gönderisi",
+  reel: "Reel",
+  press: "Basın",
+  story: "Hikaye",
+  content: "Site metni",
   order: "Sipariş",
   order_item: "Sipariş kalemi",
   promo: "Promosyon",
+  coupon: "Kupon",
   settings: "Ayar",
   stock: "Stok",
+  customer: "Üye",
+  newsletter: "Bülten",
+  legal_doc: "Yasal belge",
   auth: "Giriş",
   "2fa": "2FA",
+  venue_status: "Canlı durum",
+  karaoke_reservation: "Karaoke rezervasyonu",
 };
 
 const ACTION_LABEL: Record<AuditAction, string> = {
@@ -75,7 +89,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
   });
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Denetim"
         title="Olay Kaydı"
@@ -83,10 +97,10 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
       />
 
       <Card className="mb-4">
-        <form className="flex flex-wrap items-end gap-3">
+        <form className="grid gap-3 sm:grid-cols-2 sm:items-end md:grid-cols-[1fr_1fr_1fr_auto_auto]">
           <label className="grid gap-1">
             <span
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Aktör
@@ -96,12 +110,12 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
               name="actor"
               defaultValue={sp.actor ?? ""}
               placeholder="ali@…"
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
             />
           </label>
           <label className="grid gap-1">
             <span
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Entite
@@ -109,7 +123,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
             <select
               name="entity"
               defaultValue={sp.entity ?? ""}
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
             >
               <option value="">Tümü</option>
               {(Object.keys(ENTITY_LABEL) as AuditEntity[]).map((e) => (
@@ -121,7 +135,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
           </label>
           <label className="grid gap-1">
             <span
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Aksiyon
@@ -129,7 +143,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
             <select
               name="action"
               defaultValue={sp.action ?? ""}
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
             >
               <option value="">Tümü</option>
               {(Object.keys(ACTION_LABEL) as AuditAction[]).map((a) => (
@@ -141,13 +155,13 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
           </label>
           <button
             type="submit"
-            className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-medium text-white hover:bg-neutral-800"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
           >
             Uygula
           </button>
           <Link
             href="/admin/olay-kaydi"
-            className="rounded-full border border-neutral-200 px-4 py-2 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--admin-border)] px-4 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
           >
             Sıfırla
           </Link>
@@ -161,75 +175,133 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
             burada görünecek.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr
-                  className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-[0.22em] text-neutral-500"
-                  style={{ fontFamily: "var(--mono), monospace" }}
+          <>
+            {/* Mobile cards */}
+            <ul className="flex flex-col gap-3 md:hidden">
+              {rows.map((r) => (
+                <li
+                  key={r.id}
+                  className="rounded-lg border border-[var(--admin-border)] p-3"
                 >
-                  <th className="py-3 pr-3">Zaman</th>
-                  <th className="pr-3">Aktör</th>
-                  <th className="pr-3">Aksiyon</th>
-                  <th className="pr-3">Entite</th>
-                  <th className="pr-3">ID</th>
-                  <th>Payload</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr
-                    key={r.id}
-                    className="border-b border-neutral-100 last:border-b-0 align-top"
-                  >
-                    <td
-                      className="py-3 pr-3 text-xs text-neutral-500 whitespace-nowrap"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {formatDateTime(r.createdAt)}
-                    </td>
-                    <td
-                      className="pr-3 text-xs text-neutral-700"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {r.actor}
-                    </td>
-                    <td className="pr-3">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${ACTION_TONE[r.action]}`}
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm text-neutral-900">
+                        <span className="font-medium">
+                          {ENTITY_LABEL[r.entity]}
+                        </span>
+                        {r.entityId && (
+                          <span
+                            className="ml-2 text-[10px] text-neutral-500"
+                            style={{ fontFamily: "var(--mono), monospace" }}
+                          >
+                            {r.entityId}
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className="mt-0.5 text-[10px] text-neutral-500"
+                        style={{ fontFamily: "var(--mono), monospace" }}
                       >
-                        {ACTION_LABEL[r.action]}
-                      </span>
-                    </td>
-                    <td className="pr-3 text-neutral-800">
-                      {ENTITY_LABEL[r.entity]}
-                    </td>
-                    <td
-                      className="pr-3 text-xs text-neutral-500"
-                      style={{ fontFamily: "var(--mono), monospace" }}
+                        {formatDateTime(r.createdAt)} · {r.actor}
+                      </div>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ACTION_TONE[r.action]}`}
                     >
-                      {r.entityId || "—"}
-                    </td>
-                    <td className="text-xs text-neutral-600">
-                      {Object.keys(r.payload).length === 0 ? (
-                        <span className="text-neutral-400">—</span>
-                      ) : (
-                        <code
-                          className="break-all"
-                          style={{
-                            fontFamily: "var(--mono), monospace",
-                            fontSize: 11,
-                          }}
-                        >
-                          {JSON.stringify(r.payload)}
-                        </code>
-                      )}
-                    </td>
+                      {ACTION_LABEL[r.action]}
+                    </span>
+                  </div>
+                  {Object.keys(r.payload).length > 0 && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-[11px] text-neutral-500 hover:text-[var(--admin-primary)]">
+                        Payload göster
+                      </summary>
+                      <code
+                        className="mt-2 block rounded bg-neutral-50 p-2 break-all"
+                        style={{
+                          fontFamily: "var(--mono), monospace",
+                          fontSize: 11,
+                        }}
+                      >
+                        {JSON.stringify(r.payload)}
+                      </code>
+                    </details>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr
+                    className="border-b border-[var(--admin-border)] text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+                    style={{ fontFamily: "var(--mono), monospace" }}
+                  >
+                    <th className="py-3 pr-3">Zaman</th>
+                    <th className="pr-3">Aktör</th>
+                    <th className="pr-3">Aksiyon</th>
+                    <th className="pr-3">Entite</th>
+                    <th className="pr-3">ID</th>
+                    <th>Payload</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr
+                      key={r.id}
+                      className="border-b border-neutral-100 align-top last:border-b-0"
+                    >
+                      <td
+                        className="py-3 pr-3 text-xs whitespace-nowrap text-neutral-500"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {formatDateTime(r.createdAt)}
+                      </td>
+                      <td
+                        className="pr-3 text-xs text-neutral-700"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {r.actor}
+                      </td>
+                      <td className="pr-3">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ACTION_TONE[r.action]}`}
+                        >
+                          {ACTION_LABEL[r.action]}
+                        </span>
+                      </td>
+                      <td className="pr-3 text-neutral-800">
+                        {ENTITY_LABEL[r.entity]}
+                      </td>
+                      <td
+                        className="pr-3 text-xs text-neutral-500"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {r.entityId || "—"}
+                      </td>
+                      <td className="text-xs text-neutral-600">
+                        {Object.keys(r.payload).length === 0 ? (
+                          <span className="text-neutral-400">—</span>
+                        ) : (
+                          <code
+                            className="break-all"
+                            style={{
+                              fontFamily: "var(--mono), monospace",
+                              fontSize: 11,
+                            }}
+                          >
+                            {JSON.stringify(r.payload)}
+                          </code>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </main>

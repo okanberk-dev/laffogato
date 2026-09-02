@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { OrderChannelBadges } from "@/components/admin/order-badges";
 import { OrderDetail } from "@/components/admin/order-detail";
 import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
+import { canAccess } from "@/lib/admin/roles";
 import {
   availableTransitions,
   getOrder,
@@ -45,17 +47,17 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function AdminOrderDetailPage({ params }: PageProps) {
-  await requireRole("orders");
+  const session = await requireRole("orders");
   const { id } = await params;
   const [order, settings] = await Promise.all([getOrder(id), getSettings()]);
   if (!order) notFound();
 
   const transitions = availableTransitions(order.status);
-  const refundedMinor = order.refunds.reduce(
-    (s, r) => s + r.amountMinor,
+  const refundedMinor = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
+  const remainingRefundableMinor = Math.max(
     0,
+    order.totalMinor - refundedMinor,
   );
-  const remainingRefundableMinor = Math.max(0, order.totalMinor - refundedMinor);
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -66,12 +68,29 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         action={
           <Link
             href="/admin/siparisler"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-neutral-200 px-4 py-2 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--admin-border)] px-4 py-2 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
           >
             ← Tüm siparişler
           </Link>
         }
       />
+
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <OrderChannelBadges order={order} />
+        {order.scheduledFor ? (
+          <span
+            className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase"
+            style={{ fontFamily: "var(--mono), monospace" }}
+          >
+            Planlanan · {formatDateTime(order.scheduledFor)}
+          </span>
+        ) : null}
+        {order.deliveryNote ? (
+          <span className="text-xs text-neutral-600">
+            Kurye notu: {order.deliveryNote}
+          </span>
+        ) : null}
+      </div>
 
       <OrderDetail
         order={order}
@@ -81,8 +100,8 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         statusTone={STATUS_TONE[order.status]}
         refundedMinor={refundedMinor}
         remainingRefundableMinor={remainingRefundableMinor}
+        canRefund={canAccess("refunds", session.role)}
       />
-
     </main>
   );
 }

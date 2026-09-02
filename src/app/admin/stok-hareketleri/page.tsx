@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 const REASON_LABEL: Record<StockMoveReason, string> = {
   order_placed: "Sipariş",
+  order_cancelled: "İptal · stoğa geri",
   manual_adjust: "Manuel düzeltme",
   refund_restock: "İade · stoğa geri",
   seed: "Açılış",
@@ -21,6 +22,7 @@ const REASON_LABEL: Record<StockMoveReason, string> = {
 
 const REASON_TONE: Record<StockMoveReason, string> = {
   order_placed: "bg-blue-50 text-blue-700",
+  order_cancelled: "bg-emerald-50 text-emerald-700",
   manual_adjust: "bg-amber-50 text-amber-700",
   refund_restock: "bg-emerald-50 text-emerald-700",
   seed: "bg-neutral-100 text-neutral-600",
@@ -42,7 +44,7 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
   ]);
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Operasyon"
         title="Stok Hareketleri"
@@ -54,10 +56,10 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
       </div>
 
       <Card className="mb-4">
-        <form className="flex flex-wrap items-end gap-3">
+        <form className="grid gap-3 sm:grid-cols-2 sm:items-end md:grid-cols-[1fr_1fr_auto_auto]">
           <label className="grid gap-1">
             <span
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Ürün
@@ -65,7 +67,7 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
             <select
               name="productId"
               defaultValue={productId ?? ""}
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
             >
               <option value="">Tüm ürünler</option>
               {products.map((p) => (
@@ -77,7 +79,7 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
           </label>
           <label className="grid gap-1">
             <span
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Sebep
@@ -85,7 +87,7 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
             <select
               name="reason"
               defaultValue={reason ?? ""}
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
             >
               <option value="">Tümü</option>
               {(Object.keys(REASON_LABEL) as StockMoveReason[]).map((r) => (
@@ -97,13 +99,13 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
           </label>
           <button
             type="submit"
-            className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-medium text-white hover:bg-neutral-800"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
           >
             Uygula
           </button>
           <Link
             href="/admin/stok-hareketleri"
-            className="rounded-full border border-neutral-200 px-4 py-2 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--admin-border)] px-4 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
           >
             Sıfırla
           </Link>
@@ -117,82 +119,142 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
             düzeltmeler burada belirir.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr
-                  className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-[0.22em] text-neutral-500"
-                  style={{ fontFamily: "var(--mono), monospace" }}
+          <>
+            {/* Mobile cards */}
+            <ul className="flex flex-col gap-3 md:hidden">
+              {moves.map((m) => (
+                <li
+                  key={m.id}
+                  className="rounded-lg border border-[var(--admin-border)] p-3"
                 >
-                  <th className="py-3 pr-3">Zaman</th>
-                  <th className="pr-3">Ürün</th>
-                  <th className="pr-3 text-right">Δ</th>
-                  <th className="pr-3 text-right">Yeni stok</th>
-                  <th className="pr-3">Sebep</th>
-                  <th className="pr-3">Not</th>
-                  <th className="pr-3">Aktör</th>
-                </tr>
-              </thead>
-              <tbody>
-                {moves.map((m) => (
-                  <tr
-                    key={m.id}
-                    className="border-b border-neutral-100 last:border-b-0"
-                  >
-                    <td
-                      className="py-3 pr-3 text-xs text-neutral-500"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {formatDateTime(m.createdAt)}
-                    </td>
-                    <td className="pr-3 text-neutral-900">{m.productName}</td>
-                    <td
-                      className={`pr-3 text-right ${
-                        m.delta < 0 ? "text-red-600" : "text-emerald-700"
-                      }`}
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {m.delta > 0 ? "+" : ""}
-                      {m.delta}
-                    </td>
-                    <td
-                      className="pr-3 text-right text-neutral-700"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {m.stockAfter}
-                    </td>
-                    <td className="pr-3">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${REASON_TONE[m.reason]}`}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-medium text-neutral-900">
+                        {m.productName}
+                      </div>
+                      <div
+                        className="mt-0.5 text-[10px] text-neutral-500"
+                        style={{ fontFamily: "var(--mono), monospace" }}
                       >
-                        {REASON_LABEL[m.reason]}
-                      </span>
-                    </td>
-                    <td className="pr-3 text-xs text-neutral-600 max-w-md">
-                      {m.note || "—"}
-                      {m.orderId && (
-                        <>
-                          {" "}
-                          <Link
-                            href={`/admin/siparisler/${m.orderId}`}
-                            className="text-neutral-500 underline-offset-2 hover:text-neutral-900 hover:underline"
-                          >
-                            siparişe git →
-                          </Link>
-                        </>
-                      )}
-                    </td>
-                    <td
-                      className="pr-3 text-xs text-neutral-500"
-                      style={{ fontFamily: "var(--mono), monospace" }}
+                        {formatDateTime(m.createdAt)} · {m.actor}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div
+                        className={`text-base ${m.delta < 0 ? "text-red-600" : "text-emerald-700"}`}
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {m.delta > 0 ? "+" : ""}
+                        {m.delta}
+                      </div>
+                      <div
+                        className="text-[10px] text-neutral-500"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        → {m.stockAfter}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${REASON_TONE[m.reason]}`}
                     >
-                      {m.actor}
-                    </td>
+                      {REASON_LABEL[m.reason]}
+                    </span>
+                    {m.orderId && (
+                      <Link
+                        href={`/admin/siparisler/${m.orderId}`}
+                        className="text-[10px] text-neutral-600 underline-offset-2 hover:text-[var(--admin-primary)] hover:underline"
+                      >
+                        siparişe git →
+                      </Link>
+                    )}
+                  </div>
+                  {m.note && (
+                    <p className="mt-2 text-xs text-neutral-600">{m.note}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr
+                    className="border-b border-[var(--admin-border)] text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+                    style={{ fontFamily: "var(--mono), monospace" }}
+                  >
+                    <th className="py-3 pr-3">Zaman</th>
+                    <th className="pr-3">Ürün</th>
+                    <th className="pr-3 text-right">Δ</th>
+                    <th className="pr-3 text-right">Yeni stok</th>
+                    <th className="pr-3">Sebep</th>
+                    <th className="pr-3">Not</th>
+                    <th className="pr-3">Aktör</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {moves.map((m) => (
+                    <tr
+                      key={m.id}
+                      className="border-b border-neutral-100 last:border-b-0"
+                    >
+                      <td
+                        className="py-3 pr-3 text-xs text-neutral-500"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {formatDateTime(m.createdAt)}
+                      </td>
+                      <td className="pr-3 text-neutral-900">{m.productName}</td>
+                      <td
+                        className={`pr-3 text-right ${
+                          m.delta < 0 ? "text-red-600" : "text-emerald-700"
+                        }`}
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {m.delta > 0 ? "+" : ""}
+                        {m.delta}
+                      </td>
+                      <td
+                        className="pr-3 text-right text-neutral-700"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {m.stockAfter}
+                      </td>
+                      <td className="pr-3">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${REASON_TONE[m.reason]}`}
+                        >
+                          {REASON_LABEL[m.reason]}
+                        </span>
+                      </td>
+                      <td className="max-w-md pr-3 text-xs text-neutral-600">
+                        {m.note || "—"}
+                        {m.orderId && (
+                          <>
+                            {" "}
+                            <Link
+                              href={`/admin/siparisler/${m.orderId}`}
+                              className="text-neutral-500 underline-offset-2 hover:text-[var(--admin-primary)] hover:underline"
+                            >
+                              siparişe git →
+                            </Link>
+                          </>
+                        )}
+                      </td>
+                      <td
+                        className="pr-3 text-xs text-neutral-500"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {m.actor}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </main>

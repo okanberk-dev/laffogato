@@ -13,7 +13,7 @@ export default async function NewProductPage() {
   const categories = await listCategories();
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Shop · La bottega"
         title="Yeni ürün"

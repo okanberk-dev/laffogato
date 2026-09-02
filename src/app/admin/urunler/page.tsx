@@ -9,7 +9,13 @@ export const metadata = { title: "Admin · Ürünler" };
 export const dynamic = "force-dynamic";
 
 type Status = "all" | "active" | "inactive" | "low_stock" | "out_of_stock";
-type SortKey = "recent" | "name" | "price_asc" | "price_desc" | "stock_asc" | "stock_desc";
+type SortKey =
+  | "recent"
+  | "name"
+  | "price_asc"
+  | "price_desc"
+  | "stock_asc"
+  | "stock_desc";
 
 interface PageProps {
   searchParams: Promise<{
@@ -67,9 +73,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
   if (status === "inactive") list = list.filter((p) => !p.isActive);
   if (status === "out_of_stock") list = list.filter((p) => p.stock === 0);
   if (status === "low_stock")
-    list = list.filter(
-      (p) => p.stock > 0 && p.stock <= p.lowStockThreshold,
-    );
+    list = list.filter((p) => p.stock > 0 && p.stock <= p.lowStockThreshold);
 
   list = [...list].sort((a, b) => {
     if (sort === "name") return a.name.localeCompare(b.name, "tr");
@@ -85,7 +89,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
   );
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Shop · La bottega"
         title="Ürünler"
@@ -93,7 +97,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
         action={
           <Link
             href="/admin/urunler/yeni"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800"
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
           >
             + Yeni ürün
           </Link>
@@ -101,18 +105,18 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
       />
 
       <Card className="mb-4">
-        <form className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto]">
+        <form className="grid gap-3 sm:grid-cols-2 md:grid-cols-[1fr_auto_auto_auto]">
           <input
             type="text"
             name="q"
             defaultValue={q}
-            placeholder="Ürün adı, SKU, slug veya etiket ile ara…"
-            className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm outline-none focus:border-neutral-900 focus:bg-white"
+            placeholder="Ürün adı, SKU, slug…"
+            className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base outline-none focus:border-[var(--admin-primary)] focus:bg-white sm:col-span-2 sm:text-sm md:col-span-1"
           />
           <select
             name="cat"
             defaultValue={cat}
-            className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+            className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
           >
             <option value="all">Kategori: hepsi</option>
             {categories.map((c) => (
@@ -124,7 +128,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
           <select
             name="status"
             defaultValue={status}
-            className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+            className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
           >
             {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (
               <option key={s} value={s}>
@@ -135,7 +139,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
           <select
             name="sort"
             defaultValue={sort}
-            className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
+            className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
           >
             {(Object.keys(SORT_LABEL) as SortKey[]).map((s) => (
               <option key={s} value={s}>
@@ -143,9 +147,9 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
               </option>
             ))}
           </select>
-          <div className="md:col-span-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2 md:col-span-4">
             <div
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               {list.length} / {allProducts.length} ürün
@@ -153,13 +157,13 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
             <div className="flex gap-2">
               <Link
                 href="/admin/urunler"
-                className="rounded-full border border-neutral-200 px-3 py-1.5 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+                className="inline-flex min-h-[40px] items-center rounded-full border border-[var(--admin-border)] px-3 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
               >
                 Sıfırla
               </Link>
               <button
                 type="submit"
-                className="rounded-full bg-neutral-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+                className="inline-flex min-h-[40px] items-center rounded-xl bg-[var(--admin-primary)] px-4 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
               >
                 Uygula
               </button>

@@ -16,6 +16,7 @@ import type { AdminSettings } from "@/lib/admin/store";
 import {
   saveGeneralAction,
   saveHoursAction,
+  saveKaraokeAction,
   saveNotificationsAction,
   saveSeoAction,
   saveShippingAction,
@@ -30,6 +31,7 @@ const TABS = [
   { id: "hours", label: "Saatler" },
   { id: "tax", label: "Vergi" },
   { id: "shipping", label: "Kargo" },
+  { id: "karaoke", label: "Karaoke" },
   { id: "seo", label: "SEO" },
   { id: "notifications", label: "Bildirim" },
 ] as const;
@@ -41,16 +43,16 @@ export function SettingsForm({ settings }: { settings: AdminSettings }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
-      <nav className="flex flex-row flex-wrap gap-1 lg:flex-col">
+      <nav className="-mx-1 flex [scrollbar-width:none] flex-row gap-1 overflow-x-auto px-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
-            className={`rounded-md px-3 py-2 text-left text-sm transition-colors ${
+            className={`min-h-[44px] shrink-0 rounded-md px-3 py-2 text-left text-sm whitespace-nowrap transition-colors lg:shrink ${
               tab === t.id
-                ? "bg-neutral-900 text-white"
-                : "border border-neutral-200 text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+                ? "bg-[var(--admin-primary)] text-white"
+                : "border border-[var(--admin-border)] text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
             }`}
           >
             {t.label}
@@ -63,6 +65,7 @@ export function SettingsForm({ settings }: { settings: AdminSettings }) {
         {tab === "hours" && <HoursTab settings={settings} />}
         {tab === "tax" && <TaxTab settings={settings} />}
         {tab === "shipping" && <ShippingTab settings={settings} />}
+        {tab === "karaoke" && <KaraokeTab settings={settings} />}
         {tab === "seo" && <SeoTab settings={settings} />}
         {tab === "notifications" && <NotificationsTab settings={settings} />}
       </div>
@@ -178,29 +181,31 @@ function HoursTab({ settings }: { settings: AdminSettings }) {
             return (
               <div
                 key={day}
-                className="grid grid-cols-[100px_auto_auto_1fr] items-center gap-3 border-b border-neutral-100 pb-3 last:border-b-0"
+                className="grid gap-2 border-b border-neutral-100 pb-3 last:border-b-0 sm:grid-cols-[90px_1fr_1fr_auto] sm:items-center sm:gap-3"
               >
-                <span className="text-sm text-neutral-700">
+                <span className="text-sm font-medium text-neutral-700">
                   {DAY_LABELS[day]}
                 </span>
-                <input
-                  type="time"
-                  name={`${day}-open`}
-                  defaultValue={hour.open}
-                  className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1.5 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
-                />
-                <input
-                  type="time"
-                  name={`${day}-close`}
-                  defaultValue={hour.close}
-                  className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1.5 text-sm focus:border-neutral-900 focus:bg-white focus:outline-none"
-                />
-                <label className="text-xs text-neutral-600">
+                <div className="grid grid-cols-2 gap-2 sm:contents">
+                  <input
+                    type="time"
+                    name={`${day}-open`}
+                    defaultValue={hour.open}
+                    className="rounded-md border border-[var(--admin-border)] bg-neutral-50 px-2 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:py-1.5 sm:text-sm"
+                  />
+                  <input
+                    type="time"
+                    name={`${day}-close`}
+                    defaultValue={hour.close}
+                    className="rounded-md border border-[var(--admin-border)] bg-neutral-50 px-2 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:py-1.5 sm:text-sm"
+                  />
+                </div>
+                <label className="flex min-h-[40px] items-center gap-2 text-xs text-neutral-600">
                   <input
                     type="checkbox"
                     name={`${day}-closed`}
                     defaultChecked={hour.closed}
-                    className="mr-2 h-4 w-4 rounded border-neutral-300"
+                    className="h-5 w-5 rounded border-neutral-300"
                   />
                   Kapalı
                 </label>
@@ -240,7 +245,7 @@ function ShippingTab({ settings }: { settings: AdminSettings }) {
   const [state, action, pending] = useActionState(saveShippingAction, initial);
   return (
     <form action={action}>
-      <Section title="Kargo">
+      <Section title="Kargo ve kurye">
         <div className="grid gap-5 sm:grid-cols-2">
           <Field
             label="Standart kargo ücreti (₺)"
@@ -259,7 +264,54 @@ function ShippingTab({ settings }: { settings: AdminSettings }) {
             <TextInput
               name="shippingFreeThreshold"
               inputMode="decimal"
-              defaultValue={(settings.shippingFreeThresholdMinor / 100).toFixed(2)}
+              defaultValue={(settings.shippingFreeThresholdMinor / 100).toFixed(
+                2,
+              )}
+            />
+          </Field>
+          <Field
+            label="Kurye ücreti (₺)"
+            hint="Uygulamadan verilen kafe siparişlerinde kuryeyle teslimat için. Ücretsiz kargo eşiği buna uygulanmaz."
+          >
+            <TextInput
+              name="courierFee"
+              inputMode="decimal"
+              defaultValue={(settings.courierFeeMinor / 100).toFixed(2)}
+            />
+          </Field>
+        </div>
+        <SaveBar state={state} pending={pending} />
+      </Section>
+    </form>
+  );
+}
+
+function KaraokeTab({ settings }: { settings: AdminSettings }) {
+  const [state, action, pending] = useActionState(saveKaraokeAction, initial);
+  return (
+    <form action={action}>
+      <Section title="Karaoke">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field
+            label="Saatlik ücret (₺)"
+            hint="Uygulamadaki rezervasyon ekranında gösterilir; ORO üyelere indirim sunucuda uygulanır."
+          >
+            <TextInput
+              name="karaokeHourly"
+              inputMode="decimal"
+              defaultValue={(settings.karaokeHourlyMinor / 100).toFixed(2)}
+              required
+            />
+          </Field>
+          <Field
+            label="Kapasite (kişi)"
+            hint="Bir rezervasyonda kabul edilen en fazla misafir sayısı."
+          >
+            <TextInput
+              name="karaokeCapacity"
+              inputMode="numeric"
+              defaultValue={String(settings.karaokeCapacity)}
+              required
             />
           </Field>
         </div>
@@ -282,7 +334,7 @@ function SeoTab({ settings }: { settings: AdminSettings }) {
             <TextInput
               name="seoTitle"
               defaultValue={settings.seoTitle}
-              placeholder="L'Affogato — Maltepe Park"
+              placeholder="L'Affogato — Tuzla"
             />
           </Field>
           <Field
@@ -326,7 +378,7 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
             name="notificationEmail"
             type="email"
             defaultValue={settings.notificationEmail}
-            placeholder="operasyon@laffogato.it"
+            placeholder="info@nextgenlab.com.tr"
           />
         </Field>
         <SaveBar state={state} pending={pending} />

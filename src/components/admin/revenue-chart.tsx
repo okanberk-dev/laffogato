@@ -31,8 +31,7 @@ export function RevenueChart({ data }: { data: Bucket[] }) {
 
   const points = data.map((d, i) => `${xAt(i)},${yAt(d.revenueMinor)}`);
   const line = points.join(" ");
-  const area =
-    `M${xAt(0)},${padT + innerH} L${points.join(" L")} L${xAt(data.length - 1)},${padT + innerH} Z`;
+  const area = `M${xAt(0)},${padT + innerH} L${points.join(" L")} L${xAt(data.length - 1)},${padT + innerH} Z`;
 
   // 4 horizontal gridlines + labels
   const gridSteps = 4;

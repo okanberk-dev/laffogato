@@ -2,29 +2,53 @@ import "server-only";
 
 import { generateSecret, generateURI, verifySync } from "otplib";
 
+import { getDb, TABLES } from "@/lib/db";
+
 /**
- * In-memory TOTP secret store keyed by lowercased email. Each admin can
- * have at most one enrolled authenticator at a time.
+ * TOTP enrollment, stored in Postgres.
  *
- * When Supabase comes online, swap the body for a row in `admin_2fa`
- * keyed by user_id. Interface stays the same.
+ * This used to be a module-scoped Map. On a single long-lived VM that works;
+ * on Vercel every serverless instance starts with an empty one, so an admin
+ * who enrolled was challenged on the instance that held their secret and waved
+ * straight through on every other — the second factor was, in practice,
+ * optional, and it failed OPEN.
+ *
+ * The secret never leaves the server: enrollment renders the otpauth:// URL
+ * once, and verification happens here.
  */
 
-interface TwoFAEntry {
+interface TwoFARow {
+  email: string;
   secret: string;
   enabled: boolean;
-  enrolledAt?: string;
+  enrolledAt: string;
+  updatedAt: string;
 }
-
-const store = new Map<string, TwoFAEntry>();
 
 function keyOf(email: string): string {
   return email.trim().toLowerCase();
 }
 
-export function has2FA(email: string): boolean {
-  const e = store.get(keyOf(email));
-  return Boolean(e?.enabled);
+async function readEntry(email: string): Promise<TwoFARow | null> {
+  const sb = getDb();
+  const { data, error } = await sb
+    .from(TABLES.admin2fa)
+    .select("*")
+    .eq("email", keyOf(email))
+    .maybeSingle();
+  if (error) throw new Error(`twofa.read: ${error.message}`);
+  return (data as TwoFARow | null) ?? null;
+}
+
+/**
+ * Whether this admin must present a second factor.
+ *
+ * Throws rather than returning false when the database cannot be reached: a
+ * storage failure must not silently downgrade the login to one factor.
+ */
+export async function has2FA(email: string): Promise<boolean> {
+  const entry = await readEntry(email);
+  return Boolean(entry?.enabled);
 }
 
 export interface EnrollmentDraft {
@@ -33,28 +57,57 @@ export interface EnrollmentDraft {
 }
 
 /**
- * Generates a fresh pending secret for an admin. Returns the
- * `otpauth://` URL that the QR code encodes. The secret stays in
- * draft state (enabled=false) until verifyAndEnable() succeeds.
+ * Generates a fresh pending secret for an admin and returns the `otpauth://`
+ * URL the QR code encodes. The secret stays in draft state (enabled=false)
+ * until `verifyAndEnable` succeeds, so a half-finished enrollment can never
+ * lock someone out.
  */
-export function startEnrollment(email: string, issuer: string): EnrollmentDraft {
+export async function startEnrollment(
+  email: string,
+  issuer: string,
+): Promise<EnrollmentDraft> {
   const secret = generateSecret();
-  store.set(keyOf(email), { secret, enabled: false });
-  const otpauthUrl = generateURI({ issuer, label: email, secret });
-  return { secret, otpauthUrl };
+  const now = new Date().toISOString();
+  const sb = getDb();
+  const { error } = await sb.from(TABLES.admin2fa).upsert(
+    {
+      email: keyOf(email),
+      secret,
+      enabled: false,
+      enrolledAt: "",
+      updatedAt: now,
+    },
+    { onConflict: "email" },
+  );
+  if (error) throw new Error(`twofa.startEnrollment: ${error.message}`);
+  return { secret, otpauthUrl: generateURI({ issuer, label: email, secret }) };
 }
 
-export function cancelEnrollment(email: string): void {
-  const entry = store.get(keyOf(email));
-  if (entry && !entry.enabled) store.delete(keyOf(email));
+/** Drops a draft. An already-enabled enrollment is left alone. */
+export async function cancelEnrollment(email: string): Promise<void> {
+  const sb = getDb();
+  const { error } = await sb
+    .from(TABLES.admin2fa)
+    .delete()
+    .eq("email", keyOf(email))
+    .eq("enabled", false);
+  if (error) throw new Error(`twofa.cancelEnrollment: ${error.message}`);
 }
 
-export function disable2FA(email: string): void {
-  store.delete(keyOf(email));
+export async function disable2FA(email: string): Promise<void> {
+  const sb = getDb();
+  const { error } = await sb
+    .from(TABLES.admin2fa)
+    .delete()
+    .eq("email", keyOf(email));
+  if (error) throw new Error(`twofa.disable2FA: ${error.message}`);
 }
 
-export function verifyToken(email: string, token: string): boolean {
-  const entry = store.get(keyOf(email));
+export async function verifyToken(
+  email: string,
+  token: string,
+): Promise<boolean> {
+  const entry = await readEntry(email);
   if (!entry?.secret) return false;
   const cleaned = token.replace(/\D/g, "");
   if (cleaned.length !== 6) return false;
@@ -71,11 +124,17 @@ export function verifyToken(email: string, token: string): boolean {
   }
 }
 
-export function verifyAndEnable(email: string, token: string): boolean {
-  if (!verifyToken(email, token)) return false;
-  const entry = store.get(keyOf(email));
-  if (!entry) return false;
-  entry.enabled = true;
-  entry.enrolledAt = new Date().toISOString();
+export async function verifyAndEnable(
+  email: string,
+  token: string,
+): Promise<boolean> {
+  if (!(await verifyToken(email, token))) return false;
+  const now = new Date().toISOString();
+  const sb = getDb();
+  const { error } = await sb
+    .from(TABLES.admin2fa)
+    .update({ enabled: true, enrolledAt: now, updatedAt: now })
+    .eq("email", keyOf(email));
+  if (error) throw new Error(`twofa.verifyAndEnable: ${error.message}`);
   return true;
 }

@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 import type { FaqEntry } from "@/lib/seo/faq";
+import { GUIDE_LINKS } from "@/lib/seo/guide-nav";
 import { SITE } from "@/lib/seo/site";
 
 /**
@@ -37,7 +40,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
         </div>
         <h2
           id="sss-heading"
-          className="h-1"
+          className="h1"
           style={{ fontSize: "clamp(36px, 5vw, 56px)", marginBottom: 12 }}
         >
           L&rsquo;Affogato hakkında merak edilenler.
@@ -51,11 +54,13 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
             fontSize: 17,
           }}
         >
-          Maltepe Park&rsquo;taki kafe, menü, yenilebilir kup, rezervasyon, online sipariş ve franchise süreçleri hakkında en çok sorulan soruların yanıtları.
+          Tuzla&rsquo;daki kafe, menü, yenilebilir kup, rezervasyon ve online
+          sipariş hakkında en çok sorulan soruların yanıtları.
         </p>
 
         <div style={{ display: "grid", gap: 12 }}>
-          {faq.map((entry, idx) => (
+          {/* Show a concise, minimal set on-page; full set still feeds FAQ JSON-LD. */}
+          {faq.slice(0, 6).map((entry, idx) => (
             <details
               key={idx}
               style={{
@@ -111,7 +116,9 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
             <h3 className="eyebrow" style={{ marginBottom: 10 }}>
               Adres
             </h3>
-            <address style={{ fontStyle: "normal", lineHeight: 1.6, fontSize: 14 }}>
+            <address
+              style={{ fontStyle: "normal", lineHeight: 1.6, fontSize: 14 }}
+            >
               {SITE.address.venue}
               <br />
               {SITE.address.streetAddress}
@@ -141,11 +148,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
               Saatler
             </h3>
             <div style={{ lineHeight: 1.6, fontSize: 14 }}>
-              Pzt — Per: 10:00 — 23:00
-              <br />
-              Cum — Cmt: 10:00 — 24:00
-              <br />
-              Pazar: 10:00 — 23:00
+              Her gün: 09:00 — 01:00
             </div>
           </div>
           <div>
@@ -153,15 +156,55 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
               Ulaşım
             </h3>
             <div style={{ lineHeight: 1.6, fontSize: 14 }}>
-              Tramvay Cevizli · 5 dk
+              Marmaray Tuzla · 6 dk
               <br />
-              Marmaray · 8 dk
+              E-5 / TEM Tuzla · 4 dk
               <br />
-              E-5 Cevizli çıkışı · 3 dk
+              Sabiha Gökçen · 15 dk
               <br />
               Ücretsiz vale
             </div>
           </div>
+        </div>
+
+        {/* Internal links into the rehber hub. This block renders on the home
+            page and on every menu and shop category page, so the guides — which
+            are the pages built to earn search traffic — are reachable from the
+            site's highest-traffic surfaces rather than the footer alone. */}
+        <div style={{ marginTop: 48 }}>
+          <h3 className="eyebrow" style={{ marginBottom: 14 }}>
+            Daha fazlası — Rehber
+          </h3>
+          <ul
+            style={{
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+            }}
+          >
+            {GUIDE_LINKS.map((g) => (
+              <li key={g.slug}>
+                <Link
+                  href={`/rehber/${g.slug}`}
+                  style={{
+                    display: "inline-block",
+                    padding: "8px 14px",
+                    borderRadius: 999,
+                    border: "1px solid rgba(20, 16, 11, 0.14)",
+                    background: "#fff",
+                    fontSize: 13.5,
+                    color: "var(--ink-soft, rgba(20,16,11,0.72))",
+                    textDecoration: "none",
+                  }}
+                >
+                  {g.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div
@@ -178,7 +221,12 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
           <strong style={{ color: "rgba(20, 16, 11, 0.85)" }}>
             L&rsquo;Affogato Italia · sede principale
           </strong>{" "}
-          — {SITE.parent.address}. İstanbul Maltepe Park şubesi, 1987&rsquo;de Bologna&rsquo;da kurulan markanın İtalya dışındaki ilk şubesidir. Tüm kahve, Bologna&rsquo;da Mancuso ailesi tarafından haftalık olarak kavrulur; matcha Japonya Uji bölgesinden, pistacchio Sicilya Bronte&rsquo;dan, fındık IGP Piemonte&rsquo;den, çikolata Sicilya Modica&rsquo;dan tedarik edilir.
+          — {SITE.parent.address}. İstanbul Tuzla şubesi, 1987&rsquo;de
+          Bologna&rsquo;da kurulan markanın İtalya dışındaki ilk şubesidir. Tüm
+          kahve, Bologna&rsquo;da Mancuso ailesi tarafından haftalık olarak
+          kavrulur; matcha Japonya Uji bölgesinden, pistacchio Sicilya
+          Bronte&rsquo;dan, fındık IGP Piemonte&rsquo;den, çikolata Sicilya
+          Modica&rsquo;dan tedarik edilir.
         </div>
       </div>
     </section>

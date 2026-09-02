@@ -12,6 +12,7 @@ import {
 import {
   refundOrderAction,
   saveOrderNoteAction,
+  saveOrderTrackingAction,
   setItemStatusAction,
   transitionOrderAction,
   type NoteActionState,
@@ -21,10 +22,12 @@ import type {
   AdminOrder,
   AdminOrderItemStatus,
   AdminSettings,
+  OrderLegalConsent,
   OrderTransition,
 } from "@/lib/admin/store";
 
 import { Card, formatDateTime, formatTRY } from "./forms";
+import { OrderCustomerEditor } from "./order-customer-editor";
 
 const TRANSITION_LABEL: Record<OrderTransition, string> = {
   mark_paid: "Ödendi olarak işaretle",
@@ -66,6 +69,87 @@ interface Props {
   statusTone: string;
   refundedMinor: number;
   remainingRefundableMinor: number;
+  /** False for staff — refunds are an owner/manager action. */
+  canRefund: boolean;
+}
+
+/**
+ * Distance-selling consent evidence, verbatim.
+ *
+ * Mesafeli Sözleşmeler Yönetmeliği requires proof that the buyer confirmed the
+ * ön bilgilendirme formu and the mesafeli satış sözleşmesi before ordering; an
+ * acquiring bank asks for exactly this record when a chargeback is disputed.
+ * Orders placed before the consent box shipped — and admin-entered manual
+ * orders — carry no record, which the card says out loud rather than hiding.
+ */
+function ConsentCard({ consent }: { consent: AdminOrder["legalConsent"] }) {
+  const accepted =
+    consent && "acceptedAt" in consent && consent.acceptedAt
+      ? (consent as OrderLegalConsent)
+      : null;
+  return (
+    <Card>
+      <SectionTitle>Mesafeli satış onayı</SectionTitle>
+      {!accepted ? (
+        <p className="text-sm text-neutral-500">
+          Bu siparişte onay kaydı yok — onay kutusu yayına alınmadan önce
+          verilmiş ya da panelden manuel girilmiş bir sipariş.
+        </p>
+      ) : (
+        <dl className="grid gap-2 text-sm">
+          <div className="flex flex-wrap justify-between gap-2">
+            <dt className="text-neutral-500">Onay zamanı</dt>
+            <dd
+              className="text-neutral-900"
+              style={{ fontFamily: "var(--mono), monospace" }}
+            >
+              {formatDateTime(accepted.acceptedAt)}
+            </dd>
+          </div>
+          <div className="flex flex-wrap justify-between gap-2">
+            <dt className="text-neutral-500">Onaylanan belgeler</dt>
+            <dd className="text-right text-neutral-900">
+              {accepted.documents.map((slug) => (
+                <div key={slug}>
+                  <a
+                    href={`/hukuk/${slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:text-[var(--admin-primary)]"
+                  >
+                    /hukuk/{slug}
+                  </a>
+                </div>
+              ))}
+            </dd>
+          </div>
+          <div className="flex flex-wrap justify-between gap-2">
+            <dt className="text-neutral-500">Belge sürümü</dt>
+            <dd className="text-neutral-900">{accepted.version}</dd>
+          </div>
+          {accepted.ip && (
+            <div className="flex flex-wrap justify-between gap-2">
+              <dt className="text-neutral-500">IP adresi</dt>
+              <dd
+                className="text-neutral-900"
+                style={{ fontFamily: "var(--mono), monospace" }}
+              >
+                {accepted.ip}
+              </dd>
+            </div>
+          )}
+          {accepted.userAgent && (
+            <div className="grid gap-1">
+              <dt className="text-neutral-500">Tarayıcı</dt>
+              <dd className="text-xs break-all text-neutral-600">
+                {accepted.userAgent}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+    </Card>
+  );
 }
 
 export function OrderDetail({
@@ -76,6 +160,7 @@ export function OrderDetail({
   statusTone,
   refundedMinor,
   remainingRefundableMinor,
+  canRefund,
 }: Props) {
   const [refundOpen, setRefundOpen] = useState(false);
 
@@ -87,12 +172,12 @@ export function OrderDetail({
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <span
-                  className={`rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.18em] ${statusTone}`}
+                  className={`rounded-full px-3 py-1 text-[10px] tracking-[0.18em] uppercase ${statusTone}`}
                 >
                   {statusLabel}
                 </span>
                 {order.refunds.length > 0 && (
-                  <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-rose-700">
+                  <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] tracking-[0.18em] text-rose-700 uppercase">
                     {formatTRY(refundedMinor)} iade
                   </span>
                 )}
@@ -100,7 +185,7 @@ export function OrderDetail({
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="rounded-full border border-neutral-300 px-4 py-1.5 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+                className="rounded-full border border-neutral-300 px-4 py-1.5 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
               >
                 🖨 Fiş yazdır
               </button>
@@ -136,7 +221,9 @@ export function OrderDetail({
                   </form>
                 ))
               )}
-              {order.status !== "cancelled" &&
+              {canRefund &&
+                order.status !== "cancelled" &&
+                order.status !== "pending_payment" &&
                 remainingRefundableMinor > 0 && (
                   <button
                     type="button"
@@ -154,7 +241,7 @@ export function OrderDetail({
             <table className="w-full text-sm">
               <thead>
                 <tr
-                  className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+                  className="border-b border-[var(--admin-border)] text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
                   style={{ fontFamily: "var(--mono), monospace" }}
                 >
                   <th className="py-2 pr-3">Ürün</th>
@@ -166,7 +253,10 @@ export function OrderDetail({
               </thead>
               <tbody>
                 {order.items.map((it, i) => (
-                  <tr key={i} className="border-b border-neutral-100 last:border-b-0">
+                  <tr
+                    key={i}
+                    className="border-b border-neutral-100 last:border-b-0"
+                  >
                     <td className="py-3 pr-3 text-neutral-900">
                       {it.productName}
                     </td>
@@ -257,11 +347,14 @@ export function OrderDetail({
               <SectionTitle>İade hareketleri</SectionTitle>
               <ul className="divide-y divide-neutral-100">
                 {order.refunds.map((r) => (
-                  <li key={r.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm">
+                  <li
+                    key={r.id}
+                    className="flex flex-wrap justify-between gap-2 py-3 text-sm"
+                  >
                     <div>
                       <div className="text-neutral-900">{r.reason}</div>
                       <div
-                        className="text-[10px] uppercase tracking-[0.18em] text-neutral-400"
+                        className="text-[10px] tracking-[0.18em] text-neutral-400 uppercase"
                         style={{ fontFamily: "var(--mono), monospace" }}
                       >
                         {formatDateTime(r.createdAt)}
@@ -279,6 +372,8 @@ export function OrderDetail({
             </Card>
           )}
 
+          <ConsentCard consent={order.legalConsent} />
+
           <Card>
             <SectionTitle>İçsel not</SectionTitle>
             <NoteForm orderId={order.id} initial={order.internalNote} />
@@ -286,46 +381,56 @@ export function OrderDetail({
         </div>
 
         <aside className="grid gap-4">
-          <Card>
-            <SectionTitle>Müşteri</SectionTitle>
-            <div className="grid gap-2 text-sm">
-              <KV k="Ad">{order.customerName}</KV>
-              <KV k="E-posta">
-                <a
-                  href={`mailto:${order.customerEmail}`}
-                  className="text-neutral-900 hover:underline"
-                >
-                  {order.customerEmail}
-                </a>
-              </KV>
-              <KV k="Telefon">
-                {order.customerPhone ? (
-                  <a
-                    href={`tel:${order.customerPhone.replace(/\s/g, "")}`}
-                    className="text-neutral-900 hover:underline"
-                  >
-                    {order.customerPhone}
-                  </a>
-                ) : (
-                  <span className="text-neutral-400">Toplanmadı</span>
-                )}
-              </KV>
-            </div>
-          </Card>
+          <OrderCustomerEditor
+            orderId={order.id}
+            customerName={order.customerName}
+            customerEmail={order.customerEmail}
+            customerPhone={order.customerPhone}
+            shippingAddress={order.shippingAddress}
+          />
 
           <Card>
-            <SectionTitle>Teslimat adresi</SectionTitle>
-            {order.shippingAddress ? (
-              <address
-                className="whitespace-pre-line text-sm not-italic text-neutral-700"
+            <SectionTitle>Kargo</SectionTitle>
+            <form
+              action={saveOrderTrackingAction}
+              className="grid gap-2.5 text-sm"
+            >
+              <input type="hidden" name="id" value={order.id} />
+              <label className="grid gap-1">
+                <span className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
+                  Kurye
+                </span>
+                <input
+                  name="carrier"
+                  defaultValue={order.carrier ?? ""}
+                  placeholder="Yurtiçi Kargo, Aras, MNG…"
+                  className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 outline-none focus:border-[var(--admin-primary)] focus:bg-white"
+                />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
+                  Takip no
+                </span>
+                <input
+                  name="trackingNumber"
+                  defaultValue={order.trackingNumber ?? ""}
+                  placeholder="Kargo takip numarası"
+                  className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 font-mono outline-none focus:border-[var(--admin-primary)] focus:bg-white"
+                  style={{ fontFamily: "var(--mono, monospace)" }}
+                />
+              </label>
+              {order.shippedAt ? (
+                <p className="text-xs text-neutral-500">
+                  Kargolandı · {formatDateTime(order.shippedAt)}
+                </p>
+              ) : null}
+              <button
+                type="submit"
+                className="mt-1 justify-self-start rounded-xl bg-[var(--admin-primary)] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--admin-primary-hover)]"
               >
-                {order.shippingAddress}
-              </address>
-            ) : (
-              <p className="text-sm text-neutral-400">
-                Teslimat adresi toplanmamış. (Müşteri checkout'unda alınacak.)
-              </p>
-            )}
+                Kargo bilgisini kaydet
+              </button>
+            </form>
           </Card>
         </aside>
       </div>
@@ -351,25 +456,11 @@ export function OrderDetail({
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2
-      className="mb-3 text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+      className="mb-3 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
       style={{ fontFamily: "var(--mono), monospace" }}
     >
       {children}
     </h2>
-  );
-}
-
-function KV({ k, children }: { k: string; children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[100px_1fr] gap-2">
-      <span
-        className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
-        {k}
-      </span>
-      <span className="text-neutral-800">{children}</span>
-    </div>
   );
 }
 
@@ -392,7 +483,7 @@ function ItemStatusForm({
       <input type="hidden" name="id" value={orderId} />
       <input type="hidden" name="index" value={String(index)} />
       <span
-        className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${ITEM_STATUS_TONE[currentStatus]}`}
+        className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ITEM_STATUS_TONE[currentStatus]}`}
       >
         {ITEM_STATUS_LABEL[currentStatus]}
       </span>
@@ -400,7 +491,7 @@ function ItemStatusForm({
         name="status"
         defaultValue={currentStatus}
         onChange={() => formRef.current?.requestSubmit()}
-        className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs focus:border-neutral-900 focus:bg-white focus:outline-none"
+        className="rounded-md border border-[var(--admin-border)] bg-neutral-50 px-2 py-1 text-xs focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none"
         aria-label="Kalem durumu"
       >
         <option value="pending">Bekliyor</option>
@@ -435,7 +526,7 @@ function NoteForm({ orderId, initial }: { orderId: string; initial: string }) {
         }}
         rows={4}
         placeholder="Ekip için not — hediye paketi, ek talep, alerji, vb. Müşteri görmez."
-        className="w-full rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:bg-white"
+        className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-[var(--admin-primary)] focus:bg-white"
       />
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-neutral-500">
@@ -444,10 +535,13 @@ function NoteForm({ orderId, initial }: { orderId: string; initial: string }) {
           ) : dirty ? (
             "Kaydedilmemiş değişiklik var."
           ) : state.savedAt ? (
-            `Kaydedildi · ${new Date(state.savedAt).toLocaleTimeString("tr-TR", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}`
+            `Kaydedildi · ${new Date(state.savedAt).toLocaleTimeString(
+              "tr-TR",
+              {
+                hour: "2-digit",
+                minute: "2-digit",
+              },
+            )}`
           ) : initial ? (
             `${initial.length} karakter`
           ) : (
@@ -457,7 +551,7 @@ function NoteForm({ orderId, initial }: { orderId: string; initial: string }) {
         <button
           type="submit"
           disabled={pending || !dirty}
-          className="rounded-full bg-neutral-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-40"
+          className="rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
         >
           {pending ? "Kaydediliyor…" : "Notu kaydet"}
         </button>
@@ -500,7 +594,7 @@ function RefundModal({
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     if (
       !confirm(
-        "Bu iade tutarını kaydetmek istediğine emin misin? Sanal POS entegre edildiğinde bu işlem otomatik POS iadesini de tetikleyecek.",
+        "Bu iade sanal POS üzerinden gerçekten yapılacak ve geri alınamaz. Devam edilsin mi?",
       )
     ) {
       e.preventDefault();
@@ -510,7 +604,7 @@ function RefundModal({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-40 grid place-items-center bg-black/40 backdrop-blur-sm p-4 print:hidden"
+      className="fixed inset-0 z-40 grid place-items-center bg-black/40 p-4 backdrop-blur-sm print:hidden"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -533,11 +627,15 @@ function RefundModal({
           </span>
         </p>
 
-        <form action={formAction} onSubmit={onSubmit} className="mt-4 grid gap-3">
+        <form
+          action={formAction}
+          onSubmit={onSubmit}
+          className="mt-4 grid gap-3"
+        >
           <input type="hidden" name="id" value={orderId} />
           <label className="grid gap-1">
             <span
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               İade tutarı (₺)
@@ -547,13 +645,13 @@ function RefundModal({
               type="text"
               inputMode="decimal"
               defaultValue={defaultAmount}
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:bg-white"
+              className="rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-[var(--admin-primary)] focus:bg-white"
               required
             />
           </label>
           <label className="grid gap-1">
             <span
-              className="text-[10px] uppercase tracking-[0.22em] text-neutral-500"
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Neden
@@ -562,7 +660,7 @@ function RefundModal({
               name="reason"
               rows={3}
               placeholder="Hasarlı geldi · Yanlış ürün · Müşteri talebi…"
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:bg-white"
+              className="rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-[var(--admin-primary)] focus:bg-white"
               required
               minLength={3}
             />
@@ -576,7 +674,7 @@ function RefundModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-neutral-300 px-4 py-1.5 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+              className="rounded-full border border-neutral-300 px-4 py-1.5 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
             >
               Vazgeç
             </button>
@@ -606,7 +704,7 @@ function PrintableReceipt({
   return (
     <section
       data-print-receipt
-      className="hidden print:block print:absolute print:inset-0 print:p-10 print:bg-white print:text-black"
+      className="hidden print:absolute print:inset-0 print:block print:bg-white print:p-10 print:text-black"
     >
       <header className="mb-6 border-b border-neutral-300 pb-4">
         <div className="flex items-baseline justify-between">
@@ -615,10 +713,10 @@ function PrintableReceipt({
             <div className="text-xs text-neutral-600">{settings.tagline}</div>
           </div>
           <div className="text-right">
-            <div className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+            <div className="text-xs tracking-[0.22em] text-neutral-500 uppercase">
               Sipariş Fişi
             </div>
-            <div className="text-lg font-mono">#{order.orderNo}</div>
+            <div className="font-mono text-lg">#{order.orderNo}</div>
           </div>
         </div>
         <div className="mt-2 text-xs text-neutral-600">
@@ -628,7 +726,7 @@ function PrintableReceipt({
 
       <div className="grid grid-cols-2 gap-6 text-sm">
         <div>
-          <div className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+          <div className="text-xs tracking-[0.22em] text-neutral-500 uppercase">
             Müşteri
           </div>
           <div className="mt-1 font-medium">{order.customerName}</div>
@@ -638,10 +736,10 @@ function PrintableReceipt({
           )}
         </div>
         <div>
-          <div className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+          <div className="text-xs tracking-[0.22em] text-neutral-500 uppercase">
             Teslimat
           </div>
-          <address className="mt-1 whitespace-pre-line not-italic text-neutral-700">
+          <address className="mt-1 whitespace-pre-line text-neutral-700 not-italic">
             {order.shippingAddress || "—"}
           </address>
         </div>
@@ -653,7 +751,7 @@ function PrintableReceipt({
 
       <table className="mt-4 w-full text-sm">
         <thead>
-          <tr className="border-b border-neutral-300 text-left text-xs uppercase tracking-[0.18em] text-neutral-600">
+          <tr className="border-b border-neutral-300 text-left text-xs tracking-[0.18em] text-neutral-600 uppercase">
             <th className="py-2">Ürün</th>
             <th className="text-right">Adet</th>
             <th className="text-right">Birim</th>
@@ -662,7 +760,7 @@ function PrintableReceipt({
         </thead>
         <tbody>
           {order.items.map((it, i) => (
-            <tr key={i} className="border-b border-neutral-200">
+            <tr key={i} className="border-b border-[var(--admin-border)]">
               <td className="py-2">{it.productName}</td>
               <td className="text-right font-mono">× {it.qty}</td>
               <td className="text-right font-mono">
@@ -679,7 +777,9 @@ function PrintableReceipt({
             <td colSpan={3} className="pt-3 text-right text-neutral-600">
               Ara toplam
             </td>
-            <td className="pt-3 text-right">{formatTRY(order.subtotalMinor)}</td>
+            <td className="pt-3 text-right">
+              {formatTRY(order.subtotalMinor)}
+            </td>
           </tr>
           <tr>
             <td colSpan={3} className="text-right text-neutral-600">

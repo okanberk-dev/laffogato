@@ -13,10 +13,7 @@ import { GhostButton, PrimaryButton, TextInput } from "./forms";
 const initial: TwoFAState = {};
 
 export function TwoFAVerifyForm({ next }: { next: string }) {
-  const [state, formAction, pending] = useActionState(
-    verify2FAAction,
-    initial,
-  );
+  const [state, formAction, pending] = useActionState(verify2FAAction, initial);
 
   return (
     <>

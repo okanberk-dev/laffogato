@@ -1,50 +1,39 @@
-import { cookies } from "next/headers";
+import "server-only";
+
 import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-import type { Database } from "@/types/database";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config";
 
-export async function createClient() {
+/**
+ * Cookie-backed Supabase client for Server Components, Server Functions and
+ * Route Handlers.
+ *
+ * A new client per request, never shared: the session lives in the visitor's
+ * cookies and `@supabase/ssr` reads and writes it through the `next/headers`
+ * cookie store. Writing is only possible from a Server Function or a Route
+ * Handler — during a Server Component render Next throws on `set`, and that is
+ * swallowed here on purpose. The token refresh that would have been written is
+ * not lost: `src/proxy.ts` (`updateSession`) refreshes the session on the way
+ * in, before any component renders, exactly so this path never has to.
+ */
+export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
-
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            );
-          } catch {
-            // Server Components can't set cookies — middleware refreshes the session instead.
+  return createServerClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          for (const { name, value, options } of cookiesToSet) {
+            cookieStore.set(name, value, options);
           }
-        },
+        } catch {
+          // Called from a Server Component: cookies are read-only there. The
+          // proxy has already refreshed the session for this request.
+        }
       },
     },
-  );
-}
-
-export function createAdminClient() {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
-  }
-
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    {
-      cookies: {
-        getAll() {
-          return [];
-        },
-        setAll() {
-          // Service role client is stateless.
-        },
-      },
-    },
-  );
+  });
 }

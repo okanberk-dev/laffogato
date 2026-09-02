@@ -1,6 +1,12 @@
 # Laffogato — Proje Prompt'u
 
-Bu doküman, ürünün ne olduğunu, kim için yapıldığını ve MVP'nin sınırlarını tanımlar. Tasarım handoff geldiğinde bu dokümanı genişleteceğiz.
+Bu doküman, ürünün ne olduğunu, kim için yapıldığını ve MVP'nin sınırlarını
+tanımlar.
+
+> Not: Bu, projenin başlangıçtaki ürün tanımıdır ve o niyeti kayıt altında
+> tutmak için duruyor. Kodun bugünkü hâli için `CLAUDE.md`'ye bak; ikisi
+> çeliştiğinde geçerli olan koddur. Franchise modülü bu spec yazıldıktan sonra
+> üründen çıkarıldı.
 
 ## 1. Vizyon
 
@@ -22,13 +28,13 @@ Laffogato, bir kafe markasının online vitrinidir. İki temel kullanım vardır
 ### Müşteri tarafı (`/`)
 
 - [ ] Ana sayfa — hero, öne çıkan ürünler, hakkımızda kısa
-- [x] Ana sayfa — premium dark hero, marquee, signature affogato, matcha bar, shop teaser, reels, franchise teaser, press
+- [x] Ana sayfa — premium dark hero, signature affogato, matcha bar, shop teaser, press
 - [x] Menü (`#menu` hash route) — sticky tab nav, 5 kategori × kalem, kafe MENU'sü artık admin'den yönetiliyor
 - [x] Ürünler / Shop (`#shop`) — sidebar filter (kategori + fiyat slider + tag), Affogato Kit feature, trust badges, was-price strike
 - [x] Ürün hızlı bakış modal (galeri yok ama varyant + detay var)
 - [x] Sepet (CartDrawer) — kalemler, sil, toplam, kargo bilgisi, "Ödemeye geç"; localStorage'da kalıcı
 - [x] Ödeme (`/odeme/basarili?ref=<id>`) — `placeOrderAction` ile gerçek sipariş yaratır, premium başarı sayfası, sepet otomatik temizlenir
-- [x] Hikaye (`#story`) · Visit (`#visit`, interaktif rezervasyon kartı) · Reels (`#reels`, lightbox) · Franchise (`#franchise`, 3 paket + apply form)
+- [x] Hikaye (`#story`) · Visit (`#visit`, interaktif rezervasyon kartı + gömülü harita)
 - [ ] Hesabım — müşteri auth + sipariş geçmişi (önümüzdeki sprint)
 
 ### Admin tarafı (`/admin`)
@@ -40,14 +46,14 @@ Laffogato, bir kafe markasının online vitrinidir. İki temel kullanım vardır
 - [x] **Menü** (`/admin/menu`) — Kafe menüsü (affogato/matcha/espresso/cold/gelato) kalem CRUD, tag editörü, sıralama
 - [x] Siparişler (`/admin/siparisler`) — 7 durumlu dropdown ile güncelleme, kalem dökümü
 - [x] Ayarlar (`/admin/ayarlar`) — kafe adı, slogan, telefon, email, adres, çalışma saatleri, mağaza açık toggle
-- [ ] Görsel yükleme (Supabase Storage) — şu an URL alanı
-- [ ] Bulk actions (toplu sil/aktif yap) — gelecek
+- [x] Görsel yükleme — sihirbaz adım 4'te sürükle-bırak + client-side resize
+- [x] Bulk actions (toplu sil/aktif yap)
 
 ### Auth
 
 - [x] Admin: env-credentialed signed cookie (`ADMIN_EMAIL` + `ADMIN_PASSWORD` + HMAC SHA256 + `ADMIN_SESSION_SECRET`)
-- [ ] Müşteri: Supabase Auth (Supabase bağlandığında)
-- [ ] Admin 2FA (TOTP) — gelecek
+- [x] Müşteri: bcrypt hesap + e-posta doğrulama (`src/lib/customer/auth.ts`)
+- [x] Admin 2FA (TOTP)
 
 ### Ödeme
 
@@ -72,15 +78,15 @@ Laffogato, bir kafe markasının online vitrinidir. İki temel kullanım vardır
 
 ## 5. Mimari Karar Kayıtları
 
-| Karar | Seçim | Gerekçe |
-|-------|-------|---------|
-| Framework | Next.js 16 (App Router) | Vercel native, Server Components ile DB erişimi temiz, SEO uyumlu |
-| DB | Supabase Postgres | Auth + Storage + RLS aynı yerde, MCP entegrasyonu mevcut |
-| UI | shadcn/ui + Tailwind v4 | Tasarım sistemine uyarlama kolay, kullandığın kadar bundle |
-| Form | react-hook-form + zod | TS dostu, server-side aynı şema |
-| State | URL + Server Components + cookie cart | Client store gereksiz, sepet auth'suz da çalışmalı |
-| Payment | Provider abstraction | Sağlayıcı sonra seçilecek, kodun %95'i taşınabilir kalır |
-| Deploy | Vercel | Edge middleware + ISR + native Next.js |
+| Karar     | Seçim                                 | Gerekçe                                                           |
+| --------- | ------------------------------------- | ----------------------------------------------------------------- |
+| Framework | Next.js 16 (App Router)               | Vercel native, Server Components ile DB erişimi temiz, SEO uyumlu |
+| DB        | Postgres (`pg` sürücüsü)              | Sağlayıcıdan bağımsız; taşınma bağlantı dizesi değişikliği        |
+| UI        | shadcn/ui + Tailwind v4               | Tasarım sistemine uyarlama kolay, kullandığın kadar bundle        |
+| Form      | react-hook-form + zod                 | TS dostu, server-side aynı şema                                   |
+| State     | URL + Server Components + cookie cart | Client store gereksiz, sepet auth'suz da çalışmalı                |
+| Payment   | Provider abstraction                  | Sağlayıcı sonra seçilecek, kodun %95'i taşınabilir kalır          |
+| Deploy    | Vercel                                | Edge middleware + ISR + native Next.js                            |
 
 ## 6. Sepet Stratejisi
 
@@ -102,13 +108,13 @@ Laffogato, bir kafe markasının online vitrinidir. İki temel kullanım vardır
 ## 8. Performans & SEO
 
 - Ürün ve menü sayfaları **SSG / ISR** (revalidate=60). Admin değişiklik yapınca `revalidatePath`.
-- Görseller `next/image` + Supabase Storage CDN.
+- Görseller `next/image`; yüklenen görseller veriyle birlikte saklanır.
 - `sitemap.xml` + `robots.txt` otomatik üretilir.
 - Schema.org `Product` JSON-LD.
 
 ## 9. Test Verisi
 
-İlk migration sonrası `supabase/seed/seed.sql` çalıştırılır:
+Tablolar boşsa uygulama ilk istekte kendini idempotent olarak seed eder:
 
 - 4 kategori: Kahveler, Tatlılar, Atıştırmalıklar, Hediye Setleri
 - 12 ürün (kategori başına 3'er): görsel placeholder + fiyat + açıklama

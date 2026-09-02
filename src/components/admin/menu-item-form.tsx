@@ -16,6 +16,7 @@ import {
   TextInput,
   Textarea,
 } from "./forms";
+import { ImageUpload } from "@/components/admin/image-upload";
 
 const HUE_OPTIONS = [
   ["cream", "Krem"],
@@ -28,6 +29,7 @@ const HUE_OPTIONS = [
   ["pistachio", "Pistachio"],
   ["strawberry", "Çilek"],
   ["rose", "Rose"],
+  ["bougainvillea", "Begonvil"],
   ["dawn", "Şafak"],
   ["gold", "Altın"],
   ["sky", "Gök"],
@@ -49,12 +51,14 @@ export function MenuItemForm({
   cancelHref,
 }: MenuItemFormProps) {
   const priceValue = item ? (item.priceMinor / 100).toFixed(2) : "";
+  const priceLValue =
+    item && item.priceMinorL > 0 ? (item.priceMinorL / 100).toFixed(2) : "";
   const tagsValue = item ? item.tags.join(", ") : "";
 
   return (
     <form action={action} className="grid gap-6 lg:grid-cols-3">
       <Card className="grid gap-5 lg:col-span-2">
-        <Field label="Ürün adı" hint="Örn: Affogato Strawberry">
+        <Field label="Ürün adı" hint="Örn: Strawberry Matcha">
           <TextInput name="name" defaultValue={item?.name} required />
         </Field>
 
@@ -62,14 +66,23 @@ export function MenuItemForm({
           <Textarea name="desc" defaultValue={item?.desc} required />
         </Field>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          <Field label="Fiyat (₺)" hint="Örn: 155,00">
+        <div className="grid gap-5 md:grid-cols-3">
+          <Field label="Fiyat M (₺)" hint="Tek boy ise buraya yaz. Örn: 245,00">
             <TextInput
               name="price"
               type="text"
               inputMode="decimal"
               defaultValue={priceValue}
               required
+            />
+          </Field>
+          <Field label="Fiyat L (₺)" hint="İkinci boy yoksa boş bırak.">
+            <TextInput
+              name="priceL"
+              type="text"
+              inputMode="decimal"
+              defaultValue={priceLValue}
+              placeholder="—"
             />
           </Field>
           <Field label="Sıralama" hint="Kategori içinde küçükten büyüğe">
@@ -83,10 +96,29 @@ export function MenuItemForm({
         </div>
 
         <Field
+          label="Fotoğraf"
+          hint="Yüklediğin görsel 1600 px'e küçültülür. Boş bırakırsan kategorisine uygun çizim kullanılır."
+        >
+          {/* Bu alan eskiden yalnızca `public/` altındaki bir dosya yolunu
+              kabul ediyordu — Vercel'de panelden oraya dosya koymanın yolu yok
+              — ve girilen https adresi sessizce siliniyordu. Artık ürünlerdeki
+              yükleyicinin aynısı, tek görsellik hâli. */}
+          <ImageUpload
+            name="image"
+            max={1}
+            initial={item?.image ? [item.image] : []}
+          />
+        </Field>
+
+        <Field
           label="Etiketler"
           hint="Virgülle ayır. Örn: signature, new, iced, nuts, IGP"
         >
-          <TextInput name="tags" defaultValue={tagsValue} placeholder="signature, new" />
+          <TextInput
+            name="tags"
+            defaultValue={tagsValue}
+            placeholder="signature, new"
+          />
         </Field>
       </Card>
 
@@ -94,7 +126,7 @@ export function MenuItemForm({
         <Field label="Kategori">
           <Select
             name="categoryKey"
-            defaultValue={item?.categoryKey ?? defaultCategoryKey ?? "affogato"}
+            defaultValue={item?.categoryKey ?? defaultCategoryKey ?? "matcha"}
           >
             {MENU_CATEGORY_KEYS.map((k) => (
               <option key={k} value={k}>
@@ -114,7 +146,7 @@ export function MenuItemForm({
           </Select>
         </Field>
 
-        <div className="border-t border-neutral-200 pt-5">
+        <div className="border-t border-[var(--admin-border)] pt-5">
           <Checkbox
             name="isActive"
             label="Menüde göster"

@@ -1,0 +1,230 @@
+# Veritabanı — Postgres (hedef: Supabase)
+
+> Operatör kararı: veritabanı, mobil uygulamanın kimlik için kullandığı
+> Supabase projesinde yaşayacak. Cutover tamamlanana kadar canlı veri eski
+> sağlayıcıda durur ve hukuki belgeler gerçeği söylemeye devam eder
+> (aşağıda "Sağlayıcı adı" bölümü). Geçişin çalıştırılabilir yordamı:
+> **[SUPABASE-GECIS.md](SUPABASE-GECIS.md)**
+
+Proje **yönetilen bir Postgres** üzerinde çalışır. Kodda sağlayıcıya özel
+bağımlılık yoktur; taşınma bağlantı dizesini değiştirmekten ibarettir.
+
+## ⚠️ Sağlayıcı geçmişi — okumadan taşıma yapma
+
+Bu proje **daha önce Supabase'deydi ve oradan taşındı.** Sebep bir tercih
+değil, bir kesintiydi:
+
+> Supabase'in ücretsiz planı organizasyon başına **2 aktif proje** ile
+> sınırlıdır. İki slot da başka projelerle doluyken L'Affogato'nun projesi
+> kaldırıldı; canlı sitedeki toplu HTTP 500'lerin ve **bir aylık kesintinin**
+> sebebi buydu.
+
+Neon'un ücretsiz planı **proje başına** kota verir ve limitlere takılmak veriyi
+silmez (Neon'un kendi ifadesiyle: _"None of these limits delete your data."_),
+yani aynı arıza Neon'da tekrarlanamaz.
+
+**Supabase'e geri dönmek isteniyorsa** — ki mobil uygulamayla ortak kimlik için
+iyi bir sebep var — geçişten önce şunun yazılı olarak doğrulanması gerekir:
+
+1. Hedef Supabase organizasyonu **ücretli planda** mı, yoksa
+2. Ücretsiz plandaysa, o organizasyonda **boş proje slotu** var mı ve
+   L'Affogato'nun projesi başka bir proje uğruna kaldırılmayacak mı?
+
+Bu doğrulanmadan taşıma, siteyi bir kez daha aynı şekilde kapatır. Karar
+operatöründür; bu belge yalnızca bedelin ne olduğunu kayda geçirir.
+
+## Supabase'e geçiş yordamı
+
+Adım adım, ölçülmüş tuzaklarıyla (IPv6-yalnız doğrudan uç, pooler dizesi,
+RLS-baypas doğrulaması, bcrypt içe aktarımı): **[SUPABASE-GECIS.md](SUPABASE-GECIS.md)**.
+
+## Sağlayıcı adı hukuki belgelerde geçer
+
+Sağlayıcının adı KVKK aydınlatma metni, gizlilik politikası, çerez politikası
+ve veri işleyen listesi dâhil **35 hukuki pasajda** geçer. Bunlar bağlayıcı
+beyandır. Bu yüzden ad düz metin değil, `{{DB_PROVIDER}}` token'ıdır ve tek
+kaynağı `src/lib/legal/entity.ts` içindeki `dbProvider` alanıdır.
+
+**Bu alan gerçeği izlemelidir.** Veri fiilen taşınmadan değeri değiştirmeyin:
+belgede "Supabase" yazarken verinin Neon'da durması yanlış hukuki beyandır.
+Taşıma sırasında `dbProvider` ile `DATABASE_URL` **aynı anda** değişir.
+
+## Sürücü seçimi — neden `pg`
+
+Veri katmanı, sağlayıcıya özel bir SDK yerine standart `pg` sürücüsünü
+kullanır. Supabase'in Supavisor pooler'ı da, eski sağlayıcının pooled
+endpoint'i de normal Postgres wire protokolü konuşur; aynı kod yerel bir
+Postgres'te de çalışır.
+
+Bunun iki somut faydası var:
+
+1. **Taşınabilirlik.** Bu sitenin bir ay boyunca kapalı kalmasının sebebi,
+   verinin tek bir sağlayıcının istemcisinin ve hesap limitinin arkasında
+   olmasıydı. Artık taşınma, bağlantı dizesini değiştirmekten ibaret.
+2. **Test edilebilirlik.** Sorgu katmanı gerçek bir Postgres'e karşı
+   sınanabiliyor (`tests/db-integration.test.ts`) — JSONB gidiş-dönüşü,
+   `on conflict` davranışı, SQLSTATE'ler ve fonksiyon çağrıları dâhil.
+
+## Kurulum (tek seferlik)
+
+> **Sıra önemli: önce şemayı kur, sonra `DATABASE_URL`'i Vercel'e ekle.**
+> Uygulama "tablo yok" hatasını (SQLSTATE `42P01`) _gerçek_ bir hata sayar ve
+> haklı olarak 500 döndürür — bu bilinçli bir tercih, çünkü şema hatasını
+> yedek veriyle gizlemek işi daha da kötüleştirir. Boş bir veritabanına
+> bağlanmak siteyi bozar; hiç bağlanmamak bozmaz (pakete düşer). Yani şema
+> hazır olmadan env değişkenini eklemeyin.
+
+1. **Plan/slot doğrula** — hedef Supabase organizasyonu için
+   [SUPABASE-GECIS.md §0](SUPABASE-GECIS.md) ön koşulunu geç. Bu adım
+   atlanamaz: aynı sınır bu siteyi bir kez bir ay kapattı.
+
+2. **Transaction pooler dizesini kopyala** — Supabase paneli → Project
+   Settings → Database → Connection string → **"Transaction pooler"**
+   (`postgresql://postgres.<ref>:<şifre>@aws-0-<bölge>.pooler.supabase.com:6543/postgres?sslmode=require`).
+
+   **"Direct connection" dizesini KULLANMA:** o uç yalnızca IPv6 yayınlıyor ve
+   Vercel fonksiyonları IPv6'ya çıkamıyor — hata "yanlış şifre" gibi değil,
+   zaman aşımı gibi görünür (ölçüm: SUPABASE-GECIS.md §2).
+
+3. **CA sertifikasını indir** — aynı sayfada SSL Configuration → CA
+   certificate. PEM içeriği `DATABASE_SSL_CA` değişkenine konur; Supabase'in
+   zinciri kendi köküne dayandığı için bu olmadan bağlantı hiç kurulmaz
+   (SUPABASE-GECIS.md §2b).
+
+4. **Şemayı kur.** İki yol var, ikisi de aynı sonucu verir:
+
+   **a) Komut satırından (tercih edilen):**
+
+   ```bash
+   DATABASE_SSL_CA="$(cat prod-ca.pem)" \
+   DATABASE_URL='postgresql://postgres.<ref>:...@...pooler.supabase.com:6543/postgres?sslmode=require' \
+   npm run db:migrate
+   ```
+
+   `db/migrations/*.sql` dosyalarını sırayla, her dosyayı tek transaction içinde
+   uygular ve uygulananları `_migrations` tablosunda tutar. Tekrar çalıştırmak
+   güvenlidir.
+
+   **b) Supabase SQL Editor'dan:** `db/schema.sql` dosyasının tamamını
+   kopyalayıp panelin SQL Editor'ına yapıştır ve çalıştır. Bu dosya tüm
+   migration'ların sıralı birleşimidir ve uygulananları `_migrations`'a
+   yazdığı için sonradan `npm run db:migrate` çalıştırmak sorunsuzdur.
+   (Dosya üretilir: `npm run db:bundle`.)
+
+5. **Vercel'de env değişkenlerini ayarla** — Vercel → proje → Settings →
+   Environment Variables:
+
+   | Değişken          | Değer                                    | Ortam                |
+   | ----------------- | ---------------------------------------- | -------------------- |
+   | `DATABASE_URL`    | Transaction pooler dizesi (adım 2)       | Production + Preview |
+   | `DATABASE_SSL_CA` | CA sertifikasının PEM içeriği (adım 3)   | Production + Preview |
+
+   `NEXT_PUBLIC_SUPABASE_*` değişkenleri bu veri katmanının konusu değildir —
+   onlar kimlik (Auth) katmanına aittir ve mobil uygulama kullanır; site tarafı
+   Supabase Auth'a geçtiğinde siteye de eklenirler.
+
+6. **Yeniden deploy et ve SUPABASE-GECIS.md §4/6'daki doğrulama kapısından
+   geç.** "Sayfa açılıyor" yetmez: sağlık katmanı DB hatasında pakete düşer,
+   yanlış yapılandırma 500 değil "boş site" olarak görünür.
+
+## Veri katmanı nasıl çalışıyor
+
+Veri erişimi tamamen **server-only**. Bağlantı `src/lib/db/index.ts` içinde
+tembel (lazy) bir singleton olarak kurulur — `next build` canlı kimlik bilgisi
+olmadan da çalışır.
+
+Kod, Supabase'in PostgREST sorgu kurucusuna göre yazılmıştı (~122 çağrı noktası,
+sipariş/stok/ödeme yolları dahil). Bunları elle SQL'e çevirmek yerine aynı
+arayüzü koruyan ince bir uyumluluk katmanı yazıldı:
+
+| Dosya                    | Sorumluluk                                                                                                                                          |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/db/sql.ts`      | Saf SQL derleyici — QuerySpec → parametreli SQL. Tanımlayıcılar katı bir desene karşı doğrulanır, değerler **her zaman** parametre olarak bağlanır. |
+| `src/lib/db/client.ts`   | `.from().select().eq()...` zinciri, PostgREST sonuç şekliyle (`{ data, error, status, count }`).                                                    |
+| `src/lib/db/index.ts`    | `pg` bağlantı havuzu + `getDb()` + `TABLES`.                                                                                                        |
+| `src/lib/db/counters.ts` | `next_seq()` ile atomik sıra üretimi.                                                                                                               |
+
+Korunan davranışlar (çağrı noktaları bunlara bağlı):
+
+- Hatalar **fırlatılmaz, döndürülür** (`res.error`).
+- `error.code` Postgres SQLSTATE'ini taşır — ödeme webhook'undaki ve müşteri/
+  kupon kayıtlarındaki `23505` (unique violation) dalları çalışmaya devam eder.
+- Mutasyonlar satır döndürmez; yalnız `.select()` zincirlenirse döndürür.
+- Ulaşılamayan veritabanı `status: 0` + boş `code` olarak raporlanır — bu,
+  "veritabanı kapalı" ile "sorgu reddedildi" ayrımını mümkün kılar.
+
+Bu katmanın tamamı veritabanı olmadan test edilir: `tests/db-sql.test.ts` ve
+`tests/db-client.test.ts` (45 test) üretilen SQL'i ve sonuç semantiğini doğrular.
+
+## Yeni migration
+
+`db/migrations/YYYYMMDDHHMMSS_aciklama.sql` oluştur, sonra `npm run db:migrate`.
+Detay için `new-migration` skill'i.
+
+## Yedek
+
+Ücretsiz planda otomatik yedek sınırlıdır. Düzenli olarak:
+
+```bash
+pg_dump "$DATABASE_URL" > backup-$(date +%F).sql
+```
+
+## Veritabanı ulaşılamazsa ne oluyor
+
+Eski davranış: tek bir bağlantı hatası **her sayfayı HTTP 500** yapıyordu.
+Üretimde bu bir ay sürdü. Artık genel (public) sayfalar pakette gelen içerikle
+ayakta kalır; ticari yollar ise sesli şekilde başarısız olur.
+
+Ayrım `src/lib/db/health.ts` içinde yapılır ve tek bir sinyale dayanır:
+Postgres'e ulaşan her hata bir **SQLSTATE** taşır. SQLSTATE yoksa istek hiç
+ulaşmamıştır (`status: 0`, boş `code`) — yalnız bu durum bozulmaya (degrade)
+uygundur. Hatalı kolon, kısıt ihlali, kimlik doğrulama reddi gibi gerçek hatalar
+**maskelenmez**, eskisi gibi hata verir.
+
+| Alan                                  | Ulaşılamazken                                                        |
+| ------------------------------------- | -------------------------------------------------------------------- |
+| Ana sayfa, hikaye, ziyaret            | Pakette gelen içerikle render edilir                                 |
+| Kafe menüsü                           | Yapı gösterilir, **fiyatlar `—`** (bayat fiyat göstermek yerine)     |
+| Mağaza                                | **Boş** — asla paketteki kurgusal ürünlere düşmez                    |
+| Ürün detay                            | "Şu an gösteremiyoruz" (404 değil — gerçek URL'ler deindekslenmesin) |
+| Yasal metinler                        | Paketteki asıl metin (DB yalnız override tutar)                      |
+| Ayarlar                               | Varsayılanlar, **`isShopOpen: false`**                               |
+| Ödeme                                 | "Şu an sipariş alamıyoruz" kapısı                                    |
+| Üye oturumu                           | Çıkış yapmış sayılır (fail-closed)                                   |
+| Admin panel, tüm mutasyonlar, webhook | **Hata verir** — bozulma yok                                         |
+
+Ziyaretçiye durumu açıklayan bir bant gösterilir; ayrıca her düşüş
+`[db-degraded]` etiketiyle sunucu loglarına yazılır, böylece arıza görünmez
+kalmaz.
+
+**Bu davranışı genişletirken kural:** `publicRead()` yalnızca salt-okunur,
+sunumsal veriler için kullanılır. Bir fiyat, stok, yetki ya da siparişin
+verilebilir olup olmadığı **asla** yedek veriden karar bağlanmaz.
+
+Seed yardımcıları artık reddedilen promise'i önbelleğe almıyor
+(`memoizeUntilRejected`): eskiden tek bir hata o sunucu örneğini kalıcı olarak
+bozuyor, düzelme için yeniden deploy gerekiyordu.
+
+## Supabase'e taşıma — sırası önemli
+
+Kod hazır (düz `pg`, adsız parametreli sorgular, işlem kapsamlı advisory lock).
+Eksik olan tek şey bağlantı dizesi ve verinin kendisi.
+
+1. **Slot/plan doğrula** — yukarıdaki uyarı. Bu adım atlanırsa gerisi anlamsız.
+2. **Bağlantı dizesini al** — Supabase panosu → Project Settings → Database →
+   Connection string. Pooler (`:6543`, transaction mode) ya da session pooler
+   (`:5432`) ikisi de çalışır; şema kurucu artık işlem kapsamlı kilit
+   kullandığı için transaction pooler'da da güvenlidir.
+3. **Şemayı kur** — `DATABASE_URL='<supabase>' npm run db:migrate`, ya da
+   `db/schema.sql` dosyasını Supabase SQL Editor'a yapıştır.
+4. **Veriyi taşı** — Neon'dan `pg_dump --data-only --no-owner`, Supabase'e
+   `psql`. Sıra: önce şema (3), sonra veri.
+5. **Doğrula** — satır sayıları iki tarafta eşit mi? Özellikle `orders`,
+   `customers`, `order_items`, `loyalty_*`.
+6. **Aynı anda:** `dbProvider` alanını `"Supabase"` yap **ve** Vercel'deki
+   `DATABASE_URL`'i değiştir, sonra deploy et.
+7. **Doğrulama sonrası** `NEON_DATABASE_URL` fallback'ini `src/lib/db/index.ts`
+   ve `scripts/db-migrate.mjs` içinden kaldır.
+
+Neon projesini **hemen silme.** Birkaç gün elde tut; geri dönmek gerekirse tek
+yapılacak şey bağlantı dizesini geri almak olsun.

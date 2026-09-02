@@ -27,7 +27,7 @@ Süreç boyunca dosyalar `/tmp` altında. Sandbox sıfırlanırsa Claude Design'
 2. **CSS değişkenleri** — `--gold`, `--ink`, `--bg-warm`, `--serif`, `--script`, vb. `globals.css`'de
 3. **Layout / spacing** — `clamp()` ile responsive font'lar, `data-row` attribute ile grid override'ları
 4. **Animasyonlar** — `marquee`, `pageIn`, `steam`, `pour`, `sway` keyframe'leri + `.reveal.in` transition
-5. **Hash router** — `#home`, `#menu`, `#shop`, `#story`, `#reels`, `#visit`, `#franchise`
+5. **Hash router** — `#home`, `#menu`, `#shop`, `#story`, `#visit`
 6. **Hover state'ler** — `.product-card:hover .product-card-img { transform: translateY(-4px); ... }` gibi
 
 ## Zorunlu Next.js adaptasyonları (1:1 dışında bırakılanlar)
@@ -49,7 +49,7 @@ Müşteri SPA'sında bir değişiklik yapıyorsan:
 - [ ] Yeni bir CSS class mı ekliyorsun? Önce design'ın styles.css + components.css'de var mı bak
 - [ ] Inline `<style>` tag'i mi kullanıyorsun? Design'da varsa OK, yoksa **globals.css'e taşı**
 - [ ] Renk hard-code mu? **Tailwind keyfine göre değil** — `var(--ink)`, `var(--gold)` gibi token kullan
-- [ ] Yeni font mu? Sadece zaten yüklü 6 fonttan biri (Playfair, DM Serif Display, DM Sans, Pinyon Script, Marcellus, JetBrains Mono)
+- [ ] Yeni font mu? Sadece zaten yüklü 2 fonttan biri (Hanken Grotesk, JetBrains Mono)
 
 ## Yeni özellik eklerken
 
@@ -73,7 +73,7 @@ Periodically:
 
 - **Tasarım dilini değiştirme** — sans-serif body, serif italic display başlık, script accent. Bu üçlü brand
 - **Renkleri Tailwind palette'inden kullanma** — design tokenları `globals.css`'de
-- **Yeni font ekleme** — 6 font yeterli, eklemen gerekiyorsa kullanıcıya sor
+- **Yeni font ekleme** — 2 font yeterli, eklemen gerekiyorsa kullanıcıya sor
 - **`box-shadow` değerini elle yazma** — `var(--shadow-sm/md/lg)` kullan
 - **Hash route ekleme** — şu an 7 route var, yenisi gerekecekse `VALID_ROUTES` listesine ekle
 - **Hot reload sırasında SPA'yı bozma** — `mounted` gate'i kaldırma, hash routing'i Next.js file routing'e çevirme (en azından kullanıcıya sormadan)

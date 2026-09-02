@@ -22,7 +22,7 @@ export default async function EditMenuItemPage({ params }: PageProps) {
   const boundUpdate = updateMenuItemAction.bind(null, item.id);
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader eyebrow={`Düzenle · ${item.id}`} title={item.name} />
       <MenuItemForm
         action={boundUpdate}

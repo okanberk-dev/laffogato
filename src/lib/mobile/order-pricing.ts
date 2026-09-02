@@ -1,0 +1,227 @@
+// Pure pricing rules of an app order (docs/API-MOBILE.md §3). NO "server-only",
+// NO database — unit-tested directly. The store calls these with rows it has
+// already fetched; nothing here ever trusts a price from the request.
+
+import type { OrderFulfillment, OrderKind } from "@/lib/admin/order-channel";
+import {
+  computeOrderTotals,
+  type CheckoutConfig,
+  type OrderTotals,
+} from "@/lib/utils/commerce";
+
+import {
+  resolveOptionPricing,
+  UnknownOptionError,
+  type LineOptions,
+  type OrderItemSize,
+} from "./customization";
+
+/** The slice of a `menu_items` row a cafe line is priced from. */
+export interface CafePriceable {
+  id: string;
+  name: string;
+  /** M price, or the only price when `priceMinorL` is 0. Minor units. */
+  priceMinor: number;
+  /** L price; 0 means the item has a single size. */
+  priceMinorL: number;
+  isActive: boolean;
+}
+
+export type CafeLinePrice =
+  | {
+      ok: true;
+      unitPriceMinor: number;
+      /** Normalised: "M" on a single-size item becomes "single". */
+      size: OrderItemSize;
+      /** "M · yulaf · +1 shot" — receipts and the panel show this. */
+      detail: string;
+      options: LineOptions;
+    }
+  | {
+      ok: false;
+      reason: "inactive" | "no_large_size" | "bad_size" | "bad_option";
+      message: string;
+    };
+
+/**
+ * Prices one cafe line: the size price from the menu row plus the option
+ * surcharges from the customisation table.
+ *
+ * A two-size item must be ordered as M or L; "single" on it is a stale cart,
+ * not a guess we make for the customer. A single-size item ordered as "M"
+ * is the same drink at the same price and is normalised, while "L" on it is
+ * refused (contract: `size: "L"` needs `priceMinorL`, else 400).
+ */
+export function priceCafeLine(
+  item: CafePriceable,
+  size: OrderItemSize,
+  options: Partial<LineOptions> | null | undefined,
+): CafeLinePrice {
+  if (!item.isActive) {
+    return {
+      ok: false,
+      reason: "inactive",
+      message: `${item.name} şu an menüde değil.`,
+    };
+  }
+  const hasLarge = item.priceMinorL > 0;
+  let resolvedSize: OrderItemSize;
+  let baseMinor: number;
+  if (hasLarge) {
+    if (size === "single") {
+      return {
+        ok: false,
+        reason: "bad_size",
+        message: `${item.name} için boy seç (M ya da L).`,
+      };
+    }
+    resolvedSize = size;
+    baseMinor = size === "L" ? item.priceMinorL : item.priceMinor;
+  } else {
+    if (size === "L") {
+      return {
+        ok: false,
+        reason: "no_large_size",
+        message: `${item.name} için büyük boy yok.`,
+      };
+    }
+    resolvedSize = "single";
+    baseMinor = item.priceMinor;
+  }
+
+  try {
+    const priced = resolveOptionPricing(options, resolvedSize);
+    const merged = withDefaults(options);
+    return {
+      ok: true,
+      unitPriceMinor: Math.max(0, baseMinor + priced.extraMinor),
+      size: resolvedSize,
+      detail: priced.detail,
+      options: merged,
+    };
+  } catch (err) {
+    if (err instanceof UnknownOptionError) {
+      return { ok: false, reason: "bad_option", message: err.message };
+    }
+    throw err;
+  }
+}
+
+function withDefaults(
+  options: Partial<LineOptions> | null | undefined,
+): LineOptions {
+  return {
+    milk: options?.milk ?? "normal",
+    roast: options?.roast ?? "intense",
+    sugar: options?.sugar ?? 0,
+    syrup: options?.syrup ?? "none",
+    extraShot: options?.extraShot ?? false,
+    note: options?.note ?? "",
+  };
+}
+
+/** Which kind an order is, from what is in the basket. */
+export function orderKindOfLines(lines: {
+  cafe: number;
+  shop: number;
+}): OrderKind {
+  return lines.cafe > 0 ? "cafe" : "shop";
+}
+
+/**
+ * Cafe orders are picked up or brought by the courier; shop goods ship. A
+ * basket that mixes the two cannot be fulfilled one way, so the schema
+ * refuses it before this is asked.
+ */
+export function fulfillmentAllowed(
+  kind: OrderKind,
+  fulfillment: OrderFulfillment,
+): boolean {
+  return kind === "cafe"
+    ? fulfillment === "pickup" || fulfillment === "delivery"
+    : fulfillment === "shipping";
+}
+
+/**
+ * How shipping is charged on an order. `settings` is the shop's flat fee and
+ * free-shipping threshold (the web checkout); `fixed` is a flat courier fee
+ * with no threshold, or 0 for a pickup.
+ */
+export type ShippingMode =
+  | { mode: "settings" }
+  | { mode: "fixed"; minor: number };
+
+export function shippingModeFor(
+  fulfillment: OrderFulfillment,
+  settings: { courierFeeMinor: number },
+): ShippingMode {
+  switch (fulfillment) {
+    case "pickup":
+      return { mode: "fixed", minor: 0 };
+    case "delivery":
+      return { mode: "fixed", minor: Math.max(0, settings.courierFeeMinor) };
+    default:
+      return { mode: "settings" };
+  }
+}
+
+/**
+ * Totals with the chosen shipping mode. A fixed fee reuses the shop's
+ * arithmetic with the threshold switched off, so the rounding, the discount
+ * clamp and the VAT split stay identical between a web and an app order.
+ */
+export function computeTotalsWithShipping(
+  subtotalMinor: number,
+  discountMinor: number,
+  shipping: ShippingMode,
+  cfg: CheckoutConfig,
+): OrderTotals {
+  if (shipping.mode === "settings") {
+    return computeOrderTotals(subtotalMinor, discountMinor, cfg);
+  }
+  // A fixed fee (courier) is owed whatever the coupon did to the subtotal:
+  // computeOrderTotals waives shipping on a zero net, which is right for the
+  // shop's free-shipping rule and wrong for a rider who still has to ride.
+  const fee = Math.max(0, Math.round(shipping.minor));
+  const base = computeOrderTotals(subtotalMinor, discountMinor, {
+    ...cfg,
+    shippingFlatMinor: 0,
+    shippingFreeThresholdMinor: 0,
+  });
+  return {
+    ...base,
+    shippingMinor: fee,
+    totalMinor: base.totalMinor + fee,
+    freeShippingRemainingMinor: 0,
+  };
+}
+
+/** How far ahead a scheduled order may be placed. */
+export const SCHEDULE_MAX_DAYS = 7;
+/** Tolerance for a "now" that the phone's clock put slightly in the past. */
+export const SCHEDULE_PAST_TOLERANCE_MS = 5 * 60_000;
+
+/**
+ * Normalises `scheduledFor`: "" for as-soon-as-possible, otherwise a
+ * well-formed ISO instant within the ordering window.
+ */
+export function normalizeScheduledFor(
+  raw: string | null | undefined,
+  now: Date,
+): { ok: true; value: string } | { ok: false; message: string } {
+  if (!raw) return { ok: true, value: "" };
+  const t = Date.parse(raw);
+  if (!Number.isFinite(t)) {
+    return { ok: false, message: "Planlanan saat geçersiz." };
+  }
+  if (t < now.getTime() - SCHEDULE_PAST_TOLERANCE_MS) {
+    return { ok: false, message: "Planlanan saat geçmişte kalmış." };
+  }
+  if (t > now.getTime() + SCHEDULE_MAX_DAYS * 24 * 60 * 60_000) {
+    return {
+      ok: false,
+      message: `En fazla ${SCHEDULE_MAX_DAYS} gün sonrasına planlayabilirsin.`,
+    };
+  }
+  return { ok: true, value: new Date(t).toISOString() };
+}

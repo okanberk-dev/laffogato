@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { applyPaymentSucceeded, recordProviderRefund } from "@/lib/admin/store";
 import { getPaymentProvider } from "@/lib/payment";
-import { createAdminClient } from "@/lib/supabase/server";
+import { getDb, TABLES } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,55 +18,63 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
-  const supabase = createAdminClient();
-
-  // Idempotency: unique (provider, provider_ref).
-  const { error: insertError } = await supabase
-    .from("payment_transactions")
-    .insert({
-      order_id: event.orderId,
+  if (event.type === "payment.succeeded") {
+    // Goes through the shared applier rather than a bare status write: it owns
+    // the payment_transactions insert, the idempotency check, and the
+    // "payment confirmed" e-mail — which a direct UPDATE here skipped, so a
+    // real POS confirmation never mailed the customer.
+    const result = await applyPaymentSucceeded({
+      orderId: event.orderId,
       provider: provider.name,
-      provider_ref: event.providerRef,
-      status:
-        event.type === "payment.succeeded"
-          ? "succeeded"
-          : event.type === "payment.failed"
-            ? "failed"
-            : "refunded",
-      amount_minor: event.amountMinor,
+      providerRef: event.providerRef,
+      amountMinor: event.amountMinor,
       currency: event.currency,
-      raw_payload: event.raw as never,
+      raw: event.raw,
     });
-
-  if (insertError) {
-    // Unique violation = idempotent retry; everything else surfaces.
-    if (insertError.code !== "23505") {
-      console.error("[payment-webhook] insert failed", insertError);
+    if (!result.ok) {
+      console.error("[payment-webhook] apply failed", result.error);
       return NextResponse.json({ error: "db_error" }, { status: 500 });
     }
+    return NextResponse.json({ ok: true });
   }
 
-  if (event.type === "payment.succeeded") {
-    const { error: orderError } = await supabase
-      .from("orders")
-      .update({ status: "paid" })
-      .eq("id", event.orderId)
-      .eq("status", "pending_payment");
-
-    if (orderError) {
-      console.error("[payment-webhook] order update failed", orderError);
+  if (event.type === "payment.refunded") {
+    // A partial refund is not a refunded order. The old code flipped the whole
+    // order to `refunded` and recorded no amount, so a ₺50 refund on a ₺500
+    // order read as fully refunded and the money never appeared in the refund
+    // ledger the admin page and the reports both read.
+    const result = await recordProviderRefund({
+      orderId: event.orderId,
+      provider: provider.name,
+      providerRef: event.providerRef,
+      amountMinor: event.amountMinor,
+      currency: event.currency,
+      raw: event.raw,
+    });
+    if (!result.ok) {
+      console.error("[payment-webhook] refund apply failed", result.error);
       return NextResponse.json({ error: "db_error" }, { status: 500 });
     }
-  } else if (event.type === "payment.refunded") {
-    const { error: orderError } = await supabase
-      .from("orders")
-      .update({ status: "refunded" })
-      .eq("id", event.orderId);
+    return NextResponse.json({ ok: true });
+  }
 
-    if (orderError) {
-      console.error("[payment-webhook] order refund failed", orderError);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
-    }
+  // payment.failed — record it for the audit trail and leave the order in
+  // `pending_payment` so the customer can retry.
+  const sb = getDb();
+  const { error } = await sb.from(TABLES.paymentTransactions).insert({
+    orderId: event.orderId,
+    provider: provider.name,
+    providerRef: event.providerRef,
+    status: "failed",
+    amountMinor: event.amountMinor,
+    currency: event.currency,
+    raw: event.raw,
+    createdAt: new Date().toISOString(),
+  });
+  // 23505 is the unique (provider, providerRef) index catching a retry.
+  if (error && error.code !== "23505") {
+    console.error("[payment-webhook] insert failed", error);
+    return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

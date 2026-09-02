@@ -16,10 +16,19 @@ export const ROLE_LABELS: Record<AdminRole, string> = {
 export type AdminSection =
   | "dashboard"
   | "orders"
+  | "refunds"
   | "products"
   | "menu"
   | "categories"
+  | "shopHero"
+  | "mobileApp"
+  | "press"
+  | "story"
+  | "content"
   | "customers"
+  | "newsletter"
+  | "leads"
+  | "legal"
   | "promos"
   | "stock"
   | "reports"
@@ -29,10 +38,21 @@ export type AdminSection =
 const SECTION_ROLES: Record<AdminSection, AdminRole[]> = {
   dashboard: ["owner", "manager", "staff"],
   orders: ["owner", "manager", "staff"],
+  // Moving money back out is not a shift task: a refund is irreversible and
+  // has no approval step behind it.
+  refunds: ["owner", "manager"],
   products: ["owner", "manager"],
   menu: ["owner", "manager"],
   categories: ["owner", "manager"],
+  shopHero: ["owner", "manager"],
+  mobileApp: ["owner", "manager"],
+  press: ["owner", "manager"],
+  story: ["owner", "manager"],
+  content: ["owner", "manager"],
   customers: ["owner", "manager"],
+  newsletter: ["owner", "manager"],
+  leads: ["owner", "manager"],
+  legal: ["owner"],
   promos: ["owner", "manager"],
   stock: ["owner", "manager", "staff"],
   reports: ["owner", "manager"],

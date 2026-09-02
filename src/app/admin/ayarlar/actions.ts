@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { logAudit } from "@/lib/admin/audit";
+import { requireRole } from "@/lib/admin/auth";
 import {
   DAYS_OF_WEEK,
   updateSettings,
@@ -31,7 +32,9 @@ function revalidateAll() {
 }
 
 function parseMoneyMinor(raw: unknown): number {
-  const s = String(raw ?? "").replace(",", ".").trim();
+  const s = String(raw ?? "")
+    .replace(",", ".")
+    .trim();
   if (!s) return 0;
   const v = parseFloat(s);
   if (!Number.isFinite(v) || v < 0) return 0;
@@ -52,6 +55,7 @@ export async function saveGeneralAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  await requireRole("settings");
   const name = String(formData.get("name") ?? "").trim();
   if (name.length < 2) return { error: "Kafe adı en az 2 karakter olmalı." };
 
@@ -72,6 +76,7 @@ export async function saveHoursAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  await requireRole("settings");
   const weekly: WeeklyHours = {} as WeeklyHours;
   const summary: string[] = [];
   for (const day of DAYS_OF_WEEK) {
@@ -93,7 +98,10 @@ export async function saveTaxAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
-  const raw = String(formData.get("taxRatePct") ?? "").replace(",", ".").trim();
+  await requireRole("settings");
+  const raw = String(formData.get("taxRatePct") ?? "")
+    .replace(",", ".")
+    .trim();
   const v = parseFloat(raw);
   if (!Number.isFinite(v) || v < 0 || v > 100) {
     return { error: "Vergi oranı 0 ile 100 arasında olmalı." };
@@ -107,20 +115,46 @@ export async function saveShippingAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  await requireRole("settings");
   await updateSettings({
     shippingFlatMinor: parseMoneyMinor(formData.get("shippingFlat")),
     shippingFreeThresholdMinor: parseMoneyMinor(
       formData.get("shippingFreeThreshold"),
     ),
+    // Cafe delivery (mobile app): a flat courier fee, never free — the
+    // free-shipping threshold above applies to shop parcels only.
+    courierFeeMinor: parseMoneyMinor(formData.get("courierFee")),
   });
   revalidateAll();
-  return ok("shipping", "Kargo ayarları kaydedildi.");
+  return ok("shipping", "Kargo ve kurye ayarları kaydedildi.");
+}
+
+export async function saveKaraokeAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  await requireRole("settings");
+  const hourlyMinor = parseMoneyMinor(formData.get("karaokeHourly"));
+  if (hourlyMinor <= 0) {
+    return { error: "Karaoke saatlik ücreti sıfırdan büyük olmalı." };
+  }
+  const capacity = parseInt(String(formData.get("karaokeCapacity") ?? ""), 10);
+  if (!Number.isFinite(capacity) || capacity < 1 || capacity > 50) {
+    return { error: "Karaoke kapasitesi 1 ile 50 arasında olmalı." };
+  }
+  await updateSettings({
+    karaokeHourlyMinor: hourlyMinor,
+    karaokeCapacity: capacity,
+  });
+  revalidateAll();
+  return ok("karaoke", "Karaoke ayarları kaydedildi.");
 }
 
 export async function saveSeoAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  await requireRole("settings");
   const seoTitle = String(formData.get("seoTitle") ?? "").trim();
   const ogImage = String(formData.get("seoOgImageUrl") ?? "").trim();
   if (ogImage && !/^https?:\/\//i.test(ogImage)) {
@@ -139,6 +173,7 @@ export async function saveNotificationsAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
+  await requireRole("settings");
   const email = String(formData.get("notificationEmail") ?? "").trim();
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { error: "Geçerli bir e-posta gir." };

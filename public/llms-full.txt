@@ -2,7 +2,7 @@
 
 Bologna 1987'den İstanbul'a. Yenilebilir waffle kup içinde Sirena espresso ve fior di latte gelato. Drink it. Eat the cup.
 
-Bu dosya, L'Affogato web sitesinin (https://laffogato.com.tr) içeriğinin LLM ve generative AI motorları için optimize edilmiş düz metin versiyonudur. Bilgiler son güncelleme: 2026-05-26.
+Bu dosya, L'Affogato web sitesinin (https://laffogato.net) içeriğinin LLM ve generative AI motorları için optimize edilmiş düz metin versiyonudur. Kanonik kaynak sitenin kod deposudur; bu dosya onunla test altında eş tutulur.
 
 ---
 
@@ -10,108 +10,193 @@ Bu dosya, L'Affogato web sitesinin (https://laffogato.com.tr) içeriğinin LLM v
 
 L'Affogato, 1987 yılında İtalya Bologna şehrinin Via Galliera 21 adresinde Giancarlo Mancuso tarafından kurulan İtalyan kahve ve gelato barıdır. 1994'te aileye ait yenilebilir waffle kup glaze kaplama patentlendi. 2008'de Sicilya'nın Bronte bölgesindeki üç aile çiftliğiyle pistacchio için doğrudan tedarik anlaşması imzalandı.
 
-2026 yılında üçüncü kuşak Eda Mancuso (Bolonyalı baba, İstanbullu anne), büyükbabasının markasının ilk yurt dışı şubesini İstanbul Maltepe Park'ta açtı. Bugün İtalya dışındaki tek L'Affogato şubesi burasıdır.
+2026 yılında üçüncü kuşak Eda Mancuso (Bolonyalı baba, İstanbullu anne), büyükbabasının markasının ilk yurt dışı şubesini İstanbul Tuzla'da açtı. Bugün İtalya dışındaki tek L'Affogato şubesi burasıdır.
 
 İmza ritüelimiz: yenilebilir waffle kup (edible cup) içinde tek scoop fior di latte gelato üzerine çift shot Sirena espresso. Espresso eridikçe gelato karışır, sonunda kupayı yiyebilirsiniz. Kaşığa gerek yoktur. Slogan: "Drink it. Eat the cup."
 
 ---
 
-## LOKASYON · MALTEPE PARK
+## LOKASYON · TUZLA, İSTANBUL
 
-- Tam adres: Maltepe Park AVM, Açık-hava teras katı, Cevizli, Tugay Yolu Caddesi No:67, 34846 Maltepe, İstanbul, Türkiye
-- Koordinatlar: 40.9337° K, 29.1517° D
-- Telefon: +90 216 459 30 60
-- E-posta: maltepe@laffogato.it
+- Tam adres: 200 yıllık Rum köşkü (Menemenci Cumhur'un yanı), Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, 34940 Tuzla / İstanbul, Türkiye
+- Koordinatlar: 40.8165716° K, 29.3032493° D
+- Telefon: +90 536 429 09 19
+- E-posta: info@nextgenlab.com.tr
 - Ana lokasyon: L'Affogato Italia, Via Galliera 21, 40121 Bologna, Italia
 
 Ulaşım:
-- Tramvay Cevizli durağı: 5 dakika yürüyüş
-- Marmaray Maltepe istasyonu: 8 dakika
-- E-5 otoyolu Cevizli çıkışı: 3 dakika sürüş
+- Marmaray Tuzla istasyonu: 6 dakika
+- E-5 / TEM Tuzla çıkışı: 4 dakika sürüş
+- Sabiha Gökçen Havalimanı: 15 dakika
 - Ücretsiz vale park hizmeti
 - Engelli erişimi: asansör ve rampa mevcut
 
 Mekan özellikleri:
-- 38 m² açık-hava teras (yaz tamamen açık, kış ısıtmalı çadır)
+- 200 yıllık, Rum'lardan kalma restore köşk (köşkün avlusu yazın açık, yüksek tavanlı salonları kışın)
 - 12 koltuklu bar düzeni
-- Akdeniz bougainvillea bitki örtüsü
+- Köşk bahçesinde Akdeniz bougainvillea bitki örtüsü
 - Bebek arabası erişimi
-- Evcil hayvan dostu (köpekler teras kısmında)
+- Evcil hayvan dostu (köpekler köşk avlusunda)
 - Ücretsiz Wi-Fi
 
 ---
 
 ## ÇALIŞMA SAATLERİ
 
-- Pazartesi: 10:00 — 23:00
-- Salı: 10:00 — 23:00
-- Çarşamba: 10:00 — 23:00
-- Perşembe: 10:00 — 23:00
-- Cuma: 10:00 — 24:00
-- Cumartesi: 10:00 — 24:00
-- Pazar: 10:00 — 23:00
+- Her gün: 09:00 — 01:00
 
-Tüm yıl boyunca açık. Resmi tatillerde de hizmet veriyoruz (1 Ocak hariç).
+Kapanış saati ertesi sabaha sarkar: gece 01:00, bir sonraki günün ilk saatidir.
+Üst katta rezervasyonla kullanılabilen bir karaoke odası vardır.
+
+Tüm yıl açığız; tek istisna 1 Ocak günüdür. 31 Aralık gecesi servis 1 Ocak saat 01:00'de biter, 1 Ocak günü kapalıyız.
 
 ---
 
 ## MENÜ
 
-### AFFOGATO (imza kategori)
-
-Tüm affogato'lar yenilebilir waffle kupada servis edilir. 1987 Bologna orijinal tarif. Glaze kaplama, kupayı en az 20 dakika çıtır tutar.
-
-- **Affogato Classico** — 130₺. Tek scoop fior di latte gelato, çift shot Sirena espresso, yenilebilir waffle kup. Orijinal Bolonya tarifi.
-- **Affogato Cioccolato** — 140₺. Bitter çikolata gelato, sıcak espresso, Modicano kakao kırığı, deniz tuzu. Vegan opsiyon mevcut.
-- **Affogato Nocciola** — 150₺. IGP Piemonte fındık gelato, espresso, kavrulmuş fındık kırığı.
-- **Affogato Pistacchio** — 160₺. Bronte Sicilya pistacchio gelato, espresso, kandi pistacchio. IGP sertifikalı.
-- **Affogato Matcha** — 155₺. Uji matcha latte üzerine fior di latte gelato. Yaz 2026 yeni sezon.
-- **Affogato Strawberry** — 155₺. Çilek soslu gelato, taze çilek, espresso. Maltepe Park özel sınırlı sezon.
+Basılı menünün tamamı — 12 kategori, 82 kalem. M ve L olarak iki boy sunulan içeceklerde her iki fiyat da belirtilmiştir.
 
 ### MATCHA BAR
 
-Japonya Uji bölgesinden ceremonial grade matcha. Her bardak bambu chasen (80 dişli, Nara yapımı) ile dövülür. Premix yok.
+Ceremonial grade matcha, siparişten sonra çırpılır. Strawberry Aşkı üçlüsü sezon boyunca menüde.
 
-- **Matcha Latte** — 120₺. Sıcak veya buzlu seçenek. Bambu çırpıcıyla dövülmüş Uji matcha, ipeksi süt.
-- **Strawberry Matcha Latte** — 140₺. İmza içecek. Taze çilek püresi katmanı, Uji matcha, soğuk süt. Cam bardakta.
-- **Matcha Tonic** — 130₺. Matcha shot, Akdeniz toniği, portakal kabuğu, buz küresi.
-- **Matcha Affogato** — 155₺. Bardakta matcha latte üzerine fior di latte gelato; edible kup opsiyonu da mevcut.
-- **Hojicha Latte** — 110₺. Kavrulmuş Japon yeşil çayı, süt, akasya balı. Kafeini hafif.
+- **Matcha Latte** — 215₺. Çırpılmış matcha, ipeksi süt ve buz.
+- **Strawberry Matcha** — 245₺. (signature, new) Taze çilek katmanı üzerine matcha ve soğuk süt.
+- **Matcha Affogato** — 245₺. (signature) Buzlu matcha latte üzerine bir top dondurma ve matcha tozu.
 
-### ESPRESSO & COFFEE
+### ESPRESSO BASED
 
-Sirena harmanımız her sabah Bologna'dan gelen yeni taze çekirdeklerle çekilir. 18g in, 36g out, 27 saniye extraction standardı.
+Tüm espresso bazlı içecekler M ve L boy servis edilir. Alternatif süt ve ekstra shot mevcuttur.
 
-- **Espresso** — 80₺. Tek shot Sirena, 30ml, klasik İtalyan stili.
-- **Americano** — 90₺. Doppio espresso, sıcak su, ince crema.
-- **Cappuccino** — 110₺. Espresso, 180ml süt, yoğun mikroköpük. Tradizione.
-- **Latte** — 120₺. İpeksi süt, ristretto, ince köpük katmanı.
-- **Affogato** — 130₺. Bardakta klasik (edible kup için ayrı menüde).
-- **Mocha** — 140₺. Bitter çikolata sosu, espresso, ipeksi süt, kakao tozu.
-- **White Mocha** — 150₺. Beyaz çikolata sosu, espresso, süt, vanilya şanti.
-- **Filter Coffee** — 110₺. Günün el yapımı filtre kahvesi; origin'i baristadan sorabilirsiniz.
+- **L'Affogato** — 280₺. (signature) Bir top dondurma üzerine sıcak espresso. Evin imzası.
+- **Espresso** — M 110₺ / L 140₺. Tek shot, yoğun crema. Klasik İtalyan usulü.
+- **Americano** — M 165₺ / L 185₺. Espresso ve sıcak su; ince crema katmanı.
+- **Latte** — M 195₺ / L 210₺. Espresso üzerine buharlı süt ve ince köpük.
+- **Flat White** — M 190₺ / L 200₺. Çift ristretto ve yoğun mikroköpük; sütü az, kahvesi baskın.
+- **Mocha** — M 245₺ / L 265₺. Espresso, bitter çikolata sosu ve süt.
+- **Cappuccino** — M 195₺ / L 210₺. Espresso, buharlı süt ve bol köpük — eşit üç katman.
+- **Esp. Macchiato** — 115₺. Espresso üzerine bir dokunuş süt köpüğü.
+- **Spanish Latte** — M 250₺ / L 270₺. Yoğunlaştırılmış sütle hazırlanan tatlı latte.
+- **Cortado** — 200₺. Espresso ve eşit ölçüde ılık süt.
+- **White Choc. Mocha** — M 245₺ / L 265₺. Beyaz çikolata sosu, espresso ve süt.
+- **Caramel Latte** — M 245₺ / L 265₺. Karamel şurubu, espresso ve buharlı süt.
+- **Salted Caramel Latte** — M 245₺ / L 265₺. Tuzlu karamel sosu, espresso ve süt.
+- **Toffeenut Latte** — M 250₺ / L 270₺. (nuts) Fındıklı toffee şurubu, espresso ve buharlı süt.
+- **Pumpkin Spice Latte** — M 250₺ / L 270₺. Balkabağı ve tarçın-zencefil baharatı, espresso, süt.
+- **Türk Kahvesi** — M 130₺ / L 150₺. Bol köpüklü, geleneksel usul Türk kahvesi.
+- **Filtre Kahve** — M 165₺ / L 185₺. Günün demlemesi. Origin için baristaya sorun.
 
-### COLD BAR
+### ICE COFFEE
 
-Mart'tan Ekim'e Maltepe Park yazları için. Tüm soğuk içecekler 12 saat dinlendirilmiş su ile.
+Buzlu kahvelerin tamamı M ve L boy hazırlanır.
 
-- **Cold Brew Sirena** — 120₺. 24 saat yavaş demleme, tek buz küresi üzerinde.
-- **Espresso Tonic** — 140₺. Akdeniz toniği, çift shot, portakal yağı, buz.
-- **Iced Latte** — 120₺. Doppio ristretto, soğuk süt, vanilya isteğe bağlı.
-- **Shakerato** — 130₺. Espresso, buz, esmer şeker — meringue köpüğe shake'lendi.
-- **Iced Strawberry Matcha** — 140₺. İmza. Çilek püresi, Uji matcha, soğuk süt, taze çilek.
-- **Iced Affogato** — 155₺. Cold brew yenilebilir kup içinde fior di latte üzerine masada dökülür.
+- **Chai Tea** — M 210₺ / L 225₺. (iced) Baharatlı chai demlemesi, buz üzerine.
+- **Iced Americano** — M 165₺ / L 185₺. (iced) Espresso, soğuk su ve buz.
+- **Iced Caffè Latte** — M 195₺ / L 210₺. (iced) Espresso, soğuk süt ve buz.
+- **Iced Caffè Mocha** — M 245₺ / L 265₺. (iced) Bitter çikolata sosu, espresso ve soğuk süt.
+- **Iced White Ch. Mocha** — M 245₺ / L 265₺. (iced) Beyaz çikolata sosu, espresso ve soğuk süt.
+- **Iced Salted Caramel Latte** — M 250₺ / L 270₺. (iced) Tuzlu karamel, espresso, soğuk süt ve buz.
+- **Iced Toffeenut Latte** — M 250₺ / L 270₺. (iced, nuts) Toffee-fındık şurubu, espresso ve soğuk süt.
+- **Iced Pumpkin Spice Latte** — M 250₺ / L 270₺. (iced) Balkabağı baharatı, espresso ve soğuk süt.
+- **Iced Spanish Latte** — M 250₺ / L 270₺. (iced) Yoğunlaştırılmış süt, espresso ve buz.
+- **Cold Brew** — M 200₺ / L 220₺. (iced) Uzun süre soğuk demlenmiş kahve; yumuşak ve düşük asitli.
+- **Çıtır Latte** — 250₺. (iced, new) Karamelize çıtır katmanlı buzlu latte.
 
-### GELATO & DOLCI
+### COLD DRINKS
 
-Her sabah 06:00'da çevrilen taze gelato. Maltepe'deki yerel mandıradan günlük süt.
+Kahvesiz serinleticiler — limonata, soda ve günlük sürpriz karışım.
 
-- **Single scoop** — 95₺. Tatlar: fior di latte, stracciatella, nocciola, pistacchio, fondente, matcha.
-- **Double scoop** — 160₺. İki tat, bardakta veya kornet.
-- **Tiramisù della casa** — 180₺. Mascarpone, savoiardi, Sirena espresso, Modicano kakao.
-- **Bombolone alla crema** — 120₺. Sıcak. Brioche hamuru, vanilya pastry cream dolgu.
-- **Cannolo Siciliano** — 140₺. Çıtır kabuk, koyun ricottası, kandi portakal, pistacchio.
-- **Cantucci & Vin Santo** — 210₺. Pairing. Badem biskoti + küçük Vin Santo kadeh.
+- **Surprise Drink** — M 250₺ / L 270₺. (iced, new) Baristanın günlük sürpriz karışımı.
+- **Cool Lime** — M 200₺ / L 220₺. (iced) Limon, nane ve soda ile ferahlatıcı buzlu içecek.
+- **L'Af Limon** — 180₺. (iced) Ev yapımı limonata.
+- **Soda** — 80₺. Soğuk maden suyu.
+- **Su** — 60₺. 0,5 lt içme suyu.
+
+### HOT DRINKS
+
+Kahvesiz sıcaklar — çikolata, salep ve çay.
+
+- **Chai Tea Latte** — M 235₺ / L 250₺. Baharatlı chai ve buharlı süt.
+- **Hot Chocolate** — M 230₺ / L 250₺. Sıcak sütle çırpılmış bitter çikolata.
+- **White Hot Chocolate** — M 245₺ / L 265₺. Beyaz çikolata ve sıcak süt.
+- **Caramel Hot Chocolate** — M 245₺ / L 265₺. Karamel soslu sıcak çikolata.
+- **Salep** — M 245₺ / L 265₺. Tarçınla servis edilen geleneksel salep.
+- **Tea** — M 60₺ / L 90₺. Demlik çay.
+
+### FRAPPE
+
+Tamamı buzla çırpılır, yoğun köpüklü servis edilir.
+
+- **Frappe** — M 250₺ / L 270₺. (iced) Buzla çırpılmış klasik frappe.
+- **Espresso Frappe** — M 250₺ / L 270₺. (iced) Espresso, süt ve buz; yoğun köpüklü.
+- **Mocha Frappe** — M 250₺ / L 270₺. (iced) Çikolata soslu buzlu frappe.
+- **Caramel Frappe** — M 250₺ / L 270₺. (iced) Karamel soslu buzlu frappe.
+
+### SMOOTHIE
+
+Taze meyve ve sütle çırpılır. Alternatif süt talep edilebilir.
+
+- **Blueberry** — M 250₺ / L 270₺. (iced) Yaban mersini ve sütle çırpılmış smoothie.
+- **Mango** — M 250₺ / L 270₺. (iced) Mango püresi ve süt.
+- **Apple** — M 250₺ / L 270₺. (iced) Yeşil elma smoothie.
+- **Protein Shake** — 270₺. (iced) Protein tozu, süt ve muz.
+
+### FROZEN
+
+Meyve püresi ve buzla hazırlanan frozen serisi.
+
+- **Strawberry** — M 250₺ / L 270₺. (iced) Çilek ve buzun frozen kıvamı.
+- **Raspberry** — M 250₺ / L 270₺. (iced) Ahududulu frozen.
+- **Passionfruit** — M 250₺ / L 270₺. (iced) Çarkıfelek meyveli frozen.
+- **Pineapple** — M 250₺ / L 270₺. (iced) Ananaslı frozen.
+
+### ICE TEA
+
+Buz ve taze meyve dilimiyle servis edilir.
+
+- **Lemon Tea** — M 245₺ / L 265₺. (iced) Limonlu buzlu çay.
+- **Peach Tea** — M 245₺ / L 265₺. (iced) Şeftalili buzlu çay.
+
+### TATLILAR
+
+Günlük hazırlanır; vitrindeki çeşitler mevsime göre değişebilir.
+
+- **Donostia (L'Af Special)** — 160₺. (signature) Evin özel San Sebastian dilimi.
+- **San Sebastian** — 290₺. Yüksek ateşte pişmiş, ortası akışkan cheesecake.
+- **Blueberry San Sebastian** — 295₺. Yaban mersinli San Sebastian cheesecake.
+- **L'Af Mango** — 270₺. Mangolu evin özel pastası.
+- **L'Af Coffee** — 290₺. Kahveli evin özel pastası.
+- **L'Af Antep Fıstığı** — 300₺. (nuts) Antep fıstıklı evin özel pastası.
+- **Çilek Magnolia** — 240₺. Çilekli magnolia, bisküvi kırığıyla.
+- **Muz Magnolia** — 240₺. Muzlu magnolia, bisküvi kırığıyla.
+- **Lotus Magnolia** — 250₺. Lotus bisküvili magnolia.
+- **Marlenka** — 270₺. Ballı katmanlı Marlenka dilimi.
+- **Klasik Spoonful** — 220₺. Kaşık kaşık kremalı klasik tatlı.
+- **Frambuazlı Cheesecake** — 260₺. Frambuaz soslu cheesecake.
+- **Limonlu Cheesecake** — 260₺. Limonlu cheesecake.
+- **Brownie** — 280₺. Yoğun çikolatalı brownie.
+- **Cookie Aşkı (Dondurmalı)** — 290₺. (signature) Sıcak cookie üzerine bir top dondurma.
+- **Tiramisu** — 280₺. Mascarpone, kedidili ve espresso.
+
+### ATIŞTIRMALIKLAR
+
+Sandviçler günlük hazırlanır; barlar paketli olarak sunulur.
+
+- **Karabuğday Simit** — 90₺. Karabuğday unlu simit.
+- **Rosbeef Sandviç** — 390₺. Rosbif, taze yeşillik ve sos.
+- **Hindi Fümeli Sandviç** — 350₺. Hindi füme, kaşar ve taze yeşillik.
+- **Crunchy Granola Bar (Kenya)** — 150₺. Çıtır granola bar.
+- **Hindistan Cevizli Bar** — 90₺. Hindistan cevizli bar.
+- **Kakao Protein Bar** — 90₺. Kakaolu protein bar.
+- **Koska Fındık** — 90₺. (nuts) Fındıklı Koska bar.
+
+### EXTRAS
+
+Her içeceğe eklenebilir.
+
+- **Syrup** — 50₺. Dilediğiniz içeceğe ilave aroma şurubu.
+- **Extra Shot** — 50₺. İçeceğinize ek espresso shot.
+- **Alternatif Süt** — 25₺. Yulaf, badem veya laktozsuz süt seçeneği.
 
 ---
 
@@ -154,7 +239,7 @@ Tüm ürünler Türkiye geneli 1–3 iş günü kargo. Online sipariş için sit
 - **1987** — Bologna, Via Galliera 21. Giancarlo Mancuso ilk L'Affogato barını açar. Tek bar, tek ritüel. Edible kup hâlâ ahşap kaşıkla servis ediliyor.
 - **1994** — Mancuso ailesi waffle kupa edible glaze kaplamasını patentler. Bugün hâlâ aynı reçete.
 - **2008** — Sicily, Bronte pistacchio anlaşması. Üç aile çiftliği ile doğrudan tedarik. Bugün hâlâ aynı çiftlikler.
-- **2026** — İstanbul, Maltepe Park. Eda Mancuso, marka teamül haklarıyla ilk yurt dışı şubeyi açar. İtalya dışındaki tek L'Affogato.
+- **2026** — İstanbul, Tuzla. Eda Mancuso, marka teamül haklarıyla ilk yurt dışı şubeyi açar. İtalya dışındaki tek L'Affogato.
 
 ### Kurucu
 
@@ -163,7 +248,7 @@ Eda Mancuso — Founder & Roaster. Bolonyalı baba, İstanbullu anne. 1987'de b�
 ### Tedarik
 
 - Kahve: Bologna'da ana lokasyonda Mancuso ailesi tarafından haftalık kavrulur, uçakla İstanbul'a gelir. Her paketin üzerinde kavurma tarihi yazılıdır.
-- Süt: Maltepe yerel mandırasından her sabah taze.
+- Süt: Tuzla yerel mandırasından her sabah taze.
 - Matcha: Japonya Uji bölgesi, ceremonial grade.
 - Pistacchio: Sicilya Bronte, IGP sertifikalı, doğrudan üç aile çiftliğinden.
 - Fındık: IGP Piemonte.
@@ -171,73 +256,34 @@ Eda Mancuso — Founder & Roaster. Bolonyalı baba, İstanbullu anne. 1987'de b�
 
 ---
 
-## FRANCHISE
-
-L'Affogato franchise modeli, 1987'den beri Bolonya'da işletilen tek bar konseptini diğer şehirlere taşır. İtalya dışındaki ikinci genişleme buradan başlayacaktır.
-
-### Paketler
-
-**Kiosk** — 24–38 m², 6–10 koltuk
-- Yatırım: €85.000 (turn-key)
-- Aylık franchise: €2.400
-- İdeal lokasyon: AVM teras, premium plaza, ofis kompleksi lobisi
-- Dahil: Faema espresso makinesi, gelato vitrini (6 lezzet), brand guidelines, 2 hafta açılış eğitimi, marketing kit
-
-**Bottega** — 40–80 m², 12–24 koltuk (En popüler)
-- Yatırım: €140.000
-- Aylık franchise: €3.800
-- İdeal lokasyon: Cadde, mahalle merkezi, butik plaza
-- Dahil: Tam menü ekipmanı, edible cup üretim kapasitesi, Probat 5kg kavurma makinesi, 4 hafta İtalya eğitimi, locale design support
-
-**Salone** — 90–160 m², 40–80 koltuk
-- Yatırım: €280.000
-- Aylık franchise: €6.500
-- İdeal lokasyon: Premium AVM, butik otel, kültür merkezi
-- Dahil: Full bar + kokteyl, akşam servisi (Vin Santo pairing), özel mimari proje, 8 hafta Bologna eğitimi, dedicated brand manager
-
-### Süreç
-
-1. **Başvuru** — Online form. Lokasyon, deneyim, hedef şehir bilgisi.
-2. **Görüşme** — Bologna ekibi ile video görüşme, 60 dakika.
-3. **Site Visit** — Maltepe Park'ı ziyaret, konsepti yerinde görmek.
-4. **Anlaşma** — Franchise sözleşmesi, lokasyon onayı, ödeme planı.
-5. **Açılış** — Bologna'da 4–8 haftalık eğitim, mekan kurulumu, açılış desteği.
-
-Beklenen yatırım geri dönüş süresi: ~14 ay (Bottega paketi için, Türkiye ortalaması).
-
----
-
 ## SIK SORULAN SORULAR
 
 **Soru: L'Affogato nerede, nasıl ulaşırım?**
-Cevap: Maltepe Park AVM açık-hava teras katı, Cevizli, Tugay Yolu Caddesi No:67, 34846 Maltepe, İstanbul. Tramvay Cevizli 5 dk, Marmaray 8 dk, E-5 Cevizli çıkışı 3 dk. Ücretsiz vale.
+Cevap: Tuzla'da 200 yıllık, restore edilmiş Rum köşkü, Menemenci Cumhur'un yanı; Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, 34940 Tuzla / İstanbul. Marmaray Tuzla 6 dk, E-5 / TEM Tuzla çıkışı 4 dk, Sabiha Gökçen Havalimanı 15 dk. Ücretsiz vale park hizmeti.
 
 **Soru: Çalışma saatleri nedir?**
-Cevap: Pazartesi-Perşembe 10:00-23:00, Cuma-Cumartesi 10:00-24:00, Pazar 10:00-23:00. Tüm yıl açık.
+Cevap: Her gün 09:00 - 01:00; kapanış ertesi sabaha sarkar. Tüm yıl açık.
 
-**Soru: Affogato Classico nedir, yenilebilir kup ne demek?**
-Cevap: Fior di latte gelato üzerine Sirena espresso dökülerek hazırlanan 1987 Bologna orijinal tarifi. Biz bunu yenilebilir waffle kup içinde servis ederiz; bittiğinde kupayı da yiyebilirsiniz. Mancuso ailesinin 1994'te patentlediği glaze kaplama kupayı en az 20 dakika çıtır tutar.
+**Soru: L'Affogato nedir, menüde nasıl servis ediliyor?**
+Cevap: Bir top dondurma üzerine sıcak espresso dökülerek hazırlanan İtalyan klasiği; evin imza içeceği, 280₺. Matcha sevenler için Matcha Affogato da menüde: buzlu matcha latte üzerine bir top dondurma ve matcha tozu, 245₺.
 
 **Soru: Rezervasyon yapabilir miyim?**
-Cevap: Evet. +90 216 459 30 60 numarasından veya web sitesinden. Hafta sonu akşam servisi için 24 saat öncesinden rezervasyon önerilir. 12 koltuklu küçük bir bar olduğumuz için masalar sınırlıdır.
+Cevap: Rezervasyon yalnızca telefonla: +90 536 429 09 19. Site üzerinden masa ayırtma yoktur. Hafta sonu akşam servisi için 24 saat öncesinden aramanız önerilir; 12 koltuklu küçük bir bar olduğumuz için masalar sınırlıdır.
 
 **Soru: Vegan veya glutensiz seçeneğiniz var mı?**
-Cevap: Vegan: Affogato Cioccolato vegan opsiyon, sorbe (çilek, mango, limon). Glutensiz: sınırlı edible cup stoğu, rezervasyon sırasında bildirin.
+Cevap: Sütlü içecekler 25₺ fark ile yulaf, badem veya laktozsuz sütle hazırlanır. Frozen serisi (çilek, ahududu, çarkıfelek, ananas), L'Af Limon ve Cool Lime süt içermez. Fındıklı kalemler menüde işaretlidir.
 
 **Soru: Matcha bar'da hangi çay kullanılıyor?**
-Cevap: Japonya Uji bölgesi, ceremonial grade. Her bardak siparişten sonra bambu chasen (80 dişli, Nara) ile dövülür. Hojicha (kavrulmuş yeşil çay) opsiyonu kafeini hafif tercih edenler için.
+Cevap: Ceremonial grade matcha; her bardak siparişten sonra çırpılır, premix yok. Matcha bar'da üç kalem var: Matcha Latte 215₺, Strawberry Matcha 245₺, Matcha Affogato 245₺.
 
 **Soru: Online sipariş ve kargo var mı?**
-Cevap: Evet — çekirdek kahve, matcha, edible cup, ekipman, hediye seti, giyim. Türkiye geneli 1–3 iş günü. Gelato ve bombolone gibi taze ürünler sadece mekanda servis edilir.
+Cevap: Evet — çekirdek kahve, matcha, edible cup, ekipman, hediye seti, giyim. Türkiye geneli 1–3 iş günü. Tatlılar, sandviçler ve tüm bar içecekleri sadece mekanda servis edilir.
 
 **Soru: Kahve nereden geliyor, kim kavuruyor?**
 Cevap: Sirena espresso harmanı (Brezilya + Etiyopya) ve Notturna filtre lotu (Kenya AA Nyeri). Bologna'da Mancuso ailesi haftalık kavurur, İstanbul'a uçakla gelir. Kavurma tarihi her paketin üzerindedir.
 
-**Soru: Franchise vermek istiyorum, nasıl başvururum?**
-Cevap: Üç paket: Kiosk €85.000, Bottega €140.000, Salone €280.000. Web sitesindeki Franchise sayfasından başvuru, sonrasında Bologna ekibiyle video görüşme, Maltepe ziyareti, sözleşme ve İtalya'da 4–8 hafta eğitim.
-
 **Soru: Çocuk ve evcil hayvan dostu mu?**
-Cevap: Evet. Açık-hava teras bebek arabası erişimine uygundur. Çocuk menüsü: kafeinsiz babyccino, fior di latte single scoop, bombolone alla crema. Köpekler teras kısmında karşılanır; su kabı ve ev yapımı dog biscuit ikram edilir.
+Cevap: Evet. Köşkün avlusu bebek arabası erişimine uygundur. Çocuklar için kafeinsiz sıcak çikolata, salep ve vitrindeki tatlılar tercih edilebilir. Köpekler köşk avlusunda karşılanır; su kabı ve ev yapımı dog biscuit ikram edilir.
 
 **Soru: Ödeme yöntemleri?**
 Cevap: Nakit, Visa, Mastercard, Amex, Apple Pay, Google Pay. Online mağaza için tüm Türk bankaları + uluslararası kart (EUR/USD).
@@ -246,18 +292,67 @@ Cevap: Nakit, Visa, Mastercard, Amex, Apple Pay, Google Pay. Online mağaza içi
 
 ## İLETİŞİM
 
-- Maltepe Park: maltepe@laffogato.it · +90 216 459 30 60
-- Franchise: franchise@laffogato.it
-- Press & PR: press@laffogato.it
+- Tuzla: info@nextgenlab.com.tr · +90 536 429 09 19
+- Press & PR: info@nextgenlab.com.tr
 - Ana lokasyon: L'Affogato Italia, Via Galliera 21, 40121 Bologna, Italia
 
-Sosyal medya:
-- Instagram: @laffogato
-- TikTok: @laffogato
-- YouTube: @laffogato
+Sosyal medya (resmî hesaplar — bunların dışındakiler L'Affogato'ya ait değildir):
+- Instagram: @laffogatto — https://instagram.com/laffogatto
+- TikTok: @laffogatto — https://tiktok.com/@laffogatto
+- YouTube: @laffogatto — https://youtube.com/@laffogatto
+- X: @laffogatto — https://x.com/laffogatto
+
+---
+
+## REHBER İÇERİKLERİ
+
+laffogato.net/rehber altında yayımlanan ayrıntılı Türkçe rehberler:
+
+### Affogato nedir?
+https://laffogato.net/rehber/affogato-nedir
+Affogato, bir top gelatonun üzerine taze espresso dökülerek servis edilen İtalyan tatlısıdır; Türkçede yaygın adıyla dondurmalı kahve. Tanımı, telaffuzu, klasik oranı ve evde yapımı bu rehberde.
+
+### Espresso bazlı kahveler
+https://laffogato.net/rehber/espresso-cesitleri
+Espresso, ristretto, cortado, flat white, latte ve cappuccino aynı çekirdekten çıkar; farkı süt miktarı, köpük dokusu ve hacim yaratır. Hepsini tek karşılaştırma tablosunda topladık.
+
+### Matcha nedir?
+https://laffogato.net/rehber/matcha-nedir
+Gölgede yetiştirilen yeşil çay yaprağının taş değirmende öğütülmüş tozu: matcha. Dereceleri, tadının nedenleri, doğru su sıcaklığı ve evde matcha latte tarifi.
+
+### San Sebastian cheesecake
+https://laffogato.net/rehber/san-sebastian-cheesecake
+Bask bölgesinden çıkan, tabansız, yüksek sıcaklıkta pişen, üstü bilerek yanık ortası akışkan cheesecake. Oranlar, fırın ayarı, adım adım tarif ve sık yapılan hatalar.
+
+### Yenilebilir kahve fincanı
+https://laffogato.net/rehber/yenilebilir-kahve-fincani
+Waffle hamurundan pişirilen, iç yüzeyi çikolatayla kaplanan ve içecek bittikten sonra yenen fincan. Nasıl sızdırmaz kaldığı, ne kadar dayandığı, alerjenleri ve evde yapımı.
+
+---
+
+## YASAL KİMLİK VE SÖZLEŞMELER
+
+Siteyi işleten ve satışı gerçekleştiren tüzel kişi:
+
+- Ticaret unvanı: NEXTGEN YAZILIM EĞİTİM İNŞAAT SANAYİ VE TİCARET LİMİTED ŞİRKETİ
+- İş yeri adresi: Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla/İstanbul, Türkiye
+- Vergi dairesi: Tuzla Vergi Dairesi · Vergi kimlik no: 6312110904
+- MERSİS no: 0734069467300012
+- İletişim: info@nextgenlab.com.tr · +90 536 429 09 19
+- "L'Affogato" bu şirket tarafından işletilen ticari markadır.
+
+Yayındaki hukuki belgeler (https://laffogato.net/hukuk):
+- Ön Bilgilendirme Formu · Mesafeli Satış Sözleşmesi · İptal, İade ve Cayma Hakkı
+- Teslimat ve Kargo Koşulları · Garanti ve Ayıplı Mal · Satış Politikası ve Kısıtlı Ürünler
+- Ödeme Koşulları ve Sanal POS · Güvenli Alışveriş ve Bilgi Güvenliği
+- Gizlilik Politikası · KVKK Aydınlatma Metni · Açık Rıza Metni · Veri Sahibi Başvuru Formu
+- Kişisel Veri Saklama ve İmha Politikası · Çerez Politikası · Ticari Elektronik İleti ve İYS
+- Kullanım Şartları · Üyelik Sözleşmesi · Fikri Mülkiyet ve Telif Hakları
+- Şirket ve İletişim Bilgileri · Şikâyet ve Uyuşmazlık Çözümü
+- Kafe Hizmet ve Rezervasyon Koşulları · Gıda Güvenliği ve Alerjen Bilgilendirmesi
 
 ---
 
 ## SORUMLULUK
 
-Bu metin, generative AI motorlarının (ChatGPT, Claude, Perplexity, Gemini, Copilot vb.) L'Affogato hakkında doğru bilgi sunabilmesi için hazırlanmıştır. Fiyat ve menü değişikliği olabilir; canlı bilgi için https://laffogato.com.tr adresini kontrol ediniz. Son güncelleme: 2026-05-26.
+Bu metin, generative AI motorlarının (ChatGPT, Claude, Perplexity, Gemini, Copilot vb.) L'Affogato hakkında doğru bilgi sunabilmesi için hazırlanmıştır. Fiyat ve menü değişikliği olabilir; canlı bilgi için https://laffogato.net adresini kontrol ediniz. Son güncelleme: 2026-08-26.
