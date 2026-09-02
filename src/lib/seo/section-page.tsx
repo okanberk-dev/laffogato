@@ -16,6 +16,7 @@ import {
   breadcrumbLd,
   localBusinessLd,
   menuLd,
+  productListLd,
 } from "@/lib/seo/structured-data";
 
 import type { Metadata } from "next";
@@ -56,7 +57,7 @@ export function pageMetadata(route: Route): Metadata {
 
 export async function renderSectionPage(route: Route) {
   const seo = PAGE_SEO[route];
-  const { settings, menu, appProps } = await loadAppProps({
+  const { settings, menu, products, appProps } = await loadAppProps({
     withShopHero: route === "shop",
   });
 
@@ -71,6 +72,17 @@ export async function renderSectionPage(route: Route) {
   const extraLd: object[] = [];
   if (route === "visit") extraLd.push(localBusinessLd(settings));
   if (route === "menu") extraLd.push(menuLd(menu));
+  // /magaza is the catalogue's own URL. It carried a breadcrumb and nothing
+  // else, so the one listing page Google is meant to rank for the shop
+  // published no products at all — the ItemList existed only on the home page.
+  if (route === "shop") {
+    const list = productListLd(products, settings, {
+      path: seo.path,
+      name: seo.title,
+      description: seo.description,
+    });
+    if (list) extraLd.push(list);
+  }
 
   return (
     <>

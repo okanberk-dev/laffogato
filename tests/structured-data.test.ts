@@ -4,7 +4,12 @@ import { MENU, PRODUCTS } from "@/components/laffogato/data";
 import { DAYS_OF_WEEK, type WeeklyHours } from "@/lib/admin/days";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { serializeJsonLd } from "@/lib/seo/json-ld";
-import { menuLd, siteGraphLd } from "@/lib/seo/structured-data";
+import {
+  menuLd,
+  menuSectionLd,
+  productListLd,
+  siteGraphLd,
+} from "@/lib/seo/structured-data";
 
 const graph = JSON.stringify(siteGraphLd(MENU, PRODUCTS));
 
@@ -182,5 +187,93 @@ describe("company identifiers", () => {
     expect(graph).not.toContain('"value":""');
     expect(graph).not.toContain("Ticaret Sicil No");
     expect(graph).not.toMatch(/kep\.tr/i);
+  });
+});
+
+describe("listing pages carry the entities they list", () => {
+  it("scopes a category product list to its own URL, not the catalogue", () => {
+    const scoped = productListLd(PRODUCTS.slice(0, 2), undefined, {
+      path: "/magaza/cekirdek",
+      name: "Çekirdek Kahve",
+      description: "Bologna'da kavrulan tek-origin çekirdek kahve.",
+    })!;
+
+    expect(scoped["@type"]).toBe("ItemList");
+    expect(scoped["@id"]).toBe(
+      "https://laffogato.net/magaza/cekirdek#products",
+    );
+    expect(scoped.url).toBe("https://laffogato.net/magaza/cekirdek");
+    expect(scoped.name).toBe("Çekirdek Kahve");
+    expect(scoped.numberOfItems).toBe(2);
+  });
+
+  it("keeps the catalogue id when no scope is given (home page)", () => {
+    const all = productListLd(PRODUCTS)!;
+    expect(all["@id"]).toBe("https://laffogato.net/#products");
+    // A scopeless list describes the whole site, so it claims no single URL.
+    expect(all.url).toBeUndefined();
+    expect(graph).toContain('"@id":"https://laffogato.net/#products"');
+  });
+
+  it("publishes a menu category as a MenuSection joined to the full Menu", () => {
+    const section = menuSectionLd("matcha", MENU.matcha, "/menu/matcha")!;
+
+    expect(section["@type"]).toBe("MenuSection");
+    expect(section["@id"]).toBe("https://laffogato.net/#menu-matcha");
+    expect(section.url).toBe("https://laffogato.net/menu/matcha");
+    // Same @id the full Menu uses for this section, so the two are one entity.
+    expect(section.isPartOf).toEqual({
+      "@type": "Menu",
+      "@id": "https://laffogato.net/#menu",
+    });
+    const items = section.hasMenuItem as { name: string }[];
+    expect(items.map((i) => i.name)).toEqual(
+      MENU.matcha.items.map((i) => i.name),
+    );
+  });
+
+  it("still emits every section inside the full menu after the split", () => {
+    const full = menuLd(MENU);
+    const sections = full.hasMenuSection as { "@id": string }[];
+    expect(sections).toHaveLength(Object.keys(MENU).length);
+    for (const key of Object.keys(MENU)) {
+      expect(sections.some((s) => s["@id"].endsWith(`#menu-${key}`))).toBe(
+        true,
+      );
+    }
+    // The section node inside the Menu carries no page URL of its own.
+    expect(JSON.stringify(sections)).not.toContain('"url"');
+  });
+});
+
+describe("empty listings say nothing rather than claiming emptiness", () => {
+  it("omits the product list when there is nothing to list", () => {
+    // What /magaza looks like during a database outage: the shop renders
+    // empty on purpose. `numberOfItems: 0` would publish that as a fact.
+    expect(productListLd([])).toBeNull();
+    expect(
+      productListLd([], undefined, {
+        path: "/magaza/cekirdek",
+        name: "Çekirdek Kahve",
+        description: "…",
+      }),
+    ).toBeNull();
+  });
+
+  it("drops the ItemList from the site graph instead of emitting an empty one", () => {
+    const outage = JSON.stringify(siteGraphLd(MENU, []));
+    // The nav is also an ItemList, so match the products node by its @id.
+    expect(outage).not.toContain('"@id":"https://laffogato.net/#products"');
+    expect(outage).not.toContain('"numberOfItems":0');
+    // The rest of the graph still stands.
+    expect(outage).toContain("CafeOrCoffeeShop");
+  });
+
+  it("omits a menu section that has no items", () => {
+    const empty = {
+      ...MENU.matcha,
+      items: [],
+    };
+    expect(menuSectionLd("matcha", empty, "/menu/matcha")).toBeNull();
   });
 });

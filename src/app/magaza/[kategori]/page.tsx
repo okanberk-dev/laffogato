@@ -12,7 +12,7 @@ import {
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { FAQ } from "@/lib/seo/faq";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
-import { breadcrumbLd } from "@/lib/seo/structured-data";
+import { breadcrumbLd, productListLd } from "@/lib/seo/structured-data";
 import { isDegradedRequest } from "@/lib/db/health";
 import { JsonLd } from "@/lib/seo/json-ld";
 import { openGraphDefaults } from "@/lib/seo/site";
@@ -79,9 +79,27 @@ export default async function MagazaCategoryPage({ params }: RouteParams) {
     { name: cat.breadcrumbLabel, url: `/magaza/${cat.slug}` },
   ]);
 
+  // The products this URL actually lists. Without it the category page had
+  // only a breadcrumb, so a crawler saw the trail to the page but never what
+  // was on it.
+  const itemList = productListLd(
+    products,
+    {
+      weeklyHours: settings.weeklyHours,
+      shippingFlatMinor: settings.shippingFlatMinor,
+      shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
+    },
+    {
+      path: `/magaza/${cat.slug}`,
+      name: cat.title,
+      description: cat.description,
+    },
+  );
+
   return (
     <>
       <JsonLd data={breadcrumb} />
+      {itemList ? <JsonLd data={itemList} /> : null}
       <LaffogatoApp
         degraded={isDegradedRequest()}
         initialRoute="shop"

@@ -12,7 +12,7 @@ import {
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { FAQ } from "@/lib/seo/faq";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
-import { breadcrumbLd } from "@/lib/seo/structured-data";
+import { breadcrumbLd, menuSectionLd } from "@/lib/seo/structured-data";
 import { isDegradedRequest } from "@/lib/db/health";
 import { JsonLd } from "@/lib/seo/json-ld";
 import { openGraphDefaults } from "@/lib/seo/site";
@@ -80,9 +80,19 @@ export default async function MenuCategoryPage({ params }: RouteParams) {
     { name: cat.breadcrumbLabel, url: `/menu/${cat.slug}` },
   ]);
 
+  // The one section this URL shows. /menu publishes the whole Menu; the
+  // category pages published nothing but their breadcrumb, so the items a
+  // visitor came for were invisible to structured-data consumers.
+  const section = menuSectionLd(
+    cat.menuKey,
+    fullMenu[cat.menuKey],
+    `/menu/${cat.slug}`,
+  );
+
   return (
     <>
       <JsonLd data={breadcrumb} />
+      {section ? <JsonLd data={section} /> : null}
       <LaffogatoApp
         degraded={isDegradedRequest()}
         initialRoute="menu"
