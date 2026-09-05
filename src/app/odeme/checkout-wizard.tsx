@@ -704,8 +704,11 @@ function PaymentStep({
               margin: 0,
             }}
           >
-            Ödemen iyzico&apos;nun güvenli ödeme sayfasında tamamlanır. Kart
-            bilgin hiçbir aşamada bu siteye girilmez ve burada saklanmaz.
+            {/* Sağlayıcının adı yazılmıyor: sağlayıcı bir sunucu ayarı
+                (PAYMENT_PROVIDER) ve bir kez zaten değişti — adı buraya
+                yazmak, değiştiği gün müşteriye yanlış kurumu söylerdi. */}
+            Ödemen sağlayıcının güvenli ödeme sayfasında tamamlanır. Kart bilgin
+            hiçbir aşamada bu siteye girilmez ve burada saklanmaz.
           </p>
           <div className="checkout-payment-amount">
             <span className="eyebrow">Tahsil edilecek</span>

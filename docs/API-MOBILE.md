@@ -215,7 +215,7 @@ Kurallar:
 >   `statusLabel` bu adımdan gelir (pickup + shipped → "Hazır — gel al").
 > - `etaMinutes`: delivery paid/preparing 35, shipped 10 · pickup 15 / 0 · shipping null.
 > - Dönüş sayfası `/odeme/donus` app siparişini `app=1` parametresine ek olarak
->   `orders.channel === "app"` ile de tanır (iyzico callback URL'i sabittir);
+>   `orders.channel === "app"` ile de tanır (sağlayıcının callback URL'i sabittir);
 >   `laffogato://siparis/<id>?status=success|failed` derin bağlantısına 303 ile yönlendirir.
 >   Başarısız ödeme `/odeme/app-hata?orderId=…` sayfasına iner, o da aynı derin bağlantıyı verir.
 
@@ -627,25 +627,35 @@ kalemi değiştirir; liste yazımı olsaydı biri diğerinin listesini ezerdi.
 Yanıt hangi yöne gittiğini söylüyor, böylece uygulama varsaymak yerine
 doğruluyor (iyimser güncelleme yanlış çıkarsa önbellek düzeltiliyor).
 
-## 15. Kayıtlı kart — kart **bizde durmaz**, sağlayıcıda durur
+## 15. Kayıtlı kart — kart **bizde durmaz**; v1'de hiçbir yerde durmaz
 
 Operatör talimatı (3 Eyl): _"Kart bizim sistemde kaydedilmesin, ödeme
 sağlayıcıda kaydedilecek."_ Uygulama da site de tam olarak böyle çalışır.
 
 **Kartın gitmediği yerler:** uygulama paketi, uygulamanın belleği, kafenin
 sunucusu, Neon veritabanı, loglar. Kart numarası (PAN), son kullanma tarihi ve
-CVV **iyzico'nun kendi barındırdığı ödeme sayfasında** girilir ve orada kalır.
-Uygulama o sayfayı `expo-web-browser` ile açar; formun HTML'i bize ait değildir.
+CVV **sağlayıcının kendi barındırdığı ödeme sayfasında** girilir ve orada
+kalır. Uygulama o sayfayı `expo-web-browser` ile açar; formun HTML'i bize ait
+değildir. Sağlayıcının adı burada bilerek geçmiyor: hangi PSP'nin kullanıldığı
+sunucu ayarıdır (`PAYMENT_PROVIDER`) ve bir kez zaten değişti.
 
-**Bizde duran tek şey:** `customers."cardUserKey"` — iyzico'nun o üyenin
-saklı kartları için verdiği **opak anahtar**. Kendi başına hiçbir şey ifade
-etmez; bizim satıcı kimlik bilgilerimiz olmadan kullanılamaz, kart numarası
-üretmez, kart göstermez.
+**v1'de kart saklama KAPALI.** Üretimdeki sağlayıcıda (PayNkolay) kart saklama
+kapsam dışı bırakıldı: alan adının üç ayrı yazımı dokümante edilmiş ve saklanan
+kartın anahtarının yanıtta hangi alanla döndüğü hiçbir sayfada yazmıyor (web
+`docs/PAYNKOLAY.md` §9.1). Bu yüzden ödeme formuna `customerKey` **boş dize**
+gider ve `confirmReturn` `cardUserKey` **döndürmez** — yani üye her siparişte
+kart bilgisini yeniden girer. Uygulama metinleri bunu böyle söylüyor
+(`checkout.cardHint`, `addresses.cardNotStored`); "sonraki siparişte kartın
+hazır gelir" cümlesi tutulamayacağı için kaldırıldı.
+
+**Mekanizma duruyor, beslenmiyor.** `customers."cardUserKey"` sütunu ve onu
+yazan/okuyan yol yerinde: sağlayıcı bir gün anahtar döndürdüğünde tablo
+aşağıdaki gibi işler, o güne kadar hiçbir satırda anahtar oluşmaz.
 
 | Adım                     | Ne olur                                                                                                             |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| Ödeme açılır             | Elimizde anahtar varsa `cardUserKey` iyzico'ya gönderilir; form üyenin daha önce kaydettiği kartları listeler.      |
-| Üye "kartımı kaydet" der | Kartı iyzico saklar. Biz görmeyiz.                                                                                  |
+| Ödeme açılır             | Elimizde anahtar varsa sağlayıcıya gönderilir; form üyenin daha önce kaydettiği kartları listeler.                  |
+| Üye "kartımı kaydet" der | Kartı sağlayıcı saklar. Biz görmeyiz.                                                                               |
 | Ödeme döner              | `confirmReturn` yanıtında `cardUserKey` gelir; `rememberCardUserKey` onu satıra yazar.                              |
 | Üye kutuyu işaretlemez   | Yanıtta anahtar gelmez. **Boş anahtar, kayıtlı anahtarı asla silmez** — yoksa üye eski kartlarını kaybederdi.       |
 | Hesap silinir            | `cardUserKey` boşaltılır (`deleteMe`). Adres yeniden kayda açıldığında sonraki kişi öncekinin kartlarını devralmaz. |
@@ -655,7 +665,8 @@ ihtiyacı olan bir değer istemciye verilmez. `tests/saved-cards.test.ts` bunlar
 hepsini sabitler: `/me` çıktısında anahtar yok, tipte yok, silmede boşalıyor,
 şemada kart alanı (`cardNumber`, `cvv`, `cvc`, `expiryMonth`) yok.
 
-Aynı anahtar hem uygulamada hem sitede kullanılır: tek üye, tek kart seti.
+Anahtar oluştuğu gün hem uygulamada hem sitede aynısı kullanılır: tek üye, tek
+kart seti.
 
 ## 16. `GET /story` — hikâye (herkese açık)
 

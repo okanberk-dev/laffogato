@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
     // A provider that settles only by webhook — or none at all, when the
     // deployment is missing its POS configuration: send the customer to the
     // page that reads the order's real status rather than asserting "success".
-    const orderId = params.orderId ?? "";
+    const orderId = returnedOrderId(params);
     if (await isAppOrder(orderId)) {
       return appRedirect(orderId, await settledStatus(orderId));
     }
@@ -222,12 +222,24 @@ export async function POST(req: NextRequest) {
     // settle it. Send the customer to the success page, which shows the
     // order's actual status rather than guessing.
     console.error("[odeme/donus] confirmReturn failed", err);
-    const orderId = params.orderId ?? "";
+    const orderId = returnedOrderId(params);
     if (await isAppOrder(orderId)) {
       return appRedirect(orderId, await settledStatus(orderId));
     }
     return successRedirect(orderId, params.promo ?? "", base);
   }
+}
+
+/**
+ * Which order this return belongs to, when the confirmation could not say.
+ *
+ * Providers name that field differently: PayNkolay posts it as
+ * `CLIENT_REFERENCE_CODE` (docs/PAYNKOLAY.md §1.1), and we put the order id
+ * there. Reading only `orderId` sent a customer whose confirmation threw to
+ * `/?cart=empty` instead of to their own order.
+ */
+function returnedOrderId(params: Record<string, string>): string {
+  return (params.orderId ?? params.CLIENT_REFERENCE_CODE ?? "").trim();
 }
 
 function successRedirect(orderId: string, promo: string, base: string) {
