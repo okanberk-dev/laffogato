@@ -23,6 +23,7 @@ import {
   type AdminOrder,
   type AppOrderFailure,
   type OrderLegalConsent,
+  type PlaceAppOrderResult,
 } from "@/lib/admin/store";
 import { getCardUserKey } from "@/lib/customer/store";
 import {
@@ -33,9 +34,11 @@ import {
 import { sendOrderPlacedEmail } from "@/lib/email/send";
 import { CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED } from "@/lib/legal/meta";
 import { getDb, TABLES } from "@/lib/db";
+import { DbQueryError } from "@/lib/db/health";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
 
+import { getStampedOrderIds } from "./loyalty";
 import { resolveOrderAddress } from "./order-address";
 import { toMobileOrder, type MobileOrder } from "./order-mapper";
 import {
@@ -270,6 +273,24 @@ export type CreateAppOrderResult =
 export const MAX_OPEN_ORDERS = 3;
 
 /**
+ * The member's stamped orders, or an empty set when the ledger cannot be read.
+ *
+ * `stampsEarned` is a caption on an order card; failing to draw it must not
+ * fail the order list — and least of all the POST that has just placed an
+ * order, where a throw would tell the app the checkout failed and invite a
+ * second one. The authoritative balance is `/me.loyalty`, which does surface
+ * a ledger outage.
+ */
+async function stampedOrders(email: string): Promise<ReadonlySet<string>> {
+  try {
+    return await getStampedOrderIds(email);
+  } catch (err) {
+    console.error("[orders] reading the stamp ledger failed", err);
+    return new Set<string>();
+  }
+}
+
+/**
  * Answers a repeated checkout attempt with the order it already produced.
  *
  * An order still awaiting payment gets a fresh checkout session rather than
@@ -295,7 +316,11 @@ async function replayAppOrder(
   }
   return {
     ok: true,
-    order: toMobileOrder(order),
+    order: toMobileOrder(
+      order,
+      new Date(),
+      await stampedOrders(order.customerEmail),
+    ),
     payment,
     promoDropped: false,
   };
@@ -393,19 +418,40 @@ export async function createAppOrder(
   const address = addressRes.address;
   const consent = await buildLegalConsent();
 
-  const result = await placeAppOrder({
-    lines: body.lines,
-    fulfillment: body.fulfillment,
-    customerName: customer.name,
-    customerEmail: customer.email,
-    customerPhone: address?.phone || customer.phone,
-    shippingAddress: address?.text ?? "",
-    deliveryNote: [address?.note ?? "", body.note].filter(Boolean).join(" · "),
-    scheduledFor: body.scheduledFor,
-    promoCode: body.promoCode,
-    legalConsent: consent,
-    clientOrderId: body.clientOrderId,
-  });
+  let result: PlaceAppOrderResult;
+  try {
+    result = await placeAppOrder({
+      lines: body.lines,
+      fulfillment: body.fulfillment,
+      customerName: customer.name,
+      customerEmail: customer.email,
+      customerPhone: address?.phone || customer.phone,
+      shippingAddress: address?.text ?? "",
+      deliveryNote: [address?.note ?? "", body.note]
+        .filter(Boolean)
+        .join(" · "),
+      scheduledFor: body.scheduledFor,
+      promoCode: body.promoCode,
+      legalConsent: consent,
+      clientOrderId: body.clientOrderId,
+    });
+  } catch (err) {
+    // The other half of the idempotency guard. The lookup above answers a
+    // retry sent AFTER the first order committed; two POSTs of the same
+    // attempt in flight at once both miss it, and the second insert is then
+    // refused by `orders_client_order_id_key`. The index has done its job —
+    // there is exactly one order — so hand that one back instead of a 500 the
+    // app would retry into a third attempt.
+    const duplicate =
+      body.clientOrderId && err instanceof DbQueryError && err.code === "23505";
+    if (!duplicate) throw err;
+    const raced = await findAppOrderByClientId(
+      customer.email,
+      body.clientOrderId,
+    );
+    if (!raced) throw err;
+    return replayAppOrder(raced, customer);
+  }
   if (!result.ok) return { ok: false, failure: failureFromResult(result) };
 
   let order = result.order;
@@ -452,7 +498,11 @@ export async function createAppOrder(
 
   return {
     ok: true,
-    order: toMobileOrder(order),
+    order: toMobileOrder(
+      order,
+      new Date(),
+      await stampedOrders(order.customerEmail),
+    ),
     payment,
     promoDropped: result.promoDropped,
   };
@@ -465,8 +515,12 @@ export async function listAppOrders(
   // The limit belongs in SQL: this used to read the member's entire history —
   // items jsonb, consent evidence and refund ledger included — and throw all
   // but the newest 50 away in JavaScript.
-  const orders = await customerOrdersByEmail(customer.email, ORDER_LIST_LIMIT);
-  return orders.map((o) => toMobileOrder(o));
+  const [orders, stamped] = await Promise.all([
+    customerOrdersByEmail(customer.email, ORDER_LIST_LIMIT),
+    stampedOrders(customer.email),
+  ]);
+  const now = new Date();
+  return orders.map((o) => toMobileOrder(o, now, stamped));
 }
 
 /** `GET /orders/{id}` — only the owner's; anyone else sees nothing. */
@@ -482,7 +536,7 @@ export async function getAppOrder(
   ) {
     return null;
   }
-  return toMobileOrder(order);
+  return toMobileOrder(order, new Date(), await stampedOrders(customer.email));
 }
 
 // ─── Promo preview ───────────────────────────────────────────────────────

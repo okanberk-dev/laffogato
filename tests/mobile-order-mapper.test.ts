@@ -13,6 +13,9 @@ import {
 
 const NOW = new Date("2026-08-30T12:00:00.000Z");
 
+/** The ledger says this order has its stamp. */
+const STAMPED = new Set(["ord-0284"]);
+
 function order(overrides: Partial<AdminOrder> = {}): AdminOrder {
   return {
     id: "ord-0284",
@@ -60,7 +63,7 @@ function order(overrides: Partial<AdminOrder> = {}): AdminOrder {
 
 describe("toMobileOrder", () => {
   it("maps an app cafe delivery order to the contract shape", () => {
-    const m = toMobileOrder(order(), NOW);
+    const m = toMobileOrder(order(), NOW, STAMPED);
     expect(m).toMatchObject({
       id: "ord-0284",
       orderNo: 284,
@@ -247,13 +250,23 @@ describe("eta and stamps", () => {
     ).toBeNull();
   });
 
-  it("counts one stamp only for a paid app cafe order", () => {
-    expect(stampsEarnedFor(order({ status: "paid" }))).toBe(1);
-    expect(stampsEarnedFor(order({ status: "completed" }))).toBe(1);
-    expect(stampsEarnedFor(order({ status: "pending_payment" }))).toBe(0);
-    expect(stampsEarnedFor(order({ status: "cancelled" }))).toBe(0);
-    expect(stampsEarnedFor(order({ kind: "shop" }))).toBe(0);
-    expect(stampsEarnedFor(order({ channel: "web" }))).toBe(0);
+  // These used to assert the OLD rule — a stamp inferred from the status —
+  // which is exactly the bug: `onOrderPaid` is best-effort, so a paid app
+  // cafe order whose ledger insert failed had the app printing "+1 damga"
+  // for a stamp the card never got. The ledger is the answer now.
+  it("reads the stamp from the ledger, not from the status", () => {
+    expect(stampsEarnedFor(order({ status: "paid" }), STAMPED)).toBe(1);
+    expect(stampsEarnedFor(order({ status: "completed" }), STAMPED)).toBe(1);
+    expect(stampsEarnedFor(order({ status: "paid" }), new Set())).toBe(0);
+  });
+
+  it("claims nothing when no ledger was handed in", () => {
+    expect(toMobileOrder(order({ status: "paid" }), NOW).stampsEarned).toBe(0);
+  });
+
+  it("does not lend one order's stamp to another", () => {
+    const other = new Set(["ord-0999"]);
+    expect(stampsEarnedFor(order({ status: "paid" }), other)).toBe(0);
   });
 });
 

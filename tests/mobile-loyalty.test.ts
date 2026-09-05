@@ -8,6 +8,7 @@ import {
   computeBadges,
   computeStampBalance,
   rewardReadyAt,
+  stampedOrderIds,
   computeTier,
   countOrdersLast365,
   freeDrinkRewardFor,
@@ -451,5 +452,51 @@ describe("rewardReadyAt", () => {
       { kind: "redeem" as const, delta: -6, createdAt: at(13) },
     ];
     expect(rewardReadyAt(rows)).toBe(at(12));
+  });
+});
+
+/**
+ * `stampsEarned` on the wire used to be inferred from the order status, so a
+ * best-effort `onOrderPaid` failure had the app claiming a stamp the ledger
+ * never got — and a refund's reversal was invisible to it.
+ */
+describe("stampedOrderIds", () => {
+  const row = (
+    kind: "earn" | "redeem" | "reversal",
+    orderId: string,
+  ): { kind: "earn" | "redeem" | "reversal"; orderId: string } => ({
+    kind,
+    orderId,
+  });
+
+  it("lists the orders with a live earn row", () => {
+    const ids = stampedOrderIds([row("earn", "ord-1"), row("earn", "ord-2")]);
+    expect([...ids].sort()).toEqual(["ord-1", "ord-2"]);
+  });
+
+  it("drops an order whose stamp was reversed", () => {
+    const ids = stampedOrderIds([
+      row("earn", "ord-1"),
+      row("earn", "ord-2"),
+      row("reversal", "ord-1"),
+    ]);
+    expect([...ids]).toEqual(["ord-2"]);
+  });
+
+  it("ignores rows with no order — a counter stamp belongs to no order", () => {
+    const ids = stampedOrderIds([
+      row("earn", ""),
+      row("reversal", ""),
+      row("redeem", ""),
+      row("earn", "ord-3"),
+    ]);
+    expect([...ids]).toEqual(["ord-3"]);
+  });
+
+  it("does not let a counter correction cancel an order's stamp", () => {
+    // reverseCounterStamp() writes `reversal` with an empty orderId; counting
+    // reversals globally would have taken the newest order's stamp away.
+    const ids = stampedOrderIds([row("earn", "ord-4"), row("reversal", "")]);
+    expect([...ids]).toEqual(["ord-4"]);
   });
 });

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { TABLES } from "@/lib/db";
-import { ANON_SWEEPS, anonymizedEmail } from "@/lib/mobile/me";
+import {
+  ANON_SWEEPS,
+  anonymizedEmail,
+  IN_PROGRESS_ORDER_STATUSES,
+  redactedPayload,
+} from "@/lib/mobile/me";
 
 /**
  * `DELETE /me` frees the member's e-mail so the address can register again.
@@ -38,6 +43,9 @@ describe("account deletion sweeps", () => {
       // Every app order writes the buyer's address as the actor of its stock
       // moves, so /admin/stok-hareketleri kept naming a closed account.
       `${TABLES.stockMoves}.actor`,
+      // The bulletin list held the address, the name and the consent evidence
+      // of a member who is gone.
+      `${TABLES.newsletterSubscribers}.email`,
     ]) {
       expect(covered, target).toContain(target);
     }
@@ -66,5 +74,60 @@ describe("account deletion sweeps", () => {
     expect(moves.patch(anonymizedEmail("cst-3"))).toEqual({
       actor: "deleted-cst-3@anon.local",
     });
+  });
+});
+
+describe("what a closed account leaves behind", () => {
+  it("deletes the newsletter row rather than anonymising it", () => {
+    // An anonymised subscription is a subscription nobody owns; the row has
+    // no fiscal purpose, so it goes.
+    const news = ANON_SWEEPS.find(
+      (s) => s.table === TABLES.newsletterSubscribers,
+    )!;
+    expect(news.op).toBe("delete");
+    expect(news.caseInsensitive).toBe(true);
+  });
+
+  it("keeps every other sweep an anonymising update", () => {
+    for (const sweep of ANON_SWEEPS) {
+      if (sweep.table === TABLES.newsletterSubscribers) continue;
+      expect(sweep.op ?? "update", sweep.table).toBe("update");
+      expect(
+        Object.keys(sweep.patch("deleted-cst-1@anon.local")).length,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it("empties the provider payload but keeps the row", () => {
+    // payment_transactions.raw is the POS callback verbatim — buyer name,
+    // address, masked card. Reconciliation needs provider/ref/status/amount,
+    // none of which this touches.
+    const redacted = redactedPayload("2026-09-05T12:00:00.000Z");
+    expect(redacted).toEqual({
+      redacted: true,
+      redactedAt: "2026-09-05T12:00:00.000Z",
+    });
+  });
+});
+
+/**
+ * Üyelik Sözleşmesi §14: the closure waits for an order in flight, and the
+ * `hesap-silme` document repeats it. DELETE /me answers 409 instead of
+ * anonymising the buyer of an order the kitchen is about to hand over.
+ */
+describe("orders that block a closure", () => {
+  it("covers every status an order can still be running in", () => {
+    expect([...IN_PROGRESS_ORDER_STATUSES].sort()).toEqual([
+      "paid",
+      "pending_payment",
+      "preparing",
+      "shipped",
+    ]);
+  });
+
+  it("lets a finished or cancelled order through", () => {
+    for (const status of ["completed", "cancelled", "refunded"] as const) {
+      expect(IN_PROGRESS_ORDER_STATUSES).not.toContain(status);
+    }
   });
 });

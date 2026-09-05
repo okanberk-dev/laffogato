@@ -11,7 +11,11 @@ import { ensureCustomerForSupabaseUser } from "@/lib/customer/supabase-bridge";
 import { isDbUnreachable } from "@/lib/db/health";
 import { getSupabaseAnonClient } from "@/lib/supabase/anon";
 
-import { classifyAuthError, parseBearerToken } from "./auth-core";
+import {
+  classifyAuthError,
+  parseBearerToken,
+  tokenExpiryMs,
+} from "./auth-core";
 import { apiError } from "./respond";
 
 export type MobileAuthResult =
@@ -59,12 +63,23 @@ const MSG = {
  * Every mobile call used to cost a network round-trip to Supabase Auth, so a
  * client polling the app's screens (or a script with one valid token) burned
  * the project's shared auth quota and slowed every member down. The cache is
- * per instance, keyed on a hash of the token — never the token itself, so a
- * heap dump does not hand out sessions — and holds only successes.
+ * keyed on a hash of the token — never the token itself, so a heap dump does
+ * not hand out sessions — and holds only successes.
  *
- * Revocation is therefore up to a minute late for the token's own identity;
- * a deactivated account is still refused immediately, because the customers
- * row is re-read on every request below.
+ * PER INSTANCE, and this deployment is serverless: the map lives in one warm
+ * lambda, so there is no shared cache to invalidate, and a member's requests
+ * land on whichever instance answers. Practically that means every instance
+ * pays for the first sight of a token and remembers it separately, the hit
+ * rate follows how warm the fleet is, and nothing here can be flushed from
+ * outside the process — which is why nothing security-critical is allowed to
+ * depend on it:
+ *   - an entry never outlives the token's own `exp`, so a session that has
+ *     since been signed out and expired cannot be replayed out of the cache;
+ *   - the `customers` row is re-read on every request below, so a closed or
+ *     deactivated account is refused immediately, cache hit or not.
+ * What is left is a lag of at most a minute (and at most until `exp`) for a
+ * sign-out that revokes a token BEFORE it expires — the same window the app
+ * already has, since it drops the token itself on sign-out.
  */
 const USER_CACHE_TTL_MS = 60_000;
 const USER_CACHE_MAX = 1000;
@@ -84,13 +99,25 @@ function cachedUser(key: string, now: number): User | null {
   return hit.user;
 }
 
-function rememberUser(key: string, user: User, now: number): void {
+function rememberUser(
+  key: string,
+  user: User,
+  now: number,
+  expiryMs: number | null,
+): void {
+  // The token's own death is a hard ceiling on the entry: an access token that
+  // expires in ten seconds must not be honoured for a minute.
+  const expiresAt =
+    expiryMs === null
+      ? now + USER_CACHE_TTL_MS
+      : Math.min(now + USER_CACHE_TTL_MS, expiryMs);
+  if (expiresAt <= now) return;
   // Insertion-ordered: dropping the front evicts the oldest entry.
   if (userCache.size >= USER_CACHE_MAX) {
     const oldest = userCache.keys().next().value;
     if (oldest !== undefined) userCache.delete(oldest);
   }
-  userCache.set(key, { user, expiresAt: now + USER_CACHE_TTL_MS });
+  userCache.set(key, { user, expiresAt });
 }
 
 /** Test seam: forget every cached token. */
@@ -146,7 +173,7 @@ export async function requireMobileCustomer(
   if (!user) {
     return { ok: false, response: apiError(401, "unauthorized", MSG.invalid) };
   }
-  rememberUser(key, user, now);
+  rememberUser(key, user, now, tokenExpiryMs(token));
 
   return finishLink(user);
 }

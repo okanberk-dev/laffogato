@@ -236,6 +236,10 @@ Kurallar:
   "subtotalMinor": 83500, "discountMinor": 0, "shippingMinor": 5500, "totalMinor": 89000,
   "promoCode": "", "address": "Evim — …", "scheduledFor": null, "etaMinutes": 35, "etaAt": "…",
   "stampsEarned": 1, "createdAt": "…", "paidAt": "…" | null
+  // stampsEarned = loyalty_stamps LEDGER'ından okunur: siparişin `earn` satırı
+  // varsa ve `reversal` ile geri alınmamışsa 1, aksi hâlde 0. Duruma bakıp
+  // "ödendiyse damga vardır" DEMEZ — onOrderPaid best-effort'tur ve iade
+  // edilen siparişin damgası geri alınır.
 }
 ```
 
@@ -274,14 +278,22 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
 
 `PATCH /me` gövdesi: `{ name?, phone?, birthday?, notificationPrefs?, usual? }` → güncel `/me`.
 Adresler: `POST /me/addresses` (gövde adres) · `PATCH /me/addresses/{id}` · `DELETE /me/addresses/{id}` · `POST /me/addresses/{id}/default` → hepsi güncel `addresses[]` döner.
-Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir + Supabase oturumu istemcide kapatılır (mağaza zorunluluğu).
+Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği silinir (service role varsa) + oturum istemcide kapatılır (mağaza zorunluluğu). Devam eden sipariş varsa **409** `orders_in_progress`.
 
 > **Uygulama notu (§4).** `PATCH /me` 400 `unknown_menu_item` (usual pasif/yok) ·
 > `invalid_request` · `invalid_json`. Adres uçları: `POST /me/addresses` **201**, hata
 > 404 `address_not_found` · 400 `invalid_address`. `DELETE /me` → **200** `{ "ok": true }`;
-> yalnız Neon satırı anonimleştirilir (`deleted-<id>@anon.local`, kişisel alanlar boş,
-> `isActive=false`, davet kodu serbest) — Supabase kullanıcısı **silinmez** (service role
-> yok), oturumu uygulama kapatır. `neighbourhood` sütunu yoktur: `line1`'e
+> Neon satırı anonimleştirilir (`deleted-<id>@anon.local`, kişisel alanlar boş,
+> `isActive=false`, davet kodu serbest), üyenin adresi siparişlerde/ledger'da/kupon
+> ve davet kayıtlarında yer tutucuya çevrilir, bülten kaydı ile `auth_attempts`
+> satırları silinir ve `payment_transactions.raw` boşaltılır (mutabakat için
+> `provider`/`providerRef`/`status`/`amountMinor` kalır). Supabase kullanıcısı
+> `SUPABASE_SERVICE_ROLE_KEY` varsa **silinir**; yoksa kapalı satırda kalan
+> `supabaseUserId`, o kimliğin bir daha üyelik açmasını engeller (403
+> `account_disabled`). Oturumu uygulama kapatır. **409** `orders_in_progress`:
+> `pending_payment`/`paid`/`preparing`/`shipped` bir sipariş varken hesap
+> kapatılmaz (Üyelik Sözleşmesi §14) — sipariş bitince tekrar denenir.
+> `neighbourhood` sütunu yoktur: `line1`'e
 > `"<mahalle>, <satır>"` olarak katlanır, okurken `Mah.`/`Mahallesi`/`Mh.` sonekiyle ayrıştırılır.
 > `loyalty.badges` ve `tier` yalnız `paid/preparing/shipped/completed` siparişleri sayar
 > (ödenmemiş/iptal/iade sayılmaz).

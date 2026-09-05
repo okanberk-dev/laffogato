@@ -629,7 +629,15 @@ export async function deleteAccountAction(
   const check = await checkSitePassword(current.email, password);
   if (check === "mismatch") return { error: "Şifre hatalı." };
 
-  await deleteMe(current);
+  const result = await deleteMe(current);
+  if (!result.ok) {
+    // Üyelik Sözleşmesi §14: the closure waits for an order in flight. Same
+    // rule, same wording as the app's DELETE /me.
+    return {
+      error:
+        "Devam eden siparişin var. Sipariş tamamlandıktan sonra hesabını silebilirsin.",
+    };
+  }
   await clearCustomerSession();
   redirect("/?hesap=silindi");
 }

@@ -14,7 +14,11 @@
  * members in against the same project the app uses.
  *
  * The service-role key is a different animal — it bypasses every policy — and
- * it is deliberately NOT read anywhere in this codebase. Do not add it.
+ * it is deliberately NOT read here. Exactly one module reads it,
+ * `./admin.ts`, for exactly one operation: deleting the sign-in identity of a
+ * member who closed their account. It is optional, `server-only`, and carries
+ * no `NEXT_PUBLIC_` prefix, so it never reaches a browser or the app bundle.
+ * Do not read it anywhere else.
  */
 
 const DEFAULT_SUPABASE_URL = "https://wvivcgctebyxojtyidfg.supabase.co";

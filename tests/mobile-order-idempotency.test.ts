@@ -1,0 +1,218 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { AdminOrder } from "@/lib/admin/store";
+import type { PublicCustomer } from "@/lib/customer/store";
+
+import { DEFAULT_MOBILE_APP_CONFIG } from "@/lib/mobile/app-config";
+
+/**
+ * `POST /orders` end-to-end over a fake store: the app repeats the id it
+ * generated for ONE checkout attempt, and the second call must answer with the
+ * order the first one produced.
+ *
+ * Before `clientOrderId`, a phone that gave up on a slow response — while the
+ * server was still mailing the confirmation and opening the checkout session —
+ * placed a second order on "Tekrar dene": two pending rows, two e-mails, two
+ * held stock claims, and a 429 lock-out after the third try.
+ */
+
+// ── the store, as far as createAppOrder can see it ────────────────────────
+const placed: AdminOrder[] = [];
+let seq = 0;
+
+const placeAppOrder = vi.fn(
+  async (input: { customerEmail: string; clientOrderId?: string }) => {
+    seq += 1;
+    const order: AdminOrder = {
+      id: `ord-000${seq}`,
+      orderNo: 100 + seq,
+      customerName: "Eda Mancuso",
+      customerEmail: input.customerEmail,
+      customerPhone: "",
+      shippingAddress: "",
+      internalNote: "",
+      status: "pending_payment",
+      items: [],
+      subtotalMinor: 24500,
+      discountMinor: 0,
+      promoCode: "",
+      shippingMinor: 0,
+      totalMinor: 24500,
+      refunds: [],
+      createdAt: new Date().toISOString(),
+      legalConsent: {},
+      channel: "app",
+      kind: "cafe",
+      fulfillment: "pickup",
+      clientOrderId: input.clientOrderId ?? "",
+    } as unknown as AdminOrder;
+    // The partial unique index on (lower(customerEmail), "clientOrderId").
+    if (
+      input.clientOrderId &&
+      placed.some((o) => o.clientOrderId === input.clientOrderId)
+    ) {
+      const { DbQueryError } = await import("@/lib/db/health");
+      throw new DbQueryError(
+        "finalizeOrder.insert",
+        "duplicate key value violates unique constraint",
+        "23505",
+        400,
+      );
+    }
+    placed.push(order);
+    return { ok: true as const, order, promoDropped: false };
+  },
+);
+
+const findAppOrderByClientId = vi.fn(
+  async (email: string, clientOrderId: string) =>
+    placed.find(
+      (o) =>
+        o.clientOrderId === clientOrderId &&
+        o.customerEmail.toLowerCase() === email.toLowerCase(),
+    ) ?? null,
+);
+
+vi.mock("@/lib/admin/store", () => ({
+  PENDING_ORDER_TTL_MINUTES: 45,
+  applyPaymentSucceeded: vi.fn(async () => ({ ok: true as const })),
+  applyPromoCode: vi.fn(),
+  customerOrdersByEmail: vi.fn(async () => placed),
+  expireStalePendingOrders: vi.fn(async () => 0),
+  findAppOrderByClientId,
+  getOrder: vi.fn(
+    async (id: string) => placed.find((o) => o.id === id) ?? null,
+  ),
+  getSettings: vi.fn(async () => ({
+    mobileApp: DEFAULT_MOBILE_APP_CONFIG,
+  })),
+  placeAppOrder,
+  previewAppOrderLines: vi.fn(),
+}));
+
+const createCheckoutSession = vi.fn(async () => ({
+  providerRef: "ref-1",
+  redirectUrl: "https://pos.example/checkout/ref-1",
+  expiresAt: "2026-09-05T13:00:00.000Z",
+}));
+vi.mock("@/lib/payment", () => ({
+  getPaymentProvider: () => ({ name: "mock", createCheckoutSession }),
+}));
+
+const sendOrderPlacedEmail = vi.fn(async () => undefined);
+vi.mock("@/lib/email/send", () => ({ sendOrderPlacedEmail }));
+
+vi.mock("@/lib/customer/store", () => ({ getCardUserKey: async () => "" }));
+vi.mock("@/lib/customer/coupons", () => ({
+  applyCustomerCoupon: vi.fn(),
+  couponAllowedForKind: () => true,
+  CAFE_ONLY_COUPON_MESSAGE: "",
+}));
+vi.mock("@/lib/admin/rate-limit", () => ({
+  checkLoginLimit: vi.fn(),
+  clientIp: async () => "10.0.0.1",
+  recordLoginFailure: vi.fn(),
+}));
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ "user-agent": "LaffogatoApp/1.0" }),
+}));
+vi.mock("@/lib/mobile/loyalty", () => ({
+  getStampedOrderIds: async () => new Set<string>(),
+}));
+vi.mock("@/lib/db", () => ({
+  getDb: () => ({
+    from: () => ({ insert: async () => ({ error: null }) }),
+  }),
+  TABLES: { paymentTransactions: "payment_transactions" },
+}));
+
+const { createAppOrder } = await import("@/lib/mobile/orders");
+
+const customer: PublicCustomer = {
+  id: "cst-1",
+  email: "eda@example.com",
+  name: "Eda Mancuso",
+  phone: "+90 532 000 00 00",
+  birthday: "",
+  addresses: [],
+  wishlist: [],
+  notificationPrefs: {
+    orderUpdates: true,
+    marketing: false,
+    newsletter: false,
+  },
+  emailVerified: true,
+  isActive: true,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  inviteCode: "",
+  usual: null,
+};
+
+function body(clientOrderId: string) {
+  return {
+    lines: [{ menuItemId: "mnu-0007", qty: 1, size: "M" as const }],
+    fulfillment: "pickup" as const,
+    note: "",
+    scheduledFor: "",
+    promoCode: "",
+    clientOrderId,
+  } as unknown as Parameters<typeof createAppOrder>[1];
+}
+
+beforeEach(() => {
+  placed.length = 0;
+  seq = 0;
+  placeAppOrder.mockClear();
+  sendOrderPlacedEmail.mockClear();
+  createCheckoutSession.mockClear();
+});
+
+describe("POST /orders — clientOrderId", () => {
+  it("answers a repeat with the SAME order and places nothing new", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    const second = await createAppOrder(customer, body("attempt-1"));
+
+    expect(first.ok && second.ok).toBe(true);
+    if (!first.ok || !second.ok) return;
+    expect(second.order.id).toBe(first.order.id);
+    expect(second.order.orderNo).toBe(first.order.orderNo);
+    expect(placeAppOrder).toHaveBeenCalledTimes(1);
+    expect(placed).toHaveLength(1);
+  });
+
+  it("does not mail the confirmation twice", async () => {
+    await createAppOrder(customer, body("attempt-1"));
+    await createAppOrder(customer, body("attempt-1"));
+    expect(sendOrderPlacedEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-opens the checkout for the retry — provider sessions expire", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    const second = await createAppOrder(customer, body("attempt-1"));
+    expect(first.ok && first.payment?.redirectUrl).toBeTruthy();
+    expect(second.ok && second.payment?.redirectUrl).toBeTruthy();
+    expect(createCheckoutSession).toHaveBeenCalledTimes(2);
+  });
+
+  it("treats a different attempt id as a different order", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    const second = await createAppOrder(customer, body("attempt-2"));
+    expect(first.ok && second.ok).toBe(true);
+    if (!first.ok || !second.ok) return;
+    expect(second.order.id).not.toBe(first.order.id);
+    expect(placeAppOrder).toHaveBeenCalledTimes(2);
+  });
+
+  it("replays when the two POSTs race and the unique index refuses the second", async () => {
+    // Both calls miss the lookup — the first row has not committed yet — so
+    // the insert is what refuses the duplicate. The member must get the one
+    // order back, not a 500 they retry into a third attempt.
+    await createAppOrder(customer, body("attempt-1"));
+    findAppOrderByClientId.mockResolvedValueOnce(null);
+    const raced = await createAppOrder(customer, body("attempt-1"));
+    expect(raced.ok).toBe(true);
+    if (!raced.ok) return;
+    expect(raced.order.id).toBe("ord-0001");
+    expect(placed).toHaveLength(1);
+  });
+});

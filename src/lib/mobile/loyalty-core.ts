@@ -191,6 +191,28 @@ export function computeStampBalance(
 }
 
 /**
+ * The orders that actually hold a stamp: an `earn` row that no `reversal` row
+ * has taken back.
+ *
+ * `toMobileOrder` needs this to answer `stampsEarned` honestly. Reversals are
+ * matched per order rather than counted globally, because a counter stamp's
+ * reversal carries no `orderId` and must not cancel some order's stamp.
+ */
+export function stampedOrderIds(
+  rows: readonly Pick<LoyaltyStamp, "kind" | "orderId">[],
+): ReadonlySet<string> {
+  const earned = new Set<string>();
+  const reversed = new Set<string>();
+  for (const row of rows) {
+    if (!row.orderId) continue;
+    if (row.kind === "earn") earned.add(row.orderId);
+    else if (row.kind === "reversal") reversed.add(row.orderId);
+  }
+  for (const id of reversed) earned.delete(id);
+  return earned;
+}
+
+/**
  * When the newest full card was completed — the `createdAt` of the earn row
  * that filled it — or `null` when no reward is waiting.
  *

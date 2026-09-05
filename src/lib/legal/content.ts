@@ -10318,7 +10318,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Üyelik",
     category: "Site & Üyelik",
     summary:
-      "{{BRAND}} internet sitesi ve mobil uygulamasına üye olan kullanıcı ile {{LEGAL_NAME}} arasındaki üyelik ilişkisini, hesap güvenliğini, ödül ve puan programını, tarafların yükümlülüklerini, askıya alma ve fesih hâllerini düzenleyen sözleşmedir.",
+      "{{BRAND}} internet sitesi ve mobil uygulamasına üye olan kullanıcı ile {{LEGAL_NAME}} arasındaki üyelik ilişkisini, hesap güvenliğini, sadakat programını, tarafların yükümlülüklerini, askıya alma ve fesih hâllerini düzenleyen sözleşmedir.",
     references: [
       "4721 sayılı Türk Medeni Kanunu",
       "6098 sayılı Türk Borçlar Kanunu",
@@ -10451,7 +10451,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Üyelik Hesabı",
             value:
-              "Üye'ye özgü e-posta adresi ve şifre ile erişilen, sipariş geçmişi, adres defteri, puan bakiyesi ve tercihlerin tutulduğu kişisel alan",
+              "Üye'ye özgü e-posta adresi ve şifre ile erişilen, sipariş geçmişi, adres defteri, damga kartı, kuponlar ve tercihlerin tutulduğu kişisel alan",
           },
           {
             key: "Doğrulanmış Hesap",
@@ -10461,12 +10461,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Hizmet",
             value:
-              "Şirket'in Platform üzerinden sunduğu üyelik, katalog görüntüleme, sepet, sipariş oluşturma, sipariş takibi, ödül ve puan programı ile destek hizmetlerinin bütünü",
+              "Şirket'in Platform üzerinden sunduğu üyelik, katalog görüntüleme, sepet, sipariş oluşturma, sipariş takibi, sadakat programı ile destek hizmetlerinin bütünü",
           },
           {
             key: "Ödül Programı",
             value:
-              "Üye'nin alışverişten ve kafe ziyaretinden puan kazandığı, kazandığı puanı sonraki siparişlerinde indirim olarak kullanabildiği üyelik programı",
+              "Üye'nin Mobil Uygulama'dan verdiği ödenmiş kafe siparişlerinden ve kafede kasada eklenen damgalardan kart doldurduğu, dolan kartı ücretsiz içecek kuponuna çevirebildiği üyelik programı",
           },
           {
             key: "Puan",
@@ -10476,7 +10476,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Karekod (QR)",
             value:
-              "Kafede puan kazanımı için kasada gösterilen ve Mobil Uygulama ile okutulan iki boyutlu kod",
+              "Kafede kasada personel tarafından üyelik hesabına elle eklenen damga",
           },
           {
             key: "Mesafeli Satış Sözleşmesi",
@@ -10515,7 +10515,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Sözleşme kapsamı, Platform'un bilgi amaçlı bölümleri ile Bottega üzerinden yürütülen çevrimiçi satış faaliyetini kapsar.",
           "Site ve Mobil Uygulama aynı üyelik altyapısını kullanır; işbu Sözleşme her iki kanal bakımından da geçerlidir.",
-          "Kafe içinde yüz yüze gerçekleştirilen satışlar mesafeli sözleşme niteliğinde olmadığından işbu Sözleşme kapsamı dışındadır; ancak kafede karekod okutularak yapılan puan kazanımı Ödül Programı hükümlerine tabidir.",
+          "Kafe içinde yüz yüze gerçekleştirilen satışlar mesafeli sözleşme niteliğinde olmadığından işbu Sözleşme kapsamı dışındadır; ancak kafede kasada üyelik hesabına eklenen sadakat damgası Sadakat Programı hükümlerine tabidir.",
           "Şirket'in kurumsal veya toplu satış anlaşmaları ayrı yazılı sözleşmelere tabi olup, bu Sözleşme onları ikame etmez.",
         ],
       },
@@ -10523,7 +10523,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "4. Üyeliğin Kurulması ve E-posta Doğrulaması",
         paragraphs: [
           "Üyelik, Üye'nin Site veya Mobil Uygulama'daki kayıt formunu doldurması, işbu Sözleşme ile Gizlilik ve Kişisel Verilerin Korunması Politikası'nı onaylaması ve e-posta adresini doğrulaması ile tamamlanır. Doğrulama tamamlanmadan hesap sınırlı statüde kalır.",
-          "Üyelik hangi kanaldan açılırsa açılsın tek bir hesap oluşur ve aynı hesap her iki kanalda geçerlidir. Sipariş geçmişi, adres defteri, favori listesi, kuponlar ve puan bakiyesi Site ile Mobil Uygulama arasında ortaktır; ayrıca yeniden kayıt olunması gerekmez.",
+          "Üyelik hangi kanaldan açılırsa açılsın tek bir hesap oluşur ve aynı hesap her iki kanalda geçerlidir. Sipariş geçmişi, adres defteri, favori listesi, kuponlar ve damga kartı Site ile Mobil Uygulama arasında ortaktır; ayrıca yeniden kayıt olunması gerekmez.",
           "Doğrulama, Üye'nin kayıt sırasında bildirdiği e-posta adresine gönderilen bağlantı veya tek kullanımlık kod ile yapılır. Doğrulama bağlantısı sınırlı süre için geçerlidir; süresi dolduğunda Üye, hesap ayarlarından yeni doğrulama e-postası talep edebilir.",
           "Sipariş verme yetkisi yalnızca e-posta adresi doğrulanmış hesaplara tanınır. Doğrulanmamış hesaplar katalogda gezinebilir ve sepet oluşturabilir; ancak ödeme adımına geçemez. Bu kısıtlama, hatalı adrese gönderilen sipariş bildirimlerini, kimlik yanıltmasını ve ödeme sahteciliğini önlemeye yöneliktir.",
         ],
@@ -10553,8 +10553,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ordered: [
           "Kayıt ve sipariş sırasında verdiği ad, soyad, e-posta, telefon, teslimat ve fatura adresi bilgilerinin doğru, güncel ve kendisine ait olduğunu; bu bilgilerde değişiklik olması hâlinde hesabını gecikmeksizin güncelleyeceğini kabul eder.",
           "Başkasının kimlik, iletişim veya ödeme bilgilerini kendi bilgisiymiş gibi kullanmayacağını; üçüncü kişi adına sipariş vermesi hâlinde bunun ilgili kişinin bilgisi ve rızası dâhilinde olduğunu taahhüt eder.",
-          "Tek bir gerçek kişi olarak yalnızca bir aktif hesap tutacağını; kampanya, kupon, puan veya ücretsiz kargo eşiklerinden mükerrer yararlanmak amacıyla çoklu hesap açmayacağını kabul eder.",
-          "Ödül Programı puanlarını hile, sahte işlem, gerçekleşmemiş alışveriş, karekodun izinsiz çoğaltılması veya sistem açığının kullanılması yoluyla kazanmayacağını; puanını satmayacağını ve üçüncü kişilere devretmeyeceğini taahhüt eder.",
+          "Tek bir gerçek kişi olarak yalnızca bir aktif hesap tutacağını; kampanya, kupon, damga veya ücretsiz kargo eşiklerinden mükerrer yararlanmak amacıyla çoklu hesap açmayacağını kabul eder.",
+          "Sadakat damgalarını hile, sahte işlem, gerçekleşmemiş alışveriş, mükerrer hesap veya sistem açığının kullanılması yoluyla kazanmayacağını; damgadan doğan ücretsiz içecek kuponunu satmayacağını ve üçüncü kişilere devretmeyeceğini taahhüt eder.",
           "Platform'a otomatik veri toplama araçları, robot, örümcek, kazıyıcı yazılım veya benzeri otomatik yöntemlerle Şirket'in yazılı izni olmaksızın erişmeyeceğini; altyapıya orantısız yük bindiren işlemler yapmayacağını taahhüt eder.",
           "Platform'un güvenlik önlemlerini aşmaya, kaynak kodunu tersine mühendislikle çözmeye, Mobil Uygulama'yı değiştirilmiş sürümlerle çalıştırmaya, zararlı yazılım yüklemeye veya başka kullanıcıların hesaplarına yetkisiz erişmeye teşebbüs etmeyeceğini kabul eder.",
           "Platform'da yayımlanan içeriği, ürün görsellerini, metinleri ve marka unsurlarını Şirket'in izni olmaksızın çoğaltmayacağını, ticari amaçla kullanmayacağını veya yeniden yayımlamayacağını kabul eder.",
@@ -10589,7 +10589,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kart hamilinin kimliğinin doğrulanmasına yönelik 3D Secure akışı iyzico tarafından yürütülür. Taksit seçenekleri kartı veren bankaya bağlıdır ve banka tarafından belirlenir; Şirket taksit sayısı ve vade farkı üzerinde tek başına belirleyici değildir.",
           "İade ve kısmi iade işlemleri iyzico API'si üzerinden gerçekleştirilir. Ön provizyon, taksitlendirme ve itiraz (chargeback) süreçleri, 5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ile iyzico'nun kuralları çerçevesinde işletilir.",
           "Ödeme sonucu bildirimleri imzalı webhook ile Şirket sistemlerine iletilir ve sipariş kapatılmadan önce sonuç iyzico'ya yeniden sorularak teyit edilir. Şirket'in sipariş kaydında yalnızca işlem referansı, tutar, taksit bilgisi, sonuç kodu ve kartın son dört hanesi gibi işlemi izlemeye yarayan sınırlı veriler tutulur.",
-          "Ödeme tutarı hiçbir koşulda yalnızca tarayıcıdan veya Mobil Uygulama'dan gelen veriye göre belirlenmez; sipariş tutarı sunucu tarafında ürün kayıtlarındaki güncel fiyat, vergi, kullanılan puan ve kargo bilgileri üzerinden yeniden hesaplanır. Ödeme bildirimlerinde tekrarlı işlem oluşmasını önlemek için sağlayıcı referansı üzerinde tekillik kısıtı uygulanır.",
+          "Ödeme tutarı hiçbir koşulda yalnızca tarayıcıdan veya Mobil Uygulama'dan gelen veriye göre belirlenmez; sipariş tutarı sunucu tarafında ürün kayıtlarındaki güncel fiyat, vergi, kullanılan kupon ve kargo bilgileri üzerinden yeniden hesaplanır. Ödeme bildirimlerinde tekrarlı işlem oluşmasını önlemek için sağlayıcı referansı üzerinde tekillik kısıtı uygulanır.",
         ],
       },
       {
@@ -10601,7 +10601,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Sipariş geçmişi: Üye, geçmiş siparişlerini, sipariş numarasını, sipariş kalemlerini, tutarları ve güncel durumunu hesabından görüntüleyebilir; kargo takip numarasına buradan erişebilir.",
           "Adres defteri: Birden fazla teslimat ve fatura adresi kaydedilebilir, adreslere isim verilebilir ve varsayılan adres seçilebilir. Böylece her siparişte adres bilgisi yeniden girilmez.",
           "Favori listesi: İlgi duyulan ürünler favorilere eklenebilir; stoğa dönen ürünler için Üye'nin talebi hâlinde bilgilendirme yapılabilir.",
-          "Ödül ve puan programı: Üye, çevrimiçi alışverişlerinden ve kafe ziyaretlerinden puan kazanır ve kazandığı puanı sonraki siparişlerinde indirim olarak kullanabilir. Puan üyeliğe bağlıdır; üyelik sona erdiğinde puan bakiyesi de sona erer. Programın ayrıntıları işbu Sözleşme'nin onuncu maddesinde düzenlenmiştir.",
+          "Sadakat programı: Üye, Mobil Uygulama'dan verdiği ödenmiş kafe siparişlerinden ve kafede kasada eklenen damgalardan kartını doldurur; dolan kart bir ücretsiz içecek kuponuna çevrilir. Damga üyeliğe bağlıdır; üyelik sona erdiğinde damgalar da sona erer. Programın ayrıntıları işbu Sözleşme'nin onuncu maddesinde düzenlenmiştir.",
           "Kişiye özel kupon ve kampanyalar: Şirket, üyelik geçmişine bağlı olarak Üye'ye özel indirim kodları tanımlayabilir. Kuponların geçerlilik süresi, asgari sepet tutarı ve kapsam dışı ürünler kupon tanımında gösterilir.",
           "Sepetin korunması: Tamamlanmayan sepet içeriği, Üye tekrar giriş yaptığında makul bir süre boyunca korunur ve Site ile Mobil Uygulama arasında paylaşılır. Sepette yer alan ürünlerin fiyat ve stok bilgisi ödeme anındaki güncel değerler üzerinden yeniden doğrulanır.",
           "Sipariş belgeleri: Sipariş özetleri, fatura ve iade belgeleri hesap üzerinden görüntülenebilir ve indirilebilir.",
@@ -10609,29 +10609,28 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "10. Ödül ve Puan Programı",
+        heading: "10. Sadakat (Damga) Programı",
         paragraphs: [
-          "Şirket, üyelerine yönelik bir ödül ve puan programı yürütür. Üye, Bottega üzerinden yaptığı alışverişlerden ve kafede gerçekleştirdiği ziyaretlerden puan kazanır; kazandığı puanları sonraki siparişlerinde indirim olarak kullanabilir. Programa katılım üyeliğe bağlıdır ve ayrıca bir bedel gerektirmez.",
-          "Kafede puan kazanımı, kasada gösterilen karekodun Mobil Uygulama ile okutulması yoluyla yapılır. Okutma işlemi yalnızca puan kazanımına ilişkin işlem kaydını oluşturur; kamera görüntüsü kaydedilmez ve saklanmaz.",
-          "Puan bir para birimi ya da elektronik para değildir. Nakde çevrilemez, başka bir üyeye devredilemez, satılamaz, miras yoluyla intikal etmez ve üyelik hesabı dışında kullanılamaz. Puan yalnızca üyelik hesabına bağlı olarak varlık kazanır.",
-          "Puan kazanım oranı, asgari harcama tutarı, puanın geçerlilik süresi, bir siparişte kullanılabilecek azami puan miktarı ve program kapsamı dışındaki ürünler, Platform'da yayımlanan Ödül Programı Kuralları'nda gösterilir. Şirket bu kuralları yalnızca ileriye etkili olarak ve önceden duyurmak suretiyle değiştirebilir; değişiklik, o tarihte kazanılmış puanların kullanım hakkını ortadan kaldırmaz.",
-          "Şirket, Ödül Programı'nı tümüyle sonlandırmaya karar verirse üyeleri en az otuz gün önceden bilgilendirir ve bu süre boyunca kazanılmış puanların kullanılmasına imkân tanır.",
+          "Şirket, üyelerine yönelik bir sadakat programı yürütür. Üye, Mobil Uygulama üzerinden verdiği her ödenmiş kafe siparişinden bir damga kazanır. Programa katılım üyeliğe bağlıdır ve ayrıca bir bedel gerektirmez.",
+          "Kafede damga, kasada personel tarafından Üye'nin üyelik e-posta adresi seçilerek elle eklenir. Üye'den bu işlem için karekod okutması istenmez; Uygulama damga kazanmak amacıyla kamera kullanmaz.",
+          "Damga bir para birimi ya da elektronik para değildir; tek başına parasal bir karşılığı yoktur. Nakde çevrilemez, başka bir üyeye devredilemez, satılamaz, miras yoluyla intikal etmez ve üyelik hesabı dışında kullanılamaz.",
+          "Kartın dolması için gereken damga sayısı (varsayılan altı), ödülün tutarı ve kuponun geçerlilik süresi Platform'da yayımlanan Sadakat Programı Kuralları'nda ve Mobil Uygulama'nın ödüller ekranında gösterilir. Şirket bu kuralları yalnızca ileriye etkili olarak ve önceden duyurmak suretiyle değiştirebilir; değişiklik, o tarihte kazanılmış damgaları ortadan kaldırmaz.",
+          "Şirket, Programı tümüyle sonlandırmaya karar verirse üyeleri en az otuz gün önceden bilgilendirir ve bu süre boyunca dolmuş kartların ödüle çevrilmesine imkân tanır.",
         ],
         bullets: [
-          "Puanla ödenen tutar sipariş bedelinden düşülür; kalan tutar iyzico üzerinden tahsil edilir. Sipariş özetinde puanla karşılanan kısım ve tahsil edilen tutar ayrı ayrı gösterilir.",
-          "Sipariş iptal edilir, iade edilir veya cayma hakkı kullanılırsa, puanla karşılanan kısım puan olarak hesaba geri yüklenir; nakit veya kartla ödenen kısım ise ödemenin yapıldığı kanala iade edilir.",
-          "Kısmi iadelerde puan ve para iadesi, siparişteki oranlar esas alınarak orantılı biçimde yapılır.",
-          "İade edilen veya iptal edilen bir siparişten daha önce kazanılmış puanlar, iade tutarına karşılık gelen ölçüde hesaptan geri alınır.",
-          "Geri yüklenen puanın geçerlilik süresi, iade tarihinden itibaren yeniden hesaplanır ve bu süre Üye'ye bildirilir.",
-          "Puan üyeliğe bağlıdır; üyeliğin sona ermesi veya hesabın kapatılması hâlinde kalan puan bakiyesi sona erer ve karşılığında herhangi bir bedel ödenmez.",
-          "Hile, sahte işlem, çoklu hesap veya sistem açığı kullanılarak kazanıldığı tespit edilen puanlar iptal edilir; bu hâlde ayrıca işbu Sözleşme'nin on üçüncü ve on altıncı maddeleri uygulanabilir.",
-          "Puan bakiyesi ile kazanım ve harcama hareketleri, Site ve Mobil Uygulama üzerinden Üye tarafından görüntülenebilir.",
+          "Kart dolduğunda ödül kendiliğinden verilmez; Üye, Mobil Uygulama'daki ödüller ekranından ödülü almayı seçer ve hesabına bir ücretsiz içecek kuponu tanımlanır.",
+          "Ücretsiz içecek kuponu yalnızca kafe siparişlerinde geçerlidir, tek kullanımlıktır ve süresi dolmadan kullanılmalıdır. Kuponun karşıladığı tutar sipariş özetinde ayrı bir indirim kalemi olarak gösterilir.",
+          "Sipariş iptal edilir, iade edilir veya cayma hakkı kullanılırsa, o siparişten kazanılmış damga geri alınır; nakit veya kartla ödenen kısım ödemenin yapıldığı kanala iade edilir.",
+          "Kuponla karşılanan kısım için nakit ödeme yapılmaz; Üye'nin fiilen ödediği tutar iade edilir.",
+          "Damga üyeliğe bağlıdır; üyeliğin sona ermesi veya hesabın kapatılması hâlinde biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer, karşılığında herhangi bir bedel ödenmez.",
+          "Hile, sahte işlem, çoklu hesap veya sistem açığı kullanılarak kazanıldığı tespit edilen damgalar iptal edilir; bu hâlde ayrıca işbu Sözleşme'nin on üçüncü ve on altıncı maddeleri uygulanabilir.",
+          "Damga kartı ile kazanım ve düzeltme hareketleri, Mobil Uygulama üzerinden Üye tarafından görüntülenebilir.",
         ],
       },
       {
         heading: "11. Mobil Uygulama",
         paragraphs: [
-          "Şirket, {{BRAND}} markası altında iOS ve Android işletim sistemleri için bir mobil uygulama yayımlar. Uygulama üzerinden menü görüntüleme, sipariş oluşturma ve takip etme, üyelik işlemleri, ödül ve puan takibi, kafede karekod okutarak puan kazanma ve bildirim alma mümkündür.",
+          "Şirket, {{BRAND}} markası altında iOS ve Android işletim sistemleri için bir mobil uygulama yayımlar. Uygulama üzerinden menü görüntüleme, sipariş oluşturma ve takip etme, üyelik işlemleri, sadakat damgası ve kupon takibi, karaoke rezervasyonu ve cihazda planlanan hatırlatmaların alınması mümkündür.",
           "Uygulama ilgili uygulama mağazalarından (App Store, Google Play) indirilir. İndirme ve kullanım, işbu Sözleşme'nin yanı sıra ilgili mağazanın kendi kullanım koşullarına da tabidir. Mağaza koşulları ile işbu Sözleşme arasında çelişki bulunması hâlinde tüketici lehine olan hüküm uygulanır; mağaza işletmecileri işbu Sözleşme'nin tarafı değildir.",
           "Ürün ve sipariş bedelleri uygulama mağazası üzerinden tahsil edilmez; uygulama içi satın alma yöntemi kullanılmaz. Ödeme, işbu Sözleşme'nin sekizinci maddesinde açıklandığı şekilde iyzico üzerinden yapılır.",
           "Uygulamanın kendisi ücretsiz olarak sunulur. Uygulamanın kullanımı sırasında oluşabilecek mobil veri ve bağlantı ücretleri Üye'nin abonesi olduğu elektronik haberleşme hizmet sağlayıcısının tarifesine tabidir ve Üye'ye aittir.",
@@ -10639,11 +10638,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Bildirim izni: sipariş durumu, ödeme sonucu ve hesap güvenliği gibi işlemsel bildirimler ile ayrıca onay verilmişse kampanya bildirimleri için kullanılır.",
-          "Kamera erişimi: yalnızca kafede karekod okutarak puan kazanmak amacıyla ve okutma anında kullanılır; görüntü kaydedilmez, sunucuya aktarılmaz.",
-          "Konum erişimi: yalnızca Üye izin verirse ve yaklaşık konum düzeyinde, en yakın şubenin ve teslimat bölgesinin gösterilmesi amacıyla kullanılır.",
+          "Kamera erişimi: Uygulama kamera izni istemez; damga kazanımı için karekod okutulmaz.",
+          'Konum erişimi: Uygulama konum izni istemez. Tek şube bulunduğundan "en yakın şube" gibi bir işlev yoktur; teslimat adresi Üye\'nin adres defterinden seçilir.',
           "Fotoğraf ve dosya erişimi: profil görseli yüklenmesi veya destek talebine belge eklenmesi hâlinde, yalnızca ilgili işlem sırasında kullanılır.",
           "Tüm cihaz izinleri isteğe bağlıdır ve cihaz ayarlarından her zaman geri alınabilir; iznin geri alınması yalnızca ilgili işlevi durdurur, üyeliği sona erdirmez.",
-          "Uygulama, kararlılığı ölçmek ve hataları gidermek amacıyla çökme (crash) ve hata kayıtları ile uygulama sürümü ve işletim sistemi bilgisini toplayabilir; ayrıntılar Gizlilik ve Kişisel Verilerin Korunması Politikası'nda açıklanır.",
+          "Uygulama, üçüncü taraf ölçümleme, reklam veya çökme (crash) kaydı toplayan bir bileşen içermez; cihazın reklam tanımlayıcısına (IDFA/AAID) erişmez. Sunucu tarafında yalnızca isteklerin ulaştığı erişim ve hata kayıtları tutulur; ayrıntılar Gizlilik ve Kişisel Verilerin Korunması Politikası'nda açıklanır.",
           "Üye, uygulamayı dilediği zaman cihazından kaldırabilir. Kaldırma tek başına üyeliği sona erdirmez; hesabın kapatılması için on dördüncü madde uygulanır.",
           "Üye, üyeliğini uygulama içindeki hesap ayarları bölümünden doğrudan silme talebinde bulunarak da sona erdirebilir.",
         ],
@@ -10659,7 +10658,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Şirket, teknik bakım, altyapı güncellemesi veya güvenlik gereği Hizmet'i geçici olarak durdurabilir; planlı kesintileri mümkün olduğunca önceden Platform üzerinden duyurur.",
           "Şirket, kişisel verileri 6698 sayılı Kanun'un genel ilkelerine uygun şekilde, belirli, açık ve meşru amaçlarla, sınırlı ve ölçülü olarak işler ve veri güvenliğine ilişkin idari ve teknik tedbirleri alır.",
           "Şirket, mevzuattan doğan bilgi verme ve saklama yükümlülüklerini yerine getirir; yetkili merci taleplerine mevzuatın öngördüğü çerçevede yanıt verir.",
-          "Şirket, ürün fiyatlarını, kampanyaları, puan kazanım oranlarını ve kargo koşullarını ileriye etkili olarak değiştirme hakkını saklı tutar. Onaylanmış ve ödemesi alınmış siparişlerin koşulları ile kazanılmış puanlar bu değişikliklerden etkilenmez.",
+          "Şirket, ürün fiyatlarını, kampanyaları, sadakat kartının hedefini ve kargo koşullarını ileriye etkili olarak değiştirme hakkını saklı tutar. Onaylanmış ve ödemesi alınmış siparişlerin koşulları ile kazanılmış damgalar bu değişikliklerden etkilenmez.",
           "Şirket, açık maddi hata sonucu yanlış gösterilen fiyat veya stok bilgisinde, Üye'yi gecikmeksizin bilgilendirmek ve tahsil edilmiş bedeli iade etmek kaydıyla siparişi iptal edebilir; Üye dilerse doğru fiyat üzerinden siparişi sürdürebilir.",
           "Şirket, Platform'da üçüncü kişilere ait bağlantılara yer verebilir; bu sitelerin içeriğinden ve gizlilik uygulamalarından sorumlu değildir.",
         ],
@@ -10672,8 +10671,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ordered: [
           "Hesaba yetkisiz erişim şüphesi, olağan dışı giriş hareketliliği veya sızdırılmış kimlik bilgisi kullanıldığına dair belirti bulunması.",
           "Ödeme kuruluşu veya banka tarafından işlemin sahtecilik şüphesiyle işaretlenmesi ya da tekrarlayan ters ibraz (chargeback) bildirimi yapılması.",
-          "Aynı gerçek kişiye ait çoklu hesaplar üzerinden kampanya, kupon, puan veya ücretsiz kargo eşiklerinin kötüye kullanıldığının tespiti.",
-          "Ödül Programı puanlarının hile, sahte işlem veya karekodun izinsiz çoğaltılması yoluyla kazanıldığına dair somut belirti bulunması.",
+          "Aynı gerçek kişiye ait çoklu hesaplar üzerinden kampanya, kupon, damga veya ücretsiz kargo eşiklerinin kötüye kullanıldığının tespiti.",
+          "Sadakat damgalarının hile, sahte işlem veya mükerrer hesap yoluyla kazanıldığına dair somut belirti bulunması.",
           "Platform'un işleyişine, güvenliğine veya diğer kullanıcıların haklarına zarar veren teknik davranışların saptanması.",
           "Üye tarafından paylaşılan içeriğin hukuka aykırı olduğunun tespiti veya bu yönde yetkili merciden bildirim gelmesi.",
           "İşbu Sözleşme'nin altıncı maddesinde sayılan taahhütlere aykırılık teşkil eden bir kullanımın belirlenmesi.",
@@ -10681,7 +10680,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Askıya alma kararı ve gerekçesi, Üye'nin kayıtlı e-posta adresine bildirilir.",
           "Üye, bildirimden itibaren {{EMAIL}} adresine yazılı itirazda bulunabilir; itiraz makul sürede incelenir ve sonucu Üye'ye bildirilir.",
-          "Askıya alma sebebi ortadan kalktığında hesap gecikmeksizin yeniden açılır ve dondurulan puan bakiyesi kullanılabilir hâle gelir.",
+          "Askıya alma sebebi ortadan kalktığında hesap gecikmeksizin yeniden açılır ve dondurulan damgalar ile kuponlar kullanılabilir hâle gelir.",
           "Askıya alma, Üye'nin ödemesi tamamlanmış ve teslim bekleyen siparişlerine ilişkin haklarını ortadan kaldırmaz; bu siparişler mevzuata uygun şekilde tamamlanır veya bedeli iade edilir.",
         ],
       },
@@ -10691,7 +10690,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Üye, üyeliğini dilediği zaman, gerekçe göstermeksizin ve herhangi bir bedel ödemeksizin sona erdirebilir. Bu hak, üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilecek şekilde sunulur.",
           "Hesap kapatma talebi; Site'de {{SITE_URL}}/uye/hesap/sil sayfasından, Mobil Uygulama içindeki hesap ayarları bölümündeki hesap silme seçeneğinden veya {{EMAIL}} adresine gönderilecek bir talep ile iletilebilir. Adım adım prosedür ve silinen, anonimleştirilen ve saklanan verilerin listesi {{SITE_URL}}/hukuk/hesap-silme adresinde yayımlanır. Talebin Üye'nin kayıtlı e-posta adresinden gelmesi, kimlik teyidi bakımından esas alınır.",
           "Hesap kapatma talebi alındığında; devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, Şirket bu süreçlerin tamamlanmasını takiben kapatma işlemini uygular ve durumu Üye'ye bildirir.",
-          "Hesabın kapatılmasıyla birlikte Ödül Programı kapsamındaki puan bakiyesi sona erer ve karşılığında herhangi bir bedel ödenmez. Üye, hesabı kapatmadan önce bu sonucu açık şekilde bilgilendirilir ve kalan puanını kullanma imkânı tanınır.",
+          "Hesabın kapatılmasıyla birlikte biriken sadakat damgaları ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında herhangi bir bedel ödenmez. Üye, hesabı kapatmadan önce bu sonucu açık şekilde bilgilendirilir ve dolmuş kartını ödüle çevirme imkânı tanınır.",
           "Üyeliğin sona ermesi, sona erme tarihinden önce kurulmuş satış sözleşmelerinden doğan hakları etkilemez. Üye, teslim aldığı ürünlere ilişkin cayma hakkını, ayıplı mal hükümlerinden doğan seçimlik haklarını ve garanti haklarını üyeliği kapansa dahi mevzuatta öngörülen süreler içinde kullanabilir.",
         ],
       },
@@ -10705,7 +10704,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Adres defteri, favori listesi ve platform içi tercihler hesap kapatıldığında erişime kapatılır.",
-          "Ödül Programı puan bakiyesi hesap kapatıldığında sona erer; puan kazanım ve harcama hareketleri yalnızca yasal saklama süresi boyunca ve olası uyuşmazlıkta delil olmak üzere tutulur.",
+          "Sadakat damgaları hesap kapatıldığında sona erer; damga kazanım, düzeltme ve ödül hareketleri yalnızca yasal saklama süresi boyunca ve olası uyuşmazlıkta delil olmak üzere tutulur.",
           "Mobil Uygulama'ya ait push bildirim tokeni ve cihaz eşleşme kaydı hesap kapatıldığında silinir; uygulamanın cihazdan kaldırılması hâlinde token ayrıca geçersiz hâle gelir.",
           "Ticari elektronik ileti onayı bulunuyorsa, hesabın kapatılmasıyla birlikte ret kaydı İYS üzerine işlenir ve gönderim durdurulur.",
           "Sipariş ve fatura kayıtları, kişiselleştirilmiş pazarlamadan ayrıştırılarak yasal saklama süresi boyunca tutulur.",
@@ -10716,7 +10715,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "16. Şirket Tarafından Fesih",
         paragraphs: [
           "Şirket, işbu Sözleşme'yi aşağıdaki hâllerde feshedebilir. Fesih hakkı, ölçülülük ilkesi gözetilerek ve mümkün olduğunca önce uyarı yapılarak kullanılır.",
-          "Haklı sebebe dayanmayan fesihlerde Şirket, Üye'ye kayıtlı e-posta adresi üzerinden en az otuz gün önceden bildirimde bulunur ve bu süre içinde Üye'nin sipariş geçmişi ile belgelerini indirmesine, kalan puanını kullanmasına imkân tanır.",
+          "Haklı sebebe dayanmayan fesihlerde Şirket, Üye'ye kayıtlı e-posta adresi üzerinden en az otuz gün önceden bildirimde bulunur ve bu süre içinde Üye'nin sipariş geçmişi ile belgelerini indirmesine, dolmuş kartını ödüle çevirmesine ve kuponlarını kullanmasına imkân tanır.",
           "Fesih, Üye'nin ödemesi tamamlanmış siparişlerinden doğan haklarını ve tüketici mevzuatından kaynaklanan taleplerini ortadan kaldırmaz.",
         ],
         ordered: [
@@ -10732,9 +10731,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "17. Kişisel Verilerin Korunması",
         paragraphs: [
           "{{LEGAL_NAME}}, üyelik ilişkisi kapsamında işlenen kişisel veriler bakımından 6698 sayılı Kişisel Verilerin Korunması Kanunu anlamında veri sorumlusudur.",
-          "Kişisel veriler; üyelik hesabının oluşturulması ve yönetilmesi, sipariş ve teslimat süreçlerinin yürütülmesi, ödeme işlemlerinin gerçekleştirilmesi, Ödül Programı kapsamında puan kazanım ve harcama hareketlerinin takibi, müşteri destek taleplerinin karşılanması, hukuki yükümlülüklerin yerine getirilmesi ve bilgi güvenliğinin sağlanması amaçlarıyla, Kanun'un veri işleme şartlarını düzenleyen hükümlerine dayanılarak işlenir.",
-          "Mobil Uygulama kullanıldığında ayrıca cihaz tanımlayıcıları (IDFA/AAID), push bildirim tokeni, uygulama sürümü, işletim sistemi bilgisi ve çökme (crash) kayıtları; Üye izin verirse yaklaşık konum bilgisi; karekod okutulması sırasında ise kamera erişimi söz konusu olur. Kamera görüntüsü kaydedilmez; yalnızca okunan karekodun işlem sonucu tutulur.",
-          "Puan ve harcama geçmişinin, Üye'ye özel teklif ve kampanya oluşturmak amacıyla analiz edilmesi ve profilleme yapılması yalnızca Üye'nin ayrıca vereceği açık rızaya dayanılarak gerçekleştirilir. Açık rıza verilmemesi veya geri alınması, üyeliğin kullanımını ve puan kazanımını engellemez.",
+          "Kişisel veriler; üyelik hesabının oluşturulması ve yönetilmesi, sipariş ve teslimat süreçlerinin yürütülmesi, ödeme işlemlerinin gerçekleştirilmesi, sadakat programı kapsamında damga ve kupon hareketlerinin takibi, müşteri destek taleplerinin karşılanması, hukuki yükümlülüklerin yerine getirilmesi ve bilgi güvenliğinin sağlanması amaçlarıyla, Kanun'un veri işleme şartlarını düzenleyen hükümlerine dayanılarak işlenir.",
+          "Mobil Uygulama kullanıldığında ayrıca, isteklerin sunucuya ulaşmasıyla oluşan işlem güvenliği kayıtları (IP adresi, istek zamanı, uygulama sürümü) işlenir. Uygulama; reklam tanımlayıcısı (IDFA/AAID), konum, kamera ve anlık bildirim (push) tokeni işlemez — hatırlatmalar cihazda planlanır ve sunucuya bildirilmez.",
+          "Harcama geçmişinin, Üye'ye özel teklif ve kampanya oluşturmak amacıyla analiz edilmesi ve profilleme yapılması yalnızca Üye'nin ayrıca vereceği açık rızaya dayanılarak gerçekleştirilir. Açık rıza verilmemesi veya geri alınması, üyeliğin kullanımını ve damga kazanımını engellemez.",
           "Verilerin işlenmesine ilişkin ayrıntılı bilgi; işlenen veri kategorileri, hukuki sebepler, aktarım yapılan taraflar, saklama süreleri ve ilgili kişinin hakları Platform'da yayımlanan Gizlilik ve Kişisel Verilerin Korunması Politikası ile Aydınlatma Metni'nde yer alır.",
           "Barındırma (Vercel), veri tabanı ({{DB_PROVIDER}} üzerinde çalışan PostgreSQL), işlemsel e-posta (Resend) ve ödeme (iyzico) hizmetleri nedeniyle kişisel verilerin yurt dışında bulunan sunuculara aktarılması söz konusu olabilir. Bu aktarımlar, Kanun'un yurt dışına aktarıma ilişkin hükmü çerçevesinde ve uygun güvencelerle gerçekleştirilir; ayrıntılar aydınlatma metninde açıklanır.",
           "İlgili kişi sıfatıyla Üye, Kanun'un ilgili kişinin haklarını düzenleyen hükmünde sayılan taleplerini {{EMAIL}} adresine veya {{ADDRESS}} adresine yazılı olarak iletebilir. Başvurular, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca en geç otuz gün içinde sonuçlandırılır.",
@@ -10744,9 +10743,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading:
           "18. Bülten Aboneliği, Push Bildirim ve Ticari Elektronik İleti Onayı",
         paragraphs: [
-          "Üyelik ile ticari elektronik ileti onayı birbirinden bağımsızdır. Üye, üyeliğini sürdürürken bülten aboneliğinden çıkabileceği gibi, bülten onayı vermeksizin de üyeliğini kesintisiz kullanabilir. Ticari elektronik ileti onayı hiçbir şekilde üyeliğin, sipariş verebilmenin veya puan kazanmanın önkoşulu değildir.",
+          "Üyelik ile ticari elektronik ileti onayı birbirinden bağımsızdır. Üye, üyeliğini sürdürürken bülten aboneliğinden çıkabileceği gibi, bülten onayı vermeksizin de üyeliğini kesintisiz kullanabilir. Ticari elektronik ileti onayı hiçbir şekilde üyeliğin, sipariş verebilmenin veya damga kazanmanın önkoşulu değildir.",
           "Ticari elektronik iletiler, 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca yalnızca önceden alınan onaya dayanılarak gönderilir. Onay ve ret kayıtları İleti Yönetim Sistemi (İYS) üzerine işlenir.",
-          "Mobil Uygulama üzerinden gönderilen push bildirimler bakımından ikili bir ayrım yapılır: siparişin durumu, ödeme sonucu, teslimat bilgisi, hesap güvenliği ve puan kazanımının hesaba işlenmesi gibi bildirimler işlemsel niteliktedir. Buna karşılık kampanya, indirim, yeni ürün duyurusu ve etkinlik daveti içeren push bildirimler tanıtım amaçlı olup, ticari elektronik iletiye ilişkin esaslar çerçevesinde ve yalnızca Üye'nin onayı bulunduğu takdirde gönderilir.",
+          "Mobil Uygulama sunucudan cihaza anlık bildirim (push) göndermez. Uygulamada gösterilen hatırlatmalar Üye'nin kendi açtığı, cihazda planlanan bildirimlerdir; siparişin durumu ve ödülün hazır olması gibi bilgiler ise Uygulama açıldığında sunucudan okunur. Kampanya, indirim, yeni ürün duyurusu ve etkinlik daveti içeren tanıtım iletileri, ticari elektronik iletiye ilişkin esaslar çerçevesinde ve yalnızca Üye'nin onayı bulunduğu takdirde e-posta ile gönderilir.",
           "Onayın kapsamı, veriliş biçimi, ret hakkının kullanımı ve İYS üzerinden yapılabilecek işlemlere ilişkin ayrıntılı düzenleme Platform'da yayımlanan Ticari Elektronik İleti Aydınlatma ve Onay Metni'nde yer alır; işbu madde o metne atıf yapar.",
           "Üye, onayını dilediği zaman ve bedelsiz olarak geri alabilir. Ret bildirimi, her iletide yer alan bağlantı üzerinden, hesap ayarlarından, Mobil Uygulama'nın bildirim tercihleri bölümünden, cihaz ayarlarından, İYS üzerinden veya {{EMAIL}} adresine gönderilecek bir talep ile yapılabilir. Ret talebi, mevzuatta öngörülen süre içinde işleme alınır.",
         ],
@@ -10796,7 +10795,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "22. Sözleşme Değişiklikleri ve Bildirim",
         paragraphs: [
-          "Şirket, mevzuat değişiklikleri, hizmet kapsamındaki gelişmeler veya teknik gereklilikler nedeniyle işbu Sözleşme'de değişiklik yapabilir. Değişiklikler yalnızca ileriye etkili sonuç doğurur; geçmişte kurulmuş satış sözleşmelerine ve kazanılmış puanlara uygulanmaz.",
+          "Şirket, mevzuat değişiklikleri, hizmet kapsamındaki gelişmeler veya teknik gereklilikler nedeniyle işbu Sözleşme'de değişiklik yapabilir. Değişiklikler yalnızca ileriye etkili sonuç doğurur; geçmişte kurulmuş satış sözleşmelerine ve kazanılmış damgalara uygulanmaz.",
           "Üye aleyhine sonuç doğurabilecek esaslı değişiklikler, yürürlüğe girmeden en az on beş gün önce Üye'nin kayıtlı e-posta adresine bildirilir ve Platform'da duyurulur. Yalnızca yazım düzeltmesi, iletişim bilgisi güncellemesi veya mevzuata uyum amaçlı zorunlu değişiklikler bu bildirim süresine tabi değildir.",
           "Üye, değişikliği kabul etmemesi hâlinde üyeliğini bedelsiz olarak sona erdirebilir. Bildirim tarihinden sonra hesabın kullanılmaya devam edilmesi, değişikliklerin kabul edildiği anlamına gelir.",
           "Sözleşme'nin her sürümü bir sürüm numarası ve yürürlük tarihiyle yayımlanır. Sipariş anında yürürlükte olan sürüm, o siparişe ilişkin olarak sipariş kaydına işlenir ve arşivlenir; Üye, kendisine uygulanan sürüme her zaman erişebilir.",
@@ -10813,7 +10812,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Üyelik kaydı ve e-posta doğrulama kayıtları.",
           "Sözleşme onaylarına ilişkin tarih, saat, IP adresi, tarayıcı veya uygulama sürümü ve belge sürümü kayıtları.",
           "Sipariş, sepet, fiyat ve stok hareketi kayıtları.",
-          "Ödül Programı puan kazanım, kullanım ve iade kayıtları ile karekod okutma işlem kayıtları.",
+          "Sadakat damgası kazanım, düzeltme ve ödül kayıtları ile kupon kullanım kayıtları.",
           "iyzico'dan alınan işlem referansları, imzalı bildirim kayıtları ve sonuç sorgulama yanıtları.",
           "İşlemsel e-posta gönderim kayıtları, push bildirim gönderim kayıtları ve İYS onay ile ret kayıtları.",
           "Sunucu erişim kayıtları ve yönetici işlem kayıtları.",
@@ -10831,7 +10830,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "25. Devir, Bölünebilirlik ve Feragat",
         paragraphs: [
-          "Üye, işbu Sözleşme'den doğan hak ve yükümlülüklerini Şirket'in yazılı onayı olmaksızın üçüncü kişilere devredemez; üyelik hesabı ve puan bakiyesi satılamaz, kiralanamaz, devredilemez veya paylaşıma açılamaz.",
+          "Üye, işbu Sözleşme'den doğan hak ve yükümlülüklerini Şirket'in yazılı onayı olmaksızın üçüncü kişilere devredemez; üyelik hesabı, sadakat damgaları ve ücretsiz içecek kuponu satılamaz, kiralanamaz, devredilemez veya paylaşıma açılamaz.",
           "Şirket, işletmenin veya ilgili faaliyet kolunun devri, birleşme ya da yeniden yapılanma hâlinde Sözleşme'yi ve buna bağlı hakları devralan tüzel kişiye devredebilir. Bu durumda Üye'ye önceden bilgi verilir ve Üye üyeliğini bedelsiz sona erdirme hakkına sahiptir.",
           "Sözleşme'nin herhangi bir hükmünün kısmen veya tamamen geçersiz sayılması, diğer hükümlerin geçerliliğini etkilemez. Geçersiz hükmün yerine, tarafların amacına en yakın ve mevzuata uygun düzenleme uygulanır.",
           "Taraflardan birinin Sözleşme'den doğan bir hakkını kullanmaması veya geç kullanması, o haktan feragat ettiği anlamına gelmez.",
@@ -10980,7 +10979,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Uygulama içinden verilen silme talebi anında uygulanır: hesap aynı işlemde kapatılır ve kişisel alanlar silinir.",
           "E-posta veya posta ile iletilen talepler, 6698 sayılı Kanun ve ilgili Tebliğ uyarınca en geç otuz gün içinde sonuçlandırılır. Talebin alındığı, aynı kanaldan teyit edilir.",
-          "Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, silme işlemi bu süreçlerin tamamlanmasının ardından uygulanır ve durum size bildirilir.",
+          'Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, silme işlemi bu süreçlerin tamamlanmasının ardından uygulanır ve durum size bildirilir. Uygulamadan ya da siteden verdiğiniz silme talebi bu durumda hemen uygulanmaz; ekranda "devam eden siparişin var" uyarısı gösterilir ve sipariş tamamlandıktan sonra talebi yineleyebilirsiniz.',
         ],
       },
       {
@@ -10991,6 +10990,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Favori ürün listesi ve kayıtlı her zamanki sipariş tercihi.",
           "Bildirim tercihleri kapatılır; pazarlama izni geri alınmış sayılır.",
           "Parola özeti, doğrulama ve parola sıfırlama anahtarları.",
+          "Giriş kimliğiniz: site ve uygulama için ortak olan üyelik kimliği silinir; aynı e-posta ve parola ile bir daha bu hesaba girilemez. Teknik bir engel nedeniyle kimliğin silinememesi hâlinde kimlik kalıcı olarak kapatılır ve o kimlikle yeniden üyelik açılamaz.",
+          "Bülten aboneliği kaydınız: adres, ad ve onay kaydıyla birlikte tamamen silinir.",
+          "Başarısız giriş denemesi sayaçlarınız: e-posta adresinizle birlikte tutulan deneme ve kilit kayıtları silinir.",
           "Ödeme sağlayıcısında saklanan kartlarınıza ait eşleşme anahtarı. Kart bilgileri zaten bizde tutulmaz; bu anahtarın silinmesiyle kartlara erişim son bulur.",
           "Davet kodunuz serbest bırakılır ve başka bir üyeye verilebilir hâle gelir.",
         ],
@@ -11007,6 +11009,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Karaoke rezervasyonları: gelecek tarihli olanlar iptal edilir, kayıt sahibi yer tutucuya çevrilir.",
           "Davet kayıtları: davet eden ve davet edilen adresleri yer tutucuya çevrilir.",
           "Stok hareketi kayıtlarında işlemi başlatan olarak görünen e-posta adresi yer tutucuya çevrilir.",
+          "Ödeme sağlayıcısından gelen bildirim gövdeleri boşaltılır: mutabakat için yalnızca sağlayıcı adı, işlem referansı, tutar ve işlem durumu kalır; sağlayıcının gönderdiği ad, adres ve maskeli kart bilgisi silinir.",
         ],
       },
       {
@@ -11047,8 +11050,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "9. Silme Sonrasında Yeniden Üyelik",
         paragraphs: [
-          "E-posta adresiniz serbest bırakılır; aynı adresle yeniden üye olabilirsiniz.",
+          "E-posta adresiniz serbest bırakılır; aynı adresle yeniden üye olabilirsiniz. Yeniden üyelik, yeni bir giriş kimliği oluşturulmasını gerektirir: eski parolanız çalışmaz, kayıt adımını baştan tamamlarsınız.",
           "Yeniden üyelik yeni bir kayıt açar. Önceki hesabın sipariş geçmişi, damgaları, kuponları ve tercihleri yeni hesaba taşınmaz ve yeni hesaptan görüntülenemez.",
+          "Kapatılan hesabın kimliğiyle giriş yapılmaya çalışılırsa üyelik açılmaz; hesabın kapatıldığı bildirilir. Bu, kapatılan bir hesabın kendiliğinden yeniden kurulmasını ve hoş geldin kuponunun ikinci kez tanımlanmasını engeller.",
         ],
       },
       {
@@ -11075,11 +11079,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
   },
   {
     slug: "odul-programi",
-    title: "Ödül ve Puan Programı Kuralları",
+    title: "Sadakat (Damga) Programı Kuralları",
     shortTitle: "Ödül Programı",
     category: "Site & Üyelik",
     summary:
-      "{{BRAND}} ödül ve puan programının kuralları: katılım şartları, puanın hukuki niteliği, kazanım yolları ve oranları, kafede QR ile puan kazanma, harcama sınırları, geçerlilik süresi, iade hâlinde puanın geri yüklenmesi ve programın sonlandırılması.",
+      "{{BRAND}} sadakat programının kuralları: damga nasıl kazanılır, kart kaç damgada dolar, ücretsiz içecek kuponu nasıl alınır ve nerede kullanılır, iade hâlinde damgaya ne olur, kademeler ve davet ödülü nasıl işler.",
     references: [
       "4721 sayılı Türk Medeni Kanunu",
       "6098 sayılı Türk Borçlar Kanunu",
@@ -11093,83 +11097,37 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
-      "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu",
       "6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun",
       "213 sayılı Vergi Usul Kanunu",
       "3065 sayılı Katma Değer Vergisi Kanunu",
       "6102 sayılı Türk Ticaret Kanunu",
-      "5846 sayılı Fikir ve Sanat Eserleri Kanunu",
-      "6769 sayılı Sınai Mülkiyet Kanunu",
       "6100 sayılı Hukuk Muhakemeleri Kanunu",
       "7201 sayılı Tebligat Kanunu",
-      "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
     ],
     sections: [
       {
         heading: "1. Program Sahibi ve Kuralların Niteliği",
         paragraphs: [
-          "İşbu Ödül ve Puan Programı Kuralları (Kurallar), aşağıda kimlik ve iletişim bilgileri yer alan {{LEGAL_NAME}} tarafından {{BRAND}} markası altında yürütülen ödül (puan) programının katılım, kazanım, kullanım, sona erme ve iptal koşullarını düzenler. Şirket, işbu metinde kısaca {{SHORT_NAME}} veya Şirket olarak anılır.",
-          "Program, {{SITE_URL}} adresinde yayımlanan internet sitesi, {{BRAND}} mobil uygulaması ve {{ADDRESS}} adresindeki kafe olmak üzere üç kanalda yürütülür. Kurallar, üyelik hesabı bulunan ve programa katılan gerçek kişi (Katılımcı) ile Şirket arasında geçerlidir.",
+          "İşbu Sadakat Programı Kuralları (Kurallar), aşağıda kimlik ve iletişim bilgileri yer alan {{LEGAL_NAME}} tarafından {{BRAND}} markası altında yürütülen damga esaslı sadakat programının katılım, kazanım, kullanım, sona erme ve iptal koşullarını düzenler. Şirket, işbu metinde kısaca {{SHORT_NAME}} veya Şirket olarak anılır.",
+          "Program, {{BRAND}} mobil uygulaması ve {{ADDRESS}} adresindeki kafe olmak üzere iki noktada yürütülür. Kurallar, üyelik hesabı bulunan gerçek kişi (Katılımcı) ile Şirket arasında geçerlidir.",
           "Kurallar, Üyelik Sözleşmesi'nin eki ve ayrılmaz parçası niteliğindedir. Katılımcı, üyelik hesabı üzerinden programa katılmakla işbu Kuralları okuduğunu, anladığını ve hükümleriyle bağlı olduğunu kabul eder. Kurallar ile Üyelik Sözleşmesi, Mesafeli Satış Sözleşmesi veya Ön Bilgilendirme Formu arasında çelişki bulunması hâlinde tüketici lehine olan hüküm uygulanır.",
           "İşbu Kurallar, Katılımcı'nın 6502 sayılı Tüketicinin Korunması Hakkında Kanun ile diğer mevzuattan doğan haklarını sınırlandıracak veya ortadan kaldıracak biçimde yorumlanamaz. Kurallarda yer alan hiçbir hüküm, Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında Yönetmelik anlamında tüketici aleyhine dengesizlik yaratacak şekilde uygulanmaz.",
         ],
         table: [
-          {
-            key: "Ticaret unvanı",
-            value: "{{LEGAL_NAME}}",
-          },
-          {
-            key: "Kısa unvan",
-            value: "{{SHORT_NAME}}",
-          },
-          {
-            key: "Marka",
-            value: "{{BRAND}}",
-          },
-          {
-            key: "Adres",
-            value: "{{ADDRESS}}",
-          },
-          {
-            key: "Telefon",
-            value: "{{PHONE}}",
-          },
-          {
-            key: "E-posta",
-            value: "{{EMAIL}}",
-          },
-          {
-            key: "İnternet sitesi",
-            value: "{{SITE_URL}}",
-          },
-          {
-            key: "Vergi dairesi",
-            value: "{{TAX_OFFICE}}",
-          },
-          {
-            key: "Vergi kimlik numarası",
-            value: "{{TAX_NO}}",
-          },
-          {
-            key: "Vergi türü",
-            value: "{{TAX_TYPE}}",
-          },
-          {
-            key: "İşe başlama tarihi",
-            value: "{{STARTED_AT}}",
-          },
-          {
-            key: "MERSİS numarası",
-            value: "{{MERSIS}}",
-          },
-          {
-            key: "Ticaret sicil numarası",
-            value: "{{TRADE_REGISTRY}}",
-          },
-          {
-            key: "KEP adresi",
-            value: "{{KEP}}",
-          },
+          { key: "Ticaret unvanı", value: "{{LEGAL_NAME}}" },
+          { key: "Kısa unvan", value: "{{SHORT_NAME}}" },
+          { key: "Marka", value: "{{BRAND}}" },
+          { key: "Adres", value: "{{ADDRESS}}" },
+          { key: "Telefon", value: "{{PHONE}}" },
+          { key: "E-posta", value: "{{EMAIL}}" },
+          { key: "İnternet sitesi", value: "{{SITE_URL}}" },
+          { key: "Vergi dairesi", value: "{{TAX_OFFICE}}" },
+          { key: "Vergi kimlik numarası", value: "{{TAX_NO}}" },
+          { key: "Vergi türü", value: "{{TAX_TYPE}}" },
+          { key: "İşe başlama tarihi", value: "{{STARTED_AT}}" },
+          { key: "MERSİS numarası", value: "{{MERSIS}}" },
+          { key: "Ticaret sicil numarası", value: "{{TRADE_REGISTRY}}" },
+          { key: "KEP adresi", value: "{{KEP}}" },
         ],
       },
       {
@@ -11178,14 +11136,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "İşbu Kurallarda geçen terimler aşağıda gösterilen anlamları taşır. Tanımlarda kullanılan tekil ifadeler çoğulu, çoğul ifadeler tekili de kapsar.",
         ],
         table: [
-          {
-            key: "Şirket",
-            value: "{{LEGAL_NAME}} ({{SHORT_NAME}})",
-          },
+          { key: "Şirket", value: "{{LEGAL_NAME}} ({{SHORT_NAME}})" },
           {
             key: "Program",
             value:
-              "Şirket'in {{BRAND}} markası altında yürüttüğü, üyelik hesabına bağlı ödül ve puan programı",
+              "Şirket'in {{BRAND}} markası altında yürüttüğü, üyelik hesabına bağlı damga esaslı sadakat programı",
           },
           {
             key: "Katılımcı",
@@ -11193,468 +11148,294 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "On sekiz yaşını doldurmuş, fiil ehliyetine sahip, doğrulanmış üyelik hesabı bulunan ve Programa katılan gerçek kişi",
           },
           {
-            key: "Site",
-            value:
-              "{{SITE_URL}} alan adı ve alt alan adları üzerinden yayımlanan internet sitesi",
-          },
-          {
             key: "Uygulama",
             value:
-              "Şirket'in iOS ve Android platformları için yayımladığı; menü görüntüleme, sipariş, üyelik, puan takibi, kafede QR okutma ve bildirim işlevlerini sunan {{BRAND}} mobil uygulaması",
+              "App Store ve Google Play üzerinden dağıtılan {{BRAND}} mobil uygulaması",
           },
           {
             key: "Kafe",
-            value:
-              "Şirket'in {{ADDRESS}} adresinde işlettiği {{BRAND}} kahve ve gelato bar işletmesi",
+            value: "{{ADDRESS}} adresindeki {{BRAND}} kafesi (tek şube)",
           },
           {
-            key: "Puan",
+            key: "Damga",
             value:
-              "Katılımcı'nın Program kapsamında kazandığı, yalnızca {{BRAND}} kanallarında indirim olarak kullanılabilen sanal değer birimi",
+              "Kartta bir hâne dolduran, kendi başına parasal karşılığı bulunmayan sayısal kayıt",
           },
           {
-            key: "Puan Bakiyesi",
+            key: "Kart",
             value:
-              "Katılımcı'nın üyelik hesabında kayıtlı, kullanılabilir durumdaki toplam puan miktarı",
+              "Damgaların biriktiği dijital kart; dolması için gereken damga sayısı Hedef'tir",
           },
           {
-            key: "Bekleyen Puan",
+            key: "Hedef",
             value:
-              "Kazanılmış ancak henüz kullanılabilir hâle gelmemiş, ilgili siparişin tamamlanmasını ve cayma süresinin dolmasını bekleyen puan",
+              "Kartın dolması için gereken damga sayısı; varsayılan 6, Şirket tarafından 3 ile 20 arasında belirlenebilir",
           },
           {
-            key: "Puan Hareketi",
+            key: "Ödül",
             value:
-              "Her kazanım, harcama, geri yükleme, geri alma ve sona erme işleminin tarih, tutar ve gerekçe bilgisiyle tutulduğu kayıt",
+              "Kart dolduğunda hesaba tanımlanan ücretsiz içecek kuponu (varsayılan üst sınır 280,00 ₺, varsayılan geçerlilik 90 gün)",
           },
           {
-            key: "Puan Değeri",
+            key: "Kasa Damgası",
             value:
-              "1 Puan karşılığında sağlanan indirim tutarı; işbu Kuralların yürürlük tarihi itibarıyla 1 Puan = 1 Türk lirası indirim",
+              "Kafede personel tarafından üyelik hesabına elle eklenen damga",
           },
           {
-            key: "QR Kod",
+            key: "Damga Defteri",
             value:
-              "Kafede masa, kasa veya adisyon üzerinde gösterilen ve Uygulama ile okutularak ziyaret ve harcamanın doğrulanmasını sağlayan tek kullanımlık kare kod",
-          },
-          {
-            key: "Ürün Bedeli",
-            value:
-              "Sipariş kalemlerinin vergiler dâhil toplam tutarı; kargo bedeli, kapıda ödeme farkı ve benzeri hizmet bedelleri bu tutara dâhil değildir",
-          },
-          {
-            key: "Promosyon Kodu",
-            value:
-              "Şirket tarafından tanımlanan, sepette ayrı bir alana girilerek uygulanan indirim kodu",
-          },
-          {
-            key: "iyzico",
-            value:
-              "Şirket'in sanal POS ve ödeme hizmetlerini aldığı, 6493 sayılı Kanun kapsamında yetkilendirilmiş ödeme kuruluşu",
-          },
-          {
-            key: "Program Kuralları Ekranı",
-            value:
-              "Site ve Uygulama içinde yayımlanan, güncel kazanım oranlarının, kapsam dışı ürünlerin ve sınırların gösterildiği ekran",
+              "Kazanım, düzeltme ve ödül kayıtlarının tutulduğu, yalnızca satır eklenen kayıt; bakiye her zaman bu kayıttan hesaplanır",
           },
         ],
       },
       {
         heading: "3. Programın Amacı ve Kapsamı",
         paragraphs: [
-          "Programın amacı, {{BRAND}} müşterilerinin çevrimiçi alışverişlerini ve kafe ziyaretlerini ödüllendirmek, düzenli müşterilere sonraki alışverişlerinde kullanabilecekleri indirim imkânı sunmaktır.",
-          "Programa katılım isteğe bağlıdır ve ücretsizdir. Programa katılmamak, üyelik hesabının açılmasına, sipariş verilmesine veya kafeden hizmet alınmasına engel değildir. Programdan ayrılmak da her zaman mümkündür ve bedelsizdir.",
+          "Programın amacı, {{BRAND}} kafesinden düzenli hizmet alan müşterileri ödüllendirmektir. Belirli sayıda kafe siparişini tamamlayan Katılımcı'ya bir ücretsiz içecek kuponu tanımlanır.",
+          "Programa katılım isteğe bağlıdır ve ücretsizdir. Programa katılmamak, üyelik hesabının açılmasına, sipariş verilmesine veya kafeden hizmet alınmasına engel değildir.",
           "Program, bir tasarruf, yatırım veya birikim ürünü değildir; katılım karşılığında Katılımcı'dan aidat, üyelik ücreti veya asgari harcama taahhüdü alınmaz.",
-          "Program yalnızca gerçek kişi tüketicilere yöneliktir. Kurumsal, toptan veya yeniden satış amaçlı alımlar ile Şirket'in ayrı yazılı sözleşmeye bağladığı kurumsal satışlar Program kapsamı dışındadır.",
+          "Program yalnızca gerçek kişi tüketicilere yöneliktir. Kurumsal, toptan veya yeniden satış amaçlı alımlar Program kapsamı dışındadır.",
         ],
         bullets: [
-          "Program kapsamında puan kazanılabilecek kanallar: Site üzerindeki çevrimiçi mağaza, Uygulama üzerinden verilen siparişler ve Kafe'de Uygulama ile QR kod okutularak doğrulanan harcamalar.",
-          "Program, Şirket'in kendi kanallarıyla sınırlıdır; üçüncü kişi pazar yerleri, yemek ve teslimat platformları ile bayi veya toptan satış kanalları kapsam dışıdır.",
+          "Damga yalnızca Uygulama üzerinden verilen ve ödemesi tamamlanan kafe siparişlerinden ve Kafe'de kasada elle eklenen Kasa Damgası'ndan kazanılır.",
+          "Çevrimiçi mağaza (kargo ile gönderilen paket ürünler) siparişlerinden damga kazanılmaz.",
+          "İnternet sitesinden verilen siparişlerden damga kazanılmaz; damga Uygulama siparişlerine bağlıdır.",
+          "Program, Şirket'in kendi kanallarıyla sınırlıdır; üçüncü kişi pazar yerleri ile yemek ve teslimat platformları kapsam dışıdır.",
           "Bankaların kendi kart programları kapsamında sundukları puan, mil, taksit ve benzeri kampanyalar bu Programdan bağımsızdır; bu kampanyaların yürütücüsü ilgili banka olup muhatap Katılımcı'nın bankasıdır.",
-          "Hediye kartı, hediye çeki benzeri araçların satın alınması ile kargo, ambalaj ve benzeri hizmet bedelleri puan kazanımına esas alınmaz.",
-          "Program kapsamı dışında tutulan ürün grupları, varsa, Program Kuralları Ekranı'nda ve ilgili ürün sayfasında açıkça gösterilir.",
+          "Kargo, ambalaj ve benzeri hizmet bedelleri ile hediye kartı benzeri araçların satın alınması damga kazanımına esas alınmaz.",
         ],
       },
       {
-        heading: "4. Katılım Şartları ve Programa Kayıt",
+        heading: "4. Katılım Şartları",
         paragraphs: [
-          "Programa katılım, doğrulanmış üyelik hesabı bulunmasına bağlıdır. Misafir olarak verilen siparişlerden puan kazanılmaz; sipariş sonrasında üyelik açılması hâlinde geçmişe dönük puan tanımlanmaz.",
-          "Program, on sekiz yaşını doldurmuş ve 4721 sayılı Türk Medeni Kanunu anlamında fiil ehliyetine sahip gerçek kişilere açıktır. Katılımcı, programa katılmakla bu şartları taşıdığını beyan eder. Yaş şartını taşımadığı tespit edilen hesaplarda Program kapatılır ve tanımlanmış puanlar iptal edilir.",
-          "Her gerçek kişi yalnızca bir Program hesabına sahip olabilir. Aynı kişiye ait olduğu tespit edilen birden fazla hesapta biriken puanlar birleştirilmez; Şirket, mükerrer hesapları kapatma ve bu hesaplarda kötüye kullanım yoluyla biriktirilmiş puanları iptal etme hakkını saklı tutar.",
-          "Puan bakiyesi ve puan hareketleri, üyelik hesabına giriş yapılarak Site'deki hesap panelinden ve Uygulama içindeki puan ekranından görüntülenebilir.",
-        ],
-        ordered: [
-          "Katılımcı, Site veya Uygulama üzerinden üyelik hesabı oluşturur ve e-posta adresini doğrular.",
-          "Hesap ayarlarındaki ödül programı bölümünden katılım onayı verilir; onay anına ilişkin tarih, saat ve belge sürümü kayıt altına alınır.",
-          "Katılım onayının ardından hesapta puan bakiyesi açılır ve kazanımlar bu bakiyeye işlenir.",
-          "Katılımcı, hesap ayarlarındaki aynı bölümden veya {{EMAIL}} adresine göndereceği bir talep ile Programdan her zaman bedelsiz olarak ayrılabilir.",
-          "Programdan ayrılma hâlinde kullanılmamış puanlar sona erer; bu nedenle Katılımcı lehine herhangi bir alacak, tazminat veya iade hakkı doğmaz. Katılımcı, ayrılmadan önce puanlarını harcayabilir.",
-          "Programdan ayrılan Katılımcı, dilerse daha sonra yeniden katılabilir; ancak sona ermiş puanlar yeniden yüklenmez.",
+          "Programa katılım, doğrulanmış üyelik hesabı bulunmasına bağlıdır. Kimlik doğrulaması, site ve Uygulama için ortak olan üyelik altyapısı üzerinden e-posta adresi ve parola ile yapılır; Katılımcı'dan bunun dışında bir kimlik belgesi istenmez.",
+          "Misafir olarak veya üyelik hesabına giriş yapılmadan verilen siparişlerden damga kazanılmaz; sipariş sonrasında üyelik açılması hâlinde geçmişe dönük damga tanımlanmaz.",
+          "Program, on sekiz yaşını doldurmuş ve 4721 sayılı Türk Medeni Kanunu anlamında fiil ehliyetine sahip gerçek kişilere açıktır. Katılımcı, programa katılmakla bu şartları taşıdığını beyan eder.",
+          "Her gerçek kişi yalnızca bir Program hesabına sahip olabilir. Aynı kişiye ait olduğu tespit edilen birden fazla hesapta biriken damgalar birleştirilmez; Şirket, mükerrer hesapları kapatma ve kötüye kullanım yoluyla biriktirilmiş damgaları iptal etme hakkını saklı tutar.",
+          "Damga bakiyesi, kartın doluluğu ve damga hareketleri Uygulama'nın ödüller ekranından her zaman görüntülenebilir.",
         ],
       },
       {
-        heading: "5. Puanın Hukuki Niteliği",
+        heading: "5. Damganın Hukuki Niteliği",
         paragraphs: [
-          "Puan, Şirket tarafından tek taraflı olarak tanımlanan ve yalnızca {{BRAND}} kanallarında indirim sağlamaya yarayan sanal bir değer birimidir. Puanın hukuki niteliği, Şirket'in Katılımcı'ya sonraki alışverişlerinde indirim sağlama yönündeki taahhüdünden ibarettir.",
-          "Puan bir para birimi değildir; 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun anlamında elektronik para, ödeme aracı veya ödeme hizmeti niteliğinde değildir. Şirket, puan ihracı nedeniyle bir ödeme kuruluşu veya elektronik para kuruluşu sıfatını haiz olmaz.",
-          "Puan, sermaye piyasası mevzuatı anlamında menkul kıymet veya yatırım aracı değildir; getiri, faiz veya değer artışı sağlamaz. Puan üzerinde faiz işletilmez ve enflasyon veya kur farkı uygulanmaz.",
-          "Puanın kazanılması, Katılımcı'ya Şirket'ten nakit ödeme talep etme hakkı vermez. Puan, yalnızca işbu Kurallarda belirtilen usul ve sınırlar çerçevesinde indirim olarak kullanılabilir.",
+          "Damga, Şirket tarafından tek taraflı olarak tanımlanan ve yalnızca kartın dolması hâlinde bir ücretsiz içecek kuponu doğuran sayısal bir kayıttır. Damganın hukuki niteliği, Şirket'in Katılımcı'ya Hedef sayıda kafe siparişi sonrasında ücretsiz içecek sunma yönündeki taahhüdünden ibarettir.",
+          "Damga bir para birimi değildir; 6493 sayılı Kanun anlamında elektronik para, ödeme aracı veya ödeme hizmeti niteliğinde değildir. Şirket, damga tanımlanması nedeniyle bir ödeme kuruluşu veya elektronik para kuruluşu sıfatını haiz olmaz.",
+          "Damganın tek başına parasal bir karşılığı yoktur; kart dolmadan hiçbir tutara dönüşmez. Damga üzerinde faiz işletilmez, kur farkı veya değerleme uygulanmaz.",
+          "Damganın kazanılması, Katılımcı'ya Şirket'ten nakit ödeme talep etme hakkı vermez.",
         ],
         bullets: [
-          "Puan nakde çevrilemez, banka hesabına aktarılamaz ve karşılığında para iadesi talep edilemez.",
-          "Puan üçüncü kişilere devredilemez, satılamaz, hediye edilemez veya başka bir üyelik hesabına aktarılamaz.",
-          "Puan, birden fazla üyelik hesabında toplanamaz ve aile üyeleri, arkadaşlar veya çalışanlar arasında birleştirilemez.",
-          "Puan mirasa konu olmaz; Katılımcı'nın ölümü hâlinde hesap kapatılır ve kullanılmamış puanlar sona erer. Bu hâlde mirasçıların, ölüm tarihinden önce kurulmuş satış sözleşmelerinden doğan hakları saklıdır.",
-          "Puan, Şirket'e karşı ileri sürülebilecek muaccel bir para alacağı teşkil etmez; bu nedenle takas, mahsup, temlik veya haciz işlemlerine konu edilemez.",
-          "Puan, ödeme aracı olarak üçüncü kişi iş yerlerinde veya {{BRAND}} dışındaki hiçbir kanalda kullanılamaz.",
+          "Damga ve ondan doğan ücretsiz içecek kuponu nakde çevrilemez, banka hesabına aktarılamaz ve karşılığında para iadesi talep edilemez.",
+          "Damga üçüncü kişilere devredilemez, satılamaz, hediye edilemez veya başka bir üyelik hesabına aktarılamaz.",
+          "Damga, birden fazla üyelik hesabında toplanamaz ve aile üyeleri, arkadaşlar veya çalışanlar arasında birleştirilemez.",
+          "Damga mirasa konu olmaz; Katılımcı'nın ölümü hâlinde hesap kapatılır ve kullanılmamış damgalar sona erer. Bu hâlde mirasçıların, ölüm tarihinden önce kurulmuş satış sözleşmelerinden doğan hakları saklıdır.",
+          "Damga, Şirket'e karşı ileri sürülebilecek muaccel bir para alacağı teşkil etmez; takas, mahsup, temlik veya haciz işlemlerine konu edilemez.",
+          "Damga ve ücretsiz içecek kuponu, {{BRAND}} dışındaki hiçbir iş yerinde kullanılamaz.",
         ],
       },
       {
-        heading: "6. Puan Kazanma Yolları ve Kazanım Oranları",
+        heading: "6. Damga Kazanma Yolları",
         paragraphs: [
-          "Katılımcı, aşağıdaki tabloda gösterilen yollarla puan kazanır. Tabloda yer alan oran ve tutarlar, işbu Kuralların yürürlük tarihi itibarıyla geçerli olan değerlerdir. Güncel değerler her zaman Site ve Uygulama içindeki Program Kuralları Ekranı'nda yayımlanır ve o ekranda gösterilen değerler esas alınır.",
-          "Kazanım hesabında, siparişin vergiler dâhil ürün bedeli esas alınır. Kargo bedeli, varsa hizmet bedelleri ve puan ile karşılanan tutar kazanım hesabına dâhil edilmez; yani puanla ödenen kısımdan yeniden puan kazanılmaz. Promosyon kodu uygulanan siparişlerde kazanım, indirim düşüldükten sonra fiilen ödenen tutar üzerinden hesaplanır.",
-          "Puanlar tam sayı olarak tanımlanır. Kazanım hesabında ortaya çıkan ve tam puana ulaşmayan küsuratlı kısım silinmez; Katılımcı'nın hesabında saklanır ve bir sonraki kazanım hesabına eklenerek tam puana ulaştığında bakiyeye işlenir. Kazanılan puan, sipariş özetinde ve sipariş onayı e-postasında gösterilir.",
-          "Şirket, belirli dönemlerde çift puan, ek puan veya kategoriye özgü kampanyalar düzenleyebilir. Bu kampanyaların koşulları, süresi ve varsa üst sınırı kampanya duyurusunda gösterilir; duyuruda aksi belirtilmedikçe kampanya puanları da işbu Kurallara tabidir.",
+          "Damga yalnızca iki yoldan kazanılır ve her ikisinde de kazanım, üyelik hesabına bağlıdır.",
+          "Birincisi, Uygulama üzerinden verilen bir kafe siparişinin ödemesinin tamamlanmasıdır: ödeme onaylandığı anda hesaba bir damga işlenir. Sipariş tutarının büyüklüğü, sipariş içindeki ürün adedi ve ürün çeşidi damga sayısını değiştirmez; her ödenmiş kafe siparişi bir damga demektir.",
+          "İkincisi, Kafe'de kasada personelin üyelik hesabına elle eklediği Kasa Damgası'dır. Bu yol, uygulama üzerinden verilmeyen kafe içi harcamalar ile Şirket'in uygun gördüğü hâllerde kullanılır ve tamamen Şirket'in takdirindedir.",
+          "Damga sayısı, Katılımcı'nın kademesinden, ödeme yönteminden veya kullandığı indirimden etkilenmez.",
         ],
         table: [
           {
-            key: "Puanın değeri",
-            value: "1 Puan = 1 Türk lirası indirim",
+            key: "Uygulamadan ödenmiş kafe siparişi",
+            value: "Sipariş başına 1 damga",
           },
           {
-            key: "Çevrimiçi alışveriş",
-            value:
-              "Vergiler dâhil ürün bedelinin her 50 Türk lirası için 1 Puan",
+            key: "Çevrimiçi mağaza (kargo) siparişi",
+            value: "Damga kazandırmaz",
           },
           {
-            key: "Kafede QR ile ziyaret",
-            value:
-              "Adisyon tutarının her 50 Türk lirası için 1 Puan; günde en çok bir adisyon için",
+            key: "İnternet sitesinden verilen sipariş",
+            value: "Damga kazandırmaz",
           },
           {
-            key: "İlk üyelik ve e-posta doğrulaması",
-            value: "Bir defaya mahsus 25 Puan",
+            key: "Kafede kasada eklenen damga",
+            value: "İşlem başına 1 damga (Şirket'in takdirinde)",
           },
           {
-            key: "Doğum günü",
-            value:
-              "Doğum tarihini hesabına ekleyen Katılımcı'ya takvim yılında bir kez 25 Puan",
-          },
-          {
-            key: "Ürün değerlendirmesi yazma",
-            value:
-              "Satın alınan ve teslim edilen ürün için yazılan her yayımlanmış değerlendirmeye 5 Puan; ayda en çok 3 değerlendirme",
-          },
-          {
-            key: "Arkadaş daveti (davet eden)",
-            value:
-              "Davet edilen kişinin üyelik açıp ilk siparişini tamamlaması hâlinde 30 Puan; takvim yılında en çok 10 davet",
-          },
-          {
-            key: "Arkadaş daveti (davet edilen)",
-            value: "İlk siparişin tamamlanmasının ardından 15 Puan",
-          },
-          {
-            key: "Kazanıma esas alınmayan tutarlar",
-            value:
-              "Kargo bedeli, puanla karşılanan tutar, iptal veya iade edilen kalemler ve hediye kartı benzeri araç alımları",
+            key: "Ödemesi tamamlanmamış sipariş",
+            value: "Damga kazandırmaz",
           },
         ],
       },
       {
-        heading: "7. Kafede QR Kod ile Puan Kazanma",
+        heading: "7. Kafede Kasada Damga Eklenmesi",
         paragraphs: [
-          "Kafede yapılan harcamalardan puan kazanmak için, ödeme sırasında Uygulama içindeki puan ekranından adisyona veya kasada gösterilen QR kodun okutulması gerekir. QR kod okutulmadan tamamlanan kafe harcamaları için sonradan puan tanımlanmaz.",
-          "QR kod ile puan kazanılabilmesi, ziyaretin ve harcama tutarının Şirket kayıtlarıyla doğrulanmasına bağlıdır. QR kodlar tek kullanımlıktır, belirli bir adisyona bağlıdır ve sınırlı süre için geçerlidir; süresi dolan kod okutulamaz.",
-          "QR kod okutulabilmesi için Uygulama'nın kamera erişimine izin verilmesi gerekir. Kamera erişimi yalnızca kodun okunması amacıyla ve okuma anında kullanılır; kamera görüntüsü kaydedilmez, saklanmaz ve üçüncü kişilerle paylaşılmaz. İzin verilmemesi hâlinde diğer puan kazanma yolları kullanılabilir.",
-          "Kafede kazanılan puanlar, adisyonun kapanması ve ödemenin tamamlanmasının ardından hesaba işlenir. Kafede yapılan yüz yüze satışlar mesafeli sözleşme niteliğinde olmadığından bu harcamalarda cayma hakkı bulunmaz; bu nedenle kafe puanları için ayrıca bekleme süresi uygulanmaz.",
-        ],
-        bullets: [
-          "Aynı QR kodun birden fazla kez okutulması, başka kişiye ait kodun kullanılması veya kodun fotoğraflanarak paylaşılması hâlinde ilgili puanlar geri alınır.",
-          "Bir takvim gününde en çok bir adisyon için kafe puanı tanımlanır; aynı gün içindeki ek ziyaretler kazanım doğurmaz.",
-          "Ekran görüntüsü, çoğaltılmış veya değiştirilmiş kod ile puan kazanma girişimi kötüye kullanım sayılır ve işbu Kuralların on altıncı maddesi uyarınca işlem yapılır.",
-          "Teknik bir arıza nedeniyle QR kodun okutulamaması hâlinde Katılımcı, adisyon numarası ve tarih bilgisiyle {{EMAIL}} adresine başvurarak puanın elle tanımlanmasını talep edebilir; talep, kasa kayıtlarıyla doğrulandığı takdirde karşılanır.",
-          "Kafede puan kazanmak için kimlik belgesi ibrazı istenmez; doğrulama yalnızca üyelik hesabı ve adisyon kaydı üzerinden yapılır.",
+          "Kasa Damgası, personel tarafından Şirket'in yönetim panelinden Katılımcı'nın üyelik e-posta adresi seçilerek eklenir. İşlem kasada, personelin kendi yetkili hesabı üzerinden yapılır.",
+          "Katılımcı'dan bu işlem için Uygulama üzerinden karekod okutması istenmez. Uygulama, damga kazanmak amacıyla Katılımcı'nın kamerasına erişmez ve herhangi bir karekod okuyucu içermez; kafede karekod okutularak damga kazanma yöntemi bulunmamaktadır.",
+          "Kasada eklenen her damga, işlemi yapan personelin kimliği ve işlem anı ile birlikte Damga Defteri'ne yazılır. Yanlışlıkla eklenen bir damga, aynı panelden bir düzeltme kaydı yazılarak geri alınabilir (bkz. 14. madde).",
+          "Katılımcı, kasada eklenen damganın hesabına işlendiğini Uygulama'nın ödüller ekranından derhâl görebilir.",
         ],
       },
       {
-        heading: "8. Puanın Hesaba Geçmesi ve Bekleme Süresi",
+        heading: "8. Damganın Hesaba Geçmesi",
         paragraphs: [
-          "Çevrimiçi siparişlerden kazanılan puanlar, sipariş oluşturulduğu anda Bekleyen Puan olarak gösterilir. Bu puanlar, siparişin durumu tamamlandı olarak güncellendikten ve cayma hakkının kullanılabileceği on dört günlük süre dolduktan sonra kullanılabilir Puan Bakiyesi'ne aktarılır.",
-          "Bekleme süresi, Katılımcı'nın cayma hakkını kullanması veya siparişin iade edilmesi hâlinde Şirket'in puanı gereksiz yere geri almak zorunda kalmasını önlemek amacıyla uygulanır. Bekleyen puanlar hesap panelinde ve Uygulama'da ayrı olarak gösterilir; ne zaman kullanılabilir hâle geleceği tarih bilgisiyle belirtilir.",
-          "Ödemesi tamamlanmayan, iptal edilen veya ödemesi iyzico ya da kartı veren banka tarafından reddedilen siparişler için puan tanımlanmaz; tanımlanmışsa geri alınır.",
-          "Kafede QR kod ile kazanılan puanlar ile üyelik, doğum günü ve davet puanları, ilgili koşulun gerçekleşmesinin ardından doğrudan kullanılabilir bakiyeye işlenir.",
-        ],
-        bullets: [
-          "Sipariş iptal edilirse, o siparişten kazanılan bekleyen puanlar hesaptan düşülür.",
-          "Kısmi iadelerde, iade edilen kalemlere karşılık gelen puanlar iade oranında geri alınır; siparişin iade edilmeyen kısmına ait puanlar korunur.",
-          "Geri alınacak puanın hesapta bulunmaması hâlinde eksi bakiye oluşturulmaz; geri alınacak tutar sonraki kazanımlardan mahsup edilir ve Katılımcı'dan bu nedenle nakit ödeme talep edilmez.",
-          "Ürün değerlendirmesi puanı, değerlendirmenin yayımlanmasının ardından tanımlanır; hakaret, reklam, alakasız içerik veya üçüncü kişilerin haklarını ihlal ettiği için yayımlanmayan değerlendirmeler puan doğurmaz.",
-          "Davet puanı, davet edilen kişinin siparişinin tamamlanmasının ve cayma süresinin dolmasının ardından tanımlanır; davet edilen kişinin siparişini iade etmesi hâlinde davet puanı geri alınır.",
+          "Uygulama siparişinden doğan damga, ödemenin onaylandığı anda hesaba işlenir; ayrı bir bekleme veya olgunlaşma süresi uygulanmaz.",
+          "Damga Defteri yalnızca satır eklenen bir kayıttır: hiçbir kayıt silinerek bakiye düzeltilmez, düzeltmeler ayrı bir satır olarak yazılır. Bakiye her zaman bu satırlardan yeniden hesaplanır.",
+          "Aynı siparişin ödeme bildirimi teknik nedenlerle birden fazla kez ulaşsa dahi o siparişten yalnızca bir damga kazanılır.",
+          "Teknik bir aksaklık nedeniyle hesaba işlenmemiş bir damga, Katılımcı'nın {{EMAIL}} adresine yapacağı başvuru üzerine sipariş kaydı incelenerek elle tanımlanır.",
         ],
       },
       {
-        heading: "9. Puanın Harcanması ve Sınırlar",
+        heading: "9. Kartın Dolması ve Ödülün Alınması",
         paragraphs: [
-          "Katılımcı, kullanılabilir puan bakiyesinin tamamını veya bir kısmını, aşağıdaki sınırlar çerçevesinde sipariş bedelinden indirim olarak kullanabilir. Puan kullanımı isteğe bağlıdır; sistem, Katılımcı'nın onayı olmaksızın kendiliğinden puan harcamaz.",
-          "Puan kullanılabilmesi için hesapta en az 50 puan bulunması gerekir. Bir siparişte veya adisyonda kullanılabilecek azami puan, o siparişin vergiler dâhil ürün bedelinin yüzde otuzuna karşılık gelen tutarı aşamaz. Bu sınırlar, Program Kuralları Ekranı'nda güncel hâliyle yayımlanır.",
-          "Puan yalnızca ürün bedeline uygulanır; kargo bedeline, kapıda ödeme farkına ve benzeri hizmet bedellerine uygulanmaz. Puanla karşılanan tutar, ücretsiz kargo eşiğinin hesabında dikkate alınmaz; eşik, indirim öncesi ürün bedeli üzerinden değerlendirilir.",
-          "Puan harcamasında, geçerlilik süresi en yakın tarihte dolacak puanlar öncelikle kullanılır. Bu yöntem, Katılımcı'nın puanlarının süre dolması nedeniyle sona ermesini olabildiğince önlemek amacıyla uygulanır.",
-          "Bir sipariş tamamlandıktan sonra o siparişe geriye dönük puan uygulanması mümkün değildir. Katılımcı, siparişini iptal edip yeniden oluşturmak suretiyle puan kullanabilir.",
-        ],
-        bullets: [
-          "Asgari kullanım eşiği: 50 puan.",
-          "Azami kullanım oranı: sipariş veya adisyon ürün bedelinin yüzde otuzu.",
-          "Puanla karşılanan tutar, sipariş özetinde, Ön Bilgilendirme Formu'nda, sipariş onayı e-postasında ve faturada ayrı bir satır olarak gösterilir.",
-          "Puan düşüldükten sonra kalan Türk lirası tutar, iyzico sanal POS altyapısı üzerinden kredi kartı veya banka kartı ile tahsil edilir.",
-          "Puanla ödenen kısımdan yeni puan kazanılmaz.",
-          "Kafede puan kullanımı, ödeme öncesinde Uygulama üzerinden puan kullanma seçeneğinin işaretlenmesi ve kasada doğrulanması ile yapılır.",
+          "Kart, Hedef sayıda damga biriktiğinde dolar. Hedef varsayılan olarak 6'dır; Şirket bu sayıyı 3 ile 20 arasında belirleyebilir ve güncel değer Uygulama'nın ödüller ekranındaki kart üzerinde gösterilir.",
+          "Kart dolduğunda ödül kendiliğinden verilmez: Katılımcı, Uygulama'daki ödüller ekranından ödülü almayı seçer. Bu işlemle Hedef sayıda damga karttan düşülür ve hesaba bir ücretsiz içecek kuponu tanımlanır.",
+          "Ödül alındığı anda kartta kalan fazla damgalar yeni karta devreder; birden fazla dolu kart varsa her biri ayrı ayrı ödüle çevrilebilir.",
+          "Kart dolmadan ödül talep edilemez; damga yeterli değilse talep reddedilir ve karttan damga düşülmez.",
         ],
       },
       {
-        heading: "10. Promosyon Kodları ve Diğer Kampanyalarla Birleştirme",
+        heading: "10. Ücretsiz İçecek Kuponunun Kullanımı ve Sınırları",
         paragraphs: [
-          "Puan indirimi ile promosyon kodu aynı siparişte birlikte kullanılamaz. Katılımcı, sepet adımında hangisini kullanacağını seçer; sistem, seçilmeyen indirimi otomatik olarak uygulamaz ve seçim değiştirilebilir.",
-          "Bu sınırlama, tek bir sipariş üzerinde birden fazla indirim mekanizmasının üst üste binmesini önlemeye yöneliktir. Sepet adımında, hangi seçeneğin Katılımcı açısından daha avantajlı olduğu tutar olarak gösterilir; böylece Katılımcı bilinçli seçim yapabilir.",
-          "İndirimli, kampanyalı veya kapsam dışı olarak işaretlenmiş ürünlerde puan kazanımı veya kullanımı sınırlandırılabilir. Bu sınırlama yalnızca ürün sayfasında ve sepet adımında açıkça gösterilmişse uygulanır.",
-          "Kullanılmayan promosyon kodu, puan seçildiği için işlevsiz kalmaz; kodun geçerlilik süresi içinde başka bir siparişte kullanılabilir. Aynı şekilde, promosyon kodu seçilen siparişte puanlar harcanmamış olarak bakiyede kalır.",
+          "Ödül, hesaba tanımlanan bir ücretsiz içecek kuponudur. Kupon, sipariş toplamından sabit bir tutarı düşer; bu tutar varsayılan olarak 280,00 ₺'dir ve Şirket tarafından güncellenebilir. Sipariş tutarı bu üst sınırın altındaysa yalnızca sipariş tutarı kadar indirim uygulanır, aradaki fark Katılımcı'ya iade edilmez veya bakiye olarak saklanmaz.",
+          "Kupon yalnızca kafe siparişlerinde geçerlidir; çevrimiçi mağazadan verilen kargo siparişlerinde kullanılamaz. Bu sınır sepet ekranında ve ödeme adımında gösterilir.",
+          "Kupon tek kullanımlıktır ve tanımlandığı üyelik hesabına bağlıdır; devredilemez.",
+          "Kuponun geçerlilik süresi varsayılan olarak tanımlandığı tarihten itibaren 90 gündür. Süre, kupon hesaba tanımlanırken hesaplanır ve kupon ekranında açıkça gösterilir. Süresi dolan kupon kullanılamaz; bu nedenle Katılımcı lehine bir alacak doğmaz.",
+          "Kuponun kullanılabilmesi için asgari sepet tutarı şartı aranmaz.",
+        ],
+        table: [
+          { key: "Kupon türü", value: "Sabit tutarlı indirim" },
+          { key: "Varsayılan üst sınır", value: "280,00 ₺" },
+          { key: "Varsayılan geçerlilik", value: "90 gün" },
+          { key: "Asgari sepet tutarı", value: "Aranmaz" },
+          { key: "Kullanım alanı", value: "Yalnızca kafe siparişleri" },
+          { key: "Kullanım hakkı", value: "Bir kez" },
         ],
       },
       {
-        heading: "11. Puanın Geçerlilik Süresi ve Sona Ermesi",
+        heading: "11. Diğer Kupon ve Promosyon Kodlarıyla Birleştirme",
         paragraphs: [
-          "Her puan, kullanılabilir bakiyeye geçtiği tarihten itibaren on iki ay boyunca geçerlidir. Bu süre içinde kullanılmayan puanlar, sürenin dolduğu gün sona erer ve hesaptan düşülür.",
-          "Puanların geçerlilik süresi, kazanım tarihine göre ayrı ayrı işler. Katılımcı, hangi puanın hangi tarihte sona ereceğini hesap panelindeki ve Uygulama içindeki puan hareketleri ekranından tarih bilgisiyle görüntüleyebilir.",
-          "Şirket, sona ermeden en az otuz gün önce Katılımcı'yı kayıtlı e-posta adresi üzerinden ve varsa Uygulama bildirimi ile bilgilendirir. Bu bilgilendirme işlemsel nitelikte olup ticari elektronik ileti sayılmaz ve ayrıca onay gerektirmez.",
-          "Süre dolması nedeniyle sona eren puanlar için Katılımcı lehine herhangi bir alacak, tazminat veya iade hakkı doğmaz. Sona ermiş puanlar yeniden yüklenmez; ancak Şirket'ten kaynaklanan bir hata nedeniyle Katılımcı'nın puanını kullanamamış olması hâlinde puan yeniden tanımlanır.",
-          "Şirket, geçerlilik süresini ileriye etkili olarak değiştirebilir. Süre kısaltılırsa, halihazırda kazanılmış puanlar bakımından değişiklik öncesindeki süre uygulanmaya devam eder; kısaltma yalnızca değişiklik sonrasında kazanılan puanlara uygulanır.",
+          "Bir siparişte yalnızca bir indirim kodu kullanılabilir. Ücretsiz içecek kuponu ile bir promosyon kodu aynı siparişte birlikte uygulanamaz.",
+          "Ücretsiz içecek kuponu, hoş geldin indirimi ve doğum günü indirimi gibi diğer hesap kuponlarıyla da birleştirilemez; Katılımcı sipariş sırasında hangisini kullanacağını seçer.",
+          "Kullanılmayan kupon, sipariş tamamlandıktan sonra hesapta durmaya devam eder ve süresi dolana kadar başka bir siparişte kullanılabilir.",
         ],
       },
       {
-        heading: "12. Hesap Hareketsizliği",
+        heading: "12. Hedefin ve Ödül Koşullarının Değiştirilmesi",
         paragraphs: [
-          "Üyelik hesabında yirmi dört ay boyunca hiçbir sipariş, kafe ziyareti, puan kazanımı veya puan harcaması gerçekleşmemesi hâlinde hesap, Program bakımından hareketsiz kabul edilir.",
-          "Hareketsizlik süresinin dolmasına en az otuz gün kala Katılımcı'ya kayıtlı e-posta adresi üzerinden bilgilendirme yapılır. Bu süre içinde Katılımcı'nın herhangi bir sipariş vermesi, kafede QR kod okutması veya puan harcaması hâlinde hareketsizlik durumu ortadan kalkar ve süre yeniden işlemeye başlar.",
-          "Bilgilendirmeye rağmen süre içinde işlem yapılmazsa, hareketsiz hesaptaki kullanılmamış puanlar sona erer. Puanların sona ermesi üyelik hesabının kapatılması sonucunu doğurmaz; hesap açık kalır ve Katılımcı yeniden puan kazanmaya devam edebilir.",
-          "Hareketsizlik nedeniyle sona eren puanlar için Katılımcı'dan herhangi bir ücret, kesinti veya hesap işletim bedeli alınmaz.",
+          "Şirket, kartın Hedef sayısını, ödül tutarını ve kuponun geçerlilik süresini ileriye etkili olmak üzere değiştirebilir. Güncel değerler her zaman Uygulama'da gösterilir.",
+          "Hedef değiştiğinde, kart yeni Hedef'e göre okunur. Bu, Katılımcı'nın kazanılmış damgalarını ortadan kaldırmaz; damgalar korunur, yalnızca kartın dolması için gereken sayı değişir.",
+          "Zaten tanımlanmış bir ücretsiz içecek kuponunun tutarı ve süresi, sonradan yapılan değişikliklerden etkilenmez; kupon, tanımlandığı andaki koşullarla kullanılır.",
+          "Katılımcı aleyhine sonuç doğuran değişiklikler, Uygulama ve {{SITE_URL}} üzerinden makul bir süre önce duyurulur.",
         ],
       },
       {
-        heading: "13. Cayma, İptal ve İade Hâlinde Puanın Durumu",
+        heading: "13. İptal, İade ve Cayma Hâlinde Damganın Durumu",
         paragraphs: [
-          "Katılımcı'nın mesafeli sözleşmelerde cayma hakkını kullanması, siparişini iptal etmesi, ayıplı mal nedeniyle sözleşmeden dönmesi veya herhangi bir nedenle iade yapılması hâlinde, o siparişte puanla karşılanan kısım Katılımcı'nın hesabına puan olarak geri yüklenir.",
-          "Siparişin Türk lirası olarak tahsil edilen kısmı, ödemenin yapıldığı karta iyzico üzerinden iade edilir. Puanla karşılanan kısım hiçbir hâlde nakit olarak veya karta iade edilmez; bu kısım yalnızca puan olarak geri yüklenir. Puanın geri yüklenmesi, Şirket'in Türk lirası kısmı mevzuatta öngörülen süre içinde iade etme yükümlülüğünü ortadan kaldırmaz.",
-          "Kısmi iadelerde puan ve Türk lirası iade tutarları, iade edilen kalemlerin sipariş içindeki oranına göre orantılı olarak belirlenir. Hesaplama Katılımcı aleyhine yuvarlanmaz.",
-          "Geri yüklenen puanların geçerlilik süresi, ilk kazanıldıkları tarihe göre işlemeye devam eder; iade işlemi puanlara yeni bir geçerlilik süresi kazandırmaz. Ancak geri yükleme tarihinde geçerlilik süresine otuz günden az kalmışsa, Katılımcı'nın puanı kullanabilmesi için süre otuz güne tamamlanır.",
-          "İade edilen sipariş dolayısıyla daha önce kazanılmış puanlar, iade oranında hesaptan geri alınır. Bu puanların harcanmış olması hâlinde eksi bakiye oluşturulmaz; geri alınacak tutar sonraki kazanımlardan mahsup edilir ve Katılımcı'dan nakit ödeme talep edilmez.",
-          "Katılımcı'nın cayma hakkı ile 6502 sayılı Tüketicinin Korunması Hakkında Kanun'dan doğan seçimlik hakları, Program kapsamındaki hiçbir düzenleme ile sınırlandırılamaz. Puan kullanılarak alınan ürünler de tüketici mevzuatının sağladığı korumadan tam olarak yararlanır.",
+          "Bir siparişin iptal edilmesi, iade edilmesi veya cayma hakkının kullanılması hâlinde, o siparişten kazanılmış damga geri alınır. Geri alma, Damga Defteri'nde ayrı bir düzeltme satırı olarak yazılır; kazanım kaydı silinmez.",
+          "Geri alınan damga nedeniyle kart bakiyesi azalır. Bakiye hiçbir hâlde sıfırın altına düşmez.",
+          "Sipariş bedelinin iadesi, işbu Kurallardan bağımsız olarak İade ve Cayma Prosedürü ile Mesafeli Satış Sözleşmesi hükümlerine göre yapılır; damganın geri alınması, Katılımcı'nın para iadesine ilişkin haklarını etkilemez.",
+          "Ücretsiz içecek kuponu kullanılarak verilen bir siparişin iptali veya iadesi hâlinde, kuponla karşılanan kısım için nakit ödeme yapılmaz; Katılımcı'nın fiilen ödediği tutar ödemenin yapıldığı kanala iade edilir.",
         ],
       },
       {
-        heading:
-          "14. Hesabın Kapatılması, Askıya Alınması ve Puanın Sona Ermesi",
+        heading: "14. Kasa Damgasının Düzeltilmesi",
         paragraphs: [
-          "Puan üyelik hesabına bağlıdır. Üyeliğin Katılımcı tarafından sona erdirilmesi veya Şirket tarafından Üyelik Sözleşmesi'nde öngörülen hâllerde feshedilmesi durumunda, kullanılmamış puanlar sona erer ve bu nedenle Katılımcı lehine herhangi bir alacak doğmaz.",
-          "Şirket, hesap kapatma talebi aldığında, işlem tamamlanmadan önce Katılımcı'yı hesabında kullanılmamış puan bulunduğu ve kapatma ile birlikte bu puanların sona ereceği konusunda bilgilendirir. Katılımcı, kapatma öncesinde puanlarını kullanabilir.",
-          "Hesabın güvenlik gerekçesiyle veya kötüye kullanım şüphesiyle geçici olarak askıya alınması hâlinde puan kazanımı ve harcaması askı süresince durur. Askı sebebinin ortadan kalkması hâlinde puanlar aynen kullanılabilir hâle gelir ve askı süresi, puanların geçerlilik süresine eklenir.",
-          "Hesabın kapatılması, kapatma tarihinden önce kurulmuş satış sözleşmelerinden doğan hakları etkilemez. Katılımcı, teslim aldığı ürünlere ilişkin cayma hakkını, ayıplı mala ilişkin seçimlik haklarını ve garanti haklarını üyeliği kapansa dahi mevzuatta öngörülen süreler içinde kullanabilir; bu hâlde puanla karşılanan kısım, kapatılmış hesap yeniden açılarak veya Katılımcı'nın talebi hâlinde başka bir uygun yöntemle iade edilir.",
+          "Kasada yanlışlıkla eklenen bir damga, personel tarafından aynı panelden geri alınabilir. Geri alma, kazanım kaydını silmez; Damga Defteri'ne bir düzeltme satırı yazılır ve düzeltmeyi yapan personel ile işlem anı kayda geçer.",
+          "Düzeltme, Katılımcı'nın kullanılabilir damgası bulunmuyorsa yapılamaz; böylece tekrarlanan bir düzeltme, bakiyeyi eksiye düşürüp Katılımcı'nın sonradan hak ettiği bir kartı yutamaz.",
+          "Katılımcı, hesabına işlenen veya hesabından düşülen her damgayı Uygulama'nın ödüller ekranından görebilir ve itiraz edebilir (bkz. 21. madde).",
         ],
       },
       {
-        heading: "15. Kötüye Kullanım, Sahte İşlem ve Puanın İptali",
+        heading: "15. Kötüye Kullanım ve Damganın İptali",
         paragraphs: [
-          "Şirket, Programın amacına aykırı biçimde kullanıldığının tespiti hâlinde ilgili puanları iptal etme, kazanımı durdurma ve gerektiğinde hesabı askıya alma hakkına sahiptir. Bu yetki ölçülülük ilkesi gözetilerek ve gerekçe bildirilerek kullanılır.",
+          "Şirket, aşağıdaki hâllerde damgaları ve bunlardan doğan kuponları iptal etme hakkını saklı tutar. İptal, ölçülülük ilkesi gözetilerek ve gerekçe bildirilerek uygulanır.",
         ],
         ordered: [
-          "Gerçek bir alışverişe dayanmayan sahte veya danışıklı sipariş oluşturarak puan kazanılması.",
-          "Sistematik biçimde sipariş verip iade ederek yalnızca puan kazanmayı amaçlayan işlem düzeni kurulması.",
-          "Aynı gerçek kişi tarafından birden fazla üyelik hesabı açılarak üyelik, doğum günü veya davet puanlarından mükerrer yararlanılması.",
-          "Gerçekte var olmayan kişiler adına hesap açılarak arkadaş daveti puanı kazanılması.",
-          "QR kodun çoğaltılması, ekran görüntüsünün paylaşılması, başkasına ait kodun okutulması veya kod içeriğinin değiştirilmesi.",
-          "Otomatik yazılım, betik veya benzeri araçlarla puan kazanımı sağlanması ya da sistemdeki bir hatanın bilerek ve tekrarlanarak sömürülmesi.",
-          "Ürün değerlendirmesi puanı için gerçek deneyime dayanmayan, yanıltıcı veya kopyalanmış içerik yazılması.",
-          "Puanın üçüncü kişilere satılması, satışa arz edilmesi veya devredilmeye çalışılması.",
+          "Aynı gerçek kişiye ait mükerrer hesaplar açılarak damga biriktirilmesi.",
+          "Sipariş verilip ödeme yapıldıktan sonra sistematik biçimde iptal veya iade talep edilerek damga elde edilmeye çalışılması.",
+          "Sahte, hatalı veya yetkisiz kasa işlemleriyle damga eklenmesi.",
+          "Yazılım açığı, otomatik araç veya benzeri teknik yollarla damga üretilmesi.",
+          "Kuponun üçüncü kişilere satılması veya devredilmesi.",
         ],
         bullets: [
           "İptal kararı ve gerekçesi, Katılımcı'nın kayıtlı e-posta adresine bildirilir.",
-          "Katılımcı, bildirimden itibaren {{EMAIL}} adresine yazılı itirazda bulunabilir; itiraz makul sürede incelenir ve sonucu yazılı olarak bildirilir.",
-          "İnceleme sonucunda kötüye kullanım bulunmadığı anlaşılırsa iptal edilen puanlar gecikmeksizin geri yüklenir ve geçerlilik süresi askıda geçen süre kadar uzatılır.",
-          "Sistemsel bir hata nedeniyle sehven fazla tanımlanan puanlar, Katılımcı bilgilendirilerek düzeltilir; iyi niyetle ve kurallara uygun biçimde harcanmış puanlar geri istenmez.",
-          "Kötüye kullanım nedeniyle puanların iptali, Şirket'in genel hükümlerden doğan tazminat ve hukuki başvuru haklarını ortadan kaldırmaz.",
+          "Katılımcı, bildirimden itibaren {{EMAIL}} adresine yazılı itirazda bulunabilir; itiraz makul sürede incelenir ve sonucu Katılımcı'ya bildirilir.",
+          "Kötüye kullanımın ağırlığına göre Üyelik Sözleşmesi'nin hesabın askıya alınmasına ve feshe ilişkin maddeleri ayrıca uygulanabilir.",
         ],
       },
       {
-        heading:
-          "16. Programın Değiştirilmesi, Askıya Alınması veya Sonlandırılması",
+        heading: "16. Kademeler ve Rozetler",
         paragraphs: [
-          "Şirket, Programın kazanım oranlarını, harcama sınırlarını, geçerlilik sürelerini ve diğer kurallarını ileriye etkili olarak değiştirme; Programı geçici olarak askıya alma veya tümüyle sonlandırma hakkını saklı tutar.",
-          "Katılımcı aleyhine sonuç doğuran esaslı değişiklikler, yürürlüğe girmeden en az otuz gün önce kayıtlı e-posta adresine bildirilir ve Site ile Uygulama üzerinden duyurulur. Yazım düzeltmeleri, iletişim bilgisi güncellemeleri ve mevzuata uyum amaçlı zorunlu değişiklikler bu süreye tabi değildir.",
-          "Programın sonlandırılması hâlinde Katılımcılara, duyuru tarihinden itibaren birikmiş puanlarını kullanabilmeleri için en az altmış gün süre tanınır. Bu süre içinde puanlar, işbu Kurallardaki asgari ve azami kullanım sınırlarına tabi olmaksızın harcanabilir.",
-          "Değişiklik veya sonlandırma, halihazırda kurulmuş sipariş ilişkilerini ve o siparişlerde kullanılmış puanları etkilemez. Kazanılmış puanlar, makul bir geçiş süresi tanınmaksızın ortadan kaldırılamaz.",
-          "Programın sonlandırılması hâlinde tanınan süre sonunda kullanılmayan puanlar sona erer ve nakde çevrilmez. Bu husus, sonlandırma duyurusunda açık ve anlaşılır biçimde belirtilir.",
+          "Uygulama, Katılımcı'nın son 365 gün içindeki ödenmiş sipariş sayısına göre bir kademe (VERDE, ARGENTO, ORO) ve tamamlanan başarılara göre rozetler gösterir. Kademe ve rozetler damgadan bağımsızdır; damga kazandırmaz ve damga harcamaz.",
+          "Kademe ve rozetlerin kendi başına parasal bir karşılığı yoktur; nakde çevrilemez ve devredilemez. Sipariş sayısı azaldıkça kademe geriye de gidebilir.",
+          "ORO kademesindeki Katılımcı'ya karaoke salonu rezervasyonunda, panelde tanımlı oranda (varsayılan %15) indirim uygulanır. Bu indirimin oranı ve varlığı Şirket tarafından ileriye etkili olarak değiştirilebilir.",
         ],
       },
       {
-        heading: "17. Vergi, Fatura ve Bedelin Gösterimi",
+        heading: "17. Davet (Arkadaşını Getir)",
         paragraphs: [
-          "Puan kullanımı, satış bedeli üzerinde yapılan bir indirim niteliğindedir. Fatura, 213 sayılı Vergi Usul Kanunu ile 3065 sayılı Katma Değer Vergisi Kanunu ve ilgili mevzuat uyarınca, puan indirimi ayrı bir satır olarak gösterilecek şekilde düzenlenir.",
-          "Katma değer vergisi matrahı, puan indirimi düşüldükten sonra fiilen tahsil edilen bedel üzerinden hesaplanır. Katılımcı'ya düzenlenen faturada; ürün bedeli, varsa promosyon kodu indirimi, puan ile karşılanan tutar, kargo bedeli, vergi tutarı ve genel toplam ayrı ayrı yer alır.",
-          "Puanın kazanılması Katılımcı bakımından bir gelir veya kazanç doğurmaz; puanın kazanılması nedeniyle Katılımcı'dan herhangi bir vergi, harç veya kesinti talep edilmez. Şirket'in kendi vergisel yükümlülükleri saklıdır.",
-          "İade hâlinde düzenlenecek belgeler, iade edilen kalemlerin bedeli ile puan ve Türk lirası dağılımını gösterecek biçimde hazırlanır. Sipariş belgeleri, fatura ve iade belgeleri üyelik hesabı üzerinden görüntülenebilir ve indirilebilir.",
+          "Katılımcı, Uygulama'daki kişisel davet kodunu paylaşarak yeni bir üyeyi davet edebilir. Davet kodu yalnızca hiç siparişi olmayan bir hesap tarafından kullanılabilir; kimse kendi kodunu kullanamaz.",
+          "Davet edilen üyenin ilk ödenmiş siparişinin ardından hem davet edene hem davet edilene birer ücretsiz içecek kuponu tanımlanır. Bu kuponlar, işbu Kuralların 10. maddesindeki koşullara tabidir ve yalnızca kafe siparişlerinde kullanılabilir.",
+          "Davet ödülü damga değildir; kart bakiyesini etkilemez.",
+          "Şirket, davet ödülü için kişi başına bir üst sınır belirleyebilir; sınır dolduğunda yeni davetler kupon doğurmaz, davet kaydı yine de görüntülenir.",
         ],
       },
       {
-        heading: "18. Ödeme Altyapısı ve Puanla Kısmi Ödeme",
+        heading: "18. Vergi, Fatura ve Bedelin Gösterimi",
         paragraphs: [
-          "Puan tek başına bir ödeme aracı değildir; sipariş bedelinin puanla karşılanmayan kısmı için ödeme yapılması zorunludur. Bu ödeme, iyzico sanal POS altyapısı üzerinden kredi kartı veya banka kartı ile çevrimiçi olarak tahsil edilir.",
-          "iyzico, 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun kapsamında faaliyet gösteren yetkilendirilmiş bir ödeme kuruluşudur. Ödeme adımında Katılımcı, iyzico'nun Checkout Form ekranına yönlendirilir ve kart bilgilerini doğrudan bu ekrana girer.",
-          "Kart numarası, son kullanma tarihi ve güvenlik kodu hiçbir aşamada Şirket'in sunucularından geçmez ve Şirket tarafından saklanmaz; bu veriler doğrudan iyzico'nun PCI-DSS uyumlu altyapısına iletilir ve kart verisinin güvenliğine ilişkin PCI-DSS yükümlülüğü iyzico'ya aittir. Şirket'in sipariş kaydında yalnızca işlem referansı, tutar, taksit bilgisi, sonuç kodu ve kartın son dört hanesi gibi sınırlı veriler tutulur.",
-          "3D Secure doğrulaması iyzico tarafından yürütülür; Katılımcı bu adımda kartını veren bankanın doğrulama ekranına yönlendirilir. Taksit seçenekleri kartı veren bankaya bağlıdır ve bankanın belirlediği koşullara tabidir; puanla karşılanan tutar taksitlendirmeye konu edilmez.",
-          "Ödeme sonucuna ilişkin bildirimler iyzico'nun imzalı sunucu-sunucu bildirimi (webhook) ile alınır ve sonuç iyzico'ya yeniden sorularak teyit edilir. Puan, ancak ödemenin başarıyla tamamlandığı teyit edildikten sonra siparişten düşülmüş sayılır; ödeme başarısız olursa kullanılan puanlar bakiyeye iade edilir.",
-          "İade ve kısmi iade işlemleri iyzico API'si üzerinden gerçekleştirilir. Ödeme tutarı hiçbir koşulda yalnızca tarayıcıdan veya Uygulama'dan gelen veriye göre belirlenmez; sipariş tutarı, kullanılan puan ve indirimler sunucu tarafında yeniden hesaplanır.",
+          "Ücretsiz içecek kuponunun karşıladığı tutar, sipariş özetinde ve Sipariş Onayı e-postasında ayrı bir indirim kalemi olarak gösterilir.",
+          "Şirket, 213 sayılı Vergi Usul Kanunu ve ilgili tebliğler uyarınca her sipariş için elektronik arşiv (e-Arşiv) fatura düzenler; kuponla karşılanan tutar faturada indirim olarak yer alır.",
+          "Damganın kazanılması tek başına vergiyi doğuran bir olay değildir. Kuponun kullanılması hâlinde vergi, indirim sonrası bedel üzerinden hesaplanır.",
         ],
       },
       {
-        heading:
-          "19. Mobil Uygulamada Puan Görünümü, Bildirimler ve Uygulama Mağazası",
+        heading: "19. Programın Değiştirilmesi ve Sonlandırılması",
         paragraphs: [
-          "Puan bakiyesi, bekleyen puanlar, puan hareketleri, sona erme tarihleri ve kafede kullanılabilecek QR ekranı Uygulama içindeki puan bölümünden görüntülenir. Aynı bilgiler Site'deki hesap panelinden de erişilebilir; iki kanaldaki bakiye aynı kayda dayanır.",
-          "Uygulama'nın indirilmesi ve güncellenmesi App Store ve Google Play üzerinden yapılır; bu mağazaların kendi kullanım koşulları Katılımcı ile ilgili mağaza arasındaki ilişkiyi düzenler. Program kapsamında uygulama mağazası üzerinden herhangi bir satın alma yapılmaz; ödeme her hâlde iyzico altyapısı üzerinden gerçekleştirilir.",
-          "Puan kazanımı, puanın kullanılabilir hâle gelmesi ve puanın sona ermek üzere olduğu bilgisi push bildirimi ile iletilebilir. Bu bildirimler, Katılımcı'nın kendi hesabındaki bir işleme veya hak kaybına ilişkin olduğundan işlemsel niteliktedir ve ticari elektronik ileti sayılmaz.",
-          "Buna karşılık kampanya duyurusu, çift puan günü, indirim ve yeni ürün tanıtımı içeren push bildirimleri ticari elektronik ileti niteliğindedir; bunlar yalnızca 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca alınan onaya dayanılarak gönderilir ve onay her zaman bedelsiz olarak geri alınabilir.",
-          "Bildirim izni cihaz ayarlarından her zaman kapatılabilir. Bildirimlerin kapatılması puan kazanımını veya harcamasını engellemez; ancak sona erme uyarılarının cihaza ulaşmaması mümkündür. Bu nedenle sona erme bildirimleri her hâlde kayıtlı e-posta adresine de gönderilir.",
-          "Uygulama'nın cihazdan kaldırılması, Program üyeliğini ve puan bakiyesini sona erdirmez; puanlar üyelik hesabına bağlı olarak durmaya devam eder ve Site üzerinden kullanılabilir. Puanların sona ermesi yalnızca işbu Kurallarda sayılan hâllerde gerçekleşir.",
+          "Şirket, Programı ileriye etkili olmak üzere değiştirme veya sonlandırma hakkını saklı tutar.",
+          "Programın tümüyle sonlandırılmasına karar verilmesi hâlinde Katılımcılar en az otuz gün önceden bilgilendirilir; bu süre boyunca dolmuş kartların ödüle çevrilmesine ve tanımlanmış kuponların kullanılmasına imkân tanınır.",
+          "Program sona erdiğinde kullanılmamış damgalar sona erer; bu nedenle Katılımcı lehine herhangi bir alacak, tazminat veya iade hakkı doğmaz.",
+          "Üyelik hesabının kapatılması hâlinde de biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer. Katılımcı, hesabını kapatmadan önce bu sonuç hakkında Uygulama'daki onay ekranında uyarılır. Ayrıntı: {{SITE_URL}}/hukuk/hesap-silme.",
         ],
       },
       {
-        heading: "20. Kişisel Verilerin İşlenmesi ve Profilleme İçin Açık Rıza",
+        heading: "20. Kişisel Verilerin İşlenmesi",
         paragraphs: [
-          "{{LEGAL_NAME}}, Program kapsamında işlenen kişisel veriler bakımından 6698 sayılı Kişisel Verilerin Korunması Kanunu anlamında veri sorumlusudur.",
-          "Program kapsamında; kimlik ve iletişim bilgileri, üyelik hesabı bilgileri, sipariş ve harcama geçmişi, kafede QR kod ile doğrulanan ziyaret kayıtları, puan kazanım ve harcama hareketleri, doğum tarihi (Katılımcı tarafından paylaşılmışsa), davet ilişkileri ile Uygulama kullanımına ilişkin cihaz tanımlayıcıları, push bildirim tokeni, uygulama sürümü, işletim sistemi bilgisi ve çökme kayıtları işlenir.",
-          "Bu veriler; Programın yürütülmesi, puanın hesaplanması ve doğrulanması, kötüye kullanımın önlenmesi, iade süreçlerinin yönetilmesi, hukuki yükümlülüklerin yerine getirilmesi ve bilgi güvenliğinin sağlanması amaçlarıyla, sözleşmenin kurulması ve ifası, hukuki yükümlülük ile veri sorumlusunun meşru menfaati hukuki sebeplerine dayanılarak işlenir.",
-          "Buna karşılık, harcama geçmişinin ve puan hareketlerinin analiz edilerek Katılımcı'ya kişiselleştirilmiş öneri, teklif veya kampanya sunulması amacıyla profilleme yapılması yalnızca Katılımcı'nın bu yönde açık rıza vermesi hâlinde gerçekleştirilir. Açık rıza verilmemesi veya rızanın geri alınması, puan kazanmayı ve harcamayı hiçbir şekilde engellemez.",
-          "Açık rıza her zaman bedelsiz olarak geri alınabilir; geri alma, hesap ayarlarındaki izin yönetimi bölümünden veya {{EMAIL}} adresine gönderilecek bir talep ile yapılabilir. Geri alma ileriye etkili sonuç doğurur.",
-          "Verilerin işlenmesine ilişkin ayrıntılı bilgi, aktarım yapılan taraflar, saklama süreleri ve ilgili kişinin hakları Site'de yayımlanan Gizlilik ve Kişisel Verilerin Korunması Politikası ile Aydınlatma Metni'nde yer alır. Katılımcı, Kanun'un ilgili kişinin haklarını düzenleyen hükmü kapsamındaki taleplerini {{EMAIL}} adresine veya {{ADDRESS}} adresine iletebilir; başvurular, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca en geç otuz gün içinde sonuçlandırılır.",
-        ],
-        bullets: [
-          "Kafede QR kod okutulması için kamera erişimi yalnızca okuma anında kullanılır; görüntü kaydedilmez.",
-          "Yaklaşık konum bilgisi, yalnızca Katılımcı izin verirse ve en yakın şubenin gösterilmesi gibi işlevler için işlenir; konum izni verilmemesi puan kazanımını etkilemez.",
-          "Barındırma hizmeti Vercel, veri tabanı hizmeti {{DB_PROVIDER}} (PostgreSQL) ve işlemsel e-posta gönderimi Resend altyapısı üzerinden sağlanır; bu nedenle kişisel verilerin yurt dışındaki sunuculara aktarılması söz konusu olabilir. Aktarımlar, Kanun'un yurt dışına aktarıma ilişkin hükmü çerçevesinde ve uygun güvencelerle gerçekleştirilir.",
-          "Puan hareketleri, mevzuattan doğan saklama yükümlülükleri ile olası uyuşmazlıklarda ispat amacıyla saklanır; saklama süreleri Veri Saklama ve İmha Politikası'nda gösterilir.",
-          "Program verileri, Katılımcı'nın açık rızası olmaksızın pazarlama amaçlı olarak üçüncü kişilere satılmaz veya devredilmez.",
+          "Program kapsamında; üyelik kimliği (e-posta adresi), damga hareketleri (kazanım, düzeltme, ödül), hareketin kaynağı (uygulama siparişi veya kasa) ve kasada işlem yapan personelin kimliği işlenir.",
+          "Bu verilerin işlenmesi, Programa katılımla kurulan sözleşmenin ifası ve Şirket'in hukuki yükümlülüklerini yerine getirmesi hukuki sebeplerine dayanır. Ayrıntı: {{SITE_URL}}/hukuk/kvkk-aydinlatma-metni.",
+          "Program, Katılımcı'nın konum verisini, reklam kimliğini veya cihaz kamerasını kullanmaz; damga kazanımı için hiçbir cihaz izni istenmez.",
+          "Harcama geçmişine dayalı profilleme ve kişiselleştirilmiş kampanya sunulması Programın bir parçası değildir; böyle bir işleme yapılacak olması hâlinde ayrıca açık rıza alınır ve rıza her zaman geri alınabilir.",
         ],
       },
       {
-        heading: "21. Puan Hareketlerinin Kaydı, İtiraz ve Delil Sözleşmesi",
+        heading: "21. Damga Hareketlerinin Kaydı, İtiraz ve Delil Sözleşmesi",
         paragraphs: [
-          "Her puan kazanımı, harcaması, geri yüklemesi, geri alınması ve sona ermesi; tarih, saat, tutar, ilgili sipariş veya adisyon numarası ve gerekçe bilgisiyle birlikte kayıt altına alınır. Bu kayıtlar {{DB_PROVIDER}} (PostgreSQL) veri tabanında, sonradan değiştirilemeyecek biçimde ve erişim izleri tutularak saklanır.",
-          "Katılımcı, puan bakiyesine veya herhangi bir puan hareketine ilişkin itirazını, hareketi öğrendiği tarihten itibaren makul bir süre içinde {{EMAIL}} adresine iletebilir. İtiraz, sipariş ve kasa kayıtları üzerinden incelenir ve sonucu Katılımcı'ya yazılı olarak bildirilir. İnceleme sonucunda Katılımcı lehine bir hata tespit edilirse puan gecikmeksizin düzeltilir.",
-          "Taraflar, Programdan doğabilecek uyuşmazlıklarda Şirket'in defter, kayıt ve belgeleri ile sunucu ve veri tabanı kayıtlarının 6100 sayılı Hukuk Muhakemeleri Kanunu'nun delil sözleşmesine ilişkin hükmü çerçevesinde delil teşkil edeceğini kabul eder.",
-          "Katılımcı'nın tüketici sıfatını haiz olduğu uyuşmazlıklarda bu kayıtlar kesin delil niteliği taşımaz; Katılımcı her türlü karşı delili serbestçe ileri sürebilir. İşbu madde, tüketicinin ispat imkânlarını ve yasal haklarını sınırlandıracak biçimde yorumlanamaz.",
-        ],
-        bullets: [
-          "Programa katılım onayına ilişkin tarih, saat, IP adresi ve belge sürümü kayıtları.",
-          "Sipariş, sepet, fiyat, promosyon kodu ve puan kullanımına ilişkin kayıtlar.",
-          "Kafede okutulan QR kodlara ait adisyon, tarih ve doğrulama kayıtları.",
-          "iyzico'dan alınan işlem referansları, imzalı bildirimler ve teyit sorgularının sonuçları.",
-          "Puan sona erme uyarıları ile diğer işlemsel e-posta ve bildirim gönderim kayıtları.",
-          "Yönetici tarafından yapılan elle puan düzeltmelerine ilişkin olay kayıtları.",
+          "Damga kazanımları, düzeltmeler ve ödüller Şirket'in sistemlerinde zaman damgalı olarak tutulur. Katılımcı, bu kayıtların 6100 sayılı Hukuk Muhakemeleri Kanunu anlamında delil teşkil edeceğini kabul eder.",
+          "Katılımcı, bakiyesine veya bir harekete ilişkin itirazını {{EMAIL}} adresine iletebilir. Başvuru kayda alınır ve en geç 3 (üç) iş günü içinde yanıtlanır.",
+          "İnceleme sonucunda Şirket'ten kaynaklanan bir hata tespit edilirse eksik damga elle tanımlanır ve düzeltme Katılımcı'ya bildirilir.",
+          "Bu madde, Katılımcı'nın mevzuattan doğan diğer delil ve başvuru haklarını ortadan kaldırmaz.",
         ],
       },
       {
         heading: "22. Başvuru, Şikâyet ve Uyuşmazlıkların Çözümü",
         paragraphs: [
-          "Program ile ilgili her türlü başvuru, soru ve şikâyet {{EMAIL}} adresine e-posta ile veya {{PHONE}} numarası üzerinden iletilebilir. Yazılı başvuruların kayıt altına alınabilmesi bakımından e-posta yolu tercih edilmelidir.",
-          "İşbu Kurallar Türk hukukuna tabidir ve Türk hukukuna göre yorumlanır.",
-          "Katılımcı'nın tüketici sıfatını haiz olduğu uyuşmazlıklarda, 6502 sayılı Tüketicinin Korunması Hakkında Kanun uyarınca, her yıl Ticaret Bakanlığınca yeniden değerleme oranında güncellenen parasal sınırlar çerçevesinde Tüketici Hakem Heyetleri veya Tüketici Mahkemeleri görevlidir. Başvuru, Katılımcı'nın yerleşim yerindeki veya işlemin yapıldığı yerdeki hakem heyetine ya da mahkemeye yapılabilir.",
-          "Katılımcı'nın tüketici sıfatını taşımadığı hâllerde İstanbul Anadolu Mahkemeleri ve İcra Daireleri yetkilidir.",
-          "Taraflar, yargı yoluna başvurmadan önce uyuşmazlığın {{EMAIL}} adresi üzerinden iyi niyetle çözülmesi için makul çaba göstermeyi kabul eder. Bu madde, tarafların yasal başvuru yollarına doğrudan gitme hakkını sınırlamaz.",
-          "Program kapsamındaki ticari uygulamalar bakımından Ticari Reklam ve Haksız Ticari Uygulamalar Yönetmeliği hükümleri saklı olup, şikâyetler Ticaret Bakanlığı'nın tüketici şikâyet kanalları üzerinden de iletilebilir.",
+          "Program ile ilgili her türlü talep, öneri ve şikâyet {{EMAIL}} adresine, {{PHONE}} numarasına veya {{ADDRESS}} adresine iletilebilir.",
+          "Uyuşmazlık hâlinde Katılımcı, 6502 sayılı Kanun uyarınca parasal sınırlara göre Tüketici Hakem Heyetlerine veya Tüketici Mahkemelerine başvurabilir. Başvuru mercii ve parasal sınırlar her yıl güncellenir; güncel bilgi Ticaret Bakanlığı tarafından ilan edilir.",
+          "Bu madde, Katılımcı'nın yerleşim yerindeki hakem heyetine veya mahkemeye başvurma hakkını sınırlamaz.",
         ],
       },
       {
         heading: "23. Kuralların Yürürlüğü, Sürüm Yönetimi ve Bildirimler",
         paragraphs: [
-          "İşbu Kurallar, Katılımcı'nın Programa katılım onayını vermesiyle yürürlüğe girer ve Programdan ayrılma, üyeliğin sona ermesi ya da Programın sonlandırılmasına kadar geçerliliğini korur.",
-          "Kuralların her sürümü bir sürüm numarası ve yürürlük tarihiyle yayımlanır. Puanın kazanıldığı veya harcandığı tarihte yürürlükte olan sürüm, o işlem bakımından esas alınır ve ilgili kayda işlenerek arşivlenir. Katılımcı, kendisine uygulanan sürüme her zaman erişebilir.",
-          "Kuralların güncel metni {{SITE_URL}} adresinde ve Uygulama içindeki Program Kuralları Ekranı'nda erişilebilir durumda tutulur; Katılımcı metni yazdırabilir veya elektronik ortamda saklayabilir.",
-          "Taraflar arasındaki bildirimler kural olarak elektronik ortamda yapılır. Katılımcı'nın hesabında kayıtlı e-posta adresi geçerli bildirim adresi olarak kabul edilir; Katılımcı bu adresi güncel tutmakla yükümlüdür. Resmî tebligat gerektiren hâllerde 7201 sayılı Tebligat Kanunu hükümleri uygulanır.",
-          "Kuralların herhangi bir hükmünün kısmen veya tamamen geçersiz sayılması, diğer hükümlerin geçerliliğini etkilemez; geçersiz hükmün yerine tarafların amacına en yakın ve mevzuata uygun düzenleme uygulanır.",
-          "Kuralların dili Türkçedir. Bilgilendirme amacıyla başka bir dilde çeviri sunulması hâlinde, uyuşmazlık durumunda Türkçe metin esas alınır.",
+          "İşbu Kurallar, {{SITE_URL}}/hukuk/odul-programi adresinde yayımlandığı tarihte yürürlüğe girer ve yayımda kaldığı sürece geçerlidir.",
+          "Kurallarda yapılan değişiklikler aynı adreste yayımlanır; belge sürümü ve son güncelleme tarihi sayfanın altında gösterilir. Katılımcı aleyhine sonuç doğuran değişiklikler ayrıca kayıtlı e-posta adresine bildirilir.",
+          "Bildirimler, Katılımcı'nın üyelik hesabındaki e-posta adresine yapılır. Adresin güncel tutulması Katılımcı'nın sorumluluğundadır.",
         ],
       },
       {
         heading: "24. İletişim",
-        paragraphs: [
-          "Ödül ve puan programına ilişkin başvurular, puan hareketlerine yönelik itirazlar, kişisel verilere ilişkin talepler ve diğer tüm bildirimler için aşağıdaki iletişim kanalları kullanılabilir.",
-          "Sosyal medya hesaplarımız yalnızca tanıtım ve topluluk iletişimi amacıyla kullanılır; resmî başvurular, şikâyetler, puan itirazları ve kişisel veri talepleri bu kanallar üzerinden işleme alınmaz.",
-        ],
         table: [
-          {
-            key: "Ticaret unvanı",
-            value: "{{LEGAL_NAME}}",
-          },
-          {
-            key: "Marka",
-            value: "{{BRAND}}",
-          },
-          {
-            key: "Adres",
-            value: "{{ADDRESS}}",
-          },
-          {
-            key: "Telefon",
-            value: "{{PHONE}}",
-          },
-          {
-            key: "E-posta",
-            value: "{{EMAIL}}",
-          },
-          {
-            key: "İnternet sitesi",
-            value: "{{SITE_URL}}",
-          },
-          {
-            key: "Instagram",
-            value: "{{IG}}",
-          },
-          {
-            key: "TikTok",
-            value: "{{TIKTOK}}",
-          },
-          {
-            key: "YouTube",
-            value: "{{YOUTUBE}}",
-          },
-          {
-            key: "Vergi dairesi",
-            value: "{{TAX_OFFICE}}",
-          },
-          {
-            key: "Vergi kimlik numarası",
-            value: "{{TAX_NO}}",
-          },
-          {
-            key: "KEP adresi",
-            value: "{{KEP}}",
-          },
-          {
-            key: "MERSİS numarası",
-            value: "{{MERSIS}}",
-          },
-          {
-            key: "Ticaret sicil numarası",
-            value: "{{TRADE_REGISTRY}}",
-          },
-          {
-            key: "Banka",
-            value: "{{BANK}}",
-          },
-          {
-            key: "IBAN",
-            value: "{{IBAN}}",
-          },
+          { key: "Ticaret unvanı", value: "{{LEGAL_NAME}}" },
+          { key: "Adres", value: "{{ADDRESS}}" },
+          { key: "E-posta", value: "{{EMAIL}}" },
+          { key: "Telefon", value: "{{PHONE}}" },
+          { key: "Sosyal medya", value: "{{HANDLE}}" },
         ],
       },
     ],
@@ -11665,7 +11446,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Mobil Uygulama",
     category: "Site & Üyelik",
     summary:
-      "{{BRAND}} iOS ve Android mobil uygulamasının indirilmesi ve kullanılmasına ilişkin son kullanıcı lisans ve kullanım koşulları; lisansın kapsamı, yasak kullanımlar, cihaz izinleri, bildirimler, ödül puanı ve sorumluluk sınırları düzenlenir.",
+      "{{BRAND}} iOS ve Android mobil uygulamasının indirilmesi ve kullanılmasına ilişkin son kullanıcı lisans ve kullanım koşulları; lisansın kapsamı, yasak kullanımlar, cihaz izinleri, cihazda planlanan hatırlatmalar, sadakat damgası ve sorumluluk sınırları düzenlenir.",
     references: [
       "4721 sayılı Türk Medeni Kanunu",
       "6098 sayılı Türk Borçlar Kanunu",
@@ -11841,9 +11622,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "Uygulama'ya entegre edilen üçüncü taraf yazılım geliştirme kiti veya kütüphanesi",
           },
           {
-            key: "Cihaz Tanımlayıcısı",
+            key: "Yerel Depolama",
             value:
-              "İşletim sistemi tarafından üretilen reklam tanımlayıcısı (iOS için IDFA, Android için AAID) ile uygulamaya özgü kurulum kimliği",
+              "Uygulama'nın cihazda tuttuğu veri: oturum anahtarları (güvenli depolama) ile menü, sepet ve tercih önbelleği",
           },
           {
             key: "Kişisel Veri",
@@ -11876,8 +11657,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kafe menüsünün görüntülenmesi; ürün açıklamaları, fiyat bilgisi ve alerjen uyarılarının incelenmesi.",
           "Çevrimiçi mağaza kataloğunun görüntülenmesi, sepet oluşturulması ve sipariş verilmesi.",
           "Üyelik hesabının oluşturulması, adres defterinin yönetilmesi ve geçmiş siparişlerin görüntülenmesi.",
-          "Ödül Puanı bakiyesinin izlenmesi, puan kazanma ve harcama hareketlerinin görüntülenmesi.",
-          "Kafede sunulan QR kodun okutulmasıyla ziyarete bağlı Ödül Puanı kazanılması.",
+          "Sadakat kartının izlenmesi, damga ve kupon hareketlerinin görüntülenmesi.",
+          "Dolan kartın Uygulama üzerinden ücretsiz içecek kuponuna çevrilmesi.",
           "Sipariş durumu, ödeme sonucu ve kargo takibi hakkında işlemsel bildirim alınması.",
           "Kullanıcı'nın onay vermesi hâlinde kampanya ve duyuru içerikli ticari bildirim alınması.",
           "Kafenin adres, çalışma saatleri ve iletişim bilgilerine erişilmesi ile destek taleplerinin iletilmesi.",
@@ -11903,8 +11684,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Mevzuatın açıkça izin verdiği birlikte çalışabilirlik hâlleri saklı kalmak kaydıyla, Uygulama'yı tersine mühendisliğe tabi tutmak, kaynak koda dönüştürmek, derlemesini çözmek, parçalarına ayırmak veya kaynak kodunu başka yollarla elde etmeye çalışmak.",
           "Uygulama'nın lisans, güvenlik, doğrulama veya kullanım sınırlarına ilişkin teknik korumalarını devre dışı bırakmak, bunları aşmaya teşebbüs etmek ya da bu amaçla değiştirilmiş sürümler kullanmak.",
           "Uygulama'yı üreticinin güvenlik kısıtlamaları kaldırılmış (jailbreak veya root uygulanmış) ya da bütünlüğü bozulmuş cihazlarda çalıştırmak. Bu tür cihazlarda Uygulama'nın çalışması engellenebilir ve doğabilecek güvenlik sonuçlarından Şirket sorumlu tutulamaz.",
-          "Robot, örümcek, kazıyıcı, betik veya benzeri otomatik yöntemlerle Uygulama'ya erişmek, veri toplamak, otomatik sipariş oluşturmak, Ödül Puanı kazanma akışını otomatikleştirmek veya sunucu altyapısına orantısız yük bindirmek.",
-          "Uygulama'nın sunucularıyla haberleşmesini taklit etmek, istek içeriğini değiştirerek fiyat, stok, puan veya sipariş verilerini manipüle etmeye çalışmak ya da başka kullanıcıların hesaplarına yetkisiz erişmeye teşebbüs etmek.",
+          "Robot, örümcek, kazıyıcı, betik veya benzeri otomatik yöntemlerle Uygulama'ya erişmek, veri toplamak, otomatik sipariş oluşturmak, damga kazanma akışını otomatikleştirmek veya sunucu altyapısına orantısız yük bindirmek.",
+          "Uygulama'nın sunucularıyla haberleşmesini taklit etmek, istek içeriğini değiştirerek fiyat, stok, damga veya sipariş verilerini manipüle etmeye çalışmak ya da başka kullanıcıların hesaplarına yetkisiz erişmeye teşebbüs etmek.",
           "Zararlı yazılım, kötü amaçlı kod veya sistemin işleyişini bozmaya yönelik içerik iletmek; Uygulama üzerinden hukuka aykırı, yanıltıcı, hakaret içeren ya da üçüncü kişilerin haklarını ihlal eden içerik paylaşmak.",
           "Uygulama'yı, üzerinde çalıştığı işletim sisteminin veya ilgili Mağaza'nın kurallarına aykırı biçimde kullanmak.",
           "Uygulama'yı kullanarak elde edilen bilgileri Şirket'in yazılı izni olmaksızın ticari amaçla derlemek, üçüncü kişilere aktarmak veya rakip bir ürün ya da hizmet geliştirmek amacıyla kullanmak.",
@@ -11931,7 +11712,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "8. Üyelik Hesabı, Yaş Sınırı ve Çocuklar",
         paragraphs: [
-          "Menü ve katalog görüntüleme gibi bilgi amaçlı işlevler üyelik olmaksızın kullanılabilir. Sipariş verme, Ödül Puanı kazanma ve harcama, adres defteri ile sipariş geçmişine erişim gibi işlevler ise üyelik hesabı gerektirir.",
+          "Menü ve katalog görüntüleme gibi bilgi amaçlı işlevler üyelik olmaksızın kullanılabilir. Sipariş verme, sadakat damgası kazanma ve ödülü kullanma, adres defteri ile sipariş geçmişine erişim gibi işlevler ise üyelik hesabı gerektirir.",
           "Üyelik, on sekiz yaşını doldurmuş ve 4721 sayılı Türk Medeni Kanunu anlamında fiil ehliyetine sahip gerçek kişilere açıktır. Kullanıcı, üyelik oluşturmakla bu şartları taşıdığını beyan eder. Üyeliğin kurulması, hesap güvenliği, askıya alınması ve sona ermesine ilişkin kurallar bakımından {{SITE_URL}} adresinde yayımlanan Üyelik Sözleşmesi uygulanır.",
           "Uygulama, çocuklara yönelik bir hizmet sunmaz ve bu yönde içerik barındırmaz. Şirket, on sekiz yaşından küçük kişilerin kişisel verilerini bilerek işlemez. Yaş şartını taşımayan bir kişi tarafından hesap oluşturulduğunun tespiti hâlinde hesap kapatılır ve ilgili kişisel veriler, yasal saklama yükümlülükleri saklı kalmak kaydıyla gecikmeksizin silinir veya anonim hâle getirilir.",
           "Veli veya vasi, küçüğe ait bir hesabın varlığından haberdar olması hâlinde {{EMAIL}} adresine başvurarak hesabın kapatılmasını ve verilerin silinmesini talep edebilir. Başvurular en geç otuz gün içinde sonuçlandırılır.",
@@ -11941,7 +11722,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "9. Cihaz İzinleri ve Amaçları",
         paragraphs: [
-          "Uygulama, yalnızca sunduğu işlevlerin gerektirdiği cihaz izinlerini talep eder. İzinler, ilgili işlev ilk kez kullanılmak istendiğinde işletim sisteminin izin ekranı üzerinden istenir; izin verilmemesi hâlinde yalnızca o işlev kullanılamaz, Uygulama'nın diğer bölümleri çalışmaya devam eder.",
+          "Uygulama, yalnızca sunduğu işlevlerin gerektirdiği cihaz izinlerini talep eder. Talep edilen tek izin bildirim iznidir; izin verilmemesi hâlinde yalnızca hatırlatmalar gösterilmez, Uygulama'nın diğer bölümleri çalışmaya devam eder.",
+          "Uygulama; kamera, konum, mikrofon, rehber, fotoğraf ve dosya izni istemez ve cihazın reklam tanımlayıcısına (iOS için IDFA, Android için AAID) erişmez. Uygulamada izleme (App Tracking Transparency) izni istenmez, üçüncü taraf reklam veya ölçümleme kiti bulunmaz.",
           "Aşağıdaki tabloda her iznin hangi amaçla istendiği gösterilmiştir. İzin kapsamında işlenen kişisel verilerin hukuki sebepleri, saklama süreleri ve aktarım yapılan taraflar {{SITE_URL}} adresinde yayımlanan Gizlilik ve Kişisel Verilerin Korunması Politikası ile Aydınlatma Metni'nde açıklanır.",
           "Kullanıcı, verdiği izinleri dilediği zaman cihazının ayarlar bölümündeki uygulama izinleri ekranından geri alabilir. Geri alma ileriye etkili sonuç doğurur; geri alma tarihine kadar hukuka uygun biçimde gerçekleştirilmiş işlemlerin geçerliliğini etkilemez.",
         ],
@@ -11949,82 +11731,79 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Bildirim izni",
             value:
-              "Sipariş, ödeme, hazırlık, teslimat ve güvenlik bildirimlerinin iletilmesi; ayrıca onay verilmişse kampanya bildirimlerinin gönderilmesi",
+              "Kullanıcı'nın kendi açtığı hatırlatmaların cihazda gösterilebilmesi; bildirimler cihazda planlanır, sunucudan gönderilmez",
           },
           {
             key: "Kamera erişimi",
-            value:
-              "Kafede sunulan QR kodun okutularak ziyarete bağlı Ödül Puanı kazanılması; kamera görüntüsü kaydedilmez ve sunucuya aktarılmaz, yalnızca kod çözümlemesi yapılır",
+            value: "İstenmez — Uygulama'da karekod okuyucu bulunmaz",
           },
           {
-            key: "Konum bilgisi (yaklaşık)",
+            key: "Konum bilgisi",
             value:
-              "En yakın şubenin gösterilmesi ve yol tarifi bağlantısının sunulması; yalnızca Kullanıcı izin verdiği takdirde ve uygulama kullanımdayken alınır",
+              "İstenmez — tek şube bulunduğundan konuma bağlı bir işlev yoktur",
           },
           {
             key: "Fotoğraf ve dosya erişimi",
-            value:
-              "Profil görselinin yüklenmesi ile iade veya ayıp bildirimlerinde ürün fotoğrafının eklenmesi; erişim yalnızca Kullanıcı'nın seçtiği dosyalarla sınırlıdır",
+            value: "İstenmez — Uygulama'ya dosya yüklenmez",
           },
           {
-            key: "Cihaz tanımlayıcısı",
-            value:
-              "Oturum sürekliliğinin sağlanması, hata ayıklama ve kötüye kullanım tespiti; reklam tanımlayıcısına (IDFA veya AAID) yalnızca Kullanıcı'nın izlemeye izin vermesi hâlinde erişilir",
+            key: "Reklam tanımlayıcısı (IDFA/AAID)",
+            value: "İşlenmez — izleme izni istenmez, reklam kiti kullanılmaz",
           },
           {
-            key: "Push bildirim tokeni",
+            key: "Anlık bildirim (push) tokeni",
             value:
-              "Bildirimin doğru cihaza iletilebilmesi için işletim sistemi tarafından üretilen benzersiz gönderim adresinin saklanması",
+              "İşlenmez — Uygulama sunucudan anlık bildirim göndermez, bu nedenle cihaza ait bir gönderim adresi saklanmaz",
           },
           {
             key: "Ağ ve bağlantı durumu",
             value:
-              "Çevrimdışı durumun algılanması, veri senkronizasyonunun zamanlanması ve bağlantı hatalarının kullanıcıya bildirilmesi",
+              "Çevrimdışı durumun algılanması ve bağlantı hatalarının kullanıcıya bildirilmesi; cihazın kendi bağlantı durumundan okunur, sunucuya gönderilmez",
           },
           {
-            key: "Cihaz ve sürüm bilgisi",
+            key: "Uygulama sürümü",
             value:
-              "İşletim sistemi sürümü, cihaz modeli ve uygulama sürümünün, uyumluluk denetimi ile hata giderme amacıyla işlenmesi",
+              "Sunucuya yapılan isteklerle birlikte iletilir; sürüm uyumluluğu denetimi ve hata giderme amacıyla işlenir",
           },
           {
             key: "Çökme (crash) kayıtları",
             value:
-              "Uygulamanın beklenmedik şekilde kapanması hâlinde teknik hata kaydının oluşturulması ve kararlılığın iyileştirilmesi",
+              "Toplanmaz — Uygulama'da çökme kaydı gönderen bir bileşen bulunmaz",
           },
         ],
       },
       {
-        heading: "10. Push Bildirimleri ve Ticari İleti Ayrımı",
+        heading: "10. Bildirimler ve Ticari İleti Ayrımı",
         paragraphs: [
-          "Uygulama iki tür bildirim gönderir. İşlemsel bildirimler, Kullanıcı'nın kendi işlemiyle doğrudan ilgili ve pazarlama içeriği taşımayan bildirimlerdir. Ticari bildirimler ise tanıtım, kampanya ve pazarlama amacı taşıyan ve 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun anlamında ticari elektronik ileti sayılan bildirimlerdir.",
-          "Ticari nitelikteki push bildirimler yalnızca Kullanıcı'nın önceden alınan açık onayına dayanılarak gönderilir. Onay ve ret kayıtları, mevzuatın öngördüğü kapsamda İleti Yönetim Sistemi (İYS) üzerine işlenir. Ticari bildirim onayı, Uygulama'nın kullanılmasının veya sipariş verilmesinin ön koşulu değildir.",
-          "Kullanıcı, ticari bildirim onayını dilediği zaman ve bedelsiz olarak geri alabilir. Ret işlemi Uygulama içindeki bildirim tercihleri ekranından, İYS üzerinden veya {{EMAIL}} adresine gönderilecek bir talep ile yapılabilir ve mevzuatta öngörülen süre içinde işleme alınır.",
-          "Cihazın işletim sistemi ayarlarından tüm bildirimlerin kapatılması hâlinde işlemsel bildirimler de iletilemez. Bu durumda sipariş ve teslimat bilgilendirmeleri e-posta yoluyla ve Uygulama içindeki sipariş ekranından takip edilebilir.",
+          "Uygulama, sunucudan cihaza anlık bildirim (push) göndermez. Gösterilen bildirimler, Kullanıcı'nın Uygulama içindeki bildirim ekranından kendi açtığı hatırlatmalardır; bu hatırlatmalar cihazın kendi zamanlayıcısıyla planlanır ve içerikleri cihazdan dışarı çıkmaz.",
+          "Sipariş, ödeme ve hazırlık durumu Uygulama içindeki sipariş ekranından ve bildirim kutusundan takip edilir; bu bilgiler Kullanıcı Uygulama'yı açtığında sunucudan okunur. Sipariş onayı ve benzeri işlemsel bilgilendirmeler ayrıca e-posta ile gönderilir.",
+          "Tanıtım, kampanya ve pazarlama amacı taşıyan iletiler 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun anlamında ticari elektronik iletidir ve yalnızca Kullanıcı'nın önceden alınan açık onayına dayanılarak e-posta ile gönderilir. Onay ve ret kayıtları, mevzuatın öngördüğü kapsamda İleti Yönetim Sistemi (İYS) üzerine işlenir. Ticari ileti onayı, Uygulama'nın kullanılmasının veya sipariş verilmesinin ön koşulu değildir.",
+          "Kullanıcı, ticari ileti onayını dilediği zaman ve bedelsiz olarak geri alabilir. Ret işlemi Uygulama içindeki bildirim tercihleri ekranından, her iletinin sonundaki bağlantıdan, İYS üzerinden veya {{EMAIL}} adresine gönderilecek bir talep ile yapılabilir.",
+          "Cihazın işletim sistemi ayarlarından bildirimlerin kapatılması yalnızca hatırlatmaları durdurur; sipariş ve teslimat bilgilendirmeleri e-posta ile ve Uygulama içindeki sipariş ekranından takip edilmeye devam eder.",
         ],
         bullets: [
-          "İşlemsel bildirim örnekleri: sipariş alındı, ödeme onaylandı, sipariş hazırlanıyor, kargoya verildi, teslim edildi, iade işleme alındı.",
-          "İşlemsel bildirim örnekleri: şifre sıfırlama, e-posta doğrulama, hesaba yeni cihazdan giriş uyarısı ve diğer güvenlik bildirimleri.",
-          "İşlemsel bildirim örnekleri: Ödül Puanı kazanımının veya harcamasının kaydedildiğine dair bakiye bilgilendirmesi.",
-          "Ticari bildirim örnekleri: indirim kampanyası duyurusu, yeni ürün tanıtımı, etkinlik daveti, sepette bırakılan ürün hatırlatması, kişiye özel kupon tanıtımı.",
-          "Ticari bildirimler makul gönderim sıklığı gözetilerek iletilir; Kullanıcı bildirim türlerini ayrı ayrı açıp kapatabilir.",
-          "Ticari bildirim onayının geri alınması, işlemsel bildirimlerin gönderilmesine engel değildir.",
+          "Hatırlatma örnekleri: günün kahvesi hatırlatması ve Kullanıcı'nın seçtiği diğer düzenli hatırlatmalar. Bunlar cihazda planlanır; hangi hatırlatmanın açık olduğu sunucuya bildirilmez.",
+          "Uygulama içi bildirim kutusu örnekleri: sipariş durumu değişikliği, ödülün hazır olması, kupon süresinin dolmak üzere olması. Bunlar Uygulama açıldığında sunucudan okunur.",
+          "İşlemsel e-posta örnekleri: sipariş alındı, ödeme onaylandı, şifre sıfırlama, e-posta doğrulama.",
+          "Ticari ileti örnekleri: indirim kampanyası duyurusu, yeni ürün tanıtımı, etkinlik daveti.",
+          "Ticari ileti onayının geri alınması, işlemsel bilgilendirmelerin gönderilmesine engel değildir.",
         ],
       },
       {
-        heading: "11. Ödül ve Puan Programı",
+        heading: "11. Sadakat (Damga) Programı",
         paragraphs: [
-          "Ödül Puanı, üyelik hesabına bağlı olarak kazanılan ve yalnızca {{BRAND}} kanallarında indirim olarak kullanılabilen sanal bir değer birimidir. Puan bir ödeme aracı, elektronik para veya menkul kıymet değildir; nakde çevrilemez, üçüncü kişilere devredilemez, satılamaz ve başka bir hesaba aktarılamaz.",
-          "Puan kazanma ve harcama oranları, geçerlilik süresi, kapsam dışı ürünler ile bir siparişte kullanılabilecek azami puan miktarı Uygulama içindeki program kuralları ekranında gösterilir. Şirket bu kuralları ileriye etkili olarak değiştirebilir; değişiklik, hâlihazırda kazanılmış puanların kullanım hakkını makul bir geçiş süresi tanınmadan ortadan kaldıracak biçimde uygulanamaz.",
-          "Kafede QR kod okutularak puan kazanılması, ziyaretin ve ilgili harcamanın doğrulanmasına bağlıdır. Aynı QR kodun mükerrer okutulması, başka kişiye ait kodun kullanılması veya otomatik yöntemlerle puan üretilmesi hâlinde ilgili puanlar geri alınır ve hesap askıya alınabilir.",
-          "Puanla ödenen tutar sipariş bedelinden düşülür ve sipariş özeti ile faturada ayrıca gösterilir. Fatura, mevzuata uygun biçimde indirim sonrası tahsil edilen bedel üzerinden düzenlenir.",
+          "Sadakat damgası, üyelik hesabına bağlı olarak kazanılan ve tek başına parasal karşılığı bulunmayan bir kayıttır. Damga bir ödeme aracı, elektronik para veya menkul kıymet değildir; nakde çevrilemez, üçüncü kişilere devredilemez, satılamaz ve başka bir hesaba aktarılamaz.",
+          "Damga iki yoldan kazanılır: Uygulama üzerinden verilen bir kafe siparişinin ödemesinin tamamlanması (sipariş başına bir damga) ve kafede kasada personelin üyelik hesabına elle eklediği damga. Kart, Uygulama'da gösterilen hedef sayıda damga ile dolar (varsayılan altı) ve dolan kart, Kullanıcı'nın talebiyle bir ücretsiz içecek kuponuna çevrilir.",
+          "Damga kazanmak için karekod okutulmaz; Uygulama bu amaçla kamera kullanmaz. Kasada eklenen her damga, işlemi yapan personel ve işlem anı ile birlikte kaydedilir ve yanlışlıkla eklenen bir damga aynı yolla geri alınabilir.",
+          "Ücretsiz içecek kuponu yalnızca kafe siparişlerinde geçerlidir, tek kullanımlıktır ve tanımlandığı tarihten itibaren Uygulama'da gösterilen süre boyunca (varsayılan doksan gün) kullanılabilir. Kuponun karşıladığı tutar sipariş özetinde ve faturada indirim olarak gösterilir.",
+          "Programın ayrıntılı kuralları {{SITE_URL}}/hukuk/odul-programi adresinde yayımlanır; çelişki hâlinde o metin esas alınır.",
         ],
         bullets: [
-          "Ödül Puanı üyeliğe bağlıdır; hesabın kapatılması hâlinde kullanılmamış puanlar sona erer ve herhangi bir bedele dönüştürülmez.",
-          "Sipariş iptal edilir veya cayma hakkı kullanılırsa, o siparişte harcanan puan hesaba yeniden yüklenir; siparişten kazanılmış puanlar ise geri alınır.",
-          "Kısmi iadelerde, iade edilen kalemlere karşılık gelen puan oranlanarak hesaba yeniden yüklenir.",
-          "Puanla ödenen kısım puan olarak, Türk lirası olarak ödenen kısım ise ödemenin yapıldığı kanala iade edilir.",
-          "Puanların kullanımıyla ilgili ayrıntılı bilgiye Uygulama içindeki puan hareketleri ekranından erişilebilir; her kazanım ve harcama tarih ve tutar bilgisiyle kaydedilir.",
-          "Puan geçmişinin ve harcama alışkanlıklarının kişiselleştirilmiş öneri üretmek amacıyla analiz edilmesi, yalnızca Kullanıcı'nın bu yönde açık rıza vermesi hâlinde gerçekleştirilir; rıza verilmemesi puan kazanma ve harcamayı engellemez.",
+          "Damga üyeliğe bağlıdır; hesabın kapatılması hâlinde biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer ve herhangi bir bedele dönüştürülmez.",
+          "Sipariş iptal edilir veya cayma hakkı kullanılırsa, o siparişten kazanılmış damga geri alınır.",
+          "Ücretsiz içecek kuponu kullanılan bir siparişin iadesinde, kuponla karşılanan kısım için nakit ödeme yapılmaz; Kullanıcı'nın fiilen ödediği tutar ödemenin yapıldığı kanala iade edilir.",
+          "Damga hareketlerinin ayrıntısına Uygulama içindeki ödüller ekranından erişilebilir; her kazanım ve düzeltme tarihiyle birlikte kaydedilir.",
+          "Harcama alışkanlıklarının kişiselleştirilmiş öneri üretmek amacıyla analiz edilmesi Uygulama'nın bir işlevi değildir; böyle bir işleme yapılacak olması hâlinde ayrıca açık rıza alınır ve rıza verilmemesi damga kazanmayı engellemez.",
         ],
       },
       {
@@ -12037,7 +11816,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Ödeme sonucu, iyzico tarafından imzalı bildirim (webhook) ile Şirket sistemlerine iletilir; bildirimin imzası doğrulanır ve işlemin durumu iyzico'ya yeniden sorularak teyit edilir. Sipariş yalnızca bu teyit sonrasında onaylanmış sayılır. Aynı işlemin mükerrer kaydedilmesini önlemek için sağlayıcı referansı üzerinde tekillik kısıtı uygulanır.",
         ],
         bullets: [
-          "Ödeme tutarı hiçbir koşulda yalnızca cihazdan gelen veriye göre belirlenmez; sipariş tutarı sunucu tarafında güncel ürün fiyatı, vergi, kargo ve puan indirimi üzerinden yeniden hesaplanır.",
+          "Ödeme tutarı hiçbir koşulda yalnızca cihazdan gelen veriye göre belirlenmez; sipariş tutarı sunucu tarafında güncel ürün fiyatı, vergi, kargo ve kupon indirimi üzerinden yeniden hesaplanır.",
           "Uygulama, Mağaza'ların uygulama içi satın alma sistemini kullanmaz; ödeme her hâlde iyzico üzerinden alınır.",
           "Ödeme sırasında bankaya yönlendirme yapılması hâlinde işlem, cihazın tarayıcısı veya güvenli uygulama içi tarayıcı bileşeni üzerinden tamamlanır.",
           "Cayma hakkı, ayıplı mal, teslimat ve iade süreçleri bakımından {{SITE_URL}} adresinde yayımlanan İade ve Cayma ile Teslimat ve Kargo politikaları uygulanır.",
@@ -12057,8 +11836,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "14. Çevrimdışı Kullanım ve Veri Senkronizasyonu",
         paragraphs: [
           "Uygulama, daha önce görüntülenmiş menü ve katalog içeriğini cihazda geçici olarak saklayabilir. Bu sayede internet bağlantısının bulunmadığı durumlarda içerik sınırlı biçimde görüntülenebilir; ancak bu içerik en son senkronizasyon anına aittir ve güncel olmayabilir.",
-          "Sipariş oluşturma, ödeme, QR kod ile puan kazanma, puan harcama ve hesap işlemleri etkin bir internet bağlantısı gerektirir. Bağlantı kesintisi nedeniyle tamamlanamayan işlemler, bağlantı yeniden kurulduğunda Kullanıcı'nın onayıyla yeniden denenir.",
-          "Cihazda saklanan veriler ile sunucudaki kayıtlar arasında farklılık bulunması hâlinde, sipariş durumu, stok, fiyat ve Ödül Puanı bakiyesi bakımından sunucudaki kayıt esas alınır. Cihazdaki geçici kayıt, sunucu verisiyle uyumlu hâle getirilir.",
+          "Sipariş oluşturma, ödeme, ödülün kupona çevrilmesi ve hesap işlemleri etkin bir internet bağlantısı gerektirir. Bağlantı kesintisi nedeniyle tamamlanamayan işlemler, bağlantı yeniden kurulduğunda Kullanıcı'nın onayıyla yeniden denenir.",
+          "Cihazda saklanan veriler ile sunucudaki kayıtlar arasında farklılık bulunması hâlinde, sipariş durumu, stok, fiyat ve damga bakiyesi bakımından sunucudaki kayıt esas alınır. Cihazdaki geçici kayıt, sunucu verisiyle uyumlu hâle getirilir.",
           "Kullanıcı, cihazının önbelleğini temizleyerek yerel olarak saklanan geçici verileri silebilir. Bu işlem, üyelik hesabına bağlı ve sunucuda tutulan verileri etkilemez.",
         ],
       },
@@ -12080,10 +11859,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Şirket, kullandığı üçüncü taraf bileşenleri güvenlik ve uyumluluk gereklilikleri doğrultusunda değiştirebilir. Kişisel veri işlenmesini etkileyen değişiklikler, Gizlilik ve Kişisel Verilerin Korunması Politikası ile Aydınlatma Metni'nde güncellenir.",
         ],
         bullets: [
-          "Bildirim iletimi için işletim sistemi üreticilerinin push bildirim servisleri kullanılır; bu servisler bildirimin cihaza ulaştırılması amacıyla gönderim tokenini işler.",
-          "Kararlılığın izlenmesi amacıyla çökme kaydı toplayan bileşenler kullanılabilir; bu kayıtlar teknik hata bilgisiyle sınırlıdır.",
-          "Ölçümleme ve performans analizi amaçlı bileşenler, izin gerektiren durumlarda yalnızca Kullanıcı'nın onayıyla etkinleştirilir.",
-          "Uygulama'da mobil işletim sistemlerinde çerez kullanılmaz; benzer işlev, SDK'lar ve cihaz tanımlayıcıları aracılığıyla sağlanır. İzin yönetimi cihaz ayarlarındaki uygulama izinleri ve izleme tercihleri üzerinden yapılır.",
+          "Hatırlatmalar, işletim sisteminin kendi yerel bildirim zamanlayıcısıyla gösterilir; üçüncü taraf bir anlık bildirim (push) servisi kullanılmaz ve cihaza ait bir gönderim tokeni işlenmez.",
+          "Uygulama'da çökme (crash) kaydı, ölçümleme, reklam veya izleme amaçlı üçüncü taraf bileşen bulunmaz.",
+          "Uygulama'da mobil işletim sistemlerinde çerez kullanılmaz; benzer bir izleme işlevi de sağlanmaz. Cihazda tutulan tek veri, oturum anahtarları ile menü, sepet ve tercih önbelleğidir; bunlar Uygulama kaldırıldığında cihazdan silinir.",
           "Uygulama içinde üçüncü kişilere ait bağlantılara yer verilebilir; bu bağlantılar cihazın tarayıcısında açılır ve hedef sitelerin içeriğinden Şirket sorumlu değildir.",
         ],
       },
@@ -12136,9 +11914,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "21. Kişisel Verilerin Korunması ve Gizlilik",
         paragraphs: [
           "{{LEGAL_NAME}}, Uygulama üzerinden işlenen kişisel veriler bakımından 6698 sayılı Kişisel Verilerin Korunması Kanunu anlamında veri sorumlusudur.",
-          "Uygulama kapsamında; kimlik ve iletişim bilgileri, üyelik ve sipariş bilgileri, teslimat ve fatura adresleri, ödeme işlem referansları, Ödül Puanı ve harcama geçmişi, cihaz tanımlayıcıları (IDFA veya AAID), push bildirim tokeni, uygulama sürümü, işletim sistemi ve cihaz modeli bilgisi, çökme kayıtları ile Kullanıcı'nın izin vermesi hâlinde yaklaşık konum bilgisi işlenir. QR kod okuma için kamera erişimi kullanılır; kamera görüntüsü kaydedilmez ve sunucuya aktarılmaz.",
-          "Bu veriler; üyelik hesabının yönetilmesi, sipariş ve teslimat süreçlerinin yürütülmesi, ödeme işlemlerinin gerçekleştirilmesi, ödül programının işletilmesi, bildirimlerin iletilmesi, hata giderme ve bilgi güvenliğinin sağlanması ile hukuki yükümlülüklerin yerine getirilmesi amaçlarıyla, Kanun'un veri işleme şartlarını düzenleyen hükümlerine dayanılarak işlenir.",
-          "Harcama ve puan geçmişine dayalı profilleme ile kişiselleştirilmiş kampanya sunulması, yalnızca Kullanıcı'nın açık rızası hâlinde gerçekleştirilir. Rıza verilmemesi veya geri alınması, Uygulama'nın ve ödül programının temel işlevlerinin kullanılmasına engel değildir.",
+          "Uygulama kapsamında; kimlik ve iletişim bilgileri, üyelik ve sipariş bilgileri, teslimat ve fatura adresleri, ödeme işlem referansları, sadakat damgası ve kupon hareketleri ile isteklerin sunucuya ulaşmasıyla oluşan işlem güvenliği kayıtları (IP adresi, istek zamanı, uygulama sürümü) işlenir.",
+          "Uygulama; reklam tanımlayıcısı (IDFA/AAID), anlık bildirim (push) tokeni, konum, kamera, mikrofon, rehber, fotoğraf ve çökme (crash) kaydı işlemez. Hatırlatmalar cihazda planlanır ve sunucuya bildirilmez; oturum anahtarları ile menü, sepet ve tercih önbelleği cihazda kalır.",
+          "Bu veriler; üyelik hesabının yönetilmesi, sipariş ve teslimat süreçlerinin yürütülmesi, ödeme işlemlerinin gerçekleştirilmesi, sadakat programının işletilmesi, hata giderme ve bilgi güvenliğinin sağlanması ile hukuki yükümlülüklerin yerine getirilmesi amaçlarıyla, Kanun'un veri işleme şartlarını düzenleyen hükümlerine dayanılarak işlenir.",
+          "Harcama geçmişine dayalı profilleme ve kişiselleştirilmiş kampanya sunulması Uygulama'nın bir işlevi değildir. Böyle bir işleme yapılacak olması hâlinde ayrıca açık rıza alınır; rıza verilmemesi veya geri alınması, Uygulama'nın ve sadakat programının kullanılmasına engel değildir.",
           "İşlenen veri kategorileri, hukuki sebepler, aktarım yapılan taraflar, saklama süreleri ve ilgili kişinin hakları {{SITE_URL}} adresinde yayımlanan Gizlilik ve Kişisel Verilerin Korunması Politikası ile Aydınlatma Metni'nde açıklanır. İlgili kişi başvuruları {{EMAIL}} adresine veya {{ADDRESS}} adresine yazılı olarak iletilebilir ve Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca en geç otuz gün içinde sonuçlandırılır.",
         ],
       },
@@ -12155,7 +11934,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "23. Devir, Bölünebilirlik ve Feragat",
         paragraphs: [
-          "Kullanıcı, işbu Koşullar'dan doğan hak ve yükümlülüklerini Şirket'in yazılı onayı olmaksızın üçüncü kişilere devredemez; üyelik hesabı ve Ödül Puanı satılamaz, kiralanamaz veya paylaşıma açılamaz.",
+          "Kullanıcı, işbu Koşullar'dan doğan hak ve yükümlülüklerini Şirket'in yazılı onayı olmaksızın üçüncü kişilere devredemez; üyelik hesabı, sadakat damgaları ve ücretsiz içecek kuponu satılamaz, kiralanamaz veya paylaşıma açılamaz.",
           "Şirket, işletmenin veya ilgili faaliyet kolunun devri, birleşme ya da yeniden yapılanma hâlinde Koşullar'ı ve buna bağlı hakları devralan tüzel kişiye devredebilir. Bu durumda Kullanıcı'ya önceden bilgi verilir ve Kullanıcı üyeliğini bedelsiz sona erdirme hakkına sahiptir.",
           "Koşullar'ın herhangi bir hükmünün kısmen veya tamamen geçersiz sayılması, diğer hükümlerin geçerliliğini etkilemez. Geçersiz hükmün yerine tarafların amacına en yakın ve mevzuata uygun düzenleme uygulanır.",
           "Taraflardan birinin Koşullar'dan doğan bir hakkını kullanmaması veya geç kullanması, o haktan feragat ettiği anlamına gelmez.",
@@ -12173,10 +11952,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Koşulların ve diğer sözleşmelerin onaylanmasına ilişkin tarih, saat, uygulama sürümü ve belge sürümü kayıtları.",
-          "Sipariş, sepet, fiyat, stok ve Ödül Puanı hareketi kayıtları.",
+          "Sipariş, sepet, fiyat, stok ve sadakat damgası hareketi kayıtları.",
           "iyzico'dan alınan işlem referansları ile imzalı ödeme sonuç bildirimleri.",
-          "Push bildirim gönderim kayıtları, işlemsel e-posta gönderim kayıtları ve İYS onay ile ret kayıtları.",
-          "Sunucu erişim kayıtları, uygulama hata ve çökme kayıtları ile yönetici işlem kayıtları.",
+          "İşlemsel e-posta gönderim kayıtları ile İYS onay ve ret kayıtları.",
+          "Sunucu erişim ve hata kayıtları ile yönetici işlem kayıtları.",
         ],
       },
       {
@@ -14436,7 +14215,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Kafe Koşulları",
     category: "Kurumsal",
     summary:
-      "{{BRAND}} kafesinde yerinde sunulan yiyecek-içecek hizmetine, masa rezervasyonuna, özel etkinliklere, mobil uygulama kullanımına, QR ile puan kazanma ve puanla ödeme kurallarına ve misafir haklarına ilişkin usul ve esasları düzenleyen metindir.",
+      "{{BRAND}} kafesinde yerinde sunulan yiyecek-içecek hizmetine, masa rezervasyonuna, özel etkinliklere, mobil uygulama kullanımına, sadakat damgası ve ücretsiz içecek kuponu kurallarına ve misafir haklarına ilişkin usul ve esasları düzenleyen metindir.",
     references: [
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
@@ -14468,7 +14247,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           'İşbu Kafe Hizmet ve Rezervasyon Koşulları (bundan sonra "Koşullar" olarak anılacaktır), {{BRAND}} markası altında işletilen fiziki kafe işletmesinde yerinde sunulan yiyecek-içecek hizmetine, masa rezervasyonuna, özel etkinlik ve tasting masası organizasyonlarına ve işletme içinde uyulması gereken kurallara ilişkin usul ve esasları düzenlemek amacıyla hazırlanmıştır.',
           'İşletmenin sahibi ve işleticisi; {{ADDRESS}} adresinde mukim, {{TAX_OFFICE}} nezdinde {{TAX_NO}} vergi kimlik numarası ile kayıtlı {{LEGAL_NAME}} unvanlı limited şirkettir (bundan sonra "Şirket", "{{SHORT_NAME}}" veya "İşletme" olarak anılacaktır). {{BRAND}}, Şirket tarafından işletilen kahve ve gelato bar işletmesinin ticari markasıdır. Şirketin işe başlama tarihi {{STARTED_AT}} olarak vergi dairesi kayıtlarında yer almaktadır.',
           'İşletmeyi ziyaret eden, işletmede yiyecek-içecek hizmeti alan, masa rezervasyonu talebinde bulunan, işletmede düzenlenen özel etkinlik, atölye ya da tasting programlarına katılan veya {{BRAND}} mobil uygulaması üzerinden rezervasyon, üyelik ve ödül programı işlemi yapan her gerçek veya tüzel kişi (bundan sonra "Misafir" veya "Siz") işbu Koşulların muhatabı sayılır ve burada düzenlenen kurallarla bağlı olur. Rezervasyon talebinde bulunulması, rezervasyon onayının kabul edilmesi veya işletmede hizmet alınması işbu Koşulların okunduğu ve kabul edildiği anlamına gelir.',
-          "İşbu Koşullar; işletme içinde yerinde sunulan hizmete, masa rezervasyonuna, {{BRAND}} mobil uygulamasının kafe hizmetine ilişkin kullanımına ve ödül/puan programına ilişkindir. {{SITE_URL}} adresindeki web sitesi ve {{BRAND}} mobil uygulaması üzerindeki online mağaza (bottega) aracılığıyla yapılan fiziksel ürün satışlarına Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi, İptal ve İade Koşulları ile Teslimat ve Kargo Koşulları uygulanır. İşletmede yerinde satın alınan paket ürünler bakımından ise mesafeli sözleşme hükümleri değil, yüz yüze kurulan satış sözleşmesine ilişkin genel hükümler geçerlidir.",
+          "İşbu Koşullar; işletme içinde yerinde sunulan hizmete, masa rezervasyonuna, {{BRAND}} mobil uygulamasının kafe hizmetine ilişkin kullanımına ve sadakat programına ilişkindir. {{SITE_URL}} adresindeki web sitesi ve {{BRAND}} mobil uygulaması üzerindeki online mağaza (bottega) aracılığıyla yapılan fiziksel ürün satışlarına Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi, İptal ve İade Koşulları ile Teslimat ve Kargo Koşulları uygulanır. İşletmede yerinde satın alınan paket ürünler bakımından ise mesafeli sözleşme hükümleri değil, yüz yüze kurulan satış sözleşmesine ilişkin genel hükümler geçerlidir.",
           "İşbu Koşullar; Gizlilik ve Kişisel Verilerin Korunması Politikası, Aydınlatma Metni, Çerez Politikası, Kullanım Şartları ve sitede yayımlanan diğer politika metinleriyle bir bütün oluşturur. Her hâlükârda 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve ilgili mevzuatın tüketici lehine emredici hükümleri saklıdır; işbu Koşulların hiçbir hükmü, tüketicinin kanundan doğan haklarını sınırlandıracak, ortadan kaldıracak veya kullanılmasını güçleştirecek biçimde yorumlanamaz. Böyle bir sonuç doğuran hüküm bulunması hâlinde, o hüküm yazılmamış sayılır ve Koşulların geri kalanı geçerliliğini korur.",
         ],
       },
@@ -14493,9 +14272,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kapalı Alan: 4207 sayılı Kanun anlamında tavanı ve yanları kapalı olan, tütün ürünü tüketiminin yasak olduğu iç mekân.",
           "İşletme Personeli: İşletmede görev yapan servis, mutfak, bar ve yönetim çalışanları.",
           "Mobil Uygulama: {{BRAND}} markası altında iOS ve Android işletim sistemleri için yayımlanan, menü görüntüleme, rezervasyon, sipariş, üyelik ve ödül programı işlevlerini sunan uygulama.",
-          "Üyelik Hesabı: Web sitesi veya Mobil Uygulama üzerinden oluşturulan, ödül ve puan programının bağlı olduğu kişisel hesap.",
-          "Puan: Ödül programı kapsamında kazanılan, para olmayan ve yalnızca ilan edilen oran üzerinden indirim olarak kullanılabilen sayısal değer.",
-          "Puan QR Kodu: İşletmede masada veya kasada sunulan, Mobil Uygulama ile okutularak ilgili adisyona ait puanın hesaba işlenmesini sağlayan tek seferlik kod.",
+          "Üyelik Hesabı: Web sitesi veya Mobil Uygulama üzerinden oluşturulan, sadakat programının bağlı olduğu kişisel hesap.",
+          "Damga: Sadakat programı kapsamında kazanılan, tek başına parasal karşılığı bulunmayan kayıt; kart dolduğunda bir ücretsiz içecek kuponuna dönüşür.",
+          "Kasa Damgası: Kafede personel tarafından Misafir'in üyelik hesabına elle eklenen damga.",
         ],
       },
       {
@@ -14708,7 +14487,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "İşletmede sunulan tüm yiyecek ve içeceklerin fiyatları menüde Türk lirası (TRY) cinsinden ve ilgili vergiler dâhil olarak ilan edilir. Menüde ilan edilen fiyatın üzerine, önceden ilan edilmemiş hiçbir ek bedel eklenmez. Uygulanan katma değer vergisi oranı yürürlükteki vergi mevzuatına göre belirlenir; oran değişikliklerinin fiyatlara yansıtılması hâlinde menü güncellenir.",
           "İşletmede zorunlu servis ücreti, kuver bedeli veya masa açma ücreti uygulanmaz. Bahşiş tamamen gönüllülük esasına dayalıdır; hesap fişine otomatik olarak eklenmez ve Misafirden talep edilmez. Yalnızca önceden yazılı olarak bildirilmiş ve Misafir tarafından kabul edilmiş özel organizasyon hizmet bedelleri bu kuralın dışındadır.",
           "Menü içerikleri mevsimsel olarak değişebilir; belirli bir kalemin her zaman bulunacağı taahhüt edilmez. Menüde yer alan görseller tanıtım amaçlıdır ve sunum, porsiyon ya da renk bakımından farklılık gösterebilir. Ürün gramajı, hacmi veya porsiyon bilgisi menüde belirtildiği hâllerde bağlayıcıdır.",
-          "Kampanya, indirim, sadakat programı veya promosyon uygulamalarının koşulları, geçerlilik süresi ve varsa kısıtları ilan edildiği yerde açıkça belirtilir. Ödül ve puan programına ilişkin kurallar işbu Koşulların ödül programı maddesinde ayrıca düzenlenmiştir. Online mağazada geçerli promosyon kodları, aksi açıkça belirtilmedikçe işletme içi satışlarda kullanılamaz.",
+          "Kampanya, indirim, sadakat programı veya promosyon uygulamalarının koşulları, geçerlilik süresi ve varsa kısıtları ilan edildiği yerde açıkça belirtilir. Sadakat programına ilişkin kurallar işbu Koşulların sadakat programı maddesinde ayrıca düzenlenmiştir. Online mağazada geçerli promosyon kodları, aksi açıkça belirtilmedikçe işletme içi satışlarda kullanılamaz.",
           "Fiyatın menüde ilan edilenden farklı biçimde hesaba yansıtıldığını fark etmeniz hâlinde, hesabı ödemeden önce servis personeline bildirmeniz yeterlidir; fark derhâl düzeltilir. Ödeme sonrasında fark edilen hatalar için {{EMAIL}} adresine başvurabilirsiniz.",
         ],
         bullets: [
@@ -14771,79 +14550,77 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading:
           "13. Mobil Uygulama, Uygulama Mağazası Koşulları ve Cihaz İzinleri",
         paragraphs: [
-          "{{BRAND}}, iOS ve Android işletim sistemleri için bir mobil uygulama yayımlar. Uygulama üzerinden menünün görüntülenmesi, masa rezervasyonu talebi, sipariş verilmesi, üyelik işlemleri, ödül ve puan bakiyesinin takibi, kafede QR okutarak puan kazanılması ve bildirim alınması mümkündür. İşbu Koşulların kafe hizmetine ilişkin hükümleri, uygulama üzerinden yapılan rezervasyon ve puan işlemleri bakımından da uygulanır.",
+          "{{BRAND}}, iOS ve Android işletim sistemleri için bir mobil uygulama yayımlar. Uygulama üzerinden menünün görüntülenmesi, karaoke rezervasyonu talebi, sipariş verilmesi, üyelik işlemleri, sadakat kartının takibi ve cihazda planlanan hatırlatmaların alınması mümkündür. İşbu Koşulların kafe hizmetine ilişkin hükümleri, uygulama üzerinden yapılan rezervasyon ve puan işlemleri bakımından da uygulanır.",
           "Uygulamanın indirilmesi, kurulması ve güncellenmesi App Store ve Google Play mağazalarının kendi kullanım koşullarına tabidir. Bu koşullar, İşletme ile Misafir arasındaki ilişkiden bağımsızdır; İşletme, mağaza kaynaklı erişim, yayın veya cihaz uyumluluğu kısıtlarından sorumlu tutulamaz. Uygulama içinde uygulama mağazası üzerinden satın alma yapılmaz; ödemeler her hâlükârda iyzico altyapısı üzerinden gerçekleştirilir.",
           "İşletme, güvenlik ve işlevsellik amacıyla uygulamanın yeni sürümlerini yayımlayabilir; belirli işletim sistemi sürümleri veya eski uygulama sürümleri desteklenmeyebilir. Güncel sürümün kullanılması, hem güvenlik hem de işlevlerin eksiksiz çalışması bakımından önerilir.",
           "Uygulama, aşağıda sayılan cihaz izinlerini talep edebilir. Bu izinlerin tamamı isteğe bağlıdır ve cihaz ayarlarından her zaman geri alınabilir. İzin verilmemesi hâlinde yalnızca ilgili özellik çalışmaz; işletmede hizmet almanız veya rezervasyon yaptırmanız hiçbir şekilde kısıtlanmaz.",
         ],
         ordered: [
-          "Uygulamayı cihazınızdan kaldırmanız hâlinde uygulama üzerinden erişilen özellikler sona erer; üyelik hesabınız ve puan bakiyeniz, hesabınızı kapatmadığınız sürece korunmaya devam eder.",
-          "Rezervasyon teyidi, sipariş durumu, ödeme sonucu ve puan hareketi gibi işlemsel bildirimler hizmetin ifası için gönderilir ve 6563 sayılı Kanun anlamında ticari elektronik ileti sayılmaz.",
+          "Uygulamayı cihazınızdan kaldırmanız hâlinde uygulama üzerinden erişilen özellikler sona erer; üyelik hesabınız ve damga kartınız, hesabınızı kapatmadığınız sürece korunmaya devam eder.",
+          "Rezervasyon teyidi, sipariş durumu, ödeme sonucu ve damga hareketi gibi işlemsel bilgilendirmeler hizmetin ifası için gönderilir ve 6563 sayılı Kanun anlamında ticari elektronik ileti sayılmaz.",
           "Kampanya, indirim ve tanıtım içeren push bildirimleri ticari elektronik ileti niteliğindedir; yalnızca ayrıca alınmış onaya dayanılarak gönderilir ve onay uygulama içinden veya cihaz ayarlarından her zaman geri alınabilir.",
           "Mobil uygulamada çerez yerine yazılım geliştirme kitleri (SDK) ve cihaz tanımlayıcıları kullanılır; izin yönetimi cihaz ayarlarından yapılır.",
-          "Uygulama kullanımında işlenen cihaz tanımlayıcıları (IDFA/AAID), push bildirim tokeni, uygulama sürümü, işletim sistemi bilgisi, çökme (crash) kayıtları ve izin verilmesi hâlinde yaklaşık konum verilerine ilişkin ayrıntılı bilgi Aydınlatma Metni, Gizlilik ve Kişisel Verilerin Korunması Politikası ile Çerez Politikasında yer alır.",
+          "Uygulama; reklam tanımlayıcısı (IDFA/AAID), anlık bildirim (push) tokeni, konum, kamera ve çökme (crash) kaydı işlemez. Uygulama kullanımında işlenen verilere (üyelik, sipariş, damga ve işlem güvenliği kayıtları) ilişkin ayrıntılı bilgi Aydınlatma Metni, Gizlilik ve Kişisel Verilerin Korunması Politikası ile Çerez Politikasında yer alır.",
         ],
         bullets: [
-          "Bildirim izni: rezervasyon teyidi, sipariş durumu, ödeme sonucu ve puan hareketi bildirimleri ile onay vermeniz hâlinde kampanya bildirimleri.",
-          "Kamera izni: işletmede masada veya kasada sunulan puan QR kodunun okutulması.",
-          "Konum izni: yaklaşık konum üzerinden en yakın konumun gösterilmesi ve yalnızca izin verdiğiniz sürece kullanılması.",
+          "Bildirim izni: yalnızca uygulamada kendi açtığınız hatırlatmaların cihazda gösterilmesi. Uygulama sunucudan anlık bildirim göndermez.",
+          "Kamera izni: istenmez — damga kazanmak için karekod okutulmaz.",
+          "Konum izni: istenmez — tek şube bulunduğundan konuma bağlı bir işlev yoktur.",
           "Medya ve dosya izni: sipariş özeti veya fişin cihaza kaydedilmesi.",
-          "İzinlerin tamamı cihaz ayarlarından geri alınabilir; geri alma, geçmişte kazanılmış puanları etkilemez.",
+          "İzin cihaz ayarlarından geri alınabilir; geri alma, geçmişte kazanılmış damgaları etkilemez.",
         ],
       },
       {
-        heading:
-          "14. Ödül ve Puan Programı, QR ile Puan Kazanma ve Puanla Ödeme",
+        heading: "14. Sadakat Programı: Damga ve Ücretsiz İçecek Kuponu",
         paragraphs: [
-          "İşletme, üyelerine yönelik bir ödül ve puan programı yürütür. Programa katılım, {{SITE_URL}} adresindeki web sitesi veya {{BRAND}} mobil uygulaması üzerinden üyelik hesabı oluşturulmasıyla mümkündür ve tamamen isteğe bağlıdır. Programa katılmamanız, işletmede hizmet almanızı veya rezervasyon yaptırmanızı hiçbir şekilde etkilemez.",
-          "Puan; kafede yapılan harcamalardan, çevrim içi mağazadan yapılan alışverişlerden ve zaman zaman duyurulan kampanyalardan kazanılır. Kazanım oranları, varsa üst sınırlar ve kampanya koşulları uygulamada ve {{SITE_URL}} adresinde ilan edilir. İşletme bu oranları, yalnızca ileriye etkili olmak ve önceden duyurmak kaydıyla değiştirebilir; değişiklik, o tarihe kadar kazanılmış puanları etkilemez.",
-          "Puan bir ödeme aracı, elektronik para veya kıymetli evrak değildir. Puan nakde çevrilemez, banka hesabına aktarılamaz, üçüncü kişilere devredilemez, satılamaz ve başka bir üyelik hesabıyla birleştirilemez. Puanın tek kullanım biçimi, ilan edilen dönüşüm oranı üzerinden hesap tutarına indirim olarak uygulanmasıdır.",
-          "Puanlar üyelik hesabına bağlıdır. Üyeliğin Misafir tarafından kapatılması hâlinde biriken puanlar sona erer ve karşılığında herhangi bir ödeme talep edilemez. Puanlar için geçerlilik süresi öngörülmesi hâlinde bu süre kazanım anında uygulamada gösterilir ve sürenin dolmasından makul süre önce hatırlatma yapılır.",
-          "Kafede puan kazanmak için, masada veya kasada sunulan puan QR kodunun mobil uygulama üzerinden okutulması gerekir. QR ile puan kazanma aşağıdaki kurallara tabidir.",
+          "İşletme, üyelerine yönelik bir sadakat programı yürütür. Programa katılım, {{SITE_URL}} adresindeki web sitesi veya {{BRAND}} mobil uygulaması üzerinden üyelik hesabı oluşturulmasıyla mümkündür ve tamamen isteğe bağlıdır. Programa katılmamanız, işletmede hizmet almanızı veya rezervasyon yaptırmanızı hiçbir şekilde etkilemez.",
+          "Damga iki yoldan kazanılır: {{BRAND}} mobil uygulaması üzerinden verilen bir kafe siparişinin ödemesinin tamamlanması (sipariş başına bir damga) ve kafede kasada personelin üyelik hesabınıza elle eklediği damga. Kartın dolması için gereken damga sayısı uygulamada gösterilir (varsayılan altı). İşletme bu sayıyı yalnızca ileriye etkili olmak ve önceden duyurmak kaydıyla değiştirebilir; değişiklik, o tarihe kadar kazanılmış damgaları ortadan kaldırmaz.",
+          "Damga bir ödeme aracı, elektronik para veya kıymetli evrak değildir; tek başına parasal bir karşılığı yoktur. Damga nakde çevrilemez, banka hesabına aktarılamaz, üçüncü kişilere devredilemez, satılamaz ve başka bir üyelik hesabıyla birleştirilemez.",
+          "Damgalar üyelik hesabına bağlıdır. Üyeliğin Misafir tarafından kapatılması hâlinde biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında herhangi bir ödeme talep edilemez.",
+          "Kafede damga kazanmak için karekod okutmanız gerekmez ve uygulama bu amaçla kameranıza erişmez; damga kasada, personel tarafından üyelik e-posta adresiniz seçilerek eklenir.",
         ],
         ordered: [
-          "QR kodu yalnızca uygulamada oturum açmış üyeler tarafından okutulabilir ve puan, kodu okutan üyenin hesabına işlenir.",
-          "Her QR kodu tek seferliktir; aynı kod ikinci kez okutulduğunda puan üretmez.",
-          "QR kodu kişiye ve ilgili adisyona özeldir; başkasına devredilemez, paylaşılamaz, ekran görüntüsü veya fotoğraf yoluyla çoğaltılamaz.",
-          "QR kodu yalnızca işletmede, ilgili adisyonun ödendiği gün ve kod üzerinde belirtilen sınırlı süre içinde geçerlidir; süre dolduğunda kod kendiliğinden geçersiz hâle gelir.",
-          "Puan kazanımı kasada, ilgili adisyon ve ödeme kaydıyla eşleştirilerek doğrulanır; doğrulanamayan okutmalarda puan işlenmez.",
-          "İptal edilen, iade edilen veya hatalı düzenlenen bir adisyona bağlı olarak işlenmiş puanlar geri alınabilir ve bu durumda üyeye uygulama üzerinden bilgi verilir.",
+          "Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama, üyelik e-posta adresiniz üzerinden yapılır.",
+          "Kasada eklenen her damga, işlemi yapan personel ve işlem anı ile birlikte kaydedilir; kayıt uygulamanın ödüller ekranından görülebilir.",
+          "Yanlışlıkla eklenen bir damga, personel tarafından aynı panelden bir düzeltme kaydı yazılarak geri alınabilir; kullanılabilir damganız yoksa düzeltme yapılamaz.",
+          "İptal edilen veya iade edilen bir siparişten kazanılmış damga geri alınır ve bu durum uygulamada görünür.",
+          "Sahte hesap oluşturulması, mükerrer hesap açılması veya sistemin manipüle edilmesi hâllerinde İşletme, somut gerekçeye dayanarak ve üyeye bildirim yaparak ilgili damgaları iptal edebilir ve üyeliği askıya alabilir; üyenin itiraz hakkı saklıdır.",
         ],
         bullets: [
-          "Biriken puanlar kasada veya çevrim içi siparişlerde, ilan edilen dönüşüm oranı üzerinden hesap tutarından indirim olarak kullanılabilir; puanla karşılanan tutar bedelden düşülür.",
-          "Puanla karşılanmayan kalan tutar nakit, kart veya çevrim içi ödemelerde iyzico altyapısı üzerinden tahsil edilir; düzenlenen yasal belgede puanla karşılanan indirim ayrıca gösterilir.",
-          "Kasada puan kullanımı için üyeliğinizin doğrulanması gerekir; doğrulama, uygulamadaki üyelik kodu veya üyelik e-posta adresiniz üzerinden yapılır. Başkasına ait bir hesabın puanı kullanılamaz.",
-          "Puanla kısmen veya tamamen ödenen bir siparişin iadesi hâlinde kullanılan puan üyelik hesabına geri yüklenir; bedelin Türk lirası olarak ödenen kısmı ödemenin yapıldığı kanala, çevrim içi ödemelerde iyzico üzerinden aynı karta iade edilir.",
-          "Puan ve harcama geçmişiniz programın yürütülmesi amacıyla işlenir; bu verilerin size özel kampanya oluşturmak üzere profilleme amacıyla işlenmesi yalnızca açık rızanıza dayanır ve rıza vermemeniz puan kazanma ile kullanma hakkınızı etkilemez.",
-          "Sahte hesap oluşturulması, QR kodunun çoğaltılması ya da paylaşılması veya sistemin manipüle edilmesi hâllerinde İşletme, somut gerekçeye dayanarak ve üyeye bildirim yaparak ilgili puanları iptal edebilir ve üyeliği askıya alabilir; üyenin itiraz hakkı saklıdır.",
+          "Kart dolduğunda ödül kendiliğinden verilmez: uygulamadaki ödüller ekranından ödülü almayı seçersiniz ve hesabınıza bir ücretsiz içecek kuponu tanımlanır.",
+          "Ücretsiz içecek kuponu yalnızca kafe siparişlerinde geçerlidir; çevrim içi mağazadan verilen kargo siparişlerinde kullanılamaz.",
+          "Kupon tek kullanımlıktır, üyelik hesabınıza bağlıdır ve tanımlandığı tarihten itibaren uygulamada gösterilen süre boyunca (varsayılan doksan gün) kullanılabilir.",
+          "Kuponun karşıladığı tutar hesap tutarından düşülür; kalan tutar nakit, kart veya çevrim içi ödemelerde iyzico altyapısı üzerinden tahsil edilir ve düzenlenen yasal belgede indirim ayrıca gösterilir.",
+          "Kupon kullanılan bir siparişin iadesi hâlinde kuponla karşılanan kısım için nakit ödeme yapılmaz; Türk lirası olarak ödediğiniz kısım ödemenin yapıldığı kanala iade edilir.",
+          "Damga ve harcama geçmişiniz programın yürütülmesi amacıyla işlenir; bu verilerin size özel kampanya oluşturmak üzere profilleme amacıyla işlenmesi programın bir parçası değildir ve ancak ayrıca alınacak açık rızaya dayanabilir.",
         ],
         table: [
           {
-            key: "Puanın niteliği",
+            key: "Damganın niteliği",
             value: "Para değildir; nakde çevrilemez, devredilemez",
           },
           {
             key: "Kazanım kanalları",
             value:
-              "Kafede QR okutma, çevrim içi alışveriş, duyurulan kampanyalar",
+              "Uygulamadan ödenmiş kafe siparişi; kafede kasada eklenen damga",
           },
           {
-            key: "QR kodu",
+            key: "Kartın dolması",
+            value: "Uygulamada gösterilen hedef sayıda damga (varsayılan 6)",
+          },
+          {
+            key: "Ödül",
             value:
-              "Tek seferlik, kişiye özel; kasada adisyonla eşleştirilerek doğrulanır",
-          },
-          {
-            key: "Kullanım",
-            value: "İlan edilen dönüşüm oranıyla hesap tutarından indirim",
+              "Yalnızca kafe siparişlerinde geçerli, tek kullanımlık ücretsiz içecek kuponu",
           },
           {
             key: "İade hâlinde",
             value:
-              "Puan hesaba geri yüklenir; TL kısmı ödeme kanalına iade edilir",
+              "Siparişten kazanılmış damga geri alınır; ödenen TL ödeme kanalına iade edilir",
           },
           {
             key: "Üyeliğin kapatılması",
-            value: "Biriken puanlar sona erer",
+            value: "Biriken damgalar ve kullanılmamış ödül sona erer",
           },
         ],
       },
@@ -14920,7 +14697,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kayıtların saklama süresi, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik uyarınca hazırlanan Veri Saklama ve İmha Politikasında belirlenmiştir. Süre sonunda kayıtlar periyodik imha yoluyla silinir veya yok edilir; işleme amacının gerektirdiğinden uzun süre saklanmaz.",
           "Kanunun ilgili kişinin haklarını düzenleyen hükmü uyarınca; kişisel verilerinizin işlenip işlenmediğini öğrenme, işlenmişse buna ilişkin bilgi talep etme, işlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme, eksik veya yanlış işlenmiş verilerin düzeltilmesini isteme, silinmesini veya yok edilmesini isteme, bu işlemlerin verilerin aktarıldığı üçüncü kişilere bildirilmesini isteme ve zarara uğramanız hâlinde zararın giderilmesini talep etme haklarına sahipsiniz.",
           "Başvurularınızı, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ hükümlerine uygun olarak {{EMAIL}} adresine veya {{ADDRESS}} adresine yazılı olarak iletebilirsiniz. Başvurunuz, talebin niteliğine göre en geç otuz (30) gün içinde sonuçlandırılır. Ayrıntılı bilgi için Aydınlatma Metni ve Gizlilik ve Kişisel Verilerin Korunması Politikası metinlerini inceleyebilirsiniz.",
-          "Mobil uygulama kullanımı sırasında işlenen cihaz tanımlayıcıları, push bildirim tokeni, uygulama sürümü ve çökme kayıtları ile ödül programı kapsamında işlenen puan ve harcama geçmişine ilişkin aydınlatma, saklama süreleri ve haklarınıza ilişkin ayrıntılar Aydınlatma Metni ile Gizlilik ve Kişisel Verilerin Korunması Politikasında yer alır.",
+          "Mobil uygulama kullanımı sırasında işlenen üyelik, sipariş ve işlem güvenliği kayıtları ile sadakat programı kapsamında işlenen damga hareketlerine ilişkin aydınlatma, saklama süreleri ve haklarınıza ilişkin ayrıntılar Aydınlatma Metni ile Gizlilik ve Kişisel Verilerin Korunması Politikasında yer alır.",
         ],
       },
       {

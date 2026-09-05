@@ -82,14 +82,6 @@ const STAGE: Record<AdminOrderStatus, number> = {
   refunded: 0,
 };
 
-/** Statuses on which a stamp has been (or will be) earned. */
-const STAMPED: readonly AdminOrderStatus[] = [
-  "paid",
-  "preparing",
-  "shipped",
-  "completed",
-];
-
 interface StepSpec {
   key: string;
   label: string;
@@ -226,17 +218,34 @@ export function statusLabelFor(order: AdminOrder): string {
   return ORDER_STATUS_LABELS[order.status] ?? order.status;
 }
 
-export function stampsEarnedFor(order: AdminOrder): number {
-  return orderKind(order) === "cafe" &&
-    orderChannel(order) === "app" &&
-    STAMPED.includes(order.status)
-    ? 1
-    : 0;
+/** No ledger in hand: nothing is claimed. */
+const EMPTY_STAMPED: ReadonlySet<string> = new Set();
+
+/**
+ * The stamp this order really holds, read from the loyalty ledger.
+ *
+ * It used to be inferred from the status — a paid app cafe order "must have"
+ * earned one. `onOrderPaid` is best-effort, though: when its insert failed
+ * (or the order was later refunded and a `reversal` row written), the app
+ * still printed "+1 damga" for a stamp the card never got. `stampedOrderIds`
+ * is the set of orders with a live `earn` row, so this answers from what
+ * happened rather than from what should have.
+ *
+ * An empty set is the honest default: no ledger in hand means no stamp is
+ * claimed. Eligibility itself stays where it is enforced — `onOrderPaid` in
+ * `./loyalty.ts` writes the row for an app cafe order and nothing else.
+ */
+export function stampsEarnedFor(
+  order: AdminOrder,
+  stampedOrderIds: ReadonlySet<string>,
+): number {
+  return stampedOrderIds.has(order.id) ? 1 : 0;
 }
 
 export function toMobileOrder(
   order: AdminOrder,
   now: Date = new Date(),
+  stampedOrderIds: ReadonlySet<string> = EMPTY_STAMPED,
 ): MobileOrder {
   const etaMinutes = etaMinutesFor(order, now);
   return {
@@ -261,7 +270,7 @@ export function toMobileOrder(
       etaMinutes === null
         ? null
         : new Date(now.getTime() + etaMinutes * 60_000).toISOString(),
-    stampsEarned: stampsEarnedFor(order),
+    stampsEarned: stampsEarnedFor(order, stampedOrderIds),
     createdAt: order.createdAt,
     paidAt: order.paidAt || null,
   };

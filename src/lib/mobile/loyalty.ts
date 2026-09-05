@@ -21,6 +21,7 @@ import {
   computeStampBalance,
   freeDrinkRewardFor,
   rewardReadyAt,
+  stampedOrderIds,
   type LoyaltyRules,
   type LoyaltyStamp,
   type LoyaltyView,
@@ -39,6 +40,7 @@ export { FREE_DRINK_REWARD, grantFreeDrinkCoupon } from "./free-drink";
 export {
   buildLoyaltyView,
   computeStampBalance,
+  stampedOrderIds,
   STAMP_TARGET,
   type LoyaltyStamp,
   type LoyaltyView,
@@ -89,6 +91,17 @@ export async function getLoyalty(email: string): Promise<LoyaltyView> {
     loyaltyRules(),
   ]);
   return buildLoyaltyView(stamps, orders, Date.now(), rules.stampTarget);
+}
+
+/**
+ * The member's orders that hold a stamp — one ledger read, for the whole
+ * `/orders` list. The wire field `stampsEarned` is answered from this rather
+ * than from the order's status; see `stampsEarnedFor` in `./order-mapper.ts`.
+ */
+export async function getStampedOrderIds(
+  email: string,
+): Promise<ReadonlySet<string>> {
+  return stampedOrderIds(await listStamps(email));
 }
 
 export interface RewardStatus {

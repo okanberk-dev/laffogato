@@ -105,15 +105,27 @@ export function newCustomerId(now: Date = new Date()): string {
  * `grantWelcome` is true whenever this plan is the moment the address becomes
  * verified — the site grants its welcome coupon at verification, and the
  * bridge mirrors that (idempotently) rather than inventing a second rule.
+ *
+ * `identityRevoked` says the Supabase user signing in is the one a closed
+ * account was linked to; nothing is written and nothing is granted.
  */
 export function planCustomerLink(
   existing: Customer | null,
   user: SupabaseUserLike,
   now: string,
   id: string = newCustomerId(),
+  identityRevoked = false,
 ): LinkPlan {
   const email = normalizeEmail(user.email);
   const confirmed = !!user.email_confirmed_at;
+
+  // This identity belonged to an account the member closed. `DELETE /me`
+  // frees the e-mail, so the row no longer matches on address and the branch
+  // below would happily open a NEW membership — welcome coupon included — for
+  // whoever still holds the old password. Deletion of the Supabase user is
+  // best-effort (it needs a service-role key); the closed row is the record
+  // that survives either way.
+  if (identityRevoked) return { action: "disabled" };
 
   if (!existing) {
     const marketingConsentAt = marketingConsentAtOf(user);

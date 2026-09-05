@@ -52,6 +52,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   getActiveCustomer.mockResolvedValue({ email: "eda@example.com" });
   checkSitePassword.mockResolvedValue("match");
+  deleteMe.mockResolvedValue({ ok: true, identity: "deleted" });
 });
 
 describe("deleteAccountAction", () => {
@@ -93,5 +94,24 @@ describe("deleteAccountAction", () => {
       deleteAccountAction({}, form({ confirmEmail: "eda@example.com" })),
     ).rejects.toThrow("NEXT_REDIRECT");
     expect(deleteMe).toHaveBeenCalled();
+  });
+
+  it("keeps the account while an order is still running (Üyelik Sözleşmesi §14)", () => {
+    // Same refusal the app's DELETE /me answers with 409: anonymising the
+    // buyer of an order the kitchen is about to hand over would leave the
+    // member unable to follow what they already paid for.
+    deleteMe.mockResolvedValue({
+      ok: false,
+      error: "orders_in_progress",
+      count: 1,
+    });
+    return deleteAccountAction(
+      {},
+      form({ confirmEmail: "eda@example.com", password: "sifre123" }),
+    ).then((res) => {
+      expect(res.error).toContain("Devam eden siparişin");
+      expect(clearCustomerSession).not.toHaveBeenCalled();
+      expect(redirect).not.toHaveBeenCalled();
+    });
   });
 });
