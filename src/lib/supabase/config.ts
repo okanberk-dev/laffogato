@@ -43,7 +43,3 @@ export const SUPABASE_PUBLISHABLE_KEY: string =
   clean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
   clean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
   DEFAULT_SUPABASE_PUBLISHABLE_KEY;
-
-/** Project ref (the subdomain) — handy for cookie names and diagnostics. */
-export const SUPABASE_PROJECT_REF: string =
-  /^https?:\/\/([a-z0-9-]+)\./i.exec(SUPABASE_URL)?.[1] ?? "";

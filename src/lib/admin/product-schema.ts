@@ -151,5 +151,3 @@ export const productFormSchema = z
     isActive: v.isActive === "on",
     variants: v.variants,
   }));
-
-export type ProductFormParsed = z.infer<typeof productFormSchema>;

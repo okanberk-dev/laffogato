@@ -79,5 +79,3 @@ export const manualOrderSchema = z
       });
     }
   });
-
-export type ManualOrderParsed = z.infer<typeof manualOrderSchema>;

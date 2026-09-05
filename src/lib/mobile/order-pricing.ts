@@ -121,14 +121,6 @@ function withDefaults(
   };
 }
 
-/** Which kind an order is, from what is in the basket. */
-export function orderKindOfLines(lines: {
-  cafe: number;
-  shop: number;
-}): OrderKind {
-  return lines.cafe > 0 ? "cafe" : "shop";
-}
-
 /**
  * The operator's ordering switches (`settings."mobileApp".ordering`, edited
  * at /admin/mobil/ayarlar). Only the flags matter here; the ETA window is

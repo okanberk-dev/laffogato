@@ -342,8 +342,6 @@ export const promoPreviewBodySchema = z.object({
   kind: z.enum(["cafe", "shop"]).optional(),
 });
 
-export type PromoPreviewBody = z.infer<typeof promoPreviewBodySchema>;
-
 /**
  * The one message a `{ error: "invalid_body" }` response carries. Issues are
  * in document order, so the first one is the earliest field the app should

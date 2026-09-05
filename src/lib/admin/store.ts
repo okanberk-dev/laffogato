@@ -3091,8 +3091,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   };
 }
 
-export { SEED_MENU as CAFE_MENU };
-
 // ─── Public read for customer site ────────────────────────────────────────
 
 function toDesignProduct(p: AdminProduct): DesignProduct {

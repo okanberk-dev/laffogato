@@ -130,7 +130,10 @@ Uygulama boyları **veriden** çizer: `priceLargeMinor === null` → tek boy; de
 
 `variants[].priceMinor` = `product.priceMinor + variant.priceDeltaMinor` (sunucu hesaplar).
 Öğütüm seçimi sipariş satırında `note` olarak taşınır; fiyata etkisi yok.
-Abonelik ("2 haftada bir, %10") **v1'de yok** — uygulama anahtarı gösterir, "yakında" der (karar 8).
+Abonelik ("2 haftada bir, %10") **v1'de yok**: tekrarlı ödeme alan bir sağlayıcı
+yok. Uygulama artık "yakında" diyen bir anahtar da **çizmez** (karar 20 — sunucusu
+olmayan teklif reklam edilmez). `campaignCards.subscription` sözleşmede kalır ama
+hiçbir kartı açıp kapatmaz; sunucu göndermeye devam edebilir.
 
 > **Uygulama notu.** `GET /shop` Cache-Control `public, s-maxage=60,
 stale-while-revalidate=300` (stok bayrağı taşır); `GET /bootstrap` menü ile aynı
@@ -434,7 +437,7 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
       "enabled": true,                            // false → uygulama hatırlatma anahtarını gizler, planlananları iptal eder
       "items": [ { "id": "morning", "hour": 10, "minute": 0, "title": "Günaydın ☕", "body": "Sabah kahven köşkte hazır. Bugün ne içiyoruz?" } ]   // 0..4 öğe; fiyat/indirim/aciliyet dili yok
     },
-    "campaignCards": { "loyalty": true, "invite": true, "subscription": true }   // Kampanyalar ekranındaki sabit kartlar
+    "campaignCards": { "loyalty": true, "invite": true, "subscription": true }   // Kampanyalar ekranındaki sabit kartlar; "subscription" artık hiçbir kartı çizmez (karar 20)
   }
 }
 ```
@@ -520,7 +523,7 @@ alter table public.karaoke_reservations enable row level security;
 | 18 Kampanyalar                             | `/app-content.posts` (kind campaign) + sabit kartlar (`/bootstrap.app.campaignCards`) · `/promo/preview` |
 | 19 Davet                                   | `/me.invite` · `Share`                                                                                   |
 | 21 Sipariş Geçmişi                         | `/orders`                                                                                                |
-| 22 Cüzdan · 23 Hediye Kartı                | **Yakında** (karar 8) — uç yok                                                                           |
+| 22 Cüzdan · 23 Hediye Kartı                | **Yazılmadı** (karar 20) — uç yok; ekran da "yakında" düğmesi de çizilmez                                |
 | 26 Karaoke                                 | `/karaoke/availability` (kurallar dahil) · `POST /karaoke/reservations`                                  |
 | 27 Ziyaret                                 | `/bootstrap.venue` (adres, yer tarifi, harita sorgusu, 7 günlük saat tablosu) — seed yedek               |
 | 28 Hikâye                                  | `/story` (§16) — seed yedek                                                                              |

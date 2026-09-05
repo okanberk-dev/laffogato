@@ -94,7 +94,6 @@
   --r-sm: 6px;
   --r-md: 12px;
   --r-lg: 20px;
-  --r-xl: 32px;
 
   /* Shadows — tinted with the app's own shadow colour (tokens.ts light.shadow
      #12291F = 18,41,31), not neutral black, and given enough weight to
@@ -589,9 +588,8 @@ summary:focus-visible,
   position: relative;
   line-height: 1;
 }
-/* Brand logos rendered as CSS masks: one brown asset, recolored to any surface
-   via currentColor (brown on cream, cream/white on dark). */
-.brand-wordmark,
+/* The brand monogram rendered as a CSS mask: one brown asset, recolored to any
+   surface via currentColor (brown on cream, cream/white on dark). */
 .brand-mark {
   display: inline-block;
   background-color: currentColor;
@@ -601,13 +599,6 @@ summary:focus-visible,
   mask-position: center;
   -webkit-mask-size: contain;
   mask-size: contain;
-}
-.brand-wordmark {
-  -webkit-mask-image: url(/logo-wordmark.png);
-  mask-image: url(/logo-wordmark.png);
-  aspect-ratio: 456 / 113;
-}
-.brand-mark {
   -webkit-mask-image: url(/logo-mark.png);
   mask-image: url(/logo-mark.png);
   aspect-ratio: 729 / 591;
@@ -1571,17 +1562,6 @@ summary:focus-visible,
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Tile / card / image
-   ───────────────────────────────────────────────────────────── */
-
-.tile {
-  border-radius: var(--r-md);
-  overflow: hidden;
-  background: var(--bg-stone);
-  position: relative;
-}
-
-/* ─────────────────────────────────────────────────────────────
    Product grids (e-commerce)
    ───────────────────────────────────────────────────────────── */
 
@@ -2341,14 +2321,6 @@ summary:focus-visible,
   max-width: 540px;
 }
 
-/* List view — classic dotted-leader menu */
-.menu-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 2px;
-}
 /* Empty state */
 .menu-empty {
   text-align: center;

@@ -45,7 +45,6 @@ const adminFontStyle = {
   "--admin-primary": "#44301C",
   "--admin-primary-hover": "#2C1D11",
   "--admin-accent": "#B88A4A",
-  "--admin-accent-soft": "#E6D4B0",
   "--admin-danger": "#C5435A",
 } as React.CSSProperties;
 

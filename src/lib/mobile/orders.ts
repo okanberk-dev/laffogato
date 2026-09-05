@@ -546,24 +546,6 @@ export type PromoPreview =
   | { ok: false; code: string; message: string };
 
 /**
- * Previews a code WITHOUT taking a use: a member's personal coupon first,
- * then the shared promo codes — the order the checkout applies them in.
- *
- * `kind` is what the basket is. It matters because a free-drink coupon is
- * cafe-only at the till; previewing without it told a member with a shop
- * basket that ₺280 was coming off, and then checkout charged full price.
- */
-export async function previewPromo(
-  code: string,
-  subtotalMinor: number,
-  customer: PublicCustomer | null,
-  kind?: "cafe" | "shop",
-): Promise<PromoPreview> {
-  return (await previewPromoOutcome(code, subtotalMinor, customer, kind))
-    .preview;
-}
-
-/**
  * The preview plus whether the code turned out to exist.
  *
  * Only a code that does NOT exist is evidence of guessing; a member's own

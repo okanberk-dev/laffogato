@@ -88,7 +88,3 @@ export const bulkOrderSchema = z.object({
   op: z.literal("set_status"),
   value: z.enum(ORDER_STATUSES),
 });
-
-export type BulkProductInput = z.infer<typeof bulkProductSchema>;
-export type BulkMenuInput = z.infer<typeof bulkMenuSchema>;
-export type BulkOrderInput = z.infer<typeof bulkOrderSchema>;

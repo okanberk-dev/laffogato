@@ -49,8 +49,6 @@ export const mePatchSchema = z
     message: "Güncellenecek bir alan gönder.",
   });
 
-export type MePatchInput = z.infer<typeof mePatchSchema>;
-
 export const addressInputSchema = z
   .object({
     title: trimmed(40, "Adres başlığı").default(""),
@@ -64,8 +62,6 @@ export const addressInputSchema = z
     isDefault: z.boolean().optional(),
   })
   .strict();
-
-export type AddressInputBody = z.infer<typeof addressInputSchema>;
 
 export const inviteClaimSchema = z
   .object({

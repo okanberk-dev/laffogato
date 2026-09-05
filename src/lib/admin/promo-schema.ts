@@ -73,5 +73,3 @@ export const promoFormSchema = z
       });
     }
   });
-
-export type PromoFormParsed = z.infer<typeof promoFormSchema>;

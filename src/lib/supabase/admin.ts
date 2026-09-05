@@ -30,11 +30,6 @@ function serviceRoleKey(): string {
   return (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
 }
 
-/** True when the deployment was given a service-role key. */
-export function hasSupabaseAdmin(): boolean {
-  return serviceRoleKey().length > 0;
-}
-
 function getSupabaseAdminClient(): SupabaseClient | null {
   const key = serviceRoleKey();
   if (!key) return null;
