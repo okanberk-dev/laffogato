@@ -35,7 +35,9 @@ export type AuditEntity =
   | "2fa"
   | "venue_status"
   | "karaoke_reservation"
-  | "mobile_app_config";
+  | "mobile_app_config"
+  | "admin_user"
+  | "counter_token";
 
 export type AuditAction =
   | "create"

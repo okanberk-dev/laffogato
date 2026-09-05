@@ -14,7 +14,9 @@ export function LoginForm({ next }: { next?: string }) {
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="next" value={next ?? "/admin"} />
+      {/* Empty, not "/admin": with no explicit destination the action picks
+          the one the role can actually open. */}
+      <input type="hidden" name="next" value={next ?? ""} />
 
       <label className="flex flex-col gap-2">
         <span

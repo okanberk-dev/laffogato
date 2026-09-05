@@ -37,6 +37,8 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
   venue_status: "Canlı durum",
   karaoke_reservation: "Karaoke rezervasyonu",
   mobile_app_config: "Uygulama ayarları",
+  admin_user: "Panel kullanıcısı",
+  counter_token: "Kasa jetonu",
 };
 
 const ACTION_LABEL: Record<AuditAction, string> = {

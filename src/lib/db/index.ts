@@ -211,4 +211,6 @@ export const TABLES = {
   invites: "invites",
   venueStatus: "venue_status",
   karaokeReservations: "karaoke_reservations",
+  adminUsers: "admin_users",
+  counterTokens: "counter_tokens",
 } as const;

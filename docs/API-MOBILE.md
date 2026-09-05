@@ -14,7 +14,7 @@ Karar kayıtları: `docs/DESIGN-UYGULAMA.md`.
 
 | Kural        | Değer                                                                                                                                                              |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Taban        | `https://laffogato.net/api/mobile/v1` (`EXPO_PUBLIC_API_BASE_URL`)                                                                                                 |
+| Taban        | `https://www.laffogato.net/api/mobile/v1`. Apex (`laffogato.net`) **308** ile www'ye yönlenir; `EXPO_PUBLIC_API_BASE_URL` yalnız **origin** tutar (`https://www.laffogato.net`), yolu `src/data/api.ts` ekler. |
 | Para         | **Her zaman kuruş integer** (`priceMinor: 19500`). Dize fiyat yok.                                                                                                 |
 | Zaman        | ISO-8601 (UTC, `Z`)                                                                                                                                                |
 | Kimlik       | `Authorization: Bearer <Supabase access JWT>`. Sunucu `supabase.auth.getUser(jwt)` ile doğrular, `user.email` → Neon `customers` satırı (yoksa **oluşturur**).     |
@@ -216,6 +216,11 @@ Kurallar:
 >   `laffogato://siparis/<id>?status=success|failed` derin bağlantısına 303 ile yönlendirir.
 >   Başarısız ödeme `/odeme/app-hata?orderId=…` sayfasına iner, o da aynı derin bağlantıyı verir.
 
+> **429 `too_many_pending`.** Üye başına en fazla **3** açık `pending_payment` sipariş
+> (`MAX_OPEN_ORDERS`). Bir tane daha `POST /orders` 429 ile reddedilir. Bu bir bağlantı
+> hatası değil: uygulama "Tekrar dene" göstermez — dördüncü siparişi yaratır — sunucunun
+> kendi Türkçesini ve "Siparişlerime git" eylemini gösterir (`src/app/odeme.tsx`).
+
 ### `GET /orders` → `{ "orders": [ …Order… ] }` (en yeni önce, en fazla 50)
 
 ### `GET /orders/{id}` → `{ "order": …Order… }` (yalnız sahibi; aksi 404)
@@ -336,6 +341,9 @@ Cache: `public, s-maxage=30, stale-while-revalidate=120`.
 - `GET /karaoke/availability?date=YYYY-MM-DD` → `{ "date", "slots": [ { "startHour": 16, "available": true } ], "hourlyMinor": 90000, "capacity": 8, "oroDiscountPct": 15, "firstHour": 12, "closeHour": 24, "maxHours": 4, "bookingWindowDays": 60 }` (`slots` `firstHour`..`closeHour-1`; fiyat `settings.karaokeHourlyMinor`, kapasite `settings.karaokeCapacity`; `firstHour/closeHour/maxHours/bookingWindowDays/oroDiscountPct` `/admin/mobil/ayarlar` → Karaoke kuralları, §10 `settings.mobileApp.karaoke`).
 - `POST /karaoke/reservations { "date", "startHour", "hours", "guests", "note" }` (kimlik) → 201 `{ "reservation": { "id", "date", "startHour", "hours", "guests", "status": "requested", "priceMinor", "discountMinor", "totalMinor", "createdAt" } }`. Çakışma **409** `slot_taken`. Tablo `karaoke_reservations`; panel `/admin/mobil/karaoke` (onayla/iptal).
 - `GET /karaoke/reservations` → benimkiler.
+- **409 `too_many_reservations`**: aynı anda en fazla **2** açık (`requested`/`confirmed`)
+  rezervasyon (`KARAOKE_OPEN_CAP`). `slot_taken` gibi bu da kurala dayalı bir ret;
+  uygulama sunucunun mesajını gösterir, tekrar denemeyi önermez.
 
 > **Uygulama notu (§7).** `date` verilmezse İstanbul'a göre bugün; biçim bozuksa 400
 > `invalid_request`. Kurallar (varsayılanlar parantezde, tümü panelden değişir):
@@ -368,6 +376,24 @@ kutuya "Teslim edildi" olarak düşer.
 > diğerleri → `announcement`.
 
 ## 9. `GET /app-content` — mevcut (slaytlar · duyurular · gönderiler). Değişmez.
+
+> **Uygulama notu (§9) — slayt `ctaRoute` sözlüğü.** Bir slaytın hedefi panelde
+> yazılır, yani bundle dışından uygulamaya giren tek yol dizesidir; olduğu gibi
+> **push edilmez**. Uygulama sabit bir izin listesiyle eşler
+> (`src/lib/slide-route.ts`, `SLIDE_ROUTE_KEYS`); listede olmayan bir değer —
+> yazım hatası, bu sürümde olmayan bir ekran, daha yeni bir panelden gelen bir
+> yol — `null`'a düşer ve slayt eylem çağrısı olmadan çizilir.
+>
+> Bu sürümün anladığı 11 anahtar (panelin kendi yazımıyla):
+> `/menu` · `/magaza` · `/kart` · `/hesabim` · `/oduller` · `/kampanyalar` ·
+> `/karaoke` · `/canli-durum` · `/davet` · `/ziyaret` · `/hikaye`.
+> (`/kart` → 15 Üyelik Kartı, `/hesabim` → Profil sekmesi; kalanlar aynı adlı ekran.)
+> Baştaki/sondaki boşluk ve sondaki `/` bağışlanır; önek eşleşmesi, query dizesi
+> ve dış URL yoktur.
+>
+> **Site tarafı kural:** panelin sunduğu `APP_SLIDE_ROUTES` bu listenin **alt
+> kümesi** kalmalıdır. Panele yeni bir yol eklemek uygulamada karşılığı
+> olmadan slaytı sessizce eylemsiz bırakır; önce uygulama sürümü çıkar.
 
 ## 10. `GET /bootstrap` (herkese açık)
 
@@ -660,3 +686,66 @@ en geç 5 dakikada ulaşır. Site: `src/lib/mobile/story.ts` (`buildStory` saf e
 > metinleri varsayılana düşer (`publicRead` / `getSiteContent` davranışı); yalnız
 > beklenmedik bir bağlantı hatası **503** `unavailable` olur. Boş `milestones` gelirse
 > uygulama paketlenmiş zaman çizelgesini gösterir.
+
+## 17. `POST /me/counter-token` — kasada okutulan QR (kimlik)
+
+Üye QR'ı **gösterir**, kasiyer okutur. Tersi (kafede asılı sabit bir QR'ı üye
+okutur) kasadan geçmeden damga kazanmaya açıktır: duvardaki kodun fotoğrafı
+evden okutulur. Üye kimliğinden türetilen sabit bir barkod da aynı sebeple
+yok — bir kez fotoğraflandığında süresiz damga üretir. Bu uç, **dönerli,
+kısa ömürlü ve tek kullanımlık** bir değer üretir.
+
+`GET` yoktur: jeton üretmek satır yazar, önceki kodları düşürür ve üyenin hız
+bütçesinden düşer; hiçbiri tarayıcının ya da bir vekilin kendiliğinden
+tekrarlayabileceği bir metodun arkasında durmamalı.
+
+```jsonc
+// 201 · Cache-Control: private, no-store
+{
+  "code": "K7P42M9X", // 8 karakter; kamera çalışmazsa kasiyer yazar
+  "token": "…", // QR'ın içeriği; ham hâli YALNIZ burada döner
+  "expiresAt": "2026-09-05T18:12:30.000Z",
+  "ttlSeconds": 120,
+  "qrSvg": "<svg …/>", // sunucu çizer (qrcode); uygulama yeni bağımlılık almaz
+}
+```
+
+| Kural        | Değer                                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------------------------- |
+| TTL          | **120 sn**                                                                                               |
+| Aynı anda    | Üye başına en fazla **3 açık jeton**; yenisi istenince eskilerin ömrü o an biter                         |
+| Saklama      | Ham jeton **saklanmaz**; `counter_tokens."tokenHash"` = `sha256(token)`                                  |
+| Kod alfabesi | `23456789ABCDEFGHJKLMNPQRSTUVWXYZ` (O/0, I/1/L yok), 8 karakter, yalnız açık jetonlar arasında benzersiz |
+| Hız sınırı   | Üye başına **dakikada 10 jeton** → **429** `rate_limited` + `Retry-After`                                |
+| Doğrulama    | E-posta doğrulanmamışsa **403** `email_unverified` (sipariş kuralıyla aynı)                              |
+| Temizlik     | `expiresAt` bir günü geçmiş satırlar kasa akışında fırsatçı olarak silinir — ayrı bir cron yok           |
+
+Hatalar: **401** `unauthorized` · **403** `email_unverified` · **429**
+`rate_limited` · **503** `unavailable`.
+
+### Kasa tarafı (panel, `/admin/kasa`)
+
+Okutma bir API ucu değil, `redeemCounterTokenAction` sunucu eylemidir
+(`requireRole("till")` hem sayfada hem eylemde). Üç yol — kamera · kod ·
+e-posta — aynı eylemde birleşir ve `stamps` (1–5) kadar `loyalty_stamps`
+satırı yazar (`source: "counter"`, not `Kasa · QR` / `Kasa · kod` /
+`Kasa · e-posta`).
+
+| Sonuç            | Türkçe karşılık                                            |
+| ---------------- | ---------------------------------------------------------- |
+| `expired`        | "Bu kodun süresi doldu. Üyeden yeni QR göstermesini iste." |
+| `already_used`   | "Bu kod kullanıldı. Aynı QR ikinci kez damga vermez."      |
+| `not_found`      | "Kod bulunamadı. Kodu kontrol et ya da e-posta ile ara."   |
+| `invalid_email`  | "Geçerli bir üye e-postası gir."                           |
+| `invalid_stamps` | "Damga sayısı 1 ile 5 arasında olmalı."                    |
+
+Tek kullanım koşullu UPDATE ile sağlanır (`where "usedAt" = ''`): aynı QR'ı
+aynı saniyede okutan iki kasa da ayrı bir okuma kontrolünden geçer, ama
+yalnız biri satırı günceller — 0 satır dönen `already_used` olur ve damga
+yazılmaz. Kasiyer üyenin e-postasının tamamını **görmez** (`e***@ornek.com`);
+e-posta yolunda adresi zaten kendisi yazdığı için maskeleme uygulanmaz.
+
+> **Uygulama notu (§17).** `token` yalnız yanıt gövdesinde bulunur, uygulama
+> onu saklamaz; süre dolmadan ~10 sn önce yeni jeton istenir. 429 gelirse
+> `Retry-After` kadar beklenir, elde eski bir QR varsa **gösterilmez** — süresi
+> dolmuş bir kod kasada "süresi doldu" der ve kuyruğu yavaşlatır.
