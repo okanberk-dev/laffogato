@@ -105,6 +105,11 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
         section: "mobileApp",
       },
       { href: "/admin/mobil/karaoke", label: "Karaoke", section: "mobileApp" },
+      {
+        href: "/admin/mobil/ayarlar",
+        label: "Uygulama ayarları",
+        section: "mobileApp",
+      },
     ],
   },
   {

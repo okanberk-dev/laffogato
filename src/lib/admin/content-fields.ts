@@ -37,6 +37,23 @@ export const CONTENT_FIELDS: ContentField[] = [
     default:
       "Üç kuşak Mancuso ailesi. Patentli bir kup. 39 yıldır değişmeyen tek bir ritüel. Şimdi İstanbul’da, Tuzla’da 200 yıllık bir Rum köşkünde.",
   },
+  // Name and role sit next to the bio so the app's Hikâye screen
+  // (GET /api/mobile/v1/story) and the site read one edited record, not the
+  // bundled STORY constant for two of the three lines and the editor for one.
+  {
+    key: "story.founder.name",
+    group: "Hikaye",
+    label: "Kurucu adı",
+    kind: "text",
+    default: "Eda Mancuso",
+  },
+  {
+    key: "story.founder.role",
+    group: "Hikaye",
+    label: "Kurucu unvanı",
+    kind: "text",
+    default: "Founder & Roaster",
+  },
   {
     key: "story.founder.bio",
     group: "Hikaye",

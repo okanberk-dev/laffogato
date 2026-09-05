@@ -24,6 +24,7 @@ export interface AppSlideDefaults {
   ctaLabel?: string;
   ctaRoute?: string;
   tone?: AppSlideTone;
+  image?: string;
   sortOrder?: number;
   isActive?: boolean;
   startsAt?: string;
@@ -38,9 +39,12 @@ export interface AppSlideDefaults {
  * 1. There is no free-text link field. A slide points at a route KEY chosen
  *    from a fixed list; the app resolves it through its own allow-list. CMS
  *    text must never be able to steer native navigation.
- * 2. There is no image upload. A slide is painted in one of the brand grounds,
- *    which keeps every slide legible, on-palette and near-zero in bytes.
- *    Photography arrives with the image pipeline, not before.
+ * 2. There is no image UPLOAD. A slide is painted in one of the brand grounds
+ *    and may carry an optional https image URL on top — the same rule as a
+ *    post: a URL the phone fetches and caches, never a data: blob stored in
+ *    the row and paid for on every home-screen load. The tone stays
+ *    mandatory so a slide whose image fails to load is still a legible,
+ *    on-palette card rather than a blank rectangle.
  */
 export function AppSlideForm({
   action,
@@ -86,6 +90,23 @@ export function AppSlideForm({
               defaultValue={defaults?.body ?? ""}
               maxLength={240}
               rows={3}
+            />
+          </Field>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="grid gap-4">
+          <Field
+            label="Görsel adresi (https, isteğe bağlı)"
+            hint="https ile başlayan tam adres. Boş bırakırsan slayt yalnız zemin rengiyle çizilir; başka bir şey yazılırsa boş kaydedilir. Görsel yüklenemezse zemin rengi görünür."
+          >
+            <TextInput
+              name="image"
+              type="url"
+              defaultValue={defaults?.image ?? ""}
+              maxLength={2048}
+              placeholder="https://…/slayt.webp"
             />
           </Field>
         </div>

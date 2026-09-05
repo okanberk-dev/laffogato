@@ -185,8 +185,13 @@ Kurallar:
 >
 > - Hata kodları — 400: `invalid_json`, `invalid_body` (Zod), `invalid_address`,
 >   `invalid_line` (L boyu yok / bilinmeyen seçenek / pasif ürün), `line_not_found`,
->   `qty_too_high` (satır başına en fazla 99, en fazla 30 satır), `empty_cart`;
->   403: `email_unverified`; 409: `shop_closed`, `cafe_closed`, `out_of_stock`.
+>   `qty_too_high` (satır başına en fazla 99, en fazla 30 satır), `empty_cart`,
+>   `fulfillment_unavailable` (kafe siparişinde seçilen `delivery`/`pickup` panelden kapatılmış —
+>   `mobileApp.ordering.deliveryEnabled` / `pickupEnabled`; mesaj "Bu teslimat seçeneği şu an kapalı.");
+>   403: `email_unverified`; 409: `shop_closed`, `cafe_closed`, `out_of_stock`,
+>   `ordering_closed` (kafe siparişi ve `mobileApp.ordering.cafeEnabled === false`, ya da kurye ve
+>   gel-al birlikte kapalı; mesaj = `ordering.closedMessage`). `ordering_closed` ve
+>   `fulfillment_unavailable` hem `POST /orders` hem `POST /orders/preview` için geçerlidir.
 > - `shop_closed` uygulamanın **her** siparişine (kafe dahil) uygulanır; kafe için ayrıca
 >   `cafe_closed` — kontrol `scheduledFor` varsa o anda, yoksa şimdi; manuel override her
 >   durumda geçerli.
@@ -246,8 +251,8 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
                 "notificationPrefs": { "orderUpdates": true, "marketing": false, "newsletter": false },
                 "addresses": [ { "id", "title", "fullName", "phone", "city", "district", "neighbourhood", "line", "note", "isDefault" } ] },
   "loyalty": {
-    "stamps": 4,                 // dolu damga (0–5); 6. damga ödüle dönüşür
-    "stampTarget": 6,
+    "stamps": 4,                 // dolu damga (0–stampTarget-1); hedefe ulaşan damga ödüle dönüşür
+    "stampTarget": 6,            // = settings.mobileApp.loyalty.stampTarget (§10, /admin/mobil/ayarlar → Sadakat)
     "rewardsReady": 1,           // kullanılmayı bekleyen ücretsiz içecek sayısı
     "lifetimeStamps": 22,
     "tier": "oro",               // verde (0–11 ödenmiş sipariş / 365 gün) | argento (12+) | oro (36+)
@@ -277,17 +282,19 @@ Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir + Supabase oturumu
 
 ## 5. Sadakat
 
-- `POST /loyalty/redeem` → 6 damga → **ücretsiz içecek kuponu** (`customer_coupons`, `source: "loyalty"`, `kind: "fixed"`, `value: 28000`, `title: "Ücretsiz içecek"`, 90 gün). Yanıt `{ "coupon": { "code", "title", "expiresAt" }, "loyalty": { … } }`. Damga yoksa **409** `not_enough_stamps`.
+- `POST /loyalty/redeem` → `stampTarget` damga (varsayılan 6) → **ücretsiz içecek kuponu** (`customer_coupons`, `source: "loyalty"`, `kind: "fixed"`, `value: loyalty.rewardValueMinor` (28000), `title: loyalty.rewardTitle` ("Ücretsiz içecek"), `loyalty.rewardTtlDays` gün (90)). Dördü de `/admin/mobil/ayarlar` → Sadakat'tan (§10 `settings.mobileApp.loyalty`); `stampTarget` ve `rewardTitle` uygulamaya `bootstrap.app.loyalty` ile de gider, kupon değeri/süresi sunucuda kalır. Yanıt `{ "coupon": { "code", "title", "expiresAt" }, "loyalty": { … } }`. Damga yoksa **409** `not_enough_stamps`.
 - `GET /coupons` → `{ "coupons": [ { "id", "code", "title", "body", "kind", "value", "minSpendMinor", "expiresAt", "usedAt" } ] }` (mevcut `listCustomerCoupons`).
 - `POST /promo/preview { "code", "subtotalMinor" }` → `{ "ok": true, "code", "discountMinor" } | { "ok": false, "message" }` (mevcut `previewPromoAction` mantığı; hız sınırı `promo-preview`).
 - Davet: `POST /invite/claim { "code" }` (kimlik gerekli; yalnız hiç siparişi olmayan hesap) → `{ "ok": true }`. Davet eden, davetlinin **ilk ödenmiş siparişinde** +1 ücretsiz içecek kuponu alır; davetli de ilk siparişinde alır (`invites` tablosu: `code, inviterEmail, inviteeEmail, status: pending|joined|rewarded, createdAt, rewardedAt`).
 
 > **Uygulama notu (§5).** `/loyalty/redeem` kupon `expiresAt` boşsa `null`; damga bakiyesi her
-> zaman ledger'dan hesaplanır (`available = earn − 6·redeem`), redeem satırı
-> `loyalty_stamps.source = "app"`. `/invite/claim` hataları: **404** `invite_not_found` ·
+> zaman ledger'dan hesaplanır (`available = earn − stampTarget·redeem`), redeem satırı
+> `loyalty_stamps.source = "app"`. Redeem satırları **o anki** hedefle çarpılır: panelde
+> hedef değişirse geçmiş kartlar da yeni hedefle okunur (ledger'da hedef saklanmaz). `/invite/claim` hataları: **404** `invite_not_found` ·
 > **400** `own_invite` · **409** `invite_already_claimed` · **409** `invite_not_eligible`
 > (siparişi olan hesap). `invites.status` `joined` hiç yazılmaz: claim → `pending`, davetlinin
-> ilk ödenmiş siparişi → `rewarded` (iki tarafa 280₺ "Ücretsiz içecek", `source: "invite"`).
+> ilk ödenmiş siparişi → `rewarded` (iki tarafa panelde tanımlı ücretsiz içecek kuponu —
+> `rewardTitle` / `rewardValueMinor` / `rewardTtlDays`, varsayılan 280₺ · 90 gün — `source: "invite"`).
 > `/me.invite.joined` = pending olmayan satır sayısı, `earned` = rewarded sayısı.
 
 ## 6. Canlı durum — `GET /live-status` (herkese açık)
@@ -308,17 +315,22 @@ Cache: `public, s-maxage=30, stale-while-revalidate=120`.
 
 ## 7. Karaoke
 
-- `GET /karaoke/availability?date=YYYY-MM-DD` → `{ "date", "slots": [ { "startHour": 16, "available": true } ], "hourlyMinor": 90000, "capacity": 8, "oroDiscountPct": 15 }` (saatler 12–24, `settings.karaokeHourlyMinor`).
+- `GET /karaoke/availability?date=YYYY-MM-DD` → `{ "date", "slots": [ { "startHour": 16, "available": true } ], "hourlyMinor": 90000, "capacity": 8, "oroDiscountPct": 15, "firstHour": 12, "closeHour": 24, "maxHours": 4, "bookingWindowDays": 60 }` (`slots` `firstHour`..`closeHour-1`; fiyat `settings.karaokeHourlyMinor`, kapasite `settings.karaokeCapacity`; `firstHour/closeHour/maxHours/bookingWindowDays/oroDiscountPct` `/admin/mobil/ayarlar` → Karaoke kuralları, §10 `settings.mobileApp.karaoke`).
 - `POST /karaoke/reservations { "date", "startHour", "hours", "guests", "note" }` (kimlik) → 201 `{ "reservation": { "id", "date", "startHour", "hours", "guests", "status": "requested", "priceMinor", "discountMinor", "totalMinor", "createdAt" } }`. Çakışma **409** `slot_taken`. Tablo `karaoke_reservations`; panel `/admin/mobil/karaoke` (onayla/iptal).
 - `GET /karaoke/reservations` → benimkiler.
 
 > **Uygulama notu (§7).** `date` verilmezse İstanbul'a göre bugün; biçim bozuksa 400
-> `invalid_request`. Kurallar: tarih bugün..+60 gün, `startHour` 12–23, `hours` 1–4,
-> **`startHour + hours ≤ 24`**, `guests` 1..`capacity`, `note` ≤ 200 karakter. Gövde JSON
-> değilse 400 `invalid_request`. `requested` ve `confirmed` slotu bloke eder, `cancelled` etmez.
-> Çakışma kontrolü oku-sonra-yaz (SQL kilidi yok): aynı saniyede iki istek ikisi de
-> `requested` olabilir; panelde görünür, personel birini iptal eder. ORO %15 indirimi
-> `/me.loyalty.tier`'dan. Panel onay/iptali `audit_logs`'a `karaoke_reservation` olarak düşer.
+> `invalid_request`. Kurallar (varsayılanlar parantezde, tümü panelden değişir):
+> tarih bugün..+`bookingWindowDays` gün (60), `startHour` `firstHour`..`closeHour-1` (12–23),
+> `hours` 1..`maxHours` (1–4), **`startHour + hours ≤ closeHour`** (24), `guests` 1..`capacity`,
+> `note` ≤ 200 karakter. Sunucu her isteği o anki config'e göre doğrular; uygulama seçiciyi
+> availability yanıtındaki alanlarla kurar, kural değişince yanıt önbelleksiz olduğu için hemen
+> görür. Gövde JSON değilse 400 `invalid_request`. `requested` ve `confirmed` slotu bloke eder,
+> `cancelled` etmez. Çakışma kontrolü oku-sonra-yaz (SQL kilidi yok): aynı saniyede iki istek
+> ikisi de `requested` olabilir; panelde görünür, personel birini iptal eder. ORO indirimi
+> (`oroDiscountPct`, %15) `/me.loyalty.tier`'dan; rezervasyon anındaki yüzde kaydedilir, sonraki
+> değişiklik eski kayıtları etkilemez. Panel onay/iptali `audit_logs`'a `karaoke_reservation`
+> olarak düşer.
 
 ## 8. Bildirimler — `GET /notifications` (kimlik)
 
@@ -334,8 +346,55 @@ Cache: `public, s-maxage=30, stale-while-revalidate=120`.
 
 ## 10. `GET /bootstrap` (herkese açık)
 
-`{ "minSupportedAppVersion": "1.0.0", "venue": { "name", "addressLines": [ "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1", "34940 Tuzla / İstanbul" ], "phone", "email", "lat", "lng" }, "hoursLabel": "Her gün 09:00 – 01:00", "courierFeeMinor": 5500, "courierEtaMinutes": [25, 35], "happyHour": { "days": "weekday", "from": "14:00", "to": "17:00", "pct": 25, "categories": ["ice-coffee","cold","frappe","frozen","ice-tea","smoothie"] } }`
-Adres **vergi levhasındaki** adrestir (tasarımdaki "29 Ekim Cad." eskidir).
+Uygulamanın açılışta okuduğu tek belge. Mevcut alanlar **korunur** (geri uyum);
+`venue.*` genişletildi ve `app` eklendi. Kaynak: `settings` satırı (Ayarlar) +
+`settings."mobileApp"` jsonb belgesi (**/admin/mobil/ayarlar**, `src/lib/mobile/app-config.ts`).
+Önbellek: `Cache-Control: public, s-maxage=300, stale-while-revalidate=3600` —
+panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
+
+```jsonc
+{
+  "minSupportedAppVersion": "1.0.0",           // = app.minSupportedAppVersion (eski alan, korunur)
+  "venue": {
+    "name": "L'Affogato",
+    "shortName": "Tuzla · İstanbul",             // config.venue.shortName
+    "addressLines": ["Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1", "34940 Tuzla / İstanbul"],
+    "landmark": "Menemenci Cumhur’un yanı",      // config.venue.landmark
+    "mapsQuery": "L'Affogato, Atatürk Cad. …",   // config.venue.mapsQuery — "Yol tarifi al" bunu harita uygulamasına verir
+    "phone": "+90 536 429 09 19", "email": "…", "lat": 40.8, "lng": 29.3,
+    "hours": [ { "label": "Pazartesi", "value": "09:00 – 01:00" }, … ],   // 7 satır, pazartesiden pazara; kapalı gün → "Kapalı"; ardışık aynı saatler GRUPLANMAZ (uygulama gruplar)
+    "opensAt": "09:00", "closesAt": "01:00"      // bugünün (Europe/Istanbul) satırı; kapalıysa "" ""
+  },
+  "hoursLabel": "Her gün 09:00 – 01:00",        // eski alan, korunur
+  "courierFeeMinor": 5500,                        // eski alan (Ayarlar → Kargo → Kurye ücreti)
+  "courierEtaMinutes": [25, 35],                  // = app.ordering.courierEtaMinutes (eski alan, korunur)
+  "happyHour": null,                              // değişmedi — fiyatlanmadığı sürece null
+  "app": {                                        // MobileAppConfig'in uygulamaya açık kısmı
+    "minSupportedAppVersion": "1.0.0",            // semver; uygulama kendi sürümünü karşılaştırır, küçükse zorunlu güncelleme
+    "maintenance": { "enabled": false, "title": "Kısa bir mola", "message": "Uygulama bakımda. Birazdan yine buradayız." },
+    "ordering": {
+      "cafeEnabled": true,                        // false → "Sepete ekle" kapalı; sunucu 409 ordering_closed
+      "deliveryEnabled": true, "pickupEnabled": true,   // false → ilgili teslimat seçeneği gizli; sunucu 400 fulfillment_unavailable
+      "courierEtaMinutes": [25, 35],
+      "closedMessage": "Uygulamadan sipariş şu an kapalı. Köşkte görüşürüz."
+    },
+    "loyalty": { "stampTarget": 6, "rewardTitle": "Ücretsiz içecek" },   // kupon değeri/süresi sunucuda kalır
+    "reminders": {
+      "enabled": true,                            // false → uygulama hatırlatma anahtarını gizler, planlananları iptal eder
+      "items": [ { "id": "morning", "hour": 10, "minute": 0, "title": "Günaydın ☕", "body": "Sabah kahven köşkte hazır. Bugün ne içiyoruz?" } ]   // 0..4 öğe; fiyat/indirim/aciliyet dili yok
+    },
+    "campaignCards": { "loyalty": true, "invite": true, "subscription": true }   // Kampanyalar ekranındaki sabit kartlar
+  }
+}
+```
+
+- `addressLines[0]` = Ayarlar'daki adres (`settings.address.trim()`), boşsa
+  `SITE.address.streetAddress`. Adres **vergi levhasındaki** adrestir
+  (tasarımdaki "29 Ekim Cad." eskidir).
+- `app` **karaoke** kurallarını ve `venue`'yü taşımaz: karaoke alanları
+  `GET /karaoke/availability` ile (§7), köşk alanları `venue.*` ile gelir.
+- Uygulama tarafı: `app` ya da yeni `venue` alanları eksik gelirse (eski
+  dağıtım) her alan kendi varsayılanına düşer; `app` hiç yoksa tümü varsayılan.
 
 ---
 
@@ -390,6 +449,10 @@ alter table public.karaoke_reservations enable row level security;
 > `karaoke_reservations_email_idx`. `loyalty_stamps.source` değer sözlüğüne `app` eklendi;
 > `customer_coupons.source` `invite` değerini alır (sütun serbest metin, DDL değişikliği yok).
 > `audit_logs.entity` iki yeni değer: `venue_status`, `karaoke_reservation`.
+> 5 Eyl 2026: `db/migrations/20260905120000_mobile_app_config.sql` →
+> `settings."mobileApp" jsonb not null default '{}'` (§10; anahtarlar
+> `src/lib/mobile/app-config.ts` ile varsayılana tamamlanır) ve `audit_logs.entity`
+> değeri `mobile_app_config` (`entityId` = kaydedilen bölüm).
 
 ## 12. Uygulama tarafı eşleme (özet)
 
@@ -403,11 +466,15 @@ alter table public.karaoke_reservations enable row level security;
 | 14 Ödüller · 15 Kart · 20 Pasaport         | `/me.loyalty` · `/loyalty/redeem` · `/coupons`                                                           |
 | 16 Profil · 24 Bildirimler · 25 Adreslerim | `/me` · `PATCH /me` · `/me/addresses*` · `/notifications`                                                |
 | 17 Canlı Durum                             | `/live-status` · `/bootstrap`                                                                            |
-| 18 Kampanyalar                             | `/app-content.posts` (kind campaign) + sabit kartlar · `/promo/preview`                                  |
+| 18 Kampanyalar                             | `/app-content.posts` (kind campaign) + sabit kartlar (`/bootstrap.app.campaignCards`) · `/promo/preview` |
 | 19 Davet                                   | `/me.invite` · `Share`                                                                                   |
 | 21 Sipariş Geçmişi                         | `/orders`                                                                                                |
 | 22 Cüzdan · 23 Hediye Kartı                | **Yakında** (karar 8) — uç yok                                                                           |
-| 26 Karaoke                                 | `/karaoke/availability` · `POST /karaoke/reservations`                                                   |
+| 26 Karaoke                                 | `/karaoke/availability` (kurallar dahil) · `POST /karaoke/reservations`                                  |
+| 27 Ziyaret                                 | `/bootstrap.venue` (adres, yer tarifi, harita sorgusu, 7 günlük saat tablosu) — seed yedek               |
+| 28 Hikâye                                  | `/story` (§16) — seed yedek                                                                              |
+| Kök yerleşim (bakım · zorunlu güncelleme)  | `/bootstrap.app.maintenance` · `/bootstrap.app.minSupportedAppVersion` — bootstrap gelmezse kapı açık    |
+| Hatırlatmalar (cihaz bildirimi)            | `/bootstrap.app.reminders` — `enabled=false` → anahtar gizli, planlananlar iptal                         |
 
 ## 13. Hukuki belgeler — `GET /legal` · `GET /legal/{slug}` (herkese açık)
 
@@ -421,13 +488,37 @@ kalır. Bu yüzden tek kaynak `src/lib/legal/content.ts`'tir ve mobil onu okur.
 {
   "updatedAt": "1 Eylül 2026",
   "consentDocs": ["on-bilgilendirme-formu", "mesafeli-satis-sozlesmesi"],
-  "docs": [{ "slug": "...", "title": "...", "shortTitle": "...", "category": "Sipariş", "summary": "..." }]
+  "docs": [
+    {
+      "slug": "...",
+      "title": "...",
+      "shortTitle": "...",
+      "category": "Sipariş",
+      "summary": "..."
+    }
+  ]
 }
 ```
 
 **`GET /api/mobile/v1/legal/{slug}`** — tek belgenin tam metni; bilinmeyen slug
-`404 not_found`. İkisi de `force-static` ve `public, s-maxage=86400,
-stale-while-revalidate=604800` ile yayınlanır; kimlik istemez.
+`404 not_found`. İkisi de `force-dynamic` ve `public, s-maxage=300,
+stale-while-revalidate=3600` ile yayınlanır (bootstrap ile aynı pencere);
+kimlik istemez.
+
+### Panel geçersiz kılması (`/admin/hukuk`)
+
+Sitede `/hukuk/<slug>` ne gösteriyorsa uygulama da onu gösterir: panelden
+**yayınlanmış ve gövdesi dolu** bir geçersiz kılma varsa `title`, `summary`,
+`updatedAt` (= panel "yürürlük tarihi", boşsa `LEGAL_UPDATED`) ve `sections`
+oradan gelir; dizin de aynı başlık/özet/tarihi yansıtır (`consentDocs` ve üst
+`updatedAt` revizyon etiketi değişmez). Taslak ya da boş geçersiz kılma
+sayılmaz; slug kümesi her zaman kodlu kayıttır (panel yeni belge üretmez).
+Gövde Markdown'dır ve `src/lib/mobile/legal-markdown.ts` bölümlere çevirir:
+`## ` / `### ` → `heading`, `- ` / `* ` → `bullets`, `1. ` / `1) ` →
+`ordered`, diğer satırlar → `paragraphs` (ardışık satırlar birleşir, boş satır
+paragrafı kapatır), `**kalın**` işaretleri düşer, ilk başlıktan önceki metin
+`shortTitle` başlığı altında toplanır; `references` düşer. Veritabanına
+ulaşılamazsa iki uç da kodlu belgeye döner — 5xx vermez.
 
 ### Çevrimdışı taban
 
@@ -436,13 +527,13 @@ stale-while-revalidate=604800` ile yayınlanır; kimlik istemez.
 belgenin tam metni** (`BUNDLED_SLUGS`). Paketlenen 14, uygulamanın içeriden
 bağlandığı belgelerdir — ağ yokken de açılabilmeleri gerekir:
 
-| Nerede bağlanır | Belge |
-| --- | --- |
-| Kayıt onay kutusu | `uyelik-sozlesmesi` · `kvkk-aydinlatma-metni` |
-| Kayıt, ileti onayı | `ticari-elektronik-ileti` |
-| Ödeme onay satırı | `on-bilgilendirme-formu` · `mesafeli-satis-sozlesmesi` |
-| Ödeme, cayma bildirimi | `iade-ve-cayma` |
-| Ürün detayı, alerjen | `gida-guvenligi-ve-alerjen` |
+| Nerede bağlanır        | Belge                                                  |
+| ---------------------- | ------------------------------------------------------ |
+| Kayıt onay kutusu      | `uyelik-sozlesmesi` · `kvkk-aydinlatma-metni`          |
+| Kayıt, ileti onayı     | `ticari-elektronik-ileti`                              |
+| Ödeme onay satırı      | `on-bilgilendirme-formu` · `mesafeli-satis-sozlesmesi` |
+| Ödeme, cayma bildirimi | `iade-ve-cayma`                                        |
+| Ürün detayı, alerjen   | `gida-guvenligi-ve-alerjen`                            |
 
 Sözleşme metni sitede değiştiğinde `npm run legal:export` yeniden çalıştırılır
 ve mobil depoya ayrı bir commit olarak girer. Seed dosyası **elle
@@ -484,8 +575,8 @@ doğruluyor (iyimser güncelleme yanlış çıkarsa önbellek düzeltiliyor).
 
 ## 15. Kayıtlı kart — kart **bizde durmaz**, sağlayıcıda durur
 
-Operatör talimatı (3 Eyl): *"Kart bizim sistemde kaydedilmesin, ödeme
-sağlayıcıda kaydedilecek."* Uygulama da site de tam olarak böyle çalışır.
+Operatör talimatı (3 Eyl): _"Kart bizim sistemde kaydedilmesin, ödeme
+sağlayıcıda kaydedilecek."_ Uygulama da site de tam olarak böyle çalışır.
 
 **Kartın gitmediği yerler:** uygulama paketi, uygulamanın belleği, kafenin
 sunucusu, Neon veritabanı, loglar. Kart numarası (PAN), son kullanma tarihi ve
@@ -497,13 +588,13 @@ saklı kartları için verdiği **opak anahtar**. Kendi başına hiçbir şey if
 etmez; bizim satıcı kimlik bilgilerimiz olmadan kullanılamaz, kart numarası
 üretmez, kart göstermez.
 
-| Adım | Ne olur |
-| --- | --- |
-| Ödeme açılır | Elimizde anahtar varsa `cardUserKey` iyzico'ya gönderilir; form üyenin daha önce kaydettiği kartları listeler. |
-| Üye "kartımı kaydet" der | Kartı iyzico saklar. Biz görmeyiz. |
-| Ödeme döner | `confirmReturn` yanıtında `cardUserKey` gelir; `rememberCardUserKey` onu satıra yazar. |
-| Üye kutuyu işaretlemez | Yanıtta anahtar gelmez. **Boş anahtar, kayıtlı anahtarı asla silmez** — yoksa üye eski kartlarını kaybederdi. |
-| Hesap silinir | `cardUserKey` boşaltılır (`deleteMe`). Adres yeniden kayda açıldığında sonraki kişi öncekinin kartlarını devralmaz. |
+| Adım                     | Ne olur                                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Ödeme açılır             | Elimizde anahtar varsa `cardUserKey` iyzico'ya gönderilir; form üyenin daha önce kaydettiği kartları listeler.      |
+| Üye "kartımı kaydet" der | Kartı iyzico saklar. Biz görmeyiz.                                                                                  |
+| Ödeme döner              | `confirmReturn` yanıtında `cardUserKey` gelir; `rememberCardUserKey` onu satıra yazar.                              |
+| Üye kutuyu işaretlemez   | Yanıtta anahtar gelmez. **Boş anahtar, kayıtlı anahtarı asla silmez** — yoksa üye eski kartlarını kaybederdi.       |
+| Hesap silinir            | `cardUserKey` boşaltılır (`deleteMe`). Adres yeniden kayda açıldığında sonraki kişi öncekinin kartlarını devralmaz. |
 
 **`/me` bu anahtarı taşımaz** ve `PublicCustomer` tipinde yer almaz — sunucunun
 ihtiyacı olan bir değer istemciye verilmez. `tests/saved-cards.test.ts` bunların
@@ -511,3 +602,36 @@ hepsini sabitler: `/me` çıktısında anahtar yok, tipte yok, silmede boşalıy
 şemada kart alanı (`cardNumber`, `cvv`, `cvc`, `expiryMonth`) yok.
 
 Aynı anahtar hem uygulamada hem sitede kullanılır: tek üye, tek kart seti.
+
+## 16. `GET /story` — hikâye (herkese açık)
+
+Uygulamanın Hikâye ekranı kurucu satırını, zaman çizelgesini ve basın
+alıntılarını kendi içinde taşıyordu; üçü de sitede düzenleniyor (Site
+Metinleri · /admin/hikaye · /admin/basin), bir yıl değişince iki yüzey ayrıştı.
+Tek kaynak site; uygulama paketlenmiş kopyayı yalnız çevrimdışı yedek olarak
+tutar (API-first, seed yedek).
+
+```jsonc
+{
+  "founder": { "name": "Eda Mancuso", "role": "Founder & Roaster", "bio": "…" },
+  "milestones": [{ "year": "1987", "title": "Bologna · 1987", "body": "…" }],
+  "press": [{ "name": "Monocle", "quote": "…" }],
+}
+```
+
+| Alan         | Kaynak                                                                                                                                                                        |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `founder`    | `site_content` → `story.founder.name` · `story.founder.role` · `story.founder.bio` (Site Metinleri, grup **Hikaye**); yoksa `content-fields.ts` varsayılanı = `STORY.founder` |
+| `milestones` | `listActiveStoryEvents()` — yalnız aktif satırlar, `sortOrder` sırasıyla; `id/isActive/sortOrder/createdAt/updatedAt` **yayılmaz**                                            |
+| `press`      | `listActivePress()` — aynı kural                                                                                                                                              |
+
+Runtime `nodejs` · `force-dynamic` · `maxDuration 15`. Kimlik istemez.
+Cache: `public, s-maxage=300, stale-while-revalidate=3600` — panel değişikliği
+en geç 5 dakikada ulaşır. Site: `src/lib/mobile/story.ts` (`buildStory` saf eşleyici,
+`getStory` yükleyici), `src/app/api/mobile/v1/story/route.ts`, `tests/mobile-story.test.ts`.
+
+> **Uygulama notu (§16).** Metinler kırpılmış (`trim`) döner; boş alan `""`, boş liste
+> `[]` (asla `null`). Veritabanı ulaşılamazsa zaman çizelgesi ve basın seed'e, kurucu
+> metinleri varsayılana düşer (`publicRead` / `getSiteContent` davranışı); yalnız
+> beklenmedik bir bağlantı hatası **503** `unavailable` olur. Boş `milestones` gelirse
+> uygulama paketlenmiş zaman çizelgesini gösterir.

@@ -36,6 +36,7 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
   "2fa": "2FA",
   venue_status: "Canlı durum",
   karaoke_reservation: "Karaoke rezervasyonu",
+  mobile_app_config: "Uygulama ayarları",
 };
 
 const ACTION_LABEL: Record<AuditAction, string> = {

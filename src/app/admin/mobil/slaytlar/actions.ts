@@ -31,7 +31,8 @@ function parseInput(formData: FormData): AppSlideInput {
     // The store normalises an unknown tone to "paper"; this cast only shapes
     // the argument, it does not trust it.
     tone: String(formData.get("tone") ?? "paper") as AppSlideTone,
-    image: "",
+    // https-only; the store's `safeHttpsUrl` parse stores anything else as "".
+    image: String(formData.get("image") ?? ""),
     sortOrder: parseInt(String(formData.get("sortOrder") ?? "0"), 10) || 0,
     isActive: formData.get("isActive") === "on",
     startsAt: String(formData.get("startsAt") ?? ""),

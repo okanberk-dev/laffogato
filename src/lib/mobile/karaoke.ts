@@ -10,26 +10,47 @@ import { getDb, TABLES } from "@/lib/db";
 import { nextSeq } from "@/lib/db/counters";
 import { raiseDbError } from "@/lib/db/health";
 
+import { DEFAULT_MOBILE_APP_CONFIG, type MobileAppConfig } from "./app-config";
 import { istanbulClock } from "./venue";
 
 /**
  * Karaoke room reservations (docs/API-MOBILE.md §7).
  *
- * One room, booked by the hour between 12:00 and 24:00. The app asks which
- * hours of a day are free, the member requests a block, the staff confirm or
- * cancel it from /admin/mobil/karaoke. Money is computed here from
+ * One room, booked by the hour. The app asks which hours of a day are free,
+ * the member requests a block, the staff confirm or cancel it from
+ * /admin/mobil/karaoke. Money is computed here from
  * `settings.karaokeHourlyMinor` — the app never sends a price — and ORO
  * members get their discount at the moment of booking.
+ *
+ * Opening hour, closing hour, longest block, booking window and the ORO
+ * percentage are business rules the staff edit at /admin/mobil/ayarlar
+ * (`settings.mobileApp.karaoke`, docs/API-MOBILE.md §10). The pure helpers
+ * below take those rules as an argument so tests and the admin panel can
+ * reason about them without a database; the DB-backed entry points read the
+ * live config through `getSettings()`.
  */
 
-/** First bookable hour of the day (slot "12" = 12:00–13:00). */
-export const KARAOKE_FIRST_HOUR = 12;
-/** The room closes at midnight; the last slot starts at 23. */
-export const KARAOKE_CLOSE_HOUR = 24;
-export const KARAOKE_MAX_HOURS = 4;
-/** How far ahead a member may book, in days (today counts as day 0). */
-export const KARAOKE_BOOKING_WINDOW_DAYS = 60;
-export const ORO_DISCOUNT_PCT = 15;
+/** The rules the staff edit; same shape as `MobileAppConfig.karaoke`. */
+export type KaraokeRules = MobileAppConfig["karaoke"];
+
+/**
+ * Defaults, kept for tests and back-compat. The live values come from
+ * `settings.mobileApp.karaoke`; these only apply when nothing was configured.
+ */
+export const DEFAULT_KARAOKE_RULES: Readonly<KaraokeRules> =
+  DEFAULT_MOBILE_APP_CONFIG.karaoke;
+
+/** First bookable hour of the day (slot "12" = 12:00–13:00). Default. */
+export const KARAOKE_FIRST_HOUR = DEFAULT_KARAOKE_RULES.firstHour;
+/** The room closes at midnight; the last slot starts at 23. Default. */
+export const KARAOKE_CLOSE_HOUR = DEFAULT_KARAOKE_RULES.closeHour;
+/** Longest block one reservation may cover, in hours. Default. */
+export const KARAOKE_MAX_HOURS = DEFAULT_KARAOKE_RULES.maxHours;
+/** How far ahead a member may book, in days (today counts as day 0). Default. */
+export const KARAOKE_BOOKING_WINDOW_DAYS =
+  DEFAULT_KARAOKE_RULES.bookingWindowDays;
+/** ORO tier discount on the room price, in percent. Default. */
+export const ORO_DISCOUNT_PCT = DEFAULT_KARAOKE_RULES.oroDiscountPct;
 
 export type KaraokeReservationStatus = "requested" | "confirmed" | "cancelled";
 
@@ -68,6 +89,11 @@ export interface KaraokeAvailability {
   hourlyMinor: number;
   capacity: number;
   oroDiscountPct: number;
+  /** Rules from `settings.mobileApp.karaoke`, so the app's picker matches the server. */
+  firstHour: number;
+  closeHour: number;
+  maxHours: number;
+  bookingWindowDays: number;
 }
 
 /** Wire shape of a reservation — an explicit allow-list (§7). */
@@ -130,9 +156,10 @@ export function buildSlots(
   bookings: readonly Booking[],
   /** Minutes since midnight when the date is today; hours already past close. */
   nowMinutes?: number,
+  rules: Pick<KaraokeRules, "firstHour" | "closeHour"> = DEFAULT_KARAOKE_RULES,
 ): KaraokeSlot[] {
   const slots: KaraokeSlot[] = [];
-  for (let h = KARAOKE_FIRST_HOUR; h < KARAOKE_CLOSE_HOUR; h += 1) {
+  for (let h = rules.firstHour; h < rules.closeHour; h += 1) {
     const past = nowMinutes !== undefined && h * 60 <= nowMinutes;
     slots.push({
       startHour: h,
@@ -143,8 +170,11 @@ export function buildSlots(
 }
 
 /** Discount for a loyalty tier; only ORO earns one. */
-export function karaokeDiscountPct(tier: string | null | undefined): number {
-  return tier === "oro" ? ORO_DISCOUNT_PCT : 0;
+export function karaokeDiscountPct(
+  tier: string | null | undefined,
+  oroDiscountPct: number = ORO_DISCOUNT_PCT,
+): number {
+  return tier === "oro" ? oroDiscountPct : 0;
 }
 
 export interface KaraokeQuote {
@@ -158,10 +188,11 @@ export function quoteReservation(
   hours: number,
   hourlyMinor: number,
   tier: string | null | undefined,
+  oroDiscountPct: number = ORO_DISCOUNT_PCT,
 ): KaraokeQuote {
   const priceMinor = Math.max(0, Math.round(hours * hourlyMinor));
   const discountMinor = Math.round(
-    (priceMinor * karaokeDiscountPct(tier)) / 100,
+    (priceMinor * karaokeDiscountPct(tier, oroDiscountPct)) / 100,
   );
   return { priceMinor, discountMinor, totalMinor: priceMinor - discountMinor };
 }
@@ -199,32 +230,38 @@ export interface ReservationRequest {
   note: string;
 }
 
-const requestSchema = z.object({
-  date: z
-    .string({ error: "Tarih gerekli." })
-    .refine(isCalendarDate, "Tarih YYYY-AA-GG biçiminde olmalı."),
-  startHour: z
-    .number({ error: "Başlangıç saati gerekli." })
-    .int("Başlangıç saati tam sayı olmalı.")
-    .min(
-      KARAOKE_FIRST_HOUR,
-      `Karaoke en erken ${KARAOKE_FIRST_HOUR}:00'de başlar.`,
-    )
-    .max(
-      KARAOKE_CLOSE_HOUR - 1,
-      `Son başlangıç saati ${KARAOKE_CLOSE_HOUR - 1}:00.`,
-    ),
-  hours: z
-    .number({ error: "Süre gerekli." })
-    .int("Süre tam saat olmalı.")
-    .min(1, "En az 1 saat.")
-    .max(KARAOKE_MAX_HOURS, `En fazla ${KARAOKE_MAX_HOURS} saat.`),
-  guests: z
-    .number({ error: "Kişi sayısı gerekli." })
-    .int("Kişi sayısı tam sayı olmalı.")
-    .min(1, "En az 1 kişi."),
-  note: z.string().trim().max(200, "Not en fazla 200 karakter.").default(""),
-});
+/**
+ * The schema depends on the configured rules (opening hour, longest block),
+ * so it is built per request rather than once at module load — otherwise a
+ * change saved in the panel would not apply until the next deploy.
+ */
+function buildRequestSchema(
+  rules: Pick<KaraokeRules, "firstHour" | "closeHour" | "maxHours">,
+) {
+  return z.object({
+    date: z
+      .string({ error: "Tarih gerekli." })
+      .refine(isCalendarDate, "Tarih YYYY-AA-GG biçiminde olmalı."),
+    startHour: z
+      .number({ error: "Başlangıç saati gerekli." })
+      .int("Başlangıç saati tam sayı olmalı.")
+      .min(rules.firstHour, `Karaoke en erken ${rules.firstHour}:00'de başlar.`)
+      .max(
+        rules.closeHour - 1,
+        `Son başlangıç saati ${rules.closeHour - 1}:00.`,
+      ),
+    hours: z
+      .number({ error: "Süre gerekli." })
+      .int("Süre tam saat olmalı.")
+      .min(1, "En az 1 saat.")
+      .max(rules.maxHours, `En fazla ${rules.maxHours} saat.`),
+    guests: z
+      .number({ error: "Kişi sayısı gerekli." })
+      .int("Kişi sayısı tam sayı olmalı.")
+      .min(1, "En az 1 kişi."),
+    note: z.string().trim().max(200, "Not en fazla 200 karakter.").default(""),
+  });
+}
 
 export type ValidateReservationResult =
   | { ok: true; value: ReservationRequest }
@@ -239,9 +276,16 @@ export const KARAOKE_OPEN_CAP = 2;
 
 export function validateReservationRequest(
   input: unknown,
-  ctx: { today: string; capacity: number; nowMinutes?: number },
+  ctx: {
+    today: string;
+    capacity: number;
+    nowMinutes?: number;
+    /** Configured rules; the defaults apply when omitted (tests, back-compat). */
+    rules?: KaraokeRules;
+  },
 ): ValidateReservationResult {
-  const parsed = requestSchema.safeParse(input);
+  const rules = ctx.rules ?? DEFAULT_KARAOKE_RULES;
+  const parsed = buildRequestSchema(rules).safeParse(input);
   if (!parsed.success) {
     return {
       ok: false,
@@ -260,16 +304,16 @@ export function validateReservationRequest(
   ) {
     return { ok: false, message: "Geçmiş bir saate rezervasyon yapılamaz." };
   }
-  if (ahead > KARAOKE_BOOKING_WINDOW_DAYS) {
+  if (ahead > rules.bookingWindowDays) {
     return {
       ok: false,
-      message: `En fazla ${KARAOKE_BOOKING_WINDOW_DAYS} gün sonrasına rezervasyon yapılabilir.`,
+      message: `En fazla ${rules.bookingWindowDays} gün sonrasına rezervasyon yapılabilir.`,
     };
   }
-  if (v.startHour + v.hours > KARAOKE_CLOSE_HOUR) {
+  if (v.startHour + v.hours > rules.closeHour) {
     return {
       ok: false,
-      message: `Oda ${KARAOKE_CLOSE_HOUR}:00'te kapanır; süreyi kısalt ya da daha erken başla.`,
+      message: `Oda ${rules.closeHour}:00'te kapanır; süreyi kısalt ya da daha erken başla.`,
     };
   }
   if (v.guests > ctx.capacity) {
@@ -354,15 +398,21 @@ export async function getAvailability(
     listByDate(date),
   ]);
   const clock = istanbulClock(now);
+  const rules = settings.mobileApp.karaoke;
   return {
     date,
     slots: buildSlots(
       bookings,
       clock.date === date ? clock.minutes : undefined,
+      rules,
     ),
     hourlyMinor: settings.karaokeHourlyMinor,
     capacity: settings.karaokeCapacity,
-    oroDiscountPct: ORO_DISCOUNT_PCT,
+    oroDiscountPct: rules.oroDiscountPct,
+    firstHour: rules.firstHour,
+    closeHour: rules.closeHour,
+    maxHours: rules.maxHours,
+    bookingWindowDays: rules.bookingWindowDays,
   };
 }
 
@@ -390,11 +440,13 @@ export async function createReservation(
   now: Date = new Date(),
 ): Promise<CreateReservationResult> {
   const settings = await getSettings();
+  const rules = settings.mobileApp.karaoke;
   const clock = istanbulClock(now);
   const validated = validateReservationRequest(input, {
     today: clock.date,
     capacity: settings.karaokeCapacity,
     nowMinutes: clock.minutes,
+    rules,
   });
   if (!validated.ok) {
     return {
@@ -431,7 +483,12 @@ export async function createReservation(
   }
 
   const tier = await resolveLoyaltyTier(customer.email);
-  const quote = quoteReservation(req.hours, settings.karaokeHourlyMinor, tier);
+  const quote = quoteReservation(
+    req.hours,
+    settings.karaokeHourlyMinor,
+    tier,
+    rules.oroDiscountPct,
+  );
   const seq = await nextSeq("krk");
   const iso = now.toISOString();
   const reservation: KaraokeReservation = {

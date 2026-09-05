@@ -7,13 +7,17 @@ import {
   formatSavedAddress,
   resolveOrderAddress,
 } from "@/lib/mobile/order-address";
+import { DEFAULT_MOBILE_APP_CONFIG } from "@/lib/mobile/app-config";
 import {
   computeTotalsWithShipping,
+  FULFILLMENT_UNAVAILABLE_MESSAGE,
   fulfillmentAllowed,
   normalizeScheduledFor,
+  orderingRefusal,
   priceCafeLine,
   shippingModeFor,
   type CafePriceable,
+  type OrderingRules,
 } from "@/lib/mobile/order-pricing";
 
 const cappuccino: CafePriceable = {
@@ -123,6 +127,70 @@ describe("fulfillment and shipping", () => {
     expect(fulfillmentAllowed("shop", "shipping")).toBe(true);
     expect(fulfillmentAllowed("shop", "pickup")).toBe(false);
     expect(fulfillmentAllowed("shop", "delivery")).toBe(false);
+  });
+
+  describe("operator ordering switches (mobileApp.ordering)", () => {
+    const open: OrderingRules = { ...DEFAULT_MOBILE_APP_CONFIG.ordering };
+
+    it("lets everything through with the defaults", () => {
+      expect(orderingRefusal("cafe", "pickup", open)).toBeNull();
+      expect(orderingRefusal("cafe", "delivery", open)).toBeNull();
+      expect(orderingRefusal("shop", "shipping", open)).toBeNull();
+      expect(fulfillmentAllowed("cafe", "delivery", open)).toBe(true);
+    });
+
+    it("cafe disabled → 409 ordering_closed with the operator's copy", () => {
+      const rules = {
+        ...open,
+        cafeEnabled: false,
+        closedMessage: "Bugün kapalıyız.",
+      };
+      for (const f of ["pickup", "delivery"] as const) {
+        expect(orderingRefusal("cafe", f, rules)).toEqual({
+          status: 409,
+          code: "ordering_closed",
+          message: "Bugün kapalıyız.",
+        });
+        expect(fulfillmentAllowed("cafe", f, rules)).toBe(false);
+      }
+      // The shop has its own switch (isShopOpen); this one does not touch it.
+      expect(orderingRefusal("shop", "shipping", rules)).toBeNull();
+      expect(fulfillmentAllowed("shop", "shipping", rules)).toBe(true);
+    });
+
+    it("delivery disabled → 400 fulfillment_unavailable, pickup still fine", () => {
+      const rules = { ...open, deliveryEnabled: false };
+      expect(orderingRefusal("cafe", "delivery", rules)).toEqual({
+        status: 400,
+        code: "fulfillment_unavailable",
+        message: FULFILLMENT_UNAVAILABLE_MESSAGE,
+      });
+      expect(fulfillmentAllowed("cafe", "delivery", rules)).toBe(false);
+      expect(orderingRefusal("cafe", "pickup", rules)).toBeNull();
+      expect(fulfillmentAllowed("cafe", "pickup", rules)).toBe(true);
+    });
+
+    it("pickup disabled → 400 fulfillment_unavailable, delivery still fine", () => {
+      const rules = { ...open, pickupEnabled: false };
+      expect(orderingRefusal("cafe", "pickup", rules)?.code).toBe(
+        "fulfillment_unavailable",
+      );
+      expect(orderingRefusal("cafe", "delivery", rules)).toBeNull();
+    });
+
+    it("both fulfillments off is a closed cafe, not a wrong choice", () => {
+      const rules = { ...open, deliveryEnabled: false, pickupEnabled: false };
+      expect(orderingRefusal("cafe", "pickup", rules)?.code).toBe(
+        "ordering_closed",
+      );
+      expect(orderingRefusal("cafe", "delivery", rules)?.status).toBe(409);
+    });
+
+    it("the shape rule still wins over the switches", () => {
+      // A shop basket on a courier is a bad request whatever the switches say.
+      expect(fulfillmentAllowed("shop", "delivery", open)).toBe(false);
+      expect(fulfillmentAllowed("cafe", "shipping", open)).toBe(false);
+    });
   });
 
   it("charges nothing for pickup, the courier fee for delivery, settings for shipping", () => {

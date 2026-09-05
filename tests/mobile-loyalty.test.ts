@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { AdminOrder, AdminOrderStatus } from "@/lib/admin/store";
+import { DEFAULT_MOBILE_APP_CONFIG } from "@/lib/mobile/app-config";
 import {
   BADGE_IDS,
   buildLoyaltyView,
@@ -8,6 +9,7 @@ import {
   computeStampBalance,
   computeTier,
   countOrdersLast365,
+  freeDrinkRewardFor,
   istanbulParts,
   longestDailyStreak,
   STAMP_TARGET,
@@ -108,8 +110,79 @@ describe("computeStampBalance", () => {
     expect(computeStampBalance([stamp("redeem")]).available).toBe(0);
   });
 
-  it("uses the contract's target of six", () => {
+  it("uses the contract's target of six by default", () => {
     expect(STAMP_TARGET).toBe(6);
+    expect(DEFAULT_MOBILE_APP_CONFIG.loyalty.stampTarget).toBe(STAMP_TARGET);
+    // The default parameter and an explicit 6 must agree.
+    const rows = Array.from({ length: 13 }, () => stamp("earn"));
+    expect(computeStampBalance(rows)).toEqual(computeStampBalance(rows, 6));
+  });
+
+  it("reads the ledger against a configured target of eight", () => {
+    const seven = Array.from({ length: 7 }, () => stamp("earn"));
+    // Seven stamps fill a six-card and start the next; on an eight-card
+    // they are still one short.
+    expect(computeStampBalance(seven, 8)).toMatchObject({
+      stamps: 7,
+      rewardsReady: 0,
+      available: 7,
+    });
+    const eight = [...seven, stamp("earn")];
+    expect(computeStampBalance(eight, 8)).toMatchObject({
+      stamps: 0,
+      rewardsReady: 1,
+      lifetimeStamps: 8,
+    });
+    // 20 earned, one redeem: 20 − 8 = 12 → one more ready, four on the card.
+    const rows = [
+      ...Array.from({ length: 20 }, () => stamp("earn")),
+      stamp("redeem", -8),
+    ];
+    expect(computeStampBalance(rows, 8)).toEqual({
+      lifetimeStamps: 20,
+      redeemCount: 1,
+      available: 12,
+      stamps: 4,
+      rewardsReady: 1,
+    });
+  });
+
+  it("charges a redeem row the current target, not its own delta", () => {
+    // A card that grew from 6 to 8 re-reads the old redeem at 8: the operator
+    // changed the deal for everyone.
+    const rows = [
+      ...Array.from({ length: 14 }, () => stamp("earn")),
+      stamp("redeem", -6),
+    ];
+    expect(computeStampBalance(rows, 8).available).toBe(6);
+  });
+});
+
+describe("freeDrinkRewardFor", () => {
+  it("builds the coupon from the configured rules", () => {
+    expect(
+      freeDrinkRewardFor({
+        rewardTitle: "Bir espresso bizden",
+        rewardValueMinor: 15000,
+        rewardTtlDays: 30,
+      }),
+    ).toEqual({
+      kind: "fixed",
+      valueMinor: 15000,
+      title: "Bir espresso bizden",
+      minSubtotalMinor: 0,
+      ttlDays: 30,
+    });
+  });
+
+  it("the defaults are the contract's ₺280 / 90-day free drink", () => {
+    expect(freeDrinkRewardFor(DEFAULT_MOBILE_APP_CONFIG.loyalty)).toEqual({
+      kind: "fixed",
+      valueMinor: 28000,
+      title: "Ücretsiz içecek",
+      minSubtotalMinor: 0,
+      ttlDays: 90,
+    });
   });
 });
 
@@ -287,6 +360,17 @@ describe("buildLoyaltyView", () => {
       ordersLast365: 13,
     });
     expect(view.badges).toHaveLength(6);
+  });
+
+  it("publishes the target it computed the balance with", () => {
+    const stamps = Array.from({ length: 10 }, () => stamp("earn"));
+    const view = buildLoyaltyView(stamps, [], NOW, 8);
+    expect(view).toMatchObject({
+      stamps: 2,
+      stampTarget: 8,
+      rewardsReady: 1,
+      lifetimeStamps: 10,
+    });
   });
 });
 

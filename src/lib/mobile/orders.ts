@@ -35,7 +35,11 @@ import { SITE } from "@/lib/seo/site";
 
 import { resolveOrderAddress } from "./order-address";
 import { toMobileOrder, type MobileOrder } from "./order-mapper";
-import { computeTotalsWithShipping, shippingModeFor } from "./order-pricing";
+import {
+  computeTotalsWithShipping,
+  orderingRefusal,
+  shippingModeFor,
+} from "./order-pricing";
 import type { PlaceOrderBody, PreviewOrderBody } from "./order-schema";
 
 /**
@@ -255,6 +259,15 @@ export async function createAppOrder(
   customer: PublicCustomer,
   body: PlaceOrderBody,
 ): Promise<CreateAppOrderResult> {
+  // The operator's switches first: a closed cafe is the answer whatever
+  // else the basket has going on, and it costs one settings read.
+  const refused = orderingRefusal(
+    body.kind,
+    body.fulfillment,
+    (await getSettings()).mobileApp.ordering,
+  );
+  if (refused) return { ok: false, failure: refused };
+
   const open = (await customerOrdersByEmail(customer.email)).filter(
     (o) => o.status === "pending_payment",
   ).length;
@@ -496,6 +509,16 @@ export async function previewAppOrder(
   body: PreviewOrderBody,
   customer: PublicCustomer | null,
 ): Promise<PreviewAppOrderResult> {
+  // Same gate as `createAppOrder`, so the basket screen learns that the
+  // cafe is closed before the customer types an address.
+  const settings = await getSettings();
+  const refused = orderingRefusal(
+    body.kind,
+    body.fulfillment,
+    settings.mobileApp.ordering,
+  );
+  if (refused) return { ok: false, failure: refused };
+
   const linesRes = await previewAppOrderLines(body.lines);
   if (!linesRes.ok) {
     return { ok: false, failure: failureFromResult(linesRes.result) };
@@ -527,7 +550,6 @@ export async function previewAppOrder(
   }
   const discountMinor = promo?.ok ? promo.discountMinor : 0;
 
-  const settings = await getSettings();
   const totals = computeTotalsWithShipping(
     subtotalMinor,
     discountMinor,

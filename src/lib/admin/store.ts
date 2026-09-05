@@ -5,8 +5,8 @@ import type { DbError } from "@/lib/db";
 import {
   APP_ANNOUNCEMENT_KINDS,
   APP_POST_KINDS,
-  APP_SLIDE_ROUTES,
   APP_SLIDE_TONES,
+  isAppSlideRoute,
   type AppAnnouncementKind,
   type AppPostKind,
   type AppSlideTone,
@@ -26,6 +26,11 @@ import {
   releaseCustomerCoupon,
 } from "@/lib/customer/coupons";
 import { sendOrderPaidEmail } from "@/lib/email/send";
+import {
+  DEFAULT_MOBILE_APP_CONFIG,
+  normalizeMobileAppConfig,
+  type MobileAppConfig,
+} from "@/lib/mobile/app-config";
 import type { LineOptions } from "@/lib/mobile/customization";
 import {
   computeTotalsWithShipping,
@@ -311,6 +316,13 @@ export interface AdminSettings {
   courierFeeMinor: number;
   karaokeHourlyMinor: number;
   karaokeCapacity: number;
+
+  /**
+   * Everything else the app is configured with (/admin/mobil/ayarlar,
+   * docs/API-MOBILE.md §10): one jsonb document, always normalised — a row
+   * written before a key existed reads that key's default, never `undefined`.
+   */
+  mobileApp: MobileAppConfig;
 }
 
 // ─── Query helpers ─────────────────────────────────────────────────────────
@@ -451,6 +463,8 @@ function defaultSettings(): AdminSettings {
     courierFeeMinor: 5500,
     karaokeHourlyMinor: 90000,
     karaokeCapacity: 8,
+    // A fresh copy: the constant is frozen and callers may edit sections.
+    mobileApp: normalizeMobileAppConfig(DEFAULT_MOBILE_APP_CONFIG),
   };
 }
 
@@ -2670,7 +2684,13 @@ export async function getSettings(): Promise<AdminSettings> {
   // migration default once the column lands; keys the driver did not return
   // at all (a partial select in a test executor) fall back to the same
   // defaults here, so callers never see `undefined` for a number field.
-  return { ...defaultSettings(), ...rest } as AdminSettings;
+  // The app config is a jsonb document, so a shallow spread cannot fill a
+  // missing nested key — it is normalised leaf by leaf instead.
+  return {
+    ...defaultSettings(),
+    ...rest,
+    mobileApp: normalizeMobileAppConfig(rest.mobileApp),
+  } as AdminSettings;
 }
 
 export async function updateSettings(
@@ -3905,9 +3925,9 @@ export const deleteStoryEvent = storyResource.remove;
 // submission, so they live here and the app reads them over the API.
 //
 // Kept separate from `shop_hero_slides`, which is web-shaped (a full-width
-// image, an absolute ctaHref). The app needs a brand `tone` instead of an
-// image, and a route KEY rather than a URL — CMS text must never be able to
-// drive native navigation directly.
+// image, an absolute ctaHref). The app paints a brand `tone` and takes an
+// OPTIONAL https image on top of it, and it needs a route KEY rather than a
+// URL — CMS text must never be able to drive native navigation directly.
 
 // The tones, routes, kinds and their labels live in a client-safe module and
 // are re-exported here, so server code can keep importing them from the store
@@ -3918,6 +3938,7 @@ export {
   APP_SLIDE_TONE_LABELS,
   APP_SLIDE_ROUTES,
   APP_SLIDE_ROUTE_LABELS,
+  isAppSlideRoute,
   APP_ANNOUNCEMENT_KINDS,
   APP_ANNOUNCEMENT_KIND_LABELS,
   APP_POST_KINDS,
@@ -3925,6 +3946,7 @@ export {
 } from "./app-content-schema";
 export type {
   AppSlideTone,
+  AppSlideRoute,
   AppAnnouncementKind,
   AppPostKind,
 } from "./app-content-schema";
@@ -3939,6 +3961,7 @@ export interface AdminAppSlide {
   ctaLabel: string;
   ctaRoute: string;
   tone: AppSlideTone;
+  /** Absolute https URL painted over the tone, or "" for a plain ground. */
   image: string;
   sortOrder: number;
   isActive: boolean;
@@ -3991,7 +4014,7 @@ const SEED_APP_SLIDES: AdminAppSlide[] = [
     title: "200 yıllık bir köşkte",
     body: "1987 Bologna'dan İstanbul'a. İtalya dışındaki tek L'Affogato.",
     ctaLabel: "Ziyaret",
-    ctaRoute: "/hesabim",
+    ctaRoute: "/ziyaret",
     tone: "paper",
     image: "",
     sortOrder: 2,
@@ -4154,11 +4177,12 @@ function normalizeAppSlide(input: AppSlideInput): AppSlideInput {
     ctaLabel: input.ctaLabel.trim().slice(0, 32),
     // Fail closed: an unrecognised route becomes "no action" rather than
     // reaching the app as an unknown target.
-    ctaRoute: (APP_SLIDE_ROUTES as readonly string[]).includes(route)
-      ? route
-      : "",
+    ctaRoute: isAppSlideRoute(route) ? route : "",
     tone: APP_SLIDE_TONES.includes(input.tone) ? input.tone : "paper",
-    image: input.image.trim().slice(0, 4 * 1024 * 1024),
+    // Same parse as a post's picture: the phone fetches this URL on every
+    // home-screen load, so a data: blob or a bare path is stored as "" (plain
+    // tone) rather than shipped to every device.
+    image: safeHttpsUrl(input.image),
     sortOrder: Number.isFinite(input.sortOrder)
       ? Math.max(0, Math.floor(input.sortOrder))
       : 0,

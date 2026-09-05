@@ -4,6 +4,7 @@ import type { DbError } from "@/lib/db";
 
 import {
   customerOrdersByEmail,
+  getSettings,
   orderChannel,
   orderKind,
   type AdminOrder,
@@ -13,12 +14,13 @@ import { getDb, TABLES } from "@/lib/db";
 import { nextSeq } from "@/lib/db/counters";
 import { raiseDbError } from "@/lib/db/health";
 
-import { FREE_DRINK_REWARD, grantFreeDrinkCoupon } from "./free-drink";
+import { grantFreeDrinkCoupon } from "./free-drink";
 import { rewardInviteOnFirstPaidOrder } from "./invite";
 import {
   buildLoyaltyView,
   computeStampBalance,
-  STAMP_TARGET,
+  freeDrinkRewardFor,
+  type LoyaltyRules,
   type LoyaltyStamp,
   type LoyaltyView,
 } from "./loyalty-core";
@@ -43,6 +45,16 @@ export {
 
 function normalizeEmail(raw: string): string {
   return (raw ?? "").trim().toLowerCase();
+}
+
+/**
+ * The operator's loyalty rules (card size, reward). Read per request, never
+ * cached here: the admin page promises "the app sees it within 5 minutes"
+ * and the ledger arithmetic must agree with the card the app draws.
+ */
+async function loyaltyRules(): Promise<LoyaltyRules> {
+  const { mobileApp } = await getSettings();
+  return mobileApp.loyalty;
 }
 
 function checkErr(error: DbError | null, ctx: string): void {
@@ -70,11 +82,12 @@ async function newStampId(): Promise<string> {
 /** The `/me.loyalty` block for a member. */
 export async function getLoyalty(email: string): Promise<LoyaltyView> {
   const owner = normalizeEmail(email);
-  const [stamps, orders] = await Promise.all([
+  const [stamps, orders, rules] = await Promise.all([
     listStamps(owner),
     customerOrdersByEmail(owner),
+    loyaltyRules(),
   ]);
-  return buildLoyaltyView(stamps, orders, Date.now());
+  return buildLoyaltyView(stamps, orders, Date.now(), rules.stampTarget);
 }
 
 /**
@@ -158,7 +171,9 @@ export type RedeemStampsResult =
   | { ok: false; error: "not_enough_stamps" };
 
 /**
- * Turns six available stamps into a free-drink coupon (`POST /loyalty/redeem`).
+ * Turns a full card of stamps into a free-drink coupon (`POST /loyalty/redeem`).
+ * The card size and the coupon come from the configured rules, read once at
+ * the top so the check, the ledger row and the coupon all use the same deal.
  *
  * The balance check and the ledger write are not one statement, so two
  * simultaneous redeems could both pass the check. The write is therefore
@@ -168,8 +183,11 @@ export type RedeemStampsResult =
  */
 export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
   const owner = normalizeEmail(email);
-  const before = computeStampBalance(await listStamps(owner));
-  if (before.available < STAMP_TARGET) {
+  const rules = await loyaltyRules();
+  const target = rules.stampTarget;
+  const reward = freeDrinkRewardFor(rules);
+  const before = computeStampBalance(await listStamps(owner), target);
+  if (before.available < target) {
     return { ok: false, error: "not_enough_stamps" };
   }
 
@@ -180,18 +198,18 @@ export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
     id,
     customerEmail: owner,
     kind: "redeem",
-    delta: -STAMP_TARGET,
+    delta: -target,
     source: "app",
     orderId: "",
-    note: FREE_DRINK_REWARD.title,
+    note: reward.title,
     actor: "",
     createdAt: now,
   };
   const ins = await db.from(TABLES.loyaltyStamps).insert(redeemRow);
   checkErr(ins.error, "redeemStamps.insert");
 
-  const after = computeStampBalance(await listStamps(owner));
-  if (after.lifetimeStamps - STAMP_TARGET * after.redeemCount < 0) {
+  const after = computeStampBalance(await listStamps(owner), target);
+  if (after.lifetimeStamps - target * after.redeemCount < 0) {
     // Lost the race: another redeem took the stamps first. Withdraw ours.
     const del = await db.from(TABLES.loyaltyStamps).delete().eq("id", id);
     checkErr(del.error, "redeemStamps.rollback");
@@ -200,11 +218,11 @@ export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
 
   let coupon: CustomerCoupon;
   try {
-    coupon = await grantFreeDrinkCoupon(owner, "loyalty");
+    coupon = await grantFreeDrinkCoupon(owner, "loyalty", reward);
   } catch (err) {
     // The stamps were spent for a coupon that never existed. Give them back
-    // and let the caller fail loudly, rather than leaving the member six
-    // stamps poorer with nothing to show for it.
+    // and let the caller fail loudly, rather than leaving the member a card
+    // poorer with nothing to show for it.
     const del = await db.from(TABLES.loyaltyStamps).delete().eq("id", id);
     checkErr(del.error, "redeemStamps.grantRollback");
     throw err;

@@ -36,6 +36,14 @@ export const APP_SLIDE_TONE_LABELS: Record<AppSlideTone, string> = {
 /**
  * Routes a slide may point at. The app resolves the key through its own
  * allow-list; anything not in this set is ignored rather than followed.
+ *
+ * Keys are the WEB-side vocabulary of APP-CONFIG-SPEC §5, not the app's file
+ * paths: the app maps `/kart → /uyelik-karti`, `/hesabim → /(tabs)/profil`,
+ * `/menu → /(tabs)/menu`, `/oduller → /(tabs)/oduller` itself, so a screen
+ * can move inside the app without the panel (or old rows) noticing.
+ *
+ * `""` stays first so a fresh form defaults to "no action" — a slide is
+ * decorative unless someone deliberately makes it a button.
  */
 export const APP_SLIDE_ROUTES = [
   "",
@@ -43,15 +51,36 @@ export const APP_SLIDE_ROUTES = [
   "/magaza",
   "/kart",
   "/hesabim",
+  "/kampanyalar",
+  "/karaoke",
+  "/canli-durum",
+  "/oduller",
+  "/davet",
+  "/ziyaret",
+  "/hikaye",
 ] as const;
 
-export const APP_SLIDE_ROUTE_LABELS: Record<string, string> = {
+export type AppSlideRoute = (typeof APP_SLIDE_ROUTES)[number];
+
+export const APP_SLIDE_ROUTE_LABELS: Record<AppSlideRoute, string> = {
   "": "Yok (tıklanamaz)",
   "/menu": "Menü",
   "/magaza": "Mağaza",
   "/kart": "Üyelik kartı",
-  "/hesabim": "Hesabım",
+  "/hesabim": "Profil",
+  "/kampanyalar": "Kampanyalar",
+  "/karaoke": "Karaoke",
+  "/canli-durum": "Canlı durum",
+  "/oduller": "Ödüller",
+  "/davet": "Davet",
+  "/ziyaret": "Ziyaret",
+  "/hikaye": "Hikâye",
 };
+
+/** Type guard for a stored `ctaRoute`; the store fails closed on anything else. */
+export function isAppSlideRoute(value: string): value is AppSlideRoute {
+  return (APP_SLIDE_ROUTES as readonly string[]).includes(value);
+}
 
 // ── Announcements ──────────────────────────────────────────────────────────
 

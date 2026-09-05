@@ -4,6 +4,10 @@ import type { AdminMenuItem, AdminProduct } from "@/lib/admin/store";
 
 import type { WeeklyHours } from "@/lib/admin/days";
 import {
+  DEFAULT_MOBILE_APP_CONFIG,
+  normalizeMobileAppConfig,
+} from "@/lib/mobile/app-config";
+import {
   absoluteImageUrl,
   BEAN_GRINDS,
   buildBootstrap,
@@ -11,9 +15,11 @@ import {
   COURIER_ETA_MINUTES,
   HAPPY_HOUR,
   hoursLabel,
+  istanbulDay,
   latestUpdatedAt,
   toMobileMenuItem,
   toMobileShopProduct,
+  weeklyHoursRows,
 } from "@/lib/mobile/menu-mapper";
 
 const SITE_URL = "https://laffogato.net";
@@ -373,9 +379,13 @@ describe("buildBootstrap (contract §10)", () => {
   const settings = {
     phone: "+90 555 000 00 00",
     email: "merhaba@laffogato.net",
+    address: "",
     weeklyHours: everyDay("09:00", "01:00"),
     courierFeeMinor: 5500,
+    mobileApp: DEFAULT_MOBILE_APP_CONFIG,
   };
+  // Wednesday 2026-09-02 12:00 in Istanbul (09:00 UTC).
+  const WEDNESDAY = new Date("2026-09-02T09:00:00Z");
 
   it("uses the tax-certificate address split into two lines", () => {
     const b = buildBootstrap(settings, site);
@@ -388,6 +398,119 @@ describe("buildBootstrap (contract §10)", () => {
       lat: 40.8165716,
       lng: 29.3032493,
     });
+  });
+
+  it("puts the admin-edited address on the first line when there is one", () => {
+    const b = buildBootstrap(
+      { ...settings, address: "  Atatürk Cad. No: 28, Tuzla  " },
+      site,
+    );
+    expect(b.venue.addressLines).toEqual([
+      "Atatürk Cad. No: 28, Tuzla",
+      "34940 Tuzla / İstanbul",
+    ]);
+  });
+
+  it("publishes the venue copy from the app config", () => {
+    const mobileApp = normalizeMobileAppConfig({
+      venue: {
+        shortName: "Tuzla",
+        landmark: "Postane karşısı",
+        mapsQuery: "L'Affogato Tuzla",
+      },
+    });
+    expect(
+      buildBootstrap({ ...settings, mobileApp }, site).venue,
+    ).toMatchObject({
+      shortName: "Tuzla",
+      landmark: "Postane karşısı",
+      mapsQuery: "L'Affogato Tuzla",
+    });
+    expect(buildBootstrap(settings, site).venue).toMatchObject({
+      shortName: "Tuzla · İstanbul",
+      landmark: "Menemenci Cumhur’un yanı",
+    });
+  });
+
+  it("sends seven ungrouped hour rows, Monday first, and today's open/close", () => {
+    const weekly = everyDay("09:00", "01:00");
+    weekly.sun = { open: "10:00", close: "22:00", closed: false };
+    weekly.mon = { open: "00:00", close: "00:00", closed: true };
+    const b = buildBootstrap(
+      { ...settings, weeklyHours: weekly },
+      site,
+      WEDNESDAY,
+    );
+    expect(b.venue.hours).toHaveLength(7);
+    expect(b.venue.hours[0]).toEqual({ label: "Pazartesi", value: "Kapalı" });
+    expect(b.venue.hours[2]).toEqual({
+      label: "Çarşamba",
+      value: "09:00 – 01:00",
+    });
+    expect(b.venue.hours[6]).toEqual({
+      label: "Pazar",
+      value: "10:00 – 22:00",
+    });
+    expect(b.venue.hours.map((h) => h.label)).toEqual([
+      "Pazartesi",
+      "Salı",
+      "Çarşamba",
+      "Perşembe",
+      "Cuma",
+      "Cumartesi",
+      "Pazar",
+    ]);
+    expect(b.venue).toMatchObject({ opensAt: "09:00", closesAt: "01:00" });
+    // A closed "today" publishes empty strings, not the previous day's times.
+    const monday = new Date("2026-08-31T09:00:00Z");
+    expect(
+      buildBootstrap({ ...settings, weeklyHours: weekly }, site, monday).venue,
+    ).toMatchObject({ opensAt: "", closesAt: "" });
+    expect(weeklyHoursRows(weekly)[6].value).toBe("10:00 – 22:00");
+  });
+
+  it("resolves the weekday in Istanbul, not UTC", () => {
+    // 22:30 UTC on Tuesday is already 01:30 Wednesday in Istanbul (UTC+3).
+    expect(istanbulDay(new Date("2026-09-01T22:30:00Z"))).toBe("wed");
+    expect(istanbulDay(new Date("2026-09-01T12:00:00Z"))).toBe("tue");
+  });
+
+  it("publishes the app config and mirrors its version and ETA at the top level", () => {
+    const mobileApp = normalizeMobileAppConfig({
+      minSupportedAppVersion: "1.3.0",
+      ordering: { cafeEnabled: false, courierEtaMinutes: [30, 45] },
+      loyalty: { stampTarget: 8, rewardValueMinor: 5000 },
+      karaoke: { maxHours: 2 },
+    });
+    const b = buildBootstrap({ ...settings, mobileApp }, site);
+    expect(b.minSupportedAppVersion).toBe("1.3.0");
+    expect(b.courierEtaMinutes).toEqual([30, 45]);
+    expect(b.app.minSupportedAppVersion).toBe("1.3.0");
+    expect(b.app.ordering).toMatchObject({
+      cafeEnabled: false,
+      courierEtaMinutes: [30, 45],
+    });
+    expect(b.app.loyalty).toEqual({
+      stampTarget: 8,
+      rewardTitle: "Ücretsiz içecek",
+    });
+    expect(b.app.reminders.items.map((i) => i.id)).toEqual([
+      "morning",
+      "afternoon",
+    ]);
+    expect(b.app.campaignCards).toEqual({
+      loyalty: true,
+      invite: true,
+      subscription: true,
+    });
+    // Karaoke rules and coupon economics stay server-side.
+    expect(b.app).not.toHaveProperty("karaoke");
+    expect(b.app.loyalty).not.toHaveProperty("rewardValueMinor");
+    // The wire copy must not alias the settings document.
+    expect(b.courierEtaMinutes).not.toBe(mobileApp.ordering.courierEtaMinutes);
+    expect(b.app.ordering.courierEtaMinutes).not.toBe(
+      mobileApp.ordering.courierEtaMinutes,
+    );
   });
 
   it("prefers the admin-edited contact and falls back to the site's", () => {
@@ -415,9 +538,9 @@ describe("buildBootstrap (contract §10)", () => {
     // The campaign shape is kept for the day it is priced; publishing it
     // again must hand out a copy, not the shared constant.
     expect(HAPPY_HOUR.categories).toContain("ice-coffee");
-    expect({ ...HAPPY_HOUR, categories: [...HAPPY_HOUR.categories] }.categories).not.toBe(
-      HAPPY_HOUR.categories,
-    );
+    expect(
+      { ...HAPPY_HOUR, categories: [...HAPPY_HOUR.categories] }.categories,
+    ).not.toBe(HAPPY_HOUR.categories);
     expect(Object.keys(b).sort()).toEqual(
       [
         "minSupportedAppVersion",
@@ -426,6 +549,7 @@ describe("buildBootstrap (contract §10)", () => {
         "courierFeeMinor",
         "courierEtaMinutes",
         "happyHour",
+        "app",
       ].sort(),
     );
   });

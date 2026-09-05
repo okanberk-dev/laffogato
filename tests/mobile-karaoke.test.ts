@@ -1,17 +1,22 @@
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_MOBILE_APP_CONFIG } from "@/lib/mobile/app-config";
 import {
   buildSlots,
   daysBetween,
+  DEFAULT_KARAOKE_RULES,
   isCalendarDate,
   KARAOKE_BOOKING_WINDOW_DAYS,
   KARAOKE_CLOSE_HOUR,
   KARAOKE_FIRST_HOUR,
+  KARAOKE_MAX_HOURS,
+  karaokeDiscountPct,
   ORO_DISCOUNT_PCT,
   quoteReservation,
   rangeConflicts,
   toReservationJson,
   validateReservationRequest,
+  type KaraokeRules,
   type KaraokeReservation,
 } from "@/lib/mobile/karaoke";
 
@@ -44,6 +49,22 @@ describe("buildSlots", () => {
   it("ignores cancelled bookings", () => {
     const slots = buildSlots([booking(16, 2, "cancelled")]);
     expect(slots.every((s) => s.available)).toBe(true);
+  });
+
+  it("follows firstHour/closeHour from the configured rules", () => {
+    const slots = buildSlots([], undefined, { firstHour: 14, closeHour: 22 });
+    expect(slots.map((s) => s.startHour)).toEqual([
+      14, 15, 16, 17, 18, 19, 20, 21,
+    ]);
+    expect(slots.every((s) => s.available)).toBe(true);
+  });
+
+  it("marks hours already past as unavailable on the configured day", () => {
+    const slots = buildSlots([], 15 * 60 + 10, {
+      firstHour: 14,
+      closeHour: 18,
+    });
+    expect(slots.map((s) => s.available)).toEqual([false, false, true, true]);
   });
 });
 
@@ -99,6 +120,33 @@ describe("quoteReservation — kuruş, server-side", () => {
       discountMinor: 5_000,
       totalMinor: 28_333,
     });
+  });
+
+  it("takes the ORO percentage from the configured rules", () => {
+    expect(karaokeDiscountPct("oro", 25)).toBe(25);
+    expect(karaokeDiscountPct("argento", 25)).toBe(0);
+    expect(quoteReservation(2, 90_000, "oro", 25)).toEqual({
+      priceMinor: 180_000,
+      discountMinor: 45_000,
+      totalMinor: 135_000,
+    });
+    // 0 % is a legal setting: ORO pays full price, nothing goes negative.
+    expect(quoteReservation(2, 90_000, "oro", 0)).toEqual({
+      priceMinor: 180_000,
+      discountMinor: 0,
+      totalMinor: 180_000,
+    });
+  });
+});
+
+describe("defaults mirror the app config", () => {
+  it("keeps the exported constants equal to DEFAULT_MOBILE_APP_CONFIG.karaoke", () => {
+    expect(DEFAULT_KARAOKE_RULES).toEqual(DEFAULT_MOBILE_APP_CONFIG.karaoke);
+    expect(KARAOKE_FIRST_HOUR).toBe(12);
+    expect(KARAOKE_CLOSE_HOUR).toBe(24);
+    expect(KARAOKE_MAX_HOURS).toBe(4);
+    expect(KARAOKE_BOOKING_WINDOW_DAYS).toBe(60);
+    expect(ORO_DISCOUNT_PCT).toBe(15);
   });
 });
 
@@ -206,6 +254,69 @@ describe("validateReservationRequest", () => {
     expect(
       validateReservationRequest({ ...good, note: "x".repeat(201) }, ctx).ok,
     ).toBe(false);
+  });
+});
+
+describe("validateReservationRequest — configured rules", () => {
+  const rules: KaraokeRules = {
+    firstHour: 14,
+    closeHour: 22,
+    maxHours: 2,
+    bookingWindowDays: 7,
+    oroDiscountPct: 10,
+  };
+  const ctx = { today: "2026-08-30", capacity: 8, rules };
+  const good = { date: "2026-09-02", startHour: 18, hours: 2, guests: 4 };
+
+  it("accepts a request inside the configured window and hours", () => {
+    expect(validateReservationRequest(good, ctx).ok).toBe(true);
+    expect(
+      validateReservationRequest({ ...good, date: "2026-09-06" }, ctx).ok,
+    ).toBe(true); // day 7 — last allowed
+  });
+
+  it("rejects a date beyond the configured bookingWindowDays", () => {
+    const r = validateReservationRequest({ ...good, date: "2026-09-07" }, ctx);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.message).toMatch(/7 gün/);
+    // The same date is fine under the 60-day default.
+    expect(
+      validateReservationRequest(
+        { ...good, date: "2026-09-07" },
+        { today: ctx.today, capacity: 8 },
+      ).ok,
+    ).toBe(true);
+  });
+
+  it("rejects a start before firstHour or at/after closeHour", () => {
+    const early = validateReservationRequest({ ...good, startHour: 13 }, ctx);
+    expect(early.ok).toBe(false);
+    if (!early.ok) expect(early.message).toMatch(/14:00/);
+    const late = validateReservationRequest(
+      { ...good, startHour: 22, hours: 1 },
+      ctx,
+    );
+    expect(late.ok).toBe(false);
+    if (!late.ok) expect(late.message).toMatch(/21:00/);
+    // 12:00 is legal under the defaults but not under these rules.
+    expect(validateReservationRequest({ ...good, startHour: 12 }, ctx).ok).toBe(
+      false,
+    );
+  });
+
+  it("caps the block at maxHours and at the configured close", () => {
+    const long = validateReservationRequest({ ...good, hours: 3 }, ctx);
+    expect(long.ok).toBe(false);
+    if (!long.ok) expect(long.message).toMatch(/2 saat/);
+    const spill = validateReservationRequest(
+      { ...good, startHour: 21, hours: 2 },
+      ctx,
+    );
+    expect(spill.ok).toBe(false);
+    if (!spill.ok) expect(spill.message).toMatch(/22:00'te kapanır/);
+    expect(
+      validateReservationRequest({ ...good, startHour: 20, hours: 2 }, ctx).ok,
+    ).toBe(true);
   });
 });
 

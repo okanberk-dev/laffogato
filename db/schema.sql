@@ -1449,3 +1449,18 @@ alter table public.customers add column if not exists "cardUserKey" text not nul
 
 insert into public._migrations (name) values ('20260903020000_customer_card_user_key.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260905120000_mobile_app_config.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Mobile app configuration edited at /admin/mobil/ayarlar (docs/API-MOBILE.md §10).
+-- One jsonb document; keys are normalised with defaults in src/lib/mobile/app-config.ts,
+-- so an older row that lacks a key reads the default rather than undefined.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+alter table public.settings add column if not exists "mobileApp" jsonb not null default '{}'::jsonb;
+
+insert into public._migrations (name) values ('20260905120000_mobile_app_config.sql')
+  on conflict (name) do nothing;
