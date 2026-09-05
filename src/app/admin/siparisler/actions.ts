@@ -8,6 +8,7 @@ import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { bulkOrderSchema } from "@/lib/admin/bulk-schema";
 import { manualOrderSchema } from "@/lib/admin/manual-order-schema";
+import { canAccess } from "@/lib/admin/roles";
 import {
   bulkUpdateOrders,
   createManualOrder,
@@ -25,14 +26,14 @@ import { getPaymentProvider } from "@/lib/payment";
 
 export interface BulkOrderActionState {
   error?: string;
-  ok?: { op: string; updated: number };
+  ok?: { op: string; updated: number; skipped: number };
 }
 
 export async function bulkOrdersAction(
   _prev: BulkOrderActionState,
   formData: FormData,
 ): Promise<BulkOrderActionState> {
-  await requireRole("orders");
+  const session = await requireRole("orders");
   const parsed = bulkOrderSchema.safeParse({
     ids: String(formData.get("ids") ?? ""),
     op: String(formData.get("op") ?? ""),
@@ -42,18 +43,25 @@ export async function bulkOrdersAction(
     return { error: parsed.error.issues[0]?.message ?? "Geçersiz istek." };
   }
   const { ids, value } = parsed.data;
-  const { updated } = await bulkUpdateOrders(ids, {
+  // Cancelling in bulk voids up to 500 orders in one click — paid ones
+  // included, whose money then has to be sent back by hand. Same authority as
+  // a refund, checked here rather than with requireRole so the staff member
+  // gets an explanation instead of being bounced to /admin?denied=1.
+  if (value === "cancelled" && !canAccess("refunds", session.role)) {
+    return { error: "Toplu iptal için iade yetkisi gerekiyor." };
+  }
+  const { updated, skipped } = await bulkUpdateOrders(ids, {
     kind: "set_status",
     status: value,
   });
   await logAudit({
     action: "bulk_update",
     entity: "order",
-    payload: { status: value, updated, idCount: ids.length },
+    payload: { status: value, updated, skipped, idCount: ids.length },
   });
   revalidatePath("/admin/siparisler");
   revalidatePath("/admin");
-  return { ok: { op: "set_status", updated } };
+  return { ok: { op: "set_status", updated, skipped } };
 }
 
 const TRANSITIONS: OrderTransition[] = [
@@ -72,21 +80,44 @@ function revalidateOrder(id: string) {
   revalidatePath("/admin");
 }
 
-export async function transitionOrderAction(formData: FormData) {
+export interface TransitionActionState {
+  error?: string;
+}
+
+/**
+ * Move an order to its next status.
+ *
+ * `transitionOrder` refuses an illegal move (stale page, someone else already
+ * advanced it, unknown id) and its result used to be discarded: the button
+ * appeared to work, an audit row claimed a transition that never happened, and
+ * the staff member found out only by reloading. The store's own message is now
+ * what the operator sees, and the audit row is written only when the status
+ * actually moved.
+ */
+export async function transitionOrderAction(
+  _prev: TransitionActionState,
+  formData: FormData,
+): Promise<TransitionActionState> {
   await requireRole("orders");
   const id = String(formData.get("id") ?? "");
   const transition = String(
     formData.get("transition") ?? "",
   ) as OrderTransition;
-  if (!id || !TRANSITIONS.includes(transition)) return;
-  await transitionOrder(id, transition);
+  if (!id || !TRANSITIONS.includes(transition)) {
+    return { error: "Geçersiz işlem." };
+  }
+  const result = await transitionOrder(id, transition);
+  // `TransitionResult` is a loose interface, so `order` is optional even on
+  // the ok branch; the status is best-effort context for the log, not a gate.
+  if (!result.ok) return { error: result.error ?? "İşlem yapılamadı." };
   await logAudit({
     action: "transition",
     entity: "order",
     entityId: id,
-    payload: { transition },
+    payload: { transition, to: result.order?.status ?? "" },
   });
   revalidateOrder(id);
+  return {};
 }
 
 export interface NoteActionState {

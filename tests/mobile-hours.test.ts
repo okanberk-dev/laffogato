@@ -193,7 +193,7 @@ describe("toLiveStatus — contract §6", () => {
     expect("manualOverride" in live).toBe(false);
   });
 
-  it("reports closed with a zero 'ago' when never updated", () => {
+  it("says nothing about freshness or tables when never reported", () => {
     const live = toLiveStatus(
       { ...defaultVenueStatus(), manualOverride: "closed" },
       settings,
@@ -202,12 +202,16 @@ describe("toLiveStatus — contract §6", () => {
     expect(live.isOpen).toBe(false);
     expect(live.openLabel).toBe("Şu an kapalı");
     expect(live.updatedAt).toBe("");
-    expect(live.updatedAgoMinutes).toBe(0);
+    // Was 0/0 — indistinguishable from "a minute ago, the house is full".
+    expect(live.updatedAgoMinutes).toBeNull();
+    expect(live.freeTables).toBeNull();
+    expect(live.totalTables).toBe(20);
   });
 
-  it("shows a closed day as 'Kapalı' and no karaoke at zero capacity", () => {
+  it("shows a closed weekend as 'Kapalı' and no karaoke at zero capacity", () => {
     const hours = lateHours();
     hours.sat.closed = true;
+    hours.sun.closed = true;
     const live = toLiveStatus(
       defaultVenueStatus(),
       { weeklyHours: hours, karaokeCapacity: 0 },
@@ -215,5 +219,19 @@ describe("toLiveStatus — contract §6", () => {
     );
     expect(live.hours.weekend).toBe("Kapalı");
     expect(live.karaoke.available).toBe(false);
+  });
+
+  it("groups days that differ instead of quoting Monday and Saturday", () => {
+    const hours = lateHours();
+    hours.fri.close = "02:00";
+    hours.sun.closed = true;
+    const live = toLiveStatus(defaultVenueStatus(), {
+      weeklyHours: hours,
+      karaokeCapacity: 8,
+    });
+    expect(live.hours.weekday).toBe(
+      "Pzt–Per 09:00 – 01:00 · Cum 09:00 – 02:00",
+    );
+    expect(live.hours.weekend).toBe("Cmt 09:00 – 01:00 · Paz Kapalı");
   });
 });

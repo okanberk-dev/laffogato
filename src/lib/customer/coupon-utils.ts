@@ -2,6 +2,8 @@
 // Safe to import from client components (e.g. the admin coupon panel) as well
 // as the server-only data layer in `./coupons`.
 
+import { priceLabel } from "@/lib/utils/format";
+
 export type CouponKind = "pct" | "fixed";
 
 /** Where a coupon came from — drives the code prefix + member-facing copy. */
@@ -12,6 +14,44 @@ export type CouponSource =
   | "manual" // hand-granted by an admin
   | "review" // reward for leaving a review (phase 2)
   | "invite"; // referral reward — inviter and invitee (mobile app)
+
+/**
+ * Sources whose coupon buys a DRINK, not money off anything.
+ *
+ * A loyalty reward is the sixth coffee and a referral reward is a drink for
+ * bringing a friend. Spent on a shop basket the same coupon would take ₺280
+ * off a bag of beans, which is not what either was granted for.
+ *
+ * Exported as one predicate on purpose: the rule lived twice — enforced at
+ * checkout and forgotten in the preview — so the basket screen promised a
+ * discount the till then refused, and the member was charged full price.
+ */
+const CAFE_ONLY_SOURCES: ReadonlySet<string> = new Set<CouponSource>([
+  "loyalty",
+  "invite",
+]);
+
+export function isCafeOnlyCoupon(
+  coupon: { source?: CouponSource } | null | undefined,
+): boolean {
+  return !!coupon?.source && CAFE_ONLY_SOURCES.has(coupon.source);
+}
+
+/** Whether `coupon` may be spent on a basket of this kind. */
+export function couponAllowedForKind(
+  coupon: { source?: CouponSource } | null | undefined,
+  kind: "cafe" | "shop" | undefined,
+): boolean {
+  if (!isCafeOnlyCoupon(coupon)) return true;
+  // An unknown kind is treated as a shop basket: refusing a drink coupon the
+  // member could have spent is recoverable, promising one that the till drops
+  // is not.
+  return kind === "cafe";
+}
+
+/** Why a cafe-only coupon was refused, in the member's language. */
+export const CAFE_ONLY_COUPON_MESSAGE =
+  "Bu kupon kafe siparişlerinde geçerli. Mağaza siparişinde kullanılamıyor.";
 
 export interface CustomerCoupon {
   id: string;
@@ -75,7 +115,7 @@ export function evaluateCoupon(
   if (subtotalMinor < coupon.minSubtotalMinor) {
     return {
       ok: false,
-      error: `Bu kupon için en az ${(coupon.minSubtotalMinor / 100).toFixed(2)} ₺ alışveriş gerek.`,
+      error: `Bu kupon için en az ${priceLabel(coupon.minSubtotalMinor)} alışveriş gerek.`,
     };
   }
   const discountMinor = computeCouponDiscount(

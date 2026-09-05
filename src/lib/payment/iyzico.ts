@@ -52,6 +52,8 @@ interface IyzicoRetrieveResponse {
   currency?: string;
   basketId?: string;
   conversationId?: string;
+  /** Present when the buyer ticked "kartımı kaydet" on the hosted form. */
+  cardUserKey?: string;
 }
 
 interface IyzicoRefundResponse {
@@ -208,6 +210,12 @@ export class IyzicoPaymentProvider implements PaymentProvider {
         paymentGroup: "PRODUCT",
         callbackUrl: this.cfg.callbackUrl,
         enabledInstallments: [1, 2, 3, 6, 9, 12],
+        // Saved cards. `cardUserKey` makes iyzico's own form list the cards
+        // this member stored before; `enabledCardStorage` is what draws the
+        // "kartımı kaydet" tick on it. The card never leaves that page — we
+        // only ever learn the key it comes back with.
+        ...(input.cardUserKey ? { cardUserKey: input.cardUserKey } : {}),
+        enabledCardStorage: true,
         buyer,
         shippingAddress: toAddress("Teslimat adresi"),
         billingAddress: toAddress("Fatura adresi"),
@@ -321,6 +329,9 @@ export class IyzicoPaymentProvider implements PaymentProvider {
       amountMinor: toMinor(detail.paidPrice),
       currency: "TRY",
       raw: { source: "iyzico_return", detail },
+      // Only when the buyer asked for it. Absent means "do not remember me",
+      // and an absent key must never overwrite a stored one.
+      cardUserKey: detail.cardUserKey?.trim() || undefined,
     };
   }
 

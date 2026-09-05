@@ -27,11 +27,10 @@ siteye Supabase parolasıyla girer.
 
 ```
 src/lib/supabase/
-  config.ts   → SUPABASE_URL · SUPABASE_PUBLISHABLE_KEY · SUPABASE_PROJECT_REF
+  config.ts   → SUPABASE_URL · SUPABASE_PUBLISHABLE_KEY
                 (istemci-güvenli; env yoksa herkese açık varsayılanlar)
   anon.ts     → getSupabaseAnonClient()  — durumsuz; yalnız bearer doğrulama
   server.ts   → createSupabaseServerClient() — çerez tabanlı (site oturumu)
-  client.ts   → createSupabaseBrowserClient() — "use client"
   proxy.ts    → hasSupabaseSessionCookie() · updateSession() — token yenileme
 src/proxy.ts  → 1) updateSession  2) admin çerez koruması (AYNEN)
 src/lib/customer/

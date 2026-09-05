@@ -110,12 +110,20 @@ export interface InvitePerson {
   name: string;
   status: "joined" | "pending";
   at: string;
+  /**
+   * Did the inviter actually get a free drink for this person? False once the
+   * inviter is past the reward cap — the invitee is still rewarded, so the row
+   * must not promise the inviter a coupon that was never issued.
+   */
+  rewarded: boolean;
 }
 
 export interface InviteSummary {
   code: string;
   invited: number;
+  /** People who used the code and have since made their first paid order. */
   joined: number;
+  /** Free drinks this inviter actually earned — capped, so ≤ `joined`. */
   earned: number;
   people: InvitePerson[];
 }
@@ -130,6 +138,15 @@ export interface MeCustomer {
   memberSince: string;
   notificationPrefs: NotificationPrefs;
   addresses: MeAddress[];
+  /**
+   * Product ids the member has favourited.
+   *
+   * The same list the site's /uye/hesap/favorilerim renders — one wishlist per
+   * member, not one per surface. It was missing from this payload, so a
+   * product favourited on the web was invisible in the app and the app's own
+   * "Favorilerim" had nothing to show.
+   */
+  wishlist: string[];
 }
 
 export interface MeResponse {
@@ -159,6 +176,7 @@ export function toMe(
         newsletter: !!customer.notificationPrefs.newsletter,
       },
       addresses: toMeAddresses(customer.addresses),
+      wishlist: [...customer.wishlist],
     },
     loyalty,
     invite,

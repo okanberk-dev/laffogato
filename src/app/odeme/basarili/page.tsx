@@ -52,9 +52,9 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         <div
           className="mb-6 rounded-xl border px-5 py-4 text-sm"
           style={{
-            borderColor: "#f1c8a0",
-            background: "#fdf3e7",
-            color: "#9a5b1e",
+            borderColor: "#e1e5e0",
+            background: "#f3f5f2",
+            color: "#7d5f27",
           }}
         >
           Promosyon kodun sipariş anında geçerli değildi (süresi dolmuş veya
@@ -252,11 +252,11 @@ function SummaryRow({
     <div
       className="flex items-baseline justify-between gap-4"
       style={{
-        borderTop: strong ? "1px solid var(--ink-line, #E8E1D5)" : undefined,
+        borderTop: strong ? "1px solid var(--ink-line, #e1e5e0)" : undefined,
         paddingTop: strong ? 10 : undefined,
         marginTop: strong ? 4 : undefined,
         fontWeight: strong ? 600 : 400,
-        color: tone === "green" ? "#15803d" : undefined,
+        color: tone === "green" ? "#235347" : undefined,
       }}
     >
       <span>{label}</span>

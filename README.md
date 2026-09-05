@@ -13,7 +13,7 @@ yönetim paneli.
 | **Rehber**  | Arama verisine dayalı 5 uzun içerik — `/rehber`                                                                                             |
 | **Hukuk**   | 24 sözleşme ve politika — `/hukuk`, tek kaynaktan doldurulan yasal kimlikle                                                                 |
 | **Admin**   | Ürün / menü / kategori / sipariş / müşteri / promosyon / içerik yönetimi, stok hareketleri, ciro raporları, olay kaydı, RBAC, TOTP 2FA      |
-| **Ödeme**   | Sağlayıcı bağımsız soyutlama; sanal POS **iyzico** (Checkout Form), geliştirmede mock. Üretimde mock'a düşmez — açıkça reddeder             |
+| **Ödeme**   | Sağlayıcı bağımsız soyutlama; sanal POS **PayNkolay**, geliştirmede mock. Üretimde mock'a düşmez — açıkça reddeder                          |
 | **Rıza**    | Consent Mode v2 (KVKK) · mesafeli satış onayı kanıtla · 6563 bülten onayı ve tek tıkla çıkış                                                |
 
 ---
@@ -117,22 +117,25 @@ verildiği kadar kolay geri alınır (footer → "Çerez Tercihleri").
 | `NEXT_PUBLIC_SITE_URL`           | Kanonik site adresi                                 |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin girişi                                        |
 | `ADMIN_SESSION_SECRET`           | İmzalı cookie anahtarı (≥32 karakter)               |
-| `PAYMENT_PROVIDER`               | `mock` \| `iyzico`                                  |
-| `PAYMENT_WEBHOOK_SECRET`         | Webhook imza doğrulaması                            |
+| `PAYMENT_PROVIDER`               | `mock` \| `paynkolay` \| `iyzico`                    |
+| `PAYMENT_WEBHOOK_SECRET`         | Webhook imza doğrulaması (`mock` ve `iyzico`)       |
 
-iyzico kullanılacaksa ayrıca `IYZICO_API_KEY`, `IYZICO_SECRET_KEY`,
-`IYZICO_BASE_URL` ve `IYZICO_CALLBACK_URL`.
+PayNkolay kullanılacaksa ayrıca `PAYNKOLAY_SX`, `PAYNKOLAY_SX_LIST`,
+`PAYNKOLAY_SX_CANCEL`, `PAYNKOLAY_MERCHANT_SECRET_KEY`,
+`PAYNKOLAY_MERCHANT_NO`, `PAYNKOLAY_BASE_URL`, `PAYNKOLAY_SUCCESS_URL` ve
+`PAYNKOLAY_FAIL_URL` — hepsinin ne olduğu `.env.example` içinde yazılı.
 
-> **iyzico henüz canlıya alınmadı.** Sağlayıcı kodu hazır ve derleniyor; sandbox
-> testi ve canlı anahtarlar sonraya bırakıldı — ayrıntı ve açılış kontrol
-> listesi için [docs/AUDIT.md](docs/AUDIT.md) §5. O zamana kadar
+> **PayNkolay henüz canlıya alınmadı.** Sağlayıcı kodu, hash formülleri ve
+> testleri hazır; panel anahtarları ve canlı deneme bekliyor — kurulum ve
+> ölçüm listesi [docs/PAYNKOLAY.md](docs/PAYNKOLAY.md) §13. O zamana kadar
 > `PAYMENT_PROVIDER=mock` ile yalnızca geliştirmede çalışılır; üretimde mock
 > reddedilir.
 
-> **`IYZICO_CALLBACK_URL` webhook adresi değildir.** iyzico ödeme bitince
-> müşterinin **tarayıcısını** oraya POST eder; değer `https://…/odeme/donus`
-> olmalıdır. Webhook (`/api/webhooks/payment`) iyzico panelinde ayrıca tanımlanır
-> ve imzası `PAYMENT_WEBHOOK_SECRET` ile doğrulanır.
+> **PayNkolay webhook göndermez.** Sunucudan sunucuya bildirim yoktur; ödeme
+> kararı, müşterinin tarayıcısının getirdiği alanlardan değil, sağlayıcıya
+> açılan `PaymentList` sorgusundan verilir. `PAYNKOLAY_SUCCESS_URL` ve
+> `PAYNKOLAY_FAIL_URL` bu yüzden **ikisi de** `https://…/odeme/donus`
+> olmalıdır: PayNkolay sonucu iki adrese de form-POST eder.
 
 `DATABASE_URL` ve servis anahtarları **asla** `NEXT_PUBLIC_*` ile expose edilmez.
 

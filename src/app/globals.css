@@ -5,47 +5,62 @@
    ───────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surfaces — warmed to the L'Affogato logo cream (#FDF4E6) + espresso-brown
-     (#44301C). Heritage köşk palette: cream paper, white cards layer on top. */
-  --bg: #f7f3ea;
-  /* Four distinct paper tints, so stacked sections separate by value instead of
-     all resolving to the same beige. */
-  --bg-warm: #f2e8d6;
-  --bg-stone: #eae2d1;
-  --bg-cream: #fcf6ea;
-  --bg-espresso: #120d08;
+  /* Palette: the mobile app's, brought across.
+     Operator instruction, 2 Eyl 2026 — the app was built on the Starbucks-
+     derived theme in laffogato-mobil/docs/THEME.md and the site is now
+     revised to match it, so one brand reads the same on both surfaces. The
+     previous cream/terracotta/gold set is the heritage köşk palette; it
+     survives in laffogato-mobil/docs/BRAND.md Ek A as reference.
 
-  /* Ink — editorial espresso family */
-  --ink: #241c15;
-  --ink-soft: #5c4a39;
-  /* Darkened from #877a61 (3.80:1 on cream — below AA) to clear 4.5:1. */
-  --ink-mute: #7a6e56;
-  --ink-line: #e6dac6;
-  --ink-line-strong: #d8c8ac;
+     Every value below is a token from the app's `light` palette
+     (laffogato-mobil/src/theme/tokens.ts). The variable NAMES are unchanged,
+     so every component keeps working; only what they resolve to moved. */
 
-  /* Gold — the warm Italian secondary. Deep enough to carry body text on cream
-     (4.78:1); --gold-soft is for fills and for large type on dark surfaces. */
-  --gold: #8a6526;
-  --gold-deep: #6b4e1a;
-  --gold-soft: #e8d3a4;
+  /* Surfaces — app bg.canvas / subtle / sunken / surface / night */
+  --bg: #f9f8f7;
+  --bg-warm: #f3f5f2;
+  --bg-stone: #e7eae7;
+  --bg-cream: #ffffff;
+  --bg-espresso: #12291f;
 
-  /* Brand accent — warm terracotta on cream (accent words, primary CTAs,
-     links). Replaces the previous house green. Gold (neutral grey) stays the
-     warm Italian secondary. */
-  --accent: #c0643a;
-  --accent-deep: #97461f;
-  --accent-soft: #ead3c4;
+  /* Ink — app text.primary / secondary / tertiary, borders subtle + default */
+  --ink: #1d1c1c;
+  --ink-soft: #5b6660;
+  --ink-mute: #67716b;
+  --ink-line: #e1e5e0;
+  --ink-line-strong: #c4cbc4;
 
-  /* Brand — espresso logo brown, used for the masked logo lockups */
-  --brand: #2e2218;
+  /* Gold — app accent.goldFg carries text (it is the accessible one);
+     accent.gold is the fill. --gold-deep is the pressed step and is the one
+     value here with NO app counterpart: the app has gold/goldFg only, so this
+     is a site-side darkening of --gold (#7d5f27 → 80% black-mixed). If a
+     pressed gold is ever needed on the phone, add accent.goldPressed to
+     tokens.ts with this value rather than inventing a second one. */
+  --gold: #7d5f27;
+  --gold-deep: #634a1e;
+  --gold-soft: #e8c877;
 
-  /* Semantic state. --matcha is the positive/in-stock signal: it used to be
-     unused, which left the system with no success colour, so "in stock" was
-     painted in the same warm red family as the "almost gone" warning and the
-     two read alike at a glance. Deepened from #6a8a4a (3.55:1 on cream —
-     below AA) to clear it. */
-  --rose: #c5435a;
-  --matcha: #4f6b34;
+  /* Brand accent — app accent.burgundy. Replaces the terracotta: it is what
+     the app paints its premium and offer surfaces with. */
+  --accent: #84233c;
+  --accent-deep: #6e1d32;
+  --accent-soft: #f6e9ec;
+  /* The accent as TEXT on a dark ground.
+     `--accent` is a dark ink: on `--bg-espresso` it measured 1.68:1, so the
+     script word in the menu hero was present and invisible. This is the app's
+     own answer for the burgundy family on a dark surface
+     (tokens.ts → text.onPremiumSecondary): same hue, lightened. */
+  --accent-on-dark: #d9aeb8;
+
+  /* Brand — the logo mask colour. The app tints the mark with brand.primary,
+     so the site's lockups follow it instead of staying espresso brown. */
+  --brand: #235347;
+
+  /* Semantic state — app state.danger and state.success. Success is the house
+     green, exactly as in the app; the hue gap to --rose keeps "in stock" and
+     "almost gone" from reading alike. */
+  --rose: #bb251b;
+  --matcha: #235347;
 
   /* Type — premium corporate stack
      --serif:         Playfair Display (editorial italic, brand heritage)
@@ -79,18 +94,19 @@
   --r-sm: 6px;
   --r-md: 12px;
   --r-lg: 20px;
-  --r-xl: 32px;
 
-  /* Shadows — tinted with the espresso brown rather than neutral black, and
-     given enough weight to actually read on a cream ground. The previous
-     values (0.04–0.08 alpha, cool grey) were effectively invisible here, which
-     is why every surface sat flat on the page. */
+  /* Shadows — tinted with the app's own shadow colour (tokens.ts light.shadow
+     #12291F = 18,41,31), not neutral black, and given enough weight to
+     actually read. They were rgba(74,52,22,…), the retired espresso brown:
+     the last surface still lit by the köşk palette after the 2 Eyl 2026 swap,
+     which put a warm cast under cards sitting on a cool green-grey ground.
+     Alphas are unchanged — only the hue moved. */
   --shadow-sm:
-    0 1px 2px rgba(74, 52, 22, 0.06), 0 2px 6px rgba(74, 52, 22, 0.07);
+    0 1px 2px rgba(18, 41, 31, 0.06), 0 2px 6px rgba(18, 41, 31, 0.07);
   --shadow-md:
-    0 6px 16px rgba(74, 52, 22, 0.1), 0 12px 32px rgba(74, 52, 22, 0.08);
+    0 6px 16px rgba(18, 41, 31, 0.1), 0 12px 32px rgba(18, 41, 31, 0.08);
   --shadow-lg:
-    0 16px 36px rgba(74, 52, 22, 0.13), 0 36px 72px rgba(74, 52, 22, 0.1);
+    0 16px 36px rgba(18, 41, 31, 0.13), 0 36px 72px rgba(18, 41, 31, 0.1);
 
   /* Easing */
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -572,9 +588,8 @@ summary:focus-visible,
   position: relative;
   line-height: 1;
 }
-/* Brand logos rendered as CSS masks: one brown asset, recolored to any surface
-   via currentColor (brown on cream, cream/white on dark). */
-.brand-wordmark,
+/* The brand monogram rendered as a CSS mask: one brown asset, recolored to any
+   surface via currentColor (brown on cream, cream/white on dark). */
 .brand-mark {
   display: inline-block;
   background-color: currentColor;
@@ -584,13 +599,6 @@ summary:focus-visible,
   mask-position: center;
   -webkit-mask-size: contain;
   mask-size: contain;
-}
-.brand-wordmark {
-  -webkit-mask-image: url(/logo-wordmark.png);
-  mask-image: url(/logo-wordmark.png);
-  aspect-ratio: 456 / 113;
-}
-.brand-mark {
   -webkit-mask-image: url(/logo-mark.png);
   mask-image: url(/logo-mark.png);
   aspect-ratio: 729 / 591;
@@ -1245,6 +1253,14 @@ summary:focus-visible,
   padding: 120px 0 60px;
   overflow: hidden;
 }
+/* Anything drawn on the night ground reads its accent light, not dark. The
+   generic `.h1 .script` / `.h2 .script` rules paint with `--accent`, which is
+   an ink meant for paper. */
+.hero-dark .script,
+.menu-hero .script,
+.footer .script {
+  color: var(--accent-on-dark);
+}
 .hero-dark {
   background: var(--bg-espresso);
   color: #fff;
@@ -1543,17 +1559,6 @@ summary:focus-visible,
   .footer-mark .brand-mark {
     height: 50px;
   }
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Tile / card / image
-   ───────────────────────────────────────────────────────────── */
-
-.tile {
-  border-radius: var(--r-md);
-  overflow: hidden;
-  background: var(--bg-stone);
-  position: relative;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -2062,7 +2067,7 @@ summary:focus-visible,
 .menu-hero {
   position: relative;
   overflow: hidden;
-  background: #160d07;
+  background: var(--bg-espresso);
   color: #fff;
   padding: clamp(150px, 17vw, 220px) 0 clamp(56px, 8vw, 96px);
 }
@@ -2097,7 +2102,7 @@ summary:focus-visible,
 }
 .menu-hero-title .script {
   font-family: var(--script);
-  color: var(--accent);
+  color: var(--accent-on-dark);
 }
 .menu-hero-lede {
   margin: 26px 0 0;
@@ -2316,14 +2321,6 @@ summary:focus-visible,
   max-width: 540px;
 }
 
-/* List view — classic dotted-leader menu */
-.menu-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 2px;
-}
 /* Empty state */
 .menu-empty {
   text-align: center;
@@ -4076,7 +4073,7 @@ select {
   border: 1px dashed var(--gold);
   border-radius: var(--r-md);
   padding: 18px 20px;
-  background: linear-gradient(135deg, #fffaf0, #fdf4e3);
+  background: linear-gradient(135deg, var(--bg-cream), var(--bg-warm));
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -6335,15 +6332,19 @@ select {
   height: min(100svh, 900px);
   /* `svh`, not `vh`: on a phone the toolbars collapse as you scroll, and `vh`
      would size the hero to the taller state and leave it clipped. */
-  /* The paper wash the 3D scene was designed against. It lives on the
-     section rather than on the widget so the gradient spans the whole
-     section while the widget's own box is inset past the site chrome —
-     one gradient, no seam where the two boxes disagree. */
+  /* The paper wash the 3D scene sits against. It lives on the section rather
+     than on the widget so the gradient spans the whole section while the
+     widget's own box is inset past the site chrome — one gradient, no seam
+     where the two boxes disagree.
+
+     Built from the surface tokens, not a hardcoded cream: this is the first
+     thing on the page, and the palette swap left it the one warm ground
+     under a green-and-burgundy chrome. */
   background: radial-gradient(
     120% 90% at 50% 30%,
-    #faf4e9 0%,
-    #f2e6d4 55%,
-    #e3d0b6 100%
+    var(--bg-cream) 0%,
+    var(--bg-warm) 55%,
+    var(--bg-stone) 100%
   );
 }
 /* The widget anchors its title and its DÖK button to its own box edges, so
@@ -6384,7 +6385,7 @@ select {
   font-style: italic;
   font-size: clamp(42px, 5.6vw, 66px);
   line-height: 1;
-  color: #2e1a0d;
+  color: var(--ink);
   opacity: 0.5;
 }
 
@@ -6402,10 +6403,10 @@ select {
   padding: 0;
   border: 1px solid rgba(46, 26, 13, 0.18);
   border-radius: 50%;
-  background: rgba(255, 253, 248, 0.55);
+  background: rgba(255, 255, 255, 0.55);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
-  color: #2e1a0d;
+  color: var(--ink);
   cursor: pointer;
   opacity: 0.85;
   transition:
@@ -6419,11 +6420,11 @@ select {
   animation: pour-hero-nudge 2.4s ease-in-out infinite;
 }
 .pour-hero-scroll:hover {
-  background: rgba(255, 253, 248, 0.85);
+  background: rgba(255, 255, 255, 0.85);
   opacity: 1;
 }
 .pour-hero-scroll:focus-visible {
-  outline: 2px solid #2e1a0d;
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
 /* Retired once the visitor has started scrolling — it has said its piece. */

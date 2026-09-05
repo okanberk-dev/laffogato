@@ -5,6 +5,7 @@ import type {
 } from "@/lib/admin/store";
 
 import {
+  DAY_LABELS,
   DAYS_OF_WEEK,
   type DayOfWeek,
   type WeeklyHours,
@@ -15,6 +16,12 @@ import {
   servedImage,
 } from "@/lib/admin/image-url";
 import { MENU as SEED_MENU } from "@/components/laffogato/data";
+
+import {
+  DEFAULT_MOBILE_APP_CONFIG,
+  toBootstrapApp,
+  type BootstrapApp,
+} from "./app-config";
 
 /**
  * Pure mappers behind `/api/mobile/v1/{menu,shop,bootstrap}`
@@ -32,7 +39,13 @@ import { MENU as SEED_MENU } from "@/components/laffogato/data";
 
 // ─── Constants the app cannot edit (contract §2, §10) ─────────────────────
 
-export const MIN_SUPPORTED_APP_VERSION = "1.0.0";
+/**
+ * Default minimum version. The live value is `settings.mobileApp
+ * .minSupportedAppVersion` (/admin/mobil/ayarlar); this is what an operator
+ * who never touched the panel publishes.
+ */
+export const MIN_SUPPORTED_APP_VERSION =
+  DEFAULT_MOBILE_APP_CONFIG.minSupportedAppVersion;
 
 /** Grind choices offered on `category === "beans"`; sent as the line `note`. */
 export const BEAN_GRINDS: readonly string[] = [
@@ -42,8 +55,12 @@ export const BEAN_GRINDS: readonly string[] = [
   "French Press",
 ];
 
-/** Courier ETA window shown before an order is placed, in minutes. */
-export const COURIER_ETA_MINUTES: readonly [number, number] = [25, 35];
+/**
+ * Default courier ETA window, in minutes. The live value is
+ * `settings.mobileApp.ordering.courierEtaMinutes`.
+ */
+export const COURIER_ETA_MINUTES: readonly [number, number] =
+  DEFAULT_MOBILE_APP_CONFIG.ordering.courierEtaMinutes;
 
 export interface HappyHour {
   days: "weekday";
@@ -53,6 +70,20 @@ export interface HappyHour {
   categories: string[];
 }
 
+/**
+ * The Happy Hour campaign as designed — NOT as priced.
+ *
+ * Nothing anywhere applies this discount: not the mobile order path, not the
+ * web checkout. Grep for HAPPY_HOUR and this file is the only hit. The app,
+ * meanwhile, drew it on the home screen and the campaigns screen with the
+ * words "kod gerekmez", so a member bought a cold drink between 14:00 and
+ * 17:00 expecting a quarter off and was charged the full price.
+ *
+ * `happyHour` is therefore published as null (see `bootstrapVenue`) and both
+ * app screens already skip the card when it is. The shape is kept because the
+ * campaign itself is the operator's to run: once the discount exists in the
+ * pricing path, publish HAPPY_HOUR again and the cards come back.
+ */
 export const HAPPY_HOUR: HappyHour = {
   days: "weekday",
   from: "14:00",
@@ -249,16 +280,19 @@ function hourRange(h: { open: string; close: string }) {
 }
 
 /**
- * One line for the whole week, derived from the same `weeklyHours` the Visit
- * page renders so the app can never say a different time than the site.
+ * One line for a stretch of the week, grouping consecutive days that keep the
+ * same hours. Callers pass the days they are describing: the whole week for
+ * `hoursLabel`, Monday–Friday and Saturday–Sunday for the live-status pair.
  *
- *   all seven days alike → "Her gün 09:00 – 01:00"
- *   otherwise            → consecutive runs: "Pzt–Cum 09:00 – 01:00 · Cmt–Paz 10:00 – 02:00"
- *   closed run           → "Paz Kapalı"
+ *   every listed day alike → "09:00 – 01:00" (or "Kapalı")
+ *   otherwise              → "Pzt–Per 09:00 – 00:00 · Cum 09:00 – 01:00"
  */
-export function hoursLabel(weekly: WeeklyHours): string {
+export function hoursLabelFor(
+  weekly: WeeklyHours,
+  days: readonly DayOfWeek[],
+): string {
   const runs: { from: DayOfWeek; to: DayOfWeek; sig: string }[] = [];
-  for (const day of DAYS_OF_WEEK) {
+  for (const day of days) {
     const sig = hourSignature(weekly[day]);
     const last = runs[runs.length - 1];
     if (last && last.sig === sig) last.to = day;
@@ -267,38 +301,109 @@ export function hoursLabel(weekly: WeeklyHours): string {
 
   if (runs.length === 1) {
     const only = runs[0];
-    return only.sig === "closed"
-      ? "Kapalı"
-      : `Her gün ${hourRange(weekly[only.from])}`;
+    return only.sig === "closed" ? "Kapalı" : hourRange(weekly[only.from]);
   }
 
   return runs
     .map((run) => {
-      const days =
+      const label =
         run.from === run.to
           ? DAY_SHORT[run.from]
           : `${DAY_SHORT[run.from]}–${DAY_SHORT[run.to]}`;
       const range =
         run.sig === "closed" ? "Kapalı" : hourRange(weekly[run.from]);
-      return `${days} ${range}`;
+      return `${label} ${range}`;
     })
     .join(" · ");
 }
 
+/**
+ * One line for the whole week, derived from the same `weeklyHours` the Visit
+ * page renders so the app can never say a different time than the site.
+ *
+ *   all seven days alike → "Her gün 09:00 – 01:00"
+ *   otherwise            → consecutive runs: "Pzt–Cum 09:00 – 01:00 · Cmt–Paz 10:00 – 02:00"
+ *   closed run           → "Paz Kapalı"
+ */
+export function hoursLabel(weekly: WeeklyHours): string {
+  const label = hoursLabelFor(weekly, DAYS_OF_WEEK);
+  const uniform = DAYS_OF_WEEK.every(
+    (day) => hourSignature(weekly[day]) === hourSignature(weekly.mon),
+  );
+  // "Her gün" only reads right when there is one open range for all seven.
+  return uniform && !weekly.mon.closed ? `Her gün ${label}` : label;
+}
+
+/** One row of the venue's weekly table: `{ label: "Pazartesi", value: "09:00 – 01:00" | "Kapalı" }`. */
+export interface BootstrapVenueHour {
+  label: string;
+  value: string;
+}
+
 export interface MobileBootstrap {
+  /** Same value as `app.minSupportedAppVersion`; kept at the top level for older app builds. */
   minSupportedAppVersion: string;
   venue: {
     name: string;
+    shortName: string;
     addressLines: [string, string];
+    landmark: string;
+    mapsQuery: string;
     phone: string;
     email: string;
     lat: number;
     lng: number;
+    /** Seven rows, Monday first, never grouped — the app groups equal runs itself. */
+    hours: BootstrapVenueHour[];
+    /** Today's row (Europe/Istanbul); both "" on a closed day. */
+    opensAt: string;
+    closesAt: string;
   };
   hoursLabel: string;
   courierFeeMinor: number;
+  /** Same value as `app.ordering.courierEtaMinutes`; kept for older app builds. */
   courierEtaMinutes: [number, number];
-  happyHour: HappyHour;
+  /** null while the campaign is advertised but not priced — see HAPPY_HOUR. */
+  happyHour: HappyHour | null;
+  /** The operator-editable app configuration (docs/API-MOBILE.md §10). */
+  app: BootstrapApp;
+}
+
+const ISTANBUL_TIMEZONE = "Europe/Istanbul";
+
+const DAY_FROM_SHORT: Record<string, DayOfWeek> = {
+  Mon: "mon",
+  Tue: "tue",
+  Wed: "wed",
+  Thu: "thu",
+  Fri: "fri",
+  Sat: "sat",
+  Sun: "sun",
+};
+
+/**
+ * Which weekday it is at the venue right now. A local twin of
+ * `istanbulClock` in ./venue.ts: that module starts with "server-only" and
+ * reaches the database, and this file must stay importable by unit tests
+ * and pure callers.
+ */
+export function istanbulDay(now: Date): DayOfWeek {
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: ISTANBUL_TIMEZONE,
+    weekday: "short",
+  }).format(now);
+  return DAY_FROM_SHORT[weekday] ?? "mon";
+}
+
+/** The seven-row table the Visit screen renders; closed days say so. */
+export function weeklyHoursRows(weekly: WeeklyHours): BootstrapVenueHour[] {
+  return DAYS_OF_WEEK.map((day) => {
+    const h = weekly[day];
+    return {
+      label: DAY_LABELS[day],
+      value: h.closed ? "Kapalı" : hourRange(h),
+    };
+  });
 }
 
 export interface BootstrapSite {
@@ -315,34 +420,56 @@ export interface BootstrapSite {
 }
 
 /**
- * Settings carry what the admin edits (phone, e-mail, hours, courier fee);
- * the site constants carry what the tax certificate fixes (name, address,
- * coordinates). An admin who blanks the phone falls back to the site's.
+ * Settings carry what the admin edits (phone, e-mail, address, hours,
+ * courier fee, the app config); the site constants carry what the tax
+ * certificate fixes (name, coordinates, the address fallback). An admin who
+ * blanks the phone or the address falls back to the site's.
+ *
+ * `now` decides which weekly row is "today" (opensAt/closesAt); it is a
+ * parameter so tests can pin the day.
  */
 export function buildBootstrap(
   settings: Pick<
     AdminSettings,
-    "phone" | "email" | "weeklyHours" | "courierFeeMinor"
+    | "phone"
+    | "email"
+    | "address"
+    | "weeklyHours"
+    | "courierFeeMinor"
+    | "mobileApp"
   >,
   site: BootstrapSite,
+  now: Date = new Date(),
 ): MobileBootstrap {
   const a = site.address;
+  const app = toBootstrapApp(settings.mobileApp);
+  const today = settings.weeklyHours[istanbulDay(now)];
   return {
-    minSupportedAppVersion: MIN_SUPPORTED_APP_VERSION,
+    minSupportedAppVersion: app.minSupportedAppVersion,
     venue: {
       name: site.name,
+      shortName: settings.mobileApp.venue.shortName,
       addressLines: [
-        a.streetAddress,
+        settings.address.trim() || a.streetAddress,
         `${a.postalCode} ${a.addressLocality} / ${a.addressRegion}`,
       ],
+      landmark: settings.mobileApp.venue.landmark,
+      mapsQuery: settings.mobileApp.venue.mapsQuery,
       phone: settings.phone.trim() || site.phone,
       email: settings.email.trim() || site.email,
       lat: site.geo.latitude,
       lng: site.geo.longitude,
+      hours: weeklyHoursRows(settings.weeklyHours),
+      opensAt: today.closed ? "" : today.open,
+      closesAt: today.closed ? "" : today.close,
     },
     hoursLabel: hoursLabel(settings.weeklyHours),
     courierFeeMinor: settings.courierFeeMinor,
-    courierEtaMinutes: [...COURIER_ETA_MINUTES],
-    happyHour: { ...HAPPY_HOUR, categories: [...HAPPY_HOUR.categories] },
+    courierEtaMinutes: [...app.ordering.courierEtaMinutes],
+    // Advertise nothing the till will not honour. Restore with:
+    //   happyHour: { ...HAPPY_HOUR, categories: [...HAPPY_HOUR.categories] },
+    // once the discount is applied where the order is priced.
+    happyHour: null,
+    app,
   };
 }

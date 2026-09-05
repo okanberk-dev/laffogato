@@ -20,13 +20,25 @@ import { OrderChannelBadges } from "./order-badges";
 
 interface Props {
   orders: AdminOrder[];
+  /** Every status, for the badge label. */
   statusOptions: Array<[AdminOrderStatus, string]>;
+  /**
+   * The subset the bulk tool may set. Narrower than `statusOptions`: the
+   * dropdown used to offer `paid` and `refunded`, which the store refuses
+   * because neither writes the ledger row that moves the money.
+   */
+  bulkStatusOptions: Array<[AdminOrderStatus, string]>;
   statusTone: Record<AdminOrderStatus, string>;
 }
 
 const initialBulkState: BulkOrderActionState = {};
 
-export function OrdersList({ orders, statusOptions, statusTone }: Props) {
+export function OrdersList({
+  orders,
+  statusOptions,
+  bulkStatusOptions,
+  statusTone,
+}: Props) {
   const selection = useSelection();
   const [state, formAction, pending] = useActionState(
     bulkOrdersAction,
@@ -46,8 +58,18 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
 
   const ids = orders.map((o) => o.id);
   const idsCsv = selection.ids.join(",");
+  // The skipped count is the whole point of naming it: the machine refuses an
+  // id whose current status cannot reach the target, and a silent "0 sipariş
+  // güncellendi" left staff re-clicking.
   const flash = state.ok
-    ? `${state.ok.updated} sipariş güncellendi.`
+    ? [
+        `${state.ok.updated} sipariş güncellendi.`,
+        state.ok.skipped > 0
+          ? `${state.ok.skipped} sipariş bu durumda bu işleme uygun değildi, atlandı.`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
     : state.error;
 
   return (
@@ -214,7 +236,7 @@ export function OrdersList({ orders, statusOptions, statusTone }: Props) {
             <option value="" disabled>
               Yeni durum…
             </option>
-            {statusOptions.map(([k, l]) => (
+            {bulkStatusOptions.map(([k, l]) => (
               <option key={k} value={k}>
                 {l}
               </option>

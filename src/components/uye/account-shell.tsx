@@ -82,7 +82,8 @@ export type AccountSection =
   | "favorilerim"
   | "promosyonlar"
   | "bildirimler"
-  | "sifre";
+  | "sifre"
+  | "sil";
 
 export interface AccountNavItem {
   key: AccountSection;
@@ -134,6 +135,15 @@ export const ACCOUNT_NAV: AccountNavItem[] = [
     href: "/uye/hesap/sifre",
     label: "Şifre",
     hint: "Şifre değiştir",
+  },
+  // Last on purpose, and reachable from every account page: the membership
+  // agreement §14 promises a way out, and the Play Store asks for one that a
+  // member can find without writing to support.
+  {
+    key: "sil",
+    href: "/uye/hesap/sil",
+    label: "Hesabı sil",
+    hint: "Hesabını kapat",
   },
 ];
 

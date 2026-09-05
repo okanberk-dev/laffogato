@@ -82,14 +82,6 @@ const STAGE: Record<AdminOrderStatus, number> = {
   refunded: 0,
 };
 
-/** Statuses on which a stamp has been (or will be) earned. */
-const STAMPED: readonly AdminOrderStatus[] = [
-  "paid",
-  "preparing",
-  "shipped",
-  "completed",
-];
-
 interface StepSpec {
   key: string;
   label: string;
@@ -128,18 +120,24 @@ function stepsFor(fulfillment: OrderFulfillment): StepSpec[] {
 }
 
 /**
- * The best timestamp each step has. The store records when an order was
- * created, paid and shipped; "preparing" and "completed" have no instant of
- * their own, so a done step without one reads `at: null`.
+ * The instant each step was reached, in the order `stepsFor` lists them:
+ * alındı · hazırlanıyor · kargoda|hazır|kuryede · teslim edildi.
+ *
+ * The last three are the per-stage columns `transitionOrder` stamps. An order
+ * that finished before those columns existed has "" in them, so each falls
+ * back to the closest earlier instant it does have — never a later one, which
+ * would date a step before it happened.
  */
 function stepInstant(index: number, order: AdminOrder): string | null {
   switch (index) {
     case 0:
       return order.createdAt || null;
     case 1:
-      return order.paidAt || null;
+      return order.preparingAt || order.paidAt || null;
     case 2:
       return order.shippedAt || null;
+    case 3:
+      return order.completedAt || null;
     default:
       return null;
   }
@@ -162,18 +160,34 @@ export function buildTimeline(order: AdminOrder): MobileTimelineStep[] {
  * Minutes until the order is in the customer's hands. Only the live statuses
  * of a cafe order carry one; a parcel's carrier gives its own estimate and a
  * finished or cancelled order has nothing left to wait for.
+ *
+ * A scheduled order counts down to the time the member picked, not to the
+ * "15 dk" an as-soon-as-possible basket gets: a pickup booked for tomorrow
+ * 09:00 used to say "Hazır — 15 dk" the evening before, with a countdown that
+ * hit zero while the house was closed. Once the requested time has passed the
+ * ordinary preparation estimate takes over again.
  */
-export function etaMinutesFor(order: AdminOrder): number | null {
+export function etaMinutesFor(
+  order: AdminOrder,
+  now: Date = new Date(),
+): number | null {
   const fulfillment = orderFulfillment(order);
   if (fulfillment === "shipping") return null;
+  const live =
+    order.status === "paid" ||
+    order.status === "preparing" ||
+    order.status === "shipped";
+  if (!live) return null;
+  const scheduled = order.scheduledFor ? Date.parse(order.scheduledFor) : NaN;
+  if (Number.isFinite(scheduled) && scheduled > now.getTime()) {
+    return Math.max(0, Math.round((scheduled - now.getTime()) / 60_000));
+  }
   switch (order.status) {
     case "paid":
     case "preparing":
       return fulfillment === "delivery" ? 35 : 15;
-    case "shipped":
-      return fulfillment === "delivery" ? 10 : 0;
     default:
-      return null;
+      return fulfillment === "delivery" ? 10 : 0;
   }
 }
 
@@ -204,19 +218,36 @@ export function statusLabelFor(order: AdminOrder): string {
   return ORDER_STATUS_LABELS[order.status] ?? order.status;
 }
 
-export function stampsEarnedFor(order: AdminOrder): number {
-  return orderKind(order) === "cafe" &&
-    orderChannel(order) === "app" &&
-    STAMPED.includes(order.status)
-    ? 1
-    : 0;
+/** No ledger in hand: nothing is claimed. */
+const EMPTY_STAMPED: ReadonlySet<string> = new Set();
+
+/**
+ * The stamp this order really holds, read from the loyalty ledger.
+ *
+ * It used to be inferred from the status — a paid app cafe order "must have"
+ * earned one. `onOrderPaid` is best-effort, though: when its insert failed
+ * (or the order was later refunded and a `reversal` row written), the app
+ * still printed "+1 damga" for a stamp the card never got. `stampedOrderIds`
+ * is the set of orders with a live `earn` row, so this answers from what
+ * happened rather than from what should have.
+ *
+ * An empty set is the honest default: no ledger in hand means no stamp is
+ * claimed. Eligibility itself stays where it is enforced — `onOrderPaid` in
+ * `./loyalty.ts` writes the row for an app cafe order and nothing else.
+ */
+export function stampsEarnedFor(
+  order: AdminOrder,
+  stampedOrderIds: ReadonlySet<string>,
+): number {
+  return stampedOrderIds.has(order.id) ? 1 : 0;
 }
 
 export function toMobileOrder(
   order: AdminOrder,
   now: Date = new Date(),
+  stampedOrderIds: ReadonlySet<string> = EMPTY_STAMPED,
 ): MobileOrder {
-  const etaMinutes = etaMinutesFor(order);
+  const etaMinutes = etaMinutesFor(order, now);
   return {
     id: order.id,
     orderNo: order.orderNo,
@@ -239,7 +270,7 @@ export function toMobileOrder(
       etaMinutes === null
         ? null
         : new Date(now.getTime() + etaMinutes * 60_000).toISOString(),
-    stampsEarned: stampsEarnedFor(order),
+    stampsEarned: stampsEarnedFor(order, stampedOrderIds),
     createdAt: order.createdAt,
     paidAt: order.paidAt || null,
   };

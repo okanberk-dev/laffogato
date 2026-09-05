@@ -3,7 +3,11 @@ import Link from "next/link";
 import { Card, PageHeader } from "@/components/admin/forms";
 import { OrdersList } from "@/components/admin/orders-list";
 import { requireRole } from "@/lib/admin/auth";
-import { listOrders, type AdminOrderStatus } from "@/lib/admin/store";
+import {
+  BULK_ORDER_TRANSITIONS,
+  listOrders,
+  type AdminOrderStatus,
+} from "@/lib/admin/store";
 
 export const metadata = { title: "Admin · Siparişler" };
 export const dynamic = "force-dynamic";
@@ -17,6 +21,12 @@ const STATUS_OPTIONS: Array<[AdminOrderStatus, string]> = [
   ["cancelled", "İptal"],
   ["refunded", "İade"],
 ];
+
+// Only the statuses `bulkUpdateOrders` can actually reach, derived from the
+// store so the dropdown can never drift back to offering `paid`/`refunded`.
+const BULK_STATUS_OPTIONS = STATUS_OPTIONS.filter(
+  ([k]) => BULK_ORDER_TRANSITIONS[k] !== undefined,
+);
 
 const STATUS_TONE: Record<AdminOrderStatus, string> = {
   pending_payment: "bg-amber-50 text-amber-700",
@@ -56,6 +66,7 @@ export default async function AdminOrdersPage() {
         <OrdersList
           orders={orders}
           statusOptions={STATUS_OPTIONS}
+          bulkStatusOptions={BULK_STATUS_OPTIONS}
           statusTone={STATUS_TONE}
         />
       )}

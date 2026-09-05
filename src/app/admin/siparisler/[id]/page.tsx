@@ -5,6 +5,10 @@ import { OrderChannelBadges } from "@/components/admin/order-badges";
 import { OrderDetail } from "@/components/admin/order-detail";
 import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
+import {
+  orderFulfillment,
+  shippedStatusLabel,
+} from "@/lib/admin/order-channel";
 import { canAccess } from "@/lib/admin/roles";
 import {
   availableTransitions,
@@ -23,6 +27,8 @@ const STATUS_LABEL: Record<AdminOrderStatus, string> = {
   pending_payment: "Ödeme bekleniyor",
   paid: "Ödendi",
   preparing: "Hazırlanıyor",
+  // Replaced per fulfillment below: a pickup order is "Hazır", a kurye order
+  // "Kuryede". Only a shop parcel is actually in kargo.
   shipped: "Kargoda",
   completed: "Tamamlandı",
   cancelled: "İptal edildi",
@@ -53,6 +59,10 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   if (!order) notFound();
 
   const transitions = availableTransitions(order.status);
+  const statusLabel =
+    order.status === "shipped"
+      ? shippedStatusLabel(orderFulfillment(order))
+      : STATUS_LABEL[order.status];
   const refundedMinor = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
   const remainingRefundableMinor = Math.max(
     0,
@@ -64,7 +74,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
       <PageHeader
         eyebrow={`Sipariş · ${formatDateTime(order.createdAt)}`}
         title={`#${order.orderNo}`}
-        description={`${order.customerName} · ${STATUS_LABEL[order.status]}`}
+        description={`${order.customerName} · ${statusLabel}`}
         action={
           <Link
             href="/admin/siparisler"
@@ -96,7 +106,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         order={order}
         settings={settings}
         transitions={transitions}
-        statusLabel={STATUS_LABEL[order.status]}
+        statusLabel={statusLabel}
         statusTone={STATUS_TONE[order.status]}
         refundedMinor={refundedMinor}
         remainingRefundableMinor={remainingRefundableMinor}

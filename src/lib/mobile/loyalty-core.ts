@@ -5,6 +5,8 @@
 
 import type { AdminOrder, AdminOrderStatus } from "@/lib/admin/store";
 
+import type { MobileAppConfig } from "./app-config";
+
 /** One row of the append-only `loyalty_stamps` ledger. */
 export interface LoyaltyStamp {
   id: string;
@@ -28,8 +30,45 @@ export interface LoyaltyStamp {
   createdAt: string;
 }
 
-/** Stamps needed for one free drink. */
+/**
+ * Stamps needed for one free drink when nothing says otherwise. The live
+ * value is `settings."mobileApp".loyalty.stampTarget` (3..20, edited at
+ * /admin/mobil/ayarlar); the pure functions below take it as a parameter so
+ * the arithmetic is testable without a database, and `./loyalty.ts` passes
+ * the configured one.
+ */
 export const STAMP_TARGET = 6;
+
+/** The loyalty knobs the operator turns; one shape for the core and the till. */
+export type LoyaltyRules = MobileAppConfig["loyalty"];
+
+/**
+ * The free-drink coupon as `customer_coupons` stores it. `kind` and the
+ * subtotal floor are fixed — a free drink is a fixed amount off, on any
+ * basket; the amount, the title and the shelf life come from the rules.
+ */
+export interface FreeDrinkReward {
+  kind: "fixed";
+  valueMinor: number;
+  title: string;
+  minSubtotalMinor: number;
+  ttlDays: number;
+}
+
+export function freeDrinkRewardFor(
+  loyalty: Pick<
+    LoyaltyRules,
+    "rewardTitle" | "rewardValueMinor" | "rewardTtlDays"
+  >,
+): FreeDrinkReward {
+  return {
+    kind: "fixed",
+    valueMinor: Math.max(0, Math.round(loyalty.rewardValueMinor)),
+    title: loyalty.rewardTitle,
+    minSubtotalMinor: 0,
+    ttlDays: Math.max(1, Math.round(loyalty.rewardTtlDays)),
+  };
+}
 
 export type LoyaltyTier = "verde" | "argento" | "oro";
 
@@ -90,9 +129,9 @@ export interface StampBalance {
   lifetimeStamps: number;
   /** Rewards already turned into coupons. */
   redeemCount: number;
-  /** Stamps not yet spent: earned − 6 × redeemed. */
+  /** Stamps not yet spent: earned − target × redeemed. */
   available: number;
-  /** Filled stamps on the current card (0–5). */
+  /** Filled stamps on the current card (0 … target − 1). */
   stamps: number;
   /** Full cards waiting to be redeemed. */
   rewardsReady: number;
@@ -113,9 +152,19 @@ export function isCountedOrder(order: Pick<AdminOrder, "status">): boolean {
   return COUNTED_ORDER_STATUSES.includes(order.status);
 }
 
+/**
+ * `stampTarget` is the card size the balance is read against. A redeem row
+ * is counted by presence and charged the current target, not its own delta:
+ * a hand-edited −5 must not leave a phantom stamp, and a card that grew from
+ * 6 to 8 re-reads old redeems at 8 — the operator changing the target is
+ * changing the deal for everyone, past cards included, and that is what the
+ * setting says.
+ */
 export function computeStampBalance(
   rows: readonly Pick<LoyaltyStamp, "kind" | "delta">[],
+  stampTarget: number = STAMP_TARGET,
 ): StampBalance {
+  const target = Math.max(1, Math.round(stampTarget));
   let lifetimeStamps = 0;
   let redeemCount = 0;
   let reversed = 0;
@@ -131,14 +180,67 @@ export function computeStampBalance(
     }
   }
   lifetimeStamps = Math.max(0, lifetimeStamps - reversed);
-  const available = Math.max(0, lifetimeStamps - STAMP_TARGET * redeemCount);
+  const available = Math.max(0, lifetimeStamps - target * redeemCount);
   return {
     lifetimeStamps,
     redeemCount,
     available,
-    stamps: available % STAMP_TARGET,
-    rewardsReady: Math.floor(available / STAMP_TARGET),
+    stamps: available % target,
+    rewardsReady: Math.floor(available / target),
   };
+}
+
+/**
+ * The orders that actually hold a stamp: an `earn` row that no `reversal` row
+ * has taken back.
+ *
+ * `toMobileOrder` needs this to answer `stampsEarned` honestly. Reversals are
+ * matched per order rather than counted globally, because a counter stamp's
+ * reversal carries no `orderId` and must not cancel some order's stamp.
+ */
+export function stampedOrderIds(
+  rows: readonly Pick<LoyaltyStamp, "kind" | "orderId">[],
+): ReadonlySet<string> {
+  const earned = new Set<string>();
+  const reversed = new Set<string>();
+  for (const row of rows) {
+    if (!row.orderId) continue;
+    if (row.kind === "earn") earned.add(row.orderId);
+    else if (row.kind === "reversal") reversed.add(row.orderId);
+  }
+  for (const id of reversed) earned.delete(id);
+  return earned;
+}
+
+/**
+ * When the newest full card was completed — the `createdAt` of the earn row
+ * that filled it — or `null` when no reward is waiting.
+ *
+ * The inbox stamps its "Ödülün hazır" item with this instant. It used to be
+ * stamped with "now", which moved forward on every poll, so the item was
+ * unread again a minute after the member marked the inbox read and stayed at
+ * the top until they redeemed. A reversal is charged against the newest
+ * stamps, the same way `computeStampBalance` counts them.
+ */
+export function rewardReadyAt(
+  rows: readonly Pick<LoyaltyStamp, "kind" | "delta" | "createdAt">[],
+  stampTarget: number = STAMP_TARGET,
+): string | null {
+  const target = Math.max(1, Math.round(stampTarget));
+  const balance = computeStampBalance(rows, target);
+  if (balance.rewardsReady <= 0) return null;
+
+  const earned: string[] = [];
+  for (const row of rows) {
+    if (row.kind !== "earn") continue;
+    for (let i = 0; i < Math.max(0, Math.round(row.delta)); i++) {
+      earned.push(row.createdAt);
+    }
+  }
+  earned.sort();
+  const live = earned.slice(0, balance.lifetimeStamps);
+  const filled = target * (balance.redeemCount + balance.rewardsReady);
+  return live[filled - 1] ?? live[live.length - 1] ?? null;
 }
 
 export function computeTier(ordersLast365: number): LoyaltyTier {
@@ -260,18 +362,23 @@ export function computeBadges(
   }));
 }
 
-/** The whole `/me.loyalty` block from ledger rows + orders (pure). */
+/**
+ * The whole `/me.loyalty` block from ledger rows + orders (pure). The
+ * `stampTarget` it publishes is the one the balance was computed with, so
+ * the app's card always has as many slots as the arithmetic assumed.
+ */
 export function buildLoyaltyView(
   stamps: readonly Pick<LoyaltyStamp, "kind" | "delta">[],
   orders: readonly Pick<AdminOrder, "status" | "createdAt" | "items">[],
   nowMs: number,
+  stampTarget: number = STAMP_TARGET,
 ): LoyaltyView {
-  const balance = computeStampBalance(stamps);
+  const balance = computeStampBalance(stamps, stampTarget);
   const ordersLast365 = countOrdersLast365(orders, nowMs);
   const tier = computeTier(ordersLast365);
   return {
     stamps: balance.stamps,
-    stampTarget: STAMP_TARGET,
+    stampTarget: Math.max(1, Math.round(stampTarget)),
     rewardsReady: balance.rewardsReady,
     lifetimeStamps: balance.lifetimeStamps,
     tier,

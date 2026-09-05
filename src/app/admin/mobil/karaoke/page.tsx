@@ -1,19 +1,16 @@
 import {
   Card,
-  DangerButton,
   formatDateTime,
   formatTRY,
   PageHeader,
-  PrimaryButton,
 } from "@/components/admin/forms";
+import { KaraokeReservationActions } from "@/components/admin/karaoke-reservation-actions";
 import { requireRole } from "@/lib/admin/auth";
 import {
   KARAOKE_STATUS_LABELS,
   listReservationsForAdmin,
   type KaraokeReservation,
 } from "@/lib/mobile/karaoke";
-
-import { cancelReservationAction, confirmReservationAction } from "./actions";
 
 export const metadata = { title: "Admin · Karaoke" };
 export const dynamic = "force-dynamic";
@@ -111,20 +108,11 @@ export default async function AdminKaraokePage() {
                         Talep: {formatDateTime(r.createdAt)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {r.status === "requested" ? (
-                        <form action={confirmReservationAction}>
-                          <input type="hidden" name="id" value={r.id} />
-                          <PrimaryButton type="submit">Onayla</PrimaryButton>
-                        </form>
-                      ) : null}
-                      {r.status !== "cancelled" ? (
-                        <form action={cancelReservationAction}>
-                          <input type="hidden" name="id" value={r.id} />
-                          <DangerButton type="submit">İptal</DangerButton>
-                        </form>
-                      ) : null}
-                    </div>
+                    <KaraokeReservationActions
+                      id={r.id}
+                      canConfirm={r.status === "requested"}
+                      canCancel={r.status !== "cancelled"}
+                    />
                   </div>
                 </Card>
               ))}

@@ -60,7 +60,14 @@ const invite: InviteSummary = {
   invited: 1,
   joined: 1,
   earned: 1,
-  people: [{ name: "Selin K.", status: "joined", at: "2026-06-01T00:00Z" }],
+  people: [
+    {
+      name: "Selin K.",
+      status: "joined",
+      at: "2026-06-01T00:00Z",
+      rewarded: true,
+    },
+  ],
 };
 
 describe("neighbourhood folding", () => {
@@ -169,10 +176,15 @@ describe("toMe", () => {
         "memberSince",
         "notificationPrefs",
         "addresses",
+        "wishlist",
       ].sort(),
     );
     expect(me.customer.memberSince).toBe("2026-05-01T09:00:00.000Z");
     expect(me.customer.addresses[0].neighbourhood).toBe("Postane Mah.");
+    // The same list the site's favourites page renders — one wishlist per
+    // member, not one per surface.
+    expect(me.customer.wishlist).toEqual(customer.wishlist);
+    expect(me.customer.wishlist).not.toBe(customer.wishlist);
     expect(me.usual).toEqual({
       menuItemId: "mnu-0007",
       size: "M",
@@ -180,8 +192,12 @@ describe("toMe", () => {
     });
     expect(me.loyalty).toBe(loyalty);
     expect(me.invite).toBe(invite);
-    expect(JSON.stringify(me)).not.toContain("wishlist");
+    // `wishlist` used to be withheld here as an internal column. It is now a
+    // deliberate part of the contract: the site has a favourites page and the
+    // app could not see the same list. `isActive` stays internal — whether an
+    // account is closed is not the app's business to render.
     expect(JSON.stringify(me)).not.toContain("isActive");
+    expect(JSON.stringify(me)).not.toContain("passwordHash");
   });
 });
 

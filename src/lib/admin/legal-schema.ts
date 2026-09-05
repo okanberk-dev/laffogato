@@ -37,5 +37,3 @@ export const legalDocSchema = z
       });
     }
   });
-
-export type LegalDocParsed = z.infer<typeof legalDocSchema>;

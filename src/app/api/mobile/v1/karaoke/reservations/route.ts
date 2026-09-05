@@ -16,6 +16,7 @@ const MSG = {
     "Rezervasyon servisine şu an ulaşılamıyor. Kısa süre içinde tekrar dene.",
   badJson: "İstek gövdesi geçerli JSON olmalı.",
   internal: "Beklenmeyen bir hata oluştu.",
+  unverified: "Rezervasyon yapabilmek için önce e-postanı doğrula.",
 } as const;
 
 /** GET /api/mobile/v1/karaoke/reservations — the member's own bookings (§7). */
@@ -47,6 +48,12 @@ export async function POST(request: Request) {
   try {
     const auth = await requireMobileCustomer(request);
     if (!auth.ok) return auth.response;
+    // A booking holds the room for four hours and there is no payment behind
+    // it; the same gate POST /orders has keeps an unconfirmed sign-up from
+    // filling the calendar.
+    if (!auth.customer.emailVerified) {
+      return apiError(403, "email_unverified", MSG.unverified);
+    }
     const result = await createReservation(auth.customer, body);
     if (!result.ok) {
       return apiError(result.status, result.error, result.message);

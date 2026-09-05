@@ -20,9 +20,13 @@ export default async function OgImage() {
       style={{
         width: "100%",
         height: "100%",
+        // next/og rasterises this on the server, where CSS variables do not
+        // resolve, so the palette is written out — but it is the same one
+        // globals.css defines: --bg-espresso as the ground, --bg as the text,
+        // --gold-soft as the accent (the gold that carries on a dark field).
         background:
-          "linear-gradient(135deg, #14100B 0%, #1F1813 55%, #2D2418 100%)",
-        color: "#FAF6EE",
+          "linear-gradient(135deg, #0c1c14 0%, #12291f 55%, #1b3a2c 100%)",
+        color: "#f9f8f7",
         display: "flex",
         flexDirection: "column",
         padding: "72px 80px",
@@ -35,7 +39,8 @@ export default async function OgImage() {
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse at 25% 30%, rgba(184, 138, 74, 0.22), transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(229, 95, 126, 0.12), transparent 55%)",
+            // --gold-soft #e8c877 and --accent-on-dark #d9aeb8, as washes.
+            "radial-gradient(ellipse at 25% 30%, rgba(232, 200, 119, 0.20), transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(217, 174, 184, 0.12), transparent 55%)",
         }}
       />
       <div
@@ -55,7 +60,7 @@ export default async function OgImage() {
             width: 10,
             height: 10,
             borderRadius: "50%",
-            background: "#C9A05A",
+            background: "#e8c877",
             display: "flex",
           }}
         />
@@ -87,7 +92,7 @@ export default async function OgImage() {
             fontSize: 56,
             marginTop: 24,
             fontStyle: "italic",
-            color: "#C9A05A",
+            color: "#e8c877",
             display: "flex",
           }}
         >

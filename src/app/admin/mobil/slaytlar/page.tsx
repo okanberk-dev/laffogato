@@ -2,20 +2,40 @@ import Link from "next/link";
 
 import { Card, DangerButton, PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
-import { APP_SLIDE_TONE_LABELS, listAppSlides } from "@/lib/admin/store";
+import {
+  APP_SLIDE_ROUTE_LABELS,
+  APP_SLIDE_TONE_LABELS,
+  isAppSlideRoute,
+  listAppSlides,
+} from "@/lib/admin/store";
 
 import { deleteSlideAction } from "./actions";
 
 export const metadata = { title: "Admin · Uygulama Slaytları" };
 export const dynamic = "force-dynamic";
 
-/** Preview swatch so the tone is judged by eye, not by its name. */
+/**
+ * Preview swatch so the tone is judged by eye, not by its name.
+ *
+ * Values mirror the app's `src/theme/tokens.ts` light palette
+ * (bg.premium · bg.inverse · brand.primary · bg.canvas). The Starbucks-era
+ * greens (#006241 / #1E3932) were retired on 2 Sep 2026 when the site palette
+ * was re-based on the app's; a swatch in the old green would make an operator
+ * pick a tone that looks nothing like what the phone paints.
+ */
 const TONE_SWATCH: Record<string, string> = {
-  premium: "#5C1626",
-  inverse: "#1E3932",
-  brand: "#006241",
-  paper: "#FAF9F6",
+  premium: "#4A0F1E",
+  inverse: "#1B4238",
+  brand: "#235347",
+  paper: "#F9F8F7",
 };
+
+/** app `text.primary` — the only tone whose label needs dark ink. */
+const PAPER_INK = "#1D1C1C";
+
+function routeLabel(route: string): string {
+  return isAppSlideRoute(route) ? APP_SLIDE_ROUTE_LABELS[route] : "—";
+}
 
 export default async function AdminAppSlidesPage() {
   await requireRole("mobileApp");
@@ -50,15 +70,28 @@ export default async function AdminAppSlidesPage() {
               <div className="grid gap-4 sm:grid-cols-[96px_1fr_auto] sm:items-center">
                 <div
                   className="flex h-20 items-end rounded-lg border border-[var(--admin-border)] p-2"
-                  style={{ background: TONE_SWATCH[s.tone] ?? "#FAF9F6" }}
+                  style={{
+                    // The image sits over the tone exactly as on the phone, so
+                    // a slide whose picture fails to load still previews as
+                    // its ground rather than as a broken-image icon.
+                    backgroundColor: TONE_SWATCH[s.tone] ?? TONE_SWATCH.paper,
+                    backgroundImage: s.image ? `url("${s.image}")` : undefined,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                  title={s.image || undefined}
                 >
                   <span
-                    className="text-[10px] tracking-widest uppercase"
+                    className="rounded px-1 text-[10px] tracking-widest uppercase"
                     style={{
-                      color: s.tone === "paper" ? "#16211E" : "#FFFFFF",
+                      color: s.tone === "paper" ? PAPER_INK : "#FFFFFF",
+                      backgroundColor: s.image
+                        ? (TONE_SWATCH[s.tone] ?? TONE_SWATCH.paper)
+                        : undefined,
                     }}
                   >
                     {s.tone}
+                    {s.image ? " · görsel" : ""}
                   </span>
                 </div>
 
@@ -72,8 +105,9 @@ export default async function AdminAppSlidesPage() {
                   </p>
                   <p className="mt-1 text-xs text-neutral-400">
                     Sıra {s.sortOrder} · {APP_SLIDE_TONE_LABELS[s.tone]}
+                    {s.image ? " · görselli" : ""}
                     {s.ctaLabel
-                      ? ` · ${s.ctaLabel} → ${s.ctaRoute || "—"}`
+                      ? ` · ${s.ctaLabel} → ${routeLabel(s.ctaRoute)}`
                       : " · butonsuz"}
                     {s.isActive ? "" : " · YAYINDA DEĞİL"}
                     {s.startsAt || s.endsAt

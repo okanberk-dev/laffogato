@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
-
 import {
   listActiveAppAnnouncements,
   listActiveAppPosts,
   listActiveAppSlides,
 } from "@/lib/admin/store";
+import { apiJson } from "@/lib/mobile/respond";
+import { routeFailure } from "@/lib/mobile/route-helpers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,7 +30,7 @@ export async function GET() {
       listActiveAppPosts(),
     ]);
 
-    return NextResponse.json(
+    return apiJson(
       {
         slides: slides.map((s) => ({
           id: s.id,
@@ -73,9 +73,9 @@ export async function GET() {
       },
     );
   } catch (err) {
-    console.error("[api/mobile/v1/app-content]", err);
-    // The app falls back to its bundled seed, so an outage here degrades the
-    // home screen to last-known content rather than breaking it.
-    return NextResponse.json({ error: "unavailable" }, { status: 503 });
+    // Only an unreachable database is a 503 the app retries into its bundled
+    // seed; a mapper that throws on an unexpected row is a bug, and reporting
+    // it as an outage sent the on-call looking at the database instead.
+    return routeFailure("api/mobile/v1/app-content", err);
   }
 }

@@ -9,15 +9,7 @@ import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 export const dynamic = "force-dynamic";
 
 /** Paths no crawler should follow, on any user-agent. */
-const PRIVATE_PATHS = [
-  "/admin",
-  "/admin/",
-  "/api/",
-  "/uye",
-  "/uye/",
-  "/odeme",
-  "/design-preview",
-];
+const PRIVATE_PATHS = ["/admin", "/admin/", "/api/", "/uye", "/uye/", "/odeme"];
 
 /**
  * Crawlers named individually so their access is explicit — search engines,

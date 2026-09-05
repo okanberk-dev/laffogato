@@ -45,3 +45,26 @@ export function classifyAuthError(
   }
   return "unauthorized";
 }
+
+/**
+ * The `exp` claim of an access token, in milliseconds, or null when the token
+ * does not carry a readable one.
+ *
+ * Read WITHOUT verifying the signature, and used for exactly one thing: never
+ * trusting a remembered answer past the moment the token itself dies. An
+ * attacker can forge an `exp` — but only into a token Supabase has already
+ * rejected, because nothing is ever cached until `getUser` has accepted it,
+ * and a forged-earlier `exp` only shortens the cache entry.
+ */
+export function tokenExpiryMs(token: string): number | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  try {
+    const json = Buffer.from(parts[1], "base64url").toString("utf8");
+    const exp = (JSON.parse(json) as { exp?: unknown }).exp;
+    if (typeof exp !== "number" || !Number.isFinite(exp)) return null;
+    return exp * 1000;
+  } catch {
+    return null;
+  }
+}

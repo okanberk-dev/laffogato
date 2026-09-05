@@ -24,11 +24,11 @@ export function VerifyNotice({
   return (
     <div
       style={{
-        border: "1px solid #E7C9A0",
-        background: "#FCF4E6",
+        border: "1px solid #e1e5e0",
+        background: "#f3f5f2",
         borderRadius: 14,
         padding: compact ? "14px 16px" : "22px 24px",
-        color: "#5a4632",
+        color: "#5b6660",
       }}
     >
       <div
@@ -63,12 +63,12 @@ export function VerifyNotice({
           {pending ? "Gönderiliyor…" : "Bağlantıyı yeniden gönder"}
         </button>
         {state.message && (
-          <span style={{ color: "#2F7A52", fontSize: 13 }}>
+          <span style={{ color: "#235347", fontSize: 13 }}>
             {state.message}
           </span>
         )}
         {state.error && (
-          <span style={{ color: "#B5402F", fontSize: 13 }}>{state.error}</span>
+          <span style={{ color: "#bb251b", fontSize: 13 }}>{state.error}</span>
         )}
       </form>
     </div>

@@ -88,16 +88,3 @@ export function relatedGuides(guide: Guide): Guide[] {
 export const GUIDE_LINKS: Array<{ slug: string; title: string }> = GUIDES.map(
   (g) => ({ slug: g.slug, title: g.title }),
 );
-
-/** Rough word count — drives the reading estimate shown on the hub. */
-export function guideWordCount(guide: Guide): number {
-  let n = 0;
-  for (const s of guide.sections) {
-    for (const key of ["paragraphs", "bullets", "ordered"] as const) {
-      for (const t of s[key] ?? []) n += t.split(/\s+/).length;
-    }
-    for (const r of s.table ?? []) n += r.value.split(/\s+/).length;
-  }
-  for (const f of guide.faq) n += f.a.split(/\s+/).length;
-  return n;
-}

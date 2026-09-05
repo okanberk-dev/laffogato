@@ -17,7 +17,13 @@ export async function GET(request: Request) {
   try {
     const auth = await requireMobileCustomer(request);
     if (!auth.ok) return auth.response;
-    const items = await deriveNotifications(auth.customer.email);
+    // The member's own switches decide what the inbox lists: marketing off
+    // means the campaign rows stay out of it.
+    const items = await deriveNotifications(
+      auth.customer.email,
+      new Date(),
+      auth.customer.notificationPrefs,
+    );
     return apiJson({ items }, { private: true });
   } catch (err) {
     if (isDbUnreachable(err)) {

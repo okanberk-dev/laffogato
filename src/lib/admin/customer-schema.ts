@@ -32,5 +32,3 @@ export const customerEditSchema = z
       newsletter: v.notifyNewsletter === "on",
     },
   }));
-
-export type CustomerEditParsed = z.infer<typeof customerEditSchema>;

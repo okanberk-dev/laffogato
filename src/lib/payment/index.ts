@@ -1,5 +1,6 @@
 import { IyzicoPaymentProvider } from "./iyzico";
 import { MockPaymentProvider } from "./mock";
+import { PaynkolayPaymentProvider } from "./paynkolay";
 import type { PaymentProvider } from "./provider";
 
 let cached: PaymentProvider | null = null;
@@ -47,7 +48,33 @@ export function getPaymentProvider(): PaymentProvider {
       );
       return cached;
     }
+    case "paynkolay": {
+      // Üretim sağlayıcısı (docs/PAYNKOLAY.md). Test ve canlı yalnızca host ve
+      // anahtarlarla ayrışıyor, bu yüzden NODE_ENV'e değil PAYNKOLAY_BASE_URL'e
+      // bakılır — iyzico'daki desenin aynısı.
+      //
+      // `merchantSecretKey` hiçbir isteğe girmez, yalnızca hash hesabına
+      // katılır (§7); PAYMENT_WEBHOOK_SECRET burada YOK, çünkü PayNkolay
+      // webhook göndermiyor (§4) ve o değişkeni istemek olmayan bir güvenliği
+      // varmış gibi gösterirdi.
+      cached = new PaynkolayPaymentProvider({
+        sx: required("PAYNKOLAY_SX", "paynkolay"),
+        sxList: required("PAYNKOLAY_SX_LIST", "paynkolay"),
+        sxCancel: required("PAYNKOLAY_SX_CANCEL", "paynkolay"),
+        merchantSecretKey: required(
+          "PAYNKOLAY_MERCHANT_SECRET_KEY",
+          "paynkolay",
+        ),
+        merchantNo: required("PAYNKOLAY_MERCHANT_NO", "paynkolay"),
+        baseUrl: process.env.PAYNKOLAY_BASE_URL,
+        successUrl: required("PAYNKOLAY_SUCCESS_URL", "paynkolay"),
+        failUrl: required("PAYNKOLAY_FAIL_URL", "paynkolay"),
+      });
+      return cached;
+    }
     case "iyzico": {
+      // Üretimde kullanılmıyor (PayNkolay seçildi) ama silinmedi: operatör
+      // geri dönmek isterse tek bir env değişkeniyle dönebilsin.
       // Sandbox and production differ only by base URL and key pair, so the
       // URL stays configurable rather than switching on NODE_ENV.
       cached = new IyzicoPaymentProvider({

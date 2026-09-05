@@ -14,6 +14,7 @@ import {
   APP_POST_KINDS,
   type AppPostKind,
 } from "@/lib/admin/app-content-schema";
+import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
 
 export interface AppPostDefaults {
   kind?: AppPostKind;
@@ -156,25 +157,23 @@ export function AppPostForm({
 
           <Field
             label="Başlangıç"
-            hint="Boş bırakırsan hemen yayına girer. Biçim: 2026-09-01T09:00"
+            hint="Boşsa hemen yayına girer. Saat İstanbul saatidir."
           >
             <TextInput
+              type="datetime-local"
               name="startsAt"
-              defaultValue={defaults?.startsAt ?? ""}
-              maxLength={40}
-              placeholder="2026-09-01T09:00"
+              defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
             />
           </Field>
 
           <Field
             label="Bitiş"
-            hint="Boş bırakırsan süresiz kalır. Tarih geçince kart kendiliğinden düşer."
+            hint="Boşsa süresiz kalır. Tarih geçince kart kendiliğinden düşer."
           >
             <TextInput
+              type="datetime-local"
               name="endsAt"
-              defaultValue={defaults?.endsAt ?? ""}
-              maxLength={40}
-              placeholder="2026-09-30T23:59"
+              defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
             />
           </Field>
         </div>

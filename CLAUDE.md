@@ -26,8 +26,9 @@ yapılır.
 - **Auth:** Admin için env-credentialed imzalı cookie (`ADMIN_EMAIL` +
   `ADMIN_PASSWORD` + HMAC SHA256) ve TOTP 2FA. Müşteri için bcrypt hesap
 - **Ödeme:** Sağlayıcı bağımsız soyutlama (`src/lib/payment/`). Sanal POS
-  **iyzico** (Checkout Form — kart verisi siteye hiç girmez); geliştirmede
-  `MockPaymentProvider`
+  **PayNkolay** (barındırılan ödeme sayfası — kart verisi siteye hiç girmez,
+  `docs/PAYNKOLAY.md`); geliştirmede `MockPaymentProvider`. iyzico modülü
+  duruyor ama üretimde kullanılmıyor
 - **Dil:** Arayüz **Türkçe**. Kod, dosya adı, identifier, commit mesajı
   **İngilizce**
 
@@ -98,7 +99,7 @@ src/
                                orders · order-{schema,pricing,mapper,address} ·
                                me(-mapper/-schema) · loyalty(-core) · invite(-code) ·
                                venue · karaoke · notifications · deep-link
-    payment/                 → PaymentProvider arayüzü + Mock/iyzico sağlayıcıları
+    payment/                 → PaymentProvider arayüzü + Mock/PayNkolay/iyzico sağlayıcıları
     legal/                   → entity.ts (yasal kimlik TEK KAYNAK + {{TOKEN}}) ·
                                content.ts (sözleşme metinleri, ham veri) ·
                                documents.ts (token doldurma + LEGAL_DOCS) ·
@@ -274,13 +275,16 @@ durum bozulmaya uygundur.
 
 ## Yapılmayacaklar
 
-- **iyzico canlıya alınmadı, sonraya bırakıldı.** Kod hazır; sandbox testi ve
-  canlı anahtarlar bekliyor. Açılış kontrol listesi `docs/AUDIT.md` §5'te.
-  Ödeme akışında değişiklik yaparken oradaki iki tuzağı unutma:
-  `IYZICO_CALLBACK_URL` tarayıcı dönüşüdür (webhook değil), ve
+- **PayNkolay canlıya alınmadı.** Sağlayıcı kodu ve testleri hazır; panel
+  anahtarları ve canlı deneme operatörde. Kurulum ve on maddelik canlı ölçüm
+  listesi `docs/PAYNKOLAY.md` §13'te. Ödeme akışına dokunurken iki tuzağı
+  unutma: `PAYNKOLAY_SUCCESS_URL` **ve** `PAYNKOLAY_FAIL_URL` ikisi de
+  `/odeme/donus` olmalıdır (PayNkolay sonucu form-POST eder), ve
   `PAYMENT_PROVIDER` her ortamda tanımlı olmalıdır
-- **iyzico canlı anahtarlarıyla test etme** — sandbox (`IYZICO_BASE_URL`) dışında
-  gerçek çekim denemesi yapma
+- **Canlı anahtarlarla çekim denemesi yapma** — test hostu
+  (`PAYNKOLAY_BASE_URL`) dışında gerçek kartla deneme operatörün işidir
+- **PayNkolay webhook'u ARAMA.** Sunucudan sunucuya bildirim yok
+  (`docs/PAYNKOLAY.md` §4); ödeme kararı `PaymentList` sorgusundan verilir
 - **Mail/SMS bildirimleri** MVP dışı (sonra Resend/Twilio)
 - **Multi-language** MVP dışı (sadece TR)
 - Auth sağlayıcısını değiştirme işine kullanıcıdan onay almadan başlama

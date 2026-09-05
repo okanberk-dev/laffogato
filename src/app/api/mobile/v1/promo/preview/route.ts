@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       parsed.data.code,
       parsed.data.subtotalMinor,
       who.customer,
+      parsed.data.kind,
     );
     if (result.limited) {
       return apiError(
@@ -55,7 +56,13 @@ export async function POST(request: NextRequest) {
             code: preview.code,
             discountMinor: preview.discountMinor,
           }
-        : { ok: false as const, message: preview.message },
+        : // The same failure shape /orders/preview forwards: dropping `code`
+          // here made one endpoint's answer a different type from the other's.
+          {
+            ok: false as const,
+            code: preview.code,
+            message: preview.message,
+          },
     );
   } catch (err) {
     return routeFailure(err, "api/mobile/v1/promo/preview");

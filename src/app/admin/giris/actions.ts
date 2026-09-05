@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/admin/audit";
 import { signInAdmin } from "@/lib/admin/auth";
+import { landingPathFor } from "@/lib/admin/roles";
 
 export interface LoginState {
   error?: string;
@@ -15,7 +16,7 @@ export async function loginAction(
 ): Promise<LoginState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/admin");
+  const requested = String(formData.get("next") ?? "");
 
   if (!email || !password) {
     return { error: "E-posta ve şifre gerekli." };
@@ -40,12 +41,15 @@ export async function loginAction(
     payload: { needs2FA: Boolean(result.needs2FA) },
   });
 
+  // A cashier has no dashboard: sending every role to /admin would deny them
+  // there and bounce them straight back out. `landingPathFor` is where the
+  // role can actually work.
+  const landing = landingPathFor(result.role ?? "staff");
+  const next = requested.startsWith("/admin") ? requested : landing;
+
   if (result.needs2FA) {
-    const target = `/admin/iki-asama?next=${encodeURIComponent(
-      next.startsWith("/admin") ? next : "/admin",
-    )}`;
-    redirect(target);
+    redirect(`/admin/iki-asama?next=${encodeURIComponent(next)}`);
   }
 
-  redirect(next.startsWith("/admin") ? next : "/admin");
+  redirect(next);
 }

@@ -33,7 +33,7 @@ ve `public/llms*.txt` de güncellenmeli. `tests/seo-site.test.ts` ve
 
 - `robots.ts` üretim dışı deploy'larda (`VERCEL_ENV !== production`) tüm siteyi
   kapatır — preview URL'leri canlı domain ile yarışmaz.
-- `/admin`, `/api`, `/uye`, `/odeme`, `/design-preview` crawl dışı.
+- `/admin`, `/api`, `/uye`, `/odeme` crawl dışı.
 - Yapay zekâ tarayıcıları (GPTBot, ClaudeBot, PerplexityBot, Google-Extended…)
   **açık** bırakıldı; `llms.txt` onlar için derlenmiş özet sunar.
 

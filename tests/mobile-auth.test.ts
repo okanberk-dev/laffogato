@@ -234,6 +234,15 @@ describe("planCustomerLink", () => {
     ).toEqual({ action: "disabled" });
   });
 
+  it("refuses the identity of a closed account instead of re-creating it", () => {
+    // DELETE /me frees the e-mail, so the address matches nothing and this
+    // used to fall into the `create` branch: whoever still knew the password
+    // got a brand-new membership AND a second welcome coupon.
+    expect(planCustomerLink(null, user(), NOW, "cst-new", true)).toEqual({
+      action: "disabled",
+    });
+  });
+
   it("links an existing legacy row: records the id, promotes verification, fills blanks only", () => {
     const plan = planCustomerLink(
       customer({ name: "", phone: "" }),

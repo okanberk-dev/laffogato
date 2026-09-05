@@ -348,11 +348,15 @@ function SlidePreview({
   textTheme: "light" | "dark";
 }) {
   const isLight = textTheme === "light";
+  // The preview reads globals.css tokens rather than its own hexes: it used to
+  // paint the retired köşk cream/terracotta gradients, so an operator picked a
+  // text theme against a ground the live hero has not used since the
+  // 2 Eyl 2026 palette swap.
   const previewBg = imageUrl
-    ? `linear-gradient(${isLight ? "rgba(20,16,11,0.35), rgba(20,16,11,0.55)" : "rgba(255,255,255,0.1), rgba(255,255,255,0.3)"}), url(${imageUrl})`
+    ? `linear-gradient(${isLight ? "rgba(18,41,31,0.35), rgba(18,41,31,0.55)" : "rgba(255,255,255,0.1), rgba(255,255,255,0.3)"}), url(${imageUrl})`
     : isLight
-      ? "linear-gradient(135deg, #6E4220 0%, #2F1F10 100%)"
-      : "linear-gradient(135deg, #F5E6D3 0%, #E6D4B0 100%)";
+      ? "linear-gradient(135deg, var(--brand) 0%, var(--bg-espresso) 100%)"
+      : "linear-gradient(135deg, var(--bg-warm) 0%, var(--bg-stone) 100%)";
   const words = title.trim().split(/\s+/);
   const lead = words.slice(0, -1).join(" ");
   const accent = words.length > 1 ? words[words.length - 1] : null;
@@ -366,7 +370,7 @@ function SlidePreview({
         backgroundSize: "cover",
         backgroundPosition: "center",
         position: "relative",
-        color: isLight ? "#FFF" : "#14100B",
+        color: isLight ? "#FFF" : "var(--ink)",
       }}
     >
       <div
@@ -401,7 +405,7 @@ function SlidePreview({
                   style={{
                     fontFamily: "var(--script)",
                     fontStyle: "normal",
-                    color: isLight ? "#E6D4B0" : "#8A6332",
+                    color: isLight ? "var(--gold-soft)" : "var(--gold)",
                     fontSize: "0.9em",
                   }}
                 >
@@ -419,7 +423,7 @@ function SlidePreview({
                 lineHeight: 1.55,
                 color: isLight
                   ? "rgba(255,255,255,0.85)"
-                  : "rgba(20,16,11,0.7)",
+                  : "rgba(29,28,28,0.7)",
               }}
             >
               {subtitle}

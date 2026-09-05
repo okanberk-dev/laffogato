@@ -1,7 +1,18 @@
 import "server-only";
 
-import { LEGAL_DOCS, LEGAL_UPDATED, type LegalDoc } from "@/lib/legal/documents";
+import {
+  LEGAL_DOCS,
+  LEGAL_UPDATED,
+  type LegalDoc,
+} from "@/lib/legal/documents";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
+import {
+  getPublishedLegalOverride,
+  listLegalDocOverrides,
+  type LegalDocOverride,
+} from "@/lib/legal/store";
+
+import { markdownToSections } from "./legal-markdown";
 
 /**
  * The contracts, for the app (docs/API-MOBILE.md §13).
@@ -12,6 +23,13 @@ import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
  * revision they agreed to, and the text they were shown has to be that
  * revision. Serving from here makes the site the single source and a stale
  * app impossible.
+ *
+ * "The site" means what /hukuk/<slug> shows, and that is the coded document
+ * unless an admin has published an override in /admin/hukuk. So the same
+ * rule applies here: a published, non-empty override wins — title, summary,
+ * effective date and body — and the coded document is the default under it.
+ * The override body is Markdown; `markdownToSections` turns it into the
+ * sections the app already renders.
  *
  * Split in two because the whole set is ~1.25 MB of JSON: a list a phone can
  * fetch in a breath, and one document at a time (largest is ~67 KB).
@@ -34,6 +52,37 @@ export interface MobileLegalIndex {
   docs: MobileLegalSummary[];
 }
 
+/** Published overrides by slug. Empty when there are none — or no database. */
+export type LegalOverrideMap = Readonly<Record<string, LegalDocOverride>>;
+
+// ── Pure: coded document + override → what the app sees ─────────────────────
+
+/** The override counts only when published with a body, like on the site. */
+function isLive(o: LegalDocOverride | null | undefined): o is LegalDocOverride {
+  return !!o && o.isPublished && o.bodyMarkdown.trim() !== "";
+}
+
+/**
+ * The coded document with a live override laid over it. Mirrors the choices
+ * /hukuk/<slug> makes: a blank override field keeps the coded value; the
+ * references aside is dropped because the override text may no longer cite
+ * them; slug, short title and category are identity and never change.
+ */
+export function applyLegalOverride(
+  doc: LegalDoc,
+  override: LegalDocOverride | null | undefined,
+): LegalDoc {
+  if (!isLive(override)) return doc;
+  const { references: _references, ...rest } = doc;
+  return {
+    ...rest,
+    title: override.title.trim() || doc.title,
+    summary: override.summary.trim() || doc.summary,
+    updatedAt: override.effectiveDate.trim() || LEGAL_UPDATED,
+    sections: markdownToSections(override.bodyMarkdown, doc.shortTitle),
+  };
+}
+
 function toSummary(doc: LegalDoc): MobileLegalSummary {
   return {
     slug: doc.slug,
@@ -45,15 +94,69 @@ function toSummary(doc: LegalDoc): MobileLegalSummary {
   };
 }
 
-export function legalIndex(): MobileLegalIndex {
+/** The index built from a known set of overrides — no I/O. */
+export function legalIndexFrom(overrides: LegalOverrideMap): MobileLegalIndex {
   return {
     updatedAt: LEGAL_UPDATED,
     consentDocs: [...CHECKOUT_CONSENT_DOCS],
-    docs: LEGAL_DOCS.map(toSummary),
+    docs: LEGAL_DOCS.map((doc) =>
+      toSummary(applyLegalOverride(doc, overrides[doc.slug])),
+    ),
   };
 }
 
-/** One document, whole. `null` when the slug is not a published contract. */
-export function legalDoc(slug: string): LegalDoc | null {
-  return LEGAL_DOCS.find((d) => d.slug === slug) ?? null;
+/** One document from a known override — no I/O. `null` for an unknown slug. */
+export function legalDocFrom(
+  slug: string,
+  override: LegalDocOverride | null | undefined,
+): LegalDoc | null {
+  const doc = LEGAL_DOCS.find((d) => d.slug === slug);
+  return doc ? applyLegalOverride(doc, override) : null;
+}
+
+// ── Live: read the overrides, then the pure step ────────────────────────────
+
+/**
+ * Every published override in one query — the index lists 24 documents and
+ * must not cost 24 round trips.
+ *
+ * Any failure degrades to "no overrides", which serves the coded documents.
+ * That is the authoritative text the site ships with; the database only ever
+ * holds edits on top of it, so an outage shows the real policy rather than an
+ * error. Caught wholesale (not through `publicRead`) because the admin-facing
+ * list helper flattens the transport signature into a plain Error, which
+ * `publicRead` would rightly refuse to classify as unreachable.
+ */
+async function publishedOverrides(): Promise<LegalOverrideMap> {
+  let rows: Record<string, LegalDocOverride>;
+  try {
+    rows = await listLegalDocOverrides();
+  } catch (err) {
+    console.error(
+      `[db-degraded] mobileLegalIndex: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return {};
+  }
+  const out: Record<string, LegalDocOverride> = {};
+  for (const row of Object.values(rows)) {
+    if (isLive(row)) out[row.slug] = row;
+  }
+  return out;
+}
+
+export async function legalIndex(): Promise<MobileLegalIndex> {
+  return legalIndexFrom(await publishedOverrides());
+}
+
+/**
+ * One document, whole. `null` when the slug is not a published contract —
+ * decided from the coded registry before any query, so an unknown slug is a
+ * 404 whether or not the database answers.
+ */
+export async function legalDoc(slug: string): Promise<LegalDoc | null> {
+  const doc = LEGAL_DOCS.find((d) => d.slug === slug);
+  if (!doc) return null;
+  // `getPublishedLegalOverride` already degrades to null when the database is
+  // unreachable, which renders the coded document.
+  return applyLegalOverride(doc, await getPublishedLegalOverride(slug));
 }

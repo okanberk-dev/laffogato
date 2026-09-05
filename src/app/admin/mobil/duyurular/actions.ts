@@ -53,7 +53,14 @@ export async function createAnnouncementAction(formData: FormData) {
 export async function updateAnnouncementAction(id: string, formData: FormData) {
   await requireRole("mobileApp");
   const input = parseInput(formData);
-  await updateAppAnnouncement(id, input);
+  // Same guard as the create action: the HTML `required` attribute is not a
+  // guard on a Server Action, and the store only trims the title — a titleless
+  // row renders as an empty card on every phone.
+  if (!input.title.trim()) return;
+  const updated = await updateAppAnnouncement(id, input);
+  // The row was deleted while this form was open; without the check the audit
+  // log claims an update that never happened.
+  if (!updated) return;
   await logAudit({
     action: "update",
     entity: "app_announcement",

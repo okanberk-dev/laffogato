@@ -4,14 +4,16 @@ import {
   applyPaymentSucceeded,
   getOrder,
   orderChannel,
+  type AdminOrder,
 } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
+import { rememberCardUserKey } from "@/lib/customer/store";
 import {
   appOrderDeepLink,
   type PaymentReturnStatus,
 } from "@/lib/mobile/deep-link";
 import { isIssuedCheckoutRef } from "@/lib/mobile/orders";
-import { getPaymentProvider } from "@/lib/payment";
+import { getPaymentProvider, type PaymentProvider } from "@/lib/payment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,48 +42,85 @@ export async function GET(req: NextRequest) {
   const status = url.searchParams.get("status") ?? "";
   const providerRef = url.searchParams.get("providerRef") ?? "";
   const promo = url.searchParams.get("promo") ?? "";
-  const app = url.searchParams.get("app") ?? "";
 
   if (!orderId) {
     return NextResponse.redirect(new URL("/?cart=empty", base));
   }
 
-  const provider = getPaymentProvider();
-  if (provider.name === "mock" && status === "success") {
-    const [customer, order] = await Promise.all([
-      getActiveCustomer(),
-      getOrder(orderId),
-    ]);
-    // Web: the order must belong to the signed-in member. App: the in-app
-    // browser has no site cookie, so the proof is the checkout reference
-    // this server issued for exactly this order (recorded at creation).
-    const ownedOnWeb =
-      !!customer && !!order && order.customerEmail === customer.email;
-    const issuedForApp =
-      !!order &&
-      orderChannel(order) === "app" &&
-      (await isIssuedCheckoutRef(orderId, provider.name, providerRef));
-    if (order && (ownedOnWeb || issuedForApp)) {
-      const res = await applyPaymentSucceeded({
-        orderId,
-        provider: provider.name,
-        providerRef: providerRef || `mock_${orderId}`,
-        amountMinor: order.totalMinor,
-        currency: "TRY",
-        raw: { source: "mock_return" },
-      });
-      if (!res.ok) {
-        console.error("[odeme/donus] mock confirm failed", res.error);
-      }
+  const provider = safeProvider();
+  const [customer, order] = await Promise.all([
+    getActiveCustomer(),
+    safeGetOrder(orderId),
+  ]);
+  // Web: the order must belong to the signed-in member. App: the in-app
+  // browser has no site cookie, so the proof is the checkout reference this
+  // server issued for exactly this order (recorded at creation).
+  const ownedOnWeb =
+    !!customer && !!order && order.customerEmail === customer.email;
+  const issuedForApp =
+    !!order &&
+    !!provider &&
+    orderChannel(order) === "app" &&
+    (await isIssuedCheckoutRef(orderId, provider.name, providerRef));
+
+  if (
+    provider?.name === "mock" &&
+    status === "success" &&
+    order &&
+    (ownedOnWeb || issuedForApp)
+  ) {
+    const res = await applyPaymentSucceeded({
+      orderId,
+      provider: provider.name,
+      providerRef: providerRef || `mock_${orderId}`,
+      amountMinor: order.totalMinor,
+      currency: "TRY",
+      raw: { source: "mock_return" },
+    });
+    if (!res.ok) {
+      console.error("[odeme/donus] mock confirm failed", res.error);
     }
   }
 
-  if (await isAppOrder(orderId, app)) {
+  // `app=1` on the URL used to be enough to reach the deep link, whose
+  // `?status=success|failed` says whether that order was paid — an
+  // unauthenticated paid/unpaid oracle over sequential ids (`ord-0284`).
+  // The app branch now needs the checkout reference this server issued, or
+  // the signed-in owner; anyone else lands on the web success page, which
+  // checks ownership for itself.
+  if (issuedForApp || (ownedOnWeb && order && orderChannel(order) === "app")) {
     // The phone is told what the ROW says, not what the URL claims: a
     // hand-made link cannot open the app on a "paid" screen.
     return appRedirect(orderId, await settledStatus(orderId));
   }
   return successRedirect(orderId, promo, base);
+}
+
+/**
+ * The provider, or null when it cannot be built.
+ *
+ * `getPaymentProvider()` fails closed on a missing `PAYMENT_PROVIDER`, and
+ * this route called it before anything else — so a misconfigured deployment
+ * answered the customer coming back from their bank with a 500 instead of
+ * their order. Without a provider there is nothing to confirm here; the
+ * redirect below still shows the order's real status.
+ */
+function safeProvider(): PaymentProvider | null {
+  try {
+    return getPaymentProvider();
+  } catch (err) {
+    console.error("[odeme/donus] payment provider unavailable", err);
+    return null;
+  }
+}
+
+async function safeGetOrder(orderId: string): Promise<AdminOrder | null> {
+  try {
+    return await getOrder(orderId);
+  } catch (err) {
+    console.error("[odeme/donus] order lookup failed", err);
+    return null;
+  }
 }
 
 const SETTLED: ReadonlySet<string> = new Set([
@@ -115,7 +154,7 @@ async function settledStatus(orderId: string): Promise<PaymentReturnStatus> {
  */
 export async function POST(req: NextRequest) {
   const base = req.nextUrl.origin;
-  const provider = getPaymentProvider();
+  const provider = safeProvider();
 
   let params: Record<string, string> = {};
   try {
@@ -130,13 +169,14 @@ export async function POST(req: NextRequest) {
   for (const [k, v] of req.nextUrl.searchParams.entries()) {
     if (!(k in params)) params[k] = v;
   }
-  const app = params.app ?? "";
-
-  if (!provider.confirmReturn) {
-    // A provider that settles only by webhook: send the customer to the
-    // success page, which reads the order's real status.
-    const orderId = params.orderId ?? "";
-    if (await isAppOrder(orderId, app)) return appRedirect(orderId, "success");
+  if (!provider?.confirmReturn) {
+    // A provider that settles only by webhook — or none at all, when the
+    // deployment is missing its POS configuration: send the customer to the
+    // page that reads the order's real status rather than asserting "success".
+    const orderId = returnedOrderId(params);
+    if (await isAppOrder(orderId)) {
+      return appRedirect(orderId, await settledStatus(orderId));
+    }
     return successRedirect(orderId, params.promo ?? "", base);
   }
 
@@ -154,13 +194,26 @@ export async function POST(req: NextRequest) {
       if (!applied.ok) {
         console.error("[odeme/donus] apply failed", applied.error);
       }
-      if (await isAppOrder(result.orderId, app)) {
+      // The buyer ticked "kartımı kaydet": remember the key so the next
+      // checkout shows that card. Best-effort — failing to remember a card
+      // must never turn a settled payment into an error.
+      if (result.cardUserKey && applied.ok) {
+        try {
+          const paid = await getOrder(result.orderId);
+          if (paid?.customerEmail) {
+            await rememberCardUserKey(paid.customerEmail, result.cardUserKey);
+          }
+        } catch (err) {
+          console.error("[odeme/donus] cardUserKey not stored", err);
+        }
+      }
+      if (await isAppOrder(result.orderId)) {
         return appRedirect(result.orderId, "success");
       }
       return successRedirect(result.orderId, params.promo ?? "", base);
     }
     console.warn("[odeme/donus] payment not successful", result.orderId);
-    if (await isAppOrder(result.orderId, app)) {
+    if (await isAppOrder(result.orderId)) {
       return appRedirect(result.orderId, "failed");
     }
     return NextResponse.redirect(new URL("/odeme?durum=basarisiz", base), 303);
@@ -169,12 +222,24 @@ export async function POST(req: NextRequest) {
     // settle it. Send the customer to the success page, which shows the
     // order's actual status rather than guessing.
     console.error("[odeme/donus] confirmReturn failed", err);
-    const orderId = params.orderId ?? "";
-    if (await isAppOrder(orderId, app)) {
+    const orderId = returnedOrderId(params);
+    if (await isAppOrder(orderId)) {
       return appRedirect(orderId, await settledStatus(orderId));
     }
     return successRedirect(orderId, params.promo ?? "", base);
   }
+}
+
+/**
+ * Which order this return belongs to, when the confirmation could not say.
+ *
+ * Providers name that field differently: PayNkolay posts it as
+ * `CLIENT_REFERENCE_CODE` (docs/PAYNKOLAY.md §1.1), and we put the order id
+ * there. Reading only `orderId` sent a customer whose confirmation threw to
+ * `/?cart=empty` instead of to their own order.
+ */
+function returnedOrderId(params: Record<string, string>): string {
+  return (params.orderId ?? params.CLIENT_REFERENCE_CODE ?? "").trim();
 }
 
 function successRedirect(orderId: string, promo: string, base: string) {
@@ -197,19 +262,16 @@ function appRedirect(orderId: string, status: PaymentReturnStatus) {
 }
 
 /**
- * Whether this return belongs to an app order. `app=1` on the URL is the
- * app's own marker; failing that, the order row says where it came from. A
- * database hiccup here answers "web" — the customer then lands on the web
- * success page, which still shows the order — rather than an error page.
+ * Whether this return belongs to an app order — the ROW decides.
+ *
+ * `app=1` on the URL used to be taken as proof, but anyone can type it, and a
+ * provider with a fixed callback (iyzico) cannot carry it anyway. The order's
+ * own `channel` answers both cases. A database hiccup here answers "web" —
+ * the customer then lands on the web success page, which still shows the
+ * order — rather than an error page.
  */
-async function isAppOrder(orderId: string, app: string): Promise<boolean> {
-  if (app === "1") return true;
+async function isAppOrder(orderId: string): Promise<boolean> {
   if (!orderId) return false;
-  try {
-    const order = await getOrder(orderId);
-    return !!order && orderChannel(order) === "app";
-  } catch (err) {
-    console.error("[odeme/donus] channel lookup failed", err);
-    return false;
-  }
+  const order = await safeGetOrder(orderId);
+  return !!order && orderChannel(order) === "app";
 }

@@ -17,7 +17,9 @@ import {
   transitionOrderAction,
   type NoteActionState,
   type RefundActionState,
+  type TransitionActionState,
 } from "@/app/admin/siparisler/actions";
+import { markShippedLabel, orderFulfillment } from "@/lib/admin/order-channel";
 import type {
   AdminOrder,
   AdminOrderItemStatus,
@@ -32,6 +34,7 @@ import { OrderCustomerEditor } from "./order-customer-editor";
 const TRANSITION_LABEL: Record<OrderTransition, string> = {
   mark_paid: "Ödendi olarak işaretle",
   start_preparing: "Hazırlamaya başla",
+  // Overridden per fulfillment below — a pickup coffee is not "kargoya verilir".
   mark_shipped: "Kargoya ver",
   complete: "Tamamlandı",
   cancel: "İptal et",
@@ -60,6 +63,7 @@ const ITEM_STATUS_TONE: Record<AdminOrderItemStatus, string> = {
 
 const noteInitial: NoteActionState = {};
 const refundInitial: RefundActionState = {};
+const transitionInitial: TransitionActionState = {};
 
 interface Props {
   order: AdminOrder;
@@ -163,6 +167,11 @@ export function OrderDetail({
   canRefund,
 }: Props) {
   const [refundOpen, setRefundOpen] = useState(false);
+  const [transitionState, transitionAction, transitionPending] = useActionState(
+    transitionOrderAction,
+    transitionInitial,
+  );
+  const fulfillment = orderFulfillment(order);
 
   return (
     <>
@@ -197,12 +206,20 @@ export function OrderDetail({
                   Bu sipariş için aktif bir işlem yok.
                 </span>
               ) : (
-                transitions.map((t) => (
-                  <form key={t} action={transitionOrderAction}>
-                    <input type="hidden" name="id" value={order.id} />
-                    <input type="hidden" name="transition" value={t} />
+                // One form, one action state: the store's refusal (stale page,
+                // someone else already advanced it) has somewhere to land.
+                <form
+                  action={transitionAction}
+                  className="flex flex-wrap gap-2"
+                >
+                  <input type="hidden" name="id" value={order.id} />
+                  {transitions.map((t) => (
                     <button
+                      key={t}
                       type="submit"
+                      name="transition"
+                      value={t}
+                      disabled={transitionPending}
                       onClick={(e) => {
                         if (t === "cancel") {
                           if (
@@ -214,12 +231,14 @@ export function OrderDetail({
                           }
                         }
                       }}
-                      className={`rounded-full px-4 py-1.5 text-xs font-medium ${TRANSITION_TONE[t]}`}
+                      className={`rounded-full px-4 py-1.5 text-xs font-medium disabled:opacity-60 ${TRANSITION_TONE[t]}`}
                     >
-                      {TRANSITION_LABEL[t]}
+                      {t === "mark_shipped"
+                        ? markShippedLabel(fulfillment)
+                        : TRANSITION_LABEL[t]}
                     </button>
-                  </form>
-                ))
+                  ))}
+                </form>
               )}
               {canRefund &&
                 order.status !== "cancelled" &&
@@ -234,6 +253,14 @@ export function OrderDetail({
                   </button>
                 )}
             </div>
+            {transitionState.error ? (
+              <p
+                role="alert"
+                className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700"
+              >
+                {transitionState.error}
+              </p>
+            ) : null}
           </Card>
 
           <Card>
@@ -389,49 +416,54 @@ export function OrderDetail({
             shippingAddress={order.shippingAddress}
           />
 
-          <Card>
-            <SectionTitle>Kargo</SectionTitle>
-            <form
-              action={saveOrderTrackingAction}
-              className="grid gap-2.5 text-sm"
-            >
-              <input type="hidden" name="id" value={order.id} />
-              <label className="grid gap-1">
-                <span className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                  Kurye
-                </span>
-                <input
-                  name="carrier"
-                  defaultValue={order.carrier ?? ""}
-                  placeholder="Yurtiçi Kargo, Aras, MNG…"
-                  className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 outline-none focus:border-[var(--admin-primary)] focus:bg-white"
-                />
-              </label>
-              <label className="grid gap-1">
-                <span className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                  Takip no
-                </span>
-                <input
-                  name="trackingNumber"
-                  defaultValue={order.trackingNumber ?? ""}
-                  placeholder="Kargo takip numarası"
-                  className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 font-mono outline-none focus:border-[var(--admin-primary)] focus:bg-white"
-                  style={{ fontFamily: "var(--mono, monospace)" }}
-                />
-              </label>
-              {order.shippedAt ? (
-                <p className="text-xs text-neutral-500">
-                  Kargolandı · {formatDateTime(order.shippedAt)}
-                </p>
-              ) : null}
-              <button
-                type="submit"
-                className="mt-1 justify-self-start rounded-xl bg-[var(--admin-primary)] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--admin-primary-hover)]"
+          {/* Carrier + tracking is a shop parcel's story. A pickup or kurye
+              order has no takip numarası, and offering the form invited staff
+              to fill one in just to make the app timeline move. */}
+          {fulfillment === "shipping" ? (
+            <Card>
+              <SectionTitle>Kargo</SectionTitle>
+              <form
+                action={saveOrderTrackingAction}
+                className="grid gap-2.5 text-sm"
               >
-                Kargo bilgisini kaydet
-              </button>
-            </form>
-          </Card>
+                <input type="hidden" name="id" value={order.id} />
+                <label className="grid gap-1">
+                  <span className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
+                    Kurye
+                  </span>
+                  <input
+                    name="carrier"
+                    defaultValue={order.carrier ?? ""}
+                    placeholder="Yurtiçi Kargo, Aras, MNG…"
+                    className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 outline-none focus:border-[var(--admin-primary)] focus:bg-white"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
+                    Takip no
+                  </span>
+                  <input
+                    name="trackingNumber"
+                    defaultValue={order.trackingNumber ?? ""}
+                    placeholder="Kargo takip numarası"
+                    className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 font-mono outline-none focus:border-[var(--admin-primary)] focus:bg-white"
+                    style={{ fontFamily: "var(--mono, monospace)" }}
+                  />
+                </label>
+                {order.shippedAt ? (
+                  <p className="text-xs text-neutral-500">
+                    Kargolandı · {formatDateTime(order.shippedAt)}
+                  </p>
+                ) : null}
+                <button
+                  type="submit"
+                  className="mt-1 justify-self-start rounded-xl bg-[var(--admin-primary)] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--admin-primary-hover)]"
+                >
+                  Kargo bilgisini kaydet
+                </button>
+              </form>
+            </Card>
+          ) : null}
         </aside>
       </div>
 

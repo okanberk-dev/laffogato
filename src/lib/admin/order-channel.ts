@@ -44,3 +44,22 @@ export function orderFulfillment(order: {
     ? order.fulfillment
     : "shipping";
 }
+
+/**
+ * `shipped` means three different things and the app already says so: a pickup
+ * order is ready at the counter, a delivery order is with the courier, only a
+ * shop parcel is with the carrier. The panel used to call all three "Kargoda",
+ * so pressing "Kargoya ver" told a member their coffee had shipped.
+ */
+export function shippedStatusLabel(fulfillment: OrderFulfillment): string {
+  if (fulfillment === "pickup") return "Hazır";
+  if (fulfillment === "delivery") return "Kuryede";
+  return "Kargoda";
+}
+
+/** The button that moves an order into `shipped`, in its own vocabulary. */
+export function markShippedLabel(fulfillment: OrderFulfillment): string {
+  if (fulfillment === "pickup") return "Hazır — teslime hazır";
+  if (fulfillment === "delivery") return "Kuryeye ver";
+  return "Kargoya ver";
+}

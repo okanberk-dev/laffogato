@@ -197,6 +197,13 @@ hiçbir şeyle çalışmıyordu.
 
 ## 5. Açık kalanlar
 
+> **Güncelleme (6 Eyl 2026):** sanal POS kararı **PayNkolay** oldu; üretimde
+> kullanılan sağlayıcı odur. Aşağıdaki iyzico bölümü o günkü durumun kaydı
+> olarak duruyor — güncel kurulum, hash formülleri, açılış kontrol listesi ve
+> "PayNkolay webhook göndermez" kuralı için `docs/PAYNKOLAY.md`. Aşağıdaki iki
+> tuzaktan ikincisi (`PAYMENT_PROVIDER` her ortamda tanımlı olmalı) sağlayıcıdan
+> bağımsız olarak geçerlidir.
+
 **iyzico canlıya alınmadı — sonraya bırakıldı.** Sağlayıcı kodu, imza şeması,
 Checkout Form akışı, tarayıcı dönüşü (`/odeme/donus`), imzalı webhook ve iade
 çağrısı yazıldı ve derleniyor; ama sandbox'ta uçtan uca denenmedi ve canlı

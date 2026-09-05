@@ -77,9 +77,9 @@ const LINKS: LinkEntry[] = [
   { route: "visit", label: "Ziyaret" },
 ];
 
-/* The L'Affogato wordmark + monogram are now rendered from the brand logo
-   assets (public/logo-wordmark.png · public/logo-mark.png) via the
-   `.brand-wordmark` / `.brand-mark` CSS-mask utilities in globals.css. */
+/* The L'Affogato monogram is rendered from the brand logo asset
+   (public/logo-mark.png) via the `.brand-mark` CSS-mask utility in
+   globals.css. The wordmark utility went with the header that used it. */
 
 interface NavProps {
   /** Current SPA route — drives the active link underline. When the nav

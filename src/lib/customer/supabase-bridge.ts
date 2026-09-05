@@ -41,6 +41,33 @@ async function fetchRaw(email: string): Promise<Customer | null> {
   return (data as Customer | null) ?? null;
 }
 
+/**
+ * Whether this Supabase user is the identity of an account that was closed.
+ *
+ * `deleteMe` keeps the id on the anonymised row precisely so this question can
+ * be answered: it frees the e-mail, so the address lookup above finds nothing
+ * and a still-live identity would otherwise open a brand-new membership —
+ * with a fresh welcome coupon — for whoever still knows the old password.
+ * Deleting the Supabase user itself is best-effort (see
+ * `deleteSupabaseIdentity`); this is the record that does not depend on it.
+ *
+ * Deliberately narrowed to CLOSED rows. A member who changes their address in
+ * Supabase keeps an active row under the old one, and matching that by id
+ * would hand them a row this function's caller cannot then read back by
+ * e-mail. Address changes stay "one membership per e-mail".
+ */
+async function identityRevoked(userId: string): Promise<boolean> {
+  if (!userId) return false;
+  const { data, error } = await getDb()
+    .from(TABLES.customers)
+    .select("id")
+    .eq("supabaseUserId", userId)
+    .eq("isActive", false)
+    .limit(1);
+  checkErr(error, "supabaseBridge.revoked");
+  return ((data as unknown[] | null) ?? []).length > 0;
+}
+
 export type EnsureCustomerResult =
   | { ok: true; customer: PublicCustomer; created: boolean }
   | {
@@ -71,7 +98,10 @@ async function reconcile(
 ): Promise<EnsureCustomerResult> {
   const now = new Date().toISOString();
   const existing = await fetchRaw(email);
-  const plan = planCustomerLink(existing, user, now);
+  // Only worth asking when the address itself matched nothing: an existing row
+  // already answers "disabled" on its own.
+  const revoked = existing ? false : await identityRevoked(user.id);
+  const plan = planCustomerLink(existing, user, now, undefined, revoked);
   const db = getDb();
 
   if (plan.action === "disabled") {

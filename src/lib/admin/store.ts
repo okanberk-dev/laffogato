@@ -5,8 +5,8 @@ import type { DbError } from "@/lib/db";
 import {
   APP_ANNOUNCEMENT_KINDS,
   APP_POST_KINDS,
-  APP_SLIDE_ROUTES,
   APP_SLIDE_TONES,
+  isAppSlideRoute,
   type AppAnnouncementKind,
   type AppPostKind,
   type AppSlideTone,
@@ -21,10 +21,16 @@ import {
 import { nextSeq } from "@/lib/db/counters";
 import {
   applyCustomerCoupon,
+  couponAllowedForKind,
   redeemCustomerCoupon,
   releaseCustomerCoupon,
 } from "@/lib/customer/coupons";
 import { sendOrderPaidEmail } from "@/lib/email/send";
+import {
+  DEFAULT_MOBILE_APP_CONFIG,
+  normalizeMobileAppConfig,
+  type MobileAppConfig,
+} from "@/lib/mobile/app-config";
 import type { LineOptions } from "@/lib/mobile/customization";
 import {
   computeTotalsWithShipping,
@@ -254,6 +260,20 @@ export interface AdminOrder {
   deliveryNote?: string;
   /** ISO-8601 instant the payment succeeded; "" while unpaid. */
   paidAt?: string;
+  /**
+   * ISO-8601 instants the order reached each later stage; "" until it does.
+   * Stamped by `transitionOrder`, so the app's timeline and its notification
+   * inbox can date a stage instead of falling back to `paidAt`. `shippedAt`
+   * above is the same idea and predates them — the shipping form writes it too.
+   */
+  preparingAt?: string;
+  completedAt?: string;
+  /**
+   * The app's id for the checkout attempt that produced this row; "" for web,
+   * admin and older app orders. Unique per member while non-empty, which is
+   * what makes a retried `POST /orders` return this order instead of a second.
+   */
+  clientOrderId?: string;
 }
 
 export {
@@ -310,6 +330,13 @@ export interface AdminSettings {
   courierFeeMinor: number;
   karaokeHourlyMinor: number;
   karaokeCapacity: number;
+
+  /**
+   * Everything else the app is configured with (/admin/mobil/ayarlar,
+   * docs/API-MOBILE.md §10): one jsonb document, always normalised — a row
+   * written before a key existed reads that key's default, never `undefined`.
+   */
+  mobileApp: MobileAppConfig;
 }
 
 // ─── Query helpers ─────────────────────────────────────────────────────────
@@ -450,6 +477,8 @@ function defaultSettings(): AdminSettings {
     courierFeeMinor: 5500,
     karaokeHourlyMinor: 90000,
     karaokeCapacity: 8,
+    // A fresh copy: the constant is frozen and callers may edit sections.
+    mobileApp: normalizeMobileAppConfig(DEFAULT_MOBILE_APP_CONFIG),
   };
 }
 
@@ -1132,8 +1161,19 @@ export async function listCustomers(): Promise<CustomerSummary[]> {
   );
 }
 
+/**
+ * A member's orders, newest first.
+ *
+ * `limit` is pushed into SQL, not applied afterwards. Every `/me`, `/orders`
+ * and `/notifications` call reads this, and the row carries the items jsonb,
+ * the consent evidence and the refund ledger — a two-year regular's whole
+ * history was being transferred and deserialised several times per app
+ * foreground. Callers that genuinely need the lifetime history (loyalty
+ * tiers, badges) pass no limit.
+ */
 export async function customerOrdersByEmail(
   email: string,
+  limit?: number,
 ): Promise<AdminOrder[]> {
   const needle = email.trim().toLowerCase();
   if (!needle) return [];
@@ -1141,14 +1181,13 @@ export async function customerOrdersByEmail(
   const sb = getDb();
   // ilike ile case-insensitive ön-filtre; JS'te tam (lowercase) eşleşme.
   const escaped = needle.replace(/[%_]/g, (c) => `\\${c}`);
-  const candidates = rows<AdminOrder>(
-    await sb
-      .from(TABLES.orders)
-      .select("*")
-      .ilike("customerEmail", escaped)
-      .order("orderNo", { ascending: false }),
-    "customerOrdersByEmail",
-  );
+  let q = sb
+    .from(TABLES.orders)
+    .select("*")
+    .ilike("customerEmail", escaped)
+    .order("orderNo", { ascending: false });
+  if (limit && limit > 0) q = q.limit(limit);
+  const candidates = rows<AdminOrder>(await q, "customerOrdersByEmail");
   return candidates.filter(
     (o) => o.customerEmail?.trim().toLowerCase() === needle,
   );
@@ -1165,23 +1204,57 @@ export async function getOrder(id: string): Promise<AdminOrder | null> {
 
 export type BulkOrderOp = { kind: "set_status"; status: AdminOrderStatus };
 
+export interface BulkOrderResult extends BulkResult {
+  /**
+   * Ids the state machine refused: already in that status, not allowed to
+   * reach it from where they are, or a target the bulk tool must not set.
+   */
+  skipped: number;
+}
+
+/**
+ * The statuses the bulk tool may set, and the transition that gets there.
+ *
+ * `paid` and `refunded` are deliberately missing. Money moves with a
+ * `payment_transactions` row or a refund ledger entry, and a bulk button that
+ * writes the status column writes neither — a bulk "ödendi" produced paid
+ * orders nobody had paid for, with no `paidAt` and no stamp. Those two are
+ * done one order at a time, from the order page.
+ */
+export const BULK_ORDER_TRANSITIONS: Partial<
+  Record<AdminOrderStatus, OrderTransition>
+> = {
+  preparing: "start_preparing",
+  shipped: "mark_shipped",
+  completed: "complete",
+  cancelled: "cancel",
+};
+
+/**
+ * Bulk status change — every id through the same machine the order page uses.
+ *
+ * This used to be a raw `update({ status }).in("id", ids)`: it wrote the
+ * column and nothing else, so a bulk cancel left the stock claimed, the
+ * customer's single-use coupon burned and the loyalty stamp standing, and it
+ * accepted every status including `paid` and `refunded`. Ids the machine
+ * refuses are counted in `skipped` rather than silently forced.
+ */
 export async function bulkUpdateOrders(
   ids: string[],
   op: BulkOrderOp,
-): Promise<BulkResult> {
-  if (ids.length === 0) return { updated: 0 };
+): Promise<BulkOrderResult> {
+  if (ids.length === 0) return { updated: 0, skipped: 0 };
+  const transition = BULK_ORDER_TRANSITIONS[op.status];
+  if (!transition) return { updated: 0, skipped: ids.length };
   await ensureSeed();
-  const sb = getDb();
-  const res = rows<{ id: string }>(
-    await sb
-      .from(TABLES.orders)
-      .update({ status: op.status })
-      .in("id", ids)
-      .neq("status", op.status)
-      .select("id"),
-    "bulkUpdateOrders",
-  );
-  return { updated: res.length };
+  let updated = 0;
+  let skipped = 0;
+  for (const id of ids) {
+    const res = await transitionOrder(id, transition);
+    if (res.ok) updated += 1;
+    else skipped += 1;
+  }
+  return { updated, skipped };
 }
 
 export interface PlaceOrderItemInput {
@@ -1405,6 +1478,36 @@ async function claimOrderStock(
   return { ok: true, stockAfters: (claim.data ?? []) as number[] };
 }
 
+/**
+ * Hands back stock that was claimed for an order that never got written.
+ *
+ * Placement is a sequence of auto-commit statements: claim the stock, take the
+ * counters, write the stock moves, insert the row. A failure anywhere after
+ * the claim used to leave the units decremented forever — the sweep that
+ * releases abandoned checkouts iterates `orders` rows, and there is no row to
+ * find. Best-effort by design: it runs while another error is already on its
+ * way up, and must not replace it.
+ */
+async function releaseClaimedStock(resolved: ResolvedLine[]): Promise<void> {
+  if (resolved.length === 0) return;
+  try {
+    const { error } = await getDb().rpc("release_order_stock", {
+      p_lines: resolved.map((l) => ({
+        productId: l.product.id,
+        variantId: l.variant?.id ?? null,
+        qty: l.qty,
+      })),
+      p_now: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+  } catch (err) {
+    console.error(
+      "[orders] releasing the stock of a failed order placement failed",
+      err,
+    );
+  }
+}
+
 /** One stock movement per claimed line, using the post-claim product stock. */
 async function recordOrderStockMoves(
   resolved: ResolvedLine[],
@@ -1433,6 +1536,8 @@ async function recordOrderStockMoves(
 interface FinalizeOrderInput {
   orderId: string;
   orderNo: number;
+  /** App idempotency key; absent on web and admin orders. */
+  clientOrderId?: string;
   status: AdminOrderStatus;
   customerName: string;
   customerEmail: string;
@@ -1515,14 +1620,12 @@ async function insertOrderRow(
       );
       // A free-drink coupon (loyalty / invite) pays for a drink at the cafe;
       // on a shop order it would be ₺280 off a bag of beans. Dropped with the
-      // usual promoDropped flag so the app can say why.
-      const cafeOnly =
-        couponCheck.coupon?.source === "loyalty" ||
-        couponCheck.coupon?.source === "invite";
+      // usual promoDropped flag so the app can say why. The rule itself lives
+      // in coupon-utils so the preview cannot drift away from it again.
       if (
         couponCheck.ok &&
         couponCheck.coupon &&
-        (!cafeOnly || (f.kind ?? "shop") === "cafe")
+        couponAllowedForKind(couponCheck.coupon, f.kind)
       ) {
         const claimed = await redeemCustomerCoupon(
           couponCheck.coupon.code,
@@ -1588,8 +1691,32 @@ async function insertOrderRow(
     ...(f.fulfillment ? { fulfillment: f.fulfillment } : {}),
     ...(f.scheduledFor !== undefined ? { scheduledFor: f.scheduledFor } : {}),
     ...(f.deliveryNote !== undefined ? { deliveryNote: f.deliveryNote } : {}),
+    ...(f.clientOrderId ? { clientOrderId: f.clientOrderId } : {}),
   };
-  check(await sb.from(TABLES.orders).insert(order), "finalizeOrder.insert");
+  try {
+    check(await sb.from(TABLES.orders).insert(order), "finalizeOrder.insert");
+  } catch (err) {
+    // The discount was claimed before the row existed — deliberately, so it
+    // cannot be double-spent while the customer is on the POS page. If the row
+    // never lands, the claim has to come back: a member's single-use coupon
+    // was otherwise marked redeemed against an order number that does not
+    // exist, and a shared code lost a use nobody ever received.
+    if (promoCode) {
+      // Never let the compensation replace the error that caused it.
+      try {
+        const returned = f.customerEmail
+          ? await releaseCustomerCoupon(promoCode, f.customerEmail, f.orderNo)
+          : false;
+        if (!returned) await releasePromoUsage(promoCode);
+      } catch (releaseErr) {
+        console.error(
+          `[orders] releasing ${promoCode} after a failed order insert failed`,
+          releaseErr,
+        );
+      }
+    }
+    throw err;
+  }
   return { order, promoDropped };
 }
 
@@ -1605,7 +1732,38 @@ async function insertOrderRow(
  * abandoned checkout does not keep the last unit of a product off the shelf
  * overnight.
  */
-const PENDING_ORDER_TTL_MINUTES = 45;
+export const PENDING_ORDER_TTL_MINUTES = 45;
+
+/**
+ * The order a member's checkout attempt already produced, if any.
+ *
+ * `clientOrderId` is generated by the app once per attempt: the same id coming
+ * back means the member's phone gave up on a slow response and retried, not
+ * that they want a second latte. Scoped to the member as well as the id, so
+ * one client's id can never reach another's order.
+ */
+export async function findAppOrderByClientId(
+  customerEmail: string,
+  clientOrderId: string,
+): Promise<AdminOrder | null> {
+  const key = clientOrderId.trim();
+  const owner = customerEmail.trim().toLowerCase();
+  if (!key || !owner) return null;
+  await ensureSeed();
+  const sb = getDb();
+  const found = rows<AdminOrder>(
+    await sb
+      .from(TABLES.orders)
+      .select("*")
+      .eq("clientOrderId", key)
+      .order("orderNo", { ascending: false })
+      .limit(5),
+    "findAppOrderByClientId",
+  );
+  return (
+    found.find((o) => o.customerEmail?.trim().toLowerCase() === owner) ?? null
+  );
+}
 
 /**
  * Cancels checkouts that were never paid for, and returns what they held.
@@ -1674,30 +1832,40 @@ export async function placeOrder(
   const claimRes = await claimOrderStock(resolved);
   if (!claimRes.ok) return claimRes.result;
 
-  const orderSeq = await nextSeq("ord");
-  const orderNo = await nextSeq("orderNo");
-  const orderId = slugifyId("ord", orderSeq);
+  // Everything past the claim is compensated on failure: without an `orders`
+  // row the stale-checkout sweep has nothing to find, so a dropped connection
+  // between the claim and the insert took the last unit off the shelf forever.
+  let placed: { order: AdminOrder; promoDropped: boolean };
+  try {
+    const orderSeq = await nextSeq("ord");
+    const orderNo = await nextSeq("orderNo");
+    const orderId = slugifyId("ord", orderSeq);
 
-  await recordOrderStockMoves(
-    resolved,
-    claimRes.stockAfters,
-    orderId,
-    `Sipariş #${orderNo}`,
-    input.customerEmail ?? "customer",
-  );
+    await recordOrderStockMoves(
+      resolved,
+      claimRes.stockAfters,
+      orderId,
+      `Sipariş #${orderNo}`,
+      input.customerEmail ?? "customer",
+    );
 
-  const { order, promoDropped } = await finalizeOrder(resolved, {
-    orderId,
-    orderNo,
-    status: "pending_payment",
-    customerName: input.customerName?.trim() || "Misafir",
-    customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
-    customerPhone: input.customerPhone?.trim() ?? "",
-    shippingAddress: input.shippingAddress?.trim() ?? "",
-    internalNote: "",
-    promoCode: input.promoCode,
-    legalConsent: input.legalConsent,
-  });
+    placed = await finalizeOrder(resolved, {
+      orderId,
+      orderNo,
+      status: "pending_payment",
+      customerName: input.customerName?.trim() || "Misafir",
+      customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
+      customerPhone: input.customerPhone?.trim() ?? "",
+      shippingAddress: input.shippingAddress?.trim() ?? "",
+      internalNote: "",
+      promoCode: input.promoCode,
+      legalConsent: input.legalConsent,
+    });
+  } catch (err) {
+    await releaseClaimedStock(resolved);
+    throw err;
+  }
+  const { order, promoDropped } = placed;
   return { ok: true, order, priceAdjusted, promoDropped };
 }
 
@@ -1806,6 +1974,12 @@ export interface AppOrderInput {
   scheduledFor: string | null;
   promoCode: string;
   legalConsent: OrderLegalConsent;
+  /**
+   * The app's own id for this checkout attempt; "" when it did not send one.
+   * Stored on the row behind a partial unique index per member, so a retried
+   * POST is recognised instead of placing a second order.
+   */
+  clientOrderId?: string;
 }
 
 export type PlaceAppOrderResult =
@@ -1990,10 +2164,6 @@ export async function placeAppOrder(
   }
 
   const settings = await getSettings();
-  if (!settings.isShopOpen) {
-    return { ok: false, reason: "shop_closed" };
-  }
-
   const { cafe, shop } = splitAppLines(input.lines);
   if (cafe.length === 0 && shop.length === 0) {
     return { ok: false, reason: "empty" };
@@ -2002,6 +2172,15 @@ export async function placeAppOrder(
     return { ok: false, reason: "bad_request", message: MIXED_BASKET_MSG };
   }
   const kind: OrderKind = cafe.length > 0 ? "cafe" : "shop";
+  // "Online mağaza açık" is the parcel shop's switch — the one the owner
+  // unticks to pause shipping for a holiday. It used to refuse every app
+  // order, so the house stayed open, the live-status card said "Şu an açık",
+  // and every gel-al latte came back `shop_closed`. Cafe ordering has its own
+  // switches (`mobileApp.ordering`, checked by the caller) and the venue's
+  // hours and manual override below.
+  if (kind === "shop" && !settings.isShopOpen) {
+    return { ok: false, reason: "shop_closed" };
+  }
   if (!fulfillmentAllowed(kind, input.fulfillment)) {
     return {
       ok: false,
@@ -2057,6 +2236,7 @@ export async function placeAppOrder(
     const { order, promoDropped } = await insertOrderRow(cafeRes.items, {
       orderId,
       orderNo,
+      clientOrderId: input.clientOrderId,
       ...common,
     });
     return { ok: true, order, promoDropped };
@@ -2069,28 +2249,89 @@ export async function placeAppOrder(
   const claimRes = await claimOrderStock(resolved);
   if (!claimRes.ok) return claimRes.result;
 
-  const orderSeq = await nextSeq("ord");
-  const orderNo = await nextSeq("orderNo");
-  const orderId = slugifyId("ord", orderSeq);
+  // Same compensation as the web checkout: nothing between the claim and the
+  // insert may leave stock held by an order that does not exist.
+  try {
+    const orderSeq = await nextSeq("ord");
+    const orderNo = await nextSeq("orderNo");
+    const orderId = slugifyId("ord", orderSeq);
 
-  await recordOrderStockMoves(
-    resolved,
-    claimRes.stockAfters,
-    orderId,
-    `Uygulama siparişi #${orderNo}`,
-    common.customerEmail,
-  );
+    await recordOrderStockMoves(
+      resolved,
+      claimRes.stockAfters,
+      orderId,
+      `Uygulama siparişi #${orderNo}`,
+      common.customerEmail,
+    );
 
-  const { order, promoDropped } = await insertOrderRow(
-    withShopNotes(shopLineItems(resolved), shop),
-    { orderId, orderNo, ...common },
-  );
-  return { ok: true, order, promoDropped };
+    const { order, promoDropped } = await insertOrderRow(
+      withShopNotes(shopLineItems(resolved), shop),
+      { orderId, orderNo, clientOrderId: input.clientOrderId, ...common },
+    );
+    return { ok: true, order, promoDropped };
+  } catch (err) {
+    await releaseClaimedStock(resolved);
+    throw err;
+  }
 }
 
 // ── Payment application ───────────────────────────────────────────────────
 
-export type PaymentApplyResult = { ok: true } | { ok: false; error: string };
+/** Why a payment arrived but could not be applied to its order. */
+export type PaymentReconcileReason = "amount_mismatch" | "order_not_open";
+
+export type PaymentApplyResult =
+  | { ok: true; reconcile?: PaymentReconcileReason }
+  | { ok: false; error: string };
+
+/**
+ * Books a payment that arrived but could not be applied to its order.
+ *
+ * Both cases used to end at a `console.warn`: a confirmation for an order the
+ * 45-minute sweep had already cancelled was recorded, the customer was mailed
+ * "ödemen alındı", and the order stayed cancelled with nobody refunding
+ * anything; an amount mismatch answered the provider with a 500 it retried
+ * forever. The money is real either way, so it goes into the audit log where
+ * a human finds it. Nothing refunds automatically — handing the drink over or
+ * giving the money back is the venue's call, not this function's.
+ */
+async function noteUnreconciledPayment(
+  order: AdminOrder,
+  input: { provider: string; providerRef: string; amountMinor: number },
+  reason: PaymentReconcileReason,
+): Promise<void> {
+  console.error(
+    `[payment] UNRECONCILED order=${order.id} orderNo=${order.orderNo} ` +
+      `reason=${reason} status=${order.status} expected=${order.totalMinor} ` +
+      `collected=${input.amountMinor} provider=${input.provider} ref=${input.providerRef}`,
+  );
+  try {
+    // Lazily imported: the audit module reads the admin session, and a
+    // bookkeeping failure must never turn a settled payment into an error.
+    const { logAudit } = await import("./audit");
+    await logAudit({
+      actor: "system",
+      action: "update",
+      entity: "order",
+      entityId: order.id,
+      payload: {
+        event: "payment_unreconciled",
+        reason,
+        orderNo: order.orderNo,
+        status: order.status,
+        expectedMinor: order.totalMinor,
+        collectedMinor: input.amountMinor,
+        provider: input.provider,
+        providerRef: input.providerRef,
+      },
+    });
+  } catch (err) {
+    console.error(
+      `[payment] audit row for the unreconciled payment failed order=${order.id}`,
+      err,
+    );
+  }
+}
 
 /**
  * Records a successful payment and advances the order to `paid`. Idempotent:
@@ -2139,12 +2380,11 @@ export async function applyPaymentSucceeded(input: {
     return { ok: false, error: ins.error.message };
   }
   if (!amountMatches) {
-    console.error(
-      `[payment] AMOUNT MISMATCH order=${input.orderId} orderNo=${order.orderNo} ` +
-        `expected=${order.totalMinor} collected=${input.amountMinor} ` +
-        `provider=${input.provider} ref=${input.providerRef} — order left unpaid`,
-    );
-    return { ok: false, error: "amount_mismatch" };
+    // Answered `ok` on purpose: the transaction row above IS the record, and a
+    // failure here made the provider retry a notification that can never
+    // succeed. The order still does not advance — a human reconciles it.
+    await noteUnreconciledPayment(order, input, "amount_mismatch");
+    return { ok: true, reconcile: "amount_mismatch" };
   }
 
   const paidAt = new Date().toISOString();
@@ -2160,27 +2400,37 @@ export async function applyPaymentSucceeded(input: {
   // actually advanced the order, never a late or repeated confirmation.
   const advanced = ((upd.data as { id: string }[] | null) ?? []).length > 0;
 
-  // Loyalty follows the payment but must never undo it: a stamp that fails
-  // to land is logged, the money stays recorded. Imported lazily because the
-  // loyalty module reads orders from this store (a static import would be a
-  // cycle), and the hook is idempotent so a retried webhook is harmless.
-  try {
-    if (advanced) {
-      const { onOrderPaid } = await import("@/lib/mobile/loyalty");
-      await onOrderPaid({ ...order, status: "paid", paidAt });
+  // Not advancing has two very different causes. Either the order had already
+  // moved on (a repeated confirmation, or staff starting it early) — harmless
+  // — or the stale sweep cancelled it and handed its stock back while the
+  // customer was still in the bank's 3-D Secure step, in which case we are
+  // holding money for an order that will never be fulfilled.
+  let unreconciled: PaymentReconcileReason | null = null;
+  if (!advanced) {
+    const current = await getOrder(input.orderId);
+    if (current?.status === "cancelled" || current?.status === "refunded") {
+      unreconciled = "order_not_open";
+      await noteUnreconciledPayment(
+        { ...order, status: current.status },
+        input,
+        "order_not_open",
+      );
     } else {
       console.warn(
         `[payment] order ${input.orderId} was not pending — loyalty skipped`,
       );
     }
-  } catch (err) {
-    console.error(
-      `[loyalty] onOrderPaid failed order=${input.orderId} orderNo=${order.orderNo}`,
-      err,
-    );
   }
 
-  if (isFirstConfirmation) {
+  // Loyalty follows the payment but must never undo it: a stamp that fails to
+  // land is logged, the money stays recorded.
+  if (advanced) {
+    await awardLoyalty({ ...order, status: "paid", paidAt }, "payment");
+  }
+
+  // No "ödemen alındı" for an order that is cancelled: the customer used to be
+  // told their order was on its way while the row said otherwise.
+  if (isFirstConfirmation && !unreconciled) {
     // Best-effort payment-confirmed e-mail (logs in dev when Resend is unset).
     try {
       if (
@@ -2203,7 +2453,7 @@ export async function applyPaymentSucceeded(input: {
       console.error("[email] order paid notification failed", err);
     }
   }
-  return { ok: true };
+  return unreconciled ? { ok: true, reconcile: unreconciled } : { ok: true };
 }
 
 /**
@@ -2218,6 +2468,20 @@ export async function applyPaymentSucceeded(input: {
  *
  * Idempotent on the provider reference: a retried webhook hits the unique
  * (provider, providerRef) index and returns without touching the order again.
+ *
+ * The ledger row is keyed on `${providerRef}:refund`, NOT on the bare
+ * reference. `payment_txn_provider_ref_key` is (provider, "providerRef") with
+ * no status column, and iyzico derives the same `paymentId` for a charge and
+ * for its later refund — so the bare reference collided with the succeeded
+ * row that is always inserted first, every provider-side refund was mistaken
+ * for a duplicate notification, and the order silently stayed `paid` while
+ * the money had left. Suffixing the refund gives the two events distinct
+ * identities without a migration.
+ *
+ * Limitation worth naming: iyzico's notification carries no per-refund id, so
+ * two SEPARATE partial refunds from the provider produce the same suffixed
+ * reference and only the first is recorded. Partial refunds issued from the
+ * admin panel go through `refundOrder`, which is unaffected.
  */
 export async function recordProviderRefund(input: {
   orderId: string;
@@ -2228,10 +2492,11 @@ export async function recordProviderRefund(input: {
   raw?: unknown;
 }): Promise<PaymentApplyResult> {
   const sb = getDb();
+  const refundRef = `${input.providerRef}:refund`;
   const ins = await sb.from(TABLES.paymentTransactions).insert({
     orderId: input.orderId,
     provider: input.provider,
-    providerRef: input.providerRef,
+    providerRef: refundRef,
     status: "refunded",
     amountMinor: input.amountMinor,
     currency: input.currency,
@@ -2272,6 +2537,10 @@ export async function recordProviderRefund(input: {
     .update({ refunds, status: fullyRefunded ? "refunded" : order.status })
     .eq("id", input.orderId);
   if (upd.error) return { ok: false, error: upd.error.message };
+  // Same rule as the admin path: a fully refunded order keeps nothing, so the
+  // stamp it earned goes back. Without this a member could farm stamps by
+  // ordering and refunding through the provider.
+  if (fullyRefunded) await reverseLoyalty(order, "provider-refund");
   return { ok: true };
 }
 
@@ -2316,6 +2585,19 @@ const TRANSITION_MAP: Record<
     from: ["pending_payment", "paid", "preparing", "shipped"],
     to: "cancelled",
   },
+};
+
+/**
+ * The column that dates each stage. `paid` is absent because `paidAt` is only
+ * written when the transition actually settles the order (see `settles`
+ * below); a card payment stamped it long before staff touched the panel.
+ */
+const STAGE_INSTANT_COLUMN: Partial<
+  Record<AdminOrderStatus, "preparingAt" | "shippedAt" | "completedAt">
+> = {
+  preparing: "preparingAt",
+  shipped: "shippedAt",
+  completed: "completedAt",
 };
 
 export function availableTransitions(
@@ -2437,15 +2719,58 @@ export async function transitionOrder(
       error: `Bu işlem '${existing.status}' durumunda yapılamaz.`,
     };
   }
+  // Settling by hand is still settling. "Ödendi olarak işaretle" — the cash
+  // pickup paid at the counter — used to write the status column and nothing
+  // else: no `paidAt`, and no stamp, while the app told the member their app
+  // cafe order had earned one. Same for staff who skip straight to
+  // "Hazırlanıyor" on an unpaid order.
+  const settles =
+    !existing.paidAt &&
+    existing.status === "pending_payment" &&
+    (map.to === "paid" || map.to === "preparing");
+  const paidAt = new Date().toISOString();
+  // The instant this stage was reached. Only stamped the first time, so
+  // re-reaching a stage (paid → preparing → paid is not possible, but
+  // shipped → completed → shipped by hand would be) keeps the original.
+  const stageColumn = STAGE_INSTANT_COLUMN[map.to];
+  const patch: Record<string, string> = { status: map.to };
+  if (settles) patch.paidAt = paidAt;
+  if (stageColumn && !existing[stageColumn]) patch[stageColumn] = paidAt;
   check(
-    await sb.from(TABLES.orders).update({ status: map.to }).eq("id", id),
+    await sb.from(TABLES.orders).update(patch).eq("id", id),
     "transitionOrder",
   );
   if (map.to === "cancelled") {
     await releaseOrderInventory(existing);
     await reverseLoyalty(existing, "cancelled");
+  } else if (settles) {
+    // Idempotent on the order id, so a later payment webhook for the same
+    // order does not hand out a second stamp.
+    await awardLoyalty({ ...existing, status: map.to, paidAt }, "transition");
   }
-  return { ok: true, order: { ...existing, status: map.to } };
+  return { ok: true, order: { ...existing, ...patch, status: map.to } };
+}
+
+/**
+ * Awards the stamp a paid app cafe order earns, and settles the invite that
+ * order was the first of.
+ *
+ * Lazily imported because the loyalty module reads orders from this one (a
+ * static import would be a cycle), and best-effort because a stamp that fails
+ * to land must never undo a payment. The hook is idempotent on the order id,
+ * so a retried webhook — or a webhook arriving after staff already marked the
+ * order paid — is harmless.
+ */
+async function awardLoyalty(order: AdminOrder, why: string): Promise<void> {
+  try {
+    const { onOrderPaid } = await import("@/lib/mobile/loyalty");
+    await onOrderPaid(order);
+  } catch (err) {
+    console.error(
+      `[loyalty] onOrderPaid failed order=${order.id} orderNo=${order.orderNo} (${why})`,
+      err,
+    );
+  }
 }
 
 /**
@@ -2591,7 +2916,7 @@ export async function refundOrder(
   if (input.amountMinor > remaining) {
     return {
       ok: false,
-      error: `İade tutarı kalan bakiyeyi aşıyor (kalan: ${(remaining / 100).toFixed(2)} ₺).`,
+      error: `İade tutarı kalan bakiyeyi aşıyor (kalan: ${priceLabel(remaining)}).`,
     };
   }
   const refund: AdminRefund = {
@@ -2652,7 +2977,13 @@ export async function getSettings(): Promise<AdminSettings> {
   // migration default once the column lands; keys the driver did not return
   // at all (a partial select in a test executor) fall back to the same
   // defaults here, so callers never see `undefined` for a number field.
-  return { ...defaultSettings(), ...rest } as AdminSettings;
+  // The app config is a jsonb document, so a shallow spread cannot fill a
+  // missing nested key — it is normalised leaf by leaf instead.
+  return {
+    ...defaultSettings(),
+    ...rest,
+    mobileApp: normalizeMobileAppConfig(rest.mobileApp),
+  } as AdminSettings;
 }
 
 export async function updateSettings(
@@ -2759,8 +3090,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     revenueMinor,
   };
 }
-
-export { SEED_MENU as CAFE_MENU };
 
 // ─── Public read for customer site ────────────────────────────────────────
 
@@ -3313,7 +3642,7 @@ export async function applyPromoCode(
   if (subtotalMinor < promo.minSubtotalMinor) {
     return {
       ok: false,
-      error: `Bu koda uygulanabilmek için en az ${(promo.minSubtotalMinor / 100).toFixed(2)} ₺ alışveriş gerek.`,
+      error: `Bu koda uygulanabilmek için en az ${priceLabel(promo.minSubtotalMinor)} alışveriş gerek.`,
     };
   }
   let discountMinor =
@@ -3360,6 +3689,20 @@ async function releasePromoUsage(code: string): Promise<void> {
 // ─── Analytics aggregations ───────────────────────────────────────────────
 
 export type BucketGranularity = "day" | "week" | "month";
+
+/**
+ * Whether an order is revenue.
+ *
+ * Only `cancelled` used to be skipped, so every `pending_payment` row counted
+ * — and every app order starts there, for up to 45 minutes. Twenty members
+ * opening checkout during a campaign and abandoning at the POS page added
+ * twenty orders and their full totals to "Net ciro". Money is booked when it
+ * has been collected: paid, preparing, shipped, completed, or refunded (whose
+ * refund ledger is subtracted separately).
+ */
+export function isReportableOrder(o: Pick<AdminOrder, "status">): boolean {
+  return o.status !== "cancelled" && o.status !== "pending_payment";
+}
 
 export interface RevenueBucket {
   bucket: string;
@@ -3449,7 +3792,7 @@ export async function revenueBuckets(
   const byKey = new Map(buckets.map((b) => [b.bucket, b]));
 
   for (const o of orders) {
-    if (o.status === "cancelled") continue;
+    if (!isReportableOrder(o)) continue;
     const k = bucketKey(new Date(o.createdAt), granularity);
     const slot = byKey.get(k);
     if (slot) {
@@ -3474,7 +3817,7 @@ export async function topProducts(limit = 5): Promise<TopProductRow[]> {
   const orders = await listOrders();
   const tally = new Map<string, TopProductRow>();
   for (const o of orders) {
-    if (o.status === "cancelled") continue;
+    if (!isReportableOrder(o)) continue;
     for (const it of o.items) {
       if (it.status === "cancelled") continue;
       const row = tally.get(it.productName);
@@ -3505,7 +3848,7 @@ export interface AnalyticsHeadline {
 
 export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
   const orders = await listOrders();
-  const valid = orders.filter((o) => o.status !== "cancelled");
+  const valid = orders.filter(isReportableOrder);
   const totalRevenueMinor = valid.reduce((s, o) => s + o.totalMinor, 0);
   const totalOrders = valid.length;
   const refundedMinor = orders.reduce(
@@ -3887,9 +4230,9 @@ export const deleteStoryEvent = storyResource.remove;
 // submission, so they live here and the app reads them over the API.
 //
 // Kept separate from `shop_hero_slides`, which is web-shaped (a full-width
-// image, an absolute ctaHref). The app needs a brand `tone` instead of an
-// image, and a route KEY rather than a URL — CMS text must never be able to
-// drive native navigation directly.
+// image, an absolute ctaHref). The app paints a brand `tone` and takes an
+// OPTIONAL https image on top of it, and it needs a route KEY rather than a
+// URL — CMS text must never be able to drive native navigation directly.
 
 // The tones, routes, kinds and their labels live in a client-safe module and
 // are re-exported here, so server code can keep importing them from the store
@@ -3900,6 +4243,7 @@ export {
   APP_SLIDE_TONE_LABELS,
   APP_SLIDE_ROUTES,
   APP_SLIDE_ROUTE_LABELS,
+  isAppSlideRoute,
   APP_ANNOUNCEMENT_KINDS,
   APP_ANNOUNCEMENT_KIND_LABELS,
   APP_POST_KINDS,
@@ -3907,6 +4251,7 @@ export {
 } from "./app-content-schema";
 export type {
   AppSlideTone,
+  AppSlideRoute,
   AppAnnouncementKind,
   AppPostKind,
 } from "./app-content-schema";
@@ -3921,6 +4266,7 @@ export interface AdminAppSlide {
   ctaLabel: string;
   ctaRoute: string;
   tone: AppSlideTone;
+  /** Absolute https URL painted over the tone, or "" for a plain ground. */
   image: string;
   sortOrder: number;
   isActive: boolean;
@@ -3973,7 +4319,7 @@ const SEED_APP_SLIDES: AdminAppSlide[] = [
     title: "200 yıllık bir köşkte",
     body: "1987 Bologna'dan İstanbul'a. İtalya dışındaki tek L'Affogato.",
     ctaLabel: "Ziyaret",
-    ctaRoute: "/hesabim",
+    ctaRoute: "/ziyaret",
     tone: "paper",
     image: "",
     sortOrder: 2,
@@ -4075,13 +4421,15 @@ const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
   }
 });
 
-/** True when now falls inside the row's optional window. */
-function inWindow(row: { startsAt: string; endsAt: string }): boolean {
-  const now = Date.now();
-  if (row.startsAt && Date.parse(row.startsAt) > now) return false;
-  if (row.endsAt && Date.parse(row.endsAt) < now) return false;
-  return true;
-}
+// Publish windows live in ./publish-window, which carries no "server-only":
+// the /admin/mobil forms are client components and render the same instants.
+export {
+  isPublishWindowOpen,
+  normalizePublishInstant,
+  parsePublishInstant,
+  toDateTimeLocalInput,
+} from "./publish-window";
+import { isPublishWindowOpen, normalizePublishInstant } from "./publish-window";
 
 export async function listAppSlides(): Promise<AdminAppSlide[]> {
   await ensureAppContentSeed();
@@ -4100,7 +4448,7 @@ export async function listAppSlides(): Promise<AdminAppSlide[]> {
 export async function listActiveAppSlides(): Promise<AdminAppSlide[]> {
   return publicRead("listActiveAppSlides", [], async () => {
     const all = await listAppSlides();
-    return all.filter((s) => s.isActive && inWindow(s));
+    return all.filter((s) => s.isActive && isPublishWindowOpen(s));
   });
 }
 
@@ -4136,17 +4484,18 @@ function normalizeAppSlide(input: AppSlideInput): AppSlideInput {
     ctaLabel: input.ctaLabel.trim().slice(0, 32),
     // Fail closed: an unrecognised route becomes "no action" rather than
     // reaching the app as an unknown target.
-    ctaRoute: (APP_SLIDE_ROUTES as readonly string[]).includes(route)
-      ? route
-      : "",
+    ctaRoute: isAppSlideRoute(route) ? route : "",
     tone: APP_SLIDE_TONES.includes(input.tone) ? input.tone : "paper",
-    image: input.image.trim().slice(0, 4 * 1024 * 1024),
+    // Same parse as a post's picture: the phone fetches this URL on every
+    // home-screen load, so a data: blob or a bare path is stored as "" (plain
+    // tone) rather than shipped to every device.
+    image: safeHttpsUrl(input.image),
     sortOrder: Number.isFinite(input.sortOrder)
       ? Math.max(0, Math.floor(input.sortOrder))
       : 0,
     isActive: !!input.isActive,
-    startsAt: input.startsAt.trim().slice(0, 40),
-    endsAt: input.endsAt.trim().slice(0, 40),
+    startsAt: normalizePublishInstant(input.startsAt),
+    endsAt: normalizePublishInstant(input.endsAt),
   };
 }
 
@@ -4299,8 +4648,8 @@ function normalizeAppPost(input: AppPostInput): AppPostInput {
       ? Math.max(0, Math.floor(input.sortOrder))
       : 0,
     isActive: !!input.isActive,
-    startsAt: input.startsAt.trim().slice(0, 40),
-    endsAt: input.endsAt.trim().slice(0, 40),
+    startsAt: normalizePublishInstant(input.startsAt),
+    endsAt: normalizePublishInstant(input.endsAt),
   };
 }
 
@@ -4321,7 +4670,7 @@ export async function listAppPosts(): Promise<AdminAppPost[]> {
 export async function listActiveAppPosts(): Promise<AdminAppPost[]> {
   return publicRead("listActiveAppPosts", [], async () => {
     const all = await listAppPosts();
-    return all.filter((p) => p.isActive && inWindow(p));
+    return all.filter((p) => p.isActive && isPublishWindowOpen(p));
   });
 }
 
@@ -4393,7 +4742,7 @@ export async function listActiveAppAnnouncements(): Promise<
 > {
   return publicRead("listActiveAppAnnouncements", [], async () => {
     const all = await listAppAnnouncements();
-    return all.filter((a) => a.isActive && inWindow(a));
+    return all.filter((a) => a.isActive && isPublishWindowOpen(a));
   });
 }
 
@@ -4433,8 +4782,8 @@ function normalizeAppAnnouncement(
       ? Math.max(0, Math.floor(input.sortOrder))
       : 0,
     isActive: !!input.isActive,
-    startsAt: input.startsAt.trim().slice(0, 40),
-    endsAt: input.endsAt.trim().slice(0, 40),
+    startsAt: normalizePublishInstant(input.startsAt),
+    endsAt: normalizePublishInstant(input.endsAt),
   };
 }
 

@@ -15,7 +15,7 @@
  * complete) and fetched when opened.
  */
 import { build } from "esbuild";
-import { writeFileSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -38,6 +38,10 @@ async function loadLegal() {
     alias: { "@": resolve(here, "../src") },
   });
   const mod = await import(pathToFileURL(outfile).href);
+  // Import is done, so the bundle has served its purpose. It used to be left
+  // behind in the repo root, untracked and un-ignored, waiting to be committed
+  // by whoever ran the export next.
+  rmSync(outfile, { force: true });
   return mod;
 }
 

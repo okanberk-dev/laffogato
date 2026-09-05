@@ -162,9 +162,9 @@ export function RegisterForm() {
           style={{
             padding: "10px 12px",
             borderRadius: 8,
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            color: "#991b1b",
+            background: "#f6e9ec",
+            border: "1px solid #e1e5e0",
+            color: "#bb251b",
             fontSize: 13,
           }}
         >

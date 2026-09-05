@@ -2,7 +2,12 @@ import "server-only";
 
 import type { DbError } from "@/lib/db";
 
-import { getMenuItem } from "@/lib/admin/store";
+import {
+  customerOrdersByEmail,
+  expireStalePendingOrders,
+  getMenuItem,
+  type AdminOrderStatus,
+} from "@/lib/admin/store";
 import {
   getCustomerByEmail,
   updateCustomerProfile,
@@ -14,6 +19,10 @@ import {
 } from "@/lib/customer/store";
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
+import {
+  deleteSupabaseIdentity,
+  type IdentityDeletion,
+} from "@/lib/supabase/admin";
 
 import { getInviteSummary } from "./invite";
 import { getLoyalty } from "./loyalty";
@@ -114,17 +123,234 @@ export function anonymizedEmail(customerId: string): string {
 }
 
 /**
+ * Statuses that mean the member still has something running with us.
+ *
+ * Üyelik Sözleşmesi §14 promises that a closure request lands *after* an
+ * order in flight, an unfinished return or an open dispute is settled — so
+ * the API refuses rather than anonymising the buyer of an order the kitchen
+ * is about to hand over. `paid` is on the list with the other three: it is
+ * "Sipariş alındı", the most in-flight an order gets.
+ */
+export const IN_PROGRESS_ORDER_STATUSES: readonly AdminOrderStatus[] = [
+  "pending_payment",
+  "paid",
+  "preparing",
+  "shipped",
+];
+
+/**
+ * Every place a member's e-mail is stored outside their own row.
+ *
+ * Kept as data so the set itself can be tested: forgetting a table here is a
+ * silent privacy leak, not a crash. `orders` is the one that matters most —
+ * the row is retained for the books, but its address must be rewritten,
+ * because `deleteMe` frees the e-mail for re-registration and `GET /orders`
+ * is keyed on it.
+ *
+ * `op` says what the row deserves. A record that exists only to serve the
+ * member — a newsletter subscription — has no reason to survive them and is
+ * deleted outright; everything the books or the operator still need is kept
+ * with the address rewritten to the placeholder.
+ */
+export const ANON_SWEEPS: ReadonlyArray<{
+  table: string;
+  column: string;
+  caseInsensitive?: boolean;
+  op?: "update" | "delete";
+  patch: (anon: string) => Record<string, unknown>;
+}> = [
+  {
+    table: TABLES.orders,
+    column: "customerEmail",
+    caseInsensitive: true,
+    patch: (anon) => ({ customerEmail: anon }),
+  },
+  {
+    table: TABLES.loyaltyStamps,
+    column: "customerEmail",
+    patch: (anon) => ({ customerEmail: anon }),
+  },
+  {
+    table: TABLES.customerCoupons,
+    column: "customerEmail",
+    patch: (anon) => ({ customerEmail: anon, isActive: false }),
+  },
+  {
+    table: TABLES.karaokeReservations,
+    column: "customerEmail",
+    patch: (anon) => ({ customerEmail: anon, customerName: "" }),
+  },
+  {
+    table: TABLES.invites,
+    column: "inviteeEmail",
+    patch: (anon) => ({ inviteeEmail: anon }),
+  },
+  {
+    table: TABLES.invites,
+    column: "inviterEmail",
+    patch: (anon) => ({ inviterEmail: anon }),
+  },
+  {
+    // Every app order writes the buyer's e-mail as the actor of its stock
+    // moves, so the admin's stock ledger kept naming a closed account.
+    table: TABLES.stockMoves,
+    column: "actor",
+    caseInsensitive: true,
+    patch: (anon) => ({ actor: anon }),
+  },
+  {
+    // The bulletin list is not a book entry: it holds the address, the name
+    // and the consent evidence for messages that will never be sent again.
+    // Anonymising it would leave a subscription nobody owns; the row goes.
+    // The withdrawal itself is recorded on the member row (marketingConsentAt
+    // cleared, every notification pref off).
+    table: TABLES.newsletterSubscribers,
+    column: "email",
+    caseInsensitive: true,
+    op: "delete",
+    patch: () => ({}),
+  },
+];
+
+/**
+ * A booking the member will not come to. Anonymising it alone left the room
+ * held on the karaoke board for a nameless, uncontactable guest, so the future
+ * ones are cancelled first — while the rows still carry the real address.
+ */
+async function cancelFutureKaraoke(email: string, now: Date): Promise<void> {
+  const today = now.toISOString().slice(0, 10);
+  const { error } = await getDb()
+    .from(TABLES.karaokeReservations)
+    .update({ status: "cancelled", updatedAt: now.toISOString() })
+    .eq("customerEmail", email.trim().toLowerCase())
+    .gte("date", today)
+    .neq("status", "cancelled");
+  if (error)
+    console.error(`[deleteMe] karaoke cancel failed: ${error.message}`);
+}
+
+/** `%` and `_` are LIKE wildcards; an address may legitimately contain both. */
+function likeLiteral(raw: string): string {
+  return raw.replace(/[%_\\]/g, (c) => `\\${c}`);
+}
+
+/**
+ * The failed-login counters keyed on this address.
+ *
+ * `bucketKey` in `@/lib/admin/rate-limit` is `purpose::ip::email`, so the row
+ * carries the member's address AND the IP they were last seen from. It is a
+ * throttle, not evidence: a closed account has nothing left to throttle, and
+ * the address is about to belong to somebody else.
+ */
+async function purgeAuthAttempts(email: string): Promise<void> {
+  const { error } = await getDb()
+    .from(TABLES.authAttempts)
+    .delete()
+    .ilike("key", `%::${likeLiteral(email.trim().toLowerCase())}`);
+  if (error)
+    console.error(`[deleteMe] auth attempt purge failed: ${error.message}`);
+}
+
+/** Redacted payloads keep the shape a jsonb column expects. */
+export function redactedPayload(at: string): Record<string, unknown> {
+  return { redacted: true, redactedAt: at };
+}
+
+/**
+ * The provider's own callback bodies for this member's orders.
+ *
+ * `payment_transactions.raw` is whatever the POS posted — buyer name, address,
+ * masked card, IP — stored verbatim for the audit trail and never read back by
+ * this codebase. The fiscal record is the order and its invoice; the
+ * reconciliation record is `provider`, `providerRef`, `status` and
+ * `amountMinor`, all of which stay. The payload itself has no reason to
+ * outlive the account, so it is emptied.
+ */
+async function redactPaymentPayloads(
+  orderIds: readonly string[],
+  at: string,
+): Promise<void> {
+  const db = getDb();
+  // `in` lists go into one statement; chunked so a long history cannot build a
+  // query with thousands of bind parameters.
+  for (let i = 0; i < orderIds.length; i += 100) {
+    const chunk = orderIds.slice(i, i + 100);
+    const { error } = await db
+      .from(TABLES.paymentTransactions)
+      .update({ raw: redactedPayload(at) })
+      .in("orderId", chunk);
+    if (error)
+      console.error(`[deleteMe] payment redaction failed: ${error.message}`);
+  }
+}
+
+/** The Supabase user this row is linked to, or "" when it never was. */
+async function linkedIdentityId(email: string): Promise<string> {
+  const { data, error } = await getDb()
+    .from(TABLES.customers)
+    .select("supabaseUserId")
+    .eq("email", email)
+    .maybeSingle();
+  if (error) {
+    console.error(`[deleteMe] identity lookup failed: ${error.message}`);
+    return "";
+  }
+  return ((data as { supabaseUserId?: string } | null)?.supabaseUserId ?? "")
+    .toString()
+    .trim();
+}
+
+export type DeleteMeResult =
+  | { ok: true; identity: IdentityDeletion }
+  | { ok: false; error: "orders_in_progress"; count: number };
+
+/**
  * `DELETE /me`: the member row stays (orders reference it, and invoices must
  * be kept for the statutory period) but every personal field is blanked and
  * the account is closed. The e-mail is replaced with a unique placeholder so
  * the address can register again later; the invite code is released.
  *
- * The Supabase user is not deleted here — that needs a service-role key,
- * which the site does not hold (docs/API-MOBILE.md §0). The app signs the
- * session out; a later sign-in with the same address starts a fresh row.
+ * Refused, not queued, while an order is in flight — Üyelik Sözleşmesi §14 and
+ * the `hesap-silme` document both say the closure waits for it, and the member
+ * would otherwise lose sight of an order they have already paid for.
+ *
+ * The sign-in identity goes too: `deleteSupabaseIdentity` removes the Supabase
+ * user when the deployment holds a service-role key, so the old password stops
+ * working and a genuinely new sign-up gets a genuinely new account. Where the
+ * key is absent the identity survives, and `supabaseUserId` is deliberately
+ * LEFT on the closed row — `ensureCustomerForSupabaseUser` reads it as "this
+ * identity belonged to a closed account" and refuses, instead of opening a
+ * fresh membership (welcome coupon included) for whoever still knows the
+ * password.
  */
-export async function deleteMe(customer: PublicCustomer): Promise<void> {
-  const now = new Date().toISOString();
+export async function deleteMe(
+  customer: PublicCustomer,
+): Promise<DeleteMeResult> {
+  const at = new Date();
+  const now = at.toISOString();
+
+  // Reclaim the member's own abandoned checkouts before counting them: a
+  // pending_payment row nobody swept would otherwise block the closure
+  // for good.
+  try {
+    await expireStalePendingOrders();
+  } catch (err) {
+    console.error("[deleteMe] expiring stale pending orders failed", err);
+  }
+  const orders = await customerOrdersByEmail(customer.email);
+  const inProgress = orders.filter((o) =>
+    IN_PROGRESS_ORDER_STATUSES.includes(o.status),
+  );
+  if (inProgress.length > 0) {
+    return {
+      ok: false,
+      error: "orders_in_progress",
+      count: inProgress.length,
+    };
+  }
+
+  const identityId = await linkedIdentityId(customer.email);
+  await cancelFutureKaraoke(customer.email, at);
   const { error } = await getDb()
     .from(TABLES.customers)
     .update({
@@ -145,7 +371,12 @@ export async function deleteMe(customer: PublicCustomer): Promise<void> {
       verifyExpires: "",
       resetToken: "",
       resetExpires: "",
-      supabaseUserId: "",
+      // supabaseUserId is NOT cleared — see the note above: it is the record
+      // that this identity belongs to a closed account.
+      // The saved-card key points at cards held by the provider. A closed
+      // account keeps none of it, and re-registering the address must not
+      // hand the next person the previous member's cards.
+      cardUserKey: "",
       inviteCode: "",
       invitedBy: "",
       usual: usualColumnValue(null),
@@ -156,36 +387,46 @@ export async function deleteMe(customer: PublicCustomer): Promise<void> {
   checkErr(error, "deleteMe");
 
   // The same address sits in the loyalty ledger, the invite graph, the
-  // karaoke book and the coupon table. Orders stay (fiscal retention), the
-  // rest follows the customer row. Best-effort per table: a failure here
-  // must not leave the account itself un-anonymised.
+  // karaoke book, the coupon table — and on every order.
+  //
+  // Orders are KEPT (fiscal retention) but their address is rewritten to the
+  // same placeholder. Leaving the live address on them was a leak, not a
+  // retention policy: `deleteMe` frees the e-mail for re-registration and
+  // `listAppOrders` keys on it, so whoever next signed up with that address
+  // was handed the deleted member's order history, delivery addresses
+  // included. The placeholder is unique per customer id, so the operator can
+  // still group a closed member's orders for the books.
+  //
+  // Best-effort per table: a failure here must not leave the account itself
+  // un-anonymised.
   const anon = anonymizedEmail(customer.id);
   const db = getDb();
-  const sweeps: Array<PromiseLike<{ error: DbError | null }>> = [
-    db
-      .from(TABLES.loyaltyStamps)
-      .update({ customerEmail: anon })
-      .eq("customerEmail", customer.email),
-    db
-      .from(TABLES.customerCoupons)
-      .update({ customerEmail: anon, isActive: false })
-      .eq("customerEmail", customer.email),
-    db
-      .from(TABLES.karaokeReservations)
-      .update({ customerEmail: anon, customerName: "" })
-      .eq("customerEmail", customer.email),
-    db
-      .from(TABLES.invites)
-      .update({ inviteeEmail: anon })
-      .eq("inviteeEmail", customer.email),
-    db
-      .from(TABLES.invites)
-      .update({ inviterEmail: anon })
-      .eq("inviterEmail", customer.email),
-  ];
+  const sweeps: Array<PromiseLike<{ error: DbError | null }>> = ANON_SWEEPS.map(
+    (sweep) => {
+      const q =
+        sweep.op === "delete"
+          ? db.from(sweep.table).delete()
+          : db.from(sweep.table).update(sweep.patch(anon));
+      // `ilike`, not `eq`, where the column is written with whatever case the
+      // caller captured — `customerOrdersByEmail` reads orders that way too,
+      // and an `eq` sweep would leave `Ayse@…` behind for `ayse@…` to inherit.
+      return sweep.caseInsensitive
+        ? q.ilike(sweep.column, likeLiteral(customer.email))
+        : q.eq(sweep.column, customer.email);
+    },
+  );
+
   for (const sweep of sweeps) {
     const res = await sweep;
     if (res.error)
       console.error(`[deleteMe] sweep failed: ${res.error.message}`);
   }
+
+  await purgeAuthAttempts(customer.email);
+  await redactPaymentPayloads(
+    orders.map((o) => o.id),
+    now,
+  );
+
+  return { ok: true, identity: await deleteSupabaseIdentity(identityId) };
 }

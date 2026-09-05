@@ -11,6 +11,7 @@ import {
   formatTRY,
 } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
+import { getAdminInviteTree } from "@/lib/admin/invites";
 import {
   customerOrdersByEmail,
   listProducts,
@@ -25,6 +26,13 @@ export const dynamic = "force-dynamic";
 interface PageProps {
   params: Promise<{ email: string }>;
 }
+
+/** `invites.status` in the member's own words. */
+const INVITE_STATUS_LABEL: Record<string, string> = {
+  pending: "Bekliyor",
+  joined: "Katıldı",
+  rewarded: "Ödüllendi",
+};
 
 const STATUS_LABEL: Record<AdminOrderStatus, string> = {
   pending_payment: "Ödeme bekleniyor",
@@ -62,13 +70,16 @@ export default async function CustomerDetailPage({ params }: PageProps) {
   const { email: raw } = await params;
   const email = decodeURIComponent(raw);
 
-  const [member, orders, coupons, loyalty, stamps] = await Promise.all([
-    getAdminCustomerByEmail(email),
-    customerOrdersByEmail(email),
-    adminListCustomerCoupons(email),
-    getLoyalty(email),
-    listStamps(email),
-  ]);
+  const [member, orders, coupons, loyalty, stamps, invites] = await Promise.all(
+    [
+      getAdminCustomerByEmail(email),
+      customerOrdersByEmail(email),
+      adminListCustomerCoupons(email),
+      getLoyalty(email),
+      listStamps(email),
+      getAdminInviteTree(email),
+    ],
+  );
 
   // Neither a member account nor any order for this e-mail → 404.
   if (!member && orders.length === 0) notFound();
@@ -231,8 +242,59 @@ export default async function CustomerDetailPage({ params }: PageProps) {
               email={member.email}
               loyalty={loyalty}
               history={stamps}
+              canReverse
             />
             <CustomerCoupons email={member.email} coupons={coupons} />
+            {/* The referral programme was invisible in the panel: nobody could
+                see who invited whom, why an invite was stuck on "bekliyor", or
+                that a member had already hit the reward cap. */}
+            <Card>
+              <SectionTitle>Davetler ({invites.invitees.length})</SectionTitle>
+              <ul className="grid gap-2 text-sm">
+                <KV k="Davet kodu">{invites.inviteCode || "—"}</KV>
+                <KV k="Davet eden">
+                  {invites.invitedBy ? (
+                    <Link
+                      href={`/admin/musteriler/${encodeURIComponent(invites.invitedBy)}`}
+                      className="underline"
+                    >
+                      {invites.invitedBy}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </KV>
+                <KV k="Ödüllenen">
+                  {invites.rewardedCount}/{invites.rewardCap}
+                  {invites.capReached ? " · sınır doldu" : ""}
+                </KV>
+              </ul>
+              {invites.invitees.length === 0 ? (
+                <p className="mt-3 text-sm text-neutral-400">
+                  Bu üyenin kodunu henüz kimse kullanmadı.
+                </p>
+              ) : (
+                <ul className="mt-3 grid gap-1.5">
+                  {invites.invitees.map((i) => (
+                    <li
+                      key={i.id}
+                      className="flex items-center justify-between gap-2 text-xs"
+                    >
+                      <Link
+                        href={`/admin/musteriler/${encodeURIComponent(i.inviteeEmail)}`}
+                        className="min-w-0 truncate text-neutral-700 underline"
+                      >
+                        {i.inviteeEmail}
+                      </Link>
+                      <span className="shrink-0 text-neutral-400">
+                        {INVITE_STATUS_LABEL[i.status] ?? i.status} ·{" "}
+                        {formatDateTime(i.rewardedAt || i.createdAt)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
             <Card>
               <SectionTitle>Bildirim tercihleri</SectionTitle>
               <ul className="grid gap-2 text-sm">

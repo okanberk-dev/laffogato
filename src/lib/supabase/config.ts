@@ -14,7 +14,11 @@
  * members in against the same project the app uses.
  *
  * The service-role key is a different animal — it bypasses every policy — and
- * it is deliberately NOT read anywhere in this codebase. Do not add it.
+ * it is deliberately NOT read here. Exactly one module reads it,
+ * `./admin.ts`, for exactly one operation: deleting the sign-in identity of a
+ * member who closed their account. It is optional, `server-only`, and carries
+ * no `NEXT_PUBLIC_` prefix, so it never reaches a browser or the app bundle.
+ * Do not read it anywhere else.
  */
 
 const DEFAULT_SUPABASE_URL = "https://wvivcgctebyxojtyidfg.supabase.co";
@@ -39,7 +43,3 @@ export const SUPABASE_PUBLISHABLE_KEY: string =
   clean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
   clean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
   DEFAULT_SUPABASE_PUBLISHABLE_KEY;
-
-/** Project ref (the subdomain) — handy for cookie names and diagnostics. */
-export const SUPABASE_PROJECT_REF: string =
-  /^https?:\/\/([a-z0-9-]+)\./i.exec(SUPABASE_URL)?.[1] ?? "";

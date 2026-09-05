@@ -9,6 +9,7 @@ import {
   type OrderTotals,
 } from "@/lib/utils/commerce";
 
+import type { MobileAppConfig } from "./app-config";
 import {
   resolveOptionPricing,
   UnknownOptionError,
@@ -120,26 +121,102 @@ function withDefaults(
   };
 }
 
-/** Which kind an order is, from what is in the basket. */
-export function orderKindOfLines(lines: {
-  cafe: number;
-  shop: number;
-}): OrderKind {
-  return lines.cafe > 0 ? "cafe" : "shop";
+/**
+ * The operator's ordering switches (`settings."mobileApp".ordering`, edited
+ * at /admin/mobil/ayarlar). Only the flags matter here; the ETA window is
+ * display copy the app reads from bootstrap.
+ */
+export type OrderingRules = Pick<
+  MobileAppConfig["ordering"],
+  "cafeEnabled" | "deliveryEnabled" | "pickupEnabled" | "closedMessage"
+>;
+
+/** Message the app shows when a chosen fulfillment is switched off. */
+export const FULFILLMENT_UNAVAILABLE_MESSAGE =
+  "Bu teslimat seçeneği şu an kapalı.";
+
+/**
+ * Why an ordering rule refused the basket. Same shape the order use-cases
+ * hand the route (`{ status, code, message }`), so the refusal travels
+ * unchanged into the `{ error, message }` body.
+ */
+export interface OrderingRefusal {
+  status: 409 | 400;
+  code: "ordering_closed" | "fulfillment_unavailable";
+  message: string;
 }
 
 /**
- * Cafe orders are picked up or brought by the courier; shop goods ship. A
- * basket that mixes the two cannot be fulfilled one way, so the schema
- * refuses it before this is asked.
+ * Shape rule: cafe orders are picked up or brought by the courier; shop
+ * goods ship. A basket that mixes the two cannot be fulfilled one way, so
+ * the schema refuses it before this is asked.
  */
-export function fulfillmentAllowed(
+function fulfillmentFitsKind(
   kind: OrderKind,
   fulfillment: OrderFulfillment,
 ): boolean {
   return kind === "cafe"
     ? fulfillment === "pickup" || fulfillment === "delivery"
     : fulfillment === "shipping";
+}
+
+/**
+ * The operator's switches, applied to a basket that already fits its kind.
+ *
+ * A cafe basket while cafe ordering is off — or while both ways of getting a
+ * cafe order to the customer are off, which is the same thing said twice —
+ * is a 409 `ordering_closed` carrying the operator's own copy. A single
+ * switched-off fulfillment is a 400 `fulfillment_unavailable`: the basket is
+ * fine, the customer only has to pick the other option. Shop goods ship and
+ * are not governed by these switches (the shop has `isShopOpen`).
+ *
+ * `null` means the rules let the order through.
+ */
+export function orderingRefusal(
+  kind: OrderKind,
+  fulfillment: OrderFulfillment,
+  ordering: OrderingRules,
+): OrderingRefusal | null {
+  if (kind !== "cafe") return null;
+  const closed =
+    !ordering.cafeEnabled ||
+    (!ordering.deliveryEnabled && !ordering.pickupEnabled);
+  if (closed) {
+    return {
+      status: 409,
+      code: "ordering_closed",
+      message: ordering.closedMessage,
+    };
+  }
+  const unavailable =
+    (fulfillment === "delivery" && !ordering.deliveryEnabled) ||
+    (fulfillment === "pickup" && !ordering.pickupEnabled);
+  if (unavailable) {
+    return {
+      status: 400,
+      code: "fulfillment_unavailable",
+      message: FULFILLMENT_UNAVAILABLE_MESSAGE,
+    };
+  }
+  return null;
+}
+
+/**
+ * Whether `fulfillment` is allowed for a `kind` of order. Without `ordering`
+ * this is the shape rule alone (the wire schema and the store ask it that
+ * way — a wrong shape is a bad request, not a closed shop); with it the
+ * operator's switches apply too. The status and code behind a `false` come
+ * from `orderingRefusal`.
+ */
+export function fulfillmentAllowed(
+  kind: OrderKind,
+  fulfillment: OrderFulfillment,
+  ordering?: OrderingRules,
+): boolean {
+  if (!fulfillmentFitsKind(kind, fulfillment)) return false;
+  return ordering
+    ? orderingRefusal(kind, fulfillment, ordering) === null
+    : true;
 }
 
 /**

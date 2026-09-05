@@ -15,14 +15,19 @@ const MENU_CATEGORIES = [
   "snack",
   "extras",
 ] as const;
+/**
+ * The statuses the bulk tool accepts — the keys of `BULK_ORDER_TRANSITIONS`.
+ *
+ * `pending_payment` has no transition leading back to it, and `paid`/`refunded`
+ * move money: both need a ledger row the bulk tool does not write, so they are
+ * done one order at a time. Kept as a literal list because this module is the
+ * request boundary and must not import from the server-only store.
+ */
 const ORDER_STATUSES = [
-  "pending_payment",
-  "paid",
   "preparing",
   "shipped",
   "completed",
   "cancelled",
-  "refunded",
 ] as const;
 
 const ids = z
@@ -83,7 +88,3 @@ export const bulkOrderSchema = z.object({
   op: z.literal("set_status"),
   value: z.enum(ORDER_STATUSES),
 });
-
-export type BulkProductInput = z.infer<typeof bulkProductSchema>;
-export type BulkMenuInput = z.infer<typeof bulkMenuSchema>;
-export type BulkOrderInput = z.infer<typeof bulkOrderSchema>;

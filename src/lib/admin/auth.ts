@@ -4,21 +4,34 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import bcrypt from "bcryptjs";
+
 import {
   checkLoginLimit,
   clearLoginLimit,
   clientIp,
   recordLoginFailure,
 } from "./rate-limit";
-import { canAccess, type AdminRole, type AdminSection } from "./roles";
+import {
+  ADMIN_ROLES,
+  canAccess,
+  landingPathFor,
+  type AdminRole,
+  type AdminSection,
+} from "./roles";
 import { has2FA, verifyToken as verify2FAToken } from "./twofa";
+import {
+  anyAdminUserExists,
+  resolveAdminUser,
+  verifyAdminPassword,
+} from "./users";
 
 const COOKIE_NAME = "laffogato_admin_session";
 const PENDING_COOKIE_NAME = "laffogato_admin_pending_2fa";
 const COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 const PENDING_MAX_AGE_SECONDS = 5 * 60;
 
-const VALID_ROLES: AdminRole[] = ["owner", "manager", "staff"];
+const VALID_ROLES: AdminRole[] = ADMIN_ROLES;
 
 export interface AdminSession {
   email: string;
@@ -33,12 +46,25 @@ interface AdminUserRecord {
 }
 
 /**
+ * A bcrypt hash of nothing anybody knows. Compared against when the database
+ * has no row for the typed address, so "unknown email" and "wrong password"
+ * cost the same wall-clock time — otherwise the login page answers, in
+ * milliseconds, which addresses are real.
+ */
+const DUMMY_HASH =
+  "$2a$10$invalidhashforuserenumprotection000000000000000000000";
+
+/**
  * Resolves the list of admin users from env. Two sources:
  *   - ADMIN_USERS (JSON array of {email,password,role})
  *   - Legacy ADMIN_EMAIL + ADMIN_PASSWORD (role = "owner")
  * The two are merged with ADMIN_USERS taking precedence on conflicts.
+ *
+ * These are the BREAK-GLASS accounts. Day-to-day users live in `admin_users`
+ * (see src/lib/admin/users.ts) and win on conflict; env stays so an owner who
+ * loses panel access can still get in without a redeploy.
  */
-function loadAdminUsers(): AdminUserRecord[] {
+function loadEnvAdminUsers(): AdminUserRecord[] {
   const out: AdminUserRecord[] = [];
   const raw = process.env.ADMIN_USERS;
   if (raw) {
@@ -137,19 +163,15 @@ export interface SignInResult {
   ok: boolean;
   error?: string;
   needs2FA?: boolean;
+  /** Role of the signed-in account — the login page redirects on it. */
+  role?: AdminRole;
 }
 
 export async function signInAdmin(
   email: string,
   password: string,
 ): Promise<SignInResult> {
-  const users = loadAdminUsers();
-  if (users.length === 0) {
-    return {
-      ok: false,
-      error: "Admin kimlik bilgileri yapılandırılmamış (env eksik).",
-    };
-  }
+  const envUsers = loadEnvAdminUsers();
 
   const ip = await clientIp();
 
@@ -164,14 +186,37 @@ export async function signInAdmin(
   }
 
   const needle = email.trim().toLowerCase();
-  // Run timingSafeEqual against every user so the per-request work is
-  // constant regardless of whether an email exists.
-  let matched: AdminUserRecord | null = null;
-  for (const u of users) {
-    const emailOk = constantTimeEqual(needle, u.email);
-    const passOk = constantTimeEqual(password, u.password);
-    if (emailOk && passOk) matched = u;
+
+  // The database is asked first and wins: a role changed or an account
+  // deactivated in the panel takes effect on the next login. A row that is not
+  // active does NOT shadow the env record — env is the break-glass path, and
+  // an owner locked out of the panel has to be able to get back in.
+  const dbUser = await resolveAdminUser(needle);
+  let matched: { email: string; role: AdminRole } | null = null;
+  if (dbUser) {
+    if (await verifyAdminPassword(dbUser, password)) {
+      matched = { email: dbUser.email, role: dbUser.role };
+    }
+  } else {
+    // Same cost as the bcrypt branch above, so the database's answer about
+    // this address does not leak through the response time.
+    await bcrypt.compare(password, DUMMY_HASH);
+    // Run timingSafeEqual against every user so the per-request work is
+    // constant regardless of whether an email exists.
+    for (const u of envUsers) {
+      const emailOk = constantTimeEqual(needle, u.email);
+      const passOk = constantTimeEqual(password, u.password);
+      if (emailOk && passOk) matched = { email: u.email, role: u.role };
+    }
   }
+
+  if (!matched && envUsers.length === 0 && !(await anyAdminUserExists())) {
+    return {
+      ok: false,
+      error: "Admin kimlik bilgileri yapılandırılmamış (env eksik).",
+    };
+  }
+
   if (!matched) {
     const after = await recordLoginFailure("admin-login", ip, email);
     if (after.blocked) {
@@ -206,11 +251,11 @@ export async function signInAdmin(
       path: "/",
       maxAge: PENDING_MAX_AGE_SECONDS,
     });
-    return { ok: true, needs2FA: true };
+    return { ok: true, needs2FA: true, role: matched.role };
   }
 
   await setActiveSession(matched, cookieStore);
-  return { ok: true };
+  return { ok: true, role: matched.role };
 }
 
 interface PendingAuthSession {
@@ -219,7 +264,7 @@ interface PendingAuthSession {
   expiresAt: number;
 }
 
-function signPendingToken(user: AdminUserRecord): string {
+function signPendingToken(user: { email: string; role: AdminRole }): string {
   const expiresAt = Date.now() + PENDING_MAX_AGE_SECONDS * 1000;
   const payload = `pending|${user.email}|${user.role}|${expiresAt}`;
   const sig = createHmac("sha256", getSecret()).update(payload).digest("hex");
@@ -339,7 +384,9 @@ export async function requireRole(
     redirect("/admin/giris");
   }
   if (!canAccess(section, session.role)) {
-    redirect("/admin?denied=1");
+    // A role without dashboard access cannot be sent to /admin on denial: that
+    // page would deny it too and the two redirects would bounce forever.
+    redirect(`${landingPathFor(session.role)}?denied=1`);
   }
   return session;
 }

@@ -45,7 +45,6 @@ const adminFontStyle = {
   "--admin-primary": "#44301C",
   "--admin-primary-hover": "#2C1D11",
   "--admin-accent": "#B88A4A",
-  "--admin-accent-soft": "#E6D4B0",
   "--admin-danger": "#C5435A",
 } as React.CSSProperties;
 
@@ -105,12 +104,20 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
         section: "mobileApp",
       },
       { href: "/admin/mobil/karaoke", label: "Karaoke", section: "mobileApp" },
+      {
+        href: "/admin/mobil/ayarlar",
+        label: "Uygulama ayarları",
+        section: "mobileApp",
+      },
     ],
   },
   {
     title: "Satış",
     items: [
       { href: "/admin/siparisler", label: "Siparişler", section: "orders" },
+      // `till`, not `orders`: this is the one page a cashier can open, and a
+      // cashier must not reach the order list, refunds or customer records.
+      { href: "/admin/kasa", label: "Kasa · damga", section: "till" },
       { href: "/admin/musteriler", label: "Müşteriler", section: "customers" },
       { href: "/admin/bulten", label: "Bülten", section: "newsletter" },
       { href: "/admin/promosyon", label: "Promosyon", section: "promos" },
@@ -123,6 +130,11 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
     items: [
       { href: "/admin/hukuk", label: "Yasal belgeler", section: "legal" },
       { href: "/admin/olay-kaydi", label: "Olay kaydı", section: "audit" },
+      {
+        href: "/admin/kullanicilar",
+        label: "Kullanıcılar",
+        section: "adminUsers",
+      },
       { href: "/admin/ayarlar", label: "Ayarlar", section: "settings" },
     ],
   },

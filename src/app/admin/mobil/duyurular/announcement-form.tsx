@@ -14,6 +14,7 @@ import {
   APP_ANNOUNCEMENT_KINDS,
   type AppAnnouncementKind,
 } from "@/lib/admin/app-content-schema";
+import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
 
 export interface AppAnnouncementDefaults {
   kind?: AppAnnouncementKind;
@@ -93,15 +94,20 @@ export function AppAnnouncementForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label="Başlangıç"
-            hint="Boşsa hemen yayında. Biçim: 2026-09-01T00:00:00Z"
+            hint="Boşsa hemen yayında. Saat İstanbul saatidir."
           >
             <TextInput
+              type="datetime-local"
               name="startsAt"
-              defaultValue={defaults?.startsAt ?? ""}
+              defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
             />
           </Field>
-          <Field label="Bitiş" hint="Boşsa süresiz.">
-            <TextInput name="endsAt" defaultValue={defaults?.endsAt ?? ""} />
+          <Field label="Bitiş" hint="Boşsa süresiz yayında kalır.">
+            <TextInput
+              type="datetime-local"
+              name="endsAt"
+              defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
+            />
           </Field>
         </div>
         <div className="mt-4">

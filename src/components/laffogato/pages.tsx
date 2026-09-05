@@ -227,7 +227,7 @@ export function PageHome({
                 aspectRatio: "4/5",
                 borderRadius: "var(--r-lg)",
                 overflow: "hidden",
-                background: "linear-gradient(180deg, #2A1B0F, #14100B)",
+                background: "linear-gradient(180deg, #1b4238, #12291f)",
                 position: "relative",
                 border: "1px solid rgba(255, 255, 255, 0.08)",
               }}
@@ -2083,7 +2083,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
                     bottom: 20,
                     left: 20,
                     right: 20,
-                    color: i === 2 ? "#FFF" : "#14100B",
+                    color: i === 2 ? "#FFF" : "#1d1c1c",
                   }}
                 >
                   <div
@@ -2671,7 +2671,7 @@ export function PageVisit({ visit }: PageProps) {
                     padding: 30,
                   }}
                 >
-                  <CupEmblem size={240} bg="#F5E6D3" />
+                  <CupEmblem size={240} bg="#f3f5f2" />
                 </div>
               </PhotoSurface>
             </div>
