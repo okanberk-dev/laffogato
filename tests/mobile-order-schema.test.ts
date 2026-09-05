@@ -272,9 +272,7 @@ describe("previewOrderBodySchema", () => {
   });
 
   it("but placing that same order still needs somewhere to send it", () => {
-    const r = placeOrderBodySchema.safeParse(
-      cafeDelivery({ address: null }),
-    );
+    const r = placeOrderBodySchema.safeParse(cafeDelivery({ address: null }));
     expect(r.success).toBe(false);
     if (r.success) return;
     expect(firstIssueMessage(r.error)).toBe("Teslimat adresi gerekli.");

@@ -35,7 +35,14 @@ export const NOTIFICATION_WINDOW_DAYS = 30;
 
 type OrderLike = Pick<
   AdminOrder,
-  "id" | "orderNo" | "status" | "createdAt" | "paidAt" | "shippedAt"
+  | "id"
+  | "orderNo"
+  | "status"
+  | "createdAt"
+  | "paidAt"
+  | "preparingAt"
+  | "shippedAt"
+  | "completedAt"
 > & { fulfillment?: string };
 
 type StageKey = Extract<
@@ -84,18 +91,26 @@ function stageBody(
   }
 }
 
-/** Best-known instant for a stage; the order has no per-stage timestamps. */
+/**
+ * The instant a stage was reached. `transitionOrder` stamps one column per
+ * stage; an order that finished before those columns existed falls back to the
+ * closest earlier instant it has, which is what this used to do for every
+ * stage. The fallback is why the window below is checked per stage and not
+ * once per order.
+ */
 function stageAt(order: OrderLike, stage: StageKey): string {
   const paidAt = order.paidAt || order.createdAt;
   switch (stage) {
     case "paid":
       return paidAt;
     case "preparing":
-      return paidAt;
+      return order.preparingAt || paidAt;
     case "shipped":
-      return order.shippedAt || paidAt;
+      return order.shippedAt || order.preparingAt || paidAt;
     case "completed":
-      return order.shippedAt || paidAt;
+      return (
+        order.completedAt || order.shippedAt || order.preparingAt || paidAt
+      );
   }
 }
 
@@ -117,17 +132,20 @@ export function deriveOrderNotifications(
 ): AppNotification[] {
   const out: AppNotification[] = [];
   for (const order of orders) {
-    if (!withinWindow(order.createdAt, now)) continue;
     const reached = STAGES.indexOf(order.status as StageKey);
     if (reached < 0) continue;
     const fulfillment = orderFulfillment(order);
     for (const stage of STAGES.slice(0, reached + 1)) {
+      const at = stageAt(order, stage);
+      // The window is per stage, not per order: a gift box ordered 32 days
+      // ago and shipped today still belongs in the inbox today.
+      if (!withinWindow(at, now)) continue;
       out.push({
         id: `order-${order.id}-${stage}`,
         kind: "order",
         title: stageTitle(stage, fulfillment),
         body: stageBody(stage, order.orderNo, fulfillment),
-        at: stageAt(order, stage),
+        at,
         orderId: order.id,
       });
     }
@@ -171,12 +189,25 @@ export function rewardNotification(
   };
 }
 
+/** What the member asked to hear about (`customers.notificationPrefs`). */
+export interface NotificationFilter {
+  marketing?: boolean;
+  orderUpdates?: boolean;
+}
+
 /** Pure composition: everything the route returns, newest first. */
 export function buildNotifications(input: {
   orders: readonly OrderLike[];
   announcements: readonly AnnouncementLike[];
   rewardsReady: number;
+  /**
+   * When the waiting reward became ready. Must be the same instant on every
+   * call — the app decides "unread" by comparing it with the moment the
+   * member last opened the inbox, so `now` here would make it unread forever.
+   */
+  rewardAt?: string | null;
   now: Date;
+  prefs?: NotificationFilter;
 }): AppNotification[] {
   const items = [
     ...deriveOrderNotifications(input.orders, input.now),
@@ -184,30 +215,46 @@ export function buildNotifications(input: {
   ];
   const reward = rewardNotification(
     input.rewardsReady,
-    input.now.toISOString(),
+    input.rewardAt || input.now.toISOString(),
   );
   if (reward) items.push(reward);
-  return items.sort((a, b) => b.at.localeCompare(a.at));
+  // "Neyi duymak istediğine sen karar ver" is the promise under the switches:
+  // marketing off means no campaign rows. Order and reward items stay — they
+  // are the member's own transactions, not a commercial message.
+  const noMarketing = input.prefs?.marketing === false;
+  return items
+    .filter((item) => !(noMarketing && item.kind === "campaign"))
+    .sort((a, b) => b.at.localeCompare(a.at));
 }
 
 /**
- * Rewards waiting to be redeemed, or 0 when the loyalty module cannot answer.
- * Owned by the rewards feature; a failure there must not empty the inbox.
+ * Rewards waiting to be redeemed and since when, or none when the loyalty
+ * module cannot answer. Owned by the rewards feature; a failure there must
+ * not empty the inbox.
  */
-async function resolveRewardsReady(email: string): Promise<number> {
+async function resolveReward(
+  email: string,
+): Promise<{ rewardsReady: number; readyAt: string | null }> {
+  const none = { rewardsReady: 0, readyAt: null };
   try {
     const mod = (await import("@/lib/mobile/loyalty")) as {
-      getLoyalty?: (email: string) => Promise<{ rewardsReady?: number } | null>;
+      getRewardStatus?: (
+        email: string,
+      ) => Promise<{ rewardsReady?: number; readyAt?: string | null } | null>;
     };
-    if (typeof mod.getLoyalty !== "function") return 0;
-    const loyalty = await mod.getLoyalty(email);
-    const n = loyalty?.rewardsReady;
-    return typeof n === "number" && Number.isFinite(n) ? Math.max(0, n) : 0;
+    if (typeof mod.getRewardStatus !== "function") return none;
+    const status = await mod.getRewardStatus(email);
+    const n = status?.rewardsReady;
+    return {
+      rewardsReady:
+        typeof n === "number" && Number.isFinite(n) ? Math.max(0, n) : 0,
+      readyAt: status?.readyAt ?? null,
+    };
   } catch (err) {
     console.error(
       `[notifications] loyalty unavailable: ${err instanceof Error ? err.message : String(err)}`,
     );
-    return 0;
+    return none;
   }
 }
 
@@ -215,11 +262,19 @@ async function resolveRewardsReady(email: string): Promise<number> {
 export async function deriveNotifications(
   email: string,
   now: Date = new Date(),
+  prefs?: NotificationFilter,
 ): Promise<AppNotification[]> {
-  const [orders, announcements, rewardsReady] = await Promise.all([
+  const [orders, announcements, reward] = await Promise.all([
     customerOrdersByEmail(email),
     listActiveAppAnnouncements(),
-    resolveRewardsReady(email),
+    resolveReward(email),
   ]);
-  return buildNotifications({ orders, announcements, rewardsReady, now });
+  return buildNotifications({
+    orders,
+    announcements,
+    rewardsReady: reward.rewardsReady,
+    rewardAt: reward.readyAt,
+    now,
+    prefs,
+  });
 }

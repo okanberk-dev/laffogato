@@ -169,10 +169,37 @@ export const ANON_SWEEPS: ReadonlyArray<{
     column: "inviterEmail",
     patch: (anon) => ({ inviterEmail: anon }),
   },
+  {
+    // Every app order writes the buyer's e-mail as the actor of its stock
+    // moves, so the admin's stock ledger kept naming a closed account.
+    table: TABLES.stockMoves,
+    column: "actor",
+    caseInsensitive: true,
+    patch: (anon) => ({ actor: anon }),
+  },
 ];
 
+/**
+ * A booking the member will not come to. Anonymising it alone left the room
+ * held on the karaoke board for a nameless, uncontactable guest, so the future
+ * ones are cancelled first — while the rows still carry the real address.
+ */
+async function cancelFutureKaraoke(email: string, now: Date): Promise<void> {
+  const today = now.toISOString().slice(0, 10);
+  const { error } = await getDb()
+    .from(TABLES.karaokeReservations)
+    .update({ status: "cancelled", updatedAt: now.toISOString() })
+    .eq("customerEmail", email.trim().toLowerCase())
+    .gte("date", today)
+    .neq("status", "cancelled");
+  if (error)
+    console.error(`[deleteMe] karaoke cancel failed: ${error.message}`);
+}
+
 export async function deleteMe(customer: PublicCustomer): Promise<void> {
-  const now = new Date().toISOString();
+  const at = new Date();
+  const now = at.toISOString();
+  await cancelFutureKaraoke(customer.email, at);
   const { error } = await getDb()
     .from(TABLES.customers)
     .update({

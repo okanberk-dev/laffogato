@@ -118,6 +118,14 @@ export async function resendVerificationAction(
   return { message: "Yeni doğrulama bağlantısı oluşturuldu.", url };
 }
 
+/**
+ * Ceiling for a hand-granted fixed-value coupon, in TL.
+ *
+ * Not a business rule so much as a fat-finger guard: the panel had none, and a
+ * mistyped amount is spendable the moment the member opens the app.
+ */
+const FIXED_COUPON_MAX_MAJOR = 2000;
+
 export interface CouponGrantState {
   error?: string;
   message?: string;
@@ -151,6 +159,14 @@ export async function grantCustomerCouponAction(
   if (kind === "pct" && (rawValue < 1 || rawValue > 100)) {
     return { error: "Yüzde indirimi 1-100 arası olmalı." };
   }
+  // A fixed coupon was only checked for "> 0", so a slipped zero granted a
+  // 100.000 TL credit that the next order would happily spend. Nothing the
+  // café hands out at the counter is worth more than this.
+  if (kind === "fixed" && rawValue > FIXED_COUPON_MAX_MAJOR) {
+    return {
+      error: `Tutar indirimi en fazla ${FIXED_COUPON_MAX_MAJOR} TL olabilir.`,
+    };
+  }
   const value =
     kind === "pct" ? Math.round(rawValue) : Math.round(rawValue * 100);
   const minSubtotalMinor =
@@ -160,15 +176,13 @@ export async function grantCustomerCouponAction(
   if (expiresRaw) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(expiresRaw);
     if (!m) return { error: "Geçersiz son kullanma tarihi." };
-    // End of the chosen local day.
-    expiresAt = new Date(
-      Number(m[1]),
-      Number(m[2]) - 1,
-      Number(m[3]),
-      23,
-      59,
-      59,
-    ).toISOString();
+    // End of the chosen ISTANBUL day.
+    //
+    // `new Date(y, m, d, 23, 59, 59)` is the process timezone, and the
+    // functions run in UTC, so the coupon printed "31 Ağustos'a kadar" stayed
+    // alive until 02:59 on 1 September Istanbul time. Türkiye has been on a
+    // fixed UTC+3 since 2016, so the offset is a constant, not a lookup.
+    expiresAt = `${m[1]}-${m[2]}-${m[3]}T20:59:59.000Z`;
   }
 
   const coupon = await grantCoupon({

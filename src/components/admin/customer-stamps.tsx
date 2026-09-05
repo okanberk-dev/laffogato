@@ -4,11 +4,19 @@ import { useActionState } from "react";
 
 import {
   addCounterStampAction,
+  reverseCounterStampAction,
   type CounterStampState,
 } from "@/app/admin/musteriler/[email]/actions";
 import type { LoyaltyStamp, LoyaltyView } from "@/lib/mobile/loyalty-core";
 
-import { Card, Field, PrimaryButton, TextInput, formatDateTime } from "./forms";
+import {
+  Card,
+  Checkbox,
+  Field,
+  PrimaryButton,
+  TextInput,
+  formatDateTime,
+} from "./forms";
 
 const initial: CounterStampState = {};
 
@@ -24,13 +32,25 @@ export function CustomerStamps({
   email,
   loyalty,
   history,
+  canReverse = false,
 }: {
   email: string;
   loyalty: LoyaltyView;
   history: LoyaltyStamp[];
+  /**
+   * Whether to offer "−1 düzeltme". Off at /admin/kasa, which the shift staff
+   * reach with the `orders` role; the action itself requires `customers`, so
+   * this only decides whether the button is worth showing.
+   */
+  canReverse?: boolean;
 }) {
   const bound = addCounterStampAction.bind(null, email);
   const [state, action, pending] = useActionState(bound, initial);
+  const boundReverse = reverseCounterStampAction.bind(null, email);
+  const [undoState, undoAction, undoPending] = useActionState(
+    boundReverse,
+    initial,
+  );
 
   return (
     <Card className="grid gap-4">
@@ -60,6 +80,8 @@ export function CustomerStamps({
         <Field label="Not (opsiyonel)">
           <TextInput name="note" placeholder="Kasa · QR" maxLength={120} />
         </Field>
+        {/* Only needed after the server refuses a repeat inside its window. */}
+        <Checkbox name="force" label="Tekrar (aynı üyeye ikinci damga)" />
         {state.error && <p className="text-xs text-red-600">{state.error}</p>}
         {state.message && (
           <p className="text-xs text-green-700">{state.message}</p>
@@ -68,6 +90,38 @@ export function CustomerStamps({
           {pending ? "Ekleniyor…" : "+1 damga"}
         </PrimaryButton>
       </form>
+
+      {canReverse && (
+        <form
+          action={undoAction}
+          className="grid gap-3 border-t border-[var(--admin-border)] pt-4"
+        >
+          <h3
+            className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+            style={{ fontFamily: "var(--mono), monospace" }}
+          >
+            Damga geri al (düzeltme)
+          </h3>
+          <Field label="Sebep (opsiyonel)">
+            <TextInput
+              name="note"
+              placeholder="Yanlış üyeye verildi"
+              maxLength={120}
+            />
+          </Field>
+          {undoState.error && (
+            <p className="text-xs text-red-600" role="alert">
+              {undoState.error}
+            </p>
+          )}
+          {undoState.message && (
+            <p className="text-xs text-green-700">{undoState.message}</p>
+          )}
+          <PrimaryButton type="submit" disabled={undoPending}>
+            {undoPending ? "Geri alınıyor…" : "−1 düzeltme"}
+          </PrimaryButton>
+        </form>
+      )}
 
       <div className="border-t border-[var(--admin-border)] pt-4">
         <h3

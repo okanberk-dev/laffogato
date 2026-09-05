@@ -13,15 +13,6 @@ export interface ApiErrorBody {
   message: string;
 }
 
-export function apiError(
-  status: number,
-  code: string,
-  message: string,
-  headers?: Record<string, string>,
-): NextResponse<ApiErrorBody> {
-  return NextResponse.json({ error: code, message }, { status, headers });
-}
-
 /**
  * What an authenticated answer must never be stored in: a member's orders,
  * addresses and coupons are theirs alone, and a shared cache (a CDN, a
@@ -31,6 +22,25 @@ export function apiError(
 export const PRIVATE_CACHE_HEADERS = {
   "Cache-Control": "private, no-store",
 } as const;
+
+/**
+ * Errors are never cacheable. Vercel's default on a route without a
+ * `Cache-Control` is `public, max-age=0, must-revalidate`, and a proxy that
+ * honours `public` may hand one member's 404 "Sipariş bulunamadı" or 409 to
+ * the next caller of the same URL. A public route that genuinely wants its
+ * error cached can still pass its own `Cache-Control`, which wins.
+ */
+export function apiError(
+  status: number,
+  code: string,
+  message: string,
+  headers?: Record<string, string>,
+): NextResponse<ApiErrorBody> {
+  return NextResponse.json(
+    { error: code, message },
+    { status, headers: { ...PRIVATE_CACHE_HEADERS, ...headers } },
+  );
+}
 
 export function apiJson<T>(
   body: T,

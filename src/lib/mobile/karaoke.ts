@@ -429,10 +429,11 @@ export type CreateReservationResult =
  * Books the room for a member. Price from settings, discount from the loyalty
  * tier, status `requested` until the staff confirm.
  *
- * The conflict check reads before it writes, so two members racing for the
- * same hour can both get through; the staff see the overlap on the panel and
- * cancel one. A partial unique index on the hour would close that window and
- * is worth adding once bookings are frequent enough for it to matter.
+ * The conflict check reads before it writes. The window between the two is
+ * closed by `karaoke_reservations_no_overlap` (an exclusion constraint over
+ * date × hour range, cancelled rows excluded): the JS check answers with a
+ * message the member can act on, the constraint is what makes it true when
+ * two people tap the same free hour in the same second.
  */
 export async function createReservation(
   customer: Pick<PublicCustomer, "email" | "name">,
@@ -507,10 +508,18 @@ export async function createReservation(
   };
 
   const sb = getDb();
-  check(
-    await sb.from(TABLES.karaokeReservations).insert(reservation),
-    "karaoke.createReservation",
-  );
+  const ins = await sb.from(TABLES.karaokeReservations).insert(reservation);
+  // 23P01: the exclusion constraint caught a booking that landed between our
+  // read and our write. Same answer as the read-side check.
+  if (ins.error?.code === "23P01") {
+    return {
+      ok: false,
+      status: 409,
+      error: "slot_taken",
+      message: "Seçtiğin saatler dolu. Başka bir saat dene.",
+    };
+  }
+  check(ins, "karaoke.createReservation");
   return { ok: true, reservation };
 }
 
@@ -583,14 +592,35 @@ const RESERVATION_TRANSITIONS: Record<
   cancelled: ["requested", "confirmed"],
 };
 
+/**
+ * Why a status change did not happen. The panel showed one combined sentence
+ * listing every possibility because this used to answer a bare `null`; each
+ * reason needs a different thing from the staff member, so each is named.
+ */
+export type SetReservationStatusFailure =
+  /** No row with that id — deleted, or a stale page. */
+  | "not_found"
+  /** The row has already moved somewhere this transition cannot start from. */
+  | "wrong_status"
+  /** Another confirmed booking already holds the hour. */
+  | "slot_taken"
+  /** Someone else changed it between the read and the write. */
+  | "raced";
+
+export type SetReservationStatusResult =
+  | { ok: true; reservation: KaraokeReservation }
+  | { ok: false; reason: SetReservationStatusFailure };
+
 export async function setReservationStatus(
   id: string,
   status: KaraokeReservationStatus,
   now: Date = new Date(),
-): Promise<KaraokeReservation | null> {
+): Promise<SetReservationStatusResult> {
   const existing = await getReservation(id);
-  if (!existing) return null;
-  if (!RESERVATION_TRANSITIONS[status].includes(existing.status)) return null;
+  if (!existing) return { ok: false, reason: "not_found" };
+  if (!RESERVATION_TRANSITIONS[status].includes(existing.status)) {
+    return { ok: false, reason: "wrong_status" };
+  }
 
   // Confirming takes the hour: refuse if another confirmed booking has it.
   if (status === "confirmed") {
@@ -600,7 +630,7 @@ export async function setReservationStatus(
       existing.hours,
       sameDay.filter((r) => r.id !== existing.id && r.status === "confirmed"),
     );
-    if (clash) return null;
+    if (clash) return { ok: false, reason: "slot_taken" };
   }
 
   const sb = getDb();
@@ -609,10 +639,15 @@ export async function setReservationStatus(
       .from(TABLES.karaokeReservations)
       .update({ status, updatedAt: now.toISOString() })
       .eq("id", id)
+      // The status guard is what makes the write lose the race rather than
+      // overwrite it: the row has moved on since `existing` was read.
       .eq("status", existing.status)
       .select("id"),
     "karaoke.setReservationStatus",
   );
-  if (updated.length === 0) return null;
-  return { ...existing, status, updatedAt: now.toISOString() };
+  if (updated.length === 0) return { ok: false, reason: "raced" };
+  return {
+    ok: true,
+    reservation: { ...existing, status, updatedAt: now.toISOString() },
+  };
 }

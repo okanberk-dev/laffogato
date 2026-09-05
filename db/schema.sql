@@ -1464,3 +1464,159 @@ alter table public.settings add column if not exists "mobileApp" jsonb not null 
 
 insert into public._migrations (name) values ('20260905120000_mobile_app_config.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260905140000_karaoke_no_overlap.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Karaoke room: one booking per hour, enforced by the database.
+--
+-- `createReservation` reads the day's bookings, checks the overlap in JS and
+-- then inserts. Two members tapping the same free hour in the same second both
+-- got through that window and the staff had to cancel one by hand. An
+-- exclusion constraint closes it; the insert path maps SQLSTATE 23P01 back to
+-- the 409 `slot_taken` the app already shows.
+--
+-- A cancelled booking does not hold its hour, so it stays out of the index.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+create extension if not exists btree_gist;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'karaoke_reservations_no_overlap'
+      and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    -- If this fails with 23P01 the table already holds a double booking made
+    -- before the guard existed: cancel one of the two rows and re-run.
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_no_overlap
+      exclude using gist (
+        date with =,
+        int4range("startHour", "startHour" + hours) with &&
+      ) where (status <> 'cancelled');
+  end if;
+end $$;
+
+insert into public._migrations (name) values ('20260905140000_karaoke_no_overlap.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260905150000_order_idempotency_and_wishlist.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Two writes that had no protection against being done twice.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+-- ── orders."clientOrderId" ────────────────────────────────────────────────
+-- The app's own id for ONE checkout attempt (docs/API-MOBILE.md §3).
+--
+-- POST /orders could not tell a retry from a second order: the phone gives up
+-- on a slow response while the server is still mailing the confirmation and
+-- opening the checkout session, and the member taps "Tekrar dene". That left
+-- two pending orders, two e-mails, two held stock claims — and, after three
+-- tries, a 429 lock-out for the rest of the expiry window.
+--
+-- The index is partial and per member: '' (web, admin, older app builds) is
+-- exempt, and one client's id can never collide with another member's.
+alter table public.orders
+  add column if not exists "clientOrderId" text not null default '';
+
+create unique index if not exists orders_client_order_id_key
+  on public.orders (lower("customerEmail"), "clientOrderId")
+  where "clientOrderId" <> '';
+
+-- ── toggle_wishlist ───────────────────────────────────────────────────────
+-- Adds or drops one product id in customers.wishlist, in one statement.
+--
+-- The site and the app edit the same list, and the toggle used to be a
+-- read-modify-write in JavaScript: two surfaces toggling at the same moment
+-- each wrote a whole array computed from the state before the other's write,
+-- so one of the two toggles was lost. The row is locked here instead.
+--
+-- An id that names no product is refused rather than stored: /me/favorites
+-- validated nothing, so any 64-character string ended up in the list and the
+-- app had to filter it out on every render. Removal is never refused, so a
+-- product deleted from the catalogue can still be taken off the list.
+--
+-- Returns 'added' | 'removed' | 'full' | 'not_found' (no such product) |
+-- 'no_customer'.
+create or replace function public.toggle_wishlist(
+  p_email text,
+  p_product_id text,
+  p_now text
+)
+returns text
+language plpgsql
+set search_path = ''
+as $$
+declare
+  current  jsonb;
+  next_val jsonb;
+  outcome  text;
+begin
+  select wishlist into current
+    from public.customers
+    where email = p_email
+    for update;
+
+  if current is null then
+    return 'no_customer';
+  end if;
+
+  if current ? p_product_id then
+    next_val := current - p_product_id;
+    outcome := 'removed';
+  elsif not exists (
+    select 1 from public.products where id = p_product_id
+  ) then
+    return 'not_found';
+  elsif jsonb_array_length(current) >= 200 then
+    return 'full';
+  else
+    next_val := current || to_jsonb(p_product_id);
+    outcome := 'added';
+  end if;
+
+  update public.customers
+    set wishlist = next_val,
+        "updatedAt" = p_now
+    where email = p_email;
+
+  return outcome;
+end;
+$$;
+
+insert into public._migrations (name) values ('20260905150000_order_idempotency_and_wishlist.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260905160000_order_stage_instants.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Per-stage instants for an order.
+--
+-- `orders` recorded when a row was created, paid and shipped. "Hazırlanıyor"
+-- and "Teslim edildi" had no instant of their own, so both the app's timeline
+-- and the notification inbox fell back to `paidAt` for them: a gift box paid
+-- on the 1st and delivered on the 20th told the member it was delivered on the
+-- 1st, and — because the inbox only keeps 30 days per stage — a stage reached
+-- today could be filtered out as if it were a month old.
+--
+-- `shippedAt` already existed but was written only by the shipping form, which
+-- asks for a carrier and a tracking number. A pickup or courier order never
+-- goes through that form, so its third timeline step stayed blank; the same
+-- transition now stamps it.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+alter table public.orders add column if not exists "preparingAt" text not null default '';
+alter table public.orders add column if not exists "completedAt" text not null default '';
+
+insert into public._migrations (name) values ('20260905160000_order_stage_instants.sql')
+  on conflict (name) do nothing;

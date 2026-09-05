@@ -16,6 +16,7 @@ import {
   APP_SLIDE_TONES,
   type AppSlideTone,
 } from "@/lib/admin/app-content-schema";
+import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
 
 export interface AppSlideDefaults {
   eyebrow?: string;
@@ -167,19 +168,19 @@ export function AppSlideForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label="Başlangıç"
-            hint="Boş bırakırsan hemen yayında olur. Biçim: 2026-09-01T00:00:00Z"
+            hint="Boşsa hemen yayında. Saat İstanbul saatidir."
           >
             <TextInput
+              type="datetime-local"
               name="startsAt"
-              defaultValue={defaults?.startsAt ?? ""}
-              placeholder="2026-09-01T00:00:00Z"
+              defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
             />
           </Field>
-          <Field label="Bitiş" hint="Boş bırakırsan süresiz yayında kalır.">
+          <Field label="Bitiş" hint="Boşsa süresiz yayında kalır.">
             <TextInput
+              type="datetime-local"
               name="endsAt"
-              defaultValue={defaults?.endsAt ?? ""}
-              placeholder="2026-10-01T00:00:00Z"
+              defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
             />
           </Field>
         </div>

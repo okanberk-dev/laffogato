@@ -176,7 +176,7 @@ Kurallar:
 - Seçenek fiyatları `customization` sabitinden; `size: "L"` → `priceMinorL`, yoksa **400**.
 - `kind: "cafe"`: stok yok; `kind: "shop"`: mevcut `placeOrder` stok/claim mantığı **aynen** kullanılır.
 - Kargo/kurye: `pickup` → 0; `delivery` → `settings.courierFeeMinor` (varsayılan 5500); `shipping` → mevcut `computeOrderTotals`.
-- `settings.isShopOpen === false` → **409** `shop_closed`. Kafe siparişi için köşk kapalıysa (`live-status.isOpen === false`) **409** `cafe_closed`.
+- `kind: "shop"` ve `settings.isShopOpen === false` → **409** `shop_closed`. Bu anahtar **yalnızca kargolu mağaza** siparişlerini durdurur. Kafe siparişi için köşk kapalıysa (`live-status.isOpen === false`) **409** `cafe_closed`.
 - Sipariş satırı `orders` tablosuna **mevcut şekliyle** yazılır; ek sütunlar: `channel = "app"`, `kind`, `fulfillment`, `scheduledFor`, `deliveryNote`. Satır `items[]` öğesine `menuItemId`, `size`, `options` eklenir (jsonb — geriye uyumlu).
 - Ödeme: mevcut `getPaymentProvider().createCheckoutSession()`; `successUrl = https://laffogato.net/odeme/donus?app=1`, `failureUrl = https://laffogato.net/odeme/app-hata`. Uygulama `redirectUrl`'i `expo-web-browser` ile açar; dönüş sayfası **`laffogato://siparis/<id>`** derin bağlantısına yönlendirir (sayfa `app=1` görünce).
 - Sadakat: sipariş **`paid`** olunca (`applyPaymentSucceeded`) `channel === "app" && kind === "cafe"` ise **+1 damga** (`loyalty_stamps`, kind `earn`, `orderId` benzersiz → idempotent).
@@ -192,9 +192,12 @@ Kurallar:
 >   `ordering_closed` (kafe siparişi ve `mobileApp.ordering.cafeEnabled === false`, ya da kurye ve
 >   gel-al birlikte kapalı; mesaj = `ordering.closedMessage`). `ordering_closed` ve
 >   `fulfillment_unavailable` hem `POST /orders` hem `POST /orders/preview` için geçerlidir.
-> - `shop_closed` uygulamanın **her** siparişine (kafe dahil) uygulanır; kafe için ayrıca
->   `cafe_closed` — kontrol `scheduledFor` varsa o anda, yoksa şimdi; manuel override her
->   durumda geçerli.
+> - `shop_closed` **yalnızca** `kind: "shop"` siparişlerinde döner ("Online mağaza açık",
+>   /admin/ayarlar). Kafe siparişi bu anahtara bakmaz; onu `mobileApp.ordering.cafeEnabled`
+>   ile köşkün saatleri yönetir → `ordering_closed` / `cafe_closed`. Kontrol `scheduledFor`
+>   varsa o anda, yoksa şimdi; manuel override her durumda geçerli.
+>   (Eskiden `shop_closed` kafe siparişlerine de uygulanıyordu: tatil için mağaza kapatılınca
+>   köşk açık göründüğü hâlde her gel-al siparişi reddediliyordu.)
 > - `totalMinor === 0` (kupon toplamı sıfırladı) → sipariş sunucuda anında `paid`
 >   (`payment_transactions.provider = "free"`), `payment: null`.
 > - `scheduledFor`: geçmiş (5 dk tolerans) ve 7 günden ileri → 400. `""`/`null` = en kısa sürede.
@@ -203,6 +206,9 @@ Kurallar:
 > - `items[].options` sunucuda tam `LineOptions` nesnesi (varsayılanlarla) olarak döner.
 > - `timeline` anahtarları teslimata göre: delivery `received/preparing/on_the_way/delivered`
 >   · pickup `received/preparing/ready/picked_up` · shipping `received/preparing/shipped/delivered`.
+> - `timeline[].at` her adımın **kendi** sütunundan gelir: `createdAt` · `preparingAt` ·
+>   `shippedAt` · `completedAt`. Bu sütunlar yoktan önce yazılmış siparişlerde boş olabilir;
+>   o durumda tamamlanmış bir adım `at: null` döner (sonraki bir anı ödünç almaz).
 >   `statusLabel` bu adımdan gelir (pickup + shipped → "Hazır — gel al").
 > - `etaMinutes`: delivery paid/preparing 35, shipped 10 · pickup 15 / 0 · shipping null.
 > - Dönüş sayfası `/odeme/donus` app siparişini `app=1` parametresine ek olarak
@@ -335,6 +341,13 @@ Cache: `public, s-maxage=30, stale-while-revalidate=120`.
 ## 8. Bildirimler — `GET /notifications` (kimlik)
 
 `{ "items": [ { "id", "kind": "order" | "reward" | "campaign" | "announcement", "title", "body", "at", "orderId": "…" | null } ] }` — sunucu **türetir**: son 30 günün sipariş durum değişiklikleri + aktif duyurular + ödül hazırsa bir kayıt. Okundu durumu **cihazda** tutulur (`laf.notifications.readAt`).
+
+`at` her çağrıda **aynı** anı vermek zorundadır; cihaz okundu/okunmadı kararını bu anı
+`readAt` ile karşılaştırarak verir, dolayısıyla `now` yazmak kaydı sonsuza dek okunmamış
+bırakır. Sipariş kayıtlarında `at` adımın kendi sütunudur (`paidAt` · `preparingAt` ·
+`shippedAt` · `completedAt`), ödülde kartı dolduran damganın anıdır. 30 günlük pencere
+**adım başına** uygulanır: 40 gün önce ödenip bugün teslim edilen bir sipariş bugün
+kutuya "Teslim edildi" olarak düşer.
 
 > **Uygulama notu (§8).** Sipariş için yalnız güncel durum değil, ulaşılan **her aşama**
 > (paid → preparing → shipped → completed) ayrı kayıttır; id `order-<id>-<aşama>`, ödül

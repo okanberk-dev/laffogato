@@ -190,6 +190,37 @@ export function computeStampBalance(
   };
 }
 
+/**
+ * When the newest full card was completed — the `createdAt` of the earn row
+ * that filled it — or `null` when no reward is waiting.
+ *
+ * The inbox stamps its "Ödülün hazır" item with this instant. It used to be
+ * stamped with "now", which moved forward on every poll, so the item was
+ * unread again a minute after the member marked the inbox read and stayed at
+ * the top until they redeemed. A reversal is charged against the newest
+ * stamps, the same way `computeStampBalance` counts them.
+ */
+export function rewardReadyAt(
+  rows: readonly Pick<LoyaltyStamp, "kind" | "delta" | "createdAt">[],
+  stampTarget: number = STAMP_TARGET,
+): string | null {
+  const target = Math.max(1, Math.round(stampTarget));
+  const balance = computeStampBalance(rows, target);
+  if (balance.rewardsReady <= 0) return null;
+
+  const earned: string[] = [];
+  for (const row of rows) {
+    if (row.kind !== "earn") continue;
+    for (let i = 0; i < Math.max(0, Math.round(row.delta)); i++) {
+      earned.push(row.createdAt);
+    }
+  }
+  earned.sort();
+  const live = earned.slice(0, balance.lifetimeStamps);
+  const filled = target * (balance.redeemCount + balance.rewardsReady);
+  return live[filled - 1] ?? live[live.length - 1] ?? null;
+}
+
 export function computeTier(ordersLast365: number): LoyaltyTier {
   if (ordersLast365 >= TIER_THRESHOLDS.oro) return "oro";
   if (ordersLast365 >= TIER_THRESHOLDS.argento) return "argento";

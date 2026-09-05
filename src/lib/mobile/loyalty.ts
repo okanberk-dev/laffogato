@@ -20,6 +20,7 @@ import {
   buildLoyaltyView,
   computeStampBalance,
   freeDrinkRewardFor,
+  rewardReadyAt,
   type LoyaltyRules,
   type LoyaltyStamp,
   type LoyaltyView,
@@ -88,6 +89,31 @@ export async function getLoyalty(email: string): Promise<LoyaltyView> {
     loyaltyRules(),
   ]);
   return buildLoyaltyView(stamps, orders, Date.now(), rules.stampTarget);
+}
+
+export interface RewardStatus {
+  /** Full cards waiting to be turned into a coupon. */
+  rewardsReady: number;
+  /** When the newest of them filled up; null when none is waiting. */
+  readyAt: string | null;
+}
+
+/**
+ * What the inbox needs about the member's rewards: how many are waiting and
+ * since when. The instant has to be stable across calls — the app decides
+ * "unread" by comparing it with the moment the member last opened the inbox.
+ */
+export async function getRewardStatus(email: string): Promise<RewardStatus> {
+  const owner = normalizeEmail(email);
+  const [stamps, rules] = await Promise.all([
+    listStamps(owner),
+    loyaltyRules(),
+  ]);
+  const target = rules.stampTarget;
+  return {
+    rewardsReady: computeStampBalance(stamps, target).rewardsReady,
+    readyAt: rewardReadyAt(stamps, target),
+  };
 }
 
 /**
@@ -228,6 +254,53 @@ export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
     throw err;
   }
   return { ok: true, coupon, loyalty: await getLoyalty(owner) };
+}
+
+export type ReverseCounterStampResult =
+  | { ok: true; stamp: LoyaltyStamp }
+  | { ok: false; error: "no_stamps" };
+
+/**
+ * Takes back a stamp given by mistake at the till (admin panel, "−1 düzeltme").
+ *
+ * `onOrderReversed` covers the other case — an order that was refunded or
+ * cancelled — and is keyed on the order, so it cannot undo a counter stamp,
+ * which has no order. Like every correction here this appends a `reversal`
+ * row instead of deleting the `earn`: the ledger stays append-only, and it
+ * still shows both the mistake and who fixed it.
+ *
+ * Refused when the member has no stamp left to take back, so a repeated click
+ * cannot push the balance below zero and swallow a card the member later
+ * earns honestly.
+ */
+export async function reverseCounterStamp(
+  email: string,
+  actor: string,
+  note = "",
+): Promise<ReverseCounterStampResult> {
+  const owner = normalizeEmail(email);
+  if (!owner) throw new Error("reverseCounterStamp: e-mail required");
+  const rules = await loyaltyRules();
+  const balance = computeStampBalance(
+    await listStamps(owner),
+    rules.stampTarget,
+  );
+  if (balance.available <= 0) return { ok: false, error: "no_stamps" };
+
+  const row: LoyaltyStamp = {
+    id: await newStampId(),
+    customerEmail: owner,
+    kind: "reversal",
+    delta: -1,
+    source: "admin",
+    orderId: "",
+    note: note.trim().slice(0, 120) || "Kasa damgası düzeltmesi",
+    actor: normalizeEmail(actor),
+    createdAt: new Date().toISOString(),
+  };
+  const { error } = await getDb().from(TABLES.loyaltyStamps).insert(row);
+  checkErr(error, "reverseCounterStamp");
+  return { ok: true, stamp: row };
 }
 
 /**

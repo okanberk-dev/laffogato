@@ -10689,7 +10689,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "14. Üyeliğin Üye Tarafından Sona Erdirilmesi",
         paragraphs: [
           "Üye, üyeliğini dilediği zaman, gerekçe göstermeksizin ve herhangi bir bedel ödemeksizin sona erdirebilir. Bu hak, üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilecek şekilde sunulur.",
-          "Hesap kapatma talebi; Site'deki hesap ayarları bölümünden, Mobil Uygulama içindeki hesap ayarları bölümündeki hesap silme seçeneğinden veya {{EMAIL}} adresine gönderilecek bir talep ile iletilebilir. Talebin Üye'nin kayıtlı e-posta adresinden gelmesi, kimlik teyidi bakımından esas alınır.",
+          "Hesap kapatma talebi; Site'de {{SITE_URL}}/uye/hesap/sil sayfasından, Mobil Uygulama içindeki hesap ayarları bölümündeki hesap silme seçeneğinden veya {{EMAIL}} adresine gönderilecek bir talep ile iletilebilir. Adım adım prosedür ve silinen, anonimleştirilen ve saklanan verilerin listesi {{SITE_URL}}/hukuk/hesap-silme adresinde yayımlanır. Talebin Üye'nin kayıtlı e-posta adresinden gelmesi, kimlik teyidi bakımından esas alınır.",
           "Hesap kapatma talebi alındığında; devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, Şirket bu süreçlerin tamamlanmasını takiben kapatma işlemini uygular ve durumu Üye'ye bildirir.",
           "Hesabın kapatılmasıyla birlikte Ödül Programı kapsamındaki puan bakiyesi sona erer ve karşılığında herhangi bir bedel ödenmez. Üye, hesabı kapatmadan önce bu sonucu açık şekilde bilgilendirilir ve kalan puanını kullanma imkânı tanınır.",
           "Üyeliğin sona ermesi, sona erme tarihinden önce kurulmuş satış sözleşmelerinden doğan hakları etkilemez. Üye, teslim aldığı ürünlere ilişkin cayma hakkını, ayıplı mal hükümlerinden doğan seçimlik haklarını ve garanti haklarını üyeliği kapansa dahi mevzuatta öngörülen süreler içinde kullanabilir.",
@@ -10925,6 +10925,150 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             key: "IBAN",
             value: "{{IBAN}}",
           },
+        ],
+      },
+    ],
+  },
+  {
+    slug: "hesap-silme",
+    title: "Hesap Silme ve Üyelik Sonlandırma Prosedürü",
+    shortTitle: "Hesap Silme",
+    category: "Site & Üyelik",
+    summary:
+      "{{BRAND}} üyeliğinizi ve mobil uygulama hesabınızı nasıl sildireceğinizi; talebin nereden iletileceğini, kimlik teyidini, süreleri ve silme sonrasında hangi verilerin silindiğini, hangilerinin anonim hâle getirildiğini, hangilerinin mevzuat gereği saklandığını adım adım açıklar.",
+    references: [
+      "6698 sayılı Kişisel Verilerin Korunması Kanunu — m.7 silme, yok etme ve anonim hâle getirme, m.11 ilgili kişinin hakları",
+      "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
+      "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
+      "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
+      "213 sayılı Vergi Usul Kanunu — fatura ve defter kayıtlarının saklanması",
+      "6102 sayılı Türk Ticaret Kanunu — ticari defterlerin saklanması",
+      "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
+    ],
+    sections: [
+      {
+        heading: "1. Bu Belgenin Amacı",
+        paragraphs: [
+          "Bu belge, {{BRAND}} üyeliğinizin ve mobil uygulama hesabınızın sonlandırılması talebini nasıl ileteceğinizi, talebin nasıl işlendiğini ve sonucunda verilerinize ne olduğunu açıklar.",
+          "Üyeliği sona erdirmek ücretsizdir, gerekçe göstermeyi gerektirmez ve üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilir.",
+          "Bu belge Üyelik Sözleşmesi'nin hesap kapatmaya ilişkin maddesini tamamlar; çelişki hâlinde Üyelik Sözleşmesi ve mevzuat esas alınır.",
+        ],
+      },
+      {
+        heading: "2. Talebi Nereden İletebilirsiniz",
+        paragraphs: [
+          "Aşağıdaki kanalların tamamı geçerlidir; hangisini seçtiğinizin sonuç üzerinde etkisi yoktur.",
+        ],
+        bullets: [
+          "Site: Hesabım > Hesabı sil sayfası ({{SITE_URL}}/uye/hesap/sil). Talep, e-posta adresinizi ve şifrenizi doğruladığınızda anında işleme alınır.",
+          "Mobil uygulama: Profil bölümündeki hesap ayarlarından hesabımı sil seçeneği. Talep uygulama içinden onaylandığında işleme alınır.",
+          "E-posta: Üyelik kaydınızdaki adresten {{EMAIL}} adresine, konu satırında hesap silme talebi yazan bir ileti.",
+          "Posta: {{ADDRESS}} adresine ıslak imzalı yazılı başvuru.",
+          "Uygulama mağazalarının hesap silme yönlendirmeleri de bu sayfaya çıkar; bu sayfadaki e-posta kanalı, uygulamayı kurmadan da talep iletebilmeniz içindir.",
+        ],
+      },
+      {
+        heading: "3. Kimlik Teyidi",
+        paragraphs: [
+          "Talebin hesabın gerçek sahibinden geldiğinden emin olmamız gerekir; aksi hâlde bir başkasının hesabını sildirmesi mümkün olurdu.",
+          "Uygulama içinden yapılan talepte kimlik, oturum açmış üyelik ile teyit edilmiş sayılır. E-posta ile yapılan talepte, iletinin üyelik kaydındaki e-posta adresinden gelmesi esas alınır.",
+          "Farklı bir adresten gelen başvurularda, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ çerçevesinde ek bilgi talep edilebilir. İstenen bilgi, yalnızca kimliğin teyidi için gerekli olanla sınırlıdır.",
+        ],
+      },
+      {
+        heading: "4. Süreler",
+        paragraphs: [
+          "Uygulama içinden verilen silme talebi anında uygulanır: hesap aynı işlemde kapatılır ve kişisel alanlar silinir.",
+          "E-posta veya posta ile iletilen talepler, 6698 sayılı Kanun ve ilgili Tebliğ uyarınca en geç otuz gün içinde sonuçlandırılır. Talebin alındığı, aynı kanaldan teyit edilir.",
+          "Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, silme işlemi bu süreçlerin tamamlanmasının ardından uygulanır ve durum size bildirilir.",
+        ],
+      },
+      {
+        heading: "5. Hesap Kapatıldığında Hemen Silinen Veriler",
+        bullets: [
+          "Ad ve soyad, telefon numarası, doğum tarihi.",
+          "Adres defterindeki tüm teslimat adresleri.",
+          "Favori ürün listesi ve kayıtlı her zamanki sipariş tercihi.",
+          "Bildirim tercihleri kapatılır; pazarlama izni geri alınmış sayılır.",
+          "Parola özeti, doğrulama ve parola sıfırlama anahtarları.",
+          "Ödeme sağlayıcısında saklanan kartlarınıza ait eşleşme anahtarı. Kart bilgileri zaten bizde tutulmaz; bu anahtarın silinmesiyle kartlara erişim son bulur.",
+          "Davet kodunuz serbest bırakılır ve başka bir üyeye verilebilir hâle gelir.",
+        ],
+      },
+      {
+        heading: "6. Anonim Hâle Getirilen Veriler",
+        paragraphs: [
+          "Silinemeyen, ancak sizinle ilişkisi koparılabilen kayıtlar anonim hâle getirilir: e-posta adresiniz, kimliği belirlenemeyen benzersiz bir yer tutucu ile değiştirilir.",
+        ],
+        bullets: [
+          "Sipariş kayıtları: satır ve tutar bilgisi muhasebe için durur, alıcı bilgisi yer tutucuya çevrilir.",
+          "Sadakat damgası hareketleri: bakiye hesabınızdan koparılır.",
+          "Kuponlar: kullanıma kapatılır ve sahibi yer tutucuya çevrilir.",
+          "Karaoke rezervasyonları: gelecek tarihli olanlar iptal edilir, kayıt sahibi yer tutucuya çevrilir.",
+          "Davet kayıtları: davet eden ve davet edilen adresleri yer tutucuya çevrilir.",
+          "Stok hareketi kayıtlarında işlemi başlatan olarak görünen e-posta adresi yer tutucuya çevrilir.",
+        ],
+      },
+      {
+        heading: "7. Mevzuat Gereği Saklanan Kayıtlar",
+        paragraphs: [
+          "Aşağıdaki kayıtlar, hesap silinse dahi ilgili süreler boyunca sınırlı erişimle tutulur. Bu kayıtlar yalnızca yasal yükümlülüğün gereğini yerine getirmek ve olası bir uyuşmazlıkta delil olarak kullanmak amacıyla işlenir; pazarlama amacıyla kullanılmaz.",
+        ],
+        table: [
+          {
+            key: "Fatura ve muhasebe kayıtları",
+            value:
+              "213 sayılı Vergi Usul Kanunu ve 6102 sayılı Türk Ticaret Kanunu uyarınca on yıl",
+          },
+          {
+            key: "Sipariş ve elektronik ileti onay kayıtları",
+            value:
+              "6563 sayılı Kanun ve ilgili yönetmelikler uyarınca öngörülen süre",
+          },
+          {
+            key: "Tüketici başvuru ve uyuşmazlık yazışmaları",
+            value: "6502 sayılı Kanun kapsamındaki zamanaşımı süresi boyunca",
+          },
+          {
+            key: "Trafik ve erişim kayıtları",
+            value: "5651 sayılı Kanun uyarınca öngörülen süre",
+          },
+        ],
+      },
+      {
+        heading: "8. Silme İle Birlikte Sona Eren Haklar",
+        bullets: [
+          "Biriken sadakat damgaları ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında bedel ödenmez.",
+          "Kullanılmamış kuponlar geçersiz hâle gelir.",
+          "Gelecek tarihli karaoke rezervasyonlarınız iptal edilir; salon başkasına açılır.",
+          "Silmeden önce kalan haklarınızı kullanmanız için uygulama içindeki onay ekranında uyarı gösterilir.",
+        ],
+      },
+      {
+        heading: "9. Silme Sonrasında Yeniden Üyelik",
+        paragraphs: [
+          "E-posta adresiniz serbest bırakılır; aynı adresle yeniden üye olabilirsiniz.",
+          "Yeniden üyelik yeni bir kayıt açar. Önceki hesabın sipariş geçmişi, damgaları, kuponları ve tercihleri yeni hesaba taşınmaz ve yeni hesaptan görüntülenemez.",
+        ],
+      },
+      {
+        heading: "10. Talebin Reddedilebileceği Hâller",
+        paragraphs: [
+          "Silme talebi, mevzuattan doğan bir saklama yükümlülüğünün bulunduğu kayıtlar bakımından karşılanamaz. Böyle bir durumda talebiniz kısmen yerine getirilir ve hangi kaydın hangi dayanakla tutulmaya devam edildiği gerekçesiyle birlikte size bildirilir.",
+          "Kimliğin teyit edilememesi hâlinde talep, teyit sağlanana kadar bekletilir; bu durum da size bildirilir.",
+        ],
+      },
+      {
+        heading: "11. Başvuru ve İtiraz",
+        paragraphs: [
+          "Silme talebinizin sonucundan memnun kalmazsanız, 6698 sayılı Kanun'un ilgili kişinin haklarını düzenleyen hükmü uyarınca veri sorumlusuna başvurabilirsiniz. Başvuru formu ve usulü {{SITE_URL}}/hukuk/kvkk-basvuru-formu adresindedir.",
+          "Başvurunuzun otuz gün içinde sonuçlandırılmaması veya cevabın yetersiz bulunması hâlinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunma hakkınız saklıdır.",
+        ],
+        table: [
+          { key: "Veri sorumlusu", value: "{{LEGAL_NAME}}" },
+          { key: "Adres", value: "{{ADDRESS}}" },
+          { key: "E-posta", value: "{{EMAIL}}" },
+          { key: "Telefon", value: "{{PHONE}}" },
         ],
       },
     ],

@@ -18,5 +18,8 @@ export const FOOTER_LEGAL_DOCS = [
   { slug: "kullanim-sartlari", label: "Kullanım Şartları" },
   { slug: "odul-programi", label: "Ödül Programı" },
   { slug: "mobil-uygulama-kosullari", label: "Mobil Uygulama" },
+  // Google Play'in "Data deletion URL" alanı bu sayfayı gösterir; uygulamayı
+  // kurmamış bir üyenin de talebi iletebileceği tek genel adres burasıdır.
+  { slug: "hesap-silme", label: "Hesap Silme" },
   { slug: "sirket-bilgileri", label: "Şirket Bilgileri" },
 ] as const;

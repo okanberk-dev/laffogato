@@ -17,7 +17,9 @@ function order(
     status: string;
     createdAt: string;
     paidAt: string;
+    preparingAt: string;
     shippedAt: string;
+    completedAt: string;
     fulfillment: string;
   }> = {},
 ) {
@@ -27,7 +29,9 @@ function order(
     status: "preparing",
     createdAt: "2026-08-29T09:00:00.000Z",
     paidAt: "2026-08-29T09:05:00.000Z",
+    preparingAt: "",
     shippedAt: "",
+    completedAt: "",
     ...over,
   } as Parameters<typeof deriveOrderNotifications>[0][number];
 }
@@ -100,6 +104,26 @@ describe("deriveOrderNotifications", () => {
     ]);
   });
 
+  it("keeps a late stage on an old order — the window is per stage", () => {
+    // A gift box paid 32 days ago and shipped today: the stage is today's
+    // news even though the order is outside the window.
+    const created = new Date(
+      NOW.getTime() - (NOTIFICATION_WINDOW_DAYS + 2) * 86_400_000,
+    ).toISOString();
+    const items = deriveOrderNotifications(
+      [
+        order({
+          status: "shipped",
+          createdAt: created,
+          paidAt: created,
+          shippedAt: "2026-08-30T08:00:00.000Z",
+        }),
+      ],
+      NOW,
+    );
+    expect(items.map((i) => i.id)).toEqual(["order-ord-0284-shipped"]);
+  });
+
   it("reads 'Teslim edildi' when a shipped order completes", () => {
     const items = deriveOrderNotifications(
       [order({ status: "completed" })],
@@ -115,6 +139,49 @@ describe("deriveOrderNotifications", () => {
       NOW,
     );
     expect(items[0].at).toBe("2026-08-29T09:00:00.000Z");
+  });
+
+  it("dates each stage from its own column", () => {
+    const items = deriveOrderNotifications(
+      [
+        order({
+          status: "completed",
+          preparingAt: "2026-08-29T09:20:00.000Z",
+          shippedAt: "2026-08-29T10:00:00.000Z",
+          completedAt: "2026-08-29T10:40:00.000Z",
+        }),
+      ],
+      NOW,
+    );
+    expect(items.map((i) => i.at)).toEqual([
+      "2026-08-29T09:05:00.000Z",
+      "2026-08-29T09:20:00.000Z",
+      "2026-08-29T10:00:00.000Z",
+      "2026-08-29T10:40:00.000Z",
+    ]);
+  });
+
+  it("keeps a stage reached today when payment was outside the window", () => {
+    // The bug the stage columns fix: every stage borrowed paidAt, so a long
+    // order delivered today was dated 40 days ago and dropped from the inbox.
+    const items = deriveOrderNotifications(
+      [
+        order({
+          status: "completed",
+          createdAt: "2026-07-21T09:00:00.000Z",
+          paidAt: "2026-07-21T09:05:00.000Z",
+          preparingAt: "2026-08-29T09:20:00.000Z",
+          shippedAt: "2026-08-29T10:00:00.000Z",
+          completedAt: "2026-08-30T08:00:00.000Z",
+        }),
+      ],
+      NOW,
+    );
+    expect(items.map((i) => i.id)).toEqual([
+      "order-ord-0284-preparing",
+      "order-ord-0284-shipped",
+      "order-ord-0284-completed",
+    ]);
   });
 });
 
@@ -203,5 +270,68 @@ describe("buildNotifications", () => {
         "title",
       ]);
     }
+  });
+
+  it("stamps the reward with the moment the card filled, not the request", () => {
+    const filled = "2026-08-20T10:00:00.000Z";
+    const first = buildNotifications({
+      orders: [],
+      announcements: [],
+      rewardsReady: 1,
+      rewardAt: filled,
+      now: NOW,
+    });
+    const later = buildNotifications({
+      orders: [],
+      announcements: [],
+      rewardsReady: 1,
+      rewardAt: filled,
+      now: new Date(NOW.getTime() + 5 * 60_000),
+    });
+    // The app derives "unread" from `at`; a moving `at` made the reward
+    // unread again a minute after the member marked the inbox read.
+    expect(first[0].at).toBe(filled);
+    expect(later[0].at).toBe(filled);
+  });
+
+  it("keeps campaign rows out when the member turned marketing off", () => {
+    const announcements = [
+      {
+        id: "ann-1",
+        kind: "campaign" as const,
+        title: "Kampanya",
+        body: "…",
+        startsAt: "2026-08-29T12:00:00.000Z",
+        createdAt: "",
+      },
+      {
+        id: "ann-2",
+        kind: "info" as const,
+        title: "Duyuru",
+        body: "…",
+        startsAt: "2026-08-29T13:00:00.000Z",
+        createdAt: "",
+      },
+    ];
+    const off = buildNotifications({
+      orders: [order()],
+      announcements,
+      rewardsReady: 0,
+      now: NOW,
+      prefs: { marketing: false, orderUpdates: true },
+    });
+    expect(off.map((i) => i.id)).not.toContain("announcement-ann-1");
+    // Order rows are the member's own transactions, not a commercial message.
+    expect(off.map((i) => i.id)).toContain("order-ord-0284-paid");
+    expect(off.map((i) => i.id)).toContain("announcement-ann-2");
+
+    const on = buildNotifications({
+      orders: [],
+      announcements,
+      rewardsReady: 0,
+      now: NOW,
+      prefs: { marketing: true },
+    });
+    expect(on.map((i) => i.id)).toContain("announcement-ann-1");
   });
 });

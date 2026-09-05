@@ -167,6 +167,39 @@ describe("timeline", () => {
     expect(steps[2].at).toBeNull();
   });
 
+  it("dates each step from its own stage column, not from paidAt", () => {
+    const steps = buildTimeline(
+      order({
+        status: "completed",
+        preparingAt: "2026-08-30T11:45:00.000Z",
+        shippedAt: "2026-08-30T11:52:00.000Z",
+        completedAt: "2026-08-30T12:10:00.000Z",
+      }),
+    );
+    expect(steps.map((s) => s.at)).toEqual([
+      "2026-08-30T11:40:00.000Z",
+      "2026-08-30T11:45:00.000Z",
+      "2026-08-30T11:52:00.000Z",
+      "2026-08-30T12:10:00.000Z",
+    ]);
+  });
+
+  it("stays blank on the last steps of an order older than the stage columns", () => {
+    // Rows written before 20260905160000 have "" in all three; a done step
+    // borrowing paidAt is exactly the mis-dating those columns removed.
+    const steps = buildTimeline(
+      order({
+        status: "completed",
+        preparingAt: "",
+        shippedAt: "",
+        completedAt: "",
+      }),
+    );
+    expect(steps[1].at).toBe("2026-08-30T11:41:00.000Z");
+    expect(steps[2].at).toBeNull();
+    expect(steps[3].at).toBeNull();
+  });
+
   it("says 'Hazır — gel al' for a pickup and uses it as the status label", () => {
     const o = order({
       fulfillment: "pickup",

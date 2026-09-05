@@ -280,16 +280,19 @@ function hourRange(h: { open: string; close: string }) {
 }
 
 /**
- * One line for the whole week, derived from the same `weeklyHours` the Visit
- * page renders so the app can never say a different time than the site.
+ * One line for a stretch of the week, grouping consecutive days that keep the
+ * same hours. Callers pass the days they are describing: the whole week for
+ * `hoursLabel`, Monday–Friday and Saturday–Sunday for the live-status pair.
  *
- *   all seven days alike → "Her gün 09:00 – 01:00"
- *   otherwise            → consecutive runs: "Pzt–Cum 09:00 – 01:00 · Cmt–Paz 10:00 – 02:00"
- *   closed run           → "Paz Kapalı"
+ *   every listed day alike → "09:00 – 01:00" (or "Kapalı")
+ *   otherwise              → "Pzt–Per 09:00 – 00:00 · Cum 09:00 – 01:00"
  */
-export function hoursLabel(weekly: WeeklyHours): string {
+export function hoursLabelFor(
+  weekly: WeeklyHours,
+  days: readonly DayOfWeek[],
+): string {
   const runs: { from: DayOfWeek; to: DayOfWeek; sig: string }[] = [];
-  for (const day of DAYS_OF_WEEK) {
+  for (const day of days) {
     const sig = hourSignature(weekly[day]);
     const last = runs[runs.length - 1];
     if (last && last.sig === sig) last.to = day;
@@ -298,22 +301,37 @@ export function hoursLabel(weekly: WeeklyHours): string {
 
   if (runs.length === 1) {
     const only = runs[0];
-    return only.sig === "closed"
-      ? "Kapalı"
-      : `Her gün ${hourRange(weekly[only.from])}`;
+    return only.sig === "closed" ? "Kapalı" : hourRange(weekly[only.from]);
   }
 
   return runs
     .map((run) => {
-      const days =
+      const label =
         run.from === run.to
           ? DAY_SHORT[run.from]
           : `${DAY_SHORT[run.from]}–${DAY_SHORT[run.to]}`;
       const range =
         run.sig === "closed" ? "Kapalı" : hourRange(weekly[run.from]);
-      return `${days} ${range}`;
+      return `${label} ${range}`;
     })
     .join(" · ");
+}
+
+/**
+ * One line for the whole week, derived from the same `weeklyHours` the Visit
+ * page renders so the app can never say a different time than the site.
+ *
+ *   all seven days alike → "Her gün 09:00 – 01:00"
+ *   otherwise            → consecutive runs: "Pzt–Cum 09:00 – 01:00 · Cmt–Paz 10:00 – 02:00"
+ *   closed run           → "Paz Kapalı"
+ */
+export function hoursLabel(weekly: WeeklyHours): string {
+  const label = hoursLabelFor(weekly, DAYS_OF_WEEK);
+  const uniform = DAYS_OF_WEEK.every(
+    (day) => hourSignature(weekly[day]) === hourSignature(weekly.mon),
+  );
+  // "Her gün" only reads right when there is one open range for all seven.
+  return uniform && !weekly.mon.closed ? `Her gün ${label}` : label;
 }
 
 /** One row of the venue's weekly table: `{ label: "Pazartesi", value: "09:00 – 01:00" | "Kapalı" }`. */

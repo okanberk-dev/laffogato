@@ -31,7 +31,11 @@
   --ink-line-strong: #c4cbc4;
 
   /* Gold — app accent.goldFg carries text (it is the accessible one);
-     accent.gold is the fill. --gold-deep is the pressed step. */
+     accent.gold is the fill. --gold-deep is the pressed step and is the one
+     value here with NO app counterpart: the app has gold/goldFg only, so this
+     is a site-side darkening of --gold (#7d5f27 → 80% black-mixed). If a
+     pressed gold is ever needed on the phone, add accent.goldPressed to
+     tokens.ts with this value rather than inventing a second one. */
   --gold: #7d5f27;
   --gold-deep: #634a1e;
   --gold-soft: #e8c877;
@@ -92,16 +96,18 @@
   --r-lg: 20px;
   --r-xl: 32px;
 
-  /* Shadows — tinted with the espresso brown rather than neutral black, and
-     given enough weight to actually read on a cream ground. The previous
-     values (0.04–0.08 alpha, cool grey) were effectively invisible here, which
-     is why every surface sat flat on the page. */
+  /* Shadows — tinted with the app's own shadow colour (tokens.ts light.shadow
+     #12291F = 18,41,31), not neutral black, and given enough weight to
+     actually read. They were rgba(74,52,22,…), the retired espresso brown:
+     the last surface still lit by the köşk palette after the 2 Eyl 2026 swap,
+     which put a warm cast under cards sitting on a cool green-grey ground.
+     Alphas are unchanged — only the hue moved. */
   --shadow-sm:
-    0 1px 2px rgba(74, 52, 22, 0.06), 0 2px 6px rgba(74, 52, 22, 0.07);
+    0 1px 2px rgba(18, 41, 31, 0.06), 0 2px 6px rgba(18, 41, 31, 0.07);
   --shadow-md:
-    0 6px 16px rgba(74, 52, 22, 0.1), 0 12px 32px rgba(74, 52, 22, 0.08);
+    0 6px 16px rgba(18, 41, 31, 0.1), 0 12px 32px rgba(18, 41, 31, 0.08);
   --shadow-lg:
-    0 16px 36px rgba(74, 52, 22, 0.13), 0 36px 72px rgba(74, 52, 22, 0.1);
+    0 16px 36px rgba(18, 41, 31, 0.13), 0 36px 72px rgba(18, 41, 31, 0.1);
 
   /* Easing */
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);

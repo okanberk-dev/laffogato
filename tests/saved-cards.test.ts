@@ -70,7 +70,13 @@ describe("saved cards", () => {
       .filter((line) => !line.trimStart().startsWith("--"))
       .join("\n")
       .toLowerCase();
-    for (const forbidden of ["cardnumber", "cardpan", "cvv", "cvc", "expirymonth"]) {
+    for (const forbidden of [
+      "cardnumber",
+      "cardpan",
+      "cvv",
+      "cvc",
+      "expirymonth",
+    ]) {
       expect(columns).not.toContain(forbidden);
     }
     expect(raw).toContain('"cardUserKey"');
@@ -80,7 +86,9 @@ describe("saved cards", () => {
     // The buyer not ticking "kartımı kaydet" must not lose the cards they
     // saved on an earlier order.
     const store = read("src/lib/customer/store.ts");
-    const fn = store.slice(store.indexOf("export async function rememberCardUserKey"));
+    const fn = store.slice(
+      store.indexOf("export async function rememberCardUserKey"),
+    );
     expect(fn).toMatch(/if \(!key \|\| !needle\) return;/);
   });
 });

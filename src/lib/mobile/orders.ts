@@ -13,10 +13,13 @@ import {
   applyPaymentSucceeded,
   applyPromoCode,
   customerOrdersByEmail,
+  expireStalePendingOrders,
+  findAppOrderByClientId,
   getOrder,
   getSettings,
   placeAppOrder,
   previewAppOrderLines,
+  PENDING_ORDER_TTL_MINUTES,
   type AdminOrder,
   type AppOrderFailure,
   type OrderLegalConsent,
@@ -66,7 +69,18 @@ const MSG = {
   shopClosed: "Mağaza şu an sipariş almıyor.",
   cafeClosed: "Köşk şu an kapalı — açılış saatlerinde tekrar dene.",
   empty: "Sepet boş.",
+  paymentUnavailable:
+    "Ödeme altyapısına şu an ulaşılamıyor. Birazdan tekrar dene.",
 } as const;
+
+/**
+ * How many of the member's newest orders the open-checkout count looks at.
+ *
+ * `MAX_OPEN_ORDERS` is 3 and only orders younger than the expiry window
+ * count, so a page of recent rows is always enough — and it keeps a regular's
+ * two-year history out of every checkout.
+ */
+const RECENT_ORDER_SCAN = 20;
 
 export function failureFromResult(result: AppOrderFailure): AppFailure {
   switch (result.reason) {
@@ -255,6 +269,38 @@ export type CreateAppOrderResult =
  */
 export const MAX_OPEN_ORDERS = 3;
 
+/**
+ * Answers a repeated checkout attempt with the order it already produced.
+ *
+ * An order still awaiting payment gets a fresh checkout session rather than
+ * the first one's URL: provider sessions expire (30 minutes), and opening a
+ * second one against the same order is safe — `applyPaymentSucceeded` is
+ * idempotent and the order can only advance once. An order that has since
+ * been paid or cancelled has nothing to pay, so `payment` is null and the app
+ * shows it as it stands.
+ */
+async function replayAppOrder(
+  order: AdminOrder,
+  customer: PublicCustomer,
+): Promise<CreateAppOrderResult> {
+  let payment: AppPayment | null = null;
+  if (order.status === "pending_payment" && order.totalMinor > 0) {
+    try {
+      payment = await createAppPaymentSession(order, customer, "");
+    } catch (err) {
+      // The order exists either way; failing to reopen the POS must not make
+      // the app place a second one.
+      console.error("[orders] reopening checkout for a retry failed", err);
+    }
+  }
+  return {
+    ok: true,
+    order: toMobileOrder(order),
+    payment,
+    promoDropped: false,
+  };
+}
+
 export async function createAppOrder(
   customer: PublicCustomer,
   body: PlaceOrderBody,
@@ -268,17 +314,64 @@ export async function createAppOrder(
   );
   if (refused) return { ok: false, failure: refused };
 
-  const open = (await customerOrdersByEmail(customer.email)).filter(
-    (o) => o.status === "pending_payment",
-  ).length;
+  // Ask for the POS before anything is persisted. `getPaymentProvider()` fails
+  // closed on a missing `PAYMENT_PROVIDER`, and it used to be reached only
+  // after the order row was written and "siparişin alındı" had been mailed —
+  // so a misconfigured deployment answered 500, left a ghost pending order in
+  // the kitchen, and locked the member out after three tries.
+  try {
+    getPaymentProvider();
+  } catch (err) {
+    console.error("[orders] payment provider unavailable", err);
+    return {
+      ok: false,
+      failure: {
+        status: 503,
+        code: "payment_unavailable",
+        message: MSG.paymentUnavailable,
+      },
+    };
+  }
+
+  // The member's own retry is not a second order. The app repeats the id it
+  // generated for this checkout attempt, so a POST it gave up on — while the
+  // server was still mailing the confirmation and opening the checkout
+  // session — answers with the order that first call created.
+  if (body.clientOrderId) {
+    const existing = await findAppOrderByClientId(
+      customer.email,
+      body.clientOrderId,
+    );
+    if (existing) return replayAppOrder(existing, customer);
+  }
+
+  // Reclaim the member's own abandoned checkouts BEFORE counting them. The
+  // sweep used to run inside `placeAppOrder`, i.e. after this check, and there
+  // is no scheduler: three abandoned checkouts on a quiet Sunday locked the
+  // member out until some other customer's order happened to sweep their rows.
+  try {
+    await expireStalePendingOrders();
+  } catch (err) {
+    console.error("[orders] expiring stale pending orders failed", err);
+  }
+  const openSince = Date.now() - PENDING_ORDER_TTL_MINUTES * 60_000;
+  const open = (
+    await customerOrdersByEmail(customer.email, RECENT_ORDER_SCAN)
+  ).filter((o) => {
+    if (o.status !== "pending_payment") return false;
+    // An unreadable timestamp counts: the cap is there to stop a script, and
+    // a row of unknown age is not evidence that it has expired.
+    const at = Date.parse(o.createdAt);
+    return !Number.isFinite(at) || at >= openSince;
+  }).length;
   if (open >= MAX_OPEN_ORDERS) {
     return {
       ok: false,
       failure: {
         status: 429,
         code: "too_many_pending",
-        message:
-          "Ödemesi tamamlanmamış siparişlerin var. Önce onları tamamla ya da iptal et.",
+        // Not "iptal et": the app has no way to cancel an order.
+        message: `Ödemesi tamamlanmamış siparişlerin var. Ödemeyi tamamla ya da ${PENDING_ORDER_TTL_MINUTES} dakika sonra tekrar dene.`,
       },
     };
   }
@@ -311,6 +404,7 @@ export async function createAppOrder(
     scheduledFor: body.scheduledFor,
     promoCode: body.promoCode,
     legalConsent: consent,
+    clientOrderId: body.clientOrderId,
   });
   if (!result.ok) return { ok: false, failure: failureFromResult(result) };
 
@@ -368,8 +462,11 @@ export async function createAppOrder(
 export async function listAppOrders(
   customer: PublicCustomer,
 ): Promise<MobileOrder[]> {
-  const orders = await customerOrdersByEmail(customer.email);
-  return orders.slice(0, ORDER_LIST_LIMIT).map((o) => toMobileOrder(o));
+  // The limit belongs in SQL: this used to read the member's entire history —
+  // items jsonb, consent evidence and refund ledger included — and throw all
+  // but the newest 50 away in JavaScript.
+  const orders = await customerOrdersByEmail(customer.email, ORDER_LIST_LIMIT);
+  return orders.map((o) => toMobileOrder(o));
 }
 
 /** `GET /orders/{id}` — only the owner's; anyone else sees nothing. */
@@ -408,8 +505,35 @@ export async function previewPromo(
   customer: PublicCustomer | null,
   kind?: "cafe" | "shop",
 ): Promise<PromoPreview> {
+  return (await previewPromoOutcome(code, subtotalMinor, customer, kind))
+    .preview;
+}
+
+/**
+ * The preview plus whether the code turned out to exist.
+ *
+ * Only a code that does NOT exist is evidence of guessing; a member's own
+ * coupon that is under its minimum spend is evidence of a member shopping.
+ * The rate limiter needs to tell the two apart, the wire does not.
+ */
+interface PromoPreviewOutcome {
+  preview: PromoPreview;
+  found: boolean;
+}
+
+async function previewPromoOutcome(
+  code: string,
+  subtotalMinor: number,
+  customer: PublicCustomer | null,
+  kind?: "cafe" | "shop",
+): Promise<PromoPreviewOutcome> {
   const trimmed = code.trim();
-  if (!trimmed) return { ok: false, code: "", message: "Kod gir." };
+  if (!trimmed) {
+    return {
+      preview: { ok: false, code: "", message: "Kod gir." },
+      found: false,
+    };
+  }
   if (customer) {
     const coupon = await applyCustomerCoupon(
       trimmed,
@@ -420,33 +544,53 @@ export async function previewPromo(
       // Same gate the till applies, from the same predicate.
       if (!couponAllowedForKind(coupon.coupon, kind)) {
         return {
-          ok: false,
-          code: coupon.coupon.code,
-          message: CAFE_ONLY_COUPON_MESSAGE,
+          preview: {
+            ok: false,
+            code: coupon.coupon.code,
+            message: CAFE_ONLY_COUPON_MESSAGE,
+          },
+          found: true,
         };
       }
       return {
-        ok: true,
-        code: coupon.coupon.code,
-        discountMinor: coupon.discountMinor ?? 0,
+        preview: {
+          ok: true,
+          code: coupon.coupon.code,
+          discountMinor: coupon.discountMinor ?? 0,
+        },
+        found: true,
       };
     }
     // The member's own coupon, but not usable: say why rather than falling
     // through to "invalid code".
     if (coupon.found) {
       return {
-        ok: false,
-        code: trimmed,
-        message: coupon.error ?? "Kupon kullanılamıyor.",
+        preview: {
+          ok: false,
+          code: trimmed,
+          message: coupon.error ?? "Kupon kullanılamıyor.",
+        },
+        found: true,
       };
     }
   }
   const promo = await applyPromoCode(trimmed, subtotalMinor);
-  if (!promo.ok) return { ok: false, code: trimmed, message: promo.error };
+  if (!promo.ok) {
+    return {
+      preview: { ok: false, code: trimmed, message: promo.error },
+      // "Geçersiz kod." is the one refusal that means the code is not in the
+      // table; everything else (closed, expired, limit reached, under the
+      // minimum spend) is a real code the member simply cannot use here.
+      found: promo.error !== "Geçersiz kod.",
+    };
+  }
   return {
-    ok: true,
-    code: promo.promo.code,
-    discountMinor: promo.discountMinor,
+    preview: {
+      ok: true,
+      code: promo.promo.code,
+      discountMinor: promo.discountMinor,
+    },
+    found: true,
   };
 }
 
@@ -456,8 +600,14 @@ export type LimitedPromoPreview =
 
 /**
  * The same preview behind the counter that guards the web form: a code
- * oracle with no limit is a code guesser's best friend. Failures count, a
- * customer mistyping their own coupon has plenty of room.
+ * oracle with no limit is a code guesser's best friend.
+ *
+ * Only a code that does not exist counts as a failure. The basket screen
+ * re-prices on every stepper tap while a code is applied, so a member whose
+ * coupon is merely under its minimum spend used to burn one of fifteen
+ * failures per tap and lock themselves — and, because the bucket was keyed on
+ * the IP alone, everyone else on the venue's Wi-Fi — out of promo codes for
+ * the window. A signed-in member also gets their own bucket for that reason.
  */
 export async function previewPromoRateLimited(
   code: string,
@@ -466,12 +616,20 @@ export async function previewPromoRateLimited(
   kind?: "cafe" | "shop",
 ): Promise<LimitedPromoPreview> {
   const ip = await clientIp();
-  const limit = await checkLoginLimit("promo-preview", ip, "");
+  const identity = customer?.email ?? "";
+  const limit = await checkLoginLimit("promo-preview", ip, identity);
   if (limit.blocked) {
     return { limited: true, retryAfterSeconds: limit.retryAfterSeconds };
   }
-  const preview = await previewPromo(code, subtotalMinor, customer, kind);
-  if (!preview.ok) await recordLoginFailure("promo-preview", ip, "");
+  const { preview, found } = await previewPromoOutcome(
+    code,
+    subtotalMinor,
+    customer,
+    kind,
+  );
+  if (!preview.ok && !found) {
+    await recordLoginFailure("promo-preview", ip, identity);
+  }
   return { limited: false, preview };
 }
 

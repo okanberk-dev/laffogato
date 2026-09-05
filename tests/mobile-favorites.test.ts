@@ -11,7 +11,11 @@ const base: PublicCustomer = {
   birthday: "",
   addresses: [],
   wishlist: ["prd-0001", "prd-0007"],
-  notificationPrefs: { orderUpdates: true, marketing: false, newsletter: false },
+  notificationPrefs: {
+    orderUpdates: true,
+    marketing: false,
+    newsletter: false,
+  },
   emailVerified: true,
   isActive: true,
   createdAt: "2026-05-01T09:00:00.000Z",

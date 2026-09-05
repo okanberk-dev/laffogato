@@ -110,12 +110,20 @@ export interface InvitePerson {
   name: string;
   status: "joined" | "pending";
   at: string;
+  /**
+   * Did the inviter actually get a free drink for this person? False once the
+   * inviter is past the reward cap — the invitee is still rewarded, so the row
+   * must not promise the inviter a coupon that was never issued.
+   */
+  rewarded: boolean;
 }
 
 export interface InviteSummary {
   code: string;
   invited: number;
+  /** People who used the code and have since made their first paid order. */
   joined: number;
+  /** Free drinks this inviter actually earned — capped, so ≤ `joined`. */
   earned: number;
   people: InvitePerson[];
 }

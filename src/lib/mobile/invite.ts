@@ -15,6 +15,7 @@ import {
   isInviteCodeShape,
   normalizeInviteCode,
 } from "./invite-code";
+import { isCountedOrder } from "./loyalty-core";
 import type { InvitePerson, InviteSummary } from "./me-mapper";
 
 /**
@@ -138,16 +139,31 @@ export async function getInviteSummary(
     }
   }
 
+  // Only the first INVITE_REWARD_CAP settlements pay the inviter
+  // (`rewardInviteOnFirstPaidOrder` counts the rewarded rows before granting),
+  // and settlement order is `rewardedAt`. So the same ordering says here which
+  // people actually earned this member a coffee — the rest were cap-dropped
+  // and used to show "+1 kahve" for a coupon that never existed.
+  const settled = invites
+    .filter((i) => i.status === "rewarded")
+    .sort((a, b) =>
+      (a.rewardedAt || a.createdAt).localeCompare(b.rewardedAt || b.createdAt),
+    )
+    .slice(0, INVITE_REWARD_CAP)
+    .map((i) => i.id);
+  const paid = new Set(settled);
+
   const people: InvitePerson[] = invites.map((i) => ({
     name: abbreviateName(names.get(normalizeEmail(i.inviteeEmail)) ?? ""),
     status: i.status === "pending" ? "pending" : "joined",
     at: i.rewardedAt || i.createdAt,
+    rewarded: paid.has(i.id),
   }));
   return {
     code,
     invited: invites.length,
     joined: invites.filter((i) => i.status !== "pending").length,
-    earned: invites.filter((i) => i.status === "rewarded").length,
+    earned: paid.size,
     people,
   };
 }
@@ -191,7 +207,9 @@ export async function claimInvite(
   const me = await fetchIdentity(claimer);
   if (!me) return { ok: false, error: "invalid_code" };
   if (me.invitedBy) return { ok: false, error: "already_claimed" };
-  if ((await customerOrdersByEmail(claimer)).length > 0) {
+  // A cancelled or still-unpaid checkout is not a first order: only a counted
+  // one closes the window for claiming a code.
+  if ((await customerOrdersByEmail(claimer)).some(isCountedOrder)) {
     return { ok: false, error: "has_orders" };
   }
 
@@ -257,23 +275,43 @@ export async function rewardInviteOnFirstPaidOrder(
   const won = (data as { id: string; inviterEmail: string }[] | null) ?? [];
   if (won.length === 0) return false;
 
-  await grantFreeDrinkCoupon(invitee, "invite");
-  const inviter = normalizeEmail(won[0].inviterEmail);
-  if (inviter) {
-    const { data: rewarded, error: countErr } = await db
+  // The flip is the mutex, so it has to happen first — but until both coupons
+  // exist it is also the only record that the reward is owed. If a grant
+  // throws, the row goes back to `pending` so the next webhook retry settles
+  // it again; leaving it `rewarded` lost the free drinks for good, because the
+  // guarded UPDATE then matches nothing.
+  try {
+    await grantFreeDrinkCoupon(invitee, "invite");
+    const inviter = normalizeEmail(won[0].inviterEmail);
+    if (inviter) {
+      const { data: rewarded, error: countErr } = await db
+        .from(TABLES.invites)
+        .select("id")
+        .eq("inviterEmail", inviter)
+        .eq("status", "rewarded");
+      checkErr(countErr, "rewardInvite.count");
+      const settled = ((rewarded as { id: string }[] | null) ?? []).length;
+      if (settled <= INVITE_REWARD_CAP) {
+        await grantFreeDrinkCoupon(inviter, "invite");
+      } else {
+        console.warn(
+          `[invite] reward cap reached for inviter, invitee still rewarded`,
+        );
+      }
+    }
+  } catch (err) {
+    const undo = await db
       .from(TABLES.invites)
-      .select("id")
-      .eq("inviterEmail", inviter)
+      .update({ status: "pending", rewardedAt: "" })
+      .eq("id", won[0].id)
       .eq("status", "rewarded");
-    checkErr(countErr, "rewardInvite.count");
-    const settled = ((rewarded as { id: string }[] | null) ?? []).length;
-    if (settled <= INVITE_REWARD_CAP) {
-      await grantFreeDrinkCoupon(inviter, "invite");
-    } else {
-      console.warn(
-        `[invite] reward cap reached for inviter, invitee still rewarded`,
+    if (undo.error) {
+      console.error(
+        `[invite] could not re-open ${won[0].id} after a failed grant`,
+        undo.error,
       );
     }
+    throw err;
   }
   return true;
 }

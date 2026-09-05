@@ -156,10 +156,13 @@ function GeneralTab({ settings }: { settings: AdminSettings }) {
               placeholder="https://…"
             />
           </Field>
-          <Field label="Mağaza durumu">
+          <Field
+            label="Mağaza durumu"
+            hint="Yalnızca kargolu mağaza siparişlerini durdurur. Kafe siparişi (gel-al / kurye) Mobil > Ayarlar altındaki sipariş anahtarlarına ve mekânın çalışma saatlerine bakar."
+          >
             <Checkbox
               name="isShopOpen"
-              label="Online mağaza açık"
+              label="Online mağaza açık (kargolu ürünler)"
               defaultChecked={settings.isShopOpen}
             />
           </Field>

@@ -35,6 +35,13 @@ export async function POST(req: Request) {
       console.error("[payment-webhook] apply failed", result.error);
       return NextResponse.json({ error: "db_error" }, { status: 500 });
     }
+    // A payment that could not be applied — a short collection, or an order
+    // the stale sweep already cancelled — is still answered 200. The applier
+    // recorded the transaction and wrote an audit row for a human; a 500 here
+    // only bought a retry storm for a notification that can never succeed.
+    if (result.reconcile) {
+      return NextResponse.json({ ok: true, reconcile: result.reconcile });
+    }
     return NextResponse.json({ ok: true });
   }
 

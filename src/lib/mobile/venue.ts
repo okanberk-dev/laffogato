@@ -11,6 +11,8 @@ import {
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
 
+import { hoursLabelFor } from "./menu-mapper";
+
 /**
  * Live venue status (docs/API-MOBILE.md §6).
  *
@@ -55,9 +57,15 @@ export type VenueStatusInput = Omit<VenueStatus, "id" | "updatedAt">;
 export interface LiveStatus {
   isOpen: boolean;
   openLabel: string;
+  /** "" until the staff have saved the status even once. */
   updatedAt: string;
-  updatedAgoMinutes: number;
-  freeTables: number;
+  /**
+   * `null` means "nobody has ever reported": the app then says nothing about
+   * freshness or free tables instead of "Az önce güncellendi · Boş masa 0/20",
+   * which is what a never-saved row used to look like on the wire.
+   */
+  updatedAgoMinutes: number | null;
+  freeTables: number | null;
   totalTables: number;
   wifi: VenueWifi;
   noise: VenueNoise;
@@ -190,16 +198,14 @@ export function isCafeOpenNow(
   return isOpenByHours(hours, now);
 }
 
-function hoursLabel(hours: WeeklyHours, day: DayOfWeek): string {
-  const entry = hours[day];
-  if (!entry || entry.closed) return "Kapalı";
-  return `${entry.open} – ${entry.close}`;
-}
+/** Monday–Friday and Saturday–Sunday, in `DAYS_OF_WEEK` order. */
+const WEEKDAYS: DayOfWeek[] = ["mon", "tue", "wed", "thu", "fri"];
+const WEEKEND_DAYS: DayOfWeek[] = ["sat", "sun"];
 
-function minutesSince(iso: string, now: Date): number {
-  if (!iso) return 0;
+function minutesSince(iso: string, now: Date): number | null {
+  if (!iso) return null;
   const t = Date.parse(iso);
-  if (!Number.isFinite(t)) return 0;
+  if (!Number.isFinite(t)) return null;
   return Math.max(0, Math.floor((now.getTime() - t) / 60_000));
 }
 
@@ -219,15 +225,19 @@ export function toLiveStatus(
     openLabel: isOpen ? "Şu an açık" : "Şu an kapalı",
     updatedAt: status.updatedAt,
     updatedAgoMinutes: minutesSince(status.updatedAt, now),
-    freeTables: status.freeTables,
+    // A row nobody has saved carries the defaults, not a count of the room.
+    freeTables: status.updatedAt ? status.freeTables : null,
     totalTables: status.totalTables,
     wifi: status.wifi,
     noise: status.noise,
     power: status.power,
     note: status.note,
+    // Grouped runs, not Monday and Saturday standing in for the rest: the
+    // owner sets each day separately in Ayarlar → Saatler, and a longer Friday
+    // used to be invisible here.
     hours: {
-      weekday: hoursLabel(settings.weeklyHours, "mon"),
-      weekend: hoursLabel(settings.weeklyHours, "sat"),
+      weekday: hoursLabelFor(settings.weeklyHours, WEEKDAYS),
+      weekend: hoursLabelFor(settings.weeklyHours, WEEKEND_DAYS),
     },
     karaoke: {
       available: settings.karaokeCapacity > 0,

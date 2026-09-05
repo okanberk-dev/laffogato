@@ -13,8 +13,15 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#FBF4E6",
-    theme_color: "#2C1D11",
+    // The installed app's splash and Android status bar.
+    //
+    // These were the retired köşk cream and espresso: a phone that installed
+    // the site painted a palette the site itself stopped using on 2 Eyl 2026,
+    // and disagreed with layout.tsx's own themeColor. The
+    // values are globals.css --bg and --bg-espresso — the app's bg.canvas and
+    // bg.night — so splash, browser chrome and page ground are one colour set.
+    background_color: "#f9f8f7",
+    theme_color: "#12291f",
     lang: SITE.language,
     dir: "ltr",
     categories: ["food", "lifestyle", "shopping"],

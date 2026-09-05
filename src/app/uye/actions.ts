@@ -27,6 +27,7 @@ import {
   type NotificationPrefs,
 } from "@/lib/customer/store";
 import { linkCustomerToSupabase } from "@/lib/customer/supabase-bridge";
+import { deleteMe } from "@/lib/mobile/me";
 import { ensureCustomerForSupabaseUser } from "@/lib/customer/supabase-bridge";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendVerificationEmail } from "@/lib/email/send";
@@ -589,4 +590,46 @@ export async function updateNotificationsAction(
   }
   revalidatePath("/uye/hesap", "layout");
   return { message: "Tercihlerin kaydedildi." };
+}
+
+// ─── Account closure ──────────────────────────────────────────────────────
+
+export interface DeleteAccountState {
+  error?: string;
+}
+
+/**
+ * Closes the member's own account from the site (`/uye/hesap/sil`).
+ *
+ * The membership agreement §14 offers exactly two routes — the app's account
+ * settings and an e-mail to support — and until now the site, which is where
+ * most members signed up, had neither. `deleteMe` is the same anonymisation
+ * the app's `DELETE /me` runs, so both routes leave the account in one state.
+ *
+ * Irreversible, so it asks for two things: the account's own e-mail typed out,
+ * and the password when the account has one. A Supabase-only account (social
+ * login, `checkSitePassword` → "none") is confirmed by the e-mail alone —
+ * there is no password to ask for.
+ */
+export async function deleteAccountAction(
+  _prev: DeleteAccountState,
+  formData: FormData,
+): Promise<DeleteAccountState> {
+  const current = await getActiveCustomer();
+  if (!current) return { error: "Oturumun süresi dolmuş." };
+
+  const typed = String(formData.get("confirmEmail") ?? "")
+    .trim()
+    .toLowerCase();
+  if (typed !== current.email.toLowerCase()) {
+    return { error: "Onay için hesabının e-posta adresini birebir yaz." };
+  }
+
+  const password = String(formData.get("password") ?? "");
+  const check = await checkSitePassword(current.email, password);
+  if (check === "mismatch") return { error: "Şifre hatalı." };
+
+  await deleteMe(current);
+  await clearCustomerSession();
+  redirect("/?hesap=silindi");
 }

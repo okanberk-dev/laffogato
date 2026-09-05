@@ -7,6 +7,7 @@ import {
   buildLoyaltyView,
   computeBadges,
   computeStampBalance,
+  rewardReadyAt,
   computeTier,
   countOrdersLast365,
   freeDrinkRewardFor,
@@ -413,5 +414,42 @@ describe("stamp reversal (refund / cancel)", () => {
     ]);
     expect(balance.lifetimeStamps).toBe(0);
     expect(balance.available).toBe(0);
+  });
+});
+
+describe("rewardReadyAt", () => {
+  const earn = (createdAt: string) => ({
+    kind: "earn" as const,
+    delta: 1,
+    createdAt,
+  });
+  const at = (day: number) =>
+    `2026-08-${String(day).padStart(2, "0")}T09:00:00.000Z`;
+
+  it("is null while the card is not full", () => {
+    expect(rewardReadyAt([earn(at(1)), earn(at(2))])).toBeNull();
+  });
+
+  it("is the stamp that filled the card, not the newest one", () => {
+    const rows = [1, 2, 3, 4, 5, 6, 7].map((d) => earn(at(d)));
+    expect(rewardReadyAt(rows)).toBe(at(6));
+  });
+
+  it("does not move when the ledger does not — the inbox keys 'unread' on it", () => {
+    const rows = [1, 2, 3, 4, 5, 6].map((d) => earn(at(d)));
+    expect(rewardReadyAt(rows)).toBe(rewardReadyAt([...rows].reverse()));
+  });
+
+  it("points at the newest full card when two are waiting", () => {
+    const rows = Array.from({ length: 12 }, (_, i) => earn(at(i + 1)));
+    expect(rewardReadyAt(rows)).toBe(at(12));
+  });
+
+  it("follows the redeemed cards, not the lifetime count", () => {
+    const rows = [
+      ...Array.from({ length: 12 }, (_, i) => earn(at(i + 1))),
+      { kind: "redeem" as const, delta: -6, createdAt: at(13) },
+    ];
+    expect(rewardReadyAt(rows)).toBe(at(12));
   });
 });

@@ -28,25 +28,33 @@ const qtySchema = z
     error: `Bir üründen en fazla ${MAX_APP_LINE_QTY} adet sipariş edebilirsin.`,
   });
 
-export const cafeLineSchema = z.object({
-  menuItemId: id("Menü ürünü"),
-  qty: qtySchema,
-  size: orderItemSizeSchema,
-  // `prefault` parses the fallback, so `options: {}` and a missing `options`
-  // both come out with every field defaulted rather than as a bare `{}`.
-  options: lineOptionsSchema.prefault({}),
-});
+// `.strict()` everywhere on this wire, matching me-schema.ts: a renamed field
+// on the app side must fail loudly with a Turkish 400 instead of being
+// dropped and silently treated as absent (`scheduledAt` for `scheduledFor`
+// would have turned every scheduled order into an as-soon-as-possible one).
+export const cafeLineSchema = z
+  .object({
+    menuItemId: id("Menü ürünü"),
+    qty: qtySchema,
+    size: orderItemSizeSchema,
+    // `prefault` parses the fallback, so `options: {}` and a missing `options`
+    // both come out with every field defaulted rather than as a bare `{}`.
+    options: lineOptionsSchema.prefault({}),
+  })
+  .strict();
 
-export const shopLineSchema = z.object({
-  productId: id("Ürün"),
-  variantId: id("Ürün seçeneği").optional(),
-  qty: qtySchema,
-  note: z
-    .string({ error: "Satır notu geçersiz." })
-    .trim()
-    .max(120, { error: "Satır notu en fazla 120 karakter olabilir." })
-    .default(""),
-});
+export const shopLineSchema = z
+  .object({
+    productId: id("Ürün"),
+    variantId: id("Ürün seçeneği").optional(),
+    qty: qtySchema,
+    note: z
+      .string({ error: "Satır notu geçersiz." })
+      .trim()
+      .max(120, { error: "Satır notu en fazla 120 karakter olabilir." })
+      .default(""),
+  })
+  .strict();
 
 export type CafeLineInput = z.infer<typeof cafeLineSchema>;
 export type ShopLineInput = z.infer<typeof shopLineSchema>;
@@ -58,6 +66,18 @@ export function isCafeLine(line: OrderLineInput): line is CafeLineInput {
 
 function isRecord(raw: unknown): raw is Record<string, unknown> {
   return typeof raw === "object" && raw !== null && !Array.isArray(raw);
+}
+
+/**
+ * Every message on this wire is shown to the member as-is, and zod writes the
+ * unknown-key one itself, in English. This is the only issue code the schemas
+ * below cannot phrase themselves.
+ */
+function issueMessage(issue: z.core.$ZodIssue): string {
+  if (issue.code === "unrecognized_keys") {
+    return `Bilinmeyen alan: ${issue.keys.join(", ")}. Uygulamayı güncelle.`;
+  }
+  return issue.message;
 }
 
 /**
@@ -77,7 +97,7 @@ const lineSchema = z.unknown().transform((raw, ctx): OrderLineInput => {
     for (const issue of parsed.error.issues) {
       ctx.addIssue({
         code: "custom",
-        message: issue.message,
+        message: issueMessage(issue),
         path: issue.path,
       });
     }
@@ -86,50 +106,52 @@ const lineSchema = z.unknown().transform((raw, ctx): OrderLineInput => {
   return parsed.data;
 });
 
-export const inlineAddressSchema = z.object({
-  title: z
-    .string({ error: "Adres başlığı geçersiz." })
-    .trim()
-    .max(40, { error: "Adres başlığı en fazla 40 karakter olabilir." })
-    .default(""),
-  fullName: z
-    .string({ error: "Alıcı adı geçersiz." })
-    .trim()
-    .min(2, { error: "Alıcı adı zorunlu." })
-    .max(100, { error: "Alıcı adı çok uzun." }),
-  phone: z
-    .string({ error: "Telefon geçersiz." })
-    .trim()
-    .min(7, { error: "Geçerli bir telefon gir." })
-    .max(30, { error: "Telefon çok uzun." }),
-  city: z
-    .string({ error: "Şehir geçersiz." })
-    .trim()
-    .min(2, { error: "Şehir zorunlu." })
-    .max(80, { error: "Şehir çok uzun." }),
-  district: z
-    .string({ error: "İlçe geçersiz." })
-    .trim()
-    .max(80, { error: "İlçe çok uzun." })
-    .default(""),
-  neighbourhood: z
-    .string({ error: "Mahalle geçersiz." })
-    .trim()
-    .max(80, { error: "Mahalle çok uzun." })
-    .default(""),
-  line: z
-    .string({ error: "Adres satırı geçersiz." })
-    .trim()
-    .min(5, { error: "Adres satırı zorunlu." })
-    .max(200, { error: "Adres satırı çok uzun." }),
-  note: z
-    .string({ error: "Adres notu geçersiz." })
-    .trim()
-    .max(200, { error: "Adres notu en fazla 200 karakter olabilir." })
-    .default(""),
-});
+export const inlineAddressSchema = z
+  .object({
+    title: z
+      .string({ error: "Adres başlığı geçersiz." })
+      .trim()
+      .max(40, { error: "Adres başlığı en fazla 40 karakter olabilir." })
+      .default(""),
+    fullName: z
+      .string({ error: "Alıcı adı geçersiz." })
+      .trim()
+      .min(2, { error: "Alıcı adı zorunlu." })
+      .max(100, { error: "Alıcı adı çok uzun." }),
+    phone: z
+      .string({ error: "Telefon geçersiz." })
+      .trim()
+      .min(7, { error: "Geçerli bir telefon gir." })
+      .max(30, { error: "Telefon çok uzun." }),
+    city: z
+      .string({ error: "Şehir geçersiz." })
+      .trim()
+      .min(2, { error: "Şehir zorunlu." })
+      .max(80, { error: "Şehir çok uzun." }),
+    district: z
+      .string({ error: "İlçe geçersiz." })
+      .trim()
+      .max(80, { error: "İlçe çok uzun." })
+      .default(""),
+    neighbourhood: z
+      .string({ error: "Mahalle geçersiz." })
+      .trim()
+      .max(80, { error: "Mahalle çok uzun." })
+      .default(""),
+    line: z
+      .string({ error: "Adres satırı geçersiz." })
+      .trim()
+      .min(5, { error: "Adres satırı zorunlu." })
+      .max(200, { error: "Adres satırı çok uzun." }),
+    note: z
+      .string({ error: "Adres notu geçersiz." })
+      .trim()
+      .max(200, { error: "Adres notu en fazla 200 karakter olabilir." })
+      .default(""),
+  })
+  .strict();
 
-export const savedAddressSchema = z.object({ id: id("Adres") });
+export const savedAddressSchema = z.object({ id: id("Adres") }).strict();
 
 export type InlineAddressInput = z.infer<typeof inlineAddressSchema>;
 export type OrderAddressInput =
@@ -153,7 +175,7 @@ const addressSchema = z
       for (const issue of parsed.error.issues) {
         ctx.addIssue({
           code: "custom",
-          message: issue.message,
+          message: issueMessage(issue),
           path: issue.path,
         });
       }
@@ -191,6 +213,24 @@ const orderFields = {
     .string({ error: "Sipariş notu geçersiz." })
     .trim()
     .max(500, { error: "Sipariş notu en fazla 500 karakter olabilir." })
+    .default(""),
+  /**
+   * One checkout attempt's own id, generated by the app (docs/API-MOBILE.md §3).
+   *
+   * `POST /orders` had no way to tell a retry from a second order: the app
+   * gives up on a request after its own timeout while the server is still
+   * mailing the confirmation and opening the checkout session, and the member
+   * taps "Tekrar dene". Carrying the same id makes the second POST answer with
+   * the order the first one created instead of placing another. Optional, so an
+   * older app build still orders (without the protection).
+   *
+   * Accepted on the preview body too — it is ignored there, and the app posts
+   * one basket object to both endpoints.
+   */
+  clientOrderId: z
+    .string({ error: "İstek kimliği geçersiz." })
+    .trim()
+    .max(64, { error: "İstek kimliği çok uzun." })
     .default(""),
 };
 
@@ -263,6 +303,7 @@ function crossFieldRules(
  */
 export const previewOrderBodySchema = z
   .object(orderFields)
+  .strict()
   .superRefine((v, ctx) => crossFieldRules(v, ctx, false));
 
 /** `POST /orders` — the same body, plus the distance-selling confirmation. */
@@ -274,6 +315,7 @@ export const placeOrderBodySchema = z
         "Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'ni onaylaman gerekiyor.",
     }),
   })
+  .strict()
   .superRefine((v, ctx) => crossFieldRules(v, ctx, true));
 
 export type PreviewOrderBody = z.infer<typeof previewOrderBodySchema>;
@@ -309,5 +351,5 @@ export type PromoPreviewBody = z.infer<typeof promoPreviewBodySchema>;
  */
 export function firstIssueMessage(error: z.ZodError): string {
   const first = error.issues[0];
-  return first?.message || "Sipariş bilgileri geçersiz.";
+  return (first && issueMessage(first)) || "Sipariş bilgileri geçersiz.";
 }

@@ -2,6 +2,8 @@
 // Safe to import from client components (e.g. the admin coupon panel) as well
 // as the server-only data layer in `./coupons`.
 
+import { priceLabel } from "@/lib/utils/format";
+
 export type CouponKind = "pct" | "fixed";
 
 /** Where a coupon came from — drives the code prefix + member-facing copy. */
@@ -113,7 +115,7 @@ export function evaluateCoupon(
   if (subtotalMinor < coupon.minSubtotalMinor) {
     return {
       ok: false,
-      error: `Bu kupon için en az ${(coupon.minSubtotalMinor / 100).toFixed(2)} ₺ alışveriş gerek.`,
+      error: `Bu kupon için en az ${priceLabel(coupon.minSubtotalMinor)} alışveriş gerek.`,
     };
   }
   const discountMinor = computeCouponDiscount(

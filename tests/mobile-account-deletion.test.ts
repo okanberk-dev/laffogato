@@ -21,9 +21,9 @@ describe("account deletion sweeps", () => {
   it("matches orders case-insensitively, the way they are read back", () => {
     // customerOrdersByEmail() prefilters with ilike because checkout stores
     // whatever case it captured. An eq sweep would miss "Ayse@…".
-    expect(ANON_SWEEPS.find((s) => s.table === TABLES.orders)?.caseInsensitive).toBe(
-      true,
-    );
+    expect(
+      ANON_SWEEPS.find((s) => s.table === TABLES.orders)?.caseInsensitive,
+    ).toBe(true);
   });
 
   it("covers every table that stores the member's address", () => {
@@ -35,6 +35,9 @@ describe("account deletion sweeps", () => {
       `${TABLES.karaokeReservations}.customerEmail`,
       `${TABLES.invites}.inviteeEmail`,
       `${TABLES.invites}.inviterEmail`,
+      // Every app order writes the buyer's address as the actor of its stock
+      // moves, so /admin/stok-hareketleri kept naming a closed account.
+      `${TABLES.stockMoves}.actor`,
     ]) {
       expect(covered, target).toContain(target);
     }
@@ -55,5 +58,13 @@ describe("account deletion sweeps", () => {
   it("gives each closed account its own placeholder, so orders stay groupable", () => {
     expect(anonymizedEmail("cst-1")).toBe("deleted-cst-1@anon.local");
     expect(anonymizedEmail("cst-1")).not.toBe(anonymizedEmail("cst-2"));
+  });
+
+  it("matches the stock-move actor case-insensitively too", () => {
+    const moves = ANON_SWEEPS.find((s) => s.table === TABLES.stockMoves)!;
+    expect(moves.caseInsensitive).toBe(true);
+    expect(moves.patch(anonymizedEmail("cst-3"))).toEqual({
+      actor: "deleted-cst-3@anon.local",
+    });
   });
 });

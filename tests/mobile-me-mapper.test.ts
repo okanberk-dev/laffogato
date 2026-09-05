@@ -60,7 +60,14 @@ const invite: InviteSummary = {
   invited: 1,
   joined: 1,
   earned: 1,
-  people: [{ name: "Selin K.", status: "joined", at: "2026-06-01T00:00Z" }],
+  people: [
+    {
+      name: "Selin K.",
+      status: "joined",
+      at: "2026-06-01T00:00Z",
+      rewarded: true,
+    },
+  ],
 };
 
 describe("neighbourhood folding", () => {

@@ -868,25 +868,41 @@ export async function rememberCardUserKey(
 
 // ─── Wishlist ─────────────────────────────────────────────────────────────
 
+/**
+ * Adds or drops one product in the member's wishlist.
+ *
+ * One statement in the database, not a read-modify-write here: the site and
+ * the app edit the same list through this helper, and two surfaces toggling
+ * at the same moment each used to write a whole array computed from the state
+ * before the other's write — so one of the two toggles was silently lost. The
+ * function also refuses an id that names no product, which is why the route
+ * can trust whatever the app sends.
+ */
 export async function toggleWishlist(
   email: string,
   productId: string,
 ): Promise<{ ok: boolean; isFavorite?: boolean; error?: string }> {
   const needle = normalizeEmail(email);
-  const customer = await fetchCustomer(needle);
-  if (!customer) return { ok: false, error: "Hesap bulunamadı." };
-  const current = withDefaults(customer).wishlist;
-  const isFavorite = current.includes(productId);
-  const wishlist = isFavorite
-    ? current.filter((id) => id !== productId)
-    : current.concat(productId).slice(0, 200);
-  const sb = getDb();
-  const { error } = await sb
-    .from(TABLES.customers)
-    .update({ wishlist, updatedAt: new Date().toISOString() })
-    .eq("email", needle);
+  const id = productId.trim();
+  if (!needle || !id) return { ok: false, error: "Hesap bulunamadı." };
+  const { data, error } = await getDb().rpc("toggle_wishlist", {
+    p_email: needle,
+    p_product_id: id,
+    p_now: new Date().toISOString(),
+  });
   checkErr(error, "toggleWishlist");
-  return { ok: true, isFavorite: !isFavorite };
+  switch (data as string | null) {
+    case "added":
+      return { ok: true, isFavorite: true };
+    case "removed":
+      return { ok: true, isFavorite: false };
+    case "not_found":
+      return { ok: false, error: "Ürün bulunamadı." };
+    case "full":
+      return { ok: false, error: "Favori listen dolu (en fazla 200 ürün)." };
+    default:
+      return { ok: false, error: "Hesap bulunamadı." };
+  }
 }
 
 // ─── Notification preferences ─────────────────────────────────────────────
