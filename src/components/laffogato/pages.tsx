@@ -1889,6 +1889,19 @@ export function PageVisit({ visit }: PageProps) {
   const visitPhone = visit?.phone ?? LOCATION.phone;
   const visitEmail = visit?.email ?? LOCATION.email;
   const visitHours = visit?.hours ?? LOCATION.hours;
+  /**
+   * Seven identical rows is not information, it is a wall. When every day
+   * carries the same hours the block says "Her gün" once, as the printed sign
+   * and the prototype both do; a venue with a different Sunday still gets its
+   * seven rows.
+   */
+  const compactHours = useMemo(() => {
+    if (visitHours.length < 2) return visitHours;
+    const [, first] = visitHours[0];
+    return visitHours.every(([, v]) => v === first)
+      ? ([["Her gün", first]] as [string, string][])
+      : visitHours;
+  }, [visitHours]);
   // A fixed query rather than the displayed address lines: those are editable
   // from the admin panel, and a stray edit must not send visitors to the wrong
   // place or break the embed's geocoding.
@@ -1900,92 +1913,98 @@ export function PageVisit({ visit }: PageProps) {
   const [day, setDay] = useState("Bu akşam");
   const [time, setTime] = useState("19:30");
 
-  const scrollTo = (id: string) => (e: React.MouseEvent) => {
-    e.preventDefault();
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  };
-
   return (
     <div className="page" data-screen-label="05 Visit">
-      <section className="visit-hero">
-        <div className="visit-hero-bg">
-          <BarRenderScene />
-          <div className="visit-hero-overlay" />
-        </div>
-        <div className="wrap visit-hero-content">
-          <div className="reveal">
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 12,
-                marginBottom: 22,
-              }}
-            >
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 28,
-                  height: 1,
-                  background:
-                    "linear-gradient(90deg, var(--gold), transparent)",
-                }}
+      {/* The prototype's visit opening: the real terrace photograph beside a
+          dark green facts block, rather than a full-bleed drawn scene under a
+          132px headline. */}
+      <section className="visit-open">
+        <div className="wrap">
+          <div className="eyebrow">Ziyaret · Tuzla, İstanbul</div>
+          <h1 className="h1" style={{ marginTop: 14, maxWidth: "24ch" }}>
+            {LOCATION.landmark}.
+          </h1>
+          <div className="visit-open-grid">
+            <div className="visit-open-photo">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/photos/terrace-wide.webp"
+                alt="Köşkün terası ve bahçesi"
+                loading="eager"
+                fetchPriority="high"
               />
-              <span
-                className="eyebrow on-dark"
-                style={{ color: "rgba(255,255,255,0.7)" }}
-              >
-                V — Vieni a trovarci · İstanbul
-              </span>
             </div>
-            <h1
-              className="h-display"
-              style={{ color: "#FFF", fontSize: "clamp(56px, 9vw, 132px)" }}
-            >
-              Tuzla,{" "}
-              <span className="script" style={{ color: "var(--gold-soft)" }}>
-                İstanbul.
-              </span>
-            </h1>
-            <p
-              className="lede"
-              style={{
-                marginTop: 26,
-                color: "rgba(255, 255, 255, 0.86)",
-                maxWidth: 580,
-              }}
-            >
-              İlk yurt dışı şubemiz — Tuzla’da restore edilmiş 200 yıllık bir
-              Rum köşkü. Köşkün bahçesinde Akdeniz bougainvillea’sı, altın saat
-              ışıkları, on iki sandalyeli bar. Marmaray Tuzla + E-5 girişinden 4
-              dakika.
-            </p>
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                flexWrap: "wrap",
-                marginTop: 36,
-              }}
-            >
-              <a
-                href="#book"
-                onClick={scrollTo("book")}
-                className="btn btn-light btn-lg"
-              >
-                Rezervasyon <span className="arrow">→</span>
-              </a>
-              <a
-                href="#map"
-                onClick={scrollTo("map")}
-                className="btn btn-ghost btn-lg"
-                style={{
-                  color: "#FFF",
-                  borderColor: "rgba(255, 255, 255, 0.3)",
-                }}
-              >
-                Yol tarifi
-              </a>
+            <div className="visit-open-side">
+              <div className="visit-facts-card">
+                <div>
+                  <div className="eyebrow on-dark">Adres</div>
+                  <p>
+                    {addressLines.map((l, i) => (
+                      <Fragment key={l}>
+                        {i > 0 && <br />}
+                        {l}
+                      </Fragment>
+                    ))}
+                  </p>
+                </div>
+                <div>
+                  <div className="eyebrow on-dark">Saatler</div>
+                  <p>
+                    {compactHours.map(([label, value]) => (
+                      <Fragment key={label}>
+                        {label} {value}
+                        <br />
+                      </Fragment>
+                    ))}
+                    Karaoke 12:00 — 24:00
+                    <br />
+                    Mutfak 23:30’da kapanır
+                  </p>
+                </div>
+                <div>
+                  <div className="eyebrow on-dark">İletişim</div>
+                  <p>
+                    {visitPhone}
+                    <br />
+                    {visitEmail}
+                  </p>
+                </div>
+              </div>
+
+              <div className="visit-stats-card">
+                <div>
+                  <div className="visit-stat-n">24</div>
+                  <div className="visit-stat-l">
+                    koltuk · 12 bar + 12 lounge
+                  </div>
+                </div>
+                <div>
+                  <div className="visit-stat-n">01:00</div>
+                  <div className="visit-stat-l">gece kapanış</div>
+                </div>
+                <div>
+                  <div className="visit-stat-n">55₺</div>
+                  <div className="visit-stat-l">Tuzla içi kurye</div>
+                </div>
+                <div>
+                  <div className="visit-stat-n">Var</div>
+                  <div className="visit-stat-l">otopark · sokak</div>
+                </div>
+              </div>
+
+              <div className="visit-open-cta">
+                <a
+                  href={directionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                >
+                  Yol tarifi al ↗
+                </a>
+                <a href="/karaoke" className="btn btn-ghost">
+                  Karaoke rezervasyonu
+                </a>
+              </div>
             </div>
           </div>
         </div>

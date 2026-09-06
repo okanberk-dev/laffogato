@@ -63,34 +63,86 @@ export default async function HesapPage() {
           <VerifyNotice email={customer.email} />
         </div>
       )}
-      <div className="account-stat-grid">
-        <AccountStat label="Toplam sipariş" value={orders.length} />
-        <AccountStat
-          label="Aktif sipariş"
-          value={inFlight}
-          hint="Henüz tamamlanmamış"
-        />
-        <AccountStat
-          label="Tamamlanan"
-          value={completed}
-          hint="Teslim alındı"
-        />
-        <AccountStat
-          label="Toplam harcama"
-          value={formatTRY(totalSpent)}
-          hint={`${customer.wishlist.length} favori · ${customer.addresses.length} adres`}
-        />
-      </div>
+      {/* A brand-new member's dashboard was four zeroes and an empty list —
+          an accurate but discouraging first screen, and the one people land
+          on straight after signing up. Until there is a first order, the
+          space goes to what they can actually do next. */}
+      {orders.length === 0 ? (
+        <div className="account-firstrun">
+          <div className="account-firstrun-copy">
+            <div className="eyebrow">Hoş geldin</div>
+            <h2 className="h3" style={{ marginTop: 10 }}>
+              Hesabın hazır. Buradan başlayabilirsin.
+            </h2>
+            <p>
+              Siparişlerin, damgaların ve adreslerin burada toplanır — web’de ve
+              uygulamada aynı hesapla.
+            </p>
+          </div>
+          <div className="account-firstrun-actions">
+            <Link href="/menu" className="account-firstrun-action">
+              <span className="account-firstrun-action-t">Menüye bak</span>
+              <span className="account-firstrun-action-d">
+                Barda bugün ne var
+              </span>
+            </Link>
+            <Link href="/magaza" className="account-firstrun-action">
+              <span className="account-firstrun-action-t">
+                Mağazadan sipariş
+              </span>
+              <span className="account-firstrun-action-d">
+                Çekirdek, hediye seti, ekipman
+              </span>
+            </Link>
+            <Link href="/karaoke" className="account-firstrun-action">
+              <span className="account-firstrun-action-t">
+                Karaoke rezervasyonu
+              </span>
+              <span className="account-firstrun-action-d">
+                Köşkün üst katı · 8 kişiye kadar
+              </span>
+            </Link>
+            <Link
+              href="/uye/hesap/adreslerim/yeni"
+              className="account-firstrun-action"
+            >
+              <span className="account-firstrun-action-t">Adres ekle</span>
+              <span className="account-firstrun-action-d">
+                Ödemede tek tıkla dolsun
+              </span>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="account-stat-grid">
+          <AccountStat label="Toplam sipariş" value={orders.length} />
+          <AccountStat
+            label="Aktif sipariş"
+            value={inFlight}
+            hint="Henüz tamamlanmamış"
+          />
+          <AccountStat
+            label="Tamamlanan"
+            value={completed}
+            hint="Teslim alındı"
+          />
+          <AccountStat
+            label="Toplam harcama"
+            value={formatTRY(totalSpent)}
+            hint={`${customer.wishlist.length} favori · ${customer.addresses.length} adres`}
+          />
+        </div>
+      )}
 
       {loyalty && (
-        <div className="loyalty-card account-loyalty">
-          <div className="loyalty-card-head">
-            <span className="eyebrow on-dark">
-              L’Af Ödüller · uygulama ile tek hesap
+        <div className="stamp-card">
+          <div className="stamp-card-head">
+            <span className="eyebrow muted">Damga kartı</span>
+            <span className="stamp-card-count">
+              {loyalty.stamps}/{loyalty.stampTarget}
             </span>
-            <span className="loyalty-tier">{loyalty.tierLabel}</span>
           </div>
-          <div className="stamp-grid">
+          <div className="stamp-grid stamp-grid-light">
             {Array.from({ length: loyalty.stampTarget }, (_, i) => {
               const filled = i < loyalty.stamps;
               const reward = i === loyalty.stampTarget - 1;
@@ -104,17 +156,55 @@ export default async function HesapPage() {
               );
             })}
           </div>
-          <div className="loyalty-headline">
+          <div
+            className="stamp-progress"
+            role="progressbar"
+            aria-valuenow={loyalty.stamps}
+            aria-valuemin={0}
+            aria-valuemax={loyalty.stampTarget}
+            aria-label="Damga ilerlemesi"
+          >
+            <div
+              style={{
+                width: `${Math.round((loyalty.stamps / loyalty.stampTarget) * 100)}%`,
+              }}
+            />
+          </div>
+          <div className="stamp-card-headline">
             {loyalty.rewardsReady > 0
               ? `Ücretsiz içeceğin hazır${loyalty.rewardsReady > 1 ? ` — ${loyalty.rewardsReady} adet` : ""}.`
               : `${loyalty.stampTarget - loyalty.stamps} damga kaldı — sonraki içecek bizden.`}
           </div>
-          <p className="account-loyalty-note">
-            Web’den ya da uygulamadan verilen her sipariş bir damga. Damgan,
-            kuponların ve seviyen iki tarafta da aynı.
+          <p className="stamp-card-note">
+            VERDE 0–11 · ARGENTO 12+ · ORO 36+ sipariş. Seviyen şu an{" "}
+            <strong>{loyalty.tierLabel}</strong>. Web’den ya da uygulamadan
+            verilen her sipariş bir damga; damgan, kuponların ve seviyen iki
+            tarafta da aynı.
           </p>
         </div>
       )}
+
+      {/* Single membership across both surfaces — the prototype's account
+          screen makes this its own block, and it is the only place the site
+          tells a member the app exists. */}
+      <div className="account-app-block">
+        <div>
+          <div className="eyebrow" style={{ color: "rgba(255,255,255,0.85)" }}>
+            Tek üyelik
+          </div>
+          <div className="account-app-title">
+            Aynı hesapla uygulamada devam et.
+          </div>
+          <p>
+            Damgan, kuponların ve adreslerin uygulamada birebir aynı. Uygulama
+            üzerinden verdiğin kafe siparişleri de bu karta işler.
+          </p>
+        </div>
+        <div className="account-app-links">
+          <span>App Store ↗</span>
+          <span>Google Play ↗</span>
+        </div>
+      </div>
 
       <AccountCard
         title="Son siparişler"

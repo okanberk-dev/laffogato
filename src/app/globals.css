@@ -6171,9 +6171,10 @@ select {
 
 /* ── Product detail page (PDP) ── */
 .pdp {
-  padding: clamp(96px, 12vw, 140px) 0 clamp(60px, 8vw, 100px);
+  /* Was clamp(96px, 12vw, 140px) at the top — clearance for the old fixed
+     header, which now takes its own space in the flow. */
+  padding: clamp(20px, 3vw, 36px) 0 clamp(48px, 7vw, 88px);
   background: var(--bg);
-  min-height: 100vh;
 }
 .pdp-breadcrumb {
   display: flex;
@@ -6306,8 +6307,12 @@ select {
   margin-top: 18px;
   font-size: 13px;
 }
+/* "In stock" is the success signal, so it takes --matcha. It was painted in
+   the terracotta family, which is the same warm hue as the "almost gone"
+   warning below it — the two read alike at a glance, which is the exact
+   failure --matcha exists to prevent (see the token's note in :root). */
 .pdp-stock [data-tone="in"] {
-  color: var(--accent-deep);
+  color: var(--matcha);
 }
 .pdp-stock [data-tone="low"] {
   color: var(--rose);
@@ -7208,19 +7213,241 @@ select {
   max-width: 60ch;
 }
 
-/* The member's own stamp card on the account dashboard. Reuses the home
-   page's loyalty card, which is a single column here rather than half of a
-   two-column block. */
-.account-loyalty {
+/* ─────────────────────────────────────────────────────────────
+   Account dashboard — first run, stamp card, app block
+   ───────────────────────────────────────────────────────────── */
+
+/* What a brand-new member sees instead of four zeroes. */
+.account-firstrun {
   margin-bottom: 18px;
+  padding: 26px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--ink-line);
+  background: #fff;
+  display: grid;
+  gap: 20px;
 }
-.account-loyalty .stamp-grid {
+.account-firstrun-copy p {
+  margin: 10px 0 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: 56ch;
+}
+.account-firstrun-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.account-firstrun-action {
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-line);
+  background: var(--bg-warm);
+  transition:
+    border-color 0.2s,
+    transform 0.2s var(--ease-out);
+}
+.account-firstrun-action:hover {
+  border-color: var(--bg-espresso);
+  transform: translateY(-2px);
+  color: inherit;
+}
+.account-firstrun-action-t {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bg-espresso);
+}
+.account-firstrun-action-d {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-mute);
+}
+
+/* The member's own stamp card. This is the LIGHT variant — the loyalty card
+   on the home page is white-on-green and would be invisible here, on the
+   account page's white ground. */
+.stamp-card {
+  margin-bottom: 18px;
+  padding: 26px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--ink-line);
+  background: #fff;
+}
+.stamp-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.stamp-card-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-mute);
+}
+.stamp-grid-light {
   max-width: 420px;
 }
-.account-loyalty-note {
-  margin: 0;
-  font-size: 13px;
+.stamp-grid-light .stamp {
+  background: var(--bg-warm);
+  border-color: var(--ink-line-strong);
+  color: var(--bg-espresso);
+}
+.stamp-grid-light .stamp.filled {
+  background: var(--bg-espresso);
+  border-color: var(--bg-espresso);
+  color: #fff;
+}
+.stamp-grid-light .stamp.reward {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.stamp-progress {
+  margin-top: 18px;
+  max-width: 420px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--bg-stone);
+  overflow: hidden;
+}
+.stamp-progress > div {
+  height: 100%;
+  background: var(--bg-espresso);
+  border-radius: var(--r-pill);
+  transition: width 0.6s var(--ease-out);
+}
+.stamp-card-headline {
+  margin-top: 16px;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+.stamp-card-note {
+  margin: 8px 0 0;
+  font-size: 13.5px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.72);
-  max-width: 52ch;
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+/* One membership, two surfaces. Terracotta, as the prototype draws it. */
+.account-app-block {
+  margin-bottom: 18px;
+  padding: 26px;
+  border-radius: var(--r-lg);
+  background: var(--accent);
+  color: #fff;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 22px;
+  align-items: center;
+}
+.account-app-title {
+  margin-top: 10px;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.account-app-block p {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.92);
+  max-width: 46ch;
+}
+.account-app-links {
+  display: grid;
+  gap: 8px;
+}
+/* Not links yet: the apps are not published, and a button that goes nowhere
+   is worse than a label that does not pretend to. Swap these for anchors when
+   the store URLs exist. */
+.account-app-links span {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 15px;
+  border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.28);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Visit — the prototype's opening: photo beside a facts block
+   ───────────────────────────────────────────────────────────── */
+
+.visit-open {
+  padding: clamp(32px, 4vw, 64px) 0 0;
+}
+.visit-open-grid {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+.visit-open-photo {
+  border-radius: 24px;
+  overflow: hidden;
+  min-height: 400px;
+  position: relative;
+}
+.visit-open-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.visit-open-side {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+.visit-facts-card {
+  padding: 26px;
+  border-radius: 24px;
+  background: var(--bg-espresso);
+  color: #fff;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 22px;
+}
+.visit-facts-card p {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.visit-stats-card {
+  padding: 26px;
+  border-radius: 24px;
+  border: 1px solid var(--ink-line);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 18px;
+}
+.visit-stat-n {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: var(--bg-espresso);
+}
+.visit-stat-l {
+  margin-top: 4px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-mute);
+}
+.visit-open-cta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.visit-open-cta .btn {
+  flex: 1;
+  min-width: 200px;
 }
