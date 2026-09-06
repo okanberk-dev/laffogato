@@ -337,3 +337,119 @@ export async function saveVenueAction(
   if (!parsed.success) return firstIssue(parsed.error);
   return saveSection("venue", { venue: parsed.data });
 }
+
+// ─── 8. Mağaza ve derin bağlantılar ───────────────────────────────────────
+
+/**
+ * Store listing URLs and the two identifiers the website needs to publish an
+ * app-link association.
+ *
+ * They live in the panel rather than in the app's own build because of the
+ * rule this whole page exists for: an operator must be able to change them
+ * WITHOUT shipping a release. Two of them cannot be changed any other way
+ * once the app is out — the store URLs are read by the forced-update screen,
+ * which is shown precisely to builds too old to be updated with a build, and
+ * Google generates the Play App Signing certificate only AFTER the first
+ * upload, so its fingerprint is unknowable when the app is written.
+ *
+ * Validated more strictly here than the normaliser is: a mistyped value that
+ * `normalizeMobileAppConfig` would silently drop back to its default is a
+ * setting an operator believes they saved. The form says what is wrong.
+ */
+const STORE_URL_HOSTS: Record<"appStoreUrl" | "playStoreUrl", string> = {
+  appStoreUrl: "apps.apple.com",
+  playStoreUrl: "play.google.com",
+};
+
+const storeUrlField = (key: keyof typeof STORE_URL_HOSTS, label: string) =>
+  z
+    .string()
+    .trim()
+    .max(L.storeUrlMax, `${label} en fazla ${L.storeUrlMax} karakter olabilir.`)
+    .refine((v) => {
+      if (v === "") return true;
+      try {
+        const u = new URL(v);
+        return u.protocol === "https:" && u.hostname === STORE_URL_HOSTS[key];
+      } catch {
+        return false;
+      }
+    }, `${label} https://${STORE_URL_HOSTS[key]}/… ile başlamalı (ya da boş bırak).`);
+
+/**
+ * One fingerprint per line, as `keytool` and the Play console print them.
+ *
+ * Parsed leniently — blank lines, stray spaces and lower case all normalise
+ * away — but a line that is not a SHA-256 is an error rather than a silent
+ * drop: half a list is half the installs opening links in the browser, and
+ * nothing on screen would have said so.
+ */
+const androidFingerprintsField = z
+  .string()
+  .transform((raw) =>
+    raw
+      .split(/[\r\n,]+/)
+      .map((line) => line.trim().toUpperCase())
+      .filter(Boolean),
+  )
+  .superRefine((list, ctx) => {
+    if (list.length > L.androidSha256Max) {
+      ctx.addIssue({
+        code: "custom",
+        message: `En fazla ${L.androidSha256Max} parmak izi girilebilir.`,
+      });
+    }
+    for (const value of list) {
+      if (!L.androidSha256Pattern.test(value)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `"${value.slice(0, 24)}…" bir SHA-256 parmak izi değil — 32 hex çift, aralarında iki nokta üst üste.`,
+        });
+      }
+    }
+  });
+
+const storeSchema = z.object({
+  appStoreUrl: storeUrlField("appStoreUrl", "App Store adresi"),
+  playStoreUrl: storeUrlField("playStoreUrl", "Google Play adresi"),
+  appleTeamId: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .refine(
+      (v) => v === "" || L.appleTeamIdPattern.test(v),
+      "Apple Team ID 10 karakterlik büyük harf/rakam olmalı (ya da boş bırak).",
+    ),
+  bundleId: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v === "" || L.bundleIdPattern.test(v),
+      "Paket adı com.ornek.uygulama biçiminde olmalı.",
+    ),
+  androidSha256: androidFingerprintsField,
+});
+
+export async function saveStoreAction(
+  _prev: AppConfigState,
+  formData: FormData,
+): Promise<AppConfigState> {
+  await requireRole("mobileApp");
+  const parsed = storeSchema.safeParse({
+    appStoreUrl: str(formData, "appStoreUrl"),
+    playStoreUrl: str(formData, "playStoreUrl"),
+    appleTeamId: str(formData, "appleTeamId"),
+    bundleId: str(formData, "bundleId"),
+    androidSha256: str(formData, "androidSha256"),
+  });
+  if (!parsed.success) return firstIssue(parsed.error);
+  const saved = await saveSection("store", { store: parsed.data });
+  if (saved.message) {
+    // These two documents are read by iOS and Android, not by the app, and
+    // they are `force-dynamic` routes — but the panel's own page cache would
+    // otherwise keep showing the previous values.
+    revalidatePath("/.well-known/apple-app-site-association");
+    revalidatePath("/.well-known/assetlinks.json");
+  }
+  return saved;
+}

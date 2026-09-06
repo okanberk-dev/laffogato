@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import {
   Card,
@@ -11,22 +11,9 @@ import {
   TextInput,
 } from "@/components/admin/forms";
 
+import { CameraScanner } from "./camera-scanner";
+import { beep } from "./scan-engine";
 import { redeemCounterTokenAction, type TillState } from "./actions";
-
-/**
- * `BarcodeDetector` is a browser API without a TypeScript lib definition yet.
- * Only the two members used here are declared: a wider hand-written shim would
- * be a second, drifting copy of a spec this file does not own.
- */
-interface DetectedBarcode {
-  rawValue: string;
-}
-interface BarcodeDetectorLike {
-  detect(source: HTMLVideoElement): Promise<DetectedBarcode[]>;
-}
-type BarcodeDetectorCtor = new (options?: {
-  formats?: string[];
-}) => BarcodeDetectorLike;
 
 type Tab = "camera" | "code" | "email";
 
@@ -37,14 +24,6 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 const STAMP_CHOICES = [1, 2, 3, 4, 5];
-
-function barcodeDetector(): BarcodeDetectorCtor | null {
-  if (typeof window === "undefined") return null;
-  return (
-    (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor })
-      .BarcodeDetector ?? null
-  );
-}
 
 /**
  * The till desk: one action, three ways in (spec §5).
@@ -62,18 +41,43 @@ export function TillConsole() {
   const [state, setState] = useState<TillState>({});
   const [pending, startTransition] = useTransition();
 
-  // Resolved on the client only: rendering "desteklemiyor" on the server and
-  // "hazır" after hydration would be a mismatch.
-  const [support, setSupport] = useState<"unknown" | "yes" | "no">("unknown");
-  const [cameraError, setCameraError] = useState("");
+  /**
+   * The last scanned value and how it ended, handed back to the scanner so
+   * its gate can either retire the code for good or make it scannable again.
+   */
+  const [outcome, setOutcome] = useState<{
+    value: string;
+    redeemed: boolean;
+  } | null>(null);
+  const scannedRef = useRef("");
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const lastScanRef = useRef("");
-  // The scan loop must read today's stamp count without being torn down and
-  // restarted — remounting the camera every time the cashier changes "2 damga"
-  // would drop the stream mid-queue.
+  // The scan loop holds `onScan` across renders; a stable identity keeps it
+  // from tearing the camera down every time a stamp count changes, so the
+  // two values it needs are read through refs rather than closed over.
   const stampsRef = useRef(stamps);
   const noteRef = useRef(note);
+  useEffect(() => {
+    stampsRef.current = stamps;
+    noteRef.current = note;
+  }, [stamps, note]);
+
+  const onScan = useCallback((value: string) => {
+    scannedRef.current = value;
+    setOutcome(null);
+    startTransition(async () => {
+      const next = await redeemCounterTokenAction({
+        kind: "token",
+        value,
+        stamps: stampsRef.current,
+        note: noteRef.current,
+      });
+      setState(next);
+      // A code the server consumed must never be offered again; one that
+      // failed on the way there must be retryable without leaving the tab.
+      setOutcome({ value, redeemed: Boolean(next.result) });
+      if (next.error) beep(false);
+    });
+  }, []);
 
   function submit(kind: string, value: string) {
     startTransition(async () => {
@@ -81,76 +85,11 @@ export function TillConsole() {
     });
   }
 
-  useEffect(() => {
-    stampsRef.current = stamps;
-    noteRef.current = note;
-  }, [stamps, note]);
-
-  useEffect(() => {
-    setSupport(barcodeDetector() ? "yes" : "no");
+  const clearResult = useCallback(() => {
+    setState({});
+    setOutcome(null);
+    scannedRef.current = "";
   }, []);
-
-  useEffect(() => {
-    if (tab !== "camera" || support !== "yes") return;
-    const video = videoRef.current;
-    const Ctor = barcodeDetector();
-    if (!video || !Ctor) return;
-
-    const detector = new Ctor({ formats: ["qr_code"] });
-    let stopped = false;
-    let stream: MediaStream | null = null;
-    let timer: ReturnType<typeof setInterval> | null = null;
-
-    void (async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-        });
-        if (stopped) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        video.srcObject = stream;
-        await video.play();
-        setCameraError("");
-        timer = setInterval(() => {
-          void detector
-            .detect(video)
-            .then((found) => {
-              const raw = found[0]?.rawValue?.trim() ?? "";
-              // The same QR sits in front of the lens for many frames; one
-              // scan must not spend the token five times.
-              if (!raw || raw === lastScanRef.current) return;
-              lastScanRef.current = raw;
-              startTransition(async () => {
-                setState(
-                  await redeemCounterTokenAction({
-                    kind: "token",
-                    value: raw,
-                    stamps: stampsRef.current,
-                    note: noteRef.current,
-                  }),
-                );
-              });
-            })
-            .catch(() => {
-              // A frame that cannot be decoded is the normal case, not an error.
-            });
-        }, 400);
-      } catch {
-        setCameraError(
-          "Kameraya erişilemedi. Tarayıcı iznini ver ya da kodu elle yaz.",
-        );
-      }
-    })();
-
-    return () => {
-      stopped = true;
-      if (timer) clearInterval(timer);
-      if (stream) stream.getTracks().forEach((t) => t.stop());
-      video.srcObject = null;
-    };
-  }, [tab, support, startTransition]);
 
   return (
     <div className="grid gap-4">
@@ -161,7 +100,7 @@ export function TillConsole() {
               key={t.id}
               type="button"
               onClick={() => {
-                lastScanRef.current = "";
+                clearResult();
                 setTab(t.id);
               }}
               aria-pressed={tab === t.id}
@@ -177,7 +116,7 @@ export function TillConsole() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Damga" hint="Kaç damga düşecek (1–5).">
+          <Field label="Damga" hint="Kaç damga düşecek (1-5).">
             <Select
               value={String(stamps)}
               onChange={(e) => setStamps(Number(e.target.value))}
@@ -201,32 +140,16 @@ export function TillConsole() {
       </Card>
 
       {tab === "camera" && (
-        <Card className="grid gap-3">
-          {support === "no" ? (
-            <p className="text-sm text-[var(--admin-text-soft)]">
-              Bu cihazın tarayıcısı QR okumayı desteklemiyor. Üyenin kartındaki
-              8 karakterlik kodu <strong>Kodu yaz</strong> sekmesine gir.
-            </p>
-          ) : (
-            <>
-              <video
-                ref={videoRef}
-                muted
-                playsInline
-                className="w-full rounded-xl border border-[var(--admin-border)] bg-black"
-                style={{ maxHeight: 320 }}
-              />
-              <p className="text-xs text-[var(--admin-text-mute)]">
-                Üyenin telefonundaki QR kodunu kameraya göster; okunduğunda
-                damga kendiliğinden düşer.
-              </p>
-              {cameraError && (
-                <p role="alert" className="text-xs text-[var(--admin-danger)]">
-                  {cameraError}
-                </p>
-              )}
-            </>
-          )}
+        <Card>
+          {/* Mounted only while the tab is open: the stream, the decode loop
+              and the torch all die with the component, which is the only
+              teardown that cannot be got wrong. */}
+          <CameraScanner
+            onScan={onScan}
+            paused={pending || Boolean(state.result) || Boolean(state.error)}
+            outcome={outcome}
+            onResume={clearResult}
+          />
         </Card>
       )}
 
@@ -290,13 +213,7 @@ export function TillConsole() {
             {state.error}
           </p>
           <div className="mt-3">
-            <GhostButton
-              type="button"
-              onClick={() => {
-                lastScanRef.current = "";
-                setState({});
-              }}
-            >
+            <GhostButton type="button" onClick={clearResult}>
               Tamam
             </GhostButton>
           </div>

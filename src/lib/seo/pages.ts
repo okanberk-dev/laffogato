@@ -418,6 +418,12 @@ export function allSeoRoutes(): Array<{
   const karaoke = [
     { url: "/karaoke", priority: 0.7, changefreq: "monthly" as const },
   ];
+  // Same reasoning as karaoke: /kampanyalar is a standalone page, not an SPA
+  // section, so it has no `Route` key and no keyword claim. `daily` because
+  // its contents are whatever the panel is running this week.
+  const campaigns = [
+    { url: "/kampanyalar", priority: 0.7, changefreq: "daily" as const },
+  ];
   const menuCats = MENU_CATEGORY_ROUTES.map((c) => ({
     url: `/menu/${c.slug}`,
     priority: 0.8,
@@ -428,5 +434,5 @@ export function allSeoRoutes(): Array<{
     priority: 0.8,
     changefreq: "weekly" as const,
   }));
-  return [...top, ...karaoke, ...menuCats, ...shopCats];
+  return [...top, ...karaoke, ...campaigns, ...menuCats, ...shopCats];
 }

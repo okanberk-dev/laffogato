@@ -7,6 +7,7 @@ import {
   bookKaraokeAction,
   type BookKaraokeState,
 } from "@/app/karaoke/actions";
+import { PageHero } from "./page-hero";
 import {
   karaokeDiscountPct,
   quoteReservation,
@@ -124,246 +125,248 @@ export function KaraokeBooking({
   }
 
   return (
-    <main className="wrap karaoke-page">
-      <div className="eyebrow">Karaoke · köşkün üst katı</div>
-      <h1 className="h1" style={{ marginTop: 14, maxWidth: "22ch" }}>
-        Özel oda, gece 24:00’e kadar.
-      </h1>
+    <main className="karaoke-page">
+      <PageHero
+        eyebrow="Karaoke · köşkün üst katı"
+        title={["Özel oda,", "gece 24:00’e kadar."]}
+        lede="Köşkün üst katındaki karaoke odası sekiz kişiye kadar. Gün ve saat seç, kişi sayısını gir; rezervasyonunu web'den ya da uygulamadan tamamla."
+      />
+      <div className="wrap">
+        <form action={formAction} className="karaoke-layout">
+          <div className="karaoke-picker">
+            <input type="hidden" name="date" value={date} />
+            <input type="hidden" name="startHour" value={startHour ?? ""} />
+            <input type="hidden" name="hours" value={hours} />
+            <input type="hidden" name="guests" value={guests} />
+            <input type="hidden" name="note" value={note} />
 
-      <form action={formAction} className="karaoke-layout">
-        <div className="karaoke-picker">
-          <input type="hidden" name="date" value={date} />
-          <input type="hidden" name="startHour" value={startHour ?? ""} />
-          <input type="hidden" name="hours" value={hours} />
-          <input type="hidden" name="guests" value={guests} />
-          <input type="hidden" name="note" value={note} />
-
-          <div>
-            <span className="eyebrow muted">Gün</span>
-            <div className="karaoke-days scroller">
-              {days.map((d) => (
-                <a
-                  key={d}
-                  /* The day is a server round-trip: picking one re-reads the
+            <div>
+              <span className="eyebrow muted">Gün</span>
+              <div className="karaoke-days scroller">
+                {days.map((d) => (
+                  <a
+                    key={d}
+                    /* The day is a server round-trip: picking one re-reads the
                      real calendar rather than trusting a snapshot. */
-                  href={`/karaoke?tarih=${d}`}
-                  className={`karaoke-day ${d === date ? "on" : ""}`}
-                  aria-current={d === date || undefined}
-                >
-                  {dayLabel(d, today, tomorrow)}
-                </a>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <span className="eyebrow muted">Saat</span>
-            {unavailable ? (
-              <p className="karaoke-warn">
-                Rezervasyon takvimine şu an ulaşamıyoruz, bu yüzden boş saatleri
-                gösteremiyoruz. Kısa süre içinde tekrar dene ya da bizi ara:{" "}
-                {phone}.
-              </p>
-            ) : slots.length === 0 ? (
-              <p className="karaoke-warn">
-                Bu gün için uygun saat kalmadı. Başka bir gün seçebilirsin.
-              </p>
-            ) : (
-              <div className="karaoke-hours">
-                {slots.map((s) => {
-                  const taken = !s.available;
-                  const on = startHour === s.startHour;
-                  return (
-                    <button
-                      key={s.startHour}
-                      type="button"
-                      className={`karaoke-hour ${on ? "on" : ""} ${taken ? "taken" : ""}`}
-                      disabled={taken}
-                      aria-pressed={on}
-                      onClick={() => setStartHour(s.startHour)}
-                    >
-                      <span className="karaoke-hour-t">
-                        {hourLabel(s.startHour)}
-                      </span>
-                      <span className="karaoke-hour-n">
-                        {taken ? "dolu" : "uygun"}
-                      </span>
-                    </button>
-                  );
-                })}
+                    href={`/karaoke?tarih=${d}`}
+                    className={`karaoke-day ${d === date ? "on" : ""}`}
+                    aria-current={d === date || undefined}
+                  >
+                    {dayLabel(d, today, tomorrow)}
+                  </a>
+                ))}
               </div>
-            )}
-          </div>
-
-          <div>
-            <span className="eyebrow muted">Süre</span>
-            <div className="karaoke-stepper">
-              <button
-                type="button"
-                onClick={() => setHours((h) => Math.max(1, h - 1))}
-                aria-label="Süreyi azalt"
-                className="karaoke-step-down"
-              >
-                −
-              </button>
-              <span className="karaoke-step-value">{hours} saat</span>
-              <button
-                type="button"
-                onClick={() => setHours((h) => Math.min(maxHours, h + 1))}
-                aria-label="Süreyi artır"
-                className="karaoke-step-up"
-              >
-                +
-              </button>
             </div>
-            {startHour !== null && !blockIsFree(startHour, hours) && (
-              <div className="karaoke-hint karaoke-hint-warn">
-                {hourLabel(startHour)}’dan itibaren {hours} saat boş değil -
-                daha kısa bir süre ya da başka bir saat seç.
-              </div>
-            )}
-          </div>
 
-          <div>
-            <span className="eyebrow muted">Kişi</span>
-            <div className="karaoke-stepper">
-              <button
-                type="button"
-                onClick={() => setGuests((g) => Math.max(1, g - 1))}
-                aria-label="Kişi azalt"
-                className="karaoke-step-down"
-              >
-                −
-              </button>
-              <span className="karaoke-step-value">{guests} kişi</span>
-              <button
-                type="button"
-                onClick={() => setGuests((g) => Math.min(capacity, g + 1))}
-                aria-label="Kişi artır"
-                className="karaoke-step-up"
-              >
-                +
-              </button>
-            </div>
-            <div className="karaoke-hint">
-              Oda {capacity} kişiye kadar. Daha kalabalık gruplar için bizi
-              arayın: {phone}.
-            </div>
-          </div>
-
-          <div>
-            <label className="eyebrow muted" htmlFor="karaoke-note">
-              Not (isteğe bağlı)
-            </label>
-            <input
-              id="karaoke-note"
-              className="input"
-              value={note}
-              maxLength={200}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Doğum günü, pasta, özel istek…"
-              style={{ marginTop: 10 }}
-            />
-          </div>
-        </div>
-
-        <div className="karaoke-side">
-          <div className="karaoke-photo">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/photos/interior-chest.webp"
-              alt="Köşkün üst katı"
-              loading="lazy"
-            />
-          </div>
-
-          <div className="karaoke-summary">
-            <span className="eyebrow on-dark">
-              {dayLabel(date, today, tomorrow)}
-              {startHour !== null ? ` · ${hourLabel(startHour)}` : ""} ·{" "}
-              {guests} kişi
-            </span>
-            <div className="karaoke-lines">
-              <div>
-                <span>
-                  Oda · {hours} saat
-                  <span className="karaoke-unit">
-                    {" "}
-                    ({priceLabel(hourly)}/saat)
-                  </span>
-                </span>
-                <span>{priceLabel(quote.priceMinor)}</span>
-              </div>
-              {discountPct > 0 && (
-                <div>
-                  <span>
-                    {tierLabel ?? "Üyelik"} indirimi %{discountPct}
-                  </span>
-                  <span className="karaoke-discount">
-                    −{priceLabel(quote.discountMinor)}
-                  </span>
+            <div>
+              <span className="eyebrow muted">Saat</span>
+              {unavailable ? (
+                <p className="karaoke-warn">
+                  Rezervasyon takvimine şu an ulaşamıyoruz, bu yüzden boş
+                  saatleri gösteremiyoruz. Kısa süre içinde tekrar dene ya da
+                  bizi ara: {phone}.
+                </p>
+              ) : slots.length === 0 ? (
+                <p className="karaoke-warn">
+                  Bu gün için uygun saat kalmadı. Başka bir gün seçebilirsin.
+                </p>
+              ) : (
+                <div className="karaoke-hours">
+                  {slots.map((s) => {
+                    const taken = !s.available;
+                    const on = startHour === s.startHour;
+                    return (
+                      <button
+                        key={s.startHour}
+                        type="button"
+                        className={`karaoke-hour ${on ? "on" : ""} ${taken ? "taken" : ""}`}
+                        disabled={taken}
+                        aria-pressed={on}
+                        onClick={() => setStartHour(s.startHour)}
+                      >
+                        <span className="karaoke-hour-t">
+                          {hourLabel(s.startHour)}
+                        </span>
+                        <span className="karaoke-hour-n">
+                          {taken ? "dolu" : "uygun"}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
-              <div className="karaoke-total">
-                <span>Ödenecek</span>
-                <span className="karaoke-total-n">
-                  {priceLabel(quote.totalMinor)}
-                </span>
+            </div>
+
+            <div>
+              <span className="eyebrow muted">Süre</span>
+              <div className="karaoke-stepper">
+                <button
+                  type="button"
+                  onClick={() => setHours((h) => Math.max(1, h - 1))}
+                  aria-label="Süreyi azalt"
+                  className="karaoke-step-down"
+                >
+                  −
+                </button>
+                <span className="karaoke-step-value">{hours} saat</span>
+                <button
+                  type="button"
+                  onClick={() => setHours((h) => Math.min(maxHours, h + 1))}
+                  aria-label="Süreyi artır"
+                  className="karaoke-step-up"
+                >
+                  +
+                </button>
+              </div>
+              {startHour !== null && !blockIsFree(startHour, hours) && (
+                <div className="karaoke-hint karaoke-hint-warn">
+                  {hourLabel(startHour)}’dan itibaren {hours} saat boş değil -
+                  daha kısa bir süre ya da başka bir saat seç.
+                </div>
+              )}
+            </div>
+
+            <div>
+              <span className="eyebrow muted">Kişi</span>
+              <div className="karaoke-stepper">
+                <button
+                  type="button"
+                  onClick={() => setGuests((g) => Math.max(1, g - 1))}
+                  aria-label="Kişi azalt"
+                  className="karaoke-step-down"
+                >
+                  −
+                </button>
+                <span className="karaoke-step-value">{guests} kişi</span>
+                <button
+                  type="button"
+                  onClick={() => setGuests((g) => Math.min(capacity, g + 1))}
+                  aria-label="Kişi artır"
+                  className="karaoke-step-up"
+                >
+                  +
+                </button>
+              </div>
+              <div className="karaoke-hint">
+                Oda {capacity} kişiye kadar. Daha kalabalık gruplar için bizi
+                arayın: {phone}.
               </div>
             </div>
 
-            {state.error && (
-              <p role="alert" className="karaoke-error">
-                {state.error}
-              </p>
-            )}
+            <div>
+              <label className="eyebrow muted" htmlFor="karaoke-note">
+                Not (isteğe bağlı)
+              </label>
+              <input
+                id="karaoke-note"
+                className="input"
+                value={note}
+                maxLength={200}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Doğum günü, pasta, özel istek…"
+                style={{ marginTop: 10 }}
+              />
+            </div>
+          </div>
 
-            {!isAuthenticated ? (
-              <>
-                <a
-                  href={`/uye/giris?next=${encodeURIComponent(`/karaoke?tarih=${date}`)}`}
-                  className="btn btn-gold"
-                  style={{ width: "100%" }}
-                >
-                  Giriş yap ve rezerve et
-                </a>
+          <div className="karaoke-side">
+            <div className="karaoke-photo">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/photos/interior-chest.webp"
+                alt="Köşkün üst katı"
+                loading="lazy"
+              />
+            </div>
+
+            <div className="karaoke-summary">
+              <span className="eyebrow on-dark">
+                {dayLabel(date, today, tomorrow)}
+                {startHour !== null ? ` · ${hourLabel(startHour)}` : ""} ·{" "}
+                {guests} kişi
+              </span>
+              <div className="karaoke-lines">
+                <div>
+                  <span>
+                    Oda · {hours} saat
+                    <span className="karaoke-unit">
+                      {" "}
+                      ({priceLabel(hourly)}/saat)
+                    </span>
+                  </span>
+                  <span>{priceLabel(quote.priceMinor)}</span>
+                </div>
+                {discountPct > 0 && (
+                  <div>
+                    <span>
+                      {tierLabel ?? "Üyelik"} indirimi %{discountPct}
+                    </span>
+                    <span className="karaoke-discount">
+                      −{priceLabel(quote.discountMinor)}
+                    </span>
+                  </div>
+                )}
+                <div className="karaoke-total">
+                  <span>Ödenecek</span>
+                  <span className="karaoke-total-n">
+                    {priceLabel(quote.totalMinor)}
+                  </span>
+                </div>
+              </div>
+
+              {state.error && (
+                <p role="alert" className="karaoke-error">
+                  {state.error}
+                </p>
+              )}
+
+              {!isAuthenticated ? (
+                <>
+                  <a
+                    href={`/uye/giris?next=${encodeURIComponent(`/karaoke?tarih=${date}`)}`}
+                    className="btn btn-gold"
+                    style={{ width: "100%" }}
+                  >
+                    Giriş yap ve rezerve et
+                  </a>
+                  <p className="karaoke-fine">
+                    Rezervasyon hesabına işlenir, bu yüzden giriş gerekiyor.
+                    Hesabın yoksa{" "}
+                    <a href="/uye/kayit" className="karaoke-link">
+                      üye ol
+                    </a>
+                    .
+                  </p>
+                </>
+              ) : !emailVerified ? (
                 <p className="karaoke-fine">
-                  Rezervasyon hesabına işlenir, bu yüzden giriş gerekiyor.
-                  Hesabın yoksa{" "}
-                  <a href="/uye/kayit" className="karaoke-link">
-                    üye ol
+                  Rezervasyon yapabilmek için önce e-postanı doğrula.{" "}
+                  <a href="/uye/hesap" className="karaoke-link">
+                    Doğrulama bağlantısını yeniden gönder
                   </a>
                   .
                 </p>
-              </>
-            ) : !emailVerified ? (
-              <p className="karaoke-fine">
-                Rezervasyon yapabilmek için önce e-postanı doğrula.{" "}
-                <a href="/uye/hesap" className="karaoke-link">
-                  Doğrulama bağlantısını yeniden gönder
-                </a>
-                .
-              </p>
-            ) : (
-              <>
-                <button
-                  type="submit"
-                  className="btn btn-gold"
-                  style={{ width: "100%" }}
-                  disabled={!selectionValid || pending}
-                >
-                  {pending ? "Gönderiliyor…" : "Rezervasyonu tamamla"}
-                </button>
-                <p className="karaoke-fine">
-                  Rezervasyon uygulamadaki hesabına da düşer; ekibimiz
-                  onayladığında haber veririz. 2 saat öncesine kadar ücretsiz
-                  iptal.
-                </p>
-              </>
-            )}
+              ) : (
+                <>
+                  <button
+                    type="submit"
+                    className="btn btn-gold"
+                    style={{ width: "100%" }}
+                    disabled={!selectionValid || pending}
+                  >
+                    {pending ? "Gönderiliyor…" : "Rezervasyonu tamamla"}
+                  </button>
+                  <p className="karaoke-fine">
+                    Rezervasyon uygulamadaki hesabına da düşer; ekibimiz
+                    onayladığında haber veririz. 2 saat öncesine kadar ücretsiz
+                    iptal.
+                  </p>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </main>
   );
 }

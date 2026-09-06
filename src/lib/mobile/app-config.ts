@@ -71,11 +71,47 @@ export interface MobileAppConfig {
     landmark: string;
     mapsQuery: string;
   };
+  /**
+   * Where the app lives in the two stores, and the identifiers that let a
+   * laffogato.net link open it instead of the browser.
+   *
+   * Here rather than in the app's own `.env` because of the rule the whole
+   * mobile config exists for: an operator must be able to change these
+   * WITHOUT shipping a release. Two of them cannot be changed any other way
+   * once the app is out —
+   *
+   * - the store URLs are read by the forced-update screen, which is shown
+   *   precisely to builds that are too old to be updated with a new build;
+   * - the App Links fingerprint has to be published by the *website* at
+   *   `/.well-known/assetlinks.json`, so only the panel can add the upload
+   *   key Google Play signs with after the first release.
+   */
+  store: {
+    /** Public listing URLs; empty until the listing exists. */
+    appStoreUrl: string;
+    playStoreUrl: string;
+    /** iOS: the Apple Developer Team ID that signs the app, e.g. "ABCDE12345". */
+    appleTeamId: string;
+    /** iOS + Android bundle/application id. */
+    bundleId: string;
+    /**
+     * Android: SHA-256 fingerprints of every certificate that signs a build
+     * users install — the upload key AND Play App Signing's own key. Both,
+     * or links open in the browser for half the installs.
+     */
+    androidSha256: string[];
+  };
 }
 
 /** The `app` object published on bootstrap — everything the app needs, nothing server-only. */
 export interface BootstrapApp {
   minSupportedAppVersion: string;
+  /**
+   * Only the listing URLs. The signing identifiers are the website's own
+   * business (it publishes the two `.well-known` documents) and telling the
+   * app its own fingerprint would be handing out a fact it cannot use.
+   */
+  store: { appStoreUrl: string; playStoreUrl: string };
   maintenance: MobileAppConfig["maintenance"];
   ordering: MobileAppConfig["ordering"];
   loyalty: { stampTarget: number; rewardTitle: string };
@@ -106,6 +142,12 @@ export const APP_CONFIG_LIMITS = {
   venueShortNameMax: 60,
   venueLandmarkMax: 80,
   venueMapsQueryMax: 200,
+  storeUrlMax: 300,
+  appleTeamIdPattern: /^[A-Z0-9]{10}$/,
+  bundleIdPattern: /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/i,
+  /** Colon-separated hex pairs, as `keytool` and the Play console print them. */
+  androidSha256Pattern: /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/,
+  androidSha256Max: 8,
 } as const;
 
 // ─── Defaults ─────────────────────────────────────────────────────────────
@@ -178,6 +220,16 @@ export const DEFAULT_MOBILE_APP_CONFIG: MobileAppConfig = deepFreeze({
     landmark: "Menemenci Cumhur’un yanı",
     mapsQuery: "L'Affogato, Atatürk Cad. No: 28, 34940 Tuzla, İstanbul",
   },
+  store: {
+    // Empty until the listings exist. The gate hides its store button rather
+    // than offering one that opens nothing, and the two .well-known routes
+    // answer 404 rather than publishing an association nobody can honour.
+    appStoreUrl: "",
+    playStoreUrl: "",
+    appleTeamId: "",
+    bundleId: "com.laffogato.app",
+    androidSha256: [],
+  },
 });
 
 // ─── Reminder copy rule ───────────────────────────────────────────────────
@@ -235,6 +287,59 @@ const semver = z
   .trim()
   .regex(/^\d+\.\d+\.\d+$/)
   .catch(D.minSupportedAppVersion);
+
+/**
+ * A store listing URL, or "".
+ *
+ * `https` only, and only the two real hosts: this value ends up in a
+ * `Linking.openURL` on a screen the member cannot get past, so an operator
+ * typo must degrade to "no button" rather than to "opens something else".
+ * Empty is a legitimate answer and the default — there is no listing yet.
+ */
+const STORE_HOSTS = ["apps.apple.com", "play.google.com"] as const;
+
+const storeUrl = z
+  .string()
+  .trim()
+  .max(L.storeUrlMax)
+  .refine((v) => {
+    if (v === "") return true;
+    try {
+      const u = new URL(v);
+      return (
+        u.protocol === "https:" &&
+        (STORE_HOSTS as readonly string[]).includes(u.hostname)
+      );
+    } catch {
+      return false;
+    }
+  })
+  .catch("");
+
+/**
+ * Android signing fingerprints, normalised and de-duplicated.
+ *
+ * Validated one by one like the reminder list: a mistyped fingerprint is
+ * dropped and the rest still publish, because a missing entry costs deep
+ * links for one signing key while a rejected array costs them for all.
+ */
+const androidFingerprints = z
+  .array(z.unknown())
+  .transform((raw): string[] => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const item of raw) {
+      if (typeof item !== "string") continue;
+      const value = item.trim().toUpperCase();
+      if (!L.androidSha256Pattern.test(value)) continue;
+      if (seen.has(value)) continue;
+      seen.add(value);
+      out.push(value);
+      if (out.length >= L.androidSha256Max) break;
+    }
+    return out;
+  })
+  .catch(() => []);
 
 const etaBound = z.number().int().min(L.courierEtaMin).max(L.courierEtaMax);
 const courierEta = z
@@ -339,6 +444,22 @@ const configSchema = z.object({
     landmark: text(L.venueLandmarkMax, D.venue.landmark),
     mapsQuery: text(L.venueMapsQueryMax, D.venue.mapsQuery),
   }).catch(() => ({ ...D.venue })),
+  store: section({
+    appStoreUrl: storeUrl,
+    playStoreUrl: storeUrl,
+    appleTeamId: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(L.appleTeamIdPattern)
+      .catch(D.store.appleTeamId),
+    bundleId: z
+      .string()
+      .trim()
+      .regex(L.bundleIdPattern)
+      .catch(D.store.bundleId),
+    androidSha256: androidFingerprints,
+  }).catch(() => ({ ...D.store, androidSha256: [] })),
 });
 
 /**
@@ -372,6 +493,10 @@ export function mergeMobileAppConfig(
 export function toBootstrapApp(cfg: MobileAppConfig): BootstrapApp {
   return {
     minSupportedAppVersion: cfg.minSupportedAppVersion,
+    store: {
+      appStoreUrl: cfg.store.appStoreUrl,
+      playStoreUrl: cfg.store.playStoreUrl,
+    },
     maintenance: { ...cfg.maintenance },
     ordering: {
       ...cfg.ordering,

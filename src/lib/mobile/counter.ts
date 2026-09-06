@@ -37,6 +37,41 @@ const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 const CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 const CODE_LENGTH = 8;
 
+/**
+ * The QR payload's alphabet, and why it is not base64url.
+ *
+ * A QR encoder picks its mode from the characters it is given. Base64url
+ * mixes upper and lower case, so the payload can only go in **byte mode** at
+ * 8 bits a character; the 43-character token that produced measured out at
+ * version 4 — a 33x33 grid — at error-correction level M.
+ *
+ * QR's *alphanumeric* mode covers `0-9 A-Z` and nine symbols, and packs two
+ * characters into 11 bits (5.5 bits each). Spending the entropy in that
+ * alphabet instead buys the scan two things at once:
+ *
+ *   43 chars base64url, EC M  ->  version 4, 33x33 modules, 15% recoverable
+ *   26 chars base32,    EC Q  ->  version 2, 25x25 modules, 25% recoverable
+ *
+ * Fewer modules in the same drawn square means each module is physically
+ * larger, which is the single thing a camera cares about most; the freed
+ * capacity goes straight back into error correction, which is what survives
+ * glare and fingerprints on a phone screen. Both measured with `qrcode`
+ * itself, not estimated.
+ *
+ * 16 bytes rather than 32: this is a single-use value that lives 120 seconds
+ * behind a per-member rate limit, so 128 bits is already far past anything
+ * that could be guessed inside its own lifetime, and the 16 bytes we do not
+ * spend are what pays for the smaller grid.
+ *
+ * Crockford's alphabet (no I, L, O or U) is a subset of QR's alphanumeric
+ * set, so the encoder keeps the cheap mode. Nothing reads the token's shape —
+ * the app draws the SVG, the till submits the decoded string verbatim and
+ * this module compares `sha256` — so tokens minted by an older deploy keep
+ * working until they expire on their own.
+ */
+const TOKEN_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const TOKEN_BYTES = 16;
+
 export const MIN_COUNTER_STAMPS = 1;
 export const MAX_COUNTER_STAMPS = 5;
 
@@ -81,6 +116,32 @@ function newCode(): string {
   const bytes = randomBytes(CODE_LENGTH);
   let out = "";
   for (const byte of bytes) out += CODE_ALPHABET[byte % CODE_ALPHABET.length];
+  return out;
+}
+
+/**
+ * The QR payload: `TOKEN_BYTES` of randomness re-spelled in base32.
+ *
+ * Five bits are taken off the front of a rolling window at a time, so every
+ * bit of every byte reaches the output exactly once — a per-byte `% 32` would
+ * throw away three bits of each and leave 80 of the 128.
+ */
+function newToken(): string {
+  const bytes = randomBytes(TOKEN_BYTES);
+  let acc = 0;
+  let bits = 0;
+  let out = "";
+  for (const byte of bytes) {
+    acc = (acc << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      out += TOKEN_ALPHABET[(acc >>> (bits - 5)) & 31];
+      bits -= 5;
+    }
+  }
+  // 16 bytes is not a multiple of 5 bits; the last 3 are padded out rather
+  // than dropped.
+  if (bits > 0) out += TOKEN_ALPHABET[(acc << (5 - bits)) & 31];
   return out;
 }
 
@@ -216,7 +277,7 @@ export async function issueCounterToken(
   const expiresAt = new Date(
     now + COUNTER_TOKEN_TTL_SECONDS * 1000,
   ).toISOString();
-  const token = randomBytes(32).toString("base64url");
+  const token = newToken();
   const tokenHash = hashCounterToken(token);
 
   let code = newCode();

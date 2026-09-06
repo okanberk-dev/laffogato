@@ -18,6 +18,54 @@ const MSG = {
 } as const;
 
 /**
+ * Error correction level, and why it is not the library default.
+ *
+ * The payload is 26 base32 characters (`src/lib/mobile/counter.ts`), which QR
+ * encodes in alphanumeric mode — cheap enough that level **Q** still fits in
+ * a version-2, 25x25 grid. The old 43-character base64url token needed 33x33
+ * at level M, so this is more recoverable data in a coarser grid: 25% of the
+ * code can be lost to glare, a fingerprint or a scratched screen protector
+ * and it still reads, and every module is physically larger while it does.
+ */
+const QR_ERROR_CORRECTION = "Q" as const;
+
+/**
+ * The quiet zone, in modules.
+ *
+ * ISO/IEC 18004 asks for four. This was `1`, which is the kind of thing that
+ * works on the desk it was tested on and fails against a dark counter or a
+ * member's dark-mode wallpaper — the scanner needs blank paper around the
+ * finder patterns to lock onto them at all.
+ */
+const QR_QUIET_ZONE = 4;
+
+/**
+ * Draws the code, and tells the app how many modules wide it is.
+ *
+ * `qrcode` already writes `shape-rendering="crispEdges"` on the root, which
+ * is the other half of the sharpness story — the SVG is drawn at 33 units and
+ * scaled to ~300 device pixels, so without it every module edge lands on a
+ * fractional pixel and is antialiased into a grey ramp that a scanner
+ * thresholds the wrong way at exactly the boundaries that carry the data.
+ * We rely on it rather than injecting a second copy; the contract test in
+ * `tests/counter-qr.test.ts` fails if a future release drops it.
+ */
+async function renderCounterQr(
+  token: string,
+): Promise<{ svg: string; modules: number }> {
+  const svg = await QRCode.toString(token, {
+    type: "svg",
+    margin: QR_QUIET_ZONE,
+    errorCorrectionLevel: QR_ERROR_CORRECTION,
+  });
+  // The count comes from the same encode, not from a second guess at it.
+  const modules = QRCode.create(token, {
+    errorCorrectionLevel: QR_ERROR_CORRECTION,
+  }).modules.size;
+  return { svg, modules };
+}
+
+/**
  * `POST /me/counter-token` — the QR the member shows at the till (§17).
  *
  * POST rather than GET on purpose: issuing writes a row, retires the previous
@@ -45,11 +93,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const qrSvg = await QRCode.toString(result.issue.token, {
-      type: "svg",
-      margin: 1,
-      errorCorrectionLevel: "M",
-    });
+    const qr = await renderCounterQr(result.issue.token);
 
     return apiJson(
       {
@@ -57,7 +101,11 @@ export async function POST(request: Request) {
         token: result.issue.token,
         expiresAt: result.issue.expiresAt,
         ttlSeconds: result.issue.ttlSeconds,
-        qrSvg,
+        qrSvg: qr.svg,
+        // Additive (docs/API-MOBILE.md §17): an older build ignores both and
+        // keeps drawing the SVG at whatever size it chose.
+        qrModules: qr.modules,
+        qrQuietZone: QR_QUIET_ZONE,
       },
       { status: 201, private: true },
     );

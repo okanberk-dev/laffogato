@@ -63,8 +63,13 @@ describe("palette follows the Köşk redesign", () => {
     expect(css).not.toContain("rgba(18, 41, 31,");
   });
 
-  it("ships one typeface, and it is not the retired pair", () => {
-    expect(css).toContain("Plus Jakarta Sans");
+  it("ships one typeface, and it is not a retired one", () => {
+    // Montserrat, set by the operator's reference design (6 Eyl 2026). The
+    // reference is drawn in Sofia Pro, which is licensed; Montserrat is the
+    // nearest Google Fonts face and matches its width and its circular
+    // letterforms, which Plus Jakarta Sans did not.
+    expect(css).toContain("Montserrat");
+    expect(css).not.toContain("Plus Jakarta Sans");
     expect(css).not.toContain("Hanken Grotesk");
     expect(css).not.toContain("JetBrains Mono");
   });
@@ -114,7 +119,7 @@ describe("surfaces outside globals.css follow the same palette", () => {
     expect(emails).toContain("background:#143d2b"); // --brand, the button
     expect(emails).toContain("color:#201c17"); // --ink
     // The site dropped its serif; the mail should not still be setting one.
-    expect(emails).toContain("Plus Jakarta Sans");
+    expect(emails).toContain("Montserrat");
     expect(emails).not.toContain("Times New Roman");
     for (const hex of [
       "#3A2A20",

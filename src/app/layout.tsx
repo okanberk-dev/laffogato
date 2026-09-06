@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Montserrat } from "next/font/google";
 
 import { GoogleTagManager } from "@next/third-parties/google";
 
@@ -14,15 +14,19 @@ import "./globals.css";
 // container id with NEXT_PUBLIC_GTM_ID; empty value disables the integration.
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
 
-// One family for the whole site — the "kurumsal sempatik" brief from the Köşk
-// redesign. Plus Jakarta Sans is a warm geometric grotesque: friendly at the
-// 800 weight the headlines use, still corporate at body size. Weight does all
-// the differentiating; there is no serif and no mono any more, so the eyebrow
-// style is uppercase + tracking in the same face and prices lean on
-// `font-variant-numeric: tabular-nums`. Turkish via latin-ext.
-const jakarta = Plus_Jakarta_Sans({
+// One family for the whole site.
+//
+// Montserrat, set by the operator's reference design (6 Eyl 2026). The
+// reference is drawn in Sofia Pro, which is licensed; Montserrat is the
+// closest thing on Google Fonts and matches the two letterforms that carry
+// that look — the near-circular `C`/`o` and the wide double-storey `a` — at
+// close to the same width, which Plus Jakarta Sans (narrower, more humanist)
+// did not. Weight does all the differentiating: there is no serif and no
+// mono, so the eyebrow style is uppercase + tracking in the same face and
+// prices lean on `font-variant-numeric: tabular-nums`. Turkish via latin-ext.
+const brandFont = Montserrat({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-jakarta",
+  variable: "--font-brand",
   style: ["normal", "italic"],
   display: "swap",
 });
@@ -154,7 +158,7 @@ export const metadata: Metadata = {
   },
 };
 
-const fontVariables = jakarta.variable;
+const fontVariables = brandFont.variable;
 
 export default function RootLayout({
   children,

@@ -90,6 +90,34 @@ describe("issueCounterToken", () => {
     expect(code).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{8}$/);
   });
 
+  it("draws a token QR can encode in its cheap mode", async () => {
+    const { token } = await issue();
+    // 128 bits re-spelled in base32 — 26 characters, all of them inside QR's
+    // alphanumeric set. A lowercase letter or a `-` here would push the
+    // payload into byte mode and grow the grid from 25x25 back to 33x33
+    // (tests/counter-qr.test.ts measures the consequence).
+    expect(token).toHaveLength(26);
+    expect(token).toMatch(/^[0-9ABCDEFGHJKMNPQRSTVWXYZ]{26}$/);
+  });
+
+  it("spends every bit of its randomness", async () => {
+    // A per-byte `% 32` would keep only five bits of each byte and quietly
+    // hand out 80-bit tokens; over this many draws that shows up as both a
+    // collision and a starved alphabet.
+    const seen = new Set<string>();
+    const chars = new Set<string>();
+    // A fresh address each round: the per-member cap is ten a minute, and
+    // this is a question about the generator, not about the limiter.
+    for (let i = 0; i < 200; i += 1) {
+      const res = await issueCounterToken(`uye${i}@ornek.com`);
+      if (!res.ok) throw new Error(`beklenmedik hız sınırı: ${res.error}`);
+      seen.add(res.issue.token);
+      for (const ch of res.issue.token) chars.add(ch);
+    }
+    expect(seen.size).toBe(200);
+    expect(chars.size).toBe(32);
+  });
+
   it("expires two minutes out", async () => {
     await issue();
     const row = allTokens()[0];

@@ -6,10 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { CONSENT_OPEN_EVENT } from "@/lib/consent/script";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
-import { GUIDE_LINKS } from "@/lib/seo/guide-nav";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
-import { priceLabel } from "@/lib/utils/format";
 
 import { NewsletterForm } from "./newsletter-form";
 import { ROUTE_PATHS, type Route } from "./route-paths";
@@ -77,6 +75,7 @@ const LINKS: LinkEntry[] = [
     dropdown: SHOP_DROPDOWN,
     basePath: "/magaza",
   },
+  { route: null, href: "/kampanyalar", label: "Kampanyalar" },
   { route: "story", label: "Hikaye" },
   { route: "visit", label: "Ziyaret" },
   { route: null, href: "/karaoke", label: "Karaoke" },
@@ -96,18 +95,9 @@ interface NavProps {
   cart?: number;
   onCart?: () => void;
   onSearch?: () => void;
-  /** Operator settings — the utility strip quotes the live courier fee. */
-  settings?: FooterSettings;
 }
 
-export function Nav({
-  route,
-  navigate,
-  cart,
-  onCart,
-  onSearch,
-  settings,
-}: NavProps) {
+export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
   const [open, setOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<Route | null>(null);
   const [mobileSection, setMobileSection] = useState<Route | null>(null);
@@ -178,27 +168,6 @@ export function Nav({
   return (
     <>
       <header className="site-header" ref={dropdownRef}>
-        {/* Utility strip — hours, fulfilment promise, phone, app link. */}
-        <div className="topbar">
-          <div className="topbar-inner">
-            <span>Her gün 09:00 - 01:00 · Tuzla</span>
-            <span className="topbar-sep" aria-hidden="true" />
-            <span className="topbar-soft">
-              Gel‑al 15 dk · kurye{" "}
-              {priceLabel(settings?.courierFeeMinor ?? 5500)}
-            </span>
-            <span className="topbar-right">
-              <a href={`tel:${SITE.phoneE164}`}>{SITE.phone}</a>
-              {/* The account page is where the app links live, and it is
-                  login-gated — send signed-out visitors to sign-up instead of
-                  bouncing them off a login wall. */}
-              <a href="/uye/kayit" className="topbar-app">
-                Uygulamayı indir ↗
-              </a>
-            </span>
-          </div>
-        </div>
-
         <div className="nav-bar">
           <nav className="nav" aria-label="Ana gezinme">
             <div className="nav-left">
@@ -314,8 +283,35 @@ export function Nav({
                   />
                 </svg>
               </button>
-              <a href="/uye/hesap" className="nav-pill nav-pill-account">
-                Hesabım
+              {/* An icon, not a second pill: the reference's header carries a
+                  single filled button on the right, and two pills side by
+                  side was the one thing that stopped ours reading like it. */}
+              <a
+                href="/uye/hesap"
+                className="nav-icon-btn"
+                aria-label="Hesabım"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 18 18"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="9"
+                    cy="6"
+                    r="3.1"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                  />
+                  <path
+                    d="M3.4 15.2c.7-2.9 2.9-4.5 5.6-4.5s4.9 1.6 5.6 4.5"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                  />
+                </svg>
               </a>
               <button
                 className="nav-pill nav-pill-solid"
@@ -656,20 +652,13 @@ export function Footer({ navigate, settings }: FooterProps) {
       {/* Newsletter block */}
       <div className="footer-newsletter">
         <div>
-          <div className="eyebrow on-dark" style={{ marginBottom: 14 }}>
+          <div className="eyebrow on-dark" style={{ marginBottom: 10 }}>
             Ayda bir mektup
           </div>
           <h3>
             Bir mektup, <span className="script">ayda bir.</span>
           </h3>
-          <p
-            style={{
-              marginTop: 18,
-              color: "rgba(255, 255, 255, 0.72)",
-              maxWidth: 460,
-              lineHeight: 1.65,
-            }}
-          >
+          <p className="footer-newsletter-lede">
             Yeni sezon affogati, Bologna kavurma notları, küçük gelato
             denemeleri. Hiçbir zaman ayda birden fazla - söz veriyoruz.
           </p>
@@ -685,8 +674,7 @@ export function Footer({ navigate, settings }: FooterProps) {
           </div>
           <div className="footer-mark-script">caffè italiano · est. 1987</div>
           <p>
-            Bologna 1987’den İstanbul Tuzla’ya. İlk yurt dışı şubemiz - 200
-            yıllık, Rum’lardan kalma restore bir köşkte.
+            Bologna 1987’den İstanbul Tuzla’ya - 200 yıllık, restore bir köşkte.
           </p>
           <div className="footer-social">
             <a
@@ -732,14 +720,17 @@ export function Footer({ navigate, settings }: FooterProps) {
             ))}
           </ul>
         </div>
+        {/* "Hesap" and "Rehber" used to be two columns of five links each.
+            They are one now: the guides live at /rehber and were never what
+            anyone came to the footer for. */}
         <div>
-          <h5>Hesap</h5>
+          <h5>Kurumsal</h5>
           <ul>
             <li>
               <a href="/uye/hesap">Üyelik &amp; ödüller</a>
             </li>
             <li>
-              <a href="/odeme">Sepetim</a>
+              <a href="/kampanyalar">Kampanyalar</a>
             </li>
             <li>
               <a href="/karaoke">Karaoke</a>
@@ -754,18 +745,13 @@ export function Footer({ navigate, settings }: FooterProps) {
                 Hikayemiz
               </a>
             </li>
+            <li>
+              <Link href="/rehber">Rehber</Link>
+            </li>
           </ul>
         </div>
-        <div>
-          <h5>Rehber</h5>
-          <ul>
-            {GUIDE_LINKS.map((g) => (
-              <li key={g.slug}>
-                <Link href={`/rehber/${g.slug}`}>{g.title}</Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Eight documents, not fourteen; the criterion for each is in
+            src/lib/legal/nav.ts. The rest are one click away. */}
         <div>
           <h5>Yasal</h5>
           <ul>

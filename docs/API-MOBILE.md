@@ -734,18 +734,53 @@ tekrarlayabileceği bir metodun arkasında durmamalı.
   "expiresAt": "2026-09-05T18:12:30.000Z",
   "ttlSeconds": 120,
   "qrSvg": "<svg …/>", // sunucu çizer (qrcode); uygulama yeni bağımlılık almaz
+  "qrModules": 25, // kodun kenarındaki modül sayısı (sessiz alan hariç)
+  "qrQuietZone": 4, // her kenardaki boş modül sayısı
 }
 ```
 
-| Kural        | Değer                                                                                                    |
-| ------------ | -------------------------------------------------------------------------------------------------------- |
-| TTL          | **120 sn**                                                                                               |
-| Aynı anda    | Üye başına en fazla **3 açık jeton**; yenisi istenince eskilerin ömrü o an biter                         |
-| Saklama      | Ham jeton **saklanmaz**; `counter_tokens."tokenHash"` = `sha256(token)`                                  |
-| Kod alfabesi | `23456789ABCDEFGHJKLMNPQRSTUVWXYZ` (O/0, I/1/L yok), 8 karakter, yalnız açık jetonlar arasında benzersiz |
-| Hız sınırı   | Üye başına **dakikada 10 jeton** → **429** `rate_limited` + `Retry-After`                                |
-| Doğrulama    | E-posta doğrulanmamışsa **403** `email_unverified` (sipariş kuralıyla aynı)                              |
-| Temizlik     | `expiresAt` bir günü geçmiş satırlar kasa akışında fırsatçı olarak silinir — ayrı bir cron yok           |
+| Kural          | Değer                                                                                                    |
+| -------------- | -------------------------------------------------------------------------------------------------------- |
+| TTL            | **120 sn**                                                                                               |
+| Aynı anda      | Üye başına en fazla **3 açık jeton**; yenisi istenince eskilerin ömrü o an biter                         |
+| Saklama        | Ham jeton **saklanmaz**; `counter_tokens."tokenHash"` = `sha256(token)`                                  |
+| Jeton alfabesi | `0123456789ABCDEFGHJKMNPQRSTVWXYZ` (Crockford base32), **26 karakter** = 128 bit                         |
+| Kod alfabesi   | `23456789ABCDEFGHJKLMNPQRSTUVWXYZ` (O/0, I/1/L yok), 8 karakter, yalnız açık jetonlar arasında benzersiz |
+| QR             | Sürüm 2, **25×25 modül**, hata düzeltme **Q** (%25), sessiz alan **4 modül**                             |
+| Hız sınırı     | Üye başına **dakikada 10 jeton** → **429** `rate_limited` + `Retry-After`                                |
+| Doğrulama      | E-posta doğrulanmamışsa **403** `email_unverified` (sipariş kuralıyla aynı)                              |
+| Temizlik       | `expiresAt` bir günü geçmiş satırlar kasa akışında fırsatçı olarak silinir — ayrı bir cron yok           |
+
+### Jeton neden base64url değil
+
+QR kodlayıcı, kendisine verilen karakterlere bakarak kip seçer. Base64url
+büyük ve küçük harfi karıştırdığı için yük yalnız **byte kipine** girebiliyordu:
+karakter başına 8 bit, 43 karakter, hata düzeltme M ile **33×33** modül.
+
+QR'ın *alphanumeric* kipi `0-9 A-Z` ile dokuz simgeyi kapsar ve iki karakteri
+11 bite sığdırır. Entropiyi o alfabede harcamak taramaya aynı anda iki şey
+kazandırır — ölçüm `qrcode` kütüphanesinin kendisinden, tahmin değil:
+
+| Yük                 | Hata düzeltme | Sürüm | Modül     | Kurtarılabilir |
+| ------------------- | ------------- | ----- | --------- | -------------- |
+| 43 karakter base64url | M           | 4     | **33×33** | %15            |
+| 26 karakter base32    | Q           | 2     | **25×25** | %25            |
+
+Aynı boyutta çizilen karede daha az modül, fiziksel olarak **daha büyük**
+modül demektir; kameranın en çok önemsediği şey budur. Boşalan kapasite de
+doğrudan hata düzeltmeye gider — telefon ekranındaki parlama ve parmak izini
+kaldıran şey odur. 32 yerine 16 bayt: bu, üye başına hız sınırının arkasında
+120 saniye yaşayan tek kullanımlık bir değer, yani 128 bit kendi ömrü içinde
+tahmin edilebilecek her şeyin çok ötesinde.
+
+Jetonun **şeklini kimse okumaz** — uygulama SVG'yi çizer, kasa çözdüğü diziyi
+olduğu gibi gönderir, sunucu `sha256` karşılaştırır. Bu yüzden eski sürümün
+ürettiği jetonlar kendi süreleri dolana kadar çalışmaya devam eder.
+
+`qrModules` ve `qrQuietZone` **eklemedir**: eski bir yapı ikisini de yok sayar
+ve SVG'yi seçtiği boyutta çizmeye devam eder. Yeni yapı, çizim boyutunu
+`(qrModules + 2 × qrQuietZone)` katına yuvarlayarak modül kenarlarının
+kesirli piksele düşmesini ve bulanıklaşmasını önler.
 
 Hatalar: **401** `unauthorized` · **403** `email_unverified` · **429**
 `rate_limited` · **503** `unavailable`.
@@ -765,6 +800,21 @@ satırı yazar (`source: "counter"`, not `Kasa · QR` / `Kasa · kod` /
 | `not_found`      | "Kod bulunamadı. Kodu kontrol et ya da e-posta ile ara."   |
 | `invalid_email`  | "Geçerli bir üye e-postası gir."                           |
 | `invalid_stamps` | "Damga sayısı 1 ile 5 arasında olmalı."                    |
+
+Kamera her tarayıcıda çalışır. Tercih sırası `BarcodeDetector` (Chrome/Edge,
+donanım hızlandırmalı) → **jsQR** (saf JavaScript, yalnız ilki yoksa dinamik
+olarak yüklenir). İkincisi olmadan Safari — yani bir iPad kasa — "bu cihaz QR
+okumayı desteklemiyor" diyor ve kasiyeri her üye için 8 karakter yazmaya
+bırakıyordu. Kod çözme, nişangâhın gösterdiği **merkez kareye** (kısa kenarın
+%78'i) kırpılıp 480 px'e indirilerek yapılır; kare, `requestVideoFrameCallback`
+varsa kameranın ürettiği her karede okunur.
+
+Aynı QR saniyede onlarca kare boyunca lensin önünde durur, bu yüzden okuma
+kapısı üç durumu ayırır: **bekleme** (aynı değer 2,5 sn boyunca yeniden
+gönderilmez), **harcandı** (sunucu jetonu tükettiyse o değer bir daha asla
+gönderilmez — tek kullanımlık bir kodu tekrar göndermek başarılı bir okumaya
+"bu kod kullanıldı" yanıtı verdirirdi) ve **başarısız** (ağ hatası; değer
+hemen yeniden okunabilir).
 
 Tek kullanım koşullu UPDATE ile sağlanır (`where "usedAt" = ''`): aynı QR'ı
 aynı saniyede okutan iki kasa da ayrı bir okuma kontrolünden geçer, ama

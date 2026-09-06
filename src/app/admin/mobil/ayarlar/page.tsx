@@ -22,7 +22,7 @@ export default async function AdminAppConfigPage() {
       <PageHeader
         eyebrow="Mobil uygulama · Yapılandırma"
         title="Uygulama ayarları"
-        description="Sürüm kapısı, bakım modu, sipariş kanalları, sadakat ekonomisi, karaoke kuralları, hatırlatmalar, kampanya kartları ve köşk bilgileri. Uygulama bunları açılışta okur."
+        description="Sürüm kapısı, bakım modu, sipariş kanalları, sadakat ekonomisi, karaoke kuralları, hatırlatmalar, kampanya kartları, köşk bilgileri ve mağaza bağlantıları. Uygulama bunları açılışta okur."
       />
       <AppConfigForm config={mobileApp} />
     </main>

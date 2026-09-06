@@ -9,6 +9,7 @@ import { useDialog } from "./use-dialog";
 
 import { ShopHeroSlider, type ShopHeroSlide } from "./shop-hero-slider";
 import { HomeHeroSlider } from "./home-hero-slider";
+import { PageHero } from "./page-hero";
 import { PourModule } from "./pour-module";
 import {
   MENU,
@@ -228,6 +229,35 @@ export function PageHome({
         content={content}
         heroImageUrl={heroImageUrl}
       />
+
+      {/* The reference's banner board, pointing at /kampanyalar — the offers
+          themselves are operator-managed and live there, so this is a door,
+          not a second place to keep the same copy. */}
+      <section className="home-section">
+        <div className="wrap">
+          <a className="promo-banner reveal" href="/kampanyalar">
+            <svg
+              className="promo-banner-wave"
+              viewBox="0 0 1200 220"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <path d="M0 150 C 220 60, 420 210, 660 130 S 1000 40, 1200 96 L1200 220 L0 220 Z" />
+            </svg>
+            <span className="promo-banner-copy">
+              <span className="promo-banner-eyebrow">Köşkte bu ay</span>
+              <span className="promo-banner-title">
+                Kampanyalar ve etkinlikler
+              </span>
+              <span className="promo-banner-body">
+                Sezon kampanyaları, iş birlikleri ve damga programı - hepsi tek
+                sayfada.
+              </span>
+            </span>
+            <span className="promo-banner-cta">Hepsini gör</span>
+          </a>
+        </div>
+      </section>
 
       {/* Promo tiles ─────────────────────────────────────────── */}
       <section className="home-tiles" aria-label="Kısayollar">
@@ -631,21 +661,12 @@ export function PageMenu({ menu }: PageProps) {
   return (
     <div className="page" data-screen-label="02 Menu">
       <main className="menu-page">
+        <PageHero
+          eyebrow={`Menü · ${activeLabel}`}
+          title={["Bugün ne", "içiyoruz?"]}
+          lede="İçeceklerin çoğu M ve L boy servis edilir. Alternatif süt ve ekstra shot barda seçilir. Menüye buradan göz at, beğendiğini barda söyle."
+        />
         <div className="wrap">
-          <div className="page-head-row">
-            <div>
-              <div className="eyebrow">Menü · {activeLabel}</div>
-              <h1 className="h1" style={{ marginTop: 14 }}>
-                Bugün ne içiyoruz?
-              </h1>
-            </div>
-            <p className="lede" style={{ maxWidth: "44ch" }}>
-              İçeceklerin çoğu M ve L boy servis edilir. Alternatif süt ve
-              ekstra shot barda seçilir. Menüye buradan göz at, beğendiğini
-              barda söyle.
-            </p>
-          </div>
-
           <div className="menu-filter-row">
             <div
               className="menu-tabs scroller"
@@ -1074,17 +1095,11 @@ export function PageShop({
             }}
             data-row="shop-head"
           >
-            <div>
-              <div className="eyebrow">III - La bottega</div>
-              <h1 className="h1" style={{ marginTop: 24 }}>
-                <span className="script">Mağaza.</span>
-              </h1>
-              <p className="lede" style={{ marginTop: 22 }}>
-                Tuzla köşkünde servis ettiğimiz her şey - Bologna’da kavrulan
-                çekirdek, 1994 patentli edible kup, bambu chasen, Bialetti ×
-                L’Affogato moka pot. Eve, ofise, hediyeye.
-              </p>
-            </div>
+            <PageHero
+              eyebrow="III - La bottega"
+              title={["Köşkün", "mağazası"]}
+              lede="Tuzla köşkünde servis ettiğimiz her şey - Bologna’da kavrulan çekirdek, 1994 patentli edible kup, bambu chasen, Bialetti × L’Affogato moka pot. Eve, ofise, hediyeye."
+            />
             <div data-row="shop-badges">
               <ShopBadge icon="↗" k="Aynı gün" v="İstanbul içi" />
               <ShopBadge icon="✦" k="Free shipping" v="500₺+ siparişte" />
@@ -1503,19 +1518,16 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
 
   return (
     <div className="page" data-screen-label="04 Story">
+      <PageHero
+        eyebrow="Hikaye · 1987 → 2026"
+        title={["Bologna 1987’den", "Tuzla’ya."]}
+        lede={c(
+          "story.hero.lede",
+          "İlk yurt dışı şubemiz - 200 yıllık, Rum’lardan kalma restore bir köşkte. İtalyan baba, İstanbullu anne: Eda Mancuso, büyükbabasının 1987’de açtığı L’Affogato barını üçüncü kuşak olarak devraldı ve 2026’da markayı doğduğu şehre getirdi.",
+        )}
+      />
       <section className="story-hero">
         <div className="wrap">
-          <div className="eyebrow">Hikaye · 1987 → 2026</div>
-          <h1 className="h-display" style={{ marginTop: 14, maxWidth: "24ch" }}>
-            Bologna 1987’den <span className="script">Tuzla’ya.</span>
-          </h1>
-          <p className="story-hero-lede">
-            {c(
-              "story.hero.lede",
-              "İlk yurt dışı şubemiz - 200 yıllık, Rum’lardan kalma restore bir köşkte. İtalyan baba, İstanbullu anne: Eda Mancuso, büyükbabasının 1987’de açtığı L’Affogato barını üçüncü kuşak olarak devraldı ve 2026’da markayı doğduğu şehre getirdi.",
-            )}
-          </p>
-
           {/* The köşk itself. These are the venue photographs from the design
               handoff — the page used to carry only drawn illustrations. */}
           <div className="story-mosaic">

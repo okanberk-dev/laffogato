@@ -857,70 +857,67 @@ export type HomeSlideAction =
   | "karaoke";
 
 export interface HomeSlide {
+  /** Small line above the headline - the product's qualifier, not a label. */
   kicker: string;
-  title: string;
+  /** Two lines of display type; the array IS the line break. */
+  title: [string, string];
   text: string;
   primary: { label: string; action: HomeSlideAction };
   secondary: { label: string; action: HomeSlideAction };
+  /** A cut-out product photograph, drawn over the green disc. */
   photo: string;
   alt: string;
-  /** `object-position` for the photo half. */
-  pos: string;
-  /** Per-slide ground and inks. Every value clears WCAG AA against its own
-      ground — the caramel kicker is one step darker than the prototype's
-      #8a6320, which measured 4.44:1. */
-  bg: string;
-  ink: string;
-  bodyInk: string;
-  kickerInk: string;
-  altBorder: string;
 }
 
+/**
+ * The home hero.
+ *
+ * Laid out to the reference the operator supplied (6 Eyl 2026): a cream band
+ * under a white nav, an oversized cocoa headline on the left, and the drink
+ * cut out and floated over a deep-green disc on the right, with the other two
+ * drinks as thumbnails below the copy.
+ *
+ * The reference was a Starbucks concept, so what is copied is the LAYOUT and
+ * the colour treatment. Everything with a trademark on it is L'Affogato's
+ * own: the mark, the wordmark, the drinks and the photographs — the three
+ * cut-outs are this café's own Matcha Bar shots.
+ *
+ * `-cut` rather than the plain files the menu cards use: those are square
+ * 1024px canvases whose cup occupies a portrait 0.62 of the frame, so sizing
+ * one to the hero's height made it half again as WIDE as the disc behind it
+ * and buried the shape completely. The trimmed variants are the cup and
+ * nothing else, which is also what lets it hang off the disc's lower edge
+ * the way the reference does. Generated with `sharp().trim()`; the untrimmed
+ * originals stay for the menu cards, which rely on the square canvas to line
+ * their drinks up with each other.
+ */
 export const HOME_SLIDES: HomeSlide[] = [
   {
-    kicker: "Sezon · Strawberry Aşkı",
-    title: "Çilek ve matcha, aynı bardakta.",
-    text: "Taze çilek katmanı üzerine çırpılmış Uji matcha ve soğuk süt. Sezon boyunca barda.",
-    primary: { label: "Menüye göz at", action: "menu" },
-    secondary: { label: "Sezonu gör", action: "seasonMenu" },
-    photo: "/photos/drinks-tray.webp",
-    alt: "Terasta soğuk içecekler",
-    pos: "50% 50%",
-    bg: "#fbebec",
-    ink: "#3b1f24",
-    bodyInk: "#6a4a50",
-    kickerInk: "#97465a",
-    altBorder: "#d9b8be",
+    kicker: "Strawberry Aşkı",
+    title: ["Çilekli", "Matcha Latte"],
+    text: "Taze çilek katmanının üzerine çırpılmış Uji matcha ve soğuk süt. Seramoni sınıfı matcha, siparişten sonra çırpılır; çilek ezmesi her sabah barda hazırlanır. Sezon boyunca menüde.",
+    primary: { label: "Menüye göz at", action: "seasonMenu" },
+    secondary: { label: "Sezonu gör", action: "menu" },
+    photo: "/menu/strawberry-matcha-cut.webp",
+    alt: "Çilekli matcha latte, buzlu bardakta",
   },
   {
-    kicker: "İmza ürün · 1994 patentli",
-    title: "İçilir, sonra kupası yenir.",
-    text: "Çift shot Sirena espresso, fior di latte gelatonun üzerine masanızda dökülür - çıtır waffle kupun içinde.",
+    kicker: "İmza ürün",
+    title: ["Matcha", "Affogato"],
+    text: "Fior di latte gelatonun üzerine çırpılmış matcha, masanızda dökülür. 1994'te patentlenen ritüelin matcha hâli - içilir, sonra kupası yenir.",
     primary: { label: "Ürünü gör", action: "signature" },
     secondary: { label: "Hikayemiz", action: "story" },
-    photo: "/photos/affogato-cup.webp",
-    alt: "Yenilebilir waffle kupada affogato",
-    pos: "50% 45%",
-    bg: "#f6e7ce",
-    ink: "#3a2a12",
-    bodyInk: "#6b5535",
-    kickerInk: "#87601e",
-    altBorder: "#dcc49a",
+    photo: "/menu/matcha-affogato-cut.webp",
+    alt: "Matcha affogato, üzerinde gelato topu",
   },
   {
-    kicker: "Köşk · Tuzla",
-    title: "Gece 01:00’e kadar açık bir bahçe.",
-    text: "200 yıllık restore köşkte 24 koltuk, teras ve üst katta özel karaoke odası.",
-    primary: { label: "Ziyaret bilgileri", action: "visit" },
-    secondary: { label: "Karaoke rezervasyonu", action: "karaoke" },
-    photo: "/photos/terrace-wide.webp",
-    alt: "Köşkün terası ve bahçesi",
-    pos: "50% 55%",
-    bg: "#e7efdc",
-    ink: "#1b2e1d",
-    bodyInk: "#4b5b44",
-    kickerInk: "#2f6b3c",
-    altBorder: "#bfd2ae",
+    kicker: "Her gün barda",
+    title: ["Buzlu", "Matcha Latte"],
+    text: "Çırpılmış matcha, ipeksi süt ve buz. Menünün en sade duranı, en çok içileni - köşkün terasında günün her saati.",
+    primary: { label: "Menüye göz at", action: "menu" },
+    secondary: { label: "Ziyaret bilgileri", action: "visit" },
+    photo: "/menu/matcha-latte-cut.webp",
+    alt: "Buzlu matcha latte, uzun bardakta",
   },
 ];
 

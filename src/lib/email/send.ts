@@ -102,7 +102,7 @@ Bu bağlantı 24 saat geçerlidir. Bu hesabı sen oluşturmadıysan bu e-postay�
 yok sayabilirsin.
 
 — L'Affogato`;
-  const html = `<div style="font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
+  const html = `<div style="font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
   <p style="font-size:16px">${greeting}</p>
   <p style="font-size:15px;line-height:1.6">L'Affogato hesabını oluşturduğun için teşekkürler. Sipariş verebilmek için e-posta adresini doğrulaman gerekiyor.</p>
   <p style="margin:28px 0">
@@ -133,7 +133,7 @@ Bağlantı 1 saat geçerlidir ve yalnızca bir kez kullanılabilir. Bu talebi se
 yapmadıysan hiçbir şey yapmana gerek yok — mevcut şifren değişmez.
 
 — L'Affogato`;
-  const html = `<div style="font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
+  const html = `<div style="font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
   <p style="font-size:16px">${greeting}</p>
   <p style="font-size:15px;line-height:1.6">L'Affogato hesabın için şifre sıfırlama talebi aldık. Yeni şifreni belirlemek için aşağıdaki butona tıkla.</p>
   <p style="margin:28px 0">
@@ -190,7 +190,7 @@ function orderShellHtml(
   intro: string,
   o: OrderEmailData,
 ): string {
-  return `<div style="font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
+  return `<div style="font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
   <p style="font-size:16px">${greeting}</p>
   <p style="font-size:15px;line-height:1.6">${intro}</p>
   <p style="font-size:13px;color:#5f594e;margin:18px 0 6px">Sipariş No: <strong>#${o.orderNo}</strong></p>

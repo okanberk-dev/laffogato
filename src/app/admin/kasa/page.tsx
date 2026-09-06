@@ -22,7 +22,7 @@ export default async function AdminTillPage() {
       <PageHeader
         eyebrow="Satış · Kasa"
         title="Damga ekle"
-        description="Üye ödedi ve uygulamadaki QR'ını gösterdi: okut, damga düşsün. Kamera çalışmıyorsa kartındaki 8 karakterlik kodu, o da yoksa e-postasını kullan."
+        description="Üye ödedi ve uygulamadaki QR'ını gösterdi: çerçeveye tut, damga düşsün. Kamera açılmıyorsa kartındaki 8 karakterlik kodu, o da yoksa e-postasını kullan."
       />
 
       <TillConsole />

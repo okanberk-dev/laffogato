@@ -81,6 +81,20 @@ describe("POST /me/counter-token", () => {
     expect(body.qrSvg.startsWith("<svg")).toBe(true);
   });
 
+  it("publishes the grid size so the app can draw whole modules", async () => {
+    signedIn(true);
+    const res = await POST(REQUEST);
+    const body = (await res.json()) as Record<string, unknown>;
+    // Additive fields (docs/API-MOBILE.md §17): an older build ignores both
+    // and keeps drawing the SVG at whatever size it picked.
+    expect(typeof body.qrModules).toBe("number");
+    expect(body.qrQuietZone).toBe(4);
+    // `qrModules` counts the code only; the drawn square is it plus the
+    // quiet zone on both sides, which is what the SVG's viewBox says.
+    const total = (body.qrModules as number) + 2 * (body.qrQuietZone as number);
+    expect(body.qrSvg).toContain(`viewBox="0 0 ${total} ${total}"`);
+  });
+
   it("never lets a shared cache keep the token", async () => {
     signedIn(true);
     const res = await POST(REQUEST);

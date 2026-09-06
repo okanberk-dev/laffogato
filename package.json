@@ -25,6 +25,7 @@
     "@supabase/ssr": "0.12.5",
     "@supabase/supabase-js": "2.112.4",
     "bcryptjs": "^3.0.3",
+    "jsqr": "^1.4.0",
     "next": "16.2.6",
     "otplib": "^13.4.0",
     "pg": "^8.23.0",

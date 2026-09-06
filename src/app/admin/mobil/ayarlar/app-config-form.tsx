@@ -22,13 +22,14 @@ import {
   saveLoyaltyAction,
   saveOrderingAction,
   saveRemindersAction,
+  saveStoreAction,
   saveVenueAction,
   saveVersionAction,
   type AppConfigState,
 } from "./actions";
 
 /**
- * Seven independent forms, one per section of `settings."mobileApp"`, laid
+ * Eight independent forms, one per section of `settings."mobileApp"`, laid
  * out like Ayarlar: each saves only its own section (the action merges it
  * onto the live document), so an operator can tune the courier ETA without
  * re-submitting the reminders. `@/lib/mobile/app-config` is safe to import
@@ -45,6 +46,7 @@ const TABS = [
   { id: "reminders", label: "Hatırlatmalar" },
   { id: "cards", label: "Kampanya kartları" },
   { id: "venue", label: "Köşk bilgileri" },
+  { id: "store", label: "Mağaza ve bağlantılar" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -79,6 +81,7 @@ export function AppConfigForm({ config }: { config: MobileAppConfig }) {
         {tab === "reminders" && <RemindersTab config={config} />}
         {tab === "cards" && <CampaignCardsTab config={config} />}
         {tab === "venue" && <VenueTab config={config} />}
+        {tab === "store" && <StoreTab config={config} />}
       </div>
     </div>
   );
@@ -629,6 +632,83 @@ function VenueTab({ config }: { config: MobileAppConfig }) {
               defaultValue={v.mapsQuery}
               maxLength={L.venueMapsQueryMax}
               required
+            />
+          </Field>
+        </div>
+        <SaveBar state={state} pending={pending} />
+      </Section>
+    </form>
+  );
+}
+
+// ─── 8. Mağaza ve bağlantılar ─────────────────────────────────────────────
+
+function StoreTab({ config }: { config: MobileAppConfig }) {
+  const [state, action, pending] = useActionState(saveStoreAction, initial);
+  const st = config.store;
+  return (
+    <form action={action}>
+      <Section
+        title="Mağaza ve derin bağlantılar"
+        intro="Uygulamanın iki mağazadaki adresi ve laffogato.net bağlantılarının tarayıcı yerine uygulamada açılması için gereken kimlikler. Hepsi buradan değişir - uygulamaya yeni sürüm çıkmasına gerek yok."
+      >
+        <div className="grid gap-5">
+          <Field
+            label="App Store adresi"
+            hint="Zorunlu güncelleme ekranındaki düğme buraya gider. Liste yayına girene kadar boş bırak: boşken düğme hiç gösterilmez, hiçbir yere gitmeyen bir düğme gösterilmez."
+          >
+            <TextInput
+              name="appStoreUrl"
+              type="url"
+              defaultValue={st.appStoreUrl}
+              maxLength={L.storeUrlMax}
+              placeholder="https://apps.apple.com/tr/app/…"
+            />
+          </Field>
+          <Field
+            label="Google Play adresi"
+            hint="Android'de aynı düğme buraya gider."
+          >
+            <TextInput
+              name="playStoreUrl"
+              type="url"
+              defaultValue={st.playStoreUrl}
+              maxLength={L.storeUrlMax}
+              placeholder="https://play.google.com/store/apps/details?id=…"
+            />
+          </Field>
+          <Field
+            label="Paket adı"
+            hint="iOS bundle identifier ve Android application id - ikisi de aynı. App Store Connect ve Play Console'da yazan değer."
+          >
+            <TextInput
+              name="bundleId"
+              defaultValue={st.bundleId}
+              placeholder="com.laffogato.app"
+            />
+          </Field>
+          <Field
+            label="Apple Team ID"
+            hint="Apple Developer hesabının 10 karakterlik kimliği (Membership sayfasında). Bunu ve paket adını girdiğinde site /.well-known/apple-app-site-association belgesini yayımlar ve laffogato.net bağlantıları iPhone'da uygulamada açılır."
+          >
+            <TextInput
+              name="appleTeamId"
+              defaultValue={st.appleTeamId}
+              maxLength={10}
+              placeholder="ABCDE12345"
+              style={{ fontFamily: "var(--mono), monospace" }}
+            />
+          </Field>
+          <Field
+            label="Android imza parmak izleri (SHA-256)"
+            hint="Her satıra bir tane. İKİSİ de gerekir: yüklediğin imza anahtarı ve Play'in kendi imzaladığı anahtar (Play Console → Test ve yayın → Uygulama bütünlüğü). Yalnız biri girilirse kurulumların yarısında bağlantılar tarayıcıda açılır."
+          >
+            <Textarea
+              name="androidSha256"
+              rows={4}
+              defaultValue={st.androidSha256.join("\n")}
+              placeholder="AA:BB:CC:…:99"
+              style={{ fontFamily: "var(--mono), monospace" }}
             />
           </Field>
         </div>
