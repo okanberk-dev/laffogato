@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 
 import { GoogleTagManager } from "@next/third-parties/google";
 
@@ -14,28 +14,23 @@ import "./globals.css";
 // container id with NEXT_PUBLIC_GTM_ID; empty value disables the integration.
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
 
-// Clean single-sans system in the spirit of premium cafe brands (Starbucks'
-// SoDo Sans, Caribou): one humanist grotesque everywhere, differentiated by
-// weight — Hanken Grotesk for display + body, JetBrains Mono for eyebrows /
-// prices / SKU. Turkish via latin-ext.
-const hanken = Hanken_Grotesk({
+// One family for the whole site — the "kurumsal sempatik" brief from the Köşk
+// redesign. Plus Jakarta Sans is a warm geometric grotesque: friendly at the
+// 800 weight the headlines use, still corporate at body size. Weight does all
+// the differentiating; there is no serif and no mono any more, so the eyebrow
+// style is uppercase + tracking in the same face and prices lean on
+// `font-variant-numeric: tabular-nums`. Turkish via latin-ext.
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-hanken",
+  variable: "--font-jakarta",
   style: ["normal", "italic"],
-  display: "swap",
-});
-
-const jetbrains = JetBrains_Mono({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-jetbrains",
-  weight: ["400", "500"],
   display: "swap",
 });
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f9f8f7" },
-    { media: "(prefers-color-scheme: dark)", color: "#12291f" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#143d2b" },
   ],
   colorScheme: "light dark",
   width: "device-width",
@@ -139,7 +134,7 @@ export const metadata: Metadata = {
     // Misc
     "format-detection": "telephone=no",
     "apple-mobile-web-app-title": SITE.name,
-    "msapplication-TileColor": "#235347",
+    "msapplication-TileColor": "#143d2b",
     "msapplication-config": "/browserconfig.xml",
     // Pinterest + Facebook domain verification (env-driven, optional)
     ...(SITE.verification.pinterest
@@ -159,7 +154,7 @@ export const metadata: Metadata = {
   },
 };
 
-const fontVariables = [hanken.variable, jetbrains.variable].join(" ");
+const fontVariables = jakarta.variable;
 
 export default function RootLayout({
   children,

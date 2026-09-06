@@ -11,35 +11,43 @@ const ogImage = read("src/app/opengraph-image.tsx");
 const emails = read("src/lib/email/send.ts");
 
 /**
- * The site's palette is the mobile app's.
+ * The site's palette is the Köşk redesign's.
  *
- * Operator instruction, 2 Eyl 2026: the app was built on the Starbucks-derived
- * theme (laffogato-mobil/docs/THEME.md) and the site follows it, so the brand
- * reads the same on both surfaces. This file used to pin the opposite
- * decision — a warm terracotta accent replacing a house green — and is kept,
- * inverted, so the swap cannot be undone by accident.
+ * Operator instruction, 5 Eyl 2026: two homepage studies were drawn (Köşk and
+ * Bold), Köşk was picked, then revised once more onto a white ground in the
+ * Starbucks TR mould. The reference is `Laffogato Site.dc.html`.
  *
- * The values are asserted against the app's own tokens; contrast is a separate
- * guard in contrast.test.ts.
+ * This file has now pinned three successive decisions — heritage köşk, then
+ * the mobile app's tokens (2 Eyl), now the Köşk redesign — and is kept, each
+ * time inverted, because the failure mode it guards is real: a palette that
+ * drifts one hex at a time until half the site is on the previous one. The
+ * `not.toContain` assertions are the load-bearing half.
+ *
+ * Note on the phone: the 2 Eyl swap existed to make site and app read alike,
+ * and that parity is now PARTIAL — the greens still line up, the ground moved
+ * cream → white and the accent burgundy → terracotta. If the app is re-skinned
+ * to match, `lafmobil`'s src/theme/tokens.ts is the file to move. Contrast is a
+ * separate guard in contrast.test.ts.
  */
-describe("palette parity with the mobile app", () => {
-  it("paints the house green the app paints", () => {
-    // tokens.ts → brand.primary
-    expect(css).toContain("--brand: #235347");
-    // tokens.ts → state.success, the same green
-    expect(css).toContain("--matcha: #235347");
+describe("palette follows the Köşk redesign", () => {
+  it("paints the house green", () => {
+    expect(css).toContain("--brand: #143d2b");
+    expect(css).toContain("--bg-espresso: #143d2b");
+    expect(css).toContain("--matcha: #1e7c4b");
   });
 
-  it("uses the app's burgundy as the accent", () => {
-    // tokens.ts → accent.burgundy / accent.burgundyPressed
-    expect(css).toContain("--accent: #84233c");
-    expect(css).toContain("--accent-deep: #6e1d32");
+  it("uses terracotta as the accent, not the app's burgundy", () => {
+    expect(css).toContain("--accent: #c0643a");
+    expect(css).toContain("--accent-deep: #97461f");
+    expect(css).not.toContain("#84233c");
+    expect(css).not.toContain("#6e1d32");
   });
 
-  it("drops the heritage cream and terracotta set", () => {
-    for (const hex of ["#c0643a", "#97461f", "#f7f3ea", "#241c15"]) {
-      expect(css, `${hex} belongs to the old köşk palette`).not.toContain(hex);
-    }
+  it("sits on a white ground", () => {
+    expect(css).toContain("--bg: #ffffff");
+    // The retired grounds: the app's canvas and the heritage köşk cream.
+    expect(css).not.toContain("#f9f8f7");
+    expect(css).not.toContain("#f7f3ea");
   });
 
   it("is not Starbucks' own green — the theme is derived, not copied", () => {
@@ -47,16 +55,18 @@ describe("palette parity with the mobile app", () => {
     expect(css).not.toContain("#005c3a");
   });
 
-  it("no longer ships the legacy --green token", () => {
-    expect(css).not.toContain("var(--green)");
-    expect(css).not.toContain("#2f7a4e");
+  it("tints its shadows with the house green", () => {
+    // --bg-espresso #143D2B = 20,61,43. Both earlier shadow colours — the
+    // espresso brown and the app's darker green — are gone.
+    expect(css).toContain("rgba(20, 61, 43,");
+    expect(css).not.toContain("rgba(74, 52, 22,");
+    expect(css).not.toContain("rgba(18, 41, 31,");
   });
 
-  it("tints its shadows with the app's shadow colour, not the espresso brown", () => {
-    // tokens.ts light.shadow #12291F = 18,41,31. The old rgba(74,52,22,…) was
-    // the last surface still lit by the retired köşk palette.
-    expect(css).toContain("rgba(18, 41, 31,");
-    expect(css).not.toContain("rgba(74, 52, 22,");
+  it("ships one typeface, and it is not the retired pair", () => {
+    expect(css).toContain("Plus Jakarta Sans");
+    expect(css).not.toContain("Hanken Grotesk");
+    expect(css).not.toContain("JetBrains Mono");
   });
 });
 
@@ -65,47 +75,47 @@ describe("palette parity with the mobile app", () => {
  *
  * The PWA manifest paints the install splash and the Android status bar, and
  * the hero preview is what an operator picks a text theme against — both sat
- * on the retired cream/espresso set long after the site itself moved.
+ * on a retired set long after the site itself moved, twice.
  */
 describe("surfaces outside globals.css follow the same palette", () => {
-  it("installs the PWA on the app's canvas and night, matching layout.tsx", () => {
-    expect(manifest).toContain('background_color: "#f9f8f7"');
-    expect(manifest).toContain('theme_color: "#12291f"');
-    for (const hex of ["#FBF4E6", "#2C1D11"]) {
-      expect(manifest, `${hex} belongs to the old köşk palette`).not.toContain(
+  it("installs the PWA on the site's ground and night, matching layout.tsx", () => {
+    expect(manifest).toContain('background_color: "#ffffff"');
+    expect(manifest).toContain('theme_color: "#143d2b"');
+    for (const hex of ["#FBF4E6", "#2C1D11", "#f9f8f7", "#12291f"]) {
+      expect(manifest, `${hex} belongs to a retired palette`).not.toContain(
         hex,
       );
     }
   });
 
-  it("previews the shop hero without the köşk cream and terracotta", () => {
+  it("previews the shop hero on tokens rather than hexes of its own", () => {
     for (const hex of ["#6E4220", "#2F1F10", "#F5E6D3", "#E6D4B0", "#8A6332"]) {
-      expect(
-        slidePreview,
-        `${hex} belongs to the old köşk palette`,
-      ).not.toContain(hex);
+      expect(slidePreview, `${hex} belongs to a retired palette`).not.toContain(
+        hex,
+      );
     }
   });
 
   /**
    * next/og and e-mail HTML are rasterised or inlined where CSS variables do
    * not resolve, so both spell the palette out. That is the only reason they
-   * kept the retired one long after globals.css moved.
+   * kept a retired one long after globals.css moved.
    */
-  it("shares the link preview on the app's espresso green, not the brown", () => {
-    expect(ogImage).toContain("#12291f"); // --bg-espresso
-    expect(ogImage).toContain("#f9f8f7"); // --bg
-    expect(ogImage).toContain("#e8c877"); // --gold-soft
+  it("shares the link preview on the house green", () => {
+    expect(ogImage).toContain("#143d2b"); // --bg-espresso
+    expect(ogImage).toContain("#ffffff"); // --bg
+    expect(ogImage).toContain("#e8d3a4"); // --gold-soft
     for (const hex of ["#14100B", "#1F1813", "#2D2418", "#FAF6EE", "#C9A05A"]) {
-      expect(ogImage, `${hex} belongs to the old köşk palette`).not.toContain(
-        hex,
-      );
+      expect(ogImage, `${hex} belongs to a retired palette`).not.toContain(hex);
     }
   });
 
-  it("sends transactional mail in the app's ink, green and gold", () => {
-    expect(emails).toContain("background:#235347"); // --brand, the button
-    expect(emails).toContain("color:#1d1c1c"); // --ink
+  it("sends transactional mail in the site's ink, green and gold", () => {
+    expect(emails).toContain("background:#143d2b"); // --brand, the button
+    expect(emails).toContain("color:#201c17"); // --ink
+    // The site dropped its serif; the mail should not still be setting one.
+    expect(emails).toContain("Plus Jakarta Sans");
+    expect(emails).not.toContain("Times New Roman");
     for (const hex of [
       "#3A2A20",
       "#F6EFE4",
@@ -114,10 +124,9 @@ describe("surfaces outside globals.css follow the same palette", () => {
       "#a89a8c",
       "#8a6a3c",
       "#e7ddcf",
+      "#235347",
     ]) {
-      expect(emails, `${hex} belongs to the old köşk palette`).not.toContain(
-        hex,
-      );
+      expect(emails, `${hex} belongs to a retired palette`).not.toContain(hex);
     }
   });
 });

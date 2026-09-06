@@ -25,8 +25,8 @@ export default async function OgImage() {
         // globals.css defines: --bg-espresso as the ground, --bg as the text,
         // --gold-soft as the accent (the gold that carries on a dark field).
         background:
-          "linear-gradient(135deg, #0c1c14 0%, #12291f 55%, #1b3a2c 100%)",
-        color: "#f9f8f7",
+          "linear-gradient(135deg, #0d2a1d 0%, #143d2b 55%, #1e5138 100%)",
+        color: "#ffffff",
         display: "flex",
         flexDirection: "column",
         padding: "72px 80px",
@@ -39,8 +39,8 @@ export default async function OgImage() {
           position: "absolute",
           inset: 0,
           background:
-            // --gold-soft #e8c877 and --accent-on-dark #d9aeb8, as washes.
-            "radial-gradient(ellipse at 25% 30%, rgba(232, 200, 119, 0.20), transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(217, 174, 184, 0.12), transparent 55%)",
+            // --gold-soft #e8d3a4 and --accent-on-dark #e6a37a, as washes.
+            "radial-gradient(ellipse at 25% 30%, rgba(232, 211, 164, 0.20), transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(230, 163, 122, 0.12), transparent 55%)",
         }}
       />
       <div

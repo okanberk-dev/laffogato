@@ -3,20 +3,25 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * The interactive pour hero — a 3D edible waffle cup the visitor fills with
+ * The interactive pour toy — a 3D edible waffle cup the visitor fills with
  * espresso themselves. Designed in Claude Design; the widget itself is a
  * framework-agnostic custom element built from its own project and shipped
  * here as `public/laffogato-pour.js`.
  *
- * Two things shape how it is loaded:
+ * It used to BE the home page hero, a full `100svh` of it above everything
+ * else. The Köşk redesign demotes it to a card low on the page ("küçük bir
+ * oyun"), which is a better bargain in every direction: the 860 KB bundle is
+ * now genuinely below the fold, the hero slot goes to the slider, and the
+ * widget is a reward for scrolling rather than a toll gate in front of the
+ * menu.
+ *
+ * Two things still shape how it is loaded:
  *
  * 1. The bundle is ~860 KB (three.js plus the brand font, inlined so the
- *    widget never depends on a font host). This section is the FIRST thing on
- *    the home page, so "load when it scrolls into view" meant "load
- *    immediately", in competition with the page's own LCP. It is now fetched
- *    when the section is near the viewport AND the page has finished loading
- *    AND the browser is idle — and not at all on a metered or very slow
- *    connection, where the static wash below is the better hero.
+ *    widget never depends on a font host). It is fetched when the card is
+ *    near the viewport AND the page has finished loading AND the browser is
+ *    idle — and not at all on a metered or very slow connection, where the
+ *    static wash is the whole of it.
  * 2. It is a custom element, not a React component. Creating it imperatively
  *    keeps it out of React's reconciler entirely: no JSX typings for an
  *    unknown tag, no SSR mismatch, and React never tries to diff a subtree
@@ -56,39 +61,9 @@ function loadWidget(): Promise<void> {
   });
 }
 
-export function PourHero({ imageUrl }: { imageUrl?: string } = {}) {
+export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
   const host = useRef<HTMLDivElement>(null);
-  const section = useRef<HTMLElement>(null);
   const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [moved, setMoved] = useState(false);
-
-  // A hero that fills the screen hides the fact that anything follows it. The
-  // cue below says so — and retires the moment the visitor starts scrolling,
-  // however they do it.
-  useEffect(() => {
-    const onScroll = () => {
-      if (window.scrollY > 24) {
-        setMoved(true);
-        window.removeEventListener("scroll", onScroll);
-      }
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const toNextSection = () => {
-    const el = section.current;
-    if (!el) return;
-    const reduced = window.matchMedia?.(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    window.scrollTo({
-      top: el.offsetTop + el.offsetHeight,
-      behavior: reduced ? "auto" : "smooth",
-    });
-  };
 
   useEffect(() => {
     const mount = host.current;
@@ -129,13 +104,13 @@ export function PourHero({ imageUrl }: { imageUrl?: string } = {}) {
           setReady(true);
         })
         .catch(() => {
-          if (!cancelled) setFailed(true);
+          /* The card keeps its wash and its copy; only the cup is missing. */
         });
     };
 
-    // Metered or very slow connection: never fetch it. A 860 KB decorative
-    // hero is not worth someone's data plan; the paper wash and wordmark
-    // underneath are a complete hero on their own.
+    // Metered or very slow connection: never fetch it. A 860 KB toy is not
+    // worth someone's data plan, and the card still reads as a card without
+    // it — copy, wash and CTA are all server-rendered.
     const conn = (
       navigator as Navigator & {
         connection?: { saveData?: boolean; effectiveType?: string };
@@ -185,54 +160,40 @@ export function PourHero({ imageUrl }: { imageUrl?: string } = {}) {
     };
   }, []);
 
-  // The section always stays. Unmounting it would pull a whole viewport out
-  // from under the visitor after it had already painted — and the paper wash
-  // and wordmark are exactly what someone who never gets the bundle should
-  // see, whether it is still loading or failed outright.
   return (
-    <section
-      className="pour-hero"
-      ref={section}
-      aria-label="L'Affogato — kahveni kendin dök"
-      // Ayarlar → "Hero görsel URL". Boşsa tasarımın kendi yüzeyi kalır; bu
-      // alan panelde yıllardır yazılıyor ama hiçbir yerde okunmuyordu.
-      style={
-        imageUrl
-          ? {
-              backgroundImage: `linear-gradient(rgba(247,243,234,0.55), rgba(247,243,234,0.75)), url(${JSON.stringify(imageUrl)})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }
-          : undefined
-      }
-    >
-      <div className="pour-hero-stage" ref={host} />
-      {!ready && (
-        <div className="pour-hero-fallback" aria-hidden="true">
-          L&apos;Affogato
+    <section className="section">
+      <div className="wrap">
+        <div className="pour-module">
+          <div className="pour-module-copy">
+            <div className="eyebrow">Küçük bir oyun</div>
+            <h2 className="pour-module-title">
+              Kupayı çevir, espressoyu kendin dök.
+            </h2>
+            <p>
+              Masada yapılan ritüelin küçük bir provası: kupayı sürükleyerek
+              çevir, üstüne dokunup espressoyu boşalt.
+            </p>
+            {onOrder ? (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm pour-module-cta"
+                onClick={onOrder}
+              >
+                Gerçeğini sipariş et
+                <span className="arrow">→</span>
+              </button>
+            ) : null}
+          </div>
+          <div className="pour-module-stage-wrap">
+            <div className="pour-module-stage" ref={host} />
+            {!ready && (
+              <div className="pour-module-loading" aria-hidden="true">
+                Kupa yükleniyor…
+              </div>
+            )}
+          </div>
         </div>
-      )}
-      {!failed && (
-        <button
-          type="button"
-          className={`pour-hero-scroll${moved ? "is-gone" : ""}`}
-          onClick={toNextSection}
-          aria-label="Aşağı kaydır"
-          tabIndex={moved ? -1 : 0}
-          aria-hidden={moved || undefined}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-              d="M6 9.5 12 15.5 18 9.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-      )}
+      </div>
     </section>
   );
 }

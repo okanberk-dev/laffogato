@@ -842,6 +842,88 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
+/* ──────────────────────────────────────────────────────────────
+   Home hero slider
+   ────────────────────────────────────────────────────────────── */
+
+/** What a slide's two buttons do. `PageHome` owns the handler map, so a slide
+    can never point at a screen that does not exist. */
+export type HomeSlideAction =
+  | "menu"
+  | "signature"
+  | "story"
+  | "visit"
+  | "karaoke"
+  | "addSeasonal";
+
+export interface HomeSlide {
+  kicker: string;
+  title: string;
+  text: string;
+  primary: { label: string; action: HomeSlideAction };
+  secondary: { label: string; action: HomeSlideAction };
+  photo: string;
+  alt: string;
+  /** `object-position` for the photo half. */
+  pos: string;
+  /** Per-slide ground and inks. Every value clears WCAG AA against its own
+      ground — the caramel kicker is one step darker than the prototype's
+      #8a6320, which measured 4.44:1. */
+  bg: string;
+  ink: string;
+  bodyInk: string;
+  kickerInk: string;
+  altBorder: string;
+}
+
+export const HOME_SLIDES: HomeSlide[] = [
+  {
+    kicker: "Sezon · Strawberry Aşkı",
+    title: "Çilek ve matcha, aynı bardakta.",
+    text: "Taze çilek katmanı üzerine çırpılmış Uji matcha ve soğuk süt. Sezon boyunca barda.",
+    primary: { label: "Menüye göz at", action: "menu" },
+    secondary: { label: "Sepete ekle", action: "addSeasonal" },
+    photo: "/photos/drinks-tray.webp",
+    alt: "Terasta soğuk içecekler",
+    pos: "50% 50%",
+    bg: "#fbebec",
+    ink: "#3b1f24",
+    bodyInk: "#6a4a50",
+    kickerInk: "#97465a",
+    altBorder: "#d9b8be",
+  },
+  {
+    kicker: "İmza ürün · 1994 patentli",
+    title: "İçilir, sonra kupası yenir.",
+    text: "Çift shot Sirena espresso, fior di latte gelatonun üzerine masanızda dökülür — çıtır waffle kupun içinde.",
+    primary: { label: "Ürünü gör", action: "signature" },
+    secondary: { label: "Hikayemiz", action: "story" },
+    photo: "/photos/affogato-cup.webp",
+    alt: "Yenilebilir waffle kupada affogato",
+    pos: "50% 45%",
+    bg: "#f6e7ce",
+    ink: "#3a2a12",
+    bodyInk: "#6b5535",
+    kickerInk: "#87601e",
+    altBorder: "#dcc49a",
+  },
+  {
+    kicker: "Köşk · Tuzla",
+    title: "Gece 01:00’e kadar açık bir bahçe.",
+    text: "200 yıllık restore köşkte 24 koltuk, teras ve üst katta özel karaoke odası.",
+    primary: { label: "Ziyaret bilgileri", action: "visit" },
+    secondary: { label: "Karaoke rezervasyonu", action: "karaoke" },
+    photo: "/photos/terrace-wide.webp",
+    alt: "Köşkün terası ve bahçesi",
+    pos: "50% 55%",
+    bg: "#e7efdc",
+    ink: "#1b2e1d",
+    bodyInk: "#4b5b44",
+    kickerInk: "#2f6b3c",
+    altBorder: "#bfd2ae",
+  },
+];
+
 export const PRESS = [
   {
     name: "Monocle",

@@ -102,15 +102,15 @@ Bu bağlantı 24 saat geçerlidir. Bu hesabı sen oluşturmadıysan bu e-postay�
 yok sayabilirsin.
 
 — L'Affogato`;
-  const html = `<div style="font-family:Georgia,'Times New Roman',serif;max-width:520px;margin:0 auto;color:#1d1c1c">
+  const html = `<div style="font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
   <p style="font-size:16px">${greeting}</p>
   <p style="font-size:15px;line-height:1.6">L'Affogato hesabını oluşturduğun için teşekkürler. Sipariş verebilmek için e-posta adresini doğrulaman gerekiyor.</p>
   <p style="margin:28px 0">
-    <a href="${verifyUrl}" style="background:#235347;color:#f9f8f7;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;letter-spacing:0.04em">E-postamı doğrula</a>
+    <a href="${verifyUrl}" style="background:#143d2b;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;letter-spacing:0.04em">E-postamı doğrula</a>
   </p>
-  <p style="font-size:13px;color:#5b6660;line-height:1.6">Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:<br><a href="${verifyUrl}" style="color:#7d5f27">${verifyUrl}</a></p>
-  <p style="font-size:12px;color:#67716b">Bağlantı 24 saat geçerlidir. Bu hesabı sen oluşturmadıysan e-postayı yok say.</p>
-  <p style="font-size:13px;color:#1d1c1c;margin-top:24px">— L'Affogato · Coffee Italiano</p>
+  <p style="font-size:13px;color:#5f594e;line-height:1.6">Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:<br><a href="${verifyUrl}" style="color:#8a6526">${verifyUrl}</a></p>
+  <p style="font-size:12px;color:#746b5d">Bağlantı 24 saat geçerlidir. Bu hesabı sen oluşturmadıysan e-postayı yok say.</p>
+  <p style="font-size:13px;color:#201c17;margin-top:24px">— L'Affogato · Coffee Italiano</p>
 </div>`;
   return send({ to, subject, html, text });
 }
@@ -133,15 +133,15 @@ Bağlantı 1 saat geçerlidir ve yalnızca bir kez kullanılabilir. Bu talebi se
 yapmadıysan hiçbir şey yapmana gerek yok — mevcut şifren değişmez.
 
 — L'Affogato`;
-  const html = `<div style="font-family:Georgia,'Times New Roman',serif;max-width:520px;margin:0 auto;color:#1d1c1c">
+  const html = `<div style="font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
   <p style="font-size:16px">${greeting}</p>
   <p style="font-size:15px;line-height:1.6">L'Affogato hesabın için şifre sıfırlama talebi aldık. Yeni şifreni belirlemek için aşağıdaki butona tıkla.</p>
   <p style="margin:28px 0">
-    <a href="${resetUrl}" style="background:#235347;color:#f9f8f7;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;letter-spacing:0.04em">Yeni şifre belirle</a>
+    <a href="${resetUrl}" style="background:#143d2b;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;letter-spacing:0.04em">Yeni şifre belirle</a>
   </p>
-  <p style="font-size:13px;color:#5b6660;line-height:1.6">Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:<br><a href="${resetUrl}" style="color:#7d5f27">${resetUrl}</a></p>
-  <p style="font-size:12px;color:#67716b">Bağlantı 1 saat geçerlidir ve bir kez kullanılabilir. Bu talebi sen yapmadıysan hiçbir şey yapmana gerek yok; mevcut şifren değişmez.</p>
-  <p style="font-size:13px;color:#1d1c1c;margin-top:24px">— L'Affogato · Coffee Italiano</p>
+  <p style="font-size:13px;color:#5f594e;line-height:1.6">Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:<br><a href="${resetUrl}" style="color:#8a6526">${resetUrl}</a></p>
+  <p style="font-size:12px;color:#746b5d">Bağlantı 1 saat geçerlidir ve bir kez kullanılabilir. Bu talebi sen yapmadıysan hiçbir şey yapmana gerek yok; mevcut şifren değişmez.</p>
+  <p style="font-size:13px;color:#201c17;margin-top:24px">— L'Affogato · Coffee Italiano</p>
 </div>`;
   return send({ to, subject, html, text });
 }
@@ -169,7 +169,7 @@ function orderLinesHtml(items: OrderEmailData["items"]): string {
   return items
     .map(
       (it) =>
-        `<tr><td style="padding:6px 0;font-size:14px;color:#1d1c1c">${it.productName} <span style="color:#67716b">× ${it.qty}</span></td><td style="padding:6px 0;font-size:14px;text-align:right;color:#1d1c1c">${formatTRYMinor(it.unitPriceMinor * it.qty)}</td></tr>`,
+        `<tr><td style="padding:6px 0;font-size:14px;color:#201c17">${it.productName} <span style="color:#746b5d">× ${it.qty}</span></td><td style="padding:6px 0;font-size:14px;text-align:right;color:#201c17">${formatTRYMinor(it.unitPriceMinor * it.qty)}</td></tr>`,
     )
     .join("");
 }
@@ -190,19 +190,19 @@ function orderShellHtml(
   intro: string,
   o: OrderEmailData,
 ): string {
-  return `<div style="font-family:Georgia,'Times New Roman',serif;max-width:520px;margin:0 auto;color:#1d1c1c">
+  return `<div style="font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
   <p style="font-size:16px">${greeting}</p>
   <p style="font-size:15px;line-height:1.6">${intro}</p>
-  <p style="font-size:13px;color:#5b6660;margin:18px 0 6px">Sipariş No: <strong>#${o.orderNo}</strong></p>
-  <table style="width:100%;border-collapse:collapse;border-top:1px solid #e1e5e0;border-bottom:1px solid #e1e5e0;margin:6px 0">
+  <p style="font-size:13px;color:#5f594e;margin:18px 0 6px">Sipariş No: <strong>#${o.orderNo}</strong></p>
+  <table style="width:100%;border-collapse:collapse;border-top:1px solid #ebe7de;border-bottom:1px solid #ebe7de;margin:6px 0">
     ${orderLinesHtml(o.items)}
   </table>
   <p style="font-size:15px;text-align:right;margin:10px 0"><strong>Toplam: ${formatTRYMinor(o.totalMinor)}</strong></p>
-  <p style="font-size:12px;line-height:1.7;color:#5b6660;margin:22px 0 0;padding-top:14px;border-top:1px solid #e1e5e0">
+  <p style="font-size:12px;line-height:1.7;color:#5f594e;margin:22px 0 0;padding-top:14px;border-top:1px solid #ebe7de">
     Sipariş sırasında onayladığın belgeler — kalıcı veri saklayıcısı olarak saklaman için:<br />
-    ${CONSENT_DOC_LINKS.map((d) => `<a href="${d.url}" style="color:#634a1e">${d.label}</a>`).join(" · ")}
+    ${CONSENT_DOC_LINKS.map((d) => `<a href="${d.url}" style="color:#6b4e1a">${d.label}</a>`).join(" · ")}
   </p>
-  <p style="font-size:13px;color:#1d1c1c;margin-top:24px">— L'Affogato · Coffee Italiano</p>
+  <p style="font-size:13px;color:#201c17;margin-top:24px">— L'Affogato · Coffee Italiano</p>
 </div>`;
 }
 

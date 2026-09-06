@@ -5,108 +5,120 @@
    ───────────────────────────────────────────────────────────── */
 
 :root {
-  /* Palette: the mobile app's, brought across.
-     Operator instruction, 2 Eyl 2026 — the app was built on the Starbucks-
-     derived theme in laffogato-mobil/docs/THEME.md and the site is now
-     revised to match it, so one brand reads the same on both surfaces. The
-     previous cream/terracotta/gold set is the heritage köşk palette; it
-     survives in laffogato-mobil/docs/BRAND.md Ek A as reference.
+  /* Palette: the "Köşk" redesign, 5 Eyl 2026.
 
-     Every value below is a token from the app's `light` palette
-     (laffogato-mobil/src/theme/tokens.ts). The variable NAMES are unchanged,
-     so every component keeps working; only what they resolve to moved. */
+     Direction picked by the operator after seeing two homepage studies (Köşk
+     vs Bold), then revised once more to a white ground in the Starbucks TR
+     mould. The reference is `Laffogato Site.dc.html` — a ten-screen prototype
+     — and the values below are read straight off it.
 
-  /* Surfaces — app bg.canvas / subtle / sunken / surface / night */
-  --bg: #f9f8f7;
-  --bg-warm: #f3f5f2;
-  --bg-stone: #e7eae7;
-  --bg-cream: #ffffff;
-  --bg-espresso: #12291f;
+     Relationship to the phone: the 2 Eyl swap had pulled these tokens from
+     laffogato-mobil/src/theme/tokens.ts so one brand read the same on both
+     surfaces. That parity is now PARTIAL. The greens still line up (this deep
+     green is the app's brand.primary family) but the ground moved cream →
+     white and the secondary accent moved burgundy → terracotta. If the phone
+     is re-skinned to match, `lafmobil`'s tokens.ts is the file to move; see
+     "Mobil uygulama" in CLAUDE.md. The variable NAMES are unchanged, so every
+     component keeps working — only what they resolve to moved.
 
-  /* Ink — app text.primary / secondary / tertiary, borders subtle + default */
-  --ink: #1d1c1c;
-  --ink-soft: #5b6660;
-  --ink-mute: #67716b;
-  --ink-line: #e1e5e0;
-  --ink-line-strong: #c4cbc4;
+     Contrast is enforced by tests/contrast.test.ts. Two values are deliberately
+     a step darker than the prototype, which was drawn without a contrast pass:
+     --ink-mute (#8c8375 → #746b5d; the prototype's grey is 3.74:1 on white,
+     below AA) and small white-on-terracotta text, which must use --accent-deep
+     rather than --accent (#c0643a carries white at 4.10:1 — fine for the large
+     display type it sits under, short of AA for a 10px badge). */
 
-  /* Gold — app accent.goldFg carries text (it is the accessible one);
-     accent.gold is the fill. --gold-deep is the pressed step and is the one
-     value here with NO app counterpart: the app has gold/goldFg only, so this
-     is a site-side darkening of --gold (#7d5f27 → 80% black-mixed). If a
-     pressed gold is ever needed on the phone, add accent.goldPressed to
-     tokens.ts with this value rather than inventing a second one. */
-  --gold: #7d5f27;
-  --gold-deep: #634a1e;
-  --gold-soft: #e8c877;
+  /* Surfaces — page ground, card ground, sunken track, warm paper, night */
+  --bg: #ffffff;
+  --bg-warm: #f6f5f2;
+  --bg-stone: #f1eee8;
+  --bg-cream: #fbf9f4;
+  /* The dark ground. Named "espresso" from the heritage palette; it has been
+     the house green since 2 Eyl and this is the prototype's value for it. */
+  --bg-espresso: #143d2b;
+  /* The pressed/hover step under --bg-espresso (prototype: button hovers). */
+  --bg-espresso-deep: #0e2c1f;
 
-  /* Brand accent — app accent.burgundy. Replaces the terracotta: it is what
-     the app paints its premium and offer surfaces with. */
-  --accent: #84233c;
-  --accent-deep: #6e1d32;
-  --accent-soft: #f6e9ec;
-  /* The accent as TEXT on a dark ground.
-     `--accent` is a dark ink: on `--bg-espresso` it measured 1.68:1, so the
-     script word in the menu hero was present and invisible. This is the app's
-     own answer for the burgundy family on a dark surface
-     (tokens.ts → text.onPremiumSecondary): same hue, lightened. */
-  --accent-on-dark: #d9aeb8;
+  /* Ink — heading, body, muted label, hairline, stronger hairline */
+  --ink: #201c17;
+  --ink-soft: #5f594e;
+  --ink-mute: #746b5d;
+  --ink-line: #ebe7de;
+  --ink-line-strong: #e1dcd1;
 
-  /* Brand — the logo mask colour. The app tints the mark with brand.primary,
-     so the site's lockups follow it instead of staying espresso brown. */
-  --brand: #235347;
+  /* Green — the house colour. --green is the ink weight that carries text and
+     eyebrows on white (5.20:1); --bg-espresso is the fill. --green-mint and
+     --green-mist are the two tints the prototype uses for labels and body copy
+     inside dark green blocks (7.32:1 and 9.01:1 on it). */
+  --green: #1e7c4b;
+  --green-mint: #a9d3b5;
+  --green-mist: #cfe3d5;
 
-  /* Semantic state — app state.danger and state.success. Success is the house
-     green, exactly as in the app; the hue gap to --rose keeps "in stock" and
-     "almost gone" from reading alike. */
-  --rose: #bb251b;
-  --matcha: #235347;
+  /* Gold — the warm Italian secondary. --gold carries text on white; the
+     prototype's gold (#e8d3a4) is a fill and a light-on-dark ink, which is
+     what --gold-soft is for. */
+  --gold: #8a6526;
+  --gold-deep: #6b4e1a;
+  --gold-soft: #e8d3a4;
+  /* Ink for text sitting ON --gold-soft (9.37:1). */
+  --gold-ink: #3b2a0f;
 
-  /* Type — premium corporate stack
-     --serif:         Playfair Display (editorial italic, brand heritage)
-     --serif-modern:  Fraunces (variable; refined corporate serif, used for
-                      H3 + smaller headings + dashboards where Playfair is
-                      too display-heavy)
-     --serif-display: DM Serif Display (heavy display, posters)
-     --script:        Pinyon Script (sparing accents only)
-     --sans:          Inter (premium corporate UI sans, replaces DM Sans;
-                      better number-rendering + ligatures via opsz axis)
-     --mono:          JetBrains Mono (tabular prices, code, SKU)            */
-  /* Single clean humanist sans everywhere (Starbucks/Caribou model) — the
-     display/heading/accent tokens all resolve to Hanken Grotesk; weight does
-     the differentiating, not a serif/sans contrast. */
-  --serif:
-    var(--font-hanken), "Hanken Grotesk", -apple-system, BlinkMacSystemFont,
+  /* Brand accent — terracotta. Used sparingly: the active nav underline, one
+     accent word per headline, the karaoke tile, the coupon rule. */
+  --accent: #c0643a;
+  --accent-deep: #97461f;
+  --accent-soft: #f2e0d5;
+  /* The accent as TEXT on a dark ground. `--accent` measures 2.96:1 on
+     --bg-espresso; this is the same hue lightened to 5.71:1. */
+  --accent-on-dark: #e6a37a;
+
+  /* Brand — the logo mask colour. */
+  --brand: #143d2b;
+
+  /* Semantic state. Success is the house green; the hue gap to --rose keeps
+     "in stock" and "almost gone" from reading alike. */
+  --rose: #c5435a;
+  --matcha: #1e7c4b;
+
+  /* Type — ONE family, Plus Jakarta Sans, everywhere. The historical token
+     names (--serif, --script, --mono, …) are all aliases of it: they are kept
+     so the ~600 call sites in this file and in the admin panel keep resolving,
+     but there is no serif, no script and no mono face on the site any more.
+     Weight and tracking do the differentiating. Reach for --sans in new code.
+
+     --mono in particular now means "the eyebrow / numeric voice": uppercase,
+     wide tracking, tabular figures — not a monospaced face. */
+  --sans:
+    var(--font-jakarta), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", sans-serif;
-  --serif-modern: var(--serif);
-  --serif-display: var(--serif);
-  --script: var(--serif);
-  --sans: var(--serif);
-  --mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, monospace;
+  --serif: var(--sans);
+  --serif-modern: var(--sans);
+  --serif-display: var(--sans);
+  --script: var(--sans);
+  --mono: var(--sans);
 
   /* Layout */
   --content: 1280px;
   --content-wide: 1480px;
   --content-narrow: 880px;
-  --gutter: clamp(24px, 5vw, 64px);
+  --gutter: clamp(16px, 4vw, 44px);
 
-  /* Radii */
-  --r-sm: 6px;
-  --r-md: 12px;
-  --r-lg: 20px;
+  /* Radii — the prototype's rounder card language. */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --r-pill: 999px;
 
-  /* Shadows — tinted with the app's own shadow colour (tokens.ts light.shadow
-     #12291F = 18,41,31), not neutral black, and given enough weight to
-     actually read. They were rgba(74,52,22,…), the retired espresso brown:
-     the last surface still lit by the köşk palette after the 2 Eyl 2026 swap,
-     which put a warm cast under cards sitting on a cool green-grey ground.
-     Alphas are unchanged — only the hue moved. */
+  /* Shadows — tinted with the house green (--bg-espresso = 20,61,43) rather
+     than neutral black, so cards sitting on white keep a warm-green cast
+     instead of going grey. Alphas unchanged across palette swaps. */
   --shadow-sm:
-    0 1px 2px rgba(18, 41, 31, 0.06), 0 2px 6px rgba(18, 41, 31, 0.07);
+    0 1px 2px rgba(20, 61, 43, 0.06), 0 2px 6px rgba(20, 61, 43, 0.07);
   --shadow-md:
-    0 6px 16px rgba(18, 41, 31, 0.1), 0 12px 32px rgba(18, 41, 31, 0.08);
+    0 6px 16px rgba(20, 61, 43, 0.1), 0 12px 32px rgba(20, 61, 43, 0.08);
   --shadow-lg:
-    0 16px 36px rgba(18, 41, 31, 0.13), 0 36px 72px rgba(18, 41, 31, 0.1);
+    0 16px 36px rgba(20, 61, 43, 0.13), 0 36px 72px rgba(20, 61, 43, 0.1);
 
   /* Easing */
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -130,11 +142,11 @@ body {
   font-family: var(--sans);
   font-size: 16px;
   line-height: 1.55;
-  /* Inter's contextual tweaks for body text. cv11 = single-storey 'a', ss01 =
-     contextual alternates; opsz handles dynamic optical sizing automatically.
-     calt = standard contextual ligatures. */
-  font-feature-settings: "cv11", "ss01", "calt", "kern";
-  font-variant-numeric: oldstyle-nums;
+  font-feature-settings: "calt", "kern";
+  /* Prices, stamp counts, opening hours and phone numbers all sit in running
+     text on this site, and the prototype sets figures tabular site-wide rather
+     than reaching for a utility class at each one. */
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -178,19 +190,26 @@ select {
    Type primitives
    ───────────────────────────────────────────────────────────── */
 
+/* The section eyebrow. Green on white, mint on the dark green blocks — the
+   prototype uses it above every section headline. */
 .eyebrow {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11px;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  /* WCAG AA: --ink-soft (8:1 on cream) instead of --ink-mute (3.8:1) for this
-     small text. Dark surfaces use the .on-dark override below. */
-  color: var(--ink-soft);
-  font-weight: 500;
+  color: var(--green);
+  font-weight: 700;
   font-feature-settings: "tnum", "lnum", "zero";
 }
 .eyebrow.on-dark {
-  color: var(--gold-soft);
+  color: var(--green-mint);
+}
+/* The quieter variant: a field label rather than a section opener. Uses
+   --ink-mute, which is a step darker than the prototype's #8c8375 so it clears
+   AA on white, on --bg-warm and on --bg-stone. */
+.eyebrow.muted {
+  color: var(--ink-mute);
+  letter-spacing: 0.2em;
 }
 
 /* Available to assistive technology, invisible on screen. Used by the live
@@ -227,20 +246,22 @@ select {
   top: 0;
 }
 
-/* Flat, bold sans headlines (Starbucks/Caribou style) — upright Hanken
-   Grotesk, weight for impact, no serif/italic. Accent words keep the
-   terracotta colour pop but stay upright in the same family. */
+/* Flat, bold headlines. The whole scale came down in the Köşk redesign — the
+   old display size topped out at 120px, roughly twice anything the prototype
+   draws, which is what made the previous pages read as a poster rather than a
+   cafe site. Weight 800 and tight tracking carry the impact instead.
+   `.script` is no longer a script face; it is just the accent-coloured word in
+   a headline ("içilir, sonra kupası yenir"). */
 .h-display {
-  font-family: var(--serif);
-  font-weight: 700;
-  font-size: clamp(50px, 8.5vw, 120px);
-  line-height: 1.03;
-  letter-spacing: -0.03em;
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: clamp(34px, 5.2vw, 68px);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
   margin: 0;
   font-feature-settings: "lnum", "kern", "liga";
 }
 .h-display .script {
-  font-family: var(--script);
   color: var(--accent);
 }
 
@@ -248,49 +269,47 @@ select {
    (Tailwind generates .h-1, .h-2 ... as height utilities = 4px, 8px, ...).
    The typography classes intentionally use a non-hyphenated form. */
 .h1 {
-  font-family: var(--serif);
-  font-weight: 700;
-  font-size: clamp(38px, 5.6vw, 74px);
-  line-height: 1.08;
-  letter-spacing: -0.028em;
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: clamp(32px, 4.4vw, 60px);
+  line-height: 1.03;
+  letter-spacing: -0.035em;
   margin: 0;
   font-feature-settings: "lnum", "kern", "liga";
 }
 .h1 .script {
-  font-family: var(--script);
   color: var(--accent);
 }
 
 .h2 {
-  font-family: var(--serif);
-  font-weight: 700;
-  font-size: clamp(30px, 3.8vw, 52px);
-  line-height: 1.12;
-  letter-spacing: -0.022em;
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: clamp(28px, 3.6vw, 48px);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
   margin: 0;
   font-feature-settings: "lnum", "kern", "liga";
 }
 .h2 .script {
-  font-family: var(--script);
   color: var(--accent);
 }
 
 .h3 {
-  font-family: var(--serif-modern);
-  font-weight: 600;
-  font-size: clamp(22px, 2.4vw, 30px);
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: clamp(19px, 2vw, 24px);
   line-height: 1.2;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
   margin: 0;
   font-feature-settings: "lnum", "kern", "liga";
 }
 
 .lede {
-  font-size: clamp(16px, 1.2vw, 19px);
+  font-size: clamp(15.5px, 1.1vw, 16.5px);
   line-height: 1.65;
   letter-spacing: -0.005em;
   color: var(--ink-soft);
-  max-width: 60ch;
+  max-width: 54ch;
   margin: 0;
 }
 
@@ -314,29 +333,33 @@ select {
   padding: 0 var(--gutter);
 }
 
+/* Section rhythm. Roughly halved in the Köşk redesign: the prototype runs
+   clamp(44px, 6vw, 88px) between blocks, where this used to open 160px of
+   empty page between one headline and the next. */
 .section {
-  padding: clamp(80px, 11vw, 160px) 0;
+  padding: clamp(44px, 6vw, 88px) 0;
 }
 .section-tight {
-  padding: clamp(56px, 8vw, 110px) 0;
+  padding: clamp(32px, 4.5vw, 64px) 0;
 }
 
 /* ─────────────────────────────────────────────────────────────
    Buttons
    ───────────────────────────────────────────────────────────── */
 
+/* Pills, not rectangles — the prototype's CTA language throughout. Bigger and
+   heavier than the old 13px/500 rectangle: 15px at weight 700. */
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  padding: 14px 24px;
-  /* Minimalist CTA: clean slightly-rounded rectangle (not a pill), flat —
-     no hover lift or shadow; feedback is a quiet colour shift + the arrow. */
-  border-radius: 10px;
+  padding: 15px 24px;
+  border-radius: var(--r-pill);
   font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
   line-height: 1;
   border: 1px solid transparent;
   cursor: pointer;
@@ -356,39 +379,55 @@ select {
   transform: translateX(3px);
 }
 
+/* The primary action is the house green now, not the terracotta. Terracotta
+   is reserved for accents (one word in a headline, the karaoke tile). */
 .btn-primary {
-  background: var(--accent);
+  background: var(--bg-espresso);
   color: #fff;
 }
 .btn-primary:hover {
-  background: var(--accent-deep);
+  background: var(--bg-espresso-deep);
 }
 
 .btn-ghost {
   background: transparent;
   color: var(--ink);
+  border-width: 1.5px;
   border-color: var(--ink-line-strong);
 }
 .btn-ghost:hover {
-  background: var(--ink);
-  color: #fff;
-  border-color: var(--ink);
+  background: var(--bg-warm);
+  color: var(--ink);
+  border-color: var(--ink-line-strong);
+}
+
+/* The outlined green pill — "Tüm menü", "Hesabım", the secondary CTA next to
+   a filled green one. */
+.btn-outline {
+  background: transparent;
+  color: var(--bg-espresso);
+  border-color: var(--bg-espresso);
+}
+.btn-outline:hover {
+  background: var(--bg-warm);
 }
 
 .btn-light {
   background: #fff;
-  color: var(--ink);
+  color: var(--bg-espresso);
 }
 .btn-light:hover {
   background: var(--bg-warm);
 }
 
+/* Gold is the reward voice — loyalty CTAs, "siparişi onayla", the coupon.
+   Dark ink on a light gold fill (9.37:1), not white on a dark gold. */
 .btn-gold {
-  background: var(--gold);
-  color: #fff;
+  background: var(--gold-soft);
+  color: var(--gold-ink);
 }
 .btn-gold:hover {
-  background: var(--gold-deep);
+  background: #f3e4bf;
 }
 .btn:active {
   transform: translateY(0) scale(0.985);
@@ -408,12 +447,12 @@ summary:focus-visible,
 }
 
 .btn-sm {
-  padding: 10px 16px;
-  font-size: 12px;
+  padding: 13px 20px;
+  font-size: 14px;
 }
 .btn-lg {
-  padding: 18px 28px;
-  font-size: 14px;
+  padding: 17px 28px;
+  font-size: 15.5px;
 }
 
 .btn-link {
@@ -437,45 +476,94 @@ summary:focus-visible,
   border-bottom-color: var(--accent-deep);
 }
 
-.nav {
-  position: fixed;
+/* ─────────────────────────────────────────────────────────────
+   Site header — two tiers, sticky and opaque
+
+   The previous header was `position: fixed` and transparent until scrolled,
+   which is why every page opened with 140–220px of blank top padding to clear
+   it. The Köşk redesign makes it a normal sticky bar: a dark green utility
+   strip over a white bar. Pages start where they start, so those top paddings
+   came down with it.
+   ───────────────────────────────────────────────────────────── */
+
+.site-header {
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 60;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  padding: 18px var(--gutter);
-  background: transparent;
-  transition:
-    top 0.35s var(--ease-out),
-    background 0.4s,
-    backdrop-filter 0.4s,
-    padding 0.3s,
-    color 0.3s,
-    border-color 0.3s;
-  border-bottom: 1px solid transparent;
+  background: #fff;
 }
-.nav.scrolled {
-  top: 0;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: saturate(1.15) blur(22px);
-  -webkit-backdrop-filter: saturate(1.15) blur(22px);
-  border-bottom-color: var(--ink-line);
-  padding: 10px var(--gutter);
-}
-.nav.on-dark {
+
+.topbar {
+  background: var(--bg-espresso);
   color: #fff;
 }
-.nav.on-dark.scrolled {
-  background: rgba(20, 16, 11, 0.82);
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+.topbar-inner {
+  max-width: var(--content);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
-@media (max-width: 760px) {
-  .nav {
-    top: 0;
+.topbar-sep {
+  width: 1px;
+  height: 11px;
+  background: rgba(255, 255, 255, 0.24);
+  flex-shrink: 0;
+}
+.topbar-soft {
+  color: var(--green-mist);
+}
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.topbar-right a {
+  color: var(--green-mist);
+  transition: color 0.2s;
+}
+.topbar-right a:hover {
+  color: #fff;
+}
+.topbar-app {
+  color: var(--gold-soft) !important;
+}
+/* Below the fold of a phone the strip earns its height twice over, so the
+   secondary items step aside and only the hours stay. */
+@media (max-width: 620px) {
+  .topbar-inner {
+    gap: 10px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
   }
+  .topbar-sep,
+  .topbar-soft {
+    display: none;
+  }
+}
+
+.nav-bar {
+  border-bottom: 1px solid var(--ink-line);
+  background: #fff;
+}
+
+.nav {
+  max-width: var(--content);
+  margin: 0 auto;
+  padding: 12px var(--gutter);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 3vw, 36px);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -499,7 +587,7 @@ summary:focus-visible,
     z-index: 58;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    background: rgba(251, 244, 230, 0.9);
+    background: rgba(255, 255, 255, 0.92);
     backdrop-filter: saturate(1.2) blur(20px);
     -webkit-backdrop-filter: saturate(1.2) blur(20px);
     border-top: 1px solid var(--ink-line);
@@ -533,10 +621,11 @@ summary:focus-visible,
     stroke-linejoin: round;
   }
   .bottom-nav-item.active {
-    color: var(--brand);
+    color: var(--bg-espresso);
+    font-weight: 700;
   }
   .bottom-nav-item.active svg {
-    stroke: var(--gold-deep);
+    stroke: var(--bg-espresso);
   }
   .bottom-nav-cart {
     position: relative;
@@ -550,9 +639,10 @@ summary:focus-visible,
     height: 15px;
     padding: 0 3px;
     border-radius: 999px;
-    background: var(--gold);
-    color: #fff;
+    background: var(--gold-soft);
+    color: var(--gold-ink);
     font-size: 9px;
+    font-weight: 700;
     line-height: 1;
     display: grid;
     place-items: center;
@@ -570,15 +660,17 @@ summary:focus-visible,
   gap: 24px;
 }
 .nav-center {
+  flex: 1;
   display: flex;
-  gap: 2px;
-  justify-self: center;
+  justify-content: center;
+  gap: clamp(6px, 1.4vw, 20px);
+  flex-wrap: wrap;
 }
 .nav-right {
   display: flex;
   gap: 10px;
-  justify-self: end;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .nav-brand {
@@ -587,6 +679,48 @@ summary:focus-visible,
   gap: 12px;
   position: relative;
   line-height: 1;
+  flex-shrink: 0;
+}
+/* The lockup: the mark reversed out of a filled green disc, with the wordmark
+   and the est. line set beside it. */
+.nav-brand-disc {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-espresso);
+  flex-shrink: 0;
+  transition: background 0.25s;
+}
+.nav-brand:hover .nav-brand-disc {
+  background: var(--bg-espresso-deep);
+}
+.nav-brand-words {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+}
+.nav-brand-name {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--bg-espresso);
+  line-height: 1;
+}
+.nav-brand-est {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+/* The wordmark is the first thing to go when the bar runs out of room — the
+   disc alone still identifies the brand. */
+@media (max-width: 900px) {
+  .nav-brand-words {
+    display: none;
+  }
 }
 /* The brand monogram rendered as a CSS mask: one brown asset, recolored to any
    surface via currentColor (brown on cream, cream/white on dark). */
@@ -605,65 +739,42 @@ summary:focus-visible,
 }
 
 .nav-brand-mark {
-  height: 40px;
-  color: var(--brand);
-  flex-shrink: 0;
-  transition: color 0.3s;
-}
-.nav.on-dark .nav-brand-mark {
+  height: 21px;
+  width: 26px;
   color: #fff;
+  flex-shrink: 0;
 }
-.nav-brand:hover .nav-brand-mark {
-  color: var(--gold);
-}
+
+/* Nav links: no pill, no opacity fade. An underline in terracotta marks the
+   open section — the one place the accent appears in the chrome. */
 .nav-link {
-  padding: 9px 16px;
-  border-radius: 999px;
-  font-size: 12.5px;
+  padding: 10px 4px;
+  font-size: 15px;
   font-weight: 500;
-  letter-spacing: 0.015em;
-  color: inherit;
-  opacity: 0.72;
+  letter-spacing: -0.005em;
+  /* One step darker than --ink-soft, per the prototype: the inactive links
+     need to sit clearly below the active one without going grey. */
+  color: #4b463d;
   position: relative;
+  border-bottom: 2px solid transparent;
   transition:
-    opacity 0.25s,
-    background 0.25s,
     color 0.25s,
-    transform 0.25s;
+    border-color 0.25s;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 .nav-link:hover {
-  opacity: 1;
+  color: var(--green);
 }
 .nav-link.is-open {
-  opacity: 1;
-  color: var(--gold-deep);
-}
-.nav.on-dark .nav-link.is-open {
-  color: var(--gold-soft);
+  color: var(--green);
 }
 .nav-link.active {
-  opacity: 1;
-  color: var(--ink);
-}
-.nav-link.active::after {
-  content: "";
-  position: absolute;
-  bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 18px;
-  height: 1.5px;
-  background: var(--gold);
-  border-radius: 1px;
-}
-.nav.on-dark .nav-link.active {
-  color: #fff;
-}
-.nav.on-dark .nav-link.active::after {
-  background: var(--gold-soft);
+  color: var(--bg-espresso);
+  font-weight: 700;
+  border-bottom-color: var(--accent);
 }
 .nav-link-caret {
   opacity: 0.55;
@@ -747,20 +858,12 @@ summary:focus-visible,
   padding: 14px;
   color: var(--ink);
 }
-.nav.on-dark .nav-dropdown-inner {
-  background: rgba(26, 21, 16, 0.96);
-  border-color: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
 .nav-dropdown-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 4px 10px 14px;
   border-bottom: 1px solid var(--ink-line);
-}
-.nav.on-dark .nav-dropdown-head {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 .nav-dropdown-all {
   display: inline-flex;
@@ -774,9 +877,6 @@ summary:focus-visible,
     gap 0.25s,
     color 0.25s,
     border-color 0.25s;
-}
-.nav.on-dark .nav-dropdown-all {
-  color: var(--gold-soft);
 }
 .nav-dropdown-all:hover {
   gap: 10px;
@@ -801,9 +901,6 @@ summary:focus-visible,
 .nav-dropdown-item:hover {
   background: var(--bg-warm);
 }
-.nav.on-dark .nav-dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
 .nav-dropdown-item:hover .nav-dropdown-arrow {
   opacity: 1;
   transform: translateX(4px);
@@ -818,9 +915,6 @@ summary:focus-visible,
   overflow: hidden;
   flex-shrink: 0;
   box-shadow: inset 0 0 0 1px rgba(20, 16, 11, 0.06);
-}
-.nav.on-dark .nav-dropdown-swatch {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 .nav-dropdown-swatch-dot {
   display: none;
@@ -876,9 +970,6 @@ summary:focus-visible,
     opacity 0.25s,
     transform 0.25s var(--ease-out);
 }
-.nav.on-dark .nav-dropdown-arrow {
-  color: var(--gold-soft);
-}
 .nav-dropdown-foot {
   display: flex;
   justify-content: space-between;
@@ -886,9 +977,6 @@ summary:focus-visible,
   padding: 12px 14px 6px;
   border-top: 1px solid var(--ink-line);
   margin-top: 4px;
-}
-.nav.on-dark .nav-dropdown-foot {
-  border-top-color: rgba(255, 255, 255, 0.08);
 }
 .nav-dropdown-foot-mark {
   font-family: var(--serif);
@@ -904,44 +992,78 @@ summary:focus-visible,
   opacity: 0.55;
 }
 
+/* Outlined circle — the search control in the header, and the social links in
+   the footer (where it is reversed onto the dark ground). */
 .nav-icon-btn {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: rgba(20, 16, 11, 0.05);
-  transition: background 0.25s;
+  border: 1px solid var(--ink-line-strong);
+  color: #4b463d;
+  background: transparent;
+  transition:
+    border-color 0.25s,
+    color 0.25s;
   position: relative;
+  flex-shrink: 0;
 }
 .nav-icon-btn:hover {
-  background: rgba(20, 16, 11, 0.1);
-}
-.nav.on-dark .nav-icon-btn {
-  background: rgba(255, 255, 255, 0.08);
-}
-.nav.on-dark .nav-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
-}
-.nav-icon-btn .badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  background: var(--gold);
-  color: #fff;
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 600;
-  display: grid;
-  place-items: center;
-  padding: 0 4px;
-  border: 1.5px solid #fff;
-}
-.nav.on-dark .nav-icon-btn .badge {
   border-color: var(--bg-espresso);
+  color: var(--bg-espresso);
+}
+.footer .nav-icon-btn {
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #fff;
+}
+.footer .nav-icon-btn:hover {
+  border-color: #fff;
+  color: #fff;
+}
+
+/* The two header pills: outlined green for the account, filled green with a
+   count for the cart. */
+.nav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--bg-espresso);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--bg-espresso);
+  white-space: nowrap;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.nav-pill:hover {
+  background: var(--bg-warm);
+  color: var(--bg-espresso);
+}
+.nav-pill-solid {
+  padding: 13px 20px;
+  background: var(--bg-espresso);
+  color: #fff;
+}
+.nav-pill-solid:hover {
+  background: var(--bg-espresso-deep);
+  color: #fff;
+}
+.nav-pill-count {
+  font-size: 12px;
+  min-width: 22px;
+  text-align: center;
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+.nav-pill-count.has-items {
+  background: var(--gold-soft);
+  color: var(--gold-ink);
 }
 
 .nav-burger {
@@ -974,24 +1096,29 @@ summary:focus-visible,
 }
 
 @media (max-width: 1080px) {
-  .nav {
-    grid-template-columns: 1fr auto;
-  }
   .nav-center {
     display: none;
   }
-  .nav-right .nav-link-cta {
-    display: none;
+  .nav-right {
+    margin-left: auto;
   }
 }
 @media (max-width: 820px) {
-  .nav-right .nav-link-account {
+  .nav-right .nav-pill-account {
     display: none;
   }
 }
 @media (max-width: 720px) {
-  .nav-right .nav-icon-btn:not(.cart) {
+  .nav {
+    min-height: 66px;
+    gap: 10px;
+  }
+  .nav-right .nav-icon-btn {
     display: none;
+  }
+  .nav-brand-disc {
+    width: 42px;
+    height: 42px;
   }
   .nav-burger {
     display: flex;
@@ -1007,7 +1134,8 @@ summary:focus-visible,
   color: #fff;
   display: flex;
   flex-direction: column;
-  padding: 96px var(--gutter) 40px;
+  /* Clears the sticky header (34px utility strip + the 66px bar on phones). */
+  padding: 116px var(--gutter) 40px;
   transform: translateY(-100%);
   visibility: hidden;
   transition:
@@ -1280,13 +1408,478 @@ summary:focus-visible,
   }
 }
 /* ─────────────────────────────────────────────────────────────
-   Footer — premium italian café
+   Home — Köşk redesign
+
+   Hero slider, promo tiles, product rail, signature block, loyalty block and
+   the visit block. Replaces the pour hero + dark hero + locale/matcha/press
+   stack that used to open this page.
+   ───────────────────────────────────────────────────────────── */
+
+.home-hero {
+  padding: clamp(16px, 2.5vw, 28px) 0 0;
+}
+.home-hero-frame {
+  position: relative;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  background: var(--bg-warm);
+}
+.home-hero-track {
+  display: flex;
+  width: 100%;
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.home-hero-slide {
+  flex: 0 0 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  align-items: stretch;
+}
+.home-hero-copy {
+  padding: clamp(28px, 4vw, 64px);
+  display: grid;
+  align-content: center;
+  gap: 18px;
+}
+.home-hero-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.home-hero-title {
+  margin: 0;
+  font-size: clamp(32px, 4.2vw, 58px);
+  font-weight: 800;
+  line-height: 1.03;
+  letter-spacing: -0.035em;
+}
+.home-hero-text {
+  margin: 0;
+  font-size: 16.5px;
+  line-height: 1.6;
+  max-width: 44ch;
+}
+.home-hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.home-hero-photo {
+  min-height: clamp(280px, 38vw, 460px);
+  position: relative;
+}
+.home-hero-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.home-hero-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--bg-espresso);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  line-height: 1;
+  box-shadow: 0 6px 18px rgba(20, 61, 43, 0.16);
+  transition: background 0.2s;
+}
+.home-hero-arrow:hover {
+  background: #fff;
+}
+.home-hero-arrow.prev {
+  left: 16px;
+}
+.home-hero-arrow.next {
+  right: 16px;
+}
+.home-hero-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.home-hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: rgba(32, 28, 23, 0.28);
+  transition:
+    width 0.3s,
+    background 0.3s;
+}
+.home-hero-dot.on {
+  width: 28px;
+  background: var(--bg-espresso);
+}
+@media (max-width: 620px) {
+  /* The arrows land on top of the copy once the slide stacks; the dots are
+     still there and the track still swipes. */
+  .home-hero-arrow {
+    display: none;
+  }
+}
+
+/* Promo tiles ───────────────────────────────────────────────── */
+
+.home-tiles {
+  padding: clamp(28px, 4vw, 52px) 0 0;
+}
+.home-tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.home-tile {
+  text-align: left;
+  display: grid;
+  gap: 18px;
+  align-content: space-between;
+  min-height: 170px;
+  padding: 22px;
+  border-radius: var(--r-lg);
+  border: 1px solid transparent;
+  transition: transform 0.25s var(--ease-out);
+}
+.home-tile:hover {
+  transform: translateY(-3px);
+}
+.home-tile-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+.home-tile-body {
+  display: grid;
+  gap: 6px;
+}
+.home-tile-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+.home-tile-sub {
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.82;
+}
+
+/* Product rail ──────────────────────────────────────────────── */
+
+.rail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.rail-head h2 {
+  margin: 14px 0 0;
+}
+.rail-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.rail-arrow {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--ink-line-strong);
+  color: var(--bg-espresso);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  line-height: 1;
+  transition: border-color 0.2s;
+}
+.rail-arrow:hover {
+  border-color: var(--bg-espresso);
+}
+.rail {
+  margin-top: 24px;
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding-bottom: 6px;
+}
+.rail::-webkit-scrollbar {
+  display: none;
+}
+.rail-card {
+  flex: 0 0 clamp(240px, 26vw, 290px);
+  scroll-snap-align: start;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  transition: border-color 0.2s;
+}
+.rail-card:hover {
+  border-color: var(--bg-espresso);
+}
+.rail-card-media {
+  height: 210px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+.rail-card-media img {
+  max-height: 172px;
+  max-width: 72%;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 22px rgba(20, 61, 43, 0.16));
+}
+.rail-card-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  padding: 5px 9px;
+  border-radius: var(--r-pill);
+  background: var(--bg-espresso);
+  color: #fff;
+}
+/* White on --accent is 4.10:1 — short of AA at this size, so the "new" flag
+   takes the darker step of the same hue. */
+.rail-card-badge.new {
+  background: var(--accent-deep);
+}
+.rail-card-body {
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+  align-content: space-between;
+}
+.rail-card-cat {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.rail-card-name {
+  margin: 6px 0 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.rail-card-desc {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.rail-card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.rail-card-price {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--bg-espresso);
+}
+
+/* Signature block ───────────────────────────────────────────── */
+
+.split-2col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: clamp(24px, 4vw, 60px);
+  align-items: center;
+}
+.signature-photos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: end;
+}
+.signature-photo {
+  aspect-ratio: 4/5;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.signature-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* The stagger that keeps the pair from reading as one flat band. */
+.signature-photo.offset {
+  margin-bottom: 40px;
+}
+.stat-row {
+  margin-top: 26px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 20px;
+}
+.stat-n {
+  font-size: clamp(28px, 3.2vw, 42px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--bg-espresso);
+  line-height: 1;
+}
+.stat-l {
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.cta-row {
+  margin-top: 26px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Loyalty block ─────────────────────────────────────────────── */
+
+.loyalty-block {
+  border-radius: var(--r-xl);
+  background: var(--bg-espresso);
+  color: #fff;
+  padding: clamp(26px, 4vw, 52px);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: clamp(24px, 3vw, 48px);
+  align-items: center;
+}
+.loyalty-block p {
+  margin: 16px 0 0;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 46ch;
+}
+.loyalty-card {
+  padding: 26px;
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.loyalty-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.loyalty-tier {
+  padding: 5px 11px;
+  border-radius: var(--r-pill);
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+.stamp-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 9px;
+}
+.stamp {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  font-weight: 700;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.6);
+}
+.stamp.filled {
+  background: #fff;
+  border-color: #fff;
+  color: var(--bg-espresso);
+}
+/* The sixth is the reward, so it is marked even while empty. */
+.stamp.reward {
+  border-color: var(--gold-soft);
+  color: var(--gold-soft);
+}
+.loyalty-headline {
+  margin-top: 18px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Visit block ───────────────────────────────────────────────── */
+
+.visit-photo {
+  aspect-ratio: 16/11;
+  border-radius: 26px;
+  overflow: hidden;
+}
+.visit-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.visit-facts {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 20px;
+}
+.visit-fact-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.visit-fact-body {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Footer — dark green, five columns
+
+   The prototype's footer is a plain link grid on the house green: brand block
+   spanning two columns, then Menü / Mağaza / Hesap / Yasal, then a hairline
+   and a three-part meta strip. The trust strip that used to sit here
+   (SSL / kargo / kavurma / cayma badges) is gone with it — the same promises
+   are made in the pages that can act on them. The newsletter block stays: it
+   is a live feature with 6563 consent records behind it, and the prototype
+   simply did not model it.
    ───────────────────────────────────────────────────────────── */
 
 .footer {
   background: var(--bg-espresso);
   color: #fff;
-  padding: clamp(64px, 8vw, 110px) var(--gutter) 0;
+  padding: clamp(44px, 6vw, 80px) var(--gutter) 0;
 }
 
 .footer-newsletter {
@@ -1294,21 +1887,20 @@ summary:focus-visible,
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
-  gap: clamp(28px, 4vw, 60px);
+  gap: clamp(24px, 3.5vw, 52px);
   align-items: center;
-  padding-bottom: clamp(48px, 6vw, 72px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: clamp(36px, 5vw, 56px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
 }
 .footer-newsletter h3 {
-  font-family: var(--serif);
-  font-weight: 700;
-  font-size: clamp(32px, 4.6vw, 56px);
-  line-height: 1.04;
-  letter-spacing: -0.022em;
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: clamp(26px, 3.4vw, 42px);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
   margin: 0;
 }
 .footer-newsletter h3 .script {
-  font-family: var(--script);
   color: var(--gold-soft);
   font-size: 1em;
 }
@@ -1316,16 +1908,16 @@ summary:focus-visible,
   display: flex;
   gap: 10px;
   padding: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--r-pill);
   transition:
     border-color 0.2s,
     background 0.2s;
 }
 .newsletter-form:focus-within {
   border-color: var(--gold-soft);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
 }
 .newsletter-form input {
   flex: 1;
@@ -1338,64 +1930,26 @@ summary:focus-visible,
   min-width: 0;
 }
 .newsletter-form input::placeholder {
-  color: rgba(255, 255, 255, 0.42);
-}
-
-/* Trust strip */
-.footer-trust {
-  max-width: var(--content);
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: clamp(16px, 2.5vw, 32px);
-  padding: clamp(36px, 4.5vw, 56px) 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-.footer-trust-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.footer-trust-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--gold-soft);
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-.footer-trust-title {
-  font-family: var(--serif-modern);
-  font-weight: 500;
-  font-size: 15px;
-  letter-spacing: -0.005em;
-  color: #fff;
-}
-.footer-trust-hint {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
-  margin-top: 3px;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .footer-grid {
   max-width: var(--content);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.6fr 1fr 1fr 1fr 1.1fr 1.1fr;
-  gap: clamp(28px, 3vw, 48px);
-  padding: clamp(48px, 6vw, 80px) 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 30px;
+  padding: clamp(36px, 5vw, 56px) 0;
+}
+.footer-brand-col {
+  grid-column: span 2;
+  min-width: 230px;
 }
 .footer-brand-col p {
-  max-width: 320px;
-  opacity: 0.7;
+  max-width: 36ch;
+  color: rgba(255, 255, 255, 0.75);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.65;
   margin: 14px 0 0;
 }
 .footer-mark {
@@ -1403,161 +1957,125 @@ summary:focus-visible,
   color: #fff;
 }
 .footer-mark .brand-mark {
-  height: clamp(52px, 6vw, 68px);
+  width: 52px;
+  height: 42px;
 }
 .footer-mark-script {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 10px;
-  letter-spacing: 0.28em;
+  font-weight: 600;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--gold-soft);
-  margin-top: 8px;
+  color: var(--green-mint);
+  margin-top: 12px;
 }
+/* Text pills rather than icon discs — the prototype names the networks. */
 .footer-social {
   display: flex;
   gap: 8px;
-  margin-top: 26px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.footer-social a {
+  padding: 8px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  font-size: 12px;
+  font-weight: 600;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+.footer-social a:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
 }
 .footer h5 {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.28em;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  margin: 0 0 20px;
-  font-weight: 500;
-  color: var(--gold-soft);
-  opacity: 0.85;
+  margin: 0 0 12px;
+  color: var(--green-mint);
 }
 .footer ul {
   list-style: none;
   padding: 0;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 11px;
+  display: grid;
+  gap: 9px;
   font-size: 14px;
 }
-.footer ul a {
-  opacity: 0.7;
-  transition:
-    opacity 0.2s,
-    color 0.2s;
+.footer ul a,
+.footer-linkish {
+  color: rgba(255, 255, 255, 0.82);
+  transition: color 0.2s;
+  text-align: left;
 }
-.footer ul a:hover {
-  opacity: 1;
-  color: var(--gold-soft);
+.footer ul a:hover,
+.footer-linkish:hover {
+  color: #fff;
 }
-.footer-contact-col .footer-contact-mono {
-  font-family: var(--mono);
-  font-size: 12.5px;
-  margin-top: 6px;
+.footer-contact-col li {
+  color: rgba(255, 255, 255, 0.82);
 }
 .footer-contact-col .footer-contact-hours {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
   padding-top: 12px;
-  margin-top: 14px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.1);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  color: var(--gold-soft);
+  margin-top: 5px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.16);
+  color: var(--green-mint);
 }
 
 .footer-meta {
   max-width: var(--content);
   margin: 0 auto;
-  padding: 24px 0 36px;
+  padding-top: 18px;
+  padding-bottom: 34px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 24px;
+  gap: 14px;
   flex-wrap: wrap;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
 }
-.footer-meta-left,
-.footer-meta-right {
+.footer-meta-tagline {
+  color: #fff;
+  font-weight: 700;
+}
+.footer-meta-pay {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   flex-wrap: wrap;
 }
-.footer-meta-dot {
-  display: none;
-}
-.footer-meta-script {
-  font-family: var(--serif);
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: -0.005em;
-  text-transform: none;
-  color: var(--gold-soft);
-  opacity: 0.78;
-}
-.footer-pay {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.22em;
-  padding: 6px 9px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.04);
-}
 
-@media (max-width: 1040px) {
-  .footer-grid {
-    grid-template-columns: 1.2fr 1fr 1fr 1fr 1.2fr;
-  }
-  .footer-contact-col {
-    grid-column: 1 / -1;
-    padding-top: 24px;
-    border-top: 1px dashed rgba(255, 255, 255, 0.08);
-  }
-}
 @media (max-width: 900px) {
   .footer-newsletter {
     grid-template-columns: 1fr;
-    gap: 26px;
+    gap: 22px;
   }
   .footer-grid {
     grid-template-columns: 1fr 1fr;
-    gap: 32px 24px;
-    padding: 44px 0;
+    gap: 28px 24px;
   }
   .footer-brand-col {
     grid-column: 1 / -1;
-  }
-  .footer-trust {
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
   }
   .footer-meta {
     justify-content: center;
     text-align: center;
   }
-  .footer-meta-left,
-  .footer-meta-right {
-    justify-content: center;
-  }
 }
 @media (max-width: 480px) {
-  .footer {
-    padding-top: clamp(44px, 8vw, 64px);
-  }
   .footer-grid {
     grid-template-columns: 1fr;
-    gap: 28px;
-  }
-  .footer-trust {
-    grid-template-columns: 1fr;
-  }
-  .footer-mark .brand-mark {
-    height: 50px;
   }
 }
 
@@ -6325,174 +6843,83 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Pour hero — the interactive 3D cup that opens the home page
-   ───────────────────────────────────────────────────────────── */
-.pour-hero {
-  position: relative;
-  height: min(100svh, 900px);
-  /* `svh`, not `vh`: on a phone the toolbars collapse as you scroll, and `vh`
-     would size the hero to the taller state and leave it clipped. */
-  /* The paper wash the 3D scene sits against. It lives on the section rather
-     than on the widget so the gradient spans the whole section while the
-     widget's own box is inset past the site chrome — one gradient, no seam
-     where the two boxes disagree.
+   Pour module — the interactive 3D cup, low on the home page
 
-     Built from the surface tokens, not a hardcoded cream: this is the first
-     thing on the page, and the palette swap left it the one warm ground
-     under a green-and-burgundy chrome. */
+   Was a full `100svh` hero above everything else; the Köşk redesign makes it
+   a bordered card sitting between the loyalty block and the visit block. The
+   whole "clear the fixed tab bar / leave a sliver of the next section showing"
+   apparatus that the hero needed went with it — a 300px card in the middle of
+   a page has nothing to trap anyone in.
+   ───────────────────────────────────────────────────────────── */
+.pour-module {
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.pour-module-copy {
+  padding: clamp(24px, 3vw, 44px);
+  display: grid;
+  align-content: center;
+  gap: 14px;
+}
+.pour-module-title {
+  margin: 0;
+  font-size: clamp(24px, 2.8vw, 36px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+.pour-module-copy p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: 42ch;
+}
+.pour-module-cta {
+  justify-self: start;
+}
+.pour-module-stage-wrap {
+  position: relative;
+  min-height: 300px;
   background: radial-gradient(
-    120% 90% at 50% 30%,
-    var(--bg-cream) 0%,
-    var(--bg-warm) 55%,
-    var(--bg-stone) 100%
+    120% 90% at 50% 25%,
+    #fbf8f2 0%,
+    #f3efe6 60%,
+    #e9e3d6 100%
   );
 }
-/* The widget anchors its title and its DÖK button to its own box edges, so
-   the box is inset past the fixed chrome instead of the controls being
-   nudged: the nav covers the top, and on mobile the bottom bar covers the
-   base — which otherwise lands straight on the pour button. */
-.pour-hero-stage {
+.pour-module-stage {
   position: absolute;
-  inset: 64px 0 0 0;
+  inset: 8px;
 }
-.pour-hero-stage affogato-pour {
+.pour-module-stage affogato-pour {
   display: block;
   width: 100%;
   height: 100%;
-  /* Let the section's gradient show through the WebGL canvas. */
+  /* Let the card's wash show through the WebGL canvas. */
   background: transparent;
 }
 /* The widget owns its own canvas and sets `touch-action` on it from inside the
    bundle. Three.js OrbitControls, which it is built on, sets `none` on
-   connect — and `none` on a full-screen hero means a phone cannot scroll past
-   it at all: the first thing a visitor sees becomes a trap. Pinned here so a
-   rebuild of the vendored bundle cannot take vertical panning away again.
-   `pan-y` still leaves the widget its horizontal drag and its taps. */
-.pour-hero-stage affogato-pour,
-.pour-hero-stage affogato-pour canvas {
+   connect — and `none` over a card in mid-page means a thumb dragging across
+   it cannot scroll the page. Pinned here so a rebuild of the vendored bundle
+   cannot take vertical panning away again; `pan-y` still leaves the widget its
+   horizontal drag and its taps. */
+.pour-module-stage affogato-pour,
+.pour-module-stage affogato-pour canvas {
   touch-action: pan-y !important;
 }
-/* Sits where the widget's own wordmark will land, so when the bundle arrives
-   the word stays put and only its typography resolves — rather than leaping
-   from the middle of the section up to the top. */
-.pour-hero-fallback {
+.pour-module-loading {
   position: absolute;
-  top: 94px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: clamp(42px, 5.6vw, 66px);
-  line-height: 1;
-  color: var(--ink);
-  opacity: 0.5;
-}
-
-/* Scroll cue. Bottom right, which is clear of the widget's own controls on
-   every size — the pour button owns the centre and the orbit hint the left. */
-.pour-hero-scroll {
-  position: absolute;
-  right: 20px;
-  bottom: 24px;
-  z-index: 6;
+  inset: 0;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 1px solid rgba(46, 26, 13, 0.18);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.55);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-  color: var(--ink);
-  cursor: pointer;
-  opacity: 0.85;
-  transition:
-    opacity 0.4s var(--ease-out, ease),
-    transform 0.4s var(--ease-out, ease),
-    background 0.2s;
-}
-.pour-hero-scroll svg {
-  width: 20px;
-  height: 20px;
-  animation: pour-hero-nudge 2.4s ease-in-out infinite;
-}
-.pour-hero-scroll:hover {
-  background: rgba(255, 255, 255, 0.85);
-  opacity: 1;
-}
-.pour-hero-scroll:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-}
-/* Retired once the visitor has started scrolling — it has said its piece. */
-.pour-hero-scroll.is-gone {
-  opacity: 0;
-  transform: translateY(8px);
-  pointer-events: none;
-}
-
-/* On a phone the hero filled the screen exactly, so nothing below it was ever
-   visible: no edge of the next section, no hint that the page continued — and
-   the only affordance was a 44px circle in a corner. Leaving a sliver of the
-   next section showing is what tells a thumb there is somewhere to go. */
-@media (pointer: coarse) {
-  /* The hero used to be a full `100svh`, but the tab bar is fixed over the
-     bottom 56px of it — so the scroll cue sat behind the bar, unreachable, and
-     the section looked like the whole page with no way onward. Subtract the
-     bar, its safe-area inset, and a deliberate 40px so the next section shows:
-     a visible edge is what tells a thumb there is more below. */
-  .pour-hero {
-    height: calc(
-      min(100svh, 900px) - var(--bottom-nav-h) - env(safe-area-inset-bottom) -
-        40px
-    );
-  }
-  .pour-hero-stage {
-    inset: 56px 0 0 0;
-  }
-  /* Left in its corner rather than centred: the consent banner is a
-     full-width sheet at the bottom of a phone screen, and a centred cue
-     lands underneath its buttons. The strip of the next section showing
-     below the hero is the affordance that matters here anyway. */
-  .pour-hero-scroll {
-    width: 40px;
-    height: 40px;
-    bottom: 16px;
-  }
-}
-
-@keyframes pour-hero-nudge {
-  0%,
-  100% {
-    transform: translateY(-2px);
-  }
-  50% {
-    transform: translateY(2px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pour-hero-scroll svg {
-    animation: none;
-  }
-  .pour-hero-scroll {
-    transition: opacity 0.4s linear;
-  }
-}
-@media (max-width: 760px) {
-  .pour-hero-stage {
-    inset: 56px 0 calc(64px + env(safe-area-inset-bottom)) 0;
-  }
-  .pour-hero-fallback {
-    top: 86px;
-    font-size: 34px;
-  }
-  .pour-hero-scroll {
-    bottom: calc(76px + env(safe-area-inset-bottom));
-  }
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-mute);
 }
 
 /* ============================================================

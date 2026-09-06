@@ -348,12 +348,11 @@ function SlidePreview({
   textTheme: "light" | "dark";
 }) {
   const isLight = textTheme === "light";
-  // The preview reads globals.css tokens rather than its own hexes: it used to
-  // paint the retired köşk cream/terracotta gradients, so an operator picked a
-  // text theme against a ground the live hero has not used since the
-  // 2 Eyl 2026 palette swap.
+  // The preview reads globals.css tokens rather than its own hexes, so an
+  // operator always picks a text theme against the ground the live hero
+  // actually uses — it used to paint a retired palette of its own.
   const previewBg = imageUrl
-    ? `linear-gradient(${isLight ? "rgba(18,41,31,0.35), rgba(18,41,31,0.55)" : "rgba(255,255,255,0.1), rgba(255,255,255,0.3)"}), url(${imageUrl})`
+    ? `linear-gradient(${isLight ? "rgba(20,61,43,0.35), rgba(20,61,43,0.55)" : "rgba(255,255,255,0.1), rgba(255,255,255,0.3)"}), url(${imageUrl})`
     : isLight
       ? "linear-gradient(135deg, var(--brand) 0%, var(--bg-espresso) 100%)"
       : "linear-gradient(135deg, var(--bg-warm) 0%, var(--bg-stone) 100%)";

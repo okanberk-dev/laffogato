@@ -10,17 +10,26 @@ import {
   Fragment,
 } from "react";
 
+import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
 import { parsePriceLabel } from "@/lib/utils/format";
 import { useDialog } from "./use-dialog";
 
 import { ShopHeroSlider, type ShopHeroSlide } from "./shop-hero-slider";
-import { PourHero } from "./pour-hero";
-import { MENU, PRODUCTS, PRESS as SEED_PRESS, STORY, LOCATION } from "./data";
+import { HomeHeroSlider } from "./home-hero-slider";
+import { PourModule } from "./pour-module";
+import {
+  MENU,
+  PRODUCTS,
+  PRESS as SEED_PRESS,
+  STORY,
+  LOCATION,
+  type HomeSlideAction,
+} from "./data";
 import type { MenuCategory } from "./data";
-import { ProductCard, SectionHead, Stat, CartItem } from "./ui";
+import { ProductCard, SectionHead, Stat, CartItem, toCartItem } from "./ui";
 import type { Product } from "./data";
-import type { Route } from "./chrome";
+import { ROUTE_PATHS, type Route } from "./chrome";
 import {
   BarRenderScene,
   BeanIllo,
@@ -30,10 +39,19 @@ import {
   EspressoCup,
   FounderPortrait,
   GelatoScoop,
+  HUES,
   MatchaGlass,
   MenuPlate,
   PhotoSurface,
 } from "./visuals";
+
+/** The four figures under the signature block. */
+const SIGNATURE_STATS = [
+  { n: "27s", l: "Masada dökülür" },
+  { n: "93°C", l: "Servis sıcaklığı" },
+  { n: "36g", l: "Sirena espresso" },
+  { n: "∅0", l: "Atık · zero waste" },
+];
 
 /** Major-unit price of a product, exact when the minor-unit figure is known. */
 function priceOf(p: Product): number {
@@ -79,332 +97,331 @@ export function PageHome({
   addToCart,
   products,
   menu,
-  press,
   content,
   visit,
-  heroImageUrl,
 }: PageProps) {
-  const PRESS = press ?? SEED_PRESS;
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
   // `[]` means "the shop really has nothing to show" — during a database
   // outage in particular — and must stay empty. Only `undefined` (no data
   // passed at all) falls back to the bundled design catalogue.
   const shopProducts = products ?? PRODUCTS;
   const liveMenu = menu ?? MENU;
+  const railRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * The bar rail — what is on the counter today, drawn from the live cafe
+   * menu rather than the shop catalogue.
+   *
+   * The prototype puts a "Sepete ekle" button on each of these. The web cart
+   * cannot honour that: it carries shop products, whose price and stock the
+   * checkout re-reads from the products table before charging. A cafe menu
+   * item has no product row to validate against, so an "add" here would be a
+   * button that cannot become an order. Cafe ordering from the web is a real
+   * requirement — it exists in the mobile API already
+   * (`/api/mobile/v1/orders`) — but wiring the web checkout to it is a
+   * commercial-path change, not a restyle. Until then the card opens the
+   * item's menu category, which is a promise the site can keep.
+   */
+  const railItems = useMemo(() => {
+    const bySlug = new Map(MENU_CATEGORY_ROUTES.map((r) => [r.menuKey, r]));
+    const out: Array<{
+      key: string;
+      name: string;
+      desc: string;
+      price: string;
+      hue: string;
+      image?: string;
+      badge?: string;
+      catLabel: string;
+      href: string;
+    }> = [];
+    for (const [menuKey, cat] of Object.entries(liveMenu)) {
+      const route = bySlug.get(menuKey);
+      if (!route) continue;
+      for (const item of cat.items) {
+        out.push({
+          key: `${menuKey}:${item.name}`,
+          name: item.name,
+          desc: item.desc,
+          price: item.price,
+          hue: item.hue,
+          image: item.image,
+          badge: item.tags?.[0],
+          catLabel: route.breadcrumbLabel,
+          href: `/menu/${route.slug}`,
+        });
+      }
+    }
+    return out.slice(0, 8);
+  }, [liveMenu]);
+
+  const menuItemCount = useMemo(
+    () => Object.values(liveMenu).reduce((s, cat) => s + cat.items.length, 0),
+    [liveMenu],
+  );
+
+  const scrollRail = (dir: 1 | -1) => {
+    const el = railRef.current;
+    if (!el) return;
+    const reduced = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    el.scrollBy({ left: dir * 306, behavior: reduced ? "auto" : "smooth" });
+  };
+
+  /** The seasonal drink the first slide offers to add. It is a shop product
+      when the catalogue carries one, and nothing at all otherwise — never a
+      fabricated line. */
+  const seasonal = shopProducts.find((p) =>
+    /strawberry|çilek/i.test(`${p.name} ${p.tag}`),
+  );
+
+  const onSlideAction = (action: HomeSlideAction) => {
+    switch (action) {
+      case "menu":
+        navigate("menu");
+        break;
+      case "signature":
+      case "story":
+        navigate("story");
+        break;
+      case "visit":
+        navigate("visit");
+        break;
+      case "karaoke":
+        window.location.href = "/karaoke";
+        break;
+      case "addSeasonal":
+        if (seasonal) addToCart(toCartItem(seasonal));
+        else navigate("menu");
+        break;
+    }
+  };
+
   const go = (r: Route) => (e: React.MouseEvent) => {
     e.preventDefault();
     navigate(r);
   };
 
+  const addressLines = visit?.addressLines ?? LOCATION.address;
+  const phone = visit?.phone ?? LOCATION.phone;
+  const email = visit?.email ?? LOCATION.email;
+
   return (
     <div className="page" data-screen-label="01 Home">
-      <PourHero imageUrl={heroImageUrl} />
-      <section className="hero hero-dark">
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "radial-gradient(58% 50% at 18% 26%, rgba(184, 138, 74, 0.15), transparent 72%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div
-          className="wrap"
-          style={{ position: "relative", zIndex: 2, width: "100%" }}
-        >
-          <div className="hero-grid hero-2col">
-            <div>
-              <div
-                className="reveal"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 12,
-                }}
-              >
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 28,
-                    height: 1,
-                    background:
-                      "linear-gradient(90deg, var(--gold), transparent)",
-                  }}
-                />
-                <span
-                  className="eyebrow on-dark"
-                  style={{ color: "rgba(255,255,255,0.7)" }}
-                >
-                  {c("home.hero.eyebrow", "Bologna · 1987 → İstanbul · 2026")}
-                </span>
-              </div>
-              <h1 className="h-display reveal r1" style={{ marginTop: 32 }}>
-                Drink
-                <br />
-                it. Eat
-                <br />
-                the <span className="script">cup.</span>
-              </h1>
-              <p
-                className="lede reveal r2"
-                style={{
-                  marginTop: 28,
-                  color: "rgba(255, 255, 255, 0.72)",
-                  maxWidth: 430,
-                }}
-              >
-                {c(
-                  "home.hero.lede",
-                  "İtalya’dan ithal kahve barı konsepti. Tek-origin Sirena espresso’yu fior di latte gelato üzerine, 1994 patentli yenilebilir waffle kup içinde döküyoruz. Bittiğinde kaşığa gerek yok — kupu yiyorsunuz.",
-                )}
-              </p>
-              <div
-                className="reveal r3"
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  flexWrap: "wrap",
-                  marginTop: 40,
-                }}
-              >
-                <Link
-                  href="/menu"
-                  onClick={go("menu")}
-                  className="btn btn-light btn-lg"
-                >
-                  Menüyü gör <span className="arrow">→</span>
-                </Link>
-                <Link
-                  href="/magaza"
-                  onClick={go("shop")}
-                  className="btn btn-ghost btn-lg"
-                  style={{
-                    color: "#FFF",
-                    borderColor: "rgba(255, 255, 255, 0.3)",
-                  }}
-                >
-                  Online sipariş
-                </Link>
-              </div>
-              <div
-                className="reveal r4"
-                data-row="home-hero-stats"
-                style={{
-                  marginTop: 72,
-                  paddingTop: 32,
-                  borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-                }}
-              >
-                {[
-                  ["Şube", c("home.hero.stat.branch", "Tuzla")],
-                  ["Açık", visit?.todayHours ?? "09:00 — 01:00"],
-                  ["Yeni", c("home.hero.stat.featured", "Strawberry Matcha")],
-                ].map(([k, v]) => (
-                  <div key={k}>
-                    <div
-                      className="eyebrow on-dark"
-                      style={{ marginBottom: 8, opacity: 0.65 }}
-                    >
-                      {k}
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: "var(--serif-display)",
-                        fontSize: 18,
-                      }}
-                    >
-                      {v}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+      <HomeHeroSlider onAction={onSlideAction} />
 
-            <div
-              className="reveal r2"
+      {/* Promo tiles ─────────────────────────────────────────── */}
+      <section className="home-tiles" aria-label="Kısayollar">
+        <div className="wrap">
+          <div className="home-tiles-grid">
+            <a
+              href={ROUTE_PATHS.menu}
+              onClick={go("menu")}
+              className="home-tile"
               style={{
-                aspectRatio: "4/5",
-                borderRadius: "var(--r-lg)",
-                overflow: "hidden",
-                background: "linear-gradient(180deg, #1b4238, #12291f)",
-                position: "relative",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                background: "var(--bg-espresso)",
+                color: "#fff",
+                borderColor: "var(--bg-espresso)",
               }}
             >
-              <PhotoSurface hue="caramel" vignette={false}>
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    display: "grid",
-                    placeItems: "center",
-                  }}
-                >
-                  <div style={{ maxWidth: "78%", maxHeight: "88%" }}>
-                    <EdibleCupHero scoop="strawberry" topping="strawberry" />
-                  </div>
-                </div>
-              </PhotoSurface>
-              <div
-                style={{
-                  position: "absolute",
-                  left: 24,
-                  top: 24,
-                  padding: "6px 12px",
-                  background: "rgba(255, 255, 255, 0.92)",
-                  borderRadius: 999,
-                  fontFamily: "var(--mono)",
-                  fontSize: 10,
-                  letterSpacing: "0.22em",
-                  textTransform: "uppercase",
-                  color: "var(--ink)",
-                }}
-              >
-                No.001 — La firma
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  left: 24,
-                  bottom: 24,
-                  right: 24,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-end",
-                  color: "#FFF",
-                  pointerEvents: "none",
-                }}
-              >
-                <div>
-                  <div className="eyebrow on-dark" style={{ marginBottom: 4 }}>
-                    Affogato Strawberry
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "var(--serif)",
-                      fontStyle: "normal",
-                      fontSize: 28,
-                      lineHeight: 1,
-                    }}
-                  >
-                    155 ₺
-                  </div>
-                </div>
-                <button
-                  className="btn btn-light btn-sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    addToCart({ name: "Affogato Strawberry", price: 155 });
-                  }}
-                  style={{ pointerEvents: "auto" }}
-                >
-                  + Sepete ekle
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section-tight" style={{ background: "var(--bg)" }}>
-        <div className="wrap-wide">
-          <div className="reveal" data-row="locale-head">
-            <div>
-              <div className="eyebrow">01 — Il locale</div>
-              <h2 className="h1" style={{ marginTop: 16 }}>
-                Tuzla, <span className="script">altın saat.</span>
-              </h2>
-            </div>
-            <a href="/ziyaret" onClick={go("visit")} className="btn-link">
-              Yol tarifi & saatler <span>→</span>
+              <span className="home-tile-kicker">Sipariş</span>
+              <span className="home-tile-body">
+                <span className="home-tile-title">Gel‑al · 15 dk</span>
+                <span className="home-tile-sub">
+                  Kurye Tuzla içi 55₺, 25–35 dk
+                </span>
+              </span>
+            </a>
+            <a
+              href={ROUTE_PATHS.menu}
+              onClick={go("menu")}
+              className="home-tile"
+              style={{
+                background: "var(--bg-warm)",
+                color: "var(--ink)",
+                borderColor: "var(--ink-line)",
+              }}
+            >
+              <span className="home-tile-kicker">Menü</span>
+              <span className="home-tile-body">
+                <span className="home-tile-title">{menuItemCount} lezzet</span>
+                <span className="home-tile-sub">
+                  Matcha barı, espresso, tatlılar
+                </span>
+              </span>
+            </a>
+            <a
+              href="/uye/hesap"
+              className="home-tile"
+              style={{
+                background: "#f6e7ce",
+                color: "#3a2a12",
+                borderColor: "#eddcc0",
+              }}
+            >
+              <span className="home-tile-kicker">Ödüller</span>
+              <span className="home-tile-body">
+                <span className="home-tile-title">6 damgada 1 içecek</span>
+                <span className="home-tile-sub">
+                  Uygulama ve web’de tek hesap
+                </span>
+              </span>
+            </a>
+            <a
+              href="/karaoke"
+              className="home-tile"
+              style={{
+                background: "var(--accent)",
+                color: "#fff",
+                borderColor: "var(--accent)",
+              }}
+            >
+              <span className="home-tile-kicker">Karaoke</span>
+              <span className="home-tile-body">
+                <span className="home-tile-title">Üst kat özel oda</span>
+                <span className="home-tile-sub">8 kişiye kadar · 24:00’e</span>
+              </span>
             </a>
           </div>
-          <div
-            className="reveal r1"
-            style={{
-              aspectRatio: "16/8",
-              borderRadius: "var(--r-lg)",
-              overflow: "hidden",
-              border: "1px solid var(--ink-line)",
-            }}
-          >
-            <BarRenderScene />
-          </div>
-          <div
-            className="reveal r2"
-            data-row="locale-grid"
-            style={{ marginTop: 30 }}
-          >
-            {[
-              ["Konum", "Tuzla · 200 yıllık Rum köşkü"],
-              ["Kapasite", "24 koltuk · 12 bar + 12 lounge"],
-              ["Saat", "Her gün · 09:00 — 01:00"],
-              ["Mimari", "Studio Pellegrini"],
-            ].map(([k, v]) => (
-              <div key={k}>
-                <div className="eyebrow" style={{ marginBottom: 6 }}>
-                  {k}
-                </div>
-                <div
-                  style={{ fontFamily: "var(--serif-display)", fontSize: 17 }}
-                >
-                  {v}
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
-      <section className="section">
-        <div
-          className="wrap"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 80,
-            alignItems: "center",
-          }}
-          data-row="sig-row"
-        >
-          <div className="reveal">
-            <div className="eyebrow">02 — La firma · since 1987</div>
-            <h2 className="h1" style={{ marginTop: 16 }}>
-              The <span className="script">edible</span>
-              <br />
-              affogato.
-            </h2>
-            <p className="lede" style={{ marginTop: 26 }}>
-              L’Affogato bir bardağa servis edilmez; o <em>bir bardaktır</em>.
-              Çıtır waffle kup, iç yüzeyinde edible glaze, bir scoop fior di
-              latte. Çift shot Sirena masada dökülür. İçersin, yersin, geriye
-              hiçbir şey kalmaz. 1994’ten beri Mancuso ailesinin patentli
-              reçetesi.
-            </p>
-            <div data-row="sig-stats">
-              <Stat n="27s" l="Tableside pour" />
-              <Stat n="93°C" l="Servis sıcaklığı" />
-              <Stat n="36g" l="Sirena espresso" />
-              <Stat n="∅0" l="Atık · zero waste" />
+      {/* Bar rail ────────────────────────────────────────────── */}
+      {railItems.length > 0 && (
+        <section className="section">
+          <div className="wrap">
+            <div className="rail-head">
+              <div>
+                <div className="eyebrow">Sezon · Strawberry Aşkı</div>
+                <h2 className="h2">Şimdi barda olanlar</h2>
+              </div>
+              <div className="rail-controls">
+                <button
+                  type="button"
+                  className="rail-arrow"
+                  onClick={() => scrollRail(-1)}
+                  aria-label="Geri kaydır"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className="rail-arrow"
+                  onClick={() => scrollRail(1)}
+                  aria-label="İleri kaydır"
+                >
+                  ›
+                </button>
+                <a
+                  href={ROUTE_PATHS.menu}
+                  onClick={go("menu")}
+                  className="btn btn-outline btn-sm"
+                >
+                  Tüm menü
+                </a>
+              </div>
             </div>
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                marginTop: 36,
-                flexWrap: "wrap",
-              }}
-            >
-              <Link
-                href="/menu"
+            <div className="rail" ref={railRef}>
+              {railItems.map((it) => {
+                const hue = HUES[it.hue] ?? HUES.cream;
+                return (
+                  <article className="rail-card" key={it.key}>
+                    <a
+                      className="rail-card-media"
+                      href={it.href}
+                      style={{
+                        background: `linear-gradient(160deg, ${hue.from}, ${hue.to})`,
+                      }}
+                      aria-label={`${it.name} — menüde gör`}
+                    >
+                      {it.image ? (
+                        <img src={it.image} alt="" loading="lazy" />
+                      ) : (
+                        <MenuPlate cat={it.hue} name={it.name} />
+                      )}
+                      {it.badge && (
+                        <span
+                          className={`rail-card-badge ${/yeni|nuovo/i.test(it.badge) ? "new" : ""}`}
+                        >
+                          {it.badge.toUpperCase()}
+                        </span>
+                      )}
+                    </a>
+                    <div className="rail-card-body">
+                      <div>
+                        <span className="rail-card-cat">{it.catLabel}</span>
+                        <h3 className="rail-card-name">{it.name}</h3>
+                        <p className="rail-card-desc">{it.desc}</p>
+                      </div>
+                      <div className="rail-card-foot">
+                        <span className="rail-card-price">{it.price}</span>
+                        <a href={it.href} className="btn btn-primary btn-sm">
+                          Menüde gör
+                        </a>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Signature ───────────────────────────────────────────── */}
+      <section className="section">
+        <div className="wrap split-2col">
+          <div className="signature-photos reveal">
+            <div className="signature-photo">
+              <img
+                src="/photos/affogato-cup.webp"
+                alt="Yenilebilir waffle kupada affogato"
+                loading="lazy"
+                width={685}
+                height={1020}
+              />
+            </div>
+            <div className="signature-photo offset">
+              <img
+                src="/photos/affogato-tray.webp"
+                alt="Avluda iki affogato"
+                loading="lazy"
+                width={765}
+                height={1020}
+              />
+            </div>
+          </div>
+          <div className="reveal r1">
+            <div className="eyebrow">İmza ürün · 1987’den beri</div>
+            <h2 className="h2" style={{ marginTop: 14 }}>
+              İçilir, sonra <span className="script">kupası yenir.</span>
+            </h2>
+            <p className="lede" style={{ marginTop: 18 }}>
+              {c(
+                "home.signature.body",
+                "L’Affogato bir bardağa servis edilmez; o bir bardaktır. Çıtır waffle kup, iç yüzeyinde yenilebilir glaze, bir top fior di latte. Çift shot Sirena masada dökülür. İçersin, yersin, geriye hiçbir şey kalmaz.",
+              )}
+            </p>
+            <div className="stat-row">
+              {SIGNATURE_STATS.map((s) => (
+                <div key={s.l}>
+                  <div className="stat-n">{s.n}</div>
+                  <div className="stat-l">{s.l}</div>
+                </div>
+              ))}
+            </div>
+            <div className="cta-row">
+              <a
+                href={ROUTE_PATHS.menu}
                 onClick={go("menu")}
                 className="btn btn-primary"
               >
-                Affogato menüsü <span className="arrow">→</span>
-              </Link>
+                Menüyü gör
+                <span className="arrow">→</span>
+              </a>
               <a
-                href="/hikayemiz"
+                href={ROUTE_PATHS.story}
                 onClick={go("story")}
                 className="btn btn-ghost"
               >
@@ -412,319 +429,122 @@ export function PageHome({
               </a>
             </div>
           </div>
-          <div
-            className="reveal r1"
-            style={{
-              aspectRatio: "4/5",
-              borderRadius: "var(--r-lg)",
-              overflow: "hidden",
-            }}
-          >
-            <PhotoSurface hue="dawn" dotLabel="Tableside · 19:00" dotPos="tr">
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  display: "grid",
-                  placeItems: "center",
-                  padding: 30,
-                }}
-              >
-                <EdibleCupHero scoop="cream" topping="wafer" />
-              </div>
-            </PhotoSurface>
-          </div>
         </div>
       </section>
 
-      <section className="section" style={{ background: "var(--bg-warm)" }}>
+      {/* Loyalty ─────────────────────────────────────────────── */}
+      <section className="section-tight">
         <div className="wrap">
-          <div className="reveal" data-row="section-head-split">
+          <div className="loyalty-block reveal">
             <div>
-              <div className="eyebrow">03 — Dal menù · Strawberry Aşkı</div>
-              <h2 className="h1" style={{ marginTop: 16 }}>
-                Strawberry <span className="script">aşkı,</span>
-                <br />
-                üç kadeh.
+              <div className="eyebrow on-dark">
+                L’Af Ödüller · uygulama ile tek hesap
+              </div>
+              <h2 className="h2" style={{ marginTop: 14 }}>
+                Altı damga, bir içecek bizden.
               </h2>
-            </div>
-            <Link href="/menu" onClick={go("menu")} className="btn-link">
-              Tam menü <span>→</span>
-            </Link>
-          </div>
-          <div className="shop-grid-preview">
-            {(liveMenu.matcha?.items ?? MENU.matcha.items)
-              .slice(0, 3)
-              .map((it, i) => (
-                <div
-                  key={it.name}
-                  className="product-card reveal"
-                  style={{ transitionDelay: `${i * 80}ms` }}
+              <p>
+                Web’den ya da uygulamadan verilen her kafe siparişi bir damga.
+                Altıncı damga 90 gün geçerli ücretsiz içecek kuponuna dönüşür.
+              </p>
+              <div className="cta-row">
+                <a href="/uye/hesap" className="btn btn-light">
+                  Hesabımı gör
+                </a>
+                <a
+                  href="/karaoke"
+                  className="btn"
+                  style={{
+                    border: "1.5px solid rgba(255,255,255,0.45)",
+                    color: "#fff",
+                  }}
                 >
-                  <div className="product-card-img">
-                    <MenuPlate
-                      hue={it.hue}
-                      name={it.name}
-                      cat="matcha"
-                      image={it.image}
-                    />
-                    {it.tags?.includes("new") && (
-                      <div className="product-card-flag new">NUOVO</div>
-                    )}
-                    {it.tags?.includes("signature") && (
-                      <div className="product-card-flag gold">FIRMA</div>
-                    )}
-                  </div>
-                  <div className="product-card-meta">
-                    <div className="product-card-cat">
-                      Matcha Bar · No.{String(i + 1).padStart(2, "0")}
-                    </div>
-                    <h3 className="product-card-name">{it.name}</h3>
-                    <p
-                      style={{
-                        fontSize: 13,
-                        lineHeight: 1.55,
-                        color: "var(--ink-soft)",
-                        margin: "6px 0 12px",
-                        minHeight: 40,
-                      }}
-                    >
-                      {it.desc}
-                    </p>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div className="product-card-price">{it.price}</div>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          addToCart({
-                            name: it.name,
-                            price: parseFloat(it.price),
-                          });
-                        }}
-                      >
-                        + Ekle
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div
-          className="wrap"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.05fr 0.95fr",
-            gap: 80,
-            alignItems: "center",
-          }}
-          data-row="matcha-row"
-        >
-          <div className="reveal r1" data-row="matcha-imgs">
-            <div
-              style={{
-                aspectRatio: "4/5",
-                borderRadius: "var(--r-lg)",
-                overflow: "hidden",
-              }}
-            >
-              <PhotoSurface
-                hue="matcha"
-                dotLabel="Uji · ceremonial"
-                dotPos="bl"
-              >
-                <MenuPlate
-                  hue="matcha"
-                  name="Matcha Latte"
-                  cat="matcha"
-                  image="/menu/matcha-latte.webp"
-                />
-              </PhotoSurface>
+                  Karaoke rezervasyonu
+                </a>
+              </div>
             </div>
-            <div
-              style={{
-                aspectRatio: "4/5",
-                borderRadius: "var(--r-lg)",
-                overflow: "hidden",
-                marginTop: 50,
-              }}
-            >
-              <PhotoSurface hue="rose" dotLabel="Strawberry · yaz" dotPos="bl">
-                <MenuPlate
-                  hue="rose"
-                  name="Strawberry Matcha"
-                  cat="matcha"
-                  image="/menu/strawberry-matcha.webp"
-                />
-              </PhotoSurface>
-            </div>
-          </div>
-          <div className="reveal">
-            <div className="eyebrow">04 — Il banco matcha</div>
-            <h2 className="h1" style={{ marginTop: 16 }}>
-              Matcha & <span className="script">strawberry.</span>
-            </h2>
-            <p className="lede" style={{ marginTop: 26 }}>
-              Ceremonial grade matcha, siparişten sonra çırpılıyor: ipeksi süt
-              katmanları, taze çilek ve üzerine bir top dondurma. Strawberry
-              Aşkı üçlüsü — Matcha Latte, Strawberry Matcha, Matcha Affogato.
-            </p>
-            <div
-              style={{
-                marginTop: 30,
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 20,
-              }}
-            >
-              {(liveMenu.matcha?.items ?? MENU.matcha.items)
-                .slice(0, 4)
-                .map((it) => (
-                  <div
-                    key={it.name}
-                    style={{
-                      padding: "20px 0",
-                      borderTop: "1px solid var(--ink-line)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "baseline",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontFamily: "var(--serif-display)",
-                          fontSize: 18,
-                        }}
-                      >
-                        {it.name}
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--mono)",
-                          fontSize: 13,
-                          color: "var(--gold-deep)",
-                        }}
-                      >
-                        {it.price}
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "var(--ink-mute)",
-                        marginTop: 6,
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {it.desc}
-                    </div>
+            <div className="loyalty-card">
+              <div className="loyalty-card-head">
+                <span className="eyebrow on-dark">Damga kartı</span>
+                <span className="loyalty-tier">6 damga</span>
+              </div>
+              {/* The programme explained, not a particular visitor's card —
+                  this page is public and does not know who is reading it. The
+                  live card is on /uye/hesap. */}
+              <div className="stamp-grid" aria-hidden="true">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={i} className={`stamp ${i === 5 ? "reward" : ""}`}>
+                    {i === 5 ? "★" : ""}
                   </div>
                 ))}
-            </div>
-            <Link
-              href="/menu"
-              onClick={go("menu")}
-              className="btn btn-primary"
-              style={{ marginTop: 36 }}
-            >
-              Tüm matcha menüsü <span className="arrow">→</span>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="section" style={{ background: "var(--bg-warm)" }}>
-        <div className="wrap">
-          <div className="reveal" data-row="section-head-split">
-            <div>
-              <div className="eyebrow">05 — La bottega</div>
-              <h2 className="h1" style={{ marginTop: 16 }}>
-                Bring it <span className="script">home.</span>
-              </h2>
-            </div>
-            <Link href="/magaza" onClick={go("shop")} className="btn-link">
-              Shop <span>→</span>
-            </Link>
-          </div>
-          <div className="shop-grid">
-            {shopProducts.slice(0, 4).map((p, i) => (
-              <ProductCard
-                key={p.name}
-                product={p}
-                idx={i}
-                addToCart={addToCart}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section
-        className="section-tight"
-        style={{ background: "var(--bg-warm)" }}
-      >
-        <div className="wrap">
-          <div
-            className="eyebrow reveal"
-            style={{ textAlign: "center", marginBottom: 50 }}
-          >
-            Basın · Hakkımızda yazılanlar
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 30,
-            }}
-            data-row="press-row"
-          >
-            {PRESS.map((p, i) => (
-              <div
-                key={p.name}
-                className="reveal"
-                style={{
-                  transitionDelay: `${i * 60}ms`,
-                  padding: 28,
-                  background: "#FFF",
-                  borderRadius: "var(--r-md)",
-                }}
-              >
-                <div
-                  style={{
-                    fontFamily: "var(--serif-display)",
-                    fontSize: 18,
-                    marginBottom: 14,
-                  }}
-                >
-                  {p.name}
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--serif)",
-                    fontStyle: "normal",
-                    fontSize: 15,
-                    lineHeight: 1.4,
-                    color: "var(--ink-soft)",
-                  }}
-                >
-                  “{p.quote}”
-                </div>
               </div>
-            ))}
+              <div className="loyalty-headline">
+                Altıncı içecek bizden — hesabında biriksin.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* The 3D cup, demoted to a toy low on the page. */}
+      <PourModule onOrder={() => navigate("menu")} />
+
+      {/* Visit ───────────────────────────────────────────────── */}
+      <section className="section">
+        <div className="wrap split-2col">
+          <div className="visit-photo reveal">
+            <img
+              src="/photos/facade-night.webp"
+              alt="Gece ışıklarıyla köşk cephesi"
+              loading="lazy"
+              width={765}
+              height={1020}
+            />
+          </div>
+          <div className="reveal r1">
+            <div className="eyebrow">Ziyaret · Tuzla, İstanbul</div>
+            <h2 className="h2" style={{ marginTop: 14 }}>
+              200 yıllık köşkte, gece 01:00’e kadar.
+            </h2>
+            <div className="visit-facts">
+              <div>
+                <div className="visit-fact-label">Adres</div>
+                <p className="visit-fact-body">
+                  {addressLines.map((line, i) => (
+                    <Fragment key={line}>
+                      {i > 0 && <br />}
+                      {line}
+                    </Fragment>
+                  ))}
+                </p>
+              </div>
+              <div>
+                <div className="visit-fact-label">İletişim</div>
+                <p className="visit-fact-body">
+                  {phone}
+                  <br />
+                  {email}
+                </p>
+              </div>
+            </div>
+            <div className="cta-row">
+              <a
+                href={ROUTE_PATHS.visit}
+                onClick={go("visit")}
+                className="btn btn-primary"
+              >
+                Ziyaret bilgileri
+                <span className="arrow">→</span>
+              </a>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(LOCATION.mapsQuery)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-ghost"
+              >
+                Yol tarifi al ↗
+              </a>
+            </div>
           </div>
         </div>
       </section>

@@ -88,33 +88,17 @@ interface NavProps {
   /** SPA-internal navigate (sets hash + scrolls). When undefined, links
       degrade to normal anchors targeting real route URLs. */
   navigate?: (r: Route) => void;
-  dark?: boolean;
   cart?: number;
   onCart?: () => void;
   onSearch?: () => void;
 }
 
-export function Nav({
-  route,
-  navigate,
-  dark,
-  cart,
-  onCart,
-  onSearch,
-}: NavProps) {
-  const [scrolled, setScrolled] = useState(false);
+export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
   const [open, setOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<Route | null>(null);
   const [mobileSection, setMobileSection] = useState<Route | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   useEffect(() => {
     document.body.classList.toggle("is-no-scroll", open);
@@ -179,153 +163,165 @@ export function Nav({
 
   return (
     <>
-      <nav
-        className={`nav ${scrolled ? "scrolled" : ""} ${dark && !scrolled ? "on-dark" : ""}`}
-        ref={dropdownRef}
-      >
-        <div className="nav-left">
-          <a
-            href={hrefFor("home")}
-            onClick={go("home")}
-            className="nav-brand"
-            aria-label="L'Affogato anasayfası"
-          >
-            <span
-              className="nav-brand-mark brand-mark"
-              role="img"
-              aria-label="L'Affogato"
-            />
-          </a>
+      <header className="site-header" ref={dropdownRef}>
+        {/* Utility strip — hours, fulfilment promise, phone, app link. */}
+        <div className="topbar">
+          <div className="topbar-inner">
+            <span>Her gün 09:00 – 01:00 · Tuzla</span>
+            <span className="topbar-sep" aria-hidden="true" />
+            <span className="topbar-soft">Gel‑al 15 dk · kurye 55₺</span>
+            <span className="topbar-right">
+              <a href={`tel:${SITE.phoneE164}`}>{SITE.phone}</a>
+              <a href="/uye/hesap" className="topbar-app">
+                Uygulamayı indir ↗
+              </a>
+            </span>
+          </div>
         </div>
-        <div className="nav-center" onMouseLeave={onHoverClose}>
-          {LINKS.map((link) => {
-            const hasDropdown = !!link.dropdown;
-            const isActive = route === link.route;
-            const isOpen = openDropdown === link.route;
-            return (
-              <div
-                key={link.route}
-                className={`nav-link-wrap ${hasDropdown ? "has-dropdown" : ""}`}
-                onMouseEnter={
-                  hasDropdown ? () => onHoverOpen(link.route) : undefined
-                }
+
+        <div className="nav-bar">
+          <nav className="nav" aria-label="Ana gezinme">
+            <div className="nav-left">
+              <a
+                href={hrefFor("home")}
+                onClick={go("home")}
+                className="nav-brand"
+                aria-label="L'Affogato anasayfası"
               >
-                <a
-                  href={hrefFor(link.route)}
-                  onClick={go(link.route)}
-                  className={`nav-link ${isActive ? "active" : ""} ${isOpen ? "is-open" : ""}`}
-                >
-                  {link.label}
-                </a>
-                {/* The panel used to open on hover alone, so a keyboard user
+                <span className="nav-brand-disc" aria-hidden="true">
+                  <span className="nav-brand-mark brand-mark" />
+                </span>
+                <span className="nav-brand-words">
+                  <span className="nav-brand-name">L’Affogato</span>
+                  <span className="nav-brand-est">caffè italiano · 1987</span>
+                </span>
+              </a>
+            </div>
+            <div className="nav-center" onMouseLeave={onHoverClose}>
+              {LINKS.map((link) => {
+                const hasDropdown = !!link.dropdown;
+                const isActive = route === link.route;
+                const isOpen = openDropdown === link.route;
+                return (
+                  <div
+                    key={link.route}
+                    className={`nav-link-wrap ${hasDropdown ? "has-dropdown" : ""}`}
+                    onMouseEnter={
+                      hasDropdown ? () => onHoverOpen(link.route) : undefined
+                    }
+                  >
+                    <a
+                      href={hrefFor(link.route)}
+                      onClick={go(link.route)}
+                      className={`nav-link ${isActive ? "active" : ""} ${isOpen ? "is-open" : ""}`}
+                    >
+                      {link.label}
+                    </a>
+                    {/* The panel used to open on hover alone, so a keyboard user
                     could never reach it and `aria-expanded` was false forever.
                     The caret is its own control: the link still navigates, the
                     button opens the panel. */}
-                {hasDropdown && (
-                  <button
-                    type="button"
-                    className={`nav-link-caret-btn ${isOpen ? "is-open" : ""}`}
-                    aria-haspopup="true"
-                    aria-expanded={isOpen}
-                    aria-label={`${link.label} alt menüsünü ${isOpen ? "kapat" : "aç"}`}
-                    onClick={() => setOpenDropdown(isOpen ? null : link.route)}
-                  >
-                    <svg
-                      className="nav-link-caret"
-                      width="9"
-                      height="9"
-                      viewBox="0 0 10 10"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M2 4 L5 7 L8 4"
-                        stroke="currentColor"
-                        strokeWidth="1.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        fill="none"
+                    {hasDropdown && (
+                      <button
+                        type="button"
+                        className={`nav-link-caret-btn ${isOpen ? "is-open" : ""}`}
+                        aria-haspopup="true"
+                        aria-expanded={isOpen}
+                        aria-label={`${link.label} alt menüsünü ${isOpen ? "kapat" : "aç"}`}
+                        onClick={() =>
+                          setOpenDropdown(isOpen ? null : link.route)
+                        }
+                      >
+                        <svg
+                          className="nav-link-caret"
+                          width="9"
+                          height="9"
+                          viewBox="0 0 10 10"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M2 4 L5 7 L8 4"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            fill="none"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                    {hasDropdown && isOpen && (
+                      <DropdownPanel
+                        title={link.label}
+                        basePath={link.basePath ?? hrefFor(link.route)}
+                        entries={link.dropdown!}
+                        parentRoute={link.route}
+                        parentHref={hrefFor(link.route)}
+                        onClose={() => setOpenDropdown(null)}
                       />
-                    </svg>
-                  </button>
-                )}
-                {hasDropdown && isOpen && (
-                  <DropdownPanel
-                    title={link.label}
-                    basePath={link.basePath ?? hrefFor(link.route)}
-                    entries={link.dropdown!}
-                    parentRoute={link.route}
-                    parentHref={hrefFor(link.route)}
-                    onClose={() => setOpenDropdown(null)}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="nav-right">
+              <button
+                type="button"
+                className="nav-icon-btn"
+                aria-label="Ara"
+                onClick={onSearch}
+              >
+                <svg
+                  width="17"
+                  height="17"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="7"
+                    cy="7"
+                    r="4.6"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
                   />
-                )}
-              </div>
-            );
-          })}
+                  <path
+                    d="M10.6 10.6 14 14"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+              <a href="/uye/hesap" className="nav-pill nav-pill-account">
+                Hesabım
+              </a>
+              <button
+                className="nav-pill nav-pill-solid"
+                aria-label={`Sepetim — ${cartCount} ürün`}
+                {...cartHandler}
+              >
+                Sepet
+                <span
+                  className={`nav-pill-count ${cartCount > 0 ? "has-items" : ""}`}
+                >
+                  {cartCount}
+                </span>
+              </button>
+              <button
+                className={`nav-burger ${open ? "open" : ""}`}
+                onClick={() => setOpen((v) => !v)}
+                aria-label="Menü"
+                aria-expanded={open}
+              >
+                <span></span>
+                <span></span>
+                <span></span>
+              </button>
+            </div>
+          </nav>
         </div>
-        <div className="nav-right">
-          <a
-            href="/uye/giris"
-            className="nav-link nav-link-account"
-            aria-label="Hesabım"
-            title="Hesabım"
-          >
-            Hesabım
-          </a>
-          <button className="nav-icon-btn" aria-label="Ara" onClick={onSearch}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle
-                cx="7"
-                cy="7"
-                r="5"
-                stroke="currentColor"
-                strokeWidth="1.4"
-              />
-              <path
-                d="M11 11 L14 14"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
-          <button
-            className="nav-icon-btn cart"
-            aria-label="Sepetim"
-            {...cartHandler}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M2 3 L4 3 L5.5 11 L13 11 L14 5 L5 5"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-              <circle cx="6" cy="13.5" r="1.1" fill="currentColor" />
-              <circle cx="12" cy="13.5" r="1.1" fill="currentColor" />
-            </svg>
-            {cartCount > 0 && <span className="badge">{cartCount}</span>}
-          </button>
-          <a
-            href={hrefFor("visit")}
-            onClick={go("visit")}
-            className="btn btn-primary btn-sm nav-link-cta"
-          >
-            Rezerve et
-            <span className="arrow">→</span>
-          </a>
-          <button
-            className={`nav-burger ${open ? "open" : ""}`}
-            onClick={() => setOpen((v) => !v)}
-            aria-label="Menü"
-            aria-expanded={open}
-          >
-            <span></span>
-            <span></span>
-            <span></span>
-          </button>
-        </div>
-      </nav>
+      </header>
 
       <div className={`mobile-sheet ${open ? "open" : ""}`}>
         <div className="mobile-sheet-links">
@@ -658,30 +654,6 @@ export function Footer({ navigate, settings }: FooterProps) {
         <NewsletterForm />
       </div>
 
-      {/* Trust strip */}
-      <div className="footer-trust">
-        <FooterTrust
-          icon="lock"
-          title="Güvenli ödeme"
-          hint="256-bit SSL · 3D Secure"
-        />
-        <FooterTrust
-          icon="truck"
-          title="Ücretsiz kargo"
-          hint="500₺ üzeri Türkiye geneli"
-        />
-        <FooterTrust
-          icon="leaf"
-          title="Taze kavurma"
-          hint="Haftalık İtalyan roast"
-        />
-        <FooterTrust
-          icon="return"
-          title="14 gün cayma"
-          hint="Mevzuata uygun iade"
-        />
-      </div>
-
       {/* Main link grid */}
       <div className="footer-grid">
         <div className="footer-brand-col">
@@ -695,78 +667,30 @@ export function Footer({ navigate, settings }: FooterProps) {
           </p>
           <div className="footer-social">
             <a
-              className="nav-icon-btn"
               href={SITE.social.instagram}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Instagram — @laffogatto"
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <rect
-                  x="2"
-                  y="2"
-                  width="12"
-                  height="12"
-                  rx="3"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                />
-                <circle
-                  cx="8"
-                  cy="8"
-                  r="2.6"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                />
-                <circle cx="11.5" cy="4.5" r="0.7" fill="currentColor" />
-              </svg>
+              Instagram
             </a>
             <a
-              className="nav-icon-btn"
               href={SITE.social.tiktok}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="TikTok — @laffogatto"
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M9 1 L9 11 A 2.5 2.5 0 1 1 6.5 8.5"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M9 1 Q 9 4 13 4"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                />
-              </svg>
+              TikTok
             </a>
             <a
-              className="nav-icon-btn"
               href={SITE.social.youtube}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="YouTube — @laffogatto"
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <rect
-                  x="1.5"
-                  y="3.5"
-                  width="13"
-                  height="9"
-                  rx="2"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                />
-                <path d="M7 6 L10 8 L7 10 Z" fill="currentColor" />
-              </svg>
+              YouTube
             </a>
           </div>
         </div>
         <div>
-          <h5>Menu</h5>
+          <h5>Menü</h5>
           <ul>
             {MENU_DROPDOWN.map((m) => (
               <li key={m.slug}>
@@ -776,7 +700,7 @@ export function Footer({ navigate, settings }: FooterProps) {
           </ul>
         </div>
         <div>
-          <h5>Bottega</h5>
+          <h5>Mağaza</h5>
           <ul>
             {SHOP_DROPDOWN.map((s) => (
               <li key={s.slug}>
@@ -786,20 +710,26 @@ export function Footer({ navigate, settings }: FooterProps) {
           </ul>
         </div>
         <div>
-          <h5>L'azienda</h5>
+          <h5>Hesap</h5>
           <ul>
+            <li>
+              <a href="/uye/hesap">Üyelik &amp; ödüller</a>
+            </li>
+            <li>
+              <a href="/odeme">Sepetim</a>
+            </li>
+            <li>
+              <a href="/karaoke">Karaoke</a>
+            </li>
+            <li>
+              <a href={hrefFor("visit")} onClick={go("visit")}>
+                Ziyaret
+              </a>
+            </li>
             <li>
               <a href={hrefFor("story")} onClick={go("story")}>
                 Hikayemiz
               </a>
-            </li>
-            <li>
-              <a href={hrefFor("visit")} onClick={go("visit")}>
-                Tuzla
-              </a>
-            </li>
-            <li>
-              <a href="/uye/hesap">Hesabım</a>
             </li>
           </ul>
         </div>
@@ -855,19 +785,13 @@ export function Footer({ navigate, settings }: FooterProps) {
 
       {/* Bottom strip */}
       <div className="footer-meta">
-        <div className="footer-meta-left">
-          <span>
-            © {year} {SITE_LEGAL_NAME}
-          </span>
-          <span className="footer-meta-dot" />
-          <span>Italia MCMLXXXVII — İstanbul MMXXVI</span>
-        </div>
-        <div className="footer-meta-script">Drink it. Eat the cup.</div>
-        <div className="footer-meta-right">
-          <FooterPay label="Visa" />
-          <FooterPay label="Mastercard" />
-          <FooterPay label="Troy" />
-        </div>
+        <span>
+          © {year} {SITE_LEGAL_NAME}
+        </span>
+        <span className="footer-meta-tagline">İçilir. Sonra kupası yenir.</span>
+        <span className="footer-meta-pay">
+          Visa · Mastercard · Troy · Apple Pay
+        </span>
       </div>
     </footer>
   );
@@ -876,87 +800,3 @@ export function Footer({ navigate, settings }: FooterProps) {
 /** Vergi levhasındaki gerçek tüzel kişi. Footer'da uydurma bir ticaret
     unvanı yazıyordu ve bu, /hukuk altındaki sözleşmelerle çelişiyordu. */
 const SITE_LEGAL_NAME = `${SITE.name} — ${LEGAL_ENTITY.shortName}`;
-
-function FooterTrust({
-  icon,
-  title,
-  hint,
-}: {
-  icon: "lock" | "truck" | "leaf" | "return";
-  title: string;
-  hint: string;
-}) {
-  return (
-    <div className="footer-trust-item">
-      <span className="footer-trust-icon" aria-hidden="true">
-        {icon === "lock" && (
-          <svg
-            viewBox="0 0 20 20"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-          >
-            <rect x="4" y="9" width="12" height="8" rx="2" />
-            <path d="M6.5 9 V6.5 a3.5 3.5 0 0 1 7 0 V9" />
-            <circle cx="10" cy="13" r="1" fill="currentColor" />
-          </svg>
-        )}
-        {icon === "truck" && (
-          <svg
-            viewBox="0 0 20 20"
-            width="18"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-          >
-            <path d="M1 5 H11 V14 H1 z" />
-            <path d="M11 8 H16 L18 11 V14 H11 z" />
-            <circle cx="5" cy="15" r="1.4" />
-            <circle cx="14" cy="15" r="1.4" />
-          </svg>
-        )}
-        {icon === "leaf" && (
-          <svg
-            viewBox="0 0 20 20"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-          >
-            <path d="M3 17 C4 9 9 4 17 3 C17 11 13 16 5 17 Z" />
-            <path d="M5 17 L11 11" />
-          </svg>
-        )}
-        {icon === "return" && (
-          <svg
-            viewBox="0 0 20 20"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-          >
-            <path d="M4 10 a6 6 0 1 0 2-4" />
-            <path d="M2 4 L6 6 L4 10" strokeLinejoin="round" />
-          </svg>
-        )}
-      </span>
-      <div>
-        <div className="footer-trust-title">{title}</div>
-        <div className="footer-trust-hint">{hint}</div>
-      </div>
-    </div>
-  );
-}
-
-function FooterPay({ label }: { label: string }) {
-  return (
-    <span className="footer-pay" aria-label={`${label} kabul edilir`}>
-      {label}
-    </span>
-  );
-}
