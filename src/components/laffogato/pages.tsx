@@ -210,6 +210,16 @@ export function PageHome({
 
   return (
     <div className="page" data-screen-label="01 Home">
+      {/* The page's one h1. The hero's three slide titles rotate, so none of
+          them can hold it — an h1 that changes every seven seconds is worse
+          for a screen reader than no h1, and a slider-led home page with no
+          h1 at all is what the audit found. Visually hidden; it names the
+          business and what it does, which is what the heading is for. */}
+      <h1 className="sr-only">
+        L&apos;Affogato - Tuzla&apos;da İtalyan kahve ve gelato barı. Menü,
+        mağaza, karaoke ve ziyaret bilgileri.
+      </h1>
+
       <HomeHeroSlider onAction={onSlideAction} />
 
       {/* Promo tiles ─────────────────────────────────────────── */}
@@ -1161,11 +1171,14 @@ export function PageShop({
                 )}
               </div>
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <span className="eyebrow">Sırala</span>
+                <span className="eyebrow" id="shop-sort-label">
+                  Sırala
+                </span>
                 <select
                   className="select"
                   value={sort}
                   onChange={(e) => setSort(e.target.value)}
+                  aria-labelledby="shop-sort-label"
                   style={{ width: "auto", padding: "8px 14px", fontSize: 13 }}
                 >
                   <option value="featured">Önerilen</option>

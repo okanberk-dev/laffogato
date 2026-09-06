@@ -106,16 +106,17 @@ export default async function OdemePage({
         )}
         {!settings.isShopOpen ? (
           <GatePanel>
-            <h2
+            <h1
               style={{
-                fontFamily: "var(--serif)",
-                fontStyle: "normal",
+                fontFamily: "var(--sans)",
+                fontWeight: 800,
+                letterSpacing: "-0.03em",
                 fontSize: 26,
                 marginBottom: 10,
               }}
             >
               Şu an sipariş alamıyoruz
-            </h2>
+            </h1>
             <p
               style={{
                 color: "rgba(20,16,11,0.7)",
@@ -133,16 +134,17 @@ export default async function OdemePage({
           </GatePanel>
         ) : !customer ? (
           <GatePanel>
-            <h2
+            <h1
               style={{
-                fontFamily: "var(--serif)",
-                fontStyle: "normal",
+                fontFamily: "var(--sans)",
+                fontWeight: 800,
+                letterSpacing: "-0.03em",
                 fontSize: 26,
                 marginBottom: 10,
               }}
             >
               Sipariş için giriş yap
-            </h2>
+            </h1>
             <p
               style={{
                 color: "rgba(20,16,11,0.7)",
@@ -172,6 +174,20 @@ export default async function OdemePage({
           </GatePanel>
         ) : !customer.emailVerified ? (
           <GatePanel>
+            {/* Every branch of this page needs its own h1: the wizard carries
+                one, but a visitor stopped at a gate used to get a checkout
+                page with no heading at all. */}
+            <h1
+              style={{
+                fontFamily: "var(--sans)",
+                fontWeight: 800,
+                letterSpacing: "-0.03em",
+                fontSize: 26,
+                marginBottom: 14,
+              }}
+            >
+              Ödemeden önce e-postanı doğrula
+            </h1>
             <VerifyNotice email={customer.email} />
           </GatePanel>
         ) : (
