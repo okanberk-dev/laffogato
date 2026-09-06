@@ -161,7 +161,10 @@ export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
   }, []);
 
   return (
-    <section className="section">
+    /* Top-padding only, like every other block in the home stack — two
+       `.section`s in a row would leave 176px of nothing between the cup and
+       the visit block. */
+    <section className="home-section">
       <div className="wrap">
         <div className="pour-module">
           <div className="pour-module-copy">

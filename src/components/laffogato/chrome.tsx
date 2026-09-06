@@ -58,7 +58,10 @@ const SHOP_DROPDOWN: DropdownEntry[] = [
 ];
 
 interface LinkEntry {
-  route: Route;
+  /** SPA route, or `null` for a destination that lives outside the SPA and is
+      always a real navigation (Karaoke). */
+  route: Route | null;
+  href?: string;
   label: string;
   dropdown?: DropdownEntry[];
   basePath?: string;
@@ -75,6 +78,7 @@ const LINKS: LinkEntry[] = [
   },
   { route: "story", label: "Hikaye" },
   { route: "visit", label: "Ziyaret" },
+  { route: null, href: "/karaoke", label: "Karaoke" },
 ];
 
 /* The L'Affogato monogram is rendered from the brand logo asset
@@ -200,19 +204,22 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
             <div className="nav-center" onMouseLeave={onHoverClose}>
               {LINKS.map((link) => {
                 const hasDropdown = !!link.dropdown;
-                const isActive = route === link.route;
-                const isOpen = openDropdown === link.route;
+                // `null` marks a destination outside the SPA (Karaoke): it is
+                // always a real navigation, never a hash route.
+                const r = link.route;
+                const isActive = r !== null && route === r;
+                const isOpen = r !== null && openDropdown === r;
                 return (
                   <div
-                    key={link.route}
+                    key={link.label}
                     className={`nav-link-wrap ${hasDropdown ? "has-dropdown" : ""}`}
                     onMouseEnter={
-                      hasDropdown ? () => onHoverOpen(link.route) : undefined
+                      hasDropdown && r ? () => onHoverOpen(r) : undefined
                     }
                   >
                     <a
-                      href={hrefFor(link.route)}
-                      onClick={go(link.route)}
+                      href={r ? hrefFor(r) : (link.href ?? "/")}
+                      onClick={r ? go(r) : undefined}
                       className={`nav-link ${isActive ? "active" : ""} ${isOpen ? "is-open" : ""}`}
                     >
                       {link.label}
@@ -228,9 +235,7 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
                         aria-haspopup="true"
                         aria-expanded={isOpen}
                         aria-label={`${link.label} alt menüsünü ${isOpen ? "kapat" : "aç"}`}
-                        onClick={() =>
-                          setOpenDropdown(isOpen ? null : link.route)
-                        }
+                        onClick={() => setOpenDropdown(isOpen ? null : r)}
                       >
                         <svg
                           className="nav-link-caret"
@@ -250,13 +255,13 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
                         </svg>
                       </button>
                     )}
-                    {hasDropdown && isOpen && (
+                    {hasDropdown && isOpen && r && (
                       <DropdownPanel
                         title={link.label}
-                        basePath={link.basePath ?? hrefFor(link.route)}
+                        basePath={link.basePath ?? hrefFor(r)}
                         entries={link.dropdown!}
-                        parentRoute={link.route}
-                        parentHref={hrefFor(link.route)}
+                        parentRoute={r}
+                        parentHref={hrefFor(r)}
                         onClose={() => setOpenDropdown(null)}
                       />
                     )}
@@ -331,16 +336,16 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
             if (!hasDropdown) {
               return (
                 <a
-                  key={link.route}
-                  href={hrefFor(link.route)}
-                  onClick={go(link.route)}
+                  key={link.label}
+                  href={link.href ?? hrefFor(link.route!)}
+                  onClick={link.route ? go(link.route) : () => setOpen(false)}
                 >
                   {link.label}
                 </a>
               );
             }
             return (
-              <div key={link.route} className="mobile-sheet-section">
+              <div key={link.label} className="mobile-sheet-section">
                 <button
                   type="button"
                   className={`mobile-sheet-section-head ${isExpanded ? "open" : ""}`}
@@ -370,8 +375,8 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
                   className={`mobile-sheet-sublist ${isExpanded ? "open" : ""}`}
                 >
                   <a
-                    href={hrefFor(link.route)}
-                    onClick={go(link.route)}
+                    href={hrefFor(link.route!)}
+                    onClick={go(link.route!)}
                     className="mobile-sheet-sublink mobile-sheet-sublink-all"
                   >
                     Tümünü gör →
@@ -379,7 +384,7 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
                   {link.dropdown!.map((entry) => (
                     <a
                       key={entry.slug}
-                      href={`${link.basePath ?? hrefFor(link.route)}/${entry.slug}`}
+                      href={`${link.basePath ?? hrefFor(link.route!)}/${entry.slug}`}
                       onClick={() => setOpen(false)}
                       className="mobile-sheet-sublink"
                     >

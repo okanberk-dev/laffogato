@@ -410,6 +410,14 @@ export function allSeoRoutes(): Array<{
     priority: p.priority,
     changefreq: p.changefreq,
   }));
+  // Karaoke is a booking page rather than an SPA section, so it is not in
+  // PAGE_SEO (whose entries are keyed by `Route`). It is listed here so the
+  // sitemap knows about it. No keyword set is claimed for it: per CLAUDE.md
+  // §15 a landing page gets one only after the volume is verified, and this
+  // page exists to take bookings, not to rank.
+  const karaoke = [
+    { url: "/karaoke", priority: 0.7, changefreq: "monthly" as const },
+  ];
   const menuCats = MENU_CATEGORY_ROUTES.map((c) => ({
     url: `/menu/${c.slug}`,
     priority: 0.8,
@@ -420,5 +428,5 @@ export function allSeoRoutes(): Array<{
     priority: 0.8,
     changefreq: "weekly" as const,
   }));
-  return [...top, ...menuCats, ...shopCats];
+  return [...top, ...karaoke, ...menuCats, ...shopCats];
 }

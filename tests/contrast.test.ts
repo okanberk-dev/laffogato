@@ -124,8 +124,9 @@ describe("colour contrast", () => {
 
   it("no .script rule paints the accent ink on a dark section", () => {
     // The generic `.h1 .script` / `.h2 .script` rules use `--accent`; the
-    // dark sections must override them.
-    for (const sel of [".hero-dark .script", ".menu-hero .script"]) {
+    // dark sections must override them. The dark sections are the loyalty
+    // block and the footer since the Köşk redesign retired the dark heroes.
+    for (const sel of [".loyalty-block .script", ".footer .script"]) {
       const re = new RegExp(
         `${sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^}]*color:\\s*var\\(--accent-on-dark\\)`,
       );

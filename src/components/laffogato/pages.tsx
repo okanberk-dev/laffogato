@@ -39,11 +39,18 @@ import {
   EspressoCup,
   FounderPortrait,
   GelatoScoop,
-  HUES,
   MatchaGlass,
   MenuPlate,
   PhotoSurface,
 } from "./visuals";
+
+/** Menu item tags are stored as English keys; the site speaks Turkish. Only
+    the two the prototype shows as badges are labelled — anything else is not
+    worth a badge. */
+const MENU_TAG_LABELS: Record<string, string> = {
+  signature: "İMZA",
+  new: "YENİ",
+};
 
 /** The four figures under the signature block. */
 const SIGNATURE_STATS = [
@@ -132,6 +139,7 @@ export function PageHome({
       hue: string;
       image?: string;
       badge?: string;
+      catKey: string;
       catLabel: string;
       href: string;
     }> = [];
@@ -146,7 +154,8 @@ export function PageHome({
           price: item.price,
           hue: item.hue,
           image: item.image,
-          badge: item.tags?.[0],
+          badge: item.tags?.map((t) => MENU_TAG_LABELS[t]).find(Boolean),
+          catKey: menuKey,
           catLabel: route.breadcrumbLabel,
           href: `/menu/${route.slug}`,
         });
@@ -289,7 +298,7 @@ export function PageHome({
 
       {/* Bar rail ────────────────────────────────────────────── */}
       {railItems.length > 0 && (
-        <section className="section">
+        <section className="home-section">
           <div className="wrap">
             <div className="rail-head">
               <div>
@@ -324,27 +333,24 @@ export function PageHome({
             </div>
             <div className="rail" ref={railRef}>
               {railItems.map((it) => {
-                const hue = HUES[it.hue] ?? HUES.cream;
                 return (
                   <article className="rail-card" key={it.key}>
                     <a
                       className="rail-card-media"
                       href={it.href}
-                      style={{
-                        background: `linear-gradient(160deg, ${hue.from}, ${hue.to})`,
-                      }}
                       aria-label={`${it.name} — menüde gör`}
                     >
-                      {it.image ? (
-                        <img src={it.image} alt="" loading="lazy" />
-                      ) : (
-                        <MenuPlate cat={it.hue} name={it.name} />
-                      )}
+                      <MenuPlate
+                        hue={it.hue}
+                        name={it.name}
+                        cat={it.catKey}
+                        image={it.image}
+                      />
                       {it.badge && (
                         <span
-                          className={`rail-card-badge ${/yeni|nuovo/i.test(it.badge) ? "new" : ""}`}
+                          className={`rail-card-badge ${it.badge === "YENİ" ? "new" : ""}`}
                         >
-                          {it.badge.toUpperCase()}
+                          {it.badge}
                         </span>
                       )}
                     </a>
@@ -370,7 +376,7 @@ export function PageHome({
       )}
 
       {/* Signature ───────────────────────────────────────────── */}
-      <section className="section">
+      <section className="home-section">
         <div className="wrap split-2col">
           <div className="signature-photos reveal">
             <div className="signature-photo">
@@ -433,7 +439,7 @@ export function PageHome({
       </section>
 
       {/* Loyalty ─────────────────────────────────────────────── */}
-      <section className="section-tight">
+      <section className="home-section">
         <div className="wrap">
           <div className="loyalty-block reveal">
             <div>
@@ -469,12 +475,13 @@ export function PageHome({
                 <span className="loyalty-tier">6 damga</span>
               </div>
               {/* The programme explained, not a particular visitor's card —
-                  this page is public and does not know who is reading it. The
-                  live card is on /uye/hesap. */}
+                  this page is public and does not know who is reading it, so
+                  the six circles are numbered as a legend. The live card, with
+                  the reader's own stamps on it, is on /uye/hesap. */}
               <div className="stamp-grid" aria-hidden="true">
                 {Array.from({ length: 6 }, (_, i) => (
                   <div key={i} className={`stamp ${i === 5 ? "reward" : ""}`}>
-                    {i === 5 ? "★" : ""}
+                    {i === 5 ? "★" : i + 1}
                   </div>
                 ))}
               </div>
@@ -490,7 +497,7 @@ export function PageHome({
       <PourModule onOrder={() => navigate("menu")} />
 
       {/* Visit ───────────────────────────────────────────────── */}
-      <section className="section">
+      <section className="home-section home-section-last">
         <div className="wrap split-2col">
           <div className="visit-photo reveal">
             <img
@@ -561,15 +568,15 @@ export function PageMenu({ menu }: PageProps) {
   const cats = Object.keys(liveMenu);
   const [active, setActive] = useState<string>("all");
   const [query, setQuery] = useState("");
-  const controlsRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   // Restaurant-menu feel: tapping a category brings the freshly filtered list
-  // up under the sticky bar instead of leaving the guest stranded mid-scroll.
+  // up under the header instead of leaving the guest stranded mid-scroll.
   const selectCat = (key: string) => {
     setActive(key);
-    const el = controlsRef.current;
+    const el = gridRef.current;
     if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - 64;
+    const top = el.getBoundingClientRect().top + window.scrollY - 140;
     if (window.scrollY > top + 4) window.scrollTo({ top, behavior: "smooth" });
   };
 
@@ -577,102 +584,83 @@ export function PageMenu({ menu }: PageProps) {
     (s, c) => s + c.items.length,
     0,
   );
-  const visible = active === "all" ? cats : [active];
 
-  // Self-servis görüntüleme menüsü — yalnızca arama + kategoriyle süzülür
-  // (sepet yok). Boş kategoriler gizlenir.
-  const sections = useMemo(() => {
+  /**
+   * One flat list rather than a section per category, as the prototype draws
+   * it. Search still spans everything; the category pills filter it.
+   *
+   * There is no "sepete ekle" on these cards. The cafe menu on the web is a
+   * viewing menu — the cart carries shop products, whose price and stock the
+   * checkout re-reads from the products table, and a menu item has no product
+   * row to validate against. Ordering cafe items exists in the mobile API and
+   * wiring the web checkout to it is its own change.
+   */
+  const items = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return visible
-      .map((key) => {
-        const c = liveMenu[key];
-        const items = !q
-          ? c.items
-          : c.items.filter(
-              (it) =>
-                it.name.toLowerCase().includes(q) ||
-                it.desc.toLowerCase().includes(q),
-            );
-        return { key, c, items };
-      })
-      .filter((s) => s.items.length > 0);
-  }, [visible, liveMenu, query]);
+    const keys = active === "all" ? cats : [active];
+    return keys.flatMap((key) => {
+      const cat = liveMenu[key];
+      if (!cat) return [];
+      return cat.items
+        .filter(
+          (it) =>
+            !q ||
+            it.name.toLowerCase().includes(q) ||
+            it.desc.toLowerCase().includes(q),
+        )
+        .map((it) => ({ ...it, catKey: key, catLabel: cat.title }));
+    });
+  }, [active, cats, liveMenu, query]);
+
+  const activeLabel = active === "all" ? "Hepsi" : liveMenu[active]?.title;
 
   return (
     <div className="page" data-screen-label="02 Menu">
-      {/* ── Sinematik koyu hero + self-servis QR kartı ── */}
-      <header className="menu-hero">
-        <div className="menu-hero-glow" aria-hidden="true" />
-        <div className="wrap menu-hero-inner">
-          <div className="menu-hero-copy reveal">
-            <div className="menu-hero-eyebrow">
-              <span className="menu-hero-pip" />
-              <span>II — Menü · Summer 2026</span>
+      <main className="menu-page">
+        <div className="wrap">
+          <div className="page-head-row">
+            <div>
+              <div className="eyebrow">Menü · {activeLabel}</div>
+              <h1 className="h1" style={{ marginTop: 14 }}>
+                Bugün ne içiyoruz?
+              </h1>
             </div>
-            <h1 className="menu-hero-title">
-              Genel <span className="script">menü.</span>
-            </h1>
-            <p className="menu-hero-lede">
-              Basılı menünün tamamı: matcha bar, espresso, buzlu kahveler, soğuk
-              ve sıcak içecekler, frappe, smoothie, frozen, ice tea, tatlılar ve
-              atıştırmalıklar. İçeceklerin çoğu M ve L boy servis edilir.
+            <p className="lede" style={{ maxWidth: "44ch" }}>
+              İçeceklerin çoğu M ve L boy servis edilir. Alternatif süt ve
+              ekstra shot barda seçilir. Menüye buradan göz at, beğendiğini
+              barda söyle.
             </p>
-            <div className="menu-hero-stats">
-              <div>
-                <b>{totalCount}</b>
-                <span>lezzet</span>
-              </div>
-              <div>
-                <b>{cats.length}</b>
-                <span>kategori</span>
-              </div>
-              <div>
-                <b>~4dk</b>
-                <span>hazırlık</span>
-              </div>
-              <div>
-                <b>06:00</b>
-                <span>taze gelato</span>
-              </div>
-            </div>
           </div>
-        </div>
-      </header>
 
-      {/* ── Sticky kontrol çubuğu: kategoriler + arama + görünüm + diyet ── */}
-      <div className="menu-controls" ref={controlsRef}>
-        <div className="wrap menu-controls-inner">
-          <div
-            className="menu-tabs"
-            /* Not a tablist: there are no tabpanels behind these, and the
-               `tab` role obliges arrow-key navigation and a linked panel that
-               do not exist. They are filter toggles, so they say so — and the
-               selected one is now conveyed, which `role="tablist"` alone on
-               the container never was. */
-            role="group"
-            aria-label="Menü kategorileri"
-          >
-            <button
-              className={`menu-tab ${active === "all" ? "on" : ""}`}
-              aria-pressed={active === "all"}
-              onClick={() => selectCat("all")}
+          <div className="menu-filter-row">
+            <div
+              className="menu-tabs scroller"
+              /* Not a tablist: there are no tabpanels behind these, and the
+                 `tab` role obliges arrow-key navigation and a linked panel
+                 that do not exist. They are filter toggles, so they say so. */
+              role="group"
+              aria-label="Menü kategorileri"
             >
-              <span>Tümü</span>
-              <span className="count">{totalCount}</span>
-            </button>
-            {cats.map((c) => (
               <button
-                key={c}
-                className={`menu-tab ${active === c ? "on" : ""}`}
-                aria-pressed={active === c}
-                onClick={() => selectCat(c)}
+                className={`menu-tab ${active === "all" ? "on" : ""}`}
+                aria-pressed={active === "all"}
+                onClick={() => selectCat("all")}
               >
-                <span>{liveMenu[c].title}</span>
-                <span className="count">{liveMenu[c].items.length}</span>
+                <span>Tümü</span>
+                <span className="count">{totalCount}</span>
               </button>
-            ))}
-          </div>
-          <div className="menu-tools">
+              {cats.map((c) => (
+                <button
+                  key={c}
+                  className={`menu-tab ${active === c ? "on" : ""}`}
+                  aria-pressed={active === c}
+                  onClick={() => selectCat(c)}
+                >
+                  <span>{liveMenu[c].title}</span>
+                  <span className="count">{liveMenu[c].items.length}</span>
+                </button>
+              ))}
+            </div>
             <div className="menu-search">
               <svg
                 width="15"
@@ -713,238 +701,118 @@ export function PageMenu({ menu }: PageProps) {
               )}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ── Boş sonuç ── */}
-      {sections.length === 0 && (
-        <section className="section-tight">
-          <div className="wrap menu-empty">
-            <div className="menu-empty-mark">∅</div>
-            <h2
-              className="h2"
-              style={{ fontFamily: "var(--serif)", fontStyle: "normal" }}
-            >
-              Aradığın tatla eşleşen ürün yok.
-            </h2>
-            <p style={{ color: "var(--ink-mute)", marginTop: 10 }}>
-              Farklı bir kelime dene ya da filtreleri sıfırla.
-            </p>
-            <button
-              className="btn btn-ghost"
-              style={{ marginTop: 22 }}
-              onClick={() => {
-                setQuery("");
-                setActive("all");
-              }}
-            >
-              Filtreleri temizle
-            </button>
-          </div>
-        </section>
-      )}
-
-      {/* ── Kategoriler ── */}
-      {sections.map(({ key, c, items }, idx) => {
-        const firstWord = c.title.split(" ")[0];
-        const restWords = c.title.split(" ").slice(1).join(" ");
-        return (
-          <section
-            key={key}
-            className="menu-category section-tight"
-            style={{ background: idx % 2 === 1 ? "var(--bg-warm)" : "#FFF" }}
-          >
-            <div className="wrap">
-              <div className="menu-cat-hero reveal">
-                <div className="menu-cat-info">
-                  <div className="menu-cat-index">
-                    {String(idx + 1).padStart(2, "0")}
-                  </div>
-                  <div className="eyebrow" style={{ marginBottom: 16 }}>
-                    {c.sub}
-                  </div>
-                  <h2 className="h1">
-                    {firstWord}
-                    {restWords && (
-                      <>
-                        {" "}
-                        <span className="script">{restWords}</span>
-                      </>
-                    )}
-                  </h2>
-                  <div className="menu-cat-italian">{c.italian}</div>
-                  {c.note && <p className="menu-cat-note">{c.note}</p>}
-                </div>
-                <div className="menu-cat-hero-img">
-                  <PhotoSurface
-                    hue={items[0].hue || "warm"}
-                    dotLabel={`${String(idx + 1).padStart(2, "0")} / ${sections.length.toString().padStart(2, "0")}`}
-                    dotPos="tr"
-                  >
-                    <div
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "grid",
-                        placeItems: "center",
-                        padding: 30,
-                      }}
-                    >
-                      <MenuPlate
-                        hue={items[0].hue}
-                        name={items[0].name}
-                        cat={key}
-                        image={items[0].image}
-                      />
-                    </div>
-                  </PhotoSurface>
-                </div>
-              </div>
-
-              <div className="menu-grid">
-                {items.map((it, i) => (
+          {items.length === 0 ? (
+            <div className="menu-empty">
+              <div className="menu-empty-mark">∅</div>
+              <h2 className="h3">Aradığın tatla eşleşen ürün yok.</h2>
+              <p style={{ color: "var(--ink-mute)", marginTop: 10 }}>
+                Farklı bir kelime dene ya da filtreleri sıfırla.
+              </p>
+              <button
+                className="btn btn-ghost"
+                style={{ marginTop: 22 }}
+                onClick={() => {
+                  setQuery("");
+                  setActive("all");
+                }}
+              >
+                Filtreleri temizle
+              </button>
+            </div>
+          ) : (
+            <div className="menu-grid" ref={gridRef}>
+              {items.map((it) => {
+                const badge = it.tags
+                  ?.map((t) => MENU_TAG_LABELS[t])
+                  .find(Boolean);
+                return (
                   <article
-                    key={it.name}
-                    className="menu-item-card reveal"
-                    style={{ transitionDelay: `${(i % 4) * 60}ms` }}
+                    className="rail-card"
+                    key={`${it.catKey}:${it.name}`}
                   >
-                    <div className="menu-item-img">
+                    <div className="rail-card-media menu-card-media">
                       <MenuPlate
                         hue={it.hue}
                         name={it.name}
-                        cat={key}
+                        cat={it.catKey}
                         image={it.image}
                       />
-                      {it.tags?.includes("signature") && (
-                        <div className="product-card-flag gold">FIRMA</div>
-                      )}
-                      {it.tags?.includes("new") &&
-                        !it.tags.includes("signature") && (
-                          <div className="product-card-flag new">NUOVO</div>
-                        )}
-                    </div>
-                    <div className="menu-item-body">
-                      <div className="menu-item-row">
-                        <h3 className="menu-item-name">{it.name}</h3>
-                        <div
-                          className="menu-item-price"
-                          style={{ whiteSpace: "nowrap" }}
+                      {badge && (
+                        <span
+                          className={`rail-card-badge ${badge === "YENİ" ? "new" : ""}`}
                         >
+                          {badge}
+                        </span>
+                      )}
+                    </div>
+                    <div className="rail-card-body">
+                      <div>
+                        <span className="rail-card-cat">{it.catLabel}</span>
+                        <h3 className="rail-card-name menu-card-name">
+                          {it.name}
+                        </h3>
+                        <p className="rail-card-desc">{it.desc}</p>
+                      </div>
+                      <div className="rail-card-foot">
+                        <span className="rail-card-price">
                           {it.priceL ? (
                             <>
-                              <span style={{ opacity: 0.5, fontSize: "0.8em" }}>
-                                M{" "}
-                              </span>
-                              {it.price}
-                              <span style={{ opacity: 0.32, margin: "0 5px" }}>
-                                ·
-                              </span>
-                              <span style={{ opacity: 0.5, fontSize: "0.8em" }}>
-                                L{" "}
-                              </span>
-                              {it.priceL}
+                              <span className="size-key">M</span> {it.price}
+                              <span className="size-sep">·</span>
+                              <span className="size-key">L</span> {it.priceL}
                             </>
                           ) : (
                             it.price
                           )}
-                        </div>
+                        </span>
                       </div>
-                      <p className="menu-item-desc">{it.desc}</p>
-                      {(it.tags ?? []).filter(
-                        (t) => !["signature", "new"].includes(t),
-                      ).length > 0 && (
-                        <div className="menu-item-tags">
-                          {(it.tags ?? [])
-                            .filter((t) => !["signature", "new"].includes(t))
-                            .map((t) => (
-                              <span key={t} className="chip chip-outline">
-                                {t}
-                              </span>
-                            ))}
-                        </div>
-                      )}
                     </div>
                   </article>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          </section>
-        );
-      })}
-
-      {/* ── Bilgi notları ── */}
-      <section
-        className="section-tight"
-        style={{ background: "var(--bg-cream)" }}
-      >
-        <div
-          className="wrap"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 40,
-          }}
-          data-row="menu-notes"
-        >
-          <div className="reveal">
-            <div className="eyebrow">Self-servis</div>
-            <p
-              style={{
-                marginTop: 14,
-                fontSize: 14,
-                lineHeight: 1.65,
-                color: "var(--ink-soft)",
-              }}
-            >
-              Menüye buradan göz at, beğendiğini barda söyle. Sipariş ve servis
-              bardan verilir — self-servis, garson beklemeden.
-            </p>
-          </div>
-          <div className="reveal r1">
-            <div className="eyebrow">Alerjenler</div>
-            <p
-              style={{
-                marginTop: 14,
-                fontSize: 14,
-                lineHeight: 1.65,
-                color: "var(--ink-soft)",
-              }}
-            >
-              Süt, gluten, kuruyemiş, soya — mutfağımızda çapraz temas olabilir.
-              Cölyak için baristaya bildirin, pirinç bisküvili alternatif
-              hazırlarız.
-            </p>
-          </div>
-          <div className="reveal r2">
-            <div className="eyebrow">Köken</div>
-            <p
-              style={{
-                marginTop: 14,
-                fontSize: 14,
-                lineHeight: 1.65,
-                color: "var(--ink-soft)",
-              }}
-            >
-              Espresso: Sirena harmanı (Bologna kavurma). Matcha: Uji ceremonial
-              grade. Pistacchio: Bronte IGP. Süt: Tuzla yerel mandıra.
-            </p>
-          </div>
-          <div className="reveal r3">
-            <div className="eyebrow">Servis</div>
-            <p
-              style={{
-                marginTop: 14,
-                fontSize: 14,
-                lineHeight: 1.65,
-                color: "var(--ink-soft)",
-              }}
-            >
-              Bar köşesi 6 koltuk yürüyüş trafiği için ayrı. Akşam 19:00 sonrası
-              rezervasyon. Köpekler hoş geldi.
-            </p>
-          </div>
+          )}
         </div>
-      </section>
+
+        {/* Allergen and provenance notes — not decoration: someone with a
+            gluten intolerance needs to read this before they order at the
+            bar. */}
+        <section className="section-tight menu-notes-band">
+          <div className="wrap menu-notes" data-row="menu-notes">
+            <div>
+              <div className="eyebrow muted">Self-servis</div>
+              <p>
+                Menüye buradan göz at, beğendiğini barda söyle. Sipariş ve
+                servis bardan verilir — garson beklemeden.
+              </p>
+            </div>
+            <div>
+              <div className="eyebrow muted">Alerjenler</div>
+              <p>
+                Süt, gluten, kuruyemiş, soya — mutfağımızda çapraz temas
+                olabilir. Cölyak için baristaya bildirin, pirinç bisküvili
+                alternatif hazırlarız.
+              </p>
+            </div>
+            <div>
+              <div className="eyebrow muted">Köken</div>
+              <p>
+                Espresso: Sirena harmanı (Bologna kavurma). Matcha: Uji
+                ceremonial grade. Pistacchio: Bronte IGP. Süt: Tuzla yerel
+                mandıra.
+              </p>
+            </div>
+            <div>
+              <div className="eyebrow muted">Servis</div>
+              <p>
+                Bar köşesi 6 koltuk yürüyüş trafiği için ayrı. Akşam 19:00
+                sonrası rezervasyon. Köpekler hoş geldi.
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
@@ -1620,46 +1488,56 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
     <div className="page" data-screen-label="04 Story">
       <section className="story-hero">
         <div className="wrap">
-          <div
-            className="reveal"
-            style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}
-          >
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 12,
-                marginBottom: 30,
-              }}
-            >
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 28,
-                  height: 1,
-                  background:
-                    "linear-gradient(90deg, var(--gold), transparent)",
-                }}
+          <div className="eyebrow">Hikaye · 1987 → 2026</div>
+          <h1 className="h-display" style={{ marginTop: 14, maxWidth: "24ch" }}>
+            Bologna 1987’den <span className="script">Tuzla’ya.</span>
+          </h1>
+          <p className="story-hero-lede">
+            {c(
+              "story.hero.lede",
+              "İlk yurt dışı şubemiz — 200 yıllık, Rum’lardan kalma restore bir köşkte. İtalyan baba, İstanbullu anne: Eda Mancuso, büyükbabasının 1987’de açtığı L’Affogato barını üçüncü kuşak olarak devraldı ve 2026’da markayı doğduğu şehre getirdi.",
+            )}
+          </p>
+
+          {/* The köşk itself. These are the venue photographs from the design
+              handoff — the page used to carry only drawn illustrations. */}
+          <div className="story-mosaic">
+            <div className="story-mosaic-lead">
+              <img
+                src="/photos/facade-day.webp"
+                alt="Tuzla'daki restore ahşap köşk"
+                loading="lazy"
+                style={{ objectPosition: "50% 58%" }}
               />
-              <span className="eyebrow">IV — La storia · since 1987</span>
             </div>
-            <h1
-              className="h-display"
-              style={{ fontSize: "clamp(56px, 11vw, 160px)" }}
-            >
-              From <span className="script">Bologna</span>
-              <br />
-              to Tuzla.
-            </h1>
-            <p
-              className="lede"
-              style={{ marginTop: 36, margin: "36px auto 0", maxWidth: 580 }}
-            >
-              {c(
-                "story.hero.lede",
-                "Üç kuşak Mancuso ailesi. Patentli bir kup. 39 yıldır değişmeyen tek bir ritüel. Şimdi İstanbul’da.",
-              )}
-            </p>
+            <div>
+              <img
+                src="/photos/interior-mirror.webp"
+                alt="Köşkün içi — terracotta duvar ve altın ayna"
+                loading="lazy"
+              />
+            </div>
+            <div>
+              <img
+                src="/photos/interior-chest.webp"
+                alt="Köşkün içi — ahşap sandık ve vitrin"
+                loading="lazy"
+              />
+            </div>
+            <div>
+              <img
+                src="/photos/terrace-canopy.webp"
+                alt="Hasır gölgelikli teras"
+                loading="lazy"
+              />
+            </div>
+            <div>
+              <img
+                src="/photos/drinks-tray.webp"
+                alt="Terasta soğuk içecekler"
+                loading="lazy"
+              />
+            </div>
           </div>
         </div>
       </section>
