@@ -276,7 +276,7 @@ function hourSignature(h: { open: string; close: string; closed: boolean }) {
 }
 
 function hourRange(h: { open: string; close: string }) {
-  return `${h.open} – ${h.close}`;
+  return `${h.open} - ${h.close}`;
 }
 
 /**
@@ -309,7 +309,7 @@ export function hoursLabelFor(
       const label =
         run.from === run.to
           ? DAY_SHORT[run.from]
-          : `${DAY_SHORT[run.from]}–${DAY_SHORT[run.to]}`;
+          : `${DAY_SHORT[run.from]}-${DAY_SHORT[run.to]}`;
       const range =
         run.sig === "closed" ? "Kapalı" : hourRange(weekly[run.from]);
       return `${label} ${range}`;
@@ -334,7 +334,7 @@ export function hoursLabel(weekly: WeeklyHours): string {
   return uniform && !weekly.mon.closed ? `Her gün ${label}` : label;
 }
 
-/** One row of the venue's weekly table: `{ label: "Pazartesi", value: "09:00 – 01:00" | "Kapalı" }`. */
+/** One row of the venue's weekly table: `{ label: "Pazartesi", value: "09:00 - 01:00" | "Kapalı" }`. */
 export interface BootstrapVenueHour {
   label: string;
   value: string;

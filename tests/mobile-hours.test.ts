@@ -11,7 +11,7 @@ import {
   toLiveStatus,
 } from "@/lib/mobile/venue";
 
-/** Every day 09:00 – 01:00 (the house's real schedule; close is next morning). */
+/** Every day 09:00 - 01:00 (the house's real schedule; close is next morning). */
 function lateHours(): WeeklyHours {
   const day = { open: "09:00", close: "01:00", closed: false };
   return {
@@ -76,7 +76,7 @@ describe("parseClock", () => {
   });
 });
 
-describe("isOpenByHours — 09:00 – 01:00 (closes after midnight)", () => {
+describe("isOpenByHours — 09:00 - 01:00 (closes after midnight)", () => {
   const hours = lateHours();
 
   it("is open at 00:30 because yesterday's hours run past midnight", () => {
@@ -117,7 +117,7 @@ describe("isOpenByHours — 09:00 – 01:00 (closes after midnight)", () => {
 });
 
 describe("isOpenByHours — same-day schedules", () => {
-  it("10:00 – 23:00 closes at 23:00 and is not open after midnight", () => {
+  it("10:00 - 23:00 closes at 23:00 and is not open after midnight", () => {
     const hours = dayHours("10:00", "23:00");
     expect(isOpenByHours(hours, istanbul("2026-09-01T22:59:00"))).toBe(true);
     expect(isOpenByHours(hours, istanbul("2026-09-01T23:00:00"))).toBe(false);
@@ -182,7 +182,7 @@ describe("toLiveStatus — contract §6", () => {
       noise: "low",
       power: true,
       note: "Çalışmaya uygun",
-      hours: { weekday: "09:00 – 01:00", weekend: "09:00 – 01:00" },
+      hours: { weekday: "09:00 - 01:00", weekend: "09:00 - 01:00" },
       karaoke: { available: true, label: "Rezervasyonla" },
     });
   });
@@ -230,8 +230,8 @@ describe("toLiveStatus — contract §6", () => {
       karaokeCapacity: 8,
     });
     expect(live.hours.weekday).toBe(
-      "Pzt–Per 09:00 – 01:00 · Cum 09:00 – 02:00",
+      "Pzt-Per 09:00 - 01:00 · Cum 09:00 - 02:00",
     );
-    expect(live.hours.weekend).toBe("Cmt 09:00 – 01:00 · Paz Kapalı");
+    expect(live.hours.weekend).toBe("Cmt 09:00 - 01:00 · Paz Kapalı");
   });
 });

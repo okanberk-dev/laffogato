@@ -341,7 +341,7 @@ describe("toMobileShopProduct (contract §2)", () => {
 describe("hoursLabel", () => {
   it("collapses an identical week into 'Her gün'", () => {
     expect(hoursLabel(everyDay("09:00", "01:00"))).toBe(
-      "Her gün 09:00 – 01:00",
+      "Her gün 09:00 - 01:00",
     );
   });
 
@@ -350,7 +350,7 @@ describe("hoursLabel", () => {
     w.sat = { open: "10:00", close: "02:00", closed: false };
     w.sun = { open: "", close: "", closed: true };
     expect(hoursLabel(w)).toBe(
-      "Pzt–Cum 09:00 – 01:00 · Cmt 10:00 – 02:00 · Paz Kapalı",
+      "Pzt-Cum 09:00 - 01:00 · Cmt 10:00 - 02:00 · Paz Kapalı",
     );
   });
 
@@ -445,11 +445,11 @@ describe("buildBootstrap (contract §10)", () => {
     expect(b.venue.hours[0]).toEqual({ label: "Pazartesi", value: "Kapalı" });
     expect(b.venue.hours[2]).toEqual({
       label: "Çarşamba",
-      value: "09:00 – 01:00",
+      value: "09:00 - 01:00",
     });
     expect(b.venue.hours[6]).toEqual({
       label: "Pazar",
-      value: "10:00 – 22:00",
+      value: "10:00 - 22:00",
     });
     expect(b.venue.hours.map((h) => h.label)).toEqual([
       "Pazartesi",
@@ -466,7 +466,7 @@ describe("buildBootstrap (contract §10)", () => {
     expect(
       buildBootstrap({ ...settings, weeklyHours: weekly }, site, monday).venue,
     ).toMatchObject({ opensAt: "", closesAt: "" });
-    expect(weeklyHoursRows(weekly)[6].value).toBe("10:00 – 22:00");
+    expect(weeklyHoursRows(weekly)[6].value).toBe("10:00 - 22:00");
   });
 
   it("resolves the weekday in Istanbul, not UTC", () => {
@@ -526,7 +526,7 @@ describe("buildBootstrap (contract §10)", () => {
     const b = buildBootstrap({ ...settings, courierFeeMinor: 6000 }, site);
     expect(b).toMatchObject({
       minSupportedAppVersion: "1.0.0",
-      hoursLabel: "Her gün 09:00 – 01:00",
+      hoursLabel: "Her gün 09:00 - 01:00",
       courierFeeMinor: 6000,
       courierEtaMinutes: [25, 35],
       // Not advertised while nothing prices it: the app drew "%25, kod

@@ -342,14 +342,14 @@ Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği
 { "isOpen": true, "openLabel": "Şu an açık", "updatedAt": "…", "updatedAgoMinutes": 2,
   "freeTables": 9, "totalTables": 20, "wifi": "stable" | "slow" | "down", "noise": "low" | "medium" | "high",
   "power": true, "note": "Çalışmaya uygun — priz var, gürültü düşük",
-  "hours": { "weekday": "09:00 – 01:00", "weekend": "09:00 – 01:00" },
+  "hours": { "weekday": "09:00 - 01:00", "weekend": "09:00 - 01:00" },
   "karaoke": { "available": true, "label": "Rezervasyonla" } }
 ```
 
 Kaynak: `venue_status` tablosu (tek satır `main`), `/admin/mobil/canli-durum` panelinden düzenlenir; `isOpen` = `manualOverride` (`"auto" | "open" | "closed"`) + `settings.weeklyHours`.
 Cache: `public, s-maxage=30, stale-while-revalidate=120`.
 
-> **Uygulama notu (§6).** Saat mantığı Europe/Istanbul; `09:00 – 01:00` gece yarısından sonra
+> **Uygulama notu (§6).** Saat mantığı Europe/Istanbul; `09:00 - 01:00` gece yarısından sonra
 > önceki günün kuyruğu olarak **açık** sayılır. DB ulaşılamazsa uydurma "açık" dönmez, **503**.
 
 ## 7. Karaoke
@@ -429,10 +429,10 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
     "landmark": "Menemenci Cumhur’un yanı",      // config.venue.landmark
     "mapsQuery": "L'Affogato, Atatürk Cad. …",   // config.venue.mapsQuery — "Yol tarifi al" bunu harita uygulamasına verir
     "phone": "+90 536 429 09 19", "email": "…", "lat": 40.8, "lng": 29.3,
-    "hours": [ { "label": "Pazartesi", "value": "09:00 – 01:00" }, … ],   // 7 satır, pazartesiden pazara; kapalı gün → "Kapalı"; ardışık aynı saatler GRUPLANMAZ (uygulama gruplar)
+    "hours": [ { "label": "Pazartesi", "value": "09:00 - 01:00" }, … ],   // 7 satır, pazartesiden pazara; kapalı gün → "Kapalı"; ardışık aynı saatler GRUPLANMAZ (uygulama gruplar)
     "opensAt": "09:00", "closesAt": "01:00"      // bugünün (Europe/Istanbul) satırı; kapalıysa "" ""
   },
-  "hoursLabel": "Her gün 09:00 – 01:00",        // eski alan, korunur
+  "hoursLabel": "Her gün 09:00 - 01:00",        // eski alan, korunur
   "courierFeeMinor": 5500,                        // eski alan (Ayarlar → Kargo → Kurye ücreti)
   "courierEtaMinutes": [25, 35],                  // = app.ordering.courierEtaMinutes (eski alan, korunur)
   "happyHour": null,                              // değişmedi — fiyatlanmadığı sürece null
