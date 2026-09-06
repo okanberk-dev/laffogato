@@ -455,27 +455,6 @@ summary:focus-visible,
   font-size: 15.5px;
 }
 
-.btn-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--ink);
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--ink);
-  transition:
-    color 0.25s,
-    border-color 0.25s,
-    gap 0.25s;
-}
-.btn-link:hover {
-  gap: 12px;
-  color: var(--accent-deep);
-  border-bottom-color: var(--accent-deep);
-}
-
 /* ─────────────────────────────────────────────────────────────
    Site header — two tiers, sticky and opaque
 
@@ -1363,10 +1342,6 @@ summary:focus-visible,
 .chip-gold {
   background: var(--gold-soft);
   color: var(--gold-ink);
-}
-.chip-outline {
-  background: transparent;
-  border: 1px solid var(--ink-line-strong);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -2350,23 +2325,17 @@ summary:focus-visible,
 }
 
 @media (max-width: 900px) {
-  [data-row="sig-row"],
-  [data-row="matcha-row"],
   [data-row="visit-map-row"],
   [data-row="visit-book-row"],
   [data-row="private-row"],
   [data-row="founder-row"],
   [data-row="featured-row"],
-  [data-row="why-row"],
   [data-row="shop-head"] {
     grid-template-columns: 1fr !important;
     gap: 40px !important;
   }
 }
 @media (max-width: 820px) {
-  [data-row="press-row"],
-  [data-row="press-strip"],
-  [data-row="handles-row"],
   [data-row="pour-row"],
   [data-row="press-wall"],
   [data-row="trust-row"],
@@ -3021,49 +2990,6 @@ summary:focus-visible,
 }
 
 /* Visit page */
-.visit-hero {
-  position: relative;
-  min-height: 60vh;
-  padding: clamp(40px, 5vw, 72px) 0 clamp(40px, 6vw, 80px);
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-.visit-hero-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-.visit-hero-bg > div {
-  width: 100%;
-  height: 100%;
-}
-.visit-hero-overlay {
-  position: absolute;
-  inset: 0;
-  /* Two layers. The horizontal one sits under the copy column: the scene has
-     its own lettering (a shopfront sign, a menu board), and at the old uniform
-     0.4 it showed through the headline — two different texts in the same
-     place. The scene stays legible on the right, where nothing is written. */
-  background:
-    linear-gradient(
-      90deg,
-      rgba(20, 16, 11, 0.78) 0%,
-      rgba(20, 16, 11, 0.66) 42%,
-      rgba(20, 16, 11, 0.24) 78%,
-      rgba(20, 16, 11, 0.24) 100%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(20, 16, 11, 0.3) 0%,
-      rgba(20, 16, 11, 0.62) 100%
-    );
-}
-.visit-hero-content {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-}
 
 /* ── Visit map ─────────────────────────────────────────────────────────────
    A real embedded map rather than an illustration: this page exists to get
@@ -3290,137 +3216,18 @@ select {
 }
 
 /* Hero stats row (PageHome) — used inline in pages.tsx */
-[data-row="home-hero-stats"] {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 30px;
-}
-@media (max-width: 560px) {
-  [data-row="home-hero-stats"] {
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-}
-@media (max-width: 380px) {
-  [data-row="home-hero-stats"] {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
 
 /* Home – "01 Il locale" split row + 4-col stats card */
-[data-row="locale-head"] {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 30px;
-  align-items: end;
-  margin-bottom: 30px;
-}
-@media (max-width: 640px) {
-  [data-row="locale-head"] {
-    grid-template-columns: 1fr;
-    gap: 18px;
-  }
-}
-[data-row="locale-grid"] {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 30px;
-  padding: 24px;
-  border-radius: var(--r-md);
-  background: var(--bg-warm);
-}
-@media (max-width: 900px) {
-  [data-row="locale-grid"] {
-    grid-template-columns: 1fr 1fr;
-    gap: 22px;
-  }
-}
-@media (max-width: 480px) {
-  [data-row="locale-grid"] {
-    grid-template-columns: 1fr;
-    gap: 18px;
-    padding: 18px;
-  }
-}
 
 /* Home – signature row inner stats grid */
-[data-row="sig-stats"] {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-top: 30px;
-}
-@media (max-width: 380px) {
-  [data-row="sig-stats"] {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
 
 /* Home – matcha row inner grids */
-[data-row="matcha-imgs"] {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-[data-row="matcha-stats"] {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-top: 30px;
-}
-@media (max-width: 480px) {
-  [data-row="matcha-imgs"] {
-    gap: 12px;
-  }
-  [data-row="matcha-stats"] {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
 
 /* Home – shop preview section heads + grid */
-[data-row="section-head-split"] {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 30px;
-  align-items: end;
-  margin-bottom: 50px;
-}
-@media (max-width: 640px) {
-  [data-row="section-head-split"] {
-    grid-template-columns: 1fr;
-    gap: 18px;
-    margin-bottom: 30px;
-  }
-}
 
 /* Home – shop preview grid (inline 3-col override) */
-.shop-grid-preview {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-@media (max-width: 900px) {
-  .shop-grid-preview {
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-  }
-}
-@media (max-width: 480px) {
-  .shop-grid-preview {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* Press row 4-col on home — override 820px rule (already 2-col); add 480px 1-col */
-@media (max-width: 480px) {
-  [data-row="press-row"] {
-    grid-template-columns: 1fr !important;
-    gap: 20px !important;
-  }
-}
 
 /* Menu page — notes 3-col -> tablet 1-col */
 @media (max-width: 720px) {
@@ -3626,10 +3433,6 @@ select {
     gap: 10px;
     font-size: 13px;
   }
-  .footer-trust-icon {
-    width: 38px;
-    height: 38px;
-  }
 }
 
 /* Newsletter form: stack vertically on phones for full-width control */
@@ -3670,12 +3473,6 @@ select {
 }
 
 /* Reduce hero section bottom padding on phones */
-@media (max-width: 640px) {
-  .visit-hero {
-    padding: 36px 0 40px;
-    min-height: auto;
-  }
-}
 
 /* Product card quick actions — always visible on touch devices */
 @media (hover: none), (max-width: 720px) {
