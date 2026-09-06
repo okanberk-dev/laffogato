@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 
 import {
@@ -109,13 +110,13 @@ export function KaraokeBooking({
             düştü; ekibimiz onayladığında haber vereceğiz.
           </p>
           <div className="cta-row">
-            <a href="/uye/hesap" className="btn btn-primary">
+            <Link href="/uye/hesap" className="btn btn-primary">
               Hesabıma git
               <span className="arrow">→</span>
-            </a>
-            <a href="/" className="btn btn-ghost">
+            </Link>
+            <Link href="/" className="btn btn-ghost">
               Anasayfa
-            </a>
+            </Link>
           </div>
         </div>
       </main>

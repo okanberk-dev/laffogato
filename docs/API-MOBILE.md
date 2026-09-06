@@ -1,9 +1,22 @@
 # API-MOBILE — laffogato.net ↔ uygulama sözleşmesi (v1)
 
 > Bu belge iki deponun ortak sözleşmesidir. Site tarafı `RiosenBeq/laffogato`
-> (`src/app/api/mobile/v1/**`), uygulama tarafı `src/data/http.ts` +
-> `src/data/queries.ts` bu belgeye göre yazılır. **Belge önce, kod sonra.**
-> Kopyası site deposunda `docs/API-MOBILE.md` olarak durur; ikisi aynı olmalı.
+> (`src/app/api/mobile/v1/**`), uygulama tarafı **`RiosenBeq/lafmobil`**
+> (`src/data/http.ts` + `src/data/queries.ts`) bu belgeye göre yazılır.
+> **Belge önce, kod sonra.** Kopyası site deposunda `docs/API-MOBILE.md`
+> olarak durur; ikisi aynı olmalı.
+>
+> **v1 kırılmaz.** Uygulama mağazadan yayınlanmış sürümlerle sahada; eski
+> sürümler güncellenmeden aynı uçlara istek atar. Alan silme/yeniden
+> adlandırma, tip değiştirme, zorunlu yeni istek alanı ve kimlik yöntemi
+> değişikliği yok — yalnız ekleme. Kırıcı değişiklik gerekiyorsa `/v2` açılır.
+>
+> **Web ile ortak iş mantığı uçtan değil kütüphaneden paylaşılır.** Web'in
+> kimliği bcrypt çerez oturumu, uygulamanınki Supabase bearer token'ı; web bir
+> mobil ucu HTTP ile çağıramaz. Saf kuralları `*-core` modülünde tut, iki yüzey
+> de aynı fonksiyonu çağırsın — bkz. §7 karaoke (`karaoke-core.ts`, web
+> `/karaoke` sayfası ile `POST /karaoke/reservations` aynı
+> `createReservation`'a iner).
 
 Kaynak tasarım: operatörün Claude Design belgesi "Laffogato App v2" (28 ekran).
 Karar kayıtları: `docs/DESIGN-UYGULAMA.md`.

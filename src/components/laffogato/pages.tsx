@@ -1,14 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import {
-  useCallback,
-  useState,
-  useEffect,
-  useMemo,
-  useRef,
-  Fragment,
-} from "react";
+import { useCallback, useState, useMemo, useRef, Fragment } from "react";
 
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";

@@ -9,6 +9,9 @@ import {
 import { VerifyNotice } from "@/components/customer/verify-notice";
 import { customerOrdersByEmail, listPromos } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
+import { isDbUnreachable } from "@/lib/db/health";
+import { getLoyalty } from "@/lib/mobile/loyalty";
+import type { LoyaltyView } from "@/lib/mobile/loyalty-core";
 
 import { formatTRY, STATUS_LABEL } from "./shared";
 
@@ -21,6 +24,19 @@ export default async function HesapPage() {
     customerOrdersByEmail(customer.email),
     listPromos(),
   ]);
+
+  // The stamp card, with the reader's own stamps on it. The home page shows
+  // the programme; this is the only page that knows who is looking. A failure
+  // here must not take the dashboard down with it — the member still needs
+  // their orders and addresses.
+  let loyalty: LoyaltyView | null = null;
+  try {
+    loyalty = await getLoyalty(customer.email);
+  } catch (err) {
+    if (!isDbUnreachable(err)) {
+      console.error("[uye/hesap] getLoyalty", err);
+    }
+  }
 
   const totalSpent = orders
     .filter((o) =>
@@ -65,6 +81,40 @@ export default async function HesapPage() {
           hint={`${customer.wishlist.length} favori · ${customer.addresses.length} adres`}
         />
       </div>
+
+      {loyalty && (
+        <div className="loyalty-card account-loyalty">
+          <div className="loyalty-card-head">
+            <span className="eyebrow on-dark">
+              L’Af Ödüller · uygulama ile tek hesap
+            </span>
+            <span className="loyalty-tier">{loyalty.tierLabel}</span>
+          </div>
+          <div className="stamp-grid">
+            {Array.from({ length: loyalty.stampTarget }, (_, i) => {
+              const filled = i < loyalty.stamps;
+              const reward = i === loyalty.stampTarget - 1;
+              return (
+                <div
+                  key={i}
+                  className={`stamp ${filled ? "filled" : ""} ${reward && !filled ? "reward" : ""}`}
+                >
+                  {filled ? "✓" : reward ? "★" : ""}
+                </div>
+              );
+            })}
+          </div>
+          <div className="loyalty-headline">
+            {loyalty.rewardsReady > 0
+              ? `Ücretsiz içeceğin hazır${loyalty.rewardsReady > 1 ? ` — ${loyalty.rewardsReady} adet` : ""}.`
+              : `${loyalty.stampTarget - loyalty.stamps} damga kaldı — sonraki içecek bizden.`}
+          </div>
+          <p className="account-loyalty-note">
+            Web’den ya da uygulamadan verilen her sipariş bir damga. Damgan,
+            kuponların ve seviyen iki tarafta da aynı.
+          </p>
+        </div>
+      )}
 
       <AccountCard
         title="Son siparişler"

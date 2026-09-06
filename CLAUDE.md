@@ -32,6 +32,41 @@ yapılır.
 - **Dil:** Arayüz **Türkçe**. Kod, dosya adı, identifier, commit mesajı
   **İngilizce**
 
+## Mobil Uygulama — `RiosenBeq/lafmobil`
+
+Bu site tek başına değil. **Aynı markanın mobil uygulaması `RiosenBeq/lafmobil`
+deposunda yaşıyor** (Expo / React Native) ve verisini bu depodaki
+`src/app/api/mobile/v1/**` uçlarından alıyor. İki depo tek bir sözleşmeye
+bakar: `docs/API-MOBILE.md` — kopyası her iki depoda durur ve **ikisi aynı
+olmalıdır**.
+
+> **`/api/mobile/v1` sözleşmesini BOZMA.** Uygulama mağazadan yayınlanmış
+> sürümlerle sahada; eski sürümler güncellenmeden aynı uçlara istek atmaya
+> devam eder. v1 içinde **yalnız ekleme** yapılır:
+>
+> - Alan **silme**, **yeniden adlandırma**, tip değiştirme yok.
+> - Zorunlu yeni istek alanı yok (yeni alan opsiyonel + varsayılanlı olmalı).
+> - Hata kodları, HTTP durum kodları ve kimlik doğrulama yöntemi
+>   (`Authorization: Bearer <Supabase JWT>`) değişmez.
+> - Kırıcı bir değişiklik gerekiyorsa `/v2` açılır; v1 ayakta kalır.
+> - Uç davranışını değiştiren her PR'da `docs/API-MOBILE.md` **aynı PR'da**
+>   güncellenir ve `lafmobil` tarafına haber verilir.
+
+**İş mantığını web ile paylaşırken uçtan değil kütüphaneden geç.** Web'in
+kimliği bcrypt çerez oturumu, uygulamanınki Supabase bearer token'ı — web bir
+mobil ucu HTTP ile çağıramaz. Doğru desen: ortak kuralları saf bir `*-core`
+modülünde tut, veritabanına dokunan yarıyı ayrı dosyada bırak, iki yüzey de
+aynı fonksiyonu çağırsın. Örnekler: `src/lib/mobile/karaoke-core.ts` ↔
+`karaoke.ts` (web `/karaoke` sayfası ile mobil uç aynı `createReservation`'a
+iner), `loyalty-core.ts` ↔ `loyalty.ts`.
+
+**Tasarım paritesi kısmi.** 2 Eyl 2026'da site paleti uygulamanınkine
+(`lafmobil/src/theme/tokens.ts`) eşitlenmişti; 5 Eyl 2026 Köşk yeniden
+tasarımı zemini beyaza, ikincil vurguyu terracotta'ya taşıdı. Yeşiller hâlâ
+örtüşüyor. Uygulamayı da aynı yöne çekmek gerekirse taşınacak dosya
+`lafmobil/src/theme/tokens.ts`; site tarafındaki karar `globals.css :root` ve
+`tests/brand-theme.test.ts` içinde yazılı.
+
 ## Klasör Yapısı
 
 ```
@@ -150,14 +185,14 @@ TEST_DATABASE_URL=postgres://user@host:5432/db npm test
 
 `.env.example` referans. Local için `.env.local` doldur:
 
-| Değişken                         | Amaç                                               |
-| -------------------------------- | -------------------------------------------------- |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin giriş kimliği                                |
-| `ADMIN_SESSION_SECRET`           | Cookie HMAC anahtarı (≥32 karakter)                |
-| `PAYMENT_PROVIDER`               | `mock` (varsayılan)                                |
-| `PAYMENT_WEBHOOK_SECRET`         | Webhook HMAC anahtarı                              |
+| Değişken                         | Amaç                                                      |
+| -------------------------------- | --------------------------------------------------------- |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin giriş kimliği                                       |
+| `ADMIN_SESSION_SECRET`           | Cookie HMAC anahtarı (≥32 karakter)                       |
+| `PAYMENT_PROVIDER`               | `mock` (varsayılan)                                       |
+| `PAYMENT_WEBHOOK_SECRET`         | Webhook HMAC anahtarı                                     |
 | `DATABASE_URL`                   | Postgres bağlantı dizesi (sağlayıcının pooled endpoint'i) |
-| `NEXT_PUBLIC_SITE_URL`           | metadataBase                                       |
+| `NEXT_PUBLIC_SITE_URL`           | metadataBase                                              |
 
 **NODE_ENV asla manuel set edilmez.** Next.js kendi yönetir.
 
@@ -288,6 +323,10 @@ durum bozulmaya uygundur.
 - **Mail/SMS bildirimleri** MVP dışı (sonra Resend/Twilio)
 - **Multi-language** MVP dışı (sadece TR)
 - Auth sağlayıcısını değiştirme işine kullanıcıdan onay almadan başlama
+- **`/api/mobile/v1` uçlarının sözleşmesini kırma** — alan silme/yeniden
+  adlandırma, zorunlu yeni alan, kimlik yöntemi değişikliği yok. Sahadaki
+  `lafmobil` sürümleri bu uçlara bağlı; ayrıntı yukarıda "Mobil Uygulama"
+  başlığında
 
 ## Sık Karşılaşılan Hatalar
 

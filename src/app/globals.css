@@ -5738,6 +5738,17 @@ select {
   padding-top: clamp(20px, 3vw, 36px);
 }
 
+/* Pages that paint their own full-bleed ground get no outer padding at all —
+   otherwise the shell's white strip shows above their background. */
+.site-chrome-body:has(> .auth-page) {
+  padding-top: 0;
+}
+.auth-page {
+  /* The header takes its own space now; a full 100vh underneath it pushed the
+     card down and left a scroll on a page that has nothing to scroll to. */
+  min-height: min(70vh, 620px);
+}
+
 /* 404 — centered, editorial, no illustration heavier than the brand seal.
    An error page should read as calm and on-brand, not alarming. */
 .not-found-page {
@@ -7195,4 +7206,21 @@ select {
 .karaoke-done {
   padding: clamp(40px, 7vw, 88px) 0;
   max-width: 60ch;
+}
+
+/* The member's own stamp card on the account dashboard. Reuses the home
+   page's loyalty card, which is a single column here rather than half of a
+   two-column block. */
+.account-loyalty {
+  margin-bottom: 18px;
+}
+.account-loyalty .stamp-grid {
+  max-width: 420px;
+}
+.account-loyalty-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 52ch;
 }
