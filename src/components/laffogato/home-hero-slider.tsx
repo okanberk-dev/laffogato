@@ -18,8 +18,17 @@ const AUTOPLAY_MS = 7000;
  */
 export function HomeHeroSlider({
   onAction,
+  content,
+  heroImageUrl,
 }: {
   onAction: (action: HomeSlideAction) => void;
+  /** Admin-editable copy (/admin/icerik). The first slide's kicker and body
+      come from `home.hero.eyebrow` / `home.hero.lede` when an operator has
+      set them — the rewrite had orphaned both fields, so the panel was
+      offering two controls that changed nothing. */
+  content?: Record<string, string>;
+  /** Ayarlar → "Hero görsel URL": overrides the first slide's photograph. */
+  heroImageUrl?: string;
 }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -74,6 +83,12 @@ export function HomeHeroSlider({
           >
             {HOME_SLIDES.map((s, i) => {
               const hidden = i !== index;
+              // Only the first slide is operator-editable; the other two are
+              // fixed editorial.
+              const kicker =
+                (i === 0 && content?.["home.hero.eyebrow"]) || s.kicker;
+              const text = (i === 0 && content?.["home.hero.lede"]) || s.text;
+              const photo = (i === 0 && heroImageUrl) || s.photo;
               return (
                 <div
                   className="home-hero-slide"
@@ -96,13 +111,13 @@ export function HomeHeroSlider({
                       className="home-hero-kicker"
                       style={{ color: s.kickerInk }}
                     >
-                      {s.kicker}
+                      {kicker}
                     </span>
                     <h2 className="home-hero-title" style={{ color: s.ink }}>
                       {s.title}
                     </h2>
                     <p className="home-hero-text" style={{ color: s.bodyInk }}>
-                      {s.text}
+                      {text}
                     </p>
                     <div className="home-hero-actions">
                       <button
@@ -127,7 +142,7 @@ export function HomeHeroSlider({
                   </div>
                   <div className="home-hero-photo">
                     <img
-                      src={s.photo}
+                      src={photo}
                       alt={s.alt}
                       style={{ objectPosition: s.pos }}
                       /* The first slide is the LCP element; the other two are

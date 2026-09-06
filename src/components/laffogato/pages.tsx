@@ -104,6 +104,7 @@ export function PageHome({
   content,
   visit,
   settings,
+  heroImageUrl,
 }: PageProps) {
   // Operator-editable at /admin/ayarlar; the phone already reads it from
   // bootstrap, so the web quoting a constant was the odd one out.
@@ -222,7 +223,11 @@ export function PageHome({
         mağaza, karaoke ve ziyaret bilgileri.
       </h1>
 
-      <HomeHeroSlider onAction={onSlideAction} />
+      <HomeHeroSlider
+        onAction={onSlideAction}
+        content={content}
+        heroImageUrl={heroImageUrl}
+      />
 
       {/* Promo tiles ─────────────────────────────────────────── */}
       <section className="home-tiles" aria-label="Kısayollar">
@@ -454,8 +459,8 @@ export function PageHome({
                 Altı damga, bir içecek bizden.
               </h2>
               <p>
-                Web’den ya da uygulamadan verilen her kafe siparişi bir damga.
-                Altıncı damga 90 gün geçerli ücretsiz içecek kuponuna dönüşür.
+                Uygulamadan verilen her kafe siparişi bir damga. Altıncı damga
+                90 gün geçerli ücretsiz içecek kuponuna dönüşür.
               </p>
               <div className="cta-row">
                 <a href="/uye/hesap" className="btn btn-light">
