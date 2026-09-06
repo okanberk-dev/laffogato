@@ -9,6 +9,7 @@ import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
 import { GUIDE_LINKS } from "@/lib/seo/guide-nav";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
+import { priceLabel } from "@/lib/utils/format";
 
 import { NewsletterForm } from "./newsletter-form";
 import { ROUTE_PATHS, type Route } from "./route-paths";
@@ -95,9 +96,18 @@ interface NavProps {
   cart?: number;
   onCart?: () => void;
   onSearch?: () => void;
+  /** Operator settings — the utility strip quotes the live courier fee. */
+  settings?: FooterSettings;
 }
 
-export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
+export function Nav({
+  route,
+  navigate,
+  cart,
+  onCart,
+  onSearch,
+  settings,
+}: NavProps) {
   const [open, setOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<Route | null>(null);
   const [mobileSection, setMobileSection] = useState<Route | null>(null);
@@ -173,10 +183,16 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
           <div className="topbar-inner">
             <span>Her gün 09:00 - 01:00 · Tuzla</span>
             <span className="topbar-sep" aria-hidden="true" />
-            <span className="topbar-soft">Gel‑al 15 dk · kurye 55₺</span>
+            <span className="topbar-soft">
+              Gel‑al 15 dk · kurye{" "}
+              {priceLabel(settings?.courierFeeMinor ?? 5500)}
+            </span>
             <span className="topbar-right">
               <a href={`tel:${SITE.phoneE164}`}>{SITE.phone}</a>
-              <a href="/uye/hesap" className="topbar-app">
+              {/* The account page is where the app links live, and it is
+                  login-gated — send signed-out visitors to sign-up instead of
+                  bouncing them off a login wall. */}
+              <a href="/uye/kayit" className="topbar-app">
                 Uygulamayı indir ↗
               </a>
             </span>
@@ -597,6 +613,8 @@ export interface FooterSettings {
   phone?: string;
   email?: string;
   address?: string;
+  /** Courier fee in kuruş, from /admin/ayarlar. */
+  courierFeeMinor?: number;
 }
 
 interface FooterProps {

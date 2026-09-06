@@ -9,7 +9,7 @@ import { useDialog } from "./use-dialog";
 
 import type { MenuCategory, Product } from "./data";
 import { EspressoCup, PhotoSurface, ProductSurface } from "./visuals";
-import { parsePriceLabel } from "@/lib/utils/format";
+import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
 
 export interface CartItem {
   /** Stable product id — preferred match key for merge + server resolution. */
@@ -93,7 +93,7 @@ export function ProductCard({
     e.preventDefault();
     if (onOpen) onOpen(p);
   };
-  const label = p.name.split("-")[0].trim().split(" ")[0];
+  const label = shortProductName(p.name).split(" ")[0];
   const href = p.slug ? productPath(p.slug) : undefined;
 
   return (
@@ -152,10 +152,10 @@ export function ProductCard({
               onClick={(e) => e.stopPropagation()}
               style={{ color: "inherit", textDecoration: "none" }}
             >
-              {p.name.split("-")[0].trim()}
+              {shortProductName(p.name)}
             </a>
           ) : (
-            p.name.split("-")[0].trim()
+            shortProductName(p.name)
           )}
         </h3>
         <div className="product-card-price">
@@ -462,7 +462,7 @@ export function CartDrawer({
                           lineHeight: 1.2,
                         }}
                       >
-                        {it.name.split("-")[0].trim()}
+                        {shortProductName(it.name)}
                       </div>
                       {it.variantName && (
                         <div
@@ -750,7 +750,7 @@ function ProductModalBody({
   wishlist?: string[];
   isAuthenticated?: boolean;
 }) {
-  const label = p.name.split("-")[0].trim().split(" ")[0];
+  const label = shortProductName(p.name).split(" ")[0];
   const isFavorite = !!(p.id && wishlist?.includes(p.id));
   const variants = (p.variants ?? []).filter((v) => v.isActive !== false);
   const [variantId, setVariantId] = useState<string | undefined>(

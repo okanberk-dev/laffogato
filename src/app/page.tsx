@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 // template so the brand isn't appended twice. The same string is used for
 // og:title and twitter:title — the page used to publish three different
 // titles, so a shared link and a search result named different things.
-const HOME_TITLE = "Tuzla'da İtalyan Kahve, Affogato & Gelato — L'Affogato";
+const HOME_TITLE = "Tuzla'da İtalyan Kahve, Affogato & Gelato - L'Affogato";
 
 /**
  * Read from the admin's Ayarlar → SEO tab, with the defaults above as the
@@ -61,7 +61,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       Number.isFinite(remain) && remain >= 0 ? ` (kalan: ${remain})` : "";
     notice = `Üzgünüz, "${item ?? "ürün"}" için yeterli stok yok${tail}. Sepetinden adedini azaltıp tekrar dene.`;
   } else if (cart === "empty") {
-    notice = "Sepetin boş — bir affogato seçip dene.";
+    notice = "Sepetin boş - bir affogato seçip dene.";
   } else if (cart === "shop_closed") {
     notice =
       "Mağaza şu an siparişe kapalı. Birazdan tekrar dener misin? Sepetin korunuyor.";

@@ -252,6 +252,7 @@ export function LaffogatoApp({
         <Nav
           route={route}
           navigate={navigate}
+          settings={settings}
           cart={0}
           onCart={() => setCartOpen(true)}
           onSearch={() => setSearchOpen(true)}
@@ -259,6 +260,7 @@ export function LaffogatoApp({
         <main id="main">
           <Page
             navigate={navigate}
+            settings={settings}
             addToCart={addToCart}
             openProduct={setProductOpen}
             products={products}
@@ -286,6 +288,7 @@ export function LaffogatoApp({
       <Nav
         route={route}
         navigate={navigate}
+        settings={settings}
         cart={cartCount}
         onCart={() => setCartOpen(true)}
         onSearch={() => setSearchOpen(true)}
@@ -293,6 +296,7 @@ export function LaffogatoApp({
       <main id="main">
         <Page
           navigate={navigate}
+          settings={settings}
           addToCart={addToCart}
           openProduct={setProductOpen}
           products={products}

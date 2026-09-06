@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { Product } from "./data";
 import { ProductCard, toCartItem, type CartItem } from "./ui";
 import { ProductSurface } from "./visuals";
-import { parsePriceLabel } from "@/lib/utils/format";
+import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
 
 const CART_STORAGE_KEY = "laffogato_cart_v1";
 
@@ -118,7 +118,7 @@ export function ProductDetail({
           <span aria-hidden>/</span>
           <Link href="/magaza">Mağaza</Link>
           <span aria-hidden>/</span>
-          <span>{p.name.split("-")[0].trim()}</span>
+          <span>{shortProductName(p.name)}</span>
         </nav>
 
         <div className="pdp-grid">

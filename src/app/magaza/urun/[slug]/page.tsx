@@ -16,6 +16,7 @@ import {
 import { breadcrumbLd, singleProductLd } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/lib/seo/json-ld";
 import { SITE } from "@/lib/seo/site";
+import { shortProductName } from "@/lib/utils/format";
 
 export const dynamic = "force-dynamic";
 
@@ -173,7 +174,7 @@ export default async function ProductDetailPage({ params }: RouteParams) {
   const breadcrumb = breadcrumbLd([
     { name: "Ana Sayfa", url: "/" },
     { name: "Mağaza", url: "/magaza" },
-    { name: product.name.split("—")[0].trim(), url: PATH(slug) },
+    { name: shortProductName(product.name), url: PATH(slug) },
   ]);
   const productJsonLd = singleProductLd(product, PATH(slug), settings);
 

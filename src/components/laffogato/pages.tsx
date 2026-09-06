@@ -4,7 +4,7 @@ import { useCallback, useState, useMemo, useRef, Fragment } from "react";
 
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
-import { parsePriceLabel } from "@/lib/utils/format";
+import { parsePriceLabel, priceLabel } from "@/lib/utils/format";
 import { useDialog } from "./use-dialog";
 
 import { ShopHeroSlider, type ShopHeroSlide } from "./shop-hero-slider";
@@ -19,7 +19,7 @@ import {
   type HomeSlideAction,
 } from "./data";
 import type { MenuCategory } from "./data";
-import { ProductCard, SectionHead, Stat, CartItem, toCartItem } from "./ui";
+import { ProductCard, SectionHead, Stat, CartItem } from "./ui";
 import type { Product } from "./data";
 import { ROUTE_PATHS, type Route } from "./chrome";
 import {
@@ -61,6 +61,13 @@ function priceOf(p: Product): number {
 
 interface PageProps {
   navigate: (r: Route) => void;
+  /** Operator settings from /admin/ayarlar (contact + courier fee). */
+  settings?: {
+    phone?: string;
+    email?: string;
+    address?: string;
+    courierFeeMinor?: number;
+  };
   addToCart: (item: CartItem) => void;
   openProduct: (p: Product | null) => void;
   /** Live products fed from the admin store; falls back to design seed. */
@@ -93,17 +100,15 @@ interface PageProps {
 
 export function PageHome({
   navigate,
-  addToCart,
-  products,
   menu,
   content,
   visit,
+  settings,
 }: PageProps) {
+  // Operator-editable at /admin/ayarlar; the phone already reads it from
+  // bootstrap, so the web quoting a constant was the odd one out.
+  const courierFee = priceLabel(settings?.courierFeeMinor ?? 5500);
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
-  // `[]` means "the shop really has nothing to show" — during a database
-  // outage in particular — and must stay empty. Only `undefined` (no data
-  // passed at all) falls back to the bundled design catalogue.
-  const shopProducts = products ?? PRODUCTS;
   const liveMenu = menu ?? MENU;
   const railRef = useRef<HTMLDivElement>(null);
 
@@ -170,19 +175,20 @@ export function PageHome({
     el.scrollBy({ left: dir * 306, behavior: reduced ? "auto" : "smooth" });
   };
 
-  /** The seasonal drink the first slide offers to add. It is a shop product
-      when the catalogue carries one, and nothing at all otherwise — never a
-      fabricated line. */
-  const seasonal = shopProducts.find((p) =>
-    /strawberry|çilek/i.test(`${p.name} ${p.tag}`),
-  );
-
   const onSlideAction = (action: HomeSlideAction) => {
     switch (action) {
       case "menu":
         navigate("menu");
         break;
+      case "seasonMenu":
+        // The Strawberry Aşkı trio lives in the matcha bar.
+        window.location.href = "/menu/matcha";
+        break;
       case "signature":
+        // The L'Affogato itself is a cafe menu item, not a shop product, so
+        // "see the product" means its menu category.
+        window.location.href = "/menu/espresso";
+        break;
       case "story":
         navigate("story");
         break;
@@ -191,10 +197,6 @@ export function PageHome({
         break;
       case "karaoke":
         window.location.href = "/karaoke";
-        break;
-      case "addSeasonal":
-        if (seasonal) addToCart(toCartItem(seasonal));
-        else navigate("menu");
         break;
     }
   };
@@ -240,7 +242,7 @@ export function PageHome({
               <span className="home-tile-body">
                 <span className="home-tile-title">Gel‑al · 15 dk</span>
                 <span className="home-tile-sub">
-                  Kurye Tuzla içi 55₺, 25-35 dk
+                  Kurye Tuzla içi {courierFee}, 25-35 dk
                 </span>
               </span>
             </a>
@@ -568,7 +570,12 @@ export function PageHome({
 export function PageMenu({ menu }: PageProps) {
   const liveMenu = menu ?? MENU;
   const cats = Object.keys(liveMenu);
-  const [active, setActive] = useState<string>("all");
+  // A single-category menu means this is /menu/<kategori>, which is scoped
+  // server-side. Starting on "all" there made the page announce itself as
+  // "Menü · Hepsi" and lost the category the URL promised.
+  const [active, setActive] = useState<string>(
+    cats.length === 1 ? cats[0] : "all",
+  );
   const [query, setQuery] = useState("");
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -1897,7 +1904,8 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
    VISIT
    ────────────────────────────────────────────────────────────── */
 
-export function PageVisit({ visit }: PageProps) {
+export function PageVisit({ visit, settings }: PageProps) {
+  const courierFee = priceLabel(settings?.courierFeeMinor ?? 5500);
   const addressLines = visit?.addressLines ?? LOCATION.address;
   const visitPhone = visit?.phone ?? LOCATION.phone;
   const visitEmail = visit?.email ?? LOCATION.email;
@@ -1996,7 +2004,7 @@ export function PageVisit({ visit }: PageProps) {
                   <div className="visit-stat-l">gece kapanış</div>
                 </div>
                 <div>
-                  <div className="visit-stat-n">55₺</div>
+                  <div className="visit-stat-n">{courierFee}</div>
                   <div className="visit-stat-l">Tuzla içi kurye</div>
                 </div>
                 <div>

@@ -850,11 +850,11 @@ export const PRODUCTS: Product[] = [
     can never point at a screen that does not exist. */
 export type HomeSlideAction =
   | "menu"
+  | "seasonMenu"
   | "signature"
   | "story"
   | "visit"
-  | "karaoke"
-  | "addSeasonal";
+  | "karaoke";
 
 export interface HomeSlide {
   kicker: string;
@@ -882,7 +882,7 @@ export const HOME_SLIDES: HomeSlide[] = [
     title: "Çilek ve matcha, aynı bardakta.",
     text: "Taze çilek katmanı üzerine çırpılmış Uji matcha ve soğuk süt. Sezon boyunca barda.",
     primary: { label: "Menüye göz at", action: "menu" },
-    secondary: { label: "Sepete ekle", action: "addSeasonal" },
+    secondary: { label: "Sezonu gör", action: "seasonMenu" },
     photo: "/photos/drinks-tray.webp",
     alt: "Terasta soğuk içecekler",
     pos: "50% 50%",

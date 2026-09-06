@@ -39,3 +39,22 @@ export function parsePriceLabel(display: string): number {
   const value = Number(cleaned);
   return Number.isFinite(value) ? value : 0;
 }
+
+/**
+ * The display name without its qualifier: "Sirena — Espresso Blend" → "Sirena".
+ *
+ * Splits on a dash SURROUNDED BY WHITESPACE, and accepts every dash glyph. Two
+ * reasons it cannot just split on one character:
+ *
+ * 1. Product names come from the admin panel, and the rows already in the
+ *    database still carry the em dash the site's own copy has since dropped.
+ * 2. A bare `split("-")` truncates any name that merely contains a hyphen —
+ *    "Cold Brew Tonic - 250ml" would render as "Cold Brew Tonic", and an
+ *    operator naming a product "E-5 Blend" would lose everything after "E".
+ *
+ * A name with no separator comes back whole.
+ */
+export function shortProductName(name: string): string {
+  const head = name.split(/\s+[-‐‑‒–—]\s+/)[0];
+  return head.trim() || name.trim();
+}

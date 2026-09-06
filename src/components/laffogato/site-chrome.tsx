@@ -65,6 +65,7 @@ export function SiteChrome({
         İçeriğe geç
       </a>
       <Nav
+        settings={settings}
         cart={cartCount}
         onSearch={() => {
           window.location.href = "/magaza";

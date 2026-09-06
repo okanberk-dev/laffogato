@@ -67,6 +67,7 @@ export async function loadAppProps({
         phone: settings.phone,
         email: settings.email,
         address: settings.address,
+        courierFeeMinor: settings.courierFeeMinor,
       },
       menu,
       wishlist: customer?.wishlist,

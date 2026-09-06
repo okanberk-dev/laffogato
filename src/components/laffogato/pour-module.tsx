@@ -64,6 +64,7 @@ function loadWidget(): Promise<void> {
 export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
   const host = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  const [settled, setSettled] = useState(false);
 
   useEffect(() => {
     const mount = host.current;
@@ -102,9 +103,12 @@ export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
           element.setAttribute("name", "laffogato-cup");
           mount.appendChild(element);
           setReady(true);
+          setSettled(true);
         })
         .catch(() => {
-          /* The card keeps its wash and its copy; only the cup is missing. */
+          // The card keeps its wash and its copy; only the cup is missing —
+          // but the caption must stop claiming it is still loading.
+          if (!cancelled) setSettled(true);
         });
     };
 
@@ -121,6 +125,7 @@ export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
       conn?.effectiveType === "slow-2g" ||
       conn?.effectiveType === "2g"
     ) {
+      setSettled(true);
       return () => {
         cancelled = true;
       };
@@ -189,7 +194,7 @@ export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
           </div>
           <div className="pour-module-stage-wrap">
             <div className="pour-module-stage" ref={host} />
-            {!ready && (
+            {!ready && !settled && (
               <div className="pour-module-loading" aria-hidden="true">
                 Kupa yükleniyor…
               </div>

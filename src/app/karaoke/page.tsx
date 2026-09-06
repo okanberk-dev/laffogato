@@ -65,7 +65,15 @@ export default async function KaraokePage({ searchParams }: PageProps) {
   // real calendar, so the grid can never show a slot that was taken while
   // the page sat open.
   const requested = tarih && isCalendarDate(tarih) ? tarih : clock.date;
-  const days = nextDays(clock.date, 7);
+  // How far ahead the room can be booked is an operator setting
+  // (/admin/mobil/ayarlar → karaoke.bookingWindowDays); the strip used to
+  // offer a fixed week regardless, so a shorter window still showed days the
+  // server would refuse.
+  const windowDays = Math.max(
+    1,
+    Math.min(14, settings.mobileApp.karaoke.bookingWindowDays),
+  );
+  const days = nextDays(clock.date, windowDays);
   const date = days.includes(requested) ? requested : clock.date;
 
   const customer = await getActiveCustomer();

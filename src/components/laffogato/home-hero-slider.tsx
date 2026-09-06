@@ -84,8 +84,11 @@ export function HomeHeroSlider({
                   aria-label={`${i + 1} / ${HOME_SLIDES.length}`}
                   /* Off-screen slides stay in the DOM for the transition but
                      must not be reachable by tab or read out by a screen
-                     reader — `inert` takes their controls out of both. */
-                  {...(hidden ? { inert: "" as unknown as boolean } : {})}
+                     reader. React 19 takes `inert` as a real boolean prop —
+                     the string form it inherited from HTML is dropped, which
+                     left the off-screen slides tabbable inside an aria-hidden
+                     subtree (the worst of both worlds for a screen reader). */
+                  inert={hidden}
                   aria-hidden={hidden || undefined}
                 >
                   <div className="home-hero-copy">

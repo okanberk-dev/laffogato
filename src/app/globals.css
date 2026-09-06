@@ -1765,7 +1765,10 @@ summary:focus-visible,
 .stamp-grid {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  /* Auto-fit rather than a fixed six: the stamp target is operator-editable
+     (/admin/mobil/ayarlar → loyalty.stampTarget) and the account card renders
+     exactly that many cells. */
+  grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
   gap: 9px;
 }
 .stamp {
@@ -1983,6 +1986,10 @@ summary:focus-visible,
 .footer ul a:hover,
 .footer-linkish:hover {
   color: #fff;
+}
+.footer-contact-col .footer-contact-mono {
+  font-size: 13px;
+  letter-spacing: 0.01em;
 }
 .footer-contact-col li {
   color: rgba(255, 255, 255, 0.82);
@@ -2452,6 +2459,17 @@ summary:focus-visible,
   font-size: 14px;
   line-height: 1.65;
   color: var(--ink-soft);
+}
+
+/* Horizontal strips that scroll without showing a scrollbar: the menu
+   category pills, the karaoke day strip. Applied in TSX; the dead-rule sweep
+   removed it by mistake. */
+.scroller {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scroller::-webkit-scrollbar {
+  display: none;
 }
 
 /* Menu search field */
@@ -5540,11 +5558,6 @@ select {
 .site-chrome-body:has(> .auth-page) {
   padding-top: 0;
 }
-.auth-page {
-  /* The header takes its own space now; a full 100vh underneath it pushed the
-     card down and left a scroll on a page that has nothing to scroll to. */
-  min-height: min(70vh, 620px);
-}
 
 /* 404 — centered, editorial, no illustration heavier than the brand seal.
    An error page should read as calm and on-brand, not alarming. */
@@ -6667,7 +6680,10 @@ select {
    ============================================================ */
 
 .auth-page {
-  min-height: 100vh;
+  /* Not 100vh: the header takes its own space in the flow now, so a full
+     viewport underneath it pushed the card down and left the page scrolling
+     with nothing to scroll to. */
+  min-height: min(70vh, 620px);
   display: grid;
   place-items: center;
   padding: clamp(40px, 8vw, 80px) var(--gutter);

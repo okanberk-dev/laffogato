@@ -30,6 +30,12 @@ export default async function HesapPage() {
   // here must not take the dashboard down with it — the member still needs
   // their orders and addresses.
   let loyalty: LoyaltyView | null = null;
+  /**
+   * `stamps` is the balance MODULO the card size, so a member holding a full
+   * card reads 0 — computeStampBalance returns {stamps: 0, rewardsReady: 1}
+   * for exactly six of six. Drawing that literally gave them an empty card
+   * under the words "your free drink is ready".
+   */
   try {
     loyalty = await getLoyalty(customer.email);
   } catch (err) {
@@ -55,6 +61,12 @@ export default async function HesapPage() {
   );
 
   const recentOrders = orders.slice(0, 3);
+
+  const filledStamps = loyalty
+    ? loyalty.rewardsReady > 0
+      ? loyalty.stampTarget
+      : loyalty.stamps
+    : 0;
 
   return (
     <AccountShell customer={customer} active="dashboard">
@@ -139,12 +151,12 @@ export default async function HesapPage() {
           <div className="stamp-card-head">
             <span className="eyebrow muted">Damga kartı</span>
             <span className="stamp-card-count">
-              {loyalty.stamps}/{loyalty.stampTarget}
+              {filledStamps}/{loyalty.stampTarget}
             </span>
           </div>
           <div className="stamp-grid stamp-grid-light">
             {Array.from({ length: loyalty.stampTarget }, (_, i) => {
-              const filled = i < loyalty.stamps;
+              const filled = i < filledStamps;
               const reward = i === loyalty.stampTarget - 1;
               return (
                 <div
@@ -166,7 +178,7 @@ export default async function HesapPage() {
           >
             <div
               style={{
-                width: `${Math.round((loyalty.stamps / loyalty.stampTarget) * 100)}%`,
+                width: `${Math.round((filledStamps / loyalty.stampTarget) * 100)}%`,
               }}
             />
           </div>
