@@ -154,7 +154,8 @@ db/
   schema.sql                 → Üretilen tek dosyalık şema (`npm run db:bundle`)
 scripts/                     → db-migrate.mjs · db-bundle.mjs
 tests/                       → 30 vitest dosyası
-docs/                        → DATABASE.md · SEO.md · PROMPT.md · AUDIT.md ·
+docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
+                               SEO.md · PROMPT.md · AUDIT.md ·
                                API-MOBILE.md (mobil sözleşme) · AUTH-BRIDGE.md ·
                                SUPABASE-GECIS.md
 ```
@@ -233,6 +234,9 @@ durum bozulmaya uygundur.
 - Mağaza bozulmada **boş** kalır, paketteki kurgusal ürünlere düşmez.
 
 ## Tasarım Sistemi
+
+> Tam marka kılavuzu: **`docs/BRAND.md`** — her token, ölçülmüş kontrast
+> oranları, tipografi ölçeği, bileşen dili ve değiştirme kuralları.
 
 - **Renk:** `globals.css :root` tek kaynak. Dört kâğıt tonu (`--bg`,
   `--bg-warm`, `--bg-stone`, `--bg-cream`), espresso mürekkep ailesi, terracotta
