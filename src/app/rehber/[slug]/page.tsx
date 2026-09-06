@@ -177,7 +177,7 @@ export default async function GuidePage({
           )}
           <div className="guide-cta">
             <p>
-              Tuzla&apos;daki köşkte hepsini tadabilirsin — menüye göz at ya da
+              Tuzla&apos;daki köşkte hepsini tadabilirsin - menüye göz at ya da
               çekirdeği eve götür.
             </p>
             <div className="guide-cta-actions">

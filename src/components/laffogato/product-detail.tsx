@@ -118,7 +118,7 @@ export function ProductDetail({
           <span aria-hidden>/</span>
           <Link href="/magaza">Mağaza</Link>
           <span aria-hidden>/</span>
-          <span>{p.name.split("—")[0].trim()}</span>
+          <span>{p.name.split("-")[0].trim()}</span>
         </nav>
 
         <div className="pdp-grid">
@@ -205,7 +205,7 @@ export function ProductDetail({
                 {outOfStock ? (
                   <span data-tone="out">● Şu an tükendi</span>
                 ) : lowStock ? (
-                  <span data-tone="low">● Son {stock} adet — acele et</span>
+                  <span data-tone="low">● Son {stock} adet - acele et</span>
                 ) : (
                   <span data-tone="in">● Stokta · hemen kargo</span>
                 )}
@@ -315,7 +315,7 @@ export function ProductDetail({
               </Accordion>
               <Accordion title="Teslimat & kargo">
                 <p>
-                  İstanbul içi siparişler aynı gün, Türkiye geneli 2–3 iş günü
+                  İstanbul içi siparişler aynı gün, Türkiye geneli 2-3 iş günü
                   içinde teslim edilir. 500₺ ve üzeri siparişlerde kargo
                   ücretsizdir. Sipariş durumunu üyelik hesabından takip
                   edebilirsin.

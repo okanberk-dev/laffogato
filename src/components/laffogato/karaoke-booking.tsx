@@ -218,7 +218,7 @@ export function KaraokeBooking({
             </div>
             {startHour !== null && !blockIsFree(startHour, hours) && (
               <div className="karaoke-hint karaoke-hint-warn">
-                {hourLabel(startHour)}’dan itibaren {hours} saat boş değil —
+                {hourLabel(startHour)}’dan itibaren {hours} saat boş değil -
                 daha kısa bir süre ya da başka bir saat seç.
               </div>
             )}

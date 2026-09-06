@@ -171,7 +171,7 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
         {/* Utility strip — hours, fulfilment promise, phone, app link. */}
         <div className="topbar">
           <div className="topbar-inner">
-            <span>Her gün 09:00 – 01:00 · Tuzla</span>
+            <span>Her gün 09:00 - 01:00 · Tuzla</span>
             <span className="topbar-sep" aria-hidden="true" />
             <span className="topbar-soft">Gel‑al 15 dk · kurye 55₺</span>
             <span className="topbar-right">
@@ -303,7 +303,7 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
               </a>
               <button
                 className="nav-pill nav-pill-solid"
-                aria-label={`Sepetim — ${cartCount} ürün`}
+                aria-label={`Sepetim - ${cartCount} ürün`}
                 {...cartHandler}
               >
                 Sepet
@@ -582,7 +582,7 @@ function DropdownPanel({
         <div className="nav-dropdown-foot">
           <span className="nav-dropdown-foot-mark">L'A</span>
           <span className="nav-dropdown-foot-line">
-            Bologna 1987 —{" "}
+            Bologna 1987 -{" "}
             {parentRoute === "menu"
               ? "tre rituali, un menù"
               : "dalla bottega alla casa"}
@@ -600,7 +600,7 @@ export interface FooterSettings {
 }
 
 interface FooterProps {
-  /** Optional SPA navigate — when provided, links call it (no full nav).
+  /** Optional SPA navigate - when provided, links call it (no full nav).
       When absent (non-SPA pages), links are plain anchors to real routes. */
   navigate?: (r: Route) => void;
   settings?: FooterSettings;
@@ -653,7 +653,7 @@ export function Footer({ navigate, settings }: FooterProps) {
             }}
           >
             Yeni sezon affogati, Bologna kavurma notları, küçük gelato
-            denemeleri. Hiçbir zaman ayda birden fazla — söz veriyoruz.
+            denemeleri. Hiçbir zaman ayda birden fazla - söz veriyoruz.
           </p>
         </div>
         <NewsletterForm />
@@ -667,7 +667,7 @@ export function Footer({ navigate, settings }: FooterProps) {
           </div>
           <div className="footer-mark-script">caffè italiano · est. 1987</div>
           <p>
-            Bologna 1987’den İstanbul Tuzla’ya. İlk yurt dışı şubemiz — 200
+            Bologna 1987’den İstanbul Tuzla’ya. İlk yurt dışı şubemiz - 200
             yıllık, Rum’lardan kalma restore bir köşkte.
           </p>
           <div className="footer-social">
@@ -782,7 +782,7 @@ export function Footer({ navigate, settings }: FooterProps) {
             <li className="footer-contact-mono">{email}</li>
             <li className="footer-contact-hours">
               <span>Her gün</span>
-              <span className="tabular">09:00 — 01:00</span>
+              <span className="tabular">09:00 - 01:00</span>
             </li>
           </ul>
         </div>
@@ -804,4 +804,4 @@ export function Footer({ navigate, settings }: FooterProps) {
 
 /** Vergi levhasındaki gerçek tüzel kişi. Footer'da uydurma bir ticaret
     unvanı yazıyordu ve bu, /hukuk altındaki sözleşmelerle çelişiyordu. */
-const SITE_LEGAL_NAME = `${SITE.name} — ${LEGAL_ENTITY.shortName}`;
+const SITE_LEGAL_NAME = `${SITE.name} - ${LEGAL_ENTITY.shortName}`;

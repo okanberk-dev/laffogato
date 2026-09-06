@@ -1129,15 +1129,15 @@ export const GUIDE_CONTENT: GuideSource[] = [
         table: [
           {
             key: "Krem peynir (tam yağlı)",
-            value: "1000 g — temel oran, 100 kabul edilir",
+            value: "1000 g - temel oran, 100 kabul edilir",
           },
           {
             key: "Toz şeker",
-            value: "350-400 g — peynirin %35-40'ı",
+            value: "350-400 g - peynirin %35-40'ı",
           },
           {
             key: "Krema (min. %35 yağ)",
-            value: "450-500 ml — peynirin %45-50'si",
+            value: "450-500 ml - peynirin %45-50'si",
           },
           {
             key: "Yumurta (L boy)",
@@ -1145,11 +1145,11 @@ export const GUIDE_CONTENT: GuideSource[] = [
           },
           {
             key: "Un",
-            value: "20-30 g — peynirin %2-3'ü",
+            value: "20-30 g - peynirin %2-3'ü",
           },
           {
             key: "Tuz",
-            value: "2-3 g — karameli dengeler",
+            value: "2-3 g - karameli dengeler",
           },
           {
             key: "Kalıp",

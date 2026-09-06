@@ -22,7 +22,7 @@ export function DegradedAuthNotice() {
         marginBottom: 18,
       }}
     >
-      Hesap servisimize şu an ulaşamıyoruz — giriş ve kayıt geçici olarak
+      Hesap servisimize şu an ulaşamıyoruz - giriş ve kayıt geçici olarak
       çalışmıyor. Kısa süre içinde döneceğiz.
     </p>
   );

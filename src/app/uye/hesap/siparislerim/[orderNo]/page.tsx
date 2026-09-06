@@ -164,7 +164,7 @@ export default async function OrderDetailPage({
 
       <AccountCard title="Teslimat bilgileri">
         <div style={{ display: "grid", gap: 14, fontSize: 14 }}>
-          <DetailRow k="Alıcı" v={order.customerName || "—"} />
+          <DetailRow k="Alıcı" v={order.customerName || "-"} />
           <DetailRow k="E-posta" v={order.customerEmail} />
           {order.customerPhone && (
             <DetailRow k="Telefon" v={order.customerPhone} />
@@ -197,7 +197,7 @@ export default async function OrderDetailPage({
           }}
         >
           {consent
-            ? "Siparişini verirken onayladığın belgeler — kalıcı veri saklayıcısı olarak buradan istediğin zaman okuyabilir, yazdırabilirsin."
+            ? "Siparişini verirken onayladığın belgeler - kalıcı veri saklayıcısı olarak buradan istediğin zaman okuyabilir, yazdırabilirsin."
             : "Siparişlerine uygulanan sözleşme ve politikalar:"}
         </p>
         <ul
@@ -229,7 +229,7 @@ export default async function OrderDetailPage({
             lineHeight: 1.6,
           }}
         >
-          Siparişinde değişiklik veya iade için bizimle iletişime geç —{" "}
+          Siparişinde değişiklik veya iade için bizimle iletişime geç -{" "}
           <a
             href="mailto:info@nextgenlab.com.tr"
             style={{

@@ -1195,11 +1195,11 @@ export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
    ───────────────────────────────────────────────────────────── */
 
 /* ─────────────────────────────────────────────────────────────
-   Auto plate — picks scene by item name
+   Auto plate - picks scene by item name
    ───────────────────────────────────────────────────────────── */
 
 /* ─────────────────────────────────────────────────────────────
-   Menu art router — which drawing a menu item gets
+   Menu art router - which drawing a menu item gets
    ───────────────────────────────────────────────────────────── */
 
 /**
@@ -1208,12 +1208,12 @@ export function BarRenderScene({ time = "golden" }: { time?: string } = {}) {
  * The category key decides the *family* (a dessert is a slice, a smoothie is a
  * blended glass); the item name only refines the flavour inside that family.
  * Before this existed the router matched on the name alone, so every item that
- * did not look like an espresso, a matcha or an affogato — lemonade, salep,
- * cheesecake, a sandwich — fell through to `EspressoCup` and a soda rendered as
+ * did not look like an espresso, a matcha or an affogato - lemonade, salep,
+ * cheesecake, a sandwich - fell through to `EspressoCup` and a soda rendered as
  * a hot coffee.
  */
 /**
- * The drawing family a menu item resolves to — the same decision `menuArt`
+ * The drawing family a menu item resolves to - the same decision `menuArt`
  * makes, exposed as a plain string so `tests/menu-visuals.test.ts` can assert
  * that no category silently collapses back onto the espresso cup.
  */
@@ -1437,7 +1437,7 @@ function dessertArt(lower: string): React.ReactNode {
   );
 }
 
-/** Surface tint behind the drawing — category first, then flavour. */
+/** Surface tint behind the drawing - category first, then flavour. */
 function menuHue(cat: string, lower: string, fallback: string): string {
   if (/affogato/.test(lower)) return "caramel";
   if (/strawberry|çilek/.test(lower)) return "rose";
@@ -1477,7 +1477,7 @@ export function MenuPlate({
 }: {
   hue?: string;
   name?: string;
-  /** Menu category key — the authoritative signal for which drawing to use. */
+  /** Menu category key - the authoritative signal for which drawing to use. */
   cat?: string;
   /** Real product photo (transparent PNG/WebP). Falls back to the drawn scene. */
   image?: string;
@@ -1533,7 +1533,7 @@ export function MenuPlate({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Product surface — for shop cards
+   Product surface - for shop cards
    ───────────────────────────────────────────────────────────── */
 
 export function ProductSurface({
@@ -1550,7 +1550,7 @@ export function ProductSurface({
   sub?: string;
   /** Admin-uploaded image URLs; when present the first is shown instead of SVG. */
   images?: string[];
-  /** Set for above-the-fold (LCP) images — eager + high fetch priority. */
+  /** Set for above-the-fold (LCP) images - eager + high fetch priority. */
   priority?: boolean;
 }) {
   const surface =

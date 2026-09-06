@@ -22,7 +22,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Çalışma saatleri nedir?",
-    a: "Her gün 09:00 — 01:00 saatleri arasında açığız. Tüm yıl hizmet veriyoruz — yalnız 1 Ocak günü kapalıyız; köşkün avlusu yaz aylarında, yüksek tavanlı iç salonları kış aylarında kullanılır. Üst katta karaoke odamız var.",
+    a: "Her gün 09:00 - 01:00 saatleri arasında açığız. Tüm yıl hizmet veriyoruz - yalnız 1 Ocak günü kapalıyız; köşkün avlusu yaz aylarında, yüksek tavanlı iç salonları kış aylarında kullanılır. Üst katta karaoke odamız var.",
   },
   {
     q: "L'Affogato nedir, menüde nasıl servis ediliyor?",
@@ -30,7 +30,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Rezervasyon yapabilir miyim?",
-    a: "Rezervasyon yalnızca telefonla alınıyor: +90 536 429 09 19. Site üzerinden masa ayırtma özelliği yok. Hafta sonu akşam servisleri için 24 saat öncesinden aramanızı öneririz — 12 koltuklu küçük bir köşk barıyız, masalar sınırlı.",
+    a: "Rezervasyon yalnızca telefonla alınıyor: +90 536 429 09 19. Site üzerinden masa ayırtma özelliği yok. Hafta sonu akşam servisleri için 24 saat öncesinden aramanızı öneririz - 12 koltuklu küçük bir köşk barıyız, masalar sınırlı.",
   },
   {
     q: "Vegan veya glutensiz seçeneğiniz var mı?",
@@ -42,7 +42,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Online sipariş ve kargo var mı?",
-    a: "Çekirdek kahve (Sirena espresso blend, Notturna filter lot), Uji matcha, edible cup kutuları, ekipman (Bialetti moka, porselen takım, bambu chasen) ve hediye setleri online satıyoruz. Türkiye geneli 1–3 iş günü kargo. Tatlılar, sandviçler ve tüm bar içecekleri sadece mekanda servis edilir.",
+    a: "Çekirdek kahve (Sirena espresso blend, Notturna filter lot), Uji matcha, edible cup kutuları, ekipman (Bialetti moka, porselen takım, bambu chasen) ve hediye setleri online satıyoruz. Türkiye geneli 1-3 iş günü kargo. Tatlılar, sandviçler ve tüm bar içecekleri sadece mekanda servis edilir.",
   },
   {
     q: "Kahve nereden geliyor, kim kavuruyor?",

@@ -148,7 +148,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
               Saatler
             </h3>
             <div style={{ lineHeight: 1.6, fontSize: 14 }}>
-              Her gün: 09:00 — 01:00
+              Her gün: 09:00 - 01:00
             </div>
           </div>
           <div>
@@ -173,7 +173,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
             site's highest-traffic surfaces rather than the footer alone. */}
         <div style={{ marginTop: 48 }}>
           <h3 className="eyebrow" style={{ marginBottom: 14 }}>
-            Daha fazlası — Rehber
+            Daha fazlası - Rehber
           </h3>
           <ul
             style={{
@@ -221,7 +221,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
           <strong style={{ color: "rgba(20, 16, 11, 0.85)" }}>
             L&rsquo;Affogato Italia · sede principale
           </strong>{" "}
-          — {SITE.parent.address}. İstanbul Tuzla şubesi, 1987&rsquo;de
+          - {SITE.parent.address}. İstanbul Tuzla şubesi, 1987&rsquo;de
           Bologna&rsquo;da kurulan markanın İtalya dışındaki ilk şubesidir. Tüm
           kahve, Bologna&rsquo;da Mancuso ailesi tarafından haftalık olarak
           kavrulur; matcha Japonya Uji bölgesinden, pistacchio Sicilya

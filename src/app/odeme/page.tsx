@@ -31,7 +31,7 @@ const CHECKOUT_NOTICES: Record<string, string> = {
   consent:
     "Siparişi tamamlamak için Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi onayı zorunludur. Lütfen onay kutusunu işaretleyin.",
   payment:
-    "Ödeme tamamlanamadı. Kartınızdan tahsilat yapılmadı — dilerseniz tekrar deneyebilirsiniz.",
+    "Ödeme tamamlanamadı. Kartınızdan tahsilat yapılmadı - dilerseniz tekrar deneyebilirsiniz.",
 };
 
 export default async function OdemePage({
@@ -124,7 +124,7 @@ export default async function OdemePage({
                 marginBottom: 22,
               }}
             >
-              Mağaza geçici olarak siparişe kapalı. Sepetin korunuyor — birazdan
+              Mağaza geçici olarak siparişe kapalı. Sepetin korunuyor - birazdan
               tekrar denersen kaldığın yerden devam edebilirsin.
             </p>
             <Link href="/#shop" className="btn btn-primary btn-sm">
@@ -152,7 +152,7 @@ export default async function OdemePage({
               }}
             >
               Güvenliğin için siparişler yalnızca doğrulanmış hesaplarla
-              verilebilir. Giriş yap ya da hızlıca bir hesap oluştur — e-postanı
+              verilebilir. Giriş yap ya da hızlıca bir hesap oluştur - e-postanı
               onayladıktan sonra ödemeye devam edebilirsin.
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>

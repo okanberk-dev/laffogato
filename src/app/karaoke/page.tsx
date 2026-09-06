@@ -16,7 +16,7 @@ import { KaraokeBooking } from "@/components/laffogato/karaoke-booking";
 
 export const dynamic = "force-dynamic";
 
-const TITLE = "Karaoke Odası Rezervasyonu — Tuzla | L'Affogato";
+const TITLE = "Karaoke Odası Rezervasyonu - Tuzla | L'Affogato";
 const DESCRIPTION =
   "Köşkün üst katında özel karaoke odası. Gün ve saat seç, kişi sayısını gir, rezervasyonunu web'den ya da uygulamadan tamamla.";
 

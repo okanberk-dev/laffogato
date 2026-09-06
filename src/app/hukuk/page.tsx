@@ -48,7 +48,7 @@ export default function HukukIndexPage() {
           <p className="lede" style={{ maxWidth: "56ch" }}>
             Sipariş öncesi okumanız gereken sözleşmeler, gizlilik politikamız ve
             kullanıcı haklarınız. Hepsi Türk mevzuatına göre hazırlandı; soru
-            varsa yazın — birlikte adım atalım.
+            varsa yazın - birlikte adım atalım.
           </p>
         </header>
 

@@ -390,7 +390,7 @@ function ReviewStep({
   return (
     <section className="checkout-step">
       <header className="checkout-step-head">
-        <span className="eyebrow">01 — Sepet</span>
+        <span className="eyebrow">01 - Sepet</span>
         <h2 className="h2" style={{ marginTop: 8 }}>
           Sepetini <span className="script">incele.</span>
         </h2>
@@ -479,7 +479,7 @@ function ShippingStep({
   return (
     <section className="checkout-step">
       <header className="checkout-step-head">
-        <span className="eyebrow">02 — Teslimat</span>
+        <span className="eyebrow">02 - Teslimat</span>
         <h2 className="h2" style={{ marginTop: 8 }}>
           Nereye <span className="script">gelsin?</span>
         </h2>
@@ -546,7 +546,7 @@ function ShippingStep({
                 >
                   ücretsiz üye ol
                 </Link>{" "}
-                — yine de misafir olarak devam edebilirsin.
+                - yine de misafir olarak devam edebilirsin.
               </p>
             </div>
           )}
@@ -661,7 +661,7 @@ function PaymentStep({
   return (
     <section className="checkout-step">
       <header className="checkout-step-head">
-        <span className="eyebrow">03 — Ödeme</span>
+        <span className="eyebrow">03 - Ödeme</span>
         <h2 className="h2" style={{ marginTop: 8 }}>
           Güvenli <span className="script">kapanış.</span>
         </h2>

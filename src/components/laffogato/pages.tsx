@@ -230,7 +230,7 @@ export function PageHome({
               <span className="home-tile-body">
                 <span className="home-tile-title">Gel‑al · 15 dk</span>
                 <span className="home-tile-sub">
-                  Kurye Tuzla içi 55₺, 25–35 dk
+                  Kurye Tuzla içi 55₺, 25-35 dk
                 </span>
               </span>
             </a>
@@ -330,7 +330,7 @@ export function PageHome({
                     <a
                       className="rail-card-media"
                       href={it.href}
-                      aria-label={`${it.name} — menüde gör`}
+                      aria-label={`${it.name} - menüde gör`}
                     >
                       <MenuPlate
                         hue={it.hue}
@@ -478,7 +478,7 @@ export function PageHome({
                 ))}
               </div>
               <div className="loyalty-headline">
-                Altıncı içecek bizden — hesabında biriksin.
+                Altıncı içecek bizden - hesabında biriksin.
               </div>
             </div>
           </div>
@@ -776,13 +776,13 @@ export function PageMenu({ menu }: PageProps) {
               <div className="eyebrow muted">Self-servis</div>
               <p>
                 Menüye buradan göz at, beğendiğini barda söyle. Sipariş ve
-                servis bardan verilir — garson beklemeden.
+                servis bardan verilir - garson beklemeden.
               </p>
             </div>
             <div>
               <div className="eyebrow muted">Alerjenler</div>
               <p>
-                Süt, gluten, kuruyemiş, soya — mutfağımızda çapraz temas
+                Süt, gluten, kuruyemiş, soya - mutfağımızda çapraz temas
                 olabilir. Cölyak için baristaya bildirin, pirinç bisküvili
                 alternatif hazırlarız.
               </p>
@@ -929,7 +929,7 @@ export function PageShop({
         <div
           style={{ fontFamily: "var(--mono)", fontSize: 13, marginBottom: 16 }}
         >
-          {priceMin}₺ — {priceTop}₺
+          {priceMin}₺ - {priceTop}₺
         </div>
         <div style={{ position: "relative", height: 28 }}>
           <div
@@ -1023,7 +1023,7 @@ export function PageShop({
               lineHeight: 1.55,
             }}
           >
-            Espresso mu, filtre mi karar veremediysen — barista chat’i aç, sana
+            Espresso mu, filtre mi karar veremediysen - barista chat’i aç, sana
             yardımcı olalım.
           </p>
           <button
@@ -1053,12 +1053,12 @@ export function PageShop({
             data-row="shop-head"
           >
             <div>
-              <div className="eyebrow">III — La bottega</div>
+              <div className="eyebrow">III - La bottega</div>
               <h1 className="h1" style={{ marginTop: 24 }}>
                 <span className="script">Mağaza.</span>
               </h1>
               <p className="lede" style={{ marginTop: 22 }}>
-                Tuzla köşkünde servis ettiğimiz her şey — Bologna’da kavrulan
+                Tuzla köşkünde servis ettiğimiz her şey - Bologna’da kavrulan
                 çekirdek, 1994 patentli edible kup, bambu chasen, Bialetti ×
                 L’Affogato moka pot. Eve, ofise, hediyeye.
               </p>
@@ -1400,7 +1400,7 @@ export function PageShop({
           {[
             { k: "Bologna import", v: "Bologna kavurma · haftalık taze" },
             { k: "Aynı gün", v: "İstanbul içi · 14:00'a kadar" },
-            { k: "Avrupa kargo", v: "5–7 iş günü · DHL Express" },
+            { k: "Avrupa kargo", v: "5-7 iş günü · DHL Express" },
             { k: "14 gün iade", v: "Açılmamış ürünlerde kolay iade" },
           ].map((b, i) => (
             <div
@@ -1487,7 +1487,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
           <p className="story-hero-lede">
             {c(
               "story.hero.lede",
-              "İlk yurt dışı şubemiz — 200 yıllık, Rum’lardan kalma restore bir köşkte. İtalyan baba, İstanbullu anne: Eda Mancuso, büyükbabasının 1987’de açtığı L’Affogato barını üçüncü kuşak olarak devraldı ve 2026’da markayı doğduğu şehre getirdi.",
+              "İlk yurt dışı şubemiz - 200 yıllık, Rum’lardan kalma restore bir köşkte. İtalyan baba, İstanbullu anne: Eda Mancuso, büyükbabasının 1987’de açtığı L’Affogato barını üçüncü kuşak olarak devraldı ve 2026’da markayı doğduğu şehre getirdi.",
             )}
           </p>
 
@@ -1505,14 +1505,14 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
             <div>
               <img
                 src="/photos/interior-mirror.webp"
-                alt="Köşkün içi — terracotta duvar ve altın ayna"
+                alt="Köşkün içi - terracotta duvar ve altın ayna"
                 loading="lazy"
               />
             </div>
             <div>
               <img
                 src="/photos/interior-chest.webp"
-                alt="Köşkün içi — ahşap sandık ve vitrin"
+                alt="Köşkün içi - ahşap sandık ve vitrin"
                 loading="lazy"
               />
             </div>
@@ -1627,7 +1627,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
                 color: "var(--gold)",
               }}
             >
-              — Eda
+              - Eda
             </div>
           </div>
         </div>
@@ -1956,7 +1956,7 @@ export function PageVisit({ visit }: PageProps) {
                         <br />
                       </Fragment>
                     ))}
-                    Karaoke 12:00 — 24:00
+                    Karaoke 12:00 - 24:00
                     <br />
                     Mutfak 23:30’da kapanır
                   </p>
@@ -2112,7 +2112,7 @@ export function PageVisit({ visit }: PageProps) {
 
           <figure className="reveal r1 visit-map" style={{ margin: 0 }}>
             <iframe
-              title="L’Affogato — Tuzla konumu, Google Haritalar"
+              title="L’Affogato - Tuzla konumu, Google Haritalar"
               src={mapEmbedUrl}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
@@ -2153,7 +2153,7 @@ export function PageVisit({ visit }: PageProps) {
                 <>
                   {visitHours[0][0]},{" "}
                   <span className="script">
-                    {visitHours[0][1].replace(" — ", "–")}.
+                    {visitHours[0][1].replace(" - ", "-")}.
                   </span>
                 </>
               ) : (
@@ -2197,7 +2197,7 @@ export function PageVisit({ visit }: PageProps) {
                 Yarın · 27 Mayıs
               </div>
               <div style={{ fontFamily: "var(--serif-display)", fontSize: 18 }}>
-                09:00 — 01:00
+                09:00 - 01:00
               </div>
               <p
                 style={{
@@ -2343,7 +2343,7 @@ export function PageVisit({ visit }: PageProps) {
             >
               Rezervasyon yalnızca telefonla: <strong>{SITE.phone}</strong>. 90
               dk masa; iptal için en az 3 saat önce haber verin. Bar köşesi
-              rezervasyona kapalı — yürüyüşle gelin.
+              rezervasyona kapalı - yürüyüşle gelin.
             </div>
           </div>
         </div>
@@ -2473,7 +2473,7 @@ export function PageVisit({ visit }: PageProps) {
               ["24", "Koltuk"],
               ["90dk", "Demo süresi"],
               ["76m²", "Toplam alan"],
-              ["10–24", "Esnek saat"],
+              ["10-24", "Esnek saat"],
             ].map(([n, l]) => (
               <div
                 key={l}

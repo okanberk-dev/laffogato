@@ -93,7 +93,7 @@ export function ProductCard({
     e.preventDefault();
     if (onOpen) onOpen(p);
   };
-  const label = p.name.split("—")[0].trim().split(" ")[0];
+  const label = p.name.split("-")[0].trim().split(" ")[0];
   const href = p.slug ? productPath(p.slug) : undefined;
 
   return (
@@ -152,10 +152,10 @@ export function ProductCard({
               onClick={(e) => e.stopPropagation()}
               style={{ color: "inherit", textDecoration: "none" }}
             >
-              {p.name.split("—")[0].trim()}
+              {p.name.split("-")[0].trim()}
             </a>
           ) : (
-            p.name.split("—")[0].trim()
+            p.name.split("-")[0].trim()
           )}
         </h3>
         <div className="product-card-price">
@@ -420,7 +420,7 @@ export function CartDrawer({
                   marginRight: "auto",
                 }}
               >
-                Bir affogato, bir matcha, bir çekirdek paketi — eve ya da köşkün
+                Bir affogato, bir matcha, bir çekirdek paketi - eve ya da köşkün
                 bahçesine servise hazır.
               </p>
             </div>
@@ -462,7 +462,7 @@ export function CartDrawer({
                           lineHeight: 1.2,
                         }}
                       >
-                        {it.name.split("—")[0].trim()}
+                        {it.name.split("-")[0].trim()}
                       </div>
                       {it.variantName && (
                         <div
@@ -750,7 +750,7 @@ function ProductModalBody({
   wishlist?: string[];
   isAuthenticated?: boolean;
 }) {
-  const label = p.name.split("—")[0].trim().split(" ")[0];
+  const label = p.name.split("-")[0].trim().split(" ")[0];
   const isFavorite = !!(p.id && wishlist?.includes(p.id));
   const variants = (p.variants ?? []).filter((v) => v.isActive !== false);
   const [variantId, setVariantId] = useState<string | undefined>(
@@ -974,7 +974,7 @@ function ProductModalBody({
           <div
             style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}
           >
-            İstanbul içi aynı gün · Yurt içi 2–3 iş günü · 14 gün açılmamış
+            İstanbul içi aynı gün · Yurt içi 2-3 iş günü · 14 gün açılmamış
             ürünlerde iade.
           </div>
         </div>
@@ -1150,7 +1150,7 @@ export function SearchOverlay({
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Ürün veya menü ara — espresso, matcha, edible cup…"
+            placeholder="Ürün veya menü ara - espresso, matcha, edible cup…"
             aria-label="Ara"
           />
           <button onClick={onClose} className="search-close" aria-label="Kapat">
@@ -1162,7 +1162,7 @@ export function SearchOverlay({
           {term.length < 2 ? (
             <div className="search-hint">
               <span className="eyebrow">İpucu</span>
-              <p>En az 2 harf yaz — çekirdek, matcha, hediye, affogato…</p>
+              <p>En az 2 harf yaz - çekirdek, matcha, hediye, affogato…</p>
               <div className="search-suggest">
                 {["Affogato", "Matcha", "Edible cup", "Espresso", "Hediye"].map(
                   (s) => (

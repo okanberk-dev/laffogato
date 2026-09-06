@@ -56,7 +56,7 @@ function DegradedNotice() {
         lineHeight: 1.5,
       }}
     >
-      Şu an canlı verilerimize ulaşamıyoruz — menü ve mağaza geçici olarak
+      Şu an canlı verilerimize ulaşamıyoruz - menü ve mağaza geçici olarak
       güncel olmayabilir, sipariş alamıyoruz. Kısa süre içinde döneceğiz.
     </div>
   );

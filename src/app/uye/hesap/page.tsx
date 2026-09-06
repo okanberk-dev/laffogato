@@ -75,7 +75,7 @@ export default async function HesapPage() {
               Hesabın hazır. Buradan başlayabilirsin.
             </h2>
             <p>
-              Siparişlerin, damgaların ve adreslerin burada toplanır — web’de ve
+              Siparişlerin, damgaların ve adreslerin burada toplanır - web’de ve
               uygulamada aynı hesapla.
             </p>
           </div>
@@ -172,11 +172,11 @@ export default async function HesapPage() {
           </div>
           <div className="stamp-card-headline">
             {loyalty.rewardsReady > 0
-              ? `Ücretsiz içeceğin hazır${loyalty.rewardsReady > 1 ? ` — ${loyalty.rewardsReady} adet` : ""}.`
-              : `${loyalty.stampTarget - loyalty.stamps} damga kaldı — sonraki içecek bizden.`}
+              ? `Ücretsiz içeceğin hazır${loyalty.rewardsReady > 1 ? ` - ${loyalty.rewardsReady} adet` : ""}.`
+              : `${loyalty.stampTarget - loyalty.stamps} damga kaldı - sonraki içecek bizden.`}
           </div>
           <p className="stamp-card-note">
-            VERDE 0–11 · ARGENTO 12+ · ORO 36+ sipariş. Seviyen şu an{" "}
+            VERDE 0-11 · ARGENTO 12+ · ORO 36+ sipariş. Seviyen şu an{" "}
             <strong>{loyalty.tierLabel}</strong>. Web’den ya da uygulamadan
             verilen her sipariş bir damga; damgan, kuponların ve seviyen iki
             tarafta da aynı.

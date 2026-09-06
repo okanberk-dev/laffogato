@@ -275,7 +275,7 @@ export function localBusinessLd(settings?: LdSettings): Json {
     "@context": "https://schema.org",
     "@type": ["CafeOrCoffeeShop", "Restaurant"],
     "@id": `${SITE.url}/#localbusiness`,
-    name: `${SITE.name} — Tuzla`,
+    name: `${SITE.name} - Tuzla`,
     image: [`${SITE.url}${SITE.ogImage}`],
     logo: `${SITE.url}/icon-512.png`,
     url: SITE.url,
@@ -525,7 +525,7 @@ export function productListLd(
     name: scope ? scope.name : `${SITE.name} Mağaza`,
     description: scope
       ? scope.description
-      : "L'Affogato online mağaza — çekirdek kahve, edible cup, ekipman, hediye seti, giyim.",
+      : "L'Affogato online mağaza - çekirdek kahve, edible cup, ekipman, hediye seti, giyim.",
     ...(scope ? { url: `${SITE.url}${scope.path}` } : {}),
     numberOfItems: products.length,
     itemListOrder: "https://schema.org/ItemListOrderDescending",
@@ -715,7 +715,7 @@ function aboutPageLd(): Json {
     "@type": "AboutPage",
     "@id": `${SITE.url}/#about`,
     url: `${SITE.url}/hikayemiz`,
-    name: `${SITE.name} — Hikayemiz`,
+    name: `${SITE.name} - Hikayemiz`,
     inLanguage: LANG_TAG,
     description:
       "1987'den 2026'ya L'Affogato'nun İtalya'dan İstanbul'a uzanan üç kuşaklık hikayesi.",
@@ -779,7 +779,7 @@ function howToAffogatoLd(): Json {
         "@type": "HowToStep",
         position: 3,
         name: "Espresso'yu üzerine dök",
-        text: "Sıcak espresso'yu dondurmanın üzerine sirküler hareketle dök. Espresso dondurmayı \"boğar\" — affogato'nun adı buradan gelir.",
+        text: "Sıcak espresso'yu dondurmanın üzerine sirküler hareketle dök. Espresso dondurmayı \"boğar\" - affogato'nun adı buradan gelir.",
       },
       {
         "@type": "HowToStep",
@@ -829,7 +829,7 @@ export function siteNavigationLd(): Json {
     "@context": "https://schema.org",
     "@type": "ItemList",
     "@id": `${SITE.url}/#navigation`,
-    name: `${SITE.name} — bölümler`,
+    name: `${SITE.name} - bölümler`,
     itemListElement: [
       { name: "Menü", url: "/menu" },
       { name: "Mağaza", url: "/magaza" },

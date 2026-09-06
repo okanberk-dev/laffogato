@@ -6,9 +6,9 @@ import { GUIDES } from "@/lib/seo/guides";
 import { SITE } from "@/lib/seo/site";
 import { JsonLd } from "@/lib/seo/json-ld";
 
-const TITLE = "Rehber — Affogato, Matcha, Espresso ve Tatlılar";
+const TITLE = "Rehber - Affogato, Matcha, Espresso ve Tatlılar";
 const DESCRIPTION =
-  "Affogato nedir, matcha nasıl yapılır, flat white ile cortado farkı, San Sebastian cheesecake tarifi ve yenilebilir kahve fincanı — Tuzla'daki barın mutfağından ayrıntılı Türkçe rehberler.";
+  "Affogato nedir, matcha nasıl yapılır, flat white ile cortado farkı, San Sebastian cheesecake tarifi ve yenilebilir kahve fincanı - Tuzla'daki barın mutfağından ayrıntılı Türkçe rehberler.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -59,7 +59,7 @@ export default function GuideHubPage() {
           <p className="lede" style={{ maxWidth: "58ch" }}>
             Barın arkasında öğrendiklerimiz. Bir affogato neden hemen içilir,
             matcha neden kaynar suyla acılaşır, cortado ile flat white
-            arasındaki fark nedir — hepsi tek tek, uygulanabilir biçimde.
+            arasındaki fark nedir - hepsi tek tek, uygulanabilir biçimde.
           </p>
         </header>
 

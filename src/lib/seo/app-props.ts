@@ -100,12 +100,12 @@ export async function loadAppProps({
         email: settings.email,
         todayHours: todayH.closed
           ? "Bugün kapalı"
-          : `${todayH.open} — ${todayH.close}`,
+          : `${todayH.open} - ${todayH.close}`,
         hours: DAYS_OF_WEEK.map((d) => {
           const h = settings.weeklyHours[d];
           return [
             DAY_LABELS[d],
-            h.closed ? "Kapalı" : `${h.open} — ${h.close}`,
+            h.closed ? "Kapalı" : `${h.open} - ${h.close}`,
           ] as [string, string];
         }),
       },

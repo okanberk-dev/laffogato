@@ -158,7 +158,7 @@ export default async function PromosyonlarPage() {
 
       <AccountCard
         title="Kullanılabilir kodlar"
-        hint="Herkese açık kampanya kodları — sepet ekranında uygula"
+        hint="Herkese açık kampanya kodları - sepet ekranında uygula"
       >
         {usable.length === 0 ? (
           <EmptyState

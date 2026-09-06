@@ -35,7 +35,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
   home: {
     route: "home",
     path: ROUTE_PATHS.home,
-    title: `${SITE.name} — Caffè · Gelato · Dolci · Tuzla, İstanbul`,
+    title: `${SITE.name} - Caffè · Gelato · Dolci · Tuzla, İstanbul`,
     description: SITE.longDescription,
     breadcrumbLabel: "Ana Sayfa",
     priority: 1.0,
@@ -44,7 +44,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
   menu: {
     route: "menu",
     path: ROUTE_PATHS.menu,
-    title: "Menü — Matcha, Espresso, Buzlu Kahve, Tatlılar",
+    title: "Menü - Matcha, Espresso, Buzlu Kahve, Tatlılar",
     description:
       "L'Affogato Tuzla menüsü: matcha bar, espresso, buzlu kahveler, soğuk ve sıcak içecekler, frappe, smoothie, frozen, ice tea, tatlılar ve atıştırmalıklar. 12 kategori, 82 kalem.",
     keywords: [
@@ -62,7 +62,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
   shop: {
     route: "shop",
     path: ROUTE_PATHS.shop,
-    title: "Mağaza — Çekirdek Kahve, Edible Cup, Ekipman",
+    title: "Mağaza - Çekirdek Kahve, Edible Cup, Ekipman",
     description:
       "Çekirdek kahve, yenilebilir kup, moka pot ve hediye setleri L'Affogato online mağazada. Tüm Türkiye'ye hızlı kargo.",
     keywords: [
@@ -80,7 +80,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
   story: {
     route: "story",
     path: ROUTE_PATHS.story,
-    title: "Hikayemiz — 1987 Italia, 2026 İstanbul",
+    title: "Hikayemiz - 1987 Italia, 2026 İstanbul",
     description:
       "L'Affogato'nun hikayesi: 1987 Bologna'da Mancuso ailesinin açtığı ilk bardan 2026 İstanbul Tuzla'daki Rum köşküne uzanan üç kuşaklık gelenek.",
     keywords: [
@@ -96,9 +96,9 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
   visit: {
     route: "visit",
     path: ROUTE_PATHS.visit,
-    title: "Ziyaret — Tuzla, İstanbul",
+    title: "Ziyaret - Tuzla, İstanbul",
     description:
-      "L'Affogato Tuzla'da 200 yıllık Rum köşkünde kahve barı. Adres: Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla. Her gün 09:00 — 01:00 açık. Karaoke odası mevcut. Rezervasyon mümkün.",
+      "L'Affogato Tuzla'da 200 yıllık Rum köşkünde kahve barı. Adres: Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla. Her gün 09:00 - 01:00 açık. Karaoke odası mevcut. Rezervasyon mümkün.",
     keywords: [
       "Tuzla kafe adres",
       "Tuzla affogato yer",
@@ -137,9 +137,9 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "matcha",
     menuKey: "matcha",
-    title: "Matcha Bar — Strawberry Aşkı",
+    title: "Matcha Bar - Strawberry Aşkı",
     description:
-      "Siparişten sonra çırpılan ceremonial grade matcha. Matcha Latte, Strawberry Matcha ve Matcha Affogato — L'Affogato Tuzla matcha bar menüsü.",
+      "Siparişten sonra çırpılan ceremonial grade matcha. Matcha Latte, Strawberry Matcha ve Matcha Affogato - L'Affogato Tuzla matcha bar menüsü.",
     keywords: [
       "matcha bar Tuzla",
       "strawberry matcha",
@@ -157,7 +157,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "espresso",
     menuKey: "espresso",
-    title: "Espresso Based — Sıcak Kahveler",
+    title: "Espresso Based - Sıcak Kahveler",
     description:
       "L'Affogato, espresso, americano, latte, flat white, cappuccino, mocha, spanish latte, cortado, Türk kahvesi ve filtre kahve. Çoğu M ve L boy servis edilir.",
     keywords: [
@@ -177,7 +177,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "ice-coffee",
     menuKey: "ice-coffee",
-    title: "Ice Coffee — Buzlu Kahveler",
+    title: "Ice Coffee - Buzlu Kahveler",
     description:
       "Iced americano, iced caffè latte, iced mocha, iced spanish latte, cold brew ve çıtır latte. Buzlu kahvelerin tamamı M ve L boy hazırlanır.",
     keywords: [
@@ -197,7 +197,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "cold",
     menuKey: "cold",
-    title: "Cold Drinks — Soğuk İçecekler",
+    title: "Cold Drinks - Soğuk İçecekler",
     description:
       "Kahvesiz serinleticiler: günlük sürpriz karışım, cool lime, ev yapımı L'Af Limon, soda ve su.",
     keywords: [
@@ -216,7 +216,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "hot",
     menuKey: "hot",
-    title: "Hot Drinks — Sıcak İçecekler",
+    title: "Hot Drinks - Sıcak İçecekler",
     description:
       "Chai tea latte, sıcak çikolata, beyaz sıcak çikolata, karamelli sıcak çikolata, salep ve demlik çay.",
     keywords: [
@@ -230,7 +230,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "frappe",
     menuKey: "frappe",
-    title: "Frappe — Buzla Çırpılmış",
+    title: "Frappe - Buzla Çırpılmış",
     description:
       "Klasik frappe, espresso frappe, mocha frappe ve caramel frappe. Buzla çırpılır, yoğun köpüklü servis edilir.",
     keywords: ["frappe Tuzla", "espresso frappe", "mocha frappe İstanbul"],
@@ -239,7 +239,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "smoothie",
     menuKey: "smoothie",
-    title: "Smoothie — Meyve & Süt",
+    title: "Smoothie - Meyve & Süt",
     description:
       "Blueberry, mango ve apple smoothie ile protein shake. Taze meyve ve sütle çırpılır; alternatif süt talep edilebilir.",
     keywords: ["smoothie Tuzla", "protein shake İstanbul", "mango smoothie"],
@@ -248,7 +248,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "frozen",
     menuKey: "frozen",
-    title: "Frozen — Meyveli Frozen",
+    title: "Frozen - Meyveli Frozen",
     description:
       "Strawberry, raspberry, passionfruit ve pineapple frozen. Meyve püresi ve buzla hazırlanır; süt içermez.",
     keywords: ["frozen Tuzla", "çilekli frozen", "meyveli frozen İstanbul"],
@@ -257,7 +257,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "ice-tea",
     menuKey: "ice-tea",
-    title: "Ice Tea — Buzlu Çay",
+    title: "Ice Tea - Buzlu Çay",
     description:
       "Lemon tea ve peach tea. Buz ve taze meyve dilimiyle servis edilir.",
     keywords: ["buzlu çay Tuzla", "lemon ice tea", "şeftalili buzlu çay"],
@@ -266,7 +266,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "tatlilar",
     menuKey: "dessert",
-    title: "Tatlılar — Vitrinden",
+    title: "Tatlılar - Vitrinden",
     description:
       "San Sebastian cheesecake, Donostia, magnolia çeşitleri, marlenka, brownie, tiramisu ve dondurmalı cookie aşkı. Günlük hazırlanır.",
     keywords: [
@@ -286,7 +286,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "atistirmaliklar",
     menuKey: "snack",
-    title: "Atıştırmalıklar — Yanında",
+    title: "Atıştırmalıklar - Yanında",
     description:
       "Karabuğday simit, rosbeef ve hindi fümeli sandviç, granola bar, hindistan cevizli bar, kakao protein bar ve Koska fındık.",
     keywords: [
@@ -305,7 +305,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "extras",
     menuKey: "extras",
-    title: "Extras — Ekstralar",
+    title: "Extras - Ekstralar",
     description:
       "Her içeceğe eklenebilen aroma şurubu, ekstra espresso shot ve alternatif süt (yulaf, badem, laktozsuz).",
     keywords: ["alternatif süt Tuzla", "yulaf sütü kahve", "extra shot"],
@@ -327,7 +327,7 @@ export const SHOP_CATEGORY_ROUTES: ShopCategoryRoute[] = [
   {
     slug: "cekirdek",
     productCat: "beans",
-    title: "Çekirdek Kahve — Sirena & Notturna",
+    title: "Çekirdek Kahve - Sirena & Notturna",
     description:
       "Bologna'da kavrulan tek-origin çekirdek kahve. Sirena espresso blend (Brezilya + Etiyopya), Notturna filter lot (Kenya AA Nyeri). Whole bean, 200-250g paketler.",
     keywords: [
@@ -342,9 +342,9 @@ export const SHOP_CATEGORY_ROUTES: ShopCategoryRoute[] = [
   {
     slug: "hediye",
     productCat: "gift",
-    title: "Hediye Seti — Edible Cup & Affogato Kit",
+    title: "Hediye Seti - Edible Cup & Affogato Kit",
     description:
-      "Affogato Kit for Two: 200g Sirena, iki edible kup, porselen kaşık. 6'lı edible waffle cup kutusu. Mekan ritüelini eve taşı — özel kahveseverler için ideal hediye.",
+      "Affogato Kit for Two: 200g Sirena, iki edible kup, porselen kaşık. 6'lı edible waffle cup kutusu. Mekan ritüelini eve taşı - özel kahveseverler için ideal hediye.",
     keywords: [
       "kahve hediye seti",
       "affogato kit",
@@ -356,7 +356,7 @@ export const SHOP_CATEGORY_ROUTES: ShopCategoryRoute[] = [
   {
     slug: "ekipman",
     productCat: "gear",
-    title: "Ekipman — Moka Pot, Chasen, Cup Set",
+    title: "Ekipman - Moka Pot, Chasen, Cup Set",
     description:
       "Bialetti × L'Affogato 3-cup moka pot, bone china espresso cup seti, Nara'dan 80 dişli bambu chasen. Evde İtalyan ritüeli için seçilmiş ekipman.",
     keywords: [
@@ -371,7 +371,7 @@ export const SHOP_CATEGORY_ROUTES: ShopCategoryRoute[] = [
   {
     slug: "giyim",
     productCat: "merch",
-    title: "Giyim — Apron & Tumbler",
+    title: "Giyim - Apron & Tumbler",
     description:
       "Ağır kanvas önlük (deri boyun askısı, gravür L'Affogato amblemi), 350ml çift cidarlı emaye tumbler. Bar ekibinden esinlenilmiş günlük parçalar.",
     keywords: [
@@ -385,9 +385,9 @@ export const SHOP_CATEGORY_ROUTES: ShopCategoryRoute[] = [
   {
     slug: "kiler",
     productCat: "pantry",
-    title: "Kiler — Matcha & Cantucci",
+    title: "Kiler - Matcha & Cantucci",
     description:
-      "Japonya Uji ceremonial matcha (40g tin) ve Bronte pistacchio cantucci. Bar menümüzden eve uzanan saklayışlık raf — çekirdek harici tatlar.",
+      "Japonya Uji ceremonial matcha (40g tin) ve Bronte pistacchio cantucci. Bar menümüzden eve uzanan saklayışlık raf - çekirdek harici tatlar.",
     keywords: [
       "Uji matcha tin",
       "ceremonial matcha satın al",

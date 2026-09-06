@@ -116,7 +116,7 @@ export const MENU: Record<string, MenuCategory> = {
       },
       {
         name: "Cappuccino",
-        desc: "Espresso, buharlı süt ve bol köpük — eşit üç katman.",
+        desc: "Espresso, buharlı süt ve bol köpük - eşit üç katman.",
         price: "195₺",
         priceL: "210₺",
         hue: "cream",
@@ -291,7 +291,7 @@ export const MENU: Record<string, MenuCategory> = {
     title: "Cold Drinks",
     sub: "Soğuk içecekler",
     italian: "Bevande fredde",
-    note: "Kahvesiz serinleticiler — limonata, soda ve günlük sürpriz karışım.",
+    note: "Kahvesiz serinleticiler - limonata, soda ve günlük sürpriz karışım.",
     items: [
       {
         name: "Surprise Drink",
@@ -324,7 +324,7 @@ export const MENU: Record<string, MenuCategory> = {
     title: "Hot Drinks",
     sub: "Sıcak içecekler",
     italian: "Bevande calde",
-    note: "Kahvesiz sıcaklar — çikolata, salep ve çay.",
+    note: "Kahvesiz sıcaklar - çikolata, salep ve çay.",
     items: [
       {
         name: "Chai Tea Latte",
@@ -752,7 +752,7 @@ export interface Product {
 
 export const PRODUCTS: Product[] = [
   {
-    name: "Sirena — Espresso Blend",
+    name: "Sirena - Espresso Blend",
     tag: "Whole Bean · 250g",
     price: "320₺",
     desc: "Brezilya doğal + Etiyopya yıkanmış. Kakao, kuru incir, esmer şeker.",
@@ -760,7 +760,7 @@ export const PRODUCTS: Product[] = [
     img: "caramel",
   },
   {
-    name: "Notturna — Filter Lot",
+    name: "Notturna - Filter Lot",
     tag: "Whole Bean · 200g",
     price: "380₺",
     desc: "Kenya AA Nyeri. Frenk üzümü, bergamot, parlak asidite.",
@@ -768,7 +768,7 @@ export const PRODUCTS: Product[] = [
     img: "dark",
   },
   {
-    name: "Edible Cups — 6 Box",
+    name: "Edible Cups - 6 Box",
     tag: "Waffle Vessels",
     price: "240₺",
     desc: "Çıtır waffle kupları, içi yenilebilir glaze. Mekan ritüelini eve taşı.",
@@ -776,7 +776,7 @@ export const PRODUCTS: Product[] = [
     img: "cream",
   },
   {
-    name: "Affogato Kit — For Two",
+    name: "Affogato Kit - For Two",
     tag: "Gift Box",
     price: "780₺",
     desc: "200g Sirena, fior di latte gelato, iki edible kup, porselen kaşık.",
@@ -785,7 +785,7 @@ export const PRODUCTS: Product[] = [
     featured: true,
   },
   {
-    name: "Uji Matcha — Ceremonial",
+    name: "Uji Matcha - Ceremonial",
     tag: "Tin · 40g",
     price: "420₺",
     desc: "Japonya Uji bahçesi, ceremonial grade. Bambu chasen ile eşleştirilir.",
@@ -793,7 +793,7 @@ export const PRODUCTS: Product[] = [
     img: "matcha",
   },
   {
-    name: "Moka — Bialetti × L'Affogato",
+    name: "Moka - Bialetti × L'Affogato",
     tag: "3-cup, brushed aluminium",
     price: "690₺",
     desc: "Özel L'Affogato amblemli moka pot.",
@@ -833,7 +833,7 @@ export const PRODUCTS: Product[] = [
     img: "cream",
   },
   {
-    name: "Cantucci — Bronte Pistachio",
+    name: "Cantucci - Bronte Pistachio",
     tag: "Biscotti · 180g",
     price: "180₺",
     desc: "İki kez pişmiş, yavaş fırın. Vin Santo veya doppio ile.",
@@ -895,7 +895,7 @@ export const HOME_SLIDES: HomeSlide[] = [
   {
     kicker: "İmza ürün · 1994 patentli",
     title: "İçilir, sonra kupası yenir.",
-    text: "Çift shot Sirena espresso, fior di latte gelatonun üzerine masanızda dökülür — çıtır waffle kupun içinde.",
+    text: "Çift shot Sirena espresso, fior di latte gelatonun üzerine masanızda dökülür - çıtır waffle kupun içinde.",
     primary: { label: "Ürünü gör", action: "signature" },
     secondary: { label: "Hikayemiz", action: "story" },
     photo: "/photos/affogato-cup.webp",
@@ -936,7 +936,7 @@ export const PRESS = [
   },
   {
     name: "Condé Nast Traveler",
-    quote: "“But first, affogato” — a worthy detour.",
+    quote: "“But first, affogato” - a worthy detour.",
   },
 ];
 
@@ -959,7 +959,7 @@ export const STORY = {
     },
     {
       y: "2008",
-      t: "Sicily — Bronte pistacchio anlaşması",
+      t: "Sicily - Bronte pistacchio anlaşması",
       d: "Üç aile çiftliği ile doğrudan tedarik. Bugün hâlâ aynı çiftlikler.",
     },
     {
@@ -971,14 +971,14 @@ export const STORY = {
 };
 
 export const LOCATION = {
-  name: "L'Affogato — Tuzla",
+  name: "L'Affogato - Tuzla",
   short: "Tuzla · İstanbul",
   address: [
     "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
     "Menemenci Cumhur’un yanı",
     "34940 Tuzla / İstanbul",
   ],
-  hours: [["Her gün", "09:00 — 01:00"]] as Array<[string, string]>,
+  hours: [["Her gün", "09:00 - 01:00"]] as Array<[string, string]>,
   /**
    * Karaoke room on the upper floor of the köşk.
    *
@@ -990,7 +990,7 @@ export const LOCATION = {
     available: true,
     title: "Karaoke odası",
     body:
-      "Köşkün üst katında özel karaoke odası. Gece 01:00'e kadar açığız — " +
+      "Köşkün üst katında özel karaoke odası. Gece 01:00'e kadar açığız - " +
       "grup rezervasyonu için bize ulaşın.",
   },
   /** Fixed query used for the map embed and directions links. Kept separate
