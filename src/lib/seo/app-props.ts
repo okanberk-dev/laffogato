@@ -10,6 +10,8 @@ import {
   listMenuForCustomer,
   listShopProducts,
 } from "@/lib/admin/store";
+import { LOCATION } from "@/components/laffogato/data";
+import { addressLines } from "@/lib/utils/format";
 import { getSiteContent } from "@/lib/admin/site-content";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { isDegradedRequest } from "@/lib/db/health";
@@ -93,10 +95,7 @@ export async function loadAppProps({
       content,
       heroImageUrl: settings.heroImageUrl || undefined,
       visit: {
-        addressLines: settings.address
-          .split(/[\n,/]+/)
-          .map((s) => s.trim())
-          .filter(Boolean),
+        addressLines: addressLines(settings.address, LOCATION.address),
         phone: settings.phone,
         email: settings.email,
         todayHours: todayH.closed

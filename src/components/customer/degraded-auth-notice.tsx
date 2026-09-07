@@ -11,14 +11,20 @@ export function DegradedAuthNotice() {
   return (
     <p
       role="status"
+      /* Neutral, deliberately. This is a service outage, not something the
+         visitor did wrong and not a brand moment. The previous ground was the
+         retired terracotta hardcoded in decimal rgba, which is why the
+         retired-hex ban never caught it; painting it in the NEW brand tint
+         instead would only trade one mistake for another and make "we are
+         down" look like an offer. */
       style={{
-        background: "rgba(192,100,58,0.08)",
-        border: "1px solid rgba(192,100,58,0.28)",
+        background: "var(--bg-stone, #f1eee8)",
+        border: "1px solid var(--ink-line-strong, #e1dcd1)",
         borderRadius: "var(--r-sm, 10px)",
         padding: "12px 14px",
         fontSize: 13,
         lineHeight: 1.55,
-        color: "var(--ink, #14100b)",
+        color: "var(--ink, #201c17)",
         marginBottom: 18,
       }}
     >

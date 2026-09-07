@@ -29,8 +29,8 @@ export default function AppError({
         display: "grid",
         placeItems: "center",
         padding: "48px 24px",
-        background: "var(--bg-warm, #f9f8f7)",
-        color: "var(--ink, #1d1c1c)",
+        background: "var(--bg-warm, #f6f5f2)",
+        color: "var(--ink, #201c17)",
       }}
     >
       <div style={{ maxWidth: 460, textAlign: "center" }}>
@@ -48,7 +48,9 @@ export default function AppError({
         </div>
         <h1
           style={{
-            fontFamily: "var(--serif, 'Playfair Display', serif)",
+            fontFamily: "var(--sans, 'Montserrat', -apple-system, sans-serif)",
+            fontWeight: 800,
+            letterSpacing: "-0.03em",
             fontSize: 34,
             lineHeight: 1.1,
             margin: 0,
@@ -73,8 +75,8 @@ export default function AppError({
             onClick={reset}
             style={{
               padding: "12px 22px",
-              borderRadius: 999,
-              background: "var(--ink, #1d1c1c)",
+              borderRadius: 8,
+              background: "var(--ink, #201c17)",
               color: "#fff",
               fontSize: 14,
               fontWeight: 500,
@@ -86,9 +88,9 @@ export default function AppError({
             href="/"
             style={{
               padding: "12px 22px",
-              borderRadius: 999,
+              borderRadius: 8,
               border: "1px solid var(--ink-line, #e1e5e0)",
-              color: "var(--ink, #1d1c1c)",
+              color: "var(--ink, #201c17)",
               fontSize: 14,
               fontWeight: 500,
               textDecoration: "none",

@@ -62,10 +62,19 @@ iner), `loyalty-core.ts` ↔ `loyalty.ts`.
 
 **Tasarım paritesi kısmi.** 2 Eyl 2026'da site paleti uygulamanınkine
 (`lafmobil/src/theme/tokens.ts`) eşitlenmişti; 5 Eyl 2026 Köşk yeniden
-tasarımı zemini beyaza, ikincil vurguyu terracotta'ya taşıdı. Yeşiller hâlâ
-örtüşüyor. Uygulamayı da aynı yöne çekmek gerekirse taşınacak dosya
-`lafmobil/src/theme/tokens.ts`; site tarafındaki karar `globals.css :root` ve
-`tests/brand-theme.test.ts` içinde yazılı.
+tasarımı zemini beyaza, ikincil vurguyu terracotta'ya taşıdı; 7 Eyl 2026
+operatör talimatıyla vurgu **bordo**ya döndü ve uygulamanın
+`accent.burgundy` / `burgundyDeep` / `bg.accentSubtle` değerlerinin aynısı
+oldu (`#84233C` / `#4A0F1E` / `#F6E9EC`). Yeşiller hâlâ örtüşüyor; ayrışan tek
+şey zemin (site beyaz, uygulama krem). Uygulamayı da aynı yöne çekmek
+gerekirse taşınacak dosya `lafmobil/src/theme/tokens.ts`; site tarafındaki
+karar `globals.css :root` ve `tests/brand-theme.test.ts` içinde yazılı.
+
+**Bordo ile yeşil asla üst üste yazılmaz.** `#84233C` ile ev yeşilleri
+neredeyse aynı parlaklıkta (`--hero-green` ile 1.15:1). Koyu zeminde
+`--accent-on-dark` kullanılır; `.script` bunu `--script-ink` değişkeniyle
+kendiliğinden yapar, koyu bir blok yazarken `data-ground="dark"` eklemek
+yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
 
 ## Klasör Yapısı
 
@@ -239,9 +248,11 @@ durum bozulmaya uygundur.
 > oranları, tipografi ölçeği, bileşen dili ve değiştirme kuralları.
 
 - **Renk:** `globals.css :root` tek kaynak. Dört kâğıt tonu (`--bg`,
-  `--bg-warm`, `--bg-stone`, `--bg-cream`), espresso mürekkep ailesi, terracotta
-  `--accent`, altın `--gold`, durum renkleri `--matcha` (olumlu) ve `--rose`
-  (uyarı).
+  `--bg-warm`, `--bg-stone`, `--bg-cream`), hero'nun kendi beş jetonu
+  (`--hero-cream`, `--hero-green`, `--hero-cocoa`, `--hero-tile`,
+  `--hero-tile-deep`), espresso mürekkep ailesi, **bordo** `--accent`
+  (tricolore'nin kırmızısı), altın `--gold`, durum renkleri `--matcha`
+  (olumlu) ve `--rose` (uyarı — marka değil).
 - **HUES** (`visuals.tsx`): ürün kartlarının ve illüstrasyonların arkasındaki 12
   yüzey. Her birinin `ink`'i kendi gradient'ine karşı AA'yı geçer.
 - **Kontrast teste bağlı** (`tests/contrast.test.ts`): token'ları

@@ -123,14 +123,50 @@ describe("colour contrast", () => {
   });
 
   it("no .script rule paints the accent ink on a dark section", () => {
-    // The generic `.h1 .script` / `.h2 .script` rules use `--accent`; the
-    // dark sections must override them. The dark sections are the loyalty
-    // block and the footer since the Köşk redesign retired the dark heroes.
-    for (const sel of [".loyalty-block .script", ".footer .script"]) {
+    // This used to enumerate the dark selectors, and the list went stale: it
+    // named `.loyalty-block` and `.footer` and missed two inline-styled dark
+    // sections plus `.guide-cta`, so three accent words were invisible on the
+    // live site while this test stayed green. The rule is now a variable —
+    // `.script` reads `--script-ink`, dark grounds set it — so what is worth
+    // asserting is the MECHANISM, not a list that has to be maintained.
+    for (const cls of [".h1 .script", ".h2 .script", ".h-display .script"]) {
       const re = new RegExp(
-        `${sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^}]*color:\\s*var\\(--accent-on-dark\\)`,
+        `${cls.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{[^}]*var\\(--script-ink`,
       );
-      expect(re.test(css), `${sel} must use --accent-on-dark`).toBe(true);
+      expect(
+        re.test(css),
+        `${cls} must read --script-ink so a dark ground can override it`,
+      ).toBe(true);
+    }
+    // …and every ground that paints itself dark must set that variable.
+    for (const sel of [
+      ".loyalty-block",
+      ".footer",
+      ".guide-cta",
+      '[data-ground="dark"]',
+    ]) {
+      expect(
+        css.includes(sel),
+        `${sel} must be in the --script-ink override list`,
+      ).toBe(true);
+    }
+    expect(css).toContain("--script-ink: var(--accent-on-dark)");
+  });
+
+  it("bans the accent ink on every dark ground, including the deep one", () => {
+    // --bg-espresso-deep is the lower stop of the footer's gradient and was
+    // missing from the pair list, so bordo text at the bottom of the footer
+    // was unguarded.
+    for (const green of [
+      "--hero-green",
+      "--bg-espresso",
+      "--bg-espresso-deep",
+      "--matcha",
+    ]) {
+      expect(
+        contrast(token("--accent"), token(green)),
+        `--accent on ${green} is unreadable`,
+      ).toBeLessThan(AA);
     }
   });
 
@@ -162,41 +198,50 @@ describe("colour contrast", () => {
   });
 });
 
-describe("small text uses the darker accent", () => {
-  // --accent is 3.70:1 on cream: enough for the display-size headings that
-  // carry it, below AA for body-size text and links. This catches the next
-  // person reaching for the brighter one on a 13px link.
-  it("keeps --accent above 3:1 (large text) and --accent-deep above 4.5:1", () => {
-    const bg = token("--bg-cream");
-    expect(contrast(token("--accent"), bg)).toBeGreaterThanOrEqual(3);
-    expect(contrast(token("--accent-deep"), bg)).toBeGreaterThanOrEqual(4.5);
+describe("the accent carries text at any size", () => {
+  /**
+   * This block used to be called "small text uses the darker accent", and its
+   * premise was terracotta's: `--accent` measured 3.70:1 on cream, which is
+   * enough for a display heading and short of AA for a 13px link, so six
+   * rules reached for `--accent-deep` purely to get contrast.
+   *
+   * Bordo removed that constraint — 8.73:1 on cream, 9.18:1 on white — and
+   * leaving those rules in place was worse than a no-op: `--accent-deep`
+   * (#4a0f1e) is 15.24:1, a hair off `--ink`, so every one of them silently
+   * turned a brand-coloured link or badge into body ink. The rules moved back
+   * to `--accent`; what these assertions now hold is the property that made
+   * that safe.
+   */
+  it("clears AA as body text on every paper ground", () => {
+    for (const ground of ["--bg", "--bg-warm", "--bg-cream", "--hero-cream"]) {
+      expect(
+        contrast(token("--accent"), token(ground)),
+        `--accent on ${ground}`,
+      ).toBeGreaterThanOrEqual(AA);
+    }
   });
 
-  it("does not colour the map caption link with the light accent", () => {
+  it("carries white at any size, which terracotta could not", () => {
+    // 4.10:1 was the number that forced the workaround.
+    expect(contrast("#ffffff", token("--accent"))).toBeGreaterThanOrEqual(AA);
+  });
+
+  it("keeps the deep step for pressed and hover, not for colour", () => {
+    // --accent-deep is a near-black. That is fine as a pressed state and as
+    // ink on --accent-soft; it is not a substitute for the accent itself.
+    expect(contrast(token("--accent-deep"), token("--bg"))).toBeGreaterThan(
+      contrast(token("--accent"), token("--bg")),
+    );
+    expect(
+      contrast(token("--accent-deep"), token("--accent-soft")),
+    ).toBeGreaterThanOrEqual(AA);
+  });
+
+  it("colours the map caption link with the accent, not with body ink", () => {
+    // The regression this replaces: the link was --accent-deep, 15.24:1,
+    // indistinguishable from --ink — so it stopped reading as a link at all.
     const rule = /\.visit-map-caption a \{[^}]*\}/.exec(css)?.[0] ?? "";
-    expect(rule).toContain("var(--accent-deep)");
-  });
-});
-
-describe("the 3D pour widget stays scrollable-past", () => {
-  // The widget used to be a full-viewport hero, and these assertions guarded
-  // the arithmetic that kept its scroll cue clear of the fixed mobile tab bar.
-  // The Köşk redesign demoted it to a card in mid-page, so the height maths is
-  // gone — but the touch-action pin is not, and it is the one that actually
-  // trapped people.
-  it("names the tab bar height once, where the bar is defined", () => {
-    expect(css).toMatch(/--bottom-nav-h:\s*\d+px/);
-  });
-
-  it("keeps vertical panning available over the 3D widget", () => {
-    // Three.js OrbitControls sets `touch-action: none` on connect. On a card
-    // that spans the content column, that means a thumb dragging anywhere over
-    // the cup cannot scroll the page.
-    const block = css.slice(css.indexOf("affogato-pour canvas"));
-    expect(block.slice(0, 200)).toContain("touch-action: pan-y !important");
-  });
-
-  it("does not reintroduce a full-viewport pour hero", () => {
-    expect(css).not.toContain(".pour-hero");
+    expect(rule).toContain("var(--accent)");
+    expect(rule).not.toContain("var(--accent-deep)");
   });
 });

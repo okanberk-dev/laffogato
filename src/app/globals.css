@@ -16,17 +16,18 @@
      laffogato-mobil/src/theme/tokens.ts so one brand read the same on both
      surfaces. That parity is now PARTIAL. The greens still line up (this deep
      green is the app's brand.primary family) but the ground moved cream →
-     white and the secondary accent moved burgundy → terracotta. If the phone
+     white; the accent went burgundy → terracotta → burgundy again, and is
+     now the app's value once more. If the phone
      is re-skinned to match, `lafmobil`'s tokens.ts is the file to move; see
      "Mobil uygulama" in CLAUDE.md. The variable NAMES are unchanged, so every
      component keeps working — only what they resolve to moved.
 
-     Contrast is enforced by tests/contrast.test.ts. Two values are deliberately
+     Contrast is enforced by tests/contrast.test.ts. One value is deliberately
      a step darker than the prototype, which was drawn without a contrast pass:
      --ink-mute (#8c8375 → #746b5d; the prototype's grey is 3.74:1 on white,
-     below AA) and small white-on-terracotta text, which must use --accent-deep
-     rather than --accent (#c0643a carries white at 4.10:1 — fine for the large
-     display type it sits under, short of AA for a 10px badge). */
+     below AA). The prototype's terracotta accent needed a second caveat — it
+     could not carry white at small sizes — and that went away with it when
+     the accent became bordo. */
 
   /* Surfaces — page ground, card ground, sunken track, warm paper, night */
   --bg: #ffffff;
@@ -37,7 +38,7 @@
   /* Home hero — the reference the operator supplied (6 Eyl 2026).
      Its own five tokens rather than a re-use of the page palette, because
      the hero is the one band on the site with a cream ground and a display
-     colour that is neither the gold nor the terracotta. Measured against
+     colour that is neither the gold nor the bordo. Measured against
      --hero-cream: cocoa 7.87:1, green 7.43:1 — both clear AA large AND AA
      body text, which the huge headline does not need but the CTA does. */
   --hero-cream: #faf6ee;
@@ -75,20 +76,45 @@
   /* Ink for text sitting ON --gold-soft (9.37:1). */
   --gold-ink: #3b2a0f;
 
-  /* Brand accent — terracotta. Used sparingly: the active nav underline, one
-     accent word per headline, the karaoke tile, the coupon rule. */
-  --accent: #c0643a;
-  --accent-deep: #97461f;
-  --accent-soft: #f2e0d5;
-  /* The accent as TEXT on a dark ground. `--accent` measures 2.96:1 on
-     --bg-espresso; this is the same hue lightened to 5.71:1. */
-  --accent-on-dark: #e6a37a;
+  /* Brand accent — BORDO, the third colour of the tricolore.
+     (Operator, 7 Eyl 2026: "italya bayrağı renklerini kullan … bunlara
+     yakışan bordo ekle".) Green and white the site already had; this is the
+     red, deepened to a burgundy so it sits with the house green instead of
+     shouting over it.
+
+     These are not new values. They are `lafmobil`'s own accent.burgundy,
+     burgundyDeep and bg.accentSubtle, verbatim — so this closes the palette
+     gap the Köşk redesign opened between the site and the app, and the app's
+     `tricolore` export (['#235347', '#FAF9F6', '#84233C']) is now literally
+     the site's green / paper / accent.
+
+     Every white-on-accent caveat the terracotta needed is gone with it:
+     white on --accent was 4.10:1 and had to fall back to --accent-deep for
+     small text; on bordo it is 9.18:1 at any size.
+
+     DANGER: bordo and --hero-green have almost the same luminance (1.15:1).
+     They must never be each other's foreground and background. Guarded in
+     tests/contrast.test.ts. */
+  --accent: #84233c;
+  --accent-deep: #4a0f1e;
+  --accent-soft: #f6e9ec;
+  /* The accent as TEXT on a dark ground. `--accent` measures 1.32:1 on
+     --bg-espresso — invisible. This is the same hue (1.0° away) lightened
+     until it clears AA on BOTH dark grounds: 7.17:1 on --bg-espresso and
+     4.74:1 on the lighter --hero-green, which the promo banners use. */
+  --accent-on-dark: #efb9c6;
 
   /* Brand — the logo mask colour. */
   --brand: #143d2b;
 
-  /* Semantic state. Success is the house green; the hue gap to --rose keeps
-     "in stock" and "almost gone" from reading alike. */
+  /* Semantic state, not brand. Success is the house green; the hue gap to
+     --rose keeps "in stock" and "almost gone" from reading alike.
+
+     --rose stayed put when the accent became bordo, and the two ARE close in
+     hue (4.8°). They are told apart by weight and by value, not by hue: rose
+     is a bright alarm on small text ("● Son 2 adet", "Sil"), bordo is a deep
+     brand fill. Luminance separates them 1.85:1, and the contrast test holds
+     that floor so nobody can quietly set one to the other. */
   --rose: #c5435a;
   --matcha: #1e7c4b;
 
@@ -130,11 +156,38 @@
      than neutral black, so cards sitting on white keep a warm-green cast
      instead of going grey. Alphas unchanged across palette swaps. */
   --shadow-sm:
-    0 1px 2px rgba(20, 61, 43, 0.06), 0 2px 6px rgba(20, 61, 43, 0.07);
+    0 1px 2px rgba(20, 61, 43, 0.04), 0 3px 10px rgba(20, 61, 43, 0.05);
   --shadow-md:
-    0 6px 16px rgba(20, 61, 43, 0.1), 0 12px 32px rgba(20, 61, 43, 0.08);
+    0 4px 14px rgba(20, 61, 43, 0.06), 0 14px 40px rgba(20, 61, 43, 0.07);
   --shadow-lg:
-    0 16px 36px rgba(20, 61, 43, 0.13), 0 36px 72px rgba(20, 61, 43, 0.1);
+    0 10px 30px rgba(20, 61, 43, 0.08), 0 40px 90px rgba(20, 61, 43, 0.09);
+
+  /* Tricolore — the flag as a 3px rule, defined once and referenced by every
+     consumer (.section-title, .footer). The stops are this palette's own
+     green and bordo, not the flag's primaries — an actual flag on a coffee
+     site reads as a language switcher; a 3px rule reads as heritage. Same
+     reasoning, and the same three values, as `lafmobil`'s <TricoloreRule>.
+
+     The pale middle stop is the site's warm off-white rather than pure white,
+     and its consumers add an inset hairline, so it reads as a stop rather
+     than as a gap in the rule.
+
+     Two versions, because the paper one is invisible on the dark ground:
+     --hero-green on --bg-espresso is 1.6:1, so the left third of the footer's
+     rule simply was not there. The on-dark version lifts the green to the
+     mint the footer already uses for its labels. */
+  --tricolore: linear-gradient(
+    to right,
+    var(--hero-green) 0 33.33%,
+    #faf9f6 33.33% 66.66%,
+    var(--accent) 66.66% 100%
+  );
+  --tricolore-on-dark: linear-gradient(
+    to right,
+    var(--green-mint) 0 33.33%,
+    #faf9f6 33.33% 66.66%,
+    var(--accent-on-dark) 66.66% 100%
+  );
 
   /* Easing */
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -278,7 +331,7 @@ select {
   font-feature-settings: "lnum", "kern", "liga";
 }
 .h-display .script {
-  color: var(--accent);
+  color: var(--script-ink, var(--accent));
 }
 
 /* Renamed from .h-1 / .h-2 / .h-3 to avoid Tailwind v4 utility collision
@@ -294,7 +347,7 @@ select {
   font-feature-settings: "lnum", "kern", "liga";
 }
 .h1 .script {
-  color: var(--accent);
+  color: var(--script-ink, var(--accent));
 }
 
 .h2 {
@@ -307,7 +360,7 @@ select {
   font-feature-settings: "lnum", "kern", "liga";
 }
 .h2 .script {
-  color: var(--accent);
+  color: var(--script-ink, var(--accent));
 }
 
 .h3 {
@@ -395,8 +448,9 @@ select {
   transform: translateX(3px);
 }
 
-/* The primary action is the house green now, not the terracotta. Terracotta
-   is reserved for accents (one word in a headline, the karaoke tile). */
+/* The primary action is the house green, not the accent. Bordo is reserved
+   for accents (one word in a headline, the karaoke tile, the app block) —
+   never for the button a page is built around. */
 .btn-primary {
   background: var(--bg-espresso);
   color: #fff;
@@ -460,6 +514,17 @@ summary:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 2px;
+  /* The gold ring reads on paper but disappears into the footer and the
+     banners; the halo under it keeps the ring visible on any ground without
+     changing its colour per-context. */
+  box-shadow: 0 0 0 4px rgba(232, 211, 164, 0.35);
+  border-radius: var(--r-sm);
+}
+
+/* Selecting text should look like the brand, not like the OS. */
+::selection {
+  background: var(--green-mist);
+  color: var(--ink);
 }
 
 .btn-sm {
@@ -676,46 +741,25 @@ summary:focus-visible,
   line-height: 1;
   flex-shrink: 0;
 }
-/* The lockup: the mark reversed out of a filled green disc, with the wordmark
-   and the est. line set beside it. */
+/* The mark, reversed out of a filled green disc. It stands alone now
+   (operator, 7 Eyl): the wordmark beside it repeated in type what the disc
+   already says, and the ~190px it took were exactly what the centred nav
+   wanted for its links. `.nav-brand`'s aria-label carries the name. */
 .nav-brand-disc {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background: var(--bg-espresso);
   flex-shrink: 0;
-  transition: background 0.25s;
+  transition:
+    background 0.25s var(--ease-out),
+    transform 0.25s var(--ease-out);
 }
 .nav-brand:hover .nav-brand-disc {
   background: var(--bg-espresso-deep);
-}
-.nav-brand-words {
-  display: grid;
-  gap: 3px;
-  text-align: left;
-}
-.nav-brand-name {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--bg-espresso);
-  line-height: 1;
-}
-.nav-brand-est {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--ink-mute);
-}
-/* The wordmark is the first thing to go when the bar runs out of room — the
-   disc alone still identifies the brand. */
-@media (max-width: 900px) {
-  .nav-brand-words {
-    display: none;
-  }
+  transform: scale(1.04);
 }
 /* The brand monogram rendered as a CSS mask: one brown asset, recolored to any
    surface via currentColor (brown on cream, cream/white on dark). */
@@ -740,7 +784,7 @@ summary:focus-visible,
   flex-shrink: 0;
 }
 
-/* Nav links: no pill, no opacity fade. An underline in terracotta marks the
+/* Nav links: no pill, no opacity fade. An underline marks the
    open section — the one place the accent appears in the chrome. */
 .nav-link {
   padding: 10px 4px;
@@ -769,8 +813,9 @@ summary:focus-visible,
 .nav-link.active {
   color: var(--bg-espresso);
   font-weight: 700;
-  /* Green, like the reference's — the terracotta rule read as a warning
-     stripe under an otherwise green header. */
+  /* Green, like the reference's. The old warm-accent rule read as a warning
+     stripe under an otherwise green header, and now that the accent is bordo
+     it would read as one even more strongly. */
   border-bottom-color: var(--hero-green);
 }
 .nav-link-caret {
@@ -850,8 +895,8 @@ summary:focus-visible,
   border: 1px solid var(--ink-line);
   border-radius: var(--r-lg);
   box-shadow:
-    0 24px 50px -24px rgba(20, 16, 11, 0.2),
-    0 6px 18px -10px rgba(20, 16, 11, 0.1);
+    0 24px 50px -24px rgba(20, 61, 43, 0.2),
+    0 6px 18px -10px rgba(20, 61, 43, 0.1);
   padding: 14px;
   color: var(--ink);
 }
@@ -911,7 +956,7 @@ summary:focus-visible,
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(20, 16, 11, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(20, 61, 43, 0.06);
 }
 .nav-dropdown-swatch-dot {
   display: none;
@@ -935,7 +980,7 @@ summary:focus-visible,
   background: linear-gradient(135deg, #b8c97a, #82974c);
 }
 .nav-dropdown-swatch.hue-cream .nav-dropdown-swatch-dot {
-  background: rgba(20, 16, 11, 0.5);
+  background: rgba(20, 61, 43, 0.5);
 }
 .nav-dropdown-text {
   display: flex;
@@ -1366,12 +1411,21 @@ summary:focus-visible,
    Hero
    ───────────────────────────────────────────────────────────── */
 
-/* Anything drawn on the night ground reads its accent light, not dark. The
-   generic `.h1 .script` / `.h2 .script` rules paint with `--accent`, which is
-   an ink meant for paper. */
-.loyalty-block .script,
-.footer .script {
-  color: var(--accent-on-dark);
+/* Anything drawn on a dark ground reads its accent light, not dark.
+   `--accent` is an ink meant for paper: on --bg-espresso it measures 1.32:1,
+   which is not "low contrast" but "absent".
+
+   This used to be a LIST of dark selectors, and the list was wrong — it named
+   `.loyalty-block` and `.footer` and missed the two inline-styled dark
+   sections in pages.tsx and `.guide-cta`, so three accent words rendered
+   invisible on the live site. A list has to be maintained; a variable does
+   not. Any element that paints itself dark declares it once here, and every
+   `.script` inside it inherits the light form. */
+.loyalty-block,
+.footer,
+.guide-cta,
+[data-ground="dark"] {
+  --script-ink: var(--accent-on-dark);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1747,6 +1801,66 @@ summary:focus-visible,
   }
 }
 
+/* FAQ disclosure ────────────────────────────────────────────────
+   The rows are <details>. `list-style: none` on the summary removes the
+   platform triangle, which is right — it is unstyleable across browsers —
+   but nothing was drawn in its place, so a closed row looked like a
+   paragraph. This is the replacement, and it rotates when the row opens. */
+
+.seo-faq summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  list-style: none;
+}
+.seo-faq summary::-webkit-details-marker {
+  display: none;
+}
+.seo-faq summary::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-right: 2px solid var(--hero-green);
+  border-bottom: 2px solid var(--hero-green);
+  rotate: 45deg;
+  transition: rotate 0.2s var(--ease-out);
+}
+.seo-faq details[open] summary::after {
+  rotate: -135deg;
+}
+@media (prefers-reduced-motion: reduce) {
+  .seo-faq summary::after {
+    transition: none;
+  }
+}
+
+/* Section heading ───────────────────────────────────────────────
+   The shared heading for a block inside a page, with the tricolore rule over
+   it. `.section-title` was referenced by the campaigns page with no rule
+   behind it, so it rendered as a bare <h2> at the browser default. */
+
+.section-title {
+  margin: 0;
+  font-size: clamp(22px, 2.6vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: var(--ink);
+}
+.section-title::before {
+  content: "";
+  display: block;
+  width: 42px;
+  height: 3px;
+  margin-bottom: 16px;
+  border-radius: 2px;
+  background: var(--tricolore);
+  box-shadow: inset 0 0 0 0.5px rgba(20, 61, 43, 0.1);
+}
+
 /* Page hero — the home hero's language, for every other page ─────
    One component (`PageHero`) and one rule set: cream band, cocoa display
    type, green disc on the right. Each page used to grow its own near-copy of
@@ -1766,6 +1880,24 @@ summary:focus-visible,
   display: grid;
   align-content: center;
 }
+/* A back link inside the hero, under the lede. Its own rule so it does not
+   inherit the eyebrow's uppercase tracking, which made "← Anasayfa" read as a
+   section label rather than as a way out. */
+.page-hero-back {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hero-green);
+  transition: transform 0.2s var(--ease-out);
+}
+.page-hero-back:hover {
+  transform: translateX(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-hero-back:hover {
+    transform: none;
+  }
+}
 .page-hero-copy {
   position: relative;
   z-index: 2;
@@ -1776,12 +1908,18 @@ summary:focus-visible,
 }
 .page-hero-title {
   margin: 0;
-  display: grid;
+  /* `grid` puts each <span> of the two-line form on its own row. A single
+     string has no spans and must wrap normally, so the grid is applied only
+     when there is something to lay out. */
+  display: block;
   font-size: clamp(30px, 4.4vw, 62px);
   font-weight: 800;
   line-height: 1.02;
   letter-spacing: -0.035em;
   color: var(--hero-cocoa);
+}
+.page-hero-title:has(> span) {
+  display: grid;
 }
 /* Smaller than the home hero's and pushed further off the edge: here it is a
    ground note behind the copy, not the stage for a product. */
@@ -1937,12 +2075,19 @@ summary:focus-visible,
   gap: 8px;
   padding: 18px 20px 22px;
 }
+/* A soft bordo chip rather than green text: the label sat directly under a
+   photograph that is usually green itself, and --accent-soft is the tint the
+   phone already calls `bg.accentSubtle`. --accent-deep on it is 12.90:1. */
 .campaign-card-kind {
+  justify-self: start;
+  padding: 4px 9px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--hero-green);
+  color: var(--accent-deep);
 }
 .campaign-card-title {
   margin: 0;
@@ -1966,6 +2111,34 @@ summary:focus-visible,
 .campaign-empty {
   margin: 0;
   color: var(--ink-soft);
+}
+
+/* Section rhythm ────────────────────────────────────────────────
+   The home stack was one unbroken white expanse from the hero to the footer,
+   which is why it read flat however good the individual blocks were. A band
+   puts a section on the hero's own cream, with the same rounded frame, so the
+   page alternates paper → cream → paper instead of scrolling as one sheet.
+
+   Padding is inside the band and the outer .home-section keeps only its top
+   rhythm, so two bands in a row cannot double the gap between them. */
+
+/* Full-bleed rather than a rounded card: `.wrap` already owns the page gutter
+   and its max-width, so painting IT would either eat the mobile margin or
+   compound it. The band paints the section instead, and the cream is close
+   enough to the paper (#faf6ee vs #ffffff) that an edge-to-edge change of
+   ground reads as a breath rather than as a stripe. */
+.band-cream {
+  background: var(--hero-cream);
+  padding: clamp(40px, 5.5vw, 80px) 0;
+}
+/* The band supplies its own vertical rhythm, so the generic top padding that
+   every .home-section carries would double it. */
+.home-section.band-cream {
+  padding-top: clamp(40px, 5.5vw, 80px);
+}
+/* Two bands in a row would show a seam where their paddings meet. */
+.band-cream + .band-cream {
+  padding-top: 0;
 }
 
 .home-section {
@@ -2108,10 +2281,11 @@ summary:focus-visible,
   background: var(--bg-espresso);
   color: #fff;
 }
-/* White on --accent is 4.10:1 — short of AA at this size, so the "new" flag
-   takes the darker step of the same hue. */
+/* The "new" flag, in the accent. It used to take the darker step because
+   white on terracotta was 4.10:1; white on bordo is 9.18:1, so the flag can
+   be the brand colour itself. */
 .rail-card-badge.new {
-  background: var(--accent-deep);
+  background: var(--accent);
 }
 .rail-card-body {
   padding: 18px;
@@ -2154,9 +2328,19 @@ summary:focus-visible,
 
 .split-2col {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  /* `minmax(300px, …)` sets a 300px FLOOR on the track, so below ~332px of
+     content box the single column is wider than its parent and the page
+     scrolls sideways. `min()` lets the floor collapse on a narrow phone,
+     which is the only place it ever mattered. */
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   gap: clamp(24px, 4vw, 60px);
   align-items: center;
+}
+/* A grid item's default `min-width: auto` refuses to shrink below its
+   min-content, so one long word inside pushes the whole track past the
+   parent. This is the fix for the /ziyaret overflow the crawl found. */
+.split-2col > * {
+  min-width: 0;
 }
 .signature-photos {
   display: grid;
@@ -2329,10 +2513,28 @@ summary:focus-visible,
    simply did not model it.
    ───────────────────────────────────────────────────────────── */
 
+/* The footer reads as the page's ground coming to rest, not as a black bar
+   bolted to the bottom: a rounded top edge, a ground that deepens as it
+   falls, and a tricolore hairline across the very top. */
 .footer {
-  background: var(--bg-espresso);
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    var(--bg-espresso) 0%,
+    var(--bg-espresso-deep) 100%
+  );
   color: #fff;
   padding: clamp(44px, 6vw, 80px) var(--gutter) 0;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  margin-top: clamp(28px, 4vw, 56px);
+  overflow: hidden;
+}
+.footer::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--tricolore-on-dark);
 }
 
 .footer-newsletter {
@@ -2371,7 +2573,9 @@ summary:focus-visible,
   padding: 6px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: var(--r-pill);
+  /* The field and the button inside it share a radius; a capsule wrapper
+     around an 8px button reads as two controls that missed each other. */
+  border-radius: calc(var(--r-btn) + 6px);
   transition:
     border-color 0.2s,
     background 0.2s;
@@ -2394,17 +2598,28 @@ summary:focus-visible,
   color: rgba(255, 255, 255, 0.5);
 }
 
+/* An explicit five-column footer: the brand block (mark, line, contact) and
+   then the four link groups. `auto-fit` was letting the ninth slot wrap onto
+   a row of its own, which read as a missing column rather than as a
+   deliberate break. */
 .footer-grid {
   max-width: var(--content);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 26px 30px;
+  grid-template-columns: 1.5fr repeat(4, minmax(0, 1fr));
+  gap: 32px 30px;
   padding: clamp(26px, 3.4vw, 40px) 0;
+  align-items: start;
 }
 .footer-brand-col {
-  grid-column: span 2;
-  min-width: 230px;
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  min-width: 220px;
+}
+.footer-brand-col .footer-contact-col {
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 .footer-brand-col p {
   max-width: 36ch;
@@ -2458,7 +2673,7 @@ summary:focus-visible,
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   color: var(--green-mint);
 }
 .footer ul {
@@ -2471,13 +2686,25 @@ summary:focus-visible,
 }
 .footer ul a,
 .footer-linkish {
-  color: rgba(255, 255, 255, 0.82);
-  transition: color 0.2s;
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.78);
+  transition:
+    color 0.2s var(--ease-out),
+    transform 0.2s var(--ease-out);
   text-align: left;
 }
+/* A 2px step rather than an underline: forty links all growing a rule on
+   hover is noise, and the movement reads as "this one" on its own. */
 .footer ul a:hover,
 .footer-linkish:hover {
   color: #fff;
+  transform: translateX(2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .footer ul a:hover,
+  .footer-linkish:hover {
+    transform: none;
+  }
 }
 .footer-contact-col .footer-contact-mono {
   font-size: 13px;
@@ -2499,8 +2726,8 @@ summary:focus-visible,
 .footer-meta {
   max-width: var(--content);
   margin: 0 auto;
-  padding-top: 18px;
-  padding-bottom: 34px;
+  padding-top: 20px;
+  padding-bottom: 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2614,8 +2841,9 @@ summary:focus-visible,
   background: var(--gold);
 }
 .product-card-flag.new {
-  /* --accent behind white 10px text is 4.10:1; --accent-deep is 6.54:1. */
-  background: var(--accent-deep);
+  /* White on --accent is 9.18:1 — the darker step this used to need was a
+     terracotta workaround. */
+  background: var(--accent);
 }
 .product-card-quick {
   position: absolute;
@@ -2832,6 +3060,19 @@ summary:focus-visible,
   [data-row="shop-head"] {
     grid-template-columns: 1fr !important;
     gap: 40px !important;
+  }
+  /* A grid item's default `min-width: auto` will not shrink below its
+     min-content, so one long unbreakable label — the visit page's
+     "2 kişi · Bu akşam · 19:30 için ara" CTA — widened its track past the
+     single column and scrolled the whole document sideways at 390px. The
+     column collapse above is useless without this. */
+  [data-row="visit-map-row"] > *,
+  [data-row="visit-book-row"] > *,
+  [data-row="private-row"] > *,
+  [data-row="founder-row"] > *,
+  [data-row="featured-row"] > *,
+  [data-row="shop-head"] > * {
+    min-width: 0;
   }
 }
 @media (max-width: 820px) {
@@ -3113,7 +3354,7 @@ summary:focus-visible,
   font-size: 11px;
   padding: 2px 7px;
   border-radius: 999px;
-  background: rgba(20, 16, 11, 0.07);
+  background: rgba(20, 61, 43, 0.07);
   color: inherit;
 }
 .shop-cat.on .count {
@@ -3324,7 +3565,7 @@ summary:focus-visible,
     position: fixed;
     inset: 0;
     z-index: 78;
-    background: rgba(20, 16, 11, 0.55);
+    background: rgba(20, 61, 43, 0.55);
     backdrop-filter: blur(5px);
     opacity: 0;
     pointer-events: none;
@@ -3539,9 +3780,11 @@ summary:focus-visible,
   font-weight: 600;
 }
 .visit-map-caption a {
-  /* --accent is 3.70:1 on cream — fine for the display-size headings that use
-     it, below AA for a 13px link. */
-  color: var(--accent-deep);
+  /* --accent is 9.15:1 on this ground, so the link is the brand colour. It
+     was --accent-deep, which is 15.24:1 — indistinguishable from --ink, so
+     the link stopped looking like a link. The deep step is the hover now,
+     which is what it is good for. */
+  color: var(--accent);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -3584,12 +3827,19 @@ summary:focus-visible,
   gap: 16px;
   max-width: 360px;
 }
+/* "Şu an açık" is a success signal, so the dot is --matcha — the same token,
+   and the same reasoning, as `.pdp-stock [data-tone="in"]`. It was the brand
+   accent, which read as a warning even in terracotta and reads unambiguously
+   as a stop light in bordo: a dark red dot beside the words "we are open".
+   The halo was the retired terracotta hardcoded in DECIMAL rgba, which is
+   why the retired-hex ban in brand-theme.test.ts never saw it; that test now
+   bans the decimal forms too. */
 .open-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 4px rgba(192, 100, 58, 0.22);
+  background: var(--matcha);
+  box-shadow: 0 0 0 4px rgba(30, 124, 75, 0.2);
 }
 
 .reserve-card {
@@ -4295,7 +4545,7 @@ select {
   color: #fff;
 }
 .account-topnav-link:focus-visible {
-  outline: 2px solid var(--accent-deep);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -4738,6 +4988,12 @@ select {
   text-align: right;
   gap: 4px;
 }
+.checkout-brand-name {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--bg-espresso);
+}
 
 .checkout-grid {
   display: grid;
@@ -5087,7 +5343,7 @@ select {
 .checkout-field input:focus {
   outline: none;
   border-color: var(--ink);
-  box-shadow: 0 0 0 3px rgba(20, 16, 11, 0.06);
+  box-shadow: 0 0 0 3px rgba(20, 61, 43, 0.06);
 }
 
 /* Payment step */
@@ -5363,9 +5619,6 @@ select {
 }
 
 .guide-head,
-.guide-hub-head {
-  margin-bottom: clamp(32px, 5vw, 48px);
-}
 .guide-meta {
   display: flex;
   flex-wrap: wrap;
@@ -5615,9 +5868,6 @@ select {
 }
 
 /* Index page */
-.legal-index-head {
-  margin-bottom: clamp(36px, 5vw, 60px);
-}
 .legal-index-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -6157,8 +6407,8 @@ select {
   border: 1px solid rgba(255, 255, 255, 0.28);
 }
 .shop-hero-slide[data-theme="dark"] .shop-hero-eyebrow {
-  background: rgba(20, 16, 11, 0.08);
-  border-color: rgba(20, 16, 11, 0.16);
+  background: rgba(20, 61, 43, 0.08);
+  border-color: rgba(20, 61, 43, 0.16);
 }
 .shop-hero-title {
   font-family: var(--serif);
@@ -6614,10 +6864,12 @@ select {
   margin-top: 18px;
   font-size: 13px;
 }
-/* "In stock" is the success signal, so it takes --matcha. It was painted in
-   the terracotta family, which is the same warm hue as the "almost gone"
-   warning below it — the two read alike at a glance, which is the exact
-   failure --matcha exists to prevent (see the token's note in :root). */
+/* "In stock" is the success signal, so it takes --matcha. It was once
+   painted in the accent family, which is the same warm hue as the "almost
+   gone" warning below it — the two read alike at a glance, which is the exact
+   failure --matcha exists to prevent (see the token's note in :root). Now
+   that the accent is bordo the trap is worse, not better: --accent, --rose
+   and a red "out of stock" would be three reds in one line. */
 .pdp-stock [data-tone="in"] {
   color: var(--matcha);
 }
@@ -6744,7 +6996,7 @@ select {
   position: fixed;
   inset: 0;
   z-index: 95;
-  background: rgba(20, 16, 11, 0.55);
+  background: rgba(20, 61, 43, 0.55);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -7006,7 +7258,9 @@ select {
   color: var(--ink-soft);
 }
 .cookie-banner-text a {
-  color: var(--accent-deep);
+  /* --accent, not the deep step: #4a0f1e is 15.24:1 and reads as body ink,
+     so an underlined near-black link is only a link because of the rule. */
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -7134,7 +7388,7 @@ select {
   transform: translateX(18px);
 }
 .cookie-switch input:focus-visible + .cookie-switch-track {
-  outline: 2px solid var(--accent-deep);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -7234,7 +7488,7 @@ select {
   background: var(--bg-cream);
 }
 .auth-field input:focus-visible {
-  outline: 2px solid var(--accent-deep);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 .auth-alert {
@@ -7422,8 +7676,11 @@ select {
   font-size: 12.5px;
   color: var(--ink-mute);
 }
+/* A warning, so it takes the warning token — not the brand accent. Painting
+   "this slot is nearly gone" in the house colour is the same mistake the
+   open-dot made in the other direction. */
 .karaoke-hint-warn {
-  color: var(--accent-deep);
+  color: var(--rose);
   font-weight: 600;
 }
 .karaoke-warn {
@@ -7642,7 +7899,9 @@ select {
   max-width: 60ch;
 }
 
-/* One membership, two surfaces. Terracotta, as the prototype draws it. */
+/* One membership, two surfaces. The accent as a full fill — bordo carries
+   white at 9.18:1, so this block no longer needs the darker step the
+   terracotta version did. */
 .account-app-block {
   margin-bottom: 18px;
   padding: 26px;

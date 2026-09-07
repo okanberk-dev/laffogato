@@ -318,7 +318,10 @@ export function CheckoutWizard({
             <span className="tabular">{formatTRY(subtotal)}</span>
           </div>
           {promoOk && (
-            <div className="checkout-summary-row" style={{ color: "#15803d" }}>
+            <div
+              className="checkout-summary-row"
+              style={{ color: "var(--matcha)" }}
+            >
               <span>İndirim · {promoOk.code}</span>
               <span className="tabular">−{formatTRY(discountMajor)}</span>
             </div>

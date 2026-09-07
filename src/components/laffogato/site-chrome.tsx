@@ -70,9 +70,9 @@ export function SiteChrome({
           window.location.href = "/magaza";
         }}
       />
-      <div className="site-chrome-body" id="main">
+      <main className="site-chrome-body" id="main">
         {children}
-      </div>
+      </main>
       <Footer settings={settings} />
     </>
   );

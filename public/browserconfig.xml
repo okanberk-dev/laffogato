@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Windows tile. The colour is the house green (--bg-espresso), matching
+     manifest.ts's theme_color. It was still the pre-Köşk ink, which no test
+     could see because brand-theme.test.ts read manifest.ts and never this
+     file. It does now. -->
 <browserconfig>
   <msapplication>
     <tile>
-      <square150x150logo src="/favicon.ico"/>
-      <TileColor>#14100B</TileColor>
+      <square150x150logo src="/icon-192.png"/>
+      <TileColor>#143d2b</TileColor>
     </tile>
   </msapplication>
 </browserconfig>

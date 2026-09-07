@@ -106,7 +106,7 @@ yok sayabilirsin.
   <p style="font-size:16px">${greeting}</p>
   <p style="font-size:15px;line-height:1.6">L'Affogato hesabını oluşturduğun için teşekkürler. Sipariş verebilmek için e-posta adresini doğrulaman gerekiyor.</p>
   <p style="margin:28px 0">
-    <a href="${verifyUrl}" style="background:#143d2b;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;letter-spacing:0.04em">E-postamı doğrula</a>
+    <a href="${verifyUrl}" style="background:#143d2b;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:14px;letter-spacing:0.04em">E-postamı doğrula</a>
   </p>
   <p style="font-size:13px;color:#5f594e;line-height:1.6">Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:<br><a href="${verifyUrl}" style="color:#8a6526">${verifyUrl}</a></p>
   <p style="font-size:12px;color:#746b5d">Bağlantı 24 saat geçerlidir. Bu hesabı sen oluşturmadıysan e-postayı yok say.</p>
@@ -137,7 +137,7 @@ yapmadıysan hiçbir şey yapmana gerek yok — mevcut şifren değişmez.
   <p style="font-size:16px">${greeting}</p>
   <p style="font-size:15px;line-height:1.6">L'Affogato hesabın için şifre sıfırlama talebi aldık. Yeni şifreni belirlemek için aşağıdaki butona tıkla.</p>
   <p style="margin:28px 0">
-    <a href="${resetUrl}" style="background:#143d2b;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;letter-spacing:0.04em">Yeni şifre belirle</a>
+    <a href="${resetUrl}" style="background:#143d2b;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:14px;letter-spacing:0.04em">Yeni şifre belirle</a>
   </p>
   <p style="font-size:13px;color:#5f594e;line-height:1.6">Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:<br><a href="${resetUrl}" style="color:#8a6526">${resetUrl}</a></p>
   <p style="font-size:12px;color:#746b5d">Bağlantı 1 saat geçerlidir ve bir kez kullanılabilir. Bu talebi sen yapmadıysan hiçbir şey yapmana gerek yok; mevcut şifren değişmez.</p>

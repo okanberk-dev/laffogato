@@ -15,8 +15,18 @@ export function PageHero({
   children,
 }: {
   eyebrow: string;
-  /** Two lines of display type; the array IS the line break. */
-  title: [string, string];
+  /**
+   * The headline. A tuple is two hand-set lines and the array IS the line
+   * break; a plain string wraps on its own.
+   *
+   * Both, because a tuple alone was wrong in two opposite directions. Pages
+   * whose H1 comes from data — a guide's title, a legal document's name, a
+   * verification page's state — cannot be hand-split at all, so they were
+   * turning the component down. And the pages that DID take it passed a fixed
+   * tuple that then repeated across every child route: one `["Bugün ne",
+   * "içiyoruz?"]` on all eight menu-category URLs.
+   */
+  title: string | [string, string];
   lede: string;
   children?: React.ReactNode;
 }) {
@@ -29,8 +39,14 @@ export function PageHero({
           <div className="page-hero-copy">
             <p className="hero-x-kicker">{eyebrow}</p>
             <h1 className="page-hero-title">
-              <span>{title[0]}</span>
-              <span>{title[1]}</span>
+              {Array.isArray(title) ? (
+                <>
+                  <span>{title[0]}</span>
+                  <span>{title[1]}</span>
+                </>
+              ) : (
+                title
+              )}
             </h1>
             <p className="hero-x-text">{lede}</p>
             {children}

@@ -337,7 +337,7 @@ export function PageHome({
 
       {/* Bar rail ────────────────────────────────────────────── */}
       {railItems.length > 0 && (
-        <section className="home-section">
+        <section className="home-section band-cream">
           <div className="wrap">
             <div className="rail-head">
               <div>
@@ -536,7 +536,7 @@ export function PageHome({
       <PourModule onOrder={() => navigate("menu")} />
 
       {/* Visit ───────────────────────────────────────────────── */}
-      <section className="home-section home-section-last">
+      <section className="home-section home-section-last band-cream">
         <div className="wrap split-2col">
           <div className="visit-photo reveal">
             <img
@@ -659,11 +659,17 @@ export function PageMenu({ menu }: PageProps) {
   const activeLabel = active === "all" ? "Hepsi" : liveMenu[active]?.title;
 
   return (
+    /* Not <main>: app.tsx already renders one around this, and a nested
+       <main> is two landmarks with the same role. */
     <div className="page" data-screen-label="02 Menu">
-      <main className="menu-page">
+      <div className="menu-page">
         <PageHero
           eyebrow={`Menü · ${activeLabel}`}
-          title={["Bugün ne", "içiyoruz?"]}
+          /* The category's own name, not a fixed tuple. Every menu category
+             is an indexable URL and they were all shipping the same H1. */
+          title={
+            active === "all" ? ["Bugün ne", "içiyoruz?"] : `${activeLabel}.`
+          }
           lede="İçeceklerin çoğu M ve L boy servis edilir. Alternatif süt ve ekstra shot barda seçilir. Menüye buradan göz at, beğendiğini barda söyle."
         />
         <div className="wrap">
@@ -847,7 +853,7 @@ export function PageMenu({ menu }: PageProps) {
             </div>
           </div>
         </section>
-      </main>
+      </div>
     </div>
   );
 }
@@ -1672,6 +1678,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
 
       <section
         className="section"
+        data-ground="dark"
         style={{ background: "var(--bg-espresso)", color: "#FFF" }}
       >
         <div className="wrap-wide">
@@ -1956,12 +1963,13 @@ export function PageVisit({ visit, settings }: PageProps) {
       {/* The prototype's visit opening: the real terrace photograph beside a
           dark green facts block, rather than a full-bleed drawn scene under a
           132px headline. */}
+      <PageHero
+        eyebrow="Ziyaret · Tuzla, İstanbul"
+        title={["200 yıllık köşkte,", "gece 01:00'e kadar"]}
+        lede="Postane Mahallesi'nde restore bir Rum köşkü: 24 koltuk, bahçe terası ve üst katta özel karaoke odası. Marmaray Tuzla'ya 6 dakika, ücretsiz vale."
+      />
       <section className="visit-open">
         <div className="wrap">
-          <div className="eyebrow">Ziyaret · Tuzla, İstanbul</div>
-          <h1 className="h1" style={{ marginTop: 14, maxWidth: "24ch" }}>
-            {LOCATION.landmark}.
-          </h1>
           <div className="visit-open-grid">
             <div className="visit-open-photo">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2477,6 +2485,7 @@ export function PageVisit({ visit, settings }: PageProps) {
 
       <section
         className="section"
+        data-ground="dark"
         style={{ background: "var(--bg-espresso)", color: "#FFF" }}
       >
         <div

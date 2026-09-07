@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { PageHero } from "@/components/laffogato/page-hero";
 import { guideHubLd } from "@/lib/seo/guide-structured-data";
 import { GUIDES } from "@/lib/seo/guides";
 import { SITE } from "@/lib/seo/site";
@@ -49,19 +50,11 @@ export default function GuideHubPage() {
           <span>Rehber</span>
         </nav>
 
-        <header className="guide-hub-head">
-          <div className="eyebrow" style={{ marginBottom: 16 }}>
-            Il quaderno
-          </div>
-          <h1 className="h1">
-            Rehber<span className="script">.</span>
-          </h1>
-          <p className="lede" style={{ maxWidth: "58ch" }}>
-            Barın arkasında öğrendiklerimiz. Bir affogato neden hemen içilir,
-            matcha neden kaynar suyla acılaşır, cortado ile flat white
-            arasındaki fark nedir - hepsi tek tek, uygulanabilir biçimde.
-          </p>
-        </header>
+        <PageHero
+          eyebrow="Il quaderno"
+          title={["Barın arkasında", "öğrendiklerimiz"]}
+          lede="Bir affogato neden hemen içilir, matcha neden kaynar suyla acılaşır, cortado ile flat white arasındaki fark nedir - hepsi tek tek, uygulanabilir biçimde."
+        />
 
         <ul className="guide-hub-grid">
           {GUIDES.map((g) => (

@@ -50,11 +50,11 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
       <ClearCart />
       {promoDropped && (
         <div
-          className="mb-6 rounded-xl border px-5 py-4 text-sm"
+          className="mb-6 rounded-[var(--r-md)] border px-5 py-4 text-sm"
           style={{
-            borderColor: "#e1e5e0",
-            background: "#f3f5f2",
-            color: "#7d5f27",
+            borderColor: "var(--ink-line-strong)",
+            background: "var(--bg-stone)",
+            color: "var(--gold-deep)",
           }}
         >
           Promosyon kodun sipariş anında geçerli değildi (süresi dolmuş veya
@@ -63,7 +63,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         </div>
       )}
       <div
-        className="rounded-2xl border border-neutral-200 bg-white p-10 shadow-sm md:p-14"
+        className="rounded-[var(--r-xl)] border border-[var(--ink-line)] bg-white p-10 md:p-14"
         style={{ boxShadow: "var(--shadow-lg)" }}
       >
         <div className="flex items-center gap-3">
@@ -72,36 +72,25 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
             style={{ background: "var(--gold)" }}
           />
           <span
-            className="text-[10px] tracking-[0.24em] text-neutral-500 uppercase"
+            className="text-[10px] tracking-[0.24em] uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             Sipariş alındı · {placedAt}
           </span>
         </div>
 
-        <h1
-          className="mt-5 text-5xl"
-          style={{
-            fontFamily: "var(--serif), 'Playfair Display', serif",
-            fontStyle: "normal",
-            fontWeight: 500,
-            letterSpacing: "-0.018em",
-            lineHeight: 1.02,
-          }}
-        >
+        {/* The site retired its two-face system; this page was still asking
+            for a 500-weight Playfair and a cursive that no longer exists, so
+            it rendered in whatever the browser had. `.h1` is the one display
+            style, and `.script` is the accent word — which on this page is
+            genuinely earned. */}
+        <h1 className="h1 mt-5">
           Grazie, {order.customerName.split(" ")[0]}.
           <br />
-          <span
-            style={{
-              fontFamily: "var(--script), cursive",
-              color: "var(--gold)",
-            }}
-          >
-            See you soon.
-          </span>
+          <span className="script">See you soon.</span>
         </h1>
 
-        <p className="mt-6 max-w-md text-neutral-700">
+        <p className="mt-6 max-w-md" style={{ color: "var(--ink-soft)" }}>
           {order.status === "paid" ? (
             <>
               Ödemen alındı ve siparişin onaylandı. Tuzla köşkünde bekleniyorsun
@@ -117,9 +106,9 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-md border border-neutral-200 p-4">
+          <div className="rounded-[var(--r-md)] border border-[var(--ink-line)] p-4">
             <div
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+              className="text-[10px] tracking-[0.22em] uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Sipariş No
@@ -131,9 +120,9 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
               #{order.orderNo}
             </div>
           </div>
-          <div className="rounded-md border border-neutral-200 p-4">
+          <div className="rounded-[var(--r-md)] border border-[var(--ink-line)] p-4">
             <div
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+              className="text-[10px] tracking-[0.22em] uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Kalem
@@ -145,9 +134,9 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
               {order.items.length}
             </div>
           </div>
-          <div className="rounded-md border border-neutral-200 p-4">
+          <div className="rounded-[var(--r-md)] border border-[var(--ink-line)] p-4">
             <div
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+              className="text-[10px] tracking-[0.22em] uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Toplam
@@ -161,19 +150,19 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-neutral-200 pt-6">
+        <div className="mt-10 border-t border-[var(--ink-line)] pt-6">
           <div
-            className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+            className="text-[10px] tracking-[0.22em] uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             Özet
           </div>
-          <ul className="mt-4 grid gap-2 text-sm text-neutral-800">
+          <ul className="mt-4 grid gap-2 text-sm text-[var(--ink)]">
             {order.items.map((it, i) => (
               <li key={i} className="flex items-baseline justify-between gap-4">
                 <span>
                   {it.productName}
-                  <span className="text-neutral-400"> × {it.qty}</span>
+                  <span className="text-[var(--ink-mute)]"> × {it.qty}</span>
                 </span>
                 <span style={{ fontFamily: "var(--mono), monospace" }}>
                   {formatTRY(it.unitPriceMinor * it.qty)}
@@ -181,7 +170,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
               </li>
             ))}
           </ul>
-          <div className="mt-4 grid gap-1.5 border-t border-neutral-200 pt-4 text-sm">
+          <div className="mt-4 grid gap-1.5 border-t border-[var(--ink-line)] pt-4 text-sm">
             <SummaryRow
               label="Ara toplam"
               value={formatTRY(order.subtotalMinor)}
@@ -210,23 +199,24 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         </div>
 
         <div className="mt-10 flex flex-wrap gap-3">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
-          >
+          {/* The site's own buttons: --r-btn, the house green, the arrow that
+              every other primary carries. These were Tailwind neutral-900
+              capsules — a different shape and a different palette from every
+              other action on the site, on the last screen a paying customer
+              sees. */}
+          <Link href="/" className="btn btn-primary">
             Ana sayfaya dön
-            <span aria-hidden>→</span>
+            <span className="arrow" aria-hidden>
+              →
+            </span>
           </Link>
-          <Link
-            href="/#shop"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-neutral-300 px-5 py-3 text-sm font-medium text-neutral-900 transition-colors hover:border-neutral-900"
-          >
+          <Link href="/#shop" className="btn btn-outline">
             Alışverişe devam et
           </Link>
         </div>
 
         <p
-          className="mt-8 text-[10px] tracking-[0.22em] text-neutral-400 uppercase"
+          className="mt-8 text-[10px] tracking-[0.22em] uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           Sanal POS entegrasyonu sonrası ödeme makbuzu e-postan üzerinden

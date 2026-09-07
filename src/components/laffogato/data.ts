@@ -970,9 +970,10 @@ export const STORY = {
 export const LOCATION = {
   name: "L'Affogato - Tuzla",
   short: "Tuzla · İstanbul",
+  /** Display lines. The landmark is directions, not address — it lives on
+      `landmark` below and on /ziyaret's own directions block. */
   address: [
     "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
-    "Menemenci Cumhur’un yanı",
     "34940 Tuzla / İstanbul",
   ],
   hours: [["Her gün", "09:00 - 01:00"]] as Array<[string, string]>,

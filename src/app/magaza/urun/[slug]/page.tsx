@@ -115,6 +115,14 @@ function ProductOpenGraph({ product }: { product: Product }) {
   );
 }
 
+/**
+ * The degraded-mode page: shown when the database cannot answer.
+ *
+ * It renders inside <SiteChrome> like every other state of this route. It
+ * used to be a bare <main> with no header and no footer, so a visitor who hit
+ * a DB blip — and a crawler that hit one — got a dead end with no navigation
+ * out of it, on the one screen whose whole message is "try again".
+ */
 function ProductUnavailable() {
   return (
     <main
@@ -125,19 +133,12 @@ function ProductUnavailable() {
         textAlign: "center",
       }}
     >
-      <h1
-        style={{
-          fontFamily: "var(--serif)",
-          fontStyle: "normal",
-          fontSize: 30,
-          marginBottom: 12,
-        }}
-      >
+      <h1 className="h2" style={{ marginBottom: 12 }}>
         Bu ürünü şu an gösteremiyoruz
       </h1>
       <p
         style={{
-          color: "rgba(20,16,11,0.7)",
+          color: "var(--ink-soft)",
           lineHeight: 1.6,
           marginBottom: 24,
         }}
@@ -158,7 +159,25 @@ export default async function ProductDetailPage({ params }: RouteParams) {
     // A missing product is a genuine 404 — but during a database outage every
     // product reads as missing, and 404-ing real product URLs would get them
     // deindexed. Serve an honest "temporarily unavailable" page instead.
-    if (isDegradedRequest()) return <ProductUnavailable />;
+    if (isDegradedRequest()) {
+      // Wrapped in the site's own chrome: the fallback used to render bare,
+      // so a visitor who hit a database blip got a page with no header and no
+      // footer — no way out of it — on the one screen whose entire message is
+      // "come back in a minute". `getPublicSettings()` degrades to defaults
+      // rather than throwing, so this is safe in exactly this state.
+      const fallbackSettings = await getPublicSettings();
+      return (
+        <SiteChrome
+          settings={{
+            phone: fallbackSettings.phone,
+            email: fallbackSettings.email,
+            address: fallbackSettings.address,
+          }}
+        >
+          <ProductUnavailable />
+        </SiteChrome>
+      );
+    }
     notFound();
   }
 

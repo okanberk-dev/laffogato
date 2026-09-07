@@ -359,7 +359,7 @@ export function LaffogatoApp({
             display: "flex",
             alignItems: "center",
             gap: 14,
-            boxShadow: "0 20px 40px rgba(20, 16, 11, 0.25)",
+            boxShadow: "var(--shadow-lg)",
             fontSize: 13,
             lineHeight: 1.45,
           }}

@@ -28,57 +28,59 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
       id="sss"
       aria-labelledby="sss-heading"
       style={{
-        background: "var(--bg-warm, #FAF6EE)",
-        color: "var(--ink, #14100B)",
-        padding: "80px 24px",
-        borderTop: "1px solid rgba(20, 16, 11, 0.08)",
+        background: "var(--bg-cream)",
+        color: "var(--ink)",
+        padding: "clamp(56px, 7vw, 88px) 24px",
+        borderTop: "1px solid var(--ink-line)",
       }}
     >
       <div style={{ maxWidth: 980, margin: "0 auto" }}>
         <div className="eyebrow" style={{ marginBottom: 14 }}>
           Sıkça Sorulan Sorular · FAQ
         </div>
-        <h2
-          id="sss-heading"
-          className="h1"
-          style={{ fontSize: "clamp(36px, 5vw, 56px)", marginBottom: 12 }}
-        >
+        {/* `.section-title`, not `.h1`: at clamp(36px, 5vw, 56px) this h2 was
+            set LARGER than the page's own h1 sitting above it. */}
+        <h2 id="sss-heading" className="section-title">
           L&rsquo;Affogato hakkında merak edilenler.
         </h2>
         <p
           style={{
             maxWidth: 640,
-            color: "rgba(20, 16, 11, 0.7)",
-            lineHeight: 1.6,
-            marginBottom: 40,
-            fontSize: 17,
+            color: "var(--ink-soft)",
+            lineHeight: 1.7,
+            margin: "14px 0 40px",
+            fontSize: 16,
           }}
         >
           Tuzla&rsquo;daki kafe, menü, yenilebilir kup, rezervasyon ve online
           sipariş hakkında en çok sorulan soruların yanıtları.
         </p>
 
-        <div style={{ display: "grid", gap: 12 }}>
+        <div className="seo-faq" style={{ display: "grid", gap: 12 }}>
           {/* Show a concise, minimal set on-page; full set still feeds FAQ JSON-LD. */}
           {faq.slice(0, 6).map((entry, idx) => (
             <details
               key={idx}
               style={{
-                background: "#FFF",
-                borderRadius: 16,
-                border: "1px solid rgba(20, 16, 11, 0.08)",
+                background: "var(--bg)",
+                borderRadius: "var(--r-lg)",
+                border: "1px solid var(--ink-line)",
                 padding: "18px 22px",
-                boxShadow: "0 1px 2px rgba(20, 16, 11, 0.04)",
+                boxShadow: "var(--shadow-sm)",
               }}
             >
+              {/* `listStyle: none` removed the disclosure triangle and put
+                  nothing back, so a closed row gave no sign it could open.
+                  The marker is drawn in CSS (`.seo-faq summary::after`) and
+                  rotates with `[open]`. The face is the site's one family —
+                  this was still asking for the retired Playfair. */}
               <summary
+                className="seo-faq-q"
                 style={{
-                  fontFamily: "var(--serif-display, Playfair Display, serif)",
-                  fontSize: 19,
-                  lineHeight: 1.4,
+                  fontSize: 18,
+                  lineHeight: 1.45,
                   cursor: "pointer",
-                  listStyle: "none",
-                  fontWeight: 500,
+                  fontWeight: 700,
                 }}
               >
                 {entry.q}
@@ -86,8 +88,8 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
               <p
                 style={{
                   marginTop: 12,
-                  color: "rgba(20, 16, 11, 0.78)",
-                  lineHeight: 1.65,
+                  color: "var(--ink-soft)",
+                  lineHeight: 1.7,
                   fontSize: 15,
                 }}
               >
@@ -100,7 +102,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
         <hr
           style={{
             border: 0,
-            borderTop: "1px solid rgba(20, 16, 11, 0.1)",
+            borderTop: "1px solid var(--ink-line)",
             margin: "56px 0 40px",
           }}
         />
@@ -193,10 +195,10 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
                     display: "inline-block",
                     padding: "8px 14px",
                     borderRadius: 999,
-                    border: "1px solid rgba(20, 16, 11, 0.14)",
+                    border: "1px solid rgba(20, 61, 43, 0.14)",
                     background: "#fff",
                     fontSize: 13.5,
-                    color: "var(--ink-soft, rgba(20,16,11,0.72))",
+                    color: "var(--ink-soft, rgba(20,61,43,0.72))",
                     textDecoration: "none",
                   }}
                 >
@@ -211,14 +213,14 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
           style={{
             marginTop: 48,
             padding: 24,
-            background: "rgba(20, 16, 11, 0.04)",
+            background: "rgba(20, 61, 43, 0.04)",
             borderRadius: 16,
             fontSize: 13,
-            color: "rgba(20, 16, 11, 0.6)",
+            color: "rgba(20, 61, 43, 0.6)",
             lineHeight: 1.6,
           }}
         >
-          <strong style={{ color: "rgba(20, 16, 11, 0.85)" }}>
+          <strong style={{ color: "rgba(20, 61, 43, 0.85)" }}>
             L&rsquo;Affogato Italia · sede principale
           </strong>{" "}
           - {SITE.parent.address}. İstanbul Tuzla şubesi, 1987&rsquo;de

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { PageHero } from "@/components/laffogato/page-hero";
 import { LEGAL_CATEGORY_ORDER, LEGAL_DOCS } from "@/lib/legal/documents";
 import { openGraphDefaults } from "@/lib/seo/site";
 
@@ -34,23 +35,15 @@ export default function HukukIndexPage() {
   return (
     <main className="legal-page">
       <div className="legal-wrap">
-        <header className="legal-index-head">
-          <Link
-            href="/"
-            className="eyebrow"
-            style={{ display: "inline-block", marginBottom: 18 }}
-          >
+        <PageHero
+          eyebrow="Hukuki belgeler"
+          title={["Sözleşmeler", "ve haklarınız"]}
+          lede="Sipariş öncesi okumanız gereken sözleşmeler, gizlilik politikamız ve kullanıcı haklarınız. Hepsi Türk mevzuatına göre hazırlandı; soru varsa yazın - birlikte adım atalım."
+        >
+          <Link href="/" className="page-hero-back">
             ← Anasayfa
           </Link>
-          <h1 className="h1" style={{ marginBottom: 18 }}>
-            Hukuki <span className="script">bilgiler.</span>
-          </h1>
-          <p className="lede" style={{ maxWidth: "56ch" }}>
-            Sipariş öncesi okumanız gereken sözleşmeler, gizlilik politikamız ve
-            kullanıcı haklarınız. Hepsi Türk mevzuatına göre hazırlandı; soru
-            varsa yazın - birlikte adım atalım.
-          </p>
-        </header>
+        </PageHero>
 
         <div className="legal-index-grid">
           {[...grouped.entries()]

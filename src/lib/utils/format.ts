@@ -58,3 +58,29 @@ export function shortProductName(name: string): string {
   const head = name.split(/\s+[-‐‑‒–—]\s+/)[0];
   return head.trim() || name.trim();
 }
+
+/**
+ * The postal address, split into display lines, with the landmark dropped.
+ *
+ * Three places used to derive this independently — the footer, the visit
+ * page's props builder, and a hard-coded list in `data.ts` — which is how the
+ * landmark survived in two of them after the operator asked for it out of the
+ * address (7 Eyl). It is directions, not address: it still appears on
+ * /ziyaret's own directions block, in the structured data, and in the app's
+ * `venue.landmark`, which are the places that are actually about finding the
+ * door.
+ *
+ * Splits on newlines and commas, and drops any parenthetical group. NOT on
+ * "/": the two builders this replaced disagreed about that, and the one that
+ * split on it broke "34940 Tuzla / İstanbul" — a single postal line — across
+ * two rows. The stored setting is never modified; this is a display decision,
+ * so an operator who wants the landmark back puts it outside the brackets.
+ */
+export function addressLines(address: string, fallback: string[]): string[] {
+  const lines = (address ?? "")
+    .replace(/\s*\([^)]*\)\s*/g, " ")
+    .split(/[\n,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return lines.length > 0 ? lines : fallback;
+}

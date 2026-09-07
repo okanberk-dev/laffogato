@@ -172,7 +172,7 @@ function Slide({
   const isLight = slide.textTheme === "light";
   const overlay = slide.imageUrl
     ? isLight
-      ? "linear-gradient(to right, rgba(20,16,11,0.45), rgba(20,16,11,0.25) 60%, rgba(20,16,11,0.55))"
+      ? "linear-gradient(to right, rgba(20,61,43,0.45), rgba(20,61,43,0.25) 60%, rgba(20,61,43,0.55))"
       : "linear-gradient(to right, rgba(255,255,255,0.35), rgba(255,255,255,0.1) 60%, rgba(255,255,255,0.35))"
     : isLight
       ? "linear-gradient(135deg, #235347 0%, #12291f 100%)"

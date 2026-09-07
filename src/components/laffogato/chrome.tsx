@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { addressLines } from "@/lib/utils/format";
 import { CONSENT_OPEN_EVENT } from "@/lib/consent/script";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
@@ -177,12 +178,12 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
                 className="nav-brand"
                 aria-label="L'Affogato anasayfası"
               >
+                {/* The mark alone (operator, 7 Eyl). The wordmark beside it
+                    said in type what the disc already says, and cost the
+                    centred nav ~190px it wanted for its links. The accessible
+                    name lives on the anchor, so nothing is lost to a reader. */}
                 <span className="nav-brand-disc" aria-hidden="true">
                   <span className="nav-brand-mark brand-mark" />
-                </span>
-                <span className="nav-brand-words">
-                  <span className="nav-brand-name">L’Affogato</span>
-                  <span className="nav-brand-est">caffè italiano · 1987</span>
                 </span>
               </a>
             </div>
@@ -622,18 +623,8 @@ interface FooterProps {
 
 const DEFAULT_ADDRESS_LINES = [
   "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
-  "Menemenci Cumhur’un yanı",
   "34940 Tuzla / İstanbul",
 ];
-
-function splitAddress(address?: string): string[] {
-  if (!address) return DEFAULT_ADDRESS_LINES;
-  const parts = address
-    .split(/[\n,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return parts.length > 0 ? parts : DEFAULT_ADDRESS_LINES;
-}
 
 export function Footer({ navigate, settings }: FooterProps) {
   const hrefFor = (r: Route) => ROUTE_PATHS[r];
@@ -645,7 +636,7 @@ export function Footer({ navigate, settings }: FooterProps) {
   };
   const phone = settings?.phone ?? "+90 536 429 09 19";
   const email = settings?.email ?? SITE.email;
-  const addressLines = splitAddress(settings?.address);
+  const lines = addressLines(settings?.address ?? "", DEFAULT_ADDRESS_LINES);
   const year = new Date().getFullYear();
   return (
     <footer className="footer">
@@ -699,7 +690,26 @@ export function Footer({ navigate, settings }: FooterProps) {
               YouTube
             </a>
           </div>
+          {/* In the brand column, not a seventh column of its own: with six
+              link groups plus a brand block spanning two, the contact
+              details wrapped onto a row by themselves and left the footer
+              looking like it had lost a column. */}
+          <div className="footer-contact-col">
+            <h5>İletişim</h5>
+            <ul>
+              {lines.map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+              <li className="footer-contact-mono">{phone}</li>
+              <li className="footer-contact-mono">{email}</li>
+              <li className="footer-contact-hours">
+                <span>Her gün</span>
+                <span className="tabular">09:00 - 01:00</span>
+              </li>
+            </ul>
+          </div>
         </div>
+
         <div>
           <h5>Menü</h5>
           <ul>
@@ -773,20 +783,6 @@ export function Footer({ navigate, settings }: FooterProps) {
             </li>
             <li>
               <Link href="/hukuk">Tüm belgeler →</Link>
-            </li>
-          </ul>
-        </div>
-        <div className="footer-contact-col">
-          <h5>İletişim</h5>
-          <ul>
-            {addressLines.map((line, i) => (
-              <li key={i}>{line}</li>
-            ))}
-            <li className="footer-contact-mono">{phone}</li>
-            <li className="footer-contact-mono">{email}</li>
-            <li className="footer-contact-hours">
-              <span>Her gün</span>
-              <span className="tabular">09:00 - 01:00</span>
             </li>
           </ul>
         </div>

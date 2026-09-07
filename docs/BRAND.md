@@ -12,7 +12,8 @@
 > **Mobil uygulama (`RiosenBeq/lafmobil`) ayrı bir palet dosyası tutar**
 > (`src/theme/tokens.ts`). 2 Eyl 2026'da iki yüzey eşitlenmişti; Köşk yeniden
 > tasarımı sonrası parite **kısmi**: yeşiller örtüşüyor, zemin krem → beyaz ve
-> ikincil vurgu bordo → terracotta oldu. Uygulamayı da taşımak gerekirse
+> ikincil vurgu bordo → terracotta → yine bordo oldu ve artık uygulamanın
+> değeriyle aynı. Uygulamayı da taşımak gerekirse
 > değişecek dosya `lafmobil/src/theme/tokens.ts`.
 
 ---
@@ -33,7 +34,7 @@
 ### 1.1b Hero paleti
 
 Operatörün 6 Eyl 2026'da verdiği referans tasarımın kendi beş jetonu. Sayfa
-paletinden ayrı tutuldu: hero, sitede krem zemini ve ne altın ne terracotta
+paletinden ayrı tutuldu: hero, sitede krem zemini ve ne altın ne bordo
 olan bir başlık rengi taşıyan tek şerit.
 
 | Token              | Değer     | Nerede                                             |
@@ -97,22 +98,40 @@ zorunlu tutar.
 Altın yalnızca **ödül** anlamına gelir: damga kartı, kupon, "siparişi onayla".
 Dekoratif kullanılmaz.
 
-### 1.5 Terracotta — vurgu
+### 1.5 Bordo — vurgu, tricolore'nin kırmızısı
 
-| Token              | Değer     | Nerede                                               |
-| ------------------ | --------- | ---------------------------------------------------- |
-| `--accent`         | `#c0643a` | Aktif nav altı çizgisi, başlıkta tek vurgu kelimesi. |
-| `--accent-deep`    | `#97461f` | **Küçük metin ve beyaz yazılı rozetler.**            |
-| `--accent-soft`    | `#f2e0d5` | Çok hafif terracotta zemin.                          |
-| `--accent-on-dark` | `#e6a37a` | Koyu yeşil üzerinde terracotta metin.                |
+| Token              | Değer     | Nerede                                                             |
+| ------------------ | --------- | ------------------------------------------------------------------ |
+| `--accent`         | `#84233c` | Aktif nav altı çizgisi, başlıkta tek vurgu kelimesi, üyelik bloğu. |
+| `--accent-deep`    | `#4a0f1e` | Basılı adım, en koyu bordo zemin.                                  |
+| `--accent-soft`    | `#f6e9ec` | Çok hafif gül zemin.                                               |
+| `--accent-on-dark` | `#efb9c6` | Koyu zemin üzerinde bordo metin.                                   |
 
-**Kural:** `--accent` üzerine beyaz metin **4.10:1**, yani AA altında. Büyük
-display tipografi için yeterli (≥3:1), 10–14px rozet ve bağlantı için
-değil — orada `--accent-deep` (6.54:1) kullanılır. Tasarımdan bilerek ayrılan
-ikinci nokta budur.
+Operatör talimatı, 7 Eyl 2026: _"italya bayrağı renklerini kullan … bunlara
+yakışan bordo ekle"_. Yeşil ve beyaz sitede zaten vardı; bu, bayrağın
+kırmızısının bordoya derinleştirilmiş hâli — ev yeşilinin üstüne bağırmak
+yerine onunla oturması için.
 
-Terracotta **kıt** kullanılır. Birincil eylem rengi değildir; birincil eylem
-ev yeşilidir.
+Bu değerler **yeni değil**: `lafmobil`'in `accent.burgundy`,
+`burgundyDeep` ve `bg.accentSubtle` jetonlarının aynısı. Köşk redesign'ının
+açtığı palet farkını kapatıyor ve uygulamanın `tricolore` dizisini
+(`['#235347', '#FAF9F6', '#84233C']`) sitenin yeşil / kâğıt / vurgu üçlüsüyle
+birebir aynı hâle getiriyor.
+
+Terracotta'nın gerektirdiği "beyaz metin AA altında" istisnası onunla birlikte
+gitti: `--accent` üzerine beyaz **9.18:1**, her boyutta yeterli.
+
+**Tehlike:** `#84233c` ile ev yeşilleri neredeyse aynı parlaklıkta
+(`--hero-green` ile **1.15:1**). Biri diğerinin üstüne **asla** yazılmaz; koyu
+zeminde `--accent-on-dark` kullanılır. `tests/contrast.test.ts` bunu tutar.
+
+Bordo **kıt** kullanılır. Birincil eylem rengi değildir; birincil eylem ev
+yeşilidir.
+
+**Tricolore çizgisi.** `.tricolore` sınıfı bir başlığın altına 42×3px'lik üç
+duraklı bir çizgi çizer: yeşil · kırık beyaz · bordo. Bayrağın kendisi değil —
+bir kahve sitesinde gerçek bayrak dil seçici gibi okunur; ince çizgi miras
+gibi okunur. Duraklar bu paletin kendi renkleri, bayrağın primerleri değil.
 
 ### 1.6 Durum
 
@@ -120,6 +139,12 @@ ev yeşilidir.
 | ---------- | --------- | ----------------------------- |
 | `--matcha` | `#1e7c4b` | Olumlu — stokta, açık, onaylı |
 | `--rose`   | `#c5435a` | Uyarı — az kaldı, hata        |
+
+`--rose` **durum** rengidir, marka değil. Vurgu bordo olunca ikisi hue olarak
+yakınlaştı (4.8°); onları ayıran şey ton değil **değer** ve **ağırlık**:
+`--rose` küçük metinde parlak bir alarm ("● Son 2 adet", "Sil"), bordo derin
+bir marka dolgusu. Aralarındaki 1.85:1 parlaklık farkını `contrast.test.ts`
+korur; kimse birini sessizce diğerine eşitleyemez.
 
 ### 1.7 Ölçülmüş kontrast
 
@@ -135,13 +160,15 @@ Aşağıdaki oranlar `globals.css`'ten okunup hesaplandı. WCAG AA: normal metin
 | `--green` #1e7c4b          | `--bg` #ffffff          | 5.20:1   |
 | `--gold` #8a6526           | `--bg` #ffffff          | 5.29:1   |
 | `--rose` #c5435a           | `--bg` #ffffff          | 4.86:1   |
-| `--accent` #c0643a         | `--bg-cream` #fbf9f4    | 3.89:1   |
-| `--accent-deep` #97461f    | `--bg-cream` #fbf9f4    | 6.21:1   |
+| `--accent` #84233c         | `--bg-cream` #fbf9f4    | 8.73:1   |
+| `--accent-deep` #4a0f1e    | `--bg-cream` #fbf9f4    | 14.48:1  |
 | `--green-mint` #a9d3b5     | `--bg-espresso` #143d2b | 7.32:1   |
 | `--green-mist` #cfe3d5     | `--bg-espresso` #143d2b | 9.01:1   |
 | `--gold-soft` #e8d3a4      | `--bg-espresso` #143d2b | 8.25:1   |
-| `--accent-on-dark` #e6a37a | `--bg-espresso` #143d2b | 5.71:1   |
-| `--accent` #c0643a         | `--bg-espresso` #143d2b | 2.96:1 ✗ |
+| `--accent-on-dark` #efb9c6 | `--bg-espresso` #143d2b | 7.17:1   |
+| `--accent-on-dark` #efb9c6 | `--hero-green` #1e5b3f  | 4.74:1   |
+| `--accent` #84233c         | `--bg-espresso` #143d2b | 1.32:1 ✗ |
+| `--accent` #84233c         | `--hero-green` #1e5b3f  | 1.15:1 ✗ |
 
 Dolgu üzerine metin:
 
@@ -150,8 +177,8 @@ Dolgu üzerine metin:
 | `--bg-espresso` #143d2b | 12.12:1     | 1.40:1        |
 | `--green` #1e7c4b       | 5.20:1      | 3.26:1        |
 | `--gold` #8a6526        | 5.29:1      | 3.20:1        |
-| `--accent` #c0643a      | 4.10:1 ⚠    | 4.13:1        |
-| `--accent-deep` #97461f | 6.54:1      | 2.59:1        |
+| `--accent` #84233c      | 9.18:1      | 1.85:1        |
+| `--accent-deep` #4a0f1e | 15.24:1     | 1.11:1        |
 | `--gold-soft` #e8d3a4   | 1.47:1 ✗    | 11.52:1       |
 
 ### 1.8 HUES — ürün yüzeyleri
@@ -267,16 +294,33 @@ Referans tasarımın dili üç paylaşılan parçada toplanır. Yeni bir sayfa b
 kullanır; kendi kopyasını çıkarmaz — bundan önce altı sayfada altı farklı
 başlık ölçüsü vardı.
 
-| Parça                          | Nerede                       | Ne yapar                                                          |
-| ------------------------------ | ---------------------------- | ----------------------------------------------------------------- |
-| `<PageHero>` (`page-hero.tsx`) | Anasayfa dışındaki her sayfa | Krem şerit, cocoa display başlık (iki satır), sağda yeşil disk.   |
-| `.promo-banner`                | Anasayfa, `/kampanyalar`     | Koyu zemin, üstünde yumuşak dalga, sağda tek beyaz hap.           |
-| `.campaign-card`               | `/kampanyalar`               | 16:9 görsel + tür etiketi + başlık; panelin `app-content` yazısı. |
+| Parça                          | Nerede                       | Ne yapar                                                             |
+| ------------------------------ | ---------------------------- | -------------------------------------------------------------------- |
+| `<PageHero>` (`page-hero.tsx`) | Anasayfa dışındaki her sayfa | Krem şerit, cocoa display başlık, sağda yeşil disk.                  |
+| `.section-title`               | Sayfa içi blok başlığı       | Üstünde tricolore çizgisi olan h2.                                   |
+| `.band-cream`                  | Uzun sayfalarda ritim        | Bölümü krem zemine alır; sayfa kâğıt → krem → kâğıt diye nefes alır. |
+| `.promo-banner`                | Anasayfa, `/kampanyalar`     | Koyu zemin, üstünde yumuşak dalga, sağda tek beyaz hap.              |
+| `.campaign-card`               | `/kampanyalar`               | 16:9 görsel + tür etiketi + başlık; panelin `app-content` yazısı.    |
 
 `<HomeHeroSlider>` bunların büyük hâli: aynı krem şerit, aynı cocoa başlık,
 ama diskin üstünde kesilmiş bir ürün fotoğrafı duruyor. Disk **elips**tir ve
 kupa onun sol altından taşar; iç içe geçmiş iki merkez, "yuvarlak çerçeveli
 fotoğraf" gibi okunur ve tasarımı öldürür.
+
+`<PageHero>`'in `title`'ı ya iki satırlık bir demet (satır sonunu dizinin
+kendisi belirler) ya da tek bir dize alır. İkisi birden, çünkü demet iki zıt
+yönde yanlıştı: başlığı veriden gelen sayfalar (bir rehber yazısının adı, bir
+sözleşmenin başlığı) elle bölünemiyordu ve bileşeni geri çeviriyordu; demeti
+kabul eden sayfalar ise sabit bir demeti her alt rotaya kopyalıyordu — sekiz
+menü kategorisi URL'inin hepsi aynı h1'i basıyordu.
+
+**Vurgu kelimesi zemine göre renk alır.** `.script` artık
+`var(--script-ink, var(--accent))` okur; koyu zemin `--script-ink`'i
+`--accent-on-dark` yapar. Koyu bir blok yazarken `data-ground="dark"` eklemek
+yeterli. Önceden bu, koyu seçicilerin **listesiydi** ve liste eskimişti: iki
+satır içi koyu bölüm ile `.guide-cta` listede yoktu, bordoya geçişte o üç
+vurgu kelimesi görünmez oldu ve test yeşil kaldı. Liste bakım ister, değişken
+istemez.
 
 Disk ve fotoğraf tek bir `--disc` değişkeninden **piksel** olarak ölçülür.
 Yüzdeyle denendi ve sessizce başarısız oldu: esnetilmiş bir grid öğesine karşı

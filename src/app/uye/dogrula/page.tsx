@@ -34,7 +34,7 @@ export default async function VerifyPage({ searchParams }: PageProps) {
           background: "#fff",
           borderRadius: 18,
           padding: "40px 32px",
-          border: "1px solid rgba(20,16,11,0.08)",
+          border: "1px solid var(--ink-line)",
         }}
       >
         <div
@@ -64,7 +64,7 @@ export default async function VerifyPage({ searchParams }: PageProps) {
         </h1>
         <p
           style={{
-            color: "rgba(20,16,11,0.7)",
+            color: "var(--ink-soft)",
             lineHeight: 1.6,
             fontSize: 15,
             marginBottom: 28,

@@ -13,8 +13,9 @@ function GatePanel({ children }: { children: React.ReactNode }) {
         maxWidth: 520,
         margin: "0 auto",
         background: "#fff",
-        border: "1px solid rgba(20,16,11,0.08)",
-        borderRadius: 18,
+        border: "1px solid var(--ink-line)",
+        // 18 was neither --r-md (14) nor --r-lg (22).
+        borderRadius: "var(--r-lg)",
         padding: "32px 28px",
       }}
     >
@@ -63,16 +64,10 @@ export default async function OdemePage({
             ← Alışverişe dön
           </Link>
           <div className="checkout-brand">
-            <span
-              style={{
-                fontFamily: "var(--serif)",
-                fontStyle: "normal",
-                fontSize: 22,
-                letterSpacing: "-0.015em",
-              }}
-            >
-              L&apos;Affogato
-            </span>
+            {/* The site has one family and one display style; this was asking
+                for `--serif` — the retired second face, now an alias — at a
+                hardcoded 22px outside the type scale. */}
+            <span className="checkout-brand-name">L&apos;Affogato</span>
             <span
               style={{
                 fontFamily: "var(--mono)",
@@ -119,7 +114,7 @@ export default async function OdemePage({
             </h1>
             <p
               style={{
-                color: "rgba(20,16,11,0.7)",
+                color: "var(--ink-soft)",
                 lineHeight: 1.6,
                 fontSize: 15,
                 marginBottom: 22,
@@ -147,7 +142,7 @@ export default async function OdemePage({
             </h1>
             <p
               style={{
-                color: "rgba(20,16,11,0.7)",
+                color: "var(--ink-soft)",
                 lineHeight: 1.6,
                 fontSize: 15,
                 marginBottom: 22,

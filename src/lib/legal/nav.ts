@@ -16,16 +16,19 @@
  * - **Mesafeli Satış Sözleşmesi** ve **İptal, İade & Cayma** — Mesafeli
  *   Sözleşmeler Yönetmeliği'nin satış öncesi erişilebilir olmasını istediği
  *   iki belge; ayrıca ziyaretçinin footer'da gerçekten aradığı ikisi.
- * - **Kullanım Şartları** — sitenin kendi kullanım koşulları.
  * - **Hesap Silme** — Google Play'in "Data deletion URL" alanı bu sayfayı
  *   gösterir; uygulamayı kurmamış bir üyenin de talebi iletebileceği tek
  *   genel adres burasıdır, dolayısıyla footer'dan düşürülemez.
- * - **Şirket Bilgileri** — satıcının tüzel kimliği; yönetmelik görünür
- *   olmasını istiyor.
  *
- * Ön Bilgilendirme Formu, Teslimat & Kargo, Ödeme Koşulları, Güvenli
- * Alışveriş, Ödül Programı ve Mobil Uygulama Koşulları listeden çıktı ama
- * hiçbir yerden silinmedi: hepsi `/hukuk` altında duruyor, footer'ın sonundaki
+ * Operatör 7 Eyl'de listeyi **altıya** indirdi. Çıkan ikisi:
+ *
+ * - **Kullanım Şartları** — yasal olarak bir yerde bulunması yeterli; hiçbir
+ *   mağaza formu ona kalıcı bir URL olarak sormuyor.
+ * - **Şirket Bilgileri** — satıcının tüzel kimliği footer'ın alt şeridinde
+ *   (`SITE_LEGAL_NAME`) ve iletişim sütununda (adres, telefon, e-posta) zaten
+ *   görünür; yönetmeliğin istediği görünürlük belgeye değil bilgiye bakıyor.
+ *
+ * Hiçbiri silinmedi: hepsi `/hukuk` altında duruyor, footer'ın sonundaki
  * "Tüm belgeler" oraya gidiyor, ve satış öncesi onay gereken Ön Bilgilendirme
  * Formu ile Mesafeli Satış Sözleşmesi zaten ödeme adımında ayrıca
  * gösteriliyor (`CHECKOUT_CONSENT_DOCS`) — footer onların tebliğ yeri değil.
@@ -36,7 +39,5 @@ export const FOOTER_LEGAL_DOCS = [
   { slug: "gizlilik-politikasi", label: "Gizlilik Politikası" },
   { slug: "kvkk-aydinlatma-metni", label: "KVKK Aydınlatma" },
   { slug: "cerez-politikasi", label: "Çerez Politikası" },
-  { slug: "kullanim-sartlari", label: "Kullanım Şartları" },
   { slug: "hesap-silme", label: "Hesap Silme" },
-  { slug: "sirket-bilgileri", label: "Şirket Bilgileri" },
 ] as const;

@@ -39,8 +39,8 @@ export default async function OgImage() {
           position: "absolute",
           inset: 0,
           background:
-            // --gold-soft #e8d3a4 and --accent-on-dark #e6a37a, as washes.
-            "radial-gradient(ellipse at 25% 30%, rgba(232, 211, 164, 0.20), transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(230, 163, 122, 0.12), transparent 55%)",
+            // --gold-soft #e8d3a4 and --accent-on-dark #efb9c6, as washes.
+            "radial-gradient(ellipse at 25% 30%, rgba(232, 211, 164, 0.20), transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(239, 185, 198, 0.12), transparent 55%)",
         }}
       />
       <div
