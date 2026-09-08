@@ -25,6 +25,9 @@ export interface MobileAppReminder {
   body: string;
 }
 
+/** Which days the happy hour runs — the app prints its own label for each. */
+export type HappyHourDays = "weekday" | "weekend" | "everyday";
+
 export interface MobileAppConfig {
   /** semver "x.y.z"; the app compares its own version, smaller → forced-update screen. */
   minSupportedAppVersion: string;
@@ -65,6 +68,25 @@ export interface MobileAppConfig {
     loyalty: boolean;
     invite: boolean;
     subscription: boolean;
+  };
+  /**
+   * The happy hour, and whether it is announced at all.
+   *
+   * It is off by default and stays off until the operator turns it on,
+   * because nothing in the pricing path applies the discount: the till gives
+   * it by hand. Announcing it while `enabled` is false is what the app used
+   * to do, and a member who bought a drink in the window paid full price.
+   * The switch is the operator's promise that the counter will honour it.
+   */
+  happyHour: {
+    enabled: boolean;
+    /** Which days it runs. */
+    days: HappyHourDays;
+    /** "HH:MM", Istanbul. */
+    from: string;
+    to: string;
+    /** Discount percent the till applies. */
+    pct: number;
   };
   venue: {
     shortName: string;
@@ -139,6 +161,11 @@ export const APP_CONFIG_LIMITS = {
   reminderIdPattern: /^[a-z0-9-]{1,24}$/,
   reminderTitleMax: 60,
   reminderBodyMax: 140,
+  happyHourPctMin: 5,
+  happyHourPctMax: 50,
+  happyHourDays: ["weekday", "weekend", "everyday"] as const,
+  /** "HH:MM", 24-hour. */
+  clockPattern: /^([01][0-9]|2[0-3]):[0-5][0-9]$/,
   venueShortNameMax: 60,
   venueLandmarkMax: 80,
   venueMapsQueryMax: 200,
@@ -214,6 +241,15 @@ export const DEFAULT_MOBILE_APP_CONFIG: MobileAppConfig = deepFreeze({
     loyalty: true,
     invite: true,
     subscription: true,
+  },
+  happyHour: {
+    // The window the café has always run; off until someone says the till
+    // will honour it.
+    enabled: false,
+    days: "weekday",
+    from: "14:00",
+    to: "17:00",
+    pct: 25,
   },
   venue: {
     shortName: "Tuzla · İstanbul",
@@ -381,6 +417,10 @@ const reminderItems = z
   })
   .catch(() => D.reminders.items.map((it) => ({ ...it })));
 
+/** "HH:MM" or the default; anything else (13:70, "akşam") falls back. */
+const clock = (fallback: string) =>
+  z.string().trim().regex(L.clockPattern).catch(fallback);
+
 const section = <T extends z.ZodRawShape>(shape: T) => z.object(shape);
 
 const configSchema = z.object({
@@ -439,6 +479,18 @@ const configSchema = z.object({
     invite: bool(D.campaignCards.invite),
     subscription: bool(D.campaignCards.subscription),
   }).catch(() => ({ ...D.campaignCards })),
+  happyHour: section({
+    enabled: bool(D.happyHour.enabled),
+    days: z.enum(L.happyHourDays).catch(D.happyHour.days),
+    from: clock(D.happyHour.from),
+    to: clock(D.happyHour.to),
+    pct: z
+      .number()
+      .int()
+      .min(L.happyHourPctMin)
+      .max(L.happyHourPctMax)
+      .catch(D.happyHour.pct),
+  }).catch(() => ({ ...D.happyHour })),
   venue: section({
     shortName: text(L.venueShortNameMax, D.venue.shortName),
     landmark: text(L.venueLandmarkMax, D.venue.landmark),

@@ -316,6 +316,52 @@ export async function saveCampaignCardsAction(
   });
 }
 
+// ─── 6b. Mutlu saatler ────────────────────────────────────────────────────
+
+/**
+ * The happy hour the app announces.
+ *
+ * Kept behind its own switch because the discount is not applied where an
+ * order is priced — the counter gives it by hand. While the switch is off the
+ * bootstrap publishes `happyHour: null` and neither app screen draws the
+ * card, which is exactly what it did before this section existed. Turning it
+ * on is the operator saying the till will honour it.
+ */
+const happyHourSchema = z
+  .object({
+    enabled: z.boolean(),
+    days: z.enum(L.happyHourDays, { error: "Gün aralığı seçilmedi." }),
+    from: z
+      .string()
+      .trim()
+      .regex(L.clockPattern, "Başlangıç saati SS:DD biçiminde olmalı."),
+    to: z
+      .string()
+      .trim()
+      .regex(L.clockPattern, "Bitiş saati SS:DD biçiminde olmalı."),
+    pct: intField(L.happyHourPctMin, L.happyHourPctMax, "İndirim oranı"),
+  })
+  .refine((v) => v.from < v.to, {
+    error: "Bitiş saati başlangıçtan sonra olmalı.",
+    path: ["to"],
+  });
+
+export async function saveHappyHourAction(
+  _prev: AppConfigState,
+  formData: FormData,
+): Promise<AppConfigState> {
+  await requireRole("mobileApp");
+  const parsed = happyHourSchema.safeParse({
+    enabled: flag(formData, "happyEnabled"),
+    days: str(formData, "happyDays"),
+    from: str(formData, "happyFrom"),
+    to: str(formData, "happyTo"),
+    pct: str(formData, "happyPct"),
+  });
+  if (!parsed.success) return firstIssue(parsed.error);
+  return saveSection("happyHour", { happyHour: parsed.data });
+}
+
 // ─── 7. Köşk bilgileri ────────────────────────────────────────────────────
 
 const venueSchema = z.object({

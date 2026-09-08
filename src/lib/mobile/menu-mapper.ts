@@ -22,6 +22,8 @@ import {
   DEFAULT_MOBILE_APP_CONFIG,
   toBootstrapApp,
   type BootstrapApp,
+  type HappyHourDays,
+  type MobileAppConfig,
 } from "./app-config";
 
 /**
@@ -40,7 +42,12 @@ import {
  */
 function venueAddressLines(
   address: string,
-  a: { streetAddress: string; postalCode: string; addressLocality: string; addressRegion: string },
+  a: {
+    streetAddress: string;
+    postalCode: string;
+    addressLocality: string;
+    addressRegion: string;
+  },
 ): [string, string] {
   const town = `${a.postalCode} ${a.addressLocality} / ${a.addressRegion}`;
   const lines = addressLines(address, [a.streetAddress]);
@@ -88,7 +95,8 @@ export const COURIER_ETA_MINUTES: readonly [number, number] =
   DEFAULT_MOBILE_APP_CONFIG.ordering.courierEtaMinutes;
 
 export interface HappyHour {
-  days: "weekday";
+  /** weekday | weekend | everyday — the app prints its own label per value. */
+  days: HappyHourDays;
   from: string;
   to: string;
   pct: number;
@@ -109,13 +117,40 @@ export interface HappyHour {
  * campaign itself is the operator's to run: once the discount exists in the
  * pricing path, publish HAPPY_HOUR again and the cards come back.
  */
-export const HAPPY_HOUR: HappyHour = {
-  days: "weekday",
-  from: "14:00",
-  to: "17:00",
-  pct: 25,
-  categories: ["ice-coffee", "cold", "frappe", "frozen", "ice-tea", "smoothie"],
-};
+/**
+ * Every drink category the discount covers. It used to be the cold ones only;
+ * the operator's rule is now "her içecekte" — every drink, and no line drawn
+ * between coffee and the rest. Food and beans stay out: it is a drinks hour.
+ */
+export const HAPPY_HOUR_CATEGORIES: readonly string[] = [
+  "matcha",
+  "espresso",
+  "ice-coffee",
+  "cold",
+  "hot",
+  "frappe",
+  "smoothie",
+  "frozen",
+  "ice-tea",
+];
+
+/**
+ * What the app is told about the happy hour, or null when the operator has
+ * not switched it on. The panel owns every value (Mobil Uygulama → Ayarlar →
+ * Mutlu saatler); nothing here is a constant any more.
+ */
+export function happyHourFor(
+  config: MobileAppConfig["happyHour"],
+): HappyHour | null {
+  if (!config.enabled) return null;
+  return {
+    days: config.days,
+    from: config.from,
+    to: config.to,
+    pct: config.pct,
+    categories: [...HAPPY_HOUR_CATEGORIES],
+  };
+}
 
 // ─── Images ───────────────────────────────────────────────────────────────
 
@@ -488,10 +523,10 @@ export function buildBootstrap(
     hoursLabel: hoursLabel(settings.weeklyHours),
     courierFeeMinor: settings.courierFeeMinor,
     courierEtaMinutes: [...app.ordering.courierEtaMinutes],
-    // Advertise nothing the till will not honour. Restore with:
-    //   happyHour: { ...HAPPY_HOUR, categories: [...HAPPY_HOUR.categories] },
-    // once the discount is applied where the order is priced.
-    happyHour: null,
+    // Advertise nothing the till will not honour: the switch is off until the
+    // operator turns it on in the panel, and the discount is still applied by
+    // hand at the counter rather than by the order's pricing.
+    happyHour: happyHourFor(settings.mobileApp.happyHour),
     app,
   };
 }

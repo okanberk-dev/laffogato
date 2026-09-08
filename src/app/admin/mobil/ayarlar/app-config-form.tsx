@@ -7,6 +7,7 @@ import {
   Checkbox,
   Field,
   PrimaryButton,
+  Select,
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
@@ -18,6 +19,7 @@ import {
 
 import {
   saveCampaignCardsAction,
+  saveHappyHourAction,
   saveKaraokeRulesAction,
   saveLoyaltyAction,
   saveOrderingAction,
@@ -45,6 +47,7 @@ const TABS = [
   { id: "karaoke", label: "Karaoke kuralları" },
   { id: "reminders", label: "Hatırlatmalar" },
   { id: "cards", label: "Kampanya kartları" },
+  { id: "happy", label: "Mutlu saatler" },
   { id: "venue", label: "Köşk bilgileri" },
   { id: "store", label: "Mağaza ve bağlantılar" },
 ] as const;
@@ -80,6 +83,7 @@ export function AppConfigForm({ config }: { config: MobileAppConfig }) {
         {tab === "karaoke" && <KaraokeTab config={config} />}
         {tab === "reminders" && <RemindersTab config={config} />}
         {tab === "cards" && <CampaignCardsTab config={config} />}
+        {tab === "happy" && <HappyHourTab config={config} />}
         {tab === "venue" && <VenueTab config={config} />}
         {tab === "store" && <StoreTab config={config} />}
       </div>
@@ -590,6 +594,79 @@ function CampaignCardsTab({ config }: { config: MobileAppConfig }) {
             label="ABONELİK kartı - şu an hiçbir ekranda çizilmiyor (karar 20)"
             defaultChecked={c.subscription}
           />
+        </div>
+        <SaveBar state={state} pending={pending} />
+      </Section>
+    </form>
+  );
+}
+
+// ─── 6b. Mutlu saatler ────────────────────────────────────────────────────
+
+const HAPPY_DAY_LABELS: Record<string, string> = {
+  weekday: "Hafta içi",
+  weekend: "Hafta sonu",
+  everyday: "Her gün",
+};
+
+/**
+ * The happy hour, and the switch that decides whether the app mentions it.
+ *
+ * The warning is the point of the section. Nothing in the order's pricing
+ * applies this discount — the counter does, by hand — so an operator who
+ * turns it on is promising that the till will honour what the app shows.
+ * While it is off, the bootstrap publishes nothing and no card is drawn.
+ */
+function HappyHourTab({ config }: { config: MobileAppConfig }) {
+  const [state, action, pending] = useActionState(saveHappyHourAction, initial);
+  const h = config.happyHour;
+  return (
+    <form action={action}>
+      <Section
+        title="Mutlu saatler"
+        intro="Uygulamanın Ana Sayfa ve Kampanyalar ekranlarındaki mutlu saat kartı. İndirim tüm içeceklerde geçerlidir - kahve/tatlı ayrımı yoktur."
+      >
+        <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          İndirim sipariş fiyatlamasına <strong>yansımaz</strong>; kasada elle
+          uygulanır. Bu yüzden kart yalnız aşağıdaki kutu işaretliyken
+          gösterilir - işaretlemek, kasanın bu indirimi uygulayacağı anlamına
+          gelir.
+        </p>
+        <div className="grid gap-2">
+          <Checkbox
+            name="happyEnabled"
+            label="Mutlu saat kartını uygulamada göster"
+            defaultChecked={h.enabled}
+          />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Günler">
+            <Select name="happyDays" defaultValue={h.days}>
+              {L.happyHourDays.map((d) => (
+                <option key={d} value={d}>
+                  {HAPPY_DAY_LABELS[d] ?? d}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field
+            label="İndirim oranı (%)"
+            hint={`${L.happyHourPctMin}-${L.happyHourPctMax} arası`}
+          >
+            <TextInput
+              name="happyPct"
+              type="number"
+              min={L.happyHourPctMin}
+              max={L.happyHourPctMax}
+              defaultValue={h.pct}
+            />
+          </Field>
+          <Field label="Başlangıç (SS:DD)">
+            <TextInput name="happyFrom" defaultValue={h.from} />
+          </Field>
+          <Field label="Bitiş (SS:DD)">
+            <TextInput name="happyTo" defaultValue={h.to} />
+          </Field>
         </div>
         <SaveBar state={state} pending={pending} />
       </Section>

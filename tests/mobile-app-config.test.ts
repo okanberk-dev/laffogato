@@ -281,3 +281,59 @@ describe("compareSemver", () => {
     expect(compareSemver("1.0.1", "1.0")).toBe(1);
   });
 });
+
+describe("mutlu saatler", () => {
+  /**
+   * The section exists so the campaign is the operator's to run from the
+   * panel; the switch exists because nothing prices the discount. Both halves
+   * are asserted here: off by default, and published only when turned on.
+   */
+  it("is off until an operator turns it on", () => {
+    expect(DEFAULT_MOBILE_APP_CONFIG.happyHour.enabled).toBe(false);
+    expect(normalizeMobileAppConfig({}).happyHour).toEqual({
+      enabled: false,
+      days: "weekday",
+      from: "14:00",
+      to: "17:00",
+      pct: 25,
+    });
+  });
+
+  it("keeps what an operator typed", () => {
+    const c = normalizeMobileAppConfig({
+      happyHour: {
+        enabled: true,
+        days: "everyday",
+        from: "09:00",
+        to: "11:00",
+        pct: 50,
+      },
+    });
+    expect(c.happyHour).toEqual({
+      enabled: true,
+      days: "everyday",
+      from: "09:00",
+      to: "11:00",
+      pct: 50,
+    });
+  });
+
+  it("falls back rather than publishing a broken clock or a wild percent", () => {
+    const c = normalizeMobileAppConfig({
+      happyHour: {
+        enabled: true,
+        days: "pazartesi",
+        from: "25:00",
+        to: "17:60",
+        pct: 900,
+      },
+    });
+    expect(c.happyHour).toEqual({
+      enabled: true,
+      days: "weekday",
+      from: "14:00",
+      to: "17:00",
+      pct: 25,
+    });
+  });
+});

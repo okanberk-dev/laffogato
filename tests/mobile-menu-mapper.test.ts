@@ -13,7 +13,8 @@ import {
   buildBootstrap,
   buildMobileMenuCategories,
   COURIER_ETA_MINUTES,
-  HAPPY_HOUR,
+  HAPPY_HOUR_CATEGORIES,
+  happyHourFor,
   hoursLabel,
   istanbulDay,
   latestUpdatedAt,
@@ -557,10 +558,29 @@ describe("buildBootstrap (contract §10)", () => {
     expect(COURIER_ETA_MINUTES).toEqual([25, 35]);
     // The campaign shape is kept for the day it is priced; publishing it
     // again must hand out a copy, not the shared constant.
-    expect(HAPPY_HOUR.categories).toContain("ice-coffee");
+    // Every drink category, and a fresh array each time so a caller cannot
+    // mutate the shared list (operator's rule: "her içecekte").
+    expect(HAPPY_HOUR_CATEGORIES).toContain("ice-coffee");
+    expect(HAPPY_HOUR_CATEGORIES).toContain("espresso");
+    expect(HAPPY_HOUR_CATEGORIES).toContain("hot");
+    expect(HAPPY_HOUR_CATEGORIES).not.toContain("dessert");
+    const on = happyHourFor({
+      enabled: true,
+      days: "weekday",
+      from: "14:00",
+      to: "17:00",
+      pct: 25,
+    });
+    expect(on?.categories).not.toBe(HAPPY_HOUR_CATEGORIES);
     expect(
-      { ...HAPPY_HOUR, categories: [...HAPPY_HOUR.categories] }.categories,
-    ).not.toBe(HAPPY_HOUR.categories);
+      happyHourFor({
+        enabled: false,
+        days: "weekday",
+        from: "14:00",
+        to: "17:00",
+        pct: 25,
+      }),
+    ).toBeNull();
     expect(Object.keys(b).sort()).toEqual(
       [
         "minSupportedAppVersion",

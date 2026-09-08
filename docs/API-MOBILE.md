@@ -435,7 +435,7 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
   "hoursLabel": "Her gün 09:00 - 01:00",        // eski alan, korunur
   "courierFeeMinor": 5500,                        // eski alan (Ayarlar → Kargo → Kurye ücreti)
   "courierEtaMinutes": [25, 35],                  // = app.ordering.courierEtaMinutes (eski alan, korunur)
-  "happyHour": null,                              // değişmedi — fiyatlanmadığı sürece null
+  "happyHour": null,                              // panelden açılana kadar null (Mobil Uygulama → Ayarlar → Mutlu saatler); indirim kasada elle uygulanır
   "app": {                                        // MobileAppConfig'in uygulamaya açık kısmı
     "minSupportedAppVersion": "1.0.0",            // semver; uygulama kendi sürümünü karşılaştırır, küçükse zorunlu güncelleme
     "maintenance": { "enabled": false, "title": "Kısa bir mola", "message": "Uygulama bakımda. Birazdan yine buradayız." },
@@ -697,7 +697,7 @@ tutar (API-first, seed yedek).
 ```jsonc
 {
   "founder": { "name": "Eda Mancuso", "role": "Founder & Roaster", "bio": "…" },
-  "milestones": [{ "year": "1987", "title": "Bologna · 1987", "body": "…" }],
+  "milestones": [{ "year": "1897", "title": "Bologna · 1897", "body": "…" }],
   "press": [{ "name": "Monocle", "quote": "…" }],
 }
 ```
