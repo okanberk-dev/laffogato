@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -134,5 +136,65 @@ describe("what the app is told", () => {
     expect(after.appStoreUrl).toBe(
       "https://apps.apple.com/tr/app/laffogato/id9",
     );
+  });
+});
+
+describe("the paths the app is allowed to intercept", () => {
+  const AASA = readFileSync(
+    "src/app/.well-known/apple-app-site-association/route.ts",
+    "utf8",
+  );
+
+  /**
+   * A claimed path is a promise that a laffogato.net URL under it opens an app
+   * screen which can render THAT url. Four of them were promises the code
+   * cannot keep, and the association is cached for days — so the app
+   * intercepts the link, cannot show it, and the member cannot reach the web
+   * version either.
+   *
+   * /menu/* and /magaza/* are category and /urun/<slug> URLs on the site and
+   * item ids in the app. /siparis/* and /davet/* are served by nothing: the
+   * order screen comes home on the custom scheme, which needs no association,
+   * and davet.tsx takes no code. /uye/* has no app route at all.
+   */
+  const NEVER_CLAIMED = [
+    "/uye/*",
+    "/menu/*",
+    "/magaza/*",
+    "/siparis/*",
+    "/davet/*",
+  ];
+
+  it("does not claim a path whose URL shape the app cannot render", () => {
+    const claimed = [...AASA.matchAll(/^\s+"(\/[^"]*)",$/gm)].map((m) => m[1]);
+    expect(claimed.length).toBeGreaterThan(0);
+    for (const path of NEVER_CLAIMED) {
+      expect(claimed).not.toContain(path);
+    }
+  });
+
+  it("still keeps the panel and the API out of the app", () => {
+    expect(AASA).toContain('"NOT /admin/*"');
+    expect(AASA).toContain('"NOT /api/*"');
+    // /uye/yeni-sifre must stay in a browser: the recovery session arrives in
+    // a URL fragment, which is not a thing the app is handed.
+    expect(AASA).toContain('"NOT /uye/*"');
+  });
+
+  it("matches what Android claims, since Android has no NOT rule to fall back on", () => {
+    const appJson = "../lafmobil/app.json";
+    if (!existsSync(appJson)) return; // the app repo is not always checked out
+    const config = JSON.parse(readFileSync(appJson, "utf8"));
+    const prefixes = new Set<string>(
+      config.expo.android.intentFilters[0].data.map(
+        (d: { pathPrefix?: string }) => d.pathPrefix ?? "",
+      ),
+    );
+    const claimed = [...AASA.matchAll(/^\s+"(\/[^"]*)",$/gm)].map((m) => m[1]);
+    expect([...prefixes].sort()).toEqual(claimed.sort());
+    // And no bare host claim, which would take the whole domain regardless.
+    for (const entry of config.expo.android.intentFilters[0].data) {
+      expect(entry.pathPrefix).toBeTruthy();
+    }
   });
 });

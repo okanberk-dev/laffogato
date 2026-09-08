@@ -450,14 +450,19 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
       "enabled": true,                            // false → uygulama hatırlatma anahtarını gizler, planlananları iptal eder
       "items": [ { "id": "morning", "hour": 10, "minute": 0, "title": "Günaydın ☕", "body": "Sabah kahven köşkte hazır. Bugün ne içiyoruz?" } ]   // 0..4 öğe; fiyat/indirim/aciliyet dili yok
     },
-    "campaignCards": { "loyalty": true, "invite": true, "subscription": true }   // Kampanyalar ekranındaki sabit kartlar; "subscription" artık hiçbir kartı çizmez (karar 20)
+    "campaignCards": { "loyalty": true, "invite": true, "subscription": true },  // Kampanyalar ekranındaki sabit kartlar; "subscription" artık hiçbir kartı çizmez (karar 20)
+    "store": { "appStoreUrl": "", "playStoreUrl": "" }   // /admin/mobil/ayarlar → Mağaza. Zorunlu güncelleme ekranındaki düğme buraya gider; boşken düğme çizilmez. Yalnız listeleme adresleri — imza parmak izleri sitenin işidir, uygulamaya gitmez
   }
 }
 ```
 
-- `addressLines[0]` = Ayarlar'daki adres (`settings.address.trim()`), boşsa
-  `SITE.address.streetAddress`. Adres **vergi levhasındaki** adrestir
-  (tasarımdaki "29 Ekim Cad." eskidir).
+- `addressLines` **iki satırdır**: sokak, sonra ilçe. Ayarlar'daki adres tek bir
+  dizedir ve sokak, çevre tarifi ve ilçeyi birlikte taşır, o yüzden sitenin
+  footer'ıyla aynı ayırıcıdan geçer (`addressLines()`): parantez içi düşer,
+  virgül ve satır sonlarından bölünür, `/` bölmez. İkinci satır her zaman
+  künyeden gelir (`34940 Tuzla / İstanbul`), böylece posta kodu hep vardır ve
+  ilçe iki kez yazılmaz. Adres **vergi levhasındaki** adrestir (tasarımdaki
+  "29 Ekim Cad." eskidir).
 - `app` **karaoke** kurallarını ve `venue`'yü taşımaz: karaoke alanları
   `GET /karaoke/availability` ile (§7), köşk alanları `venue.*` ile gelir.
 - Uygulama tarafı: `app` ya da yeni `venue` alanları eksik gelirse (eski

@@ -23,25 +23,39 @@ export const dynamic = "force-dynamic";
  * the spec, and Apple's fetcher is strict about it.
  */
 const PATHS = [
-  // Everything the app has a screen for. `NOT` entries come first: iOS takes
-  // the first match, and the panel and the API must stay in the browser.
+  // A path belongs here only when a real laffogato.net URL under it opens an
+  // app screen that can actually render THAT url. `NOT` entries come first:
+  // iOS takes the first match, and the panel and the API must stay in the
+  // browser.
   //
-  // `/uye/*` is NOT here, and its absence is the point. The app has no member
-  // routes at all - no `uye` directory in its router - so claiming them sent
-  // every "hesabım", verification and password link into the app's not-found
-  // screen. /uye/yeni-sifre is the one that made it obvious: it is where a
-  // reset started in the app comes home, and it can only be finished in a
-  // browser, because the recovery session arrives in a URL fragment the app
-  // has nothing to do with.
+  // What is deliberately absent, and why:
+  //
+  //   /uye/*     the app has no member routes at all - no `uye` directory in
+  //              its router - so every "hesabım", verification and reset link
+  //              an iPhone opened landed on its not-found screen. It is also
+  //              what keeps /uye/yeni-sifre in a browser, where a recovery
+  //              fragment can be read.
+  //   /menu/*    the site's URLs there are CATEGORIES (/menu/kahveler) and the
+  //              app's route is /menu/[id], an item id. The app would look up
+  //              a drink called "kahveler" and find nothing.
+  //   /magaza/*  same shape mismatch, twice: categories, plus the product page
+  //              at /magaza/urun/<slug>, which is two segments where the app's
+  //              /magaza/[id] takes one - so it does not match at all.
+  //   /siparis/* the site serves no such page; the order screen is reached by
+  //              the app's own `laffogato://siparis/<id>` return from checkout,
+  //              which is a custom scheme and needs no association.
+  //   /davet/*   neither side has it: the site 404s and the app's davet.tsx
+  //              takes no code parameter.
+  //
+  // Claiming a URL the site does not serve is not harmless. The association is
+  // cached for days, so the app intercepts a link, cannot render it, and the
+  // member cannot get to the web version either.
   "NOT /admin/*",
   "NOT /api/*",
   "NOT /uye/*",
-  "/siparis/*",
-  "/menu/*",
-  "/magaza/*",
   "/karaoke",
   "/kampanyalar",
-  "/davet/*",
+  "/ziyaret",
 ];
 
 export async function GET() {

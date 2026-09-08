@@ -405,8 +405,28 @@ describe("buildBootstrap (contract §10)", () => {
       { ...settings, address: "  Atatürk Cad. No: 28, Tuzla  " },
       site,
     );
+    // The town comes off line 1: it is already line 2, and printing it twice
+    // is what the site's footer stopped doing when the landmark was dropped.
     expect(b.venue.addressLines).toEqual([
-      "Atatürk Cad. No: 28, Tuzla",
+      "Atatürk Cad. No: 28",
+      "34940 Tuzla / İstanbul",
+    ]);
+  });
+
+  it("drops the landmark and the repeated town from the real settings address", () => {
+    // The exact string in production. Before this, the app's Ziyaret screen
+    // showed the landmark the operator had asked to be removed and printed
+    // "34940 Tuzla / İstanbul" on both lines.
+    const b = buildBootstrap(
+      {
+        ...settings,
+        address:
+          "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1 (Menemenci Cumhur’un yanı), 34940 Tuzla / İstanbul",
+      },
+      site,
+    );
+    expect(b.venue.addressLines).toEqual([
+      "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
       "34940 Tuzla / İstanbul",
     ]);
   });

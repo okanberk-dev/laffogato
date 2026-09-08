@@ -390,7 +390,7 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
       <Section title="Bildirimler">
         <Field
           label="Operasyon e-postası"
-          hint="Yeni sipariş ve düşük stok uyarıları buraya gönderilir. Gönderenin kim olduğu E-posta sekmesinde."
+          hint="Test e-postasının varsayılan alıcısı. Yeni sipariş ve düşük stok için henüz otomatik uyarı gönderilmiyor - ikisi de panelde görünür (Siparişler, Ürünler → Düşük stok)."
         >
           <TextInput
             name="notificationEmail"
@@ -512,7 +512,7 @@ function EmailTab({
             pending={testPending}
             label="Test gönder"
             pendingLabel="Gönderiliyor…"
-            idle="Sipariş, doğrulama ve şifre sıfırlama e-postalarının hepsi bu ayarları kullanır."
+            idle="Sitenin gönderdiği e-postaların hepsi bu ayarları kullanır. Uygulamadaki kayıt ve şifre sıfırlama mesajlarını Supabase gönderir - onların ayarı Supabase panelindedir (docs/EMAIL-RESEND.md §3)."
           />
         </Section>
       </form>

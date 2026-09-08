@@ -577,9 +577,17 @@ function CampaignCardsTab({ config }: { config: MobileAppConfig }) {
             label="DAVET kartı (arkadaşını getir)"
             defaultChecked={c.invite}
           />
+          {/*
+            Kept, and labelled for what it is. Karar 20 removed the card the
+            app drew for this flag, so the switch changes nothing on any
+            screen; the field still travels in `bootstrap.app.campaignCards`
+            for back-compat, and an older build in someone's pocket still
+            reads it. Silently offering an operator a switch that does
+            nothing is the part that had to stop.
+          */}
           <Checkbox
             name="cardSubscription"
-            label="ABONELİK kartı (“yakında”)"
+            label="ABONELİK kartı - şu an hiçbir ekranda çizilmiyor (karar 20)"
             defaultChecked={c.subscription}
           />
         </div>

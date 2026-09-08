@@ -42,8 +42,12 @@ src/lib/mobile/
   respond.ts   → apiError() · apiJson()
 ```
 
-**Service role anahtarı bu depoda okunmaz, yazılmaz, `.env.example`'da yer
-almaz.** Publishable anahtar ve proje URL'si herkese açıktır (tarayıcıya ve
+**Service role anahtarı yalnız `src/lib/supabase/admin.ts` tarafından ve iki
+iş için okunur** — kapatılan hesabın Supabase kimliğini silmek, ve burada
+sıfırlanan parolayı Supabase'e yazmak. `.env.example`'da adı geçer, değeri
+boştur; `NEXT_PUBLIC_` öneki yoktur, yani tarayıcıya ya da uygulama paketine
+hiç girmez. Anahtar tanımlı değilse iki iş de sessizce atlanır ve kod eski,
+temkinli davranışına döner (§5). Publishable anahtar ve proje URL'si herkese açıktır (tarayıcıya ve
 uygulamaya verilmek için tasarlanmıştır) ve `.env.example`'da değerleriyle
 durur; env boşsa `config.ts` aynı değerlere düşer, böylece env'siz bir preview
 deploy da aynı projeye giriş yapabilir.

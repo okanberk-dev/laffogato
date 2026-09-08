@@ -133,11 +133,16 @@ uygulamanın **kendi ekranına** iniyor (`lafmobil · src/app/yeni-parola.tsx`,
 okunuyor ve yeni parola `updateUser` ile Supabase'e yazılıyor.
 
 Bunun çalışması için Supabase → Authentication → **URL Configuration →
-Redirect URLs** listesinde şunun bulunması gerekir - ekli:
+Redirect URLs** listesinde şunun bulunması gerekir — **eklendi (8 Eyl)**:
 
 ```
 laffogato://yeni-parola
 ```
+
+> Geliştirme sırasında Expo Go ile denemek işe yaramaz: `Linking.createURL`
+> özel şema tanımlıyken host'u boşaltır ve orada da `laffogato://yeni-parola`
+> üretir, Expo Go'nun beklediği `exp://…/--/…` biçimini değil. Sıfırlama akışı
+> yalnız development build ya da store build üzerinde denenebilir.
 
 **Site tarafı buna göre ayarlandı.** İkisi tek üyeliği paylaştığı için
 (`docs/AUTH-BRIDGE.md`) parolanın iki kopyası var: buradaki bcrypt özeti ve

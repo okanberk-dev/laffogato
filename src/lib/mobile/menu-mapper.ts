@@ -16,12 +16,37 @@ import {
   servedImage,
 } from "@/lib/admin/image-url";
 import { MENU as SEED_MENU } from "@/components/laffogato/data";
+import { addressLines } from "@/lib/utils/format";
 
 import {
   DEFAULT_MOBILE_APP_CONFIG,
   toBootstrapApp,
   type BootstrapApp,
 } from "./app-config";
+
+/**
+ * The two lines §10 promises: street, then town.
+ *
+ * The settings address is ONE string carrying street, landmark and town
+ * ("... No: 1 (Menemenci Cumhur'un yanı), 34940 Tuzla / İstanbul"). Putting it
+ * whole on line 1 and the canonical town on line 2 printed the town twice and
+ * put back the parenthetical the operator asked to be gone - the site's own
+ * footer had already stopped doing that, and the app had not.
+ *
+ * `addressLines()` is that footer's splitter: it drops the parenthetical and
+ * splits on newlines and commas, but not on "/", so "34940 Tuzla / İstanbul"
+ * survives as one line. Its LAST line is the town, and the canonical one from
+ * the legal entity is used instead so the postcode is always there.
+ */
+function venueAddressLines(
+  address: string,
+  a: { streetAddress: string; postalCode: string; addressLocality: string; addressRegion: string },
+): [string, string] {
+  const town = `${a.postalCode} ${a.addressLocality} / ${a.addressRegion}`;
+  const lines = addressLines(address, [a.streetAddress]);
+  const street = (lines.length > 1 ? lines.slice(0, -1) : lines).join(", ");
+  return [street || a.streetAddress, town];
+}
 
 /**
  * Pure mappers behind `/api/mobile/v1/{menu,shop,bootstrap}`
@@ -449,10 +474,7 @@ export function buildBootstrap(
     venue: {
       name: site.name,
       shortName: settings.mobileApp.venue.shortName,
-      addressLines: [
-        settings.address.trim() || a.streetAddress,
-        `${a.postalCode} ${a.addressLocality} / ${a.addressRegion}`,
-      ],
+      addressLines: venueAddressLines(settings.address, a),
       landmark: settings.mobileApp.venue.landmark,
       mapsQuery: settings.mobileApp.venue.mapsQuery,
       phone: settings.phone.trim() || site.phone,

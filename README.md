@@ -119,6 +119,14 @@ verildiği kadar kolay geri alınır (footer → "Çerez Tercihleri").
 | `ADMIN_SESSION_SECRET`           | İmzalı cookie anahtarı (≥32 karakter)               |
 | `PAYMENT_PROVIDER`               | `mock` \| `paynkolay` \| `iyzico`                    |
 | `PAYMENT_WEBHOOK_SECRET`         | Webhook imza doğrulaması (`mock` ve `iyzico`)       |
+| `RESEND_API_KEY`                 | Sipariş, doğrulama ve şifre sıfırlama e-postaları   |
+| `SUPABASE_SERVICE_ROLE_KEY`      | Sıfırlanan parolayı Supabase'e de yazar             |
+
+`RESEND_API_KEY` olmadan hiçbir e-posta çıkmaz; doğrulama bağlantısı da bir
+e-posta olduğu için **yeni hiçbir üye ilk siparişini tamamlayamaz**.
+`SUPABASE_SERVICE_ROLE_KEY` olmadan sitede sıfırlanan parola uygulamada eski
+kalır. İkisinin de ayrıntısı [docs/EMAIL-RESEND.md](docs/EMAIL-RESEND.md) ve
+[docs/AUTH-BRIDGE.md](docs/AUTH-BRIDGE.md)'de.
 
 PayNkolay kullanılacaksa ayrıca `PAYNKOLAY_SX`, `PAYNKOLAY_SX_LIST`,
 `PAYNKOLAY_SX_CANCEL`, `PAYNKOLAY_MERCHANT_SECRET_KEY`,
