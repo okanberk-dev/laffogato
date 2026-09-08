@@ -252,11 +252,31 @@ describe("surfaces outside globals.css follow the same palette", () => {
         ).toBe(true);
       }
     }
-    // The one logo every message carries: a single L'Af badge that reads on
-    // the dark band and the light card alike (commit 06b325d replaced the
-    // eight per-colour mark/wordmark PNGs with it).
-    expect(
-      existsSync(join(process.cwd(), "public", "email", "logo-laf.png")),
-    ).toBe(true);
+    // The lockup: the L'Af letterforms at 200 px, no frame around them
+    // (operator, 8 Sep 2026 evening; source logos/2.png). Three files carry
+    // it — the espresso PNG for a light card, the cream PNG the dark-mode
+    // media query swaps in, and the GIF whose gold glint runs once over the
+    // deep-green band. The GIF's first frame is the plain cream mark, which
+    // is what Outlook renders.
+    for (const file of [
+      "logo-laf-espresso.png",
+      "logo-laf-cream.png",
+      "logo-laf-glint.gif",
+    ]) {
+      expect(
+        existsSync(join(process.cwd(), "public", "email", file)),
+        `public/email/${file} is missing`,
+      ).toBe(true);
+    }
+    // Every template shows the lockup, and never the retired badge.
+    for (const [file, source] of templateFiles) {
+      expect(
+        /logo-laf-(espresso|cream|glint)/.test(source),
+        `${file} shows no lockup`,
+      ).toBe(true);
+      expect(source, `${file} still points at the retired badge`).not.toContain(
+        "logo-laf.png",
+      );
+    }
   });
 });
