@@ -8,9 +8,21 @@ import { getActiveCustomer } from "@/lib/customer/auth";
 export const metadata = { title: "Giriş yap · L'Affogato" };
 export const dynamic = "force-dynamic";
 
-export default async function GirisPage() {
+interface PageProps {
+  searchParams: Promise<{ dogrulandi?: string }>;
+}
+
+export default async function GirisPage({ searchParams }: PageProps) {
   const active = await getActiveCustomer();
   if (active) redirect("/uye/hesap");
+  // `?dogrulandi=1` is where Supabase's confirmation mail lands
+  // (`supabaseEmailRedirectUrl`). It was being produced and never read, so a
+  // member who had just confirmed their address arrived at a plain login form
+  // with nothing saying the link had worked - and the obvious next move,
+  // clicking the link again, spends a token that is already spent and answers
+  // "expired".
+  const { dogrulandi } = await searchParams;
+  const justVerified = dogrulandi === "1";
 
   return (
     <main
@@ -40,6 +52,23 @@ export default async function GirisPage() {
           ← Anasayfa
         </Link>
         <DegradedAuthNotice />
+        {justVerified && (
+          <p
+            role="status"
+            style={{
+              margin: "0 0 18px",
+              padding: "12px 14px",
+              borderRadius: "var(--r-btn)",
+              border: "1px solid var(--hero-green)",
+              background: "var(--hero-tile)",
+              color: "var(--hero-green)",
+              fontSize: 14,
+              lineHeight: 1.5,
+            }}
+          >
+            E-posta adresin doğrulandı. Şifrenle giriş yapabilirsin.
+          </p>
+        )}
         <h1
           className="h1"
           style={{

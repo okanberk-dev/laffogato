@@ -25,10 +25,18 @@ export const dynamic = "force-dynamic";
 const PATHS = [
   // Everything the app has a screen for. `NOT` entries come first: iOS takes
   // the first match, and the panel and the API must stay in the browser.
+  //
+  // `/uye/*` is NOT here, and its absence is the point. The app has no member
+  // routes at all - no `uye` directory in its router - so claiming them sent
+  // every "hesabım", verification and password link into the app's not-found
+  // screen. /uye/yeni-sifre is the one that made it obvious: it is where a
+  // reset started in the app comes home, and it can only be finished in a
+  // browser, because the recovery session arrives in a URL fragment the app
+  // has nothing to do with.
   "NOT /admin/*",
   "NOT /api/*",
+  "NOT /uye/*",
   "/siparis/*",
-  "/uye/*",
   "/menu/*",
   "/magaza/*",
   "/karaoke",

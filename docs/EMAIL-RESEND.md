@@ -125,30 +125,48 @@ ikisini de aynı markadan alıyor; biri değişirse diğeri de değişmeli.
 
 ---
 
-## 4. Bilinen boşluk — uygulamanın şifre sıfırlama inişi
+## 4. Uygulamanın şifre sıfırlaması nereye iniyor
 
-`supabase.auth.resetPasswordForEmail()` çağrısı bir `redirectTo` **almıyor**
-(`lafmobil · src/lib/supabase/session.ts`). Bağlantı bu yüzden Supabase
-projesinin **Site URL**'sine iner ve oturum bilgisi adresin `#` parçasında
-gelir. Ne uygulamanın ne de sitenin bunu karşılayan bir "yeni şifre" ekranı
-var: site kendi `?token=` düzeniyle çalışır (`/uye/sifre-sifirla`), o token'ı
-Supabase üretmez.
+Kapandı. `resetPasswordForEmail` artık `redirectTo` veriyor ve bağlantı
+uygulamanın **kendi ekranına** iniyor (`lafmobil · src/app/yeni-parola.tsx`,
+`src/lib/supabase/auth-link.ts`). Kurtarma oturumu adresin `#` parçasından
+okunuyor ve yeni parola `updateUser` ile Supabase'e yazılıyor.
 
-Yani bugün uygulamadaki "şifremi unuttum" **e-postayı gönderir ama sonunu
-getirmez**. Bunu kapatmanın yolu bir ekran yazmaktan geçer — Supabase'in
-kurtarma oturumunu `#` parçasından okuyup `updateUser({ password })` çağıran
-bir sayfa — ve kimlik akışına dokunduğu için ayrı bir iş olarak ele alınmalı.
+Bunun çalışması için Supabase → Authentication → **URL Configuration →
+Redirect URLs** listesinde şunun bulunması gerekir - ekli:
 
-Şimdilik:
+```
+laffogato://yeni-parola
+```
 
-- Supabase → Authentication → URL Configuration → **Site URL**'yi
-  `https://laffogato.net` yap ki bağlantı hiç değilse markanın sitesine insin.
-- **Redirect URLs** listesine `https://laffogato.net/**` ve `laffogato://**`
-  ekle; ekran yazıldığında ön koşul hazır olur.
-- Uygulamadaki üye şifresini bu arada **sitenin** "şifremi unuttum"undan
-  sıfırlayabilir: aynı e-posta, aynı üyelik (`docs/AUTH-BRIDGE.md` §0).
+**Site tarafı buna göre ayarlandı.** İkisi tek üyeliği paylaştığı için
+(`docs/AUTH-BRIDGE.md`) parolanın iki kopyası var: buradaki bcrypt özeti ve
+Supabase'deki kimlik. Artık ikisi de değiştirilebiliyor, dolayısıyla:
 
----
+- **Burada sıfırlanınca** `resetPasswordWithToken` yeni parolayı servis rolü
+  anahtarıyla Supabase'e de yazıyor. Yoksa eski parola uygulamayı açmaya
+  devam ederdi.
+- **Uygulamada sıfırlanınca** Supabase yeni parolayı biliyor, buradaki özet
+  eskide kalıyor. Sitedeki giriş, Supabase'in kabul ettiği parolayı görüp
+  özeti ona uyduruyor (`adoptSupabasePassword`). Bu olmasaydı üye tam tersini
+  yaşardı: yeni parola sitede reddedilir, eski parola çalışmaya devam ederdi.
+
+Servis rolü anahtarı **yoksa** ilk madde çalışmaz, o yüzden ikinci madde de
+devre dışı kalır: anahtar olmadan sitenin kendi kopyası tek yetkili sayılır
+ve uyuşmazlık reddedilir (`hasSupabaseAdmin`). Yani `SUPABASE_SERVICE_ROLE_KEY`
+tanımlıysa iki yön de kapalı; değilse uygulamada sıfırlama sitenin girişini
+çözmez.
+
+> Masaüstünde açılan bir uygulama sıfırlama postası hâlâ tamamlanamaz:
+> bağlantı `laffogato://` şemasını taşır, tarayıcı bunu açamaz. Masaüstündeki
+> üyenin yolu sitenin kendi "şifremi unuttum" akışıdır - o Resend'den çıkar,
+> `?token=` ile gelir ve aynı parolayı iki yere birden yazar.
+
+Kayıt doğrulama postası bilerek dokunulmadan bırakıldı: `signUp` bir
+`emailRedirectTo` vermiyor, bağlantı Supabase'in **Site URL**'sine iniyor.
+Uygulamanın şemasına çevrilseydi masaüstünde açan herkes için bozulurdu.
+Site URL'nin `https://laffogato.net` olması gerekir; site oraya
+`?dogrulandi=1` ile gelen üyeye doğrulamanın tuttuğunu söyler.
 
 ## 5. Sır saklama kuralı
 

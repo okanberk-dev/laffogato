@@ -7,6 +7,7 @@ import type { DbError } from "@/lib/db";
 
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
+import { updateSupabasePassword } from "@/lib/supabase/admin";
 
 import { grantWelcomeCoupon } from "./coupons";
 
@@ -530,6 +531,11 @@ export async function resetPasswordWithToken(
   if (((written as { id: string }[] | null) ?? []).length === 0) {
     return { ok: false, error: "Bağlantı geçersiz veya kullanılmış." };
   }
+  // Site and app share one identity (docs/AUTH-BRIDGE.md). Writing only the
+  // bcrypt hash would retire the old password HERE and leave it opening the
+  // app — which is precisely the credential a reset exists to kill. Ordered
+  // after the conditional write so a losing race never touches Supabase.
+  await updateSupabasePassword(customer.supabaseUserId, newPassword);
   return { ok: true, email: customer.email };
 }
 
@@ -585,6 +591,41 @@ export async function checkSitePassword(
   return (await bcrypt.compare(password, customer.passwordHash))
     ? "match"
     : "mismatch";
+}
+
+/**
+ * Brings this site's password copy in line with one Supabase just accepted.
+ *
+ * The app can now reset a password on its own (`updatePassword` there, the
+ * screen the recovery mail lands on), and it changes Supabase only. Without
+ * this the member came back to the website and found the OPPOSITE of what a
+ * reset is for: the new password refused, and the old one still working -
+ * because the site kept its own bcrypt hash and treated it as the newer truth.
+ *
+ * Only ever called with a password Supabase has already authenticated, so it
+ * grants nothing; it copies a decision already made. Rewriting the hash also
+ * moves the session fingerprint, which is the point: every cookie issued
+ * against the old password stops working, here as well as there.
+ */
+export async function adoptSupabasePassword(
+  email: string,
+  password: string,
+): Promise<boolean> {
+  const customer = await fetchCustomer(normalizeEmail(email));
+  if (!customer || !customer.isActive) return false;
+  const { error } = await getDb()
+    .from(TABLES.customers)
+    .update({
+      passwordHash: await bcrypt.hash(password, 10),
+      // A reset elsewhere spends this site's outstanding link too: two live
+      // ways to set a password is one more than anybody needs.
+      resetToken: "",
+      resetExpires: "",
+      updatedAt: new Date().toISOString(),
+    })
+    .eq("id", customer.id);
+  checkErr(error, "adoptSupabasePassword");
+  return true;
 }
 
 export async function getCustomerByEmail(

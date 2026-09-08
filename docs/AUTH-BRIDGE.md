@@ -121,8 +121,14 @@ diğeri HMAC kullanır, yenilenecek çerezleri yoktur.
   satırı anonimleştirilir, uygulama oturumu kapatır. Supabase tarafındaki
   kullanıcının silinmesi ayrı bir operasyon görevidir (`docs/COMPLIANCE.md`,
   mobil repo).
-- Parola sıfırlama: Supabase üyeleri için Supabase'in akışı, bcrypt üyeleri
-  için sitenin mevcut akışı. İki sistem birleşene kadar ikisi de duruyor.
+- Parola sıfırlama: iki akış da duruyor (uygulamada Supabase'inki, sitede
+  `?token=`'li kendi akışımız) ama artık **iki kopya da güncelleniyor**.
+  Sitede sıfırlama Supabase'e servis rolüyle yazıyor
+  (`updateSupabasePassword`); uygulamada sıfırlanmışsa sitedeki giriş,
+  Supabase'in kabul ettiği parolayı görüp bcrypt özetini ona uyduruyor
+  (`adoptSupabasePassword`). Servis rolü anahtarı yoksa ilki çalışmadığı için
+  ikincisi de kapalı kalır — sitenin kopyası tek yetkilidir ve uyuşmazlık
+  reddedilir (`hasSupabaseAdmin`). Ayrıntı: `docs/EMAIL-RESEND.md` §4.
 - Sitedeki bcrypt hash'lerinin Supabase'e toplu aktarımı (şifre sıfırlatmadan)
   ayrı bir iştir — `docs/SUPABASE-GECIS.md` §5.
 - E-posta normalizasyonu iki tarafta da **invariant** küçük harftir

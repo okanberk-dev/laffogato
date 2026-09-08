@@ -22,6 +22,7 @@ import {
   updateCustomerProfile,
   updateNotificationPrefs,
   verifyCustomerLogin,
+  adoptSupabasePassword,
   checkSitePassword,
   type AddressInput,
   type NotificationPrefs,
@@ -30,6 +31,7 @@ import { linkCustomerToSupabase } from "@/lib/customer/supabase-bridge";
 import { deleteMe } from "@/lib/mobile/me";
 import { ensureCustomerForSupabaseUser } from "@/lib/customer/supabase-bridge";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { hasSupabaseAdmin } from "@/lib/supabase/admin";
 import { sendVerificationEmail } from "@/lib/email/send";
 import {
   subscribeNewsletter,
@@ -281,19 +283,32 @@ export async function loginAction(
     if (viaSupabase.ok) {
       const linked = await ensureCustomerForSupabaseUser(viaSupabase.user);
       if (linked.ok) {
-        // The site's own password, when the row has one, is the newer truth:
-        // a password changed or reset here is not mirrored to Supabase (no
-        // service role), so the old one must not keep working through it.
+        // Which copy of the password is the newer one?
+        //
+        // With a service-role key every password written on this site is
+        // mirrored to Supabase (`resetPasswordWithToken`), so the two agree
+        // unless the APP changed it - the reset screen the recovery mail now
+        // lands on. Supabase is then the newer truth and this row's hash is
+        // stale: adopt it, or the member who just reset in the app finds their
+        // new password refused here and their old one still working.
+        //
+        // Without the key nothing is mirrored, so a reset done here never
+        // reached Supabase and the old password is still live there. The
+        // site's copy stays authoritative and a disagreement is a refusal.
         const agree = await checkSitePassword(linked.customer.email, password);
         if (agree === "mismatch") {
-          await signOutSupabase();
-          const after = await recordLoginFailure("customer-login", ip, email);
-          return {
-            error: after.blocked
-              ? `Çok fazla başarısız deneme. ${after.retryAfterSeconds} saniye sonra tekrar dene.`
-              : "E-posta veya şifre hatalı.",
-            values: { email },
-          };
+          if (hasSupabaseAdmin()) {
+            await adoptSupabasePassword(linked.customer.email, password);
+          } else {
+            await signOutSupabase();
+            const after = await recordLoginFailure("customer-login", ip, email);
+            return {
+              error: after.blocked
+                ? `Çok fazla başarısız deneme. ${after.retryAfterSeconds} saniye sonra tekrar dene.`
+                : "E-posta veya şifre hatalı.",
+              values: { email },
+            };
+          }
         }
         supabaseSession = linked.customer.email;
       } else {

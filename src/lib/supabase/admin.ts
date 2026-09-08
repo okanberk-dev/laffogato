@@ -5,8 +5,10 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { SUPABASE_URL } from "./config";
 
 /**
- * The service-role client — one job only: deleting the sign-in identity of a
- * member who closed their account (`DELETE /me`, docs/hukuk/hesap-silme).
+ * The service-role client — two jobs, both about a credential the member has
+ * asked us to destroy: deleting the sign-in identity of a member who closed
+ * their account (`DELETE /me`, docs/hukuk/hesap-silme), and retiring the old
+ * password when they reset it (`resetPasswordWithToken`).
  *
  * The key bypasses every Supabase policy, so it is deliberately walled off
  * here instead of being handed to a general-purpose client:
@@ -19,7 +21,12 @@ import { SUPABASE_URL } from "./config";
  *     the caller falls back to marking the identity closed instead.
  *
  * Do not widen this file. If something else ever needs elevated access, it
- * needs its own justification and its own review.
+ * needs its own justification and its own review. The justification for the
+ * second job: site and app share one identity (docs/AUTH-BRIDGE.md), and a
+ * reset that changes only this project's bcrypt hash leaves the OLD password
+ * opening the app. Whoever the member is resetting against would still be in.
+ * Changing another user's password is `auth.admin` work by definition — the
+ * member is not signed in at the time, that is the whole situation.
  */
 
 declare global {
@@ -28,6 +35,19 @@ declare global {
 
 function serviceRoleKey(): string {
   return (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
+}
+
+/**
+ * Whether this deployment can act on the identity provider at all.
+ *
+ * Read by the sign-in path, not for a capability check but for a factual one:
+ * with the key present every password written here is mirrored to Supabase,
+ * so the two cannot silently disagree, and Supabase is the newer truth when
+ * they do. Without it the mirror never runs and this site's own copy stays
+ * authoritative. Same question, two different correct answers.
+ */
+export function hasSupabaseAdmin(): boolean {
+  return serviceRoleKey().length > 0;
 }
 
 function getSupabaseAdminClient(): SupabaseClient | null {
@@ -77,6 +97,44 @@ export async function deleteSupabaseIdentity(
   } catch (err) {
     console.error(
       `[supabase] identity delete threw: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return "failed";
+  }
+}
+
+/**
+ * Points a member's Supabase password at the one they just chose here.
+ *
+ * Never throws, and never blocks the reset: a member who cannot get back into
+ * their account at all is worse off than one whose app password lags. A
+ * failure is loud in the log because it leaves a live old credential — the
+ * operator's move is to have them reset again once auth is reachable.
+ *
+ * `skipped` covers both a deployment with no service-role key and a member
+ * who has no Supabase identity to update; neither is an error.
+ */
+export type PasswordSync = "updated" | "skipped" | "failed";
+
+export async function updateSupabasePassword(
+  userId: string,
+  password: string,
+): Promise<PasswordSync> {
+  if (!userId.trim() || !password) return "skipped";
+  const admin = getSupabaseAdminClient();
+  if (!admin) return "skipped";
+  try {
+    const { error } = await admin.auth.admin.updateUserById(userId, {
+      password,
+    });
+    if (error) {
+      // PII rule: the id, never the address or the password.
+      console.error(`[supabase] password sync failed: ${error.message}`);
+      return "failed";
+    }
+    return "updated";
+  } catch (err) {
+    console.error(
+      `[supabase] password sync threw: ${err instanceof Error ? err.message : String(err)}`,
     );
     return "failed";
   }
