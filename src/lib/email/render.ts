@@ -2,15 +2,19 @@
  * Template + values -> the three strings `send()` wants.
  *
  * Everything a template says about the business — address, hours, phone,
- * socials, the legal name in the footer — is baked into the HTML, and every
- * one of those values was checked against `SITE` and `LEGAL_ENTITY` when the
- * templates were migrated. What varies per message comes through `vars`.
+ * socials — is baked into the HTML, and every one of those values was
+ * checked against `SITE` and `LEGAL_ENTITY` when the templates were
+ * migrated. The sender's registered title and MERSİS number on commercial
+ * mail are the exception: they come from `LEGAL_ENTITY` through
+ * `commonVars`, so `entity.ts` stays the single source. What varies per
+ * message comes through `vars`.
  *
  * Deliberately NO "server-only": `templates.test.ts` renders every template
  * here, and that test is the thing standing between an unfilled `[FIELD]` and
  * a customer's inbox.
  */
 
+import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import {
   hasAppLinks,
   APP_STORE_URL,
@@ -52,6 +56,11 @@ export function commonVars(): TemplateVars {
     HESAP_URL: `${SITE.url}/uye/hesap`,
     SIPARIS_URL: `${SITE.url}/uye/hesap/siparislerim`,
     MENU_URL: `${SITE.url}/menu`,
+    // Ticari İletişim Yönetmeliği m.8/1: a tacir's commercial message names
+    // the ticaret unvanı and the MERSİS number in its content. One line in
+    // the commercial footers, both halves.
+    UNVAN: LEGAL_ENTITY.legalName,
+    MERSIS: LEGAL_ENTITY.mersisNo,
   };
 }
 

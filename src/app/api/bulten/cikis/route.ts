@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+import {
+  checkLoginLimit,
+  clientIpFrom,
+  recordLoginFailure,
+} from "@/lib/admin/rate-limit";
 import { unsubscribeCustomerByToken } from "@/lib/customer/unsubscribe";
 import { unsubscribeByToken } from "@/lib/newsletter/store";
 
@@ -22,6 +27,21 @@ export const dynamic = "force-dynamic";
  *
  * A token belongs to either the subscriber list or a member row; both are
  * tried, and whichever matches switches the other store off as well.
+ *
+ * The route sits outside the proxy and is advertised in every outbound
+ * header, and each POST spends up to three queries on the shared max:1
+ * pool. So POST goes through the same Postgres-backed limiter every
+ * credential check uses — and, like a login, it throttles FAILURES, not
+ * successes: only a token nobody has (unknown, or already spent) counts
+ * against the caller's IP; 20 of those in five minutes buy a minute of 429.
+ * A valid token never counts. That distinction matters here more than at a
+ * login: the one-click POST is not made by the person's device but by their
+ * mail provider's servers, from a small shared pool of addresses, and right
+ * after a campaign the opt-outs from one provider cluster — counting every
+ * hit would refuse the twentieth person's legally mandated opt-out (6563
+ * m.8) while their address stayed in the audience. A flood of made-up
+ * tokens still costs at most ~20 lookups per IP per window. GET does no
+ * database work of its own — a redirect — and is left alone.
  */
 
 const PLAIN = {
@@ -43,7 +63,22 @@ async function spend(token: string): Promise<string | null> {
 
 export async function POST(request: Request) {
   try {
+    const ip = clientIpFrom(request.headers);
+    // A blocked caller touches neither consent store. The bucket is filled
+    // below, and only by a token that matched nothing.
+    const limit = await checkLoginLimit("unsubscribe", ip, "one-click");
+    if (limit.blocked) {
+      return new NextResponse("Çok fazla istek; biraz sonra tekrar dene.", {
+        status: 429,
+        headers: { ...PLAIN, "Retry-After": String(limit.retryAfterSeconds) },
+      });
+    }
     const email = await spend(tokenOf(request));
+    if (!email) {
+      // Unknown or spent: the only kind of hit a flood can produce, and the
+      // only kind that counts. A real opt-out never fills the bucket.
+      await recordLoginFailure("unsubscribe", ip, "one-click");
+    }
     // 200 either way: the client shows nothing of ours, and a spent token
     // means the address is already off the list — which is what was asked.
     return new NextResponse(

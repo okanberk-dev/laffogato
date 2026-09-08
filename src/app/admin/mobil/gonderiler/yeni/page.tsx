@@ -19,7 +19,11 @@ export default async function NewAppPostPage() {
         title="Yeni gönderi"
         description="Kampanya, iş birliği ya da etkinlik kartı."
       />
-      <AppPostForm action={createPostAction} submitLabel="Gönderiyi oluştur" />
+      <AppPostForm
+        action={createPostAction}
+        mode="create"
+        submitLabel="Gönderiyi oluştur"
+      />
     </main>
   );
 }

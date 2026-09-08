@@ -17,6 +17,7 @@ import {
   APP_POST_KINDS,
   type AppPostKind,
 } from "@/lib/admin/app-content-schema";
+import { defaultEmailMembers } from "@/lib/admin/post-mail-default";
 import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
 
 export interface AppPostDefaults {
@@ -53,10 +54,11 @@ function isAppPostKind(value: string): value is AppPostKind {
  *    somewhere a customer's browser goes.
  *
  * The "e-posta" box is the automatic campaign mail (docs/EMAIL-RESEND.md §7):
- * on by default for a campaign, off for a collaboration or an event unless
- * the operator turns it on, and locked off once the post has had its mail —
- * the mark on the post is what actually prevents a second send; the box just
- * says so.
+ * on by default only when a campaign post is being created; off on every
+ * edit (`defaultEmailMembers` says why) and locked off once the post has had
+ * its mail — the mark on the post is what actually prevents a second send;
+ * the box just says so. Ticked, the submit asks once more: it is a
+ * commercial send to the whole member base.
  *
  * Constants come from app-content-schema, never from the store: importing them
  * from the store would pull `server-only` and `pg` into the browser bundle and
@@ -65,22 +67,38 @@ function isAppPostKind(value: string): value is AppPostKind {
 export function AppPostForm({
   action,
   defaults,
+  mode,
   submitLabel,
 }: {
   action: (formData: FormData) => void;
   defaults?: AppPostDefaults;
+  /** Create starts the box ticked for a campaign; edit never does. */
+  mode: "create" | "edit";
   submitLabel: string;
 }) {
   const alreadyMailed = Boolean(defaults?.emailCampaignId);
   const [kind, setKind] = useState<AppPostKind>(defaults?.kind ?? "campaign");
-  // null = the operator has not touched the box; it then follows the kind.
+  // null = the operator has not touched the box; it then follows the default.
   const [emailChoice, setEmailChoice] = useState<boolean | null>(null);
   const emailMembers = alreadyMailed
     ? false
-    : (emailChoice ?? kind === "campaign");
+    : (emailChoice ?? defaultEmailMembers({ mode, kind, alreadyMailed }));
 
   return (
-    <form action={action} className="grid gap-4">
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (
+          emailMembers &&
+          !confirm(
+            "Kaydedilince, gönderi yayındaysa pazarlama izni olan TÜM üyelere bir kez kampanya e-postası gidecek. Bu işlem geri alınamaz. Devam edilsin mi?",
+          )
+        ) {
+          e.preventDefault();
+        }
+      }}
+      className="grid gap-4"
+    >
       <Card>
         <div className="grid gap-4">
           <Field label="Tür" hint="Kartın üstünde küçük etiket olarak görünür.">
@@ -214,12 +232,20 @@ export function AppPostForm({
           hint={
             alreadyMailed
               ? undefined
-              : "Kaydedildiğinde gönderi yayındaysa ve yayın penceresi açıksa, pazarlama izni olan üyelere bir kez “Duyuru” şablonuyla gider; sonraki kayıtlar yeniden göndermez. İleri tarihli gönderiler yayına girdiğinde otomatik mail çıkmaz — yayına girince “Kampanya e-postası” sayfasından gönderin."
+              : `Kaydedildiğinde gönderi yayındaysa ve yayın penceresi açıksa, pazarlama izni olan üyelere bir kez “Duyuru” şablonuyla gider; sonraki kayıtlar yeniden göndermez. İleri tarihli gönderiler yayına girdiğinde otomatik mail çıkmaz — yayına girince “Kampanya e-postası” sayfasından gönder.${
+                  mode === "edit"
+                    ? " Düzenlemede kutu kapalı başlar: bu gönderi için e-posta istiyorsan bilerek işaretle."
+                    : ""
+                }`
           }
         >
           <Checkbox
             name="emailMembers"
-            label="Yayınlanınca pazarlama izni olan üyelere e-posta gönder"
+            label={
+              mode === "edit"
+                ? "Bu kayıtla pazarlama izni olan üyelere bir kez e-posta gönder"
+                : "Yayınlanınca pazarlama izni olan üyelere e-posta gönder"
+            }
             checked={emailMembers}
             disabled={alreadyMailed}
             onChange={(e) => setEmailChoice(e.target.checked)}

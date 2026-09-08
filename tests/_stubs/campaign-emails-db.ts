@@ -3,7 +3,11 @@
  * e-mail module uses: four tables, the filters/order/limit/head-count the
  * module chains, and the four plpgsql functions it calls through `rpc()`,
  * re-implemented over the same rows with the same rules as
- * db/migrations/20260908150000_campaign_emails.sql.
+ * db/migrations/20260908150000_campaign_emails.sql as amended by
+ * 20260908170000_campaign_email_reconsent.sql (consent re-read at claim,
+ * `postedAt`, the bulletin consent register, fresh batch numbers for rows
+ * that come back, a mark scoped to its own claim). What it cannot model is
+ * the claim's per-campaign row lock: two claims here never overlap.
  *
  * Mutations return rows only when `.select()` is chained, exactly like
  * src/lib/db/client.ts — the single-use unsubscribe and the draft-only edit
@@ -21,13 +25,34 @@ export const FAKE_TABLES = {
   campaignEmailSends: "campaign_email_sends",
 } as const;
 
+/** What the two skip/fail pre-passes of the claim function write. */
+export const CONSENT_WITHDRAWN = "onay geri çekildi ya da kitle dışına çıktı";
+export const POST_UNCONFIRMED = "sağlayıcı yanıtı teyit edilemedi";
+
 let store: Record<string, FakeRow[]> = {};
 let nextSendId = 1;
+let rpcFaults: Record<string, { code: string; message: string }> = {};
 
 export function resetFakeDb(): void {
   store = {};
   for (const table of Object.values(FAKE_TABLES)) store[table] = [];
   nextSendId = 1;
+  rpcFaults = {};
+}
+
+/**
+ * Makes the NEXT call of a plpgsql function fail with a query error — the
+ * transient database failure a max:1 pool produces between a provider's
+ * "accepted" and the runner's mark.
+ */
+export function failNextRpc(
+  fn: string,
+  error: { code: string; message: string } = {
+    code: "57P01",
+    message: "terminating connection due to administrator command",
+  },
+): void {
+  rpcFaults[fn] = error;
 }
 
 export function seedRows(table: string, rows: FakeRow[]): void {
@@ -281,13 +306,32 @@ function prefsOf(row: FakeRow): Record<string, unknown> {
   return p && typeof p === "object" ? (p as Record<string, unknown>) : {};
 }
 
+/**
+ * The bulletin's consent register: an active newsletter_subscribers row with
+ * a consent stamp for the address. `customers` has no stamp of its own for
+ * the `newsletter` preference.
+ */
+function hasNewsletterConsent(email: string): boolean {
+  const needle = email.toLowerCase();
+  return (store[FAKE_TABLES.newsletterSubscribers] ?? []).some(
+    (s) =>
+      String(s.email ?? "").toLowerCase() === needle &&
+      s.isActive === true &&
+      String(s.consentAt ?? "") !== "",
+  );
+}
+
 function memberInAudience(c: FakeRow, pref: string): boolean {
   const email = String(c.email ?? "");
+  const consented =
+    pref === "marketing"
+      ? String(c.marketingConsentAt ?? "") !== ""
+      : hasNewsletterConsent(email);
   return (
     c.isActive === true &&
     c.emailVerified === true &&
     prefsOf(c)[pref] === true &&
-    (pref !== "marketing" || String(c.marketingConsentAt ?? "") !== "") &&
+    consented &&
     !email.toLowerCase().endsWith("@laffogato.local") &&
     !email.toLowerCase().endsWith("@anon.local")
   );
@@ -360,16 +404,50 @@ function enqueue(args: FakeRow): FakeResult {
     }
   }
   const sends = (store[FAKE_TABLES.campaignEmailSends] ??= []);
+  const lastBatch = () =>
+    sends
+      .filter((s) => s.campaignId === campaignId)
+      .reduce((m, s) => Math.max(m, Number(s.batchNo)), -1);
+  // Skipped rows go back only for a recipient the rule still names, re-read
+  // as the rule names them now — and under a FRESH batch number after the
+  // last in use, a hundred to a batch in e-mail order: their old batch may
+  // have been posted for the others, and its key is spent for that set.
+  // The rest stay skipped and say why.
+  const current = new Map(
+    fakeAudience(audience, pref).map((a) => [a.email, a]),
+  );
+  const backBase = lastBatch() + 1;
+  const back = sends
+    .filter(
+      (s) =>
+        s.campaignId === campaignId &&
+        s.status === "skipped" &&
+        current.get(String(s.email))?.token,
+    )
+    .sort((a, b) => compare(a.email, b.email));
+  back.forEach((s, i) => {
+    const a = current.get(String(s.email))!;
+    Object.assign(s, {
+      status: "queued",
+      error: "",
+      claimedAt: "",
+      postedAt: "",
+      recipientKind: a.kind,
+      name: a.name,
+      unsubUrl: base + a.token,
+      batchNo: backBase + Math.floor(i / 100),
+    });
+  });
   for (const s of sends) {
     if (s.campaignId === campaignId && s.status === "skipped") {
-      Object.assign(s, { status: "queued", error: "", claimedAt: "" });
+      s.error = CONSENT_WITHDRAWN;
     }
   }
   const existing = sends.filter((s) => s.campaignId === campaignId);
-  const nextBatch =
-    existing.reduce((m, s) => Math.max(m, Number(s.batchNo)), -1) + 1;
+  // Newcomers continue after the rows that came back.
+  const nextBatch = lastBatch() + 1;
   const have = new Set(existing.map((s) => s.email));
-  const newcomers = fakeAudience(audience, pref).filter(
+  const newcomers = [...current.values()].filter(
     (a) => a.token !== "" && !have.has(a.email),
   );
   newcomers.forEach((a, i) => {
@@ -385,6 +463,7 @@ function enqueue(args: FakeRow): FakeResult {
       providerId: "",
       error: "",
       claimedAt: "",
+      postedAt: "",
       createdAt: now,
       sentAt: "",
     });
@@ -407,14 +486,56 @@ function enqueue(args: FakeRow): FakeResult {
 function claim(args: FakeRow): FakeResult {
   const campaignId = String(args.p_campaign);
   const staleBefore = String(args.p_stale_before);
+  const postedBefore = String(args.p_posted_before ?? "");
   const now = String(args.p_now);
-  const eligible = (s: FakeRow) =>
-    s.campaignId === campaignId &&
-    (s.status === "queued" ||
-      (s.status === "sending" && String(s.claimedAt ?? "") < staleBefore));
-  const candidates = (store[FAKE_TABLES.campaignEmailSends] ?? []).filter(
-    eligible,
+  const campaign = (store[FAKE_TABLES.campaignEmails] ?? []).find(
+    (c) => c.id === campaignId,
   );
+  if (!campaign) return ok([]);
+  const pref =
+    campaign.template === "bulten-kampanya" ? "newsletter" : "marketing";
+  const stale = (s: FakeRow) =>
+    s.status === "sending" && String(s.claimedAt ?? "") < staleBefore;
+  const eligible = (s: FakeRow) =>
+    s.campaignId === campaignId && (s.status === "queued" || stale(s));
+  const rows = store[FAKE_TABLES.campaignEmailSends] ?? [];
+
+  // 1. Posted, never settled, window closed → failed, never re-posted.
+  let touched = 0;
+  for (const s of rows) {
+    if (
+      s.campaignId === campaignId &&
+      stale(s) &&
+      String(s.postedAt ?? "") !== "" &&
+      String(s.postedAt) < postedBefore
+    ) {
+      Object.assign(s, { status: "failed", error: POST_UNCONFIRMED });
+      touched += 1;
+    }
+  }
+  // 2. Consent re-read now: each row against its own store, with the
+  //    campaign's preference; the stored link must carry the current token.
+  const okKeys = new Set(
+    [...fakeAudience("marketing", pref), ...fakeAudience("newsletter", pref)]
+      .filter((a) => a.token !== "")
+      .map((a) => `${a.kind}:${a.email}:${a.token}`),
+  );
+  for (const s of rows) {
+    if (!eligible(s) || String(s.postedAt ?? "") !== "") continue;
+    const url = String(s.unsubUrl ?? "");
+    const token = url.slice(url.lastIndexOf("=") + 1);
+    if (!okKeys.has(`${s.recipientKind}:${s.email}:${token}`)) {
+      Object.assign(s, {
+        status: "skipped",
+        error: CONSENT_WITHDRAWN,
+        claimedAt: "",
+      });
+      touched += 1;
+    }
+  }
+  if (touched > 0) refreshCounters(campaignId);
+
+  const candidates = rows.filter(eligible);
   if (candidates.length === 0) return ok([]);
   const target = Math.min(...candidates.map((s) => Number(s.batchNo)));
   const picked = candidates
@@ -439,6 +560,7 @@ function refreshCounters(campaignId: string): void {
   ).length;
 }
 
+/** `campaign_email_mark(…, p_claimed_at)` — only the rows of the caller's own claim. */
 function mark(args: FakeRow): FakeResult {
   const campaignId = String(args.p_campaign);
   const batchNo = Number(args.p_batch);
@@ -446,12 +568,14 @@ function mark(args: FakeRow): FakeResult {
   const ids = Array.isArray(args.p_ids) ? (args.p_ids as unknown[]) : [];
   const errorText = String(args.p_error ?? "");
   const now = String(args.p_now);
+  const claimedAt = String(args.p_claimed_at ?? "");
   const rows = (store[FAKE_TABLES.campaignEmailSends] ?? [])
     .filter(
       (s) =>
         s.campaignId === campaignId &&
         Number(s.batchNo) === batchNo &&
-        s.status === "sending",
+        s.status === "sending" &&
+        String(s.claimedAt ?? "") === claimedAt,
     )
     .sort((a, b) => compare(a.email, b.email));
   rows.forEach((s, idx) => {
@@ -467,6 +591,11 @@ function mark(args: FakeRow): FakeResult {
 }
 
 function rpcCall(fn: string, args: FakeRow): FakeResult {
+  const fault = rpcFaults[fn];
+  if (fault) {
+    delete rpcFaults[fn];
+    return { data: null, error: fault, status: 500, count: null };
+  }
   switch (fn) {
     case "campaign_email_audience_count":
       return ok(

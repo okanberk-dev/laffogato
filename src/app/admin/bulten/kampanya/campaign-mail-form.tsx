@@ -12,10 +12,12 @@ import {
 } from "@/components/admin/forms";
 import {
   CAMPAIGN_MAIL_AUDIENCE_LABELS,
-  CAMPAIGN_MAIL_AUDIENCES,
   CAMPAIGN_MAIL_GROUPS,
   CAMPAIGN_MAIL_TEMPLATE_LABELS,
   CAMPAIGN_MAIL_TEMPLATES,
+  campaignMailAudienceFor,
+  campaignMailAudiencesFor,
+  isCampaignMailAudience,
   isCampaignMailTemplate,
   type CampaignMailField,
 } from "@/lib/admin/campaign-mail-schema";
@@ -58,12 +60,25 @@ export function CampaignMailForm({
   const [template, setTemplate] = useState<CampaignTemplateName>(
     defaults?.template ?? "kampanya-duyuru",
   );
+  // Clamped to what the template allows: a draft stored before the gate
+  // must open editable, not locked on a value the server refuses.
+  const [audience, setAudience] = useState<CampaignAudience>(() =>
+    campaignMailAudienceFor(
+      defaults?.template ?? "kampanya-duyuru",
+      defaults?.audience,
+    ),
+  );
   const [values, setValues] = useState<Record<string, string>>(
     defaults?.fields ?? {},
   );
 
   const setValue = (key: string, value: string) =>
     setValues((prev) => ({ ...prev, [key]: value }));
+
+  // The audiences this template may go to; a kampanya-* layout tells the
+  // reader it is members-only, so members is all it is offered.
+  const audiences = campaignMailAudiencesFor(template);
+  const membersOnly = audiences.length === 1;
 
   return (
     <form action={formAction} className="grid gap-4">
@@ -78,7 +93,9 @@ export function CampaignMailForm({
               value={template}
               onChange={(e) => {
                 const next = e.target.value;
-                if (isCampaignMailTemplate(next)) setTemplate(next);
+                if (!isCampaignMailTemplate(next)) return;
+                setTemplate(next);
+                setAudience(campaignMailAudienceFor(next, audience));
               }}
             >
               {CAMPAIGN_MAIL_TEMPLATES.map((t) => (
@@ -92,21 +109,31 @@ export function CampaignMailForm({
           <Field
             label="Kitle"
             hint={
-              template === "bulten-kampanya"
-                ? "Üyelerden yalnız bülten tercihi açık olanlar alır."
-                : "Üyelerden yalnız pazarlama tercihi ve 6563 onayı olanlar alır."
+              membersOnly
+                ? "Bu şablon “Yalnız L'Affogato üyelerine özel” der; pazarlama tercihi ve 6563 onayı olan üyelere gider. Bülten abonelerine “Bülten” şablonunu kullan."
+                : "Üyelerden yalnız bülten tercihi açık ve bülten onayı kayıtlı olanlar alır."
             }
           >
             <Select
               name="audience"
-              defaultValue={defaults?.audience ?? "marketing"}
+              value={audience}
+              disabled={membersOnly}
+              onChange={(e) => {
+                if (isCampaignMailAudience(e.target.value)) {
+                  setAudience(e.target.value);
+                }
+              }}
             >
-              {CAMPAIGN_MAIL_AUDIENCES.map((a) => (
+              {audiences.map((a) => (
                 <option key={a} value={a}>
                   {CAMPAIGN_MAIL_AUDIENCE_LABELS[a]}
                 </option>
               ))}
             </Select>
+            {membersOnly && (
+              // A disabled select is not submitted; the value travels here.
+              <input type="hidden" name="audience" value={audience} />
+            )}
           </Field>
         </div>
       </Card>
@@ -157,6 +184,12 @@ export function CampaignMailForm({
   );
 }
 
+/**
+ * No browser `required`: the star in the label says what "Gönder" will
+ * insist on, but a half-written draft must still save (the footnote and
+ * `parseDraft` promise so). The render at "Gönder" is the gate, and it
+ * names the field.
+ */
 function FieldInput({
   field,
   value,
@@ -175,7 +208,6 @@ function FieldInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           maxLength={field.max}
-          required={field.required}
           rows={4}
           placeholder={field.placeholder}
         />
@@ -190,7 +222,6 @@ function FieldInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         maxLength={field.max}
-        required={field.required}
         placeholder={field.placeholder}
       />
     </Field>

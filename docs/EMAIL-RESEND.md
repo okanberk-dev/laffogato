@@ -218,6 +218,15 @@ kilitler. Çıkış bağlantısı `unsubscribeUrlFor(token)` →
 sayfa açmadan token'ı harcar, insan aynı bağlantıdan `/bulten/cikis`
 sayfasına yönlendirilir.
 
+**Ticari altbilgide unvan ve MERSİS:** on ticari şablonun altbilgisinde,
+adresin altında, tek sessiz satır — `[UNVAN] · MERSİS: [MERSIS]` (11 px, ayak
+notunun soluk rengi); düz metin ikizinde `COMMERCIAL_FOOTER`'ın ilk satırı.
+Ticari İletişim Yönetmeliği m.8/1 tacirin ticari elektronik iletisinin
+içeriğinde ticaret unvanını ve MERSİS numarasını arar (m.6'nın "adı veya
+unvanı"nı imza zaten karşılıyordu). Değerler `LEGAL_ENTITY`'den
+`commonVars` ile gelir, şablona yazılmaz; işlemsel yedi mesajın ayağı kısa
+kalır. Test: `%s names the sender's title and MERSİS in both halves`.
+
 **Kampanya ailesi:** yedi `kampanya-*` şablonu tek alan sözlüğü paylaşır
 (`KAMPANYA_*` zorunlular; görsel / kod / tarih / dipnot / vurgu blokları alanı
 boşsa düşer). `send.ts` aileyi `CAMPAIGN_TEMPLATES` · `renderCampaignMail`
@@ -250,26 +259,56 @@ bir kampanya yazar, kitleyi seçer, kendine test gönderir ve "Gönder" der.
 Yayına giren bir mobil gönderi (`/admin/mobil/gonderiler`, "Yayınlanınca
 pazarlama izni olan üyelere e-posta gönder" kutusu) aynı yoldan kendiliğinden
 bir `kampanya-duyuru` kampanyası açar ve gönderiyi `emailCampaignId` ile
-işaretler; sonraki kayıtlar bir daha mail çıkarmaz.
+işaretler; sonraki kayıtlar bir daha mail çıkarmaz. Kutu yalnız **yeni** bir
+kampanya gönderisinde işaretli başlar; düzenlemede her zaman kapalıdır (eski
+bir kampanyayı sıra düzeltirken bütün üye tabanına yollamamak için) ve
+işaretlenirse kayıt düğmesi "tüm üyelere bir kez gidecek" diye bir kez daha
+sorar (`src/lib/admin/post-mail-default.ts`).
 
 Motor `src/lib/email/campaigns.ts`; veri `campaign_emails` +
-`campaign_email_sends`; şema ve dört plpgsql yardımcısı
-`db/migrations/20260908150000_campaign_emails.sql`.
+`campaign_email_sends`; şema ve beş plpgsql fonksiyonu (kitle, sayım, kuyruk,
+parti alma, işaretleme) `db/migrations/20260908150000_campaign_emails.sql`.
+Kitle, kuyruk ve parti alma `20260908170000_campaign_email_reconsent.sql` ile
+yeniden tanımlandı: onay parti alınırken yeniden okunur, sağlayıcıya verilen
+parti `postedAt` ile kayda geçer, bültende üyeden onay kaydı aranır, parti
+alma kampanya başına sıraya girer (kampanya satırı `for update`), işaretleme
+yalnız kendi partisini kapatır (`p_claimed_at`), kuyruğa dönen satır yeni
+parti numarası alır (hepsi aşağıda). Eski imzalar — üç argümanlı
+`campaign_email_claim`, altı argümanlı `campaign_email_mark` — **bir sürüm**
+daha durur: migration dağıtım anında `after()` içinde olan eski çalıştırıcı
+yeni fonksiyonu bilmez; sonraki migration'da düşürülür.
 
 ### Kime gider — kitle kuralı
 
 Kural veritabanında **tek yerde** durur: `campaign_email_audience(p_audience,
-p_pref)`. Paneldeki "N adrese gidecek" sayısı da kuyruk da aynı fonksiyonu
-okur; ikisi birbirinden ayrı düşemez.
+p_pref)`. Paneldeki "N adrese gidecek" sayısı da, kuyruk da, parti alma da
+aynı fonksiyonu okur; üçü birbirinden ayrı düşemez.
 
-| Kitle        | Kaynak                   | Şart                                                                                                                                                      |
-| ------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `marketing`  | `customers`              | `isActive` · `emailVerified` · `notificationPrefs.<tercih> = true` · `marketing` tercihi için `marketingConsentAt` dolu · `@laffogato.local` (misafir) ve `@anon.local` (kapalı hesap) hariç |
-| `newsletter` | `newsletter_subscribers` | `isActive` · `consentAt` dolu · `unsubToken` dolu (jetonsuz satıra çıkış bağlantısı kurulamaz, dolayısıyla mail de gitmez)                                |
-| `both`       | ikisinin birleşimi       | aynı adres bir kez; üye satırı kazanır (çıkış bağlantısı hesabın tercihlerini kapatsın diye)                                                              |
+| Kitle        | Kaynak                   | Şart                                                                                                                                                                                                                                                                  |
+| ------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `marketing`  | `customers`              | `isActive` · `emailVerified` · `notificationPrefs.<tercih> = true` · onay kaydı: `marketing` tercihi için `marketingConsentAt` dolu, `newsletter` tercihi için `newsletter_subscribers`'da aynı adrese ait aktif ve `consentAt` dolu satır · `@laffogato.local` (misafir) ve `@anon.local` (kapalı hesap) hariç |
+| `newsletter` | `newsletter_subscribers` | `isActive` · `consentAt` dolu · `unsubToken` dolu (jetonsuz satıra çıkış bağlantısı kurulamaz, dolayısıyla mail de gitmez)                                                                                                                                            |
+| `both`       | ikisinin birleşimi       | aynı adres bir kez; üye satırı kazanır (çıkış bağlantısı hesabın tercihlerini kapatsın diye)                                                                                                                                                                          |
 
 `<tercih>`: `bulten-kampanya` şablonu `newsletter`, yedi `kampanya-*` şablonu
 `marketing` tercihini okur (`prefForTemplate`).
+
+**Bültende üyenin bayrağı tek başına yetmez.** `customers` tablosunda
+`newsletter` tercihi için bir onay damgası yok (yalnız `marketingConsentAt`
+var, o da `marketing` içindir); bültenin onay defteri `newsletter_subscribers`
+(`consentAt` · `consentIp` · `consentText`) — sitenin hesap sayfası ile
+uygulamanın `PATCH /me`'si tercih açılınca bu satırı yazar. Satırı olmayan
+üye (bu yazım eklenmeden önce uygulamadan abone olan) tercihi yeniden açana
+kadar kitle dışıdır. 6563'te ispat yükü göndericidedir; çıplak bir boolean o
+yükü taşımaz.
+
+**Şablon kitleyi sınırlar.** Yedi `kampanya-*` şablonu her iki yarısında
+"Yalnız L'Affogato üyelerine özel" der; bu yüzden yalnız `marketing` kitlesine
+gider — üye olmayan bir bülten abonesine "bu sana değil" yazan mail
+yollanmaz. `bulten-kampanya` bu satırı taşımaz ve üç kitleye de gidebilir.
+Kural `createCampaignEmail` / `updateCampaignEmail`'de (form da, gönderi
+kancası da oradan geçer); panel formu kampanya şablonlarında kitle seçicisini
+"Pazarlama izni olan üyeler"e kilitler.
 
 ### Jetonlar ve tek tıkla çıkış
 
@@ -283,9 +322,26 @@ Bağlantı hem altbilgide hem `List-Unsubscribe` /
 - `POST /api/bulten/cikis?token=…` — RFC 8058: posta istemcisinin kendi
   "abonelikten çık" düğmesi buraya `List-Unsubscribe=One-Click` gönderir.
   Jeton harcanır, 200 düz metin döner. (Başlık daha önce yalnız GET'e cevap
-  veren sayfayı gösteriyordu; düğme hiçbir şey yapmıyordu.)
+  veren sayfayı gösteriyordu; düğme hiçbir şey yapmıyordu.) Uç proxy'nin
+  dışında ve her giden başlıkta ilan ediliyor; her POST paylaşılan `max:1`
+  havuzda üç sorguya kadar harcar. Bu yüzden kimlik denetimlerinin
+  Postgres tabanlı sınırlayıcısından geçer (`rate-limit.ts`, amaç
+  `unsubscribe`) — ve giriş gibi **başarısızlığı** sayar, isteği değil:
+  yalnız hiçbir şeyle eşleşmeyen jeton (bilinmeyen ya da harcanmış) IP'nin
+  kovasına yazılır, 5 dakikada 20 boş jeton 1 dakika 429 + `Retry-After`
+  getirir; geçerli bir jeton hiç sayılmaz. Ayrım burada girişten önemli: tek
+  tık POST'u kişinin cihazından değil posta sağlayıcısının ortak
+  sunucularından gelir (Gmail, Yahoo, Outlook.com küçük bir çıkış havuzu
+  kullanır) ve kampanyadan hemen sonra aynı sağlayıcıdan çıkışlar kümelenir;
+  her isteği saymak yirminci kişinin yasal çıkışını (6563 m.8) reddederdi.
+  Uydurma jeton seli yine IP başına pencerede ~20 sorguda kalır; engellenen
+  istek iki rıza deposuna da dokunmaz. GET kendi başına veritabanına
+  dokunmaz (yönlendirme), sınırlayıcıya girmez.
 - `GET /api/bulten/cikis?token=…` — 303 ile `/bulten/cikis?token=…`
   sayfasına; sayfa jetonu kendisi harcar ve sonucu anlatır.
+- Testler: `tests/api-unsubscribe-route.test.ts` (POST 200 / 429 / 500, GET
+  303, jetonsuz istek depoya dokunmaz, geçerli jeton kovaya yazılmaz),
+  `tests/api-cron-campaign-emails.test.ts` (`CRON_SECRET` kapısı).
 - Jeton hangi listedense o satır kapanır **ve** aynı adresin öbür listesi de
   kapanır: abone jetonu → üyenin `marketing`/`newsletter` tercihleri kapanır,
   `marketingConsentAt` boşalır; üye jetonu → bülten satırı da pasifleşir.
@@ -297,29 +353,117 @@ Bağlantı hem altbilgide hem `List-Unsubscribe` /
 ### Panel akışı
 
 1. **Taslak** — şablon + alanlar + kitle. Alanlar `campaignFieldsSchema`'dan
-   geçer (bilinmeyen anahtar düşer, uzunluk sınırı, `https` zorunlu). "Bana
-   test gönder" tek gerçek gönderimdir: AD = Test, çıkış bağlantısı sahte
-   (`?token=onizleme`), gönderim defterine yazılmaz.
+   geçer (bilinmeyen anahtar düşer, uzunluk sınırı, `https` zorunlu);
+   tarayıcı tarafında `required` yoktur — yarım taslak kaydedilir, eksik
+   alanı "Gönder" adıyla reddeder. "Bana test gönder" tek gerçek gönderimdir:
+   AD = Test, çıkış bağlantısı sahte ama üyelerinkiyle aynı yolda
+   (`/api/bulten/cikis?token=onizleme` — başlıklar da aynı, uç ona 200
+   "Bağlantı geçersiz" der), gönderim defterine yazılmaz. Alıcı yalnız
+   oturumdaki hesap ya da `admin_users`'daki aktif bir hesap olabilir; başka
+   bir adrese "Test yalnız panel kullanıcılarına gönderilir."
 2. **Gönder** — önce bir örnek alıcı derlenir; şablonun istediği bir alan
    eksikse burada, alanın adıyla patlar ve hiçbir satır kuyruğa girmez.
    Sonra `campaign_email_enqueue` kitleyi `campaign_email_sends`'e döker:
    her (kampanya, adres) çifti tek satır, 100'lük partiler (`batchNo`).
-3. **Gönderim** — `runCampaignEmail`: parti al (`campaign_email_claim`,
-   `for update skip locked`; 15 dakikadır `sending`'de kalmış satırlar ölü
-   bir çalıştırıcıdan sayılır ve yeniden alınır), her satırı alıcının adı ve
-   kendi çıkış bağlantısıyla derle, `POST /emails/batch`
-   (`Idempotency-Key: cmp-<kampanya>-b<parti>`), `campaign_email_mark` ile
-   tek ifadede işaretle. Partiler arası 200 ms; 429'da 1 s (varsa
-   `Retry-After`) bekleyip **aynı anahtarla** en çok 3 kez yeniden dener.
-   Süre dolunca (240 s) durum `sending` kalır; kalan partileri cron bitirir.
-   Hiçbir e-posta çıkmadıysa kampanya `failed`, kısmi başarı `sent` +
-   sayaçlar.
+   Kitle boşsa satır yoktur; kampanya 0 alıcıyla "Gönderildi" olarak kapanır
+   (mesaj da bunu söyler).
+3. **Gönderim** — `runCampaignEmail`: parti al (`campaign_email_claim`;
+   15 dakikadır `sending`'de kalmış satırlar ölü bir çalıştırıcıdan sayılır
+   ve yeniden alınır), her satırı alıcının adı ve kendi çıkış bağlantısıyla
+   derle, partiyi `postedAt` ile **önce** kayda geç, sonra `POST
+   /emails/batch` (`Idempotency-Key: cmp-<kampanya>-b<parti>`),
+   `campaign_email_mark` ile tek ifadede işaretle. Partiler arası 200 ms;
+   429'da 1 s (varsa `Retry-After`) bekleyip **aynı anahtarla** en çok 3 kez
+   yeniden dener. Süre dolunca (240 s) durum `sending` kalır; kalan partileri
+   cron bitirir. Boş bir parti alma da bitiş değildir: `queued`/`sending`
+   satır kaldıysa (başka bir çalıştırıcı bir partiyi tutuyordur) kampanya
+   `sending` kalır ve onu bitiren kapatır. Hiçbir e-posta çıkmadıysa kampanya
+   `failed`, kısmi başarı `sent` + sayaçlar.
+
+   **İki çalıştırıcı aynı partiyi bölüşemez.** Panelin `after()`'ı ile 06:00
+   cron'u çakışabilir, "Gönder"e iki kez basılabilir. `campaign_email_claim`
+   bu yüzden işe kampanya satırını `for update` ile kilitleyerek başlar ve
+   kilit ifadenin sonuna kadar durur: ikinci çalıştırıcı bekler, sonra ilkinin
+   taze `sending` satırlarını görür ve **bir sonraki** partiyi alır (`skip
+   locked` kemer olarak kalır). Kilitsiz hâlde ikisi de en düşük partiyi
+   okuyor, `skip locked` her birine ötekinin yetişemediği satırları veriyor ve
+   ikisi de `cmp-<id>-b<n>`'yi yarım adres kümesiyle gönderiyordu — Resend
+   ikinciyi reddeder (aynı anahtar, farklı içerik) ya da ilkinin işareti
+   ikincinin hiç göndermediği satırları `sent` yapardı. İkinci kemer:
+   `campaign_email_mark` yalnız kendi parti almasının `claimedAt` damgasını
+   taşıyan satırları kapatır (`p_claimed_at`); bayat pencereyi aşıp partisini
+   başkasına kaptıran bir çalıştırıcı işaretleyecek satır bulamaz.
 4. **Yeniden "Gönder"** güvenlidir: mevcut alıcılar atlanır (`on conflict do
-   nothing`), `skipped` satırlar kuyruğa döner, yeni gelenler **yeni** parti
-   numarası alır — bir parti numarası anahtarın parçasıdır ve bir adres
-   kümesi için kullanılmış anahtar başka bir küme için tekrar kullanılmaz.
-   Aynı anahtar aynı küme için tekrar gittiğinde Resend 24 saat içinde
-   yinelemez.
+   nothing`), `skipped` satırlar kuyruğa döner — ama yalnız kitle kuralının
+   **hâlâ** adını verdiği alıcılar için ve kuralın o an verdiği biçimde (tür,
+   ad, çıkış bağlantısı yeniden okunur; harcanıp yeniden basılmış bir jeton
+   ölü bağlantıyla gitmez), gerisi `skipped` kalır ve satır nedenini söyler
+   — ve **kuyruğa dönen satır yeni parti numarası alır**, yeni gelenler de
+   ondan sonrakini. Bir parti numarası anahtarın parçasıdır ve bir adres
+   kümesi için kullanılmış anahtar başka bir küme için tekrar kullanılmaz:
+   parti alma tek bir satırı onay için atlayabildiğinden, `skipped` bir satır
+   ötekiler için **gönderilmiş** bir partiye ait olabilir; eski numarasıyla
+   dönse aynı anahtar başka bir kümeyle giderdi (pencere içinde 422 ile
+   boşuna `failed`, pencere dışında ikinci teslim). Aynı anahtar aynı küme
+   için tekrar gittiğinde Resend 24 saat içinde yinelemez.
+
+### Kuyruk ile gönderim arasında onay geri çekilirse
+
+Kuyruğa alınmak gönderilmek değildir: satırlar günlerce bekleyebilir
+(anahtarsız gönderim, ücretsiz planda 100'den kalabalık kitle, süre dolması).
+Bu yüzden `campaign_email_claim` her partiden **önce** kampanyanın bütün
+`queued` (ve bayat `sending`) satırlarını kitle kuralına karşı yeniden okur:
+üye satırı `campaign_email_audience('marketing', <tercih>)`'te, abone satırı
+`('newsletter', <tercih>)`'te hâlâ adıyla ve jetonuyla duracak, satırın
+taşıdığı bağlantıdaki jeton **o anki** jetonla aynı olacak. Bağlantıdan
+çıkan (jeton silinir), uygulamada/sitede tercihi kapatan, hesabı kapanan,
+bülten satırı pasifleşen ya da jetonu bu arada değişmiş olan herkes
+`skipped` + `error: onay geri çekildi ya da kitle dışına çıktı` olur ve o
+partide yer almaz; sayaçlar aynı ifadede tazelenir. Sağlayıcıya verilmiş
+(`postedAt` dolu) bir satıra bu geçiş dokunmaz — o ya aynı anahtarla yeniden
+alınır ya da aşağıdaki kuralla kapanır, asla yeniden derlenip gitmez.
+
+Sınır: onay **parti alınırken** okunur (read committed — ifadenin kendi
+anlık görüntüsü). Parti alındıktan sonraki saniyelerde, parti alma ifadesi
+çalışırken kesinleşen ya da POST'tan hemen önce gelen bir çıkış o partiye
+yetişmez; bir sonraki partiyi ve sonraki kampanyayı etkiler. Tek ifadelik bir
+yeniden okumanın doğası budur; kapatılmaz, bilinir.
+
+### Sağlayıcıya verilmiş ama işaretlenememiş parti — 22 saat kuralı
+
+Sıra: parti `sending` → `postedAt` yazılır → `POST /emails/batch` → Resend
+kabul eder → `campaign_email_mark` **düşer** (havuz kopar). Satırlar
+`sending` + `postedAt` ile kalır, kampanya `failed`; cron `failed`'a
+dokunmaz, "Yeniden gönder" operatörün elindedir. Bundan sonra
+`campaign_email_claim` `postedAt`'e bakar:
+
+Resend anahtarı **24 saat** tutar, kendi aldığı ilk istekten itibaren.
+Eşik ise parti **alınırken** ölçülür (`POSTED_EXPIRES_MS`), POST ondan sonra
+gelir — derleme, partiler arası bekleme, en çok üç 429 denemesi, üstelik
+Resend'inki olmayan bir saatle. 23:58'de alınıp 24:01'de POST edilen parti
+pencerenin dışına düşer ve iki kez giderdi. Bu yüzden çalıştırıcı kendine
+**22 saat** tanır; 2 saat pay:
+
+- `postedAt` **22 saatten genç**: satırlar bayat sayılınca (15 dk) yeniden
+  alınır ve aynı anahtar aynı adres kümesiyle tekrar gider — Resend
+  anahtarı tanır ve yinelemez. `postedAt` yeniden yazılmaz; ilk teslim anı
+  geçerlidir.
+- `postedAt` **22 saatten yaşlı**: Resend'in anahtar penceresi kapanmış ya da
+  POST'a kadar kapanacaktır; aynı istek yeni bir istek sayılır ve 100 kişi
+  ikinci kopyayı alırdı. Satır `failed` + `error: sağlayıcı yanıtı teyit
+  edilemedi` olur ve **bir daha gönderilmez**; teslim edilmiş olabilir,
+  kararı Resend panosuna bakan bir insan verir. `failed` nihaidir, sonraki
+  "Gönder" diriltmez.
+
+Testler: `tests/campaign-emails.test.ts` ("consent between queue and send",
+"a batch posted but never settled", "a consent-skipped row that comes back",
+"settles only the rows of its own claim"), şeklin kendisi
+`tests/campaign-emails-migration.test.ts`. Parti alma kilidi gerçek bir
+PostgreSQL 16'da sınandı: iki eşzamanlı `campaign_email_claim`, 120 üye, 25
+tur — inceleme kilitsiz sürümde 25/25 turda 0. partiyi ikiye bölmüştü;
+kilitli sürümde 0/25, her turda biri 100 satırla 0. partiyi, öteki 20 satırla
+1. partiyi aldı. (Bellek içi stub bu kilidi modelleyemez; testte kemer olan
+`claimedAt` kapsamı sabitlenir.)
 
 ### Cron ve `CRON_SECRET`
 

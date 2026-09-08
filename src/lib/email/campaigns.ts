@@ -18,6 +18,7 @@ import {
   CAMPAIGN_TEMPLATES,
   deliverBatch,
   sendCampaignMail,
+  unsubscribeUrlFor,
   type BatchMessage,
   type CampaignTemplateName,
   type SendResult,
@@ -34,16 +35,28 @@ import { EMAIL_TEXT } from "./text";
  * Resend's batch endpoint, settling each batch with one UPDATE.
  *
  * The audience RULE lives in the database (`campaign_email_audience`, see
- * db/migrations/20260908150000_campaign_emails.sql): the panel's dry count
- * and the enqueue read the same function, so they cannot disagree. The four
- * plpgsql helpers are the only writes to the send log that touch more than
- * one row; on a max:1 pool a hundred single-row updates per batch is the
- * difference between a send finishing and a function timing out.
+ * db/migrations/20260908150000_campaign_emails.sql and the amendments in
+ * 20260908170000_campaign_email_reconsent.sql): the panel's dry count, the
+ * enqueue AND the claim read the same function, so a person who withdraws
+ * between "Gönder" and their batch is skipped, not mailed. The five plpgsql
+ * helpers (audience, count, enqueue, claim, mark) are the only writes to the
+ * send log that touch more than one row; on a max:1 pool a hundred
+ * single-row updates per batch is the difference between a send finishing
+ * and a function timing out.
  *
  * Idempotency, twice: a (campaign, address) pair is unique, so re-queueing a
  * campaign adds newcomers and never repeats anyone; and the provider key of a
  * batch is `cmp-<campaignId>-b<batchNo>`, so a batch retried after a crash is
- * the same request and Resend dedupes it within 24 hours.
+ * the same request and Resend dedupes it within 24 hours. That key is only
+ * ever posted with ONE address set: a skipped row that comes back to the
+ * queue gets a fresh batch number, and the claim is serialised per campaign
+ * in the database (the campaign row is locked for the statement), so two
+ * runners never split a batch between them. The runner writes `postedAt` on
+ * the batch BEFORE the POST; a batch posted but never settled is re-posted
+ * under its key only inside that window, and settled as failed by the claim
+ * once the window has closed — never mailed a second time. A mark settles
+ * only the rows of the runner's own claim (`claimedAt`), so a runner that
+ * stalled and lost its batch to another cannot settle what it did not send.
  */
 
 export type CampaignStatus =
@@ -116,6 +129,17 @@ const QUEUEABLE: readonly CampaignStatus[] = [
 
 /** A batch left 'sending' longer than this belongs to a runner that died. */
 const STALE_AFTER_MS = 15 * 60_000;
+/**
+ * Resend keeps an idempotency key for 24 hours, counted from ITS receipt of
+ * the first request. A batch posted earlier than this and never settled
+ * cannot be re-posted safely: the same key would be accepted as a new
+ * request and the batch delivered twice. The threshold is checked when the
+ * batch is CLAIMED, and the retry POST comes later — after the render, the
+ * pause between batches and up to three 429 back-offs, on a clock that is
+ * not the provider's — so the window is treated as 22 hours: two hours of
+ * margin against a claim at 23:58 whose POST lands at 24:01.
+ */
+const POSTED_EXPIRES_MS = 22 * 60 * 60_000;
 /** Resend allows 10 requests a second; a pause between batches keeps well under it. */
 const BATCH_DELAY_MS = 200;
 /** Wait after a 429 when the provider does not say how long. */
@@ -275,6 +299,32 @@ function assertAudience(value: string): CampaignAudience {
   return value as CampaignAudience;
 }
 
+/** Which audiences a template may be sent to. Mirrored client-side by `campaignMailAudiencesFor`. */
+export function audiencesForTemplate(
+  template: CampaignTemplateName,
+): readonly CampaignAudience[] {
+  return template === "bulten-kampanya" ? CAMPAIGN_AUDIENCES : ["marketing"];
+}
+
+export const AUDIENCE_TEMPLATE_MISMATCH =
+  "Kampanya şablonları yalnız pazarlama izni olan üyelere gider; bülten abonelerine 'Bülten' şablonunu kullan.";
+
+/**
+ * The seven `kampanya-*` layouts say "Yalnız L'Affogato üyelerine özel" in
+ * both halves of the message, so they go to members only; a bulletin
+ * subscriber who is not a member would be told the offer is not for them.
+ * `bulten-kampanya` carries no such line and may go to any audience. Checked
+ * here, where both the form and the post hook land, so neither can bypass it.
+ */
+function assertAudienceForTemplate(
+  template: CampaignTemplateName,
+  audience: CampaignAudience,
+): void {
+  if (!audiencesForTemplate(template).includes(audience)) {
+    throw new Error(AUDIENCE_TEMPLATE_MISMATCH);
+  }
+}
+
 // ── Rows ───────────────────────────────────────────────────────────────────
 
 function str(value: unknown): string {
@@ -326,6 +376,8 @@ interface CampaignSendRow {
   providerId: string;
   error: string;
   claimedAt: string;
+  /** Set by the runner before the batch is posted; '' until then. */
+  postedAt: string;
   createdAt: string;
   sentAt: string;
 }
@@ -336,6 +388,7 @@ export async function createCampaignEmail(
   const fields = parseFields(input.fields);
   const template = assertTemplate(input.template);
   const audience = assertAudience(input.audience);
+  assertAudienceForTemplate(template, audience);
   const now = new Date().toISOString();
   const row: CampaignEmail = {
     id: `cmail-${Date.now()}-${randomBytes(3).toString("hex")}`,
@@ -379,6 +432,7 @@ export async function updateCampaignEmail(
     patch.audience !== undefined
       ? assertAudience(patch.audience)
       : current.audience;
+  assertAudienceForTemplate(template, audience);
   const fields =
     patch.fields !== undefined ? parseFields(patch.fields) : current.fields;
   const { data, error } = await getDb()
@@ -450,9 +504,15 @@ async function patchCampaign(
 
 // ── Rendering ──────────────────────────────────────────────────────────────
 
-/** The dummy way out in a preview or a test send — spends nothing. */
+/**
+ * The dummy way out in a preview or a test send — spends nothing. Built the
+ * way every member's link is (`/api/bulten/cikis`, the route that answers
+ * both the footer click and the RFC 8058 POST), so the test message the
+ * operator inspects carries the same path and headers the members' will.
+ * The route answers 200 "Bağlantı geçersiz" for it.
+ */
 function previewUnsubscribeUrl(): string {
-  return `${SITE.url}/bulten/cikis?token=onizleme`;
+  return unsubscribeUrlFor("onizleme");
 }
 
 function renderCampaign(
@@ -560,15 +620,46 @@ async function claimBatch(id: string): Promise<CampaignSendRow[]> {
   const { data, error } = await getDb().rpc<unknown>("campaign_email_claim", {
     p_campaign: id,
     p_stale_before: new Date(now - STALE_AFTER_MS).toISOString(),
+    p_posted_before: new Date(now - POSTED_EXPIRES_MS).toISOString(),
     p_now: new Date(now).toISOString(),
   });
   checkErr(error, "campaign_email_claim");
   return Array.isArray(data) ? (data as CampaignSendRow[]) : [];
 }
 
+/**
+ * Records the hand-off BEFORE the POST: every row of the batch still
+ * 'sending' under THIS claim and not yet posted gets `postedAt` now. The
+ * first hand-off time stands on a retry — the provider's idempotency window
+ * runs from the first post, and overwriting it would let a batch outlive
+ * that window unnoticed.
+ */
+async function markPosted(
+  id: string,
+  batchNo: number,
+  claimedAt: string,
+): Promise<void> {
+  const { error } = await getDb()
+    .from(TABLES.campaignEmailSends)
+    .update({ postedAt: new Date().toISOString() })
+    .eq("campaignId", id)
+    .eq("batchNo", batchNo)
+    .eq("status", "sending")
+    .eq("claimedAt", claimedAt)
+    .eq("postedAt", "");
+  checkErr(error, "campaign_email_sends.posted");
+}
+
+/**
+ * Settles the batch — the rows this runner's claim stamped with `claimedAt`
+ * and no others. A runner that stalled past the stale window and whose
+ * batch was reclaimed by another finds nothing to mark, rather than marking
+ * as sent rows it never delivered.
+ */
 async function markBatch(
   id: string,
   batchNo: number,
+  claimedAt: string,
   status: "sent" | "failed" | "skipped",
   providerIds: string[],
   errorText: string,
@@ -580,6 +671,7 @@ async function markBatch(
     p_ids: providerIds,
     p_error: errorText.slice(0, 500),
     p_now: new Date().toISOString(),
+    p_claimed_at: claimedAt,
   });
   checkErr(error, "campaign_email_mark");
 }
@@ -650,9 +742,11 @@ export interface RunResult {
 
 /**
  * Works a queued campaign, batch by batch, until nothing is left or the
- * deadline passes. Safe to run twice at once (the claim skips locked rows)
- * and safe to run again after a crash (a batch left 'sending' is reclaimed
- * once it is stale, and its provider key makes the retry a no-op upstream).
+ * deadline passes. Safe to run twice at once (claims on one campaign are
+ * serialised in the database: the second runner waits, then takes the next
+ * batch) and safe to run again after a crash (a batch left 'sending' is
+ * reclaimed once it is stale, and its provider key makes the retry a no-op
+ * upstream).
  *
  * Guards, in order: `CAMPAIGN_EMAIL_DRY_RUN=1` renders and marks every row
  * skipped without an HTTP call; no `RESEND_API_KEY` marks the batch skipped
@@ -687,6 +781,9 @@ export async function runCampaignEmail(
       const rows = await claimBatch(id);
       if (rows.length === 0) break;
       const batchNo = num(rows[0]?.batchNo);
+      // The claim's stamp on these rows; the posted mark and the settle
+      // below reach only rows carrying it.
+      const claimedAt = String(rows[0]?.claimedAt ?? "");
 
       // Render every row first. A row the template rejects is settled on its
       // own and leaves the batch, so the rest still go out; the batch's
@@ -717,32 +814,35 @@ export async function runCampaignEmail(
 
       let stop = "";
       if (dryRun) {
-        await markBatch(id, batchNo, "skipped", [], DRY_RUN_NOTE);
+        await markBatch(id, batchNo, claimedAt, "skipped", [], DRY_RUN_NOTE);
         failed += messages.length;
       } else if (!process.env.RESEND_API_KEY) {
         stop = NO_PROVIDER;
-        await markBatch(id, batchNo, "skipped", [], stop);
+        await markBatch(id, batchNo, claimedAt, "skipped", [], stop);
         failed += messages.length;
       } else if (previewHost) {
         stop = `Önizleme dağıtımından (VERCEL_ENV=${vercelEnv}) gerçek gönderim yapılmaz — her bağlantı önizleme adresine işaret ederdi. Denemek için CAMPAIGN_EMAIL_DRY_RUN=1.`;
-        await markBatch(id, batchNo, "skipped", [], stop);
+        await markBatch(id, batchNo, claimedAt, "skipped", [], stop);
         failed += messages.length;
       } else if (messages.length === 0) {
         // Every row was refused by the template and is already marked; this
         // touches no row and refreshes the campaign's counters.
-        await markBatch(id, batchNo, "failed", [], RENDER_FAILED);
+        await markBatch(id, batchNo, claimedAt, "failed", [], RENDER_FAILED);
       } else {
         const key = `cmp-${id}-b${batchNo}`;
+        // The hand-off is on record before the provider hears of it: should
+        // the mark below fail, the claim knows this batch may have gone out.
+        await markPosted(id, batchNo, claimedAt);
         const result = await deliverWithBackoff(messages, key, retryDelay);
         if (result.ok) {
-          await markBatch(id, batchNo, "sent", result.ids, "");
+          await markBatch(id, batchNo, claimedAt, "sent", result.ids, "");
           sent += messages.length;
           console.info(
             `[campaign] ${id} b${batchNo}: ${messages.length} gönderildi`,
           );
         } else {
           console.error(`[campaign] ${id} b${batchNo}: ${result.error}`);
-          await markBatch(id, batchNo, "failed", [], result.error);
+          await markBatch(id, batchNo, claimedAt, "failed", [], result.error);
           failed += messages.length;
         }
       }
@@ -759,15 +859,24 @@ export async function runCampaignEmail(
       await sleep(batchDelay);
     }
 
+    // An empty claim is not the end: the lowest open batch may be 'sending'
+    // under another runner (the panel's after() and the cron overlapping, a
+    // second "Gönder"). Those rows are not ours to close — the campaign stays
+    // 'sending', the other runner or the cron finishes it, and the counters
+    // are refreshed from the rows as they settle.
+    const left = await remainingCount(id);
+    if (left > 0) return { sent, failed, remaining: left };
+
     const fresh = await getCampaignEmail(id);
-    const nothingLeft = (fresh?.sentCount ?? sent) === 0 && failed > 0;
+    const sentTotal = fresh?.sentCount ?? sent;
+    const failedTotal = fresh?.failedCount ?? failed;
     if (dryRun) {
       await patchCampaign(id, {
         status: "sent",
         sentAt: new Date().toISOString(),
         lastError: DRY_RUN_NOTE,
       });
-    } else if (nothingLeft && !dryRun) {
+    } else if (sentTotal === 0 && failedTotal > 0) {
       // Not one message left the building: that is a failure, not a send
       // with a bad day. Partial failures stay 'sent' with the counters
       // telling the story.
@@ -777,6 +886,7 @@ export async function runCampaignEmail(
           "Hiçbir e-posta gönderilemedi; alıcı satırlarındaki hataya bakın.",
       });
     } else {
+      // Also the empty-audience case: 0 recipients, 'sent' with sentAt.
       await patchCampaign(id, {
         status: "sent",
         sentAt: new Date().toISOString(),

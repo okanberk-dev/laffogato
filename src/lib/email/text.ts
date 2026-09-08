@@ -21,14 +21,17 @@ laffogato.net · @laffogatto`;
  * legal links mirror the HTML footer, spelled out because a text client has
  * nothing to hide a URL behind.
  *
- * The company's registered title used to close this block. The regulation
- * (Ticari İletişim Yönetmeliği m.6) asks for the service provider's "adı VEYA
- * unvanı", and the signature above already carries the name, the street
- * address and the phone — so the title was dropped to keep the foot short
- * (operator, 8 Sep 2026). It is still one click away, inside both linked
- * documents.
+ * The first line is the sender's registered title and MERSİS number. The
+ * general rule (Ticari İletişim Yönetmeliği m.6, "adı veya unvanı") is met by
+ * the signature above; the rule for the CONTENT of a commercial electronic
+ * message (m.8/1) asks a tacir for the ticaret unvanı and the MERSİS number
+ * as well, so one quiet line carries both — under the address, as in the
+ * HTML — and nothing more (operator, 8 Sep 2026: keep the foot short). Both
+ * values come from `LEGAL_ENTITY` through `commonVars`, never typed here.
  */
-const COMMERCIAL_FOOTER = `Bu iletiyi, kampanya ve etkinlik duyurularını e-posta ile almaya onay
+const COMMERCIAL_FOOTER = `[UNVAN] · MERSİS: [MERSIS]
+
+Bu iletiyi, kampanya ve etkinlik duyurularını e-posta ile almaya onay
 verdiğiniz için alıyorsunuz. Onayınızı istediğiniz zaman geri çekebilirsiniz:
 [ABONELIK_CIKIS_URL]
 
@@ -188,7 +191,9 @@ ${SIGNATURE}
 
 ${COMMERCIAL_FOOTER}`,
 
-  "karaoke-rezervasyon": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
+  // The redesigned HTML greets without the name; the two halves of one
+  // message say the same thing.
+  "karaoke-rezervasyon": `Merhaba,
 
 Karaoke saatiniz ayrıldı. Girişte kodunuzu söylemeniz yeterli.
 

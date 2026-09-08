@@ -40,8 +40,11 @@ const sendCampaignTest = vi.fn();
 const queueCampaignEmail = vi.fn();
 const runCampaignEmail = vi.fn();
 const countCampaignAudience = vi.fn();
+const listAdminUsers = vi.fn();
 
 const ADMIN = "yonetici@laffogato.net";
+/** Another panel account — the only other place a test may go. */
+const COLLEAGUE = "ali@ornek.com";
 
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect }));
@@ -50,6 +53,7 @@ vi.mock("@/lib/admin/auth", () => ({
   requireRole: vi.fn(async () => ({ email: ADMIN, role: "owner" })),
 }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit }));
+vi.mock("@/lib/admin/users", () => ({ listAdminUsers }));
 vi.mock("@/lib/admin/store", () => ({
   createAppPost,
   deleteAppPost: vi.fn(),
@@ -83,12 +87,20 @@ const { createPostAction, updatePostAction } =
   await import("@/app/admin/mobil/gonderiler/actions");
 const {
   CAMPAIGN_MAIL_AUDIENCE_LABELS,
+  CAMPAIGN_MAIL_AUDIENCE_MISMATCH,
   CAMPAIGN_MAIL_FIELD_KEYS,
   CAMPAIGN_MAIL_TEMPLATES,
+  campaignMailAudienceFor,
+  campaignMailAudiencesFor,
   campaignMailFieldsFor,
 } = await import("@/lib/admin/campaign-mail-schema");
-const { CAMPAIGN_AUDIENCE_LABELS, campaignFieldsSchema } =
-  await import("@/lib/email/campaigns");
+const {
+  AUDIENCE_TEMPLATE_MISMATCH,
+  CAMPAIGN_AUDIENCE_LABELS,
+  audiencesForTemplate,
+  campaignFieldsSchema,
+} = await import("@/lib/email/campaigns");
+const { defaultEmailMembers } = await import("@/lib/admin/post-mail-default");
 const { CAMPAIGN_TEMPLATES } = await import("@/lib/email/send");
 const { EMAIL_TEMPLATES } = await import("@/lib/email/templates.generated");
 
@@ -173,6 +185,10 @@ beforeEach(() => {
   runCampaignEmail.mockResolvedValue({ sent: 3, failed: 0, remaining: 0 });
   setAppPostEmailCampaign.mockResolvedValue(true);
   deleteCampaignEmail.mockResolvedValue(true);
+  listAdminUsers.mockResolvedValue([
+    { email: COLLEAGUE, role: "manager", isActive: true },
+    { email: "eski@ornek.com", role: "staff", isActive: false },
+  ]);
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -240,6 +256,17 @@ describe("sendCampaignMailAction", () => {
     await expect(flushAfter()).resolves.toBeUndefined();
     expect(console.error).toHaveBeenCalled();
   });
+
+  it("says what an empty audience actually becomes: 'Gönderildi' with nobody in it", async () => {
+    getCampaignEmail.mockResolvedValue(draft());
+    queueCampaignEmail.mockResolvedValue({ total: 0 });
+    const state = await sendCampaignMailAction("cmail-1", {}, new FormData());
+    expect(state.error).toBeUndefined();
+    expect(state.message).toContain("Kitle boş");
+    expect(state.message).toContain("0 alıcıyla");
+    expect(state.message).toContain("Gönderildi");
+    expect(state.message).not.toContain("kapatıldı");
+  });
 });
 
 describe("sendCampaignMailTestAction", () => {
@@ -280,7 +307,7 @@ describe("sendCampaignMailTestAction", () => {
     expect(state.message).toContain(ADMIN);
   });
 
-  it("lowercases a typed address and shows the provider's verdict as it is", async () => {
+  it("lowercases a typed panel address and shows the provider's verdict as it is", async () => {
     getCampaignEmail.mockResolvedValue(draft());
     sendCampaignTest.mockResolvedValue({
       ok: false,
@@ -300,6 +327,32 @@ describe("sendCampaignMailTestAction", () => {
     expect(state.error).toContain("Domain not verified");
     expect(logAudit).not.toHaveBeenCalled();
   });
+
+  it("refuses any address that is not a panel user's — a real commercial message may not go to a stranger", async () => {
+    getCampaignEmail.mockResolvedValue(draft());
+    for (const to of ["musteri@ornek.com", "eski@ornek.com"]) {
+      const state = await sendCampaignMailTestAction(
+        "cmail-1",
+        {},
+        form({ to }),
+      );
+      expect(state.error, to).toBe(
+        "Test yalnız panel kullanıcılarına gönderilir.",
+      );
+    }
+    expect(sendCampaignTest).not.toHaveBeenCalled();
+    expect(logAudit).not.toHaveBeenCalled();
+    // The operator's own address needs no lookup at all.
+    listAdminUsers.mockRejectedValue(new Error("db down"));
+    sendCampaignTest.mockResolvedValue({ ok: true });
+    const own = await sendCampaignMailTestAction(
+      "cmail-1",
+      {},
+      form({ to: ADMIN.toUpperCase() }),
+    );
+    expect(own.message).toContain(ADMIN);
+    expect(sendCampaignTest).toHaveBeenCalledWith(expect.anything(), ADMIN);
+  });
 });
 
 describe("createCampaignMailAction", () => {
@@ -312,7 +365,7 @@ describe("createCampaignMailAction", () => {
       {},
       form({
         template: "kampanya-duyuru",
-        audience: "both",
+        audience: "marketing",
         ...FIELDS,
         KAMPANYA_EYEBROW: "  KAMPANYA  ",
         KAMPANYA_URL: "",
@@ -322,7 +375,7 @@ describe("createCampaignMailAction", () => {
 
     expect(createCampaignEmail).toHaveBeenCalledWith({
       template: "kampanya-duyuru",
-      audience: "both",
+      audience: "marketing",
       createdBy: ADMIN,
       fields: {
         ...FIELDS,
@@ -355,6 +408,33 @@ describe("createCampaignMailAction", () => {
     expect(state.error).toBe("Başlık gerekli.");
     expect(createCampaignEmail).not.toHaveBeenCalled();
     expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("sends a kampanya-* layout to members only; the bulletin may go to anyone", async () => {
+    for (const audience of ["newsletter", "both"]) {
+      const state = await createCampaignMailAction(
+        {},
+        form({ template: "kampanya-duyuru", audience, ...FIELDS }),
+      );
+      expect(state.error, audience).toBe(CAMPAIGN_MAIL_AUDIENCE_MISMATCH);
+    }
+    expect(createCampaignEmail).not.toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
+
+    createCampaignEmail.mockResolvedValue(
+      draft({ id: "cmail-b", template: "bulten-kampanya", audience: "both" }),
+    );
+    await createCampaignMailAction(
+      {},
+      form({ template: "bulten-kampanya", audience: "both", ...FIELDS }),
+    );
+    expect(createCampaignEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        template: "bulten-kampanya",
+        audience: "both",
+      }),
+    );
+    expect(redirect).toHaveBeenCalledWith(`${LIST}/cmail-b`);
   });
 
   it("rejects a template that is not a campaign, and a link that is not https", async () => {
@@ -395,12 +475,24 @@ describe("updateCampaignMailAction", () => {
     expect(logAudit).not.toHaveBeenCalled();
   });
 
-  it("audits a real update and stays on the page", async () => {
-    updateCampaignEmail.mockResolvedValue(draft({ audience: "newsletter" }));
+  it("refuses to point a kampanya-* draft at the subscribers", async () => {
     const state = await updateCampaignMailAction(
       "cmail-1",
       {},
-      form({ template: "kampanya-duyuru", audience: "newsletter", ...FIELDS }),
+      form({ template: "kampanya-ikram", audience: "newsletter", ...FIELDS }),
+    );
+    expect(state.error).toBe(CAMPAIGN_MAIL_AUDIENCE_MISMATCH);
+    expect(updateCampaignEmail).not.toHaveBeenCalled();
+  });
+
+  it("audits a real update and stays on the page", async () => {
+    updateCampaignEmail.mockResolvedValue(
+      draft({ template: "bulten-kampanya", audience: "newsletter" }),
+    );
+    const state = await updateCampaignMailAction(
+      "cmail-1",
+      {},
+      form({ template: "bulten-kampanya", audience: "newsletter", ...FIELDS }),
     );
     expect(updateCampaignEmail).toHaveBeenCalledWith(
       "cmail-1",
@@ -565,6 +657,43 @@ describe("the post hook", () => {
   });
 });
 
+describe("the post form's e-mail box", () => {
+  it("starts ticked only when a campaign post is being created", () => {
+    expect(
+      defaultEmailMembers({
+        mode: "create",
+        kind: "campaign",
+        alreadyMailed: false,
+      }),
+    ).toBe(true);
+    for (const kind of ["collab", "event"] as const) {
+      expect(
+        defaultEmailMembers({ mode: "create", kind, alreadyMailed: false }),
+        kind,
+      ).toBe(false);
+    }
+  });
+
+  it("never starts ticked on an edit — a typo fix must not mail the member base an old campaign", () => {
+    for (const kind of ["campaign", "collab", "event"] as const) {
+      expect(
+        defaultEmailMembers({ mode: "edit", kind, alreadyMailed: false }),
+        kind,
+      ).toBe(false);
+    }
+  });
+
+  it("never starts ticked once the post has had its mail", () => {
+    expect(
+      defaultEmailMembers({
+        mode: "create",
+        kind: "campaign",
+        alreadyMailed: true,
+      }),
+    ).toBe(false);
+  });
+});
+
 describe("campaign-mail-schema mirrors the e-mail modules", () => {
   /** Filled by `renderEmail` itself, never by the form. */
   const AUTO = new Set([
@@ -572,7 +701,46 @@ describe("campaign-mail-schema mirrors the e-mail modules", () => {
     "APP_STORE_URL",
     "PLAY_STORE_URL",
     "ABONELIK_CIKIS_URL",
+    // The sender's registered title and MERSİS number (commonVars).
+    "UNVAN",
+    "MERSIS",
   ]);
+
+  it("gates the audience per template exactly as the store does", () => {
+    expect(CAMPAIGN_MAIL_AUDIENCE_MISMATCH).toBe(AUDIENCE_TEMPLATE_MISMATCH);
+    for (const t of CAMPAIGN_MAIL_TEMPLATES) {
+      expect([...campaignMailAudiencesFor(t)], t).toEqual([
+        ...audiencesForTemplate(t),
+      ]);
+    }
+    expect(campaignMailAudiencesFor("kampanya-duyuru")).toEqual(["marketing"]);
+    expect(campaignMailAudiencesFor("bulten-kampanya")).toHaveLength(3);
+  });
+
+  it("opens a stored draft on an audience its template allows, never on one the server refuses", () => {
+    expect(campaignMailAudienceFor("bulten-kampanya", "newsletter")).toBe(
+      "newsletter",
+    );
+    expect(campaignMailAudienceFor("bulten-kampanya", "both")).toBe("both");
+    expect(campaignMailAudienceFor("kampanya-duyuru", "marketing")).toBe(
+      "marketing",
+    );
+    // A draft saved before the gate: a kampanya-* template aimed at the
+    // subscribers. Shown as stored, the form would render a locked select
+    // whose hidden value parseDraft refuses on every save.
+    expect(campaignMailAudienceFor("kampanya-duyuru", "newsletter")).toBe(
+      "marketing",
+    );
+    expect(campaignMailAudienceFor("kampanya-indirim", "both")).toBe(
+      "marketing",
+    );
+    expect(campaignMailAudienceFor("kampanya-duyuru", undefined)).toBe(
+      "marketing",
+    );
+    expect(campaignMailAudienceFor("bulten-kampanya", undefined)).toBe(
+      "marketing",
+    );
+  });
 
   /** A template's `[ALAN]`s, split by whether an optional block holds them. */
   function templateFields(html: string): {

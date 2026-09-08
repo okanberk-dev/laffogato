@@ -55,7 +55,7 @@ function MailOutcomeBanner({
             >
               kampanya sayfasında
             </Link>{" "}
-            tamamlayıp oradan gönderin.
+            tamamlayıp oradan gönder.
           </>
         ) : (
           <>
@@ -63,7 +63,7 @@ function MailOutcomeBanner({
             <Link href="/admin/bulten/kampanya/yeni" className="underline">
               Kampanya e-postası
             </Link>{" "}
-            sayfasından elle açabilirsiniz.
+            sayfasından elle açabilirsin.
           </>
         )}
       </div>

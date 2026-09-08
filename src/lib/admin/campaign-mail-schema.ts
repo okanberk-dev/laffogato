@@ -68,6 +68,42 @@ export function isCampaignMailAudience(
   return (CAMPAIGN_MAIL_AUDIENCES as readonly string[]).includes(value);
 }
 
+/**
+ * Which audiences a template may be sent to — mirrors `audiencesForTemplate`
+ * in `@/lib/email/campaigns` (server-only), pinned by the actions test. The
+ * seven `kampanya-*` layouts say "Yalnız L'Affogato üyelerine özel", so they
+ * go to members only; the bulletin carries no such line and may go to anyone.
+ */
+export function campaignMailAudiencesFor(
+  template: CampaignTemplateName,
+): readonly CampaignAudience[] {
+  return template === "bulten-kampanya"
+    ? CAMPAIGN_MAIL_AUDIENCES
+    : ["marketing"];
+}
+
+/**
+ * The audience the form starts from for a stored (template, audience) pair:
+ * the stored one when the template still allows it, `marketing` otherwise.
+ * A draft saved before the template gate existed may carry a kampanya-*
+ * template with the subscribers as its audience; shown as it was stored,
+ * the form would render a locked select whose hidden value the server
+ * refuses on every save, with no way to change it short of switching the
+ * template away and back.
+ */
+export function campaignMailAudienceFor(
+  template: CampaignTemplateName,
+  audience: CampaignAudience | undefined,
+): CampaignAudience {
+  return audience && campaignMailAudiencesFor(template).includes(audience)
+    ? audience
+    : "marketing";
+}
+
+/** Mirrors `AUDIENCE_TEMPLATE_MISMATCH` in `@/lib/email/campaigns`. */
+export const CAMPAIGN_MAIL_AUDIENCE_MISMATCH =
+  "Kampanya şablonları yalnız pazarlama izni olan üyelere gider; bülten abonelerine 'Bülten' şablonunu kullan.";
+
 // ── Fields ─────────────────────────────────────────────────────────────────
 
 export interface CampaignMailField {

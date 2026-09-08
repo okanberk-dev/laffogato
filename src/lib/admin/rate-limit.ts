@@ -28,7 +28,8 @@ export type AuthPurpose =
   | "customer-login"
   | "admin-2fa"
   | "promo-preview"
-  | "password-reset";
+  | "password-reset"
+  | "unsubscribe";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -39,20 +40,35 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // Every request costs an e-mail to somebody else's inbox, so this one counts
   // successes as well as failures — five links per address per five minutes.
   "password-reset": 5,
+  // The one-click unsubscribe route (RFC 8058 POST). Its "failure" is a
+  // token that matched nothing — unknown or already spent; a valid opt-out
+  // never counts, because the POST comes from the mail provider's shared
+  // servers, not the person's device, and opt-outs from one provider cluster
+  // right after a campaign. Twenty dead tokens per IP per five minutes is
+  // far beyond what a mail client's button produces and well short of what a
+  // flood does; each one still costs up to three queries on the shared pool.
+  unsubscribe: 20,
 };
 
 /**
- * The caller's IP as the edge saw it. The first hop in `x-forwarded-for` is
- * the client; Vercel also sets `x-real-ip`. Empty when neither is present
- * (local development) — callers that store it as evidence keep the blank
+ * The client's address from a set of request headers: the first hop in
+ * `x-forwarded-for` is the client; Vercel also sets `x-real-ip`. Empty when
+ * neither is present (local development).
+ */
+export function clientIpFrom(h: Headers): string {
+  const xff = h.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+  return h.get("x-real-ip")?.trim() ?? "";
+}
+
+/**
+ * The caller's IP as the edge saw it, read from the ambient request. Empty
+ * when it cannot be had — callers that store it as evidence keep the blank
  * rather than writing a placeholder, and the rate-limit key buckets it.
  */
 export async function clientIp(): Promise<string> {
   try {
-    const h = await headers();
-    const xff = h.get("x-forwarded-for");
-    if (xff) return xff.split(",")[0].trim();
-    return h.get("x-real-ip")?.trim() ?? "";
+    return clientIpFrom(await headers());
   } catch {
     return "";
   }

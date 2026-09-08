@@ -33,6 +33,7 @@ export default async function EditAppPostPage({
       <AppPostForm
         action={updatePostAction.bind(null, row.id)}
         defaults={row}
+        mode="edit"
         submitLabel="Değişiklikleri kaydet"
       />
     </main>

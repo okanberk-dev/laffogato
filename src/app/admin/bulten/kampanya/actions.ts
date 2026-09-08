@@ -7,10 +7,13 @@ import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { startCampaignSend } from "@/lib/admin/campaign-mail";
 import {
+  CAMPAIGN_MAIL_AUDIENCE_MISMATCH,
   CAMPAIGN_MAIL_FIELD_KEYS,
+  campaignMailAudiencesFor,
   isCampaignMailAudience,
   isCampaignMailTemplate,
 } from "@/lib/admin/campaign-mail-schema";
+import { listAdminUsers } from "@/lib/admin/users";
 import { isDbUnreachable } from "@/lib/db/health";
 import {
   campaignFieldsSchema,
@@ -64,6 +67,11 @@ function parseDraft(formData: FormData): ParsedDraft {
   const audience = String(formData.get("audience") ?? "");
   if (!isCampaignMailAudience(audience)) {
     return { ok: false, error: "Kitle geçersiz." };
+  }
+  // The store refuses this too (createCampaignEmail / updateCampaignEmail);
+  // checked here so the form gets the sentence rather than a thrown one.
+  if (!campaignMailAudiencesFor(template).includes(audience)) {
+    return { ok: false, error: CAMPAIGN_MAIL_AUDIENCE_MISMATCH };
   }
   const raw: Record<string, string> = {};
   for (const key of CAMPAIGN_MAIL_FIELD_KEYS) {
@@ -177,12 +185,30 @@ export async function deleteCampaignMailAction(formData: FormData) {
   revalidatePath(LIST_PATH);
 }
 
+const TEST_RECIPIENTS_ONLY = "Test yalnız panel kullanıcılarına gönderilir.";
+
+/**
+ * A test may go to the signed-in operator or to another panel account —
+ * nobody else. It is a real commercial message with a dummy way out; typed
+ * at a stranger's address it would be exactly the mail 6563 forbids, audit
+ * row or not.
+ */
+async function isPanelAddress(
+  to: string,
+  session: { email: string },
+): Promise<boolean> {
+  if (to === session.email.trim().toLowerCase()) return true;
+  const users = await listAdminUsers();
+  return users.some((u) => u.isActive && u.email.trim().toLowerCase() === to);
+}
+
 /**
  * One real message to one inbox — the operator's own unless they type
- * another — outside the send log, with AD = Test and a dummy way out. The
- * provider's verdict is shown as it is: every other mail path swallows a
- * delivery failure on purpose, so this is where "domain not verified" gets
- * to be read by a person.
+ * another panel user's — outside the send log, with AD = Test and a dummy
+ * way out on the same route the members' links use. The provider's verdict
+ * is shown as it is: every other mail path swallows a delivery failure on
+ * purpose, so this is where "domain not verified" gets to be read by a
+ * person.
  */
 export async function sendCampaignMailTestAction(
   id: string,
@@ -198,6 +224,9 @@ export async function sendCampaignMailTestAction(
   }
   let c;
   try {
+    if (!(await isPanelAddress(to, session))) {
+      return { error: TEST_RECIPIENTS_ONLY };
+    }
     c = await getCampaignEmail(id);
   } catch (err) {
     return { error: describe(err) };
@@ -253,9 +282,11 @@ export async function sendCampaignMailAction(
   revalidatePath(LIST_PATH);
   revalidatePath(`${LIST_PATH}/${id}`);
   if (total === 0) {
+    // What the runner does with an empty send log: no batch, no failure —
+    // the row closes as 'sent' with zero recipients (runCampaignEmail).
     return {
       message:
-        "Kitle boş: bu kampanya için gönderilecek adres yok. Kampanya yine de kapatıldı.",
+        "Kitle boş: bu kampanya için gönderilecek adres yok; kampanya 0 alıcıyla “Gönderildi” olarak kapanır.",
     };
   }
   return {

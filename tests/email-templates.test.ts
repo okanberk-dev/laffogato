@@ -10,6 +10,7 @@ import {
   type EmailTemplateName,
 } from "@/lib/email/templates.generated";
 import { EMAIL_TEXT } from "@/lib/email/text";
+import { LEGAL_ENTITY } from "@/lib/legal/entity";
 
 /**
  * The seventeen designed messages, and the three things that must never reach
@@ -104,6 +105,32 @@ describe("the seventeen templates render", () => {
   it.each(NAMES)("%s carries a plain-text alternative", (name) => {
     expect(EMAIL_TEXT[name].length).toBeGreaterThan(120);
   });
+
+  it.each(NAMES)(
+    "%s: the text twin opens no conditional the HTML does not have",
+    (name) => {
+      // Same fields, same IF markers: a greeting-by-name in the text half of
+      // a message whose HTML half dropped it is two messages in one.
+      const markers = (source: string) =>
+        new Set(
+          [...source.matchAll(/<!--IF:([A-Z0-9_]+)-->/g)]
+            .map((m) => m[1])
+            .filter((flag) => flag !== "APP_LINKS"),
+        );
+      const html = markers(EMAIL_TEMPLATES[name].html);
+      for (const flag of markers(EMAIL_TEXT[name])) {
+        expect(html.has(flag), `${name}: <!--IF:${flag}--> only in text`).toBe(
+          true,
+        );
+      }
+    },
+  );
+
+  it("karaoke-rezervasyon greets without the name in both halves", () => {
+    expect(EMAIL_TEMPLATES["karaoke-rezervasyon"].html).not.toContain("[AD]");
+    expect(EMAIL_TEXT["karaoke-rezervasyon"]).not.toContain("[AD]");
+    expect(EMAIL_TEXT["karaoke-rezervasyon"].startsWith("Merhaba,")).toBe(true);
+  });
 });
 
 describe("6563 — commercial and transactional are not interchangeable", () => {
@@ -148,6 +175,42 @@ describe("6563 — commercial and transactional are not interchangeable", () => 
       }),
     ).toThrow(/işlemsel/);
   });
+
+  /**
+   * Ticari İletişim Yönetmeliği m.8/1: the content of a tacir's commercial
+   * electronic message carries the ticaret unvanı and the MERSİS number. One
+   * quiet line under the address, both halves, from LEGAL_ENTITY — never
+   * typed into a template.
+   */
+  it.each(commercial)(
+    "%s names the sender's title and MERSİS in both halves",
+    (name) => {
+      const vars = sampleVars(name);
+      delete vars.UNVAN;
+      delete vars.MERSIS;
+      const r = renderWith(name, { vars });
+      for (const half of [r.html, r.text]) {
+        expect(half).toContain(LEGAL_ENTITY.legalName);
+        expect(half).toContain(`MERSİS: ${LEGAL_ENTITY.mersisNo}`);
+      }
+      // From the single source, not the template.
+      expect(EMAIL_TEMPLATES[name].html).toContain(
+        "[UNVAN] · MERSİS: [MERSIS]",
+      );
+      expect(EMAIL_TEMPLATES[name].html).not.toContain(LEGAL_ENTITY.mersisNo);
+      expect(EMAIL_TEXT[name]).toContain("[UNVAN] · MERSİS: [MERSIS]");
+      // One line, once.
+      expect(r.html.split(LEGAL_ENTITY.mersisNo)).toHaveLength(2);
+    },
+  );
+
+  it.each(transactional)(
+    "%s keeps the short foot — the identity line is the commercial rule's",
+    (name) => {
+      expect(EMAIL_TEMPLATES[name].html).not.toContain("[MERSIS]");
+      expect(EMAIL_TEXT[name]).not.toContain("[MERSIS]");
+    },
+  );
 });
 
 describe("campaign blocks follow their fields", () => {
