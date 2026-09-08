@@ -20,16 +20,20 @@ laffogato.net · @laffogatto`;
  * 6563: the withdrawal has to be as easy as the consent was to give. The two
  * legal links mirror the HTML footer, spelled out because a text client has
  * nothing to hide a URL behind.
+ *
+ * The company's registered title used to close this block. The regulation
+ * (Ticari İletişim Yönetmeliği m.6) asks for the service provider's "adı VEYA
+ * unvanı", and the signature above already carries the name, the street
+ * address and the phone — so the title was dropped to keep the foot short
+ * (operator, 8 Sep 2026). It is still one click away, inside both linked
+ * documents.
  */
 const COMMERCIAL_FOOTER = `Bu iletiyi, kampanya ve etkinlik duyurularını e-posta ile almaya onay
 verdiğiniz için alıyorsunuz. Onayınızı istediğiniz zaman geri çekebilirsiniz:
 [ABONELIK_CIKIS_URL]
 
 Ticari ileti aydınlatması: https://laffogato.net/hukuk/ticari-elektronik-ileti
-KVKK aydınlatma metni: https://laffogato.net/hukuk/kvkk-aydinlatma-metni
-
-NEXTGEN YAZILIM EĞİTİM İNŞAAT SANAYİ VE TİCARET LİMİTED ŞİRKETİ
-Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla/İstanbul, Türkiye`;
+KVKK aydınlatma metni: https://laffogato.net/hukuk/kvkk-aydinlatma-metni`;
 
 // ── Kampanya ailesi ────────────────────────────────────────────────────────
 //
