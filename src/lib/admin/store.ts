@@ -323,6 +323,17 @@ export interface AdminSettings {
   notificationEmail: string;
 
   /**
+   * Transactional e-mail sender (Resend). Resend only delivers from a domain
+   * verified on the account, so when that domain moves the address has to move
+   * with it — from here, not from a deploy. Empty address = fall back to
+   * `EMAIL_FROM`, then to the built-in default.
+   */
+  emailFromName: string;
+  emailFromAddress: string;
+  /** Where a member's reply lands. Empty falls back to `email`. */
+  emailReplyTo: string;
+
+  /**
    * Mobile app (docs/API-MOBILE.md §3, §7). Courier fee charged on a cafe
    * `delivery` order; karaoke room hourly price and the number of guests the
    * room takes. All in minor units except the capacity.
@@ -474,6 +485,9 @@ function defaultSettings(): AdminSettings {
     seoOgImageUrl: "",
     seoIndexable: true,
     notificationEmail: "",
+    emailFromName: "L'Affogato",
+    emailFromAddress: "",
+    emailReplyTo: "",
     courierFeeMinor: 5500,
     karaokeHourlyMinor: 90000,
     karaokeCapacity: 8,

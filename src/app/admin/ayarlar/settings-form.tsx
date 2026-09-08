@@ -12,8 +12,10 @@ import {
 } from "@/components/admin/forms";
 import { DAYS_OF_WEEK, DAY_LABELS, type DayOfWeek } from "@/lib/admin/days";
 import type { AdminSettings } from "@/lib/admin/store";
+import type { EmailIdentity } from "@/lib/email/send";
 
 import {
+  saveEmailSenderAction,
   saveGeneralAction,
   saveHoursAction,
   saveKaraokeAction,
@@ -21,6 +23,7 @@ import {
   saveSeoAction,
   saveShippingAction,
   saveTaxAction,
+  sendTestEmailAction,
   type SettingsState,
 } from "./actions";
 
@@ -34,11 +37,18 @@ const TABS = [
   { id: "karaoke", label: "Karaoke" },
   { id: "seo", label: "SEO" },
   { id: "notifications", label: "Bildirim" },
+  { id: "email", label: "E-posta" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
-export function SettingsForm({ settings }: { settings: AdminSettings }) {
+export function SettingsForm({
+  settings,
+  identity,
+}: {
+  settings: AdminSettings;
+  identity: EmailIdentity;
+}) {
   const [tab, setTab] = useState<TabId>("general");
 
   return (
@@ -68,6 +78,9 @@ export function SettingsForm({ settings }: { settings: AdminSettings }) {
         {tab === "karaoke" && <KaraokeTab settings={settings} />}
         {tab === "seo" && <SeoTab settings={settings} />}
         {tab === "notifications" && <NotificationsTab settings={settings} />}
+        {tab === "email" && (
+          <EmailTab settings={settings} identity={identity} />
+        )}
       </div>
     </div>
   );
@@ -76,9 +89,15 @@ export function SettingsForm({ settings }: { settings: AdminSettings }) {
 function SaveBar({
   state,
   pending,
+  label = "Kaydet",
+  pendingLabel = "Kaydediliyor…",
+  idle = "Değişiklikler bu sekme kaydedildiğinde anında uygulanır.",
 }: {
   state: SettingsState;
   pending: boolean;
+  label?: string;
+  pendingLabel?: string;
+  idle?: string;
 }) {
   return (
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
@@ -88,13 +107,11 @@ function SaveBar({
         ) : state.message ? (
           <span className="text-emerald-700">{state.message}</span>
         ) : (
-          <span className="text-neutral-400">
-            Değişiklikler bu sekme kaydedildiğinde anında uygulanır.
-          </span>
+          <span className="text-neutral-400">{idle}</span>
         )}
       </span>
       <PrimaryButton type="submit" disabled={pending}>
-        {pending ? "Kaydediliyor…" : "Kaydet"}
+        {pending ? pendingLabel : label}
       </PrimaryButton>
     </div>
   );
@@ -375,7 +392,7 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
       <Section title="Bildirimler">
         <Field
           label="Operasyon e-postası"
-          hint="Yeni sipariş ve düşük stok uyarıları buraya gönderilir (Resend/Twilio entegrasyonu sonrası aktifleşir)."
+          hint="Yeni sipariş ve düşük stok uyarıları buraya gönderilir. Gönderenin kim olduğu E-posta sekmesinde."
         >
           <TextInput
             name="notificationEmail"
@@ -387,5 +404,115 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
         <SaveBar state={state} pending={pending} />
       </Section>
     </form>
+  );
+}
+
+/**
+ * Where mail comes from, and proof that it leaves.
+ *
+ * Resend delivers only from a domain verified on its own account, and that
+ * verification lives in DNS, outside this codebase. So the address is a field
+ * rather than a constant, and the test button is how the operator finds out
+ * they typed one Resend will refuse - short of a customer telling them their
+ * password reset never arrived.
+ */
+function EmailTab({
+  settings,
+  identity,
+}: {
+  settings: AdminSettings;
+  identity: EmailIdentity;
+}) {
+  const [state, action, pending] = useActionState(
+    saveEmailSenderAction,
+    initial,
+  );
+  const [testState, testAction, testPending] = useActionState(
+    sendTestEmailAction,
+    initial,
+  );
+  return (
+    <div className="grid gap-4">
+      <form action={action}>
+        <Section title="E-posta gönderimi">
+          <p
+            className={`mb-4 rounded-md border px-3 py-2 text-xs ${
+              identity.hasProvider
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-amber-200 bg-amber-50 text-amber-800"
+            }`}
+          >
+            {identity.hasProvider ? (
+              <>
+                Sağlayıcı bağlı (Resend). Şu anki gönderen:{" "}
+                <strong>{identity.from}</strong>
+              </>
+            ) : (
+              <>
+                Sağlayıcı bağlı değil - <code>RESEND_API_KEY</code> tanımlı
+                olmadığı için e-postalar gönderilmiyor, yalnızca sunucu
+                günlüğüne yazılıyor.
+              </>
+            )}
+          </p>
+          <Field
+            label="Gönderen adı"
+            hint="Alıcının gelen kutusunda görünen isim."
+          >
+            <TextInput
+              name="emailFromName"
+              defaultValue={settings.emailFromName}
+              placeholder="L'Affogato"
+            />
+          </Field>
+          <Field
+            label="Gönderen adresi"
+            hint="Resend'de doğrulanmış bir alan adına ait olmalı. Boş bırakılırsa sunucudaki EMAIL_FROM kullanılır."
+          >
+            <TextInput
+              name="emailFromAddress"
+              type="email"
+              defaultValue={settings.emailFromAddress}
+              placeholder="siparis@laffogato.net"
+            />
+          </Field>
+          <Field
+            label="Yanıt adresi"
+            hint="Müşteri e-postayı yanıtladığında nereye düşsün. Boş bırakılırsa Genel sekmesindeki e-posta kullanılır."
+          >
+            <TextInput
+              name="emailReplyTo"
+              type="email"
+              defaultValue={settings.emailReplyTo}
+              placeholder={settings.email}
+            />
+          </Field>
+          <SaveBar state={state} pending={pending} />
+        </Section>
+      </form>
+
+      <form action={testAction}>
+        <Section title="Test e-postası">
+          <Field
+            label="Alıcı"
+            hint="Tek bir mesaj gönderilir; ulaşmazsa sağlayıcının verdiği hata burada görünür."
+          >
+            <TextInput
+              name="testEmailTo"
+              type="email"
+              defaultValue={settings.notificationEmail || settings.email}
+              placeholder="siz@ornek.com"
+            />
+          </Field>
+          <SaveBar
+            state={testState}
+            pending={testPending}
+            label="Test gönder"
+            pendingLabel="Gönderiliyor…"
+            idle="Sipariş, doğrulama ve şifre sıfırlama e-postalarının hepsi bu ayarları kullanır."
+          />
+        </Section>
+      </form>
+    </div>
   );
 }

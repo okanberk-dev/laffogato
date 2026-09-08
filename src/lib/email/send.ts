@@ -6,18 +6,95 @@ import { formatTRYMinor } from "@/lib/utils/commerce";
 /**
  * Minimal transactional e-mail sender.
  *
- * Provider-agnostic: if `RESEND_API_KEY` (+ optional `EMAIL_FROM`) is set the
- * message is delivered via Resend's HTTP API; otherwise the e-mail is logged
- * to the server console so the flow stays testable without a provider wired.
- * Swapping to SES/Postmark/etc. is a one-function change.
+ * Provider-agnostic: if `RESEND_API_KEY` is set the message is delivered via
+ * Resend's HTTP API; otherwise the e-mail is logged to the server console so
+ * the flow stays testable without a provider wired. Swapping to SES/Postmark
+ * is a one-function change.
  */
 
+/** Default sender, used until the operator sets one in the panel. */
+export const DEFAULT_FROM_NAME = "L'Affogato";
+export const DEFAULT_FROM_ADDRESS = "siparis@laffogato.net";
+
 /**
- * Sender identity. Resend only delivers from a domain verified on the account
- * (SPF + DKIM records on nextgenlab.com.tr), so keep `EMAIL_FROM` overridable:
- * until that DNS verification is done, point it at a verified sandbox address.
+ * A display name safe to put in a `From:` header.
+ *
+ * Resend takes JSON, but the string lands in an RFC 5322 header, so a CR or LF
+ * in it would let whatever produced the name inject headers of its own. The
+ * name is operator-typed rather than customer-typed, which lowers the odds but
+ * not the consequence.
  */
-const FROM = process.env.EMAIL_FROM || "L'Affogato <info@nextgenlab.com.tr>";
+function headerSafe(raw: string): string {
+  return raw.replace(/[\r\n]+/g, " ").trim();
+}
+
+/**
+ * `Name <address>`, quoting the name when it carries a character an unquoted
+ * atom may not (a comma in "L'Affogato, Tuzla" would otherwise read as a
+ * second recipient).
+ */
+export function formatFrom(name: string, address: string): string {
+  const addr = headerSafe(address);
+  const display = headerSafe(name);
+  if (!display) return addr;
+  return /^[A-Za-z0-9 !#$%&'*+/=?^_`{|}~.-]+$/.test(display)
+    ? `${display} <${addr}>`
+    : `"${display.replace(/["\\]/g, "\\$&")}" <${addr}>`;
+}
+
+export interface EmailIdentity {
+  /** Ready for the `from` field: `Name <address>`. */
+  from: string;
+  /** Empty when the operator has not set one. */
+  replyTo: string;
+  /** True once `RESEND_API_KEY` is present — i.e. mail actually leaves. */
+  hasProvider: boolean;
+}
+
+/**
+ * Who the mail comes from, in priority order:
+ *
+ *   1. Ayarlar → "E-posta gönderimi" — changeable from the panel, no deploy
+ *   2. `EMAIL_FROM` — the escape hatch for a deployment with no database
+ *   3. `L'Affogato <siparis@laffogato.net>`
+ *
+ * Resend only delivers from a domain verified on the account (SPF + DKIM),
+ * so the address has to follow whichever domain is verified at the time.
+ * Compiling it in would mean an app release every time that moves, which is
+ * exactly what the panel exists to avoid.
+ *
+ * The store is pulled in dynamically because it imports this module for order
+ * mail; a static import both ways is a cycle.
+ */
+export async function emailIdentity(): Promise<EmailIdentity> {
+  const hasProvider = Boolean(process.env.RESEND_API_KEY);
+  let fromName = "";
+  let fromAddress = "";
+  let replyTo = "";
+  try {
+    const { getPublicSettings } = await import("@/lib/admin/store");
+    const s = await getPublicSettings();
+    fromName = s.emailFromName?.trim() ?? "";
+    fromAddress = s.emailFromAddress?.trim() ?? "";
+    replyTo = s.emailReplyTo?.trim() || s.email?.trim() || "";
+  } catch {
+    // Database down: fall through to the env/default identity rather than
+    // dropping a password-reset mail over a settings read.
+  }
+  if (fromAddress) {
+    return {
+      from: formatFrom(fromName || DEFAULT_FROM_NAME, fromAddress),
+      replyTo,
+      hasProvider,
+    };
+  }
+  const env = process.env.EMAIL_FROM?.trim();
+  return {
+    from: env || formatFrom(DEFAULT_FROM_NAME, DEFAULT_FROM_ADDRESS),
+    replyTo,
+    hasProvider,
+  };
+}
 
 interface SendArgs {
   to: string;
@@ -32,18 +109,29 @@ interface SendArgs {
   unsubscribeUrl?: string;
 }
 
-async function send({
+export type SendResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * One delivery attempt, with the provider's own words on failure.
+ *
+ * `send()` throws them away and returns a boolean, which is right for the
+ * order path — a customer must not lose an order because mail bounced — but
+ * useless to an operator asking why nothing arrives. "The laffogato.net
+ * domain is not verified" is the answer, and it only exists here.
+ */
+async function deliver({
   to,
   subject,
   html,
   text,
   unsubscribeUrl,
-}: SendArgs): Promise<boolean> {
+}: SendArgs): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
+  const { from, replyTo } = await emailIdentity();
   if (!key) {
     // No provider configured — log so the link is recoverable in dev/staging.
     console.info(`[email] (no provider) → ${to} · ${subject}\n${text ?? html}`);
-    return false;
+    return { ok: false, error: "RESEND_API_KEY tanımlı değil." };
   }
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -53,11 +141,12 @@ async function send({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: FROM,
+        from,
         to,
         subject,
         html,
         ...(text ? { text } : {}),
+        ...(replyTo ? { reply_to: replyTo } : {}),
         // Ticari ileti için tek tıkla çıkış: hem mail istemcisinin kendi
         // "abonelikten çık" düğmesi bunu okur, hem de 6563'ün aradığı
         // "kolayca reddetme imkânı" bu başlıkla karşılanır.
@@ -72,16 +161,55 @@ async function send({
       }),
     });
     if (!res.ok) {
-      console.error(
-        `[email] Resend failed (${res.status}): ${await res.text()}`,
-      );
-      return false;
+      const body = await res.text();
+      console.error(`[email] Resend failed (${res.status}): ${body}`);
+      return { ok: false, error: resendMessage(res.status, body) };
     }
-    return true;
+    return { ok: true };
   } catch (err) {
     console.error("[email] send error", err);
-    return false;
+    return { ok: false, error: "Sağlayıcıya ulaşılamadı." };
   }
+}
+
+/** Resend answers with `{"message": "..."}`; the raw body is the fallback. */
+function resendMessage(status: number, body: string): string {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (parsed && typeof parsed === "object" && "message" in parsed) {
+      const m = (parsed as { message?: unknown }).message;
+      if (typeof m === "string" && m) return m;
+    }
+  } catch {
+    // Not JSON — fall through.
+  }
+  return `${status}: ${body.slice(0, 200)}`;
+}
+
+async function send(args: SendArgs): Promise<boolean> {
+  return (await deliver(args)).ok;
+}
+
+/**
+ * Ayarlar → "Test e-postası gönder". Proves the whole chain — key, verified
+ * domain, sender address — in one click, and says what broke when it breaks.
+ */
+export async function sendTestEmail(to: string): Promise<SendResult> {
+  const { from } = await emailIdentity();
+  return deliver({
+    to,
+    subject: "L'Affogato — e-posta ayarları testi",
+    text: `Bu bir testtir. Bu mesaj sana ulaştıysa L'Affogato'nun sipariş, doğrulama ve şifre sıfırlama e-postaları da ulaşacak.
+
+Gönderen: ${from}
+
+— L'Affogato`,
+    html: `<div style="font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
+  <p style="font-size:15px;line-height:1.6">Bu bir testtir. Bu mesaj sana ulaştıysa L'Affogato'nun sipariş, doğrulama ve şifre sıfırlama e-postaları da ulaşacak.</p>
+  <p style="font-size:13px;color:#5f594e">Gönderen: ${from.replace(/</g, "&lt;")}</p>
+  <p style="font-size:13px;color:#201c17;margin-top:24px">— L'Affogato · Coffee Italiano</p>
+</div>`,
+  });
 }
 
 export async function sendVerificationEmail(

@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
 import { getSettings } from "@/lib/admin/store";
+import { emailIdentity } from "@/lib/email/send";
 
 import { SettingsForm } from "./settings-form";
 
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminSettingsPage() {
   await requireRole("settings");
   const settings = await getSettings();
+  const identity = await emailIdentity();
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
@@ -18,7 +20,7 @@ export default async function AdminSettingsPage() {
         title="Ayarlar"
         description="Kafe iletişim bilgileri, çalışma saatleri ve mağaza durumu. Müşteri sitesindeki footer ve Visit sayfasını besler."
       />
-      <SettingsForm settings={settings} />
+      <SettingsForm settings={settings} identity={identity} />
     </main>
   );
 }

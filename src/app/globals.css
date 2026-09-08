@@ -5618,7 +5618,10 @@ select {
   color: var(--gold-deep);
 }
 
-.guide-head,
+.guide-head {
+  margin-bottom: clamp(32px, 5vw, 48px);
+}
+
 .guide-meta {
   display: flex;
   flex-wrap: wrap;

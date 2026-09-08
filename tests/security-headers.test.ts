@@ -66,4 +66,22 @@ describe("security headers", () => {
     expect(h["Referrer-Policy"]).toBeTruthy();
     expect(h["Permissions-Policy"]).toContain("geolocation=()");
   });
+
+  /**
+   * The till reads QR codes with getUserMedia. `camera=()` is an EMPTY
+   * allowlist - it denies the camera to every origin, this one included - so
+   * shipping it turns /admin/kasa into a scanner that never opens a camera,
+   * with no prompt and no error the cashier can act on. Both header sources
+   * are checked because Vercel serves vercel.json's copy at the edge and
+   * Next serves its own; one of them saying `camera=()` is enough to break it.
+   */
+  it("lets this origin - and only this origin - open the camera", async () => {
+    const policy = (await headerMap())["Permissions-Policy"];
+    expect(policy).toContain("camera=(self)");
+    expect(policy).not.toMatch(/camera=\(\)/);
+
+    const vercel = readFileSync("vercel.json", "utf8");
+    expect(vercel).toContain("camera=(self)");
+    expect(vercel).not.toMatch(/camera=\(\)/);
+  });
 });

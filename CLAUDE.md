@@ -335,7 +335,8 @@ durum bozulmaya uygundur.
   (`PAYNKOLAY_BASE_URL`) dışında gerçek kartla deneme operatörün işidir
 - **PayNkolay webhook'u ARAMA.** Sunucudan sunucuya bildirim yok
   (`docs/PAYNKOLAY.md` §4); ödeme kararı `PaymentList` sorgusundan verilir
-- **Mail/SMS bildirimleri** MVP dışı (sonra Resend/Twilio)
+- **Mail** Resend üzerinden çıkar (`docs/EMAIL-RESEND.md`); gönderen adresi
+  panelden değişir, anahtar hiçbir dosyada durmaz. **SMS** hâlâ MVP dışı
 - **Multi-language** MVP dışı (sadece TR)
 - Auth sağlayıcısını değiştirme işine kullanıcıdan onay almadan başlama
 - **`/api/mobile/v1` uçlarının sözleşmesini kırma** — alan silme/yeniden

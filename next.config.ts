@@ -57,8 +57,13 @@ const SECURITY_HEADERS = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "origin-when-cross-origin" },
   {
+    // `camera=(self)`, not `camera=()`: the till desk at /admin/kasa reads the
+    // member's QR through getUserMedia, and an empty allowlist denies the
+    // camera to every origin INCLUDING this one. The cashier's browser refuses
+    // the stream before any permission prompt appears, so nothing on screen
+    // says why. Same-origin only - no embedded frame inherits it.
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=()",
+    value: "camera=(self), microphone=(), geolocation=(), payment=()",
   },
 ];
 

@@ -11,6 +11,7 @@ import {
   type DayOfWeek,
   type WeeklyHours,
 } from "@/lib/admin/store";
+import { sendTestEmail } from "@/lib/email/send";
 
 export interface SettingsState {
   message?: string;
@@ -246,4 +247,63 @@ export async function saveNotificationsAction(
   await updateSettings({ notificationEmail: email });
   revalidateAll();
   return ok("notifications", "Bildirim ayarları kaydedildi.");
+}
+
+/**
+ * Who transactional mail comes from.
+ *
+ * Resend refuses any address whose domain is not verified on the account, and
+ * which domain that is changes outside this codebase — a DNS record added on
+ * a Tuesday. Compiling the address in would mean a deploy each time; this is
+ * the panel field that avoids one.
+ */
+export async function saveEmailSenderAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  await requireRole("settings");
+  const emailFromName = String(formData.get("emailFromName") ?? "").trim();
+  const emailFromAddress = String(formData.get("emailFromAddress") ?? "")
+    .trim()
+    .toLowerCase();
+  const emailReplyTo = String(formData.get("emailReplyTo") ?? "")
+    .trim()
+    .toLowerCase();
+  const looksLikeEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+  if (emailFromAddress && !looksLikeEmail(emailFromAddress)) {
+    return { error: "Gönderen adresi geçerli bir e-posta olmalı." };
+  }
+  if (emailReplyTo && !looksLikeEmail(emailReplyTo)) {
+    return { error: "Yanıt adresi geçerli bir e-posta olmalı." };
+  }
+  await updateSettings({ emailFromName, emailFromAddress, emailReplyTo });
+  revalidateAll();
+  return ok("email", "E-posta gönderim ayarları kaydedildi.", {
+    emailFromAddress,
+  });
+}
+
+/**
+ * Sends one mail and reports what the provider said.
+ *
+ * Every other path swallows a delivery failure on purpose — a customer must
+ * not lose an order because mail bounced — so without this the operator's
+ * only signal that nothing is arriving is that nothing is arriving.
+ */
+export async function sendTestEmailAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  await requireRole("settings");
+  const to = String(formData.get("testEmailTo") ?? "")
+    .trim()
+    .toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    return { error: "Test için geçerli bir e-posta gir." };
+  }
+  const result = await sendTestEmail(to);
+  if (!result.ok) return { error: `Gönderilemedi - ${result.error}` };
+  // The address is the point of the audit row: it is the one place a test
+  // mail's recipient is recorded, and it left the building.
+  return ok("email-test", `Test e-postası ${to} adresine gönderildi.`, { to });
 }

@@ -149,5 +149,6 @@ PayNkolay kullanılacaksa ayrıca `PAYNKOLAY_SX`, `PAYNKOLAY_SX_LIST`,
 | **[docs/DATABASE.md](docs/DATABASE.md)** | Kurulum, sağlayıcı geçmişi, taşıma yordamı, migration akışı, sürücü seçimi |
 | **[docs/SEO.md](docs/SEO.md)**           | Teknik + içerik SEO, anahtar kelime haritası, yeni sayfa kontrol listesi |
 | **[docs/AUDIT.md](docs/AUDIT.md)**       | Eylül 2026 denetimi: 71 bulgu, ne düzeltildi, ne açık kaldı              |
+| **[docs/EMAIL-RESEND.md](docs/EMAIL-RESEND.md)** | Hangi e-posta nereden çıkıyor: Resend, Vercel değişkenleri, Supabase SMTP |
 | **[docs/PROMPT.md](docs/PROMPT.md)**     | Ürün spec'i ve MVP kapsamı                                               |
 | **[AGENTS.md](AGENTS.md)**               | Bu Next.js sürümüne özgü uyarı                                           |
