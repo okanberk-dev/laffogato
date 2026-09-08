@@ -39,6 +39,7 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
   mobile_app_config: "Uygulama ayarları",
   admin_user: "Panel kullanıcısı",
   counter_token: "Kasa jetonu",
+  campaign_email: "Kampanya e-postası",
 };
 
 const ACTION_LABEL: Record<AuditAction, string> = {
@@ -55,6 +56,8 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   logout: "Çıkış",
   "2fa_enable": "2FA aktif",
   "2fa_disable": "2FA kapatma",
+  send: "Gönderim",
+  send_test: "Test gönderimi",
 };
 
 const ACTION_TONE: Record<AuditAction, string> = {
@@ -71,6 +74,8 @@ const ACTION_TONE: Record<AuditAction, string> = {
   logout: "bg-neutral-100 text-neutral-500",
   "2fa_enable": "bg-emerald-50 text-emerald-700",
   "2fa_disable": "bg-amber-50 text-amber-700",
+  send: "bg-purple-50 text-purple-700",
+  send_test: "bg-neutral-100 text-neutral-700",
 };
 
 interface PageProps {

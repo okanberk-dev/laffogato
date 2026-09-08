@@ -375,7 +375,7 @@ export function localBusinessLd(settings?: LdSettings): Json {
       {
         "@type": "PropertyValue",
         name: "Heritage",
-        value: "Bologna 1987",
+        value: "Bologna 1897",
       },
       {
         "@type": "PropertyValue",
@@ -718,7 +718,7 @@ function aboutPageLd(): Json {
     name: `${SITE.name} - Hikayemiz`,
     inLanguage: LANG_TAG,
     description:
-      "1987'den 2026'ya L'Affogato'nun İtalya'dan İstanbul'a uzanan üç kuşaklık hikayesi.",
+      "1897'den 2026'ya L'Affogato'nun İtalya'dan İstanbul'a uzanan dört kuşaklık hikayesi.",
     isPartOf: { "@id": `${SITE.url}/#website` },
     about: { "@id": `${SITE.url}/#organization` },
     mainEntity: {

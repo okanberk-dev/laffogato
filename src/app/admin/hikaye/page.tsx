@@ -76,7 +76,7 @@ export default async function AdminStoryPage() {
       <PageHeader
         eyebrow="İçerik · Hikaye"
         title="Hikaye zaman çizelgesi"
-        description="Story sayfasındaki 1987 → 2026 miras adımları. Sıraya göre dikey çizelgede görünür."
+        description="Story sayfasındaki 1897 → 2026 miras adımları. Sıraya göre dikey çizelgede görünür."
       />
 
       <Card className="mb-6">
@@ -84,10 +84,10 @@ export default async function AdminStoryPage() {
         <form action={createStoryAction} className="grid gap-3">
           <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
             <Field label="Yıl">
-              <TextInput name="year" placeholder="1987" />
+              <TextInput name="year" placeholder="1897" />
             </Field>
             <Field label="Başlık">
-              <TextInput name="title" placeholder="Bologna · 1987" />
+              <TextInput name="title" placeholder="Bologna · 1897" />
             </Field>
           </div>
           <Field label="Açıklama">

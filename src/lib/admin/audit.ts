@@ -37,7 +37,8 @@ export type AuditEntity =
   | "karaoke_reservation"
   | "mobile_app_config"
   | "admin_user"
-  | "counter_token";
+  | "counter_token"
+  | "campaign_email";
 
 export type AuditAction =
   | "create"
@@ -52,7 +53,11 @@ export type AuditAction =
   | "login_fail"
   | "logout"
   | "2fa_enable"
-  | "2fa_disable";
+  | "2fa_disable"
+  // Campaign e-mail: "send" queues the audience and starts the batches,
+  // "send_test" is the one real message to the operator's own inbox.
+  | "send"
+  | "send_test";
 
 export interface AdminAuditLog {
   id: string;

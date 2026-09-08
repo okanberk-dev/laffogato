@@ -80,9 +80,9 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
   story: {
     route: "story",
     path: ROUTE_PATHS.story,
-    title: "Hikayemiz - 1987 Italia, 2026 İstanbul",
+    title: "Hikayemiz - 1897 Italia, 2026 İstanbul",
     description:
-      "L'Affogato'nun hikayesi: 1987 Bologna'da Mancuso ailesinin açtığı ilk bardan 2026 İstanbul Tuzla'daki Rum köşküne uzanan üç kuşaklık gelenek.",
+      "L'Affogato'nun hikayesi: 1897 Bologna'da Mancuso ailesinin açtığı ilk bardan 2026 İstanbul Tuzla'daki Rum köşküne uzanan dört kuşaklık gelenek.",
     keywords: [
       "L'Affogato hikayesi",
       "İtalyan kafe markası",

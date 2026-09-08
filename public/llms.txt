@@ -1,6 +1,6 @@
 # L'Affogato — Caffè · Gelato · Dolci
 
-> İtalyan kahve ve gelato barı. 1987'de Bologna'da Giancarlo Mancuso tarafından kuruldu; 2026'da torunu Eda Mancuso ilk yurt dışı şubeyi İstanbul Tuzla'da açtı. İmza ritüel: yenilebilir waffle kup içinde Sirena espresso ve fior di latte gelato — "Drink it. Eat the cup." İtalya dışındaki tek L'Affogato şubesi.
+> İtalyan kahve ve gelato barı. 1897'de Bologna'da Giancarlo Mancuso tarafından kuruldu; 2026'da dördüncü kuşaktan Eda Mancuso ilk yurt dışı şubeyi İstanbul Tuzla'da açtı. İmza ritüel: yenilebilir waffle kup içinde Sirena espresso ve fior di latte gelato — "Drink it. Eat the cup." İtalya dışındaki tek L'Affogato şubesi.
 
 ## Konum ve İletişim
 
@@ -37,7 +37,7 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 - [Ana Sayfa](/): Genel tanıtım, Strawberry Aşkı matcha üçlüsü, hikayemizin özeti
 - [Menü](/menu): Matcha Bar, Espresso Based, Ice Coffee, Cold Drinks, Hot Drinks, Frappe, Smoothie, Frozen, Ice Tea, Tatlılar, Atıştırmalıklar, Extras kategorileri
 - [Mağaza](/magaza): Çekirdek kahve, edible cup, hediye seti, ekipman, giyim
-- [Hikaye](/hikayemiz): 1987 Bologna'dan 2026 İstanbul'a markanın hikayesi
+- [Hikaye](/hikayemiz): 1897 Bologna'dan 2026 İstanbul'a markanın hikayesi
 - [Ziyaret](/ziyaret): Tuzla lokasyonu, ulaşım, gömülü harita (rezervasyon telefonla)
 
 ## Menü Özeti
@@ -84,7 +84,7 @@ Basılı menü 12 kategori ve 82 kalemden oluşur. İçeceklerin çoğu M ve L b
 
 ## Marka Geçmişi
 
-- **1987** — Bologna, Via Galliera 21: Giancarlo Mancuso ilk L'Affogato barını açar
+- **1897** — Bologna, Via Galliera 21: Giancarlo Mancuso ilk L'Affogato barını açar
 - **1994** — Yenilebilir waffle kup glaze kaplaması patentlenir
 - **2008** — Sicilya Bronte pistacchio çiftlikleriyle doğrudan tedarik anlaşması
 - **2026** — Eda Mancuso İstanbul Tuzla'da ilk yurt dışı şubeyi açar
@@ -100,13 +100,13 @@ Basılı menü 12 kategori ve 82 kalemden oluşur. İçeceklerin çoğu M ve L b
 ## Yapısal Veri (JSON-LD)
 
 Ana sayfada tek `<script type="application/ld+json">` içinde aşağıdaki schema.org tipleri yayınlanır:
-- Organization (Mancuso ailesi, Bologna 1987)
+- Organization (Mancuso ailesi, Bologna 1897)
 - CafeOrCoffeeShop + Restaurant (LocalBusiness, tarihi Rum köşkü, koordinat, saatler)
 - WebSite (yayıncı, telif; site içi arama ve rezervasyon aksiyonu yok)
 - Menu + MenuSection + MenuItem (canlı; 12 kategori, 82 kalem)
 - Product × 11 (mağaza SKU'ları + Offer + shipping + return policy)
 - FAQPage × 12 soru
-- AboutPage + Event timeline (1987/1994/2008/2026)
+- AboutPage + Event timeline (1897/1994/2008/2026)
 - HowTo (L'Affogato hazırlama, 4 adım)
 - SpeakableSpecification (sesli asistanlar için)
 - BreadcrumbList (6 seviye)

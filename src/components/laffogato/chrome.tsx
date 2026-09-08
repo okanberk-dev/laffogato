@@ -449,7 +449,7 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
         </div>
         <div className="mobile-sheet-foot">
           <span>Tuzla · İstanbul</span>
-          <span>Bologna · 1987</span>
+          <span>Bologna · 1897</span>
         </div>
       </div>
 
@@ -595,7 +595,7 @@ function DropdownPanel({
         <div className="nav-dropdown-foot">
           <span className="nav-dropdown-foot-mark">L'A</span>
           <span className="nav-dropdown-foot-line">
-            Bologna 1987 -{" "}
+            Bologna 1897 -{" "}
             {parentRoute === "menu"
               ? "tre rituali, un menù"
               : "dalla bottega alla casa"}
@@ -663,9 +663,9 @@ export function Footer({ navigate, settings }: FooterProps) {
           <div className="footer-mark">
             <span className="brand-mark" role="img" aria-label="L'Affogato" />
           </div>
-          <div className="footer-mark-script">caffè italiano · est. 1987</div>
+          <div className="footer-mark-script">caffè italiano · est. 1897</div>
           <p>
-            Bologna 1987’den İstanbul Tuzla’ya - 200 yıllık, restore bir köşkte.
+            Bologna 1897’den İstanbul Tuzla’ya - 200 yıllık, restore bir köşkte.
           </p>
           <div className="footer-social">
             <a

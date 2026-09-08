@@ -12738,7 +12738,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "3. İşletme Adresi, Kafe Bilgisi ve Çalışma Saatleri",
         paragraphs: [
-          "{{BRAND}}, İstanbul Tuzla'da 200 yıllık restore edilmiş bir köşk içinde faaliyet gösteren bir kahve ve gelato bar'dır. Marka hikâyesi Bologna 1987 anlatısına dayanmakla birlikte, işletmenin tamamı Türkiye Cumhuriyeti mevzuatına tabi olarak {{LEGAL_NAME}} tarafından yürütülmektedir. Aynı adres hem fiziki işletme adresi hem de Şirketin kayıtlı iş yeri ve tebligat adresidir.",
+          "{{BRAND}}, İstanbul Tuzla'da 200 yıllık restore edilmiş bir köşk içinde faaliyet gösteren bir kahve ve gelato bar'dır. Marka hikâyesi Bologna 1897 anlatısına dayanmakla birlikte, işletmenin tamamı Türkiye Cumhuriyeti mevzuatına tabi olarak {{LEGAL_NAME}} tarafından yürütülmektedir. Aynı adres hem fiziki işletme adresi hem de Şirketin kayıtlı iş yeri ve tebligat adresidir.",
           "Online mağaza (bottega) günün her saati sipariş alır; ancak sipariş hazırlık, kargo teslimi ve müşteri hizmetleri süreçleri aşağıda belirtilen çalışma saatleri içinde yürütülür. Resmî tatiller, dinî bayramlar ve önceden sitede duyurulan bakım/envanter günlerinde kafe hizmeti ve sipariş hazırlığı durabilir.",
           "Aşağıdaki saatler bilgilendirme amaçlıdır. Mevsimsel değişiklik, özel etkinlik veya mücbir sebep hâlinde saatler değişebilir; her zaman sitenin Ziyaret sayfasında ve site alt bilgisinde yayımlanan güncel saatler geçerlidir. Yola çıkmadan önce güncel saatleri kontrol etmenizi veya {{PHONE}} numarasından teyit almanızı öneririz.",
         ],

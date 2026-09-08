@@ -9,8 +9,72 @@ import { deletePostAction } from "./actions";
 export const metadata = { title: "Admin · Uygulama Gönderileri" };
 export const dynamic = "force-dynamic";
 
-export default async function AdminAppPostsPage() {
+interface PageProps {
+  /** Written by the save actions' redirect: the automatic e-mail's outcome. */
+  searchParams: Promise<{ eposta?: string; adet?: string; kampanya?: string }>;
+}
+
+/**
+ * The one thing a void form action cannot say is what happened to its side
+ * effect, so the save actions say it here, in the URL they redirect to. The
+ * post itself is saved in every case; this is only about the mail.
+ */
+function MailOutcomeBanner({
+  eposta,
+  adet,
+  kampanya,
+}: {
+  eposta?: string;
+  adet?: string;
+  kampanya?: string;
+}) {
+  if (eposta === "kuyrukta") {
+    const n = parseInt(adet ?? "", 10);
+    return (
+      <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        Gönderi kaydedildi.{" "}
+        {Number.isFinite(n) && n > 0
+          ? `${n} üyeye kampanya e-postası kuyruğa alındı; gönderim arka planda sürüyor.`
+          : "Pazarlama izni olan üye bulunamadı; e-posta çıkmadı."}{" "}
+        <Link href="/admin/bulten/kampanya" className="underline">
+          Kampanya e-postası
+        </Link>
+      </div>
+    );
+  }
+  if (eposta === "hata") {
+    return (
+      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        Gönderi kaydedildi ama kampanya e-postası kuyruğa alınamadı.{" "}
+        {kampanya ? (
+          <>
+            Taslak oluşturuldu; eksik alanı{" "}
+            <Link
+              href={`/admin/bulten/kampanya/${encodeURIComponent(kampanya)}`}
+              className="underline"
+            >
+              kampanya sayfasında
+            </Link>{" "}
+            tamamlayıp oradan gönderin.
+          </>
+        ) : (
+          <>
+            Kampanya oluşturulamadı;{" "}
+            <Link href="/admin/bulten/kampanya/yeni" className="underline">
+              Kampanya e-postası
+            </Link>{" "}
+            sayfasından elle açabilirsiniz.
+          </>
+        )}
+      </div>
+    );
+  }
+  return null;
+}
+
+export default async function AdminAppPostsPage({ searchParams }: PageProps) {
   await requireRole("mobileApp");
+  const sp = await searchParams;
   const rows = await listAppPosts();
 
   return (
@@ -27,6 +91,12 @@ export default async function AdminAppPostsPage() {
             + Yeni gönderi
           </Link>
         }
+      />
+
+      <MailOutcomeBanner
+        eposta={sp.eposta}
+        adet={sp.adet}
+        kampanya={sp.kampanya}
       />
 
       {rows.length === 0 ? (
@@ -54,6 +124,7 @@ export default async function AdminAppPostsPage() {
                     {p.startsAt || p.endsAt
                       ? ` · ${p.startsAt || "…"} → ${p.endsAt || "…"}`
                       : ""}
+                    {p.emailCampaignId ? " · e-posta gönderildi" : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

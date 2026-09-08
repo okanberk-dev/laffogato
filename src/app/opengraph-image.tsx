@@ -64,7 +64,7 @@ export default async function OgImage() {
             display: "flex",
           }}
         />
-        Bologna · 1987 → İstanbul · 2026
+        Bologna · 1897 → İstanbul · 2026
       </div>
 
       <div

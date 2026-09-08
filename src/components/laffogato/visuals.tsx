@@ -238,7 +238,7 @@ export function CupEmblem({
         fill={color}
         opacity="0.55"
       >
-        DAL · 1987
+        DAL · 1897
       </text>
     </svg>
   );
@@ -819,7 +819,7 @@ export function CoffeeBag({
         fontSize="14"
         fill={accent}
       >
-        since 1987
+        since 1897
       </text>
     </svg>
   );

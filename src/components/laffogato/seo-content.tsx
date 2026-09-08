@@ -223,7 +223,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
           <strong style={{ color: "rgba(20, 61, 43, 0.85)" }}>
             L&rsquo;Affogato Italia · sede principale
           </strong>{" "}
-          - {SITE.parent.address}. İstanbul Tuzla şubesi, 1987&rsquo;de
+          - {SITE.parent.address}. İstanbul Tuzla şubesi, 1897&rsquo;de
           Bologna&rsquo;da kurulan markanın İtalya dışındaki ilk şubesidir. Tüm
           kahve, Bologna&rsquo;da Mancuso ailesi tarafından haftalık olarak
           kavrulur; matcha Japonya Uji bölgesinden, pistacchio Sicilya

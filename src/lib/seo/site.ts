@@ -60,10 +60,10 @@ export const SITE = {
   descriptor: "Coffee Italiano",
   tagline: "Drink it. Eat the cup.",
   shortDescription:
-    "Bologna 1987'den İstanbul'a. Yenilebilir waffle kupada espresso ve gelato. Tuzla'da 200 yıllık, Rum'lardan kalma restore bir köşkte.",
+    "Bologna 1897'den İstanbul'a. Yenilebilir waffle kupada espresso ve gelato. Tuzla'da 200 yıllık, Rum'lardan kalma restore bir köşkte.",
   longDescription:
-    "L'Affogato, 1987'de Bologna'da Giancarlo Mancuso tarafından kurulan ve 2026'da İstanbul Tuzla'da - 200 yıllık, Rum'lardan kalma restore edilmiş bir köşkte - ilk yurt dışı şubesini açan İtalyan kahve ve gelato barıdır. İmza ritüelimiz: yenilebilir waffle kupa içinde Sirena espresso ve fior di latte gelato. Drink it. Eat the cup.",
-  founded: "1987",
+    "L'Affogato, 1897'de Bologna'da Giancarlo Mancuso tarafından kurulan ve 2026'da İstanbul Tuzla'da - 200 yıllık, Rum'lardan kalma restore edilmiş bir köşkte - ilk yurt dışı şubesini açan İtalyan kahve ve gelato barıdır. İmza ritüelimiz: yenilebilir waffle kupa içinde Sirena espresso ve fior di latte gelato. Drink it. Eat the cup.",
+  founded: "1897",
   openedTurkey: "2026",
   locale: "tr_TR",
   language: "tr",

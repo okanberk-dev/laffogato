@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { useState } from "react";
+
 import {
   Card,
   Checkbox,
@@ -27,6 +30,12 @@ export interface AppPostDefaults {
   isActive?: boolean;
   startsAt?: string;
   endsAt?: string;
+  /** Set once the post's campaign e-mail exists; the checkbox then stays off. */
+  emailCampaignId?: string;
+}
+
+function isAppPostKind(value: string): value is AppPostKind {
+  return (APP_POST_KINDS as string[]).includes(value);
 }
 
 /**
@@ -43,6 +52,12 @@ export interface AppPostDefaults {
  *    reaching a phone — this is the one field where panel text becomes
  *    somewhere a customer's browser goes.
  *
+ * The "e-posta" box is the automatic campaign mail (docs/EMAIL-RESEND.md §7):
+ * on by default for a campaign, off for a collaboration or an event unless
+ * the operator turns it on, and locked off once the post has had its mail —
+ * the mark on the post is what actually prevents a second send; the box just
+ * says so.
+ *
  * Constants come from app-content-schema, never from the store: importing them
  * from the store would pull `server-only` and `pg` into the browser bundle and
  * fail the build.
@@ -56,12 +71,26 @@ export function AppPostForm({
   defaults?: AppPostDefaults;
   submitLabel: string;
 }) {
+  const alreadyMailed = Boolean(defaults?.emailCampaignId);
+  const [kind, setKind] = useState<AppPostKind>(defaults?.kind ?? "campaign");
+  // null = the operator has not touched the box; it then follows the kind.
+  const [emailChoice, setEmailChoice] = useState<boolean | null>(null);
+  const emailMembers = alreadyMailed
+    ? false
+    : (emailChoice ?? kind === "campaign");
+
   return (
     <form action={action} className="grid gap-4">
       <Card>
         <div className="grid gap-4">
           <Field label="Tür" hint="Kartın üstünde küçük etiket olarak görünür.">
-            <Select name="kind" defaultValue={defaults?.kind ?? "campaign"}>
+            <Select
+              name="kind"
+              value={kind}
+              onChange={(e) => {
+                if (isAppPostKind(e.target.value)) setKind(e.target.value);
+              }}
+            >
               {APP_POST_KINDS.map((k) => (
                 <option key={k} value={k}>
                   {APP_POST_KIND_LABELS[k]}
@@ -177,6 +206,37 @@ export function AppPostForm({
             />
           </Field>
         </div>
+      </Card>
+
+      <Card>
+        <Field
+          label="Üyelere e-posta"
+          hint={
+            alreadyMailed
+              ? undefined
+              : "Kaydedildiğinde gönderi yayındaysa ve yayın penceresi açıksa, pazarlama izni olan üyelere bir kez “Duyuru” şablonuyla gider; sonraki kayıtlar yeniden göndermez. İleri tarihli gönderiler yayına girdiğinde otomatik mail çıkmaz — yayına girince “Kampanya e-postası” sayfasından gönderin."
+          }
+        >
+          <Checkbox
+            name="emailMembers"
+            label="Yayınlanınca pazarlama izni olan üyelere e-posta gönder"
+            checked={emailMembers}
+            disabled={alreadyMailed}
+            onChange={(e) => setEmailChoice(e.target.checked)}
+          />
+        </Field>
+        {alreadyMailed && (
+          <p className="text-xs text-[var(--admin-text-mute)]">
+            Bu gönderi için kampanya e-postası zaten oluşturuldu; sonraki
+            kayıtlar yeniden göndermez.{" "}
+            <Link
+              href={`/admin/bulten/kampanya/${defaults?.emailCampaignId}`}
+              className="underline"
+            >
+              Kampanyayı aç
+            </Link>
+          </p>
+        )}
       </Card>
 
       <div>

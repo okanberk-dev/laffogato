@@ -120,6 +120,13 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
       { href: "/admin/kasa", label: "Kasa · damga", section: "till" },
       { href: "/admin/musteriler", label: "Müşteriler", section: "customers" },
       { href: "/admin/bulten", label: "Bülten", section: "newsletter" },
+      // Same section as Bülten: composing a commercial mail is the same trust
+      // as reading who consented to receive one.
+      {
+        href: "/admin/bulten/kampanya",
+        label: "Kampanya e-postası",
+        section: "newsletter",
+      },
       { href: "/admin/promosyon", label: "Promosyon", section: "promos" },
       { href: "/admin/stok-hareketleri", label: "Stok", section: "stock" },
       { href: "/admin/raporlar", label: "Raporlar", section: "reports" },

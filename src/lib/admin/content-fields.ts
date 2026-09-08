@@ -18,7 +18,7 @@ export const CONTENT_FIELDS: ContentField[] = [
     group: "Ana sayfa",
     label: "Hero üst etiket",
     kind: "text",
-    default: "Bologna · 1987 → İstanbul · 2026",
+    default: "Bologna · 1897 → İstanbul · 2026",
   },
   {
     key: "home.hero.lede",
@@ -60,7 +60,7 @@ export const CONTENT_FIELDS: ContentField[] = [
     label: "Kurucu biyografisi",
     kind: "textarea",
     default:
-      "İtalyan baba, İstanbullu anne. 1987'de büyükbabasının açtığı L'Affogato barını üçüncü kuşak olarak devraldı. 2026'da markayı doğduğu şehre, İstanbul'a; Tuzla'da 200 yıllık, Rum'lardan kalma restore bir köşke getirdi.",
+      "İtalyan baba, İstanbullu anne. 1897'de büyük dedesinin açtığı L'Affogato barını dördüncü kuşak olarak devraldı. 2026'da markayı doğduğu şehre, İstanbul'a; Tuzla'da 200 yıllık, Rum'lardan kalma restore bir köşke getirdi.",
   },
 ];
 

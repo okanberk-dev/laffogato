@@ -1,7 +1,7 @@
 // L'Affogato — content data
 
 export const BRAND = {
-  heritage: "Italia, 1987",
+  heritage: "Italia, 1897",
   imported: "Italia → İstanbul, 2026",
   tag: "Drink it. Eat the cup.",
   italian: "Caffè · Gelato · Dolci",
@@ -941,12 +941,12 @@ export const STORY = {
   founder: {
     name: "Eda Mancuso",
     role: "Founder & Roaster",
-    bio: "İtalyan baba, İstanbullu anne. 1987'de büyükbabasının açtığı L'Affogato barını üçüncü kuşak olarak devraldı. 2026'da markayı doğduğu şehre, İstanbul'a getirdi.",
+    bio: "İtalyan baba, İstanbullu anne. 1897'de büyük dedesinin açtığı L'Affogato barını dördüncü kuşak olarak devraldı. 2026'da markayı doğduğu şehre, İstanbul'a getirdi.",
   },
   heritage: [
     {
-      y: "1987",
-      t: "Bologna · 1987",
+      y: "1897",
+      t: "Bologna · 1897",
       d: "Giancarlo Mancuso ilk L'Affogato barını açar. Tek bar, tek ritüel, edible kup hâlâ ahşap kaşıkla servis ediliyor.",
     },
     {

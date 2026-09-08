@@ -438,7 +438,7 @@ export function PageHome({
             </div>
           </div>
           <div className="reveal r1">
-            <div className="eyebrow">İmza ürün · 1987’den beri</div>
+            <div className="eyebrow">İmza ürün · 1897’den beri</div>
             <h2 className="h2" style={{ marginTop: 14 }}>
               İçilir, sonra <span className="script">kupası yenir.</span>
             </h2>
@@ -1525,11 +1525,11 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
   return (
     <div className="page" data-screen-label="04 Story">
       <PageHero
-        eyebrow="Hikaye · 1987 → 2026"
-        title={["Bologna 1987’den", "Tuzla’ya."]}
+        eyebrow="Hikaye · 1897 → 2026"
+        title={["Bologna 1897’den", "Tuzla’ya."]}
         lede={c(
           "story.hero.lede",
-          "İlk yurt dışı şubemiz - 200 yıllık, Rum’lardan kalma restore bir köşkte. İtalyan baba, İstanbullu anne: Eda Mancuso, büyükbabasının 1987’de açtığı L’Affogato barını üçüncü kuşak olarak devraldı ve 2026’da markayı doğduğu şehre getirdi.",
+          "İlk yurt dışı şubemiz - 200 yıllık, Rum’lardan kalma restore bir köşkte. İtalyan baba, İstanbullu anne: Eda Mancuso, büyük dedesinin 1897’de açtığı L’Affogato barını dördüncü kuşak olarak devraldı ve 2026’da markayı doğduğu şehre getirdi.",
         )}
       />
       <section className="story-hero">
@@ -1590,7 +1590,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
             }}
             data-row="story-stats"
           >
-            <Stat n="1987" l="Anno fondazione" d="Bologna · 1987" />
+            <Stat n="1897" l="Anno fondazione" d="Bologna · 1897" />
             <Stat n="1994" l="Brevetto edible cup" d="Mancuso ailesi patenti" />
             <Stat
               n="2026"
@@ -1916,7 +1916,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
               color: "var(--ink-mute)",
             }}
           >
-            Giancarlo Mancuso · 1987
+            Giancarlo Mancuso · 1897
           </div>
         </div>
       </section>

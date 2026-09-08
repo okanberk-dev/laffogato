@@ -4333,7 +4333,7 @@ const SEED_APP_SLIDES: AdminAppSlide[] = [
     id: "aslide-002",
     eyebrow: "TUZLA",
     title: "200 yıllık bir köşkte",
-    body: "1987 Bologna'dan İstanbul'a. İtalya dışındaki tek L'Affogato.",
+    body: "1897 Bologna'dan İstanbul'a. İtalya dışındaki tek L'Affogato.",
     ctaLabel: "Ziyaret",
     ctaRoute: "/ziyaret",
     tone: "paper",
@@ -4582,6 +4582,14 @@ export interface AdminAppPost {
   endsAt: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Id of the campaign e-mail opened for this post, or "" — the column's
+   * default (migration 20260908150000). Set once by `setAppPostEmailCampaign`
+   * and never cleared, so no later save can mail the members twice. Optional
+   * in the type only so a post assembled in memory need not carry it; a row
+   * read from the table always does.
+   */
+  emailCampaignId?: string;
 }
 
 export interface AppPostInput {
@@ -4602,7 +4610,7 @@ const SEED_APP_POSTS: AdminAppPost[] = [
     id: "apost-001",
     kind: "campaign",
     title: "Sabah ritüeli",
-    body: "Hafta içi 09:00-11:00 arası espresso bazlı içeceklerde ikinci kahve yarı fiyatına.",
+    body: "Hafta içi 09:00-11:00 arası tüm içeceklerde ikincisi yarı fiyatına.",
     image: "",
     linkUrl: "",
     linkLabel: "",
@@ -4732,6 +4740,29 @@ export async function updateAppPost(
     "updateAppPost",
   );
   return getAppPost(id);
+}
+
+/**
+ * Marks the post as having its campaign e-mail (`campaign_emails.id`).
+ *
+ * The mark is the post hook's idempotency: it is written BEFORE the campaign
+ * is queued and never cleared by a later save, so editing a post can never
+ * mail the members a second time (docs/EMAIL-RESEND.md §7). Conditional on
+ * the column still being empty; false means the post is gone or another save
+ * marked it first — the caller must then not send.
+ */
+export async function setAppPostEmailCampaign(
+  id: string,
+  campaignId: string,
+): Promise<boolean> {
+  const sb = getDb();
+  const res = await sb
+    .from(TABLES.appPosts)
+    .update({ emailCampaignId: campaignId })
+    .eq("id", id)
+    .eq("emailCampaignId", "")
+    .select("id");
+  return rows<{ id: string }>(res, "setAppPostEmailCampaign").length > 0;
 }
 
 export async function deleteAppPost(id: string): Promise<void> {

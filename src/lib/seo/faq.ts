@@ -50,7 +50,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "L'Affogato hangi yıldan beri var, geçmişi nedir?",
-    a: "L'Affogato 1987'de Giancarlo Mancuso tarafından Bologna Via Galliera 21'de açıldı. 1994'te yenilebilir kup patentlendi, 2008'de Sicilya Bronte pistacchio çiftlikleriyle doğrudan tedarik anlaşması yapıldı. 2026'da torunu Eda Mancuso ilk yurt dışı şubeyi İstanbul Tuzla'da açtı. Bugün İtalya dışındaki tek L'Affogato budur.",
+    a: "L'Affogato 1897'de Giancarlo Mancuso tarafından Bologna Via Galliera 21'de açıldı. 1994'te yenilebilir kup patentlendi, 2008'de Sicilya Bronte pistacchio çiftlikleriyle doğrudan tedarik anlaşması yapıldı. 2026'da dördüncü kuşaktan Eda Mancuso ilk yurt dışı şubeyi İstanbul Tuzla'da açtı. Bugün İtalya dışındaki tek L'Affogato budur.",
   },
   {
     q: "Çocuk ve evcil hayvan dostu mu?",
