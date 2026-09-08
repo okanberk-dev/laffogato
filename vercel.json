@@ -3,6 +3,7 @@
   "regions": ["fra1"],
   "buildCommand": "next build",
   "framework": "nextjs",
+  "crons": [{ "path": "/api/cron/campaign-emails", "schedule": "0 6 * * *" }],
   "git": {
     "deploymentEnabled": {
       "main": true

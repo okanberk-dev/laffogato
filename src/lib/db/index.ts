@@ -213,4 +213,6 @@ export const TABLES = {
   karaokeReservations: "karaoke_reservations",
   adminUsers: "admin_users",
   counterTokens: "counter_tokens",
+  campaignEmails: "campaign_emails",
+  campaignEmailSends: "campaign_email_sends",
 } as const;

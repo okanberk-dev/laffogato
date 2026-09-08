@@ -16,13 +16,72 @@ Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla / İstanbul
 Her gün 09:00 – 01:00 · +90 536 429 09 19
 laffogato.net · @laffogatto`;
 
-/** 6563: the withdrawal has to be as easy as the consent was to give. */
+/**
+ * 6563: the withdrawal has to be as easy as the consent was to give. The two
+ * legal links mirror the HTML footer, spelled out because a text client has
+ * nothing to hide a URL behind.
+ */
 const COMMERCIAL_FOOTER = `Bu iletiyi, kampanya ve etkinlik duyurularını e-posta ile almaya onay
 verdiğiniz için alıyorsunuz. Onayınızı istediğiniz zaman geri çekebilirsiniz:
 [ABONELIK_CIKIS_URL]
 
+Ticari ileti aydınlatması: https://laffogato.net/hukuk/ticari-elektronik-ileti
+KVKK aydınlatma metni: https://laffogato.net/hukuk/kvkk-aydinlatma-metni
+
 NEXTGEN YAZILIM EĞİTİM İNŞAAT SANAYİ VE TİCARET LİMİTED ŞİRKETİ
 Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla/İstanbul, Türkiye`;
+
+// ── Kampanya ailesi ────────────────────────────────────────────────────────
+//
+// The seven `kampanya-*` layouts open and close the same way; what differs is
+// the block between the highlight and the code box. The shared halves live
+// here once. Every optional block carries its own line breaks INSIDE the
+// `<!--IF:-->` markers, so a dropped block leaves exactly one blank line
+// behind rather than three — `fillText` resolves the markers before it fills.
+
+/** Eyebrow, title, subtitle, and the hero image when there is one. */
+const CAMPAIGN_HEAD = `[KAMPANYA_EYEBROW]
+
+[KAMPANYA_BASLIK]
+[KAMPANYA_ALT]
+<!--IF:GORSEL-->
+Görsel: [KAMPANYA_GORSEL_URL]
+<!--/IF:GORSEL-->`;
+
+/** Greeting + body, then the marker-highlighted line when there is one. */
+const CAMPAIGN_BODY = `
+Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->, [KAMPANYA_METIN]
+<!--IF:VURGU-->
+[KAMPANYA_VURGU]
+<!--/IF:VURGU-->`;
+
+/** The gold-hairline code box. */
+const CAMPAIGN_CODE = `<!--IF:KOD-->
+Kod: [KUPON_KODU]
+Son kullanma: [SON_KULLANIM]
+<!--/IF:KOD-->`;
+
+/** CTA, date line, footnote, the members-only note, signature, way out. */
+const CAMPAIGN_TAIL = `
+[KAMPANYA_BUTON]: [KAMPANYA_URL]
+<!--IF:TARIH-->
+[KAMPANYA_TARIH]
+<!--/IF:TARIH--><!--IF:DIPNOT-->
+[KAMPANYA_DIPNOT]
+<!--/IF:DIPNOT-->
+Yalnız L'Affogato üyelerine özel.
+
+${SIGNATURE}
+
+${COMMERCIAL_FOOTER}`;
+
+/** The three-step "nasıl yararlanırım" list (ikram, yeni ürün). */
+const CAMPAIGN_STEPS = `
+Nasıl yararlanırım
+1. [ADIM_1_BASLIK] — [ADIM_1_METIN]
+2. [ADIM_2_BASLIK] — [ADIM_2_METIN]
+3. [ADIM_3_BASLIK] — [ADIM_3_METIN]
+`;
 
 export const EMAIL_TEXT = {
   "eposta-dogrulama": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
@@ -85,7 +144,8 @@ kazandınız.
 
 Sipariş durumu: [SIPARIS_URL]
 
-Sipariş sırasında onayladığınız belgeler:
+Sipariş sırasında onayladığınız belgeler — kalıcı veri saklayıcısı olarak
+saklamanız için:
 [BELGELER]
 
 ${SIGNATURE}`,
@@ -148,6 +208,7 @@ Kartınız doldu — [DAMGA_HEDEFI] damga tamamlandı ve bir içecek bizden.
 Ödül: [ODUL_BASLIGI]
 Kupon kodu: [KUPON_KODU]
 Son kullanma: [SON_KULLANIM]
+Yalnız L'Affogato üyelerine özel · Hesap başına bir kez
 
 Kuponunuz hesabınızda hazır: [HESAP_URL]
 
@@ -181,6 +242,39 @@ Menüye göz atın: [MENU_URL]
 ${SIGNATURE}
 
 ${COMMERCIAL_FOOTER}`,
+
+  // ── kampanya-* ──────────────────────────────────────────────────────────
+
+  /** General announcement — also what an app post turns into. */
+  "kampanya-duyuru": `${CAMPAIGN_HEAD}${CAMPAIGN_BODY}${CAMPAIGN_CODE}${CAMPAIGN_TAIL}`,
+
+  /** Bonus stamps; the stamp-card row is imagery only, nothing to say here. */
+  "kampanya-bonus-damga": `${CAMPAIGN_HEAD}${CAMPAIGN_BODY}${CAMPAIGN_CODE}${CAMPAIGN_TAIL}`,
+
+  /** A time band: hour first, as the tiles read. */
+  "kampanya-happy-hour": `${CAMPAIGN_HEAD}${CAMPAIGN_BODY}
+Saat: [ETKINLIK_SAAT]
+Tarih: [ETKINLIK_TARIH]
+Yer: [ETKINLIK_YER]
+${CAMPAIGN_CODE}${CAMPAIGN_TAIL}`,
+
+  /** Three steps to the treat, then the code. */
+  "kampanya-ikram": `${CAMPAIGN_HEAD}${CAMPAIGN_BODY}${CAMPAIGN_STEPS}${CAMPAIGN_CODE}${CAMPAIGN_TAIL}`,
+
+  /** An event: place first; no code box on this layout. */
+  "kampanya-etkinlik": `${CAMPAIGN_HEAD}${CAMPAIGN_BODY}
+Yer: [ETKINLIK_YER]
+Tarih: [ETKINLIK_TARIH]
+Saat: [ETKINLIK_SAAT]
+${CAMPAIGN_TAIL}`,
+
+  /** Early access to a new product: the steps, no code box. */
+  "kampanya-yeni-urun": `${CAMPAIGN_HEAD}${CAMPAIGN_BODY}${CAMPAIGN_STEPS}${CAMPAIGN_TAIL}`,
+
+  /** A discount: the rate and the product before the greeting, as designed. */
+  "kampanya-indirim": `${CAMPAIGN_HEAD}
+İndirim: [INDIRIM_ORAN] · [INDIRIM_URUN]
+${CAMPAIGN_BODY}${CAMPAIGN_CODE}${CAMPAIGN_TAIL}`,
 } as const;
 
 export type EmailTextName = keyof typeof EMAIL_TEXT;

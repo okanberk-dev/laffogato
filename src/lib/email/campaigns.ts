@@ -1,0 +1,937 @@
+import "server-only";
+
+import { randomBytes } from "node:crypto";
+
+import { z } from "zod";
+
+import {
+  APP_POST_KIND_LABELS,
+  type AppPostKind,
+} from "@/lib/admin/app-content-schema";
+import type { AdminAppPost } from "@/lib/admin/store";
+import { getDb, TABLES, type DbError } from "@/lib/db";
+import { raiseDbError } from "@/lib/db/health";
+import { SITE } from "@/lib/seo/site";
+
+import { renderEmail, type RenderedEmail } from "./render";
+import {
+  CAMPAIGN_TEMPLATES,
+  deliverBatch,
+  sendCampaignMail,
+  type BatchMessage,
+  type CampaignTemplateName,
+  type SendResult,
+} from "./send";
+import { EMAIL_TEXT } from "./text";
+
+/**
+ * Campaign e-mail: audience → queue → batches → send log.
+ *
+ * A campaign is a `campaign_emails` row the panel composes (template, the
+ * template's `[ALAN]` values, which consent store the recipients come from).
+ * "Gönder" materialises the audience into `campaign_email_sends` — one row
+ * per address, in batches of 100 — and a runner works the batches through
+ * Resend's batch endpoint, settling each batch with one UPDATE.
+ *
+ * The audience RULE lives in the database (`campaign_email_audience`, see
+ * db/migrations/20260908150000_campaign_emails.sql): the panel's dry count
+ * and the enqueue read the same function, so they cannot disagree. The four
+ * plpgsql helpers are the only writes to the send log that touch more than
+ * one row; on a max:1 pool a hundred single-row updates per batch is the
+ * difference between a send finishing and a function timing out.
+ *
+ * Idempotency, twice: a (campaign, address) pair is unique, so re-queueing a
+ * campaign adds newcomers and never repeats anyone; and the provider key of a
+ * batch is `cmp-<campaignId>-b<batchNo>`, so a batch retried after a crash is
+ * the same request and Resend dedupes it within 24 hours.
+ */
+
+export type CampaignStatus =
+  | "draft"
+  | "queued"
+  | "sending"
+  | "sent"
+  | "failed"
+  | "cancelled";
+
+export type CampaignAudience = "marketing" | "newsletter" | "both";
+
+/** The member preference an audience of members is read from. */
+export type CampaignPref = "marketing" | "newsletter";
+
+export interface CampaignEmail {
+  id: string;
+  template: CampaignTemplateName;
+  status: CampaignStatus;
+  audience: CampaignAudience;
+  subject: string;
+  fields: Record<string, string>;
+  sourcePostId: string;
+  createdBy: string;
+  createdAt: string;
+  queuedAt: string;
+  sentAt: string;
+  total: number;
+  sentCount: number;
+  failedCount: number;
+  lastError: string;
+}
+
+export interface CampaignInput {
+  template: CampaignTemplateName;
+  audience: CampaignAudience;
+  fields: Record<string, string>;
+  sourcePostId?: string;
+  createdBy: string;
+}
+
+export const CAMPAIGN_AUDIENCES: readonly CampaignAudience[] = [
+  "marketing",
+  "newsletter",
+  "both",
+];
+
+export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
+  draft: "Taslak",
+  queued: "Kuyrukta",
+  sending: "Gönderiliyor",
+  sent: "Gönderildi",
+  failed: "Başarısız",
+  cancelled: "İptal edildi",
+};
+
+export const CAMPAIGN_AUDIENCE_LABELS: Record<CampaignAudience, string> = {
+  marketing: "Pazarlama izni olan üyeler",
+  newsletter: "Bülten aboneleri",
+  both: "İkisi birden (adres başına bir kez)",
+};
+
+/** A campaign may be (re)queued from these; sent and cancelled are final. */
+const QUEUEABLE: readonly CampaignStatus[] = [
+  "draft",
+  "queued",
+  "sending",
+  "failed",
+];
+
+/** A batch left 'sending' longer than this belongs to a runner that died. */
+const STALE_AFTER_MS = 15 * 60_000;
+/** Resend allows 10 requests a second; a pause between batches keeps well under it. */
+const BATCH_DELAY_MS = 200;
+/** Wait after a 429 when the provider does not say how long. */
+const RETRY_DELAY_MS = 1_000;
+const MAX_RATE_LIMIT_RETRIES = 3;
+/** Under Vercel's 300 s function cap, with room to settle the last batch. */
+const DEFAULT_DEADLINE_MS = 240_000;
+/** Written to `campaign_email_sends.error` for a row the template rejected. */
+const RENDER_FAILED = "hazırlanamadı";
+const DRY_RUN_NOTE =
+  "Kuru çalışma (CAMPAIGN_EMAIL_DRY_RUN=1): derlendi, hiçbir e-posta gönderilmedi.";
+const NO_PROVIDER = "RESEND_API_KEY tanımlı değil.";
+
+function checkErr(error: DbError | null, ctx: string): void {
+  if (error) raiseDbError(ctx, error, error.code === "" ? 0 : 400);
+}
+
+/** `ed**@example.com` — enough to recognise a row in a log, not to be one. */
+function maskEmail(address: string): string {
+  const at = address.indexOf("@");
+  if (at < 1) return "***";
+  const local = address.slice(0, at);
+  const head = local.slice(0, Math.min(2, local.length));
+  return `${head}${"*".repeat(Math.max(1, local.length - head.length))}${address.slice(at)}`;
+}
+
+function sleep(ms: number): Promise<void> {
+  return ms > 0
+    ? new Promise((resolve) => setTimeout(resolve, ms))
+    : Promise.resolve();
+}
+
+// ── Fields ─────────────────────────────────────────────────────────────────
+
+function isHttpsUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+const optionalText = (max: number, label: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, `${label} en fazla ${max} karakter olabilir.`)
+    .optional();
+
+/**
+ * The same parse the mobile-content store applies to a post link: `new URL`
+ * rejects what a regex waves through, and the protocol test rejects
+ * `javascript:` and `data:` — the two that turn a link into an injection.
+ * A data: image in particular cannot go into mail at all.
+ */
+const httpsUrl = (label: string) =>
+  z
+    .string()
+    .trim()
+    .max(2048, `${label} çok uzun.`)
+    .refine((v) => v === "" || isHttpsUrl(v), {
+      message: `${label} https ile başlayan tam bir adres olmalı.`,
+    })
+    .optional();
+
+const fieldsShape = z.object({
+  KAMPANYA_EYEBROW: optionalText(32, "Üst başlık"),
+  KAMPANYA_BASLIK: z
+    .string()
+    .trim()
+    .min(1, "Başlık gerekli.")
+    .max(80, "Başlık en fazla 80 karakter olabilir."),
+  KAMPANYA_ALT: optionalText(140, "Alt başlık"),
+  KAMPANYA_METIN: optionalText(600, "Metin"),
+  KAMPANYA_VURGU: optionalText(80, "Vurgu"),
+  KAMPANYA_GORSEL_URL: httpsUrl("Görsel adresi"),
+  KAMPANYA_GORSEL_ALT: optionalText(120, "Görsel açıklaması"),
+  KAMPANYA_BUTON: optionalText(32, "Buton"),
+  KAMPANYA_URL: httpsUrl("Buton adresi"),
+  KAMPANYA_TARIH: optionalText(40, "Tarih"),
+  KAMPANYA_DIPNOT: optionalText(160, "Dipnot"),
+  KUPON_KODU: optionalText(24, "Kupon kodu"),
+  SON_KULLANIM: optionalText(40, "Son kullanım"),
+  ETKINLIK_YER: optionalText(60, "Etkinlik yeri"),
+  ETKINLIK_TARIH: optionalText(60, "Etkinlik tarihi"),
+  ETKINLIK_SAAT: optionalText(60, "Etkinlik saati"),
+  ADIM_1_BASLIK: optionalText(80, "1. adım başlığı"),
+  ADIM_1_METIN: optionalText(140, "1. adım metni"),
+  ADIM_2_BASLIK: optionalText(80, "2. adım başlığı"),
+  ADIM_2_METIN: optionalText(140, "2. adım metni"),
+  ADIM_3_BASLIK: optionalText(80, "3. adım başlığı"),
+  ADIM_3_METIN: optionalText(140, "3. adım metni"),
+  INDIRIM_ORAN: optionalText(8, "İndirim oranı"),
+  INDIRIM_URUN: optionalText(80, "İndirimli ürün"),
+  // bulten-kampanya's three product cards.
+  URUN_1_AD: optionalText(60, "1. ürün adı"),
+  URUN_1_NOT: optionalText(140, "1. ürün notu"),
+  URUN_1_FIYAT: optionalText(24, "1. ürün fiyatı"),
+  URUN_2_AD: optionalText(60, "2. ürün adı"),
+  URUN_2_NOT: optionalText(140, "2. ürün notu"),
+  URUN_2_FIYAT: optionalText(24, "2. ürün fiyatı"),
+  URUN_3_AD: optionalText(60, "3. ürün adı"),
+  URUN_3_NOT: optionalText(140, "3. ürün notu"),
+  URUN_3_FIYAT: optionalText(24, "3. ürün fiyatı"),
+});
+
+/**
+ * The template values as stored: unknown keys dropped, every value trimmed
+ * and length-capped, both URLs https-only, the button URL defaulting to the
+ * campaigns page. Empty values are dropped rather than stored as "" so the
+ * templates' `<!--IF:GORSEL-->`-style sections read the same either way.
+ *
+ * Which keys a given template REQUIRES is the template's own business:
+ * `queueCampaignEmail` renders one sample first and refuses to queue a
+ * campaign with a hole in it.
+ */
+export const campaignFieldsSchema: z.ZodType<Record<string, string>> =
+  fieldsShape.transform((parsed) => {
+    const out: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === "string" && value !== "") out[key] = value;
+    }
+    if (!out.KAMPANYA_URL) out.KAMPANYA_URL = `${SITE.url}/kampanyalar`;
+    return out;
+  });
+
+function parseFields(raw: Record<string, string>): Record<string, string> {
+  const parsed = campaignFieldsSchema.safeParse(raw);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new Error(issue?.message ?? "Kampanya alanları geçersiz.");
+  }
+  return parsed.data;
+}
+
+/** The subject IS the campaign title, for every campaign template. */
+export function subjectFor(input: { fields: Record<string, string> }): string {
+  return (input.fields.KAMPANYA_BASLIK ?? "").trim();
+}
+
+/** Which member preference a template's audience of members is read from. */
+export function prefForTemplate(template: CampaignTemplateName): CampaignPref {
+  return template === "bulten-kampanya" ? "newsletter" : "marketing";
+}
+
+function assertTemplate(value: string): CampaignTemplateName {
+  if (!(CAMPAIGN_TEMPLATES as readonly string[]).includes(value)) {
+    throw new Error(`Bilinmeyen kampanya şablonu: ${value}`);
+  }
+  return value as CampaignTemplateName;
+}
+
+function assertAudience(value: string): CampaignAudience {
+  if (!(CAMPAIGN_AUDIENCES as readonly string[]).includes(value)) {
+    throw new Error(`Bilinmeyen kitle: ${value}`);
+  }
+  return value as CampaignAudience;
+}
+
+// ── Rows ───────────────────────────────────────────────────────────────────
+
+function str(value: unknown): string {
+  return typeof value === "string" ? value : value == null ? "" : String(value);
+}
+
+function num(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function toCampaign(row: Record<string, unknown>): CampaignEmail {
+  const fields: Record<string, string> = {};
+  const raw = row.fields;
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+      if (typeof value === "string") fields[key] = value;
+    }
+  }
+  return {
+    id: str(row.id),
+    template: str(row.template) as CampaignTemplateName,
+    status: str(row.status) as CampaignStatus,
+    audience: str(row.audience) as CampaignAudience,
+    subject: str(row.subject),
+    fields,
+    sourcePostId: str(row.sourcePostId),
+    createdBy: str(row.createdBy),
+    createdAt: str(row.createdAt),
+    queuedAt: str(row.queuedAt),
+    sentAt: str(row.sentAt),
+    total: num(row.total),
+    sentCount: num(row.sentCount),
+    failedCount: num(row.failedCount),
+    lastError: str(row.lastError),
+  };
+}
+
+/** One `campaign_email_sends` row, as the claim function hands it back. */
+interface CampaignSendRow {
+  id: number | string;
+  campaignId: string;
+  email: string;
+  recipientKind: "customer" | "subscriber";
+  name: string;
+  unsubUrl: string;
+  batchNo: number;
+  status: string;
+  providerId: string;
+  error: string;
+  claimedAt: string;
+  createdAt: string;
+  sentAt: string;
+}
+
+export async function createCampaignEmail(
+  input: CampaignInput,
+): Promise<CampaignEmail> {
+  const fields = parseFields(input.fields);
+  const template = assertTemplate(input.template);
+  const audience = assertAudience(input.audience);
+  const now = new Date().toISOString();
+  const row: CampaignEmail = {
+    id: `cmail-${Date.now()}-${randomBytes(3).toString("hex")}`,
+    template,
+    status: "draft",
+    audience,
+    subject: subjectFor({ fields }),
+    fields,
+    sourcePostId: (input.sourcePostId ?? "").trim().slice(0, 100),
+    createdBy: input.createdBy.trim().slice(0, 200),
+    createdAt: now,
+    queuedAt: "",
+    sentAt: "",
+    total: 0,
+    sentCount: 0,
+    failedCount: 0,
+    lastError: "",
+  };
+  const { error } = await getDb().from(TABLES.campaignEmails).insert(row);
+  checkErr(error, "createCampaignEmail");
+  return row;
+}
+
+/**
+ * Edits a draft. Returns `null` when there is no such campaign or it has
+ * already been queued: the send log was built from the fields as they were,
+ * and the provider idempotency key promises a retry is the same message.
+ * `createdBy` is the author and does not change.
+ */
+export async function updateCampaignEmail(
+  id: string,
+  patch: Partial<CampaignInput>,
+): Promise<CampaignEmail | null> {
+  const current = await getCampaignEmail(id);
+  if (!current || current.status !== "draft") return null;
+  const template =
+    patch.template !== undefined
+      ? assertTemplate(patch.template)
+      : current.template;
+  const audience =
+    patch.audience !== undefined
+      ? assertAudience(patch.audience)
+      : current.audience;
+  const fields =
+    patch.fields !== undefined ? parseFields(patch.fields) : current.fields;
+  const { data, error } = await getDb()
+    .from(TABLES.campaignEmails)
+    .update({
+      template,
+      audience,
+      fields,
+      subject: subjectFor({ fields }),
+      sourcePostId:
+        patch.sourcePostId !== undefined
+          ? patch.sourcePostId.trim().slice(0, 100)
+          : current.sourcePostId,
+    })
+    .eq("id", id)
+    // Conditioned on the status, so a "Gönder" racing this save cannot end up
+    // sending one thing and recording another.
+    .eq("status", "draft")
+    .select("*");
+  checkErr(error, "updateCampaignEmail");
+  const rows = (data as Record<string, unknown>[] | null) ?? [];
+  return rows[0] ? toCampaign(rows[0]) : null;
+}
+
+/** Removes a draft (and nothing else). True when a row went. */
+export async function deleteCampaignEmail(id: string): Promise<boolean> {
+  const { data, error } = await getDb()
+    .from(TABLES.campaignEmails)
+    .delete()
+    .eq("id", id)
+    .eq("status", "draft")
+    .select("id");
+  checkErr(error, "deleteCampaignEmail");
+  return (((data as { id: string }[] | null) ?? []).length ?? 0) > 0;
+}
+
+/** Newest first. */
+export async function listCampaignEmails(): Promise<CampaignEmail[]> {
+  const { data, error } = await getDb()
+    .from(TABLES.campaignEmails)
+    .select("*")
+    .order("createdAt", { ascending: false });
+  checkErr(error, "listCampaignEmails");
+  return ((data as Record<string, unknown>[] | null) ?? []).map(toCampaign);
+}
+
+export async function getCampaignEmail(
+  id: string,
+): Promise<CampaignEmail | null> {
+  const { data, error } = await getDb()
+    .from(TABLES.campaignEmails)
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  checkErr(error, "getCampaignEmail");
+  return data ? toCampaign(data as Record<string, unknown>) : null;
+}
+
+async function patchCampaign(
+  id: string,
+  patch: Partial<Pick<CampaignEmail, "status" | "lastError" | "sentAt">>,
+): Promise<void> {
+  const { error } = await getDb()
+    .from(TABLES.campaignEmails)
+    .update(patch)
+    .eq("id", id);
+  checkErr(error, "patchCampaign");
+}
+
+// ── Rendering ──────────────────────────────────────────────────────────────
+
+/** The dummy way out in a preview or a test send — spends nothing. */
+function previewUnsubscribeUrl(): string {
+  return `${SITE.url}/bulten/cikis?token=onizleme`;
+}
+
+function renderCampaign(
+  c: Pick<CampaignEmail, "template" | "fields">,
+  recipient: { name: string; unsubscribeUrl: string },
+): RenderedEmail {
+  return renderEmail(c.template, {
+    vars: { ...c.fields, AD: recipient.name.trim() },
+    text: EMAIL_TEXT[c.template],
+    unsubscribeUrl: recipient.unsubscribeUrl,
+  });
+}
+
+/** For the panel's preview frame. Throws on a field the template needs. */
+export function previewCampaignEmail(
+  c: CampaignEmail,
+  sample?: { name?: string },
+): RenderedEmail {
+  return renderCampaign(c, {
+    name: sample?.name ?? "",
+    unsubscribeUrl: previewUnsubscribeUrl(),
+  });
+}
+
+/**
+ * One real send to one address, outside the send log: AD = "Test", the
+ * unsubscribe link is the dummy preview one. What the operator sees in
+ * their own inbox is what the members will get.
+ */
+export async function sendCampaignTest(
+  c: CampaignEmail,
+  to: string,
+): Promise<SendResult> {
+  const address = to.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
+    return { ok: false, error: "Geçerli bir e-posta adresi gir." };
+  }
+  return sendCampaignMail(
+    c.template,
+    address,
+    { ...c.fields, AD: "Test" },
+    previewUnsubscribeUrl(),
+  );
+}
+
+// ── Audience and queue ─────────────────────────────────────────────────────
+
+/**
+ * Dry count for the confirmation before "Gönder" — the same function the
+ * enqueue reads, so the number shown is the number queued.
+ */
+export async function countCampaignAudience(
+  audience: CampaignAudience,
+  pref: CampaignPref = "marketing",
+): Promise<number> {
+  const { data, error } = await getDb().rpc<unknown>(
+    "campaign_email_audience_count",
+    { p_audience: audience, p_pref: pref },
+  );
+  checkErr(error, "countCampaignAudience");
+  return num(data);
+}
+
+/**
+ * Materialises the audience into the send log and marks the campaign queued.
+ *
+ * Fails fast: one sample recipient is rendered first, so a template missing
+ * a field throws HERE, naming the field, before a single row is queued.
+ * Allowed from draft, queued, sending and failed — the enqueue is idempotent
+ * (existing recipients are skipped, skipped rows go back in the queue,
+ * newcomers get fresh batch numbers), so pressing "Gönder" twice is safe.
+ */
+export async function queueCampaignEmail(
+  id: string,
+): Promise<{ total: number }> {
+  const c = await getCampaignEmail(id);
+  if (!c) throw new Error("Kampanya bulunamadı.");
+  if (!QUEUEABLE.includes(c.status)) {
+    throw new Error(
+      `Kampanya "${CAMPAIGN_STATUS_LABELS[c.status] ?? c.status}" durumunda; yeniden kuyruğa alınamaz.`,
+    );
+  }
+  renderCampaign(c, {
+    name: "Örnek Üye",
+    unsubscribeUrl: previewUnsubscribeUrl(),
+  });
+
+  const { error } = await getDb().rpc<number>("campaign_email_enqueue", {
+    p_campaign: id,
+    p_audience: c.audience,
+    p_pref: prefForTemplate(c.template),
+    p_now: new Date().toISOString(),
+    p_unsub_base: `${SITE.url}/api/bulten/cikis?token=`,
+  });
+  checkErr(error, "queueCampaignEmail");
+
+  const fresh = await getCampaignEmail(id);
+  return { total: fresh?.total ?? 0 };
+}
+
+// ── Runner ─────────────────────────────────────────────────────────────────
+
+async function claimBatch(id: string): Promise<CampaignSendRow[]> {
+  const now = Date.now();
+  const { data, error } = await getDb().rpc<unknown>("campaign_email_claim", {
+    p_campaign: id,
+    p_stale_before: new Date(now - STALE_AFTER_MS).toISOString(),
+    p_now: new Date(now).toISOString(),
+  });
+  checkErr(error, "campaign_email_claim");
+  return Array.isArray(data) ? (data as CampaignSendRow[]) : [];
+}
+
+async function markBatch(
+  id: string,
+  batchNo: number,
+  status: "sent" | "failed" | "skipped",
+  providerIds: string[],
+  errorText: string,
+): Promise<void> {
+  const { error } = await getDb().rpc<null>("campaign_email_mark", {
+    p_campaign: id,
+    p_batch: batchNo,
+    p_status: status,
+    p_ids: providerIds,
+    p_error: errorText.slice(0, 500),
+    p_now: new Date().toISOString(),
+  });
+  checkErr(error, "campaign_email_mark");
+}
+
+/** One row the template refused; it leaves the batch before the post. */
+async function markRowFailed(
+  row: CampaignSendRow,
+  errorText: string,
+): Promise<void> {
+  const { error } = await getDb()
+    .from(TABLES.campaignEmailSends)
+    .update({ status: "failed", error: errorText })
+    .eq("id", row.id);
+  checkErr(error, "campaign_email_sends.failed");
+}
+
+async function remainingCount(id: string): Promise<number> {
+  const { count, error } = await getDb()
+    .from(TABLES.campaignEmailSends)
+    .select("*", { count: "exact", head: true })
+    .eq("campaignId", id)
+    .in("status", ["queued", "sending"]);
+  checkErr(error, "campaign_email_sends.remaining");
+  return count ?? 0;
+}
+
+type BatchResult = Awaited<ReturnType<typeof deliverBatch>>;
+
+/** A provider result may say how long to wait; the contract does not promise it. */
+function retryAfterMs(result: BatchResult): number | null {
+  const value = (result as { retryAfterMs?: unknown }).retryAfterMs;
+  return typeof value === "number" && value > 0 ? value : null;
+}
+
+/** 429 → wait, then post the SAME key again; the provider dedupes overlap. */
+async function deliverWithBackoff(
+  messages: BatchMessage[],
+  key: string,
+  retryDelay: number,
+): Promise<BatchResult> {
+  for (let attempt = 0; ; attempt++) {
+    const result = await deliverBatch(messages, key);
+    if (
+      result.ok ||
+      result.status !== 429 ||
+      attempt >= MAX_RATE_LIMIT_RETRIES
+    ) {
+      return result;
+    }
+    await sleep(retryAfterMs(result) ?? retryDelay);
+  }
+}
+
+export interface RunOptions {
+  /** Stop claiming new batches after this long; status stays 'sending'. */
+  deadlineMs?: number;
+  /** Pause between batches (tests set 0). */
+  batchDelayMs?: number;
+  /** Pause after a 429 without a Retry-After (tests set 0). */
+  retryDelayMs?: number;
+}
+
+export interface RunResult {
+  sent: number;
+  failed: number;
+  remaining: number;
+}
+
+/**
+ * Works a queued campaign, batch by batch, until nothing is left or the
+ * deadline passes. Safe to run twice at once (the claim skips locked rows)
+ * and safe to run again after a crash (a batch left 'sending' is reclaimed
+ * once it is stale, and its provider key makes the retry a no-op upstream).
+ *
+ * Guards, in order: `CAMPAIGN_EMAIL_DRY_RUN=1` renders and marks every row
+ * skipped without an HTTP call; no `RESEND_API_KEY` marks the batch skipped
+ * and fails the campaign (re-queue once the key exists); a non-production
+ * Vercel deployment refuses a real send — every link in the message would
+ * point at the preview host.
+ */
+export async function runCampaignEmail(
+  id: string,
+  opts: RunOptions = {},
+): Promise<RunResult> {
+  const deadlineMs = opts.deadlineMs ?? DEFAULT_DEADLINE_MS;
+  const batchDelay = opts.batchDelayMs ?? BATCH_DELAY_MS;
+  const retryDelay = opts.retryDelayMs ?? RETRY_DELAY_MS;
+  const started = Date.now();
+
+  const campaign = await getCampaignEmail(id);
+  if (!campaign) throw new Error(`Kampanya bulunamadı: ${id}`);
+  if (campaign.status !== "queued" && campaign.status !== "sending") {
+    return { sent: 0, failed: 0, remaining: 0 };
+  }
+
+  let sent = 0;
+  let failed = 0;
+  try {
+    await patchCampaign(id, { status: "sending", lastError: "" });
+    const dryRun = process.env.CAMPAIGN_EMAIL_DRY_RUN === "1";
+    const vercelEnv = process.env.VERCEL_ENV ?? "";
+    const previewHost = vercelEnv !== "" && vercelEnv !== "production";
+
+    for (;;) {
+      const rows = await claimBatch(id);
+      if (rows.length === 0) break;
+      const batchNo = num(rows[0]?.batchNo);
+
+      // Render every row first. A row the template rejects is settled on its
+      // own and leaves the batch, so the rest still go out; the batch's
+      // provider-id order stays the claim's e-mail order minus those rows.
+      const messages: BatchMessage[] = [];
+      for (const row of rows) {
+        try {
+          const r = renderCampaign(campaign, {
+            name: row.name,
+            unsubscribeUrl: row.unsubUrl,
+          });
+          messages.push({
+            to: row.email,
+            subject: r.subject,
+            html: r.html,
+            text: r.text,
+            unsubscribeUrl: row.unsubUrl,
+          });
+        } catch (err) {
+          console.error(
+            `[campaign] ${id}: ${maskEmail(row.email)} ${RENDER_FAILED}`,
+            err,
+          );
+          await markRowFailed(row, RENDER_FAILED);
+          failed += 1;
+        }
+      }
+
+      let stop = "";
+      if (dryRun) {
+        await markBatch(id, batchNo, "skipped", [], DRY_RUN_NOTE);
+        failed += messages.length;
+      } else if (!process.env.RESEND_API_KEY) {
+        stop = NO_PROVIDER;
+        await markBatch(id, batchNo, "skipped", [], stop);
+        failed += messages.length;
+      } else if (previewHost) {
+        stop = `Önizleme dağıtımından (VERCEL_ENV=${vercelEnv}) gerçek gönderim yapılmaz — her bağlantı önizleme adresine işaret ederdi. Denemek için CAMPAIGN_EMAIL_DRY_RUN=1.`;
+        await markBatch(id, batchNo, "skipped", [], stop);
+        failed += messages.length;
+      } else if (messages.length === 0) {
+        // Every row was refused by the template and is already marked; this
+        // touches no row and refreshes the campaign's counters.
+        await markBatch(id, batchNo, "failed", [], RENDER_FAILED);
+      } else {
+        const key = `cmp-${id}-b${batchNo}`;
+        const result = await deliverWithBackoff(messages, key, retryDelay);
+        if (result.ok) {
+          await markBatch(id, batchNo, "sent", result.ids, "");
+          sent += messages.length;
+          console.info(
+            `[campaign] ${id} b${batchNo}: ${messages.length} gönderildi`,
+          );
+        } else {
+          console.error(`[campaign] ${id} b${batchNo}: ${result.error}`);
+          await markBatch(id, batchNo, "failed", [], result.error);
+          failed += messages.length;
+        }
+      }
+
+      if (stop) {
+        await patchCampaign(id, { status: "failed", lastError: stop });
+        return { sent, failed, remaining: await remainingCount(id) };
+      }
+      if (Date.now() - started >= deadlineMs) {
+        // Out of time. Status stays 'sending'; the cron (or the next
+        // "Gönder") carries on from the next batch.
+        return { sent, failed, remaining: await remainingCount(id) };
+      }
+      await sleep(batchDelay);
+    }
+
+    const fresh = await getCampaignEmail(id);
+    const nothingLeft = (fresh?.sentCount ?? sent) === 0 && failed > 0;
+    if (dryRun) {
+      await patchCampaign(id, {
+        status: "sent",
+        sentAt: new Date().toISOString(),
+        lastError: DRY_RUN_NOTE,
+      });
+    } else if (nothingLeft && !dryRun) {
+      // Not one message left the building: that is a failure, not a send
+      // with a bad day. Partial failures stay 'sent' with the counters
+      // telling the story.
+      await patchCampaign(id, {
+        status: "failed",
+        lastError:
+          "Hiçbir e-posta gönderilemedi; alıcı satırlarındaki hataya bakın.",
+      });
+    } else {
+      await patchCampaign(id, {
+        status: "sent",
+        sentAt: new Date().toISOString(),
+      });
+    }
+    return { sent, failed, remaining: 0 };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[campaign] ${id}: beklenmedik hata`, err);
+    try {
+      await patchCampaign(id, {
+        status: "failed",
+        lastError: message.slice(0, 500),
+      });
+    } catch {
+      // The original error is the one worth surfacing.
+    }
+    throw err;
+  }
+}
+
+/**
+ * The cron's entry point: every campaign still queued or mid-send, oldest
+ * first, within one shared deadline. A campaign that throws is recorded as
+ * failed by `runCampaignEmail` and does not stop the others.
+ */
+export async function resumePendingCampaigns(
+  opts: { deadlineMs?: number } = {},
+): Promise<Array<{ id: string } & RunResult>> {
+  const deadlineAt = Date.now() + (opts.deadlineMs ?? DEFAULT_DEADLINE_MS);
+  const { data, error } = await getDb()
+    .from(TABLES.campaignEmails)
+    .select("*")
+    .in("status", ["queued", "sending"])
+    .order("queuedAt", { ascending: true });
+  checkErr(error, "resumePendingCampaigns");
+  const pending = ((data as Record<string, unknown>[] | null) ?? []).map(
+    toCampaign,
+  );
+
+  const results: Array<{ id: string } & RunResult> = [];
+  for (const c of pending) {
+    const left = deadlineAt - Date.now();
+    if (left <= 0) {
+      results.push({
+        id: c.id,
+        sent: 0,
+        failed: 0,
+        remaining: await remainingCount(c.id),
+      });
+      continue;
+    }
+    try {
+      results.push({
+        id: c.id,
+        ...(await runCampaignEmail(c.id, { deadlineMs: left })),
+      });
+    } catch (err) {
+      console.error(`[campaign] ${c.id}: cron`, err);
+      let remaining = 0;
+      try {
+        remaining = await remainingCount(c.id);
+      } catch {
+        // Already logged above; the count is informational.
+      }
+      results.push({ id: c.id, sent: 0, failed: 0, remaining });
+    }
+  }
+  return results;
+}
+
+// ── From a mobile post ─────────────────────────────────────────────────────
+
+/** The sub-line under the title, per kind — the mail's answer to "why now?". */
+const POST_ALT_BY_KIND: Record<AppPostKind, string> = {
+  campaign: "Bu ay köşkte",
+  collab: "İş birliği",
+  event: "Etkinlik",
+};
+
+/**
+ * A published post (`/admin/mobil/gonderiler`) as a campaign draft. The
+ * author (`createdBy`) is the caller's to fill in. A `data:` image uploaded
+ * from the panel cannot go into mail and is left out, which drops the
+ * template's image section rather than shipping a broken one.
+ */
+export function campaignFromPost(post: AdminAppPost): CampaignInput {
+  const kindLabel = APP_POST_KIND_LABELS[post.kind] ?? "Kampanya";
+  const fields: Record<string, string> = {
+    KAMPANYA_EYEBROW: kindLabel.toLocaleUpperCase("tr-TR"),
+    KAMPANYA_BASLIK: post.title,
+    KAMPANYA_ALT: POST_ALT_BY_KIND[post.kind] ?? POST_ALT_BY_KIND.campaign,
+    KAMPANYA_METIN: post.body,
+    KAMPANYA_BUTON: post.linkLabel || "AYRINTILAR",
+    KAMPANYA_URL: isHttpsUrl(post.linkUrl)
+      ? post.linkUrl
+      : `${SITE.url}/kampanyalar`,
+  };
+  if (isHttpsUrl(post.image)) {
+    fields.KAMPANYA_GORSEL_URL = post.image;
+    fields.KAMPANYA_GORSEL_ALT = post.title;
+  }
+  return {
+    template: "kampanya-duyuru",
+    audience: "marketing",
+    fields,
+    sourcePostId: post.id,
+    createdBy: "",
+  };
+}
+
+// ── Tokens ─────────────────────────────────────────────────────────────────
+
+/**
+ * The member's unsubscribe token, minted on first use. The enqueue mints for
+ * a whole audience in SQL; this is for one link at a time (a birthday mail,
+ * a test). Retries on the one-in-2^192 collision the unique index would
+ * report, and yields to a concurrent minter rather than overwriting it.
+ */
+export async function ensureCustomerUnsubToken(
+  rawEmail: string,
+): Promise<string> {
+  const email = rawEmail.trim().toLowerCase();
+  const db = getDb();
+  const read = async (): Promise<string | null> => {
+    const { data, error } = await db
+      .from(TABLES.customers)
+      .select("unsubToken")
+      .eq("email", email)
+      .maybeSingle();
+    checkErr(error, "ensureCustomerUnsubToken.select");
+    if (!data) return null;
+    return str((data as { unsubToken?: unknown }).unsubToken);
+  };
+
+  const existing = await read();
+  if (existing === null) throw new Error("Üye bulunamadı.");
+  if (existing) return existing;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const token = randomBytes(24).toString("hex");
+    const { data, error } = await db
+      .from(TABLES.customers)
+      .update({ unsubToken: token })
+      .eq("email", email)
+      .eq("unsubToken", "")
+      .select("unsubToken");
+    if (error) {
+      if (error.code === "23505") continue;
+      checkErr(error, "ensureCustomerUnsubToken.update");
+    }
+    if (((data as unknown[] | null) ?? []).length > 0) return token;
+    // Lost the race to another minter: use what it wrote.
+    const theirs = await read();
+    if (theirs) return theirs;
+  }
+  throw new Error("Çıkış jetonu üretilemedi.");
+}

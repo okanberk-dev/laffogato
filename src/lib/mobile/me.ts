@@ -20,6 +20,10 @@ import {
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
 import {
+  subscribeNewsletter,
+  unsubscribeNewsletterByEmail,
+} from "@/lib/newsletter/store";
+import {
   deleteSupabaseIdentity,
   type IdentityDeletion,
 } from "@/lib/supabase/admin";
@@ -61,15 +65,35 @@ export type UpdateMeResult =
   | { ok: false; error: "unknown_menu_item" | "not_found" };
 
 /**
+ * The caller's IP for the newsletter consent record: the one the route hands
+ * over, else the request headers (this runs inside a route handler), else "".
+ */
+async function consentIp(given?: string): Promise<string> {
+  if (given !== undefined) return given;
+  try {
+    const { clientIp } = await import("@/lib/admin/rate-limit");
+    return await clientIp();
+  } catch {
+    return "";
+  }
+}
+
+/**
  * Applies a `PATCH /me`. Profile fields go through the same store functions
  * the site's account page uses, so length limits and the KVKK consent
  * timestamp behave identically on both surfaces. A usual that points at a
  * menu item that no longer exists (or is inactive) is refused rather than
  * stored — it would fail at order time anyway.
+ *
+ * The `newsletter` toggle also lands on the bulletin list, exactly as the
+ * site's account page does (`uye/actions.ts`): the app used to write only
+ * the jsonb flag, so an app subscriber had no row there and therefore no
+ * unsubscribe token — and campaign mail could not lawfully reach them.
  */
 export async function updateMe(
   customer: PublicCustomer,
   patch: MePatch,
+  ctx: { ip?: string } = {},
 ): Promise<UpdateMeResult> {
   const email = customer.email;
 
@@ -92,6 +116,23 @@ export async function updateMe(
       ...patch.notificationPrefs,
     });
     if (!updated) return { ok: false, error: "not_found" };
+
+    // Best-effort, like the site: the preference itself is already saved.
+    const wantsNewsletter = patch.notificationPrefs.newsletter;
+    try {
+      if (wantsNewsletter === true) {
+        await subscribeNewsletter(
+          email,
+          patch.name ?? customer.name,
+          "account",
+          { at: new Date().toISOString(), ip: await consentIp(ctx.ip) },
+        );
+      } else if (wantsNewsletter === false) {
+        await unsubscribeNewsletterByEmail(email);
+      }
+    } catch (err) {
+      console.error("[updateMe] bülten listesi güncellenemedi", err);
+    }
   }
 
   if (patch.usual !== undefined) {
@@ -366,6 +407,8 @@ export async function deleteMe(
         newsletter: false,
       },
       marketingConsentAt: "",
+      // The campaign-mail unsubscribe link must not outlive the account.
+      unsubToken: "",
       passwordHash: "",
       verifyToken: "",
       verifyExpires: "",

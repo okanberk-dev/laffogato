@@ -12,12 +12,13 @@ import {
 import { EMAIL_TEXT } from "@/lib/email/text";
 
 /**
- * The ten designed messages, and the three things that must never reach an
- * inbox: an unfilled `[FIELD]`, an unsubscribe link on transactional mail (or
- * its absence on commercial mail), and a button pointing at nothing.
+ * The seventeen designed messages, and the three things that must never reach
+ * an inbox: an unfilled `[FIELD]`, an unsubscribe link on transactional mail
+ * (or its absence on commercial mail), and a button pointing at nothing.
  *
- * Source of the design: the Claude Design handoff, migrated onto the palette
- * in `src/app/globals.css` — see `src/lib/email/templates/README.md`.
+ * Source of the design: the Starbucks Rewards mail-language spec (8 Eyl 2026),
+ * drawn on the palette in `src/app/globals.css` — see
+ * `src/lib/email/templates/README.md`.
  */
 
 const DIR = join(process.cwd(), "src", "lib", "email", "templates");
@@ -31,15 +32,20 @@ function fieldsOf(name: EmailTemplateName): string[] {
   return [...new Set([...source.matchAll(FIELD)].map((m) => m[1]))];
 }
 
-/** A plausible value per field, so a render exercises the real markup. */
+/**
+ * A plausible, field-specific value. URLs get a path of their own so a test
+ * can tell the hero image's src from the button's href.
+ */
+function sampleValue(field: string): string {
+  return field.endsWith("URL")
+    ? `https://laffogato.net/ornek/${field.toLowerCase()}`
+    : `«${field}»`;
+}
+
+/** A value per field, so a render exercises the real markup. */
 function sampleVars(name: EmailTemplateName): Record<string, string> {
   const vars: Record<string, string> = {};
-  for (const f of fieldsOf(name)) {
-    vars[f] =
-      f.endsWith("_URL") || f.endsWith("URL")
-        ? "https://laffogato.net/ornek"
-        : `«${f}»`;
-  }
+  for (const f of fieldsOf(name)) vars[f] = sampleValue(f);
   return vars;
 }
 
@@ -66,11 +72,12 @@ function renderWith(
   });
 }
 
-describe("the ten templates render", () => {
-  it("ships exactly the ten designed messages", () => {
-    expect(NAMES).toHaveLength(10);
+describe("the seventeen templates render", () => {
+  it("ships exactly the seventeen designed messages", () => {
+    expect(NAMES).toHaveLength(17);
     expect(NAMES).toContain("eposta-dogrulama");
     expect(NAMES).toContain("dogum-gunu");
+    expect(NAMES).toContain("kampanya-duyuru");
   });
 
   it.each(NAMES)("%s leaves no [FIELD] behind", (name) => {
@@ -103,10 +110,17 @@ describe("6563 — commercial and transactional are not interchangeable", () => 
   const commercial = NAMES.filter((n) => EMAIL_TEMPLATES[n].commercial);
   const transactional = NAMES.filter((n) => !EMAIL_TEMPLATES[n].commercial);
 
-  it("marks exactly the three commercial messages", () => {
+  it("marks exactly the ten commercial messages", () => {
     expect(commercial.sort()).toEqual([
       "bulten-kampanya",
       "dogum-gunu",
+      "kampanya-bonus-damga",
+      "kampanya-duyuru",
+      "kampanya-etkinlik",
+      "kampanya-happy-hour",
+      "kampanya-ikram",
+      "kampanya-indirim",
+      "kampanya-yeni-urun",
       "mobil-uygulama",
     ]);
   });
@@ -133,6 +147,105 @@ describe("6563 — commercial and transactional are not interchangeable", () => 
         unsubscribeUrl: "https://laffogato.net/bulten/cikis?token=abc",
       }),
     ).toThrow(/işlemsel/);
+  });
+});
+
+describe("campaign blocks follow their fields", () => {
+  /**
+   * The kampanya-* family is one form with optional parts. Each optional
+   * block is wrapped in an IF flag that `render.ts` derives from its first
+   * field, so leaving the field empty in the admin form removes the block —
+   * and the other fields inside it — rather than sending a hole.
+   */
+  const CAMPAIGN = NAMES.filter((n) => n.startsWith("kampanya-"));
+
+  /** Flag → the fields its block owns; the first one is what switches it. */
+  const BLOCKS: Array<[string, string[]]> = [
+    ["GORSEL", ["KAMPANYA_GORSEL_URL", "KAMPANYA_GORSEL_ALT"]],
+    ["KOD", ["KUPON_KODU", "SON_KULLANIM"]],
+    ["TARIH", ["KAMPANYA_TARIH"]],
+    ["DIPNOT", ["KAMPANYA_DIPNOT"]],
+    ["VURGU", ["KAMPANYA_VURGU"]],
+  ];
+  const OPTIONAL = BLOCKS.flatMap(([, fields]) => fields);
+
+  function varsWithout(name: EmailTemplateName, fields: string[]) {
+    const vars = sampleVars(name);
+    for (const f of fields) delete vars[f];
+    return vars;
+  }
+
+  it("ships the seven campaign layouts, subject = title, preview = subtitle", () => {
+    expect(CAMPAIGN).toHaveLength(7);
+    for (const name of CAMPAIGN) {
+      expect(EMAIL_TEMPLATES[name].commercial, name).toBe(true);
+      expect(EMAIL_TEMPLATES[name].subject, name).toBe("[KAMPANYA_BASLIK]");
+      expect(EMAIL_TEMPLATES[name].preheader, name).toBe("[KAMPANYA_ALT]");
+    }
+  });
+
+  it.each(BLOCKS)(
+    "drops the %s block of kampanya-duyuru when its field is absent",
+    (flag, fields) => {
+      const r = renderWith("kampanya-duyuru", {
+        vars: varsWithout("kampanya-duyuru", fields),
+      });
+      for (const f of fields) {
+        expect(r.html, `${f} in html`).not.toContain(sampleValue(f));
+        expect(r.text, `${f} in text`).not.toContain(sampleValue(f));
+      }
+      expect(r.html).not.toContain(`<!--IF:${flag}-->`);
+      expect(r.html).not.toMatch(FIELD);
+      expect(r.text).not.toMatch(FIELD);
+    },
+  );
+
+  it("keeps every block of kampanya-duyuru when the fields are present", () => {
+    const r = renderWith("kampanya-duyuru");
+    for (const f of OPTIONAL) {
+      expect(r.html, `${f} in html`).toContain(sampleValue(f));
+    }
+    expect(r.html).toContain(
+      `<img src="${sampleValue("KAMPANYA_GORSEL_URL")}"`,
+    );
+    expect(r.text).toContain(sampleValue("KUPON_KODU"));
+  });
+
+  it.each(CAMPAIGN)("%s renders with nothing optional at all", (name) => {
+    const r = renderWith(name, { vars: varsWithout(name, OPTIONAL) });
+    expect(r.html).not.toMatch(FIELD);
+    expect(r.text).not.toMatch(FIELD);
+    expect(r.html).not.toContain("<!--IF:");
+    // The fixed lines survive: the title, the button and the way out.
+    expect(r.subject).toBe(sampleValue("KAMPANYA_BASLIK"));
+    expect(r.html).toContain(sampleValue("KAMPANYA_BUTON"));
+    expect(r.html).toContain("/bulten/cikis");
+    expect(r.text).toContain("/bulten/cikis");
+  });
+
+  it.each(CAMPAIGN)("%s never lets [KAMPANYA_GORSEL_URL] survive", (name) => {
+    const withImage = renderWith(name);
+    const without = renderWith(name, {
+      vars: varsWithout(name, ["KAMPANYA_GORSEL_URL", "KAMPANYA_GORSEL_ALT"]),
+    });
+    for (const r of [withImage, without]) {
+      expect(r.html).not.toContain("[KAMPANYA_GORSEL_URL]");
+      expect(r.text).not.toContain("[KAMPANYA_GORSEL_URL]");
+      expect(r.html).not.toContain('src=""');
+    }
+    const hero = `<img src="${sampleValue("KAMPANYA_GORSEL_URL")}"`;
+    expect(withImage.html).toContain(hero);
+    expect(without.html).not.toContain(hero);
+  });
+
+  it("still fails loudly when an open block is half filled", () => {
+    // A code without an expiry: the KOD block is open, so [SON_KULLANIM] is
+    // asked for, and a message with a gap in it must not be sent.
+    expect(() =>
+      renderWith("kampanya-duyuru", {
+        vars: varsWithout("kampanya-duyuru", ["SON_KULLANIM"]),
+      }),
+    ).toThrow(/\[SON_KULLANIM\]/);
   });
 });
 

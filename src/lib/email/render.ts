@@ -91,6 +91,16 @@ export function renderEmail(
     // Guest checkout can leave the name empty, and "Merhaba ," is not a
     // greeting. Both halves of the message drop it the same way.
     AD: Boolean(vars.AD),
+    // The campaign family's optional blocks follow their field: no image URL,
+    // no hero row; no code, no code box. A dropped block takes the fields
+    // inside it along, so `assertFilled` never asks for a value the operator
+    // deliberately left blank — but a block that IS open still needs every
+    // field in it (a code without an expiry is a render error, not a gap).
+    GORSEL: Boolean(vars.KAMPANYA_GORSEL_URL),
+    KOD: Boolean(vars.KUPON_KODU),
+    TARIH: Boolean(vars.KAMPANYA_TARIH),
+    DIPNOT: Boolean(vars.KAMPANYA_DIPNOT),
+    VURGU: Boolean(vars.KAMPANYA_VURGU),
   };
 
   const html = fill(template.html, { vars, loops: input.loops, flags });

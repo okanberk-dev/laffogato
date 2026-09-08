@@ -175,26 +175,57 @@ Site URL'nin `https://laffogato.net` olması gerekir; site oraya
 
 ## 5. Mesajın kendisi — şablonlar
 
-Sitenin gönderdiği on mesajın markup'ı `src/lib/email/templates/*.html`
+Sitenin gönderdiği on yedi mesajın markup'ı `src/lib/email/templates/*.html`
 içinde durur; `send.ts` yalnızca alanları doldurur. Şablon dili, alan
-listesi ve paletin nereden geldiği o klasörün `README.md`'sinde.
+listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
+`README.md`'sinde.
 
-| Dosya                        | Ne yapar                                              |
-| ---------------------------- | ----------------------------------------------------- |
-| `templates/*.html`           | tasarımın kendisi; elle düzenlenen tek yer            |
-| `templates.generated.ts`     | derlenmiş string haritası — **commit'lenir**, elle düzenlenmez |
-| `fill.ts`                    | `[ALAN]`, `<!--IF:-->`, `<!--EACH:-->` ve HTML kaçışlama |
-| `render.ts`                  | şablon + değer → `{subject, html, text}` + 6563 kontrolü |
-| `text.ts`                    | her mesajın düz metin yarısı                          |
+| Dosya                    | Ne yapar                                                                                  |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| `templates/*.html`       | tasarımın kendisi; elle düzenlenen tek yer                                                |
+| `templates.generated.ts` | derlenmiş string haritası — **commit'lenir**, elle düzenlenmez                            |
+| `public/email/**`        | şablonların çağırdığı görseller (logo, bant, damga, ikon) — `https://laffogato.net/email/…` ile mutlak |
+| `fill.ts`                | `[ALAN]`, `<!--IF:-->`, `<!--EACH:-->` ve HTML kaçışlama                                   |
+| `render.ts`              | şablon + değer → `{subject, html, text}` + 6563 kontrolü + bayraklar (`AD`, `APP_LINKS`, `GORSEL`, `KOD`, `TARIH`, `DIPNOT`, `VURGU`) |
+| `text.ts`                | her mesajın düz metin yarısı                                                              |
+
+On yedi şablon:
+
+| Şablon                                 | Tür               | Tetikleyen                                                            |
+| -------------------------------------- | ----------------- | --------------------------------------------------------------------- |
+| `eposta-dogrulama`                     | işlemsel          | sitede kayıt / adres değişikliği (`uye/actions.ts`, `admin/musteriler`) |
+| `sifre-sifirlama`                      | işlemsel          | sitede "şifremi unuttum"                                              |
+| `siparis-alindi`                       | işlemsel          | sipariş oluşturuldu (`odeme/actions.ts`, mobil `orders.ts`)           |
+| `odeme-onaylandi`                      | işlemsel          | ödeme onaylandı (`admin/store.ts`)                                    |
+| `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, çağıran yok                                 |
+| `karaoke-rezervasyon`                  | işlemsel          | `sendKaraokeConfirmationEmail` hazır, çağıran yok                     |
+| `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, çağıran yok                           |
+| `bulten-kampanya`                      | **ticari (6563)** | kampanya e-postası — 3 ürün seçkisi + kod                             |
+| `mobil-uygulama`                       | **ticari (6563)** | uygulama duyurusu; mağaza linkleri tanımlı değilken hiç gönderilmez   |
+| `dogum-gunu`                           | **ticari (6563)** | `sendBirthdayEmail` hazır, çağıran yok                                |
+| `kampanya-duyuru` … `kampanya-indirim` | **ticari (6563)** | `/admin/bulten/kampanya` ve uygulama gönderisi kancası — bkz. §7      |
 
 Şablon değiştirdikten sonra `npm run email:build` (ya da `npm run build` /
 `npm run dev` — ikisi de kendiliğinden çalıştırır). Tarayıcıda görmek için
 geliştirmede `/dev/mail/<dosya-adi>`.
 
-**6563 ayrımı koda gömülü:** `bulten-kampanya`, `mobil-uygulama` ve
-`dogum-gunu` ticari iletidir ve çıkış bağlantısı olmadan derlenmez; kalan
-yedi işlemsel mesaja çıkış bağlantısı konulamaz. `renderEmail` ikisini de
-reddeder, `tests/email-templates.test.ts` ikisini de kilitler.
+**6563 ayrımı koda gömülü:** on ticari şablon — `bulten-kampanya`,
+`mobil-uygulama`, `dogum-gunu` ve yedi `kampanya-*` — çıkış bağlantısı
+olmadan derlenmez; kalan yedi işlemsel mesaja çıkış bağlantısı konulamaz.
+`renderEmail` ikisini de reddeder, `tests/email-templates.test.ts` ikisini de
+kilitler. Çıkış bağlantısı `unsubscribeUrlFor(token)` →
+`/api/bulten/cikis?token=…`: mail istemcisinin RFC 8058 tek tık POST'u
+sayfa açmadan token'ı harcar, insan aynı bağlantıdan `/bulten/cikis`
+sayfasına yönlendirilir.
+
+**Kampanya ailesi:** yedi `kampanya-*` şablonu tek alan sözlüğü paylaşır
+(`KAMPANYA_*` zorunlular; görsel / kod / tarih / dipnot / vurgu blokları alanı
+boşsa düşer). `send.ts` aileyi `CAMPAIGN_TEMPLATES` · `renderCampaignMail`
+(senkron; önizleme ve test) · `sendCampaignMail` (tek alıcı, sağlayıcı
+sonucuyla) ile, toplu gönderimi `deliverBatch` ile sunar: Resend
+`/emails/batch`, çağrı başına en çok 100 ileti, `Idempotency-Key` başlığı
+(`cmp-<kampanya>-b<parti>`) sayesinde yeniden deneme aynı kutuya iki kez
+düşmez. Kim, kime, ne zaman gönderir — §7.
 
 **Mağaza linkleri:** uygulama henüz yayında değil.
 `NEXT_PUBLIC_APP_STORE_URL` ve `NEXT_PUBLIC_PLAY_STORE_URL` tanımlı değilken
@@ -209,3 +240,110 @@ belgede de, commit mesajında da. Anahtarın yeri Vercel'in ortam değişkenleri
 ve Supabase'in SMTP kutusudur; ikisi de yazıldıktan sonra bir daha
 okunamayacak şekilde saklar. Sızdığından şüphelenirsen Resend → API Keys'ten
 o anahtarı sil, yenisini üret, iki yere de yeniden gir.
+
+---
+
+## 7. Kampanya e-postaları
+
+Ticari ileti (6563) artık koddan çıkıyor: panel `/admin/bulten/kampanya`'da
+bir kampanya yazar, kitleyi seçer, kendine test gönderir ve "Gönder" der.
+Yayına giren bir mobil gönderi (`/admin/mobil/gonderiler`, "Yayınlanınca
+pazarlama izni olan üyelere e-posta gönder" kutusu) aynı yoldan kendiliğinden
+bir `kampanya-duyuru` kampanyası açar ve gönderiyi `emailCampaignId` ile
+işaretler; sonraki kayıtlar bir daha mail çıkarmaz.
+
+Motor `src/lib/email/campaigns.ts`; veri `campaign_emails` +
+`campaign_email_sends`; şema ve dört plpgsql yardımcısı
+`db/migrations/20260908150000_campaign_emails.sql`.
+
+### Kime gider — kitle kuralı
+
+Kural veritabanında **tek yerde** durur: `campaign_email_audience(p_audience,
+p_pref)`. Paneldeki "N adrese gidecek" sayısı da kuyruk da aynı fonksiyonu
+okur; ikisi birbirinden ayrı düşemez.
+
+| Kitle        | Kaynak                   | Şart                                                                                                                                                      |
+| ------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `marketing`  | `customers`              | `isActive` · `emailVerified` · `notificationPrefs.<tercih> = true` · `marketing` tercihi için `marketingConsentAt` dolu · `@laffogato.local` (misafir) ve `@anon.local` (kapalı hesap) hariç |
+| `newsletter` | `newsletter_subscribers` | `isActive` · `consentAt` dolu · `unsubToken` dolu (jetonsuz satıra çıkış bağlantısı kurulamaz, dolayısıyla mail de gitmez)                                |
+| `both`       | ikisinin birleşimi       | aynı adres bir kez; üye satırı kazanır (çıkış bağlantısı hesabın tercihlerini kapatsın diye)                                                              |
+
+`<tercih>`: `bulten-kampanya` şablonu `newsletter`, yedi `kampanya-*` şablonu
+`marketing` tercihini okur (`prefForTemplate`).
+
+### Jetonlar ve tek tıkla çıkış
+
+Her alıcı satırı kendi çıkış bağlantısını taşır:
+`https://laffogato.net/api/bulten/cikis?token=…`. Abonelerin jetonu zaten
+vardı; üyeler için `customers."unsubToken"` eklendi ve kuyruğa alınırken
+eksikse basılır (`ensureCustomerUnsubToken` tek satır için aynı işi yapar).
+Bağlantı hem altbilgide hem `List-Unsubscribe` /
+`List-Unsubscribe-Post: List-Unsubscribe=One-Click` başlıklarındadır.
+
+- `POST /api/bulten/cikis?token=…` — RFC 8058: posta istemcisinin kendi
+  "abonelikten çık" düğmesi buraya `List-Unsubscribe=One-Click` gönderir.
+  Jeton harcanır, 200 düz metin döner. (Başlık daha önce yalnız GET'e cevap
+  veren sayfayı gösteriyordu; düğme hiçbir şey yapmıyordu.)
+- `GET /api/bulten/cikis?token=…` — 303 ile `/bulten/cikis?token=…`
+  sayfasına; sayfa jetonu kendisi harcar ve sonucu anlatır.
+- Jeton hangi listedense o satır kapanır **ve** aynı adresin öbür listesi de
+  kapanır: abone jetonu → üyenin `marketing`/`newsletter` tercihleri kapanır,
+  `marketingConsentAt` boşalır; üye jetonu → bülten satırı da pasifleşir.
+  İki rıza kaydı bir daha ayrı düşmez (`src/lib/customer/unsubscribe.ts`).
+- Uygulamanın `PATCH /me` ile `newsletter` tercihi artık siteyle aynı biçimde
+  `newsletter_subscribers`'a da yazılır (`src/lib/mobile/me.ts`); daha önce
+  uygulamadan abone olan üyenin listede satırı, dolayısıyla jetonu yoktu.
+
+### Panel akışı
+
+1. **Taslak** — şablon + alanlar + kitle. Alanlar `campaignFieldsSchema`'dan
+   geçer (bilinmeyen anahtar düşer, uzunluk sınırı, `https` zorunlu). "Bana
+   test gönder" tek gerçek gönderimdir: AD = Test, çıkış bağlantısı sahte
+   (`?token=onizleme`), gönderim defterine yazılmaz.
+2. **Gönder** — önce bir örnek alıcı derlenir; şablonun istediği bir alan
+   eksikse burada, alanın adıyla patlar ve hiçbir satır kuyruğa girmez.
+   Sonra `campaign_email_enqueue` kitleyi `campaign_email_sends`'e döker:
+   her (kampanya, adres) çifti tek satır, 100'lük partiler (`batchNo`).
+3. **Gönderim** — `runCampaignEmail`: parti al (`campaign_email_claim`,
+   `for update skip locked`; 15 dakikadır `sending`'de kalmış satırlar ölü
+   bir çalıştırıcıdan sayılır ve yeniden alınır), her satırı alıcının adı ve
+   kendi çıkış bağlantısıyla derle, `POST /emails/batch`
+   (`Idempotency-Key: cmp-<kampanya>-b<parti>`), `campaign_email_mark` ile
+   tek ifadede işaretle. Partiler arası 200 ms; 429'da 1 s (varsa
+   `Retry-After`) bekleyip **aynı anahtarla** en çok 3 kez yeniden dener.
+   Süre dolunca (240 s) durum `sending` kalır; kalan partileri cron bitirir.
+   Hiçbir e-posta çıkmadıysa kampanya `failed`, kısmi başarı `sent` +
+   sayaçlar.
+4. **Yeniden "Gönder"** güvenlidir: mevcut alıcılar atlanır (`on conflict do
+   nothing`), `skipped` satırlar kuyruğa döner, yeni gelenler **yeni** parti
+   numarası alır — bir parti numarası anahtarın parçasıdır ve bir adres
+   kümesi için kullanılmış anahtar başka bir küme için tekrar kullanılmaz.
+   Aynı anahtar aynı küme için tekrar gittiğinde Resend 24 saat içinde
+   yinelemez.
+
+### Cron ve `CRON_SECRET`
+
+`vercel.json` → `crons`: `/api/cron/campaign-emails`, her gün `0 6 * * *`
+(UTC; 09:00 İstanbul). Uç `Authorization: Bearer <CRON_SECRET>` bekler —
+sabit zamanlı karşılaştırma; `CRON_SECRET` tanımsızsa 503, yanlışsa 401.
+Vercel başlığı kendisi ekler; yapılacak tek şey ortam değişkenini tanımlamak
+(`.env.example`). Görev `queued` / `sending` durumundaki her kampanyayı
+kaldığı yerden, eskisi önce sürdürür; ortak süre 240 s.
+
+### Emniyet kilitleri
+
+- `RESEND_API_KEY` yoksa parti `skipped` işaretlenir, kampanya `failed` +
+  `lastError: RESEND_API_KEY tanımlı değil.`; anahtar tanımlanınca "Gönder"
+  aynı satırları yeniden kuyruğa alır, kimse iki kez almaz.
+- `VERCEL_ENV` tanımlı ve `production` değilse gerçek gönderim reddedilir
+  (`skipped` + `failed`): her bağlantı önizleme adresine işaret ederdi.
+- `CAMPAIGN_EMAIL_DRY_RUN=1` — derle, `skipped` işaretle, HTTP yok.
+
+### Resend sınırları
+
+10 istek/sn; toplu uçta çağrı başına 100 mesaj; **ücretsiz planda günde 100
+e-posta**. Motor parti başına en çok 100 mesaj gönderir ve partiler arasında
+200 ms bekler; 100'den kalabalık bir kitleye göndermeden **önce** Resend planı
+yükseltilmeli — yoksa ikinci parti 429/403 ile `failed` düşer ve o alıcılar
+elle yeniden kuyruğa alınmadan (failed nihaidir) mail almaz. Bounce / şikâyet
+bastırma listesi henüz yok (`docs/AUDIT.md` §5).

@@ -14,15 +14,22 @@ const ogImage = read("src/app/opengraph-image.tsx");
  * follows the paint — reading both means the retired-colour ban below covers
  * the templates too.
  */
+const templateFiles = readdirSync(
+  join(process.cwd(), "src/lib/email/templates"),
+)
+  .filter((f) => f.endsWith(".html"))
+  .map((f) => [f, read(join("src/lib/email/templates", f))] as const);
 const emails = [
   read("src/lib/email/send.ts"),
-  ...readdirSync(join(process.cwd(), "src/lib/email/templates"))
-    .filter((f) => f.endsWith(".html"))
-    .map((f) => read(join("src/lib/email/templates", f))),
+  ...templateFiles.map(([, source]) => source),
 ].join("\n");
 
-/** lafmobil's accent.burgundy / burgundyDeep / bg.accentSubtle, verbatim. */
-const APP_BURGUNDY = ["#84233C", "#4A0F1E", "#F6E9EC"] as const;
+/**
+ * The tricolore's bordo as the site paints it: accent / deep / soft. Until
+ * 8 Eyl 2026 these were also lafmobil's accent.burgundy / burgundyDeep /
+ * bg.accentSubtle, verbatim — see the note on the phone below.
+ */
+const SITE_BORDO = ["#84233C", "#4A0F1E", "#F6E9EC"] as const;
 
 /**
  * The site's palette is the Köşk redesign's, on the tricolore.
@@ -39,14 +46,16 @@ const APP_BURGUNDY = ["#84233C", "#4A0F1E", "#F6E9EC"] as const;
  * site is on the previous one. The `not.toContain` assertions are the
  * load-bearing half.
  *
- * Note on the phone: the 2 Eyl swap existed to make site and app read alike;
- * the 5 Eyl redesign broke that and this restores most of it. The greens line
- * up, and the accent is once again `lafmobil`'s accent.burgundy verbatim, so
- * the app's `tricolore` export (['#235347','#FAF9F6','#84233C']) is now the
- * site's green / paper / accent too. What still differs is the ground: the
- * site is white where the app is cream. If the app is re-skinned to match,
- * `lafmobil`'s src/theme/tokens.ts is the file to move. Contrast is a separate
- * guard in contrast.test.ts.
+ * Note on the phone: the 2 Eyl swap existed to make site and app read alike,
+ * the 5 Eyl redesign broke that, and the 7 Eyl accent restored the bordo — for
+ * a day. On 8 Eyl 2026 the operator moved the app to a Starbucks-ID palette
+ * (green #29623F, accent gold #D1C59B, cream #FAF2DF — lafmobil's
+ * src/theme/tokens.ts, karar 23), so site and app no longer share a palette
+ * BY DECISION, not by drift. This file therefore guards the site alone;
+ * whether the site follows the app one day (karar 31) is an open operator
+ * question tracked in lafmobil's docs/SITE-PALETTE-SYNC.md, and the e-mails
+ * stay on the site's tokens because the site sends them and their links land
+ * here. Contrast is a separate guard in contrast.test.ts.
  */
 describe("palette follows the Köşk redesign", () => {
   it("paints the house green", () => {
@@ -56,7 +65,6 @@ describe("palette follows the Köşk redesign", () => {
   });
 
   it("uses the tricolore's bordo as the accent, not the retired terracotta", () => {
-    // The app's own accent.burgundy / burgundyDeep / bg.accentSubtle.
     expect(css).toContain("--accent: #84233c");
     expect(css).toContain("--accent-deep: #4a0f1e");
     expect(css).toContain("--accent-soft: #f6e9ec");
@@ -121,33 +129,17 @@ describe("palette follows the Köşk redesign", () => {
     }
   });
 
-  it("is the same bordo the phone uses, not a second one near it", () => {
-    // Parity is the point: two burgundies one hex apart is exactly the drift
-    // this file exists to stop.
+  it("keeps one bordo, not a second one near it", () => {
+    // Two burgundies one hex apart is exactly the drift this file exists to
+    // stop, so all three shades are pinned as literals.
     //
-    // The app is a separate repository, so this can only be CHECKED when it
-    // happens to be checked out beside this one. In CI it is not, and a test
-    // that fails on its absence would fail every build for a reason that has
-    // nothing to do with the change under test. The site-side half of the
-    // assertion always runs; the cross-repo half is a bonus when available.
-    for (const hex of APP_BURGUNDY) expect(css).toContain(hex.toLowerCase());
-
-    const appTokens = join(
-      process.cwd(),
-      "..",
-      "lafmobil",
-      "src",
-      "theme",
-      "tokens.ts",
-    );
-    if (!existsSync(appTokens)) return;
-    const tokens = readFileSync(appTokens, "utf8");
-    for (const hex of APP_BURGUNDY) {
-      expect(
-        tokens.includes(hex),
-        `${hex} must still be lafmobil's value — the palettes have drifted`,
-      ).toBe(true);
-    }
+    // Until 8 Eyl 2026 this test also opened ../lafmobil/src/theme/tokens.ts
+    // when it was checked out beside this repo and required the same three
+    // hexes there. The app has since moved to its Starbucks-ID palette by
+    // operator decision (accent gold #D1C59B, green #29623F), so that half
+    // would now fail for a reason that is not a defect — and in CI the app
+    // was never there anyway. Only the site side remains.
+    for (const hex of SITE_BORDO) expect(css).toContain(hex.toLowerCase());
   });
 
   it("sits on a white ground", () => {
@@ -240,5 +232,31 @@ describe("surfaces outside globals.css follow the same palette", () => {
     ]) {
       expect(emails, `${hex} belongs to a retired palette`).not.toContain(hex);
     }
+  });
+
+  it("hosts the mail imagery on the site, under public/email", () => {
+    // A mail client cannot tint a mask or read a relative path, so every
+    // template points at an absolute https://laffogato.net/email/… PNG, and
+    // the files themselves ship with the site. A typo'd filename here would
+    // reach the inbox as a broken image, which no other test would see.
+    const ASSET = /https:\/\/laffogato\.net\/email\/([A-Za-z0-9/_.-]+)/g;
+    for (const [file, source] of templateFiles) {
+      const refs = [...new Set([...source.matchAll(ASSET)].map((m) => m[1]))];
+      expect(refs.length, `${file} references no hosted asset`).toBeGreaterThan(
+        0,
+      );
+      for (const rel of refs) {
+        expect(
+          existsSync(join(process.cwd(), "public", "email", rel)),
+          `${file} → public/email/${rel} is missing`,
+        ).toBe(true);
+      }
+    }
+    // The one logo every message carries: a single L'Af badge that reads on
+    // the dark band and the light card alike (commit 06b325d replaced the
+    // eight per-colour mark/wordmark PNGs with it).
+    expect(
+      existsSync(join(process.cwd(), "public", "email", "logo-laf.png")),
+    ).toBe(true);
   });
 });

@@ -2,6 +2,7 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 
+import { disableCustomerMarketingByEmail } from "@/lib/customer/unsubscribe";
 import { getDb, TABLES } from "@/lib/db";
 
 export type NewsletterSource = "footer" | "register" | "account";
@@ -175,6 +176,11 @@ export async function deleteNewsletterSubscriber(id: string): Promise<boolean> {
  *
  * Returns the address that was unsubscribed, so the page can confirm which
  * one it was; `null` when the token is unknown or already spent.
+ *
+ * The same address may also be a member with `marketing` / `newsletter` on.
+ * That account is switched off too: the two consent stores used to drift
+ * here, and a person who clicked "çıkış" and kept getting campaign mail
+ * through the other list is exactly the complaint 6563 exists for.
  */
 export async function unsubscribeByToken(
   rawToken: string,
@@ -193,7 +199,16 @@ export async function unsubscribeByToken(
     .select("email");
   if (error) throw new Error(`unsubscribeByToken: ${error.message}`);
   const rows = (data as { email: string }[] | null) ?? [];
-  return rows[0]?.email ?? null;
+  const email = rows[0]?.email ?? null;
+  if (email) {
+    try {
+      await disableCustomerMarketingByEmail(email);
+    } catch (err) {
+      // The subscription itself is already off; the member row is best-effort.
+      console.error("[unsubscribeByToken] üye tercihleri kapatılamadı", err);
+    }
+  }
+  return email;
 }
 
 /** Unsubscribe by e-mail (used by the public unsubscribe flow). */

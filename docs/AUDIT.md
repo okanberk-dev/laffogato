@@ -248,6 +248,14 @@ dosya; kod bölme için önce dosyanın kendisinin bölünmesi gerekiyor. Kazan�
 gerçek ama düşük önemli bir bulgu için taşınan regresyon riski yüksek —
 bilinçli olarak ertelendi.
 
+**Kampanya e-postası İYS'ye bağlı değil (8 Eyl 2026).** Yasal metinler onayın
+İYS'ye kaydedileceğini ve gönderim öncesi İYS'den kontrol edileceğini söylüyor
+(`legal/content.ts`); kodda İYS istemcisi yok. Kitle kuralı, üye çıkış jetonu,
+tek tıkla çıkış (POST) ve gönderim defteri hazır (`docs/EMAIL-RESEND.md` §7);
+İYS kaydı, bounce/şikâyet bastırma listesi ve Resend ücretsiz planının günlük
+100 e-posta sınırı (100'den kalabalık kitleye göndermeden plan yükseltilmeli)
+açık.
+
 ---
 
 ## 6. Denetim sonrası yapılanlar

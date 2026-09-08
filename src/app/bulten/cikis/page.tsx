@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { unsubscribeCustomerByToken } from "@/lib/customer/unsubscribe";
 import { unsubscribeByToken } from "@/lib/newsletter/store";
 
 export const metadata = {
@@ -26,7 +27,12 @@ export default async function BultenCikisPage({ searchParams }: PageProps) {
   let failed = false;
   if (token) {
     try {
-      email = await unsubscribeByToken(token);
+      // A token belongs to the subscriber list or to a member row (campaign
+      // mail to members carries the member's own). Either way both stores
+      // end up off for the address — see lib/customer/unsubscribe.ts.
+      email =
+        (await unsubscribeByToken(token)) ??
+        (await unsubscribeCustomerByToken(token));
     } catch {
       failed = true;
     }

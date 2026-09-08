@@ -4,7 +4,7 @@ import { hasAppLinks } from "@/lib/mobile/app-store";
 import { SITE } from "@/lib/seo/site";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
-import { renderEmail, type RenderInput } from "./render";
+import { renderEmail, type RenderedEmail, type RenderInput } from "./render";
 import type { EmailTemplateName } from "./templates.generated";
 import { EMAIL_TEXT } from "./text";
 
@@ -239,7 +239,7 @@ Gönderen: ${from}
 //
 // Her mesaj `src/lib/email/templates/*.html` içindeki tasarımdan çıkar.
 // Buradaki fonksiyonların işi yalnızca alanları doldurmak: hangi değerin
-// nereden geldiği `docs/EMAIL-RESEND.md` §4'te.
+// nereden geldiği `docs/EMAIL-RESEND.md` §5'te.
 
 /**
  * Render + deliver, with the render failure contained.
@@ -460,13 +460,23 @@ export async function sendLoyaltyRewardEmail(
 
 // ── Commercial (6563) ──────────────────────────────────────────────────────
 //
-// These three carry an unsubscribe link and only go to an address that has
-// consented. `renderEmail` refuses to build them without `unsubscribeUrl`,
-// and refuses to put one on any of the transactional templates above.
+// The commercial templates — the three below and the `kampanya-*` family at
+// the end of this file — carry an unsubscribe link and only go to an address
+// that has consented. `renderEmail` refuses to build them without
+// `unsubscribeUrl`, and refuses to put one on any of the transactional
+// templates above.
 
-/** `${SITE.url}/bulten/cikis?token=…` — the token is on the subscriber row. */
+/**
+ * `${SITE.url}/api/bulten/cikis?token=…` — the token is on the subscriber
+ * (or, for a member, the customer) row.
+ *
+ * The route handler is what makes the `List-Unsubscribe-Post` header honest:
+ * a mail client's RFC 8058 POST spends the token without ever loading a
+ * page, and a person following the same link is redirected to the
+ * `/bulten/cikis` page they always got.
+ */
 export function unsubscribeUrlFor(unsubToken: string): string {
-  return `${SITE.url}/bulten/cikis?token=${encodeURIComponent(unsubToken)}`;
+  return `${SITE.url}/api/bulten/cikis?token=${encodeURIComponent(unsubToken)}`;
 }
 
 export interface CampaignEmailData {
@@ -536,6 +546,9 @@ export async function sendAppAnnouncementEmail(
     unsubscribeUrl: unsubscribeUrlFor(unsubToken),
     vars: {
       AD: name.trim(),
+      // The "neler var" list quotes the stamp target; without it the render
+      // fell over an unfilled [DAMGA_HEDEFI] and the mail never left.
+      DAMGA_HEDEFI: await stampTarget(),
     },
   });
 }
@@ -560,4 +573,248 @@ export async function sendBirthdayEmail(
       SON_KULLANIM: b.expiresAt,
     },
   });
+}
+
+// ── Kampanya e-postaları ───────────────────────────────────────────────────
+//
+// The operator-composed family: seven `kampanya-*` layouts plus the older
+// three-pick newsletter. Every one is commercial, so `renderEmail` insists on
+// the unsubscribe URL; every one takes its copy from the admin form as a flat
+// `Record<string, string>`, and the optional blocks — image, code, date,
+// footnote, highlight — follow the presence of their field (`render.ts`).
+
+export type CampaignTemplateName =
+  | "kampanya-duyuru"
+  | "kampanya-bonus-damga"
+  | "kampanya-happy-hour"
+  | "kampanya-ikram"
+  | "kampanya-etkinlik"
+  | "kampanya-yeni-urun"
+  | "kampanya-indirim"
+  | "bulten-kampanya";
+
+export const CAMPAIGN_TEMPLATES: readonly CampaignTemplateName[] = [
+  "kampanya-duyuru",
+  "kampanya-bonus-damga",
+  "kampanya-happy-hour",
+  "kampanya-ikram",
+  "kampanya-etkinlik",
+  "kampanya-yeni-urun",
+  "kampanya-indirim",
+  "bulten-kampanya",
+];
+
+/** For a form value or a database column that claims to be a template name. */
+export function isCampaignTemplate(name: string): name is CampaignTemplateName {
+  return (CAMPAIGN_TEMPLATES as readonly string[]).includes(name);
+}
+
+/**
+ * Template + form values → the three strings, synchronously.
+ *
+ * Shared by the admin preview, the test send and the batch runner so all three
+ * see the same message. Throws on an unfilled field, exactly as `renderEmail`
+ * does — a campaign with a hole in it must fail before the queue, not in it.
+ *
+ * A hero image without alt text falls back to the campaign title rather than
+ * failing the whole send over a field the form left blank; the code box has no
+ * such mercy, because a code with no expiry is a promise nobody can keep.
+ */
+export function renderCampaignMail(
+  template: CampaignTemplateName,
+  vars: Record<string, string>,
+  unsubscribeUrl: string,
+): RenderedEmail {
+  const filled = { ...vars };
+  if (filled.KAMPANYA_GORSEL_URL && !filled.KAMPANYA_GORSEL_ALT) {
+    filled.KAMPANYA_GORSEL_ALT = filled.KAMPANYA_BASLIK ?? "";
+  }
+  return renderEmail(template, {
+    vars: filled,
+    text: EMAIL_TEXT[template],
+    unsubscribeUrl,
+  });
+}
+
+/**
+ * One campaign message to one address, with the provider's verdict kept.
+ *
+ * Unlike the transactional wrappers this does NOT collapse to a boolean: a
+ * campaign runner has to write "domain not verified" or "rate limited" next
+ * to the recipient, and a test send has to show it to the operator.
+ */
+export async function sendCampaignMail(
+  template: CampaignTemplateName,
+  to: string,
+  vars: Record<string, string>,
+  unsubscribeUrl: string,
+): Promise<SendResult> {
+  if (!to) return { ok: false, error: "Alıcı adresi boş." };
+  let rendered: RenderedEmail;
+  try {
+    rendered = renderCampaignMail(template, vars, unsubscribeUrl);
+  } catch (err) {
+    console.error(`[email] ${template} hazırlanamadı`, err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Şablon hazırlanamadı.",
+    };
+  }
+  return deliver({
+    to,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
+    unsubscribeUrl,
+  });
+}
+
+// ── Toplu gönderim — Resend batch ──────────────────────────────────────────
+
+export interface BatchMessage {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  /** Commercial mail only — becomes the List-Unsubscribe pair, as in `deliver`. */
+  unsubscribeUrl?: string;
+}
+
+export type BatchDeliveryResult =
+  | { ok: true; ids: string[] }
+  | {
+      ok: false;
+      error: string;
+      /** The HTTP status, or 0 when no request was made (no key, too many, network). */
+      status: number;
+      /** Parsed from `Retry-After` on a 429, when the provider sent one. */
+      retryAfterMs?: number;
+    };
+
+/** Resend's batch endpoint takes at most this many messages per call. */
+export const BATCH_LIMIT = 100;
+
+/** Every address-shaped substring, masked — for logging a provider error body. */
+function maskAddressesIn(text: string): string {
+  return text.replace(/[^\s@"'<>]+@[^\s@"'<>]+/g, (m) => maskEmail(m));
+}
+
+/** `Retry-After: 2` → 2000; an HTTP-date is honoured too; garbage → undefined. */
+function parseRetryAfter(res: Response): number | undefined {
+  const raw = res.headers.get("retry-after");
+  if (!raw) return undefined;
+  const seconds = Number(raw.trim());
+  if (Number.isFinite(seconds) && seconds >= 0)
+    return Math.round(seconds * 1000);
+  const at = Date.parse(raw);
+  return Number.isNaN(at) ? undefined : Math.max(0, at - Date.now());
+}
+
+/** `{"data":[{"id":"…"},…]}` — the ids in message order; an odd body yields none. */
+async function batchIds(res: Response): Promise<string[]> {
+  try {
+    const parsed: unknown = await res.json();
+    const data =
+      parsed && typeof parsed === "object" && "data" in parsed
+        ? (parsed as { data?: unknown }).data
+        : undefined;
+    if (!Array.isArray(data)) return [];
+    return data.map((row: unknown) =>
+      row &&
+      typeof row === "object" &&
+      typeof (row as { id?: unknown }).id === "string"
+        ? (row as { id: string }).id
+        : "",
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Up to 100 messages in one request — `POST /emails/batch`.
+ *
+ * Same sender, reply-to and unsubscribe headers as `deliver()`, but the
+ * identity is resolved once per call rather than once per message; the
+ * settings read behind `emailIdentity` would otherwise run a hundred times
+ * per batch.
+ *
+ * `idempotencyKey` goes out as Resend's `Idempotency-Key`: a retry with the
+ * same key and the same messages is deduplicated by the provider for 24 h, so
+ * a runner that times out mid-campaign can send the same batch again without
+ * doubling anyone's inbox. The caller owns the key (`cmp-<campaign>-b<batch>`)
+ * because only the caller knows what "the same batch" means.
+ *
+ * On success the ids come back in message order. On failure the whole batch
+ * failed as one — Resend accepts or rejects the array atomically — and the
+ * status is kept so a 429 can be told from a 403. Addresses are logged masked
+ * only, and never more than the first.
+ */
+export async function deliverBatch(
+  messages: BatchMessage[],
+  idempotencyKey: string,
+): Promise<BatchDeliveryResult> {
+  if (messages.length === 0) return { ok: true, ids: [] };
+  if (messages.length > BATCH_LIMIT) {
+    return {
+      ok: false,
+      error: `Bir toplu gönderim en fazla ${BATCH_LIMIT} ileti taşır (verilen: ${messages.length}).`,
+      status: 0,
+    };
+  }
+  const key = process.env.RESEND_API_KEY;
+  const preview = `${messages.length} alıcı, ilki ${maskEmail(messages[0]?.to ?? "")}`;
+  if (!key) {
+    console.info(`[email] (no provider) batch ${idempotencyKey} → ${preview}`);
+    return { ok: false, error: "RESEND_API_KEY tanımlı değil.", status: 0 };
+  }
+  const { from, replyTo } = await emailIdentity();
+  const body = messages.map((m) => ({
+    from,
+    to: m.to,
+    subject: m.subject,
+    html: m.html,
+    ...(m.text ? { text: m.text } : {}),
+    ...(replyTo ? { reply_to: replyTo } : {}),
+    ...(m.unsubscribeUrl
+      ? {
+          headers: {
+            "List-Unsubscribe": `<${m.unsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        }
+      : {}),
+  }));
+  try {
+    const res = await fetch("https://api.resend.com/emails/batch", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(
+        `[email] Resend batch ${idempotencyKey} failed (${res.status}): ${maskAddressesIn(text).slice(0, 300)}`,
+      );
+      const retryAfterMs = parseRetryAfter(res);
+      return {
+        ok: false,
+        error: resendMessage(res.status, text),
+        status: res.status,
+        ...(retryAfterMs === undefined ? {} : { retryAfterMs }),
+      };
+    }
+    const ids = await batchIds(res);
+    console.info(
+      `[email] batch ${idempotencyKey} → ${preview} (${ids.length} id)`,
+    );
+    return { ok: true, ids };
+  } catch (err) {
+    console.error(`[email] batch ${idempotencyKey} send error`, err);
+    return { ok: false, error: "Sağlayıcıya ulaşılamadı.", status: 0 };
+  }
 }
