@@ -9,6 +9,7 @@ import {
   listOrders,
   type AdminOrderStatus,
 } from "@/lib/admin/store";
+import { emailHealth } from "@/lib/email/health";
 
 export const metadata = { title: "Admin · Genel Bakış" };
 export const dynamic = "force-dynamic";
@@ -56,10 +57,11 @@ function todayLabel(): string {
 export default async function AdminDashboardPage({ searchParams }: PageProps) {
   const session = await requireRole("dashboard");
   const sp = await searchParams;
-  const [stats, orders, settings] = await Promise.all([
+  const [stats, orders, settings, mail] = await Promise.all([
     getDashboardStats(),
     listOrders(),
     getSettings(),
+    emailHealth(),
   ]);
   const recent = orders.slice(0, 5);
 
@@ -143,6 +145,24 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           O sayfa için yetkin yok. Bu paneldeki yetkinle erişebileceğin bölümler
           nav'da görünüyor.
+        </div>
+      )}
+
+      {/*
+        An unverified sending domain is not a degraded feature, it is a closed
+        till: /odeme refuses an order from a member whose address is unverified,
+        and the verification link is itself an e-mail. Nothing else on any
+        screen would say so - the send paths swallow failures on purpose - so
+        the one place it can surface is here, before anyone thinks to ask.
+      */}
+      {!mail.ok && mail.message && (
+        <div className="mb-6 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+          <strong>E-posta gönderilemiyor.</strong> {mail.message}{" "}
+          {canAccess("settings", session.role) && (
+            <Link href="/admin/ayarlar" className="underline">
+              Ayarlar → E-posta
+            </Link>
+          )}
         </div>
       )}
 

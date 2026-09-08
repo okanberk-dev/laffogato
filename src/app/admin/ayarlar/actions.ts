@@ -12,6 +12,7 @@ import {
   type WeeklyHours,
 } from "@/lib/admin/store";
 import { sendTestEmail } from "@/lib/email/send";
+import { forgetEmailHealth } from "@/lib/email/health";
 
 export interface SettingsState {
   message?: string;
@@ -277,6 +278,9 @@ export async function saveEmailSenderAction(
     return { error: "Yanıt adresi geçerli bir e-posta olmalı." };
   }
   await updateSettings({ emailFromName, emailFromAddress, emailReplyTo });
+  // The banner is about the address that was just changed; a two-minute cache
+  // would show the operator the old verdict on the new sender.
+  forgetEmailHealth();
   revalidateAll();
   return ok("email", "E-posta gönderim ayarları kaydedildi.", {
     emailFromAddress,
@@ -301,6 +305,7 @@ export async function sendTestEmailAction(
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
     return { error: "Test için geçerli bir e-posta gir." };
   }
+  forgetEmailHealth();
   const result = await sendTestEmail(to);
   if (!result.ok) return { error: `Gönderilemedi - ${result.error}` };
   // The address is the point of the audit row: it is the one place a test

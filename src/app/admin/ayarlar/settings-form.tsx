@@ -12,7 +12,7 @@ import {
 } from "@/components/admin/forms";
 import { DAYS_OF_WEEK, DAY_LABELS, type DayOfWeek } from "@/lib/admin/days";
 import type { AdminSettings } from "@/lib/admin/store";
-import type { EmailIdentity } from "@/lib/email/send";
+import type { EmailHealth } from "@/lib/email/health";
 
 import {
   saveEmailSenderAction,
@@ -44,10 +44,10 @@ type TabId = (typeof TABS)[number]["id"];
 
 export function SettingsForm({
   settings,
-  identity,
+  mail,
 }: {
   settings: AdminSettings;
-  identity: EmailIdentity;
+  mail: EmailHealth;
 }) {
   const [tab, setTab] = useState<TabId>("general");
 
@@ -78,9 +78,7 @@ export function SettingsForm({
         {tab === "karaoke" && <KaraokeTab settings={settings} />}
         {tab === "seo" && <SeoTab settings={settings} />}
         {tab === "notifications" && <NotificationsTab settings={settings} />}
-        {tab === "email" && (
-          <EmailTab settings={settings} identity={identity} />
-        )}
+        {tab === "email" && <EmailTab settings={settings} mail={mail} />}
       </div>
     </div>
   );
@@ -418,10 +416,10 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
  */
 function EmailTab({
   settings,
-  identity,
+  mail,
 }: {
   settings: AdminSettings;
-  identity: EmailIdentity;
+  mail: EmailHealth;
 }) {
   const [state, action, pending] = useActionState(
     saveEmailSenderAction,
@@ -435,23 +433,28 @@ function EmailTab({
     <div className="grid gap-4">
       <form action={action}>
         <Section title="E-posta gönderimi">
+          {/*
+            The status Resend itself reports, not what this deployment hopes.
+            A verified key and an unverified DOMAIN look identical from inside
+            the process, and only the second one is what stops mail today.
+          */}
           <p
             className={`mb-4 rounded-md border px-3 py-2 text-xs ${
-              identity.hasProvider
+              mail.ok
                 ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-amber-200 bg-amber-50 text-amber-800"
+                : "border-rose-200 bg-rose-50 text-rose-800"
             }`}
           >
-            {identity.hasProvider ? (
+            {mail.ok ? (
               <>
-                Sağlayıcı bağlı (Resend). Şu anki gönderen:{" "}
-                <strong>{identity.from}</strong>
+                Gönderime hazır. Şu anki gönderen: <strong>{mail.from}</strong>
+                {mail.status === "unknown" && (
+                  <> (alan adı durumu Resend'den okunamadı)</>
+                )}
               </>
             ) : (
               <>
-                Sağlayıcı bağlı değil - <code>RESEND_API_KEY</code> tanımlı
-                olmadığı için e-postalar gönderilmiyor, yalnızca sunucu
-                günlüğüne yazılıyor.
+                <strong>Gönderilemiyor.</strong> {mail.message}
               </>
             )}
           </p>
