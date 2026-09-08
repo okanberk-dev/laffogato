@@ -185,7 +185,9 @@ async function deliver({
     });
     if (!res.ok) {
       const body = await res.text();
-      console.error(`[email] Resend failed (${res.status}): ${body}`);
+      console.error(
+        `[email] Resend failed (${res.status}): ${maskAddressesIn(body)}`,
+      );
       return { ok: false, error: resendMessage(res.status, body) };
     }
     return { ok: true };

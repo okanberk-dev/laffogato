@@ -124,17 +124,29 @@ adres bu yüzden `SITE.url` değil, kanonik alan adıdır.
 
 ```
 public/email/
-  logo-laf.png                                  56×56 — tek L'Af rozeti; koyu bantta da açık kartta da aynı dosya
-  band-{dark,light}-{top,bottom}.png            598 px geniş organik bantlar
-  stamp-{empty,full}.png                        damga kartı hücreleri
-  check-badge.png · wave-success.png            ödeme onayı rozeti / dalgası
-  icons/<ad>-{cream,espresso,gold,hero}.png     28 px disk ikonlar
+  logo-laf-espresso.png · logo-laf-cream.png    600×486 kaynak, 200×162 basılır — çerçevesiz L'Af harfleri; açık kartta
+                                                espresso, koyu mod medya sorgusu (`.em-logo-dark`) cream'i açar
+  logo-laf-glint.gif                            400×324 kaynak, 200×162 basılır — koyu yeşil bant üstünde bir kez akan
+                                                altın parıltı; ilk karesi düz cream mark (Outlook GIF oynatmaz, onu gösterir)
+  logo-laf-gold.png                             600×486 — altın ton; şu an hiçbir şablon çağırmıyor, yedek
+  mono-{cream,gold,golddeep}.png                57×102 kaynak, 19×34 basılır — alt bilgideki L'Af monogramı (şablonlar golddeep)
+  bean-{cream,espresso,gold,golddeep}.png       66×176 kaynak, 8×22 basılır — tarih/etkinlik satırının önündeki çekirdek;
+                                                koyu bantta gold, açık kartta golddeep
+  band-{dark,light}-{top,bottom}.png            1196 px kaynak, 598 px basılır — organik bantlar
+  stamp-{empty,full}.png                        96×96 kaynak, 40×40 basılır — damga kartı hücreleri
+  check-badge.png · wave-success.png            ödeme onayı rozeti (56×56 basılır) / dalgası (598 px)
+  icons/<ad>-{cream,espresso,gold,hero}.png     96×96 kaynak, 40–48 px basılır — disk ikonlar
 ```
 
-Logo tek dosyadır: mail istemcisi bir maskeyi boyayamadığı için önce her
-tona ayrı mark/wordmark PNG'si üretilmişti; 8 Eyl'de (commit `06b325d`) hepsi
-iki zeminde de okunan tek rozetle değiştirildi. Yeni bir renk tonu gerekirse
-yeni bir PNG üretilir, `tintColor` benzeri bir yol yoktur.
+Logo üç dosyadır: mail istemcisi bir maskeyi boyayamadığı için ton başına
+ayrı dosya gerekir. 8 Eyl'de önce (commit `06b325d`) iki zeminde de okunan tek
+bir rozet (`logo-laf.png`) denendi; aynı akşam (`72acf21`) rozet emekli edildi
+ve yerini 200 px'lik çerçevesiz harflere bıraktı: açık kartlı sekiz şablon
+espresso PNG'yi basar ve koyu modda cream'e geçer, koyu bantlı dokuz şablon
+ise parıltılı GIF'i basar. `logo-laf.png` artık yok; `tests/brand-theme.test.ts`
+her şablonun bu üçünden birini çağırdığını ve eski rozete dönmediğini doğrular.
+Yeni bir renk tonu gerekirse yeni bir PNG üretilir, `tintColor` benzeri bir
+yol yoktur.
 
 İkon adları: bell · calendar · card · check · clock · cup · gift · mail ·
 phone · pin · qr · receipt · scooter · star · store · tag · users.
