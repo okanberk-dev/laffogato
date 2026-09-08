@@ -44,9 +44,43 @@ istenmiyor). Doğrulanması için DNS'e şu üç kayıt girilmeli:
 Kayıtlar girildikten sonra Resend → Domains → `laffogato.net` → **Verify**.
 Yayılma birkaç dakika ile birkaç saat arası sürer.
 
+**Durum: doğrulandı (8 Eyl 2026).** DNS Vercel'de (`ns1.vercel-dns.com`),
+üç kayıt da `verified`, `siparis@laffogato.net`'ten gönderilen test mesajı
+`delivered` döndü.
+
 > Doğrulama bitene kadar gönderilen her mesaj `403 … domain is not verified`
 > ile döner. `/admin/ayarlar → E-posta → Test gönder` bu cümleyi olduğu gibi
 > gösterir; tahmin etmeye gerek yok.
+
+### Doğrulama takılırsa: iki tuzak, ikisi de bu alan adında yaşandı
+
+Kurulum yarım gün sürdü ve sebebi ikisi de **eski bir Resend kurulumundan
+kalan** kayıtlardı. Bir dahakine ilk bakılacak yer burası:
+
+1. **Selector'da birden fazla DKIM anahtarı.** `resend._domainkey` altında iki
+   TXT vardı. Bir DKIM selector'ı **tam olarak bir** anahtara çözülmek
+   zorundadır; ikisi birden varken doğrulayıcı hangisinin geçerli olduğunu
+   seçemez ve doğrulama hiç sonuçlanmaz. Belirtisi karakteristik: Resend
+   `failed` demez, `pending`de takılır — "baktım yanlış" değil, "karar
+   veremiyorum". İki anahtarın ilk 41 karakteri de aynıdır (standart RSA-1024
+   ASN.1 öneki), o yüzden göz kararı ayırt edilmez; 42. karakterden itibaren
+   karşılaştır.
+2. **Yanlış bölgeyi gösteren MX.** `send` MX'i `ap-northeast-1` diyordu, oysa
+   alan adı `eu-west-1`'de. Resend bunu bir süre `verified` gösterdi — kendi
+   kontrolü kaydın *varlığına* bakıyor, değerine değil.
+
+Teşhis için DNS'i **otoriteye** sor, önbelleğe değil; ara çözümleyiciler eski
+değeri dakikalarca tutar:
+
+```bash
+node -e 'const d=require("dns");d.resolve4("ns1.vercel-dns.com",(e,ips)=>{
+  const r=new d.Resolver();r.setServers(ips);
+  r.resolveTxt("resend._domainkey.laffogato.net",(e,t)=>console.log(t.length,"DKIM kaydi"));
+  r.resolveMx("send.laffogato.net",(e,m)=>console.log(m));})'
+```
+
+Bir kez `failed` görünmesi ölümcül değil: kayıtlar düzeltildikten sonra
+**Verify**'ı tekrar tetiklemek yeni bir denetim turu başlatır ve geçer.
 
 ---
 
