@@ -168,7 +168,36 @@ Uygulamanın şemasına çevrilseydi masaüstünde açan herkes için bozulurdu.
 Site URL'nin `https://laffogato.net` olması gerekir; site oraya
 `?dogrulandi=1` ile gelen üyeye doğrulamanın tuttuğunu söyler.
 
-## 5. Sır saklama kuralı
+## 5. Mesajın kendisi — şablonlar
+
+Sitenin gönderdiği on mesajın markup'ı `src/lib/email/templates/*.html`
+içinde durur; `send.ts` yalnızca alanları doldurur. Şablon dili, alan
+listesi ve paletin nereden geldiği o klasörün `README.md`'sinde.
+
+| Dosya                        | Ne yapar                                              |
+| ---------------------------- | ----------------------------------------------------- |
+| `templates/*.html`           | tasarımın kendisi; elle düzenlenen tek yer            |
+| `templates.generated.ts`     | derlenmiş string haritası — **commit'lenir**, elle düzenlenmez |
+| `fill.ts`                    | `[ALAN]`, `<!--IF:-->`, `<!--EACH:-->` ve HTML kaçışlama |
+| `render.ts`                  | şablon + değer → `{subject, html, text}` + 6563 kontrolü |
+| `text.ts`                    | her mesajın düz metin yarısı                          |
+
+Şablon değiştirdikten sonra `npm run email:build` (ya da `npm run build` /
+`npm run dev` — ikisi de kendiliğinden çalıştırır). Tarayıcıda görmek için
+geliştirmede `/dev/mail/<dosya-adi>`.
+
+**6563 ayrımı koda gömülü:** `bulten-kampanya`, `mobil-uygulama` ve
+`dogum-gunu` ticari iletidir ve çıkış bağlantısı olmadan derlenmez; kalan
+yedi işlemsel mesaja çıkış bağlantısı konulamaz. `renderEmail` ikisini de
+reddeder, `tests/email-templates.test.ts` ikisini de kilitler.
+
+**Mağaza linkleri:** uygulama henüz yayında değil.
+`NEXT_PUBLIC_APP_STORE_URL` ve `NEXT_PUBLIC_PLAY_STORE_URL` tanımlı değilken
+maillerdeki uygulama şeridi tümüyle düşer — hiçbir yere gitmeyen buton
+gönderilmez. İkisi de girildiğinde şerit kendiliğinden geri gelir; uygulama
+duyurusu maili ise onlar olmadan hiç gönderilmez.
+
+## 6. Sır saklama kuralı
 
 API anahtarı bu depoda **hiçbir dosyada** durmaz — `.env.example`'da da,
 belgede de, commit mesajında da. Anahtarın yeri Vercel'in ortam değişkenleri

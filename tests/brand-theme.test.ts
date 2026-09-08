@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
@@ -8,7 +8,18 @@ const css = read("src/app/globals.css");
 const manifest = read("src/app/manifest.ts");
 const slidePreview = read("src/app/admin/magaza-hero/slide-form.tsx");
 const ogImage = read("src/app/opengraph-image.tsx");
-const emails = read("src/lib/email/send.ts");
+/**
+ * The mail markup used to live in send.ts as template literals; it now sits in
+ * src/lib/email/templates/*.html and send.ts only fills the fields. The guard
+ * follows the paint — reading both means the retired-colour ban below covers
+ * the templates too.
+ */
+const emails = [
+  read("src/lib/email/send.ts"),
+  ...readdirSync(join(process.cwd(), "src/lib/email/templates"))
+    .filter((f) => f.endsWith(".html"))
+    .map((f) => read(join("src/lib/email/templates", f))),
+].join("\n");
 
 /** lafmobil's accent.burgundy / burgundyDeep / bg.accentSubtle, verbatim. */
 const APP_BURGUNDY = ["#84233C", "#4A0F1E", "#F6E9EC"] as const;
@@ -83,8 +94,14 @@ describe("palette follows the Köşk redesign", () => {
       ["slide-form.tsx", slidePreview],
       ["opengraph-image.tsx", ogImage],
       ["email/send.ts", emails],
-      ["degraded-auth-notice.tsx", read("src/components/customer/degraded-auth-notice.tsx")],
-      ["shop-hero-slider.tsx", read("src/components/laffogato/shop-hero-slider.tsx")],
+      [
+        "degraded-auth-notice.tsx",
+        read("src/components/customer/degraded-auth-notice.tsx"),
+      ],
+      [
+        "shop-hero-slider.tsx",
+        read("src/components/laffogato/shop-hero-slider.tsx"),
+      ],
       ["seo-content.tsx", read("src/components/laffogato/seo-content.tsx")],
       ["error.tsx", read("src/app/error.tsx")],
       ["global-error.tsx", read("src/app/global-error.tsx")],

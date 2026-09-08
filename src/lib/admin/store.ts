@@ -2460,6 +2460,8 @@ export async function applyPaymentSucceeded(input: {
             qty: it.qty,
             unitPriceMinor: it.unitPriceMinor,
           })),
+          subtotalMinor: order.subtotalMinor,
+          shippingMinor: order.shippingMinor,
           totalMinor: order.totalMinor,
         });
       }

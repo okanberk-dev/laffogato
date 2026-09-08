@@ -1,7 +1,12 @@
 import "server-only";
 
+import { hasAppLinks } from "@/lib/mobile/app-store";
 import { SITE } from "@/lib/seo/site";
 import { formatTRYMinor } from "@/lib/utils/commerce";
+
+import { renderEmail, type RenderInput } from "./render";
+import type { EmailTemplateName } from "./templates.generated";
+import { EMAIL_TEXT } from "./text";
 
 /**
  * Minimal transactional e-mail sender.
@@ -212,35 +217,49 @@ Gönderen: ${from}
   });
 }
 
+// ── Şablon tabanlı gönderim ────────────────────────────────────────────────
+//
+// Her mesaj `src/lib/email/templates/*.html` içindeki tasarımdan çıkar.
+// Buradaki fonksiyonların işi yalnızca alanları doldurmak: hangi değerin
+// nereden geldiği `docs/EMAIL-RESEND.md` §4'te.
+
+/**
+ * Render + deliver, with the render failure contained.
+ *
+ * `renderEmail` throws on an unfilled `[FIELD]` — which is what we want, a
+ * half-written message must not leave — but this is also the path a customer's
+ * order confirmation takes, and an order must not fail because a template did.
+ * So it is logged loudly and swallowed, exactly as a provider outage is.
+ */
+async function sendTemplate(
+  name: EmailTemplateName,
+  to: string,
+  input: Omit<RenderInput, "text">,
+): Promise<boolean> {
+  if (!to) return false;
+  try {
+    const r = renderEmail(name, { ...input, text: EMAIL_TEXT[name] });
+    return await send({
+      to,
+      subject: r.subject,
+      html: r.html,
+      text: r.text,
+      ...(r.unsubscribeUrl ? { unsubscribeUrl: r.unsubscribeUrl } : {}),
+    });
+  } catch (err) {
+    console.error(`[email] ${name} hazırlanamadı`, err);
+    return false;
+  }
+}
+
 export async function sendVerificationEmail(
   to: string,
   name: string,
   verifyUrl: string,
 ): Promise<boolean> {
-  const greeting = name ? `Merhaba ${name},` : "Merhaba,";
-  const subject = "L'Affogato — e-posta adresini doğrula";
-  const text = `${greeting}
-
-L'Affogato hesabını oluşturduğun için teşekkürler. Sipariş verebilmek için
-e-posta adresini doğrulaman gerekiyor:
-
-${verifyUrl}
-
-Bu bağlantı 24 saat geçerlidir. Bu hesabı sen oluşturmadıysan bu e-postayı
-yok sayabilirsin.
-
-— L'Affogato`;
-  const html = `<div style="font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
-  <p style="font-size:16px">${greeting}</p>
-  <p style="font-size:15px;line-height:1.6">L'Affogato hesabını oluşturduğun için teşekkürler. Sipariş verebilmek için e-posta adresini doğrulaman gerekiyor.</p>
-  <p style="margin:28px 0">
-    <a href="${verifyUrl}" style="background:#143d2b;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:14px;letter-spacing:0.04em">E-postamı doğrula</a>
-  </p>
-  <p style="font-size:13px;color:#5f594e;line-height:1.6">Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:<br><a href="${verifyUrl}" style="color:#8a6526">${verifyUrl}</a></p>
-  <p style="font-size:12px;color:#746b5d">Bağlantı 24 saat geçerlidir. Bu hesabı sen oluşturmadıysan e-postayı yok say.</p>
-  <p style="font-size:13px;color:#201c17;margin-top:24px">— L'Affogato · Coffee Italiano</p>
-</div>`;
-  return send({ to, subject, html, text });
+  return sendTemplate("eposta-dogrulama", to, {
+    vars: { AD: name.trim(), DOGRULAMA_URL: verifyUrl },
+  });
 }
 
 export async function sendPasswordResetEmail(
@@ -248,30 +267,9 @@ export async function sendPasswordResetEmail(
   name: string,
   resetUrl: string,
 ): Promise<boolean> {
-  const greeting = name ? `Merhaba ${name},` : "Merhaba,";
-  const subject = "L'Affogato — şifre sıfırlama";
-  const text = `${greeting}
-
-L'Affogato hesabın için şifre sıfırlama talebi aldık. Yeni şifreni belirlemek
-için aşağıdaki bağlantıya tıkla:
-
-${resetUrl}
-
-Bağlantı 1 saat geçerlidir ve yalnızca bir kez kullanılabilir. Bu talebi sen
-yapmadıysan hiçbir şey yapmana gerek yok — mevcut şifren değişmez.
-
-— L'Affogato`;
-  const html = `<div style="font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
-  <p style="font-size:16px">${greeting}</p>
-  <p style="font-size:15px;line-height:1.6">L'Affogato hesabın için şifre sıfırlama talebi aldık. Yeni şifreni belirlemek için aşağıdaki butona tıkla.</p>
-  <p style="margin:28px 0">
-    <a href="${resetUrl}" style="background:#143d2b;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:14px;letter-spacing:0.04em">Yeni şifre belirle</a>
-  </p>
-  <p style="font-size:13px;color:#5f594e;line-height:1.6">Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:<br><a href="${resetUrl}" style="color:#8a6526">${resetUrl}</a></p>
-  <p style="font-size:12px;color:#746b5d">Bağlantı 1 saat geçerlidir ve bir kez kullanılabilir. Bu talebi sen yapmadıysan hiçbir şey yapmana gerek yok; mevcut şifren değişmez.</p>
-  <p style="font-size:13px;color:#201c17;margin-top:24px">— L'Affogato · Coffee Italiano</p>
-</div>`;
-  return send({ to, subject, html, text });
+  return sendTemplate("sifre-sifirlama", to, {
+    vars: { AD: name.trim(), SIFIRLAMA_URL: resetUrl },
+  });
 }
 
 // ── Order notifications ────────────────────────────────────────────────────
@@ -281,7 +279,23 @@ export interface OrderEmailData {
   customerName: string;
   orderNo: number;
   items: { productName: string; qty: number; unitPriceMinor: number }[];
+  /**
+   * Line total before shipping. Optional so an older caller still compiles;
+   * when absent it is summed from `items`, which is the same number for every
+   * order that carries no discount.
+   */
+  subtotalMinor?: number;
+  shippingMinor?: number;
   totalMinor: number;
+}
+
+/** One `<!--EACH:ITEMS-->` pass per line. */
+function itemRows(items: OrderEmailData["items"]) {
+  return items.map((it) => ({
+    URUN_AD: it.productName,
+    URUN_ADET: String(it.qty),
+    URUN_TUTAR: formatTRYMinor(it.unitPriceMinor * it.qty),
+  }));
 }
 
 function orderLinesText(items: OrderEmailData["items"]): string {
@@ -293,19 +307,11 @@ function orderLinesText(items: OrderEmailData["items"]): string {
     .join("\n");
 }
 
-function orderLinesHtml(items: OrderEmailData["items"]): string {
-  return items
-    .map(
-      (it) =>
-        `<tr><td style="padding:6px 0;font-size:14px;color:#201c17">${it.productName} <span style="color:#746b5d">× ${it.qty}</span></td><td style="padding:6px 0;font-size:14px;text-align:right;color:#201c17">${formatTRYMinor(it.unitPriceMinor * it.qty)}</td></tr>`,
-    )
-    .join("");
-}
-
 /**
  * The contracts the buyer confirmed at checkout. Mesafeli Sözleşmeler
  * Yönetmeliği requires them to reach the consumer on a durable medium, so the
- * order e-mail carries a permanent link to each.
+ * order e-mail carries a permanent link to each. The HTML templates hard-code
+ * the same three; this list feeds the plain-text half.
  */
 const CONSENT_DOC_LINKS = [
   { label: "Ön Bilgilendirme Formu", slug: "on-bilgilendirme-formu" },
@@ -313,78 +319,227 @@ const CONSENT_DOC_LINKS = [
   { label: "İptal, İade ve Cayma Hakkı", slug: "iade-ve-cayma" },
 ].map((d) => ({ ...d, url: `${SITE.url}/hukuk/${d.slug}` }));
 
-function orderShellHtml(
-  greeting: string,
-  intro: string,
-  o: OrderEmailData,
-): string {
-  return `<div style="font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
-  <p style="font-size:16px">${greeting}</p>
-  <p style="font-size:15px;line-height:1.6">${intro}</p>
-  <p style="font-size:13px;color:#5f594e;margin:18px 0 6px">Sipariş No: <strong>#${o.orderNo}</strong></p>
-  <table style="width:100%;border-collapse:collapse;border-top:1px solid #ebe7de;border-bottom:1px solid #ebe7de;margin:6px 0">
-    ${orderLinesHtml(o.items)}
-  </table>
-  <p style="font-size:15px;text-align:right;margin:10px 0"><strong>Toplam: ${formatTRYMinor(o.totalMinor)}</strong></p>
-  <p style="font-size:12px;line-height:1.7;color:#5f594e;margin:22px 0 0;padding-top:14px;border-top:1px solid #ebe7de">
-    Sipariş sırasında onayladığın belgeler — kalıcı veri saklayıcısı olarak saklaman için:<br />
-    ${CONSENT_DOC_LINKS.map((d) => `<a href="${d.url}" style="color:#6b4e1a">${d.label}</a>`).join(" · ")}
-  </p>
-  <p style="font-size:13px;color:#201c17;margin-top:24px">— L'Affogato · Coffee Italiano</p>
-</div>`;
+const CONSENT_DOCS_TEXT = CONSENT_DOC_LINKS.map(
+  (d) => `- ${d.label}: ${d.url}`,
+).join("\n");
+
+function orderVars(o: OrderEmailData) {
+  const subtotal =
+    o.subtotalMinor ??
+    o.items.reduce((sum, it) => sum + it.unitPriceMinor * it.qty, 0);
+  const shipping = o.shippingMinor ?? Math.max(0, o.totalMinor - subtotal);
+  return {
+    AD: o.customerName.trim(),
+    SIPARIS_NO: String(o.orderNo),
+    // The list page is the fallback in `commonVars`; an order mail can do
+    // better and link the order it is actually about.
+    SIPARIS_URL: `${SITE.url}/uye/hesap/siparislerim/${o.orderNo}`,
+    ARA_TOPLAM: formatTRYMinor(subtotal),
+    KARGO: shipping === 0 ? "Ücretsiz" : formatTRYMinor(shipping),
+    TOPLAM: formatTRYMinor(o.totalMinor),
+    KALEMLER: orderLinesText(o.items),
+    BELGELER: CONSENT_DOCS_TEXT,
+  };
 }
 
 /** Sent when an order is created (payment still pending). */
 export async function sendOrderPlacedEmail(
   o: OrderEmailData,
 ): Promise<boolean> {
-  if (!o.to) return false;
-  const greeting = o.customerName ? `Merhaba ${o.customerName},` : "Merhaba,";
-  const subject = `L'Affogato — Siparişin alındı (#${o.orderNo})`;
-  const intro =
-    "Siparişini aldık. Ödemen onaylandığında siparişini hazırlamaya başlayacağız.";
-  const text = `${greeting}
-
-${intro}
-
-Sipariş No: #${o.orderNo}
-${orderLinesText(o.items)}
-
-Toplam: ${formatTRYMinor(o.totalMinor)}
-
-Onayladığın belgeler:
-${CONSENT_DOC_LINKS.map((d) => `- ${d.label}: ${d.url}`).join("\n")}
-
-— L'Affogato`;
-  return send({
-    to: o.to,
-    subject,
-    html: orderShellHtml(greeting, intro, o),
-    text,
+  return sendTemplate("siparis-alindi", o.to, {
+    vars: orderVars(o),
+    loops: { ITEMS: itemRows(o.items) },
   });
+}
+
+/**
+ * The stamp target the operator has configured, for the "one more stamp" panel.
+ *
+ * Read through a dynamic import for the same reason `emailIdentity` does it:
+ * `admin/store` imports this module for order mail, so a static import both
+ * ways is a cycle. A settings read must never cost an order confirmation, so
+ * the built-in default stands in when the database is unreachable.
+ */
+async function stampTarget(): Promise<string> {
+  try {
+    const { getSettings } = await import("@/lib/admin/store");
+    const s = await getSettings();
+    return String(s.mobileApp.loyalty.stampTarget);
+  } catch {
+    const { DEFAULT_MOBILE_APP_CONFIG } =
+      await import("@/lib/mobile/app-config");
+    return String(DEFAULT_MOBILE_APP_CONFIG.loyalty.stampTarget);
+  }
 }
 
 /** Sent when an order's payment is confirmed (status → paid). */
 export async function sendOrderPaidEmail(o: OrderEmailData): Promise<boolean> {
-  if (!o.to) return false;
-  const greeting = o.customerName ? `Merhaba ${o.customerName},` : "Merhaba,";
-  const subject = `L'Affogato — Ödemen onaylandı (#${o.orderNo})`;
-  const intro =
-    "Ödemen alındı ve siparişin onaylandı. Hazırlanmaya başlandı — Tuzla köşkünde bekleniyorsun.";
-  const text = `${greeting}
+  return sendTemplate("odeme-onaylandi", o.to, {
+    vars: { ...orderVars(o), DAMGA_HEDEFI: await stampTarget() },
+    loops: { ITEMS: itemRows(o.items) },
+  });
+}
 
-${intro}
+// ── Relationship & loyalty ─────────────────────────────────────────────────
 
-Sipariş No: #${o.orderNo}
-${orderLinesText(o.items)}
+/** Sent once, after the address is verified and the account is usable. */
+export async function sendWelcomeEmail(
+  to: string,
+  name: string,
+): Promise<boolean> {
+  return sendTemplate("hos-geldin", to, { vars: { AD: name.trim() } });
+}
 
-Toplam: ${formatTRYMinor(o.totalMinor)}
+export interface KaraokeEmailData {
+  to: string;
+  name: string;
+  /** Already formatted for a reader: "12 Eylül 2026", "20:00 – 22:00". */
+  date: string;
+  time: string;
+  guests: number;
+  code: string;
+}
 
-— L'Affogato`;
-  return send({
-    to: o.to,
-    subject,
-    html: orderShellHtml(greeting, intro, o),
-    text,
+/** Sent when staff confirm a karaoke block. */
+export async function sendKaraokeConfirmationEmail(
+  k: KaraokeEmailData,
+): Promise<boolean> {
+  return sendTemplate("karaoke-rezervasyon", k.to, {
+    vars: {
+      AD: k.name.trim(),
+      KARAOKE_TARIH: k.date,
+      KARAOKE_SAAT: k.time,
+      KARAOKE_KISI: `${k.guests} kişi`,
+      KARAOKE_KOD: k.code.toUpperCase(),
+    },
+  });
+}
+
+export interface LoyaltyRewardEmailData {
+  to: string;
+  name: string;
+  /** The coupon `grantFreeDrinkCoupon` just wrote. */
+  couponCode: string;
+  /** Already formatted: "30 Eylül 2026". */
+  expiresAt: string;
+  rewardTitle: string;
+}
+
+/** Sent when the stamp card fills and the free-drink coupon is granted. */
+export async function sendLoyaltyRewardEmail(
+  d: LoyaltyRewardEmailData,
+): Promise<boolean> {
+  return sendTemplate("sadakat-ikram", d.to, {
+    vars: {
+      AD: d.name.trim(),
+      DAMGA_HEDEFI: await stampTarget(),
+      ODUL_BASLIGI: d.rewardTitle,
+      KUPON_KODU: d.couponCode,
+      SON_KULLANIM: d.expiresAt,
+    },
+  });
+}
+
+// ── Commercial (6563) ──────────────────────────────────────────────────────
+//
+// These three carry an unsubscribe link and only go to an address that has
+// consented. `renderEmail` refuses to build them without `unsubscribeUrl`,
+// and refuses to put one on any of the transactional templates above.
+
+/** `${SITE.url}/bulten/cikis?token=…` — the token is on the subscriber row. */
+export function unsubscribeUrlFor(unsubToken: string): string {
+  return `${SITE.url}/bulten/cikis?token=${encodeURIComponent(unsubToken)}`;
+}
+
+export interface CampaignEmailData {
+  to: string;
+  name: string;
+  unsubToken: string;
+  title: string;
+  body: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  couponCode: string;
+  expiresAt: string;
+  /** Exactly three, which is what the template lays out. */
+  picks: { name: string; note: string; price: string }[];
+}
+
+export async function sendCampaignEmail(
+  c: CampaignEmailData,
+): Promise<boolean> {
+  const [p1, p2, p3] = c.picks;
+  if (!p1 || !p2 || !p3) {
+    console.error("[email] bulten-kampanya: üç ürün seçkisi gerekli");
+    return false;
+  }
+  return sendTemplate("bulten-kampanya", c.to, {
+    unsubscribeUrl: unsubscribeUrlFor(c.unsubToken),
+    vars: {
+      AD: c.name.trim(),
+      KAMPANYA_BASLIK: c.title,
+      KAMPANYA_METIN: c.body,
+      KAMPANYA_BUTON: c.ctaLabel,
+      KAMPANYA_URL: c.ctaUrl,
+      KUPON_KODU: c.couponCode,
+      SON_KULLANIM: c.expiresAt,
+      URUN_1_AD: p1.name,
+      URUN_1_NOT: p1.note,
+      URUN_1_FIYAT: p1.price,
+      URUN_2_AD: p2.name,
+      URUN_2_NOT: p2.note,
+      URUN_2_FIYAT: p2.price,
+      URUN_3_AD: p3.name,
+      URUN_3_NOT: p3.note,
+      URUN_3_FIYAT: p3.price,
+    },
+  });
+}
+
+/**
+ * The app launch announcement.
+ *
+ * Unlike the other nine, this one has nothing left to say without the store
+ * links — the strip is the message — so it is not sent at all until both
+ * listings exist.
+ */
+export async function sendAppAnnouncementEmail(
+  to: string,
+  name: string,
+  unsubToken: string,
+): Promise<boolean> {
+  if (!hasAppLinks()) {
+    console.error(
+      "[email] mobil-uygulama: NEXT_PUBLIC_APP_STORE_URL / NEXT_PUBLIC_PLAY_STORE_URL tanımlı değil, gönderilmedi",
+    );
+    return false;
+  }
+  return sendTemplate("mobil-uygulama", to, {
+    unsubscribeUrl: unsubscribeUrlFor(unsubToken),
+    vars: {
+      AD: name.trim(),
+    },
+  });
+}
+
+export interface BirthdayEmailData {
+  to: string;
+  name: string;
+  unsubToken: string;
+  /** From `maybeGrantBirthdayCoupon`. */
+  couponCode: string;
+  expiresAt: string;
+}
+
+export async function sendBirthdayEmail(
+  b: BirthdayEmailData,
+): Promise<boolean> {
+  return sendTemplate("dogum-gunu", b.to, {
+    unsubscribeUrl: unsubscribeUrlFor(b.unsubToken),
+    vars: {
+      AD: b.name.trim(),
+      KUPON_KODU: b.couponCode,
+      SON_KULLANIM: b.expiresAt,
+    },
   });
 }

@@ -18,7 +18,10 @@
     "test:watch": "vitest",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md,css}\"",
-    "legal:export": "node scripts/legal-export.mjs"
+    "legal:export": "node scripts/legal-export.mjs",
+    "email:build": "node scripts/build-email-templates.mjs",
+    "prebuild": "node scripts/build-email-templates.mjs",
+    "predev": "node scripts/build-email-templates.mjs"
   },
   "dependencies": {
     "@next/third-parties": "^16.2.9",

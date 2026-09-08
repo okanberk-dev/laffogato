@@ -3,3 +3,6 @@
 # equality check in tests/db-bundle.test.ts.
 src/lib/db/schema-sql.ts
 db/schema.sql
+
+# Derlenmiş şablon haritası — biçimi scripts/build-email-templates.mjs belirler.
+src/lib/email/templates.generated.ts

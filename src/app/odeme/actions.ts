@@ -228,6 +228,8 @@ export async function placeOrderAction(formData: FormData) {
         qty: it.qty,
         unitPriceMinor: it.unitPriceMinor,
       })),
+      subtotalMinor: order.subtotalMinor,
+      shippingMinor: order.shippingMinor,
       totalMinor: order.totalMinor,
     });
   } catch (err) {
