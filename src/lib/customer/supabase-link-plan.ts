@@ -156,6 +156,9 @@ export function planCustomerLink(
         termsAcceptedAt: termsAcceptedAtOf(user),
         marketingConsentAt,
         supabaseUserId: user.id,
+        // Born in Supabase: there is no site password to be newer than the
+        // identity, and the row's empty hash agrees with that.
+        passwordMirroredAt: "",
         supabaseLinkAttemptedAt: now,
         inviteCode: "",
         invitedBy: "",

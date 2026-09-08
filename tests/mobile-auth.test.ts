@@ -19,6 +19,7 @@ const TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1LTEifQ.c2lnbmF0dXJl";
 function customer(overrides: Partial<Customer> = {}): Customer {
   return {
     id: "cst-1",
+    passwordMirroredAt: "",
     email: "eda@example.com",
     name: "Eda Mancuso",
     phone: "+90 555 000 00 00",

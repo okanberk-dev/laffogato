@@ -62,6 +62,17 @@ export interface Customer {
    * failed link is not retried on every request. "" when never attempted.
    */
   supabaseLinkAttemptedAt: string;
+  /**
+   * ISO instant at which a password written HERE was confirmed written to
+   * Supabase too; "" when the last such write did not reach it (no service
+   * role, no linked identity, or the call failed).
+   *
+   * Non-empty means Supabase holds a password at least as new as this row's
+   * hash. That is the only thing that makes a disagreement between the two
+   * readable: it says the app moved, not us. Empty means we cannot tell, and
+   * this row's own copy stays the authority.
+   */
+  passwordMirroredAt: string;
   /** Referral code the member shares ("LAF-EDA24"); "" until generated. */
   inviteCode: string;
   /** E-mail of the member whose invite this account claimed; "" if none. */
@@ -303,6 +314,7 @@ export async function registerCustomer(
     termsAcceptedAt: now,
     marketingConsentAt: input.marketing ? now : "",
     supabaseUserId: "",
+    passwordMirroredAt: "",
     supabaseLinkAttemptedAt: "",
     inviteCode: "",
     invitedBy: "",
@@ -535,7 +547,7 @@ export async function resetPasswordWithToken(
   // bcrypt hash would retire the old password HERE and leave it opening the
   // app — which is precisely the credential a reset exists to kill. Ordered
   // after the conditional write so a losing race never touches Supabase.
-  await updateSupabasePassword(customer.supabaseUserId, newPassword);
+  await recordPasswordMirror(customer.id, customer.supabaseUserId, newPassword);
   return { ok: true, email: customer.email };
 }
 
@@ -617,6 +629,9 @@ export async function adoptSupabasePassword(
     .from(TABLES.customers)
     .update({
       passwordHash: await bcrypt.hash(password, 10),
+      // The two copies now agree, and they agree ON SUPABASE'S value - which
+      // is exactly the state the flag describes.
+      passwordMirroredAt: new Date().toISOString(),
       // A reset elsewhere spends this site's outstanding link too: two live
       // ways to set a password is one more than anybody needs.
       resetToken: "",
@@ -714,7 +729,57 @@ export async function changeCustomerPassword(
     .update({ passwordHash, updatedAt: new Date().toISOString() })
     .eq("email", needle);
   checkErr(error, "changeCustomerPassword");
+  // The same mirror the reset path does. Without it this write left Supabase
+  // holding the OLD password while the row held the new one - and the login
+  // bridge, seeing the two disagree, would take Supabase's word and adopt the
+  // old password back over the one the member had just chosen.
+  await recordPasswordMirror(customer.id, customer.supabaseUserId, newPassword);
   return { ok: true };
+}
+
+/**
+ * Writes a password to Supabase as well, and records on the row whether that
+ * actually happened.
+ *
+ * The flag is the whole point. `updateSupabasePassword` answers "updated",
+ * "skipped" (no service-role key, or no linked identity) or "failed", and to
+ * a later sign-in those three are indistinguishable from each other unless
+ * someone writes the answer down. `loginAction` reads it to decide which copy
+ * of the password is allowed to be the newer one.
+ */
+async function recordPasswordMirror(
+  customerId: string,
+  supabaseUserId: string,
+  newPassword: string,
+): Promise<void> {
+  const sync = await updateSupabasePassword(supabaseUserId, newPassword);
+  const { error } = await getDb()
+    .from(TABLES.customers)
+    .update({
+      passwordMirroredAt: sync === "updated" ? new Date().toISOString() : "",
+      updatedAt: new Date().toISOString(),
+    })
+    .eq("id", customerId);
+  // Never fatal: the password is already written, and a member who has just
+  // set one must not be told it failed because a bookkeeping column did.
+  if (error) {
+    console.error(
+      `[customer] password mirror flag not written: ${error.message}`,
+    );
+  }
+}
+
+/**
+ * True when Supabase is known to hold a password at least as new as this
+ * row's hash - i.e. the last password written here reached it.
+ */
+export async function supabaseHoldsLatestPassword(
+  email: string,
+): Promise<boolean> {
+  const customer = await fetchCustomer(normalizeEmail(email));
+  return Boolean(
+    customer && customer.supabaseUserId && customer.passwordMirroredAt,
+  );
 }
 
 // ─── Addresses ────────────────────────────────────────────────────────────

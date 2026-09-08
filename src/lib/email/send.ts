@@ -33,6 +33,15 @@ function headerSafe(raw: string): string {
   return raw.replace(/[\r\n]+/g, " ").trim();
 }
 
+/** `ed**@example.com` — enough to recognise a row, not enough to be one. */
+function maskEmail(address: string): string {
+  const at = address.indexOf("@");
+  if (at < 1) return "***";
+  const local = address.slice(0, at);
+  const head = local.slice(0, Math.min(2, local.length));
+  return `${head}${"*".repeat(Math.max(1, local.length - head.length))}${address.slice(at)}`;
+}
+
 /**
  * `Name <address>`, quoting the name when it carries a character an unquoted
  * atom may not (a comma in "L'Affogato, Tuzla" would otherwise read as a
@@ -134,8 +143,17 @@ async function deliver({
   const key = process.env.RESEND_API_KEY;
   const { from, replyTo } = await emailIdentity();
   if (!key) {
-    // No provider configured — log so the link is recoverable in dev/staging.
-    console.info(`[email] (no provider) → ${to} · ${subject}\n${text ?? html}`);
+    // No provider configured. The body is worth logging in development —
+    // without it a verification link is unrecoverable and the flow untestable
+    // — but it carries a single-use token URL and the recipient is a customer
+    // address, so neither goes to a production log (CLAUDE.md §9).
+    if (process.env.NODE_ENV === "production") {
+      console.info(`[email] (no provider) → ${maskEmail(to)} · ${subject}`);
+    } else {
+      console.info(
+        `[email] (no provider) → ${maskEmail(to)} · ${subject}\n${text ?? html}`,
+      );
+    }
     return { ok: false, error: "RESEND_API_KEY tanımlı değil." };
   }
   try {

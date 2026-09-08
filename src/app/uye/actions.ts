@@ -24,6 +24,7 @@ import {
   verifyCustomerLogin,
   adoptSupabasePassword,
   checkSitePassword,
+  supabaseHoldsLatestPassword,
   type AddressInput,
   type NotificationPrefs,
 } from "@/lib/customer/store";
@@ -31,7 +32,6 @@ import { linkCustomerToSupabase } from "@/lib/customer/supabase-bridge";
 import { deleteMe } from "@/lib/mobile/me";
 import { ensureCustomerForSupabaseUser } from "@/lib/customer/supabase-bridge";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { hasSupabaseAdmin } from "@/lib/supabase/admin";
 import { sendVerificationEmail } from "@/lib/email/send";
 import {
   subscribeNewsletter,
@@ -241,12 +241,20 @@ export async function resendVerificationAction(
       ? { message: "E-postan zaten doğrulanmış." }
       : { error: result.error };
   }
-  await sendVerificationEmail(
+  const sent = await sendVerificationEmail(
     result.email,
     result.name,
     verifyUrl(result.token),
   );
-  return { message: "Doğrulama bağlantısı e-postana gönderildi." };
+  // Saying "gönderildi" when it was not is how a member ends up refreshing an
+  // inbox for an hour. Unlike the sign-up and reset paths there is no reason
+  // to be vague here: they are signed in, so the answer reveals nothing.
+  return sent
+    ? { message: "Doğrulama bağlantısı e-postana gönderildi." }
+    : {
+        error:
+          "E-posta şu an gönderilemiyor. Kısa süre içinde tekrar dener misin?",
+      };
 }
 
 export type LoginFormState = {
@@ -285,19 +293,17 @@ export async function loginAction(
       if (linked.ok) {
         // Which copy of the password is the newer one?
         //
-        // With a service-role key every password written on this site is
-        // mirrored to Supabase (`resetPasswordWithToken`), so the two agree
-        // unless the APP changed it - the reset screen the recovery mail now
-        // lands on. Supabase is then the newer truth and this row's hash is
-        // stale: adopt it, or the member who just reset in the app finds their
-        // new password refused here and their old one still working.
-        //
-        // Without the key nothing is mirrored, so a reset done here never
-        // reached Supabase and the old password is still live there. The
-        // site's copy stays authoritative and a disagreement is a refusal.
+        // Not answerable from the two values, so the row carries the answer:
+        // `passwordMirroredAt` is stamped when a password written HERE was
+        // confirmed written to Supabase, and emptied when it was not. Set, it
+        // means Supabase cannot be holding anything older than this row - so a
+        // disagreement can only be the APP having moved, and taking Supabase's
+        // word is right. Unset, this site's copy may be the newer one and
+        // adopting would hand the account back to a password the member has
+        // already replaced.
         const agree = await checkSitePassword(linked.customer.email, password);
         if (agree === "mismatch") {
-          if (hasSupabaseAdmin()) {
+          if (await supabaseHoldsLatestPassword(linked.customer.email)) {
             await adoptSupabasePassword(linked.customer.email, password);
           } else {
             await signOutSupabase();
@@ -324,6 +330,26 @@ export async function loginAction(
         // decides, exactly as it did before the bridge existed.
       }
     }
+    // A refusal from Supabase is FINAL for a member whose latest password is
+    // known to be there. Falling through to bcrypt would otherwise accept a
+    // password Supabase has just replaced — which is the whole of what an
+    // app-side reset is supposed to have destroyed. An unreachable auth server
+    // is not a refusal and still falls through: locking every member out of
+    // the site during a Supabase outage is the worse failure.
+    if (
+      !viaSupabase.ok &&
+      viaSupabase.answered &&
+      (await supabaseHoldsLatestPassword(email))
+    ) {
+      const after = await recordLoginFailure("customer-login", ip, email);
+      return {
+        error: after.blocked
+          ? `Çok fazla başarısız deneme. ${after.retryAfterSeconds} saniye sonra tekrar dene.`
+          : "E-posta veya şifre hatalı.",
+        values: { email },
+      };
+    }
+
     if (supabaseSession) {
       sessionEmail = supabaseSession;
     } else {
@@ -374,20 +400,25 @@ type SupabaseSignIn =
         user_metadata: Record<string, unknown>;
       };
     }
-  | { ok: false };
+  /**
+   * `answered` distinguishes "Supabase said no" from "Supabase said nothing".
+   * They used to collapse into the same `{ok:false}`, which is fine while the
+   * bcrypt path is a free second opinion — and wrong once a refusal from
+   * Supabase has to be final for members whose identity lives there.
+   */
+  | { ok: false; answered: boolean };
 
 /**
- * `signInWithPassword` against the shared Supabase project. Any failure —
- * "Invalid login credentials", "Email not confirmed", or the auth server
- * being unreachable — hands the attempt to the bcrypt path; only the
- * non-credential failures are logged, since a wrong password is not an
- * incident.
+ * `signInWithPassword` against the shared Supabase project. A refused
+ * credential and an unreachable auth server are both failures here, but they
+ * are not the same failure: only the first is an answer. Only the second is
+ * logged — a wrong password is not an incident.
  */
 async function signInWithSupabase(
   email: string,
   password: string,
 ): Promise<SupabaseSignIn> {
-  if (!email.trim() || !password) return { ok: false };
+  if (!email.trim() || !password) return { ok: false, answered: false };
   try {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -401,12 +432,16 @@ async function signInWithSupabase(
           `[uye] supabase sign-in unavailable: ${error?.message ?? "no user"}`,
         );
       }
-      return { ok: false };
+      // 4xx is Supabase answering: wrong password, unconfirmed address, no
+      // such user. Anything else - no status, 0, 5xx - is it not answering.
+      const answered =
+        status !== undefined && status !== 0 && status < 500;
+      return { ok: false, answered };
     }
     return { ok: true, user: data.user };
   } catch (err) {
     console.error("[uye] supabase sign-in threw", err);
-    return { ok: false };
+    return { ok: false, answered: false };
   }
 }
 
@@ -466,20 +501,11 @@ export async function changePasswordAction(
   if (newPw !== confirm) return { error: "Yeni şifreler eşleşmiyor." };
   const result = await changeCustomerPassword(current.email, currentPw, newPw);
   if (!result.ok) return { error: result.error };
-  // Mirror to Supabase when this browser holds a Supabase session (it does
-  // after a bridged login); without one there is no way to update it here,
-  // and the login bridge refuses the stale password on the site regardless.
-  try {
-    const supabase = await createSupabaseServerClient();
-    const { data } = await supabase.auth.getUser();
-    if (data.user) {
-      const { error } = await supabase.auth.updateUser({ password: newPw });
-      if (error)
-        console.error(`[uye] supabase password sync failed: ${error.message}`);
-    }
-  } catch (err) {
-    console.error("[uye] supabase password sync threw", err);
-  }
+  // The mirror lives in `changeCustomerPassword` now, with the service role
+  // and a record of whether it landed. It used to be here, conditional on this
+  // browser holding a Supabase session — so the same change mirrored or not
+  // depending on how the member happened to have signed in, and nothing wrote
+  // down which had happened.
   // The change invalidates every cookie issued against the old password,
   // including this browser's — so re-issue one for the person who just did it.
   await setActiveCustomerSession(current.email);

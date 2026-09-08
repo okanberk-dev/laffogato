@@ -15,7 +15,7 @@ const ensureCustomerForSupabaseUser = vi.fn();
 const checkSitePassword = vi.fn();
 const adoptSupabasePassword = vi.fn();
 const verifyCustomerLogin = vi.fn();
-const hasSupabaseAdmin = vi.fn();
+const supabaseHoldsLatestPassword = vi.fn();
 const setActiveCustomerSession = vi.fn();
 const redirect = vi.fn(() => {
   throw new Error("NEXT_REDIRECT");
@@ -39,6 +39,7 @@ vi.mock("@/lib/customer/store", () => ({
   deleteCustomerAddress: vi.fn(),
   registerCustomer: vi.fn(),
   resetPasswordWithToken: vi.fn(),
+  supabaseHoldsLatestPassword,
   setCustomerDefaultAddress: vi.fn(),
   toggleWishlist: vi.fn(),
   updateCustomerAddress: vi.fn(),
@@ -57,7 +58,6 @@ vi.mock("@/lib/supabase/server", () => ({
     auth: { signInWithPassword, signOut },
   })),
 }));
-vi.mock("@/lib/supabase/admin", () => ({ hasSupabaseAdmin }));
 vi.mock("@/lib/mobile/me", () => ({ deleteMe: vi.fn() }));
 vi.mock("@/lib/admin/rate-limit", () => ({
   checkLoginLimit: vi.fn(async () => ({ blocked: false })),
@@ -95,7 +95,7 @@ beforeEach(() => {
     customer: { email: "eda@example.com" },
   });
   adoptSupabasePassword.mockResolvedValue(true);
-  hasSupabaseAdmin.mockReturnValue(true);
+  supabaseHoldsLatestPassword.mockResolvedValue(true);
 });
 
 describe("a password the app reset", () => {
@@ -114,19 +114,43 @@ describe("a password the app reset", () => {
     expect(signOut).not.toHaveBeenCalled();
   });
 
-  it("leaves the old one refused — Supabase rejects it, and the bcrypt copy is gone", async () => {
+  it("refuses the old one without consulting the stale bcrypt copy at all", async () => {
+    // The hole this closes: Supabase rejected the old password, the bcrypt
+    // path was asked for a second opinion, and the stale hash — still holding
+    // that very password — said yes. A reset that leaves the old password
+    // working is not a reset.
     signInWithPassword.mockResolvedValue({
       data: { user: null },
       error: { message: "Invalid login credentials", status: 400 },
     });
     verifyCustomerLogin.mockResolvedValue({
-      ok: false,
-      error: "E-posta veya şifre hatalı.",
+      ok: true,
+      customer: { email: "eda@example.com" },
     });
 
     const res = await loginAction({}, form("eda@example.com", "eski-sifre"));
     expect(res.error).toContain("hatalı");
+    expect(verifyCustomerLogin).not.toHaveBeenCalled();
     expect(setActiveCustomerSession).not.toHaveBeenCalled();
+  });
+
+  it("still lets the bcrypt copy answer when Supabase is unreachable", async () => {
+    // An auth server that did not answer has not refused anything, and
+    // locking every member out of the site for the length of a Supabase
+    // outage is the worse of the two failures.
+    signInWithPassword.mockResolvedValue({
+      data: { user: null },
+      error: { message: "service unavailable", status: 503 },
+    });
+    verifyCustomerLogin.mockResolvedValue({
+      ok: true,
+      customer: { email: "eda@example.com" },
+    });
+
+    await expect(loginAction({}, form("eda@example.com", "sifre"))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+    expect(verifyCustomerLogin).toHaveBeenCalled();
   });
 
   it("does not touch the hash when the two already agree", async () => {
@@ -148,14 +172,15 @@ describe("a password the app reset", () => {
   });
 });
 
-describe("without a service-role key", () => {
+describe("when the mirror is not known to have landed", () => {
   /**
-   * Nothing this site writes reaches Supabase, so a reset done HERE left the
-   * old password live there. Trusting Supabase would then let that old
-   * password back in and overwrite the new hash with it.
+   * `passwordMirroredAt` empty means a password written HERE may never have
+   * reached Supabase — no service-role key, an unlinked row, a failed call.
+   * Supabase can then be holding something OLDER than this row, and adopting
+   * it would roll a member's password change back to the one they replaced.
    */
   it("keeps this site's copy authoritative and refuses the disagreement", async () => {
-    hasSupabaseAdmin.mockReturnValue(false);
+    supabaseHoldsLatestPassword.mockResolvedValue(false);
     checkSitePassword.mockResolvedValue("mismatch");
 
     const res = await loginAction({}, form("eda@example.com", "eski-sifre"));
@@ -163,5 +188,22 @@ describe("without a service-role key", () => {
     expect(adoptSupabasePassword).not.toHaveBeenCalled();
     expect(signOut).toHaveBeenCalled();
     expect(setActiveCustomerSession).not.toHaveBeenCalled();
+  });
+
+  it("still offers the bcrypt path, which is the only copy that can be current", async () => {
+    supabaseHoldsLatestPassword.mockResolvedValue(false);
+    signInWithPassword.mockResolvedValue({
+      data: { user: null },
+      error: { message: "Invalid login credentials", status: 400 },
+    });
+    verifyCustomerLogin.mockResolvedValue({
+      ok: true,
+      customer: { email: "eda@example.com" },
+    });
+
+    await expect(loginAction({}, form("eda@example.com", "yeni-sifre"))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+    expect(verifyCustomerLogin).toHaveBeenCalled();
   });
 });
