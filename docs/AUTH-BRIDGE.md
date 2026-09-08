@@ -125,6 +125,17 @@ diğeri HMAC kullanır, yenilenecek çerezleri yoktur.
   satırı anonimleştirilir, uygulama oturumu kapatır. Supabase tarafındaki
   kullanıcının silinmesi ayrı bir operasyon görevidir (`docs/COMPLIANCE.md`,
   mobil repo).
+- **Bağlanmamış satırda sıfırlama Supabase'e ulaşmaz.** `supabaseUserId` boş
+  bir satır için aynasının yazacağı bir kimlik yoktur, dolayısıyla sitede
+  sıfırlanan parola Supabase'de eski kalır ve o adresle uygulamaya ESKİ
+  parolayla girilebilir. Pencere dardır: satırın bağlanmamış olması için tek
+  seferlik köprü denemesinin "obfuscated user" tuzağına düşmüş olması gerekir
+  (§3), yani o adreste zaten bir Supabase hesabı vardır. Satır, üyenin bir
+  sonraki Supabase girişinde bağlanır ve o andan itibaren ayna çalışır.
+  Kapatmanın yolu adresten Supabase kullanıcısı aramaktır; `auth.admin`'in JS
+  istemcisi bunu sayfalayarak tüm kullanıcı listesini taramadan yapamıyor, o
+  yüzden yapılmadı. `passwordMirroredAt` bu durumu boş bırakır, dolayısıyla
+  sitedeki giriş köprüsü temkinli dalda kalır (§4).
 - Parola sıfırlama: iki akış da duruyor (uygulamada Supabase'inki, sitede
   `?token=`'li kendi akışımız) ama artık **iki kopya da güncelleniyor**.
   Sitede sıfırlama Supabase'e servis rolüyle yazıyor
