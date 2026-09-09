@@ -445,11 +445,24 @@ async function signInWithSupabase(
   }
 }
 
-/** Best-effort: clears the Supabase cookies; never throws. */
+/**
+ * Best-effort: clears the Supabase cookies THIS browser holds; never throws.
+ *
+ * `scope: "local"` is the whole of it. supabase-js defaults to `global`, which
+ * revokes every refresh token the member has anywhere — so signing out of the
+ * website also signed them out of their phone, and the two calls on the failed
+ * login path did it to someone who had not signed in at all. A stale password
+ * that Supabase still accepts (the app-reset case) reaches that branch, which
+ * makes it a way to knock a member off their phone by failing a login.
+ *
+ * The app has always scoped its own sign-outs (`lafmobil ·
+ * src/lib/supabase/session.ts`); this side had not, and the comment above it
+ * described local behaviour the code did not have.
+ */
 async function signOutSupabase(): Promise<void> {
   try {
     const supabase = await createSupabaseServerClient();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
   } catch (err) {
     console.error("[uye] supabase sign-out failed", err);
   }

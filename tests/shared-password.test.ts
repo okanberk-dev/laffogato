@@ -172,6 +172,36 @@ describe("a password the app reset", () => {
   });
 });
 
+describe("signing out here does not sign the member out of their phone", () => {
+  /**
+   * supabase-js defaults `signOut()` to `global`, which revokes every refresh
+   * token the member holds anywhere. The site called it bare — so leaving the
+   * website killed the app session too, and the two calls on the FAILED login
+   * path did it to someone who never signed in. A password Supabase still
+   * accepts but this row has replaced reaches that branch, which turns a
+   * stale credential into a way to knock a member off their phone.
+   */
+  it("scopes the sign-out to this browser when a bridged login is refused", async () => {
+    supabaseHoldsLatestPassword.mockResolvedValue(false);
+    checkSitePassword.mockResolvedValue("mismatch");
+    verifyCustomerLogin.mockResolvedValue({
+      ok: false,
+      error: "E-posta veya şifre hatalı.",
+    });
+
+    await loginAction({}, form("eda@example.com", "eski-sifre"));
+
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(signOut).not.toHaveBeenCalledWith();
+  });
+
+  it("scopes the ordinary logout the same way", async () => {
+    const { logoutAction } = await import("@/app/uye/actions");
+    await expect(logoutAction()).rejects.toThrow("NEXT_REDIRECT");
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+});
+
 describe("when the mirror is not known to have landed", () => {
   /**
    * `passwordMirroredAt` empty means a password written HERE may never have

@@ -8,6 +8,7 @@ import type { DbError } from "@/lib/db";
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
 import { updateSupabasePassword } from "@/lib/supabase/admin";
+import { getSupabaseAnonClient } from "@/lib/supabase/anon";
 
 import { grantWelcomeCoupon } from "./coupons";
 
@@ -717,7 +718,17 @@ export async function changeCustomerPassword(
 
   const customer = await fetchCustomer(needle);
   if (!customer) return { ok: false, error: "Hesap bulunamadı." };
-  const ok = await bcrypt.compare(currentPassword, customer.passwordHash);
+  // Where does this member's current password actually live?
+  //
+  // A member who signed up in the APP has no bcrypt hash here — the row is
+  // created with `passwordHash: ""` (docs/AUTH-BRIDGE.md §3). Comparing
+  // against an empty hash is always false, so this form told them "Mevcut
+  // şifre hatalı" no matter what they typed, forever, and the app has no
+  // change-password screen either: the only way out was to pretend they had
+  // forgotten it.
+  const ok = customer.passwordHash
+    ? await bcrypt.compare(currentPassword, customer.passwordHash)
+    : await supabaseAcceptsPassword(customer, currentPassword);
   if (!ok) return { ok: false, error: "Mevcut şifre hatalı." };
   if (currentPassword === newPassword) {
     return { ok: false, error: "Yeni şifre, eskisinden farklı olmalı." };
@@ -735,6 +746,36 @@ export async function changeCustomerPassword(
   // old password back over the one the member had just chosen.
   await recordPasswordMirror(customer.id, customer.supabaseUserId, newPassword);
   return { ok: true };
+}
+
+/**
+ * Asks the identity provider whether this is the member's current password.
+ *
+ * Only reached for a row with no bcrypt hash of its own — one born in the app.
+ * The stateless anon client is used deliberately: `createSupabaseServerClient`
+ * would write session cookies as a side effect of a password CHECK, quietly
+ * re-authenticating whoever's browser is making the request.
+ *
+ * An unlinked row cannot be checked this way and returns false, which is the
+ * old behaviour: those members still have to use the reset link.
+ */
+async function supabaseAcceptsPassword(
+  customer: Customer,
+  password: string,
+): Promise<boolean> {
+  if (!customer.supabaseUserId || !password) return false;
+  try {
+    const { data, error } = await getSupabaseAnonClient().auth.signInWithPassword(
+      { email: customer.email, password },
+    );
+    return !error && data.user?.id === customer.supabaseUserId;
+  } catch (err) {
+    // PII rule: never the address.
+    console.error(
+      `[customer] supabase password check failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return false;
+  }
 }
 
 /**
