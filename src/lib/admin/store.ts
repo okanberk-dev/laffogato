@@ -42,6 +42,7 @@ import {
 } from "@/lib/mobile/order-pricing";
 import type { CheckoutConfig } from "@/lib/utils/commerce";
 import { priceLabel } from "@/lib/utils/format";
+import { imageVersion } from "./image-bytes";
 import {
   heroImagePath,
   menuImagePath,
@@ -3128,10 +3129,13 @@ function toDesignProduct(p: AdminProduct): DesignProduct {
     slug: p.slug,
     sku: p.sku,
     // Uploaded images are served from /gorsel/urun/... rather than inlined as
-    // base64: see src/lib/admin/image-url.ts.
+    // base64, with the content stamp that lets a cache keep them forever:
+    // see src/lib/admin/image-url.ts.
     images:
       p.images.length > 0
-        ? p.images.map((img, i) => servedImage(img, productImagePath(p.id, i)))
+        ? p.images.map((img, i) =>
+            servedImage(img, productImagePath(p.id, i, imageVersion(img))),
+          )
         : undefined,
     stock: p.stock,
     lowStockThreshold: p.lowStockThreshold,
@@ -3466,7 +3470,12 @@ async function listMenuForCustomerLive(): Promise<
         ...(it.tags.length > 0 ? { tags: [...it.tags] } : {}),
         hue: it.hue,
         ...(it.image
-          ? { image: servedImage(it.image, menuImagePath(it.id)) }
+          ? {
+              image: servedImage(
+                it.image,
+                menuImagePath(it.id, imageVersion(it.image)),
+              ),
+            }
           : {}),
       }));
     out[key] = {
@@ -3970,7 +3979,10 @@ export async function listActiveShopHeroSlides(): Promise<
       .filter((s) => s.isActive)
       .map((s) => ({
         ...s,
-        imageUrl: servedImage(s.imageUrl, heroImagePath(s.id)),
+        imageUrl: servedImage(
+          s.imageUrl,
+          heroImagePath(s.id, imageVersion(s.imageUrl)),
+        ),
       }));
   });
 }

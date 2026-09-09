@@ -10,6 +10,7 @@ import {
   type DayOfWeek,
   type WeeklyHours,
 } from "@/lib/admin/days";
+import { imageVersion } from "@/lib/admin/image-bytes";
 import {
   menuImagePath,
   productImagePath,
@@ -206,8 +207,15 @@ export function toMobileMenuItem(
     priceLargeMinor: it.priceMinorL > 0 ? it.priceMinorL : null,
     tags: [...it.tags],
     hue: it.hue,
+    // The path carries a stamp derived from the photo's own bytes, so this URL
+    // changes the moment the photo does and never otherwise: the app's disk
+    // cache misses on the new one immediately and re-downloads nothing when
+    // the photo is untouched. docs/API-MOBILE.md §1.
     image: it.image
-      ? absoluteImageUrl(servedImage(it.image, menuImagePath(it.id)), siteUrl)
+      ? absoluteImageUrl(
+          servedImage(it.image, menuImagePath(it.id, imageVersion(it.image))),
+          siteUrl,
+        )
       : null,
   };
 }
@@ -300,7 +308,10 @@ export function toMobileShopProduct(
     category: p.cat,
     hue: p.img,
     image: first
-      ? absoluteImageUrl(servedImage(first, productImagePath(p.id, 0)), siteUrl)
+      ? absoluteImageUrl(
+          servedImage(first, productImagePath(p.id, 0, imageVersion(first))),
+          siteUrl,
+        )
       : null,
     // Product-level stock, as the web card decides "Tükendi". Variant stock is
     // reported per variant below; placeOrder checks whichever was chosen.

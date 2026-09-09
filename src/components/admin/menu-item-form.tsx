@@ -97,7 +97,7 @@ export function MenuItemForm({
 
         <Field
           label="Fotoğraf"
-          hint="Yüklediğin görsel 1600 px'e küçültülür. Boş bırakırsan kategorisine uygun çizim kullanılır."
+          hint="Uzun kenarı 1600 px'e küçültülür; en iyi sonuç için en az 1600 px'lik bir fotoğraf seç (kaynak dosya en çok 12 MB, saklanan hâli 2 MB). Kaydettikten sonra sitede hemen, uygulamada en geç 5 dakika içinde görünür. Boş bırakırsan kategorisine uygun çizim kullanılır."
         >
           {/* Bu alan eskiden yalnızca `public/` altındaki bir dosya yolunu
               kabul ediyordu — Vercel'de panelden oraya dosya koymanın yolu yok

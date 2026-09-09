@@ -78,7 +78,8 @@ zaten varsa o satır kullanılır (**tek üyelik**).
           "priceLargeMinor": 21000, // L; tek boy ise null
           "tags": ["signature"], // signature | new | iced | nuts
           "hue": "caramel",
-          "image": "https://laffogato.net/gorsel/menu/mnu-0007", // ya da null
+          // Yüklenen fotoğraf: sürüm damgalı mutlak URL (aşağı bak), ya da null
+          "image": "https://www.laffogato.net/gorsel/menu/mnu-0007?v=6f1c2a9d3b40",
         },
       ],
     },
@@ -127,6 +128,63 @@ Cache: `public, s-maxage=300, stale-while-revalidate=3600`.
 Uygulama boyları **veriden** çizer: `priceLargeMinor === null` → tek boy; değilse M/L.
 (Tasarımdaki S/M/L üçlüsü katalogda yok — karar kaydı 6.)
 
+### `image` — sürümlü URL (9 Eyl 2026, yalnız ekleme)
+
+`image` **mutlak URL ya da null**; tipi değişmedi, anlamı netleşti.
+
+| Değer | Ne demek |
+| --- | --- |
+| `https://www.laffogato.net/gorsel/menu/<id>?v=<12 hex>` | Panelden yüklenmiş fotoğraf. `v`, fotoğrafın kendi baytlarının sha256'sının ilk 12 hanesi. |
+| `https://…` (başka host) | Adminin yapıştırdığı dış adres; olduğu gibi geçer, damga yok, önbelleğine o host karar verir. |
+| `https://www.laffogato.net/menu/<dosya>.webp` | Depoyla gelen sabit dosya (`public/`); damga yok, dosya adı zaten sabit. |
+| `null` | Fotoğraf yok — uygulama kendi çizimini kullanır. |
+
+**Damganın sözü:** aynı fotoğraf → **aynı URL** (hiçbir şey yeniden inmez);
+değişmiş fotoğraf → **daha önce hiçbir önbelleğin görmediği URL** (CDN de,
+uygulamanın URL ile anahtarlanan disk önbelleği de anında ıskalar). Damga
+`menu_items.updatedAt`'ten değil **içerikten** türer: kalemin adı ya da fiyatı
+değiştiğinde fotoğraf yeniden indirilmez.
+
+**Önbellek başlıkları** (`/gorsel/**`):
+
+| İstek | `Cache-Control` |
+| --- | --- |
+| `?v=` içeriğe uyuyor | `public, max-age=31536000, s-maxage=31536000, immutable` |
+| `?v=` yok ya da tutmuyor | `public, max-age=300, s-maxage=300` |
+
+`immutable` burada temenni değil tanım: `v` servis edilen baytların damgasıdır,
+o URL başka bayt döndüremez. Uygulama sürümlü URL'yi **süresiz** saklayabilir;
+`expo-image` için `cachePolicy="memory-disk"` doğru seçimdir ve `staleTime`
+düşürmeye gerek yoktur — URL değişmediyse indirme de yoktur.
+
+Rota `If-None-Match` kabul eder: eşleşirse gövdesiz **304**. `ETag`, fotoğrafın
+tam sha256'sıdır (`"<64 hex>"`), `v` onun ilk 12 hanesi.
+
+> **Eski sürümler.** URL'yi sunucu üretir, uygulama kurmaz — sahadaki eski
+> uygulama sürümleri de bu yanıttan damgalı URL alır, güncelleme gerekmez.
+> Damgasız `/gorsel/menu/<id>` çalışmaya devam eder (5 dk önbellek).
+
+### Tazelik penceresi — fotoğraf ne kadar sürede görünür?
+
+| Adım | Gecikme |
+| --- | --- |
+| Panel kaydeder → site | anında (`revalidatePath`) |
+| Panel kaydeder → `/menu` yanıtı CDN'de | **en çok 300 sn** |
+| Yeni `image` URL'si → uygulama fotoğrafı çizer | anında (yeni URL = önbellek ıskası) |
+
+300 sn'yi panel kısaltamaz: `revalidatePath()` Next'in **sunucu** önbelleğini
+düşürür, CDN kendi kopyasını `s-maxage` dolana kadar servis etmeye devam eder
+(Next 16 `docs/01-app/02-guides/cdn-caching.md`), üstelik bu rota
+`force-dynamic` olduğu için düşürülecek bir sunucu kaydı da yok. CDN purge API'si
+dağıtım kapsamlı bir sır ister; ayda birkaç kez değişen bir menü için 5 dakikalık
+gecikme buna değmez. **Uygulamanın kendi `staleTime`'ı bu pencerenin üstüne
+eklenir** — fotoğrafın 5 dakikada görünmesi isteniyorsa menü sorgusunun
+`staleTime`'ı da o mertebede olmalı.
+
+`GET /menu` artık `ETag` gönderir (yanıt gövdesinin sha256'sı) ve
+`If-None-Match` ile gövdesiz **304** döner. Uygulama daha sık sorabilir:
+değişmemiş bir menü artık yalnızca başlık kadar maliyetli.
+
 ## 2. `GET /shop` — mağaza ürünleri (herkese açık)
 
 ```jsonc
@@ -134,7 +192,7 @@ Uygulama boyları **veriden** çizer: `priceLargeMinor === null` → tek boy; de
   "id": "prd-0001", "slug": "sirena-espresso-blend", "name": "Sirena — Espresso Blend",
   "tag": "Çekirdek · 250g", "description": "…", "priceMinor": 32000, "compareAtPriceMinor": 0,
   "category": "beans",                // beans | gift | gear | merch | pantry
-  "hue": "caramel", "image": "https://…" | null,
+  "hue": "caramel", "image": "https://…?v=<12 hex>" | null,   // §1'deki damga kuralı ürün fotoğrafları için de geçerli
   "inStock": true,
   "variants": [ { "id": "var-…", "name": "250 g", "priceMinor": 32000, "inStock": true }, { "id": "var-…", "name": "1 kg", "priceMinor": 109000, "inStock": true } ],
   "grinds": [ "Çekirdek", "Espresso", "Filtre", "French Press" ]   // yalnız category === "beans"

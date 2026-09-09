@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { AdminMenuItem, AdminProduct } from "@/lib/admin/store";
 
 import type { WeeklyHours } from "@/lib/admin/days";
+import { imageVersion } from "@/lib/admin/image-bytes";
 import {
   DEFAULT_MOBILE_APP_CONFIG,
   normalizeMobileAppConfig,
@@ -167,7 +168,12 @@ describe("toMobileMenuItem (contract §1)", () => {
       menuItem({ image: "data:image/webp;base64,AAAA" }),
       SITE_URL,
     );
-    expect(out.image).toBe("https://laffogato.net/gorsel/menu/mnu-0007");
+    // The `?v=` is the photo's own content stamp — tests/image-version.test.ts
+    // holds it to its promise. Here only the shape matters.
+    expect(out.image).toBe(
+      `https://laffogato.net/gorsel/menu/mnu-0007?v=${imageVersion("data:image/webp;base64,AAAA")}`,
+    );
+    expect(out.image).toMatch(/\?v=[0-9a-f]{12}$/);
   });
 
   it("keeps a bundled site-relative photo absolute and an empty one null", () => {
@@ -331,7 +337,9 @@ describe("toMobileShopProduct (contract §2)", () => {
         product({ images: ["data:image/png;base64,AAAA", "https://b/2.png"] }),
         SITE_URL,
       ).image,
-    ).toBe("https://laffogato.net/gorsel/urun/prd-0001/0");
+    ).toBe(
+      `https://laffogato.net/gorsel/urun/prd-0001/0?v=${imageVersion("data:image/png;base64,AAAA")}`,
+    );
     expect(
       toMobileShopProduct(product({ images: ["https://cdn/a.png"] }), SITE_URL)
         .image,
