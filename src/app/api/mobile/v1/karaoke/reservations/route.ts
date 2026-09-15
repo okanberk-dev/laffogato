@@ -6,6 +6,7 @@ import {
   toReservationJson,
 } from "@/lib/mobile/karaoke";
 import { apiError, apiJson } from "@/lib/mobile/respond";
+import { notifyOperatorOfReservation } from "@/lib/mobile/karaoke-notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,6 +59,13 @@ export async function POST(request: Request) {
     if (!result.ok) {
       return apiError(result.status, result.error, result.message);
     }
+    // The room is booked by hand, so a request nobody reads is a request
+    // nobody honours. Awaited rather than fired and forgotten: this runtime
+    // can freeze the moment the response is returned, and a 15-second budget
+    // has room for one mail. Its failure is logged inside and never reaches
+    // the member — the reservation is already written and visible in the
+    // panel, and losing a booking over a bounced mail would be the worse bug.
+    await notifyOperatorOfReservation(result.reservation);
     return apiJson(
       { reservation: toReservationJson(result.reservation) },
       { status: 201, private: true },

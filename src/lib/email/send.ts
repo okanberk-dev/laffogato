@@ -4,6 +4,7 @@ import { hasAppLinks } from "@/lib/mobile/app-store";
 import { SITE } from "@/lib/seo/site";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
+import { escapeHtml } from "./fill";
 import { renderEmail, type RenderedEmail, type RenderInput } from "./render";
 import type { EmailTemplateName } from "./templates.generated";
 import { EMAIL_TEXT } from "./text";
@@ -432,6 +433,85 @@ export async function sendKaraokeConfirmationEmail(
       KARAOKE_KISI: `${k.guests} kişi`,
       KARAOKE_KOD: k.code.toUpperCase(),
     },
+  });
+}
+
+/**
+ * What the counter needs to know about a booking the app just took.
+ *
+ * Deliberately not `KaraokeEmailData`: that one is the MEMBER's confirmation
+ * and its template says "Saatiniz ayrıldı". A reservation arrives with
+ * `status: "requested"`, so telling the member it is confirmed would be a
+ * promise the staff have not made yet. This is the other direction — the room
+ * is booked by hand, and nobody was being told.
+ */
+export interface KaraokeOperatorNotice {
+  /** `krk-00042`, so the row is findable in /admin/mobil/karaoke. */
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  /** Already formatted for a reader: "12 Eylül 2026", "20:00 – 22:00". */
+  date: string;
+  time: string;
+  guests: number;
+  totalMinor: number;
+  /** The member's own note, or "" — printed as-is, never interpreted. */
+  note: string;
+}
+
+/**
+ * Tells the köşk that a karaoke hour was just requested from the app.
+ *
+ * INTERNAL mail: it goes to the operator address in Ayarlar
+ * (`settings.email`), carries no unsubscribe header (it is not a commercial
+ * message and offering to unsubscribe from it would be misleading — see
+ * `SendArgs.unsubscribeUrl`), and is written as plain text because its reader
+ * is a person behind a counter deciding whether to confirm, not a customer
+ * being courted.
+ *
+ * The member's address IS printed in full here, unlike everywhere else in this
+ * module: the operator has to be able to reply to them, and this message goes
+ * to the business's own inbox rather than to a customer.
+ *
+ * Failure is swallowed by the caller, not here — a booking must never be lost
+ * because mail bounced, and the row is in the panel either way.
+ */
+export async function sendKaraokeOperatorEmail(
+  k: KaraokeOperatorNotice,
+): Promise<SendResult> {
+  const { email } = await (async () => {
+    // Dynamic, for the cycle `emailIdentity` documents: admin/store imports
+    // this module for order mail.
+    const { getSettings } = await import("@/lib/admin/store");
+    return getSettings();
+  })();
+  const to = email.trim();
+  if (!to) return { ok: false, error: "Ayarlar'da bildirim adresi tanımlı değil." };
+
+  const lines = [
+    `Uygulamadan yeni bir karaoke rezervasyon talebi geldi.`,
+    ``,
+    `Rezervasyon : ${k.id}`,
+    `Tarih       : ${k.date}`,
+    `Saat        : ${k.time}`,
+    `Kişi        : ${k.guests}`,
+    `Tutar       : ${formatTRYMinor(k.totalMinor)}`,
+    ``,
+    `Üye         : ${k.customerName.trim() || "—"}`,
+    `E-posta     : ${k.customerEmail}`,
+    ...(k.note.trim() ? [``, `Notu        : ${k.note.trim()}`] : []),
+    ``,
+    `Durum: TALEP EDİLDİ — onaylanana kadar oda tutulmuş sayılmaz.`,
+    `Onaylamak ya da iptal etmek için: https://laffogato.net/admin/mobil/karaoke`,
+  ];
+
+  return deliver({
+    to,
+    subject: `Karaoke talebi · ${k.date} ${k.time} · ${k.guests} kişi (${k.id})`,
+    html: `<pre style="font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace">${lines
+      .map((l) => escapeHtml(l))
+      .join("\n")}</pre>`,
+    text: lines.join("\n"),
   });
 }
 
