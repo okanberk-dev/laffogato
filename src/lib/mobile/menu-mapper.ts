@@ -315,7 +315,17 @@ export function toMobileShopProduct(
     // Allergens are never withheld (lafmobil rule 4). The menu has published
     // this field since v1; the shop shelf carries a pistachio biscotti and
     // published nothing, so `nuts` had no way to reach a product page.
-    tags: [...p.tags],
+    //
+    // Guarded rather than spread straight, and the guard is about DEPLOY
+    // ORDER: products are read with `select("*")`, so between this code
+    // shipping and `20260916*_shop_allergens.sql` running, the row simply has
+    // no `tags` key — and `[...undefined]` throws, which would take `GET
+    // /shop` down for every member in the app rather than degrade. A shelf
+    // that briefly publishes no allergen is the same state it has been in
+    // since v1; a shelf that 500s is worse. The window closes the moment the
+    // migration runs, and `products.tags` is `not null default '[]'` after it,
+    // so this branch is unreachable from then on.
+    tags: Array.isArray(p.tags) ? [...p.tags] : [],
     hue: p.img,
     image: first
       ? absoluteImageUrl(

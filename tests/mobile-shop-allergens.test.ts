@@ -169,3 +169,23 @@ describe("the contract documents it", () => {
     expect(shop).toContain("signature");
   });
 });
+
+describe("deploy order", () => {
+  /**
+   * This code can reach production before its migration does — Vercel deploys
+   * on push, the SQL is run by hand. Between the two, `select("*")` returns a
+   * row with no `tags` key at all, and the mapper used to spread it.
+   *
+   * A shelf that briefly publishes no allergen is the state it has been in
+   * since v1. A shelf that answers 500 is worse: it takes the whole shop off
+   * the app for every member, including the ones who were only browsing.
+   */
+  it("publishes an empty allergen list rather than throwing when the column is not there yet", () => {
+    // The row as `select("*")` returns it before the column exists: no `tags`
+    // key at all, not an empty one.
+    const { tags: _absent, ...beforeMigration } = product();
+    const out2 = toMobileShopProduct(beforeMigration as AdminProduct, SITE_URL);
+    expect(out2.tags).toEqual([]);
+
+  });
+});
