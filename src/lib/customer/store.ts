@@ -183,7 +183,15 @@ export function usualColumnValue(
   return usual === null ? "null" : usual;
 }
 
-function toPublic(c: Customer): PublicCustomer {
+/**
+ * The public view of a full `customers` row.
+ *
+ * Exported so a caller that already holds the row (the Supabase bridge, after
+ * its own read) can narrow it instead of issuing a second identical
+ * `select * from customers where email = $1` — one extra round-trip on a pool
+ * of `max: 1`, on every bearer request the app makes.
+ */
+export function toPublicCustomer(c: Customer): PublicCustomer {
   const full = withDefaults(c);
   return {
     id: full.id,
@@ -341,7 +349,7 @@ export async function registerCustomer(
     }
     throw new Error(`registerCustomer: ${error.message}`);
   }
-  return { ok: true, customer: toPublic(customer), verifyToken: token };
+  return { ok: true, customer: toPublicCustomer(customer), verifyToken: token };
 }
 
 export type VerifyResult =
@@ -584,7 +592,7 @@ export async function verifyCustomerLogin(
       error: "Hesabın devre dışı bırakılmış. Lütfen bizimle iletişime geç.",
     };
   }
-  return { ok: true, customer: toPublic(customer) };
+  return { ok: true, customer: toPublicCustomer(customer) };
 }
 
 /**
@@ -650,7 +658,7 @@ export async function getCustomerByEmail(
   const needle = normalizeEmail(email);
   if (!needle) return null;
   const doc = await fetchCustomer(needle);
-  return doc ? toPublic(doc) : null;
+  return doc ? toPublicCustomer(doc) : null;
 }
 
 /**
@@ -699,7 +707,7 @@ export async function updateCustomerProfile(
     .eq("email", needle);
   checkErr(error, "updateCustomerProfile");
   const updated = await fetchCustomer(needle);
-  return updated ? toPublic(updated) : null;
+  return updated ? toPublicCustomer(updated) : null;
 }
 
 // ─── Password change ──────────────────────────────────────────────────────
@@ -878,7 +886,7 @@ async function persistAddresses(
   checkErr(error, "persistAddresses");
   const updated = await fetchCustomer(email);
   return updated
-    ? { ok: true, customer: toPublic(updated) }
+    ? { ok: true, customer: toPublicCustomer(updated) }
     : { ok: false, error: failMsg };
 }
 
@@ -1082,7 +1090,7 @@ export async function updateNotificationPrefs(
     .eq("email", needle);
   checkErr(error, "updateNotificationPrefs");
   const updated = await fetchCustomer(needle);
-  return updated ? toPublic(updated) : null;
+  return updated ? toPublicCustomer(updated) : null;
 }
 
 // ─── Admin management ───────────────────────────────────────────────────────

@@ -35,6 +35,25 @@ const LIST_PATH = "/admin/bulten/kampanya";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
+ * A stored instant as the operator reads it — Tuzla's clock, never the
+ * server's. The schedule is agreed in Istanbul time, so it is confirmed back
+ * in Istanbul time.
+ */
+const ISTANBUL_DATETIME = new Intl.DateTimeFormat("tr-TR", {
+  timeZone: "Europe/Istanbul",
+  day: "2-digit",
+  month: "long",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+function scheduleLabel(iso: string): string {
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ISTANBUL_DATETIME.format(new Date(ms)) : iso;
+}
+
+/**
  * Rol kapısı her action'da ayrıca açılır: sayfadaki `requireRole` bir Server
  * Action'ı korumaz — action, sayfadan bağımsız çağrılabilen bir POST ucudur.
  * Kapı burada yoksa, paneli hiç açmamış biri de rıza vermiş her üyeye ticari
@@ -47,6 +66,7 @@ type ParsedDraft =
       template: CampaignTemplateName;
       audience: CampaignAudience;
       fields: Record<string, string>;
+      scheduledAt: string;
     }
   | { ok: false; error: string };
 
@@ -84,7 +104,11 @@ function parseDraft(formData: FormData): ParsedDraft {
       error: parsed.error.issues[0]?.message ?? "Kampanya alanları geçersiz.",
     };
   }
-  return { ok: true, template, audience, fields: parsed.data };
+  // Zamanlama: boş = elle gönderilecek. Biçim denetimi sunucuda
+  // (`normalizeScheduledAt`) — okunamayan bir değer sessizce "elle"ye döner,
+  // kimsenin seçmediği bir saatte ticari ileti çıkmaz.
+  const scheduledAt = String(formData.get("scheduledAt") ?? "").trim();
+  return { ok: true, template, audience, fields: parsed.data, scheduledAt };
 }
 
 function describe(err: unknown): string {
@@ -107,6 +131,7 @@ export async function createCampaignMailAction(
       template: draft.template,
       audience: draft.audience,
       fields: draft.fields,
+      scheduledAt: draft.scheduledAt,
       createdBy: session.email,
     });
     id = created.id;
@@ -118,6 +143,7 @@ export async function createCampaignMailAction(
         template: created.template,
         audience: created.audience,
         subject: created.subject,
+        scheduledAt: created.scheduledAt,
       },
     });
   } catch (err) {
@@ -136,11 +162,13 @@ export async function updateCampaignMailAction(
   await requireRole("newsletter");
   const draft = parseDraft(formData);
   if (!draft.ok) return { error: draft.error };
+  let scheduledAt = "";
   try {
     const updated = await updateCampaignEmail(id, {
       template: draft.template,
       audience: draft.audience,
       fields: draft.fields,
+      scheduledAt: draft.scheduledAt,
     });
     // Null for both "no such campaign" and "no longer a draft": the send log
     // was built from the fields as they were, so a queued campaign is fixed.
@@ -150,6 +178,7 @@ export async function updateCampaignMailAction(
           "Taslak bulunamadı ya da bu arada kuyruğa alınmış. Kuyruğa alınan bir kampanya düzenlenemez; yeni bir taslak aç.",
       };
     }
+    scheduledAt = updated.scheduledAt;
     await logAudit({
       action: "update",
       entity: "campaign_email",
@@ -158,6 +187,7 @@ export async function updateCampaignMailAction(
         template: updated.template,
         audience: updated.audience,
         subject: updated.subject,
+        scheduledAt: updated.scheduledAt,
       },
     });
   } catch (err) {
@@ -165,7 +195,11 @@ export async function updateCampaignMailAction(
   }
   revalidatePath(LIST_PATH);
   revalidatePath(`${LIST_PATH}/${id}`);
-  return { message: "Taslak kaydedildi." };
+  return {
+    message: scheduledAt
+      ? `Taslak kaydedildi · ${scheduleLabel(scheduledAt)} için zamanlandı.`
+      : "Taslak kaydedildi.",
+  };
 }
 
 export async function deleteCampaignMailAction(formData: FormData) {

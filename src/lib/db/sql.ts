@@ -38,7 +38,7 @@ function quoteColumnList(columns: string): string {
     .join(", ");
 }
 
-export type FilterOp = "eq" | "neq" | "in" | "gte" | "lt" | "ilike";
+export type FilterOp = "eq" | "neq" | "ieq" | "in" | "gte" | "lt" | "ilike";
 
 export interface Filter {
   op: FilterOp;
@@ -133,6 +133,14 @@ function whereClause(filters: Filter[], bag: ParamBag): string {
         return `${col} >= ${bag.add(f.value)}`;
       case "lt":
         return `${col} < ${bag.add(f.value)}`;
+      case "ieq":
+        // Case-insensitive EQUALITY, not a pattern match. `ILIKE` with no
+        // wildcard reads the same but is an `~~*` operator, and Postgres has
+        // no btree opclass for it: the `lower(col)` expression indexes this
+        // schema carries (orders, counter_tokens, the order idempotency key)
+        // can never be chosen for one, so every such lookup was a sequential
+        // scan. `lower(col) = lower($1)` matches the index expression exactly.
+        return `lower(${col}) = lower(${bag.add(f.value)})`;
       case "ilike":
         return `${col} ILIKE ${bag.add(f.value)}`;
       case "in": {

@@ -10,7 +10,7 @@
  *
  * Supported surface (everything the codebase uses, nothing more):
  *   .from().select()/.insert()/.update()/.upsert()/.delete()
- *   .eq() .neq() .in() .gte() .ilike() .order() .limit() .maybeSingle()
+ *   .eq() .neq() .in() .gte() .ilike() .ieq() .order() .limit() .maybeSingle()
  *   .select("*", { count: "exact", head: true })
  *   .rpc(fn, namedArgs)
  *
@@ -151,6 +151,19 @@ abstract class QueryBuilder<T> implements PromiseLike<DbResult<T>> {
 
   lt(column: string, value: unknown): this {
     this.filters.push({ op: "lt", column, value });
+    return this;
+  }
+
+  /**
+   * Case-insensitive equality — `lower(col) = lower($1)`.
+   *
+   * Not part of PostgREST's surface; it exists because `.ilike()` with a
+   * wildcard-free needle looks like this but cannot use a `lower(col)` index
+   * (see the compiler note in ./sql). Prefer it over `.ilike()` wherever the
+   * needle is a whole value rather than a pattern.
+   */
+  ieq(column: string, value: string): this {
+    this.filters.push({ op: "ieq", column, value });
     return this;
   }
 

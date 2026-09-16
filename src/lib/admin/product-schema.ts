@@ -18,6 +18,46 @@ const HUE_VALUES = [
 
 const CAT_VALUES = ["beans", "gift", "gear", "merch", "pantry"] as const;
 
+/**
+ * The item-tag vocabulary, shared with the cafe menu (`menu_items.tags`) and
+ * with the app, which filters every incoming tag against this exact list and
+ * silently DROPS anything else (lafmobil `src/data/http.ts` KNOWN_TAGS). A tag
+ * invented here would therefore never reach a customer's screen — which for an
+ * allergen is the failure mode this list exists to prevent. Widening it means
+ * widening the app's `ItemTag` union in the same release.
+ */
+export const PRODUCT_TAG_VALUES = ["signature", "new", "iced", "nuts"] as const;
+
+/**
+ * The allergens inside that vocabulary — what `/admin/urunler` offers as a
+ * closed list. Today that is `nuts` alone; the shelf holds a pistachio
+ * biscotti, and lafmobil rule 4 is that allergen information is never hidden.
+ */
+export const PRODUCT_ALLERGEN_TAGS: readonly string[] = ["nuts"];
+
+/**
+ * Comma-separated on the wire, exactly like the menu item form's `tags` field,
+ * so both surfaces of the same column are filled the same way. Unknown words
+ * are dropped rather than stored: the app would drop them anyway, and a tag
+ * that exists only in the database reads as allergen coverage that is not
+ * there.
+ */
+const tagList = z
+  .string()
+  .optional()
+  .transform((raw) => {
+    const seen = new Set<string>();
+    for (const part of (raw ?? "").split(",")) {
+      const tag = part.trim().toLowerCase();
+      if (
+        PRODUCT_TAG_VALUES.includes(tag as (typeof PRODUCT_TAG_VALUES)[number])
+      ) {
+        seen.add(tag);
+      }
+    }
+    return [...seen];
+  });
+
 const moneyToMinor = z
   .string()
   .transform((s) => s.trim().replace(",", "."))
@@ -116,6 +156,7 @@ export const productFormSchema = z
     cat: z.enum(CAT_VALUES).default("beans"),
     img: z.enum(HUE_VALUES).default("cream"),
     images: imagesJsonArray,
+    tags: tagList,
     price: moneyToMinor,
     compareAtPrice: moneyToMinor.optional(),
     cost: moneyToMinor.optional(),
@@ -138,6 +179,7 @@ export const productFormSchema = z
     cat: v.cat,
     img: v.img,
     images: v.images,
+    tags: v.tags,
     priceMinor: v.price,
     compareAtPriceMinor: v.compareAtPrice ?? 0,
     costMinor: v.cost ?? 0,

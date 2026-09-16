@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { openOrderCountAction } from "@/app/admin/siparisler/actions";
+
 export interface AdminNavItem {
   href: string;
   label: string;
@@ -163,6 +165,50 @@ interface SidebarProps {
   logout: () => void;
 }
 
+/** How often the nav re-counts the open orders. Slower than the list's own poll. */
+const ORDER_BADGE_POLL_MS = 60_000;
+
+/**
+ * Open orders, counted for the nav badge.
+ *
+ * The panel has no other standing surface: every page is `force-dynamic` and
+ * dead once rendered, so an order that arrives from the app while the
+ * operator is on Stok changes nothing anywhere. The badge is that one
+ * standing surface. Returns null for a role with no order access (the action
+ * answers null itself) and for a poll that failed, and the badge then simply
+ * does not render.
+ */
+function useOpenOrderCount(pathname: string): number | null {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    async function read() {
+      if (document.visibilityState === "visible") {
+        try {
+          const n = await openOrderCountAction();
+          if (!cancelled) setCount(typeof n === "number" ? n : null);
+        } catch {
+          // Never let a background count take the panel down.
+        }
+      }
+      if (!cancelled) timer = setTimeout(read, ORDER_BADGE_POLL_MS);
+    }
+
+    void read();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+    // Re-read on navigation too: the operator who just completed an order
+    // should not wait a minute to watch the badge drop.
+  }, [pathname]);
+
+  return count;
+}
+
 function isActive(pathname: string, href: string): boolean {
   if (href === "/admin") return pathname === "/admin";
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -174,8 +220,13 @@ function SidebarBody({
   roleLabel,
   logout,
   pathname,
+  openOrders,
   onNavigate,
-}: SidebarProps & { pathname: string; onNavigate?: () => void }) {
+}: SidebarProps & {
+  pathname: string;
+  openOrders: number | null;
+  onNavigate?: () => void;
+}) {
   return (
     <div className="flex h-full flex-col">
       {/* Brand */}
@@ -208,6 +259,10 @@ function SidebarBody({
             <ul className="flex flex-col gap-0.5">
               {group.items.map((item) => {
                 const active = isActive(pathname, item.href);
+                const badge =
+                  item.section === "orders" && openOrders && openOrders > 0
+                    ? openOrders
+                    : null;
                 return (
                   <li key={item.href}>
                     <Link
@@ -230,6 +285,15 @@ function SidebarBody({
                     >
                       <NavIcon section={item.section} />
                       <span className="truncate">{item.label}</span>
+                      {badge !== null && (
+                        <span
+                          className="ml-auto min-w-[22px] rounded-full bg-[var(--admin-primary)] px-1.5 py-0.5 text-center text-[10px] leading-4 font-medium text-white"
+                          style={{ fontFamily: "var(--mono), monospace" }}
+                          title="Açık sipariş (ödeme bekleyen · ödenen · hazırlanan)"
+                        >
+                          {badge > 99 ? "99+" : badge}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );
@@ -282,6 +346,7 @@ function SidebarBody({
 export function AdminSidebar(props: SidebarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const openOrders = useOpenOrderCount(pathname);
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => {
@@ -292,7 +357,7 @@ export function AdminSidebar(props: SidebarProps) {
     <>
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-[var(--admin-border)] bg-white lg:block">
-        <SidebarBody {...props} pathname={pathname} />
+        <SidebarBody {...props} pathname={pathname} openOrders={openOrders} />
       </aside>
 
       {/* Mobile top bar */}
@@ -366,6 +431,7 @@ export function AdminSidebar(props: SidebarProps) {
             <SidebarBody
               {...props}
               pathname={pathname}
+              openOrders={openOrders}
               onNavigate={() => setOpen(false)}
             />
           </aside>

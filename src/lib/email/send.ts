@@ -418,22 +418,50 @@ export interface KaraokeEmailData {
   date: string;
   time: string;
   guests: number;
+  /**
+   * The reservation id — `krk-00042` — which is what the member is asked for
+   * at the door. There is no separate "reservation code" column and none is
+   * needed: the id is already unique, sequential and readable, and it is the
+   * string both halves of the message print.
+   */
   code: string;
 }
 
-/** Sent when staff confirm a karaoke block. */
+function karaokeVars(k: KaraokeEmailData) {
+  return {
+    AD: k.name.trim(),
+    KARAOKE_TARIH: k.date,
+    KARAOKE_SAAT: k.time,
+    KARAOKE_KISI: `${k.guests} kişi`,
+    // `toUpperCase` rather than the Turkish-locale one on purpose: the id is
+    // ASCII (`krk-00042`), and tr-TR would turn an "i" into "İ" if one ever
+    // appeared in it.
+    KARAOKE_KOD: k.code.toUpperCase(),
+  };
+}
+
+/**
+ * Sent when staff confirm a karaoke block (`setReservationStatus`).
+ *
+ * Transactional: the member asked for the evening and is being told whether
+ * they have it. No consent gate, no unsubscribe link — `renderEmail` refuses
+ * to put one on this template.
+ */
 export async function sendKaraokeConfirmationEmail(
   k: KaraokeEmailData,
 ): Promise<boolean> {
-  return sendTemplate("karaoke-rezervasyon", k.to, {
-    vars: {
-      AD: k.name.trim(),
-      KARAOKE_TARIH: k.date,
-      KARAOKE_SAAT: k.time,
-      KARAOKE_KISI: `${k.guests} kişi`,
-      KARAOKE_KOD: k.code.toUpperCase(),
-    },
-  });
+  return sendTemplate("karaoke-rezervasyon", k.to, { vars: karaokeVars(k) });
+}
+
+/**
+ * Sent when staff cancel a karaoke block. Transactional for the same reason
+ * as the confirmation, and more urgently: without it the member finds out at
+ * the door.
+ */
+export async function sendKaraokeCancellationEmail(
+  k: KaraokeEmailData,
+): Promise<boolean> {
+  return sendTemplate("karaoke-iptal", k.to, { vars: karaokeVars(k) });
 }
 
 /**
@@ -639,11 +667,28 @@ export interface BirthdayEmailData {
   to: string;
   name: string;
   unsubToken: string;
-  /** From `maybeGrantBirthdayCoupon`. */
+  /**
+   * From `grantBirthdayCouponToday` — and only when it actually WROTE a row.
+   * That single fact is the run's idempotency key: a member already greeted
+   * this year gets `null` back and no message.
+   */
   couponCode: string;
+  /**
+   * Already formatted: "23 Eylül 2026". Seven days from the grant, which is
+   * what both halves of the template promise — see `BIRTHDAY.ttlDays`.
+   */
   expiresAt: string;
 }
 
+/**
+ * The birthday greeting, from the daily cron (`/api/cron/birthday`).
+ *
+ * COMMERCIAL (6563): a celebration wrapped around a %20 offer is still an
+ * offer, so it only goes to a member whose `marketing` preference is on and
+ * who has a consent record, and it carries `List-Unsubscribe`. The coupon
+ * itself is not a message and is granted without that gate — a member who
+ * declined commercial mail still finds their gift in the app.
+ */
 export async function sendBirthdayEmail(
   b: BirthdayEmailData,
 ): Promise<boolean> {

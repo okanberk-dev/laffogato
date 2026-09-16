@@ -2,6 +2,7 @@
 
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { getCustomerByEmail } from "@/lib/customer/store";
 import { isDbUnreachable } from "@/lib/db/health";
 import {
   redeemCounterToken,
@@ -48,6 +49,10 @@ const MSG = {
   empty: "Önce bir QR okut, kod yaz ya da e-posta gir.",
   dbDown: "Veritabanına şu an ulaşılamıyor. Kısa süre içinde tekrar dene.",
   failed: "Damga verilemedi. Tekrar dene.",
+  noMember:
+    "Bu adrese ait üye hesabı yok. Adresi kontrol et ya da üyeden QR'ını açmasını iste.",
+  closedMember:
+    "Bu üye hesabı kapalı; damga işlenmez. Üyeden hesabını açmasını iste.",
 } as const;
 
 export async function redeemCounterTokenAction(
@@ -66,6 +71,17 @@ export async function redeemCounterTokenAction(
 
   let result;
   try {
+    // The QR and the code carry a member with them — the token row names the
+    // account it was minted for. A TYPED ADDRESS carries nobody: without this
+    // check `uye@gmial.com` passes the format test, gets its own ledger rows
+    // and comes back as a green receipt, while the member it was meant for
+    // sees no stamp and the rows sit under an address that belongs to no one.
+    if (kind === "email") {
+      const member = await getCustomerByEmail(value);
+      if (!member) return { error: MSG.noMember };
+      if (!member.isActive) return { error: MSG.closedMember };
+    }
+
     result = await redeemCounterToken({
       kind,
       value,

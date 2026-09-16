@@ -27,6 +27,10 @@ interface Props {
  * confirmed booking in the meantime, or someone else already answered this
  * request — and they used to return void, so the button just re-rendered the
  * same row and the staff member assumed it had worked.
+ *
+ * Both now also mail the member (confirmation or cancellation), so the
+ * success sentence is shown too: it says whether that message left. A booking
+ * the member was never told about is the whole failure this was built to end.
  */
 export function KaraokeReservationActions({
   id,
@@ -41,7 +45,10 @@ export function KaraokeReservationActions({
     cancelReservationAction,
     initial,
   );
-  const feedback = confirmState.error ?? cancelState.error;
+  const error = confirmState.error ?? cancelState.error;
+  const message = confirmState.message ?? cancelState.message;
+  // "Gönderilemedi" is the one success worth reading as a warning.
+  const mailFailed = Boolean(message?.includes("GÖNDERİLEMEDİ"));
 
   return (
     <div className="grid justify-items-end gap-2">
@@ -63,12 +70,24 @@ export function KaraokeReservationActions({
           </form>
         ) : null}
       </div>
-      {feedback ? (
+      {error ? (
         <p
           role="alert"
           className="max-w-sm rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700"
         >
-          {feedback}
+          {error}
+        </p>
+      ) : null}
+      {!error && message ? (
+        <p
+          role="status"
+          className={`max-w-sm rounded-lg px-3 py-2 text-xs ${
+            mailFailed
+              ? "bg-amber-50 text-amber-800"
+              : "bg-emerald-50 text-emerald-700"
+          }`}
+        >
+          {message}
         </p>
       ) : null}
     </div>

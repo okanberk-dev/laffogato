@@ -30,6 +30,12 @@ export interface CampaignMailDefaults {
   template?: CampaignTemplateName;
   audience?: CampaignAudience;
   fields?: Record<string, string>;
+  /**
+   * `YYYY-AA-GGTSS:DD` in Istanbul wall time — what a `datetime-local` input
+   * reads and writes. The server turns it into an instant; the page turns the
+   * stored instant back into one of these (`scheduledAtInputValue`).
+   */
+  scheduledAt?: string;
 }
 
 const initial: CampaignMailState = {};
@@ -71,6 +77,7 @@ export function CampaignMailForm({
   const [values, setValues] = useState<Record<string, string>>(
     defaults?.fields ?? {},
   );
+  const [scheduledAt, setScheduledAt] = useState(defaults?.scheduledAt ?? "");
 
   const setValue = (key: string, value: string) =>
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -135,6 +142,27 @@ export function CampaignMailForm({
               <input type="hidden" name="audience" value={audience} />
             )}
           </Field>
+        </div>
+
+        <div className="mt-4">
+          <Field
+            label="Gönderim zamanı"
+            hint="Boş bırakırsan kampanya yalnız “Gönder”e bastığında çıkar. Bir tarih–saat yazarsan saatlik görev o an gelince kendisi kuyruğa alır — Anneler Günü, yılbaşı, 14 Şubat sabahı panelin başında olmana gerek kalmaz. Saat İstanbul saatidir; bir taslak kaydedildiği andan itibaren geçerlidir."
+          >
+            <TextInput
+              name="scheduledAt"
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+            />
+          </Field>
+          {scheduledAt && (
+            <p className="mt-2 text-xs text-amber-700">
+              Zamanı gelince kampanya <strong>kendiliğinden</strong> gider;
+              içeriğin tamam olduğundan emin ol. Vazgeçersen bu alanı boşaltıp
+              taslağı yeniden kaydet.
+            </p>
+          )}
         </div>
       </Card>
 

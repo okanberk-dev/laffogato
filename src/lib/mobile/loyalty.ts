@@ -3,7 +3,7 @@ import "server-only";
 import type { DbError } from "@/lib/db";
 
 import {
-  customerOrdersByEmail,
+  customerLoyaltyOrders,
   getSettings,
   orderChannel,
   orderKind,
@@ -85,9 +85,13 @@ async function newStampId(): Promise<string> {
 /** The `/me.loyalty` block for a member. */
 export async function getLoyalty(email: string): Promise<LoyaltyView> {
   const owner = normalizeEmail(email);
+  // Three columns, not `select *`: the tier counts a rolling year and the
+  // badges read a lifetime, so this read cannot be paged — but it does not
+  // need the refund ledger, the consent evidence or the shipping address of
+  // every order the member ever placed either.
   const [stamps, orders, rules] = await Promise.all([
     listStamps(owner),
-    customerOrdersByEmail(owner),
+    customerLoyaltyOrders(owner),
     loyaltyRules(),
   ]);
   return buildLoyaltyView(stamps, orders, Date.now(), rules.stampTarget);

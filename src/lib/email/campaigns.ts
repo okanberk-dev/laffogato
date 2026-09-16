@@ -82,6 +82,13 @@ export interface CampaignEmail {
   sourcePostId: string;
   createdBy: string;
   createdAt: string;
+  /**
+   * When the operator wants this to go out, ISO-8601, or "" for "by hand".
+   * Read only while the campaign is still a draft: the hourly cron queues
+   * every draft whose moment has passed, which is the whole of the "özel
+   * günler" feature. After the queue it is history, not a schedule.
+   */
+  scheduledAt: string;
   queuedAt: string;
   sentAt: string;
   total: number;
@@ -96,6 +103,8 @@ export interface CampaignInput {
   fields: Record<string, string>;
   sourcePostId?: string;
   createdBy: string;
+  /** ISO-8601 instant, or "" — see `CampaignEmail.scheduledAt`. */
+  scheduledAt?: string;
 }
 
 export const CAMPAIGN_AUDIENCES: readonly CampaignAudience[] = [
@@ -275,6 +284,51 @@ function parseFields(raw: Record<string, string>): Record<string, string> {
   return parsed.data;
 }
 
+/**
+ * Turkey has been on UTC+3 all year round since September 2016 — no summer
+ * time, no second offset to guess. So a wall-clock the operator types is an
+ * instant, deterministically.
+ */
+const ISTANBUL_OFFSET = "+03:00";
+
+/** `<input type="datetime-local">`: local wall time, no zone. */
+const LOCAL_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/;
+
+/**
+ * A stored `scheduledAt`: an ISO-8601 instant, or "".
+ *
+ * The panel's `datetime-local` input carries NO zone, and `Date.parse` on a
+ * zoneless string uses the running machine's — which on Vercel is UTC. An
+ * operator who typed "14 Şubat 09:00" would have got 12:00 in Tuzla. So a
+ * zoneless value is read as Istanbul wall time, explicitly; a value that
+ * already names a zone is taken as it is.
+ *
+ * Anything unparseable becomes "": a campaign whose schedule could not be
+ * read waits for a person rather than going out at an hour nobody chose.
+ */
+function normalizeScheduledAt(raw: string | undefined): string {
+  const value = (raw ?? "").trim();
+  if (!value) return "";
+  const ms = Date.parse(
+    LOCAL_DATETIME.test(value) ? `${value}${ISTANBUL_OFFSET}` : value,
+  );
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : "";
+}
+
+/**
+ * The stored instant back as the `datetime-local` value that produced it —
+ * Istanbul wall time, minutes, no zone. Without this the edit form would
+ * reopen a 09:00 schedule as 06:00 and saving it again would walk it back
+ * three hours every time.
+ */
+export function scheduledAtInputValue(iso: string): string {
+  if (!iso) return "";
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return "";
+  // +03:00 shifted onto the UTC clock, then the ISO text cut at the minute.
+  return new Date(ms + 3 * 60 * 60_000).toISOString().slice(0, 16);
+}
+
 /** The subject IS the campaign title, for every campaign template. */
 export function subjectFor(input: { fields: Record<string, string> }): string {
   return (input.fields.KAMPANYA_BASLIK ?? "").trim();
@@ -354,6 +408,7 @@ function toCampaign(row: Record<string, unknown>): CampaignEmail {
     sourcePostId: str(row.sourcePostId),
     createdBy: str(row.createdBy),
     createdAt: str(row.createdAt),
+    scheduledAt: str(row.scheduledAt),
     queuedAt: str(row.queuedAt),
     sentAt: str(row.sentAt),
     total: num(row.total),
@@ -400,6 +455,7 @@ export async function createCampaignEmail(
     sourcePostId: (input.sourcePostId ?? "").trim().slice(0, 100),
     createdBy: input.createdBy.trim().slice(0, 200),
     createdAt: now,
+    scheduledAt: normalizeScheduledAt(input.scheduledAt),
     queuedAt: "",
     sentAt: "",
     total: 0,
@@ -442,6 +498,10 @@ export async function updateCampaignEmail(
       audience,
       fields,
       subject: subjectFor({ fields }),
+      scheduledAt:
+        patch.scheduledAt !== undefined
+          ? normalizeScheduledAt(patch.scheduledAt)
+          : current.scheduledAt,
       sourcePostId:
         patch.sourcePostId !== undefined
           ? patch.sourcePostId.trim().slice(0, 100)
@@ -909,14 +969,76 @@ export async function runCampaignEmail(
 }
 
 /**
- * The cron's entry point: every campaign still queued or mid-send, oldest
- * first, within one shared deadline. A campaign that throws is recorded as
- * failed by `runCampaignEmail` and does not stop the others.
+ * Queues every draft whose `scheduledAt` has come — the whole of "özel
+ * günler".
+ *
+ * There is no separate scheduler and no special-days table: the operator
+ * writes the campaign the way they always have, names a moment, and this
+ * turns it into the same `queueCampaignEmail` call the "Gönder" button makes.
+ * Everything downstream (audience rule, 100-a-batch, idempotency key, retry)
+ * is the pipeline that was already there.
+ *
+ * A campaign that cannot be queued — a hole in the template, a status that
+ * moved on — is logged and its schedule cleared so the next hour does not
+ * retry it forever; the draft stays a draft for a person to fix. Every other
+ * campaign in the sweep still goes.
+ */
+async function queueDueCampaigns(nowIso: string): Promise<string[]> {
+  const { data, error } = await getDb()
+    .from(TABLES.campaignEmails)
+    .select("*")
+    .eq("status", "draft")
+    .order("scheduledAt", { ascending: true });
+  checkErr(error, "queueDueCampaigns");
+  const due = ((data as Record<string, unknown>[] | null) ?? [])
+    .map(toCampaign)
+    .filter((c) => c.scheduledAt !== "" && c.scheduledAt <= nowIso);
+
+  const queued: string[] = [];
+  for (const c of due) {
+    try {
+      await queueCampaignEmail(c.id);
+      queued.push(c.id);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[campaign] ${c.id}: zamanlanmış gönderim başlatılamadı`,
+        err,
+      );
+      try {
+        await getDb()
+          .from(TABLES.campaignEmails)
+          .update({
+            scheduledAt: "",
+            lastError: `Zamanlanmış gönderim başlatılamadı: ${message}`.slice(
+              0,
+              500,
+            ),
+          })
+          .eq("id", c.id)
+          .eq("status", "draft");
+      } catch {
+        // The original failure is the one worth surfacing; the next hour
+        // will try again, which is better than losing the campaign.
+      }
+    }
+  }
+  return queued;
+}
+
+/**
+ * The cron's entry point, in two steps: first every draft whose scheduled
+ * moment has passed is queued, then every campaign still queued or mid-send
+ * is carried on, oldest first, within one shared deadline. Doing both here is
+ * what lets a campaign scheduled for 09:00 actually leave at 09:00 rather
+ * than an hour later. A campaign that throws is recorded as failed by
+ * `runCampaignEmail` and does not stop the others.
  */
 export async function resumePendingCampaigns(
-  opts: { deadlineMs?: number } = {},
+  opts: { deadlineMs?: number; now?: Date } = {},
 ): Promise<Array<{ id: string } & RunResult>> {
   const deadlineAt = Date.now() + (opts.deadlineMs ?? DEFAULT_DEADLINE_MS);
+  await queueDueCampaigns((opts.now ?? new Date()).toISOString());
   const { data, error } = await getDb()
     .from(TABLES.campaignEmails)
     .select("*")

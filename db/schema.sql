@@ -2565,3 +2565,160 @@ $$;
 
 insert into public._migrations (name) values ('20260908170000_campaign_email_reconsent.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260916120000_product_allergen_tags.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Shop products: the allergen column the cafe menu already had.
+--
+-- `menu_items.tags` carries the cafe's item tags, and one of them — `nuts` —
+-- is an ALLERGEN the app is required to surface (lafmobil rule 4: "Alerjen
+-- bilgisi gizlenmez"). `products` had no counterpart, so `GET /shop` could not
+-- publish one and the app drew no warning on a shop product. A pistachio
+-- biscotti (prd-0011, "Cantucci — Bronte Pistachio") sits on that shelf.
+--
+-- Same name, same type, same default and same vocabulary as `menu_items.tags`
+-- so the wire field is literally the same field on both surfaces and the app
+-- reads it with the code it already has.
+--
+-- Additive and idempotent: existing rows get `[]`, which is what they
+-- effectively published before. Marking the products that do carry an allergen
+-- is data work, done in /admin/urunler.
+--
+-- Rollback (nothing else reads the column):
+--   alter table public.products drop column if exists tags;
+
+alter table public.products
+  add column if not exists tags jsonb not null default '[]'::jsonb;
+
+insert into public._migrations (name) values ('20260916120000_product_allergen_tags.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260916140000_birthday_mail_and_scheduled_campaigns.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Doğum günü maili ve zamanlanmış kampanya — iki eksik tetikleyicinin şeması.
+--
+-- 1) `campaign_emails."scheduledAt"` — kampanya maili bugüne kadar yalnız
+--    operatör panelde "Gönder"e bastığında gidiyordu: Anneler Günü, yılbaşı,
+--    köşkün yıldönümü hep o sabah masa başında olmayı gerektiriyordu. Tek
+--    kolon yetiyor; ayrı bir "özel günler" tablosu icat edilmiyor — eksik
+--    olan kampanya değil, ZAMANLAMA idi.
+--
+-- 2) `birthday_greeting_audience` — o günün doğum günü sahiplerini tek
+--    sorguda veren kural. Kampanya kitlesinde olduğu gibi jsonb bir tercih
+--    alanının üstünde süzme gerekiyor; JavaScript sorgu katmanı ne jsonb
+--    anahtarına göre süzebiliyor ne de `right(birthday, 5)` hesaplayabiliyor,
+--    yoksa her üye satırı Node'dan geçerdi.
+--
+-- Kupon ile MAİL aynı şey değildir, bu yüzden fonksiyon ikisini ayırır:
+--   • kupon bir hesap hakkıdır, ileti değildir → izin süzgeci YOK,
+--     aktif + e-postası doğrulanmış her üye alır;
+--   • kutlama maili kupon teklifi taşır → 6563 anlamında TİCARİ'dir →
+--     `marketing` sütunu true olanlara gider (pazarlama tercihi açık VE
+--     `marketingConsentAt` kayıtlı), `List-Unsubscribe` ile.
+-- Satır başına tek `marketing` bayrağı, iki ayrı sorgu yerine.
+--
+-- NOT: burada `insert into public._migrations` YOK. scripts/db-migrate.mjs
+-- onu aynı işlemin içinde kendisi yazar.
+--
+-- Geri alma (ikisi de bağımsız):
+--   drop function if exists public.birthday_greeting_audience(jsonb);
+--   drop index if exists public.campaign_emails_scheduled_idx;
+--   alter table public.campaign_emails drop column if exists "scheduledAt";
+
+-- ── campaign_emails."scheduledAt" ─────────────────────────────────────────
+-- Boş dize = zamanlama yok (bugüne kadarki tek davranış). Dolu olduğunda
+-- ISO-8601 UTC bir an: saatlik cron, zamanı gelmiş TASLAK kampanyaları
+-- `queueCampaignEmail` ile kuyruğa alır ve gerisi kurulu boru hattıdır.
+-- Kuyruğa alındıktan sonra alan olduğu gibi kalır — kampanyanın ne zaman
+-- gitmesinin istendiği kaydıdır, bir daha okunmaz (durum artık 'draft'
+-- değildir, kısmi indeks de onu düşürür).
+alter table public.campaign_emails
+  add column if not exists "scheduledAt" text not null default '';
+
+-- Cron'un her saat sorduğu tek soru: zamanı gelmiş taslak var mı? Kısmi
+-- indeks yalnız onları tutar, gönderilmiş yüzlerce kampanyayı değil.
+create index if not exists campaign_emails_scheduled_idx
+  on public.campaign_emails ("scheduledAt")
+  where status = 'draft' and "scheduledAt" <> '';
+
+-- ── birthday_greeting_audience ────────────────────────────────────────────
+-- p_month_days: ["AA-GG", …] — İstanbul takvimine göre bugünün ay-günü.
+-- Neredeyse her zaman tek eleman; artık olmayan bir yılın 1 Mart'ında
+-- ["03-01", "02-29"] gelir, 29 Şubat doğumlular yılda bir kez kutlansın diye
+-- (çağıran taraf karar verir, tarih bilgisi orada).
+--
+-- `right(birthday, 5)` iki biçimi de karşılar: "YYYY-AA-GG" ve "AA-GG"
+-- (`birthdayMonth` de ikisini kabul ediyor). Doğum günü hiç girilmemiş üye
+-- (boş dize) hiçbir zaman eşleşmez.
+--
+-- Misafir siparişi (@laffogato.local) ve kapatılmış hesap (@anon.local)
+-- kitlenin dışındadır — campaign_email_audience ile aynı iki satır.
+create or replace function public.birthday_greeting_audience(
+  p_month_days jsonb
+)
+returns table (email text, name text, marketing boolean)
+language plpgsql
+set search_path = ''
+as $$
+begin
+  return query
+    select lower(c.email) as email,
+           c.name         as name,
+           (coalesce(c."notificationPrefs" ->> 'marketing', 'false') = 'true'
+            and c."marketingConsentAt" <> '') as marketing
+      from public.customers c
+     where c."isActive"
+       and c."emailVerified"
+       and length(c.birthday) >= 5
+       and right(c.birthday, 5) in (
+             select jsonb_array_elements_text(p_month_days)
+           )
+       and c.email not like '%@laffogato.local'
+       and c.email not like '%@anon.local'
+     order by lower(c.email);
+end;
+$$;
+
+insert into public._migrations (name) values ('20260916140000_birthday_mail_and_scheduled_campaigns.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260916150000_retention_sweep_indexes.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Periodic destruction (KVKK) — the indexes the retention sweep needs.
+--
+-- The published Veri Saklama ve İmha Politikası promises periodic destruction
+-- and a retention period per data category; src/lib/retention.ts is the job
+-- that finally carries it out, and /api/cron/retention runs it daily. Each
+-- rule is `where <timestamp column> < cutoff`, and two of the four tables had
+-- no index on that column, so the sweep would have been a sequential scan of
+-- the two tables most likely to be large.
+--
+-- Nothing here changes a row, a column or a constraint: two indexes, both
+-- `if not exists`, both droppable. Rolling back is
+--   drop index if exists public.auth_attempts_updated_idx;
+--   drop index if exists public.campaign_email_sends_created_idx;
+-- and the application keeps working — the sweep merely gets slow again.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+-- ── auth_attempts."updatedAt" ─────────────────────────────────────────────
+-- The retention rule with the shortest period (a week) and the table with the
+-- most personal key: `<purpose>::<IP>::<e-mail>`. It is also the only rule
+-- expected to match rows on an ordinary day.
+create index if not exists auth_attempts_updated_idx
+  on public.auth_attempts ("updatedAt");
+
+-- ── campaign_email_sends."createdAt" ──────────────────────────────────────
+-- One row per (campaign, recipient) and it never shrank: the three-year
+-- commercial-mail record from the Ticari İletişim Yönetmeliği is the biggest
+-- table the sweep touches. Existing indexes are on ("campaignId", email) and
+-- ("campaignId", status, "batchNo"); neither helps an age cutoff.
+create index if not exists campaign_email_sends_created_idx
+  on public.campaign_email_sends ("createdAt");
+
+insert into public._migrations (name) values ('20260916150000_retention_sweep_indexes.sql')
+  on conflict (name) do nothing;

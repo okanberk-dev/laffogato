@@ -117,6 +117,12 @@ export interface AdminProduct {
   /** External image URLs (gallery). The customer card uses the first one
    *  if present, otherwise falls back to the SVG hue tile. */
   images: string[];
+  /**
+   * Item tags, same column shape and same vocabulary as `menu_items.tags`
+   * (`signature` | `new` | `iced` | `nuts`). `nuts` is an ALLERGEN: it is
+   * published by `GET /shop` and drawn by the app, and it is never hidden.
+   */
+  tags: string[];
   stock: number;
   lowStockThreshold: number;
   /** Approximate shipping weight in grams. */
@@ -516,6 +522,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         cat: p.cat as ShopCategoryId,
         img: p.img,
         images: [],
+        // The seed carries no allergen data; `/admin/urunler` is where a
+        // product is marked. See the migration's note.
+        tags: [],
         stock: 25,
         lowStockThreshold: 5,
         weightGrams: 250,
@@ -773,6 +782,7 @@ export interface ProductInput {
   cat: ShopCategoryId;
   img: string;
   images: string[];
+  tags: string[];
   stock: number;
   lowStockThreshold: number;
   weightGrams: number;
@@ -1115,6 +1125,53 @@ export async function deleteCategory(id: string): Promise<boolean> {
 
 // ─── Orders ───────────────────────────────────────────────────────────────
 
+/** The statuses a shift still owes work on. Same set the dashboard counts. */
+const OPEN_ORDER_STATUSES: AdminOrderStatus[] = [
+  "pending_payment",
+  "paid",
+  "preparing",
+];
+
+/**
+ * How many orders are still waiting on the counter.
+ *
+ * A `head: true` count, not `listOrders().filter(...)`: the sidebar asks for
+ * this every minute on every admin page, and paging every order row through
+ * Node to length-check an array is the difference between a badge and a
+ * second load on the pool.
+ */
+export async function countOpenOrders(): Promise<number> {
+  const sb = getDb();
+  const { count, error, status } = await sb
+    .from(TABLES.orders)
+    .select("*", { count: "exact", head: true })
+    .in("status", OPEN_ORDER_STATUSES);
+  if (error) raiseDbError("countOpenOrders", error, status);
+  return count ?? 0;
+}
+
+/**
+ * How many orders arrived after the one the screen already knows about.
+ *
+ * The order list polls this with the highest `orderNo` it has rendered, so a
+ * member ordering from the app while the page sits open turns into a visible
+ * count without the list reordering itself under the operator's cursor. `0`
+ * for a non-finite argument rather than a count of everything: a broken
+ * client must not make the panel shout.
+ */
+export async function countOrdersAfter(orderNo: number): Promise<number> {
+  if (!Number.isFinite(orderNo)) return 0;
+  const sb = getDb();
+  const { count, error, status } = await sb
+    .from(TABLES.orders)
+    // `gte(n + 1)`, not `gt(n)`: the builder has no `gt`, and the sequence is
+    // an integer so the two are the same predicate.
+    .select("*", { count: "exact", head: true })
+    .gte("orderNo", Math.trunc(orderNo) + 1);
+  if (error) raiseDbError("countOrdersAfter", error, status);
+  return count ?? 0;
+}
+
 export async function listOrders(): Promise<AdminOrder[]> {
   await ensureSeed();
   const sb = getDb();
@@ -1176,6 +1233,12 @@ export async function listCustomers(): Promise<CustomerSummary[]> {
   );
 }
 
+/** The columns the loyalty view and the badge rules actually read. */
+export type LoyaltyOrderRow = Pick<
+  AdminOrder,
+  "status" | "createdAt" | "items"
+>;
+
 /**
  * A member's orders, newest first.
  *
@@ -1184,28 +1247,50 @@ export async function listCustomers(): Promise<CustomerSummary[]> {
  * the consent evidence and the refund ledger — a two-year regular's whole
  * history was being transferred and deserialised several times per app
  * foreground. Callers that genuinely need the lifetime history (loyalty
- * tiers, badges) pass no limit.
+ * tiers, badges) read `customerLoyaltyOrders` instead, which projects the
+ * three columns those rules use.
+ *
+ * The match is `lower("customerEmail") = lower($1)`, which is exactly the
+ * expression `orders_email_idx` is built on. It used to be an `ILIKE`
+ * prefilter finished in JavaScript; Postgres has no btree opclass for `~~*`,
+ * so that index could never be chosen and every member order read was a
+ * sequential scan of the whole table — including the one on the checkout
+ * path.
  */
 export async function customerOrdersByEmail(
   email: string,
   limit?: number,
 ): Promise<AdminOrder[]> {
+  return readCustomerOrders<AdminOrder>(email, "*", limit);
+}
+
+/**
+ * The lifetime history the loyalty tier and the badges need — three columns,
+ * no `items`-sized company. There is no limit here on purpose: tiers count a
+ * rolling year and `orders-50` counts a lifetime, so a page would be wrong.
+ */
+export async function customerLoyaltyOrders(
+  email: string,
+): Promise<LoyaltyOrderRow[]> {
+  return readCustomerOrders<LoyaltyOrderRow>(email, "status, createdAt, items");
+}
+
+async function readCustomerOrders<T>(
+  email: string,
+  columns: string,
+  limit?: number,
+): Promise<T[]> {
   const needle = email.trim().toLowerCase();
   if (!needle) return [];
   await ensureSeed();
   const sb = getDb();
-  // ilike ile case-insensitive ön-filtre; JS'te tam (lowercase) eşleşme.
-  const escaped = needle.replace(/[%_]/g, (c) => `\\${c}`);
   let q = sb
     .from(TABLES.orders)
-    .select("*")
-    .ilike("customerEmail", escaped)
+    .select(columns)
+    .ieq("customerEmail", needle)
     .order("orderNo", { ascending: false });
   if (limit && limit > 0) q = q.limit(limit);
-  const candidates = rows<AdminOrder>(await q, "customerOrdersByEmail");
-  return candidates.filter(
-    (o) => o.customerEmail?.trim().toLowerCase() === needle,
-  );
+  return rows<T>(await q, "customerOrdersByEmail");
 }
 
 export async function getOrder(id: string): Promise<AdminOrder | null> {

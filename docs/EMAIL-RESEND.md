@@ -12,14 +12,14 @@
 Site ile uygulama **tek bir Supabase projesini** kimlik için paylaşır
 (`docs/AUTH-BRIDGE.md` §0). Ama e-postayı ikisi aynı yerden göndermez:
 
-| Mesaj                                            | Kim gönderir                  | Nasıl                     |
-| ------------------------------------------------ | ----------------------------- | ------------------------- |
-| Sipariş alındı · Ödeme onaylandı                 | Site (`src/lib/email/send.ts`) | Resend **HTTP API**       |
-| Sitede kayıt → e-posta doğrulama                 | Site                          | Resend HTTP API           |
-| Sitede "şifremi unuttum"                         | Site                          | Resend HTTP API           |
-| **Uygulamada kayıt → doğrulama**                 | **Supabase Auth**             | **Resend SMTP**           |
-| **Uygulamada "şifremi unuttum"**                 | **Supabase Auth**             | **Resend SMTP**           |
-| Üye e-posta adresini değiştirdi                  | Supabase Auth                 | Resend SMTP               |
+| Mesaj                            | Kim gönderir                   | Nasıl               |
+| -------------------------------- | ------------------------------ | ------------------- |
+| Sipariş alındı · Ödeme onaylandı | Site (`src/lib/email/send.ts`) | Resend **HTTP API** |
+| Sitede kayıt → e-posta doğrulama | Site                           | Resend HTTP API     |
+| Sitede "şifremi unuttum"         | Site                           | Resend HTTP API     |
+| **Uygulamada kayıt → doğrulama** | **Supabase Auth**              | **Resend SMTP**     |
+| **Uygulamada "şifremi unuttum"** | **Supabase Auth**              | **Resend SMTP**     |
+| Üye e-posta adresini değiştirdi  | Supabase Auth                  | Resend SMTP         |
 
 İkisini de yapılandırmak gerekir. Yalnız birini yaparsan yarısı sessizce
 çalışmaz: sitenin e-postaları sunucu günlüğüne düşer, uygulamanınkiler
@@ -35,11 +35,11 @@ Resend, hesapta **doğrulanmamış** bir alan adından hiçbir şey göndermez.
 kapalı — şifre sıfırlama bağlantısının üçüncü bir yönlendiriciden geçmesi
 istenmiyor). Doğrulanması için DNS'e şu üç kayıt girilmeli:
 
-| Tür     | Ad                  | Değer                                                   | TTL  |
-| ------- | ------------------- | ------------------------------------------------------- | ---- |
-| `TXT`   | `resend._domainkey` | Resend panelindeki DKIM değeri (`p=MIGfMA0…` ile başlar) | Auto |
-| `MX`    | `send`              | `feedback-smtp.eu-west-1.amazonses.com` (öncelik 10)     | 60   |
-| `TXT`   | `send`              | `v=spf1 include:amazonses.com ~all`                      | 60   |
+| Tür   | Ad                  | Değer                                                    | TTL  |
+| ----- | ------------------- | -------------------------------------------------------- | ---- |
+| `TXT` | `resend._domainkey` | Resend panelindeki DKIM değeri (`p=MIGfMA0…` ile başlar) | Auto |
+| `MX`  | `send`              | `feedback-smtp.eu-west-1.amazonses.com` (öncelik 10)     | 60   |
+| `TXT` | `send`              | `v=spf1 include:amazonses.com ~all`                      | 60   |
 
 Kayıtlar girildikten sonra Resend → Domains → `laffogato.net` → **Verify**.
 Yayılma birkaç dakika ile birkaç saat arası sürer.
@@ -67,7 +67,7 @@ kalan** kayıtlardı. Bir dahakine ilk bakılacak yer burası:
    karşılaştır.
 2. **Yanlış bölgeyi gösteren MX.** `send` MX'i `ap-northeast-1` diyordu, oysa
    alan adı `eu-west-1`'de. Resend bunu bir süre `verified` gösterdi — kendi
-   kontrolü kaydın *varlığına* bakıyor, değerine değil.
+   kontrolü kaydın _varlığına_ bakıyor, değerine değil.
 
 Teşhis için DNS'i **otoriteye** sor, önbelleğe değil; ara çözümleyiciler eski
 değeri dakikalarca tutar:
@@ -88,10 +88,10 @@ Bir kez `failed` görünmesi ölümcül değil: kayıtlar düzeltildikten sonra
 
 `laffogato` projesinde (Vercel → Settings → Environment Variables):
 
-| Anahtar          | Ortam                            | Not                                        |
-| ---------------- | -------------------------------- | ------------------------------------------ |
-| `RESEND_API_KEY` | Production · Preview · Development | Resend API anahtarı. **Yalnız sunucuda.**  |
-| `EMAIL_FROM`     | (isteğe bağlı)                   | `L'Affogato <siparis@laffogato.net>` biçiminde |
+| Anahtar          | Ortam                              | Not                                            |
+| ---------------- | ---------------------------------- | ---------------------------------------------- |
+| `RESEND_API_KEY` | Production · Preview · Development | Resend API anahtarı. **Yalnız sunucuda.**      |
+| `EMAIL_FROM`     | (isteğe bağlı)                     | `L'Affogato <siparis@laffogato.net>` biçiminde |
 
 `RESEND_API_KEY` yoksa kod hata vermez: mesajı sunucu günlüğüne yazar ve
 `false` döner. Bu bilerek böyle — bir sipariş, onay maili gitmedi diye
@@ -131,22 +131,22 @@ sınırlıdır ve `noreply@mail.app.supabase.io` adresinden İngilizce çıkar.
 
 Supabase Dashboard → proje → **Authentication → Emails → SMTP Settings**:
 
-| Alan            | Değer                                   |
-| --------------- | --------------------------------------- |
-| Enable Custom SMTP | açık                                 |
-| Host            | `smtp.resend.com`                       |
-| Port            | `587`                                   |
-| Username        | `resend`                                |
-| Password        | Resend API anahtarı (Vercel'dekiyle aynı olabilir) |
-| Sender email    | `siparis@laffogato.net`                 |
-| Sender name     | `L'Affogato`                            |
+| Alan               | Değer                                              |
+| ------------------ | -------------------------------------------------- |
+| Enable Custom SMTP | açık                                               |
+| Host               | `smtp.resend.com`                                  |
+| Port               | `587`                                              |
+| Username           | `resend`                                           |
+| Password           | Resend API anahtarı (Vercel'dekiyle aynı olabilir) |
+| Sender email       | `siparis@laffogato.net`                            |
+| Sender name        | `L'Affogato`                                       |
 
 Ardından **Authentication → Emails → Templates**. Üç şablonun Türkçe ve marka
 uyumlu hâli bu depoda duruyor; içeriği olduğu gibi yapıştır:
 
-- `docs/email/supabase-confirm-signup.html` → *Confirm signup*
-- `docs/email/supabase-reset-password.html` → *Reset Password*
-- `docs/email/supabase-change-email.html` → *Change Email Address*
+- `docs/email/supabase-confirm-signup.html` → _Confirm signup_
+- `docs/email/supabase-reset-password.html` → _Reset Password_
+- `docs/email/supabase-change-email.html` → _Change Email Address_
 
 Konu satırları:
 
@@ -209,35 +209,45 @@ Site URL'nin `https://laffogato.net` olması gerekir; site oraya
 
 ## 5. Mesajın kendisi — şablonlar
 
-Sitenin gönderdiği on yedi mesajın markup'ı `src/lib/email/templates/*.html`
+Sitenin gönderdiği on sekiz mesajın markup'ı `src/lib/email/templates/*.html`
 içinde durur; `send.ts` yalnızca alanları doldurur. Şablon dili, alan
 listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
 `README.md`'sinde.
 
-| Dosya                    | Ne yapar                                                                                  |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| `templates/*.html`       | tasarımın kendisi; elle düzenlenen tek yer                                                |
-| `templates.generated.ts` | derlenmiş string haritası — **commit'lenir**, elle düzenlenmez                            |
-| `public/email/**`        | şablonların çağırdığı görseller (logo, bant, damga, ikon) — `https://laffogato.net/email/…` ile mutlak |
-| `fill.ts`                | `[ALAN]`, `<!--IF:-->`, `<!--EACH:-->` ve HTML kaçışlama                                   |
+| Dosya                    | Ne yapar                                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `templates/*.html`       | tasarımın kendisi; elle düzenlenen tek yer                                                                                            |
+| `templates.generated.ts` | derlenmiş string haritası — **commit'lenir**, elle düzenlenmez                                                                        |
+| `public/email/**`        | şablonların çağırdığı görseller (logo, bant, damga, ikon) — `https://laffogato.net/email/…` ile mutlak                                |
+| `fill.ts`                | `[ALAN]`, `<!--IF:-->`, `<!--EACH:-->` ve HTML kaçışlama                                                                              |
 | `render.ts`              | şablon + değer → `{subject, html, text}` + 6563 kontrolü + bayraklar (`AD`, `APP_LINKS`, `GORSEL`, `KOD`, `TARIH`, `DIPNOT`, `VURGU`) |
-| `text.ts`                | her mesajın düz metin yarısı                                                              |
+| `text.ts`                | her mesajın düz metin yarısı                                                                                                          |
 
-On yedi şablon:
+On sekiz şablon — her satırda **tetikleyici · izin sınıfı · idempotency**:
 
-| Şablon                                 | Tür               | Tetikleyen                                                            |
-| -------------------------------------- | ----------------- | --------------------------------------------------------------------- |
-| `eposta-dogrulama`                     | işlemsel          | sitede kayıt / adres değişikliği (`uye/actions.ts`, `admin/musteriler`) |
-| `sifre-sifirlama`                      | işlemsel          | sitede "şifremi unuttum"                                              |
-| `siparis-alindi`                       | işlemsel          | sipariş oluşturuldu (`odeme/actions.ts`, mobil `orders.ts`)           |
-| `odeme-onaylandi`                      | işlemsel          | ödeme onaylandı (`admin/store.ts`)                                    |
-| `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, çağıran yok                                 |
-| `karaoke-rezervasyon`                  | işlemsel          | `sendKaraokeConfirmationEmail` hazır, çağıran yok                     |
-| `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, çağıran yok                           |
-| `bulten-kampanya`                      | **ticari (6563)** | kampanya e-postası — 3 ürün seçkisi + kod                             |
-| `mobil-uygulama`                       | **ticari (6563)** | uygulama duyurusu; mağaza linkleri tanımlı değilken hiç gönderilmez   |
-| `dogum-gunu`                           | **ticari (6563)** | `sendBirthdayEmail` hazır, çağıran yok                                |
-| `kampanya-duyuru` … `kampanya-indirim` | **ticari (6563)** | `/admin/bulten/kampanya` ve uygulama gönderisi kancası — bkz. §7      |
+| Şablon                                 | Tür               | Tetikleyici · idempotency                                                       |
+| -------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
+| `eposta-dogrulama`                     | işlemsel          | sitede kayıt / adres değişikliği (`uye/actions.ts`, `admin/musteriler`)         |
+| `sifre-sifirlama`                      | işlemsel          | sitede "şifremi unuttum"                                                        |
+| `siparis-alindi`                       | işlemsel          | sipariş oluşturuldu (`odeme/actions.ts`, mobil `orders.ts`) · sipariş satırı    |
+| `odeme-onaylandi`                      | işlemsel          | ödeme onaylandı (`admin/store.ts`) · ödeme durumu geçişi                        |
+| `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, **çağıran yok**                                       |
+| `karaoke-rezervasyon`                  | işlemsel          | personel panelden onayladı (`setReservationStatus`) · durum geçişi bir kez olur |
+| `karaoke-iptal`                        | işlemsel          | personel panelden iptal etti (`setReservationStatus`) · aynı geçiş kilidi       |
+| `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                 |
+| `bulten-kampanya`                      | **ticari (6563)** | kampanya e-postası — 3 ürün seçkisi + kod · `cmp-<kampanya>-b<parti>`           |
+| `mobil-uygulama`                       | **ticari (6563)** | uygulama duyurusu — **hiçbir yoldan gönderilemiyor**, aşağıya bak               |
+| `dogum-gunu`                           | **ticari (6563)** | günlük cron (`/api/cron/birthday`) · idempotency = kuponun kendisi              |
+| `kampanya-duyuru` … `kampanya-indirim` | **ticari (6563)** | `/admin/bulten/kampanya`, zamanlama ve gönderi kancası — bkz. §7                |
+
+**`mobil-uygulama` hâlâ ulaşılamaz.** Şablon, düz metin ikizi ve testi
+hazır; `sendAppAnnouncementEmail` çağıransız ve panelin şablon listesinde
+(`CAMPAIGN_MAIL_TEMPLATES`) yok. Kampanya boru hattına almak için gereken:
+`CampaignTemplateName` birliği + `CAMPAIGN_TEMPLATES` (`send.ts`),
+`CAMPAIGN_MAIL_TEMPLATES` + `_LABELS` + `_GROUPS` (boş dizi)
+(`src/lib/admin/campaign-mail-schema.ts`) ve şablonun `[DAMGA_HEDEFI]`
+bağımlılığının çözülmesi — `renderCampaign` senkrondur, `stampTarget()`
+değil. Uygulama mağazalara çıkmadan önce yapılmalı.
 
 Şablon değiştirdikten sonra `npm run email:build` (ya da `npm run build` /
 `npm run dev` — ikisi de kendiliğinden çalıştırır). Tarayıcıda görmek için
@@ -245,7 +255,7 @@ geliştirmede `/dev/mail/<dosya-adi>`.
 
 **6563 ayrımı koda gömülü:** on ticari şablon — `bulten-kampanya`,
 `mobil-uygulama`, `dogum-gunu` ve yedi `kampanya-*` — çıkış bağlantısı
-olmadan derlenmez; kalan yedi işlemsel mesaja çıkış bağlantısı konulamaz.
+olmadan derlenmez; kalan sekiz işlemsel mesaja çıkış bağlantısı konulamaz.
 `renderEmail` ikisini de reddeder, `tests/email-templates.test.ts` ikisini de
 kilitler. Çıkış bağlantısı `unsubscribeUrlFor(token)` →
 `/api/bulten/cikis?token=…`: mail istemcisinin RFC 8058 tek tık POST'u
@@ -258,7 +268,7 @@ notunun soluk rengi); düz metin ikizinde `COMMERCIAL_FOOTER`'ın ilk satırı.
 Ticari İletişim Yönetmeliği m.8/1 tacirin ticari elektronik iletisinin
 içeriğinde ticaret unvanını ve MERSİS numarasını arar (m.6'nın "adı veya
 unvanı"nı imza zaten karşılıyordu). Değerler `LEGAL_ENTITY`'den
-`commonVars` ile gelir, şablona yazılmaz; işlemsel yedi mesajın ayağı kısa
+`commonVars` ile gelir, şablona yazılmaz; işlemsel sekiz mesajın ayağı kısa
 kalır. Test: `%s names the sender's title and MERSİS in both halves`.
 
 **Kampanya ailesi:** yedi `kampanya-*` şablonu tek alan sözlüğü paylaşır
@@ -318,11 +328,11 @@ Kural veritabanında **tek yerde** durur: `campaign_email_audience(p_audience,
 p_pref)`. Paneldeki "N adrese gidecek" sayısı da, kuyruk da, parti alma da
 aynı fonksiyonu okur; üçü birbirinden ayrı düşemez.
 
-| Kitle        | Kaynak                   | Şart                                                                                                                                                                                                                                                                  |
-| ------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Kitle        | Kaynak                   | Şart                                                                                                                                                                                                                                                                                                            |
+| ------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `marketing`  | `customers`              | `isActive` · `emailVerified` · `notificationPrefs.<tercih> = true` · onay kaydı: `marketing` tercihi için `marketingConsentAt` dolu, `newsletter` tercihi için `newsletter_subscribers`'da aynı adrese ait aktif ve `consentAt` dolu satır · `@laffogato.local` (misafir) ve `@anon.local` (kapalı hesap) hariç |
-| `newsletter` | `newsletter_subscribers` | `isActive` · `consentAt` dolu · `unsubToken` dolu (jetonsuz satıra çıkış bağlantısı kurulamaz, dolayısıyla mail de gitmez)                                                                                                                                            |
-| `both`       | ikisinin birleşimi       | aynı adres bir kez; üye satırı kazanır (çıkış bağlantısı hesabın tercihlerini kapatsın diye)                                                                                                                                                                          |
+| `newsletter` | `newsletter_subscribers` | `isActive` · `consentAt` dolu · `unsubToken` dolu (jetonsuz satıra çıkış bağlantısı kurulamaz, dolayısıyla mail de gitmez)                                                                                                                                                                                      |
+| `both`       | ikisinin birleşimi       | aynı adres bir kez; üye satırı kazanır (çıkış bağlantısı hesabın tercihlerini kapatsın diye)                                                                                                                                                                                                                    |
 
 `<tercih>`: `bulten-kampanya` şablonu `newsletter`, yedi `kampanya-*` şablonu
 `marketing` tercihini okur (`prefForTemplate`).
@@ -405,7 +415,7 @@ Bağlantı hem altbilgide hem `List-Unsubscribe` /
    15 dakikadır `sending`'de kalmış satırlar ölü bir çalıştırıcıdan sayılır
    ve yeniden alınır), her satırı alıcının adı ve kendi çıkış bağlantısıyla
    derle, partiyi `postedAt` ile **önce** kayda geç, sonra `POST
-   /emails/batch` (`Idempotency-Key: cmp-<kampanya>-b<parti>`),
+/emails/batch` (`Idempotency-Key: cmp-<kampanya>-b<parti>`),
    `campaign_email_mark` ile tek ifadede işaretle. Partiler arası 200 ms;
    429'da 1 s (varsa `Retry-After`) bekleyip **aynı anahtarla** en çok 3 kez
    yeniden dener. Süre dolunca (240 s) durum `sending` kalır; kalan partileri
@@ -419,7 +429,7 @@ Bağlantı hem altbilgide hem `List-Unsubscribe` /
    bu yüzden işe kampanya satırını `for update` ile kilitleyerek başlar ve
    kilit ifadenin sonuna kadar durur: ikinci çalıştırıcı bekler, sonra ilkinin
    taze `sending` satırlarını görür ve **bir sonraki** partiyi alır (`skip
-   locked` kemer olarak kalır). Kilitsiz hâlde ikisi de en düşük partiyi
+locked` kemer olarak kalır). Kilitsiz hâlde ikisi de en düşük partiyi
    okuyor, `skip locked` her birine ötekinin yetişemediği satırları veriyor ve
    ikisi de `cmp-<id>-b<n>`'yi yarım adres kümesiyle gönderiyordu — Resend
    ikinciyi reddeder (aynı anahtar, farklı içerik) ya da ilkinin işareti
@@ -427,8 +437,9 @@ Bağlantı hem altbilgide hem `List-Unsubscribe` /
    `campaign_email_mark` yalnız kendi parti almasının `claimedAt` damgasını
    taşıyan satırları kapatır (`p_claimed_at`); bayat pencereyi aşıp partisini
    başkasına kaptıran bir çalıştırıcı işaretleyecek satır bulamaz.
+
 4. **Yeniden "Gönder"** güvenlidir: mevcut alıcılar atlanır (`on conflict do
-   nothing`), `skipped` satırlar kuyruğa döner — ama yalnız kitle kuralının
+nothing`), `skipped` satırlar kuyruğa döner — ama yalnız kitle kuralının
    **hâlâ** adını verdiği alıcılar için ve kuralın o an verdiği biçimde (tür,
    ad, çıkış bağlantısı yeniden okunur; harcanıp yeniden basılmış bir jeton
    ölü bağlantıyla gitmez), gerisi `skipped` kalır ve satır nedenini söyler
@@ -485,7 +496,7 @@ pencerenin dışına düşer ve iki kez giderdi. Bu yüzden çalıştırıcı ke
 - `postedAt` **22 saatten yaşlı**: Resend'in anahtar penceresi kapanmış ya da
   POST'a kadar kapanacaktır; aynı istek yeni bir istek sayılır ve 100 kişi
   ikinci kopyayı alırdı. Satır `failed` + `error: sağlayıcı yanıtı teyit
-  edilemedi` olur ve **bir daha gönderilmez**; teslim edilmiş olabilir,
+edilemedi` olur ve **bir daha gönderilmez**; teslim edilmiş olabilir,
   kararı Resend panosuna bakan bir insan verir. `failed` nihaidir, sonraki
   "Gönder" diriltmez.
 
@@ -496,17 +507,93 @@ Testler: `tests/campaign-emails.test.ts` ("consent between queue and send",
 PostgreSQL 16'da sınandı: iki eşzamanlı `campaign_email_claim`, 120 üye, 25
 tur — inceleme kilitsiz sürümde 25/25 turda 0. partiyi ikiye bölmüştü;
 kilitli sürümde 0/25, her turda biri 100 satırla 0. partiyi, öteki 20 satırla
+
 1. partiyi aldı. (Bellek içi stub bu kilidi modelleyemez; testte kemer olan
-`claimedAt` kapsamı sabitlenir.)
+   `claimedAt` kapsamı sabitlenir.)
 
 ### Cron ve `CRON_SECRET`
 
-`vercel.json` → `crons`: `/api/cron/campaign-emails`, her gün `0 6 * * *`
-(UTC; 09:00 İstanbul). Uç `Authorization: Bearer <CRON_SECRET>` bekler —
-sabit zamanlı karşılaştırma; `CRON_SECRET` tanımsızsa 503, yanlışsa 401.
+`vercel.json` → `crons`, iki görev, ikisi de aynı kapıdan geçer
+(`src/app/api/cron/_auth.ts`): `Authorization: Bearer <CRON_SECRET>`, sabit
+zamanlı karşılaştırma; `CRON_SECRET` tanımsızsa **503**, yanlışsa 401.
 Vercel başlığı kendisi ekler; yapılacak tek şey ortam değişkenini tanımlamak
-(`.env.example`). Görev `queued` / `sending` durumundaki her kampanyayı
-kaldığı yerden, eskisi önce sürdürür; ortak süre 240 s.
+(`.env.example`).
+
+| Görev                       | Sıklık      | Ne yapar                                                                                                                             |
+| --------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `/api/cron/campaign-emails` | `0 * * * *` | (1) `scheduledAt`'i gelmiş taslakları kuyruğa alır, (2) `queued`/`sending` her kampanyayı kaldığı yerden sürdürür — ortak süre 240 s |
+| `/api/cron/birthday`        | `0 6 * * *` | o günün doğum günleri: kupon herkese, kutlama yalnız izin verene                                                                     |
+
+Kampanya görevi **saatlik**tir: zamanlamanın saati ancak böyle anlamlı olur.
+Boş bir kuyruk ucuzdur (tek `select`), bu yüzden sıklık maliyet getirmez.
+
+### Zamanlanmış kampanya — "özel günler"
+
+Anneler Günü, yılbaşı, 14 Şubat, köşkün yıldönümü: ayrı bir "özel günler"
+tablosu **yok** ve olmayacak. Eksik olan kampanya değil, zamanlamaydı.
+Taslağa bir `scheduledAt` (panelde "Gönderim zamanı", `datetime-local`)
+yazılır; saatlik cron zamanı gelmiş **taslakları** `queueCampaignEmail` ile
+kuyruğa alır ve gerisi bu belgenin geri kalanında anlatılan boru hattıdır.
+
+- Saat **İstanbul saatidir.** Alan zonesizdir, sunucu UTC'dedir; sunucunun
+  saatiyle okunsa operatörün yazdığı 09:00 Tuzla'da 12:00 olurdu.
+  `normalizeScheduledAt` zonesiz değere açıkça `+03:00` ekler (Türkiye 2016'dan
+  beri yaz saati uygulamıyor).
+- Okunamayan bir değer sessizce **boşa** döner: kimsenin seçmediği bir saatte
+  ticari ileti çıkmaz.
+- Kuyruğa alınamayan bir taslağın (şablonda boş zorunlu alan) zamanlaması
+  **temizlenir** ve sebep `lastError`'a yazılır — her saat yeniden denenip
+  duran bir kampanya olmaz; taslak operatörü bekler.
+- Zamanlamadan vazgeçmek: alanı boşaltıp taslağı yeniden kaydet.
+
+### Doğum günü — kupon ile mail aynı şey değildir
+
+Operatörün sorusu ("üyelere doğum gününde mail gidiyor mu") 15 Eyl 2026'ya
+kadar **hayır**dı: `sendBirthdayEmail` yazılmış ve çağıransızdı, kupon ise
+yalnız üye `laffogato.net/uye/hesap/promosyonlar` sayfasını doğum günü AYINDA
+açarsa doğuyordu — uygulamadan bakan üye ikisini de hiç görmüyordu.
+
+Günlük cron ikisini ayırır:
+
+|                  | Kupon                                                     | Kutlama maili                                                                      |
+| ---------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Ne               | hesap hakkı, ileti değil                                  | ticari ileti (6563) — kutlama + %20 teklif                                         |
+| Kime             | aktif + adresi doğrulanmış her üye, o gün doğum günü olan | yalnız `notificationPrefs.marketing` açık **ve** `marketingConsentAt` kayıtlı olan |
+| Çıkış bağlantısı | —                                                         | zorunlu (`List-Unsubscribe`, `data-commercial="1"`)                                |
+
+İzin vermemiş üye kuponunu yine alır, sessizce.
+
+- **Takvim Tuzla'nındır:** `birthdayDaysFor` İstanbul duvar saatinden "AA-GG"
+  üretir; 21:30 UTC'de İstanbul çoktan ertesi gündedir.
+- **29 Şubat:** artık olmayan yılın 1 Mart'ında listeye `02-29` de eklenir.
+- **IDEMPOTENCY kuponun kendisidir:** `grantBirthdayCouponToday` yalnız satırı
+  YAZDIYSA kuponu döndürür (`hasBirthdayCouponThisYear` — üye başına yılda bir),
+  `null` dönerse mail de gitmez. Cron iki kez koşsa da kimse iki kez
+  kutlanmaz; ayrı bir defter yok.
+- **Kupon süresi şablonla aynı gerçektir:** `BIRTHDAY.ttlDays = 7`. Şablon
+  "7 gün geçerli" diyor, kupon da verildiği andan itibaren 7 gün yaşıyor. Eski
+  hâl ay sonunda bitiyordu: 28'inde doğana 3 gün, 2'sinde doğana 29 gün.
+  "Doğum gününüzde aktifleşir" cümlesi de kalktı — kupon yazıldığı anda
+  aktiftir.
+- Web'deki ay bazlı `maybeGrantBirthdayCoupon` yedek olarak durur ve aynı
+  7 günü kullanır.
+
+### Karaoke — onay ve iptal
+
+`setReservationStatus` başarıyla `confirmed`'a geçtiğinde
+`karaoke-rezervasyon`, `cancelled`'a geçtiğinde `karaoke-iptal` gider. İkisi
+de **işlemsel**tir: üye odayı kendisi istedi, ona sonucu söyleniyor — izin
+aranmaz, çıkış bağlantısı konmaz.
+
+- **Rezervasyon kodu için yeni kolon yok:** `id` zaten benzersiz, sıralı ve
+  okunur — `krk-00042`, mailde `KRK-00042`.
+- **Tetikleyicinin tek çağıranı** panelin Onayla / İptal düğmeleridir; üye
+  kendine mail attıramaz.
+- **IDEMPOTENCY** `UPDATE`'in durum kilididir: satır bir kez geçer, ikinci
+  basış yarışı kaybeder ve maile hiç ulaşmaz.
+- Sağlayıcı hatası rezervasyonu **düşürmez** (sipariş mailindeki kalıp), ama
+  panel bunu söyler: "Bilgilendirme e-postası GÖNDERİLEMEDİ — üyeye kendin
+  ulaş." Log'da adres maskelidir (KVKK).
 
 ### Emniyet kilitleri
 

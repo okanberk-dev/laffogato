@@ -7,6 +7,10 @@ import { getSettings } from "@/lib/admin/store";
 import { getDb, TABLES } from "@/lib/db";
 import { nextSeq } from "@/lib/db/counters";
 import { raiseDbError } from "@/lib/db/health";
+import {
+  sendKaraokeCancellationEmail,
+  sendKaraokeConfirmationEmail,
+} from "@/lib/email/send";
 
 import { istanbulClock } from "./venue";
 import {
@@ -330,7 +334,18 @@ export type SetReservationStatusFailure =
   | "raced";
 
 export type SetReservationStatusResult =
-  | { ok: true; reservation: KaraokeReservation }
+  | {
+      ok: true;
+      reservation: KaraokeReservation;
+      /**
+       * Did the member's confirmation/cancellation mail leave? The booking
+       * stands either way — a provider outage must not fail the staff
+       * member's action — but the panel says so, because a member who was
+       * not told is a member who turns up (or does not) on the wrong
+       * assumption.
+       */
+      notified: boolean;
+    }
   | { ok: false; reason: SetReservationStatusFailure };
 
 export async function setReservationStatus(
@@ -368,8 +383,101 @@ export async function setReservationStatus(
     "karaoke.setReservationStatus",
   );
   if (updated.length === 0) return { ok: false, reason: "raced" };
-  return {
-    ok: true,
-    reservation: { ...existing, status, updatedAt: now.toISOString() },
+  const reservation: KaraokeReservation = {
+    ...existing,
+    status,
+    updatedAt: now.toISOString(),
   };
+  const notified = await notifyReservationStatus(reservation);
+  return { ok: true, reservation, notified };
+}
+
+// ─── Notifying the member ──────────────────────────────────────────────────
+
+const TR_MONTHS = [
+  "Ocak",
+  "Şubat",
+  "Mart",
+  "Nisan",
+  "Mayıs",
+  "Haziran",
+  "Temmuz",
+  "Ağustos",
+  "Eylül",
+  "Ekim",
+  "Kasım",
+  "Aralık",
+];
+
+/**
+ * "2026-09-12" → "12 Eylül 2026".
+ *
+ * Built from the parts rather than through `Date`: a reservation date is a
+ * Tuzla CALENDAR day, not an instant, and `new Date("2026-09-12")` is
+ * midnight UTC — which in a formatter running anywhere west of Greenwich
+ * prints the 11th. The app and the panel both show the day the room is
+ * booked; so does the mail.
+ */
+export function formatReservationDate(date: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) return date;
+  const month = TR_MONTHS[Number(m[2]) - 1];
+  return month ? `${Number(m[3])} ${month} ${m[1]}` : date;
+}
+
+/** `(20, 2)` → "20:00 – 22:00"; midnight closes the evening as 24:00. */
+export function formatReservationTime(
+  startHour: number,
+  hours: number,
+): string {
+  const pad = (h: number): string => `${String(h).padStart(2, "0")}:00`;
+  return `${pad(startHour)} – ${pad(startHour + hours)}`;
+}
+
+/**
+ * Tells the member what the staff just did with their evening.
+ *
+ * Both messages are TRANSACTIONAL: the member asked for the room and is being
+ * told whether they have it. No consent gate, no unsubscribe link (6563 does
+ * not reach a message like this, and `renderEmail` refuses to put a way out
+ * on either template).
+ *
+ * TETİKLEYİCİ: `setReservationStatus`, i.e. the panel's confirm/cancel
+ * buttons — the only callers, so a member cannot mail themselves.
+ * IDEMPOTENCY: the status guard on the UPDATE above. The row moves
+ * requested → confirmed (or → cancelled) exactly once; a second press finds
+ * the row already there, loses the race and returns before this is reached.
+ *
+ * Failure is swallowed on purpose, as in `sendOrderPlacedEmail`: the booking
+ * IS confirmed, and the staff member's action must not fail because a mail
+ * provider did. A failure is logged with the address masked (KVKK).
+ */
+async function notifyReservationStatus(
+  r: KaraokeReservation,
+): Promise<boolean> {
+  if (r.status !== "confirmed" && r.status !== "cancelled") return true;
+  if (!r.customerEmail) return false;
+  const payload = {
+    to: r.customerEmail,
+    name: r.customerName,
+    date: formatReservationDate(r.date),
+    time: formatReservationTime(r.startHour, r.hours),
+    guests: r.guests,
+    // No `code` column and none needed: the id is unique, sequential and
+    // readable — "KRK-00042" is what the member is asked for at the door.
+    code: r.id,
+  };
+  try {
+    return r.status === "confirmed"
+      ? await sendKaraokeConfirmationEmail(payload)
+      : await sendKaraokeCancellationEmail(payload);
+  } catch (err) {
+    const at = r.customerEmail.indexOf("@");
+    const masked =
+      at < 1
+        ? "***"
+        : `${r.customerEmail.slice(0, 2)}***${r.customerEmail.slice(at)}`;
+    console.error(`[karaoke] ${r.id} bildirimi gönderilemedi (${masked})`, err);
+    return false;
+  }
 }

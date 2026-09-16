@@ -48,11 +48,17 @@ async function transition(
     payload: { status, date: updated.date, startHour: updated.startHour },
   });
   revalidatePath("/admin/mobil/karaoke");
+  const done =
+    status === "confirmed"
+      ? "Rezervasyon onaylandı"
+      : "Rezervasyon iptal edildi";
+  // The member is told by e-mail now; say whether that actually left. The
+  // booking stands either way, but a member who was not told is a member
+  // who turns up on the wrong assumption — and then someone has to phone.
   return {
-    message:
-      status === "confirmed"
-        ? "Rezervasyon onaylandı."
-        : "Rezervasyon iptal edildi.",
+    message: result.notified
+      ? `${done}; üyeye bilgilendirme e-postası gönderildi.`
+      : `${done}. Bilgilendirme e-postası GÖNDERİLEMEDİ — üyeye kendin ulaş.`,
   };
 }
 

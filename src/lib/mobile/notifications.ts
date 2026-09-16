@@ -33,6 +33,18 @@ export interface AppNotification {
 
 export const NOTIFICATION_WINDOW_DAYS = 30;
 
+/**
+ * How many of the member's orders the inbox reads.
+ *
+ * The window above is 30 days and the read is `orderNo desc`, so the newest
+ * page always contains every order that window can possibly keep — fifty is
+ * far more than a month of one café's orders from one member. Without it the
+ * inbox read the member's ENTIRE history (items jsonb, refund ledger and
+ * consent evidence included) on every poll and threw all but the last month
+ * away in JavaScript.
+ */
+export const NOTIFICATION_ORDER_LIMIT = 50;
+
 type OrderLike = Pick<
   AdminOrder,
   | "id"
@@ -265,7 +277,7 @@ export async function deriveNotifications(
   prefs?: NotificationFilter,
 ): Promise<AppNotification[]> {
   const [orders, announcements, reward] = await Promise.all([
-    customerOrdersByEmail(email),
+    customerOrdersByEmail(email, NOTIFICATION_ORDER_LIMIT),
     listActiveAppAnnouncements(),
     resolveReward(email),
   ]);

@@ -5,12 +5,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/admin/audit";
-import { requireRole } from "@/lib/admin/auth";
+import { getAdminSession, requireRole } from "@/lib/admin/auth";
 import { bulkOrderSchema } from "@/lib/admin/bulk-schema";
 import { manualOrderSchema } from "@/lib/admin/manual-order-schema";
 import { canAccess } from "@/lib/admin/roles";
 import {
   bulkUpdateOrders,
+  countOpenOrders,
+  countOrdersAfter,
   createManualOrder,
   getOrderPaymentRef,
   refundOrder,
@@ -339,4 +341,54 @@ export async function saveOrderTrackingAction(formData: FormData) {
     payload: { tracking: trackingNumber.trim() ? "set" : "cleared", carrier },
   });
   revalidateOrder(id);
+}
+
+/**
+ * The two numbers the panel polls for while a page sits open.
+ *
+ * A gel-al order arrives from the app with nobody touching this browser, and
+ * a server-rendered page is dead the moment it is rendered: without a poll
+ * the barista learns about the order by remembering to press F5. Both
+ * answers are `head: true` counts, cheap enough to ask for every half minute.
+ *
+ * `requireRole` cannot be used here. It REDIRECTS on denial, and a redirect
+ * thrown out of a background poll would move the operator's page under them;
+ * the sidebar also runs this for roles that have no order access at all. So
+ * the gate is read rather than enforced, and a caller who may not see orders
+ * gets `null` — the badge simply never appears.
+ */
+async function ordersSignalAllowed(): Promise<boolean> {
+  const session = await getAdminSession();
+  return Boolean(session && canAccess("orders", session.role));
+}
+
+/** Open orders (ödeme bekleniyor · ödendi · hazırlanıyor), for the nav badge. */
+export async function openOrderCountAction(): Promise<number | null> {
+  if (!(await ordersSignalAllowed())) return null;
+  try {
+    return await countOpenOrders();
+  } catch (err) {
+    // A poll must never turn a working panel into an error boundary.
+    console.error("[admin/siparisler] açık sipariş sayılamadı", err);
+    return null;
+  }
+}
+
+/**
+ * Orders newer than the highest `orderNo` the list has rendered.
+ *
+ * The count comes back without the list being re-fetched, so the rows the
+ * operator is reading stay exactly where they are until they choose to
+ * refresh.
+ */
+export async function newOrderCountAction(
+  sinceOrderNo: number,
+): Promise<number | null> {
+  if (!(await ordersSignalAllowed())) return null;
+  try {
+    return await countOrdersAfter(Number(sinceOrderNo));
+  } catch (err) {
+    console.error("[admin/siparisler] yeni sipariş sayılamadı", err);
+    return null;
+  }
 }

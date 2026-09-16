@@ -88,7 +88,9 @@ export default async function CampaignMailListPage() {
                       style={{ fontFamily: "var(--mono), monospace" }}
                     >
                       {c.status === "draft"
-                        ? "henüz kuyruğa alınmadı"
+                        ? c.scheduledAt
+                          ? `${formatDateTime(c.scheduledAt)} için zamanlandı`
+                          : "henüz kuyruğa alınmadı"
                         : `${c.total} alıcı · ${c.sentCount} gönderildi · ${c.failedCount} başarısız`}
                       {c.createdAt ? ` · ${formatDateTime(c.createdAt)}` : ""}
                       {c.createdBy ? ` · ${c.createdBy}` : ""}

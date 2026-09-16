@@ -49,6 +49,9 @@ export async function POST(request: NextRequest) {
       );
     }
     const preview = result.preview;
+    // Private even though the bearer is optional: `previewPromoRateLimited`
+    // was handed the member, so a personal coupon answers differently for
+    // them than for an anonymous caller (docs/API-MOBILE.md §0).
     return apiJson(
       preview.ok
         ? {
@@ -63,6 +66,7 @@ export async function POST(request: NextRequest) {
             code: preview.code,
             message: preview.message,
           },
+      { private: true },
     );
   } catch (err) {
     return routeFailure(err, "api/mobile/v1/promo/preview");
