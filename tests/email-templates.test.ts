@@ -13,7 +13,7 @@ import { EMAIL_TEXT } from "@/lib/email/text";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 
 /**
- * The seventeen designed messages, and the three things that must never reach
+ * The eighteen designed messages, and the three things that must never reach
  * an inbox: an unfilled `[FIELD]`, an unsubscribe link on transactional mail
  * (or its absence on commercial mail), and a button pointing at nothing.
  *
@@ -73,12 +73,15 @@ function renderWith(
   });
 }
 
-describe("the seventeen templates render", () => {
-  it("ships exactly the seventeen designed messages", () => {
-    expect(NAMES).toHaveLength(17);
+describe("the eighteen templates render", () => {
+  it("ships exactly the eighteen designed messages", () => {
+    expect(NAMES).toHaveLength(18);
     expect(NAMES).toContain("eposta-dogrulama");
     expect(NAMES).toContain("dogum-gunu");
     expect(NAMES).toContain("kampanya-duyuru");
+    // The cancellation half of the karaoke pair. Staff could cancel an
+    // evening and the member only found out at the door.
+    expect(NAMES).toContain("karaoke-iptal");
   });
 
   it.each(NAMES)("%s leaves no [FIELD] behind", (name) => {
@@ -126,10 +129,51 @@ describe("the seventeen templates render", () => {
     },
   );
 
-  it("karaoke-rezervasyon greets without the name in both halves", () => {
-    expect(EMAIL_TEMPLATES["karaoke-rezervasyon"].html).not.toContain("[AD]");
-    expect(EMAIL_TEXT["karaoke-rezervasyon"]).not.toContain("[AD]");
-    expect(EMAIL_TEXT["karaoke-rezervasyon"].startsWith("Merhaba,")).toBe(true);
+  it.each(["karaoke-rezervasyon", "karaoke-iptal"] as const)(
+    "%s greets without the name in both halves",
+    (name) => {
+      expect(EMAIL_TEMPLATES[name].html).not.toContain("[AD]");
+      expect(EMAIL_TEXT[name]).not.toContain("[AD]");
+      expect(EMAIL_TEXT[name].startsWith("Merhaba,")).toBe(true);
+    },
+  );
+
+  /**
+   * Confirmation and cancellation are one pair: whatever the staff do to a
+   * booking, the member is told the same four facts about the same evening.
+   * A field in one and not the other is how a cancellation ends up unable to
+   * name which evening it cancelled.
+   */
+  it("karaoke's two messages ask for the same reservation fields", () => {
+    const of = (name: EmailTemplateName) =>
+      fieldsOf(name)
+        .filter((f) => f.startsWith("KARAOKE_"))
+        .sort();
+    expect(of("karaoke-iptal")).toEqual(of("karaoke-rezervasyon"));
+    expect(of("karaoke-iptal")).toEqual([
+      "KARAOKE_KISI",
+      "KARAOKE_KOD",
+      "KARAOKE_SAAT",
+      "KARAOKE_TARIH",
+    ]);
+  });
+
+  /**
+   * The birthday message promises a validity the coupon has to have. It used
+   * to say "doğum gününüzde aktifleşir · 7 gün geçerli" while the only
+   * grantor expired the coupon at the end of the MONTH — three days for a
+   * member born on the 28th, twenty-nine for one born on the 2nd. The cron
+   * now grants seven days from the day itself (`BIRTHDAY.ttlDays`), and
+   * "aktifleşir" is gone: a coupon is active the moment it is written.
+   */
+  it("dogum-gunu promises seven days and no activation step", () => {
+    for (const half of [
+      EMAIL_TEMPLATES["dogum-gunu"].html,
+      EMAIL_TEXT["dogum-gunu"],
+    ]) {
+      expect(half).toContain("7 gün geçerli");
+      expect(half).not.toContain("aktifleş");
+    }
   });
 });
 

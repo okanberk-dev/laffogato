@@ -10,6 +10,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { grantWelcomeCoupon } from "./coupons";
 import {
   getCustomerByEmail,
+  toPublicCustomer,
   type Customer,
   type PublicCustomer,
 } from "./store";
@@ -109,6 +110,15 @@ async function reconcile(
   }
   if (plan.action === "unconfirmed") {
     return { ok: false, reason: "email_unconfirmed" };
+  }
+  // Steady state, and every authenticated mobile request passes through it:
+  // nothing is written, so `existing` IS the row the read-back below would
+  // return. That read-back was a second identical `select * from customers`
+  // on a pool of `max: 1` — it could not even overlap the first. The
+  // deactivated and unconfirmed cases were refused above, which is what the
+  // read-back's own `isActive` guard checks for.
+  if (plan.action === "none" && existing) {
+    return { ok: true, customer: toPublicCustomer(existing), created: false };
   }
 
   let created = false;

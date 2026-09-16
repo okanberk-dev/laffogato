@@ -12,6 +12,7 @@ import {
 import {
   getCampaignEmail,
   previewCampaignEmail,
+  scheduledAtInputValue,
   type CampaignEmail,
 } from "@/lib/email/campaigns";
 
@@ -89,6 +90,7 @@ export default async function CampaignMailDetailPage({
                 template: c.template,
                 audience: c.audience,
                 fields: c.fields,
+                scheduledAt: scheduledAtInputValue(c.scheduledAt),
               }}
               submitLabel="Taslağı kaydet"
             />
@@ -117,6 +119,12 @@ export default async function CampaignMailDetailPage({
                   <dd>{c.sentCount}</dd>
                   <dt className="text-neutral-500">Başarısız</dt>
                   <dd>{c.failedCount}</dd>
+                </>
+              )}
+              {isDraft && c.scheduledAt && (
+                <>
+                  <dt className="text-neutral-500">Zamanlandı</dt>
+                  <dd>{formatDateTime(c.scheduledAt)}</dd>
                 </>
               )}
               {c.queuedAt && (
@@ -152,6 +160,13 @@ export default async function CampaignMailDetailPage({
             </dl>
             {c.lastError && (
               <p className="mt-3 text-xs text-red-600">{c.lastError}</p>
+            )}
+            {isDraft && c.scheduledAt && (
+              <p className="mt-3 text-xs text-neutral-500">
+                Bu taslak zamanı gelince kendiliğinden kuyruğa alınır; saatlik
+                görev onu yakalar. Beklemek istemezsen aşağıdan şimdi
+                gönderebilirsin.
+              </p>
             )}
             {resumable && (
               <p className="mt-3 text-xs text-neutral-500">

@@ -70,18 +70,45 @@ export function SettingsForm({
         ))}
       </nav>
 
+      {/* Hidden, not unmounted — the same reason as the mobile settings
+          screen: these eight forms are uncontrolled, so unmounting a tab
+          silently discarded everything typed into it (the seven-row çalışma
+          saatleri table above all). `hidden` keeps the values; each form
+          still submits only its own section. */}
       <div>
-        {tab === "general" && <GeneralTab settings={settings} />}
-        {tab === "hours" && <HoursTab settings={settings} />}
-        {tab === "tax" && <TaxTab settings={settings} />}
-        {tab === "shipping" && <ShippingTab settings={settings} />}
-        {tab === "karaoke" && <KaraokeTab settings={settings} />}
-        {tab === "seo" && <SeoTab settings={settings} />}
-        {tab === "notifications" && <NotificationsTab settings={settings} />}
-        {tab === "email" && <EmailTab settings={settings} mail={mail} />}
+        <Pane show={tab === "general"}>
+          <GeneralTab settings={settings} />
+        </Pane>
+        <Pane show={tab === "hours"}>
+          <HoursTab settings={settings} />
+        </Pane>
+        <Pane show={tab === "tax"}>
+          <TaxTab settings={settings} />
+        </Pane>
+        <Pane show={tab === "shipping"}>
+          <ShippingTab settings={settings} />
+        </Pane>
+        <Pane show={tab === "karaoke"}>
+          <KaraokeTab settings={settings} />
+        </Pane>
+        <Pane show={tab === "seo"}>
+          <SeoTab settings={settings} />
+        </Pane>
+        <Pane show={tab === "notifications"}>
+          <NotificationsTab settings={settings} />
+        </Pane>
+        <Pane show={tab === "email"}>
+          <EmailTab settings={settings} mail={mail} />
+        </Pane>
       </div>
     </div>
   );
+}
+
+
+/** One tab's panel; `hidden` keeps its fields alive between tab switches. */
+function Pane({ show, children }: { show: boolean; children: ReactNode }) {
+  return <div hidden={!show}>{children}</div>;
 }
 
 function SaveBar({

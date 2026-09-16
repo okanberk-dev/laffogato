@@ -50,11 +50,19 @@ const WELCOME = {
   ttlDays: 30,
 };
 
+/**
+ * `ttlDays` is not decoration: `dogum-gunu.html` and its plain-text twin both
+ * print "7 gün geçerli" next to `[SON_KULLANIM]`. The coupon used to expire at
+ * the end of the calendar month instead, so the member born on the 28th got
+ * three days while the message promised seven, and the member born on the 2nd
+ * got twenty-nine. Whoever changes this number changes the template too.
+ */
 const BIRTHDAY = {
   kind: "pct" as const,
   value: 20,
   minSubtotalMinor: 15000, // 150,00 ₺
   title: "Doğum günün kutlu olsun · %20",
+  ttlDays: 7,
 };
 
 const SOURCE_PREFIX: Record<CouponSource, string> = {
@@ -83,15 +91,9 @@ export function generateCouponCode(prefix: string): string {
   return `${prefix}-${body}`;
 }
 
-function endOfMonthISO(d: Date): string {
-  return new Date(
-    d.getFullYear(),
-    d.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-  ).toISOString();
+/** `now + days`, as the ISO instant a coupon row stores. */
+function expiryISO(from: Date, days: number): string {
+  return new Date(from.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 }
 
 // ─── DB layer ────────────────────────────────────────────────────────────────
@@ -300,9 +302,7 @@ export async function grantWelcomeCoupon(
     minSubtotalMinor: WELCOME.minSubtotalMinor,
     title: WELCOME.title,
     source: "welcome",
-    expiresAt: new Date(
-      Date.now() + WELCOME.ttlDays * 24 * 60 * 60 * 1000,
-    ).toISOString(),
+    expiresAt: expiryISO(new Date(), WELCOME.ttlDays),
   });
 }
 
@@ -324,8 +324,63 @@ async function hasBirthdayCouponThisYear(
 }
 
 /**
- * Lazily grant a birthday coupon when the member visits during their birthday
- * month (no cron needed). Idempotent: at most one per calendar year.
+ * The grant itself, shared by both doors below.
+ *
+ * `hasBirthdayCouponThisYear` is the whole idempotency key: one birthday
+ * coupon per member per calendar year. That single check covers every way the
+ * cron can run twice (a retry, two regions, a manual call), and it is also
+ * what makes 29 February safe — a leap-day member greeted on 1 March in a
+ * common year cannot be greeted again on the 29th of the next leap year's
+ * February within the same year, because there is only ever one 29 February
+ * per year and the check is per year, not per date.
+ */
+async function grantBirthdayCouponOnce(
+  owner: string,
+  year: number,
+  now: Date,
+): Promise<CustomerCoupon | null> {
+  if (await hasBirthdayCouponThisYear(owner, year)) return null;
+  return grantCoupon({
+    email: owner,
+    kind: BIRTHDAY.kind,
+    value: BIRTHDAY.value,
+    minSubtotalMinor: BIRTHDAY.minSubtotalMinor,
+    title: BIRTHDAY.title,
+    source: "birthday",
+    expiresAt: expiryISO(now, BIRTHDAY.ttlDays),
+  });
+}
+
+/**
+ * The daily cron's grant: the caller has already matched the member's
+ * birthday against today's Istanbul calendar day (`birthday_greeting_audience`
+ * does the AA-GG comparison in SQL), so all that is left here is the once-a-
+ * year guard and the row.
+ *
+ * Returns the coupon when one was written and `null` when the member already
+ * had this year's — which is exactly the signal the cron needs: grant a coupon
+ * and greet, or stay quiet. No second bookkeeping table.
+ */
+export async function grantBirthdayCouponToday(
+  email: string,
+  year: number,
+  now: Date = new Date(),
+): Promise<CustomerCoupon | null> {
+  const owner = normalizeEmail(email);
+  if (!owner) return null;
+  return grantBirthdayCouponOnce(owner, year, now);
+}
+
+/**
+ * The web backstop: grant the coupon when the member happens to open the
+ * promotions page during their birthday MONTH. Kept for the member whose
+ * birthday fell before the cron existed (or on a day the cron did not run);
+ * the cron is the real trigger and normally gets there first, in which case
+ * the once-a-year check makes this a no-op.
+ *
+ * The month is deliberately wider than the cron's day — a page visit is not
+ * a schedule — but the coupon it writes is the same one, seven days from the
+ * moment it is granted, so both doors match what the mail says.
  */
 export async function maybeGrantBirthdayCoupon(
   email: string,
@@ -336,16 +391,7 @@ export async function maybeGrantBirthdayCoupon(
   if (!owner || !month) return null;
   const now = new Date();
   if (now.getMonth() + 1 !== month) return null;
-  if (await hasBirthdayCouponThisYear(owner, now.getFullYear())) return null;
-  return grantCoupon({
-    email: owner,
-    kind: BIRTHDAY.kind,
-    value: BIRTHDAY.value,
-    minSubtotalMinor: BIRTHDAY.minSubtotalMinor,
-    title: BIRTHDAY.title,
-    source: "birthday",
-    expiresAt: endOfMonthISO(now),
-  });
+  return grantBirthdayCouponOnce(owner, now.getFullYear(), now);
 }
 
 // ─── Admin ───────────────────────────────────────────────────────────────────

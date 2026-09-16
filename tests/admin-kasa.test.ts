@@ -16,9 +16,11 @@ import { DbUnreachableError } from "@/lib/db/health";
 const requireRole = vi.fn();
 const logAudit = vi.fn();
 const redeemCounterToken = vi.fn();
+const getCustomerByEmail = vi.fn();
 
 vi.mock("@/lib/admin/auth", () => ({ requireRole }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit }));
+vi.mock("@/lib/customer/store", () => ({ getCustomerByEmail }));
 vi.mock("@/lib/mobile/counter", async () => {
   const actual = await vi.importActual<typeof import("@/lib/mobile/counter")>(
     "@/lib/mobile/counter",
@@ -51,6 +53,8 @@ beforeEach(() => {
   requireRole.mockResolvedValue({ email: "kasa@laffogato.net" });
   logAudit.mockReset();
   redeemCounterToken.mockReset();
+  getCustomerByEmail.mockReset();
+  getCustomerByEmail.mockResolvedValue({ email: "eda@ornek.com", isActive: true });
   granted();
 });
 
@@ -177,5 +181,78 @@ describe("redeemCounterTokenAction", () => {
       stamps: 1,
     });
     expect(state.error).toMatch(/ulaşılamıyor/);
+  });
+});
+
+/**
+ * The typed-address path.
+ *
+ * The QR and the code name a member by construction — the token row was minted
+ * for an account. A typed address names nobody, and `redeemCounterToken` only
+ * checks its SHAPE: `uye@gmial.com` used to pass, collect its own ledger rows
+ * and come back as a green "+1 damga · Kart 1/6" receipt while the member it
+ * was meant for saw nothing.
+ */
+describe("e-posta yolu · üyelik denetimi", () => {
+  it("refuses an address with no member account, before any stamp is written", async () => {
+    getCustomerByEmail.mockResolvedValue(null);
+    const state = await redeemCounterTokenAction({
+      kind: "email",
+      value: "uye@gmial.com",
+      stamps: 1,
+    });
+    expect(state.error).toMatch(/üye hesabı yok/);
+    expect(state.result).toBeUndefined();
+    expect(redeemCounterToken).not.toHaveBeenCalled();
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("refuses a closed account too — a stamp there is a stamp nobody can spend", async () => {
+    getCustomerByEmail.mockResolvedValue({
+      email: "eda@ornek.com",
+      isActive: false,
+    });
+    const state = await redeemCounterTokenAction({
+      kind: "email",
+      value: "eda@ornek.com",
+      stamps: 1,
+    });
+    expect(state.error).toMatch(/kapalı/);
+    expect(redeemCounterToken).not.toHaveBeenCalled();
+  });
+
+  it("stamps a real member as before", async () => {
+    const state = await redeemCounterTokenAction({
+      kind: "email",
+      value: "eda@ornek.com",
+      stamps: 2,
+    });
+    expect(getCustomerByEmail).toHaveBeenCalledWith("eda@ornek.com");
+    expect(redeemCounterToken).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "email", value: "eda@ornek.com" }),
+    );
+    expect(state.result).toBeTruthy();
+  });
+
+  it("does not ask the customer table on the QR path — the token already names the member", async () => {
+    await redeemCounterTokenAction({
+      kind: "token",
+      value: "jeton",
+      stamps: 1,
+    });
+    expect(getCustomerByEmail).not.toHaveBeenCalled();
+  });
+
+  it("says the database is down rather than inventing a missing member", async () => {
+    getCustomerByEmail.mockRejectedValue(
+      new DbUnreachableError("fetchCustomer", "ECONNREFUSED"),
+    );
+    const state = await redeemCounterTokenAction({
+      kind: "email",
+      value: "eda@ornek.com",
+      stamps: 1,
+    });
+    expect(state.error).toMatch(/ulaşılamıyor/);
+    expect(redeemCounterToken).not.toHaveBeenCalled();
   });
 });

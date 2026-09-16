@@ -210,6 +210,26 @@ arayabilirsiniz: +90 536 429 09 19
 
 ${SIGNATURE}`,
 
+  // The cancellation twin. Same shape, same greeting without a name: the
+  // member is told what changed, what it cost them (nothing) and how to get
+  // another evening — nothing to confirm, nothing to click.
+  "karaoke-iptal": `Merhaba,
+
+Karaoke rezervasyonunuz iptal edildi. Oda serbest bırakıldı; sizden bir şey
+beklenmiyor.
+
+İptal edilen rezervasyon: [KARAOKE_KOD]
+Tarih: [KARAOKE_TARIH]
+Saat: [KARAOKE_SAAT]
+Kişi: [KARAOKE_KISI]
+
+Ödeme alınmadıysa tahsilat da yapılmaz.
+
+Yeni bir saat ayırtmak için: https://laffogato.net/karaoke
+Bir yanlışlık olduğunu düşünüyorsanız bizi arayın: +90 536 429 09 19
+
+${SIGNATURE}`,
+
   "sadakat-ikram": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
 Kartınız doldu — [DAMGA_HEDEFI] damga tamamlandı ve bir içecek bizden.
@@ -244,7 +264,7 @@ Doğum gününüz kutlu olsun — bugün bir kahve bizden.
 
 Kupon kodu: [KUPON_KODU]
 Son kullanma: [SON_KULLANIM]
-(Doğum gününüzde aktifleşir · 7 gün geçerli)
+(Bugünden başlayarak 7 gün geçerli)
 
 Menüye göz atın: [MENU_URL]
 

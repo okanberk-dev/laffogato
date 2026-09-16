@@ -234,36 +234,11 @@ export class ScanGate {
 }
 
 /**
- * A short confirmation tone.
- *
- * Built from an oscillator rather than shipped as an audio file: it is two
- * hundred milliseconds of sine wave, and a till that is looking at the member
- * rather than the screen needs to hear that the scan landed. Fails silently —
- * a browser that blocks audio until a gesture must not break scanning.
+ * The confirmation tone lives in `@/components/admin/beep` now — the order
+ * list rings the same one when a new order lands. Re-exported here so the
+ * till's own imports (and `till-scan-engine.test.ts`) still find it.
  */
-export function beep(ok: boolean): void {
-  try {
-    const Ctor =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext;
-    if (!Ctor) return;
-    const ctx = new Ctor();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = ok ? 880 : 220;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.2);
-    osc.onended = () => void ctx.close();
-  } catch {
-    /* No audio on this device; the flash and the receipt still say so. */
-  }
-}
+export { beep } from "@/components/admin/beep";
 
 /** Tracks that expose a torch — a dark counter is a real till, not an edge case. */
 export function torchCapable(track: MediaStreamTrack | null): boolean {

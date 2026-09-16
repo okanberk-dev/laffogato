@@ -38,7 +38,10 @@ export async function POST(request: NextRequest) {
       const { status, code, message } = result.failure;
       return apiError(status, code, message);
     }
-    return apiJson(result.preview);
+    // Private even though the bearer is optional: when one is present the
+    // member's own coupons are tried, so the same basket prices differently
+    // per member (docs/API-MOBILE.md §0).
+    return apiJson(result.preview, { private: true });
   } catch (err) {
     return routeFailure(err, "api/mobile/v1/orders/preview");
   }

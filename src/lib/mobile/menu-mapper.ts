@@ -281,6 +281,12 @@ export interface MobileShopProduct {
   priceMinor: number;
   compareAtPriceMinor: number;
   category: AdminProduct["cat"];
+  /**
+   * Same field name, same shape and same vocabulary as `MobileMenuItem.tags`
+   * (contract §1/§2), so the app reads a shop product's allergens with the
+   * code it already has: `item.tags.includes("nuts")`.
+   */
+  tags: string[];
   hue: string;
   image: string | null;
   inStock: boolean;
@@ -306,6 +312,20 @@ export function toMobileShopProduct(
     compareAtPriceMinor:
       p.compareAtPriceMinor > p.priceMinor ? p.compareAtPriceMinor : 0,
     category: p.cat,
+    // Allergens are never withheld (lafmobil rule 4). The menu has published
+    // this field since v1; the shop shelf carries a pistachio biscotti and
+    // published nothing, so `nuts` had no way to reach a product page.
+    //
+    // Guarded rather than spread straight, and the guard is about DEPLOY
+    // ORDER: products are read with `select("*")`, so between this code
+    // shipping and `20260916*_shop_allergens.sql` running, the row simply has
+    // no `tags` key — and `[...undefined]` throws, which would take `GET
+    // /shop` down for every member in the app rather than degrade. A shelf
+    // that briefly publishes no allergen is the same state it has been in
+    // since v1; a shelf that 500s is worse. The window closes the moment the
+    // migration runs, and `products.tags` is `not null default '[]'` after it,
+    // so this branch is unreachable from then on.
+    tags: Array.isArray(p.tags) ? [...p.tags] : [],
     hue: p.img,
     image: first
       ? absoluteImageUrl(

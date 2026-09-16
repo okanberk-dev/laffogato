@@ -114,10 +114,10 @@ Bunun iki somut faydası var:
 5. **Vercel'de env değişkenlerini ayarla** — Vercel → proje → Settings →
    Environment Variables:
 
-   | Değişken          | Değer                                    | Ortam                |
-   | ----------------- | ---------------------------------------- | -------------------- |
-   | `DATABASE_URL`    | Transaction pooler dizesi (adım 2)       | Production + Preview |
-   | `DATABASE_SSL_CA` | CA sertifikasının PEM içeriği (adım 3)   | Production + Preview |
+   | Değişken          | Değer                                  | Ortam                |
+   | ----------------- | -------------------------------------- | -------------------- |
+   | `DATABASE_URL`    | Transaction pooler dizesi (adım 2)     | Production + Preview |
+   | `DATABASE_SSL_CA` | CA sertifikasının PEM içeriği (adım 3) | Production + Preview |
 
    `NEXT_PUBLIC_SUPABASE_*` değişkenleri bu veri katmanının konusu değildir —
    onlar kimlik (Auth) katmanına aittir ve mobil uygulama kullanır; site tarafı
@@ -160,6 +160,56 @@ Bu katmanın tamamı veritabanı olmadan test edilir: `tests/db-sql.test.ts` ve
 
 `db/migrations/YYYYMMDDHHMMSS_aciklama.sql` oluştur, sonra `npm run db:migrate`.
 Detay için `new-migration` skill'i.
+
+## Periyodik imha (KVKK)
+
+Yayımlanan **Veri Saklama ve İmha Politikası** bağlayıcı bir taahhüttür: her
+veri kategorisi için bir saklama süresi ve "periyodik imha işlemleri her yıl
+Haziran ve Aralık aylarının son iş haftasında gerçekleştirilir" cümlesi. Uzun
+süre bunu yapan hiçbir kod yoktu; `auth_attempts` — birincil anahtarı
+`<amaç>::<IP>::<e-posta>` olan tablo — amacı beş dakikada tükenen bir sayaç
+için sınırsız büyüdü. Bu hem tutulmamış bir taahhüt hem de veri
+minimizasyonu ihlaliydi (KVKK m.4/2-d).
+
+| Tablo                  | Sütun       | Süre       | Dayanak                                                                                                                    |
+| ---------------------- | ----------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `auth_attempts`        | `updatedAt` | **7 gün**  | "…5651 sayılı Kanun kapsamındaki asgari süreye uygun olarak **1 yıl**…" — bu bir **tavan**; satırın amacı 5 dakikada biter |
+| `campaign_email_sends` | `createdAt` | **3 yıl**  | Ticari İletişim Yönetmeliği — gönderim kaydı için **asgari** süre                                                          |
+| `audit_logs`           | `createdAt` | **10 yıl** | "İşlemin gerçekleştiği tarihten itibaren 10 yıl… (append-only)" — **asgari**                                               |
+| `counter_tokens`       | `expiresAt` | **1 gün**  | Jeton süresinin dolmasına bağlı otomatik imha; kalıcı kayıt `loyalty_stamps`'tir                                           |
+
+Süreler **politikadan okunur, uydurulmaz**: `src/lib/retention.ts` içindeki
+her kural, geldiği cümleyi `basis` alanında taşır ve
+`tests/mobile-retention.test.ts` o cümle `src/lib/legal/content.ts`'ten
+kaybolduğunda kırılır. Asgari (zorunlu) sürelerde yıl **366 gün** sayılır —
+10 yıllık bir kayıt artık yıllar yüzünden bir gün erken imha edilemez.
+
+### Çalıştırma — varsayılan **rapor modu**
+
+`vercel.json` → `crons`: `/api/cron/retention`, her gün 04:00 UTC (07:00
+İstanbul). Kimlik doğrulaması kampanya cron'unun aynısıdır (`CRON_SECRET`,
+sabit zamanlı karşılaştırma, tanımsızsa 503).
+
+**İmha geri alınamaz, bu yüzden opt-in'dir.** İş varsayılan olarak yalnızca
+sayar ve ne silecek olduğunu kural kural yanıt gövdesinde bildirir. Gerçekten
+silmesi için dağıtımda:
+
+```
+RETENTION_APPLY=destroy
+```
+
+Bu tam değer aranır — `1`, `true`, `yes` açmaz. **Önce birkaç gün kuru
+çalıştırma yapın**, `totalMatched` sayılarını okuyun, sonra açın.
+
+Yanıt gövdesi yalnızca **sayı** taşır; hiçbir anahtar, adres ya da IP ne
+loglanır ne döndürülür (`auth_attempts.key` üçünü birden içerir).
+
+### Kapsam dışı — bilerek
+
+`newsletter_subscribers` ret (opt-out) kayıtları **süpürülmez**: onları silmek
+aynı adrese yeniden ticari ileti gönderilmesine yol açar, ki Yönetmelik ret
+kaydını tam da bunun için 3 yıl tutturur. Sipariş, fatura ve ödeme kayıtları
+da kapsam dışıdır (VUK/TTK saklama süreleri).
 
 ## Yedek
 

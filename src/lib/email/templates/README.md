@@ -1,6 +1,6 @@
 # Mail şablonları
 
-On yedi gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
+On sekiz gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
 stiller satır içi. E-posta tarafında JavaScript, harici CSS ve web fontu yok;
 `<style>` bloğu yalnızca satır içi stillere ek (mobil kırılma + koyu tema),
 tek başına gerekli değil.
@@ -14,28 +14,29 @@ kilitlediğine bak.
 
 ## Dosyalar
 
-| Dosya                     | Tür               | Konu                                          |
-| ------------------------- | ----------------- | --------------------------------------------- |
-| eposta-dogrulama.html     | işlemsel          | L'Affogato — e-posta adresinizi doğrulayın    |
-| sifre-sifirlama.html      | işlemsel          | L'Affogato — şifre sıfırlama                  |
-| siparis-alindi.html       | işlemsel          | Siparişiniz alındı (#[SIPARIS_NO])            |
-| odeme-onaylandi.html      | işlemsel          | Ödemeniz onaylandı (#[SIPARIS_NO])            |
-| hos-geldin.html           | ilişki            | L'Affogato'ya hoş geldiniz                    |
-| karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonunuz onaylandı             |
-| sadakat-ikram.html        | işlemsel          | Kartınız doldu — bir içecek bizden            |
-| bulten-kampanya.html      | **ticari (6563)** | [KAMPANYA_BASLIK] — 3 ürün seçkisi + kod      |
-| mobil-uygulama.html       | **ticari (6563)** | L'Affogato uygulaması yayında                 |
-| dogum-gunu.html           | **ticari (6563)** | Doğum gününüz kutlu olsun — kahve bizden      |
-| kampanya-duyuru.html      | **ticari (6563)** | [KAMPANYA_BASLIK] — genel duyuru              |
-| kampanya-bonus-damga.html | **ticari (6563)** | [KAMPANYA_BASLIK] — bonus damga               |
-| kampanya-happy-hour.html  | **ticari (6563)** | [KAMPANYA_BASLIK] — saat bandı                |
-| kampanya-ikram.html       | **ticari (6563)** | [KAMPANYA_BASLIK] — üç adımda ikram           |
-| kampanya-etkinlik.html    | **ticari (6563)** | [KAMPANYA_BASLIK] — etkinlik                  |
-| kampanya-yeni-urun.html   | **ticari (6563)** | [KAMPANYA_BASLIK] — yeni ürün / ön erişim     |
-| kampanya-indirim.html     | **ticari (6563)** | [KAMPANYA_BASLIK] — indirim                   |
+| Dosya                     | Tür               | Konu                                       |
+| ------------------------- | ----------------- | ------------------------------------------ |
+| eposta-dogrulama.html     | işlemsel          | L'Affogato — e-posta adresinizi doğrulayın |
+| sifre-sifirlama.html      | işlemsel          | L'Affogato — şifre sıfırlama               |
+| siparis-alindi.html       | işlemsel          | Siparişiniz alındı (#[SIPARIS_NO])         |
+| odeme-onaylandi.html      | işlemsel          | Ödemeniz onaylandı (#[SIPARIS_NO])         |
+| hos-geldin.html           | ilişki            | L'Affogato'ya hoş geldiniz                 |
+| karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonunuz onaylandı          |
+| karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonunuz iptal edildi       |
+| sadakat-ikram.html        | işlemsel          | Kartınız doldu — bir içecek bizden         |
+| bulten-kampanya.html      | **ticari (6563)** | [KAMPANYA_BASLIK] — 3 ürün seçkisi + kod   |
+| mobil-uygulama.html       | **ticari (6563)** | L'Affogato uygulaması yayında              |
+| dogum-gunu.html           | **ticari (6563)** | Doğum gününüz kutlu olsun — kahve bizden   |
+| kampanya-duyuru.html      | **ticari (6563)** | [KAMPANYA_BASLIK] — genel duyuru           |
+| kampanya-bonus-damga.html | **ticari (6563)** | [KAMPANYA_BASLIK] — bonus damga            |
+| kampanya-happy-hour.html  | **ticari (6563)** | [KAMPANYA_BASLIK] — saat bandı             |
+| kampanya-ikram.html       | **ticari (6563)** | [KAMPANYA_BASLIK] — üç adımda ikram        |
+| kampanya-etkinlik.html    | **ticari (6563)** | [KAMPANYA_BASLIK] — etkinlik               |
+| kampanya-yeni-urun.html   | **ticari (6563)** | [KAMPANYA_BASLIK] — yeni ürün / ön erişim  |
+| kampanya-indirim.html     | **ticari (6563)** | [KAMPANYA_BASLIK] — indirim                |
 
 Ticari onlu `data-commercial="1"` taşır. `renderEmail` bu onu çıkış
-bağlantısı olmadan **derlemez**, işlemsel yediye çıkış bağlantısı
+bağlantısı olmadan **derlemez**, işlemsel sekize çıkış bağlantısı
 **koydurmaz** — ikisi de `tests/email-templates.test.ts`'te kilitli.
 
 Konu satırı şablonun `data-subject`'idir ve `<title>` ile aynı olmak
@@ -51,15 +52,15 @@ kancası `kampanya-duyuru`'yu kendiliğinden üretir. Konu `[KAMPANYA_BASLIK]`,
 `renderCampaignMail` · `sendCampaignMail` ile, toplu gönderimi `deliverBatch`
 ile sunar (`bulten-kampanya` da aileye dâhildir).
 
-| Şablon               | Mod  | Ne için                       | Şablona özgü alanlar                                        |
-| -------------------- | ---- | ----------------------------- | ----------------------------------------------------------- |
-| kampanya-duyuru      | koyu | genel duyuru, gönderi kancası | —                                                           |
-| kampanya-bonus-damga | koyu | bonus damga (damga şeridi)    | —                                                           |
-| kampanya-happy-hour  | koyu | saat bandı                    | `ETKINLIK_SAAT` · `ETKINLIK_TARIH` · `ETKINLIK_YER`         |
-| kampanya-ikram       | açık | üç adımda ikram               | `ADIM_1..3_BASLIK` · `ADIM_1..3_METIN`                      |
-| kampanya-etkinlik    | koyu | etkinlik (kod kutusu yok)     | `ETKINLIK_YER` · `ETKINLIK_TARIH` · `ETKINLIK_SAAT`         |
-| kampanya-yeni-urun   | açık | ön erişim (kod kutusu yok)    | `ADIM_1..3_BASLIK` · `ADIM_1..3_METIN`                      |
-| kampanya-indirim     | açık | indirim                       | `INDIRIM_ORAN` · `INDIRIM_URUN`                             |
+| Şablon               | Mod  | Ne için                       | Şablona özgü alanlar                                |
+| -------------------- | ---- | ----------------------------- | --------------------------------------------------- |
+| kampanya-duyuru      | koyu | genel duyuru, gönderi kancası | —                                                   |
+| kampanya-bonus-damga | koyu | bonus damga (damga şeridi)    | —                                                   |
+| kampanya-happy-hour  | koyu | saat bandı                    | `ETKINLIK_SAAT` · `ETKINLIK_TARIH` · `ETKINLIK_YER` |
+| kampanya-ikram       | açık | üç adımda ikram               | `ADIM_1..3_BASLIK` · `ADIM_1..3_METIN`              |
+| kampanya-etkinlik    | koyu | etkinlik (kod kutusu yok)     | `ETKINLIK_YER` · `ETKINLIK_TARIH` · `ETKINLIK_SAAT` |
+| kampanya-yeni-urun   | açık | ön erişim (kod kutusu yok)    | `ADIM_1..3_BASLIK` · `ADIM_1..3_METIN`              |
+| kampanya-indirim     | açık | indirim                       | `INDIRIM_ORAN` · `INDIRIM_URUN`                     |
 
 Ortak alanlar: `AD` · `KAMPANYA_EYEBROW` · `KAMPANYA_BASLIK` · `KAMPANYA_ALT`
 · `KAMPANYA_METIN` · `KAMPANYA_BUTON` · `KAMPANYA_URL` — zorunlu;
@@ -79,15 +80,15 @@ isteğe bağlı, aşağıdaki bayraklarla düşer.
 
 Bayraklar `render.ts`'te hesaplanır; şablon yalnızca adını bilir:
 
-| Bayrak      | Açık olduğu durum                        | Bölümle birlikte düşen alanlar               |
-| ----------- | ---------------------------------------- | -------------------------------------------- |
-| `APP_LINKS` | iki mağaza linki de tanımlı              | `APP_STORE_URL` · `PLAY_STORE_URL`           |
-| `AD`        | ad boş değil ("Merhaba ," olmasın diye)  | `AD`                                         |
-| `GORSEL`    | `KAMPANYA_GORSEL_URL` dolu               | `KAMPANYA_GORSEL_URL` · `KAMPANYA_GORSEL_ALT` |
-| `KOD`       | `KUPON_KODU` dolu                        | `KUPON_KODU` · `SON_KULLANIM`                |
-| `TARIH`     | `KAMPANYA_TARIH` dolu                    | `KAMPANYA_TARIH`                             |
-| `DIPNOT`    | `KAMPANYA_DIPNOT` dolu                   | `KAMPANYA_DIPNOT`                            |
-| `VURGU`     | `KAMPANYA_VURGU` dolu                    | `KAMPANYA_VURGU`                             |
+| Bayrak      | Açık olduğu durum                       | Bölümle birlikte düşen alanlar                |
+| ----------- | --------------------------------------- | --------------------------------------------- |
+| `APP_LINKS` | iki mağaza linki de tanımlı             | `APP_STORE_URL` · `PLAY_STORE_URL`            |
+| `AD`        | ad boş değil ("Merhaba ," olmasın diye) | `AD`                                          |
+| `GORSEL`    | `KAMPANYA_GORSEL_URL` dolu              | `KAMPANYA_GORSEL_URL` · `KAMPANYA_GORSEL_ALT` |
+| `KOD`       | `KUPON_KODU` dolu                       | `KUPON_KODU` · `SON_KULLANIM`                 |
+| `TARIH`     | `KAMPANYA_TARIH` dolu                   | `KAMPANYA_TARIH`                              |
+| `DIPNOT`    | `KAMPANYA_DIPNOT` dolu                  | `KAMPANYA_DIPNOT`                             |
+| `VURGU`     | `KAMPANYA_VURGU` dolu                   | `KAMPANYA_VURGU`                              |
 
 Bayrak kapalıysa bölüm, içindeki alanlarla birlikte düşer; `assertFilled`
 onları aramaz. Dolayısıyla isteğe bağlı bir alanı boş bırakmak serbesttir,
@@ -98,22 +99,22 @@ kampanya başlığını koyar.
 
 ## Alanlar ve kaynakları
 
-| Alan                                                                                             | Nereden                                                                          |
-| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `[AD]`                                                                                           | çağıranın `name` / `customerName`; kampanyada alıcı satırının adı                |
-| `[DOGRULAMA_URL]` `[SIFIRLAMA_URL]`                                                              | `src/app/uye/actions.ts`                                                         |
-| `[SIPARIS_NO]` kalemler `[ARA_TOPLAM]` `[KARGO]` `[TOPLAM]`                                      | `OrderEmailData` · `formatTRYMinor`                                              |
-| `[SIPARIS_URL]` `[HESAP_URL]` `[MENU_URL]`                                                       | `SITE.url` + route (`render.ts` → `commonVars`)                                  |
-| `[DAMGA_HEDEFI]`                                                                                 | `settings.mobileApp.loyalty.stampTarget`                                         |
-| `[ODUL_BASLIGI]`                                                                                 | `currentFreeDrinkReward().title`                                                 |
-| `[KUPON_KODU]` `[SON_KULLANIM]`                                                                  | sadakat / doğum günü: `CustomerCoupon`; kampanyada formdan (genel kod)           |
-| `[KARAOKE_*]`                                                                                    | `KaraokeReservation`                                                             |
-| `[KAMPANYA_EYEBROW]` `[KAMPANYA_BASLIK]` `[KAMPANYA_ALT]` `[KAMPANYA_METIN]` `[KAMPANYA_BUTON]` `[KAMPANYA_URL]` | kampanya formu (`campaign_emails.fields`) ya da uygulama gönderisi (`campaignFromPost`) |
-| `[KAMPANYA_VURGU]` `[KAMPANYA_GORSEL_URL]` `[KAMPANYA_GORSEL_ALT]` `[KAMPANYA_TARIH]` `[KAMPANYA_DIPNOT]` | aynı form, isteğe bağlı — boşsa bölüm düşer                                      |
-| `[ETKINLIK_*]` `[ADIM_n_*]` `[INDIRIM_*]`                                                        | aynı form, şablona göre                                                          |
-| `[URUN_n_*]`                                                                                     | `bulten-kampanya` — çağıranın üç ürün seçkisi                                    |
-| `[ABONELIK_CIKIS_URL]`                                                                           | `unsubscribeUrlFor(token)` → `/api/bulten/cikis?token=` — `renderEmail` otomatik |
-| `[APP_STORE_URL]` `[PLAY_STORE_URL]`                                                             | `src/lib/mobile/app-store.ts` (env)                                              |
+| Alan                                                                                                             | Nereden                                                                                                   |
+| ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `[AD]`                                                                                                           | çağıranın `name` / `customerName`; kampanyada alıcı satırının adı                                         |
+| `[DOGRULAMA_URL]` `[SIFIRLAMA_URL]`                                                                              | `src/app/uye/actions.ts`                                                                                  |
+| `[SIPARIS_NO]` kalemler `[ARA_TOPLAM]` `[KARGO]` `[TOPLAM]`                                                      | `OrderEmailData` · `formatTRYMinor`                                                                       |
+| `[SIPARIS_URL]` `[HESAP_URL]` `[MENU_URL]`                                                                       | `SITE.url` + route (`render.ts` → `commonVars`)                                                           |
+| `[DAMGA_HEDEFI]`                                                                                                 | `settings.mobileApp.loyalty.stampTarget`                                                                  |
+| `[ODUL_BASLIGI]`                                                                                                 | `currentFreeDrinkReward().title`                                                                          |
+| `[KUPON_KODU]` `[SON_KULLANIM]`                                                                                  | sadakat / doğum günü: `CustomerCoupon`; kampanyada formdan (genel kod)                                    |
+| `[KARAOKE_*]`                                                                                                    | `KaraokeReservation` — `[KARAOKE_KOD]` rezervasyonun `id`'sidir (`krk-00042`), ayrı bir kod kolonu yoktur |
+| `[KAMPANYA_EYEBROW]` `[KAMPANYA_BASLIK]` `[KAMPANYA_ALT]` `[KAMPANYA_METIN]` `[KAMPANYA_BUTON]` `[KAMPANYA_URL]` | kampanya formu (`campaign_emails.fields`) ya da uygulama gönderisi (`campaignFromPost`)                   |
+| `[KAMPANYA_VURGU]` `[KAMPANYA_GORSEL_URL]` `[KAMPANYA_GORSEL_ALT]` `[KAMPANYA_TARIH]` `[KAMPANYA_DIPNOT]`        | aynı form, isteğe bağlı — boşsa bölüm düşer                                                               |
+| `[ETKINLIK_*]` `[ADIM_n_*]` `[INDIRIM_*]`                                                                        | aynı form, şablona göre                                                                                   |
+| `[URUN_n_*]`                                                                                                     | `bulten-kampanya` — çağıranın üç ürün seçkisi                                                             |
+| `[ABONELIK_CIKIS_URL]`                                                                                           | `unsubscribeUrlFor(token)` → `/api/bulten/cikis?token=` — `renderEmail` otomatik                          |
+| `[APP_STORE_URL]` `[PLAY_STORE_URL]`                                                                             | `src/lib/mobile/app-store.ts` (env)                                                                       |
 
 ## Görseller
 
@@ -168,24 +169,24 @@ Gerekçe: mailleri site gönderir, bağlantılar siteye iner ve
 terrakota yasak). Site 5–7 Eyl'de Köşk + tricolore paletine geçti; bordo
 (`#84233c`) mailde **kullanılmaz**, dil yeşil + altın + krem.
 
-| Rol                                         | Token                              | Değer                             |
-| ------------------------------------------- | ---------------------------------- | --------------------------------- |
-| Koyu mod zemin, koyu bant, CTA dolgusu      | `--bg-espresso` / `--brand`        | `#143d2b`                         |
-| Koyu mod organik dalga / leke               | `--hero-green` (+ `--green`)       | `#1e5b3f` (`#1e7c4b`)             |
-| Koyu modda eyebrow, tarih, altın vurgu, CTA | `--gold-soft`                      | `#e8d3a4`                         |
-| Koyu modda CTA metni, vurgu metni           | `--bg-espresso`                    | `#143d2b`                         |
-| Koyu modda gövde                            | beyaz / `--green-mist`             | `#ffffff` / `#cfe3d5`             |
-| Açık mod kart zemini                        | `--bg`                             | `#ffffff`                         |
-| Açık mod dış zemin / krem plaka             | `--hero-cream` / `--bg-cream`      | `#faf6ee` / `#fbf9f4`             |
-| Krem plaka, ikon diski, teklif kutusu       | `--hero-tile` / `--hero-tile-deep` | `#f7ebdc` / `#ebd9c4`             |
-| Açık modda başlık                           | `--bg-espresso`                    | `#143d2b`                         |
-| Metin / ikincil / sessiz                    | `--ink` / `--ink-soft` / `--ink-mute` | `#201c17` / `#5f594e` / `#746b5d` |
-| Açık modda altın metin (eyebrow, fiyat)     | `--gold` (`--gold-deep`)           | `#8a6526` (`#6b4e1a`)             |
-| Açık modda fosforlu vurgu                   | `--green-mist` zemin + `--bg-espresso` metin | `#cfe3d5` + `#143d2b`   |
-| Çizgiler                                    | `--ink-line` / `--ink-line-strong` | `#ebe7de` / `#e1dcd1`             |
-| Altın hairline (teklif kutusu, kesikli)     | `--gold-soft`                      | `#e8d3a4`                         |
-| Footer zemini                               | `--bg-warm`                        | `#f6f5f2`                         |
-| Dış zemin (kartın arkası)                   | `--bg-stone`                       | `#f1eee8`                         |
+| Rol                                         | Token                                        | Değer                             |
+| ------------------------------------------- | -------------------------------------------- | --------------------------------- |
+| Koyu mod zemin, koyu bant, CTA dolgusu      | `--bg-espresso` / `--brand`                  | `#143d2b`                         |
+| Koyu mod organik dalga / leke               | `--hero-green` (+ `--green`)                 | `#1e5b3f` (`#1e7c4b`)             |
+| Koyu modda eyebrow, tarih, altın vurgu, CTA | `--gold-soft`                                | `#e8d3a4`                         |
+| Koyu modda CTA metni, vurgu metni           | `--bg-espresso`                              | `#143d2b`                         |
+| Koyu modda gövde                            | beyaz / `--green-mist`                       | `#ffffff` / `#cfe3d5`             |
+| Açık mod kart zemini                        | `--bg`                                       | `#ffffff`                         |
+| Açık mod dış zemin / krem plaka             | `--hero-cream` / `--bg-cream`                | `#faf6ee` / `#fbf9f4`             |
+| Krem plaka, ikon diski, teklif kutusu       | `--hero-tile` / `--hero-tile-deep`           | `#f7ebdc` / `#ebd9c4`             |
+| Açık modda başlık                           | `--bg-espresso`                              | `#143d2b`                         |
+| Metin / ikincil / sessiz                    | `--ink` / `--ink-soft` / `--ink-mute`        | `#201c17` / `#5f594e` / `#746b5d` |
+| Açık modda altın metin (eyebrow, fiyat)     | `--gold` (`--gold-deep`)                     | `#8a6526` (`#6b4e1a`)             |
+| Açık modda fosforlu vurgu                   | `--green-mist` zemin + `--bg-espresso` metin | `#cfe3d5` + `#143d2b`             |
+| Çizgiler                                    | `--ink-line` / `--ink-line-strong`           | `#ebe7de` / `#e1dcd1`             |
+| Altın hairline (teklif kutusu, kesikli)     | `--gold-soft`                                | `#e8d3a4`                         |
+| Footer zemini                               | `--bg-warm`                                  | `#f6f5f2`                         |
+| Dış zemin (kartın arkası)                   | `--bg-stone`                                 | `#f1eee8`                         |
 
 Yazı: Montserrat yığını (`--sans`). Web fontu Gmail/Outlook'ta yüklenmez,
 Helvetica/Arial'a düşer — ağırlık ve harf aralığı ayrımı taşıyor.

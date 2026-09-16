@@ -76,19 +76,56 @@ export function AppConfigForm({ config }: { config: MobileAppConfig }) {
         ))}
       </nav>
 
+      {/* Hidden, not unmounted.
+          Every field in these nine forms is uncontrolled (`defaultValue` off
+          `config`), so tearing a tab out of the DOM threw away whatever had
+          been typed into it and rebuilt it from the saved document on the way
+          back — a 280-character bakım duyurusu lost to a glance at the
+          courier fee, with no warning and no undo. `hidden` keeps the nodes
+          and their values alive; the forms stay independent, so each Kaydet
+          still submits only its own section. */}
       <div>
-        {tab === "version" && <VersionTab config={config} />}
-        {tab === "ordering" && <OrderingTab config={config} />}
-        {tab === "loyalty" && <LoyaltyTab config={config} />}
-        {tab === "karaoke" && <KaraokeTab config={config} />}
-        {tab === "reminders" && <RemindersTab config={config} />}
-        {tab === "cards" && <CampaignCardsTab config={config} />}
-        {tab === "happy" && <HappyHourTab config={config} />}
-        {tab === "venue" && <VenueTab config={config} />}
-        {tab === "store" && <StoreTab config={config} />}
+        <Pane show={tab === "version"}>
+          <VersionTab config={config} />
+        </Pane>
+        <Pane show={tab === "ordering"}>
+          <OrderingTab config={config} />
+        </Pane>
+        <Pane show={tab === "loyalty"}>
+          <LoyaltyTab config={config} />
+        </Pane>
+        <Pane show={tab === "karaoke"}>
+          <KaraokeTab config={config} />
+        </Pane>
+        <Pane show={tab === "reminders"}>
+          <RemindersTab config={config} />
+        </Pane>
+        <Pane show={tab === "cards"}>
+          <CampaignCardsTab config={config} />
+        </Pane>
+        <Pane show={tab === "happy"}>
+          <HappyHourTab config={config} />
+        </Pane>
+        <Pane show={tab === "venue"}>
+          <VenueTab config={config} />
+        </Pane>
+        <Pane show={tab === "store"}>
+          <StoreTab config={config} />
+        </Pane>
       </div>
     </div>
   );
+}
+
+
+/**
+ * One tab's panel. `hidden` rather than a conditional render — see the note
+ * at the tab list. The attribute also takes the panel out of the
+ * accessibility tree and out of tab order, so a screen reader and the Tab key
+ * see exactly the section on screen.
+ */
+function Pane({ show, children }: { show: boolean; children: ReactNode }) {
+  return <div hidden={!show}>{children}</div>;
 }
 
 function SaveBar({

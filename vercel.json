@@ -3,7 +3,11 @@
   "regions": ["fra1"],
   "buildCommand": "next build",
   "framework": "nextjs",
-  "crons": [{ "path": "/api/cron/campaign-emails", "schedule": "0 6 * * *" }],
+  "crons": [
+    { "path": "/api/cron/campaign-emails", "schedule": "0 * * * *" },
+    { "path": "/api/cron/birthday", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/retention", "schedule": "0 4 * * *" }
+  ],
   "git": {
     "deploymentEnabled": {
       "main": true
@@ -14,14 +18,20 @@
       "source": "/llms.txt",
       "headers": [
         { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=86400"
+        }
       ]
     },
     {
       "source": "/llms-full.txt",
       "headers": [
         { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=86400"
+        }
       ]
     },
     {
@@ -30,7 +40,10 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "Referrer-Policy", "value": "origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=()" },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(), geolocation=()"
+        },
         { "key": "Strict-Transport-Security", "value": "max-age=31536000" }
       ]
     }

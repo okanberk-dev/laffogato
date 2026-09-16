@@ -192,12 +192,31 @@ değişmemiş bir menü artık yalnızca başlık kadar maliyetli.
   "id": "prd-0001", "slug": "sirena-espresso-blend", "name": "Sirena — Espresso Blend",
   "tag": "Çekirdek · 250g", "description": "…", "priceMinor": 32000, "compareAtPriceMinor": 0,
   "category": "beans",                // beans | gift | gear | merch | pantry
+  "tags": ["nuts"],                   // §1 ile AYNI sözlük: signature | new | iced | nuts
   "hue": "caramel", "image": "https://…?v=<12 hex>" | null,   // §1'deki damga kuralı ürün fotoğrafları için de geçerli
   "inStock": true,
   "variants": [ { "id": "var-…", "name": "250 g", "priceMinor": 32000, "inStock": true }, { "id": "var-…", "name": "1 kg", "priceMinor": 109000, "inStock": true } ],
   "grinds": [ "Çekirdek", "Espresso", "Filtre", "French Press" ]   // yalnız category === "beans"
 } ], "shippingFlatMinor": 4900, "shippingFreeThresholdMinor": 50000 }
 ```
+
+### `tags` — alerjen (16 Eyl 2026, yalnız ekleme)
+
+`tags` her ürün nesnesinde **her zaman vardır**; alerjeni ya da rozeti olmayan
+üründe boş dizidir. Alan adı, tipi ve **sözlüğü** §1'deki `items[].tags` ile
+birebir aynıdır (`signature` · `new` · `iced` · `nuts`) — uygulama ikisini de
+`tags.includes("nuts")` ile okur, ayrı bir eşleyici yazılmaz.
+
+`nuts` bir **alerjendir** ve gizlenmez (uygulamanın 4. değişmez kuralı): ürün
+detayında ve sepet satırında görünür olmalıdır. Sözlük dışı bir değer
+gönderilmez — uygulama bilmediği etiketi sessizce atar
+(`src/data/http.ts` `KNOWN_TAGS`), yani uydurulmuş bir alerjen etiketi hiçbir
+müşteriye ulaşmaz. Sözlüğü genişletmek uygulamanın `ItemTag` birleşimini aynı
+sürümde genişletmeyi gerektirir.
+
+Kaynak: `products.tags` (jsonb, `db/migrations/20260916120000_product_allergen_tags.sql`),
+`menu_items.tags` ile aynı sütun şekli. Panelden `/admin/urunler` → **Temel
+bilgi** → *Alerjen* kapalı listesiyle işaretlenir.
 
 `variants[].priceMinor` = `product.priceMinor + variant.priceDeltaMinor` (sunucu hesaplar).
 Öğütüm seçimi sipariş satırında `note` olarak taşınır; fiyata etkisi yok.

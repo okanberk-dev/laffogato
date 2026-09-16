@@ -58,6 +58,7 @@ const {
   queueCampaignEmail,
   resumePendingCampaigns,
   runCampaignEmail,
+  scheduledAtInputValue,
   sendCampaignTest,
   updateCampaignEmail,
 } = await import("@/lib/email/campaigns");
@@ -542,6 +543,97 @@ describe("queue", () => {
       "c@ornek.com",
     ]);
     expect(calls()[0][0][0].html).toContain(`${UNSUB_BASE}${newTokenA}`);
+  });
+});
+
+describe("scheduling — the special days", () => {
+  /**
+   * The operator could compose a campaign but not say when it should go, so
+   * Anneler Günü, yılbaşı and 14 Şubat all meant standing at the panel that
+   * morning. One column and the hourly cron close that; no special-days
+   * table, because the campaign machine was never the missing part.
+   */
+
+  it("reads a zoneless datetime-local as ISTANBUL wall time, not the server's", async () => {
+    // The panel's input carries no zone and the function runs on UTC. Read
+    // naively, an operator's 09:00 would have gone out at 12:00 in Tuzla.
+    const c = await draft({ scheduledAt: "2027-02-14T09:00" });
+    expect(c.scheduledAt).toBe("2027-02-14T06:00:00.000Z");
+    // …and back out again as the same string the operator typed.
+    expect(scheduledAtInputValue(c.scheduledAt)).toBe("2027-02-14T09:00");
+  });
+
+  it("keeps an unreadable schedule out rather than guessing an hour", async () => {
+    const c = await draft({ scheduledAt: "yarın sabah" });
+    expect(c.scheduledAt).toBe("");
+  });
+
+  it("queues a draft whose moment has passed, and sends it in the same pass", async () => {
+    seedRows(FAKE_TABLES.customers, manyMembers(2));
+    const c = await draft({ scheduledAt: "2026-09-16T09:00" });
+    expect((await getCampaignEmail(c.id))?.status).toBe("draft");
+
+    const resumed = await resumePendingCampaigns({
+      deadlineMs: 60_000,
+      now: new Date("2026-09-16T06:30:00.000Z"),
+    });
+
+    expect(resumed).toEqual([{ id: c.id, sent: 2, failed: 0, remaining: 0 }]);
+    const fresh = await getCampaignEmail(c.id);
+    expect(fresh?.status).toBe("sent");
+    expect(fresh?.total).toBe(2);
+    // The record of what was asked for survives the send.
+    expect(fresh?.scheduledAt).toBe("2026-09-16T06:00:00.000Z");
+  });
+
+  it("leaves a draft alone until its moment, and never touches an unscheduled one", async () => {
+    seedRows(FAKE_TABLES.customers, manyMembers(2));
+    const later = await draft({ scheduledAt: "2026-09-16T09:00" });
+    const manual = await draft();
+
+    await resumePendingCampaigns({
+      deadlineMs: 60_000,
+      now: new Date("2026-09-16T05:59:00.000Z"),
+    });
+
+    expect((await getCampaignEmail(later.id))?.status).toBe("draft");
+    expect((await getCampaignEmail(manual.id))?.status).toBe("draft");
+    expect(calls()).toHaveLength(0);
+  });
+
+  it("clears the schedule of a draft that cannot be queued, so the next hour does not retry it forever", async () => {
+    seedRows(FAKE_TABLES.customers, manyMembers(1));
+    const { KAMPANYA_METIN: _dropped, ...incomplete } = FIELDS;
+    const broken = await draft({
+      fields: incomplete,
+      scheduledAt: "2026-09-16T09:00",
+    });
+    const healthy = await draft({ scheduledAt: "2026-09-16T09:00" });
+
+    const resumed = await resumePendingCampaigns({
+      deadlineMs: 60_000,
+      now: new Date("2026-09-16T06:30:00.000Z"),
+    });
+
+    // The broken one is put back in the operator's hands, naming the field…
+    const failed = await getCampaignEmail(broken.id);
+    expect(failed?.status).toBe("draft");
+    expect(failed?.scheduledAt).toBe("");
+    expect(failed?.lastError).toMatch(/doldurulmamış/);
+    // …and it did not take the other campaign down with it.
+    expect(resumed.map((r) => r.id)).toEqual([healthy.id]);
+    expect((await getCampaignEmail(healthy.id))?.status).toBe("sent");
+  });
+
+  it("a scheduled draft edited back to blank goes back to being sent by hand", async () => {
+    const c = await draft({ scheduledAt: "2026-09-16T09:00" });
+    const cleared = await updateCampaignEmail(c.id, { scheduledAt: "" });
+    expect(cleared?.scheduledAt).toBe("");
+    await resumePendingCampaigns({
+      deadlineMs: 60_000,
+      now: new Date("2026-09-20T06:30:00.000Z"),
+    });
+    expect((await getCampaignEmail(c.id))?.status).toBe("draft");
   });
 });
 

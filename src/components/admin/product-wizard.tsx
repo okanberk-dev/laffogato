@@ -43,6 +43,21 @@ const HUE_OPTIONS = [
   ["sky", "Gök"],
 ] as const;
 
+/**
+ * Allergens, as a closed list — the operator picks, never types.
+ *
+ * The values are the cafe menu's own tag vocabulary (`menu_items.tags`), and
+ * the app filters every tag it receives against that same list and drops
+ * anything else without a word. So a free-text box here could store "fıstık"
+ * or "NUTS " and publish an allergen that no customer would ever see, which
+ * is exactly the failure this list rules out. `nuts` is the only allergen the
+ * vocabulary carries today; adding a second one means adding it to the app's
+ * `ItemTag` union and `PRODUCT_TAG_VALUES` in the same release.
+ */
+const ALLERGEN_OPTIONS = [
+  ["nuts", "Sert kabuklu yemiş (fındık · fıstık)"],
+] as const;
+
 function slugifyClient(input: string): string {
   const map: Record<string, string> = {
     ç: "c",
@@ -130,6 +145,11 @@ export function ProductWizard({
   const [desc, setDesc] = useState(product?.desc ?? "");
   const [cat, setCat] = useState(product?.cat ?? "beans");
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
+  const [allergens, setAllergens] = useState<string[]>(
+    (product?.tags ?? []).filter((t) =>
+      ALLERGEN_OPTIONS.some(([v]) => v === t),
+    ),
+  );
 
   const [price, setPrice] = useState(
     product ? (product.priceMinor / 100).toFixed(2) : "",
@@ -212,6 +232,19 @@ export function ProductWizard({
       ),
     [variants],
   );
+
+  /**
+   * What the `tags` field posts: the allergens ticked above, plus any tag the
+   * row already carried that this form does not offer (`signature`, `new`,
+   * `iced`). Dropping those on every save would make an edit to the price
+   * quietly strip a badge nobody meant to touch.
+   */
+  const tagsValue = useMemo(() => {
+    const kept = (product?.tags ?? []).filter(
+      (t) => !ALLERGEN_OPTIONS.some(([v]) => v === t),
+    );
+    return [...new Set([...allergens, ...kept])].join(", ");
+  }, [allergens, product?.tags]);
 
   const fieldError = (key: string) => state.fieldErrors?.[key];
 
@@ -319,6 +352,28 @@ export function ProductWizard({
               />
             </Field>
           </div>
+          <Field
+            label="Alerjen"
+            hint="Ürün içeriyorsa işaretle. Ürün sayfasında ve sepette uyarı olarak görünür — gizlenmez."
+          >
+            <div className="grid gap-1">
+              {ALLERGEN_OPTIONS.map(([value, label]) => (
+                <Checkbox
+                  key={value}
+                  label={label}
+                  checked={allergens.includes(value)}
+                  onChange={(e) =>
+                    setAllergens((prev) =>
+                      e.target.checked
+                        ? [...new Set([...prev, value])]
+                        : prev.filter((t) => t !== value),
+                    )
+                  }
+                />
+              ))}
+            </div>
+          </Field>
+          <input type="hidden" name="tags" value={tagsValue} />
         </div>
       ),
     },
@@ -752,6 +807,19 @@ export function ProductWizard({
                 muted
               />
             )}
+            <SummaryRow
+              k="Alerjen"
+              v={
+                allergens.length > 0
+                  ? allergens
+                      .map(
+                        (t) =>
+                          ALLERGEN_OPTIONS.find(([v]) => v === t)?.[1] ?? t,
+                      )
+                      .join(" · ")
+                  : "Yok"
+              }
+            />
             <SummaryRow k="Stok" v={`${stock} adet`} />
             <SummaryRow k="SKU" v={sku || "—"} mono />
             {variants.length > 0 && (

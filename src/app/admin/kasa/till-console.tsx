@@ -190,7 +190,7 @@ export function TillConsole() {
           >
             <Field
               label="Üye e-postası"
-              hint="Üye QR'ını açamıyorsa bu yol kalır."
+              hint="Üye QR'ını açamıyorsa bu yol kalır. Adres bir üye hesabına ait olmalı; değilse damga yazılmaz."
             >
               <TextInput
                 type="email"

@@ -134,6 +134,7 @@ function draft(over: Partial<CampaignEmail> = {}): CampaignEmail {
     sourcePostId: "",
     createdBy: ADMIN,
     createdAt: "2026-09-08T10:00:00.000Z",
+    scheduledAt: "",
     queuedAt: "",
     sentAt: "",
     total: 0,
@@ -376,6 +377,7 @@ describe("createCampaignMailAction", () => {
     expect(createCampaignEmail).toHaveBeenCalledWith({
       template: "kampanya-duyuru",
       audience: "marketing",
+      scheduledAt: "",
       createdBy: ADMIN,
       fields: {
         ...FIELDS,
