@@ -889,3 +889,123 @@ e-posta yolunda adresi zaten kendisi yazdığı için maskeleme uygulanmaz.
 > onu saklamaz; süre dolmadan ~10 sn önce yeni jeton istenir. 429 gelirse
 > `Retry-After` kadar beklenir, elde eski bir QR varsa **gösterilmez** — süresi
 > dolmuş bir kod kasada "süresi doldu" der ve kuyruğu yavaşlatır.
+
+---
+
+## 18. Cüzdan — `GET /me/wallet` · `POST /me/wallet/topup` · `PATCH /me/wallet/auto-reload` (kimlik)
+
+> **Karar 60 (9 Eyl 2026, operatör):** karar 20/30/38'in "cüzdan yapılmaz" kısıtı
+> **kaldırıldı** — operatör ekranların tam yazılmasını, uçların site tarafında
+> kendisince eklenmesini istedi. Ekran, uç gelene kadar `wallet.enabled=false`
+> ile **hiç görünmez**; yarım özellik çizilmez (sunucusu olmayan teklif
+> kullanıcıya gösterilmez). Uç indiğinde bayrak açılır, ekran kendiliğinden gelir.
+>
+> **Site tarafına iki not.** (1) Uç **henüz yokken 404** dönmesi beklenen
+> durumdur ve uygulama bunu hata saymaz: `fetchWallet` 404'ü "bu kurulumda
+> cüzdan yok" diye okur, uygulama tam olarak özellik hiç yokmuş gibi davranır
+> (profilde satır yok, rota yok). 401/500/çevrimdışı ise **gerçek hatadır** ve
+> hata durumu çizilir — cüzdanı olan bir üyeye sessizce sıfır bakiye
+> gösterilmez. (2) `enabled: false` dönen bir uç ile hiç olmayan uç aynı
+> anlama gelir, dolayısıyla kademeli açılış için bayrak tek başına yeterlidir.
+
+`GET /me/wallet` → `Cache-Control: private, no-store`
+
+```jsonc
+{
+  "enabled": true,                    // false ⇒ uygulama cüzdanı hiç çizmez
+  "balanceMinor": 124000,             // kuruş; asla dize
+  "currency": "TRY",
+  "topUpOptions": [                   // tutar ve bonus SUNUCUDAN gelir, istemci hesaplamaz
+    { "amountMinor": 25000,  "bonusMinor": 0 },
+    { "amountMinor": 50000,  "bonusMinor": 2500 },
+    { "amountMinor": 100000, "bonusMinor": 7500 }
+  ],
+  "minTopUpMinor": 10000,
+  "maxBalanceMinor": 500000,          // tedbiri tavan; aşan yükleme 409
+  "autoReload": { "enabled": false, "thresholdMinor": 10000, "amountMinor": 50000 },
+  "transactions": [                   // en yeni önce, en fazla 50
+    { "id": "wtx_…", "kind": "spend", "amountMinor": -89000, "title": "Sipariş #0284",
+      "orderId": "ord_…", "createdAt": "2026-09-09T14:52:00Z" },
+    { "id": "wtx_…", "kind": "topup", "amountMinor": 52500, "bonusMinor": 2500,
+      "title": "Bakiye yükleme", "createdAt": "2026-08-28T09:10:00Z" }
+  ]
+}
+```
+
+`kind`: `topup` · `spend` · `refund` · `bonus` · `expiry` · `adjust` (panel düzeltmesi).
+
+`POST /me/wallet/topup { "amountMinor": 50000 }` → **201**
+`{ "payment": { "provider": "paynkolay", "redirectUrl": "…", "reference": "…" } }`
+
+Bakiye **webhook onayından sonra** artar; istemci dönüşte `GET /me/wallet` ile tazeler.
+İstemci bonus göndermez ve bakiye yazmaz — ikisi de sunucuda hesaplanır (§0 "fiyat
+istemciden alınmaz" kuralının cüzdandaki karşılığı).
+
+`PATCH /me/wallet/auto-reload { "enabled": true, "thresholdMinor": 10000, "amountMinor": 50000 }`
+→ `{ "autoReload": { … } }`. Otomatik yükleme kayıtlı kart ister; kart yoksa **409**
+`no_saved_card` (§15: kart bizde durmaz — otomatik yükleme ancak sağlayıcı jetonu varsa açılır).
+
+Ödemede cüzdan kullanımı `POST /orders` gövdesine `"payWithWallet": true` ile girer; bakiye
+yetmezse **409** `insufficient_balance` ve sipariş **oluşmaz** (kısmi çekim yok).
+
+Hatalar: **400** `invalid_amount` (seçenek listesinde yok / min altında) · **409** `balance_cap` ·
+**409** `insufficient_balance` · **409** `no_saved_card` · **429** `too_many_topups` ·
+**503** `unavailable`.
+
+> **Sadakat notu.** Tasarımın "cüzdanla ödeyene +%5 puan" satırı **yazılmadı**: bu uygulamada
+> sadakat damgadır, puan yoktur (karar 37) ve ödenmiş kafe siparişi zaten +1 damga verir.
+> Cüzdanla ödemeye ek bir damga verilecekse bunu **sunucu** kararlaştırır ve
+> `bootstrap.app.loyalty` üzerinden bildirir; uygulama kendi başına bir kural uydurmaz.
+
+> **Mağaza kuralı (Apple).** Bakiye **fiziksel** mal ve hizmet içindir (kafe siparişi, mağaza).
+> App Store Guideline 3.1.3(e) uygulama dışında tüketilen mal/hizmet için kendi ödeme akışına
+> açıkça izin verir — Starbucks modeli budur. Bakiye dijital içerik satın almakta
+> **kullanılamaz**; kullanılırsa 3.1.1 (uygulama içi satın alma zorunluluğu) kapsamına girer.
+> Bakiye TL'dir: iade koşulu Üyelik Sözleşmesi'ne bağlanmalı ve `maxBalanceMinor` üst sınırı
+> korunmalıdır.
+
+---
+
+## 19. Hediye kartı — `GET /gift-cards/designs` · `POST /gift-cards` · `POST /gift-cards/redeem`
+
+`GET /gift-cards/designs` (herkese açık) →
+
+```jsonc
+{ "enabled": true,
+  "designs": [ { "key": "classic", "label": "Klasik", "artKey": "gift-classic" }, … ],
+  "amountOptions": [ 25000, 50000, 100000 ],
+  "minAmountMinor": 10000, "maxAmountMinor": 200000,
+  "canSchedule": true, "maxScheduleDays": 90 }
+```
+
+`artKey` bir **çizim anahtarıdır**, URL değil: kart yüzü uygulamada `src/components/art` ile
+çizilir, sunucudan görsel inmez (karar 40 fotoğraf politikası).
+
+`POST /gift-cards` (kimlik) →
+
+```jsonc
+{ "designKey": "classic", "amountMinor": 50000,
+  "recipient": { "phone": "+905320000000" },   // phone VEYA email, ikisi birden değil
+  "message": "Doğum günün kutlu olsun",        // en fazla 140 karakter
+  "deliverAt": "2026-09-12T06:00:00Z" }        // null ⇒ hemen
+```
+
+→ **201** `{ "giftCard": { "id", "status": "pending_payment", "amountMinor", "deliverAt" },
+"payment": { "provider": "paynkolay", "redirectUrl": "…", "reference": "…" } }`
+
+Kart **ödeme onaylanınca** üretilir ve `deliverAt`'te SMS/e-posta ile gider.
+`status`: `pending_payment` · `scheduled` · `delivered` · `redeemed` · `refunded` · `expired`.
+
+`GET /me/gift-cards` (kimlik) → `{ "sent": [ …GiftCard… ], "received": [ …GiftCard… ] }`.
+
+`POST /gift-cards/redeem { "code" }` (kimlik) → kodu **cüzdana** yükler (§18);
+yanıt `{ "creditedMinor": 50000, "balanceMinor": 174000 }`. Cüzdan kapalıysa kupon üretir.
+
+Hatalar: **400** `invalid_amount` · **400** `invalid_recipient` (telefon/e-posta biçimi) ·
+**400** `message_too_long` · **400** `invalid_schedule` (geçmiş ya da `maxScheduleDays` ötesi) ·
+**404** `gift_card_not_found` · **409** `already_redeemed` · **409** `own_card` ·
+**429** `too_many_gift_cards` · **503** `unavailable`.
+
+> **KVKK.** Alıcının telefonu/e-postası yalnız teslimat için işlenir, üçüncü tarafa aktarılmaz;
+> saklama süresi Aydınlatma Metni'ne eklenmelidir. Alıcı üye değilse hesap **açılmaz** — kod
+> bağlantıyla gelir, üyelik yalnız bozdururken istenir.
