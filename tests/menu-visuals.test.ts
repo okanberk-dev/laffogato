@@ -57,7 +57,7 @@ describe("menu art coverage", () => {
     }
   });
 
-  it("separates bottled drinks from poured ones in Cold Drinks", () => {
+  it("separates bottled drinks from poured ones in Soğuk İçecekler", () => {
     expect(menuFamily("cold", "Su")).toBe("bottle");
     expect(menuFamily("cold", "Soda")).toBe("bottle");
     expect(menuFamily("cold", "L'Af Limon")).toBe("iced");

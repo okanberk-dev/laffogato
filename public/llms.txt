@@ -35,7 +35,7 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 ## Ana Sayfalar
 
 - [Ana Sayfa](/): Genel tanıtım, Strawberry Aşkı matcha üçlüsü, hikayemizin özeti
-- [Menü](/menu): Matcha Bar, Espresso Based, Ice Coffee, Cold Drinks, Hot Drinks, Frappe, Smoothie, Frozen, Ice Tea, Tatlılar, Atıştırmalıklar, Extras kategorileri
+- [Menü](/menu): Matcha Bar, Espresso, Soğuk Kahve, Soğuk İçecekler, Sıcak İçecekler, Frappe, Smoothie, Frozen, Soğuk Çay, Tatlılar, Atıştırmalıklar, Ekstralar kategorileri
 - [Mağaza](/magaza): Çekirdek kahve, edible cup, hediye seti, ekipman, giyim
 - [Hikaye](/hikayemiz): 1897 Bologna'dan 2026 İstanbul'a markanın hikayesi
 - [Ziyaret](/ziyaret): Tuzla lokasyonu, ulaşım, gömülü harita (rezervasyon telefonla)
@@ -44,29 +44,29 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 
 Basılı menü 12 kategori ve 82 kalemden oluşur. İçeceklerin çoğu M ve L boy servis edilir.
 
-**Matcha Bar**: Matcha Latte 215₺, Strawberry Matcha 245₺, Matcha Affogato 245₺.
+**Matcha Bar**: Matcha Latte 215₺, Çilekli Matcha 245₺, Matcha Affogato 245₺.
 
-**Espresso Based**: L'Affogato 280₺, Espresso M 110₺ / L 140₺, Americano M 165₺ / L 185₺, Latte M 195₺ / L 210₺, Flat White M 190₺ / L 200₺, Mocha M 245₺ / L 265₺, Cappuccino M 195₺ / L 210₺, Esp. Macchiato 115₺, Spanish Latte M 250₺ / L 270₺, Cortado 200₺, White Choc. Mocha M 245₺ / L 265₺, Caramel Latte M 245₺ / L 265₺, Salted Caramel Latte M 245₺ / L 265₺, Toffeenut Latte M 250₺ / L 270₺, Pumpkin Spice Latte M 250₺ / L 270₺, Türk Kahvesi M 130₺ / L 150₺, Filtre Kahve M 165₺ / L 185₺.
+**Espresso**: L'Affogato 280₺, Espresso M 110₺ / L 140₺, Americano M 165₺ / L 185₺, Latte M 195₺ / L 210₺, Flat White M 190₺ / L 200₺, Mocha M 245₺ / L 265₺, Cappuccino M 195₺ / L 210₺, Espresso Macchiato 115₺, İspanyol Latte M 250₺ / L 270₺, Cortado 200₺, Beyaz Çikolatalı Mocha M 245₺ / L 265₺, Karamel Latte M 245₺ / L 265₺, Tuzlu Karamel Latte M 245₺ / L 265₺, Toffeenut Latte M 250₺ / L 270₺, Balkabağı Latte M 250₺ / L 270₺, Türk Kahvesi M 130₺ / L 150₺, Filtre Kahve M 165₺ / L 185₺.
 
-**Ice Coffee**: Chai Tea M 210₺ / L 225₺, Buzlu Americano M 165₺ / L 185₺, Buzlu Caffè Latte M 195₺ / L 210₺, Buzlu Caffè Mocha M 245₺ / L 265₺, Buzlu Beyaz Çikolatalı Mocha M 245₺ / L 265₺, Buzlu Tuzlu Karamel Latte M 250₺ / L 270₺, Buzlu Toffeenut Latte M 250₺ / L 270₺, Buzlu Balkabağı Latte M 250₺ / L 270₺, Buzlu İspanyol Latte M 250₺ / L 270₺, Cold Brew M 200₺ / L 220₺, Çıtır Latte 250₺.
+**Soğuk Kahve**: Buzlu Chai M 210₺ / L 225₺, Buzlu Americano M 165₺ / L 185₺, Buzlu Caffè Latte M 195₺ / L 210₺, Buzlu Caffè Mocha M 245₺ / L 265₺, Buzlu Beyaz Çikolatalı Mocha M 245₺ / L 265₺, Buzlu Tuzlu Karamel Latte M 250₺ / L 270₺, Buzlu Toffeenut Latte M 250₺ / L 270₺, Buzlu Balkabağı Latte M 250₺ / L 270₺, Buzlu İspanyol Latte M 250₺ / L 270₺, Cold Brew M 200₺ / L 220₺, Çıtır Latte 250₺.
 
-**Cold Drinks**: Surprise Drink M 250₺ / L 270₺, Cool Lime M 200₺ / L 220₺, L'Af Limon 180₺, Soda 80₺, Su 60₺.
+**Soğuk İçecekler**: Sürpriz İçecek M 250₺ / L 270₺, Cool Lime M 200₺ / L 220₺, L'Af Limon 180₺, Soda 80₺, Su 60₺.
 
-**Hot Drinks**: Chai Tea Latte M 235₺ / L 250₺, Sıcak Çikolata M 230₺ / L 250₺, White Sıcak Çikolata M 245₺ / L 265₺, Caramel Sıcak Çikolata M 245₺ / L 265₺, Salep M 245₺ / L 265₺, Tea M 60₺ / L 90₺.
+**Sıcak İçecekler**: Chai Latte M 235₺ / L 250₺, Sıcak Çikolata M 230₺ / L 250₺, White Sıcak Çikolata M 245₺ / L 265₺, Caramel Sıcak Çikolata M 245₺ / L 265₺, Salep M 245₺ / L 265₺, Çay M 60₺ / L 90₺.
 
-**Frappe**: Frappe M 250₺ / L 270₺, Espresso Frappe M 250₺ / L 270₺, Mocha Frappe M 250₺ / L 270₺, Caramel Frappe M 250₺ / L 270₺.
+**Frappe**: Frappe M 250₺ / L 270₺, Espresso Frappe M 250₺ / L 270₺, Mocha Frappe M 250₺ / L 270₺, Karamel Frappe M 250₺ / L 270₺.
 
-**Smoothie**: Blueberry M 250₺ / L 270₺, Mango M 250₺ / L 270₺, Apple M 250₺ / L 270₺, Protein Shake 270₺.
+**Smoothie**: Yaban Mersini M 250₺ / L 270₺, Mango M 250₺ / L 270₺, Elma M 250₺ / L 270₺, Protein Shake 270₺.
 
-**Frozen**: Strawberry M 250₺ / L 270₺, Raspberry M 250₺ / L 270₺, Passionfruit M 250₺ / L 270₺, Pineapple M 250₺ / L 270₺.
+**Frozen**: Çilek M 250₺ / L 270₺, Frambuaz M 250₺ / L 270₺, Çarkıfelek M 250₺ / L 270₺, Ananas M 250₺ / L 270₺.
 
-**Ice Tea**: Lemon Tea M 245₺ / L 265₺, Peach Tea M 245₺ / L 265₺.
+**Soğuk Çay**: Limonlu Soğuk Çay M 245₺ / L 265₺, Şeftalili Soğuk Çay M 245₺ / L 265₺.
 
-**Tatlılar**: Donostia (L'Af Special) 160₺, San Sebastian 290₺, Blueberry San Sebastian 295₺, L'Af Mango 270₺, L'Af Coffee 290₺, L'Af Antep Fıstığı 300₺, Çilek Magnolia 240₺, Muz Magnolia 240₺, Lotus Magnolia 250₺, Marlenka 270₺, Klasik Spoonful 220₺, Frambuazlı Cheesecake 260₺, Limonlu Cheesecake 260₺, Brownie 280₺, Cookie Aşkı (Dondurmalı) 290₺, Tiramisu 280₺.
+**Tatlılar**: Donostia (L'Af Özel) 160₺, San Sebastian 290₺, Yaban Mersinli San Sebastian 295₺, L'Af Mango 270₺, L'Af Kahve 290₺, L'Af Antep Fıstığı 300₺, Çilek Magnolia 240₺, Muz Magnolia 240₺, Lotus Magnolia 250₺, Marlenka 270₺, Klasik Spoonful 220₺, Frambuazlı Cheesecake 260₺, Limonlu Cheesecake 260₺, Brownie 280₺, Cookie Aşkı (Dondurmalı) 290₺, Tiramisu 280₺.
 
-**Atıştırmalıklar**: Karabuğday Simit 90₺, Rosbeef Sandviç 390₺, Hindi Fümeli Sandviç 350₺, Crunchy Granola Bar (Kenya) 150₺, Hindistan Cevizli Bar 90₺, Kakao Protein Bar 90₺, Koska Fındık 90₺.
+**Atıştırmalıklar**: Karabuğday Simit 90₺, Rosbeef Sandviç 390₺, Hindi Fümeli Sandviç 350₺, Çıtır Granola Bar (Kenya) 150₺, Hindistan Cevizli Bar 90₺, Kakao Protein Bar 90₺, Koska Fındık 90₺.
 
-**Extras**: Syrup 50₺, Ekstra Shot 50₺, Alternatif Süt 25₺.
+**Ekstralar**: Şurup 50₺, Ekstra Shot 50₺, Alternatif Süt 25₺.
 
 ## Mağaza Ürünleri
 

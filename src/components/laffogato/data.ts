@@ -49,7 +49,7 @@ export const MENU: Record<string, MenuCategory> = {
         image: "/menu/matcha-latte.webp",
       },
       {
-        name: "Strawberry Matcha",
+        name: "Çilekli Matcha",
         desc: "Taze çilek katmanı üzerine matcha ve soğuk süt.",
         price: "245₺",
         tags: ["signature", "new"],
@@ -67,7 +67,7 @@ export const MENU: Record<string, MenuCategory> = {
     ],
   },
   espresso: {
-    title: "Espresso Based",
+    title: "Espresso",
     sub: "Dalla macchina",
     italian: "Bar İtalyani",
     note: "Tüm espresso bazlı içecekler M ve L boy servis edilir. Alternatif süt ve ekstra shot mevcuttur.",
@@ -122,13 +122,13 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "cream",
       },
       {
-        name: "Esp. Macchiato",
+        name: "Espresso Macchiato",
         desc: "Espresso üzerine bir dokunuş süt köpüğü.",
         price: "115₺",
         hue: "espresso",
       },
       {
-        name: "Spanish Latte",
+        name: "İspanyol Latte",
         desc: "Yoğunlaştırılmış sütle hazırlanan tatlı latte.",
         price: "250₺",
         priceL: "270₺",
@@ -141,21 +141,21 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "caramel",
       },
       {
-        name: "White Choc. Mocha",
+        name: "Beyaz Çikolatalı Mocha",
         desc: "Beyaz çikolata sosu, espresso ve süt.",
         price: "245₺",
         priceL: "265₺",
         hue: "cream",
       },
       {
-        name: "Caramel Latte",
+        name: "Karamel Latte",
         desc: "Karamel şurubu, espresso ve buharlı süt.",
         price: "245₺",
         priceL: "265₺",
         hue: "caramel",
       },
       {
-        name: "Salted Caramel Latte",
+        name: "Tuzlu Karamel Latte",
         desc: "Tuzlu karamel sosu, espresso ve süt.",
         price: "245₺",
         priceL: "265₺",
@@ -170,7 +170,7 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "caramel",
       },
       {
-        name: "Pumpkin Spice Latte",
+        name: "Balkabağı Latte",
         desc: "Balkabağı ve tarçın-zencefil baharatı, espresso, süt.",
         price: "250₺",
         priceL: "270₺",
@@ -193,13 +193,13 @@ export const MENU: Record<string, MenuCategory> = {
     ],
   },
   "ice-coffee": {
-    title: "Ice Coffee",
+    title: "Soğuk Kahve",
     sub: "Buzlu kahveler",
     italian: "Caffè freddo",
     note: "Buzlu kahvelerin tamamı M ve L boy hazırlanır.",
     items: [
       {
-        name: "Chai Tea",
+        name: "Buzlu Chai",
         desc: "Baharatlı chai demlemesi, buz üzerine.",
         price: "210₺",
         priceL: "225₺",
@@ -288,13 +288,13 @@ export const MENU: Record<string, MenuCategory> = {
     ],
   },
   cold: {
-    title: "Cold Drinks",
+    title: "Soğuk İçecekler",
     sub: "Soğuk içecekler",
     italian: "Bevande fredde",
     note: "Kahvesiz serinleticiler - limonata, soda ve günlük sürpriz karışım.",
     items: [
       {
-        name: "Surprise Drink",
+        name: "Sürpriz İçecek",
         desc: "Baristanın günlük sürpriz karışımı.",
         price: "250₺",
         priceL: "270₺",
@@ -321,13 +321,13 @@ export const MENU: Record<string, MenuCategory> = {
     ],
   },
   hot: {
-    title: "Hot Drinks",
+    title: "Sıcak İçecekler",
     sub: "Sıcak içecekler",
     italian: "Bevande calde",
     note: "Kahvesiz sıcaklar - çikolata, salep ve çay.",
     items: [
       {
-        name: "Chai Tea Latte",
+        name: "Chai Latte",
         desc: "Baharatlı chai ve buharlı süt.",
         price: "235₺",
         priceL: "250₺",
@@ -362,7 +362,7 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "cream",
       },
       {
-        name: "Tea",
+        name: "Çay",
         desc: "Demlik çay.",
         price: "60₺",
         priceL: "90₺",
@@ -401,7 +401,7 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "espresso",
       },
       {
-        name: "Caramel Frappe",
+        name: "Karamel Frappe",
         desc: "Karamel soslu buzlu frappe.",
         price: "250₺",
         priceL: "270₺",
@@ -417,7 +417,7 @@ export const MENU: Record<string, MenuCategory> = {
     note: "Taze meyve ve sütle çırpılır. Alternatif süt talep edilebilir.",
     items: [
       {
-        name: "Blueberry",
+        name: "Yaban Mersini",
         desc: "Yaban mersini ve sütle çırpılmış smoothie.",
         price: "250₺",
         priceL: "270₺",
@@ -433,7 +433,7 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "gold",
       },
       {
-        name: "Apple",
+        name: "Elma",
         desc: "Yeşil elma smoothie.",
         price: "250₺",
         priceL: "270₺",
@@ -456,7 +456,7 @@ export const MENU: Record<string, MenuCategory> = {
     note: "Meyve püresi ve buzla hazırlanan frozen serisi.",
     items: [
       {
-        name: "Strawberry",
+        name: "Çilek",
         desc: "Çilek ve buzun frozen kıvamı.",
         price: "250₺",
         priceL: "270₺",
@@ -464,7 +464,7 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "rose",
       },
       {
-        name: "Raspberry",
+        name: "Frambuaz",
         desc: "Ahududulu frozen.",
         price: "250₺",
         priceL: "270₺",
@@ -472,7 +472,7 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "bougainvillea",
       },
       {
-        name: "Passionfruit",
+        name: "Çarkıfelek",
         desc: "Çarkıfelek meyveli frozen.",
         price: "250₺",
         priceL: "270₺",
@@ -480,7 +480,7 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "gold",
       },
       {
-        name: "Pineapple",
+        name: "Ananas",
         desc: "Ananaslı frozen.",
         price: "250₺",
         priceL: "270₺",
@@ -490,13 +490,13 @@ export const MENU: Record<string, MenuCategory> = {
     ],
   },
   "ice-tea": {
-    title: "Ice Tea",
+    title: "Soğuk Çay",
     sub: "Buzlu çay",
     italian: "Tè freddo",
     note: "Buz ve taze meyve dilimiyle servis edilir.",
     items: [
       {
-        name: "Lemon Tea",
+        name: "Limonlu Soğuk Çay",
         desc: "Limonlu buzlu çay.",
         price: "245₺",
         priceL: "265₺",
@@ -504,7 +504,7 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "gold",
       },
       {
-        name: "Peach Tea",
+        name: "Şeftalili Soğuk Çay",
         desc: "Şeftalili buzlu çay.",
         price: "245₺",
         priceL: "265₺",
@@ -520,7 +520,7 @@ export const MENU: Record<string, MenuCategory> = {
     note: "Günlük hazırlanır; vitrindeki çeşitler mevsime göre değişebilir.",
     items: [
       {
-        name: "Donostia (L'Af Special)",
+        name: "Donostia (L'Af Özel)",
         desc: "Evin özel San Sebastian dilimi.",
         price: "160₺",
         tags: ["signature"],
@@ -533,7 +533,7 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "caramel",
       },
       {
-        name: "Blueberry San Sebastian",
+        name: "Yaban Mersinli San Sebastian",
         desc: "Yaban mersinli San Sebastian cheesecake.",
         price: "295₺",
         hue: "bougainvillea",
@@ -545,7 +545,7 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "gold",
       },
       {
-        name: "L'Af Coffee",
+        name: "L'Af Kahve",
         desc: "Kahveli evin özel pastası.",
         price: "290₺",
         hue: "espresso",
@@ -645,7 +645,7 @@ export const MENU: Record<string, MenuCategory> = {
         hue: "warm",
       },
       {
-        name: "Crunchy Granola Bar (Kenya)",
+        name: "Çıtır Granola Bar (Kenya)",
         desc: "Çıtır granola bar.",
         price: "150₺",
         hue: "caramel",
@@ -672,13 +672,13 @@ export const MENU: Record<string, MenuCategory> = {
     ],
   },
   extras: {
-    title: "Extras",
+    title: "Ekstralar",
     sub: "Ekstralar",
     italian: "Aggiunte",
     note: "Her içeceğe eklenebilir.",
     items: [
       {
-        name: "Syrup",
+        name: "Şurup",
         desc: "Dilediğiniz içeceğe ilave aroma şurubu.",
         price: "50₺",
         hue: "stone",

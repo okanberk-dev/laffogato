@@ -61,7 +61,7 @@ Basılı menünün tamamı — 12 kategori, 82 kalem. M ve L olarak iki boy sunu
 Ceremonial grade matcha, siparişten sonra çırpılır. Strawberry Aşkı üçlüsü sezon boyunca menüde.
 
 - **Matcha Latte** — 215₺. Çırpılmış matcha, ipeksi süt ve buz.
-- **Strawberry Matcha** — 245₺. (signature, new) Taze çilek katmanı üzerine matcha ve soğuk süt.
+- **Çilekli Matcha** — 245₺. (signature, new) Taze çilek katmanı üzerine matcha ve soğuk süt.
 - **Matcha Affogato** — 245₺. (signature) Buzlu matcha latte üzerine bir top dondurma ve matcha tozu.
 
 ### ESPRESSO BASED
@@ -75,14 +75,14 @@ Tüm espresso bazlı içecekler M ve L boy servis edilir. Alternatif süt ve eks
 - **Flat White** — M 190₺ / L 200₺. Çift ristretto ve yoğun mikroköpük; sütü az, kahvesi baskın.
 - **Mocha** — M 245₺ / L 265₺. Espresso, bitter çikolata sosu ve süt.
 - **Cappuccino** — M 195₺ / L 210₺. Espresso, buharlı süt ve bol köpük — eşit üç katman.
-- **Esp. Macchiato** — 115₺. Espresso üzerine bir dokunuş süt köpüğü.
-- **Spanish Latte** — M 250₺ / L 270₺. Yoğunlaştırılmış sütle hazırlanan tatlı latte.
+- **Espresso Macchiato** — 115₺. Espresso üzerine bir dokunuş süt köpüğü.
+- **İspanyol Latte** — M 250₺ / L 270₺. Yoğunlaştırılmış sütle hazırlanan tatlı latte.
 - **Cortado** — 200₺. Espresso ve eşit ölçüde ılık süt.
-- **White Choc. Mocha** — M 245₺ / L 265₺. Beyaz çikolata sosu, espresso ve süt.
-- **Caramel Latte** — M 245₺ / L 265₺. Karamel şurubu, espresso ve buharlı süt.
-- **Salted Caramel Latte** — M 245₺ / L 265₺. Tuzlu karamel sosu, espresso ve süt.
+- **Beyaz Çikolatalı Mocha** — M 245₺ / L 265₺. Beyaz çikolata sosu, espresso ve süt.
+- **Karamel Latte** — M 245₺ / L 265₺. Karamel şurubu, espresso ve buharlı süt.
+- **Tuzlu Karamel Latte** — M 245₺ / L 265₺. Tuzlu karamel sosu, espresso ve süt.
 - **Toffeenut Latte** — M 250₺ / L 270₺. (nuts) Fındıklı toffee şurubu, espresso ve buharlı süt.
-- **Pumpkin Spice Latte** — M 250₺ / L 270₺. Balkabağı ve tarçın-zencefil baharatı, espresso, süt.
+- **Balkabağı Latte** — M 250₺ / L 270₺. Balkabağı ve tarçın-zencefil baharatı, espresso, süt.
 - **Türk Kahvesi** — M 130₺ / L 150₺. Bol köpüklü, geleneksel usul Türk kahvesi.
 - **Filtre Kahve** — M 165₺ / L 185₺. Günün demlemesi. Origin için baristaya sorun.
 
@@ -90,7 +90,7 @@ Tüm espresso bazlı içecekler M ve L boy servis edilir. Alternatif süt ve eks
 
 Buzlu kahvelerin tamamı M ve L boy hazırlanır.
 
-- **Chai Tea** — M 210₺ / L 225₺. (iced) Baharatlı chai demlemesi, buz üzerine.
+- **Buzlu Chai** — M 210₺ / L 225₺. (iced) Baharatlı chai demlemesi, buz üzerine.
 - **Buzlu Americano** — M 165₺ / L 185₺. (iced) Espresso, soğuk su ve buz.
 - **Buzlu Caffè Latte** — M 195₺ / L 210₺. (iced) Espresso, soğuk süt ve buz.
 - **Buzlu Caffè Mocha** — M 245₺ / L 265₺. (iced) Bitter çikolata sosu, espresso ve soğuk süt.
@@ -106,7 +106,7 @@ Buzlu kahvelerin tamamı M ve L boy hazırlanır.
 
 Kahvesiz serinleticiler — limonata, soda ve günlük sürpriz karışım.
 
-- **Surprise Drink** — M 250₺ / L 270₺. (iced, new) Baristanın günlük sürpriz karışımı.
+- **Sürpriz İçecek** — M 250₺ / L 270₺. (iced, new) Baristanın günlük sürpriz karışımı.
 - **Cool Lime** — M 200₺ / L 220₺. (iced) Limon, nane ve soda ile ferahlatıcı buzlu içecek.
 - **L'Af Limon** — 180₺. (iced) Ev yapımı limonata.
 - **Soda** — 80₺. Soğuk maden suyu.
@@ -116,12 +116,12 @@ Kahvesiz serinleticiler — limonata, soda ve günlük sürpriz karışım.
 
 Kahvesiz sıcaklar — çikolata, salep ve çay.
 
-- **Chai Tea Latte** — M 235₺ / L 250₺. Baharatlı chai ve buharlı süt.
+- **Chai Latte** — M 235₺ / L 250₺. Baharatlı chai ve buharlı süt.
 - **Sıcak Çikolata** — M 230₺ / L 250₺. Sıcak sütle çırpılmış bitter çikolata.
 - **White Sıcak Çikolata** — M 245₺ / L 265₺. Beyaz çikolata ve sıcak süt.
 - **Caramel Sıcak Çikolata** — M 245₺ / L 265₺. Karamel soslu sıcak çikolata.
 - **Salep** — M 245₺ / L 265₺. Tarçınla servis edilen geleneksel salep.
-- **Tea** — M 60₺ / L 90₺. Demlik çay.
+- **Çay** — M 60₺ / L 90₺. Demlik çay.
 
 ### FRAPPE
 
@@ -130,42 +130,42 @@ Tamamı buzla çırpılır, yoğun köpüklü servis edilir.
 - **Frappe** — M 250₺ / L 270₺. (iced) Buzla çırpılmış klasik frappe.
 - **Espresso Frappe** — M 250₺ / L 270₺. (iced) Espresso, süt ve buz; yoğun köpüklü.
 - **Mocha Frappe** — M 250₺ / L 270₺. (iced) Çikolata soslu buzlu frappe.
-- **Caramel Frappe** — M 250₺ / L 270₺. (iced) Karamel soslu buzlu frappe.
+- **Karamel Frappe** — M 250₺ / L 270₺. (iced) Karamel soslu buzlu frappe.
 
 ### SMOOTHIE
 
 Taze meyve ve sütle çırpılır. Alternatif süt talep edilebilir.
 
-- **Blueberry** — M 250₺ / L 270₺. (iced) Yaban mersini ve sütle çırpılmış smoothie.
+- **Yaban Mersini** — M 250₺ / L 270₺. (iced) Yaban mersini ve sütle çırpılmış smoothie.
 - **Mango** — M 250₺ / L 270₺. (iced) Mango püresi ve süt.
-- **Apple** — M 250₺ / L 270₺. (iced) Yeşil elma smoothie.
+- **Elma** — M 250₺ / L 270₺. (iced) Yeşil elma smoothie.
 - **Protein Shake** — 270₺. (iced) Protein tozu, süt ve muz.
 
 ### FROZEN
 
 Meyve püresi ve buzla hazırlanan frozen serisi.
 
-- **Strawberry** — M 250₺ / L 270₺. (iced) Çilek ve buzun frozen kıvamı.
-- **Raspberry** — M 250₺ / L 270₺. (iced) Ahududulu frozen.
-- **Passionfruit** — M 250₺ / L 270₺. (iced) Çarkıfelek meyveli frozen.
-- **Pineapple** — M 250₺ / L 270₺. (iced) Ananaslı frozen.
+- **Çilek** — M 250₺ / L 270₺. (iced) Çilek ve buzun frozen kıvamı.
+- **Frambuaz** — M 250₺ / L 270₺. (iced) Ahududulu frozen.
+- **Çarkıfelek** — M 250₺ / L 270₺. (iced) Çarkıfelek meyveli frozen.
+- **Ananas** — M 250₺ / L 270₺. (iced) Ananaslı frozen.
 
 ### ICE TEA
 
 Buz ve taze meyve dilimiyle servis edilir.
 
-- **Lemon Tea** — M 245₺ / L 265₺. (iced) Limonlu buzlu çay.
-- **Peach Tea** — M 245₺ / L 265₺. (iced) Şeftalili buzlu çay.
+- **Limonlu Soğuk Çay** — M 245₺ / L 265₺. (iced) Limonlu buzlu çay.
+- **Şeftalili Soğuk Çay** — M 245₺ / L 265₺. (iced) Şeftalili buzlu çay.
 
 ### TATLILAR
 
 Günlük hazırlanır; vitrindeki çeşitler mevsime göre değişebilir.
 
-- **Donostia (L'Af Special)** — 160₺. (signature) Evin özel San Sebastian dilimi.
+- **Donostia (L'Af Özel)** — 160₺. (signature) Evin özel San Sebastian dilimi.
 - **San Sebastian** — 290₺. Yüksek ateşte pişmiş, ortası akışkan cheesecake.
-- **Blueberry San Sebastian** — 295₺. Yaban mersinli San Sebastian cheesecake.
+- **Yaban Mersinli San Sebastian** — 295₺. Yaban mersinli San Sebastian cheesecake.
 - **L'Af Mango** — 270₺. Mangolu evin özel pastası.
-- **L'Af Coffee** — 290₺. Kahveli evin özel pastası.
+- **L'Af Kahve** — 290₺. Kahveli evin özel pastası.
 - **L'Af Antep Fıstığı** — 300₺. (nuts) Antep fıstıklı evin özel pastası.
 - **Çilek Magnolia** — 240₺. Çilekli magnolia, bisküvi kırığıyla.
 - **Muz Magnolia** — 240₺. Muzlu magnolia, bisküvi kırığıyla.
@@ -185,7 +185,7 @@ Sandviçler günlük hazırlanır; barlar paketli olarak sunulur.
 - **Karabuğday Simit** — 90₺. Karabuğday unlu simit.
 - **Rosbeef Sandviç** — 390₺. Rosbif, taze yeşillik ve sos.
 - **Hindi Fümeli Sandviç** — 350₺. Hindi füme, kaşar ve taze yeşillik.
-- **Crunchy Granola Bar (Kenya)** — 150₺. Çıtır granola bar.
+- **Çıtır Granola Bar (Kenya)** — 150₺. Çıtır granola bar.
 - **Hindistan Cevizli Bar** — 90₺. Hindistan cevizli bar.
 - **Kakao Protein Bar** — 90₺. Kakaolu protein bar.
 - **Koska Fındık** — 90₺. (nuts) Fındıklı Koska bar.
@@ -194,7 +194,7 @@ Sandviçler günlük hazırlanır; barlar paketli olarak sunulur.
 
 Her içeceğe eklenebilir.
 
-- **Syrup** — 50₺. Dilediğiniz içeceğe ilave aroma şurubu.
+- **Şurup** — 50₺. Dilediğiniz içeceğe ilave aroma şurubu.
 - **Ekstra Shot** — 50₺. İçeceğinize ek espresso shot.
 - **Alternatif Süt** — 25₺. Yulaf, badem veya laktozsuz süt seçeneği.
 
@@ -274,7 +274,7 @@ Cevap: Rezervasyon yalnızca telefonla: +90 536 429 09 19. Site üzerinden masa 
 Cevap: Sütlü içecekler 25₺ fark ile yulaf, badem veya laktozsuz sütle hazırlanır. Frozen serisi (çilek, ahududu, çarkıfelek, ananas), L'Af Limon ve Cool Lime süt içermez. Fındıklı kalemler menüde işaretlidir.
 
 **Soru: Matcha bar'da hangi çay kullanılıyor?**
-Cevap: Ceremonial grade matcha; her bardak siparişten sonra çırpılır, premix yok. Matcha bar'da üç kalem var: Matcha Latte 215₺, Strawberry Matcha 245₺, Matcha Affogato 245₺.
+Cevap: Ceremonial grade matcha; her bardak siparişten sonra çırpılır, premix yok. Matcha bar'da üç kalem var: Matcha Latte 215₺, Çilekli Matcha 245₺, Matcha Affogato 245₺.
 
 **Soru: Online sipariş ve kargo var mı?**
 Cevap: Evet — çekirdek kahve, matcha, edible cup, ekipman, hediye seti, giyim. Türkiye geneli 1–3 iş günü. Tatlılar, sandviçler ve tüm bar içecekleri sadece mekanda servis edilir.
