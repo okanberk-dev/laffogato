@@ -529,6 +529,12 @@ sözleşmenin §18/§19'u, panel sinyalleri) depoda bekledi.
 | `/api/cron/daily` | 06:00 | kampanyalar → doğum günü → imha, sırayla |
 | `/api/cron/campaign-emails` | 12:00 | zamanlanmış kampanyalar için ikinci geçiş |
 
+> ⚠️ **Kanonik ad `www.`** — `laffogato.net` ona **308** ile yönlendiriyor.
+> Bu bir hata değil (400'ün altında), yani yönlendirmeyi izlemeyen bir
+> istemci ucu HİÇ çağırmadan başarılı sayar. Dışarıdan çağıran her şey
+> (GitHub Actions işi, Geliver webhook'u, bir izleyici) `https://www.` ile
+> yazılmalı. `SITE.url` bunu ortamdan çözer; elle yazılan adresler çözmez.
+
 Saatlik hassasiyet ise **ücretsiz** geri geldi: `.github/workflows/campaign-cron.yml`
 saatte bir `/api/cron/campaign-emails`e vuruyor. Üstüne konan bir katman, tek
 bayrak direği değil — GitHub'ın zamanlanmış işleri gecikebilir, o zaman

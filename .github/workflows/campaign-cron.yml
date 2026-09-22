@@ -47,7 +47,11 @@ jobs:
           fi
           # --fail-with-body: uç 500 dönerse iş kırmızı yansın ve gövdesi
           # günlükte kalsın. Gövde satır saymaktan ibarettir, adres taşımaz.
-          curl --fail-with-body --silent --show-error \
+          # www. — apex 308 ile buraya yönlendiriyor ve 308 bir HATA DEĞİL:
+          # --fail-with-body yalnız 400+'ta kırılır, yani yönlendirmeyi
+          # izlemeyen bu çağrı ucu HİÇ çağırmadan yeşil yanardı. --location
+          # da eklendi ki kanonik ad bir gün değişirse iş yine çalışsın.
+          curl --fail-with-body --silent --show-error --location \
                --max-time 300 --retry 2 --retry-delay 15 \
                -H "Authorization: Bearer $CRON_SECRET" \
-               https://laffogato.net/api/cron/campaign-emails
+               https://www.laffogato.net/api/cron/campaign-emails
