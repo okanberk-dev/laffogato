@@ -43,12 +43,12 @@ Mekan özellikleri:
 
 ## ÇALIŞMA SAATLERİ
 
-- Her gün: 09:00 — 01:00
+- Her gün: 09:00 — 02:00
 
-Kapanış saati ertesi sabaha sarkar: gece 01:00, bir sonraki günün ilk saatidir.
+Kapanış saati ertesi sabaha sarkar: gece 02:00, bir sonraki günün ilk saatidir.
 Üst katta rezervasyonla kullanılabilen bir karaoke odası vardır.
 
-Tüm yıl açığız; tek istisna 1 Ocak günüdür. 31 Aralık gecesi servis 1 Ocak saat 01:00'de biter, 1 Ocak günü kapalıyız.
+Tüm yıl açığız; tek istisna 1 Ocak günüdür. 31 Aralık gecesi servis 1 Ocak saat 02:00'de biter, 1 Ocak günü kapalıyız.
 
 ---
 
@@ -91,14 +91,14 @@ Tüm espresso bazlı içecekler M ve L boy servis edilir. Alternatif süt ve eks
 Buzlu kahvelerin tamamı M ve L boy hazırlanır.
 
 - **Chai Tea** — M 210₺ / L 225₺. (iced) Baharatlı chai demlemesi, buz üzerine.
-- **Iced Americano** — M 165₺ / L 185₺. (iced) Espresso, soğuk su ve buz.
-- **Iced Caffè Latte** — M 195₺ / L 210₺. (iced) Espresso, soğuk süt ve buz.
-- **Iced Caffè Mocha** — M 245₺ / L 265₺. (iced) Bitter çikolata sosu, espresso ve soğuk süt.
-- **Iced White Ch. Mocha** — M 245₺ / L 265₺. (iced) Beyaz çikolata sosu, espresso ve soğuk süt.
-- **Iced Salted Caramel Latte** — M 250₺ / L 270₺. (iced) Tuzlu karamel, espresso, soğuk süt ve buz.
-- **Iced Toffeenut Latte** — M 250₺ / L 270₺. (iced, nuts) Toffee-fındık şurubu, espresso ve soğuk süt.
-- **Iced Pumpkin Spice Latte** — M 250₺ / L 270₺. (iced) Balkabağı baharatı, espresso ve soğuk süt.
-- **Iced Spanish Latte** — M 250₺ / L 270₺. (iced) Yoğunlaştırılmış süt, espresso ve buz.
+- **Buzlu Americano** — M 165₺ / L 185₺. (iced) Espresso, soğuk su ve buz.
+- **Buzlu Caffè Latte** — M 195₺ / L 210₺. (iced) Espresso, soğuk süt ve buz.
+- **Buzlu Caffè Mocha** — M 245₺ / L 265₺. (iced) Bitter çikolata sosu, espresso ve soğuk süt.
+- **Buzlu Beyaz Çikolatalı Mocha** — M 245₺ / L 265₺. (iced) Beyaz çikolata sosu, espresso ve soğuk süt.
+- **Buzlu Tuzlu Karamel Latte** — M 250₺ / L 270₺. (iced) Tuzlu karamel, espresso, soğuk süt ve buz.
+- **Buzlu Toffeenut Latte** — M 250₺ / L 270₺. (iced, nuts) Toffee-fındık şurubu, espresso ve soğuk süt.
+- **Buzlu Balkabağı Latte** — M 250₺ / L 270₺. (iced) Balkabağı baharatı, espresso ve soğuk süt.
+- **Buzlu İspanyol Latte** — M 250₺ / L 270₺. (iced) Yoğunlaştırılmış süt, espresso ve buz.
 - **Cold Brew** — M 200₺ / L 220₺. (iced) Uzun süre soğuk demlenmiş kahve; yumuşak ve düşük asitli.
 - **Çıtır Latte** — 250₺. (iced, new) Karamelize çıtır katmanlı buzlu latte.
 
@@ -117,9 +117,9 @@ Kahvesiz serinleticiler — limonata, soda ve günlük sürpriz karışım.
 Kahvesiz sıcaklar — çikolata, salep ve çay.
 
 - **Chai Tea Latte** — M 235₺ / L 250₺. Baharatlı chai ve buharlı süt.
-- **Hot Chocolate** — M 230₺ / L 250₺. Sıcak sütle çırpılmış bitter çikolata.
-- **White Hot Chocolate** — M 245₺ / L 265₺. Beyaz çikolata ve sıcak süt.
-- **Caramel Hot Chocolate** — M 245₺ / L 265₺. Karamel soslu sıcak çikolata.
+- **Sıcak Çikolata** — M 230₺ / L 250₺. Sıcak sütle çırpılmış bitter çikolata.
+- **White Sıcak Çikolata** — M 245₺ / L 265₺. Beyaz çikolata ve sıcak süt.
+- **Caramel Sıcak Çikolata** — M 245₺ / L 265₺. Karamel soslu sıcak çikolata.
 - **Salep** — M 245₺ / L 265₺. Tarçınla servis edilen geleneksel salep.
 - **Tea** — M 60₺ / L 90₺. Demlik çay.
 
@@ -195,7 +195,7 @@ Sandviçler günlük hazırlanır; barlar paketli olarak sunulur.
 Her içeceğe eklenebilir.
 
 - **Syrup** — 50₺. Dilediğiniz içeceğe ilave aroma şurubu.
-- **Extra Shot** — 50₺. İçeceğinize ek espresso shot.
+- **Ekstra Shot** — 50₺. İçeceğinize ek espresso shot.
 - **Alternatif Süt** — 25₺. Yulaf, badem veya laktozsuz süt seçeneği.
 
 ---
@@ -206,29 +206,29 @@ Tüm ürünler Türkiye geneli 1–3 iş günü kargo. Online sipariş için sit
 
 ### Çekirdek Kahve
 
-- **Sirena — Espresso Blend**, 250g whole bean — 320₺. Brezilya doğal + Etiyopya yıkanmış. Tat notları: kakao, kuru incir, esmer şeker.
-- **Notturna — Filter Lot**, 200g whole bean — 380₺. Kenya AA Nyeri. Tat notları: frenk üzümü, bergamot, parlak asidite.
+- **Sirena — Espresso Harmanı**, 250g whole bean — 320₺. Brezilya doğal + Etiyopya yıkanmış. Tat notları: kakao, kuru incir, esmer şeker.
+- **Notturna — Filtre Lotu**, 200g whole bean — 380₺. Kenya AA Nyeri. Tat notları: frenk üzümü, bergamot, parlak asidite.
 
 ### Hediye ve Edible
 
 - **Edible Cups — 6'lı kutu** — 240₺. Çıtır waffle kupları, içi yenilebilir glaze.
-- **Affogato Kit — For Two**, hediye kutusu — 780₺. 200g Sirena, fior di latte gelato, iki edible kup, porselen kaşık. En çok satan.
+- **Affogato Seti — İki Kişilik**, hediye kutusu — 780₺. 200 g Sirena, fior di latte gelato, iki yenilebilir kup, porselen kaşık. En çok satan.
 
 ### Pantry
 
-- **Uji Matcha — Ceremonial**, 40g teneke — 420₺. Japonya Uji bahçesi, ceremonial grade. Bambu chasen ile eşleştirilir.
+- **Uji Matcha — Seremoni Sınıfı**, 40g teneke — 420₺. Japonya Uji bahçesi, seremoni sınıfı. Bambu chasen ile eşleştirilir.
 - **Cantucci — Bronte Pistachio**, 180g biskoti — 180₺. İki kez pişmiş, yavaş fırın.
 
 ### Ekipman
 
 - **Moka — Bialetti × L'Affogato**, 3-cup brushed aluminium — 690₺. Özel amblem.
-- **Porcelain Cup Set**, espresso 2'li — 420₺. Bone china, cobogó desen, 60ml.
+- **Porselen Fincan Seti**, espresso 2'li — 420₺. Kemik porseleni, cobogó desen, 60 ml.
 - **Bambu Chasen**, matcha çırpıcı — 320₺. 80 dişli, Nara'dan.
 
 ### Giyim & Merch
 
-- **Cotton Apron**, heavyweight canvas — 480₺. Deri boyun askısı, gravür amblem.
-- **Enamel Tumbler**, 350ml double wall — 320₺. Vakum yalıtım, dış benekli emaye.
+- **Pamuk Önlük**, heavyweight canvas — 480₺. Deri boyun askısı, gravür amblem.
+- **Emaye Bardak**, 350ml double wall — 320₺. Vakum yalıtım, dış benekli emaye.
 
 ---
 
@@ -249,7 +249,7 @@ Eda Mancuso — Founder & Roaster. Bolonyalı baba, İstanbullu anne. 1897'de b�
 
 - Kahve: Bologna'da ana lokasyonda Mancuso ailesi tarafından haftalık kavrulur, uçakla İstanbul'a gelir. Her paketin üzerinde kavurma tarihi yazılıdır.
 - Süt: Tuzla yerel mandırasından her sabah taze.
-- Matcha: Japonya Uji bölgesi, ceremonial grade.
+- Matcha: Japonya Uji bölgesi, seremoni sınıfı.
 - Pistacchio: Sicilya Bronte, IGP sertifikalı, doğrudan üç aile çiftliğinden.
 - Fındık: IGP Piemonte.
 - Çikolata: Modica (Sicilya), geleneksel kakao kırığı.
@@ -262,7 +262,7 @@ Eda Mancuso — Founder & Roaster. Bolonyalı baba, İstanbullu anne. 1897'de b�
 Cevap: Tuzla'da 200 yıllık, restore edilmiş Rum köşkü, Menemenci Cumhur'un yanı; Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, 34940 Tuzla / İstanbul. Marmaray Tuzla 6 dk, E-5 / TEM Tuzla çıkışı 4 dk, Sabiha Gökçen Havalimanı 15 dk. Ücretsiz vale park hizmeti.
 
 **Soru: Çalışma saatleri nedir?**
-Cevap: Her gün 09:00 - 01:00; kapanış ertesi sabaha sarkar. Tüm yıl açık.
+Cevap: Her gün 09:00 - 02:00; kapanış ertesi sabaha sarkar. Tüm yıl açık.
 
 **Soru: L'Affogato nedir, menüde nasıl servis ediliyor?**
 Cevap: Bir top dondurma üzerine sıcak espresso dökülerek hazırlanan İtalyan klasiği; evin imza içeceği, 280₺. Matcha sevenler için Matcha Affogato da menüde: buzlu matcha latte üzerine bir top dondurma ve matcha tozu, 245₺.
