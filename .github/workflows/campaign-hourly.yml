@@ -20,7 +20,7 @@
 # New repository secret → `CRON_SECRET`, değeri Vercel'dekiyle **birebir aynı**.
 # Secret tanımlı değilken iş kendini atlar — 503 alıp kırmızı yanmaz.
 
-name: campaign-cron
+name: campaign-hourly
 # Actions bu dosyayi listeye almamisti; yeniden taranmasi icin dokunuldu.
 
 on:
@@ -29,7 +29,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: campaign-cron
+  group: campaign-hourly
   cancel-in-progress: false
 
 jobs:
@@ -48,11 +48,14 @@ jobs:
           fi
           # --fail-with-body: uç 500 dönerse iş kırmızı yansın ve gövdesi
           # günlükte kalsın. Gövde satır saymaktan ibarettir, adres taşımaz.
-          # www. — apex 308 ile buraya yönlendiriyor ve 308 bir HATA DEĞİL:
-          # --fail-with-body yalnız 400+'ta kırılır, yani yönlendirmeyi
-          # izlemeyen bu çağrı ucu HİÇ çağırmadan yeşil yanardı. --location
-          # da eklendi ki kanonik ad bir gün değişirse iş yine çalışsın.
-          curl --fail-with-body --silent --show-error --location \
+          # KANONİK ad apex (laffogato.net): canonical, sitemap ve JSON-LD
+          # @id'ler onu yayımlar. --location-trusted şart, --location değil:
+          # 308 bir HATA DEĞİL (--fail-with-body yalnız 400+'ta kırılır, yani
+          # yönlendirmeyi izlemeyen çağrı ucu HİÇ çağırmadan yeşil yanar) ve
+          # düz --location cross-host yönlendirmede Authorization'ı DÜŞÜRÜR —
+          # apex↔www arası 308'de secret yolda kalır, uç 401 der. İki host da
+          # bizim; Vercel'de hangisi Production olursa olsun bu satır çalışır.
+          curl --fail-with-body --silent --show-error --location-trusted \
                --max-time 300 --retry 2 --retry-delay 15 \
                -H "Authorization: Bearer $CRON_SECRET" \
-               https://www.laffogato.net/api/cron/campaign-emails
+               https://laffogato.net/api/cron/campaign-emails

@@ -27,7 +27,7 @@ Karar kayıtları: `docs/DESIGN-UYGULAMA.md`.
 
 | Kural        | Değer                                                                                                                                                              |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Taban        | `https://www.laffogato.net/api/mobile/v1`. Apex (`laffogato.net`) **308** ile www'ye yönlenir; `EXPO_PUBLIC_API_BASE_URL` yalnız **origin** tutar (`https://www.laffogato.net`), yolu `src/data/api.ts` ekler. |
+| Taban        | `https://laffogato.net/api/mobile/v1`. Kanonik ad **apex** (22 Eyl 2026): canonical, sitemap ve JSON-LD `@id`ler onu yayımlar; `www` **308** ile apex'e yönlenir. `EXPO_PUBLIC_API_BASE_URL` yalnız **origin** tutar (`https://laffogato.net`), yolu `src/data/api.ts` ekler. **Taban her zaman Vercel'de Production olan host olmalı, yönlendiren değil:** OkHttp ve NSURLSession cross-host 308'de `Authorization`ı düşürür — yönlendiren hosta bağlanan uygulama her yetkili çağrıda sessizce 401 alır. |
 | Para         | **Her zaman kuruş integer** (`priceMinor: 19500`). Dize fiyat yok.                                                                                                 |
 | Zaman        | ISO-8601 (UTC, `Z`)                                                                                                                                                |
 | Kimlik       | `Authorization: Bearer <Supabase access JWT>`. Sunucu `supabase.auth.getUser(jwt)` ile doğrular, `user.email` → Neon `customers` satırı (yoksa **oluşturur**).     |
@@ -79,7 +79,7 @@ zaten varsa o satır kullanılır (**tek üyelik**).
           "tags": ["signature"], // signature | new | iced | nuts
           "hue": "caramel",
           // Yüklenen fotoğraf: sürüm damgalı mutlak URL (aşağı bak), ya da null
-          "image": "https://www.laffogato.net/gorsel/menu/mnu-0007?v=6f1c2a9d3b40",
+          "image": "https://laffogato.net/gorsel/menu/mnu-0007?v=6f1c2a9d3b40",
         },
       ],
     },
@@ -134,9 +134,9 @@ Uygulama boyları **veriden** çizer: `priceLargeMinor === null` → tek boy; de
 
 | Değer | Ne demek |
 | --- | --- |
-| `https://www.laffogato.net/gorsel/menu/<id>?v=<12 hex>` | Panelden yüklenmiş fotoğraf. `v`, fotoğrafın kendi baytlarının sha256'sının ilk 12 hanesi. |
+| `https://laffogato.net/gorsel/menu/<id>?v=<12 hex>` | Panelden yüklenmiş fotoğraf. `v`, fotoğrafın kendi baytlarının sha256'sının ilk 12 hanesi. |
 | `https://…` (başka host) | Adminin yapıştırdığı dış adres; olduğu gibi geçer, damga yok, önbelleğine o host karar verir. |
-| `https://www.laffogato.net/menu/<dosya>.webp` | Depoyla gelen sabit dosya (`public/`); damga yok, dosya adı zaten sabit. |
+| `https://laffogato.net/menu/<dosya>.webp` | Depoyla gelen sabit dosya (`public/`); damga yok, dosya adı zaten sabit. |
 | `null` | Fotoğraf yok — uygulama kendi çizimini kullanır. |
 
 **Damganın sözü:** aynı fotoğraf → **aynı URL** (hiçbir şey yeniden inmez);
