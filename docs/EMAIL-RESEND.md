@@ -538,7 +538,8 @@ sözleşmenin §18/§19'u, panel sinyalleri) depoda bekledi.
 > Yönlendirmeyi izlemeyen istemciler için 308 sessiz bir arızadır (400'ün
 > altında, "başarılı" sayılır). Dışarıdan çağıran her şey — GitHub Actions
 > işi, **Geliver webhook URL'i**, bir izleyici — `https://laffogato.net/…`
-> ile yazılmalı; `curl` çağrılarına `--location` eklenmeli.
+> ile yazılmalı; `curl` çağrılarına `--location-trusted` eklenmeli.
+> Geliver kurulumu ve doğrulama planı: **`docs/GELIVER.md`**.
 
 Saatlik hassasiyet ise **ücretsiz** geri geldi: `.github/workflows/campaign-hourly.yml`
 saatte bir `/api/cron/campaign-emails`e vuruyor. Üstüne konan bir katman, tek

@@ -1,4 +1,5 @@
 import "server-only";
+import { isStaleShipmentEvent } from "@/lib/mobile/geliver";
 
 import type { DbError } from "@/lib/db";
 
@@ -2950,16 +2951,32 @@ export async function setOrderTracking(
   return { ...existing, trackingNumber: tn, carrier: ca, shippedAt };
 }
 
+/** What the Geliver webhook's write came to — the route answers each differently. */
+export type ShipmentWrite =
+  | { outcome: "applied"; order: AdminOrder }
+  | { outcome: "stale"; order: AdminOrder }
+  | { outcome: "unknown" };
+
 /**
  * The carrier's own milestone, written by the Geliver webhook.
  *
  * Addressed by TRACKING NUMBER rather than by order id, because that is the
  * only identifier Geliver and this database share — the köşk's order id never
- * leaves this side.
+ * leaves this side. Should two orders ever carry the same number (a panel
+ * typo), the NEWEST one is the parcel's: `maybeSingle` used to answer that
+ * case with a PGRST116 error that read as "no order", so the update was
+ * dropped with a 200 and nobody knew.
  *
- * Returns the order it touched, or `null` when no order carries that number:
- * a parcel the köşk did not send is not an error, it is somebody else's
- * webhook, and the route answers 200 either way so the sender stops retrying.
+ * `outcome: "unknown"` — no order carries that number. Not an error: a parcel
+ * the köşk did not send is somebody else's webhook, and the route answers 200
+ * either way so the sender stops retrying.
+ *
+ * `outcome: "stale"` — the event is OLDER than what is already stored.
+ * Webhooks are not delivered in order: a retried SHIPPED can land after the
+ * DELIVERED that followed it, and writing it would move the parcel backwards
+ * on the phone. Decided in `isStaleShipmentEvent` (pure, tested); when
+ * either side has no timestamp the event is applied, because "cannot prove it
+ * is old" must not become "silently dropped".
  *
  * It deliberately does NOT move `orders.status`. Whether a delivered parcel
  * completes the order is the shop owner's decision in /admin/siparisler, and a
@@ -2971,30 +2988,39 @@ export async function setOrderShipmentStatus(
   status: string,
   trackingUrl: string,
   updatedAt: string,
-): Promise<AdminOrder | null> {
+): Promise<ShipmentWrite> {
   await ensureSeed();
   const sb = getDb();
   const tn = trackingNumber.trim().slice(0, 120);
-  if (!tn) return null;
-  const { data } = await sb
+  if (!tn) return { outcome: "unknown" };
+  const res = await sb
     .from(TABLES.orders)
     .select("*")
     .eq("trackingNumber", tn)
-    .maybeSingle();
-  const existing = data as AdminOrder | null;
-  if (!existing) return null;
+    .order("createdAt", { ascending: false })
+    .limit(1);
+  check(res, "setOrderShipmentStatus.lookup");
+  const existing = ((res.data ?? []) as AdminOrder[])[0];
+  if (!existing) return { outcome: "unknown" };
+
+  const incomingAt = updatedAt.trim().slice(0, 40);
+  if (isStaleShipmentEvent(existing.shipmentUpdatedAt ?? "", incomingAt)) {
+    return { outcome: "stale", order: existing };
+  }
   const patch = {
     shipmentStatus: status.trim().slice(0, 40),
     // An empty url never blanks one the panel already holds: Geliver sends
     // the page when it has one and says nothing when it does not.
     trackingUrl: trackingUrl.trim().slice(0, 500) || (existing.trackingUrl ?? ""),
-    shipmentUpdatedAt: updatedAt.trim().slice(0, 40),
+    // The carrier's own instant when it sent one; the moment we heard it
+    // otherwise — never "", or the next event could not be ordered against it.
+    shipmentUpdatedAt: incomingAt || new Date().toISOString(),
   };
   check(
     await sb.from(TABLES.orders).update(patch).eq("id", existing.id),
     "setOrderShipmentStatus",
   );
-  return { ...existing, ...patch };
+  return { outcome: "applied", order: { ...existing, ...patch } };
 }
 
 export interface OrderDetailsInput {

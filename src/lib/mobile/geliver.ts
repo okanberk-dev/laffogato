@@ -8,8 +8,22 @@ import type { MobileShipmentStatus } from "./order-mapper";
  * all of them, which is the whole reason the app can show the same three words
  * whichever firm carries the parcel.
  *
- * The left-hand values are Geliver's own `statusFilter` set, taken verbatim
- * from its official SDKs:
+ * Everything below is read off the official SDK, `@geliver/sdk` 1.3.0
+ * (github.com/GeliverApp/geliver-js), not guessed:
+ *
+ *   models/index.ts   WebhookUpdateTrackingRequest { event, metadata?, data: Shipment }
+ *                     Shipment { statusCode, trackingNumber, trackingUrl, updatedAt,
+ *                                barcode, providerCode, trackingStatus: Tracking, … }
+ *                     Tracking { trackingStatusCode, trackingSubStatusCode, statusDate,
+ *                                statusDetails, updatedAt, test?: boolean, … }
+ *   webhooks.ts       verifyWebhookSignature() is a STUB: returns true while
+ *                     disabled, false when enabled — "Future: compute
+ *                     HMAC(secret, timestamp + '.' + body)". The reserved
+ *                     headers are `x-signature` and `x-timestamp`. So Geliver
+ *                     does not sign webhooks today; the route authenticates
+ *                     with the static header the panel lets you attach.
+ *
+ * The left-hand values are Geliver's `statusFilter` set, verbatim:
  *
  *   CREATED · GOT_OFFERS · OFFER_ACCEPTED · TRACKING_CODE_CREATED ·
  *   LABEL_PRINTED · SHIPPED · DELIVERED · CANCELED · RETURNED ·
@@ -23,8 +37,8 @@ import type { MobileShipmentStatus } from "./order-mapper";
  * and a member reading "Etiket basıldı" learns nothing they can act on.
  *
  * `in_transit` has no Geliver status of its own — the carrier reports movement
- * through `TRACK_UPDATED` with a `trackingStatusCode` that is not a delivery.
- * `statusFromEvent` below is where that is decided.
+ * through `TRACK_UPDATED` with a `trackingStatus.trackingStatusCode` that is
+ * not a delivery. `shipmentUpdateFrom` is where that is decided.
  */
 const STATUS_MAP: Readonly<Record<string, MobileShipmentStatus>> = {
   CREATED: "preparing",
@@ -41,36 +55,38 @@ const STATUS_MAP: Readonly<Record<string, MobileShipmentStatus>> = {
 };
 
 /**
- * Geliver's webhook body — read leniently on purpose.
+ * Geliver's webhook body — the documented shape first, then leniently.
  *
- * The status vocabulary is documented and pinned (above). The ENVELOPE is not:
- * the field names below come from the official SDKs, but a webhook panel is
- * free to wrap them in `data`, `payload`, `shipment` or `result`, and Turkish
- * carrier integrations name a tracking number four different ways. Getting the
- * envelope wrong here is the quietest possible failure — the route answers
- * 200, nothing is written, and the phone shows "hazırlanıyor" forever.
- *
- * So the reader tries the body itself and one level of envelope, and accepts
- * the common aliases. It is still strict about the thing that MATTERS: an
- * unmapped status writes nothing.
+ * The documented shape is `{ event, data: Shipment }`. It is read exactly.
+ * But a webhook panel is free to change its envelope between releases, and
+ * Turkish carrier integrations name a tracking number four different ways —
+ * and getting the envelope wrong here is the quietest possible failure: the
+ * route answers 200, nothing is written, and the phone shows "hazırlanıyor"
+ * forever. So after the documented shape, the body itself and one level of
+ * envelope are tried with the common aliases. Still strict about the thing
+ * that MATTERS: an unmapped status writes nothing.
  */
 export type GeliverEvent = Record<string, unknown>;
 
-/** Envelope keys worth looking inside, in the order they are tried. */
+/** Envelope keys worth looking inside, documented one first. */
 const ENVELOPES = ["data", "payload", "shipment", "result", "body"] as const;
 
-/** Field aliases, longest-standing name first. */
+/** Field aliases, documented name first. */
 const FIELDS = {
   event: ["event", "eventType", "type"],
-  status: ["status", "statusCode", "shipmentStatus"],
-  tracking: ["trackingStatusCode", "trackingStatus", "trackingSubStatusCode"],
+  status: ["statusCode", "status", "shipmentStatus"],
+  tracking: ["trackingStatusCode", "trackingSubStatusCode", "trackingStatus"],
   number: ["trackingNumber", "trackingCode", "trackingBarcode", "barcode"],
   url: ["trackingUrl", "trackingLink", "url"],
-  at: ["updatedAt", "statusUpdatedAt", "date", "createdAt"],
+  at: ["statusDate", "updatedAt", "statusUpdatedAt", "date", "createdAt"],
 } as const;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 /** The body, then each envelope inside it. Never deeper: one level is a shape, two is a guess. */
@@ -91,6 +107,16 @@ function pick(src: Record<string, unknown>, names: readonly string[]): string {
   return "";
 }
 
+/**
+ * `data.trackingStatus` is an OBJECT in the documented shape (`Tracking`),
+ * with the code inside it. Older or flatter shapes carry the code as a string
+ * under one of the same names. Both are read; the object wins when present.
+ */
+function trackingBlock(src: Record<string, unknown>): Record<string, unknown> | null {
+  const t = src.trackingStatus;
+  return isObject(t) ? t : null;
+}
+
 /** Top-level field NAMES only — never a value. Used to make a shape mismatch diagnosable. */
 export function shapeOf(body: unknown): string {
   return candidates(body)
@@ -103,11 +129,13 @@ export interface ShipmentUpdate {
   trackingNumber: string;
   status: MobileShipmentStatus;
   trackingUrl: string;
+  /** The carrier's own instant when the body carried one; "" otherwise. */
   updatedAt: string;
-}
-
-function text(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
+  /**
+   * Geliver's `Tracking.test` — the panel's "Test Et" delivery. A test event
+   * must never move a real parcel, so the route answers it and writes nothing.
+   */
+  test: boolean;
 }
 
 /**
@@ -122,19 +150,27 @@ function text(value: unknown): string {
  * only identifier the two systems share — so those are dropped too.
  */
 export function shipmentUpdateFrom(body: GeliverEvent): ShipmentUpdate | null {
+  // `event` lives on the ENVELOPE (`{ event, data }`), the fields on the
+  // payload; read it once from wherever it is rather than per candidate.
+  const event = candidates(body)
+    .map((c) => pick(c, FIELDS.event))
+    .find(Boolean) ?? "";
+  const isTrackUpdate = event.toUpperCase() === "TRACK_UPDATED";
+
   for (const src of candidates(body)) {
     const trackingNumber = pick(src, FIELDS.number);
     if (!trackingNumber) continue;
 
     const mapped = STATUS_MAP[pick(src, FIELDS.status).toUpperCase()];
-    const tracking = pick(src, FIELDS.tracking).toUpperCase();
+    const block = trackingBlock(src);
+    const tracking = (block ? pick(block, FIELDS.tracking) : pick(src, FIELDS.tracking)).toUpperCase();
 
     // A movement report that is not a delivery IS the "Yolda" step. It only
     // counts once the parcel has actually been handed over, so a tracking
     // event arriving while the status is still paperwork does not jump the
     // queue.
     const moving =
-      pick(src, FIELDS.event).toUpperCase() === "TRACK_UPDATED" &&
+      isTrackUpdate &&
       tracking !== "" &&
       tracking !== "DELIVERED" &&
       (mapped === undefined || mapped === "shipped");
@@ -143,14 +179,36 @@ export function shipmentUpdateFrom(body: GeliverEvent): ShipmentUpdate | null {
     if (!status) continue;
 
     const url = pick(src, FIELDS.url);
+    const test = block?.test === true || src.test === true || body.test === true;
     return {
       trackingNumber,
       status,
       // Whole or not at all, https only: this value reaches a phone, which
       // opens it in the system browser (docs/API-MOBILE.md §3.1).
       trackingUrl: url.startsWith("https://") ? url : "",
-      updatedAt: pick(src, FIELDS.at) || new Date().toISOString(),
+      // The scan's own time first (`Tracking.statusDate`), then the row's.
+      // No "now" fallback here: the store fills that in, and only it can
+      // compare against what is already written.
+      updatedAt: (block ? pick(block, FIELDS.at) : "") || pick(src, FIELDS.at),
+      test,
     };
   }
   return null;
+}
+
+/**
+ * Is this event OLDER than what the row already holds?
+ *
+ * Webhooks are not delivered in order — a retried SHIPPED can arrive after
+ * the DELIVERED that followed it — and writing the old one would move the
+ * parcel backwards on the phone. Two real timestamps decide it. When either
+ * side is missing or unparseable the answer is `false`: "cannot prove it is
+ * old" must never become "silently dropped". Equal instants are not stale,
+ * so an idempotent redelivery of the same event is harmless.
+ */
+export function isStaleShipmentEvent(existingAt: string, incomingAt: string): boolean {
+  const a = Date.parse(existingAt);
+  const b = Date.parse(incomingAt);
+  if (Number.isNaN(a) || Number.isNaN(b)) return false;
+  return b < a;
 }

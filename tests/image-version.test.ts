@@ -33,7 +33,7 @@ const RED =
 const BLUE = RED.replace("AAAACf", "AAAACg");
 
 function request(url: string, headers: Record<string, string> = {}): Request {
-  return new Request(`https://www.laffogato.net${url}`, { headers });
+  return new Request(`https://laffogato.net${url}`, { headers });
 }
 
 describe("the served image URL carries a content stamp", () => {
@@ -91,15 +91,15 @@ describe("the served image URL carries a content stamp", () => {
       updatedAt: "2026-09-09T00:00:00.000Z",
     } as AdminMenuItem;
 
-    const before = toMobileMenuItem(item, "https://www.laffogato.net");
+    const before = toMobileMenuItem(item, "https://laffogato.net");
     expect(before.image).toBe(
-      `https://www.laffogato.net/gorsel/menu/mnu-0007?v=${imageVersion(RED)}`,
+      `https://laffogato.net/gorsel/menu/mnu-0007?v=${imageVersion(RED)}`,
     );
 
     // The operator uploads a new photo; nothing else about the row changes.
     const after = toMobileMenuItem(
       { ...item, image: BLUE },
-      "https://www.laffogato.net",
+      "https://laffogato.net",
     );
     expect(after.image).not.toBe(before.image);
   });

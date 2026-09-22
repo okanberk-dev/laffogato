@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { AdminOrder } from "@/lib/admin/store";
-import { shapeOf, shipmentUpdateFrom } from "@/lib/mobile/geliver";
+import { isStaleShipmentEvent, shapeOf, shipmentUpdateFrom } from "@/lib/mobile/geliver";
 import { toMobileShipment } from "@/lib/mobile/order-mapper";
 
 /**
@@ -136,6 +136,50 @@ describe("shipmentUpdateFrom", () => {
     ).toBe("preparing");
   });
 
+  it("reads the DOCUMENTED shape: statusCode under data, the code inside a trackingStatus object", () => {
+    // @geliver/sdk 1.3.0 models: WebhookUpdateTrackingRequest { event, data: Shipment },
+    // Shipment.statusCode, Shipment.trackingStatus: Tracking { trackingStatusCode,
+    // statusDate, test }. `event` sits on the envelope, the fields on the payload.
+    const real = shipmentUpdateFrom({
+      event: "TRACK_UPDATED",
+      data: {
+        statusCode: "SHIPPED",
+        trackingNumber: "1234567890123",
+        trackingUrl: "https://kargo.example/t/123",
+        updatedAt: "2026-09-22T09:00:00Z",
+        trackingStatus: { trackingStatusCode: "IN_TRANSIT", statusDate: "2026-09-22T08:55:00Z" },
+      },
+    });
+    expect(real).toEqual({
+      trackingNumber: "1234567890123",
+      status: "in_transit",
+      trackingUrl: "https://kargo.example/t/123",
+      // The scan's own instant wins over the row's.
+      updatedAt: "2026-09-22T08:55:00Z",
+      test: false,
+    });
+
+    // A delivery scan inside the same object is a delivery.
+    expect(
+      shipmentUpdateFrom({
+        event: "TRACK_UPDATED",
+        data: { statusCode: "DELIVERED", trackingNumber: "1", trackingStatus: { trackingStatusCode: "DELIVERED" } },
+      })?.status,
+    ).toBe("delivered");
+  });
+
+  it("carries the panel's test flag and no invented timestamp", () => {
+    const t = shipmentUpdateFrom({
+      event: "TRACK_UPDATED",
+      data: { statusCode: "SHIPPED", trackingNumber: "1", trackingStatus: { trackingStatusCode: "X", test: true } },
+    });
+    expect(t?.test).toBe(true);
+    // No `new Date()` fallback: an absent instant stays absent, so the store
+    // — the only place that can compare against the row — decides.
+    expect(shipmentUpdateFrom({ status: "SHIPPED", trackingNumber: "1" })?.updatedAt).toBe("");
+    expect(shipmentUpdateFrom({ status: "SHIPPED", trackingNumber: "1" })?.test).toBe(false);
+  });
+
   it("reads the fields out of an envelope too", () => {
     // The status vocabulary is documented; the envelope is not. A panel is
     // free to wrap the payload, and getting that wrong is the quietest
@@ -166,5 +210,21 @@ describe("shipmentUpdateFrom", () => {
     expect(shipmentUpdateFrom({ status: "SHIPPED" })).toBeNull();
     expect(shipmentUpdateFrom({ status: "TELEPORTED", trackingNumber: "1" })).toBeNull();
     expect(shipmentUpdateFrom({})).toBeNull();
+  });
+});
+
+describe("isStaleShipmentEvent", () => {
+  it("is stale only when BOTH instants parse and the incoming one is earlier", () => {
+    expect(isStaleShipmentEvent("2026-09-22T10:00:00Z", "2026-09-22T09:00:00Z")).toBe(true);
+    expect(isStaleShipmentEvent("2026-09-22T09:00:00Z", "2026-09-22T10:00:00Z")).toBe(false);
+    // Equal is a redelivery of the same event, not a regression.
+    expect(isStaleShipmentEvent("2026-09-22T09:00:00Z", "2026-09-22T09:00:00Z")).toBe(false);
+  });
+
+  it("never drops what it cannot date", () => {
+    // "Cannot prove it is old" must not become "silently dropped".
+    expect(isStaleShipmentEvent("", "2026-09-22T09:00:00Z")).toBe(false);
+    expect(isStaleShipmentEvent("2026-09-22T09:00:00Z", "")).toBe(false);
+    expect(isStaleShipmentEvent("dün", "2026-09-22T09:00:00Z")).toBe(false);
   });
 });
