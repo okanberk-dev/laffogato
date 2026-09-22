@@ -22,7 +22,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Çalışma saatleri nedir?",
-    a: "Her gün 09:00 - 01:00 saatleri arasında açığız. Tüm yıl hizmet veriyoruz - yalnız 1 Ocak günü kapalıyız; köşkün avlusu yaz aylarında, yüksek tavanlı iç salonları kış aylarında kullanılır. Üst katta karaoke odamız var.",
+    a: "Her gün 09:00 - 02:00 saatleri arasında açığız. Tüm yıl hizmet veriyoruz - yalnız 1 Ocak günü kapalıyız; köşkün avlusu yaz aylarında, yüksek tavanlı iç salonları kış aylarında kullanılır. Üst katta karaoke odamız var.",
   },
   {
     q: "L'Affogato nedir, menüde nasıl servis ediliyor?",

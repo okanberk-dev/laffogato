@@ -333,6 +333,7 @@ Kurallar:
   "items": [ { "name": "Cappuccino", "detail": "M · yulaf · +1 shot", "qty": 1, "unitPriceMinor": 24500, "menuItemId": "mnu-0007", "productId": null, "variantId": null, "size": "M", "options": { … } } ],
   "subtotalMinor": 83500, "discountMinor": 0, "shippingMinor": 5500, "totalMinor": 89000,
   "promoCode": "", "address": "Evim — …", "scheduledFor": null, "etaMinutes": 35, "etaAt": "…",
+  "shipment": null,   // yalnız fulfillment === "shipping" → §3.1
   "stampsEarned": 1, "createdAt": "…", "paidAt": "…" | null
   // stampsEarned = loyalty_stamps LEDGER'ından okunur: siparişin `earn` satırı
   // varsa ve `reversal` ile geri alınmamışsa 1, aksi hâlde 0. Duruma bakıp
@@ -340,6 +341,53 @@ Kurallar:
   // edilen siparişin damgası geri alınır.
 }
 ```
+
+### 3.1 `shipment` — kargo (22 Eyl 2026, yalnız ekleme)
+
+**Canlı kurye takibi YOKTUR ve planlanmamaktadır.** Köşk telefonu okunabilen
+kurye çalıştırmaz; kargoyu **Geliver** üzerinden satın alır ve bir taşıyıcının
+yayımladığı şey konum değil, birkaç kilometre taşıdır. Uygulama bu yüzden
+haritayı emekli etti (ekran 11) ve üyeye üç şey söyler: yola çıktı, yolda,
+teslim edildi.
+
+`shipment` **yalnız** `fulfillment === "shipping"` siparişlerinde ve **yalnız**
+gönderi köşkten çıktıktan sonra doludur. Diğer her durumda `null`'dur — kafe
+siparişi, gel-al, ve henüz kargoya verilmemiş mağaza siparişi dâhil.
+
+```jsonc
+"shipment": {
+  "status": "in_transit",
+  // preparing | shipped | in_transit | delivered | returned | failed
+  "carrier": "Sürat Kargo",          // teklif kabul edilene kadar null
+  "trackingNumber": "1234567890123", // takip kodu üretilene kadar null
+  "trackingUrl": "https://…",        // taşıyıcı bir sayfa yayımlıyorsa; yoksa null
+  "updatedAt": "2026-09-22T09:00:00Z"
+}
+```
+
+**Geliver → sözleşme eşlemesi.** Soldaki değerler Geliver'in `statusFilter`
+kümesidir (resmî JS SDK'sı); sunucu `TRACK_UPDATED` webhook'unda eşler:
+
+| Geliver | `shipment.status` | Üyenin gördüğü |
+|---|---|---|
+| `CREATED` · `GOT_OFFERS` · `OFFER_ACCEPTED` · `TRACKING_CODE_CREATED` · `LABEL_PRINTED` | `preparing` | Hazırlanıyor |
+| `SHIPPED` | `shipped` | **Yola çıktı** |
+| `TRACK_UPDATED` (teslim değil) | `in_transit` | **Yolda** |
+| `DELIVERED` | `delivered` | **Teslim edildi** |
+| `RETURNED` · `RETURN_SHIPPED` | `returned` | Gönderi iade edildi |
+| `CANCELED` · `FAILED` | `failed` | Gönderi teslim edilemedi |
+
+**Kurallar.**
+
+- `trackingUrl` **bütün olarak** gelir; uygulama numara ile alan adını birleştirip
+  link KURMAZ. `https://` ile başlamayan değer istemcide düşürülür.
+- Bilinmeyen bir `status` istemcide **tüm nesneyi** düşürür (`toShipment`).
+  Gönderinin nerede olduğu hakkında hiçbir şey söylememek, yanlış şey
+  söylemekten iyidir.
+- Alan **hiç yoksa** bu bir hata değildir: sütun migration'dan önce deploy
+  edilen bir sunucuda `select("*")` anahtarı hiç döndürmez (karar 61 tuzağı).
+- `status` sipariş durumundan (`Order.status`) bağımsızdır: taşıyıcı ne derse
+  odur. `delivered` olduğunda siparişi `completed`'a taşımak sunucunun işidir.
 
 ### `POST /orders/preview` → sepet hesabı (kimlik gerekli değil ama varsa kupon denenir)
 

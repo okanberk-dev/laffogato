@@ -69,7 +69,7 @@ export function VenueStatusForm({
         <div className="grid gap-4">
           <Field
             label="Açık / kapalı"
-            hint="Otomatikte Ayarlar → Saatler'deki çalışma saatleri kullanılır; 01:00 kapanış gece yarısından sonra da açık sayılır."
+            hint="Otomatikte Ayarlar → Saatler'deki çalışma saatleri kullanılır; 02:00 kapanış gece yarısından sonra da açık sayılır."
           >
             <Select
               name="manualOverride"

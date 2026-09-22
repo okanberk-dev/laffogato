@@ -69,6 +69,92 @@ export interface MobileOrder {
   stampsEarned: number;
   createdAt: string;
   paidAt: string | null;
+  /** Kargo — only for `fulfillment: "shipping"`, only after hand-over. §3.1. */
+  shipment: MobileShipment | null;
+}
+
+/**
+ * The carrier's milestones (docs/API-MOBILE.md §3.1).
+ *
+ * The app retired its live-tracking map: the köşk runs no couriers whose
+ * phones it can read, it buys carriage from cargo firms through Geliver, and
+ * a carrier publishes milestones rather than a position. These six values are
+ * what the phone draws as "Yola çıktı → Yolda → Teslim edildi".
+ */
+export type MobileShipmentStatus =
+  | "preparing"
+  | "shipped"
+  | "in_transit"
+  | "delivered"
+  | "returned"
+  | "failed";
+
+export interface MobileShipment {
+  status: MobileShipmentStatus;
+  carrier: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  updatedAt: string | null;
+}
+
+const SHIPMENT_STATUSES: readonly string[] = [
+  "preparing",
+  "shipped",
+  "in_transit",
+  "delivered",
+  "returned",
+  "failed",
+];
+
+/**
+ * Where the parcel is, from the best signal the row carries.
+ *
+ * `shipmentStatus` is what the Geliver webhook writes and it wins whenever it
+ * is set. Until that account exists the column is empty on every row, so the
+ * panel's own shipping form is the only signal there is: the shop owner types
+ * a carrier and a tracking number, and `transitionOrder` moves the order to
+ * `shipped` and later `completed`. That is three of the six values, honestly
+ * derived, rather than a band that stays blank until an integration lands.
+ *
+ * `null` means nothing has left the köşk, and then there is no `shipment` at
+ * all — which is different from a shipment whose status is unknown.
+ */
+function shipmentStatusFor(order: AdminOrder): MobileShipmentStatus | null {
+  const published = String(order.shipmentStatus ?? "").trim();
+  if (SHIPMENT_STATUSES.includes(published)) {
+    return published as MobileShipmentStatus;
+  }
+  if (order.status === "completed") return "delivered";
+  if (order.status === "shipped") return "shipped";
+  // A tracking number without the status move still means it was handed over.
+  if (String(order.trackingNumber ?? "").trim()) return "shipped";
+  return null;
+}
+
+/**
+ * `null` for everything that is not a cargo parcel already on its way.
+ *
+ * The app treats an absent field as "not shipped" rather than an error, so a
+ * cafe order, a pickup, and a parcel still on the bench all read the same and
+ * none of them draws the band.
+ */
+export function toMobileShipment(order: AdminOrder): MobileShipment | null {
+  if (orderFulfillment(order) !== "shipping") return null;
+  const status = shipmentStatusFor(order);
+  if (!status) return null;
+  const url = String(order.trackingUrl ?? "").trim();
+  return {
+    status,
+    carrier: String(order.carrier ?? "").trim() || null,
+    trackingNumber: String(order.trackingNumber ?? "").trim() || null,
+    // Whole or not at all, and https only — the phone opens this in the
+    // system browser. The app drops anything else again on its side.
+    trackingUrl: url.startsWith("https://") ? url : null,
+    updatedAt:
+      String(order.shipmentUpdatedAt ?? "").trim() ||
+      String(order.shippedAt ?? "").trim() ||
+      null,
+  };
 }
 
 /** How far along the four-step timeline each status is. */
@@ -273,5 +359,6 @@ export function toMobileOrder(
     stampsEarned: stampsEarnedFor(order, stampedOrderIds),
     createdAt: order.createdAt,
     paidAt: order.paidAt || null,
+    shipment: toMobileShipment(order),
   };
 }
