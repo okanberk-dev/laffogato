@@ -529,13 +529,18 @@ sözleşmenin §18/§19'u, panel sinyalleri) depoda bekledi.
 | `/api/cron/daily` | 06:00 | kampanyalar → doğum günü → imha, sırayla |
 | `/api/cron/campaign-emails` | 12:00 | zamanlanmış kampanyalar için ikinci geçiş |
 
-> ⚠️ **Kanonik ad `www.`** — `laffogato.net` ona **308** ile yönlendiriyor.
-> Bu bir hata değil (400'ün altında), yani yönlendirmeyi izlemeyen bir
-> istemci ucu HİÇ çağırmadan başarılı sayar. Dışarıdan çağıran her şey
-> (GitHub Actions işi, Geliver webhook'u, bir izleyici) `https://www.` ile
-> yazılmalı. `SITE.url` bunu ortamdan çözer; elle yazılan adresler çözmez.
+> ⚠️ **Kanonik ad APEX: `https://laffogato.net`** (22 Eyl 2026 kararı).
+> canonical, sitemap, og:url ve JSON-LD `@id`ler bunu yayımlar;
+> `NEXT_PUBLIC_SITE_URL` de bu. Vercel'de **apex Production olmalı, `www`
+> 308 ile apex'e gitmeli** — tersi kurulursa her canonical bir yönlendirme
+> sekmesi yapar ve Search Console "yönlendiren sayfa" der.
+>
+> Yönlendirmeyi izlemeyen istemciler için 308 sessiz bir arızadır (400'ün
+> altında, "başarılı" sayılır). Dışarıdan çağıran her şey — GitHub Actions
+> işi, **Geliver webhook URL'i**, bir izleyici — `https://laffogato.net/…`
+> ile yazılmalı; `curl` çağrılarına `--location` eklenmeli.
 
-Saatlik hassasiyet ise **ücretsiz** geri geldi: `.github/workflows/campaign-cron.yml`
+Saatlik hassasiyet ise **ücretsiz** geri geldi: `.github/workflows/campaign-hourly.yml`
 saatte bir `/api/cron/campaign-emails`e vuruyor. Üstüne konan bir katman, tek
 bayrak direği değil — GitHub'ın zamanlanmış işleri gecikebilir, o zaman
 Vercel'in 06:00 ve 12:00 geçişleri yine alır. Hiçbir kampanya kaybolmaz.
