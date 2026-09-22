@@ -68,7 +68,12 @@ export const LEGAL_ENTITY = {
    */
   cafeHours: {
     opens: "09:00",
-    closes: "01:00",
+    // Kapanış AÇILIŞTAN KÜÇÜK: 02:00 ertesi sabaha aittir. schema.org bunu
+    // olduğu gibi kabul eder (`openingHoursLd` değeri dokunmadan geçirir) ve
+    // "şu an açık mı" hesabı `src/lib/hours.ts`te gece yarısını aşan pencere
+    // olarak ele alır. Düz sayı karşılaştıran her kod mekânı bütün akşam
+    // kapalı sanır.
+    closes: "02:00",
     /** Hukuki belge tablosunda basılan hâli. */
     display: "Her gün 09:00 - 02:00",
   },

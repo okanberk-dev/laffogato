@@ -13,7 +13,7 @@
 const SIGNATURE = `—
 L'Affogato · Coffee Italiano
 Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla / İstanbul
-Her gün 09:00 – 01:00 · +90 536 429 09 19
+Her gün 09:00 – 02:00 · +90 536 429 09 19
 laffogato.net · @laffogatto`;
 
 /**
@@ -165,7 +165,7 @@ kalma restore bir köşkte sizi bekliyoruz.
 
 Menü — 12 kategori: [MENU_URL]
 Mağaza (500,00 ₺ üzeri kargo ücretsiz): laffogato.net/magaza
-Ziyaret — her gün 09:00 – 01:00: laffogato.net/ziyaret
+Ziyaret — her gün 09:00 – 02:00: laffogato.net/ziyaret
 
 Hesabınız: [HESAP_URL]
 

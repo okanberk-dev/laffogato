@@ -14,12 +14,12 @@ import { SITE } from "@/lib/seo/site";
  * metin olarak gömülüydü ve kimse orayı aramadı.
  */
 describe("Kafe çalışma saatleri — tek kaynak", () => {
-  it("kanonik değer her gün 09:00 - 01:00", () => {
+  it("kanonik değer her gün 09:00 - 02:00", () => {
     expect(LEGAL_ENTITY.cafeHours.opens).toBe("09:00");
-    expect(LEGAL_ENTITY.cafeHours.closes).toBe("01:00");
+    expect(LEGAL_ENTITY.cafeHours.closes).toBe("02:00");
   });
 
-  it("kapanış açılıştan küçüktür — 01:00 ertesi gündür", () => {
+  it("kapanış açılıştan küçüktür — 02:00 ertesi gündür", () => {
     // Bu bir hata değil, kasıtlı. Saatleri sayısal karşılaştıran her kod
     // bunu bilmek zorunda; schema.org da böyle ifade eder.
     expect(LEGAL_ENTITY.cafeHours.closes < LEGAL_ENTITY.cafeHours.opens).toBe(
@@ -49,7 +49,7 @@ describe("Kafe çalışma saatleri — tek kaynak", () => {
   });
 
   it("mağaza ve müşteri hizmetleri saatleri kafe saatiyle KARIŞTIRILMADI", () => {
-    // Kafe 01:00'de kapanıyor; müşteri hizmetleri hafta içi mesai saatinde.
+    // Kafe 02:00'de kapanıyor; müşteri hizmetleri hafta içi mesai saatinde.
     // Bunları tek değere indirmek yanlış olurdu.
     const all = fillTokens(JSON.stringify(LEGAL_CONTENT));
     expect(all).toContain("Hafta içi 09:00 - 18:00");
