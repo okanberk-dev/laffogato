@@ -252,6 +252,24 @@ export interface AdminOrder {
   carrier?: string;
   shippedAt?: string;
   /**
+   * The CARRIER's own milestone, written by the Geliver webhook
+   * (`/api/webhooks/geliver`) — one of `preparing | shipped | in_transit |
+   * delivered | returned | failed`, or "" while no webhook has ever fired.
+   *
+   * Separate from `status` on purpose: `status` is where the ORDER is in the
+   * köşk's own machine (paid → preparing → shipped → completed) and the shop
+   * owner drives it, while this is where the PARCEL is and the carrier drives
+   * it. They disagree routinely — a parcel is `in_transit` for two days while
+   * the order sits at `shipped` — and collapsing them would make one of the
+   * two lie. The app reads this one (docs/API-MOBILE.md §3.1); until the
+   * Geliver account exists it stays "" and the mapper derives what it can.
+   */
+  shipmentStatus?: string;
+  /** The carrier's own tracking page, whole. Empty when it publishes none. */
+  trackingUrl?: string;
+  /** ISO-8601 instant the carrier last said anything. */
+  shipmentUpdatedAt?: string;
+  /**
    * Mobile app fields (docs/API-MOBILE.md §3). Every one is optional with a
    * database default describing a web shop order, so the existing order
    * machine keeps writing rows exactly as before and an old row reads as
@@ -456,12 +474,12 @@ function deriveSku(name: string, n: number): string {
 // ─── Seed (idempotent — yalnızca tablo boşsa çalışır) ─────────────────────
 
 function defaultWeeklyHours(): WeeklyHours {
-  // Every day 09:00–01:00. The close time is EARLIER than the open time
-  // because 01:00 belongs to the following morning — schema.org expresses that
+  // Every day 09:00–02:00. The close time is EARLIER than the open time
+  // because 02:00 belongs to the following morning — schema.org expresses that
   // by simply letting `closes` be the smaller value, and openingHoursLd()
   // passes it through untouched. (Its "24:00" → "23:59" mapping exists for the
   // old 10:00–24:00 schedule and no longer applies to any day here.)
-  const everyDay = { open: "09:00", close: "01:00", closed: false };
+  const everyDay = { open: "09:00", close: "02:00", closed: false };
   return {
     mon: { ...everyDay },
     tue: { ...everyDay },
@@ -2930,6 +2948,53 @@ export async function setOrderTracking(
     "setOrderTracking",
   );
   return { ...existing, trackingNumber: tn, carrier: ca, shippedAt };
+}
+
+/**
+ * The carrier's own milestone, written by the Geliver webhook.
+ *
+ * Addressed by TRACKING NUMBER rather than by order id, because that is the
+ * only identifier Geliver and this database share — the köşk's order id never
+ * leaves this side.
+ *
+ * Returns the order it touched, or `null` when no order carries that number:
+ * a parcel the köşk did not send is not an error, it is somebody else's
+ * webhook, and the route answers 200 either way so the sender stops retrying.
+ *
+ * It deliberately does NOT move `orders.status`. Whether a delivered parcel
+ * completes the order is the shop owner's decision in /admin/siparisler, and a
+ * carrier's scan is not authority to close a sale — a parcel marked delivered
+ * to a neighbour is still an open order.
+ */
+export async function setOrderShipmentStatus(
+  trackingNumber: string,
+  status: string,
+  trackingUrl: string,
+  updatedAt: string,
+): Promise<AdminOrder | null> {
+  await ensureSeed();
+  const sb = getDb();
+  const tn = trackingNumber.trim().slice(0, 120);
+  if (!tn) return null;
+  const { data } = await sb
+    .from(TABLES.orders)
+    .select("*")
+    .eq("trackingNumber", tn)
+    .maybeSingle();
+  const existing = data as AdminOrder | null;
+  if (!existing) return null;
+  const patch = {
+    shipmentStatus: status.trim().slice(0, 40),
+    // An empty url never blanks one the panel already holds: Geliver sends
+    // the page when it has one and says nothing when it does not.
+    trackingUrl: trackingUrl.trim().slice(0, 500) || (existing.trackingUrl ?? ""),
+    shipmentUpdatedAt: updatedAt.trim().slice(0, 40),
+  };
+  check(
+    await sb.from(TABLES.orders).update(patch).eq("id", existing.id),
+    "setOrderShipmentStatus",
+  );
+  return { ...existing, ...patch };
 }
 
 export interface OrderDetailsInput {

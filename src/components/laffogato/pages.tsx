@@ -550,7 +550,7 @@ export function PageHome({
           <div className="reveal r1">
             <div className="eyebrow">Ziyaret · Tuzla, İstanbul</div>
             <h2 className="h2" style={{ marginTop: 14 }}>
-              200 yıllık köşkte, gece 01:00’e kadar.
+              200 yıllık köşkte, gece 02:00’e kadar.
             </h2>
             <div className="visit-facts">
               <div>
@@ -1965,7 +1965,7 @@ export function PageVisit({ visit, settings }: PageProps) {
           132px headline. */}
       <PageHero
         eyebrow="Ziyaret · Tuzla, İstanbul"
-        title={["200 yıllık köşkte,", "gece 01:00'e kadar"]}
+        title={["200 yıllık köşkte,", "gece 02:00'e kadar"]}
         lede="Postane Mahallesi'nde restore bir Rum köşkü: 24 koltuk, bahçe terası ve üst katta özel karaoke odası. Marmaray Tuzla'ya 6 dakika, ücretsiz vale."
       />
       <section className="visit-open">
@@ -2025,7 +2025,7 @@ export function PageVisit({ visit, settings }: PageProps) {
                   </div>
                 </div>
                 <div>
-                  <div className="visit-stat-n">01:00</div>
+                  <div className="visit-stat-n">02:00</div>
                   <div className="visit-stat-l">gece kapanış</div>
                 </div>
                 <div>
@@ -2225,7 +2225,7 @@ export function PageVisit({ visit, settings }: PageProps) {
                   Şu an açık
                 </div>
                 <div className="eyebrow" style={{ marginTop: 4 }}>
-                  {/* Kapanıştan yarım saat önce — 01:00 kapanışla 00:30.
+                  {/* Kapanıştan yarım saat önce — 02:00 kapanışla 01:30.
                       (22:30, eski 23:00 kapanışından kalmıştı.) */}
                   Son siparişler 00:30
                 </div>
@@ -2243,7 +2243,7 @@ export function PageVisit({ visit, settings }: PageProps) {
                 Yarın · 27 Mayıs
               </div>
               <div style={{ fontFamily: "var(--serif-display)", fontSize: 18 }}>
-                09:00 - 01:00
+                09:00 - 02:00
               </div>
               <p
                 style={{

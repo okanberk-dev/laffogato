@@ -150,7 +150,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
               Saatler
             </h3>
             <div style={{ lineHeight: 1.6, fontSize: 14 }}>
-              Her gün: 09:00 - 01:00
+              Her gün: 09:00 - 02:00
             </div>
           </div>
           <div>

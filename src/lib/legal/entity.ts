@@ -70,7 +70,7 @@ export const LEGAL_ENTITY = {
     opens: "09:00",
     closes: "01:00",
     /** Hukuki belge tablosunda basılan hâli. */
-    display: "Her gün 09:00 - 01:00",
+    display: "Her gün 09:00 - 02:00",
   },
 
   phone: "+90 536 429 09 19",

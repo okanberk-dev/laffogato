@@ -108,7 +108,7 @@ export function LaffogatoApp({
     addressLines: string[];
     phone: string;
     email: string;
-    /** Opening hours for the current day, e.g. "09:00 — 01:00" / "Bugün kapalı". */
+    /** Opening hours for the current day, e.g. "09:00 — 02:00" / "Bugün kapalı". */
     todayHours?: string;
     hours: [string, string][];
   };
