@@ -375,7 +375,7 @@ function hourRange(h: { open: string; close: string }) {
  * same hours. Callers pass the days they are describing: the whole week for
  * `hoursLabel`, Monday–Friday and Saturday–Sunday for the live-status pair.
  *
- *   every listed day alike → "09:00 – 01:00" (or "Kapalı")
+ *   every listed day alike → "09:00 – 02:00" (or "Kapalı")
  *   otherwise              → "Pzt–Per 09:00 – 00:00 · Cum 09:00 – 01:00"
  */
 export function hoursLabelFor(
@@ -412,7 +412,7 @@ export function hoursLabelFor(
  * One line for the whole week, derived from the same `weeklyHours` the Visit
  * page renders so the app can never say a different time than the site.
  *
- *   all seven days alike → "Her gün 09:00 – 01:00"
+ *   all seven days alike → "Her gün 09:00 – 02:00"
  *   otherwise            → consecutive runs: "Pzt–Cum 09:00 – 01:00 · Cmt–Paz 10:00 – 02:00"
  *   closed run           → "Paz Kapalı"
  */
@@ -425,7 +425,7 @@ export function hoursLabel(weekly: WeeklyHours): string {
   return uniform && !weekly.mon.closed ? `Her gün ${label}` : label;
 }
 
-/** One row of the venue's weekly table: `{ label: "Pazartesi", value: "09:00 - 01:00" | "Kapalı" }`. */
+/** One row of the venue's weekly table: `{ label: "Pazartesi", value: "09:00 - 02:00" | "Kapalı" }`. */
 export interface BootstrapVenueHour {
   label: string;
   value: string;
