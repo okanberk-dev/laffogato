@@ -19,7 +19,7 @@ const MENU = {
   categories: [
     {
       key: "espresso",
-      title: "Espresso Based",
+      title: "Espresso",
       subtitle: "",
       italian: "",
       note: "",

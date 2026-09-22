@@ -139,7 +139,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     menuKey: "matcha",
     title: "Matcha Bar - Strawberry Aşkı",
     description:
-      "Siparişten sonra çırpılan ceremonial grade matcha. Matcha Latte, Strawberry Matcha ve Matcha Affogato - L'Affogato Tuzla matcha bar menüsü.",
+      "Siparişten sonra çırpılan ceremonial grade matcha. Matcha Latte, Çilekli Matcha ve Matcha Affogato - L'Affogato Tuzla matcha bar menüsü.",
     keywords: [
       "matcha bar Tuzla",
       "strawberry matcha",
@@ -157,7 +157,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "espresso",
     menuKey: "espresso",
-    title: "Espresso Based - Sıcak Kahveler",
+    title: "Espresso - Sıcak Kahveler",
     description:
       "L'Affogato, espresso, americano, latte, flat white, cappuccino, mocha, spanish latte, cortado, Türk kahvesi ve filtre kahve. Çoğu M ve L boy servis edilir.",
     keywords: [
@@ -167,9 +167,9 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
       "Türk kahvesi Tuzla",
       "filtre kahve İstanbul",
     ],
-    breadcrumbLabel: "Espresso Based",
+    breadcrumbLabel: "Espresso",
     nav: {
-      label: "Espresso Based",
+      label: "Espresso",
       italian: "Dalla macchina",
       hue: "dark",
     },
@@ -177,7 +177,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "ice-coffee",
     menuKey: "ice-coffee",
-    title: "Ice Coffee - Buzlu Kahveler",
+    title: "Soğuk Kahveler",
     description:
       "Iced americano, iced caffè latte, iced mocha, iced spanish latte, cold brew ve çıtır latte. Buzlu kahvelerin tamamı M ve L boy hazırlanır.",
     keywords: [
@@ -187,9 +187,9 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
       "iced spanish latte",
       "iced americano",
     ],
-    breadcrumbLabel: "Ice Coffee",
+    breadcrumbLabel: "Soğuk Kahve",
     nav: {
-      label: "Ice Coffee",
+      label: "Soğuk Kahve",
       italian: "Il banco freddo",
       hue: "caramel",
     },
@@ -197,7 +197,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "cold",
     menuKey: "cold",
-    title: "Cold Drinks - Soğuk İçecekler",
+    title: "Soğuk İçecekler",
     description:
       "Kahvesiz serinleticiler: günlük sürpriz karışım, cool lime, ev yapımı L'Af Limon, soda ve su.",
     keywords: [
@@ -206,9 +206,9 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
       "cool lime",
       "kahvesiz içecek Tuzla",
     ],
-    breadcrumbLabel: "Cold Drinks",
+    breadcrumbLabel: "Soğuk İçecekler",
     nav: {
-      label: "Cold Drinks",
+      label: "Soğuk İçecekler",
       italian: "Rinfrescanti",
       hue: "strawberry",
     },
@@ -216,7 +216,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "hot",
     menuKey: "hot",
-    title: "Hot Drinks - Sıcak İçecekler",
+    title: "Sıcak İçecekler",
     description:
       "Chai tea latte, sıcak çikolata, beyaz sıcak çikolata, karamelli sıcak çikolata, salep ve demlik çay.",
     keywords: [
@@ -225,7 +225,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
       "chai latte Tuzla",
       "kahvesiz sıcak içecek",
     ],
-    breadcrumbLabel: "Hot Drinks",
+    breadcrumbLabel: "Sıcak İçecekler",
   },
   {
     slug: "frappe",
@@ -261,7 +261,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     description:
       "Lemon tea ve peach tea. Buz ve taze meyve dilimiyle servis edilir.",
     keywords: ["buzlu çay Tuzla", "lemon ice tea", "şeftalili buzlu çay"],
-    breadcrumbLabel: "Ice Tea",
+    breadcrumbLabel: "Soğuk Çay",
   },
   {
     slug: "tatlilar",
@@ -309,7 +309,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     description:
       "Her içeceğe eklenebilen aroma şurubu, ekstra espresso shot ve alternatif süt (yulaf, badem, laktozsuz).",
     keywords: ["alternatif süt Tuzla", "yulaf sütü kahve", "extra shot"],
-    breadcrumbLabel: "Extras",
+    breadcrumbLabel: "Ekstralar",
   },
 ];
 

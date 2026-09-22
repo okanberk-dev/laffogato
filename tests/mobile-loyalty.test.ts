@@ -314,7 +314,7 @@ describe("computeBadges", () => {
   it("matcha-fan sums matcha quantities across orders", () => {
     const orders = [
       order({ names: ["Matcha Latte"], qty: 2 }),
-      order({ names: ["Strawberry Matcha", "Cappuccino"], qty: 1 }),
+      order({ names: ["Çilekli Matcha", "Cappuccino"], qty: 1 }),
       order({ names: ["Uji Matcha — Ceremonial"], qty: 1 }),
     ];
     expect(badge(orders, "matcha-fan")).toBe(false); // 4

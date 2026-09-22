@@ -38,7 +38,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Matcha bar'da hangi çay kullanılıyor?",
-    a: "Ceremonial grade matcha kullanıyoruz ve her bardağı siparişten sonra çırpıyoruz; premix yok. Matcha bar'da üç kalem var: Matcha Latte 215₺, Strawberry Matcha 245₺ ve Matcha Affogato 245₺. Strawberry Matcha, taze çilek katmanı üzerine matcha ve soğuk sütle hazırlanır.",
+    a: "Ceremonial grade matcha kullanıyoruz ve her bardağı siparişten sonra çırpıyoruz; premix yok. Matcha bar'da üç kalem var: Matcha Latte 215₺, Çilekli Matcha 245₺ ve Matcha Affogato 245₺. Çilekli Matcha, taze çilek katmanı üzerine matcha ve soğuk sütle hazırlanır.",
   },
   {
     q: "Online sipariş ve kargo var mı?",

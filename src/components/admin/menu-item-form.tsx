@@ -58,7 +58,7 @@ export function MenuItemForm({
   return (
     <form action={action} className="grid gap-6 lg:grid-cols-3">
       <Card className="grid gap-5 lg:col-span-2">
-        <Field label="Ürün adı" hint="Örn: Strawberry Matcha">
+        <Field label="Ürün adı" hint="Örn: Çilekli Matcha">
           <TextInput name="name" defaultValue={item?.name} required />
         </Field>
 
