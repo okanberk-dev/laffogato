@@ -105,6 +105,27 @@ async function checkFreshness(pool: Pool): Promise<void> {
   if (!fresh) await ensureSchema(pool);
 }
 
+/**
+ * Whether the database has recorded every migration this build ships.
+ *
+ * `ensureSchemaFresh` deliberately SWALLOWS its failures — it runs ahead of
+ * every query, and an unreachable database has to reach the caller as an
+ * ordinary query failure so the degraded-mode fallback can classify it. The
+ * cost of that is silence: a schema apply that fails for a reason of its own
+ * (a permission, a lock timeout) leaves nothing but a `console.warn` on an
+ * instance nobody is watching.
+ *
+ * This is the same question asked out loud, for `/api/health` to answer with.
+ */
+export async function schemaIsFresh(pool: Pool): Promise<boolean> {
+  const client = await pool.connect();
+  try {
+    return await isUpToDate(client);
+  } finally {
+    client.release();
+  }
+}
+
 let inFlight: Promise<void> | null = null;
 
 export function ensureSchema(pool: Pool): Promise<void> {

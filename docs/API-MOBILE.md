@@ -567,6 +567,8 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
     "ordering": {
       "cafeEnabled": true,                        // false → "Sepete ekle" kapalı; sunucu 409 ordering_closed
       "deliveryEnabled": true, "pickupEnabled": true,   // false → ilgili teslimat seçeneği gizli; sunucu 400 fulfillment_unavailable
+      "shopEnabled": true,                        // MAĞAZA anahtarı = settings.isShopOpen (/admin/ayarlar). false → kargolu mağaza siparişi kapalı; sunucu 409 shop_closed.
+                                                  // Mobil panelin anahtarı DEĞİLDİR: tek gerçeğin ikinci bir kopyası olmasın diye MobileAppConfig'e yazılmaz, yalnız telde görünür.
       "courierEtaMinutes": [25, 35],
       "closedMessage": "Uygulamadan sipariş şu an kapalı. Köşkte görüşürüz."
     },

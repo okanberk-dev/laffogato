@@ -135,7 +135,16 @@ export interface BootstrapApp {
    */
   store: { appStoreUrl: string; playStoreUrl: string };
   maintenance: MobileAppConfig["maintenance"];
-  ordering: MobileAppConfig["ordering"];
+  /**
+   * The mobile switches, plus one that is NOT a mobile switch:
+   * `shopEnabled` is `settings.isShopOpen` from /admin/ayarlar — the shop's
+   * own, which `finalizeOrder` enforces with `shop_closed`. It rides here
+   * because from the phone's side it answers the same question as the other
+   * three (can this basket be built at all?), but it is deliberately NOT part
+   * of `MobileAppConfig`: a second copy in the mobile panel would be a second
+   * switch for one fact, and the two would drift.
+   */
+  ordering: MobileAppConfig["ordering"] & { shopEnabled: boolean };
   loyalty: { stampTarget: number; rewardTitle: string };
   reminders: MobileAppConfig["reminders"];
   campaignCards: MobileAppConfig["campaignCards"];
@@ -542,7 +551,11 @@ export function mergeMobileAppConfig(
 }
 
 /** The part of the config the app is allowed to see (bootstrap `app`). */
-export function toBootstrapApp(cfg: MobileAppConfig): BootstrapApp {
+export function toBootstrapApp(
+  cfg: MobileAppConfig,
+  /** `settings.isShopOpen` — see `BootstrapApp["ordering"]`. */
+  shopEnabled: boolean,
+): BootstrapApp {
   return {
     minSupportedAppVersion: cfg.minSupportedAppVersion,
     store: {
@@ -552,6 +565,7 @@ export function toBootstrapApp(cfg: MobileAppConfig): BootstrapApp {
     maintenance: { ...cfg.maintenance },
     ordering: {
       ...cfg.ordering,
+      shopEnabled,
       courierEtaMinutes: [...cfg.ordering.courierEtaMinutes],
     },
     // Coupon value and TTL are the till's business; the app only names the reward.

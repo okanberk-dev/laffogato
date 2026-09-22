@@ -238,7 +238,7 @@ describe("mergeMobileAppConfig", () => {
 
 describe("toBootstrapApp", () => {
   it("publishes the app-facing part and keeps karaoke, venue and coupon economics back", () => {
-    const app = toBootstrapApp(DEFAULT_MOBILE_APP_CONFIG);
+    const app = toBootstrapApp(DEFAULT_MOBILE_APP_CONFIG, true);
     expect(Object.keys(app).sort()).toEqual(
       [
         "minSupportedAppVersion",
