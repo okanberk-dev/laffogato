@@ -3,7 +3,11 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { setOrderShipmentStatus } from "@/lib/admin/store";
-import { shipmentUpdateFrom, type GeliverEvent } from "@/lib/mobile/geliver";
+import {
+  shapeOf,
+  shipmentUpdateFrom,
+  type GeliverEvent,
+} from "@/lib/mobile/geliver";
 
 /**
  * Geliver's `TRACK_UPDATED` webhook — where a parcel actually is.
@@ -71,8 +75,14 @@ export async function POST(request: Request) {
 
   const update = shipmentUpdateFrom(body);
   if (!update) {
+    // The quietest possible failure is a body whose SHAPE we did not expect:
+    // the route answers 200, nothing is written, and the phone shows
+    // "hazırlanıyor" forever. The field NAMES are logged so it is diagnosable
+    // — never a value, because this body carries a tracking number and a
+    // tracking number identifies a parcel and therefore a person.
+    console.warn(`[webhooks/geliver] eşlenemedi — alanlar: ${shapeOf(body)}`);
     return NextResponse.json(
-      { ok: true, ignored: "unmapped" },
+      { ok: true, ignored: "unmapped", fields: shapeOf(body) },
       { status: 200, headers: NO_STORE },
     );
   }
