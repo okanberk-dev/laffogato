@@ -22,7 +22,7 @@ jobs:
     # NODE_ENV is intentionally NOT set — Next.js manages it itself during build.
     env:
       NEXT_TELEMETRY_DISABLED: "1"
-      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_URL: https://laffogato.net
       DATABASE_URL: postgres://ci:ci@localhost:5432/ci
       ADMIN_EMAIL: ci@laffogato.local
       ADMIN_PASSWORD: ci-placeholder-password
