@@ -511,6 +511,39 @@ kilitli sürümde 0/25, her turda biri 100 satırla 0. partiyi, öteki 20 satır
 1. partiyi aldı. (Bellek içi stub bu kilidi modelleyemez; testte kemer olan
    `claimedAt` kapsamı sabitlenir.)
 
+### ⚠️ Cron sayısı deploy'u durdurabilir (22 Eyl 2026)
+
+`vercel.json` üç cron ve saatlik bir program istiyordu. Vercel'in **Hobby**
+planı en fazla **2 cron** ve **yalnız günlük** program veriyor — ve fazlasını
+gördüğünde cron'u değil **deploy'u** reddediyor.
+
+Sonuç: **16 Eyl – 22 Eyl arası üretime hiçbir şey çıkmadı.** Site ayakta
+kaldı çünkü eski derlemeyi sunuyordu, bu yüzden kimse fark etmedi; ama
+`main`'e merge edilen her şey (e-posta otomasyonu, alerjen yayını,
+sözleşmenin §18/§19'u, panel sinyalleri) depoda bekledi.
+
+Şimdi iki cron var:
+
+| Yol | Program | Ne yapar |
+|---|---|---|
+| `/api/cron/daily` | 06:00 | kampanyalar → doğum günü → imha, sırayla |
+| `/api/cron/campaign-emails` | 12:00 | zamanlanmış kampanyalar için ikinci geçiş |
+
+Saatlik hassasiyet ise **ücretsiz** geri geldi: `.github/workflows/campaign-cron.yml`
+saatte bir `/api/cron/campaign-emails`e vuruyor. Üstüne konan bir katman, tek
+bayrak direği değil — GitHub'ın zamanlanmış işleri gecikebilir, o zaman
+Vercel'in 06:00 ve 12:00 geçişleri yine alır. Hiçbir kampanya kaybolmaz.
+
+> **Tek seferlik kurulum:** depo → Settings → Secrets and variables → Actions
+> → `CRON_SECRET`, değeri Vercel'dekiyle **birebir aynı**. Secret tanımlı
+> değilken iş kendini atlar, kırmızı yanmaz.
+
+**Plan yükseltilirse** (Pro: 40 cron, istediğin program): `vercel.json`'daki
+eski üç satırlık listeyi geri koy — `/api/cron/birthday`,
+`/api/cron/retention` ve saatlik `/api/cron/campaign-emails` rotalarının
+üçü de **silinmedi**, yerlerinde duruyor. `tests/vercel-crons.test.ts`
+içindeki iki sabiti de gevşetmek gerekir.
+
 ### Cron ve `CRON_SECRET`
 
 `vercel.json` → `crons`, iki görev, ikisi de aynı kapıdan geçer

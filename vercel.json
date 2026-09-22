@@ -4,9 +4,8 @@
   "buildCommand": "next build",
   "framework": "nextjs",
   "crons": [
-    { "path": "/api/cron/campaign-emails", "schedule": "0 * * * *" },
-    { "path": "/api/cron/birthday", "schedule": "0 6 * * *" },
-    { "path": "/api/cron/retention", "schedule": "0 4 * * *" }
+    { "path": "/api/cron/daily", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/campaign-emails", "schedule": "0 12 * * *" }
   ],
   "git": {
     "deploymentEnabled": {

@@ -198,10 +198,27 @@ describe("the sweep is wired up and cannot destroy a blank timestamp", () => {
     expect(retention).toContain('.neq(rule.column, "")');
   });
 
-  it("runs daily from vercel.json, beside the campaign cron", () => {
+  it("is reached by a daily cron, through /api/cron/daily", () => {
+    // The sweep no longer has a cron entry of its own. Vercel's Hobby plan
+    // allows two cron jobs on daily schedules, and a `vercel.json` asking for
+    // three — one of them hourly — makes Vercel fail the DEPLOY: nothing
+    // reached production between 16 and 22 Eyl 2026 because of exactly that
+    // (docs/EMAIL-RESEND.md, "Cron sayısı deploy'u durdurabilir").
+    //
+    // So the route stays, and `/api/cron/daily` calls it. What is pinned here
+    // is that the sweep is still REACHED daily — the thing that would
+    // otherwise rot silently, because a sweep nobody runs looks exactly like
+    // a sweep that found nothing.
     const paths = vercel.crons.map((c) => c.path);
-    expect(paths).toContain("/api/cron/retention");
+    expect(paths).toContain("/api/cron/daily");
     expect(paths).toContain("/api/cron/campaign-emails");
+    const daily = readFileSync(
+      join(process.cwd(), "src/app/api/cron/daily/route.ts"),
+      "utf8",
+    );
+    expect(daily).toContain("runRetention");
+    expect(daily).toContain("runBirthdayGreetings");
+    expect(daily).toContain("resumePendingCampaigns");
   });
 
   it("is behind the shared cron gate and cannot carry on past it", () => {

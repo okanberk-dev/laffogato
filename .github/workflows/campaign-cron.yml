@@ -1,0 +1,53 @@
+# Zamanlanmış kampanyalar için saatlik tetikleyici.
+#
+# Vercel'in Hobby planı iki cron ve yalnız günlük program veriyor; fazlasını
+# isteyen bir `vercel.json` cron'u değil **deploy'u** düşürüyor (16–22 Eyl
+# 2026 arası üretime hiçbir şey çıkmamasının sebebi buydu). Kampanya
+# zamanlaması ise saatlik çalışmak istiyor: panelde 14:00'e kurulmuş bir
+# gönderi 14:00'te çıkmalı.
+#
+# Bu iş o boşluğu ücretsiz kapatıyor — GitHub Actions saatte bir aynı uca
+# vuruyor, Vercel'in kendi iki cron'u da yerinde duruyor. Yani:
+#
+#   · bu iş çalışırsa  → kampanya saatinde çıkar
+#   · çalışmazsa       → `/api/cron/daily` 06:00 ve ikinci geçiş 12:00 yine
+#                         alır; hiçbir kampanya kaybolmaz, yalnız gecikir
+#
+# GitHub'ın zamanlanmış işleri yoğun saatlerde birkaç dakika GECİKEBİLİR ve
+# garanti edilmez; bu yüzden tek bayrak direği değil, üstüne konan bir katman.
+#
+# KURULUM (tek seferlik): depo → Settings → Secrets and variables → Actions →
+# New repository secret → `CRON_SECRET`, değeri Vercel'dekiyle **birebir aynı**.
+# Secret tanımlı değilken iş kendini atlar — 503 alıp kırmızı yanmaz.
+
+name: campaign-cron
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: campaign-cron
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: zamanlanmış kampanyaları yolla
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: /api/cron/campaign-emails
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET tanımlı değil — atlanıyor. Kurulum için bu dosyanın başına bakın."
+            exit 0
+          fi
+          # --fail-with-body: uç 500 dönerse iş kırmızı yansın ve gövdesi
+          # günlükte kalsın. Gövde satır saymaktan ibarettir, adres taşımaz.
+          curl --fail-with-body --silent --show-error \
+               --max-time 300 --retry 2 --retry-delay 15 \
+               -H "Authorization: Bearer $CRON_SECRET" \
+               https://laffogato.net/api/cron/campaign-emails
