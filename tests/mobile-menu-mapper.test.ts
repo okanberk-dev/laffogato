@@ -393,6 +393,7 @@ describe("buildBootstrap (contract §10)", () => {
     address: "",
     weeklyHours: everyDay("09:00", "01:00"),
     courierFeeMinor: 5500,
+    isShopOpen: true,
     mobileApp: DEFAULT_MOBILE_APP_CONFIG,
   };
   // Wednesday 2026-09-02 12:00 in Istanbul (09:00 UTC).
@@ -551,6 +552,21 @@ describe("buildBootstrap (contract §10)", () => {
     expect(
       buildBootstrap({ ...settings, phone: "  ", email: "" }, site).venue,
     ).toMatchObject({ phone: site.phone, email: site.email });
+  });
+
+  it("publishes the shop's own switch, so the phone can say so BEFORE checkout", () => {
+    // `finalizeOrder` refuses a cargo basket with `shop_closed` when
+    // `settings.isShopOpen` is off — and that setting was never published.
+    // The member filled a basket, entered an address, and met a 409 at the
+    // last step with nothing on the way there having hinted at it.
+    expect(buildBootstrap({ ...settings, isShopOpen: true }, site).app.ordering.shopEnabled).toBe(true);
+    expect(buildBootstrap({ ...settings, isShopOpen: false }, site).app.ordering.shopEnabled).toBe(false);
+
+    // It is NOT a second switch in the mobile panel: the cafe's own three are
+    // untouched by it, so turning the shop off never closes the cafe.
+    const closed = buildBootstrap({ ...settings, isShopOpen: false }, site).app.ordering;
+    expect(closed.cafeEnabled).toBe(true);
+    expect(closed.pickupEnabled).toBe(true);
   });
 
   it("carries the fixed app constants and the settings courier fee", () => {

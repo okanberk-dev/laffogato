@@ -528,12 +528,13 @@ export function buildBootstrap(
     | "weeklyHours"
     | "courierFeeMinor"
     | "mobileApp"
+    | "isShopOpen"
   >,
   site: BootstrapSite,
   now: Date = new Date(),
 ): MobileBootstrap {
   const a = site.address;
-  const app = toBootstrapApp(settings.mobileApp);
+  const app = toBootstrapApp(settings.mobileApp, settings.isShopOpen);
   const today = settings.weeklyHours[istanbulDay(now)];
   return {
     minSupportedAppVersion: app.minSupportedAppVersion,

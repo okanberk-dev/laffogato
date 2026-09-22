@@ -2,7 +2,12 @@ import "server-only";
 
 import { Pool, type PoolConfig } from "pg";
 
-import { ensureSchema, ensureSchemaFresh, isSchemaGap } from "./bootstrap";
+import {
+  ensureSchema,
+  ensureSchemaFresh,
+  isSchemaGap,
+  schemaIsFresh,
+} from "./bootstrap";
 import { createDb, type Db, type Executor } from "./client";
 import type { CompiledQuery } from "./sql";
 
@@ -170,6 +175,32 @@ function createExecutor(): Executor {
       return await run(query);
     }
   };
+}
+
+export type DbHealth = {
+  db: "up" | "down";
+  schema: "fresh" | "stale" | "unknown";
+};
+
+/**
+ * Is this instance actually able to serve, and is its database caught up?
+ *
+ * It TRIGGERS the migration as well as reporting on it: `ensureSchemaFresh`
+ * first, then the question. So hitting `/api/health` after a deploy both
+ * applies anything pending and says whether the apply worked — which is the
+ * one thing that was invisible before, because the apply path swallows its
+ * own failures by design.
+ *
+ * Never throws: an unreachable database is an answer (`down`), not an error.
+ */
+export async function dbHealth(): Promise<DbHealth> {
+  try {
+    const pool = getPool();
+    await ensureSchemaFresh(pool);
+    return { db: "up", schema: (await schemaIsFresh(pool)) ? "fresh" : "stale" };
+  } catch {
+    return { db: "down", schema: "unknown" };
+  }
 }
 
 export function getDb(): Db {

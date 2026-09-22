@@ -112,7 +112,7 @@ describe("what the app is told", () => {
         ],
       },
     });
-    const app = toBootstrapApp(cfg);
+    const app = toBootstrapApp(cfg, true);
     expect(app.store).toEqual({
       appStoreUrl: "https://apps.apple.com/tr/app/laffogato/id1",
       playStoreUrl:
@@ -126,11 +126,12 @@ describe("what the app is told", () => {
   });
 
   it("moves with the setting, so a listing needs no release", () => {
-    const before = toBootstrapApp(DEFAULT_MOBILE_APP_CONFIG).store;
+    const before = toBootstrapApp(DEFAULT_MOBILE_APP_CONFIG, true).store;
     const after = toBootstrapApp(
       normalizeMobileAppConfig({
         store: { appStoreUrl: "https://apps.apple.com/tr/app/laffogato/id9" },
       }),
+      true,
     ).store;
     expect(before.appStoreUrl).toBe("");
     expect(after.appStoreUrl).toBe(

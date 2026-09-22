@@ -43,6 +43,7 @@ type BootstrapSettings = Pick<
   | "weeklyHours"
   | "courierFeeMinor"
   | "mobileApp"
+  | "isShopOpen"
 >;
 
 function everyDay(open: string, close: string) {
@@ -60,6 +61,7 @@ function everyDay(open: string, close: string) {
 
 function settings(over: Partial<BootstrapSettings> = {}): BootstrapSettings {
   return {
+    isShopOpen: true,
     phone: "",
     email: "",
     address: "",
