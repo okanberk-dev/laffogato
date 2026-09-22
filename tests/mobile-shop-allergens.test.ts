@@ -20,7 +20,7 @@ import { toMobileShopProduct } from "@/lib/mobile/menu-mapper";
  * warning anywhere in the app. These tests pin the four pieces that close it.
  */
 
-const SITE_URL = "https://www.laffogato.net";
+const SITE_URL = "https://laffogato.net";
 
 function product(over: Partial<AdminProduct> = {}): AdminProduct {
   return {

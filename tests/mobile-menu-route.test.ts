@@ -34,7 +34,7 @@ const MENU = {
           tags: [],
           hue: "caramel",
           image:
-            "https://www.laffogato.net/gorsel/menu/mnu-0007?v=6f1c2a9d3b40",
+            "https://laffogato.net/gorsel/menu/mnu-0007?v=6f1c2a9d3b40",
         },
       ],
     },
@@ -44,7 +44,7 @@ const MENU = {
 };
 
 function request(headers: Record<string, string> = {}): Request {
-  return new Request("https://www.laffogato.net/api/mobile/v1/menu", {
+  return new Request("https://laffogato.net/api/mobile/v1/menu", {
     headers,
   });
 }
@@ -84,7 +84,7 @@ describe("GET /api/mobile/v1/menu", () => {
 
     const changed = structuredClone(MENU);
     changed.categories[0].items[0].image =
-      "https://www.laffogato.net/gorsel/menu/mnu-0007?v=0a1b2c3d4e5f";
+      "https://laffogato.net/gorsel/menu/mnu-0007?v=0a1b2c3d4e5f";
     listMenuForMobile.mockResolvedValue(changed);
 
     const res = await GET(request({ "If-None-Match": before! }));
