@@ -21,6 +21,7 @@
 # Secret tanımlı değilken iş kendini atlar — 503 alıp kırmızı yanmaz.
 
 name: campaign-cron
+# Actions bu dosyayi listeye almamisti; yeniden taranmasi icin dokunuldu.
 
 on:
   schedule:
