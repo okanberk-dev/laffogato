@@ -708,7 +708,7 @@ export function BeanIllo({
 export function CoffeeBag({
   size = "100%",
   label = "Sirena",
-  sub = "Espresso Blend · 250g",
+  sub = "Espresso Harmanı · 250 g",
   tone = "dark",
 }: {
   size?: number | string;

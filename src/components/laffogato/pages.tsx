@@ -1380,7 +1380,7 @@ export function PageShop({
             </PhotoSurface>
           </div>
           <div className="reveal r1">
-            <div className="eyebrow">Affogato Kit · For Two</div>
+            <div className="eyebrow">Affogato Seti · İki Kişilik</div>
             <h2 className="h1" style={{ marginTop: 16 }}>
               Evde <span className="script">tableside</span> servis.
             </h2>
@@ -1422,7 +1422,7 @@ export function PageShop({
               <button
                 className="btn btn-primary btn-lg"
                 onClick={() =>
-                  addToCart({ name: "Affogato Kit · For Two", price: 780 })
+                  addToCart({ name: "Affogato Seti · İki Kişilik", price: 780 })
                 }
               >
                 Sepete ekle <span className="arrow">→</span>

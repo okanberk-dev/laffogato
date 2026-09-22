@@ -315,7 +315,7 @@ export function ProductWizard({
                 name="tag"
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
-                placeholder="Whole Bean · 250g"
+                placeholder="Çekirdek · 250 g"
                 required
               />
             </Field>
