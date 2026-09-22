@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { AdminOrder } from "@/lib/admin/store";
-import { shipmentUpdateFrom } from "@/lib/mobile/geliver";
+import { shapeOf, shipmentUpdateFrom } from "@/lib/mobile/geliver";
 import { toMobileShipment } from "@/lib/mobile/order-mapper";
 
 /**
@@ -134,6 +134,29 @@ describe("shipmentUpdateFrom", () => {
       shipmentUpdateFrom({ event: "TRACK_UPDATED", status: "LABEL_PRINTED", trackingStatusCode: "SCANNED", trackingNumber: "1" })
         ?.status,
     ).toBe("preparing");
+  });
+
+  it("reads the fields out of an envelope too", () => {
+    // The status vocabulary is documented; the envelope is not. A panel is
+    // free to wrap the payload, and getting that wrong is the quietest
+    // failure there is — 200, nothing written, "hazırlanıyor" forever.
+    expect(
+      shipmentUpdateFrom({ event: "TRACK_UPDATED", data: { status: "SHIPPED", trackingNumber: "1" } })?.status,
+    ).toBe("shipped");
+    expect(
+      shipmentUpdateFrom({ payload: { status: "DELIVERED", trackingCode: "1" } })?.status,
+    ).toBe("delivered");
+    // Turkish carrier integrations name a tracking number four ways.
+    for (const key of ["trackingNumber", "trackingCode", "trackingBarcode", "barcode"]) {
+      expect(shipmentUpdateFrom({ status: "SHIPPED", [key]: "999" })?.trackingNumber).toBe("999");
+    }
+  });
+
+  it("names the fields it saw when it cannot map, and never their values", () => {
+    const fields = shapeOf({ foo: "gizli-numara", data: { bar: "gizli" } });
+    expect(fields).toContain("foo");
+    expect(fields).toContain("bar");
+    expect(fields).not.toContain("gizli");
   });
 
   it("drops what it cannot act on instead of throwing", () => {
