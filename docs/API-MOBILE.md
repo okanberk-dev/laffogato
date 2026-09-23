@@ -459,6 +459,7 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
     "tierLabel": "RUBY",         // görünen ad: L'AF | PEARL | RUBY (kimlik değişmez; 23 Eyl 2026)
     // 23 Eyl 2026, karar 175 (eklemeli): kilometre taşı hediyelerinin yol haritası
     // (ömür boyu damgaya göre) ve her seviyenin YALNIZ sunucunun uyguladığı ayrıcalıkları.
+    // `milestones` okunamazsa alan hiç gelmez (/me yine 200); uygulama yol haritasını çizmez.
     "milestones": [ { "at": 10, "title": "Filtre Kahve", "surprise": false, "reached": true, "given": true, "gift": "Filtre Kahve" },
                     { "at": 20, "title": "Americano", "surprise": false, "reached": true, "given": false, "gift": "" },
                     { "at": 30, "title": "Sürpriz: menüden bir içecek ya da tatlı", "surprise": true, "reached": false, "given": false, "gift": "" } ],

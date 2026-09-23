@@ -51,7 +51,13 @@ export async function buildMe(customer: PublicCustomer): Promise<MeResponse> {
   const [loyalty, invite, grants, settings] = await Promise.all([
     getLoyalty(customer.email),
     getInviteSummary(customer),
-    listMilestoneGrants(customer.email),
+    // The road map is an addition to /me, never a reason for it to fail: if
+    // the milestone table cannot be read (a deploy ahead of its migration),
+    // the road is left out and the rest of the member's page still loads.
+    listMilestoneGrants(customer.email).catch((err: unknown) => {
+      console.error("[me] milestone grants unavailable", err);
+      return null;
+    }),
     getSettings(),
   ]);
   return toMe(
@@ -60,7 +66,7 @@ export async function buildMe(customer: PublicCustomer): Promise<MeResponse> {
       ...loyalty,
       // Karar 175: the road map of milestone gifts, and each tier's perks -
       // only those the server applies.
-      milestones: milestoneRoadmap(loyalty.lifetimeStamps, grants),
+      ...(grants ? { milestones: milestoneRoadmap(loyalty.lifetimeStamps, grants) } : {}),
       perksByTier: perksByTier(settings.mobileApp.karaoke.oroDiscountPct),
     },
     invite,
