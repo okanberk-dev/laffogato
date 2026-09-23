@@ -359,6 +359,14 @@ describe("campaign blocks follow their fields", () => {
   });
 });
 
+describe("the karaoke confirmation says the party size once", () => {
+  it("does not write \"kişi\" after a value that already carries it", () => {
+    // send.ts fills KARAOKE_KISI as "4 kişi"; the preheader used to append
+    // its own " kişi", so the inbox preview read "4 kişi kişi".
+    expect(EMAIL_TEMPLATES["karaoke-rezervasyon"].preheader).not.toMatch(/\[KARAOKE_KISI\] kişi/);
+  });
+});
+
 describe("values are data, not markup", () => {
   it("escapes a name that carries a tag", () => {
     const html = fill("Merhaba [AD]", {
