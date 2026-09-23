@@ -14,8 +14,11 @@ import {
   countOpenOrders,
   countOrdersAfter,
   createManualOrder,
+  getOrder,
   getOrderPaymentRef,
+  orderWasCollected,
   refundOrder,
+  refundRefusal,
   setOrderInternalNote,
   setOrderItemStatus,
   setOrderTracking,
@@ -25,6 +28,7 @@ import {
   type OrderTransition,
 } from "@/lib/admin/store";
 import { getPaymentProvider } from "@/lib/payment";
+import { parseMoneyInput } from "@/lib/utils/format";
 
 export interface BulkOrderActionState {
   error?: string;
@@ -100,13 +104,25 @@ export async function transitionOrderAction(
   _prev: TransitionActionState,
   formData: FormData,
 ): Promise<TransitionActionState> {
-  await requireRole("orders");
+  const session = await requireRole("orders");
   const id = String(formData.get("id") ?? "");
   const transition = String(
     formData.get("transition") ?? "",
   ) as OrderTransition;
   if (!id || !TRANSITIONS.includes(transition)) {
     return { error: "Geçersiz işlem." };
+  }
+  // Cancelling an order that was paid voids money the shop holds — the same
+  // authority as a refund, exactly as the bulk tool already demands. One
+  // order at a time it only needed `orders`, so staff could do singly what
+  // they were refused in bulk. An unpaid (pending) order is still theirs.
+  if (transition === "cancel" && !canAccess("refunds", session.role)) {
+    const current = await getOrder(id);
+    if (current && current.status !== "pending_payment") {
+      return {
+        error: "Ödenmiş siparişi iptal etmek için iade yetkisi gerekiyor.",
+      };
+    }
   }
   const result = await transitionOrder(id, transition);
   // `TransitionResult` is a loose interface, so `order` is optional even on
@@ -175,16 +191,29 @@ export async function refundOrderAction(
   await requireRole("refunds");
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "Sipariş ID eksik." };
-  const amountText = String(formData.get("amount") ?? "").replace(",", ".");
-  const amountMajor = parseFloat(amountText);
-  if (!Number.isFinite(amountMajor) || amountMajor <= 0) {
-    return { error: "Geçerli bir iade tutarı gir." };
+  // parseMoneyInput, not parseFloat(replace(",", ".")): that read "1.250,00"
+  // as 1.25, and ₺1,25 is what the card would have been credited.
+  const amountMinor = parseMoneyInput(String(formData.get("amount") ?? ""));
+  if (amountMinor === null || amountMinor <= 0) {
+    return { error: "Geçerli bir iade tutarı gir (ör. 250 ya da 1.250,00)." };
   }
   const reason = String(formData.get("reason") ?? "").trim();
   if (reason.length < 3) {
     return { error: "İade nedeni en az 3 karakter olmalı." };
   }
-  const amountMinor = Math.round(amountMajor * 100);
+
+  // Every reason the ledger would refuse, checked BEFORE the money moves.
+  // They used to run only inside refundOrder, after provider.refund: a
+  // cancelled-and-unpaid order, an unpaid one or an amount above what is
+  // left was refused on paper after the card had already been credited.
+  const order = await getOrder(id);
+  if (!order) return { error: "Sipariş bulunamadı." };
+  const refusal = refundRefusal(
+    order,
+    amountMinor,
+    await orderWasCollected(order),
+  );
+  if (refusal) return { error: refusal };
 
   // The POS call comes FIRST, and its failure stops the refund.
   //

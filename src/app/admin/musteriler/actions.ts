@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/admin/audit";
+import { parseMoneyInput } from "@/lib/utils/format";
 import { requireRole } from "@/lib/admin/auth";
 import { customerEditSchema } from "@/lib/admin/customer-schema";
 import {
@@ -142,12 +143,18 @@ export async function grantCustomerCouponAction(
 
   const kind: CouponKind =
     String(formData.get("kind") ?? "pct") === "fixed" ? "fixed" : "pct";
-  const rawValue = parseFloat(
-    String(formData.get("value") ?? "").replace(",", "."),
-  );
-  const rawMin = parseFloat(
-    String(formData.get("minSubtotal") ?? "0").replace(",", "."),
-  );
+  // parseMoneyInput, not parseFloat(replace(",", ".")): that read "1.250,00"
+  // as 1.25. Values are compared in major units below, hence the /100.
+  const valueMinor = parseMoneyInput(String(formData.get("value") ?? ""));
+  const rawValue = valueMinor === null ? NaN : valueMinor / 100;
+  const minText = String(formData.get("minSubtotal") ?? "").trim();
+  const minMinor = minText === "" ? 0 : parseMoneyInput(minText);
+  if (minMinor === null) {
+    return {
+      error: "Geçerli bir alt sepet tutarı gir (ör. 250 ya da 1.250,00).",
+    };
+  }
+  const rawMin = minMinor / 100;
   const title = String(formData.get("title") ?? "")
     .trim()
     .slice(0, 80);

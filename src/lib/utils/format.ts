@@ -41,6 +41,30 @@ export function parsePriceLabel(display: string): number {
 }
 
 /**
+ * A lira amount typed into an admin form, as minor units — or `null` when it
+ * is not unambiguously one.
+ *
+ * `parseFloat(s.replace(",", "."))` read "1.250,00" as 1.25: a ₺1.250 refund
+ * went out as ₺1,25. Accepted: "1250", "1250,5", "1250.50", "1.250",
+ * "1.250,00" (Turkish thousands dots with a decimal comma). Anything else —
+ * "1,250.00", "12.5.0", "abc" — is refused so the admin retypes it rather
+ * than moving the wrong amount of money.
+ */
+export function parseMoneyInput(raw: string): number | null {
+  const text = raw.replace(/[\s₺]/g, "").replace(/TL$/i, "");
+  let normalized: string;
+  if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(text)) {
+    normalized = text.replace(/\./g, "").replace(",", ".");
+  } else if (/^\d+([.,]\d{1,2})?$/.test(text)) {
+    normalized = text.replace(",", ".");
+  } else {
+    return null;
+  }
+  const minor = Math.round(Number(normalized) * 100);
+  return Number.isSafeInteger(minor) ? minor : null;
+}
+
+/**
  * The display name without its qualifier: "Sirena — Espresso Blend" → "Sirena".
  *
  * Splits on a dash SURROUNDED BY WHITESPACE, and accepts every dash glyph. Two

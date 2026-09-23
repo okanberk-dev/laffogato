@@ -241,7 +241,9 @@ export function OrderDetail({
                 </form>
               )}
               {canRefund &&
-                order.status !== "cancelled" &&
+                // A cancelled order that WAS paid still owes the customer
+                // their money ("İptal sonrası iade ayrıca başlatılır").
+                (order.status !== "cancelled" || Boolean(order.paidAt)) &&
                 order.status !== "pending_payment" &&
                 remainingRefundableMinor > 0 && (
                   <button

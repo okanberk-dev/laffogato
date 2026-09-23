@@ -3124,6 +3124,49 @@ export type RefundResult =
   | { ok: true; order: AdminOrder; refund: AdminRefund }
   | { ok: false; error: string };
 
+/**
+ * Why a refund of `amountMinor` cannot be issued against `order`, or `null`
+ * when it can. Pure, and run BEFORE the POS is asked for the money: the admin
+ * action used to call `provider.refund` first and only then learn here that
+ * the order was unpaid or the amount too large — the card was credited, the
+ * ledger refused, and the two were out of step for good.
+ *
+ * `collected` is whether money was ever taken (`paidAt`, or a succeeded
+ * payment transaction). A cancelled order that WAS paid is refundable: the
+ * cancel dialog promises "iade ayrıca başlatılır", and refusing it left the
+ * customer's money with the shop with no way to give it back.
+ */
+export function refundRefusal(
+  order: Pick<AdminOrder, "status" | "totalMinor" | "refunds">,
+  amountMinor: number,
+  collected: boolean,
+): string | null {
+  if (order.status === "cancelled" && !collected) {
+    return "İptal edilen, ödemesi alınmamış siparişe iade yapılamaz.";
+  }
+  // Nothing was ever collected on an order still awaiting payment, so there is
+  // nothing to give back — recording one would invent a negative in the
+  // reports and, on a real POS, attempt a refund against no transaction.
+  if (order.status === "pending_payment") {
+    return "Ödemesi alınmamış siparişe iade yapılamaz; siparişi iptal edin.";
+  }
+  if (!Number.isInteger(amountMinor) || amountMinor <= 0) {
+    return "İade tutarı pozitif olmalı.";
+  }
+  const already = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
+  const remaining = order.totalMinor - already;
+  if (amountMinor > remaining) {
+    return `İade tutarı kalan bakiyeyi aşıyor (kalan: ${priceLabel(remaining)}).`;
+  }
+  return null;
+}
+
+/** Was money ever collected on this order? */
+export async function orderWasCollected(order: AdminOrder): Promise<boolean> {
+  if (order.paidAt) return true;
+  return (await getOrderPaymentRef(order.id)) !== null;
+}
+
 export async function refundOrder(
   orderId: string,
   input: RefundInput,
@@ -3132,29 +3175,12 @@ export async function refundOrder(
   const sb = getDb();
   const existing = await getOrder(orderId);
   if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
-  if (existing.status === "cancelled") {
-    return { ok: false, error: "İptal edilen siparişe iade yapılamaz." };
-  }
-  // Nothing was ever collected on an order still awaiting payment, so there is
-  // nothing to give back — recording one would invent a negative in the
-  // reports and, on a real POS, attempt a refund against no transaction.
-  if (existing.status === "pending_payment") {
-    return {
-      ok: false,
-      error: "Ödemesi alınmamış siparişe iade yapılamaz; siparişi iptal edin.",
-    };
-  }
-  const already = existing.refunds.reduce((s, r) => s + r.amountMinor, 0);
-  const remaining = existing.totalMinor - already;
-  if (input.amountMinor <= 0) {
-    return { ok: false, error: "İade tutarı pozitif olmalı." };
-  }
-  if (input.amountMinor > remaining) {
-    return {
-      ok: false,
-      error: `İade tutarı kalan bakiyeyi aşıyor (kalan: ${priceLabel(remaining)}).`,
-    };
-  }
+  const refusal = refundRefusal(
+    existing,
+    input.amountMinor,
+    await orderWasCollected(existing),
+  );
+  if (refusal) return { ok: false, error: refusal };
   const refund: AdminRefund = {
     id: `rfn-${existing.refunds.length + 1}-${Date.now()}`,
     amountMinor: input.amountMinor,
@@ -3164,7 +3190,10 @@ export async function refundOrder(
   const nextRefunds = [...existing.refunds, refund];
   const fullyRefunded =
     nextRefunds.reduce((s, r) => s + r.amountMinor, 0) >= existing.totalMinor;
-  const status = fullyRefunded ? "refunded" : existing.status;
+  // A cancelled order stays cancelled: its stock and stamp were already given
+  // back by the cancel, and "refunded" would put it back into the reports.
+  const wasCancelled = existing.status === "cancelled";
+  const status = fullyRefunded && !wasCancelled ? "refunded" : existing.status;
   check(
     await sb
       .from(TABLES.orders)
@@ -3173,7 +3202,7 @@ export async function refundOrder(
     "refundOrder",
   );
   // A fully refunded order keeps nothing: the stamp it earned goes back too.
-  if (fullyRefunded) await reverseLoyalty(existing, "refunded");
+  if (fullyRefunded && !wasCancelled) await reverseLoyalty(existing, "refunded");
   return {
     ok: true,
     order: { ...existing, refunds: nextRefunds, status },
