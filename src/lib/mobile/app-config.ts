@@ -170,6 +170,16 @@ export const APP_CONFIG_LIMITS = {
   reminderIdPattern: /^[a-z0-9-]{1,24}$/,
   reminderTitleMax: 60,
   reminderBodyMax: 140,
+  /**
+   * The only hours a daily reminder may be SAVED for (inclusive). The app
+   * drops anything outside 08-21 on read (lafmobil `REMINDER_HOURS`): a typo
+   * like 3 for 23 would arm a nightly alarm on every device and burn the one
+   * notification permission prompt. The panel refused nothing, so a 07:30 or
+   * 22:00 reminder was saved and then silently never scheduled. Same window
+   * here, with a message under the field.
+   */
+  reminderHourMin: 8,
+  reminderHourMax: 21,
   happyHourPctMin: 5,
   happyHourPctMax: 50,
   happyHourDays: ["weekday", "weekend", "everyday"] as const,

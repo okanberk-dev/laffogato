@@ -249,7 +249,7 @@ const reminderItemSchema = z.object({
       L.reminderIdPattern,
       "Hatırlatma kimliği yalnız küçük harf, rakam ve tire içerebilir (en fazla 24).",
     ),
-  hour: intField(0, 23, "Saat"),
+  hour: intField(L.reminderHourMin, L.reminderHourMax, "Hatırlatma saati"),
   minute: intField(0, 59, "Dakika"),
   title: textField(L.reminderTitleMax, "Hatırlatma başlığı").pipe(
     noSalesCopy("Başlık"),

@@ -542,12 +542,15 @@ function RemindersTab({ config }: { config: MobileAppConfig }) {
                     placeholder="morning"
                   />
                 </Field>
-                <Field label="Saat">
+                <Field
+                  label="Saat"
+                  hint={`${L.reminderHourMin}–${L.reminderHourMax} arası; uygulama gece bildirimi göndermez.`}
+                >
                   <TextInput
                     name={`reminder-${i}-hour`}
                     type="number"
-                    min={0}
-                    max={23}
+                    min={L.reminderHourMin}
+                    max={L.reminderHourMax}
                     inputMode="numeric"
                     defaultValue={String(item.hour)}
                   />
