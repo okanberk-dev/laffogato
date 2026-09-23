@@ -28,6 +28,13 @@ tarafta da log yok, yalnız kargo durumları güncellenmeyi bırakır.
 her teslimata eklediği sabit başlıktır. Uç onu sabit zamanlı karşılaştırır.
 Gövde ham okunur; HMAC geldiği gün aynı baytlar üzerinden hesaplanır.
 
+> **Kontrol (23 Eyl 2026): hâlâ yer tutucu.** npm'deki son sürüm
+> `@geliver/sdk` 1.3.0; `src/webhooks.ts` v1.3.0'da ve deponun son
+> commit'inde (7 May 2026) aynı: `enableVerification` açıkken bile `false`
+> döner, gövde imzası yok. İmza geldiğinde: `HMAC(secret, timestamp + '.' +
+> rawBody)` sabit zamanlı doğrulanır, `x-timestamp` için bir tekrar penceresi
+> konur ve sabit başlık ikinci kontrol olarak kalır.
+
 **Sunucu tarafı:** Vercel → Environment Variables → `GELIVER_WEBHOOK_SECRET`
 (Production · Preview · Development), sonra **Redeploy** — ortam değişkeni
 mevcut dağıtıma uygulanmaz. Yerel şablon: `.env.example`.
