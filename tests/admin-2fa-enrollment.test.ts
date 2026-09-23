@@ -29,4 +29,21 @@ describe("2FA enrollment", () => {
       body.indexOf(".upsert("),
     );
   });
+
+  it("takes a current code, not just the session, to turn 2FA off", () => {
+    const actions = readFileSync(
+      "src/app/admin/2fa-kurulum/actions.ts",
+      "utf8",
+    );
+    const body = actions.slice(
+      actions.indexOf("export async function disable2FAAction"),
+    );
+    expect(body.indexOf("verifyToken(session.email, token)")).toBeGreaterThan(
+      -1,
+    );
+    expect(body.indexOf("verifyToken(session.email, token)")).toBeLessThan(
+      body.indexOf("await disable2FA(session.email)"),
+    );
+    expect(body).toContain('reserveLoginAttempt("admin-2fa"');
+  });
 });

@@ -3,15 +3,11 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { cache } from "react";
 
 import bcrypt from "bcryptjs";
 
-import {
-  checkLoginLimit,
-  clearLoginLimit,
-  clientIp,
-  recordLoginFailure,
-} from "./rate-limit";
+import { clearLoginLimit, clientIp, reserveLoginAttempt } from "./rate-limit";
 import {
   ADMIN_ROLES,
   canAccess,
@@ -37,6 +33,11 @@ export interface AdminSession {
   email: string;
   role: AdminRole;
   expiresAt: number;
+}
+
+/** What the signed cookie carries: the session plus the credential it was issued for. */
+interface SignedSession extends AdminSession {
+  fingerprint: string;
 }
 
 interface AdminUserRecord {
@@ -117,23 +118,40 @@ function getSecret(): string {
   return secret;
 }
 
-function signToken(session: AdminSession): string {
-  const payload = `${session.email}|${session.role}|${session.expiresAt}`;
+/**
+ * A short, keyed digest of the credential a session was issued for: the
+ * bcrypt hash of a panel account, or the password of an env (break-glass)
+ * account. It goes into the cookie and is compared against the account as it
+ * is NOW on every request, so resetting an admin's password signs out every
+ * session that was opened with the old one — including a stolen cookie.
+ * Keyed with the session secret, so the cookie reveals nothing about the hash.
+ */
+function credentialFingerprint(source: "db" | "env", material: string): string {
+  return createHmac("sha256", getSecret())
+    .update(`fp|${source}|${material}`)
+    .digest("hex")
+    .slice(0, 24);
+}
+
+function signToken(session: SignedSession): string {
+  const payload = `${session.email}|${session.role}|${session.expiresAt}|${session.fingerprint}`;
   const sig = createHmac("sha256", getSecret()).update(payload).digest("hex");
   return `${payload}|${sig}`;
 }
 
-function verifyToken(token: string): AdminSession | null {
+function verifyToken(token: string): SignedSession | null {
   const parts = token.split("|");
-  // Back-compat: old tokens had 3 segments (email|exp|sig). New tokens
-  // have 4 (email|role|exp|sig). Old tokens get rejected so users have
-  // to sign in once after deploy.
-  if (parts.length !== 4) return null;
-  const [email, roleRaw, expiresAtStr, sig] = parts;
+  // Five segments (email|role|exp|fingerprint|sig). The four-segment tokens
+  // issued before the fingerprint existed are refused, so every admin signs
+  // in once after this deploy — the only way to make sessions that predate
+  // it revocable.
+  if (parts.length !== 5) return null;
+  const [email, roleRaw, expiresAtStr, fingerprint, sig] = parts;
   const role = roleRaw as AdminRole;
   const expiresAt = Number(expiresAtStr);
   if (
     !email ||
+    !fingerprint ||
     !VALID_ROLES.includes(role) ||
     !Number.isFinite(expiresAt) ||
     expiresAt < Date.now()
@@ -142,14 +160,57 @@ function verifyToken(token: string): AdminSession | null {
   }
 
   const expected = createHmac("sha256", getSecret())
-    .update(`${email}|${role}|${expiresAt}`)
+    .update(`${email}|${role}|${expiresAt}|${fingerprint}`)
     .digest("hex");
   const sigBuf = Buffer.from(sig, "hex");
   const expBuf = Buffer.from(expected, "hex");
   if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
     return null;
   }
-  return { email, role, expiresAt };
+  return { email, role, expiresAt, fingerprint };
+}
+
+interface CurrentAccount {
+  email: string;
+  role: AdminRole;
+  fingerprint: string;
+}
+
+/**
+ * The account behind an address as it stands NOW — the same precedence the
+ * login uses: an active panel row wins; an inactive or missing row falls back
+ * to the env break-glass record; neither means no account.
+ *
+ * This is what makes a session revocable. The cookie used to be trusted on
+ * its own for seven days: deactivating a user, demoting a manager to cashier
+ * or resetting a password changed nothing until it expired.
+ */
+async function currentAccount(email: string): Promise<CurrentAccount | null> {
+  const needle = email.trim().toLowerCase();
+  let dbUser: Awaited<ReturnType<typeof resolveAdminUser>> = null;
+  try {
+    dbUser = await resolveAdminUser(needle);
+  } catch (err) {
+    // The env owner must still reach the panel while the database is down;
+    // a panel account cannot be vouched for, so it falls through to null.
+    console.error("[admin-auth] account lookup failed", err);
+  }
+  if (dbUser) {
+    return {
+      email: dbUser.email,
+      role: dbUser.role,
+      fingerprint: credentialFingerprint("db", dbUser.passwordHash),
+    };
+  }
+  const env = loadEnvAdminUsers().find((u) => u.email === needle);
+  if (env) {
+    return {
+      email: env.email,
+      role: env.role,
+      fingerprint: credentialFingerprint("env", env.password),
+    };
+  }
+  return null;
 }
 
 /**
@@ -171,6 +232,12 @@ export interface SignInResult {
   needs2FA?: boolean;
   /** Role of the signed-in account — the login page redirects on it. */
   role?: AdminRole;
+  /**
+   * Refused by the rate limiter, the credentials never checked. The login
+   * action writes no `login_fail` audit row for these: an unauthenticated
+   * caller hammering a locked key could otherwise fill `audit_logs`.
+   */
+  throttled?: boolean;
 }
 
 export async function signInAdmin(
@@ -181,12 +248,14 @@ export async function signInAdmin(
 
   const ip = await clientIp();
 
-  // Block before checking creds so a brute-forcer can't drain the
-  // password comparison loop while the bucket is full.
-  const limit = await checkLoginLimit("admin-login", ip, email);
+  // Counted BEFORE the credentials are checked (reserveLoginAttempt): a
+  // burst sent in parallel used to pass the check all at once and get every
+  // guess verified. A success clears the key below.
+  const limit = await reserveLoginAttempt("admin-login", ip, email);
   if (limit.blocked) {
     return {
       ok: false,
+      throttled: true,
       error: `Çok fazla başarısız deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
     };
   }
@@ -224,18 +293,19 @@ export async function signInAdmin(
   }
 
   if (!matched) {
-    const after = await recordLoginFailure("admin-login", ip, email);
-    if (after.blocked) {
+    // This attempt was already counted by the reservation above.
+    if (limit.remaining === 0) {
       return {
         ok: false,
-        error: `Çok fazla başarısız deneme. ${after.retryAfterSeconds} saniye sonra tekrar dene.`,
+        error:
+          "E-posta veya şifre hatalı. Çok fazla başarısız deneme — bir süre sonra tekrar dene.",
       };
     }
     return {
       ok: false,
       error:
-        after.remaining > 1
-          ? `E-posta veya şifre hatalı. (${after.remaining} hak kaldı.)`
+        limit.remaining > 1
+          ? `E-posta veya şifre hatalı. (${limit.remaining} hak kaldı.)`
           : "E-posta veya şifre hatalı. (Son hak — sonraki yanlış denemede kilitlenirsin.)",
     };
   }
@@ -260,8 +330,12 @@ export async function signInAdmin(
     return { ok: true, needs2FA: true, role: matched.role };
   }
 
-  await setActiveSession(matched, cookieStore);
-  return { ok: true, role: matched.role };
+  const account = await currentAccount(matched.email);
+  if (!account) {
+    return { ok: false, error: "Giriş başarısız." };
+  }
+  await setActiveSession(account, cookieStore);
+  return { ok: true, role: account.role };
 }
 
 interface PendingAuthSession {
@@ -303,13 +377,14 @@ function verifyPendingToken(token: string): PendingAuthSession | null {
 }
 
 async function setActiveSession(
-  user: { email: string; role: AdminRole },
+  account: CurrentAccount,
   cookieStore: Awaited<ReturnType<typeof cookies>>,
 ): Promise<void> {
-  const session: AdminSession = {
-    email: user.email,
-    role: user.role,
+  const session: SignedSession = {
+    email: account.email,
+    role: account.role,
     expiresAt: Date.now() + COOKIE_MAX_AGE_SECONDS * 1000,
+    fingerprint: account.fingerprint,
   };
   cookieStore.set(COOKIE_NAME, signToken(session), {
     httpOnly: true,
@@ -347,8 +422,17 @@ export async function complete2FA(token: string): Promise<TwoFAResult> {
   // long enough to try a great many of them. The password behind it is
   // already rate-limited; the second factor was not, which made it the
   // cheaper of the two to attack.
+  //
+  // Two budgets, both counted before the code is checked: this address +
+  // account, and the account alone. The per-address one is what a person
+  // mistyping meets; the account one stops an attacker who has the password
+  // from rotating addresses to keep guessing six digits.
   const ip = await clientIp();
-  const limit = await checkLoginLimit("admin-2fa", ip, pending.email);
+  const perAddress = await reserveLoginAttempt("admin-2fa", ip, pending.email);
+  const perAccount = perAddress.blocked
+    ? perAddress
+    : await reserveLoginAttempt("admin-2fa-account", "*", pending.email);
+  const limit = perAddress.blocked ? perAddress : perAccount;
   if (limit.blocked) {
     return {
       ok: false,
@@ -357,18 +441,25 @@ export async function complete2FA(token: string): Promise<TwoFAResult> {
   }
 
   if (!(await verify2FAToken(pending.email, token))) {
-    const after = await recordLoginFailure("admin-2fa", ip, pending.email);
     return {
       ok: false,
-      error: after.blocked
-        ? `Çok fazla hatalı kod. ${after.retryAfterSeconds} saniye sonra tekrar dene.`
-        : "Doğrulama kodu yanlış.",
+      error:
+        perAddress.remaining === 0 || perAccount.remaining === 0
+          ? "Doğrulama kodu yanlış. Çok fazla hatalı kod — bir süre sonra tekrar dene."
+          : "Doğrulama kodu yanlış.",
     };
   }
 
+  // The account may have been deactivated or re-keyed in the five minutes
+  // since the password step; the session is issued for it as it is now.
+  const account = await currentAccount(pending.email);
+  if (!account) {
+    return { ok: false, error: "Oturum süresi doldu. Yeniden giriş yap." };
+  }
   await clearLoginLimit("admin-2fa", ip, pending.email);
+  await clearLoginLimit("admin-2fa-account", "*", pending.email);
   const cookieStore = await cookies();
-  await setActiveSession(pending, cookieStore);
+  await setActiveSession(account, cookieStore);
   return { ok: true };
 }
 
@@ -402,22 +493,60 @@ export async function signOutAdmin(): Promise<void> {
   cookieStore.delete(COOKIE_NAME);
 }
 
-export async function getAdminSession(): Promise<AdminSession | null> {
+/**
+ * The signed-in admin, checked against the account as it is NOW: the cookie's
+ * signature proves who it was issued to; the account decides whether that
+ * still stands (active, same credential) and which role applies. A demoted
+ * manager is a cashier on their next click, a deactivated user or a reset
+ * password is signed out everywhere.
+ *
+ * Memoised per request (`cache`): the layout, the page and the audit logger
+ * all ask, and each ask is a database read.
+ */
+export const getAdminSession = cache(async (): Promise<AdminSession | null> => {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(COOKIE_NAME)?.value;
     if (!token) return null;
-    return verifyToken(token);
+    return await sessionFromToken(token);
   } catch {
     return null;
   }
+});
+
+/** Exported for tests: signature first, then the account as it stands. */
+export async function sessionFromToken(
+  token: string,
+): Promise<AdminSession | null> {
+  const signed = verifyToken(token);
+  if (!signed) return null;
+  const account = await currentAccount(signed.email);
+  if (!account || !constantTimeEqual(account.fingerprint, signed.fingerprint)) {
+    return null;
+  }
+  return {
+    email: account.email,
+    role: account.role,
+    expiresAt: signed.expiresAt,
+  };
 }
 
+/**
+ * Signature-only read for `proxy.ts`, which decides nothing but whether to
+ * redirect a page view to the login screen. Authorisation — every page and
+ * every server action — goes through getAdminSession / requireRole.
+ */
 export function readSessionFromCookieValue(
   value: string | undefined,
 ): AdminSession | null {
   if (!value) return null;
-  return verifyToken(value);
+  const signed = verifyToken(value);
+  return signed
+    ? { email: signed.email, role: signed.role, expiresAt: signed.expiresAt }
+    : null;
 }
+
+/** Exported for tests only. */
+export const __test = { signToken, credentialFingerprint };
 
 export const ADMIN_COOKIE_NAME = COOKIE_NAME;

@@ -23,6 +23,8 @@ interface TwoFARow {
   enabled: boolean;
   enrolledAt: string;
   updatedAt: string;
+  /** Time step of the last accepted code; 0 = none yet (replay guard). */
+  lastStep?: number | string;
 }
 
 function keyOf(email: string): string {
@@ -109,25 +111,50 @@ export async function disable2FA(email: string): Promise<void> {
   if (error) throw new Error(`twofa.disable2FA: ${error.message}`);
 }
 
+/**
+ * The time step a code is valid for, or null when it is not a valid code for
+ * this secret. ±30 s tolerance for clock drift.
+ */
+function matchedStep(secret: string, token: string): number | null {
+  const cleaned = token.replace(/\D/g, "");
+  if (cleaned.length !== 6) return null;
+  try {
+    const result = verifySync({ secret, token: cleaned, epochTolerance: 30 });
+    if (!result.valid) return null;
+    const step = (result as { timeStep?: number }).timeStep;
+    return typeof step === "number" && Number.isFinite(step) ? step : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Checks a code AND spends it.
+ *
+ * A code used to stay good for its whole step (up to 90 s with the drift
+ * tolerance), however many times it was presented — one read over a shoulder
+ * or out of a log was a second login. Now a code is accepted only for a step
+ * LATER than the last one this admin used, and the check-and-set is a single
+ * conditional UPDATE: two concurrent submissions of the same code cannot both
+ * pass.
+ */
 export async function verifyToken(
   email: string,
   token: string,
 ): Promise<boolean> {
   const entry = await readEntry(email);
   if (!entry?.secret) return false;
-  const cleaned = token.replace(/\D/g, "");
-  if (cleaned.length !== 6) return false;
-  try {
-    // ±30s tolerance for clock drift.
-    const result = verifySync({
-      secret: entry.secret,
-      token: cleaned,
-      epochTolerance: 30,
-    });
-    return result.valid;
-  } catch {
-    return false;
-  }
+  const step = matchedStep(entry.secret, token);
+  if (step === null) return false;
+  const sb = getDb();
+  const { data, error } = await sb
+    .from(TABLES.admin2fa)
+    .update({ lastStep: step })
+    .eq("email", keyOf(email))
+    .lt("lastStep", step)
+    .select("email");
+  if (error) throw new Error(`twofa.verifyToken: ${error.message}`);
+  return ((data as { email: string }[] | null) ?? []).length > 0;
 }
 
 export async function verifyAndEnable(

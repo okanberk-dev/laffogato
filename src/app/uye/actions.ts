@@ -42,6 +42,7 @@ import { sameSitePath } from "@/lib/http/same-site-path";
 import {
   checkLoginLimit,
   clearLoginLimit,
+  reserveLoginAttempt,
   clientIp,
   recordLoginFailure,
 } from "@/lib/admin/rate-limit";
@@ -263,6 +264,16 @@ export type LoginFormState = {
   values?: { email?: string };
 };
 
+/** The refusal text for a failed login whose attempt was already counted. */
+function loginFailureMessage(
+  limit: { remaining: number },
+  base: string,
+): string {
+  return limit.remaining === 0
+    ? `${base} Çok fazla başarısız deneme — bir süre sonra tekrar dene.`
+    : base;
+}
+
 export async function loginAction(
   _prev: LoginFormState,
   formData: FormData,
@@ -276,7 +287,9 @@ export async function loginAction(
   const ip = await clientIp();
   let sessionEmail: string;
   try {
-    const limit = await checkLoginLimit("customer-login", ip, email);
+    // Counted BEFORE the password is checked (reserveLoginAttempt), so a
+    // burst sent in parallel cannot get more guesses than the cap.
+    const limit = await reserveLoginAttempt("customer-login", ip, email);
     if (limit.blocked) {
       return {
         error: `Çok fazla başarısız deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
@@ -308,11 +321,8 @@ export async function loginAction(
             await adoptSupabasePassword(linked.customer.email, password);
           } else {
             await signOutSupabase();
-            const after = await recordLoginFailure("customer-login", ip, email);
             return {
-              error: after.blocked
-                ? `Çok fazla başarısız deneme. ${after.retryAfterSeconds} saniye sonra tekrar dene.`
-                : "E-posta veya şifre hatalı.",
+              error: loginFailureMessage(limit, "E-posta veya şifre hatalı."),
               values: { email },
             };
           }
@@ -342,11 +352,8 @@ export async function loginAction(
       viaSupabase.answered &&
       (await supabaseHoldsLatestPassword(email))
     ) {
-      const after = await recordLoginFailure("customer-login", ip, email);
       return {
-        error: after.blocked
-          ? `Çok fazla başarısız deneme. ${after.retryAfterSeconds} saniye sonra tekrar dene.`
-          : "E-posta veya şifre hatalı.",
+        error: loginFailureMessage(limit, "E-posta veya şifre hatalı."),
         values: { email },
       };
     }
@@ -358,11 +365,8 @@ export async function loginAction(
       // unconfirmed there: the bcrypt path is unchanged.
       const result = await verifyCustomerLogin({ email, password });
       if (!result.ok) {
-        const after = await recordLoginFailure("customer-login", ip, email);
         return {
-          error: after.blocked
-            ? `Çok fazla başarısız deneme. ${after.retryAfterSeconds} saniye sonra tekrar dene.`
-            : result.error,
+          error: loginFailureMessage(limit, result.error),
           values: { email },
         };
       }

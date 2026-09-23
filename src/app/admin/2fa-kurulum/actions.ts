@@ -6,9 +6,15 @@ import { redirect } from "next/navigation";
 import { logAudit } from "@/lib/admin/audit";
 import { getAdminSession } from "@/lib/admin/auth";
 import {
+  clearLoginLimit,
+  clientIp,
+  reserveLoginAttempt,
+} from "@/lib/admin/rate-limit";
+import {
   cancelEnrollment,
   disable2FA,
   verifyAndEnable,
+  verifyToken,
   type EnrollmentDraft,
 } from "@/lib/admin/twofa";
 
@@ -39,9 +45,23 @@ export async function verifyEnrollAction(
   return { enabled: true };
 }
 
-export async function disable2FAAction() {
+/**
+ * Turning the second factor off takes the second factor. It used to take only
+ * the session, so a stolen cookie was enough to strip 2FA from the account and
+ * keep it for good. The code is spent (replay-guarded) and counted against the
+ * same budgets as the sign-in step.
+ */
+export async function disable2FAAction(formData: FormData) {
   const session = await getAdminSession();
   if (!session) redirect("/admin/giris");
+  const token = String(formData.get("token") ?? "").trim();
+  const ip = await clientIp();
+  const limit = await reserveLoginAttempt("admin-2fa", ip, session.email);
+  if (limit.blocked) redirect("/admin/2fa-kurulum?hata=kilit");
+  if (!/^\d{6}$/.test(token) || !(await verifyToken(session.email, token))) {
+    redirect("/admin/2fa-kurulum?hata=kod");
+  }
+  await clearLoginLimit("admin-2fa", ip, session.email);
   await disable2FA(session.email);
   await logAudit({
     action: "2fa_disable",

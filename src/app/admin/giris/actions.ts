@@ -24,6 +24,11 @@ export async function loginAction(
 
   const result = await signInAdmin(email, password);
   if (!result.ok) {
+    // A throttled attempt never reached the credential check; recording it
+    // would let anyone fill audit_logs by hammering a locked key.
+    if (result.throttled) {
+      return { error: result.error ?? "Giriş başarısız." };
+    }
     await logAudit({
       action: "login_fail",
       entity: "auth",

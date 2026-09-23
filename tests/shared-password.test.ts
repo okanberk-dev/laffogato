@@ -64,6 +64,11 @@ vi.mock("@/lib/admin/rate-limit", () => ({
   clearLoginLimit: vi.fn(),
   clientIp: vi.fn(async () => "1.2.3.4"),
   recordLoginFailure: vi.fn(async () => ({ blocked: false })),
+  reserveLoginAttempt: vi.fn(async () => ({
+    blocked: false,
+    remaining: 4,
+    retryAfterSeconds: 0,
+  })),
 }));
 vi.mock("@/lib/newsletter/store", () => ({
   subscribeNewsletter: vi.fn(),

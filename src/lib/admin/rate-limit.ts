@@ -27,9 +27,11 @@ export type AuthPurpose =
   | "admin-login"
   | "customer-login"
   | "admin-2fa"
+  | "admin-2fa-account"
   | "promo-preview"
   | "password-reset"
-  | "unsubscribe";
+  | "unsubscribe"
+  | "newsletter-signup";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -48,7 +50,26 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // far beyond what a mail client's button produces and well short of what a
   // flood does; each one still costs up to three queries on the shared pool.
   unsubscribe: 20,
+  // The same TOTP account from ANY address. The per-IP key above lets an
+  // attacker who has the password rotate addresses and keep guessing six
+  // digits; this key is the account itself, so the guesses add up wherever
+  // they come from. Ten per window, then a quarter of an hour.
+  "admin-2fa-account": 10,
+  // The footer bulletin form sends a confirmation mail to whatever address
+  // is typed. Three per address per window, counted on success too (like
+  // password-reset), so the form cannot be used to flood someone's inbox.
+  "newsletter-signup": 3,
 };
+
+/** Lockout length per purpose; LOCKOUT_MS unless listed. */
+const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
+  "admin-2fa-account": 15 * 60 * 1000,
+  "newsletter-signup": 15 * 60 * 1000,
+};
+
+function lockoutMs(purpose: AuthPurpose): number {
+  return LOCKOUT_MS_BY_PURPOSE[purpose] ?? LOCKOUT_MS;
+}
 
 /**
  * The client's address from a set of request headers: the first hop in
@@ -163,7 +184,7 @@ export async function recordLoginFailure(
     p_now: new Date(now).toISOString(),
     p_window_ms: WINDOW_MS,
     p_max_fails: maxFails(purpose),
-    p_lockout_ms: LOCKOUT_MS,
+    p_lockout_ms: lockoutMs(purpose),
   });
   if (error) {
     console.error("[rate-limit] record failed", error);
@@ -172,6 +193,62 @@ export async function recordLoginFailure(
   const row = data?.[0];
   if (!row) return OPEN;
   return statusFrom(row.failedCount, row.lockedUntil, now, purpose);
+}
+
+/**
+ * Counts THIS attempt before the credential is checked, and says whether it
+ * may go ahead.
+ *
+ * The old sequence was check → verify → record a failure. N requests sent at
+ * once all passed the check before any failure was written, so a burst of a
+ * thousand TOTP guesses was a thousand guesses whatever the counter said, and
+ * a right one anywhere in the burst signed in. `reserve_auth_attempt` does the
+ * whole decision in one statement under the key's row lock: refused while
+ * locked out (and not counted), otherwise counted, and the attempt that
+ * reaches the cap is the last one let through. A success then clears the key
+ * with `clearLoginLimit`, exactly as before.
+ *
+ * `remaining` is how many more attempts are left if this one fails (0: this
+ * was the last).
+ */
+export async function reserveLoginAttempt(
+  purpose: AuthPurpose,
+  ip: string,
+  identity: string,
+): Promise<RateLimitStatus> {
+  const now = Date.now();
+  const { data, error } = await getDb().rpc<{
+    allowed: boolean;
+    remaining: number;
+    lockedUntil: string;
+  }>("reserve_auth_attempt", {
+    p_key: bucketKey(purpose, ip, identity),
+    p_now: new Date(now).toISOString(),
+    p_window_ms: WINDOW_MS,
+    p_max_fails: maxFails(purpose),
+    p_lockout_ms: lockoutMs(purpose),
+  });
+  // Same stance as checkLoginLimit: a limiter that cannot reach the database
+  // must not lock everyone out; the credential check behind it still runs.
+  if (error || !data) {
+    if (error) console.error("[rate-limit] reserve failed", error);
+    return OPEN;
+  }
+  if (!data.allowed) {
+    const until = Date.parse(data.lockedUntil);
+    return {
+      blocked: true,
+      retryAfterSeconds: Number.isFinite(until)
+        ? Math.max(1, Math.ceil((until - now) / 1000))
+        : Math.ceil(lockoutMs(purpose) / 1000),
+      remaining: 0,
+    };
+  }
+  return {
+    blocked: false,
+    retryAfterSeconds: 0,
+    remaining: Math.max(0, Number(data.remaining)),
+  };
 }
 
 /** Clears the counter after a successful authentication. */

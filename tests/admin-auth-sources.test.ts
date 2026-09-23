@@ -42,6 +42,11 @@ vi.mock("@/lib/admin/rate-limit", () => ({
     remaining: 4,
     retryAfterSeconds: 0,
   }),
+  reserveLoginAttempt: async () => ({
+    blocked: false,
+    remaining: 4,
+    retryAfterSeconds: 0,
+  }),
   clearLoginLimit: async () => {},
 }));
 vi.mock("@/lib/admin/twofa", () => ({
@@ -50,8 +55,9 @@ vi.mock("@/lib/admin/twofa", () => ({
 }));
 vi.mock("@/lib/db", () => fakeDb());
 
-const { signInAdmin } = await import("@/lib/admin/auth");
-const { createAdminUser, updateAdminUser } = await import("@/lib/admin/users");
+const { signInAdmin, sessionFromToken } = await import("@/lib/admin/auth");
+const { createAdminUser, updateAdminUser, setAdminPassword } =
+  await import("@/lib/admin/users");
 
 const ENV_OWNER = { email: "sahip@laffogato.net", password: "envParolasi" };
 
@@ -153,5 +159,75 @@ describe("database accounts", () => {
     });
     const res = await signInAdmin(ENV_OWNER.email, "tamamen-yanlis");
     expect(res.ok).toBe(false);
+  });
+});
+
+/**
+ * The session cookie used to be trusted on its own for seven days: turning a
+ * user off, demoting them or resetting their password changed nothing until
+ * it expired, and a stolen cookie could not be killed. The account is now
+ * read on every request and the cookie carries a fingerprint of the
+ * credential it was issued for.
+ */
+describe("a signed-in session follows the account", () => {
+  const CASHIER = {
+    email: "kasiyer@laffogato.net",
+    name: "Eda",
+    role: "manager" as const,
+    password: "kasaParolasi1",
+    createdBy: "sahip@laffogato.net",
+  };
+
+  async function signedIn(): Promise<string> {
+    await createAdminUser(CASHIER);
+    const res = await signInAdmin(CASHIER.email, CASHIER.password);
+    expect(res.ok).toBe(true);
+    const cookie = jar.get("laffogato_admin_session");
+    expect(cookie).toBeTruthy();
+    return cookie!;
+  }
+
+  it("is valid while the account is unchanged", async () => {
+    const cookie = await signedIn();
+    expect(await sessionFromToken(cookie)).toMatchObject({
+      email: CASHIER.email,
+      role: "manager",
+    });
+  });
+
+  it("ends when the account is deactivated", async () => {
+    const cookie = await signedIn();
+    await updateAdminUser(CASHIER.email, { isActive: false });
+    expect(await sessionFromToken(cookie)).toBeNull();
+  });
+
+  it("takes the new role on the next request when demoted", async () => {
+    const cookie = await signedIn();
+    await updateAdminUser(CASHIER.email, { role: "cashier" });
+    expect(await sessionFromToken(cookie)).toMatchObject({ role: "cashier" });
+  });
+
+  it("ends everywhere when the password is reset", async () => {
+    const cookie = await signedIn();
+    await setAdminPassword(CASHIER.email, "yepyeniParola42");
+    expect(await sessionFromToken(cookie)).toBeNull();
+  });
+
+  it("refuses a pre-fingerprint (four-segment) cookie", async () => {
+    const cookie = await signedIn();
+    const parts = cookie.split("|");
+    const legacy = [parts[0], parts[1], parts[2], parts[4]].join("|");
+    expect(await sessionFromToken(legacy)).toBeNull();
+  });
+
+  it("ends for an env account when its env password changes", async () => {
+    const res = await signInAdmin(ENV_OWNER.email, ENV_OWNER.password);
+    expect(res.ok).toBe(true);
+    const cookie = jar.get("laffogato_admin_session")!;
+    expect(await sessionFromToken(cookie)).toMatchObject({ role: "owner" });
+    process.env.ADMIN_USERS = JSON.stringify([
+      { email: ENV_OWNER.email, password: "degisti", role: "owner" },
+    ]);
+    expect(await sessionFromToken(cookie)).toBeNull();
   });
 });

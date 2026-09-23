@@ -11,9 +11,20 @@ import { disable2FAAction } from "./actions";
 export const metadata = { title: "Admin · İki adımlı doğrulama" };
 export const dynamic = "force-dynamic";
 
-export default async function TwoFAEnrollPage() {
+const DISABLE_ERRORS: Record<string, string> = {
+  kod: "Kod doğrulanmadı. Authenticator uygulamasındaki güncel 6 haneli kodu gir.",
+  kilit: "Çok fazla hatalı kod. Bir süre sonra tekrar dene.",
+};
+
+export default async function TwoFAEnrollPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ hata?: string }>;
+}) {
   const session = await getAdminSession();
   if (!session) redirect("/admin/giris");
+  const { hata } = await searchParams;
+  const disableError = hata ? DISABLE_ERRORS[hata] : undefined;
 
   const enabled = await has2FA(session.email);
 
@@ -31,7 +42,22 @@ export default async function TwoFAEnrollPage() {
             unutma. Telefonunu kaybedersen önce bu sekmeden 2FA'yı kapat, sonra
             yeniden kur.
           </p>
-          <form action={disable2FAAction} className="mt-4">
+          <form
+            action={disable2FAAction}
+            className="mt-4 flex flex-wrap items-center gap-3"
+          >
+            {/* Turning 2FA off takes a current code, not just the session. */}
+            <input
+              name="token"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              required
+              placeholder="6 haneli kod"
+              aria-label="Authenticator kodu"
+              className="w-36 rounded-full border border-[var(--admin-border)] px-4 py-1.5 text-sm"
+            />
             <button
               type="submit"
               className="rounded-full border border-red-200 px-4 py-1.5 text-xs text-red-700 hover:border-red-600 hover:bg-red-600 hover:text-white"
@@ -39,6 +65,14 @@ export default async function TwoFAEnrollPage() {
               2FA'yı kapat
             </button>
           </form>
+          {disableError ? (
+            <p
+              role="alert"
+              className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700"
+            >
+              {disableError}
+            </p>
+          ) : null}
         </Card>
       </main>
     );
