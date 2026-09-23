@@ -97,6 +97,13 @@ describe("classifyAuthError", () => {
     expect(classifyAuthError({ status: 0 })).toBe("unavailable");
     expect(classifyAuthError({ status: 502 })).toBe("unavailable");
   });
+
+  it("treats throttling and timeouts as an outage, not a bad token", () => {
+    // A 429 from Supabase Auth used to become a 401, and the app signed
+    // every member with an uncached token out during a traffic burst.
+    expect(classifyAuthError({ status: 429 })).toBe("unavailable");
+    expect(classifyAuthError({ status: 408 })).toBe("unavailable");
+  });
 });
 
 describe("respond helpers", () => {

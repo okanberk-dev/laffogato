@@ -180,7 +180,13 @@ export async function onOrderPaid(order: AdminOrder): Promise<void> {
  * Pay → earn a stamp → ask for a refund was a way to collect free drinks: the
  * ledger only ever added. A reversal row is written instead of deleting the
  * earn, so the history still shows what happened, and it is idempotent on the
- * order (one reversal per order, guarded by the same unique index shape).
+ * order: one reversal per order.
+ *
+ * The read below catches a repeat that comes later; two that run at the same
+ * moment (a provider refund webhook and an admin cancel) both pass it. The
+ * unique index only covers `kind = 'earn'`, so nothing stopped the second
+ * insert and a card of 6 dropped to 4. The reversal's id is therefore derived
+ * from the order: the primary key refuses the second row (23505, ignored).
  */
 export async function onOrderReversed(order: AdminOrder): Promise<void> {
   const owner = normalizeEmail(order.customerEmail);
@@ -195,7 +201,7 @@ export async function onOrderReversed(order: AdminOrder): Promise<void> {
     return;
 
   const row: LoyaltyStamp = {
-    id: await newStampId(),
+    id: `stamp-rev-${order.id}`,
     customerEmail: owner,
     kind: "reversal",
     delta: -1,

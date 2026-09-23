@@ -194,6 +194,21 @@ describe("POST /orders — clientOrderId", () => {
     expect(createCheckoutSession).toHaveBeenCalledTimes(2);
   });
 
+  it("never answers an unpaid retry with payment: null", async () => {
+    // §3: `payment` is null only for a ₺0 order. When the POS could not be
+    // reopened the replay used to swallow it and answer 201 + null, and the
+    // app emptied the basket and showed an unpaid order as placed.
+    await createAppOrder(customer, body("attempt-1"));
+    createCheckoutSession.mockRejectedValueOnce(new Error("POS down"));
+    await expect(createAppOrder(customer, body("attempt-1"))).rejects.toThrow(
+      "POS down",
+    );
+    // …and the attempt after that replays the SAME order with a session.
+    const third = await createAppOrder(customer, body("attempt-1"));
+    expect(third.ok && third.payment?.redirectUrl).toBeTruthy();
+    expect(placeAppOrder).toHaveBeenCalledTimes(1);
+  });
+
   it("treats a different attempt id as a different order", async () => {
     const first = await createAppOrder(customer, body("attempt-1"));
     const second = await createAppOrder(customer, body("attempt-2"));

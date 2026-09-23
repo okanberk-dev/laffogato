@@ -299,6 +299,12 @@ async function stampedOrders(email: string): Promise<ReadonlySet<string>> {
  * idempotent and the order can only advance once. An order that has since
  * been paid or cancelled has nothing to pay, so `payment` is null and the app
  * shows it as it stands.
+ *
+ * If the POS cannot be reopened the retry fails exactly as the first attempt
+ * did (a throw → 500), and the next retry replays this same order again. It
+ * used to swallow the error and answer 201 with `payment: null` for an order
+ * still awaiting payment — which §3 reserves for a ₺0 order, so the app
+ * emptied the basket and showed an unpaid order as placed.
  */
 async function replayAppOrder(
   order: AdminOrder,
@@ -306,13 +312,7 @@ async function replayAppOrder(
 ): Promise<CreateAppOrderResult> {
   let payment: AppPayment | null = null;
   if (order.status === "pending_payment" && order.totalMinor > 0) {
-    try {
-      payment = await createAppPaymentSession(order, customer, "");
-    } catch (err) {
-      // The order exists either way; failing to reopen the POS must not make
-      // the app place a second one.
-      console.error("[orders] reopening checkout for a retry failed", err);
-    }
+    payment = await createAppPaymentSession(order, customer, "");
   }
   return {
     ok: true,

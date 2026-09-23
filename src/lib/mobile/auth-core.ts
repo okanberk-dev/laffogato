@@ -35,12 +35,24 @@ export type AuthFailure = "unauthorized" | "unavailable";
  * with no status at all, `0`, or a 5xx. The first is the caller's problem
  * (401); the second is ours (503) and must not be reported as "sign in again",
  * which would make an outage look like every member being logged out.
+ *
+ * 429 (Supabase Auth throttling us) and 408 (timeout) are 4xx that say
+ * nothing about the token. They were read as "unauthorized", so a burst of
+ * traffic past the auth quota answered every uncached token with a 401 and
+ * the app signed its members out. They are "unavailable" — 503
+ * `auth_unavailable`, which the app retries.
  */
 export function classifyAuthError(
   error: { status?: number | null } | null | undefined,
 ): AuthFailure {
   const status = error?.status ?? undefined;
-  if (status === undefined || status === 0 || status >= 500) {
+  if (
+    status === undefined ||
+    status === 0 ||
+    status === 408 ||
+    status === 429 ||
+    status >= 500
+  ) {
     return "unavailable";
   }
   return "unauthorized";
