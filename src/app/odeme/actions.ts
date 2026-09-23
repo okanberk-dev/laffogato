@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { applyPromoCode, placeOrder } from "@/lib/admin/store";
+import {
+  applyPaymentSucceeded,
+  applyPromoCode,
+  placeOrder,
+} from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { applyCustomerCoupon } from "@/lib/customer/coupons";
 import { sendOrderPlacedEmail } from "@/lib/email/send";
@@ -104,10 +108,12 @@ function parseItems(raw: string): ClientCartItem[] {
       const name = typeof o.name === "string" ? o.name : null;
       const price = typeof o.price === "number" ? o.price : Number(o.price);
       const qty = typeof o.qty === "number" ? o.qty : Number(o.qty ?? 1);
+      // Whole units only: a tampered `qty: 1.5` reached `(qty)::int` in
+      // claim_order_stock and came back as an uncaught 500.
       if (
         !name ||
         !Number.isFinite(price) ||
-        !Number.isFinite(qty) ||
+        !Number.isInteger(qty) ||
         qty <= 0
       ) {
         continue;
@@ -167,6 +173,13 @@ export async function placeOrderAction(formData: FormData) {
   if (!legalConsent) {
     redirect("/odeme?error=consent");
   }
+
+  // The provider is resolved BEFORE the order exists. It used to be looked
+  // up after placeOrder and the "siparişin alındı" mail, so a misconfigured
+  // deployment (PAYMENT_PROVIDER unset or mock in production — rule 17)
+  // left a pending order holding stock and a mailed customer behind a 500.
+  // The app path already worked this way.
+  const provider = getPaymentProvider();
 
   const result = await placeOrder({
     items: items.map((it) => ({
@@ -237,7 +250,33 @@ export async function placeOrderAction(formData: FormData) {
   }
 
   const promoQuery = result.promoDropped ? "?promo=dropped" : "";
-  const provider = getPaymentProvider();
+
+  // Nothing to collect: a 100% promo, or a fixed coupon at least as large as
+  // the basket (shipping is waived at a zero net). The POS refuses a 0.00
+  // charge and confirmReturn rejects any amount <= 0, so these orders could
+  // never complete and expired after 45 minutes. Settle them here, the way
+  // POST /api/mobile/v1/orders already does.
+  if (order.totalMinor === 0) {
+    const settled = await applyPaymentSucceeded({
+      orderId: order.id,
+      provider: "free",
+      providerRef: `free_${order.id}`,
+      amountMinor: 0,
+      currency: "TRY",
+      raw: { source: "zero_total" },
+    });
+    if (!settled.ok) {
+      console.error(
+        "[odeme] settling a zero-total order failed",
+        settled.error,
+      );
+    }
+    const promoParam = result.promoDropped ? "&promo=dropped" : "";
+    redirect(
+      `/odeme/basarili?ref=${encodeURIComponent(order.id)}${promoParam}`,
+    );
+  }
+
   const session = await provider.createCheckoutSession({
     orderId: order.id,
     amountMinor: order.totalMinor,
