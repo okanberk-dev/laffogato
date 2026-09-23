@@ -45,7 +45,10 @@ export interface MobileLegalSummary {
 }
 
 export interface MobileLegalIndex {
-  /** Revision label stamped on every document and recorded with consent. */
+  /**
+   * The revision the checkout consent records (`LEGAL_UPDATED`). Each row in
+   * `docs` carries its own date, which can be later.
+   */
   updatedAt: string;
   /** Slugs the checkout step must show and record — in the order shown. */
   consentDocs: readonly string[];
@@ -78,7 +81,9 @@ export function applyLegalOverride(
     ...rest,
     title: override.title.trim() || doc.title,
     summary: override.summary.trim() || doc.summary,
-    updatedAt: override.effectiveDate.trim() || LEGAL_UPDATED,
+    // A blank effective date falls back to the coded document's own date,
+    // exactly as /hukuk/<slug> does (`override?.effectiveDate || doc.updatedAt`).
+    updatedAt: override.effectiveDate.trim() || doc.updatedAt,
     sections: markdownToSections(override.bodyMarkdown, doc.shortTitle),
   };
 }

@@ -11,8 +11,10 @@
  */
 
 /**
- * The revision label stamped on every rendered document, and recorded with a
- * customer's consent as the version they agreed to.
+ * The revision the contract set was issued under, and the version a
+ * customer's checkout consent records (`legalConsent.version`). A document
+ * whose text changed later carries its own `updatedAt` in `content.ts` for
+ * display; this label moves only when one of `CHECKOUT_CONSENT_DOCS` does.
  */
 export const LEGAL_UPDATED = "1 Eylül 2026";
 

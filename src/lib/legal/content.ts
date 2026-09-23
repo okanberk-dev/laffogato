@@ -15,6 +15,18 @@ export interface LegalDocSource {
   slug: string;
   title: string;
   shortTitle: string;
+  /**
+   * The day this document's text last changed, as it is printed ("5 Eylül
+   * 2026"). Absent means `LEGAL_UPDATED`, the revision every document was
+   * issued under. Set it whenever a document's words change after that,
+   * including through a `{{TOKEN}}` whose value in `entity.ts` changed, so
+   * the "son güncelleme" line on /hukuk and in the app is true.
+   *
+   * Display only. The version a customer's checkout consent records is
+   * `LEGAL_UPDATED`; changing one of `CHECKOUT_CONSENT_DOCS` means moving
+   * that label instead (tests/legal-dates.test.ts holds the rule).
+   */
+  updatedAt?: string;
   category: string;
   summary: string;
   references?: string[];
@@ -10316,6 +10328,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "uyelik-sozlesmesi",
     title: "Üyelik Sözleşmesi",
     shortTitle: "Üyelik",
+    updatedAt: "5 Eylül 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} internet sitesi ve mobil uygulamasına üye olan kullanıcı ile {{LEGAL_NAME}} arasındaki üyelik ilişkisini, hesap güvenliğini, sadakat programını, tarafların yükümlülüklerini, askıya alma ve fesih hâllerini düzenleyen sözleşmedir.",
@@ -10932,6 +10945,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "hesap-silme",
     title: "Hesap Silme ve Üyelik Sonlandırma Prosedürü",
     shortTitle: "Hesap Silme",
+    updatedAt: "5 Eylül 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} üyeliğinizi ve mobil uygulama hesabınızı nasıl sildireceğinizi; talebin nereden iletileceğini, kimlik teyidini, süreleri ve silme sonrasında hangi verilerin silindiğini, hangilerinin anonim hâle getirildiğini, hangilerinin mevzuat gereği saklandığını adım adım açıklar.",
@@ -11081,6 +11095,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "odul-programi",
     title: "Sadakat (Damga) Programı Kuralları",
     shortTitle: "Ödül Programı",
+    updatedAt: "5 Eylül 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} sadakat programının kuralları: damga nasıl kazanılır, kart kaç damgada dolar, ücretsiz içecek kuponu nasıl alınır ve nerede kullanılır, iade hâlinde damgaya ne olur, kademeler ve davet ödülü nasıl işler.",
@@ -11444,6 +11459,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "mobil-uygulama-kosullari",
     title: "Mobil Uygulama Kullanım Koşulları",
     shortTitle: "Mobil Uygulama",
+    updatedAt: "5 Eylül 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} iOS ve Android mobil uygulamasının indirilmesi ve kullanılmasına ilişkin son kullanıcı lisans ve kullanım koşulları; lisansın kapsamı, yasak kullanımlar, cihaz izinleri, cihazda planlanan hatırlatmalar, sadakat damgası ve sorumluluk sınırları düzenlenir.",
@@ -12616,6 +12632,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "sirket-bilgileri",
     title: "Şirket ve İletişim Bilgileri",
     shortTitle: "Şirket Bilgileri",
+    updatedAt: "22 Eylül 2026",
     category: "Kurumsal",
     summary:
       "{{SITE_URL}} adresini, {{BRAND}} mobil uygulamasını ve markayı işleten hizmet sağlayıcının unvan, adres, vergi, iletişim ve altyapı bilgilerini; müşteri hizmetleri kanallarını, resmî sosyal medya hesaplarını ve başvuru mercilerini sunar.",
@@ -14213,6 +14230,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "kafe-hizmet-kosullari",
     title: "Kafe Hizmet ve Rezervasyon Koşulları",
     shortTitle: "Kafe Koşulları",
+    updatedAt: "5 Eylül 2026",
     category: "Kurumsal",
     summary:
       "{{BRAND}} kafesinde yerinde sunulan yiyecek-içecek hizmetine, masa rezervasyonuna, özel etkinliklere, mobil uygulama kullanımına, sadakat damgası ve ücretsiz içecek kuponu kurallarına ve misafir haklarına ilişkin usul ve esasları düzenleyen metindir.",

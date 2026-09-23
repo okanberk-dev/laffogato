@@ -746,6 +746,12 @@ kalır. Bu yüzden tek kaynak `src/lib/legal/content.ts`'tir ve mobil onu okur.
 }
 ```
 
+Üst `updatedAt` ödeme onayının kaydettiği sürümdür (`legalConsent.version`,
+`LEGAL_UPDATED`). Her `docs[]` satırı ve tek belge kendi `updatedAt`'ini de
+taşır: metnin son değiştiği gün (`content.ts` `updatedAt`, yoksa
+`LEGAL_UPDATED`), bu yüzden üst etiketten sonra olabilir. Ödeme belgeleri
+(`consentDocs`) her zaman üst etiketle aynı tarihtedir.
+
 **`GET /api/mobile/v1/legal/{slug}`** — tek belgenin tam metni; bilinmeyen slug
 `404 not_found`. İkisi de `force-dynamic` ve `public, s-maxage=300,
 stale-while-revalidate=3600` ile yayınlanır (bootstrap ile aynı pencere);
@@ -755,10 +761,11 @@ kimlik istemez.
 
 Sitede `/hukuk/<slug>` ne gösteriyorsa uygulama da onu gösterir: panelden
 **yayınlanmış ve gövdesi dolu** bir geçersiz kılma varsa `title`, `summary`,
-`updatedAt` (= panel "yürürlük tarihi", boşsa `LEGAL_UPDATED`) ve `sections`
-oradan gelir; dizin de aynı başlık/özet/tarihi yansıtır (`consentDocs` ve üst
-`updatedAt` revizyon etiketi değişmez). Taslak ya da boş geçersiz kılma
-sayılmaz; slug kümesi her zaman kodlu kayıttır (panel yeni belge üretmez).
+`updatedAt` (= panel "yürürlük tarihi", boşsa belgenin kodlu tarihi) ve
+`sections` oradan gelir; dizin de aynı başlık/özet/tarihi yansıtır
+(`consentDocs` ve üst `updatedAt` revizyon etiketi değişmez). Taslak ya da
+boş geçersiz kılma sayılmaz; slug kümesi her zaman kodlu kayıttır (panel yeni
+belge üretmez).
 Gövde Markdown'dır ve `src/lib/mobile/legal-markdown.ts` bölümlere çevirir:
 `## ` / `### ` → `heading`, `- ` / `* ` → `bullets`, `1. ` / `1) ` →
 `ordered`, diğer satırlar → `paragraphs` (ardışık satırlar birleşir, boş satır

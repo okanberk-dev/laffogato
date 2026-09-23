@@ -29,7 +29,10 @@ export interface LegalDoc {
   slug: string;
   title: string;
   shortTitle: string;
-  /** Sayfanın altındaki son güncelleme tarihi. */
+  /**
+   * Sayfanın altındaki son güncelleme tarihi: belgenin kendi tarihi, yoksa
+   * `LEGAL_UPDATED`.
+   */
   updatedAt: string;
   /** Üst eyebrow (kategori). */
   category: string;
@@ -98,7 +101,7 @@ function hydrate(src: LegalDocSource): LegalDoc {
     slug: src.slug,
     title: fillTokens(src.title),
     shortTitle: fillTokens(src.shortTitle),
-    updatedAt: LEGAL_UPDATED,
+    updatedAt: src.updatedAt ?? LEGAL_UPDATED,
     category: src.category,
     summary: fillTokens(src.summary),
     references: src.references?.length

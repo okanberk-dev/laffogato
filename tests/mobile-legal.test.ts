@@ -38,12 +38,15 @@ function override(
 }
 
 describe("legal index", () => {
-  it("lists every published contract with the current revision", () => {
+  it("lists every published contract, each with its own date", () => {
     const index = legalIndexFrom(NO_OVERRIDES);
     expect(index.docs).toHaveLength(LEGAL_DOCS.length);
+    // The set's label is the checkout version; a row's date is the day that
+    // document last changed, which the site prints on /hukuk too.
     expect(index.updatedAt).toBe(LEGAL_UPDATED);
     for (const doc of index.docs) {
-      expect(doc.updatedAt).toBe(LEGAL_UPDATED);
+      const coded = LEGAL_DOCS.find((d) => d.slug === doc.slug)!;
+      expect(doc.updatedAt, doc.slug).toBe(coded.updatedAt);
       expect(doc.slug).toBeTruthy();
       expect(doc.title).toBeTruthy();
       expect(doc.category).toBeTruthy();
@@ -92,7 +95,7 @@ describe("legal index", () => {
     // The revision label of the set is unchanged; the rest of the list too.
     expect(index.updatedAt).toBe(LEGAL_UPDATED);
     const other = index.docs.find((d) => d.slug === "odul-programi")!;
-    expect(other.updatedAt).toBe(LEGAL_UPDATED);
+    expect(other.updatedAt).toBe("5 Eylül 2026");
   });
 
   it("without a database, the live index is the coded one", async () => {
@@ -146,7 +149,7 @@ describe("legal override", () => {
     expect(doc.references).toBeUndefined();
   });
 
-  it("blank override fields keep the coded value; a blank date is the revision label", () => {
+  it("blank override fields keep the coded value, the date included", () => {
     const doc = applyLegalOverride(
       coded,
       override("iade-ve-cayma", {
@@ -157,7 +160,19 @@ describe("legal override", () => {
     );
     expect(doc.title).toBe(coded.title);
     expect(doc.summary).toBe(coded.summary);
-    expect(doc.updatedAt).toBe(LEGAL_UPDATED);
+    expect(doc.updatedAt).toBe(coded.updatedAt);
+  });
+
+  it("a blank override date shows the coded document's own date, as /hukuk does", () => {
+    // odul-programi changed on 5 Sep, after the 1 Sep revision. Falling back
+    // to the set's label would print an older date in the app than the site.
+    const programme = legalDocFrom("odul-programi", null)!;
+    expect(programme.updatedAt).toBe("5 Eylül 2026");
+    const doc = applyLegalOverride(
+      programme,
+      override("odul-programi", { effectiveDate: "  " }),
+    );
+    expect(doc.updatedAt).toBe("5 Eylül 2026");
   });
 
   it("a preamble without a heading is headed by the short title", () => {
