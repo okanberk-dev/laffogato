@@ -31,7 +31,7 @@ export async function generateMetadata({
 }: RouteParams): Promise<Metadata> {
   const { slug } = await params;
   const product = await getShopProductBySlug(slug);
-  if (!product) return { title: "Ürün bulunamadı · L'Affogato" };
+  if (!product) return { title: { absolute: "Ürün bulunamadı · L'Affogato" } };
   // " · ", not " - ": product names carry their own hyphen now
   // ("Sirena - Espresso Harmanı"), and the dot is the site's title separator.
   const SUFFIX = " · L'Affogato";
@@ -65,7 +65,10 @@ export async function generateMetadata({
   // uploaded photo is no longer skipped in favour of the generic card.
   const ogImage = product.images?.[0]?.trim() || undefined;
   return {
-    title,
+    // `absolute`: the title is already built to 60 characters WITH the brand
+    // suffix above, and the root layout's "%s · L'Affogato" template would
+    // append the brand a second time ("... · L'Affogato · L'Affogato").
+    title: { absolute: title },
     description,
     alternates: { canonical: path },
     openGraph: {

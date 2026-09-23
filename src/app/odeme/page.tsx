@@ -24,7 +24,10 @@ function GatePanel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const metadata = { title: "Ödeme · L'Affogato" };
+// `absolute`: the root layout's "%s · L'Affogato" template applies to a
+// page in the same folder as its layout, and this string already carries the
+// brand ("Ödeme · L'Affogato · L'Affogato" in the tab before).
+export const metadata = { title: { absolute: "Ödeme · L'Affogato" } };
 export const dynamic = "force-dynamic";
 
 /** Redirect reasons the checkout can bounce back with. */

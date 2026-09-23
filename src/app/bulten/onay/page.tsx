@@ -3,7 +3,8 @@ import Link from "next/link";
 import { confirmNewsletterAction } from "@/app/newsletter/actions";
 
 export const metadata = {
-  title: "Bülten aboneliğini onayla · L'Affogato",
+  // `absolute`: the root template would append the brand a second time.
+  title: { absolute: "Bülten aboneliğini onayla · L'Affogato" },
   robots: { index: false, follow: false },
 };
 export const dynamic = "force-dynamic";
