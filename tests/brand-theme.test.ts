@@ -48,14 +48,14 @@ const SITE_BORDO = ["#84233C", "#4A0F1E", "#F6E9EC"] as const;
  *
  * Note on the phone: the 2 Eyl swap existed to make site and app read alike,
  * the 5 Eyl redesign broke that, and the 7 Eyl accent restored the bordo — for
- * a day. On 8 Eyl 2026 the operator moved the app to a Starbucks-ID palette
- * (green #29623F, accent gold #D1C59B, cream #FAF2DF — lafmobil's
- * src/theme/tokens.ts, karar 23), so site and app no longer share a palette
- * BY DECISION, not by drift. This file therefore guards the site alone;
- * whether the site follows the app one day (karar 31) is an open operator
- * question tracked in lafmobil's docs/SITE-PALETTE-SYNC.md, and the e-mails
- * stay on the site's tokens because the site sends them and their links land
- * here. Contrast is a separate guard in contrast.test.ts.
+ * a day. On 8 Eyl 2026 the operator moved the app to a palette of its own,
+ * and it has changed again since; it lives in lafmobil's src/theme/tokens.ts,
+ * so site and app no longer share a palette BY DECISION, not by drift. This
+ * file therefore guards the site alone; whether the site follows the app one
+ * day (karar 31) is an open operator question tracked in lafmobil's
+ * docs/SITE-PALETTE-SYNC.md, and the e-mails stay on the site's tokens
+ * because the site sends them and their links land here. Contrast is a
+ * separate guard in contrast.test.ts.
  */
 describe("palette follows the Köşk redesign", () => {
   it("paints the house green", () => {
@@ -135,10 +135,10 @@ describe("palette follows the Köşk redesign", () => {
     //
     // Until 8 Eyl 2026 this test also opened ../lafmobil/src/theme/tokens.ts
     // when it was checked out beside this repo and required the same three
-    // hexes there. The app has since moved to its Starbucks-ID palette by
-    // operator decision (accent gold #D1C59B, green #29623F), so that half
-    // would now fail for a reason that is not a defect — and in CI the app
-    // was never there anyway. Only the site side remains.
+    // hexes there. The app has since moved to a palette of its own by
+    // operator decision (lafmobil's src/theme/tokens.ts is its only record),
+    // so that half would fail for a reason that is not a defect - and in CI
+    // the app was never there anyway. Only the site side remains.
     for (const hex of SITE_BORDO) expect(css).toContain(hex.toLowerCase());
   });
 
