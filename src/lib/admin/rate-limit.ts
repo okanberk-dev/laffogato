@@ -155,7 +155,10 @@ export async function recordLoginFailure(
 ): Promise<RateLimitStatus> {
   const now = Date.now();
   const sb = getDb();
-  const { data, error } = await sb.rpc("record_auth_failure", {
+  // `rpcRows`, not `rpc`: the function RETURNS TABLE, and the scalar form
+  // hands back a record string — `blocked` was never true and the "N hakkın
+  // kaldı" message counted NaN.
+  const { data, error } = await sb.rpcRows<AttemptRow>("record_auth_failure", {
     p_key: bucketKey(purpose, ip, identity),
     p_now: new Date(now).toISOString(),
     p_window_ms: WINDOW_MS,
@@ -166,7 +169,7 @@ export async function recordLoginFailure(
     console.error("[rate-limit] record failed", error);
     return OPEN;
   }
-  const row = (Array.isArray(data) ? data[0] : data) as AttemptRow | undefined;
+  const row = data?.[0];
   if (!row) return OPEN;
   return statusFrom(row.failedCount, row.lockedUntil, now, purpose);
 }

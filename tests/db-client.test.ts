@@ -215,6 +215,21 @@ describe("rpc", () => {
     expect(res.data).toEqual([3, 5]);
   });
 
+  it("returns every row of a table-returning function", async () => {
+    const rows = [
+      { email: "a@b.co", name: "A", marketing: true },
+      { email: "c@d.co", name: "C", marketing: false },
+    ];
+    const { exec, calls } = fakeExecutor({ rows });
+    const res = await createDb(exec).rpcRows("birthday_greeting_audience", {
+      p_month_days: ["09-23"],
+    });
+    expect(res.data).toEqual(rows);
+    expect(calls[0].text).toMatch(
+      /^SELECT \* FROM "birthday_greeting_audience"/,
+    );
+  });
+
   it("yields null for a void function", async () => {
     const { exec } = fakeExecutor({ rows: [{ result: null }] });
     const res = await createDb(exec).rpc("increment_promo_usage", {

@@ -86,7 +86,18 @@ export type QuerySpec =
       filters: Filter[];
       returning: string | null;
     }
-  | { kind: "rpc"; fn: string; args: Row };
+  | {
+      kind: "rpc";
+      fn: string;
+      args: Row;
+      /**
+       * "scalar" (default): `SELECT fn(…) AS result`, one cell.
+       * "table": `SELECT * FROM fn(…)`, every row — for `RETURNS TABLE` /
+       * `SETOF` functions, whose rows the scalar form hands back as one
+       * unparsed record string like `"(a@b.com,Ali,t)"`.
+       */
+      returns?: "scalar" | "table";
+    };
 
 export interface CompiledQuery {
   text: string;
@@ -301,7 +312,10 @@ export function compile(spec: QuerySpec): CompiledQuery {
         return `${quoteIdent(name, "argument")} => ${placeholder}${cast}`;
       });
       return {
-        text: `SELECT ${fn}(${args.join(", ")}) AS result`,
+        text:
+          spec.returns === "table"
+            ? `SELECT * FROM ${fn}(${args.join(", ")})`
+            : `SELECT ${fn}(${args.join(", ")}) AS result`,
         params: bag.params,
       };
     }

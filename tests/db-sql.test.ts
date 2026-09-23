@@ -306,6 +306,18 @@ describe("rpc", () => {
     ]);
   });
 
+  it("reads a table-returning function from FROM, not the select list", () => {
+    const q = compile({
+      kind: "rpc",
+      fn: "birthday_greeting_audience",
+      args: { p_month_days: ["09-23"] },
+      returns: "table",
+    });
+    expect(q.text).toBe(
+      'SELECT * FROM "birthday_greeting_audience"("p_month_days" => $1::jsonb)',
+    );
+  });
+
   it("rejects an injected function name", () => {
     expect(() =>
       compile({

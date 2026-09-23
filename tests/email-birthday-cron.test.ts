@@ -27,7 +27,10 @@ const grantBirthdayCouponToday = vi.fn();
 const ensureCustomerUnsubToken = vi.fn();
 const sendBirthdayEmail = vi.fn();
 
-vi.mock("@/lib/db", () => ({ getDb: () => ({ rpc }) }));
+// `rpcRows`: the audience function RETURNS TABLE. It used to be called via
+// `rpc`, whose one-cell read turned the rows into a record string — and this
+// mock, handing back an array to `rpc`, is exactly what hid that.
+vi.mock("@/lib/db", () => ({ getDb: () => ({ rpcRows: rpc }) }));
 vi.mock("@/lib/customer/coupons", () => ({ grantBirthdayCouponToday }));
 vi.mock("@/lib/email/campaigns", () => ({ ensureCustomerUnsubToken }));
 vi.mock("@/lib/email/send", () => ({ sendBirthdayEmail }));

@@ -450,12 +450,18 @@ class RpcBuilder<T> implements PromiseLike<DbResult<T>> {
     private readonly execute: Executor,
     private readonly fn: string,
     private readonly args: Row,
+    private readonly returns: "scalar" | "table" = "scalar",
   ) {}
 
   private async run(): Promise<DbResult<T>> {
     let compiled: CompiledQuery;
     try {
-      compiled = compile({ kind: "rpc", fn: this.fn, args: this.args });
+      compiled = compile({
+        kind: "rpc",
+        fn: this.fn,
+        args: this.args,
+        returns: this.returns,
+      });
     } catch (err) {
       const { error, status } = toDbError(err);
       return { data: null, error, status: status || 400, count: null };
@@ -463,9 +469,14 @@ class RpcBuilder<T> implements PromiseLike<DbResult<T>> {
 
     try {
       const result = await this.execute(compiled);
+      // Table-returning functions come back as rows, like PostgREST does.
       // Scalar-returning functions come back as a single `result` column;
       // a `void` function yields null, matching PostgREST.
-      const value = (result.rows[0]?.result ?? null) as T | null;
+      const value = (
+        this.returns === "table"
+          ? result.rows
+          : (result.rows[0]?.result ?? null)
+      ) as T | null;
       return { data: value, error: null, status: 200, count: null };
     } catch (err) {
       const { error, status } = toDbError(err);
@@ -492,6 +503,15 @@ export class Db {
 
   rpc<T = any>(fn: string, args: RowInput = {}): RpcBuilder<T> {
     return new RpcBuilder<T>(this.execute, fn, args as Row);
+  }
+
+  /**
+   * For `RETURNS TABLE` / `SETOF` functions: `data` is every row. `rpc()`
+   * on such a function yields one record *string* — the birthday cron read
+   * that as "no audience" every day and still reported success.
+   */
+  rpcRows<T = any>(fn: string, args: RowInput = {}): RpcBuilder<T[]> {
+    return new RpcBuilder<T[]>(this.execute, fn, args as Row, "table");
   }
 }
 

@@ -112,7 +112,8 @@ function expiryLabel(coupon: CustomerCoupon): string {
 }
 
 async function birthdayAudience(days: string[]): Promise<BirthdayRow[]> {
-  const { data, error } = await getDb().rpc<unknown>(
+  // `rpcRows`, not `rpc`: the function RETURNS TABLE.
+  const { data, error } = await getDb().rpcRows<unknown>(
     "birthday_greeting_audience",
     { p_month_days: days },
   );
