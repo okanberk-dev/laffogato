@@ -14,7 +14,7 @@ gösterir ve her ayrışma için bir karşı öneri sunar. Karar avukatındır.
 
 ## 0. Bu belge nedir, nasıl okunur
 
-**Kaynak.** `RiosenBeq/laffogato` deposu, `main` dalı, `230d616` (24 Eyl 2026).
+**Kaynak.** `RiosenBeq/laffogato` deposu, `main` dalı, `aa8ef87` (24 Eyl 2026).
 Hukuki metinlerin tamamı tek dosyadadır: `src/lib/legal/content.ts`
 (15.597 satır, 25 belge). Aşağıdaki satır numaraları o dosyanın bu
 sürümüne aittir. Metinlerde `{{BRAND}}`, `{{ADDRESS}}` gibi yer tutucular
@@ -918,7 +918,7 @@ belgede basılmıyor) ve `scripts/legal-export.mjs` satır 92'deki başlık
 
 ## Ek A - Cümle cümle düzeltme listesi
 
-Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `230d616`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.
+Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.
 
 Toplam **1080** cümle, **25** belge.
 
