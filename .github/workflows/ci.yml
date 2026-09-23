@@ -80,6 +80,15 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      # A ratchet, not a free pass: the cap is today's count and only ever
+      # goes down. The six warnings are eslint-config-next 16.3's new
+      # no-location-assign-relative-destination rule on the hard
+      # navigations out of the hash-routed SPA shell (chrome.tsx,
+      # pages.tsx x3, product-detail.tsx, site-chrome.tsx). Set it to 0 once
+      # they are resolved; a new warning anywhere fails the build now.
+      - name: Lint
+        run: npm run lint -- --max-warnings=6
+
       - name: Test
         run: npm test
         env:
