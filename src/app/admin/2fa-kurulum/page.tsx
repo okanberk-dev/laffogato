@@ -39,8 +39,8 @@ export default async function TwoFAEnrollPage({
         <Card>
           <p className="text-sm text-neutral-700">
             Bir sonraki girişte şifrenden sonra 6 haneli kodu istediğimizi
-            unutma. Telefonunu kaybedersen önce bu sekmeden 2FA'yı kapat, sonra
-            yeniden kur.
+            unutma. Telefonunu kaybedersen önce bu sekmeden 2FA&apos;yı kapat,
+            sonra yeniden kur.
           </p>
           <form
             action={disable2FAAction}
@@ -62,7 +62,7 @@ export default async function TwoFAEnrollPage({
               type="submit"
               className="rounded-full border border-red-200 px-4 py-1.5 text-xs text-red-700 hover:border-red-600 hover:bg-red-600 hover:text-white"
             >
-              2FA'yı kapat
+              2FA&apos;yı kapat
             </button>
           </form>
           {disableError ? (

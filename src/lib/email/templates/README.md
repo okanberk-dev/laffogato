@@ -14,27 +14,27 @@ kilitlediğine bak.
 
 ## Dosyalar
 
-| Dosya                     | Tür               | Konu                                       |
-| ------------------------- | ----------------- | ------------------------------------------ |
-| eposta-dogrulama.html     | işlemsel          | L'Affogato — e-posta adresinizi doğrulayın |
-| sifre-sifirlama.html      | işlemsel          | L'Affogato — şifre sıfırlama               |
+| Dosya                     | Tür               | Konu                                        |
+| ------------------------- | ----------------- | ------------------------------------------- |
+| eposta-dogrulama.html     | işlemsel          | L'Affogato — e-posta adresinizi doğrulayın  |
+| sifre-sifirlama.html      | işlemsel          | L'Affogato — şifre sıfırlama                |
 | bulten-onay.html          | işlemsel          | L'Affogato — bülten aboneliğinizi onaylayın |
-| siparis-alindi.html       | işlemsel          | Siparişiniz alındı (#[SIPARIS_NO])         |
-| odeme-onaylandi.html      | işlemsel          | Ödemeniz onaylandı (#[SIPARIS_NO])         |
-| hos-geldin.html           | ilişki            | L'Affogato'ya hoş geldiniz                 |
-| karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonunuz onaylandı          |
-| karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonunuz iptal edildi       |
-| sadakat-ikram.html        | işlemsel          | Kartınız doldu — bir içecek bizden         |
-| bulten-kampanya.html      | **ticari (6563)** | [KAMPANYA_BASLIK] — 3 ürün seçkisi + kod   |
-| mobil-uygulama.html       | **ticari (6563)** | L'Affogato uygulaması yayında              |
-| dogum-gunu.html           | **ticari (6563)** | Doğum gününüz kutlu olsun — kahve bizden   |
-| kampanya-duyuru.html      | **ticari (6563)** | [KAMPANYA_BASLIK] — genel duyuru           |
-| kampanya-bonus-damga.html | **ticari (6563)** | [KAMPANYA_BASLIK] — bonus damga            |
-| kampanya-happy-hour.html  | **ticari (6563)** | [KAMPANYA_BASLIK] — saat bandı             |
-| kampanya-ikram.html       | **ticari (6563)** | [KAMPANYA_BASLIK] — üç adımda ikram        |
-| kampanya-etkinlik.html    | **ticari (6563)** | [KAMPANYA_BASLIK] — etkinlik               |
-| kampanya-yeni-urun.html   | **ticari (6563)** | [KAMPANYA_BASLIK] — yeni ürün / ön erişim  |
-| kampanya-indirim.html     | **ticari (6563)** | [KAMPANYA_BASLIK] — indirim                |
+| siparis-alindi.html       | işlemsel          | Siparişiniz alındı (#[SIPARIS_NO])          |
+| odeme-onaylandi.html      | işlemsel          | Ödemeniz onaylandı (#[SIPARIS_NO])          |
+| hos-geldin.html           | ilişki            | L'Affogato'ya hoş geldiniz                  |
+| karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonunuz onaylandı           |
+| karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonunuz iptal edildi        |
+| sadakat-ikram.html        | işlemsel          | Kartınız doldu — bir içecek bizden          |
+| bulten-kampanya.html      | **ticari (6563)** | [KAMPANYA_BASLIK] — 3 ürün seçkisi + kod    |
+| mobil-uygulama.html       | **ticari (6563)** | L'Affogato uygulaması yayında               |
+| dogum-gunu.html           | **ticari (6563)** | Doğum gününüz kutlu olsun — kahve bizden    |
+| kampanya-duyuru.html      | **ticari (6563)** | [KAMPANYA_BASLIK] — genel duyuru            |
+| kampanya-bonus-damga.html | **ticari (6563)** | [KAMPANYA_BASLIK] — bonus damga             |
+| kampanya-happy-hour.html  | **ticari (6563)** | [KAMPANYA_BASLIK] — saat bandı              |
+| kampanya-ikram.html       | **ticari (6563)** | [KAMPANYA_BASLIK] — üç adımda ikram         |
+| kampanya-etkinlik.html    | **ticari (6563)** | [KAMPANYA_BASLIK] — etkinlik                |
+| kampanya-yeni-urun.html   | **ticari (6563)** | [KAMPANYA_BASLIK] — yeni ürün / ön erişim   |
+| kampanya-indirim.html     | **ticari (6563)** | [KAMPANYA_BASLIK] — indirim                 |
 
 Ticari onlu `data-commercial="1"` taşır. `renderEmail` bu onu çıkış
 bağlantısı olmadan **derlemez**, işlemsel dokuza çıkış bağlantısı

@@ -82,6 +82,38 @@ describe("saved cards", () => {
     expect(raw).toContain('"cardUserKey"');
   });
 
+  it("no code path accepts card data — the POS's hosted page is the only place it is typed", () => {
+    // Operator (23 Eyl 2026): "biz kart bilgilerini saklamıyoruz". PayNkolay
+    // also offers endpoints that take the card number server-side
+    // (CardStorageCardRegister and friends); calling one would put the PAN
+    // through this server and into PCI scope. Comments may name them, code
+    // may not.
+    const sources = [
+      "src/lib/payment/paynkolay.ts",
+      "src/lib/payment/provider.ts",
+      "src/app/odeme/actions.ts",
+      "src/app/odeme/donus/route.ts",
+      "src/app/odeme/paynkolay/route.ts",
+      "src/lib/mobile/orders.ts",
+    ].map((path) =>
+      read(path)
+        .split("\n")
+        .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+        .join("\n"),
+    );
+    for (const code of sources) {
+      expect(code).not.toMatch(/CardStorage/);
+      expect(code).not.toMatch(
+        /\b(cardNumber|cvv|cvc|expiryMonth|expireMonth)\b/i,
+      );
+    }
+    // And the one card-storage switch the hosted form has stays off in v1
+    // (docs/API-MOBILE.md §15): an empty customerKey saves nothing.
+    expect(read("src/lib/payment/paynkolay.ts")).toMatch(
+      /const customerKey = "";/,
+    );
+  });
+
   it("an absent key never erases a stored one", () => {
     // The buyer not ticking "kartımı kaydet" must not lose the cards they
     // saved on an earlier order.

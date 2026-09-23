@@ -52,7 +52,9 @@ zaten varsa o satır kullanılır (**tek üyelik**).
 > (route: `if (!auth.ok) return auth.response`). Kimlik hataları: **401** `unauthorized`
 > (başlık yok / bozuk / geçersiz / süresi dolmuş) · **403** `account_disabled` ·
 > **403** `email_unverified` (e-posta mevcut bir üyeye ait ve Supabase'de henüz
-> doğrulanmamış — kimlik katmanında, her kimlikli uçta) ·
+> doğrulanmamış — kimlik katmanında, her kimlikli uçta; satır zaten bu Supabase
+> kimliğine bağlıysa — üyenin kendi açtığı satır — reddedilmez, 23 Eyl 2026:
+> önceden onaysız yeni üye ikinci istekten itibaren kendi hesabından kilitleniyordu) ·
 > **503** `auth_unavailable` (Supabase'e ulaşılamadı; Supabase'in **429**/**408**
 > yanıtı da buraya düşer, 23 Eyl 2026 — önceden 401'di ve uygulama üyeyi
 > çıkarıyordu) · **503** `unavailable` (bu
@@ -326,6 +328,13 @@ Kurallar:
 ### `GET /orders` → `{ "orders": [ …Order… ] }` (en yeni önce, en fazla 50)
 
 ### `GET /orders/{id}` → `{ "order": …Order… }` (yalnız sahibi; aksi 404)
+
+> **E-postası doğrulanmamış üye (23 Eyl 2026).** Siparişler üyeye yalnız e-postayla
+> bağlanır ve admin'in elle girdiği bir satış hiç üye olmamış birinin adresini
+> taşıyabilir. Sitedeki sipariş geçmişi gibi, `customer.emailVerified === false`
+> iken `GET /orders` **boş liste**, `GET /orders/{id}` **404** döner; `GET
+> /notifications` sipariş kayıtlarını listelemez. Biçim değişmedi; doğrulanmamış
+> üye zaten sipariş veremez (`POST /orders` → 403 `email_unverified`).
 
 `Order`:
 

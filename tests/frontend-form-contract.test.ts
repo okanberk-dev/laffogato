@@ -151,6 +151,22 @@ const CONTRACTS: FormContract[] = [
     forms: ["src/components/laffogato/newsletter-form.tsx"],
     fields: ["email", "consent"],
   },
+  {
+    // The confirmation mail's button (6563 double opt-in). A POST, not the
+    // link: mail scanners open links, and a GET that subscribed would turn
+    // their visit into consent.
+    action: "confirmNewsletterAction",
+    actionFile: "src/app/newsletter/actions.ts",
+    forms: ["src/app/bulten/onay/page.tsx"],
+    fields: ["token"],
+  },
+  {
+    // Same reason: the page only shows the button, the press unsubscribes.
+    action: "unsubscribeNewsletterAction",
+    actionFile: "src/app/newsletter/actions.ts",
+    forms: ["src/app/bulten/cikis/page.tsx"],
+    fields: ["token"],
+  },
 ];
 
 const read = (path: string) => readFileSync(path, "utf8");

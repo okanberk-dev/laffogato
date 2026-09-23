@@ -27,7 +27,7 @@ yapılır.
   `ADMIN_PASSWORD` + HMAC SHA256) ve TOTP 2FA. Müşteri için bcrypt hesap
 - **Ödeme:** Sağlayıcı bağımsız soyutlama (`src/lib/payment/`). Sanal POS
   **PayNkolay** (barındırılan ödeme sayfası — kart verisi siteye hiç girmez,
-  `docs/PAYNKOLAY.md`); geliştirmede `MockPaymentProvider`. iyzico modülü
+  **kart saklanmaz**: kural 28, `docs/PAYNKOLAY.md`); geliştirmede `MockPaymentProvider`. iyzico modülü
   duruyor ama üretimde kullanılmıyor
 - **Dil:** Arayüz **Türkçe**. Kod, dosya adı, identifier, commit mesajı
   **İngilizce**
@@ -118,9 +118,12 @@ yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
   3. Sepet: `localStorage["laffogato_cart_v1"]` ve `items` JSON biçimi
      (`productId, variantId, name, price, qty`; fiyat yalnız gösterim).
   4. Action'ların yönlendirmeleri sayfada karşılanır: `/?cart=…`,
-     `/?hesap=silindi`, `/odeme?error=consent|payment`, `/uye/giris?next=…`.
+     `/?hesap=silindi`, `/odeme?error=consent|payment`, `/uye/giris?next=…`,
+     `/bulten/onay?sonuc=…`, `/bulten/cikis?sonuc=…`. Bülten onayı ve çıkışı
+     **düğmedir** (POST) — e-posta tarayıcıları bağlantıları açar.
   5. Dışarıdan çağrılan yollar yeniden adlandırılmaz: e-posta linkleri,
-     `/odeme/donus`, `/gorsel/**`, `/hukuk/[slug]`, `/bulten/cikis`, `/api/**`.
+     `/odeme/donus`, `/gorsel/**`, `/hukuk/[slug]`, `/bulten/cikis`,
+     `/bulten/onay`, `/api/**`.
   6. Veri `loadAppProps()` / `getPublicSettings()` / `list*` ile okunur;
      bileşende `@/lib/db` yok; istemci bileşeni `server-only` modül import
      edemez (saf mantık için `*-core.ts` / `*-utils.ts`).
@@ -287,7 +290,10 @@ Tablolar ve SQL fonksiyonları `db/schema.sql`'de (tek kaynak; sayıyı buraya
 yazma, eskiyor). Sayaç fonksiyonları: `next_seq` / `claim_order_stock` /
 `release_order_stock` / `redeem_promo` / `release_promo_usage` /
 `increment_promo_usage` / `adjust_product_stock` / `record_auth_failure` /
-`toggle_wishlist` / `campaign_email_claim`. Her biri, JavaScript'te yapılan bir
+`reserve_auth_attempt` / `reserve_order_refund` / `drop_order_refund` /
+`toggle_wishlist` / `campaign_email_claim`, ve üye başına tavanları tutan
+tetikleyiciler (`app_pending_order_cap`, `karaoke_open_cap`,
+`counter_token_issue_cap`). Her biri, JavaScript'te yapılan bir
 oku-değiştir-yaz'ın eşzamanlılık altında kaybettiği yazımlar yüzünden var. Şema yoksa uygulama onu ilk sorguda kendisi kurar
 (`src/lib/db/bootstrap.ts` → `src/lib/db/schema-sql.ts`, `npm run db:bundle`
 ile üretilir), böylece `DATABASE_URL`'i migration'lardan önce tanımlamak siteyi
@@ -388,6 +394,22 @@ durum bozulmaya uygundur.
     Oraya yardımcı fonksiyon koyma (2FA'yı kapatan `freshEnrollment` böyle
     açıktaydı); her action kendi oturum + rol kontrolünü yapar — `proxy.ts`
     yalnız sayfa yönlendirmesidir, yetki kontrolü değil
+28. **Kart verisi saklanmaz, bu sunucudan geçmez** (operatör kararı). Kart
+    numarası, son kullanma tarihi ve CVV yalnız PayNkolay'ın barındırılan
+    ödeme sayfasında girilir; kart numarası alan PayNkolay uçları
+    (`CardStorageCardRegister` vb.) kullanılmaz, şemada kart alanı olmaz.
+    v1'de sağlayıcı tarafında kart saklama da kapalı (`customerKey` boş,
+    `docs/API-MOBILE.md` §15). `tests/saved-cards.test.ts` tutar
+29. **Ödenmemiş sipariş POS'a sorulmadan iptal edilmez.** Süpürme ve yeni
+    ödemenin eski denemeyi bırakması `cancelUnpaidOrder` → `lookupPayment`
+    (`PaymentList`) üzerinden geçer; POS'a ulaşılamaması "ödenmedi" sayılmaz.
+    `/odeme/donus`'ta iptal yapılmaz: o POST oturum çerezi taşımaz, herhangi
+    bir sipariş kimliği için taklit edilebilir
+30. **Giriş denemesi kimlik bilgisi denetlenmeden önce ayrılır**
+    (`reserveLoginAttempt` → `reserve_auth_attempt`). "Önce sor, sonra
+    doğrula, sonra say" sırası paralel isteklerde tavanı aşar. Admin oturumu
+    her istekte hesaptan yeniden okunur (`getAdminSession`); token'daki parmak
+    izi parola ya da hesap değişince eski çerezleri geçersiz kılar
 
 ## Çalışma Kuralları (Claude için)
 
@@ -423,6 +445,10 @@ durum bozulmaya uygundur.
   unutma: `PAYNKOLAY_SUCCESS_URL` **ve** `PAYNKOLAY_FAIL_URL` ikisi de
   `/odeme/donus` olmalıdır (PayNkolay sonucu form-POST eder), ve
   `PAYMENT_PROVIDER` her ortamda tanımlı olmalıdır
+- **Kart saklamayı açma.** Operatör kararı: kart bilgisi saklanmaz (kural 28).
+  PayNkolay formundaki `customerKey` boş kalır; "kartımı kaydet" ya da kart
+  numarası alan bir uç eklemek bu kararın değişmesini ister, önce kullanıcıya
+  sor
 - **Canlı anahtarlarla çekim denemesi yapma** — test hostu
   (`PAYNKOLAY_BASE_URL`) dışında gerçek kartla deneme operatörün işidir
 - **PayNkolay webhook'u ARAMA.** Sunucudan sunucuya bildirim yok

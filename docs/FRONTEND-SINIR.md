@@ -28,7 +28,7 @@
 | ------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `src/lib/**`                          | Veri, fiyat, stok, ödeme, kimlik, e-posta, hukuk, mobil iş mantığı                           |
 | `src/app/**/actions.ts`               | Server action'lar (`"use server"`) — her `export` herkese açık bir POST ucu                  |
-| `src/app/**/route.ts`                 | API, webhook, cron, `/odeme/donus`, `/odeme/paynkolay`, `/gorsel/**`, `/bulten/cikis`       |
+| `src/app/**/route.ts`                 | API, webhook, cron, `/odeme/donus`, `/odeme/paynkolay`, `/gorsel/**`, `/api/bulten/cikis`   |
 | `src/app/api/mobile/v1/**`            | **Mobil uygulamanın sözleşmesi** — sahadaki sürümler buna bağlı (`docs/API-MOBILE.md`)       |
 | `src/proxy.ts`                        | Admin koruması + Supabase oturum yenileme                                                   |
 | `db/**`, `scripts/**`                 | Migration'lar, şema paketi                                                                  |
@@ -76,6 +76,15 @@ Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" 
 | `deleteAccountAction`                           | `src/app/uye/hesap/sil/delete-account-form.tsx`       | `confirmEmail`, `password`                                                       |
 | `bookKaraokeAction`                             | `src/components/laffogato/karaoke-booking.tsx`        | `date`, `startHour`, `hours`, `guests`, `note`                                   |
 | `subscribeNewsletterAction`                     | `src/components/laffogato/newsletter-form.tsx`        | `email`, `consent`                                                               |
+| `confirmNewsletterAction`                       | `src/app/bulten/onay/page.tsx`                        | `token` (gizli) — bülten onayı bir **düğme**dir, bağlantı değil                   |
+| `unsubscribeNewsletterAction`                   | `src/app/bulten/cikis/page.tsx`                       | `token` (gizli) — çıkış da düğmeyle; sayfa GET'te hiçbir şey harcamaz            |
+
+**Bülten sayfalarında bağlantıyı "tek tık"a geri çevirme.** E-posta güvenlik
+tarayıcıları (Outlook Safe Links, Gmail ön-getirme) iletideki her bağlantıyı
+açar: GET'te abone eden bir onay sayfası tarayıcının ziyaretini "rıza"ya, GET'te
+çıkaran bir sayfa da aboneliği robotun kararına çevirir (6563, `docs/AUDIT.md`
+§8). Sayfa yalnız düğmeyi gösterir; posta istemcisinin kendi tek tık düğmesi
+(RFC 8058, `/api/bulten/cikis`) sayfasız çalışmaya devam eder.
 
 **Formu başka bir dosyaya taşıdıysan** testteki `forms` yolunu güncelle — alan
 listesine dokunmadan. Alan listesi yalnız action değiştiğinde değişir; o da
@@ -151,6 +160,8 @@ okumaya devam etmezse müşteri "hiçbir şey olmadı" ekranında kalır.
 | `/odeme?verify=required`                              | `placeOrderAction`              | Sayfa doğrulama panelini üyenin durumundan zaten gösterir; parametre bilgi amaçlı |
 | `/uye/giris?next=/odeme`                              | `placeOrderAction`              | `src/app/uye/giris/page.tsx`      |
 | `/?hesap=silindi`                                     | `deleteAccountAction`           | ana sayfa                         |
+| `/bulten/onay?sonuc=tamam\|gecersiz\|hata`             | `confirmNewsletterAction`       | `src/app/bulten/onay/page.tsx`    |
+| `/bulten/cikis?sonuc=tamam&adres=…`, `?sonuc=gecersiz\|hata` | `unsubscribeNewsletterAction` | `src/app/bulten/cikis/page.tsx` (`adres` maskeli: `a***@alan.com`) |
 
 `?cart=` gerekçelerinin, her `/odeme?error=` nedeninin, `?hesap=silindi`'nin
 ve girişteki `?next=` taşımasının karşılandığını
@@ -171,6 +182,7 @@ uygulama, arama motoru. Yeniden adlandırmak geri alınamaz şekilde kırar.
 | `/api/webhooks/payment`, `/api/webhooks/geliver`        | Ödeme sağlayıcısı, kargo                                   |
 | `/api/cron/**`                                          | Vercel cron + GitHub Actions (`campaign-hourly.yml`)       |
 | `/bulten/cikis`, `/api/bulten/cikis`                    | Her ticari e-postadaki tek tıkla çıkış                     |
+| `/bulten/onay?token=`                                   | Bülten onay e-postası (çift onay, 7 gün geçerli)           |
 | `/uye/sifre-sifirla?token=`, `/uye/dogrula?token=`      | Parola sıfırlama ve e-posta doğrulama e-postaları          |
 | `/uye/hesap/siparislerim/[orderNo]`, `/uye/hesap/sil`   | İşlemsel e-postalar, uygulama                              |
 | `/hukuk/[slug]`                                         | E-postalar, uygulama (`GET /legal`), sözleşme metinleri    |

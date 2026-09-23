@@ -394,51 +394,24 @@ hariç — belge onları "henüz yok, 404 beklenir" diye yazıyor, uygulama 404'
 | 🟢 | Sabit "6 damga" mesajı (hedef 3–20 ayarlanabilir); hesap silmede UTC tarih; doğum günü kuponu web yedeği UTC ayı | Yapılandırılmış hedef; `istanbulClock` | `mobile-venue-clock` |
 | 🟢 | `constantTimeEqual` uzunluk farkında erken dönüyordu (env admin parolasının uzunluğu sızıyordu); backend'de 7 lint uyarısı | SHA-256 sonra karşılaştırma; kullanılmayan importlar | — |
 | 🟢 | Sözleşme belgesi koddan geri kalmıştı: §0 403 `email_unverified`, §3 preview hız sınırı 200 döner, §5 `kind`/`code`, §6 SWR yok, §7 403 | Belge koda eşitlendi (davranış değişmedi) | `api-contract-parity` |
+| 🔴 | Admin oturumu geri alınamıyordu: çerez 7 gün e-posta ve rolü taşıyordu; pasifleştirme, rol düşürme, parola sıfırlama çerez bitene kadar işlemiyordu. TOTP kodu ±30 sn içinde tekrar kullanılabiliyor, 2FA kodsuz kapatılabiliyordu | Token'da kimlik bilgisinin anahtarlı parmak izi; hesap her istekte yeniden okunur. TOTP adımı harcanır (`admin_2fa."lastStep"`); 2FA'yı kapatmak güncel kod ister. **Deploy sonrası adminler bir kez yeniden girer** (eski 4 parçalı çerez reddedilir) | `admin-auth-sources`, `admin-2fa-enrollment`, `db-integration-audit` |
+| 🔴 | Kaba kuvvet sınırı paralel isteklerle aşılıyordu (25 eşzamanlı denemenin 9'u geçiyordu) | `reserve_auth_attempt()`: deneme kimlik bilgisi denetlenmeden **önce**, satır kilidi altında sayılır; `admin-2fa` için IP'den bağımsız hesap tavanı. Sınıra takılan giriş `audit_logs`'a yazılmaz | `db-integration-audit`, `admin-login-audit` |
+| 🔴 | 45 dakikalık süpürme ve dönüşü gelmeyen ödeme: POS'a sorulmadan iptal ediliyor, parası alınmış siparişin stoğu geri veriliyordu (PAYNKOLAY §14.6/2) | İptalden önce `lookupPayment` (`PaymentList`); `SUCCESS` → `applyPaymentSucceeded`. POS'a ulaşılamazsa bir gün dolana kadar iptal yok | `db-integration-payment-sweep`, `payment-paynkolay` |
+| 🟠 | İade defteri ve üç tavan (`MAX_OPEN_ORDERS`, `KARAOKE_OPEN_CAP`, kasa jetonu hızı) JS'te oku-karar ver-yaz: eşzamanlı iki iade ikisi de POS'a gidebiliyordu | `reserve_order_refund` tek koşullu UPDATE (POS'tan **önce**, ret olursa `drop_order_refund`); tavanlar üye başına advisory lock'lu BEFORE INSERT tetikleyicileri | `db-integration-audit`, `atomic-caps-sql` |
+| 🟠 | Bülten (6563): alt bilgi formu herkese herhangi bir adresi abone yaptırıyordu; admin çıkmış aboneyi eski onayla açabiliyordu; çıkış linki GET'te belirteci harcıyordu (e-posta tarayıcıları aboneliği bitiriyordu) | Çift onay (`/bulten/onay`, 7 gün), adres başına hız sınırı, panelde yalnız kapatma; çıkış bir **düğme** (POST) — RFC 8058 tek tık başlığı aynen duruyor | `newsletter-double-opt-in`, `db-integration-audit` |
+| 🟠 | Reddedilen karttan sonra tekrar deneme: ödenmemiş ilk sipariş tek kullanımlık kuponu ve stoğu 45 dk tutuyor, yeni sipariş kuponu uygulayamıyordu | Yeni web ödemesi üyenin kendi ödenmemiş web siparişlerini (POS'a sorduktan sonra) bırakır. `/odeme/donus`'ta yapılmadı: o POST'ta oturum çerezi yok, herhangi bir sipariş için taklit edilebilir | `checkout-retry-releases`, `db-integration-payment-sweep` |
+| 🟠 | CSP `form-action 'self'` PayNkolay köprüsünün POS'a POST'unu engelliyordu (canlıya alma engeli, §14.6/1) | Test ve canlı PayNkolay hostları eklendi, başkası reddedilir | `security-headers` |
+| 🟠 | Mobil sipariş okumaları (`GET /orders`, `/orders/{id}`, bildirimler) e-postayla eşleşiyor, doğrulamaya bakmıyordu | Doğrulanmamış üyeye boş liste / 404; bildirimde sipariş kaydı yok (biçim aynı) | `mobile-order-reads-verified` |
+| 🟠 | Onaysız Supabase kullanıcısı ikinci istekten itibaren **kendi açtığı** satırdan kilitleniyordu (403 `email_unverified`) | Satır zaten bu kimliğe bağlıysa reddedilmez; hiçbir şey doğrulanmış sayılmaz | `mobile-auth` |
+| 🟠 | lafmobil: `DELETE /me` 409 `orders_in_progress` genel hata metniyle gösteriliyordu; 403 `account_disabled` oturumu kapatmıyordu | Uygulama sunucunun cümlesini gösterir; `account_disabled`'da cihaz oturumu kapanır (lafmobil) | lafmobil `api.test`, `profile.test` |
+| 🟡 | Davet: davet edenin kuponu hata verince davetli yeniden denemede ikinci kupon alıyordu | Verilen kuponlar davet satırına yazılır (`inviteeCouponId`/`inviterCouponId`); tekrar yalnız eksiği verir | `mobile-invite` |
+| 🟡 | `transitionOrder` durumu koşulsuz yazıyordu: bayat ekrandan tıklama, süpürmenin iptal edip stoğunu geri verdiği siparişi diriltebiliyordu | Yazım okunan duruma koşullu; kaybederse "Sipariş bu arada değişti" | `mobile-order-reads-verified` |
+| 🟡 | `ensureSchemaFresh` başarısız kontrolü örnek ömrü boyunca hatırlıyordu: soğuk başlangıçtaki tek bağlantı hatası, o deploy'un migration'larını uygulatmıyordu | 30 sn sonra yeniden dener (her sorguda değil) | `db-schema-freshness-retry` |
+| 🟢 | lafmobil: RN 0.86 Jest preset'i native animasyon sürücüsünü taklit etmiyordu; bildirim (toast) bekleyen her test ekranı çökertiyordu (temiz kurulumda en az 21 test) | Testlerde JS sürücüsü; Reduce Motion'da yükleme noktaları ilk karede donmuş pozda | lafmobil `feedback.test` |
 
-### Açık — karar ya da ayrı iş bekleyenler
+### Açık
 
-Bunlar gerçek ama ya bir ürün/hukuk kararı gerektiriyor ya da tek PR'a
-sığmayacak kadar geniş. Bilerek dokunulmadı.
-
-1. **Admin oturumu geri alınamıyor.** İmzalı çerez 7 gün boyunca e-posta ve rolü
-   taşır; kullanıcıyı pasifleştirmek, rolünü düşürmek ya da parolasını
-   sıfırlamak çerez bitene kadar etki etmez. Çözüm: her istekte `admin_users`
-   satırını okumak (aktiflik + güncel rol) ve müşteri tarafındaki gibi parola
-   parmak izini token'a koymak. Ayrıca 2FA'yı kapatmak için güncel TOTP kodu
-   istenmeli; TOTP kodu ±30 sn içinde tekrar kullanılabiliyor.
-2. **Kaba kuvvet sınırı paralel isteklerle aşılabilir.** Sayaç SQL'de artıyor
-   ama karar JS'te, doğrulamadan **önce** okunuyor. Doğrusu: denemeyi atomik
-   olarak ayırıp sonucu ona göre vermek; `admin-2fa` için IP'den bağımsız hesap
-   başına tavan.
-3. **Bülten (6563).** Alt bilgideki abonelik formunda çift onay (double opt-in)
-   ve hız sınırı yok; herkes herhangi bir adresi yazabiliyor. Admin, çıkmış bir
-   aboneyi eski `consentAt` ile yeniden açabiliyor. Çıkış bağlantısı GET'te
-   belirteci harcıyor (bilinçli: "tek tık"), bu yüzden e-posta güvenlik
-   tarayıcıları aboneliği kendiliğinden bitirebilir — onay düğmesine çevirmek
-   hukuki bir tercih.
-4. **45 dakikalık süpürme POS'a sormadan iptal ediyor.** Dönüş başarısız olmuş
-   ama ödemesi alınmış bir sipariş sessizce iptal olur (PayNkolay §14.6/2'deki
-   mutabakat işi). Süpürme iptalden önce `PaymentList`'e sormalı.
-5. **Web'de başarısız ödemeden sonra tekrar deneme kuponu düşürüyor.** Ödenmemiş
-   sipariş tek kullanımlık kuponu tutmaya devam ediyor; müşteri yeniden sipariş
-   verince kupon uygulanamıyor. Ya dönüşte kupon/stok bırakılmalı ya da aynı
-   siparişi yeniden ödeme yolu açılmalı.
-6. **JS'te sayılan tavanlar:** `MAX_OPEN_ORDERS`, `KARAOKE_OPEN_CAP`, kasa jetonu
-   hız sınırı eşzamanlı birkaç istekle aşılabilir; iade defteri (`refunds`
-   JSONB) oku-değiştir-yaz. Kural 20'ye göre SQL'e taşınmalı.
-7. **Canlıya alma engeli (zaten §14.6/1'de):** CSP `form-action 'self'`
-   PayNkolay köprüsünün POST'unu engeller.
-8. **Uygulama tarafı (lafmobil):** `DELETE /me`'nin 409 `orders_in_progress`
-   mesajı gösterilmiyor (genel hata metni); `403 account_disabled` oturumu
-   kapatmıyor. İkisi de uygulamada düzeltilecek; sunucu doğru kodu dönüyor.
-9. **Mobil sipariş okumaları e-postayla eşleşir, doğrulamaya bakmaz.** Web artık
-   doğrulanmamış hesaba geçmiş göstermiyor (`memberOrders`); `GET /orders`,
-   `/me`, bildirimler ise yalnız Supabase onaylı olmayan kimliğe token
-   verilirse risk taşır (Supabase "Confirm email" açık olduğu sürece verilmez).
-   Aynı sipariş için eşzamanlı iki iade ikisi de `refundRefusal`'dan geçip
-   POS'a iki kez gidebilir (defter oku-değiştir-yaz; madde 6).
-10. **Küçükler:** davetli, davet edenin kuponu hata verirse ikinci kupon
-   alabilir; `transitionOrder` durumu koşulsuz yazar (bayat ekrandan tıklama
-   süpürmenin yazdığını ezebilir); `ensureSchemaFresh` başarısız bir kontrolü
-   örnek ömrü boyunca hatırlar; başarısız admin girişleri kimliksiz olarak
-   `audit_logs`'a yazılıyor.
+§8'de açık madde kalmadı (23 Eyl 2026, ikinci geçiş). Kodda değil operatörde
+duran iş: PayNkolay'ın canlı ölçüm listesi (`docs/PAYNKOLAY.md` §13) — köprü
+formunun POS'a gidişi (CSP artık izin veriyor), `PaymentList` üretim ucu ve
+dönüş hash'inin `CURRENCY_CODE` alanı.
