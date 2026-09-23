@@ -546,9 +546,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         cat: p.cat as ShopCategoryId,
         img: p.img,
         images: [],
-        // The seed carries no allergen data; `/admin/urunler` is where a
-        // product is marked. See the migration's note.
-        tags: [],
+        // The seed marks the one product that carries an allergen (the
+        // pistachio biscotti); `/admin/urunler` marks the rest.
+        tags: p.tags ? [...p.tags] : [],
         stock: 25,
         lowStockThreshold: 5,
         weightGrams: 250,

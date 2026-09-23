@@ -3321,3 +3321,76 @@ alter table public.invites
 
 insert into public._migrations (name) values ('20260923130000_invite_reward_progress.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260923140000_mark_nut_allergens.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Mark the two nut allergens that were never marked (lafmobil rule 4:
+-- "Alerjen bilgisi gizlenmez").
+--
+-- 20260916120000_product_allergen_tags.sql gave `products` the `tags` column
+-- the cafe menu already had and left the marking to /admin/urunler. Nobody
+-- marked anything: on 23 Sep 2026 `GET /shop` published `tags: []` for all
+-- eleven products, so the app drew no warning on the pistachio biscotti - its
+-- AllergenPill is drawn from `tags.includes("nuts")` and nothing else.
+--
+-- The menu had the same hole in one row: "Alternatif Süt" is "Yulaf, badem
+-- veya laktozsuz süt seçeneği" - almond is a tree nut - and it carried no tag.
+-- Tagging the item that CAN contain nuts is the safe reading: the warning has
+-- to reach the member who picks almond, and the menu line cannot know which
+-- milk will be chosen.
+--
+-- IDEMPOTENT and SAFE: each row is matched by id AND by what it is, and only
+-- gains the tag if it does not already carry it. An operator who has already
+-- marked (or renamed) the row is left alone. The seeds were changed the same
+-- day, so a fresh database starts marked.
+--
+-- Rollback: the same rows with `tags - 'nuts'`; no schema change.
+
+update public.products
+   set tags = tags || '["nuts"]'::jsonb
+ where id = 'prd-0011'
+   and name ilike '%pistachio%'
+   and not (tags @> '["nuts"]'::jsonb);
+
+update public.menu_items
+   set tags = tags || '["nuts"]'::jsonb
+ where id = 'mnu-0082'
+   and name = 'Alternatif Süt'
+   and not (tags @> '["nuts"]'::jsonb);
+
+insert into public._migrations (name) values ('20260923140000_mark_nut_allergens.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20260923141000_retire_placeholder_press.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Take the four placeholder press quotes off the site and the app.
+--
+-- "Monocle", "Cereal", "Time Out İstanbul" and "Condé Nast Traveler" were
+-- written into `data.ts` on 26 May 2026 by the first design implementation
+-- (33635fd) - mock-up copy, later seeded into `press` by the panel resource
+-- (cfc6ac5). Nothing shows any of them was ever said: they attribute praise
+-- to real publications, and one quotes a price ("130₺") the menu no longer
+-- charges. A quote from a publication that never gave it is a false
+-- endorsement, on the page and in the app's story screen alike.
+--
+-- DEACTIVATED, NOT DELETED. The rows stay in /admin/basin, switched off, so
+-- the operator can switch a genuine one back on (with its source) in one
+-- click. Deleting them would also empty the table, and the panel resource
+-- re-seeds an empty table on first read. `data.ts` no longer seeds them.
+--
+-- IDEMPOTENT and SAFE: only the seeded ids, only while they still carry the
+-- seeded outlet name - a row the operator replaced is left alone.
+--
+-- Rollback: set "isActive" = true on the same ids.
+
+update public.press
+   set "isActive" = false,
+       "updatedAt" = to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+ where id in ('press-001', 'press-002', 'press-003', 'press-004')
+   and name in ('Monocle', 'Cereal', 'Time Out İstanbul', 'Condé Nast Traveler')
+   and "isActive" = true;
+
+insert into public._migrations (name) values ('20260923141000_retire_placeholder_press.sql')
+  on conflict (name) do nothing;

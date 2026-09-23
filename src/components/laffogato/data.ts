@@ -694,6 +694,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Yulaf, badem veya laktozsuz süt seçeneği.",
         price: "25₺",
         hue: "cream",
+        // Almond is one of the three: the warning has to reach whoever picks it.
+        tags: ["nuts"],
       },
     ],
   },
@@ -724,6 +726,10 @@ export interface Product {
   img: string;
   featured?: boolean;
   isNew?: boolean;
+  /** Allergen tags in the menu's vocabulary ("nuts"), seeded onto the product
+      row. The app draws its nut warning from `tags` and nothing else, so a
+      product that carries an allergen says so here. */
+  tags?: string[];
 
   // ── Rich fields (populated by listShopProducts; absent on static seed) ──
   /** URL-safe slug for the product detail page (/magaza/urun/<slug>). */
@@ -839,6 +845,7 @@ export const PRODUCTS: Product[] = [
     desc: "İki kez pişmiş, yavaş fırın. Vin Santo veya doppio ile.",
     cat: "pantry",
     img: "pistachio",
+    tags: ["nuts"],
   },
 ];
 
@@ -921,21 +928,16 @@ export const HOME_SLIDES: HomeSlide[] = [
   },
 ];
 
-export const PRESS = [
-  {
-    name: "Monocle",
-    quote: "The most considered new espresso bar in İstanbul.",
-  },
-  { name: "Cereal", quote: "A small room that takes coffee as architecture." },
-  {
-    name: "Time Out İstanbul",
-    quote: "The edible cup is the best 130₺ you can spend.",
-  },
-  {
-    name: "Condé Nast Traveler",
-    quote: "“But first, affogato” - a worthy detour.",
-  },
-];
+/**
+ * Press quotes: only ones a publication actually gave, entered in /admin/basin
+ * with their source. The four this array used to hold (Monocle, Cereal, Time
+ * Out İstanbul, Condé Nast Traveler) were mock-up copy from the first design
+ * implementation, attributed to real publications - they are switched off in
+ * the database (20260923141000_retire_placeholder_press.sql) and no longer
+ * seeded, and an empty list hides the section rather than drawing a heading
+ * over nothing.
+ */
+export const PRESS: { name: string; quote: string }[] = [];
 
 export const STORY = {
   founder: {
