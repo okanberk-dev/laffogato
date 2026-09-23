@@ -28,7 +28,10 @@ import {
   type AddressInput,
   type NotificationPrefs,
 } from "@/lib/customer/store";
-import { linkCustomerToSupabase } from "@/lib/customer/supabase-bridge";
+import {
+  linkCustomerToSupabase,
+  linkIdentityAfterReset,
+} from "@/lib/customer/supabase-bridge";
 import { deleteMe } from "@/lib/mobile/me";
 import { ensureCustomerForSupabaseUser } from "@/lib/customer/supabase-bridge";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -125,6 +128,18 @@ export async function resetPasswordAction(
     return { error: DB_DOWN_MESSAGE };
   }
   if (!result.ok) return { error: result.error };
+
+  // The reset above mirrors the new password only to an identity the row is
+  // already linked to. A row the one-time link attempt never managed to link
+  // would otherwise keep the OLD password opening the app, so find that
+  // identity by the address the member has just proved they read, link it and
+  // write the password there as well. Inert without the service-role key, and
+  // never allowed to undo a reset that has already happened.
+  try {
+    await linkIdentityAfterReset(result.email, password);
+  } catch (err) {
+    console.error("[uye] identity link after reset failed", err);
+  }
 
   // Signed in straight away: they have just proved control of the address and
   // chosen a new password, so a second login form would be busywork.

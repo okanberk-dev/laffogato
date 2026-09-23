@@ -5,6 +5,12 @@ import type { DbError } from "@/lib/db";
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
 import { SITE } from "@/lib/seo/site";
+import {
+  findSupabaseIdentityByEmail,
+  hasServiceRole,
+  updateSupabasePassword,
+  type PasswordSync,
+} from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import { appendConsentChanges } from "./consent-ledger";
@@ -246,4 +252,142 @@ export async function linkCustomerToSupabase(
     .eq("email", email);
   checkErr(error, "supabaseBridge.linkAttempt");
   return { attempted: true, supabaseUserId, error: errorText };
+}
+
+/**
+ * What `linkIdentityAfterReset` did. Everything except `linked` leaves the row
+ * exactly as the reset left it, which is today's behaviour: the site's new
+ * password is the only one this project vouches for.
+ */
+export type ResetLinkOutcome =
+  /** Found, linked, and the new password sent (see `password`). */
+  | "linked"
+  /** The row already carries an id; the reset itself mirrored to it. */
+  | "already_linked"
+  /** No active row under this address. */
+  | "no_row"
+  /** No service-role key: nothing looked up, nothing written. */
+  | "skipped"
+  /** Supabase has no password identity under this address. */
+  | "none"
+  /** There is one, but Supabase never saw the address confirmed. */
+  | "unconfirmed"
+  /** That identity is already recorded on another row (a closed account). */
+  | "claimed"
+  | "ambiguous"
+  | "lookup_failed"
+  /** Somebody linked the row between our read and our write. */
+  | "raced";
+
+export interface ResetLinkResult {
+  outcome: ResetLinkOutcome;
+  /** Only when a password write was attempted. */
+  password?: PasswordSync;
+}
+
+/** Whether any row, closed or open, already names this identity. */
+async function identityClaimed(userId: string): Promise<boolean> {
+  const { data, error } = await getDb()
+    .from(TABLES.customers)
+    .select("id")
+    .eq("supabaseUserId", userId)
+    .limit(1);
+  checkErr(error, "supabaseBridge.claimed");
+  return ((data as unknown[] | null) ?? []).length > 0;
+}
+
+/**
+ * A site password reset, for a member whose row was never linked to their
+ * Supabase identity.
+ *
+ * `resetPasswordWithToken` mirrors the new password to the id the row
+ * carries. A row the one-time link attempt could not link (Supabase already
+ * had the address and answered with an obfuscated user, docs/AUTH-BRIDGE.md
+ * §3) carries none, so the reset changed only the bcrypt hash - and the OLD
+ * password went on opening the app, which is the credential a reset exists to
+ * kill. This finds the identity by address, links it, and writes the new
+ * password there too.
+ *
+ * Why the address is enough here and nowhere else: the member has just spent
+ * a reset link mailed to it, which is the same proof Supabase's own
+ * confirmation link tests. That is also why only a CONFIRMED identity is
+ * linked. An unconfirmed one proves nothing about who created it, it cannot
+ * sign in anyway, and linking it would make the site's sign-in treat
+ * Supabase's "e-posta doğrulanmadı" refusal as final for this member
+ * (`supabaseHoldsLatestPassword`), locking them out of the site too.
+ *
+ * An identity already named on another row is left alone: after an account
+ * closure that kept its identity (no key at the time, or a failed delete),
+ * the closed row's id is what refuses it (`identityRevoked`), and moving it
+ * onto a new row would undo that.
+ *
+ * Order: the password goes first, the link second, and the link write is
+ * conditioned on the row still being unlinked. If the process dies between
+ * the two, Supabase holds the member's NEW password and the row is merely
+ * still unlinked - the next app sign-in links it. `passwordMirroredAt` is
+ * stamped only on a confirmed write, as `recordPasswordMirror` does.
+ *
+ * Inert without the service-role key: not even the row is read. Throws only
+ * on a database failure; the caller must not let that undo the reset.
+ */
+export async function linkIdentityAfterReset(
+  email: string,
+  password: string,
+): Promise<ResetLinkResult> {
+  if (!hasServiceRole()) return { outcome: "skipped" };
+  const address = normalizeEmail(email);
+  if (!address || !password) return { outcome: "no_row" };
+
+  const existing = await fetchRaw(address);
+  if (!existing || existing.isActive === false) return { outcome: "no_row" };
+  if ((existing.supabaseUserId ?? "").trim()) {
+    return { outcome: "already_linked" };
+  }
+
+  const lookup = await findSupabaseIdentityByEmail(address);
+  switch (lookup.status) {
+    case "skipped":
+      return { outcome: "skipped" };
+    case "none":
+      return { outcome: "none" };
+    case "ambiguous":
+      return { outcome: "ambiguous" };
+    case "failed":
+      return { outcome: "lookup_failed" };
+    case "found":
+      break;
+  }
+  // PII rule for every line below: neither the address nor the id.
+  if (!lookup.confirmed) {
+    console.warn(
+      "[supabase] reset link skipped: the identity under this address is unconfirmed",
+    );
+    return { outcome: "unconfirmed" };
+  }
+  if (await identityClaimed(lookup.id)) {
+    console.warn(
+      "[supabase] reset link skipped: the identity is already recorded on another row",
+    );
+    return { outcome: "claimed" };
+  }
+
+  const sync = await updateSupabasePassword(lookup.id, password);
+  const now = new Date().toISOString();
+  const { data: written, error } = await getDb()
+    .from(TABLES.customers)
+    .update({
+      supabaseUserId: lookup.id,
+      supabaseLinkAttemptedAt: existing.supabaseLinkAttemptedAt || now,
+      passwordMirroredAt: sync === "updated" ? now : "",
+      updatedAt: now,
+    })
+    .eq("id", existing.id)
+    .eq("supabaseUserId", "")
+    .select("id");
+  checkErr(error, "supabaseBridge.resetLink");
+  if (((written as { id: string }[] | null) ?? []).length === 0) {
+    console.warn("[supabase] reset link skipped: the row was linked meanwhile");
+    return { outcome: "raced", password: sync };
+  }
+  return { outcome: "linked", password: sync };
 }

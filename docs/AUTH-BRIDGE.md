@@ -36,6 +36,7 @@ src/proxy.ts  → 1) updateSession  2) admin çerez koruması (AYNEN)
 src/lib/customer/
   supabase-link-plan.ts → planCustomerLink() vb. — SAF karar mantığı (test)
   supabase-bridge.ts    → ensureCustomerForSupabaseUser() · linkCustomerToSupabase()
+                          · linkIdentityAfterReset()
 src/lib/mobile/
   auth-core.ts → parseBearerToken() · classifyAuthError() — saf
   auth.ts      → requireMobileCustomer(request) — route'ların kapısı
@@ -46,8 +47,12 @@ src/lib/mobile/
 iş için okunur** — kapatılan hesabın Supabase kimliğini silmek, ve burada
 sıfırlanan parolayı Supabase'e yazmak. `.env.example`'da adı geçer, değeri
 boştur; `NEXT_PUBLIC_` öneki yoktur, yani tarayıcıya ya da uygulama paketine
-hiç girmez. Anahtar tanımlı değilse iki iş de sessizce atlanır ve kod eski,
-temkinli davranışına döner (§5). Publishable anahtar ve proje URL'si herkese açıktır (tarayıcıya ve
+hiç girmez. Anahtar tanımlı değilse iki iş de atlanır ve kod eski, temkinli
+davranışına döner (§5). Atlama artık sessiz değil: sunucu günlüğüne
+`[supabase] password sync skipped` / `[deleteMe] identity skipped` nedeniyle
+yazılır ve `/admin/ayarlar` sayfasının başında "Supabase servis anahtarı:
+tanımlı / tanımlı değil" satırı durur (`hasServiceRole()`; yalnız varlık,
+değer asla gösterilmez). Publishable anahtar ve proje URL'si herkese açıktır (tarayıcıya ve
 uygulamaya verilmek için tasarlanmıştır) ve `.env.example`'da değerleriyle
 durur; env boşsa `config.ts` aynı değerlere düşer, böylece env'siz bir preview
 deploy da aynı projeye giriş yapabilir.
@@ -129,17 +134,26 @@ diğeri HMAC kullanır, yenilenecek çerezleri yoktur.
   yeni üyelik açmaz (403 `account_disabled`). Ne olduğunu yanıttaki
   `identity` söyler (`deleted` · `skipped` · `failed`, `docs/API-MOBILE.md`
   §4); uygulama oturumu her durumda kapatır.
-- **Bağlanmamış satırda sıfırlama Supabase'e ulaşmaz.** `supabaseUserId` boş
-  bir satır için aynasının yazacağı bir kimlik yoktur, dolayısıyla sitede
-  sıfırlanan parola Supabase'de eski kalır ve o adresle uygulamaya ESKİ
-  parolayla girilebilir. Pencere dardır: satırın bağlanmamış olması için tek
-  seferlik köprü denemesinin "obfuscated user" tuzağına düşmüş olması gerekir
-  (§3), yani o adreste zaten bir Supabase hesabı vardır. Satır, üyenin bir
-  sonraki Supabase girişinde bağlanır ve o andan itibaren ayna çalışır.
-  Kapatmanın yolu adresten Supabase kullanıcısı aramaktır; `auth.admin`'in JS
-  istemcisi bunu sayfalayarak tüm kullanıcı listesini taramadan yapamıyor, o
-  yüzden yapılmadı. `passwordMirroredAt` bu durumu boş bırakır, dolayısıyla
-  sitedeki giriş köprüsü temkinli dalda kalır (§4).
+- **Bağlanmamış satırda sıfırlama (23 Eyl 2026'dan beri kapalı).**
+  `supabaseUserId` boş bir satırda `resetPasswordWithToken`'ın aynası yazacak
+  bir kimlik bulamaz; tek seferlik köprü denemesi "obfuscated user" tuzağına
+  düşmüşse (§3) o adreste bir Supabase hesabı vardır ve sitede sıfırlanan
+  parola orada eski kalırdı, yani uygulamaya ESKİ parolayla girilebilirdi.
+  Artık `resetPasswordAction`, sıfırlama tamamlandıktan sonra
+  `linkIdentityAfterReset`'i çağırır: GoTrue'nun `GET /admin/users?filter=`
+  ucuyla (supabase-js `listUsers` bu parametreyi geçmiyor; Supabase
+  panelinin arama kutusu aynı ucu kullanır) adresteki kimliği bulur, yalnız
+  **birebir** adres eşleşmesini sayar (filtre `LIKE %…%`'dir ve `_` joker
+  karakterdir), kimliği satıra bağlar, yeni parolayı oraya da yazar ve
+  yazma doğrulanırsa `passwordMirroredAt`'i damgalar. Sıra: önce parola,
+  sonra satırın hâlâ bağlanmamış olmasına koşullu bağlama.
+  Bağlanmayan durumlar (bugünkü davranış sürer): anahtar yok (hiçbir şey
+  okunmaz), adreste kimlik yok, kimlik Supabase'de **doğrulanmamış** (onu
+  bağlamak sitedeki girişi de kilitlerdi: Supabase'in "doğrulanmadı" reddi
+  `supabaseHoldsLatestPassword` yüzünden kesin sayılır), kimlik başka bir
+  satırda zaten kayıtlı (kapatılmış hesabın kimliği, `identityRevoked`'un
+  dayanağı), birden fazla eşleşme ya da Supabase'e ulaşılamaması. Hiçbiri
+  sıfırlamayı geri almaz. Anahtar olmadan üretimde doğrulanamaz.
 - Parola sıfırlama: iki akış da duruyor (uygulamada Supabase'inki, sitede
   `?token=`'li kendi akışımız) ama artık **iki kopya da güncelleniyor**.
   Sitede sıfırlama Supabase'e servis rolüyle yazıyor

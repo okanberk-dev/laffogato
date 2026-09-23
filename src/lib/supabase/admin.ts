@@ -5,20 +5,21 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { SUPABASE_URL } from "./config";
 
 /**
- * The service-role client — two jobs, both about a credential the member has
+ * The service-role client - two jobs, both about a credential the member has
  * asked us to destroy: deleting the sign-in identity of a member who closed
  * their account (`DELETE /me`, docs/hukuk/hesap-silme), and retiring the old
- * password when they reset it (`resetPasswordWithToken`).
+ * password when they reset it (`resetPasswordWithToken`, and for a row that
+ * was never linked, `linkIdentityAfterReset` via `findSupabaseIdentityByEmail`).
  *
  * The key bypasses every Supabase policy, so it is deliberately walled off
  * here instead of being handed to a general-purpose client:
  *   - `server-only`, and read from `process.env` with NO `NEXT_PUBLIC_`
  *     prefix, so it can never reach a browser or the app bundle;
  *   - the exports that use it (`deleteSupabaseIdentity`,
- *     `updateSupabasePassword`) touch `auth.admin` and nothing in the data
- *     schema - member records, orders and money stay in this project's own
- *     Postgres (docs/API-MOBILE.md §0). `hasServiceRole` reports presence
- *     only, never the value;
+ *     `updateSupabasePassword`, `findSupabaseIdentityByEmail`) touch the auth
+ *     admin API and nothing in the data schema - member records, orders and
+ *     money stay in this project's own Postgres (docs/API-MOBILE.md §0).
+ *     `hasServiceRole` reports presence only, never the value;
  *   - optional: without the variable the site behaves exactly as before, and
  *     the caller falls back to marking the identity closed instead.
  *
@@ -27,8 +28,16 @@ import { SUPABASE_URL } from "./config";
  * second job: site and app share one identity (docs/AUTH-BRIDGE.md), and a
  * reset that changes only this project's bcrypt hash leaves the OLD password
  * opening the app. Whoever the member is resetting against would still be in.
- * Changing another user's password is `auth.admin` work by definition — the
+ * Changing another user's password is `auth.admin` work by definition - the
  * member is not signed in at the time, that is the whole situation.
+ *
+ * The lookup is the second job's missing half, not a third job. The mirror
+ * above can only write to an identity whose id the row carries, and a row the
+ * one-time link attempt never managed to link (docs/AUTH-BRIDGE.md §3, the
+ * "obfuscated user" answer) carries none - so the OLD password kept opening
+ * the app after a reset here. Finding that identity by the address the member
+ * has just proved they read is read-only, returns an id and one flag, and is
+ * called from exactly one place.
  */
 
 declare global {
@@ -151,4 +160,134 @@ export async function updateSupabasePassword(
     );
     return "failed";
   }
+}
+
+/**
+ * What a lookup by address found.
+ *
+ * `skipped` is the same supported configuration as above (no key). `failed`
+ * is Supabase not answering, or answering with something we cannot read.
+ * `ambiguous` is more than one password identity for the one address, which
+ * GoTrue should never hold; linking either would be a guess, so neither is.
+ */
+export type IdentityLookup =
+  | { status: "found"; id: string; confirmed: boolean }
+  | { status: "none" }
+  | { status: "ambiguous" }
+  | { status: "skipped" }
+  | { status: "failed" };
+
+/** One page is plenty for one address; the loop exists for pathological data. */
+const LOOKUP_PAGE_SIZE = 100;
+const LOOKUP_MAX_PAGES = 5;
+/** A member is waiting on the reset form while this runs. */
+const LOOKUP_TIMEOUT_MS = 5_000;
+
+interface AdminUserRow {
+  id?: unknown;
+  email?: unknown;
+  email_confirmed_at?: unknown;
+  is_sso_user?: unknown;
+  is_anonymous?: unknown;
+}
+
+function isExactPasswordIdentity(user: AdminUserRow, needle: string): boolean {
+  return (
+    typeof user.email === "string" &&
+    user.email.trim().toLowerCase() === needle &&
+    // An SSO identity may share the address and has no password to set; an
+    // anonymous one has no address at all.
+    user.is_sso_user !== true &&
+    user.is_anonymous !== true
+  );
+}
+
+/**
+ * Finds the Supabase Auth user registered under exactly this address.
+ *
+ * supabase-js's `auth.admin.listUsers` takes only a page and a page size, so
+ * matching an address through it means walking the whole user list. GoTrue's
+ * own `GET /admin/users` also takes `filter`, which it applies as
+ * `email LIKE %filter% OR full_name ILIKE %filter%` - the endpoint the
+ * Supabase dashboard's search box uses. That is a SUBSTRING match, and `_` in
+ * an address is a LIKE wildcard, so every row is re-checked here for exact,
+ * case-insensitive equality before it counts.
+ *
+ * Headers are the ones supabase-js itself sends to the auth API with this key
+ * (`apikey` and a bearer), so the call authenticates exactly as
+ * `updateUserById` does. Never throws. PII rule: nothing about the address or
+ * the id is logged.
+ */
+export async function findSupabaseIdentityByEmail(
+  email: string,
+): Promise<IdentityLookup> {
+  const needle = email.trim().toLowerCase();
+  if (!needle.includes("@")) return { status: "none" };
+  const key = serviceRoleKey();
+  if (!key) return { status: "skipped" };
+
+  const matches: AdminUserRow[] = [];
+  try {
+    for (let page = 1; page <= LOOKUP_MAX_PAGES; page++) {
+      const query = new URLSearchParams({
+        page: String(page),
+        per_page: String(LOOKUP_PAGE_SIZE),
+        filter: needle,
+      });
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?${query}`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
+      });
+      if (!res.ok) {
+        console.error(`[supabase] identity lookup failed: HTTP ${res.status}`);
+        return { status: "failed" };
+      }
+      const body: unknown = await res.json();
+      const users =
+        body &&
+        typeof body === "object" &&
+        Array.isArray((body as { users?: unknown }).users)
+          ? (body as { users: AdminUserRow[] }).users
+          : null;
+      if (!users) {
+        console.error("[supabase] identity lookup failed: unexpected response");
+        return { status: "failed" };
+      }
+      for (const user of users) {
+        if (isExactPasswordIdentity(user, needle)) matches.push(user);
+      }
+      if (users.length < LOOKUP_PAGE_SIZE) break;
+      if (page === LOOKUP_MAX_PAGES) {
+        // Five full pages of partial matches: the exact one may be on a page
+        // we did not read, so "none" would be a claim we cannot back.
+        console.error("[supabase] identity lookup failed: too many partial matches");
+        return { status: "failed" };
+      }
+    }
+  } catch (err) {
+    console.error(
+      `[supabase] identity lookup threw: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return { status: "failed" };
+  }
+
+  if (matches.length === 0) return { status: "none" };
+  if (matches.length > 1) {
+    console.error("[supabase] identity lookup ambiguous: more than one identity for one address");
+    return { status: "ambiguous" };
+  }
+  const [match] = matches;
+  const id = typeof match.id === "string" ? match.id.trim() : "";
+  if (!id) {
+    console.error("[supabase] identity lookup failed: identity without an id");
+    return { status: "failed" };
+  }
+  return {
+    status: "found",
+    id,
+    confirmed:
+      typeof match.email_confirmed_at === "string" &&
+      match.email_confirmed_at.trim() !== "",
+  };
 }
