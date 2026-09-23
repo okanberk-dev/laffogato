@@ -436,6 +436,33 @@ describe("the committed build matches its sources", () => {
   });
 });
 
+describe("one dash only", () => {
+  /**
+   * The operator's rule (22 Sep 2026): the hyphen is the only dash anything
+   * we write may carry. The mail was the largest holdout: 77 visible long
+   * dashes across the designed templates, the text twins and the three
+   * Supabase auth mails pasted into the dashboard by hand.
+   */
+  const LONG_DASH = /[–—]/;
+  const SUPABASE_DIR = join(process.cwd(), "docs", "email");
+
+  it.each(NAMES)("%s writes no long dash in either half", (name) => {
+    const t = EMAIL_TEMPLATES[name];
+    expect(t.html, `${name} html`).not.toMatch(LONG_DASH);
+    expect(t.subject, `${name} subject`).not.toMatch(LONG_DASH);
+    expect(EMAIL_TEXT[name], `${name} text`).not.toMatch(LONG_DASH);
+  });
+
+  it("keeps the Supabase auth templates on the hyphen too", () => {
+    const files = readdirSync(SUPABASE_DIR).filter((f) => f.endsWith(".html"));
+    expect(files.length).toBeGreaterThan(0);
+    for (const file of files) {
+      const source = readFileSync(join(SUPABASE_DIR, file), "utf8");
+      expect(source, file).not.toMatch(LONG_DASH);
+    }
+  });
+});
+
 describe("the palette is the site's, not the handoff's", () => {
   /**
    * The design was drawn against globals.css as it stood on 8 Sep 2026 and

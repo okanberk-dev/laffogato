@@ -7,7 +7,7 @@ tek başına gerekli değil.
 
 Kaynak tasarım: Starbucks Rewards e-posta dili üzerine yazılan spesifikasyon
 (8 Eyl 2026, kampanya e-postası işi). Düzen, boşluk, ikon-disk ve bant
-dili oradan; renk ve yazı tipi `src/app/globals.css` tokenlarından — bkz.
+dili oradan; renk ve yazı tipi `src/app/globals.css` tokenlarından - bkz.
 "Palet". Dosyalar **bitmiş tasarımdır**: markup'ı yeniden çizmeden önce
 `tests/email-templates.test.ts` ve `tests/brand-theme.test.ts`'in neyi
 kilitlediğine bak.
@@ -16,29 +16,29 @@ kilitlediğine bak.
 
 | Dosya                     | Tür               | Konu                                        |
 | ------------------------- | ----------------- | ------------------------------------------- |
-| eposta-dogrulama.html     | işlemsel          | L'Affogato — e-posta adresinizi doğrulayın  |
-| sifre-sifirlama.html      | işlemsel          | L'Affogato — şifre sıfırlama                |
-| bulten-onay.html          | işlemsel          | L'Affogato — bülten aboneliğinizi onaylayın |
+| eposta-dogrulama.html     | işlemsel          | L'Affogato - e-posta adresinizi doğrulayın  |
+| sifre-sifirlama.html      | işlemsel          | L'Affogato - şifre sıfırlama                |
+| bulten-onay.html          | işlemsel          | L'Affogato - bülten aboneliğinizi onaylayın |
 | siparis-alindi.html       | işlemsel          | Siparişiniz alındı (#[SIPARIS_NO])          |
 | odeme-onaylandi.html      | işlemsel          | Ödemeniz onaylandı (#[SIPARIS_NO])          |
 | hos-geldin.html           | ilişki            | L'Affogato'ya hoş geldiniz                  |
 | karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonunuz onaylandı           |
 | karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonunuz iptal edildi        |
-| sadakat-ikram.html        | işlemsel          | Kartınız doldu — bir içecek bizden          |
-| bulten-kampanya.html      | **ticari (6563)** | [KAMPANYA_BASLIK] — 3 ürün seçkisi + kod    |
+| sadakat-ikram.html        | işlemsel          | Kartınız doldu - bir içecek bizden          |
+| bulten-kampanya.html      | **ticari (6563)** | [KAMPANYA_BASLIK] - 3 ürün seçkisi + kod    |
 | mobil-uygulama.html       | **ticari (6563)** | L'Affogato uygulaması yayında               |
-| dogum-gunu.html           | **ticari (6563)** | Doğum gününüz kutlu olsun — kahve bizden    |
-| kampanya-duyuru.html      | **ticari (6563)** | [KAMPANYA_BASLIK] — genel duyuru            |
-| kampanya-bonus-damga.html | **ticari (6563)** | [KAMPANYA_BASLIK] — bonus damga             |
-| kampanya-happy-hour.html  | **ticari (6563)** | [KAMPANYA_BASLIK] — saat bandı              |
-| kampanya-ikram.html       | **ticari (6563)** | [KAMPANYA_BASLIK] — üç adımda ikram         |
-| kampanya-etkinlik.html    | **ticari (6563)** | [KAMPANYA_BASLIK] — etkinlik                |
-| kampanya-yeni-urun.html   | **ticari (6563)** | [KAMPANYA_BASLIK] — yeni ürün / ön erişim   |
-| kampanya-indirim.html     | **ticari (6563)** | [KAMPANYA_BASLIK] — indirim                 |
+| dogum-gunu.html           | **ticari (6563)** | Doğum gününüz kutlu olsun - kahve bizden    |
+| kampanya-duyuru.html      | **ticari (6563)** | [KAMPANYA_BASLIK] - genel duyuru            |
+| kampanya-bonus-damga.html | **ticari (6563)** | [KAMPANYA_BASLIK] - bonus damga             |
+| kampanya-happy-hour.html  | **ticari (6563)** | [KAMPANYA_BASLIK] - saat bandı              |
+| kampanya-ikram.html       | **ticari (6563)** | [KAMPANYA_BASLIK] - üç adımda ikram         |
+| kampanya-etkinlik.html    | **ticari (6563)** | [KAMPANYA_BASLIK] - etkinlik                |
+| kampanya-yeni-urun.html   | **ticari (6563)** | [KAMPANYA_BASLIK] - yeni ürün / ön erişim   |
+| kampanya-indirim.html     | **ticari (6563)** | [KAMPANYA_BASLIK] - indirim                 |
 
 Ticari onlu `data-commercial="1"` taşır. `renderEmail` bu onu çıkış
 bağlantısı olmadan **derlemez**, işlemsel dokuza çıkış bağlantısı
-**koydurmaz** — ikisi de `tests/email-templates.test.ts`'te kilitli.
+**koydurmaz** - ikisi de `tests/email-templates.test.ts`'te kilitli.
 
 Konu satırı şablonun `data-subject`'idir ve `<title>` ile aynı olmak
 zorundadır; `data-preheader` ön izleme metnidir (kampanya ailesinde
@@ -55,8 +55,8 @@ ile sunar (`bulten-kampanya` da aileye dâhildir).
 
 | Şablon               | Mod  | Ne için                       | Şablona özgü alanlar                                |
 | -------------------- | ---- | ----------------------------- | --------------------------------------------------- |
-| kampanya-duyuru      | koyu | genel duyuru, gönderi kancası | —                                                   |
-| kampanya-bonus-damga | koyu | bonus damga (damga şeridi)    | —                                                   |
+| kampanya-duyuru      | koyu | genel duyuru, gönderi kancası | -                                                   |
+| kampanya-bonus-damga | koyu | bonus damga (damga şeridi)    | -                                                   |
 | kampanya-happy-hour  | koyu | saat bandı                    | `ETKINLIK_SAAT` · `ETKINLIK_TARIH` · `ETKINLIK_YER` |
 | kampanya-ikram       | açık | üç adımda ikram               | `ADIM_1..3_BASLIK` · `ADIM_1..3_METIN`              |
 | kampanya-etkinlik    | koyu | etkinlik (kod kutusu yok)     | `ETKINLIK_YER` · `ETKINLIK_TARIH` · `ETKINLIK_SAAT` |
@@ -64,9 +64,9 @@ ile sunar (`bulten-kampanya` da aileye dâhildir).
 | kampanya-indirim     | açık | indirim                       | `INDIRIM_ORAN` · `INDIRIM_URUN`                     |
 
 Ortak alanlar: `AD` · `KAMPANYA_EYEBROW` · `KAMPANYA_BASLIK` · `KAMPANYA_ALT`
-· `KAMPANYA_METIN` · `KAMPANYA_BUTON` · `KAMPANYA_URL` — zorunlu;
+· `KAMPANYA_METIN` · `KAMPANYA_BUTON` · `KAMPANYA_URL` - zorunlu;
 `KAMPANYA_VURGU` · `KAMPANYA_GORSEL_URL` (+ `KAMPANYA_GORSEL_ALT`) ·
-`KAMPANYA_TARIH` · `KAMPANYA_DIPNOT` · `KUPON_KODU` (+ `SON_KULLANIM`) —
+`KAMPANYA_TARIH` · `KAMPANYA_DIPNOT` · `KUPON_KODU` (+ `SON_KULLANIM`) -
 isteğe bağlı, aşağıdaki bayraklarla düşer.
 
 ## Şablon dili
@@ -94,7 +94,7 @@ Bayraklar `render.ts`'te hesaplanır; şablon yalnızca adını bilir:
 Bayrak kapalıysa bölüm, içindeki alanlarla birlikte düşer; `assertFilled`
 onları aramaz. Dolayısıyla isteğe bağlı bir alanı boş bırakmak serbesttir,
 ama **açık** bir bölümün ikinci alanını boş bırakmak (kod var, son kullanma
-yok) render hatasıdır — yarım bir vaat gönderilmez. Görselin alt metni
+yok) render hatasıdır - yarım bir vaat gönderilmez. Görselin alt metni
 istisna: `renderCampaignMail` boş bırakılmış `KAMPANYA_GORSEL_ALT`'a
 kampanya başlığını koyar.
 
@@ -109,12 +109,12 @@ kampanya başlığını koyar.
 | `[DAMGA_HEDEFI]`                                                                                                 | `settings.mobileApp.loyalty.stampTarget`                                                                  |
 | `[ODUL_BASLIGI]`                                                                                                 | `currentFreeDrinkReward().title`                                                                          |
 | `[KUPON_KODU]` `[SON_KULLANIM]`                                                                                  | sadakat / doğum günü: `CustomerCoupon`; kampanyada formdan (genel kod)                                    |
-| `[KARAOKE_*]`                                                                                                    | `KaraokeReservation` — `[KARAOKE_KOD]` rezervasyonun `id`'sidir (`krk-00042`), ayrı bir kod kolonu yoktur |
+| `[KARAOKE_*]`                                                                                                    | `KaraokeReservation` - `[KARAOKE_KOD]` rezervasyonun `id`'sidir (`krk-00042`), ayrı bir kod kolonu yoktur |
 | `[KAMPANYA_EYEBROW]` `[KAMPANYA_BASLIK]` `[KAMPANYA_ALT]` `[KAMPANYA_METIN]` `[KAMPANYA_BUTON]` `[KAMPANYA_URL]` | kampanya formu (`campaign_emails.fields`) ya da uygulama gönderisi (`campaignFromPost`)                   |
-| `[KAMPANYA_VURGU]` `[KAMPANYA_GORSEL_URL]` `[KAMPANYA_GORSEL_ALT]` `[KAMPANYA_TARIH]` `[KAMPANYA_DIPNOT]`        | aynı form, isteğe bağlı — boşsa bölüm düşer                                                               |
+| `[KAMPANYA_VURGU]` `[KAMPANYA_GORSEL_URL]` `[KAMPANYA_GORSEL_ALT]` `[KAMPANYA_TARIH]` `[KAMPANYA_DIPNOT]`        | aynı form, isteğe bağlı - boşsa bölüm düşer                                                               |
 | `[ETKINLIK_*]` `[ADIM_n_*]` `[INDIRIM_*]`                                                                        | aynı form, şablona göre                                                                                   |
-| `[URUN_n_*]`                                                                                                     | `bulten-kampanya` — çağıranın üç ürün seçkisi                                                             |
-| `[ABONELIK_CIKIS_URL]`                                                                                           | `unsubscribeUrlFor(token)` → `/api/bulten/cikis?token=` — `renderEmail` otomatik                          |
+| `[URUN_n_*]`                                                                                                     | `bulten-kampanya` - çağıranın üç ürün seçkisi                                                             |
+| `[ABONELIK_CIKIS_URL]`                                                                                           | `unsubscribeUrlFor(token)` → `/api/bulten/cikis?token=` - `renderEmail` otomatik                          |
 | `[APP_STORE_URL]` `[PLAY_STORE_URL]`                                                                             | `src/lib/mobile/app-store.ts` (env)                                                                       |
 
 ## Görseller
@@ -126,18 +126,18 @@ adres bu yüzden `SITE.url` değil, kanonik alan adıdır.
 
 ```
 public/email/
-  logo-laf-espresso.png · logo-laf-cream.png    600×486 kaynak, 200×162 basılır — çerçevesiz L'Af harfleri; açık kartta
+  logo-laf-espresso.png · logo-laf-cream.png    600×486 kaynak, 200×162 basılır - çerçevesiz L'Af harfleri; açık kartta
                                                 espresso, koyu mod medya sorgusu (`.em-logo-dark`) cream'i açar
-  logo-laf-glint.gif                            400×324 kaynak, 200×162 basılır — koyu yeşil bant üstünde bir kez akan
+  logo-laf-glint.gif                            400×324 kaynak, 200×162 basılır - koyu yeşil bant üstünde bir kez akan
                                                 altın parıltı; ilk karesi düz cream mark (Outlook GIF oynatmaz, onu gösterir)
-  logo-laf-gold.png                             600×486 — altın ton; şu an hiçbir şablon çağırmıyor, yedek
-  mono-{cream,gold,golddeep}.png                57×102 kaynak, 19×34 basılır — alt bilgideki L'Af monogramı (şablonlar golddeep)
-  bean-{cream,espresso,gold,golddeep}.png       66×176 kaynak, 8×22 basılır — tarih/etkinlik satırının önündeki çekirdek;
+  logo-laf-gold.png                             600×486 - altın ton; şu an hiçbir şablon çağırmıyor, yedek
+  mono-{cream,gold,golddeep}.png                57×102 kaynak, 19×34 basılır - alt bilgideki L'Af monogramı (şablonlar golddeep)
+  bean-{cream,espresso,gold,golddeep}.png       66×176 kaynak, 8×22 basılır - tarih/etkinlik satırının önündeki çekirdek;
                                                 koyu bantta gold, açık kartta golddeep
-  band-{dark,light}-{top,bottom}.png            1196 px kaynak, 598 px basılır — organik bantlar
-  stamp-{empty,full}.png                        96×96 kaynak, 40×40 basılır — damga kartı hücreleri
+  band-{dark,light}-{top,bottom}.png            1196 px kaynak, 598 px basılır - organik bantlar
+  stamp-{empty,full}.png                        96×96 kaynak, 40×40 basılır - damga kartı hücreleri
   check-badge.png · wave-success.png            ödeme onayı rozeti (56×56 basılır) / dalgası (598 px)
-  icons/<ad>-{cream,espresso,gold,hero}.png     96×96 kaynak, 40–48 px basılır — disk ikonlar
+  icons/<ad>-{cream,espresso,gold,hero}.png     96×96 kaynak, 40-48 px basılır - disk ikonlar
 ```
 
 Logo üç dosyadır: mail istemcisi bir maskeyi boyayamadığı için ton başına
@@ -155,19 +155,19 @@ phone · pin · qr · receipt · scooter · star · store · tag · users.
 
 Kampanya görseli (`KAMPANYA_GORSEL_URL`) ise formdan gelen, barındırılmış
 bir `https` görselidir; boşsa hero satırı düşer. Yeni bir sabit görsel
-`public/email/`e girer ve deploy ile yayına çıkar — şablon deploy'dan önce
+`public/email/`e girer ve deploy ile yayına çıkar - şablon deploy'dan önce
 gönderilirse görsel kırık gelir. `tests/brand-theme.test.ts` her şablonun
 en az bir `laffogato.net/email/` varlığı çağırdığını ve çağırdığı her
 dosyanın diskte olduğunu doğrular.
 
 ## Palet
 
-Palet **sitenin** `globals.css` tokenlarıdır — uygulamanın Starbucks-ID
+Palet **sitenin** `globals.css` tokenlarıdır - uygulamanın Starbucks-ID
 paleti (`#29623F` / `#D1C59B`) değil (spesifikasyon §8, 8 Eyl 2026).
 Gerekçe: mailleri site gönderir, bağlantılar siteye iner ve
 `tests/brand-theme.test.ts` mail HTML'ini sitenin tokenlarına kilitler
 (`background:#143d2b` ve `color:#201c17` zorunlu; `#235347` ve emekli
-terrakota yasak). Site 5–7 Eyl'de Köşk + tricolore paletine geçti; bordo
+terrakota yasak). Site 5-7 Eyl'de Köşk + tricolore paletine geçti; bordo
 (`#84233c`) mailde **kullanılmaz**, dil yeşil + altın + krem.
 
 | Rol                                         | Token                                        | Değer                             |
@@ -190,7 +190,7 @@ terrakota yasak). Site 5–7 Eyl'de Köşk + tricolore paletine geçti; bordo
 | Dış zemin (kartın arkası)                   | `--bg-stone`                                 | `#f1eee8`                         |
 
 Yazı: Montserrat yığını (`--sans`). Web fontu Gmail/Outlook'ta yüklenmez,
-Helvetica/Arial'a düşer — ağırlık ve harf aralığı ayrımı taşıyor.
+Helvetica/Arial'a düşer - ağırlık ve harf aralığı ayrımı taşıyor.
 `tests/brand-theme.test.ts` bu dosyaları da okuyor: emekli palet geri
 gelirse build düşer.
 
@@ -209,6 +209,6 @@ npx vitest run tests/brand-theme.test.ts   # görsel varlıkları + palet
 ```
 
 Tarayıcıda görmek için `npm run dev` sonrası
-`/dev/mail/<dosya-adi>` (düz metin için `?format=text`) — yalnız geliştirmede,
+`/dev/mail/<dosya-adi>` (düz metin için `?format=text`) - yalnız geliştirmede,
 production'da 404. Kampanya ailesi için örnek değerler `SAMPLE`'da; bir alanı
 silip bölümün nasıl düştüğünü oradan görebilirsin.

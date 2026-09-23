@@ -1,8 +1,8 @@
 /**
  * Template + values -> the three strings `send()` wants.
  *
- * Everything a template says about the business — address, hours, phone,
- * socials — is baked into the HTML, and every one of those values was
+ * Everything a template says about the business - address, hours, phone,
+ * socials - is baked into the HTML, and every one of those values was
  * checked against `SITE` and `LEGAL_ENTITY` when the templates were
  * migrated. The sender's registered title and MERSİS number on commercial
  * mail are the exception: they come from `LEGAL_ENTITY` through
@@ -39,7 +39,7 @@ export interface RenderInput {
   /** The plain-text alternative, with the same `[FIELD]`s as the HTML. */
   text: string;
   /**
-   * Required on a commercial template, rejected on a transactional one — the
+   * Required on a commercial template, rejected on a transactional one - the
    * asymmetry is the law's, not a preference (see `send.ts`).
    */
   unsubscribeUrl?: string;
@@ -78,12 +78,12 @@ export function renderEmail(
   }
   if (!template.commercial && input.unsubscribeUrl) {
     throw new Error(
-      `${name}: işlemsel iletiye çıkış bağlantısı konmaz — abonelikten çıkılamayan bir mesajda çıkış teklif etmek yanıltıcıdır.`,
+      `${name}: işlemsel iletiye çıkış bağlantısı konmaz - abonelikten çıkılamayan bir mesajda çıkış teklif etmek yanıltıcıdır.`,
     );
   }
 
   // The link in the footer and the `List-Unsubscribe` header have to be the
-  // same URL — a body link that outlives the header (or vice versa) is the
+  // same URL - a body link that outlives the header (or vice versa) is the
   // failure 6563 actually punishes. So the caller gives it once, here.
   const vars: TemplateVars = {
     ...commonVars(),
@@ -103,7 +103,7 @@ export function renderEmail(
     // The campaign family's optional blocks follow their field: no image URL,
     // no hero row; no code, no code box. A dropped block takes the fields
     // inside it along, so `assertFilled` never asks for a value the operator
-    // deliberately left blank — but a block that IS open still needs every
+    // deliberately left blank - but a block that IS open still needs every
     // field in it (a code without an expiry is a render error, not a gap).
     GORSEL: Boolean(vars.KAMPANYA_GORSEL_URL),
     KOD: Boolean(vars.KUPON_KODU),

@@ -10,10 +10,10 @@
  * Same voice as the templates: "siz", sentence case, no shouting.
  */
 
-const SIGNATURE = `—
+const SIGNATURE = `-
 L'Affogato · Coffee Italiano
 Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla / İstanbul
-Her gün 09:00 – 02:00 · +90 536 429 09 19
+Her gün 09:00 - 02:00 · +90 536 429 09 19
 laffogato.net · @laffogatto`;
 
 /**
@@ -25,8 +25,8 @@ laffogato.net · @laffogatto`;
  * general rule (Ticari İletişim Yönetmeliği m.6, "adı veya unvanı") is met by
  * the signature above; the rule for the CONTENT of a commercial electronic
  * message (m.8/1) asks a tacir for the ticaret unvanı and the MERSİS number
- * as well, so one quiet line carries both — under the address, as in the
- * HTML — and nothing more (operator, 8 Sep 2026: keep the foot short). Both
+ * as well, so one quiet line carries both - under the address, as in the
+ * HTML - and nothing more (operator, 8 Sep 2026: keep the foot short). Both
  * values come from `LEGAL_ENTITY` through `commonVars`, never typed here.
  */
 const COMMERCIAL_FOOTER = `[UNVAN] · MERSİS: [MERSIS]
@@ -44,7 +44,7 @@ KVKK aydınlatma metni: https://laffogato.net/hukuk/kvkk-aydinlatma-metni`;
 // the block between the highlight and the code box. The shared halves live
 // here once. Every optional block carries its own line breaks INSIDE the
 // `<!--IF:-->` markers, so a dropped block leaves exactly one blank line
-// behind rather than three — `fillText` resolves the markers before it fills.
+// behind rather than three - `fillText` resolves the markers before it fills.
 
 /** Eyebrow, title, subtitle, and the hero image when there is one. */
 const CAMPAIGN_HEAD = `[KAMPANYA_EYEBROW]
@@ -85,9 +85,9 @@ ${COMMERCIAL_FOOTER}`;
 /** The three-step "nasıl yararlanırım" list (ikram, yeni ürün). */
 const CAMPAIGN_STEPS = `
 Nasıl yararlanırım
-1. [ADIM_1_BASLIK] — [ADIM_1_METIN]
-2. [ADIM_2_BASLIK] — [ADIM_2_METIN]
-3. [ADIM_3_BASLIK] — [ADIM_3_METIN]
+1. [ADIM_1_BASLIK] - [ADIM_1_METIN]
+2. [ADIM_2_BASLIK] - [ADIM_2_METIN]
+3. [ADIM_3_BASLIK] - [ADIM_3_METIN]
 `;
 
 export const EMAIL_TEXT = {
@@ -123,7 +123,7 @@ bağlantıdan belirleyebilirsiniz:
 [SIFIRLAMA_URL]
 
 Bağlantı bir saat geçerlidir ve yalnızca bir kez kullanılabilir. Bu talebi
-siz yapmadıysanız hiçbir şey yapmanıza gerek yok — mevcut şifreniz değişmez.
+siz yapmadıysanız hiçbir şey yapmanıza gerek yok - mevcut şifreniz değişmez.
 
 ${SIGNATURE}`,
 
@@ -142,7 +142,7 @@ Toplam: [TOPLAM]
 
 Siparişiniz: [SIPARIS_URL]
 
-Sipariş sırasında onayladığınız belgeler — kalıcı veri saklayıcısı olarak
+Sipariş sırasında onayladığınız belgeler - kalıcı veri saklayıcısı olarak
 saklamanız için:
 [BELGELER]
 
@@ -150,7 +150,7 @@ ${SIGNATURE}`,
 
   "odeme-onaylandi": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
-Ödemeniz alındı ve siparişiniz onaylandı — hazırlanmaya başlandı.
+Ödemeniz alındı ve siparişiniz onaylandı - hazırlanmaya başlandı.
 
 Sipariş No: #[SIPARIS_NO]
 
@@ -158,12 +158,12 @@ Sipariş No: #[SIPARIS_NO]
 
 Ödenen toplam: [TOPLAM]
 
-[DAMGA_HEDEFI] damgada bir içecek bizden — bu siparişle bir damga daha
+[DAMGA_HEDEFI] damgada bir içecek bizden - bu siparişle bir damga daha
 kazandınız.
 
 Sipariş durumu: [SIPARIS_URL]
 
-Sipariş sırasında onayladığınız belgeler — kalıcı veri saklayıcısı olarak
+Sipariş sırasında onayladığınız belgeler - kalıcı veri saklayıcısı olarak
 saklamanız için:
 [BELGELER]
 
@@ -172,12 +172,12 @@ ${SIGNATURE}`,
   "hos-geldin": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
 L'Affogato'ya hoş geldiniz. Yenilebilir waffle kupada Sirena espresso ve
-fior di latte gelato — imza ritüelimiz. Tuzla'da 200 yıllık, Rum'lardan
+fior di latte gelato - imza ritüelimiz. Tuzla'da 200 yıllık, Rum'lardan
 kalma restore bir köşkte sizi bekliyoruz.
 
-Menü — 12 kategori: [MENU_URL]
+Menü - 12 kategori: [MENU_URL]
 Mağaza (500,00 ₺ üzeri kargo ücretsiz): laffogato.net/magaza
-Ziyaret — her gün 09:00 – 02:00: laffogato.net/ziyaret
+Ziyaret - her gün 09:00 - 02:00: laffogato.net/ziyaret
 
 Hesabınız: [HESAP_URL]
 
@@ -193,9 +193,9 @@ Size özel kod: [KUPON_KODU]
 Son kullanma: [SON_KULLANIM]
 
 Ayın seçkisi:
-- [URUN_1_AD] — [URUN_1_NOT] · [URUN_1_FIYAT]
-- [URUN_2_AD] — [URUN_2_NOT] · [URUN_2_FIYAT]
-- [URUN_3_AD] — [URUN_3_NOT] · [URUN_3_FIYAT]
+- [URUN_1_AD] - [URUN_1_NOT] · [URUN_1_FIYAT]
+- [URUN_2_AD] - [URUN_2_NOT] · [URUN_2_FIYAT]
+- [URUN_3_AD] - [URUN_3_NOT] · [URUN_3_FIYAT]
 
 [KAMPANYA_BUTON]: [KAMPANYA_URL]
 
@@ -224,7 +224,7 @@ ${SIGNATURE}`,
 
   // The cancellation twin. Same shape, same greeting without a name: the
   // member is told what changed, what it cost them (nothing) and how to get
-  // another evening — nothing to confirm, nothing to click.
+  // another evening - nothing to confirm, nothing to click.
   "karaoke-iptal": `Merhaba,
 
 Karaoke rezervasyonunuz iptal edildi. Oda serbest bırakıldı; sizden bir şey
@@ -244,7 +244,7 @@ ${SIGNATURE}`,
 
   "sadakat-ikram": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
-Kartınız doldu — [DAMGA_HEDEFI] damga tamamlandı ve bir içecek bizden.
+Kartınız doldu - [DAMGA_HEDEFI] damga tamamlandı ve bir içecek bizden.
 
 Ödül: [ODUL_BASLIGI]
 Kupon kodu: [KUPON_KODU]
@@ -263,7 +263,7 @@ rezervasyonunuz artık telefonunuzda.
 App Store: [APP_STORE_URL]
 Google Play: [PLAY_STORE_URL]
 
-Uygulamayı kurmak istemezseniz sorun değil — hesabınız laffogato.net
+Uygulamayı kurmak istemezseniz sorun değil - hesabınız laffogato.net
 üzerinde aynı şekilde çalışıyor.
 
 ${SIGNATURE}
@@ -272,7 +272,7 @@ ${COMMERCIAL_FOOTER}`,
 
   "dogum-gunu": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
-Doğum gününüz kutlu olsun — bugün bir kahve bizden.
+Doğum gününüz kutlu olsun - bugün bir kahve bizden.
 
 Kupon kodu: [KUPON_KODU]
 Son kullanma: [SON_KULLANIM]
@@ -286,7 +286,7 @@ ${COMMERCIAL_FOOTER}`,
 
   // ── kampanya-* ──────────────────────────────────────────────────────────
 
-  /** General announcement — also what an app post turns into. */
+  /** General announcement - also what an app post turns into. */
   "kampanya-duyuru": `${CAMPAIGN_HEAD}${CAMPAIGN_BODY}${CAMPAIGN_CODE}${CAMPAIGN_TAIL}`,
 
   /** Bonus stamps; the stamp-card row is imagery only, nothing to say here. */

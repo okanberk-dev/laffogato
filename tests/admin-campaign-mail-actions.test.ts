@@ -231,7 +231,7 @@ describe("sendCampaignMailAction", () => {
   it("refuses a campaign with a hole in it, naming the field, and sends nothing", async () => {
     getCampaignEmail.mockResolvedValue(draft());
     queueCampaignEmail.mockRejectedValue(
-      new Error("kampanya-duyuru: doldurulmamış alan — [KAMPANYA_METIN]"),
+      new Error("kampanya-duyuru: doldurulmamış alan - [KAMPANYA_METIN]"),
     );
 
     const state = await sendCampaignMailAction("cmail-1", {}, new FormData());
@@ -642,7 +642,7 @@ describe("the post hook", () => {
     createAppPost.mockResolvedValue(post({ body: "" }));
     createCampaignEmail.mockResolvedValue(draft({ id: "cmail-p3" }));
     queueCampaignEmail.mockRejectedValue(
-      new Error("kampanya-duyuru: doldurulmamış alan — [KAMPANYA_METIN]"),
+      new Error("kampanya-duyuru: doldurulmamış alan - [KAMPANYA_METIN]"),
     );
 
     await createPostAction(postForm({ body: "" }));

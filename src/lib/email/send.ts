@@ -34,7 +34,7 @@ function headerSafe(raw: string): string {
   return raw.replace(/[\r\n]+/g, " ").trim();
 }
 
-/** `ed**@example.com` — enough to recognise a row, not enough to be one. */
+/** `ed**@example.com` - enough to recognise a row, not enough to be one. */
 function maskEmail(address: string): string {
   const at = address.indexOf("@");
   if (at < 1) return "***";
@@ -62,15 +62,15 @@ export interface EmailIdentity {
   from: string;
   /** Empty when the operator has not set one. */
   replyTo: string;
-  /** True once `RESEND_API_KEY` is present — i.e. mail actually leaves. */
+  /** True once `RESEND_API_KEY` is present - i.e. mail actually leaves. */
   hasProvider: boolean;
 }
 
 /**
  * Who the mail comes from, in priority order:
  *
- *   1. Ayarlar → "E-posta gönderimi" — changeable from the panel, no deploy
- *   2. `EMAIL_FROM` — the escape hatch for a deployment with no database
+ *   1. Ayarlar → "E-posta gönderimi" - changeable from the panel, no deploy
+ *   2. `EMAIL_FROM` - the escape hatch for a deployment with no database
  *   3. `L'Affogato <siparis@laffogato.net>`
  *
  * Resend only delivers from a domain verified on the account (SPF + DKIM),
@@ -118,7 +118,7 @@ interface SendArgs {
   text?: string;
   /**
    * Set on commercial messages only. Transactional mail (order confirmation,
-   * shipping, password reset) must NOT carry it — those are not subject to
+   * shipping, password reset) must NOT carry it - those are not subject to
    * consent and offering to unsubscribe from them is misleading.
    */
   unsubscribeUrl?: string;
@@ -130,7 +130,7 @@ export type SendResult = { ok: true } | { ok: false; error: string };
  * One delivery attempt, with the provider's own words on failure.
  *
  * `send()` throws them away and returns a boolean, which is right for the
- * order path — a customer must not lose an order because mail bounced — but
+ * order path - a customer must not lose an order because mail bounced - but
  * useless to an operator asking why nothing arrives. "The laffogato.net
  * domain is not verified" is the answer, and it only exists here.
  */
@@ -144,9 +144,9 @@ async function deliver({
   const key = process.env.RESEND_API_KEY;
   const { from, replyTo } = await emailIdentity();
   if (!key) {
-    // No provider configured. The body is worth logging in development —
+    // No provider configured. The body is worth logging in development -
     // without it a verification link is unrecoverable and the flow untestable
-    // — but it carries a single-use token URL and the recipient is a customer
+    // - but it carries a single-use token URL and the recipient is a customer
     // address, so neither goes to a production log (CLAUDE.md §9).
     if (process.env.NODE_ENV === "production") {
       console.info(`[email] (no provider) → ${maskEmail(to)} · ${subject}`);
@@ -207,7 +207,7 @@ function resendMessage(status: number, body: string): string {
       if (typeof m === "string" && m) return m;
     }
   } catch {
-    // Not JSON — fall through.
+    // Not JSON - fall through.
   }
   return `${status}: ${body.slice(0, 200)}`;
 }
@@ -217,23 +217,23 @@ async function send(args: SendArgs): Promise<boolean> {
 }
 
 /**
- * Ayarlar → "Test e-postası gönder". Proves the whole chain — key, verified
- * domain, sender address — in one click, and says what broke when it breaks.
+ * Ayarlar → "Test e-postası gönder". Proves the whole chain - key, verified
+ * domain, sender address - in one click, and says what broke when it breaks.
  */
 export async function sendTestEmail(to: string): Promise<SendResult> {
   const { from } = await emailIdentity();
   return deliver({
     to,
-    subject: "L'Affogato — e-posta ayarları testi",
+    subject: "L'Affogato - e-posta ayarları testi",
     text: `Bu bir testtir. Bu mesaj sana ulaştıysa L'Affogato'nun sipariş, doğrulama ve şifre sıfırlama e-postaları da ulaşacak.
 
 Gönderen: ${from}
 
-— L'Affogato`,
+- L'Affogato`,
     html: `<div style="font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
   <p style="font-size:15px;line-height:1.6">Bu bir testtir. Bu mesaj sana ulaştıysa L'Affogato'nun sipariş, doğrulama ve şifre sıfırlama e-postaları da ulaşacak.</p>
   <p style="font-size:13px;color:#5f594e">Gönderen: ${from.replace(/</g, "&lt;")}</p>
-  <p style="font-size:13px;color:#201c17;margin-top:24px">— L'Affogato · Coffee Italiano</p>
+  <p style="font-size:13px;color:#201c17;margin-top:24px">- L'Affogato · Coffee Italiano</p>
 </div>`,
   });
 }
@@ -247,8 +247,8 @@ Gönderen: ${from}
 /**
  * Render + deliver, with the render failure contained.
  *
- * `renderEmail` throws on an unfilled `[FIELD]` — which is what we want, a
- * half-written message must not leave — but this is also the path a customer's
+ * `renderEmail` throws on an unfilled `[FIELD]` - which is what we want, a
+ * half-written message must not leave - but this is also the path a customer's
  * order confirmation takes, and an order must not fail because a template did.
  * So it is logged loudly and swallowed, exactly as a provider outage is.
  */
@@ -285,7 +285,7 @@ export async function sendVerificationEmail(
 
 /**
  * Double opt-in (6563): the footer form's request, confirmed from the owner's
- * inbox. Transactional — it asks, it does not advertise — so it carries no
+ * inbox. Transactional - it asks, it does not advertise - so it carries no
  * unsubscribe link; nothing commercial is sent until it is confirmed.
  */
 export async function sendNewsletterConfirmEmail(
@@ -337,7 +337,7 @@ function orderLinesText(items: OrderEmailData["items"]): string {
   return items
     .map(
       (it) =>
-        `  • ${it.productName} × ${it.qty} — ${formatTRYMinor(it.unitPriceMinor * it.qty)}`,
+        `  • ${it.productName} × ${it.qty} - ${formatTRYMinor(it.unitPriceMinor * it.qty)}`,
     )
     .join("\n");
 }
@@ -433,7 +433,7 @@ export interface KaraokeEmailData {
   time: string;
   guests: number;
   /**
-   * The reservation id — `krk-00042` — which is what the member is asked for
+   * The reservation id - `krk-00042` - which is what the member is asked for
    * at the door. There is no separate "reservation code" column and none is
    * needed: the id is already unique, sequential and readable, and it is the
    * string both halves of the message print.
@@ -458,7 +458,7 @@ function karaokeVars(k: KaraokeEmailData) {
  * Sent when staff confirm a karaoke block (`setReservationStatus`).
  *
  * Transactional: the member asked for the evening and is being told whether
- * they have it. No consent gate, no unsubscribe link — `renderEmail` refuses
+ * they have it. No consent gate, no unsubscribe link - `renderEmail` refuses
  * to put one on this template.
  */
 export async function sendKaraokeConfirmationEmail(
@@ -484,7 +484,7 @@ export async function sendKaraokeCancellationEmail(
  * Deliberately not `KaraokeEmailData`: that one is the MEMBER's confirmation
  * and its template says "Saatiniz ayrıldı". A reservation arrives with
  * `status: "requested"`, so telling the member it is confirmed would be a
- * promise the staff have not made yet. This is the other direction — the room
+ * promise the staff have not made yet. This is the other direction - the room
  * is booked by hand, and nobody was being told.
  */
 export interface KaraokeOperatorNotice {
@@ -497,7 +497,7 @@ export interface KaraokeOperatorNotice {
   time: string;
   guests: number;
   totalMinor: number;
-  /** The member's own note, or "" — printed as-is, never interpreted. */
+  /** The member's own note, or "" - printed as-is, never interpreted. */
   note: string;
 }
 
@@ -506,7 +506,7 @@ export interface KaraokeOperatorNotice {
  *
  * INTERNAL mail: it goes to the operator address in Ayarlar
  * (`settings.email`), carries no unsubscribe header (it is not a commercial
- * message and offering to unsubscribe from it would be misleading — see
+ * message and offering to unsubscribe from it would be misleading - see
  * `SendArgs.unsubscribeUrl`), and is written as plain text because its reader
  * is a person behind a counter deciding whether to confirm, not a customer
  * being courted.
@@ -515,7 +515,7 @@ export interface KaraokeOperatorNotice {
  * module: the operator has to be able to reply to them, and this message goes
  * to the business's own inbox rather than to a customer.
  *
- * Failure is swallowed by the caller, not here — a booking must never be lost
+ * Failure is swallowed by the caller, not here - a booking must never be lost
  * because mail bounced, and the row is in the panel either way.
  */
 export async function sendKaraokeOperatorEmail(
@@ -540,11 +540,11 @@ export async function sendKaraokeOperatorEmail(
     `Kişi        : ${k.guests}`,
     `Tutar       : ${formatTRYMinor(k.totalMinor)}`,
     ``,
-    `Üye         : ${k.customerName.trim() || "—"}`,
+    `Üye         : ${k.customerName.trim() || "-"}`,
     `E-posta     : ${k.customerEmail}`,
     ...(k.note.trim() ? [``, `Notu        : ${k.note.trim()}`] : []),
     ``,
-    `Durum: TALEP EDİLDİ — onaylanana kadar oda tutulmuş sayılmaz.`,
+    `Durum: TALEP EDİLDİ - onaylanana kadar oda tutulmuş sayılmaz.`,
     `Onaylamak ya da iptal etmek için: https://laffogato.net/admin/mobil/karaoke`,
   ];
 
@@ -585,14 +585,14 @@ export async function sendLoyaltyRewardEmail(
 
 // ── Commercial (6563) ──────────────────────────────────────────────────────
 //
-// The commercial templates — the three below and the `kampanya-*` family at
-// the end of this file — carry an unsubscribe link and only go to an address
+// The commercial templates - the three below and the `kampanya-*` family at
+// the end of this file - carry an unsubscribe link and only go to an address
 // that has consented. `renderEmail` refuses to build them without
 // `unsubscribeUrl`, and refuses to put one on any of the transactional
 // templates above.
 
 /**
- * `${SITE.url}/api/bulten/cikis?token=…` — the token is on the subscriber
+ * `${SITE.url}/api/bulten/cikis?token=…` - the token is on the subscriber
  * (or, for a member, the customer) row.
  *
  * The route handler is what makes the `List-Unsubscribe-Post` header honest:
@@ -608,7 +608,7 @@ export function unsubscribeUrlFor(unsubToken: string): string {
  * The app launch announcement.
  *
  * Unlike the other nine, this one has nothing left to say without the store
- * links — the strip is the message — so it is not sent at all until both
+ * links - the strip is the message - so it is not sent at all until both
  * listings exist.
  */
 export async function sendAppAnnouncementEmail(
@@ -638,14 +638,14 @@ export interface BirthdayEmailData {
   name: string;
   unsubToken: string;
   /**
-   * From `grantBirthdayCouponToday` — and only when it actually WROTE a row.
+   * From `grantBirthdayCouponToday` - and only when it actually WROTE a row.
    * That single fact is the run's idempotency key: a member already greeted
    * this year gets `null` back and no message.
    */
   couponCode: string;
   /**
    * Already formatted: "23 Eylül 2026". Seven days from the grant, which is
-   * what both halves of the template promise — see `BIRTHDAY.ttlDays`.
+   * what both halves of the template promise - see `BIRTHDAY.ttlDays`.
    */
   expiresAt: string;
 }
@@ -656,7 +656,7 @@ export interface BirthdayEmailData {
  * COMMERCIAL (6563): a celebration wrapped around a %20 offer is still an
  * offer, so it only goes to a member whose `marketing` preference is on and
  * who has a consent record, and it carries `List-Unsubscribe`. The coupon
- * itself is not a message and is granted without that gate — a member who
+ * itself is not a message and is granted without that gate - a member who
  * declined commercial mail still finds their gift in the app.
  */
 export async function sendBirthdayEmail(
@@ -677,8 +677,8 @@ export async function sendBirthdayEmail(
 // The operator-composed family: seven `kampanya-*` layouts plus the older
 // three-pick newsletter. Every one is commercial, so `renderEmail` insists on
 // the unsubscribe URL; every one takes its copy from the admin form as a flat
-// `Record<string, string>`, and the optional blocks — image, code, date,
-// footnote, highlight — follow the presence of their field (`render.ts`).
+// `Record<string, string>`, and the optional blocks - image, code, date,
+// footnote, highlight - follow the presence of their field (`render.ts`).
 
 export type CampaignTemplateName =
   | "kampanya-duyuru"
@@ -706,7 +706,7 @@ export const CAMPAIGN_TEMPLATES: readonly CampaignTemplateName[] = [
  *
  * Shared by the admin preview, the test send and the batch runner so all three
  * see the same message. Throws on an unfilled field, exactly as `renderEmail`
- * does — a campaign with a hole in it must fail before the queue, not in it.
+ * does - a campaign with a hole in it must fail before the queue, not in it.
  *
  * A hero image without alt text falls back to the campaign title rather than
  * failing the whole send over a field the form left blank; the code box has no
@@ -761,14 +761,14 @@ export async function sendCampaignMail(
   });
 }
 
-// ── Toplu gönderim — Resend batch ──────────────────────────────────────────
+// ── Toplu gönderim - Resend batch ──────────────────────────────────────────
 
 export interface BatchMessage {
   to: string;
   subject: string;
   html: string;
   text: string;
-  /** Commercial mail only — becomes the List-Unsubscribe pair, as in `deliver`. */
+  /** Commercial mail only - becomes the List-Unsubscribe pair, as in `deliver`. */
   unsubscribeUrl?: string;
 }
 
@@ -786,7 +786,7 @@ export type BatchDeliveryResult =
 /** Resend's batch endpoint takes at most this many messages per call. */
 export const BATCH_LIMIT = 100;
 
-/** Every address-shaped substring, masked — for logging a provider error body. */
+/** Every address-shaped substring, masked - for logging a provider error body. */
 function maskAddressesIn(text: string): string {
   return text.replace(/[^\s@"'<>]+@[^\s@"'<>]+/g, (m) => maskEmail(m));
 }
@@ -802,7 +802,7 @@ function parseRetryAfter(res: Response): number | undefined {
   return Number.isNaN(at) ? undefined : Math.max(0, at - Date.now());
 }
 
-/** `{"data":[{"id":"…"},…]}` — the ids in message order; an odd body yields none. */
+/** `{"data":[{"id":"…"},…]}` - the ids in message order; an odd body yields none. */
 async function batchIds(res: Response): Promise<string[]> {
   try {
     const parsed: unknown = await res.json();
@@ -824,7 +824,7 @@ async function batchIds(res: Response): Promise<string[]> {
 }
 
 /**
- * Up to 100 messages in one request — `POST /emails/batch`.
+ * Up to 100 messages in one request - `POST /emails/batch`.
  *
  * Same sender, reply-to and unsubscribe headers as `deliver()`, but the
  * identity is resolved once per call rather than once per message; the
@@ -838,7 +838,7 @@ async function batchIds(res: Response): Promise<string[]> {
  * because only the caller knows what "the same batch" means.
  *
  * On success the ids come back in message order. On failure the whole batch
- * failed as one — Resend accepts or rejects the array atomically — and the
+ * failed as one - Resend accepts or rejects the array atomically - and the
  * status is kept so a 429 can be told from a 403. Addresses are logged masked
  * only, and never more than the first.
  */

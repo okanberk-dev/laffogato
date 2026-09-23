@@ -2,19 +2,19 @@
  * The three things the mail templates need from a template engine, and
  * nothing else.
  *
- *   `[FIELD]`                              — a value
- *   `<!--IF:FLAG-->…<!--/IF:FLAG-->`       — a section that may not apply
- *   `<!--EACH:ROWS-->…<!--/EACH:ROWS-->`   — a row repeated per item
+ *   `[FIELD]`                              - a value
+ *   `<!--IF:FLAG-->…<!--/IF:FLAG-->`       - a section that may not apply
+ *   `<!--EACH:ROWS-->…<!--/EACH:ROWS-->`   - a row repeated per item
  *
  * The templates are e-mail HTML: tables, inline styles, no scripts. A real
  * template engine would parse and re-serialise that, and every pass through
  * risks a client-specific attribute (`mso-line-height-rule`, conditional
  * comments) being "helpfully" normalised away. So this stays textual.
  *
- * Deliberately NO "server-only" — the render tests import it directly.
+ * Deliberately NO "server-only" - the render tests import it directly.
  */
 
-/** `[FIELD]` — uppercase, digits and underscores, which is what the design used. */
+/** `[FIELD]` - uppercase, digits and underscores, which is what the design used. */
 const FIELD = /\[([A-Z0-9_]+)\]/g;
 
 const HTML_ESCAPES: Record<string, string> = {
@@ -30,7 +30,7 @@ const HTML_ESCAPES: Record<string, string> = {
  *
  * `[AD]` is whatever the customer typed at signup and `[KUPON_KODU]` comes
  * from the database, so neither can be pasted into markup raw. Escaping `&`
- * is also what an `href` needs — `?a=1&b=2` is `&amp;` in HTML.
+ * is also what an `href` needs - `?a=1&b=2` is `&amp;` in HTML.
  */
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (c) => HTML_ESCAPES[c] ?? c);
@@ -65,7 +65,7 @@ const raw = (v: string) => v;
 /**
  * The same substitution with no escaping, for the two places that are not
  * HTML: the subject line and the plain-text part. `&` has to stay `&` in a
- * subject — `&amp;` there is a visible bug in every inbox.
+ * subject - `&amp;` there is a visible bug in every inbox.
  */
 export function fillText(
   template: string,
@@ -112,6 +112,6 @@ export function fill(template: string, opts: RenderOptions): string {
 export function assertFilled(html: string, label: string): void {
   const left = [...new Set(html.match(FIELD) ?? [])];
   if (left.length > 0) {
-    throw new Error(`${label}: doldurulmamış alan — ${left.join(", ")}`);
+    throw new Error(`${label}: doldurulmamış alan - ${left.join(", ")}`);
   }
 }

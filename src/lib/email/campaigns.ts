@@ -30,8 +30,8 @@ import { EMAIL_TEXT } from "./text";
  *
  * A campaign is a `campaign_emails` row the panel composes (template, the
  * template's `[ALAN]` values, which consent store the recipients come from).
- * "Gönder" materialises the audience into `campaign_email_sends` — one row
- * per address, in batches of 100 — and a runner works the batches through
+ * "Gönder" materialises the audience into `campaign_email_sends` - one row
+ * per address, in batches of 100 - and a runner works the batches through
  * Resend's batch endpoint, settling each batch with one UPDATE.
  *
  * The audience RULE lives in the database (`campaign_email_audience`, see
@@ -54,7 +54,7 @@ import { EMAIL_TEXT } from "./text";
  * runners never split a batch between them. The runner writes `postedAt` on
  * the batch BEFORE the POST; a batch posted but never settled is re-posted
  * under its key only inside that window, and settled as failed by the claim
- * once the window has closed — never mailed a second time. A mark settles
+ * once the window has closed - never mailed a second time. A mark settles
  * only the rows of the runner's own claim (`claimedAt`), so a runner that
  * stalled and lost its batch to another cannot settle what it did not send.
  */
@@ -103,7 +103,7 @@ export interface CampaignInput {
   fields: Record<string, string>;
   sourcePostId?: string;
   createdBy: string;
-  /** ISO-8601 instant, or "" — see `CampaignEmail.scheduledAt`. */
+  /** ISO-8601 instant, or "" - see `CampaignEmail.scheduledAt`. */
   scheduledAt?: string;
 }
 
@@ -143,9 +143,9 @@ const STALE_AFTER_MS = 15 * 60_000;
  * the first request. A batch posted earlier than this and never settled
  * cannot be re-posted safely: the same key would be accepted as a new
  * request and the batch delivered twice. The threshold is checked when the
- * batch is CLAIMED, and the retry POST comes later — after the render, the
+ * batch is CLAIMED, and the retry POST comes later - after the render, the
  * pause between batches and up to three 429 back-offs, on a clock that is
- * not the provider's — so the window is treated as 22 hours: two hours of
+ * not the provider's - so the window is treated as 22 hours: two hours of
  * margin against a claim at 23:58 whose POST lands at 24:01.
  */
 const POSTED_EXPIRES_MS = 22 * 60 * 60_000;
@@ -166,7 +166,7 @@ function checkErr(error: DbError | null, ctx: string): void {
   if (error) raiseDbError(ctx, error, error.code === "" ? 0 : 400);
 }
 
-/** `ed**@example.com` — enough to recognise a row in a log, not to be one. */
+/** `ed**@example.com` - enough to recognise a row in a log, not to be one. */
 function maskEmail(address: string): string {
   const at = address.indexOf("@");
   if (at < 1) return "***";
@@ -201,7 +201,7 @@ const optionalText = (max: number, label: string) =>
 /**
  * The same parse the mobile-content store applies to a post link: `new URL`
  * rejects what a regex waves through, and the protocol test rejects
- * `javascript:` and `data:` — the two that turn a link into an injection.
+ * `javascript:` and `data:` - the two that turn a link into an injection.
  * A data: image in particular cannot go into mail at all.
  */
 const httpsUrl = (label: string) =>
@@ -285,7 +285,7 @@ function parseFields(raw: Record<string, string>): Record<string, string> {
 }
 
 /**
- * Turkey has been on UTC+3 all year round since September 2016 — no summer
+ * Turkey has been on UTC+3 all year round since September 2016 - no summer
  * time, no second offset to guess. So a wall-clock the operator types is an
  * instant, deterministically.
  */
@@ -298,7 +298,7 @@ const LOCAL_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/;
  * A stored `scheduledAt`: an ISO-8601 instant, or "".
  *
  * The panel's `datetime-local` input carries NO zone, and `Date.parse` on a
- * zoneless string uses the running machine's — which on Vercel is UTC. An
+ * zoneless string uses the running machine's - which on Vercel is UTC. An
  * operator who typed "14 Şubat 09:00" would have got 12:00 in Tuzla. So a
  * zoneless value is read as Istanbul wall time, explicitly; a value that
  * already names a zone is taken as it is.
@@ -316,7 +316,7 @@ function normalizeScheduledAt(raw: string | undefined): string {
 }
 
 /**
- * The stored instant back as the `datetime-local` value that produced it —
+ * The stored instant back as the `datetime-local` value that produced it -
  * Istanbul wall time, minutes, no zone. Without this the edit form would
  * reopen a 09:00 schedule as 06:00 and saving it again would walk it back
  * three hours every time.
@@ -565,7 +565,7 @@ async function patchCampaign(
 // ── Rendering ──────────────────────────────────────────────────────────────
 
 /**
- * The dummy way out in a preview or a test send — spends nothing. Built the
+ * The dummy way out in a preview or a test send - spends nothing. Built the
  * way every member's link is (`/api/bulten/cikis`, the route that answers
  * both the footer click and the RFC 8058 POST), so the test message the
  * operator inspects carries the same path and headers the members' will.
@@ -621,7 +621,7 @@ export async function sendCampaignTest(
 // ── Audience and queue ─────────────────────────────────────────────────────
 
 /**
- * Dry count for the confirmation before "Gönder" — the same function the
+ * Dry count for the confirmation before "Gönder" - the same function the
  * enqueue reads, so the number shown is the number queued.
  */
 export async function countCampaignAudience(
@@ -641,7 +641,7 @@ export async function countCampaignAudience(
  *
  * Fails fast: one sample recipient is rendered first, so a template missing
  * a field throws HERE, naming the field, before a single row is queued.
- * Allowed from draft, queued, sending and failed — the enqueue is idempotent
+ * Allowed from draft, queued, sending and failed - the enqueue is idempotent
  * (existing recipients are skipped, skipped rows go back in the queue,
  * newcomers get fresh batch numbers), so pressing "Gönder" twice is safe.
  */
@@ -690,7 +690,7 @@ async function claimBatch(id: string): Promise<CampaignSendRow[]> {
 /**
  * Records the hand-off BEFORE the POST: every row of the batch still
  * 'sending' under THIS claim and not yet posted gets `postedAt` now. The
- * first hand-off time stands on a retry — the provider's idempotency window
+ * first hand-off time stands on a retry - the provider's idempotency window
  * runs from the first post, and overwriting it would let a batch outlive
  * that window unnoticed.
  */
@@ -711,7 +711,7 @@ async function markPosted(
 }
 
 /**
- * Settles the batch — the rows this runner's claim stamped with `claimedAt`
+ * Settles the batch - the rows this runner's claim stamped with `claimedAt`
  * and no others. A runner that stalled past the stale window and whose
  * batch was reclaimed by another finds nothing to mark, rather than marking
  * as sent rows it never delivered.
@@ -811,7 +811,7 @@ export interface RunResult {
  * Guards, in order: `CAMPAIGN_EMAIL_DRY_RUN=1` renders and marks every row
  * skipped without an HTTP call; no `RESEND_API_KEY` marks the batch skipped
  * and fails the campaign (re-queue once the key exists); a non-production
- * Vercel deployment refuses a real send — every link in the message would
+ * Vercel deployment refuses a real send - every link in the message would
  * point at the preview host.
  */
 export async function runCampaignEmail(
@@ -881,7 +881,7 @@ export async function runCampaignEmail(
         await markBatch(id, batchNo, claimedAt, "skipped", [], stop);
         failed += messages.length;
       } else if (previewHost) {
-        stop = `Önizleme dağıtımından (VERCEL_ENV=${vercelEnv}) gerçek gönderim yapılmaz — her bağlantı önizleme adresine işaret ederdi. Denemek için CAMPAIGN_EMAIL_DRY_RUN=1.`;
+        stop = `Önizleme dağıtımından (VERCEL_ENV=${vercelEnv}) gerçek gönderim yapılmaz - her bağlantı önizleme adresine işaret ederdi. Denemek için CAMPAIGN_EMAIL_DRY_RUN=1.`;
         await markBatch(id, batchNo, claimedAt, "skipped", [], stop);
         failed += messages.length;
       } else if (messages.length === 0) {
@@ -921,7 +921,7 @@ export async function runCampaignEmail(
 
     // An empty claim is not the end: the lowest open batch may be 'sending'
     // under another runner (the panel's after() and the cron overlapping, a
-    // second "Gönder"). Those rows are not ours to close — the campaign stays
+    // second "Gönder"). Those rows are not ours to close - the campaign stays
     // 'sending', the other runner or the cron finishes it, and the counters
     // are refreshed from the rows as they settle.
     const left = await remainingCount(id);
@@ -969,7 +969,7 @@ export async function runCampaignEmail(
 }
 
 /**
- * Queues every draft whose `scheduledAt` has come — the whole of "özel
+ * Queues every draft whose `scheduledAt` has come - the whole of "özel
  * günler".
  *
  * There is no separate scheduler and no special-days table: the operator
@@ -978,8 +978,8 @@ export async function runCampaignEmail(
  * Everything downstream (audience rule, 100-a-batch, idempotency key, retry)
  * is the pipeline that was already there.
  *
- * A campaign that cannot be queued — a hole in the template, a status that
- * moved on — is logged and its schedule cleared so the next hour does not
+ * A campaign that cannot be queued - a hole in the template, a status that
+ * moved on - is logged and its schedule cleared so the next hour does not
  * retry it forever; the draft stays a draft for a person to fix. Every other
  * campaign in the sweep still goes.
  */
@@ -1082,7 +1082,7 @@ export async function resumePendingCampaigns(
 
 // ── From a mobile post ─────────────────────────────────────────────────────
 
-/** The sub-line under the title, per kind — the mail's answer to "why now?". */
+/** The sub-line under the title, per kind - the mail's answer to "why now?". */
 const POST_ALT_BY_KIND: Record<AppPostKind, string> = {
   campaign: "Bu ay köşkte",
   collab: "İş birliği",
