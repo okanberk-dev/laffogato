@@ -52,6 +52,12 @@ Veritabanına dokunan testler yalnızca `TEST_DATABASE_URL` verilince çalışı
 TEST_DATABASE_URL=postgres://user@host:5432/db npm test
 ```
 
+Bu adres **yalnız tek kullanımlık bir test veritabanını** göstermeli: testler
+tabloları geniş silmelerle temizler (ör. ödeme bekleyen bütün siparişler), bu
+yüzden Neon'u ya da üretimdeki herhangi bir veritabanını asla vermeyin. CI bu
+testleri her çalıştırmada kendi `postgres:16` servisine karşı koşar
+(`.github/workflows/ci.yml`).
+
 ---
 
 ## Yapı
