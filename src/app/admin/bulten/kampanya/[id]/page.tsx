@@ -165,9 +165,9 @@ export default async function CampaignMailDetailPage({
             )}
             {isDraft && c.scheduledAt && (
               <p className="mt-3 text-xs text-neutral-500">
-                Bu taslak zamanı gelince kendiliğinden kuyruğa alınır; saatlik
-                görev onu yakalar. Beklemek istemezsen aşağıdan şimdi
-                gönderebilirsin.
+                Bu taslak zamanı geldikten sonraki ilk görev turunda (genelde
+                birkaç saat içinde) kendiliğinden kuyruğa alınır. Beklemek
+                istemezsen aşağıdan şimdi gönderebilirsin.
               </p>
             )}
             {resumable && (

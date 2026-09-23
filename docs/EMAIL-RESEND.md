@@ -526,8 +526,8 @@ sözleşmenin §18/§19'u, panel sinyalleri) depoda bekledi.
 
 | Yol | Program | Ne yapar |
 |---|---|---|
-| `/api/cron/daily` | 06:00 | kampanyalar → doğum günü → imha, sırayla |
-| `/api/cron/campaign-emails` | 12:00 | zamanlanmış kampanyalar için ikinci geçiş |
+| `/api/cron/daily` | 06:00 UTC (09:00 İstanbul) | kampanyalar → doğum günü → imha, sırayla |
+| `/api/cron/campaign-emails` | 12:00 UTC (15:00 İstanbul) | zamanlanmış kampanyalar için ikinci geçiş |
 
 > ⚠️ **Kanonik ad APEX: `https://laffogato.net`** (22 Eyl 2026 kararı).
 > canonical, sitemap, og:url ve JSON-LD `@id`ler bunu yayımlar;
@@ -541,10 +541,21 @@ sözleşmenin §18/§19'u, panel sinyalleri) depoda bekledi.
 > ile yazılmalı; `curl` çağrılarına `--location-trusted` eklenmeli.
 > Geliver kurulumu ve doğrulama planı: **`docs/GELIVER.md`**.
 
-Saatlik hassasiyet ise **ücretsiz** geri geldi: `.github/workflows/campaign-hourly.yml`
-saatte bir `/api/cron/campaign-emails`e vuruyor. Üstüne konan bir katman, tek
-bayrak direği değil — GitHub'ın zamanlanmış işleri gecikebilir, o zaman
-Vercel'in 06:00 ve 12:00 geçişleri yine alır. Hiçbir kampanya kaybolmaz.
+Aradaki boşluğu `.github/workflows/campaign-hourly.yml` **ücretsiz daraltır**:
+programı `0 * * * *` olarak `/api/cron/campaign-emails`e vurur. Ama bu
+**saatlik değildir**: GitHub zamanlanmış işleri garanti etmez, yoğunlukta
+erteler ve atlar. Ölçüm (22-23 Eyl 2026, `gh run list`): turlar arası 2 ile
+5,5 saat. Üstüne konan bir katman, tek bayrak direği değil; iş hiç çalışmasa
+da Vercel'in 06:00 ve 12:00 UTC geçişleri alır. Hiçbir kampanya kaybolmaz,
+yalnız gecikebilir. Panel bu yüzden zamanlanmış kampanya için "genelde birkaç
+saat içinde" der ve belli bir sabah çıkacak gönderiyi birkaç saat öne kurmayı
+önerir (karar campaign-cadence (a), 23 Eyl 2026).
+
+**Saatlik hassasiyet gerekirse** iki yol var, ikisi de operatör kararı:
+(b) dış bir zamanlayıcı (cron-job.org, Upstash QStash) aynı uca saatte bir
+`Authorization: Bearer <CRON_SECRET>` ile `https://laffogato.net/api/cron/campaign-emails`
+GET atar (hesabı operatör açar, secret'ı oraya o girer); (c) Vercel Pro'da
+eski saatlik cron satırı geri konur (aşağıda).
 
 > **Tek seferlik kurulum - yapıldı (22 Eyl 2026):** depo → Settings →
 > Secrets and variables → Actions → `CRON_SECRET` tanımlı (`gh secret list`:
@@ -567,20 +578,23 @@ zamanlı karşılaştırma; `CRON_SECRET` tanımsızsa **503**, yanlışsa 401.
 Vercel başlığı kendisi ekler; yapılacak tek şey ortam değişkenini tanımlamak
 (`.env.example`).
 
-| Görev                       | Sıklık      | Ne yapar                                                                                                                             |
-| --------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `/api/cron/campaign-emails` | `0 * * * *` | (1) `scheduledAt`'i gelmiş taslakları kuyruğa alır, (2) `queued`/`sending` her kampanyayı kaldığı yerden sürdürür — ortak süre 240 s |
-| `/api/cron/birthday`        | `0 6 * * *` | o günün doğum günleri: kupon herkese, kutlama yalnız izin verene                                                                     |
+| Görev                       | Kim, ne sıklıkla                                                  | Ne yapar                                                                                                                             |
+| --------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `/api/cron/daily`           | Vercel, `0 6 * * *` (UTC)                                         | aşağıdaki kampanya işi, sonra doğum günü, en son imha                                                                                |
+| `/api/cron/campaign-emails` | Vercel `0 12 * * *` (UTC) + GitHub Actions (2-5,5 saatte bir)     | (1) `scheduledAt`'i gelmiş taslakları kuyruğa alır, (2) `queued`/`sending` her kampanyayı kaldığı yerden sürdürür; ortak süre 240 s |
+| `/api/cron/birthday`        | programda değil (işi `/api/cron/daily` yapar)                     | o günün doğum günleri: kupon herkese, kutlama yalnız izin verene                                                                     |
 
-Kampanya görevi **saatlik**tir: zamanlamanın saati ancak böyle anlamlı olur.
-Boş bir kuyruk ucuzdur (tek `select`), bu yüzden sıklık maliyet getirmez.
+Kampanya işi ne kadar sık koşarsa zamanlamanın saati o kadar anlamlı olur;
+boş bir kuyruk ucuzdur (tek `select`), bu yüzden sıklık maliyet getirmez.
+Bugünkü sıklık yukarıdaki "birkaç saat" sınırıdır.
 
 ### Zamanlanmış kampanya — "özel günler"
 
 Anneler Günü, yılbaşı, 14 Şubat, köşkün yıldönümü: ayrı bir "özel günler"
 tablosu **yok** ve olmayacak. Eksik olan kampanya değil, zamanlamaydı.
 Taslağa bir `scheduledAt` (panelde "Gönderim zamanı", `datetime-local`)
-yazılır; saatlik cron zamanı gelmiş **taslakları** `queueCampaignEmail` ile
+yazılır; zamanı geldikten sonraki ilk kampanya turu (genelde birkaç saat
+içinde, yukarıda) zamanı gelmiş **taslakları** `queueCampaignEmail` ile
 kuyruğa alır ve gerisi bu belgenin geri kalanında anlatılan boru hattıdır.
 
 - Saat **İstanbul saatidir.** Alan zonesizdir, sunucu UTC'dedir; sunucunun
@@ -590,8 +604,8 @@ kuyruğa alır ve gerisi bu belgenin geri kalanında anlatılan boru hattıdır.
 - Okunamayan bir değer sessizce **boşa** döner: kimsenin seçmediği bir saatte
   ticari ileti çıkmaz.
 - Kuyruğa alınamayan bir taslağın (şablonda boş zorunlu alan) zamanlaması
-  **temizlenir** ve sebep `lastError`'a yazılır — her saat yeniden denenip
-  duran bir kampanya olmaz; taslak operatörü bekler.
+  **temizlenir** ve sebep `lastError`'a yazılır; her turda yeniden denenip
+  duran bir kampanya olmaz, taslak operatörü bekler.
 - Zamanlamadan vazgeçmek: alanı boşaltıp taslağı yeniden kaydet.
 
 ### Doğum günü — kupon ile mail aynı şey değildir

@@ -147,7 +147,7 @@ export function CampaignMailForm({
         <div className="mt-4">
           <Field
             label="Gönderim zamanı"
-            hint="Boş bırakırsan kampanya yalnız “Gönder”e bastığında çıkar. Bir tarih–saat yazarsan saatlik görev o an gelince kendisi kuyruğa alır — Anneler Günü, yılbaşı, 14 Şubat sabahı panelin başında olmana gerek kalmaz. Saat İstanbul saatidir; bir taslak kaydedildiği andan itibaren geçerlidir."
+            hint="Boş bırakırsan kampanya yalnız “Gönder”e bastığında çıkar. Bir tarih-saat yazarsan zamanı geldikten sonraki ilk görev turu onu kendisi kuyruğa alır: bu genelde birkaç saat içindedir, tam o dakikada değil. Belli bir sabah çıkması gerekiyorsa (Anneler Günü, yılbaşı, 14 Şubat) saati birkaç saat öne kur; panelin başında olmana gerek kalmaz. Saat İstanbul saatidir; bir taslak kaydedildiği andan itibaren geçerlidir."
           >
             <TextInput
               name="scheduledAt"
@@ -158,9 +158,9 @@ export function CampaignMailForm({
           </Field>
           {scheduledAt && (
             <p className="mt-2 text-xs text-amber-700">
-              Zamanı gelince kampanya <strong>kendiliğinden</strong> gider;
-              içeriğin tamam olduğundan emin ol. Vazgeçersen bu alanı boşaltıp
-              taslağı yeniden kaydet.
+              Zamanı geldikten sonra birkaç saat içinde kampanya{" "}
+              <strong>kendiliğinden</strong> gider; içeriğin tamam olduğundan
+              emin ol. Vazgeçersen bu alanı boşaltıp taslağı yeniden kaydet.
             </p>
           )}
         </div>

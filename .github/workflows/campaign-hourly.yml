@@ -1,24 +1,27 @@
-# Zamanlanmış kampanyalar için saatlik tetikleyici.
+# Zamanlanmış kampanyalar için ek tetikleyici (programı saatlik yazılı).
 #
 # Vercel'in Hobby planı iki cron ve yalnız günlük program veriyor; fazlasını
-# isteyen bir `vercel.json` cron'u değil **deploy'u** düşürüyor (16–22 Eyl
+# isteyen bir `vercel.json` cron'u değil **deploy'u** düşürüyor (16-22 Eyl
 # 2026 arası üretime hiçbir şey çıkmamasının sebebi buydu). Kampanya
-# zamanlaması ise saatlik çalışmak istiyor: panelde 14:00'e kurulmuş bir
-# gönderi 14:00'te çıkmalı.
+# zamanlaması ise Vercel'in günde iki geçişinden daha sık bakılmak istiyor.
 #
-# Bu iş o boşluğu ücretsiz kapatıyor — GitHub Actions saatte bir aynı uca
-# vuruyor, Vercel'in kendi iki cron'u da yerinde duruyor. Yani:
+# Bu iş o boşluğu ücretsiz daraltıyor: GitHub Actions aynı uca vuruyor,
+# Vercel'in kendi iki cron'u da yerinde duruyor. Yani:
 #
-#   · bu iş çalışırsa  → kampanya saatinde çıkar
-#   · çalışmazsa       → `/api/cron/daily` 06:00 ve ikinci geçiş 12:00 yine
-#                         alır; hiçbir kampanya kaybolmaz, yalnız gecikir
+#   · bu iş çalışırsa  → kampanya, zamanından sonraki ilk turda çıkar
+#   · çalışmazsa       → `/api/cron/daily` 06:00 UTC ve ikinci geçiş 12:00 UTC
+#                         yine alır; hiçbir kampanya kaybolmaz, yalnız gecikir
 #
-# GitHub'ın zamanlanmış işleri yoğun saatlerde birkaç dakika GECİKEBİLİR ve
-# garanti edilmez; bu yüzden tek bayrak direği değil, üstüne konan bir katman.
+# "0 * * * *" saatte bir çalışmak DEMEK DEĞİL: GitHub zamanlanmış işleri
+# garanti etmez, yoğunlukta erteler ve atlar. Ölçüm (22-23 Eyl 2026): turlar
+# arası 2 ile 5,5 saat. Panel bu yüzden "genelde birkaç saat içinde" der.
+# Saatlik hassasiyet gerekirse dış bir zamanlayıcı (cron-job.org, QStash)
+# aynı uca `Authorization: Bearer <CRON_SECRET>` ile vurur ya da Vercel Pro
+# cron'u kullanılır (docs/EMAIL-RESEND.md §7).
 #
-# KURULUM (tek seferlik): depo → Settings → Secrets and variables → Actions →
-# New repository secret → `CRON_SECRET`, değeri Vercel'dekiyle **birebir aynı**.
-# Secret tanımlı değilken iş kendini atlar — 503 alıp kırmızı yanmaz.
+# KURULUM (tek seferlik, 22 Eyl 2026'da yapıldı): depo → Settings → Secrets
+# and variables → Actions → `CRON_SECRET`, değeri Vercel'dekiyle **birebir
+# aynı**. Secret tanımlı değilken iş kendini atlar; 503 alıp kırmızı yanmaz.
 
 name: campaign-hourly
 # Actions bu dosyayi listeye almamisti; yeniden taranmasi icin dokunuldu.
