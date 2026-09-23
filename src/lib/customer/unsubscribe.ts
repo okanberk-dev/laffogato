@@ -5,6 +5,8 @@ import type { DbError } from "@/lib/db";
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
 
+import { appendConsentChanges } from "./consent-ledger";
+
 /**
  * A member's way out of commercial mail without logging in.
  *
@@ -58,15 +60,19 @@ export async function disableCustomerMarketingByEmail(
   checkErr(error, "disableCustomerMarketingByEmail.select");
   if (!data) return false;
   const row = data as { id: string; notificationPrefs?: PrefsRow };
+  const off = commercialOff(row.notificationPrefs);
   const { error: updErr } = await db
     .from(TABLES.customers)
     .update({
-      notificationPrefs: commercialOff(row.notificationPrefs),
+      notificationPrefs: off,
       marketingConsentAt: "",
       updatedAt: new Date().toISOString(),
     })
     .eq("id", row.id);
   checkErr(updErr, "disableCustomerMarketingByEmail.update");
+  await appendConsentChanges(email, row.notificationPrefs, off, {
+    source: "newsletter-unsubscribe",
+  });
   return true;
 }
 
@@ -107,10 +113,11 @@ export async function unsubscribeCustomerByToken(
 
   // Conditioned on the token still being there, so two clicks racing the
   // same link cannot both report success.
+  const off = commercialOff(row.notificationPrefs);
   const { data: spent, error: updErr } = await db
     .from(TABLES.customers)
     .update({
-      notificationPrefs: commercialOff(row.notificationPrefs),
+      notificationPrefs: off,
       marketingConsentAt: "",
       unsubToken: "",
       updatedAt: new Date().toISOString(),
@@ -123,6 +130,9 @@ export async function unsubscribeCustomerByToken(
   if (rows.length === 0) return null;
 
   const email = String(rows[0].email).trim().toLowerCase();
+  await appendConsentChanges(email, row.notificationPrefs, off, {
+    source: "unsubscribe-link",
+  });
   try {
     await deactivateNewsletterRow(email);
   } catch (err) {

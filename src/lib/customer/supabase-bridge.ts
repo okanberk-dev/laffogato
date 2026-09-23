@@ -7,6 +7,7 @@ import { raiseDbError } from "@/lib/db/health";
 import { SITE } from "@/lib/seo/site";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+import { appendConsentChanges } from "./consent-ledger";
 import { grantWelcomeCoupon } from "./coupons";
 import {
   activatePendingNewsletter,
@@ -134,6 +135,13 @@ async function reconcile(
       checkErr(error, "supabaseBridge.insert");
     }
     created = true;
+    // The consent the member gave in the app's sign-up form (Supabase
+    // metadata), into the history. No IP: this request is not where the
+    // box was ticked.
+    await appendConsentChanges(email, null, plan.row.notificationPrefs, {
+      source: "app-signup",
+      ip: "",
+    });
   } else if (plan.action === "update") {
     const { error } = await db
       .from(TABLES.customers)

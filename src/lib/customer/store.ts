@@ -10,6 +10,7 @@ import { raiseDbError } from "@/lib/db/health";
 import { updateSupabasePassword } from "@/lib/supabase/admin";
 import { getSupabaseAnonClient } from "@/lib/supabase/anon";
 
+import { appendConsentChanges, type ConsentSource } from "./consent-ledger";
 import { grantWelcomeCoupon } from "./coupons";
 
 export interface CustomerAddress {
@@ -349,6 +350,11 @@ export async function registerCustomer(
     }
     throw new Error(`registerCustomer: ${error.message}`);
   }
+  // The boxes ticked on the sign-up form, into the consent history.
+  await appendConsentChanges(email, null, customer.notificationPrefs, {
+    source: "site-signup",
+    now: new Date(now),
+  });
   return { ok: true, customer: toPublicCustomer(customer), verifyToken: token };
 }
 
@@ -1087,6 +1093,7 @@ export async function toggleWishlist(
 export async function updateNotificationPrefs(
   email: string,
   prefs: NotificationPrefs,
+  consent: { source: ConsentSource; ip?: string } = { source: "site-account" },
 ): Promise<PublicCustomer | null> {
   const needle = normalizeEmail(email);
   const sb = getDb();
@@ -1111,6 +1118,13 @@ export async function updateNotificationPrefs(
     })
     .eq("email", needle);
   checkErr(error, "updateNotificationPrefs");
+  if (existing) {
+    await appendConsentChanges(needle, existing.notificationPrefs, sanitized, {
+      source: consent.source,
+      ip: consent.ip,
+      now: new Date(now),
+    });
+  }
   const updated = await fetchCustomer(needle);
   return updated ? toPublicCustomer(updated) : null;
 }
@@ -1195,6 +1209,7 @@ export async function adminUpdateCustomer(
 ): Promise<AdminCustomer | null> {
   const needle = normalizeEmail(email);
   const sb = getDb();
+  const before = await fetchCustomer(needle);
   const update = {
     name: input.name.trim().slice(0, 100),
     phone: input.phone.trim().slice(0, 30),
@@ -1211,6 +1226,16 @@ export async function adminUpdateCustomer(
     .update(update)
     .eq("email", needle);
   checkErr(error, "adminUpdateCustomer");
+  if (before) {
+    // Recorded as the panel's act, not the member's: no IP, source "admin".
+    // The admin's identity is in the audit log the action writes.
+    await appendConsentChanges(
+      needle,
+      before.notificationPrefs,
+      update.notificationPrefs,
+      { source: "admin", ip: "" },
+    );
+  }
   return getAdminCustomerByEmail(needle);
 }
 

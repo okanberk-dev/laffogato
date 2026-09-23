@@ -42,6 +42,9 @@ describe("every retention period is quoted from the published policy", () => {
       "auth_attempts",
       "campaign_email_sends",
       "counter_tokens",
+      // The member's consent history: three years after the consent stopped
+      // being valid (a withdrawal record, for as long).
+      "customer_consents",
       // Resend bounces and complaints: part of the commercial send record,
       // three years from the latest event.
       "email_suppressions",
@@ -118,6 +121,12 @@ describe("report mode is the default", () => {
           },
         };
       },
+      // Rules whose period needs SQL (customer_consents) count through a
+      // function; counting must be asked for with p_apply false.
+      rpc(fn: string, args: { p_apply: boolean }) {
+        seen.push(args.p_apply ? `delete:${fn}` : `count:${fn}`);
+        return Promise.resolve({ data: 4, error: null });
+      },
     };
     vi.doMock("@/lib/db", () => ({
       getDb: () => db,
@@ -126,6 +135,11 @@ describe("report mode is the default", () => {
         campaignEmailSends: "campaign_email_sends",
         auditLogs: "audit_logs",
         counterTokens: "counter_tokens",
+        customerConsents: "customer_consents",
+        emailSuppressions: "email_suppressions",
+        featureConsents: "feature_consents",
+        falReadings: "fal_readings",
+        falReports: "fal_reports",
       },
     }));
     vi.resetModules();
@@ -169,6 +183,11 @@ describe("report mode is the default", () => {
           },
         };
       },
+      rpc(fn: string, args: { p_apply: boolean; p_cutoff: string }) {
+        const rule = RETENTION_RULES.find((r) => r.rpc === fn)!;
+        if (args.p_apply) deleted.push(rule.table);
+        return Promise.resolve({ data: 2, error: null });
+      },
     };
     vi.doMock("@/lib/db", () => ({
       getDb: () => db,
@@ -177,6 +196,11 @@ describe("report mode is the default", () => {
         campaignEmailSends: "campaign_email_sends",
         auditLogs: "audit_logs",
         counterTokens: "counter_tokens",
+        customerConsents: "customer_consents",
+        emailSuppressions: "email_suppressions",
+        featureConsents: "feature_consents",
+        falReadings: "fal_readings",
+        falReports: "fal_reports",
       },
     }));
     vi.resetModules();

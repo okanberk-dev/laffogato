@@ -51,6 +51,13 @@ export interface RetentionRule {
   basis: string;
   /** Why this number, when it is not simply the published one. */
   note?: string;
+  /**
+   * A SQL function `(p_cutoff text, p_apply boolean) returns integer` that
+   * counts (and, when applying, deletes) the rows in scope, for a period the
+   * single `column < cutoff` test cannot express. It honours the same
+   * cutoff; `column` then only names the stamp the function reads.
+   */
+  rpc?: string;
 }
 
 export const RETENTION_RULES: readonly RetentionRule[] = [
@@ -97,6 +104,23 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "from the LATEST event (updatedAt), so an address that keeps bouncing " +
       "stays suppressed; three years without one, and the address may be " +
       "mailed again if its owner still consents.",
+  },
+  {
+    id: "customer-consents",
+    table: TABLES.customerConsents,
+    column: "createdAt",
+    idColumn: "id",
+    days: 3 * YEAR_DAYS,
+    rpc: "customer_consents_retention",
+    basis:
+      "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca onayın geçerliliğinin sona erdiği tarihten itibaren 3 yıl; onayın geri alınması hâlinde ret kaydı, aynı alıcıya tekrar ileti gönderilmemesini sağlamak amacıyla bu süre boyunca tutulur.",
+    note:
+      "Measured from the moment the consent STOPPED being valid, which no " +
+      "single column holds: a row goes once a withdrawal for the same " +
+      "address and purpose, appended at or after it, is three years old " +
+      "(the withdrawal record itself included). A consent that still " +
+      "stands is never in scope, however old - it is the proof the member's " +
+      "mail rests on. Counted in 366-day years.",
   },
   {
     id: "audit-logs",
@@ -214,6 +238,18 @@ async function runRule(
 ): Promise<RetentionOutcome> {
   const cutoff = cutoffFor(rule, now);
   const base = { id: rule.id, table: rule.table, cutoff };
+
+  if (rule.rpc) {
+    const { data, error } = await getDb().rpc<number>(rule.rpc, {
+      p_cutoff: cutoff,
+      p_apply: apply,
+    });
+    if (error) {
+      return { ...base, matched: 0, destroyed: 0, error: error.message };
+    }
+    const affected = Number(data ?? 0);
+    return { ...base, matched: affected, destroyed: apply ? affected : 0 };
+  }
 
   // `neq(column, "")` matters: every timestamp column in this schema defaults
   // to the empty string, and "" sorts before any ISO-8601 instant. Without it

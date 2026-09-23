@@ -185,6 +185,7 @@ minimizasyonu ihlaliydi (KVKK m.4/2-d).
 | ---------------------- | ----------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `auth_attempts`        | `updatedAt` | **7 gün**  | "…5651 sayılı Kanun kapsamındaki asgari süreye uygun olarak **1 yıl**…" — bu bir **tavan**; satırın amacı 5 dakikada biter |
 | `campaign_email_sends` | `createdAt` | **3 yıl**  | Ticari İletişim Yönetmeliği — gönderim kaydı için **asgari** süre                                                          |
+| `customer_consents`    | (fonksiyon) | **3 yıl**  | "onayın geçerliliğinin sona erdiği tarihten itibaren 3 yıl; ... ret kaydı ... bu süre boyunca" - aşağıya bak               |
 | `email_suppressions`   | `updatedAt` | **3 yıl**  | Ticari ileti gönderim kaydı ("kayıt tarihinden itibaren 3 yıl"); son bounce/şikâyetten sayılır                            |
 | `audit_logs`           | `createdAt` | **10 yıl** | "İşlemin gerçekleştiği tarihten itibaren 10 yıl… (append-only)" — **asgari**                                               |
 | `counter_tokens`       | `expiresAt` | **1 gün**  | Jeton süresinin dolmasına bağlı otomatik imha; kalıcı kayıt `loyalty_stamps`'tir                                           |
@@ -219,6 +220,38 @@ Bu tam değer aranır — `1`, `true`, `yes` açmaz. **Önce birkaç gün kuru
 
 Yanıt gövdesi yalnızca **sayı** taşır; hiçbir anahtar, adres ya da IP ne
 loglanır ne döndürülür (`auth_attempts.key` üçünü birden içerir).
+
+### Rıza defteri (`customer_consents`)
+
+Üyenin ticari ileti tercihinin (`marketing`, `newsletter`) **geçmişi**. Okuma
+modeli yine `customers."notificationPrefs"` + `marketingConsentAt`'tir;
+kampanya kitlesi ve `/me` onu okur, defteri hiçbir şey okumaz (mobil sözleşme
+değişmedi). Defter, okuma modelinin tutamadığını tutar: her değişiklik bir
+satır (adres, amaç, verildi/geri alındı, kaynak, üyenin kendi işlemiyse
+isteğin IP'si ve tarayıcı/uygulama bilgisi, verilen onayın atıf yaptığı metin
+sürümü, zaman: Ticari Elektronik İleti ve İYS Aydınlatması'nın "her onay
+için" kaydedilir dediği alanlar). Eskiden
+`marketing` kapatılınca `marketingConsentAt` silinir ve geriye hiçbir ret kaydı
+kalmazdı.
+
+Yazanlar (`src/lib/customer/consent-ledger.ts` → `appendConsentChanges`, her
+biri kendi yazımı başarılı olduktan sonra): site kaydı (`site-signup`),
+uygulamanın ilk girişi (`app-signup`, Supabase meta verisindeki onay), sitenin
+hesap sayfası (`site-account`), `PATCH /me` (`app-account`), üye çıkış
+bağlantısı (`unsubscribe-link`), üyeyi de kapatan bülten çıkışı
+(`newsletter-unsubscribe`), panel müşteri formu (`admin`, IP'siz) ve hesap
+kapatma (`account-deletion`, gerçek adresle; hesap-silme §7 "elektronik ileti
+onay kayıtları" saklanır der). Defter yazımı **en iyi çaba**dır: tercih
+değişikliği o anda yapılmıştır ve bir geri alma, geçmişi yazılamadı diye
+başarısız olmamalı; hata maskeli adresle loglanır.
+
+Satır güncellenemez (`customer_consents_no_update` tetikleyicisi). Tek
+silme imhadır ve tek bir sütunla ifade edilemez: bir satır, aynı adres ve
+amaç için kendisinden sonra (ya da kendisi olan) bir **geri alma** satırı 3
+yıldan eskiyse gider (`customer_consents_retention`). Hâlâ geçerli bir onay
+ne kadar eski olursa olsun kapsam dışıdır; üyeye giden postanın dayanağı
+odur. Testler: `tests/consent-ledger.test.ts`,
+`tests/db-integration-consent-ledger.test.ts`.
 
 ### Kapsam dışı — bilerek
 

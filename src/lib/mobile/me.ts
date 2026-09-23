@@ -9,6 +9,7 @@ import {
   getSettings,
   type AdminOrderStatus,
 } from "@/lib/admin/store";
+import { appendConsentChanges } from "@/lib/customer/consent-ledger";
 import {
   getCustomerByEmail,
   updateCustomerProfile,
@@ -133,10 +134,14 @@ export async function updateMe(
   }
 
   if (patch.notificationPrefs) {
-    const updated = await updateNotificationPrefs(email, {
-      ...customer.notificationPrefs,
-      ...patch.notificationPrefs,
-    });
+    const updated = await updateNotificationPrefs(
+      email,
+      {
+        ...customer.notificationPrefs,
+        ...patch.notificationPrefs,
+      },
+      { source: "app-account", ip: await consentIp(ctx.ip) },
+    );
     if (!updated) return { ok: false, error: "not_found" };
 
     // Best-effort, like the site: the preference itself is already saved.
@@ -487,6 +492,17 @@ export async function deleteMe(
     })
     .eq("email", customer.email);
   checkErr(error, "deleteMe");
+
+  // "Pazarlama izni geri alınmış sayılır" (hesap-silme §5): the withdrawal
+  // goes into the consent history under the address it was given for. That
+  // history is one of the records the same document keeps after closure
+  // ("elektronik ileti onay kayıtları"), for the published three years.
+  await appendConsentChanges(
+    customer.email,
+    customer.notificationPrefs,
+    { marketing: false, newsletter: false },
+    { source: "account-deletion", now: at },
+  );
 
   // The same address sits in the loyalty ledger, the invite graph, the
   // karaoke book, the coupon table — and on every order.
