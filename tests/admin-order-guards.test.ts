@@ -162,6 +162,18 @@ describe("bulk status change", () => {
     expect(body).not.toContain(".update({ status: op.status })");
   });
 
+  it("gives the stock back when a manual order fails after the claim", () => {
+    // placeOrder already did; createManualOrder left the units claimed.
+    const body = storeSource.slice(
+      storeSource.indexOf("export async function createManualOrder"),
+      storeSource.indexOf("export interface AppCafeLineInput"),
+    );
+    expect(body.indexOf("claimOrderStock(resolved)")).toBeLessThan(
+      body.indexOf("} catch (err) {"),
+    );
+    expect(body).toContain("await releaseClaimedStock(resolved);");
+  });
+
   it("does not settle unpaid orders with a bulk 'hazırlanıyor'", () => {
     // start_preparing from pending_payment stamps paidAt, awards the stamp
     // and counts revenue — a bulk "paid" by another name.

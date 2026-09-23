@@ -2039,29 +2039,40 @@ export async function createManualOrder(
   const claimRes = await claimOrderStock(resolved);
   if (!claimRes.ok) return claimRes.result;
 
-  const orderSeq = await nextSeq("ord");
-  const orderNo = await nextSeq("orderNo");
-  const orderId = slugifyId("ord", orderSeq);
+  // Compensated on failure exactly like placeOrder: a manual order has no
+  // pending_payment sweep to fall back on either (it may start `paid`), so a
+  // throw between the claim and the insert took the units off the shelf for
+  // good.
+  let placed: { order: AdminOrder; promoDropped: boolean };
+  try {
+    const orderSeq = await nextSeq("ord");
+    const orderNo = await nextSeq("orderNo");
+    const orderId = slugifyId("ord", orderSeq);
 
-  await recordOrderStockMoves(
-    resolved,
-    claimRes.stockAfters,
-    orderId,
-    `Manuel sipariş #${orderNo}`,
-    input.actor || "admin",
-  );
+    await recordOrderStockMoves(
+      resolved,
+      claimRes.stockAfters,
+      orderId,
+      `Manuel sipariş #${orderNo}`,
+      input.actor || "admin",
+    );
 
-  const { order, promoDropped } = await finalizeOrder(resolved, {
-    orderId,
-    orderNo,
-    status: input.status,
-    customerName: input.customerName.trim() || "Müşteri",
-    customerEmail: input.customerEmail?.trim() ?? "",
-    customerPhone: input.customerPhone?.trim() ?? "",
-    shippingAddress: input.shippingAddress?.trim() ?? "",
-    internalNote: input.internalNote?.trim().slice(0, 2000) ?? "",
-    promoCode: input.promoCode,
-  });
+    placed = await finalizeOrder(resolved, {
+      orderId,
+      orderNo,
+      status: input.status,
+      customerName: input.customerName.trim() || "Müşteri",
+      customerEmail: input.customerEmail?.trim() ?? "",
+      customerPhone: input.customerPhone?.trim() ?? "",
+      shippingAddress: input.shippingAddress?.trim() ?? "",
+      internalNote: input.internalNote?.trim().slice(0, 2000) ?? "",
+      promoCode: input.promoCode,
+    });
+  } catch (err) {
+    await releaseClaimedStock(resolved);
+    throw err;
+  }
+  const { order, promoDropped } = placed;
   return { ok: true, order, priceAdjusted: false, promoDropped };
 }
 
