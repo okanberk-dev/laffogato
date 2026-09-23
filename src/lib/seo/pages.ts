@@ -250,16 +250,16 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     menuKey: "frozen",
     title: "Frozen - Meyveli Frozen",
     description:
-      "Strawberry, raspberry, passionfruit ve pineapple frozen. Meyve püresi ve buzla hazırlanır; süt içermez.",
+      "Çilekli, frambuazlı, çarkıfelekli ve ananaslı frozen. Meyve püresi ve buzla hazırlanır; süt içermez.",
     keywords: ["frozen Tuzla", "çilekli frozen", "meyveli frozen İstanbul"],
     breadcrumbLabel: "Frozen",
   },
   {
     slug: "ice-tea",
     menuKey: "ice-tea",
-    title: "Ice Tea - Buzlu Çay",
+    title: "Buzlu Çay - Limonlu ve Şeftalili",
     description:
-      "Lemon tea ve peach tea. Buz ve taze meyve dilimiyle servis edilir.",
+      "Limonlu ve şeftalili soğuk çay. Buz ve taze meyve dilimiyle servis edilir.",
     keywords: ["buzlu çay Tuzla", "lemon ice tea", "şeftalili buzlu çay"],
     breadcrumbLabel: "Soğuk Çay",
   },
