@@ -75,6 +75,8 @@ interface Props {
   remainingRefundableMinor: number;
   /** False for staff — refunds are an owner/manager action. */
   canRefund: boolean;
+  /** Money was taken (`orderWasCollected`) — decides if a cancelled order is refundable. */
+  collected: boolean;
 }
 
 /**
@@ -165,6 +167,7 @@ export function OrderDetail({
   refundedMinor,
   remainingRefundableMinor,
   canRefund,
+  collected,
 }: Props) {
   const [refundOpen, setRefundOpen] = useState(false);
   const [transitionState, transitionAction, transitionPending] = useActionState(
@@ -243,7 +246,7 @@ export function OrderDetail({
               {canRefund &&
                 // A cancelled order that WAS paid still owes the customer
                 // their money ("İptal sonrası iade ayrıca başlatılır").
-                (order.status !== "cancelled" || Boolean(order.paidAt)) &&
+                (order.status !== "cancelled" || collected) &&
                 order.status !== "pending_payment" &&
                 remainingRefundableMinor > 0 && (
                   <button

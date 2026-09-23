@@ -1797,6 +1797,7 @@ async function insertOrderRow(
     cfg,
   );
 
+  const createdAt = new Date().toISOString();
   const order: AdminOrder = {
     id: f.orderId,
     orderNo: f.orderNo,
@@ -1813,7 +1814,13 @@ async function insertOrderRow(
     shippingMinor: totals.shippingMinor,
     totalMinor: totals.totalMinor,
     refunds: [],
-    createdAt: new Date().toISOString(),
+    createdAt,
+    // An admin's manual order can START as settled (paid at the counter). It
+    // got no paidAt, so once cancelled refundRefusal saw money that was taken
+    // as never collected and refused to give it back.
+    ...(f.status === "paid" || f.status === "preparing"
+      ? { paidAt: createdAt }
+      : {}),
     legalConsent: f.legalConsent ?? {},
     // Only the app sets these; a web/admin row keeps the column defaults.
     ...(f.channel ? { channel: f.channel } : {}),
@@ -3224,7 +3231,8 @@ export async function refundOrder(
     "refundOrder",
   );
   // A fully refunded order keeps nothing: the stamp it earned goes back too.
-  if (fullyRefunded && !wasCancelled) await reverseLoyalty(existing, "refunded");
+  if (fullyRefunded && !wasCancelled)
+    await reverseLoyalty(existing, "refunded");
   return {
     ok: true,
     order: { ...existing, refunds: nextRefunds, status },

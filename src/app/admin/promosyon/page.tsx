@@ -8,12 +8,20 @@ import {
   formatTRY,
 } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
+import { parsePublishInstant } from "@/lib/admin/publish-window";
 import { listPromos } from "@/lib/admin/store";
 
 import { deletePromoAction } from "./actions";
 
 export const metadata = { title: "Admin · Promosyon Kodları" };
 export const dynamic = "force-dynamic";
+
+/** Same reading as applyPromoCode: offsetless = Istanbul; unreadable = over. */
+function isPromoExpired(expiresAt: string): boolean {
+  if (!expiresAt) return false;
+  const at = parsePublishInstant(expiresAt);
+  return at === null || at < Date.now();
+}
 
 function discountLabel(p: { kind: "pct" | "fixed"; value: number }): string {
   return p.kind === "pct" ? `%${p.value}` : `−${formatTRY(p.value)}`;
@@ -49,8 +57,7 @@ export default async function PromoCodesPage() {
             {/* Mobile cards */}
             <ul className="flex flex-col gap-3 md:hidden">
               {promos.map((p) => {
-                const expired =
-                  p.expiresAt && new Date(p.expiresAt).getTime() < Date.now();
+                const expired = isPromoExpired(p.expiresAt);
                 const exhausted =
                   p.usageLimit > 0 && p.usageCount >= p.usageLimit;
                 return (
@@ -143,9 +150,7 @@ export default async function PromoCodesPage() {
                 </thead>
                 <tbody>
                   {promos.map((p) => {
-                    const expired =
-                      p.expiresAt &&
-                      new Date(p.expiresAt).getTime() < Date.now();
+                    const expired = isPromoExpired(p.expiresAt);
                     const exhausted =
                       p.usageLimit > 0 && p.usageCount >= p.usageLimit;
                     return (

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { parsePublishInstant } from "@/lib/admin/publish-window";
+
 export function Field({
   label,
   hint,
@@ -180,12 +182,23 @@ export function formatTRY(amountMinor: number): string {
   }).format(major);
 }
 
+/**
+ * An instant as the panel's reader means it: the Istanbul wall clock. Without
+ * `timeZone` the server (UTC on Vercel) printed a promo that ends at 23:59 in
+ * Tuzla as "20:59", inviting an admin to "fix" it by three hours.
+ *
+ * An offsetless value ("2026-09-30T23:59", what older promo rows hold) is
+ * read the way the store reads it — as Istanbul wall clock — via
+ * parsePublishInstant; everything else is an ISO instant with its own offset.
+ */
 export function formatDateTime(value: string): string {
+  const at = parsePublishInstant(value);
   return new Intl.DateTimeFormat("tr-TR", {
+    timeZone: "Europe/Istanbul",
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(value));
+  }).format(at === null ? new Date(value) : new Date(at));
 }

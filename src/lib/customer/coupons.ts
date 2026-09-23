@@ -390,14 +390,17 @@ export async function maybeGrantBirthdayCoupon(
   // The venue's calendar, as the cron reads it (`istanbulDate` in
   // api/cron/_birthday.ts): on Vercel `getMonth()` is UTC, so from 00:00 to
   // 03:00 on the 1st the site still thought it was last month.
-  const [year, mm] = new Intl.DateTimeFormat("en-CA", {
+  // formatToParts, not format().split("-"): a locale's pattern can change
+  // between ICU releases, and a silent NaN here would stop every grant.
+  const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Europe/Istanbul",
     year: "numeric",
-    month: "2-digit",
-  })
-    .format(now)
-    .split("-")
-    .map(Number);
+    month: "numeric",
+  }).formatToParts(now);
+  const part = (type: "year" | "month") =>
+    Number(parts.find((p) => p.type === type)?.value);
+  const year = part("year");
+  const mm = part("month");
   if (mm !== month) return null;
   return grantBirthdayCouponOnce(owner, year, now);
 }

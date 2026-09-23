@@ -14,6 +14,7 @@ import {
   availableTransitions,
   getOrder,
   getSettings,
+  orderWasCollected,
   type AdminOrderStatus,
 } from "@/lib/admin/store";
 
@@ -57,6 +58,10 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   const { id } = await params;
   const [order, settings] = await Promise.all([getOrder(id), getSettings()]);
   if (!order) notFound();
+  // The SAME rule refundRefusal applies (paidAt or a succeeded transaction):
+  // a payment that landed after the sweep cancelled the order has no paidAt,
+  // and it is exactly the money that must go back.
+  const collected = await orderWasCollected(order);
 
   const transitions = availableTransitions(order.status);
   const statusLabel =
@@ -111,6 +116,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         refundedMinor={refundedMinor}
         remainingRefundableMinor={remainingRefundableMinor}
         canRefund={canAccess("refunds", session.role)}
+        collected={collected}
       />
     </main>
   );
