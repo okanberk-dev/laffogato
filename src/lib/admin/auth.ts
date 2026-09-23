@@ -2,7 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 import bcrypt from "bcryptjs";
 
@@ -152,11 +152,17 @@ function verifyToken(token: string): AdminSession | null {
   return { email, role, expiresAt };
 }
 
+/**
+ * Equality whose timing says nothing about either value — including its
+ * LENGTH. The early `length !== length` return this used to make answered a
+ * wrong-length guess faster than a right-length one, which leaks how long the
+ * env admin password is. Both sides are hashed to 32 bytes first, so
+ * `timingSafeEqual` always compares equal-sized buffers.
+ */
 function constantTimeEqual(a: string, b: string): boolean {
-  const aBuf = Buffer.from(a);
-  const bBuf = Buffer.from(b);
-  if (aBuf.length !== bBuf.length) return false;
-  return timingSafeEqual(aBuf, bBuf);
+  const aDigest = createHash("sha256").update(a).digest();
+  const bDigest = createHash("sha256").update(b).digest();
+  return timingSafeEqual(aDigest, bDigest);
 }
 
 export interface SignInResult {

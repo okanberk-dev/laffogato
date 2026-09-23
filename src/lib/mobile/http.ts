@@ -4,8 +4,6 @@ import type { NextResponse } from "next/server";
 
 import type { PublicCustomer } from "@/lib/customer/store";
 
-import { isDbUnreachable } from "@/lib/db/health";
-
 import { requireMobileCustomer } from "./auth";
 import { apiError } from "./respond";
 import { routeFailure as routeFailureByLabel } from "./route-helpers";

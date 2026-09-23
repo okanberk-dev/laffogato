@@ -15,9 +15,6 @@ import {
   type CouponKind,
   type CouponSource,
   type CustomerCoupon,
-  couponAllowedForKind,
-  isCafeOnlyCoupon,
-  CAFE_ONLY_COUPON_MESSAGE,
 } from "./coupon-utils";
 
 // Re-export the isomorphic helpers + types so existing server-side importers

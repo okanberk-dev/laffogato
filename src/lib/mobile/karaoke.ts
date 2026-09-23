@@ -15,9 +15,7 @@ import {
 import { istanbulClock } from "./venue";
 import {
   buildSlots,
-  holdsSlot,
   KARAOKE_OPEN_CAP,
-  karaokeDiscountPct,
   quoteReservation,
   rangeConflicts,
   validateReservationRequest,
