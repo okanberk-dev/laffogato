@@ -68,6 +68,7 @@ vi.mock("@/lib/payment", () => ({
         amountMinor: 5000,
         currency: "TRY",
         raw: { source: "test" },
+        trxDate: "2026-09-22",
       };
     },
   }),
@@ -136,12 +137,40 @@ maybe("unpaid orders are cancelled only after asking the POS", () => {
     expect(await expireStalePendingOrders()).toBe(0);
     expect(await statusOf("ord-swp-paid")).toBe("paid");
     const { rows } = await pool!.query(
-      `select "providerRef", status from public.payment_transactions
+      `select "providerRef", status, "trxDate" from public.payment_transactions
         where "orderId" = 'ord-swp-paid'`,
     );
+    // The POS's day lands on the row, so a refund need not search for it.
     expect(rows).toEqual([
-      { providerRef: "REF-ord-swp-paid", status: "succeeded" },
+      {
+        providerRef: "REF-ord-swp-paid",
+        status: "succeeded",
+        trxDate: "2026-09-22",
+      },
     ]);
+    const { getOrderPaymentRef } = await import("@/lib/admin/store");
+    expect(await getOrderPaymentRef("ord-swp-paid")).toEqual({
+      provider: "fakepos",
+      providerRef: "REF-ord-swp-paid",
+      amountMinor: 5000,
+      trxDate: "2026-09-22",
+    });
+  });
+
+  it("stores '' for a payment row the provider gave no readable day", async () => {
+    await pool!.query(
+      `insert into public.payment_transactions
+         ("orderId", provider, "providerRef", status, "amountMinor", "createdAt")
+       values ('ord-swp-legacy', 'fakepos', 'REF-legacy', 'succeeded', 4200, $1)`,
+      [new Date().toISOString()],
+    );
+    const { getOrderPaymentRef } = await import("@/lib/admin/store");
+    expect(await getOrderPaymentRef("ord-swp-legacy")).toEqual({
+      provider: "fakepos",
+      providerRef: "REF-legacy",
+      amountMinor: 4200,
+      trxDate: "",
+    });
   });
 
   it("cancels and releases what the POS says was never paid", async () => {

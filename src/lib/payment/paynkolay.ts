@@ -4,6 +4,7 @@ import type {
   CheckoutInput,
   CheckoutSession,
   PaymentProvider,
+  RefundHint,
   RefundResult,
   ReturnConfirmation,
   WebhookEvent,
@@ -67,10 +68,11 @@ const BRIDGE_DOMAIN = "paynkolay-bridge-v1";
 /**
  * İade için işlemi geriye doğru ararken kaç aylık pencere taranır.
  *
- * Raporlama servisi tek sorguda bir aydan uzun aralık kabul etmiyor (§2), biz
- * de iade edilecek işlemin `TRX_DATE`'ini başka yerden bilmiyoruz: sipariş
- * satırında böyle bir kolon yok (§11.1). On üç ay, kart kurallarının pratikte
- * izin verdiği en uzun iade penceresinden geniştir.
+ * Raporlama servisi tek sorguda bir aydan uzun aralık kabul etmiyor (§2).
+ * Ödeme satırı `TRX_DATE`'i `payment_transactions."trxDate"` kolonunda
+ * tutuyor ve iade önce onu okuyor; bu arama yalnız o kolonun boş olduğu
+ * eski satırlar için yedektir. On üç ay, kart kurallarının pratikte izin
+ * verdiği en uzun iade penceresinden geniştir.
  */
 const REFUND_LOOKBACK_MONTHS = 13;
 
@@ -622,6 +624,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       amountMinor: settledMinor,
       currency: "TRY",
       raw: { source: "paynkolay_return", hashOk, params, transaction: row },
+      ...transactionDay(row),
     };
   }
 
@@ -682,6 +685,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       amountMinor: settledMinor,
       currency: "TRY",
       raw: { source: "paynkolay_lookup", transaction: row },
+      ...transactionDay(row),
     };
   }
 
@@ -689,9 +693,10 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
    * `POST /Vpos/v1/CancelRefundPayment` (§3).
    *
    * `providerRef` PayNkolay'ın `REFERENCE_CODE`'udur. İptal/iade servisi
-   * ayrıca işlemin TARİHİNİ istiyor ve sipariş satırında öyle bir kolon yok
-   * (§11.1) — bu yüzden işlem önce raporlama servisinden bulunur; tarihi de
-   * tutarı da oradan okunur.
+   * ayrıca işlemin TARİHİNİ istiyor. Ödeme satırı onu biliyorsa (`hint`:
+   * `payment_transactions."trxDate"` ve tahsil edilen tutar) doğrudan o
+   * kullanılır; bilmiyorsa (kolondan önce yazılmış satır) işlem raporlama
+   * servisinden aranır ve tarihi de tutarı da oradan okunur.
    *
    * Başarısızlıkta döndürmek yerine fırlatır: admin eylemi yalnızca fırlatılan
    * hatayı yakalıyor, `status: "failed"` dönmek "iade edildi" yazan ama parayı
@@ -700,11 +705,14 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
   async refund(
     providerRef: string,
     amountMinor?: number,
+    hint?: RefundHint,
   ): Promise<RefundResult> {
     const referenceCode = providerRef.trim();
     if (!referenceCode) throw new Error("paynkolay: REFERENCE_CODE boş");
 
-    const tx = await this.findTransactionByReference(referenceCode);
+    const tx =
+      storedTransaction(hint) ??
+      (await this.findTransactionByReference(referenceCode));
     if (!tx) {
       throw new Error(
         `paynkolay: ${referenceCode} referanslı işlem son ${REFUND_LOOKBACK_MONTHS} ayda bulunamadı; iade edilemez`,
@@ -780,6 +788,37 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     }
     return null;
   }
+}
+
+/**
+ * Sorgu satırının `TRX_DATE`'i, ödeme satırına yazılacak biçimde
+ * (`YYYY-MM-DD`). Okunamıyorsa hiç alan dönmez; kolon boş kalır ve iade eski
+ * aramaya düşer.
+ */
+function transactionDay(row: Record<string, unknown>): { trxDate?: string } {
+  const day = parsePaynkolayDay(readField(row, "TRX_DATE", "trxDate"));
+  return day ? { trxDate: day.key } : {};
+}
+
+/**
+ * Ödeme satırının bildikleri, iadenin aramadan gidebileceği kadar tam mı:
+ * okunur bir gün ve sıfırdan büyük bir tahsilat. Değilse `null`; çağıran
+ * raporlama servisinde arar, tahmin etmez.
+ */
+function storedTransaction(hint: RefundHint | undefined): {
+  amountMinor: number;
+  trxDate: string;
+  dayKey: string;
+} | null {
+  if (!hint) return null;
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(hint.trxDate ?? "")
+    ? parsePaynkolayDay(hint.trxDate)
+    : null;
+  const paid = hint.paidMinor;
+  if (!day || paid === undefined || !Number.isSafeInteger(paid) || paid <= 0) {
+    return null;
+  }
+  return { amountMinor: paid, trxDate: day.trxDate, dayKey: day.key };
 }
 
 /**

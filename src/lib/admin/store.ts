@@ -1997,6 +1997,7 @@ async function settlePendingFromProvider(
     amountMinor: found.amountMinor,
     currency: found.currency,
     raw: found.raw,
+    trxDate: found.trxDate,
   });
   if (!applied.ok) {
     console.error(
@@ -2715,6 +2716,12 @@ export async function applyPaymentSucceeded(input: {
   amountMinor: number;
   currency: string;
   raw?: unknown;
+  /**
+   * The provider's calendar day for the transaction, `YYYY-MM-DD`
+   * (`ReturnConfirmation.trxDate`). Kept on the row so a refund does not have
+   * to search the provider for it; anything else is stored as ''.
+   */
+  trxDate?: string;
 }): Promise<PaymentApplyResult> {
   const sb = getDb();
 
@@ -2740,6 +2747,7 @@ export async function applyPaymentSucceeded(input: {
     amountMinor: input.amountMinor,
     currency: input.currency,
     raw: input.raw ?? null,
+    trxDate: isoDay(input.trxDate),
     createdAt: new Date().toISOString(),
   });
   // A clean insert means this is the FIRST confirmation; a 23505 is a duplicate
@@ -2931,23 +2939,47 @@ export async function recordProviderRefund(input: {
   return { ok: true };
 }
 
-/** Latest succeeded payment provider reference for an order (for refunds). */
-export async function getOrderPaymentRef(
-  orderId: string,
-): Promise<{ provider: string; providerRef: string } | null> {
+/** `YYYY-MM-DD` or ''. The column never holds a half-read provider date. */
+function isoDay(value: string | undefined): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value ?? "") ? (value as string) : "";
+}
+
+/**
+ * Latest succeeded payment for an order (for refunds): the provider
+ * reference, what was collected, and the provider's day for it ('' on rows
+ * written before the column existed) so the refund need not look it up.
+ */
+export async function getOrderPaymentRef(orderId: string): Promise<{
+  provider: string;
+  providerRef: string;
+  amountMinor: number;
+  trxDate: string;
+} | null> {
   const sb = getDb();
   const res = await sb
     .from(TABLES.paymentTransactions)
-    .select("provider, providerRef")
+    .select("provider, providerRef, amountMinor, trxDate")
     .eq("orderId", orderId)
     .eq("status", "succeeded")
     .order("createdAt", { ascending: false })
     .limit(1);
   if (res.error) throw new Error(`getOrderPaymentRef: ${res.error.message}`);
   const row = res.data?.[0] as
-    | { provider: string; providerRef: string }
+    | {
+        provider: string;
+        providerRef: string;
+        amountMinor?: number | null;
+        trxDate?: string | null;
+      }
     | undefined;
-  return row ? { provider: row.provider, providerRef: row.providerRef } : null;
+  return row
+    ? {
+        provider: row.provider,
+        providerRef: row.providerRef,
+        amountMinor: Number(row.amountMinor ?? 0),
+        trxDate: isoDay(row.trxDate ?? ""),
+      }
+    : null;
 }
 
 export type OrderTransition =

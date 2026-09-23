@@ -190,6 +190,7 @@ export async function POST(req: NextRequest) {
         amountMinor: result.amountMinor,
         currency: result.currency,
         raw: result.raw,
+        trxDate: result.trxDate,
       });
       if (!applied.ok) {
         console.error("[odeme/donus] apply failed", applied.error);

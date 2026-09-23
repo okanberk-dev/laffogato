@@ -401,6 +401,15 @@ describe("confirmReturn", () => {
     expect(result.amountMinor).toBe(128_010);
     // İade PayNkolay'ın referansını ister, bizim clientRefCode'umuzu değil.
     expect(result.providerRef).toBe("IKSIRPF102168");
+    // İşlemin POS günü ödeme satırına yazılsın diye döner (iade onu ister).
+    expect(result.trxDate).toBe("2021-08-09");
+  });
+
+  it("gün okunamıyorsa trxDate hiç dönmez; iade eski aramaya kalır", async () => {
+    stubFetch({ Data: [transactionRow({ TRX_DATE: "bilinmiyor" })] });
+    const result = await makeProvider().confirmReturn(RETURN_PARAMS);
+    expect(result.status).toBe("succeeded");
+    expect(result).not.toHaveProperty("trxDate");
   });
 
   it("sorguda karşılığı olmayan sahte dönüşü reddeder", async () => {
@@ -478,6 +487,7 @@ describe("lookupPayment", () => {
     expect(found?.status).toBe("succeeded");
     expect(found?.amountMinor).toBe(128_010);
     expect(found?.providerRef).toBe("IKSIRPF102168");
+    expect(found?.trxDate).toBe("2021-08-09");
   });
 
   it("NEW ya da boş sorguyu ödeme saymaz", async () => {
@@ -598,6 +608,80 @@ describe("refund", () => {
     await expect(makeProvider().refund("BULUNMAYAN")).rejects.toThrow(
       /bulunamadı/,
     );
+  });
+
+  describe("ödeme satırı günü biliyorsa (payment_transactions.trxDate)", () => {
+    it("raporlama servisini hiç aramadan doğrudan iade eder", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-06T09:00:00Z"));
+      const calls = stubFetch({ responseCode: "2" });
+
+      const res = await makeProvider().refund("IKSIRPF102168", 128_010, {
+        trxDate: "2026-09-01",
+        paidMinor: 128_010,
+      });
+
+      // Tek istek: iptal/iade. On üç aylık pencere taranmadı.
+      expect(calls).toHaveLength(1);
+      expect(calls[0].url).toContain("/Vpos/v1/CancelRefundPayment");
+      expect(calls[0].fields.type).toBe("refund");
+      expect(calls[0].fields.amount).toBe("1280.10");
+      expect(calls[0].fields.trxDate).toBe("2026.09.01");
+      expect(calls[0].fields.hashDatav2).toBe(
+        paynkolayHash(
+          ["SX-CANCEL", "IKSIRPF102168", "refund", "1280.10", "2026.09.01"],
+          SECRET,
+        ),
+      );
+      expect(res).toEqual({
+        providerRef: "IKSIRPF102168",
+        amountMinor: 128_010,
+        status: "succeeded",
+      });
+    });
+
+    it("aynı gün ise yine cancel seçer", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-06T09:00:00Z"));
+      const calls = stubFetch({ responseCode: "2" });
+      await makeProvider().refund("IKSIRPF102168", undefined, {
+        trxDate: "2026-09-06",
+        paidMinor: 128_010,
+      });
+      expect(calls).toHaveLength(1);
+      expect(calls[0].fields.type).toBe("cancel");
+      expect(calls[0].fields.trxDate).toBe("2026.09.06");
+    });
+
+    it("kısmi iadeyi burada da reddeder, POS'a hiç gitmeden", async () => {
+      const calls = stubFetch({ responseCode: "2" });
+      await expect(
+        makeProvider().refund("IKSIRPF102168", 50_000, {
+          trxDate: "2026-09-01",
+          paidMinor: 128_010,
+        }),
+      ).rejects.toThrow(/kısmi iade/);
+      expect(calls).toHaveLength(0);
+    });
+
+    it.each([
+      ["boş gün (kolondan önceki satır)", { trxDate: "", paidMinor: 128_010 }],
+      ["okunamayan gün", { trxDate: "09/01/2026", paidMinor: 128_010 }],
+      ["sıfır tahsilat", { trxDate: "2026-09-01", paidMinor: 0 }],
+      ["tutarsız ipucu", { trxDate: "2026-09-01" }],
+    ])("%s: eski aramaya düşer", async (_label, hint) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-06T09:00:00Z"));
+      const calls = stubFetch(reportPayload("2026-09-02"), {
+        responseCode: "2",
+      });
+      await makeProvider().refund("IKSIRPF102168", 128_010, hint);
+      expect(calls[0].url).not.toContain("CancelRefundPayment");
+      const cancel = calls[calls.length - 1];
+      expect(cancel.url).toContain("/Vpos/v1/CancelRefundPayment");
+      // Tarih raporlama servisinden okundu, ipucundan değil.
+      expect(cancel.fields.trxDate).toBe("2026.09.02");
+    });
   });
 });
 

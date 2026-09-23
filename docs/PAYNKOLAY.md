@@ -566,7 +566,9 @@ bölümlerde tekrarlandı (§2, §3).
    kapandığında sipariş kaydına hem `clientRefCode` hem PayNkolay'ın
    `REFERENCE_CODE`'u ve `TRX_DATE`'i yazılmalı; iade bunlar olmadan
    yapılamaz. iyzico'da tek bir `paymentId` yetiyordu, burada üç alan
-   gerekiyor.
+   gerekiyor. **Yapıldı (23 Eyl 2026):** `REFERENCE_CODE`
+   `payment_transactions."providerRef"`'te, `TRX_DATE` `YYYY-MM-DD` olarak
+   `payment_transactions."trxDate"`'te duruyor (§14.5).
 
 ---
 
@@ -706,13 +708,20 @@ yapılmaz), sorguda karşılık yoksa, `STATUS ≠ SUCCESS` ise (`NEW` dahil, §
 tutar okunamıyorsa, ya da tarayıcının getirdiği `AUTHORIZATION_AMOUNT`
 sorgunun söylediğinden farklıysa.
 
-### 14.5 İade — `TRX_DATE` sipariş satırında olmadığı için aranıyor
+### 14.5 İade - `TRX_DATE` ödeme satırından okunuyor, yoksa aranıyor
 
-İptal/iade servisi işlemin tarihini zorunlu tutuyor ve sipariş şemasında öyle
-bir kolon yok (§11.1). Bu yüzden `refund()` önce **Raporlama Servisi**'yle
-(§2.1) `referenceCode` üzerinden işlemi buluyor; tarihi de tutarı da oradan
-okuyor. Servis tek sorguda bir aydan uzun aralık kabul etmediği için arama
-aylık pencerelerle en fazla 13 ay geriye gidiyor.
+İptal/iade servisi işlemin tarihini zorunlu tutuyor. 23 Eyl 2026'dan beri
+ödemeyi kapatan sorgunun (`confirmReturn`, süpürmedeki `lookupPayment`)
+`TRX_DATE`'i `YYYY-MM-DD` olarak `payment_transactions."trxDate"`'e yazılıyor
+(`20260923230200_payment_trx_date.sql`). Panelden iade bu günü ve satırdaki
+tahsilat tutarını `refund()`'a verir; ikisi de okunursa servis hiç
+aranmadan doğrudan iptal/iade isteği gider.
+
+Kolon boşsa (kolondan önce yazılmış satır ya da günü okunamayan bir yanıt)
+`refund()` eskisi gibi önce **Raporlama Servisi**'yle (§2.1) `referenceCode`
+üzerinden işlemi buluyor; tarihi de tutarı da oradan okuyor. Servis tek
+sorguda bir aydan uzun aralık kabul etmediği için bu yedek arama aylık
+pencerelerle en fazla 13 ay geriye gidiyor.
 
 İşlem bulunamazsa ya da POS `responseCode ≠ 2` dönerse metot **fırlatıyor**,
 `status: "failed"` dönmüyor: admin eylemi yalnızca fırlatılan hatayı
@@ -736,5 +745,9 @@ yakalıyor; dönmek, "iade edildi" yazan ama parayı göndermemiş bir kayıt
    `applyPaymentSucceeded` ile işlenir; POS'a ulaşılamazsa sipariş iptal
    edilmez (bir gün dolana kadar). Testler:
    `tests/db-integration-payment-sweep.test.ts`, `tests/payment-paynkolay.test.ts`.
-3. **`TRX_DATE` ve `REFERENCE_CODE` kolonları.** Sipariş satırına yazılırsa
-   §14.5'teki geriye arama tamamen kalkar.
+3. ~~**`TRX_DATE` ve `REFERENCE_CODE` kolonları.**~~ **Çözüldü (23 Eyl
+   2026).** `REFERENCE_CODE` zaten `payment_transactions."providerRef"`'teydi;
+   `TRX_DATE` artık `payment_transactions."trxDate"`'te. Geriye arama yalnız
+   kolonun boş olduğu eski satırlar için kaldı (§14.5). Testler:
+   `tests/payment-paynkolay.test.ts` (iki yol), `tests/admin-refund-hint.test.ts`,
+   `tests/db-integration-payment-sweep.test.ts`.

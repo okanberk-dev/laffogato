@@ -97,13 +97,36 @@ export interface ReturnConfirmation {
    * lets the NEXT checkout show that card — an opaque key, never a PAN.
    */
   cardUserKey?: string;
+  /**
+   * The provider's own calendar day for the transaction, `YYYY-MM-DD`, when
+   * it reports one. Stored on the payment row (`payment_transactions.
+   * "trxDate"`) so a later refund, which needs that date, does not have to
+   * search the provider's history for it.
+   */
+  trxDate?: string;
+}
+
+/**
+ * What the payment row already knows about the transaction being refunded.
+ * A provider may use it to skip looking the transaction up; a hint that is
+ * missing or unreadable must fall back to the lookup, never to a guess.
+ */
+export interface RefundHint {
+  /** `payment_transactions."trxDate"`: `YYYY-MM-DD`, '' when unknown. */
+  trxDate?: string;
+  /** `payment_transactions."amountMinor"`: what the provider collected. */
+  paidMinor?: number;
 }
 
 export interface PaymentProvider {
   readonly name: string;
   createCheckoutSession(input: CheckoutInput): Promise<CheckoutSession>;
   verifyWebhook(req: Request): Promise<WebhookEvent>;
-  refund(providerRef: string, amountMinor?: number): Promise<RefundResult>;
+  refund(
+    providerRef: string,
+    amountMinor?: number,
+    hint?: RefundHint,
+  ): Promise<RefundResult>;
   /**
    * Resolves the browser return into a settled payment, by asking the provider
    * — never by trusting the returned parameters. Providers that settle only

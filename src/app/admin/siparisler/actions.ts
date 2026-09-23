@@ -228,7 +228,13 @@ export async function refundOrderAction(
   const ref = await getOrderPaymentRef(id);
   if (ref) {
     try {
-      await getPaymentProvider().refund(ref.providerRef, amountMinor);
+      // The payment row's own date and amount let the provider skip
+      // searching its history for the transaction; rows from before the
+      // column carry '' and the provider falls back to that search.
+      await getPaymentProvider().refund(ref.providerRef, amountMinor, {
+        trxDate: ref.trxDate,
+        paidMinor: ref.amountMinor,
+      });
     } catch (err) {
       console.error("[refund] provider refund failed", err);
       try {
