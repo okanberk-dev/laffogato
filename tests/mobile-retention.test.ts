@@ -36,12 +36,14 @@ const vercel = JSON.parse(
 ) as { crons: { path: string; schedule: string }[] };
 
 describe("every retention period is quoted from the published policy", () => {
-  it("covers the four tables the audit found unswept", () => {
+  it("covers the four tables the audit found unswept, and fA'L's usage record", () => {
     expect(RETENTION_RULES.map((r) => r.table).sort()).toEqual([
       "audit_logs",
       "auth_attempts",
       "campaign_email_sends",
       "counter_tokens",
+      // Karar 177: ninety days, as Açık Rıza Metni R12 publishes.
+      "fal_readings",
     ]);
   });
 

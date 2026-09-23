@@ -9,6 +9,7 @@ import {
 import { SITE } from "@/lib/seo/site";
 
 import { CUSTOMIZATION, type Customization } from "./customization";
+import { falAiEnabled } from "./fal-core";
 import {
   buildBootstrap,
   buildMobileMenuCategories,
@@ -66,5 +67,5 @@ export async function listShopForMobile(): Promise<MobileShop> {
 
 export async function getBootstrap(): Promise<MobileBootstrap> {
   const settings = await getSettings();
-  return buildBootstrap(settings, SITE);
+  return buildBootstrap(settings, SITE, new Date(), falAiEnabled(process.env));
 }

@@ -97,6 +97,18 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "matches nothing — the oldest row is months old — and that is correct.",
   },
   {
+    id: "fal-readings",
+    table: TABLES.falReadings,
+    column: "createdAt",
+    idColumn: "id",
+    days: 90,
+    basis: "kullanım kaydı günlük sınırın uygulanması için doksan gün saklanır ve ardından silinir.",
+    note:
+      "Karar 177. The row holds the day, whether a cup was seen and the " +
+      "model - never the photo or the words - and the daily limit only needs " +
+      "today's. Ninety days is what Açık Rıza Metni R12 publishes.",
+  },
+  {
     id: "counter-tokens",
     table: TABLES.counterTokens,
     column: "expiresAt",

@@ -226,6 +226,8 @@ export const TABLES = {
   customers: "customers",
   customerCoupons: "customer_coupons",
   customerMilestoneRewards: "customer_milestone_rewards",
+  featureConsents: "feature_consents",
+  falReadings: "fal_readings",
   counters: "counters",
   shopHeroSlides: "shop_hero_slides",
   paymentTransactions: "payment_transactions",

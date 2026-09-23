@@ -248,8 +248,12 @@ describe("toBootstrapApp", () => {
         "reminders",
         "campaignCards",
         "store",
+        // Karar 177: fA'L's AI switch, from the environment - off by default.
+        "fal",
       ].sort(),
     );
+    expect(app.fal).toEqual({ ai: false });
+    expect(toBootstrapApp(DEFAULT_MOBILE_APP_CONFIG, true, true).fal).toEqual({ ai: true });
     // Only the listing URLs cross the wire. The signing identifiers are the
     // website's own business — it publishes the two `.well-known` documents,
     // and the app can do nothing with its own fingerprint.

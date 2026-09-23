@@ -525,9 +525,11 @@ export function buildBootstrap(
   >,
   site: BootstrapSite,
   now: Date = new Date(),
+  /** Karar 177: fA'L's AI reading is on (key AND switch). */
+  falAi = false,
 ): MobileBootstrap {
   const a = site.address;
-  const app = toBootstrapApp(settings.mobileApp, settings.isShopOpen);
+  const app = toBootstrapApp(settings.mobileApp, settings.isShopOpen, falAi);
   const today = settings.weeklyHours[istanbulDay(now)];
   return {
     minSupportedAppVersion: app.minSupportedAppVersion,

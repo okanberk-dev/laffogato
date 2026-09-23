@@ -46,6 +46,9 @@ describe("legal document dates", () => {
       "mobil-uygulama-kosullari": "5 Eylül 2026",
       "kafe-hizmet-kosullari": "5 Eylül 2026",
       "sirket-bilgileri": "22 Eylül 2026",
+      // Karar 177: fA'L's AI reading - the R12 consent and its aydınlatma.
+      "acik-riza-metni": "23 Eylül 2026",
+      "kvkk-aydinlatma-metni": "23 Eylül 2026",
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);

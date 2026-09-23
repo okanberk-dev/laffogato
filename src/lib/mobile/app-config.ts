@@ -148,6 +148,12 @@ export interface BootstrapApp {
   loyalty: { stampTarget: number; rewardTitle: string };
   reminders: MobileAppConfig["reminders"];
   campaignCards: MobileAppConfig["campaignCards"];
+  /**
+   * Karar 177: whether fA'L's AI reading is on - the OpenAI key AND the
+   * explicit switch (`fal-core.ts` `falAiEnabled`). Off, the app never offers
+   * it and reads the cup on the device.
+   */
+  fal: { ai: boolean };
 }
 
 // ─── Limits (shared by normalisation and the admin form's validation) ─────
@@ -565,6 +571,8 @@ export function toBootstrapApp(
   cfg: MobileAppConfig,
   /** `settings.isShopOpen` — see `BootstrapApp["ordering"]`. */
   shopEnabled: boolean,
+  /** Karar 177: fA'L's AI reading, from the environment (`falAiEnabled`). */
+  falAi = false,
 ): BootstrapApp {
   return {
     minSupportedAppVersion: cfg.minSupportedAppVersion,
@@ -588,6 +596,7 @@ export function toBootstrapApp(
       items: cfg.reminders.items.map((it) => ({ ...it })),
     },
     campaignCards: { ...cfg.campaignCards },
+    fal: { ai: falAi },
   };
 }
 

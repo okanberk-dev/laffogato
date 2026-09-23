@@ -632,6 +632,7 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
       "items": [ { "id": "morning", "hour": 10, "minute": 0, "title": "Günaydın ☕", "body": "Sabah kahven köşkte hazır. Bugün ne içiyoruz?" } ]   // 0..4 öğe; fiyat/indirim/aciliyet dili yok; "hour" 8..21 (panel dışını kaydetmez, uygulama okurken düşürür)
     },
     "campaignCards": { "loyalty": true, "invite": true, "subscription": true },  // Kampanyalar ekranındaki sabit kartlar; "subscription" artık hiçbir kartı çizmez (karar 20)
+    "fal": { "ai": false },   // 23 Eyl 2026, karar 177 (eklemeli): fA'L'ın yapay zekâ yorumu açık mı - OPENAI_API_KEY VE FAL_AI_ENABLED=true; false iken uygulama yalnız cihazda okur (§20)
     "store": { "appStoreUrl": "", "playStoreUrl": "" }   // /admin/mobil/ayarlar → Mağaza. Zorunlu güncelleme ekranındaki düğme buraya gider; boşken düğme çizilmez. Yalnız listeleme adresleri — imza parmak izleri sitenin işidir, uygulamaya gitmez
   }
 }
@@ -1143,3 +1144,57 @@ Hatalar: **400** `invalid_amount` · **400** `invalid_recipient` (telefon/e-post
 > **KVKK.** Alıcının telefonu/e-postası yalnız teslimat için işlenir, üçüncü tarafa aktarılmaz;
 > saklama süresi Aydınlatma Metni'ne eklenmelidir. Alıcı üye değilse hesap **açılmaz** — kod
 > bağlantıyla gelir, üyelik yalnız bozdururken istenir.
+
+## 20. fA'L yapay zekâ yorumu - `POST /fal` · `GET|POST|DELETE /fal/consent` (kimlik)
+
+23 Eyl 2026, karar 177, yalnız ekleme. Üye içeceğinin fotoğrafını çeker; açık rızası
+(Açık Rıza Metni **R12**, bölüm 15/A) varsa fotoğraf küçültülüp OpenAI'nin Responses
+API'sine gider ve eğlence amaçlı bir fal döner. Rıza yoksa, özellik kapalıysa ya da
+yorum başarısızsa uygulama falı **cihazda** okur (karar 169); hiçbir hata üyenin
+önüne falsız bir ekran koymaz.
+
+**Açık/kapalı.** Yalnız `OPENAI_API_KEY` **ve** `FAL_AI_ENABLED=true` ikisi birden
+varsa açıktır (`/bootstrap.app.fal.ai`). Anahtar tek başına açmaz: R12 metni avukat
+okumasından ve yurt dışı aktarım için standart sözleşmeden geçmeden açılmamalıdır.
+Model `OPENAI_FAL_MODEL` (varsayılan `gpt-5.4-mini`), görüntü `detail: "low"`,
+yanıt katı JSON şeması, `store: false`.
+
+`GET /fal/consent` → `{ "enabled": false, "version": "2026-09-23", "granted": false, "doc": "acik-riza-metni" }`
+
+`POST /fal/consent { "version": "2026-09-23" }` → `{ "granted": true, "version": "2026-09-23" }`.
+Güncel olmayan sürüm **409** `consent_outdated` (üye yürürlükteki metni görmüş olmalı).
+Kayıt `feature_consents` satırıdır (üye, özellik, sürüm, zaman) ve rızanın ispatıdır.
+
+`DELETE /fal/consent` → `{ "granted": false }`; satır silinmez, `revokedAt` yazılır.
+
+`POST /fal { "image": "<base64 JPEG>" }` → **200**
+
+```jsonc
+{
+  "reading": { "cupSeen": true, "drink": "Americano",
+               "symbol": "Köpükte bir kuş kanat açmış.",
+               "trait": "Sen yeni başlangıçlara cesaretle yürüyensin.",
+               "forecast": "Bu hafta güzel bir sohbet seni bulacak." },
+  "ai": true,
+  "consentVersion": "2026-09-23",
+  "remainingToday": 4
+}
+```
+
+Sıra ve hatalar: **401** kimlik · **503** `fal_unavailable` (kapalı) · **403**
+`consent_required` (güncel rıza yok) · **429** `fal_limit` (İstanbul gününde üye başına
+5) · **400** `invalid_json` / `invalid_request` / `invalid_image` (JPEG değil ya da
+çözülmüş hâli 900 KB'tan büyük) · **502** `fal_failed` (model yanıt vermedi, şemaya
+uymadı ya da yanıt bir vaat içeriyordu) · **503** `unavailable` (veritabanı).
+
+> **Gizlilik (R12).** Sunucuya giden: fotoğraf (uygulamada 768 px'e küçültülmüş,
+> meta verisiz). Modele giden: fotoğraf ve kimliksiz bir not - seviye adı
+> (L'AF/PEARL/RUBY), ziyaret sıklığı kelimesi, varsa "her zamanki" içeceğin adı. Ad,
+> e-posta, telefon, üye no **gitmez**. Fotoğraf ve üretilen metin **saklanmaz**;
+> `fal_readings` yalnız gün, `cupSeen` ve model adını tutar, 90 günde silinir
+> (`src/lib/retention.ts`).
+>
+> **Vaat yok (TKHK md. 61).** "indirim · bedava · ücretsiz · hediye · kupon · puan ·
+> damga · kampanya" ya da sağlık/yatırım kökü geçen yanıt gösterilmez (502, uygulama
+> cihazda okur).
+

@@ -5666,6 +5666,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "kvkk-aydinlatma-metni",
     title: "KVKK Aydınlatma Metni",
     shortTitle: "Aydınlatma Metni",
+    updatedAt: "23 Eylül 2026",
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun'un 10. maddesi uyarınca {{BRAND}} internet sitesi ve mobil uygulamasında hangi kişisel verilerin hangi amaç ve hukuki sebeple işlendiğini, kimlere aktarıldığını, ne kadar saklandığını ve ilgili kişinin haklarını açıklayan aydınlatma metnidir.",
@@ -6059,6 +6060,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Cihaz izinleri (bildirim, konum, kamera) uygulamanın kurulumunda değil, ilgili özelliğin ilk kez kullanıldığı anda istenir. İzin vermemeniz hâlinde yalnızca o özellik çalışmaz; uygulamanın geri kalanını kullanmaya devam edebilirsiniz. Verdiğiniz izinleri cihazınızın işletim sistemi ayarlarından dilediğiniz zaman geri alabilirsiniz.",
           "Uygulamayı cihazınızdan kaldırmanız, üyelik hesabınızın ve bu hesaba bağlı verilerin silinmesi anlamına gelmez; hesabınızın kapatılmasını ve verilerinizin imhasını istiyorsanız bu metnin ilgili kişinin hakları ve başvuru maddelerinde gösterilen yolları kullanabilirsiniz. Uygulamanın kaldırılması push bildirim tokeninin geçersizleşmesi sonucunu doğurur ve bu token ilk periyodik imha döneminde silinir.",
           "Uygulama sürümlerinin güncel tutulması güvenlik açısından önemlidir; desteklenen en düşük sürümün altındaki sürümlerde bazı işlevler çalışmayabilir. Güncellemeler, uygulama mağazasının kuralları çerçevesinde sunulur.",
+          "fA'L özelliğinde seçtiğiniz içecek fotoğrafı, açık rızanız olmadıkça yalnızca cihazınızda işlenir ve şirketimize gönderilmez. Falın yapay zekâ ile yorumlanmasını açık rızanızla (Açık Rıza Metni, R12) istemeniz hâlinde fotoğraf küçültülmüş ve meta verileri arındırılmış olarak şirketimizin sunucusu üzerinden OpenAI, L.L.C.'ye (ABD) aktarılır ve şirketimizce saklanmaz; ayrıntılar Açık Rıza Metni'nde yer alır.",
         ],
         bullets: [
           "Cihaz ve uygulama verisi: cihaz tanımlayıcıları (iOS'ta IDFA, Android'de AAID), uygulama sürümü, işletim sistemi ve sürümü, cihaz modeli ve dil ayarı. Hukuki sebep: KVKK m.5/2-c hizmetin sunulması ve m.5/2-f meşru menfaat (uyumluluk ve hata giderme); reklam tanımlayıcısının pazarlama amacıyla kullanılması hâlinde KVKK m.5/1 açık rıza.",
@@ -6152,6 +6154,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "15. Kişisel Verilerin Yurt Dışına Aktarılması",
         paragraphs: [
+          "fA'L yapay zekâ yorumu kapsamında içecek fotoğrafının OpenAI, L.L.C.'ye (ABD) aktarılması yalnızca açık rızanızla istenen bir işlemdir ve Açık Rıza Metni'nin R12 bölümünde açıklanmıştır.",
           "Hizmet altyapımızın bir kısmı (uygulama barındırma, PostgreSQL veri tabanı, işlemsel e-posta gönderimi, mobil uygulama mağaza dağıtımı ve push bildirim iletimi ile içerik dağıtım ağı) yurt dışında yerleşik hizmet sağlayıcılar tarafından sunulmaktadır. Bu nedenle kişisel verileriniz, teknik olarak yurt dışındaki sunucularda işlenebilir veya yurt dışına aktarılabilir.",
           "Yurt dışına aktarım, Kanun'un 9. maddesinde ve Yurt Dışına Kişisel Veri Aktarımı Hakkında Yönetmelik'te öngörülen sıralı mekanizmalara uygun olarak yapılır. Öncelikle aktarımın yapılacağı ülke, sektör veya uluslararası kuruluş hakkında Kurul tarafından verilmiş bir yeterlilik kararı bulunup bulunmadığı değerlendirilir. Yeterlilik kararının bulunmadığı hâllerde, aktarım Kanun'da sayılan uygun güvencelerden birinin sağlanması koşuluyla gerçekleştirilir.",
           "Uygun güvenceler kapsamında, Kurul tarafından ilan edilen standart sözleşme metni imzalanır ve söz konusu sözleşme, mevzuatta öngörülen süre içinde Kuruma bildirilir; şirketler topluluğu bakımından bağlayıcı şirket kuralları veya yazılı taahhütname yolları da mevzuatın izin verdiği ölçüde kullanılabilir. Yeterlilik kararı ve uygun güvencelerin bulunmadığı hâllerde aktarım, yalnızca Kanun'un 9. maddesinde sayılan arızi hâllerin varlığı hâlinde ve bu hâllerle sınırlı olarak yapılır; bu kapsamda açık rızaya dayalı aktarım, ilgili kişinin aktarımın olası risklerine ilişkin ayrıca bilgilendirilmesi üzerine alınan açık rızaya dayanır.",
@@ -6405,6 +6408,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "acik-riza-metni",
     title: "Açık Rıza Metni",
     shortTitle: "Açık Rıza",
+    updatedAt: "23 Eylül 2026",
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun uyarınca {{SHORT_NAME}}'nin web sitesi ve mobil uygulamada hangi işlemler için açık rızanıza başvurduğunu, rızanın nasıl verilip geri çekileceğini, vermemeniz hâlinde hizmetin ve puan kazanmanızın etkilenmediğini açıklar.",
@@ -6677,6 +6681,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value:
               "Cihaz izniyle elde edilen yaklaşık konum (ilçe veya semt düzeyi); amaç: kafeye yakınken geçerli kampanyaların ve şube bilgisinin gösterilmesi.",
           },
+          {
+            key: "R12 - fA'L yapay zekâ yorumu",
+            value:
+              "fA'L ekranında seçtiğiniz içecek fotoğrafı ile üyelik seviyeniz ve yaklaşık ziyaret sıklığınız (adınız ve iletişim bilgileriniz olmadan); amaç: fotoğrafın yapay zekâ ile yorumlanarak eğlence amaçlı kişisel bir fal metni yazılması. OpenAI (ABD) altyapısına aktarılır; fotoğraf saklanmaz.",
+          },
         ],
       },
       {
@@ -6825,6 +6834,25 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Saklama: Reklam tanımlayıcısı ve yaklaşık konum kayıtları, rızanız süresince ve geri çekmenizden itibaren en geç doksan gün içinde silinmek üzere; ölçümleme çıktıları kimliğinizle ilişkilendirilemeyecek biçimde toplulaştırılarak saklanabilir.",
           "Kullanılmayan yöntemler: Cihazınızın rehberi, çağrı kayıtları, mesajları ve fotoğraf galerisi bu amaçlarla okunmaz; parmak izi benzeri gizli cihaz izleme teknikleri kullanılmaz.",
           "Rıza vermezseniz: Uygulama tüm işlevleriyle çalışmaya devam eder; menü görüntüleme, sipariş, üyelik, karekod ile puan kazanma ve puan harcama etkilenmez. Yalnızca reklamlar ilgi alanınıza göre kişiselleştirilmez ve konuma özel kampanya gösterilmez.",
+        ],
+      },
+      {
+        heading:
+          "15/A. R12 - fA'L Yapay Zekâ Yorumu İçin Fotoğrafın İşlenmesi ve Yurt Dışına Aktarılması",
+        paragraphs: [
+          "{{BRAND}} mobil uygulamasındaki fA'L özelliği, içeceğinizin fotoğrafına bakarak eğlence amaçlı bir kahve falı yazar. Bu onayı vermediğiniz sürece fal tamamen cihazınızda, hazır metinlerden seçilerek oluşturulur ve fotoğrafınız cihazınızdan çıkmaz. Bu onay (R12), falın yapay zekâ tarafından yorumlanmasını istemeniz hâlinde fotoğrafınızın bu amaçla işlenmesini ve yurt dışına aktarılmasını kapsar.",
+          "Onay vermeniz hâlinde seçtiğiniz fotoğraf cihazınızda küçültülür, konum ve cihaz bilgisi gibi meta verilerden arındırılır ve şirketimizin sunucusu üzerinden OpenAI, L.L.C. (Amerika Birleşik Devletleri) tarafından sağlanan yapay zekâ hizmetine gönderilir. Fotoğrafla birlikte yalnızca üyelik seviyeniz, yaklaşık ziyaret sıklığınız ve varsa kayıtlı her zamanki içeceğinizin adı gönderilir; adınız, e-posta adresiniz, telefon numaranız ve üye numaranız gönderilmez.",
+          "Fotoğraf şirketimizce saklanmaz; yalnızca yorumun üretildiği istek süresince işlenir ve hizmet sağlayıcıya yanıtı saklamaması talimatıyla iletilir. Hizmet sağlayıcının kötüye kullanımın önlenmesi amacıyla kendi politikaları uyarınca sınırlı süreli kayıt tutabileceğini bildiririz. Şirketimiz yalnızca hangi gün yorum istendiğini, fincanın görülüp görülmediğini ve kullanılan modelin adını, günlük kullanım sınırının uygulanabilmesi için hesabınızla ilişkili olarak kaydeder; fotoğraf ve üretilen metin bu kayda girmez.",
+          "Fotoğrafta kişiler, yüzler veya belgeler bulunmamasına özen göstermenizi rica ederiz. Yapay zekâya fotoğraftaki kişileri tanımlamaması, sağlık, ilişki ve para konularında öngöride bulunmaması ve herhangi bir indirim, hediye veya ayrıcalık vaat etmemesi talimatı verilir; bu kurallara uymayan bir yanıt gösterilmez ve fal cihazınızda okunur. Yapay zekâ yorumu da cihazdaki fal gibi eğlence amaçlıdır, gerçeği yansıtmaz ve hakkınızda hukuki sonuç doğuran bir karar içermez.",
+          "Yurt dışına aktarım, Kanun'un 9. maddesi uyarınca hizmet sağlayıcıyla akdedilen standart sözleşme gibi uygun güvencelere dayandırılır. Aktarımın yapıldığı ülkede veri koruma düzeyinin Türkiye'dekiyle aynı olmayabileceğini, yetkili makamların erişim yetkilerinin farklı olabileceğini hatırlatırız.",
+          "Onayınızı fA'L ekranından dilediğiniz an geri çekebilirsiniz; geri çektiğiniz andan itibaren fal yeniden yalnızca cihazınızda okunur. Onay vermemeniz veya geri çekmeniz fA'L'ı kullanmanıza, üyeliğinize, siparişlerinize ve damgalarınıza hiçbir etki etmez.",
+        ],
+        bullets: [
+          "İşlenen veriler: İçecek fotoğrafı (küçültülmüş ve meta verileri arındırılmış), üyelik seviyesi, yaklaşık ziyaret sıklığı, varsa her zamanki içeceğin adı; kullanım kaydı olarak yorumun istendiği gün, fincanın görülüp görülmediği ve modelin adı.",
+          "Alıcı: OpenAI, L.L.C. (Amerika Birleşik Devletleri), veri işleyen sıfatıyla.",
+          "Saklama: Fotoğraf ve üretilen yorum şirketimizce saklanmaz; kullanım kaydı günlük sınırın uygulanması için doksan gün saklanır ve ardından silinir.",
+          "Günlük sınır: Üye başına günde beş yapay zekâ yorumu.",
+          "Rıza vermezseniz: fA'L cihazınızda, hazır metinlerle çalışmaya devam eder.",
         ],
       },
       {
