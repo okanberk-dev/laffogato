@@ -32,9 +32,15 @@ export async function proxy(request: NextRequest) {
   const response = await updateSession(request);
 
   const isAdminRoute = path.startsWith("/admin");
-  const isAdminLogin = path === "/admin/giris";
+  // The two steps of signing in. `/admin/iki-asama` is reached holding only
+  // the short-lived *pending* cookie — the full session does not exist until
+  // the TOTP code is accepted there. Guarding it with the full-session check
+  // sent every 2FA-enrolled admin back to /admin/giris, forever: nobody who
+  // had turned 2FA on could sign in. The page and its action check the
+  // pending cookie themselves (`getPendingSession`, `complete2FA`).
+  const isAdminSignIn = path === "/admin/giris" || path === "/admin/iki-asama";
 
-  if (!isAdminRoute || isAdminLogin) {
+  if (!isAdminRoute || isAdminSignIn) {
     return response;
   }
 
