@@ -190,7 +190,7 @@ export function CupEmblem({
         opacity="0.7"
       >
         <textPath href="#ce-bot" startOffset="50%" textAnchor="middle">
-          L'AFFOGATO · MCMLXXXVII · ISTANBUL · MMXXVI
+          L&apos;AFFOGATO · MCMLXXXVII · ISTANBUL · MMXXVI
         </textPath>
       </text>
       <text
@@ -1568,8 +1568,10 @@ export function ProductSurface({
 
   const cover = images?.find((u) => typeof u === "string" && u.length > 0);
   if (cover) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // Admin-uploaded cover: served from /gorsel or a panel URL whose host
+      // is not known at build time, so next/image cannot whitelist it.
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={cover}
         alt={label ?? "Ürün görseli"}

@@ -103,7 +103,7 @@ export function ProductDetail({
       new StorageEvent("storage", { key: CART_STORAGE_KEY }),
     );
     if (goCheckout) {
-      window.location.href = "/odeme";
+      window.location.assign("/odeme");
     } else {
       setAdded(true);
       window.setTimeout(() => setAdded(false), 2200);

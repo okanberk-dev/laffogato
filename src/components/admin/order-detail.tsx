@@ -547,9 +547,13 @@ function NoteForm({ orderId, initial }: { orderId: string; initial: string }) {
   const [note, setNote] = useState(initial);
   const [dirty, setDirty] = useState(false);
 
-  useEffect(() => {
+  /* A new save clears the "unsaved" hint. Adjusted during render when the
+     action's timestamp changes, rather than in an effect a frame later. */
+  const [seenSavedAt, setSeenSavedAt] = useState(state.savedAt);
+  if (state.savedAt !== seenSavedAt) {
+    setSeenSavedAt(state.savedAt);
     if (state.savedAt) setDirty(false);
-  }, [state.savedAt]);
+  }
 
   return (
     <form action={formAction} className="grid gap-2">

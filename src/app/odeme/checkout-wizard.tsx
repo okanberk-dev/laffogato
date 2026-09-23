@@ -93,6 +93,12 @@ export function CheckoutWizard({
   const [step, setStep] = useState<Step>("review");
 
   useEffect(() => {
+    // Hydration read: the server renders an empty cart (it has no
+    // localStorage), so the stored items arrive here, after hydration, and
+    // `mounted` holds the empty-cart message back until they have. The cart
+    // is written back by the next effect, which a read-only
+    // useSyncExternalStore snapshot would not model.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems(readCart());
     setMounted(true);
     const onStorage = (e: StorageEvent) => {

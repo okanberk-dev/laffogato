@@ -156,6 +156,10 @@ function CardGrid({ title, posts }: { title: string; posts: CampaignPost[] }) {
             >
               {p.image ? (
                 <div className="campaign-card-photo">
+                  {/* The campaign photo is a panel URL whose host is not
+                      known at build time; next/image would need a wildcard
+                      remotePattern to load it. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.image} alt="" loading="lazy" />
                 </div>
               ) : (

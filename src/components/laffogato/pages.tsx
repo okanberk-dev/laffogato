@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, useMemo, useRef, Fragment } from "react";
+import Image from "next/image";
 
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
@@ -184,12 +185,12 @@ export function PageHome({
         break;
       case "seasonMenu":
         // The Strawberry Aşkı trio lives in the matcha bar.
-        window.location.href = "/menu/matcha";
+        window.location.assign("/menu/matcha");
         break;
       case "signature":
         // The L'Affogato itself is a cafe menu item, not a shop product, so
         // "see the product" means its menu category.
-        window.location.href = "/menu/espresso";
+        window.location.assign("/menu/espresso");
         break;
       case "story":
         navigate("story");
@@ -198,7 +199,7 @@ export function PageHome({
         navigate("visit");
         break;
       case "karaoke":
-        window.location.href = "/karaoke";
+        window.location.assign("/karaoke");
         break;
     }
   };
@@ -419,21 +420,21 @@ export function PageHome({
         <div className="wrap split-2col">
           <div className="signature-photos reveal">
             <div className="signature-photo">
-              <img
+              <Image
                 src="/photos/affogato-cup.webp"
                 alt="Yenilebilir waffle kupada affogato"
-                loading="lazy"
                 width={685}
                 height={1020}
+                sizes="(max-width: 700px) 50vw, 320px"
               />
             </div>
             <div className="signature-photo offset">
-              <img
+              <Image
                 src="/photos/affogato-tray.webp"
                 alt="Avluda iki affogato"
-                loading="lazy"
                 width={765}
                 height={1020}
+                sizes="(max-width: 700px) 50vw, 320px"
               />
             </div>
           </div>
@@ -539,12 +540,12 @@ export function PageHome({
       <section className="home-section home-section-last band-cream">
         <div className="wrap split-2col">
           <div className="visit-photo reveal">
-            <img
+            <Image
               src="/photos/facade-night.webp"
               alt="Gece ışıklarıyla köşk cephesi"
-              loading="lazy"
               width={765}
               height={1020}
+              sizes="(max-width: 700px) 100vw, 640px"
             />
           </div>
           <div className="reveal r1">
@@ -1538,39 +1539,49 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
               handoff — the page used to carry only drawn illustrations. */}
           <div className="story-mosaic">
             <div className="story-mosaic-lead">
-              <img
+              <Image
                 src="/photos/facade-day.webp"
                 alt="Tuzla'daki restore ahşap köşk"
-                loading="lazy"
+                width={765}
+                height={1020}
+                sizes="(max-width: 560px) 100vw, 640px"
                 style={{ objectPosition: "50% 58%" }}
               />
             </div>
             <div>
-              <img
+              <Image
                 src="/photos/interior-mirror.webp"
                 alt="Köşkün içi - terracotta duvar ve altın ayna"
-                loading="lazy"
+                width={765}
+                height={1020}
+                sizes="(max-width: 560px) 50vw, 320px"
               />
             </div>
             <div>
-              <img
+              <Image
                 src="/photos/interior-chest.webp"
                 alt="Köşkün içi - ahşap sandık ve vitrin"
-                loading="lazy"
+                width={765}
+                height={1020}
+                sizes="(max-width: 560px) 50vw, 320px"
               />
             </div>
             <div>
-              <img
+              <Image
                 src="/photos/terrace-canopy.webp"
                 alt="Hasır gölgelikli teras"
-                loading="lazy"
+                width={765}
+                height={1020}
+                sizes="(max-width: 560px) 50vw, 320px"
               />
             </div>
             <div>
-              <img
+              <Image
                 src="/photos/drinks-tray.webp"
                 alt="Terasta soğuk içecekler"
-                loading="lazy"
+                width={765}
+                height={1020}
+                sizes="(max-width: 560px) 50vw, 320px"
               />
             </div>
           </div>

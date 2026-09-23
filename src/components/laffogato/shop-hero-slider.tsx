@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 
+import { useClientValue } from "./use-client-value";
+
+const isBrowser = () => true;
+
 export interface ShopHeroSlide {
   id: string;
   title: string;
@@ -27,27 +31,27 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
    * visitor had seen one. Only the current slide and the one on either side
    * load; a slide stays loaded once shown, so going back is instant and
    * nothing re-flashes.
+   *
+   * The server HTML carries the first slide's photo only; the neighbours
+   * join once hydration is done, so they never compete with the first
+   * paint. Kept up to date during render (react.dev "adjusting state when
+   * a prop changes"), not in an effect.
    */
   const [loaded, setLoaded] = useState<boolean[]>(() =>
     slides.map((_, i) => i === 0),
   );
-  useEffect(() => {
-    setLoaded((prev) => {
-      const next = [...prev];
-      let changed = false;
-      for (const i of [
-        index,
-        (index + 1) % total,
-        (index - 1 + total) % total,
-      ]) {
-        if (!next[i]) {
-          next[i] = true;
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [index, total]);
+  const hydrated = useClientValue(isBrowser, false);
+  const wanted =
+    total === 0
+      ? []
+      : hydrated
+        ? [index, (index + 1) % total, (index - 1 + total) % total]
+        : [index];
+  if (wanted.some((i) => !loaded[i])) {
+    const next = [...loaded];
+    for (const i of wanted) next[i] = true;
+    setLoaded(next);
+  }
 
   useEffect(() => {
     if (total <= 1 || paused) return;

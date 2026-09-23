@@ -40,7 +40,7 @@ export function TwoFAEnrollForm() {
     <div className="grid gap-3">
       <form action={formAction} className="grid gap-3">
         <p className="text-sm text-neutral-600">
-          QR kodu taradıktan sonra authenticator'da görünen 6 haneli kodu gir.
+          QR kodu taradıktan sonra authenticator&apos;da görünen 6 haneli kodu gir.
         </p>
         <TextInput
           name="token"

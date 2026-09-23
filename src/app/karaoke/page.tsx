@@ -57,7 +57,10 @@ interface PageProps {
 
 export default async function KaraokePage({ searchParams }: PageProps) {
   const { tarih } = await searchParams;
-  const clock = istanbulClock(new Date());
+  // One reading of the clock per request: the calendar day and the tier
+  // window below must agree on what "now" is.
+  const now = new Date();
+  const clock = istanbulClock(now);
   const settings = await getPublicSettings();
 
   // Availability is per-day, and the day lives in the URL rather than in
@@ -83,7 +86,7 @@ export default async function KaraokePage({ searchParams }: PageProps) {
   let tier: string | null = null;
   if (customer) {
     const orders = await customerOrdersByEmail(customer.email);
-    tier = computeTier(countOrdersLast365(orders, Date.now()));
+    tier = computeTier(countOrdersLast365(orders, now.getTime()));
   }
 
   let availability = null;

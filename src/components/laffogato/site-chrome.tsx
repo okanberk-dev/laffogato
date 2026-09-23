@@ -67,7 +67,7 @@ export function SiteChrome({
       <Nav
         cart={cartCount}
         onSearch={() => {
-          window.location.href = "/magaza";
+          window.location.assign("/magaza");
         }}
       />
       <main className="site-chrome-body" id="main">

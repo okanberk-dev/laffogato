@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 
 import {
   saveOrderDetailsAction,
@@ -38,10 +38,13 @@ export function OrderCustomerEditor({
     shippingAddress,
   });
 
-  // Collapse back to read-mode after a successful save.
-  useEffect(() => {
+  /* Collapse back to read-mode after a successful save: adjusted during
+     render when the action's timestamp changes, not in an effect. */
+  const [seenSavedAt, setSeenSavedAt] = useState(state.savedAt);
+  if (state.savedAt !== seenSavedAt) {
+    setSeenSavedAt(state.savedAt);
     if (state.savedAt) setEditing(false);
-  }, [state.savedAt]);
+  }
 
   const set =
     (k: keyof typeof vals) =>
@@ -172,7 +175,7 @@ export function OrderCustomerEditor({
           </address>
         ) : (
           <p className="text-sm text-neutral-400">
-            Teslimat adresi yok. "Düzenle" ile ekleyebilirsin.
+            Teslimat adresi yok. &quot;Düzenle&quot; ile ekleyebilirsin.
           </p>
         )}
       </Card>

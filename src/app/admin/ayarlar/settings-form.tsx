@@ -476,7 +476,7 @@ function EmailTab({
               <>
                 Gönderime hazır. Şu anki gönderen: <strong>{mail.from}</strong>
                 {mail.status === "unknown" && (
-                  <> (alan adı durumu Resend'den okunamadı)</>
+                  <> (alan adı durumu Resend&apos;den okunamadı)</>
                 )}
               </>
             ) : (

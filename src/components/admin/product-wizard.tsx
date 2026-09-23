@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   useActionState,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -139,7 +138,11 @@ export function ProductWizard({
   const totalSteps = 5;
 
   const [name, setName] = useState(product?.name ?? "");
-  const [slug, setSlug] = useState(product?.slug ?? "");
+  /* A product saved without a slug or SKU starts with the ones its name
+     implies, exactly what the old mount-time effect filled in. */
+  const [slug, setSlug] = useState(
+    product?.slug || slugifyClient(product?.name ?? ""),
+  );
   const [slugTouched, setSlugTouched] = useState(Boolean(product?.slug));
   const [tag, setTag] = useState(product?.tag ?? "");
   const [desc, setDesc] = useState(product?.desc ?? "");
@@ -166,7 +169,9 @@ export function ProductWizard({
       ? (product.costMinor / 100).toFixed(2)
       : "",
   );
-  const [sku, setSku] = useState(product?.sku ?? "");
+  const [sku, setSku] = useState(
+    product?.sku || (product?.name ? skuFromName(product.name) : ""),
+  );
   const [skuTouched, setSkuTouched] = useState(Boolean(product?.sku));
   const [stock, setStock] = useState(String(product?.stock ?? 0));
   const [lowStockThreshold, setLowStockThreshold] = useState(
@@ -189,11 +194,14 @@ export function ProductWizard({
   const [featured, setFeatured] = useState(product?.featured ?? false);
   const [isNew, setIsNew] = useState(product?.isNew ?? false);
 
-  // Auto-fill slug + sku as the user types name (only if they haven't touched).
-  useEffect(() => {
-    if (!slugTouched) setSlug(slugifyClient(name));
-    if (!skuTouched && name) setSku(skuFromName(name));
-  }, [name, slugTouched, skuTouched]);
+  /* Auto-fill slug + sku as the operator types the name, until either field
+     has been edited by hand. Done in the change handler, not an effect, so
+     the three fields update in one render. */
+  const onNameChange = (next: string) => {
+    setName(next);
+    if (!slugTouched) setSlug(slugifyClient(next));
+    if (!skuTouched && next) setSku(skuFromName(next));
+  };
 
   const priceMinor = useMemo(() => {
     const v = parseFloat(price.replace(",", "."));
@@ -289,7 +297,7 @@ export function ProductWizard({
             <TextInput
               name="name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => onNameChange(e.target.value)}
               required
               aria-invalid={Boolean(fieldError("name"))}
             />
@@ -519,8 +527,9 @@ export function ProductWizard({
       body: (
         <div className="grid gap-5">
           <p className="text-sm text-neutral-600">
-            Boyut, lezzet veya seçenek varyantları — örn. "Küçük", "250g",
-            "Stracciatella". Her varyantın kendi stoğu ve fiyat delta'sı olur.
+            Boyut, lezzet veya seçenek varyantları - örn. &quot;Küçük&quot;,
+            &quot;250g&quot;, &quot;Stracciatella&quot;. Her varyantın kendi
+            stoğu ve fiyat delta&apos;sı olur.
           </p>
           {variants.length === 0 ? (
             <Card className="bg-neutral-50 text-center">

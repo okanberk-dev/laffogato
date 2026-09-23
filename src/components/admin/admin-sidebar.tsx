@@ -345,13 +345,13 @@ function SidebarBody({
 
 export function AdminSidebar(props: SidebarProps) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  /* The route the mobile drawer was opened on. Keying the drawer to it
+     closes the drawer on navigation without an effect: a new pathname
+     simply no longer matches. */
+  const [openOn, setOpenOn] = useState<string | null>(null);
+  const open = openOn !== null && openOn === pathname;
+  const setOpen = (next: boolean) => setOpenOn(next ? pathname : null);
   const openOrders = useOpenOrderCount(pathname);
-
-  // Close the mobile drawer whenever the route changes.
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   return (
     <>

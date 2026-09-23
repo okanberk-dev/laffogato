@@ -29,8 +29,16 @@ function discountLabel(kind: string, value: number): string {
   return kind === "pct" ? `%${value} indirim` : `${formatTRY(value)} indirim`;
 }
 
-function CouponCard({ coupon }: { coupon: CustomerCoupon }) {
-  const status = couponStatus(coupon, Date.now());
+function CouponCard({
+  coupon,
+  nowMs,
+}: {
+  coupon: CustomerCoupon;
+  /** The page's one reading of the clock, so every card and the section
+      split above them agree on which coupons are still active. */
+  nowMs: number;
+}) {
+  const status = couponStatus(coupon, nowMs);
   const muted = status !== "active";
   const badge =
     status === "redeemed"
@@ -150,7 +158,7 @@ export default async function PromosyonlarPage() {
         ) : (
           <div>
             {activeCoupons.map((c) => (
-              <CouponCard key={c.id} coupon={c} />
+              <CouponCard key={c.id} coupon={c} nowMs={nowMs} />
             ))}
           </div>
         )}
@@ -207,7 +215,7 @@ export default async function PromosyonlarPage() {
         >
           <div>
             {pastCoupons.slice(0, 8).map((c) => (
-              <CouponCard key={c.id} coupon={c} />
+              <CouponCard key={c.id} coupon={c} nowMs={nowMs} />
             ))}
           </div>
         </AccountCard>

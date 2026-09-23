@@ -142,6 +142,10 @@ export function HomeHeroSlider({
                       aria-current={on || undefined}
                       aria-label={s.title.join(" ")}
                     >
+                      {/* Same file as the stage photo below, which can be
+                          the panel's hero URL; a plain <img> lets both share
+                          one cached download. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={s.photo} alt="" loading="lazy" width={581} height={942} />
                     </button>
                     {on ? (
@@ -184,6 +188,10 @@ export function HomeHeroSlider({
             <span className="hero-x-sparkle c" aria-hidden="true">
               ✦
             </span>
+            {/* The first slide's photo can be the panel's "Hero görsel URL",
+                an arbitrary host next/image would need a wildcard
+                remotePattern for. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               className="hero-x-photo"
               /* Keyed on the photo so a slide change remounts the image and

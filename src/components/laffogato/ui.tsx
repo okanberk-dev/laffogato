@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { toggleWishlistAction } from "@/app/uye/actions";
 import { productPath } from "./route-paths";
@@ -1071,9 +1071,14 @@ export function SearchOverlay({
   const panelRef = useRef<HTMLDivElement | null>(null);
   useDialog(open, onClose, panelRef);
 
-  useEffect(() => {
+  /* A fresh query each time the overlay opens. Adjusted during render
+     (react.dev "adjusting state when a prop changes") rather than in an
+     effect, so the stale term never paints for a frame. */
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) setQ("");
-  }, [open]);
+  }
 
   const term = q.trim().toLowerCase();
   const results: SearchResult[] = [];
@@ -1182,7 +1187,7 @@ export function SearchOverlay({
                   fontSize: 24,
                 }}
               >
-                "{q}" için sonuç yok.
+                &quot;{q}&quot; için sonuç yok.
               </div>
               <p>Farklı bir kelime dene ya da mağazaya göz at.</p>
               <Link href="/magaza" className="btn btn-ghost btn-sm">

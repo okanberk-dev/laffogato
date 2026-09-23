@@ -123,8 +123,16 @@ export function LaffogatoApp({
   const [noticeOpen, setNoticeOpen] = useState(Boolean(notice));
   const [cartAnnouncement, setCartAnnouncement] = useState("");
 
-  useEffect(() => {
+  // A new notice reopens the strip. Adjusted during render when the prop
+  // changes (react.dev "adjusting state when a prop changes"); the effect
+  // below only owns the timer that closes it again.
+  const [shownNotice, setShownNotice] = useState(notice);
+  if (notice !== shownNotice) {
+    setShownNotice(notice);
     setNoticeOpen(Boolean(notice));
+  }
+
+  useEffect(() => {
     if (!notice) return;
     const t = window.setTimeout(() => setNoticeOpen(false), 7000);
     return () => window.clearTimeout(t);
@@ -152,6 +160,12 @@ export function LaffogatoApp({
         return;
       }
     }
+    // Hydration read: the server has no localStorage, so the first client
+    // render must match its empty cart and the stored one arrives here, after
+    // hydration (see "Hash router'da hydration mismatch" in CLAUDE.md). The
+    // cart is also written back by the effect below, which a read-only
+    // useSyncExternalStore snapshot would not model.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCart(readStoredCart());
     hydratedRef.current = true;
     setMounted(true);

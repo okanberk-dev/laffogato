@@ -50,7 +50,7 @@ export default async function PromoCodesPage() {
       <Card>
         {promos.length === 0 ? (
           <p className="text-sm text-neutral-500">
-            Henüz promosyon kodu yok. "+ Yeni kod" ile ekle.
+            Henüz promosyon kodu yok. &quot;+ Yeni kod&quot; ile ekle.
           </p>
         ) : (
           <>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import {
   grantCustomerCouponAction,
@@ -36,7 +36,9 @@ export function CustomerCoupons({
 }) {
   const boundGrant = grantCustomerCouponAction.bind(null, email);
   const [state, action, pending] = useActionState(boundGrant, initial);
-  const now = Date.now();
+  // Read once when the card mounts; a render-time Date.now() is impure and
+  // would let two renders disagree about which coupon has expired.
+  const [now] = useState(() => Date.now());
 
   return (
     <Card className="grid gap-4">

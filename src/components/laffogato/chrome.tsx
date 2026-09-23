@@ -160,7 +160,7 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
     ? { onClick: onCart, type: "button" as const, role: undefined }
     : {
         onClick: () => {
-          window.location.href = "/odeme";
+          window.location.assign("/odeme");
         },
         type: "button" as const,
         role: undefined,
@@ -593,7 +593,7 @@ function DropdownPanel({
           ))}
         </div>
         <div className="nav-dropdown-foot">
-          <span className="nav-dropdown-foot-mark">L'A</span>
+          <span className="nav-dropdown-foot-mark">L&apos;A</span>
           <span className="nav-dropdown-foot-line">
             Bologna 1897 -{" "}
             {parentRoute === "menu"

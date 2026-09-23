@@ -12,6 +12,8 @@ import {
 } from "@/lib/consent/cookie";
 import { CONSENT_OPEN_EVENT, pushConsentUpdate } from "@/lib/consent/script";
 
+import { useClientValue } from "./use-client-value";
+
 type Choice = Omit<ConsentState, "decidedAt">;
 
 const ALL_GRANTED: Choice = {
@@ -45,25 +47,22 @@ const CATEGORIES: Array<{
 
 export function CookieConsent() {
   // `null` = henüz okumadık; sunucu ile istemci HTML'i aynı kalsın diye ilk
-  // render'da hiçbir şey basmıyoruz.
-  const [decided, setDecided] = useState<boolean | null>(null);
+  // render'da hiçbir şey basmıyoruz. The cookie is read once hydration is
+  // done (useClientValue), not in a mount effect.
+  const storedDecision = useClientValue<boolean | null>(
+    () => readConsent() !== null,
+    null,
+  );
+  // Set by commit(): the banner goes away on the click itself, whether or
+  // not the panel was open to force a re-render.
+  const [committed, setCommitted] = useState(false);
+  const decided = storedDecision === null ? null : committed || storedDecision;
   const [panelOpen, setPanelOpen] = useState(false);
+  // Only the panel reads the draft, and openPanel() refills it from the
+  // cookie every time the panel opens.
   const [draft, setDraft] = useState<Choice>(CONSENT_DENIED);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    const stored = readConsent();
-    setDecided(stored !== null);
-    if (stored) {
-      setDraft({
-        version: CONSENT_VERSION,
-        preferences: stored.preferences,
-        analytics: stored.analytics,
-        marketing: stored.marketing,
-      });
-    }
-  }, []);
 
   const openPanel = useCallback(() => {
     openerRef.current = document.activeElement as HTMLElement | null;
@@ -108,7 +107,7 @@ export function CookieConsent() {
   const commit = useCallback((choice: Choice) => {
     writeConsent(choice);
     pushConsentUpdate(choice);
-    setDecided(true);
+    setCommitted(true);
     setPanelOpen(false);
   }, []);
 

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useClientValue } from "./use-client-value";
+
 /**
  * The interactive pour toy — a 3D edible waffle cup the visitor fills with
  * espresso themselves. Designed in Claude Design; the widget itself is a
@@ -61,10 +63,32 @@ function loadWidget(): Promise<void> {
   });
 }
 
+/**
+ * Metered or very slow connection: the widget is never fetched. A 860 KB toy
+ * is not worth someone's data plan, and the card still reads as a card
+ * without it - copy, wash and CTA are all server-rendered.
+ */
+function isConstrainedConnection(): boolean {
+  const conn = (
+    navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }
+  ).connection;
+  return (
+    conn?.saveData === true ||
+    conn?.effectiveType === "slow-2g" ||
+    conn?.effectiveType === "2g"
+  );
+}
+
 export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
   const host = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
-  const [settled, setSettled] = useState(false);
+  const [loadEnded, setLoadEnded] = useState(false);
+  // On a constrained connection nothing is ever loading, so the caption
+  // must not claim otherwise. Read after hydration, not in the effect.
+  const constrained = useClientValue(isConstrainedConnection, false);
+  const settled = loadEnded || constrained;
 
   useEffect(() => {
     const mount = host.current;
@@ -103,33 +127,18 @@ export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
           element.setAttribute("name", "laffogato-cup");
           mount.appendChild(element);
           setReady(true);
-          setSettled(true);
+          setLoadEnded(true);
         })
         .catch(() => {
           // The card keeps its wash and its copy; only the cup is missing —
           // but the caption must stop claiming it is still loading.
-          if (!cancelled) setSettled(true);
+          if (!cancelled) setLoadEnded(true);
         });
     };
 
-    // Metered or very slow connection: never fetch it. A 860 KB toy is not
-    // worth someone's data plan, and the card still reads as a card without
-    // it — copy, wash and CTA are all server-rendered.
-    const conn = (
-      navigator as Navigator & {
-        connection?: { saveData?: boolean; effectiveType?: string };
-      }
-    ).connection;
-    if (
-      conn?.saveData === true ||
-      conn?.effectiveType === "slow-2g" ||
-      conn?.effectiveType === "2g"
-    ) {
-      setSettled(true);
-      return () => {
-        cancelled = true;
-      };
-    }
+    // Metered or very slow connection: never fetch it (the caption reads
+    // the same answer through `constrained`).
+    if (isConstrainedConnection()) return;
 
     // No IntersectionObserver (very old browser, or a JSDOM-ish env): just
     // load it — a working hero beats a clever one.
