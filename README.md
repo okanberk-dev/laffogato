@@ -71,7 +71,9 @@ src/lib/
   newsletter/            6563 onay kaydı + tek tıkla çıkış
   seo/                   site sabitleri · yapısal veri · sayfa SEO · rehber
 db/migrations/           Sıralı SQL migration'lar
-docs/                    DATABASE.md · SEO.md · AUDIT.md · PROMPT.md
+docs/                    DATABASE.md · SEO.md · AUDIT.md · PROMPT.md ·
+                         FRONTEND-SINIR.md (ön yüz ↔ arka yüz sınırı) ·
+                         API-MOBILE.md (mobil sözleşme, lafmobil ile aynı)
 tests/                   Vitest
 ```
 

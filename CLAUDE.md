@@ -52,6 +52,25 @@ olmalıdır**.
 > - Uç davranışını değiştiren her PR'da `docs/API-MOBILE.md` **aynı PR'da**
 >   güncellenir ve `lafmobil` tarafına haber verilir.
 
+**Paralellik nasıl korunur (ve nasıl kontrol edilir).**
+
+- `docs/API-MOBILE.md` iki depoda **bayt bayt aynı**. `lafmobil`
+  `src/data/contract-sync.test.ts` belgenin SHA-256'sını kilitler; bu depodaki
+  `tests/api-contract-parity.test.ts` `../lafmobil` yanında klonluysa iki kopyayı
+  karşılaştırır (CI'da tek depo olduğu için atlanır). **Buradaki belgeye
+  dokunan her değişiklik aynı oturumda `lafmobil`'e kopyalanır ve oradaki
+  `RECONCILED` hash'i güncellenir** (ayrı PR) — yoksa iki taraf da kendi
+  kopyasını gösterip haklı çıkar.
+- Belge değil **kod** esastır. Paralelliği kontrol ederken `lafmobil`
+  `src/data/http.ts` (uygulamanın her yanıtı nasıl okuduğu) ile buradaki
+  `src/lib/mobile/*-mapper.ts` / `*-schema.ts` alan alan karşılaştırılır:
+  uygulamanın okuduğu ama sunucunun göndermediği alan (23 Eyl: `cafeOnly`),
+  panelin kabul edip uygulamanın düşürdüğü değer (23 Eyl: hatırlatma saati
+  08–21) ve uygulamanın dallandığı hata kodları.
+- Uygulama bir alanı zaten okuyorsa onu sunucuya eklemek v1 içinde güvenlidir
+  (yalnız ekleme). Uygulamanın bir değeri sessizce düşürdüğü yerde panel aynı
+  sınırı **mesajla** zorlar (`APP_CONFIG_LIMITS`).
+
 **İş mantığını web ile paylaşırken uçtan değil kütüphaneden geç.** Web'in
 kimliği bcrypt çerez oturumu, uygulamanınki Supabase bearer token'ı — web bir
 mobil ucu HTTP ile çağıramaz. Doğru desen: ortak kuralları saf bir `*-core`
@@ -76,13 +95,47 @@ neredeyse aynı parlaklıkta (`--hero-green` ile 1.15:1). Koyu zeminde
 kendiliğinden yapar, koyu bir blok yazarken `data-ground="dark"` eklemek
 yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
 
+## Ön yüz ↔ Arka yüz Sınırı
+
+> **Müşteri arayüzü yeniden tasarlanacak; arka yüz bundan etkilenmemeli.**
+> Tam sınır, alan tabloları ve kontrol listesi: **`docs/FRONTEND-SINIR.md`**.
+> Ön yüz işine başlarken skill: **`frontend-redesign`**.
+
+- **Ön yüz (serbest):** `src/components/laffogato/**`, `src/components/uye/**`,
+  `src/components/customer/**`, `src/app/globals.css`, müşteri `page.tsx` /
+  `*-form.tsx` dosyalarının **işaretlemesi**, `public/**`.
+- **Arka yüz (ön yüz PR'ında değişmez):** `src/lib/**`,
+  `src/app/**/actions.ts`, `src/app/**/route.ts`, `src/app/api/**`
+  (özellikle `api/mobile/v1` — sahadaki uygulama), `src/proxy.ts`, `db/**`,
+  `scripts/**`, `next.config.ts`, `vercel.json`, `docs/API-MOBILE.md`,
+  `src/app/admin/**`. Gerçekten gerekiyorsa **ayrı PR**.
+- **Aradaki sözleşme** (TypeScript ve build bunları görmez; testler görür):
+  1. Form `name`'leri = action'ın `formData.get(...)` adları —
+     `tests/frontend-form-contract.test.ts`. Form başka dosyaya taşınınca
+     yalnız testteki `forms` yolu güncellenir, alan listesi değil.
+  2. Onay kutuları (`legalConsent`, `acceptedTerms`, `marketing`,
+     `newsletter`, `consent`) işaretsiz başlar — aynı test.
+  3. Sepet: `localStorage["laffogato_cart_v1"]` ve `items` JSON biçimi
+     (`productId, variantId, name, price, qty`; fiyat yalnız gösterim).
+  4. Action'ların yönlendirmeleri sayfada karşılanır: `/?cart=…`,
+     `/?hesap=silindi`, `/odeme?error=consent|payment`, `/uye/giris?next=…`.
+  5. Dışarıdan çağrılan yollar yeniden adlandırılmaz: e-posta linkleri,
+     `/odeme/donus`, `/gorsel/**`, `/hukuk/[slug]`, `/bulten/cikis`, `/api/**`.
+  6. Veri `loadAppProps()` / `getPublicSettings()` / `list*` ile okunur;
+     bileşende `@/lib/db` yok; istemci bileşeni `server-only` modül import
+     edemez (saf mantık için `*-core.ts` / `*-utils.ts`).
+- **Ön yüz PR'ı bitmeden:** `git diff --stat origin/main -- src/lib src/app/api
+  db scripts src/proxy.ts 'src/app/**/actions.ts' 'src/app/**/route.ts'`
+  **boş** dönmeli.
+
 ## Klasör Yapısı
 
 ```
 src/
   app/
     page.tsx                 → Müşteri SPA entrysi (hash router: #home, #menu, ...)
-    layout.tsx               → next/font ile 2 font (Hanken Grotesk + JetBrains Mono)
+    layout.tsx               → next/font ile tek aile (Montserrat) + Consent Mode
+                               bootstrap (GTM'den önce) + GTM
     globals.css              → Tüm design tokens + müşteri SPA stilleri
     menu/ magaza/ hikayemiz/ → Müşteri rotaları (SPA içeriğinin SEO'lu karşılıkları)
     ziyaret/ hukuk/
@@ -112,10 +165,11 @@ src/
                                notifications (Bearer Supabase JWT) · app-content
     odeme/app-hata/          → Uygulama ödemesi başarısız → derin bağlantı
     odeme/donus/             → Sanal POS'un MÜŞTERİYİ POST ettiği dönüş
-                               (IYZICO_CALLBACK_URL burayı göstermeli)
+                               (PAYNKOLAY_SUCCESS_URL + _FAIL_URL burayı göstermeli)
     gorsel/                  → Yüklenen görsellerin önbelleklenebilir servisi
     bulten/cikis/            → Tek tıkla bülten aboneliğinden çıkış (6563)
-    proxy.ts                 → Supabase oturum yenileme + cookie-tabanlı admin guard
+  proxy.ts                   → (src/ kökünde) Supabase oturum yenileme +
+                               cookie-tabanlı admin guard
   components/
     laffogato/               → Müşteri SPA
       app.tsx                → Shell (cart, route, notice, settings)
@@ -135,7 +189,9 @@ src/
                                product-schema (Zod)
     customer/                → Müşteri hesapları, kuponlar, auth
                                supabase-bridge.ts + supabase-link-plan.ts
-                               (Supabase kullanıcısı ↔ customers satırı)
+                               (Supabase kullanıcısı ↔ customers satırı) ·
+                               member-orders.ts (sipariş geçmişi — yalnız
+                               doğrulanmış e-postaya)
     supabase/                → config · anon (bearer doğrulama) · server ·
                                client · proxy (oturum yenileme) — YALNIZ kimlik
     mobile/                  → Mobil API iş mantığı: auth (requireMobileCustomer) ·
@@ -157,16 +213,21 @@ src/
                                guide-structured-data.ts · guide-nav.ts
     consent/                 → cookie.ts (rıza durumu) · script.ts (Consent Mode v2)
     newsletter/              → store.ts (6563 onay kaydı + tek tıkla çıkış)
-    utils/                   → commerce.ts (vergi/kargo) · format.ts (priceLabel)
+    utils/                   → commerce.ts (vergi/kargo) · format.ts (priceLabel,
+                               parseMoneyInput — admin tutar girişi)
+    http/                    → etag.ts · same-site-path.ts (yönlendirme hedefi)
 db/
-  migrations/                → 18 SQL migration (`npm run db:migrate`)
+  migrations/                → SQL migration'lar (`npm run db:migrate`)
   schema.sql                 → Üretilen tek dosyalık şema (`npm run db:bundle`)
 scripts/                     → db-migrate.mjs · db-bundle.mjs
-tests/                       → 30 vitest dosyası
+tests/                       → Vitest (110+ dosya; form sözleşmesi, kontrast,
+                               mobil sözleşme, ödeme, DB derleyicisi …)
 docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
                                SEO.md · PROMPT.md · AUDIT.md ·
                                API-MOBILE.md (mobil sözleşme) · AUTH-BRIDGE.md ·
-                               SUPABASE-GECIS.md
+                               SUPABASE-GECIS.md · PAYNKOLAY.md · GELIVER.md ·
+                               EMAIL-RESEND.md · FRONTEND-SINIR.md (ön yüz ↔
+                               arka yüz sınırı)
 ```
 
 ## Geliştirme Komutları
@@ -182,7 +243,10 @@ npm run db:migrate   # Migration'ları uygula (DATABASE_URL gerekir)
 npm run db:bundle    # db/schema.sql'i yeniden üret
 ```
 
-CI her PR'da `npm run typecheck` + `npm run build` koşar.
+CI her PR'da ve `main`'e her push'ta `npm run typecheck` + `npm test` +
+`npm run build` koşar. Bu ortamda `NODE_ENV=development` tanımlıysa build
+`/_global-error` prerender'ında düşer; yerelde
+`NODE_ENV=production npm run build` kullan (CI değişkeni hiç set etmez).
 
 Veritabanına dokunan testler (`tests/db-integration.test.ts`) yalnızca
 `TEST_DATABASE_URL` verilince çalışır, aksi hâlde atlanır:
@@ -219,9 +283,11 @@ derler. Tanımlayıcılar `sql.ts`'te doğrulanır, değerler orada parametrelen
 `orderNo` 10001+) `next_seq()` ile **atomik**. Tablo boşsa ilk istekte
 **idempotent seed**.
 
-20 tablo + `next_seq` / `claim_order_stock` / `release_order_stock` /
-`redeem_promo` / `release_promo_usage` / `adjust_product_stock` /
-`record_auth_failure` fonksiyonları. Her biri, JavaScript'te yapılan bir
+Tablolar ve SQL fonksiyonları `db/schema.sql`'de (tek kaynak; sayıyı buraya
+yazma, eskiyor). Sayaç fonksiyonları: `next_seq` / `claim_order_stock` /
+`release_order_stock` / `redeem_promo` / `release_promo_usage` /
+`increment_promo_usage` / `adjust_product_stock` / `record_auth_failure` /
+`toggle_wishlist` / `campaign_email_claim`. Her biri, JavaScript'te yapılan bir
 oku-değiştir-yaz'ın eşzamanlılık altında kaybettiği yazımlar yüzünden var. Şema yoksa uygulama onu ilk sorguda kendisi kurar
 (`src/lib/db/bootstrap.ts` → `src/lib/db/schema-sql.ts`, `npm run db:bundle`
 ile üretilir), böylece `DATABASE_URL`'i migration'lardan önce tanımlamak siteyi
@@ -301,6 +367,27 @@ durum bozulmaya uygundur.
 21. **Gıda işletmesi sağlık iddiası yapamaz** — "zayıflatır", "önler",
     "tedavi eder", "detoks" gibi ifadeler `tests/guides.test.ts` tarafından
     reddedilir. Ölçülü ifade + tıbbi tavsiye olmadığı notu
+22. **Saat ve tarih köşkün saatiyle** (`Europe/Istanbul`, sabit UTC+3).
+    Sunucu (Vercel) UTC'dir: `getDay()`, `getMonth()`,
+    `toISOString().slice(0, 10)` 00:00–03:00 arası **dünü** verir. Kullan:
+    `istanbulDay` / `istanbulClock` (`src/lib/mobile/*`), panelden gelen
+    `datetime-local` için `parsePublishInstant` / `normalizePublishInstant`
+23. **`RETURNS TABLE` / `SETOF` SQL fonksiyonu → `rpcRows()`.** `rpc()` tek
+    hücre okur; tablo döndüren fonksiyonda kayıt *dizesi* gelir ve iş sessizce
+    boş çalışır (doğum günü cron'u böyle aylarca kimseyi kutlamadı).
+    `tests/db-rpc-table-functions.test.ts` tutar
+24. **Admin formundan gelen tutar → `parseMoneyInput()`**
+    (`src/lib/utils/format.ts`). `parseFloat(s.replace(",", "."))` yasak:
+    `"1.250,00"`'ı 1,25 okur
+25. **Para hareketinden önce doğrula.** POS'a iade (`provider.refund`) ancak
+    `refundRefusal()` boş dönünce çağrılır; defter reddi paradan sonra gelirse
+    ikisi kalıcı olarak ayrışır
+26. **İstekten gelen yönlendirme hedefi** (`?next=`, `back` alanı) yalnız
+    `sameSitePath()`'ten geçerek izlenir
+27. **`"use server"` dosyasındaki her `export` herkese açık bir POST ucudur.**
+    Oraya yardımcı fonksiyon koyma (2FA'yı kapatan `freshEnrollment` böyle
+    açıktaydı); her action kendi oturum + rol kontrolünü yapar — `proxy.ts`
+    yalnız sayfa yönlendirmesidir, yetki kontrolü değil
 
 ## Çalışma Kuralları (Claude için)
 
@@ -322,6 +409,11 @@ durum bozulmaya uygundur.
   UI'da `formatTRY()` ile render edilir
 - **Görsel değişiklik yaptıysan** sayfaları gerçekten render edip bak; layout
   hataları (çakışma, taşma) gözle yakalanır, testle değil
+- **Ön yüz işi** (tasarım, sayfa, bileşen, CSS, form) → skill
+  `frontend-redesign` + `docs/FRONTEND-SINIR.md`. Arka yüz dosyasına dokunmak
+  gerekiyorsa önce kullanıcıya söyle, ayrı PR aç
+- **Açık bulgular** `docs/AUDIT.md` §8 "Açık"ta; biri üzerinde çalışırken
+  oradan sil ve "Düzeltilenler" tablosuna testiyle birlikte taşı
 
 ## Yapılmayacaklar
 

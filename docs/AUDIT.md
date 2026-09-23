@@ -341,3 +341,98 @@ Yalnızca `DATABASE_URL`'in yeni bağlantı dizesiyle güncellenmesi yeterli.
 | `tests/route-paths.test.ts`      | Nav'daki her slug'ın gerçek bir rotası var                                  |
 | `tests/contrast.test.ts`         | Küçük metin koyu accent'i kullanır                                          |
 | `tests/legal-docs.test.ts`       | Checkout sabitleri 1,5 MB'lık kayıttan ayrı durur                           |
+
+---
+
+## 8. Backend + mobil parite denetimi — 23 Eyl 2026
+
+Arka yüzün tamamı dört koldan yeniden okundu: (1) `lafmobil` uygulamasının
+gerçekte gönderdiği/okuduğu her alan ile `/api/mobile/v1` kodunun karşılaştırması,
+(2) mobil iş mantığı, (3) ödeme · sipariş · veritabanı katmanı · cron,
+(4) admin kimliği · müşteri hesabı · bülten. Her bulgu koddan ikinci kez
+doğrulandı; düzeltilenlerin her birinin yanında onu tutan test var.
+
+**Parite sonucu:** iki depodaki `docs/API-MOBILE.md` bayt bayt aynıydı; çekirdek
+akışlarda (sipariş, ödeme, profil, sadakat, karaoke, menü/mağaza) kırık alan
+yok. Uygulamanın çağırdığı her uç sunucuda var (§18 Cüzdan ve §19 Hediye kartı
+hariç — belge onları "henüz yok, 404 beklenir" diye yazıyor, uygulama 404'ü
+"özellik kapalı" okuyor). Ayrışan dört şey bulundu, hepsi düzeltildi (aşağıda
+🟠/🟡 işaretli mobil satırlar).
+
+### Düzeltilenler
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🔴 | 2FA'lı hiçbir admin giriş yapamıyordu: `proxy.ts` `/admin/iki-asama`'yı tam oturum çereziyle koruyordu, o adımda yalnız bekleyen çerez var → sonsuz döngü | Adım proxy'den muaf; sayfa ve action bekleyen çerezi kendisi doğrular | `admin-proxy-2fa` |
+| 🔴 | `rpc()` `RETURNS TABLE` fonksiyonları tek hücre okuyordu → kayıt *dizesi*. Doğum günü cron'u her gün boş kitleyle "başarılı" bitiyordu; giriş kilidi mesajı `NaN` sayıyordu | `rpcRows()` (`SELECT * FROM fn()`); şemadaki her tablo-döndüren fonksiyonun `rpc(` ile çağrılmadığını test tutar | `db-rpc-table-functions`, `db-client`, `db-sql` |
+| 🔴 | İade: POS'a para iadesi **önce** gidiyor, defterin reddi (ödenmemiş, iptal, kalanı aşan tutar) **sonra** geliyordu | Kontroller tek saf fonksiyonda (`refundRefusal`), sağlayıcıdan önce | `admin-refund-guards` |
+| 🟠 | Ödenmiş siparişe ikinci başarılı tahsilat "zararsız tekrar" sayılıp "ödemen alındı" yeniden gidiyordu | `duplicate_payment` olarak denetim kaydına düşer, e-posta gitmez | `payment-duplicate-charge` |
+| 🟠 | İptal edilmiş ama ödenmiş sipariş hiç iade edilemiyordu (iptal diyaloğu "iade ayrıca başlatılır" diyor) | İade edilebilir; durum `cancelled` kalır | `admin-refund-guards` |
+| 🟠 | `"1.250,00"` → `parseFloat` → **1,25 ₺** iade / kupon / promosyon | `parseMoneyInput()` Türkçe ve düz yazımı okur, belirsizi reddeder | `admin-refund-guards`, `promo-schema` |
+| 🟠 | Personel tek tek ödenmiş sipariş iptal edebiliyordu (toplu iptal zaten iade yetkisi istiyordu) | Aynı kural tekil iptalde | `admin-refund-guards` |
+| 🟠 | `freshEnrollment` bir server action'dı: oturumu olan herkes etkin 2FA'yı denetim kaydı bırakmadan kapatabiliyordu | Sayfaya taşındı; `startEnrollment` etkin kaydın üstüne yazmaz | `admin-2fa-enrollment` |
+| 🟠 | Mobil: aynı `clientOrderId` ile tekrar, POS açılamayınca **201 + `payment: null`** dönüyordu (§3 bunu yalnız ₺0'a ayırır) → uygulama ödenmemiş siparişi verilmiş sanıyordu | Tekrar da ilk deneme gibi başarısız olur; sonraki deneme aynı siparişi açar | `mobile-order-idempotency` |
+| 🟠 | Mobil: Supabase **429**'u 401 sayılıyordu → trafik anında üyeler oturumdan atılıyordu | 429/408 → 503 `auth_unavailable` | `mobile-auth` |
+| 🟠 | Mobil parite: `GET /coupons` `cafeOnly` göndermiyordu; uygulama okuyordu → "Yalnızca kafe siparişlerinde" etiketi hiç çıkmıyordu | Alan eklendi (yalnız ekleme) + §5 | `mobile-me-mapper` |
+| 🟠 | Giriş `?next=`'i okumuyordu: ödeme/karaoke'den girişe giden müşteri hesabına düşüp akıştan çıkıyordu | `next` form üzerinden taşınır, yalnız site içi yol izlenir | `frontend-form-contract` |
+| 🟠 | Web: ₺0'lık sipariş (tam indirim) POS'a "0.00" gidiyor, asla tamamlanamıyordu | Yerinde `free` sağlayıcıyla kapanır (mobil yol gibi) | `checkout-zero-total` |
+| 🟠 | Sipariş geçmişi e-postayla eşleşiyor, kayıt doğrulamadan önce oturum açıyor → admin'in elle girdiği siparişteki yabancının adı/telefonu/adresi görünüyordu | `memberOrders()`: doğrulanmamış e-postaya boş | `member-orders` |
+| 🟡 | Reddedilen kartla dönen müşteri hiçbir mesaj görmüyordu (`?durum=basarisiz` okunmuyordu) | `?error=payment` | `frontend-form-contract` |
+| 🟡 | Aynı siparişin damgası iki kez geri alınabiliyordu (eşzamanlı iade + iptal) | Geri alma satırının kimliği siparişten türer; PK ikinciyi reddeder | `mobile-loyalty-reversal` |
+| 🟡 | Mobil parite: panel 0–23 hatırlatma saati kaydediyordu, uygulama 08–21 dışını sessizce düşürüyordu | Panel 08–21'i zorlar, alan altında mesaj | `admin-reminder-hours` |
+| 🟡 | Sipariş tekrarı, personel siparişi kapatınca 409 `ordering_closed` alıyordu | Tekrar, anahtarlardan önce | `mobile-order-idempotency` |
+| 🟡 | `PATCH /me/addresses/{id}` `isDefault` yoksa varsayılan adresi düşürüyordu | Yoksa değişmez | `mobile-address-patch` |
+| 🟡 | Ciro raporu: ayın 29–31'inde aylık görünüm bu ayı iki kez gösterip geçen ayı atlıyordu; günler UTC gece yarısında bölünüyordu | Ay adımı 1'inden; kovalar İstanbul saatine göre | `admin-revenue-buckets` |
+| 🟡 | Sitedeki "Bugün" saatleri 00:00–03:00 arası dünün saatlerini gösteriyordu (sunucu UTC) | `istanbulDay()` | — |
+| 🟡 | Promosyon bitişi `datetime-local` → UTC okunuyordu; 3 saat fazla geçerliydi | UTC anı olarak saklanır | `promo-schema` |
+| 🟡 | Toplu "Hazırlanıyor" ödenmemiş siparişi ödenmiş sayıyordu (paidAt, damga, ciro) | Toplu işlemde ödenmemişler atlanır | `admin-order-guards` |
+| 🟡 | Manuel sipariş stok ayırdıktan sonra hata verirse stok geri dönmüyordu | `placeOrder` gibi telafi | `admin-order-guards` |
+| 🟡 | Hesap silme: kasa QR jetonları e-postayı tutuyordu, süresi dolmamışı hâlâ okutulabiliyordu | Anonimleşir + anında süresi dolar | `mobile-account-deletion` |
+| 🟢 | Favori `back` alanıyla açık yönlendirme | `sameSitePath()` | `same-site-path` |
+| 🟢 | Web siparişi, ödeme sağlayıcısı kontrol edilmeden oluşturulup e-postalanıyordu; kesirli adet 500'e düşüyordu | Sağlayıcı önce; adet tam sayı | `checkout-zero-total` |
+| 🟢 | `/?hesap=silindi` hiçbir yerde karşılanmıyordu | Ana sayfa bildirimi | `frontend-form-contract` |
+| 🟢 | Sabit "6 damga" mesajı (hedef 3–20 ayarlanabilir); hesap silmede UTC tarih; doğum günü kuponu web yedeği UTC ayı | Yapılandırılmış hedef; `istanbulClock` | `mobile-venue-clock` |
+| 🟢 | `constantTimeEqual` uzunluk farkında erken dönüyordu (env admin parolasının uzunluğu sızıyordu); backend'de 7 lint uyarısı | SHA-256 sonra karşılaştırma; kullanılmayan importlar | — |
+| 🟢 | Sözleşme belgesi koddan geri kalmıştı: §0 403 `email_unverified`, §3 preview hız sınırı 200 döner, §5 `kind`/`code`, §6 SWR yok, §7 403 | Belge koda eşitlendi (davranış değişmedi) | `api-contract-parity` |
+
+### Açık — karar ya da ayrı iş bekleyenler
+
+Bunlar gerçek ama ya bir ürün/hukuk kararı gerektiriyor ya da tek PR'a
+sığmayacak kadar geniş. Bilerek dokunulmadı.
+
+1. **Admin oturumu geri alınamıyor.** İmzalı çerez 7 gün boyunca e-posta ve rolü
+   taşır; kullanıcıyı pasifleştirmek, rolünü düşürmek ya da parolasını
+   sıfırlamak çerez bitene kadar etki etmez. Çözüm: her istekte `admin_users`
+   satırını okumak (aktiflik + güncel rol) ve müşteri tarafındaki gibi parola
+   parmak izini token'a koymak. Ayrıca 2FA'yı kapatmak için güncel TOTP kodu
+   istenmeli; TOTP kodu ±30 sn içinde tekrar kullanılabiliyor.
+2. **Kaba kuvvet sınırı paralel isteklerle aşılabilir.** Sayaç SQL'de artıyor
+   ama karar JS'te, doğrulamadan **önce** okunuyor. Doğrusu: denemeyi atomik
+   olarak ayırıp sonucu ona göre vermek; `admin-2fa` için IP'den bağımsız hesap
+   başına tavan.
+3. **Bülten (6563).** Alt bilgideki abonelik formunda çift onay (double opt-in)
+   ve hız sınırı yok; herkes herhangi bir adresi yazabiliyor. Admin, çıkmış bir
+   aboneyi eski `consentAt` ile yeniden açabiliyor. Çıkış bağlantısı GET'te
+   belirteci harcıyor (bilinçli: "tek tık"), bu yüzden e-posta güvenlik
+   tarayıcıları aboneliği kendiliğinden bitirebilir — onay düğmesine çevirmek
+   hukuki bir tercih.
+4. **45 dakikalık süpürme POS'a sormadan iptal ediyor.** Dönüş başarısız olmuş
+   ama ödemesi alınmış bir sipariş sessizce iptal olur (PayNkolay §14.6/2'deki
+   mutabakat işi). Süpürme iptalden önce `PaymentList`'e sormalı.
+5. **Web'de başarısız ödemeden sonra tekrar deneme kuponu düşürüyor.** Ödenmemiş
+   sipariş tek kullanımlık kuponu tutmaya devam ediyor; müşteri yeniden sipariş
+   verince kupon uygulanamıyor. Ya dönüşte kupon/stok bırakılmalı ya da aynı
+   siparişi yeniden ödeme yolu açılmalı.
+6. **JS'te sayılan tavanlar:** `MAX_OPEN_ORDERS`, `KARAOKE_OPEN_CAP`, kasa jetonu
+   hız sınırı eşzamanlı birkaç istekle aşılabilir; iade defteri (`refunds`
+   JSONB) oku-değiştir-yaz. Kural 20'ye göre SQL'e taşınmalı.
+7. **Canlıya alma engeli (zaten §14.6/1'de):** CSP `form-action 'self'`
+   PayNkolay köprüsünün POST'unu engeller.
+8. **Uygulama tarafı (lafmobil):** `DELETE /me`'nin 409 `orders_in_progress`
+   mesajı gösterilmiyor (genel hata metni); `403 account_disabled` oturumu
+   kapatmıyor. İkisi de uygulamada düzeltilecek; sunucu doğru kodu dönüyor.
+9. **Küçükler:** davetli, davet edenin kuponu hata verirse ikinci kupon
+   alabilir; `transitionOrder` durumu koşulsuz yazar (bayat ekrandan tıklama
+   süpürmenin yazdığını ezebilir); `ensureSchemaFresh` başarısız bir kontrolü
+   örnek ömrü boyunca hatırlar; başarısız admin girişleri kimliksiz olarak
+   `audit_logs`'a yazılıyor.
