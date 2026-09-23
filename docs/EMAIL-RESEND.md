@@ -148,11 +148,12 @@ uyumlu hâli bu depoda duruyor; içeriği olduğu gibi yapıştır:
 - `docs/email/supabase-reset-password.html` → _Reset Password_
 - `docs/email/supabase-change-email.html` → _Change Email Address_
 
-Konu satırları:
+Konu satırları (tek çizgi, tire; 23 Eyl 2026'dan önce yapıştırılanlar uzun
+tireyle yazılmıştı, şablonlarla birlikte bunları da güncelle):
 
-- Confirm signup - `L'Affogato — e-posta adresini doğrula`
-- Reset Password - `L'Affogato — şifre sıfırlama`
-- Change Email - `L'Affogato — e-posta adresi değişikliği`
+- Confirm signup - `L'Affogato - e-posta adresini doğrula`
+- Reset Password - `L'Affogato - şifre sıfırlama`
+- Change Email - `L'Affogato - e-posta adresi değişikliği`
 
 Şablonlar `src/lib/email/send.ts`'teki mesajlarla aynı tasarımı kullanır. Üye
 ikisini de aynı markadan alıyor; biri değişirse diğeri de değişmeli.

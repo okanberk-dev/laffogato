@@ -36,7 +36,7 @@ describe("fal-core: what a report may carry", () => {
   it("labels every reason in Turkish for the panel", () => {
     expect(Object.keys(FAL_REPORT_REASON_LABELS).sort()).toEqual([...FAL_REPORT_REASONS].sort());
     for (const label of Object.values(FAL_REPORT_REASON_LABELS)) {
-      expect(label).not.toMatch(/[–—]/);
+      expect(label).not.toMatch(/[\u2013\u2014]/);
     }
   });
 
