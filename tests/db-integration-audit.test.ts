@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-
 import pg from "pg";
 import {
   afterAll,
@@ -12,6 +10,8 @@ import {
 } from "vitest";
 
 import { createDb, type Executor } from "@/lib/db/client";
+
+import { applyBundledSchema } from "./_support/apply-schema";
 
 /**
  * The audit fixes that only a real Postgres can prove: atomicity under
@@ -51,7 +51,7 @@ vi.mock("next/headers", () => ({
 maybe("audit fixes against a real Postgres", () => {
   beforeAll(async () => {
     pool = new pg.Pool({ connectionString: URL_, max: 12 });
-    await pool.query(readFileSync("db/schema.sql", "utf8"));
+    await applyBundledSchema(pool);
   });
 
   afterAll(async () => {

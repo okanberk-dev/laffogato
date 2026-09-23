@@ -173,8 +173,14 @@ export function planCustomerLink(
   // Defence in depth against the dashboard's "Confirm email" switch: a
   // Supabase user who has not proven the address must not be handed the
   // orders, addresses and coupons of the member who registered it here.
-  // A fresh row (above) is theirs to create; an existing one is not.
-  if (!confirmed) return { action: "unconfirmed" };
+  // A fresh row (above) is theirs to create; an existing one is not —
+  // unless it is already bound to this very identity. That is the row they
+  // created themselves a request ago: refusing it locked every unconfirmed
+  // newcomer out of their own account from the second request on. Nothing
+  // is verified for them here (`confirmed` stays false below), so orders
+  // and the welcome coupon still wait for the address.
+  const ownRow = !!user.id && (existing.supabaseUserId ?? "") === user.id;
+  if (!confirmed && !ownRow) return { action: "unconfirmed" };
 
   const patch: Partial<Customer> = {};
   if ((existing.supabaseUserId ?? "") !== user.id) {

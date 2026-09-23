@@ -23,6 +23,7 @@ export async function GET(request: Request) {
       auth.customer.email,
       new Date(),
       auth.customer.notificationPrefs,
+      { withOrders: auth.customer.emailVerified },
     );
     return apiJson({ items }, { private: true });
   } catch (err) {

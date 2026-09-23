@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-
 import pg from "pg";
 import {
   afterAll,
@@ -12,6 +10,8 @@ import {
 } from "vitest";
 
 import { createDb, type Executor } from "@/lib/db/client";
+
+import { applyBundledSchema } from "./_support/apply-schema";
 
 /**
  * Unpaid orders are cancelled only after the POS was asked
@@ -106,7 +106,7 @@ async function statusOf(id: string): Promise<string> {
 maybe("unpaid orders are cancelled only after asking the POS", () => {
   beforeAll(async () => {
     pool = new pg.Pool({ connectionString: URL_, max: 12 });
-    await pool.query(readFileSync("db/schema.sql", "utf8"));
+    await applyBundledSchema(pool);
   });
 
   afterAll(async () => {

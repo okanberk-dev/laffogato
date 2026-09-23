@@ -3107,10 +3107,26 @@ export async function transitionOrder(
   const patch: Record<string, string> = { status: map.to };
   if (settles) patch.paidAt = paidAt;
   if (stageColumn && !existing[stageColumn]) patch[stageColumn] = paidAt;
-  check(
-    await sb.from(TABLES.orders).update(patch).eq("id", id),
+  // Conditional on the status the decision above was made from. A click on a
+  // stale screen used to overwrite whatever had happened since — a payment
+  // the POS lookup booked, or the sweep's cancel whose stock was already
+  // handed back, which a "Hazırlanıyor" then revived with nothing on the
+  // shelf behind it.
+  const moved = rows<{ id: string }>(
+    await sb
+      .from(TABLES.orders)
+      .update(patch)
+      .eq("id", id)
+      .eq("status", existing.status)
+      .select("id"),
     "transitionOrder",
   );
+  if (moved.length === 0) {
+    return {
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfayı yenileyip tekrar dene.",
+    };
+  }
   if (map.to === "cancelled") {
     await releaseOrderInventory(existing);
     await reverseLoyalty(existing, "cancelled");

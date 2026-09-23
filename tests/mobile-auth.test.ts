@@ -236,6 +236,34 @@ describe("planCustomerLink", () => {
     expect(plan.row.verifiedAt).toBe("");
   });
 
+  it("lets an unconfirmed newcomer back into the row they created, verifying nothing", () => {
+    // The row `create` wrote a request ago carries this identity's id.
+    // Refusing it answered 403 email_unconfirmed from the second request on.
+    const plan = planCustomerLink(
+      customer({ supabaseUserId: "u-1", emailVerified: false }),
+      user({ email_confirmed_at: null }),
+      NOW,
+    );
+    expect(plan).toEqual({ action: "none" });
+  });
+
+  it("still keeps an unconfirmed identity out of another member's row", () => {
+    expect(
+      planCustomerLink(
+        customer({ supabaseUserId: "u-other", emailVerified: true }),
+        user({ email_confirmed_at: null }),
+        NOW,
+      ),
+    ).toEqual({ action: "unconfirmed" });
+    expect(
+      planCustomerLink(
+        customer({ supabaseUserId: "", emailVerified: true }),
+        user({ email_confirmed_at: null }),
+        NOW,
+      ),
+    ).toEqual({ action: "unconfirmed" });
+  });
+
   it("refuses a deactivated member without writing anything", () => {
     expect(
       planCustomerLink(customer({ isActive: false }), user(), NOW),

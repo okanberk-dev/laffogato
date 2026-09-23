@@ -35,6 +35,9 @@ export interface InviteRow {
   status: "pending" | "joined" | "rewarded";
   createdAt: string;
   rewardedAt: string;
+  /** The coupon each side received, "" until granted (a retry skips it). */
+  inviteeCouponId?: string;
+  inviterCouponId?: string;
 }
 
 function normalizeEmail(raw: string | null | undefined): string {
@@ -270,20 +273,43 @@ export async function rewardInviteOnFirstPaidOrder(
     .update({ status: "rewarded", rewardedAt: now })
     .eq("inviteeEmail", invitee)
     .eq("status", "pending")
-    .select("id, inviterEmail");
+    .select("id, inviterEmail, inviteeCouponId, inviterCouponId");
   checkErr(error, "rewardInvite.flip");
-  const won = (data as { id: string; inviterEmail: string }[] | null) ?? [];
+  const won =
+    (data as
+      | Pick<
+          InviteRow,
+          "id" | "inviterEmail" | "inviteeCouponId" | "inviterCouponId"
+        >[]
+      | null) ?? [];
   if (won.length === 0) return false;
+  const invite = won[0];
 
   // The flip is the mutex, so it has to happen first — but until both coupons
   // exist it is also the only record that the reward is owed. If a grant
   // throws, the row goes back to `pending` so the next webhook retry settles
   // it again; leaving it `rewarded` lost the free drinks for good, because the
-  // guarded UPDATE then matches nothing.
+  // guarded UPDATE then matches nothing. Each coupon is recorded on the row
+  // as soon as it exists, so that retry grants only what is still missing:
+  // re-granting both handed the invitee a second drink whenever the
+  // inviter's grant was the one that failed.
+  const recordGrant = async (
+    column: "inviteeCouponId" | "inviterCouponId",
+    couponId: string,
+  ) => {
+    const { error: recErr } = await db
+      .from(TABLES.invites)
+      .update({ [column]: couponId })
+      .eq("id", invite.id);
+    checkErr(recErr, "rewardInvite.record");
+  };
   try {
-    await grantFreeDrinkCoupon(invitee, "invite");
-    const inviter = normalizeEmail(won[0].inviterEmail);
-    if (inviter) {
+    if (!invite.inviteeCouponId) {
+      const coupon = await grantFreeDrinkCoupon(invitee, "invite");
+      await recordGrant("inviteeCouponId", coupon.id);
+    }
+    const inviter = normalizeEmail(invite.inviterEmail);
+    if (inviter && !invite.inviterCouponId) {
       const { data: rewarded, error: countErr } = await db
         .from(TABLES.invites)
         .select("id")
@@ -292,7 +318,8 @@ export async function rewardInviteOnFirstPaidOrder(
       checkErr(countErr, "rewardInvite.count");
       const settled = ((rewarded as { id: string }[] | null) ?? []).length;
       if (settled <= INVITE_REWARD_CAP) {
-        await grantFreeDrinkCoupon(inviter, "invite");
+        const coupon = await grantFreeDrinkCoupon(inviter, "invite");
+        await recordGrant("inviterCouponId", coupon.id);
       } else {
         console.warn(
           `[invite] reward cap reached for inviter, invitee still rewarded`,
@@ -303,11 +330,11 @@ export async function rewardInviteOnFirstPaidOrder(
     const undo = await db
       .from(TABLES.invites)
       .update({ status: "pending", rewardedAt: "" })
-      .eq("id", won[0].id)
+      .eq("id", invite.id)
       .eq("status", "rewarded");
     if (undo.error) {
       console.error(
-        `[invite] could not re-open ${won[0].id} after a failed grant`,
+        `[invite] could not re-open ${invite.id} after a failed grant`,
         undo.error,
       );
     }

@@ -526,6 +526,12 @@ export async function createAppOrder(
 export async function listAppOrders(
   customer: PublicCustomer,
 ): Promise<MobileOrder[]> {
+  // Same rule as the site's history (lib/customer/member-orders.ts): orders
+  // match by e-mail alone, and an admin's phone or counter sale can carry the
+  // address of someone who never signed up. Until the address is proven, the
+  // list is empty — an unverified member cannot have ordered anyway (POST
+  // /orders answers 403 email_unverified).
+  if (!customer.emailVerified) return [];
   // The limit belongs in SQL: this used to read the member's entire history —
   // items jsonb, consent evidence and refund ledger included — and throw all
   // but the newest 50 away in JavaScript.
@@ -542,6 +548,7 @@ export async function getAppOrder(
   customer: PublicCustomer,
   id: string,
 ): Promise<MobileOrder | null> {
+  if (!customer.emailVerified) return null;
   const order = await getOrder(id);
   if (!order) return null;
   if (

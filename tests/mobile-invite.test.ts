@@ -165,6 +165,71 @@ describe("rewardInviteOnFirstPaidOrder — the flip is reversible", () => {
   });
 });
 
+describe("rewardInviteOnFirstPaidOrder — a retry grants only what is missing", () => {
+  const paidCafeOrder = { kind: "cafe", totalMinor: 30000, discountMinor: 0 };
+
+  it("records each coupon on the invite as soon as it exists", async () => {
+    answer = (q) => {
+      if (q.table === "invites" && q.op === "update" && q.payload?.status) {
+        return {
+          data: [{ id: "inv-000002", inviterEmail: "eda@example.com" }],
+        };
+      }
+      if (q.table === "invites" && q.op === "select") {
+        return { data: [{ id: "inv-000002" }] };
+      }
+      return {};
+    };
+    grantFreeDrinkCoupon
+      .mockResolvedValueOnce({ id: "cpn-0100" } as never)
+      .mockRejectedValueOnce(new Error("inviter grant down"));
+
+    await expect(
+      rewardInviteOnFirstPaidOrder("selin@example.com", paidCafeOrder),
+    ).rejects.toThrow("inviter grant down");
+
+    const recorded = queries.find(
+      (q) =>
+        q.table === "invites" &&
+        q.op === "update" &&
+        q.payload?.inviteeCouponId === "cpn-0100",
+    );
+    expect(recorded?.filters).toContainEqual(["id", "inv-000002"]);
+  });
+
+  it("does not give the invitee a second drink when only the inviter's failed", async () => {
+    // The retry: the invitee's coupon is already on the row.
+    answer = (q) => {
+      if (q.table === "invites" && q.op === "update" && q.payload?.status) {
+        return {
+          data: [
+            {
+              id: "inv-000002",
+              inviterEmail: "eda@example.com",
+              inviteeCouponId: "cpn-0100",
+              inviterCouponId: "",
+            },
+          ],
+        };
+      }
+      if (q.table === "invites" && q.op === "select") {
+        return { data: [{ id: "inv-000002" }] };
+      }
+      return {};
+    };
+    grantFreeDrinkCoupon.mockResolvedValue({ id: "cpn-0101" } as never);
+
+    await expect(
+      rewardInviteOnFirstPaidOrder("selin@example.com", paidCafeOrder),
+    ).resolves.toBe(true);
+    expect(grantFreeDrinkCoupon).toHaveBeenCalledTimes(1);
+    expect(grantFreeDrinkCoupon).toHaveBeenCalledWith(
+      "eda@example.com",
+      "invite",
+    );
+  });
+});
+
 describe("getInviteSummary — counters say what actually happened", () => {
   const rewarded = (n: number) =>
     Array.from({ length: n }, (_, i) => ({

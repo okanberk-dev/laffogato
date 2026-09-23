@@ -69,6 +69,16 @@ async function isUpToDate(client: PoolClient): Promise<boolean> {
 }
 
 let freshness: Promise<void> | null = null;
+/** When the last check failed; 0 while none has. */
+let freshnessFailedAt = 0;
+/**
+ * How long a failed check is remembered before the next query tries again.
+ * It used to be remembered for the life of the instance: one connection blip
+ * at cold start, and a migration shipped with that deploy was never applied
+ * by it. Not zero either — during an outage every query would otherwise pay
+ * for a second failing connection attempt.
+ */
+const FRESHNESS_RETRY_MS = 30_000;
 
 /**
  * Applies any migration the database has not recorded yet, once per instance.
@@ -85,8 +95,13 @@ let freshness: Promise<void> | null = null;
  * is still caught by the retry in `createExecutor`.
  */
 export function ensureSchemaFresh(pool: Pool): Promise<void> {
-  if (!freshness) {
+  const retry =
+    freshnessFailedAt > 0 &&
+    Date.now() - freshnessFailedAt >= FRESHNESS_RETRY_MS;
+  if (!freshness || retry) {
+    freshnessFailedAt = 0;
     freshness = checkFreshness(pool).catch((err: unknown) => {
+      freshnessFailedAt = Date.now();
       const message = err instanceof Error ? err.message : String(err);
       console.warn(`[db-bootstrap] şema tazelik kontrolü atlandı: ${message}`);
     });

@@ -270,14 +270,23 @@ async function resolveReward(
   }
 }
 
-/** GET /notifications for one member. Throws on a database failure. */
+/**
+ * GET /notifications for one member. Throws on a database failure.
+ *
+ * `withOrders: false` leaves the order rows out — for a member whose address
+ * is not verified yet, since orders match by e-mail alone (see
+ * `listAppOrders`).
+ */
 export async function deriveNotifications(
   email: string,
   now: Date = new Date(),
   prefs?: NotificationFilter,
+  { withOrders = true }: { withOrders?: boolean } = {},
 ): Promise<AppNotification[]> {
   const [orders, announcements, reward] = await Promise.all([
-    customerOrdersByEmail(email, NOTIFICATION_ORDER_LIMIT),
+    withOrders
+      ? customerOrdersByEmail(email, NOTIFICATION_ORDER_LIMIT)
+      : Promise.resolve([]),
     listActiveAppAnnouncements(),
     resolveReward(email),
   ]);
