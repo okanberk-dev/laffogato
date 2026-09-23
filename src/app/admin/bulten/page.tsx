@@ -3,7 +3,6 @@ import {
   DangerButton,
   GhostButton,
   PageHeader,
-  PrimaryButton,
   formatDateTime,
 } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
@@ -11,7 +10,7 @@ import { listNewsletterSubscribers } from "@/lib/newsletter/store";
 
 import {
   deleteNewsletterSubscriberAction,
-  setNewsletterActiveAction,
+  deactivateNewsletterAction,
 } from "./actions";
 
 export const metadata = { title: "Admin · Bülten Aboneleri" };
@@ -103,6 +102,11 @@ export default async function NewsletterPage() {
                         <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] tracking-[0.18em] text-green-700 uppercase">
                           Aktif
                         </span>
+                      ) : s.confirmToken ? (
+                        // Double opt-in: asked, not yet confirmed by the owner.
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] tracking-[0.18em] text-amber-700 uppercase">
+                          Onay bekliyor
+                        </span>
                       ) : (
                         <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
                           Pasif
@@ -132,23 +136,16 @@ export default async function NewsletterPage() {
                     </td>
                     <td className="text-right">
                       <div className="flex justify-end gap-2">
-                        <form action={setNewsletterActiveAction}>
-                          <input type="hidden" name="id" value={s.id} />
-                          <input
-                            type="hidden"
-                            name="active"
-                            value={s.isActive ? "0" : "1"}
-                          />
-                          {s.isActive ? (
+                        {/* Off only: re-subscribing is the person's own
+                            act, confirmed from their inbox (6563). */}
+                        {s.isActive ? (
+                          <form action={deactivateNewsletterAction}>
+                            <input type="hidden" name="id" value={s.id} />
                             <GhostButton type="submit" className="text-xs">
                               Pasifleştir
                             </GhostButton>
-                          ) : (
-                            <PrimaryButton type="submit" className="text-xs">
-                              Aktifleştir
-                            </PrimaryButton>
-                          )}
-                        </form>
+                          </form>
+                        ) : null}
                         <form action={deleteNewsletterSubscriberAction}>
                           <input type="hidden" name="id" value={s.id} />
                           <DangerButton type="submit" className="text-xs">

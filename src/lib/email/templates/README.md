@@ -1,6 +1,6 @@
 # Mail şablonları
 
-On sekiz gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
+On dokuz gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
 stiller satır içi. E-posta tarafında JavaScript, harici CSS ve web fontu yok;
 `<style>` bloğu yalnızca satır içi stillere ek (mobil kırılma + koyu tema),
 tek başına gerekli değil.
@@ -18,6 +18,7 @@ kilitlediğine bak.
 | ------------------------- | ----------------- | ------------------------------------------ |
 | eposta-dogrulama.html     | işlemsel          | L'Affogato — e-posta adresinizi doğrulayın |
 | sifre-sifirlama.html      | işlemsel          | L'Affogato — şifre sıfırlama               |
+| bulten-onay.html          | işlemsel          | L'Affogato — bülten aboneliğinizi onaylayın |
 | siparis-alindi.html       | işlemsel          | Siparişiniz alındı (#[SIPARIS_NO])         |
 | odeme-onaylandi.html      | işlemsel          | Ödemeniz onaylandı (#[SIPARIS_NO])         |
 | hos-geldin.html           | ilişki            | L'Affogato'ya hoş geldiniz                 |
@@ -36,7 +37,7 @@ kilitlediğine bak.
 | kampanya-indirim.html     | **ticari (6563)** | [KAMPANYA_BASLIK] — indirim                |
 
 Ticari onlu `data-commercial="1"` taşır. `renderEmail` bu onu çıkış
-bağlantısı olmadan **derlemez**, işlemsel sekize çıkış bağlantısı
+bağlantısı olmadan **derlemez**, işlemsel dokuza çıkış bağlantısı
 **koydurmaz** — ikisi de `tests/email-templates.test.ts`'te kilitli.
 
 Konu satırı şablonun `data-subject`'idir ve `<title>` ile aynı olmak

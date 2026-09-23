@@ -306,4 +306,104 @@ maybe("audit fixes against a real Postgres", () => {
       expect(outcomes.filter((o) => o === "ok")).toHaveLength(10);
     });
   });
+
+  describe("bulletin double opt-in (6563)", () => {
+    const EMAIL = "cift-onay@laffogato.net";
+    const row = async () =>
+      (
+        await pool!.query(
+          `select "isActive", "consentAt", "confirmToken", "consentIp" from public.newsletter_subscribers where email = $1`,
+          [EMAIL],
+        )
+      ).rows[0];
+
+    beforeEach(async () => {
+      await pool!.query(
+        `delete from public.newsletter_subscribers where email = $1`,
+        [EMAIL],
+      );
+    });
+
+    it("stores a footer request pending, never as a subscriber", async () => {
+      const { subscribeNewsletter } = await import("@/lib/newsletter/store");
+      const res = await subscribeNewsletter(EMAIL, "", "footer", {
+        at: new Date().toISOString(),
+        ip: "10.1.1.1",
+      });
+      expect(res).toMatchObject({ ok: true, pending: true });
+      expect(await row()).toMatchObject({ isActive: false, consentAt: "" });
+    });
+
+    it("subscribes when the owner confirms, once", async () => {
+      const { subscribeNewsletter, confirmNewsletterByToken } =
+        await import("@/lib/newsletter/store");
+      const res = await subscribeNewsletter(EMAIL, "", "footer", {
+        at: new Date().toISOString(),
+        ip: "10.1.1.1",
+      });
+      const token = res.ok ? res.confirmToken! : "";
+      expect(await confirmNewsletterByToken(token, "10.2.2.2")).toBe(EMAIL);
+      const after = await row();
+      expect(after).toMatchObject({
+        isActive: true,
+        confirmToken: "",
+        consentIp: "10.2.2.2",
+      });
+      expect(after.consentAt).not.toBe("");
+      expect(await confirmNewsletterByToken(token, "10.2.2.2")).toBeNull();
+    });
+
+    it("refuses a confirmation link older than seven days", async () => {
+      const { subscribeNewsletter, confirmNewsletterByToken } =
+        await import("@/lib/newsletter/store");
+      const res = await subscribeNewsletter(EMAIL, "", "footer", {
+        at: new Date(Date.now() - 8 * 24 * 3600 * 1000).toISOString(),
+        ip: "10.1.1.1",
+      });
+      const token = res.ok ? res.confirmToken! : "";
+      expect(await confirmNewsletterByToken(token, "10.2.2.2")).toBeNull();
+      expect((await row()).isActive).toBe(false);
+    });
+
+    it("activates an account's pending request on e-mail verification only", async () => {
+      const { subscribeNewsletter, confirmPendingNewsletterForEmail } =
+        await import("@/lib/newsletter/store");
+      await subscribeNewsletter(
+        EMAIL,
+        "Üye",
+        "register",
+        { at: new Date().toISOString(), ip: "10.1.1.1" },
+        { confirmed: false },
+      );
+      expect((await row()).isActive).toBe(false);
+      expect(await confirmPendingNewsletterForEmail(EMAIL, "10.3.3.3")).toBe(
+        true,
+      );
+      expect((await row()).isActive).toBe(true);
+    });
+
+    it("never revives a subscriber who opted out, from verification", async () => {
+      const {
+        subscribeNewsletter,
+        deactivateNewsletterSubscriber,
+        confirmPendingNewsletterForEmail,
+      } = await import("@/lib/newsletter/store");
+      await subscribeNewsletter(
+        EMAIL,
+        "",
+        "account",
+        { at: new Date().toISOString(), ip: "10.1.1.1" },
+        { confirmed: true },
+      );
+      const { rows } = await pool!.query(
+        `select id from public.newsletter_subscribers where email = $1`,
+        [EMAIL],
+      );
+      await deactivateNewsletterSubscriber(rows[0].id);
+      expect(await confirmPendingNewsletterForEmail(EMAIL, "10.3.3.3")).toBe(
+        false,
+      );
+      expect((await row()).isActive).toBe(false);
+    });
+  });
 });

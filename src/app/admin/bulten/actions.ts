@@ -5,21 +5,25 @@ import { revalidatePath } from "next/cache";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import {
+  deactivateNewsletterSubscriber,
   deleteNewsletterSubscriber,
-  setNewsletterSubscriberActive,
 } from "@/lib/newsletter/store";
 
-export async function setNewsletterActiveAction(formData: FormData) {
+/**
+ * Takes a subscriber off the list. There is no "Aktifleştir" any more: turning
+ * someone back on from the panel reused consent they had withdrawn. Only the
+ * person can subscribe again, confirming from their own inbox (6563).
+ */
+export async function deactivateNewsletterAction(formData: FormData) {
   await requireRole("newsletter");
   const id = String(formData.get("id") ?? "");
-  const active = String(formData.get("active") ?? "") === "1";
   if (!id) return;
-  await setNewsletterSubscriberActive(id, active);
+  await deactivateNewsletterSubscriber(id);
   await logAudit({
     action: "update",
     entity: "newsletter",
     entityId: id,
-    payload: { isActive: active },
+    payload: { isActive: false },
   });
   revalidatePath("/admin/bulten");
 }

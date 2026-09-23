@@ -195,11 +195,15 @@ export async function registerAction(
     try {
       // The signup form's own opt-in checkbox is the consent; the record
       // names the moment and the origin, which is what has to be provable.
+      // The address is not proven yet, so the request is stored PENDING
+      // (double opt-in) and becomes a subscription when the member verifies
+      // it with the link sent below — no second mail.
       await subscribeNewsletter(
         result.customer.email,
         result.customer.name,
         "register",
         { at: new Date().toISOString(), ip: await clientIp() },
+        { confirmed: false },
       );
     } catch {
       // non-fatal — the account + notificationPrefs already captured the intent
@@ -639,10 +643,15 @@ export async function updateNotificationsAction(
   // Keep the marketing newsletter list in sync with the member's toggle.
   try {
     if (prefs.newsletter) {
-      await subscribeNewsletter(current.email, current.name, "account", {
-        at: new Date().toISOString(),
-        ip: await clientIp(),
-      });
+      // A verified member subscribes on the spot; an unverified one is
+      // stored pending until they verify (double opt-in).
+      await subscribeNewsletter(
+        current.email,
+        current.name,
+        "account",
+        { at: new Date().toISOString(), ip: await clientIp() },
+        { confirmed: current.emailVerified },
+      );
     } else {
       await unsubscribeNewsletterByEmail(current.email);
     }

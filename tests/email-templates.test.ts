@@ -73,9 +73,12 @@ function renderWith(
   });
 }
 
-describe("the eighteen templates render", () => {
-  it("ships exactly the eighteen designed messages", () => {
-    expect(NAMES).toHaveLength(18);
+describe("the nineteen templates render", () => {
+  it("ships exactly the nineteen designed messages", () => {
+    expect(NAMES).toHaveLength(19);
+    // The double opt-in request (6563): the footer form no longer subscribes
+    // an address until its owner confirms from this mail.
+    expect(NAMES).toContain("bulten-onay");
     expect(NAMES).toContain("eposta-dogrulama");
     expect(NAMES).toContain("dogum-gunu");
     expect(NAMES).toContain("kampanya-duyuru");

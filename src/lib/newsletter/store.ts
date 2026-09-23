@@ -24,7 +24,17 @@ export interface NewsletterSubscriber {
   consentText: string;
   /** Tek tıkla çıkış bağlantısının taşıdığı jeton. */
   unsubToken: string;
+  /**
+   * Double opt-in: set while the address owner has not confirmed yet (the row
+   * is inactive until then); cleared when they do.
+   */
+  confirmToken?: string;
+  confirmRequestedAt?: string;
+  confirmRequestIp?: string;
 }
+
+/** How long a confirmation link stays good (the mail says "7 gün"). */
+export const NEWSLETTER_CONFIRM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Onay kutusunun yanında görünen metin, kayda birebir yazılır — hangi ifadeye
@@ -50,19 +60,45 @@ function newUnsubToken(): string {
 }
 
 export type SubscribeResult =
-  | { ok: true; already: boolean }
+  | {
+      ok: true;
+      already: boolean;
+      /**
+       * Double opt-in: the request was stored but the address is not on the
+       * list until its owner confirms. `confirmToken` is what the
+       * confirmation link carries (footer) — the account flows activate on
+       * e-mail verification instead and ignore it.
+       */
+      pending?: boolean;
+      confirmToken?: string;
+    }
   | { ok: false; error: string };
 
+export interface SubscribeOptions {
+  /**
+   * The address is PROVEN to belong to the person asking — a verified member
+   * account, or a Supabase-confirmed app user. Only then does the request
+   * subscribe on the spot. Everything else (the footer form, an unverified
+   * account) is stored pending and needs the owner's confirmation: anyone
+   * can type anyone's address, and 6563 puts the burden of proving consent
+   * on us.
+   */
+  confirmed?: boolean;
+}
+
 /**
- * Idempotent newsletter signup. New e-mail → insert; previously-unsubscribed →
- * reactivate; already-active → no-op (already=true). Safe to call from anywhere
- * (footer, registration, account toggle).
+ * Idempotent newsletter signup. Already-active → no-op (already=true).
+ * Otherwise: a `confirmed` request subscribes (insert or reactivate); an
+ * unconfirmed one is stored inactive with a confirmation token (double
+ * opt-in) — see {@link confirmNewsletterByToken} and
+ * {@link confirmPendingNewsletterForEmail}.
  */
 export async function subscribeNewsletter(
   rawEmail: string,
   name = "",
   source: NewsletterSource = "footer",
   consent?: ConsentRecord,
+  options: SubscribeOptions = {},
 ): Promise<SubscribeResult> {
   const email = normalizeEmail(rawEmail);
   if (!email || !EMAIL_RE.test(email)) {
@@ -81,6 +117,11 @@ export async function subscribeNewsletter(
   if (selErr) throw new Error(`subscribeNewsletter.select: ${selErr.message}`);
 
   const now = new Date().toISOString();
+  if (!options.confirmed) {
+    const row = existing as NewsletterSubscriber | null;
+    if (row?.isActive) return { ok: true, already: true };
+    return requestConfirmation(email, name, source, consent, row);
+  }
   if (existing) {
     const row = existing as NewsletterSubscriber;
     if (row.isActive) return { ok: true, already: true };
@@ -95,6 +136,7 @@ export async function subscribeNewsletter(
         consentIp: consent.ip,
         consentText: NEWSLETTER_CONSENT_TEXT,
         unsubToken: row.unsubToken || newUnsubToken(),
+        confirmToken: "",
       })
       .eq("id", row.id);
     if (error)
@@ -128,6 +170,141 @@ export async function subscribeNewsletter(
   return { ok: true, already: false };
 }
 
+/**
+ * The pending half of double opt-in: an inactive row carrying a fresh
+ * confirmation token and the request's time and address. A pending row that
+ * is asked for again gets a new token (the old link stops working) — the
+ * footer's rate limit bounds how often that can happen.
+ */
+async function requestConfirmation(
+  email: string,
+  name: string,
+  source: NewsletterSource,
+  consent: ConsentRecord,
+  existing: NewsletterSubscriber | null,
+): Promise<SubscribeResult> {
+  const sb = getDb();
+  const confirmToken = newUnsubToken();
+  const requested = {
+    confirmToken,
+    confirmRequestedAt: consent.at,
+    confirmRequestIp: consent.ip,
+    consentText: NEWSLETTER_CONSENT_TEXT,
+  };
+  if (existing) {
+    const { error } = await sb
+      .from(TABLES.newsletterSubscribers)
+      .update({ ...requested, name: name.trim() || existing.name })
+      .eq("id", existing.id);
+    if (error) throw new Error(`subscribeNewsletter.pending: ${error.message}`);
+    return { ok: true, already: false, pending: true, confirmToken };
+  }
+  const row: NewsletterSubscriber = {
+    id: `nws-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    email,
+    name: name.trim().slice(0, 100),
+    source,
+    isActive: false,
+    createdAt: new Date().toISOString(),
+    unsubscribedAt: "",
+    consentAt: "",
+    consentIp: "",
+    unsubToken: "",
+    ...requested,
+  };
+  const { error } = await sb.from(TABLES.newsletterSubscribers).insert(row);
+  if (error) {
+    if ((error as { code?: string }).code === "23505") {
+      // Raced another request for the same address: theirs stands.
+      return { ok: true, already: false, pending: true };
+    }
+    throw new Error(`subscribeNewsletter.pending: ${error.message}`);
+  }
+  return { ok: true, already: false, pending: true, confirmToken };
+}
+
+/** Turns a pending row into a subscriber; consent is dated NOW, from `ip`. */
+function activation(ip: string, unsubToken: string) {
+  return {
+    isActive: true,
+    unsubscribedAt: "",
+    consentAt: new Date().toISOString(),
+    consentIp: ip,
+    consentText: NEWSLETTER_CONSENT_TEXT,
+    unsubToken: unsubToken || newUnsubToken(),
+    confirmToken: "",
+  };
+}
+
+/**
+ * The owner clicked "Aboneliğimi onayla". Spends the token (one use), within
+ * NEWSLETTER_CONFIRM_TTL_MS of the request. Returns the address, or null for
+ * an unknown, spent or expired token.
+ */
+export async function confirmNewsletterByToken(
+  rawToken: string,
+  ip: string,
+): Promise<string | null> {
+  const token = rawToken.trim();
+  if (!token) return null;
+  const sb = getDb();
+  const { data, error } = await sb
+    .from(TABLES.newsletterSubscribers)
+    .select("*")
+    .eq("confirmToken", token)
+    .maybeSingle();
+  if (error) throw new Error(`confirmNewsletterByToken: ${error.message}`);
+  const row = data as NewsletterSubscriber | null;
+  if (!row) return null;
+  const requestedAt = Date.parse(row.confirmRequestedAt ?? "");
+  if (
+    !Number.isFinite(requestedAt) ||
+    Date.now() - requestedAt > NEWSLETTER_CONFIRM_TTL_MS
+  ) {
+    return null;
+  }
+  const upd = await sb
+    .from(TABLES.newsletterSubscribers)
+    .update(activation(ip, row.unsubToken))
+    .eq("id", row.id)
+    .eq("confirmToken", token)
+    .select("email");
+  if (upd.error)
+    throw new Error(`confirmNewsletterByToken: ${upd.error.message}`);
+  return ((upd.data as { email: string }[] | null) ?? [])[0]?.email ?? null;
+}
+
+/**
+ * A member verified their e-mail: a request they made from the registration
+ * form or the account page while unverified becomes a subscription now. Only
+ * a PENDING row (confirmToken set) is touched — never one the person has
+ * unsubscribed from.
+ */
+export async function confirmPendingNewsletterForEmail(
+  rawEmail: string,
+  ip: string,
+): Promise<boolean> {
+  const email = normalizeEmail(rawEmail);
+  if (!email) return false;
+  const sb = getDb();
+  const { data, error } = await sb
+    .from(TABLES.newsletterSubscribers)
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
+  if (error) throw new Error(`confirmPendingNewsletter: ${error.message}`);
+  const row = data as NewsletterSubscriber | null;
+  if (!row || row.isActive || !row.confirmToken) return false;
+  const upd = await sb
+    .from(TABLES.newsletterSubscribers)
+    .update(activation(ip, row.unsubToken))
+    .eq("id", row.id)
+    .neq("confirmToken", "");
+  if (upd.error)
+    throw new Error(`confirmPendingNewsletter: ${upd.error.message}`);
+  return true;
+}
+
 export async function listNewsletterSubscribers(): Promise<
   NewsletterSubscriber[]
 > {
@@ -140,19 +317,26 @@ export async function listNewsletterSubscribers(): Promise<
   return (data as NewsletterSubscriber[] | null) ?? [];
 }
 
-export async function setNewsletterSubscriberActive(
+/**
+ * The panel can take someone OFF the list, never put them on it. Turning a
+ * withdrawn subscriber back on used to reuse their old `consentAt` — consent
+ * they had taken back — and put them back in the campaign audience. Only the
+ * person can subscribe again (the form, confirmed from their inbox).
+ */
+export async function deactivateNewsletterSubscriber(
   id: string,
-  isActive: boolean,
 ): Promise<void> {
   const sb = getDb();
   const { error } = await sb
     .from(TABLES.newsletterSubscribers)
     .update({
-      isActive,
-      unsubscribedAt: isActive ? "" : new Date().toISOString(),
+      isActive: false,
+      unsubscribedAt: new Date().toISOString(),
+      confirmToken: "",
     })
     .eq("id", id);
-  if (error) throw new Error(`setNewsletterSubscriberActive: ${error.message}`);
+  if (error)
+    throw new Error(`deactivateNewsletterSubscriber: ${error.message}`);
 }
 
 export async function deleteNewsletterSubscriber(id: string): Promise<boolean> {

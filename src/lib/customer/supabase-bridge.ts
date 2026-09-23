@@ -9,6 +9,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import { grantWelcomeCoupon } from "./coupons";
 import {
+  activatePendingNewsletter,
   getCustomerByEmail,
   toPublicCustomer,
   type Customer,
@@ -149,6 +150,7 @@ async function reconcile(
     } catch (err) {
       console.error("[coupons] welcome grant (supabase bridge) failed", err);
     }
+    await activatePendingNewsletter(email);
   }
 
   const customer = await getCustomerByEmail(email);

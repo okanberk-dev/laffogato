@@ -401,7 +401,27 @@ export async function verifyCustomerEmail(
   } catch (err) {
     console.error("[coupons] welcome grant failed", err);
   }
+  await activatePendingNewsletter(customer.email);
   return { ok: true, email: customer.email };
+}
+
+/**
+ * The address is proven now: a bulletin request the member made while it was
+ * not (registration form, account toggle) becomes a subscription. Lazily
+ * imported — the newsletter module reaches back into this one — and
+ * best-effort, like the welcome coupon: it must never block verification.
+ */
+export async function activatePendingNewsletter(email: string): Promise<void> {
+  try {
+    const [{ confirmPendingNewsletterForEmail }, { clientIp }] =
+      await Promise.all([
+        import("@/lib/newsletter/store"),
+        import("@/lib/admin/rate-limit"),
+      ]);
+    await confirmPendingNewsletterForEmail(email, await clientIp());
+  } catch (err) {
+    console.error("[newsletter] activating a pending request failed", err);
+  }
 }
 
 export type ResendResult =
@@ -773,9 +793,11 @@ async function supabaseAcceptsPassword(
 ): Promise<boolean> {
   if (!customer.supabaseUserId || !password) return false;
   try {
-    const { data, error } = await getSupabaseAnonClient().auth.signInWithPassword(
-      { email: customer.email, password },
-    );
+    const { data, error } =
+      await getSupabaseAnonClient().auth.signInWithPassword({
+        email: customer.email,
+        password,
+      });
     return !error && data.user?.id === customer.supabaseUserId;
   } catch (err) {
     // PII rule: never the address.

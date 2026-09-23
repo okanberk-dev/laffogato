@@ -103,6 +103,18 @@ yok sayabilirsiniz.
 
 ${SIGNATURE}`,
 
+  "bulten-onay": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
+
+bu adres L'Affogato bültenine kaydedilmek istendi. Kampanya, yeni ürün ve
+etkinlik duyurularını göndermeye başlamamız için onayınız gerekiyor:
+
+[ONAY_URL]
+
+Bağlantı 7 gün geçerlidir. Bu isteği siz yapmadıysanız bu e-postayı yok
+sayabilirsiniz: onaylanmayan adrese hiçbir kampanya e-postası gönderilmez.
+
+${SIGNATURE}`,
+
   "sifre-sifirlama": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
 Hesabınız için şifre sıfırlama talebi aldık. Yeni şifrenizi aşağıdaki

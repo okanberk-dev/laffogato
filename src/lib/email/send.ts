@@ -283,6 +283,20 @@ export async function sendVerificationEmail(
   });
 }
 
+/**
+ * Double opt-in (6563): the footer form's request, confirmed from the owner's
+ * inbox. Transactional — it asks, it does not advertise — so it carries no
+ * unsubscribe link; nothing commercial is sent until it is confirmed.
+ */
+export async function sendNewsletterConfirmEmail(
+  to: string,
+  confirmUrl: string,
+): Promise<boolean> {
+  return sendTemplate("bulten-onay", to, {
+    vars: { AD: "", ONAY_URL: confirmUrl },
+  });
+}
+
 export async function sendPasswordResetEmail(
   to: string,
   name: string,
@@ -514,7 +528,8 @@ export async function sendKaraokeOperatorEmail(
     return getSettings();
   })();
   const to = email.trim();
-  if (!to) return { ok: false, error: "Ayarlar'da bildirim adresi tanımlı değil." };
+  if (!to)
+    return { ok: false, error: "Ayarlar'da bildirim adresi tanımlı değil." };
 
   const lines = [
     `Uygulamadan yeni bir karaoke rezervasyon talebi geldi.`,

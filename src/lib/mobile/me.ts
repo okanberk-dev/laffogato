@@ -122,11 +122,15 @@ export async function updateMe(
     const wantsNewsletter = patch.notificationPrefs.newsletter;
     try {
       if (wantsNewsletter === true) {
+        // App members are Supabase-confirmed (auth refuses an unconfirmed
+        // existing address), so this is normally a subscription on the spot;
+        // an unverified row is stored pending like the website's.
         await subscribeNewsletter(
           email,
           patch.name ?? customer.name,
           "account",
           { at: new Date().toISOString(), ip: await consentIp(ctx.ip) },
+          { confirmed: customer.emailVerified },
         );
       } else if (wantsNewsletter === false) {
         await unsubscribeNewsletterByEmail(email);
