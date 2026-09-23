@@ -3196,12 +3196,21 @@ export async function orderWasCollected(order: AdminOrder): Promise<boolean> {
   return (await getOrderPaymentRef(order.id)) !== null;
 }
 
-export async function refundOrder(
+/**
+ * Step 1 of a refund: write the ledger entry, if it still fits.
+ *
+ * `reserve_order_refund` appends the entry in ONE UPDATE whose WHERE checks
+ * the remaining balance, so two refunds submitted together cannot both fit
+ * where only one does — the read-modify-write this replaced let both through,
+ * and each had already moved money. Called BEFORE the POS: if the POS then
+ * refuses, {@link releaseRefund} takes the entry back; if it accepts,
+ * {@link finalizeRefund} settles the status and the stamp.
+ */
+export async function reserveRefund(
   orderId: string,
   input: RefundInput,
 ): Promise<RefundResult> {
   await ensureSeed();
-  const sb = getDb();
   const existing = await getOrder(orderId);
   if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
   const refusal = refundRefusal(
@@ -3216,28 +3225,68 @@ export async function refundOrder(
     reason: input.reason.slice(0, 500),
     createdAt: new Date().toISOString(),
   };
-  const nextRefunds = [...existing.refunds, refund];
-  const fullyRefunded =
-    nextRefunds.reduce((s, r) => s + r.amountMinor, 0) >= existing.totalMinor;
-  // A cancelled order stays cancelled: its stock and stamp were already given
-  // back by the cancel, and "refunded" would put it back into the reports.
-  const wasCancelled = existing.status === "cancelled";
-  const status = fullyRefunded && !wasCancelled ? "refunded" : existing.status;
+  const { data, error, status } = await getDb().rpc<AdminRefund[] | null>(
+    "reserve_order_refund",
+    { p_order_id: orderId, p_refund: refund },
+  );
+  if (error) raiseDbError("reserveRefund", error, status);
+  if (!data) {
+    // Another refund landed between the check above and this write.
+    return {
+      ok: false,
+      error:
+        "İade tutarı kalan bakiyeyi aşıyor — bu siparişe az önce başka bir iade kaydedildi. Sayfayı yenileyip tekrar dene.",
+    };
+  }
+  return { ok: true, order: { ...existing, refunds: data }, refund };
+}
+
+/** Takes back a reserved entry the POS then refused. */
+export async function releaseRefund(
+  orderId: string,
+  refundId: string,
+): Promise<void> {
+  const { error, status } = await getDb().rpc("drop_order_refund", {
+    p_order_id: orderId,
+    p_refund_id: refundId,
+  });
+  if (error) raiseDbError("releaseRefund", error, status);
+}
+
+/**
+ * Step 2: the money moved. A fully refunded order becomes `refunded` and
+ * gives its stamp back — unless it was cancelled, which already did both and
+ * must stay out of the reports.
+ */
+export async function finalizeRefund(order: AdminOrder): Promise<AdminOrder> {
+  const refunded = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
+  const fullyRefunded = refunded >= order.totalMinor;
+  const wasCancelled = order.status === "cancelled";
+  if (!fullyRefunded || wasCancelled) return order;
   check(
-    await sb
+    await getDb()
       .from(TABLES.orders)
-      .update({ refunds: nextRefunds, status })
-      .eq("id", orderId),
-    "refundOrder",
+      .update({ status: "refunded" })
+      .eq("id", order.id),
+    "finalizeRefund",
   );
   // A fully refunded order keeps nothing: the stamp it earned goes back too.
-  if (fullyRefunded && !wasCancelled)
-    await reverseLoyalty(existing, "refunded");
-  return {
-    ok: true,
-    order: { ...existing, refunds: nextRefunds, status },
-    refund,
-  };
+  await reverseLoyalty(order, "refunded");
+  return { ...order, status: "refunded" };
+}
+
+/**
+ * A refund with no POS in the middle (nothing was charged through one):
+ * reserve and finalize in one go.
+ */
+export async function refundOrder(
+  orderId: string,
+  input: RefundInput,
+): Promise<RefundResult> {
+  const reserved = await reserveRefund(orderId, input);
+  if (!reserved.ok) return reserved;
+  const order = await finalizeRefund(reserved.order);
+  return { ok: true, order, refund: reserved.refund };
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────

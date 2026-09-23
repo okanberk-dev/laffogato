@@ -16,9 +16,11 @@ import {
   createManualOrder,
   getOrder,
   getOrderPaymentRef,
+  finalizeRefund,
   orderWasCollected,
-  refundOrder,
   refundRefusal,
+  releaseRefund,
+  reserveRefund,
   setOrderInternalNote,
   setOrderItemStatus,
   setOrderTracking,
@@ -215,18 +217,30 @@ export async function refundOrderAction(
   );
   if (refusal) return { error: refusal };
 
-  // The POS call comes FIRST, and its failure stops the refund.
-  //
-  // It used to run after the ledger write, inside a try/catch that only
-  // logged: the admin was told "iade edildi", the order showed a refund, the
-  // reports subtracted it — and the customer's card was never credited. The
-  // refund record now only exists when the money actually moved.
+  // Reserve the ledger entry FIRST (atomic: it only lands if it still fits),
+  // then ask the POS, then settle. The POS used to be asked before any write,
+  // and two refunds submitted together could both pass the balance check and
+  // both move money; now the second one is refused before the POS is called.
+  // If the POS refuses, the entry is taken back and nothing is recorded.
+  const reserved = await reserveRefund(id, { amountMinor, reason });
+  if (!reserved.ok) return { error: reserved.error };
+
   const ref = await getOrderPaymentRef(id);
   if (ref) {
     try {
       await getPaymentProvider().refund(ref.providerRef, amountMinor);
     } catch (err) {
       console.error("[refund] provider refund failed", err);
+      try {
+        await releaseRefund(id, reserved.refund.id);
+      } catch (releaseErr) {
+        // The money did not move but the entry could not be taken back:
+        // loud, because the ledger now over-states what was refunded.
+        console.error(
+          `[refund] RESERVED BUT NOT REFUNDED order=${id} refund=${reserved.refund.id}`,
+          releaseErr,
+        );
+      }
       return {
         error:
           "Ödeme sağlayıcısı iadeyi reddetti; hiçbir kayıt oluşturulmadı. Sağlayıcı panelinden kontrol edip tekrar deneyin.",
@@ -234,16 +248,15 @@ export async function refundOrderAction(
     }
   }
 
-  const result = await refundOrder(id, { amountMinor, reason });
-  if (!result.ok) {
-    // The money is out but the ledger write failed. Loud, because the two are
-    // now out of step and only a human can reconcile them.
-    if (ref) {
-      console.error(
-        `[refund] PROVIDER REFUNDED BUT NOT RECORDED order=${id} amountMinor=${amountMinor} providerRef=${ref.providerRef}`,
-      );
-    }
-    return { error: result.error };
+  try {
+    await finalizeRefund(reserved.order);
+  } catch (err) {
+    // The money moved and the ledger entry stands; only the status/stamp
+    // follow-up failed. Loud, because a human has to finish it.
+    console.error(
+      `[refund] REFUNDED BUT NOT FINALIZED order=${id} amountMinor=${amountMinor}`,
+      err,
+    );
   }
 
   await logAudit({

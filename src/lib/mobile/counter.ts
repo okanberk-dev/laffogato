@@ -306,6 +306,15 @@ export async function issueCounterToken(
     createdAt: nowIso,
   };
   const { error } = await getDb().from(TABLE).insert(row);
+  // The window count above is the friendly answer; the trigger
+  // `counter_token_issue_cap` holds when several requests race it.
+  if (error && /COUNTER_RATE_LIMITED/.test(error.message)) {
+    return {
+      ok: false,
+      error: "rate_limited",
+      retryAfterSeconds: Math.ceil(ISSUE_WINDOW_MS / 1000),
+    };
+  }
   checkErr(error, "counter.issue");
 
   await retireSurplus(owner, nowIso, tokenHash);

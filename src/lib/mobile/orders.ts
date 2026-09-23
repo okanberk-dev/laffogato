@@ -272,6 +272,13 @@ export type CreateAppOrderResult =
  */
 export const MAX_OPEN_ORDERS = 3;
 
+const TOO_MANY_PENDING = {
+  status: 429,
+  code: "too_many_pending",
+  // Not "iptal et": the app has no way to cancel an order.
+  message: `Ödemesi tamamlanmamış siparişlerin var. Ödemeyi tamamla ya da ${PENDING_ORDER_TTL_MINUTES} dakika sonra tekrar dene.`,
+} as const;
+
 /**
  * The member's stamped orders, or an empty set when the ledger cannot be read.
  *
@@ -394,15 +401,7 @@ export async function createAppOrder(
     return !Number.isFinite(at) || at >= openSince;
   }).length;
   if (open >= MAX_OPEN_ORDERS) {
-    return {
-      ok: false,
-      failure: {
-        status: 429,
-        code: "too_many_pending",
-        // Not "iptal et": the app has no way to cancel an order.
-        message: `Ödemesi tamamlanmamış siparişlerin var. Ödemeyi tamamla ya da ${PENDING_ORDER_TTL_MINUTES} dakika sonra tekrar dene.`,
-      },
-    };
+    return { ok: false, failure: TOO_MANY_PENDING };
   }
 
   const addressRes = resolveOrderAddress(
@@ -440,6 +439,15 @@ export async function createAppOrder(
       clientOrderId: body.clientOrderId,
     });
   } catch (err) {
+    // The count above is the friendly answer; the database trigger
+    // `app_pending_order_cap` is the one that holds when several orders are
+    // placed at the same moment (they all counted the same open orders).
+    if (
+      err instanceof DbQueryError &&
+      /TOO_MANY_PENDING_ORDERS/.test(err.message)
+    ) {
+      return { ok: false, failure: TOO_MANY_PENDING };
+    }
     // The other half of the idempotency guard. The lookup above answers a
     // retry sent AFTER the first order committed; two POSTs of the same
     // attempt in flight at once both miss it, and the second insert is then

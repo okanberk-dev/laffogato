@@ -186,4 +186,124 @@ maybe("audit fixes against a real Postgres", () => {
       expect(data!.map((r) => r.email)).toContain("dogum-1@laffogato.net");
     });
   });
+
+  describe("caps and refunds hold under concurrency (SQL, not JS)", () => {
+    const iso = () => new Date().toISOString();
+
+    it("records only the refunds that fit, when they race", async () => {
+      await pool!.query(`delete from public.orders where id = 'ord-rfn-1'`);
+      await pool!.query(
+        `insert into public.orders (id, "orderNo", "customerEmail", status, "totalMinor",
+           "subtotalMinor", refunds, items, "createdAt", "paidAt")
+         values ('ord-rfn-1', 990001, 'iade@laffogato.net', 'paid', 10000, 10000,
+           '[]'::jsonb, '[]'::jsonb, $1, $1)`,
+        [iso()],
+      );
+      const { reserveRefund } = await import("@/lib/admin/store");
+      // Three refunds of 60,00 ₺ against a 100,00 ₺ order: one fits.
+      const results = await Promise.all(
+        [1, 2, 3].map(() =>
+          reserveRefund("ord-rfn-1", { amountMinor: 6000, reason: "yarış" }),
+        ),
+      );
+      expect(results.filter((r) => r.ok)).toHaveLength(1);
+      const { rows } = await pool!.query(
+        `select refunds from public.orders where id = 'ord-rfn-1'`,
+      );
+      expect(rows[0].refunds).toHaveLength(1);
+    });
+
+    it("takes a reserved refund back when the POS refuses it", async () => {
+      const { reserveRefund, releaseRefund } =
+        await import("@/lib/admin/store");
+      await pool!.query(
+        `update public.orders set refunds = '[]'::jsonb where id = 'ord-rfn-1'`,
+      );
+      const r = await reserveRefund("ord-rfn-1", {
+        amountMinor: 2500,
+        reason: "deneme",
+      });
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      await releaseRefund("ord-rfn-1", r.refund.id);
+      const { rows } = await pool!.query(
+        `select refunds from public.orders where id = 'ord-rfn-1'`,
+      );
+      expect(rows[0].refunds).toEqual([]);
+    });
+
+    it("keeps an app member to MAX_OPEN_ORDERS unpaid orders", async () => {
+      await pool!.query(
+        `delete from public.orders where "customerEmail" = 'cap@laffogato.net'`,
+      );
+      const inserts = [1, 2, 3, 4, 5].map((n) =>
+        pool!
+          .query(
+            `insert into public.orders (id, "orderNo", "customerEmail", status, channel, "createdAt")
+             values ($1, $2, 'cap@laffogato.net', 'pending_payment', 'app', $3)`,
+            [`ord-cap-${n}`, 991000 + n, iso()],
+          )
+          .then(
+            () => "ok",
+            (e: Error) => e.message,
+          ),
+      );
+      const outcomes = await Promise.all(inserts);
+      expect(outcomes.filter((o) => o === "ok")).toHaveLength(3);
+      expect(
+        outcomes.filter((o) => /TOO_MANY_PENDING_ORDERS/.test(o)),
+      ).toHaveLength(2);
+    });
+
+    it("does not cap web orders or an admin's manual ones", async () => {
+      await pool!.query(
+        `insert into public.orders (id, "orderNo", "customerEmail", status, channel, "createdAt")
+         values ('ord-cap-web', 991100, 'cap@laffogato.net', 'pending_payment', 'web', $1)`,
+        [iso()],
+      );
+    });
+
+    it("keeps a member to KARAOKE_OPEN_CAP open bookings", async () => {
+      await pool!.query(
+        `delete from public.karaoke_reservations where "customerEmail" = 'krk@laffogato.net'`,
+      );
+      const outcomes = await Promise.all(
+        [1, 2, 3, 4].map((n) =>
+          pool!
+            .query(
+              `insert into public.karaoke_reservations (id, "customerEmail", date, "startHour", status)
+               values ($1, 'krk@laffogato.net', '2099-01-01', $2, 'requested')`,
+              [`krk-cap-${n}`, 12 + n * 2],
+            )
+            .then(
+              () => "ok",
+              (e: Error) => e.message,
+            ),
+        ),
+      );
+      expect(outcomes.filter((o) => o === "ok")).toHaveLength(2);
+    });
+
+    it("keeps till QR issuing to MAX_ISSUES_PER_WINDOW a minute", async () => {
+      await pool!.query(
+        `delete from public.counter_tokens where "customerEmail" = 'qr@laffogato.net'`,
+      );
+      const now = iso();
+      const outcomes = await Promise.all(
+        Array.from({ length: 13 }, (_, n) =>
+          pool!
+            .query(
+              `insert into public.counter_tokens ("tokenHash", "customerEmail", code, "expiresAt", "createdAt")
+               values ($1, 'qr@laffogato.net', $2, '2099-01-01T00:00:00.000Z', $3)`,
+              [`hash-${n}`, `CODE${n}`, now],
+            )
+            .then(
+              () => "ok",
+              (e: Error) => e.message,
+            ),
+        ),
+      );
+      expect(outcomes.filter((o) => o === "ok")).toHaveLength(10);
+    });
+  });
 });

@@ -188,14 +188,7 @@ export async function createReservation(
   const open = mine.filter(
     (r) => r.status !== "cancelled" && r.date >= clock.date,
   ).length;
-  if (open >= KARAOKE_OPEN_CAP) {
-    return {
-      ok: false,
-      status: 409,
-      error: "too_many_reservations",
-      message: `Aynı anda en fazla ${KARAOKE_OPEN_CAP} açık rezervasyonun olabilir.`,
-    };
-  }
+  if (open >= KARAOKE_OPEN_CAP) return tooManyReservations();
 
   const bookings = await listByDate(req.date);
   if (rangeConflicts(req.startHour, req.hours, bookings)) {
@@ -233,6 +226,11 @@ export async function createReservation(
 
   const sb = getDb();
   const ins = await sb.from(TABLES.karaokeReservations).insert(reservation);
+  // The count above is the friendly answer; the trigger `karaoke_open_cap`
+  // holds when two bookings arrive at the same moment.
+  if (/TOO_MANY_OPEN_RESERVATIONS/.test(ins.error?.message ?? "")) {
+    return tooManyReservations();
+  }
   // 23P01: the exclusion constraint caught a booking that landed between our
   // read and our write. Same answer as the read-side check.
   if (ins.error?.code === "23P01") {
@@ -245,6 +243,15 @@ export async function createReservation(
   }
   check(ins, "karaoke.createReservation");
   return { ok: true, reservation };
+}
+
+function tooManyReservations(): CreateReservationResult {
+  return {
+    ok: false,
+    status: 409,
+    error: "too_many_reservations",
+    message: `Aynı anda en fazla ${KARAOKE_OPEN_CAP} açık rezervasyonun olabilir.`,
+  };
 }
 
 /** The member's own reservations, newest date first. */
