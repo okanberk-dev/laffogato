@@ -397,3 +397,53 @@ describe(RECONSENT, () => {
     ).toBe(true);
   });
 });
+
+const DROP_LEGACY = "20260923230100_drop_legacy_campaign_email_overloads.sql";
+const dropLegacy = readFileSync(
+  join(process.cwd(), "db", "migrations", DROP_LEGACY),
+  "utf8",
+);
+const dropLegacyStatements = dropLegacy
+  .split("\n")
+  .filter((line) => !line.trimStart().startsWith("--"))
+  .join("\n");
+
+describe(DROP_LEGACY, () => {
+  it("never records itself in _migrations", () => {
+    expect(dropLegacyStatements).not.toContain(
+      "insert into public._migrations",
+    );
+  });
+
+  it("sorts after the file that kept the overloads, so a bundle replay ends without them", () => {
+    expect(DROP_LEGACY > RECONSENT).toBe(true);
+    expect(bundle.indexOf(`-- ${DROP_LEGACY}`)).toBeGreaterThan(
+      bundle.indexOf(`-- ${RECONSENT}`),
+    );
+  });
+
+  it("drops exactly the three-argument claim and the six-argument mark", () => {
+    const drops = [
+      ...dropLegacyStatements.matchAll(
+        /drop function if exists public\.([a-z_]+)\(([^)]*)\)/g,
+      ),
+    ].map((m) => [m[1], m[2].replace(/\s+/g, " ").trim()]);
+    expect(drops).toEqual([
+      ["campaign_email_claim", "text, text, text"],
+      ["campaign_email_mark", "text, integer, text, jsonb, text, text"],
+    ]);
+    // The signatures the runner calls today are left alone.
+    expect(dropLegacyStatements).not.toMatch(/create or replace function/);
+  });
+
+  it("matches the runner, which only ever calls the new signatures", () => {
+    const runner = readFileSync(
+      join(process.cwd(), "src", "lib", "email", "campaigns.ts"),
+      "utf8",
+    );
+    const claim = runner.slice(runner.indexOf('"campaign_email_claim", {'));
+    expect(claim.slice(0, claim.indexOf("});"))).toContain("p_posted_before");
+    const mark = runner.slice(runner.indexOf('"campaign_email_mark", {'));
+    expect(mark.slice(0, mark.indexOf("});"))).toContain("p_claimed_at");
+  });
+});

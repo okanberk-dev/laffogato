@@ -317,10 +317,13 @@ yeniden tanımlandı: onay parti alınırken yeniden okunur, sağlayıcıya veri
 parti `postedAt` ile kayda geçer, bültende üyeden onay kaydı aranır, parti
 alma kampanya başına sıraya girer (kampanya satırı `for update`), işaretleme
 yalnız kendi partisini kapatır (`p_claimed_at`), kuyruğa dönen satır yeni
-parti numarası alır (hepsi aşağıda). Eski imzalar — üç argümanlı
-`campaign_email_claim`, altı argümanlı `campaign_email_mark` — **bir sürüm**
-daha durur: migration dağıtım anında `after()` içinde olan eski çalıştırıcı
-yeni fonksiyonu bilmez; sonraki migration'da düşürülür.
+parti numarası alır (hepsi aşağıda). Eski imzalar (üç argümanlı
+`campaign_email_claim`, altı argümanlı `campaign_email_mark`) bir sürüm
+boyunca uyumluluk için durdu, çünkü migration dağıtıldığı anda `after()`
+içinde olan eski çalıştırıcı yeni fonksiyonu bilmiyordu.
+`20260923230100_drop_legacy_campaign_email_overloads.sql` ikisini de düşürdü;
+bugün yalnız dört argümanlı parti alma ve yedi argümanlı işaretleme var
+(`tests/db-integration-schema-objects.test.ts` gerçek Postgres'te tutar).
 
 ### Kime gider — kitle kuralı
 
