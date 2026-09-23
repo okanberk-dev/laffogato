@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
-/** `POST /loyalty/redeem` — six stamps → a free-drink coupon (§5). */
+/** `POST /loyalty/redeem` — a full card of stamps → a free-drink coupon (§5). */
 export async function POST(request: Request) {
   try {
     const auth = await requireMobileCustomer(request);
@@ -18,7 +18,8 @@ export async function POST(request: Request) {
       return apiError(
         409,
         "not_enough_stamps",
-        "Ödül için 6 damga gerekiyor. Biraz daha kahve, biraz daha yakın.",
+        // The configured card size (3-20 in the panel), not a literal 6.
+        `Ödül için ${result.stampTarget} damga gerekiyor. Biraz daha kahve, biraz daha yakın.`,
       );
     }
     return apiJson(

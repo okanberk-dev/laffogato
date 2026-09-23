@@ -217,7 +217,7 @@ export async function onOrderReversed(order: AdminOrder): Promise<void> {
 
 export type RedeemStampsResult =
   | { ok: true; coupon: CustomerCoupon; loyalty: LoyaltyView }
-  | { ok: false; error: "not_enough_stamps" };
+  | { ok: false; error: "not_enough_stamps"; stampTarget: number };
 
 /**
  * Turns a full card of stamps into a free-drink coupon (`POST /loyalty/redeem`).
@@ -237,7 +237,7 @@ export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
   const reward = freeDrinkRewardFor(rules);
   const before = computeStampBalance(await listStamps(owner), target);
   if (before.available < target) {
-    return { ok: false, error: "not_enough_stamps" };
+    return { ok: false, error: "not_enough_stamps", stampTarget: target };
   }
 
   const db = getDb();
@@ -262,7 +262,7 @@ export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
     // Lost the race: another redeem took the stamps first. Withdraw ours.
     const del = await db.from(TABLES.loyaltyStamps).delete().eq("id", id);
     checkErr(del.error, "redeemStamps.rollback");
-    return { ok: false, error: "not_enough_stamps" };
+    return { ok: false, error: "not_enough_stamps", stampTarget: target };
   }
 
   let coupon: CustomerCoupon;

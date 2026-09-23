@@ -22,15 +22,22 @@ export async function PATCH(request: Request, { params }: Context) {
     const auth = await requireMobileCustomer(request);
     if (!auth.ok) return auth.response;
     const { id } = await params;
-    if (!auth.customer.addresses.some((a) => a.id === id)) return NOT_FOUND();
+    const existing = auth.customer.addresses.find((a) => a.id === id);
+    if (!existing) return NOT_FOUND();
 
     const body = await parseJsonBody(request, addressInputSchema);
     if (!body.ok) return body.response;
 
+    // A PATCH that does not mention `isDefault` leaves it as it was. It used
+    // to read as `false`, so fixing a phone number on the default address
+    // quietly moved the default to whichever address came first.
     const result = await updateCustomerAddress(
       auth.customer.email,
       id,
-      fromMeAddress(body.data),
+      fromMeAddress({
+        ...body.data,
+        isDefault: body.data.isDefault ?? existing.isDefault,
+      }),
     );
     if (!result.ok) return apiError(400, "invalid_address", result.error);
     return apiJson(

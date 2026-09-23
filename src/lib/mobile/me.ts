@@ -30,6 +30,7 @@ import {
 
 import { getInviteSummary } from "./invite";
 import { getLoyalty } from "./loyalty";
+import { istanbulClock } from "./venue";
 import { toMe, type MeResponse } from "./me-mapper";
 
 /**
@@ -259,7 +260,9 @@ export const ANON_SWEEPS: ReadonlyArray<{
  * ones are cancelled first — while the rows still carry the real address.
  */
 async function cancelFutureKaraoke(email: string, now: Date): Promise<void> {
-  const today = now.toISOString().slice(0, 10);
+  // Today at the venue. `toISOString()` is UTC, so from 00:00 to 03:00 in
+  // Tuzla this also cancelled yesterday's bookings — nights already sung.
+  const today = istanbulClock(now).date;
   const { error } = await getDb()
     .from(TABLES.karaokeReservations)
     .update({ status: "cancelled", updatedAt: now.toISOString() })
