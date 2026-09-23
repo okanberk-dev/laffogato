@@ -38,6 +38,7 @@ import { DbQueryError } from "@/lib/db/health";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
 
+import { orderChannel } from "@/lib/admin/order-channel";
 import { getStampedOrderIds } from "./loyalty";
 import { resolveOrderAddress } from "./order-address";
 import { toMobileOrder, type MobileOrder } from "./order-mapper";
@@ -558,6 +559,68 @@ export async function getAppOrder(
     return null;
   }
   return toMobileOrder(order, new Date(), await stampedOrders(customer.email));
+}
+
+export type PayAppOrderResult =
+  | { ok: true; order: MobileOrder; payment: AppPayment }
+  | { ok: false; reason: "not_found" }
+  | { ok: false; reason: "not_payable"; order: MobileOrder };
+
+/**
+ * `POST /orders/{id}/payment` — a fresh checkout for the member's own app
+ * order that is still awaiting payment (docs/API-MOBILE.md §3).
+ *
+ * The app could already reopen a checkout, but only by replaying the POST it
+ * made with the same `clientOrderId` — which it no longer holds once the
+ * member has left the checkout. An order abandoned at the POS then sat as
+ * `pending_payment` with no way to pay it, and three of them hit
+ * `too_many_pending` and locked the member out of ordering at all until the
+ * sweep expired them.
+ *
+ * This is the same replay by id: `replayAppOrder` opens a new provider
+ * session against the SAME order, which is safe for the reason it is safe
+ * there — `applyPaymentSucceeded` is idempotent and an order advances once.
+ * Nothing is cancelled here, so rule 29 (ask the POS before cancelling) is not
+ * in play.
+ *
+ * The read gate is `getAppOrder`'s: the owner, with a verified e-mail, and a
+ * stranger's id answers exactly like a missing one. Only an APP order is
+ * reopened — a web order has its own checkout and its own return page. An
+ * order with nothing to pay (paid, cancelled, ₺0) is `not_payable` with the
+ * order as it stands, so the app can redraw it instead of guessing.
+ */
+export async function payAppOrder(
+  customer: PublicCustomer,
+  id: string,
+): Promise<PayAppOrderResult> {
+  if (!customer.emailVerified) return { ok: false, reason: "not_found" };
+  const order = await getOrder(id);
+  if (
+    !order ||
+    orderChannel(order) !== "app" ||
+    order.customerEmail.trim().toLowerCase() !==
+      customer.email.trim().toLowerCase()
+  ) {
+    return { ok: false, reason: "not_found" };
+  }
+  if (order.status !== "pending_payment" || order.totalMinor <= 0) {
+    return {
+      ok: false,
+      reason: "not_payable",
+      order: toMobileOrder(
+        order,
+        new Date(),
+        await stampedOrders(customer.email),
+      ),
+    };
+  }
+  const replay = await replayAppOrder(order, customer);
+  if (!replay.ok || !replay.payment) {
+    // Unreachable: the replay of an order awaiting a non-zero payment either
+    // opens a session or throws. Kept so the type says what the wire says.
+    throw new Error(`payAppOrder: no checkout for ${order.id}`);
+  }
+  return { ok: true, order: replay.order, payment: replay.payment };
 }
 
 // ─── Promo preview ───────────────────────────────────────────────────────

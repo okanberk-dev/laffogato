@@ -341,6 +341,25 @@ Kurallar:
 > /notifications` sipariş kayıtlarını listelemez. Biçim değişmedi; doğrulanmamış
 > üye zaten sipariş veremez (`POST /orders` → 403 `email_unverified`).
 
+### `POST /orders/{id}/payment` → `{ "order": …Order…, "payment": { "redirectUrl", "expiresAt" } }` (23 Eyl 2026, yeni uç)
+
+POS'ta yarım bırakılmış bir uygulama siparişini **yeniden ödemeye açar**. Gövde yok.
+`clientOrderId` tekrarı (§3 yukarıda) aynı şeyi yapıyordu ama uygulama o kimliği ödeme
+ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiyle yapar.
+
+- **Aynı sipariş**, yeni bir ödeme oturumu: yeni sipariş açılmaz, e-posta yeniden gitmez,
+  stok yeniden ayrılmaz. Oturumun dönüşü `POST /orders`'takiyle aynıdır
+  (`laffogato://siparis/<id>?status=…`).
+- Yalnız sahibi, e-postası doğrulanmış olarak ve yalnız **uygulama** siparişi
+  (`channel: "app"`); aksi hâlde **404** `not_found` (başkasının kimliği eksik bir
+  kimlikle aynı cevabı alır). Web siparişinin kendi ödeme akışı vardır.
+- `pending_payment` değilse ya da ödenecek tutar yoksa **409** `not_payable`
+  ("Bu sipariş ödeme beklemiyor."): uygulama siparişi `GET /orders/{id}` ile yeniden
+  çizer.
+- POS açılamazsa **500** `internal`; hiçbir şey değişmez, tekrar denenebilir.
+- Neden: üç yarım ödeme `too_many_pending` (429) ile üyeyi siparişten kilitliyordu ve
+  uygulamada çıkış yolu yoktu.
+
 `Order`:
 
 ```jsonc

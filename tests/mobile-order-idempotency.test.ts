@@ -126,7 +126,7 @@ vi.mock("@/lib/db", () => ({
   TABLES: { paymentTransactions: "payment_transactions" },
 }));
 
-const { createAppOrder } = await import("@/lib/mobile/orders");
+const { createAppOrder, payAppOrder } = await import("@/lib/mobile/orders");
 
 const customer: PublicCustomer = {
   id: "cst-1",
@@ -261,5 +261,70 @@ describe("POST /orders — clientOrderId", () => {
     if (!raced.ok) return;
     expect(raced.order.id).toBe("ord-0001");
     expect(placed).toHaveLength(1);
+  });
+});
+
+/**
+ * `POST /orders/{id}/payment` (W8a): the order abandoned at the POS, paid from
+ * "Siparişlerim" long after the checkout that made it - by id, because the app
+ * no longer holds the `clientOrderId`.
+ */
+describe("POST /orders/{id}/payment", () => {
+  it("reopens the checkout of the member's own unpaid app order, and places nothing", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    createCheckoutSession.mockClear();
+
+    const paid = await payAppOrder(customer, first.order.id);
+    expect(paid.ok).toBe(true);
+    if (!paid.ok) return;
+    expect(paid.order.id).toBe(first.order.id);
+    expect(paid.payment.redirectUrl).toBeTruthy();
+    expect(createCheckoutSession).toHaveBeenCalledTimes(1);
+    expect(placeAppOrder).toHaveBeenCalledTimes(1);
+    expect(sendOrderPlacedEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers a stranger's id exactly like a missing one", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    const stranger = { ...customer, email: "someone@example.com" };
+    expect(await payAppOrder(stranger, first.order.id)).toEqual({
+      ok: false,
+      reason: "not_found",
+    });
+    expect(await payAppOrder(customer, "ord-9999")).toEqual({
+      ok: false,
+      reason: "not_found",
+    });
+  });
+
+  it("does not reopen anything for an unverified member", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    const unverified = { ...customer, emailVerified: false };
+    expect((await payAppOrder(unverified, first.order.id)).ok).toBe(false);
+  });
+
+  it("leaves a web order to the web's own checkout", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    placed[0] = { ...placed[0]!, channel: "web" } as AdminOrder;
+    expect(await payAppOrder(customer, first.order.id)).toEqual({
+      ok: false,
+      reason: "not_found",
+    });
+  });
+
+  it("calls an order with nothing to pay not_payable, and hands it back as it stands", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    placed[0] = { ...placed[0]!, status: "paid" } as AdminOrder;
+    createCheckoutSession.mockClear();
+    const answer = await payAppOrder(customer, first.order.id);
+    expect(answer.ok).toBe(false);
+    if (answer.ok || answer.reason !== "not_payable") return;
+    expect(answer.order.id).toBe(first.order.id);
+    expect(createCheckoutSession).not.toHaveBeenCalled();
   });
 });
