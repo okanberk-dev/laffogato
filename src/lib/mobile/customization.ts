@@ -9,9 +9,11 @@ import { z } from "zod";
  * charge comes from THIS table and never from the request body; the app only
  * ever sends option ids.
  *
- * Prices are minor units (kuruş). `allergens` is carried on every syrup —
- * empty or not — so the nut warning is data rather than a special case the
- * app has to remember.
+ * Prices are minor units (kuruş). `allergens` is carried on every syrup and,
+ * since 23 Sep 2026, on every milk — empty or not — so the nut warning is data
+ * rather than a special case the app has to remember. The almond milk is a
+ * tree nut exactly as the hazelnut syrup is; until then a member who chose it
+ * was shown no warning at all (lafmobil rule 4).
  */
 
 export const MILK_IDS = ["normal", "lactose-free", "oat", "almond"] as const;
@@ -31,6 +33,7 @@ export interface MilkOption {
   id: MilkId;
   label: string;
   priceMinor: number;
+  allergens: Allergen[];
 }
 
 export interface RoastOption {
@@ -55,10 +58,10 @@ export interface Customization {
 
 export const CUSTOMIZATION: Customization = {
   milks: [
-    { id: "normal", label: "Normal", priceMinor: 0 },
-    { id: "lactose-free", label: "Laktozsuz", priceMinor: 0 },
-    { id: "oat", label: "Yulaf", priceMinor: 2500 },
-    { id: "almond", label: "Badem", priceMinor: 2500 },
+    { id: "normal", label: "Normal", priceMinor: 0, allergens: [] },
+    { id: "lactose-free", label: "Laktozsuz", priceMinor: 0, allergens: [] },
+    { id: "oat", label: "Yulaf", priceMinor: 2500, allergens: [] },
+    { id: "almond", label: "Badem", priceMinor: 2500, allergens: ["nuts"] },
   ],
   roasts: [
     { id: "intense", label: "Yoğun" },
@@ -200,7 +203,8 @@ export function resolveOptionPricing(
   return {
     detail: parts.join(" · "),
     extraMinor,
-    allergens: [...syrup.allergens],
+    // Once each, whichever of the two brought it.
+    allergens: [...new Set([...milk.allergens, ...syrup.allergens])],
   };
 }
 

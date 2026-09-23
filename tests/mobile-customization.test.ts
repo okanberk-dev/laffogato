@@ -11,10 +11,10 @@ import {
 describe("CUSTOMIZATION constant (docs/API-MOBILE.md §1)", () => {
   it("matches the contract's ids, labels and prices", () => {
     expect(CUSTOMIZATION.milks).toEqual([
-      { id: "normal", label: "Normal", priceMinor: 0 },
-      { id: "lactose-free", label: "Laktozsuz", priceMinor: 0 },
-      { id: "oat", label: "Yulaf", priceMinor: 2500 },
-      { id: "almond", label: "Badem", priceMinor: 2500 },
+      { id: "normal", label: "Normal", priceMinor: 0, allergens: [] },
+      { id: "lactose-free", label: "Laktozsuz", priceMinor: 0, allergens: [] },
+      { id: "oat", label: "Yulaf", priceMinor: 2500, allergens: [] },
+      { id: "almond", label: "Badem", priceMinor: 2500, allergens: ["nuts"] },
     ]);
     expect(CUSTOMIZATION.roasts).toEqual([
       { id: "intense", label: "Yoğun" },
@@ -34,6 +34,22 @@ describe("CUSTOMIZATION constant (docs/API-MOBILE.md §1)", () => {
     for (const s of CUSTOMIZATION.syrups) {
       expect(s.allergens).toEqual(s.id === "hazelnut" ? ["nuts"] : []);
     }
+  });
+
+  it("flags the almond milk as a nut allergen and no other milk", () => {
+    // A tree nut, like the hazelnut syrup - and until 23 Sep 2026 the only
+    // nut on the options that drew no warning at all.
+    for (const m of CUSTOMIZATION.milks) {
+      expect(m.allergens).toEqual(m.id === "almond" ? ["nuts"] : []);
+    }
+  });
+
+  it("surfaces the almond milk's nut allergen on its own, and once with the hazelnut syrup", () => {
+    expect(resolveOptionPricing({ milk: "almond" }).allergens).toEqual(["nuts"]);
+    expect(
+      resolveOptionPricing({ milk: "almond", syrup: "hazelnut" }).allergens,
+    ).toEqual(["nuts"]);
+    expect(resolveOptionPricing({ milk: "oat" }).allergens).toEqual([]);
   });
 
   it("uses integer minor units everywhere", () => {

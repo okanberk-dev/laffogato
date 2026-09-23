@@ -93,10 +93,10 @@ zaten varsa o satır kullanılır (**tek üyelik**).
   "customization": {
     // sunucu sabiti: src/lib/mobile/customization.ts
     "milks": [
-      { "id": "normal", "label": "Normal", "priceMinor": 0 },
-      { "id": "lactose-free", "label": "Laktozsuz", "priceMinor": 0 },
-      { "id": "oat", "label": "Yulaf", "priceMinor": 2500 },
-      { "id": "almond", "label": "Badem", "priceMinor": 2500 },
+      { "id": "normal", "label": "Normal", "priceMinor": 0, "allergens": [] },
+      { "id": "lactose-free", "label": "Laktozsuz", "priceMinor": 0, "allergens": [] },
+      { "id": "oat", "label": "Yulaf", "priceMinor": 2500, "allergens": [] },
+      { "id": "almond", "label": "Badem", "priceMinor": 2500, "allergens": ["nuts"] },
     ],
     "roasts": [
       { "id": "intense", "label": "Yoğun" },
@@ -133,6 +133,11 @@ zaten varsa o satır kullanılır (**tek üyelik**).
 Cache: `public, s-maxage=300, stale-while-revalidate=3600`.
 Uygulama boyları **veriden** çizer: `priceLargeMinor === null` → tek boy; değilse M/L.
 (Tasarımdaki S/M/L üçlüsü katalogda yok — karar kaydı 6.)
+
+**`milks[].allergens` (23 Eyl 2026, yalnız ekleme).** Şuruplardaki alanın aynısı, aynı
+sözlük: badem sütü `["nuts"]`, diğerleri `[]`. Önceden süt seçeneklerinde alan yoktu ve
+badem sütünü seçen üyeye hiçbir alerjen uyarısı çizilmiyordu (lafmobil kural 4). Eski
+sürümler alanı okumaz, bir şey kırılmaz; uygulama alanı **yoksa** `[]` sayar.
 
 ### `image` — sürümlü URL (9 Eyl 2026, yalnız ekleme)
 
