@@ -676,4 +676,35 @@ e-posta**. Motor parti başına en çok 100 mesaj gönderir ve partiler arasınd
 200 ms bekler; 100'den kalabalık bir kitleye göndermeden **önce** Resend planı
 yükseltilmeli — yoksa ikinci parti 429/403 ile `failed` düşer ve o alıcılar
 elle yeniden kuyruğa alınmadan (failed nihaidir) mail almaz. Bounce / şikâyet
-bastırma listesi henüz yok (`docs/AUDIT.md` §5).
+bastırma listesi aşağıda.
+
+### Bounce ve şikâyet bastırma (23 Eyl 2026 - operatör açana kadar kapalı)
+
+Kalıcı geri dönen (Resend `email.bounced`, `bounce.type = Permanent`) ya da
+alıcının spam olarak işaretlediği (`email.complained`) adres
+`email_suppressions` tablosuna yazılır ve **ticari** postadan düşer:
+`campaign_email_audience` (sayım, kuyruk, parti alma) ve doğum günü
+tebrikinin mail bayrağı (`birthday_greeting_audience`, kupon yine verilir).
+Sipariş, kargo ve parola e-postaları bu listeye hiç bakmaz. Kuyruğa girdikten
+sonra bastırılan adres, partisi alınırken "kitle dışına çıktı" diye atlanır.
+
+Yazan tek yer `POST /api/webhooks/resend`: Svix imzası (`svix-id`,
+`svix-timestamp`, `svix-signature`; ham gövde üzerinden HMAC-SHA256, 5
+dakikalık pencere) doğrulanmadan hiçbir şey yazılmaz; `RESEND_WEBHOOK_SECRET`
+tanımsızken uç **503** döner. Adres loglanmaz, yanıtta da dönmez.
+
+Açmak için (operatör):
+
+1. Resend panelinde Webhooks → Add endpoint:
+   `https://laffogato.net/api/webhooks/resend` (kanonik alan adı; `www` 308
+   döner ve POST yönlendirmeyi izlemez), olaylar `email.bounced` +
+   `email.complained`.
+2. Panelin gösterdiği "Signing secret"i (`whsec_...`) Vercel'de
+   `RESEND_WEBHOOK_SECRET` olarak tanımla (yalnız Production), yeniden dağıt.
+3. Panelden bir test olayı gönder; yanıt `200` ve gövde
+   `{"ok":true,"ignored":...}` ya da `{"ok":true,"suppressed":1,...}` olmalı.
+
+Saklama: kayıt ticari ileti gönderim kaydının parçası sayılır; son olaydan
+(`updatedAt`) itibaren 3 yıl (`src/lib/retention.ts` → `email-suppressions`).
+Testler: `tests/resend-webhook.test.ts`,
+`tests/db-integration-schema-objects.test.ts`.

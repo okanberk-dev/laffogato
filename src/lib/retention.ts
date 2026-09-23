@@ -84,6 +84,21 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "for three years. Nothing here may shorten it.",
   },
   {
+    id: "email-suppressions",
+    table: TABLES.emailSuppressions,
+    column: "updatedAt",
+    idColumn: "email",
+    days: 3 * YEAR_DAYS,
+    basis:
+      "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca kayıt tarihinden itibaren 3 yıl.",
+    note:
+      "The bounce and complaint list is part of the commercial-mail send " +
+      "record: what happened to a message sent to that address. Measured " +
+      "from the LATEST event (updatedAt), so an address that keeps bouncing " +
+      "stays suppressed; three years without one, and the address may be " +
+      "mailed again if its owner still consents.",
+  },
+  {
     id: "audit-logs",
     table: TABLES.auditLogs,
     column: "createdAt",

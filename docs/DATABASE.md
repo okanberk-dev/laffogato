@@ -185,6 +185,7 @@ minimizasyonu ihlaliydi (KVKK m.4/2-d).
 | ---------------------- | ----------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `auth_attempts`        | `updatedAt` | **7 gün**  | "…5651 sayılı Kanun kapsamındaki asgari süreye uygun olarak **1 yıl**…" — bu bir **tavan**; satırın amacı 5 dakikada biter |
 | `campaign_email_sends` | `createdAt` | **3 yıl**  | Ticari İletişim Yönetmeliği — gönderim kaydı için **asgari** süre                                                          |
+| `email_suppressions`   | `updatedAt` | **3 yıl**  | Ticari ileti gönderim kaydı ("kayıt tarihinden itibaren 3 yıl"); son bounce/şikâyetten sayılır                            |
 | `audit_logs`           | `createdAt` | **10 yıl** | "İşlemin gerçekleştiği tarihten itibaren 10 yıl… (append-only)" — **asgari**                                               |
 | `counter_tokens`       | `expiresAt` | **1 gün**  | Jeton süresinin dolmasına bağlı otomatik imha; kalıcı kayıt `loyalty_stamps`'tir                                           |
 
