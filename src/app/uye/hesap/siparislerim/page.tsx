@@ -5,8 +5,8 @@ import {
   AccountCard,
   EmptyState,
 } from "@/components/uye/account-shell";
-import { customerOrdersByEmail } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
+import { memberOrders } from "@/lib/customer/member-orders";
 
 import { formatTRY, STATUS_LABEL, formatDate } from "../shared";
 
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SiparislerimPage() {
   const customer = await requireCustomer();
-  const orders = await customerOrdersByEmail(customer.email);
+  const orders = await memberOrders(customer);
 
   return (
     <AccountShell customer={customer} active="siparislerim">
@@ -25,8 +25,16 @@ export default async function SiparislerimPage() {
       >
         {orders.length === 0 ? (
           <EmptyState
-            title="Henüz siparişin yok"
-            hint="Bir affogato seç, hemen başlayalım."
+            title={
+              customer.emailVerified
+                ? "Henüz siparişin yok"
+                : "Siparişlerin e-posta doğrulamasından sonra görünür"
+            }
+            hint={
+              customer.emailVerified
+                ? "Bir affogato seç, hemen başlayalım."
+                : "Hesabım sayfasından doğrulama bağlantısını yeniden gönderebilirsin."
+            }
             cta={
               <Link href="/#shop" className="btn btn-primary btn-sm">
                 Mağazaya git →

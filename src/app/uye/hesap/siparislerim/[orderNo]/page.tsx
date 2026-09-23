@@ -2,11 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AccountShell, AccountCard } from "@/components/uye/account-shell";
-import {
-  customerOrdersByEmail,
-  type OrderLegalConsent,
-} from "@/lib/admin/store";
+import type { OrderLegalConsent } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
+import { memberOrders } from "@/lib/customer/member-orders";
 
 import {
   STATUS_LABEL,
@@ -35,7 +33,7 @@ export default async function OrderDetailPage({
 }) {
   const { orderNo } = await params;
   const customer = await requireCustomer();
-  const orders = await customerOrdersByEmail(customer.email);
+  const orders = await memberOrders(customer);
   const order = orders.find((o) => String(o.orderNo) === orderNo);
   if (!order) notFound();
 

@@ -7,7 +7,8 @@ import {
   EmptyState,
 } from "@/components/uye/account-shell";
 import { VerifyNotice } from "@/components/customer/verify-notice";
-import { customerOrdersByEmail, listPromos } from "@/lib/admin/store";
+import { listPromos } from "@/lib/admin/store";
+import { memberOrders } from "@/lib/customer/member-orders";
 import { requireCustomer } from "@/lib/customer/auth";
 import { isDbUnreachable } from "@/lib/db/health";
 import { getLoyalty } from "@/lib/mobile/loyalty";
@@ -21,7 +22,7 @@ export const dynamic = "force-dynamic";
 export default async function HesapPage() {
   const customer = await requireCustomer();
   const [orders, promos] = await Promise.all([
-    customerOrdersByEmail(customer.email),
+    memberOrders(customer),
     listPromos(),
   ]);
 
