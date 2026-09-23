@@ -546,7 +546,4 @@ export function readSessionFromCookieValue(
     : null;
 }
 
-/** Exported for tests only. */
-export const __test = { signToken, credentialFingerprint };
-
 export const ADMIN_COOKIE_NAME = COOKIE_NAME;

@@ -37,18 +37,6 @@ function serviceRoleKey(): string {
   return (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
 }
 
-/**
- * Whether this deployment can act on the identity provider at all.
- *
- * Read by the sign-in path, not for a capability check but for a factual one:
- * with the key present every password written here is mirrored to Supabase,
- * so the two cannot silently disagree, and Supabase is the newer truth when
- * they do. Without it the mirror never runs and this site's own copy stays
- * authoritative. Same question, two different correct answers.
- */
-export function hasSupabaseAdmin(): boolean {
-  return serviceRoleKey().length > 0;
-}
 
 function getSupabaseAdminClient(): SupabaseClient | null {
   const key = serviceRoleKey();

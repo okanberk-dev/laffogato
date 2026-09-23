@@ -341,12 +341,3 @@ export const CAMPAIGN_MAIL_FIELD_KEYS: readonly string[] = [
   ),
 ];
 
-/** Label for a stored field, for the read-only view of a queued campaign. */
-export function campaignMailFieldLabel(
-  template: CampaignTemplateName,
-  key: string,
-): string {
-  return (
-    campaignMailFieldsFor(template).find((f) => f.key === key)?.label ?? key
-  );
-}

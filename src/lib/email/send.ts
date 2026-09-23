@@ -746,11 +746,6 @@ export const CAMPAIGN_TEMPLATES: readonly CampaignTemplateName[] = [
   "bulten-kampanya",
 ];
 
-/** For a form value or a database column that claims to be a template name. */
-export function isCampaignTemplate(name: string): name is CampaignTemplateName {
-  return (CAMPAIGN_TEMPLATES as readonly string[]).includes(name);
-}
-
 /**
  * Template + form values → the three strings, synchronously.
  *

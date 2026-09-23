@@ -21,6 +21,8 @@ import {
   sendCampaignMailTestAction,
   updateCampaignMailAction,
 } from "../actions";
+import { CampaignSendLog } from "@/components/admin/campaign-send-log";
+
 import { CampaignSendForm, CampaignTestForm } from "../campaign-mail-controls";
 import { CampaignMailForm } from "../campaign-mail-form";
 import {
@@ -233,6 +235,11 @@ export default async function CampaignMailDetailPage({
           )}
         </aside>
       </div>
+
+      {/* "Kime gitti": who the queued or sent campaign reached, row by row.
+          Under 6563 the proof is the sender's to produce, and three counters
+          named nobody. A draft has sent nothing. */}
+      {!isDraft && <CampaignSendLog campaignId={c.id} />}
 
       <Card className="mt-4">
         <h2

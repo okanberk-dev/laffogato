@@ -72,13 +72,6 @@ function venueAddressLines(
 
 // ─── Constants the app cannot edit (contract §2, §10) ─────────────────────
 
-/**
- * Default minimum version. The live value is `settings.mobileApp
- * .minSupportedAppVersion` (/admin/mobil/ayarlar); this is what an operator
- * who never touched the panel publishes.
- */
-export const MIN_SUPPORTED_APP_VERSION =
-  DEFAULT_MOBILE_APP_CONFIG.minSupportedAppVersion;
 
 /** Grind choices offered on `category === "beans"`; sent as the line `note`. */
 export const BEAN_GRINDS: readonly string[] = [
