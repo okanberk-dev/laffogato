@@ -51,7 +51,7 @@ export default async function NewsletterPage() {
             className="mb-2 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
-            Aktif e-postalar — dışa aktar (kopyala)
+            Aktif e-postalar - dışa aktar (kopyala)
           </h2>
           <textarea
             readOnly

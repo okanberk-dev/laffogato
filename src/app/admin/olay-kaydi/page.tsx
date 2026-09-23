@@ -101,7 +101,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
       <PageHeader
         eyebrow="Denetim"
         title="Olay Kaydı"
-        description="Admin mutasyonlarının değiştirilemez tarihçesi. Yalnız okuma — kim, neyi, ne zaman değiştirdi."
+        description="Admin mutasyonlarının değiştirilemez tarihçesi. Yalnız okuma - kim, neyi, ne zaman değiştirdi."
       />
 
       <Card className="mb-4">
@@ -179,7 +179,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
       <Card>
         {rows.length === 0 ? (
           <p className="text-sm text-neutral-500">
-            Henüz olay yok. Bir ürün oluştur veya bir sipariş durumu güncelle —
+            Henüz olay yok. Bir ürün oluştur veya bir sipariş durumu güncelle -
             burada görünecek.
           </p>
         ) : (
@@ -287,11 +287,11 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
                         className="pr-3 text-xs text-neutral-500"
                         style={{ fontFamily: "var(--mono), monospace" }}
                       >
-                        {r.entityId || "—"}
+                        {r.entityId || "-"}
                       </td>
                       <td className="text-xs text-neutral-600">
                         {Object.keys(r.payload).length === 0 ? (
-                          <span className="text-neutral-400">—</span>
+                          <span className="text-neutral-400">-</span>
                         ) : (
                           <code
                             className="break-all"

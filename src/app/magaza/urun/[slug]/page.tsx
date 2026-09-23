@@ -32,7 +32,9 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getShopProductBySlug(slug);
   if (!product) return { title: "Ürün bulunamadı · L'Affogato" };
-  const SUFFIX = " — L'Affogato";
+  // " · ", not " - ": product names carry their own hyphen now
+  // ("Sirena - Espresso Harmanı"), and the dot is the site's title separator.
+  const SUFFIX = " · L'Affogato";
   // The wizard's SEO tab wins when it has been filled in. It used to be
   // written and never read, so the fields promised control the pages ignored.
   const seoTitle = product.seoTitle?.trim();
@@ -55,7 +57,7 @@ export async function generateMetadata({
       description = `${(lastSpace > 0 ? sliced.slice(0, lastSpace) : sliced).trimEnd()}…`;
     }
   } else {
-    description = `${product.name} — L'Affogato mağazasından, Türkiye'ye kargo.`;
+    description = `${product.name} · L'Affogato mağazasından, Türkiye'ye kargo.`;
   }
   const path = PATH(slug);
   // Uploaded images are site-relative (`/gorsel/urun/...`); Next resolves them

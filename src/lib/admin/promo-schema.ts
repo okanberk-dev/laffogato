@@ -64,7 +64,7 @@ export const promoFormSchema = z
     if (v.kind === "pct" && (v.value < 1 || v.value > 100)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Yüzde 1–100 arasında olmalı.",
+        message: "Yüzde 1-100 arasında olmalı.",
         path: ["valuePct"],
       });
     }

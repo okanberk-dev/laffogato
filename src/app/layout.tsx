@@ -45,7 +45,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
-    default: `${SITE.name} — Caffè · Gelato · Dolci · Tuzla, İstanbul`,
+    default: `${SITE.name} - Caffè · Gelato · Dolci · Tuzla, İstanbul`,
     template: `%s · ${SITE.name}`,
   },
   description: SITE.shortDescription,
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
     alternateLocale: [...SITE.alternateLocale],
     url: SITE.url,
     siteName: SITE.name,
-    title: `${SITE.name} — Caffè · Gelato · Dolci · Tuzla, İstanbul`,
+    title: `${SITE.name} - Caffè · Gelato · Dolci · Tuzla, İstanbul`,
     description: SITE.shortDescription,
     // og:image is auto-discovered from src/app/opengraph-image.tsx
   },
@@ -83,7 +83,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: SITE.twitter,
     creator: SITE.twitter,
-    title: `${SITE.name} — Caffè · Gelato · Dolci · Tuzla, İstanbul`,
+    title: `${SITE.name} - Caffè · Gelato · Dolci · Tuzla, İstanbul`,
     description: SITE.shortDescription,
     // twitter:image is auto-discovered from src/app/twitter-image.tsx
   },

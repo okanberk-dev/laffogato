@@ -49,7 +49,7 @@ export default async function AdminVenueStatusPage() {
             <span className="text-neutral-500">
               {status.updatedAt
                 ? `Son güncelleme: ${formatDateTime(status.updatedAt)}`
-                : "Henüz hiç güncellenmedi — varsayılanlar gösteriliyor."}
+                : "Henüz hiç güncellenmedi - varsayılanlar gösteriliyor."}
             </span>
           </div>
         </Card>

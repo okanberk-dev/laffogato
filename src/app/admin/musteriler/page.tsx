@@ -236,7 +236,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-neutral-900">
-                          {c.name || "—"}
+                          {c.name || "-"}
                         </span>
                         <Badges row={c} />
                       </div>
@@ -287,7 +287,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
                     <th className="pr-3 text-right">Sipariş</th>
                     <th className="pr-3 text-right">Lifetime value</th>
                     <th className="pr-3">Son hareket</th>
-                    <th className="text-right">—</th>
+                    <th className="text-right">-</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -299,7 +299,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
                       <td className="py-3 pr-3">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-neutral-900">
-                            {c.name || "—"}
+                            {c.name || "-"}
                           </span>
                           <Badges row={c} />
                         </div>
@@ -338,7 +338,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
                           ? formatDateTime(c.lastOrderAt)
                           : c.memberSince
                             ? "Sipariş yok"
-                            : "—"}
+                            : "-"}
                       </td>
                       <td className="text-right">
                         <Link

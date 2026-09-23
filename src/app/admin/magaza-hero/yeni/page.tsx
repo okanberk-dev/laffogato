@@ -14,7 +14,7 @@ export default async function NewSlidePage() {
       <PageHeader
         eyebrow="Shop · Hero slider"
         title="Yeni slayt"
-        description="Mağaza sayfasının üstüne eklenecek slayt — görsel, başlık ve küçük yazı."
+        description="Mağaza sayfasının üstüne eklenecek slayt - görsel, başlık ve küçük yazı."
       />
       <SlideForm action={createSlideAction} submitLabel="Slaytı kaydet" />
     </main>

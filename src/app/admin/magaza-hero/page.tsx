@@ -18,7 +18,7 @@ export default async function AdminShopHeroPage() {
       <PageHeader
         eyebrow="Shop · Hero slider"
         title="Mağaza Hero"
-        description="Mağaza sayfasının en üstündeki slider — başlık, küçük yazı, görsel ve CTA."
+        description="Mağaza sayfasının en üstündeki slider - başlık, küçük yazı, görsel ve CTA."
         action={
           <Link
             href="/admin/magaza-hero/yeni"

@@ -128,7 +128,7 @@ export function CampaignSendTable({
                     </span>
                   </td>
                   <td className="py-2 pr-3 text-neutral-600">
-                    {r.sentAt ? formatDateTime(r.sentAt) : "—"}
+                    {r.sentAt ? formatDateTime(r.sentAt) : "-"}
                   </td>
                   <td className="py-2 text-xs break-words text-neutral-600">
                     {r.error ? (
@@ -138,7 +138,7 @@ export function CampaignSendTable({
                         {r.providerId}
                       </span>
                     ) : (
-                      "—"
+                      "-"
                     )}
                   </td>
                 </tr>

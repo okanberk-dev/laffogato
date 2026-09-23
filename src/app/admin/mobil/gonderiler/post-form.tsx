@@ -145,7 +145,7 @@ export function AppPostForm({
         <div className="grid gap-4">
           <Field
             label="Görsel adresi"
-            hint="https ile başlayan tam adres. Boş bırakırsan kart marka zemininde çizilir — bozuk bir görsel yerine kasıtlı bir panel görünür."
+            hint="https ile başlayan tam adres. Boş bırakırsan kart marka zemininde çizilir - bozuk bir görsel yerine kasıtlı bir panel görünür."
           >
             <TextInput
               name="image"
@@ -232,7 +232,7 @@ export function AppPostForm({
           hint={
             alreadyMailed
               ? undefined
-              : `Kaydedildiğinde gönderi yayındaysa ve yayın penceresi açıksa, pazarlama izni olan üyelere bir kez “Duyuru” şablonuyla gider; sonraki kayıtlar yeniden göndermez. İleri tarihli gönderiler yayına girdiğinde otomatik mail çıkmaz — yayına girince “Kampanya e-postası” sayfasından gönder.${
+              : `Kaydedildiğinde gönderi yayındaysa ve yayın penceresi açıksa, pazarlama izni olan üyelere bir kez “Duyuru” şablonuyla gider; sonraki kayıtlar yeniden göndermez. İleri tarihli gönderiler yayına girdiğinde otomatik mail çıkmaz - yayına girince “Kampanya e-postası” sayfasından gönder.${
                   mode === "edit"
                     ? " Düzenlemede kutu kapalı başlar: bu gönderi için e-posta istiyorsan bilerek işaretle."
                     : ""

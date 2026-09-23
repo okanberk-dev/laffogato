@@ -289,7 +289,7 @@ function loginFailureMessage(
   base: string,
 ): string {
   return limit.remaining === 0
-    ? `${base} Çok fazla başarısız deneme — bir süre sonra tekrar dene.`
+    ? `${base} Çok fazla başarısız deneme - bir süre sonra tekrar dene.`
     : base;
 }
 

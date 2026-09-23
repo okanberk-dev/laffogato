@@ -58,7 +58,7 @@ async function transition(
   return {
     message: result.notified
       ? `${done}; üyeye bilgilendirme e-postası gönderildi.`
-      : `${done}. Bilgilendirme e-postası GÖNDERİLEMEDİ — üyeye kendin ulaş.`,
+      : `${done}. Bilgilendirme e-postası GÖNDERİLEMEDİ - üyeye kendin ulaş.`,
   };
 }
 

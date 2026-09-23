@@ -33,7 +33,7 @@ const OVERRIDE_OPTIONS: {
   value: VenueStatusDefaults["manualOverride"];
   label: string;
 }[] = [
-  { value: "auto", label: "Otomatik — çalışma saatlerine göre" },
+  { value: "auto", label: "Otomatik - çalışma saatlerine göre" },
   { value: "open", label: "Açık (saatlerden bağımsız)" },
   { value: "closed", label: "Kapalı (saatlerden bağımsız)" },
 ];
@@ -141,7 +141,7 @@ export function VenueStatusForm({
 
           <Field
             label="Not"
-            hint="En fazla 200 karakter. Uygulamada olduğu gibi görünür: “Çalışmaya uygun — priz var, gürültü düşük”."
+            hint="En fazla 200 karakter. Uygulamada olduğu gibi görünür: “Çalışmaya uygun - priz var, gürültü düşük”."
           >
             <Textarea
               name="note"

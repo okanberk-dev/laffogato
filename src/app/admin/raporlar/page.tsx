@@ -43,7 +43,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const periodOrders = buckets.reduce((s, b) => s + b.orderCount, 0);
   const peak = buckets.reduce(
     (best, b) => (b.revenueMinor > best.revenueMinor ? b : best),
-    buckets[0] ?? { label: "—", revenueMinor: 0, orderCount: 0, bucket: "" },
+    buckets[0] ?? { label: "-", revenueMinor: 0, orderCount: 0, bucket: "" },
   );
   const maxQty = Math.max(1, ...top.map((t) => t.qty));
 
@@ -65,7 +65,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
         <Stat
           label="İade"
           value={
-            head.refundedMinor > 0 ? `−${formatTRY(head.refundedMinor)}` : "—"
+            head.refundedMinor > 0 ? `−${formatTRY(head.refundedMinor)}` : "-"
           }
           tone={head.refundedMinor > 0 ? "warn" : undefined}
         />
@@ -172,7 +172,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             className="text-3xl text-neutral-300"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
-            —
+            -
           </div>
           <p className="mt-3 text-xs text-neutral-500">
             Sipariş / ziyaret oranı için ziyaret verisi gerekiyor. Vercel

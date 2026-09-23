@@ -541,7 +541,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
    */
   async verifyWebhook(_req: Request): Promise<WebhookEvent> {
     throw new Error(
-      "paynkolay: sunucudan sunucuya bildirim (webhook) yoktur — " +
+      "paynkolay: sunucudan sunucuya bildirim (webhook) yoktur - " +
         "sonuç yalnızca /odeme/donus dönüşünden ve İşlem Doğrulama " +
         "Servisi'nden okunur (docs/PAYNKOLAY.md §4). Bu uca gelen istek " +
         "sahtedir ya da yanlış yapılandırmadır.",

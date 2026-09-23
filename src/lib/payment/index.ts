@@ -24,7 +24,7 @@ export function getPaymentProvider(): PaymentProvider {
     if (process.env.NODE_ENV === "production") {
       throw new Error(
         "PAYMENT_PROVIDER is not set. Refusing to fall back to the mock " +
-          "provider in production — it would mark orders paid without charging.",
+          "provider in production - it would mark orders paid without charging.",
       );
     }
     console.warn(

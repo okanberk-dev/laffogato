@@ -235,7 +235,7 @@ export function ImageUpload({
         >
           {remainingSlots > 0
             ? "Sürükle bırak veya tıkla"
-            : `Limit doldu — ${MAX_IMAGES} görsel`}
+            : `Limit doldu - ${MAX_IMAGES} görsel`}
         </div>
         <div className="mt-2 text-sm text-neutral-700">
           {remainingSlots > 0 ? (

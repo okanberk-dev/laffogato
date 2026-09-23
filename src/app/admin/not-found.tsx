@@ -20,7 +20,7 @@ export default function AdminNotFound() {
       />
       <Card className="grid gap-4">
         <p className="text-sm text-[var(--admin-text-soft)]">
-          Listeye dönmek için soldaki menüyü kullan — orada yalnız senin
+          Listeye dönmek için soldaki menüyü kullan - orada yalnız senin
           yetkinin açtığı bölümler var.
         </p>
         <Link

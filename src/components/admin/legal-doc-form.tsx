@@ -80,7 +80,7 @@ export function LegalDocForm({ initial, action }: Props) {
         <Field label="Yayın durumu">
           <Checkbox
             name="isPublished"
-            label="Yayında — bu özel metni /hukuk sayfasında göster"
+            label="Yayında - bu özel metni /hukuk sayfasında göster"
             defaultChecked={initial.isPublished}
           />
         </Field>

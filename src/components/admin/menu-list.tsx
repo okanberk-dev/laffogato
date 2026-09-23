@@ -82,7 +82,7 @@ export function MenuList({
                   <SelectAllCheckbox
                     ids={ids}
                     selection={selection}
-                    label={`${categoryLabels[key]} — tümünü seç`}
+                    label={`${categoryLabels[key]} - tümünü seç`}
                   />
                   <div>
                     <div
@@ -260,7 +260,7 @@ export function MenuList({
                               <td className="pr-3">
                                 {it.tags.length === 0 ? (
                                   <span className="text-xs text-neutral-400">
-                                    —
+                                    -
                                   </span>
                                 ) : (
                                   <div className="flex flex-wrap gap-1">

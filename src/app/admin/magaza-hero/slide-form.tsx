@@ -38,7 +38,7 @@ const ACCEPTED_MIME = /^image\/(jpe?g|png|webp|avif|gif)$/i;
 
 async function resizeImage(file: File): Promise<string> {
   if (file.size > MAX_SOURCE_BYTES) {
-    throw new Error(`${file.name} 15 MB'ı aşıyor — daha küçük bir görsel seç.`);
+    throw new Error(`${file.name} 15 MB'ı aşıyor - daha küçük bir görsel seç.`);
   }
   if (!ACCEPTED_MIME.test(file.type)) {
     throw new Error(

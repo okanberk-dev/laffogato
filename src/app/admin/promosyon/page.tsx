@@ -176,7 +176,7 @@ export default async function PromoCodesPage() {
                         >
                           {p.minSubtotalMinor > 0
                             ? formatTRY(p.minSubtotalMinor)
-                            : "—"}
+                            : "-"}
                         </td>
                         <td
                           className="pr-3 text-right text-neutral-700"

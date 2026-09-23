@@ -292,7 +292,7 @@ export function ProductWizard({
         <div className="grid gap-5">
           <Field
             label="Ürün adı"
-            hint={fieldError("name") ?? "Müşterinin gördüğü ad — kısa, çekici."}
+            hint={fieldError("name") ?? "Müşterinin gördüğü ad - kısa, çekici."}
           >
             <TextInput
               name="name"
@@ -395,7 +395,7 @@ export function ProductWizard({
           </div>
           <Field
             label="Alerjen"
-            hint="Ürün içeriyorsa işaretle. Ürün sayfasında ve sepette uyarı olarak görünür — gizlenmez."
+            hint="Ürün içeriyorsa işaretle. Ürün sayfasında ve sepette uyarı olarak görünür - gizlenmez."
           >
             <div className="grid gap-1">
               {ALLERGEN_OPTIONS.map(([value, label]) => (
@@ -439,7 +439,7 @@ export function ProductWizard({
               hint={
                 discountPct !== null
                   ? `−%${discountPct} indirim olarak görünür`
-                  : "Opsiyonel — boşsa indirim gösterilmez."
+                  : "Opsiyonel - boşsa indirim gösterilmez."
               }
             >
               <TextInput
@@ -634,7 +634,7 @@ export function ProductWizard({
                       <th className="pr-3">Stok</th>
                       <th className="pr-3">SKU</th>
                       <th className="pr-3">Aktif</th>
-                      <th className="text-right">—</th>
+                      <th className="text-right">-</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -817,8 +817,8 @@ export function ProductWizard({
       body: (
         <div className="grid gap-4">
           <Card className="bg-neutral-50">
-            <SummaryRow k="Ad" v={name || "—"} />
-            <SummaryRow k="Slug" v={slug || "—"} mono />
+            <SummaryRow k="Ad" v={name || "-"} />
+            <SummaryRow k="Slug" v={slug || "-"} mono />
             <SummaryRow k="Kategori" v={cat} />
             <SummaryRow
               k="Fiyat"
@@ -838,7 +838,7 @@ export function ProductWizard({
                     )}
                   </span>
                 ) : (
-                  "—"
+                  "-"
                 )
               }
             />
@@ -863,7 +863,7 @@ export function ProductWizard({
               }
             />
             <SummaryRow k="Stok" v={`${stock} adet`} />
-            <SummaryRow k="SKU" v={sku || "—"} mono />
+            <SummaryRow k="SKU" v={sku || "-"} mono />
             {variants.length > 0 && (
               <SummaryRow
                 k="Varyant"
@@ -879,7 +879,7 @@ export function ProductWizard({
                   isNew && "Yeni",
                 ]
                   .filter(Boolean)
-                  .join(" · ") || "—"
+                  .join(" · ") || "-"
               }
               muted
             />

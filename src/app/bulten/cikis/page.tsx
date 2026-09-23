@@ -68,7 +68,7 @@ export default async function BultenCikisPage({ searchParams }: PageProps) {
           <p className="auth-lede">
             {adres ? <strong>{adres}</strong> : "Bu"} adresine artık pazarlama
             e-postası göndermeyeceğiz. Sipariş ve kargo bildirimleri bundan
-            etkilenmez — onlar aboneliğe değil, siparişine bağlıdır.
+            etkilenmez - onlar aboneliğe değil, siparişine bağlıdır.
           </p>
         ) : state === "failed" ? (
           <p className="auth-lede">

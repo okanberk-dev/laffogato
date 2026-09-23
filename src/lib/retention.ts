@@ -133,7 +133,7 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
     note:
       "A MINIMUM, and the table is append-only: this rule exists so the " +
       "decade eventually ends, not so the log can be trimmed. Today it " +
-      "matches nothing — the oldest row is months old — and that is correct.",
+      "matches nothing - the oldest row is months old - and that is correct.",
   },
   {
     id: "fal-readings",
@@ -187,7 +187,7 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "minutes. The DURABLE record of a café visit is the `loyalty_stamps` " +
       "row `redeemCounterToken` writes, which this rule does not touch; the " +
       "token is the ephemeral half. `redeemCounterToken` already sweeps a " +
-      "day past expiry, but only when somebody scans something — a quiet " +
+      "day past expiry, but only when somebody scans something - a quiet " +
       "week leaves the rows standing. Same cutoff, on a schedule.",
   },
 ] as const;

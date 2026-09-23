@@ -449,7 +449,7 @@ const androidFingerprintsField = z
       if (!L.androidSha256Pattern.test(value)) {
         ctx.addIssue({
           code: "custom",
-          message: `"${value.slice(0, 24)}…" bir SHA-256 parmak izi değil — 32 hex çift, aralarında iki nokta üst üste.`,
+          message: `"${value.slice(0, 24)}…" bir SHA-256 parmak izi değil - 32 hex çift, aralarında iki nokta üst üste.`,
         });
       }
     }

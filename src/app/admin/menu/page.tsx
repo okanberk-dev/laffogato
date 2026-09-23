@@ -29,7 +29,7 @@ export default async function AdminMenuPage() {
       <PageHeader
         eyebrow="Bar · Il menù"
         title="Kafe Menüsü"
-        description="Basılı menünün tamamı — matcha bar, espresso, buzlu kahveler, soğuk/sıcak içecekler, frappe, smoothie, frozen, ice tea, tatlılar ve atıştırmalıklar. Birden fazla seçerek toplu işlem yapabilirsin."
+        description="Basılı menünün tamamı - matcha bar, espresso, buzlu kahveler, soğuk/sıcak içecekler, frappe, smoothie, frozen, ice tea, tatlılar ve atıştırmalıklar. Birden fazla seçerek toplu işlem yapabilirsin."
         action={
           <Link
             href="/admin/menu/yeni"

@@ -3533,7 +3533,7 @@ export async function reserveRefund(
     return {
       ok: false,
       error:
-        "İade tutarı kalan bakiyeyi aşıyor — bu siparişe az önce başka bir iade kaydedildi. Sayfayı yenileyip tekrar dene.",
+        "İade tutarı kalan bakiyeyi aşıyor - bu siparişe az önce başka bir iade kaydedildi. Sayfayı yenileyip tekrar dene.",
     };
   }
   return { ok: true, order: { ...existing, refunds: data }, refund };
@@ -4086,8 +4086,8 @@ function menuWithoutPrices(): Record<string, DesignMenuCategory> {
       ...meta,
       items: meta.items.map((it) => ({
         ...it,
-        price: "—",
-        ...(it.priceL ? { priceL: "—" } : {}),
+        price: "-",
+        ...(it.priceL ? { priceL: "-" } : {}),
       })),
     };
   }

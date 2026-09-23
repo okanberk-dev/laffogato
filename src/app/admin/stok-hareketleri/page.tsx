@@ -230,7 +230,7 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
                         </span>
                       </td>
                       <td className="max-w-md pr-3 text-xs text-neutral-600">
-                        {m.note || "—"}
+                        {m.note || "-"}
                         {m.orderId && (
                           <>
                             {" "}

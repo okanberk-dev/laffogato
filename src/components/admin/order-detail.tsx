@@ -98,7 +98,7 @@ function ConsentCard({ consent }: { consent: AdminOrder["legalConsent"] }) {
       <SectionTitle>Mesafeli satış onayı</SectionTitle>
       {!accepted ? (
         <p className="text-sm text-neutral-500">
-          Bu siparişte onay kaydı yok — onay kutusu yayına alınmadan önce
+          Bu siparişte onay kaydı yok - onay kutusu yayına alınmadan önce
           verilmiş ya da panelden manuel girilmiş bir sipariş.
         </p>
       ) : (
@@ -349,7 +349,7 @@ export function OrderDetail({
                   <td className="text-right" colSpan={2}>
                     {order.shippingMinor > 0
                       ? formatTRY(order.shippingMinor)
-                      : "—"}
+                      : "-"}
                   </td>
                 </tr>
                 <tr className="text-base">
@@ -566,7 +566,7 @@ function NoteForm({ orderId, initial }: { orderId: string; initial: string }) {
           setDirty(true);
         }}
         rows={4}
-        placeholder="Ekip için not — hediye paketi, ek talep, alerji, vb. Müşteri görmez."
+        placeholder="Ekip için not - hediye paketi, ek talep, alerji, vb. Müşteri görmez."
         className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-[var(--admin-primary)] focus:bg-white"
       />
       <div className="flex items-center justify-between gap-2">
@@ -781,7 +781,7 @@ function PrintableReceipt({
             Teslimat
           </div>
           <address className="mt-1 whitespace-pre-line text-neutral-700 not-italic">
-            {order.shippingAddress || "—"}
+            {order.shippingAddress || "-"}
           </address>
         </div>
       </div>
@@ -827,7 +827,7 @@ function PrintableReceipt({
               Kargo
             </td>
             <td className="text-right">
-              {order.shippingMinor > 0 ? formatTRY(order.shippingMinor) : "—"}
+              {order.shippingMinor > 0 ? formatTRY(order.shippingMinor) : "-"}
             </td>
           </tr>
           <tr className="border-t border-neutral-400 text-base">
@@ -850,7 +850,7 @@ function PrintableReceipt({
       </table>
 
       <footer className="mt-10 border-t border-neutral-300 pt-4 text-center text-xs text-neutral-500">
-        Teşekkür ederiz — buon appetito! · {settings.name}
+        Teşekkür ederiz - buon appetito! · {settings.name}
       </footer>
     </section>
   );

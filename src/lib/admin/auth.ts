@@ -112,7 +112,7 @@ function getSecret(): string {
   const secret = process.env.ADMIN_SESSION_SECRET;
   if (!secret) {
     throw new Error(
-      "ADMIN_SESSION_SECRET is not configured — set it in .env.local",
+      "ADMIN_SESSION_SECRET is not configured - set it in .env.local",
     );
   }
   return secret;
@@ -298,7 +298,7 @@ export async function signInAdmin(
       return {
         ok: false,
         error:
-          "E-posta veya şifre hatalı. Çok fazla başarısız deneme — bir süre sonra tekrar dene.",
+          "E-posta veya şifre hatalı. Çok fazla başarısız deneme - bir süre sonra tekrar dene.",
       };
     }
     return {
@@ -306,7 +306,7 @@ export async function signInAdmin(
       error:
         limit.remaining > 1
           ? `E-posta veya şifre hatalı. (${limit.remaining} hak kaldı.)`
-          : "E-posta veya şifre hatalı. (Son hak — sonraki yanlış denemede kilitlenirsin.)",
+          : "E-posta veya şifre hatalı. (Son hak - sonraki yanlış denemede kilitlenirsin.)",
     };
   }
 
@@ -445,7 +445,7 @@ export async function complete2FA(token: string): Promise<TwoFAResult> {
       ok: false,
       error:
         perAddress.remaining === 0 || perAccount.remaining === 0
-          ? "Doğrulama kodu yanlış. Çok fazla hatalı kod — bir süre sonra tekrar dene."
+          ? "Doğrulama kodu yanlış. Çok fazla hatalı kod - bir süre sonra tekrar dene."
           : "Doğrulama kodu yanlış.",
     };
   }

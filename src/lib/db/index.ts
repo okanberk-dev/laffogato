@@ -46,7 +46,7 @@ function resolveConnectionString(): string {
     "";
   if (!url) {
     throw new Error(
-      "Veritabanı bağlantı dizesi yok — DATABASE_URL (veya POSTGRES_URL) set edilmeli.",
+      "Veritabanı bağlantı dizesi yok - DATABASE_URL (veya POSTGRES_URL) set edilmeli.",
     );
   }
   return url;

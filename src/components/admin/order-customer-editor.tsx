@@ -55,7 +55,7 @@ export function OrderCustomerEditor({
     return (
       <Card>
         <div className="mb-3 flex items-center justify-between">
-          <SectionTitle>Müşteri & teslimat — düzenle</SectionTitle>
+          <SectionTitle>Müşteri & teslimat - düzenle</SectionTitle>
         </div>
         <form action={formAction} className="grid gap-3 text-sm">
           <input type="hidden" name="id" value={orderId} />
@@ -139,7 +139,7 @@ export function OrderCustomerEditor({
           </button>
         </div>
         <div className="grid gap-2 text-sm">
-          <KV k="Ad">{vals.customerName || "—"}</KV>
+          <KV k="Ad">{vals.customerName || "-"}</KV>
           <KV k="E-posta">
             {vals.customerEmail ? (
               <a

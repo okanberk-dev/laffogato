@@ -67,7 +67,7 @@ export function PromoForm({ promo, action, submitLabel }: Props) {
           {kind === "pct" ? (
             <Field
               label="Yüzde"
-              hint={fe("valuePct") ?? "1–100 arası tam sayı."}
+              hint={fe("valuePct") ?? "1-100 arası tam sayı."}
             >
               <TextInput
                 name="valuePct"

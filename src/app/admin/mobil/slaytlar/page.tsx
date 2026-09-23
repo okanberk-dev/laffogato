@@ -43,7 +43,7 @@ const TONE_SWATCH: Record<string, string> = {
 const PAPER_INK = "#1D1C1C";
 
 function routeLabel(route: string): string {
-  return isAppSlideRoute(route) ? APP_SLIDE_ROUTE_LABELS[route] : "—";
+  return isAppSlideRoute(route) ? APP_SLIDE_ROUTE_LABELS[route] : "-";
 }
 
 export default async function AdminAppSlidesPage() {
@@ -106,7 +106,7 @@ export default async function AdminAppSlidesPage() {
 
                 <div className="min-w-0">
                   <p className="text-[11px] tracking-widest text-neutral-500 uppercase">
-                    {s.eyebrow || "—"}
+                    {s.eyebrow || "-"}
                   </p>
                   <p className="truncate font-medium">{s.title}</p>
                   <p className="line-clamp-2 text-sm text-neutral-500">

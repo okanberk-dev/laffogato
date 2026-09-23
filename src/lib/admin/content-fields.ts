@@ -26,7 +26,7 @@ export const CONTENT_FIELDS: ContentField[] = [
     label: "Hero açıklama",
     kind: "textarea",
     default:
-      "İtalya’dan ithal kahve barı konsepti. Tek-origin Sirena espresso’yu fior di latte gelato üzerine, 1994 patentli yenilebilir waffle kup içinde döküyoruz. Bittiğinde kaşığa gerek yok — kupu yiyorsunuz.",
+      "İtalya’dan ithal kahve barı konsepti. Tek-origin Sirena espresso’yu fior di latte gelato üzerine, 1994 patentli yenilebilir waffle kup içinde döküyoruz. Bittiğinde kaşığa gerek yok - kupu yiyorsunuz.",
   },
   // ── Hikaye ──
   {

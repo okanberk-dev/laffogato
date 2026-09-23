@@ -142,7 +142,7 @@ export function ManualOrderForm({ products, action }: Props) {
                     <option value="">Seç…</option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} — {formatTRY(p.priceMinor)}
+                        {p.name} · {formatTRY(p.priceMinor)}
                       </option>
                     ))}
                   </Select>
@@ -160,7 +160,7 @@ export function ManualOrderForm({ products, action }: Props) {
                     }
                   >
                     <option value="">
-                      {variants.length === 0 ? "—" : "Varsayılan"}
+                      {variants.length === 0 ? "-" : "Varsayılan"}
                     </option>
                     {variants.map((v) => (
                       <option key={v.id} value={v.id}>
@@ -204,7 +204,7 @@ export function ManualOrderForm({ products, action }: Props) {
                   >
                     {line.productId
                       ? formatTRY(unitPrice(line) * line.qty)
-                      : "—"}
+                      : "-"}
                   </span>
                 </div>
 
@@ -272,7 +272,7 @@ export function ManualOrderForm({ products, action }: Props) {
           <textarea
             name="shippingAddress"
             rows={3}
-            placeholder="Mahalle, cadde, no, daire — ilçe / il"
+            placeholder="Mahalle, cadde, no, daire - ilçe / il"
             className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base transition-colors outline-none focus:border-[var(--admin-primary)] focus:bg-white sm:text-sm"
           />
         </Field>
@@ -301,7 +301,7 @@ export function ManualOrderForm({ products, action }: Props) {
           <textarea
             name="internalNote"
             rows={2}
-            placeholder="Ekip için not — müşteri görmez."
+            placeholder="Ekip için not - müşteri görmez."
             className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base transition-colors outline-none focus:border-[var(--admin-primary)] focus:bg-white sm:text-sm"
           />
         </Field>

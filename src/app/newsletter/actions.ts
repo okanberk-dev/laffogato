@@ -66,7 +66,7 @@ export async function subscribeNewsletterAction(
   return {
     ok: true,
     message:
-      "Teşekkürler! E-postana bir onay bağlantısı gönderdik — aboneliğin, bağlantıdaki düğmeye bastığında başlar. 🤍",
+      "Teşekkürler! E-postana bir onay bağlantısı gönderdik - aboneliğin, bağlantıdaki düğmeye bastığında başlar. 🤍",
   };
 }
 

@@ -33,7 +33,7 @@ function dateLabel(date: string): string {
 
 function hourRange(r: KaraokeReservation): string {
   const pad = (h: number) => `${String(h).padStart(2, "0")}:00`;
-  return `${pad(r.startHour)} – ${pad(r.startHour + r.hours)}`;
+  return `${pad(r.startHour)} - ${pad(r.startHour + r.hours)}`;
 }
 
 /**

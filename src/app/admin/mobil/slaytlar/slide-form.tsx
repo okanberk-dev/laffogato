@@ -62,7 +62,7 @@ export function AppSlideForm({
         <div className="grid gap-4">
           <Field
             label="Üst etiket"
-            hint="Başlığın üstündeki küçük yazı, örn. EVİN İMZASI. Büyük harfle yaz — uygulama otomatik büyütmez (Türkçe'de i → İ bozulur)."
+            hint="Başlığın üstündeki küçük yazı, örn. EVİN İMZASI. Büyük harfle yaz - uygulama otomatik büyütmez (Türkçe'de i → İ bozulur)."
           >
             <TextInput
               name="eyebrow"
@@ -117,7 +117,7 @@ export function AppSlideForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label="Zemin rengi"
-            hint="Bordo ve marka yeşili yan yana bulanıklaşır — sıralamada aralarına açık bir slayt koy."
+            hint="Bordo ve marka yeşili yan yana bulanıklaşır - sıralamada aralarına açık bir slayt koy."
           >
             <Select name="tone" defaultValue={defaults?.tone ?? "paper"}>
               {APP_SLIDE_TONES.map((tone) => (

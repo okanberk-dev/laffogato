@@ -109,7 +109,7 @@ export async function saveHoursAction(
     const open = parseTime(formData.get(`${day}-open`));
     const close = parseTime(formData.get(`${day}-close`));
     weekly[day as DayOfWeek] = { open, close, closed };
-    summary.push(closed ? `${day} Kapalı` : `${day} ${open}–${close}`);
+    summary.push(closed ? `${day} Kapalı` : `${day} ${open}-${close}`);
   }
   const before = await getSettings();
   await updateSettings({

@@ -131,7 +131,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
         <Stat label="Lifetime value" value={formatTRY(totalSpent)} />
         <Stat
           label="İade"
-          value={totalRefunded > 0 ? `−${formatTRY(totalRefunded)}` : "—"}
+          value={totalRefunded > 0 ? `−${formatTRY(totalRefunded)}` : "-"}
           tone={totalRefunded > 0 ? "warn" : undefined}
         />
         <Stat
@@ -149,7 +149,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
             <Card>
               <SectionTitle>Profil</SectionTitle>
               <div className="grid gap-2 text-sm">
-                <KV k="Ad">{member.name || "—"}</KV>
+                <KV k="Ad">{member.name || "-"}</KV>
                 <KV k="E-posta">
                   <span className="inline-flex items-center gap-2">
                     {member.email}
@@ -164,8 +164,8 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                     )}
                   </span>
                 </KV>
-                <KV k="Telefon">{member.phone || "—"}</KV>
-                <KV k="Doğum">{member.birthday || "—"}</KV>
+                <KV k="Telefon">{member.phone || "-"}</KV>
+                <KV k="Doğum">{member.birthday || "-"}</KV>
                 <KV k="Üyelik">{formatDateTime(member.createdAt)}</KV>
                 {member.verifiedAt && (
                   <KV k="Doğrulama">{formatDateTime(member.verifiedAt)}</KV>
@@ -251,7 +251,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
             <Card>
               <SectionTitle>Davetler ({invites.invitees.length})</SectionTitle>
               <ul className="grid gap-2 text-sm">
-                <KV k="Davet kodu">{invites.inviteCode || "—"}</KV>
+                <KV k="Davet kodu">{invites.inviteCode || "-"}</KV>
                 <KV k="Davet eden">
                   {invites.invitedBy ? (
                     <Link
@@ -261,7 +261,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                       {invites.invitedBy}
                     </Link>
                   ) : (
-                    "—"
+                    "-"
                   )}
                 </KV>
                 <KV k="Ödüllenen">
@@ -331,7 +331,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
       ) : (
         <Card className="mb-4">
           <p className="text-sm text-neutral-500">
-            Bu e-postaya bağlı kayıtlı bir üye hesabı yok — yalnızca misafir
+            Bu e-postaya bağlı kayıtlı bir üye hesabı yok - yalnızca misafir
             siparişleri var.
           </p>
         </Card>
@@ -356,7 +356,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                   <th className="pr-3">Durum</th>
                   <th className="pr-3">Kalemler</th>
                   <th className="pr-3 text-right">Tutar</th>
-                  <th className="text-right">—</th>
+                  <th className="text-right">-</th>
                 </tr>
               </thead>
               <tbody>

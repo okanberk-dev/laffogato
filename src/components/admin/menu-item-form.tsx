@@ -82,7 +82,7 @@ export function MenuItemForm({
               type="text"
               inputMode="decimal"
               defaultValue={priceLValue}
-              placeholder="—"
+              placeholder="-"
             />
           </Field>
           <Field label="Sıralama" hint="Kategori içinde küçükten büyüğe">

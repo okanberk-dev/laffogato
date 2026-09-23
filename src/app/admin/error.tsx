@@ -39,7 +39,7 @@ export default function AdminError({
       />
       <Card className="grid gap-4">
         <p className="text-sm text-[var(--admin-text-soft)]">
-          Kaydedilmemiş bir form varsa yenilemeden önce içeriğini kopyala —
+          Kaydedilmemiş bir form varsa yenilemeden önce içeriğini kopyala -
           tekrar denemek bu ekranı sıfırdan kurar.
         </p>
         <div className="flex flex-wrap gap-2">

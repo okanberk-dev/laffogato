@@ -379,7 +379,7 @@ function SeoTab({ settings }: { settings: AdminSettings }) {
             <TextInput
               name="seoTitle"
               defaultValue={settings.seoTitle}
-              placeholder="L'Affogato — Tuzla"
+              placeholder="L'Affogato - Tuzla"
             />
           </Field>
           <Field

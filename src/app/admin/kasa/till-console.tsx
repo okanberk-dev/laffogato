@@ -244,7 +244,7 @@ function Receipt({ result }: { result: NonNullable<TillState["result"]> }) {
       </div>
       {result.rewardsReady > 0 && (
         <p className="text-xs text-emerald-800">
-          Üyenin ücretsiz içeceği hazır — uygulamadaki Ödüller sekmesinden
+          Üyenin ücretsiz içeceği hazır - uygulamadaki Ödüller sekmesinden
           kuponunu alabilir.
         </p>
       )}

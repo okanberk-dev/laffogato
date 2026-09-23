@@ -279,8 +279,8 @@ function OrderingTab({ config }: { config: MobileAppConfig }) {
         </div>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Field
-            label="Kurye süresi — alt sınır (dk)"
-            hint={`${L.courierEtaMin}–${L.courierEtaMax} dakika.`}
+            label="Kurye süresi - alt sınır (dk)"
+            hint={`${L.courierEtaMin}-${L.courierEtaMax} dakika.`}
           >
             <TextInput
               name="etaMin"
@@ -293,8 +293,8 @@ function OrderingTab({ config }: { config: MobileAppConfig }) {
             />
           </Field>
           <Field
-            label="Kurye süresi — üst sınır (dk)"
-            hint="Uygulama “25–35 dk” biçiminde gösterir."
+            label="Kurye süresi - üst sınır (dk)"
+            hint="Uygulama “25-35 dk” biçiminde gösterir."
           >
             <TextInput
               name="etaMax"
@@ -341,7 +341,7 @@ function LoyaltyTab({ config }: { config: MobileAppConfig }) {
         <div className="grid gap-5 sm:grid-cols-2">
           <Field
             label="Damga hedefi"
-            hint={`${L.stampTargetMin}–${L.stampTargetMax}. Ödeme yapılmış her kafe siparişi +1 damga.`}
+            hint={`${L.stampTargetMin}-${L.stampTargetMax}. Ödeme yapılmış her kafe siparişi +1 damga.`}
           >
             <TextInput
               name="stampTarget"
@@ -377,7 +377,7 @@ function LoyaltyTab({ config }: { config: MobileAppConfig }) {
           </Field>
           <Field
             label="Kupon geçerlilik süresi (gün)"
-            hint={`${L.rewardTtlDaysMin}–${L.rewardTtlDaysMax} gün.`}
+            hint={`${L.rewardTtlDaysMin}-${L.rewardTtlDaysMax} gün.`}
           >
             <TextInput
               name="rewardTtlDays"
@@ -413,7 +413,7 @@ function KaraokeTab({ config }: { config: MobileAppConfig }) {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <Field
             label="İlk saat"
-            hint="0–23. Rezervasyon başlayabilecek en erken saat."
+            hint="0-23. Rezervasyon başlayabilecek en erken saat."
           >
             <TextInput
               name="firstHour"
@@ -427,7 +427,7 @@ function KaraokeTab({ config }: { config: MobileAppConfig }) {
           </Field>
           <Field
             label="Kapanış saati"
-            hint="1–24; ilk saatten sonra olmalı. 24 = gece yarısı."
+            hint="1-24; ilk saatten sonra olmalı. 24 = gece yarısı."
           >
             <TextInput
               name="closeHour"
@@ -441,7 +441,7 @@ function KaraokeTab({ config }: { config: MobileAppConfig }) {
           </Field>
           <Field
             label="En fazla saat"
-            hint={`Bir rezervasyonda 1–${L.karaokeMaxHoursMax} saat.`}
+            hint={`Bir rezervasyonda 1-${L.karaokeMaxHoursMax} saat.`}
           >
             <TextInput
               name="maxHours"
@@ -455,7 +455,7 @@ function KaraokeTab({ config }: { config: MobileAppConfig }) {
           </Field>
           <Field
             label="Rezervasyon penceresi (gün)"
-            hint={`Bugünden itibaren kaç gün ileriye rezervasyon alınır (1–${L.bookingWindowDaysMax}).`}
+            hint={`Bugünden itibaren kaç gün ileriye rezervasyon alınır (1-${L.bookingWindowDaysMax}).`}
           >
             <TextInput
               name="bookingWindowDays"
@@ -544,7 +544,7 @@ function RemindersTab({ config }: { config: MobileAppConfig }) {
                 </Field>
                 <Field
                   label="Saat"
-                  hint={`${L.reminderHourMin}–${L.reminderHourMax} arası; uygulama gece bildirimi göndermez.`}
+                  hint={`${L.reminderHourMin}-${L.reminderHourMax} arası; uygulama gece bildirimi göndermez.`}
                 >
                   <TextInput
                     name={`reminder-${i}-hour`}
