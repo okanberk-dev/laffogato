@@ -144,10 +144,22 @@ describe("order placement compensates what it claimed", () => {
   it("gives the stock back when the row never lands", () => {
     // Without an orders row the stale-checkout sweep has nothing to find, so
     // the units stayed off the shelf forever.
-    expect(store).toContain("await releaseClaimedStock(resolved);");
-    expect(store.split("await releaseClaimedStock(resolved);").length - 1).toBe(
-      2,
-    );
+    // Every path that claims stock compensates it: the web checkout, the app
+    // order and (since 23 Sept) the admin's manual order.
+    for (const [fn, next] of [
+      [
+        "export async function placeOrder(",
+        "export async function createManualOrder",
+      ],
+      [
+        "export async function createManualOrder",
+        "export interface AppCafeLineInput",
+      ],
+      ["export async function placeAppOrder", "// ── Payment application"],
+    ]) {
+      const body = store.slice(store.indexOf(fn), store.indexOf(next));
+      expect(body, fn).toContain("await releaseClaimedStock(resolved);");
+    }
   });
 
   it("gives the coupon or promo use back when the insert fails", () => {
