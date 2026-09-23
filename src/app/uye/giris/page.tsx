@@ -4,24 +4,29 @@ import { redirect } from "next/navigation";
 import { DegradedAuthNotice } from "@/components/customer/degraded-auth-notice";
 import { LoginForm } from "./login-form";
 import { getActiveCustomer } from "@/lib/customer/auth";
+import { sameSitePath } from "@/lib/http/same-site-path";
 
 export const metadata = { title: "Giriş yap · L'Affogato" };
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ dogrulandi?: string }>;
+  searchParams: Promise<{ dogrulandi?: string; next?: string }>;
 }
 
 export default async function GirisPage({ searchParams }: PageProps) {
+  // `?next=` is how /odeme and /karaoke send a signed-out visitor here; it
+  // rides the form to `loginAction`, which follows it only if it is a path
+  // on this site.
+  const { dogrulandi, next: rawNext } = await searchParams;
+  const next = sameSitePath(rawNext) ?? undefined;
   const active = await getActiveCustomer();
-  if (active) redirect("/uye/hesap");
+  if (active) redirect(next ?? "/uye/hesap");
   // `?dogrulandi=1` is where Supabase's confirmation mail lands
   // (`supabaseEmailRedirectUrl`). It was being produced and never read, so a
   // member who had just confirmed their address arrived at a plain login form
   // with nothing saying the link had worked - and the obvious next move,
   // clicking the link again, spends a token that is already spent and answers
   // "expired".
-  const { dogrulandi } = await searchParams;
   const justVerified = dogrulandi === "1";
 
   return (
@@ -90,7 +95,7 @@ export default async function GirisPage({ searchParams }: PageProps) {
         >
           Hesabınla giriş yap; sipariş geçmişini gör, bilgileri saniyede doldur.
         </p>
-        <LoginForm />
+        <LoginForm next={next} />
         <div
           style={{
             marginTop: 22,

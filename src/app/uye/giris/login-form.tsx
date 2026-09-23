@@ -27,10 +27,11 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 8,
 };
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(loginAction, initialState);
   return (
     <form action={action} style={{ display: "grid", gap: 14 }}>
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       <div>
         <label htmlFor="login-email" style={labelStyle}>
           E-posta

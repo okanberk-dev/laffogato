@@ -47,15 +47,27 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 interface PageProps {
-  searchParams: Promise<{ cart?: string; item?: string; available?: string }>;
+  searchParams: Promise<{
+    cart?: string;
+    item?: string;
+    available?: string;
+    hesap?: string;
+  }>;
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const [{ cart, item, available }, { settings, menu, products, appProps }] =
-    await Promise.all([searchParams, loadAppProps()]);
+  const [
+    { cart, item, available, hesap },
+    { settings, menu, products, appProps },
+  ] = await Promise.all([searchParams, loadAppProps()]);
 
   let notice: string | undefined;
-  if (cart === "out_of_stock") {
+  if (hesap === "silindi") {
+    // deleteAccountAction lands here; without a word the member could not
+    // tell the deletion had gone through.
+    notice =
+      "Hesabın silindi. Kişisel verilerin silindi ya da anonimleştirildi.";
+  } else if (cart === "out_of_stock") {
     const remain = Number(available);
     const tail =
       Number.isFinite(remain) && remain >= 0 ? ` (kalan: ${remain})` : "";

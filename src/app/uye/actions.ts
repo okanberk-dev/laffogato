@@ -38,6 +38,7 @@ import {
   unsubscribeNewsletterByEmail,
 } from "@/lib/newsletter/store";
 import { SITE } from "@/lib/seo/site";
+import { sameSitePath } from "@/lib/http/same-site-path";
 import {
   checkLoginLimit,
   clearLoginLimit,
@@ -387,7 +388,10 @@ export async function loginAction(
     return { error: DB_DOWN_MESSAGE, values: { email } };
   }
   await setActiveCustomerSession(sessionEmail);
-  redirect("/uye/hesap");
+  // The checkout and the karaoke page send a signed-out visitor here with
+  // `?next=`; landing them on the account page instead dropped them out of
+  // the purchase they had started.
+  redirect(sameSitePath(formData.get("next")) ?? "/uye/hesap");
 }
 
 type SupabaseSignIn =
@@ -434,8 +438,7 @@ async function signInWithSupabase(
       }
       // 4xx is Supabase answering: wrong password, unconfirmed address, no
       // such user. Anything else - no status, 0, 5xx - is it not answering.
-      const answered =
-        status !== undefined && status !== 0 && status < 500;
+      const answered = status !== undefined && status !== 0 && status < 500;
       return { ok: false, answered };
     }
     return { ok: true, user: data.user };
@@ -606,10 +609,10 @@ export async function toggleWishlistAction(formData: FormData): Promise<void> {
   const productId = String(formData.get("productId") ?? "");
   if (!productId) return;
   await toggleWishlist(current.email, productId);
-  const back = String(formData.get("back") ?? "/uye/hesap/favorilerim");
   revalidatePath("/uye/hesap", "layout");
   revalidatePath("/", "layout");
-  redirect(back);
+  // `back` is a form field — only a path on this site is followed.
+  redirect(sameSitePath(formData.get("back")) ?? "/uye/hesap/favorilerim");
 }
 
 // ─── Notification preferences ─────────────────────────────────────────────
