@@ -280,6 +280,16 @@ export interface MobileShopProduct {
    * code it already has: `item.tags.includes("nuts")`.
    */
   tags: string[];
+  /**
+   * The maker's name for the eyebrow on the app's product page, or "" (no
+   * eyebrow). Contract §2, additive (23 Eyl 2026).
+   */
+  brand: string;
+  /**
+   * Tasting-note chips, or [] (no chips: the app prints the whole
+   * description as before). Contract §2, additive (23 Eyl 2026).
+   */
+  notes: string[];
   hue: string;
   image: string | null;
   inStock: boolean;
@@ -319,6 +329,17 @@ export function toMobileShopProduct(
     // migration runs, and `products.tags` is `not null default '[]'` after it,
     // so this branch is unreachable from then on.
     tags: Array.isArray(p.tags) ? [...p.tags] : [],
+    // Same deploy-order guard as `tags`: until
+    // `20260923220000_product_brand_notes.sql` runs, `select("*")` has no
+    // such keys, and the empty values are exactly what the app reads as
+    // "nothing new to draw". Operator text is passed through, only trimmed.
+    brand: typeof p.brand === "string" ? p.brand.trim() : "",
+    notes: Array.isArray(p.notes)
+      ? p.notes
+          .filter((n): n is string => typeof n === "string")
+          .map((n) => n.trim())
+          .filter(Boolean)
+      : [],
     hue: p.img,
     image: first
       ? absoluteImageUrl(

@@ -37,6 +37,8 @@ function product(over: Partial<AdminProduct> = {}): AdminProduct {
     img: "pistachio",
     images: [],
     tags: [],
+    brand: "",
+    notes: [],
     stock: 9,
     lowStockThreshold: 3,
     weightGrams: 180,

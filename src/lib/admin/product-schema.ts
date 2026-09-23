@@ -58,6 +58,50 @@ const tagList = z
     return [...seen];
   });
 
+/** How many tasting-note chips one product may carry, and how long each is. */
+export const PRODUCT_NOTES_MAX = 5;
+export const PRODUCT_NOTE_MAX_LENGTH = 24;
+export const PRODUCT_BRAND_MAX_LENGTH = 40;
+
+/**
+ * Tasting notes, typed as one line: "Kakao, Kuru incir, Esmer şeker". Commas,
+ * the middle dot the app draws between them and new lines all separate, so a
+ * list pasted from the canvas or the label works as typed. Inner spaces are
+ * collapsed and a note repeated in another case is kept once. Too many, or
+ * one too long for a chip, is an error the operator sees - never a silent
+ * cut, which would publish a note they did not write.
+ */
+export function parseProductNotes(raw: string | undefined): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of (raw ?? "").split(/[,\u00b7\n]/)) {
+    const note = part.replace(/\s+/g, " ").trim();
+    if (!note) continue;
+    const key = note.toLocaleLowerCase("tr-TR");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(note);
+  }
+  return out;
+}
+
+const notesList = z
+  .string()
+  .optional()
+  .transform(parseProductNotes)
+  .pipe(
+    z
+      .array(
+        z
+          .string()
+          .max(
+            PRODUCT_NOTE_MAX_LENGTH,
+            `Her tat notu en fazla ${PRODUCT_NOTE_MAX_LENGTH} karakter olabilir.`,
+          ),
+      )
+      .max(PRODUCT_NOTES_MAX, `En fazla ${PRODUCT_NOTES_MAX} tat notu yazılabilir.`),
+  );
+
 const moneyToMinor = z
   .string()
   .transform((s) => s.trim().replace(",", "."))
@@ -157,6 +201,16 @@ export const productFormSchema = z
     img: z.enum(HUE_VALUES).default("cream"),
     images: imagesJsonArray,
     tags: tagList,
+    brand: z
+      .string()
+      .trim()
+      .max(
+        PRODUCT_BRAND_MAX_LENGTH,
+        `Marka en fazla ${PRODUCT_BRAND_MAX_LENGTH} karakter olabilir.`,
+      )
+      .optional()
+      .default(""),
+    notes: notesList,
     price: moneyToMinor,
     compareAtPrice: moneyToMinor.optional(),
     cost: moneyToMinor.optional(),
@@ -180,6 +234,8 @@ export const productFormSchema = z
     img: v.img,
     images: v.images,
     tags: v.tags,
+    brand: v.brand ?? "",
+    notes: v.notes,
     priceMinor: v.price,
     compareAtPriceMinor: v.compareAtPrice ?? 0,
     costMinor: v.cost ?? 0,

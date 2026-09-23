@@ -143,6 +143,8 @@ export function ProductWizard({
   const [slugTouched, setSlugTouched] = useState(Boolean(product?.slug));
   const [tag, setTag] = useState(product?.tag ?? "");
   const [desc, setDesc] = useState(product?.desc ?? "");
+  const [brand, setBrand] = useState(product?.brand ?? "");
+  const [notes, setNotes] = useState((product?.notes ?? []).join(", "));
   const [cat, setCat] = useState(product?.cat ?? "beans");
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
   const [allergens, setAllergens] = useState<string[]>(
@@ -329,6 +331,37 @@ export function ProductWizard({
               rows={4}
             />
           </Field>
+          <div className="grid gap-5 md:grid-cols-2">
+            <Field
+              label="Marka (künye)"
+              hint={
+                fieldError("brand") ??
+                "Uygulamada ürün adının üstünde küçük harflerle görünür. Boş bırakılırsa gösterilmez."
+              }
+            >
+              <TextInput
+                name="brand"
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                maxLength={40}
+                placeholder="Sirena"
+              />
+            </Field>
+            <Field
+              label="Tat notları"
+              hint={
+                fieldError("notes") ??
+                "Virgülle ayır, en fazla 5 not. Uygulamada çip olarak görünür; boşsa açıklamanın tamamı gösterilir."
+              }
+            >
+              <TextInput
+                name="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Kakao, Kuru incir, Esmer şeker"
+              />
+            </Field>
+          </div>
           <div className="grid gap-5 md:grid-cols-2">
             <Field label="Kategori">
               <Select

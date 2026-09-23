@@ -204,6 +204,8 @@ değişmemiş bir menü artık yalnızca başlık kadar maliyetli.
   "tag": "Çekirdek · 250g", "description": "…", "priceMinor": 32000, "compareAtPriceMinor": 0,
   "category": "beans",                // beans | gift | gear | merch | pantry
   "tags": ["nuts"],                   // §1 ile AYNI sözlük: signature | new | iced | nuts
+  "brand": "Sirena",                  // 23 Eyl 2026, eklemeli: künye (ürünün markası); yoksa ""
+  "notes": ["Kakao", "Kuru incir", "Esmer şeker"],   // 23 Eyl 2026, eklemeli: tat notu çipleri; yoksa []
   "hue": "caramel", "image": "https://…?v=<12 hex>" | null,   // §1'deki damga kuralı ürün fotoğrafları için de geçerli
   "inStock": true,
   "variants": [ { "id": "var-…", "name": "250 g", "priceMinor": 32000, "inStock": true }, { "id": "var-…", "name": "1 kg", "priceMinor": 109000, "inStock": true } ],
@@ -228,6 +230,32 @@ sürümde genişletmeyi gerektirir.
 Kaynak: `products.tags` (jsonb, `db/migrations/20260916120000_product_allergen_tags.sql`),
 `menu_items.tags` ile aynı sütun şekli. Panelden `/admin/urunler` → **Temel
 bilgi** → *Alerjen* kapalı listesiyle işaretlenir.
+
+### `brand` · `notes` - künye ve tat notları (23 Eyl 2026, yalnız ekleme)
+
+Ekran 13 ürün adının üstünde bir künye ("SIRENA") ve altında tat notu çipleri
+("Kakao · Kuru incir · Esmer şeker") çizer. İkisi de `description`'dan
+çıkarılamazdı: marka bir sütun değildi, notlar da cümleden ayrılamaz
+("Nara'dan." bir çip olurdu). Bu yüzden iki ayrı alan:
+
+| Alan | Tip | Boşken | Uygulama |
+| --- | --- | --- | --- |
+| `brand` | string | `""` | Doluysa ürün adının üstünde künye olarak çizer; boşsa hiçbir şey. |
+| `notes` | string[] | `[]` | Doluysa çipleri çizer; boşsa `description`'ı bugünkü gibi **bütün** basar. |
+
+- İki anahtar da her ürün nesnesinde **her zaman vardır**. Panel doldurana kadar
+  boştur, yani ekranda hiçbir şey değişmez.
+- Metin operatörün yazdığıdır; sunucu yalnız baştaki/sondaki boşluğu kırpar,
+  boş ya da dize olmayan notu düşürür. Uygulama yeniden yazmaz (büyük harfe
+  çevirmek gibi biçim işleri çizimdir, metin değil).
+- Panel sınırları: marka en fazla 40, not başına en fazla 24 karakter, en fazla
+  5 not (`/admin/urunler` → **Temel bilgi** → *Marka (künye)* · *Tat notları*;
+  notlar virgül, `·` ya da satır sonuyla ayrılır, aynı not bir kez tutulur).
+- Kaynak: `products.brand` (text, varsayılan `''`) ve `products.notes` (jsonb,
+  varsayılan `'[]'`), `db/migrations/20260923220000_product_brand_notes.sql`.
+  Migration'dan önce yayına çıkan sunucuda satırda anahtar yoktur; eşleyici o
+  durumda da `""` / `[]` yayımlar (`tags`'teki koruma).
+- Eski sürümler iki alanı da okumaz; bir şey kırılmaz.
 
 `variants[].priceMinor` = `product.priceMinor + variant.priceDeltaMinor` (sunucu hesaplar).
 Öğütüm seçimi sipariş satırında `note` olarak taşınır; fiyata etkisi yok.

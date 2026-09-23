@@ -129,6 +129,17 @@ export interface AdminProduct {
    * published by `GET /shop` and drawn by the app, and it is never hidden.
    */
   tags: string[];
+  /**
+   * The maker's name, as the operator writes it ("Sirena"). The app draws it
+   * as the eyebrow above the product name on screen 13; '' draws nothing.
+   * Published by `GET /shop` (contract §2, additive).
+   */
+  brand: string;
+  /**
+   * Tasting notes ("Kakao", "Kuru incir"), each a short chip on screen 13.
+   * [] draws none, and the app prints the whole description as before.
+   */
+  notes: string[];
   stock: number;
   lowStockThreshold: number;
   /** Approximate shipping weight in grams. */
@@ -549,6 +560,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         // The seed marks the one product that carries an allergen (the
         // pistachio biscotti); `/admin/urunler` marks the rest.
         tags: p.tags ? [...p.tags] : [],
+        // Filled per product in /admin/urunler; empty draws nothing new.
+        brand: "",
+        notes: [],
         stock: 25,
         lowStockThreshold: 5,
         weightGrams: 250,
@@ -807,6 +821,8 @@ export interface ProductInput {
   img: string;
   images: string[];
   tags: string[];
+  brand: string;
+  notes: string[];
   stock: number;
   lowStockThreshold: number;
   weightGrams: number;

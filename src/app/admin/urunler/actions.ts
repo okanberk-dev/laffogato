@@ -45,6 +45,8 @@ function toInput(parsed: ReturnType<typeof productFormSchema.parse>) {
     img: parsed.img,
     images: parsed.images,
     tags: parsed.tags,
+    brand: parsed.brand,
+    notes: parsed.notes,
     stock: parsed.stock,
     lowStockThreshold: parsed.lowStockThreshold,
     weightGrams: parsed.weightGrams,

@@ -59,6 +59,8 @@ function product(over: Partial<AdminProduct> = {}): AdminProduct {
     img: "caramel",
     images: [],
     tags: [],
+    brand: "",
+    notes: [],
     stock: 12,
     lowStockThreshold: 3,
     weightGrams: 250,
@@ -269,6 +271,9 @@ describe("toMobileShopProduct (contract §2)", () => {
         "compareAtPriceMinor",
         "category",
         "tags",
+        // 23 Eyl 2026, additive: the maker's eyebrow and the tasting notes.
+        "brand",
+        "notes",
         "hue",
         "image",
         "inStock",
