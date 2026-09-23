@@ -235,7 +235,7 @@ On sekiz şablon — her satırda **tetikleyici · izin sınıfı · idempotency
 | `karaoke-rezervasyon`                  | işlemsel          | personel panelden onayladı (`setReservationStatus`) · durum geçişi bir kez olur |
 | `karaoke-iptal`                        | işlemsel          | personel panelden iptal etti (`setReservationStatus`) · aynı geçiş kilidi       |
 | `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                 |
-| `bulten-kampanya`                      | **ticari (6563)** | kampanya e-postası — 3 ürün seçkisi + kod · `cmp-<kampanya>-b<parti>`           |
+| `bulten-kampanya`                      | **ticari (6563)** | `sendCampaignMail` · 3 ürün seçkisi + kod · `cmp-<kampanya>-b<parti>`           |
 | `mobil-uygulama`                       | **ticari (6563)** | uygulama duyurusu — **hiçbir yoldan gönderilemiyor**, aşağıya bak               |
 | `dogum-gunu`                           | **ticari (6563)** | günlük cron (`/api/cron/birthday`) · idempotency = kuponun kendisi              |
 | `kampanya-duyuru` … `kampanya-indirim` | **ticari (6563)** | `/admin/bulten/kampanya`, zamanlama ve gönderi kancası — bkz. §7                |

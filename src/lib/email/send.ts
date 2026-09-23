@@ -604,51 +604,6 @@ export function unsubscribeUrlFor(unsubToken: string): string {
   return `${SITE.url}/api/bulten/cikis?token=${encodeURIComponent(unsubToken)}`;
 }
 
-export interface CampaignEmailData {
-  to: string;
-  name: string;
-  unsubToken: string;
-  title: string;
-  body: string;
-  ctaLabel: string;
-  ctaUrl: string;
-  couponCode: string;
-  expiresAt: string;
-  /** Exactly three, which is what the template lays out. */
-  picks: { name: string; note: string; price: string }[];
-}
-
-export async function sendCampaignEmail(
-  c: CampaignEmailData,
-): Promise<boolean> {
-  const [p1, p2, p3] = c.picks;
-  if (!p1 || !p2 || !p3) {
-    console.error("[email] bulten-kampanya: üç ürün seçkisi gerekli");
-    return false;
-  }
-  return sendTemplate("bulten-kampanya", c.to, {
-    unsubscribeUrl: unsubscribeUrlFor(c.unsubToken),
-    vars: {
-      AD: c.name.trim(),
-      KAMPANYA_BASLIK: c.title,
-      KAMPANYA_METIN: c.body,
-      KAMPANYA_BUTON: c.ctaLabel,
-      KAMPANYA_URL: c.ctaUrl,
-      KUPON_KODU: c.couponCode,
-      SON_KULLANIM: c.expiresAt,
-      URUN_1_AD: p1.name,
-      URUN_1_NOT: p1.note,
-      URUN_1_FIYAT: p1.price,
-      URUN_2_AD: p2.name,
-      URUN_2_NOT: p2.note,
-      URUN_2_FIYAT: p2.price,
-      URUN_3_AD: p3.name,
-      URUN_3_NOT: p3.note,
-      URUN_3_FIYAT: p3.price,
-    },
-  });
-}
-
 /**
  * The app launch announcement.
  *
