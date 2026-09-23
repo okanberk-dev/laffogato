@@ -728,7 +728,7 @@ Uygulama kendi sözleşme kopyasını yazmaz. Sipariş kaydı sitenin sözleşme
 revizyonuna rıza kaydeder; iki taraf farklı metin gösterirse o kayıt anlamsız
 kalır. Bu yüzden tek kaynak `src/lib/legal/content.ts`'tir ve mobil onu okur.
 
-**`GET /api/mobile/v1/legal`** — 24 belgelik dizin.
+**`GET /api/mobile/v1/legal`** — 25 belgelik dizin.
 
 ```json
 {
@@ -740,7 +740,8 @@ kalır. Bu yüzden tek kaynak `src/lib/legal/content.ts`'tir ve mobil onu okur.
       "title": "...",
       "shortTitle": "...",
       "category": "Sipariş",
-      "summary": "..."
+      "summary": "...",
+      "updatedAt": "5 Eylül 2026"
     }
   ]
 }
@@ -749,8 +750,11 @@ kalır. Bu yüzden tek kaynak `src/lib/legal/content.ts`'tir ve mobil onu okur.
 Üst `updatedAt` ödeme onayının kaydettiği sürümdür (`legalConsent.version`,
 `LEGAL_UPDATED`). Her `docs[]` satırı ve tek belge kendi `updatedAt`'ini de
 taşır: metnin son değiştiği gün (`content.ts` `updatedAt`, yoksa
-`LEGAL_UPDATED`), bu yüzden üst etiketten sonra olabilir. Ödeme belgeleri
-(`consentDocs`) her zaman üst etiketle aynı tarihtedir.
+`LEGAL_UPDATED`; panelden yayımlanmış bir geçersiz kılma varsa onun yürürlük
+tarihi), bu yüzden üst etiketten sonra olabilir. Ödeme belgeleri
+(`consentDocs`) kodda üst etiketle aynı tarihtedir; panelden birine
+geçersiz kılma yayımlanırsa sipariş kaydı yine `LEGAL_UPDATED` yazar - bu
+bilinen bir açıktır ve sürümleme kararı operatörde.
 
 **`GET /api/mobile/v1/legal/{slug}`** — tek belgenin tam metni; bilinmeyen slug
 `404 not_found`. İkisi de `force-dynamic` ve `public, s-maxage=300,
@@ -776,7 +780,7 @@ ulaşılamazsa iki uç da kodlu belgeye döner — 5xx vermez.
 ### Çevrimdışı taban
 
 `npm run legal:export` (site deposu) `scripts/legal-export.mjs`'yi çalıştırıp
-`laffogato-mobil/src/data/legal.seed.json` üretir: 24 belgelik dizin + **14
+`laffogato-mobil/src/data/legal.seed.json` üretir: 25 belgelik dizin + **14
 belgenin tam metni** (`BUNDLED_SLUGS`). Paketlenen 14, uygulamanın içeriden
 bağlandığı belgelerdir — ağ yokken de açılabilmeleri gerekir:
 
