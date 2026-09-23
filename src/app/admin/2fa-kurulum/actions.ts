@@ -8,7 +8,6 @@ import { getAdminSession } from "@/lib/admin/auth";
 import {
   cancelEnrollment,
   disable2FA,
-  startEnrollment,
   verifyAndEnable,
   type EnrollmentDraft,
 } from "@/lib/admin/twofa";
@@ -58,15 +57,4 @@ export async function cancelEnrollAction() {
   if (!session) redirect("/admin/giris");
   await cancelEnrollment(session.email);
   revalidatePath("/admin/2fa-kurulum");
-}
-
-/**
- * Wrapper used by the page to obtain a fresh enrollment draft before
- * rendering. Lives in the server actions file so the page can call it
- * without becoming a client component.
- */
-export async function freshEnrollment(): Promise<EnrollmentDraft | null> {
-  const session = await getAdminSession();
-  if (!session) return null;
-  return startEnrollment(session.email, "L'Affogato Admin");
 }

@@ -66,6 +66,12 @@ export async function startEnrollment(
   email: string,
   issuer: string,
 ): Promise<EnrollmentDraft> {
+  // Never over an enabled enrollment: the upsert below writes
+  // `enabled: false`, which would switch 2FA off without the disable path's
+  // audit row. Turning it off is `disable2FA`, deliberately.
+  if (await has2FA(email)) {
+    throw new Error("twofa.startEnrollment: 2FA is already enabled");
+  }
   const secret = generateSecret();
   const now = new Date().toISOString();
   const sb = getDb();

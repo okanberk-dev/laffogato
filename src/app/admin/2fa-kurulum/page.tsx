@@ -4,9 +4,9 @@ import QRCode from "qrcode";
 import { Card, PageHeader } from "@/components/admin/forms";
 import { TwoFAEnrollForm } from "@/components/admin/twofa-enroll-form";
 import { getAdminSession } from "@/lib/admin/auth";
-import { has2FA } from "@/lib/admin/twofa";
+import { has2FA, startEnrollment } from "@/lib/admin/twofa";
 
-import { disable2FAAction, freshEnrollment } from "./actions";
+import { disable2FAAction } from "./actions";
 
 export const metadata = { title: "Admin · İki adımlı doğrulama" };
 export const dynamic = "force-dynamic";
@@ -44,7 +44,11 @@ export default async function TwoFAEnrollPage() {
     );
   }
 
-  const draft = await freshEnrollment();
+  // Called here, in the page, and NOT through a "use server" wrapper: every
+  // export of an actions file is a public POST endpoint, and the old
+  // `freshEnrollment` export let anyone holding a session cookie overwrite an
+  // ENABLED enrollment with a fresh draft — 2FA silently off, no audit row.
+  const draft = await startEnrollment(session.email, "L'Affogato Admin");
   const qrDataUrl = draft
     ? await QRCode.toDataURL(draft.otpauthUrl, { margin: 1, width: 240 })
     : "";
