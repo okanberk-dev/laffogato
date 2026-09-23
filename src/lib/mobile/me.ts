@@ -313,6 +313,25 @@ export const ANON_SWEEPS: ReadonlyArray<{
     caseInsensitive: true,
     patch: (anon) => ({ customerEmail: anon }),
   },
+  {
+    // fA'L's R12 consent (karar 177) is read back by the address. Left alone,
+    // whoever next registered it would be treated as having agreed to send
+    // their photo abroad - a consent somebody else gave. Closing the account
+    // is also a withdrawal: `revokedAt` starts the three years the proof is
+    // kept for (Veri Saklama ve İmha Politikası), under the placeholder.
+    table: TABLES.featureConsents,
+    column: "customerEmail",
+    caseInsensitive: true,
+    patch: (anon) => ({ customerEmail: anon, revokedAt: new Date().toISOString() }),
+  },
+  {
+    // fA'L's usage record: the next owner of the address must not inherit
+    // today's count against the daily limit.
+    table: TABLES.falReadings,
+    column: "customerEmail",
+    caseInsensitive: true,
+    patch: (anon) => ({ customerEmail: anon }),
+  },
 ];
 
 /**

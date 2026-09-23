@@ -54,6 +54,8 @@ describe("account deletion sweeps", () => {
       `${TABLES.customerMilestoneRewards}.customerEmail`,
       // fA'L reports keep the reported words, not the reporter.
       `${TABLES.falReports}.customerEmail`,
+      `${TABLES.featureConsents}.customerEmail`,
+      `${TABLES.falReadings}.customerEmail`,
     ]) {
       expect(covered, target).toContain(target);
     }
@@ -94,6 +96,17 @@ describe("what a closed account leaves behind", () => {
     )!;
     expect(news.op).toBe("delete");
     expect(news.caseInsensitive).toBe(true);
+  });
+
+  it("does not hand fA'L's consent or daily count to the address's next owner (karar 177)", () => {
+    const consent = ANON_SWEEPS.find((s) => s.table === TABLES.featureConsents)!;
+    const patched = consent.patch("deleted-cst-1@anon.local");
+    expect(patched.customerEmail).toBe("deleted-cst-1@anon.local");
+    // Closing the account is a withdrawal: the proof's three years start now.
+    expect(typeof patched.revokedAt).toBe("string");
+    expect(String(patched.revokedAt)).not.toBe("");
+    const readings = ANON_SWEEPS.find((s) => s.table === TABLES.falReadings)!;
+    expect(readings.patch("deleted-cst-1@anon.local")).toEqual({ customerEmail: "deleted-cst-1@anon.local" });
   });
 
   it("keeps every other sweep an anonymising update", () => {
