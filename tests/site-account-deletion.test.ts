@@ -41,6 +41,9 @@ vi.mock("@/lib/customer/store", () => ({
 vi.mock("@/lib/mobile/me", () => ({ deleteMe }));
 
 const { deleteAccountAction } = await import("@/app/uye/actions");
+const { accountClosureNotice, accountClosureParam } = await import(
+  "@/lib/customer/account-closure"
+);
 
 function form(fields: Record<string, string>): FormData {
   const fd = new FormData();
@@ -65,7 +68,29 @@ describe("deleteAccountAction", () => {
     ).rejects.toThrow("NEXT_REDIRECT");
     expect(deleteMe).toHaveBeenCalledWith({ email: "eda@example.com" });
     expect(clearCustomerSession).toHaveBeenCalled();
+    expect(redirect).toHaveBeenCalledWith("/?hesap=silindi");
   });
+
+  it.each([
+    ["skipped", "skipped"],
+    ["failed", "failed"],
+    ["a missing identity field", undefined],
+  ])(
+    "does not claim the personal data is gone when the identity is %s",
+    async (_label, identity) => {
+      // The Supabase sign-in identity still carries the e-mail and the name
+      // unless it was deleted (docs/API-MOBILE.md §4, O28): the short
+      // sentence, never "Kişisel verilerin silindi".
+      deleteMe.mockResolvedValue({ ok: true, identity });
+      await expect(
+        deleteAccountAction(
+          {},
+          form({ confirmEmail: "eda@example.com", password: "sifre123" }),
+        ),
+      ).rejects.toThrow("NEXT_REDIRECT");
+      expect(redirect).toHaveBeenCalledWith("/?hesap=kapatildi");
+    },
+  );
 
   it("refuses a mistyped confirmation without touching the account", async () => {
     const res = await deleteAccountAction(
@@ -113,5 +138,23 @@ describe("deleteAccountAction", () => {
       expect(clearCustomerSession).not.toHaveBeenCalled();
       expect(redirect).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("the notice the home page shows after a closure", () => {
+  it("says the personal data was deleted only after the identity went too", () => {
+    expect(accountClosureParam("deleted")).toBe("silindi");
+    expect(accountClosureParam("skipped")).toBe("kapatildi");
+    expect(accountClosureParam("failed")).toBe("kapatildi");
+    expect(accountClosureParam(undefined)).toBe("kapatildi");
+    expect(accountClosureNotice("silindi")).toContain("Kişisel verilerin silindi");
+    expect(accountClosureNotice("kapatildi")).toBe("Hesabın kapatıldı.");
+    expect(accountClosureNotice("kapatildi")).not.toMatch(/silindi|anonim/);
+  });
+
+  it("shows nothing for any other value", () => {
+    expect(accountClosureNotice(undefined)).toBeUndefined();
+    expect(accountClosureNotice("")).toBeUndefined();
+    expect(accountClosureNotice("baska")).toBeUndefined();
   });
 });

@@ -159,11 +159,11 @@ okumaya devam etmezse müşteri "hiçbir şey olmadı" ekranında kalır.
 | `/odeme?error=payment`                                | POS `failureUrl`, `/odeme/donus`, `/odeme/paynkolay` | `src/app/odeme/page.tsx` (`CHECKOUT_NOTICES`) |
 | `/odeme?verify=required`                              | `placeOrderAction`              | Sayfa doğrulama panelini üyenin durumundan zaten gösterir; parametre bilgi amaçlı |
 | `/uye/giris?next=/odeme`                              | `placeOrderAction`              | `src/app/uye/giris/page.tsx`      |
-| `/?hesap=silindi`                                     | `deleteAccountAction`           | ana sayfa                         |
+| `/?hesap=silindi\|kapatildi`                          | `deleteAccountAction`           | ana sayfa (`accountClosureNotice`): `silindi` yalnız Supabase giriş kimliği de silindiyse |
 | `/bulten/onay?sonuc=tamam\|gecersiz\|hata`             | `confirmNewsletterAction`       | `src/app/bulten/onay/page.tsx`    |
 | `/bulten/cikis?sonuc=tamam&adres=…`, `?sonuc=gecersiz\|hata` | `unsubscribeNewsletterAction` | `src/app/bulten/cikis/page.tsx` (`adres` maskeli: `a***@alan.com`) |
 
-`?cart=` gerekçelerinin, her `/odeme?error=` nedeninin, `?hesap=silindi`'nin
+`?cart=` gerekçelerinin, her `/odeme?error=` nedeninin, `?hesap=` değerlerinin
 ve girişteki `?next=` taşımasının karşılandığını
 `tests/frontend-form-contract.test.ts` doğrular.
 

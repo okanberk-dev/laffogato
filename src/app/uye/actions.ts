@@ -33,6 +33,7 @@ import {
   linkIdentityAfterReset,
 } from "@/lib/customer/supabase-bridge";
 import { deleteMe } from "@/lib/mobile/me";
+import { accountClosureParam } from "@/lib/customer/account-closure";
 import { ensureCustomerForSupabaseUser } from "@/lib/customer/supabase-bridge";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendVerificationEmail } from "@/lib/email/send";
@@ -724,5 +725,7 @@ export async function deleteAccountAction(
     };
   }
   await clearCustomerSession();
-  redirect("/?hesap=silindi");
+  // "Kişisel verilerin silindi" only when the Supabase identity (e-mail and
+  // name) went too; otherwise the short sentence (docs/API-MOBILE.md §4).
+  redirect(`/?hesap=${accountClosureParam(result.identity)}`);
 }

@@ -281,9 +281,17 @@ describe("redirect query strings the pages must keep handling", () => {
     }
   });
 
-  it("the account deletion's /?hesap=silindi is acknowledged", () => {
-    expect(read("src/app/uye/actions.ts")).toContain('"/?hesap=silindi"');
-    expect(read("src/app/page.tsx")).toContain('hesap === "silindi"');
+  it("the account deletion's /?hesap=... is acknowledged", () => {
+    // Two values: "silindi" once the sign-in identity went too, "kapatildi"
+    // otherwise (src/lib/customer/account-closure.ts); the home page reads
+    // both through the same helper.
+    expect(read("src/app/uye/actions.ts")).toContain(
+      "redirect(`/?hesap=${accountClosureParam(result.identity)}`)",
+    );
+    expect(read("src/app/page.tsx")).toContain("accountClosureNotice(hesap)");
+    const closure = read("src/lib/customer/account-closure.ts");
+    expect(closure).toMatch(/silindi:\s*"/);
+    expect(closure).toMatch(/kapatildi:\s*"/);
   });
 
   it("the login page carries ?next= through to the form", () => {

@@ -6,6 +6,7 @@ import { FAQ } from "@/lib/seo/faq";
 import { SITE, openGraphDefaults } from "@/lib/seo/site";
 import { siteGraphLd } from "@/lib/seo/structured-data";
 import { getPublicSettings } from "@/lib/admin/store";
+import { accountClosureNotice } from "@/lib/customer/account-closure";
 import { loadAppProps } from "@/lib/seo/app-props";
 import { JsonLd } from "@/lib/seo/json-ld";
 
@@ -61,12 +62,12 @@ export default async function HomePage({ searchParams }: PageProps) {
     { settings, menu, products, appProps },
   ] = await Promise.all([searchParams, loadAppProps()]);
 
-  let notice: string | undefined;
-  if (hesap === "silindi") {
-    // deleteAccountAction lands here; without a word the member could not
-    // tell the deletion had gone through.
-    notice =
-      "Hesabın silindi. Kişisel verilerin silindi ya da anonimleştirildi.";
+  // deleteAccountAction lands here; without a word the member could not tell
+  // the deletion had gone through. Which sentence depends on whether the
+  // sign-in identity went too (`accountClosureNotice`).
+  let notice: string | undefined = accountClosureNotice(hesap);
+  if (notice !== undefined) {
+    // The account notice stands alone; a cart reason cannot ride along.
   } else if (cart === "out_of_stock") {
     const remain = Number(available);
     const tail =
