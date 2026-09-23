@@ -475,7 +475,7 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
 
 `PATCH /me` gövdesi: `{ name?, phone?, birthday?, notificationPrefs?, usual? }` → güncel `/me`.
 Adresler: `POST /me/addresses` (gövde adres) · `PATCH /me/addresses/{id}` · `DELETE /me/addresses/{id}` · `POST /me/addresses/{id}/default` → hepsi güncel `addresses[]` döner.
-Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği silinir (service role varsa) + oturum istemcide kapatılır (mağaza zorunluluğu). Devam eden sipariş varsa **409** `orders_in_progress`.
+Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği silinir (service role varsa; sonucu yanıttaki `identity` söyler, aşağıya bak) + oturum istemcide kapatılır (mağaza zorunluluğu). Devam eden sipariş varsa **409** `orders_in_progress`.
 
 > **Uygulama notu (§4).** `PATCH /me` 400 `unknown_menu_item` (usual pasif/yok) ·
 > `invalid_request` · `invalid_json`. Adres uçları: `POST /me/addresses` **201**, hata
@@ -490,10 +490,34 @@ Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği
 > `account_disabled`). Oturumu uygulama kapatır. **409** `orders_in_progress`:
 > `pending_payment`/`paid`/`preparing`/`shipped` bir sipariş varken hesap
 > kapatılmaz (Üyelik Sözleşmesi §14) — sipariş bitince tekrar denenir.
-> `neighbourhood` sütunu yoktur: `line1`'e
+> **`identity` (23 Eyl 2026, yalnız ekleme):** 200 yanıtı
+> `{ "ok": true, "identity": "deleted" | "skipped" | "failed" }` olur; ayrıntı
+> aşağıda. `neighbourhood` sütunu yoktur: `line1`'e
 > `"<mahalle>, <satır>"` olarak katlanır, okurken `Mah.`/`Mahallesi`/`Mh.` sonekiyle ayrıştırılır.
 > `loyalty.badges` ve `tier` yalnız `paid/preparing/shipped/completed` siparişleri sayar
 > (ödenmemiş/iptal/iade sayılmaz).
+
+### `DELETE /me` → `identity` (23 Eyl 2026, yalnız ekleme)
+
+Yanıt, Supabase giriş kimliğine ne olduğunu söyler. Neon satırı üç durumda da
+anonimleştirilmiş ve hesap kapatılmıştır; fark, üyenin e-postasını ve adını
+(`user_metadata.full_name`) hâlâ taşıyan giriş kimliğindedir. Uygulama bu
+yüzden "kişisel bilgilerin silindi" cümlesini **yalnız** `deleted` gelince
+kurar (O28).
+
+| `identity` | Ne oldu | Uygulamanın cümlesi |
+| --- | --- | --- |
+| `deleted` | Supabase kullanıcısı silindi. | "Hesabın kapatıldı; kişisel bilgilerin silindi." |
+| `skipped` | Silme denenmedi: sunucuda `SUPABASE_SERVICE_ROLE_KEY` yok ya da satırda bağlı kimlik kaydı yok. Giriş kimliği Supabase'de durur. | "Hesabın kapatıldı." |
+| `failed` | Silme denendi, Supabase reddetti ya da ulaşılamadı (sunucu günlüğüne yazılır). Giriş kimliği Supabase'de durur. | "Hesabın kapatıldı." |
+
+- Alan **yoksa** (bu eklemeden önceki sunucu) ya da bilinmeyen bir değer
+  gelirse uygulama bunu `deleted` saymaz; kısa cümleyi kurar.
+- `ok: true` aynen durur; alanı okumayan eski sürümler için hiçbir şey
+  değişmez.
+- Kaynak: `deleteMe` → `deleteSupabaseIdentity` (`src/lib/supabase/admin.ts`,
+  `IdentityDeletion`); rota değeri olduğu gibi geçirir, yuvarlamaz.
+  `tests/mobile-me-delete-route.test.ts` tutar.
 
 ## 5. Sadakat
 

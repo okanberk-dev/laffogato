@@ -51,6 +51,13 @@ export async function PATCH(request: Request) {
  * §14 and the `hesap-silme` document both say the closure waits for it, and
  * anonymising the buyer of an order the kitchen is about to hand over would
  * leave the member unable to follow what they already paid for.
+ *
+ * `identity` (additive, docs/API-MOBILE.md §4) says what happened to the
+ * Supabase sign-in identity, which still holds the member's e-mail and name
+ * until it is deleted. The app may only say "kişisel bilgilerin silindi" on
+ * `deleted`; `skipped` (no service-role key, or no linked identity) and
+ * `failed` mean the account is closed and anonymised here but the identity
+ * still stands, so the app says the account was closed and nothing more.
  */
 export async function DELETE(request: Request) {
   try {
@@ -64,7 +71,10 @@ export async function DELETE(request: Request) {
         "Devam eden siparişin var. Sipariş tamamlandıktan sonra hesabını silebilirsin.",
       );
     }
-    return apiJson({ ok: true as const }, { private: true });
+    return apiJson(
+      { ok: true as const, identity: result.identity },
+      { private: true },
+    );
   } catch (err) {
     return routeFailure("api/mobile/v1/me DELETE", err);
   }
