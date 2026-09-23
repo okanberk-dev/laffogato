@@ -2397,7 +2397,10 @@ export async function placeAppOrder(
 // ── Payment application ───────────────────────────────────────────────────
 
 /** Why a payment arrived but could not be applied to its order. */
-export type PaymentReconcileReason = "amount_mismatch" | "order_not_open";
+export type PaymentReconcileReason =
+  | "amount_mismatch"
+  | "order_not_open"
+  | "duplicate_payment";
 
 export type PaymentApplyResult =
   | { ok: true; reconcile?: PaymentReconcileReason }
@@ -2450,6 +2453,29 @@ async function noteUnreconciledPayment(
       err,
     );
   }
+}
+
+/** Is there a succeeded transaction for this order under another reference? */
+async function hasOtherSucceededPayment(
+  orderId: string,
+  input: { provider: string; providerRef: string },
+): Promise<boolean> {
+  const { data, error } = await getDb()
+    .from(TABLES.paymentTransactions)
+    .select("provider, providerRef")
+    .eq("orderId", orderId)
+    .eq("status", "succeeded");
+  if (error) {
+    // Unknown is not "no": log it and let the caller treat the confirmation
+    // as the ordinary repeated one it most likely is.
+    console.error(`[payment] duplicate check failed order=${orderId}`, error);
+    return false;
+  }
+  return (
+    (data as { provider: string; providerRef: string }[] | null) ?? []
+  ).some(
+    (t) => t.provider !== input.provider || t.providerRef !== input.providerRef,
+  );
 }
 
 /**
@@ -2533,6 +2559,22 @@ export async function applyPaymentSucceeded(input: {
         { ...order, status: current.status },
         input,
         "order_not_open",
+      );
+    } else if (
+      isFirstConfirmation &&
+      (await hasOtherSucceededPayment(input.orderId, input))
+    ) {
+      // A SECOND charge, not a repeated notification: a new reference on an
+      // order another succeeded transaction already paid. PayNkolay allows
+      // several attempts under one clientRefCode, and the bridge page can be
+      // re-submitted from the browser's Back button. This used to pass as
+      // "harmless" — the customer was charged twice and mailed "ödemen
+      // alındı" twice, and nobody was told.
+      unreconciled = "duplicate_payment";
+      await noteUnreconciledPayment(
+        { ...order, status: current?.status ?? order.status },
+        input,
+        "duplicate_payment",
       );
     } else {
       console.warn(
@@ -3011,7 +3053,8 @@ export async function setOrderShipmentStatus(
     shipmentStatus: status.trim().slice(0, 40),
     // An empty url never blanks one the panel already holds: Geliver sends
     // the page when it has one and says nothing when it does not.
-    trackingUrl: trackingUrl.trim().slice(0, 500) || (existing.trackingUrl ?? ""),
+    trackingUrl:
+      trackingUrl.trim().slice(0, 500) || (existing.trackingUrl ?? ""),
     // The carrier's own instant when it sent one; the moment we heard it
     // otherwise — never "", or the next event could not be ordered against it.
     shipmentUpdatedAt: incomingAt || new Date().toISOString(),
