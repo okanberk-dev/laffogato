@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
+import { hasAppLinks } from "@/lib/mobile/app-store";
 
 import { createCampaignMailAction } from "../actions";
 import { CampaignMailForm } from "../campaign-mail-form";
@@ -19,6 +20,7 @@ export default async function NewCampaignMailPage() {
       <CampaignMailForm
         action={createCampaignMailAction}
         submitLabel="Taslağı oluştur"
+        appLinksReady={hasAppLinks()}
       />
     </main>
   );

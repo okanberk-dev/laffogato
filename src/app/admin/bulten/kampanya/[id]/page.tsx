@@ -10,11 +10,13 @@ import {
   campaignMailFieldsFor,
 } from "@/lib/admin/campaign-mail-schema";
 import {
+  campaignServerVars,
   getCampaignEmail,
   previewCampaignEmail,
   scheduledAtInputValue,
   type CampaignEmail,
 } from "@/lib/email/campaigns";
+import { hasAppLinks } from "@/lib/mobile/app-store";
 
 import {
   sendCampaignMailAction,
@@ -37,10 +39,19 @@ export const dynamic = "force-dynamic";
 // duration, and `after()` keeps sending batches inside it (240 s, then cron).
 export const maxDuration = 300;
 
-/** The preview, or the reason there is none — a hole in the template, named. */
-function preview(c: CampaignEmail): { html: string } | { error: string } {
+/**
+ * The preview, or the reason there is none - a hole in the template, named,
+ * or the app announcement still waiting for its store links. The values the
+ * server fills in (the stamp target) are resolved first, as the send does.
+ */
+async function preview(
+  c: CampaignEmail,
+): Promise<{ html: string } | { error: string }> {
   try {
-    return { html: previewCampaignEmail(c, { name: "Örnek Üye" }).html };
+    const serverVars = await campaignServerVars(c.template);
+    return {
+      html: previewCampaignEmail(c, { name: "Örnek Üye" }, serverVars).html,
+    };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -63,7 +74,7 @@ export default async function CampaignMailDetailPage({
     sendable || resumable
       ? await campaignAudienceCount(c.audience, c.template)
       : null;
-  const rendered = preview(c);
+  const rendered = await preview(c);
   const templateLabel = CAMPAIGN_MAIL_TEMPLATE_LABELS[c.template] ?? c.template;
   const audienceLabel = CAMPAIGN_MAIL_AUDIENCE_LABELS[c.audience] ?? c.audience;
 
@@ -95,6 +106,7 @@ export default async function CampaignMailDetailPage({
                 scheduledAt: scheduledAtInputValue(c.scheduledAt),
               }}
               submitLabel="Taslağı kaydet"
+              appLinksReady={hasAppLinks()}
             />
           ) : (
             <StoredFields c={c} />
@@ -143,7 +155,7 @@ export default async function CampaignMailDetailPage({
               )}
               <dt className="text-neutral-500">Oluşturan</dt>
               <dd className="truncate">
-                {c.createdBy || "—"}
+                {c.createdBy || "-"}
                 {c.createdAt ? ` · ${formatDateTime(c.createdAt)}` : ""}
               </dd>
               {c.sourcePostId && (
@@ -173,7 +185,7 @@ export default async function CampaignMailDetailPage({
             {resumable && (
               <p className="mt-3 text-xs text-neutral-500">
                 Gönderim sürüyor ya da yarım kaldı; kalan partileri günlük görev
-                tamamlar. Beklemek istemezsen aşağıdan sürdür — kimse iki kez
+                tamamlar. Beklemek istemezsen aşağıdan sürdür - kimse iki kez
                 almaz.
               </p>
             )}
@@ -292,6 +304,12 @@ function StoredFields({ c }: { c: CampaignEmail }) {
         Kuyruğa alınan kampanya düzenlenemez: gönderim defteri bu alanlarla
         kuruldu ve bir yeniden deneme aynı mesaj olmak zorunda.
       </p>
+      {rows.length === 0 && (
+        <p className="text-sm text-neutral-500">
+          Bu şablon sabit metinlidir; doldurulan alan yok. Gönderilen ileti
+          aşağıdaki önizlemededir.
+        </p>
+      )}
       <dl className="grid gap-3 text-sm">
         {rows.map((r) => (
           <div key={r.label}>

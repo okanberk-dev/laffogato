@@ -11,12 +11,15 @@ import {
   TextInput,
 } from "@/components/admin/forms";
 import {
+  CAMPAIGN_MAIL_APP_LINKS_MISSING,
   CAMPAIGN_MAIL_AUDIENCE_LABELS,
   CAMPAIGN_MAIL_GROUPS,
   CAMPAIGN_MAIL_TEMPLATE_LABELS,
   CAMPAIGN_MAIL_TEMPLATES,
   campaignMailAudienceFor,
   campaignMailAudiencesFor,
+  campaignMailHasFields,
+  campaignMailTemplateAvailable,
   isCampaignMailAudience,
   isCampaignMailTemplate,
   type CampaignMailField,
@@ -31,7 +34,7 @@ export interface CampaignMailDefaults {
   audience?: CampaignAudience;
   fields?: Record<string, string>;
   /**
-   * `YYYY-AA-GGTSS:DD` in Istanbul wall time — what a `datetime-local` input
+   * `YYYY-AA-GGTSS:DD` in Istanbul wall time - what a `datetime-local` input
    * reads and writes. The server turns it into an instant; the page turns the
    * stored instant back into one of these (`scheduledAtInputValue`).
    */
@@ -49,11 +52,16 @@ const initial: CampaignMailState = {};
  * Constants come from campaign-mail-schema, never from the e-mail modules:
  * those start with `server-only` and reach the database, and importing them
  * from a client component fails the build.
+ *
+ * `appLinksReady` is the page's `hasAppLinks()`: read on the server at
+ * request time, so the app announcement opens up the moment both store URLs
+ * are set, without trusting what a client bundle was built with.
  */
 export function CampaignMailForm({
   action,
   defaults,
   submitLabel,
+  appLinksReady = false,
 }: {
   action: (
     prev: CampaignMailState,
@@ -61,6 +69,7 @@ export function CampaignMailForm({
   ) => Promise<CampaignMailState>;
   defaults?: CampaignMailDefaults;
   submitLabel: string;
+  appLinksReady?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, initial);
   const [template, setTemplate] = useState<CampaignTemplateName>(
@@ -105,12 +114,30 @@ export function CampaignMailForm({
                 setAudience(campaignMailAudienceFor(next, audience));
               }}
             >
-              {CAMPAIGN_MAIL_TEMPLATES.map((t) => (
-                <option key={t} value={t}>
-                  {CAMPAIGN_MAIL_TEMPLATE_LABELS[t]}
-                </option>
-              ))}
+              {CAMPAIGN_MAIL_TEMPLATES.map((t) => {
+                const available = campaignMailTemplateAvailable(
+                  t,
+                  appLinksReady,
+                );
+                return (
+                  // A stored draft keeps its own template selectable, so the
+                  // select never shows a value it cannot hold.
+                  <option
+                    key={t}
+                    value={t}
+                    disabled={!available && t !== template}
+                  >
+                    {CAMPAIGN_MAIL_TEMPLATE_LABELS[t]}
+                    {available ? "" : " (mağaza bağlantıları bekleniyor)"}
+                  </option>
+                );
+              })}
             </Select>
+            {!campaignMailTemplateAvailable(template, appLinksReady) && (
+              <p className="mt-2 text-xs text-amber-700">
+                {CAMPAIGN_MAIL_APP_LINKS_MISSING}
+              </p>
+            )}
           </Field>
 
           <Field
@@ -165,6 +192,19 @@ export function CampaignMailForm({
           )}
         </div>
       </Card>
+
+      {!campaignMailHasFields(template) && (
+        <Card>
+          <h3 className="mb-1 text-sm font-medium tracking-widest text-neutral-500 uppercase">
+            Sabit metin
+          </h3>
+          <p className="text-xs text-[var(--admin-text-mute)]">
+            Bu şablonun doldurulacak alanı yok: konu, metin ve mağaza
+            bağlantıları şablondan, damga hedefi mobil uygulama ayarlarından
+            gelir. Taslağı kaydettikten sonra önizlemeden kontrol et.
+          </p>
+        </Card>
+      )}
 
       {CAMPAIGN_MAIL_GROUPS[template].map((group) => (
         <Card key={`${template}:${group.title}`}>

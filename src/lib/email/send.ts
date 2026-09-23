@@ -1,5 +1,9 @@
 import "server-only";
 
+import {
+  CAMPAIGN_MAIL_APP_LINKS_MISSING,
+  campaignMailTemplateAvailable,
+} from "@/lib/admin/campaign-mail-schema";
 import { hasAppLinks } from "@/lib/mobile/app-store";
 import { SITE } from "@/lib/seo/site";
 import { formatTRYMinor } from "@/lib/utils/commerce";
@@ -416,7 +420,7 @@ export async function sendOrderPlacedEmail(
  * ways is a cycle. A settings read must never cost an order confirmation, so
  * the built-in default stands in when the database is unreachable.
  */
-async function stampTarget(): Promise<string> {
+export async function stampTarget(): Promise<string> {
   try {
     const { getSettings } = await import("@/lib/admin/store");
     const s = await getSettings();
@@ -826,8 +830,15 @@ export type CampaignTemplateName =
   | "kampanya-etkinlik"
   | "kampanya-yeni-urun"
   | "kampanya-indirim"
-  | "bulten-kampanya";
+  | "bulten-kampanya"
+  | "mobil-uygulama";
 
+/**
+ * `mobil-uygulama` is the app launch announcement: fixed copy, no form
+ * fields, and nothing to say without the two store links - the panel offers
+ * it only once both exist (`campaignMailTemplateAvailable`) and the render
+ * below refuses it otherwise.
+ */
 export const CAMPAIGN_TEMPLATES: readonly CampaignTemplateName[] = [
   "kampanya-duyuru",
   "kampanya-bonus-damga",
@@ -837,6 +848,7 @@ export const CAMPAIGN_TEMPLATES: readonly CampaignTemplateName[] = [
   "kampanya-yeni-urun",
   "kampanya-indirim",
   "bulten-kampanya",
+  "mobil-uygulama",
 ];
 
 /**
@@ -855,6 +867,9 @@ export function renderCampaignMail(
   vars: Record<string, string>,
   unsubscribeUrl: string,
 ): RenderedEmail {
+  if (!campaignMailTemplateAvailable(template, hasAppLinks())) {
+    throw new Error(CAMPAIGN_MAIL_APP_LINKS_MISSING);
+  }
   const filled = { ...vars };
   if (filled.KAMPANYA_GORSEL_URL && !filled.KAMPANYA_GORSEL_ALT) {
     filled.KAMPANYA_GORSEL_ALT = filled.KAMPANYA_BASLIK ?? "";

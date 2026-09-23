@@ -46,6 +46,18 @@ const ADMIN = "yonetici@laffogato.net";
 /** Another panel account — the only other place a test may go. */
 const COLLEAGUE = "ali@ornek.com";
 
+/** Whether both store listings exist - `hasAppLinks()` for this file. */
+let appLinks = false;
+vi.mock("@/lib/mobile/app-store", () => ({
+  hasAppLinks: () => appLinks,
+  get APP_STORE_URL() {
+    return appLinks ? "https://apps.apple.com/app/id1" : "";
+  },
+  get PLAY_STORE_URL() {
+    return appLinks ? "https://play.google.com/store/apps/details?id=x" : "";
+  },
+}));
+
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("next/server", () => ({ after }));
@@ -86,13 +98,17 @@ const {
 const { createPostAction, updatePostAction } =
   await import("@/app/admin/mobil/gonderiler/actions");
 const {
+  CAMPAIGN_MAIL_APP_LINKS_MISSING,
   CAMPAIGN_MAIL_AUDIENCE_LABELS,
   CAMPAIGN_MAIL_AUDIENCE_MISMATCH,
   CAMPAIGN_MAIL_FIELD_KEYS,
+  CAMPAIGN_MAIL_GROUPS,
   CAMPAIGN_MAIL_TEMPLATES,
   campaignMailAudienceFor,
   campaignMailAudiencesFor,
   campaignMailFieldsFor,
+  campaignMailHasFields,
+  campaignMailTemplateAvailable,
 } = await import("@/lib/admin/campaign-mail-schema");
 const {
   AUDIENCE_TEMPLATE_MISMATCH,
@@ -179,6 +195,7 @@ function postForm(over: Record<string, string> = {}): FormData {
 beforeEach(() => {
   vi.clearAllMocks();
   scheduled.length = 0;
+  appLinks = false;
   createCampaignEmail.mockImplementation(async (input) =>
     draft({ id: "cmail-new", ...input, subject: input.fields.KAMPANYA_BASLIK }),
   );
@@ -697,7 +714,7 @@ describe("the post form's e-mail box", () => {
 });
 
 describe("campaign-mail-schema mirrors the e-mail modules", () => {
-  /** Filled by `renderEmail` itself, never by the form. */
+  /** Filled by `renderEmail` or the server, never by the form. */
   const AUTO = new Set([
     "AD",
     "APP_STORE_URL",
@@ -706,6 +723,8 @@ describe("campaign-mail-schema mirrors the e-mail modules", () => {
     // The sender's registered title and MERSİS number (commonVars).
     "UNVAN",
     "MERSIS",
+    // The loyalty card size, from the settings (`campaignServerVars`).
+    "DAMGA_HEDEFI",
   ]);
 
   it("gates the audience per template exactly as the store does", () => {
@@ -782,12 +801,15 @@ describe("campaign-mail-schema mirrors the e-mail modules", () => {
       expect(new Set(keys).size).toBe(keys.length);
       for (const key of keys) expect(all.has(key), key).toBe(true);
       // The form marks required exactly what the template renders outside
-      // an optional block — except the button URL, which the schema fills
-      // with the campaigns page when it is left blank.
+      // an optional block - except the button URL, which the schema fills
+      // with the campaigns page when it is left blank. A fixed-copy template
+      // has no button of the operator's and no fields at all.
       const markedRequired = new Set(
         fields.filter((f) => f.required).map((f) => f.key),
       );
-      expect(required.has("KAMPANYA_URL")).toBe(true);
+      expect(required.has("KAMPANYA_URL")).toBe(
+        campaignMailHasFields(template),
+      );
       expect(markedRequired.has("KAMPANYA_URL")).toBe(false);
       required.delete("KAMPANYA_URL");
       expect([...markedRequired].sort()).toEqual([...required].sort());
@@ -826,5 +848,56 @@ describe("campaign-mail-schema mirrors the e-mail modules", () => {
       expect(parsed.success, key).toBe(true);
       if (parsed.success) expect(parsed.data[key], key).toBe(value);
     }
+  });
+});
+
+describe("the app announcement in the panel", () => {
+  it("is offered as a fixed-copy template with no fields to fill", () => {
+    expect(CAMPAIGN_MAIL_TEMPLATES).toContain("mobil-uygulama");
+    expect(CAMPAIGN_TEMPLATES).toContain("mobil-uygulama");
+    expect(CAMPAIGN_MAIL_GROUPS["mobil-uygulama"]).toEqual([]);
+    expect(campaignMailHasFields("mobil-uygulama")).toBe(false);
+    // It says "your stamp card is in the app": members only.
+    expect(campaignMailAudiencesFor("mobil-uygulama")).toEqual(["marketing"]);
+    expect([...audiencesForTemplate("mobil-uygulama")]).toEqual(["marketing"]);
+  });
+
+  it("is greyed out until both store links exist, and only it", () => {
+    expect(campaignMailTemplateAvailable("mobil-uygulama", false)).toBe(false);
+    expect(campaignMailTemplateAvailable("mobil-uygulama", true)).toBe(true);
+    for (const t of CAMPAIGN_MAIL_TEMPLATES) {
+      if (t === "mobil-uygulama") continue;
+      expect(campaignMailTemplateAvailable(t, false), t).toBe(true);
+    }
+  });
+
+  it("refuses a draft of it without the store links, whatever the form says", async () => {
+    const state = await createCampaignMailAction(
+      {},
+      form({ template: "mobil-uygulama", audience: "marketing" }),
+    );
+    expect(state.error).toBe(CAMPAIGN_MAIL_APP_LINKS_MISSING);
+    expect(createCampaignEmail).not.toHaveBeenCalled();
+  });
+
+  it("saves a draft of it with no fields once the links exist", async () => {
+    appLinks = true;
+    await createCampaignMailAction(
+      {},
+      // A stray title from another template's form is not kept.
+      form({
+        template: "mobil-uygulama",
+        audience: "marketing",
+        KAMPANYA_BASLIK: "eski başlık",
+      }),
+    );
+    expect(createCampaignEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        template: "mobil-uygulama",
+        audience: "marketing",
+        fields: {},
+      }),
+    );
+    expect(redirect).toHaveBeenCalledWith(`${LIST}/cmail-new`);
   });
 });

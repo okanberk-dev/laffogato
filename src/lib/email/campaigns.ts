@@ -8,9 +8,15 @@ import {
   APP_POST_KIND_LABELS,
   type AppPostKind,
 } from "@/lib/admin/app-content-schema";
+import {
+  CAMPAIGN_MAIL_APP_LINKS_MISSING,
+  campaignMailHasFields,
+  campaignMailTemplateAvailable,
+} from "@/lib/admin/campaign-mail-schema";
 import type { AdminAppPost } from "@/lib/admin/store";
 import { getDb, TABLES, type DbError } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
+import { hasAppLinks } from "@/lib/mobile/app-store";
 import { SITE } from "@/lib/seo/site";
 
 import { renderEmail, type RenderedEmail } from "./render";
@@ -18,11 +24,13 @@ import {
   CAMPAIGN_TEMPLATES,
   deliverBatch,
   sendCampaignMail,
+  stampTarget,
   unsubscribeUrlFor,
   type BatchMessage,
   type CampaignTemplateName,
   type SendResult,
 } from "./send";
+import { EMAIL_TEMPLATES } from "./templates.generated";
 import { EMAIL_TEXT } from "./text";
 
 /**
@@ -275,7 +283,16 @@ export const campaignFieldsSchema: z.ZodType<Record<string, string>> =
     return out;
   });
 
-function parseFields(raw: Record<string, string>): Record<string, string> {
+/**
+ * The stored values for a template. A fixed-copy template (the app
+ * announcement) has no fields and stores none: its subject and text are the
+ * template's, and the one value it needs, the stamp target, is the server's.
+ */
+function parseFields(
+  template: CampaignTemplateName,
+  raw: Record<string, string>,
+): Record<string, string> {
+  if (!campaignMailHasFields(template)) return {};
   const parsed = campaignFieldsSchema.safeParse(raw);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
@@ -329,9 +346,41 @@ export function scheduledAtInputValue(iso: string): string {
   return new Date(ms + 3 * 60 * 60_000).toISOString().slice(0, 16);
 }
 
-/** The subject IS the campaign title, for every campaign template. */
-export function subjectFor(input: { fields: Record<string, string> }): string {
+/**
+ * The subject IS the campaign title, for every template with fields; a
+ * fixed-copy template carries its own (`data-subject`).
+ */
+export function subjectFor(input: {
+  fields: Record<string, string>;
+  template?: CampaignTemplateName;
+}): string {
+  if (input.template && !campaignMailHasFields(input.template)) {
+    return EMAIL_TEMPLATES[input.template]?.subject ?? "";
+  }
   return (input.fields.KAMPANYA_BASLIK ?? "").trim();
+}
+
+/**
+ * The values a campaign's template needs that no form supplies, resolved
+ * before the synchronous render: today only `[DAMGA_HEDEFI]`, which the app
+ * announcement quotes ("6 damgada bir içecek bizden") from the panel's
+ * loyalty settings. Asked for only by a template that carries the field, so
+ * the other campaigns never touch the settings row.
+ */
+export async function campaignServerVars(
+  template: CampaignTemplateName,
+): Promise<Record<string, string>> {
+  const html = EMAIL_TEMPLATES[template]?.html ?? "";
+  const text = EMAIL_TEXT[template] ?? "";
+  if (!`${html}${text}`.includes("[DAMGA_HEDEFI]")) return {};
+  return { DAMGA_HEDEFI: await stampTarget() };
+}
+
+/** The app announcement without both store links is refused everywhere. */
+function assertTemplateAvailable(template: CampaignTemplateName): void {
+  if (!campaignMailTemplateAvailable(template, hasAppLinks())) {
+    throw new Error(CAMPAIGN_MAIL_APP_LINKS_MISSING);
+  }
 }
 
 /** Which member preference a template's audience of members is read from. */
@@ -440,8 +489,8 @@ interface CampaignSendRow {
 export async function createCampaignEmail(
   input: CampaignInput,
 ): Promise<CampaignEmail> {
-  const fields = parseFields(input.fields);
   const template = assertTemplate(input.template);
+  const fields = parseFields(template, input.fields);
   const audience = assertAudience(input.audience);
   assertAudienceForTemplate(template, audience);
   const now = new Date().toISOString();
@@ -450,7 +499,7 @@ export async function createCampaignEmail(
     template,
     status: "draft",
     audience,
-    subject: subjectFor({ fields }),
+    subject: subjectFor({ fields, template }),
     fields,
     sourcePostId: (input.sourcePostId ?? "").trim().slice(0, 100),
     createdBy: input.createdBy.trim().slice(0, 200),
@@ -489,15 +538,18 @@ export async function updateCampaignEmail(
       ? assertAudience(patch.audience)
       : current.audience;
   assertAudienceForTemplate(template, audience);
-  const fields =
-    patch.fields !== undefined ? parseFields(patch.fields) : current.fields;
+  const fields = !campaignMailHasFields(template)
+    ? {}
+    : patch.fields !== undefined
+      ? parseFields(template, patch.fields)
+      : current.fields;
   const { data, error } = await getDb()
     .from(TABLES.campaignEmails)
     .update({
       template,
       audience,
       fields,
-      subject: subjectFor({ fields }),
+      subject: subjectFor({ fields, template }),
       scheduledAt:
         patch.scheduledAt !== undefined
           ? normalizeScheduledAt(patch.scheduledAt)
@@ -578,23 +630,33 @@ function previewUnsubscribeUrl(): string {
 function renderCampaign(
   c: Pick<CampaignEmail, "template" | "fields">,
   recipient: { name: string; unsubscribeUrl: string },
+  serverVars: Record<string, string> = {},
 ): RenderedEmail {
+  assertTemplateAvailable(c.template);
   return renderEmail(c.template, {
-    vars: { ...c.fields, AD: recipient.name.trim() },
+    vars: { ...c.fields, ...serverVars, AD: recipient.name.trim() },
     text: EMAIL_TEXT[c.template],
     unsubscribeUrl: recipient.unsubscribeUrl,
   });
 }
 
-/** For the panel's preview frame. Throws on a field the template needs. */
+/**
+ * For the panel's preview frame. Throws on a field the template needs.
+ * `serverVars` is `campaignServerVars(c.template)`, resolved by the page.
+ */
 export function previewCampaignEmail(
   c: CampaignEmail,
   sample?: { name?: string },
+  serverVars: Record<string, string> = {},
 ): RenderedEmail {
-  return renderCampaign(c, {
-    name: sample?.name ?? "",
-    unsubscribeUrl: previewUnsubscribeUrl(),
-  });
+  return renderCampaign(
+    c,
+    {
+      name: sample?.name ?? "",
+      unsubscribeUrl: previewUnsubscribeUrl(),
+    },
+    serverVars,
+  );
 }
 
 /**
@@ -610,10 +672,13 @@ export async function sendCampaignTest(
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
     return { ok: false, error: "Geçerli bir e-posta adresi gir." };
   }
+  if (!campaignMailTemplateAvailable(c.template, hasAppLinks())) {
+    return { ok: false, error: CAMPAIGN_MAIL_APP_LINKS_MISSING };
+  }
   return sendCampaignMail(
     c.template,
     address,
-    { ...c.fields, AD: "Test" },
+    { ...c.fields, ...(await campaignServerVars(c.template)), AD: "Test" },
     previewUnsubscribeUrl(),
   );
 }
@@ -655,10 +720,14 @@ export async function queueCampaignEmail(
       `Kampanya "${CAMPAIGN_STATUS_LABELS[c.status] ?? c.status}" durumunda; yeniden kuyruğa alınamaz.`,
     );
   }
-  renderCampaign(c, {
-    name: "Örnek Üye",
-    unsubscribeUrl: previewUnsubscribeUrl(),
-  });
+  renderCampaign(
+    c,
+    {
+      name: "Örnek Üye",
+      unsubscribeUrl: previewUnsubscribeUrl(),
+    },
+    await campaignServerVars(c.template),
+  );
 
   const { error } = await getDb().rpc<number>("campaign_email_enqueue", {
     p_campaign: id,
@@ -832,6 +901,17 @@ export async function runCampaignEmail(
   let sent = 0;
   let failed = 0;
   try {
+    // Queued while both store links existed, run after one went away: the
+    // rows stay queued (nobody is marked failed for it) and the campaign
+    // says why, to be sent again once the links are back.
+    if (!campaignMailTemplateAvailable(campaign.template, hasAppLinks())) {
+      await patchCampaign(id, {
+        status: "failed",
+        lastError: CAMPAIGN_MAIL_APP_LINKS_MISSING,
+      });
+      return { sent, failed, remaining: await remainingCount(id) };
+    }
+    const serverVars = await campaignServerVars(campaign.template);
     await patchCampaign(id, { status: "sending", lastError: "" });
     const dryRun = process.env.CAMPAIGN_EMAIL_DRY_RUN === "1";
     const vercelEnv = process.env.VERCEL_ENV ?? "";
@@ -851,10 +931,14 @@ export async function runCampaignEmail(
       const messages: BatchMessage[] = [];
       for (const row of rows) {
         try {
-          const r = renderCampaign(campaign, {
-            name: row.name,
-            unsubscribeUrl: row.unsubUrl,
-          });
+          const r = renderCampaign(
+            campaign,
+            {
+              name: row.name,
+              unsubscribeUrl: row.unsubUrl,
+            },
+            serverVars,
+          );
           messages.push({
             to: row.email,
             subject: r.subject,

@@ -7,9 +7,12 @@ import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { startCampaignSend } from "@/lib/admin/campaign-mail";
 import {
+  CAMPAIGN_MAIL_APP_LINKS_MISSING,
   CAMPAIGN_MAIL_AUDIENCE_MISMATCH,
   CAMPAIGN_MAIL_FIELD_KEYS,
   campaignMailAudiencesFor,
+  campaignMailHasFields,
+  campaignMailTemplateAvailable,
   isCampaignMailAudience,
   isCampaignMailTemplate,
 } from "@/lib/admin/campaign-mail-schema";
@@ -25,6 +28,7 @@ import {
   type CampaignAudience,
 } from "@/lib/email/campaigns";
 import type { CampaignTemplateName } from "@/lib/email/send";
+import { hasAppLinks } from "@/lib/mobile/app-store";
 
 export interface CampaignMailState {
   message?: string;
@@ -35,7 +39,7 @@ const LIST_PATH = "/admin/bulten/kampanya";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * A stored instant as the operator reads it — Tuzla's clock, never the
+ * A stored instant as the operator reads it - Tuzla's clock, never the
  * server's. The schedule is agreed in Istanbul time, so it is confirmed back
  * in Istanbul time.
  */
@@ -55,7 +59,7 @@ function scheduleLabel(iso: string): string {
 
 /**
  * Rol kapısı her action'da ayrıca açılır: sayfadaki `requireRole` bir Server
- * Action'ı korumaz — action, sayfadan bağımsız çağrılabilen bir POST ucudur.
+ * Action'ı korumaz - action, sayfadan bağımsız çağrılabilen bir POST ucudur.
  * Kapı burada yoksa, paneli hiç açmamış biri de rıza vermiş her üyeye ticari
  * ileti gönderebilir.
  */
@@ -84,6 +88,11 @@ function parseDraft(formData: FormData): ParsedDraft {
   if (!isCampaignMailTemplate(template)) {
     return { ok: false, error: "Şablon seçilmedi." };
   }
+  // The panel greys the app announcement out until both store listings
+  // exist; a forged or stale form gets the same sentence.
+  if (!campaignMailTemplateAvailable(template, hasAppLinks())) {
+    return { ok: false, error: CAMPAIGN_MAIL_APP_LINKS_MISSING };
+  }
   const audience = String(formData.get("audience") ?? "");
   if (!isCampaignMailAudience(audience)) {
     return { ok: false, error: "Kitle geçersiz." };
@@ -92,6 +101,12 @@ function parseDraft(formData: FormData): ParsedDraft {
   // checked here so the form gets the sentence rather than a thrown one.
   if (!campaignMailAudiencesFor(template).includes(audience)) {
     return { ok: false, error: CAMPAIGN_MAIL_AUDIENCE_MISMATCH };
+  }
+  const scheduledAt = String(formData.get("scheduledAt") ?? "").trim();
+  // Fixed copy: nothing to read, nothing to validate. The shared schema
+  // would otherwise insist on a title this template does not have.
+  if (!campaignMailHasFields(template)) {
+    return { ok: true, template, audience, fields: {}, scheduledAt };
   }
   const raw: Record<string, string> = {};
   for (const key of CAMPAIGN_MAIL_FIELD_KEYS) {
@@ -105,9 +120,8 @@ function parseDraft(formData: FormData): ParsedDraft {
     };
   }
   // Zamanlama: boş = elle gönderilecek. Biçim denetimi sunucuda
-  // (`normalizeScheduledAt`) — okunamayan bir değer sessizce "elle"ye döner,
+  // (`normalizeScheduledAt`) - okunamayan bir değer sessizce "elle"ye döner,
   // kimsenin seçmediği bir saatte ticari ileti çıkmaz.
-  const scheduledAt = String(formData.get("scheduledAt") ?? "").trim();
   return { ok: true, template, audience, fields: parsed.data, scheduledAt };
 }
 
@@ -222,7 +236,7 @@ export async function deleteCampaignMailAction(formData: FormData) {
 const TEST_RECIPIENTS_ONLY = "Test yalnız panel kullanıcılarına gönderilir.";
 
 /**
- * A test may go to the signed-in operator or to another panel account —
+ * A test may go to the signed-in operator or to another panel account -
  * nobody else. It is a real commercial message with a dummy way out; typed
  * at a stranger's address it would be exactly the mail 6563 forbids, audit
  * row or not.
@@ -237,8 +251,8 @@ async function isPanelAddress(
 }
 
 /**
- * One real message to one inbox — the operator's own unless they type
- * another panel user's — outside the send log, with AD = Test and a dummy
+ * One real message to one inbox - the operator's own unless they type
+ * another panel user's - outside the send log, with AD = Test and a dummy
  * way out on the same route the members' links use. The provider's verdict
  * is shown as it is: every other mail path swallows a delivery failure on
  * purpose, so this is where "domain not verified" gets to be read by a
@@ -282,7 +296,7 @@ export async function sendCampaignMailTestAction(
 /**
  * "Gönder": the audience goes into the send log now, the batches go out in
  * the background (`after()`), and the row on the list page tells the rest.
- * Safe to press twice — the enqueue skips everyone already queued — which is
+ * Safe to press twice - the enqueue skips everyone already queued - which is
  * also how a campaign left half-sent by a timeout is resumed by hand.
  */
 export async function sendCampaignMailAction(
@@ -298,7 +312,7 @@ export async function sendCampaignMailAction(
     if (!c) return { error: "Kampanya bulunamadı." };
     ({ total } = await startCampaignSend(id));
   } catch (err) {
-    // A missing field ("doldurulmamış alan — [KAMPANYA_METIN]"), a campaign
+    // A missing field ("doldurulmamış alan - [KAMPANYA_METIN]"), a campaign
     // that is already sent, or the database: the message names which.
     return { error: `Gönderim başlatılamadı - ${describe(err)}` };
   }
@@ -316,7 +330,7 @@ export async function sendCampaignMailAction(
   revalidatePath(LIST_PATH);
   revalidatePath(`${LIST_PATH}/${id}`);
   if (total === 0) {
-    // What the runner does with an empty send log: no batch, no failure —
+    // What the runner does with an empty send log: no batch, no failure -
     // the row closes as 'sent' with zero recipients (runCampaignEmail).
     return {
       message:

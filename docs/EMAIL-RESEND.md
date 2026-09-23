@@ -239,18 +239,20 @@ Yirmi iki şablon - her satırda **tetikleyici · izin sınıfı · idempotency*
 | `karaoke-iptal`                        | işlemsel          | personel panelden iptal etti (`setReservationStatus`) · aynı geçiş kilidi       |
 | `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                 |
 | `bulten-kampanya`                      | **ticari (6563)** | `sendCampaignMail` · 3 ürün seçkisi + kod · `cmp-<kampanya>-b<parti>`           |
-| `mobil-uygulama`                       | **ticari (6563)** | uygulama duyurusu — **hiçbir yoldan gönderilemiyor**, aşağıya bak               |
+| `mobil-uygulama`                       | **ticari (6563)** | `/admin/bulten/kampanya` "Uygulama duyurusu" · `cmp-<kampanya>-b<parti>` · mağaza linkleri olmadan seçilemez |
 | `dogum-gunu`                           | **ticari (6563)** | günlük cron (`/api/cron/birthday`) · idempotency = kuponun kendisi              |
 | `kampanya-duyuru` … `kampanya-indirim` | **ticari (6563)** | `/admin/bulten/kampanya`, zamanlama ve gönderi kancası — bkz. §7                |
 
-**`mobil-uygulama` hâlâ ulaşılamaz.** Şablon, düz metin ikizi ve testi
-hazır; `sendAppAnnouncementEmail` çağıransız ve panelin şablon listesinde
-(`CAMPAIGN_MAIL_TEMPLATES`) yok. Kampanya boru hattına almak için gereken:
-`CampaignTemplateName` birliği + `CAMPAIGN_TEMPLATES` (`send.ts`),
-`CAMPAIGN_MAIL_TEMPLATES` + `_LABELS` + `_GROUPS` (boş dizi)
-(`src/lib/admin/campaign-mail-schema.ts`) ve şablonun `[DAMGA_HEDEFI]`
-bağımlılığının çözülmesi — `renderCampaign` senkrondur, `stampTarget()`
-değil. Uygulama mağazalara çıkmadan önce yapılmalı.
+**`mobil-uygulama` kampanya panelinde (23 Eyl 2026).** Şablon listesinde
+"Uygulama duyurusu (sabit metin)" olarak durur: doldurulacak alanı yok, konu
+şablonun kendi `data-subject`'i, `[DAMGA_HEDEFI]` senkron render'dan önce
+`campaignServerVars()` ile mobil uygulama ayarlarından okunur, kitle yalnız
+pazarlama izni olan üyelerdir. `NEXT_PUBLIC_APP_STORE_URL` ve
+`NEXT_PUBLIC_PLAY_STORE_URL` ikisi de tanımlanana kadar panel seçeneği
+gri gösterir, sunucu da taslağı, önizlemeyi, testi, kuyruğu ve gönderimi
+reddeder (`campaignMailTemplateAvailable`). Linkler girildikten sonra bir
+kampanya olarak zamanlanıp gönderilir; eski `sendAppAnnouncementEmail`
+hâlâ çağıransızdır.
 
 **Sipariş bildirimleri (23 Eyl 2026).** Hukuki metinler üç e-posta söz
 veriyordu, hiçbiri gitmiyordu: taşıyıcıya teslimde kargo takip numarası

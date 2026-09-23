@@ -67,7 +67,10 @@ Yedi `kampanya-*` şablonu tek bir alan sözlüğünü paylaşır; yönetim pane
 kancası `kampanya-duyuru`'yu kendiliğinden üretir. Konu `[KAMPANYA_BASLIK]`,
 ön izleme `[KAMPANYA_ALT]`. `send.ts` aileyi `CAMPAIGN_TEMPLATES` ·
 `renderCampaignMail` · `sendCampaignMail` ile, toplu gönderimi `deliverBatch`
-ile sunar (`bulten-kampanya` da aileye dâhildir).
+ile sunar (`bulten-kampanya` da aileye dâhildir). `mobil-uygulama` da
+panelden gönderilir ama alan sözlüğünü paylaşmaz: sabit metinlidir, konusu
+kendi `data-subject`'idir, `[DAMGA_HEDEFI]`'ni sunucu çözer
+(`campaignServerVars`) ve iki mağaza linki tanımlanana kadar seçilemez.
 
 | Şablon               | Mod  | Ne için                       | Şablona özgü alanlar                                |
 | -------------------- | ---- | ----------------------------- | --------------------------------------------------- |

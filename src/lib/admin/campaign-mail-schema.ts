@@ -1,12 +1,12 @@
 /**
- * Shared vocabulary for the campaign e-mail form — template names and their
+ * Shared vocabulary for the campaign e-mail form - template names and their
  * Turkish labels, the audiences, and which `[ALAN]` each template asks for.
  *
  * This file exists for the same reason as every other `*-schema.ts` here:
  * `@/lib/email/campaigns` and `@/lib/email/send` start with `server-only`
  * and reach the database, so a "use client" form cannot import a constant
  * from them without dragging `pg` into the browser bundle. Only TYPES are
- * imported from those modules — `import type` is erased at compile time.
+ * imported from those modules - `import type` is erased at compile time.
  *
  * The maps below mirror two sources of truth and are pinned to them by
  * tests/admin-campaign-mail-actions.test.ts: the template list must equal
@@ -27,6 +27,7 @@ export const CAMPAIGN_MAIL_TEMPLATES: readonly CampaignTemplateName[] = [
   "kampanya-yeni-urun",
   "kampanya-indirim",
   "bulten-kampanya",
+  "mobil-uygulama",
 ];
 
 export const CAMPAIGN_MAIL_TEMPLATE_LABELS: Record<
@@ -41,7 +42,35 @@ export const CAMPAIGN_MAIL_TEMPLATE_LABELS: Record<
   "kampanya-yeni-urun": "Yeni ürün / ön erişim",
   "kampanya-indirim": "İndirim",
   "bulten-kampanya": "Bülten (3 ürün + kod)",
+  "mobil-uygulama": "Uygulama duyurusu (sabit metin)",
 };
+
+/**
+ * Templates whose whole message is the two store links. The app launch
+ * announcement says "the app is out, here it is": sent before both listings
+ * exist it would be a promise with nowhere to go. The panel greys it out and
+ * the server refuses to render it (`renderCampaignMail`, the campaign
+ * runner) until `NEXT_PUBLIC_APP_STORE_URL` and `NEXT_PUBLIC_PLAY_STORE_URL`
+ * are both set.
+ */
+export const CAMPAIGN_MAIL_NEEDS_APP_LINKS: readonly CampaignTemplateName[] = [
+  "mobil-uygulama",
+];
+
+export const CAMPAIGN_MAIL_APP_LINKS_MISSING =
+  "Uygulama duyurusu, iki mağaza bağlantısı da tanımlanana kadar seçilemez ve gönderilemez (NEXT_PUBLIC_APP_STORE_URL, NEXT_PUBLIC_PLAY_STORE_URL).";
+
+/**
+ * May this template be picked (panel) or sent (server) right now? The caller
+ * passes `hasAppLinks()`: this file is imported by a client component and
+ * does not read the environment itself.
+ */
+export function campaignMailTemplateAvailable(
+  template: CampaignTemplateName,
+  appLinksReady: boolean,
+): boolean {
+  return appLinksReady || !CAMPAIGN_MAIL_NEEDS_APP_LINKS.includes(template);
+}
 
 export function isCampaignMailTemplate(
   value: string,
@@ -69,7 +98,7 @@ export function isCampaignMailAudience(
 }
 
 /**
- * Which audiences a template may be sent to — mirrors `audiencesForTemplate`
+ * Which audiences a template may be sent to - mirrors `audiencesForTemplate`
  * in `@/lib/email/campaigns` (server-only), pinned by the actions test. The
  * seven `kampanya-*` layouts say "Yalnız L'Affogato üyelerine özel", so they
  * go to members only; the bulletin carries no such line and may go to anyone.
@@ -116,7 +145,7 @@ export interface CampaignMailField {
   max: number;
   /**
    * The template renders this field outside any optional block, so a blank
-   * one fails the render — "Gönder" refuses the campaign, naming the field.
+   * one fails the render - "Gönder" refuses the campaign, naming the field.
    */
   required: boolean;
   placeholder?: string;
@@ -165,7 +194,7 @@ const url = (
   ...extra,
 });
 
-/** Title, sub-line, body — the top of every `kampanya-*` layout. */
+/** Title, sub-line, body - the top of every `kampanya-*` layout. */
 const HEAD: CampaignMailGroup = {
   title: "Başlık ve metin",
   fields: [
@@ -222,7 +251,7 @@ const EXTRAS: CampaignMailGroup = {
   hint: "İkisi de isteğe bağlı; boş bırakılan satır basılmaz.",
   fields: [
     text("KAMPANYA_TARIH", "Tarih satırı", 40, false, {
-      placeholder: "1–30 Eylül",
+      placeholder: "1 - 30 Eylül",
     }),
     text("KAMPANYA_DIPNOT", "Dipnot", 160, false, {
       hint: "Küçük puntoda, butonun altında.",
@@ -234,7 +263,7 @@ const code = (required: boolean): CampaignMailGroup => ({
   title: "Kupon kodu",
   hint: required
     ? "Bu şablonda kod kutusu her zaman basılır."
-    : "İsteğe bağlı. Kod girilirse son kullanım da zorunludur — süresi olmayan bir kod, tutulamayacak bir sözdür.",
+    : "İsteğe bağlı. Kod girilirse son kullanım da zorunludur - süresi olmayan bir kod, tutulamayacak bir sözdür.",
   fields: [
     text("KUPON_KODU", "Kod", 24, required, { placeholder: "EYLUL10" }),
     text("SON_KULLANIM", "Son kullanım", 40, required, {
@@ -250,7 +279,7 @@ const EVENT: CampaignMailGroup = {
     text("ETKINLIK_TARIH", "Tarih", 60, true, {
       placeholder: "Cumartesi, 20 Eylül",
     }),
-    text("ETKINLIK_SAAT", "Saat", 60, true, { placeholder: "17:00–19:00" }),
+    text("ETKINLIK_SAAT", "Saat", 60, true, { placeholder: "17:00 - 19:00" }),
   ],
 };
 
@@ -323,7 +352,18 @@ export const CAMPAIGN_MAIL_GROUPS: Record<
   "kampanya-yeni-urun": [HEAD, STEPS, IMAGE, CTA, EXTRAS],
   "kampanya-indirim": [HEAD, DISCOUNT, IMAGE, CTA, EXTRAS, code(false)],
   "bulten-kampanya": [BULTEN_HEAD, PRODUCTS, code(true), CTA],
+  // Fixed copy: the subject, the text and the stamp target all come from the
+  // template and the server. Nothing for the operator to type.
+  "mobil-uygulama": [],
 };
+
+/**
+ * A template with no fields at all: the form shows none, the draft stores
+ * none, and its subject is the template's own rather than a typed title.
+ */
+export function campaignMailHasFields(template: CampaignTemplateName): boolean {
+  return CAMPAIGN_MAIL_GROUPS[template].length > 0;
+}
 
 /** The template's fields, flattened, in form order. */
 export function campaignMailFieldsFor(
@@ -332,7 +372,7 @@ export function campaignMailFieldsFor(
   return CAMPAIGN_MAIL_GROUPS[template].flatMap((g) => [...g.fields]);
 }
 
-/** Every field key any template uses — what a Server Action reads off the form. */
+/** Every field key any template uses - what a Server Action reads off the form. */
 export const CAMPAIGN_MAIL_FIELD_KEYS: readonly string[] = [
   ...new Set(
     CAMPAIGN_MAIL_TEMPLATES.flatMap((t) =>

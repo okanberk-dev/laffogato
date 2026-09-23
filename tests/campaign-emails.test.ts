@@ -27,6 +27,18 @@ vi.mock("@/lib/db", () => fakeCampaignDb());
 const deliverBatch = vi.fn();
 const sendCampaignMail = vi.fn();
 
+/** Whether both store listings exist - `hasAppLinks()` for this file. */
+let appLinks = false;
+vi.mock("@/lib/mobile/app-store", () => ({
+  hasAppLinks: () => appLinks,
+  get APP_STORE_URL() {
+    return appLinks ? "https://apps.apple.com/app/id1" : "";
+  },
+  get PLAY_STORE_URL() {
+    return appLinks ? "https://play.google.com/store/apps/details?id=x" : "";
+  },
+}));
+
 vi.mock("@/lib/email/send", () => ({
   CAMPAIGN_TEMPLATES: [
     "kampanya-duyuru",
@@ -37,9 +49,12 @@ vi.mock("@/lib/email/send", () => ({
     "kampanya-yeni-urun",
     "kampanya-indirim",
     "bulten-kampanya",
+    "mobil-uygulama",
   ],
   deliverBatch,
   sendCampaignMail,
+  // The panel's loyalty card size; 8 so it cannot pass for the default 6.
+  stampTarget: async () => "8",
   unsubscribeUrlFor: (token: string) =>
     `https://laffogato.net/api/bulten/cikis?token=${encodeURIComponent(token)}`,
 }));
@@ -198,6 +213,7 @@ beforeEach(() => {
   sendCampaignMail.mockReset();
   sendCampaignMail.mockResolvedValue({ ok: true });
   vi.stubEnv("RESEND_API_KEY", "re_test_key");
+  appLinks = false;
   vi.stubEnv("VERCEL_ENV", "");
   vi.stubEnv("CAMPAIGN_EMAIL_DRY_RUN", "");
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -1471,5 +1487,88 @@ describe("unsubscribe", () => {
     expect(token).toMatch(/^[0-9a-f]{48}$/);
     expect(await ensureCustomerUnsubToken("a@ornek.com")).toBe(token);
     await expect(ensureCustomerUnsubToken("yok@ornek.com")).rejects.toThrow();
+  });
+});
+
+describe("the app announcement as a campaign", () => {
+  const APP_SUBJECT = "L'Affogato uygulaması yayında";
+
+  async function announcement() {
+    return createCampaignEmail({
+      template: "mobil-uygulama",
+      audience: "marketing",
+      // Whatever the form carried, a fixed-copy template stores nothing.
+      fields: { KAMPANYA_BASLIK: "eski başlık" },
+      createdBy: "sahip@laffogato.net",
+    });
+  }
+
+  it("stores no fields and takes the template's own subject", async () => {
+    const c = await announcement();
+    expect(c.fields).toEqual({});
+    expect(c.subject).toBe(APP_SUBJECT);
+  });
+
+  it("refuses to queue, preview or test without both store links", async () => {
+    seedRows(FAKE_TABLES.customers, [member("a@ornek.com")]);
+    const c = await announcement();
+    await expect(queueCampaignEmail(c.id)).rejects.toThrow(
+      /mağaza bağlantısı/,
+    );
+    expect(sends()).toHaveLength(0);
+    expect(() => previewCampaignEmail(c, { name: "Eda" })).toThrow(
+      /mağaza bağlantısı/,
+    );
+    expect(await sendCampaignTest(c, "sahip@laffogato.net")).toMatchObject({
+      ok: false,
+    });
+    expect(sendCampaignMail).not.toHaveBeenCalled();
+  });
+
+  it("goes out with the stamp target resolved and both store buttons once the links exist", async () => {
+    appLinks = true;
+    seedRows(FAKE_TABLES.customers, [member("a@ornek.com")]);
+    const c = await announcement();
+    const { total } = await queueCampaignEmail(c.id);
+    expect(total).toBe(1);
+    const result = await runCampaignEmail(c.id, { batchDelayMs: 0 });
+    expect(result).toMatchObject({ sent: 1, failed: 0, remaining: 0 });
+    const [messages] = calls()[0];
+    expect(messages[0].subject).toBe(APP_SUBJECT);
+    // The HTML's "neler var" list quotes the card size; the text twin does not.
+    expect(messages[0].html).toContain("8 damgada bir içecek bizden");
+    for (const half of [messages[0].html, messages[0].text]) {
+      expect(half).toContain("https://apps.apple.com/app/id1");
+      expect(half).toContain("https://play.google.com/store/apps/details?id=x");
+      expect(half).not.toMatch(/\[[A-Z_]+\]/);
+    }
+  });
+
+  it("passes the stamp target to the test send", async () => {
+    appLinks = true;
+    const c = await announcement();
+    await sendCampaignTest(c, "sahip@laffogato.net");
+    expect(sendCampaignMail).toHaveBeenCalledWith(
+      "mobil-uygulama",
+      "sahip@laffogato.net",
+      expect.objectContaining({ AD: "Test", DAMGA_HEDEFI: "8" }),
+      `${UNSUB_BASE}onizleme`,
+    );
+  });
+
+  it("stops, naming why, when the links vanish between queue and run", async () => {
+    appLinks = true;
+    seedRows(FAKE_TABLES.customers, [member("a@ornek.com")]);
+    const c = await announcement();
+    await queueCampaignEmail(c.id);
+    appLinks = false;
+    const result = await runCampaignEmail(c.id, { batchDelayMs: 0 });
+    expect(result).toEqual({ sent: 0, failed: 0, remaining: 1 });
+    expect(calls()).toHaveLength(0);
+    // Nobody is marked failed for it: the rows wait for a re-send.
+    expect(sends().every((r) => r.status === "queued")).toBe(true);
+    const fresh = await getCampaignEmail(c.id);
+    expect(fresh?.status).toBe("failed");
+    expect(fresh?.lastError).toMatch(/mağaza bağlantısı/);
   });
 });
