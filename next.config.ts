@@ -22,6 +22,12 @@ import type { NextConfig } from "next";
 const DEV_SCRIPT_SRC =
   process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
 
+/** The hosts the PayNkolay bridge form posts to (docs/PAYNKOLAY.md §1). */
+const PAYNKOLAY_FORM_HOSTS = [
+  "https://paynkolay.nkolayislem.com.tr",
+  "https://paynkolaytest.nkolayislem.com.tr",
+];
+
 const CSP = [
   "default-src 'self'",
   // Google Tag Manager, and only it. 'unsafe-inline' covers the consent
@@ -40,9 +46,13 @@ const CSP = [
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  // Where a form on this site may submit. Nothing posts cross-origin: the
-  // virtual POS is reached by redirect and returns to our own callback.
-  "form-action 'self'",
+  // Where a form on this site may submit. One form posts cross-origin: the
+  // PayNkolay bridge page (/odeme/paynkolay) sends the signed checkout to the POS's
+  // hosted payment page, test or live host (docs/PAYNKOLAY.md §14.6/1). With
+  // 'self' alone the browser refused that POST and no payment could start.
+  // Chrome checks redirects after a form submission against this list too;
+  // the live run in §13 confirms the POS answers without leaving it.
+  `form-action 'self' ${PAYNKOLAY_FORM_HOSTS.join(" ")}`,
   "frame-ancestors 'none'",
   "upgrade-insecure-requests",
 ].join("; ");

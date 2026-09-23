@@ -51,6 +51,22 @@ describe("security headers", () => {
     expect(csp).toContain("frame-ancestors 'none'");
   });
 
+  it("lets the PayNkolay bridge form reach the POS, and no other host", async () => {
+    // docs/PAYNKOLAY.md §14.6/1: with `form-action 'self'` the browser refused
+    // the bridge page's POST to the hosted payment page — no payment started.
+    const csp = (await headerMap())["Content-Security-Policy"];
+    const formAction = csp
+      .split("; ")
+      .find((d) => d.startsWith("form-action "))!;
+    expect(formAction.split(" ").slice(1).sort()).toEqual(
+      [
+        "'self'",
+        "https://paynkolay.nkolayislem.com.tr",
+        "https://paynkolaytest.nkolayislem.com.tr",
+      ].sort(),
+    );
+  });
+
   it("does not let an injected script exfiltrate to an arbitrary host", async () => {
     const csp = (await headerMap())["Content-Security-Policy"];
     const connect = csp.split("; ").find((d) => d.startsWith("connect-src "))!;

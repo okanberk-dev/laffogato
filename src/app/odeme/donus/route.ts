@@ -219,6 +219,12 @@ export async function POST(req: NextRequest) {
     // `?error=payment` is what /odeme renders a notice for (CHECKOUT_NOTICES);
     // `?durum=basarisiz` was read by nothing, so a declined card came back to
     // the checkout with no word about what had happened.
+    //
+    // The unpaid order is NOT cancelled here, though its coupon and stock
+    // should go back for the retry: this POST arrives cross-site without the
+    // member's cookie (SameSite=Lax), so anyone could post a "failed" return
+    // for any order id. The retry itself releases them — `placeOrder` →
+    // `supersedeUnpaidWebOrders`, as the signed-in owner.
     return NextResponse.redirect(new URL("/odeme?error=payment", base), 303);
   } catch (err) {
     // A failure to confirm is not a failed payment: the webhook may still

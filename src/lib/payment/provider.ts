@@ -110,4 +110,16 @@ export interface PaymentProvider {
    * through a webhook leave this undefined.
    */
   confirmReturn?(params: Record<string, string>): Promise<ReturnConfirmation>;
+  /**
+   * Asks the provider whether an order sent to it was paid, with no browser
+   * return to go on. Called before an unpaid order is cancelled: the return
+   * does not always arrive (a closed tab, a dropped connection, a phone that
+   * locked on the bank's 3-D Secure page), and the money may have. Resolves
+   * `null` when no successful payment exists; throws when the provider could
+   * not be asked — the caller must not read that as "unpaid".
+   */
+  lookupPayment?(
+    orderId: string,
+    since: Date,
+  ): Promise<ReturnConfirmation | null>;
 }

@@ -721,13 +721,20 @@ yakalıyor; dönmek, "iade edildi" yazan ama parayı göndermemiş bir kayıt
 
 ### 14.6 Açık kalan iş kalemleri
 
-1. **`form-action` CSP'si.** `next.config.ts` `form-action 'self'` gönderiyor;
-   ara sayfanın POS'a POST'u tarayıcıda **engellenir**. Politikaya
-   `https://paynkolay.nkolayislem.com.tr` ve
-   `https://paynkolaytest.nkolayislem.com.tr` eklenmeden PayNkolay canlıya
-   alınamaz.
-2. **Mutabakat işi.** Webhook olmadığı için (§4) terk edilen ödemeleri ancak
-   biz sorarak öğreniriz: `pending` siparişleri periyodik olarak §2 servisiyle
-   sorgulayan bir job gerekiyor.
+1. ~~**`form-action` CSP'si.**~~ **Çözüldü (23 Eyl 2026).** `next.config.ts`
+   `form-action`'a `https://paynkolay.nkolayislem.com.tr` ve
+   `https://paynkolaytest.nkolayislem.com.tr` eklendi
+   (`tests/security-headers.test.ts` başka host girmesini de reddeder).
+   Canlı denemede bakılacak tek şey: Chrome form gönderiminden sonraki
+   yönlendirmeleri de bu listeye göre denetler; POS sayfası başka bir hosta
+   yönlendiriyorsa o host da eklenmeli.
+2. ~~**Mutabakat işi.**~~ **Çözüldü (23 Eyl 2026).** Zamanlayıcı yok, ama iki
+   yer iptalden önce §2 servisine soruyor (`PaynkolayPaymentProvider.lookupPayment`):
+   45 dakikalık süpürme (`expireStalePendingOrders`) ve aynı üyenin yeni web
+   ödemesi (`supersedeUnpaidWebOrders` — reddedilen karttan sonraki denemede
+   kupon/stok geri gelsin diye). `SUCCESS` bulunursa ödeme
+   `applyPaymentSucceeded` ile işlenir; POS'a ulaşılamazsa sipariş iptal
+   edilmez (bir gün dolana kadar). Testler:
+   `tests/db-integration-payment-sweep.test.ts`, `tests/payment-paynkolay.test.ts`.
 3. **`TRX_DATE` ve `REFERENCE_CODE` kolonları.** Sipariş satırına yazılırsa
    §14.5'teki geriye arama tamamen kalkar.

@@ -59,11 +59,16 @@ import {
   type Product as DesignProduct,
 } from "@/components/laffogato/data";
 
-import type { WeeklyHours } from "./days";
 import type {
-  OrderChannel,
-  OrderFulfillment,
-  OrderKind,
+  PaymentProvider,
+  ReturnConfirmation,
+} from "@/lib/payment/provider";
+import type { WeeklyHours } from "./days";
+import {
+  orderChannel,
+  type OrderChannel,
+  type OrderFulfillment,
+  type OrderKind,
 } from "./order-channel";
 
 /**
@@ -1902,20 +1907,139 @@ export async function findAppOrderByClientId(
   );
 }
 
+/** How long a sweep waits for the POS before leaving an order for next time. */
+const POS_LOOKUP_TIMEOUT_MS = 5_000;
+/**
+ * Past this age an unpaid order is cancelled even when the POS could not be
+ * asked. A lookup that has failed for a day is an outage or a
+ * misconfiguration, and stock must not stay held behind it forever; a payment
+ * found afterwards still lands — as `order_not_open`, in front of a human
+ * (applyPaymentSucceeded).
+ */
+const POS_LOOKUP_GIVE_UP_MS = 24 * 60 * 60_000;
+
+type PendingVerdict = "paid" | "unpaid" | "unknown";
+
+/**
+ * The provider the sweeps ask, or null when none can be built (a deployment
+ * without its POS configuration; tests). Resolved once per sweep. Lazily
+ * imported: the payment modules have no business loading with the store.
+ */
+async function lookupProvider(): Promise<PaymentProvider | null> {
+  try {
+    const { getPaymentProvider } = await import("@/lib/payment");
+    return getPaymentProvider();
+  } catch {
+    return null;
+  }
+}
+
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`timed out after ${ms} ms`)), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+
+/**
+ * Asks the POS whether a pending order was paid after all, and books the
+ * payment when it was.
+ *
+ * The browser return is the only other way a payment lands, and it does not
+ * always arrive: a closed tab, a dropped connection, a phone that locked on
+ * the bank's 3-D Secure page. The sweep used to cancel on the clock alone and
+ * hand the stock back while the money sat at the POS (docs/AUDIT.md §8,
+ * docs/PAYNKOLAY.md §14.6/2).
+ *
+ * "unknown" — the POS could not be asked — is never read as "unpaid". A
+ * provider that cannot be asked at all (the mock; no provider configured) has
+ * nothing to add, and the order is judged on the clock as before.
+ */
+async function settlePendingFromProvider(
+  order: AdminOrder,
+  provider: PaymentProvider | null,
+): Promise<PendingVerdict> {
+  if (!provider?.lookupPayment) return "unpaid";
+
+  let found: ReturnConfirmation | null;
+  try {
+    found = await withTimeout(
+      provider.lookupPayment(order.id, new Date(order.createdAt)),
+      POS_LOOKUP_TIMEOUT_MS,
+    );
+  } catch (err) {
+    console.error(`[orders] POS lookup failed order=${order.id}`, err);
+    return "unknown";
+  }
+  if (!found || found.status !== "succeeded") return "unpaid";
+
+  const applied = await applyPaymentSucceeded({
+    orderId: order.id,
+    provider: provider.name,
+    providerRef: found.providerRef,
+    amountMinor: found.amountMinor,
+    currency: found.currency,
+    raw: found.raw,
+  });
+  if (!applied.ok) {
+    console.error(
+      `[orders] payment found at the POS but not booked order=${order.id}`,
+      applied.error,
+    );
+    return "unknown";
+  }
+  // Collected, but not what the order costs: the order cannot advance, and
+  // applyPaymentSucceeded has already put it in front of a human. It is
+  // cancelled like any unpaid order, so its stock does not stay held while
+  // that is sorted out — which is what the sweep always did with it.
+  if (applied.reconcile === "amount_mismatch") return "unpaid";
+  return "paid";
+}
+
+/**
+ * Cancels one unpaid order and returns what it held — after asking the POS.
+ * The write is conditional on `pending_payment`, so a payment or a staff
+ * action that lands in between wins. Resolves true when this call cancelled.
+ */
+async function cancelUnpaidOrder(
+  order: AdminOrder,
+  provider: PaymentProvider | null,
+  { giveUpOnUnknown }: { giveUpOnUnknown: boolean },
+): Promise<boolean> {
+  const verdict = await settlePendingFromProvider(order, provider);
+  if (verdict === "paid") return false;
+  if (verdict === "unknown" && !giveUpOnUnknown) return false;
+  const moved = rows<{ id: string }>(
+    await getDb()
+      .from(TABLES.orders)
+      .update({ status: "cancelled" })
+      .eq("id", order.id)
+      .eq("status", "pending_payment")
+      .select("id"),
+    "cancelUnpaidOrder",
+  );
+  if (moved.length === 0) return false;
+  await releaseOrderInventory(order);
+  return true;
+}
+
 /**
  * Cancels checkouts that were never paid for, and returns what they held.
  *
  * There is no scheduler in this deployment, so the sweep runs at the start of
  * a checkout — the moment stock accuracy actually matters. It is bounded and
  * idempotent, and a failure here must never block the order being placed.
+ * Each order is checked with the POS first (`settlePendingFromProvider`);
+ * the checks run side by side, each bounded by POS_LOOKUP_TIMEOUT_MS.
  */
 export async function expireStalePendingOrders(): Promise<number> {
+  const now = Date.now();
   const cutoff = new Date(
-    Date.now() - PENDING_ORDER_TTL_MINUTES * 60_000,
+    now - PENDING_ORDER_TTL_MINUTES * 60_000,
   ).toISOString();
-  const sb = getDb();
   const stale = rows<AdminOrder>(
-    await sb
+    await getDb()
       .from(TABLES.orders)
       .select("*")
       .eq("status", "pending_payment")
@@ -1924,22 +2048,67 @@ export async function expireStalePendingOrders(): Promise<number> {
       .limit(20),
     "expireStalePendingOrders",
   );
+  if (stale.length === 0) return 0;
+  const provider = await lookupProvider();
+  const outcomes = await Promise.allSettled(
+    stale.map((order) =>
+      cancelUnpaidOrder(order, provider, {
+        giveUpOnUnknown:
+          now - Date.parse(order.createdAt) >= POS_LOOKUP_GIVE_UP_MS,
+      }),
+    ),
+  );
   let expired = 0;
-  for (const order of stale) {
-    const moved = rows<{ id: string }>(
-      await sb
-        .from(TABLES.orders)
-        .update({ status: "cancelled" })
-        .eq("id", order.id)
-        .eq("status", "pending_payment")
-        .select("id"),
-      "expireStalePendingOrders.cancel",
-    );
-    if (moved.length === 0) continue;
-    await releaseOrderInventory(order);
-    expired += 1;
+  for (const outcome of outcomes) {
+    if (outcome.status === "fulfilled") {
+      if (outcome.value) expired += 1;
+    } else {
+      console.error("[orders] expiring a stale order failed", outcome.reason);
+    }
   }
   return expired;
+}
+
+/**
+ * Cancels the member's own earlier web checkouts that were never paid, so a
+ * new attempt gets back what they held.
+ *
+ * A declined card sends the customer back to /odeme with the cart intact, and
+ * the retry is a new order. The first one kept holding its stock and — worse —
+ * its single-use coupon for 45 minutes, so the retry came back "kupon
+ * uygulanamadı" (docs/AUDIT.md §8). The new checkout is the proof the old one
+ * was abandoned, and it comes from the signed-in owner: the POS's return POST
+ * carries no session cookie (SameSite=Lax), so cancelling there could be
+ * forged against anyone's order id.
+ *
+ * The POS is still asked first: an order whose return never arrived may have
+ * been paid, and is then booked instead. Only web orders: an app checkout
+ * may be open in the phone's in-app browser at that very moment, and the app
+ * has its own cap on unpaid orders (MAX_OPEN_ORDERS).
+ */
+export async function supersedeUnpaidWebOrders(
+  customerEmail: string,
+): Promise<number> {
+  const email = customerEmail.trim();
+  if (!email || email === "guest@laffogato.local") return 0;
+  const open = rows<AdminOrder>(
+    await getDb()
+      .from(TABLES.orders)
+      .select("*")
+      .eq("customerEmail", email)
+      .eq("status", "pending_payment")
+      .order("createdAt", { ascending: true })
+      .limit(10),
+    "supersedeUnpaidWebOrders",
+  ).filter((order) => orderChannel(order) === "web");
+  if (open.length === 0) return 0;
+  const provider = await lookupProvider();
+  const outcomes = await Promise.allSettled(
+    open.map((order) =>
+      cancelUnpaidOrder(order, provider, { giveUpOnUnknown: false }),
+    ),
+  );
+  return outcomes.filter((o) => o.status === "fulfilled" && o.value).length;
 }
 
 export async function placeOrder(
@@ -1960,6 +2129,16 @@ export async function placeOrder(
   const settings = await getSettings();
   if (!settings.isShopOpen) {
     return { ok: false, reason: "shop_closed" };
+  }
+
+  // A retry after a declined card: the earlier unpaid order gives back its
+  // coupon and stock before this one claims them. Never fatal either.
+  if (input.customerEmail) {
+    try {
+      await supersedeUnpaidWebOrders(input.customerEmail);
+    } catch (err) {
+      console.error("[orders] superseding unpaid web orders failed", err);
+    }
   }
 
   const resolveRes = await resolveOrderLines(input.items);

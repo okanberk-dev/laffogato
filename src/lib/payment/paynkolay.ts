@@ -45,6 +45,8 @@ import type {
  */
 
 const DEFAULT_BASE_URL = "https://paynkolay.nkolayislem.com.tr";
+/** `lookupPayment`'in siparişten sonra taradığı gün sayısı (servis ≤ 1 ay). */
+const LOOKUP_WINDOW_DAYS = 3;
 
 /** TRY. Gönderilmese TL varsayılıyor; yine de açıkça yazılır (§9). */
 const CURRENCY_CODE = "949";
@@ -620,6 +622,66 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       amountMinor: settledMinor,
       currency: "TRY",
       raw: { source: "paynkolay_return", hashOk, params, transaction: row },
+    };
+  }
+
+  /**
+   * Siparişin POS'ta başarılı bir işlemi var mı — tarayıcı dönüşü olmadan.
+   *
+   * 45 dakikalık süpürme ve aynı üyenin yeni ödemesi, ödenmemiş görünen bir
+   * siparişi iptal etmeden önce buraya sorar. Dönüş hiç gelmediyse (sekme
+   * kapandı, bağlantı koptu) para yine de çekilmiş olabilir; eskiden sipariş
+   * saate bakılarak iptal ediliyor, stoğu geri veriliyordu (§14.6/2).
+   * Karar `confirmReturn`'deki gibi `STATUS` alanından verilir; `NEW` para
+   * değildir. Tutar okunamıyorsa fırlatır: "ödenmedi" demek iptale izin
+   * verirdi.
+   */
+  async lookupPayment(
+    orderId: string,
+    since: Date,
+  ): Promise<ReturnConfirmation | null> {
+    const id = orderId.trim();
+    if (!id) return null;
+    const now = new Date();
+    const placed = Number.isFinite(since.getTime())
+      ? Math.min(since.getTime(), now.getTime())
+      : now.getTime();
+    // Gece yarısını geçen bir ödeme dünün gününe düşer; bir gün geriden
+    // başla. Ödeme siparişin açıldığı oturumda olur, bu yüzden pencere
+    // birkaç günle sınırlı — servis bir aydan uzun aralık kabul etmiyor (§2).
+    const rows = await this.queryTransactions(
+      id,
+      new Date(placed - DAY_MS),
+      new Date(Math.min(now.getTime(), placed + LOOKUP_WINDOW_DAYS * DAY_MS)),
+    );
+    const succeeded = rows.filter(
+      (r) => readField(r, "STATUS", "status").toUpperCase() === "SUCCESS",
+    );
+    const kind = (r: Record<string, unknown>) =>
+      readField(r, "TRANSACTION_TYPE", "transactionType").toLowerCase();
+    // POS panelinden iptal ya da iade edilmiş bir satış artık para değildir.
+    if (
+      succeeded.some((r) => ["cancel", "refund", "refundp"].includes(kind(r)))
+    ) {
+      return null;
+    }
+    const row = succeeded.find((r) => !kind(r) || kind(r) === "sales");
+    if (!row) return null;
+    const settledMinor = paynkolayAmountToMinor(
+      readField(row, "AUTHORIZATION_AMOUNT", "authorizationAmount"),
+    );
+    if (settledMinor === null || settledMinor <= 0) {
+      throw new Error(
+        `paynkolay: ${id} için başarılı işlem var ama tutarı okunamadı`,
+      );
+    }
+    return {
+      status: "succeeded",
+      orderId: id,
+      providerRef: readField(row, "REFERENCE_CODE", "referenceCode") || id,
+      amountMinor: settledMinor,
+      currency: "TRY",
+      raw: { source: "paynkolay_lookup", transaction: row },
     };
   }
 

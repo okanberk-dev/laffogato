@@ -457,6 +457,72 @@ describe("confirmReturn", () => {
   });
 });
 
+// ── Dönüşsüz sorgu (süpürme, §14.6/2) ───────────────────────────────────────
+
+describe("lookupPayment", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("dönüş gelmemiş başarılı ödemeyi bulur", async () => {
+    const calls = stubFetch({
+      Data: [transactionRow({ STATUS: "NEW" }), transactionRow()],
+    });
+    const found = await makeProvider().lookupPayment(
+      "ord-0284",
+      new Date("2026-09-23T10:00:00Z"),
+    );
+    expect(calls[0].url).toContain("/Vpos/Payment/PaymentList");
+    expect(calls[0].fields.clientRefCode).toBe("ord-0284");
+    expect(found?.status).toBe("succeeded");
+    expect(found?.amountMinor).toBe(128_010);
+    expect(found?.providerRef).toBe("IKSIRPF102168");
+  });
+
+  it("NEW ya da boş sorguyu ödeme saymaz", async () => {
+    stubFetch({ Data: [transactionRow({ STATUS: "NEW" })] });
+    expect(
+      await makeProvider().lookupPayment("ord-0284", new Date()),
+    ).toBeNull();
+    stubFetch({ Data: [] });
+    expect(
+      await makeProvider().lookupPayment("ord-0284", new Date()),
+    ).toBeNull();
+  });
+
+  it("tutarı okunamayan başarılı işlemde 'ödenmedi' demez, fırlatır", async () => {
+    stubFetch({ Data: [transactionRow({ AUTHORIZATION_AMOUNT: "" })] });
+    await expect(
+      makeProvider().lookupPayment("ord-0284", new Date()),
+    ).rejects.toThrow(/tutarı okunamadı/);
+  });
+
+  it("siparişin gününden bir gün geriden, birkaç günlük pencereyle sorar", async () => {
+    // Servis bir aydan uzun aralık kabul etmiyor (§2): eski bir siparişte
+    // pencere bugüne kadar uzasaydı sorgu reddedilirdi.
+    const calls = stubFetch({ Data: [] });
+    await makeProvider().lookupPayment(
+      "ord-0284",
+      new Date("2026-01-20T12:00:00Z"),
+    );
+    expect(calls[0].fields.startDate).toBe("19.01.2026");
+    expect(calls[0].fields.endDate).toBe("23.01.2026");
+  });
+
+  it("POS'ta iptal ya da iade edilmiş satışı ödeme saymaz", async () => {
+    stubFetch({
+      Data: [
+        transactionRow(),
+        transactionRow({ TRANSACTION_TYPE: "cancel", REFERENCE_CODE: "X2" }),
+      ],
+    });
+    expect(
+      await makeProvider().lookupPayment("ord-0284", new Date()),
+    ).toBeNull();
+  });
+});
+
 // ── İptal / iade (§3) ───────────────────────────────────────────────────────
 
 describe("refund", () => {
