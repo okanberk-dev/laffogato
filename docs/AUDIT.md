@@ -431,7 +431,13 @@ sığmayacak kadar geniş. Bilerek dokunulmadı.
 8. **Uygulama tarafı (lafmobil):** `DELETE /me`'nin 409 `orders_in_progress`
    mesajı gösterilmiyor (genel hata metni); `403 account_disabled` oturumu
    kapatmıyor. İkisi de uygulamada düzeltilecek; sunucu doğru kodu dönüyor.
-9. **Küçükler:** davetli, davet edenin kuponu hata verirse ikinci kupon
+9. **Mobil sipariş okumaları e-postayla eşleşir, doğrulamaya bakmaz.** Web artık
+   doğrulanmamış hesaba geçmiş göstermiyor (`memberOrders`); `GET /orders`,
+   `/me`, bildirimler ise yalnız Supabase onaylı olmayan kimliğe token
+   verilirse risk taşır (Supabase "Confirm email" açık olduğu sürece verilmez).
+   Aynı sipariş için eşzamanlı iki iade ikisi de `refundRefusal`'dan geçip
+   POS'a iki kez gidebilir (defter oku-değiştir-yaz; madde 6).
+10. **Küçükler:** davetli, davet edenin kuponu hata verirse ikinci kupon
    alabilir; `transitionOrder` durumu koşulsuz yazar (bayat ekrandan tıklama
    süpürmenin yazdığını ezebilir); `ensureSchemaFresh` başarısız bir kontrolü
    örnek ömrü boyunca hatırlar; başarısız admin girişleri kimliksiz olarak
