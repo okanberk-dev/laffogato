@@ -65,7 +65,7 @@ export interface AdminAuditLog {
   action: AuditAction;
   entity: AuditEntity;
   entityId: string;
-  /** Free-form structured payload — keep small, JSON-serialisable. */
+  /** Free-form structured payload - keep small, JSON-serialisable. */
   payload: Record<string, unknown>;
   createdAt: string;
 }

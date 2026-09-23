@@ -49,7 +49,7 @@ interface AdminUserRecord {
 /**
  * A bcrypt hash of nothing anybody knows. Compared against when the database
  * has no row for the typed address, so "unknown email" and "wrong password"
- * cost the same wall-clock time — otherwise the login page answers, in
+ * cost the same wall-clock time - otherwise the login page answers, in
  * milliseconds, which addresses are real.
  */
 const DUMMY_HASH =
@@ -89,7 +89,7 @@ function loadEnvAdminUsers(): AdminUserRecord[] {
         }
       }
     } catch {
-      // ignore — fall back to single-user env below
+      // ignore - fall back to single-user env below
     }
   }
   const fallbackEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
@@ -123,7 +123,7 @@ function getSecret(): string {
  * bcrypt hash of a panel account, or the password of an env (break-glass)
  * account. It goes into the cookie and is compared against the account as it
  * is NOW on every request, so resetting an admin's password signs out every
- * session that was opened with the old one — including a stolen cookie.
+ * session that was opened with the old one - including a stolen cookie.
  * Keyed with the session secret, so the cookie reveals nothing about the hash.
  */
 function credentialFingerprint(source: "db" | "env", material: string): string {
@@ -143,7 +143,7 @@ function verifyToken(token: string): SignedSession | null {
   const parts = token.split("|");
   // Five segments (email|role|exp|fingerprint|sig). The four-segment tokens
   // issued before the fingerprint existed are refused, so every admin signs
-  // in once after this deploy — the only way to make sessions that predate
+  // in once after this deploy - the only way to make sessions that predate
   // it revocable.
   if (parts.length !== 5) return null;
   const [email, roleRaw, expiresAtStr, fingerprint, sig] = parts;
@@ -177,7 +177,7 @@ interface CurrentAccount {
 }
 
 /**
- * The account behind an address as it stands NOW — the same precedence the
+ * The account behind an address as it stands NOW - the same precedence the
  * login uses: an active panel row wins; an inactive or missing row falls back
  * to the env break-glass record; neither means no account.
  *
@@ -214,7 +214,7 @@ async function currentAccount(email: string): Promise<CurrentAccount | null> {
 }
 
 /**
- * Equality whose timing says nothing about either value — including its
+ * Equality whose timing says nothing about either value - including its
  * LENGTH. The early `length !== length` return this used to make answered a
  * wrong-length guess faster than a right-length one, which leaks how long the
  * env admin password is. Both sides are hashed to 32 bytes first, so
@@ -230,7 +230,7 @@ export interface SignInResult {
   ok: boolean;
   error?: string;
   needs2FA?: boolean;
-  /** Role of the signed-in account — the login page redirects on it. */
+  /** Role of the signed-in account - the login page redirects on it. */
   role?: AdminRole;
   /**
    * Refused by the rate limiter, the credentials never checked. The login
@@ -264,7 +264,7 @@ export async function signInAdmin(
 
   // The database is asked first and wins: a role changed or an account
   // deactivated in the panel takes effect on the next login. A row that is not
-  // active does NOT shadow the env record — env is the break-glass path, and
+  // active does NOT shadow the env record - env is the break-glass path, and
   // an owner locked out of the panel has to be able to get back in.
   const dbUser = await resolveAdminUser(needle);
   let matched: { email: string; role: AdminRole } | null = null;
@@ -315,7 +315,7 @@ export async function signInAdmin(
   const cookieStore = await cookies();
 
   // If the account has 2FA enrolled, we don't issue the real session
-  // cookie yet — we set a short-lived "pending" cookie and the login
+  // cookie yet - we set a short-lived "pending" cookie and the login
   // page sends the user to /admin/iki-asama where they have to enter
   // the 6-digit code.
   if (await has2FA(matched.email)) {
@@ -533,8 +533,8 @@ export async function sessionFromToken(
 
 /**
  * Signature-only read for `proxy.ts`, which decides nothing but whether to
- * redirect a page view to the login screen. Authorisation — every page and
- * every server action — goes through getAdminSession / requireRole.
+ * redirect a page view to the login screen. Authorisation - every page and
+ * every server action - goes through getAdminSession / requireRole.
  */
 export function readSessionFromCookieValue(
   value: string | undefined,

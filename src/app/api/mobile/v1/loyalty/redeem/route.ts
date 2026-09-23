@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
-/** `POST /loyalty/redeem` — a full card of stamps → a free-drink coupon (§5). */
+/** `POST /loyalty/redeem` - a full card of stamps → a free-drink coupon (§5). */
 export async function POST(request: Request) {
   try {
     const auth = await requireMobileCustomer(request);

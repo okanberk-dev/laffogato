@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * Whether mail can actually leave.
  *
  * A configured key and an unverified sending DOMAIN are indistinguishable from
- * inside the process — both look like "Resend is wired up" — and only the
+ * inside the process - both look like "Resend is wired up" - and only the
  * second is what stops every message today. The dashboard banner is the one
  * place that difference is visible, so what it decides is pinned here.
  */

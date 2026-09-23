@@ -17,14 +17,14 @@ const KIND_LABEL: Record<CampaignPost["kind"], string> = {
 };
 
 /**
- * `/kampanyalar` — the offers page, in the reference's language.
+ * `/kampanyalar` - the offers page, in the reference's language.
  *
  * A cream page hero with the green disc behind a display headline, then the
  * two house programmes as full-width green banners, then whatever the panel
  * is running as a card grid.
  *
  * Everything here is operator-controlled: the banners answer to
- * `campaignCards` switches and the cards are `/app-content` posts — the same
+ * `campaignCards` switches and the cards are `/app-content` posts - the same
  * two sources the app's Kampanyalar screen reads, so publishing once moves
  * both.
  */

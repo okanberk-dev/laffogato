@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 /**
- * `GET /api/mobile/v1/legal/{slug}` — one contract, whole (§13).
+ * `GET /api/mobile/v1/legal/{slug}` - one contract, whole (§13).
  *
  * The app shows this text at the moment of consent, so it is the site's own
  * document rather than a summary of it: same revision, same wording, same

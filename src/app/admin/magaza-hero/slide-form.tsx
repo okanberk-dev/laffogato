@@ -30,7 +30,7 @@ export interface SlideDefaults {
   isActive?: boolean;
 }
 
-/* Hero slider için 21:9 cinematic oran — long edge 1920px'e küçültülür. */
+/* Hero slider için 21:9 cinematic oran - long edge 1920px'e küçültülür. */
 const MAX_DIMENSION = 1920;
 const JPEG_QUALITY = 0.85;
 const MAX_SOURCE_BYTES = 15 * 1024 * 1024;
@@ -166,7 +166,7 @@ export function SlideForm({
           />
         </Field>
 
-        {/* Görsel — file upload + URL */}
+        {/* Görsel - file upload + URL */}
         <div className="grid gap-2">
           <span
             className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
@@ -350,7 +350,7 @@ function SlidePreview({
   const isLight = textTheme === "light";
   // The preview reads globals.css tokens rather than its own hexes, so an
   // operator always picks a text theme against the ground the live hero
-  // actually uses — it used to paint a retired palette of its own.
+  // actually uses - it used to paint a retired palette of its own.
   const previewBg = imageUrl
     ? `linear-gradient(${isLight ? "rgba(20,61,43,0.35), rgba(20,61,43,0.55)" : "rgba(255,255,255,0.1), rgba(255,255,255,0.3)"}), url(${imageUrl})`
     : isLight

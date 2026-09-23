@@ -59,7 +59,7 @@ function SidebarLink({
  *
  * This was a <select> that navigated on `change`. Arrowing through a select
  * fires `change` per option in several browsers, so a keyboard user was thrown
- * onto a different page mid-choice — and the focus ring had been removed
+ * onto a different page mid-choice - and the focus ring had been removed
  * outright, leaving no way to see where you were. It is a scrollable row of
  * links now: one target per activation, and the current page marked for
  * assistive technology.

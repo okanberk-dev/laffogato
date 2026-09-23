@@ -18,11 +18,11 @@ import { appendConsentChanges } from "./consent-ledger";
  * Whichever store a token belongs to, BOTH end up off for that address: the
  * two consent registers used to drift (a subscriber-list unsubscribe left the
  * account's `marketing` flag on, and vice versa), which is the failure the
- * law actually punishes — a person who said no and kept receiving mail.
+ * law actually punishes - a person who said no and kept receiving mail.
  *
  * Order and shipping mail are untouched: they are not subject to consent.
  *
- * Deliberately imports nothing from `@/lib/newsletter/store` — that module
+ * Deliberately imports nothing from `@/lib/newsletter/store` - that module
  * imports this one, and the bulletin row is a one-line update here.
  */
 

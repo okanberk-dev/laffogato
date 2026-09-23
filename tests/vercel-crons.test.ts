@@ -5,12 +5,12 @@ import { describe, expect, it } from "vitest";
 
 /**
  * `vercel.json`'ın cron listesi, barındırma planının izin verdiğinin içinde
- * kalmak ZORUNDA — yoksa Vercel cron'u değil, **deploy'u** reddediyor.
+ * kalmak ZORUNDA - yoksa Vercel cron'u değil, **deploy'u** reddediyor.
  *
  * Bu tam olarak yaşandı. 16 Eyl 2026'da üçüncü cron ve saatlik bir program
  * eklendi; o günden 22 Eyl'e kadar üretime hiçbir şey çıkmadı. `main`'e
- * merge edilen her şey — e-posta otomasyonu, alerjen yayını, sözleşmenin
- * §18/§19'u, panel sinyalleri — depoda durdu ve kimse fark etmedi, çünkü
+ * merge edilen her şey - e-posta otomasyonu, alerjen yayını, sözleşmenin
+ * §18/§19'u, panel sinyalleri - depoda durdu ve kimse fark etmedi, çünkü
  * site ayakta kalmaya devam etti: eski derlemeyi sunuyordu.
  *
  * Hobby planının sınırı **2 cron** ve **yalnız günlük** program. Bir
@@ -31,7 +31,7 @@ function runsMoreThanDaily(schedule: string): boolean {
   return hour === "*" || hour.includes("*") || minute.includes("*");
 }
 
-describe("vercel.json — cron listesi planın içinde kalıyor", () => {
+describe("vercel.json - cron listesi planın içinde kalıyor", () => {
   const config = JSON.parse(
     readFileSync(join(process.cwd(), "vercel.json"), "utf8"),
   ) as { crons?: { path: string; schedule: string }[] };

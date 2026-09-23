@@ -7,11 +7,11 @@ import { allSeoRoutes } from "@/lib/seo/pages";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 
 // Dynamic: the product list is read from the database at request time. The build
-// does not connect to the DB, so the fetch is guarded — an empty result simply
+// does not connect to the DB, so the fetch is guarded - an empty result simply
 // omits product URLs rather than failing the build.
 export const dynamic = "force-dynamic";
 
-// Stable content-revision stamp for static/section routes — bump on major
+// Stable content-revision stamp for static/section routes - bump on major
 // content updates. A request-time `new Date()` would report every URL as
 // "just modified" on each crawl, noise that search engines learn to distrust.
 // Product detail pages still use their real per-row updatedAt below.
@@ -51,10 +51,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         };
       });
   } catch {
-    // No DB at build / connection issue — ship the sitemap without products.
+    // No DB at build / connection issue - ship the sitemap without products.
   }
 
-  // Guides — the editorial hub. Higher priority than the legal pages because
+  // Guides - the editorial hub. Higher priority than the legal pages because
   // these are the pages built to earn search traffic.
   const guideHub = {
     url: `${SITE.url}/rehber`,

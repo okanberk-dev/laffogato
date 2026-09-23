@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
-/** `GET /me` — profile, loyalty, invite summary and the usual (§4). */
+/** `GET /me` - profile, loyalty, invite summary and the usual (§4). */
 export async function GET(request: Request) {
   try {
     const auth = await requireMobileCustomer(request);
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   }
 }
 
-/** `PATCH /me` — partial profile update; returns the fresh `/me` body. */
+/** `PATCH /me` - partial profile update; returns the fresh `/me` body. */
 export async function PATCH(request: Request) {
   try {
     const auth = await requireMobileCustomer(request);
@@ -45,7 +45,7 @@ export async function PATCH(request: Request) {
 }
 
 /**
- * `DELETE /me` — anonymises the member row and closes the account.
+ * `DELETE /me` - anonymises the member row and closes the account.
  *
  * 409 `orders_in_progress` while an order is still running: Üyelik Sözleşmesi
  * §14 and the `hesap-silme` document both say the closure waits for it, and

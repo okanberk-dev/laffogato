@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * A member who signed up in the app has no password on this site.
  *
  * Their row is created with `passwordHash: ""` (docs/AUTH-BRIDGE.md §3), and
- * the change-password form compared what they typed against that empty hash —
+ * the change-password form compared what they typed against that empty hash -
  * always false. So the form answered "Mevcut şifre hatalı" whatever they
  * entered, forever, and the app has no change-password screen either: the only
  * way to change a password they DID know was to claim they had forgotten it.

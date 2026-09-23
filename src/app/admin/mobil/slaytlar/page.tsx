@@ -39,7 +39,7 @@ const TONE_SWATCH: Record<string, string> = {
   paper: "#FFFFFF",
 };
 
-/** app `text.primary` — the only tone whose label needs dark ink. */
+/** app `text.primary` - the only tone whose label needs dark ink. */
 const PAPER_INK = "#1D1C1C";
 
 function routeLabel(route: string): string {

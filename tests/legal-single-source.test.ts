@@ -10,16 +10,16 @@ import { SITE } from "@/lib/seo/site";
  *
  * Bu testler var, çünkü tam olarak bu bozuldu: telefon, e-posta ve adres her
  * yerde düzeltildikten sonra /hukuk/sirket-bilgileri sayfası aylarca
- * "08:00 - 22:00" göstermeye devam etti — çünkü o değer, token yerine düz
+ * "08:00 - 22:00" göstermeye devam etti - çünkü o değer, token yerine düz
  * metin olarak gömülüydü ve kimse orayı aramadı.
  */
-describe("Kafe çalışma saatleri — tek kaynak", () => {
+describe("Kafe çalışma saatleri - tek kaynak", () => {
   it("kanonik değer her gün 09:00 - 02:00", () => {
     expect(LEGAL_ENTITY.cafeHours.opens).toBe("09:00");
     expect(LEGAL_ENTITY.cafeHours.closes).toBe("02:00");
   });
 
-  it("kapanış açılıştan küçüktür — 02:00 ertesi gündür", () => {
+  it("kapanış açılıştan küçüktür - 02:00 ertesi gündür", () => {
     // Bu bir hata değil, kasıtlı. Saatleri sayısal karşılaştıran her kod
     // bunu bilmek zorunda; schema.org da böyle ifade eder.
     expect(LEGAL_ENTITY.cafeHours.closes < LEGAL_ENTITY.cafeHours.opens).toBe(
@@ -65,7 +65,7 @@ describe("Kafe çalışma saatleri — tek kaynak", () => {
  * Sağlayıcı değişince 34'ünü güncelleyip birini atlamak, yanlış bir hukuki
  * beyan bırakmak demektir.
  */
-describe("Veri tabanı sağlayıcısı — tek kaynak", () => {
+describe("Veri tabanı sağlayıcısı - tek kaynak", () => {
   it("hukuki metinlerde sağlayıcı adı düz metin olarak gömülü değil", () => {
     const raw = JSON.stringify(LEGAL_CONTENT);
     for (const provider of ["Neon", "Supabase"]) {
@@ -82,7 +82,7 @@ describe("Veri tabanı sağlayıcısı — tek kaynak", () => {
 
   it("sağlayıcı adı boş bırakılamaz", () => {
     // Boş bir değer, KVKK metninde veri işleyenin adının hiç yazmaması
-    // demektir — satır düşmez, cümle sakatlanır.
+    // demektir - satır düşmez, cümle sakatlanır.
     expect(LEGAL_ENTITY.dbProvider.trim().length).toBeGreaterThan(0);
   });
 });

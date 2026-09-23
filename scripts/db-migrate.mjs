@@ -26,7 +26,7 @@ const MIGRATIONS_DIR = join(
 
 // src/lib/db/index.ts poolConfig() ile AYNI kurallar. Bu betik TS modülünü
 // import edemediği için mantık burada tekrarlanır; iki yer ayrışırsa runbook'un
-// ilk canlı adımı (pooler'a migrate) sessizce bozulur — değişiklik ikisine
+// ilk canlı adımı (pooler'a migrate) sessizce bozulur - değişiklik ikisine
 // birden yapılır. (Ölçülmüş gerçek: Supabase uçları kendi kök CA'sını sunar ve
 // düz metin oturumu kabul eder; bkz. docs/SUPABASE-GECIS.md §2b.)
 function sslFor(connectionString) {
@@ -34,7 +34,7 @@ function sslFor(connectionString) {
   let host = "";
   try {
     const url = new URL(connectionString);
-    // postgresql: "özel olmayan" şema — WHATWG host'u küçültmez, biz küçültürüz.
+    // postgresql: "özel olmayan" şema - WHATWG host'u küçültmez, biz küçültürüz.
     host = url.hostname.toLowerCase();
     sslmode = url.searchParams.get("sslmode") ?? "";
   } catch {

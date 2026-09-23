@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
  *
  * DEV-ONLY auto-confirm: ONLY the mock provider may settle a payment from this
  * browser return. Return-URL params are user-controllable, so a real POS must
- * NEVER be trusted here — it confirms money via its signed webhook
+ * NEVER be trusted here - it confirms money via its signed webhook
  * (src/app/api/webhooks/payment/route.ts). For mock we additionally require the
  * order to belong to the returning, signed-in customer.
  *
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
   }
 
   // `app=1` on the URL used to be enough to reach the deep link, whose
-  // `?status=success|failed` says whether that order was paid — an
+  // `?status=success|failed` says whether that order was paid - an
   // unauthenticated paid/unpaid oracle over sequential ids (`ord-0284`).
   // The app branch now needs the checkout reference this server issued, or
   // the signed-in owner; anyone else lands on the web success page, which
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
  * The provider, or null when it cannot be built.
  *
  * `getPaymentProvider()` fails closed on a missing `PAYMENT_PROVIDER`, and
- * this route called it before anything else — so a misconfigured deployment
+ * this route called it before anything else - so a misconfigured deployment
  * answered the customer coming back from their bank with a 500 instead of
  * their order. Without a provider there is nothing to confirm here; the
  * redirect below still shows the order's real status.
@@ -144,12 +144,12 @@ async function settledStatus(orderId: string): Promise<PaymentReturnStatus> {
  * The virtual POS returns the CUSTOMER'S BROWSER here with a form POST.
  *
  * `IYZICO_CALLBACK_URL` used to point at the signed webhook, which answers a
- * browser with `401 {"error":"invalid_signature"}` — so the last thing a paying
+ * browser with `401 {"error":"invalid_signature"}` - so the last thing a paying
  * customer saw was a JSON error. This is the page they land on instead.
  *
  * The POSTed body is not trusted: it carries a token, and the provider is
  * asked what that token settled. Confirming here as well as in the webhook is
- * deliberate — whichever arrives first wins, and `applyPaymentSucceeded` is
+ * deliberate - whichever arrives first wins, and `applyPaymentSucceeded` is
  * idempotent on (provider, providerRef).
  */
 export async function POST(req: NextRequest) {
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
     if (!(k in params)) params[k] = v;
   }
   if (!provider?.confirmReturn) {
-    // A provider that settles only by webhook — or none at all, when the
+    // A provider that settles only by webhook - or none at all, when the
     // deployment is missing its POS configuration: send the customer to the
     // page that reads the order's real status rather than asserting "success".
     const orderId = returnedOrderId(params);
@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
         console.error("[odeme/donus] apply failed", applied.error);
       }
       // The buyer ticked "kartımı kaydet": remember the key so the next
-      // checkout shows that card. Best-effort — failing to remember a card
+      // checkout shows that card. Best-effort - failing to remember a card
       // must never turn a settled payment into an error.
       if (result.cardUserKey && applied.ok) {
         try {
@@ -224,7 +224,7 @@ export async function POST(req: NextRequest) {
     // The unpaid order is NOT cancelled here, though its coupon and stock
     // should go back for the retry: this POST arrives cross-site without the
     // member's cookie (SameSite=Lax), so anyone could post a "failed" return
-    // for any order id. The retry itself releases them — `placeOrder` →
+    // for any order id. The retry itself releases them - `placeOrder` →
     // `supersedeUnpaidWebOrders`, as the signed-in owner.
     return NextResponse.redirect(new URL("/odeme?error=payment", base), 303);
   } catch (err) {
@@ -272,13 +272,13 @@ function appRedirect(orderId: string, status: PaymentReturnStatus) {
 }
 
 /**
- * Whether this return belongs to an app order — the ROW decides.
+ * Whether this return belongs to an app order - the ROW decides.
  *
  * `app=1` on the URL used to be taken as proof, but anyone can type it, and a
  * provider with a fixed callback (iyzico) cannot carry it anyway. The order's
- * own `channel` answers both cases. A database hiccup here answers "web" —
+ * own `channel` answers both cases. A database hiccup here answers "web" -
  * the customer then lands on the web success page, which still shows the
- * order — rather than an error page.
+ * order - rather than an error page.
  */
 async function isAppOrder(orderId: string): Promise<boolean> {
   if (!orderId) return false;

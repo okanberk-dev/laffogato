@@ -58,7 +58,7 @@ export function imageResponse(
     "Cache-Control": cacheControl,
     ETag: etag,
     // The bytes are public product photography, but they came out of the
-    // database — never let a response of theirs be sniffed as something else.
+    // database - never let a response of theirs be sniffed as something else.
     "X-Content-Type-Options": "nosniff",
   };
 

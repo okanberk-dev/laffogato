@@ -132,7 +132,7 @@ describe("absoluteImageUrl", () => {
 });
 
 describe("toMobileMenuItem (contract §1)", () => {
-  it("emits exactly the contract fields — no updatedAt, isActive, sortOrder", () => {
+  it("emits exactly the contract fields - no updatedAt, isActive, sortOrder", () => {
     const out = toMobileMenuItem(menuItem(), SITE_URL);
     expect(Object.keys(out).sort()).toEqual(
       [
@@ -171,7 +171,7 @@ describe("toMobileMenuItem (contract §1)", () => {
       menuItem({ image: "data:image/webp;base64,AAAA" }),
       SITE_URL,
     );
-    // The `?v=` is the photo's own content stamp — tests/image-version.test.ts
+    // The `?v=` is the photo's own content stamp - tests/image-version.test.ts
     // holds it to its promise. Here only the shape matters.
     expect(out.image).toBe(
       `https://laffogato.net/gorsel/menu/mnu-0007?v=${imageVersion("data:image/webp;base64,AAAA")}`,
@@ -258,7 +258,7 @@ describe("latestUpdatedAt", () => {
 });
 
 describe("toMobileShopProduct (contract §2)", () => {
-  it("emits the contract fields only — no cost, sku, SEO, stock counts", () => {
+  it("emits the contract fields only - no cost, sku, SEO, stock counts", () => {
     const out = toMobileShopProduct(product(), SITE_URL);
     expect(Object.keys(out).sort()).toEqual(
       [
@@ -561,7 +561,7 @@ describe("buildBootstrap (contract §10)", () => {
 
   it("publishes the shop's own switch, so the phone can say so BEFORE checkout", () => {
     // `finalizeOrder` refuses a cargo basket with `shop_closed` when
-    // `settings.isShopOpen` is off — and that setting was never published.
+    // `settings.isShopOpen` is off - and that setting was never published.
     // The member filled a basket, entered an address, and met a 409 at the
     // last step with nothing on the way there having hinted at it.
     expect(buildBootstrap({ ...settings, isShopOpen: true }, site).app.ordering.shopEnabled).toBe(true);

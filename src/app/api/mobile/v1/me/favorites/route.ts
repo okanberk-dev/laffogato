@@ -20,7 +20,7 @@ const bodySchema = z
   .strict();
 
 /**
- * `POST /api/mobile/v1/me/favorites` — add or drop one product (§4).
+ * `POST /api/mobile/v1/me/favorites` - add or drop one product (§4).
  *
  * A toggle, not a whole-list write, and deliberately so: the site edits the
  * same list through the same helper, so two surfaces touching it at once each

@@ -245,7 +245,7 @@ describe("previewOrderBodySchema", () => {
     expect("legalConsent" in r.data).toBe(false);
   });
 
-  it("prices a basket that has no address yet — the cart screen has none", () => {
+  it("prices a basket that has no address yet - the cart screen has none", () => {
     // Shipping is derived from `fulfillment` and the settings, never from the
     // address, so demanding one here only broke the basket screen.
     const shop = previewOrderBodySchema.safeParse({

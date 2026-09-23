@@ -125,7 +125,7 @@ export function CheckoutWizard({
   const discountMajor = promoOk ? promoOk.discountMinor / 100 : 0;
 
   // Authoritative money math (shipping + total) using the same helper the
-  // server uses at placeOrder — keeps the displayed total === charged total.
+  // server uses at placeOrder - keeps the displayed total === charged total.
   const totals = useMemo(
     () =>
       computeOrderTotals(
@@ -722,7 +722,7 @@ function PaymentStep({
             }}
           >
             {/* Sağlayıcının adı yazılmıyor: sağlayıcı bir sunucu ayarı
-                (PAYMENT_PROVIDER) ve bir kez zaten değişti — adı buraya
+                (PAYMENT_PROVIDER) ve bir kez zaten değişti - adı buraya
                 yazmak, değiştiği gün müşteriye yanlış kurumu söylerdi. */}
             Ödemen sağlayıcının güvenli ödeme sayfasında tamamlanır. Kart bilgin
             hiçbir aşamada bu siteye girilmez ve burada saklanmaz.

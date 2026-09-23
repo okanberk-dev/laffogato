@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Global 404. Rendered by Next.js for any unmatched route — there is no
+ * Global 404. Rendered by Next.js for any unmatched route - there is no
  * parent route segment here, so unlike /hukuk/* or /uye/* it cannot inherit
  * a layout's chrome and wires SiteChrome itself.
  *

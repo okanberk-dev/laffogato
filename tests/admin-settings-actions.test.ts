@@ -67,7 +67,7 @@ describe("saveShippingAction", () => {
     expect(updateSettings).not.toHaveBeenCalled();
   });
 
-  it("refuses a zero courier fee — cafe delivery is never free", async () => {
+  it("refuses a zero courier fee - cafe delivery is never free", async () => {
     const state = await saveShippingAction({}, shipping({ courierFee: "0" }));
     expect(state.error).toBeTruthy();
     expect(updateSettings).not.toHaveBeenCalled();

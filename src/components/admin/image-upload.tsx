@@ -59,7 +59,7 @@ async function resizeImage(file: File): Promise<string> {
   ctx.drawImage(bitmap, 0, 0, w, h);
   bitmap.close?.();
 
-  // GIFs may be animated — we flatten to a single JPEG frame. PNGs with
+  // GIFs may be animated - we flatten to a single JPEG frame. PNGs with
   // alpha become JPEG too (white background) to keep the payload small.
   if (ctx.globalCompositeOperation && file.type === "image/png") {
     ctx.globalCompositeOperation = "destination-over";

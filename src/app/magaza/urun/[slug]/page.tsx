@@ -88,7 +88,7 @@ export async function generateMetadata({
 /**
  * Open Graph product tags.
  *
- * These carry `property`, not `name` — Next's `metadata.other` can only emit
+ * These carry `property`, not `name` - Next's `metadata.other` can only emit
  * the latter, which no Open Graph consumer reads. React hoists these into
  * <head>.
  */
@@ -122,7 +122,7 @@ function ProductOpenGraph({ product }: { product: Product }) {
  *
  * It renders inside <SiteChrome> like every other state of this route. It
  * used to be a bare <main> with no header and no footer, so a visitor who hit
- * a DB blip — and a crawler that hit one — got a dead end with no navigation
+ * a DB blip - and a crawler that hit one - got a dead end with no navigation
  * out of it, on the one screen whose whole message is "try again".
  */
 function ProductUnavailable() {
@@ -158,13 +158,13 @@ export default async function ProductDetailPage({ params }: RouteParams) {
   const { slug } = await params;
   const product = await getShopProductBySlug(slug);
   if (!product) {
-    // A missing product is a genuine 404 — but during a database outage every
+    // A missing product is a genuine 404 - but during a database outage every
     // product reads as missing, and 404-ing real product URLs would get them
     // deindexed. Serve an honest "temporarily unavailable" page instead.
     if (isDegradedRequest()) {
       // Wrapped in the site's own chrome: the fallback used to render bare,
       // so a visitor who hit a database blip got a page with no header and no
-      // footer — no way out of it — on the one screen whose entire message is
+      // footer - no way out of it - on the one screen whose entire message is
       // "come back in a minute". `getPublicSettings()` degrades to defaults
       // rather than throwing, so this is safe in exactly this state.
       const fallbackSettings = await getPublicSettings();

@@ -79,7 +79,7 @@ describe("Supabase TLS emniyeti", () => {
   });
 
   it("BÜYÜK harfli Supabase host'u da emniyeti tetikler", () => {
-    // postgresql: özel olmayan şemadır — WHATWG host'u küçültmez; kilit harfe
+    // postgresql: özel olmayan şemadır - WHATWG host'u küçültmez; kilit harfe
     // duyarlı olsaydı DNS harfe duyarsız olduğu için düz metin bağlantı
     // BAŞARILI olurdu.
     const cfg = poolConfig(
@@ -95,7 +95,7 @@ describe("Supabase TLS emniyeti", () => {
     expect(cfg.ssl).toMatchObject({ rejectUnauthorized: true });
   });
 
-  it("DATABASE_SSL_CA Neon dizesine SIZMAZ — tek adımlık geri dönüş korunur", () => {
+  it("DATABASE_SSL_CA Neon dizesine SIZMAZ - tek adımlık geri dönüş korunur", () => {
     const prev = process.env.DATABASE_SSL_CA;
     process.env.DATABASE_SSL_CA =
       "-----BEGIN CERTIFICATE-----\nFAKE\n-----END CERTIFICATE-----";
@@ -126,7 +126,7 @@ describe("Supabase TLS emniyeti", () => {
 
   it("rejectUnauthorized:false diye bir yol SUNMAZ", () => {
     // "Şifreli ama doğrulanmamış" en kötü sessiz arızadır; sağlık katmanı da
-    // TLS hatasını "veritabanı ulaşılamıyor" sayıp paket veriye düşer — yani
+    // TLS hatasını "veritabanı ulaşılamıyor" sayıp paket veriye düşer - yani
     // yanlış yapılandırma 500 yerine "boş site" olarak görünür. Kapı yok.
     const cfg = poolConfig(POOLER + "?sslmode=require");
     expect(cfg.ssl).toMatchObject({ rejectUnauthorized: true });

@@ -63,7 +63,7 @@ describe("normalizeMobileAppConfig", () => {
     }
   });
 
-  it("hands out fresh objects — mutating the result must not touch the defaults", () => {
+  it("hands out fresh objects - mutating the result must not touch the defaults", () => {
     const cfg = normalizeMobileAppConfig({});
     expect(cfg).not.toBe(DEFAULT_MOBILE_APP_CONFIG);
     cfg.ordering.courierEtaMinutes[0] = 99;
@@ -255,7 +255,7 @@ describe("toBootstrapApp", () => {
     expect(app.fal).toEqual({ ai: false });
     expect(toBootstrapApp(DEFAULT_MOBILE_APP_CONFIG, true, true).fal).toEqual({ ai: true });
     // Only the listing URLs cross the wire. The signing identifiers are the
-    // website's own business — it publishes the two `.well-known` documents,
+    // website's own business - it publishes the two `.well-known` documents,
     // and the app can do nothing with its own fingerprint.
     expect(app.store).toEqual({ appStoreUrl: "", playStoreUrl: "" });
     expect(app.store).not.toHaveProperty("appleTeamId");

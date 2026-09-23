@@ -32,15 +32,15 @@ interface CameraOption {
 /**
  * The camera half of the till desk.
  *
- * Its own file, and its own mount lifecycle: everything here — a MediaStream,
- * a decode loop, a canvas, a torch — has to be torn down exactly when the
+ * Its own file, and its own mount lifecycle: everything here - a MediaStream,
+ * a decode loop, a canvas, a torch - has to be torn down exactly when the
  * cashier leaves the tab, and the surest way to get that right is for the tab
  * switch to unmount the component that owns them.
  *
  * What changed, and why each thing was worth changing:
  *
  * - **It works in Safari now.** `BarcodeDetector` is Chromium-only, so an
- *   iPad — the likeliest till there is — used to be told its browser could
+ *   iPad - the likeliest till there is - used to be told its browser could
  *   not read QR at all. `createDecoder()` falls back to jsQR.
  * - **It decodes a crop, not the frame.** The reticle is not decoration: the
  *   square it draws is exactly the region handed to the decoder, downscaled
@@ -49,8 +49,8 @@ interface CameraOption {
  * - **It reads every frame the camera produces**, via
  *   `requestVideoFrameCallback`, instead of sampling on a 400 ms timer that
  *   could sit between two good frames.
- * - **It says what actually went wrong** — no permission, no camera, camera
- *   busy — instead of one sentence about browser permissions for all three.
+ * - **It says what actually went wrong** - no permission, no camera, camera
+ *   busy - instead of one sentence about browser permissions for all three.
  * - **It stops on success.** A scan that landed leaves the stream running in
  *   the old console, pointed at a code it will refuse for the next two
  *   minutes; here the camera stops, the receipt is read, and "Yeni okuma"
@@ -117,7 +117,7 @@ export function CameraScanner({
     else gateRef.current.forget(outcome.value);
   }, [outcome]);
 
-  /** Flash the reticle green and beep — the cashier is looking at the member. */
+  /** Flash the reticle green and beep - the cashier is looking at the member. */
   const confirm = useCallback(() => {
     setFlash(true);
     beep(true);

@@ -49,7 +49,7 @@ export default async function AppPaymentFailedPage({
       </p>
       {/* The house green, not the accent: globals.css states the rule ("the
           primary action is the house green … never the button a page is built
-          around"), and this is a payment-failure screen — the worst page on
+          around"), and this is a payment-failure screen - the worst page on
           which to paint the way OUT in the same red as the problem. `.btn`
           carries the radius, so no Tailwind `rounded-full` either. */}
       <a href={href} className="btn btn-primary" style={{ marginTop: 32 }}>

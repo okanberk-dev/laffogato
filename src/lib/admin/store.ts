@@ -78,11 +78,11 @@ import {
 } from "./order-channel";
 
 /**
- * Veri katmanı — yönetilen bir Postgres üzerinden çalışır (bugün Neon).
+ * Veri katmanı - yönetilen bir Postgres üzerinden çalışır (bugün Neon).
  * Sağlayıcıya özel bağımlılık yok; bkz. src/lib/db/index.ts.
  *
  * Public API'lerin tamamı async ve mevcut admin sayfalarıyla uyumlu kalır.
- * Tablo boşsa SEED verisi otomatik yüklenir (idempotent — yalnızca
+ * Tablo boşsa SEED verisi otomatik yüklenir (idempotent - yalnızca
  * count === 0 ise tetiklenir; insert'ler upsert/ignoreDuplicates ile
  * yarış-güvenli). İç-içe alanlar (variants, items, refunds, ...) JSONB
  * kolonlarda tutulur; tarih alanları ISO-8601 metni olarak saklanır.
@@ -116,7 +116,7 @@ export interface AdminProduct {
   slug: string;
   sku: string;
   tag: string;
-  /** Minor units (kuruş) — e.g. 32000 = 320,00 ₺ */
+  /** Minor units (kuruş) - e.g. 32000 = 320,00 ₺ */
   priceMinor: number;
   /** Optional "was" price for striked-out display. 0 = none. */
   compareAtPriceMinor: number;
@@ -179,7 +179,7 @@ export interface AdminOrderItem {
   status: AdminOrderItemStatus;
   /**
    * What was actually taken from stock. Needed to give it back when the order
-   * is cancelled — matching on `productName` would be guesswork the moment a
+   * is cancelled - matching on `productName` would be guesswork the moment a
    * product is renamed. Absent on orders placed before this was recorded and
    * on manual admin orders that reference no catalogue product; those lines
    * are skipped rather than restored to the wrong SKU.
@@ -236,7 +236,7 @@ export interface OrderLegalConsent {
   documents: string[];
   /** Revision label of those documents (their "son güncelleme" date). */
   version: string;
-  /** Origin of the confirmation — evidence only. */
+  /** Origin of the confirmation - evidence only. */
   ip?: string;
   userAgent?: string;
 }
@@ -270,20 +270,20 @@ export interface AdminOrder {
    * the consent box existed.
    */
   legalConsent?: OrderLegalConsent | Record<string, never>;
-  /** Fulfillment — recorded when the shop owner ships the order. */
+  /** Fulfillment - recorded when the shop owner ships the order. */
   trackingNumber?: string;
   carrier?: string;
   shippedAt?: string;
   /**
    * The CARRIER's own milestone, written by the Geliver webhook
-   * (`/api/webhooks/geliver`) — one of `preparing | shipped | in_transit |
+   * (`/api/webhooks/geliver`) - one of `preparing | shipped | in_transit |
    * delivered | returned | failed`, or "" while no webhook has ever fired.
    *
    * Separate from `status` on purpose: `status` is where the ORDER is in the
    * köşk's own machine (paid → preparing → shipped → completed) and the shop
    * owner drives it, while this is where the PARCEL is and the carrier drives
-   * it. They disagree routinely — a parcel is `in_transit` for two days while
-   * the order sits at `shipped` — and collapsing them would make one of the
+   * it. They disagree routinely - a parcel is `in_transit` for two days while
+   * the order sits at `shipped` - and collapsing them would make one of the
    * two lie. The app reads this one (docs/API-MOBILE.md §3.1); until the
    * Geliver account exists it stays "" and the mapper derives what it can.
    */
@@ -312,7 +312,7 @@ export interface AdminOrder {
    * ISO-8601 instants the order reached each later stage; "" until it does.
    * Stamped by `transitionOrder`, so the app's timeline and its notification
    * inbox can date a stage instead of falling back to `paidAt`. `shippedAt`
-   * above is the same idea and predates them — the shipping form writes it too.
+   * above is the same idea and predates them - the shipping form writes it too.
    */
   preparingAt?: string;
   completedAt?: string;
@@ -373,7 +373,7 @@ export interface AdminSettings {
   /**
    * Transactional e-mail sender (Resend). Resend only delivers from a domain
    * verified on the account, so when that domain moves the address has to move
-   * with it — from here, not from a deploy. Empty address = fall back to
+   * with it - from here, not from a deploy. Empty address = fall back to
    * `EMAIL_FROM`, then to the built-in default.
    */
   emailFromName: string;
@@ -392,7 +392,7 @@ export interface AdminSettings {
 
   /**
    * Everything else the app is configured with (/admin/mobil/ayarlar,
-   * docs/API-MOBILE.md §10): one jsonb document, always normalised — a row
+   * docs/API-MOBILE.md §10): one jsonb document, always normalised - a row
    * written before a key existed reads that key's default, never `undefined`.
    */
   mobileApp: MobileAppConfig;
@@ -494,14 +494,14 @@ function deriveSku(name: string, n: number): string {
   return `${prefix}-${String(n).padStart(5, "0")}`;
 }
 
-// ─── Seed (idempotent — yalnızca tablo boşsa çalışır) ─────────────────────
+// ─── Seed (idempotent - yalnızca tablo boşsa çalışır) ─────────────────────
 
 function defaultWeeklyHours(): WeeklyHours {
-  // Every day 09:00–02:00. The close time is EARLIER than the open time
-  // because 02:00 belongs to the following morning — schema.org expresses that
+  // Every day 09:00-02:00. The close time is EARLIER than the open time
+  // because 02:00 belongs to the following morning - schema.org expresses that
   // by simply letting `closes` be the smaller value, and openingHoursLd()
   // passes it through untouched. (Its "24:00" → "23:59" mapping exists for the
-  // old 10:00–24:00 schedule and no longer applies to any day here.)
+  // old 10:00-24:00 schedule and no longer applies to any day here.)
   const everyDay = { open: "09:00", close: "02:00", closed: false };
   return {
     mon: { ...everyDay },
@@ -848,7 +848,7 @@ async function uniqueSlug(
   let attempt = base;
   let n = 1;
   const sb = getDb();
-  // 20 deneme yeter — gerçekçi tekrar sayısı çok düşük.
+  // 20 deneme yeter - gerçekçi tekrar sayısı çok düşük.
   for (let i = 0; i < 20; i += 1) {
     let q = sb.from(TABLES.products).select("id").eq("slug", attempt);
     if (ignoreId) q = q.neq("id", ignoreId);
@@ -1065,8 +1065,8 @@ export async function adjustStock(
   if (!product) return { ok: false, error: "Ürün bulunamadı." };
 
   // Applied inside the database, not read-modify-written here. Two adjustments
-  // in flight — or one racing a customer's order, which decrements under a row
-  // lock — used to lose a write, and the lost one was always the smaller
+  // in flight - or one racing a customer's order, which decrements under a row
+  // lock - used to lose a write, and the lost one was always the smaller
   // change, so the count drifted upward. Upward is the direction that oversells.
   const updatedAt = new Date().toISOString();
   const { data, error } = await sb.rpc("adjust_product_stock", {
@@ -1290,7 +1290,7 @@ export type LoyaltyOrderRow = Pick<
  *
  * `limit` is pushed into SQL, not applied afterwards. Every `/me`, `/orders`
  * and `/notifications` call reads this, and the row carries the items jsonb,
- * the consent evidence and the refund ledger — a two-year regular's whole
+ * the consent evidence and the refund ledger - a two-year regular's whole
  * history was being transferred and deserialised several times per app
  * foreground. Callers that genuinely need the lifetime history (loyalty
  * tiers, badges) read `customerLoyaltyOrders` instead, which projects the
@@ -1300,7 +1300,7 @@ export type LoyaltyOrderRow = Pick<
  * expression `orders_email_idx` is built on. It used to be an `ILIKE`
  * prefilter finished in JavaScript; Postgres has no btree opclass for `~~*`,
  * so that index could never be chosen and every member order read was a
- * sequential scan of the whole table — including the one on the checkout
+ * sequential scan of the whole table - including the one on the checkout
  * path.
  */
 export async function customerOrdersByEmail(
@@ -1311,7 +1311,7 @@ export async function customerOrdersByEmail(
 }
 
 /**
- * The lifetime history the loyalty tier and the badges need — three columns,
+ * The lifetime history the loyalty tier and the badges need - three columns,
  * no `items`-sized company. There is no limit here on purpose: tiers count a
  * rolling year and `orders-50` counts a lifetime, so a page would be wrong.
  */
@@ -1363,7 +1363,7 @@ export interface BulkOrderResult extends BulkResult {
  *
  * `paid` and `refunded` are deliberately missing. Money moves with a
  * `payment_transactions` row or a refund ledger entry, and a bulk button that
- * writes the status column writes neither — a bulk "ödendi" produced paid
+ * writes the status column writes neither - a bulk "ödendi" produced paid
  * orders nobody had paid for, with no `paidAt` and no stamp. Those two are
  * done one order at a time, from the order page.
  */
@@ -1377,7 +1377,7 @@ export const BULK_ORDER_TRANSITIONS: Partial<
 };
 
 /**
- * Bulk status change — every id through the same machine the order page uses.
+ * Bulk status change - every id through the same machine the order page uses.
  *
  * This used to be a raw `update({ status }).in("id", ids)`: it wrote the
  * column and nothing else, so a bulk cancel left the stock claimed, the
@@ -1397,7 +1397,7 @@ export async function bulkUpdateOrders(
   let skipped = 0;
   for (const id of ids) {
     // "Hazırlanıyor" from pending_payment SETTLES the order (paidAt, stamp,
-    // revenue) — the very thing dropping bulk "paid" was meant to stop. One
+    // revenue) - the very thing dropping bulk "paid" was meant to stop. One
     // order at a time it is a deliberate call (paid at the counter); in bulk
     // it is a stray tick. Unpaid orders are skipped here.
     if (transition === "start_preparing") {
@@ -1415,14 +1415,14 @@ export async function bulkUpdateOrders(
 }
 
 export interface PlaceOrderItemInput {
-  /** Stable product id — preferred match key. */
+  /** Stable product id - preferred match key. */
   productId?: string;
-  /** Product name — fallback match key for legacy carts. */
+  /** Product name - fallback match key for legacy carts. */
   name: string;
   /** Selected variant id, if any. */
   variantId?: string;
   qty: number;
-  /** Client-sent price — IGNORED for charging; only used to detect drift. */
+  /** Client-sent price - IGNORED for charging; only used to detect drift. */
   priceMinor?: number;
 }
 
@@ -1550,7 +1550,7 @@ async function resolveOrderLines(
         null)
       : null;
     // A chosen variant that no longer resolves to an active one must NOT silently
-    // fall back to the base price/stock — reject the line so the stale selection
+    // fall back to the base price/stock - reject the line so the stale selection
     // surfaces instead of mischarging.
     if (it.variantId && !variant) {
       return {
@@ -1601,7 +1601,7 @@ type ClaimStockResult =
  * Atomically claims stock for ALL lines in one transaction. The RPC checks +
  * decrements product stock (and the chosen variant's JSONB stock) under a row
  * lock and raises INSUFFICIENT_STOCK if any line can't be met, rolling back
- * every line — prevents overselling, all-or-nothing.
+ * every line - prevents overselling, all-or-nothing.
  */
 async function claimOrderStock(
   resolved: ResolvedLine[],
@@ -1640,7 +1640,7 @@ async function claimOrderStock(
  *
  * Placement is a sequence of auto-commit statements: claim the stock, take the
  * counters, write the stock moves, insert the row. A failure anywhere after
- * the claim used to leave the units decremented forever — the sweep that
+ * the claim used to leave the units decremented forever - the sweep that
  * releases abandoned checkouts iterates `orders` rows, and there is no row to
  * find. Best-effort by design: it runs while another error is already on its
  * way up, and must not replace it.
@@ -1860,7 +1860,7 @@ async function insertOrderRow(
   try {
     check(await sb.from(TABLES.orders).insert(order), "finalizeOrder.insert");
   } catch (err) {
-    // The discount was claimed before the row existed — deliberately, so it
+    // The discount was claimed before the row existed - deliberately, so it
     // cannot be double-spent while the customer is on the POS page. If the row
     // never lands, the claim has to come back: a member's single-use coupon
     // was otherwise marked redeemed against an order number that does not
@@ -1935,7 +1935,7 @@ const POS_LOOKUP_TIMEOUT_MS = 5_000;
  * Past this age an unpaid order is cancelled even when the POS could not be
  * asked. A lookup that has failed for a day is an outage or a
  * misconfiguration, and stock must not stay held behind it forever; a payment
- * found afterwards still lands — as `order_not_open`, in front of a human
+ * found afterwards still lands - as `order_not_open`, in front of a human
  * (applyPaymentSucceeded).
  */
 const POS_LOOKUP_GIVE_UP_MS = 24 * 60 * 60_000;
@@ -1974,7 +1974,7 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
  * hand the stock back while the money sat at the POS (docs/AUDIT.md §8,
  * docs/PAYNKOLAY.md §14.6/2).
  *
- * "unknown" — the POS could not be asked — is never read as "unpaid". A
+ * "unknown" - the POS could not be asked - is never read as "unpaid". A
  * provider that cannot be asked at all (the mock; no provider configured) has
  * nothing to add, and the order is judged on the clock as before.
  */
@@ -2015,13 +2015,13 @@ async function settlePendingFromProvider(
   // Collected, but not what the order costs: the order cannot advance, and
   // applyPaymentSucceeded has already put it in front of a human. It is
   // cancelled like any unpaid order, so its stock does not stay held while
-  // that is sorted out — which is what the sweep always did with it.
+  // that is sorted out - which is what the sweep always did with it.
   if (applied.reconcile === "amount_mismatch") return "unpaid";
   return "paid";
 }
 
 /**
- * Cancels one unpaid order and returns what it held — after asking the POS.
+ * Cancels one unpaid order and returns what it held - after asking the POS.
  * The write is conditional on `pending_payment`, so a payment or a staff
  * action that lands in between wins. Resolves true when this call cancelled.
  */
@@ -2051,7 +2051,7 @@ async function cancelUnpaidOrder(
  * Cancels checkouts that were never paid for, and returns what they held.
  *
  * There is no scheduler in this deployment, so the sweep runs at the start of
- * a checkout — the moment stock accuracy actually matters. It is bounded and
+ * a checkout - the moment stock accuracy actually matters. It is bounded and
  * idempotent, and a failure here must never block the order being placed.
  * Each order is checked with the POS first (`settlePendingFromProvider`);
  * the checks run side by side, each bounded by POS_LOOKUP_TIMEOUT_MS.
@@ -2097,7 +2097,7 @@ export async function expireStalePendingOrders(): Promise<number> {
  * new attempt gets back what they held.
  *
  * A declined card sends the customer back to /odeme with the cart intact, and
- * the retry is a new order. The first one kept holding its stock and — worse —
+ * the retry is a new order. The first one kept holding its stock and - worse -
  * its single-use coupon for 45 minutes, so the retry came back "kupon
  * uygulanamadı" (docs/AUDIT.md §8). The new checkout is the proof the old one
  * was abandoned, and it comes from the signed-in owner: the POS's return POST
@@ -2148,7 +2148,7 @@ export async function placeOrder(
   }
 
   // Refuse customer checkout while the shop is flagged closed in settings.
-  // (Admin manual orders bypass this — see createManualOrder.)
+  // (Admin manual orders bypass this - see createManualOrder.)
   const settings = await getSettings();
   if (!settings.isShopOpen) {
     return { ok: false, reason: "shop_closed" };
@@ -2226,7 +2226,7 @@ export interface CreateManualOrderInput {
 
 /**
  * Creates an order entered by an admin (phone/in-store sale). Mirrors
- * {@link placeOrder} — prices resolved server-side, stock atomically claimed —
+ * {@link placeOrder} - prices resolved server-side, stock atomically claimed -
  * but the admin chooses the initial status and customer details directly.
  */
 export async function createManualOrder(
@@ -2314,7 +2314,7 @@ export interface AppOrderInput {
   lines: AppOrderLineInput[];
   fulfillment: OrderFulfillment;
   customerName: string;
-  /** The authenticated member's e-mail — never read from the request body. */
+  /** The authenticated member's e-mail - never read from the request body. */
   customerEmail: string;
   customerPhone: string;
   /** Already formatted for the row; "" on a pickup. */
@@ -2349,7 +2349,7 @@ type CafeLinesResult =
 /**
  * Prices cafe lines against `menu_items`. SECURITY: the unit price is the
  * menu row's size price plus the option surcharges from the server-side
- * customisation table — nothing from the request. Cafe lines hold no stock,
+ * customisation table - nothing from the request. Cafe lines hold no stock,
  * so there is nothing to claim.
  */
 async function resolveCafeLines(
@@ -2466,7 +2466,7 @@ export type AppOrderLinesResult =
 
 /**
  * Resolves and prices app lines WITHOUT claiming stock, a promo or a
- * sequence number — the basket preview (`POST /orders/preview`). Stock is
+ * sequence number - the basket preview (`POST /orders/preview`). Stock is
  * still checked so an out-of-stock line is reported before checkout.
  */
 export async function previewAppOrderLines(
@@ -2506,7 +2506,7 @@ export async function placeAppOrder(
 ): Promise<PlaceAppOrderResult> {
   await ensureSeed();
 
-  // Same housekeeping as the web checkout — and just as non-fatal.
+  // Same housekeeping as the web checkout - and just as non-fatal.
   try {
     await expireStalePendingOrders();
   } catch (err) {
@@ -2522,7 +2522,7 @@ export async function placeAppOrder(
     return { ok: false, reason: "bad_request", message: MIXED_BASKET_MSG };
   }
   const kind: OrderKind = cafe.length > 0 ? "cafe" : "shop";
-  // "Online mağaza açık" is the parcel shop's switch — the one the owner
+  // "Online mağaza açık" is the parcel shop's switch - the one the owner
   // unticks to pause shipping for a holiday. It used to refuse every app
   // order, so the house stayed open, the live-status card said "Şu an açık",
   // and every gel-al latte came back `shop_closed`. Cafe ordering has its own
@@ -2547,8 +2547,8 @@ export async function placeAppOrder(
   }
 
   if (kind === "cafe") {
-    // The house must be open — at the requested time for a scheduled order,
-    // right now otherwise — with the staff override honoured either way.
+    // The house must be open - at the requested time for a scheduled order,
+    // right now otherwise - with the staff override honoured either way.
     // Imported lazily: the venue module reads settings from this store.
     const { getVenueStatus, isCafeOpenNow } =
       await import("@/lib/mobile/venue");
@@ -2645,7 +2645,7 @@ export type PaymentApplyResult =
  * "ödemen alındı", and the order stayed cancelled with nobody refunding
  * anything; an amount mismatch answered the provider with a 500 it retried
  * forever. The money is real either way, so it goes into the audit log where
- * a human finds it. Nothing refunds automatically — handing the drink over or
+ * a human finds it. Nothing refunds automatically - handing the drink over or
  * giving the money back is the venue's call, not this function's.
  */
 async function noteUnreconciledPayment(
@@ -2735,7 +2735,7 @@ export async function applyPaymentSucceeded(input: {
   //
   // Nothing compared the two: a notification claiming ₺1 for a ₺500 order
   // marked it paid and sent the customer a confirmation. The transaction is
-  // still recorded — the money did arrive and the row is the audit trail —
+  // still recorded - the money did arrive and the row is the audit trail -
   // but the order does not advance, and the mismatch is logged loudly for a
   // human, because it means either a tampered notification or a real
   // short-collection that has to be reconciled by hand.
@@ -2757,7 +2757,7 @@ export async function applyPaymentSucceeded(input: {
     createdAt: new Date().toISOString(),
   });
   // A clean insert means this is the FIRST confirmation; a 23505 is a duplicate
-  // webhook/return — used below to send the "paid" e-mail exactly once.
+  // webhook/return - used below to send the "paid" e-mail exactly once.
   const isFirstConfirmation = !ins.error;
   if (ins.error && ins.error.code !== "23505") {
     return { ok: false, error: ins.error.message };
@@ -2765,7 +2765,7 @@ export async function applyPaymentSucceeded(input: {
   if (!amountMatches) {
     // Answered `ok` on purpose: the transaction row above IS the record, and a
     // failure here made the provider retry a notification that can never
-    // succeed. The order still does not advance — a human reconciles it.
+    // succeed. The order still does not advance - a human reconciles it.
     await noteUnreconciledPayment(order, input, "amount_mismatch");
     return { ok: true, reconcile: "amount_mismatch" };
   }
@@ -2778,14 +2778,14 @@ export async function applyPaymentSucceeded(input: {
     .eq("status", "pending_payment")
     .select("id");
   if (upd.error) return { ok: false, error: upd.error.message };
-  // Zero rows means the order was no longer pending — expired to `cancelled`
+  // Zero rows means the order was no longer pending - expired to `cancelled`
   // by the stale sweep, or already paid. Loyalty must follow a payment that
   // actually advanced the order, never a late or repeated confirmation.
   const advanced = ((upd.data as { id: string }[] | null) ?? []).length > 0;
 
   // Not advancing has two very different causes. Either the order had already
-  // moved on (a repeated confirmation, or staff starting it early) — harmless
-  // — or the stale sweep cancelled it and handed its stock back while the
+  // moved on (a repeated confirmation, or staff starting it early) - harmless
+  // - or the stale sweep cancelled it and handed its stock back while the
   // customer was still in the bank's 3-D Secure step, in which case we are
   // holding money for an order that will never be fulfilled.
   let unreconciled: PaymentReconcileReason | null = null;
@@ -2806,7 +2806,7 @@ export async function applyPaymentSucceeded(input: {
       // order another succeeded transaction already paid. PayNkolay allows
       // several attempts under one clientRefCode, and the bridge page can be
       // re-submitted from the browser's Back button. This used to pass as
-      // "harmless" — the customer was charged twice and mailed "ödemen
+      // "harmless" - the customer was charged twice and mailed "ödemen
       // alındı" twice, and nobody was told.
       unreconciled = "duplicate_payment";
       await noteUnreconciledPayment(
@@ -2873,7 +2873,7 @@ export async function applyPaymentSucceeded(input: {
  * The ledger row is keyed on `${providerRef}:refund`, NOT on the bare
  * reference. `payment_txn_provider_ref_key` is (provider, "providerRef") with
  * no status column, and iyzico derives the same `paymentId` for a charge and
- * for its later refund — so the bare reference collided with the succeeded
+ * for its later refund - so the bare reference collided with the succeeded
  * row that is always inserted first, every provider-side refund was mistaken
  * for a duplicate notification, and the order silently stayed `paid` while
  * the money had left. Suffixing the refund gives the two events distinct
@@ -3057,7 +3057,7 @@ export interface TransitionResult {
  * Gives back everything an order took, when it will never be fulfilled.
  *
  * Placing an order claims stock, burns the customer's single-use coupon and
- * takes one use of a promo code — all before payment, so nothing can be
+ * takes one use of a promo code - all before payment, so nothing can be
  * double-spent while the customer is on the POS page. Cancelling used to
  * reverse none of it: a cancelled order held its stock forever (the shop read
  * as sold out while the shelf was full), and the customer's coupon was gone
@@ -3154,8 +3154,8 @@ export async function transitionOrder(
       error: `Bu işlem '${existing.status}' durumunda yapılamaz.`,
     };
   }
-  // Settling by hand is still settling. "Ödendi olarak işaretle" — the cash
-  // pickup paid at the counter — used to write the status column and nothing
+  // Settling by hand is still settling. "Ödendi olarak işaretle" - the cash
+  // pickup paid at the counter - used to write the status column and nothing
   // else: no `paidAt`, and no stamp, while the app told the member their app
   // cafe order had earned one. Same for staff who skip straight to
   // "Hazırlanıyor" on an unpaid order.
@@ -3172,7 +3172,7 @@ export async function transitionOrder(
   if (settles) patch.paidAt = paidAt;
   if (stageColumn && !existing[stageColumn]) patch[stageColumn] = paidAt;
   // Conditional on the status the decision above was made from. A click on a
-  // stale screen used to overwrite whatever had happened since — a payment
+  // stale screen used to overwrite whatever had happened since - a payment
   // the POS lookup booked, or the sweep's cancel whose stock was already
   // handed back, which a "Hazırlanıyor" then revived with nothing on the
   // shelf behind it.
@@ -3237,8 +3237,8 @@ async function noticeCancelled(order: AdminOrder): Promise<void> {
  * Lazily imported because the loyalty module reads orders from this one (a
  * static import would be a cycle), and best-effort because a stamp that fails
  * to land must never undo a payment. The hook is idempotent on the order id,
- * so a retried webhook — or a webhook arriving after staff already marked the
- * order paid — is harmless.
+ * so a retried webhook - or a webhook arriving after staff already marked the
+ * order paid - is harmless.
  */
 async function awardLoyalty(order: AdminOrder, why: string): Promise<void> {
   try {
@@ -3314,7 +3314,7 @@ export async function setOrderTracking(
   return updated;
 }
 
-/** What the Geliver webhook's write came to — the route answers each differently. */
+/** What the Geliver webhook's write came to - the route answers each differently. */
 export type ShipmentWrite =
   | { outcome: "applied"; order: AdminOrder }
   | { outcome: "stale"; order: AdminOrder }
@@ -3324,17 +3324,17 @@ export type ShipmentWrite =
  * The carrier's own milestone, written by the Geliver webhook.
  *
  * Addressed by TRACKING NUMBER rather than by order id, because that is the
- * only identifier Geliver and this database share — the köşk's order id never
+ * only identifier Geliver and this database share - the köşk's order id never
  * leaves this side. Should two orders ever carry the same number (a panel
  * typo), the NEWEST one is the parcel's: `maybeSingle` used to answer that
  * case with a PGRST116 error that read as "no order", so the update was
  * dropped with a 200 and nobody knew.
  *
- * `outcome: "unknown"` — no order carries that number. Not an error: a parcel
+ * `outcome: "unknown"` - no order carries that number. Not an error: a parcel
  * the köşk did not send is somebody else's webhook, and the route answers 200
  * either way so the sender stops retrying.
  *
- * `outcome: "stale"` — the event is OLDER than what is already stored.
+ * `outcome: "stale"` - the event is OLDER than what is already stored.
  * Webhooks are not delivered in order: a retried SHIPPED can land after the
  * DELIVERED that followed it, and writing it would move the parcel backwards
  * on the phone. Decided in `isStaleShipmentEvent` (pure, tested); when
@@ -3343,7 +3343,7 @@ export type ShipmentWrite =
  *
  * It deliberately does NOT move `orders.status`. Whether a delivered parcel
  * completes the order is the shop owner's decision in /admin/siparisler, and a
- * carrier's scan is not authority to close a sale — a parcel marked delivered
+ * carrier's scan is not authority to close a sale - a parcel marked delivered
  * to a neighbour is still an open order.
  */
 export async function setOrderShipmentStatus(
@@ -3377,7 +3377,7 @@ export async function setOrderShipmentStatus(
     trackingUrl:
       trackingUrl.trim().slice(0, 500) || (existing.trackingUrl ?? ""),
     // The carrier's own instant when it sent one; the moment we heard it
-    // otherwise — never "", or the next event could not be ordered against it.
+    // otherwise - never "", or the next event could not be ordered against it.
     shipmentUpdatedAt: incomingAt || new Date().toISOString(),
   };
   check(
@@ -3455,7 +3455,7 @@ export type RefundResult =
  * Why a refund of `amountMinor` cannot be issued against `order`, or `null`
  * when it can. Pure, and run BEFORE the POS is asked for the money: the admin
  * action used to call `provider.refund` first and only then learn here that
- * the order was unpaid or the amount too large — the card was credited, the
+ * the order was unpaid or the amount too large - the card was credited, the
  * ledger refused, and the two were out of step for good.
  *
  * `collected` is whether money was ever taken (`paidAt`, or a succeeded
@@ -3472,7 +3472,7 @@ export function refundRefusal(
     return "İptal edilen, ödemesi alınmamış siparişe iade yapılamaz.";
   }
   // Nothing was ever collected on an order still awaiting payment, so there is
-  // nothing to give back — recording one would invent a negative in the
+  // nothing to give back - recording one would invent a negative in the
   // reports and, on a real POS, attempt a refund against no transaction.
   if (order.status === "pending_payment") {
     return "Ödemesi alınmamış siparişe iade yapılamaz; siparişi iptal edin.";
@@ -3499,7 +3499,7 @@ export async function orderWasCollected(order: AdminOrder): Promise<boolean> {
  *
  * `reserve_order_refund` appends the entry in ONE UPDATE whose WHERE checks
  * the remaining balance, so two refunds submitted together cannot both fit
- * where only one does — the read-modify-write this replaced let both through,
+ * where only one does - the read-modify-write this replaced let both through,
  * and each had already moved money. Called BEFORE the POS: if the POS then
  * refuses, {@link releaseRefund} takes the entry back; if it accepts,
  * {@link finalizeRefund} settles the status and the stamp.
@@ -3615,7 +3615,7 @@ export async function refundOrder(
  *
  * Degrades to the defaults with the shop forced CLOSED, so a database outage
  * can never leave checkout looking open. Commerce and admin must keep calling
- * `getSettings()`, which throws — deciding tax, shipping or whether an order
+ * `getSettings()`, which throws - deciding tax, shipping or whether an order
  * may be placed from fallback values would be a real financial error.
  */
 export async function getPublicSettings(): Promise<AdminSettings> {
@@ -3641,7 +3641,7 @@ export async function getSettings(): Promise<AdminSettings> {
   // at all (a partial select in a test executor) fall back to the same
   // defaults here, so callers never see `undefined` for a number field.
   // The app config is a jsonb document, so a shallow spread cannot fill a
-  // missing nested key — it is normalised leaf by leaf instead.
+  // missing nested key - it is normalised leaf by leaf instead.
   return {
     ...defaultSettings(),
     ...rest,
@@ -3733,7 +3733,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   ]);
 
   // Net of refunds. The dashboard summed order totals and ignored the refund
-  // ledger entirely, so money handed back still counted as revenue — and a
+  // ledger entirely, so money handed back still counted as revenue - and a
   // partially refunded order counted in full.
   const revenueMinor = revenueRows.reduce((sum, o) => {
     const refunded = (o.refunds ?? []).reduce(
@@ -3817,7 +3817,7 @@ export async function listShopProducts(): Promise<DesignProduct[]> {
   });
 }
 
-/** Single active product by slug — for the PDP (/magaza/urun/<slug>). */
+/** Single active product by slug - for the PDP (/magaza/urun/<slug>). */
 export async function getShopProductBySlug(
   slug: string,
 ): Promise<DesignProduct | null> {
@@ -3911,7 +3911,7 @@ export interface AdminMenuItem {
   categoryKey: MenuCategoryKey;
   name: string;
   desc: string;
-  /** Minor units (kuruş) — e.g. 13000 = 130,00 ₺. M size when two sizes exist. */
+  /** Minor units (kuruş) - e.g. 13000 = 130,00 ₺. M size when two sizes exist. */
   priceMinor: number;
   /** L (large) price in minor units. 0 means the item has a single size. */
   priceMinorL: number;
@@ -4070,10 +4070,10 @@ export async function bulkUpdateMenuItems(
 }
 
 /**
- * The bundled cafe menu with every price replaced by an em dash.
+ * The bundled cafe menu with every price replaced by a hyphen.
  *
  * The menu is a view-only listing, so its structure is still worth showing
- * during an outage — but a price from the bundled seed may be out of date, and
+ * during an outage - but a price from the bundled seed may be out of date, and
  * showing a wrong price to someone standing at the counter is worse than
  * showing none.
  */
@@ -4341,7 +4341,7 @@ export async function applyPromoCode(
  * `applyPromoCode` checks the limit in a separate read, so two checkouts
  * racing on the last use of a code both passed that check and both
  * incremented. Returns false when the code was already exhausted or switched
- * off — the caller must then not honour the discount.
+ * off - the caller must then not honour the discount.
  */
 async function consumePromoUsage(code: string): Promise<boolean> {
   await ensureSeed();
@@ -4375,7 +4375,7 @@ export type BucketGranularity = "day" | "week" | "month";
  * Whether an order is revenue.
  *
  * Only `cancelled` used to be skipped, so every `pending_payment` row counted
- * — and every app order starts there, for up to 45 minutes. Twenty members
+ * - and every app order starts there, for up to 45 minutes. Twenty members
  * opening checkout during a campaign and abandoning at the POS page added
  * twenty orders and their full totals to "Net ciro". Money is booked when it
  * has been collected: paid, preparing, shipped, completed, or refunded (whose
@@ -4401,8 +4401,8 @@ function pad2(n: number): string {
  * runs in UTC, so an order placed at 01:30 in Tuzla used to land in the
  * previous day's bar. Turkey has been fixed at UTC+03:00 since 2016 (no DST),
  * the same constant `publish-window.ts` and the campaign scheduler use. Every
- * helper below takes a "wall" date — the Istanbul wall-clock time carried in
- * the UTC fields — and reads it only with the getUTC* / setUTC* family, so
+ * helper below takes a "wall" date - the Istanbul wall-clock time carried in
+ * the UTC fields - and reads it only with the getUTC* / setUTC* family, so
  * the result no longer depends on the machine's TZ.
  */
 const REPORT_TZ_OFFSET_MS = 3 * 60 * 60 * 1000;
@@ -4478,7 +4478,7 @@ export async function revenueBuckets(
  * The pure half of {@link revenueBuckets}, exported for tests.
  *
  * Month steps start from the 1st: `setMonth(m - 1)` on 31 October is
- * "31 September", which JavaScript rolls over to 1 October — so on the 29th,
+ * "31 September", which JavaScript rolls over to 1 October - so on the 29th,
  * 30th and 31st the monthly report showed the current month twice and dropped
  * the one before it.
  */
@@ -4591,9 +4591,9 @@ export interface AdminShopHeroSlide {
   subtitle: string;
   /** Arkadaki görsel URL'si (full-width). Boşsa altın gradient fallback render edilir. */
   imageUrl: string;
-  /** CTA buton yazısı — boşsa buton render edilmez. */
+  /** CTA buton yazısı - boşsa buton render edilmez. */
   ctaLabel: string;
-  /** CTA hedef URL — full URL veya yerel "/odeme" gibi. */
+  /** CTA hedef URL - full URL veya yerel "/odeme" gibi. */
   ctaHref: string;
   /** Metin teması: arka plan koyu görsel ise "light", aydınlık ise "dark". */
   textTheme: "light" | "dark";
@@ -4704,7 +4704,7 @@ function normalizeSlide(input: ShopHeroSlideInput): ShopHeroSlideInput {
   return {
     title: input.title.trim().slice(0, 120),
     subtitle: input.subtitle.trim().slice(0, 300),
-    /* 4 MB clamp — yeterli data URL'i ve normal CDN URL'lerini kapsar.
+    /* 4 MB clamp - yeterli data URL'i ve normal CDN URL'lerini kapsar.
        Hero görseli için 1920px JPEG @ 0.85 kalite tipik olarak ~600-1500KB
        base64 boyutuna ulaşır; sabit 500 char limiti URL'i kesip görseli
        bozardı. */
@@ -4951,7 +4951,7 @@ export const deleteStoryEvent = storyResource.remove;
 // Kept separate from `shop_hero_slides`, which is web-shaped (a full-width
 // image, an absolute ctaHref). The app paints a brand `tone` and takes an
 // OPTIONAL https image on top of it, and it needs a route KEY rather than a
-// URL — CMS text must never be able to drive native navigation directly.
+// URL - CMS text must never be able to drive native navigation directly.
 
 // The tones, routes, kinds and their labels live in a client-safe module and
 // are re-exported here, so server code can keep importing them from the store
@@ -5269,8 +5269,8 @@ export async function deleteAppSlide(id: string): Promise<void> {
 // ─── Mobile app posts: campaigns, collaborations, events ──────────────────
 //
 // Image-first cards in a horizontally scrollable strip below the hero. Unlike a
-// hero slide, a post may point OUTWARD — at an Instagram collaboration or a
-// ticket page — which is why its destination is a validated https URL opened in
+// hero slide, a post may point OUTWARD - at an Instagram collaboration or a
+// ticket page - which is why its destination is a validated https URL opened in
 // an in-app browser rather than a route key resolved natively.
 
 export interface AdminAppPost {
@@ -5290,7 +5290,7 @@ export interface AdminAppPost {
   createdAt: string;
   updatedAt: string;
   /**
-   * Id of the campaign e-mail opened for this post, or "" — the column's
+   * Id of the campaign e-mail opened for this post, or "" - the column's
    * default (migration 20260908150000). Set once by `setAppPostEmailCampaign`
    * and never cleared, so no later save can mail the members twice. Optional
    * in the type only so a post assembled in memory need not carry it; a row
@@ -5350,7 +5350,7 @@ const SEED_APP_POSTS: AdminAppPost[] = [
  *
  * This is the one field where panel text becomes a destination, so the check is
  * a parse rather than a pattern: `new URL` rejects the malformed cases a regex
- * waves through, and the protocol test rejects `javascript:` and `data:` — the
+ * waves through, and the protocol test rejects `javascript:` and `data:` - the
  * two that turn a link into an injection.
  */
 function safeHttpsUrl(raw: string): string {
@@ -5456,7 +5456,7 @@ export async function updateAppPost(
  * is queued and never cleared by a later save, so editing a post can never
  * mail the members a second time (docs/EMAIL-RESEND.md §7). Conditional on
  * the column still being empty; false means the post is gone or another save
- * marked it first — the caller must then not send.
+ * marked it first - the caller must then not send.
  */
 export async function setAppPostEmailCampaign(
   id: string,

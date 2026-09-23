@@ -43,7 +43,7 @@ const schema = z
 
 /**
  * Rol kapısı burada da açılır: sayfadaki `requireRole` bir Server Action'ı
- * korumaz — action, sayfadan bağımsız çağrılabilen bir POST ucudur.
+ * korumaz - action, sayfadan bağımsız çağrılabilen bir POST ucudur.
  */
 export async function saveVenueStatusAction(
   _prev: VenueStatusState,

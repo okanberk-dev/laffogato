@@ -52,7 +52,7 @@ export const promoFormSchema = z
       minSubtotalMinor: v.minSubtotal,
       usageLimit: v.usageLimit,
       // Stored as a UTC instant. The datetime-local value has no offset, and
-      // on a UTC server "23:59" meant 23:59 UTC — the promo stayed valid
+      // on a UTC server "23:59" meant 23:59 UTC - the promo stayed valid
       // three hours past the Istanbul time the admin typed.
       expiresAt: v.expiresAt?.trim()
         ? normalizePublishInstant(v.expiresAt)

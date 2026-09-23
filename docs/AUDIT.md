@@ -1,4 +1,4 @@
-# Denetim — Eylül 2026
+# Denetim - Eylül 2026
 
 Sitenin tamamı on boyutta (güvenlik, doğruluk, ödeme, mevzuat, SEO,
 erişilebilirlik, performans, UX, Next.js uyumu, ölü kod) denetlendi. Ham bulgular
@@ -7,7 +7,7 @@ karşılaştırıldı ve yalnızca ayakta kalanlar buraya alındı.
 
 > **Durum:** Denetim partisi ve sonrasında yapılanlar canlıda. `main` doğrudan
 > production'a deploy oluyor (`laffogato.net`), migration'lar da uygulamanın
-> kendisi tarafından uygulanıyor — bkz. §6. Bekleyen tek operasyonel iş
+> kendisi tarafından uygulanıyor - bkz. §6. Bekleyen tek operasyonel iş
 > `PAYMENT_PROVIDER`'ın Vercel'de tanımlı olması (§5).
 
 **Sonuç: 71 doğrulanmış bulgu.** Bunların 2'si kritik, 17'si yüksek, 34'ü orta,
@@ -59,7 +59,7 @@ alınabilir bir tercih merkezi vaat ediyordu; ikisi de kodda yoktu.
 `<head>` içinde satır içi çalışır ve rızaya bağlı her sinyal `denied` başlar.
 Bant ve tercih merkezi bunları yalnızca açık seçimle yükseltir; footer'daki
 "Çerez Tercihleri" düğmesi merkezi yeniden açar, çünkü rızanın geri alınması
-verilmesi kadar kolay olmak zorunda. Bootstrap çerezi tarayıcıda okur —
+verilmesi kadar kolay olmak zorunda. Bootstrap çerezi tarayıcıda okur -
 sunucuda gömülseydi, statik olarak önbelleklenen layout bir ziyaretçinin
 rızasını diğerine taşırdı. Test: `tests/consent.test.ts`.
 
@@ -78,18 +78,18 @@ rızasını diğerine taşırdı. Test: `tests/consent.test.ts`.
 | İptal edilen sipariş **stoğu sonsuza dek kilitliyordu**                                         | `release_order_stock` + `stockReleasedAt` bekçisi                                            |
 | Tek kullanımlık kupon ve promosyon **ödeme yapılmadan tükeniyordu**                             | İptalde geri veriliyor; ödenmeyen sipariş 45 dk sonra süpürülüyor                            |
 | iyzico callback'i **imza doğrulamasına** düşüyordu: müşteri ödemeden sonra 401 JSON görüyordu   | `/odeme/donus` POST kabul ediyor, token'ı iyzico'ya soruyor, 303 ile başarı sayfasına atıyor |
-| TOTP 2FA sırları **process içi Map'te** — yeni instance'ta 2FA sessizce devre dışı (fail-open)  | `admin_2fa` tablosu; DB'ye ulaşılamazsa `has2FA` **throw eder**                              |
+| TOTP 2FA sırları **process içi Map'te** - yeni instance'ta 2FA sessizce devre dışı (fail-open)  | `admin_2fa` tablosu; DB'ye ulaşılamazsa `has2FA` **throw eder**                              |
 | Giriş kilidi de process içi Map'ti: saldırgana **her cold start'ta 5 hak**                      | `auth_attempts` tablosu + atomik `record_auth_failure`                                       |
 | Müşteri girişinde **hiç rate limit yoktu**                                                      | Aynı sayaç; 2FA kodu ve promosyon önizlemesi de bağlandı                                     |
 | POS iade çağrısının hatası yutuluyor, admin'e **"iade edildi"** deniyordu                       | Önce POS çağrılıyor; başarısızsa iade hiç kaydedilmiyor                                      |
-| Offer fiyatı **tam liraya yuvarlanıyordu** — ₺184,90 ürün Google'a ₺185 olarak yayımlanıyordu   | Fiyat kuruş biriminden üretiliyor; `priceLabel()` kuruşu koruyor                             |
+| Offer fiyatı **tam liraya yuvarlanıyordu** - ₺184,90 ürün Google'a ₺185 olarak yayımlanıyordu   | Fiyat kuruş biriminden üretiliyor; `priceLabel()` kuruşu koruyor                             |
 | Yüklenen ürün görselleri **base64 olarak her sayfanın RSC payload'ına** giriyordu               | `/gorsel/...` rotalarından, önbelleklenebilir şekilde                                        |
 | Server action gövde limiti 1 MB'ta: **3+ fotoğraflı ürün sessizce kaydedilmiyordu**             | `bodySizeLimit: "12mb"`                                                                      |
 | Admin'deki "arama motorlarına aç" anahtarı **hiçbir şey yapmıyordu**                            | `robots.ts` ve `sitemap.ts` artık okuyor                                                     |
 | Çalışmayan rezervasyon formu, JSON-LD ve meta'da **var olan hizmet gibi** duyuruluyordu         | `acceptsReservations: false`; buton `tel:` bağlantısı                                        |
 | `/ziyaret` ve `/hikayemiz` **admin ayarlarını yok sayıyordu**                                   | İki sayfa da ana sayfayla aynı yükleyiciyi kullanıyor                                        |
 | Ayarlardaki SEO başlığı, OG görseli ve hero görseli **hiçbir yerde okunmuyordu**                | Üçü de bağlandı                                                                              |
-| **Parola sıfırlama yoktu** — dört yayımlanmış belge varmış gibi anlatıyordu                     | `/uye/sifremi-unuttum` + `/uye/sifre-sifirla`                                                |
+| **Parola sıfırlama yoktu** - dört yayımlanmış belge varmış gibi anlatıyordu                     | `/uye/sifremi-unuttum` + `/uye/sifre-sifirla`                                                |
 | Bülten kaydı **açık rıza almıyordu** ve sitede hiçbir çıkış yolu yoktu (6563)                   | Ön işaretsiz onay kutusu, onay kaydı, tek tıkla `/bulten/cikis`                              |
 
 ---
@@ -111,13 +111,13 @@ rızasını diğerine taşırdı. Test: `tests/consent.test.ts`.
 - Ödenmemiş siparişe iade açılabiliyordu; iade yetkisi `staff` rolündeydi.
 - Adedi 99'dan büyük satır **sessizce düşürülüyordu**: müşteri, istediğini
   içermeyen bir sepetin parasını ödüyordu.
-- Boş veritabanına iki demo sipariş yazılıyordu — canlıda da. ₺740 uydurma ciro
+- Boş veritabanına iki demo sipariş yazılıyordu - canlıda da. ₺740 uydurma ciro
   ve iki uydurma müşteri. Artık `SEED_DEMO_ORDERS=1` arkasında.
 
 **Yapısal veri**
 
 - Veritabanı kesintisinde menünün tamamı JSON-LD'de **0₺** olarak
-  yayımlanıyordu (fiyatlar "—" render edilir, eski ayrıştırıcı bunu 0 yapıyordu).
+  yayımlanıyordu (fiyatlar "-" render edilir, eski ayrıştırıcı bunu 0 yapıyordu).
 - Stokta olmayan ürün `InStock` ilan ediliyordu.
 - Kargo ücreti listede ₺29, ürün sayfasında ₺49, checkout'ta gerçek değerdi.
 - `openingHoursSpecification` derleme zamanı sabitiydi; panelden değişen saat
@@ -127,20 +127,20 @@ rızasını diğerine taşırdı. Test: `tests/consent.test.ts`.
 - `robots.txt`'te bot-özel gruplar disallow listesini iptal ediyordu: yirmi bot
   `/admin`, `/api`, `/odeme` ve `/uye`'ye davet ediliyordu.
 
-**Erişilebilirlik** — hepsi aynı biçimde: fare ve gözle çalışıyor, başka
+**Erişilebilirlik** - hepsi aynı biçimde: fare ve gözle çalışıyor, başka
 hiçbir şeyle çalışmıyordu.
 
 - Sepet çekmecesi, ürün modalı, arama katmanı ve mobil filtre sayfası odağı
   içeri almıyor, Tab'ı tutmuyor, kapanınca odağı geri vermiyordu. Çekmece ve
   sayfa kapalıyken DOM'da kaldığı için düğmeleri ekran dışında sekme sırasındaydı
-  ve `aria-modal` kalıcı duyuruluyordu — ekran okuyucu sitenin her sayfasında
+  ve `aria-modal` kalıcı duyuruluyordu - ekran okuyucu sitenin her sayfasında
   bir diyalog açık sanıyordu.
 - Sepete ekleme, reddedilen promosyon kodu ve başarısız giriş yalnızca piksel
   değiştiriyordu.
 - Mega menü yalnızca hover ile açılıyordu; `aria-expanded` klavyede hiç `true`
   olamıyordu.
-- Hesap menüsü `change` olayında yönlendiren bir `<select>`'ti — birkaç
-  tarayıcıda ok tuşuyla gezerken her seçenekte tetiklenir — ve odak halkası
+- Hesap menüsü `change` olayında yönlendiren bir `<select>`'ti - birkaç
+  tarayıcıda ok tuşuyla gezerken her seçenekte tetiklenir - ve odak halkası
   tamamen kaldırılmıştı.
 - Kategori filtreleri arkalarında tabpanel olmadan `role="tablist"` iddia
   ediyor, seçili olanı hiç bildirmiyordu.
@@ -155,15 +155,15 @@ hiçbir şeyle çalışmıyordu.
 - Admin giriş sayfası kimlik doğrulaması olmadan `ADMIN_EMAIL`'i basıyordu.
 - 2FA kodunda brute-force koruması yoktu: ikinci faktör, arkasındaki paroladan
   ucuz hedefti.
-- Oturum çerezi 30 gün boyunca saf taşıyıcıydı; parola değiştirmek — biri
-  oturumunun çalındığından şüphelenince yaptığı tek şey — hiçbir çerezi
+- Oturum çerezi 30 gün boyunca saf taşıyıcıydı; parola değiştirmek - biri
+  oturumunun çalındığından şüphelenince yaptığı tek şey - hiçbir çerezi
   geçersiz kılmıyordu.
 - Site hiçbir güvenlik başlığı göndermiyordu: CSP, HSTS, nosniff, çerçeveleme
   kuralı, hiçbiri.
 
 **Performans**
 
-- 351 KB'lık PNG, 40 px'lik logo için CSS mask olarak her sayfada iniyordu —
+- 351 KB'lık PNG, 40 px'lik logo için CSS mask olarak her sayfada iniyordu -
   mask yalnızca alfa kanalını okur, rengi çöpe atar.
 - 861 KB'lık three.js widget'ı ana sayfanın **ilk** öğesiydi, yani "görünür
   alana girince yükle" pratikte "hemen yükle" demekti.
@@ -188,7 +188,7 @@ hiçbir şeyle çalışmıyordu.
   yüzden hiçbir Open Graph tüketicisi okumuyordu.
 - `--accent` bağlantı rengi 13 px metinde 3,70:1 kontrasttaydı.
 - `llms.txt` kendi yapısal verisini yanlış tarif ediyordu.
-- Promosyon kodu önizlemesi kimlik doğrulamasız ve sınırsızdı — kod
+- Promosyon kodu önizlemesi kimlik doğrulamasız ve sınırsızdı - kod
   numaralandırma için çalışan bir kâhin.
 - Menü kalemine panelden fotoğraf eklemek imkânsızdı: alan yalnızca `public/`
   altındaki bir yolu kabul ediyor, girilen https adresini sessizce siliyordu.
@@ -211,11 +211,11 @@ değil, eksik içerik: ürün fotoğrafı çekilip panelden yüklenmeli. Yükley
 artık çalışıyor ve görseller önbelleklenebilir bir adresten servis ediliyor;
 eksik olan fotoğrafların kendisi. Bu ortamın giden bağlantısı görsel
 sunucularını (Unsplash, Pexels, Wikimedia) engellediği için stok fotoğraf da
-indirilemedi — kartlar bu yüzden markaya özgü SVG çizimlerle render ediliyor.
+indirilemedi - kartlar bu yüzden markaya özgü SVG çizimlerle render ediliyor.
 
 **SPA'nın beş sayfası tek client chunk'ta.** `pages.tsx` tek bir 2.900 satırlık
 dosya; kod bölme için önce dosyanın kendisinin bölünmesi gerekiyor. Kazanç
-gerçek ama düşük önemli bir bulgu için taşınan regresyon riski yüksek —
+gerçek ama düşük önemli bir bulgu için taşınan regresyon riski yüksek -
 bilinçli olarak ertelendi.
 
 **Kampanya e-postası İYS'ye bağlı değil (8 Eyl 2026).** Yasal metinler onayın
@@ -238,31 +238,31 @@ geldikçe eklenenler.
 **MERSİS numarası yayımlandı.** `0734069467300012`, işletme sahibinin ibraz
 ettiği ticaret sicil kaydından. Şirket Bilgileri tablosunda ve Organization
 JSON-LD'sinde `identifier` olarak görünüyor. **Ticaret sicil / dosya numarası
-işletme sahibinin tercihiyle yayımlanmıyor**, KEP adresi de henüz yok — ikisi de
+işletme sahibinin tercihiyle yayımlanmıyor**, KEP adresi de henüz yok - ikisi de
 boş bırakıldığı için ilgili tablo satırları hiç basılmıyor. (TTK m.39 ticari
 belgelerde sicil numarasını da arar; yayımlanması istenirse `entity.ts` içinde
 `tradeRegistryNo: "48639"` yazmak yeterli, gerisi otomatik.)
 
 **Mobil hero sayfayı hapsediyordu.** Hero `100svh` yüksekliğindeydi ama alt tab
-bar `position: fixed` ve hero'nun son 56 pikselini örtüyordu — yani kendi
+bar `position: fixed` ve hero'nun son 56 pikselini örtüyordu - yani kendi
 kaydırma göstergesi barın arkasında kalıyor ve altında hiçbir şey görünmüyordu.
 Telefonda gördüğün ilk ekran, devamı olmayan bir sayfa gibi duruyordu. Hero
 artık barı, safe-area inset'ini ve bilinçli 40px'i çıkarıyor; her cihazda aynı
 96px'lik bir sonraki bölüm kenarı görünüyor. Ayrıca widget'ın canvas'ına
 `touch-action: pan-y` sabitlendi: vendor bundle three.js OrbitControls üzerine
-kurulu ve OrbitControls bağlanırken `none` yazıyor — bugün `pan-y`'ye çekiyor,
+kurulu ve OrbitControls bağlanırken `none` yazıyor - bugün `pan-y`'ye çekiyor,
 ama bir yeniden derleme bunu geri alsa tam ekran hero telefonda kaydırılamaz
 hâle gelirdi ve bunu telefon dışında fark etmenin yolu yok.
 
 **Harita, sayfanın yazdığı adrese bakmıyordu.** Gömülü harita ve "Yol tarifi"
 bağlantısı hâlâ `29 Ekim Cd.` adresini geocode ediyordu; sayfa Atatürk
 Caddesi yazarken kendi tarif düğmesi başka bir yere yolluyordu. İşletme
-sahibiyle teyit edildikten sonra düzeltildi — iki sokak adı arasında tahmin
+sahibiyle teyit edildikten sonra düzeltildi - iki sokak adı arasında tahmin
 yürütmek müşteriyi yanlış kapıya göndermek demek, ki bu tutarsızlıktan kötü.
 
 **Canlıdaki iletişim bilgileri eskiydi.** `settings` satırı vergi levhası
 gelmeden önce yazılmıştı; seed yalnızca tablo boşken yazdığı için footer her
-sayfada `tuzla@laffogato.it` ve eski sokak adını gösteriyordu — `/hukuk` ise
+sayfada `tuzla@laffogato.it` ve eski sokak adını gösteriyordu - `/hukuk` ise
 yasal kimlikten okuduğu için doğrusunu. `20260901180000_settings_identity_backfill.sql`
 bunu düzeltir; her kolona yalnızca hâlâ tam olarak eski değeri taşıyorsa
 dokunur, yani sonradan panelden yazılmış bir şeye karışmaz.
@@ -280,7 +280,7 @@ CLI migration çakışma değil no-op olur.
 İki sonucu var:
 
 1. Vercel'in build komutunun (`next build`) migration çalıştırmıyor olması bir
-   eksik değil — bilinçli. Build veritabanına hiç bağlanmaz.
+   eksik değil - bilinçli. Build veritabanına hiç bağlanmaz.
 2. `npm run db:bundle` çalıştırmayı unutmak **gerçek** bir hatadır: yeni
    migration bundle'a girmezse ne uygulama ne de CLI onu görür. Yeni migration
    yazdıktan sonra her zaman `npm run db:bundle` koş ve üretilen dosyaları
@@ -289,7 +289,7 @@ CLI migration çakışma değil no-op olur.
 ### Sıradaki: veritabanı değişecek
 
 Yeni bir veritabanına geçildiğinde ek bir iş yok: boş bir veritabanında
-uygulama şemayı ilk sorguda kendisi kurar ve seed doğru varsayılanları yazar —
+uygulama şemayı ilk sorguda kendisi kurar ve seed doğru varsayılanları yazar -
 `defaultSettings()` zaten güncel e-posta ve adresi taşıyor. Yukarıdaki backfill
 migration'ı o durumda hiçbir satır bulamaz ve sessizce no-op olur; kalması
 zararsız, çünkü eski verinin taşındığı bir senaryoda hâlâ işe yarar.
@@ -316,7 +316,7 @@ Yalnızca `DATABASE_URL`'in yeni bağlantı dizesiyle güncellenmesi yeterli.
 
 ---
 
-## 8. Backend + mobil parite denetimi — 23 Eyl 2026
+## 8. Backend + mobil parite denetimi - 23 Eyl 2026
 
 Arka yüzün tamamı dört koldan yeniden okundu: (1) `lafmobil` uygulamasının
 gerçekte gönderdiği/okuduğu her alan ile `/api/mobile/v1` kodunun karşılaştırması,
@@ -327,7 +327,7 @@ doğrulandı; düzeltilenlerin her birinin yanında onu tutan test var.
 **Parite sonucu:** iki depodaki `docs/API-MOBILE.md` bayt bayt aynıydı; çekirdek
 akışlarda (sipariş, ödeme, profil, sadakat, karaoke, menü/mağaza) kırık alan
 yok. Uygulamanın çağırdığı her uç sunucuda var (§18 Cüzdan ve §19 Hediye kartı
-hariç — belge onları "henüz yok, 404 beklenir" diye yazıyor, uygulama 404'ü
+hariç - belge onları "henüz yok, 404 beklenir" diye yazıyor, uygulama 404'ü
 "özellik kapalı" okuyor). Ayrışan dört şey bulundu, hepsi düzeltildi (aşağıda
 🟠/🟡 işaretli mobil satırlar).
 
@@ -351,11 +351,11 @@ hariç — belge onları "henüz yok, 404 beklenir" diye yazıyor, uygulama 404'
 | 🟠 | Sipariş geçmişi e-postayla eşleşiyor, kayıt doğrulamadan önce oturum açıyor → admin'in elle girdiği siparişteki yabancının adı/telefonu/adresi görünüyordu | `memberOrders()`: doğrulanmamış e-postaya boş | `member-orders` |
 | 🟡 | Reddedilen kartla dönen müşteri hiçbir mesaj görmüyordu (`?durum=basarisiz` okunmuyordu) | `?error=payment` | `frontend-form-contract` |
 | 🟡 | Aynı siparişin damgası iki kez geri alınabiliyordu (eşzamanlı iade + iptal) | Geri alma satırının kimliği siparişten türer; PK ikinciyi reddeder | `mobile-loyalty-reversal` |
-| 🟡 | Mobil parite: panel 0–23 hatırlatma saati kaydediyordu, uygulama 08–21 dışını sessizce düşürüyordu | Panel 08–21'i zorlar, alan altında mesaj | `admin-reminder-hours` |
+| 🟡 | Mobil parite: panel 0-23 hatırlatma saati kaydediyordu, uygulama 08-21 dışını sessizce düşürüyordu | Panel 08-21'i zorlar, alan altında mesaj | `admin-reminder-hours` |
 | 🟡 | Sipariş tekrarı, personel siparişi kapatınca 409 `ordering_closed` alıyordu | Tekrar, anahtarlardan önce | `mobile-order-idempotency` |
 | 🟡 | `PATCH /me/addresses/{id}` `isDefault` yoksa varsayılan adresi düşürüyordu | Yoksa değişmez | `mobile-address-patch` |
-| 🟡 | Ciro raporu: ayın 29–31'inde aylık görünüm bu ayı iki kez gösterip geçen ayı atlıyordu; günler UTC gece yarısında bölünüyordu | Ay adımı 1'inden; kovalar İstanbul saatine göre | `admin-revenue-buckets` |
-| 🟡 | Sitedeki "Bugün" saatleri 00:00–03:00 arası dünün saatlerini gösteriyordu (sunucu UTC) | `istanbulDay()` | — |
+| 🟡 | Ciro raporu: ayın 29-31'inde aylık görünüm bu ayı iki kez gösterip geçen ayı atlıyordu; günler UTC gece yarısında bölünüyordu | Ay adımı 1'inden; kovalar İstanbul saatine göre | `admin-revenue-buckets` |
+| 🟡 | Sitedeki "Bugün" saatleri 00:00-03:00 arası dünün saatlerini gösteriyordu (sunucu UTC) | `istanbulDay()` | - |
 | 🟡 | Promosyon bitişi `datetime-local` → UTC okunuyordu; 3 saat fazla geçerliydi | UTC anı olarak saklanır | `promo-schema` |
 | 🟡 | Toplu "Hazırlanıyor" ödenmemiş siparişi ödenmiş sayıyordu (paidAt, damga, ciro) | Toplu işlemde ödenmemişler atlanır | `admin-order-guards` |
 | 🟡 | Manuel sipariş stok ayırdıktan sonra hata verirse stok geri dönmüyordu | `placeOrder` gibi telafi | `admin-order-guards` |
@@ -363,14 +363,14 @@ hariç — belge onları "henüz yok, 404 beklenir" diye yazıyor, uygulama 404'
 | 🟢 | Favori `back` alanıyla açık yönlendirme | `sameSitePath()` | `same-site-path` |
 | 🟢 | Web siparişi, ödeme sağlayıcısı kontrol edilmeden oluşturulup e-postalanıyordu; kesirli adet 500'e düşüyordu | Sağlayıcı önce; adet tam sayı | `checkout-zero-total` |
 | 🟢 | `/?hesap=silindi` hiçbir yerde karşılanmıyordu | Ana sayfa bildirimi | `frontend-form-contract` |
-| 🟢 | Sabit "6 damga" mesajı (hedef 3–20 ayarlanabilir); hesap silmede UTC tarih; doğum günü kuponu web yedeği UTC ayı | Yapılandırılmış hedef; `istanbulClock` | `mobile-venue-clock` |
-| 🟢 | `constantTimeEqual` uzunluk farkında erken dönüyordu (env admin parolasının uzunluğu sızıyordu); backend'de 7 lint uyarısı | SHA-256 sonra karşılaştırma; kullanılmayan importlar | — |
+| 🟢 | Sabit "6 damga" mesajı (hedef 3-20 ayarlanabilir); hesap silmede UTC tarih; doğum günü kuponu web yedeği UTC ayı | Yapılandırılmış hedef; `istanbulClock` | `mobile-venue-clock` |
+| 🟢 | `constantTimeEqual` uzunluk farkında erken dönüyordu (env admin parolasının uzunluğu sızıyordu); backend'de 7 lint uyarısı | SHA-256 sonra karşılaştırma; kullanılmayan importlar | - |
 | 🟢 | Sözleşme belgesi koddan geri kalmıştı: §0 403 `email_unverified`, §3 preview hız sınırı 200 döner, §5 `kind`/`code`, §6 SWR yok, §7 403 | Belge koda eşitlendi (davranış değişmedi) | `api-contract-parity` |
 | 🔴 | Admin oturumu geri alınamıyordu: çerez 7 gün e-posta ve rolü taşıyordu; pasifleştirme, rol düşürme, parola sıfırlama çerez bitene kadar işlemiyordu. TOTP kodu ±30 sn içinde tekrar kullanılabiliyor, 2FA kodsuz kapatılabiliyordu | Token'da kimlik bilgisinin anahtarlı parmak izi; hesap her istekte yeniden okunur. TOTP adımı harcanır (`admin_2fa."lastStep"`); 2FA'yı kapatmak güncel kod ister. **Deploy sonrası adminler bir kez yeniden girer** (eski 4 parçalı çerez reddedilir) | `admin-auth-sources`, `admin-2fa-enrollment`, `db-integration-audit` |
 | 🔴 | Kaba kuvvet sınırı paralel isteklerle aşılıyordu (25 eşzamanlı denemenin 9'u geçiyordu) | `reserve_auth_attempt()`: deneme kimlik bilgisi denetlenmeden **önce**, satır kilidi altında sayılır; `admin-2fa` için IP'den bağımsız hesap tavanı. Sınıra takılan giriş `audit_logs`'a yazılmaz | `db-integration-audit`, `admin-login-audit` |
 | 🔴 | 45 dakikalık süpürme ve dönüşü gelmeyen ödeme: POS'a sorulmadan iptal ediliyor, parası alınmış siparişin stoğu geri veriliyordu (PAYNKOLAY §14.6/2) | İptalden önce `lookupPayment` (`PaymentList`); `SUCCESS` → `applyPaymentSucceeded`. POS'a ulaşılamazsa bir gün dolana kadar iptal yok | `db-integration-payment-sweep`, `payment-paynkolay` |
 | 🟠 | İade defteri ve üç tavan (`MAX_OPEN_ORDERS`, `KARAOKE_OPEN_CAP`, kasa jetonu hızı) JS'te oku-karar ver-yaz: eşzamanlı iki iade ikisi de POS'a gidebiliyordu | `reserve_order_refund` tek koşullu UPDATE (POS'tan **önce**, ret olursa `drop_order_refund`); tavanlar üye başına advisory lock'lu BEFORE INSERT tetikleyicileri | `db-integration-audit`, `atomic-caps-sql` |
-| 🟠 | Bülten (6563): alt bilgi formu herkese herhangi bir adresi abone yaptırıyordu; admin çıkmış aboneyi eski onayla açabiliyordu; çıkış linki GET'te belirteci harcıyordu (e-posta tarayıcıları aboneliği bitiriyordu) | Çift onay (`/bulten/onay`, 7 gün), adres başına hız sınırı, panelde yalnız kapatma; çıkış bir **düğme** (POST) — RFC 8058 tek tık başlığı aynen duruyor | `newsletter-double-opt-in`, `db-integration-audit` |
+| 🟠 | Bülten (6563): alt bilgi formu herkese herhangi bir adresi abone yaptırıyordu; admin çıkmış aboneyi eski onayla açabiliyordu; çıkış linki GET'te belirteci harcıyordu (e-posta tarayıcıları aboneliği bitiriyordu) | Çift onay (`/bulten/onay`, 7 gün), adres başına hız sınırı, panelde yalnız kapatma; çıkış bir **düğme** (POST) - RFC 8058 tek tık başlığı aynen duruyor | `newsletter-double-opt-in`, `db-integration-audit` |
 | 🟠 | Reddedilen karttan sonra tekrar deneme: ödenmemiş ilk sipariş tek kullanımlık kuponu ve stoğu 45 dk tutuyor, yeni sipariş kuponu uygulayamıyordu | Yeni web ödemesi üyenin kendi ödenmemiş web siparişlerini (POS'a sorduktan sonra) bırakır. `/odeme/donus`'ta yapılmadı: o POST'ta oturum çerezi yok, herhangi bir sipariş için taklit edilebilir | `checkout-retry-releases`, `db-integration-payment-sweep` |
 | 🟠 | CSP `form-action 'self'` PayNkolay köprüsünün POS'a POST'unu engelliyordu (canlıya alma engeli, §14.6/1) | Test ve canlı PayNkolay hostları eklendi, başkası reddedilir | `security-headers` |
 | 🟠 | Mobil sipariş okumaları (`GET /orders`, `/orders/{id}`, bildirimler) e-postayla eşleşiyor, doğrulamaya bakmıyordu | Doğrulanmamış üyeye boş liste / 404; bildirimde sipariş kaydı yok (biçim aynı) | `mobile-order-reads-verified` |

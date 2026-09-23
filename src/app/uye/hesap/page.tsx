@@ -28,12 +28,12 @@ export default async function HesapPage() {
 
   // The stamp card, with the reader's own stamps on it. The home page shows
   // the programme; this is the only page that knows who is looking. A failure
-  // here must not take the dashboard down with it — the member still needs
+  // here must not take the dashboard down with it - the member still needs
   // their orders and addresses.
   let loyalty: LoyaltyView | null = null;
   /**
    * `stamps` is the balance MODULO the card size, so a member holding a full
-   * card reads 0 — computeStampBalance returns {stamps: 0, rewardsReady: 1}
+   * card reads 0 - computeStampBalance returns {stamps: 0, rewardsReady: 1}
    * for exactly six of six. Drawing that literally gave them an empty card
    * under the words "your free drink is ready".
    */
@@ -76,7 +76,7 @@ export default async function HesapPage() {
           <VerifyNotice email={customer.email} />
         </div>
       )}
-      {/* A brand-new member's dashboard was four zeroes and an empty list —
+      {/* A brand-new member's dashboard was four zeroes and an empty list -
           an accurate but discouraging first screen, and the one people land
           on straight after signing up. Until there is a first order, the
           space goes to what they can actually do next. */}
@@ -197,7 +197,7 @@ export default async function HesapPage() {
         </div>
       )}
 
-      {/* Single membership across both surfaces — the prototype's account
+      {/* Single membership across both surfaces - the prototype's account
           screen makes this its own block, and it is the only place the site
           tells a member the app exists. */}
       <div className="account-app-block">

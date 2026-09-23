@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 /**
  * The seam between the customer UI and the server actions behind it.
  *
- * A server action reads its input by NAME — `formData.get("legalConsent")` —
+ * A server action reads its input by NAME - `formData.get("legalConsent")` -
  * and a form supplies it by the `name="…"` of an input. Nothing else ties the
  * two together: TypeScript does not see it, the build does not see it, and a
  * redesign that renames a field or drops a hidden input compiles cleanly and
@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
  * So this table is the contract (CLAUDE.md → "Ön yüz ↔ arka yüz sınırı"). Each
  * row says: this action reads these fields, and this form file still sends
  * them. A frontend rewrite that moves a form to another file updates `form`
- * here — deliberately, with the field list in front of it. A backend change
+ * here - deliberately, with the field list in front of it. A backend change
  * that stops reading a field fails the first assertion, so the list cannot
  * quietly rot either.
  */

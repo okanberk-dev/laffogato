@@ -109,7 +109,7 @@ describe("cache lifetime is capped by the token", () => {
   it("does not serve a token past its own exp", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-05T12:00:00.000Z"));
-    // 10 seconds of life left — well inside the 60-second TTL.
+    // 10 seconds of life left - well inside the 60-second TTL.
     const token = tokenExpiringAt(
       Math.floor(Date.parse("2026-09-05T12:00:10.000Z") / 1000),
     );

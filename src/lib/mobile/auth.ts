@@ -49,12 +49,12 @@ const MSG = {
  * once rather than until the token expires.
  *
  * Route handlers branch on `ok` and return `response` as-is on failure:
- *   401 `unauthorized`      — no / malformed / invalid / expired token
- *   403 `account_disabled`  — an admin deactivated the member
- *   403 `email_unverified`  — the address belongs to an existing member and
+ *   401 `unauthorized`      - no / malformed / invalid / expired token
+ *   403 `account_disabled`  - an admin deactivated the member
+ *   403 `email_unverified`  - the address belongs to an existing member and
  *                             Supabase has not confirmed it yet
- *   503 `auth_unavailable`  — Supabase could not be reached
- *   503 `unavailable`       — this database could not be reached
+ *   503 `auth_unavailable`  - Supabase could not be reached
+ *   503 `unavailable`       - this database could not be reached
  * A query the database *rejected* is a bug and is thrown, not masked.
  */
 /**
@@ -63,22 +63,22 @@ const MSG = {
  * Every mobile call used to cost a network round-trip to Supabase Auth, so a
  * client polling the app's screens (or a script with one valid token) burned
  * the project's shared auth quota and slowed every member down. The cache is
- * keyed on a hash of the token — never the token itself, so a heap dump does
- * not hand out sessions — and holds only successes.
+ * keyed on a hash of the token - never the token itself, so a heap dump does
+ * not hand out sessions - and holds only successes.
  *
  * PER INSTANCE, and this deployment is serverless: the map lives in one warm
  * lambda, so there is no shared cache to invalidate, and a member's requests
  * land on whichever instance answers. Practically that means every instance
  * pays for the first sight of a token and remembers it separately, the hit
  * rate follows how warm the fleet is, and nothing here can be flushed from
- * outside the process — which is why nothing security-critical is allowed to
+ * outside the process - which is why nothing security-critical is allowed to
  * depend on it:
  *   - an entry never outlives the token's own `exp`, so a session that has
  *     since been signed out and expired cannot be replayed out of the cache;
  *   - the `customers` row is re-read on every request below, so a closed or
  *     deactivated account is refused immediately, cache hit or not.
  * What is left is a lag of at most a minute (and at most until `exp`) for a
- * sign-out that revokes a token BEFORE it expires — the same window the app
+ * sign-out that revokes a token BEFORE it expires - the same window the app
  * already has, since it drops the token itself on sign-out.
  */
 const USER_CACHE_TTL_MS = 60_000;

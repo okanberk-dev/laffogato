@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 // Keyword-first local title (≤60 chars); `absolute` bypasses the layout title
 // template so the brand isn't appended twice. The same string is used for
-// og:title and twitter:title — the page used to publish three different
+// og:title and twitter:title - the page used to publish three different
 // titles, so a shared link and a search result named different things.
 const HOME_TITLE = "Tuzla'da İtalyan Kahve, Affogato & Gelato - L'Affogato";
 

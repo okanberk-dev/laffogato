@@ -36,7 +36,7 @@ describe("commercial e-mail consent (6563)", () => {
 });
 
 describe("password reset", () => {
-  it("exists at all — four published documents promise it", () => {
+  it("exists at all - four published documents promise it", () => {
     expect(customerStore).toContain("createPasswordResetToken");
     expect(customerStore).toContain("resetPasswordWithToken");
   });

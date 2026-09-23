@@ -47,7 +47,7 @@ function patch(id: string, body: object) {
 
 /**
  * Fixing a phone number on the default address, without mentioning
- * `isDefault`, used to write `false` — and the store then made the first
+ * `isDefault`, used to write `false` - and the store then made the first
  * address in the list the default instead.
  */
 describe("PATCH /me/addresses/{id}", () => {

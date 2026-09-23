@@ -7,7 +7,7 @@ import { createDb, type Executor } from "@/lib/db/client";
  * Exercises the query layer against a REAL Postgres.
  *
  * The unit tests prove the compiler emits the SQL we intend; only this proves
- * Postgres accepts it and returns what the data layer expects — JSONB round
+ * Postgres accepts it and returns what the data layer expects - JSONB round
  * trips, ON CONFLICT behaviour, SQLSTATEs, function calls. Skipped unless a
  * database is provided:
  *
@@ -69,7 +69,7 @@ maybe("query layer against a real Postgres", () => {
       .eq("id", "a")
       .maybeSingle();
     expect(error).toBeNull();
-    // JSONB must come back as parsed JS values, not strings — the data layer
+    // JSONB must come back as parsed JS values, not strings - the data layer
     // indexes into these directly.
     expect(data.images).toEqual(["one.png", "two.png"]);
     expect(data.meta.notes).toEqual(["cocoa"]);
@@ -115,7 +115,7 @@ maybe("query layer against a real Postgres", () => {
       .select("*")
       .eq("id", "a")
       .maybeSingle();
-    // The existing row must be untouched — this is the seed path.
+    // The existing row must be untouched - this is the seed path.
     expect(kept.data.priceMinor).toBe(34000);
   });
 
@@ -204,7 +204,7 @@ maybe("query layer against a real Postgres", () => {
     const scalar = await db.rpc("shim_double", { n: 21 });
     expect(scalar.data).toBe(42);
 
-    // Object/array args are bound as JSON and cast to jsonb — the shape
+    // Object/array args are bound as JSON and cast to jsonb - the shape
     // claim_order_stock relies on.
     const arr = await db.rpc("shim_list", { p: [3, 5, 8] });
     expect(arr.data).toEqual([3, 5, 8]);

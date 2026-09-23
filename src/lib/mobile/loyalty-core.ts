@@ -1,4 +1,4 @@
-// Pure loyalty arithmetic — NO "server-only", NO DB. The ledger rows and the
+// Pure loyalty arithmetic - NO "server-only", NO DB. The ledger rows and the
 // member's orders come in, the `/me.loyalty` block (docs/API-MOBILE.md §4)
 // comes out. Everything here is unit-tested directly; the database wiring
 // lives in `./loyalty.ts`.
@@ -14,7 +14,7 @@ export interface LoyaltyStamp {
   customerEmail: string;
   /**
    * `earn` adds a stamp, `redeem` spends a full card, `reversal` takes back a
-   * stamp whose order was refunded or cancelled — the ledger stays
+   * stamp whose order was refunded or cancelled - the ledger stays
    * append-only, so nothing is ever deleted to make a balance come out right.
    */
   kind: "earn" | "redeem" | "reversal";
@@ -44,7 +44,7 @@ export type LoyaltyRules = MobileAppConfig["loyalty"];
 
 /**
  * The free-drink coupon as `customer_coupons` stores it. `kind` and the
- * subtotal floor are fixed — a free drink is a fixed amount off, on any
+ * subtotal floor are fixed - a free drink is a fixed amount off, on any
  * basket; the amount, the title and the shelf life come from the rules.
  */
 export interface FreeDrinkReward {
@@ -165,7 +165,7 @@ export function isCountedOrder(order: Pick<AdminOrder, "status">): boolean {
  * `stampTarget` is the card size the balance is read against. A redeem row
  * is counted by presence and charged the current target, not its own delta:
  * a hand-edited −5 must not leave a phantom stamp, and a card that grew from
- * 6 to 8 re-reads old redeems at 8 — the operator changing the target is
+ * 6 to 8 re-reads old redeems at 8 - the operator changing the target is
  * changing the deal for everyone, past cards included, and that is what the
  * setting says.
  */
@@ -222,8 +222,8 @@ export function stampedOrderIds(
 }
 
 /**
- * When the newest full card was completed — the `createdAt` of the earn row
- * that filled it — or `null` when no reward is waiting.
+ * When the newest full card was completed - the `createdAt` of the earn row
+ * that filled it - or `null` when no reward is waiting.
  *
  * The inbox stamps its "Ödülün hazır" item with this instant. It used to be
  * stamped with "now", which moved forward on every poll, so the item was

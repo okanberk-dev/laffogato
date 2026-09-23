@@ -4,7 +4,7 @@
  * Built from an oscillator rather than shipped as an audio file: it is two
  * hundred milliseconds of sine wave, and a counter that is looking at the
  * member rather than the screen needs to hear that something landed. Fails
- * silently — a browser that blocks audio until a gesture must not break the
+ * silently - a browser that blocks audio until a gesture must not break the
  * till scan or the order list around it.
  *
  * Lives here rather than in the till's `scan-engine.ts` because the order

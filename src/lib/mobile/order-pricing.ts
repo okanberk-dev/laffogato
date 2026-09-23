@@ -1,5 +1,5 @@
 // Pure pricing rules of an app order (docs/API-MOBILE.md §3). NO "server-only",
-// NO database — unit-tested directly. The store calls these with rows it has
+// NO database - unit-tested directly. The store calls these with rows it has
 // already fetched; nothing here ever trusts a price from the request.
 
 import type { OrderFulfillment, OrderKind } from "@/lib/admin/order-channel";
@@ -34,7 +34,7 @@ export type CafeLinePrice =
       unitPriceMinor: number;
       /** Normalised: "M" on a single-size item becomes "single". */
       size: OrderItemSize;
-      /** "M · yulaf · +1 shot" — receipts and the panel show this. */
+      /** "M · yulaf · +1 shot" - receipts and the panel show this. */
       detail: string;
       options: LineOptions;
     }
@@ -163,8 +163,8 @@ function fulfillmentFitsKind(
 /**
  * The operator's switches, applied to a basket that already fits its kind.
  *
- * A cafe basket while cafe ordering is off — or while both ways of getting a
- * cafe order to the customer are off, which is the same thing said twice —
+ * A cafe basket while cafe ordering is off - or while both ways of getting a
+ * cafe order to the customer are off, which is the same thing said twice -
  * is a 409 `ordering_closed` carrying the operator's own copy. A single
  * switched-off fulfillment is a 400 `fulfillment_unavailable`: the basket is
  * fine, the customer only has to pick the other option. Shop goods ship and
@@ -204,7 +204,7 @@ export function orderingRefusal(
 /**
  * Whether `fulfillment` is allowed for a `kind` of order. Without `ordering`
  * this is the shape rule alone (the wire schema and the store ask it that
- * way — a wrong shape is a bad request, not a closed shop); with it the
+ * way - a wrong shape is a bad request, not a closed shop); with it the
  * operator's switches apply too. The status and code behind a `false` come
  * from `orderingRefusal`.
  */

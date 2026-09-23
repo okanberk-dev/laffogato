@@ -1,4 +1,4 @@
-// Publish-window arithmetic — NO "server-only": the three /admin/mobil forms
+// Publish-window arithmetic - NO "server-only": the three /admin/mobil forms
 // are client components and need the same offset rule the store applies when
 // it reads what they submitted.
 
@@ -12,7 +12,7 @@ const ISTANBUL_OFFSET_MS = 3 * 60 * 60 * 1000;
  *
  * A value with its own offset (or a `Z`) is taken as written; a bare
  * `2026-09-30T23:59` is what a manager types meaning Istanbul midnight, and
- * parsing it as server-local time — UTC on Vercel — dropped the post three
+ * parsing it as server-local time - UTC on Vercel - dropped the post three
  * hours late. Anything else is not a time at all.
  */
 export function parsePublishInstant(raw: string): number | null {
@@ -30,7 +30,7 @@ export function parsePublishInstant(raw: string): number | null {
  *
  * Kept as ISO-8601 with a `Z` so `isPublishWindowOpen` and the app read the
  * same moment whatever the server's own timezone is (docs/API-MOBILE.md §1).
- * Text that is not a time is stored as typed — `isPublishWindowOpen` then
+ * Text that is not a time is stored as typed - `isPublishWindowOpen` then
  * refuses to publish the row, so the manager sees their typo instead of a card
  * that never expires.
  */
@@ -45,7 +45,7 @@ export function normalizePublishInstant(raw: string): string {
  *
  * The inverse of `parsePublishInstant`'s bare-value branch, so what the form
  * shows is what the panel would store again untouched. Text that is not a time
- * comes back as "" — the input cannot display it, and the field is optional.
+ * comes back as "" - the input cannot display it, and the field is optional.
  */
 export function toDateTimeLocalInput(raw: string): string {
   const at = parsePublishInstant(raw);

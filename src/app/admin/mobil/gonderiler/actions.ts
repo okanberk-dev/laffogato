@@ -57,7 +57,7 @@ type MailOutcome =
   | { kind: "failed"; campaignId: string };
 
 /**
- * A post that is live right now — active, and inside its publish window —
+ * A post that is live right now - active, and inside its publish window -
  * becomes ONE `kampanya-duyuru` campaign to the members with marketing
  * consent, when the form asked for it.
  *
@@ -65,7 +65,7 @@ type MailOutcome =
  * the campaign is queued and never cleared: a later save, whatever the
  * checkbox says, finds the mark and sends nothing. A scheduled post (start
  * in the future) is not live, so nothing is sent and nothing is marked; when
- * it goes live no hook fires — the form says so, and the campaign page is
+ * it goes live no hook fires - the form says so, and the campaign page is
  * where that mail is sent by hand.
  *
  * Nothing here can undo the save that just happened, so a failure is
@@ -161,7 +161,7 @@ export async function updatePostAction(id: string, formData: FormData) {
   const session = await requireRole("mobileApp");
   const input = parseInput(formData);
   // Same guard as the create action: the HTML `required` attribute is not a
-  // guard on a Server Action, and the store only trims the title — a titleless
+  // guard on a Server Action, and the store only trims the title - a titleless
   // row renders as an empty card on every phone.
   if (!input.title.trim()) return;
   const updated = await updateAppPost(id, input);
@@ -174,7 +174,7 @@ export async function updatePostAction(id: string, formData: FormData) {
     entityId: id,
     payload: { title: input.title, isActive: input.isActive },
   });
-  // `updated` is the row as stored, mark included — so a post that already
+  // `updated` is the row as stored, mark included - so a post that already
   // had its campaign is recognised here, whatever the checkbox says.
   const outcome = await emailMembersForPost(
     updated,

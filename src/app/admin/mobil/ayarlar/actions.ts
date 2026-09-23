@@ -54,7 +54,7 @@ function parseMoneyMinor(raw: string): number {
 
 /**
  * Rol kapısı her action'da ayrıca açılır: sayfadaki `requireRole` bir Server
- * Action'ı korumaz — action, sayfadan bağımsız çağrılabilen bir POST ucudur.
+ * Action'ı korumaz - action, sayfadan bağımsız çağrılabilen bir POST ucudur.
  *
  * The patch is merged section by section onto the live document so saving
  * "Sipariş" can never wipe what someone else just saved under "Sadakat".
@@ -322,7 +322,7 @@ export async function saveCampaignCardsAction(
  * The happy hour the app announces.
  *
  * Kept behind its own switch because the discount is not applied where an
- * order is priced — the counter gives it by hand. While the switch is off the
+ * order is priced - the counter gives it by hand. While the switch is off the
  * bootstrap publishes `happyHour: null` and neither app screen draws the
  * card, which is exactly what it did before this section existed. Turning it
  * on is the operator saying the till will honour it.
@@ -393,7 +393,7 @@ export async function saveVenueAction(
  * They live in the panel rather than in the app's own build because of the
  * rule this whole page exists for: an operator must be able to change them
  * WITHOUT shipping a release. Two of them cannot be changed any other way
- * once the app is out — the store URLs are read by the forced-update screen,
+ * once the app is out - the store URLs are read by the forced-update screen,
  * which is shown precisely to builds too old to be updated with a build, and
  * Google generates the Play App Signing certificate only AFTER the first
  * upload, so its fingerprint is unknowable when the app is written.
@@ -425,8 +425,8 @@ const storeUrlField = (key: keyof typeof STORE_URL_HOSTS, label: string) =>
 /**
  * One fingerprint per line, as `keytool` and the Play console print them.
  *
- * Parsed leniently — blank lines, stray spaces and lower case all normalise
- * away — but a line that is not a SHA-256 is an error rather than a silent
+ * Parsed leniently - blank lines, stray spaces and lower case all normalise
+ * away - but a line that is not a SHA-256 is an error rather than a silent
  * drop: half a list is half the installs opening links in the browser, and
  * nothing on screen would have said so.
  */
@@ -492,7 +492,7 @@ export async function saveStoreAction(
   const saved = await saveSection("store", { store: parsed.data });
   if (saved.message) {
     // These two documents are read by iOS and Android, not by the app, and
-    // they are `force-dynamic` routes — but the panel's own page cache would
+    // they are `force-dynamic` routes - but the panel's own page cache would
     // otherwise keep showing the previous values.
     revalidatePath("/.well-known/apple-app-site-association");
     revalidatePath("/.well-known/assetlinks.json");

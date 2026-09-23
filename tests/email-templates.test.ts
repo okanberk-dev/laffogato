@@ -18,7 +18,7 @@ import { LEGAL_ENTITY } from "@/lib/legal/entity";
  * (or its absence on commercial mail), and a button pointing at nothing.
  *
  * Source of the design: the Starbucks Rewards mail-language spec (8 Eyl 2026),
- * drawn on the palette in `src/app/globals.css` — see
+ * drawn on the palette in `src/app/globals.css` - see
  * `src/lib/email/templates/README.md`.
  */
 
@@ -169,7 +169,7 @@ describe("the twenty-two templates render", () => {
   /**
    * The birthday message promises a validity the coupon has to have. It used
    * to say "doğum gününüzde aktifleşir · 7 gün geçerli" while the only
-   * grantor expired the coupon at the end of the MONTH — three days for a
+   * grantor expired the coupon at the end of the MONTH - three days for a
    * member born on the 28th, twenty-nine for one born on the 2nd. The cron
    * now grants seven days from the day itself (`BIRTHDAY.ttlDays`), and
    * "aktifleşir" is gone: a coupon is active the moment it is written.
@@ -185,7 +185,7 @@ describe("the twenty-two templates render", () => {
   });
 });
 
-describe("6563 — commercial and transactional are not interchangeable", () => {
+describe("6563 - commercial and transactional are not interchangeable", () => {
   const commercial = NAMES.filter((n) => EMAIL_TEMPLATES[n].commercial);
   const transactional = NAMES.filter((n) => !EMAIL_TEMPLATES[n].commercial);
 
@@ -231,7 +231,7 @@ describe("6563 — commercial and transactional are not interchangeable", () => 
   /**
    * Ticari İletişim Yönetmeliği m.8/1: the content of a tacir's commercial
    * electronic message carries the ticaret unvanı and the MERSİS number. One
-   * quiet line under the address, both halves, from LEGAL_ENTITY — never
+   * quiet line under the address, both halves, from LEGAL_ENTITY - never
    * typed into a template.
    */
   it.each(commercial)(
@@ -257,7 +257,7 @@ describe("6563 — commercial and transactional are not interchangeable", () => 
   );
 
   it.each(transactional)(
-    "%s keeps the short foot — the identity line is the commercial rule's",
+    "%s keeps the short foot - the identity line is the commercial rule's",
     (name) => {
       expect(EMAIL_TEMPLATES[name].html).not.toContain("[MERSIS]");
       expect(EMAIL_TEXT[name]).not.toContain("[MERSIS]");
@@ -269,8 +269,8 @@ describe("campaign blocks follow their fields", () => {
   /**
    * The kampanya-* family is one form with optional parts. Each optional
    * block is wrapped in an IF flag that `render.ts` derives from its first
-   * field, so leaving the field empty in the admin form removes the block —
-   * and the other fields inside it — rather than sending a hole.
+   * field, so leaving the field empty in the admin form removes the block -
+   * and the other fields inside it - rather than sending a hole.
    */
   const CAMPAIGN = NAMES.filter((n) => n.startsWith("kampanya-"));
 
@@ -385,7 +385,7 @@ describe("values are data, not markup", () => {
     expect(escapeHtml("?a=1&b=2")).toBe("?a=1&amp;b=2");
   });
 
-  it("leaves the subject line alone — &amp; there is a visible bug", () => {
+  it("leaves the subject line alone - &amp; there is a visible bug", () => {
     expect(fillText("[BASLIK]", { BASLIK: "Kahve & Gelato" })).toBe(
       "Kahve & Gelato",
     );
@@ -398,7 +398,7 @@ describe("values are data, not markup", () => {
 
 describe("the app strip is dropped until the app exists", () => {
   it("removes the store buttons when no listing is configured", () => {
-    // No NEXT_PUBLIC_*_STORE_URL in the test env — the default state today.
+    // No NEXT_PUBLIC_*_STORE_URL in the test env - the default state today.
     const r = renderWith("eposta-dogrulama");
     expect(r.html).not.toContain("App Store");
     expect(r.html).not.toContain("Google Play");

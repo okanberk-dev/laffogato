@@ -55,8 +55,8 @@ async function fetchRaw(email: string): Promise<Customer | null> {
  *
  * `deleteMe` keeps the id on the anonymised row precisely so this question can
  * be answered: it frees the e-mail, so the address lookup above finds nothing
- * and a still-live identity would otherwise open a brand-new membership —
- * with a fresh welcome coupon — for whoever still knows the old password.
+ * and a still-live identity would otherwise open a brand-new membership -
+ * with a fresh welcome coupon - for whoever still knows the old password.
  * Deleting the Supabase user itself is best-effort (see
  * `deleteSupabaseIdentity`); this is the record that does not depend on it.
  *
@@ -85,7 +85,7 @@ export type EnsureCustomerResult =
     };
 
 /**
- * Finds — or creates — the `customers` row for a verified Supabase user and
+ * Finds - or creates - the `customers` row for a verified Supabase user and
  * returns its public view. One membership per e-mail: a member who signed up
  * on the site years ago and now installs the app lands on the same row.
  *
@@ -122,7 +122,7 @@ async function reconcile(
   // Steady state, and every authenticated mobile request passes through it:
   // nothing is written, so `existing` IS the row the read-back below would
   // return. That read-back was a second identical `select * from customers`
-  // on a pool of `max: 1` — it could not even overlap the first. The
+  // on a pool of `max: 1` - it could not even overlap the first. The
   // deactivated and unconfirmed cases were refused above, which is what the
   // read-back's own `isActive` guard checks for.
   if (plan.action === "none" && existing) {
@@ -134,7 +134,7 @@ async function reconcile(
     const { error } = await db.from(TABLES.customers).insert(plan.row);
     if (error) {
       // Unique violation: the app and the site created the row at the same
-      // moment. The other write won — read it back and reconcile against it.
+      // moment. The other write won - read it back and reconcile against it.
       if (error.code === "23505" && !retried) {
         return reconcile(email, user, true);
       }
@@ -196,7 +196,7 @@ export function supabaseEmailRedirectUrl(): string {
  * with the password they just proved they know.
  *
  * Runs after a successful site login or registration. Never blocks either: a
- * Supabase refusal, an address that already exists there, a network failure —
+ * Supabase refusal, an address that already exists there, a network failure -
  * all are logged, the attempt is stamped on the row so it is not repeated, and
  * the member is signed in exactly as before. Skipped entirely when the row is
  * already linked or an attempt was made earlier (`shouldAttemptSupabaseLink`).

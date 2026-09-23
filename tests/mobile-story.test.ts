@@ -73,7 +73,7 @@ describe("story founder", () => {
 });
 
 describe("buildStory", () => {
-  it("maps rows through an allow-list — no ids, flags or timestamps", () => {
+  it("maps rows through an allow-list - no ids, flags or timestamps", () => {
     const story = buildStory(
       contentDefaults(),
       [event({ id: "story-001" })],

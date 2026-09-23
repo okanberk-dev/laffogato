@@ -250,7 +250,7 @@ describe("eta and stamps", () => {
     ).toBeNull();
   });
 
-  // These used to assert the OLD rule — a stamp inferred from the status —
+  // These used to assert the OLD rule - a stamp inferred from the status -
   // which is exactly the bug: `onOrderPaid` is best-effort, so a paid app
   // cafe order whose ledger insert failed had the app printing "+1 damga"
   // for a stamp the card never got. The ledger is the answer now.

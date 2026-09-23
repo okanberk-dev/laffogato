@@ -12,7 +12,7 @@ import { EspressoCup, PhotoSurface, ProductSurface } from "./visuals";
 import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
 
 export interface CartItem {
-  /** Stable product id — preferred match key for merge + server resolution. */
+  /** Stable product id - preferred match key for merge + server resolution. */
   productId?: string;
   /** Selected variant id, if any. */
   variantId?: string;
@@ -27,13 +27,13 @@ export interface CartItem {
   slug?: string;
   /** Hue token for the cart thumbnail surface. */
   img?: string;
-  /** Shop category — drives the cart thumbnail illustration. */
+  /** Shop category - drives the cart thumbnail illustration. */
   cat?: string;
   /** Max purchasable qty (stock); clamps the stepper. */
   maxStock?: number;
 }
 
-/** Stable cart key — same product+variant lines merge into one. */
+/** Stable cart key - same product+variant lines merge into one. */
 export function cartItemKey(it: {
   productId?: string;
   variantId?: string;
@@ -311,7 +311,7 @@ export function CartDrawer({
         ref={panelRef}
         // The drawer stays mounted so it can animate out. While it is closed
         // its buttons and links were still in the tab order off-screen, and
-        // `aria-modal` was announced permanently — a screen reader believed a
+        // `aria-modal` was announced permanently - a screen reader believed a
         // dialog was open on every page.
         role={open ? "dialog" : undefined}
         aria-modal={open ? true : undefined}
@@ -1041,7 +1041,7 @@ function WishlistHeart({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Search overlay — site-wide product + menu search
+   Search overlay - site-wide product + menu search
    ───────────────────────────────────────────────────────────── */
 
 interface SearchResult {

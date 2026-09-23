@@ -40,7 +40,7 @@ function isAppPostKind(value: string): value is AppPostKind {
 }
 
 /**
- * Editor for the app's home post strip — campaigns, collaborations, events.
+ * Editor for the app's home post strip - campaigns, collaborations, events.
  *
  * Unlike the hero slide editor this one HAS a picture and HAS an outward link,
  * because that is what a collaboration post is. Both are constrained:
@@ -50,13 +50,13 @@ function isAppPostKind(value: string): value is AppPostKind {
  *    time the home screen loads.
  * 2. The link must be https. The store re-checks this with `new URL` on save,
  *    so a `javascript:` or `data:` destination is stored as empty rather than
- *    reaching a phone — this is the one field where panel text becomes
+ *    reaching a phone - this is the one field where panel text becomes
  *    somewhere a customer's browser goes.
  *
  * The "e-posta" box is the automatic campaign mail (docs/EMAIL-RESEND.md §7):
  * on by default only when a campaign post is being created; off on every
  * edit (`defaultEmailMembers` says why) and locked off once the post has had
- * its mail — the mark on the post is what actually prevents a second send;
+ * its mail - the mark on the post is what actually prevents a second send;
  * the box just says so. Ticked, the submit asks once more: it is a
  * commercial send to the whole member base.
  *

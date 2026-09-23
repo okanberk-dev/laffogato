@@ -7,7 +7,7 @@ const FILE = "20260916140000_birthday_mail_and_scheduled_campaigns.sql";
 const sql = readFileSync(join(process.cwd(), "db", "migrations", FILE), "utf8");
 const bundle = readFileSync(join(process.cwd(), "db", "schema.sql"), "utf8");
 
-/** The file with its `--` comments removed — the part Postgres actually runs. */
+/** The file with its `--` comments removed - the part Postgres actually runs. */
 const statements = sql
   .split("\n")
   .filter((line) => !line.trimStart().startsWith("--"))

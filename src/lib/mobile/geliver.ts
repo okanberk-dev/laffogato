@@ -17,7 +17,7 @@ import type { MobileShipmentStatus } from "./order-mapper";
  *                     Tracking { trackingStatusCode, trackingSubStatusCode, statusDate,
  *                                statusDetails, updatedAt, test?: boolean, … }
  *   webhooks.ts       verifyWebhookSignature() is a STUB: returns true while
- *                     disabled, false when enabled — "Future: compute
+ *                     disabled, false when enabled - "Future: compute
  *                     HMAC(secret, timestamp + '.' + body)". The reserved
  *                     headers are `x-signature` and `x-timestamp`. So Geliver
  *                     does not sign webhooks today; the route authenticates
@@ -29,14 +29,14 @@ import type { MobileShipmentStatus } from "./order-mapper";
  *   LABEL_PRINTED · SHIPPED · DELIVERED · CANCELED · RETURNED ·
  *   RETURN_SHIPPED · FAILED
  *
- * Note the single "L" in `CANCELED` — it is spelled that way on the wire, and
+ * Note the single "L" in `CANCELED` - it is spelled that way on the wire, and
  * writing the British spelling here would silently drop every cancellation.
  *
  * Everything before the hand-over collapses to `preparing`: an offer being
  * accepted or a label being printed is the köşk's paperwork, not a position,
  * and a member reading "Etiket basıldı" learns nothing they can act on.
  *
- * `in_transit` has no Geliver status of its own — the carrier reports movement
+ * `in_transit` has no Geliver status of its own - the carrier reports movement
  * through `TRACK_UPDATED` with a `trackingStatus.trackingStatusCode` that is
  * not a delivery. `shipmentUpdateFrom` is where that is decided.
  */
@@ -55,11 +55,11 @@ const STATUS_MAP: Readonly<Record<string, MobileShipmentStatus>> = {
 };
 
 /**
- * Geliver's webhook body — the documented shape first, then leniently.
+ * Geliver's webhook body - the documented shape first, then leniently.
  *
  * The documented shape is `{ event, data: Shipment }`. It is read exactly.
  * But a webhook panel is free to change its envelope between releases, and
- * Turkish carrier integrations name a tracking number four different ways —
+ * Turkish carrier integrations name a tracking number four different ways -
  * and getting the envelope wrong here is the quietest possible failure: the
  * route answers 200, nothing is written, and the phone shows "hazırlanıyor"
  * forever. So after the documented shape, the body itself and one level of
@@ -117,7 +117,7 @@ function trackingBlock(src: Record<string, unknown>): Record<string, unknown> | 
   return isObject(t) ? t : null;
 }
 
-/** Top-level field NAMES only — never a value. Used to make a shape mismatch diagnosable. */
+/** Top-level field NAMES only - never a value. Used to make a shape mismatch diagnosable. */
 export function shapeOf(body: unknown): string {
   return candidates(body)
     .flatMap((c) => Object.keys(c))
@@ -132,7 +132,7 @@ export interface ShipmentUpdate {
   /** The carrier's own instant when the body carried one; "" otherwise. */
   updatedAt: string;
   /**
-   * Geliver's `Tracking.test` — the panel's "Test Et" delivery. A test event
+   * Geliver's `Tracking.test` - the panel's "Test Et" delivery. A test event
    * must never move a real parcel, so the route answers it and writes nothing.
    */
   test: boolean;
@@ -146,8 +146,8 @@ export interface ShipmentUpdate {
  * answers 200 and moves on, which is what a webhook receiver owes a sender it
  * cannot argue with.
  *
- * Without a tracking number there is no way to find the order — that is the
- * only identifier the two systems share — so those are dropped too.
+ * Without a tracking number there is no way to find the order - that is the
+ * only identifier the two systems share - so those are dropped too.
  */
 export function shipmentUpdateFrom(body: GeliverEvent): ShipmentUpdate | null {
   // `event` lives on the ENVELOPE (`{ event, data }`), the fields on the
@@ -213,8 +213,8 @@ export function isHandedOver(status: string): boolean {
 /**
  * Is this event OLDER than what the row already holds?
  *
- * Webhooks are not delivered in order — a retried SHIPPED can arrive after
- * the DELIVERED that followed it — and writing the old one would move the
+ * Webhooks are not delivered in order - a retried SHIPPED can arrive after
+ * the DELIVERED that followed it - and writing the old one would move the
  * parcel backwards on the phone. Two real timestamps decide it. When either
  * side is missing or unparseable the answer is `false`: "cannot prove it is
  * old" must never become "silently dropped". Equal instants are not stale,

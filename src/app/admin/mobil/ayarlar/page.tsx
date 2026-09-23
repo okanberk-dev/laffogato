@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 /**
  * Mobile app configuration (docs/API-MOBILE.md §10). Every section here lands
  * in `settings."mobileApp"` and reaches the app through `GET /bootstrap`,
- * which is cached for five minutes — hence the "en geç 5 dakika" promise on
+ * which is cached for five minutes - hence the "en geç 5 dakika" promise on
  * the save message.
  */
 export default async function AdminAppConfigPage() {

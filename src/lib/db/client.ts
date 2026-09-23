@@ -3,8 +3,8 @@
  *
  * The data layer was written against `@supabase/supabase-js` and calls
  * `.from(t).select(...).eq(...)` in ~122 places, including the money- and
- * stock-critical paths. Rather than rewrite those call sites by hand — where a
- * transcription slip surfaces as a runtime error inside a server action — this
+ * stock-critical paths. Rather than rewrite those call sites by hand - where a
+ * transcription slip surfaces as a runtime error inside a server action - this
  * reproduces the small slice of the PostgREST client they actually use, backed
  * by parameterised SQL.
  *
@@ -80,7 +80,7 @@ export function toDbError(err: unknown): { error: DbError; status: number } {
     hint?: string;
   };
   // A SQLSTATE is always five alphanumerics. Anything else on `code` is a Node
-  // errno — ECONNREFUSED, ETIMEDOUT, ENOTFOUND, ECONNRESET — which pg sets when
+  // errno - ECONNREFUSED, ETIMEDOUT, ENOTFOUND, ECONNRESET - which pg sets when
   // the socket never carried a query. Blanking it keeps the transport signature
   // below honest; otherwise an unreachable host is misread as a rejected query
   // and the degraded-mode fallback never engages.
@@ -155,7 +155,7 @@ abstract class QueryBuilder<T> implements PromiseLike<DbResult<T>> {
   }
 
   /**
-   * Case-insensitive equality — `lower(col) = lower($1)`.
+   * Case-insensitive equality - `lower(col) = lower($1)`.
    *
    * Not part of PostgREST's surface; it exists because `.ilike()` with a
    * wildcard-free needle looks like this but cannot use a `lower(col)` index
@@ -198,7 +198,7 @@ abstract class QueryBuilder<T> implements PromiseLike<DbResult<T>> {
     try {
       compiled = compile(this.spec());
     } catch (err) {
-      // A malformed identifier is a programming error, not a database error —
+      // A malformed identifier is a programming error, not a database error -
       // surface it as a failed result so callers handle it on their normal path.
       const { error, status } = toDbError(err);
       return { data: null, error, status: status || 400, count: null };
@@ -404,7 +404,7 @@ class DeleteBuilder<T> extends MutationBuilder<T> {
  * instantiated without a schema generic, so `data` was already untyped and the
  * ~122 call sites annotate the row type at the point of use instead
  * (`rows<AdminProduct>(await db.from(...).select("*"), ctx)`). Narrowing these
- * to `unknown` would require touching every one of those call sites — the
+ * to `unknown` would require touching every one of those call sites - the
  * mechanical edit through the money and stock paths this shim exists to avoid.
  * Typing the schema properly is worth doing, but as its own change.
  */
@@ -507,7 +507,7 @@ export class Db {
 
   /**
    * For `RETURNS TABLE` / `SETOF` functions: `data` is every row. `rpc()`
-   * on such a function yields one record *string* — the birthday cron read
+   * on such a function yields one record *string* - the birthday cron read
    * that as "no audience" every day and still reported success.
    */
   rpcRows<T = any>(fn: string, args: RowInput = {}): RpcBuilder<T[]> {

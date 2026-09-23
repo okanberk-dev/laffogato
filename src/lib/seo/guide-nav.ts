@@ -1,5 +1,5 @@
 /**
- * Rehber links for the footer — slug + title only.
+ * Rehber links for the footer - slug + title only.
  *
  * Deliberately separate from `guides.ts`: the footer is a client component, and
  * importing the guide registry there would ship every guide's full body to the

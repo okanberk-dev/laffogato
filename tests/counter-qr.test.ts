@@ -7,7 +7,7 @@ import QRCode from "qrcode";
  * The token's alphabet, its length and the encoder's settings are one design:
  * spend the entropy in QR's alphanumeric character set, spend less of it, and
  * put what that frees into error correction and a spec-compliant quiet zone.
- * Change any one of them and the grid grows again — which is exactly the
+ * Change any one of them and the grid grows again - which is exactly the
  * regression these tests exist to catch, because nothing else in the system
  * fails when a code merely becomes *harder* to scan.
  *
@@ -67,7 +67,7 @@ describe("counter QR geometry", () => {
   });
 
   it("carries more error correction than the level it replaced", () => {
-    // Level Q recovers ~25% of a damaged code where M recovers ~15% — the
+    // Level Q recovers ~25% of a damaged code where M recovers ~15% - the
     // difference between reading through a thumbprint and asking the member
     // to wipe their screen. Compared by codeword count, which is the thing
     // that actually differs; the `bit` field is only an enum tag.

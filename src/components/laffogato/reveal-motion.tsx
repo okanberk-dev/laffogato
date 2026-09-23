@@ -9,7 +9,7 @@ import { useEffect } from "react";
  * safe). Only AFTER hydration, and only for the user who hasn't asked for
  * reduced motion, do we hide the elements that are currently BELOW the fold
  * (`will-reveal`) and fade them in as they scroll into view (`is-in`).
- * Above-the-fold content is never hidden — so the hero can never flash or sit
+ * Above-the-fold content is never hidden - so the hero can never flash or sit
  * blank while JS hydrates.
  *
  * A MutationObserver re-runs the pass after SPA route swaps replace the DOM.

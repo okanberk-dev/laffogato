@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 /**
- * GET /api/mobile/v1/notifications — docs/API-MOBILE.md §8.
+ * GET /api/mobile/v1/notifications - docs/API-MOBILE.md §8.
  *
  * Derived on every call; the app keeps read state on the device. Private to
  * the member because the order items name what they bought.

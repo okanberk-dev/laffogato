@@ -7,8 +7,8 @@ import { describe, expect, it } from "vitest";
  * operator sees when something goes wrong or when they change tabs.
  *
  * Source-level assertions on purpose: an error boundary and an unmounted form
- * are both facts about the FILE — which file exists, and whether a tab is
- * rendered conditionally — and neither can be observed from a unit test
+ * are both facts about the FILE - which file exists, and whether a tab is
+ * rendered conditionally - and neither can be observed from a unit test
  * without rendering Next's router.
  */
 
@@ -41,7 +41,7 @@ describe("admin error + 404 boundaries", () => {
 
 describe("settings tabs keep what was typed", () => {
   // Conditional render unmounts the tab, and every field in these forms is
-  // uncontrolled — so switching tabs silently threw the typed values away.
+  // uncontrolled - so switching tabs silently threw the typed values away.
   const CONDITIONAL = /\{tab === "[a-z]+" && </;
 
   it("does not unmount the mobile app settings tabs", () => {

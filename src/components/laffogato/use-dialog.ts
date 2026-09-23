@@ -23,7 +23,7 @@ const FOCUSABLE = [
  * on reading the page underneath it, and Tab walked straight out of the panel.
  *
  * The drawer variants stay mounted while closed (they animate out), so the
- * caller must also mark the panel `inert` when `open` is false — otherwise its
+ * caller must also mark the panel `inert` when `open` is false - otherwise its
  * controls stay in the tab order off-screen.
  */
 export function useDialog(

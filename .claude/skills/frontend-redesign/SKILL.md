@@ -3,7 +3,7 @@ name: frontend-redesign
 description: Change the customer-facing UI (pages, components, CSS, forms) without touching the backend or breaking the lafmobil app. Use for any frontend / design / görünüm / tasarım / arayüz / sayfa yenileme / "ön yüzü değiştir" / "siteyi yeniden tasarla" work under src/components/laffogato, src/app/**/page.tsx, globals.css, or any *-form.tsx.
 ---
 
-# Ön yüz yeniden tasarımı — arka yüze dokunmadan
+# Ön yüz yeniden tasarımı - arka yüze dokunmadan
 
 Tam sınır: **`docs/FRONTEND-SINIR.md`**. Bu skill onun iş akışı.
 
@@ -22,7 +22,7 @@ Tam sınır: **`docs/FRONTEND-SINIR.md`**. Bu skill onun iş akışı.
 - **Form alanlarının `name`'ini koru.** Formu yeniden yazarken input'ları
   kopyala, adlarını değiştirme; gizli input'ları (`items`, `next`, `back`,
   `token`, `addressId`, `productId`) düşürme.
-- **Onay kutuları işaretsiz başlar** — `legalConsent`, `acceptedTerms`,
+- **Onay kutuları işaretsiz başlar** - `legalConsent`, `acceptedTerms`,
   `marketing`, `newsletter`, `consent`. `defaultChecked` / `checked` yok.
 - **Sepet anahtarı** `laffogato_cart_v1` ve `items` JSON biçimi aynı kalır.
 - **Yönlendirme parametrelerini karşıla:** `/?cart=…`, `/?hesap=silindi`,
@@ -31,7 +31,7 @@ Tam sınır: **`docs/FRONTEND-SINIR.md`**. Bu skill onun iş akışı.
   `/odeme/donus`, `/gorsel/**`, `/hukuk/[slug]`, `/api/**`.
 - Veri için var olan okuyucuları kullan (`loadAppProps`, `getPublicSettings`,
   `list*`). Bileşende `@/lib/db` import etme; istemci bileşeninde
-  `server-only` modül import etme — `*-core.ts` / `*-utils.ts` kardeşini al.
+  `server-only` modül import etme - `*-core.ts` / `*-utils.ts` kardeşini al.
 - Renk/token değişikliği `tests/contrast.test.ts` ve
   `tests/brand-theme.test.ts`'ten geçmeli; bordo ile yeşil üst üste yazılmaz.
 - Hash router hydration kuralı (CLAUDE.md → "Sık Karşılaşılan Hatalar").
@@ -39,7 +39,7 @@ Tam sınır: **`docs/FRONTEND-SINIR.md`**. Bu skill onun iş akışı.
 ## Form başka dosyaya taşındıysa
 
 `tests/frontend-form-contract.test.ts` içindeki ilgili satırın **yalnız
-`forms` yolunu** güncelle. `fields` listesine dokunma — o liste action'ın
+`forms` yolunu** güncelle. `fields` listesine dokunma - o liste action'ın
 okuduğu alanlardır ve ancak arka yüz değişince değişir.
 
 ## Bitirmeden

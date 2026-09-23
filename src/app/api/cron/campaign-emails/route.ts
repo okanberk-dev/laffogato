@@ -11,11 +11,11 @@ export const maxDuration = 300;
 /**
  * Vercel cron (vercel.json → crons, hourly):
  *
- *   1. queues every campaign whose `scheduledAt` has come — this is what
+ *   1. queues every campaign whose `scheduledAt` has come - this is what
  *      makes a special day (Anneler Günü, yılbaşı, 14 Şubat) possible without
  *      the operator standing at the panel that morning;
  *   2. carries on every campaign the panel's `after()` runner could not
- *      finish inside its own deadline — a big audience, a provider outage, a
+ *      finish inside its own deadline - a big audience, a provider outage, a
  *      function that was cut off.
  *
  * Both live inside `resumePendingCampaigns`, so the two never race each

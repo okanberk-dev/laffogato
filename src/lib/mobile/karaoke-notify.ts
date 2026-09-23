@@ -12,13 +12,13 @@ import type { KaraokeReservation } from "./karaoke-core";
  * The room is held by hand: a reservation is written with
  * `status: "requested"` and a person confirms or cancels it from
  * /admin/mobil/karaoke. Until this, nothing told that person a request had
- * arrived — they had to open the panel and look. A booking made at 23:40 for
+ * arrived - they had to open the panel and look. A booking made at 23:40 for
  * the following evening sat unread, and the member had been told in the app
  * that the köşk would come back to them.
  *
  * It is NOT the member's confirmation mail. `sendKaraokeConfirmationEmail`
  * and the `karaoke-rezervasyon` template are that, and their words are
- * "Saatiniz ayrıldı" — true only once staff have confirmed. Sending it here
+ * "Saatiniz ayrıldı" - true only once staff have confirmed. Sending it here
  * would promise on their behalf.
  *
  * ## Why the failure is swallowed
@@ -49,7 +49,7 @@ const MONTHS = [
  *
  * Split by hand rather than through `Intl`: the stored date is a calendar day
  * in Istanbul with no time on it, and handing `new Date("2026-09-20")` to a
- * formatter reads it as UTC midnight — which in a negative-offset deployment
+ * formatter reads it as UTC midnight - which in a negative-offset deployment
  * prints the day before. The month table is the whole cost of not having that
  * bug.
  */

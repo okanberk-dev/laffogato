@@ -1,5 +1,5 @@
 /**
- * Pure pieces of the mobile bearer check — no I/O, unit-tested directly.
+ * Pure pieces of the mobile bearer check - no I/O, unit-tested directly.
  * The wiring (Supabase call, database) lives in `./auth.ts`.
  */
 
@@ -7,7 +7,7 @@
  * Extracts the token from an `Authorization: Bearer <token>` header.
  *
  * Returns null for a missing header, a different scheme, an empty token, or
- * anything with whitespace inside the token — a JWT never contains any, and a
+ * anything with whitespace inside the token - a JWT never contains any, and a
  * lenient parse here would only turn a malformed header into a confusing
  * "invalid token" further down.
  */
@@ -39,7 +39,7 @@ export type AuthFailure = "unauthorized" | "unavailable";
  * 429 (Supabase Auth throttling us) and 408 (timeout) are 4xx that say
  * nothing about the token. They were read as "unauthorized", so a burst of
  * traffic past the auth quota answered every uncached token with a 401 and
- * the app signed its members out. They are "unavailable" — 503
+ * the app signed its members out. They are "unavailable" - 503
  * `auth_unavailable`, which the app retries.
  */
 export function classifyAuthError(
@@ -64,7 +64,7 @@ export function classifyAuthError(
  *
  * Read WITHOUT verifying the signature, and used for exactly one thing: never
  * trusting a remembered answer past the moment the token itself dies. An
- * attacker can forge an `exp` — but only into a token Supabase has already
+ * attacker can forge an `exp` - but only into a token Supabase has already
  * rejected, because nothing is ever cached until `getUser` has accepted it,
  * and a forged-earlier `exp` only shortens the cache entry.
  */

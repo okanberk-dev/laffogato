@@ -87,7 +87,7 @@ const LINKS: LinkEntry[] = [
    globals.css. The wordmark utility went with the header that used it. */
 
 interface NavProps {
-  /** Current SPA route — drives the active link underline. When the nav
+  /** Current SPA route - drives the active link underline. When the nav
       lives outside the homepage SPA (e.g. /uye, /hukuk, /odeme), leave undefined. */
   route?: Route;
   /** SPA-internal navigate (sets hash + scrolls). When undefined, links
@@ -453,7 +453,7 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
         </div>
       </div>
 
-      {/* Mobile bottom navigation — quick access to primary destinations */}
+      {/* Mobile bottom navigation - quick access to primary destinations */}
       <nav className="bottom-nav" aria-label="Mobil gezinme">
         <a
           href={hrefFor("home")}
@@ -531,7 +531,7 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Dropdown panel — mega-menu for Menü / Mağaza
+   Dropdown panel - mega-menu for Menü / Mağaza
    ───────────────────────────────────────────────────────────── */
 
 function DropdownPanel({

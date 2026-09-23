@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
  * Every export of a "use server" file is a public POST endpoint. The 2FA setup
  * page's `freshEnrollment` helper lived in its actions file, so anyone holding
  * an admin session cookie could call it and overwrite an ENABLED enrollment
- * with a fresh draft (`enabled: false`) — 2FA off, and no `2fa_disable` audit
+ * with a fresh draft (`enabled: false`) - 2FA off, and no `2fa_disable` audit
  * row, because the disable path was never taken.
  */
 describe("2FA enrollment", () => {

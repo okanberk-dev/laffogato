@@ -71,7 +71,7 @@ export async function redeemCounterTokenAction(
 
   let result;
   try {
-    // The QR and the code carry a member with them — the token row names the
+    // The QR and the code carry a member with them - the token row names the
     // account it was minted for. A TYPED ADDRESS carries nobody: without this
     // check `uye@gmial.com` passes the format test, gets its own ledger rows
     // and comes back as a green receipt, while the member it was meant for

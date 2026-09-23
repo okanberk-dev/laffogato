@@ -9,7 +9,7 @@ import { ensureCustomerUnsubToken } from "@/lib/email/campaigns";
 import { sendBirthdayEmail } from "@/lib/email/send";
 
 /**
- * "Üyelere doğum gününde mail gidiyor mu?" — the operator's own question.
+ * "Üyelere doğum gününde mail gidiyor mu?" - the operator's own question.
  * Until this ran, the answer was no: `sendBirthdayEmail` had been written and
  * tested and was called from nowhere, and the coupon it talks about was only
  * granted if the member happened to open laffogato.net/uye/hesap/promosyonlar
@@ -17,31 +17,31 @@ import { sendBirthdayEmail } from "@/lib/email/send";
  *
  * The three things every automated message in this codebase has to name:
  *
- *   • TETİKLEYİCİ — the daily cron (`vercel.json` → /api/cron/birthday,
+ *   • TETİKLEYİCİ - the daily cron (`vercel.json` → /api/cron/birthday,
  *     06:00 UTC = 09:00 Tuzla), matching the member's birthday against
  *     today's ISTANBUL calendar day. Not the server's: at 01:00 Tuzla the
  *     server is still on yesterday's date, and a birthday is a calendar fact
  *     where the member lives.
  *
- *   • İZİN SINIFI — the coupon and the message are NOT the same thing:
- *       – the coupon is an entitlement on the account, not a communication.
+ *   • İZİN SINIFI - the coupon and the message are NOT the same thing:
+ *       - the coupon is an entitlement on the account, not a communication.
  *         Every active, verified member whose birthday is today gets it, so
  *         it is there whichever surface they look from (P6: the app's
  *         Kuponlarım screen never triggered the old lazy grant).
- *       – the mail is a celebration carrying a %20 offer. That is a
+ *       - the mail is a celebration carrying a %20 offer. That is a
  *         commercial message under 6563 however warmly it is written, so it
  *         goes ONLY to a member whose `marketing` preference is on AND who
  *         has a consent record (`marketingConsentAt`), and it carries
- *         `List-Unsubscribe` — `dogum-gunu.html` is marked
+ *         `List-Unsubscribe` - `dogum-gunu.html` is marked
  *         `data-commercial="1"`, so `renderEmail` refuses to build it without
  *         the way out. A member without consent still gets the coupon, in
  *         silence.
  *
- *   • IDEMPOTENCY — the coupon row itself. `grantBirthdayCouponToday`
+ *   • IDEMPOTENCY - the coupon row itself. `grantBirthdayCouponToday`
  *     returns the coupon only when it wrote one (at most one per member per
  *     calendar year); `null` means this year's was already granted, and then
  *     no mail is sent. A second run of the cron, a retry, two regions, a
- *     manual call — all of them greet once. No separate ledger.
+ *     manual call - all of them greet once. No separate ledger.
  *
  * 29 February: a leap-day member has no birthday in a common year, so on
  * 1 March of a common year "02-29" is added to the day list. The once-a-year
@@ -52,7 +52,7 @@ import { sendBirthdayEmail } from "@/lib/email/send";
 interface BirthdayRow {
   email: string;
   name: string;
-  /** Marketing preference AND a consent record — the 6563 gate. */
+  /** Marketing preference AND a consent record - the 6563 gate. */
   marketing: boolean;
 }
 
@@ -61,7 +61,7 @@ export interface BirthdayRunResult {
   days: string[];
   /** Members whose birthday is today and who could be greeted or gifted. */
   candidates: number;
-  /** Coupons actually written — i.e. members not already greeted this year. */
+  /** Coupons actually written - i.e. members not already greeted this year. */
   granted: number;
   /** Messages handed to the provider. */
   mailed: number;
@@ -98,7 +98,7 @@ export function birthdayDaysFor(now: Date): string[] {
   return days;
 }
 
-/** "23 Eylül 2026" — the date `[SON_KULLANIM]` prints, on Tuzla's calendar. */
+/** "23 Eylül 2026" - the date `[SON_KULLANIM]` prints, on Tuzla's calendar. */
 const EXPIRY_FORMAT = new Intl.DateTimeFormat("tr-TR", {
   timeZone: "Europe/Istanbul",
   day: "numeric",
@@ -132,7 +132,7 @@ async function birthdayAudience(days: string[]): Promise<BirthdayRow[]> {
  * Grant today's birthday coupons and greet the members who consented.
  *
  * One member's failure never stops the rest: a coupon that could not be
- * written, a token that could not be minted, a provider that refused — each
+ * written, a token that could not be minted, a provider that refused - each
  * is logged with a masked address and the loop carries on. Mail delivery is
  * already best-effort inside `sendTemplate`.
  */
@@ -154,7 +154,7 @@ export async function runBirthdayGreetings(
   for (const member of audience) {
     try {
       const coupon = await grantBirthdayCouponToday(member.email, year, now);
-      // Already greeted this year — the idempotency key, and the reason no
+      // Already greeted this year - the idempotency key, and the reason no
       // second message goes out.
       if (!coupon) continue;
       result.granted += 1;
@@ -184,7 +184,7 @@ export async function runBirthdayGreetings(
   return result;
 }
 
-/** `ed**@example.com` — enough to recognise a row, not enough to be one. */
+/** `ed**@example.com` - enough to recognise a row, not enough to be one. */
 function maskEmail(address: string): string {
   const at = address.indexOf("@");
   if (at < 1) return "***";

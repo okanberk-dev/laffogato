@@ -16,7 +16,7 @@ import { toMobileShopProduct } from "@/lib/mobile/menu-mapper";
  *
  * It held on the cafe menu (`menu_items.tags`) and silently did not hold in
  * the shop: `products` had no tag column, so `GET /shop` published none, and
- * `prd-0011` — "Cantucci — Bronte Pistachio" — sat on the shelf with no
+ * `prd-0011` - "Cantucci - Bronte Pistachio" - sat on the shelf with no
  * warning anywhere in the app. These tests pin the four pieces that close it.
  */
 
@@ -72,7 +72,7 @@ describe("GET /shop publishes allergens (contract §2)", () => {
     expect(out.tags.includes("nuts")).toBe(true);
   });
 
-  it("is always present — an empty array, never a missing key", () => {
+  it("is always present - an empty array, never a missing key", () => {
     const out = toMobileShopProduct(product(), SITE_URL);
     expect(out).toHaveProperty("tags");
     expect(out.tags).toEqual([]);
@@ -134,7 +134,7 @@ describe("the vocabulary is the app's, exactly", () => {
     }
   });
 
-  it("gives the admin form a checkbox for each one — no free text", () => {
+  it("gives the admin form a checkbox for each one - no free text", () => {
     const wizard = readFileSync(
       "src/components/admin/product-wizard.tsx",
       "utf8",
@@ -174,7 +174,7 @@ describe("the contract documents it", () => {
 
 describe("deploy order", () => {
   /**
-   * This code can reach production before its migration does — Vercel deploys
+   * This code can reach production before its migration does - Vercel deploys
    * on push, the SQL is run by hand. Between the two, `select("*")` returns a
    * row with no `tags` key at all, and the mapper used to spread it.
    *

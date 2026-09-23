@@ -7,7 +7,7 @@ import { Footer, Nav, type FooterSettings } from "./chrome";
 const CART_STORAGE_KEY = "laffogato_cart_v1";
 
 /**
- * Site-wide chrome (nav + footer) for pages OUTSIDE the homepage SPA —
+ * Site-wide chrome (nav + footer) for pages OUTSIDE the homepage SPA -
  * /uye/*, /odeme, /hukuk/* etc. Nav and Footer used here render without
  * a `navigate` prop, so their links degrade to plain anchor navigation
  * targeting real route URLs (/menu, /magaza, ...).

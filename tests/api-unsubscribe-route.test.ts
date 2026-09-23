@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * `/api/bulten/cikis` — the address in every commercial message's
+ * `/api/bulten/cikis` - the address in every commercial message's
  * `List-Unsubscribe` header and footer link (docs/EMAIL-RESEND.md §7).
  *
  * POST is the RFC 8058 one-click: a mail client posts
  * `List-Unsubscribe=One-Click` and expects a 200, no page. GET is a person
  * following the link: a 303 to the page, which spends the token itself. The
- * two must not swap — a GET that spends the token lets link scanners
+ * two must not swap - a GET that spends the token lets link scanners
  * unsubscribe people; a POST that redirects makes the client's button do
  * nothing, which is exactly the bug the route was written to fix.
  */
@@ -53,7 +53,7 @@ beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
-describe("POST — RFC 8058 one-click", () => {
+describe("POST - RFC 8058 one-click", () => {
   it("spends a subscriber token and answers 200 plain text, without trying the member store", async () => {
     unsubscribeByToken.mockResolvedValue("abone@ornek.com");
     const res = await POST(post("?token=t1"));
@@ -77,7 +77,7 @@ describe("POST — RFC 8058 one-click", () => {
     );
   });
 
-  it("answers 200 for an unknown or spent token — the address is off the list either way", async () => {
+  it("answers 200 for an unknown or spent token - the address is off the list either way", async () => {
     const res = await POST(post("?token=onizleme"));
     expect(res.status).toBe(200);
     expect(await res.text()).toContain("geçersiz");
@@ -130,7 +130,7 @@ describe("POST — RFC 8058 one-click", () => {
       expect(recordLoginFailure).not.toHaveBeenCalled();
     });
 
-    it("counts a token that matched nothing — unknown or already spent", async () => {
+    it("counts a token that matched nothing - unknown or already spent", async () => {
       const res = await POST(post("?token=harcanmis"));
       expect(res.status).toBe(200);
       expect(await res.text()).toContain("geçersiz");
@@ -170,7 +170,7 @@ describe("POST — RFC 8058 one-click", () => {
   });
 });
 
-describe("GET — a person following the footer link", () => {
+describe("GET - a person following the footer link", () => {
   it("303-redirects to the page with the token, spending nothing", async () => {
     const res = await GET(new Request(`${ORIGIN}/api/bulten/cikis?token=t9`));
     expect(res.status).toBe(303);

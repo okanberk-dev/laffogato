@@ -16,7 +16,7 @@ export const maxDuration = 15;
 const LABEL = "api/mobile/v1/orders";
 
 /**
- * `POST /api/mobile/v1/orders` — places an order for the signed-in member
+ * `POST /api/mobile/v1/orders` - places an order for the signed-in member
  * and opens payment (docs/API-MOBILE.md §3). Only a verified e-mail may
  * order, as on the web.
  */
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/** `GET /api/mobile/v1/orders` — the member's orders, newest first. */
+/** `GET /api/mobile/v1/orders` - the member's orders, newest first. */
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireMobileCustomer(request);

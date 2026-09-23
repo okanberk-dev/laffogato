@@ -106,12 +106,12 @@ async function consentIp(given?: string): Promise<string> {
  * the site's account page uses, so length limits and the KVKK consent
  * timestamp behave identically on both surfaces. A usual that points at a
  * menu item that no longer exists (or is inactive) is refused rather than
- * stored — it would fail at order time anyway.
+ * stored - it would fail at order time anyway.
  *
  * The `newsletter` toggle also lands on the bulletin list, exactly as the
  * site's account page does (`uye/actions.ts`): the app used to write only
  * the jsonb flag, so an app subscriber had no row there and therefore no
- * unsubscribe token — and campaign mail could not lawfully reach them.
+ * unsubscribe token - and campaign mail could not lawfully reach them.
  */
 export async function updateMe(
   customer: PublicCustomer,
@@ -198,7 +198,7 @@ export function anonymizedEmail(customerId: string): string {
  * Statuses that mean the member still has something running with us.
  *
  * Üyelik Sözleşmesi §14 promises that a closure request lands *after* an
- * order in flight, an unfinished return or an open dispute is settled — so
+ * order in flight, an unfinished return or an open dispute is settled - so
  * the API refuses rather than anonymising the buyer of an order the kitchen
  * is about to hand over. `paid` is on the list with the other three: it is
  * "Sipariş alındı", the most in-flight an order gets.
@@ -214,13 +214,13 @@ export const IN_PROGRESS_ORDER_STATUSES: readonly AdminOrderStatus[] = [
  * Every place a member's e-mail is stored outside their own row.
  *
  * Kept as data so the set itself can be tested: forgetting a table here is a
- * silent privacy leak, not a crash. `orders` is the one that matters most —
+ * silent privacy leak, not a crash. `orders` is the one that matters most -
  * the row is retained for the books, but its address must be rewritten,
  * because `deleteMe` frees the e-mail for re-registration and `GET /orders`
  * is keyed on it.
  *
  * `op` says what the row deserves. A record that exists only to serve the
- * member — a newsletter subscription — has no reason to survive them and is
+ * member - a newsletter subscription - has no reason to survive them and is
  * deleted outright; everything the books or the operator still need is kept
  * with the address rewritten to the placeholder.
  */
@@ -284,7 +284,7 @@ export const ANON_SWEEPS: ReadonlyArray<{
   },
   {
     // The till QR tokens kept the address until some later till scan
-    // happened to run `purgeStale` — and an unexpired one could still be
+    // happened to run `purgeStale` - and an unexpired one could still be
     // redeemed for the closed account. Anonymised like the rest, and expired
     // on the spot: the till reads `expiresAt <= now` as expired, and the next
     // purge removes the row (`expiresAt < cutoff`).
@@ -318,11 +318,11 @@ export const ANON_SWEEPS: ReadonlyArray<{
 /**
  * A booking the member will not come to. Anonymising it alone left the room
  * held on the karaoke board for a nameless, uncontactable guest, so the future
- * ones are cancelled first — while the rows still carry the real address.
+ * ones are cancelled first - while the rows still carry the real address.
  */
 async function cancelFutureKaraoke(email: string, now: Date): Promise<void> {
   // Today at the venue. `toISOString()` is UTC, so from 00:00 to 03:00 in
-  // Tuzla this also cancelled yesterday's bookings — nights already sung.
+  // Tuzla this also cancelled yesterday's bookings - nights already sung.
   const today = istanbulClock(now).date;
   const { error } = await getDb()
     .from(TABLES.karaokeReservations)
@@ -364,8 +364,8 @@ export function redactedPayload(at: string): Record<string, unknown> {
 /**
  * The provider's own callback bodies for this member's orders.
  *
- * `payment_transactions.raw` is whatever the POS posted — buyer name, address,
- * masked card, IP — stored verbatim for the audit trail and never read back by
+ * `payment_transactions.raw` is whatever the POS posted - buyer name, address,
+ * masked card, IP - stored verbatim for the audit trail and never read back by
  * this codebase. The fiscal record is the order and its invoice; the
  * reconciliation record is `provider`, `providerRef`, `status` and
  * `amountMinor`, all of which stay. The payload itself has no reason to
@@ -415,7 +415,7 @@ export type DeleteMeResult =
  * the account is closed. The e-mail is replaced with a unique placeholder so
  * the address can register again later; the invite code is released.
  *
- * Refused, not queued, while an order is in flight — Üyelik Sözleşmesi §14 and
+ * Refused, not queued, while an order is in flight - Üyelik Sözleşmesi §14 and
  * the `hesap-silme` document both say the closure waits for it, and the member
  * would otherwise lose sight of an order they have already paid for.
  *
@@ -423,7 +423,7 @@ export type DeleteMeResult =
  * user when the deployment holds a service-role key, so the old password stops
  * working and a genuinely new sign-up gets a genuinely new account. Where the
  * key is absent the identity survives, and `supabaseUserId` is deliberately
- * LEFT on the closed row — `ensureCustomerForSupabaseUser` reads it as "this
+ * LEFT on the closed row - `ensureCustomerForSupabaseUser` reads it as "this
  * identity belonged to a closed account" and refuses, instead of opening a
  * fresh membership (welcome coupon included) for whoever still knows the
  * password.
@@ -478,7 +478,7 @@ export async function deleteMe(
       verifyExpires: "",
       resetToken: "",
       resetExpires: "",
-      // supabaseUserId is NOT cleared — see the note above: it is the record
+      // supabaseUserId is NOT cleared - see the note above: it is the record
       // that this identity belongs to a closed account.
       // The saved-card key points at cards held by the provider. A closed
       // account keeps none of it, and re-registering the address must not
@@ -505,7 +505,7 @@ export async function deleteMe(
   );
 
   // The same address sits in the loyalty ledger, the invite graph, the
-  // karaoke book, the coupon table — and on every order.
+  // karaoke book, the coupon table - and on every order.
   //
   // Orders are KEPT (fiscal retention) but their address is rewritten to the
   // same placeholder. Leaving the live address on them was a leak, not a
@@ -526,7 +526,7 @@ export async function deleteMe(
           ? db.from(sweep.table).delete()
           : db.from(sweep.table).update(sweep.patch(anon));
       // `ilike`, not `eq`, where the column is written with whatever case the
-      // caller captured — `customerOrdersByEmail` reads orders that way too,
+      // caller captured - `customerOrdersByEmail` reads orders that way too,
       // and an `eq` sweep would leave `Ayse@…` behind for `ayse@…` to inherit.
       return sweep.caseInsensitive
         ? q.ilike(sweep.column, likeLiteral(customer.email))

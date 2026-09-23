@@ -23,7 +23,7 @@ export function etagFromDigest(digest: string): string {
 
 /**
  * RFC 9110 §13.1.2: `If-None-Match` is `*` or a comma-separated list of
- * entity-tags compared with the *weak* comparison function — so `W/"x"` and
+ * entity-tags compared with the *weak* comparison function - so `W/"x"` and
  * `"x"` match each other, and both match ours.
  */
 export function ifNoneMatchHits(header: string | null, etag: string): boolean {

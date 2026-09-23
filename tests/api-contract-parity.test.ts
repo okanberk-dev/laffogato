@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
  * The contract exists twice, and its own header says the two must match.
  *
  * They did not. The site's copy grew `qrModules` / `qrQuietZone` when the QR
- * was rebuilt; the app repo's copy stayed behind — while the app's own card
+ * was rebuilt; the app repo's copy stayed behind - while the app's own card
  * screen already read both fields. A contract that disagrees with itself is
  * worse than one that is merely out of date, because each side can cite it.
  */

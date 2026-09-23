@@ -1,7 +1,7 @@
 /**
  * Customer SPA route tipi + Next.js route URL eşlemesi.
  *
- * Bu modül "use client" değil — hem server tarafından (sitemap, SEO,
+ * Bu modül "use client" değil - hem server tarafından (sitemap, SEO,
  * breadcrumb) hem de chrome.tsx (client) tarafından import edilir.
  */
 

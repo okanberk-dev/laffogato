@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { compile } from "@/lib/db/sql";
 
 /**
- * How the app reads a member's orders — the hottest query in the product.
+ * How the app reads a member's orders - the hottest query in the product.
  *
  * `/me`, `/orders`, `/notifications` and the open-order count on the checkout
  * path all resolve to one query on `orders`. Two things were wrong with it at
@@ -16,8 +16,8 @@ import { compile } from "@/lib/db/sql";
  *      `lower("customerEmail")`, and Postgres has no btree opclass for `~~*`,
  *      so the planner could never use it: every member order read was a
  *      sequential scan of the whole table.
- *   2. Two callers read the member's ENTIRE history with `select *` — items,
- *      refund ledger and consent evidence — and threw most of it away in
+ *   2. Two callers read the member's ENTIRE history with `select *` - items,
+ *      refund ledger and consent evidence - and threw most of it away in
  *      JavaScript.
  */
 
@@ -82,8 +82,8 @@ describe("customerOrdersByEmail", () => {
   });
 
   it("drops the JavaScript re-filter the prefilter needed", () => {
-    // `lower(col) = lower($1)` IS the exact match, so the second pass in JS —
-    // and the `%_` escaping that fed it — are gone.
+    // `lower(col) = lower($1)` IS the exact match, so the second pass in JS -
+    // and the `%_` escaping that fed it - are gone.
     expect(body).not.toContain("o.customerEmail?.trim().toLowerCase()");
     expect(body).not.toContain("replace(/[%_]/g");
   });
@@ -100,7 +100,7 @@ describe("reads that do not need the whole row", () => {
       "utf8",
     );
     // The tier counts a rolling year and `orders-50` counts a lifetime, so
-    // this read cannot be paged — it can be narrowed.
+    // this read cannot be paged - it can be narrowed.
     expect(loyalty).toContain("customerLoyaltyOrders(owner)");
     expect(loyalty).not.toContain("customerOrdersByEmail");
     expect(store).toContain('"status, createdAt, items"');

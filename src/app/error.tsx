@@ -5,8 +5,8 @@ import { useEffect } from "react";
 
 /**
  * Route-segment error boundary. Catches render-time throws from server
- * components / actions — most importantly a database connection or query
- * failure in the data layer — and shows a calm Turkish fallback with a retry
+ * components / actions - most importantly a database connection or query
+ * failure in the data layer - and shows a calm Turkish fallback with a retry
  * instead of a raw 500. `reset()` re-renders the segment (re-runs the data
  * fetch) so a transient DB blip recovers without a full reload.
  */

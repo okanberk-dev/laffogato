@@ -12,7 +12,7 @@ import {
 } from "./menu-visuals";
 
 /* ─────────────────────────────────────────────────────────────
-   Photo placeholder — refined gradient surface with subtle grain
+   Photo placeholder - refined gradient surface with subtle grain
    ───────────────────────────────────────────────────────────── */
 
 // Aggressive minimal: the palette is neutralized to a warm grey-beige tonal set
@@ -73,7 +73,7 @@ export function PhotoSurface({
         borderRadius: "inherit",
       }}
     >
-      {/* Soft highlight where the light lands. Kept very low contrast — it
+      {/* Soft highlight where the light lands. Kept very low contrast - it
           should be felt, not seen. */}
       <div
         aria-hidden="true"
@@ -124,7 +124,7 @@ export function PhotoSurface({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Cup Emblem — circular brand sticker
+   Cup Emblem - circular brand sticker
    ───────────────────────────────────────────────────────────── */
 
 export function CupEmblem({

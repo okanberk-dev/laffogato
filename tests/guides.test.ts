@@ -13,7 +13,7 @@ import { GUIDES, findGuide, relatedGuides } from "@/lib/seo/guides";
  * The guides exist to earn search traffic, so the things a search engine
  * actually truncates or rejects are the things worth asserting: meta lengths,
  * valid internal links, structured data that does not claim more than the page
- * delivers, and — because this is a food business — no health claims.
+ * delivers, and - because this is a food business - no health claims.
  */
 
 const ALL_TEXT = (slug: string) => {
@@ -63,7 +63,7 @@ describe("rehber registry", () => {
   });
 });
 
-describe("rehber — SERP'in kestiği alanlar", () => {
+describe("rehber - SERP'in kestiği alanlar", () => {
   it("keeps metaTitle inside what a result shows", () => {
     for (const g of GUIDES) {
       expect(
@@ -111,7 +111,7 @@ describe("rehber — SERP'in kestiği alanlar", () => {
     }
   });
 
-  it("offers at least one table per guide — a snippet surface", () => {
+  it("offers at least one table per guide - a snippet surface", () => {
     for (const g of GUIDES) {
       const tables = g.sections.filter((s) => s.table?.length).length;
       expect(tables, `${g.slug} tablosuz`).toBeGreaterThan(0);
@@ -127,14 +127,14 @@ describe("rehber — SERP'in kestiği alanlar", () => {
   });
 });
 
-describe("rehber — bir gıda işletmesinin söyleyemeyecekleri", () => {
+describe("rehber - bir gıda işletmesinin söyleyemeyecekleri", () => {
   it("makes no health claims", () => {
     // A cafe may say matcha contains antioxidants. It may not say it cures,
-    // prevents, detoxes or slims — those are regulated claims.
+    // prevents, detoxes or slims - those are regulated claims.
     //
     // A guide is allowed to *name* such a phrase in order to reject it (the
     // matcha page says these claims "bu sayfada yer almaz"), and those mentions
-    // are quoted — so the check runs on the text with quoted spans removed.
+    // are quoted - so the check runs on the text with quoted spans removed.
     const banned =
       /zayıflat|kilo verdir|hastalığı önler|tedavi eder|detoks|kanseri|bağışıklığı güçlendirir/i;
     for (const g of GUIDES) {

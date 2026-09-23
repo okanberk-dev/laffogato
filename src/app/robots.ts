@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 const PRIVATE_PATHS = ["/admin", "/admin/", "/api/", "/uye", "/uye/", "/odeme"];
 
 /**
- * Crawlers named individually so their access is explicit — search engines,
+ * Crawlers named individually so their access is explicit - search engines,
  * social unfurlers and the AI crawlers `llms.txt` is written for.
  *
  * Each still carries the private-path disallow list. A named group REPLACES
@@ -54,7 +54,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
 
   // A database outage must not silently open a site the owner closed, nor
   // close one they left open. `getPublicSettings` degrades to the defaults,
-  // where `seoIndexable` is true — the same answer as an untouched install.
+  // where `seoIndexable` is true - the same answer as an untouched install.
   const settings = await getPublicSettings();
   if (!settings.seoIndexable) {
     return { rules: [{ userAgent: "*", disallow: "/" }] };

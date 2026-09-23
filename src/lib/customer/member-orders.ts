@@ -9,7 +9,7 @@ import { customerOrdersByEmail, type AdminOrder } from "@/lib/admin/store";
  * Registration signs the visitor in before the address is verified, and
  * orders are matched by e-mail alone. An order an admin entered by hand (a
  * phone or counter sale) can carry the address of someone who never signed
- * up — so whoever registered that address first saw the name, phone number
+ * up - so whoever registered that address first saw the name, phone number
  * and delivery address on it. Web checkout already requires a verified
  * address; reading the history now does too.
  */

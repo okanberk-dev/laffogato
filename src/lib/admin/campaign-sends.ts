@@ -7,7 +7,7 @@ import { raiseDbError } from "@/lib/db/health";
  * The campaign send log, read back.
  *
  * `campaign_email_sends` has always carried one row per (campaign, address)
- * with its own status, provider id and error — the panel just never read it,
+ * with its own status, provider id and error - the panel just never read it,
  * so a campaign was three numbers ("Alıcı 400 · Gönderildi 363 · Başarısız
  * 37") and the 37 had no names. Under 6563 the burden of proof that a
  * commercial message was or was not sent to a given address is on the sender,
@@ -31,7 +31,7 @@ export interface CampaignSendRow {
   name: string;
   batchNo: number;
   status: CampaignSendStatus;
-  /** Resend's id — searchable in their panel. Empty unless the batch went out. */
+  /** Resend's id - searchable in their panel. Empty unless the batch went out. */
   providerId: string;
   error: string;
   createdAt: string;

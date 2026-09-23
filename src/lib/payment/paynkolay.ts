@@ -11,7 +11,7 @@ import type {
 } from "./provider";
 
 /**
- * PayNkolay sanal POS sağlayıcısı — barındırılan ödeme formu.
+ * PayNkolay sanal POS sağlayıcısı - barındırılan ödeme formu.
  *
  * Sözleşmenin tamamı `docs/PAYNKOLAY.md`'de; buradaki `§` göndermeleri o
  * belgenin bölümleridir. Doğrulanamamış her nokta orada işaretli ve §12'de
@@ -26,7 +26,7 @@ import type {
  * Akış:
  *   1. `createCheckoutSession` → PayNkolay'a POST edilecek form alanları (§9)
  *      ve istek hash'i (§10) üretilir. PayNkolay bir yönlendirme URL'si
- *      vermez — form POST ister — bu yüzden alanlar imzalanıp kendi
+ *      vermez - form POST ister - bu yüzden alanlar imzalanıp kendi
  *      `/odeme/paynkolay` ara sayfamıza taşınır; uygulama ve tarayıcı tek bir
  *      URL görür (`CheckoutSession.redirectUrl`).
  *   2. Müşteri 3D akışını bitirir → PayNkolay MÜŞTERİNİN TARAYICISINI
@@ -79,11 +79,11 @@ const REFUND_LOOKBACK_MONTHS = 13;
 const DAY_MS = 24 * 60 * 60_000;
 
 export interface PaynkolayConfig {
-  /** Panel → "sx (Token)" — ödeme formu. */
+  /** Panel → "sx (Token)" - ödeme formu. */
   sx: string;
-  /** Panel → "sx List" — işlem doğrulama ve raporlama. */
+  /** Panel → "sx List" - işlem doğrulama ve raporlama. */
   sxList: string;
-  /** Panel → "sx İptal" — iptal/iade. */
+  /** Panel → "sx İptal" - iptal/iade. */
   sxCancel: string;
   /** Panel → "Merchant Secret Key". TEK sır; hiçbir yere gönderilmez (§7). */
   merchantSecretKey: string;
@@ -112,7 +112,7 @@ export interface PaynkolayFormPost {
  * Kuruş integer → PayNkolay'ın beklediği tutar dizesi (§5).
  *
  * Ondalık ayracı nokta, daima iki basamak, binlik ayracı yok: `128010` →
- * `"1280.10"`. Kayan noktaya hiç uğramaz — hash ham dize üzerinden
+ * `"1280.10"`. Kayan noktaya hiç uğramaz - hash ham dize üzerinden
  * hesaplandığı için `250.5` ile `250.50` farklı hash üretir ve bir yuvarlama
  * hatası ödemeyi sessizce reddettirir.
  */
@@ -196,7 +196,7 @@ export function formatPaynkolayRnd(at: Date): string {
   return `${c.day}.${c.month}.${c.year} ${c.hour}:${c.minute}:${c.second}`;
 }
 
-/** `DD.MM.YYYY` — doğrulama ve raporlama servislerinin tarih aralığı (§2). */
+/** `DD.MM.YYYY` - doğrulama ve raporlama servislerinin tarih aralığı (§2). */
 export function formatPaynkolayDayDmy(at: Date): string {
   const c = istanbulClock(at);
   return `${c.day}.${c.month}.${c.year}`;
@@ -211,7 +211,7 @@ function istanbulDayKey(at: Date): string {
 /**
  * PayNkolay'ın döndürdüğü tarihi takvim gününe indirger.
  *
- * `TRX_DATE`'in biçimi dokümanda yazmıyor (§12) — örneklerde `2021-08-27`
+ * `TRX_DATE`'in biçimi dokümanda yazmıyor (§12) - örneklerde `2021-08-27`
  * geçiyor, tarih-saat de gelebilir. Gördüğümüz dört yazımı da kabul ediyoruz;
  * hiçbiri tutmazsa `null` döner ve iade yapılmaz. Dize üzerinden çalışır:
  * `new Date(...)` kullanmak, saat dilimi olmayan bir değeri UTC sayıp iadeyi
@@ -345,7 +345,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
    *
    * Form alanlarının çoğu zaten `hashDataV2` ile korunuyor: tutarı ya da
    * `clientRefCode`'u değiştiren müşteriye PayNkolay hash uyuşmazlığı döner.
-   * Ama `currencyCode`, `transactionType` ve `use3D` o hash'in DIŞINDA — yani
+   * Ama `currencyCode`, `transactionType` ve `use3D` o hash'in DIŞINDA - yani
    * yükü imzalamazsak müşteri `use3D`'yi boşaltıp 3D'siz ödeyebilir ya da
    * `transactionType`'ı `PRESALES` yapıp tahsilatı askıda bırakabilirdi.
    */
@@ -357,7 +357,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
 
   /**
    * Ara sayfanın URL'den okuduğu yükü çözer ve doğrular. Uymayan her şeyde
-   * `null` — sayfa o zaman form kurmaz, müşteriyi hata ekranına gönderir.
+   * `null` - sayfa o zaman form kurmaz, müşteriyi hata ekranına gönderir.
    */
   readBridgePost(data: string, signature: string): PaynkolayFormPost | null {
     if (!data || !signature) return null;
@@ -441,7 +441,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     );
   }
 
-  /** Raporlama Servisi (§2.1) — `referenceCode` ile arayabilen tek uç. */
+  /** Raporlama Servisi (§2.1) - `referenceCode` ile arayabilen tek uç. */
   private async reportTransactions(
     referenceCode: string,
     from: Date,
@@ -524,7 +524,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     return {
       // İade PayNkolay'ın `REFERENCE_CODE`'unu ister; o kod ancak ödeme
       // bittiğinde doğuyor. Burada elimizdeki tek kalıcı referans bizim
-      // `clientRefCode`'umuz — `confirmReturn` onu `REFERENCE_CODE` ile
+      // `clientRefCode`'umuz - `confirmReturn` onu `REFERENCE_CODE` ile
       // değiştirir (§11).
       providerRef: clientRefCode,
       redirectUrl: bridge.toString(),
@@ -553,7 +553,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
    *
    * Dönen parametreler müşterinin tarayıcısından geliyor; hiçbiri delil
    * sayılmaz. Sıra: (1) üye işyeri numarası bizimki mi, (2) yanıt hash'i tutuyor
-   * mu — tutmuyorsa yalnızca uyarı, çünkü formülün `CURRENCY_CODE` alanı henüz
+   * mu - tutmuyorsa yalnızca uyarı, çünkü formülün `CURRENCY_CODE` alanı henüz
    * ölçülmedi (§1.3) ve tek başına ret gerçek ödemeleri de reddederdi, (3)
    * PayNkolay'a sor. Karar üçüncü adımdan çıkar.
    */
@@ -629,7 +629,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
   }
 
   /**
-   * Siparişin POS'ta başarılı bir işlemi var mı — tarayıcı dönüşü olmadan.
+   * Siparişin POS'ta başarılı bir işlemi var mı - tarayıcı dönüşü olmadan.
    *
    * 45 dakikalık süpürme ve aynı üyenin yeni ödemesi, ödenmemiş görünen bir
    * siparişi iptal etmeden önce buraya sorar. Dönüş hiç gelmediyse (sekme
@@ -651,7 +651,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       : now.getTime();
     // Gece yarısını geçen bir ödeme dünün gününe düşer; bir gün geriden
     // başla. Ödeme siparişin açıldığı oturumda olur, bu yüzden pencere
-    // birkaç günle sınırlı — servis bir aydan uzun aralık kabul etmiyor (§2).
+    // birkaç günle sınırlı - servis bir aydan uzun aralık kabul etmiyor (§2).
     const rows = await this.queryTransactions(
       id,
       new Date(placed - DAY_MS),
@@ -823,7 +823,7 @@ function storedTransaction(hint: RefundHint | undefined): {
 
 /**
  * Aynı `clientRefCode` altında birden çok deneme dönebilir (§2). Doğru satır,
- * tarayıcının getirdiği `REFERENCE_CODE`'a eşit olandır — eşleşme yoksa
+ * tarayıcının getirdiği `REFERENCE_CODE`'a eşit olandır - eşleşme yoksa
  * satır yok sayılır: uydurulmuş bir referans başkasının işlemini kapatmasın.
  */
 function pickTransaction(

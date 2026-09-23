@@ -436,7 +436,7 @@ describe("rewardReadyAt", () => {
     expect(rewardReadyAt(rows)).toBe(at(6));
   });
 
-  it("does not move when the ledger does not — the inbox keys 'unread' on it", () => {
+  it("does not move when the ledger does not - the inbox keys 'unread' on it", () => {
     const rows = [1, 2, 3, 4, 5, 6].map((d) => earn(at(d)));
     expect(rewardReadyAt(rows)).toBe(rewardReadyAt([...rows].reverse()));
   });
@@ -458,7 +458,7 @@ describe("rewardReadyAt", () => {
 /**
  * `stampsEarned` on the wire used to be inferred from the order status, so a
  * best-effort `onOrderPaid` failure had the app claiming a stamp the ledger
- * never got — and a refund's reversal was invisible to it.
+ * never got - and a refund's reversal was invisible to it.
  */
 describe("stampedOrderIds", () => {
   const row = (
@@ -483,7 +483,7 @@ describe("stampedOrderIds", () => {
     expect([...ids]).toEqual(["ord-2"]);
   });
 
-  it("ignores rows with no order — a counter stamp belongs to no order", () => {
+  it("ignores rows with no order - a counter stamp belongs to no order", () => {
     const ids = stampedOrderIds([
       row("earn", ""),
       row("reversal", ""),

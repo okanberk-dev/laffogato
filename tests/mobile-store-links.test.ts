@@ -13,7 +13,7 @@ import {
  *
  * These are settings, not build constants, for one reason worth restating in
  * a test: an operator has to be able to change them WITHOUT shipping an app
- * release, and for two of them there is no other way at all —
+ * release, and for two of them there is no other way at all -
  *
  * - the store URLs are read by the forced-update screen, which by definition
  *   is shown to builds too old to be fixed by shipping a build;
@@ -45,7 +45,7 @@ describe("store settings", () => {
 
   it("refuses a URL that is not a store listing", () => {
     // This value ends up in `Linking.openURL` on a screen the member cannot
-    // get past, so a typo has to degrade to "no button" — never to "opens
+    // get past, so a typo has to degrade to "no button" - never to "opens
     // something else".
     for (const bad of [
       "http://apps.apple.com/tr/app/x", // not https
@@ -149,7 +149,7 @@ describe("the paths the app is allowed to intercept", () => {
   /**
    * A claimed path is a promise that a laffogato.net URL under it opens an app
    * screen which can render THAT url. Four of them were promises the code
-   * cannot keep, and the association is cached for days — so the app
+   * cannot keep, and the association is cached for days - so the app
    * intercepts the link, cannot show it, and the member cannot reach the web
    * version either.
    *

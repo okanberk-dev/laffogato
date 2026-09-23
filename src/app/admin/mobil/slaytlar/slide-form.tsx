@@ -41,7 +41,7 @@ export interface AppSlideDefaults {
  *    from a fixed list; the app resolves it through its own allow-list. CMS
  *    text must never be able to steer native navigation.
  * 2. There is no image UPLOAD. A slide is painted in one of the brand grounds
- *    and may carry an optional https image URL on top — the same rule as a
+ *    and may carry an optional https image URL on top - the same rule as a
  *    post: a URL the phone fetches and caches, never a data: blob stored in
  *    the row and paid for on every home-screen load. The tone stays
  *    mandatory so a slide whose image fails to load is still a legible,

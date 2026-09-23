@@ -1,9 +1,9 @@
 /**
- * Drawn menu visuals — the half of the menu the original set never covered.
+ * Drawn menu visuals - the half of the menu the original set never covered.
  *
  * `visuals.tsx` draws the signature items (edible cup, matcha glass, espresso,
- * gelato). Everything else — lemonade, tea, salep, frappé, smoothie, cheesecake,
- * a sandwich — fell through to `EspressoCup`, so a soda and a brownie both
+ * gelato). Everything else - lemonade, tea, salep, frappé, smoothie, cheesecake,
+ * a sandwich - fell through to `EspressoCup`, so a soda and a brownie both
  * rendered as a hot coffee. These components close that gap.
  *
  * Conventions, kept identical to `visuals.tsx` so the two sets read as one hand:
@@ -44,7 +44,7 @@ function liquid(tone: string) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Tall iced glass — iced coffee, cold brew, ice tea, lemonade, frappé
+   Tall iced glass - iced coffee, cold brew, ice tea, lemonade, frappé
    ───────────────────────────────────────────────────────────── */
 
 export function IcedDrink({
@@ -61,7 +61,7 @@ export function IcedDrink({
   whipped?: boolean;
   ice?: boolean;
   straw?: boolean;
-  /** Two-tone pour — milk under, coffee over. */
+  /** Two-tone pour - milk under, coffee over. */
   layered?: boolean;
 }) {
   const l = liquid(tone);
@@ -87,7 +87,7 @@ export function IcedDrink({
 
       <ellipse cx="110" cy="296" rx="66" ry="5" fill="#000" opacity="0.16" />
 
-      {/* Glass body — a slight taper reads as a real tumbler. */}
+      {/* Glass body - a slight taper reads as a real tumbler. */}
       <path
         d="M 58 68 L 162 68 L 154 290 L 66 290 Z"
         fill="rgba(255,255,255,0.10)"
@@ -202,7 +202,7 @@ export function IcedDrink({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Smoothie / frozen — opaque, thick, fruit-forward
+   Smoothie / frozen - opaque, thick, fruit-forward
    ───────────────────────────────────────────────────────────── */
 
 export function SmoothieGlass({
@@ -285,7 +285,7 @@ export function SmoothieGlass({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Turkish tea — tulip glass on a saucer
+   Turkish tea - tulip glass on a saucer
    ───────────────────────────────────────────────────────────── */
 
 export function TeaGlass({ size = "100%" }: { size?: number | string }) {
@@ -308,7 +308,7 @@ export function TeaGlass({ size = "100%" }: { size?: number | string }) {
       <ellipse cx="110" cy="278" rx="74" ry="14" fill="#F3E9D6" />
       <ellipse cx="110" cy="274" rx="60" ry="10" fill="#E3D4B8" />
 
-      {/* Tulip silhouette — the waist is what makes it read as çay bardağı. */}
+      {/* Tulip silhouette - the waist is what makes it read as çay bardağı. */}
       <path
         d="M 78 92 Q 62 150 92 186 Q 74 222 96 264 L 124 264 Q 146 222 128 186 Q 158 150 142 92 Z"
         fill="rgba(255,255,255,0.12)"
@@ -353,7 +353,7 @@ export function TeaGlass({ size = "100%" }: { size?: number | string }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Hot mug — chocolate, chai latte, salep
+   Hot mug - chocolate, chai latte, salep
    ───────────────────────────────────────────────────────────── */
 
 export function HotMug({
@@ -388,7 +388,7 @@ export function HotMug({
 
       <ellipse cx="140" cy="232" rx="104" ry="12" fill="#000" opacity="0.16" />
 
-      {/* Mug body — taller and straighter than the espresso cup. */}
+      {/* Mug body - taller and straighter than the espresso cup. */}
       <path
         d="M 78 104 L 202 104 L 192 222 Q 140 234 88 222 Z"
         fill={`url(#${id}-body)`}
@@ -465,7 +465,7 @@ export function HotMug({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Cake slice — cheesecake, magnolia, brownie, tiramisù, marlenka
+   Cake slice - cheesecake, magnolia, brownie, tiramisù, marlenka
    ───────────────────────────────────────────────────────────── */
 
 export function CakeSlice({
@@ -507,7 +507,7 @@ export function CakeSlice({
       <ellipse cx="140" cy="224" rx="104" ry="18" fill="#F3E9D6" />
       <ellipse cx="140" cy="220" rx="86" ry="13" fill="#E6D7BB" />
 
-      {/* Wedge front face — a slice, not a whole cake. */}
+      {/* Wedge front face - a slice, not a whole cake. */}
       <path
         d={`M 76 ${bodyTop} L 204 ${bodyTop} L 190 ${bodyBottom} L 90 ${bodyBottom} Z`}
         fill={`url(#${id})`}
@@ -535,7 +535,7 @@ export function CakeSlice({
         fill={crumb}
       />
 
-      {/* Top face, tilted — gives the wedge depth. */}
+      {/* Top face, tilted - gives the wedge depth. */}
       <path
         d={`M 76 ${bodyTop} L 204 ${bodyTop} L 186 ${bodyTop - 18} L 94 ${bodyTop - 18} Z`}
         fill={l.foam ?? "#FFF"}
@@ -561,7 +561,7 @@ export function CakeSlice({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Snack — simit, sandwich, bar
+   Snack - simit, sandwich, bar
    ───────────────────────────────────────────────────────────── */
 
 export function SnackPlate({
@@ -699,7 +699,7 @@ export function SnackPlate({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Bottle — water, soda
+   Bottle - water, soda
    ───────────────────────────────────────────────────────────── */
 
 export function BottleDrink({
@@ -802,7 +802,7 @@ export function BottleDrink({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Extras — syrup pump, extra shot, alternative milk
+   Extras - syrup pump, extra shot, alternative milk
    ───────────────────────────────────────────────────────────── */
 
 export function ExtraItem({

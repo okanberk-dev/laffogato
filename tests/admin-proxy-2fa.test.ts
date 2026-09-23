@@ -13,8 +13,8 @@ vi.mock("next/headers", () => ({
 /**
  * `/admin/iki-asama` is where a 2FA-enrolled admin types the TOTP code, and
  * all they hold at that point is the pending cookie. The proxy used to demand
- * the full session there too, so it bounced them to /admin/giris — which sent
- * them back to /admin/iki-asama — and nobody with 2FA on could sign in.
+ * the full session there too, so it bounced them to /admin/giris - which sent
+ * them back to /admin/iki-asama - and nobody with 2FA on could sign in.
  */
 describe("admin proxy and the 2FA step", () => {
   it("lets /admin/iki-asama through without a full session", async () => {

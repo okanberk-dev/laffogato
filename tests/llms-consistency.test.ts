@@ -10,7 +10,7 @@ import { SITE } from "@/lib/seo/site";
  * public/llms.txt ve llms-full.txt elle yazılmış metinlerdir ve robots.ts
  * bunları yapay zekâ botlarına (GPTBot, ClaudeBot, PerplexityBot) açıkça
  * serbest bırakır. Yani buradaki bir bayat telefon numarası, insanlara değil
- * ama ASİSTANLARA verilen resmi cevap olur — kullanıcı "telefon hâlâ yanlış"
+ * ama ASİSTANLARA verilen resmi cevap olur - kullanıcı "telefon hâlâ yanlış"
  * derken canlı sayfa doğruydu; asistanların okuduğu bu dosyalar eskiydi.
  *
  * Bu test o sınıfı kapatır: elle yazılmış metin, koddaki kanonik değerlerle
@@ -22,7 +22,7 @@ const FILES = ["llms.txt", "llms-full.txt"].map((name) => ({
   text: readFileSync(join(process.cwd(), "public", name), "utf-8"),
 }));
 
-describe("llms.txt tutarlılığı — asistanlara giden veri koddaki gerçekle aynı", () => {
+describe("llms.txt tutarlılığı - asistanlara giden veri koddaki gerçekle aynı", () => {
   it("kanonik telefonu içerir, eskisini içermez", () => {
     for (const f of FILES) {
       expect(f.text, f.name).toContain(LEGAL_ENTITY.phone);
@@ -41,7 +41,7 @@ describe("llms.txt tutarlılığı — asistanlara giden veri koddaki gerçekle 
     const { opens, closes } = LEGAL_ENTITY.cafeHours;
     for (const f of FILES) {
       expect(f.text, f.name).toContain(`${opens} — ${closes}`);
-      // Ayraçtan bağımsız: eski tarife "10:00 - 23:00", "10.00–24.00" gibi
+      // Ayraçtan bağımsız: eski tarife "10:00 - 23:00", "10.00-24.00" gibi
       // herhangi bir biçimde geri gelirse de yakalanır. Birebir dize, kılık
       // değiştirmiş bayatlamayı kaçırır.
       expect(f.text, f.name).not.toMatch(/10[:.]00\s*[-–—]+\s*2[34][:.]00/);
@@ -66,7 +66,7 @@ describe("llms.txt tutarlılığı — asistanlara giden veri koddaki gerçekle 
     }
   });
 
-  it("SITE ile llms aynı koordinatları söyler — iki dosyada da", () => {
+  it("SITE ile llms aynı koordinatları söyler - iki dosyada da", () => {
     // Dosya dosya: birleşik metin, tek dosyanın bayatlamasını maskelerdi.
     for (const f of FILES) {
       expect(f.text, f.name).toContain(String(SITE.geo.latitude));

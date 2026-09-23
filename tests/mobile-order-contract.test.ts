@@ -46,7 +46,7 @@ function order(overrides: Partial<AdminOrder> = {}): AdminOrder {
 
 describe("scheduled order ETA", () => {
   it("counts down to the time the member picked, not to 15 minutes", () => {
-    // A pickup booked for tomorrow used to say "Hazır — 15 dk" the evening
+    // A pickup booked for tomorrow used to say "Hazır - 15 dk" the evening
     // before, with a countdown that hit zero while the house was closed.
     const scheduled = order({ scheduledFor: "2026-09-06T06:00:00.000Z" });
     expect(etaMinutesFor(scheduled, NOW)).toBe(21 * 60);
@@ -55,7 +55,7 @@ describe("scheduled order ETA", () => {
     );
   });
 
-  it("adds the courier leg's own wording to nothing — the picked time stands", () => {
+  it("adds the courier leg's own wording to nothing - the picked time stands", () => {
     const scheduled = order({
       fulfillment: "delivery",
       scheduledFor: "2026-09-05T10:30:00.000Z",

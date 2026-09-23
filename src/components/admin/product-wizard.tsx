@@ -43,7 +43,7 @@ const HUE_OPTIONS = [
 ] as const;
 
 /**
- * Allergens, as a closed list — the operator picks, never types.
+ * Allergens, as a closed list - the operator picks, never types.
  *
  * The values are the cafe menu's own tag vocabulary (`menu_items.tags`), and
  * the app filters every tag it receives against that same list and drops

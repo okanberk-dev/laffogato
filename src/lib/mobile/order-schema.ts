@@ -1,5 +1,5 @@
 // Wire validation for `POST /orders` and `POST /orders/preview`
-// (docs/API-MOBILE.md §3). Pure — no "server-only", no database. Every
+// (docs/API-MOBILE.md §3). Pure - no "server-only", no database. Every
 // message is Turkish and safe to show as-is; the route hands the first one
 // back in the `{ error, message }` body.
 
@@ -8,7 +8,7 @@ import { z } from "zod";
 import { lineOptionsSchema, orderItemSizeSchema } from "./customization";
 import { fulfillmentAllowed } from "./order-pricing";
 
-/** Per-line quantity ceiling — mirrors `MAX_LINE_QTY` in the store. */
+/** Per-line quantity ceiling - mirrors `MAX_LINE_QTY` in the store. */
 export const MAX_APP_LINE_QTY = 99;
 /** A basket, not a wholesale order. */
 export const MAX_APP_LINES = 30;
@@ -224,7 +224,7 @@ const orderFields = {
    * the order the first one created instead of placing another. Optional, so an
    * older app build still orders (without the protection).
    *
-   * Accepted on the preview body too — it is ignored there, and the app posts
+   * Accepted on the preview body too - it is ignored there, and the app posts
    * one basket object to both endpoints.
    */
   clientOrderId: z
@@ -242,14 +242,14 @@ type OrderFieldsParsed = {
 };
 
 /**
- * Rules that span fields. `kind` is what the basket says it is — the client's
+ * Rules that span fields. `kind` is what the basket says it is - the client's
  * `kind` must agree, so a stale app cannot ship a cappuccino.
  *
  * `requireAddress` separates the two callers. Placing an order needs somewhere
  * to send it; pricing one does not, because shipping is derived from
  * `fulfillment` and the settings alone (see `shippingModeFor`) and never from
- * the address. Demanding it on the preview meant the basket screen — which
- * runs before any address is picked — got a 400 for every shop basket and
+ * the address. Demanding it on the preview meant the basket screen - which
+ * runs before any address is picked - got a 400 for every shop basket and
  * every courier basket, and fell back to the device's own estimate under an
  * \"offline\" label while perfectly online.
  */
@@ -298,7 +298,7 @@ function crossFieldRules(
 }
 
 /**
- * `POST /orders/preview` — the order body without the consent flag, and
+ * `POST /orders/preview` - the order body without the consent flag, and
  * without the address: the basket is priced before there is one.
  */
 export const previewOrderBodySchema = z
@@ -306,7 +306,7 @@ export const previewOrderBodySchema = z
   .strict()
   .superRefine((v, ctx) => crossFieldRules(v, ctx, false));
 
-/** `POST /orders` — the same body, plus the distance-selling confirmation. */
+/** `POST /orders` - the same body, plus the distance-selling confirmation. */
 export const placeOrderBodySchema = z
   .object({
     ...orderFields,

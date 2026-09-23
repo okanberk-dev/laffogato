@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   try {
     const report = await runRetention({ apply: destructionEnabled() });
     // The report counts rows; it never names one. Nothing here may log a key,
-    // an address or an IP — `auth_attempts.key` is all three at once.
+    // an address or an IP - `auth_attempts.key` is all three at once.
     console.info(
       `[cron/retention] ${report.applied ? "destroy" : "report"} matched=${report.totalMatched} destroyed=${report.totalDestroyed}`,
     );

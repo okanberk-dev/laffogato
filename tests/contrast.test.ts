@@ -29,7 +29,7 @@ function token(name: string): string {
   return m[1];
 }
 
-/** Hue angle in degrees — what tells "green" from "red" apart. */
+/** Hue angle in degrees - what tells "green" from "red" apart. */
 function hue(hex: string): number {
   const h = hex.replace("#", "");
   const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
@@ -52,7 +52,7 @@ function hueGap(a: string, b: string): number {
   return diff > 180 ? 360 - diff : diff;
 }
 
-/** Midpoint of a two-stop gradient — the value text actually sits on. */
+/** Midpoint of a two-stop gradient - the value text actually sits on. */
 function mix(a: string, b: string): string {
   const part = (h: string, i: number) =>
     parseInt(h.replace("#", "").slice(i, i + 2), 16);
@@ -63,7 +63,7 @@ function mix(a: string, b: string): string {
 const AA = 4.5;
 
 describe("colour contrast", () => {
-  // Three successive minimalist passes each quietly cost contrast — the gold
+  // Three successive minimalist passes each quietly cost contrast - the gold
   // family went grey, --ink-mute fell to 3.80:1, badge text dropped below AA.
   // These assertions are the guard rail.
   const bg = token("--bg");
@@ -87,7 +87,7 @@ describe("colour contrast", () => {
 
   it("state colours are distinguishable from each other", () => {
     // "In stock" and "almost gone" must not both be warm red. Hue angle is
-    // the right measure here — two colours can be far apart in luminance and
+    // the right measure here - two colours can be far apart in luminance and
     // still read as the same colour.
     expect(
       hueGap(token("--matcha"), token("--rose")),
@@ -109,7 +109,7 @@ describe("colour contrast", () => {
 
   it("the accent is legible as text on the night ground", () => {
     // The palette swap made `--accent` a dark burgundy. On `--bg-espresso`
-    // it measured 1.68:1 — the menu hero's script word was rendered and
+    // it measured 1.68:1 - the menu hero's script word was rendered and
     // could not be seen. `--accent-on-dark` is the same hue, lightened.
     const night = token("--bg-espresso");
     expect(contrast(token("--accent"), night)).toBeLessThan(AA);
@@ -126,8 +126,8 @@ describe("colour contrast", () => {
     // This used to enumerate the dark selectors, and the list went stale: it
     // named `.loyalty-block` and `.footer` and missed two inline-styled dark
     // sections plus `.guide-cta`, so three accent words were invisible on the
-    // live site while this test stayed green. The rule is now a variable —
-    // `.script` reads `--script-ink`, dark grounds set it — so what is worth
+    // live site while this test stayed green. The rule is now a variable -
+    // `.script` reads `--script-ink`, dark grounds set it - so what is worth
     // asserting is the MECHANISM, not a list that has to be maintained.
     for (const cls of [".h1 .script", ".h2 .script", ".h-display .script"]) {
       const re = new RegExp(
@@ -205,7 +205,7 @@ describe("the accent carries text at any size", () => {
    * enough for a display heading and short of AA for a 13px link, so six
    * rules reached for `--accent-deep` purely to get contrast.
    *
-   * Bordo removed that constraint — 8.73:1 on cream, 9.18:1 on white — and
+   * Bordo removed that constraint - 8.73:1 on cream, 9.18:1 on white - and
    * leaving those rules in place was worse than a no-op: `--accent-deep`
    * (#4a0f1e) is 15.24:1, a hair off `--ink`, so every one of them silently
    * turned a brand-coloured link or badge into body ink. The rules moved back
@@ -239,7 +239,7 @@ describe("the accent carries text at any size", () => {
 
   it("colours the map caption link with the accent, not with body ink", () => {
     // The regression this replaces: the link was --accent-deep, 15.24:1,
-    // indistinguishable from --ink — so it stopped reading as a link at all.
+    // indistinguishable from --ink - so it stopped reading as a link at all.
     const rule = /\.visit-map-caption a \{[^}]*\}/.exec(css)?.[0] ?? "";
     expect(rule).toContain("var(--accent)");
     expect(rule).not.toContain("var(--accent-deep)");

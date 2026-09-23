@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Cafe drink customisation — the server constant behind `GET /menu`
+ * Cafe drink customisation - the server constant behind `GET /menu`
  * (docs/API-MOBILE.md §1) and the only place an option is ever priced.
  *
  * Pure and client-safe on purpose: no "server-only", no database. The order
@@ -10,7 +10,7 @@ import { z } from "zod";
  * ever sends option ids.
  *
  * Prices are minor units (kuruş). `allergens` is carried on every syrup and,
- * since 23 Sep 2026, on every milk — empty or not — so the nut warning is data
+ * since 23 Sep 2026, on every milk - empty or not - so the nut warning is data
  * rather than a special case the app has to remember. The almond milk is a
  * tree nut exactly as the hazelnut syrup is; until then a member who chose it
  * was shown no warning at all (lafmobil rule 4).
@@ -143,7 +143,7 @@ export interface OptionPricing {
   allergens: Allergen[];
 }
 
-/** Thrown for an option id that is not in the table — a client bug. */
+/** Thrown for an option id that is not in the table - a client bug. */
 export class UnknownOptionError extends RangeError {
   constructor(field: string, value: unknown) {
     super(`Bilinmeyen seçenek: ${field}=${String(value)}`);

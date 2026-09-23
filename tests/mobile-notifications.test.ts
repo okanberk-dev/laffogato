@@ -107,7 +107,7 @@ describe("deriveOrderNotifications", () => {
     ]);
   });
 
-  it("keeps a late stage on an old order — the window is per stage", () => {
+  it("keeps a late stage on an old order - the window is per stage", () => {
     // A gift box paid 32 days ago and shipped today: the stage is today's
     // news even though the order is outside the window.
     const created = new Date(

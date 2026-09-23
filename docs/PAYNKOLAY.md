@@ -1,4 +1,4 @@
-# PayNkolay sanal POS — entegrasyon sözleşmesi
+# PayNkolay sanal POS - entegrasyon sözleşmesi
 
 Bu belge, iyzico yerine PayNkolay kullanma kararının teknik karşılığıdır.
 Amacı, `src/lib/payment/provider.ts` içindeki `PaymentProvider` arayüzünün her
@@ -7,7 +7,7 @@ sabitlemek.
 
 **Belgenin kuralı:** para akışı söz konusu; bu yüzden her madde ya
 _doğrulandı_ (kaynak URL'si ile) ya da _**doğrulanamadı**_ olarak işaretli.
-Doğrulanamayan hiçbir şey koda "kesin" gibi geçirilmez — canlı/test ortamında
+Doğrulanamayan hiçbir şey koda "kesin" gibi geçirilmez - canlı/test ortamında
 ölçülür, ölçüm sonucu buraya yazılır. Belgenin sonundaki
 [Canlı testte ölçülecekler](#12-canlı-testte-ölçülecekler) listesi tam olarak
 bu açıkların dökümüdür.
@@ -18,13 +18,13 @@ başlıkları aşağıda tek tek anılıyor.
 
 ---
 
-## 0. Mimari uyum — neden bu sağlayıcı bizim modelimize oturuyor
+## 0. Mimari uyum - neden bu sağlayıcı bizim modelimize oturuyor
 
 Barındırılan (hosted) form modeli: kart numarası, CVV ve son kullanma tarihi
 **PayNkolay'ın kendi sayfasında** girilir. Bizim tarafımızdan gönderilen
 alanların arasında kart alanı yoktur.
 
-Bunun sonucu: **PAN hiçbir zaman bizim sunucumuza girmez** — iyzico
+Bunun sonucu: **PAN hiçbir zaman bizim sunucumuza girmez** - iyzico
 soyutlamasında `CheckoutInput.cardUserKey` yorumunda anlatılan aynı duruş
 korunur. PCI yüzeyimiz değişmez.
 
@@ -75,8 +75,8 @@ Non-3D işlemde `successUrl`/`failUrl` sayfasına form-POST edilenler:
 | `COMMISION`             | Komisyon tutarı                  | `0.00000000`     |
 | `COMMISION_RATE`        | Komisyon oranı                   | `null`           |
 | `INSTALLMENT`           | Taksit sayısı                    | `1`              |
-| `hashData`              | Eski (v1, SHA-1) yanıt hash'i    | —                |
-| `hashDataV2`            | Güncel yanıt hash'i              | —                |
+| `hashData`              | Eski (v1, SHA-1) yanıt hash'i    | -                |
+| `hashDataV2`            | Güncel yanıt hash'i              | -                |
 
 3D işlemde aynı alanlara ek olarak `BANK_RESULT` (banka yanıtı) ve
 `ERROR_CODE` (`0` = hata yok) geliyor.
@@ -100,7 +100,7 @@ MERCHANT_NO | REFERENCE_CODE | AUTH_CODE | RESPONSE_CODE | USE_3D | RND
 Yani istek hash'i (§6) ile aynı algoritma, farklı alan listesi. Eski `hashData`
 SHA-1'dir ve kullanılmayacaktır.
 
-### 1.3 Başarı ölçütü — en kritik madde
+### 1.3 Başarı ölçütü - en kritik madde
 
 Doküman açıkça yazıyor:
 
@@ -113,14 +113,14 @@ ve
 > kontrol ediniz."
 
 Dokümanın verdiği başarı testi: `RESPONSE_CODE == 2` **ve** `AUTH_CODE`
-dolu — boş, `0` veya `00` değil.
+dolu - boş, `0` veya `00` değil.
 
 **Bizim kuralımız bundan daha katı olacak.** Dönüş parametreleri müşterinin
 tarayıcısından gelir; müşteri onları değiştirebilir. `hashDataV2` doğrulaması
 sahteciliği zorlaştırır ama tek başına yeterli saymıyoruz, çünkü:
 
 - `CURRENCY_CODE` hash formülünde var ama **POST edilen alanlar arasında
-  yok** (§1.1 tablosuna bak — doküman listelemiyor). Yani hash'i doğrularken
+  yok** (§1.1 tablosuna bak - doküman listelemiyor). Yani hash'i doğrularken
   o alanı biz kendi tarafımızdan dolduruyoruz. Eksik/eşleşmeyen bir alan,
   doğrulamayı "her zaman başarısız" ya da daha kötüsü "gevşek" hale
   getirebilir.
@@ -154,14 +154,14 @@ dayanağı budur.
 |             |                                                                                                                                                                 |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Uç (test)   | `POST https://paynkolaytest.nkolayislem.com.tr/Vpos/Payment/PaymentList`                                                                                        |
-| Uç (üretim) | **doğrulanamadı** — doküman yazmıyor. Host değişimiyle `https://paynkolay.nkolayislem.com.tr/Vpos/Payment/PaymentList` olması beklenir; canlıda teyit edilecek. |
+| Uç (üretim) | **doğrulanamadı** - doküman yazmıyor. Host değişimiyle `https://paynkolay.nkolayislem.com.tr/Vpos/Payment/PaymentList` olması beklenir; canlıda teyit edilecek. |
 | Gövde       | `multipart/form-data`                                                                                                                                           |
 
 İstek alanları:
 
 | Alan            | Zorunlu | Biçim / açıklama                                             |
 | --------------- | ------- | ------------------------------------------------------------ |
-| `sx`            | evet    | **Listeleme sx'i** — satış sx'inden farklı (§7)              |
+| `sx`            | evet    | **Listeleme sx'i** - satış sx'inden farklı (§7)              |
 | `startDate`     | evet    | `DD.MM.YYYY`                                                 |
 | `endDate`       | evet    | `DD.MM.YYYY`                                                 |
 | `clientRefCode` | hayır   | Bizim referansımız; verilmezse aralıktaki tüm işlemler döner |
@@ -173,7 +173,7 @@ Hash:
 sx | startDate | endDate | clientRefCode | merchantSecretKey
 ```
 
-SHA-512 → Base64. (Alan adının dokümandaki yazımı `hashDatav2` — küçük `v`.
+SHA-512 → Base64. (Alan adının dokümandaki yazımı `hashDatav2` - küçük `v`.
 §11'deki nota bak.)
 
 Yanıt alanları: `RESPONSE_CODE`, `REFERENCE_CODE`, `AUTH_CODE`, `STATUS`,
@@ -182,7 +182,7 @@ Yanıt alanları: `RESPONSE_CODE`, `REFERENCE_CODE`, `AUTH_CODE`, `STATUS`,
 (maskeli), `CARD_HOLDER_NAME`, `CARD_BANK_CODE`, `CARD_BANK_NAME`, `POS_TYPE`,
 `TERMINAL_NAME`, `VALOR_DATE`, `OID`, `COMMISION`, `BANK_RESULT`.
 
-`STATUS` değerleri — **karar bu alandan verilir**, doküman da bunu söylüyor
+`STATUS` değerleri - **karar bu alandan verilir**, doküman da bunu söylüyor
 ("işlemlerin başarılı olup olmadığını kontrol etmek için STATUS değerini
 doğrulamalısınız"):
 
@@ -190,7 +190,7 @@ doğrulamalısınız"):
 | --------- | --------------------------------------------------------- |
 | `SUCCESS` | Onaylanmış işlem                                          |
 | `ERROR`   | Başarısız işlem                                           |
-| `NEW`     | Başlatılmış ama bitmemiş — para çekilmemiş, yarıda kalmış |
+| `NEW`     | Başlatılmış ama bitmemiş - para çekilmemiş, yarıda kalmış |
 
 `TRANSACTION_TYPE`: `sales`, `cancel`, `refund` (dokümanın Türkçe
 sürümünde ayrıca `refundp` = kısmi iade geçiyor; bkz. §3).
@@ -199,7 +199,7 @@ Kısıt: **bir sorguda en fazla bir aylık veri** çekilebiliyor. Bizim
 kullanımımızda sorgu tek bir güne (sipariş tarihi) daraltılacağı için bu bir
 engel değil.
 
-Aynı `clientRefCode` ile birden çok işlem varsa hepsi döner — bu yüzden
+Aynı `clientRefCode` ile birden çok işlem varsa hepsi döner - bu yüzden
 `clientRefCode`'u sipariş başına **benzersiz** üretmek zorunludur ve dönen
 listede `REFERENCE_CODE` ile eşleştirme yapılmalıdır.
 
@@ -228,14 +228,14 @@ mutabakat/geçmiş tarama işi çıkarsa kullanılacak yedek.
 |             |                                                                                                                  |
 | ----------- | ---------------------------------------------------------------------------------------------------------------- |
 | Uç (test)   | `POST https://paynkolaytest.nkolayislem.com.tr/Vpos/v1/CancelRefundPayment`                                      |
-| Uç (üretim) | **doğrulanamadı** — host değişimiyle `https://paynkolay.nkolayislem.com.tr/Vpos/v1/CancelRefundPayment` beklenir |
+| Uç (üretim) | **doğrulanamadı** - host değişimiyle `https://paynkolay.nkolayislem.com.tr/Vpos/v1/CancelRefundPayment` beklenir |
 | Gövde       | `multipart/form-data`                                                                                            |
 
 İstek alanları:
 
 | Alan            | Zorunlu | Biçim / açıklama                                                                          |
 | --------------- | ------- | ----------------------------------------------------------------------------------------- |
-| `sx`            | evet    | **İptal sx'i** — satış ve listeleme sx'lerinden farklı (§7)                               |
+| `sx`            | evet    | **İptal sx'i** - satış ve listeleme sx'lerinden farklı (§7)                               |
 | `referenceCode` | evet    | PayNkolay referansı (`IKSIRPF…`), yanıttan gelen `REFERENCE_CODE`                         |
 | `type`          | evet    | `cancel` \| `refund` (\| `refundp`, bkz. aşağı)                                           |
 | `amount`        | evet    | İptalde orijinal tutar, iadede iade edilecek tutar; "çekim sırasında gönderilen formatta" |
@@ -281,14 +281,14 @@ Doküman: **iptal yalnızca aynı gün** yapılan işlemler için; sonraki günl
 Yani kısmi iadenin `type=refund` + küçük `amount` ile mi, yoksa
 `type=refundp` ile mi yapıldığı belirsiz. **Karar:** ilk sürümde `refund()`
 yalnızca **tam iade**yi destekler (`amountMinor` verilmezse sipariş tutarı).
-Kısmi tutar geldiğinde, davranış canlı testte ölçülene kadar hata fırlatılır —
+Kısmi tutar geldiğinde, davranış canlı testte ölçülene kadar hata fırlatılır -
 sessizce yanlış tutar iade etmektense reddetmek doğrudur.
 
 ---
 
 ## 4. Sunucudan sunucuya bildirim (webhook)
 
-**Durum: doğrulandı — PayNkolay'da webhook YOK.**
+**Durum: doğrulandı - PayNkolay'da webhook YOK.**
 
 Okunan sayfaların hiçbirinde sunucudan sunucuya bildirim, callback, IPN ya da
 imzalı olay gönderimi geçmiyor:
@@ -297,7 +297,7 @@ imzalı olay gönderimi geçmiyor:
 [SSS](https://paynkolay.com.tr/entegrasyon/45-faq.php).
 Akışın tamamı, tarayıcının `successUrl` / `failUrl`'e form-POST'u üzerine
 kurulu. Doğrulama tarafında sunulan tek sunucu-sunucu mekanizması, **bizim
-sorduğumuz** İşlem Doğrulama / Raporlama servisleridir (§2) — yani çekme
+sorduğumuz** İşlem Doğrulama / Raporlama servisleridir (§2) - yani çekme
 (pull), itme (push) değil.
 
 Bunun iki sonucu var:
@@ -309,7 +309,7 @@ Bunun iki sonucu var:
    sahte bir isteğin sipariş kapatmasına yol bırakmaz.
    - Alternatif, arayüzü `verifyWebhook?:` yapmak. `confirmReturn` zaten
      opsiyonel; simetri için tercih edilebilir. Bu, `provider.ts` ve
-     `mock.ts`'i de ilgilendirdiği için ayrı bir karar — burada not düşülüyor.
+     `mock.ts`'i de ilgilendirdiği için ayrı bir karar - burada not düşülüyor.
 2. **Terk edilen ödeme sorunu bize kalıyor.** Müşteri 3D sayfasında ödeyip
    tarayıcıyı `successUrl`'e dönmeden kapatırsa, para çekilmiş ama siparişimiz
    `pending` kalmış olur. Webhook olmadığı için bunu ancak **biz sorarak**
@@ -327,7 +327,7 @@ Bunun iki sonucu var:
 
 Dokümanın ifadesi: "Kuruş ayıracı olarak **. (nokta)** kullanılmalıdır."
 Örnek: `1280.10`. Diğer sayfalardaki form örneklerinde `5.00`, `6.00`,
-`10.00`, `1.00` geçiyor — yani **daima iki ondalık basamak**.
+`10.00`, `1.00` geçiyor - yani **daima iki ondalık basamak**.
 
 Ondalık ayracı **nokta**dır, virgül değil. Binlik ayracı **yoktur**
 (`1280.10`, `1.280,10` değil).
@@ -336,7 +336,7 @@ Hash'e giren değer, forma yazılan değerle **birebir aynı dize** olmak
 zorunda: hash ham dize üzerinden hesaplanır, sayı olarak değil. `250.5` ile
 `250.50` farklı hash üretir.
 
-> **Kural (bizim taraf):** dönüşüm tek bir yerde yapılır —
+> **Kural (bizim taraf):** dönüşüm tek bir yerde yapılır -
 > `minorToPaynkolayAmount(amountMinor: number): string`, `(minor / 100)`'ün
 > **iki basamağa sabitlenmiş** hali (`toFixed(2)`). Üretilen dize hem
 > `amount` alanına hem hash girdisine **aynı değişkenden** geçer; iki ayrı
@@ -345,7 +345,7 @@ zorunda: hash ham dize üzerinden hesaplanır, sayı olarak değil. `250.5` ile
 > karşılığıdır.
 
 Yanıtta `TRANSACTION_AMOUNT` ve `AUTHORIZATION_AMOUNT` aynı biçimde
-(`1.00`) dönüyor. Hash'e giren, **`AUTHORIZATION_AMOUNT`**'tır (§1.2) —
+(`1.00`) dönüyor. Hash'e giren, **`AUTHORIZATION_AMOUNT`**'tır (§1.2) -
 yani fiilen çekilen tutar. Bunu tekrar kuruşa çevirirken kayan nokta
 kullanılmamalı; dizeyi noktadan bölüp integer aritmetiğiyle çevirmek gerekir.
 
@@ -357,19 +357,19 @@ yoksa taksit tutarı mı olduğu. Taksit v1'de kullanılmayacak; kullanılırsa
 
 ## 6. `rnd` biçimi ve zaman dilimi
 
-**Durum: kısmen doğrulandı — çelişkili.**
+**Durum: kısmen doğrulandı - çelişkili.**
 
 | Kaynak                                                                                                        | `rnd` için söylediği                                                                                    |
 | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| [01 — Ödeme Entegrasyon Servisleri](https://paynkolay.com.tr/entegrasyon/01-payment-integration-services.php) | "DateTime.Now ile işlem tarihini göndermeniz gerekmektedir", örnek `09-08-2021 15:24:22` (tire ayraçlı) |
-| [02 — Örnek Form](https://paynkolay.com.tr/entegrasyon/02-example-form.php)                                   | `dd.mm.yyyy H:mm:ss` (nokta ayraçlı)                                                                    |
-| [06 — Ödeme Sonucu](https://paynkolay.com.tr/entegrasyon/06-payment-result.php)                               | Dönen `RND` örnekleri epoch-ms: `1630051651137`, `1645700316156`                                        |
+| [01 - Ödeme Entegrasyon Servisleri](https://paynkolay.com.tr/entegrasyon/01-payment-integration-services.php) | "DateTime.Now ile işlem tarihini göndermeniz gerekmektedir", örnek `09-08-2021 15:24:22` (tire ayraçlı) |
+| [02 - Örnek Form](https://paynkolay.com.tr/entegrasyon/02-example-form.php)                                   | `dd.mm.yyyy H:mm:ss` (nokta ayraçlı)                                                                    |
+| [06 - Ödeme Sonucu](https://paynkolay.com.tr/entegrasyon/06-payment-result.php)                               | Dönen `RND` örnekleri epoch-ms: `1630051651137`, `1645700316156`                                        |
 
 Yani doküman kendi içinde üç ayrı biçim gösteriyor. Çıkarılabilecek sağlam
 sonuç: `rnd` **serbest bir dize**dir ve PayNkolay onu yalnızca hash'e girdi
 olarak kullanır; biçimi doğrulamaz.
 
-Zaman dilimi hiçbir yerde yazmıyor — **doğrulanamadı**. Türkiye saati
+Zaman dilimi hiçbir yerde yazmıyor - **doğrulanamadı**. Türkiye saati
 (Europe/Istanbul, UTC+3) varsayılacak.
 
 > **Karar:** `rnd` olarak `dd.MM.yyyy HH:mm:ss` (nokta ayraçlı, `02` örnek
@@ -378,11 +378,11 @@ Zaman dilimi hiçbir yerde yazmıyor — **doğrulanamadı**. Türkiye saati
 > geçer.
 >
 > Dönüşte hash doğrularken **gönderdiğimiz `rnd` değil, dönen `RND` alanı**
-> kullanılacak — doküman örnekleri ikisinin farklı olabileceğini gösteriyor.
+> kullanılacak - doküman örnekleri ikisinin farklı olabileceğini gösteriyor.
 
 ---
 
-## 7. `sx`, `agentCode`, `merchantSecretKey` — hangisi sır?
+## 7. `sx`, `agentCode`, `merchantSecretKey` - hangisi sır?
 
 **Durum: doğrulandı.** Kaynak:
 [SSS](https://paynkolay.com.tr/entegrasyon/45-faq.php),
@@ -403,7 +403,7 @@ Yani **üç ayrı `sx`** var, her servis kendi `sx`'ini ister:
 | `sx İptal`   | İptal/İade (`/Vpos/v1/CancelRefundPayment`)              |
 
 `sx` bir **giriş kodu/token**tır (doküman: "Web Servis için gerekli giriş
-kodudur (Token)") ve HTML formunun `hidden` alanı olarak tarayıcıya çıkar —
+kodudur (Token)") ve HTML formunun `hidden` alanı olarak tarayıcıya çıkar -
 yani **gizli değildir, gizli kalamaz**. Sahtecilik engeli `sx` değil,
 `hashDataV2`dir.
 
@@ -439,7 +439,7 @@ birebir kullanılmalıdır (`"true"` / `"True"` / `true` farkı hash'i bozar).
 Dokümanda büyük/küçük harf yazımı örnekte `false`/`true` küçük harf; **canlıda
 ölçülecek**.
 
-### 8.1 İki adımlı 3D tuzağı — `AUTOCOMPLETE`
+### 8.1 İki adımlı 3D tuzağı - `AUTOCOMPLETE`
 
 [Ödeme Tamamlama Servisi](https://paynkolay.com.tr/entegrasyon/27-complete-payment.php)
 sayfası kritik bir durumu anlatıyor: **`AUTOCOMPLETE` false ise**, 3D
@@ -457,7 +457,7 @@ hash formülü de dokümanda yok.
 > **Karar:** üye işyeri hesabı **tek adımlı (AUTOCOMPLETE = true)** olarak
 > açılacak; operatörden PayNkolay panelinde bunu teyit etmesi istenecek. Yine
 > de `confirmReturn`, doğrulama servisinden `STATUS = NEW` gördüğünde siparişi
-> **ödendi saymaz** — bu, ayar yanlışsa sessizce ücretsiz sipariş üretmenin
+> **ödendi saymaz** - bu, ayar yanlışsa sessizce ücretsiz sipariş üretmenin
 > önündeki emniyet kilidi.
 
 ---
@@ -472,21 +472,21 @@ Kaynak:
 | ----------------- | ------- | ------------------------------------------------------------------------- |
 | `sx`              | evet    | `PAYNKOLAY_SX`                                                            |
 | `clientRefCode`   | evet    | Sipariş başına benzersiz; **Türkçe karakter yok**, en fazla 1024 karakter |
-| `amount`          | evet    | `minorToPaynkolayAmount(amountMinor)` — §5                                |
+| `amount`          | evet    | `minorToPaynkolayAmount(amountMinor)` - §5                                |
 | `currencyCode`    | hayır   | `949` (TRY). Gönderilmezse TL varsayılıyor; yine de açıkça gönderilecek   |
 | `successUrl`      | evet    | `PAYNKOLAY_SUCCESS_URL`                                                   |
 | `failUrl`         | evet    | `PAYNKOLAY_FAIL_URL`                                                      |
 | `rnd`             | evet    | §6                                                                        |
-| `use3D`           | evet    | `"true"` — §8                                                             |
+| `use3D`           | evet    | `"true"` - §8                                                             |
 | `transactionType` | evet    | `SALES` (ön provizyon için `PRESALES`; kullanmıyoruz)                     |
 | `cardHolderIP`    | evet    | `CheckoutInput.buyerIp`; IPv4 veya IPv6                                   |
-| `customerKey`     | hayır   | `CheckoutInput.cardUserKey` — kart saklama için; yoksa **boş dize**       |
-| `agentCode`       | hayır   | Gönderilmiyor — §7                                                        |
+| `customerKey`     | hayır   | `CheckoutInput.cardUserKey` - kart saklama için; yoksa **boş dize**       |
+| `agentCode`       | hayır   | Gönderilmiyor - §7                                                        |
 | `hashDataV2`      | evet    | §10                                                                       |
 | `instalments`     | hayır   | Gönderilmiyor (v1'de taksit yok)                                          |
 
 `clientRefCode` için doküman: "Her işlem için benzersiz olması önerilir".
-Bizde bu **öneri değil zorunluluk** — §2'de anlatıldığı gibi doğrulama
+Bizde bu **öneri değil zorunluluk** - §2'de anlatıldığı gibi doğrulama
 sorgusu bu koda göre eşleştirme yapıyor.
 
 ### 9.1 `customerKey` ve kart saklama
@@ -497,13 +497,13 @@ olacaktır."
 
 Yani `customerKey` kullanılmadığında hash dizesinde o konum **boş kalır** ve
 ardışık iki boru işareti (`…|rnd||merchantSecretKey`) oluşur. Konum
-atlanmaz — bu, hash'i sessizce bozan klasik hatadır.
+atlanmaz - bu, hash'i sessizce bozan klasik hatadır.
 
 **Doğrulanamadı:** alanın form üzerindeki gerçek adı. `01` numaralı sayfanın
 parametre tablosunda `customerKey`, `14-save-card.php` sayfasında
 `csCustomerKey`, `04-hash-request.php` notunda `CS_CUSTOMER_KEY` geçiyor.
 Ayrıca saklanan kartın anahtarının **yanıtta hangi alanla döndüğü** hiçbir
-sayfada yazmıyor — yani `ReturnConfirmation.cardUserKey`'i neyden
+sayfada yazmıyor - yani `ReturnConfirmation.cardUserKey`'i neyden
 dolduracağımız belirsiz.
 
 > **Karar:** kart saklama **v1 kapsamı dışında**. `customerKey` boş dize
@@ -539,7 +539,7 @@ sx | clientRefCode | amount | successUrl | failUrl | rnd | customerKey
   createHash("sha512").update(raw, "utf8").digest("base64");
   ```
 
-  (`digest("hex")` **değil** — Base64 doğrudan ham özetten alınır.)
+  (`digest("hex")` **değil** - Base64 doğrudan ham özetten alınır.)
 
 Diğer servislerin hash formülleri aynı sayfada listeli ve bu belgede ilgili
 bölümlerde tekrarlandı (§2, §3).
@@ -550,10 +550,10 @@ bölümlerde tekrarlandı (§2, §3).
 
 | Arayüz üyesi                        | PayNkolay karşılığı                                                                                         | Not                                                                                                                                                                                                                                                                                                                                                            |
 | ----------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`                              | `"paynkolay"`                                                                                               | —                                                                                                                                                                                                                                                                                                                                                              |
-| `createCheckoutSession(input)`      | Doğrudan bir API çağrısı **yok**. `/Vpos`'a POST edilecek form alanları (§9) + `hashDataV2` (§10) üretilir. | Dönen `CheckoutSession`: `providerRef` = ürettiğimiz `clientRefCode`; `redirectUrl` = kendi tarafımızda barındırdığımız, alanları gizli input olarak taşıyıp otomatik submit eden ara sayfa; `expiresAt` = kendi belirlediğimiz süre. **PayNkolay bir oturum kimliği ya da son kullanma zamanı vermiyor** — bu üç alanın üçü de bizim ürettiğimiz değerlerdir. |
-| `verifyWebhook(req)`                | **Karşılığı yok.** PayNkolay webhook göndermez (§4).                                                        | Çağrıldığında hata fırlatır (fail-closed). Terk edilen ödemeler için, `pending` siparişleri §2 servisiyle sorgulayan bir mutabakat işi gerekir — webhook'un yerini tutan tek şey odur.                                                                                                                                                                         |
-| `refund(providerRef, amountMinor?)` | `POST /Vpos/v1/CancelRefundPayment` (§3)                                                                    | `providerRef` olarak PayNkolay'ın `REFERENCE_CODE`'u gerekir — bizim `clientRefCode`'umuz değil. İşlem aynı günse `type=cancel`, değilse `type=refund`. `trxDate` zorunlu; siparişten ya da §2 sorgusundan okunur. Kısmi iade **v1'de reddedilir** (§3.2).                                                                                                     |
+| `name`                              | `"paynkolay"`                                                                                               | -                                                                                                                                                                                                                                                                                                                                                              |
+| `createCheckoutSession(input)`      | Doğrudan bir API çağrısı **yok**. `/Vpos`'a POST edilecek form alanları (§9) + `hashDataV2` (§10) üretilir. | Dönen `CheckoutSession`: `providerRef` = ürettiğimiz `clientRefCode`; `redirectUrl` = kendi tarafımızda barındırdığımız, alanları gizli input olarak taşıyıp otomatik submit eden ara sayfa; `expiresAt` = kendi belirlediğimiz süre. **PayNkolay bir oturum kimliği ya da son kullanma zamanı vermiyor** - bu üç alanın üçü de bizim ürettiğimiz değerlerdir. |
+| `verifyWebhook(req)`                | **Karşılığı yok.** PayNkolay webhook göndermez (§4).                                                        | Çağrıldığında hata fırlatır (fail-closed). Terk edilen ödemeler için, `pending` siparişleri §2 servisiyle sorgulayan bir mutabakat işi gerekir - webhook'un yerini tutan tek şey odur.                                                                                                                                                                         |
+| `refund(providerRef, amountMinor?)` | `POST /Vpos/v1/CancelRefundPayment` (§3)                                                                    | `providerRef` olarak PayNkolay'ın `REFERENCE_CODE`'u gerekir - bizim `clientRefCode`'umuz değil. İşlem aynı günse `type=cancel`, değilse `type=refund`. `trxDate` zorunlu; siparişten ya da §2 sorgusundan okunur. Kısmi iade **v1'de reddedilir** (§3.2).                                                                                                     |
 | `confirmReturn(params)`             | Dönüş POST'u ön eleme + `POST /Vpos/Payment/PaymentList` (§2) ile gerçek durum sorgusu                      | `status` yalnızca sorgunun `STATUS === "SUCCESS"` değerinden türetilir. `amountMinor` dönen parametreden değil, **sorgunun** `AUTHORIZATION_AMOUNT`'undan okunur. `NEW` ve `ERROR` → `failed`. `cardUserKey` v1'de doldurulmaz (§9.1).                                                                                                                         |
 
 ### 11.1 Uygulamada dikkat edilecek iki ayrıntı
@@ -578,18 +578,18 @@ Bu belgede "doğrulanamadı" işaretli her madde, ilk test işleminde ölçülec
 sonucu buraya yazılacak:
 
 1. Yanıtta `CURRENCY_CODE` POST ediliyor mu? Edilmiyorsa yanıt hash'ine hangi
-   değer giriyor (`949`? boş?) — §1.3
+   değer giriyor (`949`? boş?) - §1.3
 2. Dönen `RND`, gönderdiğimiz `rnd` ile aynı mı, yoksa PayNkolay kendi epoch-ms
-   değerini mi üretiyor? — §1.3, §6
-3. Yanıtta `USE_3D` hangi yazımla dönüyor (`true` / `True`)? — §8
+   değerini mi üretiyor? - §1.3, §6
+3. Yanıtta `USE_3D` hangi yazımla dönüyor (`true` / `True`)? - §8
 4. `AUTOCOMPLETE` ayarı hangi değerde; 3D sonrası işlem doğrudan `SUCCESS`
-   oluyor mu, yoksa `NEW`'de mi kalıyor? — §8.1
-5. Doğrulama ve iptal/iade servislerinin **üretim** uçları — §2, §3
-6. Kısmi iade: `type=refund` küçük tutarla mı, `type=refundp` ile mi? — §3.2
-7. "Aynı gün" (cancel/refund sınırı) hangi saat dilimine göre? — §3.1
+   oluyor mu, yoksa `NEW`'de mi kalıyor? - §8.1
+5. Doğrulama ve iptal/iade servislerinin **üretim** uçları - §2, §3
+6. Kısmi iade: `type=refund` küçük tutarla mı, `type=refundp` ile mi? - §3.2
+7. "Aynı gün" (cancel/refund sınırı) hangi saat dilimine göre? - §3.1
 8. Kart saklama alan adı (`customerKey` / `csCustomerKey`) ve saklanan kart
-   anahtarının yanıttaki alan adı — §9.1
-9. Hash alan adının büyük/küçük harf duyarlılığı — §11.1
+   anahtarının yanıttaki alan adı - §9.1
+9. Hash alan adının büyük/küçük harf duyarlılığı - §11.1
 10. Başarısız işlemde `failUrl`'e gelen `RESPONSE_CODE` değerleri (doküman
     yalnızca `2` = başarı diyor; hata kodları listesi
     [43-error-codes](https://paynkolay.com.tr/entegrasyon/43-error-codes.php)
@@ -610,10 +610,10 @@ korunacak: eksik değişkenle sağlayıcı **açılmaz**.
 | Değişken                        | Sır mı?                   | Kaynak / açıklama                                                                                                                                                                                                                     |
 | ------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PAYMENT_PROVIDER`              | hayır                     | `paynkolay`                                                                                                                                                                                                                           |
-| `PAYNKOLAY_SX`                  | hayır (forma yazılır)     | Panel → "sx (Token)" — ödeme formu için                                                                                                                                                                                               |
-| `PAYNKOLAY_SX_LIST`             | hayır                     | Panel → "sx List" — işlem doğrulama/raporlama için                                                                                                                                                                                    |
-| `PAYNKOLAY_SX_CANCEL`           | hayır                     | Panel → "sx İptal" — iptal/iade için                                                                                                                                                                                                  |
-| `PAYNKOLAY_MERCHANT_SECRET_KEY` | **EVET — tek gerçek sır** | Panel → "Merchant Secret Key". Yalnızca hash hesabına girer, hiçbir yere gönderilmez. Mobil pakete **asla** girmez.                                                                                                                   |
+| `PAYNKOLAY_SX`                  | hayır (forma yazılır)     | Panel → "sx (Token)" - ödeme formu için                                                                                                                                                                                               |
+| `PAYNKOLAY_SX_LIST`             | hayır                     | Panel → "sx List" - işlem doğrulama/raporlama için                                                                                                                                                                                    |
+| `PAYNKOLAY_SX_CANCEL`           | hayır                     | Panel → "sx İptal" - iptal/iade için                                                                                                                                                                                                  |
+| `PAYNKOLAY_MERCHANT_SECRET_KEY` | **EVET - tek gerçek sır** | Panel → "Merchant Secret Key". Yalnızca hash hesabına girer, hiçbir yere gönderilmez. Mobil pakete **asla** girmez.                                                                                                                   |
 | `PAYNKOLAY_MERCHANT_NO`         | hayır                     | Yanıt hash'inin ilk alanı; yanıttan da geliyor ama beklenen değerle karşılaştırmak için ayrıca tutulur                                                                                                                                |
 | `PAYNKOLAY_BASE_URL`            | hayır                     | `https://paynkolaytest.nkolayislem.com.tr` / `https://paynkolay.nkolayislem.com.tr`. Test-üretim farkı yalnızca host + anahtarlar olduğu için `NODE_ENV`'e değil bu değişkene bakılır (iyzico'daki `IYZICO_BASE_URL` deseniyle aynı). |
 | `PAYNKOLAY_SUCCESS_URL`         | hayır                     | Tam URL; hash'e girdiği için forma yazılanla **birebir aynı dize** olmalı                                                                                                                                                             |
@@ -626,25 +626,25 @@ Kullanılmayacaklar: `PAYMENT_WEBHOOK_SECRET` (PayNkolay webhook göndermiyor,
 
 ## Kaynak listesi
 
-- <https://paynkolay.com.tr/entegrasyon/> — doküman dizini
-- <https://paynkolay.com.tr/entegrasyon/01-payment-integration-services.php> — uçlar, form alanları, `amount`/`rnd`/`sx`/`agentCode`
-- <https://paynkolay.com.tr/entegrasyon/02-example-form.php> — örnek form ve alan değerleri
-- <https://paynkolay.com.tr/entegrasyon/03-api-documentation.php> — non-3D dönüş davranışı, `currencyNumber`
-- <https://paynkolay.com.tr/entegrasyon/04-hash-request.php> — istek hash formülleri (tüm servisler)
-- <https://paynkolay.com.tr/entegrasyon/05-hash-response.php> — yanıt hash formülü
-- <https://paynkolay.com.tr/entegrasyon/06-payment-result.php> — dönüş parametreleri, başarı ölçütü
-- <https://paynkolay.com.tr/entegrasyon/07-test-cards.php> — test kartları
-- <https://paynkolay.com.tr/entegrasyon/09-cancel-refund-payment.php> — iptal ve iade
-- <https://paynkolay.com.tr/entegrasyon/10-verification-service.php> — işlem doğrulama servisi
-- <https://paynkolay.com.tr/entegrasyon/14-save-card.php> — kart saklama
-- <https://paynkolay.com.tr/entegrasyon/27-complete-payment.php> — iki adımlı 3D tamamlama
-- <https://paynkolay.com.tr/entegrasyon/28-reporting-service.php> — raporlama servisi
-- <https://paynkolay.com.tr/entegrasyon/43-error-codes.php> — POS hata kodları
-- <https://paynkolay.com.tr/entegrasyon/45-faq.php> — sx/secret key nereden alınır, ortam URL'leri
+- <https://paynkolay.com.tr/entegrasyon/> - doküman dizini
+- <https://paynkolay.com.tr/entegrasyon/01-payment-integration-services.php> - uçlar, form alanları, `amount`/`rnd`/`sx`/`agentCode`
+- <https://paynkolay.com.tr/entegrasyon/02-example-form.php> - örnek form ve alan değerleri
+- <https://paynkolay.com.tr/entegrasyon/03-api-documentation.php> - non-3D dönüş davranışı, `currencyNumber`
+- <https://paynkolay.com.tr/entegrasyon/04-hash-request.php> - istek hash formülleri (tüm servisler)
+- <https://paynkolay.com.tr/entegrasyon/05-hash-response.php> - yanıt hash formülü
+- <https://paynkolay.com.tr/entegrasyon/06-payment-result.php> - dönüş parametreleri, başarı ölçütü
+- <https://paynkolay.com.tr/entegrasyon/07-test-cards.php> - test kartları
+- <https://paynkolay.com.tr/entegrasyon/09-cancel-refund-payment.php> - iptal ve iade
+- <https://paynkolay.com.tr/entegrasyon/10-verification-service.php> - işlem doğrulama servisi
+- <https://paynkolay.com.tr/entegrasyon/14-save-card.php> - kart saklama
+- <https://paynkolay.com.tr/entegrasyon/27-complete-payment.php> - iki adımlı 3D tamamlama
+- <https://paynkolay.com.tr/entegrasyon/28-reporting-service.php> - raporlama servisi
+- <https://paynkolay.com.tr/entegrasyon/43-error-codes.php> - POS hata kodları
+- <https://paynkolay.com.tr/entegrasyon/45-faq.php> - sx/secret key nereden alınır, ortam URL'leri
 
 ---
 
-## 14. Uygulama — kod nerede, hangi kararlar verildi
+## 14. Uygulama - kod nerede, hangi kararlar verildi
 
 Sözleşme `src/lib/payment/paynkolay.ts` içinde uygulandı. Aşağıdakiler
 belgenin yazıldığı andan sonra, kodu yazarken verilen kararlardır.
@@ -656,7 +656,7 @@ belgenin yazıldığı andan sonra, kodu yazarken verilen kararlardır.
 | `src/lib/payment/index.ts`         | `PAYMENT_PROVIDER=paynkolay` dalı                       |
 | `tests/payment-paynkolay.test.ts`  | Hash vektörleri, tutar, dönüş teyidi, iade              |
 
-### 14.1 Ara sayfa — `redirectUrl` ile form POST arasındaki fark
+### 14.1 Ara sayfa - `redirectUrl` ile form POST arasındaki fark
 
 `CheckoutSession` tek bir `redirectUrl` taşıyor ve mobil uygulama o adresi
 `WebBrowser` ile açıyor: uygulama form POST edemez. PayNkolay ise
@@ -675,18 +675,18 @@ uyuşmazlığı döner) ama `currencyCode`, `transactionType` ve `use3D` o hash'
 Ayrı bir referans üretilmedi: sipariş kimliği zaten sipariş başına benzersiz
 ve ASCII (`ord-0284`). Aynı siparişin birden çok ödeme denemesi olabilir;
 doğru satır, tarayıcının getirdiği **`REFERENCE_CODE`** ile eşleştirilerek
-seçiliyor (§2). Eşleşen satır yoksa işlem başarısız sayılır — uydurulmuş bir
+seçiliyor (§2). Eşleşen satır yoksa işlem başarısız sayılır - uydurulmuş bir
 referans başkasının ödemesini kapatamasın.
 
 Bunun yan faydası: `/odeme/donus` teyit edemediğinde bile müşteriyi kendi
-siparişine gönderebiliyor — dönüşteki `CLIENT_REFERENCE_CODE` sipariş
+siparişine gönderebiliyor - dönüşteki `CLIENT_REFERENCE_CODE` sipariş
 kimliğinin ta kendisi.
 
-### 14.3 `successUrl` / `failUrl` — ikisi de `/odeme/donus`
+### 14.3 `successUrl` / `failUrl` - ikisi de `/odeme/donus`
 
 `PAYNKOLAY_FAIL_URL` de `/odeme/donus`'a bakar. Sebep: PayNkolay sonucu iki
 adrese de **form-POST** ediyor; `/odeme/app-hata` bir sayfadır ve POST'a 405
-döner — ödemesi geçmeyen müşterinin gördüğü son ekran o hata olurdu.
+döner - ödemesi geçmeyen müşterinin gördüğü son ekran o hata olurdu.
 `confirmReturn` başarısız işlemi de sonuçlandırıp müşteriyi doğru yere
 (uygulamaya ya da `/odeme?durum=basarisiz`) gönderiyor.
 
@@ -694,14 +694,14 @@ döner — ödemesi geçmeyen müşterinin gördüğü son ekran o hata olurdu.
 `?orderId=…`) yapılandırılmış adrese taşınıyor. Oluşan dize hem forma hem
 hash'e **aynı değişkenden** geçtiği için hash bozulmuyor.
 
-### 14.4 Yanıt hash'i uyuşmazlığı ölümcül değil — sorgu ölümcül
+### 14.4 Yanıt hash'i uyuşmazlığı ölümcül değil - sorgu ölümcül
 
 `confirmReturn` yanıt hash'ini doğruluyor ama **uyuşmazlıkta doğrudan
 reddetmiyor**; uyarı yazıp İşlem Doğrulama Servisi'ne soruyor. Gerekçe: hash
 formülündeki `CURRENCY_CODE`'un yanıtta gelip gelmediği ölçülmedi (§1.3,
 §12/1); tek dayanak yapılsaydı formül tutmadığı anda **gerçek ödemeler de**
 reddedilirdi. Sorgu ise müşterinin ulaşamadığı bir kanaldan geliyor ve
-sahtelenemiyor — karar oradan veriliyor.
+sahtelenemiyor - karar oradan veriliyor.
 
 Reddedilen durumlar: üye işyeri numarası bizimki değilse (sorgu bile
 yapılmaz), sorguda karşılık yoksa, `STATUS ≠ SUCCESS` ise (`NEW` dahil, §8.1),
@@ -740,7 +740,7 @@ yakalıyor; dönmek, "iade edildi" yazan ama parayı göndermemiş bir kayıt
 2. ~~**Mutabakat işi.**~~ **Çözüldü (23 Eyl 2026).** Zamanlayıcı yok, ama iki
    yer iptalden önce §2 servisine soruyor (`PaynkolayPaymentProvider.lookupPayment`):
    45 dakikalık süpürme (`expireStalePendingOrders`) ve aynı üyenin yeni web
-   ödemesi (`supersedeUnpaidWebOrders` — reddedilen karttan sonraki denemede
+   ödemesi (`supersedeUnpaidWebOrders` - reddedilen karttan sonraki denemede
    kupon/stok geri gelsin diye). `SUCCESS` bulunursa ödeme
    `applyPaymentSucceeded` ile işlenir; POS'a ulaşılamazsa sipariş iptal
    edilmez (bir gün dolana kadar). Testler:

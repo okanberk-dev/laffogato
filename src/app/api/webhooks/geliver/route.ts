@@ -10,7 +10,7 @@ import {
 } from "@/lib/mobile/geliver";
 
 /**
- * Geliver's `TRACK_UPDATED` webhook — where a parcel actually is.
+ * Geliver's `TRACK_UPDATED` webhook - where a parcel actually is.
  *
  * The app retired its live-tracking map: the köşk runs no couriers whose
  * phones it can read, it buys carriage from cargo firms through Geliver, and
@@ -18,7 +18,7 @@ import {
  * those milestones arrive (docs/API-MOBILE.md §3.1; setup in docs/GELIVER.md).
  *
  * **Authentication is a static header, and that is all Geliver offers.** The
- * official SDK's `verifyWebhookSignature()` is a stub — it returns true while
+ * official SDK's `verifyWebhookSignature()` is a stub - it returns true while
  * disabled and false when enabled, with "Future: HMAC(secret, timestamp + '.'
  * + body)" in a comment and `x-signature` / `x-timestamp` reserved for it. So
  * there is no signature to check today. What the panel lets you attach is one
@@ -30,23 +30,23 @@ import {
  * **It is inert until `GELIVER_WEBHOOK_SECRET` is set**, and that is the
  * correct state until the account exists: an unset secret answers 503, never
  * 200, so nobody can write shipment rows by guessing the URL. Until then the
- * app still shows the band — the mapper derives "Yola çıktı" and "Teslim
+ * app still shows the band - the mapper derives "Yola çıktı" and "Teslim
  * edildi" from the panel's own shipping form.
  *
  * **Status codes, and why.** A webhook sender retries anything that is not a
  * success, so what the route answers is a message to the retry loop:
  *
- *   503  secret unset               — do not guess, come back when configured
- *   401  wrong or missing header    — not Geliver, or the panel value drifted
- *   400  empty / non-JSON / non-object body — a broken delivery; retrying the
+ *   503  secret unset               - do not guess, come back when configured
+ *   401  wrong or missing header    - not Geliver, or the panel value drifted
+ *   400  empty / non-JSON / non-object body - a broken delivery; retrying the
  *        same bytes cannot help, and a 400 shows in the logs where a 200 hides
  *   200  everything Geliver sent correctly, including the cases where nothing
- *        was written — a shape this build cannot map, a number no order
+ *        was written - a shape this build cannot map, a number no order
  *        carries, an event older than the row, or a test delivery. The body
  *        says which. Bouncing these would retry them forever.
  *
  * The URL Geliver must call is the CANONICAL host, `https://laffogato.net/…`:
- * `www` answers with a 308, and a POST does not follow a redirect — it is
+ * `www` answers with a 308, and a POST does not follow a redirect - it is
  * simply dropped, with no log on either side.
  */
 
@@ -60,7 +60,7 @@ function authorized(request: Request): boolean | "unset" {
   if (!secret) return "unset";
   // The panel's "Header Name / Header Value" pair. Both spellings are
   // accepted because which one the operator typed is a panel setting, not a
-  // contract — and neither collides with Geliver's reserved `x-signature`.
+  // contract - and neither collides with Geliver's reserved `x-signature`.
   const given =
     request.headers.get("x-geliver-signature")?.trim() ??
     request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim() ??
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
   if (!update) {
     // The quietest possible failure is a body whose SHAPE we did not expect:
     // 200, nothing written, and the phone shows "hazırlanıyor" forever. The
-    // field NAMES are logged and echoed so it is diagnosable — never a value,
+    // field NAMES are logged and echoed so it is diagnosable - never a value,
     // because this body carries a tracking number and a tracking number
     // identifies a parcel and therefore a person.
     const fields = shapeOf(body);
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
   }
 
   // The panel's "Test Et" button (`Tracking.test === true`). It proves the
-  // URL, the header and the parser end to end — and must never move a real
+  // URL, the header and the parser end to end - and must never move a real
   // parcel, whatever tracking number it happens to carry.
   if (update.test) {
     return json({ ok: true, test: true, wouldApply: update.status, written: false }, 200);

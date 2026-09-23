@@ -12,7 +12,7 @@ import {
 import type { CampaignTemplateName } from "@/lib/email/send";
 
 /**
- * The dry count quoted in the "Gönder" confirmation — the same database
+ * The dry count quoted in the "Gönder" confirmation - the same database
  * function the enqueue reads, so the number agreed to is the number queued.
  * Null when it cannot be had: an unreachable database must not take the
  * whole page down, and the button then asks for a confirmation without a
@@ -41,12 +41,12 @@ export const CAMPAIGN_RUN_DEADLINE_MS = 240_000;
 /**
  * Queues the campaign's audience, then hands the batches to `after()`.
  *
- * The operator gets their answer as soon as the send log is built — "N adres
- * kuyruğa alındı" — and the messages go out while the function is still
+ * The operator gets their answer as soon as the send log is built - "N adres
+ * kuyruğa alındı" - and the messages go out while the function is still
  * alive, without the request waiting on a hundred Resend calls. `after()` is
  * bounded by the route's `maxDuration`, not a job queue: whatever the
  * deadline leaves over stays `sending` and the daily cron finishes it
- * (docs/EMAIL-RESEND.md §7). Throws what `queueCampaignEmail` throws — a
+ * (docs/EMAIL-RESEND.md §7). Throws what `queueCampaignEmail` throws - a
  * campaign that cannot be queued (missing field, wrong status) never reaches
  * the runner.
  */

@@ -8,7 +8,7 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config";
  *
  * `@supabase/ssr` names its cookies `sb-<project-ref>-auth-token` (chunked
  * as `.0`, `.1`, … when long). An anonymous visitor has none, and for them
- * there is nothing to refresh — so the proxy skips building a client and
+ * there is nothing to refresh - so the proxy skips building a client and
  * touching the auth server on every page view of the marketing site.
  */
 /**
@@ -18,7 +18,7 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config";
  * Without a bound, an identity service having a bad minute becomes the site
  * having a bad minute: each request sits on `getUser()` until the platform's
  * own timeout. Past this, the request continues with the cookies it already
- * has — the session is refreshed on the next visit instead.
+ * has - the session is refreshed on the next visit instead.
  */
 const GET_USER_TIMEOUT_MS = 3000;
 
@@ -87,7 +87,7 @@ export async function updateSession(
   });
 
   // Do not drop this call or move logic between it and the return: it is what
-  // triggers the refresh. Its result is deliberately unused — identity for a
+  // triggers the refresh. Its result is deliberately unused - identity for a
   // page is re-checked where the page is rendered.
   try {
     await withTimeout(supabase.auth.getUser(), GET_USER_TIMEOUT_MS);

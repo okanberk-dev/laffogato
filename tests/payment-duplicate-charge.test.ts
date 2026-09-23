@@ -8,7 +8,7 @@ import { createDb, type Executor } from "@/lib/db/client";
  * PayNkolay accepts several attempts under one clientRefCode, and the bridge
  * page can be re-submitted from the browser's Back button, so this is a real
  * path to charging a customer twice. It used to be read as "a repeated
- * notification — harmless": a console.warn, and "ödemen alındı" mailed again.
+ * notification - harmless": a console.warn, and "ödemen alındı" mailed again.
  *
  * Driven through the real query builder with an executor that answers by
  * statement, so the SQL `applyPaymentSucceeded` actually issues is what runs.
@@ -108,7 +108,7 @@ describe("a second successful charge on a paid order", () => {
 
   it("still treats staff moving a paid order on as harmless", async () => {
     // Only this reference is on file: the order was paid by it and has
-    // since moved to `preparing` — nothing to reconcile.
+    // since moved to `preparing` - nothing to reconcile.
     orderStatus = "preparing";
     succeeded = [{ provider: "paynkolay", providerRef: "ref-1" }];
     await applyPaymentSucceeded(payment("ref-1"));

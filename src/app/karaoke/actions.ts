@@ -15,8 +15,8 @@ export interface BookKaraokeState {
 /**
  * Book the karaoke room from the web.
  *
- * This deliberately calls `createReservation` — the same function
- * `POST /api/mobile/v1/karaoke/reservations` calls — rather than the endpoint
+ * This deliberately calls `createReservation` - the same function
+ * `POST /api/mobile/v1/karaoke/reservations` calls - rather than the endpoint
  * itself. The endpoint authenticates with a Supabase bearer token issued to
  * the phone; the web carries a bcrypt cookie session. Going through the
  * library keeps ONE set of rules (opening hours, longest block, the two-open-

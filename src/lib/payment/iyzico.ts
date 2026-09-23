@@ -10,7 +10,7 @@ import type {
 } from "./provider";
 
 /**
- * iyzico sanal POS sağlayıcısı — Checkout Form (ödeme sayfası iyzico'da açılır).
+ * iyzico sanal POS sağlayıcısı - Checkout Form (ödeme sayfası iyzico'da açılır).
  *
  * Neden Checkout Form: kart verisi hiçbir aşamada bu uygulamadan geçmez, 3D
  * Secure akışını iyzico yürütür ve PCI-DSS yükümlülüğü bizde doğmaz. Kart
@@ -22,7 +22,7 @@ import type {
  *   2. Müşteri ödemeyi tamamlar → iyzico `callbackUrl`'e POST eder ve ayrıca
  *      (panelden tanımlıysa) webhook gönderir.
  *   3. `verifyWebhook` bildirimin imzasını doğrular, sonra tutarı ve durumu
- *      **iyzico'ya sorarak** teyit eder — bildirim gövdesine güvenilmez.
+ *      **iyzico'ya sorarak** teyit eder - bildirim gövdesine güvenilmez.
  *   4. `refund` → `POST /payment/refund` (kısmi iade destekli).
  *
  * Kimlik doğrulama: iyzico'nun v2 `IYZWSv2` şeması. İmza, HMAC-SHA256 ile
@@ -212,7 +212,7 @@ export class IyzicoPaymentProvider implements PaymentProvider {
         enabledInstallments: [1, 2, 3, 6, 9, 12],
         // Saved cards. `cardUserKey` makes iyzico's own form list the cards
         // this member stored before; `enabledCardStorage` is what draws the
-        // "kartımı kaydet" tick on it. The card never leaves that page — we
+        // "kartımı kaydet" tick on it. The card never leaves that page - we
         // only ever learn the key it comes back with.
         ...(input.cardUserKey ? { cardUserKey: input.cardUserKey } : {}),
         enabledCardStorage: true,
@@ -298,7 +298,7 @@ export class IyzicoPaymentProvider implements PaymentProvider {
   /**
    * iyzico, ödeme bittiğinde müşterinin TARAYICISINI `callbackUrl`e POST eder.
    * Gövdede yalnızca `token` vardır; tutar, durum ve sipariş referansı bu
-   * token ile iyzico'ya sorularak alınır — POST edilen gövdeye güvenilmez.
+   * token ile iyzico'ya sorularak alınır - POST edilen gövdeye güvenilmez.
    */
   async confirmReturn(
     params: Record<string, string>,

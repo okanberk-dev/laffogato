@@ -9,7 +9,7 @@
  * Identifier safety: table/column/function names can never be parameterised in
  * SQL, so every identifier is validated against a strict pattern and quoted.
  * Anything that is not a plain unquoted-safe identifier is rejected outright
- * rather than escaped — this schema only ever uses simple camelCase and
+ * rather than escaped - this schema only ever uses simple camelCase and
  * snake_case names, so a rejection means a bug, not a limitation.
  */
 
@@ -92,7 +92,7 @@ export type QuerySpec =
       args: Row;
       /**
        * "scalar" (default): `SELECT fn(…) AS result`, one cell.
-       * "table": `SELECT * FROM fn(…)`, every row — for `RETURNS TABLE` /
+       * "table": `SELECT * FROM fn(…)`, every row - for `RETURNS TABLE` /
        * `SETOF` functions, whose rows the scalar form hands back as one
        * unparsed record string like `"(a@b.com,Ali,t)"`.
        */
@@ -107,7 +107,7 @@ export interface CompiledQuery {
 /**
  * JS objects and arrays are bound as JSON text. Postgres infers the parameter
  * type from the target column, so a JSON string lands in a `jsonb` column
- * correctly — whereas handing the driver a JS array would be serialised as a
+ * correctly - whereas handing the driver a JS array would be serialised as a
  * Postgres array literal and rejected.
  */
 function bind(value: unknown): unknown {

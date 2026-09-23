@@ -10,7 +10,7 @@ import { getDb, TABLES } from "@/lib/db";
  * This used to be a module-scoped Map. On a single long-lived VM that works;
  * on Vercel every serverless instance starts with an empty one, so an admin
  * who enrolled was challenged on the instance that held their secret and waved
- * straight through on every other — the second factor was, in practice,
+ * straight through on every other - the second factor was, in practice,
  * optional, and it failed OPEN.
  *
  * The secret never leaves the server: enrollment renders the otpauth:// URL
@@ -132,7 +132,7 @@ function matchedStep(secret: string, token: string): number | null {
  * Checks a code AND spends it.
  *
  * A code used to stay good for its whole step (up to 90 s with the drift
- * tolerance), however many times it was presented — one read over a shoulder
+ * tolerance), however many times it was presented - one read over a shoulder
  * or out of a log was a second login. Now a code is accepted only for a step
  * LATER than the last one this admin used, and the check-and-set is a single
  * conditional UPDATE: two concurrent submissions of the same code cannot both

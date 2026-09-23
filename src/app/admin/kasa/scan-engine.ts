@@ -8,12 +8,12 @@
  *
  * Two decoders, in preference order:
  *
- *  1. `BarcodeDetector` — the browser's own, hardware-accelerated where the
+ *  1. `BarcodeDetector` - the browser's own, hardware-accelerated where the
  *     platform has it. Chrome and Edge on desktop and Android.
- *  2. `jsQR` — pure JavaScript, imported only when the first is missing.
+ *  2. `jsQR` - pure JavaScript, imported only when the first is missing.
  *
  * The second one is the point of this file. **Safari has no
- * `BarcodeDetector`**, so an iPad — which is what a café till actually is —
+ * `BarcodeDetector`**, so an iPad - which is what a café till actually is -
  * used to reach the camera tab, be told "bu cihazın tarayıcısı QR okumayı
  * desteklemiyor", and leave the cashier typing eight characters for every
  * member in the queue. jsQR is ~40 KB, has no dependencies of its own, and is
@@ -86,7 +86,7 @@ export function scanRegion(width: number, height: number): ScanRegion {
  * jsQR real milliseconds per attempt and carries no information a 25×25 code
  * needs; 480 px across leaves roughly 15 pixels per module at arm's length,
  * which is far past the 3-4 a decoder wants. A native detector is given the
- * same canvas so both paths see an identical picture — a bug that only
+ * same canvas so both paths see an identical picture - a bug that only
  * reproduces on one decoder is the worst kind to chase.
  */
 export const DECODE_SIZE = 480;
@@ -162,7 +162,7 @@ export const CAMERA_FAULT_MESSAGE: Record<CameraFault, string> = {
  * Decides whether a decoded string should be submitted.
  *
  * The same code sits in front of the lens for dozens of frames, so a naive
- * loop would spend one member's token five times over — and the previous
+ * loop would spend one member's token five times over - and the previous
  * console's fix for that (remember the last value forever) had the opposite
  * failure: when a redeem came back with a network error, that same QR could
  * never be retried, because the string had not changed. The rule that gets
@@ -199,7 +199,7 @@ export class ScanGate {
    * Marks a code as consumed: it is never submitted again from this till.
    *
    * The cooldown alone cannot do this job. It expires in two and a half
-   * seconds, and the member is usually still holding the phone up — so the
+   * seconds, and the member is usually still holding the phone up - so the
    * console would submit the code it just burned and answer a successful scan
    * with "Bu kod kullanıldı", which reads like the stamp did not land.
    */
@@ -216,7 +216,7 @@ export class ScanGate {
   /**
    * Lets a value through again immediately.
    *
-   * For a redeem that FAILED — a dropped connection, a database blip. The old
+   * For a redeem that FAILED - a dropped connection, a database blip. The old
    * console remembered the last scanned string forever and had no way back
    * from this: the same QR in front of the same lens could never be retried,
    * because the string had not changed.
@@ -234,18 +234,18 @@ export class ScanGate {
 }
 
 /**
- * The confirmation tone lives in `@/components/admin/beep` now — the order
+ * The confirmation tone lives in `@/components/admin/beep` now - the order
  * list rings the same one when a new order lands. Re-exported here so the
  * till's own imports (and `till-scan-engine.test.ts`) still find it.
  */
 export { beep } from "@/components/admin/beep";
 
-/** Tracks that expose a torch — a dark counter is a real till, not an edge case. */
+/** Tracks that expose a torch - a dark counter is a real till, not an edge case. */
 export function torchCapable(track: MediaStreamTrack | null): boolean {
   if (!track) return false;
   // `torch` is in the Image Capture spec, not in lib.dom's
   // `MediaTrackCapabilities`, so the whole method is re-typed rather than
-  // intersected — an intersection would conflict with the built-in signature.
+  // intersected - an intersection would conflict with the built-in signature.
   const get = (track as unknown as {
     getCapabilities?: () => { torch?: boolean };
   }).getCapabilities;

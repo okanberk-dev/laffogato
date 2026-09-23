@@ -1,4 +1,4 @@
-// Pure invite-code helpers — NO "server-only", NO DB. The database side
+// Pure invite-code helpers - NO "server-only", NO DB. The database side
 // (uniqueness, claiming) lives in `./invite.ts`.
 
 export const INVITE_PREFIX = "LAF-";
@@ -77,7 +77,7 @@ export function isInviteCodeShape(code: string): boolean {
   return INVITE_CODE_RE.test(code);
 }
 
-/** "Selin Kaya" → "Selin K." — how the inviter sees who joined. */
+/** "Selin Kaya" → "Selin K." - how the inviter sees who joined. */
 export function abbreviateName(name: string): string {
   const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "Üye";

@@ -4,7 +4,7 @@ import { SITE } from "@/lib/seo/site";
 
 /**
  * Dynamic OpenGraph image for the home page. Rendered at build time via
- * Next.js Image Response — no external image asset required.
+ * Next.js Image Response - no external image asset required.
  *
  * Output: 1200×630 PNG served at `/opengraph-image`.
  */
@@ -21,7 +21,7 @@ export default async function OgImage() {
         width: "100%",
         height: "100%",
         // next/og rasterises this on the server, where CSS variables do not
-        // resolve, so the palette is written out — but it is the same one
+        // resolve, so the palette is written out - but it is the same one
         // globals.css defines: --bg-espresso as the ground, --bg as the text,
         // --gold-soft as the accent (the gold that carries on a dark field).
         background:

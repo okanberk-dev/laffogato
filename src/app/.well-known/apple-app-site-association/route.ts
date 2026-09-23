@@ -4,19 +4,19 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * `/.well-known/apple-app-site-association` — iOS Universal Links.
+ * `/.well-known/apple-app-site-association` - iOS Universal Links.
  *
  * iOS fetches this document (over https, no redirects, from the apex AND the
  * www host it is asked about) and will only open the app for a laffogato.net
  * link if the app's `appID` is listed here. Without it every link the app
- * sends a member — an order confirmation, a coupon, a shared menu item —
+ * sends a member - an order confirmation, a coupon, a shared menu item -
  * opens Safari instead of the app that produced it.
  *
  * Served from admin settings rather than as a static file for the reason the
  * whole mobile config exists: the Team ID is not knowable until the Apple
  * developer account is set up, and the site must not need a deploy to learn
  * it. Until an operator fills it in there is nothing honest to publish, so
- * the route answers **404** — an association naming an app that does not
+ * the route answers **404** - an association naming an app that does not
  * exist is worse than none, because iOS caches it.
  *
  * Content type is `application/json` with no extension on the path; that is

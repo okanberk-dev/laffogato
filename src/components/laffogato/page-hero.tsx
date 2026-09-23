@@ -1,7 +1,7 @@
 /**
  * The page hero every non-home page shares.
  *
- * Cream band, cocoa display type, green disc on the right — the home hero's
+ * Cream band, cocoa display type, green disc on the right - the home hero's
  * language at a scale that leads a page rather than selling a product. One
  * component and one rule set on purpose: before this, six pages had grown six
  * near-copies of the same header with six different heading sizes.
@@ -20,8 +20,8 @@ export function PageHero({
    * break; a plain string wraps on its own.
    *
    * Both, because a tuple alone was wrong in two opposite directions. Pages
-   * whose H1 comes from data — a guide's title, a legal document's name, a
-   * verification page's state — cannot be hand-split at all, so they were
+   * whose H1 comes from data - a guide's title, a legal document's name, a
+   * verification page's state - cannot be hand-split at all, so they were
    * turning the component down. And the pages that DID take it passed a fixed
    * tuple that then repeated across every child route: one `["Bugün ne",
    * "içiyoruz?"]` on all eight menu-category URLs.

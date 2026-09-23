@@ -55,7 +55,7 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
 
   useEffect(() => {
     if (total <= 1 || paused) return;
-    // Rotation stops for anyone who asks the platform not to animate — it is
+    // Rotation stops for anyone who asks the platform not to animate - it is
     // decoration, and WCAG 2.2.2 gives a moving thing a way to be stopped.
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const t = window.setInterval(() => {

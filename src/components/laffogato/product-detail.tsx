@@ -27,7 +27,7 @@ function writeCart(items: CartItem[]) {
     if (items.length === 0) window.localStorage.removeItem(CART_STORAGE_KEY);
     else window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
   } catch {
-    // private mode / quota — ignore
+    // private mode / quota - ignore
   }
 }
 

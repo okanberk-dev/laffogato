@@ -1,5 +1,5 @@
 // Pure wire mapper for `Order` (docs/API-MOBILE.md §3). NO "server-only", NO
-// database — unit-tested directly. An explicit allow-list: an `orders` row
+// database - unit-tested directly. An explicit allow-list: an `orders` row
 // carries the internal note, the consent evidence and the refund ledger, none
 // of which belong on a phone.
 
@@ -69,7 +69,7 @@ export interface MobileOrder {
   stampsEarned: number;
   createdAt: string;
   paidAt: string | null;
-  /** Kargo — only for `fulfillment: "shipping"`, only after hand-over. §3.1. */
+  /** Kargo - only for `fulfillment: "shipping"`, only after hand-over. §3.1. */
   shipment: MobileShipment | null;
 }
 
@@ -117,7 +117,7 @@ const SHIPMENT_STATUSES: readonly string[] = [
  * derived, rather than a band that stays blank until an integration lands.
  *
  * `null` means nothing has left the köşk, and then there is no `shipment` at
- * all — which is different from a shipment whose status is unknown.
+ * all - which is different from a shipment whose status is unknown.
  */
 function shipmentStatusFor(order: AdminOrder): MobileShipmentStatus | null {
   const published = String(order.shipmentStatus ?? "").trim();
@@ -147,7 +147,7 @@ export function toMobileShipment(order: AdminOrder): MobileShipment | null {
     status,
     carrier: String(order.carrier ?? "").trim() || null,
     trackingNumber: String(order.trackingNumber ?? "").trim() || null,
-    // Whole or not at all, and https only — the phone opens this in the
+    // Whole or not at all, and https only - the phone opens this in the
     // system browser. The app drops anything else again on its side.
     trackingUrl: url.startsWith("https://") ? url : null,
     updatedAt:
@@ -211,7 +211,7 @@ function stepsFor(fulfillment: OrderFulfillment): StepSpec[] {
  *
  * The last three are the per-stage columns `transitionOrder` stamps. An order
  * that finished before those columns existed has "" in them, so each falls
- * back to the closest earlier instant it does have — never a later one, which
+ * back to the closest earlier instant it does have - never a later one, which
  * would date a step before it happened.
  */
 function stepInstant(index: number, order: AdminOrder): string | null {
@@ -249,7 +249,7 @@ export function buildTimeline(order: AdminOrder): MobileTimelineStep[] {
  *
  * A scheduled order counts down to the time the member picked, not to the
  * "15 dk" an as-soon-as-possible basket gets: a pickup booked for tomorrow
- * 09:00 used to say "Hazır — 15 dk" the evening before, with a countdown that
+ * 09:00 used to say "Hazır - 15 dk" the evening before, with a countdown that
  * hit zero while the house was closed. Once the requested time has passed the
  * ordinary preparation estimate takes over again.
  */
@@ -310,7 +310,7 @@ const EMPTY_STAMPED: ReadonlySet<string> = new Set();
 /**
  * The stamp this order really holds, read from the loyalty ledger.
  *
- * It used to be inferred from the status — a paid app cafe order "must have"
+ * It used to be inferred from the status - a paid app cafe order "must have"
  * earned one. `onOrderPaid` is best-effort, though: when its insert failed
  * (or the order was later refunded and a `reversal` row written), the app
  * still printed "+1 damga" for a stamp the card never got. `stampedOrderIds`
@@ -318,7 +318,7 @@ const EMPTY_STAMPED: ReadonlySet<string> = new Set();
  * happened rather than from what should have.
  *
  * An empty set is the honest default: no ledger in hand means no stamp is
- * claimed. Eligibility itself stays where it is enforced — `onOrderPaid` in
+ * claimed. Eligibility itself stays where it is enforced - `onOrderPaid` in
  * `./loyalty.ts` writes the row for an app cafe order and nothing else.
  */
 export function stampsEarnedFor(

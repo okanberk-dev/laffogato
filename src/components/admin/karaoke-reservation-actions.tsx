@@ -23,9 +23,9 @@ interface Props {
 /**
  * Onayla / İptal buttons with somewhere for the refusal to land.
  *
- * The two actions can legitimately fail — the hour was taken by another
+ * The two actions can legitimately fail - the hour was taken by another
  * confirmed booking in the meantime, or someone else already answered this
- * request — and they used to return void, so the button just re-rendered the
+ * request - and they used to return void, so the button just re-rendered the
  * same row and the staff member assumed it had worked.
  *
  * Both now also mail the member (confirmation or cancellation), so the

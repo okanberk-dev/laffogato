@@ -69,7 +69,7 @@ describe("buildSlots", () => {
 });
 
 describe("rangeConflicts", () => {
-  const existing = [booking(14, 2)]; // 14:00 – 16:00
+  const existing = [booking(14, 2)]; // 14:00 - 16:00
 
   it("detects overlap in both directions", () => {
     expect(rangeConflicts(15, 1, existing)).toBe(true); // inside
@@ -88,7 +88,7 @@ describe("rangeConflicts", () => {
   });
 });
 
-describe("quoteReservation — kuruş, server-side", () => {
+describe("quoteReservation - kuruş, server-side", () => {
   it("multiplies hours by the hourly rate", () => {
     expect(quoteReservation(2, 90_000, "verde")).toEqual({
       priceMinor: 180_000,
@@ -198,7 +198,7 @@ describe("validateReservationRequest", () => {
     if (!r.ok) expect(r.message).toMatch(/60 gün/);
   });
 
-  it("rejects hours outside 12–23 and durations outside 1–4", () => {
+  it("rejects hours outside 12-23 and durations outside 1-4", () => {
     expect(validateReservationRequest({ ...good, startHour: 11 }, ctx).ok).toBe(
       false,
     );
@@ -257,7 +257,7 @@ describe("validateReservationRequest", () => {
   });
 });
 
-describe("validateReservationRequest — configured rules", () => {
+describe("validateReservationRequest - configured rules", () => {
   const rules: KaraokeRules = {
     firstHour: 14,
     closeHour: 22,
@@ -272,7 +272,7 @@ describe("validateReservationRequest — configured rules", () => {
     expect(validateReservationRequest(good, ctx).ok).toBe(true);
     expect(
       validateReservationRequest({ ...good, date: "2026-09-06" }, ctx).ok,
-    ).toBe(true); // day 7 — last allowed
+    ).toBe(true); // day 7 - last allowed
   });
 
   it("rejects a date beyond the configured bookingWindowDays", () => {
@@ -320,7 +320,7 @@ describe("validateReservationRequest — configured rules", () => {
   });
 });
 
-describe("toReservationJson — allow-list", () => {
+describe("toReservationJson - allow-list", () => {
   it("never exposes the customer's e-mail or the internal note", () => {
     const row: KaraokeReservation = {
       id: "krk-00001",

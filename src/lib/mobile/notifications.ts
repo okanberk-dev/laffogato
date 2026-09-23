@@ -58,7 +58,7 @@ export const NOTIFICATION_WINDOW_DAYS = 30;
  * How many of the member's orders the inbox reads.
  *
  * The window above is 30 days and the read is `orderNo desc`, so the newest
- * page always contains every order that window can possibly keep — fifty is
+ * page always contains every order that window can possibly keep - fifty is
  * far more than a month of one café's orders from one member. Without it the
  * inbox read the member's ENTIRE history (items jsonb, refund ledger and
  * consent evidence included) on every poll and threw all but the last month
@@ -321,7 +321,7 @@ export function buildNotifications(input: {
   rewardsReady: number;
   /**
    * When the waiting reward became ready. Must be the same instant on every
-   * call — the app decides "unread" by comparing it with the moment the
+   * call - the app decides "unread" by comparing it with the moment the
    * member last opened the inbox, so `now` here would make it unread forever.
    */
   rewardAt?: string | null;

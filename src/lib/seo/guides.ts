@@ -1,10 +1,10 @@
 /**
- * Rehber — the site's editorial content hub.
+ * Rehber - the site's editorial content hub.
  *
  * Why it exists: the brand's own terms are among the largest low-difficulty
  * queries in the Turkish market, and the site had nothing to answer them with.
  * Search volumes below are Semrush, Türkiye database, and drive what each page
- * is written to cover — they are recorded here so a later edit can see what the
+ * is written to cover - they are recorded here so a later edit can see what the
  * page was aiming at rather than guessing.
  *
  *   affogato-nedir            ~27.000/ay  (affogato 18.1k · "dondurmalı kahve" 2.4k)
@@ -54,7 +54,7 @@ export interface Guide {
 
 export type { GuideSource };
 
-/** Publication order — the hub lists them by how much they can win. */
+/** Publication order - the hub lists them by how much they can win. */
 const ORDER = [
   "affogato-nedir",
   "matcha-nedir",

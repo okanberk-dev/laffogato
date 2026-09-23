@@ -53,7 +53,7 @@ describe("security headers", () => {
 
   it("lets the PayNkolay bridge form reach the POS, and no other host", async () => {
     // docs/PAYNKOLAY.md §14.6/1: with `form-action 'self'` the browser refused
-    // the bridge page's POST to the hosted payment page — no payment started.
+    // the bridge page's POST to the hosted payment page - no payment started.
     const csp = (await headerMap())["Content-Security-Policy"];
     const formAction = csp
       .split("; ")

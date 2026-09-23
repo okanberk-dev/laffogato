@@ -212,7 +212,7 @@ export async function registerAction(
       // names the moment and the origin, which is what has to be provable.
       // The address is not proven yet, so the request is stored PENDING
       // (double opt-in) and becomes a subscription when the member verifies
-      // it with the link sent below — no second mail.
+      // it with the link sent below - no second mail.
       await subscribeNewsletter(
         result.customer.email,
         result.customer.name,
@@ -221,7 +221,7 @@ export async function registerAction(
         { confirmed: false },
       );
     } catch {
-      // non-fatal — the account + notificationPrefs already captured the intent
+      // non-fatal - the account + notificationPrefs already captured the intent
     }
   }
   // Send the verification e-mail (best-effort; link is logged if no provider).
@@ -362,7 +362,7 @@ export async function loginAction(
     }
     // A refusal from Supabase is FINAL for a member whose latest password is
     // known to be there. Falling through to bcrypt would otherwise accept a
-    // password Supabase has just replaced — which is the whole of what an
+    // password Supabase has just replaced - which is the whole of what an
     // app-side reset is supposed to have destroyed. An unreachable auth server
     // is not a refusal and still falls through: locking every member out of
     // the site during a Supabase outage is the worse failure.
@@ -430,7 +430,7 @@ type SupabaseSignIn =
   /**
    * `answered` distinguishes "Supabase said no" from "Supabase said nothing".
    * They used to collapse into the same `{ok:false}`, which is fine while the
-   * bcrypt path is a free second opinion — and wrong once a refusal from
+   * bcrypt path is a free second opinion - and wrong once a refusal from
    * Supabase has to be final for members whose identity lives there.
    */
   | { ok: false; answered: boolean };
@@ -439,7 +439,7 @@ type SupabaseSignIn =
  * `signInWithPassword` against the shared Supabase project. A refused
  * credential and an unreachable auth server are both failures here, but they
  * are not the same failure: only the first is an answer. Only the second is
- * logged — a wrong password is not an incident.
+ * logged - a wrong password is not an incident.
  */
 async function signInWithSupabase(
   email: string,
@@ -475,7 +475,7 @@ async function signInWithSupabase(
  * Best-effort: clears the Supabase cookies THIS browser holds; never throws.
  *
  * `scope: "local"` is the whole of it. supabase-js defaults to `global`, which
- * revokes every refresh token the member has anywhere — so signing out of the
+ * revokes every refresh token the member has anywhere - so signing out of the
  * website also signed them out of their phone, and the two calls on the failed
  * login path did it to someone who had not signed in at all. A stale password
  * that Supabase still accepts (the app-reset case) reaches that branch, which
@@ -542,11 +542,11 @@ export async function changePasswordAction(
   if (!result.ok) return { error: result.error };
   // The mirror lives in `changeCustomerPassword` now, with the service role
   // and a record of whether it landed. It used to be here, conditional on this
-  // browser holding a Supabase session — so the same change mirrored or not
+  // browser holding a Supabase session - so the same change mirrored or not
   // depending on how the member happened to have signed in, and nothing wrote
   // down which had happened.
   // The change invalidates every cookie issued against the old password,
-  // including this browser's — so re-issue one for the person who just did it.
+  // including this browser's - so re-issue one for the person who just did it.
   await setActiveCustomerSession(current.email);
   return {
     message: "Şifren güncellendi. Diğer cihazlardaki oturumların kapatıldı.",
@@ -634,7 +634,7 @@ export async function toggleWishlistAction(formData: FormData): Promise<void> {
   await toggleWishlist(current.email, productId);
   revalidatePath("/uye/hesap", "layout");
   revalidatePath("/", "layout");
-  // `back` is a form field — only a path on this site is followed.
+  // `back` is a form field - only a path on this site is followed.
   redirect(sameSitePath(formData.get("back")) ?? "/uye/hesap/favorilerim");
 }
 
@@ -686,14 +686,14 @@ export interface DeleteAccountState {
 /**
  * Closes the member's own account from the site (`/uye/hesap/sil`).
  *
- * The membership agreement §14 offers exactly two routes — the app's account
- * settings and an e-mail to support — and until now the site, which is where
+ * The membership agreement §14 offers exactly two routes - the app's account
+ * settings and an e-mail to support - and until now the site, which is where
  * most members signed up, had neither. `deleteMe` is the same anonymisation
  * the app's `DELETE /me` runs, so both routes leave the account in one state.
  *
  * Irreversible, so it asks for two things: the account's own e-mail typed out,
  * and the password when the account has one. A Supabase-only account (social
- * login, `checkSitePassword` → "none") is confirmed by the e-mail alone —
+ * login, `checkSitePassword` → "none") is confirmed by the e-mail alone -
  * there is no password to ask for.
  */
 export async function deleteAccountAction(

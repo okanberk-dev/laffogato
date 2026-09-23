@@ -17,7 +17,7 @@ function files(dir: string): string[] {
 
 /**
  * Registration signs the visitor in before the address is verified, and
- * orders match by e-mail alone — so registering the address on an order an
+ * orders match by e-mail alone - so registering the address on an order an
  * admin typed in by hand showed that stranger's name, phone and address.
  */
 describe("a member's order history", () => {

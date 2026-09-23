@@ -1,4 +1,4 @@
-// Pure, isomorphic coupon helpers — NO "server-only", NO node:crypto, NO DB.
+// Pure, isomorphic coupon helpers - NO "server-only", NO node:crypto, NO DB.
 // Safe to import from client components (e.g. the admin coupon panel) as well
 // as the server-only data layer in `./coupons`.
 
@@ -6,7 +6,7 @@ import { priceLabel } from "@/lib/utils/format";
 
 export type CouponKind = "pct" | "fixed";
 
-/** Where a coupon came from — drives the code prefix + member-facing copy. */
+/** Where a coupon came from - drives the code prefix + member-facing copy. */
 export type CouponSource =
   | "welcome" // auto on e-mail verification
   | "birthday" // auto during the member's birthday month
@@ -23,8 +23,8 @@ export type CouponSource =
  * bringing a friend. Spent on a shop basket the same coupon would take ₺280
  * off a bag of beans, which is not what either was granted for.
  *
- * Exported as one predicate on purpose: the rule lived twice — enforced at
- * checkout and forgotten in the preview — so the basket screen promised a
+ * Exported as one predicate on purpose: the rule lived twice - enforced at
+ * checkout and forgotten in the preview - so the basket screen promised a
  * discount the till then refused, and the member was charged full price.
  */
 const CAFE_ONLY_SOURCES: ReadonlySet<string> = new Set<CouponSource>([

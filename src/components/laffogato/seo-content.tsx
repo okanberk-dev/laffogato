@@ -9,13 +9,13 @@ import { SITE } from "@/lib/seo/site";
  *
  * Lives at the bottom of the home page. Two reasons it exists:
  *
- * 1. **SEO/GEO** — search engines and LLM crawlers see semantic
+ * 1. **SEO/GEO** - search engines and LLM crawlers see semantic
  *    `<section>/<h2>/<details>` markup with all the brand-defining facts
  *    (location, hours, signature item, heritage) on a single HTML page.
  *    Hash-routed SPA sections (`#menu`, `#shop`, ...) don't get indexed
  *    independently, so the canonical answer set must live on `/`.
  *
- * 2. **Accessibility** — users hitting "find on page" (Cmd-F) for
+ * 2. **Accessibility** - users hitting "find on page" (Cmd-F) for
  *    "rezervasyon", "saat", "vegan" land on a single block of answers
  *    instead of bouncing through tabs.
  *
@@ -72,7 +72,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
               {/* `listStyle: none` removed the disclosure triangle and put
                   nothing back, so a closed row gave no sign it could open.
                   The marker is drawn in CSS (`.seo-faq summary::after`) and
-                  rotates with `[open]`. The face is the site's one family —
+                  rotates with `[open]`. The face is the site's one family -
                   this was still asking for the retired Playfair. */}
               <summary
                 className="seo-faq-q"
@@ -170,8 +170,8 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
         </div>
 
         {/* Internal links into the rehber hub. This block renders on the home
-            page and on every menu and shop category page, so the guides — which
-            are the pages built to earn search traffic — are reachable from the
+            page and on every menu and shop category page, so the guides - which
+            are the pages built to earn search traffic - are reachable from the
             site's highest-traffic surfaces rather than the footer alone. */}
         <div style={{ marginTop: 48 }}>
           <h3 className="eyebrow" style={{ marginBottom: 14 }}>

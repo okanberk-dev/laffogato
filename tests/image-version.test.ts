@@ -19,7 +19,7 @@ import type { AdminMenuItem } from "@/lib/admin/store";
 /**
  * The bug: `/gorsel/menu/<id>` never changed, so a replaced photo reached
  * nobody. The CDN held the old bytes for `s-maxage=86400` and the app's disk
- * cache — keyed by URL — held them until reinstall. Uploading did nothing.
+ * cache - keyed by URL - held them until reinstall. Uploading did nothing.
  *
  * The fix is a stamp taken from the photo itself. These tests are the proof
  * that it is taken from the CONTENT: same photo, same URL (nothing
@@ -29,7 +29,7 @@ import type { AdminMenuItem } from "@/lib/admin/store";
 /** 1×1 JPEG. */
 const RED =
   "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
-/** A different 1×1 JPEG — one byte of payload apart, which is the point. */
+/** A different 1×1 JPEG - one byte of payload apart, which is the point. */
 const BLUE = RED.replace("AAAACf", "AAAACg");
 
 function request(url: string, headers: Record<string, string> = {}): Request {

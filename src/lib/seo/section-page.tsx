@@ -74,7 +74,7 @@ export async function renderSectionPage(route: Route) {
   if (route === "menu") extraLd.push(menuLd(menu));
   // /magaza is the catalogue's own URL. It carried a breadcrumb and nothing
   // else, so the one listing page Google is meant to rank for the shop
-  // published no products at all — the ItemList existed only on the home page.
+  // published no products at all - the ItemList existed only on the home page.
   if (route === "shop") {
     const list = productListLd(products, settings, {
       path: seo.path,

@@ -1,5 +1,5 @@
 /**
- * Supabase project coordinates — identity only.
+ * Supabase project coordinates - identity only.
  *
  * Supabase is the site's and the app's shared sign-in (docs/AUTH-BRIDGE.md);
  * orders, money and the member record itself stay in this project's own
@@ -10,10 +10,10 @@
  * may do (sign in, sign up, refresh a token) and every data policy still runs
  * against it. It is therefore safe to ship in the client bundle, to write into
  * `.env.example` with its value, and to fall back to here when the variable is
- * missing — a preview deploy without the env var must still be able to sign
+ * missing - a preview deploy without the env var must still be able to sign
  * members in against the same project the app uses.
  *
- * The service-role key is a different animal — it bypasses every policy — and
+ * The service-role key is a different animal - it bypasses every policy - and
  * it is deliberately NOT read here. Exactly one module reads it,
  * `./admin.ts`, for the two jobs its header justifies: deleting the sign-in
  * identity of a member who closed their account, and writing a password reset

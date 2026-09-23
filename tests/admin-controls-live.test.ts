@@ -12,7 +12,7 @@ import { CONTENT_FIELDS } from "@/lib/admin/content-fields";
  * `home.hero.eyebrow` and `home.hero.lede`: the panel kept offering both
  * fields, an operator could edit and save them, and nothing on the site or in
  * the mobile API read them again. The "Hero görsel URL" setting went the same
- * way — its only consumer was deleted while the plumbing that carries it from
+ * way - its only consumer was deleted while the plumbing that carries it from
  * settings down to the page survived.
  *
  * That failure is silent by construction. Nothing throws, no type breaks, no
@@ -52,7 +52,7 @@ describe("admin content fields are read somewhere", () => {
       expect(
         used,
         `CONTENT_FIELDS key "${key}" is offered in the admin panel but nothing outside /admin reads it. ` +
-          `Either wire it into the page (or the mobile API) or remove it from CONTENT_FIELDS — ` +
+          `Either wire it into the page (or the mobile API) or remove it from CONTENT_FIELDS - ` +
           `a control that silently does nothing is worse than no control.`,
       ).toBe(true);
     },
@@ -79,7 +79,7 @@ describe("the hero image setting reaches a component", () => {
     expect(
       uses.length,
       "settings.heroImageUrl is loaded and passed down, but no component actually " +
-        "uses it — the panel's 'Hero görsel URL' field would be writing to nothing.",
+        "uses it - the panel's 'Hero görsel URL' field would be writing to nothing.",
     ).toBeGreaterThan(0);
   });
 });

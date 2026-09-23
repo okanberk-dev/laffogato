@@ -5,7 +5,7 @@ import { createDb, type Executor } from "@/lib/db/client";
 
 /**
  * A provider refund webhook and an admin cancel can reverse the same order at
- * the same moment. Both read "no reversal yet", both insert — and the unique
+ * the same moment. Both read "no reversal yet", both insert - and the unique
  * index only covers `kind = 'earn'`, so a card of 6 used to drop to 4. The
  * reversal's id is now derived from the order, so the primary key refuses
  * the second row exactly as it would in Postgres.

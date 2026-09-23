@@ -12,7 +12,7 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config";
  * A new client per request, never shared: the session lives in the visitor's
  * cookies and `@supabase/ssr` reads and writes it through the `next/headers`
  * cookie store. Writing is only possible from a Server Function or a Route
- * Handler — during a Server Component render Next throws on `set`, and that is
+ * Handler - during a Server Component render Next throws on `set`, and that is
  * swallowed here on purpose. The token refresh that would have been written is
  * not lost: `src/proxy.ts` (`updateSession`) refreshes the session on the way
  * in, before any component renders, exactly so this path never has to.

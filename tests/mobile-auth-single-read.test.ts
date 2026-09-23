@@ -10,7 +10,7 @@ import { planCustomerLink } from "@/lib/customer/supabase-link-plan";
  *
  * `requireMobileCustomer` runs on all 18 bearer routes and funnels into
  * `reconcile()`. It read the row (`fetchRaw`), planned against it, and then
- * — even when the plan was "nothing to do", which is the steady state —
+ * - even when the plan was "nothing to do", which is the steady state -
  * issued the identical `select * from customers where email = $1` again via
  * `getCustomerByEmail`. The pool is `max: 1` (src/lib/db/index.ts), so the
  * two could not even overlap: the app's cold-open round of /me, /orders,

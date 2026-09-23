@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────
-   L'Affogato — design system v2 (Apple-clean premium)
+   L'Affogato - design system v2 (Apple-clean premium)
    ───────────────────────────────────────────────────────────── */
 
 :root {
@@ -9,8 +9,8 @@
 
      Direction picked by the operator after seeing two homepage studies (Köşk
      vs Bold), then revised once more to a white ground in the Starbucks TR
-     mould. The reference is `Laffogato Site.dc.html` — a ten-screen prototype
-     — and the values below are read straight off it.
+     mould. The reference is `Laffogato Site.dc.html` - a ten-screen prototype
+     - and the values below are read straight off it.
 
      Relationship to the phone: the 2 Eyl swap had pulled these tokens from
      laffogato-mobil/src/theme/tokens.ts so one brand read the same on both
@@ -20,26 +20,26 @@
      now the app's value once more. If the phone
      is re-skinned to match, `lafmobil`'s tokens.ts is the file to move; see
      "Mobil uygulama" in CLAUDE.md. The variable NAMES are unchanged, so every
-     component keeps working — only what they resolve to moved.
+     component keeps working - only what they resolve to moved.
 
      Contrast is enforced by tests/contrast.test.ts. One value is deliberately
      a step darker than the prototype, which was drawn without a contrast pass:
      --ink-mute (#8c8375 → #746b5d; the prototype's grey is 3.74:1 on white,
-     below AA). The prototype's terracotta accent needed a second caveat — it
-     could not carry white at small sizes — and that went away with it when
+     below AA). The prototype's terracotta accent needed a second caveat - it
+     could not carry white at small sizes - and that went away with it when
      the accent became bordo. */
 
-  /* Surfaces — page ground, card ground, sunken track, warm paper, night */
+  /* Surfaces - page ground, card ground, sunken track, warm paper, night */
   --bg: #ffffff;
   --bg-warm: #f6f5f2;
   --bg-stone: #f1eee8;
   --bg-cream: #fbf9f4;
 
-  /* Home hero — the reference the operator supplied (6 Eyl 2026).
+  /* Home hero - the reference the operator supplied (6 Eyl 2026).
      Its own five tokens rather than a re-use of the page palette, because
      the hero is the one band on the site with a cream ground and a display
      colour that is neither the gold nor the bordo. Measured against
-     --hero-cream: cocoa 7.87:1, green 7.43:1 — both clear AA large AND AA
+     --hero-cream: cocoa 7.87:1, green 7.43:1 - both clear AA large AND AA
      body text, which the huge headline does not need but the CTA does. */
   --hero-cream: #faf6ee;
   --hero-green: #1e5b3f;
@@ -52,14 +52,14 @@
   /* The pressed/hover step under --bg-espresso (prototype: button hovers). */
   --bg-espresso-deep: #0e2c1f;
 
-  /* Ink — heading, body, muted label, hairline, stronger hairline */
+  /* Ink - heading, body, muted label, hairline, stronger hairline */
   --ink: #201c17;
   --ink-soft: #5f594e;
   --ink-mute: #746b5d;
   --ink-line: #ebe7de;
   --ink-line-strong: #e1dcd1;
 
-  /* Green — the house colour. --green is the ink weight that carries text and
+  /* Green - the house colour. --green is the ink weight that carries text and
      eyebrows on white (5.20:1); --bg-espresso is the fill. --green-mint and
      --green-mist are the two tints the prototype uses for labels and body copy
      inside dark green blocks (7.32:1 and 9.01:1 on it). */
@@ -67,7 +67,7 @@
   --green-mint: #a9d3b5;
   --green-mist: #cfe3d5;
 
-  /* Gold — the warm Italian secondary. --gold carries text on white; the
+  /* Gold - the warm Italian secondary. --gold carries text on white; the
      prototype's gold (#e8d3a4) is a fill and a light-on-dark ink, which is
      what --gold-soft is for. */
   --gold: #8a6526;
@@ -76,14 +76,14 @@
   /* Ink for text sitting ON --gold-soft (9.37:1). */
   --gold-ink: #3b2a0f;
 
-  /* Brand accent — BORDO, the third colour of the tricolore.
+  /* Brand accent - BORDO, the third colour of the tricolore.
      (Operator, 7 Eyl 2026: "italya bayrağı renklerini kullan … bunlara
      yakışan bordo ekle".) Green and white the site already had; this is the
      red, deepened to a burgundy so it sits with the house green instead of
      shouting over it.
 
      These are not new values. They are `lafmobil`'s own accent.burgundy,
-     burgundyDeep and bg.accentSubtle, verbatim — so this closes the palette
+     burgundyDeep and bg.accentSubtle, verbatim - so this closes the palette
      gap the Köşk redesign opened between the site and the app, and the app's
      `tricolore` export (['#235347', '#FAF9F6', '#84233C']) is now literally
      the site's green / paper / accent.
@@ -99,12 +99,12 @@
   --accent-deep: #4a0f1e;
   --accent-soft: #f6e9ec;
   /* The accent as TEXT on a dark ground. `--accent` measures 1.32:1 on
-     --bg-espresso — invisible. This is the same hue (1.0° away) lightened
+     --bg-espresso - invisible. This is the same hue (1.0° away) lightened
      until it clears AA on BOTH dark grounds: 7.17:1 on --bg-espresso and
      4.74:1 on the lighter --hero-green, which the promo banners use. */
   --accent-on-dark: #efb9c6;
 
-  /* Brand — the logo mask colour. */
+  /* Brand - the logo mask colour. */
   --brand: #143d2b;
 
   /* Semantic state, not brand. Success is the house green; the hue gap to
@@ -118,14 +118,14 @@
   --rose: #c5435a;
   --matcha: #1e7c4b;
 
-  /* Type — ONE family, Montserrat, everywhere. The historical token
+  /* Type - ONE family, Montserrat, everywhere. The historical token
      names (--serif, --script, --mono, …) are all aliases of it: they are kept
      so the ~600 call sites in this file and in the admin panel keep resolving,
      but there is no serif, no script and no mono face on the site any more.
      Weight and tracking do the differentiating. Reach for --sans in new code.
 
      --mono in particular now means "the eyebrow / numeric voice": uppercase,
-     wide tracking, tabular figures — not a monospaced face. */
+     wide tracking, tabular figures - not a monospaced face. */
   --sans:
     var(--font-brand), "Montserrat", -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", sans-serif;
@@ -141,18 +141,18 @@
   --content-narrow: 880px;
   --gutter: clamp(16px, 4vw, 44px);
 
-  /* Radii — the prototype's rounder card language. */
+  /* Radii - the prototype's rounder card language. */
   --r-sm: 10px;
   --r-md: 14px;
   --r-lg: 22px;
   --r-xl: 28px;
   --r-pill: 999px;
   /* Buttons in the reference are rounded rectangles, not capsules. Its own
-     token so the capsules that SHOULD stay capsules — chips, counts, badges,
-     the cart bubble — are not swept along with them. */
+     token so the capsules that SHOULD stay capsules - chips, counts, badges,
+     the cart bubble - are not swept along with them. */
   --r-btn: 8px;
 
-  /* Shadows — tinted with the house green (--bg-espresso = 20,61,43) rather
+  /* Shadows - tinted with the house green (--bg-espresso = 20,61,43) rather
      than neutral black, so cards sitting on white keep a warm-green cast
      instead of going grey. Alphas unchanged across palette swaps. */
   --shadow-sm:
@@ -162,9 +162,9 @@
   --shadow-lg:
     0 10px 30px rgba(20, 61, 43, 0.08), 0 40px 90px rgba(20, 61, 43, 0.09);
 
-  /* Tricolore — the flag as a 3px rule, defined once and referenced by every
+  /* Tricolore - the flag as a 3px rule, defined once and referenced by every
      consumer (.section-title, .footer). The stops are this palette's own
-     green and bordo, not the flag's primaries — an actual flag on a coffee
+     green and bordo, not the flag's primaries - an actual flag on a coffee
      site reads as a language switcher; a 3px rule reads as heritage. Same
      reasoning, and the same three values, as `lafmobil`'s <TricoloreRule>.
 
@@ -222,7 +222,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Numeric content (prices, SKUs, time, addresses) — tabular + lining
+/* Numeric content (prices, SKUs, time, addresses) - tabular + lining
    numerals + zero with slash. Apply via .tabular utility or [data-tnum]. */
 .tabular,
 [data-tnum] {
@@ -259,7 +259,7 @@ select {
    Type primitives
    ───────────────────────────────────────────────────────────── */
 
-/* The section eyebrow. Green on white, mint on the dark green blocks — the
+/* The section eyebrow. Green on white, mint on the dark green blocks - the
    prototype uses it above every section headline. */
 .eyebrow {
   font-family: var(--sans);
@@ -315,7 +315,7 @@ select {
   top: 0;
 }
 
-/* Flat, bold headlines. The whole scale came down in the Köşk redesign — the
+/* Flat, bold headlines. The whole scale came down in the Köşk redesign - the
    old display size topped out at 120px, roughly twice anything the prototype
    draws, which is what made the previous pages read as a poster rather than a
    cafe site. Weight 800 and tight tracking carry the impact instead.
@@ -416,7 +416,7 @@ select {
    Buttons
    ───────────────────────────────────────────────────────────── */
 
-/* Pills, not rectangles — the prototype's CTA language throughout. Bigger and
+/* Pills, not rectangles - the prototype's CTA language throughout. Bigger and
    heavier than the old 13px/500 rectangle: 15px at weight 700. */
 .btn {
   display: inline-flex;
@@ -449,7 +449,7 @@ select {
 }
 
 /* The primary action is the house green, not the accent. Bordo is reserved
-   for accents (one word in a headline, the karaoke tile, the app block) —
+   for accents (one word in a headline, the karaoke tile, the app block) -
    never for the button a page is built around. */
 .btn-primary {
   background: var(--bg-espresso);
@@ -471,7 +471,7 @@ select {
   border-color: var(--ink-line-strong);
 }
 
-/* The outlined green pill — "Tüm menü", "Hesabım", the secondary CTA next to
+/* The outlined green pill - "Tüm menü", "Hesabım", the secondary CTA next to
    a filled green one. */
 .btn-outline {
   background: transparent;
@@ -490,7 +490,7 @@ select {
   background: var(--bg-warm);
 }
 
-/* Gold is the reward voice — loyalty CTAs, "siparişi onayla", the coupon.
+/* Gold is the reward voice - loyalty CTAs, "siparişi onayla", the coupon.
    Dark ink on a light gold fill (9.37:1), not white on a dark gold. */
 .btn-gold {
   background: var(--gold-soft);
@@ -503,7 +503,7 @@ select {
   transform: translateY(0) scale(0.985);
 }
 
-/* Keyboard-focus ring — shown only for keyboard users (modern + accessible).
+/* Keyboard-focus ring - shown only for keyboard users (modern + accessible).
    Modern browsers round the outline to each element's own border-radius. */
 a:focus-visible,
 button:focus-visible,
@@ -537,10 +537,10 @@ summary:focus-visible,
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Site header — two tiers, sticky and opaque
+   Site header - two tiers, sticky and opaque
 
    The previous header was `position: fixed` and transparent until scrolled,
-   which is why every page opened with 140–220px of blank top padding to clear
+   which is why every page opened with 140-220px of blank top padding to clear
    it. The Köşk redesign makes it a normal sticky bar: a dark green utility
    strip over a white bar. Pages start where they start, so those top paddings
    came down with it.
@@ -569,14 +569,14 @@ summary:focus-visible,
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Mobile bottom navigation — quick access bar (mobile only)
+   Mobile bottom navigation - quick access bar (mobile only)
    ───────────────────────────────────────────────────────────── */
 .bottom-nav {
   display: none;
 }
 /* The mobile tab bar's own height, named so full-height sections can subtract
    it. It is `position: fixed`, so it covers the last 56px of anything sized to
-   the viewport — including, until this was fixed, the pour hero's scroll cue. */
+   the viewport - including, until this was fixed, the pour hero's scroll cue. */
 :root {
   --bottom-nav-h: 56px;
 }
@@ -727,7 +727,7 @@ summary:focus-visible,
 }
 
 /* Nav links: no pill, no opacity fade. An underline marks the
-   open section — the one place the accent appears in the chrome. */
+   open section - the one place the accent appears in the chrome. */
 .nav-link {
   padding: 10px 4px;
   font-size: 15px;
@@ -821,7 +821,7 @@ summary:focus-visible,
   }
 }
 .nav-dropdown::before {
-  /* Invisible hover bridge — keeps the panel open while the cursor crosses
+  /* Invisible hover bridge - keeps the panel open while the cursor crosses
      the gap from the nav link. */
   content: "";
   position: absolute;
@@ -976,7 +976,7 @@ summary:focus-visible,
   opacity: 0.55;
 }
 
-/* Outlined circle — the search control in the header, and the social links in
+/* Outlined circle - the search control in the header, and the social links in
    the footer (where it is reversed onto the dark ground). */
 .nav-icon-btn {
   width: 42px;
@@ -1145,7 +1145,7 @@ summary:focus-visible,
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Mobile sheet — collapsible category section (Menü / Mağaza) */
+/* Mobile sheet - collapsible category section (Menü / Mağaza) */
 .mobile-sheet-section {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -1267,7 +1267,7 @@ summary:focus-visible,
    ───────────────────────────────────────────────────────────── */
 
 /* SSR / no-JS / crawler safe: reveal content is VISIBLE by default. Motion is
-   opt-in — <RevealMotion> runs client-side only, bails out entirely under
+   opt-in - <RevealMotion> runs client-side only, bails out entirely under
    prefers-reduced-motion, and adds `will-reveal` ONLY to elements still below
    the fold. So no-JS visitors, crawlers, reduced-motion users and anything
    already on screen never receive the hidden state. */
@@ -1279,7 +1279,7 @@ summary:focus-visible,
     transform 0.5s var(--ease-out);
 }
 /* Only elements <RevealMotion> marks as below-the-fold get the hidden "from"
-   state, so above-the-fold content is never blank — no flash, and SSR / no-JS /
+   state, so above-the-fold content is never blank - no flash, and SSR / no-JS /
    crawlers never hide anything. Travel is deliberately short: enough to read as
    arrival, not enough to feel like a slide deck. */
 .reveal.will-reveal {
@@ -1352,7 +1352,7 @@ summary:focus-visible,
    `--accent` is an ink meant for paper: on --bg-espresso it measures 1.32:1,
    which is not "low contrast" but "absent".
 
-   This used to be a LIST of dark selectors, and the list was wrong — it named
+   This used to be a LIST of dark selectors, and the list was wrong - it named
    `.loyalty-block` and `.footer` and missed the two inline-styled dark
    sections in pages.tsx and `.guide-cta`, so three accent words rendered
    invisible on the live site. A list has to be maintained; a variable does
@@ -1366,7 +1366,7 @@ summary:focus-visible,
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Home — Köşk redesign
+   Home - Köşk redesign
 
    Hero slider, promo tiles, product rail, signature block, loyalty block and
    the visit block. Replaces the pour hero + dark hero + locale/matcha/press
@@ -1461,7 +1461,7 @@ summary:focus-visible,
   gap: 10px;
   margin-top: 8px;
 }
-/* Thin outline, small radius, quiet — the reference's "Shop now" is a link
+/* Thin outline, small radius, quiet - the reference's "Shop now" is a link
    with a border, not a filled button, and the filled one lives in the nav. */
 .hero-x-cta {
   appearance: none;
@@ -1589,20 +1589,20 @@ summary:focus-visible,
   align-self: stretch;
   /* ONE number drives the disc and the cup, in px rather than percentages.
      They were sized as a % of this box, and a percentage height against a
-     stretched grid item does not resolve — so the cup silently fell back to
+     stretched grid item does not resolve - so the cup silently fell back to
      its intrinsic 581x942 and swallowed the disc whole. */
   --disc: clamp(280px, 38vw, 600px);
   min-height: calc(var(--disc) * 1.12);
 }
 /* Sized from the stage's HEIGHT, not its width.
    Width-driven, the disc grew taller than the box holding it on a narrow
-   screen and spilled down over the eyebrow — the headline sat on top of a
+   screen and spilled down over the eyebrow - the headline sat on top of a
    green circle and could not be read. Height-driven it can never do that,
    and it still runs off the right edge, which the frame clips. */
 .hero-x-disc {
   position: absolute;
   /* Far enough left that the cup sits INSIDE the disc with green showing on
-     both sides of it — at -24% the disc's left edge fell behind the cup and
+     both sides of it - at -24% the disc's left edge fell behind the cup and
      only a crescent to its right was visible, which reads as a stray shape
      rather than as the thing the drink is standing on. */
   right: -8%;
@@ -1620,12 +1620,12 @@ summary:focus-visible,
   position: absolute;
   right: 13%;
   /* Below the disc's own centre, so the disc shows above the cup and the cup
-     hangs past its bottom — in the reference the two are offset, not
+     hangs past its bottom - in the reference the two are offset, not
      concentric, and concentric reads as a photo in a circular frame. */
   top: 58%;
   translate: 0 -50%;
   /* A shade taller than the disc. The cutouts are portrait (0.62), so height
-     drives this and the width follows at ~62% of it — which is what keeps the
+     drives this and the width follows at ~62% of it - which is what keeps the
      cup narrower than the disc it sits on. */
   height: calc(var(--disc) * 1.08);
   width: auto;
@@ -1740,7 +1740,7 @@ summary:focus-visible,
 
 /* FAQ disclosure ────────────────────────────────────────────────
    The rows are <details>. `list-style: none` on the summary removes the
-   platform triangle, which is right — it is unstyleable across browsers —
+   platform triangle, which is right - it is unstyleable across browsers -
    but nothing was drawn in its place, so a closed row looked like a
    paragraph. This is the replacement, and it rotates when the row opens. */
 
@@ -1798,7 +1798,7 @@ summary:focus-visible,
   box-shadow: inset 0 0 0 0.5px rgba(20, 61, 43, 0.1);
 }
 
-/* Page hero — the home hero's language, for every other page ─────
+/* Page hero - the home hero's language, for every other page ─────
    One component (`PageHero`) and one rule set: cream band, cocoa display
    type, green disc on the right. Each page used to grow its own near-copy of
    this, which is how six of them ended up with six different heading sizes. */
@@ -2439,12 +2439,12 @@ summary:focus-visible,
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Footer — dark green, five columns
+   Footer - dark green, five columns
 
    The prototype's footer is a plain link grid on the house green: brand block
    spanning two columns, then Menü / Mağaza / Hesap / Yasal, then a hairline
    and a three-part meta strip. The trust strip that used to sit here
-   (SSL / kargo / kavurma / cayma badges) is gone with it — the same promises
+   (SSL / kargo / kavurma / cayma badges) is gone with it - the same promises
    are made in the pages that can act on them. The newsletter block stays: it
    is a live feature with 6563 consent records behind it, and the prototype
    simply did not model it.
@@ -2582,7 +2582,7 @@ summary:focus-visible,
   color: var(--green-mint);
   margin-top: 12px;
 }
-/* Text pills rather than icon discs — the prototype names the networks. */
+/* Text pills rather than icon discs - the prototype names the networks. */
 .footer-social {
   display: flex;
   gap: 8px;
@@ -2741,7 +2741,7 @@ summary:focus-visible,
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
 }
-/* Image gently zooms within the clipped card frame on hover — premium feel. */
+/* Image gently zooms within the clipped card frame on hover - premium feel. */
 .product-card-img > * {
   transition: transform 0.55s var(--ease-out);
 }
@@ -2765,7 +2765,7 @@ summary:focus-visible,
   background: var(--gold);
 }
 .product-card-flag.new {
-  /* White on --accent is 9.18:1 — the darker step this used to need was a
+  /* White on --accent is 9.18:1 - the darker step this used to need was a
      terracotta workaround. */
   background: var(--accent);
 }
@@ -2986,8 +2986,8 @@ summary:focus-visible,
     gap: 40px !important;
   }
   /* A grid item's default `min-width: auto` will not shrink below its
-     min-content, so one long unbreakable label — the visit page's
-     "2 kişi · Bu akşam · 19:30 için ara" CTA — widened its track past the
+     min-content, so one long unbreakable label - the visit page's
+     "2 kişi · Bu akşam · 19:30 için ara" CTA - widened its track past the
      single column and scrolled the whole document sideways at 390px. The
      column collapse above is useless without this. */
   [data-row="visit-map-row"] > *,
@@ -3016,7 +3016,7 @@ summary:focus-visible,
   }
 }
 
-/* Category filter pills — the prototype's, in the house green. */
+/* Category filter pills - the prototype's, in the house green. */
 .menu-tab {
   flex: 0 0 auto;
   display: inline-flex;
@@ -3049,7 +3049,7 @@ summary:focus-visible,
   opacity: 0.7;
 }
 
-/* Menu page — flat card grid, one list rather than a section per category */
+/* Menu page - flat card grid, one list rather than a section per category */
 
 .menu-page {
   padding: clamp(32px, 4vw, 64px) 0 0;
@@ -3330,7 +3330,7 @@ summary:focus-visible,
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Shop — mobile sticky filter bar + bottom-sheet (innovative mobile UX)
+   Shop - mobile sticky filter bar + bottom-sheet (innovative mobile UX)
    ───────────────────────────────────────────────────────────── */
 
 /* Hidden on desktop; the sticky sidebar handles filtering there. */
@@ -3343,7 +3343,7 @@ summary:focus-visible,
 }
 
 @media (max-width: 820px) {
-  /* Reclaim vertical space — products should be reachable almost immediately. */
+  /* Reclaim vertical space - products should be reachable almost immediately. */
   .shop-head-wrap {
     padding-top: clamp(24px, 6vw, 40px);
     padding-bottom: 20px;
@@ -3354,7 +3354,7 @@ summary:focus-visible,
   .shop-toolbar {
     display: none;
   }
-  /* Hero trust badges duplicate the bottom trust row — hide here so the grid
+  /* Hero trust badges duplicate the bottom trust row - hide here so the grid
      starts near the top of the viewport. */
   .shop-head-wrap [data-row="shop-badges"] {
     display: none;
@@ -3687,7 +3687,7 @@ summary:focus-visible,
 }
 .visit-map-caption a {
   /* --accent is 9.15:1 on this ground, so the link is the brand colour. It
-     was --accent-deep, which is 15.24:1 — indistinguishable from --ink, so
+     was --accent-deep, which is 15.24:1 - indistinguishable from --ink, so
      the link stopped looking like a link. The deep step is the hover now,
      which is what it is good for. */
   color: var(--accent);
@@ -3733,7 +3733,7 @@ summary:focus-visible,
   gap: 16px;
   max-width: 360px;
 }
-/* "Şu an açık" is a success signal, so the dot is --matcha — the same token,
+/* "Şu an açık" is a success signal, so the dot is --matcha - the same token,
    and the same reasoning, as `.pdp-stock [data-tone="in"]`. It was the brand
    accent, which read as a warning even in terracotta and reads unambiguously
    as a stop light in bordo: a dark red dot beside the words "we are open".
@@ -3857,7 +3857,7 @@ summary:focus-visible,
 }
 
 /* ────────────────────────────────────────────────────────────────
-   Responsive overrides — mobile-first polish for inline grids
+   Responsive overrides - mobile-first polish for inline grids
    ──────────────────────────────────────────────────────────────── */
 
 /* Ensure every form control is large enough to skip iOS auto-zoom (≥16px). */
@@ -3886,21 +3886,21 @@ select {
   min-height: 44px;
 }
 
-/* Hero stats row (PageHome) — used inline in pages.tsx */
+/* Hero stats row (PageHome) - used inline in pages.tsx */
 
-/* Home – "01 Il locale" split row + 4-col stats card */
+/* Home - "01 Il locale" split row + 4-col stats card */
 
-/* Home – signature row inner stats grid */
+/* Home - signature row inner stats grid */
 
-/* Home – matcha row inner grids */
+/* Home - matcha row inner grids */
 
-/* Home – shop preview section heads + grid */
+/* Home - shop preview section heads + grid */
 
-/* Home – shop preview grid (inline 3-col override) */
+/* Home - shop preview grid (inline 3-col override) */
 
-/* Press row 4-col on home — override 820px rule (already 2-col); add 480px 1-col */
+/* Press row 4-col on home - override 820px rule (already 2-col); add 480px 1-col */
 
-/* Menu page — notes 3-col -> tablet 1-col */
+/* Menu page - notes 3-col -> tablet 1-col */
 @media (max-width: 720px) {
   [data-row="menu-notes"] {
     grid-template-columns: 1fr !important;
@@ -3911,7 +3911,7 @@ select {
 /* Menu item card: intermediate breakpoint between 768 and 540 */
 /* Smallest phones */
 
-/* Shop page — 3-col grid override per breakpoint */
+/* Shop page - 3-col grid override per breakpoint */
 .shop-grid-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -3934,7 +3934,7 @@ select {
   }
 }
 
-/* Shop page — badges 3-col -> mobile stack */
+/* Shop page - badges 3-col -> mobile stack */
 [data-row="shop-badges"] {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -3963,7 +3963,7 @@ select {
   }
 }
 
-/* Shop sidebar — when stacked on mobile, condense */
+/* Shop sidebar - when stacked on mobile, condense */
 @media (max-width: 820px) {
   .shop-sidebar {
     gap: 0;
@@ -3973,7 +3973,7 @@ select {
   }
 }
 
-/* Story timeline — column width tighter on phones */
+/* Story timeline - column width tighter on phones */
 @media (max-width: 540px) {
   .timeline-row {
     gap: 8px;
@@ -3983,7 +3983,7 @@ select {
   }
 }
 
-/* Story values — padding shrinks */
+/* Story values - padding shrinks */
 @media (max-width: 540px) {
   .value-card {
     padding: 22px;
@@ -4016,7 +4016,7 @@ select {
   }
 }
 
-/* Visit — address info 2-col stack */
+/* Visit - address info 2-col stack */
 [data-row="visit-address"] {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -4031,7 +4031,7 @@ select {
   }
 }
 
-/* Visit — gallery height tightens on mobile */
+/* Visit - gallery height tightens on mobile */
 @media (max-width: 720px) {
   .gallery {
     grid-template-rows: auto;
@@ -4047,7 +4047,7 @@ select {
   }
 }
 
-/* Visit — private events stats 2-col stack */
+/* Visit - private events stats 2-col stack */
 [data-row="private-stats"] {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -4059,7 +4059,7 @@ select {
   }
 }
 
-/* Visit — hours table: keep 2-col but adjust gap on phones */
+/* Visit - hours table: keep 2-col but adjust gap on phones */
 @media (max-width: 460px) {
   .hours-table {
     gap: 10px 20px;
@@ -4135,7 +4135,7 @@ select {
   }
 }
 
-/* Generic split heads inside section-head-split — keep stack consistent */
+/* Generic split heads inside section-head-split - keep stack consistent */
 @media (max-width: 720px) {
   .section-head {
     gap: 18px;
@@ -4145,7 +4145,7 @@ select {
 
 /* Reduce hero section bottom padding on phones */
 
-/* Product card quick actions — always visible on touch devices */
+/* Product card quick actions - always visible on touch devices */
 @media (hover: none), (max-width: 720px) {
   .product-card-quick {
     opacity: 1;
@@ -4251,7 +4251,7 @@ select {
   }
 }
 
-/* Misc — prevent horizontal overflow on grid sections at tiny widths */
+/* Misc - prevent horizontal overflow on grid sections at tiny widths */
 .wrap,
 .wrap-wide,
 .wrap-narrow {
@@ -4259,7 +4259,7 @@ select {
 }
 
 /* ────────────────────────────────────────────────────────────────
-   Print rules — used by admin order detail "Fiş yazdır"
+   Print rules - used by admin order detail "Fiş yazdır"
    ──────────���───────────────────────────────────────────────────── */
 @media print {
   body {
@@ -4866,7 +4866,7 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Checkout wizard (/odeme) — premium full-page checkout
+   Checkout wizard (/odeme) - premium full-page checkout
    ───────────────────────────────────────────────────────────── */
 
 .checkout-page {
@@ -5497,7 +5497,7 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Rehber (/rehber/*) — editorial guides
+   Rehber (/rehber/*) - editorial guides
    The legal pages already solved "long-form Turkish prose on warm paper";
    these reuse that measure and rhythm, and add a table of contents, a FAQ
    list and cards for the hub.
@@ -5543,7 +5543,7 @@ select {
   color: var(--ink-mute);
 }
 
-/* Table of contents — also the jump-links a search result can surface. */
+/* Table of contents - also the jump-links a search result can surface. */
 .guide-toc {
   background: #fff;
   border: 1px solid var(--ink-line);
@@ -5765,7 +5765,7 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Legal pages (/hukuk/*) — Turkish-law contracts & policies
+   Legal pages (/hukuk/*) - Turkish-law contracts & policies
    ─────────────────────────────────────────────��─────────────── */
 
 .legal-page {
@@ -6013,10 +6013,10 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Mobile refinements — checkout, nav, account
+   Mobile refinements - checkout, nav, account
    ───────────────────────────────────────────────────────────── */
 
-/* Checkout — mobile order summary moves below */
+/* Checkout - mobile order summary moves below */
 @media (max-width: 980px) {
   .checkout-grid {
     grid-template-columns: 1fr;
@@ -6117,7 +6117,7 @@ select {
   }
 }
 
-/* Account shell — sticky sidebar already collapses at 900; tighten phones */
+/* Account shell - sticky sidebar already collapses at 900; tighten phones */
 @media (max-width: 540px) {
   .account-shell-greeting {
     gap: 12px;
@@ -6152,7 +6152,7 @@ select {
   }
 }
 
-/* Nav — touch targets + tighter mobile (other rules at lines ~463-475) */
+/* Nav - touch targets + tighter mobile (other rules at lines ~463-475) */
 @media (max-width: 760px) {
   .nav {
     padding: 10px var(--gutter);
@@ -6170,7 +6170,7 @@ select {
   }
 }
 
-/* Mobile sheet — ensure links are tap-friendly */
+/* Mobile sheet - ensure links are tap-friendly */
 @media (max-width: 760px) {
   .mobile-sheet-links a {
     padding: 14px 0;
@@ -6187,7 +6187,7 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Shared SiteChrome — nav+footer on /uye, /odeme, /hukuk etc.
+   Shared SiteChrome - nav+footer on /uye, /odeme, /hukuk etc.
    ───────────────────────────────────────────────────────────── */
 
 .site-chrome-body {
@@ -6207,20 +6207,20 @@ select {
   padding-top: 8px;
 }
 
-/* Account/legal pages — same: collapse the shell's outer offset since the
+/* Account/legal pages - same: collapse the shell's outer offset since the
    shell adds its own padding. */
 .site-chrome-body .account-shell-wrap,
 .site-chrome-body .legal-wrap {
   padding-top: clamp(20px, 3vw, 36px);
 }
 
-/* Pages that paint their own full-bleed ground get no outer padding at all —
+/* Pages that paint their own full-bleed ground get no outer padding at all -
    otherwise the shell's white strip shows above their background. */
 .site-chrome-body:has(> .auth-page) {
   padding-top: 0;
 }
 
-/* 404 — centered, editorial, no illustration heavier than the brand seal.
+/* 404 - centered, editorial, no illustration heavier than the brand seal.
    An error page should read as calm and on-brand, not alarming. */
 .not-found-page {
   display: flex;
@@ -6249,13 +6249,13 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Shop hero slider — admin-managed banner on /#shop
+   Shop hero slider - admin-managed banner on /#shop
    ───────────────────────────────────────────────────────────── */
 
 .shop-hero-slider {
   position: relative;
   width: 100%;
-  /* Fixed aesthetic ratio — 21:9 cinematic on desktop, 4:5 on phones */
+  /* Fixed aesthetic ratio - 21:9 cinematic on desktop, 4:5 on phones */
   aspect-ratio: 21 / 9;
   max-height: 560px;
   background: var(--bg-warm);
@@ -6435,7 +6435,7 @@ select {
   border-radius: 999px;
 }
 
-/* Play / pause — WCAG 2.2.2 needs a way to stop a moving thing. */
+/* Play / pause - WCAG 2.2.2 needs a way to stop a moving thing. */
 .shop-hero-playpause {
   position: absolute;
   bottom: clamp(18px, 3vw, 32px);
@@ -6642,7 +6642,7 @@ select {
 
 /* ── Product detail page (PDP) ── */
 .pdp {
-  /* Was clamp(96px, 12vw, 140px) at the top — clearance for the old fixed
+  /* Was clamp(96px, 12vw, 140px) at the top - clearance for the old fixed
      header, which now takes its own space in the flow. */
   padding: clamp(20px, 3vw, 36px) 0 clamp(48px, 7vw, 88px);
   background: var(--bg);
@@ -6780,7 +6780,7 @@ select {
 }
 /* "In stock" is the success signal, so it takes --matcha. It was once
    painted in the accent family, which is the same warm hue as the "almost
-   gone" warning below it — the two read alike at a glance, which is the exact
+   gone" warning below it - the two read alike at a glance, which is the exact
    failure --matcha exists to prevent (see the token's note in :root). Now
    that the accent is bordo the trap is worse, not better: --accent, --rose
    and a red "out of stock" would be three reds in one line. */
@@ -7033,12 +7033,12 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Pour module — the interactive 3D cup, low on the home page
+   Pour module - the interactive 3D cup, low on the home page
 
    Was a full `100svh` hero above everything else; the Köşk redesign makes it
    a bordered card sitting between the loyalty block and the visit block. The
    whole "clear the fixed tab bar / leave a sliver of the next section showing"
-   apparatus that the hero needed went with it — a 300px card in the middle of
+   apparatus that the hero needed went with it - a 300px card in the middle of
    a page has nothing to trap anyone in.
    ───────────────────────────────────────────────────────────── */
 .pour-module {
@@ -7094,7 +7094,7 @@ select {
 }
 /* The widget owns its own canvas and sets `touch-action` on it from inside the
    bundle. Three.js OrbitControls, which it is built on, sets `none` on
-   connect — and `none` over a card in mid-page means a thumb dragging across
+   connect - and `none` over a card in mid-page means a thumb dragging across
    it cannot scroll the page. Pinned here so a rebuild of the vendored bundle
    cannot take vertical panning away again; `pan-y` still leaves the widget its
    horizontal drag and its taps. */
@@ -7113,7 +7113,7 @@ select {
 }
 
 /* ============================================================
-   Çerez rızası — banner + tercih merkezi
+   Çerez rızası - banner + tercih merkezi
    KVKK: analitik ve pazarlama çerezleri açık rıza ister; rıza
    verildiği kadar kolay geri alınabilmelidir (footer bağlantısı).
    ============================================================ */
@@ -7341,7 +7341,7 @@ select {
 }
 
 /* ============================================================
-   Üyelik — şifre sıfırlama sayfaları
+   Üyelik - şifre sıfırlama sayfaları
    ============================================================ */
 
 .auth-page {
@@ -7423,7 +7423,7 @@ select {
   line-height: 1.55;
 }
 
-/* Bülten onay kutusu — footer'ın koyu zemininde */
+/* Bülten onay kutusu - footer'ın koyu zemininde */
 .newsletter-consent {
   display: flex;
   align-items: flex-start;
@@ -7445,7 +7445,7 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Karaoke (/karaoke) — booking the room from the web
+   Karaoke (/karaoke) - booking the room from the web
 
    The picker posts a server action that calls the same `createReservation`
    the mobile endpoint calls, so both surfaces share one set of rules. The
@@ -7590,7 +7590,7 @@ select {
   font-size: 12.5px;
   color: var(--ink-mute);
 }
-/* A warning, so it takes the warning token — not the brand accent. Painting
+/* A warning, so it takes the warning token - not the brand accent. Painting
    "this slot is nearly gone" in the house colour is the same mistake the
    open-dot made in the other direction. */
 .karaoke-hint-warn {
@@ -7695,7 +7695,7 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Account dashboard — first run, stamp card, app block
+   Account dashboard - first run, stamp card, app block
    ───────────────────────────────────────────────────────────── */
 
 /* What a brand-new member sees instead of four zeroes. */
@@ -7747,7 +7747,7 @@ select {
   color: var(--ink-mute);
 }
 
-/* The member's own stamp card. This is the LIGHT variant — the loyalty card
+/* The member's own stamp card. This is the LIGHT variant - the loyalty card
    on the home page is white-on-green and would be invisible here, on the
    account page's white ground. */
 .stamp-card {
@@ -7813,7 +7813,7 @@ select {
   max-width: 60ch;
 }
 
-/* One membership, two surfaces. The accent as a full fill — bordo carries
+/* One membership, two surfaces. The accent as a full fill - bordo carries
    white at 9.18:1, so this block no longer needs the darker step the
    terracotta version did. */
 .account-app-block {
@@ -7859,7 +7859,7 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Visit — the prototype's opening: photo beside a facts block
+   Visit - the prototype's opening: photo beside a facts block
    ───────────────────────────────────────────────────────────── */
 
 .visit-open {

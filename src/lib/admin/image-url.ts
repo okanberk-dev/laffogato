@@ -24,11 +24,11 @@
  * Why a version is needed at all: the path alone is a *constant* per item, so
  * a replaced photo reached every cache under the URL its predecessor had
  * already populated. The CDN kept the old bytes for a day and the mobile app's
- * disk cache — keyed by URL, with no expiry of its own — kept them until the
+ * disk cache - keyed by URL, with no expiry of its own - kept them until the
  * app was reinstalled. Uploading a new photo did nothing visible.
  *
  * Why a query parameter rather than a path segment: Next.js already relies on
- * the query string being part of the CDN cache key for its own correctness —
+ * the query string being part of the CDN cache key for its own correctness -
  * the `_rsc` parameter distinguishes the RSC payload of a route from its HTML
  * ("The `_rsc` search parameter must be included in the cache key. Ensure your
  * CDN does not strip query parameters from cache keys",

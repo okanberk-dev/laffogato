@@ -37,7 +37,7 @@ type Filter = "all" | CampaignSendStatus;
  *
  * Addresses are shown whole, not masked: this is the panel, the same operator
  * one click away from /admin/musteriler, and a masked address cannot answer
- * the question the screen exists for — "did Ali get it, and if not, why".
+ * the question the screen exists for - "did Ali get it, and if not, why".
  * Masking belongs in the LOGS, where `maskEmail` already does it.
  */
 export function CampaignSendTable({
@@ -45,7 +45,7 @@ export function CampaignSendTable({
   truncated,
 }: {
   rows: CampaignSendRow[];
-  /** True when the cap hid rows — the note under the table says so. */
+  /** True when the cap hid rows - the note under the table says so. */
   truncated: boolean;
 }) {
   // Failures first, because that is the first question every time.

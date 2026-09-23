@@ -22,7 +22,7 @@ export interface AdminInviteTree {
   invitees: InviteRow[];
   /** How many of them have paid out. */
   rewardedCount: number;
-  /** The cap in lib/mobile/invite.ts — once hit, further invites earn nothing. */
+  /** The cap in lib/mobile/invite.ts - once hit, further invites earn nothing. */
   rewardCap: number;
   capReached: boolean;
 }

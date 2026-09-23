@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
 
 import { SITE } from "@/lib/seo/site";
 
-describe("SITE constants — NAP + lean-SEO fixes", () => {
+describe("SITE constants - NAP + lean-SEO fixes", () => {
   it("uses the tax-certificate Tuzla street address (no Maltepe anywhere)", () => {
     expect(SITE.address.streetAddress).toBe(
       "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",

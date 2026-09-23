@@ -19,7 +19,7 @@ describe("admin dates are shown on the venue's clock", () => {
 describe("the refund button follows the server's rule", () => {
   it("uses orderWasCollected, not paidAt alone", () => {
     // A payment that lands after the sweep cancelled the order has a
-    // succeeded transaction but no paidAt — and is the money that must go back.
+    // succeeded transaction but no paidAt - and is the money that must go back.
     const page = readFileSync("src/app/admin/siparisler/[id]/page.tsx", "utf8");
     const detail = readFileSync(
       "src/components/admin/order-detail.tsx",

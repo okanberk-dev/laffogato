@@ -4,7 +4,7 @@ import type { Customer } from "./store";
  * Pure decision logic for linking a Supabase Auth user to a `customers` row.
  *
  * No I/O here on purpose: `supabase-bridge.ts` fetches and writes, this file
- * decides — and the decision is what the unit tests pin down. The rule set is
+ * decides - and the decision is what the unit tests pin down. The rule set is
  * docs/API-MOBILE.md §0 ("customers satırı e-postayla eşleşir; yoksa
  * oluşturulur") plus docs/AUTH-BRIDGE.md.
  */
@@ -72,7 +72,7 @@ export function marketingConsentAtOf(user: SupabaseUserLike): string {
   return metaInstant(user.user_metadata, "marketing_consent_at");
 }
 
-/** A `customers` insert — `usual` is left off so the column default applies. */
+/** A `customers` insert - `usual` is left off so the column default applies. */
 export type CustomerInsertRow = Omit<Customer, "usual">;
 
 export type LinkPlan =
@@ -93,7 +93,7 @@ export function newCustomerId(now: Date = new Date()): string {
  *
  * - No row → create one. Password-less (`passwordHash: ""`): the site signs
  *   such a member in through Supabase, never through bcrypt. Consent is
- *   copied from the token's metadata — what the member actually ticked —
+ *   copied from the token's metadata - what the member actually ticked -
  *   rather than assumed from the fact that an account is being created.
  * - Row exists but deactivated → `disabled`; nothing is written.
  * - Row exists → record the Supabase id when missing, and promote the
@@ -103,7 +103,7 @@ export function newCustomerId(now: Date = new Date()): string {
  *   overwritten.
  *
  * `grantWelcome` is true whenever this plan is the moment the address becomes
- * verified — the site grants its welcome coupon at verification, and the
+ * verified - the site grants its welcome coupon at verification, and the
  * bridge mirrors that (idempotently) rather than inventing a second rule.
  *
  * `identityRevoked` says the Supabase user signing in is the one a closed
@@ -121,7 +121,7 @@ export function planCustomerLink(
 
   // This identity belonged to an account the member closed. `DELETE /me`
   // frees the e-mail, so the row no longer matches on address and the branch
-  // below would happily open a NEW membership — welcome coupon included — for
+  // below would happily open a NEW membership - welcome coupon included - for
   // whoever still holds the old password. Deletion of the Supabase user is
   // best-effort (it needs a service-role key); the closed row is the record
   // that survives either way.
@@ -173,7 +173,7 @@ export function planCustomerLink(
   // Defence in depth against the dashboard's "Confirm email" switch: a
   // Supabase user who has not proven the address must not be handed the
   // orders, addresses and coupons of the member who registered it here.
-  // A fresh row (above) is theirs to create; an existing one is not —
+  // A fresh row (above) is theirs to create; an existing one is not -
   // unless it is already bound to this very identity. That is the row they
   // created themselves a request ago: refusing it locked every unconfirmed
   // newcomer out of their own account from the second request on. Nothing
@@ -224,8 +224,8 @@ export function shouldAttemptSupabaseLink(
 /**
  * The Supabase user id to record after `signUp`, or "" when there is none to
  * trust. With "Confirm email" on, Supabase answers a sign-up for an address
- * that already exists with an obfuscated user — a random id and an empty
- * `identities` list — so that the endpoint cannot be used to enumerate
+ * that already exists with an obfuscated user - a random id and an empty
+ * `identities` list - so that the endpoint cannot be used to enumerate
  * members. Recording that id would tie the row to a user that does not exist.
  */
 export function linkableUserId(

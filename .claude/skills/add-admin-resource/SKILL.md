@@ -1,6 +1,6 @@
 ---
 name: add-admin-resource
-description: Add a new CRUD-able entity to the admin panel (store type + seed + Zod schema + actions + list + new + edit pages + nav link). Use when the user wants admin to manage a new resource type — e.g. "promosyon kodları ekle", "blog yazıları yönet", "müşteri rolleri sayfası yap".
+description: Add a new CRUD-able entity to the admin panel (store type + seed + Zod schema + actions + list + new + edit pages + nav link). Use when the user wants admin to manage a new resource type - e.g. "promosyon kodları ekle", "blog yazıları yönet", "müşteri rolleri sayfası yap".
 ---
 
 # Yeni Admin Kaynağı Ekle
@@ -21,7 +21,7 @@ export interface AdminPromo {
 }
 
 const promos: AdminPromo[] = [
-  // Seed (opsiyonel) — geliştirme için 2-3 örnek satır
+  // Seed (opsiyonel) - geliştirme için 2-3 örnek satır
 ];
 
 export async function listPromos(): Promise<AdminPromo[]> {
@@ -94,7 +94,7 @@ import { promoFormSchema } from "@/lib/admin/promo-schema";
 function revalidate() {
   revalidatePath("/admin/promosyon");
   revalidatePath("/admin");
-  // revalidatePath("/") — eğer müşteri sayfası da etkileniyorsa
+  // revalidatePath("/") - eğer müşteri sayfası da etkileniyorsa
 }
 
 export async function createPromoAction(formData: FormData) {
@@ -127,7 +127,7 @@ export async function deletePromoAction(formData: FormData) {
 
 ## 4. Sayfalar
 
-**Liste** — `src/app/admin/<entity>/page.tsx`:
+**Liste** - `src/app/admin/<entity>/page.tsx`:
 
 ```tsx
 import Link from "next/link";
@@ -159,13 +159,13 @@ export default async function AdminPromosPage() {
 }
 ```
 
-**Yeni** — `src/app/admin/<entity>/yeni/page.tsx` — `PromoForm` componenti ile.
+**Yeni** - `src/app/admin/<entity>/yeni/page.tsx` - `PromoForm` componenti ile.
 
-**Düzenle** — `src/app/admin/<entity>/[id]/duzenle/page.tsx` — `getPromo(id)` + `notFound()` + bound action.
+**Düzenle** - `src/app/admin/<entity>/[id]/duzenle/page.tsx` - `getPromo(id)` + `notFound()` + bound action.
 
 ## 5. Paylaşılan form bileşeni
 
-`src/components/admin/promo-form.tsx` — `forms.tsx`'den `Field`, `TextInput`, `Checkbox`, `PrimaryButton`, `GhostButton`, `Card` import et. `category-form.tsx`'i şablon olarak kullan.
+`src/components/admin/promo-form.tsx` - `forms.tsx`'den `Field`, `TextInput`, `Checkbox`, `PrimaryButton`, `GhostButton`, `Card` import et. `category-form.tsx`'i şablon olarak kullan.
 
 ## 6. Admin nav'a link ekle
 
@@ -200,8 +200,8 @@ Sonra `/admin/promosyon`'a giderek list + yeni + düzenle + sil akışını gör
 
 ## Yapma
 
-- **`"use server"` directive'i unutma** — yoksa server action gibi çalışmaz
-- **revalidatePath'i pas geçme** — yoksa client cache eski veri gösterir
-- **redirect'i try/catch içine alma** — Next.js redirect intentional throw eder
-- **id'leri client'tan güvenmeden parse etme** — Zod / manuel check şart
-- **Müşteri tarafına etki ediyorsa `/` revalidate'i unutma** — örn. promosyon shop'ta görünüyorsa
+- **`"use server"` directive'i unutma** - yoksa server action gibi çalışmaz
+- **revalidatePath'i pas geçme** - yoksa client cache eski veri gösterir
+- **redirect'i try/catch içine alma** - Next.js redirect intentional throw eder
+- **id'leri client'tan güvenmeden parse etme** - Zod / manuel check şart
+- **Müşteri tarafına etki ediyorsa `/` revalidate'i unutma** - örn. promosyon shop'ta görünüyorsa

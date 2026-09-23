@@ -26,8 +26,8 @@ import { markdownToSections } from "./legal-markdown";
  *
  * "The site" means what /hukuk/<slug> shows, and that is the coded document
  * unless an admin has published an override in /admin/hukuk. So the same
- * rule applies here: a published, non-empty override wins — title, summary,
- * effective date and body — and the coded document is the default under it.
+ * rule applies here: a published, non-empty override wins - title, summary,
+ * effective date and body - and the coded document is the default under it.
  * The override body is Markdown; `markdownToSections` turns it into the
  * sections the app already renders.
  *
@@ -52,12 +52,12 @@ export interface MobileLegalIndex {
    * own date, which can be later.
    */
   updatedAt: string;
-  /** Slugs the checkout step must show and record — in the order shown. */
+  /** Slugs the checkout step must show and record - in the order shown. */
   consentDocs: readonly string[];
   docs: MobileLegalSummary[];
 }
 
-/** Published overrides by slug. Empty when there are none — or no database. */
+/** Published overrides by slug. Empty when there are none - or no database. */
 export type LegalOverrideMap = Readonly<Record<string, LegalDocOverride>>;
 
 // ── Pure: coded document + override → what the app sees ─────────────────────
@@ -101,7 +101,7 @@ function toSummary(doc: LegalDoc): MobileLegalSummary {
   };
 }
 
-/** The index built from a known set of overrides — no I/O. */
+/** The index built from a known set of overrides - no I/O. */
 export function legalIndexFrom(overrides: LegalOverrideMap): MobileLegalIndex {
   return {
     // The same value an order placed now records, so the app can show it.
@@ -113,7 +113,7 @@ export function legalIndexFrom(overrides: LegalOverrideMap): MobileLegalIndex {
   };
 }
 
-/** One document from a known override — no I/O. `null` for an unknown slug. */
+/** One document from a known override - no I/O. `null` for an unknown slug. */
 export function legalDocFrom(
   slug: string,
   override: LegalDocOverride | null | undefined,
@@ -125,7 +125,7 @@ export function legalDocFrom(
 // ── Live: read the overrides, then the pure step ────────────────────────────
 
 /**
- * Every published override in one query — the index lists 24 documents and
+ * Every published override in one query - the index lists 24 documents and
  * must not cost 24 round trips.
  *
  * Any failure degrades to "no overrides", which serves the coded documents.
@@ -157,7 +157,7 @@ export async function legalIndex(): Promise<MobileLegalIndex> {
 }
 
 /**
- * One document, whole. `null` when the slug is not a published contract —
+ * One document, whole. `null` when the slug is not a published contract -
  * decided from the coded registry before any query, so an unknown slug is a
  * 404 whether or not the database answers.
  */

@@ -12,10 +12,10 @@ import { LEGAL_ENTITY } from "@/lib/legal/entity";
  * Resolves the public base URL across local, Vercel preview, and Vercel
  * production deployments. Priority:
  *
- *   1. NEXT_PUBLIC_SITE_URL — explicit override (production custom domain)
- *   2. VERCEL_PROJECT_PRODUCTION_URL — Vercel's canonical production URL
- *   3. VERCEL_URL — the per-deployment URL (used on preview deploys)
- *   4. https://laffogato.net — local-build fallback (canonical domain)
+ *   1. NEXT_PUBLIC_SITE_URL - explicit override (production custom domain)
+ *   2. VERCEL_PROJECT_PRODUCTION_URL - Vercel's canonical production URL
+ *   3. VERCEL_URL - the per-deployment URL (used on preview deploys)
+ *   4. https://laffogato.net - local-build fallback (canonical domain)
  *
  * Always ends without a trailing slash.
  */
@@ -49,12 +49,12 @@ export const SITE = {
   name: "L'Affogato",
   /**
    * The registered company behind the brand, taken from the tax certificate.
-   * Used wherever a *publisher* is named (metadata, Dublin Core, JSON-LD) —
+   * Used wherever a *publisher* is named (metadata, Dublin Core, JSON-LD) -
    * the site used to publish "L'Affogato Italia" here, which is a brand line
    * and not a legal person, so the pages contradicted the contracts.
    */
   legalName: LEGAL_ENTITY.legalName,
-  /** Brand alternate — descriptive, deliberately not a registered entity. */
+  /** Brand alternate - descriptive, deliberately not a registered entity. */
   tradeName: "L'Affogato Italia",
   brand: "L'Affogato - Caffè · Gelato · Dolci",
   descriptor: "Coffee Italiano",
@@ -78,7 +78,7 @@ export const SITE = {
     postalCode: "34940",
     addressCountry: "TR",
     venue: "200 yıllık restore Rum köşkü",
-    /** Nearest well-known landmark — how locals actually give directions. */
+    /** Nearest well-known landmark - how locals actually give directions. */
     landmark: "Menemenci Cumhur’un yanı",
   },
   geo: {
@@ -89,7 +89,7 @@ export const SITE = {
     countryCode: "TR",
   },
   /**
-   * 09:00–01:00, every day.
+   * 09:00-01:00, every day.
    *
    * The close is on the FOLLOWING day. schema.org accepts this form, and
    * anything computing an open/closed state from it must treat the window as
@@ -99,7 +99,7 @@ export const SITE = {
     {
       days: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
       // Türetilmiş, kopyalanmış değil: saat iki yerde yazılıysa biri
-      // güncellenmeden kalır — /hukuk/sirket-bilgileri tam olarak böyle
+      // güncellenmeden kalır - /hukuk/sirket-bilgileri tam olarak böyle
       // eskimişti.
       opens: LEGAL_ENTITY.cafeHours.opens,
       closes: LEGAL_ENTITY.cafeHours.closes,

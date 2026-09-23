@@ -34,7 +34,7 @@ import { OrderCustomerEditor } from "./order-customer-editor";
 const TRANSITION_LABEL: Record<OrderTransition, string> = {
   mark_paid: "Ödendi olarak işaretle",
   start_preparing: "Hazırlamaya başla",
-  // Overridden per fulfillment below — a pickup coffee is not "kargoya verilir".
+  // Overridden per fulfillment below - a pickup coffee is not "kargoya verilir".
   mark_shipped: "Kargoya ver",
   complete: "Tamamlandı",
   cancel: "İptal et",
@@ -73,9 +73,9 @@ interface Props {
   statusTone: string;
   refundedMinor: number;
   remainingRefundableMinor: number;
-  /** False for staff — refunds are an owner/manager action. */
+  /** False for staff - refunds are an owner/manager action. */
   canRefund: boolean;
-  /** Money was taken (`orderWasCollected`) — decides if a cancelled order is refundable. */
+  /** Money was taken (`orderWasCollected`) - decides if a cancelled order is refundable. */
   collected: boolean;
 }
 
@@ -85,8 +85,8 @@ interface Props {
  * Mesafeli Sözleşmeler Yönetmeliği requires proof that the buyer confirmed the
  * ön bilgilendirme formu and the mesafeli satış sözleşmesi before ordering; an
  * acquiring bank asks for exactly this record when a chargeback is disputed.
- * Orders placed before the consent box shipped — and admin-entered manual
- * orders — carry no record, which the card says out loud rather than hiding.
+ * Orders placed before the consent box shipped - and admin-entered manual
+ * orders - carry no record, which the card says out loud rather than hiding.
  */
 function ConsentCard({ consent }: { consent: AdminOrder["legalConsent"] }) {
   const accepted =
@@ -480,7 +480,7 @@ export function OrderDetail({
         />
       )}
 
-      {/* Print-only receipt — hidden in normal flow, revealed by @media print */}
+      {/* Print-only receipt - hidden in normal flow, revealed by @media print */}
       <PrintableReceipt
         order={order}
         settings={settings}

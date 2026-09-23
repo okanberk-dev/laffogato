@@ -20,7 +20,7 @@ import { hoursLabelFor } from "./menu-mapper";
  * /admin/mobil/canli-durum; the app's home screen and "Canlı durum" screen
  * read it through GET /api/mobile/v1/live-status. Whether the cafe is open
  * right now is decided here from `settings.weeklyHours` unless the staff
- * override it — a private event closes the house early, a football night
+ * override it - a private event closes the house early, a football night
  * keeps it open past the posted hours.
  */
 
@@ -53,7 +53,7 @@ export interface VenueStatus {
 
 export type VenueStatusInput = Omit<VenueStatus, "id" | "updatedAt">;
 
-/** The wire shape of GET /live-status — an explicit allow-list, never a row. */
+/** The wire shape of GET /live-status - an explicit allow-list, never a row. */
 export interface LiveStatus {
   isOpen: boolean;
   openLabel: string;
@@ -152,10 +152,10 @@ export function parseClock(value: string): number | null {
 /**
  * Is the cafe open at `now`, going only by the posted hours?
  *
- * A day whose close is not later than its open ("09:00 – 01:00") runs past
+ * A day whose close is not later than its open ("09:00 - 01:00") runs past
  * midnight: the stretch after 00:00 belongs to the PREVIOUS day's entry. So at
- * 00:30 on Tuesday the cafe is open if Monday's hours say so — the room did not
- * empty at the stroke of midnight — and at 08:00 it is closed because neither
+ * 00:30 on Tuesday the cafe is open if Monday's hours say so - the room did not
+ * empty at the stroke of midnight - and at 08:00 it is closed because neither
  * Monday's overnight tail nor Tuesday's own hours cover it.
  */
 export function isOpenByHours(hours: WeeklyHours, now: Date): boolean {
@@ -198,7 +198,7 @@ export function isCafeOpenNow(
   return isOpenByHours(hours, now);
 }
 
-/** Monday–Friday and Saturday–Sunday, in `DAYS_OF_WEEK` order. */
+/** Monday-Friday and Saturday-Sunday, in `DAYS_OF_WEEK` order. */
 const WEEKDAYS: DayOfWeek[] = ["mon", "tue", "wed", "thu", "fri"];
 const WEEKEND_DAYS: DayOfWeek[] = ["sat", "sun"];
 
@@ -295,7 +295,7 @@ export function normalizeVenueStatus(
 
 /**
  * The single status row, or the defaults when nobody has saved one yet. Throws
- * on a database failure — a fabricated "open" while the database is down
+ * on a database failure - a fabricated "open" while the database is down
  * would let the app place a cafe order the house cannot see.
  */
 export async function getVenueStatus(): Promise<VenueStatus> {

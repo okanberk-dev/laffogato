@@ -4,14 +4,14 @@ import { getDb, TABLES } from "@/lib/db";
 
 /**
  * Periodic destruction (KVKK m.7 / Silme, Yok Etme veya Anonim Hale Getirme
- * Yönetmeliği) — the executable half of the published Veri Saklama ve İmha
+ * Yönetmeliği) - the executable half of the published Veri Saklama ve İmha
  * Politikası.
  *
  * The policy is a binding public undertaking: it names a retention period per
  * data category and promises that periodic destruction runs in the last work
  * week of June and December. Nothing in the code did any of it, so
- * `auth_attempts` — whose primary key is literally `<purpose>::<IP>::<e-mail>`
- * — grew without a ceiling for a counter whose purpose expires in five
+ * `auth_attempts` - whose primary key is literally `<purpose>::<IP>::<e-mail>`
+ * - grew without a ceiling for a counter whose purpose expires in five
  * minutes. That is a data-minimisation failure (KVKK m.4/2-d) on top of an
  * unkept promise.
  *
@@ -26,7 +26,7 @@ import { getDb, TABLES } from "@/lib/db";
  *      record out of existence a day before it is allowed to go.
  *
  * Where the policy states a CEILING rather than a minimum, the sweep may be
- * shorter — minimisation requires it. `auth_attempts` is the case: the policy
+ * shorter - minimisation requires it. `auth_attempts` is the case: the policy
  * allows a year for security logs, the row is useless after five minutes, so
  * it goes at a week.
  */
@@ -35,7 +35,7 @@ import { getDb, TABLES } from "@/lib/db";
 const YEAR_DAYS = 366;
 
 export interface RetentionRule {
-  /** Stable id — used by the report and by the test that locks the periods. */
+  /** Stable id - used by the report and by the test that locks the periods. */
   id: string;
   table: string;
   /** ISO-8601 text column the row's age is measured from. */
@@ -199,7 +199,7 @@ export interface RetentionOutcome {
   cutoff: string;
   /** How many rows the rule matched. */
   matched: number;
-  /** How many were actually destroyed — always 0 in report mode. */
+  /** How many were actually destroyed - always 0 in report mode. */
   destroyed: number;
   /** Set when the rule could not be evaluated; the run carries on. */
   error?: string;
@@ -284,7 +284,7 @@ async function runRule(
 }
 
 /**
- * Evaluates every rule, newest first is irrelevant here — each is independent
+ * Evaluates every rule, newest first is irrelevant here - each is independent
  * and a failing one does not stop the others (a report that covers three of
  * four categories is worth more than an exception).
  *

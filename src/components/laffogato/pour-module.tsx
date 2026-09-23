@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useClientValue } from "./use-client-value";
 
 /**
- * The interactive pour toy — a 3D edible waffle cup the visitor fills with
+ * The interactive pour toy - a 3D edible waffle cup the visitor fills with
  * espresso themselves. Designed in Claude Design; the widget itself is a
  * framework-agnostic custom element built from its own project and shipped
  * here as `public/laffogato-pour.js`.
@@ -22,7 +22,7 @@ import { useClientValue } from "./use-client-value";
  * 1. The bundle is ~860 KB (three.js plus the brand font, inlined so the
  *    widget never depends on a font host). It is fetched when the card is
  *    near the viewport AND the page has finished loading AND the browser is
- *    idle — and not at all on a metered or very slow connection, where the
+ *    idle - and not at all on a metered or very slow connection, where the
  *    static wash is the whole of it.
  * 2. It is a custom element, not a React component. Creating it imperatively
  *    keeps it out of React's reconciler entirely: no JSX typings for an
@@ -130,7 +130,7 @@ export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
           setLoadEnded(true);
         })
         .catch(() => {
-          // The card keeps its wash and its copy; only the cup is missing —
+          // The card keeps its wash and its copy; only the cup is missing -
           // but the caption must stop claiming it is still loading.
           if (!cancelled) setLoadEnded(true);
         });
@@ -141,7 +141,7 @@ export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
     if (isConstrainedConnection()) return;
 
     // No IntersectionObserver (very old browser, or a JSDOM-ish env): just
-    // load it — a working hero beats a clever one.
+    // load it - a working hero beats a clever one.
     if (typeof IntersectionObserver !== "function") {
       startWhenIdle();
       return () => {
@@ -175,7 +175,7 @@ export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
   }, []);
 
   return (
-    /* Top-padding only, like every other block in the home stack — two
+    /* Top-padding only, like every other block in the home stack - two
        `.section`s in a row would leave 176px of nothing between the cup and
        the visit block. */
     <section className="home-section">

@@ -10,10 +10,10 @@ Vercel'de barındırılır. Sağlayıcıya özel bağımlılık yok; taşınma b
 | Taraf       | Ne var                                                                                                                                      |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Müşteri** | 12 kategorili kafe menüsü, online mağaza, ürün detayı, sepet, üye checkout, üye hesabı (sipariş geçmişi, adresler, favoriler, promosyonlar) |
-| **Rehber**  | Arama verisine dayalı 5 uzun içerik — `/rehber`                                                                                             |
+| **Rehber**  | Arama verisine dayalı 5 uzun içerik - `/rehber`                                                                                             |
 | **Hukuk**   | 25 sözleşme ve politika - `/hukuk`, tek kaynaktan doldurulan yasal kimlikle                                                                 |
 | **Admin**   | Ürün / menü / kategori / sipariş / müşteri / promosyon / içerik yönetimi, stok hareketleri, ciro raporları, olay kaydı, RBAC, TOTP 2FA      |
-| **Ödeme**   | Sağlayıcı bağımsız soyutlama; sanal POS **PayNkolay**, geliştirmede mock. Üretimde mock'a düşmez — açıkça reddeder                          |
+| **Ödeme**   | Sağlayıcı bağımsız soyutlama; sanal POS **PayNkolay**, geliştirmede mock. Üretimde mock'a düşmez - açıkça reddeder                          |
 | **Rıza**    | Consent Mode v2 (KVKK) · mesafeli satış onayı kanıtla · 6563 bülten onayı ve tek tıkla çıkış                                                |
 
 ---
@@ -57,7 +57,7 @@ TEST_DATABASE_URL=postgres://user@host:5432/db npm test
 ## Yapı
 
 ```
-src/app/                 Rotalar — müşteri, rehber, hukuk, üye, admin, webhook
+src/app/                 Rotalar - müşteri, rehber, hukuk, üye, admin, webhook
 src/components/
   laffogato/             Müşteri arayüzü (app · chrome · pages · ui ·
                          visuals · menu-visuals)
@@ -82,7 +82,7 @@ tests/                   Vitest
 **1. Yasal kimlik tek kaynaktan gelir.** `src/lib/legal/entity.ts` vergi
 levhasındaki bilgiyi tutar; sözleşme metinleri `{{TOKEN}}` yer tutucularıyla
 yazılır ve render'da doldurulur. Değeri **bilinmeyen** bir alan (MERSİS, ticaret
-sicil, KEP, IBAN) boş bırakılır ve o tablo satırı hiç basılmaz — site asla
+sicil, KEP, IBAN) boş bırakılır ve o tablo satırı hiç basılmaz - site asla
 uydurma bir sicil numarası yayımlamaz.
 
 **2. Menü görselleri çizimdir, fotoğraf değil.** `menu-visuals.tsx` her içecek
@@ -91,13 +91,13 @@ hangi çizimin kullanılacağına karar verir. Gerçek fotoğraf eklendiğinde
 (`image` alanı) çizimin yerini alır. Telif riski yok, boyut birkaç KB.
 
 **3. Mesafeli satış onayı kanıtla saklanır.** Ödeme adımındaki onay kutusu ön
-işaretli olamaz; sunucu onaysız siparişi reddeder ve onayı — tarih, IP, tarayıcı,
-belge sürümü — `orders."legalConsent"` kolonuna yazar. Sanal POS incelemesinde
+işaretli olamaz; sunucu onaysız siparişi reddeder ve onayı - tarih, IP, tarayıcı,
+belge sürümü - `orders."legalConsent"` kolonuna yazar. Sanal POS incelemesinde
 ve chargeback itirazında istenen kayıt budur.
 
 **4. Eşzamanlılık altındaki her sayaç SQL'de artar.** Stok, promosyon kullanımı,
-giriş denemesi. JavaScript'te oku-değiştir-yaz, tam da yarışın olduğu anda —
-aynı ürüne iki sipariş, son hakka iki checkout, bir brute-force — yazım
+giriş denemesi. JavaScript'te oku-değiştir-yaz, tam da yarışın olduğu anda -
+aynı ürüne iki sipariş, son hakka iki checkout, bir brute-force - yazım
 kaybeder; kaybedilen yazım da her zaman yanlış tarafa çalışır. `db/migrations`
 altındaki `claim_order_stock`, `release_order_stock`, `redeem_promo`,
 `adjust_product_stock` ve `record_auth_failure` bunun için var.
@@ -133,7 +133,7 @@ kalır. İkisinin de ayrıntısı [docs/EMAIL-RESEND.md](docs/EMAIL-RESEND.md) v
 PayNkolay kullanılacaksa ayrıca `PAYNKOLAY_SX`, `PAYNKOLAY_SX_LIST`,
 `PAYNKOLAY_SX_CANCEL`, `PAYNKOLAY_MERCHANT_SECRET_KEY`,
 `PAYNKOLAY_MERCHANT_NO`, `PAYNKOLAY_BASE_URL`, `PAYNKOLAY_SUCCESS_URL` ve
-`PAYNKOLAY_FAIL_URL` — hepsinin ne olduğu `.env.example` içinde yazılı.
+`PAYNKOLAY_FAIL_URL` - hepsinin ne olduğu `.env.example` içinde yazılı.
 
 > **PayNkolay henüz canlıya alınmadı.** Sağlayıcı kodu, hash formülleri ve
 > testleri hazır; panel anahtarları ve canlı deneme bekliyor - kurulum

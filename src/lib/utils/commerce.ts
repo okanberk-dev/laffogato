@@ -1,9 +1,9 @@
 /**
- * Client-safe ticaret hesaplamaları — kargo, KDV, para biçimleme.
+ * Client-safe ticaret hesaplamaları - kargo, KDV, para biçimleme.
  *
  * Hem server action'lar (`placeOrder`, checkout actions) hem de client
  * bileşenleri (CartDrawer, CheckoutWizard) buradan okur ki kargo eşiği ve
- * KDV oranı tek bir yerden gelsin. "server-only" YOK — saf fonksiyonlar.
+ * KDV oranı tek bir yerden gelsin. "server-only" YOK - saf fonksiyonlar.
  */
 
 export interface CheckoutConfig {
@@ -11,7 +11,7 @@ export interface CheckoutConfig {
   shippingFlatMinor: number;
   /** Bu net tutarın (indirim sonrası ara toplam) üstünde kargo ücretsiz. 0 = kapalı. */
   shippingFreeThresholdMinor: number;
-  /** KDV yüzdesi — fiyatlar KDV DAHİL olduğundan yalnızca bilgi amaçlı ayrıştırma için. */
+  /** KDV yüzdesi - fiyatlar KDV DAHİL olduğundan yalnızca bilgi amaçlı ayrıştırma için. */
   taxRatePct: number;
 }
 

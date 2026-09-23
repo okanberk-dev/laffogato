@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * `/api/cron/campaign-emails` — Vercel's daily call that carries on every
+ * `/api/cron/campaign-emails` - Vercel's daily call that carries on every
  * campaign the panel's `after()` runner could not finish. The guard is the
  * whole point of the test: anyone who can reach the route can make the site
  * send commercial mail, so it answers only to `Bearer <CRON_SECRET>`, and an

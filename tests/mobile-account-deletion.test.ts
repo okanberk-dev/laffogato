@@ -14,7 +14,7 @@ import {
  * next person to register it inherits the previous member's data.
  */
 describe("account deletion sweeps", () => {
-  it("rewrites the e-mail on orders — the row is kept, the address is not", () => {
+  it("rewrites the e-mail on orders - the row is kept, the address is not", () => {
     const orders = ANON_SWEEPS.find((s) => s.table === TABLES.orders);
     expect(orders).toBeDefined();
     expect(orders!.column).toBe("customerEmail");
@@ -107,7 +107,7 @@ describe("what a closed account leaves behind", () => {
   });
 
   it("empties the provider payload but keeps the row", () => {
-    // payment_transactions.raw is the POS callback verbatim — buyer name,
+    // payment_transactions.raw is the POS callback verbatim - buyer name,
     // address, masked card. Reconciliation needs provider/ref/status/amount,
     // none of which this touches.
     const redacted = redactedPayload("2026-09-05T12:00:00.000Z");

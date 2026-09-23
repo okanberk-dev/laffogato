@@ -17,7 +17,7 @@ Yani çoğu durumda ayrı bir seed adımı **gerekmez**.
    ```bash
    DATABASE_URL='postgres://...' npm run db:migrate
    ```
-3. `npm run dev` ile siteyi aç — ilk istek tabloları doldurur.
+3. `npm run dev` ile siteyi aç - ilk istek tabloları doldurur.
 
 ## Seed verisini değiştirmek
 
@@ -28,7 +28,7 @@ Tasarımın orijinal statik verisi ise `src/components/laffogato/data.ts`.
 ## Bir tabloyu yeniden seed etmek
 
 Seed yalnızca tablo **boşken** çalışır. Yeniden çalıştırmak için önce tabloyu
-boşalt — bunu yapmadan önce **kullanıcıya sor**, canlı veri kaybı olabilir:
+boşalt - bunu yapmadan önce **kullanıcıya sor**, canlı veri kaybı olabilir:
 
 ```sql
 truncate table products;   -- örnek; siparişler/müşteriler için ASLA

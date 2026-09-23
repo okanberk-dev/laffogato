@@ -44,7 +44,7 @@ describe("inviteCodeCandidate", () => {
         inviteCodeCandidate("Eda", "cst-9", i).slice(-2),
       ),
     );
-    // 25 reseeds over a 00–99 space: at least a handful must differ.
+    // 25 reseeds over a 00-99 space: at least a handful must differ.
     expect(digits.size).toBeGreaterThan(5);
   });
 

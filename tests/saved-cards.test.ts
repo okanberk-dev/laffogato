@@ -11,7 +11,7 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
  * Saved cards are a KEY, not a card.
  *
  * The PAN is typed on iyzico's own hosted form and never reaches this
- * codebase — what we store is an opaque identifier that is meaningless
+ * codebase - what we store is an opaque identifier that is meaningless
  * without our merchant credentials. These tests pin the two properties that
  * make that arrangement safe: the key never leaves the server, and a closed
  * account keeps none of it.
@@ -46,7 +46,7 @@ describe("saved cards", () => {
   });
 
   it("is not part of the public customer shape at all", () => {
-    // Not merely unmapped — absent from the type the API layer passes around,
+    // Not merely unmapped - absent from the type the API layer passes around,
     // so it cannot be added to a response by accident.
     const store = read("src/lib/customer/store.ts");
     const shape = store.slice(
@@ -60,8 +60,8 @@ describe("saved cards", () => {
     expect(read("src/lib/mobile/me.ts")).toMatch(/cardUserKey:\s*""/);
   });
 
-  it("stores no card data of its own — only the provider's key", () => {
-    // Column names only — comments are prose and may well say the words.
+  it("stores no card data of its own - only the provider's key", () => {
+    // Column names only - comments are prose and may well say the words.
     // If any of these ever become a COLUMN, the design has drifted from
     // "the provider holds the card" to "we hold the card".
     const raw = read("db/schema.sql");
@@ -82,7 +82,7 @@ describe("saved cards", () => {
     expect(raw).toContain('"cardUserKey"');
   });
 
-  it("no code path accepts card data — the POS's hosted page is the only place it is typed", () => {
+  it("no code path accepts card data - the POS's hosted page is the only place it is typed", () => {
     // Operator (23 Eyl 2026): "biz kart bilgilerini saklamıyoruz". PayNkolay
     // also offers endpoints that take the card number server-side
     // (CardStorageCardRegister and friends); calling one would put the PAN

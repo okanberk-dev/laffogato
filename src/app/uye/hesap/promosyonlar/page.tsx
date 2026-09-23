@@ -113,7 +113,7 @@ export default async function PromosyonlarPage() {
   const customer = await requireCustomer();
 
   // Lazy birthday gift: granted at most once a year, only during the member's
-  // birthday month. Best-effort — never blocks the page.
+  // birthday month. Best-effort - never blocks the page.
   try {
     await maybeGrantBirthdayCoupon(customer.email, customer.birthday);
   } catch (err) {

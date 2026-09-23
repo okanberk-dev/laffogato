@@ -42,8 +42,8 @@ export type OptionalCustomerResult =
 /**
  * Identity for a public endpoint that does more for a member (a basket
  * preview that also tries a personal coupon). No header means a visitor; a
- * token Supabase rejects also means a visitor — the basket must still price
- * for someone whose session just expired — while an outage or a disabled
+ * token Supabase rejects also means a visitor - the basket must still price
+ * for someone whose session just expired - while an outage or a disabled
  * account is reported, because those are not "nobody is signed in".
  */
 export async function optionalMobileCustomer(

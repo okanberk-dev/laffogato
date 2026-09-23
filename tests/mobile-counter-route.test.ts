@@ -4,7 +4,7 @@ import { DbUnreachableError } from "@/lib/db/health";
 import { apiError } from "@/lib/mobile/respond";
 
 /**
- * `POST /me/counter-token` — the endpoint the Kart screen calls every two
+ * `POST /me/counter-token` - the endpoint the Kart screen calls every two
  * minutes. It hands out a value that turns into stamps, so the bearer gate,
  * the verified-address gate and the "never cache this" header are the whole
  * contract (docs/API-MOBILE.md §17).

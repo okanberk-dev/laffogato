@@ -2,9 +2,9 @@
  * JSON-LD for the rehber pages.
  *
  * Three types per guide, because they answer three different surfaces:
- *  - `Article` — the page itself, for the standard result and for LLM crawlers.
- *  - `FAQPage` — the accordion at the bottom, eligible for the FAQ rich result.
- *  - `Recipe` — only where the guide really is a recipe (affogato, matcha latte,
+ *  - `Article` - the page itself, for the standard result and for LLM crawlers.
+ *  - `FAQPage` - the accordion at the bottom, eligible for the FAQ rich result.
+ *  - `Recipe` - only where the guide really is a recipe (affogato, matcha latte,
  *    cheesecake). A `Recipe` on a comparison page would be a false claim, so
  *    `espresso-cesitleri` deliberately emits none.
  */

@@ -13,12 +13,12 @@ declare global {
  *
  * The mobile app sends its own access token in `Authorization: Bearer …`
  * (docs/API-MOBILE.md §0). Checking it means asking Supabase "who is this
- * JWT?" — `supabase.auth.getUser(token)` — and nothing else: no cookies, no
+ * JWT?" - `supabase.auth.getUser(token)` - and nothing else: no cookies, no
  * stored session, no refresh loop. A single process-wide instance is safe
  * precisely because it never holds a session; the token travels with each
  * call.
  *
- * Do not use this for the website's own sign-in — that goes through the
+ * Do not use this for the website's own sign-in - that goes through the
  * cookie-backed client in `./server.ts`.
  */
 export function getSupabaseAnonClient(): SupabaseClient {

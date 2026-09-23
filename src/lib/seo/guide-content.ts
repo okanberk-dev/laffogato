@@ -1,12 +1,12 @@
 /**
- * Rehber içeriği — HAM VERİ.
+ * Rehber içeriği - HAM VERİ.
  *
  * Semrush (Türkiye) arama verisine göre yazıldı; hangi sayfanın hangi kümeyi
  * hedeflediği `guides.ts` başındaki tabloda. Metinleri düzenlerken markdown
- * işareti kullanmayın — yapı paragraphs / bullets / ordered / table alanlarıyla
+ * işareti kullanmayın - yapı paragraphs / bullets / ordered / table alanlarıyla
  * kurulur ve sayfa bunları doğrudan render eder.
  *
- * GENERATED — düzenlemek için scratchpad'deki build-guides.mjs akışını kullanın
+ * GENERATED - düzenlemek için scratchpad'deki build-guides.mjs akışını kullanın
  * ya da elle düzenleyip `npm test` ile doğrulayın.
  */
 

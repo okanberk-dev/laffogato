@@ -12,8 +12,8 @@ import { getSiteContent } from "@/lib/admin/site-content";
  * The brand story, for the app (docs/API-MOBILE.md §16).
  *
  * The app's Hikâye screen used to ship its own copy of the founder line, the
- * timeline and the press quotes. Every one of those is edited on the site —
- * Site Metinleri, /admin/hikaye, /admin/basin — so the two surfaces drifted
+ * timeline and the press quotes. Every one of those is edited on the site -
+ * Site Metinleri, /admin/hikaye, /admin/basin - so the two surfaces drifted
  * the first time someone touched a year. Serving them from here makes the
  * site the single source; the app keeps its bundled copy only as an offline
  * fallback.

@@ -18,7 +18,7 @@ export interface PageSeo {
   description: string;
   keywords?: string[];
   breadcrumbLabel: string;
-  /** Sitemap priority (0–1). Top-level shopping/menu pages get 0.9; brand
+  /** Sitemap priority (0-1). Top-level shopping/menu pages get 0.9; brand
       pages get 0.7; supporting pages get 0.6. */
   priority: number;
   changefreq:
@@ -111,7 +111,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
   },
 };
 
-/** Category sub-routes under /menu — match data.ts MENU keys. */
+/** Category sub-routes under /menu - match data.ts MENU keys. */
 export interface MenuCategoryRoute {
   slug: string;
   menuKey: string;
@@ -122,7 +122,7 @@ export interface MenuCategoryRoute {
   /**
    * Presentation for the header dropdown and the footer "Menu" column, set
    * only on the categories that appear there. The navigation is built from
-   * this list rather than its own hand-kept copy — the copy had drifted and
+   * this list rather than its own hand-kept copy - the copy had drifted and
    * two of its five entries (`affogato`, `gelato`) pointed at routes that had
    * never existed, so the header's most prominent links returned 404.
    */
@@ -313,7 +313,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   },
 ];
 
-/** Category sub-routes under /magaza — slug ↔ shop product cat mapping. */
+/** Category sub-routes under /magaza - slug ↔ shop product cat mapping. */
 export interface ShopCategoryRoute {
   slug: string;
   productCat: string;

@@ -1,7 +1,7 @@
 /**
  * An in-memory stand-in for the slice of the query builder `admin_users` uses.
- * Enough to exercise the real module — bcrypt hashing, the duplicate-email
- * race, the last-owner count — without a database.
+ * Enough to exercise the real module - bcrypt hashing, the duplicate-email
+ * race, the last-owner count - without a database.
  */
 
 export type FakeRow = Record<string, unknown>;

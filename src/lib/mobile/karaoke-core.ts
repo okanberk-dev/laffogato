@@ -26,7 +26,7 @@ export type KaraokeRules = MobileAppConfig["karaoke"];
 export const DEFAULT_KARAOKE_RULES: Readonly<KaraokeRules> =
   DEFAULT_MOBILE_APP_CONFIG.karaoke;
 
-/** First bookable hour of the day (slot "12" = 12:00–13:00). Default. */
+/** First bookable hour of the day (slot "12" = 12:00-13:00). Default. */
 export const KARAOKE_FIRST_HOUR = DEFAULT_KARAOKE_RULES.firstHour;
 /** The room closes at midnight; the last slot starts at 23. Default. */
 export const KARAOKE_CLOSE_HOUR = DEFAULT_KARAOKE_RULES.closeHour;
@@ -82,7 +82,7 @@ export interface KaraokeAvailability {
   bookingWindowDays: number;
 }
 
-/** Wire shape of a reservation — an explicit allow-list (§7). */
+/** Wire shape of a reservation - an explicit allow-list (§7). */
 export interface KaraokeReservationJson {
   id: string;
   date: string;
@@ -218,7 +218,7 @@ export interface ReservationRequest {
 
 /**
  * The schema depends on the configured rules (opening hour, longest block),
- * so it is built per request rather than once at module load — otherwise a
+ * so it is built per request rather than once at module load - otherwise a
  * change saved in the panel would not apply until the next deploy.
  */
 function buildRequestSchema(

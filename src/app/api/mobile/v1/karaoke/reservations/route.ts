@@ -20,7 +20,7 @@ const MSG = {
   unverified: "Rezervasyon yapabilmek için önce e-postanı doğrula.",
 } as const;
 
-/** GET /api/mobile/v1/karaoke/reservations — the member's own bookings (§7). */
+/** GET /api/mobile/v1/karaoke/reservations - the member's own bookings (§7). */
 export async function GET(request: Request) {
   try {
     const auth = await requireMobileCustomer(request);
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     // nobody honours. Awaited rather than fired and forgotten: this runtime
     // can freeze the moment the response is returned, and a 15-second budget
     // has room for one mail. Its failure is logged inside and never reaches
-    // the member — the reservation is already written and visible in the
+    // the member - the reservation is already written and visible in the
     // panel, and losing a booking over a bounced mail would be the worse bug.
     await notifyOperatorOfReservation(result.reservation);
     return apiJson(

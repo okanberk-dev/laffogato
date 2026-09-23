@@ -5,7 +5,7 @@ import type { LegalSection } from "@/lib/legal/documents";
  *
  * The site renders an override with `LegalMarkdown` (src/lib/legal/markdown.tsx)
  * straight from the text. The app has no Markdown renderer: it draws the
- * structured sections the coded documents already come in — heading, plain
+ * structured sections the coded documents already come in - heading, plain
  * paragraphs, ordered and unordered lists. This is the bridge, and it speaks
  * the same tiny dialect the editor accepts, so what the admin sees on
  * /hukuk/<slug> is what the phone shows at the moment of consent:
@@ -17,8 +17,8 @@ import type { LegalSection } from "@/lib/legal/documents";
  *   `**bold**`       → the marks are dropped; the app renders plain text
  *
  * Text before the first heading becomes a section headed `fallbackHeading`
- * (the document's short title), so a body that opens with a preamble — or
- * has no headings at all — still has a heading to show.
+ * (the document's short title), so a body that opens with a preamble - or
+ * has no headings at all - still has a heading to show.
  *
  * Pure and dependency-free: no `server-only`, no database, so the tests and
  * an export script can import it.
@@ -57,7 +57,7 @@ function flushParagraph(s: OpenSection): void {
 function close(s: OpenSection): LegalSection {
   flushParagraph(s);
   const out: LegalSection = { heading: s.heading };
-  // Omit empty arrays rather than sending `[]` — same shape the hydrated
+  // Omit empty arrays rather than sending `[]` - same shape the hydrated
   // coded documents have, so the app treats both alike.
   if (s.paragraphs.length) out.paragraphs = s.paragraphs;
   if (s.ordered.length) out.ordered = s.ordered;

@@ -9,7 +9,7 @@ export const maxDuration = 300;
 
 /**
  * Vercel cron (vercel.json → crons, 06:00 UTC = 09:00 Tuzla): today's
- * birthdays — the coupon for everyone whose day it is, the celebration for
+ * birthdays - the coupon for everyone whose day it is, the celebration for
  * those who consented to commercial mail. `_birthday.ts` carries the trigger,
  * consent-class and idempotency notes.
  *

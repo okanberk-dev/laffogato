@@ -22,14 +22,14 @@ const CAT_VALUES = ["beans", "gift", "gear", "merch", "pantry"] as const;
  * The item-tag vocabulary, shared with the cafe menu (`menu_items.tags`) and
  * with the app, which filters every incoming tag against this exact list and
  * silently DROPS anything else (lafmobil `src/data/http.ts` KNOWN_TAGS). A tag
- * invented here would therefore never reach a customer's screen — which for an
+ * invented here would therefore never reach a customer's screen - which for an
  * allergen is the failure mode this list exists to prevent. Widening it means
  * widening the app's `ItemTag` union in the same release.
  */
 export const PRODUCT_TAG_VALUES = ["signature", "new", "iced", "nuts"] as const;
 
 /**
- * The allergens inside that vocabulary — what `/admin/urunler` offers as a
+ * The allergens inside that vocabulary - what `/admin/urunler` offers as a
  * closed list. Today that is `nuts` alone; the shelf holds a pistachio
  * biscotti, and lafmobil rule 4 is that allergen information is never hidden.
  */

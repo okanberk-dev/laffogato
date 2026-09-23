@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  *
  * The site keeps a bcrypt hash and Supabase keeps the identity, and until the
  * app grew a reset screen only one of them could ever move. Now both can, and
- * whichever one is stale is a live old credential — which is the exact thing a
+ * whichever one is stale is a live old credential - which is the exact thing a
  * password reset exists to destroy.
  */
 
@@ -121,8 +121,8 @@ describe("a password the app reset", () => {
 
   it("refuses the old one without consulting the stale bcrypt copy at all", async () => {
     // The hole this closes: Supabase rejected the old password, the bcrypt
-    // path was asked for a second opinion, and the stale hash — still holding
-    // that very password — said yes. A reset that leaves the old password
+    // path was asked for a second opinion, and the stale hash - still holding
+    // that very password - said yes. A reset that leaves the old password
     // working is not a reset.
     signInWithPassword.mockResolvedValue({
       data: { user: null },
@@ -180,7 +180,7 @@ describe("a password the app reset", () => {
 describe("signing out here does not sign the member out of their phone", () => {
   /**
    * supabase-js defaults `signOut()` to `global`, which revokes every refresh
-   * token the member holds anywhere. The site called it bare — so leaving the
+   * token the member holds anywhere. The site called it bare - so leaving the
    * website killed the app session too, and the two calls on the FAILED login
    * path did it to someone who never signed in. A password Supabase still
    * accepts but this row has replaced reaches that branch, which turns a
@@ -210,7 +210,7 @@ describe("signing out here does not sign the member out of their phone", () => {
 describe("when the mirror is not known to have landed", () => {
   /**
    * `passwordMirroredAt` empty means a password written HERE may never have
-   * reached Supabase — no service-role key, an unlinked row, a failed call.
+   * reached Supabase - no service-role key, an unlinked row, a failed call.
    * Supabase can then be holding something OLDER than this row, and adopting
    * it would roll a member's password change back to the one they replaced.
    */

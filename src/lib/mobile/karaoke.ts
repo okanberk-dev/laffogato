@@ -25,13 +25,13 @@ import {
 } from "./karaoke-core";
 
 /**
- * Karaoke room reservations (docs/API-MOBILE.md §7) — the database-backed
+ * Karaoke room reservations (docs/API-MOBILE.md §7) - the database-backed
  * half.
  *
  * One room, booked by the hour. The app asks which hours of a day are free,
  * the member requests a block, the staff confirm or cancel it from
  * /admin/mobil/karaoke. Money is computed here from
- * `settings.karaokeHourlyMinor` — no caller ever sends a price — and ORO
+ * `settings.karaokeHourlyMinor` - no caller ever sends a price - and ORO
  * members get their discount at the moment of booking.
  *
  * Opening hour, closing hour, longest block, booking window and the ORO
@@ -54,7 +54,7 @@ export * from "./karaoke-core";
 /**
  * The member's loyalty tier, or "" when it cannot be determined. The loyalty
  * module is owned by the rewards feature; a failure there must not block a
- * booking — the member simply pays the undiscounted price.
+ * booking - the member simply pays the undiscounted price.
  */
 async function resolveLoyaltyTier(email: string): Promise<string> {
   try {
@@ -357,7 +357,7 @@ const RESERVATION_TRANSITIONS: Record<
  * reason needs a different thing from the staff member, so each is named.
  */
 export type SetReservationStatusFailure =
-  /** No row with that id — deleted, or a stale page. */
+  /** No row with that id - deleted, or a stale page. */
   | "not_found"
   /** The row has already moved somewhere this transition cannot start from. */
   | "wrong_status"
@@ -372,8 +372,8 @@ export type SetReservationStatusResult =
       reservation: KaraokeReservation;
       /**
        * Did the member's confirmation/cancellation mail leave? The booking
-       * stands either way — a provider outage must not fail the staff
-       * member's action — but the panel says so, because a member who was
+       * stands either way - a provider outage must not fail the staff
+       * member's action - but the panel says so, because a member who was
        * not told is a member who turns up (or does not) on the wrong
        * assumption.
        */
@@ -447,7 +447,7 @@ const TR_MONTHS = [
  *
  * Built from the parts rather than through `Date`: a reservation date is a
  * Tuzla CALENDAR day, not an instant, and `new Date("2026-09-12")` is
- * midnight UTC — which in a formatter running anywhere west of Greenwich
+ * midnight UTC - which in a formatter running anywhere west of Greenwich
  * prints the 11th. The app and the panel both show the day the room is
  * booked; so does the mail.
  */
@@ -479,7 +479,7 @@ export function formatReservationTime(
  * on either template).
  *
  * TETİKLEYİCİ: `setReservationStatus`, i.e. the panel's confirm/cancel
- * buttons — the only callers, so a member cannot mail themselves.
+ * buttons - the only callers, so a member cannot mail themselves.
  * IDEMPOTENCY: the status guard on the UPDATE above. The row moves
  * requested → confirmed (or → cancelled) exactly once; a second press finds
  * the row already there, loses the race and returns before this is reached.
@@ -500,7 +500,7 @@ async function notifyReservationStatus(
     time: formatReservationTime(r.startHour, r.hours),
     guests: r.guests,
     // No `code` column and none needed: the id is unique, sequential and
-    // readable — "KRK-00042" is what the member is asked for at the door.
+    // readable - "KRK-00042" is what the member is asked for at the door.
     code: r.id,
   };
   try {

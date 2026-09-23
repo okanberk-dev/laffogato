@@ -9,7 +9,7 @@ import { CONSENT_BOOTSTRAP } from "@/lib/consent/script";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
 
-// Google Tag Manager container — all analytics/marketing tags (GA4, Meta Pixel,
+// Google Tag Manager container - all analytics/marketing tags (GA4, Meta Pixel,
 // conversions, …) are managed inside GTM, not in code. Override the public
 // container id with NEXT_PUBLIC_GTM_ID; empty value disables the integration.
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
@@ -19,7 +19,7 @@ const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
 // Montserrat, set by the operator's reference design (6 Eyl 2026). The
 // reference is drawn in Sofia Pro, which is licensed; Montserrat is the
 // closest thing on Google Fonts and matches the two letterforms that carry
-// that look — the near-circular `C`/`o` and the wide double-storey `a` — at
+// that look - the near-circular `C`/`o` and the wide double-storey `a` - at
 // close to the same width, which Plus Jakarta Sans (narrower, more humanist)
 // did not. Weight does all the differentiating: there is no serif and no
 // mono, so the eyebrow style is uppercase + tracking in the same face and
@@ -101,7 +101,7 @@ export const metadata: Metadata = {
         },
       }
     : {
-        // Preview / development deployment — keep search engines out so they
+        // Preview / development deployment - keep search engines out so they
         // don't index transient URLs.
         index: false,
         follow: false,
@@ -126,7 +126,7 @@ export const metadata: Metadata = {
     title: SITE.name,
   },
   other: {
-    // Geo meta — legacy but still consumed by some local search engines
+    // Geo meta - legacy but still consumed by some local search engines
     "geo.region": SITE.geo.region,
     "geo.placename": SITE.geo.placename,
     "geo.position": `${SITE.geo.latitude};${SITE.geo.longitude}`,
@@ -168,7 +168,7 @@ export default function RootLayout({
   return (
     <html lang={SITE.language} className={fontVariables}>
       <head>
-        {/* Consent Mode v2 defaults — must be on the dataLayer before the GTM
+        {/* Consent Mode v2 defaults - must be on the dataLayer before the GTM
             container initialises, otherwise the first tag fires with no
             consent signal at all. Everything except strictly-necessary storage
             starts denied and is only raised by an explicit choice. */}
@@ -178,7 +178,7 @@ export default function RootLayout({
             dangerouslySetInnerHTML={{ __html: CONSENT_BOOTSTRAP }}
           />
         ) : null}
-        {/* next/font self-hosts the fonts — no Google Fonts origin is hit at
+        {/* next/font self-hosts the fonts - no Google Fonts origin is hit at
             runtime, so preconnect/dns-prefetch hints would be dead weight. */}
         <link
           rel="alternate"

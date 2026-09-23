@@ -5,8 +5,8 @@ import { Card, PageHeader } from "@/components/admin/forms";
 /**
  * 404 inside the panel.
  *
- * `notFound()` is called on the record pages — a sipariş or a müşteri that no
- * longer exists — and without this file the answer was the SHOP's 404, with
+ * `notFound()` is called on the record pages - a sipariş or a müşteri that no
+ * longer exists - and without this file the answer was the SHOP's 404, with
  * "Menüyü gör" and "Mağazaya git" on it. An operator who followed a stale
  * link deserves to be told what happened and left inside the panel.
  */

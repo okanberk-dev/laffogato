@@ -89,7 +89,7 @@ const MAX_MENU_IMAGE_BYTES = 2 * 1024 * 1024;
  * The uploader submits a JSON array (`["data:image/jpeg;base64,..."]`) because
  * it is the same component the product wizard uses. A bare string is still
  * accepted so the site-relative paths already in the database survive an edit
- * — those used to be the ONLY accepted form, which meant the panel could not
+ * - those used to be the ONLY accepted form, which meant the panel could not
  * add a photo at all on a deployment with no writable `public/`, and an https
  * URL typed into the field was discarded without a word.
  */

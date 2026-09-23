@@ -25,7 +25,7 @@ const FAILURE_MESSAGE: Record<SetReservationStatusFailure, string> = {
 
 /**
  * Rol kapısı her action'da ayrıca açılır: sayfadaki `requireRole` bir Server
- * Action'ı korumaz — action, sayfadan bağımsız çağrılabilen bir POST ucudur.
+ * Action'ı korumaz - action, sayfadan bağımsız çağrılabilen bir POST ucudur.
  */
 async function transition(
   formData: FormData,
@@ -54,7 +54,7 @@ async function transition(
       : "Rezervasyon iptal edildi";
   // The member is told by e-mail now; say whether that actually left. The
   // booking stands either way, but a member who was not told is a member
-  // who turns up on the wrong assumption — and then someone has to phone.
+  // who turns up on the wrong assumption - and then someone has to phone.
   return {
     message: result.notified
       ? `${done}; üyeye bilgilendirme e-postası gönderildi.`

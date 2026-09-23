@@ -70,7 +70,7 @@ describe("markdownToSections", () => {
     ]);
   });
 
-  it("drops **bold** marks — the app renders plain text", () => {
+  it("drops **bold** marks - the app renders plain text", () => {
     const out = markdownToSections(
       "## Kimlik\n- **Unvan:** L'Affogato\n\n**Önemli** not.",
       "Belge",

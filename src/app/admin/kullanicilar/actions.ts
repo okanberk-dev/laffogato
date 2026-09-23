@@ -21,7 +21,7 @@ import {
  * endpoint that can be called without the page. Without the gate here,
  * somebody who never opened the panel could give themselves an owner account.
  *
- * A password is written to NO audit payload and to no log — it reaches the
+ * A password is written to NO audit payload and to no log - it reaches the
  * database only as a bcrypt hash.
  */
 
@@ -97,7 +97,7 @@ export async function resetAdminPasswordAction(
     action: "update",
     entity: "admin_user",
     entityId: result.value.email,
-    // The new password is deliberately absent — an audit trail that quotes
+    // The new password is deliberately absent - an audit trail that quotes
     // credentials is a credential store.
     payload: { passwordReset: true },
   });

@@ -1,4 +1,4 @@
-# BRAND — L'Affogato marka kimliği
+# BRAND - L'Affogato marka kimliği
 
 > Bu belge **web sitesinin** görsel kimliğidir ve tek kaynağı
 > `src/app/globals.css` içindeki `:root` bloğudur. Buradaki her değer oradan
@@ -47,10 +47,10 @@ olan bir başlık rengi taşıyan tek şerit.
 
 Ölçülmüş kontrast (`--hero-cream` üzerinde): cocoa **7.87:1**, green
 **7.43:1**, `--ink` 15.71:1, `--ink-soft` 6.44:1. Hepsi AA gövde metnini de
-geçer — devasa başlığın buna ihtiyacı yok ama `.hero-x-cta`'nın var.
+geçer - devasa başlığın buna ihtiyacı yok ama `.hero-x-cta`'nın var.
 
 Referans bir Starbucks konseptiydi: alınan **düzen ve renk muamelesi**dir.
-Marka taşıyan hiçbir şey alınmadı — logo, kelime markası, ürünler ve
+Marka taşıyan hiçbir şey alınmadı - logo, kelime markası, ürünler ve
 fotoğraflar L'Affogato'nun kendisinin. `tests/brand-theme.test.ts` o markanın
 iki yeşilini yasaklar ve dosyada geçerlerse build'i düşürür.
 
@@ -68,8 +68,8 @@ iki yeşilini yasaklar ve dosyada geçerlerse build'i düşürür.
 | `--ink-line`        | `#ebe7de` | Kart kenarlığı, ince ayraç.                  |
 | `--ink-line-strong` | `#e1dcd1` | Girdi kenarlığı, çerçeveli buton, pasif hap. |
 
-`--ink-mute` prototipte `#8c8375`. Beyaz üzerinde 3.74:1 ölçtüğü — yani AA
-altında kaldığı — için bir adım koyulaştırıldı. Bu, tasarımdan bilerek
+`--ink-mute` prototipte `#8c8375`. Beyaz üzerinde 3.74:1 ölçtüğü - yani AA
+altında kaldığı - için bir adım koyulaştırıldı. Bu, tasarımdan bilerek
 ayrılan iki değerden biri.
 
 ### 1.3 Yeşil
@@ -86,7 +86,7 @@ ayrılan iki değerden biri.
 bakışta ayırt edilemiyordu. `tests/contrast.test.ts` bu farkı >60° olarak
 zorunlu tutar.
 
-### 1.4 Altın — ödül sesi
+### 1.4 Altın - ödül sesi
 
 | Token         | Değer     | Nerede                                               |
 | ------------- | --------- | ---------------------------------------------------- |
@@ -98,7 +98,7 @@ zorunlu tutar.
 Altın yalnızca **ödül** anlamına gelir: damga kartı, kupon, "siparişi onayla".
 Dekoratif kullanılmaz.
 
-### 1.5 Bordo — vurgu, tricolore'nin kırmızısı
+### 1.5 Bordo - vurgu, tricolore'nin kırmızısı
 
 | Token              | Değer     | Nerede                                                             |
 | ------------------ | --------- | ------------------------------------------------------------------ |
@@ -109,7 +109,7 @@ Dekoratif kullanılmaz.
 
 Operatör talimatı, 7 Eyl 2026: _"italya bayrağı renklerini kullan … bunlara
 yakışan bordo ekle"_. Yeşil ve beyaz sitede zaten vardı; bu, bayrağın
-kırmızısının bordoya derinleştirilmiş hâli — ev yeşilinin üstüne bağırmak
+kırmızısının bordoya derinleştirilmiş hâli - ev yeşilinin üstüne bağırmak
 yerine onunla oturması için.
 
 Bu değerler **yeni değil**: `lafmobil`'in `accent.burgundy`,
@@ -129,7 +129,7 @@ Bordo **kıt** kullanılır. Birincil eylem rengi değildir; birincil eylem ev
 yeşilidir.
 
 **Tricolore çizgisi.** `.tricolore` sınıfı bir başlığın altına 42×3px'lik üç
-duraklı bir çizgi çizer: yeşil · kırık beyaz · bordo. Bayrağın kendisi değil —
+duraklı bir çizgi çizer: yeşil · kırık beyaz · bordo. Bayrağın kendisi değil -
 bir kahve sitesinde gerçek bayrak dil seçici gibi okunur; ince çizgi miras
 gibi okunur. Duraklar bu paletin kendi renkleri, bayrağın primerleri değil.
 
@@ -137,8 +137,8 @@ gibi okunur. Duraklar bu paletin kendi renkleri, bayrağın primerleri değil.
 
 | Token      | Değer     | Anlam                         |
 | ---------- | --------- | ----------------------------- |
-| `--matcha` | `#1e7c4b` | Olumlu — stokta, açık, onaylı |
-| `--rose`   | `#c5435a` | Uyarı — az kaldı, hata        |
+| `--matcha` | `#1e7c4b` | Olumlu - stokta, açık, onaylı |
+| `--rose`   | `#c5435a` | Uyarı - az kaldı, hata        |
 
 `--rose` **durum** rengidir, marka değil. Vurgu bordo olunca ikisi hue olarak
 yakınlaştı (4.8°); onları ayıran şey ton değil **değer** ve **ağırlık**:
@@ -181,7 +181,7 @@ Dolgu üzerine metin:
 | `--accent-deep` #4a0f1e | 15.24:1     | 1.11:1        |
 | `--gold-soft` #e8d3a4   | 1.47:1 ✗    | 11.52:1       |
 
-### 1.8 HUES — ürün yüzeyleri
+### 1.8 HUES - ürün yüzeyleri
 
 `src/components/laffogato/visuals.tsx` içindeki 12 yüzey ayrı bir sistemdir:
 menü ve mağaza kartlarının arkasındaki degradeler. Bir duvar dolusu kart bir
@@ -199,7 +199,7 @@ ağırlık ve harf aralığı yapar. `next/font/google` ile self-host edilir
 (`--font-jakarta`), Türkçe için `latin-ext` alt kümesiyle.
 
 Tarihsel token'lar (`--serif`, `--serif-modern`, `--serif-display`,
-`--script`, `--mono`) korundu ve hepsi `--sans`'a çözülür — bu dosyadaki ve
+`--script`, `--mono`) korundu ve hepsi `--sans`'a çözülür - bu dosyadaki ve
 admin panelindeki yüzlerce çağrı yeri bozulmasın diye. **Yeni kodda
 `--sans` kullan.** `--mono` artık "monospace" değil, "etiket/rakam sesi"
 demektir: büyük harf, geniş aralık, tabular rakam.
@@ -211,8 +211,8 @@ demektir: büyük harf, geniş aralık, tabular rakam.
 | `.h2`        | `clamp(28px, 3.6vw, 48px)`     | 800     | 1.05  | -0.035em           |
 | `.h3`        | `clamp(19px, 2vw, 24px)`       | 700     | 1.2   | -0.02em            |
 | `.lede`      | `clamp(15.5px, 1.1vw, 16.5px)` | 400     | 1.65  | -0.005em           |
-| gövde        | 16px                           | 400     | 1.55  | —                  |
-| `.eyebrow`   | 11px                           | 700     | —     | 0.22em, büyük harf |
+| gövde        | 16px                           | 400     | 1.55  | -                  |
+| `.eyebrow`   | 11px                           | 700     | -     | 0.22em, büyük harf |
 
 Ölçek Köşk yeniden tasarımında **yarıya indi**: eski display 120px'e kadar
 çıkıyordu, prototipin en büyüğü 68px. Sayfaların poster gibi değil kafe sitesi
@@ -225,9 +225,9 @@ Rakamlar site genelinde `font-variant-numeric: tabular-nums`. Fiyat, damga
 sayısı, saat ve telefon akan metnin içinde geçiyor; her birinde yardımcı
 sınıfa uzanmak yerine varsayılan bu.
 
-**Tire:** Arayüz metninde uzun (—) ve orta (–) tire kullanılmaz, düz tire
+**Tire:** Arayüz metninde uzun tire (U+2014) ve orta tire (U+2013) kullanılmaz, düz tire
 (`-`) kullanılır. Bu API'nin döndüğü etiketler için de geçerlidir
-(`hoursLabel`, `venue.hours[].value`) — uygulama bunları olduğu gibi bastığı
+(`hoursLabel`, `venue.hours[].value`) - uygulama bunları olduğu gibi bastığı
 için değişiklik sunucudan gider, uygulama güncellemesi gerekmez.
 
 ---
@@ -249,7 +249,7 @@ için değişiklik sunucudan gider, uygulama güncellemesi gerekmez.
 ```
 
 Bölüm ritmi: `.section` = `clamp(44px, 6vw, 88px)` alt+üst. Anasayfa
-bloklarında `.home-section` = **yalnız üst** — üst üste iki `.section` iki
+bloklarında `.home-section` = **yalnız üst** - üst üste iki `.section` iki
 boşluk bırakıyor ve aralar 176px'e çıkıyordu.
 
 Gölgeler nötr siyahla değil **ev yeşiliyle** (20,61,43) tonlanır; beyaz
@@ -259,7 +259,7 @@ Gölgeler nötr siyahla değil **ev yeşiliyle** (20,61,43) tonlanır; beyaz
 
 ## 4. Bileşen dili
 
-**Butonlar 8px yarıçaplı dikdörtgendir** (`--r-btn`), hap değil — referans
+**Butonlar 8px yarıçaplı dikdörtgendir** (`--r-btn`), hap değil - referans
 tasarımın buton dili. Hap yarıçapı (`--r-pill`) çipte, rozette, sayaçta ve
 sepet balonunda kalır; oralar hap OLMALI, bu yüzden ikisi ayrı jeton.
 
@@ -275,7 +275,7 @@ sepet balonunda kalır; oralar hap OLMALI, bu yüzden ikisi ayrı jeton.
 ayrılır. Hover'da kenarlık `--bg-espresso`'ya döner.
 
 **Rozetler** 10px/700, `0.16em` aralık, hap. `--bg-espresso` (İMZA) veya
-`--accent-deep` (YENİ — beyaz metin AA'yı `--accent` üzerinde geçmediği için
+`--accent-deep` (YENİ - beyaz metin AA'yı `--accent` üzerinde geçmediği için
 koyu adım).
 
 **Etiket (eyebrow)** her bölüm başlığının üstünde: 11px/700, `0.22em`, büyük
@@ -284,14 +284,14 @@ olarak `.muted` ile `--ink-mute`.
 
 **Başlık (header)** iki katlıdır ve `position: sticky`: koyu yeşil künye
 şeridi (saatler, gel-al sözü, telefon, uygulama bağlantısı) üstte, beyaz nav
-altta. Sabit/şeffaf değil — bu yüzden sayfalar kendi üst boşluklarıyla başlar.
+altta. Sabit/şeffaf değil - bu yüzden sayfalar kendi üst boşluklarıyla başlar.
 
 ---
 
 ### 4.1 Sayfa mobilyası
 
 Referans tasarımın dili üç paylaşılan parçada toplanır. Yeni bir sayfa bunları
-kullanır; kendi kopyasını çıkarmaz — bundan önce altı sayfada altı farklı
+kullanır; kendi kopyasını çıkarmaz - bundan önce altı sayfada altı farklı
 başlık ölçüsü vardı.
 
 | Parça                          | Nerede                       | Ne yapar                                                             |
@@ -311,7 +311,7 @@ fotoğraf" gibi okunur ve tasarımı öldürür.
 kendisi belirler) ya da tek bir dize alır. İkisi birden, çünkü demet iki zıt
 yönde yanlıştı: başlığı veriden gelen sayfalar (bir rehber yazısının adı, bir
 sözleşmenin başlığı) elle bölünemiyordu ve bileşeni geri çeviriyordu; demeti
-kabul eden sayfalar ise sabit bir demeti her alt rotaya kopyalıyordu — sekiz
+kabul eden sayfalar ise sabit bir demeti her alt rotaya kopyalıyordu - sekiz
 menü kategorisi URL'inin hepsi aynı h1'i basıyordu.
 
 **Vurgu kelimesi zemine göre renk alır.** `.script` artık
@@ -333,7 +333,7 @@ tamamen yutar.
 
 Tek kaynak: `public/logo-mark.png`, CSS maskesi olarak
 (`.brand-mark`, `background-color: currentColor`). Tek varlık her zemine
-boyanır — navda yeşil diskin içinde beyaz, altbilgide koyu yeşil üzerinde
+boyanır - navda yeşil diskin içinde beyaz, altbilgide koyu yeşil üzerinde
 beyaz. Renkli PNG kopyası tutulmaz.
 
 Nav kilidi: 48px yeşil disk + 22px/800 "L'Affogato" + 9px/600 `0.3em`
@@ -343,7 +343,7 @@ Nav kilidi: 48px yeşil disk + 22px/800 "L'Affogato" + 9px/600 `0.3em`
 
 ## 6. Fotoğraf
 
-`public/photos/*.webp` — mekânın kendi fotoğrafları (cephe gündüz/gece, iç
+`public/photos/*.webp` - mekânın kendi fotoğrafları (cephe gündüz/gece, iç
 mekân, teras, ürün). PNG olarak geldiler, 10.56 MB; WebP q82'de 1.28 MB.
 Yeni fotoğraf eklerken aynı yolu izle: `public/menu/*.webp` de böyle.
 
@@ -373,7 +373,7 @@ Kullanım: hero slayt yarısı `object-fit: cover`, hikaye mozaiği
    `tests/brand-theme.test.ts` paletin kaymasını tutar; ikisi de bilerek
    katıdır çünkü bu palet üç kez kaydı.
 3. `globals.css` dışındaki dört yüzey CSS değişkeni çözemez ve paleti harfi
-   harfine yazar — değiştirirsen dördünü de güncelle:
+   harfine yazar - değiştirirsen dördünü de güncelle:
    `src/app/manifest.ts` (PWA açılışı), `src/app/layout.tsx` (`themeColor`),
    `src/app/opengraph-image.tsx` (bağlantı önizlemesi),
    `src/lib/email/send.ts` (işlemsel e-posta).

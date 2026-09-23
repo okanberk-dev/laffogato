@@ -12,7 +12,7 @@ const ogImage = read("src/app/opengraph-image.tsx");
 /**
  * The mail markup used to live in send.ts as template literals; it now sits in
  * src/lib/email/templates/*.html and send.ts only fills the fields. The guard
- * follows the paint — reading both means the retired-colour ban below covers
+ * follows the paint - reading both means the retired-colour ban below covers
  * the templates too.
  */
 const templateFiles = readdirSync(
@@ -28,7 +28,7 @@ const emails = [
 /**
  * The tricolore's bordo as the site paints it: accent / deep / soft. Until
  * 8 Eyl 2026 these were also lafmobil's accent.burgundy / burgundyDeep /
- * bg.accentSubtle, verbatim — see the note on the phone below.
+ * bg.accentSubtle, verbatim - see the note on the phone below.
  */
 const SITE_BORDO = ["#84233C", "#4A0F1E", "#F6E9EC"] as const;
 
@@ -38,17 +38,17 @@ const SITE_BORDO = ["#84233C", "#4A0F1E", "#F6E9EC"] as const;
  * Operator instruction, 5 Eyl 2026: two homepage studies were drawn (Köşk and
  * Bold), Köşk was picked, then revised onto a white ground in the Starbucks TR
  * mould. Then 7 Eyl: "italya bayrağı renklerini kullan … bunlara yakışan bordo
- * ekle" — keep the green, add the flag's red as a burgundy.
+ * ekle" - keep the green, add the flag's red as a burgundy.
  *
- * This file has now pinned FOUR successive decisions — heritage köşk, the
+ * This file has now pinned FOUR successive decisions - heritage köşk, the
  * mobile app's tokens (2 Eyl), the Köşk redesign (5 Eyl), and the tricolore
- * accent (7 Eyl) — and is kept, each time inverted, because the failure mode
+ * accent (7 Eyl) - and is kept, each time inverted, because the failure mode
  * it guards is real: a palette that drifts one hex at a time until half the
  * site is on the previous one. The `not.toContain` assertions are the
  * load-bearing half.
  *
  * Note on the phone: the 2 Eyl swap existed to make site and app read alike,
- * the 5 Eyl redesign broke that, and the 7 Eyl accent restored the bordo — for
+ * the 5 Eyl redesign broke that, and the 7 Eyl accent restored the bordo - for
  * a day. On 8 Eyl 2026 the operator moved the app to a palette of its own,
  * and it has changed again since; it lives in lafmobil's src/theme/tokens.ts,
  * so site and app no longer share a palette BY DECISION, not by drift. This
@@ -76,7 +76,7 @@ describe("palette follows the Köşk redesign", () => {
      * Two holes made the previous version of this test pass over live
      * terracotta:
      *
-     * 1. It banned HEX strings, and two survivors were written in decimal —
+     * 1. It banned HEX strings, and two survivors were written in decimal -
      *    `rgba(192, 100, 58, 0.22)` in `.open-dot` (inside globals.css, the
      *    one file this test did read) and the same colour in the degraded-auth
      *    notice. A find-and-replace on "#c0643a" cannot see either.
@@ -124,7 +124,7 @@ describe("palette follows the Köşk redesign", () => {
         const decimal = new RegExp(`${r}\\s*,\\s*${g}\\s*,\\s*${b}`);
         expect(
           decimal.test(source),
-          `rgb(${r}, ${g}, ${b}) — ${hex} in decimal — in ${file}`,
+          `rgb(${r}, ${g}, ${b}) - ${hex} in decimal - in ${file}`,
         ).toBe(false);
       }
     }
@@ -150,14 +150,14 @@ describe("palette follows the Köşk redesign", () => {
     expect(css).not.toContain("#f7f3ea");
   });
 
-  it("is not Starbucks' own green — the theme is derived, not copied", () => {
+  it("is not Starbucks' own green - the theme is derived, not copied", () => {
     expect(css).not.toContain("#00754a");
     expect(css).not.toContain("#005c3a");
   });
 
   it("tints its shadows with the house green", () => {
-    // --bg-espresso #143D2B = 20,61,43. Both earlier shadow colours — the
-    // espresso brown and the app's darker green — are gone.
+    // --bg-espresso #143D2B = 20,61,43. Both earlier shadow colours - the
+    // espresso brown and the app's darker green - are gone.
     expect(css).toContain("rgba(20, 61, 43,");
     expect(css).not.toContain("rgba(74, 52, 22,");
     expect(css).not.toContain("rgba(18, 41, 31,");
@@ -179,7 +179,7 @@ describe("palette follows the Köşk redesign", () => {
  * The palette is not only globals.css.
  *
  * The PWA manifest paints the install splash and the Android status bar, and
- * the hero preview is what an operator picks a text theme against — both sat
+ * the hero preview is what an operator picks a text theme against - both sat
  * on a retired set long after the site itself moved, twice.
  */
 describe("surfaces outside globals.css follow the same palette", () => {
@@ -255,7 +255,7 @@ describe("surfaces outside globals.css follow the same palette", () => {
     }
     // The lockup: the L'Af letterforms at 200 px, no frame around them
     // (operator, 8 Sep 2026 evening; source logos/2.png). Three files carry
-    // it — the espresso PNG for a light card, the cream PNG the dark-mode
+    // it - the espresso PNG for a light card, the cream PNG the dark-mode
     // media query swaps in, and the GIF whose gold glint runs once over the
     // deep-green band. The GIF's first frame is the plain cream mark, which
     // is what Outlook renders.

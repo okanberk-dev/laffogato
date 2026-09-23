@@ -3,7 +3,7 @@
  *
  * Why a generator and not a copy: the app shows these documents at the moment
  * a customer consents, and the order records which revision they agreed to.
- * A hand-maintained copy drifts — the app was shipping abridged 26 Mayıs text
+ * A hand-maintained copy drifts - the app was shipping abridged 26 Mayıs text
  * while orders recorded consent to the 1 Eylül revision. Running this keeps
  * the two identical by construction.
  *
@@ -24,7 +24,7 @@ const here = fileURLToPath(new URL(".", import.meta.url));
 /**
  * The contracts are TypeScript with path aliases, and this repo has no TS
  * script runner. esbuild is already here (vitest pulls it), so the source is
- * bundled to a temp module and imported — no new dependency for one script.
+ * bundled to a temp module and imported - no new dependency for one script.
  */
 async function loadLegal() {
   const outfile = resolve(here, "../.legal-export.tmp.mjs");
@@ -49,7 +49,7 @@ const { LEGAL_DOCS, LEGAL_UPDATED, CHECKOUT_CONSENT_DOCS } = await loadLegal();
 
 /** Documents the app must be able to show with no network. */
 export const BUNDLED_SLUGS = [
-  // Consent at checkout — Mesafeli Sözleşmeler Yönetmeliği wants these read
+  // Consent at checkout - Mesafeli Sözleşmeler Yönetmeliği wants these read
   // BEFORE the order, and the order records the revision.
   "on-bilgilendirme-formu",
   "mesafeli-satis-sozlesmesi",
@@ -92,7 +92,7 @@ const payload = {
     "RiosenBeq/laffogato · scripts/legal-export.mjs — ELLE DÜZENLEME; kaynak src/lib/legal/content.ts",
   LEGAL_UPDATED,
   CONSENT_DOCS: [...CHECKOUT_CONSENT_DOCS],
-  /** Every published contract, title only — so the list is complete offline. */
+  /** Every published contract, title only - so the list is complete offline. */
   LEGAL_INDEX: index,
   /** Full text of the documents the app's own flows depend on. */
   LEGAL_DOCS: LEGAL_DOCS.filter((d) => BUNDLED_SLUGS.includes(d.slug)),

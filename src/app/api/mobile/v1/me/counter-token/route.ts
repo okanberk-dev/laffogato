@@ -21,7 +21,7 @@ const MSG = {
  * Error correction level, and why it is not the library default.
  *
  * The payload is 26 base32 characters (`src/lib/mobile/counter.ts`), which QR
- * encodes in alphanumeric mode — cheap enough that level **Q** still fits in
+ * encodes in alphanumeric mode - cheap enough that level **Q** still fits in
  * a version-2, 25x25 grid. The old 43-character base64url token needed 33x33
  * at level M, so this is more recoverable data in a coarser grid: 25% of the
  * code can be lost to glare, a fingerprint or a scratched screen protector
@@ -34,7 +34,7 @@ const QR_ERROR_CORRECTION = "Q" as const;
  *
  * ISO/IEC 18004 asks for four. This was `1`, which is the kind of thing that
  * works on the desk it was tested on and fails against a dark counter or a
- * member's dark-mode wallpaper — the scanner needs blank paper around the
+ * member's dark-mode wallpaper - the scanner needs blank paper around the
  * finder patterns to lock onto them at all.
  */
 const QR_QUIET_ZONE = 4;
@@ -43,7 +43,7 @@ const QR_QUIET_ZONE = 4;
  * Draws the code, and tells the app how many modules wide it is.
  *
  * `qrcode` already writes `shape-rendering="crispEdges"` on the root, which
- * is the other half of the sharpness story — the SVG is drawn at 33 units and
+ * is the other half of the sharpness story - the SVG is drawn at 33 units and
  * scaled to ~300 device pixels, so without it every module edge lands on a
  * fractional pixel and is antialiased into a grey ramp that a scanner
  * thresholds the wrong way at exactly the boundaries that carry the data.
@@ -66,7 +66,7 @@ async function renderCounterQr(
 }
 
 /**
- * `POST /me/counter-token` — the QR the member shows at the till (§17).
+ * `POST /me/counter-token` - the QR the member shows at the till (§17).
  *
  * POST rather than GET on purpose: issuing writes a row, retires the previous
  * codes and counts against the member's rate budget, and none of that belongs

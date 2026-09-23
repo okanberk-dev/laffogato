@@ -7,11 +7,11 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 /**
- * GET /api/mobile/v1/live-status — docs/API-MOBILE.md §6.
+ * GET /api/mobile/v1/live-status - docs/API-MOBILE.md §6.
  *
  * Public: the same "are they open, is there a free table" question a passer-by
  * answers by looking through the window. Thirty seconds of shared cache is
- * shorter than it takes the staff to walk to the panel and back — and no
+ * shorter than it takes the staff to walk to the panel and back - and no
  * `stale-while-revalidate`, because the panel tells staff "the app sees it
  * within 30 seconds" and an SWR window of two minutes made that untrue.
  */

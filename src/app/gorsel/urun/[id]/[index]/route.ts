@@ -9,7 +9,7 @@ export const runtime = "nodejs";
  * Uploaded images live in the row as base64 data URLs. Inlining those into the
  * page meant every product listing shipped megabytes of base64 that no browser
  * could cache. Behind this route the payload carries a short path instead and
- * the bytes are cached normally — forever, when the path carries the content
+ * the bytes are cached normally - forever, when the path carries the content
  * stamp `image-url.ts` describes.
  */
 export async function GET(

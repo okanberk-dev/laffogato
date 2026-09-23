@@ -35,7 +35,7 @@ import {
  * out like Ayarlar: each saves only its own section (the action merges it
  * onto the live document), so an operator can tune the courier ETA without
  * re-submitting the reminders. `@/lib/mobile/app-config` is safe to import
- * here — it has no "server-only" and no database.
+ * here - it has no "server-only" and no database.
  */
 
 const initial: AppConfigState = {};
@@ -80,7 +80,7 @@ export function AppConfigForm({ config }: { config: MobileAppConfig }) {
           Every field in these nine forms is uncontrolled (`defaultValue` off
           `config`), so tearing a tab out of the DOM threw away whatever had
           been typed into it and rebuilt it from the saved document on the way
-          back — a 280-character bakım duyurusu lost to a glance at the
+          back - a 280-character bakım duyurusu lost to a glance at the
           courier fee, with no warning and no undo. `hidden` keeps the nodes
           and their values alive; the forms stay independent, so each Kaydet
           still submits only its own section. */}
@@ -119,7 +119,7 @@ export function AppConfigForm({ config }: { config: MobileAppConfig }) {
 
 
 /**
- * One tab's panel. `hidden` rather than a conditional render — see the note
+ * One tab's panel. `hidden` rather than a conditional render - see the note
  * at the tab list. The attribute also takes the panel out of the
  * accessibility tree and out of tab order, so a screen reader and the Tab key
  * see exactly the section on screen.
@@ -653,7 +653,7 @@ const HAPPY_DAY_LABELS: Record<string, string> = {
  * The happy hour, and the switch that decides whether the app mentions it.
  *
  * The warning is the point of the section. Nothing in the order's pricing
- * applies this discount — the counter does, by hand — so an operator who
+ * applies this discount - the counter does, by hand - so an operator who
  * turns it on is promising that the till will honour what the app shows.
  * While it is off, the bootstrap publishes nothing and no card is drawn.
  */

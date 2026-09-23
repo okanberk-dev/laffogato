@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 /**
- * `POST /api/mobile/v1/promo/preview` — is this code good for this subtotal
+ * `POST /api/mobile/v1/promo/preview` - is this code good for this subtotal
  * (docs/API-MOBILE.md §5)? Nothing is consumed; checkout re-validates. Rate
  * limited per IP (`promo-preview`), because an unlimited yes/no oracle is a
  * code enumerator.

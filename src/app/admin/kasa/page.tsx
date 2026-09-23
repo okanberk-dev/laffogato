@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  *
  * Gated on `till`, not on `orders`: this is the one page a cashier opens, and
  * the order list behind `orders` carries every customer's name, address and
- * phone — nothing a shift at the counter needs. The action behind the three
+ * phone - nothing a shift at the counter needs. The action behind the three
  * tabs opens the same gate again for itself.
  */
 export default async function AdminTillPage() {

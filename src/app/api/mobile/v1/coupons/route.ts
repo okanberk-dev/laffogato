@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
-/** `GET /coupons` — the member's personal coupons, newest first (§5). */
+/** `GET /coupons` - the member's personal coupons, newest first (§5). */
 export async function GET(request: Request) {
   try {
     const auth = await requireMobileCustomer(request);

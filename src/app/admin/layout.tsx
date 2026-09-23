@@ -10,7 +10,7 @@ import { canAccess, ROLE_LABELS, type AdminSection } from "@/lib/admin/roles";
 import { logoutAction } from "./actions";
 
 /**
- * Admin panel uses Poppins — a clean, geometric UI sans. The admin is internal
+ * Admin panel uses Poppins - a clean, geometric UI sans. The admin is internal
  * (customers never see it), so it deliberately diverges from the customer
  * site's editorial Playfair/Inter type system for better dashboard legibility.
  */
@@ -25,7 +25,7 @@ const poppins = Poppins({
 // espresso primary, gold accent) so it feels of-a-piece with the customer
 // site. Tokens are explicit hex (not the global :root vars) so a dark-mode
 // scheme can never flip the admin to dark, and we locally override the brand
-// serif tokens so any var(--serif) element renders Poppins too — all scoped
+// serif tokens so any var(--serif) element renders Poppins too - all scoped
 // to this wrapper, leaving the customer site's type system untouched.
 const adminFontStyle = {
   fontFamily: "var(--font-poppins), var(--sans)",
@@ -159,7 +159,7 @@ export default async function AdminLayout({
 }) {
   const session = await getAdminSession();
 
-  // Unauthenticated routes (login, 2FA challenge) render bare — they ship
+  // Unauthenticated routes (login, 2FA challenge) render bare - they ship
   // their own centered layout and must not show the admin sidebar.
   if (!session) {
     return (

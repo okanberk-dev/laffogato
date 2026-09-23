@@ -44,7 +44,7 @@ describe("till", () => {
 });
 
 describe("adminUsers", () => {
-  it("is the owner's alone — it can grant every other privilege", () => {
+  it("is the owner's alone - it can grant every other privilege", () => {
     expect(canAccess("adminUsers", "owner")).toBe(true);
     for (const role of ["manager", "staff", "cashier"] as const) {
       expect(canAccess("adminUsers", role)).toBe(false);

@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
  *
  * Every error body has the same two fields: a stable machine code the app
  * branches on and a Turkish message it may show as-is. Route handlers stay
- * thin — parse, authorise, call, map — and these keep the shape from drifting
+ * thin - parse, authorise, call, map - and these keep the shape from drifting
  * between them.
  */
 export interface ApiErrorBody {
@@ -47,7 +47,7 @@ export function apiJson<T>(
   init?: {
     status?: number;
     headers?: Record<string, string>;
-    /** Adds `Cache-Control: private, no-store` — use on every bearer route. */
+    /** Adds `Cache-Control: private, no-store` - use on every bearer route. */
     private?: boolean;
   },
 ): NextResponse<T> {

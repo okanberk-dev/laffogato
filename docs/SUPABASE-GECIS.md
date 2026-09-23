@@ -1,4 +1,4 @@
-# Neon → Supabase geçişi — çalıştırılabilir yordam
+# Neon → Supabase geçişi - çalıştırılabilir yordam
 
 > Bu belge tek bir soruya cevaptır: **siteyi, mobil uygulamanın zaten
 > kullandığı Supabase projesine (`wvivcgctebyxojtyidfg`) nasıl güvenle
@@ -21,11 +21,11 @@ olarak doğrulanacak tek şey:
 > değilse o organizasyonda bu proje **kalıcı** mı?
 
 (Karşılaştırma için ölçüm: bu makinenin MCP erişimindeki DİĞER organizasyon
-"free" planda ve tam 2 projeyle dolu — sınır gerçek ve bugün de yürürlükte.
+"free" planda ve tam 2 projeyle dolu - sınır gerçek ve bugün de yürürlükte.
 `wvivcgctebyxojtyidfg`'nin organizasyonu ayrı bir hesapta; planı DOĞRULANMADI.)
 
 Proje bugün canlı ve sağlıklı (auth ucu cevap veriyor, publishable anahtar
-geçerli — bu oturumda doğrulandı). Ama "bugün canlı" ile "plan gereği kalıcı"
+geçerli - bu oturumda doğrulandı). Ama "bugün canlı" ile "plan gereği kalıcı"
 aynı şey değil.
 
 ## 1. Neden bu geçiş küçük bir iş: veri katmanı sağlayıcı tanımıyor
@@ -56,7 +56,7 @@ db.wvivcgctebyxojtyidfg.supabase.co  →  A kaydı YOK, yalnızca AAAA (IPv6)
 
 Vercel'in sunucusuz fonksiyonları dışarıya IPv6 açamaz. Yani Supabase
 panelindeki **"Direct connection"** dizesi Vercel'de HİÇ bağlanamaz ve hata
-"yanlış şifre" gibi değil, zaman aşımı gibi görünür — teşhisi saatler yiyen
+"yanlış şifre" gibi değil, zaman aşımı gibi görünür - teşhisi saatler yiyen
 türden.
 
 **Kural: Vercel'e yalnızca "Transaction pooler" (Supavisor) dizesi konur:**
@@ -83,23 +83,23 @@ Yani sistem kökleriyle `rejectUnauthorized: true` **başarısız olur**. Kodun 
 duruma iki cevabı var (`src/lib/db/index.ts` ve aynı kurallarla
 `scripts/db-migrate.mjs`):
 
-1. **ZORUNLU — `DATABASE_SSL_CA`:** Supabase panelinden indirilen kök
+1. **ZORUNLU - `DATABASE_SSL_CA`:** Supabase panelinden indirilen kök
    sertifikanın PEM içeriği bu env değişkenine konur; tam doğrulama o kökle
-   yapılır. Bu olmadan Supabase'e HİÇBİR bağlantı kurulamaz — cutover'da değil,
+   yapılır. Bu olmadan Supabase'e HİÇBİR bağlantı kurulamaz - cutover'da değil,
    **ilk pooler bağlantısında** (yani §4 adım 2'de) gerekir.
    (Panel: Project Settings → Database → SSL Configuration → CA certificate.)
    CA yalnızca Supabase host'larında uygulanır; Neon'a dönüşte env'in unutulmuş
-   olması hiçbir şeyi bozmaz — Node'da `ca` sistem köklerinin YERİNE geçtiği
+   olması hiçbir şeyi bozmaz - Node'da `ca` sistem köklerinin YERİNE geçtiği
    için bu kapsamlama, tek adımlık geri dönüşün ta kendisidir.
 2. **Ek emniyet:** `*.supabase.co` / `*.pooler.supabase.com` host'larında TLS,
    `sslmode` yazılmasa bile (hatta `sslmode=disable` yazılsa bile) **zorla
-   açılır** — Supavisor düz metin oturumu kabul ettiği için aksi, üretimi
+   açılır** - Supavisor düz metin oturumu kabul ettiği için aksi, üretimi
    sessizce şifresiz taşımak olurdu. `sslmode=require` yazmaya devam etmek
    yine de iyi pratik: niyeti dizede görünür kılar.
 
 `rejectUnauthorized: false` diye bir yol bilerek YOK: sağlık katmanı
 (`client.ts`) bağlantı hatasını "veritabanı ulaşılamıyor" sayıp paket veriye
-düşer — yanlış TLS yapılandırması 500 olarak değil, **"boş ama ayakta site"**
+düşer - yanlış TLS yapılandırması 500 olarak değil, **"boş ama ayakta site"**
 olarak görünür ve teşhisi geciktirir. Bu yüzden cutover'daki doğrulama kapısı
 (aşağıda §4/6) atlanamaz.
 
@@ -114,7 +114,7 @@ Database). Bu şifre bu depoda YOKTUR ve olmamalıdır.
 
 Sıfır kesinti hedefiyle, adım adım:
 
-1. **Ön koşul** — §0'daki plan/slot doğrulaması + pooler bağlantı dizesi elde.
+1. **Ön koşul** - §0'daki plan/slot doğrulaması + pooler bağlantı dizesi elde.
 2. **Şemayı kur (canlıya dokunmaz):** yerelde
 
    ```
@@ -124,7 +124,7 @@ Sıfır kesinti hedefiyle, adım adım:
 
    ya da `db/schema.sql`'i Supabase SQL Editor'a yapıştır. İkisi de
    idempotenttir ve `_migrations`'a ne uyguladığını yazar. (CA olmadan migrate
-   §2b'deki zincir hatasıyla düşer — bu beklenen davranıştır, şifresiz
+   §2b'deki zincir hatasıyla düşer - bu beklenen davranıştır, şifresiz
    bağlanmaya düşmez.)
 3. **Veriyi kopyala:** Neon hâlâ canlı kaynakken:
    ```
@@ -141,10 +141,10 @@ Sıfır kesinti hedefiyle, adım adım:
    - Vercel'de `DATABASE_URL` → pooler dizesi
    - Vercel'de `DATABASE_SSL_CA` → Supabase kök sertifikasının PEM içeriği (§2b)
    - `src/lib/legal/entity.ts` → `dbProvider: "Supabase"` (35 hukuki pasaj
-     kendiliğinden güncellenir; bkz. DATABASE.md — bu ikisi AYNI anda değişir,
+     kendiliğinden güncellenir; bkz. DATABASE.md - bu ikisi AYNI anda değişir,
      veri taşınmadan belge değişmez)
    - Redeploy
-6. **Doğrulama kapısı — "sayfa açılıyor" YETMEZ:** sağlık katmanı DB
+6. **Doğrulama kapısı - "sayfa açılıyor" YETMEZ:** sağlık katmanı DB
    hatasında paket veriye düştüğü için site, veritabanına hiç bağlanamazken de
    ayakta görünür. Kapı şudur:
    - Vercel fonksiyon loglarında bağlantı/TLS hatası OLMAMALI,
@@ -174,15 +174,15 @@ mevcut durumu ve seçenekleri:
   zorunlu, sosyal sağlayıcılar kapalı).
 - Site müşterileri `customers` tablosunda bcrypt(cost 10) hash ile duruyor.
   Supabase Auth, bcrypt hash'lerini **içe aktarmayı destekler**
-  (auth.users.encrypted_password bcrypt biçimindedir) — yani site üyeleri
+  (auth.users.encrypted_password bcrypt biçimindedir) - yani site üyeleri
   şifre sıfırlatmadan taşınabilir. Bu ayrı, dikkat isteyen bir iştir ve bu
   belgeye değil kendi yordamına aittir; ön koşulu da bu geçiştir.
 - O işe girmeden önce iki sistemin e-posta NORMALİZASYONU eşitlenmelidir
   (tr-TR küçük harf ↔ invariant küçük harf farkı "INFO@…" adresini iki ayrı
-  hesaba böler) — bu düzeltme lafmobil tarafında ayrıca yürüyor.
+  hesaba böler) - bu düzeltme lafmobil tarafında ayrıca yürüyor.
 
 **Köprü (30 Ağu 2026, `claude/mobil-panel-v2`):** kimlik tarafı artık
-kodda birleşik — `docs/AUTH-BRIDGE.md`. Özet:
+kodda birleşik - `docs/AUTH-BRIDGE.md`. Özet:
 
 - Site girişi **önce Supabase** (`signInWithPassword`), reddederse mevcut
   bcrypt akışı aynen; bcrypt başarısında tek seferlik `signUp` köprüsü

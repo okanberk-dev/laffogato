@@ -187,7 +187,7 @@ describe("redeemCounterTokenAction", () => {
 /**
  * The typed-address path.
  *
- * The QR and the code name a member by construction — the token row was minted
+ * The QR and the code name a member by construction - the token row was minted
  * for an account. A typed address names nobody, and `redeemCounterToken` only
  * checks its SHAPE: `uye@gmial.com` used to pass, collect its own ledger rows
  * and come back as a green "+1 damga · Kart 1/6" receipt while the member it
@@ -207,7 +207,7 @@ describe("e-posta yolu · üyelik denetimi", () => {
     expect(logAudit).not.toHaveBeenCalled();
   });
 
-  it("refuses a closed account too — a stamp there is a stamp nobody can spend", async () => {
+  it("refuses a closed account too - a stamp there is a stamp nobody can spend", async () => {
     getCustomerByEmail.mockResolvedValue({
       email: "eda@ornek.com",
       isActive: false,
@@ -234,7 +234,7 @@ describe("e-posta yolu · üyelik denetimi", () => {
     expect(state.result).toBeTruthy();
   });
 
-  it("does not ask the customer table on the QR path — the token already names the member", async () => {
+  it("does not ask the customer table on the QR path - the token already names the member", async () => {
     await redeemCounterTokenAction({
       kind: "token",
       value: "jeton",

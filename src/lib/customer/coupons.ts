@@ -72,7 +72,7 @@ const SOURCE_PREFIX: Record<CouponSource, string> = {
   milestone: "KT", // kilometre taşı (karar 175)
 };
 
-// ─── Pure helpers (no DB — unit-tested directly) ─────────────────────────────
+// ─── Pure helpers (no DB - unit-tested directly) ─────────────────────────────
 
 function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
@@ -129,7 +129,7 @@ export interface CouponApplyResult {
 
 /**
  * Look up a personal coupon by code and validate it for this member + subtotal.
- * `found:false` means "not this member's coupon" — the caller may then fall
+ * `found:false` means "not this member's coupon" - the caller may then fall
  * back to a global promo code with the same string.
  */
 export async function applyCustomerCoupon(
@@ -158,7 +158,7 @@ export async function applyCustomerCoupon(
 }
 
 /**
- * Atomically mark a coupon redeemed — a single guarded UPDATE that only flips
+ * Atomically mark a coupon redeemed - a single guarded UPDATE that only flips
  * an unredeemed, active coupon owned by this member. Returns true only when WE
  * were the writer that claimed it (single-use safe under concurrency).
  */
@@ -188,8 +188,8 @@ export async function redeemCustomerCoupon(
  * Hands a single-use coupon back to its owner.
  *
  * A coupon is claimed when the order is created, before payment. If that order
- * is then cancelled — the customer abandoned the POS page, the card was
- * declined — the coupon was simply gone. This reverses the claim, but only for
+ * is then cancelled - the customer abandoned the POS page, the card was
+ * declined - the coupon was simply gone. This reverses the claim, but only for
  * the order that took it, so an unrelated redemption is never undone.
  */
 export async function releaseCustomerCoupon(
@@ -286,7 +286,7 @@ async function hasCouponFromSource(
   return ((data as { id: string }[] | null) ?? []).length > 0;
 }
 
-/** Idempotent welcome coupon — granted once, on e-mail verification. */
+/** Idempotent welcome coupon - granted once, on e-mail verification. */
 export async function grantWelcomeCoupon(
   email: string,
 ): Promise<CustomerCoupon | null> {
@@ -327,7 +327,7 @@ async function hasBirthdayCouponThisYear(
  * `hasBirthdayCouponThisYear` is the whole idempotency key: one birthday
  * coupon per member per calendar year. That single check covers every way the
  * cron can run twice (a retry, two regions, a manual call), and it is also
- * what makes 29 February safe — a leap-day member greeted on 1 March in a
+ * what makes 29 February safe - a leap-day member greeted on 1 March in a
  * common year cannot be greeted again on the 29th of the next leap year's
  * February within the same year, because there is only ever one 29 February
  * per year and the check is per year, not per date.
@@ -356,7 +356,7 @@ async function grantBirthdayCouponOnce(
  * year guard and the row.
  *
  * Returns the coupon when one was written and `null` when the member already
- * had this year's — which is exactly the signal the cron needs: grant a coupon
+ * had this year's - which is exactly the signal the cron needs: grant a coupon
  * and greet, or stay quiet. No second bookkeeping table.
  */
 export async function grantBirthdayCouponToday(
@@ -376,8 +376,8 @@ export async function grantBirthdayCouponToday(
  * the cron is the real trigger and normally gets there first, in which case
  * the once-a-year check makes this a no-op.
  *
- * The month is deliberately wider than the cron's day — a page visit is not
- * a schedule — but the coupon it writes is the same one, seven days from the
+ * The month is deliberately wider than the cron's day - a page visit is not
+ * a schedule - but the coupon it writes is the same one, seven days from the
  * moment it is granted, so both doors match what the mail says.
  */
 export async function maybeGrantBirthdayCoupon(

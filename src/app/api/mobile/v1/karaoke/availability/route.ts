@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 /**
- * GET /api/mobile/v1/karaoke/availability?date=YYYY-MM-DD — §7.
+ * GET /api/mobile/v1/karaoke/availability?date=YYYY-MM-DD - §7.
  *
  * Public: which hours are free is shown before the member decides to sign
  * in. Defaults to today (Istanbul) when no date is given.

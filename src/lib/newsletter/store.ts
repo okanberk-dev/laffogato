@@ -37,14 +37,14 @@ export interface NewsletterSubscriber {
 export const NEWSLETTER_CONFIRM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
- * Onay kutusunun yanında görünen metin, kayda birebir yazılır — hangi ifadeye
+ * Onay kutusunun yanında görünen metin, kayda birebir yazılır - hangi ifadeye
  * onay verildiği, onayın kendisi kadar önemli.
  */
 export const NEWSLETTER_CONSENT_TEXT =
   "L'Affogato'dan kampanya, yeni ürün ve etkinlik duyurularını e-posta ile almak istiyorum. Onayımı istediğim zaman geri çekebileceğimi biliyorum.";
 
 export interface ConsentRecord {
-  /** ISO-8601; boş bırakılamaz — onaysız kayıt açılmaz. */
+  /** ISO-8601; boş bırakılamaz - onaysız kayıt açılmaz. */
   at: string;
   ip: string;
 }
@@ -66,7 +66,7 @@ export type SubscribeResult =
       /**
        * Double opt-in: the request was stored but the address is not on the
        * list until its owner confirms. `confirmToken` is what the
-       * confirmation link carries (footer) — the account flows activate on
+       * confirmation link carries (footer) - the account flows activate on
        * e-mail verification instead and ignore it.
        */
       pending?: boolean;
@@ -76,7 +76,7 @@ export type SubscribeResult =
 
 export interface SubscribeOptions {
   /**
-   * The address is PROVEN to belong to the person asking — a verified member
+   * The address is PROVEN to belong to the person asking - a verified member
    * account, or a Supabase-confirmed app user. Only then does the request
    * subscribe on the spot. Everything else (the footer form, an unverified
    * account) is stored pending and needs the owner's confirmation: anyone
@@ -90,7 +90,7 @@ export interface SubscribeOptions {
  * Idempotent newsletter signup. Already-active → no-op (already=true).
  * Otherwise: a `confirmed` request subscribes (insert or reactivate); an
  * unconfirmed one is stored inactive with a confirmation token (double
- * opt-in) — see {@link confirmNewsletterByToken} and
+ * opt-in) - see {@link confirmNewsletterByToken} and
  * {@link confirmPendingNewsletterForEmail}.
  */
 export async function subscribeNewsletter(
@@ -173,7 +173,7 @@ export async function subscribeNewsletter(
 /**
  * The pending half of double opt-in: an inactive row carrying a fresh
  * confirmation token and the request's time and address. A pending row that
- * is asked for again gets a new token (the old link stops working) — the
+ * is asked for again gets a new token (the old link stops working) - the
  * footer's rate limit bounds how often that can happen.
  */
 async function requestConfirmation(
@@ -277,7 +277,7 @@ export async function confirmNewsletterByToken(
 /**
  * A member verified their e-mail: a request they made from the registration
  * form or the account page while unverified becomes a subscription now. Only
- * a PENDING row (confirmToken set) is touched — never one the person has
+ * a PENDING row (confirmToken set) is touched - never one the person has
  * unsubscribed from.
  */
 export async function confirmPendingNewsletterForEmail(
@@ -319,8 +319,8 @@ export async function listNewsletterSubscribers(): Promise<
 
 /**
  * The panel can take someone OFF the list, never put them on it. Turning a
- * withdrawn subscriber back on used to reuse their old `consentAt` — consent
- * they had taken back — and put them back in the campaign audience. Only the
+ * withdrawn subscriber back on used to reuse their old `consentAt` - consent
+ * they had taken back - and put them back in the campaign audience. Only the
  * person can subscribe again (the form, confirmed from their inbox).
  */
 export async function deactivateNewsletterSubscriber(

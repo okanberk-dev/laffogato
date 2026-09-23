@@ -5,7 +5,7 @@ import { CONSENT_COOKIE, CONSENT_VERSION, type ConsentState } from "./cookie";
  *
  * GTM reads the consent state at load time; if the default is not already on
  * the dataLayer when the container initialises, tags fire once with no consent
- * signal at all — which is exactly the KVKK breach the banner exists to
+ * signal at all - which is exactly the KVKK breach the banner exists to
  * prevent. So this is emitted inline in <head>, ahead of the GTM script tag.
  *
  * It re-reads the cookie itself rather than being server-rendered with the

@@ -34,7 +34,7 @@ describe("legalDocSchema", () => {
   });
 });
 
-describe("RBAC — new sections", () => {
+describe("RBAC - new sections", () => {
   it("legal editing is owner-only", () => {
     expect(canAccess("legal", "owner")).toBe(true);
     expect(canAccess("legal", "manager")).toBe(false);

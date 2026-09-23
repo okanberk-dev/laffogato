@@ -30,15 +30,15 @@ export const metadata: Metadata = {
 };
 
 /**
- * `/kampanyalar` — the offers page.
+ * `/kampanyalar` - the offers page.
  *
  * Deliberately the SAME two sources the app's Kampanyalar screen reads, so an
  * operator publishes once and both surfaces move:
  *
- *  - `listActiveAppPosts()` — the panel's campaigns, collaborations and
+ *  - `listActiveAppPosts()` - the panel's campaigns, collaborations and
  *    events (/admin/mobil/icerik), already filtered to active and in-window.
  *    This is exactly what `GET /api/mobile/v1/app-content` serves.
- *  - `mobileApp.campaignCards` — the switches for the two house programmes
+ *  - `mobileApp.campaignCards` - the switches for the two house programmes
  *    (/admin/mobil/ayarlar). Pausing the invite scheme takes the card off the
  *    web and out of the app at once, with no release on either side.
  *

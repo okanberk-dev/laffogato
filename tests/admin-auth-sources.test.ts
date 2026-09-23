@@ -7,7 +7,7 @@ import { fakeDb, seedRows } from "./_stubs/admin-users-db";
  *
  * Admin accounts used to live only in ADMIN_USERS, so hiring a cashier meant
  * editing an environment variable and redeploying. They now live in the
- * database and the env record stays as the break-glass path — these assert the
+ * database and the env record stays as the break-glass path - these assert the
  * precedence between the two, and that the old plain-text env comparison still
  * works so nobody is locked out by the deploy that introduces the table.
  */
@@ -128,7 +128,7 @@ describe("database accounts", () => {
     expect(res).toMatchObject({ ok: true, role: "cashier" });
   });
 
-  it("fall back to the env record when deactivated — env is the way back in", async () => {
+  it("fall back to the env record when deactivated - env is the way back in", async () => {
     await createAdminUser({
       email: ENV_OWNER.email,
       name: "Sahip",

@@ -6,7 +6,7 @@ import { isDbUnreachable, markDegraded, raiseDbError } from "@/lib/db/health";
 import { CONTENT_FIELDS, contentDefaults } from "./content-fields";
 
 /**
- * Site content — admin-managed editorial copy as a key → value store.
+ * Site content - admin-managed editorial copy as a key → value store.
  *
  * Defaults live in `content-fields.ts` (client-safe); only overridden keys
  * are persisted in the `site_content` table. `getSiteContent()` returns

@@ -9,8 +9,8 @@ import { describe, expect, it } from "vitest";
  *
  * `apiError` has carried it since tests/mobile-error-cache.test.ts; the 200s
  * relied on each route remembering `{ private: true }`, and two of them had
- * stopped. Both took an OPTIONAL bearer — `/orders/preview` and
- * `/promo/preview` — and both hand the member they read to the pricing code,
+ * stopped. Both took an OPTIONAL bearer - `/orders/preview` and
+ * `/promo/preview` - and both hand the member they read to the pricing code,
  * so the same basket and the same coupon answer differently per member. The
  * leak path was narrow (a POST is not cached by a shared cache without
  * explicit freshness), but the rule eroding file by file is the real damage:

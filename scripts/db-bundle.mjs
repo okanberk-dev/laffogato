@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Regenerates db/schema.sql — every migration concatenated in order, ready to
+ * Regenerates db/schema.sql - every migration concatenated in order, ready to
  * paste into a SQL console in one go.
  *
  * `npm run db:migrate` is the normal path. This exists for the case where the

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 /**
- * `GET /api/mobile/v1/bootstrap` — venue facts, hours, courier fee and the
+ * `GET /api/mobile/v1/bootstrap` - venue facts, hours, courier fee and the
  * happy-hour rule the app reads on launch (docs/API-MOBILE.md §10). Public.
  */
 export async function GET() {

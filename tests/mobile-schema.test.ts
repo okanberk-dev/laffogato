@@ -46,7 +46,7 @@ describe("mobile v2 migration", () => {
   });
 
   it("adds every orders / settings / customers column the contract lists", () => {
-    // docs/API-MOBILE.md §11 — exact names, exact casing.
+    // docs/API-MOBILE.md §11 - exact names, exact casing.
     for (const col of [
       "channel",
       "kind",
@@ -114,7 +114,7 @@ describe("mobile v2 migration", () => {
   });
 
   it("keeps the idempotency indexes the loyalty and invite flows rely on", () => {
-    // One 'earn' row per paid order — the webhook may fire twice.
+    // One 'earn' row per paid order - the webhook may fire twice.
     expect(code).toMatch(
       /create unique index if not exists loyalty_stamps_order_key\s+on public\.loyalty_stamps \("orderId"\) where "orderId" <> '' and kind = 'earn'/,
     );

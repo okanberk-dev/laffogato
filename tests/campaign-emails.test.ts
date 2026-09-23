@@ -17,7 +17,7 @@ import {
  * what a re-queue does, how a run is batched and settled, and the one-click
  * way out that has to switch BOTH consent stores off.
  *
- * `renderEmail` is real — a message that leaves with a `[FIELD]` in it is
+ * `renderEmail` is real - a message that leaves with a `[FIELD]` in it is
  * the failure worth catching. Delivery is stubbed at `deliverBatch`, which
  * is exactly the seam the runner posts through.
  */
@@ -93,7 +93,7 @@ const SITE_URL = "https://laffogato.net";
 const UNSUB_BASE = `${SITE_URL}/api/bulten/cikis?token=`;
 
 /**
- * kampanya-duyuru — the template the post hook uses. These six sit outside
+ * kampanya-duyuru - the template the post hook uses. These six sit outside
  * its optional blocks, so every one is required; the rest may be absent.
  */
 const FIELDS = {
@@ -187,7 +187,7 @@ function calls(): Array<[Message[], string]> {
   return deliverBatch.mock.calls as Array<[Message[], string]>;
 }
 
-/** Rewrites every row of a table in place — the clock, a flag, a status. */
+/** Rewrites every row of a table in place - the clock, a flag, a status. */
 function patchRows(table: string, patch: (row: FakeRow) => FakeRow): void {
   seedRows(table, rowsOf(table).map(patch));
 }
@@ -320,7 +320,7 @@ describe("audience", () => {
         notificationPrefs: newsletterOn,
         marketingConsentAt: "",
       }),
-      // The flag alone — a legacy app subscriber with nothing provable: out
+      // The flag alone - a legacy app subscriber with nothing provable: out
       // until they toggle again and the row gets written.
       member("g@ornek.com", {
         notificationPrefs: newsletterOn,
@@ -469,7 +469,7 @@ describe("queue", () => {
     ]);
     const { total } = await queueCampaignEmail(c.id);
     expect(total).toBe(151);
-    // Batches 0 and 1 exist; the newcomer must not slip into either — batch
+    // Batches 0 and 1 exist; the newcomer must not slip into either - batch
     // 0's key has already been used for batch 0's addresses.
     const late = sends().find((r) => r.email === "yeni@ornek.com");
     expect(late).toMatchObject({ status: "queued", batchNo: 2 });
@@ -531,7 +531,7 @@ describe("queue", () => {
     const { total } = await queueCampaignEmail(c.id);
     expect(total).toBe(3);
     const byEmail = Object.fromEntries(sends().map((r) => [r.email, r]));
-    // a: back in the queue, with the token minted for the new consent — not
+    // a: back in the queue, with the token minted for the new consent - not
     // the spent one that was in the row.
     const newTokenA = memberToken("a@ornek.com");
     expect(newTokenA).not.toBe("");
@@ -562,7 +562,7 @@ describe("queue", () => {
   });
 });
 
-describe("scheduling — the special days", () => {
+describe("scheduling - the special days", () => {
   /**
    * The operator could compose a campaign but not say when it should go, so
    * Anneler Günü, yılbaşı and 14 Şubat all meant standing at the panel that
@@ -770,7 +770,7 @@ describe("consent between queue and send", () => {
     const c = await draft();
     await queueCampaignEmail(c.id);
     // The account keeps its consent but its token changed underneath the
-    // queued row — the row's link would answer "Bağlantı geçersiz".
+    // queued row - the row's link would answer "Bağlantı geçersiz".
     patchRows(FAKE_TABLES.customers, (row) => ({
       ...row,
       unsubToken: "fresh-token",
@@ -833,7 +833,7 @@ describe("a batch posted but never settled", () => {
 
   it("is re-posted under the same key when 'Yeniden gönder' comes inside the provider's window", async () => {
     const c = await postThenLoseTheMark();
-    // An hour later the rows count as abandoned; the key is 21 h old —
+    // An hour later the rows count as abandoned; the key is 21 h old -
     // inside the 22 h the runner allows itself of the provider's 24.
     const posted = hoursAgo(21);
     patchRows(FAKE_TABLES.campaignEmailSends, (r) => ({
@@ -856,7 +856,7 @@ describe("a batch posted but never settled", () => {
     const c = await postThenLoseTheMark();
     // 23 h 50 min: still inside the provider's 24 hours at claim time, but
     // the POST comes after the render, the pause and up to three back-offs,
-    // on a clock that is not the provider's — outside the 22 h the runner
+    // on a clock that is not the provider's - outside the 22 h the runner
     // trusts, so it is settled, not re-posted.
     patchRows(FAKE_TABLES.campaignEmailSends, (r) => ({
       ...r,
@@ -904,7 +904,7 @@ describe("a batch posted but never settled", () => {
     );
     await queueCampaignEmail(c.id);
     await runCampaignEmail(c.id, { batchDelayMs: 0 });
-    // Same key, same two addresses — the provider dedupes the retry; a
+    // Same key, same two addresses - the provider dedupes the retry; a
     // changed set under the same key would not be the same request.
     expect(calls()).toHaveLength(2);
     expect(calls()[1][0].map((m) => m.to)).toEqual(
@@ -916,7 +916,7 @@ describe("a batch posted but never settled", () => {
 describe("a consent-skipped row that comes back", () => {
   // The claim skips a single row for consent, so a 'skipped' row may belong
   // to a batch that WAS posted for the others. Put back under that number it
-  // would go up under a used key with a different address set — refused by
+  // would go up under a used key with a different address set - refused by
   // the provider inside its window, delivered as new outside it. So a row
   // that comes back gets a fresh batch number, after everything in use.
   function reconsent(email: string): void {
@@ -983,7 +983,7 @@ describe("a consent-skipped row that comes back", () => {
 
     await runCampaignEmail(c.id, { batchDelayMs: 0 });
     expect(calls()).toHaveLength(3);
-    // b0 again: the same key with the same two addresses — a retry the
+    // b0 again: the same key with the same two addresses - a retry the
     // provider dedupes, not a new request.
     expect(calls()[1][1]).toBe(calls()[0][1]);
     expect(calls()[1][0].map((m) => m.to)).toEqual(
@@ -1045,7 +1045,7 @@ describe("a consent-skipped row that comes back", () => {
     await queueCampaignEmail(c.id);
     // Every member's token is rotated under the queued rows: each stored
     // link is dead, so the first claim skips all 230 at once and nothing is
-    // posted — a failed campaign with three batch numbers in use.
+    // posted - a failed campaign with three batch numbers in use.
     patchRows(FAKE_TABLES.customers, (row) => ({
       ...row,
       unsubToken: `yeni-${row.email}`,
@@ -1056,7 +1056,7 @@ describe("a consent-skipped row that comes back", () => {
     expect((await getCampaignEmail(c.id))?.status).toBe("failed");
 
     await queueCampaignEmail(c.id);
-    // Batches 0–2 were in use; the 230 come back as 3, 4 and 5, with the
+    // Batches 0-2 were in use; the 230 come back as 3, 4 and 5, with the
     // links they carry now.
     const rows = sends();
     const batches = rows.map((r) => Number(r.batchNo));
@@ -1238,7 +1238,7 @@ describe("runCampaignEmail", () => {
     // In Postgres the claim locks the campaign row, so a batch is never
     // split between two runners: the second waits and takes the next batch.
     // The stub cannot take that lock; what is pinned here is the belt under
-    // it — a posted mark and a settle reach only the rows carrying this
+    // it - a posted mark and a settle reach only the rows carrying this
     // runner's own claimedAt. Forty rows of batch 0, held elsewhere, fresh.
     const elsewhere = new Date(Date.now() - 60_000).toISOString();
     const heldByAnother = (r: FakeRow) =>
@@ -1344,7 +1344,7 @@ describe("runCampaignEmail", () => {
 });
 
 describe("preview and test send", () => {
-  it("previews with a dummy way out — on the same route the members' links use — and the sample name", async () => {
+  it("previews with a dummy way out - on the same route the members' links use - and the sample name", async () => {
     const c = await draft();
     const r = previewCampaignEmail(c, { name: "Eda" });
     expect(r.subject).toBe("Eylül seçkisi");

@@ -13,7 +13,7 @@ function DeleteButton({
 }) {
   // `useFormStatus` reflects the in-flight state of the enclosing <form>, so
   // the button disables itself and swaps to a progress label while the server
-  // action runs — preventing accidental double-submits.
+  // action runs - preventing accidental double-submits.
   const { pending } = useFormStatus();
   return (
     <DangerButton

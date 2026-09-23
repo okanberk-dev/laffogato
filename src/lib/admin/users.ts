@@ -118,7 +118,7 @@ export async function listAdminUsers(): Promise<PublicAdminUser[]> {
     .map(toPublic);
 }
 
-/** Whether the panel has any account of its own — used only for the "env eksik" message. */
+/** Whether the panel has any account of its own - used only for the "env eksik" message. */
 export async function anyAdminUserExists(): Promise<boolean> {
   try {
     const sb = getDb();

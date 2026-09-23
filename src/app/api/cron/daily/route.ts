@@ -11,7 +11,7 @@ import { runBirthdayGreetings } from "../_birthday";
  *
  * **Why one route instead of three schedules.** Vercel's Hobby plan allows
  * two cron jobs, on daily schedules only. `vercel.json` asked for three, one
- * of them hourly, and Vercel answered by failing the DEPLOY — not the cron.
+ * of them hourly, and Vercel answered by failing the DEPLOY - not the cron.
  * Production stopped moving on 16 Eyl 2026 and everything merged after that
  * sat in `main` unshipped, which is a far worse outcome than a campaign going
  * out a few hours late. So the three jobs became two routes: this one, and
@@ -21,12 +21,12 @@ import { runBirthdayGreetings } from "../_birthday";
  * separately reachable, separately tested, and each carries its own gate;
  * this route only calls the same three library functions in order. On a plan
  * with real cron support, put the old three-entry `crons` array back in
- * `vercel.json` and delete nothing — the routes are all still there.
+ * `vercel.json` and delete nothing - the routes are all still there.
  *
  * **Order matters.** Campaigns first, because they are the only piece with a
  * deadline a member can notice; retention last, because it is the only piece
  * that deletes. A failure in one must not swallow the others, so each is
- * awaited inside its own try and reports its own outcome — a 200 here means
+ * awaited inside its own try and reports its own outcome - a 200 here means
  * "the run happened", and the body says what each part did.
  */
 

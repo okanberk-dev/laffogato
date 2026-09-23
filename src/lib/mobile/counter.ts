@@ -10,7 +10,7 @@ import { addCounterStamp, getLoyalty } from "./loyalty";
 import type { LoyaltyView } from "./loyalty-core";
 
 /**
- * Counter tokens — the QR the member shows at the till (docs/API-MOBILE.md §17).
+ * Counter tokens - the QR the member shows at the till (docs/API-MOBILE.md §17).
  *
  * A barcode derived from the member's identity would be a permanent stamp
  * machine the moment somebody photographs it, so what the app draws is a
@@ -43,7 +43,7 @@ const CODE_LENGTH = 8;
  * A QR encoder picks its mode from the characters it is given. Base64url
  * mixes upper and lower case, so the payload can only go in **byte mode** at
  * 8 bits a character; the 43-character token that produced measured out at
- * version 4 — a 33x33 grid — at error-correction level M.
+ * version 4 - a 33x33 grid - at error-correction level M.
  *
  * QR's *alphanumeric* mode covers `0-9 A-Z` and nine symbols, and packs two
  * characters into 11 bits (5.5 bits each). Spending the entropy in that
@@ -64,9 +64,9 @@ const CODE_LENGTH = 8;
  * spend are what pays for the smaller grid.
  *
  * Crockford's alphabet (no I, L, O or U) is a subset of QR's alphanumeric
- * set, so the encoder keeps the cheap mode. Nothing reads the token's shape —
+ * set, so the encoder keeps the cheap mode. Nothing reads the token's shape -
  * the app draws the SVG, the till submits the decoded string verbatim and
- * this module compares `sha256` — so tokens minted by an older deploy keep
+ * this module compares `sha256` - so tokens minted by an older deploy keep
  * working until they expire on their own.
  */
 const TOKEN_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -111,7 +111,7 @@ export function hashCounterToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-/** The 8 characters the cashier may have to type — unbiased, 32 = 2^5 per byte. */
+/** The 8 characters the cashier may have to type - unbiased, 32 = 2^5 per byte. */
 function newCode(): string {
   const bytes = randomBytes(CODE_LENGTH);
   let out = "";
@@ -123,7 +123,7 @@ function newCode(): string {
  * The QR payload: `TOKEN_BYTES` of randomness re-spelled in base32.
  *
  * Five bits are taken off the front of a rolling window at a time, so every
- * bit of every byte reaches the output exactly once — a per-byte `% 32` would
+ * bit of every byte reaches the output exactly once - a per-byte `% 32` would
  * throw away three bits of each and leave 80 of the 128.
  */
 function newToken(): string {
@@ -154,7 +154,7 @@ export function normalizeCounterCode(raw: string): string {
  * What the till may show of a member's address.
  *
  * A cashier has no `customers` access on purpose, so the QR path must not hand
- * them the full address either — it only has to be enough for the member to
+ * them the full address either - it only has to be enough for the member to
  * recognise themselves.
  */
 export function maskEmail(email: string): string {
@@ -242,7 +242,7 @@ async function retireSurplus(
   }
 }
 
-/** Opportunistic sweep of rows nobody can use any more — no cron needed. */
+/** Opportunistic sweep of rows nobody can use any more - no cron needed. */
 async function purgeStale(now: number): Promise<void> {
   const cutoff = new Date(now - STALE_AFTER_MS).toISOString();
   const { error } = await getDb().from(TABLE).delete().lt("expiresAt", cutoff);
@@ -354,7 +354,7 @@ export interface CounterRedemption {
   name: string;
   /** What the till may print: masked on the QR and code paths. */
   memberLabel: string;
-  /** Empty on the e-mail path — there was no code to burn. */
+  /** Empty on the e-mail path - there was no code to burn. */
   code: string;
   stampsGiven: number;
   loyalty: LoyaltyView;
@@ -434,7 +434,7 @@ async function burn(
 /**
  * Hands out the stamps behind one scan (docs/API-MOBILE.md §17, spec §5).
  *
- * All three paths at the till — camera, typed code, typed address — end here
+ * All three paths at the till - camera, typed code, typed address - end here
  * so they cannot drift apart: the same validation, the same ledger rows, the
  * same answer on screen.
  */

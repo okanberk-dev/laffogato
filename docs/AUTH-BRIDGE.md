@@ -1,9 +1,9 @@
-# AUTH-BRIDGE — site ile uygulamanın ortak üyeliği
+# AUTH-BRIDGE - site ile uygulamanın ortak üyeliği
 
 > Bu belge `src/lib/supabase/**`, `src/lib/customer/supabase-*.ts`,
 > `src/lib/mobile/auth*.ts`, `src/proxy.ts` ve `src/app/uye/actions.ts`'in
 > neden böyle yazıldığını anlatır. Sözleşme `docs/API-MOBILE.md` §0'dadır;
-> veri taşıma `docs/SUPABASE-GECIS.md`'dir — bu belge o işten bağımsızdır.
+> veri taşıma `docs/SUPABASE-GECIS.md`'dir - bu belge o işten bağımsızdır.
 
 ---
 
@@ -11,7 +11,7 @@
 
 | Ne                                                        | Nerede                                               |
 | --------------------------------------------------------- | ---------------------------------------------------- |
-| **Kimlik** (kim olduğun: e-posta + parola, token, oturum) | **Supabase Auth** — tek proje, hem site hem uygulama |
+| **Kimlik** (kim olduğun: e-posta + parola, token, oturum) | **Supabase Auth** - tek proje, hem site hem uygulama |
 | **Üye kaydı** (`customers`), sipariş, kupon, damga, para  | **Bu projenin Postgres'i** (`pg`, `src/lib/db`)      |
 
 Supabase burada **yalnız kimliktir**. Hiçbir sipariş, fiyat ya da üye verisi
@@ -29,22 +29,22 @@ siteye Supabase parolasıyla girer.
 src/lib/supabase/
   config.ts   → SUPABASE_URL · SUPABASE_PUBLISHABLE_KEY
                 (istemci-güvenli; env yoksa herkese açık varsayılanlar)
-  anon.ts     → getSupabaseAnonClient()  — durumsuz; yalnız bearer doğrulama
-  server.ts   → createSupabaseServerClient() — çerez tabanlı (site oturumu)
-  proxy.ts    → hasSupabaseSessionCookie() · updateSession() — token yenileme
+  anon.ts     → getSupabaseAnonClient()  - durumsuz; yalnız bearer doğrulama
+  server.ts   → createSupabaseServerClient() - çerez tabanlı (site oturumu)
+  proxy.ts    → hasSupabaseSessionCookie() · updateSession() - token yenileme
 src/proxy.ts  → 1) updateSession  2) admin çerez koruması (AYNEN)
 src/lib/customer/
-  supabase-link-plan.ts → planCustomerLink() vb. — SAF karar mantığı (test)
+  supabase-link-plan.ts → planCustomerLink() vb. - SAF karar mantığı (test)
   supabase-bridge.ts    → ensureCustomerForSupabaseUser() · linkCustomerToSupabase()
                           · linkIdentityAfterReset()
 src/lib/mobile/
-  auth-core.ts → parseBearerToken() · classifyAuthError() — saf
-  auth.ts      → requireMobileCustomer(request) — route'ların kapısı
+  auth-core.ts → parseBearerToken() · classifyAuthError() - saf
+  auth.ts      → requireMobileCustomer(request) - route'ların kapısı
   respond.ts   → apiError() · apiJson()
 ```
 
 **Service role anahtarı yalnız `src/lib/supabase/admin.ts` tarafından ve iki
-iş için okunur** — kapatılan hesabın Supabase kimliğini silmek, ve burada
+iş için okunur** - kapatılan hesabın Supabase kimliğini silmek, ve burada
 sıfırlanan parolayı Supabase'e yazmak. `.env.example`'da adı geçer, değeri
 boştur; `NEXT_PUBLIC_` öneki yoktur, yani tarayıcıya ya da uygulama paketine
 hiç girmez. Anahtar tanımlı değilse iki iş de atlanır ve kod eski, temkinli
@@ -86,7 +86,7 @@ kullanıcı token süresi dolmadan reddedilir, ve JWT biçimi Supabase'in
 değiştirebileceği bir ayrıntı olarak dışarıda kalır.
 
 Satır ilk kez oluşturulurken ya da doğrulama bu anda yükselirken sitenin
-**hoş geldin kuponu** aynı kuralla (idempotent, best-effort) verilir —
+**hoş geldin kuponu** aynı kuralla (idempotent, best-effort) verilir -
 ikinci bir kural icat edilmedi.
 
 ## 3. Site girişi: önce Supabase, sonra bcrypt
@@ -96,7 +96,7 @@ ikinci bir kural icat edilmedi.
 - **loginAction**
   1. `signInWithPassword` (çerezli sunucu istemcisi). Başarılıysa
      `ensureCustomerForSupabaseUser` → satır eşle/oluştur → mevcut
-     `setActiveCustomerSession` (sitenin imzalı çerezi) — yani site oturumu
+     `setActiveCustomerSession` (sitenin imzalı çerezi) - yani site oturumu
      **değişmedi**, yalnız kimlik doğrulama Supabase'e taşındı.
   2. Supabase reddederse (henüz orada yok, parola farklı, servis kapalı)
      **mevcut bcrypt akışı AYNEN** çalışır.
@@ -121,7 +121,7 @@ Server Component çerez yazamaz; süresi dolan access token tarayıcıda kalırd
 `updateSession` her sayfa isteğinde (Supabase çerezi varsa) `getUser()`
 çağırarak yenilemeyi tetikler ve dönen çerezleri hem isteğe hem yanıta yazar.
 Admin koruması aynen durur; admin yönlendirmesine yenilenen çerezler
-kopyalanır. `api/mobile` ve `api/webhooks` matcher dışındadır — biri bearer,
+kopyalanır. `api/mobile` ve `api/webhooks` matcher dışındadır - biri bearer,
 diğeri HMAC kullanır, yenilenecek çerezleri yoktur.
 
 ## 5. Sınırlar ve bilinçli boşluklar
@@ -160,17 +160,17 @@ diğeri HMAC kullanır, yenilenecek çerezleri yoktur.
   (`updateSupabasePassword`); uygulamada sıfırlanmışsa sitedeki giriş,
   Supabase'in kabul ettiği parolayı görüp bcrypt özetini ona uyduruyor
   (`adoptSupabasePassword`). Servis rolü anahtarı yoksa ilki çalışmadığı için
-  ikincisi de kapalı kalır — sitenin kopyası tek yetkilidir ve uyuşmazlık
+  ikincisi de kapalı kalır - sitenin kopyası tek yetkilidir ve uyuşmazlık
   reddedilir (`hasSupabaseAdmin`). Ayrıntı: `docs/EMAIL-RESEND.md` §4.
 - Sitedeki bcrypt hash'lerinin Supabase'e toplu aktarımı (şifre sıfırlatmadan)
-  ayrı bir iştir — `docs/SUPABASE-GECIS.md` §5.
+  ayrı bir iştir - `docs/SUPABASE-GECIS.md` §5.
 - E-posta normalizasyonu iki tarafta da **invariant** küçük harftir
   (`normalizeEmail`); tr-TR `toLocaleLowerCase` kullanılmaz ("INFO@…" iki
   hesaba bölünmesin).
 
 ## 6. Testler
 
-`tests/mobile-auth.test.ts` — saf parçalar: bearer ayrıştırma, hata
+`tests/mobile-auth.test.ts` - saf parçalar: bearer ayrıştırma, hata
 sınıflandırma, `apiError` gövdesi, `planCustomerLink` (oluştur / güncelle /
 yok / devre dışı, hoş geldin kuponu anı, ad-telefon üzerine yazmama), tek
 seferlik köprü kuralı, obfuscated user. Supabase ve veritabanına dokunan

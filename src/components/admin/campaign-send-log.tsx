@@ -7,7 +7,7 @@ import { CampaignSendTable } from "./campaign-send-table";
 import { Card } from "./forms";
 
 /**
- * "Kime gitti" — the campaign's send log, on screen.
+ * "Kime gitti" - the campaign's send log, on screen.
  *
  * The detail page used to show three numbers and stop there, so "Gönderildi
  * 363 · Başarısız 37" named nobody: the operator could not answer a member
@@ -15,7 +15,7 @@ import { Card } from "./forms";
  * is the sender's to produce. The rows have been written since the feature
  * shipped; this only reads them.
  *
- * A read that throws is caught here rather than left to the error boundary —
+ * A read that throws is caught here rather than left to the error boundary -
  * a send log that cannot be read must not take down the page that can still
  * queue, resume and preview the campaign.
  */

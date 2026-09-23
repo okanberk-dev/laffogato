@@ -22,7 +22,7 @@ import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
  *
  * Derived from the entity module rather than hand-copied. A copied list is a
  * third place to forget when a token is added, and the point of this test is
- * to check content.ts against the authority — so it must read the authority.
+ * to check content.ts against the authority - so it must read the authority.
  */
 const KNOWN_TOKENS = new Set(LEGAL_TOKEN_NAMES);
 
@@ -50,7 +50,7 @@ function sourceStrings(): Array<[string, string]> {
   return out;
 }
 
-/** Prose strings — everything except a table's `value`, where empty tokens live. */
+/** Prose strings - everything except a table's `value`, where empty tokens live. */
 function proseStrings(): Array<[string, string]> {
   return sourceStrings().filter(([where]) => !where.endsWith(".table.value"));
 }
@@ -99,7 +99,7 @@ describe("legal document set", () => {
   });
 });
 
-describe("legal content — token discipline", () => {
+describe("legal content - token discipline", () => {
   it("uses only tokens the entity module can fill", () => {
     for (const [where, text] of sourceStrings()) {
       for (const m of text.matchAll(/\{\{([A-Z_]+)\}\}/g)) {
@@ -124,7 +124,7 @@ describe("legal content — token discipline", () => {
   });
 });
 
-describe("legal content — identity is the tax certificate, never a placeholder", () => {
+describe("legal content - identity is the tax certificate, never a placeholder", () => {
   const rendered = JSON.stringify(LEGAL_DOCS);
 
   it("names the real legal entity and never the old placeholder", () => {
@@ -173,7 +173,7 @@ describe("legal content — identity is the tax certificate, never a placeholder
   });
 
   it("keeps the activity code (NACE) off the public site", () => {
-    // The tax certificate says 621000 — software. It is an internal record and
+    // The tax certificate says 621000 - software. It is an internal record and
     // is deliberately not published alongside the tax office and VKN.
     expect(rendered).not.toMatch(/621000/);
     expect(rendered).not.toMatch(/NACE/i);
@@ -182,7 +182,7 @@ describe("legal content — identity is the tax certificate, never a placeholder
 
   it("names the infrastructure and payment provider the project actually uses", () => {
     // The data layer moved off Supabase to Neon-hosted Postgres, and the
-    // virtual POS is iyzico — no other provider may be described as ours.
+    // virtual POS is iyzico - no other provider may be described as ours.
     expect(rendered).not.toMatch(/Supabase/i);
     expect(rendered).not.toMatch(/PayTR/i);
     expect(rendered).not.toMatch(/Stripe/i);

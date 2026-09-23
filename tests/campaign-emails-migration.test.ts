@@ -7,7 +7,7 @@ const FILE = "20260908150000_campaign_emails.sql";
 const sql = readFileSync(join(process.cwd(), "db", "migrations", FILE), "utf8");
 const bundle = readFileSync(join(process.cwd(), "db", "schema.sql"), "utf8");
 
-/** The file with its `--` comments removed — the part Postgres actually runs. */
+/** The file with its `--` comments removed - the part Postgres actually runs. */
 const statements = sql
   .split("\n")
   .filter((line) => !line.trimStart().startsWith("--"))
@@ -17,7 +17,7 @@ describe(FILE, () => {
   it("never records itself in _migrations", () => {
     // scripts/db-migrate.mjs inserts the row itself, inside the same
     // transaction. A hand-written insert collides with it (23505) and rolls
-    // the WHOLE file back — the tables would silently never exist.
+    // the WHOLE file back - the tables would silently never exist.
     expect(statements).not.toContain("insert into public._migrations");
   });
 
@@ -101,7 +101,7 @@ describe(FILE, () => {
 
   it("hands out batches under skip locked and never renumbers them", () => {
     expect(statements).toContain("for update skip locked");
-    // Batches of 100 — Resend's batch endpoint cap.
+    // Batches of 100 - Resend's batch endpoint cap.
     expect(statements).toContain("/ 100");
     // Newcomers continue after the last batch: a key already used for one
     // set of addresses must never be reused for another.
@@ -155,7 +155,7 @@ describe(FILE, () => {
 // The amendment: consent re-read at claim, `postedAt` on the send row, the
 // bulletin's consent register for members, claims serialised per campaign,
 // the mark scoped to its own claim, and a fresh batch number for a row that
-// comes back. Same shape checks, same reason — a function silently reverted
+// comes back. Same shape checks, same reason - a function silently reverted
 // to the first version would mail people who withdrew, mail a batch twice,
 // or post a used key with a different address set.
 
@@ -229,7 +229,7 @@ describe(RECONSENT, () => {
     );
     // A runner of the previous build still inside after() when this lands
     // calls the three-argument claim; dropped, it would fail with 42883 and
-    // patch its campaign 'failed'. So the old signature stays, delegating —
+    // patch its campaign 'failed'. So the old signature stays, delegating -
     // with '' as the posted threshold, which settles nothing.
     expect(reconsentStatements).not.toContain("drop function");
     expect(wrapper).toMatch(
@@ -258,7 +258,7 @@ describe(RECONSENT, () => {
       /from public\.campaign_emails c\s+where c\.id = p_campaign\s+for update;/,
     );
     expect(lock).toBeGreaterThanOrEqual(0);
-    // Before the settle, the consent pass and the pick — a second runner
+    // Before the settle, the consent pass and the pick - a second runner
     // waits here, then reads the first's fresh 'sending' rows and takes the
     // next batch instead of half of this one.
     expect(lock).toBeLessThan(
@@ -307,7 +307,7 @@ describe(RECONSENT, () => {
     );
     expect(claim).toContain(`ok.kind  = s."recipientKind"`);
     expect(claim).toContain("ok.token <> ''");
-    // The stored link must carry the CURRENT token — a spent link is dead.
+    // The stored link must carry the CURRENT token - a spent link is dead.
     expect(claim).toContain(`right(s."unsubUrl", length(ok.token)) = ok.token`);
     expect(claim).toMatch(
       /set status\s+= 'skipped',\s+error\s+= 'onay geri çekildi ya da kitle dışına çıktı'/,

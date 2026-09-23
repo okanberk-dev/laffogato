@@ -7,7 +7,7 @@ import { isDataImage } from "./image-url";
 /**
  * Decodes a stored `data:image/...;base64,...` value into servable bytes.
  *
- * Returns null for anything that is not a data URL — those are external
+ * Returns null for anything that is not a data URL - those are external
  * `https://` images the browser fetches directly.
  */
 export function decodeDataImage(
@@ -33,7 +33,7 @@ export function decodeDataImage(
  * How many hex digits of the digest travel in the URL.
  *
  * 12 digits is 48 bits. A collision would mean a replaced photo keeping its
- * predecessor's URL — the exact bug this stamp exists to kill — so the length
+ * predecessor's URL - the exact bug this stamp exists to kill - so the length
  * is set well past the point where that is conceivable for the handful of
  * photos one menu item sees in its life, and a dozen characters in a URL cost
  * nothing.
@@ -59,7 +59,7 @@ export function imageDigest(stored: string | undefined): string {
 
 /**
  * The short stamp that goes in the URL (`?v=…`). Derived from the content, so
- * the same photo keeps the same URL — nothing re-downloads — and a different
+ * the same photo keeps the same URL - nothing re-downloads - and a different
  * photo lands on a URL no cache has ever seen.
  */
 export function imageVersion(stored: string | undefined): string {
@@ -81,7 +81,7 @@ export function versionMatchesDigest(version: string, digest: string): boolean {
  * For a URL with NO stamp, or one whose stamp does not match what is stored.
  *
  * This used to be `s-maxage=86400` on the promise that the bytes "change only
- * when the admin replaces the image — which also revalidates the pages that
+ * when the admin replaces the image - which also revalidates the pages that
  * link to it". The pages, yes; the image URL, no. It never changed, so a
  * replaced photo stayed invisible behind the CDN for a day and behind the
  * mobile app's URL-keyed disk cache for longer. Five minutes, plus the ETag
@@ -94,7 +94,7 @@ export const IMAGE_CACHE_CONTROL = "public, max-age=300, s-maxage=300";
  *
  * Immutable is honest here rather than aspirational: the stamp IS the digest
  * of the bytes being served, so this URL cannot ever answer with different
- * bytes. New photo, new stamp, new URL — and this entry is simply never asked
+ * bytes. New photo, new stamp, new URL - and this entry is simply never asked
  * for again.
  */
 export const IMMUTABLE_IMAGE_CACHE_CONTROL =

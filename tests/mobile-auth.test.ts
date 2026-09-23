@@ -165,7 +165,7 @@ describe("planCustomerLink", () => {
       supabaseUserId: "u-1",
       supabaseLinkAttemptedAt: NOW,
       isActive: true,
-      // No consent in the metadata, so none is recorded — the row must not
+      // No consent in the metadata, so none is recorded - the row must not
       // claim an agreement the member never gave.
       termsAcceptedAt: "",
       marketingConsentAt: "",

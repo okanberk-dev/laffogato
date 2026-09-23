@@ -1,7 +1,7 @@
 /**
  * An in-memory stand-in for the slice of the query builder `counter_tokens`
- * uses. Enough to exercise the real module — the conditional single-use
- * UPDATE, the open-token cap, the per-minute window — without a database.
+ * uses. Enough to exercise the real module - the conditional single-use
+ * UPDATE, the open-token cap, the per-minute window - without a database.
  *
  * Mutations return rows only when `.select()` is chained, exactly like
  * src/lib/db/client.ts: the single-use guard is read off that row count, so a

@@ -9,12 +9,12 @@ import { LEGAL_CONTENT } from "@/lib/legal/content";
 import { destructionEnabled, RETENTION_RULES } from "@/lib/retention";
 
 /**
- * Periodic destruction — the published policy against the job that runs it.
+ * Periodic destruction - the published policy against the job that runs it.
  *
  * The Veri Saklama ve İmha Politikası is a binding undertaking: a retention
  * period per data category, and destruction in the last work week of June and
- * December. None of it existed in code, so `auth_attempts` — whose primary key
- * is `<purpose>::<IP>::<e-mail>` — grew without a ceiling for a counter whose
+ * December. None of it existed in code, so `auth_attempts` - whose primary key
+ * is `<purpose>::<IP>::<e-mail>` - grew without a ceiling for a counter whose
  * window is five minutes.
  *
  * Two failure modes this locks down. Periods must be READ from the policy, so
@@ -234,12 +234,12 @@ describe("the sweep is wired up and cannot destroy a blank timestamp", () => {
   it("is reached by a daily cron, through /api/cron/daily", () => {
     // The sweep no longer has a cron entry of its own. Vercel's Hobby plan
     // allows two cron jobs on daily schedules, and a `vercel.json` asking for
-    // three — one of them hourly — makes Vercel fail the DEPLOY: nothing
+    // three - one of them hourly - makes Vercel fail the DEPLOY: nothing
     // reached production between 16 and 22 Eyl 2026 because of exactly that
     // (docs/EMAIL-RESEND.md, "Cron sayısı deploy'u durdurabilir").
     //
     // So the route stays, and `/api/cron/daily` calls it. What is pinned here
-    // is that the sweep is still REACHED daily — the thing that would
+    // is that the sweep is still REACHED daily - the thing that would
     // otherwise rot silently, because a sweep nobody runs looks exactly like
     // a sweep that found nothing.
     const paths = vercel.crons.map((c) => c.path);

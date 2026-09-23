@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import { canAccess, sectionsFor } from "@/lib/admin/roles";
 
-describe("RBAC — canAccess", () => {
+describe("RBAC - canAccess", () => {
   it("owner can reach every section, including settings + audit", () => {
     expect(canAccess("settings", "owner")).toBe(true);
     expect(canAccess("audit", "owner")).toBe(true);

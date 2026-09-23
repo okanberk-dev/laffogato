@@ -25,7 +25,7 @@ export default async function CampaignMailListPage() {
   const rows = await listCampaignEmails();
 
   // One dry count per distinct (audience, preference) among the rows that can
-  // be sent from here — the confirm on "Gönder" quotes it. Two campaigns to
+  // be sent from here - the confirm on "Gönder" quotes it. Two campaigns to
   // the same audience share a number, not a second query.
   const counts = new Map<string, number | null>();
   for (const c of rows) {

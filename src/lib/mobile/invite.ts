@@ -98,7 +98,7 @@ export async function ensureInviteCode(
       checkErr(error, "ensureInviteCode");
     }
     if (((data as { id: string }[] | null) ?? []).length > 0) return code;
-    // Zero rows: a concurrent request assigned the code first — read it.
+    // Zero rows: a concurrent request assigned the code first - read it.
     const current = await fetchIdentity(email);
     if (current?.inviteCode) return current.inviteCode;
     if (!current) throw new Error("ensureInviteCode: customer row missing");
@@ -145,7 +145,7 @@ export async function getInviteSummary(
   // Only the first INVITE_REWARD_CAP settlements pay the inviter
   // (`rewardInviteOnFirstPaidOrder` counts the rewarded rows before granting),
   // and settlement order is `rewardedAt`. So the same ordering says here which
-  // people actually earned this member a coffee — the rest were cap-dropped
+  // people actually earned this member a coffee - the rest were cap-dropped
   // and used to show "+1 kahve" for a coupon that never existed.
   const settled = invites
     .filter((i) => i.status === "rewarded")
@@ -247,7 +247,7 @@ export async function claimInvite(
  * free-drink coupon each for inviter and invitee. Called from `onOrderPaid`.
  *
  * The status flip is a guarded UPDATE (`pending` → `rewarded`), so a repeated
- * webhook — or two orders paid at the same moment — rewards exactly once.
+ * webhook - or two orders paid at the same moment - rewards exactly once.
  */
 /** A cafe order below this does not settle an invite (docs/REWARDS.md §2). */
 export const INVITE_MIN_ORDER_MINOR = 15000;
@@ -285,7 +285,7 @@ export async function rewardInviteOnFirstPaidOrder(
   if (won.length === 0) return false;
   const invite = won[0];
 
-  // The flip is the mutex, so it has to happen first — but until both coupons
+  // The flip is the mutex, so it has to happen first - but until both coupons
   // exist it is also the only record that the reward is owed. If a grant
   // throws, the row goes back to `pending` so the next webhook retry settles
   // it again; leaving it `rewarded` lost the free drinks for good, because the

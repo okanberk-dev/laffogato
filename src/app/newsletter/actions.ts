@@ -19,12 +19,12 @@ export interface NewsletterFormState {
 }
 
 /**
- * Public footer newsletter signup — double opt-in.
+ * Public footer newsletter signup - double opt-in.
  *
  * 6563 sayılı kanun ticari elektronik ileti için ÖNCEDEN açık onay ister ve
  * onayın varlığını ispat yükümlülüğünü hizmet sağlayıcıya yükler. The form
  * used to put whatever address was typed straight on the list, so anyone
- * could subscribe anyone — someone who had opted out included — and the
+ * could subscribe anyone - someone who had opted out included - and the
  * "consent" record carried the stranger's IP. Now the request is stored
  * pending and a confirmation mail goes to the address; the subscription
  * starts when its owner presses the button in it (/bulten/onay).
@@ -95,7 +95,7 @@ function maskedAddress(email: string): string {
 }
 
 /**
- * The button on /bulten/cikis — one press, no login, no typing the address.
+ * The button on /bulten/cikis - one press, no login, no typing the address.
  *
  * The page used to spend the token on arrival. Mail security scanners
  * (Outlook Safe Links, Gmail's pre-fetch, corporate gateways) open every link

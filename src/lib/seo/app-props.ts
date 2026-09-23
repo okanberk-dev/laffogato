@@ -25,7 +25,7 @@ import { istanbulDay } from "@/lib/mobile/menu-mapper";
  * Those are exactly the pages that display them: /ziyaret fell back to the
  * bundled address, phone and opening hours, so an owner who changed the
  * closing time in Ayarlar saw the home page and the footer update while the
- * contact page kept the old number — and /hikayemiz ignored the press quotes
+ * contact page kept the old number - and /hikayemiz ignored the press quotes
  * and the timeline the admin panel exists to edit.
  */
 export async function loadAppProps({
@@ -54,7 +54,7 @@ export async function loadAppProps({
     getSiteContent(),
   ]);
 
-  // Computed on the server so it is stable across hydration — and at the
+  // Computed on the server so it is stable across hydration - and at the
   // venue's clock, not the server's. `getDay()` on Vercel is UTC, so from
   // 00:00 to 03:00 in Tuzla the site's "Bugün" row showed yesterday's hours
   // while the app (bootstrap `opensAt`/`closesAt`) already showed today's.

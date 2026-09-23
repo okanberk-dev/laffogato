@@ -59,7 +59,7 @@ export async function updateSlideAction(id: string, formData: FormData) {
   await requireRole("mobileApp");
   const input = parseInput(formData);
   // Same guard as the create action: the HTML `required` attribute is not a
-  // guard on a Server Action, and the store only trims the title — a titleless
+  // guard on a Server Action, and the store only trims the title - a titleless
   // row renders as an empty card on every phone.
   if (!input.title.trim()) return;
   const updated = await updateAppSlide(id, input);

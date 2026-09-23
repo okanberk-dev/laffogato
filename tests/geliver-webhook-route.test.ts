@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * POST /api/webhooks/geliver — the route, end to end, with the store mocked.
+ * POST /api/webhooks/geliver - the route, end to end, with the store mocked.
  *
  * `tests/mobile-shipment.test.ts` pins the READER (Geliver's vocabulary → the
  * contract's six words). This file pins what the route does with it: that
  * nothing is read before the caller is authenticated, that each failure has
  * its own status so a Vercel log filter can name it, and that the four
- * "accepted but nothing written" outcomes stay 200 — a webhook sender retries
+ * "accepted but nothing written" outcomes stay 200 - a webhook sender retries
  * anything else forever.
  *
  * The secret is compared constant-time against `GELIVER_WEBHOOK_SECRET`;
@@ -59,7 +59,7 @@ afterEach(() => {
 });
 
 describe("authentication comes first", () => {
-  it("503 while the secret is unset — never a guessable door", async () => {
+  it("503 while the secret is unset - never a guessable door", async () => {
     delete process.env.GELIVER_WEBHOOK_SECRET;
     const res = await post(REAL, SIGNED);
     expect(res.status).toBe(503);
@@ -110,7 +110,7 @@ describe("a broken delivery is a 400, so it shows in the logs", () => {
 });
 
 describe("what Geliver sent correctly", () => {
-  it("writes the documented shape — statusCode under data, the code inside trackingStatus", async () => {
+  it("writes the documented shape - statusCode under data, the code inside trackingStatus", async () => {
     setOrderShipmentStatus.mockResolvedValue({ outcome: "applied", order: ORDER });
     const res = await post(REAL, SIGNED);
     expect(res.status).toBe(200);
@@ -138,7 +138,7 @@ describe("what Geliver sent correctly", () => {
     const res = await post(REAL, SIGNED);
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ ok: true, ignored: "unknown_tracking_number" });
-    // The number itself is never logged — its length is.
+    // The number itself is never logged - its length is.
     const logged = (console.warn as unknown as { mock: { calls: unknown[][] } }).mock.calls.flat().join(" ");
     expect(logged).not.toContain("1234567890123");
     expect(logged).toContain("13 karakter");
@@ -151,7 +151,7 @@ describe("what Geliver sent correctly", () => {
     await expect(res.json()).resolves.toEqual({ ok: true, ignored: "stale", orderNo: 284 });
   });
 
-  it("200 + the field NAMES for a shape it cannot map — never a value", async () => {
+  it("200 + the field NAMES for a shape it cannot map - never a value", async () => {
     const res = await post(JSON.stringify({ hello: "gizli-deger", data: { foo: "gizli" } }), SIGNED);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { ok: boolean; ignored: string; fields: string };

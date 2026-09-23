@@ -14,7 +14,7 @@ export function ClearCart() {
     try {
       window.localStorage.removeItem(CART_STORAGE_KEY);
     } catch {
-      // localStorage may be unavailable — silent no-op.
+      // localStorage may be unavailable - silent no-op.
     }
   }, []);
   return null;

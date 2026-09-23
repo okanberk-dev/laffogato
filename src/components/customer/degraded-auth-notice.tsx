@@ -3,7 +3,7 @@ import { isDegradedRequest } from "@/lib/db/health";
 /**
  * Shown on the member sign-in / sign-up pages while the database is
  * unreachable. Without it the form looks usable, and submitting it fails on the
- * server — a dead end. Rendering nothing when the database is healthy keeps the
+ * server - a dead end. Rendering nothing when the database is healthy keeps the
  * pages unchanged in normal operation.
  */
 export function DegradedAuthNotice() {

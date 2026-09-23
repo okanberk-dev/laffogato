@@ -50,8 +50,8 @@ function revalidateAll() {
 /**
  * Money in kuruş, or null when the field is not a plain non-negative number.
  *
- * It used to fall back to 0, which turned "₺75" — a perfectly natural thing to
- * type into a price box — into free courier delivery for every order that
+ * It used to fall back to 0, which turned "₺75" - a perfectly natural thing to
+ * type into a price box - into free courier delivery for every order that
  * evening, silently. A bad number is now an error the operator sees.
  */
 function parseMoneyMinor(raw: unknown): number | null {
@@ -68,7 +68,7 @@ function parseMoneyMinor(raw: unknown): number | null {
 
 function parseTime(raw: unknown): string {
   const s = String(raw ?? "").trim();
-  // Allow HH:MM or H:MM (00:00–24:00). Return normalized or fallback.
+  // Allow HH:MM or H:MM (00:00-24:00). Return normalized or fallback.
   const m = /^(\d{1,2}):(\d{2})$/.exec(s);
   if (!m) return "00:00";
   const h = Math.min(24, Math.max(0, parseInt(m[1], 10)));
@@ -160,7 +160,7 @@ export async function saveShippingAction(
   if (shippingFreeThresholdMinor === null) {
     return { error: "Ücretsiz kargo eşiği sayı olmalı (0 = kapalı)." };
   }
-  // Cafe delivery (mobile app): a flat courier fee, never free — the
+  // Cafe delivery (mobile app): a flat courier fee, never free - the
   // free-shipping threshold above applies to shop parcels only. Zero would
   // make every kurye order ship free, so it is rejected rather than stored.
   const courierFeeMinor = parseMoneyMinor(formData.get("courierFee"));
@@ -254,7 +254,7 @@ export async function saveNotificationsAction(
  * Who transactional mail comes from.
  *
  * Resend refuses any address whose domain is not verified on the account, and
- * which domain that is changes outside this codebase — a DNS record added on
+ * which domain that is changes outside this codebase - a DNS record added on
  * a Tuesday. Compiling the address in would mean a deploy each time; this is
  * the panel field that avoids one.
  */
@@ -290,8 +290,8 @@ export async function saveEmailSenderAction(
 /**
  * Sends one mail and reports what the provider said.
  *
- * Every other path swallows a delivery failure on purpose — a customer must
- * not lose an order because mail bounced — so without this the operator's
+ * Every other path swallows a delivery failure on purpose - a customer must
+ * not lose an order because mail bounced - so without this the operator's
  * only signal that nothing is arriving is that nothing is arriving.
  */
 export async function sendTestEmailAction(

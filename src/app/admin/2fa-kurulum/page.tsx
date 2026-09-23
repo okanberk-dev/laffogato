@@ -81,7 +81,7 @@ export default async function TwoFAEnrollPage({
   // Called here, in the page, and NOT through a "use server" wrapper: every
   // export of an actions file is a public POST endpoint, and the old
   // `freshEnrollment` export let anyone holding a session cookie overwrite an
-  // ENABLED enrollment with a fresh draft — 2FA silently off, no audit row.
+  // ENABLED enrollment with a fresh draft - 2FA silently off, no audit row.
   const draft = await startEnrollment(session.email, "L'Affogato Admin");
   const qrDataUrl = draft
     ? await QRCode.toDataURL(draft.otpauthUrl, { margin: 1, width: 240 })

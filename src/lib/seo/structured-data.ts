@@ -9,7 +9,7 @@
  *  - SiteNavigationElement (the home page is the root, so it has no
  *    BreadcrumbList; deep routes emit their own)
  *  - Menu + MenuSection + MenuItem (live from admin store)
- *  - Product (one per shop SKU — with image, brand, sku, full offer,
+ *  - Product (one per shop SKU - with image, brand, sku, full offer,
  *    shipping policy, return policy)
  *  - FAQPage
  *  - AboutPage (story/heritage timeline)
@@ -38,7 +38,7 @@ type Json = Record<string, unknown>;
 
 /**
  * BCP-47 language tag. `SITE.locale` is the OpenGraph form (`tr_TR`), which is
- * not valid for schema.org's `inLanguage` — consumers that validate the tag
+ * not valid for schema.org's `inLanguage` - consumers that validate the tag
  * dropped the field.
  */
 const LANG_TAG = SITE.locale.replace("_", "-");
@@ -50,7 +50,7 @@ const CURRENCY = "TRY";
  *
  * Uploaded images are served from a site-relative path (`/gorsel/urun/...`);
  * pasted ones are already absolute. Structured data needs an absolute URL
- * either way — the old check accepted only `https://`, so every uploaded photo
+ * either way - the old check accepted only `https://`, so every uploaded photo
  * was silently replaced by the generic OG card.
  */
 function imageUrl(images: string[] | undefined): string {
@@ -64,7 +64,7 @@ function imageUrl(images: string[] | undefined): string {
 /**
  * The parts of the admin settings that structured data has to agree with.
  * Optional at every call site so a page that has not loaded settings still
- * renders — it then omits the fields it cannot state truthfully rather than
+ * renders - it then omits the fields it cannot state truthfully rather than
  * publishing a stale constant.
  */
 export interface LdSettings {
@@ -107,11 +107,11 @@ function shippingDetailsLd(settings?: LdSettings): Json | null {
  *
  * Prefers the minor-unit integer when the caller has it: the display string
  * is rounded to whole lira, so a ₺184,90 product used to be published to
- * Google as ₺185 while checkout charged ₺184,90 — a price mismatch Merchant
+ * Google as ₺185 while checkout charged ₺184,90 - a price mismatch Merchant
  * Center rejects, and a small lie either way.
  *
  * Returns `null` when there is no real price to publish. During a database
- * outage the menu renders prices as "—"; the old parser turned that into
+ * outage the menu renders prices as "-"; the old parser turned that into
  * "0" and the site advertised its entire menu as free.
  */
 function offerPrice(display: string, minor?: number): string | null {
@@ -152,7 +152,7 @@ const PRICE_VALID_UNTIL = (() => {
  *
  * Reads the admin's weekly hours when they are available, so a change made in
  * Ayarlar reaches Google. Falls back to the build-time constant only when a
- * caller has no settings to hand — the site used to publish that constant
+ * caller has no settings to hand - the site used to publish that constant
  * unconditionally, so edited hours never left the panel.
  */
 function openingHoursLd(settings?: LdSettings): Json[] {
@@ -195,7 +195,7 @@ function organizationLd(): Json {
     "@id": `${SITE.url}/#organization`,
     name: SITE.name,
     alternateName: [SITE.tradeName, LEGAL_ENTITY.shortName],
-    // Ticaret sicilindeki tüzel kişi — vergi levhası ile doğrulandı.
+    // Ticaret sicilindeki tüzel kişi - vergi levhası ile doğrulandı.
     legalName: LEGAL_ENTITY.legalName,
     taxID: LEGAL_ENTITY.taxNo,
     vatID: LEGAL_ENTITY.taxNo,
@@ -286,7 +286,7 @@ export function localBusinessLd(settings?: LdSettings): Json {
     servesCuisine: [...SITE.cuisine],
     paymentAccepted: SITE.paymentAccepted.join(", "),
     currenciesAccepted: SITE.currencies.join(", "),
-    // The site takes no reservations — there is no form, no store and no
+    // The site takes no reservations - there is no form, no store and no
     // admin screen for them, and the Kullanım Şartları say so explicitly.
     // Publishing `true` put a "Reserve" affordance in Google's business card
     // that led to a dead button.
@@ -437,7 +437,7 @@ function menuSectionNode(key: string, cat: MenuCategory): Json {
         "@type": "MenuItem",
         name: item.name,
         description: item.desc,
-        // No price, no offer. During an outage every price renders as "—";
+        // No price, no offer. During an outage every price renders as "-";
         // publishing that as 0 advertised the whole menu as free.
         ...(price
           ? {
@@ -471,7 +471,7 @@ export function menuLd(menu: Record<string, MenuCategory>): Json {
 /**
  * A single menu category, for `/menu/[kategori]`.
  *
- * The category page shows one section, so it publishes that section — not a
+ * The category page shows one section, so it publishes that section - not a
  * Menu whose `hasMenuSection` holds a single entry while sharing the `#menu`
  * @id with the full menu at /menu. `isPartOf` keeps the two joined.
  */
@@ -820,8 +820,8 @@ function speakableLd(): Json {
 /**
  * The primary navigation, as `SiteNavigationElement`.
  *
- * This is what the home page actually wanted to say — "these are my main
- * sections" — and it is the type search engines read for sitelinks. It is not
+ * This is what the home page actually wanted to say - "these are my main
+ * sections" - and it is the type search engines read for sitelinks. It is not
  * a breadcrumb, which is a path to a single page.
  */
 export function siteNavigationLd(): Json {

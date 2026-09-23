@@ -4,7 +4,7 @@
  * KVKK treats analytics and marketing cookies as requiring explicit consent,
  * and the site's own Çerez Politikası promises a banner and a preference centre
  * that can be reopened. Strictly necessary cookies (session, cart, CSRF) are
- * out of scope — they carry no consent switch because the site cannot work
+ * out of scope - they carry no consent switch because the site cannot work
  * without them.
  *
  * Client-safe: no server imports, so both the banner and the layout script can
@@ -21,7 +21,7 @@ export const CONSENT_VERSION = 1;
 
 export interface ConsentState {
   version: number;
-  /** ISO-8601 instant the choice was made — evidence the consent was given. */
+  /** ISO-8601 instant the choice was made - evidence the consent was given. */
   decidedAt: string;
   /** Preferences: language, theme, remembered filters. */
   preferences: boolean;
@@ -31,7 +31,7 @@ export interface ConsentState {
   marketing: boolean;
 }
 
-/** Nothing granted — what a visitor gets before they choose. */
+/** Nothing granted - what a visitor gets before they choose. */
 export const CONSENT_DENIED: Omit<ConsentState, "decidedAt"> = {
   version: CONSENT_VERSION,
   preferences: false,

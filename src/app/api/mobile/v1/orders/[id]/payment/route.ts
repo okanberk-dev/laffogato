@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 /**
- * `POST /api/mobile/v1/orders/{id}/payment` — reopens the checkout of the
+ * `POST /api/mobile/v1/orders/{id}/payment` - reopens the checkout of the
  * member's own app order that is still awaiting payment
  * (docs/API-MOBILE.md §3). Same body as a checkout's `{ order, payment }`;
  * a stranger's id is 404 like a missing one, and an order with nothing to pay

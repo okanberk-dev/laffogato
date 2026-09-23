@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * The two counts the panel polls for.
  *
  * A gel-al order lands in the database with nobody touching the browser, and
- * every admin page is `force-dynamic` — rendered once, then dead. These two
+ * every admin page is `force-dynamic` - rendered once, then dead. These two
  * actions are the only thing that makes an order arriving from the app
  * visible on a screen that is already open, so what matters is that they
  * answer cheaply, that they never redirect a background poll, and that a role
@@ -61,7 +61,7 @@ describe("openOrderCountAction", () => {
     expect(countOpenOrders).not.toHaveBeenCalled();
   });
 
-  it("answers null for a cashier — the till role may not see the order list", async () => {
+  it("answers null for a cashier - the till role may not see the order list", async () => {
     getAdminSession.mockResolvedValue({ email: "kasa@b.c", role: "cashier" });
     await expect(openOrderCountAction()).resolves.toBeNull();
     expect(countOpenOrders).not.toHaveBeenCalled();

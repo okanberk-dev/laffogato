@@ -10,8 +10,8 @@ import { DEFAULT_MOBILE_APP_CONFIG } from "@/lib/mobile/app-config";
  * generated for ONE checkout attempt, and the second call must answer with the
  * order the first one produced.
  *
- * Before `clientOrderId`, a phone that gave up on a slow response — while the
- * server was still mailing the confirmation and opening the checkout session —
+ * Before `clientOrderId`, a phone that gave up on a slow response - while the
+ * server was still mailing the confirmation and opening the checkout session -
  * placed a second order on "Tekrar dene": two pending rows, two e-mails, two
  * held stock claims, and a 429 lock-out after the third try.
  */
@@ -172,7 +172,7 @@ beforeEach(() => {
   createCheckoutSession.mockClear();
 });
 
-describe("POST /orders — clientOrderId", () => {
+describe("POST /orders - clientOrderId", () => {
   it("answers a repeat with the SAME order and places nothing new", async () => {
     const first = await createAppOrder(customer, body("attempt-1"));
     const second = await createAppOrder(customer, body("attempt-1"));
@@ -191,7 +191,7 @@ describe("POST /orders — clientOrderId", () => {
     expect(sendOrderPlacedEmail).toHaveBeenCalledTimes(1);
   });
 
-  it("re-opens the checkout for the retry — provider sessions expire", async () => {
+  it("re-opens the checkout for the retry - provider sessions expire", async () => {
     const first = await createAppOrder(customer, body("attempt-1"));
     const second = await createAppOrder(customer, body("attempt-1"));
     expect(first.ok && first.payment?.redirectUrl).toBeTruthy();
@@ -256,7 +256,7 @@ describe("POST /orders — clientOrderId", () => {
   });
 
   it("replays when the two POSTs race and the unique index refuses the second", async () => {
-    // Both calls miss the lookup — the first row has not committed yet — so
+    // Both calls miss the lookup - the first row has not committed yet - so
     // the insert is what refuses the duplicate. The member must get the one
     // order back, not a 500 they retry into a third attempt.
     await createAppOrder(customer, body("attempt-1"));

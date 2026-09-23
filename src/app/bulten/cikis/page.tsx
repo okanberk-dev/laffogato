@@ -13,13 +13,13 @@ interface PageProps {
 }
 
 /**
- * Unsubscribe — one press, no login, no typing the address back in (6563:
+ * Unsubscribe - one press, no login, no typing the address back in (6563:
  * withdrawal must be free and at least as easy as consent was to give).
  *
  * Arriving from a message's link shows the button; pressing it spends the
  * token (unsubscribeNewsletterAction) and comes back here with `?sonuc=`. The
  * page used to spend the token on arrival, and mail security scanners open
- * every link — people were unsubscribed by a robot and then told their own
+ * every link - people were unsubscribed by a robot and then told their own
  * click was "geçersiz".
  */
 export default async function BultenCikisPage({ searchParams }: PageProps) {

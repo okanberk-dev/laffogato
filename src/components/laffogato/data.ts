@@ -1,4 +1,4 @@
-// L'Affogato — content data
+// L'Affogato - content data
 
 export const BRAND = {
   heritage: "Italia, 1897",
@@ -30,7 +30,7 @@ export interface MenuCategory {
 }
 
 /**
- * Cafe menu — transcribed 1:1 from the L'Affogato printed menu (2026).
+ * Cafe menu - transcribed 1:1 from the L'Affogato printed menu (2026).
  * Two-size items carry `price` (M) and `priceL` (L); single-size items
  * only carry `price`.
  */
@@ -886,7 +886,7 @@ export interface HomeSlide {
  *
  * The reference was a Starbucks concept, so what is copied is the LAYOUT and
  * the colour treatment. Everything with a trademark on it is L'Affogato's
- * own: the mark, the wordmark, the drinks and the photographs — the three
+ * own: the mark, the wordmark, the drinks and the photographs - the three
  * cut-outs are this café's own Matcha Bar shots.
  *
  * `-cut` rather than the plain files the menu cards use: those are square
@@ -972,7 +972,7 @@ export const STORY = {
 export const LOCATION = {
   name: "L'Affogato - Tuzla",
   short: "Tuzla · İstanbul",
-  /** Display lines. The landmark is directions, not address — it lives on
+  /** Display lines. The landmark is directions, not address - it lives on
       `landmark` below and on /ziyaret's own directions block. */
   address: [
     "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
@@ -982,7 +982,7 @@ export const LOCATION = {
   /**
    * Karaoke room on the upper floor of the köşk.
    *
-   * Worth stating on the site as well as in the app: the 09:00–02:00 window is
+   * Worth stating on the site as well as in the app: the 09:00-02:00 window is
    * an evening business as much as a coffee one, and the karaoke room is the
    * reason to come after dinner rather than before it.
    */

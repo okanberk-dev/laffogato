@@ -2,7 +2,7 @@
 
 export type AdminRole = "owner" | "manager" | "staff" | "cashier";
 
-/** Every role, in descending privilege — the order the user form offers them. */
+/** Every role, in descending privilege - the order the user form offers them. */
 export const ADMIN_ROLES: AdminRole[] = [
   "owner",
   "manager",
@@ -23,7 +23,7 @@ export function isAdminRole(value: string): value is AdminRole {
 
 /**
  * Section keys map to admin nav entries + bulk feature areas. The matrix
- * below is the single source of truth — change it here and both server
+ * below is the single source of truth - change it here and both server
  * gates and nav rendering update together.
  */
 export type AdminSection =

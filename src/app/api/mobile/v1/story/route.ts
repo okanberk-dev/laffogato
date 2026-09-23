@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 /**
- * `GET /api/mobile/v1/story` — founder, timeline and press quotes for the
+ * `GET /api/mobile/v1/story` - founder, timeline and press quotes for the
  * app's Hikâye screen (docs/API-MOBILE.md §16). Public: it is the same story
  * the site tells any visitor.
  */

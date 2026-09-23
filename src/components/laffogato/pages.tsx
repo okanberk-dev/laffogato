@@ -39,7 +39,7 @@ import {
 } from "./visuals";
 
 /** Menu item tags are stored as English keys; the site speaks Turkish. Only
-    the two the prototype shows as badges are labelled — anything else is not
+    the two the prototype shows as badges are labelled - anything else is not
     worth a badge. */
 const MENU_TAG_LABELS: Record<string, string> = {
   signature: "İMZA",
@@ -116,7 +116,7 @@ export function PageHome({
   const railRef = useRef<HTMLDivElement>(null);
 
   /**
-   * The bar rail — what is on the counter today, drawn from the live cafe
+   * The bar rail - what is on the counter today, drawn from the live cafe
    * menu rather than the shop catalogue.
    *
    * The prototype puts a "Sepete ekle" button on each of these. The web cart
@@ -124,8 +124,8 @@ export function PageHome({
    * checkout re-reads from the products table before charging. A cafe menu
    * item has no product row to validate against, so an "add" here would be a
    * button that cannot become an order. Cafe ordering from the web is a real
-   * requirement — it exists in the mobile API already
-   * (`/api/mobile/v1/orders`) — but wiring the web checkout to it is a
+   * requirement - it exists in the mobile API already
+   * (`/api/mobile/v1/orders`) - but wiring the web checkout to it is a
    * commercial-path change, not a restyle. Until then the card opens the
    * item's menu category, which is a promise the site can keep.
    */
@@ -216,7 +216,7 @@ export function PageHome({
   return (
     <div className="page" data-screen-label="01 Home">
       {/* The page's one h1. The hero's three slide titles rotate, so none of
-          them can hold it — an h1 that changes every seven seconds is worse
+          them can hold it - an h1 that changes every seven seconds is worse
           for a screen reader than no h1, and a slider-led home page with no
           h1 at all is what the audit found. Visually hidden; it names the
           business and what it does, which is what the heading is for. */}
@@ -231,7 +231,7 @@ export function PageHome({
         heroImageUrl={heroImageUrl}
       />
 
-      {/* The reference's banner board, pointing at /kampanyalar — the offers
+      {/* The reference's banner board, pointing at /kampanyalar - the offers
           themselves are operator-managed and live there, so this is a door,
           not a second place to keep the same copy. */}
       <section className="home-section">
@@ -514,7 +514,7 @@ export function PageHome({
                 <span className="eyebrow on-dark">Damga kartı</span>
                 <span className="loyalty-tier">6 damga</span>
               </div>
-              {/* The programme explained, not a particular visitor's card —
+              {/* The programme explained, not a particular visitor's card -
                   this page is public and does not know who is reading it, so
                   the six circles are numbered as a legend. The live card, with
                   the reader's own stamps on it, is on /uye/hesap. */}
@@ -635,7 +635,7 @@ export function PageMenu({ menu }: PageProps) {
    * it. Search still spans everything; the category pills filter it.
    *
    * There is no "sepete ekle" on these cards. The cafe menu on the web is a
-   * viewing menu — the cart carries shop products, whose price and stock the
+   * viewing menu - the cart carries shop products, whose price and stock the
    * checkout re-reads from the products table, and a menu item has no product
    * row to validate against. Ordering cafe items exists in the mobile API and
    * wiring the web checkout to it is its own change.
@@ -817,7 +817,7 @@ export function PageMenu({ menu }: PageProps) {
           )}
         </div>
 
-        {/* Allergen and provenance notes — not decoration: someone with a
+        {/* Allergen and provenance notes - not decoration: someone with a
             gluten intolerance needs to read this before they order at the
             bar. */}
         <section className="section-tight menu-notes-band">
@@ -891,8 +891,8 @@ export function PageShop({
   products,
   shopHeroSlides,
 }: PageProps) {
-  // `[]` means "the shop really has nothing to show" — during a database
-  // outage in particular — and must stay empty. Only `undefined` (no data
+  // `[]` means "the shop really has nothing to show" - during a database
+  // outage in particular - and must stay empty. Only `undefined` (no data
   // passed at all) falls back to the bundled design catalogue.
   const shopProducts = products ?? PRODUCTS;
   const slides = shopHeroSlides ?? [];
@@ -940,12 +940,12 @@ export function PageShop({
 
   // Escape, body-scroll lock, focus in and focus back out. The sheet stays
   // mounted so it can animate, so it also has to be marked inert while closed
-  // — its controls were otherwise reachable by Tab from off-screen.
+  // - its controls were otherwise reachable by Tab from off-screen.
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
   useDialog(filtersOpen, closeFilters, sheetRef);
 
-  // Filter controls — shared by the desktop sidebar and the mobile sheet.
+  // Filter controls - shared by the desktop sidebar and the mobile sheet.
   const renderFilters = () => (
     <>
       <div className="shop-filter-block">
@@ -1536,7 +1536,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
       <section className="story-hero">
         <div className="wrap">
           {/* The köşk itself. These are the venue photographs from the design
-              handoff — the page used to carry only drawn illustrations. */}
+              handoff - the page used to carry only drawn illustrations. */}
           <div className="story-mosaic">
             <div className="story-mosaic-lead">
               <Image
@@ -2208,7 +2208,7 @@ export function PageVisit({ visit, settings }: PageProps) {
             <h2 className="h1" style={{ marginTop: 16 }}>
               {/* Tek satırlık tarifede başlık tablodan türetilir; panelden saat
                   değişirse ikisi birlikte değişir. Çok satırlı tarifede genel
-                  başlığa düşer — sabit "09–01" yazsaydık, panelin ilk
+                  başlığa düşer - sabit "09-01" yazsaydık, panelin ilk
                   düzenlemesinde başlık tabloyla çelişirdi. */}
               {visitHours.length === 1 ? (
                 <>
@@ -2240,7 +2240,7 @@ export function PageVisit({ visit, settings }: PageProps) {
                   Şu an açık
                 </div>
                 <div className="eyebrow" style={{ marginTop: 4 }}>
-                  {/* Kapanıştan yarım saat önce — 02:00 kapanışla 01:30.
+                  {/* Kapanıştan yarım saat önce - 02:00 kapanışla 01:30.
                       (22:30, eski 23:00 kapanışından kalmıştı.) */}
                   Son siparişler 00:30
                 </div>

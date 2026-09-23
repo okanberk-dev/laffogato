@@ -10,7 +10,7 @@
  * the claim's per-campaign row lock: two claims here never overlap.
  *
  * Mutations return rows only when `.select()` is chained, exactly like
- * src/lib/db/client.ts — the single-use unsubscribe and the draft-only edit
+ * src/lib/db/client.ts - the single-use unsubscribe and the draft-only edit
  * both read their outcome off that row count.
  */
 
@@ -41,7 +41,7 @@ export function resetFakeDb(): void {
 }
 
 /**
- * Makes the NEXT call of a plpgsql function fail with a query error — the
+ * Makes the NEXT call of a plpgsql function fail with a query error - the
  * transient database failure a max:1 pool produces between a provider's
  * "accepted" and the runner's mark.
  */
@@ -337,7 +337,7 @@ function memberInAudience(c: FakeRow, pref: string): boolean {
   );
 }
 
-/** `campaign_email_audience(p_audience, p_pref)` — the rule, mirrored. */
+/** `campaign_email_audience(p_audience, p_pref)` - the rule, mirrored. */
 export function fakeAudience(audience: string, pref: string): AudienceRow[] {
   const out = new Map<string, AudienceRow>();
   if (audience === "marketing" || audience === "both") {
@@ -409,7 +409,7 @@ function enqueue(args: FakeRow): FakeResult {
       .filter((s) => s.campaignId === campaignId)
       .reduce((m, s) => Math.max(m, Number(s.batchNo)), -1);
   // Skipped rows go back only for a recipient the rule still names, re-read
-  // as the rule names them now — and under a FRESH batch number after the
+  // as the rule names them now - and under a FRESH batch number after the
   // last in use, a hundred to a batch in e-mail order: their old batch may
   // have been posted for the others, and its key is spent for that set.
   // The rest stay skipped and say why.
@@ -560,7 +560,7 @@ function refreshCounters(campaignId: string): void {
   ).length;
 }
 
-/** `campaign_email_mark(…, p_claimed_at)` — only the rows of the caller's own claim. */
+/** `campaign_email_mark(…, p_claimed_at)` - only the rows of the caller's own claim. */
 function mark(args: FakeRow): FakeResult {
   const campaignId = String(args.p_campaign);
   const batchNo = Number(args.p_batch);

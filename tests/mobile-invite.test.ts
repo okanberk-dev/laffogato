@@ -116,7 +116,7 @@ function claimAnswers(): (q: Query) => { data?: unknown; error?: unknown } {
   };
 }
 
-describe("claimInvite — which orders close the window", () => {
+describe("claimInvite - which orders close the window", () => {
   it("still lets a member claim after a cancelled checkout", async () => {
     answer = claimAnswers();
     customerOrdersByEmail.mockResolvedValue([
@@ -138,7 +138,7 @@ describe("claimInvite — which orders close the window", () => {
   });
 });
 
-describe("rewardInviteOnFirstPaidOrder — the flip is reversible", () => {
+describe("rewardInviteOnFirstPaidOrder - the flip is reversible", () => {
   const paidCafeOrder = { kind: "cafe", totalMinor: 30000, discountMinor: 0 };
 
   it("re-opens the invite when a coupon grant fails, so a retry settles it", async () => {
@@ -165,7 +165,7 @@ describe("rewardInviteOnFirstPaidOrder — the flip is reversible", () => {
   });
 });
 
-describe("rewardInviteOnFirstPaidOrder — a retry grants only what is missing", () => {
+describe("rewardInviteOnFirstPaidOrder - a retry grants only what is missing", () => {
   const paidCafeOrder = { kind: "cafe", totalMinor: 30000, discountMinor: 0 };
 
   it("records each coupon on the invite as soon as it exists", async () => {
@@ -230,7 +230,7 @@ describe("rewardInviteOnFirstPaidOrder — a retry grants only what is missing",
   });
 });
 
-describe("getInviteSummary — counters say what actually happened", () => {
+describe("getInviteSummary - counters say what actually happened", () => {
   const rewarded = (n: number) =>
     Array.from({ length: n }, (_, i) => ({
       id: `inv-${i}`,

@@ -10,7 +10,7 @@ import { Card, PageHeader } from "@/components/admin/forms";
  *
  * Without one, every uncaught throw under /admin fell through to the SHOP's
  * boundary: the operator lost the sidebar, was addressed as a customer
- * ("bizimle iletişime geç") and was offered "Menüyü gör" — with no way back
+ * ("bizimle iletişime geç") and was offered "Menüyü gör" - with no way back
  * to the panel except typing /admin by hand. Every admin page is
  * `force-dynamic` and talks to Postgres on every request, so a connection
  * that stumbles for one second lands here rather than anywhere rare.

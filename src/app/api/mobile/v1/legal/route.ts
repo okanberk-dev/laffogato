@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 /**
- * `GET /api/mobile/v1/legal` — the contract index (docs/API-MOBILE.md §13).
+ * `GET /api/mobile/v1/legal` - the contract index (docs/API-MOBILE.md §13).
  *
  * Public. Dynamic rather than static because an admin can publish an
  * override in /admin/hukuk between deploys, and the title, summary and

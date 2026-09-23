@@ -84,7 +84,7 @@ function getSupabaseAdminClient(): SupabaseClient | null {
  *
  * `skipped` is not a failure: a deployment without the key is a supported
  * configuration. It does mean the identity is still alive, so the caller must
- * make sure it can no longer open a membership here — see the closed-row check
+ * make sure it can no longer open a membership here - see the closed-row check
  * in `@/lib/customer/supabase-bridge`.
  */
 export type IdentityDeletion = "deleted" | "skipped" | "failed";
@@ -121,7 +121,7 @@ export async function deleteSupabaseIdentity(
  *
  * Never throws, and never blocks the reset: a member who cannot get back into
  * their account at all is worse off than one whose app password lags. A
- * failure is loud in the log because it leaves a live old credential — the
+ * failure is loud in the log because it leaves a live old credential - the
  * operator's move is to have them reset again once auth is reachable.
  *
  * `skipped` covers both a deployment with no service-role key and a member

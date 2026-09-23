@@ -11,13 +11,13 @@ export const dynamic = "force-dynamic";
  *
  * PayNkolay yönlendirilecek bir URL vermiyor: `/Vpos` ucu form-POST bekliyor
  * (docs/PAYNKOLAY.md §9). Oysa `CheckoutSession` tek bir `redirectUrl`
- * taşıyor ve mobil uygulama o adresi `WebBrowser` ile açıyor — uygulama form
+ * taşıyor ve mobil uygulama o adresi `WebBrowser` ile açıyor - uygulama form
  * POST edemez. Aradaki farkı kapatan yer burası: alanlar imzalı olarak URL'de
  * gelir, sayfa onları gizli input'lara koyup POS'a gönderir.
  *
  * Alanların çoğu zaten `hashDataV2` ile korunuyor; `currencyCode`,
  * `transactionType` ve `use3D` değil. Bu yüzden yük ayrıca imzalanıyor ve
- * imza tutmazsa form hiç kurulmuyor — yoksa müşteri `use3D`'yi boşaltıp 3D'siz
+ * imza tutmazsa form hiç kurulmuyor - yoksa müşteri `use3D`'yi boşaltıp 3D'siz
  * ödeyebilirdi.
  */
 export async function GET(req: NextRequest) {

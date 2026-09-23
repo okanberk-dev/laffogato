@@ -8,10 +8,10 @@ import type { CampaignEmail } from "@/lib/email/campaigns";
  *
  * What is real: the zod field schema and `campaignFromPost` (agent B's), the
  * client-safe field map the form renders from, and the templates themselves
- * — because the one thing worth catching here is the form asking for a
+ * - because the one thing worth catching here is the form asking for a
  * field the template does not have, or forgetting one it needs. What is
  * mocked: every read and write, the provider, the role gate, the audit
- * log, and `after()` — which here runs its task on the next microtask so a
+ * log, and `after()` - which here runs its task on the next microtask so a
  * test can wait for the runner instead of the platform.
  */
 
@@ -43,7 +43,7 @@ const countCampaignAudience = vi.fn();
 const listAdminUsers = vi.fn();
 
 const ADMIN = "yonetici@laffogato.net";
-/** Another panel account — the only other place a test may go. */
+/** Another panel account - the only other place a test may go. */
 const COLLEAGUE = "ali@ornek.com";
 
 /** Whether both store listings exist - `hasAppLinks()` for this file. */
@@ -222,7 +222,7 @@ describe("sendCampaignMailAction", () => {
     const state = await sendCampaignMailAction("cmail-1", {}, new FormData());
 
     expect(queueCampaignEmail).toHaveBeenCalledWith("cmail-1");
-    // The send is handed to `after()` — the response does not wait for it.
+    // The send is handed to `after()` - the response does not wait for it.
     expect(after).toHaveBeenCalledTimes(1);
     await flushAfter();
     expect(runCampaignEmail).toHaveBeenCalledWith("cmail-1", {
@@ -346,7 +346,7 @@ describe("sendCampaignMailTestAction", () => {
     expect(logAudit).not.toHaveBeenCalled();
   });
 
-  it("refuses any address that is not a panel user's — a real commercial message may not go to a stranger", async () => {
+  it("refuses any address that is not a panel user's - a real commercial message may not go to a stranger", async () => {
     getCampaignEmail.mockResolvedValue(draft());
     for (const to of ["musteri@ornek.com", "eski@ornek.com"]) {
       const state = await sendCampaignMailTestAction(
@@ -616,7 +616,7 @@ describe("the post hook", () => {
     createAppPost.mockResolvedValue(post({ isActive: false }));
     await createPostAction(postForm({ isActive: "" }));
 
-    // Scheduled: the hook does not fire now, and — with no mark — it will not
+    // Scheduled: the hook does not fire now, and - with no mark - it will not
     // fire by itself when the window opens either; the form says so.
     createAppPost.mockResolvedValue(
       post({ startsAt: "2099-01-01T00:00:00.000Z" }),
@@ -693,7 +693,7 @@ describe("the post form's e-mail box", () => {
     }
   });
 
-  it("never starts ticked on an edit — a typo fix must not mail the member base an old campaign", () => {
+  it("never starts ticked on an edit - a typo fix must not mail the member base an old campaign", () => {
     for (const kind of ["campaign", "collab", "event"] as const) {
       expect(
         defaultEmailMembers({ mode: "edit", kind, alreadyMailed: false }),

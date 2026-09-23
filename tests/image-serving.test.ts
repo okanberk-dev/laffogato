@@ -45,7 +45,7 @@ describe("uploaded image delivery", () => {
     const decoded = decodeDataImage(PIXEL);
     expect(decoded?.contentType).toBe("image/jpeg");
     expect(decoded!.body.length).toBeGreaterThan(0);
-    // JPEG magic number — proof it decoded rather than echoing the string.
+    // JPEG magic number - proof it decoded rather than echoing the string.
     expect(decoded!.body[0]).toBe(0xff);
     expect(decoded!.body[1]).toBe(0xd8);
   });

@@ -76,7 +76,7 @@ describe("parseClock", () => {
   });
 });
 
-describe("isOpenByHours — 09:00 - 01:00 (closes after midnight)", () => {
+describe("isOpenByHours - 09:00 - 01:00 (closes after midnight)", () => {
   const hours = lateHours();
 
   it("is open at 00:30 because yesterday's hours run past midnight", () => {
@@ -116,7 +116,7 @@ describe("isOpenByHours — 09:00 - 01:00 (closes after midnight)", () => {
   });
 });
 
-describe("isOpenByHours — same-day schedules", () => {
+describe("isOpenByHours - same-day schedules", () => {
   it("10:00 - 23:00 closes at 23:00 and is not open after midnight", () => {
     const hours = dayHours("10:00", "23:00");
     expect(isOpenByHours(hours, istanbul("2026-09-01T22:59:00"))).toBe(true);
@@ -132,7 +132,7 @@ describe("isOpenByHours — same-day schedules", () => {
   });
 });
 
-describe("isCafeOpenNow — manual override", () => {
+describe("isCafeOpenNow - manual override", () => {
   const hours = lateHours();
 
   it("'open' wins over the posted hours", () => {
@@ -157,7 +157,7 @@ describe("isCafeOpenNow — manual override", () => {
   });
 });
 
-describe("toLiveStatus — contract §6", () => {
+describe("toLiveStatus - contract §6", () => {
   const settings = { weeklyHours: lateHours(), karaokeCapacity: 8 };
 
   it("maps the row to the wire shape with Turkish labels", () => {
@@ -202,7 +202,7 @@ describe("toLiveStatus — contract §6", () => {
     expect(live.isOpen).toBe(false);
     expect(live.openLabel).toBe("Şu an kapalı");
     expect(live.updatedAt).toBe("");
-    // Was 0/0 — indistinguishable from "a minute ago, the house is full".
+    // Was 0/0 - indistinguishable from "a minute ago, the house is full".
     expect(live.updatedAgoMinutes).toBeNull();
     expect(live.freeTables).toBeNull();
     expect(live.totalTables).toBe(20);

@@ -5,7 +5,7 @@ import { isStaleShipmentEvent, shapeOf, shipmentUpdateFrom } from "@/lib/mobile/
 import { toMobileShipment } from "@/lib/mobile/order-mapper";
 
 /**
- * Where a parcel is — the band that replaced the app's live-tracking map.
+ * Where a parcel is - the band that replaced the app's live-tracking map.
  *
  * The map drew a line that came from no feed: it promised a position the köşk
  * cannot offer, because it runs no couriers whose phones it can read and buys
@@ -13,8 +13,8 @@ import { toMobileShipment } from "@/lib/mobile/order-mapper";
  * so the phone shows milestones (docs/API-MOBILE.md §3.1).
  *
  * Two things are pinned here. That the field is `null` for everything that is
- * not a cargo parcel already on its way — a cafe order, a pickup, a parcel
- * still on the bench — because the app reads absent as "not shipped" and an
+ * not a cargo parcel already on its way - a cafe order, a pickup, a parcel
+ * still on the bench - because the app reads absent as "not shipped" and an
  * over-eager object would draw a band about nothing. And that Geliver's
  * vocabulary is mapped exactly, including the spellings that are easy to get
  * wrong.
@@ -57,7 +57,7 @@ describe("toMobileShipment", () => {
 
   it("derives the milestone from the panel's shipping form until Geliver exists", () => {
     // The webhook column is empty on every row until the account is live, so
-    // the shop owner's own carrier + tracking number is the only signal — and
+    // the shop owner's own carrier + tracking number is the only signal - and
     // it is enough for two of the three words.
     const shipped = toMobileShipment(
       order({ status: "shipped", carrier: "Sürat Kargo", trackingNumber: "1234567890123", shippedAt: "2026-09-21T08:00:00Z" }),
@@ -175,7 +175,7 @@ describe("shipmentUpdateFrom", () => {
     });
     expect(t?.test).toBe(true);
     // No `new Date()` fallback: an absent instant stays absent, so the store
-    // — the only place that can compare against the row — decides.
+    // - the only place that can compare against the row - decides.
     expect(shipmentUpdateFrom({ status: "SHIPPED", trackingNumber: "1" })?.updatedAt).toBe("");
     expect(shipmentUpdateFrom({ status: "SHIPPED", trackingNumber: "1" })?.test).toBe(false);
   });
@@ -183,7 +183,7 @@ describe("shipmentUpdateFrom", () => {
   it("reads the fields out of an envelope too", () => {
     // The status vocabulary is documented; the envelope is not. A panel is
     // free to wrap the payload, and getting that wrong is the quietest
-    // failure there is — 200, nothing written, "hazırlanıyor" forever.
+    // failure there is - 200, nothing written, "hazırlanıyor" forever.
     expect(
       shipmentUpdateFrom({ event: "TRACK_UPDATED", data: { status: "SHIPPED", trackingNumber: "1" } })?.status,
     ).toBe("shipped");
@@ -206,7 +206,7 @@ describe("shipmentUpdateFrom", () => {
   it("drops what it cannot act on instead of throwing", () => {
     // A webhook that 500s gets retried, so an event this build does not
     // understand would be retried forever. No tracking number means no way to
-    // find the order — that is the only identifier the two systems share.
+    // find the order - that is the only identifier the two systems share.
     expect(shipmentUpdateFrom({ status: "SHIPPED" })).toBeNull();
     expect(shipmentUpdateFrom({ status: "TELEPORTED", trackingNumber: "1" })).toBeNull();
     expect(shipmentUpdateFrom({})).toBeNull();

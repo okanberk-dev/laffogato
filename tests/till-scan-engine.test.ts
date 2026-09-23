@@ -54,7 +54,7 @@ describe("scanRegion", () => {
   });
 
   it("decodes at a fixed square regardless of the camera", () => {
-    // A 25x25 code across 480px is ~19 pixels a module — far past the three
+    // A 25x25 code across 480px is ~19 pixels a module - far past the three
     // or four a decoder needs, and a fraction of the work a 1080p frame costs.
     expect(DECODE_SIZE).toBe(480);
   });
@@ -114,7 +114,7 @@ describe("ScanGate", () => {
     for (let i = 0; i < 900; i += 1) gate.burn(`code-${i}`);
     const spent = (gate as unknown as { spent: Set<string> }).spent;
     expect(spent.size).toBeLessThanOrEqual(500);
-    // The most recent are the ones that matter — a member still at the till.
+    // The most recent are the ones that matter - a member still at the till.
     expect(spent.has("code-899")).toBe(true);
   });
 });

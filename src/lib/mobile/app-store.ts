@@ -4,7 +4,7 @@
  * The app is not published yet, so there is nothing to compile in. Rather
  * than shipping mail with a button that goes nowhere, the links are read from
  * the environment and every surface that uses them treats "empty" as "this
- * section does not exist" — `hasAppLinks()` is what the mail renderer asks
+ * section does not exist" - `hasAppLinks()` is what the mail renderer asks
  * before it keeps the app strip (`<!--IF:APP_LINKS-->`).
  *
  * Set both on Vercel when the listings go live; nothing else has to change.

@@ -32,7 +32,7 @@ describe("raiseDbError", () => {
   });
 
   it("does not treat an authentication rejection as an outage", () => {
-    // A wrong password is a real, reportable failure — degrading here would
+    // A wrong password is a real, reportable failure - degrading here would
     // hide a misconfigured deployment behind a working-looking site.
     let thrown: unknown;
     try {
@@ -81,7 +81,7 @@ describe("memoizeUntilRejected", () => {
   it("retries after a rejection instead of replaying it forever", async () => {
     // The bug this exists to prevent: the seed helpers cached their rejected
     // promise, so one unreachable-database blip bricked the instance until a
-    // redeploy — even after the database came back.
+    // redeploy - even after the database came back.
     let attempt = 0;
     const memo = memoizeUntilRejected(async () => {
       attempt += 1;

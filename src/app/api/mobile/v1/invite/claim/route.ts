@@ -34,7 +34,7 @@ const FAILURES: Record<
   },
 };
 
-/** `POST /invite/claim` — bind this account to an inviter's code (§5). */
+/** `POST /invite/claim` - bind this account to an inviter's code (§5). */
 export async function POST(request: Request) {
   try {
     const auth = await requireMobileCustomer(request);

@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 /**
- * `POST /api/mobile/v1/orders/preview` — the basket as checkout will price
+ * `POST /api/mobile/v1/orders/preview` - the basket as checkout will price
  * it (docs/API-MOBILE.md §3). Public; a bearer token, when present and valid,
  * lets the member's personal coupons be tried.
  */

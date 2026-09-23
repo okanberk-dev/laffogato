@@ -8,7 +8,7 @@ import { LOCATION } from "@/components/laffogato/data";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { LEGAL_DOCS } from "@/lib/legal/documents";
 
-describe("Canonical domain — laffogato.net", () => {
+describe("Canonical domain - laffogato.net", () => {
   it("SITE.url no longer points at the old .com.tr placeholder", () => {
     expect(SITE.url).not.toMatch(/laffogato\.com\.tr/);
     expect(SITE.url).toMatch(/^https?:\/\//);
@@ -32,7 +32,7 @@ describe("Canonical domain — laffogato.net", () => {
   it("publishes nothing the company has not given us", () => {
     // The trade registry number is withheld by the owner's choice; the KEP
     // address and bank account do not exist yet. All three stay empty so the
-    // renderer drops their rows — an invented KEP would say tebligat can be
+    // renderer drops their rows - an invented KEP would say tebligat can be
     // served there, an invented IBAN that a refund can be sent to it.
     expect(LEGAL_ENTITY.tradeRegistryNo).toBe("");
     expect(LEGAL_ENTITY.kep).toBe("");
@@ -57,7 +57,7 @@ describe("Canonical domain — laffogato.net", () => {
 
 describe("one street name, everywhere", () => {
   // The tax certificate says Atatürk Caddesi. The map query kept the older
-  // "29 Ekim Cd." — so the page printed one address and the directions link
+  // "29 Ekim Cd." - so the page printed one address and the directions link
   // sent people to another, which is the failure that actually loses a
   // customer at the door.
   it("routes the map and directions to the address the page shows", () => {

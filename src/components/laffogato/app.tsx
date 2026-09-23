@@ -94,7 +94,7 @@ export function LaffogatoApp({
   wishlist?: string[];
   /** Whether the visitor is signed in. Drives the heart button login redirect. */
   isAuthenticated?: boolean;
-  /** Admin-managed shop hero slides — PageShop renders them at the top. */
+  /** Admin-managed shop hero slides - PageShop renders them at the top. */
   shopHeroSlides?: ShopHeroSlide[];
   /** Admin-managed editorial content (press / story). */
   press?: { name: string; quote: string }[];
@@ -108,11 +108,11 @@ export function LaffogatoApp({
     addressLines: string[];
     phone: string;
     email: string;
-    /** Opening hours for the current day, e.g. "09:00 — 02:00" / "Bugün kapalı". */
+    /** Opening hours for the current day, e.g. "09:00 - 02:00" / "Bugün kapalı". */
     todayHours?: string;
     hours: [string, string][];
   };
-  /** Free-shipping threshold in major units (₺) — drives the cart progress bar. */
+  /** Free-shipping threshold in major units (₺) - drives the cart progress bar. */
   freeShippingThreshold?: number;
   /** The SPA section to render on first paint. Set by sub-page routes
       (e.g. /menu → initialRoute="menu"); defaults to "home" for `/`. */
@@ -140,7 +140,7 @@ export function LaffogatoApp({
 
   // `route` is fixed for an instance's lifetime: every navigation goes through a
   // real Next route that re-mounts this shell with the correct initialRoute, so
-  // there is no in-instance route switching (and thus no optimistic setRoute —
+  // there is no in-instance route switching (and thus no optimistic setRoute -
   // see navigate()).
   const [route] = useState<Route>(initialRoute);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -187,14 +187,14 @@ export function LaffogatoApp({
         window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
       }
     } catch {
-      // localStorage may be unavailable (private mode, etc.) — silent no-op.
+      // localStorage may be unavailable (private mode, etc.) - silent no-op.
     }
   }, [cart]);
 
   const navigate = (r: Route) => {
     const target = ROUTE_PATHS[r];
     if (pathname === target) {
-      // Already on the exact same URL — just scroll to the top so the click
+      // Already on the exact same URL - just scroll to the top so the click
       // feels responsive (e.g. user clicking "Menü" while on /menu).
       window.scrollTo({ top: 0, behavior: "instant" });
       return;
@@ -202,7 +202,7 @@ export function LaffogatoApp({
     // Navigate via the real route ONLY. We deliberately do not optimistically
     // setRoute() here: the target is a real Next route that re-mounts this shell
     // with the right initialRoute, so an optimistic swap would paint the new
-    // page once immediately and then a second time when the route loads — the
+    // page once immediately and then a second time when the route loads - the
     // "every page renders twice" double the user was seeing.
     router.push(target);
   };
@@ -254,7 +254,7 @@ export function LaffogatoApp({
 
   const cartCount = cart.reduce((s, it) => s + (it.qty || 1), 0);
 
-  // Avoid hydration mismatch — render only after we read localStorage on the
+  // Avoid hydration mismatch - render only after we read localStorage on the
   // client. The initial markup matches what the server emitted (cart=0).
   if (!mounted) {
     return (

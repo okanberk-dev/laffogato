@@ -70,7 +70,7 @@ export function SettingsForm({
         ))}
       </nav>
 
-      {/* Hidden, not unmounted — the same reason as the mobile settings
+      {/* Hidden, not unmounted - the same reason as the mobile settings
           screen: these eight forms are uncontrolled, so unmounting a tab
           silently discarded everything typed into it (the seven-row çalışma
           saatleri table above all). `hidden` keeps the values; each form

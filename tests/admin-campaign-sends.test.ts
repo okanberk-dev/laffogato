@@ -53,7 +53,7 @@ beforeEach(() => {
 });
 
 describe("listCampaignSends", () => {
-  it("puts the failures first — alphabetical status is not a coincidence worth hiding", async () => {
+  it("puts the failures first - alphabetical status is not a coincidence worth hiding", async () => {
     const rows = await listCampaignSends("cmp-1");
     expect(rows.map((r) => r.status).slice(0, 2)).toEqual(["failed", "failed"]);
     // ...and e-mail breaks the tie, so the list is stable between reloads.

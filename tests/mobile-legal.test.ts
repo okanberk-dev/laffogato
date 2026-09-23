@@ -13,7 +13,7 @@ import {
 /**
  * The app shows these contracts at the moment a customer consents, and the
  * order records which revision they agreed to. The endpoint therefore has to
- * serve the site's own document — not a summary, not an older copy.
+ * serve the site's own document - not a summary, not an older copy.
  *
  * The coded cases go through the pure `…From` builders with no overrides;
  * that is exactly what the live functions compute when the database holds
@@ -61,7 +61,7 @@ describe("legal index", () => {
     }
   });
 
-  it("carries no document body — the index is meant to stay small", () => {
+  it("carries no document body - the index is meant to stay small", () => {
     const bytes = JSON.stringify(legalIndexFrom(NO_OVERRIDES)).length;
     expect(bytes).toBeLessThan(40 * 1024);
   });

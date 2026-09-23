@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
  *
  * `updateSettings()` upserts the object it is handed, and src/lib/db/sql.ts
  * compiles that into an INSERT naming each key. A key with no column is not a
- * value that fails to save — it is a 42703 that throws, and because
+ * value that fails to save - it is a 42703 that throws, and because
  * `ensureSeed()` upserts the whole of `defaultSettings()` on an empty
  * database, a missing column takes down the first request that touches the
  * store, not just the Ayarlar form.

@@ -40,10 +40,10 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // scripted enumeration still hits a wall quickly.
   "promo-preview": 15,
   // Every request costs an e-mail to somebody else's inbox, so this one counts
-  // successes as well as failures — five links per address per five minutes.
+  // successes as well as failures - five links per address per five minutes.
   "password-reset": 5,
   // The one-click unsubscribe route (RFC 8058 POST). Its "failure" is a
-  // token that matched nothing — unknown or already spent; a valid opt-out
+  // token that matched nothing - unknown or already spent; a valid opt-out
   // never counts, because the POST comes from the mail provider's shared
   // servers, not the person's device, and opt-outs from one provider cluster
   // right after a campaign. Twenty dead tokens per IP per five minutes is
@@ -84,7 +84,7 @@ export function clientIpFrom(h: Headers): string {
 
 /**
  * The caller's IP as the edge saw it, read from the ambient request. Empty
- * when it cannot be had — callers that store it as evidence keep the blank
+ * when it cannot be had - callers that store it as evidence keep the blank
  * rather than writing a placeholder, and the rate-limit key buckets it.
  */
 export async function clientIp(): Promise<string> {
@@ -177,7 +177,7 @@ export async function recordLoginFailure(
   const now = Date.now();
   const sb = getDb();
   // `rpcRows`, not `rpc`: the function RETURNS TABLE, and the scalar form
-  // hands back a record string — `blocked` was never true and the "N hakkın
+  // hands back a record string - `blocked` was never true and the "N hakkın
   // kaldı" message counted NaN.
   const { data, error } = await sb.rpcRows<AttemptRow>("record_auth_failure", {
     p_key: bucketKey(purpose, ip, identity),

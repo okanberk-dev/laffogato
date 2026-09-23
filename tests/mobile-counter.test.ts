@@ -86,13 +86,13 @@ describe("issueCounterToken", () => {
   it("draws a code a cashier can read out loud", async () => {
     const { code } = await issue();
     expect(code).toHaveLength(8);
-    // No O/0, no I/1/L — the whole point of the reduced alphabet.
+    // No O/0, no I/1/L - the whole point of the reduced alphabet.
     expect(code).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{8}$/);
   });
 
   it("draws a token QR can encode in its cheap mode", async () => {
     const { token } = await issue();
-    // 128 bits re-spelled in base32 — 26 characters, all of them inside QR's
+    // 128 bits re-spelled in base32 - 26 characters, all of them inside QR's
     // alphanumeric set. A lowercase letter or a `-` here would push the
     // payload into byte mode and grow the grid from 25x25 back to 33x33
     // (tests/counter-qr.test.ts measures the consequence).
@@ -353,7 +353,7 @@ describe("redeemCounterToken · e-posta", () => {
 });
 
 describe("stamp count", () => {
-  it("is refused outside 1–5, before anything is burned", async () => {
+  it("is refused outside 1-5, before anything is burned", async () => {
     const { code } = await issue();
     for (const stamps of [0, 6, -1, Number.NaN]) {
       const res = await redeemCounterToken({

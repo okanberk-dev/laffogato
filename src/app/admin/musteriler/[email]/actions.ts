@@ -21,8 +21,8 @@ export interface CounterStampState {
 /**
  * "Damga ekle (kasa)": the member paid at the counter and showed their QR;
  * the shift staff presses this instead of the app earning the stamp itself.
- * Gated on the orders section — the same people who take an order at the
- * till — rather than customers, which is a management view.
+ * Gated on the orders section - the same people who take an order at the
+ * till - rather than customers, which is a management view.
  */
 export async function addCounterStampAction(
   email: string,
@@ -39,7 +39,7 @@ export async function addCounterStampAction(
   // A counter stamp carries no orderId, so the partial unique index that keeps
   // an app order from earning twice does not apply to it: a double click or a
   // retried POST simply inserts a second stamp. Refuse a repeat inside the
-  // window unless the operator explicitly asks for it ("tekrar" checkbox) —
+  // window unless the operator explicitly asks for it ("tekrar" checkbox) -
   // two members are never served by the same till in the same minute.
   if (formData.get("force") !== "on") {
     const recent = await listStamps(owner);
@@ -70,7 +70,7 @@ export async function addCounterStampAction(
  * "−1 düzeltme": takes back a stamp the till gave by mistake.
  *
  * Gated on `customers` (owner/manager) rather than `orders`, which is what
- * /admin/kasa tells the shift staff — the person who can give a stamp is not
+ * /admin/kasa tells the shift staff - the person who can give a stamp is not
  * the person who can take one away.
  */
 export async function reverseCounterStampAction(

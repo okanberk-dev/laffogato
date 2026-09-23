@@ -51,7 +51,7 @@ export function getPaymentProvider(): PaymentProvider {
     case "paynkolay": {
       // Üretim sağlayıcısı (docs/PAYNKOLAY.md). Test ve canlı yalnızca host ve
       // anahtarlarla ayrışıyor, bu yüzden NODE_ENV'e değil PAYNKOLAY_BASE_URL'e
-      // bakılır — iyzico'daki desenin aynısı.
+      // bakılır - iyzico'daki desenin aynısı.
       //
       // `merchantSecretKey` hiçbir isteğe girmez, yalnızca hash hesabına
       // katılır (§7); PAYMENT_WEBHOOK_SECRET burada YOK, çünkü PayNkolay

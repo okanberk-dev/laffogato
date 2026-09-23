@@ -120,7 +120,7 @@ describe("paynkolayHash", () => {
     expect(digest).not.toMatch(/^[0-9a-f]+$/);
   });
 
-  it("dokümandaki alan sırasını pinler — istek hash'i (§10)", () => {
+  it("dokümandaki alan sırasını pinler - istek hash'i (§10)", () => {
     expect(
       paynkolayHash(
         [
@@ -139,7 +139,7 @@ describe("paynkolayHash", () => {
     );
   });
 
-  it("dokümandaki alan sırasını pinler — yanıt, liste ve iptal hash'leri", () => {
+  it("dokümandaki alan sırasını pinler - yanıt, liste ve iptal hash'leri", () => {
     expect(
       paynkolayHash(
         [
@@ -176,7 +176,7 @@ describe("paynkolayHash", () => {
     );
   });
 
-  it("boş alan konumu atlanmaz — ardışık iki boru işareti kalır", () => {
+  it("boş alan konumu atlanmaz - ardışık iki boru işareti kalır", () => {
     // §9.1: kart saklama kullanılmadığında `customerKey` boş gider ama
     // hash'teki KONUMU korunur. Konumu atlamak hash'i sessizce bozar.
     expect(paynkolayHash(["a", "", "b"], SECRET)).not.toBe(
@@ -274,7 +274,7 @@ describe("createCheckoutSession", () => {
     expect(f.sx).toBe("SX-TOKEN");
     expect(f.clientRefCode).toBe("ord-0284");
     expect(f.currencyCode).toBe("949");
-    expect(f.use3D).toBe("true"); // §8 — ters ibraz sorumluluğu bankada kalsın
+    expect(f.use3D).toBe("true"); // §8 - ters ibraz sorumluluğu bankada kalsın
     expect(f.transactionType).toBe("SALES");
     expect(f.cardHolderIP).toBe("88.240.1.2");
     expect(f.customerKey).toBe(""); // kart saklama v1 dışında (§9.1)
@@ -293,7 +293,7 @@ describe("createCheckoutSession", () => {
       "https://laffogato.net/odeme/donus?promo=dropped",
     );
     // failUrl da POST kabul eden uca gider; /odeme/app-hata bir sayfadır ve
-    // form POST'una 405 dönerdi. Çağıranın sorgusu yine taşınıyor — uygulama
+    // form POST'una 405 dönerdi. Çağıranın sorgusu yine taşınıyor - uygulama
     // siparişini oraya `orderId` olarak koyuyor ve dönüş onu okuyor.
     expect(f.failUrl).toBe("https://laffogato.net/odeme/donus?error=payment");
   });
@@ -593,7 +593,7 @@ describe("refund", () => {
     ).rejects.toThrow(/kısmi iade/);
   });
 
-  it("POS reddederse fırlatır — 'iade edildi' kaydı doğmasın", async () => {
+  it("POS reddederse fırlatır - 'iade edildi' kaydı doğmasın", async () => {
     stubFetch(reportPayload("2026-09-01"), {
       responseCode: "99",
       responseData: "Yetersiz bakiye",
@@ -733,7 +733,7 @@ describe("getPaymentProvider", () => {
     expect(() => getPaymentProvider()).toThrow(/mock/);
   });
 
-  it("iyzico modülü duruyor — operatör geri dönebilsin", () => {
+  it("iyzico modülü duruyor - operatör geri dönebilsin", () => {
     const index = readFileSync("src/lib/payment/index.ts", "utf8");
     expect(index).toContain('case "iyzico"');
     expect(index).toContain('case "paynkolay"');

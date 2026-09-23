@@ -22,8 +22,8 @@ export interface CustomerSession {
    * Fingerprint of the credentials the session was issued against.
    *
    * Without it the cookie was pure bearer state for thirty days: changing a
-   * password — the one thing someone does when they suspect their session was
-   * stolen — left every issued cookie working. Empty on cookies minted before
+   * password - the one thing someone does when they suspect their session was
+   * stolen - left every issued cookie working. Empty on cookies minted before
    * this existed; those are accepted until they expire so nobody is logged out
    * by the deploy, and re-minted on the next sign-in.
    */
@@ -83,13 +83,13 @@ export async function getActiveCustomer(): Promise<PublicCustomer | null> {
   const session = await getCustomerSession();
   if (!session) return null;
   // Fails CLOSED when the database is unreachable: the visitor is treated as
-  // logged out rather than the page erroring. Nothing is granted by this path —
+  // logged out rather than the page erroring. Nothing is granted by this path -
   // every action that matters re-checks the account server-side.
   const customer = await publicRead("getActiveCustomer", null, () =>
     getCustomerByEmail(session.email),
   );
   // A deactivated account is treated as logged-out everywhere (login is also
-  // blocked in verifyCustomerLogin) — this closes the live-session gap so a
+  // blocked in verifyCustomerLogin) - this closes the live-session gap so a
   // member deactivated mid-session can no longer place orders or view account.
   if (!customer || !customer.isActive) return null;
 

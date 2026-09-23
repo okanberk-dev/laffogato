@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /**
- * Root error boundary — catches failures in the root layout itself (where the
+ * Root error boundary - catches failures in the root layout itself (where the
  * segment-level error.tsx can't reach). Must render its own <html>/<body>.
  * Inline styles only: globals/fonts may not have loaded when this renders.
  */

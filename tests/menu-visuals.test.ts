@@ -6,7 +6,7 @@ import { menuFamily } from "@/components/laffogato/visuals";
 /**
  * Before the category-aware router existed, every menu item whose name did not
  * look like an espresso, a matcha or an affogato fell through to `EspressoCup`
- * — so a lemonade, a cheesecake and a sandwich all rendered as a hot coffee.
+ * - so a lemonade, a cheesecake and a sandwich all rendered as a hot coffee.
  * These tests lock that shut: a category may only resolve to the espresso cup
  * if it genuinely is one.
  */
@@ -50,7 +50,7 @@ describe("menu art coverage", () => {
       const items = MENU[cat]?.items ?? [];
       expect(items.length, `${cat} boş`).toBeGreaterThan(0);
       for (const it of items) {
-        // Affogato outranks its category — it is the signature ritual.
+        // Affogato outranks its category - it is the signature ritual.
         if (/affogato/i.test(it.name)) continue;
         expect(menuFamily(cat, it.name), `${cat}/${it.name}`).toBe(family);
       }

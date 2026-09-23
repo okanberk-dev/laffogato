@@ -54,7 +54,7 @@ import type { PlaceOrderBody, PreviewOrderBody } from "./order-schema";
  * Order use-cases behind `/api/mobile/v1/orders*` and `/promo/preview`
  * (docs/API-MOBILE.md §3, §5). Route handlers parse and authorise; this is
  * where the pieces are put together. Money and stock decisions stay in the
- * store — nothing here prices a line.
+ * store - nothing here prices a line.
  */
 
 /** A refusal the route turns into `{ error, message }` with this status. */
@@ -82,7 +82,7 @@ const MSG = {
  * How many of the member's newest orders the open-checkout count looks at.
  *
  * `MAX_OPEN_ORDERS` is 3 and only orders younger than the expiry window
- * count, so a page of recent rows is always enough — and it keeps a regular's
+ * count, so a page of recent rows is always enough - and it keeps a regular's
  * two-year history out of every checkout.
  */
 const RECENT_ORDER_SCAN = 20;
@@ -125,7 +125,7 @@ export function failureFromResult(result: AppOrderFailure): AppFailure {
 
 /**
  * The durable record that the member confirmed the Ön Bilgilendirme Formu
- * and the Mesafeli Satış Sözleşmesi — same shape the web checkout writes,
+ * and the Mesafeli Satış Sözleşmesi - same shape the web checkout writes,
  * so a chargeback review reads one format.
  */
 async function buildLegalConsent(): Promise<OrderLegalConsent> {
@@ -197,7 +197,7 @@ async function createAppPaymentSession(
  * The in-app browser carries no site cookie, so /odeme/donus cannot tie a
  * mock return to a signed-in member the way it does on the web. What it can
  * check is that the reference on the return URL is the one this server
- * issued — kept as a `pending` transaction whose reference is prefixed so it
+ * issued - kept as a `pending` transaction whose reference is prefixed so it
  * never collides with the `succeeded` row the confirmation inserts. A real
  * POS settles by signed webhook; this row is then only an audit breadcrumb.
  */
@@ -268,7 +268,7 @@ export type CreateAppOrderResult =
  * How many unpaid orders one member may have open at once.
  *
  * Each `pending_payment` order sends a confirmation e-mail, opens a checkout
- * session at the provider and — for shop lines — holds stock for the whole
+ * session at the provider and - for shop lines - holds stock for the whole
  * 45-minute expiry window. Three covers a customer who abandons a checkout
  * and starts over twice; past that it is a script, not a shopper.
  */
@@ -285,7 +285,7 @@ const TOO_MANY_PENDING = {
  * The member's stamped orders, or an empty set when the ledger cannot be read.
  *
  * `stampsEarned` is a caption on an order card; failing to draw it must not
- * fail the order list — and least of all the POST that has just placed an
+ * fail the order list - and least of all the POST that has just placed an
  * order, where a throw would tell the app the checkout failed and invite a
  * second one. The authoritative balance is `/me.loyalty`, which does surface
  * a ledger outage.
@@ -304,7 +304,7 @@ async function stampedOrders(email: string): Promise<ReadonlySet<string>> {
  *
  * An order still awaiting payment gets a fresh checkout session rather than
  * the first one's URL: provider sessions expire (30 minutes), and opening a
- * second one against the same order is safe — `applyPaymentSucceeded` is
+ * second one against the same order is safe - `applyPaymentSucceeded` is
  * idempotent and the order can only advance once. An order that has since
  * been paid or cancelled has nothing to pay, so `payment` is null and the app
  * shows it as it stands.
@@ -312,7 +312,7 @@ async function stampedOrders(email: string): Promise<ReadonlySet<string>> {
  * If the POS cannot be reopened the retry fails exactly as the first attempt
  * did (a throw → 500), and the next retry replays this same order again. It
  * used to swallow the error and answer 201 with `payment: null` for an order
- * still awaiting payment — which §3 reserves for a ₺0 order, so the app
+ * still awaiting payment - which §3 reserves for a ₺0 order, so the app
  * emptied the basket and showed an unpaid order as placed.
  */
 async function replayAppOrder(
@@ -340,9 +340,9 @@ export async function createAppOrder(
   body: PlaceOrderBody,
 ): Promise<CreateAppOrderResult> {
   // The member's own retry is not a second order. The app repeats the id it
-  // generated for this checkout attempt, so a POST it gave up on — while the
+  // generated for this checkout attempt, so a POST it gave up on - while the
   // server was still mailing the confirmation and opening the checkout
-  // session — answers with the order that first call created.
+  // session - answers with the order that first call created.
   //
   // FIRST, before the operator's switches: the order already exists. Staff
   // closing ordering between the attempt and its retry used to answer the
@@ -366,7 +366,7 @@ export async function createAppOrder(
 
   // Ask for the POS before anything is persisted. `getPaymentProvider()` fails
   // closed on a missing `PAYMENT_PROVIDER`, and it used to be reached only
-  // after the order row was written and "siparişin alındı" had been mailed —
+  // after the order row was written and "siparişin alındı" had been mailed -
   // so a misconfigured deployment answered 500, left a ghost pending order in
   // the kitchen, and locked the member out after three tries.
   try {
@@ -453,8 +453,8 @@ export async function createAppOrder(
     // The other half of the idempotency guard. The lookup above answers a
     // retry sent AFTER the first order committed; two POSTs of the same
     // attempt in flight at once both miss it, and the second insert is then
-    // refused by `orders_client_order_id_key`. The index has done its job —
-    // there is exactly one order — so hand that one back instead of a 500 the
+    // refused by `orders_client_order_id_key`. The index has done its job -
+    // there is exactly one order - so hand that one back instead of a 500 the
     // app would retry into a third attempt.
     const duplicate =
       body.clientOrderId && err instanceof DbQueryError && err.code === "23505";
@@ -524,18 +524,18 @@ export async function createAppOrder(
   };
 }
 
-/** `GET /orders` — the member's orders, newest first. */
+/** `GET /orders` - the member's orders, newest first. */
 export async function listAppOrders(
   customer: PublicCustomer,
 ): Promise<MobileOrder[]> {
   // Same rule as the site's history (lib/customer/member-orders.ts): orders
   // match by e-mail alone, and an admin's phone or counter sale can carry the
   // address of someone who never signed up. Until the address is proven, the
-  // list is empty — an unverified member cannot have ordered anyway (POST
+  // list is empty - an unverified member cannot have ordered anyway (POST
   // /orders answers 403 email_unverified).
   if (!customer.emailVerified) return [];
-  // The limit belongs in SQL: this used to read the member's entire history —
-  // items jsonb, consent evidence and refund ledger included — and throw all
+  // The limit belongs in SQL: this used to read the member's entire history -
+  // items jsonb, consent evidence and refund ledger included - and throw all
   // but the newest 50 away in JavaScript.
   const [orders, stamped] = await Promise.all([
     customerOrdersByEmail(customer.email, ORDER_LIST_LIMIT),
@@ -545,7 +545,7 @@ export async function listAppOrders(
   return orders.map((o) => toMobileOrder(o, now, stamped));
 }
 
-/** `GET /orders/{id}` — only the owner's; anyone else sees nothing. */
+/** `GET /orders/{id}` - only the owner's; anyone else sees nothing. */
 export async function getAppOrder(
   customer: PublicCustomer,
   id: string,
@@ -568,11 +568,11 @@ export type PayAppOrderResult =
   | { ok: false; reason: "not_payable"; order: MobileOrder };
 
 /**
- * `POST /orders/{id}/payment` — a fresh checkout for the member's own app
+ * `POST /orders/{id}/payment` - a fresh checkout for the member's own app
  * order that is still awaiting payment (docs/API-MOBILE.md §3).
  *
  * The app could already reopen a checkout, but only by replaying the POST it
- * made with the same `clientOrderId` — which it no longer holds once the
+ * made with the same `clientOrderId` - which it no longer holds once the
  * member has left the checkout. An order abandoned at the POS then sat as
  * `pending_payment` with no way to pay it, and three of them hit
  * `too_many_pending` and locked the member out of ordering at all until the
@@ -580,13 +580,13 @@ export type PayAppOrderResult =
  *
  * This is the same replay by id: `replayAppOrder` opens a new provider
  * session against the SAME order, which is safe for the reason it is safe
- * there — `applyPaymentSucceeded` is idempotent and an order advances once.
+ * there - `applyPaymentSucceeded` is idempotent and an order advances once.
  * Nothing is cancelled here, so rule 29 (ask the POS before cancelling) is not
  * in play.
  *
  * The read gate is `getAppOrder`'s: the owner, with a verified e-mail, and a
  * stranger's id answers exactly like a missing one. Only an APP order is
- * reopened — a web order has its own checkout and its own return page. An
+ * reopened - a web order has its own checkout and its own return page. An
  * order with nothing to pay (paid, cancelled, ₺0) is `not_payable` with the
  * order as it stands, so the app can redraw it instead of guessing.
  */
@@ -726,8 +726,8 @@ export type LimitedPromoPreview =
  * Only a code that does not exist counts as a failure. The basket screen
  * re-prices on every stepper tap while a code is applied, so a member whose
  * coupon is merely under its minimum spend used to burn one of fifteen
- * failures per tap and lock themselves — and, because the bucket was keyed on
- * the IP alone, everyone else on the venue's Wi-Fi — out of promo codes for
+ * failures per tap and lock themselves - and, because the bucket was keyed on
+ * the IP alone, everyone else on the venue's Wi-Fi - out of promo codes for
  * the window. A signed-in member also gets their own bucket for that reason.
  */
 export async function previewPromoRateLimited(
@@ -780,7 +780,7 @@ export type PreviewAppOrderResult =
 
 /**
  * `POST /orders/preview`: the basket priced exactly as checkout will price
- * it — lines from the database, shipping by fulfillment, the promo tried but
+ * it - lines from the database, shipping by fulfillment, the promo tried but
  * not taken. `customer` is optional; without one, personal coupons are not
  * tried.
  */

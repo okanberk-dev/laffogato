@@ -188,7 +188,7 @@ export function formatTRY(amountMinor: number): string {
  * Tuzla as "20:59", inviting an admin to "fix" it by three hours.
  *
  * An offsetless value ("2026-09-30T23:59", what older promo rows hold) is
- * read the way the store reads it — as Istanbul wall clock — via
+ * read the way the store reads it - as Istanbul wall clock - via
  * parsePublishInstant; everything else is an ISO instant with its own offset.
  */
 export function formatDateTime(value: string): string {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Mobile app configuration — the business knobs the operator turns at
+ * Mobile app configuration - the business knobs the operator turns at
  * /admin/mobil/ayarlar and the app reads from `GET /api/mobile/v1/bootstrap`
  * (docs/API-MOBILE.md §10). Stored as one jsonb document on the `settings`
  * row (`settings."mobileApp"`).
@@ -13,7 +13,7 @@ import { z } from "zod";
  *
  * Every leaf is normalised on its own (`.catch` per field). A row written by
  * an older deploy, a hand-edited jsonb, or a single corrupt value therefore
- * never drags the rest of a section back to defaults — only the broken leaf
+ * never drags the rest of a section back to defaults - only the broken leaf
  * falls back. The app applies the same defence on its side of the wire.
  */
 
@@ -25,7 +25,7 @@ export interface MobileAppReminder {
   body: string;
 }
 
-/** Which days the happy hour runs — the app prints its own label for each. */
+/** Which days the happy hour runs - the app prints its own label for each. */
 export type HappyHourDays = "weekday" | "weekend" | "everyday";
 
 export interface MobileAppConfig {
@@ -100,7 +100,7 @@ export interface MobileAppConfig {
    * Here rather than in the app's own `.env` because of the rule the whole
    * mobile config exists for: an operator must be able to change these
    * WITHOUT shipping a release. Two of them cannot be changed any other way
-   * once the app is out —
+   * once the app is out -
    *
    * - the store URLs are read by the forced-update screen, which is shown
    *   precisely to builds that are too old to be updated with a new build;
@@ -118,14 +118,14 @@ export interface MobileAppConfig {
     bundleId: string;
     /**
      * Android: SHA-256 fingerprints of every certificate that signs a build
-     * users install — the upload key AND Play App Signing's own key. Both,
+     * users install - the upload key AND Play App Signing's own key. Both,
      * or links open in the browser for half the installs.
      */
     androidSha256: string[];
   };
 }
 
-/** The `app` object published on bootstrap — everything the app needs, nothing server-only. */
+/** The `app` object published on bootstrap - everything the app needs, nothing server-only. */
 export interface BootstrapApp {
   minSupportedAppVersion: string;
   /**
@@ -137,7 +137,7 @@ export interface BootstrapApp {
   maintenance: MobileAppConfig["maintenance"];
   /**
    * The mobile switches, plus one that is NOT a mobile switch:
-   * `shopEnabled` is `settings.isShopOpen` from /admin/ayarlar — the shop's
+   * `shopEnabled` is `settings.isShopOpen` from /admin/ayarlar - the shop's
    * own, which `finalizeOrder` enforces with `shop_closed`. It rides here
    * because from the phone's side it answers the same question as the other
    * three (can this basket be built at all?), but it is deliberately NOT part
@@ -355,7 +355,7 @@ const semver = z
  * `https` only, and only the two real hosts: this value ends up in a
  * `Linking.openURL` on a screen the member cannot get past, so an operator
  * typo must degrade to "no button" rather than to "opens something else".
- * Empty is a legitimate answer and the default — there is no listing yet.
+ * Empty is a legitimate answer and the default - there is no listing yet.
  */
 const STORE_HOSTS = ["apps.apple.com", "play.google.com"] as const;
 
@@ -569,7 +569,7 @@ export function mergeMobileAppConfig(
 /** The part of the config the app is allowed to see (bootstrap `app`). */
 export function toBootstrapApp(
   cfg: MobileAppConfig,
-  /** `settings.isShopOpen` — see `BootstrapApp["ordering"]`. */
+  /** `settings.isShopOpen` - see `BootstrapApp["ordering"]`. */
   shopEnabled: boolean,
   /** Karar 177: fA'L's AI reading, from the environment (`falAiEnabled`). */
   falAi = false,

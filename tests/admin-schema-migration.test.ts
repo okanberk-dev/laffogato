@@ -7,7 +7,7 @@ const FILE = "20260905200000_admin_users_and_counter_tokens.sql";
 const sql = readFileSync(join(process.cwd(), "db", "migrations", FILE), "utf8");
 const bundle = readFileSync(join(process.cwd(), "db", "schema.sql"), "utf8");
 
-/** The file with its `--` comments removed — the part Postgres actually runs. */
+/** The file with its `--` comments removed - the part Postgres actually runs. */
 const statements = sql
   .split("\n")
   .filter((line) => !line.trimStart().startsWith("--"))
@@ -17,7 +17,7 @@ describe(FILE, () => {
   it("never records itself in _migrations", () => {
     // scripts/db-migrate.mjs inserts the row itself, inside the same
     // transaction. A hand-written insert collides with it (23505) and rolls the
-    // WHOLE file back — the tables would silently never exist.
+    // WHOLE file back - the tables would silently never exist.
     expect(statements).not.toContain("insert into public._migrations");
   });
 

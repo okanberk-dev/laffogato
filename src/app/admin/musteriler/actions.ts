@@ -90,7 +90,7 @@ export async function setCustomerActiveAction(formData: FormData) {
 export interface ResendVerificationState {
   error?: string;
   message?: string;
-  /** The verification link — surfaced so the admin can share it directly. */
+  /** The verification link - surfaced so the admin can share it directly. */
   url?: string;
 }
 
@@ -229,7 +229,7 @@ export async function deleteCustomerAction(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   if (!email) return;
   const removed = await adminDeleteCustomer(email);
-  // Only record real deletions — a no-op delete shouldn't muddy the audit log.
+  // Only record real deletions - a no-op delete shouldn't muddy the audit log.
   if (removed) {
     await logAudit({
       action: "delete",

@@ -32,7 +32,7 @@ import {
  * Loyalty ledger (docs/API-MOBILE.md §3, §4, §5).
  *
  * Append-only `loyalty_stamps`: an `earn` row per stamp, a `redeem` row per
- * reward. Balances are always recomputed from the ledger, never stored — a
+ * reward. Balances are always recomputed from the ledger, never stored - a
  * counter that is written from two serverless invocations at once is exactly
  * how a member gets a free drink twice or loses a stamp.
  */
@@ -87,7 +87,7 @@ async function newStampId(): Promise<string> {
 export async function getLoyalty(email: string): Promise<LoyaltyView> {
   const owner = normalizeEmail(email);
   // Three columns, not `select *`: the tier counts a rolling year and the
-  // badges read a lifetime, so this read cannot be paged — but it does not
+  // badges read a lifetime, so this read cannot be paged - but it does not
   // need the refund ledger, the consent evidence or the shipping address of
   // every order the member ever placed either.
   const [stamps, orders, rules] = await Promise.all([
@@ -99,7 +99,7 @@ export async function getLoyalty(email: string): Promise<LoyaltyView> {
 }
 
 /**
- * The member's orders that hold a stamp — one ledger read, for the whole
+ * The member's orders that hold a stamp - one ledger read, for the whole
  * `/orders` list. The wire field `stampsEarned` is answered from this rather
  * than from the order's status; see `stampsEarnedFor` in `./order-mapper.ts`.
  */
@@ -118,7 +118,7 @@ export interface RewardStatus {
 
 /**
  * What the inbox needs about the member's rewards: how many are waiting and
- * since when. The instant has to be stable across calls — the app decides
+ * since when. The instant has to be stable across calls - the app decides
  * "unread" by comparing it with the moment the member last opened the inbox.
  */
 export async function getRewardStatus(email: string): Promise<RewardStatus> {
@@ -229,7 +229,7 @@ export type RedeemStampsResult =
  * The balance check and the ledger write are not one statement, so two
  * simultaneous redeems could both pass the check. The write is therefore
  * verified afterwards: if the ledger has gone negative, this request's redeem
- * row is withdrawn and the request fails — the coupon is only granted once
+ * row is withdrawn and the request fails - the coupon is only granted once
  * the redeem row is known to be covered.
  */
 export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
@@ -288,8 +288,8 @@ export type ReverseCounterStampResult =
 /**
  * Takes back a stamp given by mistake at the till (admin panel, "−1 düzeltme").
  *
- * `onOrderReversed` covers the other case — an order that was refunded or
- * cancelled — and is keyed on the order, so it cannot undo a counter stamp,
+ * `onOrderReversed` covers the other case - an order that was refunded or
+ * cancelled - and is keyed on the order, so it cannot undo a counter stamp,
  * which has no order. Like every correction here this appends a `reversal`
  * row instead of deleting the `earn`: the ledger stays append-only, and it
  * still shows both the mistake and who fixed it.

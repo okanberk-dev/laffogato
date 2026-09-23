@@ -1,5 +1,5 @@
 /**
- * Shared vocabulary for the mobile app's home content — tones, routes, kinds
+ * Shared vocabulary for the mobile app's home content - tones, routes, kinds
  * and their Turkish labels.
  *
  * This file exists because `store.ts` starts with `import "server-only"` and
@@ -42,7 +42,7 @@ export const APP_SLIDE_TONE_LABELS: Record<AppSlideTone, string> = {
  * `/menu → /(tabs)/menu`, `/oduller → /(tabs)/oduller` itself, so a screen
  * can move inside the app without the panel (or old rows) noticing.
  *
- * `""` stays first so a fresh form defaults to "no action" — a slide is
+ * `""` stays first so a fresh form defaults to "no action" - a slide is
  * decorative unless someone deliberately makes it a button.
  */
 export const APP_SLIDE_ROUTES = [

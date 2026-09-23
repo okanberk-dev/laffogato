@@ -110,7 +110,7 @@ describe("priceCafeLine", () => {
     if (!bad.ok) expect(bad.reason).toBe("bad_option");
   });
 
-  it("never trusts a price from the caller — only the row and the table count", () => {
+  it("never trusts a price from the caller - only the row and the table count", () => {
     const r = priceCafeLine({ ...cappuccino, priceMinor: 100 }, "M", {
       unitPriceMinor: 1,
     } as unknown as Record<string, never>);

@@ -8,7 +8,7 @@ import { freeDrinkRewardFor, type FreeDrinkReward } from "./loyalty-core";
 
 /**
  * The free-drink coupon (docs/API-MOBILE.md §5). One definition for both
- * paths that hand it out — a full stamp card and a settled invite — so the
+ * paths that hand it out - a full stamp card and a settled invite - so the
  * two rewards cannot drift apart.
  *
  * The value, title and shelf life are the operator's

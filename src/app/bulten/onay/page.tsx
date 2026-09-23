@@ -14,7 +14,7 @@ interface PageProps {
 
 /**
  * Double opt-in (6563): the link in the confirmation mail lands here and the
- * subscription starts only when the owner presses the button — a POST, so a
+ * subscription starts only when the owner presses the button - a POST, so a
  * mail scanner opening the link does not count as consent.
  */
 export default async function BultenOnayPage({ searchParams }: PageProps) {

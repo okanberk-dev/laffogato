@@ -25,13 +25,13 @@ function createAppOrderBody(): string {
   return orders.slice(from, to);
 }
 
-describe("POST /orders — what happens before anything is persisted", () => {
+describe("POST /orders - what happens before anything is persisted", () => {
   const body = createAppOrderBody();
 
   it("asks for the payment provider before writing the order", () => {
     // Unconfigured, getPaymentProvider() throws. It used to be reached only
-    // inside createAppPaymentSession — after the row was written and
-    // "siparişin alındı" had been mailed — so checkout answered 500 and left
+    // inside createAppPaymentSession - after the row was written and
+    // "siparişin alındı" had been mailed - so checkout answered 500 and left
     // a ghost pending order behind.
     expect(body.indexOf("getPaymentProvider()")).toBeGreaterThan(-1);
     expect(body.indexOf("getPaymentProvider()")).toBeLessThan(
@@ -133,7 +133,7 @@ describe("settling an order by hand", () => {
     // Every later stage has its own column now; the app's timeline and its
     // notification inbox used to date all of them from `paidAt`.
     expect(body).toContain("STAGE_INSTANT_COLUMN[map.to]");
-    // Only when still empty — re-reaching a stage keeps the first instant.
+    // Only when still empty - re-reaching a stage keeps the first instant.
     expect(body).toContain(
       "if (stageColumn && !existing[stageColumn]) patch[stageColumn] = paidAt;",
     );

@@ -40,8 +40,8 @@ export default async function OdemePage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  // Settings first: if the shop is closed — including because the database is
-  // unreachable, which forces it closed — nothing else needs loading, and the
+  // Settings first: if the shop is closed - including because the database is
+  // unreachable, which forces it closed - nothing else needs loading, and the
   // wizard must not render against fallback tax and shipping values.
   const settings = await getPublicSettings();
   const customer = settings.isShopOpen ? await getActiveCustomer() : null;
@@ -65,7 +65,7 @@ export default async function OdemePage({
           </Link>
           <div className="checkout-brand">
             {/* The site has one family and one display style; this was asking
-                for `--serif` — the retired second face, now an alias — at a
+                for `--serif` - the retired second face, now an alias - at a
                 hardcoded 22px outside the type scale. */}
             <span className="checkout-brand-name">L&apos;Affogato</span>
             <span

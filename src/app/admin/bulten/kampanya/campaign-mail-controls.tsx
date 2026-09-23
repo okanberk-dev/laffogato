@@ -27,7 +27,7 @@ function Feedback({ state }: { state: CampaignMailState }) {
 
 /**
  * "Gönder", behind a confirm that says how many addresses the audience rule
- * resolves to right now — the same function the enqueue reads, so the number
+ * resolves to right now - the same function the enqueue reads, so the number
  * the operator agrees to is the number that gets queued. A null count means
  * the database could not be asked; the operator is told so rather than shown
  * a zero.

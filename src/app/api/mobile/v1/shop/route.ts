@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 /**
- * `GET /api/mobile/v1/shop` — active shop products with server-computed
+ * `GET /api/mobile/v1/shop` - active shop products with server-computed
  * variant prices and the shipping thresholds (docs/API-MOBILE.md §2). Public.
  */
 export async function GET() {

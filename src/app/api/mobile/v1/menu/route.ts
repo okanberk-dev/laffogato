@@ -16,7 +16,7 @@ export const maxDuration = 15;
  * where that bound comes from. `revalidatePath()` in the admin cannot shorten
  * it: it "invalidates the Next.js server cache, but the CDN will continue
  * serving its cached copy until the `s-maxage` TTL expires"
- * (`docs/01-app/02-guides/cdn-caching.md` in the installed Next 16) — and this
+ * (`docs/01-app/02-guides/cdn-caching.md` in the installed Next 16) - and this
  * route is `force-dynamic`, so it has no server cache entry to invalidate in
  * the first place. Purging would need a CDN purge API call with a deploy-scoped
  * token; that is a secret and a failure mode for five minutes of lag on a menu
@@ -26,7 +26,7 @@ export const maxDuration = 15;
 const MENU_CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=3600";
 
 /**
- * `GET /api/mobile/v1/menu` — the cafe menu with the customisation table
+ * `GET /api/mobile/v1/menu` - the cafe menu with the customisation table
  * (docs/API-MOBILE.md §1). Public: it is the printed menu on the counter.
  */
 export async function GET(request: Request) {

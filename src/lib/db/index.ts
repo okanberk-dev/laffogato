@@ -55,7 +55,7 @@ function resolveConnectionString(): string {
 /**
  * DATABASE_SSL_CA is only usable when it is plainly PEM. A truncated paste
  * would fail the handshake anyway, but with an error that names X.509 innards
- * instead of the actual mistake — this names it once, loudly, at pool startup.
+ * instead of the actual mistake - this names it once, loudly, at pool startup.
  */
 function validCa(): boolean {
   const ca = process.env.DATABASE_SSL_CA;
@@ -73,7 +73,7 @@ export function poolConfig(connectionString: string): PoolConfig {
   let host = "";
   try {
     const url = new URL(connectionString);
-    // WHATWG URL, "özel olmayan" şemalarda (postgresql:) host'u KÜÇÜLTMEZ —
+    // WHATWG URL, "özel olmayan" şemalarda (postgresql:) host'u KÜÇÜLTMEZ -
     // https: ile küçülen aynı host burada olduğu gibi kalır. Emniyet kilidi
     // harfe duyarlı kalsaydı, büyük harfli bir pooler host'u kilidi atlar ve
     // DNS harfe duyarsız olduğu için bağlantı düz metin olarak BAŞARILI olurdu.
@@ -82,7 +82,7 @@ export function poolConfig(connectionString: string): PoolConfig {
     // Hand pg a URL without the SSL params and configure `ssl` explicitly
     // below. pg-connection-string treats sslmode=require as a deprecated alias
     // and warns about it on every cold start, which shows up as an error-level
-    // line in the platform logs — noise that hides the entries that matter.
+    // line in the platform logs - noise that hides the entries that matter.
     url.searchParams.delete("sslmode");
     url.searchParams.delete("channel_binding");
     cleaned = url.toString();
@@ -93,7 +93,7 @@ export function poolConfig(connectionString: string): PoolConfig {
   // Supabase'in uçları (doğrudan ve Supavisor pooler) TLS'siz oturumu kabul
   // eder ama etmemeli: sslmode'suz bir Supabase dizesi yapıştırıldığında TLS'i
   // kapatmak, üretim trafiğini sessizce düz metne düşürür. Bu satır sağlayıcı
-  // bağımlılığı değil, emniyet kilididir — ölçülen davranış için
+  // bağımlılığı değil, emniyet kilididir - ölçülen davranış için
   // docs/SUPABASE-GECIS.md §2'ye bak.
   const supabaseHost =
     host.endsWith(".supabase.co") || host.endsWith(".pooler.supabase.com");
@@ -115,7 +115,7 @@ export function poolConfig(connectionString: string): PoolConfig {
     // Full verification, ALWAYS. Supabase's endpoints present a chain rooted
     // in Supabase's own CA (measured: "self signed certificate in certificate
     // chain" against system roots on every pooler endpoint), so a custom root
-    // can be supplied as PEM via DATABASE_SSL_CA — verification then runs
+    // can be supplied as PEM via DATABASE_SSL_CA - verification then runs
     // against that root instead of the system set. What this deliberately does
     // NOT offer is rejectUnauthorized:false: "encrypted but unverified" fails
     // silently in the worst way, and the health layer would mask it as
@@ -124,7 +124,7 @@ export function poolConfig(connectionString: string): PoolConfig {
     // the Mozilla roots rather than extending them, so an unscoped CA would
     // break the documented one-step rollback: DATABASE_URL back to the old
     // publicly-signed host while
-    // DATABASE_SSL_CA is still set would fail every publicly-signed handshake —
+    // DATABASE_SSL_CA is still set would fail every publicly-signed handshake -
     // and per the health layer, as "empty site", not as a 500.
     ssl: wantsSsl
       ? {
@@ -162,12 +162,12 @@ function createExecutor(): Executor {
   return async (query: CompiledQuery) => {
     // Applies anything the database has not recorded yet, once per instance, so
     // a deploy carries its own migrations instead of waiting for a hand-run
-    // `db:migrate`. Never throws — see ensureSchemaFresh.
+    // `db:migrate`. Never throws - see ensureSchemaFresh.
     await ensureSchemaFresh(getPool());
     try {
       return await run(query);
     } catch (err) {
-      // The database is behind the migrations — a missing table (DATABASE_URL
+      // The database is behind the migrations - a missing table (DATABASE_URL
       // set before they ran) or a missing column. Apply the schema and retry
       // exactly once; any second failure is real.
       if (!isSchemaGap(err)) throw err;
@@ -187,7 +187,7 @@ export type DbHealth = {
  *
  * It TRIGGERS the migration as well as reporting on it: `ensureSchemaFresh`
  * first, then the question. So hitting `/api/health` after a deploy both
- * applies anything pending and says whether the apply worked — which is the
+ * applies anything pending and says whether the apply worked - which is the
  * one thing that was invisible before, because the apply path swallows its
  * own failures by design.
  *

@@ -10,13 +10,13 @@ import { MIGRATION_NAMES, SCHEMA_SQL } from "./schema-sql";
  * Setting DATABASE_URL before applying the migrations is an easy mistake with a
  * harsh result: the app connects fine, every query fails with `relation ... does
  * not exist`, and because a missing table is a genuine error rather than an
- * outage — it must not be masked, see `health.ts` — the site returns HTTP 500.
+ * outage - it must not be masked, see `health.ts` - the site returns HTTP 500.
  * That is exactly how production broke the first time this variable was set.
  *
  * So the app bootstraps itself instead. This only ever runs when a query has
  * already failed with SQLSTATE 42P01, and the SQL it applies is the same
  * generated bundle `npm run db:migrate` would produce, which is idempotent and
- * records what it applied in `_migrations` — so a later CLI migration run is a
+ * records what it applied in `_migrations` - so a later CLI migration run is a
  * no-op rather than a conflict.
  */
 
@@ -31,18 +31,18 @@ function hasSqlState(err: unknown, state: string): boolean {
   );
 }
 
-/** SQLSTATE 42P01 — undefined_table. */
+/** SQLSTATE 42P01 - undefined_table. */
 export function isMissingRelation(err: unknown): boolean {
   return hasSqlState(err, "42P01");
 }
 
-/** SQLSTATE 42703 — undefined_column. */
+/** SQLSTATE 42703 - undefined_column. */
 export function isMissingColumn(err: unknown): boolean {
   return hasSqlState(err, "42703");
 }
 
 /**
- * A query that failed because the database is behind the migrations — either a
+ * A query that failed because the database is behind the migrations - either a
  * table or a column this build expects does not exist yet.
  */
 export function isSchemaGap(err: unknown): boolean {
@@ -75,7 +75,7 @@ let freshnessFailedAt = 0;
  * How long a failed check is remembered before the next query tries again.
  * It used to be remembered for the life of the instance: one connection blip
  * at cold start, and a migration shipped with that deploy was never applied
- * by it. Not zero either — during an outage every query would otherwise pay
+ * by it. Not zero either - during an outage every query would otherwise pay
  * for a second failing connection attempt.
  */
 const FRESHNESS_RETRY_MS = 30_000;
@@ -84,7 +84,7 @@ const FRESHNESS_RETRY_MS = 30_000;
  * Applies any migration the database has not recorded yet, once per instance.
  *
  * The on-error path below only fires when a query actually names something
- * missing, and plenty of migrations are invisible to it — a `select *` never
+ * missing, and plenty of migrations are invisible to it - a `select *` never
  * mentions a new column, and a data migration touches no schema at all. Without
  * this check a deploy would keep serving the old data until someone remembered
  * to run `npm run db:migrate` by hand.
@@ -123,7 +123,7 @@ async function checkFreshness(pool: Pool): Promise<void> {
 /**
  * Whether the database has recorded every migration this build ships.
  *
- * `ensureSchemaFresh` deliberately SWALLOWS its failures — it runs ahead of
+ * `ensureSchemaFresh` deliberately SWALLOWS its failures - it runs ahead of
  * every query, and an unreachable database has to reach the caller as an
  * ordinary query failure so the degraded-mode fallback can classify it. The
  * cost of that is silence: a schema apply that fails for a reason of its own
@@ -144,7 +144,7 @@ export async function schemaIsFresh(pool: Pool): Promise<boolean> {
 let inFlight: Promise<void> | null = null;
 
 export function ensureSchema(pool: Pool): Promise<void> {
-  // Dedupes concurrent callers only — the memo is dropped once settled, on
+  // Dedupes concurrent callers only - the memo is dropped once settled, on
   // success as well as failure. A cached rejection would replay forever, and a
   // cached success would declare the schema final for the life of the instance,
   // leaving a later gap unhealable.
@@ -163,9 +163,9 @@ async function applySchema(pool: Pool): Promise<void> {
     // transaction-scoped `pg_advisory_xact_lock` rather than the session-scoped
     // `pg_advisory_lock`.
     //
-    // This is not a style preference. Under a transaction-pooling proxy —
+    // This is not a style preference. Under a transaction-pooling proxy -
     // Supabase's pooler on :6543, PgBouncer in transaction mode, any pooled
-    // endpoint — a checked-out client is bound to a server backend only for the
+    // endpoint - a checked-out client is bound to a server backend only for the
     // duration of a transaction. A session lock taken by one statement can
     // therefore be held on a backend that the NEXT statement does not reach:
     // the mutual exclusion silently stops existing, which is the worst possible
@@ -176,14 +176,14 @@ async function applySchema(pool: Pool): Promise<void> {
     // unlock that may address the wrong backend.
     //
     // Wrapping the bundle also makes the apply atomic: a crash halfway through
-    // leaves no half-built schema. Verified transaction-safe — the bundle has no
+    // leaves no half-built schema. Verified transaction-safe - the bundle has no
     // CREATE INDEX CONCURRENTLY / VACUUM, and every `begin` in it is a PL/pgSQL
     // body, not transaction control.
     await client.query("begin");
     try {
       await client.query("select pg_advisory_xact_lock($1)", [LOCK_KEY]);
 
-      // Re-check under the lock — another instance may have just finished.
+      // Re-check under the lock - another instance may have just finished.
       if (await isUpToDate(client)) {
         await client.query("commit");
         return;
@@ -197,8 +197,8 @@ async function applySchema(pool: Pool): Promise<void> {
       console.warn("[db-bootstrap] şema uygulandı");
     } catch (err) {
       await client.query("rollback").catch(() => {
-        // Already aborted or the connection is gone; the transaction — and
-        // with it the lock — is finished either way.
+        // Already aborted or the connection is gone; the transaction - and
+        // with it the lock - is finished either way.
       });
       throw err;
     }

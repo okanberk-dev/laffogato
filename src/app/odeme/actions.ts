@@ -37,7 +37,7 @@ export async function previewPromoAction(
 
   // Unauthenticated and previously unlimited: the form answered "geçersiz kod"
   // or a real discount, which is a working oracle for guessing codes. The same
-  // counter that guards the login forms bounds it — generously, because a
+  // counter that guards the login forms bounds it - generously, because a
   // customer mistyping their own coupon is the common case.
   const ip = await clientIp();
   const limit = await checkLoginLimit("promo-preview", ip, "");
@@ -135,7 +135,7 @@ function parseItems(raw: string): ClientCartItem[] {
 
 /**
  * Builds the durable record proving the customer confirmed the Ön Bilgilendirme
- * Formu and the Mesafeli Satış Sözleşmesi before the order was created — the
+ * Formu and the Mesafeli Satış Sözleşmesi before the order was created - the
  * evidence Mesafeli Sözleşmeler Yönetmeliği requires and an acquiring bank asks
  * for on a chargeback. Returns `null` when the box was not ticked.
  */
@@ -177,7 +177,7 @@ export async function placeOrderAction(formData: FormData) {
 
   // The provider is resolved BEFORE the order exists. It used to be looked
   // up after placeOrder and the "siparişin alındı" mail, so a misconfigured
-  // deployment (PAYMENT_PROVIDER unset or mock in production — rule 17)
+  // deployment (PAYMENT_PROVIDER unset or mock in production - rule 17)
   // left a pending order holding stock and a mailed customer behind a 500.
   // The app path already worked this way.
   const provider = getPaymentProvider();

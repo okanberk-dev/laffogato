@@ -65,7 +65,7 @@ function venueAddressLines(
  * live in `./menu.ts`.
  *
  * Every mapper is an explicit allow-list. A store row carries `updatedAt`,
- * `isActive`, `sortOrder`, `costMinor`, `sku`, SEO copy — none of which the
+ * `isActive`, `sortOrder`, `costMinor`, `sku`, SEO copy - none of which the
  * app needs, and spreading the row would tie the wire format to the table
  * and leak the cafe's cost prices.
  */
@@ -89,7 +89,7 @@ export const COURIER_ETA_MINUTES: readonly [number, number] =
   DEFAULT_MOBILE_APP_CONFIG.ordering.courierEtaMinutes;
 
 export interface HappyHour {
-  /** weekday | weekend | everyday — the app prints its own label per value. */
+  /** weekday | weekend | everyday - the app prints its own label per value. */
   days: HappyHourDays;
   from: string;
   to: string;
@@ -98,7 +98,7 @@ export interface HappyHour {
 }
 
 /**
- * The Happy Hour campaign as designed — NOT as priced.
+ * The Happy Hour campaign as designed - NOT as priced.
  *
  * Nothing anywhere applies this discount: not the mobile order path, not the
  * web checkout. Grep for HAPPY_HOUR and this file is the only hit. The app,
@@ -113,7 +113,7 @@ export interface HappyHour {
  */
 /**
  * Every drink category the discount covers. It used to be the cold ones only;
- * the operator's rule is now "her içecekte" — every drink, and no line drawn
+ * the operator's rule is now "her içecekte" - every drink, and no line drawn
  * between coffee and the rest. Food and beans stay out: it is a drinks hour.
  */
 export const HAPPY_HOUR_CATEGORIES: readonly string[] = [
@@ -216,7 +216,7 @@ export function toMobileMenuItem(
 /**
  * Groups active items under the category metadata the seed carries (title,
  * subtitle, Italian name, note). Categories keep `keys` order; items keep
- * their `sortOrder`. A category with no active item is still sent — the app
+ * their `sortOrder`. A category with no active item is still sent - the app
  * shows the heading with its note rather than dropping a section silently.
  */
 export function buildMobileMenuCategories(
@@ -244,7 +244,7 @@ export function buildMobileMenuCategories(
   return out;
 }
 
-/** Newest `updatedAt` among the rows — the menu's own "last changed" stamp. */
+/** Newest `updatedAt` among the rows - the menu's own "last changed" stamp. */
 export function latestUpdatedAt(
   items: readonly { updatedAt: string }[],
   fallback: string,
@@ -322,7 +322,7 @@ export function toMobileShopProduct(
     // Guarded rather than spread straight, and the guard is about DEPLOY
     // ORDER: products are read with `select("*")`, so between this code
     // shipping and `20260916*_shop_allergens.sql` running, the row simply has
-    // no `tags` key — and `[...undefined]` throws, which would take `GET
+    // no `tags` key - and `[...undefined]` throws, which would take `GET
     // /shop` down for every member in the app rather than degrade. A shelf
     // that briefly publishes no allergen is the same state it has been in
     // since v1; a shelf that 500s is worse. The window closes the moment the
@@ -458,7 +458,7 @@ export interface MobileBootstrap {
     email: string;
     lat: number;
     lng: number;
-    /** Seven rows, Monday first, never grouped — the app groups equal runs itself. */
+    /** Seven rows, Monday first, never grouped - the app groups equal runs itself. */
     hours: BootstrapVenueHour[];
     /** Today's row (Europe/Istanbul); both "" on a closed day. */
     opensAt: string;
@@ -468,7 +468,7 @@ export interface MobileBootstrap {
   courierFeeMinor: number;
   /** Same value as `app.ordering.courierEtaMinutes`; kept for older app builds. */
   courierEtaMinutes: [number, number];
-  /** null while the campaign is advertised but not priced — see HAPPY_HOUR. */
+  /** null while the campaign is advertised but not priced - see HAPPY_HOUR. */
   happyHour: HappyHour | null;
   /** The operator-editable app configuration (docs/API-MOBILE.md §10). */
   app: BootstrapApp;

@@ -12,7 +12,7 @@ const order = (status: string, totalMinor = 50000, refunded: number[] = []) =>
     refunds: refunded.map((amountMinor) => ({ amountMinor })),
   }) as Parameters<typeof refundRefusal>[0];
 
-describe("refundRefusal — decided before the POS is asked for money", () => {
+describe("refundRefusal - decided before the POS is asked for money", () => {
   it("refuses an order nothing was collected on", () => {
     expect(refundRefusal(order("pending_payment"), 1000, false)).toMatch(
       /Ödemesi alınmamış/,
@@ -55,7 +55,7 @@ describe("refundRefusal — decided before the POS is asked for money", () => {
   });
 });
 
-describe("parseMoneyInput — lira typed into an admin form", () => {
+describe("parseMoneyInput - lira typed into an admin form", () => {
   it("reads Turkish and plain spellings as the same amount", () => {
     expect(parseMoneyInput("1.250,00")).toBe(125000);
     expect(parseMoneyInput("1.250")).toBe(125000);

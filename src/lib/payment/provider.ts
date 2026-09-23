@@ -44,8 +44,8 @@ export interface CheckoutInput {
    * one. Passing it makes the hosted form show the cards the member saved
    * last time; leaving it out gives a first-time form.
    *
-   * It is a KEY, not a card. The PAN never reaches this codebase — it is
-   * typed on the provider's own page — so "saved cards" costs us an opaque
+   * It is a KEY, not a card. The PAN never reaches this codebase - it is
+   * typed on the provider's own page - so "saved cards" costs us an opaque
    * string and no PCI surface at all.
    */
   cardUserKey?: string;
@@ -82,7 +82,7 @@ export interface RefundResult {
  * What a provider tells us when the customer's browser comes back.
  *
  * The browser return carries only a reference; the truth is fetched from the
- * provider with it. That is the whole point — return parameters are under the
+ * provider with it. That is the whole point - return parameters are under the
  * customer's control, a payment confirmation must never be.
  */
 export interface ReturnConfirmation {
@@ -94,7 +94,7 @@ export interface ReturnConfirmation {
   raw: unknown;
   /**
    * Present when the buyer chose to save their card. Persisting it is what
-   * lets the NEXT checkout show that card — an opaque key, never a PAN.
+   * lets the NEXT checkout show that card - an opaque key, never a PAN.
    */
   cardUserKey?: string;
   /**
@@ -129,7 +129,7 @@ export interface PaymentProvider {
   ): Promise<RefundResult>;
   /**
    * Resolves the browser return into a settled payment, by asking the provider
-   * — never by trusting the returned parameters. Providers that settle only
+   * - never by trusting the returned parameters. Providers that settle only
    * through a webhook leave this undefined.
    */
   confirmReturn?(params: Record<string, string>): Promise<ReturnConfirmation>;
@@ -139,7 +139,7 @@ export interface PaymentProvider {
    * does not always arrive (a closed tab, a dropped connection, a phone that
    * locked on the bank's 3-D Secure page), and the money may have. Resolves
    * `null` when no successful payment exists; throws when the provider could
-   * not be asked — the caller must not read that as "unpaid".
+   * not be asked - the caller must not read that as "unpaid".
    */
   lookupPayment?(
     orderId: string,

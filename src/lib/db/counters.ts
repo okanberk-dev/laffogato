@@ -4,7 +4,7 @@ import { raiseDbError } from "./health";
 import { getDb } from "./index";
 
 /**
- * Atomic counter — generates id sequences and order numbers. Backed by the
+ * Atomic counter - generates id sequences and order numbers. Backed by the
  * Postgres `next_seq(counter_key)` function:
  *   INSERT INTO counters (id, seq) VALUES (key, 1)
  *   ON CONFLICT (id) DO UPDATE SET seq = counters.seq + 1 RETURNING seq;

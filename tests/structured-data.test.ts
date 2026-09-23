@@ -20,7 +20,7 @@ const TEST_HOURS = Object.fromEntries(
   ]),
 ) as WeeklyHours;
 
-describe("JSON-LD structured data — SEO audit fixes", () => {
+describe("JSON-LD structured data - SEO audit fixes", () => {
   it("emits no franchise markup (franchise fully removed from the site)", () => {
     expect(graph).not.toMatch(/franchise/i);
     expect(graph).not.toContain("/#franchise");
@@ -34,7 +34,7 @@ describe("JSON-LD structured data — SEO audit fixes", () => {
     expect(graph).not.toContain("referencePrice");
   });
 
-  it("publishes the 09:00–02:00 window, with the close on the following day", () => {
+  it("publishes the 09:00-02:00 window, with the close on the following day", () => {
     // schema.org expresses a past-midnight close by letting `closes` be earlier
     // than `opens`; no encoding trick is needed. "24:00" is not a valid Time and
     // "00:00" would read as closed, so neither may appear.
@@ -142,7 +142,7 @@ describe("offer prices", () => {
         sub: "",
         italian: "",
         note: "",
-        items: [{ name: "Affogato", desc: "", price: "—", hue: "caramel" }],
+        items: [{ name: "Affogato", desc: "", price: "-", hue: "caramel" }],
       },
     } as unknown as typeof MENU;
     const ld = JSON.stringify(menuLd(dashed));

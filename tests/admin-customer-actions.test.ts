@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Two things a member can spend: a hand-granted coupon and a counter stamp.
- * Both were handed out with no upper guard — a mistyped fixed coupon, and a
+ * Both were handed out with no upper guard - a mistyped fixed coupon, and a
  * second stamp for the same double-clicked submit.
  */
 

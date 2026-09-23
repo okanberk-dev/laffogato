@@ -1,8 +1,8 @@
 # Ön yüz ↔ arka yüz sınırı
 
 > **Ne için:** Müşteri arayüzü baştan yeniden tasarlanacak. Bu belge, o işin
-> arka yüze — veritabanına, ödemeye, siparişe, kimliğe ve **sahadaki mobil
-> uygulamaya** (`RiosenBeq/lafmobil`) — dokunmadan yapılabilmesi için sınırı
+> arka yüze - veritabanına, ödemeye, siparişe, kimliğe ve **sahadaki mobil
+> uygulamaya** (`RiosenBeq/lafmobil`) - dokunmadan yapılabilmesi için sınırı
 > çizer. Kısa özeti `CLAUDE.md` → "Ön yüz ↔ arka yüz sınırı"nda.
 >
 > **Tek cümle:** Ön yüz işi *nasıl göründüğünü* değiştirir; *ne gönderdiğini,
@@ -12,7 +12,7 @@
 
 ## 1. Hangi dosya hangi tarafta
 
-### Ön yüz — yeniden tasarımda serbestçe değişir
+### Ön yüz - yeniden tasarımda serbestçe değişir
 
 | Yol                                              | Not                                                                                     |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------- |
@@ -22,14 +22,14 @@
 | Müşteri `page.tsx` / `layout.tsx` / `*-form.tsx` | **İşaretleme** serbest; veri çağrıları ve form alanları değil (§2, §4)                  |
 | `public/**`                                      | Görseller, ikonlar                                                                      |
 
-### Arka yüz — ön yüz PR'ında değişmez
+### Arka yüz - ön yüz PR'ında değişmez
 
 | Yol                                   | Neden                                                                                       |
 | ------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `src/lib/**`                          | Veri, fiyat, stok, ödeme, kimlik, e-posta, hukuk, mobil iş mantığı                           |
-| `src/app/**/actions.ts`               | Server action'lar (`"use server"`) — her `export` herkese açık bir POST ucu                  |
+| `src/app/**/actions.ts`               | Server action'lar (`"use server"`) - her `export` herkese açık bir POST ucu                  |
 | `src/app/**/route.ts`                 | API, webhook, cron, `/odeme/donus`, `/odeme/paynkolay`, `/gorsel/**`, `/api/bulten/cikis`   |
-| `src/app/api/mobile/v1/**`            | **Mobil uygulamanın sözleşmesi** — sahadaki sürümler buna bağlı (`docs/API-MOBILE.md`)       |
+| `src/app/api/mobile/v1/**`            | **Mobil uygulamanın sözleşmesi** - sahadaki sürümler buna bağlı (`docs/API-MOBILE.md`)       |
 | `src/proxy.ts`                        | Admin koruması + Supabase oturum yenileme                                                   |
 | `db/**`, `scripts/**`                 | Migration'lar, şema paketi                                                                  |
 | `next.config.ts`, `vercel.json`       | Güvenlik başlıkları (`tests/security-headers.test.ts`), cron'lar (`tests/vercel-crons.test.ts`) |
@@ -39,12 +39,12 @@
 
 Ön yüz işi sırasında bu listedeki bir dosyaya dokunmak **gerekiyorsa**, o
 değişiklik ayrı bir PR'dır ve kendi testiyle gelir. "Tasarımı oturtmak için
-action'daki alan adını değiştirdim" kabul edilen bir gerekçe değildir — formu
+action'daki alan adını değiştirdim" kabul edilen bir gerekçe değildir - formu
 action'a uydur, tersini değil.
 
 ---
 
-## 2. Form sözleşmesi — alan adları
+## 2. Form sözleşmesi - alan adları
 
 Server action girdisini **ada göre** okur (`formData.get("legalConsent")`),
 form onu `<input name="legalConsent">` ile verir. TypeScript bu bağı görmez,
@@ -64,7 +64,7 @@ Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" 
 | `placeOrderAction`                              | `src/app/odeme/checkout-wizard.tsx`                   | `items` (JSON), `legalConsent`, `customerName`, `customerPhone`, `shippingAddress`, `promoCode` |
 | `previewPromoAction`                            | `src/app/odeme/checkout-wizard.tsx`                   | `code`, `subtotal`                                                               |
 | `registerAction`                                | `src/app/uye/kayit/register-form.tsx`                 | `email`, `name`, `phone`, `password`, `passwordConfirm`, `acceptedTerms`, `marketing`, `newsletter` |
-| `loginAction`                                   | `src/app/uye/giris/login-form.tsx`                    | `email`, `password`, `next` (gizli; sayfa `?next=` ile açıldıysa — ödemeye/karaoke'ye geri döner) |
+| `loginAction`                                   | `src/app/uye/giris/login-form.tsx`                    | `email`, `password`, `next` (gizli; sayfa `?next=` ile açıldıysa - ödemeye/karaoke'ye geri döner) |
 | `requestPasswordResetAction`                    | `src/app/uye/sifremi-unuttum/forgot-form.tsx`         | `email`                                                                          |
 | `resetPasswordAction`                           | `src/app/uye/sifre-sifirla/reset-form.tsx`            | `token`, `password`, `passwordConfirm`                                           |
 | `updateProfileAction`                           | `src/app/uye/hesap/profile-form.tsx`                  | `name`, `phone`, `birthday`                                                      |
@@ -76,8 +76,8 @@ Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" 
 | `deleteAccountAction`                           | `src/app/uye/hesap/sil/delete-account-form.tsx`       | `confirmEmail`, `password`                                                       |
 | `bookKaraokeAction`                             | `src/components/laffogato/karaoke-booking.tsx`        | `date`, `startHour`, `hours`, `guests`, `note`                                   |
 | `subscribeNewsletterAction`                     | `src/components/laffogato/newsletter-form.tsx`        | `email`, `consent`                                                               |
-| `confirmNewsletterAction`                       | `src/app/bulten/onay/page.tsx`                        | `token` (gizli) — bülten onayı bir **düğme**dir, bağlantı değil                   |
-| `unsubscribeNewsletterAction`                   | `src/app/bulten/cikis/page.tsx`                       | `token` (gizli) — çıkış da düğmeyle; sayfa GET'te hiçbir şey harcamaz            |
+| `confirmNewsletterAction`                       | `src/app/bulten/onay/page.tsx`                        | `token` (gizli) - bülten onayı bir **düğme**dir, bağlantı değil                   |
+| `unsubscribeNewsletterAction`                   | `src/app/bulten/cikis/page.tsx`                       | `token` (gizli) - çıkış da düğmeyle; sayfa GET'te hiçbir şey harcamaz            |
 
 **Bülten sayfalarında bağlantıyı "tek tık"a geri çevirme.** E-posta güvenlik
 tarayıcıları (Outlook Safe Links, Gmail ön-getirme) iletideki her bağlantıyı
@@ -86,11 +86,11 @@ açar: GET'te abone eden bir onay sayfası tarayıcının ziyaretini "rıza"ya, 
 §8). Sayfa yalnız düğmeyi gösterir; posta istemcisinin kendi tek tık düğmesi
 (RFC 8058, `/api/bulten/cikis`) sayfasız çalışmaya devam eder.
 
-**Formu başka bir dosyaya taşıdıysan** testteki `forms` yolunu güncelle — alan
+**Formu başka bir dosyaya taşıdıysan** testteki `forms` yolunu güncelle - alan
 listesine dokunmadan. Alan listesi yalnız action değiştiğinde değişir; o da
 ayrı bir arka yüz PR'ıdır.
 
-### `items` — sepetin sunucuya gidiş biçimi
+### `items` - sepetin sunucuya gidiş biçimi
 
 ```json
 [{ "productId": "prd-0001", "variantId": "v-250g", "name": "…", "price": 245, "qty": 2 }]
@@ -117,14 +117,14 @@ yazan `defaultChecked={values.x}` serbesttir.
 | ---------------------- | ----------------------------------------- | ------------------------------------------------------------------------------- |
 | Sepet anahtarı         | `localStorage["laffogato_cart_v1"]`       | `app.tsx`, `product-detail.tsx`, `site-chrome.tsx`, `checkout-wizard.tsx`, `odeme/basarili/clear-cart.tsx` |
 | Sepet temizleme        | `/odeme/basarili` içindeki `<ClearCart>`  | Server action client state'e dönemez; temizlik başarı sayfasında olur          |
-| Çerez rızası           | `src/lib/consent/cookie.ts`               | `cookie-consent.tsx` — Consent Mode v2 sinyalleri buradan                       |
+| Çerez rızası           | `src/lib/consent/cookie.ts`               | `cookie-consent.tsx` - Consent Mode v2 sinyalleri buradan                       |
 
 Anahtarın adını değiştirmek sahadaki her ziyaretçinin sepetini sessizce
 boşaltır. Değişmesi gerekiyorsa eskiyi okuyup yeniye taşıyan bir geçiş yaz.
 
 ---
 
-## 4. Veri okuma — sayfalar arka yüzden ne alır
+## 4. Veri okuma - sayfalar arka yüzden ne alır
 
 - Müşteri sayfaları veriyi **`loadAppProps()`** (`src/lib/seo/app-props.ts`) ya
   da `src/lib/admin/store.ts`'in `list*` / `getPublicSettings()` okuyucularından
@@ -134,7 +134,7 @@ boşaltır. Değişmesi gerekiyorsa eskiyi okuyup yeniye taşıyan bir geçiş y
   içerikle ayakta kalır (`CLAUDE.md` → "Veritabanı Kesintisinde Davranış").
 - Bileşenler ve sayfalar **`@/lib/db`'yi doğrudan import etmez.**
 - İstemci bileşeni (`"use client"`) `import "server-only"` taşıyan bir modülü
-  import edemez — build kırılır. Saf mantık gerekiyorsa `*-core.ts` /
+  import edemez - build kırılır. Saf mantık gerekiyorsa `*-core.ts` /
   `*-utils.ts` kardeşini kullan (`karaoke-core.ts`, `coupon-utils.ts`,
   `loyalty-core.ts`).
 - Fiyat gösterimi `priceLabel()` / `formatTRY()` üzerinden; tüm tutarlar
@@ -144,7 +144,7 @@ boşaltır. Değişmesi gerekiyorsa eskiyi okuyup yeniye taşıyan bir geçiş y
 
 ---
 
-## 5. Sunucunun gönderdiği yönlendirmeler — sayfalar karşılamalı
+## 5. Sunucunun gönderdiği yönlendirmeler - sayfalar karşılamalı
 
 Action'lar sonucu URL'le bildirir. Yeniden tasarlanan sayfa bu parametreleri
 okumaya devam etmezse müşteri "hiçbir şey olmadı" ekranında kalır.
@@ -169,7 +169,7 @@ ve girişteki `?next=` taşımasının karşılandığını
 
 ---
 
-## 6. Dışarıdan çağrılan yollar — adı değişmez
+## 6. Dışarıdan çağrılan yollar - adı değişmez
 
 Bu URL'lere site dışından gelinir: gönderilmiş e-postalar, sanal POS, mobil
 uygulama, arama motoru. Yeniden adlandırmak geri alınamaz şekilde kırar.

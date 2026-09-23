@@ -34,7 +34,7 @@ function parseLines(raw: string): ManualOrderLine[] {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Manual (admin-entered) order. Line prices are NOT taken from the form — the
+ * Manual (admin-entered) order. Line prices are NOT taken from the form - the
  * store resolves them from the DB. The form only sends product/variant ids +
  * quantities plus the customer/delivery details.
  */

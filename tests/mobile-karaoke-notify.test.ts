@@ -5,8 +5,8 @@ import type { KaraokeReservation } from "@/lib/mobile/karaoke";
 /**
  * The operator's notice when the app takes a karaoke booking.
  *
- * The room is held by hand — a reservation is written `requested` and a person
- * confirms it from /admin/mobil/karaoke — and until this nothing told that
+ * The room is held by hand - a reservation is written `requested` and a person
+ * confirms it from /admin/mobil/karaoke - and until this nothing told that
  * person a request had arrived. What these cases guard is not the wording but
  * the two properties that make the notice trustworthy:
  *

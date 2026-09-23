@@ -2,13 +2,13 @@
 
 Bu belge sitenin arama görünürlüğü için nasıl kurulduğunu ve yeni bir sayfa
 eklerken neyi güncellemek gerektiğini anlatır. Anahtar kelime rakamları
-**Semrush, Türkiye veritabanı** (Eylül 2026) — tahmin değil, ölçüm.
+**Semrush, Türkiye veritabanı** (Eylül 2026) - tahmin değil, ölçüm.
 
 ---
 
 ## 1. Tek kaynak: `src/lib/seo/site.ts`
 
-Marka adı, NAP (name–address–phone), sosyal hesaplar, OG görseli, doğrulama
+Marka adı, NAP (name-address-phone), sosyal hesaplar, OG görseli, doğrulama
 token'ları ve anahtar kelime çekirdeği burada. Aşağıdaki her şey buradan türer:
 
 | Tüketici                                                | Nereden okur                     |
@@ -27,12 +27,12 @@ ve `public/llms*.txt` de güncellenmeli. `tests/seo-site.test.ts` ve
 
 ---
 
-## 2. Teknik SEO — yerleşik olanlar
+## 2. Teknik SEO - yerleşik olanlar
 
 **Indeksleme**
 
 - `robots.ts` üretim dışı deploy'larda (`VERCEL_ENV !== production`) tüm siteyi
-  kapatır — preview URL'leri canlı domain ile yarışmaz.
+  kapatır - preview URL'leri canlı domain ile yarışmaz.
 - `/admin`, `/api`, `/uye`, `/odeme` crawl dışı.
 - Yapay zekâ tarayıcıları (GPTBot, ClaudeBot, PerplexityBot, Google-Extended…)
   **açık** bırakıldı; `llms.txt` onlar için derlenmiş özet sunar.
@@ -59,7 +59,7 @@ her zaman **gerçek route'u** işaret eder.
 
 > **Breadcrumb ≠ navigasyon.** Ana sayfa kökün kendisidir; breadcrumb'ı yoktur.
 > Daha önce ana sayfada "Ana Sayfa › Menü › Mağaza › Hikaye › Ziyaret" tek bir
-> yolmuş gibi yayımlanıyordu — bu düzeltildi, yerine `SiteNavigationElement`
+> yolmuş gibi yayımlanıyordu - bu düzeltildi, yerine `SiteNavigationElement`
 > geldi.
 
 **Sitemap önceliği**
@@ -71,26 +71,26 @@ her zaman **gerçek route'u** işaret eder.
 | 0.9     | `/magaza`, kategori sayfaları |
 | 0.8     | ürün detayları, `/rehber`     |
 | 0.75    | rehber sayfaları              |
-| 0.6–0.7 | `/hikayemiz`, `/ziyaret`      |
-| 0.4–0.5 | `/hukuk` ve belgeler          |
+| 0.6-0.7 | `/hikayemiz`, `/ziyaret`      |
+| 0.4-0.5 | `/hukuk` ve belgeler          |
 
 ---
 
-## 3. İçerik SEO — `/rehber`
+## 3. İçerik SEO - `/rehber`
 
 Sitenin en büyük kaçırılmış fırsatı, markanın kendi terimlerinin Türkiye'de
 yüksek hacimli ve **düşük zorlukta** olmasıydı. `/rehber` bu boşluğu kapatır.
 
 | Sayfa                       | Hedef küme                                                                         | Aylık hacim | KD    |
 | --------------------------- | ---------------------------------------------------------------------------------- | ----------- | ----- |
-| `affogato-nedir`            | affogato · **dondurmalı kahve** · affogato nedir/tarifi/nasıl yapılır/nasıl okunur | ~27.000     | 10–27 |
-| `matcha-nedir`              | matcha nedir · matcha latte · matcha faydaları · matcha nasıl yapılır              | ~53.000     | 13–25 |
-| `espresso-cesitleri`        | flat white · türk kahvesi · cortado · espresso nedir                               | ~78.000     | 14–38 |
+| `affogato-nedir`            | affogato · **dondurmalı kahve** · affogato nedir/tarifi/nasıl yapılır/nasıl okunur | ~27.000     | 10-27 |
+| `matcha-nedir`              | matcha nedir · matcha latte · matcha faydaları · matcha nasıl yapılır              | ~53.000     | 13-25 |
+| `espresso-cesitleri`        | flat white · türk kahvesi · cortado · espresso nedir                               | ~78.000     | 14-38 |
 | `san-sebastian-cheesecake`  | san sebastian cheesecake                                                           | ~18.000     | 20    |
-| `yenilebilir-kahve-fincani` | yenilebilir kahve fincanı/bardak                                                   | ~800        | 17–35 |
+| `yenilebilir-kahve-fincani` | yenilebilir kahve fincanı/bardak                                                   | ~800        | 17-35 |
 
 **Neden bu beşi:** hepsi menüde gerçekten olan bir ürüne bağlanıyor. Satmadığımız
-bir şey için içerik üretmiyoruz — arama trafiği ile ticari niyet arasında bağ
+bir şey için içerik üretmiyoruz - arama trafiği ile ticari niyet arasında bağ
 kurulamayan sayfa, sıralansa bile işe yaramaz.
 
 **Türkçe arama davranışına dair iki kritik gözlem** (içerikte kullanıldı):
@@ -108,7 +108,7 @@ kurulamayan sayfa, sıralansa bile işe yaramaz.
 2. İçeriği `src/lib/seo/guide-content.ts` içine `GuideSource` şeklinde ekle.
 3. `src/lib/seo/guides.ts` içindeki `ORDER` dizisine slug'ı koy.
 4. `src/lib/seo/guide-nav.ts` içine footer bağlantısını ekle.
-5. `npm test` — `tests/guides.test.ts` meta uzunluklarını, iç bağlantı
+5. `npm test` - `tests/guides.test.ts` meta uzunluklarını, iç bağlantı
    geçerliliğini, sağlık iddiası olmadığını ve footer ile registry'nin
    uyumunu denetler.
 
@@ -116,14 +116,14 @@ Sitemap ve JSON-LD otomatik; ayrıca dokunmak gerekmez.
 
 ### İçerik kuralları
 
-- İlk paragraf soruyu **doğrudan** cevaplar (40–60 kelime). "Bu yazıda ele
-  alacağız" gibi girizgâh yok — featured snippet bunu almaz.
+- İlk paragraf soruyu **doğrudan** cevaplar (40-60 kelime). "Bu yazıda ele
+  alacağız" gibi girizgâh yok - featured snippet bunu almaz.
 - H2'ler gerçek arama sorgusu biçiminde; en az üçü soru.
 - Her sayfada en az bir **tablo** (Google tabloyu snippet olarak alır).
 - **Sağlık iddiası yasak.** "Zayıflatır", "önler", "tedavi eder", "detoks" gibi
   ifadeler `build-guides.mjs` ve `tests/guides.test.ts` tarafından reddedilir.
 - Rakip marka adı övücü/kıyaslayıcı biçimde kullanılmaz.
-- Gövde 1.200–1.800 kelime. Daha kısası ince içerik, daha uzunu şişkin.
+- Gövde 1.200-1.800 kelime. Daha kısası ince içerik, daha uzunu şişkin.
 
 ---
 
@@ -136,11 +136,11 @@ Sitemap ve JSON-LD otomatik; ayrıca dokunmak gerekmez.
 Yapılmış olanlar: tam NAP, `geo` koordinatları, `openingHoursSpecification`,
 `hasMap`, `publicTransitClosestStop`, `amenityFeature`, yakınlık bilgisi
 (Marmaray 6 dk, Sabiha Gökçen 15 dk) ve yerel yer imi ("Menemenci Cumhur'un
-yanı" — insanlar tarifi böyle veriyor).
+yanı" - insanlar tarifi böyle veriyor).
 
 **Kod dışında kalan, sizin yapmanız gerekenler:**
 
-- Google Business Profile kaydı — NAP birebir `site.ts` ile aynı olmalı.
+- Google Business Profile kaydı - NAP birebir `site.ts` ile aynı olmalı.
 - Apple Business Connect, Yandex İşletmem.
 - Foursquare / TripAdvisor / Zomato tutarlılığı.
 - Google Search Console + Bing Webmaster doğrulaması → token'ları
@@ -171,11 +171,11 @@ Boş bırakılan doğrulama token'ı için Next.js meta etiketini hiç basmaz.
 
 ---
 
-## 6. Kontrol listesi — yeni sayfa eklerken
+## 6. Kontrol listesi - yeni sayfa eklerken
 
 - [ ] `generateMetadata` ya da `metadata`: `title`, `description`,
       `alternates.canonical`
-- [ ] OG + Twitter kartı (layout'tan miras alınanları yeniden bildir —
+- [ ] OG + Twitter kartı (layout'tan miras alınanları yeniden bildir -
       `openGraph` segmentler arası **sığ** birleşir)
 - [ ] Sayfaya uygun JSON-LD + `BreadcrumbList`
 - [ ] `sitemap.ts` içine giriş (dinamikse otomatik)

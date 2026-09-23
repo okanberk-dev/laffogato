@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * The daily birthday run — the answer to the operator's own question, "üyelere
+ * The daily birthday run - the answer to the operator's own question, "üyelere
  * doğum gününde mail gidiyor mu?".
  *
  * Until this existed the answer was no on both counts: `sendBirthdayEmail` was
  * written, tested and called from nowhere, and the coupon it talks about was
  * only granted if the member happened to open the web promotions page during
- * their birthday MONTH — so an app-only member got neither.
+ * their birthday MONTH - so an app-only member got neither.
  *
  * What is pinned here is the part that is easy to get wrong later:
  *
@@ -17,7 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  *     member with the marketing preference AND a consent record.
  *   • the idempotency key is the coupon row. `grantBirthdayCouponToday`
  *     answering `null` means "already greeted this year", and then no message
- *     goes out — a second run of the cron greets nobody twice.
+ *     goes out - a second run of the cron greets nobody twice.
  *   • the calendar is Tuzla's, and 29 February is greeted on 1 March in a
  *     common year.
  */
@@ -28,7 +28,7 @@ const ensureCustomerUnsubToken = vi.fn();
 const sendBirthdayEmail = vi.fn();
 
 // `rpcRows`: the audience function RETURNS TABLE. It used to be called via
-// `rpc`, whose one-cell read turned the rows into a record string — and this
+// `rpc`, whose one-cell read turned the rows into a record string - and this
 // mock, handing back an array to `rpc`, is exactly what hid that.
 vi.mock("@/lib/db", () => ({ getDb: () => ({ rpcRows: rpc }) }));
 vi.mock("@/lib/customer/coupons", () => ({ grantBirthdayCouponToday }));
@@ -84,7 +84,7 @@ describe("which day is being greeted", () => {
     ]);
   });
 
-  it("leaves 1 March alone in a leap year — the 29th is coming", () => {
+  it("leaves 1 March alone in a leap year - the 29th is coming", () => {
     expect(birthdayDaysFor(new Date("2028-03-01T06:00:00.000Z"))).toEqual([
       "03-01",
     ]);

@@ -12,7 +12,7 @@ export function isSafeOrderId(orderId: string): boolean {
   return ORDER_ID_RE.test(orderId);
 }
 
-/** `laffogato://siparis/ord-0284?status=success` — the app's order screen. */
+/** `laffogato://siparis/ord-0284?status=success` - the app's order screen. */
 export function appOrderDeepLink(
   orderId: string,
   status: PaymentReturnStatus,

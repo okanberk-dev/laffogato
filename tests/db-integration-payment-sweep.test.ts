@@ -186,7 +186,7 @@ maybe("unpaid orders are cancelled only after asking the POS", () => {
     expect(rows[0].stockReleasedAt).not.toBe("");
   });
 
-  it("does not read an unreachable POS as 'unpaid' — until a day has passed", async () => {
+  it("does not read an unreachable POS as 'unpaid' - until a day has passed", async () => {
     await insertPending("ord-swp-down", 993003, { ageMs: 2 * HOUR });
     await insertPending("ord-swp-old", 993004, { ageMs: 25 * HOUR });
     pos.answers.set("ord-swp-down", "down");

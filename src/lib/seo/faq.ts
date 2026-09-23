@@ -1,5 +1,5 @@
 /**
- * FAQ — sıkça sorulan sorular.
+ * FAQ - sıkça sorulan sorular.
  *
  * Used for two purposes:
  *  1. Server-rendered FAQ section on the home page (UX + on-page SEO content)

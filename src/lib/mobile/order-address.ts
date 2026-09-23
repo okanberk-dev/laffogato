@@ -1,5 +1,5 @@
 // Pure address helpers for app orders (docs/API-MOBILE.md §3). NO
-// "server-only", NO database — unit-tested directly. An order stores its
+// "server-only", NO database - unit-tested directly. An order stores its
 // address as one block of text, the way the panel and the courier read it;
 // these turn a saved or a typed address into that block.
 

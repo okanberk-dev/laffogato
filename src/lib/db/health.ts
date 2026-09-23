@@ -4,14 +4,14 @@ import { cache } from "react";
  * Telling "the database is unreachable" apart from "the database said no".
  *
  * These are different failures and must be handled differently. A rejected
- * query — a bad column, a constraint violation, a missing table — is a bug, and
+ * query - a bad column, a constraint violation, a missing table - is a bug, and
  * hiding it behind a fallback would make the bug invisible. A host that never
  * answered is an outage: the marketing site can still render from the seed data
  * it ships with, and should, rather than returning HTTP 500 on every page.
  *
  * `src/lib/db/client.ts` reports the second case as `status: 0` with an empty
  * `code`, because a request that never reached Postgres cannot carry a SQLSTATE.
- * That is the only signal used here — no string matching on error messages.
+ * That is the only signal used here - no string matching on error messages.
  */
 
 /** A query the database rejected. Always fatal; never degrades. */
@@ -111,8 +111,8 @@ export function isDegradedRequest(): boolean {
 }
 
 /**
- * Runs a public, read-only query and falls back to bundled data when — and only
- * when — the database is unreachable.
+ * Runs a public, read-only query and falls back to bundled data when - and only
+ * when - the database is unreachable.
  *
  * Never use this for a mutation, an authorisation check, an admin view, or
  * anything that decides a price, a stock level or whether an order may be

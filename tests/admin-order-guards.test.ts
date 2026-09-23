@@ -122,7 +122,7 @@ describe("bulk status change", () => {
     ]);
   });
 
-  it("keeps `paid` and `refunded` out — they owe a ledger row", () => {
+  it("keeps `paid` and `refunded` out - they owe a ledger row", () => {
     expect(BULK_ORDER_TRANSITIONS.paid).toBeUndefined();
     expect(BULK_ORDER_TRANSITIONS.refunded).toBeUndefined();
   });
@@ -176,7 +176,7 @@ describe("bulk status change", () => {
 
   it("does not settle unpaid orders with a bulk 'hazırlanıyor'", () => {
     // start_preparing from pending_payment stamps paidAt, awards the stamp
-    // and counts revenue — a bulk "paid" by another name.
+    // and counts revenue - a bulk "paid" by another name.
     const body = storeSource.slice(
       storeSource.indexOf("export async function bulkUpdateOrders"),
       storeSource.indexOf("export interface PlaceOrderItemInput"),

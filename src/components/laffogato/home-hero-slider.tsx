@@ -16,7 +16,7 @@ const AUTOPLAY_MS = 7000;
  * the other drinks as thumbnails with a rating pill, the active one carrying
  * a quantity stepper; under the whole thing, the slide dots.
  *
- * The disc is an ellipse, not a rounded rectangle — that is what makes the
+ * The disc is an ellipse, not a rounded rectangle - that is what makes the
  * shape read as a shape rather than as a panel, and it is why the cup is
  * allowed to hang off its lower left rather than sit inside it.
  *
@@ -34,7 +34,7 @@ export function HomeHeroSlider({
   onAction: (action: HomeSlideAction) => void;
   /** Admin-editable copy (/admin/icerik). The first slide's kicker and body
       come from `home.hero.eyebrow` / `home.hero.lede` when an operator has
-      set them — the rewrite had orphaned both fields, so the panel was
+      set them - the rewrite had orphaned both fields, so the panel was
       offering two controls that changed nothing. */
   content?: Record<string, string>;
   /** Ayarlar → "Hero görsel URL": overrides the first slide's photograph. */
@@ -46,7 +46,7 @@ export function HomeHeroSlider({
   const [stopped, setStopped] = useState(false);
   /* The stepper on the active thumbnail. Cafe drinks are not orderable from
      the web (the cart carries shop products), so this is the reference's
-     control kept as a quantity the CTA carries into the menu — never a
+     control kept as a quantity the CTA carries into the menu - never a
      silent add to a basket that could not become an order. */
   const [qty, setQty] = useState(1);
   const reduced = useRef(false);
@@ -101,7 +101,7 @@ export function HomeHeroSlider({
           onBlur={() => setPaused(false)}
           aria-roledescription="karusel"
         >
-          {/* The mark, blown up and barely inked — the reference's watermark. */}
+          {/* The mark, blown up and barely inked - the reference's watermark. */}
           <span className="hero-x-watermark" aria-hidden="true" />
 
           <div className="hero-x-copy">

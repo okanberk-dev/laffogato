@@ -1,5 +1,5 @@
 // Pure wire mappers for `/me` and `/coupons` (docs/API-MOBILE.md §4, §5).
-// NO "server-only", NO DB — unit-tested directly. Every response is an
+// NO "server-only", NO DB - unit-tested directly. Every response is an
 // explicit allow-list: a `customers` row carries a password hash, tokens and
 // consent timestamps that must never reach the app.
 
@@ -52,7 +52,7 @@ export interface MeAddressInput {
  * neighbourhood is folded into `line1` on write ("Postane Mah., Atatürk Cad.
  * No: 28") and split back out on read when the leading segment is recognisably
  * a mahalle. An address typed on the site without that suffix reads back with
- * an empty `neighbourhood` and the whole text in `line` — nothing is lost.
+ * an empty `neighbourhood` and the whole text in `line` - nothing is lost.
  */
 const NEIGHBOURHOOD_RE = /^(.{2,60}?\b(?:Mahallesi|Mah\.|Mh\.))\s*,\s*(.+)$/iu;
 
@@ -116,7 +116,7 @@ export interface InvitePerson {
   at: string;
   /**
    * Did the inviter actually get a free drink for this person? False once the
-   * inviter is past the reward cap — the invitee is still rewarded, so the row
+   * inviter is past the reward cap - the invitee is still rewarded, so the row
    * must not promise the inviter a coupon that was never issued.
    */
   rewarded: boolean;
@@ -127,7 +127,7 @@ export interface InviteSummary {
   invited: number;
   /** People who used the code and have since made their first paid order. */
   joined: number;
-  /** Free drinks this inviter actually earned — capped, so ≤ `joined`. */
+  /** Free drinks this inviter actually earned - capped, so ≤ `joined`. */
   earned: number;
   people: InvitePerson[];
 }
@@ -145,7 +145,7 @@ export interface MeCustomer {
   /**
    * Product ids the member has favourited.
    *
-   * The same list the site's /uye/hesap/favorilerim renders — one wishlist per
+   * The same list the site's /uye/hesap/favorilerim renders - one wishlist per
    * member, not one per surface. It was missing from this payload, so a
    * product favourited on the web was invisible in the app and the app's own
    * "Favorilerim" had nothing to show.
@@ -208,8 +208,8 @@ export interface MeCoupon {
   usedAt: string | null;
   /**
    * Spendable only on a cafe basket (loyalty and invite free-drink coupons).
-   * The app has read this since the coupon screens shipped — "Yalnızca kafe
-   * siparişlerinde" — but the server never sent it, so the label never showed
+   * The app has read this since the coupon screens shipped - "Yalnızca kafe
+   * siparişlerinde" - but the server never sent it, so the label never showed
    * and members tried the coupon on a shop basket, where the till refused it.
    */
   cafeOnly: boolean;

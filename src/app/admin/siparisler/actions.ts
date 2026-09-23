@@ -51,7 +51,7 @@ export async function bulkOrdersAction(
     return { error: parsed.error.issues[0]?.message ?? "Geçersiz istek." };
   }
   const { ids, value } = parsed.data;
-  // Cancelling in bulk voids up to 500 orders in one click — paid ones
+  // Cancelling in bulk voids up to 500 orders in one click - paid ones
   // included, whose money then has to be sent back by hand. Same authority as
   // a refund, checked here rather than with requireRole so the staff member
   // gets an explanation instead of being bounced to /admin?denied=1.
@@ -114,7 +114,7 @@ export async function transitionOrderAction(
   if (!id || !TRANSITIONS.includes(transition)) {
     return { error: "Geçersiz işlem." };
   }
-  // Cancelling an order that was paid voids money the shop holds — the same
+  // Cancelling an order that was paid voids money the shop holds - the same
   // authority as a refund, exactly as the bulk tool already demands. One
   // order at a time it only needed `orders`, so staff could do singly what
   // they were refused in bulk. An unpaid (pending) order is still theirs.
@@ -390,7 +390,7 @@ export async function saveOrderTrackingAction(formData: FormData) {
     action: "update",
     entity: "order",
     entityId: id,
-    // Don't log the raw tracking number — just whether it was set.
+    // Don't log the raw tracking number - just whether it was set.
     payload: { tracking: trackingNumber.trim() ? "set" : "cleared", carrier },
   });
   revalidateOrder(id);
@@ -408,7 +408,7 @@ export async function saveOrderTrackingAction(formData: FormData) {
  * thrown out of a background poll would move the operator's page under them;
  * the sidebar also runs this for roles that have no order access at all. So
  * the gate is read rather than enforced, and a caller who may not see orders
- * gets `null` — the badge simply never appears.
+ * gets `null` - the badge simply never appears.
  */
 async function ordersSignalAllowed(): Promise<boolean> {
   const session = await getAdminSession();

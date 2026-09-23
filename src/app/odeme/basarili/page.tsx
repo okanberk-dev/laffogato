@@ -82,7 +82,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         {/* The site retired its two-face system; this page was still asking
             for a 500-weight Playfair and a cursive that no longer exists, so
             it rendered in whatever the browser had. `.h1` is the one display
-            style, and `.script` is the accent word — which on this page is
+            style, and `.script` is the accent word - which on this page is
             genuinely earned. */}
         <h1 className="h1 mt-5">
           Grazie, {order.customerName.split(" ")[0]}.
@@ -201,7 +201,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         <div className="mt-10 flex flex-wrap gap-3">
           {/* The site's own buttons: --r-btn, the house green, the arrow that
               every other primary carries. These were Tailwind neutral-900
-              capsules — a different shape and a different palette from every
+              capsules - a different shape and a different palette from every
               other action on the site, on the last screen a paying customer
               sees. */}
           <Link href="/" className="btn btn-primary">

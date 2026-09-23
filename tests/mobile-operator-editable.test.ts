@@ -11,14 +11,14 @@ import { buildSlots, quoteReservation } from "@/lib/mobile/karaoke-core";
 /**
  * The lafmobil app ships through the app stores. Anything it needs to be able
  * to change has to reach it from the server, or the change costs a release and
- * a review — and old installs keep the stale value until people update.
+ * a review - and old installs keep the stale value until people update.
  *
  * These tests pin that property for the values an operator actually turns:
  * they change a setting and assert the app-facing payload moves with it. A
  * refactor that quietly hardcodes one of them (a constant "her gün 09:00",
  * a fixed courier fee, a baked-in karaoke price) fails here.
  *
- * They are NOT a copy of the wire-shape assertions in mobile-menu-mapper —
+ * They are NOT a copy of the wire-shape assertions in mobile-menu-mapper -
  * those check the shape is right, these check the values are the operator's.
  */
 

@@ -46,8 +46,8 @@ const initialBulkState: BulkOrderActionState = {};
 /**
  * How often the page asks whether anything arrived.
  *
- * Half a minute is the whole point of the feature — a gel-al member walks
- * from the app to the counter in about that — and the question is a single
+ * Half a minute is the whole point of the feature - a gel-al member walks
+ * from the app to the counter in about that - and the question is a single
  * `head: true` count, not a re-read of the list.
  */
 const POLL_MS = 30_000;
@@ -61,7 +61,7 @@ const SOUND_KEY = "laffogato.admin.orders.sound";
  *
  * `localStorage` cannot be read while rendering on the server, so a
  * `useState` seeded from it either mismatches on hydration or has to be
- * corrected inside an effect — the cascading-render pattern React now warns
+ * corrected inside an effect - the cascading-render pattern React now warns
  * about. `useSyncExternalStore` is the sanctioned shape for exactly this: the
  * server snapshot is "off", the client reads the real value, and a change in
  * another tab arrives through the same `storage` event.
@@ -138,7 +138,7 @@ export function OrdersList({
    * row three is worse than one that is briefly stale. The refresh is the
    * operator's click.
    *
-   * Sleeps while the tab is hidden — a till screen left open overnight should
+   * Sleeps while the tab is hidden - a till screen left open overnight should
    * not spend the night counting.
    */
   useEffect(() => {
@@ -181,7 +181,7 @@ export function OrdersList({
   const toggleSound = useCallback(() => {
     const next = !readSoundPref();
     writeSoundPref(next);
-    // Proof it works, on the click that turned it on — and the gesture a
+    // Proof it works, on the click that turned it on - and the gesture a
     // browser wants before it will let a page make a sound at all.
     if (next) beep(true);
   }, []);
