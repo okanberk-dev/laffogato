@@ -11376,11 +11376,13 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "16. Kademeler ve Rozetler",
+        heading: "16. Kademeler, Rozetler ve Kilometre Taşı Hediyeleri",
         paragraphs: [
           "Uygulama, Katılımcı'nın son 365 gün içindeki ödenmiş sipariş sayısına göre bir kademe (L'AF, PEARL, RUBY) ve tamamlanan başarılara göre rozetler gösterir. Kademe ve rozetler damgadan bağımsızdır; damga kazandırmaz ve damga harcamaz.",
           "Kademe ve rozetlerin kendi başına parasal bir karşılığı yoktur; nakde çevrilemez ve devredilemez. Sipariş sayısı azaldıkça kademe geriye de gidebilir.",
           "RUBY kademesindeki Katılımcı'ya karaoke salonu rezervasyonunda, panelde tanımlı oranda (varsayılan %15) indirim uygulanır. Bu indirimin oranı ve varlığı Şirket tarafından ileriye etkili olarak değiştirilebilir.",
+          "Katılımcı'nın kazandığı damgaların toplamı (ödenmiş uygulama kafe siparişleri ve kasa damgaları; iade ya da iptal nedeniyle geri alınanlar düşülerek) 10'a ulaştığında bir Filtre Kahve, 20'ye ulaştığında bir Americano, 30'a ve 40'a ulaştığında menüdeki satıştaki içecek ya da tatlılardan Şirket sistemince rastgele seçilen bir ürün tutarında bir hediye kuponu tanımlanır. Her eşik bir kez hediye kazandırır.",
+          "Kilometre taşı hediye kuponu, tanımlandığı tarihten itibaren 30 gün geçerlidir, yalnız kafe siparişlerinde kullanılabilir, nakde çevrilemez ve devredilemez. Hediye edilecek ürün satıştan kalkmışsa satıştaki içecek ya da tatlılardan biri seçilir. Şirket kilometre taşlarını ve hediyelerini ileriye etkili olarak değiştirebilir; kazanılmış kuponlar süreleri boyunca geçerliliğini korur.",
         ],
       },
       {

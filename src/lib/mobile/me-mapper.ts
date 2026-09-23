@@ -16,6 +16,7 @@ import {
 } from "@/lib/customer/coupon-utils";
 
 import type { LoyaltyView } from "./loyalty-core";
+import type { MeMilestone } from "./milestones-core";
 
 // ─── Addresses ───────────────────────────────────────────────────────────
 
@@ -152,16 +153,22 @@ export interface MeCustomer {
   wishlist: string[];
 }
 
+/** `/me.loyalty` - the view plus the road map and the perks (karar 175, additive). */
+export type MeLoyalty = LoyaltyView & {
+  milestones?: MeMilestone[];
+  perksByTier?: Record<"verde" | "argento" | "oro", string[]>;
+};
+
 export interface MeResponse {
   customer: MeCustomer;
-  loyalty: LoyaltyView;
+  loyalty: MeLoyalty;
   invite: InviteSummary;
   usual: CustomerUsual | null;
 }
 
 export function toMe(
   customer: PublicCustomer,
-  loyalty: LoyaltyView,
+  loyalty: MeLoyalty,
   invite: InviteSummary,
 ): MeResponse {
   return {

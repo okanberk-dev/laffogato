@@ -225,6 +225,7 @@ export const TABLES = {
   auditLogs: "audit_logs",
   customers: "customers",
   customerCoupons: "customer_coupons",
+  customerMilestoneRewards: "customer_milestone_rewards",
   counters: "counters",
   shopHeroSlides: "shop_hero_slides",
   paymentTransactions: "payment_transactions",

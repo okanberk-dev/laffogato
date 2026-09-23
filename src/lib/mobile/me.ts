@@ -6,6 +6,7 @@ import {
   customerOrdersByEmail,
   expireStalePendingOrders,
   getMenuItem,
+  getSettings,
   type AdminOrderStatus,
 } from "@/lib/admin/store";
 import {
@@ -32,6 +33,8 @@ import { getInviteSummary } from "./invite";
 import { getLoyalty } from "./loyalty";
 import { istanbulClock } from "./venue";
 import { toMe, type MeResponse } from "./me-mapper";
+import { listMilestoneGrants } from "./milestones";
+import { milestoneRoadmap, perksByTier } from "./milestones-core";
 
 /**
  * `/me` behind the route handlers (docs/API-MOBILE.md §4): assembling the
@@ -45,11 +48,23 @@ function checkErr(error: DbError | null, ctx: string): void {
 
 /** The full `/me` body for an authenticated member. */
 export async function buildMe(customer: PublicCustomer): Promise<MeResponse> {
-  const [loyalty, invite] = await Promise.all([
+  const [loyalty, invite, grants, settings] = await Promise.all([
     getLoyalty(customer.email),
     getInviteSummary(customer),
+    listMilestoneGrants(customer.email),
+    getSettings(),
   ]);
-  return toMe(customer, loyalty, invite);
+  return toMe(
+    customer,
+    {
+      ...loyalty,
+      // Karar 175: the road map of milestone gifts, and each tier's perks -
+      // only those the server applies.
+      milestones: milestoneRoadmap(loyalty.lifetimeStamps, grants),
+      perksByTier: perksByTier(settings.mobileApp.karaoke.oroDiscountPct),
+    },
+    invite,
+  );
 }
 
 export interface MePatch {

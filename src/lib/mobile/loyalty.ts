@@ -16,6 +16,7 @@ import { raiseDbError } from "@/lib/db/health";
 
 import { grantFreeDrinkCoupon } from "./free-drink";
 import { rewardInviteOnFirstPaidOrder } from "./invite";
+import { grantMilestoneGifts } from "./milestones";
 import {
   buildLoyaltyView,
   computeStampBalance,
@@ -165,6 +166,7 @@ export async function onOrderPaid(order: AdminOrder): Promise<void> {
     const { error } = await getDb().from(TABLES.loyaltyStamps).insert(row);
     // 23505 on loyalty_stamps_order_key: this order already earned its stamp.
     if (error && error.code !== "23505") checkErr(error, "onOrderPaid.earn");
+    await giveMilestones(owner);
   }
 
   await rewardInviteOnFirstPaidOrder(owner, {
@@ -350,5 +352,22 @@ export async function addCounterStamp(
   };
   const { error } = await getDb().from(TABLES.loyaltyStamps).insert(row);
   checkErr(error, "addCounterStamp");
+  await giveMilestones(owner);
   return row;
+}
+
+/**
+ * The milestone gifts a new stamp may have reached (karar 175). Never
+ * allowed to fail the stamp itself: an order is paid and a till stamp is
+ * given whatever happens here, and the next stamp retries a gift that did
+ * not go through (the claim row is withdrawn on failure).
+ */
+async function giveMilestones(owner: string): Promise<void> {
+  try {
+    const rules = await loyaltyRules();
+    const lifetime = computeStampBalance(await listStamps(owner), rules.stampTarget).lifetimeStamps;
+    await grantMilestoneGifts(owner, lifetime);
+  } catch (err) {
+    console.error("[milestones] grant failed", err);
+  }
 }

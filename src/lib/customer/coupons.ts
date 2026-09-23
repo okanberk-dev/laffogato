@@ -69,6 +69,7 @@ const SOURCE_PREFIX: Record<CouponSource, string> = {
   manual: "HD", // hediye
   review: "DY", // değerlendirme
   invite: "DV", // davet
+  milestone: "KT", // kilometre taşı (karar 175)
 };
 
 // ─── Pure helpers (no DB — unit-tested directly) ─────────────────────────────

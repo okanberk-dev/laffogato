@@ -13,7 +13,8 @@ export type CouponSource =
   | "loyalty" // reward (admin/automation)
   | "manual" // hand-granted by an admin
   | "review" // reward for leaving a review (phase 2)
-  | "invite"; // referral reward — inviter and invitee (mobile app)
+  | "invite" // referral reward - inviter and invitee (mobile app)
+  | "milestone"; // a lifetime-stamp milestone gift (karar 175)
 
 /**
  * Sources whose coupon buys a DRINK, not money off anything.
@@ -29,6 +30,8 @@ export type CouponSource =
 const CAFE_ONLY_SOURCES: ReadonlySet<string> = new Set<CouponSource>([
   "loyalty",
   "invite",
+  // A milestone gift is a drink or a dessert from the cafe menu.
+  "milestone",
 ]);
 
 export function isCafeOnlyCoupon(
