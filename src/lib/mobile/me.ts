@@ -546,5 +546,25 @@ export async function deleteMe(
     now,
   );
 
-  return { ok: true, identity: await deleteSupabaseIdentity(identityId) };
+  const identity = await deleteSupabaseIdentity(identityId);
+  if (identity === "skipped") logIdentitySkip(identityId);
+  return { ok: true, identity };
+}
+
+/**
+ * Says out loud why a closed account's sign-in identity was left in place.
+ *
+ * `skipped` is a supported outcome (the closed row still refuses the identity,
+ * see `ensureCustomerForSupabaseUser`), but it used to be silent - and a
+ * deployment without the service-role key skips EVERY deletion, leaving the
+ * e-mail and name in Supabase, with nothing on any screen or log to say so.
+ * PII rule: neither the address nor the id is written, only the reason.
+ */
+function logIdentitySkip(identityId: string): void {
+  // `deleteSupabaseIdentity` skips for exactly two reasons: no id to delete,
+  // or no key to delete it with.
+  const reason = identityId
+    ? "SUPABASE_SERVICE_ROLE_KEY is not set, the identity stays in Supabase"
+    : "the row was never linked to a Supabase identity";
+  console.warn(`[deleteMe] identity skipped: ${reason}`);
 }

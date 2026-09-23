@@ -2,7 +2,9 @@ import { PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
 import { getSettings } from "@/lib/admin/store";
 import { emailHealth } from "@/lib/email/health";
+import { hasServiceRole } from "@/lib/supabase/admin";
 
+import { IdentityKeyStatus } from "./identity-status";
 import { SettingsForm } from "./settings-form";
 
 export const metadata = { title: "Admin · Ayarlar" };
@@ -20,6 +22,7 @@ export default async function AdminSettingsPage() {
         title="Ayarlar"
         description="Kafe iletişim bilgileri, çalışma saatleri ve mağaza durumu. Müşteri sitesindeki footer ve Visit sayfasını besler."
       />
+      <IdentityKeyStatus hasKey={hasServiceRole()} />
       <SettingsForm settings={settings} mail={mail} />
     </main>
   );

@@ -14,9 +14,11 @@ import { SUPABASE_URL } from "./config";
  * here instead of being handed to a general-purpose client:
  *   - `server-only`, and read from `process.env` with NO `NEXT_PUBLIC_`
  *     prefix, so it can never reach a browser or the app bundle;
- *   - the only export that uses it is `deleteSupabaseIdentity`, which touches
- *     `auth.admin` and nothing in the data schema — member records, orders and
- *     money stay in this project's own Postgres (docs/API-MOBILE.md §0);
+ *   - the exports that use it (`deleteSupabaseIdentity`,
+ *     `updateSupabasePassword`) touch `auth.admin` and nothing in the data
+ *     schema - member records, orders and money stay in this project's own
+ *     Postgres (docs/API-MOBILE.md §0). `hasServiceRole` reports presence
+ *     only, never the value;
  *   - optional: without the variable the site behaves exactly as before, and
  *     the caller falls back to marking the identity closed instead.
  *
@@ -37,6 +39,21 @@ function serviceRoleKey(): string {
   return (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
 }
 
+/**
+ * Whether this deployment holds a service-role key. Presence only: the value
+ * never leaves this module, and nothing that calls this can learn more than
+ * the one bit.
+ *
+ * It exists because a missing key used to be invisible. Every job below
+ * answers `skipped` without it and the site carries on, which is correct, but
+ * the operator had no way to tell that from "working" short of reading the
+ * Vercel dashboard - and the connector that audits this project cannot read
+ * environment variables. The settings page shows this bit, and the skips are
+ * now logged with their reason.
+ */
+export function hasServiceRole(): boolean {
+  return serviceRoleKey() !== "";
+}
 
 function getSupabaseAdminClient(): SupabaseClient | null {
   const key = serviceRoleKey();
@@ -99,7 +116,10 @@ export async function deleteSupabaseIdentity(
  * operator's move is to have them reset again once auth is reachable.
  *
  * `skipped` covers both a deployment with no service-role key and a member
- * who has no Supabase identity to update; neither is an error.
+ * who has no Supabase identity to update; neither is an error to the caller.
+ * The first one is logged all the same: it means the password the member has
+ * just replaced still opens the app, and that is the one fact the operator
+ * could not otherwise see.
  */
 export type PasswordSync = "updated" | "skipped" | "failed";
 
@@ -109,7 +129,12 @@ export async function updateSupabasePassword(
 ): Promise<PasswordSync> {
   if (!userId.trim() || !password) return "skipped";
   const admin = getSupabaseAdminClient();
-  if (!admin) return "skipped";
+  if (!admin) {
+    console.warn(
+      "[supabase] password sync skipped: SUPABASE_SERVICE_ROLE_KEY is not set, the previous password still opens the app",
+    );
+    return "skipped";
+  }
   try {
     const { error } = await admin.auth.admin.updateUserById(userId, {
       password,
