@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useEffect, useState } from "react";
 
 import { Footer, Nav, type FooterSettings } from "./chrome";
@@ -23,6 +25,7 @@ export function SiteChrome({
   children: React.ReactNode;
   settings?: FooterSettings;
 }) {
+  const router = useRouter();
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
@@ -67,7 +70,7 @@ export function SiteChrome({
       <Nav
         cart={cartCount}
         onSearch={() => {
-          window.location.assign("/magaza");
+          router.push("/magaza");
         }}
       />
       <main className="site-chrome-body" id="main">

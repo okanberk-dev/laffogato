@@ -87,7 +87,7 @@ jobs:
       # home-page.tsx x3, product-detail.tsx, site-chrome.tsx). Set it to 0
       # once they are resolved; a new warning anywhere fails the build now.
       - name: Lint
-        run: npm run lint -- --max-warnings=6
+        run: npm run lint -- --max-warnings=0
 
       - name: Test
         run: npm test

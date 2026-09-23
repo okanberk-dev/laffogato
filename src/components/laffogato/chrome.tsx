@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -99,6 +101,7 @@ interface NavProps {
 }
 
 export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<Route | null>(null);
   const [mobileSection, setMobileSection] = useState<Route | null>(null);
@@ -160,7 +163,7 @@ export function Nav({ route, navigate, cart, onCart, onSearch }: NavProps) {
     ? { onClick: onCart, type: "button" as const, role: undefined }
     : {
         onClick: () => {
-          window.location.assign("/odeme");
+          router.push("/odeme");
         },
         type: "button" as const,
         role: undefined,

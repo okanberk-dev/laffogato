@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import Link from "next/link";
 import { useState } from "react";
 
@@ -52,6 +54,7 @@ export function ProductDetail({
   product: Product;
   related: Product[];
 }) {
+  const router = useRouter();
   const variants = (p.variants ?? []).filter((v) => v.isActive !== false);
   const gallery = (p.images ?? []).filter(
     (u) => typeof u === "string" && u.length > 0,
@@ -103,7 +106,7 @@ export function ProductDetail({
       new StorageEvent("storage", { key: CART_STORAGE_KEY }),
     );
     if (goCheckout) {
-      window.location.assign("/odeme");
+      router.push("/odeme");
     } else {
       setAdded(true);
       window.setTimeout(() => setAdded(false), 2200);

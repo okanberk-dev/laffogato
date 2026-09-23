@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useMemo, useRef, Fragment } from "react";
 import Image from "next/image";
 
@@ -29,6 +31,7 @@ export function PageHome({
   settings,
   heroImageUrl,
 }: PageProps) {
+  const router = useRouter();
   // Operator-editable at /admin/ayarlar; the phone already reads it from
   // bootstrap, so the web quoting a constant was the odd one out.
   const courierFee = priceLabel(settings?.courierFeeMinor ?? 5500);
@@ -106,12 +109,12 @@ export function PageHome({
         break;
       case "seasonMenu":
         // The Strawberry Aşkı trio lives in the matcha bar.
-        window.location.assign("/menu/matcha");
+        router.push("/menu/matcha");
         break;
       case "signature":
         // The L'Affogato itself is a cafe menu item, not a shop product, so
         // "see the product" means its menu category.
-        window.location.assign("/menu/espresso");
+        router.push("/menu/espresso");
         break;
       case "story":
         navigate("story");
@@ -120,7 +123,7 @@ export function PageHome({
         navigate("visit");
         break;
       case "karaoke":
-        window.location.assign("/karaoke");
+        router.push("/karaoke");
         break;
     }
   };
