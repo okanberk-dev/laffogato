@@ -35,7 +35,7 @@ const SAMPLE: Record<string, string> = {
   KUPON_KODU: "KOSK-7F2A",
   SON_KULLANIM: "30 Eylül 2026",
   KARAOKE_TARIH: "12 Eylül 2026, Cumartesi",
-  KARAOKE_SAAT: "20:00 – 22:00",
+  KARAOKE_SAAT: "20:00 - 22:00",
   KARAOKE_KISI: "4 kişi",
   KARAOKE_KOD: "KRK-8H31",
   KAMPANYA_BASLIK: "Eylülde köşkte matcha haftası",

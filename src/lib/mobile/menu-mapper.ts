@@ -366,10 +366,10 @@ function hourRange(h: { open: string; close: string }) {
 /**
  * One line for a stretch of the week, grouping consecutive days that keep the
  * same hours. Callers pass the days they are describing: the whole week for
- * `hoursLabel`, Monday–Friday and Saturday–Sunday for the live-status pair.
+ * `hoursLabel`, Monday-Friday and Saturday-Sunday for the live-status pair.
  *
- *   every listed day alike → "09:00 – 02:00" (or "Kapalı")
- *   otherwise              → "Pzt–Per 09:00 – 00:00 · Cum 09:00 – 01:00"
+ *   every listed day alike → "09:00 - 02:00" (or "Kapalı")
+ *   otherwise              → "Pzt-Per 09:00 - 00:00 · Cum 09:00 - 01:00"
  */
 export function hoursLabelFor(
   weekly: WeeklyHours,
@@ -405,8 +405,8 @@ export function hoursLabelFor(
  * One line for the whole week, derived from the same `weeklyHours` the Visit
  * page renders so the app can never say a different time than the site.
  *
- *   all seven days alike → "Her gün 09:00 – 02:00"
- *   otherwise            → consecutive runs: "Pzt–Cum 09:00 – 01:00 · Cmt–Paz 10:00 – 02:00"
+ *   all seven days alike → "Her gün 09:00 - 02:00"
+ *   otherwise            → consecutive runs: "Pzt-Cum 09:00 - 01:00 · Cmt-Paz 10:00 - 02:00"
  *   closed run           → "Paz Kapalı"
  */
 export function hoursLabel(weekly: WeeklyHours): string {

@@ -318,7 +318,7 @@ Kurallar:
 > - `timeline[].at` her adımın **kendi** sütunundan gelir: `createdAt` · `preparingAt` ·
 >   `shippedAt` · `completedAt`. Bu sütunlar yoktan önce yazılmış siparişlerde boş olabilir;
 >   o durumda tamamlanmış bir adım `at: null` döner (sonraki bir anı ödünç almaz).
->   `statusLabel` bu adımdan gelir (pickup + shipped → "Hazır — gel al").
+>   `statusLabel` bu adımdan gelir (pickup + shipped → "Hazır - gel al").
 > - `etaMinutes`: delivery paid/preparing 35, shipped 10 · pickup 15 / 0 · shipping null.
 > - Dönüş sayfası `/odeme/donus` app siparişini `app=1` parametresine ek olarak
 >   `orders.channel === "app"` ile de tanır (sağlayıcının callback URL'i sabittir);
@@ -369,12 +369,12 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
   "statusLabel": "Hazırlanıyor",
   "timeline": [ { "key": "received", "label": "Sipariş alındı", "at": "…", "done": true },
                 { "key": "preparing", "label": "Hazırlanıyor", "at": "…", "done": true },
-                { "key": "on_the_way", "label": "Kuryede", "at": null, "done": false },   // pickup: "Hazır — gel al"
+                { "key": "on_the_way", "label": "Kuryede", "at": null, "done": false },   // pickup: "Hazır - gel al"
                 { "key": "delivered", "label": "Kapında", "at": null, "done": false } ],
   "channel": "app", "kind": "cafe", "fulfillment": "delivery",
   "items": [ { "name": "Cappuccino", "detail": "M · yulaf · +1 shot", "qty": 1, "unitPriceMinor": 24500, "menuItemId": "mnu-0007", "productId": null, "variantId": null, "size": "M", "options": { … } } ],
   "subtotalMinor": 83500, "discountMinor": 0, "shippingMinor": 5500, "totalMinor": 89000,
-  "promoCode": "", "address": "Evim — …", "scheduledFor": null, "etaMinutes": 35, "etaAt": "…",
+  "promoCode": "", "address": "Evim - …", "scheduledFor": null, "etaMinutes": 35, "etaAt": "…",
   "shipment": null,   // yalnız fulfillment === "shipping" → §3.1
   "stampsEarned": 1, "createdAt": "…", "paidAt": "…" | null
   // stampsEarned = loyalty_stamps LEDGER'ından okunur: siparişin `earn` satırı

@@ -245,7 +245,7 @@ export const DEFAULT_MOBILE_APP_CONFIG: MobileAppConfig = deepFreeze({
         hour: 10,
         minute: 0,
         title: "Günaydın",
-        body: "Espresso, matcha, bir dilim tatlı — menü hazır.",
+        body: "Espresso, matcha, bir dilim tatlı - menü hazır.",
       },
       {
         id: "afternoon",
@@ -304,7 +304,7 @@ const REMINDER_FORBIDDEN_STEMS = ["indirim", "kaçırma"] as const;
 export function reminderCopyIssue(text: string): string | null {
   for (const s of REMINDER_FORBIDDEN_SYMBOLS) {
     if (text.includes(s)) {
-      return `Hatırlatma metninde "${s}" olamaz — fiyat ve indirim dili yasak.`;
+      return `Hatırlatma metninde "${s}" olamaz - fiyat ve indirim dili yasak.`;
     }
   }
   const tokens = text
@@ -314,12 +314,12 @@ export function reminderCopyIssue(text: string): string | null {
   for (const token of tokens) {
     for (const w of REMINDER_FORBIDDEN_WORDS) {
       if (token === w) {
-        return `Hatırlatma metninde "${w}" olamaz — aciliyet dili yasak.`;
+        return `Hatırlatma metninde "${w}" olamaz - aciliyet dili yasak.`;
       }
     }
     for (const stem of REMINDER_FORBIDDEN_STEMS) {
       if (token.startsWith(stem)) {
-        return `Hatırlatma metninde "${stem}" olamaz — indirim ve aciliyet dili yasak.`;
+        return `Hatırlatma metninde "${stem}" olamaz - indirim ve aciliyet dili yasak.`;
       }
     }
   }

@@ -9,7 +9,7 @@ import { joinNeighbourhood } from "./me-mapper";
 import type { InlineAddressInput, OrderAddressInput } from "./order-schema";
 
 export interface ResolvedOrderAddress {
-  /** "Evim — Eda Mancuso, +90 …\nPostane Mah., Atatürk Cad. …\nTuzla / İstanbul" */
+  /** "Evim - Eda Mancuso, +90 …\nPostane Mah., Atatürk Cad. …\nTuzla / İstanbul" */
   text: string;
   /** The courier note that rode with the address (door code, floor). */
   note: string;
@@ -20,7 +20,7 @@ export interface ResolvedOrderAddress {
 function headline(title: string, fullName: string, phone: string): string {
   const who = [fullName.trim(), phone.trim()].filter(Boolean).join(", ");
   const label = title.trim();
-  if (label && who) return `${label} — ${who}`;
+  if (label && who) return `${label} - ${who}`;
   return label || who;
 }
 

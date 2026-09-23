@@ -295,7 +295,7 @@ describe("order address", () => {
   it("formats a saved address as the block the panel and courier read", () => {
     const r = formatSavedAddress(saved);
     expect(r.text).toBe(
-      "Evim — Eda Mancuso, +90 532 000 00 00\nPostane Mah., Atatürk Cad. No: 28\nTuzla / İstanbul 34940",
+      "Evim - Eda Mancuso, +90 532 000 00 00\nPostane Mah., Atatürk Cad. No: 28\nTuzla / İstanbul 34940",
     );
     expect(r.note).toBe("Kapı kodu 4821");
     expect(r.phone).toBe("+90 532 000 00 00");
@@ -313,7 +313,7 @@ describe("order address", () => {
       note: "",
     });
     expect(r.text).toBe(
-      "İş — Selin K., +90 533 111 22 33\nPostane Mah., Atatürk Cad. No: 28\nTuzla / İstanbul",
+      "İş - Selin K., +90 533 111 22 33\nPostane Mah., Atatürk Cad. No: 28\nTuzla / İstanbul",
     );
     expect(r.note).toBe("");
   });
@@ -321,7 +321,7 @@ describe("order address", () => {
   it("resolves { id } only against the member's own book", () => {
     const ok = resolveOrderAddress([saved], { id: "adr-1" });
     expect(ok.ok).toBe(true);
-    if (ok.ok) expect(ok.address?.text).toContain("Evim — Eda Mancuso");
+    if (ok.ok) expect(ok.address?.text).toContain("Evim - Eda Mancuso");
 
     const missing = resolveOrderAddress([saved], { id: "adr-999" });
     expect(missing.ok).toBe(false);

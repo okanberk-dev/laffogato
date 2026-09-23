@@ -99,7 +99,7 @@ describe("deriveOrderNotifications", () => {
     expect(pickup.map((i) => i.title)).toEqual([
       "Ödemen alındı",
       "Hazırlanıyor",
-      "Hazır — gel al",
+      "Hazır - gel al",
       "Teslim alındı",
     ]);
   });

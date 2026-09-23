@@ -71,7 +71,7 @@ const FREE_PROVIDER = "free";
 
 const MSG = {
   shopClosed: "Mağaza şu an sipariş almıyor.",
-  cafeClosed: "Köşk şu an kapalı — açılış saatlerinde tekrar dene.",
+  cafeClosed: "Köşk şu an kapalı - açılış saatlerinde tekrar dene.",
   empty: "Sepet boş.",
   paymentUnavailable:
     "Ödeme altyapısına şu an ulaşılamıyor. Birazdan tekrar dene.",

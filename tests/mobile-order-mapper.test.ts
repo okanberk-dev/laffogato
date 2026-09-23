@@ -203,7 +203,7 @@ describe("timeline", () => {
     expect(steps[3].at).toBeNull();
   });
 
-  it("says 'Hazır — gel al' for a pickup and uses it as the status label", () => {
+  it("says 'Hazır - gel al' for a pickup and uses it as the status label", () => {
     const o = order({
       fulfillment: "pickup",
       status: "shipped",
@@ -212,12 +212,12 @@ describe("timeline", () => {
     const steps = buildTimeline(o);
     expect(steps[2]).toEqual({
       key: "ready",
-      label: "Hazır — gel al",
+      label: "Hazır - gel al",
       at: "2026-08-30T11:50:00.000Z",
       done: true,
     });
     expect(steps[3].done).toBe(false);
-    expect(statusLabelFor(o)).toBe("Hazır — gel al");
+    expect(statusLabelFor(o)).toBe("Hazır - gel al");
   });
 
   it("marks every step done on completion and none beyond the first when cancelled", () => {

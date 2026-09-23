@@ -61,7 +61,7 @@ describe("karaoke operator notice", () => {
       // Not `new Date("2026-09-20")`: that is UTC midnight, and a formatter in
       // a negative-offset deployment would print the 19th.
       date: "20 Eylül 2026",
-      time: "20:00 – 22:00",
+      time: "20:00 - 22:00",
       guests: 6,
       totalMinor: 180_00,
       note: "",
@@ -73,7 +73,7 @@ describe("karaoke operator notice", () => {
       reservation({ startHour: 23, hours: 2 }),
     );
     expect(sendKaraokeOperatorEmail.mock.calls[0]![0]).toMatchObject({
-      time: "23:00 – 01:00",
+      time: "23:00 - 01:00",
     });
   });
 

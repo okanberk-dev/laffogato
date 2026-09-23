@@ -75,7 +75,7 @@ const STAGE_TITLES: Record<StageKey, string> = {
 function stageTitle(stage: StageKey, fulfillment: string): string {
   // A pickup order is never "on the way": the member walks in for it.
   if (fulfillment === "pickup") {
-    if (stage === "shipped") return "Hazır — gel al";
+    if (stage === "shipped") return "Hazır - gel al";
     if (stage === "completed") return "Teslim alındı";
   }
   return STAGE_TITLES[stage];
@@ -195,7 +195,7 @@ export function rewardNotification(
     body:
       rewardsReady > 1
         ? `${rewardsReady} ücretsiz içeceğin seni bekliyor. Kasada kartını göster.`
-        : "Damgaların doldu — ücretsiz içeceğin seni bekliyor. Kasada kartını göster.",
+        : "Damgaların doldu - ücretsiz içeceğin seni bekliyor. Kasada kartını göster.",
     at,
     orderId: null,
   };

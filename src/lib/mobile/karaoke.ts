@@ -430,13 +430,16 @@ export function formatReservationDate(date: string): string {
   return month ? `${Number(m[3])} ${month} ${m[1]}` : date;
 }
 
-/** `(20, 2)` → "20:00 – 22:00"; midnight closes the evening as 24:00. */
+/**
+ * `(20, 2)` → "20:00 - 22:00", spaced like the site's opening hours; midnight
+ * closes the evening as 24:00.
+ */
 export function formatReservationTime(
   startHour: number,
   hours: number,
 ): string {
   const pad = (h: number): string => `${String(h).padStart(2, "0")}:00`;
-  return `${pad(startHour)} – ${pad(startHour + hours)}`;
+  return `${pad(startHour)} - ${pad(startHour + hours)}`;
 }
 
 /**

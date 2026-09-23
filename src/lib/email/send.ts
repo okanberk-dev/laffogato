@@ -428,7 +428,7 @@ export async function sendWelcomeEmail(
 export interface KaraokeEmailData {
   to: string;
   name: string;
-  /** Already formatted for a reader: "12 Eylül 2026", "20:00 – 22:00". */
+  /** Already formatted for a reader: "12 Eylül 2026", "20:00 - 22:00". */
   date: string;
   time: string;
   guests: number;
@@ -492,7 +492,7 @@ export interface KaraokeOperatorNotice {
   id: string;
   customerName: string;
   customerEmail: string;
-  /** Already formatted for a reader: "12 Eylül 2026", "20:00 – 22:00". */
+  /** Already formatted for a reader: "12 Eylül 2026", "20:00 - 22:00". */
   date: string;
   time: string;
   guests: number;

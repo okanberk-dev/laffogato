@@ -59,10 +59,10 @@ function readableDate(iso: string): string {
   return `${d} ${MONTHS[m - 1]} ${y}`;
 }
 
-/** `20` + `2` → `20:00 – 22:00`. The room is booked in whole hours. */
+/** `20` + `2` → `20:00 - 22:00`. The room is booked in whole hours. */
 function readableTime(startHour: number, hours: number): string {
   const pad = (h: number) => `${String(h % 24).padStart(2, "0")}:00`;
-  return `${pad(startHour)} – ${pad(startHour + hours)}`;
+  return `${pad(startHour)} - ${pad(startHour + hours)}`;
 }
 
 export async function notifyOperatorOfReservation(

@@ -187,7 +187,7 @@ function stepsFor(fulfillment: OrderFulfillment): StepSpec[] {
     case "pickup":
       return [
         ...head,
-        { key: "ready", label: "Hazır — gel al" },
+        { key: "ready", label: "Hazır - gel al" },
         { key: "picked_up", label: "Teslim alındı" },
       ];
     case "delivery":
@@ -293,7 +293,7 @@ function toMobileItem(it: AdminOrderItem): MobileOrderItem {
 
 /**
  * The status as the app shows it. A live status reads as its timeline step,
- * so a pickup that is `shipped` says "Hazır — gel al" rather than "Yolda".
+ * so a pickup that is `shipped` says "Hazır - gel al" rather than "Yolda".
  */
 export function statusLabelFor(order: AdminOrder): string {
   const stage = STAGE[order.status] ?? 0;
