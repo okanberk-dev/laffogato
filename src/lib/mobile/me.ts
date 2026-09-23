@@ -288,6 +288,18 @@ export const ANON_SWEEPS: ReadonlyArray<{
     caseInsensitive: true,
     patch: (anon) => ({ customerEmail: anon, expiresAt: "" }),
   },
+  {
+    // Milestone gifts (karar 175) are keyed on the address, and `/me` and the
+    // inbox read them back by it. Left alone, whoever next registered the
+    // address was told "10 kahve oldu! ... kuponlarına eklendi" about a coupon
+    // that went to the closed account (and was deactivated with it). The
+    // placeholder is unique per customer, so the (member, milestone) key
+    // cannot collide.
+    table: TABLES.customerMilestoneRewards,
+    column: "customerEmail",
+    caseInsensitive: true,
+    patch: (anon) => ({ customerEmail: anon }),
+  },
 ];
 
 /**

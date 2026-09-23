@@ -272,6 +272,34 @@ export async function listMine(email: string): Promise<KaraokeReservation[]> {
   return candidates.filter((r) => normalizeEmail(r.customerEmail) === needle);
 }
 
+/**
+ * The member's bookings the staff confirmed or cancelled at or after
+ * `sinceIso` - what the app's inbox tells them about (docs/API-MOBILE.md §8).
+ *
+ * `updatedAt` is written when a booking is made and when its status moves
+ * (`setReservationStatus`, and the cancellation `DELETE /me` makes), never by
+ * anything else, so on a confirmed or cancelled row it IS the instant of the
+ * decision. Matched like `listMine`: `ilike` prefilter, exact compare after.
+ */
+export async function listReservationDecisions(
+  email: string,
+  sinceIso: string,
+): Promise<KaraokeReservation[]> {
+  const needle = normalizeEmail(email);
+  if (!needle) return [];
+  const escaped = needle.replace(/[%_]/g, (c) => `\\${c}`);
+  const candidates = rows<KaraokeReservation>(
+    await getDb()
+      .from(TABLES.karaokeReservations)
+      .select("*")
+      .ilike("customerEmail", escaped)
+      .in("status", ["confirmed", "cancelled"])
+      .gte("updatedAt", sinceIso),
+    "karaoke.listReservationDecisions",
+  );
+  return candidates.filter((r) => normalizeEmail(r.customerEmail) === needle);
+}
+
 // ─── Admin ─────────────────────────────────────────────────────────────────
 
 /** Every reservation from `fromDate` on (default: today), soonest first. */

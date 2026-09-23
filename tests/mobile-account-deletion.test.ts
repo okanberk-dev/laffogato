@@ -49,6 +49,9 @@ describe("account deletion sweeps", () => {
       // Till QR tokens kept the address (and an unexpired one still scanned)
       // until an unrelated till scan happened to purge them.
       `${TABLES.counterTokens}.customerEmail`,
+      // Milestone gifts are read back by address in /me and the inbox; the
+      // next holder of the address was told about the closed account's gift.
+      `${TABLES.customerMilestoneRewards}.customerEmail`,
     ]) {
       expect(covered, target).toContain(target);
     }

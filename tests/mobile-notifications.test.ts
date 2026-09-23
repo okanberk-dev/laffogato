@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { MILESTONE_TTL_DAYS } from "@/lib/mobile/milestones-core";
 import {
   buildNotifications,
   deriveAnnouncementNotifications,
+  deriveMilestoneNotifications,
   deriveOrderNotifications,
+  deriveReservationNotifications,
   NOTIFICATION_WINDOW_DAYS,
   rewardNotification,
 } from "@/lib/mobile/notifications";
@@ -333,5 +336,171 @@ describe("buildNotifications", () => {
       prefs: { marketing: true },
     });
     expect(on.map((i) => i.id)).toContain("announcement-ann-1");
+  });
+});
+
+// ─── Karaoke decisions and milestone gifts (§8, 23 Eyl 2026, additive) ────
+
+function booking(
+  over: Partial<{
+    id: string;
+    date: string;
+    startHour: number;
+    hours: number;
+    guests: number;
+    status: "requested" | "confirmed" | "cancelled";
+    updatedAt: string;
+  }> = {},
+) {
+  return {
+    id: "krk-00042",
+    date: "2026-09-05",
+    startHour: 20,
+    hours: 2,
+    guests: 6,
+    status: "confirmed" as const,
+    updatedAt: "2026-08-29T15:00:00.000Z",
+    ...over,
+  };
+}
+
+describe("deriveReservationNotifications", () => {
+  it("tells the member their hour is held, dated by the confirmation", () => {
+    const [item] = deriveReservationNotifications([booking()], NOW);
+    expect(item).toEqual({
+      id: "karaoke-krk-00042-confirmed",
+      kind: "reservation",
+      title: "Karaoke saatin ayrıldı",
+      body: "5 Eylül 2026 · 20:00 - 22:00, 6 kişi. Girişte krk-00042 kodunu söylemen yeterli.",
+      at: "2026-08-29T15:00:00.000Z",
+      orderId: null,
+    });
+  });
+
+  it("tells them a cancellation under its own id, so it arrives unread", () => {
+    const [item] = deriveReservationNotifications(
+      [booking({ status: "cancelled", updatedAt: "2026-08-30T09:00:00.000Z" })],
+      NOW,
+    );
+    expect(item.id).toBe("karaoke-krk-00042-cancelled");
+    expect(item.kind).toBe("reservation");
+    expect(item.title).toBe("Karaoke rezervasyonun iptal edildi");
+    expect(item.body).toContain("oda serbest bırakıldı");
+    expect(item.at).toBe("2026-08-30T09:00:00.000Z");
+  });
+
+  it("stays silent about a request the staff have not answered", () => {
+    expect(
+      deriveReservationNotifications([booking({ status: "requested" })], NOW),
+    ).toEqual([]);
+  });
+
+  it("gives the same instant on every call and drops decisions past the window", () => {
+    const a = deriveReservationNotifications([booking()], NOW);
+    const b = deriveReservationNotifications(
+      [booking()],
+      new Date(NOW.getTime() + 60_000),
+    );
+    expect(a[0].at).toBe(b[0].at);
+    const old = new Date(
+      NOW.getTime() - (NOTIFICATION_WINDOW_DAYS + 1) * 86_400_000,
+    ).toISOString();
+    expect(
+      deriveReservationNotifications([booking({ updatedAt: old })], NOW),
+    ).toEqual([]);
+  });
+
+  it("writes no long dash anywhere in what the member reads", () => {
+    for (const status of ["confirmed", "cancelled"] as const) {
+      const [item] = deriveReservationNotifications([booking({ status })], NOW);
+      expect(`${item.title} ${item.body}`).not.toMatch(/[\u2013\u2014]/);
+    }
+  });
+});
+
+describe("deriveMilestoneNotifications", () => {
+  const grant = {
+    milestone: 10,
+    couponId: "cpn-0001",
+    itemName: "Filtre Kahve",
+    createdAt: "2026-08-28T08:00:00.000Z",
+  };
+
+  it("announces a gift given, as a reward, dated by the grant", () => {
+    const [item] = deriveMilestoneNotifications([grant], NOW);
+    expect(item).toEqual({
+      id: "milestone-10",
+      kind: "reward",
+      title: "10 kahve oldu!",
+      body: `Teşekkürümüz: Filtre Kahve kuponlarına eklendi, ${MILESTONE_TTL_DAYS} gün geçerli.`,
+      at: "2026-08-28T08:00:00.000Z",
+      orderId: null,
+    });
+  });
+
+  it("never announces a claim whose coupon was not minted", () => {
+    // A row without couponId is a claim in flight, or one withdrawn after a
+    // failure: announcing it would promise a coupon that is not there.
+    expect(
+      deriveMilestoneNotifications([{ ...grant, couponId: "" }], NOW),
+    ).toEqual([]);
+    expect(
+      deriveMilestoneNotifications([{ ...grant, itemName: "" }], NOW),
+    ).toEqual([]);
+  });
+
+  it("drops a gift given before the window", () => {
+    const old = new Date(
+      NOW.getTime() - (NOTIFICATION_WINDOW_DAYS + 1) * 86_400_000,
+    ).toISOString();
+    expect(
+      deriveMilestoneNotifications([{ ...grant, createdAt: old }], NOW),
+    ).toEqual([]);
+  });
+});
+
+describe("buildNotifications with the new sources", () => {
+  it("merges karaoke and milestone rows, keeps the six keys, and survives marketing off", () => {
+    const items = buildNotifications({
+      orders: [],
+      announcements: [],
+      reservations: [booking()],
+      milestones: [
+        {
+          milestone: 20,
+          couponId: "cpn-0002",
+          itemName: "Americano",
+          createdAt: "2026-08-30T10:00:00.000Z",
+        },
+      ],
+      rewardsReady: 0,
+      now: NOW,
+      prefs: { marketing: false },
+    });
+    expect(items.map((i) => i.id)).toEqual([
+      "milestone-20",
+      "karaoke-krk-00042-confirmed",
+    ]);
+    for (const item of items) {
+      expect(Object.keys(item).sort()).toEqual([
+        "at",
+        "body",
+        "id",
+        "kind",
+        "orderId",
+        "title",
+      ]);
+    }
+  });
+
+  it("works for callers that pass neither source", () => {
+    expect(
+      buildNotifications({
+        orders: [],
+        announcements: [],
+        rewardsReady: 0,
+        now: NOW,
+      }),
+    ).toEqual([]);
   });
 });

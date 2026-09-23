@@ -579,7 +579,7 @@ Cache: `public, s-maxage=30` — `stale-while-revalidate` **yok**: panel persone
 
 ## 8. Bildirimler — `GET /notifications` (kimlik)
 
-`{ "items": [ { "id", "kind": "order" | "reward" | "campaign" | "announcement", "title", "body", "at", "orderId": "…" | null } ] }` — sunucu **türetir**: son 30 günün sipariş durum değişiklikleri + aktif duyurular + ödül hazırsa bir kayıt. Okundu durumu **cihazda** tutulur (`laf.notifications.readAt`).
+`{ "items": [ { "id", "kind": "order" | "reward" | "campaign" | "announcement" | "reservation", "title", "body", "at", "orderId": "…" | null } ] }` - sunucu **türetir**: son 30 günün sipariş durum değişiklikleri + aktif duyurular + ödül hazırsa bir kayıt + son 30 günün karaoke kararları ve kilometre taşı hediyeleri (23 Eyl 2026, aşağıda). Okundu durumu **cihazda** tutulur (`laf.notifications.readAt`).
 
 `at` her çağrıda **aynı** anı vermek zorundadır; cihaz okundu/okunmadı kararını bu anı
 `readAt` ile karşılaştırarak verir, dolayısıyla `now` yazmak kaydı sonsuza dek okunmamış
@@ -593,6 +593,54 @@ kutuya "Teslim edildi" olarak düşer.
 > kaydı `reward-ready`. `pending_payment/cancelled/refunded` sessizdir. Aşama zamanı en iyi
 > bilinen an (`paidAt`/`shippedAt`/`createdAt`). Duyuru `kind: campaign` → `campaign`,
 > diğerleri → `announcement`.
+
+### Karaoke kararları ve kilometre taşı hediyeleri (23 Eyl 2026, yalnız ekleme)
+
+Kutu iki kaynaktan daha türetilir. Önceden personel bir karaoke saatini
+onaylayınca ya da iptal edince üye bunu yalnız e-postadan öğreniyordu, sunucu
+bir kilometre taşı hediyesi verdiğinde ise kutuda hiçbir şey görünmüyordu.
+
+| Kaynak | `kind` | `id` | `at` | Başlık |
+| --- | --- | --- | --- | --- |
+| Personelin onayladığı karaoke rezervasyonu (`karaoke_reservations.status = "confirmed"`) | `reservation` | `karaoke-<rezervasyon id>-confirmed` | onay anı (`updatedAt`) | "Karaoke saatin ayrıldı" |
+| Personelin iptal ettiği karaoke rezervasyonu (`"cancelled"`) | `reservation` | `karaoke-<rezervasyon id>-cancelled` | iptal anı (`updatedAt`) | "Karaoke rezervasyonun iptal edildi" |
+| Verilmiş kilometre taşı hediyesi (`customer_milestone_rewards`, karar 175) | `reward` | `milestone-<damga sayısı>` | hediyenin verildiği an (`createdAt`) | "<damga sayısı> kahve oldu!" |
+
+Gövdeler: onay `"26 Eylül 2026 · 20:00 - 22:00, 4 kişi. Girişte krk-00042 kodunu
+söylemen yeterli."`, iptal `"… rezervasyonun iptal edildi; oda serbest
+bırakıldı."` (onay ve iptal e-postalarının kendi cümleleri), hediye
+`"Teşekkürümüz: Filtre Kahve kuponlarına eklendi, 30 gün geçerli."` (30 =
+`MILESTONE_TTL_DAYS`, kuponun kendi süresi).
+
+- **`at` sabittir.** `karaoke_reservations."updatedAt"`'i yalnız rezervasyonun
+  açılışı ve durum değişikliği yazar, yani onaylanmış ya da iptal edilmiş
+  satırda o an kararın anıdır. 30 günlük pencere `at`'e uygulanır.
+- `requested` sessizdir: talebi üye kendisi yaptı. Onaylanıp sonra iptal edilen
+  rezervasyon yalnız iptal kaydıyla, **yeni bir `id`** ile görünür; plan
+  değiştiği için okunmamış gelir.
+- Kuponu basılmamış kilometre taşı satırı (`couponId` boş: sürmekte olan ya da
+  hata sonrası geri alınmış bir hak) kutuya düşmez; olmayan bir kupon
+  duyurulmaz. Geçmiş zaman bilerek seçildi: kupon harcandıktan sonra da doğru
+  kalır.
+- İki kaynakta da `orderId` `null`dur; nesnenin altı anahtarı değişmedi.
+- **Eski sürümler.** `reservation` yeni bir `kind`dır. Onu tanımayan sürüm
+  bilinmeyen türü `announcement` olarak çizer (uygulama `src/data/http.ts`
+  `NOTIFICATION_KINDS`): kayıt kaybolmaz, yalnız duyuru simgesiyle görünür.
+  Hediye kaydı zaten bilinen `reward` türündedir.
+- Pazarlama izni kapalıyken de listelenirler: ikisi de üyenin kendi işlemidir,
+  ticari ileti değildir.
+- E-postası doğrulanmamış üyede sipariş kayıtları gibi bunlar da listelenmez
+  (üçü de yalnız e-postayla eşleşir).
+- Bu iki kaynaktan biri okunamazsa kutu o kayıtlar olmadan 200 döner;
+  veritabanına hiç ulaşılamazsa sipariş okuması yüzünden **503** aynen kalır.
+- Hesap silinince (`DELETE /me`) kilometre taşı satırlarının e-postası da yer
+  tutucuya çevrilir: adresi sonra kaydeden kişi önceki üyenin hediyesini
+  duymaz.
+
+Site: `deriveReservationNotifications` · `deriveMilestoneNotifications`
+(`src/lib/mobile/notifications.ts`), `listReservationDecisions`
+(`src/lib/mobile/karaoke.ts`); `tests/mobile-notifications.test.ts` ve
+`tests/mobile-notifications-sources.test.ts` tutar.
 
 ## 9. `GET /app-content` — mevcut (slaytlar · duyurular · gönderiler). Değişmez.
 

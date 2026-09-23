@@ -9,17 +9,38 @@ import {
   type AdminOrderStatus,
 } from "@/lib/admin/store";
 
+import {
+  formatReservationDate,
+  formatReservationTime,
+  listReservationDecisions,
+  type KaraokeReservation,
+} from "./karaoke";
+import { listMilestoneGrants, type MilestoneGrant } from "./milestones";
+import { MILESTONE_TTL_DAYS } from "./milestones-core";
+
 /**
  * Notifications for the app's inbox (docs/API-MOBILE.md §8).
  *
  * Nothing is stored: the list is derived on every call from the member's
- * recent orders, the announcements currently on the home screen, and whether
- * a loyalty reward is waiting. The app keeps "read" state on the device, keyed
- * by `id`, so ids must be stable across calls — they are built from the order
- * id and the stage reached, never from a timestamp or a position.
+ * recent orders, the announcements currently on the home screen, whether
+ * a loyalty reward is waiting, the karaoke bookings the staff confirmed or
+ * cancelled, and the milestone gifts the server gave. The app keeps "read"
+ * state on the device, keyed by `id`, so ids must be stable across calls -
+ * they are built from the order id and the stage reached, never from a
+ * timestamp or a position.
  */
 
-export type NotificationKind = "order" | "reward" | "campaign" | "announcement";
+/**
+ * `reservation` is additive (23 Eyl 2026). Builds that predate it map a kind
+ * they do not know to `announcement` (lafmobil `src/data/http.ts`), so the
+ * row still shows there, only with the announcement glyph.
+ */
+export type NotificationKind =
+  | "order"
+  | "reward"
+  | "campaign"
+  | "announcement"
+  | "reservation";
 
 export interface AppNotification {
   id: string;
@@ -201,6 +222,88 @@ export function rewardNotification(
   };
 }
 
+type ReservationLike = Pick<
+  KaraokeReservation,
+  "id" | "date" | "startHour" | "hours" | "guests" | "status" | "updatedAt"
+>;
+
+/**
+ * One record per karaoke booking the staff decided on inside the window:
+ * confirmed ("your hour is held") or cancelled. `at` is the booking's
+ * `updatedAt`, which only a status change writes - the confirm or cancel
+ * instant, the same on every call. A booking confirmed and later cancelled
+ * shows the cancellation alone under a new id, so it arrives unread: the
+ * member's plan changed. `requested` is silent; the member just made it.
+ *
+ * The wording is the confirmation and cancellation mails' own
+ * (`src/lib/email/text.ts`), in the app's "sen".
+ */
+export function deriveReservationNotifications(
+  reservations: readonly ReservationLike[],
+  now: Date,
+): AppNotification[] {
+  const out: AppNotification[] = [];
+  for (const r of reservations) {
+    if (r.status !== "confirmed" && r.status !== "cancelled") continue;
+    if (!withinWindow(r.updatedAt, now)) continue;
+    const when = `${formatReservationDate(r.date)} · ${formatReservationTime(r.startHour, r.hours)}`;
+    out.push(
+      r.status === "confirmed"
+        ? {
+            id: `karaoke-${r.id}-confirmed`,
+            kind: "reservation",
+            title: "Karaoke saatin ayrıldı",
+            body: `${when}, ${r.guests} kişi. Girişte ${r.id} kodunu söylemen yeterli.`,
+            at: r.updatedAt,
+            orderId: null,
+          }
+        : {
+            id: `karaoke-${r.id}-cancelled`,
+            kind: "reservation",
+            title: "Karaoke rezervasyonun iptal edildi",
+            body: `${when} rezervasyonun iptal edildi; oda serbest bırakıldı.`,
+            at: r.updatedAt,
+            orderId: null,
+          },
+    );
+  }
+  return out;
+}
+
+type MilestoneLike = Pick<
+  MilestoneGrant,
+  "milestone" | "couponId" | "itemName" | "createdAt"
+>;
+
+/**
+ * One `reward` record per milestone gift given inside the window (karar
+ * 175). Only a grant whose coupon was minted counts: a row without
+ * `couponId` is a claim in flight or one withdrawn after a failure, and
+ * telling the member about it would announce a coupon that is not there.
+ * `at` is the grant's own instant; the id is the milestone, one per member.
+ * Past tense on purpose: the record says what happened that day, and stays
+ * true after the coupon is spent.
+ */
+export function deriveMilestoneNotifications(
+  grants: readonly MilestoneLike[],
+  now: Date,
+): AppNotification[] {
+  const out: AppNotification[] = [];
+  for (const g of grants) {
+    if (!g.couponId || !g.itemName) continue;
+    if (!withinWindow(g.createdAt, now)) continue;
+    out.push({
+      id: `milestone-${g.milestone}`,
+      kind: "reward",
+      title: `${g.milestone} kahve oldu!`,
+      body: `Teşekkürümüz: ${g.itemName} kuponlarına eklendi, ${MILESTONE_TTL_DAYS} gün geçerli.`,
+      at: g.createdAt,
+      orderId: null,
+    });
+  }
+  return out;
+}
+
 /** What the member asked to hear about (`customers.notificationPrefs`). */
 export interface NotificationFilter {
   marketing?: boolean;
@@ -211,6 +314,10 @@ export interface NotificationFilter {
 export function buildNotifications(input: {
   orders: readonly OrderLike[];
   announcements: readonly AnnouncementLike[];
+  /** Karaoke bookings the staff decided on (§8, additive). */
+  reservations?: readonly ReservationLike[];
+  /** Milestone gifts given (§8, additive). */
+  milestones?: readonly MilestoneLike[];
   rewardsReady: number;
   /**
    * When the waiting reward became ready. Must be the same instant on every
@@ -224,6 +331,8 @@ export function buildNotifications(input: {
   const items = [
     ...deriveOrderNotifications(input.orders, input.now),
     ...deriveAnnouncementNotifications(input.announcements),
+    ...deriveReservationNotifications(input.reservations ?? [], input.now),
+    ...deriveMilestoneNotifications(input.milestones ?? [], input.now),
   ];
   const reward = rewardNotification(
     input.rewardsReady,
@@ -231,8 +340,8 @@ export function buildNotifications(input: {
   );
   if (reward) items.push(reward);
   // "Neyi duymak istediğine sen karar ver" is the promise under the switches:
-  // marketing off means no campaign rows. Order and reward items stay — they
-  // are the member's own transactions, not a commercial message.
+  // marketing off means no campaign rows. Order, reward and reservation items
+  // stay - they are the member's own transactions, not a commercial message.
   const noMarketing = input.prefs?.marketing === false;
   return items
     .filter((item) => !(noMarketing && item.kind === "campaign"))
@@ -271,11 +380,31 @@ async function resolveReward(
 }
 
 /**
+ * A source the inbox can live without. The karaoke book and the milestone
+ * table are read beside the orders; if one of them fails (a deploy ahead of
+ * its migration, a bad row) the inbox loses those rows, not the whole list.
+ * A database that cannot be reached at all still fails the call through the
+ * order read, which is not wrapped.
+ */
+async function optional<T>(label: string, read: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await read();
+  } catch (err) {
+    console.error(
+      `[notifications] ${label} unavailable: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return [];
+  }
+}
+
+/**
  * GET /notifications for one member. Throws on a database failure.
  *
- * `withOrders: false` leaves the order rows out — for a member whose address
- * is not verified yet, since orders match by e-mail alone (see
- * `listAppOrders`).
+ * `withOrders: false` leaves out every row matched by e-mail alone - the
+ * orders, the karaoke bookings and the milestone gifts - for a member whose
+ * address is not verified yet (see `listAppOrders`). Such a member can have
+ * none of them legitimately: ordering, booking and the till QR all need a
+ * verified address.
  */
 export async function deriveNotifications(
   email: string,
@@ -283,16 +412,28 @@ export async function deriveNotifications(
   prefs?: NotificationFilter,
   { withOrders = true }: { withOrders?: boolean } = {},
 ): Promise<AppNotification[]> {
-  const [orders, announcements, reward] = await Promise.all([
-    withOrders
-      ? customerOrdersByEmail(email, NOTIFICATION_ORDER_LIMIT)
-      : Promise.resolve([]),
-    listActiveAppAnnouncements(),
-    resolveReward(email),
-  ]);
+  const since = new Date(
+    now.getTime() - NOTIFICATION_WINDOW_DAYS * 86_400_000,
+  ).toISOString();
+  const [orders, announcements, reward, reservations, milestones] =
+    await Promise.all([
+      withOrders
+        ? customerOrdersByEmail(email, NOTIFICATION_ORDER_LIMIT)
+        : Promise.resolve([]),
+      listActiveAppAnnouncements(),
+      resolveReward(email),
+      withOrders
+        ? optional("karaoke", () => listReservationDecisions(email, since))
+        : Promise.resolve([]),
+      withOrders
+        ? optional("milestones", () => listMilestoneGrants(email))
+        : Promise.resolve([]),
+    ]);
   return buildNotifications({
     orders,
     announcements,
+    reservations,
+    milestones,
     rewardsReady: reward.rewardsReady,
     rewardAt: reward.readyAt,
     now,
