@@ -2589,6 +2589,15 @@ summary:focus-visible,
   flex-wrap: wrap;
   margin-top: 16px;
 }
+/* Its own row above the pills; the mint of the column headings, not a new
+   colour. */
+.footer-social-handle {
+  flex-basis: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--green-mint);
+}
 .footer-social a {
   padding: 8px 12px;
   border-radius: var(--r-pill);

@@ -111,7 +111,8 @@ export const SITE = {
   },
   /**
    * Resmî sosyal medya hesapları. Hepsinin kullanıcı adı `@laffogatto`.
-   * JSON-LD `sameAs` ve footer ikonları buradan okur.
+   * JSON-LD `sameAs`, footer'daki `@laffogatto` satırı ve ağ adlarını
+   * yazan metin düğmeleri buradan okur (footer'da ikon yok).
    */
   social: {
     handle: "@laffogatto",

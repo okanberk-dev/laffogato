@@ -667,7 +667,11 @@ export function Footer({ navigate, settings }: FooterProps) {
           <p>
             Bologna 1897’den İstanbul Tuzla’ya - 200 yıllık, restore bir köşkte.
           </p>
+          {/* The handle is the same on every network, so it is written
+              once above the pills: a visitor who wants to find the account
+              from a phone's search box needs the name, not a link. */}
           <div className="footer-social">
+            <span className="footer-social-handle">{SITE.social.handle}</span>
             <a
               href={SITE.social.instagram}
               target="_blank"

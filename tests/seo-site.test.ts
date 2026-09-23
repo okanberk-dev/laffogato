@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, it, expect } from "vitest";
 
 import { SITE } from "@/lib/seo/site";
@@ -40,6 +42,18 @@ describe("SITE constants — NAP + lean-SEO fixes", () => {
     for (const url of Object.values(SITE.social)) {
       expect(url).not.toMatch(/laffogato(?!t)/);
     }
+  });
+
+  it("the footer shows the handle, read from SITE, not typed again", () => {
+    // The footer used to name the three networks and never the account, so a
+    // visitor could not search for it. Reading the constant keeps the footer
+    // and the JSON-LD `sameAs` on one spelling of the double t.
+    const chrome = readFileSync("src/components/laffogato/chrome.tsx", "utf8");
+    const footer = chrome.slice(chrome.indexOf("export function Footer"));
+    expect(footer).toContain("{SITE.social.handle}");
+    expect(footer).not.toContain('"@laffogatto"');
+    const css = readFileSync("src/app/globals.css", "utf8");
+    expect(css).toContain(".footer-social-handle {");
   });
 
   it("has a lean, de-duplicated keyword set (<= 12, no dupes)", () => {
