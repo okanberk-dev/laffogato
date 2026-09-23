@@ -223,3 +223,55 @@ export function falRequestBody(model: string, context: FalContext, jpegBase64: s
     store: false,
   };
 }
+
+// ─── "Bu yorumu bildir" (docs/API-MOBILE.md §20, additive) ─────────────────
+
+/**
+ * Why a member reports an AI reading. A closed list on purpose: a free-text
+ * reason is a box the member can type their name, their health or anything
+ * else into, and the report is kept for ninety days. A reason this server
+ * does not know - a newer build's - is kept as `other` rather than refused,
+ * so the report itself is never lost.
+ */
+export const FAL_REPORT_REASONS = ["offensive", "promise", "sensitive", "other"] as const;
+export type FalReportReason = (typeof FAL_REPORT_REASONS)[number];
+
+/** Each reason as the panel shows it (and as the app may offer it). */
+export const FAL_REPORT_REASON_LABELS: Record<FalReportReason, string> = {
+  offensive: "Kırıcı ya da uygunsuz",
+  promise: "Bir şey vaat ediyor",
+  sensitive: "Sağlık, para ya da ilişki hakkında",
+  other: "Başka bir sebep",
+};
+
+/** Reports one member may send in one Istanbul day: twice the readings. */
+export const FAL_REPORT_DAILY_LIMIT = FAL_DAILY_LIMIT * 2;
+
+/**
+ * The reading's words as the member saw them, at most. A reading is a drink
+ * name of up to 40 characters and three parts of up to `FAL_PART_MAX`; this
+ * leaves room for the separators the app puts between them.
+ */
+export const FAL_REPORT_TEXT_MAX = 800;
+
+/** Model names are short identifiers; anything else is not recorded. */
+const MODEL_NAME = /^[A-Za-z0-9._:-]{1,64}$/;
+
+export function falReportReason(raw: unknown): FalReportReason {
+  const value = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  return (FAL_REPORT_REASONS as readonly string[]).includes(value) ? (value as FalReportReason) : "other";
+}
+
+/** The model the app says wrote the reading (from `POST /fal`), or "" when unknown. */
+export function falReportModel(raw: unknown): string {
+  const value = typeof raw === "string" ? raw.trim() : "";
+  return MODEL_NAME.test(value) ? value : "";
+}
+
+/** The reported words, one line, spaces collapsed - or null when empty or too long. */
+export function falReportText(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const text = raw.replace(/\s+/g, " ").trim();
+  if (!text || text.length > FAL_REPORT_TEXT_MAX) return null;
+  return text;
+}

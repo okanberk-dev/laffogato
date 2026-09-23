@@ -197,6 +197,8 @@ describe("POST /fal", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toMatchObject({ reading: READING, ai: true, consentVersion: FAL_CONSENT_VERSION, remainingToday: FAL_DAILY_LIMIT - 1 });
+    // Additive: which model wrote it, so "Bu yorumu bildir" can name it.
+    expect(body.model).toBe("gpt-5.4-mini");
     expect(lib.recordFalReading).toHaveBeenCalledWith("eda@ornek.com", true, "gpt-5.4-mini");
     expect(res.headers.get("Cache-Control")).toContain("private");
   });

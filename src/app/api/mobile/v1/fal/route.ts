@@ -70,6 +70,9 @@ export async function POST(request: Request) {
         ai: true,
         consentVersion: FAL_CONSENT_VERSION,
         remainingToday: Math.max(0, FAL_DAILY_LIMIT - used - 1),
+        // Additive (23 Eyl 2026): which model wrote it, so a "Bu yorumu
+        // bildir" report can name it (POST /fal/report, §20).
+        model: outcome.model,
       },
       { private: true },
     );

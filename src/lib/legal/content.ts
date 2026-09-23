@@ -5269,7 +5269,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Yapay zekâ hizmet sağlayıcısı (yalnızca açık rızanızla)",
             value:
-              "fA'L özelliğinde falın yapay zekâ ile yorumlanmasını açık rızanızla istemeniz hâlinde, içecek fotoğrafının (küçültülmüş ve meta verileri arındırılmış) ve kimliksiz bir özetin (üyelik seviyesi, ziyaret sıklığı, varsa her zamanki içecek) yorumun üretilmesi amacıyla OpenAI, L.L.C.'ye (ABD) aktarılması; fotoğraf ve üretilen yorum saklanmaz. Ayrıntılar Açık Rıza Metni'nin R12 bölümündedir.",
+              "fA'L özelliğinde falın yapay zekâ ile yorumlanmasını açık rızanızla istemeniz hâlinde, içecek fotoğrafının (küçültülmüş ve meta verileri arındırılmış) ve kimliksiz bir özetin (üyelik seviyesi, ziyaret sıklığı, varsa her zamanki içecek) yorumun üretilmesi amacıyla OpenAI, L.L.C.'ye (ABD) aktarılması; fotoğraf saklanmaz, üretilen yorum ise yalnızca onu 'Bu yorumu bildir' ile bize bildirmeniz hâlinde, incelenmek üzere doksan gün saklanır ve hizmet sağlayıcıya gönderilmez. Ayrıntılar Açık Rıza Metni'nin R12 bölümündedir.",
           },
           {
             key: "Push bildirim ve uygulama dağıtım platformları",
@@ -6066,7 +6066,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Cihaz izinleri (bildirim, konum, kamera) uygulamanın kurulumunda değil, ilgili özelliğin ilk kez kullanıldığı anda istenir. İzin vermemeniz hâlinde yalnızca o özellik çalışmaz; uygulamanın geri kalanını kullanmaya devam edebilirsiniz. Verdiğiniz izinleri cihazınızın işletim sistemi ayarlarından dilediğiniz zaman geri alabilirsiniz.",
           "Uygulamayı cihazınızdan kaldırmanız, üyelik hesabınızın ve bu hesaba bağlı verilerin silinmesi anlamına gelmez; hesabınızın kapatılmasını ve verilerinizin imhasını istiyorsanız bu metnin ilgili kişinin hakları ve başvuru maddelerinde gösterilen yolları kullanabilirsiniz. Uygulamanın kaldırılması push bildirim tokeninin geçersizleşmesi sonucunu doğurur ve bu token ilk periyodik imha döneminde silinir.",
           "Uygulama sürümlerinin güncel tutulması güvenlik açısından önemlidir; desteklenen en düşük sürümün altındaki sürümlerde bazı işlevler çalışmayabilir. Güncellemeler, uygulama mağazasının kuralları çerçevesinde sunulur.",
-          "fA'L özelliğinde seçtiğiniz içecek fotoğrafı, açık rızanız olmadıkça yalnızca cihazınızda işlenir ve şirketimize gönderilmez. Falın yapay zekâ ile yorumlanmasını açık rızanızla (Açık Rıza Metni, R12) istemeniz hâlinde fotoğraf küçültülmüş ve meta verileri arındırılmış olarak şirketimizin sunucusu üzerinden OpenAI, L.L.C.'ye (ABD) aktarılır ve şirketimizce saklanmaz; ayrıntılar Açık Rıza Metni'nde yer alır.",
+          "fA'L özelliğinde seçtiğiniz içecek fotoğrafı, açık rızanız olmadıkça yalnızca cihazınızda işlenir ve şirketimize gönderilmez. Falın yapay zekâ ile yorumlanmasını açık rızanızla (Açık Rıza Metni, R12) istemeniz hâlinde fotoğraf küçültülmüş ve meta verileri arındırılmış olarak şirketimizin sunucusu üzerinden OpenAI, L.L.C.'ye (ABD) aktarılır ve şirketimizce saklanmaz; ayrıntılar Açık Rıza Metni'nde yer alır. Bir yapay zekâ yorumunu 'Bu yorumu bildir' ile bize iletmeniz isteğe bağlıdır; iletirseniz yorumun metni, seçtiğiniz sebep ve modelin adı, yapay zekâ yorumlarının denetlenmesi amacıyla hesabınızla ilişkili olarak kaydedilir ve doksan gün sonra silinir. Fotoğraf bu kayda girmez.",
         ],
         bullets: [
           "Cihaz ve uygulama verisi: cihaz tanımlayıcıları (iOS'ta IDFA, Android'de AAID), uygulama sürümü, işletim sistemi ve sürümü, cihaz modeli ve dil ayarı. Hukuki sebep: KVKK m.5/2-c hizmetin sunulması ve m.5/2-f meşru menfaat (uyumluluk ve hata giderme); reklam tanımlayıcısının pazarlama amacıyla kullanılması hâlinde KVKK m.5/1 açık rıza.",
@@ -6849,14 +6849,15 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "{{BRAND}} mobil uygulamasındaki fA'L özelliği, içeceğinizin fotoğrafına bakarak eğlence amaçlı bir kahve falı yazar. Bu onayı vermediğiniz sürece fal tamamen cihazınızda, hazır metinlerden seçilerek oluşturulur ve fotoğrafınız cihazınızdan çıkmaz. Bu onay (R12), falın yapay zekâ tarafından yorumlanmasını istemeniz hâlinde fotoğrafınızın bu amaçla işlenmesini ve yurt dışına aktarılmasını kapsar.",
           "Onay vermeniz hâlinde seçtiğiniz fotoğraf cihazınızda küçültülür, konum ve cihaz bilgisi gibi meta verilerden arındırılır ve şirketimizin sunucusu üzerinden OpenAI, L.L.C. (Amerika Birleşik Devletleri) tarafından sağlanan yapay zekâ hizmetine gönderilir. Fotoğrafla birlikte yalnızca üyelik seviyeniz, yaklaşık ziyaret sıklığınız ve varsa kayıtlı her zamanki içeceğinizin adı gönderilir; adınız, e-posta adresiniz, telefon numaranız ve üye numaranız gönderilmez.",
           "Fotoğraf şirketimizce saklanmaz; yalnızca yorumun üretildiği istek süresince işlenir ve hizmet sağlayıcıya yanıtı saklamaması talimatıyla iletilir. Hizmet sağlayıcının kötüye kullanımın önlenmesi amacıyla kendi politikaları uyarınca sınırlı süreli kayıt tutabileceğini bildiririz. Şirketimiz yalnızca hangi gün yorum istendiğini, fincanın görülüp görülmediğini ve kullanılan modelin adını, günlük kullanım sınırının uygulanabilmesi için hesabınızla ilişkili olarak kaydeder; fotoğraf ve üretilen metin bu kayda girmez.",
+          "Bir yapay zekâ yorumunu kırıcı, uygunsuz ya da yanıltıcı bulursanız fA'L ekranındaki 'Bu yorumu bildir' bağlantısıyla bize iletebilirsiniz; bildirim isteğe bağlıdır. Bildirirseniz yorumun metni, seçtiğiniz sebep ve modelin adı, yapay zekâ yorumlarının denetlenmesi ve talimatların iyileştirilmesi amacıyla hesabınızla ilişkili olarak kaydedilir. Fotoğraf bildirime girmez ve bildirim yapay zekâ hizmet sağlayıcısına gönderilmez.",
           "Fotoğrafta kişiler, yüzler veya belgeler bulunmamasına özen göstermenizi rica ederiz. Yapay zekâya fotoğraftaki kişileri tanımlamaması, sağlık, ilişki ve para konularında öngöride bulunmaması ve herhangi bir indirim, hediye veya ayrıcalık vaat etmemesi talimatı verilir; bu kurallara uymayan bir yanıt gösterilmez ve fal cihazınızda okunur. Yapay zekâ yorumu da cihazdaki fal gibi eğlence amaçlıdır, gerçeği yansıtmaz ve hakkınızda hukuki sonuç doğuran bir karar içermez.",
           "Yurt dışına aktarım, Kanun'un 9. maddesi uyarınca hizmet sağlayıcıyla akdedilen standart sözleşme gibi uygun güvencelere dayandırılır. Aktarımın yapıldığı ülkede veri koruma düzeyinin Türkiye'dekiyle aynı olmayabileceğini, yetkili makamların erişim yetkilerinin farklı olabileceğini hatırlatırız.",
           "Onayınızı fA'L ekranından dilediğiniz an geri çekebilirsiniz; geri çektiğiniz andan itibaren fal yeniden yalnızca cihazınızda okunur. Onay vermemeniz veya geri çekmeniz fA'L'ı kullanmanıza, üyeliğinize, siparişlerinize ve damgalarınıza hiçbir etki etmez.",
         ],
         bullets: [
-          "İşlenen veriler: İçecek fotoğrafı (küçültülmüş ve meta verileri arındırılmış), üyelik seviyesi, yaklaşık ziyaret sıklığı, varsa her zamanki içeceğin adı; kullanım kaydı olarak yorumun istendiği gün, fincanın görülüp görülmediği ve modelin adı.",
+          "İşlenen veriler: İçecek fotoğrafı (küçültülmüş ve meta verileri arındırılmış), üyelik seviyesi, yaklaşık ziyaret sıklığı, varsa her zamanki içeceğin adı; kullanım kaydı olarak yorumun istendiği gün, fincanın görülüp görülmediği ve modelin adı; bir yorumu bildirmeniz hâlinde yorumun metni, bildirim sebebi ve modelin adı.",
           "Alıcı: OpenAI, L.L.C. (Amerika Birleşik Devletleri), veri işleyen sıfatıyla.",
-          "Saklama: Fotoğraf ve üretilen yorum şirketimizce saklanmaz; kullanım kaydı günlük sınırın uygulanması için doksan gün saklanır ve ardından silinir.",
+          "Saklama: Fotoğraf şirketimizce saklanmaz, üretilen yorum da ancak siz bildirirseniz saklanır; kullanım kaydı günlük sınırın uygulanması için doksan gün saklanır ve ardından silinir. Bildirdiğiniz bir yorumun kaydı incelenmek üzere doksan gün saklanır ve ardından silinir.",
           "Günlük sınır: Üye başına günde beş yapay zekâ yorumu.",
           "Rıza vermezseniz: fA'L cihazınızda, hazır metinlerle çalışmaya devam eder.",
         ],
@@ -8081,7 +8082,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "fA'L yapay zekâ yorumu (içecek fotoğrafı, üretilen yorum ve kullanım kaydı)",
             value:
-              "Fotoğraf ve üretilen yorum saklanmaz; fotoğraf yalnızca yorumun üretildiği istek süresince işlenir. Kullanım kaydı (yorumun istendiği gün, fincanın görülüp görülmediği ve model adı) günlük sınırın uygulanması için 90 gün saklanır ve ardından silinir.",
+              "Fotoğraf saklanmaz; fotoğraf yalnızca yorumun üretildiği istek süresince işlenir. Üretilen yorum, kullanıcı onu bildirmedikçe saklanmaz (bildirimler için bir sonraki satır). Kullanım kaydı (yorumun istendiği gün, fincanın görülüp görülmediği ve model adı) günlük sınırın uygulanması için 90 gün saklanır ve ardından silinir.",
+          },
+          {
+            key: "fA'L yapay zekâ yorumu bildirimleri (bildirilen yorumun metni, bildirim sebebi ve model adı)",
+            value:
+              "Bildirim tarihinden itibaren 90 gün saklanır ve ardından silinir; fotoğraf bildirime girmez.",
           },
           {
             key: "Özellik bazlı açık rıza kayıtları (örneğin fA'L yapay zekâ yorumu onayı; rıza metninin sürümü, onay ve geri çekme zamanı)",

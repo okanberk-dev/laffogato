@@ -300,6 +300,14 @@ export const ANON_SWEEPS: ReadonlyArray<{
     caseInsensitive: true,
     patch: (anon) => ({ customerEmail: anon }),
   },
+  {
+    // "Bu yorumu bildir" reports: the reported words stay for the operator's
+    // review until the ninety-day sweep, but no longer point at the address.
+    table: TABLES.falReports,
+    column: "customerEmail",
+    caseInsensitive: true,
+    patch: (anon) => ({ customerEmail: anon }),
+  },
 ];
 
 /**

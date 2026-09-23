@@ -1277,7 +1277,8 @@ Kayıt `feature_consents` satırıdır (üye, özellik, sürüm, zaman) ve rıza
                "forecast": "Bu hafta güzel bir sohbet seni bulacak." },
   "ai": true,
   "consentVersion": "2026-09-23",
-  "remainingToday": 4
+  "remainingToday": 4,
+  "model": "gpt-5.4-mini"   // 23 Eyl 2026, eklemeli: yorumu yazan model; bildirimde geri gönderilir
 }
 ```
 
@@ -1290,11 +1291,54 @@ uymadı ya da yanıt bir vaat içeriyordu) · **503** `unavailable` (veritabanı
 > **Gizlilik (R12).** Sunucuya giden: fotoğraf (uygulamada 768 px'e küçültülmüş,
 > meta verisiz). Modele giden: fotoğraf ve kimliksiz bir not - seviye adı
 > (L'AF/PEARL/RUBY), ziyaret sıklığı kelimesi, varsa "her zamanki" içeceğin adı. Ad,
-> e-posta, telefon, üye no **gitmez**. Fotoğraf ve üretilen metin **saklanmaz**;
-> `fal_readings` yalnız gün, `cupSeen` ve model adını tutar, 90 günde silinir
-> (`src/lib/retention.ts`).
+> e-posta, telefon, üye no **gitmez**. Fotoğraf **saklanmaz**; üretilen metin
+> yalnız üye onu bildirirse `fal_reports`'ta 90 gün durur (aşağıda, `POST
+> /fal/report`). `fal_readings` yalnız gün, `cupSeen` ve model adını tutar, 90
+> günde silinir (`src/lib/retention.ts`).
 >
 > **Vaat yok (TKHK md. 61).** "indirim · bedava · ücretsiz · hediye · kupon · puan ·
 > damga · kampanya" ya da sağlık/yatırım kökü geçen yanıt gösterilmez (502, uygulama
 > cihazda okur).
+
+### `POST /fal/report` - "Bu yorumu bildir" (23 Eyl 2026, yalnız ekleme)
+
+Google Play'in yapay zekâ ile üretilen içerik politikası, üyenin bir yapay zekâ
+yanıtını uygulamanın içinden bildirebilmesini ister. Yapay zekâ yorumu
+açılmadan önce gereken uç budur.
+
+`POST /fal/report { "text": "…", "reason"?: "…", "model"?: "…" }` (kimlik) →
+**201** `{ "ok": true }`
+
+| Alan | Kural |
+| --- | --- |
+| `text` | Üyenin ekranda gördüğü yorumun sözleri (içecek, sembol, kişilik, öngörü; uygulama aralarına ` · ` koyabilir). Boşluklar teke indirilir; boş ya da 800 karakterden uzunsa **400** `invalid_request`. |
+| `reason` | Kapalı liste: `offensive` (Kırıcı ya da uygunsuz) · `promise` (Bir şey vaat ediyor) · `sensitive` (Sağlık, para ya da ilişki hakkında) · `other` (Başka bir sebep). Verilmezse ya da bilinmeyen bir değer gelirse `other` kaydedilir. Serbest metin alınmaz: üye oraya kişisel veri yazabilirdi. |
+| `model` | `POST /fal` yanıtındaki `model`, olduğu gibi. Yoksa ya da model adına benzemiyorsa boş kaydedilir. |
+
+- **Fotoğraf asla.** Gövdedeki başka alanlar yok sayılır. Fotoğraf zaten hiçbir
+  yerde saklanmaz, bildirim bunu değiştirmez; bildirim yapay zekâ hizmet
+  sağlayıcısına da gönderilmez.
+- **Anahtara ve rızaya bağlı değil (karar).** `FAL_AI_ENABLED` kapalıyken ya da
+  üye R12 rızasını geri çektikten sonra da çalışır: ekranda duran bir yapay
+  zekâ yorumu bildirilebilir kalmalı. Uygulama bağlantıyı **yalnız** `ai: true`
+  gelen yorumun altında gösterir; cihazda okunan fal bu uca hiç gelmez.
+- **Sınır:** üye başına İstanbul gününde 10 bildirim (`FAL_REPORT_DAILY_LIMIT`,
+  günlük yorum sınırının iki katı) → **429** `fal_report_limit` ("Bugünlük
+  bildirim sınırına ulaştın. Teşekkür ederiz; yarın yeniden bildirebilirsin.").
+  Aynı gün aynı sözler ikinci kez gelirse yeniden yazılmaz ve **200**
+  `{ "ok": true }` döner; uygulama her 2xx yanıtı başarı sayar.
+- Hatalar: **401** kimlik · **400** `invalid_json` / `invalid_request` ·
+  **429** `fal_report_limit` · **503** `unavailable` (veritabanı).
+- **Saklama:** `fal_reports` (üye, gün, sebep, metin, model, zaman) 90 gün sonra
+  silinir (`src/lib/retention.ts`, kural `fal-reports`; Veri Saklama ve İmha
+  Politikası'ndaki satır). Hesap silinince satırın e-postası yer tutucuya
+  çevrilir (`ANON_SWEEPS`). Operatör bildirimleri panelde
+  `/admin/mobil/fal-bildirimleri` sayfasında okur; orada üyenin adresi
+  gösterilmez.
+- Gizlilik Politikası, KVKK Aydınlatma Metni §12, Açık Rıza Metni R12 ve Veri
+  Saklama ve İmha Politikası bildirimi, neyi tuttuğunu ve süresini anlatır;
+  metinler yapay zekâ açılmadan önceki avukat okumasına dâhildir.
+- Site: `src/app/api/mobile/v1/fal/report/route.ts`, `falReport*`
+  (`src/lib/mobile/fal-core.ts`), `recordFalReport` (`src/lib/mobile/fal.ts`);
+  `tests/mobile-fal-report.test.ts` tutar.
 

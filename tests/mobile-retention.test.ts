@@ -45,6 +45,8 @@ describe("every retention period is quoted from the published policy", () => {
       // Karar 177: ninety days, as Açık Rıza Metni R12 publishes, and the
       // consent's proof three years after it is withdrawn.
       "fal_readings",
+      // "Bu yorumu bildir": the reported words, ninety days.
+      "fal_reports",
       "feature_consents",
     ]);
   });

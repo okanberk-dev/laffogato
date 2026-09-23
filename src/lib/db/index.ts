@@ -228,6 +228,7 @@ export const TABLES = {
   customerMilestoneRewards: "customer_milestone_rewards",
   featureConsents: "feature_consents",
   falReadings: "fal_readings",
+  falReports: "fal_reports",
   counters: "counters",
   shopHeroSlides: "shop_hero_slides",
   paymentTransactions: "payment_transactions",

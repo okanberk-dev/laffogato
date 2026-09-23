@@ -16,6 +16,7 @@ import {
   visitsWord,
   type FalAiReading,
   type FalContext,
+  type FalReportReason,
 } from "./fal-core";
 import { getLoyalty } from "./loyalty";
 import { istanbulClock } from "./venue";
@@ -109,6 +110,67 @@ export async function recordFalReading(
     cupSeen,
   });
   checkErr(error, "recordFalReading");
+}
+
+/** One "Bu yorumu bildir" report, as the table records it. */
+export type FalReport = {
+  id?: number;
+  customerEmail: string;
+  day: string;
+  reason: FalReportReason;
+  text: string;
+  model: string;
+  createdAt: string;
+};
+
+/**
+ * The words of the reports this member sent on this Istanbul day - their
+ * count is the daily cap, and a repeat of the same words is not stored twice.
+ */
+export async function falReportsToday(email: string, now: Date = new Date()): Promise<string[]> {
+  const { data, error } = await getDb()
+    .from(TABLES.falReports)
+    .select("text")
+    .eq("customerEmail", owner(email))
+    .eq("day", istanbulClock(now).date);
+  checkErr(error, "falReportsToday");
+  return ((data as { text?: unknown }[] | null) ?? []).map((r) => String(r.text ?? ""));
+}
+
+/**
+ * Records a report: the member, the day, the reason, the reading's words and
+ * the model. Never the photo - it was never kept, and a report does not
+ * change that. Swept after ninety days (`src/lib/retention.ts`).
+ */
+export async function recordFalReport(
+  email: string,
+  report: { reason: FalReportReason; text: string; model: string },
+  now: Date = new Date(),
+): Promise<void> {
+  const row: FalReport = {
+    customerEmail: owner(email),
+    day: istanbulClock(now).date,
+    reason: report.reason,
+    text: report.text,
+    model: report.model,
+    createdAt: now.toISOString(),
+  };
+  const { error } = await getDb().from(TABLES.falReports).insert(row);
+  checkErr(error, "recordFalReport");
+}
+
+/**
+ * The reports the panel shows, newest first. No address: the operator reads
+ * what the AI wrote and why it was flagged, not who flagged it.
+ */
+export async function listFalReports(limit = 200): Promise<Omit<FalReport, "customerEmail">[]> {
+  const { data, error } = await getDb()
+    .from(TABLES.falReports)
+    .select("id, day, reason, text, model, createdAt")
+    .order("createdAt", { ascending: false })
+    .limit(limit);
+  checkErr(error, "listFalReports");
+  return (data as Omit<FalReport, "customerEmail">[] | null) ?? [];
 }
 
 /** What the model is told about the member: tier, frequency, usual. No identity. */

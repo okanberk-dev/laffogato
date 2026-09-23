@@ -109,6 +109,20 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "today's. Ninety days is what Açık Rıza Metni R12 publishes.",
   },
   {
+    id: "fal-reports",
+    table: TABLES.falReports,
+    column: "createdAt",
+    idColumn: "id",
+    days: 90,
+    basis: "Bildirim tarihinden itibaren 90 gün saklanır ve ardından silinir; fotoğraf bildirime girmez.",
+    note:
+      "'Bu yorumu bildir' (Google Play's AI-generated content policy). The " +
+      "row holds the reported reading's words, the reason and the model - " +
+      "never the photo - for the operator to review and tighten the " +
+      "instructions. Ninety days is what the Veri Saklama ve İmha Politikası " +
+      "and Açık Rıza Metni R12 publish.",
+  },
+  {
     id: "feature-consents",
     table: TABLES.featureConsents,
     column: "revokedAt",

@@ -52,6 +52,8 @@ describe("account deletion sweeps", () => {
       // Milestone gifts are read back by address in /me and the inbox; the
       // next holder of the address was told about the closed account's gift.
       `${TABLES.customerMilestoneRewards}.customerEmail`,
+      // fA'L reports keep the reported words, not the reporter.
+      `${TABLES.falReports}.customerEmail`,
     ]) {
       expect(covered, target).toContain(target);
     }
