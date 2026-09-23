@@ -12,6 +12,10 @@ import {
 import { createDb, type Executor } from "@/lib/db/client";
 
 import { applyBundledSchema } from "./_support/apply-schema";
+import {
+  holdSharedDatabase,
+  SUITE_LOCK_WAIT_MS,
+} from "./_support/db-suite-lock";
 
 /**
  * The audit fixes that only a real Postgres can prove: atomicity under
@@ -49,14 +53,18 @@ vi.mock("next/headers", () => ({
 }));
 
 maybe("audit fixes against a real Postgres", () => {
+  let release: (() => Promise<void>) | undefined;
+
   beforeAll(async () => {
+    release = await holdSharedDatabase(URL_!);
     pool = new pg.Pool({ connectionString: URL_, max: 12 });
     await applyBundledSchema(pool);
-  });
+  }, SUITE_LOCK_WAIT_MS);
 
   afterAll(async () => {
     await pool?.end();
     pool = null;
+    await release?.();
   });
 
   describe("login attempts are counted before the credential is checked", () => {

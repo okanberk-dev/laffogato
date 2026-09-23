@@ -3,6 +3,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createDb, type Executor } from "@/lib/db/client";
 
+import {
+  holdSharedDatabase,
+  SUITE_LOCK_WAIT_MS,
+} from "./_support/db-suite-lock";
+
 /**
  * Exercises the query layer against a REAL Postgres.
  *
@@ -19,8 +24,10 @@ const maybe = URL_ ? describe : describe.skip;
 maybe("query layer against a real Postgres", () => {
   let pool: pg.Pool;
   let db: ReturnType<typeof createDb>;
+  let release: (() => Promise<void>) | undefined;
 
   beforeAll(async () => {
+    release = await holdSharedDatabase(URL_!);
     pool = new pg.Pool({ connectionString: URL_, max: 2 });
     const execute: Executor = async (q) => {
       const r = await pool.query(q.text, q.params as unknown[]);
@@ -46,11 +53,12 @@ maybe("query layer against a real Postgres", () => {
     await pool.query(
       `create unique index shim_probe_name_key on shim_probe (name)`,
     );
-  });
+  }, SUITE_LOCK_WAIT_MS);
 
   afterAll(async () => {
     await pool.query(`drop table if exists shim_probe`);
     await pool.end();
+    await release?.();
   });
 
   it("inserts and reads back, including JSONB", async () => {

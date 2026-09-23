@@ -12,6 +12,10 @@ import {
 import { createDb, type Executor } from "@/lib/db/client";
 
 import { applyBundledSchema } from "./_support/apply-schema";
+import {
+  holdSharedDatabase,
+  SUITE_LOCK_WAIT_MS,
+} from "./_support/db-suite-lock";
 
 /**
  * Unpaid orders are cancelled only after the POS was asked
@@ -105,14 +109,18 @@ async function statusOf(id: string): Promise<string> {
 }
 
 maybe("unpaid orders are cancelled only after asking the POS", () => {
+  let release: (() => Promise<void>) | undefined;
+
   beforeAll(async () => {
+    release = await holdSharedDatabase(URL_!);
     pool = new pg.Pool({ connectionString: URL_, max: 12 });
     await applyBundledSchema(pool);
-  });
+  }, SUITE_LOCK_WAIT_MS);
 
   afterAll(async () => {
     await pool?.end();
     pool = null;
+    await release?.();
   });
 
   beforeEach(async () => {

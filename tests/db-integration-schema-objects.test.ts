@@ -2,6 +2,10 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { applyBundledSchema } from "./_support/apply-schema";
+import {
+  holdSharedDatabase,
+  SUITE_LOCK_WAIT_MS,
+} from "./_support/db-suite-lock";
 
 /**
  * What the bundled schema leaves behind in a real Postgres, after the whole
@@ -16,14 +20,17 @@ const maybe = URL_ ? describe : describe.skip;
 
 maybe("bundled schema objects in a real Postgres", () => {
   let pool: pg.Pool;
+  let release: (() => Promise<void>) | undefined;
 
   beforeAll(async () => {
+    release = await holdSharedDatabase(URL_!);
     pool = new pg.Pool({ connectionString: URL_, max: 2 });
     await applyBundledSchema(pool);
-  });
+  }, SUITE_LOCK_WAIT_MS);
 
   afterAll(async () => {
     await pool.end();
+    await release?.();
   });
 
   async function signatures(name: string): Promise<string[]> {
