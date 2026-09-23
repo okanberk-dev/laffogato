@@ -576,7 +576,7 @@ describe("one dash only", () => {
    * dashes across the designed templates, the text twins and the three
    * Supabase auth mails pasted into the dashboard by hand.
    */
-  const LONG_DASH = /[–—]/;
+  const LONG_DASH = /[\u2013\u2014]/;
   const SUPABASE_DIR = join(process.cwd(), "docs", "email");
 
   it.each(NAMES)("%s writes no long dash in either half", (name) => {
