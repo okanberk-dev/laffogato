@@ -15,6 +15,7 @@ import { addressLines } from "@/lib/utils/format";
 import { getSiteContent } from "@/lib/admin/site-content";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { isDegradedRequest } from "@/lib/db/health";
+import { istanbulDay } from "@/lib/mobile/menu-mapper";
 
 /**
  * Everything the customer shell renders from, loaded once.
@@ -53,8 +54,11 @@ export async function loadAppProps({
     getSiteContent(),
   ]);
 
-  // Computed on the server so it is stable across hydration.
-  const todayKey = DAYS_OF_WEEK[(new Date().getDay() + 6) % 7];
+  // Computed on the server so it is stable across hydration — and at the
+  // venue's clock, not the server's. `getDay()` on Vercel is UTC, so from
+  // 00:00 to 03:00 in Tuzla the site's "Bugün" row showed yesterday's hours
+  // while the app (bootstrap `opensAt`/`closesAt`) already showed today's.
+  const todayKey = istanbulDay(new Date());
   const todayH = settings.weeklyHours[todayKey];
 
   return {

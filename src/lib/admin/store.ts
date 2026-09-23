@@ -3916,44 +3916,59 @@ function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
 
+/**
+ * Report buckets are cut at the venue's midnight, not the server's. Vercel
+ * runs in UTC, so an order placed at 01:30 in Tuzla used to land in the
+ * previous day's bar. Turkey has been fixed at UTC+03:00 since 2016 (no DST),
+ * the same constant `publish-window.ts` and the campaign scheduler use. Every
+ * helper below takes a "wall" date — the Istanbul wall-clock time carried in
+ * the UTC fields — and reads it only with the getUTC* / setUTC* family, so
+ * the result no longer depends on the machine's TZ.
+ */
+const REPORT_TZ_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+function istanbulWall(d: Date): Date {
+  return new Date(d.getTime() + REPORT_TZ_OFFSET_MS);
+}
+
 function startOfWeek(d: Date): Date {
   const x = new Date(d);
-  const day = (x.getDay() + 6) % 7;
-  x.setHours(0, 0, 0, 0);
-  x.setDate(x.getDate() - day);
+  const day = (x.getUTCDay() + 6) % 7;
+  x.setUTCHours(0, 0, 0, 0);
+  x.setUTCDate(x.getUTCDate() - day);
   return x;
 }
 
 function isoWeek(d: Date): { year: number; week: number } {
   const target = new Date(d);
-  target.setHours(0, 0, 0, 0);
-  target.setDate(target.getDate() + 3 - ((target.getDay() + 6) % 7));
-  const week1 = new Date(target.getFullYear(), 0, 4);
+  target.setUTCHours(0, 0, 0, 0);
+  target.setUTCDate(target.getUTCDate() + 3 - ((target.getUTCDay() + 6) % 7));
+  const week1 = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
   const diff = (target.getTime() - week1.getTime()) / (24 * 60 * 60 * 1000);
-  const week = 1 + Math.round((diff - 3 + ((week1.getDay() + 6) % 7)) / 7);
-  return { year: target.getFullYear(), week };
+  const week = 1 + Math.round((diff - 3 + ((week1.getUTCDay() + 6) % 7)) / 7);
+  return { year: target.getUTCFullYear(), week };
 }
 
 function bucketKey(d: Date, g: BucketGranularity): string {
   if (g === "day") {
-    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
   }
   if (g === "week") {
     const { year, week } = isoWeek(d);
     return `${year}-W${pad2(week)}`;
   }
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}`;
 }
 
 function bucketLabel(d: Date, g: BucketGranularity): string {
   if (g === "day") {
-    return `${pad2(d.getDate())} ${MONTH_SHORT[d.getMonth()]}`;
+    return `${pad2(d.getUTCDate())} ${MONTH_SHORT[d.getUTCMonth()]}`;
   }
   if (g === "week") {
     const start = startOfWeek(d);
-    return `${pad2(start.getDate())} ${MONTH_SHORT[start.getMonth()]}`;
+    return `${pad2(start.getUTCDate())} ${MONTH_SHORT[start.getUTCMonth()]}`;
   }
-  return `${MONTH_SHORT[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+  return `${MONTH_SHORT[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`;
 }
 
 const MONTH_SHORT = [
@@ -3976,13 +3991,33 @@ export async function revenueBuckets(
   count: number,
 ): Promise<RevenueBucket[]> {
   const orders = await listOrders();
-  const now = new Date();
+  return bucketRevenue(orders, granularity, count, new Date());
+}
+
+/**
+ * The pure half of {@link revenueBuckets}, exported for tests.
+ *
+ * Month steps start from the 1st: `setMonth(m - 1)` on 31 October is
+ * "31 September", which JavaScript rolls over to 1 October — so on the 29th,
+ * 30th and 31st the monthly report showed the current month twice and dropped
+ * the one before it.
+ */
+export function bucketRevenue(
+  orders: AdminOrder[],
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): RevenueBucket[] {
+  const today = istanbulWall(now);
   const buckets: RevenueBucket[] = [];
   for (let i = count - 1; i >= 0; i -= 1) {
-    const d = new Date(now);
-    if (granularity === "day") d.setDate(d.getDate() - i);
-    else if (granularity === "week") d.setDate(d.getDate() - i * 7);
-    else d.setMonth(d.getMonth() - i);
+    const d = new Date(today);
+    if (granularity === "day") d.setUTCDate(d.getUTCDate() - i);
+    else if (granularity === "week") d.setUTCDate(d.getUTCDate() - i * 7);
+    else {
+      d.setUTCDate(1);
+      d.setUTCMonth(d.getUTCMonth() - i);
+    }
     buckets.push({
       bucket: bucketKey(d, granularity),
       label: bucketLabel(d, granularity),
@@ -3994,7 +4029,7 @@ export async function revenueBuckets(
 
   for (const o of orders) {
     if (!isReportableOrder(o)) continue;
-    const k = bucketKey(new Date(o.createdAt), granularity);
+    const k = bucketKey(istanbulWall(new Date(o.createdAt)), granularity);
     const slot = byKey.get(k);
     if (slot) {
       // Net of refunds, like the dashboard figure. A refund is booked against

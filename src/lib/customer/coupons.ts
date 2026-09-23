@@ -390,8 +390,19 @@ export async function maybeGrantBirthdayCoupon(
   const month = birthdayMonth(birthday ?? "");
   if (!owner || !month) return null;
   const now = new Date();
-  if (now.getMonth() + 1 !== month) return null;
-  return grantBirthdayCouponOnce(owner, now.getFullYear(), now);
+  // The venue's calendar, as the cron reads it (`istanbulDate` in
+  // api/cron/_birthday.ts): on Vercel `getMonth()` is UTC, so from 00:00 to
+  // 03:00 on the 1st the site still thought it was last month.
+  const [year, mm] = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+  })
+    .format(now)
+    .split("-")
+    .map(Number);
+  if (mm !== month) return null;
+  return grantBirthdayCouponOnce(owner, year, now);
 }
 
 // ─── Admin ───────────────────────────────────────────────────────────────────
