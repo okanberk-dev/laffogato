@@ -1844,56 +1844,60 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
         </div>
       </section>
 
-      <section className="section-tight">
-        <div className="wrap">
-          <SectionHead
-            alignment="center"
-            eyebrow="Press · stamping kindly"
-            title={
-              <>
-                People <span className="script">talking.</span>
-              </>
-            }
-          />
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
-              gap: 30,
-              marginTop: 50,
-            }}
-            data-row="press-wall"
-          >
-            {PRESS.concat(PRESS).map((p, i) => (
-              <div
-                key={i}
-                className="reveal"
-                style={{
-                  transitionDelay: `${(i % 4) * 60}ms`,
-                  padding: 36,
-                  border: "1px solid var(--ink-line)",
-                  borderRadius: "var(--r-md)",
-                  background: "#FFF",
-                }}
-              >
-                <div className="eyebrow" style={{ marginBottom: 20 }}>
-                  {p.name}
-                </div>
+      {/* Only quotes a publication actually gave (/admin/basin). None yet:
+          no heading drawn over an empty wall. */}
+      {PRESS.length > 0 ? (
+        <section className="section-tight">
+          <div className="wrap">
+            <SectionHead
+              alignment="center"
+              eyebrow="Press · stamping kindly"
+              title={
+                <>
+                  People <span className="script">talking.</span>
+                </>
+              }
+            />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, 1fr)",
+                gap: 30,
+                marginTop: 50,
+              }}
+              data-row="press-wall"
+            >
+              {PRESS.map((p, i) => (
                 <div
+                  key={i}
+                  className="reveal"
                   style={{
-                    fontFamily: "var(--serif)",
-                    fontStyle: "normal",
-                    fontSize: 22,
-                    lineHeight: 1.35,
+                    transitionDelay: `${(i % 4) * 60}ms`,
+                    padding: 36,
+                    border: "1px solid var(--ink-line)",
+                    borderRadius: "var(--r-md)",
+                    background: "#FFF",
                   }}
                 >
-                  “{p.quote}”
+                  <div className="eyebrow" style={{ marginBottom: 20 }}>
+                    {p.name}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "var(--serif)",
+                      fontStyle: "normal",
+                      fontSize: 22,
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    “{p.quote}”
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <section className="section" style={{ background: "var(--bg-cream)" }}>
         <div className="wrap-narrow" style={{ textAlign: "center" }}>
