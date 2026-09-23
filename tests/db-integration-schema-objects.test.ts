@@ -128,6 +128,102 @@ maybe("bundled schema objects in a real Postgres", () => {
     });
   });
 
+  describe("hyphen-only live text (20260923230500)", () => {
+    const EM = "\u2014";
+    const EN = "\u2013";
+    const FILE = "db/migrations/20260923230500_hyphen_only_live_text.sql";
+
+    async function productName(id: string): Promise<string> {
+      const r = await pool.query(
+        `select name from public.products where id = $1`,
+        [id],
+      );
+      return r.rows[0]?.name as string;
+    }
+
+    beforeAll(async () => {
+      const old: Record<string, string> = {
+        "prd-0001": `Sirena ${EM} Espresso Harmanı`,
+        "prd-0006": `Moka ${EM} Bialetti × L'Affogato`,
+        "prd-0011": `Cantucci ${EM} Bronte Pistachio`,
+        // Edited by the operator since the measurement: must stay as it is.
+        "prd-0002": `Notturna ${EM} Filtre Lotu (yeni)`,
+      };
+      for (const [id, name] of Object.entries(old)) {
+        await pool.query(
+          `insert into public.products (id, slug, name) values ($1, $2, $3)
+           on conflict (id) do update set name = excluded.name`,
+          [id, `tire-${id}`, name],
+        );
+      }
+      await pool.query(
+        `insert into public.menu_items (id, "categoryKey", name, "desc")
+         values ('mnu-0010', 'kahve', 'Cappuccino', $1)
+         on conflict (id) do update set "desc" = excluded."desc"`,
+        [`Espresso, buharlı süt ve bol köpük ${EM} eşit üç katman.`],
+      );
+      await pool.query(
+        `delete from public.story_timeline where id = 'tire-2008'`,
+      );
+      await pool.query(
+        `insert into public.story_timeline (id, year, title)
+         values ('tire-2008', '2008', $1)`,
+        [` Sicily ${EM} Bronte pistacchio anlaşması `],
+      );
+      await pool.query(
+        `insert into public.app_posts (id, title, body)
+         values ('apost-001', 'Sabah ritüeli', $1)
+         on conflict (id) do update set body = excluded.body`,
+        [
+          `Hafta içi 09:00${EN}11:00 arası espresso bazlı içeceklerde ikinci kahve yarı fiyatına.`,
+        ],
+      );
+    });
+
+    it("replaces the measured values, keeps spacing, leaves an edited row alone", async () => {
+      const { readFileSync } = await import("node:fs");
+      const sql = readFileSync(FILE, "utf8");
+      await pool.query(sql);
+      // Twice: the second run matches nothing and changes nothing.
+      await pool.query(sql);
+
+      expect(await productName("prd-0001")).toBe("Sirena - Espresso Harmanı");
+      expect(await productName("prd-0006")).toBe(
+        "Moka - Bialetti × L'Affogato",
+      );
+      expect(await productName("prd-0011")).toBe("Cantucci - Bronte Pistachio");
+      expect(await productName("prd-0002")).toBe(
+        `Notturna ${EM} Filtre Lotu (yeni)`,
+      );
+      const menu = await pool.query(
+        `select "desc" from public.menu_items where id = 'mnu-0010'`,
+      );
+      expect(menu.rows[0].desc).toBe(
+        "Espresso, buharlı süt ve bol köpük - eşit üç katman.",
+      );
+      const story = await pool.query(
+        `select title from public.story_timeline where id = 'tire-2008'`,
+      );
+      expect(story.rows[0].title).toBe(
+        " Sicily - Bronte pistacchio anlaşması ",
+      );
+      const post = await pool.query(
+        `select body from public.app_posts where id = 'apost-001'`,
+      );
+      expect(post.rows[0].body).toBe(
+        "Hafta içi 09:00-11:00 arası espresso bazlı içeceklerde ikinci kahve yarı fiyatına.",
+      );
+    });
+
+    it("ends hyphenated after a whole-bundle replay, although an older file flips two names back", async () => {
+      await applyBundledSchema(pool);
+      expect(await productName("prd-0006")).toBe(
+        "Moka - Bialetti × L'Affogato",
+      );
+      expect(await productName("prd-0011")).toBe("Cantucci - Bronte Pistachio");
+    });
+  });
+
   it("replays cleanly a second time", async () => {
     await applyBundledSchema(pool);
     expect(await signatures("campaign_email_claim")).toHaveLength(1);

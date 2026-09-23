@@ -694,13 +694,13 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
           status: "preparing",
           items: [
             {
-              productName: "Sirena — Espresso Blend",
+              productName: "Sirena - Espresso Blend",
               qty: 1,
               unitPriceMinor: 32000,
               status: "pending",
             },
             {
-              productName: "Edible Cups — 6 Box",
+              productName: "Edible Cups - 6 Box",
               qty: 1,
               unitPriceMinor: 24000,
               status: "ready",
@@ -726,7 +726,7 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
           status: "paid",
           items: [
             {
-              productName: "Affogato Kit — For Two",
+              productName: "Affogato Kit - For Two",
               qty: 1,
               unitPriceMinor: 78000,
               status: "pending",
@@ -752,7 +752,7 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
           status: "completed",
           items: [
             {
-              productName: "Uji Matcha — Ceremonial",
+              productName: "Uji Matcha - Ceremonial",
               qty: 1,
               unitPriceMinor: 42000,
               status: "ready",

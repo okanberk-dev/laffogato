@@ -758,7 +758,7 @@ export interface Product {
 
 export const PRODUCTS: Product[] = [
   {
-    name: "Sirena — Espresso Harmanı",
+    name: "Sirena - Espresso Harmanı",
     tag: "Çekirdek · 250 g",
     price: "320₺",
     desc: "Brezilya doğal + Etiyopya yıkanmış. Kakao, kuru incir, esmer şeker.",
@@ -766,7 +766,7 @@ export const PRODUCTS: Product[] = [
     img: "caramel",
   },
   {
-    name: "Notturna — Filtre Lotu",
+    name: "Notturna - Filtre Lotu",
     tag: "Çekirdek · 200 g",
     price: "380₺",
     desc: "Kenya AA Nyeri. Frenk üzümü, bergamot, parlak asidite.",
@@ -774,7 +774,7 @@ export const PRODUCTS: Product[] = [
     img: "dark",
   },
   {
-    name: "Yenilebilir Kup — 6'lı Kutu",
+    name: "Yenilebilir Kup - 6'lı Kutu",
     tag: "Waffle kupları",
     price: "240₺",
     desc: "Çıtır waffle kupları, içi yenilebilir glaze. Mekan ritüelini eve taşı.",
@@ -782,7 +782,7 @@ export const PRODUCTS: Product[] = [
     img: "cream",
   },
   {
-    name: "Affogato Seti — İki Kişilik",
+    name: "Affogato Seti - İki Kişilik",
     tag: "Hediye kutusu",
     price: "780₺",
     desc: "200 g Sirena, fior di latte gelato, iki yenilebilir kup, porselen kaşık.",
@@ -791,7 +791,7 @@ export const PRODUCTS: Product[] = [
     featured: true,
   },
   {
-    name: "Uji Matcha — Seremoni Sınıfı",
+    name: "Uji Matcha - Seremoni Sınıfı",
     tag: "Teneke kutu · 40 g",
     price: "420₺",
     desc: "Japonya Uji bahçesi, seremoni sınıfı. Bambu chasen ile eşleştirilir.",
@@ -799,7 +799,7 @@ export const PRODUCTS: Product[] = [
     img: "matcha",
   },
   {
-    name: "Moka — Bialetti × L'Affogato",
+    name: "Moka - Bialetti × L'Affogato",
     tag: "3 fincanlık, fırçalanmış alüminyum",
     price: "690₺",
     desc: "Özel L'Affogato amblemli moka pot.",
@@ -839,7 +839,7 @@ export const PRODUCTS: Product[] = [
     img: "cream",
   },
   {
-    name: "Cantucci — Bronte Pistachio",
+    name: "Cantucci - Bronte Pistachio",
     tag: "Biscotti · 180 g",
     price: "180₺",
     desc: "İki kez pişmiş, yavaş fırın. Vin Santo veya doppio ile.",
