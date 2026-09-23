@@ -109,6 +109,19 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "today's. Ninety days is what Açık Rıza Metni R12 publishes.",
   },
   {
+    id: "feature-consents",
+    table: TABLES.featureConsents,
+    column: "revokedAt",
+    idColumn: "customerEmail",
+    days: 3 * YEAR_DAYS,
+    basis: "geri çekme tarihinden itibaren 3 yıl saklanır ve ardından silinir.",
+    note:
+      "Karar 177. Measured from the WITHDRAWAL: a consent that still stands " +
+      "has revokedAt '' and is never in scope (the neq guard). Three years " +
+      "of proof that the processing had a consent, counted in 366-day years " +
+      "so nothing goes early.",
+  },
+  {
     id: "counter-tokens",
     table: TABLES.counterTokens,
     column: "expiresAt",

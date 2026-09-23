@@ -42,8 +42,10 @@ describe("every retention period is quoted from the published policy", () => {
       "auth_attempts",
       "campaign_email_sends",
       "counter_tokens",
-      // Karar 177: ninety days, as Açık Rıza Metni R12 publishes.
+      // Karar 177: ninety days, as Açık Rıza Metni R12 publishes, and the
+      // consent's proof three years after it is withdrawn.
       "fal_readings",
+      "feature_consents",
     ]);
   });
 

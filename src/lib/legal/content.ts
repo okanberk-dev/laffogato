@@ -4860,6 +4860,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "gizlilik-politikasi",
     title: "Gizlilik Politikası",
     shortTitle: "Gizlilik",
+    updatedAt: "23 Eylül 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{LEGAL_NAME}} tarafından işletilen {{BRAND}} web sitesi, mobil uygulaması ve kafesinde kişisel verilerinizin hangi amaçlarla işlendiğini, kimlere aktarıldığını, ne kadar süreyle saklandığını ve KVKK ile GDPR kapsamındaki haklarınızı açıklar.",
@@ -5264,6 +5265,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             key: "İşlemsel e-posta ve iletişim sağlayıcıları",
             value:
               "Sipariş onayı, e-posta doğrulama, parola sıfırlama ve kargo bildirimlerinin gönderilmesi; bu amaçla Resend altyapısı kullanılır.",
+          },
+          {
+            key: "Yapay zekâ hizmet sağlayıcısı (yalnızca açık rızanızla)",
+            value:
+              "fA'L özelliğinde falın yapay zekâ ile yorumlanmasını açık rızanızla istemeniz hâlinde, içecek fotoğrafının (küçültülmüş ve meta verileri arındırılmış) ve kimliksiz bir özetin (üyelik seviyesi, ziyaret sıklığı, varsa her zamanki içecek) yorumun üretilmesi amacıyla OpenAI, L.L.C.'ye (ABD) aktarılması; fotoğraf ve üretilen yorum saklanmaz. Ayrıntılar Açık Rıza Metni'nin R12 bölümündedir.",
           },
           {
             key: "Push bildirim ve uygulama dağıtım platformları",
@@ -7701,6 +7707,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "veri-saklama-ve-imha-politikasi",
     title: "Kişisel Veri Saklama ve İmha Politikası",
     shortTitle: "Saklama ve İmha",
+    updatedAt: "23 Eylül 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{SHORT_NAME}} tarafından {{BRAND}} markası altında işlenen kişisel verilerin hangi ortamlarda, hangi sebeple ve ne kadar süreyle saklandığını; süre sonunda hangi yöntemle silineceğini, yok edileceğini veya anonim hâle getirileceğini gösterir.",
@@ -8070,6 +8077,16 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             key: "Mobil uygulama yerel deposu (cihazda tutulan oturum, sepet ve önbellek verisi)",
             value:
               "Kullanıcının uygulamadan çıkış yapmasına, uygulama verisini temizlemesine veya uygulamayı cihazdan kaldırmasına kadar. Bu veriler cihazda tutulur ve kullanıcı tarafından her zaman silinebilir.",
+          },
+          {
+            key: "fA'L yapay zekâ yorumu (içecek fotoğrafı, üretilen yorum ve kullanım kaydı)",
+            value:
+              "Fotoğraf ve üretilen yorum saklanmaz; fotoğraf yalnızca yorumun üretildiği istek süresince işlenir. Kullanım kaydı (yorumun istendiği gün, fincanın görülüp görülmediği ve model adı) günlük sınırın uygulanması için 90 gün saklanır ve ardından silinir.",
+          },
+          {
+            key: "Özellik bazlı açık rıza kayıtları (örneğin fA'L yapay zekâ yorumu onayı; rıza metninin sürümü, onay ve geri çekme zamanı)",
+            value:
+              "Rıza geçerli olduğu sürece saklanır; rızanın geri çekilmesi hâlinde, rızaya dayalı işlemin hukuka uygunluğunun ispatı amacıyla geri çekme tarihinden itibaren 3 yıl saklanır ve ardından silinir.",
           },
           {
             key: "Yaklaşık konum verisi (kullanıcı izin verirse)",
@@ -11417,9 +11434,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "17. Davet (Arkadaşını Getir)",
         paragraphs: [
           "Katılımcı, Uygulama'daki kişisel davet kodunu paylaşarak yeni bir üyeyi davet edebilir. Davet kodu yalnızca hiç siparişi olmayan bir hesap tarafından kullanılabilir; kimse kendi kodunu kullanamaz.",
-          "Davet edilen üyenin ilk ödenmiş siparişinin ardından hem davet edene hem davet edilene birer ücretsiz içecek kuponu tanımlanır. Bu kuponlar, işbu Kuralların 10. maddesindeki koşullara tabidir ve yalnızca kafe siparişlerinde kullanılabilir.",
+          "Davet edilen üyenin, ödenen tutarı en az 150 TL olan ilk ödenmiş kafe siparişinin ardından hem davet edene hem davet edilene birer ücretsiz içecek kuponu tanımlanır. Mağaza (kargo) siparişleri ve ödenen tutarı 150 TL'nin altında kalan kafe siparişleri davet ödülü doğurmaz; davet, koşulu sağlayan ilk kafe siparişine kadar açık kalır. Bu kuponlar, işbu Kuralların 10. maddesindeki koşullara tabidir ve yalnızca kafe siparişlerinde kullanılabilir.",
           "Davet ödülü damga değildir; kart bakiyesini etkilemez.",
-          "Şirket, davet ödülü için kişi başına bir üst sınır belirleyebilir; sınır dolduğunda yeni davetler kupon doğurmaz, davet kaydı yine de görüntülenir.",
+          "Davet eden Katılımcı en fazla beş davet için ödül alır. Bu sınırdan sonra davet edilen yeni üye kendi ödülünü almaya devam eder, davet edene yeni kupon tanımlanmaz; davet kaydı yine de görüntülenir. Şirket bu sınırı ileriye etkili olarak değiştirebilir.",
         ],
       },
       {

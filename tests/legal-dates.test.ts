@@ -49,6 +49,8 @@ describe("legal document dates", () => {
       // Karar 177: fA'L's AI reading - the R12 consent and its aydınlatma.
       "acik-riza-metni": "23 Eylül 2026",
       "kvkk-aydinlatma-metni": "23 Eylül 2026",
+      "gizlilik-politikasi": "23 Eylül 2026",
+      "veri-saklama-ve-imha-politikasi": "23 Eylül 2026",
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);
