@@ -353,3 +353,72 @@ describe("the app's retired green does not paint the site", () => {
     );
   });
 });
+
+/**
+ * The PWA manifest icons double as the JSON-LD logo (structured-data.ts), so
+ * they are the brand's face in the install prompt, the launcher and search
+ * results. They kept the retired espresso "L" on cream for weeks after the
+ * site moved on, because nothing looked at their pixels. This does:
+ * scripts/gen-icons.mjs draws them, and these assertions hold the result to
+ * the site palette (O26 default (a): --brand ground, --hero-cream mark) and
+ * to the maskable safe zone.
+ */
+describe("the PWA and JSON-LD icons are drawn on the site palette", () => {
+  const GROUND = [0x14, 0x3d, 0x2b] as const; // --brand #143d2b
+  const CREAM = [0xfa, 0xf6, 0xee] as const; // --hero-cream #faf6ee
+
+  async function pixels(file: string) {
+    const { default: sharp } = await import("sharp");
+    const { data, info } = await sharp(join(process.cwd(), "public", file))
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    return { data, width: info.width, height: info.height };
+  }
+
+  const near = (
+    data: Buffer,
+    i: number,
+    [r, g, b]: readonly [number, number, number],
+    tolerance = 2,
+  ) =>
+    Math.abs(data[i] - r) <= tolerance &&
+    Math.abs(data[i + 1] - g) <= tolerance &&
+    Math.abs(data[i + 2] - b) <= tolerance;
+
+  for (const size of [192, 512]) {
+    it(`icon-${size}.png: cream monogram on --brand, inside the safe zone`, async () => {
+      const { data, width, height } = await pixels(`icon-${size}.png`);
+      expect([width, height]).toEqual([size, size]);
+
+      let cream = 0;
+      let outside = 0;
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const i = (y * size + x) * 3;
+          if (near(data, i, CREAM, 6)) cream++;
+          if (near(data, i, GROUND)) continue;
+          // Anything that is not ground is the mark; a maskable launcher
+          // keeps only the centred circle of radius 0.4 * size.
+          const r = Math.hypot(x + 0.5 - size / 2, y + 0.5 - size / 2);
+          if (r > size * 0.4) outside++;
+        }
+      }
+      // Full-bleed ground: all four corners are the house green.
+      for (const [x, y] of [
+        [0, 0],
+        [size - 1, 0],
+        [0, size - 1],
+        [size - 1, size - 1],
+      ]) {
+        expect(near(data, (y * size + x) * 3, GROUND), `corner ${x},${y}`).toBe(
+          true,
+        );
+      }
+      expect(outside, "mark pixels outside the maskable safe zone").toBe(0);
+      // The letters are really there, and really cream (the retired icon
+      // was brown on cream, so it had no pixel near GROUND at all).
+      expect(cream / (size * size)).toBeGreaterThan(0.02);
+    });
+  }
+});
