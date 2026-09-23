@@ -51,7 +51,11 @@ zaten varsa o satır kullanılır (**tek üyelik**).
 > birlik döner: `{ ok: true, customer, user, supabaseUserId } | { ok: false, response }`
 > (route: `if (!auth.ok) return auth.response`). Kimlik hataları: **401** `unauthorized`
 > (başlık yok / bozuk / geçersiz / süresi dolmuş) · **403** `account_disabled` ·
-> **503** `auth_unavailable` (Supabase'e ulaşılamadı) · **503** `unavailable` (bu
+> **403** `email_unverified` (e-posta mevcut bir üyeye ait ve Supabase'de henüz
+> doğrulanmamış — kimlik katmanında, her kimlikli uçta) ·
+> **503** `auth_unavailable` (Supabase'e ulaşılamadı; Supabase'in **429**/**408**
+> yanıtı da buraya düşer, 23 Eyl 2026 — önceden 401'di ve uygulama üyeyi
+> çıkarıyordu) · **503** `unavailable` (bu
 > veritabanına ulaşılamadı). Ortak kodlar: **400** `invalid_json` (gövde JSON değil),
 > Zod reddi **400** `invalid_body` (sipariş/promo uçları) ya da `invalid_request`
 > (me/adres/davet/karaoke uçları); beklenmeyen hata **500** `internal`. Kimlik
@@ -293,6 +297,11 @@ Kurallar:
 >   köşk açık göründüğü hâlde her gel-al siparişi reddediliyordu.)
 > - `totalMinor === 0` (kupon toplamı sıfırladı) → sipariş sunucuda anında `paid`
 >   (`payment_transactions.provider = "free"`), `payment: null`.
+> - `clientOrderId` (opsiyonel, `/orders` ve `/orders/preview`): aynı üye aynı değerle
+>   tekrar gönderirse **aynı sipariş** döner, yenisi açılmaz; hâlâ `pending_payment` ise
+>   yeni bir ödeme oturumu açılır. POS o an açılamazsa tekrar da ilk deneme gibi **500**
+>   `internal` döner (23 Eyl 2026 — önceden 201 + `payment: null` dönüyor, uygulama ödenmemiş
+>   siparişi verilmiş sanıyordu); sonraki deneme yine aynı siparişi açar.
 > - `scheduledFor`: geçmiş (5 dk tolerans) ve 7 günden ileri → 400. `""`/`null` = en kısa sürede.
 > - Kafe + mağaza karışık sepet → 400 (teslimat türü ikisini birden karşılayamaz).
 > - Mağaza satırındaki `note` (öğütüm) `items[].detail` alanında taşınır.
@@ -395,7 +404,9 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
 `{ "lines": [ { "name", "detail", "qty", "unitPriceMinor", "lineTotalMinor" } ], "subtotalMinor", "discountMinor", "shippingMinor", "totalMinor", "promo": { "code", "ok": true } | { "code", "ok": false, "message" } | null, "stampsToEarn": 1 }`
 
 > **Uygulama notu (preview).** `promoCode` verilmişse `promo-preview` hız sınırı burada da
-> uygulanır (**429** `rate_limited` + `Retry-After`). Mağaza satırlarında stok kontrolü
+> uygulanır; sınıra takılan istek **429 dönmez** — yanıt 200'dür ve `promo`
+> `{ "code", "ok": false, "message": "Çok fazla deneme. N saniye sonra tekrar dene." }`
+> olur (sepet hesabı hız sınırı yüzünden düşmesin diye). Mağaza satırlarında stok kontrolü
 > yapılır ama stok **ayrılmaz**. `stampsToEarn` kafe sepetinde 1, mağazada 0.
 
 ## 4. `GET /me` · `PATCH /me` (kimlik gerekli)
@@ -447,8 +458,8 @@ Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği
 ## 5. Sadakat
 
 - `POST /loyalty/redeem` → `stampTarget` damga (varsayılan 6) → **ücretsiz içecek kuponu** (`customer_coupons`, `source: "loyalty"`, `kind: "fixed"`, `value: loyalty.rewardValueMinor` (28000), `title: loyalty.rewardTitle` ("Ücretsiz içecek"), `loyalty.rewardTtlDays` gün (90)). Dördü de `/admin/mobil/ayarlar` → Sadakat'tan (§10 `settings.mobileApp.loyalty`); `stampTarget` ve `rewardTitle` uygulamaya `bootstrap.app.loyalty` ile de gider, kupon değeri/süresi sunucuda kalır. Yanıt `{ "coupon": { "code", "title", "expiresAt" }, "loyalty": { … } }`. Damga yoksa **409** `not_enough_stamps`.
-- `GET /coupons` → `{ "coupons": [ { "id", "code", "title", "body", "kind", "value", "minSpendMinor", "expiresAt", "usedAt" } ] }` (mevcut `listCustomerCoupons`).
-- `POST /promo/preview { "code", "subtotalMinor" }` → `{ "ok": true, "code", "discountMinor" } | { "ok": false, "message" }` (mevcut `previewPromoAction` mantığı; hız sınırı `promo-preview`).
+- `GET /coupons` → `{ "coupons": [ { "id", "code", "title", "body", "kind", "value", "minSpendMinor", "expiresAt", "usedAt", "cafeOnly" } ] }` (mevcut `listCustomerCoupons`). `cafeOnly: boolean` (23 Eyl 2026, yalnız ekleme): `true` ise kupon yalnız kafe sepetinde geçer (sadakat ve davet kuponları); mağaza sepetinde sunucu `CAFE_ONLY_COUPON_MESSAGE` ile reddeder. Uygulama bu alanı zaten okuyordu; sunucu göndermediği için hep `false` görünüyordu.
+- `POST /promo/preview { "code", "subtotalMinor", "kind"? }` → `{ "ok": true, "code", "discountMinor" } | { "ok": false, "code", "message" }` (mevcut `previewPromoAction` mantığı; hız sınırı `promo-preview`). `kind` (`"cafe" | "shop"`, opsiyonel): verilmezse kafe-yalnız kupon **geçmez** sayılır — söz verip kasada düşürmek yerine.
 - Davet: `POST /invite/claim { "code" }` (kimlik gerekli; yalnız hiç siparişi olmayan hesap) → `{ "ok": true }`. Davet eden, davetlinin **ilk ödenmiş siparişinde** +1 ücretsiz içecek kuponu alır; davetli de ilk siparişinde alır (`invites` tablosu: `code, inviterEmail, inviteeEmail, status: pending|joined|rewarded, createdAt, rewardedAt`).
 
 > **Uygulama notu (§5).** `/loyalty/redeem` kupon `expiresAt` boşsa `null`; damga bakiyesi her
@@ -472,7 +483,8 @@ Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği
 ```
 
 Kaynak: `venue_status` tablosu (tek satır `main`), `/admin/mobil/canli-durum` panelinden düzenlenir; `isOpen` = `manualOverride` (`"auto" | "open" | "closed"`) + `settings.weeklyHours`.
-Cache: `public, s-maxage=30, stale-while-revalidate=120`.
+Cache: `public, s-maxage=30` — `stale-while-revalidate` **yok**: panel personele "uygulama
+30 saniyede görür" diyor, iki dakikalık SWR penceresi bunu yalan yapıyordu.
 
 > **Uygulama notu (§6).** Saat mantığı Europe/Istanbul; `09:00 - 01:00` gece yarısından sonra
 > önceki günün kuyruğu olarak **açık** sayılır. DB ulaşılamazsa uydurma "açık" dönmez, **503**.
@@ -485,6 +497,8 @@ Cache: `public, s-maxage=30, stale-while-revalidate=120`.
 - **409 `too_many_reservations`**: aynı anda en fazla **2** açık (`requested`/`confirmed`)
   rezervasyon (`KARAOKE_OPEN_CAP`). `slot_taken` gibi bu da kurala dayalı bir ret;
   uygulama sunucunun mesajını gösterir, tekrar denemeyi önermez.
+- **403 `email_unverified`**: e-postası doğrulanmamış üye rezervasyon yapamaz
+  (sipariş kuralıyla aynı; web `/karaoke` formu da aynı kuralı uygular).
 
 > **Uygulama notu (§7).** `date` verilmezse İstanbul'a göre bugün; biçim bozuksa 400
 > `invalid_request`. Kurallar (varsayılanlar parantezde, tümü panelden değişir):

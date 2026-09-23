@@ -230,6 +230,7 @@ describe("toMeCoupon", () => {
       minSpendMinor: 0,
       expiresAt: null,
       usedAt: null,
+      cafeOnly: true,
     });
     expect(
       toMeCoupon({
@@ -241,6 +242,15 @@ describe("toMeCoupon", () => {
       expiresAt: "2026-11-01T00:00:00.000Z",
       usedAt: "2026-09-01T00:00:00.000Z",
     });
+  });
+
+  it("says which coupons only a cafe basket can spend (the app reads it)", () => {
+    // lafmobil http.ts reads `c.cafeOnly === true` for the "Yalnızca kafe
+    // siparişlerinde" label; the server used to omit it, so it was never shown.
+    expect(toMeCoupon(coupon).cafeOnly).toBe(true);
+    expect(toMeCoupon({ ...coupon, source: "invite" }).cafeOnly).toBe(true);
+    expect(toMeCoupon({ ...coupon, source: "welcome" }).cafeOnly).toBe(false);
+    expect(toMeCoupon({ ...coupon, source: "manual" }).cafeOnly).toBe(false);
   });
 
   it("body describes pct coupons with their minimum", () => {

@@ -10,7 +10,10 @@ import type {
   NotificationPrefs,
   PublicCustomer,
 } from "@/lib/customer/store";
-import type { CustomerCoupon } from "@/lib/customer/coupon-utils";
+import {
+  isCafeOnlyCoupon,
+  type CustomerCoupon,
+} from "@/lib/customer/coupon-utils";
 
 import type { LoyaltyView } from "./loyalty-core";
 
@@ -196,6 +199,13 @@ export interface MeCoupon {
   minSpendMinor: number;
   expiresAt: string | null;
   usedAt: string | null;
+  /**
+   * Spendable only on a cafe basket (loyalty and invite free-drink coupons).
+   * The app has read this since the coupon screens shipped — "Yalnızca kafe
+   * siparişlerinde" — but the server never sent it, so the label never showed
+   * and members tried the coupon on a shop basket, where the till refused it.
+   */
+  cafeOnly: boolean;
 }
 
 function formatLira(minor: number): string {
@@ -229,5 +239,6 @@ export function toMeCoupon(c: CustomerCoupon): MeCoupon {
     minSpendMinor: c.minSubtotalMinor,
     expiresAt: c.expiresAt || null,
     usedAt: c.redeemedAt || null,
+    cafeOnly: isCafeOnlyCoupon(c),
   };
 }
