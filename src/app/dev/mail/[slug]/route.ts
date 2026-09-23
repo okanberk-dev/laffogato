@@ -8,16 +8,18 @@ import {
 import { EMAIL_TEXT } from "@/lib/email/text";
 
 /**
- * `/dev/mail/<slug>` — one template, rendered with stand-in values.
+ * `/dev/mail/<slug>` - one template, rendered with stand-in values.
  *
  * E-mail is the one surface with no staging: the first time a template is seen
  * in an inbox is usually the first time it is seen at all. This serves each one
  * as a plain document so it can be opened in a browser, resized, and forwarded
  * to Litmus or a real address before anything ships.
  *
- * Development only — it renders commercial mail without a real consent record,
+ * Development only - it renders commercial mail without a real consent record,
  * which must never be reachable in production. `?format=text` shows the
- * plain-text half instead.
+ * plain-text half instead. The order notices' event flags have switches of
+ * their own: `?odeme=yok` shows the cancellation of an unpaid order,
+ * `?kart=0` a refund booked without a POS.
  */
 
 const SAMPLE: Record<string, string> = {
@@ -28,7 +30,7 @@ const SAMPLE: Record<string, string> = {
   ARA_TOPLAM: "355,00 ₺",
   KARGO: "49,00 ₺",
   TOPLAM: "404,00 ₺",
-  KALEMLER: "  • Affogato Classico × 2 — 260,00 ₺",
+  KALEMLER: "  • Affogato Classico × 2 - 260,00 ₺",
   BELGELER: "- Ön Bilgilendirme Formu: https://laffogato.net/hukuk/…",
   DAMGA_HEDEFI: "6",
   ODUL_BASLIGI: "Bir içecek bizden",
@@ -50,12 +52,12 @@ const SAMPLE: Record<string, string> = {
   KAMPANYA_VURGU: "Her matcha içeceğinde 2 damga",
   KAMPANYA_GORSEL_URL: "https://laffogato.net/opengraph-image",
   KAMPANYA_GORSEL_ALT: "Waffle kupada affogato, köşkün bahçesinde",
-  KAMPANYA_TARIH: "17 – 19 Ekim 2026",
+  KAMPANYA_TARIH: "17 - 19 Ekim 2026",
   KAMPANYA_DIPNOT:
     "Kampanya stoklarla sınırlıdır; başka bir indirimle birleştirilemez.",
   ETKINLIK_YER: "Köşk bahçesi",
   ETKINLIK_TARIH: "12 Eylül 2026, Cumartesi",
-  ETKINLIK_SAAT: "15:00 – 19:00",
+  ETKINLIK_SAAT: "15:00 - 19:00",
   ADIM_1_BASLIK: "Uygulamayı açın",
   ADIM_1_METIN: "Kampanyalar sekmesinde ikramınızı görün.",
   ADIM_2_BASLIK: "Kasada telefonunuzu okutun",
@@ -73,6 +75,13 @@ const SAMPLE: Record<string, string> = {
   URUN_3_AD: "Sirena Espresso 250 g",
   URUN_3_NOT: "Ev harmanı, haftalık kavrum.",
   URUN_3_FIYAT: "320,00 ₺",
+  // The order notices. The carrier's page is filled so the preview shows the
+  // link; drop it to see the line fold away.
+  TAKIP_NO: "YK123456789TR",
+  KARGO_FIRMASI: "Yurtiçi Kargo",
+  TAKIP_URL: "https://kargo.example/takip/YK123456789TR",
+  IADE_TUTARI: "95,00 ₺",
+  TOPLAM_IADE: "95,00 ₺",
 };
 
 const ITEMS = [
@@ -98,16 +107,22 @@ export async function GET(
   }
 
   const name = slug as EmailTemplateName;
+  const query = new URL(request.url).searchParams;
   const rendered = renderEmail(name, {
     vars: SAMPLE,
     loops: { ITEMS },
     text: EMAIL_TEXT[name],
+    flags: {
+      ODEME_ALINDI: query.get("odeme") !== "yok",
+      ODEME_YOK: query.get("odeme") === "yok",
+      KARTA_IADE: query.get("kart") !== "0",
+    },
     ...(template.commercial
       ? { unsubscribeUrl: "https://laffogato.net/bulten/cikis?token=ornek" }
       : {}),
   });
 
-  const wantsText = new URL(request.url).searchParams.get("format") === "text";
+  const wantsText = query.get("format") === "text";
 
   return new NextResponse(wantsText ? rendered.text : rendered.html, {
     headers: {

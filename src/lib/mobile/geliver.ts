@@ -197,6 +197,20 @@ export function shipmentUpdateFrom(body: GeliverEvent): ShipmentUpdate | null {
 }
 
 /**
+ * Has the carrier taken the parcel? The moment the legal texts tie the
+ * tracking-number mail to ("ürün taşıyıcıya teslim edildiğinde").
+ *
+ * `preparing` is not it: TRACKING_CODE_CREATED and LABEL_PRINTED mean a
+ * number exists and a label is on the box, while the box is still on the
+ * köşk's bench. `delivered` is not it either - a "your parcel is on its
+ * way" mail after the parcel arrived would be news from the past - and the
+ * returned and failed endings are the opposite of a hand-over.
+ */
+export function isHandedOver(status: string): boolean {
+  return status === "shipped" || status === "in_transit";
+}
+
+/**
  * Is this event OLDER than what the row already holds?
  *
  * Webhooks are not delivered in order — a retried SHIPPED can arrive after

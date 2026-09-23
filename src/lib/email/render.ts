@@ -43,6 +43,13 @@ export interface RenderInput {
    * asymmetry is the law's, not a preference (see `send.ts`).
    */
   unsubscribeUrl?: string;
+  /**
+   * Sections whose switch is a fact about the event rather than a field of
+   * it: was the cancelled order paid, did the refund go back to a card. The
+   * field-derived flags below win over these, so a caller can never open a
+   * block whose fields it did not fill.
+   */
+  flags?: Record<string, boolean>;
 }
 
 /**
@@ -94,6 +101,7 @@ export function renderEmail(
   };
 
   const flags = {
+    ...(input.flags ?? {}),
     // The app is not listed yet; without both links the strip is dropped
     // rather than shipped with buttons that go nowhere.
     APP_LINKS: hasAppLinks(),
@@ -110,6 +118,11 @@ export function renderEmail(
     TARIH: Boolean(vars.KAMPANYA_TARIH),
     DIPNOT: Boolean(vars.KAMPANYA_DIPNOT),
     VURGU: Boolean(vars.KAMPANYA_VURGU),
+    // Order notices: the carrier's page and name only when there is one.
+    // The panel's shipping form takes no URL, and a Geliver event carries no
+    // carrier name, so either can be missing on a real parcel.
+    TAKIP_LINKI: Boolean(vars.TAKIP_URL),
+    FIRMA: Boolean(vars.KARGO_FIRMASI),
   };
 
   const html = fill(template.html, { vars, loops: input.loops, flags });

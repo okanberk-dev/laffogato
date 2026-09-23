@@ -169,6 +169,75 @@ saklamanız için:
 
 ${SIGNATURE}`,
 
+  // ── Order notices ───────────────────────────────────────────────────────
+  //
+  // The three mails the legal texts promise after the order: the tracking
+  // number at hand-over, the seller's cancellation, the refund. Transactional
+  // and nothing else - no app strip, no offer - so the foot is the short one.
+
+  "siparis-kargoda": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
+
+#[SIPARIS_NO] numaralı siparişiniz kargoya verildi.
+
+Kargo takip numarası: [TAKIP_NO]
+<!--IF:FIRMA-->Taşıyıcı: [KARGO_FIRMASI]
+<!--/IF:FIRMA--><!--IF:TAKIP_LINKI-->Kargo takip sayfası: [TAKIP_URL]
+<!--/IF:TAKIP_LINKI-->
+Takip numarası taşıyıcının sistemine işlendikten sonra sorgulanabilir; bu
+birkaç saat sürebilir.
+
+Siparişiniz: [SIPARIS_URL]
+
+Tahminî teslim süresi teslimat bölgenize göre değişir; güncel tablo:
+https://laffogato.net/hukuk/teslimat-ve-kargo
+
+Paketi teslim alırken görevlinin yanında kontrol edin: ezilme, ıslanma ya
+da açılmış bant görürseniz teslim almadan tutanak tutturun ve bizi arayın:
++90 536 429 09 19
+
+${SIGNATURE}`,
+
+  "siparis-iptal": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
+
+#[SIPARIS_NO] numaralı siparişiniz iptal edildi.
+
+[KALEMLER]
+
+Sipariş toplamı: [TOPLAM]
+<!--IF:ODEME_ALINDI-->
+Bu sipariş için ödemeniz alınmıştı. Ödediğiniz tutar, ödemede kullandığınız
+ödeme aracına iade edilir; iade yapıldığında size ayrıca e-posta
+göndeririz. Tutarın hesabınıza yansıma süresi bankanıza bağlıdır.
+<!--/IF:ODEME_ALINDI--><!--IF:ODEME_YOK-->
+Kayıtlarımızda bu sipariş için alınmış bir ödeme görünmüyor. Bankanız
+kartınıza bir ön provizyon (bloke) uyguladıysa, çözülme süresi bankanıza
+bağlıdır.
+<!--/IF:ODEME_YOK-->
+Siparişiniz: [SIPARIS_URL]
+
+Bir yanlışlık olduğunu düşünüyorsanız bizi arayın: +90 536 429 09 19
+
+${SIGNATURE}`,
+
+  "siparis-iade": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
+
+#[SIPARIS_NO] numaralı siparişiniz için [IADE_TUTARI] tutarında iade yaptık.
+
+Bu iade: [IADE_TUTARI]
+Bugüne kadar iade edilen: [TOPLAM_IADE]
+Sipariş toplamı: [TOPLAM]
+<!--IF:KARTA_IADE-->
+İade, ödemede kullandığınız karta yapıldı. Tutarın kart ekstrenize ya da
+hesabınıza yansıma süresi bankanıza bağlıdır; taksitli ödemelerde bankanız
+iadeyi taksitler hâlinde yansıtabilir.
+<!--/IF:KARTA_IADE-->
+Siparişiniz: [SIPARIS_URL]
+
+Tutar hesabınıza yansımazsa sipariş numaranızla bizi arayın:
++90 536 429 09 19
+
+${SIGNATURE}`,
+
   "hos-geldin": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
 L'Affogato'ya hoş geldiniz. Yenilebilir waffle kupada Sirena espresso ve

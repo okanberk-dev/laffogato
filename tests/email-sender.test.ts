@@ -186,3 +186,64 @@ describe("sendTestEmail", () => {
     expect(result.ok).toBe(false);
   });
 });
+
+describe("order notices", () => {
+  function stubResend() {
+    process.env.RESEND_API_KEY = "re_test";
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ id: "1" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  it("posts the tracking mail with the provider idempotency key and no way out", async () => {
+    const fetchMock = stubResend();
+    const { sendOrderShippedEmail } = await load();
+    const result = await sendOrderShippedEmail(
+      {
+        to: "eda@example.com",
+        customerName: "Eda",
+        orderNo: 1042,
+        trackingNumber: "YK123456789TR",
+        carrier: "Yurtiçi Kargo",
+        // Not https: never printed into an href.
+        trackingUrl: "http://kargo.example/t/1",
+      },
+      "order-ord-1-shipped:abc",
+    );
+    expect(result.ok).toBe(true);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers["Idempotency-Key"]).toBe("order-ord-1-shipped:abc");
+    const body = JSON.parse(init.body as string);
+    expect(body.subject).toBe("L'Affogato - Siparişiniz kargoya verildi (#1042)");
+    expect(body.html).toContain("YK123456789TR");
+    expect(body.html).not.toContain("kargo.example");
+    expect(body.text).toContain("/uye/hesap/siparislerim/1042");
+    // Transactional: no List-Unsubscribe pair.
+    expect(body.headers).toBeUndefined();
+  });
+
+  it("hands the provider's refusal back, so the notice can release its claim", async () => {
+    process.env.RESEND_API_KEY = "re_test";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ message: "rate limited" }), {
+          status: 429,
+        }),
+      ),
+    );
+    const { sendOrderRefundedEmail } = await load();
+    const result = await sendOrderRefundedEmail({
+      to: "eda@example.com",
+      customerName: "",
+      orderNo: 7,
+      refundMinor: 10_000,
+      refundedTotalMinor: 10_000,
+      totalMinor: 45_000,
+      viaCard: true,
+    });
+    expect(result).toEqual({ ok: false, error: "rate limited" });
+  });
+});

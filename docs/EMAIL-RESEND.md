@@ -209,7 +209,7 @@ Site URL'nin `https://laffogato.net` olması gerekir; site oraya
 
 ## 5. Mesajın kendisi — şablonlar
 
-Sitenin gönderdiği on sekiz mesajın markup'ı `src/lib/email/templates/*.html`
+Sitenin gönderdiği yirmi iki mesajın markup'ı `src/lib/email/templates/*.html`
 içinde durur; `send.ts` yalnızca alanları doldurur. Şablon dili, alan
 listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
 `README.md`'sinde.
@@ -220,10 +220,10 @@ listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
 | `templates.generated.ts` | derlenmiş string haritası — **commit'lenir**, elle düzenlenmez                                                                        |
 | `public/email/**`        | şablonların çağırdığı görseller (logo, bant, damga, ikon) — `https://laffogato.net/email/…` ile mutlak                                |
 | `fill.ts`                | `[ALAN]`, `<!--IF:-->`, `<!--EACH:-->` ve HTML kaçışlama                                                                              |
-| `render.ts`              | şablon + değer → `{subject, html, text}` + 6563 kontrolü + bayraklar (`AD`, `APP_LINKS`, `GORSEL`, `KOD`, `TARIH`, `DIPNOT`, `VURGU`) |
+| `render.ts`              | şablon + değer → `{subject, html, text}` + 6563 kontrolü + bayraklar (`AD`, `APP_LINKS`, `GORSEL`, `KOD`, `TARIH`, `DIPNOT`, `VURGU`, `TAKIP_LINKI`, `FIRMA`; çağırandan `ODEME_ALINDI` / `ODEME_YOK` / `KARTA_IADE`) |
 | `text.ts`                | her mesajın düz metin yarısı                                                                                                          |
 
-On sekiz şablon — her satırda **tetikleyici · izin sınıfı · idempotency**:
+Yirmi iki şablon - her satırda **tetikleyici · izin sınıfı · idempotency**:
 
 | Şablon                                 | Tür               | Tetikleyici · idempotency                                                       |
 | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -231,6 +231,9 @@ On sekiz şablon — her satırda **tetikleyici · izin sınıfı · idempotency
 | `sifre-sifirlama`                      | işlemsel          | sitede "şifremi unuttum"                                                        |
 | `siparis-alindi`                       | işlemsel          | sipariş oluşturuldu (`odeme/actions.ts`, mobil `orders.ts`) · sipariş satırı    |
 | `odeme-onaylandi`                      | işlemsel          | ödeme onaylandı (`admin/store.ts`) · ödeme durumu geçişi                        |
+| `siparis-kargoda`                      | işlemsel          | panelin kargo formu, "Kargoya ver", Geliver'ın teslim olayı · `order_notice_emails` (sipariş, `shipped:<numara özeti>`) |
+| `siparis-iptal`                        | işlemsel          | `transitionOrder` iptali (toplu iptal de oradan geçer) · (sipariş, `cancelled`) |
+| `siparis-iade`                         | işlemsel          | panel iadesi (`finalizeRefund`), sağlayıcı iadesi (`recordProviderRefund`) · (sipariş, `refund:<iade id>`) |
 | `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, **çağıran yok**                                       |
 | `karaoke-rezervasyon`                  | işlemsel          | personel panelden onayladı (`setReservationStatus`) · durum geçişi bir kez olur |
 | `karaoke-iptal`                        | işlemsel          | personel panelden iptal etti (`setReservationStatus`) · aynı geçiş kilidi       |
@@ -249,13 +252,27 @@ hazır; `sendAppAnnouncementEmail` çağıransız ve panelin şablon listesinde
 bağımlılığının çözülmesi — `renderCampaign` senkrondur, `stampTarget()`
 değil. Uygulama mağazalara çıkmadan önce yapılmalı.
 
+**Sipariş bildirimleri (23 Eyl 2026).** Hukuki metinler üç e-posta söz
+veriyordu, hiçbiri gitmiyordu: taşıyıcıya teslimde kargo takip numarası
+(Teslimat ve Kargo Politikası m.15), satıcının iptali ve geri ödeme.
+Kimin ne zaman alacağı `src/lib/email/order-notices.ts`'te: yalnız mağaza
+siparişi (kafe siparişi, gel-al ya da kurye, hiçbirini almaz), gerçek bir
+adres (misafir ve kapatılmış hesap almaz); kargo e-postası ayrıca takip
+numarası ve ödenmiş, geri alınmamış bir sipariş ister. Her bildirim önce
+`order_notice_emails`'te (sipariş, tür) satırını **talep eder**; ikinci talep
+23505 alır ve göndermez, yani tekrar eden Geliver olayı, iki kez kaydedilen
+form ya da sağlayıcının yeniden bildirdiği iade ikinci bir e-posta
+doğurmaz. Başarısız gönderim talebi bırakır (bir sonraki tetik yeniden
+dener); Resend'e `order-<sipariş>-<tür>` idempotency anahtarı da gider.
+Fatura/e-arşiv e-postası bu işin dışında: avukat ve e-arşiv kararı bekliyor.
+
 Şablon değiştirdikten sonra `npm run email:build` (ya da `npm run build` /
 `npm run dev` — ikisi de kendiliğinden çalıştırır). Tarayıcıda görmek için
 geliştirmede `/dev/mail/<dosya-adi>`.
 
 **6563 ayrımı koda gömülü:** on ticari şablon — `bulten-kampanya`,
 `mobil-uygulama`, `dogum-gunu` ve yedi `kampanya-*` — çıkış bağlantısı
-olmadan derlenmez; kalan sekiz işlemsel mesaja çıkış bağlantısı konulamaz.
+olmadan derlenmez; kalan on iki işlemsel mesaja çıkış bağlantısı konulamaz.
 `renderEmail` ikisini de reddeder, `tests/email-templates.test.ts` ikisini de
 kilitler. Çıkış bağlantısı `unsubscribeUrlFor(token)` →
 `/api/bulten/cikis?token=…`: mail istemcisinin RFC 8058 tek tık POST'u
@@ -268,7 +285,7 @@ notunun soluk rengi); düz metin ikizinde `COMMERCIAL_FOOTER`'ın ilk satırı.
 Ticari İletişim Yönetmeliği m.8/1 tacirin ticari elektronik iletisinin
 içeriğinde ticaret unvanını ve MERSİS numarasını arar (m.6'nın "adı veya
 unvanı"nı imza zaten karşılıyordu). Değerler `LEGAL_ENTITY`'den
-`commonVars` ile gelir, şablona yazılmaz; işlemsel sekiz mesajın ayağı kısa
+`commonVars` ile gelir, şablona yazılmaz; işlemsel on iki mesajın ayağı kısa
 kalır. Test: `%s names the sender's title and MERSİS in both halves`.
 
 **Kampanya ailesi:** yedi `kampanya-*` şablonu tek alan sözlüğü paylaşır

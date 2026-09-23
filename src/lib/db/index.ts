@@ -252,4 +252,5 @@ export const TABLES = {
   campaignEmailSends: "campaign_email_sends",
   emailSuppressions: "email_suppressions",
   customerConsents: "customer_consents",
+  orderNoticeEmails: "order_notice_emails",
 } as const;

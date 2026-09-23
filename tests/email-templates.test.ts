@@ -13,7 +13,7 @@ import { EMAIL_TEXT } from "@/lib/email/text";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 
 /**
- * The eighteen designed messages, and the three things that must never reach
+ * The twenty-two designed messages, and the three things that must never reach
  * an inbox: an unfilled `[FIELD]`, an unsubscribe link on transactional mail
  * (or its absence on commercial mail), and a button pointing at nothing.
  *
@@ -73,9 +73,14 @@ function renderWith(
   });
 }
 
-describe("the nineteen templates render", () => {
-  it("ships exactly the nineteen designed messages", () => {
-    expect(NAMES).toHaveLength(19);
+describe("the twenty-two templates render", () => {
+  it("ships exactly the twenty-two designed messages", () => {
+    expect(NAMES).toHaveLength(22);
+    // The order notices the legal texts promise: the tracking number at
+    // hand-over, the seller's cancellation, the refund.
+    expect(NAMES).toContain("siparis-kargoda");
+    expect(NAMES).toContain("siparis-iptal");
+    expect(NAMES).toContain("siparis-iade");
     // The double opt-in request (6563): the footer form no longer subscribes
     // an address until its owner confirms from this mail.
     expect(NAMES).toContain("bulten-onay");
@@ -433,6 +438,134 @@ describe("the committed build matches its sources", () => {
       const title = html.match(/<title>([\s\S]*?)<\/title>/)?.[1] ?? "";
       expect(title, name).toBe(EMAIL_TEMPLATES[name].subject);
     }
+  });
+});
+
+describe("the order notices say what happened, and nothing else", () => {
+  const NOTICES = ["siparis-kargoda", "siparis-iptal", "siparis-iade"] as const;
+
+  it.each(NOTICES)("%s is transactional and carries nothing promotional", (name) => {
+    const t = EMAIL_TEMPLATES[name];
+    expect(t.commercial).toBe(false);
+    // No app strip and no social line: a notice about somebody's parcel or
+    // money is not the place to advertise, and doing so would make it a
+    // commercial message under 6563.
+    expect(t.html).not.toContain("APP_LINKS");
+    expect(t.html).not.toContain("instagram.com");
+    expect(EMAIL_TEXT[name]).not.toContain("App Store");
+  });
+
+  const orderVars = {
+    AD: "Eda",
+    SIPARIS_NO: "1042",
+    SIPARIS_URL: "https://laffogato.net/uye/hesap/siparislerim/1042",
+  };
+
+  it("gives the tracking number in both halves, and the carrier's page only when there is one", () => {
+    const base = { ...orderVars, TAKIP_NO: "YK123456789TR", KARGO_FIRMASI: "Yurtiçi Kargo" };
+    const without = renderEmail("siparis-kargoda", {
+      vars: { ...base, TAKIP_URL: "" },
+      text: EMAIL_TEXT["siparis-kargoda"],
+    });
+    for (const half of [without.html, without.text]) {
+      expect(half).toContain("YK123456789TR");
+      expect(half).toContain("Yurtiçi Kargo");
+      expect(half).not.toContain("kargo takip sayfası");
+      expect(half).toContain("/hukuk/teslimat-ve-kargo");
+    }
+    expect(without.subject).toBe(
+      "L'Affogato - Siparişiniz kargoya verildi (#1042)",
+    );
+
+    const withPage = renderEmail("siparis-kargoda", {
+      vars: { ...base, TAKIP_URL: "https://kargo.example/t/YK123456789TR" },
+      text: EMAIL_TEXT["siparis-kargoda"],
+    });
+    expect(withPage.html).toContain('href="https://kargo.example/t/YK123456789TR"');
+    expect(withPage.text).toContain("https://kargo.example/t/YK123456789TR");
+  });
+
+  it("leaves the carrier line out rather than printing an empty one", () => {
+    const r = renderEmail("siparis-kargoda", {
+      vars: { ...orderVars, TAKIP_NO: "1", KARGO_FIRMASI: "", TAKIP_URL: "" },
+      text: EMAIL_TEXT["siparis-kargoda"],
+    });
+    expect(r.html).not.toContain("Taşıyıcı:");
+    expect(r.text).not.toContain("Taşıyıcı:");
+  });
+
+  const cancelVars = {
+    ...orderVars,
+    TOPLAM: "260,00 ₺",
+    ARA_TOPLAM: "260,00 ₺",
+    KARGO: "Ücretsiz",
+    KALEMLER: "  • Affogato Classico × 2 - 260,00 ₺",
+    BELGELER: "",
+  };
+  const cancel = (flags: Record<string, boolean>) =>
+    renderEmail("siparis-iptal", {
+      vars: cancelVars,
+      loops: { ITEMS: [{ URUN_AD: "Affogato Classico", URUN_ADET: "2", URUN_TUTAR: "260,00 ₺" }] },
+      text: EMAIL_TEXT["siparis-iptal"],
+      flags,
+    });
+
+  it("promises the refund on a paid cancellation, and only there", () => {
+    const paid = cancel({ ODEME_ALINDI: true, ODEME_YOK: false });
+    for (const half of [paid.html, paid.text]) {
+      expect(half).toContain("ödemeniz alınmıştı");
+      expect(half).not.toContain("görünmüyor");
+    }
+    const unpaid = cancel({ ODEME_ALINDI: false, ODEME_YOK: true });
+    for (const half of [unpaid.html, unpaid.text]) {
+      expect(half).toContain("görünmüyor");
+      expect(half).not.toContain("ödemeniz alınmıştı");
+    }
+    // The lookup failed: the mail does not guess about the card either way.
+    const unknown = cancel({});
+    for (const half of [unknown.html, unknown.text]) {
+      expect(half).not.toContain("ödemeniz alınmıştı");
+      expect(half).not.toContain("görünmüyor");
+    }
+    expect(paid.subject).toBe("L'Affogato - Siparişiniz iptal edildi (#1042)");
+  });
+
+  it("says the refund went to the card only when the POS sent it there", () => {
+    const vars = {
+      ...orderVars,
+      IADE_TUTARI: "100,00 ₺",
+      TOPLAM_IADE: "100,00 ₺",
+      TOPLAM: "260,00 ₺",
+    };
+    const card = renderEmail("siparis-iade", {
+      vars,
+      text: EMAIL_TEXT["siparis-iade"],
+      flags: { KARTA_IADE: true },
+    });
+    const byHand = renderEmail("siparis-iade", {
+      vars,
+      text: EMAIL_TEXT["siparis-iade"],
+      flags: { KARTA_IADE: false },
+    });
+    for (const half of [card.html, card.text]) {
+      expect(half).toContain("100,00 ₺");
+      expect(half).toContain("karta yapıldı");
+    }
+    for (const half of [byHand.html, byHand.text]) {
+      expect(half).toContain("100,00 ₺");
+      expect(half).not.toContain("karta");
+    }
+    expect(card.subject).toBe("L'Affogato - İadeniz yapıldı (#1042)");
+  });
+
+  it("never lets a caller's flag open a block whose field is empty", () => {
+    const r = renderEmail("siparis-kargoda", {
+      vars: { ...orderVars, TAKIP_NO: "1", KARGO_FIRMASI: "", TAKIP_URL: "" },
+      text: EMAIL_TEXT["siparis-kargoda"],
+      flags: { TAKIP_LINKI: true, FIRMA: true },
+    });
+    expect(r.html).not.toContain('href=""');
+    expect(r.text).not.toContain("Taşıyıcı:");
   });
 });
 

@@ -1,6 +1,6 @@
 # Mail şablonları
 
-On dokuz gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
+Yirmi iki gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
 stiller satır içi. E-posta tarafında JavaScript, harici CSS ve web fontu yok;
 `<style>` bloğu yalnızca satır içi stillere ek (mobil kırılma + koyu tema),
 tek başına gerekli değil.
@@ -21,6 +21,9 @@ kilitlediğine bak.
 | bulten-onay.html          | işlemsel          | L'Affogato - bülten aboneliğinizi onaylayın |
 | siparis-alindi.html       | işlemsel          | Siparişiniz alındı (#[SIPARIS_NO])          |
 | odeme-onaylandi.html      | işlemsel          | Ödemeniz onaylandı (#[SIPARIS_NO])          |
+| siparis-kargoda.html      | işlemsel          | Siparişiniz kargoya verildi (#[SIPARIS_NO]) |
+| siparis-iptal.html        | işlemsel          | Siparişiniz iptal edildi (#[SIPARIS_NO])    |
+| siparis-iade.html         | işlemsel          | İadeniz yapıldı (#[SIPARIS_NO])             |
 | hos-geldin.html           | ilişki            | L'Affogato'ya hoş geldiniz                  |
 | karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonunuz onaylandı           |
 | karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonunuz iptal edildi        |
@@ -37,8 +40,21 @@ kilitlediğine bak.
 | kampanya-indirim.html     | **ticari (6563)** | [KAMPANYA_BASLIK] - indirim                 |
 
 Ticari onlu `data-commercial="1"` taşır. `renderEmail` bu onu çıkış
-bağlantısı olmadan **derlemez**, işlemsel dokuza çıkış bağlantısı
+bağlantısı olmadan **derlemez**, işlemsel on ikiye çıkış bağlantısı
 **koydurmaz** - ikisi de `tests/email-templates.test.ts`'te kilitli.
+
+### Sipariş bildirimleri
+
+`siparis-kargoda`, `siparis-iptal` ve `siparis-iade` hukuki metinlerin söz
+verdiği üç e-postadır: taşıyıcıya teslimde kargo takip numarası, satıcının
+iptali ve geri ödeme. Üçü de yalnız işlemseldir: uygulama şeridi, sosyal
+medya satırı ya da teklif taşımaz. Kimin ne zaman alacağına
+`src/lib/email/order-notices.ts` karar verir (yalnız mağaza siparişi, gerçek
+bir adres; kafe siparişi hiçbirini almaz) ve her biri `order_notice_emails`
+tablosundaki bir satırla **bir kez** gider: (sipariş, tür) birincil
+anahtardır, tekrar eden bir Geliver olayı ya da ikinci kayıt 23505 alır ve
+hiçbir şey göndermez. Başarısız bir gönderim satırı bırakır, bir sonraki
+tetik yeniden dener.
 
 Konu satırı şablonun `data-subject`'idir ve `<title>` ile aynı olmak
 zorundadır; `data-preheader` ön izleme metnidir (kampanya ailesinde
@@ -90,6 +106,14 @@ Bayraklar `render.ts`'te hesaplanır; şablon yalnızca adını bilir:
 | `TARIH`     | `KAMPANYA_TARIH` dolu                   | `KAMPANYA_TARIH`                              |
 | `DIPNOT`    | `KAMPANYA_DIPNOT` dolu                  | `KAMPANYA_DIPNOT`                             |
 | `VURGU`     | `KAMPANYA_VURGU` dolu                   | `KAMPANYA_VURGU`                              |
+| `TAKIP_LINKI` | `TAKIP_URL` dolu (Geliver'ın sayfası) | `TAKIP_URL`                                   |
+| `FIRMA`     | `KARGO_FIRMASI` dolu                    | `KARGO_FIRMASI`                               |
+
+Üç bayrak alandan değil olaydan gelir ve çağıran verir
+(`RenderInput.flags`): `ODEME_ALINDI` / `ODEME_YOK` (iptal edilen siparişte
+ödeme alınmış mı; ikisi de kapalıysa e-posta ödeme hakkında hiçbir şey
+söylemez) ve `KARTA_IADE` (iade POS üzerinden karta mı döndü). Alandan gelen
+bayraklar çağıranınkini ezer; boş alanlı bir bölümü hiçbir çağıran açamaz.
 
 Bayrak kapalıysa bölüm, içindeki alanlarla birlikte düşer; `assertFilled`
 onları aramaz. Dolayısıyla isteğe bağlı bir alanı boş bırakmak serbesttir,
@@ -116,6 +140,8 @@ kampanya başlığını koyar.
 | `[URUN_n_*]`                                                                                                     | `bulten-kampanya` - çağıranın üç ürün seçkisi                                                             |
 | `[ABONELIK_CIKIS_URL]`                                                                                           | `unsubscribeUrlFor(token)` → `/api/bulten/cikis?token=` - `renderEmail` otomatik                          |
 | `[APP_STORE_URL]` `[PLAY_STORE_URL]`                                                                             | `src/lib/mobile/app-store.ts` (env)                                                                       |
+| `[TAKIP_NO]` `[KARGO_FIRMASI]` `[TAKIP_URL]`                                                                     | siparişin `trackingNumber` · `carrier` (panelin kargo formu) · `trackingUrl` (Geliver, yalnız https)      |
+| `[IADE_TUTARI]` `[TOPLAM_IADE]`                                                                                  | bu iade ve siparişteki iadelerin toplamı (`order.refunds`) · `formatTRYMinor`                             |
 
 ## Görseller
 

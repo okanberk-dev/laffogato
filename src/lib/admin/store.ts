@@ -1,5 +1,5 @@
 import "server-only";
-import { isStaleShipmentEvent } from "@/lib/mobile/geliver";
+import { isHandedOver, isStaleShipmentEvent } from "@/lib/mobile/geliver";
 
 import type { DbError } from "@/lib/db";
 
@@ -26,6 +26,12 @@ import {
   redeemCustomerCoupon,
   releaseCustomerCoupon,
 } from "@/lib/customer/coupons";
+import {
+  cancelNoticeDue,
+  notifyOrderCancelled,
+  notifyOrderRefunded,
+  notifyOrderShipped,
+} from "@/lib/email/order-notices";
 import { sendOrderPaidEmail } from "@/lib/email/send";
 import {
   DEFAULT_MOBILE_APP_CONFIG,
@@ -2936,6 +2942,16 @@ export async function recordProviderRefund(input: {
   // stamp it earned goes back. Without this a member could farm stamps by
   // ordering and refunding through the provider.
   if (fullyRefunded) await reverseLoyalty(order, "provider-refund");
+  // The provider has already moved the money back to the card it came from.
+  await notifyOrderRefunded(
+    {
+      ...order,
+      refunds,
+      status: fullyRefunded ? "refunded" : order.status,
+    },
+    refunds[refunds.length - 1],
+    { viaCard: true },
+  );
   return { ok: true };
 }
 
@@ -3178,12 +3194,40 @@ export async function transitionOrder(
   if (map.to === "cancelled") {
     await releaseOrderInventory(existing);
     await reverseLoyalty(existing, "cancelled");
+    await noticeCancelled({ ...existing, status: "cancelled" });
   } else if (settles) {
     // Idempotent on the order id, so a later payment webhook for the same
     // order does not hand out a second stamp.
     await awardLoyalty({ ...existing, status: map.to, paidAt }, "transition");
   }
-  return { ok: true, order: { ...existing, ...patch, status: map.to } };
+  const nextOrder = { ...existing, ...patch, status: map.to };
+  // "Kargoya ver" after the tracking number was typed: the parcel has left,
+  // and this is the moment the buyer is owed the number. Sent once per
+  // number, so the tracking form having sent it already is a no-op here.
+  if (map.to === "shipped") await notifyOrderShipped(nextOrder);
+  return { ok: true, order: nextOrder };
+}
+
+/**
+ * The seller's cancellation, told to the buyer (a shop order only; see
+ * `order-notices.ts`). Whether money was taken decides which sentence the
+ * mail carries: the refund to come, or "no payment on record". A failed
+ * lookup says neither rather than guess about somebody's card.
+ */
+async function noticeCancelled(order: AdminOrder): Promise<void> {
+  if (!cancelNoticeDue(order)) return;
+  let collected: boolean | null = Boolean(order.paidAt) || null;
+  if (collected === null) {
+    try {
+      collected = await orderWasCollected(order);
+    } catch (err) {
+      console.error(
+        `[order-notice] payment lookup failed order=${order.id}; the cancellation mail stays silent on payment`,
+        err,
+      );
+    }
+  }
+  await notifyOrderCancelled(order, { collected });
 }
 
 /**
@@ -3262,7 +3306,12 @@ export async function setOrderTracking(
       .eq("id", id),
     "setOrderTracking",
   );
-  return { ...existing, trackingNumber: tn, carrier: ca, shippedAt };
+  const updated = { ...existing, trackingNumber: tn, carrier: ca, shippedAt };
+  // The form IS the hand-over as far as the site knows: it stamps shippedAt,
+  // and the app's band reads "Yola çıktı" from it. So the buyer is owed the
+  // number now; a corrected number is a new notice, a re-save is not.
+  if (tn) await notifyOrderShipped(updated);
+  return updated;
 }
 
 /** What the Geliver webhook's write came to — the route answers each differently. */
@@ -3335,7 +3384,13 @@ export async function setOrderShipmentStatus(
     await sb.from(TABLES.orders).update(patch).eq("id", existing.id),
     "setOrderShipmentStatus",
   );
-  return { outcome: "applied", order: { ...existing, ...patch } };
+  const updated = { ...existing, ...patch };
+  // The carrier's own word that it has the parcel. Usually the panel's
+  // tracking form got there first and this is a replay of the same number
+  // (one notice per number); when it did not, this is the one that tells
+  // the buyer, and it can carry the carrier's page.
+  if (isHandedOver(patch.shipmentStatus)) await notifyOrderShipped(updated);
+  return { outcome: "applied", order: updated };
 }
 
 export interface OrderDetailsInput {
@@ -3496,12 +3551,30 @@ export async function releaseRefund(
   if (error) raiseDbError("releaseRefund", error, status);
 }
 
+/** What the buyer is told about a refund `finalizeRefund` settles. */
+export interface RefundNotice {
+  refund: AdminRefund;
+  /** The POS returned it to the card; false for a refund booked by hand. */
+  viaCard: boolean;
+}
+
 /**
  * Step 2: the money moved. A fully refunded order becomes `refunded` and
- * gives its stamp back — unless it was cancelled, which already did both and
+ * gives its stamp back - unless it was cancelled, which already did both and
  * must stay out of the reports.
+ *
+ * With `notice`, the buyer is told first (a shop order only, once per refund
+ * entry): the money has moved whatever the bookkeeping below then does.
  */
-export async function finalizeRefund(order: AdminOrder): Promise<AdminOrder> {
+export async function finalizeRefund(
+  order: AdminOrder,
+  notice?: RefundNotice,
+): Promise<AdminOrder> {
+  if (notice) {
+    await notifyOrderRefunded(order, notice.refund, {
+      viaCard: notice.viaCard,
+    });
+  }
   const refunded = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
   const fullyRefunded = refunded >= order.totalMinor;
   const wasCancelled = order.status === "cancelled";
@@ -3528,7 +3601,10 @@ export async function refundOrder(
 ): Promise<RefundResult> {
   const reserved = await reserveRefund(orderId, input);
   if (!reserved.ok) return reserved;
-  const order = await finalizeRefund(reserved.order);
+  const order = await finalizeRefund(reserved.order, {
+    refund: reserved.refund,
+    viaCard: false,
+  });
   return { ok: true, order, refund: reserved.refund };
 }
 

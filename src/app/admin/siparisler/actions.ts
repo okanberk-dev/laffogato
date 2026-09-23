@@ -255,7 +255,12 @@ export async function refundOrderAction(
   }
 
   try {
-    await finalizeRefund(reserved.order);
+    // The buyer is told how much went back, and whether to the card; a
+    // refund booked without a POS says nothing about a card.
+    await finalizeRefund(reserved.order, {
+      refund: reserved.refund,
+      viaCard: Boolean(ref),
+    });
   } catch (err) {
     // The money moved and the ledger entry stands; only the status/stamp
     // follow-up failed. Loud, because a human has to finish it.

@@ -122,6 +122,13 @@ interface SendArgs {
    * consent and offering to unsubscribe from them is misleading.
    */
   unsubscribeUrl?: string;
+  /**
+   * Resend's `Idempotency-Key`: the provider answers a repeat of the same key
+   * with the first result for 24 hours instead of sending again. The order
+   * notices pass `order-<id>-<kind>`, so a retry after a timeout that did in
+   * fact reach the provider cannot put a second copy in the inbox.
+   */
+  idempotencyKey?: string;
 }
 
 export type SendResult = { ok: true } | { ok: false; error: string };
@@ -129,7 +136,7 @@ export type SendResult = { ok: true } | { ok: false; error: string };
 /**
  * One delivery attempt, with the provider's own words on failure.
  *
- * `send()` throws them away and returns a boolean, which is right for the
+ * `sendTemplate()` throws them away and returns a boolean, which is right for the
  * order path - a customer must not lose an order because mail bounced - but
  * useless to an operator asking why nothing arrives. "The laffogato.net
  * domain is not verified" is the answer, and it only exists here.
@@ -140,6 +147,7 @@ async function deliver({
   html,
   text,
   unsubscribeUrl,
+  idempotencyKey,
 }: SendArgs): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
   const { from, replyTo } = await emailIdentity();
@@ -163,6 +171,7 @@ async function deliver({
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
       },
       body: JSON.stringify({
         from,
@@ -212,10 +221,6 @@ function resendMessage(status: number, body: string): string {
   return `${status}: ${body.slice(0, 200)}`;
 }
 
-async function send(args: SendArgs): Promise<boolean> {
-  return (await deliver(args)).ok;
-}
-
 /**
  * Ayarlar → "Test e-postası gönder". Proves the whole chain - key, verified
  * domain, sender address - in one click, and says what broke when it breaks.
@@ -257,20 +262,36 @@ async function sendTemplate(
   to: string,
   input: Omit<RenderInput, "text">,
 ): Promise<boolean> {
-  if (!to) return false;
+  return (await sendTemplateResult(name, to, input)).ok;
+}
+
+/**
+ * `sendTemplate` with the verdict kept, for a caller that records it: the
+ * order notices release their claim on a failure so the next trigger may
+ * try again, and they must be able to tell a send from a failure to do so.
+ */
+async function sendTemplateResult(
+  name: EmailTemplateName,
+  to: string,
+  input: Omit<RenderInput, "text">,
+  idempotencyKey?: string,
+): Promise<SendResult> {
+  if (!to) return { ok: false, error: "Alıcı adresi boş." };
+  let r: RenderedEmail;
   try {
-    const r = renderEmail(name, { ...input, text: EMAIL_TEXT[name] });
-    return await send({
-      to,
-      subject: r.subject,
-      html: r.html,
-      text: r.text,
-      ...(r.unsubscribeUrl ? { unsubscribeUrl: r.unsubscribeUrl } : {}),
-    });
+    r = renderEmail(name, { ...input, text: EMAIL_TEXT[name] });
   } catch (err) {
     console.error(`[email] ${name} hazırlanamadı`, err);
-    return false;
+    return { ok: false, error: "Şablon hazırlanamadı." };
   }
+  return deliver({
+    to,
+    subject: r.subject,
+    html: r.html,
+    text: r.text,
+    ...(r.unsubscribeUrl ? { unsubscribeUrl: r.unsubscribeUrl } : {}),
+    ...(idempotencyKey ? { idempotencyKey } : {}),
+  });
 }
 
 export async function sendVerificationEmail(
@@ -413,6 +434,123 @@ export async function sendOrderPaidEmail(o: OrderEmailData): Promise<boolean> {
     vars: { ...orderVars(o), DAMGA_HEDEFI: await stampTarget() },
     loops: { ITEMS: itemRows(o.items) },
   });
+}
+
+// ── Order notices ──────────────────────────────────────────────────────────
+//
+// The three mails the legal texts promise after an order is paid: the
+// tracking number when the parcel is handed over, word when the seller
+// cancels, word when money goes back. Each returns the provider's verdict
+// rather than a boolean, because `order-notices.ts` settles its once-only
+// claim on it. Who is due one, and when, is decided there, not here.
+
+export interface OrderShippedEmailData {
+  to: string;
+  customerName: string;
+  orderNo: number;
+  trackingNumber: string;
+  /** The panel's carrier field; "" when nobody typed one. */
+  carrier: string;
+  /** The carrier's own page (Geliver), https only; "" when there is none. */
+  trackingUrl: string;
+}
+
+/** The member's own order page, which shows the tracking number too. */
+function orderUrl(orderNo: number): string {
+  return `${SITE.url}/uye/hesap/siparislerim/${orderNo}`;
+}
+
+/** Sent once per tracking number, when a shop parcel is handed to the carrier. */
+export async function sendOrderShippedEmail(
+  d: OrderShippedEmailData,
+  idempotencyKey?: string,
+): Promise<SendResult> {
+  const url = d.trackingUrl.trim();
+  return sendTemplateResult(
+    "siparis-kargoda",
+    d.to,
+    {
+      vars: {
+        AD: d.customerName.trim(),
+        SIPARIS_NO: String(d.orderNo),
+        SIPARIS_URL: orderUrl(d.orderNo),
+        TAKIP_NO: d.trackingNumber.trim(),
+        KARGO_FIRMASI: d.carrier.trim(),
+        // Whole or not at all, and https only: this lands in an href.
+        TAKIP_URL: url.startsWith("https://") ? url : "",
+      },
+    },
+    idempotencyKey,
+  );
+}
+
+export interface OrderCancelledEmailData extends OrderEmailData {
+  /**
+   * Was money taken for the order? `true` promises the refund, `false` says
+   * the records show no payment, and `null` (the lookup failed) says
+   * neither: a mail must not guess about somebody's card.
+   */
+  collected: boolean | null;
+}
+
+/** Sent once, when the shop cancels a shop order. */
+export async function sendOrderCancelledEmail(
+  o: OrderCancelledEmailData,
+  idempotencyKey?: string,
+): Promise<SendResult> {
+  return sendTemplateResult(
+    "siparis-iptal",
+    o.to,
+    {
+      vars: orderVars(o),
+      loops: { ITEMS: itemRows(o.items) },
+      flags: {
+        ODEME_ALINDI: o.collected === true,
+        ODEME_YOK: o.collected === false,
+      },
+    },
+    idempotencyKey,
+  );
+}
+
+export interface OrderRefundedEmailData {
+  to: string;
+  customerName: string;
+  orderNo: number;
+  /** This refund. */
+  refundMinor: number;
+  /** Every refund on the order so far, this one included. */
+  refundedTotalMinor: number;
+  totalMinor: number;
+  /**
+   * The money went back through the POS to the card it came from. A refund
+   * recorded without a POS (an order paid at the counter) says nothing
+   * about a card.
+   */
+  viaCard: boolean;
+}
+
+/** Sent once per refund entry, after the money has moved. */
+export async function sendOrderRefundedEmail(
+  d: OrderRefundedEmailData,
+  idempotencyKey?: string,
+): Promise<SendResult> {
+  return sendTemplateResult(
+    "siparis-iade",
+    d.to,
+    {
+      vars: {
+        AD: d.customerName.trim(),
+        SIPARIS_NO: String(d.orderNo),
+        SIPARIS_URL: orderUrl(d.orderNo),
+        IADE_TUTARI: formatTRYMinor(d.refundMinor),
+        TOPLAM_IADE: formatTRYMinor(d.refundedTotalMinor),
+        TOPLAM: formatTRYMinor(d.totalMinor),
+      },
+      flags: { KARTA_IADE: d.viaCard },
+    },
+    idempotencyKey,
+  );
 }
 
 // ── Relationship & loyalty ─────────────────────────────────────────────────
