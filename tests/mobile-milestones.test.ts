@@ -65,9 +65,9 @@ describe("milestone gifts", () => {
 
   it("draws the road map the app shows: reached, given and as what", () => {
     const map = milestoneRoadmap(22, [{ milestone: 10, itemName: "Filtre Kahve" }]);
-    expect(map[0]).toEqual({ at: 10, title: "Filtre Kahve", reached: true, given: true, gift: "Filtre Kahve" });
-    expect(map[1]).toEqual({ at: 20, title: "Americano", reached: true, given: false, gift: "" });
-    expect(map[2]).toEqual({ at: 30, title: SURPRISE_TITLE, reached: false, given: false, gift: "" });
+    expect(map[0]).toEqual({ at: 10, title: "Filtre Kahve", surprise: false, reached: true, given: true, gift: "Filtre Kahve" });
+    expect(map[1]).toEqual({ at: 20, title: "Americano", surprise: false, reached: true, given: false, gift: "" });
+    expect(map[2]).toEqual({ at: 30, title: SURPRISE_TITLE, surprise: true, reached: false, given: false, gift: "" });
   });
 });
 

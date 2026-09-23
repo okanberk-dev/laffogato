@@ -92,6 +92,8 @@ export type MeMilestone = {
   at: number;
   /** What it gives: the named item, or the surprise's own words. */
   title: string;
+  /** A random drink or dessert, picked when it is granted. */
+  surprise: boolean;
   /** Lifetime stamps have reached it. */
   reached: boolean;
   /** It has been given, and as what. */
@@ -112,6 +114,7 @@ export function milestoneRoadmap(
     .map((m) => ({
       at: m.at,
       title: m.item ?? SURPRISE_TITLE,
+      surprise: m.item === null,
       reached: lifetime >= m.at,
       given: byAt.has(m.at),
       gift: byAt.get(m.at) ?? "",
