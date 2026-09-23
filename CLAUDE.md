@@ -79,15 +79,20 @@ aynı fonksiyonu çağırsın. Örnekler: `src/lib/mobile/karaoke-core.ts` ↔
 `karaoke.ts` (web `/karaoke` sayfası ile mobil uç aynı `createReservation`'a
 iner), `loyalty-core.ts` ↔ `loyalty.ts`.
 
-**Tasarım paritesi kısmi.** 2 Eyl 2026'da site paleti uygulamanınkine
-(`lafmobil/src/theme/tokens.ts`) eşitlenmişti; 5 Eyl 2026 Köşk yeniden
-tasarımı zemini beyaza, ikincil vurguyu terracotta'ya taşıdı; 7 Eyl 2026
-operatör talimatıyla vurgu **bordo**ya döndü ve uygulamanın
-`accent.burgundy` / `burgundyDeep` / `bg.accentSubtle` değerlerinin aynısı
-oldu (`#84233C` / `#4A0F1E` / `#F6E9EC`). Yeşiller hâlâ örtüşüyor; ayrışan tek
-şey zemin (site beyaz, uygulama krem). Uygulamayı da aynı yöne çekmek
-gerekirse taşınacak dosya `lafmobil/src/theme/tokens.ts`; site tarafındaki
-karar `globals.css :root` ve `tests/brand-theme.test.ts` içinde yazılı.
+**Tasarım paritesi YOK (23 Eyl 2026'dan beri).** 2 Eyl 2026'da site paleti
+uygulamanınkine (`lafmobil/src/theme/tokens.ts`) eşitlenmişti; 5 Eyl 2026 Köşk
+yeniden tasarımı zemini beyaza, ikincil vurguyu terracotta'ya taşıdı; 7 Eyl
+2026 operatör talimatıyla vurgu **bordo**ya döndü ve uygulamanın o günkü
+bordosuyla aynı oldu (`#84233C` / `#4A0F1E` / `#F6E9EC`). 23 Eyl 2026'da
+uygulama operatörün isteğiyle daha canlı bir yeşil ve bordoya geçti
+(lafmobil karar 149: yapı yeşili `#1D6D56`, bordo `#9D2543`, bordo dibi
+`#520F1F`) - site bu değişikliği **almadı**: `--accent` hâlâ `#84233c`,
+`--brand` `#143d2b`. Sitenin uygulamayı izleyip izlemeyeceği operatörün açık
+kararıdır (lafmobil `docs/GOREVLER-OPUS.md` W9/O26, değer tablosu
+`docs/SITE-PALETTE-SYNC.md`). Karar verilene kadar sitenin kendi değerleri
+`globals.css :root` ve `tests/brand-theme.test.ts` içinde yazılı; uygulamanın
+rengini gösteren tek site yüzeyi panelin slayt önizlemesidir
+(`admin/mobil/slaytlar`, telefonun boyadığı renkler).
 
 **Bordo ile yeşil asla üst üste yazılmaz.** `#84233C` ile ev yeşilleri
 neredeyse aynı parlaklıkta (`--hero-green` ile 1.15:1). Koyu zeminde

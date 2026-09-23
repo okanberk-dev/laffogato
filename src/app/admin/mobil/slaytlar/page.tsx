@@ -17,17 +17,26 @@ export const dynamic = "force-dynamic";
 /**
  * Preview swatch so the tone is judged by eye, not by its name.
  *
- * Values mirror the app's `src/theme/tokens.ts` light palette
- * (bg.premium · bg.inverse · brand.primary · bg.canvas). The Starbucks-era
- * greens (#006241 / #1E3932) were retired on 2 Sep 2026 when the site palette
- * was re-based on the app's; a swatch in the old green would make an operator
- * pick a tone that looks nothing like what the phone paints.
+ * Values mirror what the app PAINTS for each tone (lafmobil
+ * `src/components/home/season-hero.tsx` GROUND, colours from its
+ * `src/theme/tokens.ts`, karar 149's livelier green and bordo of 23 Sep 2026):
+ *
+ *   premium → the bordo card (`bg.velvet`)
+ *   inverse → green running into night; the swatch shows the night end,
+ *             because that is what tells it apart from `brand` (`bg.night`)
+ *   brand   → the flat structure green (`bg.inverse` = `brand.primary`)
+ *   paper   → the white card (`bg.surface`)
+ *
+ * The previous values had drifted: `inverse` showed the pressed green the app
+ * never draws a slide in, `paper` the page's cream rather than the card's
+ * white. A swatch that does not match the phone makes an operator pick a
+ * tone that looks nothing like what the member sees.
  */
 const TONE_SWATCH: Record<string, string> = {
-  premium: "#4A0F1E",
-  inverse: "#1B4238",
-  brand: "#235347",
-  paper: "#F9F8F7",
+  premium: "#9D2543",
+  inverse: "#0E2F23",
+  brand: "#1D6D56",
+  paper: "#FFFFFF",
 };
 
 /** app `text.primary` — the only tone whose label needs dark ink. */
