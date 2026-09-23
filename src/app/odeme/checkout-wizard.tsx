@@ -15,6 +15,12 @@ import {
   previewPromoAction,
   type PromoPreviewState,
 } from "./actions";
+import {
+  CheckoutConsent,
+  checkoutConsentGiven,
+  type CheckoutConsentTicks,
+  NO_CHECKOUT_CONSENT,
+} from "./checkout-consent";
 
 interface CartItem {
   productId?: string;
@@ -660,7 +666,9 @@ function PaymentStep({
   total: number;
   onBack: () => void;
 }) {
-  const [consent, setConsent] = useState(false);
+  const [consent, setConsent] =
+    useState<CheckoutConsentTicks>(NO_CHECKOUT_CONSENT);
+  const consentGiven = checkoutConsentGiven(consent);
   return (
     <section className="checkout-step">
       <header className="checkout-step-head">
@@ -750,41 +758,19 @@ function PaymentStep({
           value={shipping.shippingAddress}
         />
 
-        {/* Mesafeli Sözleşmeler Yönetmeliği: the consumer must confirm the
-            ön bilgilendirme formu + mesafeli satış sözleşmesi BEFORE the order
-            is created, and the confirmation must be kept on a durable medium.
-            Never pre-ticked; the server refuses the order without it and
-            stores the tick with its timestamp, IP and document revision. */}
-        <div className="checkout-consent">
-          <input
-            id="legalConsent"
-            type="checkbox"
-            name="legalConsent"
-            required
-            checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
-            disabled={placing}
-          />
-          <label htmlFor="legalConsent">
-            <Link href="/hukuk/on-bilgilendirme-formu" target="_blank">
-              Ön Bilgilendirme Formu
-            </Link>{" "}
-            ve{" "}
-            <Link href="/hukuk/mesafeli-satis-sozlesmesi" target="_blank">
-              Mesafeli Satış Sözleşmesi
-            </Link>
-            &apos;ni okudum, anladım ve onaylıyorum. Siparişimin ödeme
-            yükümlülüğü doğurduğunu kabul ediyorum.
-          </label>
-        </div>
-        <p className="checkout-consent-note">
-          Onayınız; tarihi, IP adresi ve belge sürümü ile birlikte siparişinize
-          işlenir. Kişisel verilerinizin işlenmesi hakkında bilgi için{" "}
-          <Link href="/hukuk/kvkk-aydinlatma-metni" target="_blank">
-            KVKK Aydınlatma Metni
-          </Link>
-          .
-        </p>
+        {/* Mesafeli Sözleşmeler Yönetmeliği: the consumer confirms the
+            ön bilgilendirme formu and accepts the mesafeli satış sözleşmesi
+            BEFORE the order is created, one box each, never pre-ticked. The
+            hidden `legalConsent` the server reads exists only once both are
+            ticked (./checkout-consent); the server refuses the order without
+            it and stores it with its time, IP, browser and document revision. */}
+        <CheckoutConsent
+          ticks={consent}
+          onTick={(key, ticked) =>
+            setConsent((prev) => ({ ...prev, [key]: ticked }))
+          }
+          disabled={placing}
+        />
 
         <div className="checkout-step-actions">
           <button
@@ -797,7 +783,7 @@ function PaymentStep({
           </button>
           <button
             type="submit"
-            disabled={placing || !consent}
+            disabled={placing || !consentGiven}
             className="btn btn-primary btn-lg"
             style={{ minWidth: 240, justifyContent: "center" }}
           >

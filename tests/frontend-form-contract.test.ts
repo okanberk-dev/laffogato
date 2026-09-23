@@ -31,7 +31,12 @@ const CONTRACTS: FormContract[] = [
   {
     action: "placeOrderAction",
     actionFile: "src/app/odeme/actions.ts",
-    forms: ["src/app/odeme/checkout-wizard.tsx"],
+    // The hidden `legalConsent` lives in the consent block, which renders it
+    // only once both document boxes are ticked (tests/checkout-consent.test.ts).
+    forms: [
+      "src/app/odeme/checkout-wizard.tsx",
+      "src/app/odeme/checkout-consent.tsx",
+    ],
     // `items` is JSON: [{ productId, variantId, name, price, qty }] in lira.
     // The server re-prices every line from the database (resolveOrderLines);
     // the client `price` only raises the "fiyat güncellendi" flag.
@@ -206,22 +211,27 @@ describe("consent boxes a redesign must not pre-tick", () => {
   // Mesafeli satış (CLAUDE.md rule 12) and 6563 (rule 19): a box that is
   // already ticked is not consent, and the order/subscription record it
   // writes is not evidence.
-  const CONSENT_INPUTS: [string, string][] = [
-    ["src/app/odeme/checkout-wizard.tsx", "legalConsent"],
-    ["src/app/uye/kayit/register-form.tsx", "acceptedTerms"],
-    ["src/app/uye/kayit/register-form.tsx", "marketing"],
-    ["src/app/uye/kayit/register-form.tsx", "newsletter"],
-    ["src/components/laffogato/newsletter-form.tsx", "consent"],
+  //
+  // Each box is found by the attribute that identifies it. The checkout's two
+  // document boxes carry an `id`, not a `name`: the server reads only the
+  // hidden `legalConsent` they unlock together, so the boxes send nothing.
+  const CONSENT_INPUTS: [file: string, attr: string][] = [
+    ["src/app/odeme/checkout-consent.tsx", 'id="consentPreInfo"'],
+    ["src/app/odeme/checkout-consent.tsx", 'id="consentContract"'],
+    ["src/app/uye/kayit/register-form.tsx", 'name="acceptedTerms"'],
+    ["src/app/uye/kayit/register-form.tsx", 'name="marketing"'],
+    ["src/app/uye/kayit/register-form.tsx", 'name="newsletter"'],
+    ["src/components/laffogato/newsletter-form.tsx", 'name="consent"'],
   ];
 
-  for (const [file, field] of CONSENT_INPUTS) {
-    it(`${field} in ${file} starts unticked`, () => {
+  for (const [file, attr] of CONSENT_INPUTS) {
+    it(`${attr} in ${file} starts unticked`, () => {
       const src = read(file);
-      // The <input …> element that carries this name, attributes and all.
+      // The <input …> element that carries this attribute, and all the rest.
       const tag = src.match(
-        new RegExp(`<input(?:(?!/>)[\\s\\S])*?name="${field}"[\\s\\S]*?/>`),
+        new RegExp(`<input(?:(?!/>)[\\s\\S])*?${attr}[\\s\\S]*?/>`),
       );
-      expect(tag, `no <input name="${field}"> in ${file}`).not.toBeNull();
+      expect(tag, `no <input ${attr}> in ${file}`).not.toBeNull();
       // `defaultChecked={values.x}` is allowed: it echoes the visitor's
       // own tick back after a failed submit, and starts undefined. A literal
       // `defaultChecked`, `defaultChecked={true}` or any `checked` is not.

@@ -30,7 +30,7 @@ export const dynamic = "force-dynamic";
 /** Redirect reasons the checkout can bounce back with. */
 const CHECKOUT_NOTICES: Record<string, string> = {
   consent:
-    "Siparişi tamamlamak için Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi onayı zorunludur. Lütfen onay kutusunu işaretleyin.",
+    "Siparişi tamamlamak için Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi onayı zorunludur. Lütfen iki onay kutusunu da işaretleyin.",
   payment:
     "Ödeme tamamlanamadı. Kartınızdan tahsilat yapılmadı - dilerseniz tekrar deneyebilirsiniz.",
 };
