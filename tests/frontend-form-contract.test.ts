@@ -234,6 +234,27 @@ describe("redirect query strings the pages must keep handling", () => {
     }
   });
 
+  it("every /odeme?error= the backend sends has a notice on /odeme", () => {
+    // A declined card used to come back as ?durum=basarisiz, which the page
+    // never read: no message at all.
+    const page = read("src/app/odeme/page.tsx");
+    const senders = [
+      "src/app/odeme/actions.ts",
+      "src/app/odeme/donus/route.ts",
+      "src/app/odeme/paynkolay/route.ts",
+    ].map(read);
+    const reasons = new Set<string>();
+    for (const src of senders) {
+      for (const m of src.matchAll(/\/odeme\?error=([a-z_]+)/g))
+        reasons.add(m[1]);
+      expect(src).not.toContain("/odeme?durum=");
+    }
+    expect([...reasons].sort()).toEqual(["consent", "payment"]);
+    for (const reason of reasons) {
+      expect(page, `?error=${reason}`).toMatch(new RegExp(`\\b${reason}:`));
+    }
+  });
+
   it("the account deletion's /?hesap=silindi is acknowledged", () => {
     expect(read("src/app/uye/actions.ts")).toContain('"/?hesap=silindi"');
     expect(read("src/app/page.tsx")).toContain('hesap === "silindi"');

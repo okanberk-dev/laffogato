@@ -55,7 +55,10 @@ function safeProvider() {
 }
 
 function failure(base: string) {
-  return NextResponse.redirect(new URL("/odeme?durum=basarisiz", base), 303);
+  // `?error=payment` is what /odeme renders a notice for (CHECKOUT_NOTICES);
+  // `?durum=basarisiz` was read by nothing, so a declined card came back to
+  // the checkout with no word about what had happened.
+  return NextResponse.redirect(new URL("/odeme?error=payment", base), 303);
 }
 
 function escapeHtml(value: string): string {
