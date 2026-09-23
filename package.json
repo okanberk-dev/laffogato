@@ -24,7 +24,7 @@
     "predev": "node scripts/build-email-templates.mjs"
   },
   "dependencies": {
-    "@next/third-parties": "^16.2.9",
+    "@next/third-parties": "^16.3.6",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.117.1",
     "bcryptjs": "^3.0.3",
@@ -46,7 +46,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.6",
+    "eslint-config-next": "^16.3.6",
     "prettier": "^3.9.9",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4.3.3",
