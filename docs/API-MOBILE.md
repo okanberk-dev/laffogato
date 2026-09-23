@@ -456,7 +456,7 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
     "rewardsReady": 1,           // kullanılmayı bekleyen ücretsiz içecek sayısı
     "lifetimeStamps": 22,
     "tier": "oro",               // verde (0–11 ödenmiş sipariş / 365 gün) | argento (12+) | oro (36+)
-    "tierLabel": "ORO",
+    "tierLabel": "RUBY",         // görünen ad: L'AF | PEARL | RUBY (kimlik değişmez; 23 Eyl 2026)
     "ordersLast365": 41,
     "badges": [ { "id": "first-affogato", "label": "İlk affogato", "earned": true }, { "id": "streak-10", "label": "10 gün üst üste", "earned": false }, { "id": "early-bird", "label": "Erken kuş", "earned": true }, { "id": "matcha-fan", "label": "Matcha meraklısı", "earned": false }, { "id": "bean-subscriber", "label": "Çekirdek abonesi", "earned": false }, { "id": "orders-50", "label": "50 sipariş", "earned": false } ]
   },

@@ -339,7 +339,7 @@ function KaraokeTab({ settings }: { settings: AdminSettings }) {
         <div className="grid gap-5 sm:grid-cols-2">
           <Field
             label="Saatlik ücret (₺)"
-            hint="Uygulamadaki rezervasyon ekranında gösterilir; ORO üyelere indirim sunucuda uygulanır."
+            hint="Uygulamadaki rezervasyon ekranında gösterilir; RUBY üyelere indirim sunucuda uygulanır."
           >
             <TextInput
               name="karaokeHourly"

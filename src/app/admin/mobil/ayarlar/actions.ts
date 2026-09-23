@@ -201,7 +201,7 @@ const karaokeSchema = z
       L.bookingWindowDaysMax,
       "Rezervasyon penceresi",
     ),
-    oroDiscountPct: intField(0, 100, "ORO indirimi"),
+    oroDiscountPct: intField(0, 100, "RUBY indirimi"),
   })
   .refine((v) => v.closeHour > v.firstHour, {
     message: "Kapanış saati ilk saatten sonra olmalı.",

@@ -95,7 +95,7 @@ describe("legal index", () => {
     // The revision label of the set is unchanged; the rest of the list too.
     expect(index.updatedAt).toBe(LEGAL_UPDATED);
     const other = index.docs.find((d) => d.slug === "odul-programi")!;
-    expect(other.updatedAt).toBe("5 Eylül 2026");
+    expect(other.updatedAt).toBe("23 Eylül 2026");
   });
 
   it("without a database, the live index is the coded one", async () => {
@@ -164,15 +164,16 @@ describe("legal override", () => {
   });
 
   it("a blank override date shows the coded document's own date, as /hukuk does", () => {
-    // odul-programi changed on 5 Sep, after the 1 Sep revision. Falling back
-    // to the set's label would print an older date in the app than the site.
+    // odul-programi changed on 23 Sep (the tier names, karar 165), after the
+    // 1 Sep revision. Falling back to the set's label would print an older
+    // date in the app than the site.
     const programme = legalDocFrom("odul-programi", null)!;
-    expect(programme.updatedAt).toBe("5 Eylül 2026");
+    expect(programme.updatedAt).toBe("23 Eylül 2026");
     const doc = applyLegalOverride(
       programme,
       override("odul-programi", { effectiveDate: "  " }),
     );
-    expect(doc.updatedAt).toBe("5 Eylül 2026");
+    expect(doc.updatedAt).toBe("23 Eylül 2026");
   });
 
   it("a preamble without a heading is headed by the short title", () => {

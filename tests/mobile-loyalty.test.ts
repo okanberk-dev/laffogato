@@ -197,11 +197,11 @@ describe("computeTier", () => {
     expect(computeTier(36)).toBe("oro");
   });
 
-  it("labels are upper-case Italian", () => {
+  it("labels are the tricolore's names, the ids untouched (karar 165)", () => {
     expect(TIER_LABELS).toEqual({
-      verde: "VERDE",
-      argento: "ARGENTO",
-      oro: "ORO",
+      verde: "L'AF",
+      argento: "PEARL",
+      oro: "RUBY",
     });
   });
 });
@@ -358,7 +358,7 @@ describe("buildLoyaltyView", () => {
       rewardsReady: 1,
       lifetimeStamps: 10,
       tier: "argento",
-      tierLabel: "ARGENTO",
+      tierLabel: "PEARL",
       ordersLast365: 13,
     });
     expect(view.badges).toHaveLength(6);

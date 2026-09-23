@@ -11095,7 +11095,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "odul-programi",
     title: "Sadakat (Damga) Programı Kuralları",
     shortTitle: "Ödül Programı",
-    updatedAt: "5 Eylül 2026",
+    updatedAt: "23 Eylül 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} sadakat programının kuralları: damga nasıl kazanılır, kart kaç damgada dolar, ücretsiz içecek kuponu nasıl alınır ve nerede kullanılır, iade hâlinde damgaya ne olur, kademeler ve davet ödülü nasıl işler.",
@@ -11378,9 +11378,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "16. Kademeler ve Rozetler",
         paragraphs: [
-          "Uygulama, Katılımcı'nın son 365 gün içindeki ödenmiş sipariş sayısına göre bir kademe (VERDE, ARGENTO, ORO) ve tamamlanan başarılara göre rozetler gösterir. Kademe ve rozetler damgadan bağımsızdır; damga kazandırmaz ve damga harcamaz.",
+          "Uygulama, Katılımcı'nın son 365 gün içindeki ödenmiş sipariş sayısına göre bir kademe (L'AF, PEARL, RUBY) ve tamamlanan başarılara göre rozetler gösterir. Kademe ve rozetler damgadan bağımsızdır; damga kazandırmaz ve damga harcamaz.",
           "Kademe ve rozetlerin kendi başına parasal bir karşılığı yoktur; nakde çevrilemez ve devredilemez. Sipariş sayısı azaldıkça kademe geriye de gidebilir.",
-          "ORO kademesindeki Katılımcı'ya karaoke salonu rezervasyonunda, panelde tanımlı oranda (varsayılan %15) indirim uygulanır. Bu indirimin oranı ve varlığı Şirket tarafından ileriye etkili olarak değiştirilebilir.",
+          "RUBY kademesindeki Katılımcı'ya karaoke salonu rezervasyonunda, panelde tanımlı oranda (varsayılan %15) indirim uygulanır. Bu indirimin oranı ve varlığı Şirket tarafından ileriye etkili olarak değiştirilebilir.",
         ],
       },
       {

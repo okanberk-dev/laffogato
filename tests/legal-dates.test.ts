@@ -42,7 +42,7 @@ describe("legal document dates", () => {
     const expected: Record<string, string> = {
       "uyelik-sozlesmesi": "5 Eylül 2026",
       "hesap-silme": "5 Eylül 2026",
-      "odul-programi": "5 Eylül 2026",
+      "odul-programi": "23 Eylül 2026",
       "mobil-uygulama-kosullari": "5 Eylül 2026",
       "kafe-hizmet-kosullari": "5 Eylül 2026",
       "sirket-bilgileri": "22 Eylül 2026",

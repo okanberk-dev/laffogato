@@ -408,7 +408,7 @@ function KaraokeTab({ config }: { config: MobileAppConfig }) {
     <form action={action}>
       <Section
         title="Karaoke kuralları"
-        intro="Saatlik ücret ve kapasite Ayarlar → Karaoke'de; burası rezervasyon saat aralığı, süre sınırı ve ORO indirimi."
+        intro="Saatlik ücret ve kapasite Ayarlar → Karaoke'de; burası rezervasyon saat aralığı, süre sınırı ve RUBY indirimi."
       >
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <Field
@@ -468,8 +468,8 @@ function KaraokeTab({ config }: { config: MobileAppConfig }) {
             />
           </Field>
           <Field
-            label="ORO indirimi (%)"
-            hint="ORO üyelere saatlik ücret üzerinden; sunucuda uygulanır."
+            label="RUBY indirimi (%)"
+            hint="RUBY üyelere saatlik ücret üzerinden; sunucuda uygulanır."
           >
             <TextInput
               name="oroDiscountPct"

@@ -189,7 +189,7 @@ export default async function HesapPage() {
               : `${loyalty.stampTarget - loyalty.stamps} damga kaldı - sonraki içecek bizden.`}
           </div>
           <p className="stamp-card-note">
-            VERDE 0-11 · ARGENTO 12+ · ORO 36+ sipariş. Seviyen şu an{" "}
+            L&apos;AF 0-11 · PEARL 12+ · RUBY 36+ sipariş. Seviyen şu an{" "}
             <strong>{loyalty.tierLabel}</strong>. Uygulamadan verilen her kafe
             siparişi bir damga; damgan, kuponların ve seviyen iki tarafta da
             aynı.

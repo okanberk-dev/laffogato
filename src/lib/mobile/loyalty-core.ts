@@ -72,10 +72,19 @@ export function freeDrinkRewardFor(
 
 export type LoyaltyTier = "verde" | "argento" | "oro";
 
+/**
+ * The names a member reads (karar 165, 23 Eyl 2026). The operator asked for
+ * tiers drawn from the Italian flag with English names: its green, white and
+ * red. The green, where every member starts, carries the house's own name
+ * (the operator: "yeşile L'Af"), and the two above it are gems - Pearl, Ruby
+ * - so the ladder reads at a glance. The ids stay
+ * `verde` / `argento` / `oro` - they are the contract (`docs/API-MOBILE.md`
+ * §4) and v1 only grows; only the words change.
+ */
 export const TIER_LABELS: Record<LoyaltyTier, string> = {
-  verde: "VERDE",
-  argento: "ARGENTO",
-  oro: "ORO",
+  verde: "L'AF",
+  argento: "PEARL",
+  oro: "RUBY",
 };
 
 /** Paid orders in the last 365 days that reach each tier. */

@@ -96,7 +96,7 @@ export default async function AdminKaraokePage() {
                         {r.guests} kişi · {r.hours} saat ·{" "}
                         {formatTRY(r.totalMinor)}
                         {r.discountMinor > 0
-                          ? ` (${formatTRY(r.priceMinor)} − ORO ${formatTRY(r.discountMinor)})`
+                          ? ` (${formatTRY(r.priceMinor)} − RUBY ${formatTRY(r.discountMinor)})`
                           : ""}
                       </p>
                       {r.note ? (

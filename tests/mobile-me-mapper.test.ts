@@ -50,7 +50,7 @@ const loyalty: LoyaltyView = {
   rewardsReady: 1,
   lifetimeStamps: 22,
   tier: "oro",
-  tierLabel: "ORO",
+  tierLabel: "RUBY",
   ordersLast365: 41,
   badges: [],
 };
