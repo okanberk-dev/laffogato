@@ -32,7 +32,8 @@ import {
   CAFE_ONLY_COUPON_MESSAGE,
 } from "@/lib/customer/coupons";
 import { sendOrderPlacedEmail } from "@/lib/email/send";
-import { CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED } from "@/lib/legal/meta";
+import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
+import { checkoutConsentVersion } from "@/lib/legal/store";
 import { getDb, TABLES } from "@/lib/db";
 import { DbQueryError } from "@/lib/db/health";
 import { getPaymentProvider } from "@/lib/payment";
@@ -132,7 +133,7 @@ async function buildLegalConsent(): Promise<OrderLegalConsent> {
   return {
     acceptedAt: new Date().toISOString(),
     documents: [...CHECKOUT_CONSENT_DOCS],
-    version: LEGAL_UPDATED,
+    version: await checkoutConsentVersion(),
     ip: await clientIp(),
     userAgent: (h.get("user-agent") ?? "").slice(0, 300),
   };

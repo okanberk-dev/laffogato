@@ -855,14 +855,20 @@ kalır. Bu yüzden tek kaynak `src/lib/legal/content.ts`'tir ve mobil onu okur.
 }
 ```
 
-Üst `updatedAt` ödeme onayının kaydettiği sürümdür (`legalConsent.version`,
-`LEGAL_UPDATED`). Her `docs[]` satırı ve tek belge kendi `updatedAt`'ini de
+Üst `updatedAt` ödeme onayının kaydettiği sürümdür (`legalConsent.version`).
+Her `docs[]` satırı ve tek belge kendi `updatedAt`'ini de
 taşır: metnin son değiştiği gün (`content.ts` `updatedAt`, yoksa
 `LEGAL_UPDATED`; panelden yayımlanmış bir geçersiz kılma varsa onun yürürlük
 tarihi), bu yüzden üst etiketten sonra olabilir. Ödeme belgeleri
-(`consentDocs`) kodda üst etiketle aynı tarihtedir; panelden birine
-geçersiz kılma yayımlanırsa sipariş kaydı yine `LEGAL_UPDATED` yazar - bu
-bilinen bir açıktır ve sürümleme kararı operatörde.
+(`consentDocs`) kodda üst etiketle aynı tarihtedir, yani kodlu metin
+gösterilirken sürüm `LEGAL_UPDATED`'dır. Panelden bir ödeme belgesine
+geçersiz kılma yayımlanırsa (23 Eyl 2026, API-13) sürüm, `LEGAL_UPDATED` ile
+o geçersiz kılmanın yürürlük tarihinden **hangisi daha yeniyse** odur;
+yürürlük tarihi boşsa ya da "5 Eylül 2026" biçiminde değilse geçersiz
+kılmanın kaydedildiği İstanbul günü sayılır. Web ve uygulama siparişi aynı
+değeri yazar (`checkoutConsentVersion()` → `consentVersionFrom`, `src/lib/legal/`),
+bu dizin de aynısını döner. Alan ve tipi değişmedi; yalnız değer, müşterinin
+gerçekten gördüğü metnin tarihini izler.
 
 **`GET /api/mobile/v1/legal/{slug}`** — tek belgenin tam metni; bilinmeyen slug
 `404 not_found`. İkisi de `force-dynamic` ve `public, s-maxage=300,
@@ -875,7 +881,8 @@ Sitede `/hukuk/<slug>` ne gösteriyorsa uygulama da onu gösterir: panelden
 **yayınlanmış ve gövdesi dolu** bir geçersiz kılma varsa `title`, `summary`,
 `updatedAt` (= panel "yürürlük tarihi", boşsa belgenin kodlu tarihi) ve
 `sections` oradan gelir; dizin de aynı başlık/özet/tarihi yansıtır
-(`consentDocs` ve üst `updatedAt` revizyon etiketi değişmez). Taslak ya da
+(`consentDocs` değişmez; üst `updatedAt` yalnız geçersiz kılma bir ödeme
+belgesindeyse ve daha yeni tarihliyse ilerler, yukarıya bak). Taslak ya da
 boş geçersiz kılma sayılmaz; slug kümesi her zaman kodlu kayıttır (panel yeni
 belge üretmez).
 Gövde Markdown'dır ve `src/lib/mobile/legal-markdown.ts` bölümlere çevirir:

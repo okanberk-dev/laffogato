@@ -73,10 +73,11 @@ describe("legal document dates", () => {
   });
 
   it("the checkout documents stay on the consent version", () => {
-    // An order records LEGAL_UPDATED as the revision the customer accepted.
-    // If one of these documents gets a later date of its own, the recorded
-    // version no longer names the text that was shown: move LEGAL_UPDATED
-    // instead of dating the document.
+    // An order records LEGAL_UPDATED as the revision the customer accepted
+    // while the coded text is shown (a panel override moves it, see
+    // tests/legal-consent-version.test.ts). If one of these documents gets a
+    // later coded date of its own, the recorded version no longer names the
+    // text that was shown: move LEGAL_UPDATED instead of dating the document.
     for (const slug of CHECKOUT_CONSENT_DOCS) {
       const src = LEGAL_CONTENT.find((d) => d.slug === slug)!;
       expect(src.updatedAt, slug).toBeUndefined();
@@ -84,14 +85,17 @@ describe("legal document dates", () => {
     }
   });
 
-  it("both checkout paths still record LEGAL_UPDATED as the version", () => {
+  it("both checkout paths record the version through the one rule", () => {
+    // Web and app orders are read in one format by the admin consent card;
+    // a path that went back to the bare constant would ignore a published
+    // override of the text the customer actually confirmed (API-13).
     for (const file of [
       "src/lib/mobile/orders.ts",
       "src/app/odeme/actions.ts",
     ]) {
-      expect(readFileSync(file, "utf8"), file).toContain(
-        "version: LEGAL_UPDATED",
-      );
+      const src = readFileSync(file, "utf8");
+      expect(src, file).toContain("version: await checkoutConsentVersion()");
+      expect(src, file).not.toContain("version: LEGAL_UPDATED");
     }
   });
 });

@@ -12,9 +12,12 @@
 
 /**
  * The revision the contract set was issued under, and the version a
- * customer's checkout consent records (`legalConsent.version`). A document
- * whose text changed later carries its own `updatedAt` in `content.ts` for
- * display; this label moves only when one of `CHECKOUT_CONSENT_DOCS` does.
+ * customer's checkout consent records (`legalConsent.version`) while the
+ * coded checkout documents are the ones shown. A document whose text changed
+ * later carries its own `updatedAt` in `content.ts` for display; this label
+ * moves only when one of `CHECKOUT_CONSENT_DOCS` does. A published panel
+ * override of a checkout document moves the RECORDED version past it without
+ * touching this constant (`consentVersionFrom`, `./consent-version`).
  */
 export const LEGAL_UPDATED = "1 Eylül 2026";
 

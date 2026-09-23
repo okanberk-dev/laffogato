@@ -98,6 +98,18 @@ describe("legal index", () => {
     expect(other.updatedAt).toBe("23 Eylül 2026");
   });
 
+  it("moves the set's label with a later override of a checkout document", () => {
+    // The label is the version an order placed now records (API-13), so it
+    // follows a published override of the text checkout shows.
+    const index = legalIndexFrom({
+      "mesafeli-satis-sozlesmesi": override("mesafeli-satis-sozlesmesi", {
+        effectiveDate: "15 Ekim 2026",
+      }),
+    });
+    expect(index.updatedAt).toBe("15 Ekim 2026");
+    expect(index.consentDocs).toEqual([...CHECKOUT_CONSENT_DOCS]);
+  });
+
   it("without a database, the live index is the coded one", async () => {
     // No DATABASE_URL in the test run: the override read fails and the index
     // must still answer with the documents the site ships with.

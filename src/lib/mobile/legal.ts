@@ -1,10 +1,10 @@
 import "server-only";
 
+import { LEGAL_DOCS, type LegalDoc } from "@/lib/legal/documents";
 import {
-  LEGAL_DOCS,
-  LEGAL_UPDATED,
-  type LegalDoc,
-} from "@/lib/legal/documents";
+  consentVersionFrom,
+  isLiveLegalOverride,
+} from "@/lib/legal/consent-version";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
 import {
   getPublishedLegalOverride,
@@ -46,8 +46,10 @@ export interface MobileLegalSummary {
 
 export interface MobileLegalIndex {
   /**
-   * The revision the checkout consent records (`LEGAL_UPDATED`). Each row in
-   * `docs` carries its own date, which can be later.
+   * The revision the checkout consent records (`legalConsent.version`):
+   * `LEGAL_UPDATED`, or a later effective date of a published override on a
+   * checkout document (`consentVersionFrom`). Each row in `docs` carries its
+   * own date, which can be later.
    */
   updatedAt: string;
   /** Slugs the checkout step must show and record — in the order shown. */
@@ -62,7 +64,7 @@ export type LegalOverrideMap = Readonly<Record<string, LegalDocOverride>>;
 
 /** The override counts only when published with a body, like on the site. */
 function isLive(o: LegalDocOverride | null | undefined): o is LegalDocOverride {
-  return !!o && o.isPublished && o.bodyMarkdown.trim() !== "";
+  return isLiveLegalOverride(o);
 }
 
 /**
@@ -102,7 +104,8 @@ function toSummary(doc: LegalDoc): MobileLegalSummary {
 /** The index built from a known set of overrides — no I/O. */
 export function legalIndexFrom(overrides: LegalOverrideMap): MobileLegalIndex {
   return {
-    updatedAt: LEGAL_UPDATED,
+    // The same value an order placed now records, so the app can show it.
+    updatedAt: consentVersionFrom(overrides),
     consentDocs: [...CHECKOUT_CONSENT_DOCS],
     docs: LEGAL_DOCS.map((doc) =>
       toSummary(applyLegalOverride(doc, overrides[doc.slug])),

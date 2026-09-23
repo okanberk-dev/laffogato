@@ -3,6 +3,9 @@ import "server-only";
 import { getDb, TABLES } from "@/lib/db";
 import { publicRead, raiseDbError } from "@/lib/db/health";
 
+import { consentVersionFrom } from "./consent-version";
+import { CHECKOUT_CONSENT_DOCS } from "./meta";
+
 /**
  * Admin overrides for the coded legal documents. A published override with a
  * non-empty bodyMarkdown replaces the rich coded default on the public page;
@@ -53,6 +56,26 @@ async function getPublishedLegalOverrideLive(
   const row = (data as LegalDocOverride | null) ?? null;
   if (!row || !row.bodyMarkdown.trim()) return null;
   return row;
+}
+
+/**
+ * The version a checkout consent records right now (`legalConsent.version`):
+ * `LEGAL_UPDATED`, moved forward by a published override of either checkout
+ * document (`consentVersionFrom`). Both checkout paths, the web action and
+ * the app's `POST /orders`, call this so one order format reads one rule.
+ *
+ * Degrades like the public page: with the overrides unreadable, /hukuk shows
+ * the coded text, and the coded version is what this records.
+ */
+export async function checkoutConsentVersion(): Promise<string> {
+  const rows = await Promise.all(
+    CHECKOUT_CONSENT_DOCS.map((slug) => getPublishedLegalOverride(slug)),
+  );
+  const bySlug: Record<string, LegalDocOverride | null> = {};
+  CHECKOUT_CONSENT_DOCS.forEach((slug, i) => {
+    bySlug[slug] = rows[i];
+  });
+  return consentVersionFrom(bySlug);
 }
 
 /** Any override (published or draft) for the admin editor, or null. */

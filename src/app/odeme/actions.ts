@@ -12,7 +12,8 @@ import {
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { applyCustomerCoupon } from "@/lib/customer/coupons";
 import { sendOrderPlacedEmail } from "@/lib/email/send";
-import { CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED } from "@/lib/legal/meta";
+import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
+import { checkoutConsentVersion } from "@/lib/legal/store";
 import { getCardUserKey } from "@/lib/customer/store";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
@@ -144,7 +145,7 @@ async function readLegalConsent(formData: FormData) {
   return {
     acceptedAt: new Date().toISOString(),
     documents: [...CHECKOUT_CONSENT_DOCS],
-    version: LEGAL_UPDATED,
+    version: await checkoutConsentVersion(),
     ip: await clientIp(),
     userAgent: (h.get("user-agent") ?? "").slice(0, 300),
   };
