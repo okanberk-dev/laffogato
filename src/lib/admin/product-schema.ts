@@ -85,21 +85,23 @@ export function parseProductNotes(raw: string | undefined): string[] {
   return out;
 }
 
+// Both limits are checked on the LIST, not on each element: an element check
+// reports its issue at ["notes", i], the product action keys its field errors
+// by the joined path ("notes.2"), and the wizard asks for "notes" - so a note
+// too long for a chip used to be refused with the generic banner alone and no
+// word under the "Tat notları" field about which limit was hit.
 const notesList = z
   .string()
   .optional()
   .transform(parseProductNotes)
   .pipe(
     z
-      .array(
-        z
-          .string()
-          .max(
-            PRODUCT_NOTE_MAX_LENGTH,
-            `Her tat notu en fazla ${PRODUCT_NOTE_MAX_LENGTH} karakter olabilir.`,
-          ),
-      )
-      .max(PRODUCT_NOTES_MAX, `En fazla ${PRODUCT_NOTES_MAX} tat notu yazılabilir.`),
+      .array(z.string())
+      .max(PRODUCT_NOTES_MAX, `En fazla ${PRODUCT_NOTES_MAX} tat notu yazılabilir.`)
+      .refine(
+        (notes) => notes.every((n) => n.length <= PRODUCT_NOTE_MAX_LENGTH),
+        `Her tat notu en fazla ${PRODUCT_NOTE_MAX_LENGTH} karakter olabilir.`,
+      ),
   );
 
 const moneyToMinor = z

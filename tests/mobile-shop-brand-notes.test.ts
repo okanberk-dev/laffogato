@@ -153,6 +153,40 @@ describe("the product form", () => {
     expect(long.success).toBe(false);
   });
 
+  it("reports a note too long for a chip under the notes field itself", () => {
+    // The product action keys field errors by `issue.path.join(".")` and the
+    // wizard shows `fieldError("notes")`. An element-level check reported
+    // ["notes", 1] -> "notes.1", which no field reads: the operator saw only
+    // the generic banner and no word about which limit was hit.
+    const long = productFormSchema.safeParse(
+      form({ notes: `Kakao, ${"a".repeat(PRODUCT_NOTE_MAX_LENGTH + 1)}` }),
+    );
+    expect(long.success).toBe(false);
+    if (!long.success) {
+      const notesIssues = long.error.issues.filter((i) => i.path[0] === "notes");
+      expect(notesIssues.length).toBeGreaterThan(0);
+      for (const issue of notesIssues) expect(issue.path).toEqual(["notes"]);
+      expect(notesIssues[0]?.message).toContain(`${PRODUCT_NOTE_MAX_LENGTH}`);
+    }
+    // A note of exactly the limit is still a chip.
+    expect(
+      productFormSchema.safeParse(
+        form({ notes: "a".repeat(PRODUCT_NOTE_MAX_LENGTH) }),
+      ).success,
+    ).toBe(true);
+  });
+
+  it("tells the operator both limits and that the brand is shown as typed", () => {
+    const wizard = readFileSync("src/components/admin/product-wizard.tsx", "utf8");
+    expect(wizard).toContain('fieldError("notes")');
+    expect(wizard).toContain(`en fazla ${PRODUCT_NOTES_MAX} not`);
+    expect(wizard).toContain(`en fazla ${PRODUCT_NOTE_MAX_LENGTH} karakter`);
+    // The app prints the brand as written (no upper-casing), so the hint must
+    // not say it appears in lower case ("küçük harflerle").
+    expect(wizard).not.toContain("üstünde küçük harflerle");
+    expect(wizard).toContain("otomatik büyütülmez");
+  });
+
   it("refuses a brand too long for the eyebrow", () => {
     expect(productFormSchema.safeParse(form({ brand: "x".repeat(41) })).success).toBe(false);
   });

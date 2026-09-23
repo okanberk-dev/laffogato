@@ -344,7 +344,7 @@ export function ProductWizard({
               label="Marka (künye)"
               hint={
                 fieldError("brand") ??
-                "Uygulamada ürün adının üstünde küçük harflerle görünür. Boş bırakılırsa gösterilmez."
+                "Uygulamada ürün adının üstünde, yazdığın büyük/küçük harflerle görünür; otomatik büyütülmez. Boş bırakılırsa gösterilmez."
               }
             >
               <TextInput
@@ -359,7 +359,7 @@ export function ProductWizard({
               label="Tat notları"
               hint={
                 fieldError("notes") ??
-                "Virgülle ayır, en fazla 5 not. Uygulamada çip olarak görünür; boşsa açıklamanın tamamı gösterilir."
+                "Virgülle ayır; en fazla 5 not, her biri en fazla 24 karakter. Uygulamada başlığın altında çip olarak görünür; açıklama her durumda tamamen gösterilir."
               }
             >
               <TextInput
