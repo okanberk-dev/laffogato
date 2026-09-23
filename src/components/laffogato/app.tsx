@@ -1,7 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 
 import {
   Footer,
@@ -10,7 +11,7 @@ import {
   type FooterSettings,
   type Route,
 } from "./chrome";
-import { PageHome, PageMenu, PageShop, PageStory, PageVisit } from "./pages";
+import type { PageProps } from "./page-shared";
 import {
   CartDrawer,
   ProductModal,
@@ -22,6 +23,33 @@ import type { ShopHeroSlide } from "./shop-hero-slider";
 import type { MenuCategory, Product } from "./data";
 
 const VALID_ROUTES: Route[] = ["home", "menu", "shop", "story", "visit"];
+
+// One client chunk per page. Every route is a real Next route that mounts
+// this shell with a fixed initialRoute, so a visit to /menu only ever renders
+// PageMenu - it no longer downloads the home, shop, story and visit pages with
+// it. `ssr` stays on (the default): the server still renders the whole page
+// and next/dynamic preloads that page's chunk from the HTML. There is
+// deliberately no `loading` option: it would wrap the page in a Suspense
+// boundary whose empty fallback could blank <main> while a client-side
+// navigation fetches the next page's chunk; without one, the old page stays
+// up until the new one is ready, as before.
+const PageHome = dynamic(() => import("./home-page").then((m) => m.PageHome));
+const PageMenu = dynamic(() => import("./menu-page").then((m) => m.PageMenu));
+const PageShop = dynamic(() => import("./shop-page").then((m) => m.PageShop));
+const PageStory = dynamic(() =>
+  import("./story-page").then((m) => m.PageStory),
+);
+const PageVisit = dynamic(() =>
+  import("./visit-page").then((m) => m.PageVisit),
+);
+
+const PAGES: Record<Route, ComponentType<PageProps>> = {
+  home: PageHome,
+  menu: PageMenu,
+  shop: PageShop,
+  story: PageStory,
+  visit: PageVisit,
+};
 
 const CART_STORAGE_KEY = "laffogato_cart_v1";
 
@@ -243,14 +271,7 @@ export function LaffogatoApp({
     setCart((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const pages: Record<Route, typeof PageHome> = {
-    home: PageHome,
-    menu: PageMenu,
-    shop: PageShop,
-    story: PageStory,
-    visit: PageVisit,
-  };
-  const Page = pages[route];
+  const Page = PAGES[route];
 
   const cartCount = cart.reduce((s, it) => s + (it.qty || 1), 0);
 

@@ -213,10 +213,8 @@ eksik olan fotoğrafların kendisi. Bu ortamın giden bağlantısı görsel
 sunucularını (Unsplash, Pexels, Wikimedia) engellediği için stok fotoğraf da
 indirilemedi - kartlar bu yüzden markaya özgü SVG çizimlerle render ediliyor.
 
-**SPA'nın beş sayfası tek client chunk'ta.** `pages.tsx` tek bir 2.900 satırlık
-dosya; kod bölme için önce dosyanın kendisinin bölünmesi gerekiyor. Kazanç
-gerçek ama düşük önemli bir bulgu için taşınan regresyon riski yüksek -
-bilinçli olarak ertelendi.
+~~**SPA'nın beş sayfası tek client chunk'ta.**~~ 24 Eyl 2026'da kapandı - §6'ya
+bak.
 
 **Kampanya e-postası İYS'ye bağlı değil (8 Eyl 2026).** Yasal metinler onayın
 İYS'ye kaydedileceğini ve gönderim öncesi İYS'den kontrol edileceğini söylüyor
@@ -267,6 +265,29 @@ yasal kimlikten okuduğu için doğrusunu. `20260901180000_settings_identity_bac
 bunu düzeltir; her kolona yalnızca hâlâ tam olarak eski değeri taşıyorsa
 dokunur, yani sonradan panelden yazılmış bir şeye karışmaz.
 
+**SPA'nın beş sayfası artık ayrı chunk'larda (24 Eyl 2026).** `pages.tsx`
+(2.568 satır) sayfa başına bir dosyaya bölündü: `home-page.tsx`,
+`menu-page.tsx`, `shop-page.tsx`, `story-page.tsx`, `visit-page.tsx`; ortak
+`PageProps` ve iki sayfanın kullandığı etiket sözlüğü `page-shared.ts`'te.
+Sayfa gövdeleri satırı satırına aynı taşındı. `app.tsx` her sayfayı
+`next/dynamic` ile yükler: her rota zaten kabuğu sabit bir `initialRoute` ile
+yeniden kurduğu için bir ziyaret yalnız kendi sayfasının chunk'ını indirir.
+`ssr` açık (sunucu sayfanın tamamını basar, chunk HTML'den önceden yüklenir) ve
+bilerek `loading` yedeği yok - yedek, istemci geçişinde `<main>`'i
+boşaltabilecek bir Suspense sınırı eklerdi; onsuz eski sayfa yenisi hazır
+olana kadar yerinde kalır.
+
+Ölçüm (`next build` + `next start`, sunucunun bastığı HTML'deki her
+`/_next/static` betiği, gzip -9): önce her SPA rotası 765,7 KB ham / 232,4 KB
+gzip; sonra `/` 729,1 / 224,5 · `/menu` 703,4 / 216,4 · `/magaza` 714,2 /
+219,3 · `/hikayemiz` 722,9 / 222,8 · `/ziyaret` 711,1 / 217,8. Sunucunun
+bastığı HTML yedi rotada (beş sayfa + `/menu/espresso`, `/magaza/cekirdek`)
+bayt bayt aynı kaldı; tek fark her build'de değişen server action anahtarı.
+Beş sayfa tarayıcıda hem doğrudan açılışta hem istemci geçişiyle gezildi:
+hydration hatası yok, sepet, menü filtreleri ve ziyaret seçicileri çalışıyor.
+Bir sayfayı statik olarak geri import etmek bölmeyi sessizce geri alır;
+`tests/spa-page-chunks.test.ts` bunu tutar.
+
 ### Migration'lar kendiliğinden uygulanır
 
 Bunu belgelemeye değer, çünkü aksini varsaymak kolay: **deploy'da elle
@@ -313,6 +334,7 @@ Yalnızca `DATABASE_URL`'in yeni bağlantı dizesiyle güncellenmesi yeterli.
 | `tests/route-paths.test.ts`      | Nav'daki her slug'ın gerçek bir rotası var                                  |
 | `tests/contrast.test.ts`         | Küçük metin koyu accent'i kullanır                                          |
 | `tests/legal-docs.test.ts`       | Checkout sabitleri 1,5 MB'lık kayıttan ayrı durur                           |
+| `tests/spa-page-chunks.test.ts`  | Beş SPA sayfası `next/dynamic` ile ayrı chunk; hiçbiri statik import edilmez |
 
 ---
 

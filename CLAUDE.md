@@ -182,7 +182,12 @@ src/
     laffogato/               → Müşteri SPA
       app.tsx                → Shell (cart, route, notice, settings)
       chrome.tsx             → Nav + Footer
-      pages.tsx              → Sayfa gövdeleri
+      home-page.tsx · menu-page.tsx · shop-page.tsx ·
+      story-page.tsx · visit-page.tsx
+                             → Sayfa gövdeleri; app.tsx her birini
+                               next/dynamic ile ayrı chunk olarak yükler
+                               (statik import etme - spa-page-chunks testi)
+      page-shared.ts         → PageProps + MENU_TAG_LABELS
       ui.tsx                 → ProductCard, CartDrawer, ProductModal, ...
       visuals.tsx            → SVG illüstrasyonlar + HUES yüzey paleti
       product-detail.tsx     → Ürün detay (PDP)

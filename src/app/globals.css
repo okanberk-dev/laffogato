@@ -1354,10 +1354,11 @@ summary:focus-visible,
 
    This used to be a LIST of dark selectors, and the list was wrong - it named
    `.loyalty-block` and `.footer` and missed the two inline-styled dark
-   sections in pages.tsx and `.guide-cta`, so three accent words rendered
-   invisible on the live site. A list has to be maintained; a variable does
-   not. Any element that paints itself dark declares it once here, and every
-   `.script` inside it inherits the light form. */
+   sections (story-page.tsx, visit-page.tsx) and `.guide-cta`, so three
+   accent words rendered invisible on the live site. A list has to be
+   maintained; a variable does not. Any element that paints itself dark
+   declares it once here, and every `.script` inside it inherits the light
+   form. */
 .loyalty-block,
 .footer,
 .guide-cta,
@@ -3886,7 +3887,7 @@ select {
   min-height: 44px;
 }
 
-/* Hero stats row (PageHome) - used inline in pages.tsx */
+/* Hero stats row (PageHome) - used inline in home-page.tsx */
 
 /* Home - "01 Il locale" split row + 4-col stats card */
 

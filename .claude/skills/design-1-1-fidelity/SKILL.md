@@ -17,7 +17,7 @@ Handoff dosyaları `/tmp/design/cafe/project/site/`'da:
 - `visuals.jsx` → `visuals.tsx`
 - `data.jsx` → `data.ts`
 - `styles.css` + `components.css` → `globals.css` (birleşik)
-- `page-home.jsx`, `page-menu.jsx`, ... → `pages.tsx` (tümü tek dosyada)
+- `page-home.jsx`, `page-menu.jsx`, ... → `home-page.tsx`, `menu-page.tsx`, ... (sayfa başına bir dosya; `app.tsx` onları `next/dynamic` ile yükler)
 
 Süreç boyunca dosyalar `/tmp` altında. Sandbox sıfırlanırsa Claude Design'dan tekrar export edilmesi gerekir.
 
