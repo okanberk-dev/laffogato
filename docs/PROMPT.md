@@ -35,7 +35,7 @@ Laffogato, bir kafe markasının online vitrinidir. İki temel kullanım vardır
 - [x] Sepet (CartDrawer) — kalemler, sil, toplam, kargo bilgisi, "Ödemeye geç"; localStorage'da kalıcı
 - [x] Ödeme (`/odeme/basarili?ref=<id>`) — `placeOrderAction` ile gerçek sipariş yaratır, premium başarı sayfası, sepet otomatik temizlenir
 - [x] Hikaye (`#story`) · Visit (`#visit`, interaktif rezervasyon kartı + gömülü harita)
-- [ ] Hesabım — müşteri auth + sipariş geçmişi (önümüzdeki sprint)
+- [x] Hesabım - müşteri auth + sipariş geçmişi (`/uye/hesap`: siparişler, adresler, favoriler, promosyonlar, bildirimler, hesap silme)
 
 ### Admin tarafı (`/admin`)
 
@@ -61,7 +61,7 @@ Laffogato, bir kafe markasının online vitrinidir. İki temel kullanım vardır
 - [x] Webhook endpoint'i (`/api/webhooks/payment`) — HMAC SHA256 imza doğrulama, idempotent insert (`payment_transactions.provider_ref` unique)
 - [x] Sipariş durum makinesi: `pending_payment` → `paid` → `preparing` → `shipped` → `completed` | `cancelled` | `refunded`
 - [x] Stok düşümü `placeOrder` içinde atomik (önce tüm kalemler valide, sonra düşürme — partial write yok)
-- [ ] Gerçek sanal POS sağlayıcısı (iyzico / PayTR / craftgate — kullanıcı seçimi bekleniyor)
+- [x] Gerçek sanal POS sağlayıcısı - **PayNkolay** (6 Eyl 2026; `src/lib/payment/paynkolay.ts`, `docs/PAYNKOLAY.md`)
 
 ## 4. MVP Dışı (sonraya)
 
@@ -123,8 +123,8 @@ Tablolar boşsa uygulama ilk istekte kendini idempotent olarak seed eder:
 
 ## 10. Açık Konular
 
-- [ ] Sanal POS sağlayıcısı kararı (iyzico vs. PayTR vs. craftgate)
-- [ ] Kargo entegrasyonu (sadece manuel takip mi, yoksa kargo API'si mi?)
+- [x] Sanal POS sağlayıcısı kararı - PayNkolay (6 Eyl 2026)
+- [x] Kargo entegrasyonu - Geliver: takip numarası panelde siparişe girilir, durumlar webhook'la gelir (`/api/webhooks/geliver`, `docs/GELIVER.md`)
 - [ ] Fatura/e-arşiv entegrasyonu (gerekli mi?)
-- [ ] KVKK aydınlatma metni + çerez bildirimi
+- [x] KVKK aydınlatma metni + çerez bildirimi (`/hukuk/kvkk-aydinlatma-metni`, `/hukuk/cerez-politikasi`, Consent Mode v2 bandı; `tests/consent.test.ts`)
 - [ ] Tasarım handoff dosyaları gelince renk paleti, tipografi, ikon seti

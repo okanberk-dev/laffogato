@@ -121,10 +121,14 @@ diğeri HMAC kullanır, yenilenecek çerezleri yoktur.
 
 ## 5. Sınırlar ve bilinçli boşluklar
 
-- `DELETE /me` Supabase kullanıcısını **silmez** (service role yok). Neon
-  satırı anonimleştirilir, uygulama oturumu kapatır. Supabase tarafındaki
-  kullanıcının silinmesi ayrı bir operasyon görevidir (`docs/COMPLIANCE.md`,
-  mobil repo).
+- `DELETE /me`: Neon satırı anonimleştirilir ve hesap kapanır; Supabase
+  kullanıcısı, dağıtımda `SUPABASE_SERVICE_ROLE_KEY` tanımlıysa **silinir**
+  (`deleteSupabaseIdentity`, `src/lib/supabase/admin.ts`). Anahtar yoksa ya
+  da silme başarısız olursa kimlik Supabase'de kalır, ama kapalı satır
+  `supabaseUserId`'yi tutar ve `ensureCustomerForSupabaseUser` o kimliğe
+  yeni üyelik açmaz (403 `account_disabled`). Ne olduğunu yanıttaki
+  `identity` söyler (`deleted` · `skipped` · `failed`, `docs/API-MOBILE.md`
+  §4); uygulama oturumu her durumda kapatır.
 - **Bağlanmamış satırda sıfırlama Supabase'e ulaşmaz.** `supabaseUserId` boş
   bir satır için aynasının yazacağı bir kimlik yoktur, dolayısıyla sitede
   sıfırlanan parola Supabase'de eski kalır ve o adresle uygulamaya ESKİ

@@ -4,14 +4,14 @@
 yönetim paneli.
 
 **Next.js 16** (App Router) · **React 19** · **Tailwind v4** · **TypeScript** ·
-**Postgres** (hedef: Supabase — geçiş: docs/SUPABASE-GECIS.md) — uygulama Vercel'de barındırılır. Sağlayıcıya
-özel bağımlılık yok; taşınma bağlantı dizesi değişikliğidir.
+**Postgres** (Neon; Supabase'e taşıma operatörün açık kararı, yordamı docs/SUPABASE-GECIS.md) - uygulama
+Vercel'de barındırılır. Sağlayıcıya özel bağımlılık yok; taşınma bağlantı dizesi değişikliğidir.
 
 | Taraf       | Ne var                                                                                                                                      |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Müşteri** | 12 kategorili kafe menüsü, online mağaza, ürün detayı, sepet, üye checkout, üye hesabı (sipariş geçmişi, adresler, favoriler, promosyonlar) |
 | **Rehber**  | Arama verisine dayalı 5 uzun içerik — `/rehber`                                                                                             |
-| **Hukuk**   | 24 sözleşme ve politika — `/hukuk`, tek kaynaktan doldurulan yasal kimlikle                                                                 |
+| **Hukuk**   | 25 sözleşme ve politika - `/hukuk`, tek kaynaktan doldurulan yasal kimlikle                                                                 |
 | **Admin**   | Ürün / menü / kategori / sipariş / müşteri / promosyon / içerik yönetimi, stok hareketleri, ciro raporları, olay kaydı, RBAC, TOTP 2FA      |
 | **Ödeme**   | Sağlayıcı bağımsız soyutlama; sanal POS **PayNkolay**, geliştirmede mock. Üretimde mock'a düşmez — açıkça reddeder                          |
 | **Rıza**    | Consent Mode v2 (KVKK) · mesafeli satış onayı kanıtla · 6563 bülten onayı ve tek tıkla çıkış                                                |
@@ -66,7 +66,7 @@ src/lib/
   db/                    pg havuzu · sorgu kurucu · SQL derleyici · sağlık
   admin/ · customer/     Veri katmanı ve iş kuralları
   payment/               PaymentProvider · MockPaymentProvider · IyzicoPaymentProvider
-  legal/                 Yasal kimlik (tek kaynak) · 24 sözleşme · render · meta
+  legal/                 Yasal kimlik (tek kaynak) · 25 sözleşme · render · meta
   consent/               Çerez rızası durumu + Consent Mode v2 bootstrap
   newsletter/            6563 onay kaydı + tek tıkla çıkış
   seo/                   site sabitleri · yapısal veri · sayfa SEO · rehber
@@ -136,8 +136,8 @@ PayNkolay kullanılacaksa ayrıca `PAYNKOLAY_SX`, `PAYNKOLAY_SX_LIST`,
 `PAYNKOLAY_FAIL_URL` — hepsinin ne olduğu `.env.example` içinde yazılı.
 
 > **PayNkolay henüz canlıya alınmadı.** Sağlayıcı kodu, hash formülleri ve
-> testleri hazır; panel anahtarları ve canlı deneme bekliyor — kurulum ve
-> ölçüm listesi [docs/PAYNKOLAY.md](docs/PAYNKOLAY.md) §13. O zamana kadar
+> testleri hazır; panel anahtarları ve canlı deneme bekliyor - kurulum
+> [docs/PAYNKOLAY.md](docs/PAYNKOLAY.md) §13, canlı ölçüm listesi §12. O zamana kadar
 > `PAYMENT_PROVIDER=mock` ile yalnızca geliştirmede çalışılır; üretimde mock
 > reddedilir.
 

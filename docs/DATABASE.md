@@ -1,10 +1,14 @@
-# Veritabanı — Postgres (hedef: Supabase)
+# Veritabanı - Postgres (Neon)
 
-> Operatör kararı: veritabanı, mobil uygulamanın kimlik için kullandığı
-> Supabase projesinde yaşayacak. Cutover tamamlanana kadar canlı veri eski
-> sağlayıcıda durur ve hukuki belgeler gerçeği söylemeye devam eder
-> (aşağıda "Sağlayıcı adı" bölümü). Geçişin çalıştırılabilir yordamı:
-> **[SUPABASE-GECIS.md](SUPABASE-GECIS.md)**
+> **Durum (23 Eyl 2026):** canlı veri **Neon**'dadır ve varsayılan orada
+> kalmaktır. 30 Ağu 2026'da veriyi mobil uygulamanın kimlik için kullandığı
+> Supabase projesine taşıma hedefi yazılmıştı; 2 Eyl 2026'dan beri iki depo
+> da Supabase'i **yalnız kimlik** için kullanır ve veri kararı "Neon, tek
+> kaynak"tır (lafmobil `docs/INFRA.md` §1). Taşıma yalnız operatör açıkça
+> isterse ve aşağıdaki ön koşul (ücretli plan ya da kalıcı proje slotu)
+> yazılı olarak doğrulanırsa yapılır; çalıştırılabilir yordam
+> **[SUPABASE-GECIS.md](SUPABASE-GECIS.md)**. Hukuki belgeler gerçeği söyler:
+> `dbProvider` bugün `"Neon"` (aşağıda "Sağlayıcı adı" bölümü).
 
 Proje **yönetilen bir Postgres** üzerinde çalışır. Kodda sağlayıcıya özel
 bağımlılık yoktur; taşınma bağlantı dizesini değiştirmekten ibarettir.
@@ -66,6 +70,12 @@ Bunun iki somut faydası var:
    `on conflict` davranışı, SQLSTATE'ler ve fonksiyon çağrıları dâhil.
 
 ## Kurulum (tek seferlik)
+
+> **Hangi sağlayıcı için:** aşağıdaki adımlar Supabase hedefi için
+> yazılmıştır (taşıma kararı verilirse). Bugünkü Neon kurulumunda Neon
+> panosundaki **pooled** (`-pooler`) bağlantı dizesi `DATABASE_URL`'e konur,
+> `DATABASE_SSL_CA` boş kalır (yalnız Supabase host'larında uygulanır); şema
+> adımı (4) ve env sırası aynıdır.
 
 > **Sıra önemli: önce şemayı kur, sonra `DATABASE_URL`'i Vercel'e ekle.**
 > Uygulama "tablo yok" hatasını (SQLSTATE `42P01`) _gerçek_ bir hata sayar ve
@@ -186,9 +196,14 @@ kaybolduğunda kırılır. Asgari (zorunlu) sürelerde yıl **366 gün** sayıl�
 
 ### Çalıştırma — varsayılan **rapor modu**
 
-`vercel.json` → `crons`: `/api/cron/retention`, her gün 04:00 UTC (07:00
-İstanbul). Kimlik doğrulaması kampanya cron'unun aynısıdır (`CRON_SECRET`,
-sabit zamanlı karşılaştırma, tanımsızsa 503).
+`vercel.json` → `crons`: imha, `/api/cron/daily` içinde **son adım** olarak
+koşar, her gün 06:00 UTC'de (09:00 İstanbul), kampanya ve doğum günü
+adımlarından sonra: silen tek parça odur, bu yüzden en sonda. Vercel'in Hobby
+planı iki cron ve yalnız günlük program verdiği için ayrı
+`/api/cron/retention` rotası programda değildir; rota duruyor ve ücretli
+planda kendi satırıyla geri konabilir (`docs/EMAIL-RESEND.md` §7). Kimlik
+doğrulaması kampanya cron'unun aynısıdır (`CRON_SECRET`, sabit zamanlı
+karşılaştırma, tanımsızsa 503).
 
 **İmha geri alınamaz, bu yüzden opt-in'dir.** İş varsayılan olarak yalnızca
 sayar ve ne silecek olduğunu kural kural yanıt gövdesinde bildirir. Gerçekten
@@ -273,8 +288,11 @@ Eksik olan tek şey bağlantı dizesi ve verinin kendisi.
    `customers`, `order_items`, `loyalty_*`.
 6. **Aynı anda:** `dbProvider` alanını `"Supabase"` yap **ve** Vercel'deki
    `DATABASE_URL`'i değiştir, sonra deploy et.
-7. **Doğrulama sonrası** `NEON_DATABASE_URL` fallback'ini `src/lib/db/index.ts`
-   ve `scripts/db-migrate.mjs` içinden kaldır.
+
+Kodda eski sağlayıcıya özel bir değişken yoktur: `src/lib/db/index.ts`
+`DATABASE_URL` → `POSTGRES_URL` → `SUPABASE_DB_URL`, `scripts/db-migrate.mjs`
+`DATABASE_URL` → `POSTGRES_URL` okur. Cutover'da kaldırılacak bir yedek dize
+kalmadı.
 
 Neon projesini **hemen silme.** Birkaç gün elde tut; geri dönmek gerekirse tek
 yapılacak şey bağlantı dizesini geri almak olsun.

@@ -197,44 +197,14 @@ hiçbir şeyle çalışmıyordu.
 
 ## 5. Açık kalanlar
 
-> **Güncelleme (6 Eyl 2026):** sanal POS kararı **PayNkolay** oldu; üretimde
-> kullanılan sağlayıcı odur. Aşağıdaki iyzico bölümü o günkü durumun kaydı
-> olarak duruyor — güncel kurulum, hash formülleri, açılış kontrol listesi ve
-> "PayNkolay webhook göndermez" kuralı için `docs/PAYNKOLAY.md`. Aşağıdaki iki
-> tuzaktan ikincisi (`PAYMENT_PROVIDER` her ortamda tanımlı olmalı) sağlayıcıdan
-> bağımsız olarak geçerlidir.
-
-**iyzico canlıya alınmadı — sonraya bırakıldı.** Sağlayıcı kodu, imza şeması,
-Checkout Form akışı, tarayıcı dönüşü (`/odeme/donus`), imzalı webhook ve iade
-çağrısı yazıldı ve derleniyor; ama sandbox'ta uçtan uca denenmedi ve canlı
-anahtarlar tanımlanmadı. Bu bilinçli bir sıra: ödeme, geri kalan her şey
-oturduktan sonra açılacak.
-
-Açmak için gereken, kodda değil ortam değişkenlerinde:
-
-```
-PAYMENT_PROVIDER=iyzico
-IYZICO_API_KEY=...
-IYZICO_SECRET_KEY=...
-IYZICO_BASE_URL=https://sandbox-api.iyzipay.com   # önce sandbox
-IYZICO_CALLBACK_URL=https://laffogato.net/odeme/donus
-PAYMENT_WEBHOOK_SECRET=...                        # iyzico panelindekiyle aynı
-```
-
-İki tuzak, ikisi de bu denetimde bulundu:
-
-1. `IYZICO_CALLBACK_URL` **webhook adresi değildir**. iyzico oraya müşterinin
-   _tarayıcısını_ POST eder; webhook adresi verilirse müşteri ödemeden sonra
-   401 JSON görür. Sunucudan sunucuya bildirim iyzico panelinde ayrıca
-   tanımlanır ve `/api/webhooks/payment` adresine gider.
-2. `PAYMENT_PROVIDER` **her ortamda tanımlı olmalı**. Tanımsız bırakmak artık
-   sessizce mock'a düşmüyor, üretimde açıkça hata veriyor — çünkü mock, para
-   almadan siparişi `paid` yapar.
-
-Sandbox'ta doğrulanacaklar: başarılı ödeme → sipariş `paid` + stok düşümü +
-onay e-postası; başarısız ödeme → sipariş `pending_payment` kalır; kısmi iade →
-iade defterine yazılır ama sipariş `refunded` olmaz; ve webhook ile tarayıcı
-dönüşü aynı ödemeyi iki kez işlemez (`provider_ref` unique kısıtı).
+**Sanal POS (tarihçe).** Bu bölüm yazılırken iyzico canlıya alınmayı
+bekliyordu; 6 Eyl 2026'da karar **PayNkolay** oldu ve üretim sağlayıcısı odur
+(iyzico modülü kodda duruyor, kullanılmıyor). Kurulum, hash formülleri ve
+"PayNkolay webhook göndermez" kuralı `docs/PAYNKOLAY.md`'de: canlı ölçüm
+listesi §12, ortam değişkenleri §13. O günün iki tuzağından biri sağlayıcıdan
+bağımsız olarak geçerlidir: `PAYMENT_PROVIDER` her ortamda tanımlı olmalı;
+tanımsız ya da `mock` bırakmak üretimde açıkça hata verir, çünkü mock para
+almadan siparişi `paid` yapar.
 
 **11 mağaza ürününün ve 2 hero slaydının görseli yok.** Bu bir kod hatası
 değil, eksik içerik: ürün fotoğrafı çekilip panelden yüklenmeli. Yükleyici
@@ -412,6 +382,6 @@ hariç — belge onları "henüz yok, 404 beklenir" diye yazıyor, uygulama 404'
 ### Açık
 
 §8'de açık madde kalmadı (23 Eyl 2026, ikinci geçiş). Kodda değil operatörde
-duran iş: PayNkolay'ın canlı ölçüm listesi (`docs/PAYNKOLAY.md` §13) — köprü
+duran iş: PayNkolay'ın canlı ölçüm listesi (`docs/PAYNKOLAY.md` §12) - köprü
 formunun POS'a gidişi (CSP artık izin veriyor), `PaymentList` üretim ucu ve
 dönüş hash'inin `CURRENCY_CODE` alanı.

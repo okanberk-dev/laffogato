@@ -546,9 +546,12 @@ saatte bir `/api/cron/campaign-emails`e vuruyor. Üstüne konan bir katman, tek
 bayrak direği değil — GitHub'ın zamanlanmış işleri gecikebilir, o zaman
 Vercel'in 06:00 ve 12:00 geçişleri yine alır. Hiçbir kampanya kaybolmaz.
 
-> **Tek seferlik kurulum:** depo → Settings → Secrets and variables → Actions
-> → `CRON_SECRET`, değeri Vercel'dekiyle **birebir aynı**. Secret tanımlı
-> değilken iş kendini atlar, kırmızı yanmaz.
+> **Tek seferlik kurulum - yapıldı (22 Eyl 2026):** depo → Settings →
+> Secrets and variables → Actions → `CRON_SECRET` tanımlı (`gh secret list`:
+> 22 Eyl 2026 08:52 UTC) ve zamanlanmış çalışmalar başarıyla bitiyor. Değer
+> Vercel'dekiyle **birebir aynı** kalmalı: Vercel'de değişirse burada da
+> değiştirilir, yoksa iş 401 alır ve kırmızı yanar. Secret silinirse iş
+> kendini atlar, kırmızı yanmaz.
 
 **Plan yükseltilirse** (Pro: 40 cron, istediğin program): `vercel.json`'daki
 eski üç satırlık listeyi geri koy — `/api/cron/birthday`,

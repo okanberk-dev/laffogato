@@ -4,6 +4,11 @@
 > kullandığı Supabase projesine (`wvivcgctebyxojtyidfg`) nasıl güvenle
 > taşırız?** Buradaki her teknik iddia bu depoda ya koddan ya canlı uçtan
 > ÖLÇÜLDÜ; kaynak her bölümde belirtiliyor.
+>
+> **Durum (23 Eyl 2026):** bu yordam **uygulanmadı** (`src/lib/legal/entity.ts`
+> `dbProvider` bugün `"Neon"`) ve varsayılan Neon'da kalmaktır
+> ([DATABASE.md](DATABASE.md) başı). Yalnız operatör açıkça isterse ve §0'daki
+> ön koşul yazılı olarak doğrulanırsa uygulanır.
 
 ## 0. Önce oku: bu yol bir kez denendi ve site bir ay kapalı kaldı
 
@@ -152,9 +157,11 @@ Sıfır kesinti hedefiyle, adım adım:
    adımdır; `DATABASE_SSL_CA`'yı silmek GEREKMEZ (yalnız Supabase host'larında
    uygulanır) ve Neon'daki veri cutover'dan sonra da silinmemiş olacak
    (bkz. adım 8).
-8. **Söküm (en az 1 hafta sonra):** Neon projesi kapatılır,
-   `NEON_DATABASE_URL` env zincirinden silinir (`src/lib/db/index.ts` +
-   `scripts/db-migrate.mjs` — kod içi not zaten "cutover doğrulanınca sil" diyor).
+8. **Söküm (en az 1 hafta sonra):** Neon projesi kapatılır. Kodda
+   kaldırılacak bir şey yok: eski sağlayıcıya özel değişken zincirden zaten
+   çıkarıldı (`src/lib/db/index.ts` `DATABASE_URL` → `POSTGRES_URL` →
+   `SUPABASE_DB_URL`, `scripts/db-migrate.mjs` `DATABASE_URL` →
+   `POSTGRES_URL` okur).
 
 ## 5. Cutover'dan sonra: veri aynı projede, kimlik hâlâ iki sistem
 
