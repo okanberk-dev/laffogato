@@ -423,6 +423,16 @@ function DetailGrid({ product: p }: { product: Product }) {
   } else if (p.cat === "pantry") {
     rows.push(["Saklama", "Ağzı kapalı, serin yer"]);
   }
+  // An allergen is never withheld, and the legal pages promise it is shown on
+  // the product page before the purchase. The shelf's `nuts` tag is the same
+  // one the app reads; "kuruyemiş" is the menu band's own word, and the
+  // regulation's term follows it because a pistachio is not a hazelnut.
+  if (p.tags?.includes("nuts")) {
+    const nuts = "Kuruyemiş (sert kabuklu meyve) içerir";
+    const at = rows.findIndex(([k]) => k === "Alerjenler");
+    if (at >= 0) rows[at] = ["Alerjenler", `${rows[at]![1]} · ${nuts}`];
+    else rows.push(["Alerjenler", nuts]);
+  }
   if (rows.length === 0) rows.push(["Kategori", p.cat]);
   return (
     <dl className="pdp-detail-grid">

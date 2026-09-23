@@ -3647,6 +3647,10 @@ function toDesignProduct(p: AdminProduct): DesignProduct {
     img: p.img,
     featured: p.featured || undefined,
     isNew: p.isNew || undefined,
+    // The allergen tags the app already reads from `GET /shop`; the PDP draws
+    // its allergen row from them. Guarded for the same deploy-order reason as
+    // the mobile mapper.
+    tags: Array.isArray(p.tags) && p.tags.length > 0 ? [...p.tags] : undefined,
     // Rich fields for the PDP + cart.
     slug: p.slug,
     sku: p.sku,
