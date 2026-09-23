@@ -179,7 +179,7 @@ function Slide({
       ? "linear-gradient(to right, rgba(20,61,43,0.45), rgba(20,61,43,0.25) 60%, rgba(20,61,43,0.55))"
       : "linear-gradient(to right, rgba(255,255,255,0.35), rgba(255,255,255,0.1) 60%, rgba(255,255,255,0.35))"
     : isLight
-      ? "linear-gradient(135deg, #235347 0%, #12291f 100%)"
+      ? "linear-gradient(135deg, var(--brand) 0%, var(--bg-espresso-deep) 100%)"
       : "linear-gradient(135deg, #f3f5f2 0%, #e7eae7 100%)";
 
   const words = slide.title.trim().split(/\s+/);

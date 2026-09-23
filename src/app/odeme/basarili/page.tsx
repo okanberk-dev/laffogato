@@ -246,7 +246,7 @@ function SummaryRow({
         paddingTop: strong ? 10 : undefined,
         marginTop: strong ? 4 : undefined,
         fontWeight: strong ? 600 : 400,
-        color: tone === "green" ? "#235347" : undefined,
+        color: tone === "green" ? "var(--matcha)" : undefined,
       }}
     >
       <span>{label}</span>

@@ -46,7 +46,7 @@ export default async function VerifyPage({ searchParams }: PageProps) {
             display: "grid",
             placeItems: "center",
             background: ok ? "#dfeae2" : "#f6e9ec",
-            color: ok ? "#235347" : "#bb251b",
+            color: ok ? "var(--matcha)" : "#bb251b",
             fontSize: 26,
           }}
         >

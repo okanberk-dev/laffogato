@@ -74,6 +74,9 @@ function escapeHtml(value: string): string {
  * elle basılabilen bir düğme var. Sayfa hiç görünmesin diye bir şey
  * yapılmıyor: yönlendirme milisaniyeler sürüyor ve boş bir beyaz ekran,
  * ödeme yaparken en çok korkulan şeydir.
+ *
+ * This page is standalone HTML, outside globals.css, so it spells the
+ * site's colours out: the button is --brand (#143d2b).
  */
 function renderAutoSubmitForm(
   action: string,
@@ -99,7 +102,7 @@ font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#faf7f2;col
 main{text-align:center;padding:2rem;max-width:22rem}
 p{margin:.75rem 0 0;font-size:.9rem;color:#6b625a}
 button{margin-top:1.25rem;padding:.75rem 1.5rem;border:0;border-radius:999px;
-background:#235347;color:#fff;font-size:1rem;cursor:pointer}
+background:#143d2b;color:#fff;font-size:1rem;cursor:pointer}
 </style>
 </head>
 <body>

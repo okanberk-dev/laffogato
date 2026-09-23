@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import ts from "typescript";
 
 const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
 
@@ -278,5 +279,77 @@ describe("surfaces outside globals.css follow the same palette", () => {
         "logo-laf.png",
       );
     }
+  });
+});
+
+/**
+ * `#235347` is the app's retired structure green (lafmobil karar 61; karar
+ * 149 moved the app to `#1D6D56`). It was never a site token, yet five site
+ * surfaces painted it as a literal: the e-mail verify page and notice, the
+ * order receipt's green row, the shop hero's photo-less slide and the
+ * PayNkolay bridge button. They now use the site's own --matcha / --brand.
+ *
+ * The ban reads CODE only - string, template and JSX text - so the history
+ * notes that name the colour in comments (globals.css, the templates README)
+ * can stay.
+ */
+describe("the app's retired green does not paint the site", () => {
+  const RETIRED_APP_GREEN = /#235347/i;
+
+  function sourceFiles(dir: string): string[] {
+    const out: string[] = [];
+    for (const entry of readdirSync(join(process.cwd(), dir), {
+      withFileTypes: true,
+    })) {
+      const rel = join(dir, entry.name);
+      if (entry.isDirectory()) out.push(...sourceFiles(rel));
+      else if (/\.(ts|tsx)$/.test(entry.name)) out.push(rel);
+    }
+    return out;
+  }
+
+  /** Every literal a file can paint with: strings, templates, JSX text. */
+  function literals(file: string): string[] {
+    const source = ts.createSourceFile(
+      file,
+      read(file),
+      ts.ScriptTarget.Latest,
+      false,
+      file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    );
+    const found: string[] = [];
+    const visit = (node: ts.Node) => {
+      if (
+        ts.isStringLiteralLike(node) ||
+        ts.isTemplateLiteralToken(node) ||
+        ts.isJsxText(node)
+      ) {
+        found.push(node.text);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    return found;
+  }
+
+  it("has no #235347 in any src string, template or JSX text", () => {
+    const files = sourceFiles("src");
+    expect(files.length).toBeGreaterThan(100);
+    const offenders = files.filter((file) =>
+      literals(file).some((text) => RETIRED_APP_GREEN.test(text)),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("has none in globals.css outside its comments", () => {
+    const code = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(code).not.toMatch(RETIRED_APP_GREEN);
+  });
+
+  it("keeps the PayNkolay bridge button on --brand, spelled out", () => {
+    // Standalone HTML: no stylesheet, so no var(--brand) to lean on.
+    expect(read("src/app/odeme/paynkolay/route.ts")).toContain(
+      "background:#143d2b",
+    );
   });
 });

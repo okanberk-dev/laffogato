@@ -63,7 +63,7 @@ export function VerifyNotice({
           {pending ? "Gönderiliyor…" : "Bağlantıyı yeniden gönder"}
         </button>
         {state.message && (
-          <span style={{ color: "#235347", fontSize: 13 }}>
+          <span style={{ color: "var(--matcha)", fontSize: 13 }}>
             {state.message}
           </span>
         )}
