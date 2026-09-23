@@ -209,6 +209,38 @@ describe("POST /orders — clientOrderId", () => {
     expect(placeAppOrder).toHaveBeenCalledTimes(1);
   });
 
+  it("replays a committed order even after staff close ordering", async () => {
+    // The retry of an order that already exists is not a new order: it used
+    // to hit the operator's switch first and come back 409 ordering_closed.
+    const first = await createAppOrder(customer, body("attempt-1"));
+    const { getSettings } = await import("@/lib/admin/store");
+    const open = vi.mocked(getSettings).getMockImplementation();
+    vi.mocked(getSettings).mockImplementation(
+      async () =>
+        ({
+          mobileApp: {
+            ...DEFAULT_MOBILE_APP_CONFIG,
+            ordering: {
+              ...DEFAULT_MOBILE_APP_CONFIG.ordering,
+              cafeEnabled: false,
+            },
+          },
+        }) as Awaited<ReturnType<typeof getSettings>>,
+    );
+    try {
+      const cafe = (id: string) =>
+        ({ ...body(id), kind: "cafe" }) as Parameters<typeof createAppOrder>[1];
+      const retry = await createAppOrder(customer, cafe("attempt-1"));
+      expect(retry.ok).toBe(true);
+      expect(retry.ok && retry.order.id).toBe(first.ok && first.order.id);
+      // …while a NEW order is still refused.
+      const fresh = await createAppOrder(customer, cafe("attempt-9"));
+      expect(!fresh.ok && fresh.failure.code).toBe("ordering_closed");
+    } finally {
+      vi.mocked(getSettings).mockImplementation(open!);
+    }
+  });
+
   it("treats a different attempt id as a different order", async () => {
     const first = await createAppOrder(customer, body("attempt-1"));
     const second = await createAppOrder(customer, body("attempt-2"));

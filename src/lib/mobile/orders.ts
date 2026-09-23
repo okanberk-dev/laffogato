@@ -330,8 +330,24 @@ export async function createAppOrder(
   customer: PublicCustomer,
   body: PlaceOrderBody,
 ): Promise<CreateAppOrderResult> {
-  // The operator's switches first: a closed cafe is the answer whatever
-  // else the basket has going on, and it costs one settings read.
+  // The member's own retry is not a second order. The app repeats the id it
+  // generated for this checkout attempt, so a POST it gave up on — while the
+  // server was still mailing the confirmation and opening the checkout
+  // session — answers with the order that first call created.
+  //
+  // FIRST, before the operator's switches: the order already exists. Staff
+  // closing ordering between the attempt and its retry used to answer the
+  // retry of a committed order with 409 `ordering_closed`.
+  if (body.clientOrderId) {
+    const existing = await findAppOrderByClientId(
+      customer.email,
+      body.clientOrderId,
+    );
+    if (existing) return replayAppOrder(existing, customer);
+  }
+
+  // Then the operator's switches: for a NEW order a closed cafe is the answer
+  // whatever else the basket has going on, and it costs one settings read.
   const refused = orderingRefusal(
     body.kind,
     body.fulfillment,
@@ -356,18 +372,6 @@ export async function createAppOrder(
         message: MSG.paymentUnavailable,
       },
     };
-  }
-
-  // The member's own retry is not a second order. The app repeats the id it
-  // generated for this checkout attempt, so a POST it gave up on — while the
-  // server was still mailing the confirmation and opening the checkout
-  // session — answers with the order that first call created.
-  if (body.clientOrderId) {
-    const existing = await findAppOrderByClientId(
-      customer.email,
-      body.clientOrderId,
-    );
-    if (existing) return replayAppOrder(existing, customer);
   }
 
   // Reclaim the member's own abandoned checkouts BEFORE counting them. The

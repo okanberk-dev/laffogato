@@ -46,6 +46,9 @@ describe("account deletion sweeps", () => {
       // The bulletin list held the address, the name and the consent evidence
       // of a member who is gone.
       `${TABLES.newsletterSubscribers}.email`,
+      // Till QR tokens kept the address (and an unexpired one still scanned)
+      // until an unrelated till scan happened to purge them.
+      `${TABLES.counterTokens}.customerEmail`,
     ]) {
       expect(covered, target).toContain(target);
     }

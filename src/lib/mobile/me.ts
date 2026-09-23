@@ -252,6 +252,17 @@ export const ANON_SWEEPS: ReadonlyArray<{
     op: "delete",
     patch: () => ({}),
   },
+  {
+    // The till QR tokens kept the address until some later till scan
+    // happened to run `purgeStale` — and an unexpired one could still be
+    // redeemed for the closed account. Anonymised like the rest, and expired
+    // on the spot: the till reads `expiresAt <= now` as expired, and the next
+    // purge removes the row (`expiresAt < cutoff`).
+    table: TABLES.counterTokens,
+    column: "customerEmail",
+    caseInsensitive: true,
+    patch: (anon) => ({ customerEmail: anon, expiresAt: "" }),
+  },
 ];
 
 /**
