@@ -1369,6 +1369,17 @@ export async function bulkUpdateOrders(
   let updated = 0;
   let skipped = 0;
   for (const id of ids) {
+    // "Hazırlanıyor" from pending_payment SETTLES the order (paidAt, stamp,
+    // revenue) — the very thing dropping bulk "paid" was meant to stop. One
+    // order at a time it is a deliberate call (paid at the counter); in bulk
+    // it is a stray tick. Unpaid orders are skipped here.
+    if (transition === "start_preparing") {
+      const current = await getOrder(id);
+      if (current?.status === "pending_payment") {
+        skipped += 1;
+        continue;
+      }
+    }
     const res = await transitionOrder(id, transition);
     if (res.ok) updated += 1;
     else skipped += 1;
@@ -3906,8 +3917,14 @@ export async function applyPromoCode(
   );
   if (!promo) return { ok: false, error: "Geçersiz kod." };
   if (!promo.isActive) return { ok: false, error: "Bu kod kapalı." };
-  if (promo.expiresAt && new Date(promo.expiresAt).getTime() < Date.now()) {
-    return { ok: false, error: "Kodun süresi doldu." };
+  // parsePublishInstant reads a stored bare "YYYY-MM-DDTHH:mm" (promos saved
+  // before expiry was normalised to UTC) as Istanbul time, and fails closed on
+  // text that is not a time.
+  if (promo.expiresAt) {
+    const expires = parsePublishInstant(promo.expiresAt);
+    if (expires === null || expires < Date.now()) {
+      return { ok: false, error: "Kodun süresi doldu." };
+    }
   }
   if (promo.usageLimit > 0 && promo.usageCount >= promo.usageLimit) {
     return { ok: false, error: "Kod kullanım limiti doldu." };
@@ -4740,7 +4757,11 @@ export {
   parsePublishInstant,
   toDateTimeLocalInput,
 } from "./publish-window";
-import { isPublishWindowOpen, normalizePublishInstant } from "./publish-window";
+import {
+  isPublishWindowOpen,
+  normalizePublishInstant,
+  parsePublishInstant,
+} from "./publish-window";
 
 export async function listAppSlides(): Promise<AdminAppSlide[]> {
   await ensureAppContentSeed();

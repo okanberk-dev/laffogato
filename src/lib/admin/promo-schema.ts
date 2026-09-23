@@ -1,11 +1,17 @@
 import { z } from "zod";
 
+import { normalizePublishInstant, parsePublishInstant } from "./publish-window";
+import { parseMoneyInput } from "@/lib/utils/format";
+
+// parseMoneyInput, not parseFloat(replace(",", ".")): that read "1.250,00" as
+// 1.25. Blank is 0; unreadable text is NaN, refused below.
 const moneyMinor = z
   .string()
   .optional()
   .transform((s) => {
-    const v = parseFloat(String(s ?? "0").replace(",", "."));
-    return Number.isFinite(v) && v >= 0 ? Math.round(v * 100) : 0;
+    const text = String(s ?? "").trim();
+    if (!text) return 0;
+    return parseMoneyInput(text) ?? Number.NaN;
   });
 
 const intInput = z
@@ -37,8 +43,7 @@ export const promoFormSchema = z
       const raw = parseFloat(String(v.valuePct ?? "0").replace(",", "."));
       value = Number.isFinite(raw) ? Math.round(raw) : 0;
     } else {
-      const raw = parseFloat(String(v.valueFixed ?? "0").replace(",", "."));
-      value = Number.isFinite(raw) && raw >= 0 ? Math.round(raw * 100) : 0;
+      value = parseMoneyInput(String(v.valueFixed ?? "")) ?? 0;
     }
     return {
       code: v.code,
@@ -46,7 +51,12 @@ export const promoFormSchema = z
       value,
       minSubtotalMinor: v.minSubtotal,
       usageLimit: v.usageLimit,
-      expiresAt: v.expiresAt ?? "",
+      // Stored as a UTC instant. The datetime-local value has no offset, and
+      // on a UTC server "23:59" meant 23:59 UTC — the promo stayed valid
+      // three hours past the Istanbul time the admin typed.
+      expiresAt: v.expiresAt?.trim()
+        ? normalizePublishInstant(v.expiresAt)
+        : "",
       isActive: v.isActive === "on",
     };
   })
@@ -65,7 +75,14 @@ export const promoFormSchema = z
         path: ["valueFixed"],
       });
     }
-    if (v.expiresAt && Number.isNaN(new Date(v.expiresAt).getTime())) {
+    if (Number.isNaN(v.minSubtotalMinor)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Geçerli bir alt sepet tutarı gir (ör. 250 ya da 1.250,00).",
+        path: ["minSubtotal"],
+      });
+    }
+    if (v.expiresAt && parsePublishInstant(v.expiresAt) === null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Geçerli bir tarih gir.",

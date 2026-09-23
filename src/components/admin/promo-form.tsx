@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 
 import type { PromoActionState } from "@/app/admin/promosyon/actions";
 import type { AdminPromo } from "@/lib/admin/store";
+import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
 
 import {
   Card,
@@ -127,8 +128,9 @@ export function PromoForm({ promo, action, submitLabel }: Props) {
             <TextInput
               name="expiresAt"
               type="datetime-local"
+              // The Istanbul wall clock of the stored UTC instant.
               defaultValue={
-                promo?.expiresAt ? promo.expiresAt.slice(0, 16) : ""
+                promo?.expiresAt ? toDateTimeLocalInput(promo.expiresAt) : ""
               }
             />
           </Field>

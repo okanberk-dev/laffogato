@@ -161,6 +161,17 @@ describe("bulk status change", () => {
     expect(body).toContain("transitionOrder(id, transition)");
     expect(body).not.toContain(".update({ status: op.status })");
   });
+
+  it("does not settle unpaid orders with a bulk 'hazırlanıyor'", () => {
+    // start_preparing from pending_payment stamps paidAt, awards the stamp
+    // and counts revenue — a bulk "paid" by another name.
+    const body = storeSource.slice(
+      storeSource.indexOf("export async function bulkUpdateOrders"),
+      storeSource.indexOf("export interface PlaceOrderItemInput"),
+    );
+    expect(body).toContain('transition === "start_preparing"');
+    expect(body).toContain('current?.status === "pending_payment"');
+  });
 });
 
 function coupon(overrides: Partial<CustomerCoupon> = {}): CustomerCoupon {
