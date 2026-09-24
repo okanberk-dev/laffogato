@@ -332,10 +332,18 @@ export function ImageUpload({
                     className="absolute top-2 right-2 rounded-full bg-white/85 px-2 py-0.5 text-[9px] tracking-[0.18em] text-neutral-600 uppercase backdrop-blur"
                     style={{ fontFamily: "var(--mono), monospace" }}
                   >
-                    {isData
-                      ? `${formatLabel(src)} · ${approxKB(src)} KB`
-                      : "URL"}
+                    {isData ? `${approxKB(src)} KB` : "URL"}
                   </span>
+                  {isData && (
+                    // The stored format: WEBP or PNG is a photo that kept
+                    // its transparency (a cutout), JPEG an opaque one.
+                    <span
+                      className="absolute bottom-2 left-2 rounded-full bg-white/85 px-2 py-0.5 text-[9px] tracking-[0.18em] text-neutral-600 uppercase backdrop-blur"
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      {formatLabel(src)}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center justify-between gap-1 border-t border-neutral-100 px-2 py-1.5">
                   <div className="flex items-center gap-1">
