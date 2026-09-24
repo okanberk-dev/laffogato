@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -136,4 +138,37 @@ describe("hue prior (DESIGN-GLASS §6.3)", () => {
 it("skips the automatic pick for gear and merch only", () => {
   expect([...NO_AUTO_PICK_CATEGORIES]).toEqual(["gear", "merch"]);
   expect(BACKDROP_ALGO_VERSION).toBe("v1");
+});
+
+describe("docs/API-MOBILE.md §1 (backdrop · photoCutout · vessel)", () => {
+  const doc = readFileSync("docs/API-MOBILE.md", "utf8");
+
+  /** The backticked values in the "Değerler" cell of one field's row. */
+  function listed(field: string): string[] {
+    const row = doc
+      .split("\n")
+      .find((line) => line.startsWith(`| \`${field}\` |`));
+    expect(row, `no table row for ${field}`).toBeDefined();
+    // Cells split on unescaped pipes: the type cell says `string \| null`.
+    const cells = row!.split(/(?<!\\)\|/);
+    return [...cells[3].matchAll(/`([a-z]+)`/g)].map((m) => m[1]);
+  }
+
+  it("lists the families in the same order as BACKDROP_KEYS", () => {
+    expect(listed("backdrop")).toEqual([...BACKDROP_KEYS]);
+  });
+
+  it("lists the vessels in the same order as VESSEL_KEYS", () => {
+    expect(listed("vessel")).toEqual([...VESSEL_KEYS]);
+  });
+
+  it("shows the three fields in both response examples", () => {
+    const menu = doc.slice(doc.indexOf("## 1. "), doc.indexOf("## 2. "));
+    const shop = doc.slice(doc.indexOf("## 2. "), doc.indexOf("## 3. "));
+    for (const part of [menu, shop]) {
+      for (const field of ["backdrop", "photoCutout", "vessel"]) {
+        expect(part).toContain(`"${field}":`);
+      }
+    }
+  });
 });

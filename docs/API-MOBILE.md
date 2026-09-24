@@ -86,6 +86,10 @@ zaten varsa o satır kullanılır (**tek üyelik**).
           "hue": "caramel",
           // Yüklenen fotoğraf: sürüm damgalı mutlak URL (aşağı bak), ya da null
           "image": "https://laffogato.net/gorsel/menu/mnu-0007?v=6f1c2a9d3b40",
+          // 24 Eyl 2026, eklemeli: sahne ailesi, dekupe, kap biçimi (aşağı bak)
+          "backdrop": "caramel",
+          "photoCutout": false,
+          "vessel": null,
         },
       ],
     },
@@ -196,6 +200,60 @@ eklenir** — fotoğrafın 5 dakikada görünmesi isteniyorsa menü sorgusunun
 `If-None-Match` ile gövdesiz **304** döner. Uygulama daha sık sorabilir:
 değişmemiş bir menü artık yalnızca başlık kadar maliyetli.
 
+### `backdrop` · `photoCutout` · `vessel` - sahne ailesi, dekupe ve kap biçimi (24 Eyl 2026, yalnız ekleme)
+
+Uygulama her ürünü, rengi içeceğin kendisinden gelen ışıklı bir sahnenin
+önünde çizer (cam turu, uygulama deposu `docs/DESIGN-GLASS.md` §6). Rengi
+bugüne kadar yalnız `hue`dan ve kategoriden tahmin edebiliyordu. Panel artık
+yüklenen fotoğraftan içeceğin gövde rengini okuyup on iki aileden en yakınını
+seçer; operatör seçimi elle değiştirebilir. Üç alan, menü kaleminde ve mağaza
+ürününde (§2) aynıdır:
+
+```jsonc
+{
+  "backdrop": "caramel", // string | null - 12 ürün ailesinden biri; null = seçim yok
+  "photoCutout": true,   // boolean - `image` saydam (dekupe) bir fotoğraf
+  "vessel": null         // string | null - fotoğrafsız kalemin çizilen kap biçimi; null = kategoriden
+}
+```
+
+| Alan | Tip | Değerler | Boşken |
+| --- | --- | --- | --- |
+| `backdrop` | string \| null | `espresso` · `caramel` · `latte` · `cocoa` · `spice` · `citrus` · `matcha` · `pistachio` · `strawberry` · `berry` · `ice` · `gelato` | `null`: uygulama `hue`ya, o da bilinmiyorsa kategoriye, o da yoksa `house`a düşer |
+| `photoCutout` | boolean | `true` · `false` | `false`; fotoğraf yoksa (`image: null`) her zaman `false` |
+| `vessel` | string \| null | `tumbler` · `cup` · `tulip` · `cloche` · `shot` · `pack` | `null`: biçim kategoriden gelir |
+
+- Üç anahtar da her kalem ve ürün nesnesinde **her zaman vardır**.
+- Sunucu listede olmayan bir değeri yayımlamaz, yerine `null` gönderir.
+  Uygulama da bilmediği değeri `null` sayar; alan hiç yoksa (eski sunucu,
+  tohum katalog) `backdrop: null`, `photoCutout: false`, `vessel: null`.
+- `house` ve `velvet` hiçbir zaman sunucudan gelmez: ürün ailesi değil,
+  uygulamanın ekran sahneleridir.
+- İki liste de sıralıdır ve iki depoda aynıdır: site
+  `src/lib/backdrop/families.ts` (`BACKDROP_KEYS`, `VESSEL_KEYS`), uygulama
+  `src/theme/backdrops.ts`. İki depoda da bu tabloya karşı testle kilitlidir.
+  Yeni bir değer önce bu belgeye, sonra iki listeye aynı sürümde eklenir.
+- **Otomatik seçim** sunucuda yapılır (`src/lib/backdrop/pick.ts`, algoritma
+  `v1`): fotoğrafın 64 px'lik örneğinden, kalemin `hue`su öncül alınarak.
+  Emin olamadığında (iki aile başabaş, ya da hiçbiri yeterince yakın değil)
+  seçim yapmaz, `backdrop` `null` kalır. Mağazanın `gear` ve `merch`
+  ürünlerinde otomatik seçim hiç yapılmaz (gövde rengi içecek değildir).
+- **Elle seçim** yeni fotoğraf yüklense de korunur. `photoCutout` ise her
+  yüklemede fotoğrafın kendisinden yeniden hesaplanır. `vessel` yalnız elle
+  seçilir.
+- `photoCutout` menüde `image`i, mağazada ilk görseli (`images[0]`, yanıttaki
+  `image`) anlatır. `backdrop` ve `vessel` fotoğrafsız kalemde de gelebilir
+  (operatörün seçimi).
+- Kaynak: `menu_items` ve `products` tablolarında `backdrop`,
+  `"backdropSource"` (`auto` · `manual`), `"backdropHex"`, `"photoCutout"`,
+  `vessel` (`db/migrations/20260924001000_backdrop_fields.sql`).
+  `"backdropSource"` ve `"backdropHex"` panelin kaydıdır, yayımlanmaz.
+  Migration'dan önce yayına çıkan sunucuda satırda anahtar yoktur; eşleyici o
+  durumda da `null` / `false` / `null` yayımlar (`tags`'teki koruma).
+- Mevcut fotoğraflar için `scripts/backfill-backdrops.mjs` (varsayılan kuru
+  koşu, `--apply` ile yazar, elle seçilmiş satırlara dokunmaz).
+- Eski sürümler üç alanı da okumaz; bir şey kırılmaz.
+
 ## 2. `GET /shop` — mağaza ürünleri (herkese açık)
 
 ```jsonc
@@ -207,6 +265,7 @@ değişmemiş bir menü artık yalnızca başlık kadar maliyetli.
   "brand": "Sirena",                  // 23 Eyl 2026, eklemeli: künye (ürünün markası); yoksa ""
   "notes": ["Kakao", "Kuru incir", "Esmer şeker"],   // 23 Eyl 2026, eklemeli: tat notu çipleri; yoksa []
   "hue": "caramel", "image": "https://…?v=<12 hex>" | null,   // §1'deki damga kuralı ürün fotoğrafları için de geçerli
+  "backdrop": "espresso", "photoCutout": false, "vessel": null,   // 24 Eyl 2026, eklemeli: §1'deki sahne alanları, ilk görseli anlatır
   "inStock": true,
   "variants": [ { "id": "var-…", "name": "250 g", "priceMinor": 32000, "inStock": true }, { "id": "var-…", "name": "1 kg", "priceMinor": 109000, "inStock": true } ],
   "grinds": [ "Çekirdek", "Espresso", "Filtre", "French Press" ]   // yalnız category === "beans"
@@ -817,6 +876,7 @@ alter table public.karaoke_reservations enable row level security;
 | 08 Sepet · 09 Ödeme                        | `/orders/preview` · `/promo/preview` · `/me` (adresler) · `POST /orders` → `expo-web-browser`            |
 | 10–11 Sipariş No · Takip                   | `/orders/{id}` (15 sn'de bir yenile, `completed`'da durur)                                               |
 | 12–13 Mağaza                               | `/shop`                                                                                                  |
+| Sahneler (menü, ürün, mağaza kartları)     | `/menu` · `/shop`: `backdrop` · `photoCutout` · `vessel` (§1); yoksa `hue` → kategori → `house`          |
 | 14 Ödüller · 15 Kart · 20 Pasaport         | `/me.loyalty` · `/loyalty/redeem` · `/coupons`                                                           |
 | 16 Profil · 24 Bildirimler · 25 Adreslerim | `/me` · `PATCH /me` · `/me/addresses*` · `/notifications`                                                |
 | 17 Canlı Durum                             | `/live-status` · `/bootstrap`                                                                            |
