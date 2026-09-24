@@ -2,6 +2,10 @@ import { z } from "zod";
 
 import { MAX_STORED_IMAGE_LENGTH } from "@/lib/admin/image-encode";
 import { slugify } from "@/lib/admin/store";
+import {
+  parseBackdropChoice,
+  parseVesselChoice,
+} from "@/lib/backdrop/scene-core";
 
 const HUE_VALUES = [
   "cream",
@@ -231,6 +235,10 @@ export const productFormSchema = z
     isNew: z.string().optional(),
     isActive: z.string().optional(),
     variants: variantsJson,
+    // "Sahne" and "Kap biçimi" (glass round): the save action turns these
+    // choices and the first photo into the scene columns (scene.ts).
+    backdrop: z.string().optional().transform(parseBackdropChoice),
+    vessel: z.string().optional().transform(parseVesselChoice),
   })
   .transform((v) => ({
     name: v.name,
@@ -256,4 +264,6 @@ export const productFormSchema = z
     isNew: v.isNew === "on",
     isActive: v.isActive === "on",
     variants: v.variants,
+    backdropChoice: v.backdrop,
+    vesselChoice: v.vessel,
   }));

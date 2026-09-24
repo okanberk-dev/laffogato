@@ -854,7 +854,13 @@ export async function getProduct(id: string): Promise<AdminProduct | null> {
   );
 }
 
-export interface ProductInput {
+/**
+ * What the product wizard saves. The scene columns are part of it: the save
+ * action computes them from the first photo and the form's "Sahne" and "Kap
+ * biçimi" fields (`src/lib/backdrop/scene.ts`), and `updateProduct` writes
+ * them over the stored ones like every other field.
+ */
+export interface ProductInput extends BackdropColumns {
   name: string;
   slug: string;
   sku: string;
@@ -3991,7 +3997,11 @@ export async function getMenuItem(id: string): Promise<AdminMenuItem | null> {
   );
 }
 
-export interface MenuItemInput {
+/**
+ * What the menu item form saves, scene columns included (computed by the
+ * save action from the photo and the form, `src/lib/backdrop/scene.ts`).
+ */
+export interface MenuItemInput extends BackdropColumns {
   categoryKey: MenuCategoryKey;
   name: string;
   desc: string;

@@ -11,11 +11,20 @@ import {
   bulkUpdateMenuItems,
   createMenuItem,
   deleteMenuItem,
+  getMenuItem,
   MENU_CATEGORY_KEYS,
   updateMenuItem,
+  type AdminMenuItem,
   type BulkMenuOp,
   type MenuCategoryKey,
 } from "@/lib/admin/store";
+import { sceneColumns } from "@/lib/backdrop/scene";
+import {
+  BACKDROP_FIELD,
+  parseBackdropChoice,
+  parseVesselChoice,
+  VESSEL_FIELD,
+} from "@/lib/backdrop/scene-core";
 
 const HUE_VALUES = [
   "cream",
@@ -124,6 +133,28 @@ function parseMenuImage(raw: string): string {
   return "";
 }
 
+/**
+ * The scene columns for this save (glass round): the photo's pick and cutout
+ * flag, or the operator's "Sahne" and "Kap biçimi" choices. `previous` is the
+ * stored row on an edit, null on a new item.
+ */
+function menuScene(
+  input: ReturnType<typeof parseInput>,
+  formData: FormData,
+  previous: AdminMenuItem | null,
+) {
+  return sceneColumns(
+    {
+      photo: input.image,
+      hue: input.hue,
+      category: input.categoryKey,
+      backdrop: parseBackdropChoice(formData.get(BACKDROP_FIELD)),
+      vessel: parseVesselChoice(formData.get(VESSEL_FIELD)),
+    },
+    previous ? { ...previous, photo: previous.image } : null,
+  );
+}
+
 function revalidateMenu() {
   revalidatePath("/admin/menu");
   revalidatePath("/admin");
@@ -134,7 +165,8 @@ export async function createMenuItemAction(formData: FormData) {
   await requireRole("menu");
   const input = parseInput(formData);
   if (!input.name) return;
-  const created = await createMenuItem(input);
+  const scene = await menuScene(input, formData, null);
+  const created = await createMenuItem({ ...input, ...scene });
   await logAudit({
     action: "create",
     entity: "menu_item",
@@ -148,7 +180,8 @@ export async function createMenuItemAction(formData: FormData) {
 export async function updateMenuItemAction(id: string, formData: FormData) {
   await requireRole("menu");
   const input = parseInput(formData);
-  await updateMenuItem(id, input);
+  const scene = await menuScene(input, formData, await getMenuItem(id));
+  await updateMenuItem(id, { ...input, ...scene });
   await logAudit({
     action: "update",
     entity: "menu_item",

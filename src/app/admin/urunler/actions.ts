@@ -11,11 +11,14 @@ import {
   bulkUpdateProducts,
   createProduct,
   deleteProduct,
+  getProduct,
   updateProduct,
+  type AdminProduct,
   type AdminProductVariant,
   type BulkProductOp,
   type ShopCategoryId,
 } from "@/lib/admin/store";
+import { sceneColumns } from "@/lib/backdrop/scene";
 
 function revalidateShop() {
   revalidatePath("/");
@@ -23,7 +26,9 @@ function revalidateShop() {
   revalidatePath("/admin");
 }
 
-function toInput(parsed: ReturnType<typeof productFormSchema.parse>) {
+type ParsedProduct = ReturnType<typeof productFormSchema.parse>;
+
+function toInput(parsed: ParsedProduct) {
   const variants: AdminProductVariant[] = parsed.variants.map((v, i) => ({
     id: v.id || `var-${i + 1}`,
     name: v.name,
@@ -59,6 +64,24 @@ function toInput(parsed: ReturnType<typeof productFormSchema.parse>) {
   };
 }
 
+/**
+ * The scene columns for this save (glass round). They describe the FIRST
+ * photo, the one the app draws: reordering the gallery changes the pick.
+ * `previous` is the stored product on an edit, null on a new one.
+ */
+function productScene(parsed: ParsedProduct, previous: AdminProduct | null) {
+  return sceneColumns(
+    {
+      photo: parsed.images[0] ?? "",
+      hue: parsed.img,
+      category: parsed.cat,
+      backdrop: parsed.backdropChoice,
+      vessel: parsed.vesselChoice,
+    },
+    previous ? { ...previous, photo: previous.images?.[0] ?? "" } : null,
+  );
+}
+
 function readFormDataToObject(formData: FormData): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [key, value] of formData.entries()) {
@@ -91,7 +114,8 @@ export async function createProductAction(
       fieldErrors,
     };
   }
-  const created = await createProduct(toInput(parsed.data));
+  const scene = await productScene(parsed.data, null);
+  const created = await createProduct({ ...toInput(parsed.data), ...scene });
   await logAudit({
     action: "create",
     entity: "product",
@@ -120,7 +144,8 @@ export async function updateProductAction(
       fieldErrors,
     };
   }
-  await updateProduct(id, toInput(parsed.data));
+  const scene = await productScene(parsed.data, await getProduct(id));
+  await updateProduct(id, { ...toInput(parsed.data), ...scene });
   await logAudit({
     action: "update",
     entity: "product",
