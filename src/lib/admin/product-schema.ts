@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { MAX_STORED_IMAGE_LENGTH } from "@/lib/admin/image-encode";
 import { slugify } from "@/lib/admin/store";
 
 const HUE_VALUES = [
@@ -123,7 +124,12 @@ const intInput = z
   });
 
 const MAX_IMAGES = 8;
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+/**
+ * The stored data URL's length cap. The uploader downscales until a photo
+ * fits under this same number (`image-encode.ts`) or tells the operator it
+ * cannot, so the filter below never drops a photo the panel accepted.
+ */
+const MAX_IMAGE_BYTES = MAX_STORED_IMAGE_LENGTH;
 
 const imagesJsonArray = z
   .string()

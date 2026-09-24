@@ -11,9 +11,15 @@ import {
   type DragEvent,
 } from "react";
 
+import {
+  encodeForUpload,
+  hasTransparentPixel,
+  MAX_DIMENSION,
+  UploadError,
+  type EncodeSource,
+} from "@/lib/admin/image-encode";
+
 const DEFAULT_MAX_IMAGES = 8;
-const MAX_DIMENSION = 1600;
-const JPEG_QUALITY = 0.82;
 const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
 const ACCEPTED_MIME = /^image\/(jpe?g|png|webp|avif|gif)$/i;
 
@@ -29,6 +35,39 @@ type Status =
   | { kind: "processing"; current: number; total: number }
   | { kind: "error"; message: string };
 
+/**
+ * A real canvas behind `encodeForUpload`: each call draws the decoded file
+ * afresh at the asked size (a downscale step redraws from the source, not
+ * from the previous step). A JPEG cannot carry alpha, so its pixels are not
+ * scanned.
+ */
+function canvasSource(bitmap: ImageBitmap, fileType: string): EncodeSource {
+  const mayHaveAlpha = !/^image\/jpe?g$/i.test(fileType);
+  return {
+    width: bitmap.width,
+    height: bitmap.height,
+    draw(w, h) {
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new UploadError("Canvas context açılamadı.");
+      ctx.drawImage(bitmap, 0, 0, w, h);
+      return {
+        hasTransparency: () =>
+          mayHaveAlpha &&
+          hasTransparentPixel(ctx.getImageData(0, 0, w, h).data),
+        toDataURL: (type, quality) => canvas.toDataURL(type, quality),
+      };
+    },
+  };
+}
+
+/**
+ * The file → the stored data URL. GIFs may be animated: the first frame is
+ * kept. Opaque photos become JPEG; a photo with transparency keeps it as
+ * WebP (PNG where the canvas cannot encode WebP), see `image-encode.ts`.
+ */
 async function resizeImage(file: File): Promise<string> {
   if (file.size > MAX_SOURCE_BYTES) {
     throw new Error(`${file.name} 12 MB'ı aşıyor.`);
@@ -41,33 +80,17 @@ async function resizeImage(file: File): Promise<string> {
   if (!bitmap) {
     throw new Error(`${file.name} okunamadı.`);
   }
-
-  const { width: srcW, height: srcH } = bitmap;
-  const longest = Math.max(srcW, srcH);
-  const scale = longest > MAX_DIMENSION ? MAX_DIMENSION / longest : 1;
-  const w = Math.round(srcW * scale);
-  const h = Math.round(srcH * scale);
-
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
+  try {
+    return encodeForUpload(canvasSource(bitmap, file.type), file.name).dataUrl;
+  } finally {
     bitmap.close?.();
-    throw new Error("Canvas context açılamadı.");
   }
-  ctx.drawImage(bitmap, 0, 0, w, h);
-  bitmap.close?.();
+}
 
-  // GIFs may be animated - we flatten to a single JPEG frame. PNGs with
-  // alpha become JPEG too (white background) to keep the payload small.
-  if (ctx.globalCompositeOperation && file.type === "image/png") {
-    ctx.globalCompositeOperation = "destination-over";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, w, h);
-  }
-
-  return canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+/** The stored format, for the thumbnail's corner label. */
+function formatLabel(dataUrl: string): string {
+  const m = /^data:image\/([a-z0-9.+-]+);/i.exec(dataUrl);
+  return m ? m[1].toUpperCase() : "";
 }
 
 function approxKB(dataUrl: string): number {
@@ -248,7 +271,8 @@ export function ImageUpload({
           )}
         </div>
         <div className="mt-1 text-xs text-neutral-500">
-          Otomatik olarak 1600px&apos;e küçültülür, JPEG&apos;e dönüştürülür.
+          Uzun kenarı {MAX_DIMENSION} px&apos;e küçültülür. Saydam arka planlı
+          (dekupe) fotoğraf saydamlığıyla WebP, diğerleri JPEG olarak saklanır.
         </div>
         <input
           ref={inputRef}
@@ -308,7 +332,9 @@ export function ImageUpload({
                     className="absolute top-2 right-2 rounded-full bg-white/85 px-2 py-0.5 text-[9px] tracking-[0.18em] text-neutral-600 uppercase backdrop-blur"
                     style={{ fontFamily: "var(--mono), monospace" }}
                   >
-                    {isData ? `${approxKB(src)} KB` : "URL"}
+                    {isData
+                      ? `${formatLabel(src)} · ${approxKB(src)} KB`
+                      : "URL"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-1 border-t border-neutral-100 px-2 py-1.5">

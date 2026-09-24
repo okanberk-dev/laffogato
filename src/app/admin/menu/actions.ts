@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { bulkMenuSchema } from "@/lib/admin/bulk-schema";
+import { MAX_STORED_IMAGE_LENGTH } from "@/lib/admin/image-encode";
 import {
   bulkUpdateMenuItems,
   createMenuItem,
@@ -80,8 +81,11 @@ function parseInput(formData: FormData) {
   };
 }
 
-/** Uploaded JPEG, resized to 1600 px by the client, is about this big. */
-const MAX_MENU_IMAGE_BYTES = 2 * 1024 * 1024;
+/**
+ * The stored photo's length cap: the uploader downscales until a photo fits
+ * under this same number (`image-encode.ts`) or tells the operator it cannot.
+ */
+const MAX_MENU_IMAGE_BYTES = MAX_STORED_IMAGE_LENGTH;
 
 /**
  * The photo for one menu item.
