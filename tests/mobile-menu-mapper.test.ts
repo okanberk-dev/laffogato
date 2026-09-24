@@ -39,6 +39,11 @@ function menuItem(over: Partial<AdminMenuItem> = {}): AdminMenuItem {
     tags: ["signature"],
     isActive: true,
     sortOrder: 3,
+    backdrop: null,
+    backdropSource: "auto",
+    backdropHex: null,
+    photoCutout: false,
+    vessel: null,
     updatedAt: "2026-08-20T10:00:00.000Z",
     ...over,
   };
@@ -61,6 +66,11 @@ function product(over: Partial<AdminProduct> = {}): AdminProduct {
     tags: [],
     brand: "",
     notes: [],
+    backdrop: null,
+    backdropSource: "auto",
+    backdropHex: null,
+    photoCutout: false,
+    vessel: null,
     stock: 12,
     lowStockThreshold: 3,
     weightGrams: 250,
@@ -145,12 +155,18 @@ describe("toMobileMenuItem (contract §1)", () => {
         "tags",
         "hue",
         "image",
+        // 24 Eyl 2026, additive: the scene family, cutout and vessel.
+        "backdrop",
+        "photoCutout",
+        "vessel",
       ].sort(),
     );
     expect(out).not.toHaveProperty("updatedAt");
     expect(out).not.toHaveProperty("isActive");
     expect(out).not.toHaveProperty("sortOrder");
     expect(out).not.toHaveProperty("desc");
+    expect(out).not.toHaveProperty("backdropSource");
+    expect(out).not.toHaveProperty("backdropHex");
   });
 
   it("renames desc → description and priceMinorL → priceLargeMinor", () => {
@@ -194,6 +210,125 @@ describe("toMobileMenuItem (contract §1)", () => {
     const out = toMobileMenuItem(src, SITE_URL);
     expect(out.tags).toEqual(["iced", "nuts"]);
     expect(out.tags).not.toBe(src.tags);
+  });
+});
+
+describe("scene fields - backdrop · photoCutout · vessel (contract §1, 24 Eyl 2026)", () => {
+  const PHOTO = "data:image/webp;base64,AAAA";
+
+  it("publishes a known family, the cutout flag and the vessel", () => {
+    const out = toMobileMenuItem(
+      menuItem({
+        image: PHOTO,
+        backdrop: "caramel",
+        backdropSource: "manual",
+        backdropHex: "#B87333",
+        photoCutout: true,
+        vessel: "tulip",
+      }),
+      SITE_URL,
+    );
+    expect(out).toMatchObject({
+      backdrop: "caramel",
+      photoCutout: true,
+      vessel: "tulip",
+    });
+  });
+
+  it("sends null / false / null for a row with nothing picked", () => {
+    const out = toMobileMenuItem(menuItem(), SITE_URL);
+    expect(out.backdrop).toBeNull();
+    expect(out.photoCutout).toBe(false);
+    expect(out.vessel).toBeNull();
+  });
+
+  it("never publishes an unknown family or vessel, nor the app's screen scenes", () => {
+    for (const backdrop of ["house", "velvet", "Caramel", "teal", ""]) {
+      expect(
+        toMobileMenuItem(menuItem({ backdrop }), SITE_URL).backdrop,
+      ).toBeNull();
+    }
+    for (const vessel of ["glass", "Cup", ""]) {
+      expect(toMobileMenuItem(menuItem({ vessel }), SITE_URL).vessel).toBeNull();
+    }
+  });
+
+  it("says cutout only for a photo it publishes, and only for a real true", () => {
+    // The column still says true after the photo was removed: no photo, no cutout.
+    expect(
+      toMobileMenuItem(menuItem({ image: "", photoCutout: true }), SITE_URL)
+        .photoCutout,
+    ).toBe(false);
+    expect(
+      toMobileMenuItem(
+        menuItem({ image: PHOTO, photoCutout: "true" as unknown as boolean }),
+        SITE_URL,
+      ).photoCutout,
+    ).toBe(false);
+  });
+
+  it("degrades to null / false / null while the migration has not run", () => {
+    // `select("*")` before the columns exist: the keys are absent, not null.
+    const {
+      backdrop: _b,
+      backdropSource: _s,
+      backdropHex: _h,
+      photoCutout: _c,
+      vessel: _v,
+      ...menuBefore
+    } = menuItem({ image: PHOTO });
+    const item = toMobileMenuItem(menuBefore as AdminMenuItem, SITE_URL);
+    expect([item.backdrop, item.photoCutout, item.vessel]).toEqual([
+      null,
+      false,
+      null,
+    ]);
+
+    const {
+      backdrop: _pb,
+      backdropSource: _ps,
+      backdropHex: _ph,
+      photoCutout: _pc,
+      vessel: _pv,
+      ...productBefore
+    } = product({ images: [PHOTO] });
+    const shop = toMobileShopProduct(productBefore as AdminProduct, SITE_URL);
+    expect([shop.backdrop, shop.photoCutout, shop.vessel]).toEqual([
+      null,
+      false,
+      null,
+    ]);
+  });
+
+  it("describes a shop product's first photo the same way", () => {
+    const out = toMobileShopProduct(
+      product({
+        images: [PHOTO],
+        backdrop: "espresso",
+        photoCutout: true,
+        vessel: "pack",
+      }),
+      SITE_URL,
+    );
+    expect(out).toMatchObject({
+      backdrop: "espresso",
+      photoCutout: true,
+      vessel: "pack",
+    });
+    const noPhoto = toMobileShopProduct(
+      product({ images: [], backdrop: "latte", photoCutout: true, vessel: "cup" }),
+      SITE_URL,
+    );
+    // A family and a vessel stand without a photo (the operator chose them);
+    // a cutout does not.
+    expect(noPhoto).toMatchObject({
+      backdrop: "latte",
+      photoCutout: false,
+      vessel: "cup",
+    });
+    expect(
+      toMobileShopProduct(product({ backdrop: "velvet", vessel: "mug" }), SITE_URL),
+    ).toMatchObject({ backdrop: null, vessel: null });
   });
 });
 
@@ -276,6 +411,10 @@ describe("toMobileShopProduct (contract §2)", () => {
         "notes",
         "hue",
         "image",
+        // 24 Eyl 2026, additive: the scene family, cutout and vessel.
+        "backdrop",
+        "photoCutout",
+        "vessel",
         "inStock",
         "variants",
         "grinds",
@@ -295,6 +434,9 @@ describe("toMobileShopProduct (contract §2)", () => {
       "img",
       "cat",
       "desc",
+      // The panel's bookkeeping, not the app's business.
+      "backdropSource",
+      "backdropHex",
     ]) {
       expect(out).not.toHaveProperty(leak);
     }

@@ -88,6 +88,11 @@ describe("the served image URL carries a content stamp", () => {
       tags: [],
       isActive: true,
       sortOrder: 1,
+      backdrop: null,
+      backdropSource: "auto",
+      backdropHex: null,
+      photoCutout: false,
+      vessel: null,
       updatedAt: "2026-09-09T00:00:00.000Z",
     } as AdminMenuItem;
 

@@ -12,6 +12,12 @@ import {
 } from "@/lib/admin/days";
 import { imageVersion } from "@/lib/admin/image-bytes";
 import {
+  isBackdropKey,
+  isVesselKey,
+  type BackdropKey,
+  type VesselKey,
+} from "@/lib/backdrop/families";
+import {
   menuImagePath,
   productImagePath,
   servedImage,
@@ -163,9 +169,47 @@ export function absoluteImageUrl(
   return null;
 }
 
+// ─── Scene (§1, 24 Eyl 2026) ──────────────────────────────────────────────
+
+/**
+ * The three scene fields of a menu item or shop product (contract §1,
+ * "backdrop · photoCutout · vessel", additive). Always present.
+ */
+export interface MobileScene {
+  /** One of the twelve product families, or null: the app uses `hue`, then the category. */
+  backdrop: BackdropKey | null;
+  /** The published photo has transparency; false whenever there is no photo. */
+  photoCutout: boolean;
+  /** The operator's vessel shape for the drawn fallback, or null: from the category. */
+  vessel: VesselKey | null;
+}
+
+/**
+ * The stored columns → the published fields.
+ *
+ * Every value is checked, never passed through: `backdrop` and `vessel` are
+ * free text in the table, and the app treats a key it does not know as null
+ * anyway, so the server says null itself. The same guard covers deploy order
+ * (the `tags` / `brand` precedent): until
+ * `20260924001000_backdrop_fields.sql` runs, `select("*")` has none of these
+ * keys, and null / false / null is exactly "as today" for the app.
+ * `photoCutout` describes the photo, so no photo means no cutout whatever the
+ * column still says.
+ */
+export function toMobileScene(
+  row: Partial<Pick<AdminMenuItem, "backdrop" | "photoCutout" | "vessel">>,
+  hasPhoto: boolean,
+): MobileScene {
+  return {
+    backdrop: isBackdropKey(row.backdrop) ? row.backdrop : null,
+    photoCutout: hasPhoto && row.photoCutout === true,
+    vessel: isVesselKey(row.vessel) ? row.vessel : null,
+  };
+}
+
 // ─── Menu (§1) ────────────────────────────────────────────────────────────
 
-export interface MobileMenuItem {
+export interface MobileMenuItem extends MobileScene {
   id: string;
   categoryKey: string;
   name: string;
@@ -190,6 +234,12 @@ export function toMobileMenuItem(
   it: AdminMenuItem,
   siteUrl: string,
 ): MobileMenuItem {
+  const image = it.image
+    ? absoluteImageUrl(
+        servedImage(it.image, menuImagePath(it.id, imageVersion(it.image))),
+        siteUrl,
+      )
+    : null;
   return {
     id: it.id,
     categoryKey: it.categoryKey,
@@ -204,12 +254,8 @@ export function toMobileMenuItem(
     // changes the moment the photo does and never otherwise: the app's disk
     // cache misses on the new one immediately and re-downloads nothing when
     // the photo is untouched. docs/API-MOBILE.md §1.
-    image: it.image
-      ? absoluteImageUrl(
-          servedImage(it.image, menuImagePath(it.id, imageVersion(it.image))),
-          siteUrl,
-        )
-      : null,
+    image,
+    ...toMobileScene(it, image !== null),
   };
 }
 
@@ -265,7 +311,7 @@ export interface MobileShopVariant {
   inStock: boolean;
 }
 
-export interface MobileShopProduct {
+export interface MobileShopProduct extends MobileScene {
   id: string;
   slug: string;
   name: string;
@@ -303,6 +349,12 @@ export function toMobileShopProduct(
   siteUrl: string,
 ): MobileShopProduct {
   const first = p.images[0];
+  const image = first
+    ? absoluteImageUrl(
+        servedImage(first, productImagePath(p.id, 0, imageVersion(first))),
+        siteUrl,
+      )
+    : null;
   const product: MobileShopProduct = {
     id: p.id,
     slug: p.slug,
@@ -341,12 +393,9 @@ export function toMobileShopProduct(
           .filter(Boolean)
       : [],
     hue: p.img,
-    image: first
-      ? absoluteImageUrl(
-          servedImage(first, productImagePath(p.id, 0, imageVersion(first))),
-          siteUrl,
-        )
-      : null,
+    image,
+    // The product's scene columns describe `images[0]`, the photo above.
+    ...toMobileScene(p, image !== null),
     // Product-level stock, as the web card decides "Tükendi". Variant stock is
     // reported per variant below; placeOrder checks whichever was chosen.
     inStock: p.stock > 0,

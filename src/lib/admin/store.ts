@@ -110,7 +110,42 @@ export interface AdminProductVariant {
   isActive: boolean;
 }
 
-export interface AdminProduct {
+/** Where a row's `backdrop` came from: the photo (recomputed on upload) or the operator. */
+export type BackdropSource = "auto" | "manual";
+
+/**
+ * The scene columns `menu_items` and `products` share
+ * (`db/migrations/20260924001000_backdrop_fields.sql`, glass round). Raw
+ * column values: `backdrop` and `vessel` are free text in the table, and the
+ * mobile mapper publishes only the keys `src/lib/backdrop/families.ts` knows.
+ * On `products` they describe `images[0]`.
+ */
+export interface BackdropColumns {
+  /** A product family key ("caramel"), or null: no pick, the app falls back to hue. */
+  backdrop: string | null;
+  backdropSource: BackdropSource;
+  /** The body colour the automatic pick read (#RRGGBB), for the panel swatch; null = none. */
+  backdropHex: string | null;
+  /** The stored photo has transparency (a cutout). */
+  photoCutout: boolean;
+  /** The drawn vessel shape the operator chose ("tulip"), or null: from the category. */
+  vessel: string | null;
+}
+
+/**
+ * What a new row starts with, and what every row read before the migration
+ * ran is taken to mean: no pick yet, nothing chosen by hand. The same values
+ * as the columns' defaults.
+ */
+export const NO_BACKDROP: Readonly<BackdropColumns> = {
+  backdrop: null,
+  backdropSource: "auto",
+  backdropHex: null,
+  photoCutout: false,
+  vessel: null,
+};
+
+export interface AdminProduct extends BackdropColumns {
   id: string;
   name: string;
   slug: string;
@@ -569,6 +604,8 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         // Filled per product in /admin/urunler; empty draws nothing new.
         brand: "",
         notes: [],
+        // No photo yet, so no scene pick and no cutout.
+        ...NO_BACKDROP,
         stock: 25,
         lowStockThreshold: 5,
         weightGrams: 250,
@@ -655,6 +692,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
             tags: it.tags ? [...it.tags] : [],
             isActive: true,
             sortOrder: idx,
+            // The bundled photos get their pick from
+            // scripts/backfill-backdrops.mjs, like every stored photo.
+            ...NO_BACKDROP,
             updatedAt: now,
           };
         }),
@@ -872,6 +912,7 @@ export async function createProduct(
   );
   const sku = input.sku || deriveSku(input.name, seq);
   const product: AdminProduct = {
+    ...NO_BACKDROP,
     ...input,
     id,
     slug,
@@ -3906,7 +3947,7 @@ export const MENU_CATEGORY_KEYS: MenuCategoryKey[] = [
   "extras",
 ];
 
-export interface AdminMenuItem {
+export interface AdminMenuItem extends BackdropColumns {
   id: string;
   categoryKey: MenuCategoryKey;
   name: string;
@@ -3971,6 +4012,7 @@ export async function createMenuItem(
   const seq = await nextSeq("mnu");
   const item: AdminMenuItem = {
     id: slugifyId("mnu", seq),
+    ...NO_BACKDROP,
     ...input,
     updatedAt: new Date().toISOString(),
   };
