@@ -223,7 +223,7 @@ birebir aynıdır (`signature` · `new` · `iced` · `nuts`) — uygulama ikisin
 `nuts` bir **alerjendir** ve gizlenmez (uygulamanın 4. değişmez kuralı): ürün
 detayında ve sepet satırında görünür olmalıdır. Sözlük dışı bir değer
 gönderilmez — uygulama bilmediği etiketi sessizce atar
-(`src/data/http.ts` `KNOWN_TAGS`), yani uydurulmuş bir alerjen etiketi hiçbir
+(`src/data/types.ts` `toTags`, sözlüğü `ITEM_TAGS`), yani uydurulmuş bir alerjen etiketi hiçbir
 müşteriye ulaşmaz. Sözlüğü genişletmek uygulamanın `ItemTag` birleşimini aynı
 sürümde genişletmeyi gerektirir.
 

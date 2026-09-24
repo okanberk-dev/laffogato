@@ -116,9 +116,9 @@ describe("product form tags", () => {
 });
 
 describe("the vocabulary is the app's, exactly", () => {
-  it("matches lafmobil's KNOWN_TAGS / ItemTag union", () => {
-    // src/data/types.ts:  export type ItemTag = 'signature' | 'new' | 'iced' | 'nuts';
-    // src/data/http.ts:   const KNOWN_TAGS = ['signature', 'new', 'iced', 'nuts'];
+  it("matches lafmobil's ITEM_TAGS / ItemTag union", () => {
+    // src/data/types.ts:  export const ITEM_TAGS = ['signature', 'new', 'iced', 'nuts'] as const;
+    //                     export type ItemTag = (typeof ITEM_TAGS)[number];  (toTags drops the rest)
     expect([...PRODUCT_TAG_VALUES]).toEqual([
       "signature",
       "new",
