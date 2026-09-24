@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { type ProductActionState } from "@/app/admin/urunler/actions";
+import { photoKind } from "@/lib/backdrop/scene-core";
 import type {
   AdminCategory,
   AdminProduct,
@@ -26,6 +27,7 @@ import {
   TextInput,
   Textarea,
 } from "./forms";
+import { BackdropField } from "./backdrop-field";
 import { ImageUpload } from "./image-upload";
 
 const HUE_OPTIONS = [
@@ -729,7 +731,7 @@ export function ProductWizard({
         <div className="grid gap-5">
           <Field
             label="Görsel ton (placeholder)"
-            hint="Gerçek fotoğraf yokken kullanılan gradient zemin."
+            hint="Fotoğraf yokken sitedeki kartın çizim rengi. Uygulamada sahne seçiminin ipucu; seçim yoksa sahne bu tondan gelir."
           >
             <Select
               name="img"
@@ -754,9 +756,20 @@ export function ProductWizard({
             <ImageUpload name="images" initial={initialImages} />
             <span className="text-xs text-neutral-500">
               Sürükle bırak, tıkla veya URL yapıştır. İlk görsel kart görseli
-              olur. Yüklenen dosyalar tarayıcıda küçültülüp base64 olarak
-              saklanır (nesne depolama gelene kadar).
+              olur ve uygulamanın sahnesi ondan seçilir. Yüklenen dosyalar
+              tarayıcıda küçültülüp base64 olarak saklanır (nesne depolama
+              gelene kadar); saydam arka planlı (dekupe) fotoğraf saydamlığını
+              korur.
             </span>
+          </div>
+
+          <div className="border-t border-[var(--admin-border)] pt-5">
+            <BackdropField
+              stored={product}
+              photo={photoKind(initialImages[0])}
+              hue={img}
+              category={cat}
+            />
           </div>
 
           <div className="border-t border-[var(--admin-border)] pt-5">

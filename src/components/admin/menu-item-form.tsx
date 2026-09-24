@@ -16,7 +16,9 @@ import {
   TextInput,
   Textarea,
 } from "./forms";
+import { BackdropField } from "@/components/admin/backdrop-field";
 import { ImageUpload } from "@/components/admin/image-upload";
+import { photoKind } from "@/lib/backdrop/scene-core";
 
 const HUE_OPTIONS = [
   ["cream", "Krem"],
@@ -97,7 +99,7 @@ export function MenuItemForm({
 
         <Field
           label="Fotoğraf"
-          hint="Uzun kenarı 1600 px'e küçültülür; en iyi sonuç için en az 1600 px'lik bir fotoğraf seç (kaynak dosya en çok 12 MB, saklanan hâli 2 MB). Kaydettikten sonra sitede hemen, uygulamada en geç 5 dakika içinde görünür. Boş bırakırsan kategorisine uygun çizim kullanılır."
+          hint="Uzun kenarı 1600 px'e küçültülür; en iyi sonuç için en az 1600 px'lik bir fotoğraf seç (kaynak dosya en çok 12 MB, saklanan hâli 2 MB, sığmazsa küçültülür). Arka planı saydam (dekupe) bir PNG ya da WebP saydamlığını korur; uygulama onu doğrudan sahnenin üstüne çizer. Kaydettikten sonra sitede hemen, uygulamada en geç 5 dakika içinde görünür. Boş bırakırsan kategorisine uygun çizim kullanılır."
         >
           {/* Bu alan eskiden yalnızca `public/` altındaki bir dosya yolunu
               kabul ediyordu - Vercel'de panelden oraya dosya koymanın yolu yok
@@ -109,6 +111,22 @@ export function MenuItemForm({
             initial={item?.image ? [item.image] : []}
           />
         </Field>
+
+        {/* Only the scene columns and the photo's kind cross to the client:
+            the photo itself is already in the payload once, for the uploader. */}
+        <BackdropField
+          stored={
+            item && {
+              backdrop: item.backdrop,
+              backdropSource: item.backdropSource,
+              backdropHex: item.backdropHex,
+              vessel: item.vessel,
+            }
+          }
+          photo={photoKind(item?.image)}
+          hue={item?.hue ?? "cream"}
+          category={item?.categoryKey ?? defaultCategoryKey ?? "matcha"}
+        />
 
         <Field
           label="Etiketler"
@@ -136,7 +154,10 @@ export function MenuItemForm({
           </Select>
         </Field>
 
-        <Field label="Görsel ton" hint="MenuPlate gradient zemini.">
+        <Field
+          label="Görsel ton"
+          hint="Fotoğrafsız kalemin sitedeki çizim rengi. Uygulamada sahne seçiminin ipucu; seçim yoksa sahne bu tondan gelir."
+        >
           <Select name="hue" defaultValue={item?.hue ?? "cream"}>
             {HUE_OPTIONS.map(([v, l]) => (
               <option key={v} value={v}>
