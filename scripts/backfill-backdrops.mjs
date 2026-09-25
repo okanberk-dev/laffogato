@@ -9,7 +9,10 @@
  * the row's own `hue` / `img` as the prior) and prints what it would write.
  * Nothing is written without `--apply`. A row whose scene the operator chose
  * by hand (`"backdropSource" = 'manual'`) is never touched, not even its
- * cutout flag: the panel measures that on every save.
+ * cutout flag: the panel measures that on every save. Nor is a row the panel
+ * saved while this ran: the write goes through only while the row is still
+ * automatic and still has the photo, `hue` / `img` and category it was read
+ * with (`writeScene`), and a row that changed is listed as not written.
  *
  *   DATABASE_URL=postgres://... node scripts/backfill-backdrops.mjs
  *   DATABASE_URL=postgres://... node scripts/backfill-backdrops.mjs --apply
@@ -122,10 +125,18 @@ export function nextValues(row, found) {
   return same ? null : next;
 }
 
-const TARGETS = [
+/**
+ * The two tables. `photo`, `hue` and `category` are the SQL for what the
+ * pick is made from; the select reads them as `image`, `hue` and `category`,
+ * and the write checks them again (`writeScene`).
+ */
+export const TARGETS = [
   {
     label: "menü",
     table: "menu_items",
+    photo: "image",
+    hue: "hue",
+    category: '"categoryKey"',
     select: `select id, name, hue, "categoryKey" as category, image,
                     backdrop, "backdropSource" as source,
                     "backdropHex" as hex, "photoCutout" as cutout
@@ -137,6 +148,9 @@ const TARGETS = [
     label: "mağaza",
     table: "products",
     // The product's scene columns describe its first photo.
+    photo: "images->>0",
+    hue: "img",
+    category: "cat",
     select: `select id, name, img as hue, cat as category, images->>0 as image,
                     backdrop, "backdropSource" as source,
                     "backdropHex" as hex, "photoCutout" as cutout
@@ -146,6 +160,40 @@ const TARGETS = [
               order by id`,
   },
 ];
+
+/**
+ * Writes one row's new scene, but only while the row is still the one that
+ * was read: still automatic, with the same photo, the same prior (`hue` /
+ * `img`) and the same category. Reading and writing are apart by the photo's
+ * decode, and by a download of up to 15 s with `--remote`; the operator may
+ * save the item through the panel in between. That save already stored the
+ * new photo's pick and cutout flag, and the old photo's must not overwrite
+ * them. Returns true when the row was written.
+ *
+ * `db` is anything with pg's `query(text, values)`; `row` is what the
+ * target's select returned, `next` what `nextValues` decided.
+ */
+export async function writeScene(db, target, row, next) {
+  const { rowCount } = await db.query(
+    `update public.${target.table}
+        set backdrop = $2, "backdropHex" = $3, "photoCutout" = $4
+      where id = $1
+        and "backdropSource" = 'auto'
+        and ${target.photo} is not distinct from $5
+        and ${target.hue} is not distinct from $6
+        and ${target.category} is not distinct from $7`,
+    [
+      row.id,
+      next.backdrop,
+      next.hex,
+      next.cutout,
+      row.image,
+      row.hue,
+      row.category,
+    ],
+  );
+  return rowCount > 0;
+}
 
 async function readPhoto(stored, remote) {
   if (stored.startsWith("data:")) return { bytes: stored };
@@ -198,7 +246,14 @@ async function main() {
     await loadModules();
   const pool = new pg.Pool(poolConfig(url));
 
-  const counts = { read: 0, change: 0, same: 0, manual: 0, skipped: 0 };
+  const counts = {
+    read: 0,
+    change: 0,
+    same: 0,
+    manual: 0,
+    skipped: 0,
+    raced: 0,
+  };
   try {
     console.log(
       `Sahne seçimi, algoritma ${BACKDROP_ALGO_VERSION} - ${apply ? "YAZILIYOR" : "kuru koşu"}\n`,
@@ -267,25 +322,30 @@ async function main() {
           counts.same += 1;
           continue;
         }
-        counts.change += 1;
-        if (apply) {
-          // The source guard is repeated in SQL: an operator who chooses a
-          // scene by hand while this runs keeps the choice.
-          await pool.query(
-            `update public.${target.table}
-                set backdrop = $2, "backdropHex" = $3, "photoCutout" = $4
-              where id = $1 and "backdropSource" = 'auto'`,
-            [row.id, next.backdrop, next.hex, next.cutout],
+        // The write checks the row again: an operator who chose a scene by
+        // hand, or saved another photo, hue or category, while this ran
+        // keeps what the panel stored.
+        if (apply && !(await writeScene(pool, target, row, next))) {
+          counts.raced += 1;
+          console.log(
+            [...base, cell("yazılmadı: satır bu arada değişti", 40)].join(
+              " ",
+            ),
           );
+          continue;
         }
+        counts.change += 1;
       }
     }
   } finally {
     await pool.end();
   }
 
+  const raced = apply
+    ? ` · ${counts.raced} bu arada değişti (yazılmadı)`
+    : "";
   console.log(
-    `\n${counts.read} satır okundu · ${counts.change} ${apply ? "güncellendi" : "değişecek"} · ${counts.same} aynı · ${counts.manual} elle seçilmiş (dokunulmadı) · ${counts.skipped} atlandı`,
+    `\n${counts.read} satır okundu · ${counts.change} ${apply ? "güncellendi" : "değişecek"} · ${counts.same} aynı · ${counts.manual} elle seçilmiş (dokunulmadı) · ${counts.skipped} atlandı${raced}`,
   );
   if (!apply && counts.change > 0) {
     console.log("Kuru koşu: hiçbir şey yazılmadı. Yazmak için --apply ekle.");
