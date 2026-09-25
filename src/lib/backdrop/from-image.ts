@@ -18,6 +18,17 @@ import { pickBackdrop, type PickResult } from "./pick";
 export const SAMPLE_SIZE = 64;
 
 /**
+ * The most pixels (width x height, as the file's header declares them) a
+ * photo may have before sharp decodes it. The panel's uploader never stores
+ * more than 1600 px on the long side (2.6 MP) and the bundled menu photos are
+ * 1024 px, so this only stops a hand-made file: a small PNG that declares a
+ * huge canvas would otherwise be decoded up to sharp's own default (268 MP)
+ * in the memory of one save. Such a photo reads as unreadable, like any
+ * bytes sharp refuses.
+ */
+export const MAX_INPUT_PIXELS = 4096 * 4096;
+
+/**
  * sharp, loaded on first use instead of at module top. It is native: a
  * deploy whose function lacked the platform binary used to fail on import,
  * and with it every action in the menu and product action files (saves,
@@ -48,9 +59,9 @@ export interface ImageSample {
 
 /**
  * A stored image (`data:image/...;base64,...`) or its bytes → the sample, or
- * null when it is not an image sharp can read, or when sharp itself will not
- * load. An `https://` URL is not fetched here: the caller decides whether a
- * remote photo is read at all.
+ * null when it is not an image sharp can read: bytes it refuses, a canvas
+ * over `MAX_INPUT_PIXELS`, or no sharp at all. An `https://` URL is not
+ * fetched here: the caller decides whether a remote photo is read at all.
  */
 export async function sampleImage(
   input: Buffer | Uint8Array | string,
@@ -63,7 +74,9 @@ export async function sampleImage(
   try {
     // `rotate()` with no angle applies the EXIF orientation, so the centre
     // weighting lands on what the camera saw as the centre.
-    const { data, info } = await sharp(bytes)
+    const { data, info } = await sharp(bytes, {
+      limitInputPixels: MAX_INPUT_PIXELS,
+    })
       .rotate()
       .resize(SAMPLE_SIZE, SAMPLE_SIZE, { fit: "inside" })
       .ensureAlpha()

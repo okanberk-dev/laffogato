@@ -17,7 +17,9 @@
  * Photos are read from the row itself (uploaded data URLs) or from this
  * checkout's `public/` (a site-relative path such as `/menu/x.webp`). An
  * admin-pasted `https://` photo is skipped unless `--remote` is given; then
- * it is downloaded (15 s and 5 MB at most each).
+ * it is downloaded (15 s and 5 MB at most each). A photo whose canvas is
+ * larger than 4096 x 4096 pixels is not decoded (`MAX_INPUT_PIXELS` in
+ * `src/lib/backdrop/from-image.ts`) and is listed as skipped.
  *
  * `updatedAt` is left alone: this is not an edit of the item, and the menu's
  * own ETag already changes with the body. The app sees the new fields within
