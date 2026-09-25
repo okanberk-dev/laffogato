@@ -80,10 +80,18 @@ const SECURITY_HEADERS = [
 const nextConfig: NextConfig = {
   experimental: {
     /**
-     * The admin uploads product photos as base64 data URLs — eight of them,
-     * each up to ~2 MB after the client-side resize. Next's default server
-     * action body limit is 1 MB, so a product with more than two or three
-     * photos failed to save with an error the form never surfaced.
+     * The admin posts a product's photos as base64 data URLs, all of them on
+     * every save: up to eight, each at most 2 MB after the client-side
+     * resize. Next's default server action body limit is 1 MB, so a product
+     * with more than two or three photos failed to save with an error the
+     * form never surfaced.
+     *
+     * This number is not the ceiling in production. A Vercel Function
+     * refuses a request body over 4.5 MB with 413 before the action runs,
+     * whatever this says, and the panel's error page then replaces the form.
+     * So the uploader keeps one save's photos under 4 MB and tells the
+     * operator when a photo does not fit (`MAX_UPLOAD_TOTAL_LENGTH` in
+     * src/lib/admin/image-encode.ts). The lasting fix is object storage.
      */
     serverActions: { bodySizeLimit: "12mb" },
   },
