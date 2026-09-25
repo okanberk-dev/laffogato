@@ -33,6 +33,12 @@ export interface SceneRequest {
  * stored answer again. The read costs tens of milliseconds per save
  * (measured locally on 1600 px noise, the worst case: 14 ms for a JPEG,
  * 57 ms for a WebP).
+ *
+ * The colour step never stops a save. Whatever goes wrong while the photo is
+ * read (a sharp that will not load, a decode error, a fault in the pick), the
+ * photo counts as unread: the same photo keeps what was measured for it, a
+ * new one gets no pick and is taken as opaque (`decideScene`), and the
+ * operator's hand choice and vessel stay as they were asked.
  */
 export async function sceneColumns(
   request: SceneRequest,
@@ -43,8 +49,20 @@ export async function sceneColumns(
     backdrop: request.backdrop,
     vessel: request.vessel,
     previous,
-    reading: await readPhoto(request),
+    reading: await readPhotoSafely(request),
   });
+}
+
+async function readPhotoSafely(request: SceneRequest): Promise<PhotoReading> {
+  try {
+    return await readPhoto(request);
+  } catch (error) {
+    console.error(
+      "[backdrop] the photo could not be read, saving without a new scene pick:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return { kind: "unread" };
+  }
 }
 
 async function readPhoto(request: SceneRequest): Promise<PhotoReading> {

@@ -1,7 +1,5 @@
 import "server-only";
 
-import sharp from "sharp";
-
 import { decodeDataImage } from "@/lib/admin/image-bytes";
 
 import { BACKDROP_ALGO_VERSION } from "./families";
@@ -19,6 +17,26 @@ import { pickBackdrop, type PickResult } from "./pick";
 /** The sample's longest side. Plenty for a body colour, and ~4096 pixels at most. */
 export const SAMPLE_SIZE = 64;
 
+/**
+ * sharp, loaded on first use instead of at module top. It is native: a
+ * deploy whose function lacked the platform binary used to fail on import,
+ * and with it every action in the menu and product action files (saves,
+ * deletes and bulk edits alike). Loaded here, a sharp that will not load
+ * costs only the scene pick: the photo reads as unreadable and the save goes
+ * on (`scene.ts`).
+ */
+async function loadSharp() {
+  try {
+    return (await import("sharp")).default;
+  } catch (error) {
+    console.error(
+      "[backdrop] sharp could not be loaded, saving without a scene pick:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return null;
+  }
+}
+
 export interface ImageSample {
   /** RGBA, 4 bytes per pixel, row-major. */
   pixels: Uint8Array;
@@ -30,8 +48,9 @@ export interface ImageSample {
 
 /**
  * A stored image (`data:image/...;base64,...`) or its bytes → the sample, or
- * null when it is not an image sharp can read. An `https://` URL is not
- * fetched here: the caller decides whether a remote photo is read at all.
+ * null when it is not an image sharp can read, or when sharp itself will not
+ * load. An `https://` URL is not fetched here: the caller decides whether a
+ * remote photo is read at all.
  */
 export async function sampleImage(
   input: Buffer | Uint8Array | string,
@@ -39,6 +58,8 @@ export async function sampleImage(
   const bytes =
     typeof input === "string" ? (decodeDataImage(input)?.body ?? null) : input;
   if (!bytes || bytes.length === 0) return null;
+  const sharp = await loadSharp();
+  if (!sharp) return null;
   try {
     // `rotate()` with no angle applies the EXIF orientation, so the centre
     // weighting lands on what the camera saw as the centre.
