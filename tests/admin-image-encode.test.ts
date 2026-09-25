@@ -1,18 +1,27 @@
 import { readFileSync } from "node:fs";
 
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { ImageUpload } from "@/components/admin/image-upload";
 import {
   dataUrlFormat,
   DOWNSCALE_STEP,
   encodeForUpload,
+  fitUploadTotal,
   fitWithin,
+  formatUploadMB,
   hasTransparentPixel,
   JPEG_QUALITY,
   MAX_DIMENSION,
   MAX_STORED_IMAGE_LENGTH,
+  MAX_UPLOAD_TOTAL_LENGTH,
   MIN_DIMENSION,
   UploadError,
+  uploadFieldLength,
+  uploadTotalMessage,
+  uploadTotalNotice,
   WEBP_QUALITY,
   type EncodeSource,
 } from "@/lib/admin/image-encode";
@@ -204,6 +213,151 @@ describe("helpers", () => {
     expect(dataUrlFormat("data:image/png;base64,AA")).toBe("png");
     expect(dataUrlFormat("data:image/jpeg;base64,AA")).toBe("jpeg");
     expect(dataUrlFormat("data:,")).toBeNull();
+  });
+});
+
+/**
+ * The one-save total (review M-1, 25 Sep 2026). The form posts every photo of
+ * the item on every save; a Vercel Function refuses a body over 4.5 MB with
+ * 413 before the action runs, and the panel's error page then wipes the
+ * unsaved form. The uploader refuses the photo that would get there instead.
+ */
+describe("the one-save photo total", () => {
+  const LONG_DASH = /[\u2013\u2014]/;
+  const png = (chars: number) => `data:image/png;base64,${"A".repeat(chars)}`;
+  const jpeg = (chars: number) => `data:image/jpeg;base64,${"A".repeat(chars)}`;
+
+  it("stays under the platform's 4.5 MB request ceiling, with room for the form", () => {
+    // 4.5 MB read the strict way (10^6 bytes). The product form's other
+    // fields are a few kilobytes; a quarter of a megabyte is left for them.
+    expect(MAX_UPLOAD_TOTAL_LENGTH + 256 * 1024).toBeLessThanOrEqual(4_500_000);
+    // Still room for more than one photo at the per-photo cap's scale.
+    expect(MAX_UPLOAD_TOTAL_LENGTH).toBeGreaterThan(
+      1.9 * MAX_STORED_IMAGE_LENGTH,
+    );
+  });
+
+  it("measures the field the way the form posts it: the JSON array", () => {
+    expect(uploadFieldLength([])).toBe(2);
+    expect(uploadFieldLength(["ab"])).toBe('["ab"]'.length);
+    expect(uploadFieldLength(["ab", "c"])).toBe('["ab","c"]'.length);
+  });
+
+  it("takes photos in order, leaves out one that does not fit, and lets a later smaller one in", () => {
+    // ["aaaa"] is 8; ,"bbbbbbbbbb" would add 13 (21 > 20); ,"cc" and ,"dd"
+    // add 5 each.
+    const fit = fitUploadTotal(["aaaa"], ["bbbbbbbbbb", "cc", "dd"], 20);
+    expect(fit.accepted).toEqual(["cc", "dd"]);
+    expect(fit.refused).toEqual([0]);
+    expect(fit.length).toBe(18);
+    expect(fit.refusedLength).toBe(21);
+    // The running length is exactly what the field will hold.
+    expect(uploadFieldLength(["aaaa", ...fit.accepted])).toBe(fit.length);
+  });
+
+  it("accepts a photo that lands exactly on the limit and refuses one character more", () => {
+    // [] + "x" is ["x"] = 5 characters.
+    expect(fitUploadTotal([], ["x"], 5)).toMatchObject({
+      accepted: ["x"],
+      refused: [],
+      length: 5,
+      refusedLength: 0,
+    });
+    expect(fitUploadTotal([], ["x"], 4)).toMatchObject({
+      accepted: [],
+      refused: [0],
+      length: 2,
+      refusedLength: 5,
+    });
+  });
+
+  it("refuses the third of three Safari PNG cutouts of about 1.9 MB", () => {
+    const cutout = png(1_900_000);
+    const fit = fitUploadTotal([], [cutout, cutout, cutout]);
+    expect(fit.accepted).toHaveLength(2);
+    expect(fit.refused).toEqual([2]);
+    expect(fit.length).toBeLessThanOrEqual(MAX_UPLOAD_TOTAL_LENGTH);
+    expect(fit.refusedLength).toBeGreaterThan(MAX_UPLOAD_TOTAL_LENGTH);
+  });
+
+  it("still takes a JPEG next to photos already stored, counting them too", () => {
+    const stored = [jpeg(1_500_000), jpeg(1_500_000)];
+    expect(fitUploadTotal(stored, [jpeg(900_000)]).accepted).toHaveLength(1);
+    expect(fitUploadTotal(stored, [jpeg(1_300_000)]).refused).toEqual([0]);
+  });
+
+  it("refuses everything, even a link, once stored photos already pass the total", () => {
+    const stored = [png(2_000_000), png(2_000_000), jpeg(400_000)];
+    expect(uploadFieldLength(stored)).toBeGreaterThan(MAX_UPLOAD_TOTAL_LENGTH);
+    expect(
+      fitUploadTotal(stored, ["https://cdn.example.com/a.jpg"]).refused,
+    ).toEqual([0]);
+  });
+
+  it("rounds a total up, so one character over the limit never reads as the limit", () => {
+    expect(formatUploadMB(MAX_UPLOAD_TOTAL_LENGTH)).toBe("4");
+    expect(formatUploadMB(MAX_UPLOAD_TOTAL_LENGTH + 1)).toBe("4,1");
+    // 1,900,000 characters is 1.81 MB, shown as 1,9.
+    expect(formatUploadMB(1_900_000)).toBe("1,9");
+  });
+
+  it("says what was left out, the total it would have made, the limit and the way out", () => {
+    const message = uploadTotalMessage(["cilek.png"], 4_900_000, true);
+    expect(message).toContain("cilek.png eklenmedi");
+    // 4,900,000 characters is 4.67 MB, shown rounded up.
+    expect(message).toContain("toplamda 4,7 MB olurdu");
+    expect(message).toContain("en çok 4 MB gönderilebilir");
+    expect(message).toContain("bir fotoğrafı kaldır");
+    // A PNG is the Safari case: the cause and the way out are named.
+    expect(message).toContain("PNG");
+    expect(message).toContain("Chrome ya da Firefox");
+
+    const two = uploadTotalMessage(["a.jpg", "b.jpg"], 4_300_000, false);
+    expect(two).toContain("a.jpg, b.jpg eklenmedi");
+    expect(two).not.toContain("PNG");
+
+    const notice = uploadTotalNotice(4_900_000);
+    expect(notice).toContain("toplamda 4,7 MB");
+    expect(notice).toContain("Kaydetmeden önce bir fotoğrafı kaldır");
+    for (const text of [message, two, notice]) {
+      expect(LONG_DASH.test(text), text).toBe(false);
+    }
+  });
+
+  it("warns before saving when the stored photos already pass the total", () => {
+    const over = renderToStaticMarkup(
+      createElement(ImageUpload, {
+        name: "images",
+        initial: [png(2_000_000), png(2_000_000), jpeg(400_000)],
+      }),
+    );
+    expect(over).toContain('role="alert"');
+    expect(over).toContain("Kaydetmeden önce bir fotoğrafı kaldır");
+
+    const under = renderToStaticMarkup(
+      createElement(ImageUpload, {
+        name: "images",
+        initial: [jpeg(300_000), jpeg(300_000)],
+      }),
+    );
+    expect(under).not.toContain("Kaydetmeden önce bir fotoğrafı kaldır");
+    // The rule is stated up front on the product's multi-photo field...
+    expect(under).toContain("Tek kayıtta fotoğrafların toplamı en çok 4 MB");
+    // ...and not on the menu item's single photo, which can never reach it.
+    const menu = renderToStaticMarkup(
+      createElement(ImageUpload, { name: "image", max: 1, initial: [] }),
+    );
+    expect(menu).not.toContain("Tek kayıtta fotoğrafların toplamı");
+  });
+
+  it("the uploader checks the total on both ways in: files and links", () => {
+    const uploader = readFileSync(
+      "src/components/admin/image-upload.tsx",
+      "utf8",
+    );
+    expect(uploader).toContain("fitUploadTotal(images, next)");
+    expect(uploader).toContain("fitUploadTotal(prev, fit.accepted)");
+    expect(uploader).toContain("fitUploadTotal(images, [v])");
   });
 });
 

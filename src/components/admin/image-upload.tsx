@@ -12,10 +12,16 @@ import {
 } from "react";
 
 import {
+  dataUrlFormat,
   encodeForUpload,
+  fitUploadTotal,
+  formatUploadMB,
   hasTransparentPixel,
   MAX_DIMENSION,
+  MAX_UPLOAD_TOTAL_LENGTH,
   UploadError,
+  uploadTotalMessage,
+  uploadTotalNotice,
   type EncodeSource,
 } from "@/lib/admin/image-encode";
 
@@ -33,7 +39,9 @@ interface ImageUploadProps {
 type Status =
   | { kind: "idle" }
   | { kind: "processing"; current: number; total: number }
-  | { kind: "error"; message: string };
+  /* `sticky`: a message too long to read in the few seconds a short one
+     stays; it stays until the next upload, link or removal. */
+  | { kind: "error"; message: string; sticky?: boolean };
 
 /**
  * A real canvas behind `encodeForUpload`: each call draws the decoded file
@@ -151,17 +159,39 @@ export function ImageUpload({
         }
       }
 
-      setImages((prev) => [...prev, ...next].slice(0, MAX_IMAGES));
+      // Every photo is posted on every save, so a photo that would take the
+      // item past the one-save total is left out here, with the reason,
+      // instead of the platform refusing the whole save later (413) and the
+      // error page wiping the form.
+      const fit = fitUploadTotal(images, next);
+      setImages((prev) =>
+        // `prev` is the list as it is now; the check is repeated on it so
+        // the posted total never passes the limit.
+        [...prev, ...fitUploadTotal(prev, fit.accepted).accepted].slice(
+          0,
+          MAX_IMAGES,
+        ),
+      );
+      const slotNote =
+        skipped > 0 ? `${skipped} görsel atlandı (limit: ${MAX_IMAGES}).` : "";
+      if (fit.refused.length > 0) {
+        const message = uploadTotalMessage(
+          fit.refused.map((i) => batch[i].name),
+          fit.refusedLength,
+          fit.refused.some((i) => dataUrlFormat(next[i]) === "png"),
+        );
+        setStatus({
+          kind: "error",
+          message: slotNote ? `${message} ${slotNote}` : message,
+          sticky: true,
+        });
+        return;
+      }
       setStatus(
-        skipped > 0
-          ? {
-              kind: "error",
-              message: `${skipped} görsel atlandı (limit: ${MAX_IMAGES}).`,
-            }
-          : { kind: "idle" },
+        slotNote ? { kind: "error", message: slotNote } : { kind: "idle" },
       );
     },
-    [images.length, MAX_IMAGES],
+    [images, MAX_IMAGES],
   );
 
   const onFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -189,8 +219,11 @@ export function ImageUpload({
     setDragOver(false);
   };
 
-  const removeAt = (i: number) =>
+  const removeAt = (i: number) => {
     setImages((prev) => prev.filter((_, idx) => idx !== i));
+    // Removing a photo is the answer to a "too much" message; it goes.
+    setStatus((s) => (s.kind === "error" ? { kind: "idle" } : s));
+  };
 
   const moveTo = (from: number, to: number) =>
     setImages((prev) => {
@@ -216,6 +249,15 @@ export function ImageUpload({
       });
       return;
     }
+    const fit = fitUploadTotal(images, [v]);
+    if (fit.refused.length > 0) {
+      setStatus({
+        kind: "error",
+        message: uploadTotalMessage(["Bu adres"], fit.refusedLength, false),
+        sticky: true,
+      });
+      return;
+    }
     setImages((prev) => [...prev, v]);
     setUrlDraft("");
     setStatus({ kind: "idle" });
@@ -223,10 +265,14 @@ export function ImageUpload({
 
   // Reset error after a short while so stale messages don't linger.
   useEffect(() => {
-    if (status.kind !== "error") return;
+    if (status.kind !== "error" || status.sticky) return;
     const t = setTimeout(() => setStatus({ kind: "idle" }), 5000);
     return () => clearTimeout(t);
   }, [status]);
+
+  /* Photos stored before the one-save total existed can already pass it.
+     Nothing new can be added then, and the operator is told before saving. */
+  const overTotal = json.length > MAX_UPLOAD_TOTAL_LENGTH;
 
   return (
     <div className="grid gap-3">
@@ -273,6 +319,8 @@ export function ImageUpload({
         <div className="mt-1 text-xs text-neutral-500">
           Uzun kenarı {MAX_DIMENSION} px&apos;e küçültülür. Saydam arka planlı
           (dekupe) fotoğraf saydamlığıyla WebP, diğerleri JPEG olarak saklanır.
+          {MAX_IMAGES > 1 &&
+            ` Tek kayıtta fotoğrafların toplamı en çok ${formatUploadMB(MAX_UPLOAD_TOTAL_LENGTH)} MB olabilir.`}
         </div>
         <input
           ref={inputRef}
@@ -294,6 +342,14 @@ export function ImageUpload({
       {status.kind === "error" && (
         <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {status.message}
+        </div>
+      )}
+      {overTotal && (
+        <div
+          role="alert"
+          className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+        >
+          {uploadTotalNotice(json.length)}
         </div>
       )}
 
