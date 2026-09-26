@@ -22,13 +22,7 @@ export interface PageSeo {
       pages get 0.7; supporting pages get 0.6. */
   priority: number;
   changefreq:
-    | "always"
-    | "hourly"
-    | "daily"
-    | "weekly"
-    | "monthly"
-    | "yearly"
-    | "never";
+    "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
 }
 
 export const PAGE_SEO: Record<Route, PageSeo> = {
@@ -46,7 +40,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.menu,
     title: "Menü - Matcha, Espresso, Buzlu Kahve, Tatlılar",
     description:
-      "L'Affogato Tuzla menüsü: matcha bar, espresso, buzlu kahveler, soğuk ve sıcak içecekler, frappe, smoothie, frozen, ice tea, tatlılar ve atıştırmalıklar. 12 kategori, 82 kalem.",
+      "L'Affogato Tuzla menüsü: matcha bar, espresso, buzlu kahveler, frappe, smoothie, frozen, tatlılar ve atıştırmalıklar - 12 kategori, 82 lezzet.",
     keywords: [
       "Tuzla menü",
       "matcha bar İstanbul",
@@ -98,7 +92,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.visit,
     title: "Ziyaret - Tuzla, İstanbul",
     description:
-      "L'Affogato Tuzla'da 200 yıllık Rum köşkünde kahve barı. Adres: Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla. Her gün 09:00 - 02:00 açık. Karaoke odası mevcut. Rezervasyon mümkün.",
+      "Tuzla'da 200 yıllık Rum köşkünde kahve barı: Postane Mah. Atatürk Cad. No: 28, Tuzla. Her gün 09:00 - 02:00 açık, karaoke odası ve rezervasyon.",
     keywords: [
       "Tuzla kafe adres",
       "Tuzla affogato yer",

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { JsonLd } from "@/lib/seo/json-ld";
+import { breadcrumbLd } from "@/lib/seo/structured-data";
 import { PageHero } from "@/components/laffogato/page-hero";
 import { LEGAL_CATEGORY_ORDER, LEGAL_DOCS } from "@/lib/legal/documents";
 import { openGraphDefaults } from "@/lib/seo/site";
@@ -34,6 +36,12 @@ export default function HukukIndexPage() {
 
   return (
     <div className="legal-page">
+      <JsonLd
+        data={breadcrumbLd([
+          { name: "Ana Sayfa", url: "/" },
+          { name: "Hukuki bilgiler", url: "/hukuk" },
+        ])}
+      />
       <div className="legal-wrap">
         <PageHero
           scene="porcelain"

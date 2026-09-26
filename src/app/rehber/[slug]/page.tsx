@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 import { guideGraphLd } from "@/lib/seo/guide-structured-data";
 import { GUIDES, findGuide, relatedGuides } from "@/lib/seo/guides";
-import { SITE } from "@/lib/seo/site";
+import { SITE, brandedTitle, metaDescription } from "@/lib/seo/site";
 import { JsonLd } from "@/lib/seo/json-ld";
 
 /** Static at build time: the guides are code, not database rows. */
@@ -22,8 +22,8 @@ export async function generateMetadata({
   if (!guide) return {};
   const url = `/rehber/${slug}`;
   return {
-    title: guide.metaTitle,
-    description: guide.metaDescription,
+    title: brandedTitle(guide.metaTitle),
+    description: metaDescription(guide.metaDescription),
     keywords: guide.keywords,
     alternates: { canonical: url },
     openGraph: {

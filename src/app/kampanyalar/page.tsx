@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 
+import { JsonLd } from "@/lib/seo/json-ld";
+import { breadcrumbLd } from "@/lib/seo/structured-data";
+
 import { CampaignsPage } from "@/components/laffogato/campaigns-page";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { getPublicSettings, listActiveAppPosts } from "@/lib/admin/store";
@@ -52,27 +55,35 @@ export default async function KampanyalarPage() {
   ]);
 
   return (
-    <SiteChrome
-      settings={{
-        phone: settings.phone,
-        email: settings.email,
-        address: settings.address,
-      }}
-    >
-      <CampaignsPage
-        posts={posts.map((p) => ({
-          id: p.id,
-          kind: p.kind,
-          title: p.title,
-          body: p.body,
-          image: p.image,
-          linkUrl: p.linkUrl,
-          linkLabel: p.linkLabel,
-        }))}
-        cards={settings.mobileApp.campaignCards}
-        stampTarget={settings.mobileApp.loyalty.stampTarget}
-        rewardTitle={settings.mobileApp.loyalty.rewardTitle}
+    <>
+      <JsonLd
+        data={breadcrumbLd([
+          { name: "Ana Sayfa", url: "/" },
+          { name: "Kampanyalar", url: "/kampanyalar" },
+        ])}
       />
-    </SiteChrome>
+      <SiteChrome
+        settings={{
+          phone: settings.phone,
+          email: settings.email,
+          address: settings.address,
+        }}
+      >
+        <CampaignsPage
+          posts={posts.map((p) => ({
+            id: p.id,
+            kind: p.kind,
+            title: p.title,
+            body: p.body,
+            image: p.image,
+            linkUrl: p.linkUrl,
+            linkLabel: p.linkLabel,
+          }))}
+          cards={settings.mobileApp.campaignCards}
+          stampTarget={settings.mobileApp.loyalty.stampTarget}
+          rewardTitle={settings.mobileApp.loyalty.rewardTitle}
+        />
+      </SiteChrome>
+    </>
   );
 }

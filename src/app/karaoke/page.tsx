@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 
+import { JsonLd } from "@/lib/seo/json-ld";
+import { breadcrumbLd } from "@/lib/seo/structured-data";
+
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { customerOrdersByEmail, getPublicSettings } from "@/lib/admin/store";
@@ -100,26 +103,36 @@ export default async function KaraokePage({ searchParams }: PageProps) {
   }
 
   return (
-    <SiteChrome
-      settings={{
-        phone: settings.phone,
-        email: settings.email,
-        address: settings.address,
-      }}
-    >
-      <KaraokeBooking
-        days={days}
-        date={date}
-        availability={availability}
-        unavailable={unavailable}
-        capacity={settings.karaokeCapacity}
-        hourlyMinor={settings.karaokeHourlyMinor}
-        tier={tier}
-        tierLabel={tier ? TIER_LABELS[tier as keyof typeof TIER_LABELS] : null}
-        isAuthenticated={!!customer}
-        emailVerified={!!customer?.emailVerified}
-        phone={settings.phone || SITE.phone}
+    <>
+      <JsonLd
+        data={breadcrumbLd([
+          { name: "Ana Sayfa", url: "/" },
+          { name: "Karaoke", url: "/karaoke" },
+        ])}
       />
-    </SiteChrome>
+      <SiteChrome
+        settings={{
+          phone: settings.phone,
+          email: settings.email,
+          address: settings.address,
+        }}
+      >
+        <KaraokeBooking
+          days={days}
+          date={date}
+          availability={availability}
+          unavailable={unavailable}
+          capacity={settings.karaokeCapacity}
+          hourlyMinor={settings.karaokeHourlyMinor}
+          tier={tier}
+          tierLabel={
+            tier ? TIER_LABELS[tier as keyof typeof TIER_LABELS] : null
+          }
+          isAuthenticated={!!customer}
+          emailVerified={!!customer?.emailVerified}
+          phone={settings.phone || SITE.phone}
+        />
+      </SiteChrome>
+    </>
   );
 }

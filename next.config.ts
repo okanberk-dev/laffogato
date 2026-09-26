@@ -95,8 +95,30 @@ const nextConfig: NextConfig = {
      */
     serverActions: { bodySizeLimit: "12mb" },
   },
+  images: {
+    // AVIF first: the home hero and the /ziyaret photo are each page's
+    // largest paint, and AVIF carries them in roughly half the bytes of WebP
+    // at the same quality. Browsers without it still get WebP.
+    formats: ["image/avif", "image/webp"],
+    // A month at the edge: the sources in public/ change only on deploy.
+    minimumCacheTTL: 2678400,
+  },
   async headers() {
-    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+      {
+        // Brand art and venue photos are not content-hashed, so a day in the
+        // browser with a week of stale-while-revalidate - they used to be
+        // max-age=0 and re-validated on every visit.
+        source: "/:dir(brand|photos|menu)/:file*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+    ];
   },
 };
 

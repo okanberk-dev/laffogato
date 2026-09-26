@@ -569,7 +569,9 @@ function defaultSettings(): AdminSettings {
     taxRatePct: 20,
     shippingFlatMinor: 4900,
     shippingFreeThresholdMinor: 50000,
-    seoTitle: "L'Affogato - Tuzla",
+    // Empty = the home page's keyword title (app/page.tsx HOME_TITLE). A
+    // non-empty default here meant that title was never used.
+    seoTitle: "",
     seoOgImageUrl: "",
     seoIndexable: true,
     notificationEmail: "",
