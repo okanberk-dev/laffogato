@@ -122,6 +122,31 @@ describe("mutations", () => {
         'AND "status" <> $4 RETURNING *',
     );
   });
+
+  it("treats an upsert of zero rows as a no-op, as PostgREST does", async () => {
+    // contentResource seeds an empty table with its seed list, and PRESS
+    // ships as []. Compiled, that was `INSERT INTO "press" () VALUES ON
+    // CONFLICT …` - 42601 - and the story page went down with it.
+    const { exec, calls } = fakeExecutor();
+    const plain = await createDb(exec)
+      .from("press")
+      .upsert([], { onConflict: "id", ignoreDuplicates: true });
+    expect(plain.error).toBeNull();
+    expect(plain.status).toBe(201);
+    const withRows = await createDb(exec).from("press").upsert([]).select();
+    expect(withRows.error).toBeNull();
+    expect(withRows.data).toEqual([]);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("still sends an upsert that has rows", async () => {
+    const { exec, calls } = fakeExecutor();
+    await createDb(exec)
+      .from("press")
+      .upsert([{ id: "p1", name: "X" }]);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].text).toContain('INSERT INTO "press"');
+  });
 });
 
 describe("error handling", () => {

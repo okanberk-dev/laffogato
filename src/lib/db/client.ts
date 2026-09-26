@@ -193,7 +193,19 @@ abstract class QueryBuilder<T> implements PromiseLike<DbResult<T>> {
     return this;
   }
 
+  /**
+   * A statement with nothing to do. PostgREST answers an upsert of zero rows
+   * with an empty success; compiled here it was `INSERT INTO t () VALUES
+   * ON CONFLICT …`, a syntax error (42601) - and one that publicRead rightly
+   * refuses to mask, so an empty seed took every page that lists the table
+   * down.
+   */
+  protected isNoop(): boolean {
+    return false;
+  }
+
   private async run(): Promise<DbResult<T>> {
+    if (this.isNoop()) return this.shape({ rows: [], rowCount: 0 });
     let compiled: CompiledQuery;
     try {
       compiled = compile(this.spec());
@@ -347,6 +359,10 @@ class UpsertBuilder<T> extends MutationBuilder<T> {
 
   protected override okStatus(): number {
     return 201;
+  }
+
+  protected override isNoop(): boolean {
+    return this.rows.length === 0;
   }
 
   protected spec(): QuerySpec {
