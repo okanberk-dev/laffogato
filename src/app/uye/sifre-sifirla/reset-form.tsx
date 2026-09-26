@@ -48,7 +48,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
       <button
         type="submit"
-        className="btn btn-primary btn-lg"
+        className="btn btn-primary btn-lg auth-submit"
         disabled={pending}
       >
         {pending ? "Kaydediliyor…" : "Şifreyi kaydet ve giriş yap"}

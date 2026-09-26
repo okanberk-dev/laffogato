@@ -178,7 +178,9 @@ export function ProductCard({
             className="product-card-add"
             onClick={onAdd}
             disabled={outOfStock}
-            aria-label={outOfStock ? `${name} - tükendi` : `${name} - sepete ekle`}
+            aria-label={
+              outOfStock ? `${name} - tükendi` : `${name} - sepete ekle`
+            }
           >
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
@@ -324,12 +326,12 @@ export function CartDrawer({
     <>
       <div
         onClick={onClose}
-        className={`cart-scrim${open ? " open" : ""}`}
+        className={`cart-scrim${open ? "open" : ""}`}
         aria-hidden="true"
       />
       <aside
         ref={panelRef}
-        className={`cart-drawer${open ? " open" : ""}`}
+        className={`cart-drawer${open ? "open" : ""}`}
         // The drawer stays mounted so it can animate out. While it is closed
         // its buttons and links were still in the tab order off-screen, and
         // `aria-modal` was announced permanently - a screen reader believed a
@@ -390,9 +392,13 @@ export function CartDrawer({
                 Bir çekirdek paketi, bir affogato seti, bir moka pot - eve ya da
                 hediyeye hazır.
               </p>
-              <a href="/magaza" className="btn btn-primary" onClick={onClose}>
+              <Link
+                href="/magaza"
+                className="btn btn-primary"
+                onClick={onClose}
+              >
                 Mağazaya göz at
-              </a>
+              </Link>
             </div>
           ) : (
             <ul className="cart-lines">
@@ -446,7 +452,9 @@ export function CartDrawer({
                       ) : (
                         <div className="cart-item-variant">x{qty}</div>
                       )}
-                      {atMax && <div className="cart-item-cap">Stok sınırı</div>}
+                      {atMax && (
+                        <div className="cart-item-cap">Stok sınırı</div>
+                      )}
                     </div>
                     <div className="cart-item-side">
                       <div className="cart-item-price tabular">

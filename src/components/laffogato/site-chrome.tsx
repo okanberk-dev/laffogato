@@ -1,7 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import { useEffect, useState } from "react";
 
 import { Footer, Nav, type FooterSettings } from "./chrome";
@@ -25,7 +23,6 @@ export function SiteChrome({
   children: React.ReactNode;
   settings?: FooterSettings;
 }) {
-  const router = useRouter();
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
@@ -67,12 +64,10 @@ export function SiteChrome({
       <a href="#main" className="skip-link">
         İçeriğe geç
       </a>
-      <Nav
-        cart={cartCount}
-        onSearch={() => {
-          router.push("/magaza");
-        }}
-      />
+      {/* No onSearch: the header's own fallback goes to /magaza?ara=1, which
+          opens the search there. Pushing plain /magaza dropped the visitor on
+          the shop with no search in sight. */}
+      <Nav cart={cartCount} />
       <main className="site-chrome-body" id="main">
         {children}
       </main>

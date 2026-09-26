@@ -79,23 +79,25 @@ aynı fonksiyonu çağırsın. Örnekler: `src/lib/mobile/karaoke-core.ts` ↔
 `karaoke.ts` (web `/karaoke` sayfası ile mobil uç aynı `createReservation`'a
 iner), `loyalty-core.ts` ↔ `loyalty.ts`.
 
-**Tasarım paritesi YOK (23 Eyl 2026'dan beri).** 2 Eyl 2026'da site paleti
-uygulamanınkine (`lafmobil/src/theme/tokens.ts`) eşitlenmişti; 5 Eyl 2026 Köşk
-yeniden tasarımı zemini beyaza, ikincil vurguyu terracotta'ya taşıdı; 7 Eyl
-2026 operatör talimatıyla vurgu **bordo**ya döndü ve uygulamanın o günkü
-bordosuyla aynı oldu (`#84233C` / `#4A0F1E` / `#F6E9EC`). 23 Eyl 2026'da
-uygulama operatörün isteğiyle daha canlı bir yeşil ve bordoya geçti
-(lafmobil karar 149: yapı yeşili `#1D6D56`, bordo `#9D2543`, bordo dibi
-`#520F1F`) - site bu değişikliği **almadı**: `--accent` hâlâ `#84233c`,
-`--brand` `#143d2b`. Sitenin uygulamayı izleyip izlemeyeceği operatörün açık
-kararıdır (lafmobil `docs/GOREVLER-OPUS.md` W9/O26, değer tablosu
-`docs/SITE-PALETTE-SYNC.md`). Karar verilene kadar sitenin kendi değerleri
-`globals.css :root` ve `tests/brand-theme.test.ts` içinde yazılı; uygulamanın
-rengini gösteren tek site yüzeyi panelin slayt önizlemesidir
-(`admin/mobil/slaytlar`, telefonun boyadığı renkler).
+**Tasarım paritesi VAR (25 Eyl 2026'dan beri) - kaynak uygulamadır.**
+Operatör talimatı (25 Eyl 2026): _"lafmobil ... tasarımı apple'a uygun, sen de
+site tasarımını buna uygun olarak güncelle"_. Bu, lafmobil karar 31'i (c)
+seçeneğiyle kapattı: site uygulamanın bütün paletini (`lafmobil/src/theme/tokens.ts`,
+`porcelain`, DESIGN-GLASS §13), iki yazı sesini (Poppins gösterim, Inter
+okuma) ve cam malzeme dilini (kapsül düğme, cam kart, yüzen cam krom, sekme
+çubuğu) aldı. Değerler: porselen zemin `#f7f3ed`, yapı yeşili `#1d6d56`,
+bordo `#9d2543` / `#520f1f` / `#f9e6ea`, pirinç `#e8c877`, altın metin
+`#765923`, gölgeler `rgba(59, 42, 30, …)`. **Logo L'Af** (`public/brand/`,
+`<LafMark>`); uygulama ikonu da odur. Uygulamanın paleti değişirse site aynı
+PR serisinde izler (değer tablosu lafmobil `docs/SITE-PALETTE-SYNC.md`);
+ayrışma operatör kararı ister. Henüz taşınmayanlar arka yüz dosyalarıdır ve
+Köşk yeşili `#143d2b` üzerinde durur: e-posta şablonları, `opengraph-image.tsx`,
+PayNkolay köprüsü (`odeme/paynkolay/route.ts`) ve `scripts/gen-icons.mjs`
+ikonları (`public/icon-*.png`, JSON-LD logosu). `tests/brand-theme.test.ts`
+ikisini de ayrı ayrı tutar. Tam kılavuz ve geçmiş: `docs/BRAND.md`.
 
-**Bordo ile yeşil asla üst üste yazılmaz.** `#84233C` ile ev yeşilleri
-neredeyse aynı parlaklıkta (`--hero-green` ile 1.15:1). Koyu zeminde
+**Bordo ile yeşil asla üst üste yazılmaz.** `#9D2543` ile ev yeşili
+neredeyse aynı parlaklıkta (`--hero-green` ile 1.21:1). Koyu zeminde
 `--accent-on-dark` kullanılır; `.script` bunu `--script-ink` değişkeniyle
 kendiliğinden yapar, koyu bir blok yazarken `data-ground="dark"` eklemek
 yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
@@ -142,8 +144,8 @@ yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
 src/
   app/
     page.tsx                 → Müşteri SPA entrysi (hash router: #home, #menu, ...)
-    layout.tsx               → next/font ile tek aile (Montserrat) + Consent Mode
-                               bootstrap (GTM'den önce) + GTM
+    layout.tsx               → next/font ile iki ses (Poppins + Inter) + Consent
+                               Mode bootstrap (GTM'den önce) + GTM
     globals.css              → Tüm design tokens + müşteri SPA stilleri
     menu/ magaza/ hikayemiz/ → Müşteri rotaları (SPA içeriğinin SEO'lu karşılıkları)
     ziyaret/ hukuk/
@@ -329,14 +331,21 @@ durum bozulmaya uygundur.
 > Tam marka kılavuzu: **`docs/BRAND.md`** — her token, ölçülmüş kontrast
 > oranları, tipografi ölçeği, bileşen dili ve değiştirme kuralları.
 
-- **Renk:** `globals.css :root` tek kaynak. Dört kâğıt tonu (`--bg`,
-  `--bg-warm`, `--bg-stone`, `--bg-cream`), hero'nun kendi beş jetonu
-  (`--hero-cream`, `--hero-green`, `--hero-cocoa`, `--hero-tile`,
-  `--hero-tile-deep`), espresso mürekkep ailesi, **bordo** `--accent`
-  (tricolore'nin kırmızısı), altın `--gold`, durum renkleri `--matcha`
-  (olumlu) ve `--rose` (uyarı — marka değil).
-- **HUES** (`visuals.tsx`): ürün kartlarının ve illüstrasyonların arkasındaki 12
-  yüzey. Her birinin `ink`'i kendi gradient'ine karşı AA'yı geçer.
+- **Renk:** `globals.css :root` tek kaynak, değerleri uygulamanın
+  (`lafmobil/src/theme/tokens.ts`). Porselen zeminler (`--bg`, `--bg-warm`,
+  `--bg-stone`, `--bg-cream`), beyaz yüzey (`--surface`), cam jetonları
+  (`--glass*`, `--rim`), mürekkep ailesi, yeşil (`--green` = karar/birincil
+  eylem), **bordo** `--accent` (ekran başına bir imza yüzeyi), pirinç
+  `--gold-soft` (dolgu) ve `--gold` (metin), durum renkleri `--matcha`
+  (olumlu), `--rose` (uyarı — marka değil) ve `--info` (kobalt).
+- **Yazı:** Poppins (`--display`: başlık, fiyat, düğme) + Inter (`--sans`:
+  gövde, etiket). Etiketler cümle düzeninde; büyük harfli geniş aralık yalnız
+  kart baskısında (`.eyebrow.caps`).
+- **Malzeme:** kapsül düğme (`--r-btn: 999px`, basınca 0.97), cam kart,
+  gerçek bulanıklık yalnız yüzen kromda (başlık, sekme çubuğu, sepet, arama).
+- **Sahneler** (`scenes.ts`): ürünün arkasındaki ışık uygulamanın 14 sahne
+  pigmentinden gelir; eski 12 **HUES** adı (`visuals.tsx`) birer sahneye
+  çözülür. Her birinin `ink`'i kendi zeminine karşı AA'yı geçer.
 - **Kontrast teste bağlı** (`tests/contrast.test.ts`): token'ları
   değiştirdiğinde bu test da geçmelidir. Peş peşe üç "sadeleştirme" geçişi bu
   değerleri sessizce AA altına düşürdüğü için eklendi.

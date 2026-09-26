@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { DegradedAuthNotice } from "@/components/customer/degraded-auth-notice";
+import { LafMark } from "@/components/laffogato/brand-mark";
 
 import { ResetPasswordForm } from "./reset-form";
 
@@ -20,11 +21,14 @@ export default async function SifreSifirlaPage({ searchParams }: PageProps) {
   return (
     <main className="auth-page">
       <div className="auth-card">
-        <Link href="/uye/giris" className="eyebrow auth-back">
-          ← Giriş
-        </Link>
+        <div className="auth-head">
+          <Link href="/uye/giris" className="auth-back">
+            ← Giriş
+          </Link>
+          <LafMark tone="duo" />
+        </div>
         <DegradedAuthNotice />
-        <h1 className="h1 auth-title">
+        <h1 className="auth-title">
           Yeni <span className="script">şifre.</span>
         </h1>
         {token ? (
@@ -42,7 +46,7 @@ export default async function SifreSifirlaPage({ searchParams }: PageProps) {
             </p>
             <Link
               href="/uye/sifremi-unuttum"
-              className="btn btn-primary btn-lg"
+              className="btn btn-primary btn-lg auth-submit"
             >
               Yeni bağlantı iste
             </Link>

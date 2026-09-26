@@ -210,7 +210,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
               →
             </span>
           </Link>
-          <Link href="/#shop" className="btn btn-outline">
+          <Link href="/magaza" className="btn btn-outline">
             Alışverişe devam et
           </Link>
         </div>

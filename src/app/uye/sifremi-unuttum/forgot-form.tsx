@@ -42,7 +42,7 @@ export function ForgotPasswordForm() {
 
       <button
         type="submit"
-        className="btn btn-primary btn-lg"
+        className="btn btn-primary btn-lg auth-submit"
         disabled={pending}
       >
         {pending ? "Gönderiliyor…" : "Sıfırlama bağlantısı gönder"}

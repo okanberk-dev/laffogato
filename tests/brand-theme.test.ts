@@ -26,49 +26,69 @@ const emails = [
 ].join("\n");
 
 /**
- * The tricolore's bordo as the site paints it: accent / deep / soft. Until
- * 8 Eyl 2026 these were also lafmobil's accent.burgundy / burgundyDeep /
- * bg.accentSubtle, verbatim - see the note on the phone below.
+ * The bordo as the site paints it: accent / deep / soft. Since 25 Eyl 2026
+ * these are lafmobil's accent.burgundy / burgundyDeep / accentSubtle again,
+ * verbatim (src/theme/tokens.ts, karar 149) - see the note on the phone below.
  */
-const SITE_BORDO = ["#84233C", "#4A0F1E", "#F6E9EC"] as const;
+const SITE_BORDO = ["#9D2543", "#520F1F", "#F9E6EA"] as const;
+
+/** Only what the stylesheet paints with - the history notes can name anything. */
+const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 /**
- * The site's palette is the Köşk redesign's, on the tricolore.
+ * The site's palette is the app's porcelain, since 25 Eyl 2026.
  *
- * Operator instruction, 5 Eyl 2026: two homepage studies were drawn (Köşk and
- * Bold), Köşk was picked, then revised onto a white ground in the Starbucks TR
- * mould. Then 7 Eyl: "italya bayrağı renklerini kullan … bunlara yakışan bordo
- * ekle" - keep the green, add the flag's red as a burgundy.
+ * Operator instruction, 25 Eyl 2026: "lafmobil reposu mobil uygulamanın
+ * reposu ve tasarımı apple'a uygun, sen de site tasarımını buna uygun olarak
+ * güncelle". That closed lafmobil's karar 31 with option (c): the whole
+ * palette, read from lafmobil src/theme/tokens.ts (`porcelain`, DESIGN-GLASS
+ * §13) on that day - porcelain ground #F7F3ED, structure green #1D6D56, bordo
+ * #9D2543, brass #E8C877 - with the app's two voices, Poppins and Inter.
  *
- * This file has now pinned FOUR successive decisions - heritage köşk, the
- * mobile app's tokens (2 Eyl), the Köşk redesign (5 Eyl), and the tricolore
- * accent (7 Eyl) - and is kept, each time inverted, because the failure mode
- * it guards is real: a palette that drifts one hex at a time until half the
- * site is on the previous one. The `not.toContain` assertions are the
- * load-bearing half.
+ * This file has now pinned FIVE successive decisions - heritage köşk, the
+ * mobile app's tokens (2 Eyl), the Köşk redesign (5 Eyl), the tricolore
+ * accent (7 Eyl) and the app's porcelain (25 Eyl) - and is kept, each time
+ * inverted, because the failure mode it guards is real: a palette that
+ * drifts one hex at a time until half the site is on the previous one. The
+ * `not.toContain` assertions are the load-bearing half.
  *
- * Note on the phone: the 2 Eyl swap existed to make site and app read alike,
- * the 5 Eyl redesign broke that, and the 7 Eyl accent restored the bordo - for
- * a day. On 8 Eyl 2026 the operator moved the app to a palette of its own,
- * and it has changed again since; it lives in lafmobil's src/theme/tokens.ts,
- * so site and app no longer share a palette BY DECISION, not by drift. This
- * file therefore guards the site alone; whether the site follows the app one
- * day (karar 31) is an open operator question tracked in lafmobil's
- * docs/SITE-PALETTE-SYNC.md, and the e-mails stay on the site's tokens
- * because the site sends them and their links land here. Contrast is a
- * separate guard in contrast.test.ts.
+ * Note on the phone: the app is the source now. When lafmobil's tokens move,
+ * the site moves in the same PR series (docs/SITE-PALETTE-SYNC.md in
+ * lafmobil holds the value table). What has NOT moved yet is everything the
+ * site paints outside the stylesheet where a CSS variable cannot reach: the
+ * e-mails, the link preview, the PayNkolay bridge and the generated PWA
+ * icons are still on the Köşk green #143d2b and say so in the blocks below.
+ * They are backend or script files, so they follow in a separate PR.
+ * Contrast is a separate guard in contrast.test.ts.
  */
-describe("palette follows the Köşk redesign", () => {
-  it("paints the house green", () => {
-    expect(css).toContain("--brand: #143d2b");
-    expect(css).toContain("--bg-espresso: #143d2b");
-    expect(css).toContain("--matcha: #1e7c4b");
+describe("palette follows the app's porcelain", () => {
+  it("paints the app's structure green", () => {
+    expect(css).toContain("--brand: #1d6d56");
+    expect(css).toContain("--bg-espresso: #1d6d56");
+    expect(css).toContain("--matcha: #1d6d56");
+    expect(css).toContain("--green: #1d6d56");
   });
 
-  it("uses the tricolore's bordo as the accent, not the retired terracotta", () => {
-    expect(css).toContain("--accent: #84233c");
-    expect(css).toContain("--accent-deep: #4a0f1e");
-    expect(css).toContain("--accent-soft: #f6e9ec");
+  it("uses the app's bordo as the accent", () => {
+    expect(css).toContain("--accent: #9d2543");
+    expect(css).toContain("--accent-deep: #520f1f");
+    expect(css).toContain("--accent-soft: #f9e6ea");
+  });
+
+  it("keeps brass as a fill and a darker gold for text", () => {
+    // The app's brass (#E8C877) is a surface: ink sits on it, it never
+    // carries text on porcelain. goldFg #765923 is the text gold.
+    expect(css).toContain("--gold-soft: #e8c877");
+    expect(css).toContain("--gold: #765923");
+  });
+
+  it("retires the Köşk values from the stylesheet, not just their names", () => {
+    for (const hex of ["#143d2b", "#84233c", "#4a0f1e", "#1e7c4b"]) {
+      expect(cssCode.toLowerCase(), `${hex} is the Köşk palette`).not.toContain(
+        hex,
+      );
+    }
+    expect(cssCode).not.toMatch(/--bg:\s*#ffffff/i);
   });
 
   it("has no retired colour left anywhere, in any notation", () => {
@@ -143,9 +163,11 @@ describe("palette follows the Köşk redesign", () => {
     for (const hex of SITE_BORDO) expect(css).toContain(hex.toLowerCase());
   });
 
-  it("sits on a white ground", () => {
-    expect(css).toContain("--bg: #ffffff");
-    // The retired grounds: the app's canvas and the heritage köşk cream.
+  it("sits on the app's porcelain, with white kept for cards", () => {
+    expect(css).toContain("--bg: #f7f3ed");
+    expect(css).toContain("--bg-warm: #fbf8f4");
+    expect(css).toContain("--surface: #ffffff");
+    // The retired grounds: the app's old canvas and the heritage köşk cream.
     expect(css).not.toContain("#f9f8f7");
     expect(css).not.toContain("#f7f3ea");
   });
@@ -155,20 +177,26 @@ describe("palette follows the Köşk redesign", () => {
     expect(css).not.toContain("#005c3a");
   });
 
-  it("tints its shadows with the house green", () => {
-    // --bg-espresso #143D2B = 20,61,43. Both earlier shadow colours - the
-    // espresso brown and the app's darker green - are gone.
-    expect(css).toContain("rgba(20, 61, 43,");
+  it("tints its shadows with the app's warm earth", () => {
+    // lafmobil shadows are #3B2A1E (59,42,30) at no more than 12 %. Every
+    // earlier shadow colour - the espresso brown, the app's older dark green
+    // and the Köşk house green - is gone.
+    expect(css).toContain("rgba(59, 42, 30,");
+    expect(css).not.toContain("rgba(20, 61, 43,");
     expect(css).not.toContain("rgba(74, 52, 22,");
     expect(css).not.toContain("rgba(18, 41, 31,");
   });
 
-  it("ships one typeface, and it is not a retired one", () => {
-    // Montserrat, set by the operator's reference design (6 Eyl 2026). The
-    // reference is drawn in Sofia Pro, which is licensed; Montserrat is the
-    // nearest Google Fonts face and matches its width and its circular
-    // letterforms, which Plus Jakarta Sans did not.
-    expect(css).toContain("Montserrat");
+  it("speaks in the app's two voices, and no retired one", () => {
+    // lafmobil BRAND-IDENTITY §2: Poppins displays, Inter reads.
+    const layout = read("src/app/layout.tsx");
+    expect(layout).toMatch(
+      /import \{ Inter, Poppins \} from "next\/font\/google"/,
+    );
+    expect(css).toContain('"Poppins"');
+    expect(css).toContain('"Inter"');
+    expect(layout).not.toContain("Montserrat");
+    expect(css).not.toContain("Montserrat");
     expect(css).not.toContain("Plus Jakarta Sans");
     expect(css).not.toContain("Hanken Grotesk");
     expect(css).not.toContain("JetBrains Mono");
@@ -183,10 +211,11 @@ describe("palette follows the Köşk redesign", () => {
  * on a retired set long after the site itself moved, twice.
  */
 describe("surfaces outside globals.css follow the same palette", () => {
-  it("installs the PWA on the site's ground and night, matching layout.tsx", () => {
-    expect(manifest).toContain('background_color: "#ffffff"');
-    expect(manifest).toContain('theme_color: "#143d2b"');
-    for (const hex of ["#FBF4E6", "#2C1D11", "#f9f8f7", "#12291f"]) {
+  it("installs the PWA on the site's ground and chrome, matching layout.tsx", () => {
+    expect(manifest).toContain('background_color: "#f7f3ed"');
+    expect(manifest).toContain('theme_color: "#fbf8f4"');
+    expect(read("src/app/layout.tsx")).toContain('themeColor: "#fbf8f4"');
+    for (const hex of ["#FBF4E6", "#2C1D11", "#f9f8f7", "#12291f", "#143d2b"]) {
       expect(manifest, `${hex} belongs to a retired palette`).not.toContain(
         hex,
       );
@@ -205,6 +234,11 @@ describe("surfaces outside globals.css follow the same palette", () => {
    * next/og and e-mail HTML are rasterised or inlined where CSS variables do
    * not resolve, so both spell the palette out. That is the only reason they
    * kept a retired one long after globals.css moved.
+   *
+   * They are on the Köşk green (#143d2b) still, knowingly: the 25 Eyl move to
+   * the app's porcelain was a front-end change, and the mail templates, the
+   * OG route and the PayNkolay bridge are back-end files that follow in
+   * their own PR. When they move, these pins move with them.
    */
   it("shares the link preview on the house green", () => {
     expect(ogImage).toContain("#143d2b"); // --bg-espresso
@@ -362,6 +396,11 @@ describe("the app's retired green does not paint the site", () => {
  * scripts/gen-icons.mjs draws them, and these assertions hold the result to
  * the site palette (O26 default (a): --brand ground, --hero-cream mark) and
  * to the maskable safe zone.
+ *
+ * Since 25 Eyl 2026 the manifest installs the L'Af app icons in
+ * public/brand (the app's own icon, on #1D6D56); these generated files are
+ * the JSON-LD logo only, still on the Köşk green until scripts/gen-icons.mjs
+ * is redrawn in the back-end follow-up.
  */
 describe("the PWA and JSON-LD icons are drawn on the site palette", () => {
   const GROUND = [0x14, 0x3d, 0x2b] as const; // --brand #143d2b

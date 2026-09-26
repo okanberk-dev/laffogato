@@ -275,7 +275,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
             eyebrow="Cosa contiamo"
             title={
               <>
-                Koruduğumuz <span className="script">beş ilke.</span>
+                Koruduğumuz <span className="script">altı ilke.</span>
               </>
             }
           />
@@ -306,89 +306,31 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
               </>
             }
           />
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 24,
-              marginTop: 50,
-            }}
-            data-row="pour-row"
-          >
+          <ol className="pour-steps" data-row="pour-row">
             {pourSteps.map((s, i) => (
-              <div
+              <li
                 key={s.step}
-                className="reveal"
-                style={{
-                  transitionDelay: `${i * 80}ms`,
-                  aspectRatio: "4/5",
-                  borderRadius: "var(--r-md)",
-                  overflow: "hidden",
-                  position: "relative",
-                }}
+                className="pour-step reveal"
+                style={{ transitionDelay: `${i * 80}ms` }}
               >
                 <PhotoSurface hue={["stone", "caramel", "espresso", "warm"][i]}>
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      display: "grid",
-                      placeItems: "center",
-                      padding: 24,
-                    }}
-                  >
+                  <div className="pour-step-art">
                     {i === 0 && <BeanIllo />}
                     {i === 1 && <EspressoCup />}
                     {i === 2 && <EspressoCup />}
                     {i === 3 && <EdibleCupHero scoop="cream" topping="wafer" />}
                   </div>
                 </PhotoSurface>
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 20,
-                    left: 20,
-                    fontFamily: "var(--mono)",
-                    fontSize: 10,
-                    letterSpacing: "0.22em",
-                    textTransform: "uppercase",
-                    padding: "5px 10px",
-                    background: "rgba(255,255,255,0.92)",
-                    borderRadius: 999,
-                  }}
-                >
+                <span className="pour-step-num" aria-hidden="true">
                   {s.step}
+                </span>
+                <div className="pour-step-copy">
+                  <h3 className="pour-step-title">{s.t}</h3>
+                  <p className="pour-step-note">{s.d}</p>
                 </div>
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: 20,
-                    left: 20,
-                    right: 20,
-                    color: i === 2 ? "#FFF" : "#1d1c1c",
-                  }}
-                >
-                  <div
-                    style={{ fontFamily: "var(--serif-display)", fontSize: 22 }}
-                  >
-                    {s.t}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "var(--mono)",
-                      fontSize: 11,
-                      letterSpacing: "0.18em",
-                      textTransform: "uppercase",
-                      marginTop: 4,
-                      opacity: 0.75,
-                    }}
-                  >
-                    {s.d}
-                  </div>
-                </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 

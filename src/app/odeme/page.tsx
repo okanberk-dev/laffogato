@@ -60,7 +60,7 @@ export default async function OdemePage({
       <div className="checkout-page-wrap">
         <header className="checkout-page-head">
           <Link
-            href="/#shop"
+            href="/magaza"
             className="eyebrow"
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
           >
@@ -126,7 +126,7 @@ export default async function OdemePage({
               Mağaza geçici olarak siparişe kapalı. Sepetin korunuyor - birazdan
               tekrar denersen kaldığın yerden devam edebilirsin.
             </p>
-            <Link href="/#shop" className="btn btn-primary btn-sm">
+            <Link href="/magaza" className="btn btn-primary btn-sm">
               Mağazaya dön
             </Link>
           </GatePanel>

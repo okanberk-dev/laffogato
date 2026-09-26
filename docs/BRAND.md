@@ -4,231 +4,208 @@
 > `src/app/globals.css` içindeki `:root` bloğudur. Buradaki her değer oradan
 > okunmuştur; ikisi çelişirse **globals.css doğrudur** ve bu belge güncellenir.
 >
-> Kaynak tasarım: `Laffogato Site.dc.html` (Claude Design, "Köşk" yönü,
-> 5 Eyl 2026). Karar geçmişi ve nöbetçi testler: `tests/brand-theme.test.ts`
-> (paletin kaymasını engeller) ve `tests/contrast.test.ts` (okunabilirliği
-> engeller).
+> **Kaynak: mobil uygulama.** 25 Eyl 2026 operatör talimatı: _"lafmobil
+> reposu mobil uygulamanın reposu ve tasarımı apple'a uygun, sen de site
+> tasarımını buna uygun olarak güncelle"_. Bu, lafmobil karar 31'i (c)
+> seçeneğiyle kapattı: site uygulamanın **bütün** paletini, iki yazı sesini
+> ve cam malzeme dilini alır. Değerler o gün `lafmobil/src/theme/tokens.ts`
+> (`porcelain`, DESIGN-GLASS §13) dosyasından okundu. Uygulama değişirse site
+> aynı PR serisinde izler; değer tablosu lafmobil `docs/SITE-PALETTE-SYNC.md`.
 >
-> **Mobil uygulama (`RiosenBeq/lafmobil`) ayrı bir palet dosyası tutar**
-> (`src/theme/tokens.ts`). 2 Eyl 2026'da iki yüzey eşitlenmişti; Köşk yeniden
-> tasarımı sonrası parite **kısmi**: yeşiller örtüşüyor, zemin krem → beyaz ve
-> ikincil vurgu bordo → terracotta → yine bordo oldu ve artık uygulamanın
-> değeriyle aynı. Uygulamayı da taşımak gerekirse
-> değişecek dosya `lafmobil/src/theme/tokens.ts`.
+> Nöbetçi testler: `tests/brand-theme.test.ts` (paletin kaymasını engeller) ve
+> `tests/contrast.test.ts` (okunabilirliği engeller). Önceki (Köşk) palet §9'da.
 
 ---
 
 ## 1. Renk
 
-### 1.1 Yüzeyler
+### 1.1 Zeminler ve yüzeyler
 
-| Token                | Değer     | Nerede                                                     |
-| -------------------- | --------- | ---------------------------------------------------------- |
-| `--bg`               | `#ffffff` | Sayfa zemini. Site beyaz üzerine kurulur.                  |
-| `--bg-warm`          | `#f6f5f2` | Kart zemini, sakin bölüm şeridi, pasif buton hover'ı.      |
-| `--bg-stone`         | `#f1eee8` | Çökük yüzey: ilerleme çubuğu yatağı, dolu saat kutusu.     |
-| `--bg-cream`         | `#fbf9f4` | Uzun metin zemini (hukuk, rehber).                         |
-| `--bg-espresso`      | `#143d2b` | **Ev yeşili.** Koyu bloklar, birincil buton, seçili durum. |
-| `--bg-espresso-deep` | `#0e2c1f` | Yalnızca `--bg-espresso`'nun hover/basılı adımı.           |
+| Token                | Değer     | Nerede                                                          |
+| -------------------- | --------- | --------------------------------------------------------------- |
+| `--bg`               | `#f7f3ed` | **Porselen.** Sayfa zemini; beyaz kart bunun üstünden kalkar.   |
+| `--bg-warm`          | `#fbf8f4` | Açık şerit (uygulamanın `ground.top`), cam başlığın zemini.     |
+| `--bg-stone`         | `#f2ece4` | Çökük yüzey: ilerleme yatağı, dolu saat kutusu.                 |
+| `--bg-cream`         | `#f3eee0` | Uzun metin zemini, `.band-cream` ritim şeridi.                  |
+| `--surface`          | `#ffffff` | Kart, liste grubu, girdi alanı.                                 |
+| `--surface-sheet`    | `#fffdfa` | Alt sayfa (sheet) ve modal gövdesi.                             |
+| `--bg-espresso`      | `#1d6d56` | **Ev yeşili** (adı miras, anlamı "koyu zemin"). Birincil dolgu. |
+| `--bg-espresso-deep` | `#0c3b2d` | Yeşilin en koyu adımı: altbilgi degradesinin dibi.              |
 
-### 1.1b Hero paleti
+Porselen beyaz değildir, bilerek: sıcak ve çok açık bir zemin, beyaz bir
+kartın gölgesiz bile ayrılmasını sağlar (DESIGN-GLASS §13.3). Beyaz yalnız
+yüzeydir - sayfa değil.
 
-Operatörün 6 Eyl 2026'da verdiği referans tasarımın kendi beş jetonu. Sayfa
-paletinden ayrı tutuldu: hero, sitede krem zemini ve ne altın ne bordo
-olan bir başlık rengi taşıyan tek şerit.
+### 1.2 Cam
 
-| Token              | Değer     | Nerede                                             |
-| ------------------ | --------- | -------------------------------------------------- |
-| `--hero-cream`     | `#faf6ee` | Hero ve sayfa başlığı şeridinin zemini.            |
-| `--hero-green`     | `#1e5b3f` | Hero diski, banner zemini, aktif nav altı çizgisi. |
-| `--hero-cocoa`     | `#6b4423` | Display başlıklar (hero ve `PageHero`).            |
-| `--hero-tile`      | `#f7ebdc` | Hero küçük ürün karesi.                            |
-| `--hero-tile-deep` | `#ebd9c4` | Aktif karenin adet çubuğu.                         |
+| Token             | Değer                                | Nerede                               |
+| ----------------- | ------------------------------------ | ------------------------------------ |
+| `--glass`         | `rgba(255, 255, 255, 0.72)`          | Cam kart (varsayılan).               |
+| `--glass-raised`  | `rgba(255, 255, 255, 0.85)`          | Öne çıkan kart, açılır panel, sheet. |
+| `--glass-control` | `rgba(255, 255, 255, 0.45)`          | Cam düğme, çip.                      |
+| `--glass-chrome`  | `rgba(251, 248, 244, 0.78)`          | Yüzen krom: başlık, sekme çubuğu.    |
+| `--glass-blur`    | `saturate(180%) blur(22px)`          | **Yalnız** yüzen kromda.             |
+| `--rim`           | üstte beyaz dudak + altta ince gölge | Camın kenar ışığı.                   |
 
-Ölçülmüş kontrast (`--hero-cream` üzerinde): cocoa **7.87:1**, green
-**7.43:1**, `--ink` 15.71:1, `--ink-soft` 6.44:1. Hepsi AA gövde metnini de
-geçer - devasa başlığın buna ihtiyacı yok ama `.hero-x-cta`'nın var.
+Gerçek bulanıklık (backdrop-filter) yalnızca içeriğin **üstünde yüzen**
+parçalarda kullanılır - başlık, mobil sekme çubuğu, sepet paneli, arama.
+Kartlar opak-benzeri cam olarak kalır: Apple HIG'in "malzeme hiyerarşisi",
+ve kaydırmada yüzlerce bulanık kartın GPU faturası.
 
-Referans bir Starbucks konseptiydi: alınan **düzen ve renk muamelesi**dir.
-Marka taşıyan hiçbir şey alınmadı - logo, kelime markası, ürünler ve
-fotoğraflar L'Affogato'nun kendisinin. `tests/brand-theme.test.ts` o markanın
-iki yeşilini yasaklar ve dosyada geçerlerse build'i düşürür.
+### 1.3 Mürekkep
 
-`--bg-espresso` adı miras: heritage paletinde espresso kahvesiydi, 2 Eyl
-2026'dan beri ev yeşili. Adı korundu çünkü ~40 kural ona bakıyor; anlamı
-"koyu zemin".
+| Token               | Değer                    | Nerede                              |
+| ------------------- | ------------------------ | ----------------------------------- |
+| `--ink`             | `#211c18`                | Başlıklar ve gövde metni.           |
+| `--ink-soft`        | `#564d46`                | İkincil gövde, açıklama satırları.  |
+| `--ink-mute`        | `#675e56`                | Küçük etiket, meta, alan başlığı.   |
+| `--ink-quiet`       | `#877d74`                | Yalnız yer tutucu ve pasif durum.   |
+| `--ink-line`        | `rgba(33, 28, 24, 0.08)` | Kart kenarı, ince ayraç (hairline). |
+| `--ink-line-strong` | `rgba(33, 28, 24, 0.14)` | Girdi kenarı, çerçeveli kontrol.    |
 
-### 1.2 Mürekkep
+### 1.4 Yeşil - karar verilmiş olan
 
-| Token               | Değer     | Nerede                                       |
-| ------------------- | --------- | -------------------------------------------- |
-| `--ink`             | `#201c17` | Başlıklar ve gövde metni.                    |
-| `--ink-soft`        | `#5f594e` | İkincil gövde, açıklama satırları.           |
-| `--ink-mute`        | `#746b5d` | Küçük etiketler, alan başlıkları, meta.      |
-| `--ink-line`        | `#ebe7de` | Kart kenarlığı, ince ayraç.                  |
-| `--ink-line-strong` | `#e1dcd1` | Girdi kenarlığı, çerçeveli buton, pasif hap. |
+| Token             | Değer     | Nerede                                                    |
+| ----------------- | --------- | --------------------------------------------------------- |
+| `--green`         | `#1d6d56` | Birincil eylem, bağlantı, seçili durum, bölüm etiketi.    |
+| `--green-pressed` | `#165543` | Basılı / hover adımı.                                     |
+| `--green-mint`    | `#d3e2d9` | Koyu yeşil blok içinde etiket.                            |
+| `--green-mist`    | `#e6efe9` | Olumlu bilgi kutusu zemini; koyu blokta gövde metni.      |
+| `--matcha`        | `#1d6d56` | Olumlu durum: "stokta", "açık". `--green` ile aynı değer. |
 
-`--ink-mute` prototipte `#8c8375`. Beyaz üzerinde 3.74:1 ölçtüğü - yani AA
-altında kaldığı - için bir adım koyulaştırıldı. Bu, tasarımdan bilerek
-ayrılan iki değerden biri.
+Uygulamanın dilinde yeşil **kararı** taşır: seçilmiş, onaylanmış, gidilecek
+yer. Birincil düğme her zaman yeşildir.
 
-### 1.3 Yeşil
+### 1.5 Bordo - imza yüzeyi
 
-| Token          | Değer     | Nerede                                                |
-| -------------- | --------- | ----------------------------------------------------- |
-| `--green`      | `#1e7c4b` | Beyaz üzerinde metin taşıyan yeşil: bölüm etiketleri. |
-| `--green-mint` | `#a9d3b5` | Koyu yeşil blok içinde etiket.                        |
-| `--green-mist` | `#cfe3d5` | Koyu yeşil blok içinde gövde metni.                   |
-| `--matcha`     | `#1e7c4b` | Olumlu durum: "stokta". `--green` ile aynı değer.     |
+| Token              | Değer     | Nerede                                                  |
+| ------------------ | --------- | ------------------------------------------------------- |
+| `--accent`         | `#9d2543` | Başlıktaki tek vurgu kelimesi (`.script`), kadife blok. |
+| `--accent-deep`    | `#520f1f` | Kadife degradesinin dibi, basılı adım.                  |
+| `--accent-soft`    | `#f9e6ea` | Hata kutusu zemini, çok hafif gül.                      |
+| `--accent-on-dark` | `#f6e9ec` | Koyu zemin üzerinde vurgu kelimesi.                     |
 
-`--matcha` ile `--rose` arasındaki **ton açısı farkı 159°**. Bu tesadüf değil:
-"stokta" ile "son 2 kaldı" bir zamanlar aynı sıcak kırmızı ailesindeydi ve bir
-bakışta ayırt edilemiyordu. `tests/contrast.test.ts` bu farkı >60° olarak
-zorunlu tutar.
+Kural: **ekran başına bir bordo yüzey** (uygulamada "velvet"). Anasayfada bu
+sadakat (damga kartı) bloğudur. Bordo birincil eylem rengi değildir.
 
-### 1.4 Altın - ödül sesi
+**Tehlike:** `#9d2543` ile ev yeşili neredeyse aynı parlaklıkta
+(**1.21:1**). Biri diğerinin üstüne **asla** yazılmaz; koyu zeminde
+`--accent-on-dark` kullanılır. `.script` bunu `--script-ink` değişkeniyle
+kendiliğinden yapar - koyu bir blok yazarken `data-ground="dark"` eklemek
+yeterli. `tests/contrast.test.ts` her iki kuralı da tutar.
 
-| Token         | Değer     | Nerede                                               |
-| ------------- | --------- | ---------------------------------------------------- |
-| `--gold`      | `#8a6526` | Beyaz üzerinde metin taşıyan altın; odak halkası.    |
-| `--gold-deep` | `#6b4e1a` | Basılı adım, hukuk bağlantısı.                       |
-| `--gold-soft` | `#e8d3a4` | **Dolgu.** Ödül CTA'sı, seviye rozeti, sepet sayacı. |
-| `--gold-ink`  | `#3b2a0f` | `--gold-soft` üzerine yazılan metin (11.52:1).       |
+### 1.6 Pirinç ve altın - ödül sesi
 
-Altın yalnızca **ödül** anlamına gelir: damga kartı, kupon, "siparişi onayla".
-Dekoratif kullanılmaz.
+| Token         | Değer     | Nerede                                                      |
+| ------------- | --------- | ----------------------------------------------------------- |
+| `--gold-soft` | `#e8c877` | **Pirinç dolgu.** Damga, sepet sayacı, "Abone ol", rozet.   |
+| `--gold-ink`  | `#2e2113` | Pirinç üzerine yazılan metin (9.65:1).                      |
+| `--gold`      | `#765923` | Porselen üzerinde metin taşıyan altın (uygulamanın goldFg). |
+| `--gold-deep` | `#5c4325` | Basılı adım.                                                |
 
-### 1.5 Bordo - vurgu, tricolore'nin kırmızısı
+Pirinç bir **yüzeydir**: üstüne mürekkep yazılır, kendisi porselen üzerinde
+metin taşımaz (1.6:1). Anlamı ödüldür - damga kartı, kupon, abonelik.
 
-| Token              | Değer     | Nerede                                                             |
-| ------------------ | --------- | ------------------------------------------------------------------ |
-| `--accent`         | `#84233c` | Aktif nav altı çizgisi, başlıkta tek vurgu kelimesi, üyelik bloğu. |
-| `--accent-deep`    | `#4a0f1e` | Basılı adım, en koyu bordo zemin.                                  |
-| `--accent-soft`    | `#f6e9ec` | Çok hafif gül zemin.                                               |
-| `--accent-on-dark` | `#efb9c6` | Koyu zemin üzerinde bordo metin.                                   |
+### 1.7 Durum ve bilgi
 
-Operatör talimatı, 7 Eyl 2026: _"italya bayrağı renklerini kullan … bunlara
-yakışan bordo ekle"_. Yeşil ve beyaz sitede zaten vardı; bu, bayrağın
-kırmızısının bordoya derinleştirilmiş hâli - ev yeşilinin üstüne bağırmak
-yerine onunla oturması için.
+| Token         | Değer     | Anlam                                  |
+| ------------- | --------- | -------------------------------------- |
+| `--matcha`    | `#1d6d56` | Olumlu - stokta, açık, onaylı          |
+| `--rose`      | `#bb3b52` | Uyarı - az kaldı, hata metni           |
+| `--info`      | `#3442b8` | Bilgi notu metni (uygulamanın kobaltı) |
+| `--info-fill` | `#4858d2` | "Yeni" rozeti dolgusu (beyaz metin)    |
 
-Bu değerler **yeni değil**: `lafmobil`'in `accent.burgundy`,
-`burgundyDeep` ve `bg.accentSubtle` jetonlarının aynısı. Köşk redesign'ının
-açtığı palet farkını kapatıyor ve uygulamanın `tricolore` dizisini
-(`['#235347', '#FAF9F6', '#84233C']`) sitenin yeşil / kâğıt / vurgu üçlüsüyle
-birebir aynı hâle getiriyor.
+`--rose` **durum** rengidir, marka değil; bordodan daha parlak bir kırmızı
+olarak kalır ki "son 2 adet" bir marka vurgusu gibi okunmasın. Porselen
+üzerinde AA'yı geçmesi için 25 Eyl 2026'da `#c5435a`'dan bir adım
+koyulaştırıldı (4.39 → 4.92:1).
 
-Terracotta'nın gerektirdiği "beyaz metin AA altında" istisnası onunla birlikte
-gitti: `--accent` üzerine beyaz **9.18:1**, her boyutta yeterli.
+### 1.8 Ölçülmüş kontrast
 
-**Tehlike:** `#84233c` ile ev yeşilleri neredeyse aynı parlaklıkta
-(`--hero-green` ile **1.15:1**). Biri diğerinin üstüne **asla** yazılmaz; koyu
-zeminde `--accent-on-dark` kullanılır. `tests/contrast.test.ts` bunu tutar.
-
-Bordo **kıt** kullanılır. Birincil eylem rengi değildir; birincil eylem ev
-yeşilidir.
-
-**Tricolore çizgisi.** `.tricolore` sınıfı bir başlığın altına 42×3px'lik üç
-duraklı bir çizgi çizer: yeşil · kırık beyaz · bordo. Bayrağın kendisi değil -
-bir kahve sitesinde gerçek bayrak dil seçici gibi okunur; ince çizgi miras
-gibi okunur. Duraklar bu paletin kendi renkleri, bayrağın primerleri değil.
-
-### 1.6 Durum
-
-| Token      | Değer     | Anlam                         |
-| ---------- | --------- | ----------------------------- |
-| `--matcha` | `#1e7c4b` | Olumlu - stokta, açık, onaylı |
-| `--rose`   | `#c5435a` | Uyarı - az kaldı, hata        |
-
-`--rose` **durum** rengidir, marka değil. Vurgu bordo olunca ikisi hue olarak
-yakınlaştı (4.8°); onları ayıran şey ton değil **değer** ve **ağırlık**:
-`--rose` küçük metinde parlak bir alarm ("● Son 2 adet", "Sil"), bordo derin
-bir marka dolgusu. Aralarındaki 1.85:1 parlaklık farkını `contrast.test.ts`
-korur; kimse birini sessizce diğerine eşitleyemez.
-
-### 1.7 Ölçülmüş kontrast
-
-Aşağıdaki oranlar `globals.css`'ten okunup hesaplandı. WCAG AA: normal metin
-4.5:1, büyük metin (≥24px veya ≥19px bold) 3:1.
+WCAG AA: normal metin 4.5:1, büyük metin (≥24px veya ≥19px kalın) 3:1.
 
 | Mürekkep                   | Zemin                   | Oran     |
 | -------------------------- | ----------------------- | -------- |
-| `--ink` #201c17            | `--bg` #ffffff          | 16.94:1  |
-| `--ink-soft` #5f594e       | `--bg` #ffffff          | 6.94:1   |
-| `--ink-mute` #746b5d       | `--bg` #ffffff          | 5.25:1   |
-| `--ink-mute` #746b5d       | `--bg-warm` #f6f5f2     | 4.81:1   |
-| `--green` #1e7c4b          | `--bg` #ffffff          | 5.20:1   |
-| `--gold` #8a6526           | `--bg` #ffffff          | 5.29:1   |
-| `--rose` #c5435a           | `--bg` #ffffff          | 4.86:1   |
-| `--accent` #84233c         | `--bg-cream` #fbf9f4    | 8.73:1   |
-| `--accent-deep` #4a0f1e    | `--bg-cream` #fbf9f4    | 14.48:1  |
-| `--green-mint` #a9d3b5     | `--bg-espresso` #143d2b | 7.32:1   |
-| `--green-mist` #cfe3d5     | `--bg-espresso` #143d2b | 9.01:1   |
-| `--gold-soft` #e8d3a4      | `--bg-espresso` #143d2b | 8.25:1   |
-| `--accent-on-dark` #efb9c6 | `--bg-espresso` #143d2b | 7.17:1   |
-| `--accent-on-dark` #efb9c6 | `--hero-green` #1e5b3f  | 4.74:1   |
-| `--accent` #84233c         | `--bg-espresso` #143d2b | 1.32:1 ✗ |
-| `--accent` #84233c         | `--hero-green` #1e5b3f  | 1.15:1 ✗ |
+| `--ink` #211c18            | `--bg` #f7f3ed          | 15.27:1  |
+| `--ink-soft` #564d46       | `--bg` #f7f3ed          | 7.46:1   |
+| `--ink-mute` #675e56       | `--bg` #f7f3ed          | 5.74:1   |
+| `--green` #1d6d56          | `--bg` #f7f3ed          | 5.63:1   |
+| `--green` #1d6d56          | beyaz                   | 6.22:1   |
+| `--gold` #765923           | `--bg` #f7f3ed          | 5.89:1   |
+| `--accent` #9d2543         | `--bg` #f7f3ed          | 6.84:1   |
+| `--rose` #bb3b52           | `--bg` #f7f3ed          | 4.92:1   |
+| `--info` #3442b8           | `--bg` #f7f3ed          | 7.26:1   |
+| `--green-mist` #e6efe9     | `--bg-espresso` #1d6d56 | 5.30:1   |
+| `--accent-on-dark` #f6e9ec | `--bg-espresso` #1d6d56 | 5.27:1   |
+| `--accent` #9d2543         | `--bg-espresso` #1d6d56 | 1.21:1 ✗ |
 
 Dolgu üzerine metin:
 
-| Dolgu                   | Beyaz metin | `--ink` metin |
-| ----------------------- | ----------- | ------------- |
-| `--bg-espresso` #143d2b | 12.12:1     | 1.40:1        |
-| `--green` #1e7c4b       | 5.20:1      | 3.26:1        |
-| `--gold` #8a6526        | 5.29:1      | 3.20:1        |
-| `--accent` #84233c      | 9.18:1      | 1.85:1        |
-| `--accent-deep` #4a0f1e | 15.24:1     | 1.11:1        |
-| `--gold-soft` #e8d3a4   | 1.47:1 ✗    | 11.52:1       |
+| Dolgu                   | Metin           | Oran    |
+| ----------------------- | --------------- | ------- |
+| `--green` #1d6d56       | `#fbf8f4`       | 5.88:1  |
+| `--accent` #9d2543      | beyaz           | 7.56:1  |
+| `--accent-deep` #520f1f | beyaz           | 14.51:1 |
+| `--gold-soft` #e8c877   | `--ink` #211c18 | 10.42:1 |
+| `--info-fill` #4858d2   | beyaz           | 5.83:1  |
 
-### 1.8 HUES - ürün yüzeyleri
+### 1.9 Sahneler - ürünün arkasındaki ışık
 
-`src/components/laffogato/visuals.tsx` içindeki 12 yüzey ayrı bir sistemdir:
-menü ve mağaza kartlarının arkasındaki degradeler. Bir duvar dolusu kart bir
-gelato tezgâhı gibi okunsun diye **kasıtlı olarak birbirinden farklıdırlar**;
-`espresso` yüzeyinin koyu olması hata değil, o sistemin gereğidir. Her birinin
-`ink`'i kendi degradesine karşı AA'yı geçer ve `tests/contrast.test.ts` bunu
-hem tek tek hem de kümenin parlaklık yayılımı (>0.3) olarak kontrol eder.
+Uygulama her ürünü porselen üzerinde, **ürünün kendi renginden gelen** pastel
+bir haleyle çizer (DESIGN-GLASS §6: "ışık üründen gelir"). Site aynı 14
+sahneyi kullanır: `src/components/laffogato/scenes.ts` (`core` hale merkezi,
+`mid`, `edge` porseline eridiği yer, `floor` ürünün durduğu bant). Aile
+anahtarları API sözleşmesinin parçasıdır (`src/lib/backdrop/families.ts`).
+
+Eski 12 `HUES` adı (`visuals.tsx`) korunur ve birer sahneye çözülür. Hepsi
+açık olduğundan artık parlaklıkla değil **renkle** ayrışırlar;
+`tests/contrast.test.ts` renk çemberini dolaştıklarını ve her birinin
+mürekkebinin kendi zeminine karşı AA'yı geçtiğini tutar.
+
+### 1.10 Tricolore çizgisi
+
+Bölüm başlığının (`.section-title`) **altında** 40×4px'lik üç duraklı çizgi:
+yeşil · kırık beyaz · bordo. Uygulamanın `TricoloreRule`'u - bayrak değil,
+miras. Koyu zeminde `--tricolore-on-dark` (mint · krem · açık gül). Sayfa
+başlığı etiketinin (`.page-hero-kicker`) önünde kısa hâli durur.
 
 ---
 
 ## 2. Tipografi
 
-**Tek aile: Montserrat.** Serif yok, script yok, mono yok. Ayrımı
-ağırlık ve harf aralığı yapar. `next/font/google` ile self-host edilir
-(`--font-jakarta`), Türkçe için `latin-ext` alt kümesiyle.
+**İki ses, uygulamanınki** (lafmobil BRAND-IDENTITY §2):
 
-Tarihsel token'lar (`--serif`, `--serif-modern`, `--serif-display`,
-`--script`, `--mono`) korundu ve hepsi `--sans`'a çözülür - bu dosyadaki ve
-admin panelindeki yüzlerce çağrı yeri bozulmasın diye. **Yeni kodda
-`--sans` kullan.** `--mono` artık "monospace" değil, "etiket/rakam sesi"
-demektir: büyük harf, geniş aralık, tabular rakam.
+- **Poppins** (500/600/700) - _gösterim sesi_: başlık, ürün adı, fiyat,
+  düğme, çip. `--display`.
+- **Inter** (değişken) - _okuma sesi_: gövde, açıklama, etiket, form.
+  `--sans`.
 
-| Sınıf        | Boyut                          | Ağırlık | Satır | Aralık             |
-| ------------ | ------------------------------ | ------- | ----- | ------------------ |
-| `.h-display` | `clamp(34px, 5.2vw, 68px)`     | 800     | 1.02  | -0.04em            |
-| `.h1`        | `clamp(32px, 4.4vw, 60px)`     | 800     | 1.03  | -0.035em           |
-| `.h2`        | `clamp(28px, 3.6vw, 48px)`     | 800     | 1.05  | -0.035em           |
-| `.h3`        | `clamp(19px, 2vw, 24px)`       | 700     | 1.2   | -0.02em            |
-| `.lede`      | `clamp(15.5px, 1.1vw, 16.5px)` | 400     | 1.65  | -0.005em           |
-| gövde        | 16px                           | 400     | 1.55  | -                  |
-| `.eyebrow`   | 11px                           | 700     | -     | 0.22em, büyük harf |
+İkisi de `next/font/google` ile self-host edilir (`--font-display`,
+`--font-text`), Türkçe için `latin-ext` ile. Tarihsel token'lar (`--serif`,
+`--serif-modern`, `--serif-display`, `--script`) `--display`'e, `--mono`
+`--sans`'a çözülür.
 
-Ölçek Köşk yeniden tasarımında **yarıya indi**: eski display 120px'e kadar
-çıkıyordu, prototipin en büyüğü 68px. Sayfaların poster gibi değil kafe sitesi
-gibi okunmasını sağlayan şey bu.
+| Sınıf          | Aile    | Ağırlık | Not                              |
+| -------------- | ------- | ------- | -------------------------------- |
+| `.h-display`   | Poppins | 700     | Negatif harf aralığı (-0.035em)  |
+| `.h1`, `.h2`   | Poppins | 700     |                                  |
+| `.h3`          | Poppins | 600     |                                  |
+| `.lede`, gövde | Inter   | 400     | 16px / 1.55                      |
+| `.eyebrow`     | Inter   | 600     | **Cümle düzeni**, yeşil, 13.5px  |
+| `.label`       | Inter   | 600     | Form alanı başlığı, cümle düzeni |
 
-`.script` artık bir yazı tipi değil, **başlıktaki vurgu kelimesi**:
-`--accent` rengiyle, aynı ailede. Koyu zeminde `--accent-on-dark`'a döner.
+**Büyük harfli, geniş aralıklı etiket dili emekli.** Uygulama etiketleri
+cümle düzeninde yazar; site de öyle. `.eyebrow.caps` yalnız kart baskısında kalır
+(üyelik, seviye, damga kartı) - uygulamanın `eyebrow` rolü.
 
-Rakamlar site genelinde `font-variant-numeric: tabular-nums`. Fiyat, damga
-sayısı, saat ve telefon akan metnin içinde geçiyor; her birinde yardımcı
-sınıfa uzanmak yerine varsayılan bu.
+`.script` bir yazı tipi değil, **başlıktaki vurgu kelimesi**: Poppins,
+`--accent` rengi, koyu zeminde `--accent-on-dark`.
 
-**Tire:** Arayüz metninde uzun tire (U+2014) ve orta tire (U+2013) kullanılmaz, düz tire
-(`-`) kullanılır. Bu API'nin döndüğü etiketler için de geçerlidir
-(`hoursLabel`, `venue.hours[].value`) - uygulama bunları olduğu gibi bastığı
-için değişiklik sunucudan gider, uygulama güncellemesi gerekmez.
+Rakamlar: Inter'de `tabular-nums`. Poppins'in tabular rakamı yok (uygulamada
+da öyle); fiyat sütunları Inter'le hizalanır.
+
+**Tire:** Arayüz metninde uzun tire (U+2014) ve orta tire (U+2013) kullanılmaz,
+düz tire (`-`) kullanılır. Bu API'nin döndüğü etiketler için de geçerlidir.
 
 ---
 
@@ -240,104 +217,99 @@ için değişiklik sunucudan gider, uygulama güncellemesi gerekmez.
 --content-narrow 880px       uzun metin
 --gutter         clamp(16px, 4vw, 44px)
 
---r-sm   10px    küçük kontrol
---r-md   14px    girdi, saat kutusu, ikincil kart
---r-lg   22px    kart
---r-xl   28px    bölüm bloğu, hero çerçevesi
---r-btn  8px     buton (referans tasarım, 6 Eyl 2026)
---r-pill 999px   hap, rozet, sayaç, çip
+--r-sm     10px    küçük kontrol
+--r-md     14px    girdi, bilgi kutusu
+--r-panel  20px    panel, açılır menü
+--r-lg     22px    kart
+--r-card   28px    büyük kart, sheet (uygulamanın radius.card)
+--r-xl     28px    bölüm bloğu
+--r-btn    999px   düğme - kapsül
+--r-pill   999px   çip, rozet, sayaç
 ```
 
-Bölüm ritmi: `.section` = `clamp(44px, 6vw, 88px)` alt+üst. Anasayfa
-bloklarında `.home-section` = **yalnız üst** - üst üste iki `.section` iki
-boşluk bırakıyor ve aralar 176px'e çıkıyordu.
-
-Gölgeler nötr siyahla değil **ev yeşiliyle** (20,61,43) tonlanır; beyaz
-üzerindeki kartlar griye kaçmasın diye.
+**Gölgeler sıcak topraktır**: `#3B2A1E` (59,42,30), en fazla %12 - nötr siyah
+porselende griye kaçar. `--shadow-glass` kart, `--shadow-lift` seçili /
+basılabilir öğe, `--shadow-chrome` yüzen krom. Odak halkası `--ring`: 4px
+yeşil, %18.
 
 ---
 
 ## 4. Bileşen dili
 
-**Butonlar 8px yarıçaplı dikdörtgendir** (`--r-btn`), hap değil - referans
-tasarımın buton dili. Hap yarıçapı (`--r-pill`) çipte, rozette, sayaçta ve
-sepet balonunda kalır; oralar hap OLMALI, bu yüzden ikisi ayrı jeton.
+**Düğmeler kapsüldür** (`--r-btn: 999px`), 48px yüksek, Poppins 600. Basınca
+`scale(0.97)` (uygulamanın `motion.pressScale`), yay eğrisiyle geri döner.
 
-| Sınıf          | Dolgu               | Metin           | Ne zaman                         |
-| -------------- | ------------------- | --------------- | -------------------------------- |
-| `.btn-primary` | `--bg-espresso`     | beyaz           | Sayfadaki birincil eylem         |
-| `.btn-outline` | şeffaf, yeşil kenar | `--bg-espresso` | Yeşil dolgunun yanındaki ikincil |
-| `.btn-ghost`   | şeffaf, ince kenar  | `--ink`         | Üçüncül                          |
-| `.btn-light`   | beyaz               | `--bg-espresso` | Koyu blok içinde                 |
-| `.btn-gold`    | `--gold-soft`       | `--gold-ink`    | Ödül: kupon, sipariş onayı       |
+| Sınıf             | Dolgu             | Metin        | Ne zaman                           |
+| ----------------- | ----------------- | ------------ | ---------------------------------- |
+| `.btn-primary`    | `--green`         | `#fbf8f4`    | Sayfadaki birincil eylem           |
+| `.btn-ink`        | `--ink`           | `#fbf8f4`    | Sepet / ödeme: ticari son adım     |
+| `.btn-ghost`      | cam               | `--ink`      | İkincil                            |
+| `.btn-outline`    | cam, yeşil etiket | `--green`    | Yeşilin yanındaki ikincil          |
+| `.btn-gold`       | `--gold-soft`     | `--gold-ink` | Ödül: kupon, abonelik              |
+| `.btn-light`      | beyaz             | `--green`    | Koyu blok içinde                   |
+| `.btn-glass-dark` | beyaz %14 cam     | krem         | Kadife / yeşil blok içinde ikincil |
 
-**Kartlar** `1px solid var(--ink-line)` + `--r-lg`, dolgu değil kenarlıkla
-ayrılır. Hover'da kenarlık `--bg-espresso`'ya döner.
+**Seçili durum** (çip, kategori, gün): opak beyaz + `--rim` + `--shadow-lift`
 
-**Rozetler** 10px/700, `0.16em` aralık, hap. `--bg-espresso` (İMZA) veya
-`--accent-deep` (YENİ - beyaz metin AA'yı `--accent` üzerinde geçmediği için
-koyu adım).
+- uygulamanın "seçilen öne çıkar" dili. Birincil seçim (ör. saat) yeşil dolgu.
 
-**Etiket (eyebrow)** her bölüm başlığının üstünde: 11px/700, `0.22em`, büyük
-harf. Beyaz zeminde `--green`, koyu yeşilde `--green-mint`, alan başlığı
-olarak `.muted` ile `--ink-mute`.
+**Kartlar** cam: `--glass` + 1px `--ink-line` + `--rim` + `--shadow-glass`,
+`--r-lg` ya da `--r-card`. Kenarlıkla değil ışıkla ayrılır.
 
-**Başlık (header)** iki katlıdır ve `position: sticky`: koyu yeşil künye
-şeridi (saatler, gel-al sözü, telefon, uygulama bağlantısı) üstte, beyaz nav
-altta. Sabit/şeffaf değil - bu yüzden sayfalar kendi üst boşluklarıyla başlar.
+**Gruplu liste** (saatler, SSS, hesap menüsü, sepet): iOS "inset grouped" -
+tek beyaz kap, satırlar arası hairline.
 
----
+**Başlık (header)**: tek kat, yapışkan cam (`--glass-chrome` + blur).
+Kaydırınca hairline ve gölge belirir. 760px altında uygulamanın **sekme
+çubuğu** yüzen cam kapsül olarak altta durur (Anasayfa, Menü, Mağaza, Sepet,
+Hesabım); menü sayfası iOS ayarlar listesi gibi gruplu bir sheet'tir.
+
+**Altbilgi**: uygulama ikonunun kendisi - `#23876a` → `#1d6d56` → `#0c3b2d`
+radyal yeşil, krem L'Af, pirinç çekirdek. Üstte uygulama kartı ve bülten.
 
 ### 4.1 Sayfa mobilyası
 
-Referans tasarımın dili üç paylaşılan parçada toplanır. Yeni bir sayfa bunları
-kullanır; kendi kopyasını çıkarmaz - bundan önce altı sayfada altı farklı
-başlık ölçüsü vardı.
+| Parça                          | Nerede                   | Ne yapar                                                     |
+| ------------------------------ | ------------------------ | ------------------------------------------------------------ |
+| `<PageHero>` (`page-hero.tsx`) | Anasayfa dışı her sayfa  | Porselen panel, köşede sayfanın sahne ışığı, L'Af filigranı. |
+| `.section-title`               | Sayfa içi blok başlığı   | Altında tricolore çizgisi olan h2.                           |
+| `.band-cream`                  | Uzun sayfalarda ritim    | Bölümü açık şeride alır.                                     |
+| `.seo-block`                   | Sayfa sonu SSS           | Gruplu liste SSS + rehber çipleri.                           |
+| `.auth-page` / `.auth-card`    | `/uye/*` giriş sayfaları | Porselen üzerinde tek cam kart, başında L'Af.                |
+| `.nf-*`                        | 404 ve hata sınırı       | Harflerin içinden kahve yükselen L'Af (uygulamanın açılışı). |
 
-| Parça                          | Nerede                       | Ne yapar                                                             |
-| ------------------------------ | ---------------------------- | -------------------------------------------------------------------- |
-| `<PageHero>` (`page-hero.tsx`) | Anasayfa dışındaki her sayfa | Krem şerit, cocoa display başlık, sağda yeşil disk.                  |
-| `.section-title`               | Sayfa içi blok başlığı       | Üstünde tricolore çizgisi olan h2.                                   |
-| `.band-cream`                  | Uzun sayfalarda ritim        | Bölümü krem zemine alır; sayfa kâğıt → krem → kâğıt diye nefes alır. |
-| `.promo-banner`                | Anasayfa, `/kampanyalar`     | Koyu zemin, üstünde yumuşak dalga, sağda tek beyaz hap.              |
-| `.campaign-card`               | `/kampanyalar`               | 16:9 görsel + tür etiketi + başlık; panelin `app-content` yazısı.    |
-
-`<HomeHeroSlider>` bunların büyük hâli: aynı krem şerit, aynı cocoa başlık,
-ama diskin üstünde kesilmiş bir ürün fotoğrafı duruyor. Disk **elips**tir ve
-kupa onun sol altından taşar; iç içe geçmiş iki merkez, "yuvarlak çerçeveli
-fotoğraf" gibi okunur ve tasarımı öldürür.
-
-`<PageHero>`'in `title`'ı ya iki satırlık bir demet (satır sonunu dizinin
-kendisi belirler) ya da tek bir dize alır. İkisi birden, çünkü demet iki zıt
-yönde yanlıştı: başlığı veriden gelen sayfalar (bir rehber yazısının adı, bir
-sözleşmenin başlığı) elle bölünemiyordu ve bileşeni geri çeviriyordu; demeti
-kabul eden sayfalar ise sabit bir demeti her alt rotaya kopyalıyordu - sekiz
-menü kategorisi URL'inin hepsi aynı h1'i basıyordu.
-
-**Vurgu kelimesi zemine göre renk alır.** `.script` artık
-`var(--script-ink, var(--accent))` okur; koyu zemin `--script-ink`'i
-`--accent-on-dark` yapar. Koyu bir blok yazarken `data-ground="dark"` eklemek
-yeterli. Önceden bu, koyu seçicilerin **listesiydi** ve liste eskimişti: iki
-satır içi koyu bölüm ile `.guide-cta` listede yoktu, bordoya geçişte o üç
-vurgu kelimesi görünmez oldu ve test yeşil kaldı. Liste bakım ister, değişken
-istemez.
-
-Disk ve fotoğraf tek bir `--disc` değişkeninden **piksel** olarak ölçülür.
-Yüzdeyle denendi ve sessizce başarısız oldu: esnetilmiş bir grid öğesine karşı
-yüzde yükseklik çözülmez, fotoğraf kendi 581×942 boyutuna düşer ve diski
-tamamen yutar.
+`<PageHero scene="…">` her sayfaya kendi ışığını verir: menü latte, mağaza
+karamel, kampanyalar narenciye, karaoke böğürtlen, hikaye kadife, ziyaret ev
+yeşili, hukuk porselen, rehber matcha.
 
 ---
 
-## 5. Logo
+## 5. Logo - L'Af
 
-Tek kaynak: `public/logo-mark.png`, CSS maskesi olarak
-(`.brand-mark`, `background-color: currentColor`). Tek varlık her zemine
-boyanır - navda yeşil diskin içinde beyaz, altbilgide koyu yeşil üzerinde
-beyaz. Renkli PNG kopyası tutulmaz.
+Operatör, 25 Eyl 2026: _"logomuz L'Af"_. İşaret uygulama ikonunun
+harfleridir: **L + kahve çekirdeği kesme işareti + A + f**. Vektör
+`public/brand/`:
 
-Nav kilidi: 48px yeşil disk + 22px/800 "L'Affogato" + 9px/600 `0.3em`
-"caffè italiano · 1987". 900px altında yazı düşer, disk kalır.
+- `laf-mark.svg` - tek parça (maske, filigran, 404)
+- `laf-letters.svg` + `laf-bean.svg` - iki renkli kullanım için ayrı katmanlar
+
+`<LafMark tone="…">` (`brand-mark.tsx`) iki CSS maskesiyle boyar; tek dosya,
+her zemin:
+
+| Ton     | Harfler  | Çekirdek | Nerede                         |
+| ------- | -------- | -------- | ------------------------------ |
+| `duo`   | mürekkep | pirinç   | Başlık, giriş kartları, 404    |
+| `ink`   | mürekkep | mürekkep | Sessiz kullanım                |
+| `green` | yeşil    | pirinç   | Nötr zeminde marka anı         |
+| `cream` | krem     | pirinç   | Yeşil bloklar - uygulama ikonu |
+
+Uygulama ikonu (`public/brand/app-icon-*.png`, favicon, apple-icon): yeşil
+zemin, krem harfler, pirinç çekirdek; maskelenebilir kesim işareti %80
+dairenin içinde tutar. `global-error.tsx` stil dosyası yüklenmemiş olabileceği
+için işareti satır içi SVG yolu olarak basar (`laf-paths.ts`).
+
+İşaret çarpıtılmaz, döndürülmez, kontur eklenmez; çevresinde en az çekirdek
+genişliği kadar boşluk bırakılır.
 
 ---
 
@@ -355,7 +327,12 @@ Kullanım: hero slayt yarısı `object-fit: cover`, hikaye mozaiği
 
 ## 7. Hareket
 
-- Geçişler `--ease-out` = `cubic-bezier(0.2, 0.7, 0.2, 1)`.
+- Geçişler `--ease-out` = `cubic-bezier(0.2, 0.7, 0.2, 1)`; yerine oturan
+  her şey (sheet, açılır panel) `--ease-spring` =
+  `cubic-bezier(0.32, 0.72, 0, 1)`.
+- Basma: `scale(var(--press-scale))` = 0.97, 120 ms.
+- 404'te kahve harflerin içinden bir kez yükselir, buhar bir kez çıkar; her
+  hareket beş saniyede biter (WCAG 2.2.2).
 - Hero slaytı 7 sn'de döner; bir kontrole dokunulduğunda **kalıcı olarak**
   durur, imleç/odak üzerindeyken ve sekme arka plandayken duraklar,
   `prefers-reduced-motion` altında hiç başlamaz.
@@ -372,9 +349,30 @@ Kullanım: hero slayt yarısı `object-fit: cover`, hikaye mozaiği
 2. `npm test` çalıştır. `tests/contrast.test.ts` okunabilirliği,
    `tests/brand-theme.test.ts` paletin kaymasını tutar; ikisi de bilerek
    katıdır çünkü bu palet üç kez kaydı.
-3. `globals.css` dışındaki dört yüzey CSS değişkeni çözemez ve paleti harfi
-   harfine yazar - değiştirirsen dördünü de güncelle:
-   `src/app/manifest.ts` (PWA açılışı), `src/app/layout.tsx` (`themeColor`),
-   `src/app/opengraph-image.tsx` (bağlantı önizlemesi),
-   `src/lib/email/send.ts` (işlemsel e-posta).
-4. Bu belgeyi de güncelle.
+3. `globals.css` dışındaki yüzeyler CSS değişkeni çözemez ve paleti harfi
+   harfine yazar - değiştirirsen hepsini güncelle: `src/app/manifest.ts`
+   (PWA açılışı), `src/app/layout.tsx` (`themeColor`), `public/browserconfig.xml`,
+   `src/app/global-error.tsx`, `src/app/opengraph-image.tsx` (bağlantı
+   önizlemesi), `src/lib/email/templates/*.html` (işlemsel e-posta),
+   `src/app/odeme/paynkolay/route.ts` (ödeme köprüsü).
+4. Kaynak uygulamadır: bir değeri değiştirmeden önce `lafmobil/src/theme/tokens.ts`
+   ile karşılaştır; ayrışma operatör kararı olmadan yapılmaz.
+5. Bu belgeyi de güncelle.
+
+---
+
+## 9. Geçmiş
+
+| Tarih       | Karar                                                                                                                                                             |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2 Eyl 2026  | Site paleti uygulamanınkine eşitlendi.                                                                                                                            |
+| 5 Eyl 2026  | Köşk yeniden tasarımı: beyaz zemin, ev yeşili `#143d2b`.                                                                                                          |
+| 6 Eyl 2026  | Referans tasarım: Montserrat, 8px dikdörtgen düğme.                                                                                                               |
+| 7 Eyl 2026  | Tricolore: vurgu bordo `#84233c` / `#4a0f1e` / `#f6e9ec`.                                                                                                         |
+| 23 Eyl 2026 | Uygulama kendi paletine geçti (karar 149); site almadı.                                                                                                           |
+| 25 Eyl 2026 | **Site uygulamayı izler** (karar 31, seçenek c): porselen `#f7f3ed`, yeşil `#1d6d56`, bordo `#9d2543`, pirinç `#e8c877`, Poppins + Inter, cam, kapsül. Logo L'Af. |
+
+Köşk paletinin geri kalanı (e-posta şablonları, bağlantı önizlemesi,
+PayNkolay köprüsü, `scripts/gen-icons.mjs` ikonları) arka yüz dosyalarıdır ve
+ayrı bir PR'da taşınır; `tests/brand-theme.test.ts` o yüzeyleri şimdilik
+`#143d2b` üzerinde tutar.

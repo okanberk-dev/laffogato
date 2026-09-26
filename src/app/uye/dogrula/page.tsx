@@ -18,76 +18,29 @@ export default async function VerifyPage({ searchParams }: PageProps) {
   const ok = result.ok;
 
   return (
-    <main
-      style={{
-        minHeight: "70vh",
-        display: "grid",
-        placeItems: "center",
-        padding: "48px 20px",
-        background: "var(--bg, #f9f8f7)",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 460,
-          textAlign: "center",
-          background: "#fff",
-          borderRadius: 18,
-          padding: "40px 32px",
-          border: "1px solid var(--ink-line)",
-        }}
-      >
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            margin: "0 auto 20px",
-            borderRadius: "50%",
-            display: "grid",
-            placeItems: "center",
-            background: ok ? "#dfeae2" : "#f6e9ec",
-            color: ok ? "var(--matcha)" : "#bb251b",
-            fontSize: 26,
-          }}
+    <main className="auth-page">
+      <div className="auth-card auth-card--center">
+        <span
+          className={`auth-badge ${ok ? "auth-badge--ok" : "auth-badge--fail"}`}
+          aria-hidden="true"
         >
           {ok ? "✓" : "!"}
-        </div>
-        <h1
-          style={{
-            fontFamily: "var(--serif)",
-            fontStyle: "normal",
-            fontSize: 28,
-            marginBottom: 12,
-          }}
-        >
+        </span>
+        <h1 className="auth-title">
           {ok ? "E-postan doğrulandı" : "Doğrulanamadı"}
         </h1>
-        <p
-          style={{
-            color: "var(--ink-soft)",
-            lineHeight: 1.6,
-            fontSize: 15,
-            marginBottom: 28,
-          }}
-        >
+        <p className="auth-lede">
           {ok
             ? "Hesabın artık aktif. Giriş yapıp siparişini tamamlayabilirsin."
             : ("error" in result ? result.error : "Bağlantı geçersiz.") +
               " Hesabına giriş yapıp yeni bir doğrulama bağlantısı isteyebilirsin."}
         </p>
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            justifyContent: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <Link href="/uye/giris" className="btn btn-primary btn-sm">
+        <div className="auth-actions">
+          <Link href="/uye/giris" className="btn btn-primary">
             Giriş yap
           </Link>
           {ok && (
-            <Link href="/odeme" className="btn btn-ghost btn-sm">
+            <Link href="/odeme" className="btn btn-ghost">
               Ödemeye dön
             </Link>
           )}

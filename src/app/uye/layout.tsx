@@ -22,7 +22,7 @@ export default async function UyeLayout({
         address: settings.address,
       }}
     >
-      <div style={{ background: "var(--bg-warm)" }}>{children}</div>
+      {children}
     </SiteChrome>
   );
 }
