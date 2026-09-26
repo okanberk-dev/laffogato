@@ -144,16 +144,19 @@ export function CookieConsent() {
             >
               Ayarla
             </button>
+            {/* Refusing is exactly as easy and as prominent as accepting -
+                the same capsule, side by side (KVKK Çerez Uygulamaları
+                Rehberi). The accept used to be the only filled button. */}
             <button
               type="button"
-              className="btn btn-ghost btn-sm"
+              className="btn btn-ink btn-sm"
               onClick={() => commit(CONSENT_DENIED)}
             >
               Yalnızca zorunlu
             </button>
             <button
               type="button"
-              className="btn btn-gold btn-sm"
+              className="btn btn-ink btn-sm"
               onClick={() => commit(ALL_GRANTED)}
             >
               Tümünü kabul et
@@ -224,7 +227,7 @@ export function CookieConsent() {
             <div className="cookie-modal-actions">
               <button
                 type="button"
-                className="btn btn-ghost btn-sm"
+                className="btn btn-ink btn-sm"
                 onClick={() => commit(CONSENT_DENIED)}
               >
                 Tümünü reddet
@@ -238,7 +241,7 @@ export function CookieConsent() {
               </button>
               <button
                 type="button"
-                className="btn btn-gold btn-sm"
+                className="btn btn-ink btn-sm"
                 onClick={() => commit(ALL_GRANTED)}
               >
                 Tümünü kabul et

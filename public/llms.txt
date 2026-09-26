@@ -39,6 +39,9 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 - [Mağaza](/magaza): Çekirdek kahve, edible cup, hediye seti, ekipman, giyim
 - [Hikaye](/hikayemiz): 1897 Bologna'dan 2026 İstanbul'a markanın hikayesi
 - [Ziyaret](/ziyaret): Tuzla lokasyonu, ulaşım, gömülü harita (rezervasyon telefonla)
+- [Kampanyalar](/kampanyalar): Sezon kampanyaları, iş birlikleri ve etkinlikler; damga kartı (uygulamadan verilen her kafe siparişi bir damga) ve arkadaş davet ödülü
+- [Karaoke](/karaoke): Köşkün üst katındaki özel karaoke odası; sekiz kişiye kadar, gün ve saat seçilerek web'den ya da uygulamadan rezerve edilir
+- [Rehber](/rehber): Affogato, espresso çeşitleri, matcha ve yenilebilir fincan üzerine yazılar
 
 ## Menü Özeti
 

@@ -39,6 +39,11 @@ export default async function OrderDetailPage({
 
   const isCancelled =
     order.status === "cancelled" || order.status === "refunded";
+  // Only an https page is linked: the URL comes from the carrier's webhook,
+  // and a javascript: or plain-http value is not something to hand a member.
+  const trackingHref = /^https:\/\//i.test(order.trackingUrl?.trim() ?? "")
+    ? order.trackingUrl!.trim()
+    : null;
 
   // Consent evidence exists only for orders placed after the checkout
   // confirmation shipped; older orders simply show the document links.
@@ -175,6 +180,20 @@ export default async function OrderDetailPage({
               k="Kargo takip"
               v={`${order.carrier ? `${order.carrier} · ` : ""}${order.trackingNumber}`}
             />
+          )}
+          {/* The carrier's own tracking page (Geliver writes it). The number
+              alone left the member to find the carrier's site and paste it. */}
+          {trackingHref && (
+            <div>
+              <a
+                href={trackingHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline btn-sm"
+              >
+                Kargoyu takip et ↗
+              </a>
+            </div>
           )}
         </div>
       </AccountCard>

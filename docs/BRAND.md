@@ -372,7 +372,8 @@ Kullanım: hero slayt yarısı `object-fit: cover`, hikaye mozaiği
 | 23 Eyl 2026 | Uygulama kendi paletine geçti (karar 149); site almadı.                                                                                                           |
 | 25 Eyl 2026 | **Site uygulamayı izler** (karar 31, seçenek c): porselen `#f7f3ed`, yeşil `#1d6d56`, bordo `#9d2543`, pirinç `#e8c877`, Poppins + Inter, cam, kapsül. Logo L'Af. |
 
-Köşk paletinin geri kalanı (e-posta şablonları, bağlantı önizlemesi,
-PayNkolay köprüsü, `scripts/gen-icons.mjs` ikonları) arka yüz dosyalarıdır ve
-ayrı bir PR'da taşınır; `tests/brand-theme.test.ts` o yüzeyleri şimdilik
-`#143d2b` üzerinde tutar.
+Bağlantı önizlemesi (`opengraph-image.tsx`) de uygulama ikonuna taşındı:
+yeşil zeminde krem L'Af, pirinç çekirdek. Köşk paletinin geri kalanı
+(e-posta şablonları, PayNkolay köprüsü, `scripts/gen-icons.mjs` ikonları) arka
+yüz dosyalarıdır ve ayrı bir PR'da taşınır; `tests/brand-theme.test.ts` o
+yüzeyleri şimdilik `#143d2b` üzerinde tutar.

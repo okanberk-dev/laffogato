@@ -81,7 +81,9 @@ export default async function GuidePage({
           <p className="lede">{guide.excerpt}</p>
           <div className="guide-meta">
             <span className="eyebrow">Son güncelleme</span>
-            <span>{guide.updatedAt}</span>
+            <time dateTime={guide.updatedAt}>
+              {formatGuideDate(guide.updatedAt)}
+            </time>
             <span aria-hidden>·</span>
             <span>{guide.readingMinutes} dakikalık okuma</span>
           </div>
@@ -193,4 +195,19 @@ export default async function GuidePage({
       </div>
     </main>
   );
+}
+
+/**
+ * "2026-09-01" → "1 Eylül 2026". A calendar date, not an instant: it is read
+ * as UTC midnight and printed in UTC, so no zone can move it a day.
+ */
+function formatGuideDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])));
 }
