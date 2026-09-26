@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 
+import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
+import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
+
 import type { Product } from "./data";
 import { ProductCard, toCartItem, type CartItem } from "./ui";
 import { ProductSurface } from "./visuals";
-import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
 
 const CART_STORAGE_KEY = "laffogato_cart_v1";
 
@@ -87,24 +89,28 @@ export function ProductDetail({
       ? Math.round(((compareAt - unitPrice) / compareAt) * 100)
       : 0;
 
-  const addToCart = (goCheckout: boolean) => {
-    if (outOfStock) return;
-    const item = toCartItem(p, selectedVariant);
+  /** Adds `qty` of an item to the shared localStorage cart. */
+  const pushToCart = (item: CartItem, count: number) => {
     const key = cartKey(item);
     const cart = readCart();
     const existing = cart.find((c) => cartKey(c) === key);
     if (existing) {
       const cap = existing.maxStock ?? item.maxStock ?? 99;
-      existing.qty = Math.min(cap, (existing.qty || 1) + qty);
+      existing.qty = Math.min(cap, (existing.qty || 1) + count);
       Object.assign(existing, { ...item, qty: existing.qty });
     } else {
-      cart.push({ ...item, qty });
+      cart.push({ ...item, qty: count });
     }
     writeCart(cart);
     // Notify other components in this tab (storage event only fires cross-tab).
     window.dispatchEvent(
       new StorageEvent("storage", { key: CART_STORAGE_KEY }),
     );
+  };
+
+  const addToCart = (goCheckout: boolean) => {
+    if (outOfStock) return;
+    pushToCart(toCartItem(p, selectedVariant), qty);
     if (goCheckout) {
       router.push("/odeme");
     } else {
@@ -113,6 +119,17 @@ export function ProductDetail({
     }
   };
 
+  // The related row used to render cards with an add button and a quick
+  // look that did nothing; now "+" adds one to the same cart, and the card
+  // itself opens that product's page.
+  const [relatedNote, setRelatedNote] = useState("");
+  const addRelated = (item: CartItem) => {
+    pushToCart(item, 1);
+    setRelatedNote(`${shortProductName(item.name)} sepete eklendi.`);
+  };
+
+  const category = SHOP_CATEGORY_ROUTES.find((c) => c.productCat === p.cat);
+
   return (
     <main className="pdp">
       <div className="wrap-wide">
@@ -120,8 +137,16 @@ export function ProductDetail({
           <Link href="/">Ana Sayfa</Link>
           <span aria-hidden>/</span>
           <Link href="/magaza">Mağaza</Link>
+          {category && (
+            <>
+              <span aria-hidden>/</span>
+              <Link href={`/magaza/${category.slug}`}>
+                {category.breadcrumbLabel}
+              </Link>
+            </>
+          )}
           <span aria-hidden>/</span>
-          <span>{shortProductName(p.name)}</span>
+          <span aria-current="page">{shortProductName(p.name)}</span>
         </nav>
 
         <div className="pdp-grid">
@@ -173,20 +198,7 @@ export function ProductDetail({
 
           {/* Buy box */}
           <div className="pdp-info">
-            <div
-              style={{ display: "inline-flex", alignItems: "center", gap: 12 }}
-            >
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 28,
-                  height: 1,
-                  background:
-                    "linear-gradient(90deg, var(--gold), transparent)",
-                }}
-              />
-              <span className="eyebrow">{p.tag}</span>
-            </div>
+            <p className="page-hero-kicker">{p.tag}</p>
             <h1 className="pdp-title">{p.name}</h1>
 
             <div className="pdp-price-row">
@@ -297,18 +309,10 @@ export function ProductDetail({
 
             {/* Trust badges */}
             <ul className="pdp-trust">
-              <li>
-                <span aria-hidden>↗</span> İstanbul içi aynı gün teslimat
-              </li>
-              <li>
-                <span aria-hidden>✦</span> 500₺ üzeri ücretsiz kargo
-              </li>
-              <li>
-                <span aria-hidden>↻</span> 14 gün koşulsuz iade
-              </li>
-              <li>
-                <span aria-hidden>🔒</span> 256-bit SSL · 3D Secure ödeme
-              </li>
+              <li>İstanbul içi aynı gün teslimat</li>
+              <li>500₺ üzeri ücretsiz kargo</li>
+              <li>14 gün koşulsuz iade</li>
+              <li>3D Secure ödeme; kart bilgin bizde saklanmaz</li>
             </ul>
 
             {/* Accordions */}
@@ -316,22 +320,30 @@ export function ProductDetail({
               <Accordion title="Ürün detayları" defaultOpen>
                 <DetailGrid product={p} />
               </Accordion>
-              <Accordion title="Teslimat & kargo">
+              <Accordion title="Teslimat ve kargo">
                 <p>
                   İstanbul içi siparişler aynı gün, Türkiye geneli 2-3 iş günü
                   içinde teslim edilir. 500₺ ve üzeri siparişlerde kargo
-                  ücretsizdir. Sipariş durumunu üyelik hesabından takip
-                  edebilirsin.
+                  ücretsizdir. Sipariş durumunu{" "}
+                  <Link href="/uye/hesap/siparislerim">
+                    üyelik hesabından
+                  </Link>{" "}
+                  takip edebilirsin. Ayrıntılar:{" "}
+                  <Link href="/hukuk/teslimat-ve-kargo">
+                    Teslimat ve Kargo
+                  </Link>
+                  .
                 </p>
               </Accordion>
-              <Accordion title="İade & değişim">
+              <Accordion title="İade ve değişim">
                 <p>
                   Açılmamış ürünleri teslim aldıktan sonra 14 gün içinde
                   ücretsiz iade edebilirsin. İade talebin için{" "}
                   <a href="mailto:info@nextgenlab.com.tr">
                     info@nextgenlab.com.tr
                   </a>{" "}
-                  adresine yazman yeterli.
+                  adresine yazman yeterli. Haklarının tamamı:{" "}
+                  <Link href="/hukuk/iade-ve-cayma">İptal, İade ve Cayma</Link>.
                 </p>
               </Accordion>
             </div>
@@ -341,39 +353,30 @@ export function ProductDetail({
         {/* Related */}
         {related.length > 0 && (
           <section className="pdp-related">
-            <div className="section-head" style={{ marginBottom: 30 }}>
+            <div className="section-head" style={{ marginBottom: 26 }}>
               <div>
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 12,
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 28,
-                      height: 1,
-                      background:
-                        "linear-gradient(90deg, var(--gold), transparent)",
-                    }}
-                  />
-                  <span className="eyebrow">Birlikte iyi gider</span>
-                </div>
-                <h2 className="h2" style={{ marginTop: 12 }}>
+                <div className="eyebrow">Birlikte iyi gider</div>
+                <h2 className="h2" style={{ marginTop: 10 }}>
                   Bunları da sevebilirsin
                 </h2>
               </div>
               <Link href="/magaza" className="btn btn-ghost btn-sm">
-                Tüm mağaza →
+                Tüm mağaza
               </Link>
             </div>
             <div className="shop-grid-3">
               {related.map((rp, i) => (
-                <ProductCard key={rp.id ?? rp.name} product={rp} idx={i} />
+                <ProductCard
+                  key={rp.id ?? rp.name}
+                  product={rp}
+                  idx={i}
+                  addToCart={addRelated}
+                />
               ))}
             </div>
+            <p className="sr-only" role="status" aria-live="polite">
+              {relatedNote}
+            </p>
           </section>
         )}
       </div>

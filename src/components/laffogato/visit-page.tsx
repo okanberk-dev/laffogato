@@ -53,6 +53,7 @@ export function PageVisit({ visit, settings }: PageProps) {
           dark green facts block, rather than a full-bleed drawn scene under a
           132px headline. */}
       <PageHero
+        scene="house"
         eyebrow="Ziyaret · Tuzla, İstanbul"
         title={["200 yıllık köşkte,", "gece 02:00'e kadar"]}
         lede="Postane Mahallesi'nde restore bir Rum köşkü: 24 koltuk, bahçe terası ve üst katta özel karaoke odası. Marmaray Tuzla'ya 6 dakika, ücretsiz vale."

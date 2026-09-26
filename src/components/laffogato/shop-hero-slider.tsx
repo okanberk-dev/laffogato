@@ -176,7 +176,7 @@ function Slide({
   const isLight = slide.textTheme === "light";
   const overlay = slide.imageUrl
     ? isLight
-      ? "linear-gradient(to right, rgba(20,61,43,0.45), rgba(20,61,43,0.25) 60%, rgba(20,61,43,0.55))"
+      ? "linear-gradient(to right, rgba(12,59,45,0.5), rgba(12,59,45,0.22) 60%, rgba(12,59,45,0.5))"
       : "linear-gradient(to right, rgba(255,255,255,0.35), rgba(255,255,255,0.1) 60%, rgba(255,255,255,0.35))"
     : isLight
       ? "linear-gradient(135deg, var(--brand) 0%, var(--bg-espresso-deep) 100%)"
@@ -204,7 +204,7 @@ function Slide({
       }}
     >
       <div className="shop-hero-content">
-        <span className="eyebrow shop-hero-eyebrow">III · La bottega</span>
+        <span className="eyebrow shop-hero-eyebrow">La bottega</span>
         <h2 className="shop-hero-title">
           {lead || slide.title || <span style={{ opacity: 0.5 }}>Başlık</span>}
           {accent && (

@@ -10,32 +10,45 @@ import {
   SnackPlate,
   TeaGlass,
 } from "./menu-visuals";
+import { SCENES, sceneBackground, type SceneKey } from "./scenes";
 
 /* ─────────────────────────────────────────────────────────────
-   Photo placeholder - refined gradient surface with subtle grain
+   Product surface - the app's scene light behind a product
    ───────────────────────────────────────────────────────────── */
 
-// Aggressive minimal: the palette is neutralized to a warm grey-beige tonal set
-// (light / medium / dark). Product + menu surfaces no longer carry hue colour;
-// differentiation comes from value, not saturation.
-export const HUES: Record<string, { from: string; to: string; ink: string }> = {
-  // Twelve genuinely different surfaces, not twelve names for beige: a wall of
-  // product cards should read like a gelato counter. Each ink is checked
-  // against the darker end of its own gradient and clears WCAG AA (worst pair
-  // 6.18:1), so text stays legible wherever the gradient lands behind it.
-  cream: { from: "#F6EEDF", to: "#E7DAC2", ink: "#463C31" },
-  warm: { from: "#F7EADB", to: "#EFD9BC", ink: "#473727" },
-  stone: { from: "#EAE5DB", to: "#D2CABB", ink: "#38322A" },
-  caramel: { from: "#F2DBB6", to: "#DEB77F", ink: "#4A3416" },
-  espresso: { from: "#3A2E25", to: "#1C1712", ink: "#EDE4D3" },
-  matcha: { from: "#DDE9C9", to: "#B7CF94", ink: "#2C3A19" },
-  pistachio: { from: "#E5EED3", to: "#C7DBA7", ink: "#30401D" },
-  rose: { from: "#F7DDDF", to: "#EABAC0", ink: "#5A2932" },
-  bougainvillea: { from: "#F4D4E3", to: "#E3A7C5", ink: "#582144" },
-  gold: { from: "#F7E5B9", to: "#E8C978", ink: "#4A3712" },
-  sky: { from: "#DAE8EF", to: "#B4CFDD", ink: "#22404E" },
-  dawn: { from: "#FCE4D3", to: "#F3C5A5", ink: "#59321F" },
+/**
+ * Twelve surfaces, one per `hue` key a menu item or product carries. Since
+ * the site took the app's palette (25 Eyl 2026) each is that family's scene
+ * light (scenes.ts): the product stands in a pastel halo of its own colour on
+ * porcelain, as it does in the app, instead of on a flat tinted card - and
+ * the espresso family is a warm glow, no longer a dark brown block.
+ *
+ * `from` / `to` are the light's edge and floor - what text on the surface
+ * actually sits on - and every ink is the espresso ink, which clears AA on
+ * both (tests/contrast.test.ts).
+ */
+const HUE_SCENE: Record<string, SceneKey> = {
+  cream: "latte",
+  warm: "cocoa",
+  stone: "porcelain",
+  caramel: "caramel",
+  espresso: "espresso",
+  matcha: "matcha",
+  pistachio: "pistachio",
+  rose: "strawberry",
+  bougainvillea: "berry",
+  gold: "citrus",
+  sky: "ice",
+  dawn: "spice",
 };
+
+export const HUES: Record<string, { from: string; to: string; ink: string }> =
+  Object.fromEntries(
+    Object.entries(HUE_SCENE).map(([hue, key]) => [
+      hue,
+      { from: SCENES[key].edge, to: SCENES[key].floor, ink: "#211c18" },
+    ]),
+  );
 
 interface PhotoSurfaceProps {
   hue?: string;
@@ -52,7 +65,7 @@ export function PhotoSurface({
   dotPos = "br",
   vignette = false,
 }: PhotoSurfaceProps) {
-  const h = HUES[hue] || HUES.warm;
+  const scene = HUE_SCENE[hue] ?? "latte";
   const posStyle: React.CSSProperties = {};
   if (dotPos.includes("t")) posStyle.top = 16;
   else posStyle.bottom = 16;
@@ -61,30 +74,16 @@ export function PhotoSurface({
 
   return (
     <div
+      className="scene-surface"
       style={{
         width: "100%",
         height: "100%",
         position: "relative",
-        // A diagonal wash between the hue's two stops rather than a flat fill:
-        // the surface reads as lit from the top-left, which is what makes the
-        // card look like an object instead of a swatch.
-        background: `linear-gradient(148deg, ${h.from} 0%, ${h.from} 34%, ${h.to} 100%)`,
+        background: sceneBackground(scene),
         overflow: "hidden",
         borderRadius: "inherit",
       }}
     >
-      {/* Soft highlight where the light lands. Kept very low contrast - it
-          should be felt, not seen. */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          background:
-            "radial-gradient(120% 90% at 18% 8%, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0) 58%)",
-        }}
-      />
       {vignette && (
         <div
           aria-hidden="true"
@@ -93,7 +92,7 @@ export function PhotoSurface({
             inset: 0,
             pointerEvents: "none",
             background:
-              "radial-gradient(ellipse at center, transparent 52%, rgba(38,26,14,0.16) 100%)",
+              "radial-gradient(ellipse at center, transparent 55%, rgba(59, 42, 30, 0.1) 100%)",
           }}
         />
       )}
@@ -106,13 +105,12 @@ export function PhotoSurface({
             position: "absolute",
             ...posStyle,
             padding: "6px 12px",
-            background: "rgba(255, 255, 255, 0.92)",
+            background: "rgba(255, 255, 255, 0.85)",
             backdropFilter: "blur(10px)",
             borderRadius: 999,
-            fontFamily: "var(--mono)",
-            fontSize: 10,
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
+            fontFamily: "var(--display)",
+            fontSize: 12,
+            fontWeight: 500,
             color: "var(--ink)",
           }}
         >

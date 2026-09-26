@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Windows tile. The colour is the house green (--bg-espresso), matching
-     manifest.ts's theme_color. It was still the pre-Köşk ink, which no test
-     could see because brand-theme.test.ts read manifest.ts and never this
-     file. It does now. -->
+<!-- Windows tile: the app icon on the house green (--bg-espresso #1d6d56,
+     the app's bg.inverse). brand-theme.test.ts reads this file, so a tile
+     left on a retired palette fails there. -->
 <browserconfig>
   <msapplication>
     <tile>
-      <square150x150logo src="/icon-192.png"/>
-      <TileColor>#143d2b</TileColor>
+      <square150x150logo src="/brand/app-icon-192.png"/>
+      <TileColor>#1d6d56</TileColor>
     </tile>
   </msapplication>
 </browserconfig>

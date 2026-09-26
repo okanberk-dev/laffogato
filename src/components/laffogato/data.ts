@@ -871,51 +871,54 @@ export interface HomeSlide {
   text: string;
   primary: { label: string; action: HomeSlideAction };
   secondary: { label: string; action: HomeSlideAction };
-  /** A cut-out product photograph, drawn over the green disc. */
+  /** A cut-out product photograph, standing on its own light. */
   photo: string;
   alt: string;
+  /**
+   * Whose light the drink stands in - the app's scene family for it
+   * (DESIGN-GLASS §6.2): a strawberry matcha glows pink, a matcha green.
+   */
+  scene: "strawberry" | "matcha" | "pistachio" | "caramel" | "latte";
 }
 
 /**
  * The home hero.
  *
- * Laid out to the reference the operator supplied (6 Eyl 2026): a cream band
- * under a white nav, an oversized cocoa headline on the left, and the drink
- * cut out and floated over a deep-green disc on the right, with the other two
- * drinks as thumbnails below the copy.
- *
- * The reference was a Starbucks concept, so what is copied is the LAYOUT and
- * the colour treatment. Everything with a trademark on it is L'Affogato's
- * own: the mark, the wordmark, the drinks and the photographs - the three
- * cut-outs are this café's own Matcha Bar shots.
+ * The app's product stage (lafmobil DESIGN-GLASS §4.4, §13): the drink cut
+ * out and standing in a pastel halo of its own colour on porcelain, the name
+ * large beside it, the other drinks as glass thumbnails under the copy.
  *
  * `-cut` rather than the plain files the menu cards use: those are square
- * 1024px canvases whose cup occupies a portrait 0.62 of the frame, so sizing
- * one to the hero's height made it half again as WIDE as the disc behind it
- * and buried the shape completely. The trimmed variants are the cup and
- * nothing else, which is also what lets it hang off the disc's lower edge
- * the way the reference does. Generated with `sharp().trim()`; the untrimmed
+ * 1024px canvases whose cup occupies a portrait 0.62 of the frame; the
+ * trimmed variants are the cup and nothing else, so the stage can size the
+ * drink by its height. Generated with `sharp().trim()`; the untrimmed
  * originals stay for the menu cards, which rely on the square canvas to line
  * their drinks up with each other.
+ *
+ * Every button goes where its label says: slide one's two labels used to be
+ * swapped, and slide two's "Ürünü gör" opened the espresso page for a drink
+ * that lives in the matcha bar.
  */
 export const HOME_SLIDES: HomeSlide[] = [
   {
-    kicker: "Strawberry Aşkı",
+    kicker: "Sezon · Strawberry Aşkı",
     title: ["Çilekli", "Matcha Latte"],
-    text: "Taze çilek katmanının üzerine çırpılmış Uji matcha ve soğuk süt. Seramoni sınıfı matcha, siparişten sonra çırpılır; çilek ezmesi her sabah barda hazırlanır. Sezon boyunca menüde.",
-    primary: { label: "Menüye göz at", action: "seasonMenu" },
-    secondary: { label: "Sezonu gör", action: "menu" },
+    text: "Taze çilek katmanının üzerine çırpılmış Uji matcha ve soğuk süt. Seremoni sınıfı matcha siparişten sonra çırpılır; çilek ezmesi her sabah barda hazırlanır.",
+    primary: { label: "Sezonu gör", action: "seasonMenu" },
+    secondary: { label: "Tüm menü", action: "menu" },
     photo: "/menu/strawberry-matcha-cut.webp",
     alt: "Çilekli matcha latte, buzlu bardakta",
+    scene: "strawberry",
   },
   {
     kicker: "İmza ürün",
     title: ["Matcha", "Affogato"],
     text: "Fior di latte gelatonun üzerine çırpılmış matcha, masanızda dökülür. 1994'te patentlenen ritüelin matcha hâli - içilir, sonra kupası yenir.",
-    primary: { label: "Ürünü gör", action: "signature" },
+    primary: { label: "Matcha barını gör", action: "seasonMenu" },
     secondary: { label: "Hikayemiz", action: "story" },
     photo: "/menu/matcha-affogato-cut.webp",
     alt: "Matcha affogato, üzerinde gelato topu",
+    scene: "pistachio",
   },
   {
     kicker: "Her gün barda",
@@ -925,6 +928,7 @@ export const HOME_SLIDES: HomeSlide[] = [
     secondary: { label: "Ziyaret bilgileri", action: "visit" },
     photo: "/menu/matcha-latte-cut.webp",
     alt: "Buzlu matcha latte, uzun bardakta",
+    scene: "matcha",
   },
 ];
 

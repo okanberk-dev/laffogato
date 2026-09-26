@@ -127,6 +127,7 @@ export function KaraokeBooking({
   return (
     <main className="karaoke-page">
       <PageHero
+        scene="berry"
         eyebrow="Karaoke · köşkün üst katı"
         title={["Özel oda,", "gece 24:00’e kadar."]}
         lede="Köşkün üst katındaki karaoke odası sekiz kişiye kadar. Gün ve saat seç, kişi sayısını gir; rezervasyonunu web'den ya da uygulamadan tamamla."

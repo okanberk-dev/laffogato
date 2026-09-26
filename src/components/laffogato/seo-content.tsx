@@ -19,108 +19,40 @@ import { SITE } from "@/lib/seo/site";
  *    "rezervasyon", "saat", "vegan" land on a single block of answers
  *    instead of bouncing through tabs.
  *
- * Styling stays minimal/inline so this component is self-contained and
- * doesn't need new entries in globals.css.
+ * Styled from globals.css (`.seo-block`): it used to carry its own inline
+ * colours, which is how the retired house green outlived two palettes here.
  */
 export function SeoContent({ faq }: { faq: FaqEntry[] }) {
   return (
-    <section
-      id="sss"
-      aria-labelledby="sss-heading"
-      style={{
-        background: "var(--bg-cream)",
-        color: "var(--ink)",
-        padding: "clamp(56px, 7vw, 88px) 24px",
-        borderTop: "1px solid var(--ink-line)",
-      }}
-    >
-      <div style={{ maxWidth: 980, margin: "0 auto" }}>
-        <div className="eyebrow" style={{ marginBottom: 14 }}>
-          Sıkça Sorulan Sorular · FAQ
-        </div>
+    <section id="sss" aria-labelledby="sss-heading" className="seo-block">
+      <div className="seo-block-inner">
+        <div className="eyebrow">Sıkça sorulan sorular</div>
         {/* `.section-title`, not `.h1`: at clamp(36px, 5vw, 56px) this h2 was
             set LARGER than the page's own h1 sitting above it. */}
-        <h2 id="sss-heading" className="section-title">
+        <h2 id="sss-heading" className="section-title seo-block-title">
           L&rsquo;Affogato hakkında merak edilenler.
         </h2>
-        <p
-          style={{
-            maxWidth: 640,
-            color: "var(--ink-soft)",
-            lineHeight: 1.7,
-            margin: "14px 0 40px",
-            fontSize: 16,
-          }}
-        >
+        <p className="seo-block-lede">
           Tuzla&rsquo;daki kafe, menü, yenilebilir kup, rezervasyon ve online
           sipariş hakkında en çok sorulan soruların yanıtları.
         </p>
 
-        <div className="seo-faq" style={{ display: "grid", gap: 12 }}>
-          {/* Show a concise, minimal set on-page; full set still feeds FAQ JSON-LD. */}
+        {/* Show a concise set on-page; the full set still feeds FAQ JSON-LD.
+            An inset grouped list: one panel, a hairline between questions,
+            the disclosure chevron drawn in CSS (`.seo-faq summary::after`). */}
+        <div className="seo-faq">
           {faq.slice(0, 6).map((entry, idx) => (
-            <details
-              key={idx}
-              style={{
-                background: "var(--bg)",
-                borderRadius: "var(--r-lg)",
-                border: "1px solid var(--ink-line)",
-                padding: "18px 22px",
-                boxShadow: "var(--shadow-sm)",
-              }}
-            >
-              {/* `listStyle: none` removed the disclosure triangle and put
-                  nothing back, so a closed row gave no sign it could open.
-                  The marker is drawn in CSS (`.seo-faq summary::after`) and
-                  rotates with `[open]`. The face is the site's one family -
-                  this was still asking for the retired Playfair. */}
-              <summary
-                className="seo-faq-q"
-                style={{
-                  fontSize: 18,
-                  lineHeight: 1.45,
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
-              >
-                {entry.q}
-              </summary>
-              <p
-                style={{
-                  marginTop: 12,
-                  color: "var(--ink-soft)",
-                  lineHeight: 1.7,
-                  fontSize: 15,
-                }}
-              >
-                {entry.a}
-              </p>
+            <details key={idx}>
+              <summary className="seo-faq-q">{entry.q}</summary>
+              <p>{entry.a}</p>
             </details>
           ))}
         </div>
 
-        <hr
-          style={{
-            border: 0,
-            borderTop: "1px solid var(--ink-line)",
-            margin: "56px 0 40px",
-          }}
-        />
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 32,
-          }}
-        >
+        <div className="seo-facts">
           <div>
-            <h3 className="eyebrow" style={{ marginBottom: 10 }}>
-              Adres
-            </h3>
-            <address
-              style={{ fontStyle: "normal", lineHeight: 1.6, fontSize: 14 }}
-            >
+            <h3 className="seo-facts-label">Adres</h3>
+            <address>
               {SITE.address.venue}
               <br />
               {SITE.address.streetAddress}
@@ -132,32 +64,20 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
             </address>
           </div>
           <div>
-            <h3 className="eyebrow" style={{ marginBottom: 10 }}>
-              İletişim
-            </h3>
-            <div style={{ lineHeight: 1.6, fontSize: 14 }}>
-              <a href={`tel:${SITE.phoneE164}`} style={{ color: "inherit" }}>
-                {SITE.phone}
-              </a>
+            <h3 className="seo-facts-label">İletişim</h3>
+            <p>
+              <a href={`tel:${SITE.phoneE164}`}>{SITE.phone}</a>
               <br />
-              <a href={`mailto:${SITE.email}`} style={{ color: "inherit" }}>
-                {SITE.email}
-              </a>
-            </div>
+              <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
+            </p>
           </div>
           <div>
-            <h3 className="eyebrow" style={{ marginBottom: 10 }}>
-              Saatler
-            </h3>
-            <div style={{ lineHeight: 1.6, fontSize: 14 }}>
-              Her gün: 09:00 - 02:00
-            </div>
+            <h3 className="seo-facts-label">Saatler</h3>
+            <p>Her gün: 09:00 - 02:00</p>
           </div>
           <div>
-            <h3 className="eyebrow" style={{ marginBottom: 10 }}>
-              Ulaşım
-            </h3>
-            <div style={{ lineHeight: 1.6, fontSize: 14 }}>
+            <h3 className="seo-facts-label">Ulaşım</h3>
+            <p>
               Marmaray Tuzla · 6 dk
               <br />
               E-5 / TEM Tuzla · 4 dk
@@ -165,7 +85,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
               Sabiha Gökçen · 15 dk
               <br />
               Ücretsiz vale
-            </div>
+            </p>
           </div>
         </div>
 
@@ -173,35 +93,14 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
             page and on every menu and shop category page, so the guides - which
             are the pages built to earn search traffic - are reachable from the
             site's highest-traffic surfaces rather than the footer alone. */}
-        <div style={{ marginTop: 48 }}>
-          <h3 className="eyebrow" style={{ marginBottom: 14 }}>
-            Daha fazlası - Rehber
+        <div className="seo-guides">
+          <h3 className="seo-facts-label">
+            <Link href="/rehber">Daha fazlası - Rehber</Link>
           </h3>
-          <ul
-            style={{
-              listStyle: "none",
-              margin: 0,
-              padding: 0,
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 10,
-            }}
-          >
+          <ul>
             {GUIDE_LINKS.map((g) => (
               <li key={g.slug}>
-                <Link
-                  href={`/rehber/${g.slug}`}
-                  style={{
-                    display: "inline-block",
-                    padding: "8px 14px",
-                    borderRadius: 999,
-                    border: "1px solid rgba(20, 61, 43, 0.14)",
-                    background: "#fff",
-                    fontSize: 13.5,
-                    color: "var(--ink-soft, rgba(20,61,43,0.72))",
-                    textDecoration: "none",
-                  }}
-                >
+                <Link href={`/rehber/${g.slug}`} className="chip-link">
                   {g.title}
                 </Link>
               </li>
@@ -209,27 +108,15 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
           </ul>
         </div>
 
-        <div
-          style={{
-            marginTop: 48,
-            padding: 24,
-            background: "rgba(20, 61, 43, 0.04)",
-            borderRadius: 16,
-            fontSize: 13,
-            color: "rgba(20, 61, 43, 0.6)",
-            lineHeight: 1.6,
-          }}
-        >
-          <strong style={{ color: "rgba(20, 61, 43, 0.85)" }}>
-            L&rsquo;Affogato Italia · sede principale
-          </strong>{" "}
-          - {SITE.parent.address}. İstanbul Tuzla şubesi, 1897&rsquo;de
+        <p className="seo-note">
+          <strong>L&rsquo;Affogato Italia · sede principale</strong> -{" "}
+          {SITE.parent.address}. İstanbul Tuzla şubesi, 1897&rsquo;de
           Bologna&rsquo;da kurulan markanın İtalya dışındaki ilk şubesidir. Tüm
           kahve, Bologna&rsquo;da Mancuso ailesi tarafından haftalık olarak
           kavrulur; matcha Japonya Uji bölgesinden, pistacchio Sicilya
           Bronte&rsquo;dan, fındık IGP Piemonte&rsquo;den, çikolata Sicilya
           Modica&rsquo;dan tedarik edilir.
-        </div>
+        </p>
       </div>
     </section>
   );

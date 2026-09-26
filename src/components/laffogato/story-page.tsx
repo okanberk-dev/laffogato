@@ -62,6 +62,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
   return (
     <div className="page" data-screen-label="04 Story">
       <PageHero
+        scene="velvet"
         eyebrow="Hikaye · 1897 → 2026"
         title={["Bologna 1897’den", "Tuzla’ya."]}
         lede={c(

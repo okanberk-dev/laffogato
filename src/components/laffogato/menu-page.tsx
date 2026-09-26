@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useRef } from "react";
 
+import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
+
 import { PageHero } from "./page-hero";
 import { MENU } from "./data";
 import { MenuPlate } from "./visuals";
@@ -13,9 +15,8 @@ export function PageMenu({ menu }: PageProps) {
   // A single-category menu means this is /menu/<kategori>, which is scoped
   // server-side. Starting on "all" there made the page announce itself as
   // "Menü · Hepsi" and lost the category the URL promised.
-  const [active, setActive] = useState<string>(
-    cats.length === 1 ? cats[0] : "all",
-  );
+  const scoped = cats.length === 1;
+  const [active, setActive] = useState<string>(scoped ? cats[0] : "all");
   const [query, setQuery] = useState("");
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +70,7 @@ export function PageMenu({ menu }: PageProps) {
     <div className="page" data-screen-label="02 Menu">
       <div className="menu-page">
         <PageHero
+          scene="latte"
           eyebrow={`Menü · ${activeLabel}`}
           /* The category's own name, not a fixed tuple. Every menu category
              is an indexable URL and they were all shipping the same H1. */
@@ -79,34 +81,53 @@ export function PageMenu({ menu }: PageProps) {
         />
         <div className="wrap">
           <div className="menu-filter-row">
-            <div
-              className="menu-tabs scroller"
-              /* Not a tablist: there are no tabpanels behind these, and the
-                 `tab` role obliges arrow-key navigation and a linked panel
-                 that do not exist. They are filter toggles, so they say so. */
-              role="group"
-              aria-label="Menü kategorileri"
-            >
-              <button
+            {/* Real links, one per category URL: six of the twelve menu
+                pages used to have no link anywhere but the sitemap, and a
+                category page could not reach its siblings. On /menu itself a
+                click filters in place (the page is already holding every
+                category); on a category page it navigates. */}
+            <nav className="menu-tabs scroller" aria-label="Menü kategorileri">
+              <a
+                href="/menu"
                 className={`menu-tab ${active === "all" ? "on" : ""}`}
-                aria-pressed={active === "all"}
-                onClick={() => selectCat("all")}
+                aria-current={active === "all" ? "page" : undefined}
+                onClick={
+                  scoped
+                    ? undefined
+                    : (e) => {
+                        e.preventDefault();
+                        selectCat("all");
+                      }
+                }
               >
                 <span>Tümü</span>
-                <span className="count">{totalCount}</span>
-              </button>
-              {cats.map((c) => (
-                <button
-                  key={c}
-                  className={`menu-tab ${active === c ? "on" : ""}`}
-                  aria-pressed={active === c}
-                  onClick={() => selectCat(c)}
-                >
-                  <span>{liveMenu[c].title}</span>
-                  <span className="count">{liveMenu[c].items.length}</span>
-                </button>
-              ))}
-            </div>
+                {!scoped && <span className="count">{totalCount}</span>}
+              </a>
+              {MENU_CATEGORY_ROUTES.map((r) => {
+                const cat = liveMenu[r.menuKey];
+                if (!scoped && !cat) return null;
+                const on = active === r.menuKey;
+                return (
+                  <a
+                    key={r.slug}
+                    href={`/menu/${r.slug}`}
+                    className={`menu-tab ${on ? "on" : ""}`}
+                    aria-current={on ? "page" : undefined}
+                    onClick={
+                      scoped
+                        ? undefined
+                        : (e) => {
+                            e.preventDefault();
+                            selectCat(r.menuKey);
+                          }
+                    }
+                  >
+                    <span>{cat?.title ?? r.breadcrumbLabel}</span>
+                    {cat && <span className="count">{cat.items.length}</span>}
+                  </a>
+                );
+              })}
+            </nav>
             <div className="menu-search">
               <svg
                 width="15"

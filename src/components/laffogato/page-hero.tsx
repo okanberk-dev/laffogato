@@ -1,10 +1,15 @@
+import { SCENES, type SceneKey } from "./scenes";
+
 /**
  * The page hero every non-home page shares.
  *
- * Cream band, cocoa display type, green disc on the right - the home hero's
- * language at a scale that leads a page rather than selling a product. One
- * component and one rule set on purpose: before this, six pages had grown six
- * near-copies of the same header with six different heading sizes.
+ * A porcelain panel with the page's own light in one corner - the app's
+ * scene halo (DESIGN-GLASS §6: light comes from the thing on the page) - and
+ * the L'Af mark as a watermark. It replaced a solid green disc that, on a
+ * narrow frame, slid under the headline and swallowed it (/magaza drew
+ * "Köşkün mağazası" on top of a green circle). One component and one rule
+ * set on purpose: before it, six pages had grown six near-copies of the same
+ * header with six different heading sizes.
  *
  * A server component; there is nothing interactive in it.
  */
@@ -12,6 +17,7 @@ export function PageHero({
   eyebrow,
   title,
   lede,
+  scene = "house",
   children,
 }: {
   eyebrow: string;
@@ -28,16 +34,28 @@ export function PageHero({
    */
   title: string | [string, string];
   lede: string;
+  /** Whose light fills the corner. `house` is the L'Af green. */
+  scene?: SceneKey;
   children?: React.ReactNode;
 }) {
+  const s = SCENES[scene];
   return (
     <section className="page-hero">
       <div className="wrap">
-        <div className="page-hero-frame">
-          <span className="page-hero-disc" aria-hidden="true" />
-          <span className="hero-x-watermark" aria-hidden="true" />
+        <div
+          className="page-hero-frame"
+          style={
+            {
+              "--scene-core": s.core,
+              "--scene-mid": s.mid,
+              "--scene-edge": s.edge,
+            } as React.CSSProperties
+          }
+        >
+          <span className="page-hero-light" aria-hidden="true" />
+          <span className="page-hero-watermark" aria-hidden="true" />
           <div className="page-hero-copy">
-            <p className="hero-x-kicker">{eyebrow}</p>
+            <p className="page-hero-kicker">{eyebrow}</p>
             <h1 className="page-hero-title">
               {Array.isArray(title) ? (
                 <>
@@ -48,7 +66,7 @@ export function PageHero({
                 title
               )}
             </h1>
-            <p className="hero-x-text">{lede}</p>
+            <p className="page-hero-lede">{lede}</p>
             {children}
           </div>
         </div>
