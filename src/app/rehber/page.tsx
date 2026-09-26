@@ -51,6 +51,7 @@ export default function GuideHubPage() {
         </nav>
 
         <PageHero
+          scene="matcha"
           eyebrow="Il quaderno"
           title={["Barın arkasında", "öğrendiklerimiz"]}
           lede="Bir affogato neden hemen içilir, matcha neden kaynar suyla acılaşır, cortado ile flat white arasındaki fark nedir - hepsi tek tek, uygulanabilir biçimde."

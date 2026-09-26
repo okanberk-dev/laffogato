@@ -45,6 +45,7 @@ export function CampaignsPage({
   return (
     <>
       <PageHero
+        scene="citrus"
         eyebrow="Köşkte bu ay"
         title={["Kampanyalar", "ve etkinlikler"]}
         lede="Sezon kampanyaları, iş birlikleri ve köşkte olan biten. Damga programı ve davet ödülü de burada - ikisi de uygulamada ve web'de aynı hesaba işler."

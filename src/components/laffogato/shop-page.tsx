@@ -1,15 +1,19 @@
 "use client";
 
-import { useCallback, useState, useMemo, useRef } from "react";
+import { usePathname } from "next/navigation";
+import { useCallback, useMemo, useRef, useState } from "react";
 
+import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { parsePriceLabel } from "@/lib/utils/format";
-import { useDialog } from "./use-dialog";
 
-import { ShopHeroSlider } from "./shop-hero-slider";
-import { PageHero } from "./page-hero";
 import { PRODUCTS } from "./data";
 import type { Product } from "./data";
-import { ProductCard } from "./ui";
+import type { PageProps } from "./page-shared";
+import { PageHero } from "./page-hero";
+import { productPath } from "./route-paths";
+import { ShopHeroSlider } from "./shop-hero-slider";
+import { ProductCard, toCartItem } from "./ui";
+import { useDialog } from "./use-dialog";
 import {
   CoffeeBag,
   EdibleCupHero,
@@ -17,7 +21,6 @@ import {
   GelatoScoop,
   PhotoSurface,
 } from "./visuals";
-import type { PageProps } from "./page-shared";
 
 /** Major-unit price of a product, exact when the minor-unit figure is known. */
 function priceOf(p: Product): number {
@@ -26,44 +29,78 @@ function priceOf(p: Product): number {
     : parsePriceLabel(p.price);
 }
 
-function ShopBadge({ icon, k, v }: { icon: string; k: string; v: string }) {
-  return (
-    <div
-      style={{
-        padding: 18,
-        background: "var(--bg-warm)",
-        borderRadius: "var(--r-md)",
-      }}
-    >
-      <div style={{ fontSize: 20, color: "var(--gold)", marginBottom: 10 }}>
-        {icon}
-      </div>
-      <div className="eyebrow" style={{ marginBottom: 6 }}>
-        {k}
-      </div>
-      <div style={{ fontFamily: "var(--serif-display)", fontSize: 15 }}>
-        {v}
-      </div>
-    </div>
-  );
-}
+const CATS = [
+  { id: "all", label: "Hepsi" },
+  { id: "beans", label: "Çekirdek" },
+  { id: "gift", label: "Hediye" },
+  { id: "gear", label: "Ekipman" },
+  { id: "merch", label: "Giyim" },
+  { id: "pantry", label: "Kiler" },
+];
+
+/**
+ * The shelf's quick filters - each backed by a field the product really
+ * carries. The five chips this replaced ("Limited", "En çok satan", "Bologna
+ * import", …) were styled as buttons and did nothing: no product field said
+ * any of them.
+ */
+const FLAGS = [
+  { id: "new", label: "Yeni", test: (p: Product) => Boolean(p.isNew) },
+  {
+    id: "featured",
+    label: "Öne çıkan",
+    test: (p: Product) => Boolean(p.featured),
+  },
+  {
+    id: "sale",
+    label: "İndirimde",
+    test: (p: Product) => Boolean(p.compareAtPrice),
+  },
+] as const;
+
+type FlagId = (typeof FLAGS)[number]["id"];
+
+/** The slug a category id lives at (/magaza/<slug>). */
+const SLUG_FOR = Object.fromEntries(
+  SHOP_CATEGORY_ROUTES.map((c) => [c.productCat, c.slug]),
+);
+
+const TRUST = [
+  { k: "Bologna kavurma", v: "Çekirdek haftalık, taze kavrulur" },
+  { k: "Aynı gün", v: "İstanbul içi, 14:00'a kadar" },
+  { k: "Ücretsiz kargo", v: "500₺ ve üzeri siparişte" },
+  { k: "14 gün iade", v: "Açılmamış üründe kolay iade" },
+];
 
 export function PageShop({
   addToCart,
   openProduct,
   products,
   shopHeroSlides,
+  settings,
 }: PageProps) {
+  const pathname = usePathname();
   // `[]` means "the shop really has nothing to show" - during a database
   // outage in particular - and must stay empty. Only `undefined` (no data
   // passed at all) falls back to the bundled design catalogue.
   const shopProducts = products ?? PRODUCTS;
   const slides = shopHeroSlides ?? [];
-  const [cat, setCat] = useState<string>("all");
+
+  // /magaza/<kategori> hands this page one category's products. There the
+  // category list is a set of links to the sibling pages - as buttons it
+  // filtered an already-filtered list and showed every other category as 0.
+  const scopedCat = useMemo(() => {
+    const slug = pathname?.startsWith("/magaza/")
+      ? pathname.split("/")[2]
+      : undefined;
+    return SHOP_CATEGORY_ROUTES.find((c) => c.slug === slug)?.productCat;
+  }, [pathname]);
+
+  const [cat, setCat] = useState<string>(scopedCat ?? "all");
+  const [flags, setFlags] = useState<FlagId[]>([]);
   const [sort, setSort] = useState<string>("featured");
-  // The slider's ceiling follows the catalogue. It was hard-coded at 900, and
-  // the filter is inclusive-of-max, so the moment a product was priced above
-  // ₺900 it became invisible in the shop with no filter applied.
+  // The slider's ceiling follows the catalogue, so a product above ₺900 is
+  // never invisible with no filter applied.
   const priceCeiling = useMemo(() => {
     const top = shopProducts.reduce((max, p) => Math.max(max, priceOf(p)), 0);
     return Math.max(900, Math.ceil(top / 100) * 100);
@@ -73,96 +110,122 @@ export function PageShop({
   const priceTop = priceMax ?? priceCeiling;
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const cats = [
-    { id: "all", label: "Hepsi", icon: "◯" },
-    { id: "beans", label: "Çekirdek", icon: "◉" },
-    { id: "gift", label: "Hediye", icon: "◈" },
-    { id: "gear", label: "Ekipman", icon: "◇" },
-    { id: "merch", label: "Giyim", icon: "◐" },
-    { id: "pantry", label: "Kiler", icon: "◇" },
-  ];
-
   let list = shopProducts.filter((p) => cat === "all" || p.cat === cat);
   list = list.filter((p) => {
     const price = priceOf(p);
     return price >= priceMin && price <= priceTop;
   });
+  for (const id of flags) {
+    const flag = FLAGS.find((f) => f.id === id)!;
+    list = list.filter(flag.test);
+  }
   if (sort === "price-asc")
     list = [...list].sort((a, b) => priceOf(a) - priceOf(b));
   if (sort === "price-desc")
     list = [...list].sort((a, b) => priceOf(b) - priceOf(a));
+  // "Yeni" was an option with no branch behind it; new pieces first, the
+  // rest in the shop's own order.
+  if (sort === "new")
+    list = [...list].sort((a, b) => Number(!!b.isNew) - Number(!!a.isNew));
 
   const priceTouched = priceMin > 0 || priceTop < priceCeiling;
-  const activeFilterCount = (cat !== "all" ? 1 : 0) + (priceTouched ? 1 : 0);
+  const activeFilterCount =
+    (cat !== "all" && !scopedCat ? 1 : 0) +
+    (priceTouched ? 1 : 0) +
+    flags.length;
 
   const resetFilters = () => {
-    setCat("all");
+    if (!scopedCat) setCat("all");
+    setFlags([]);
     setPriceMin(0);
     setPriceMax(null);
   };
 
+  const toggleFlag = (id: FlagId) =>
+    setFlags((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
+
   // Escape, body-scroll lock, focus in and focus back out. The sheet stays
-  // mounted so it can animate, so it also has to be marked inert while closed
-  // - its controls were otherwise reachable by Tab from off-screen.
+  // mounted so it can animate, so it is also marked inert while closed.
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
   useDialog(filtersOpen, closeFilters, sheetRef);
+
+  // The featured set is a real product row, found by its slug: the button
+  // used to add a hand-typed name and price that checkout could not match
+  // (the stored name uses "-", the button "·"), so every such order came back
+  // as `?cart=not_found`.
+  const featured = useMemo(
+    () =>
+      shopProducts.find(
+        (p) =>
+          p.slug === "affogato-seti-iki-kisilik" ||
+          /affogato seti/i.test(p.name),
+      ),
+    [shopProducts],
+  );
+
+  const phone = settings?.phone ?? "+90 536 429 09 19";
+  const email = settings?.email ?? "info@nextgenlab.com.tr";
+
+  const countFor = (id: string) =>
+    id === "all"
+      ? shopProducts.length
+      : shopProducts.filter((p) => p.cat === id).length;
+
+  const catControl = (c: (typeof CATS)[number], variant: "row" | "pill") => {
+    const on = cat === c.id;
+    const cls = variant === "row" ? "shop-cat" : "shop-pill";
+    // On a category page, siblings are links (their counts are not in hand).
+    if (scopedCat) {
+      const href = c.id === "all" ? "/magaza" : `/magaza/${SLUG_FOR[c.id]}`;
+      return (
+        <a
+          key={c.id}
+          href={href}
+          className={`${cls} ${on ? "on" : ""}`}
+          aria-current={on ? "page" : undefined}
+        >
+          <span>{c.label}</span>
+          {on && <span className="count">{countFor(c.id)}</span>}
+        </a>
+      );
+    }
+    return (
+      <button
+        key={c.id}
+        type="button"
+        className={`${cls} ${on ? "on" : ""}`}
+        aria-pressed={on}
+        onClick={() => setCat(c.id)}
+      >
+        <span>{c.label}</span>
+        <span className="count">{countFor(c.id)}</span>
+      </button>
+    );
+  };
 
   // Filter controls - shared by the desktop sidebar and the mobile sheet.
   const renderFilters = () => (
     <>
       <div className="shop-filter-block">
-        <div className="eyebrow" style={{ marginBottom: 14 }}>
-          Kategoriler
-        </div>
+        <h2 className="shop-filter-title">Kategoriler</h2>
         <div className="shop-cat-list">
-          {cats.map((c) => {
-            const count =
-              c.id === "all"
-                ? shopProducts.length
-                : shopProducts.filter((p) => p.cat === c.id).length;
-            return (
-              <button
-                key={c.id}
-                className={`shop-cat ${cat === c.id ? "on" : ""}`}
-                onClick={() => setCat(c.id)}
-              >
-                <span>{c.label}</span>
-                <span className="count">{count}</span>
-              </button>
-            );
-          })}
+          {CATS.map((c) => catControl(c, "row"))}
         </div>
       </div>
 
       <div className="shop-filter-block">
-        <div className="eyebrow" style={{ marginBottom: 14 }}>
-          Fiyat aralığı
-        </div>
-        <div
-          style={{ fontFamily: "var(--mono)", fontSize: 13, marginBottom: 16 }}
-        >
+        <h2 className="shop-filter-title">Fiyat aralığı</h2>
+        <div className="shop-price-readout tabular">
           {priceMin}₺ - {priceTop}₺
         </div>
-        <div style={{ position: "relative", height: 28 }}>
+        <div className="shop-price-track">
+          <div className="shop-price-rail" />
           <div
+            className="shop-price-fill"
             style={{
-              position: "absolute",
-              top: 12,
-              left: 0,
-              right: 0,
-              height: 2,
-              background: "var(--ink-line)",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              top: 12,
               left: `${(priceMin / priceCeiling) * 100}%`,
               right: `${100 - (priceTop / priceCeiling) * 100}%`,
-              height: 2,
-              background: "var(--ink)",
             }}
           />
           <input
@@ -176,7 +239,6 @@ export function PageShop({
             }
             className="price-range"
             aria-label="En düşük fiyat"
-            style={{ position: "absolute", top: 0, left: 0, right: 0 }}
           />
           <input
             type="range"
@@ -189,123 +251,93 @@ export function PageShop({
             }
             className="price-range"
             aria-label="En yüksek fiyat"
-            style={{ position: "absolute", top: 0, left: 0, right: 0 }}
           />
         </div>
       </div>
 
       <div className="shop-filter-block">
-        <div className="eyebrow" style={{ marginBottom: 14 }}>
-          Etiketler
-        </div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {[
-            "Yeni",
-            "Limited",
-            "En çok satan",
-            "Bologna import",
-            "Gift ready",
-          ].map((t) => (
-            <span key={t} className="chip" style={{ cursor: "pointer" }}>
-              {t}
-            </span>
-          ))}
+        <h2 className="shop-filter-title">Öne çıkanlar</h2>
+        <div className="shop-flags">
+          {FLAGS.map((f) => {
+            const n = shopProducts.filter(f.test).length;
+            if (n === 0) return null;
+            const on = flags.includes(f.id);
+            return (
+              <button
+                key={f.id}
+                type="button"
+                className={`chip-link ${on ? "active" : ""}`}
+                aria-pressed={on}
+                onClick={() => toggleFlag(f.id)}
+              >
+                {f.label}
+                <span className="shop-flag-n">{n}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="shop-filter-block" style={{ borderTop: 0 }}>
+      <div className="shop-filter-block">
+        {/* There is no chat. What there is: the phone and the mailbox, both
+            answered by the bar. */}
         <div className="shop-helpline">
-          <div className="eyebrow" style={{ marginBottom: 10 }}>
-            Yardım
-          </div>
-          <div
-            style={{
-              fontFamily: "var(--serif)",
-              fontStyle: "normal",
-              fontSize: 22,
-              lineHeight: 1.2,
-            }}
-          >
-            Hangi çekirdek?
-          </div>
-          <p
-            style={{
-              fontSize: 13,
-              color: "var(--ink-soft)",
-              marginTop: 10,
-              lineHeight: 1.55,
-            }}
-          >
-            Espresso mu, filtre mi karar veremediysen - barista chat’i aç, sana
-            yardımcı olalım.
+          <h2 className="shop-helpline-title">Hangi çekirdek?</h2>
+          <p>
+            Espresso mu filtre mi karar veremediysen bize sor - barista
+            yardımcı olsun.
           </p>
-          <button
-            className="btn btn-ghost btn-sm"
-            style={{ marginTop: 16, width: "100%", justifyContent: "center" }}
-          >
-            Chat’i aç <span className="arrow">→</span>
-          </button>
+          <div className="shop-helpline-actions">
+            <a
+              href={`tel:${phone.replace(/\s+/g, "")}`}
+              className="btn btn-outline btn-sm"
+            >
+              Ara
+            </a>
+            <a href={`mailto:${email}`} className="btn btn-ghost btn-sm">
+              E-posta
+            </a>
+          </div>
         </div>
       </div>
     </>
   );
 
+  const scopedLabel = scopedCat
+    ? CATS.find((c) => c.id === scopedCat)?.label
+    : undefined;
+
   return (
     <div className="page" data-screen-label="03 Shop">
       {slides.length > 0 && <ShopHeroSlider slides={slides} />}
-      <header className="page-head shop-head-wrap" id="products">
-        <div className="wrap">
-          <div
-            className="reveal"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 0.95fr",
-              gap: 60,
-              alignItems: "end",
-            }}
-            data-row="shop-head"
-          >
-            <PageHero
-              eyebrow="III - La bottega"
-              title={["Köşkün", "mağazası"]}
-              lede="Tuzla köşkünde servis ettiğimiz her şey - Bologna’da kavrulan çekirdek, 1994 patentli edible kup, bambu chasen, Bialetti × L’Affogato moka pot. Eve, ofise, hediyeye."
-            />
-            <div data-row="shop-badges">
-              <ShopBadge icon="↗" k="Aynı gün" v="İstanbul içi" />
-              <ShopBadge icon="✦" k="Free shipping" v="500₺+ siparişte" />
-              <ShopBadge icon="↻" k="14 gün iade" v="Açılmamış ürün" />
-            </div>
-          </div>
-        </div>
-      </header>
 
-      {/* ── Mobil yapışkan kontrol çubuğu: kategori pill'leri + filtre + sırala ── */}
+      <div className="shop-head-wrap" id="products">
+        <PageHero
+          scene="caramel"
+          eyebrow={scopedLabel ? `Mağaza · ${scopedLabel}` : "La bottega"}
+          title={["Köşkün", "mağazası"]}
+          lede="Tuzla köşkünde servis ettiğimiz her şey - Bologna’da kavrulan çekirdek, 1994 patentli edible kup, bambu chasen, Bialetti × L’Affogato moka pot. Eve, ofise, hediyeye."
+        >
+          <ul className="shop-promises" aria-label="Teslimat ve iade">
+            <li>Aynı gün İstanbul içi</li>
+            <li>500₺+ ücretsiz kargo</li>
+            <li>14 gün iade</li>
+          </ul>
+        </PageHero>
+      </div>
+
+      {/* ── Small screens: a sticky capsule row + filter sheet ── */}
       <div className="shop-mobilebar">
         <div
           className="shop-mobilebar-cats"
           role="group"
           aria-label="Ürün kategorileri"
         >
-          {cats.map((c) => {
-            const count =
-              c.id === "all"
-                ? shopProducts.length
-                : shopProducts.filter((p) => p.cat === c.id).length;
-            return (
-              <button
-                key={c.id}
-                className={`shop-pill ${cat === c.id ? "on" : ""}`}
-                aria-pressed={cat === c.id}
-                onClick={() => setCat(c.id)}
-              >
-                {c.label}
-                <span className="shop-pill-count">{count}</span>
-              </button>
-            );
-          })}
+          {CATS.map((c) => catControl(c, "pill"))}
         </div>
         <div className="shop-mobilebar-actions">
           <button
+            type="button"
             className="shop-filter-trigger"
             onClick={() => setFiltersOpen(true)}
           >
@@ -329,16 +361,16 @@ export function PageShop({
             )}
           </button>
           <label className="shop-sort-inline">
-            <span className="eyebrow">Sırala</span>
+            <span className="sr-only">Sırala</span>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
               aria-label="Sırala"
             >
               <option value="featured">Önerilen</option>
-              <option value="price-asc">Fiyat ↑</option>
-              <option value="price-desc">Fiyat ↓</option>
-              <option value="new">Yeni</option>
+              <option value="price-asc">Fiyat: artan</option>
+              <option value="price-desc">Fiyat: azalan</option>
+              <option value="new">Yeniler önce</option>
             </select>
           </label>
         </div>
@@ -346,50 +378,40 @@ export function PageShop({
 
       <section className="section-tight">
         <div className="wrap-wide shop-layout">
-          <aside className="shop-sidebar reveal">{renderFilters()}</aside>
+          <aside className="shop-sidebar" aria-label="Filtreler">
+            {renderFilters()}
+          </aside>
 
           <div className="shop-main">
-            <div className="shop-toolbar reveal">
-              <div style={{ fontFamily: "var(--serif-display)", fontSize: 18 }}>
-                <span
-                  style={{ fontFamily: "var(--serif)", fontStyle: "normal" }}
-                >
-                  {list.length}
-                </span>{" "}
-                ürün
+            <div className="shop-toolbar">
+              <p className="shop-count">
+                <span className="tabular">{list.length}</span> ürün
                 {cat !== "all" && (
-                  <>
+                  <span className="shop-count-cat">
                     {" "}
-                    ·{" "}
-                    <span style={{ color: "var(--ink-mute)" }}>
-                      {cats.find((c) => c.id === cat)?.label}
-                    </span>
-                  </>
+                    · {CATS.find((c) => c.id === cat)?.label}
+                  </span>
                 )}
-              </div>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <span className="eyebrow" id="shop-sort-label">
-                  Sırala
-                </span>
+              </p>
+              <label className="shop-sort">
+                <span>Sırala</span>
                 <select
                   className="select"
                   value={sort}
                   onChange={(e) => setSort(e.target.value)}
-                  aria-labelledby="shop-sort-label"
-                  style={{ width: "auto", padding: "8px 14px", fontSize: 13 }}
                 >
                   <option value="featured">Önerilen</option>
-                  <option value="price-asc">Fiyat ↑</option>
-                  <option value="price-desc">Fiyat ↓</option>
-                  <option value="new">Yeni</option>
+                  <option value="price-asc">Fiyat: artan</option>
+                  <option value="price-desc">Fiyat: azalan</option>
+                  <option value="new">Yeniler önce</option>
                 </select>
-              </div>
+              </label>
             </div>
 
             <div className="shop-grid-3">
               {list.map((p, i) => (
                 <ProductCard
-                  key={p.name}
+                  key={p.id ?? p.name}
                   product={p}
                   idx={i}
                   addToCart={addToCart}
@@ -399,19 +421,11 @@ export function PageShop({
             </div>
 
             {list.length === 0 && (
-              <div style={{ textAlign: "center", padding: "80px 20px" }}>
-                <div
-                  style={{
-                    fontFamily: "var(--serif)",
-                    fontStyle: "normal",
-                    fontSize: 36,
-                  }}
-                >
-                  Bu filtreyle ürün yok.
-                </div>
+              <div className="shop-empty">
+                <p className="shop-empty-title">Bu filtreyle ürün yok.</p>
                 <button
+                  type="button"
                   className="btn btn-ghost"
-                  style={{ marginTop: 24 }}
                   onClick={resetFilters}
                 >
                   Filtreleri temizle
@@ -422,7 +436,7 @@ export function PageShop({
         </div>
       </section>
 
-      {/* ── Mobil filtre alt-sayfası (bottom sheet) ── */}
+      {/* ── Small screens: the filter sheet ── */}
       <div
         className={`shop-sheet-overlay ${filtersOpen ? "open" : ""}`}
         onClick={() => setFiltersOpen(false)}
@@ -441,26 +455,16 @@ export function PageShop({
         <div className="shop-sheet-grip" aria-hidden="true" />
         <header className="shop-sheet-head">
           <div>
-            <div className="eyebrow" style={{ marginBottom: 4 }}>
-              Filtrele & sırala
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--serif)",
-                fontStyle: "normal",
-                fontSize: 22,
-                lineHeight: 1,
-              }}
-            >
-              {list.length} ürün
-            </div>
+            <p className="shop-sheet-kicker">Filtrele ve sırala</p>
+            <p className="shop-sheet-title">{list.length} ürün</p>
           </div>
           <button
+            type="button"
             onClick={() => setFiltersOpen(false)}
             className="nav-icon-btn"
             aria-label="Kapat"
           >
-            <svg width="14" height="14" viewBox="0 0 16 16">
+            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
               <path
                 d="M3 3 L13 13 M13 3 L3 13"
                 stroke="currentColor"
@@ -473,6 +477,7 @@ export function PageShop({
         <div className="shop-sheet-body">{renderFilters()}</div>
         <footer className="shop-sheet-foot">
           <button
+            type="button"
             className="btn btn-ghost"
             onClick={resetFilters}
             disabled={activeFilterCount === 0}
@@ -480,8 +485,9 @@ export function PageShop({
             Sıfırla
           </button>
           <button
+            type="button"
             className="btn btn-primary"
-            style={{ flex: 1, justifyContent: "center" }}
+            style={{ flex: 1 }}
             onClick={() => setFiltersOpen(false)}
           >
             {list.length} ürünü göster
@@ -489,149 +495,79 @@ export function PageShop({
         </footer>
       </div>
 
-      <section className="section" style={{ background: "var(--bg-warm)" }}>
-        <div
-          className="wrap"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 60,
-            alignItems: "center",
-          }}
-          data-row="featured-row"
-        >
-          <div
-            className="reveal"
-            style={{
-              aspectRatio: "4/3",
-              borderRadius: "var(--r-lg)",
-              overflow: "hidden",
-            }}
-          >
-            <PhotoSurface
-              hue="caramel"
-              dotLabel="Limited · Friday drop"
-              dotPos="tl"
-            >
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  padding: 30,
-                  display: "grid",
-                  gap: 18,
-                  placeItems: "stretch",
-                }}
-                data-row="featured-inner"
-              >
-                <div style={{ display: "grid", placeItems: "center" }}>
-                  <CoffeeBag
-                    label="Sirena"
-                    sub="ESPRESSO BLEND · 250G"
-                    tone="dark"
-                  />
+      {featured && (
+        <section className="section shop-featured-band">
+          <div className="wrap shop-featured">
+            <div className="shop-featured-art reveal">
+              <PhotoSurface hue="caramel">
+                <div className="shop-featured-grid">
+                  <div>
+                    <CoffeeBag
+                      label="Sirena"
+                      sub="ESPRESSO BLEND · 250G"
+                      tone="dark"
+                    />
+                  </div>
+                  <div>
+                    <EdibleCupHero scoop="cream" topping="wafer" />
+                  </div>
+                  <div>
+                    <EspressoCup />
+                  </div>
+                  <div>
+                    <GelatoScoop flavor="cream" />
+                  </div>
                 </div>
-                <div style={{ display: "grid", placeItems: "center" }}>
-                  <EdibleCupHero scoop="cream" topping="wafer" />
-                </div>
-                <div style={{ display: "grid", placeItems: "center" }}>
-                  <EspressoCup />
-                </div>
-                <div style={{ display: "grid", placeItems: "center" }}>
-                  <GelatoScoop flavor="cream" />
-                </div>
+              </PhotoSurface>
+            </div>
+            <div className="reveal r1">
+              <div className="eyebrow">Evde ritüel · iki kişilik</div>
+              <h2 className="h1" style={{ marginTop: 12 }}>
+                Evde <span className="script">tableside</span> servis.
+              </h2>
+              <p className="lede" style={{ marginTop: 18 }}>
+                {featured.desc}
+              </p>
+              <div className="shop-featured-price">
+                <span className="shop-featured-now">{featured.price}</span>
+                {featured.compareAtPrice && (
+                  <span className="shop-featured-was">
+                    {featured.compareAtPrice}
+                  </span>
+                )}
               </div>
-            </PhotoSurface>
-          </div>
-          <div className="reveal r1">
-            <div className="eyebrow">Affogato Seti · İki Kişilik</div>
-            <h2 className="h1" style={{ marginTop: 16 }}>
-              Evde <span className="script">tableside</span> servis.
-            </h2>
-            <p className="lede" style={{ marginTop: 22 }}>
-              200g taze kavrulmuş Sirena · 1 pint fior di latte gelato · 2
-              edible kup · porselen kaşık · el yazısı tarif kartı. Cuma teslimat
-              İstanbul içi. Eve veya hediyeye.
-            </p>
-            <div
-              style={{
-                display: "flex",
-                gap: 16,
-                alignItems: "baseline",
-                marginTop: 26,
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: "var(--serif)",
-                  fontStyle: "normal",
-                  fontSize: 44,
-                }}
-              >
-                780₺
-              </span>
-              <span
-                style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: 14,
-                  color: "var(--ink-mute)",
-                  textDecoration: "line-through",
-                }}
-              >
-                880₺
-              </span>
-              <span className="chip chip-gold">−12%</span>
-            </div>
-            <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
-              <button
-                className="btn btn-primary btn-lg"
-                onClick={() =>
-                  addToCart({ name: "Affogato Seti · İki Kişilik", price: 780 })
-                }
-              >
-                Sepete ekle <span className="arrow">→</span>
-              </button>
-              <button className="btn btn-ghost btn-lg">Detay</button>
+              <div className="cta-row">
+                <button
+                  type="button"
+                  className="btn btn-primary btn-lg"
+                  disabled={featured.stock !== undefined && featured.stock <= 0}
+                  onClick={() => addToCart(toCartItem(featured))}
+                >
+                  Sepete ekle
+                </button>
+                {featured.slug && (
+                  <a
+                    href={productPath(featured.slug)}
+                    className="btn btn-ghost btn-lg"
+                  >
+                    Ürünü incele
+                  </a>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section className="section-tight">
-        <div
-          className="wrap"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 30,
-          }}
-          data-row="trust-row"
-        >
-          {[
-            { k: "Bologna import", v: "Bologna kavurma · haftalık taze" },
-            { k: "Aynı gün", v: "İstanbul içi · 14:00'a kadar" },
-            { k: "Avrupa kargo", v: "5-7 iş günü · DHL Express" },
-            { k: "14 gün iade", v: "Açılmamış ürünlerde kolay iade" },
-          ].map((b, i) => (
-            <div
-              key={b.k}
-              className="reveal"
-              style={{
-                transitionDelay: `${i * 60}ms`,
-                padding: 26,
-                border: "1px solid var(--ink-line)",
-                borderRadius: "var(--r-md)",
-              }}
-            >
-              <div className="eyebrow" style={{ marginBottom: 12 }}>
-                {b.k}
-              </div>
-              <div style={{ fontFamily: "var(--serif-display)", fontSize: 18 }}>
-                {b.v}
-              </div>
-            </div>
+        <ul className="wrap trust-row" aria-label="Güvenceler">
+          {TRUST.map((b) => (
+            <li key={b.k} className="trust-tile">
+              <span className="trust-k">{b.k}</span>
+              <span className="trust-v">{b.v}</span>
+            </li>
           ))}
-        </div>
+        </ul>
       </section>
     </div>
   );

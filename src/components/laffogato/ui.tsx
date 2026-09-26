@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useRef, useState, type ReactNode } from "react";
 
 import { toggleWishlistAction } from "@/app/uye/actions";
+import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { productPath } from "./route-paths";
 import { useDialog } from "./use-dialog";
 
@@ -71,6 +73,16 @@ export interface ProductCardProps {
   onOpen?: (product: Product) => void;
 }
 
+/** Turkish names for the shop's category ids - the card used to print the
+    raw id, upper-cased ("BEANS", "PANTRY"). */
+const SHOP_CAT_LABELS: Record<string, string> = {
+  beans: "Çekirdek",
+  gift: "Hediye",
+  gear: "Ekipman",
+  merch: "Giyim",
+  pantry: "Kiler",
+};
+
 export function ProductCard({
   product,
   idx = 0,
@@ -84,24 +96,35 @@ export function ProductCard({
     p.stock !== undefined &&
     p.lowStockThreshold !== undefined &&
     p.stock <= p.lowStockThreshold;
-  const onAdd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (outOfStock) return;
-    if (addToCart) addToCart(toCartItem(p));
-  };
-  const onClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (onOpen) onOpen(p);
-  };
-  const label = shortProductName(p.name).split(" ")[0];
+  const name = shortProductName(p.name);
+  const label = name.split(" ")[0];
   const href = p.slug ? productPath(p.slug) : undefined;
 
-  return (
-    <div
-      className="product-card reveal"
-      style={{ transitionDelay: `${(idx % 8) * 60}ms` }}
-      onClick={onClick}
-    >
+  const onAdd = () => {
+    if (outOfStock || !addToCart) return;
+    addToCart(toCartItem(p));
+  };
+  // The card opens the quick look where the page has one (the shop); where
+  // it does not (the related row on a product page) it is a plain link to
+  // the product - it used to be a dead surface there, with two dead buttons.
+  const onCardClick = (e: React.MouseEvent) => {
+    if (!onOpen) return;
+    e.preventDefault();
+    onOpen(p);
+  };
+
+  const flag = outOfStock
+    ? { text: "Tükendi", cls: "out" }
+    : p.isNew
+      ? { text: "Yeni", cls: "new" }
+      : p.featured
+        ? { text: "Öne çıkan", cls: "gold" }
+        : lowStock
+          ? { text: `Son ${p.stock}`, cls: "low" }
+          : { text: SHOP_CAT_LABELS[p.cat] ?? p.tag, cls: "" };
+
+  const body = (
+    <>
       <div className="product-card-img">
         <ProductSurface
           cat={p.cat}
@@ -110,60 +133,65 @@ export function ProductCard({
           sub={p.tag}
           images={p.images}
         />
-        {outOfStock ? (
-          <div
-            className="product-card-flag"
-            style={{ background: "var(--ink-soft)" }}
-          >
-            TÜKENDİ
-          </div>
-        ) : (
-          <>
-            {p.featured && (
-              <div className="product-card-flag gold">ÖNE ÇIKAN</div>
-            )}
-            {p.isNew && <div className="product-card-flag new">NUOVO</div>}
-            {!p.featured && !p.isNew && lowStock && (
-              <div
-                className="product-card-flag"
-                style={{ background: "var(--rose)" }}
-              >
-                SON {p.stock}
-              </div>
-            )}
-            {!p.featured && !p.isNew && !lowStock && (
-              <div className="product-card-flag">{p.cat.toUpperCase()}</div>
-            )}
-          </>
-        )}
-        <div className="product-card-quick">
-          <button onClick={onAdd} disabled={outOfStock}>
-            {outOfStock ? "Tükendi" : "+ Sepete ekle"}
-          </button>
-          <button onClick={onClick}>Hızlı bak</button>
-        </div>
+        <div className={`product-card-flag ${flag.cls}`}>{flag.text}</div>
       </div>
       <div className="product-card-meta">
         <div className="product-card-cat">{p.tag}</div>
-        <h3 className="product-card-name">
-          {href ? (
-            <a
-              href={href}
-              onClick={(e) => e.stopPropagation()}
-              style={{ color: "inherit", textDecoration: "none" }}
-            >
-              {shortProductName(p.name)}
-            </a>
-          ) : (
-            shortProductName(p.name)
-          )}
-        </h3>
+        <h3 className="product-card-name">{name}</h3>
+      </div>
+    </>
+  );
+
+  return (
+    <article
+      className="product-card reveal"
+      style={{ transitionDelay: `${(idx % 8) * 60}ms` }}
+    >
+      {href ? (
+        <a className="product-card-link" href={href} onClick={onCardClick}>
+          {body}
+        </a>
+      ) : (
+        <div
+          className="product-card-link"
+          role={onOpen ? "button" : undefined}
+          tabIndex={onOpen ? 0 : undefined}
+          onClick={onCardClick}
+          onKeyDown={(e) => {
+            if (onOpen && (e.key === "Enter" || e.key === " ")) {
+              e.preventDefault();
+              onOpen(p);
+            }
+          }}
+        >
+          {body}
+        </div>
+      )}
+      <div className="product-card-foot">
         <div className="product-card-price">
           <span>{p.price}</span>
           {p.compareAtPrice && <span className="was">{p.compareAtPrice}</span>}
         </div>
+        {addToCart && (
+          <button
+            type="button"
+            className="product-card-add"
+            onClick={onAdd}
+            disabled={outOfStock}
+            aria-label={outOfStock ? `${name} - tükendi` : `${name} - sepete ekle`}
+          >
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M8 3v10M3 8h10"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        )}
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -296,19 +324,12 @@ export function CartDrawer({
     <>
       <div
         onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 70,
-          background: "rgba(20, 61, 43, 0.6)",
-          backdropFilter: "blur(6px)",
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? "auto" : "none",
-          transition: "opacity 0.3s",
-        }}
+        className={`cart-scrim${open ? " open" : ""}`}
+        aria-hidden="true"
       />
       <aside
         ref={panelRef}
+        className={`cart-drawer${open ? " open" : ""}`}
         // The drawer stays mounted so it can animate out. While it is closed
         // its buttons and links were still in the tab order off-screen, and
         // `aria-modal` was announced permanently - a screen reader believed a
@@ -319,51 +340,24 @@ export function CartDrawer({
         aria-hidden={open ? undefined : true}
         inert={!open}
         tabIndex={-1}
-        style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 71,
-          width: "min(440px, 100vw)",
-          background: "#FFF",
-          transform: `translateX(${open ? "0" : "100%"})`,
-          transition: "transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1)",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "-20px 0 60px rgba(0,0,0,0.12)",
-        }}
       >
-        <header
-          className="cart-drawer-header"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            borderBottom: "1px solid var(--ink-line)",
-          }}
-        >
+        <div className="cart-grip" aria-hidden="true" />
+        <header className="cart-drawer-header">
           <div>
-            <div className="eyebrow" style={{ marginBottom: 4 }}>
-              Sepetin
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--serif)",
-                fontStyle: "normal",
-                fontSize: 24,
-                lineHeight: 1,
-              }}
-            >
-              {itemCount} ürün
-            </div>
+            <p className="cart-drawer-kicker">Sepetin</p>
+            <p className="cart-drawer-title">{itemCount} ürün</p>
           </div>
-          <button onClick={onClose} className="nav-icon-btn" aria-label="Kapat">
-            <svg width="14" height="14" viewBox="0 0 16 16">
+          <button
+            type="button"
+            onClick={onClose}
+            className="nav-icon-btn"
+            aria-label="Kapat"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
               <path
                 d="M3 3 L13 13 M13 3 L3 13"
                 stroke="currentColor"
-                strokeWidth="1.4"
+                strokeWidth="1.5"
                 strokeLinecap="round"
               />
             </svg>
@@ -372,82 +366,43 @@ export function CartDrawer({
         {items.length > 0 && freeShippingThreshold > 0 && (
           <FreeShippingBar total={total} threshold={freeShippingThreshold} />
         )}
-        <div
-          className="cart-drawer-body"
-          style={{ flex: 1, overflowY: "auto" }}
-        >
+        <div className="cart-drawer-body">
           {items.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px 20px" }}>
-              <div
-                style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: "50%",
-                  background: "var(--bg-warm)",
-                  display: "grid",
-                  placeItems: "center",
-                  margin: "0 auto 22px",
-                }}
-              >
-                <svg width="28" height="28" viewBox="0 0 16 16" fill="none">
+            <div className="cart-empty">
+              <div className="cart-empty-disc" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                   <path
-                    d="M2 3 L4 3 L5.5 11 L13 11 L14 5 L5 5"
-                    stroke="var(--ink-mute)"
-                    strokeWidth="1.4"
+                    d="M5.25 8.25h13.5l-.9 11.1a1 1 0 0 1-1 .9H7.15a1 1 0 0 1-1-.9l-.9-11.1Z"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
                     strokeLinejoin="round"
+                  />
+                  <path
+                    d="M9 10.5V7.5a3 3 0 0 1 6 0v3"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
                     strokeLinecap="round"
                   />
                 </svg>
               </div>
-              <div
-                style={{
-                  fontFamily: "var(--serif)",
-                  fontStyle: "normal",
-                  fontSize: 28,
-                  lineHeight: 1.1,
-                }}
-              >
-                Sepetin boş.
-              </div>
-              <p
-                style={{
-                  color: "var(--ink-mute)",
-                  marginTop: 14,
-                  fontSize: 14,
-                  lineHeight: 1.6,
-                  maxWidth: 280,
-                  marginLeft: "auto",
-                  marginRight: "auto",
-                }}
-              >
-                Bir affogato, bir matcha, bir çekirdek paketi - eve ya da köşkün
-                bahçesine servise hazır.
+              <p className="cart-empty-title">Sepetin boş.</p>
+              <p className="cart-empty-text">
+                Bir çekirdek paketi, bir affogato seti, bir moka pot - eve ya da
+                hediyeye hazır.
               </p>
+              <a href="/magaza" className="btn btn-primary" onClick={onClose}>
+                Mağazaya göz at
+              </a>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <ul className="cart-lines">
               {items.map((it, i) => {
                 const qty = it.qty || 1;
                 const lineTotal = (it.price || 0) * qty;
                 const atMax = it.maxStock !== undefined && qty >= it.maxStock;
                 return (
-                  <div
-                    key={cartItemKey(it) + i}
-                    className="cart-item-grid"
-                    style={{
-                      alignItems: "center",
-                      padding: 12,
-                      border: "1px solid var(--ink-line)",
-                      borderRadius: "var(--r-md)",
-                    }}
-                  >
-                    <div
-                      className="cart-item-thumb"
-                      style={{
-                        borderRadius: "var(--r-sm)",
-                        overflow: "hidden",
-                      }}
-                    >
+                  <li key={cartItemKey(it) + i} className="cart-item-grid">
+                    <div className="cart-item-thumb">
                       <ProductSurface
                         cat={it.cat ?? "gift"}
                         tone={it.img ?? "cream"}
@@ -455,31 +410,22 @@ export function CartDrawer({
                       />
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontFamily: "var(--serif-display)",
-                          fontSize: 16,
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {shortProductName(it.name)}
+                      <div className="cart-item-name">
+                        {it.slug ? (
+                          <a href={productPath(it.slug)} onClick={onClose}>
+                            {shortProductName(it.name)}
+                          </a>
+                        ) : (
+                          shortProductName(it.name)
+                        )}
                       </div>
                       {it.variantName && (
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: "var(--ink-soft)",
-                            marginTop: 2,
-                          }}
-                        >
+                        <div className="cart-item-variant">
                           {it.variantName}
                         </div>
                       )}
                       {setQty ? (
-                        <div
-                          className="cart-qty-stepper"
-                          style={{ marginTop: 8 }}
-                        >
+                        <div className="cart-qty-stepper">
                           <button
                             type="button"
                             aria-label="Azalt"
@@ -498,57 +444,26 @@ export function CartDrawer({
                           </button>
                         </div>
                       ) : (
-                        <div
-                          style={{
-                            fontFamily: "var(--mono)",
-                            fontSize: 11,
-                            color: "var(--ink-mute)",
-                            marginTop: 4,
-                          }}
-                        >
-                          x{qty}
-                        </div>
+                        <div className="cart-item-variant">x{qty}</div>
                       )}
-                      {atMax && (
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: "var(--rose)",
-                            marginTop: 4,
-                          }}
-                        >
-                          Stok sınırı
-                        </div>
-                      )}
+                      {atMax && <div className="cart-item-cap">Stok sınırı</div>}
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-end",
-                        gap: 6,
-                      }}
-                    >
-                      <div style={{ fontFamily: "var(--mono)", fontSize: 13 }}>
+                    <div className="cart-item-side">
+                      <div className="cart-item-price tabular">
                         {Math.round(lineTotal)}₺
                       </div>
                       <button
+                        type="button"
+                        className="cart-item-remove"
                         onClick={() => removeItem(i)}
-                        style={{
-                          fontFamily: "var(--mono)",
-                          fontSize: 10,
-                          letterSpacing: "0.18em",
-                          textTransform: "uppercase",
-                          color: "var(--ink-mute)",
-                        }}
                       >
                         Sil
                       </button>
                     </div>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
         </div>
         {items.length > 0 && <CartFooter total={total} />}
@@ -587,56 +502,23 @@ function FreeShippingBar({
   );
 }
 
+/** The app's cart bar: the total and one ink capsule to checkout. */
 function CartFooter({ total }: { total: number }) {
   return (
-    <footer
-      className="cart-drawer-foot"
-      style={{ borderTop: "1px solid var(--ink-line)" }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 10,
-          fontSize: 14,
-          color: "var(--ink-soft)",
-        }}
-      >
+    <footer className="cart-drawer-foot">
+      <div className="cart-sum-row">
         <span>Ara toplam</span>
-        <span className="tabular" style={{ fontFamily: "var(--mono)" }}>
-          {Math.round(total)}₺
-        </span>
+        <span className="cart-sum tabular">{Math.round(total)}₺</span>
       </div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 20,
-          fontSize: 12,
-          color: "var(--ink-mute)",
-        }}
-      >
+      <div className="cart-sum-note">
         <span>Kargo</span>
         <span>Ödeme adımında hesaplanır</span>
       </div>
-      <a
-        href="/odeme"
-        className="btn btn-primary btn-lg"
-        style={{ width: "100%", justifyContent: "center" }}
-      >
+      <a href="/odeme" className="btn btn-ink btn-lg cart-checkout">
         Ödemeye geç
         <span className="arrow">→</span>
       </a>
-      <p
-        style={{
-          margin: "12px 0 0",
-          fontSize: 11,
-          letterSpacing: "0.04em",
-          color: "var(--ink-mute)",
-          textAlign: "center",
-          lineHeight: 1.55,
-        }}
-      >
+      <p className="cart-foot-hint">
         Adres ve indirim kodu bir sonraki adımda eklenir.
       </p>
     </footer>
@@ -672,8 +554,8 @@ export function ProductModal({
         position: "fixed",
         inset: 0,
         zIndex: 90,
-        background: "rgba(20, 61, 43, 0.7)",
-        backdropFilter: "blur(10px)",
+        background: "rgba(33, 28, 24, 0.32)",
+        backdropFilter: "blur(8px)",
         display: "grid",
         placeItems: "center",
         padding: "clamp(16px, 4vw, 40px)",
@@ -690,8 +572,9 @@ export function ProductModal({
         style={{
           width: "min(1080px, 100%)",
           maxHeight: "92vh",
-          background: "#FFF",
-          borderRadius: "var(--r-lg)",
+          background: "var(--surface-sheet)",
+          borderRadius: "var(--r-xl)",
+          boxShadow: "var(--shadow-lg)",
           overflow: "hidden",
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
@@ -992,10 +875,13 @@ function WishlistHeart({
   isFavorite: boolean;
   isAuthenticated: boolean;
 }) {
+  // Signing in, or toggling, returns the visitor to the page they were on;
+  // the form used to post back="/" and dropped them on the home page.
+  const pathname = usePathname() || "/";
   if (!isAuthenticated) {
     return (
       <a
-        href="/uye/giris"
+        href={`/uye/giris?next=${encodeURIComponent(pathname)}`}
         aria-label="Favorilere eklemek için giriş yap"
         title="Favorilere eklemek için giriş yap"
         className="wishlist-heart"
@@ -1017,7 +903,7 @@ function WishlistHeart({
   return (
     <form action={toggleWishlistAction} onClick={(e) => e.stopPropagation()}>
       <input type="hidden" name="productId" value={productId} />
-      <input type="hidden" name="back" value="/" />
+      <input type="hidden" name="back" value={pathname} />
       <button
         type="submit"
         aria-label={isFavorite ? "Favoriden çıkar" : "Favorilere ekle"}
@@ -1096,7 +982,10 @@ export function SearchOverlay({
         });
       }
     }
-    for (const [, cat] of Object.entries(menu)) {
+    for (const [key, cat] of Object.entries(menu)) {
+      // Each result opens its own category page; every one used to land on
+      // /menu with the search term gone.
+      const slug = MENU_CATEGORY_ROUTES.find((r) => r.menuKey === key)?.slug;
       for (const it of cat.items) {
         const hay =
           `${it.name} ${it.desc} ${(it.tags ?? []).join(" ")}`.toLowerCase();
@@ -1106,6 +995,7 @@ export function SearchOverlay({
             name: it.name,
             sub: cat.title,
             price: it.price,
+            href: slug ? `/menu/${slug}` : "/menu",
           });
         }
       }
@@ -1158,8 +1048,13 @@ export function SearchOverlay({
             placeholder="Ürün veya menü ara - espresso, matcha, edible cup…"
             aria-label="Ara"
           />
-          <button onClick={onClose} className="search-close" aria-label="Kapat">
-            ESC
+          <button
+            type="button"
+            onClick={onClose}
+            className="search-close"
+            aria-label="Kapat"
+          >
+            Esc
           </button>
         </div>
 
@@ -1171,7 +1066,12 @@ export function SearchOverlay({
               <div className="search-suggest">
                 {["Affogato", "Matcha", "Edible cup", "Espresso", "Hediye"].map(
                   (s) => (
-                    <button key={s} className="chip" onClick={() => setQ(s)}>
+                    <button
+                      key={s}
+                      type="button"
+                      className="chip-link"
+                      onClick={() => setQ(s)}
+                    >
                       {s}
                     </button>
                   ),
@@ -1180,13 +1080,7 @@ export function SearchOverlay({
             </div>
           ) : productResults.length === 0 && menuResults.length === 0 ? (
             <div className="search-empty">
-              <div
-                style={{
-                  fontFamily: "var(--serif)",
-                  fontStyle: "normal",
-                  fontSize: 24,
-                }}
-              >
+              <div className="search-empty-title">
                 &quot;{q}&quot; için sonuç yok.
               </div>
               <p>Farklı bir kelime dene ya da mağazaya göz at.</p>
@@ -1248,7 +1142,12 @@ export function SearchOverlay({
                     Menü · {menuResults.length}
                   </div>
                   {menuResults.map((r, i) => (
-                    <Link key={`m-${i}`} href="/menu" className="search-result">
+                    <Link
+                      key={`m-${i}`}
+                      href={r.href ?? "/menu"}
+                      className="search-result"
+                      onClick={onClose}
+                    >
                       <div className="search-result-thumb">
                         <PhotoSurface hue="caramel">
                           <div

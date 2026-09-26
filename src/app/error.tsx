@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect } from "react";
+
+import { SiteChrome } from "@/components/laffogato/site-chrome";
 
 /**
  * Route-segment error boundary. Catches render-time throws from server
@@ -9,6 +10,11 @@ import { useEffect } from "react";
  * failure in the data layer - and shows a calm Turkish fallback with a retry
  * instead of a raw 500. `reset()` re-renders the segment (re-runs the data
  * fetch) so a transient DB blip recovers without a full reload.
+ *
+ * The picture is the 404's mark stopped halfway: the coffee got to the
+ * middle of the letters and no further - a pour that was interrupted, not a
+ * page that is missing. It sits inside the site's own chrome so the way out
+ * is where it always is.
  */
 export default function AppError({
   error,
@@ -23,83 +29,41 @@ export default function AppError({
   }, [error]);
 
   return (
-    <main
-      style={{
-        minHeight: "70vh",
-        display: "grid",
-        placeItems: "center",
-        padding: "48px 24px",
-        background: "var(--bg-warm, #f6f5f2)",
-        color: "var(--ink, #201c17)",
-      }}
-    >
-      <div style={{ maxWidth: 460, textAlign: "center" }}>
-        <div
-          style={{
-            fontFamily: "var(--mono, monospace)",
-            fontSize: 11,
-            letterSpacing: "0.22em",
-            textTransform: "uppercase",
-            opacity: 0.55,
-            marginBottom: 16,
-          }}
-        >
-          Bir şeyler ters gitti
-        </div>
-        <h1
-          style={{
-            fontFamily: "var(--sans, 'Montserrat', -apple-system, sans-serif)",
-            fontWeight: 800,
-            letterSpacing: "-0.03em",
-            fontSize: 34,
-            lineHeight: 1.1,
-            margin: 0,
-          }}
-        >
-          Şu an bağlanamadık.
-        </h1>
-        <p style={{ marginTop: 18, lineHeight: 1.6, opacity: 0.75 }}>
-          Geçici bir aksaklık olabilir. Birazdan tekrar dener misin? Sorun
-          sürerse bizimle iletişime geçebilirsin.
-        </p>
-        <div
-          style={{
-            marginTop: 28,
-            display: "flex",
-            gap: 12,
-            justifyContent: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <button
-            onClick={reset}
-            style={{
-              padding: "12px 22px",
-              borderRadius: 8,
-              background: "var(--ink, #201c17)",
-              color: "#fff",
-              fontSize: 14,
-              fontWeight: 500,
-            }}
-          >
-            Tekrar dene
-          </button>
-          <Link
-            href="/"
-            style={{
-              padding: "12px 22px",
-              borderRadius: 8,
-              border: "1px solid var(--ink-line, #e1e5e0)",
-              color: "var(--ink, #201c17)",
-              fontSize: 14,
-              fontWeight: 500,
-              textDecoration: "none",
-            }}
-          >
-            Ana sayfa
-          </Link>
+    <SiteChrome>
+      <div className="nf-page">
+        <div className="wrap">
+          <section className="nf-hero" aria-labelledby="err-title">
+            <div className="nf-stage nf-stage--half" aria-hidden="true">
+              <span className="nf-glow" />
+              <span className="nf-mark">
+                <span className="nf-coffee" />
+              </span>
+            </div>
+            <p className="nf-code">
+              <span>!</span> Geçici bir aksaklık
+            </p>
+            <h1 id="err-title" className="nf-title">
+              Bir şey <span className="script">yarım kaldı.</span>
+            </h1>
+            <p className="nf-lede">
+              Şu an bağlanamadık - büyük ihtimalle birkaç saniyelik bir şey.
+              Tekrar dener misin? Sorun sürerse bize yazabilirsin.
+            </p>
+            <div className="nf-actions">
+              <button
+                type="button"
+                onClick={reset}
+                className="btn btn-primary btn-lg"
+              >
+                Tekrar dene
+              </button>
+              <a href="/" className="btn btn-ghost btn-lg">
+                Anasayfa
+              </a>
+            </div>
+          </section>
         </div>
       </div>
-    </main>
+    </SiteChrome>
   );
 }

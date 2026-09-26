@@ -3,26 +3,25 @@
 import { useEffect, useRef, useState } from "react";
 
 import { HOME_SLIDES, type HomeSlideAction } from "./data";
+import { SCENES } from "./scenes";
 
 const AUTOPLAY_MS = 7000;
 
 /**
- * The home hero, laid out to the reference the operator supplied.
+ * The home hero: the app's product stage, at browser scale.
  *
- * A cream band under the white nav; on the left an eyebrow, an oversized
- * cocoa headline broken over two lines, four lines of body copy and a thin
- * outlined call to action; on the right the drink cut out and floated over a
- * deep-green disc that runs off the right edge of the frame. Under the copy,
- * the other drinks as thumbnails with a rating pill, the active one carrying
- * a quantity stepper; under the whole thing, the slide dots.
+ * lafmobil draws a product on porcelain in a pastel halo of its own colour,
+ * with a soft floor under it and the name beside it in Poppins (DESIGN-GLASS
+ * §4.4, §13.8). The same here: each slide carries its scene family, the halo
+ * cross-fades with the slide, the drink rises onto its floor, and the other
+ * drinks wait as glass thumbnails under the copy.
  *
- * The disc is an ellipse, not a rounded rectangle - that is what makes the
- * shape read as a shape rather than as a panel, and it is why the cup is
- * allowed to hang off its lower left rather than sit inside it.
+ * The quantity stepper that used to sit under the active thumbnail is gone:
+ * cafe drinks are not orderable from the web (the cart carries shop
+ * products), and the number it held was never passed anywhere.
  *
  * Autoplay is deliberately conservative. It stops for good the first time the
- * visitor touches a control (rather than resuming and yanking the slide out
- * from under them mid-read), it pauses while the pointer is over the slider or
+ * visitor touches a control, it pauses while the pointer is over the slider or
  * the keyboard focus is inside it, it pauses while the tab is hidden, and it
  * never starts at all under `prefers-reduced-motion`.
  */
@@ -34,8 +33,7 @@ export function HomeHeroSlider({
   onAction: (action: HomeSlideAction) => void;
   /** Admin-editable copy (/admin/icerik). The first slide's kicker and body
       come from `home.hero.eyebrow` / `home.hero.lede` when an operator has
-      set them - the rewrite had orphaned both fields, so the panel was
-      offering two controls that changed nothing. */
+      set them. */
   content?: Record<string, string>;
   /** Ayarlar → "Hero görsel URL": overrides the first slide's photograph. */
   heroImageUrl?: string;
@@ -44,11 +42,6 @@ export function HomeHeroSlider({
   const [paused, setPaused] = useState(false);
   /* Set once, when a control is used. Autoplay never comes back after it. */
   const [stopped, setStopped] = useState(false);
-  /* The stepper on the active thumbnail. Cafe drinks are not orderable from
-     the web (the cart carries shop products), so this is the reference's
-     control kept as a quantity the CTA carries into the menu - never a
-     silent add to a basket that could not become an order. */
-  const [qty, setQty] = useState(1);
   const reduced = useRef(false);
 
   useEffect(() => {
@@ -76,7 +69,6 @@ export function HomeHeroSlider({
 
   const goTo = (next: number) => {
     setStopped(true);
-    setQty(1);
     setIndex(
       ((next % HOME_SLIDES.length) + HOME_SLIDES.length) % HOME_SLIDES.length,
     );
@@ -89,10 +81,11 @@ export function HomeHeroSlider({
   const kicker = (index === 0 && content?.["home.hero.eyebrow"]) || slide.kicker;
   const text = (index === 0 && content?.["home.hero.lede"]) || slide.text;
   const photo = (index === 0 && heroImageUrl) || slide.photo;
+  const scene = SCENES[slide.scene];
 
   return (
     <section className="hero-x" aria-label="Öne çıkanlar">
-      <div className="wrap">
+      <div className="wrap-wide">
         <div
           className="hero-x-frame"
           onMouseEnter={() => setPaused(true)}
@@ -100,13 +93,18 @@ export function HomeHeroSlider({
           onFocus={() => setPaused(true)}
           onBlur={() => setPaused(false)}
           aria-roledescription="karusel"
+          style={
+            {
+              "--scene-core": scene.core,
+              "--scene-mid": scene.mid,
+              "--scene-edge": scene.edge,
+              "--scene-floor": scene.floor,
+            } as React.CSSProperties
+          }
         >
-          {/* The mark, blown up and barely inked - the reference's watermark. */}
-          <span className="hero-x-watermark" aria-hidden="true" />
-
           <div className="hero-x-copy">
             <p className="hero-x-kicker">{kicker}</p>
-            <h2 className="hero-x-title">
+            <h2 className="hero-x-title" key={`t-${index}`}>
               <span>{slide.title[0]}</span>
               <span>{slide.title[1]}</span>
             </h2>
@@ -114,14 +112,14 @@ export function HomeHeroSlider({
             <div className="hero-x-actions">
               <button
                 type="button"
-                className="hero-x-cta"
+                className="btn btn-primary btn-lg"
                 onClick={() => onAction(slide.primary.action)}
               >
                 {slide.primary.label}
               </button>
               <button
                 type="button"
-                className="hero-x-cta ghost"
+                className="btn btn-ghost btn-lg"
                 onClick={() => onAction(slide.secondary.action)}
               >
                 {slide.secondary.label}
@@ -134,43 +132,35 @@ export function HomeHeroSlider({
               {HOME_SLIDES.map((s, i) => {
                 const on = i === index;
                 return (
-                  <li key={s.photo} className={`hero-x-thumb ${on ? "on" : ""}`}>
+                  <li key={s.photo}>
                     <button
                       type="button"
-                      className="hero-x-thumb-btn"
+                      className={`hero-x-thumb${on ? " on" : ""}`}
                       onClick={() => goTo(i)}
                       aria-current={on || undefined}
                       aria-label={s.title.join(" ")}
                     >
-                      {/* Same file as the stage photo below, which can be
-                          the panel's hero URL; a plain <img> lets both share
-                          one cached download. */}
+                      <span
+                        className="hero-x-thumb-light"
+                        style={{
+                          background: `radial-gradient(circle at 50% 42%, ${SCENES[s.scene].mid} 0%, ${SCENES[s.scene].edge} 70%)`,
+                        }}
+                        aria-hidden="true"
+                      />
+                      {/* Same file as the stage photo, so both share one
+                          cached download. */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={s.photo} alt="" loading="lazy" width={581} height={942} />
+                      <img
+                        src={s.photo}
+                        alt=""
+                        loading="lazy"
+                        width={581}
+                        height={942}
+                      />
+                      <span className="hero-x-thumb-name">
+                        {s.title.join(" ")}
+                      </span>
                     </button>
-                    {on ? (
-                      <div className="hero-x-stepper">
-                        <button
-                          type="button"
-                          onClick={() => setQty((q) => Math.max(1, q - 1))}
-                          aria-label="Adet azalt"
-                          disabled={qty <= 1}
-                        >
-                          −
-                        </button>
-                        <span aria-live="polite" aria-label={`Adet ${qty}`}>
-                          {qty}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setQty((q) => Math.min(9, q + 1))}
-                          aria-label="Adet artır"
-                          disabled={qty >= 9}
-                        >
-                          +
-                        </button>
-                      </div>
-                    ) : null}
                   </li>
                 );
               })}
@@ -178,16 +168,10 @@ export function HomeHeroSlider({
           </div>
 
           <div className="hero-x-stage">
-            <span className="hero-x-disc" aria-hidden="true" />
-            <span className="hero-x-sparkle a" aria-hidden="true">
-              ✦
-            </span>
-            <span className="hero-x-sparkle b" aria-hidden="true">
-              ✦
-            </span>
-            <span className="hero-x-sparkle c" aria-hidden="true">
-              ✦
-            </span>
+            <span className="hero-x-halo" aria-hidden="true" />
+            <span className="hero-x-sphere a" aria-hidden="true" />
+            <span className="hero-x-sphere b" aria-hidden="true" />
+            <span className="hero-x-floor" aria-hidden="true" />
             {/* The first slide's photo can be the panel's "Hero görsel URL",
                 an arbitrary host next/image would need a wildcard
                 remotePattern for. */}
@@ -195,8 +179,7 @@ export function HomeHeroSlider({
             <img
               className="hero-x-photo"
               /* Keyed on the photo so a slide change remounts the image and
-                 replays the rise; without it React reuses the node and the
-                 drink swaps in place with no transition at all. */
+                 replays the rise. */
               key={photo}
               src={photo}
               alt={slide.alt}
@@ -208,14 +191,14 @@ export function HomeHeroSlider({
             />
           </div>
 
-          <div className="hero-x-dots">
+          <div className="hero-x-dots" role="group" aria-label="Slaytlar">
             {HOME_SLIDES.map((s, i) => (
               <button
                 key={s.photo}
                 type="button"
-                className={`hero-x-dot ${i === index ? "on" : ""}`}
+                className={`hero-x-dot${i === index ? " on" : ""}`}
                 onClick={() => goTo(i)}
-                aria-label={`${i + 1}. slayt`}
+                aria-label={`${i + 1}. slayt: ${s.title.join(" ")}`}
                 aria-current={i === index || undefined}
               />
             ))}

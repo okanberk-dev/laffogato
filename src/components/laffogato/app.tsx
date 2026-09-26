@@ -197,6 +197,20 @@ export function LaffogatoApp({
     setCart(readStoredCart());
     hydratedRef.current = true;
     setMounted(true);
+    // `?ara=1` opens the search: the header's search button on pages outside
+    // the SPA (member area, checkout, legal, 404) lands here, and used to
+    // drop the visitor on /magaza with the search still closed.
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("ara")) {
+      setSearchOpen(true);
+      params.delete("ara");
+      const rest = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${rest ? `?${rest}` : ""}${window.location.hash}`,
+      );
+    }
     const onStorage = (e: StorageEvent) => {
       if (e.key === CART_STORAGE_KEY) setCart(readStoredCart());
     };

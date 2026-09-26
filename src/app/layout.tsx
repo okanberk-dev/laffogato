@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Montserrat } from "next/font/google";
+import { Inter, Poppins } from "next/font/google";
 
 import { GoogleTagManager } from "@next/third-parties/google";
 
@@ -14,29 +14,32 @@ import "./globals.css";
 // container id with NEXT_PUBLIC_GTM_ID; empty value disables the integration.
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
 
-// One family for the whole site.
-//
-// Montserrat, set by the operator's reference design (6 Eyl 2026). The
-// reference is drawn in Sofia Pro, which is licensed; Montserrat is the
-// closest thing on Google Fonts and matches the two letterforms that carry
-// that look - the near-circular `C`/`o` and the wide double-storey `a` - at
-// close to the same width, which Plus Jakarta Sans (narrower, more humanist)
-// did not. Weight does all the differentiating: there is no serif and no
-// mono, so the eyebrow style is uppercase + tracking in the same face and
-// prices lean on `font-variant-numeric: tabular-nums`. Turkish via latin-ext.
-const brandFont = Montserrat({
+// Two voices, the app's (lafmobil BRAND-IDENTITY §2, karar 311): Poppins is
+// the display voice - titles, names, prices, buttons, chips - and Inter the
+// reading voice - sentences, captions, help and legal text, field text. The
+// site followed the app's palette on 25 Eyl 2026 and its type with it, so one
+// brand reads the same on the phone and in the browser. Inter ships as a
+// variable font (every weight from one file); Poppins in the three cuts the
+// app draws (500 / 600 / 700). Turkish via latin-ext on both.
+const displayFont = Poppins({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-brand",
-  style: ["normal", "italic"],
+  weight: ["500", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
+});
+const textFont = Inter({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-text",
   display: "swap",
 });
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#143d2b" },
-  ],
-  colorScheme: "light dark",
+  // The porcelain the glass header sits on. The site, like the app
+  // (userInterfaceStyle "light"), has one appearance: declaring "light dark"
+  // let a dark-mode browser paint its own dark form controls and scrollbars
+  // onto a page that has no dark styles.
+  themeColor: "#fbf8f4",
+  colorScheme: "light",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -138,7 +141,7 @@ export const metadata: Metadata = {
     // Misc
     "format-detection": "telephone=no",
     "apple-mobile-web-app-title": SITE.name,
-    "msapplication-TileColor": "#143d2b",
+    "msapplication-TileColor": "#1d6d56",
     "msapplication-config": "/browserconfig.xml",
     // Pinterest + Facebook domain verification (env-driven, optional)
     ...(SITE.verification.pinterest
@@ -158,7 +161,7 @@ export const metadata: Metadata = {
   },
 };
 
-const fontVariables = brandFont.variable;
+const fontVariables = `${displayFont.variable} ${textFont.variable}`;
 
 export default function RootLayout({
   children,

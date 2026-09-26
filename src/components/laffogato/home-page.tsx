@@ -8,12 +8,33 @@ import Image from "next/image";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { priceLabel } from "@/lib/utils/format";
 
+import { AppStoreLinks } from "./app-links";
 import { HomeHeroSlider } from "./home-hero-slider";
 import { PourModule } from "./pour-module";
 import { MENU, LOCATION, type HomeSlideAction } from "./data";
 import { ROUTE_PATHS, type Route } from "./route-paths";
 import { MenuPlate } from "./visuals";
 import { MENU_TAG_LABELS, type PageProps } from "./page-shared";
+
+/** What the app does that the site does not - the reasons to install it. */
+const APP_FEATURES = [
+  {
+    title: "Siparişini ver",
+    body: "gel-al ya da Tuzla içi kurye, kafe menüsünün tamamı.",
+  },
+  {
+    title: "Damga kartın",
+    body: "her kafe siparişi bir damga, altıncı içecek bizden.",
+  },
+  {
+    title: "Kasa kodu",
+    body: "kasada tek okutmayla damga ve ödül.",
+  },
+  {
+    title: "Karaoke ve kampanyalar",
+    body: "odanı ayırt, köşkte olanları ilk sen gör.",
+  },
+];
 
 /** The four figures under the signature block. */
 const SIGNATURE_STATS = [
@@ -185,37 +206,39 @@ export function PageHome({
       </section>
 
       {/* Promo tiles ─────────────────────────────────────────── */}
+      {/* Four doors, each on the surface the app gives that thing: green for
+          ordering (which lives in the app, so the tile opens the app block
+          below rather than a menu that cannot take an order), glass for the
+          menu, brass for rewards, bordo for the karaoke room. */}
       <section className="home-tiles" aria-label="Kısayollar">
         <div className="wrap">
           <div className="home-tiles-grid">
-            <a
-              href={ROUTE_PATHS.menu}
-              onClick={go("menu")}
-              className="home-tile"
-              style={{
-                background: "var(--bg-espresso)",
-                color: "#fff",
-                borderColor: "var(--bg-espresso)",
-              }}
-            >
+            <a href="#uygulama" className="home-tile home-tile--green">
+              <span className="home-tile-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M5.25 8.25h13.5l-.9 11.1a1 1 0 0 1-1 .9H7.15a1 1 0 0 1-1-.9l-.9-11.1Z" />
+                  <path d="M9 10.5V7.5a3 3 0 0 1 6 0v3" />
+                </svg>
+              </span>
               <span className="home-tile-kicker">Sipariş</span>
               <span className="home-tile-body">
-                <span className="home-tile-title">Gel‑al · 15 dk</span>
+                <span className="home-tile-title">Gel-al · 15 dk</span>
                 <span className="home-tile-sub">
-                  Kurye Tuzla içi {courierFee}, 25-35 dk
+                  Uygulamadan; Tuzla içi kurye {courierFee}
                 </span>
               </span>
             </a>
             <a
               href={ROUTE_PATHS.menu}
               onClick={go("menu")}
-              className="home-tile"
-              style={{
-                background: "var(--bg-warm)",
-                color: "var(--ink)",
-                borderColor: "var(--ink-line)",
-              }}
+              className="home-tile home-tile--glass"
             >
+              <span className="home-tile-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M5 8.25h11.5v4.25a5 5 0 0 1-5 5h-1.5a5 5 0 0 1-5-5V8.25Z" />
+                  <path d="M16.5 9.5h1.75a2.25 2.25 0 0 1 0 4.5H16.3" />
+                </svg>
+              </span>
               <span className="home-tile-kicker">Menü</span>
               <span className="home-tile-body">
                 <span className="home-tile-title">{menuItemCount} lezzet</span>
@@ -224,15 +247,13 @@ export function PageHome({
                 </span>
               </span>
             </a>
-            <a
-              href="/uye/hesap"
-              className="home-tile"
-              style={{
-                background: "#f6e7ce",
-                color: "#3a2a12",
-                borderColor: "#eddcc0",
-              }}
-            >
+            <a href="/uye/hesap" className="home-tile home-tile--brass">
+              <span className="home-tile-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="7.5" />
+                  <path d="m9 12.2 2 2 4-4.4" />
+                </svg>
+              </span>
               <span className="home-tile-kicker">Ödüller</span>
               <span className="home-tile-body">
                 <span className="home-tile-title">6 damgada 1 içecek</span>
@@ -241,15 +262,13 @@ export function PageHome({
                 </span>
               </span>
             </a>
-            <a
-              href="/karaoke"
-              className="home-tile"
-              style={{
-                background: "var(--accent)",
-                color: "#fff",
-                borderColor: "var(--accent)",
-              }}
-            >
+            <a href="/karaoke" className="home-tile home-tile--velvet">
+              <span className="home-tile-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <rect x="9" y="3.75" width="6" height="10.5" rx="3" />
+                  <path d="M6.25 11.5a5.75 5.75 0 0 0 11.5 0M12 17.25v3" />
+                </svg>
+              </span>
               <span className="home-tile-kicker">Karaoke</span>
               <span className="home-tile-body">
                 <span className="home-tile-title">Üst kat özel oda</span>
@@ -326,7 +345,7 @@ export function PageHome({
                       </div>
                       <div className="rail-card-foot">
                         <span className="rail-card-price">{it.price}</span>
-                        <a href={it.href} className="btn btn-primary btn-sm">
+                        <a href={it.href} className="btn btn-outline btn-sm">
                           Menüde gör
                         </a>
                       </div>
@@ -403,14 +422,16 @@ export function PageHome({
       </section>
 
       {/* Loyalty ─────────────────────────────────────────────── */}
+      {/* The bordo signature surface - in the app the stamp card IS the
+          velvet card (one per screen). */}
       <section className="home-section">
         <div className="wrap">
-          <div className="loyalty-block reveal">
+          <div className="loyalty-block reveal" data-ground="dark">
             <div>
               <div className="eyebrow on-dark">
-                L’Af Ödüller · uygulama ile tek hesap
+                L’Af Ödüller · uygulama ve web’de tek hesap
               </div>
-              <h2 className="h2" style={{ marginTop: 14 }}>
+              <h2 className="h2" style={{ marginTop: 12 }}>
                 Altı damga, bir içecek bizden.
               </h2>
               <p>
@@ -421,31 +442,44 @@ export function PageHome({
                 <a href="/uye/hesap" className="btn btn-light">
                   Hesabımı gör
                 </a>
-                <a
-                  href="/karaoke"
-                  className="btn"
-                  style={{
-                    border: "1.5px solid rgba(255,255,255,0.45)",
-                    color: "#fff",
-                  }}
-                >
-                  Karaoke rezervasyonu
+                <a href="#uygulama" className="btn btn-glass-dark">
+                  Uygulamayı al
                 </a>
               </div>
             </div>
             <div className="loyalty-card">
               <div className="loyalty-card-head">
-                <span className="eyebrow on-dark">Damga kartı</span>
+                <span className="eyebrow caps on-dark">Damga kartı</span>
                 <span className="loyalty-tier">6 damga</span>
               </div>
               {/* The programme explained, not a particular visitor's card -
                   this page is public and does not know who is reading it, so
-                  the six circles are numbered as a legend. The live card, with
-                  the reader's own stamps on it, is on /uye/hesap. */}
+                  the circles are numbered as a legend. The live card, with the
+                  reader's own stamps on it, is on /uye/hesap. */}
               <div className="stamp-grid" aria-hidden="true">
                 {Array.from({ length: 6 }, (_, i) => (
-                  <div key={i} className={`stamp ${i === 5 ? "reward" : ""}`}>
-                    {i === 5 ? "★" : i + 1}
+                  <div
+                    key={i}
+                    className={`stamp ${i < 2 ? "filled" : ""} ${i === 5 ? "reward" : ""}`}
+                  >
+                    {i === 5 ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M5 8.25h11.5v4.25a5 5 0 0 1-5 5h-1.5a5 5 0 0 1-5-5V8.25Z"
+                          stroke="currentColor"
+                          strokeWidth="1.7"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M16.5 9.5h1.75a2.25 2.25 0 0 1 0 4.5H16.3"
+                          stroke="currentColor"
+                          strokeWidth="1.7"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    ) : (
+                      i + 1
+                    )}
                   </div>
                 ))}
               </div>
@@ -457,8 +491,71 @@ export function PageHome({
         </div>
       </section>
 
+      {/* The app ─────────────────────────────────────────────── */}
+      {/* The site's door into lafmobil: ordering, the stamp card and the
+          counter code live there. Store buttons come from
+          NEXT_PUBLIC_APP_STORE_URL / _PLAY_STORE_URL; until both are set the
+          block says "yakında" instead of linking nowhere. */}
+      <section className="home-section" id="uygulama">
+        <div className="wrap">
+          <div className="app-block reveal">
+            <div className="app-block-copy">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/app-icon-192.png"
+                alt=""
+                width={64}
+                height={64}
+                className="app-block-icon"
+              />
+              <div className="eyebrow">L’Affogato uygulaması</div>
+              <h2 className="h2">Köşk, cebinde.</h2>
+              <ul className="app-block-list">
+                {APP_FEATURES.map((f) => (
+                  <li key={f.title}>
+                    <span className="app-block-tick" aria-hidden="true">
+                      <svg viewBox="0 0 12 12" fill="none">
+                        <path
+                          d="m2.5 6.2 2.2 2.2 4.8-5"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                    <span>
+                      <strong>{f.title}</strong> - {f.body}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <AppStoreLinks />
+            </div>
+            <div className="app-phone" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/app-screen-home.webp"
+                alt=""
+                width={600}
+                height={1300}
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* The 3D cup, demoted to a toy low on the page. */}
-      <PourModule onOrder={() => navigate("menu")} />
+      {/* "Gerçeğini sipariş et" goes to the app block: cafe drinks are
+          ordered in the app, not from the web menu. */}
+      <PourModule
+        onOrder={() =>
+          document
+            .getElementById("uygulama")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+      />
 
       {/* Visit ───────────────────────────────────────────────── */}
       <section className="home-section home-section-last band-cream">

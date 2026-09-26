@@ -2,10 +2,18 @@
 
 import { useEffect } from "react";
 
+import {
+  LAF_BEAN_PATH,
+  LAF_LETTERS_PATH,
+  LAF_VIEWBOX,
+} from "@/components/laffogato/laf-paths";
+
 /**
  * Root error boundary - catches failures in the root layout itself (where the
  * segment-level error.tsx can't reach). Must render its own <html>/<body>.
- * Inline styles only: globals/fonts may not have loaded when this renders.
+ * Inline styles and an inline mark only: globals.css, the fonts and the
+ * /brand files may not have loaded when this renders. The colours are the
+ * porcelain palette's own (globals.css :root), spelled out.
  */
 export default function GlobalError({
   error,
@@ -26,34 +34,67 @@ export default function GlobalError({
           minHeight: "100vh",
           display: "grid",
           placeItems: "center",
-          fontFamily: "system-ui, sans-serif",
-          background: "#f6f5f2",
-          color: "#201c17",
+          fontFamily:
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
+          background:
+            "radial-gradient(60% 50% at 50% 38%, rgba(253, 175, 109, 0.22) 0%, rgba(253, 175, 109, 0) 70%), #f7f3ed",
+          color: "#211c18",
           padding: "48px 24px",
+          WebkitFontSmoothing: "antialiased",
         }}
       >
-        <div style={{ maxWidth: 440, textAlign: "center" }}>
-          <h1 style={{ fontSize: 30, margin: 0 }}>Şu an bağlanamadık.</h1>
-          <p style={{ marginTop: 16, lineHeight: 1.6, opacity: 0.75 }}>
+        <main style={{ maxWidth: 460, textAlign: "center" }}>
+          <svg
+            viewBox={`0 0 ${LAF_VIEWBOX.width} ${LAF_VIEWBOX.height}`}
+            width={132}
+            height={Math.round((132 * LAF_VIEWBOX.height) / LAF_VIEWBOX.width)}
+            role="img"
+            aria-label="L'Affogato"
+            style={{ margin: "0 auto 28px", display: "block" }}
+          >
+            <path fillRule="evenodd" fill="#211c18" d={LAF_LETTERS_PATH} />
+            <path fillRule="evenodd" fill="#b08a2e" d={LAF_BEAN_PATH} />
+          </svg>
+          <h1
+            style={{
+              fontSize: 32,
+              lineHeight: 1.1,
+              letterSpacing: "-0.02em",
+              fontWeight: 700,
+              margin: 0,
+            }}
+          >
+            Şu an bağlanamadık.
+          </h1>
+          <p
+            style={{
+              marginTop: 14,
+              fontSize: 16,
+              lineHeight: 1.6,
+              color: "#564d46",
+            }}
+          >
             Geçici bir aksaklık olabilir. Lütfen birazdan tekrar dene.
           </p>
           <button
             onClick={reset}
             style={{
-              marginTop: 24,
-              padding: "12px 22px",
-              borderRadius: 8,
+              marginTop: 26,
+              minHeight: 48,
+              padding: "0 26px",
+              borderRadius: 999,
               border: "none",
-              background: "#143d2b",
-              color: "#fff",
-              fontSize: 14,
-              fontWeight: 500,
+              background: "#1d6d56",
+              color: "#fbf8f4",
+              fontSize: 15,
+              fontWeight: 600,
               cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(59, 42, 30, 0.1)",
             }}
           >
             Tekrar dene
           </button>
-        </div>
+        </main>
       </body>
     </html>
   );
