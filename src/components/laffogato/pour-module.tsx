@@ -184,7 +184,7 @@ export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
           <div className="pour-module-copy">
             <div className="eyebrow">Küçük bir oyun</div>
             <h2 className="pour-module-title">
-              Kupayı çevir, espressoyu kendin dök.
+              Kupayı çevir, espressoyu kendin dök
             </h2>
             <p>
               Masada yapılan ritüelin küçük bir provası: kupayı sürükleyerek

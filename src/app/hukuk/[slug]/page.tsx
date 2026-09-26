@@ -40,7 +40,7 @@ export default async function LegalDocPage({
   const updatedAt = override?.effectiveDate || doc.updatedAt;
 
   return (
-    <main className="legal-page">
+    <div className="legal-page">
       <div className="legal-wrap legal-wrap-narrow">
         <header className="legal-head">
           <Link
@@ -58,7 +58,6 @@ export default async function LegalDocPage({
           </div>
           <h1 className="h1" style={{ marginBottom: 18 }}>
             {title}
-            <span className="script">.</span>
           </h1>
           <p className="lede">{summary}</p>
           <div className="legal-meta">
@@ -161,6 +160,6 @@ export default async function LegalDocPage({
           </p>
         </footer>
       </div>
-    </main>
+    </div>
   );
 }

@@ -24,7 +24,7 @@ export function AccountShell({
     .toUpperCase();
 
   return (
-    <main className="account-shell">
+    <div className="account-shell">
       <div className="account-shell-wrap">
         <header className="account-shell-header">
           <Link
@@ -40,7 +40,7 @@ export function AccountShell({
             </div>
             <div>
               <h1 className="h1" style={{ fontSize: "clamp(28px, 4vw, 44px)" }}>
-                Hesabım<span className="script">.</span>
+                Hesabım
               </h1>
               <p
                 style={{
@@ -70,7 +70,7 @@ export function AccountShell({
           <section className="account-shell-content">{children}</section>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

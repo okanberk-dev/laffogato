@@ -14,7 +14,7 @@ export default async function KayitPage() {
   if (active) redirect("/uye/hesap");
 
   return (
-    <main className="auth-page">
+    <div className="auth-page">
       <div className="auth-card auth-card--wide">
         <div className="auth-head">
           <Link href="/" className="auth-back">
@@ -24,7 +24,7 @@ export default async function KayitPage() {
         </div>
         <DegradedAuthNotice />
         <h1 className="auth-title">
-          Üye <span className="script">ol.</span>
+          Üye <span className="script">ol</span>
         </h1>
         <p className="auth-lede">
           Sipariş geçmişini takip et, tekrar siparişlerde formu hızlı doldur,
@@ -40,6 +40,6 @@ export default async function KayitPage() {
           </span>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

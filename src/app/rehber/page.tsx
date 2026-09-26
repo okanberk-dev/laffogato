@@ -40,7 +40,7 @@ export const metadata: Metadata = {
 
 export default function GuideHubPage() {
   return (
-    <main className="guide-page">
+    <div className="guide-page">
       <JsonLd data={guideHubLd(GUIDES)} />
 
       <div className="guide-wrap">
@@ -71,6 +71,6 @@ export default function GuideHubPage() {
           ))}
         </ul>
       </div>
-    </main>
+    </div>
   );
 }

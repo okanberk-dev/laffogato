@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { openStatus } from "@/components/laffogato/open-status";
+import {
+  openStatus,
+  upcomingDayLabels,
+} from "@/components/laffogato/open-status";
 import { tinLabel } from "@/components/laffogato/visuals";
 
 /**
@@ -96,5 +99,27 @@ describe("tinLabel", () => {
     // 80 units of label width at ~0.52 em per glyph.
     const longest = Math.max(...fit.lines.map((l) => l.length));
     expect(longest * fit.size * 0.52).toBeLessThanOrEqual(80.5);
+  });
+});
+
+describe("upcomingDayLabels", () => {
+  it("names the next days from the köşk's calendar, not a fixed list", () => {
+    // Sat 26 Sep 2026 in Tuzla: tomorrow is Sunday, then Monday on.
+    expect(upcomingDayLabels(ist("2026-09-26T15:00:00"))).toEqual([
+      "Bu akşam",
+      "Yarın",
+      "Pazartesi",
+      "Salı",
+      "Çarşamba",
+    ]);
+  });
+
+  it("turns the day over at Istanbul midnight, not UTC midnight", () => {
+    // 22:30 UTC on Saturday is already 01:30 Sunday in Tuzla.
+    expect(upcomingDayLabels(new Date("2026-09-26T22:30:00Z"), 3)).toEqual([
+      "Bu akşam",
+      "Yarın",
+      "Salı",
+    ]);
   });
 });

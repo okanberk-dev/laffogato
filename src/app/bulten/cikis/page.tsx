@@ -38,9 +38,9 @@ export default async function BultenCikisPage({ searchParams }: PageProps) {
 
   const heading = {
     ask: "Bültenden çıkmak istiyor musun?",
-    done: "Çıkış tamamlandı.",
-    failed: "Şu an işlenemedi.",
-    invalid: "Bağlantı geçersiz.",
+    done: "Çıkış tamamlandı",
+    failed: "Şu an işlenemedi",
+    invalid: "Bağlantı geçersiz",
   }[state];
 
   return (

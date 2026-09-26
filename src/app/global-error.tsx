@@ -64,7 +64,7 @@ export default function GlobalError({
               margin: 0,
             }}
           >
-            Şu an bağlanamadık.
+            Şu an bağlanamadık
           </h1>
           <p
             style={{

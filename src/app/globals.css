@@ -1994,11 +1994,23 @@ summary:focus-visible,
     transition: none;
   }
 }
+/* Always four facts: four across, two by two, or one column - never the
+   3 + 1 that auto-fit made at tablet width. */
 .seo-facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-top: 40px;
+}
+@media (max-width: 1024px) {
+  .seo-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .seo-facts {
+    grid-template-columns: 1fr;
+  }
 }
 .seo-facts > div {
   padding: 18px 20px;
@@ -3190,7 +3202,7 @@ summary:focus-visible,
   gap: 28px clamp(20px, 3vw, 40px);
   padding: clamp(36px, 5vw, 52px) 0;
 }
-.footer h4 {
+.footer .footer-col-title {
   margin: 0 0 14px;
   font-family: var(--sans);
   font-size: 13px;
@@ -3700,10 +3712,15 @@ summary:focus-visible,
   color: #fff;
   border-color: var(--bg-espresso);
 }
+/* Explicit colours rather than opacity: white at 70 % on the green tab
+   measured 3.94:1 for 11.5 px text. */
 .menu-tab .count {
   font-size: 11.5px;
   font-weight: 600;
-  opacity: 0.7;
+  color: var(--ink-mute);
+}
+.menu-tab.on .count {
+  color: rgba(255, 255, 255, 0.88);
 }
 
 /* Menu page - flat card grid, one list rather than a section per category */
@@ -3747,6 +3764,45 @@ summary:focus-visible,
 }
 .menu-card-media {
   height: 200px;
+}
+/* Phones: two cards a row, like the shop. One full-width card per item
+   made the 82-item menu a 30 000 px scroll; the description keeps two
+   lines, the rest is on the card's plate and price. */
+@media (max-width: 560px) {
+  .menu-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .menu-grid .menu-card-media {
+    height: 148px;
+  }
+  .menu-grid .rail-card-media img {
+    max-height: 122px;
+  }
+  .menu-grid .rail-card-body {
+    padding: 12px 12px 14px;
+    gap: 10px;
+  }
+  .menu-grid .rail-card-name {
+    font-size: 15px;
+  }
+  .menu-grid .rail-card-desc {
+    font-size: 12.5px;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+  .menu-grid .rail-card-price {
+    font-size: 14.5px;
+  }
+  .menu-grid .rail-card-badge {
+    top: 8px;
+    left: 8px;
+    padding: 3px 8px;
+    font-size: 10.5px;
+  }
 }
 .menu-card-name {
   font-size: 19px;
@@ -3811,6 +3867,7 @@ summary:focus-visible,
   outline: none;
   background: none;
   width: 170px;
+  min-width: 0;
   font-size: 14px;
   color: var(--ink);
 }
@@ -3827,8 +3884,10 @@ summary:focus-visible,
   width: 18px;
   height: 18px;
 }
-@media (max-width: 720px) {
-  /* Search takes its own row under the pills rather than squeezing them. */
+@media (max-width: 900px) {
+  /* Search takes its own row under the pills rather than squeezing them -
+     from 900 px, not 720: at 768 the field had shrunk to its placeholder.
+     44 px for the thumb, 16 px text so iOS does not zoom. */
   .menu-tabs {
     order: 1;
     flex-basis: 100%;
@@ -3836,9 +3895,11 @@ summary:focus-visible,
   .menu-search {
     order: 2;
     flex: 1;
+    height: 44px;
   }
   .menu-search input {
     width: 100%;
+    font-size: 16px;
   }
 }
 
@@ -4644,6 +4705,62 @@ summary:focus-visible,
      a cold rectangle dropped into the cream page. */
   filter: saturate(0.92) contrast(1.02);
 }
+/* The drawn stand-in (click to load the real map). */
+.visit-map-facade {
+  position: relative;
+  overflow: hidden;
+  filter: none;
+  display: grid;
+  place-items: end center;
+}
+.visit-map-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.visit-map-pin {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  translate: -50% -100%;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 50% 50% 50% 4px;
+  rotate: -45deg;
+  background: var(--green);
+  box-shadow:
+    0 0 0 6px rgba(29, 109, 86, 0.16),
+    var(--shadow-lift);
+}
+.visit-map-pin .laf-mark {
+  --laf-h: 26px;
+  rotate: 45deg;
+}
+.visit-map-cta {
+  position: relative;
+  margin: 0 16px 16px;
+  padding: 16px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  background: var(--glass-raised);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--rim), var(--shadow-glass);
+}
+.visit-map-cta p {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+}
 .visit-map-caption {
   display: flex;
   flex-wrap: wrap;
@@ -4779,11 +4896,21 @@ summary:focus-visible,
 }
 .reserve-card-head {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
   justify-content: space-between;
   align-items: flex-start;
   padding-bottom: 22px;
   margin-bottom: 22px;
   border-bottom: 1px solid var(--ink-line);
+}
+.reserve-card-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(22px, 2.6vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
 }
 .reserve-section {
   margin-bottom: 22px;
@@ -4791,15 +4918,27 @@ summary:focus-visible,
 .reserve-section:last-of-type {
   margin-bottom: 0;
 }
+/* Eight equal columns, or two rows of four when the card is narrow - the
+   free wrap left "8" alone on a second line at 1024 px. The card is the
+   query container, so the rule follows the card, not the window. */
+.reserve-card {
+  container: reserve / inline-size;
+}
 .reserve-party {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 6px;
-  flex-wrap: wrap;
+  max-width: 420px;
+}
+@container reserve (max-width: 400px) {
+  .reserve-party {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 .reserve-num {
-  width: 44px;
+  width: 100%;
   height: 44px;
-  border-radius: 50%;
+  border-radius: var(--r-pill);
   border: 1px solid var(--ink-line);
   font-family: var(--display);
   font-weight: 500;
@@ -5067,13 +5206,6 @@ select {
 @media (max-width: 480px) {
   [data-row="private-stats"] {
     grid-template-columns: 1fr;
-  }
-}
-
-/* Visit - hours table: keep 2-col but adjust gap on phones */
-@media (max-width: 460px) {
-  .hours-table {
-    gap: 10px 20px;
   }
 }
 
@@ -7213,7 +7345,8 @@ select {
 .guide-card-meta {
   margin-top: auto;
   padding-top: 6px;
-  opacity: 0.6;
+  /* Ink-mute, not the eyebrow green at 60 % - that measured 2.69:1. */
+  color: var(--ink-mute);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -7661,6 +7794,10 @@ select {
 
 .nf-page {
   padding: clamp(8px, 2vw, 24px) 0 clamp(24px, 4vw, 48px);
+  /* The glow is 2.1 marks wide and spilled past a 360 px screen, which
+     gave the 404 a sideways scroll. clip, not hidden: no scroll container,
+     so nothing inside becomes a sticky or focus trap. */
+  overflow-x: clip;
 }
 .nf-hero {
   position: relative;
@@ -9463,7 +9600,10 @@ select {
 }
 .karaoke-hour-n {
   font-size: 11.5px;
-  opacity: 0.75;
+  color: var(--ink-mute);
+}
+.karaoke-hour.on .karaoke-hour-n {
+  color: rgba(255, 255, 255, 0.88);
 }
 .karaoke-stepper {
   margin-top: 12px;
@@ -9556,11 +9696,14 @@ select {
   justify-content: space-between;
   gap: 12px;
 }
+/* White at 88 % is the floor on the green (4.9:1); 55 % and 68 % were
+   3.0:1 - under AA for the small print that carries the price per hour
+   and the booking terms. */
 .karaoke-lines > div > span:first-child {
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.88);
 }
 .karaoke-unit {
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.88);
   font-size: 13px;
 }
 .karaoke-discount {
@@ -9595,11 +9738,13 @@ select {
   margin: 0;
   font-size: 12px;
   line-height: 1.55;
-  color: rgba(255, 255, 255, 0.68);
+  color: rgba(255, 255, 255, 0.88);
 }
 .karaoke-link {
-  color: var(--gold-soft);
+  color: #fff;
+  font-weight: 600;
   text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .karaoke-done {
   padding: clamp(40px, 7vw, 88px) 0;

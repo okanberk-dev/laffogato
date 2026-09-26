@@ -1,8 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import { HOME_SLIDES, type HomeSlideAction } from "./data";
+import { isLocalStatic } from "./local-image";
 import { SCENES } from "./scenes";
 import { cx } from "./cx";
 
@@ -149,15 +151,15 @@ export function HomeHeroSlider({
                         }}
                         aria-hidden="true"
                       />
-                      {/* Same file as the stage photo, so both share one
-                          cached download. */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      {/* An 80 px thumbnail of a 581 x 942 cut-out: next/image
+                          sends a thumbnail-sized file (a few KB) instead of
+                          the whole ~140 KB photo three times over. */}
+                      <Image
                         src={s.photo}
                         alt=""
-                        loading="lazy"
                         width={581}
                         height={942}
+                        sizes="80px"
                       />
                       <span className="hero-x-thumb-name">
                         {s.title.join(" ")}
@@ -174,23 +176,37 @@ export function HomeHeroSlider({
             <span className="hero-x-sphere a" aria-hidden="true" />
             <span className="hero-x-sphere b" aria-hidden="true" />
             <span className="hero-x-floor" aria-hidden="true" />
-            {/* The first slide's photo can be the panel's "Hero görsel URL",
-                an arbitrary host next/image would need a wildcard
-                remotePattern for. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              className="hero-x-photo"
-              /* Keyed on the photo so a slide change remounts the image and
-                 replays the rise. */
-              key={photo}
-              src={photo}
-              alt={slide.alt}
-              /* The first drink is the LCP element. */
-              loading={index === 0 ? "eager" : "lazy"}
-              fetchPriority={index === 0 ? "high" : "auto"}
-              width={581}
-              height={942}
-            />
+            {/* The site's own cut-outs go through next/image, sized to the
+                stage. The first slide's photo can instead be the panel's
+                "Hero görsel URL", an arbitrary host next/image would need a
+                wildcard remotePattern for - that one stays a plain <img>.
+                Keyed on the photo so a slide change remounts the image and
+                replays the rise; the first drink is the LCP element. */}
+            {isLocalStatic(photo) ? (
+              <Image
+                className="hero-x-photo"
+                key={photo}
+                src={photo}
+                alt={slide.alt}
+                width={581}
+                height={942}
+                sizes="(max-width: 760px) 70vw, 440px"
+                loading={index === 0 ? "eager" : "lazy"}
+                fetchPriority={index === 0 ? "high" : "auto"}
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                className="hero-x-photo"
+                key={photo}
+                src={photo}
+                alt={slide.alt}
+                loading={index === 0 ? "eager" : "lazy"}
+                fetchPriority={index === 0 ? "high" : "auto"}
+                width={581}
+                height={942}
+              />
+            )}
           </div>
 
           <div className="hero-x-dots" role="group" aria-label="Slaytlar">

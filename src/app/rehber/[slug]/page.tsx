@@ -64,7 +64,7 @@ export default async function GuidePage({
   const related = relatedGuides(guide);
 
   return (
-    <main className="guide-page">
+    <div className="guide-page">
       <JsonLd data={guideGraphLd(guide)} />
 
       <div className="guide-wrap">
@@ -193,7 +193,7 @@ export default async function GuidePage({
           </div>
         </footer>
       </div>
-    </main>
+    </div>
   );
 }
 

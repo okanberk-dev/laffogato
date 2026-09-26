@@ -98,11 +98,11 @@ export function KaraokeBooking({
 
   if (state.booked) {
     return (
-      <main className="wrap karaoke-page">
+      <div className="wrap karaoke-page">
         <div className="karaoke-done">
           <div className="eyebrow">Karaoke · rezervasyon alındı</div>
           <h1 className="h1" style={{ marginTop: 14 }}>
-            Görüşmek üzere.
+            Görüşmek üzere
           </h1>
           <p className="lede" style={{ marginTop: 16 }}>
             {dayLabel(state.booked.date, today, tomorrow)} ·{" "}
@@ -120,16 +120,16 @@ export function KaraokeBooking({
             </Link>
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="karaoke-page">
+    <div className="karaoke-page">
       <PageHero
         scene="berry"
         eyebrow="Karaoke · köşkün üst katı"
-        title={["Özel oda,", "gece 24:00’e kadar."]}
+        title={["Özel oda,", "gece 24:00’e kadar"]}
         lede="Köşkün üst katındaki karaoke odası sekiz kişiye kadar. Gün ve saat seç, kişi sayısını gir; rezervasyonunu web'den ya da uygulamadan tamamla."
       />
       <div className="wrap">
@@ -368,6 +368,6 @@ export function KaraokeBooking({
           </div>
         </form>
       </div>
-    </main>
+    </div>
   );
 }

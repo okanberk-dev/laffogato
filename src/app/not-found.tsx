@@ -102,7 +102,7 @@ export default async function NotFound() {
               <span>404</span> Sayfa bulunamadı
             </p>
             <h1 id="nf-title" className="nf-title">
-              Kahve hazır, <span className="script">sayfa değil.</span>
+              Kahve hazır, <span className="script">sayfa değil</span>
             </h1>
             <p className="nf-lede">
               Aradığın bağlantı taşınmış ya da hiç var olmamış olabilir. Menü,

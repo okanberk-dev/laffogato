@@ -112,3 +112,30 @@ export function openStatus(
   }
   return { open: false, at: null };
 }
+
+const DAY_NAMES_TR = [
+  "Pazartesi",
+  "Salı",
+  "Çarşamba",
+  "Perşembe",
+  "Cuma",
+  "Cumartesi",
+  "Pazar",
+];
+
+/**
+ * The next `count` days as the reservation card names them, from the köşk's
+ * clock: "Bu akşam", "Yarın", then weekday names. The card used to print a
+ * fixed "Bu akşam, Yarın, Cuma, Cumartesi, Pazar" - on a Saturday that is
+ * tomorrow (Sunday) followed by a Friday six days out.
+ */
+export function upcomingDayLabels(now: Date = new Date(), count = 5): string[] {
+  const { day } = istanbulNow(now);
+  const labels: string[] = [];
+  for (let i = 0; i < count; i++) {
+    labels.push(
+      i === 0 ? "Bu akşam" : i === 1 ? "Yarın" : DAY_NAMES_TR[(day + i) % 7],
+    );
+  }
+  return labels;
+}
