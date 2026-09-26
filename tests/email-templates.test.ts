@@ -73,9 +73,11 @@ function renderWith(
   });
 }
 
-describe("the twenty-two templates render", () => {
-  it("ships exactly the twenty-two designed messages", () => {
-    expect(NAMES).toHaveLength(22);
+describe("the twenty-three templates render", () => {
+  it("ships exactly the twenty-three designed messages", () => {
+    expect(NAMES).toHaveLength(23);
+    // Mail to the team, in the same design as the customers' mail.
+    expect(NAMES).toContain("operasyon-bildirim");
     // The order notices the legal texts promise: the tracking number at
     // hand-over, the seller's cancellation, the refund.
     expect(NAMES).toContain("siparis-kargoda");

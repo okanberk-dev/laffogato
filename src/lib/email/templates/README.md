@@ -1,6 +1,6 @@
 # Mail şablonları
 
-Yirmi iki gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
+Yirmi üç gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
 stiller satır içi. E-posta tarafında JavaScript, harici CSS ve web fontu yok;
 `<style>` bloğu yalnızca satır içi stillere ek (mobil kırılma + koyu tema),
 tek başına gerekli değil.
@@ -38,6 +38,18 @@ kilitlediğine bak.
 | kampanya-etkinlik.html    | **ticari (6563)** | [KAMPANYA_BASLIK] - etkinlik                |
 | kampanya-yeni-urun.html   | **ticari (6563)** | [KAMPANYA_BASLIK] - yeni ürün / ön erişim   |
 | kampanya-indirim.html     | **ticari (6563)** | [KAMPANYA_BASLIK] - indirim                 |
+| operasyon-bildirim.html   | iç (ekibe)        | [BILDIRIM_KONU] - karaoke talebi, test, ... |
+
+### Ekibe giden mailler
+
+Köşkün kendi gelen kutusuna giden her ileti (yeni karaoke talebi, Ayarlar'daki
+test e-postası ve bundan sonra eklenecek her iç bildirim) müşteri maillerinin
+tasarımını kullanır: `operasyon-bildirim.html`. Etiket, başlık, alt başlık,
+etiket/değer satırlarından oluşan beyaz kart (`<!--EACH:SATIRLAR-->`), isteğe
+bağlı not (`<!--IF:NOT-->`) ve tek düğme. Kod tarafı `send.ts`
+`sendOperatorNotice` / `renderOperatorNotice`; yeni bir iç bildirim için yeni
+şablon çizilmez, bu fonksiyona satırlar verilir. Düz metin `<pre>` ile iç mail
+gönderilmez.
 
 Ticari onlu `data-commercial="1"` taşır. `renderEmail` bu onu çıkış
 bağlantısı olmadan **derlemez**, işlemsel on ikiye çıkış bağlantısı
