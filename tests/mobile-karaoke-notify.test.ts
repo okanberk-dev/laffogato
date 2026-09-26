@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { KaraokeReservation } from "@/lib/mobile/karaoke";
 
 /**
- * The operator's notice when the app takes a karaoke booking.
+ * The operator's notice when the app or the web takes a karaoke booking.
  *
  * The room is held by hand - a reservation is written `requested` and a person
  * confirms it from /admin/mobil/karaoke - and until this nothing told that
@@ -56,6 +56,7 @@ describe("karaoke operator notice", () => {
     expect(sendKaraokeOperatorEmail).toHaveBeenCalledTimes(1);
     expect(sendKaraokeOperatorEmail).toHaveBeenCalledWith({
       id: "krk-00042",
+      source: "app",
       customerName: "Eda Mancuso",
       customerEmail: "eda@ornek.com",
       // Not `new Date("2026-09-20")`: that is UTC midnight, and a formatter in
@@ -65,6 +66,13 @@ describe("karaoke operator notice", () => {
       guests: 6,
       totalMinor: 180_00,
       note: "",
+    });
+  });
+
+  it("says which surface took the booking", async () => {
+    await notifyOperatorOfReservation(reservation(), "web");
+    expect(sendKaraokeOperatorEmail.mock.calls[0]![0]).toMatchObject({
+      source: "web",
     });
   });
 

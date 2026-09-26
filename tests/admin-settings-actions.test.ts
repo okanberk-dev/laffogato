@@ -17,6 +17,7 @@ const SETTINGS = {
   courierFeeMinor: 5500,
   karaokeHourlyMinor: 90000,
   karaokeCapacity: 8,
+  karaokeNotifyEmail: "",
   taxRatePct: 10,
   openingHours: "eski",
 };
@@ -116,20 +117,61 @@ describe("saveKaraokeAction", () => {
     expect(updateSettings).not.toHaveBeenCalled();
   });
 
-  it("audits the before/after of the two karaoke numbers", async () => {
+  it("audits the before/after of the karaoke settings", async () => {
     const state = await saveKaraokeAction(
       {},
-      form({ karaokeHourly: "1000", karaokeCapacity: "10" }),
+      form({
+        karaokeHourly: "1000",
+        karaokeCapacity: "10",
+        karaokeNotifyEmail: " bizimfutbol9@gmail.com ",
+      }),
     );
     expect(state.message).toBeTruthy();
+    expect(updateSettings).toHaveBeenCalledWith({
+      karaokeHourlyMinor: 100000,
+      karaokeCapacity: 10,
+      karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+    });
     expect(logAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         payload: expect.objectContaining({
           section: "karaoke",
-          before: { karaokeHourlyMinor: 90000, karaokeCapacity: 8 },
-          after: { karaokeHourlyMinor: 100000, karaokeCapacity: 10 },
+          before: {
+            karaokeHourlyMinor: 90000,
+            karaokeCapacity: 8,
+            karaokeNotifyEmail: "",
+          },
+          after: {
+            karaokeHourlyMinor: 100000,
+            karaokeCapacity: 10,
+            karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+          },
         }),
       }),
+    );
+  });
+
+  it("refuses a karaoke notice address that is not an e-mail", async () => {
+    const state = await saveKaraokeAction(
+      {},
+      form({
+        karaokeHourly: "1000",
+        karaokeCapacity: "8",
+        karaokeNotifyEmail: "bizimfutbol9",
+      }),
+    );
+    expect(state.error).toBeTruthy();
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it("accepts an empty notice address - the notice falls back to the contact e-mail", async () => {
+    const state = await saveKaraokeAction(
+      {},
+      form({ karaokeHourly: "1000", karaokeCapacity: "8" }),
+    );
+    expect(state.message).toBeTruthy();
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ karaokeNotifyEmail: "" }),
     );
   });
 });

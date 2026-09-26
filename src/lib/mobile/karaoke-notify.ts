@@ -5,7 +5,8 @@ import { sendKaraokeOperatorEmail } from "@/lib/email/send";
 import type { KaraokeReservation } from "./karaoke-core";
 
 /**
- * Tells the köşk that the app just took a karaoke booking.
+ * Tells the köşk that a karaoke booking was just taken - by the app or by the
+ * web `/karaoke` form (both land on `createReservation`).
  *
  * ## Why this file exists
  *
@@ -67,10 +68,12 @@ function readableTime(startHour: number, hours: number): string {
 
 export async function notifyOperatorOfReservation(
   reservation: KaraokeReservation,
+  source: "app" | "web" = "app",
 ): Promise<void> {
   try {
     const result = await sendKaraokeOperatorEmail({
       id: reservation.id,
+      source,
       customerName: reservation.customerName,
       customerEmail: reservation.customerEmail,
       date: readableDate(reservation.date),

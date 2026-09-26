@@ -680,6 +680,22 @@ aranmaz, çıkış bağlantısı konmaz.
   panel bunu söyler: "Bilgilendirme e-postası GÖNDERİLEMEDİ - üyeye kendin
   ulaş." Log'da adres maskelidir (KVKK).
 
+### Karaoke - yeni talep bildirimi (operatöre)
+
+Bir karaoke saati istendiği anda - uygulamadan (`POST /karaoke/reservations`)
+ya da web `/karaoke` formundan (`bookKaraokeAction`) - köşke düz metin bir
+**iç** e-posta gider (`sendKaraokeOperatorEmail`). Alıcı Ayarlar → Karaoke →
+**Talep bildirimi e-postası** (`settings.karaokeNotifyEmail`, 26 Eyl 2026'dan
+beri `bizimfutbol9@gmail.com`); boşsa genel iletişim adresi (`settings.email`).
+
+- Konu satırı tarih, saat, kişi ve rezervasyon kimliğini taşır; gövde "Web
+  sitesinden" ya da "Uygulamadan" diye başlar.
+- **Yanıt adresi üyedir** - operatör "Yanıtla"ya basınca talep edene yazar.
+- `Idempotency-Key: karaoke-<id>-requested` - aynı istek yeniden denenirse
+  ikinci kopya düşmez.
+- Mail hatası rezervasyonu **düşürmez**: satır zaten yazılmış ve panelde
+  görünür; hata log'a gider.
+
 ### Emniyet kilitleri
 
 - `RESEND_API_KEY` yoksa parti `skipped` işaretlenir, kampanya `failed` +

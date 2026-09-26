@@ -202,18 +202,28 @@ export async function saveKaraokeAction(
   if (!Number.isFinite(capacity) || capacity < 1 || capacity > 50) {
     return { error: "Karaoke kapasitesi 1 ile 50 arasında olmalı." };
   }
+  const notifyEmail = String(formData.get("karaokeNotifyEmail") ?? "").trim();
+  if (notifyEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifyEmail)) {
+    return { error: "Talep bildirimi için geçerli bir e-posta gir." };
+  }
   const before = await getSettings();
   await updateSettings({
     karaokeHourlyMinor: hourlyMinor,
     karaokeCapacity: capacity,
+    karaokeNotifyEmail: notifyEmail,
   });
   revalidateAll();
   return ok("karaoke", "Karaoke ayarları kaydedildi.", {
     before: {
       karaokeHourlyMinor: before.karaokeHourlyMinor,
       karaokeCapacity: before.karaokeCapacity,
+      karaokeNotifyEmail: before.karaokeNotifyEmail,
     },
-    after: { karaokeHourlyMinor: hourlyMinor, karaokeCapacity: capacity },
+    after: {
+      karaokeHourlyMinor: hourlyMinor,
+      karaokeCapacity: capacity,
+      karaokeNotifyEmail: notifyEmail,
+    },
   });
 }
 

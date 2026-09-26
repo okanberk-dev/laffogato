@@ -359,6 +359,17 @@ function KaraokeTab({ settings }: { settings: AdminSettings }) {
               required
             />
           </Field>
+          <Field
+            label="Talep bildirimi e-postası"
+            hint="Uygulamadan ya da web'den gelen her yeni rezervasyon talebi bu adrese düşer. Boş bırakılırsa genel iletişim adresine gider."
+          >
+            <TextInput
+              name="karaokeNotifyEmail"
+              type="email"
+              defaultValue={settings.karaokeNotifyEmail}
+              placeholder={settings.email}
+            />
+          </Field>
         </div>
         <SaveBar state={state} pending={pending} />
       </Section>
