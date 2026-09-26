@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { AccountShell, AccountCard } from "@/components/uye/account-shell";
 import { requireCustomer } from "@/lib/customer/auth";
 
@@ -18,6 +20,11 @@ export default async function BilgilerimPage() {
           email={customer.email}
         />
       </AccountCard>
+      {/* The way out the membership agreement §14 and the app stores
+          require - quiet, at the foot of the profile, not in the menu. */}
+      <p className="account-delete-link">
+        <Link href="/uye/hesap/sil">Hesabımı silmek istiyorum</Link>
+      </p>
     </AccountShell>
   );
 }

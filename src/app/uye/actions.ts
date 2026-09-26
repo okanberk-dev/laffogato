@@ -495,6 +495,23 @@ async function signOutSupabase(): Promise<void> {
   }
 }
 
+/**
+ * Who the header's account menu is talking to. Reads only the caller's own
+ * session and returns only whether there is one and its first name - the
+ * menu needs nothing else, and this is a public POST endpoint (rule 27).
+ */
+export async function accountMenuStateAction(): Promise<{
+  signedIn: boolean;
+  firstName: string;
+}> {
+  const c = await getActiveCustomer();
+  if (!c) return { signedIn: false, firstName: "" };
+  return {
+    signedIn: true,
+    firstName: (c.name || "").trim().split(/\s+/)[0] ?? "",
+  };
+}
+
 export async function logoutAction(): Promise<void> {
   // Both sessions go: the site's signed cookie and the Supabase one, so the
   // next visit does not silently sign the member back in through the proxy.

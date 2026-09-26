@@ -130,6 +130,15 @@ export default async function KaraokePage({ searchParams }: PageProps) {
           }
           isAuthenticated={!!customer}
           emailVerified={!!customer?.emailVerified}
+          contact={
+            customer
+              ? {
+                  name: customer.name,
+                  email: customer.email,
+                  phone: customer.phone,
+                }
+              : undefined
+          }
           phone={settings.phone || SITE.phone}
         />
       </SiteChrome>

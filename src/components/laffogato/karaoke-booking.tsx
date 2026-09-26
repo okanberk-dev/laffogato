@@ -46,6 +46,8 @@ export interface KaraokeBookingProps {
   isAuthenticated: boolean;
   emailVerified: boolean;
   phone: string;
+  /** The signed-in member's details, to prefill the contact block. */
+  contact?: { name: string; email: string; phone: string };
 }
 
 export function KaraokeBooking({
@@ -60,6 +62,7 @@ export function KaraokeBooking({
   isAuthenticated,
   emailVerified,
   phone,
+  contact,
 }: KaraokeBookingProps) {
   const slots = availability?.slots ?? [];
   const firstFree = slots.find((s) => s.available)?.startHour;
@@ -253,6 +256,70 @@ export function KaraokeBooking({
                 arayın: {phone}.
               </div>
             </div>
+
+            {isAuthenticated && emailVerified && (
+              <fieldset className="karaoke-contact">
+                <legend className="eyebrow muted">İletişim</legend>
+                {/* A member's details are already on the account - shown, not
+                    asked again. Only a missing phone opens a field. */}
+                <input
+                  type="hidden"
+                  name="contactName"
+                  value={contact?.name ?? ""}
+                />
+                <input
+                  type="hidden"
+                  name="contactEmail"
+                  value={contact?.email ?? ""}
+                />
+                {contact?.phone ? (
+                  <input
+                    type="hidden"
+                    name="contactPhone"
+                    value={contact.phone}
+                  />
+                ) : null}
+                <div className="karaoke-contact-card">
+                  <span className="karaoke-contact-name">
+                    {contact?.name || "Üye"}
+                  </span>
+                  <span className="karaoke-contact-line">
+                    {contact?.email}
+                    {contact?.phone ? ` · ${contact.phone}` : ""}
+                  </span>
+                  <Link
+                    href="/uye/hesap/bilgilerim"
+                    className="karaoke-contact-edit"
+                  >
+                    Düzenle
+                  </Link>
+                </div>
+                {!contact?.phone && (
+                  <label className="karaoke-field">
+                    <span>Cep telefonu</span>
+                    <input
+                      className="input"
+                      name="contactPhone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      placeholder="0532 123 45 67"
+                      required
+                    />
+                  </label>
+                )}
+                <label className="karaoke-consent">
+                  <input type="checkbox" name="contactConsent" required />
+                  <span>
+                    Rezervasyonumla ilgili (onay, değişiklik, iptal) bana
+                    e-posta ve telefonla ulaşılmasına izin veriyorum.{" "}
+                    <Link href="/hukuk/kvkk-aydinlatma-metni" target="_blank">
+                      KVKK Aydınlatma Metni
+                    </Link>
+                  </span>
+                </label>
+              </fieldset>
+            )}
 
             <div>
               <label className="eyebrow muted" htmlFor="karaoke-note">

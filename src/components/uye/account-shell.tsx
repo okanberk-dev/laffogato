@@ -136,15 +136,9 @@ export const ACCOUNT_NAV: AccountNavItem[] = [
     label: "Şifre",
     hint: "Şifre değiştir",
   },
-  // Last on purpose, and reachable from every account page: the membership
-  // agreement §14 promises a way out, and the Play Store asks for one that a
-  // member can find without writing to support.
-  {
-    key: "sil",
-    href: "/uye/hesap/sil",
-    label: "Hesabı sil",
-    hint: "Hesabını kapat",
-  },
+  // "Hesabı sil" is no longer in this list (operator, 26 Eyl 2026): it lives
+  // at the foot of Bilgilerim, still one click from the account, which keeps
+  // the way out the membership agreement §14 and the stores require.
 ];
 
 export function AccountCard({

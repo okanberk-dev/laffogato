@@ -1015,45 +1015,37 @@ summary:focus-visible,
   transform: scale(0.94);
 }
 
-/* Search in the header: a field-shaped glass pill that names what it
-   searches and its shortcut. It narrows to the round button when the header
-   has no room for the words. */
+/* Search in the header: minimal - the glyph and one quiet word, no box, no
+   shortcut chip. A soft ground appears only on hover. Narrow headers keep
+   just the glyph. The shortcuts (⌘K, Ctrl+K, "/") still work. */
 .nav-search {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 7px;
   height: 40px;
-  width: clamp(200px, 17vw, 260px);
-  padding: 0 7px 0 13px;
+  padding: 0 12px 0 10px;
   border-radius: var(--r-pill);
-  color: var(--ink-mute);
-  background: var(--glass-control);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
+  color: var(--ink-soft);
+  background: transparent;
   font-size: 14px;
-  text-align: left;
+  font-weight: 500;
   transition:
     background-color 0.2s,
-    border-color 0.2s,
-    transform 0.2s var(--ease-spring);
+    color 0.2s;
 }
 .nav-search:hover {
-  background: #fff;
-  border-color: rgba(29, 109, 86, 0.3);
+  color: var(--ink);
+  background: var(--glass-disc);
 }
 .nav-search:active {
   transform: scale(0.97);
 }
 .nav-search svg {
   flex: none;
-  color: var(--ink);
+  color: currentColor;
 }
-.nav-search-text {
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.nav-search-kbd {
+  display: none;
 }
 @media (max-width: 1280px) {
   .nav-search {
@@ -1062,10 +1054,60 @@ summary:focus-visible,
     justify-content: center;
     border-radius: 50%;
   }
-  .nav-search .nav-search-text,
-  .nav-search .nav-search-kbd {
+  .nav-search .nav-search-text {
     display: none;
   }
+}
+
+/* Account menu: a small glass card under the person button. */
+.nav-account-wrap {
+  position: relative;
+}
+.nav-account-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 70;
+  min-width: 190px;
+  display: grid;
+  padding: 6px;
+  border-radius: 18px;
+  background: var(--surface-sheet);
+  border: 1px solid var(--ink-line);
+  box-shadow: var(--rim), var(--shadow-md);
+  animation: nav-menu-in 0.18s var(--ease-out);
+}
+@keyframes nav-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.nav-account-hello {
+  padding: 8px 12px 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-mute);
+}
+.nav-account-loading {
+  padding: 10px 12px;
+  color: var(--ink-mute);
+}
+.nav-account-item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-align: left;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.nav-account-item:hover {
+  background: var(--glass-disc);
+}
+.nav-account-logout {
+  color: var(--rose);
 }
 
 /* The cart: the app's ink capsule, with the count in a brass disc. */
@@ -10219,6 +10261,77 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   background: var(--bg-espresso);
   color: #fff;
 }
+/* Contact block: who to reach about the booking, and the permission. */
+.karaoke-contact {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.karaoke-contact legend {
+  padding: 0;
+}
+.karaoke-contact-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  align-items: center;
+  margin: 10px 0 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+  border: 1px solid var(--ink-line);
+}
+.karaoke-contact-name {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.karaoke-contact-line {
+  grid-column: 1;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.karaoke-contact-edit {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+}
+.karaoke-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.karaoke-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.karaoke-consent input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  accent-color: var(--green);
+}
+.karaoke-consent a {
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .karaoke-hint {
   margin-top: 8px;
   font-size: 12.5px;
@@ -10581,4 +10694,18 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .visit-open-cta .btn {
   flex: 1;
   min-width: 200px;
+}
+
+/* Bilgilerim: the quiet way out (account deletion). */
+.account-delete-link {
+  margin: 20px 4px 0;
+  font-size: 13px;
+}
+.account-delete-link a {
+  color: var(--ink-mute);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.account-delete-link a:hover {
+  color: var(--rose);
 }

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireCustomer } from "@/lib/customer/auth";
 import { isDbUnreachable } from "@/lib/db/health";
 import { createReservation } from "@/lib/mobile/karaoke";
+import { validateReservationContact } from "@/lib/mobile/karaoke-core";
 import { notifyOperatorOfReservation } from "@/lib/mobile/karaoke-notify";
 
 export interface BookKaraokeState {
@@ -46,8 +47,21 @@ export async function bookKaraokeAction(
     note: String(formData.get("note") ?? ""),
   };
 
+  // Who to reach if the evening is cancelled or moved, and the member's
+  // permission to reach them - required on the web (the box starts unticked).
+  const contact = validateReservationContact({
+    name: String(formData.get("contactName") ?? ""),
+    email: String(formData.get("contactEmail") ?? ""),
+    phone: String(formData.get("contactPhone") ?? ""),
+    consent: formData.get("contactConsent") === "on",
+  });
+  if (!contact.ok) return { error: contact.message };
+
   try {
-    const result = await createReservation(customer, input);
+    const result = await createReservation(customer, input, new Date(), {
+      ...contact.value,
+      consentAt: new Date().toISOString(),
+    });
     if (!result.ok) return { error: result.message };
     // Same notice the app's POST sends: the room is confirmed by hand, and a
     // web request nobody is told about waits unread in the panel. Awaited for

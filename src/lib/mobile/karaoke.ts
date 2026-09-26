@@ -22,6 +22,7 @@ import {
   type KaraokeAvailability,
   type KaraokeReservation,
   type KaraokeReservationStatus,
+  type ReservationContact,
 } from "./karaoke-core";
 
 /**
@@ -163,6 +164,8 @@ export async function createReservation(
   customer: Pick<PublicCustomer, "email" | "name">,
   input: unknown,
   now: Date = new Date(),
+  /** Web form only; the app does not send contact details. */
+  contact?: ReservationContact,
 ): Promise<CreateReservationResult> {
   const settings = await getSettings();
   const rules = settings.mobileApp.karaoke;
@@ -212,7 +215,14 @@ export async function createReservation(
   const reservation: KaraokeReservation = {
     id: `krk-${String(seq).padStart(5, "0")}`,
     customerEmail: normalizeEmail(customer.email),
-    customerName: customer.name,
+    customerName: contact?.name || customer.name,
+    ...(contact
+      ? {
+          contactEmail: contact.email,
+          contactPhone: contact.phone,
+          contactConsentAt: contact.consentAt,
+        }
+      : {}),
     date: req.date,
     startHour: req.startHour,
     hours: req.hours,
@@ -492,9 +502,12 @@ async function notifyReservationStatus(
   r: KaraokeReservation,
 ): Promise<boolean> {
   if (r.status !== "confirmed" && r.status !== "cancelled") return true;
-  if (!r.customerEmail) return false;
+  // The address the member gave on the form for exactly this, else the
+  // account's.
+  const to = r.contactEmail?.trim() || r.customerEmail;
+  if (!to) return false;
   const payload = {
-    to: r.customerEmail,
+    to,
     name: r.customerName,
     date: formatReservationDate(r.date),
     time: formatReservationTime(r.startHour, r.hours),
