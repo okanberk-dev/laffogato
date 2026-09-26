@@ -19,7 +19,7 @@ export default async function SifreSifirlaPage({ searchParams }: PageProps) {
   const { token } = await searchParams;
 
   return (
-    <main className="auth-page">
+    <div className="auth-page">
       <div className="auth-card">
         <div className="auth-head">
           <Link href="/uye/giris" className="auth-back">
@@ -29,7 +29,7 @@ export default async function SifreSifirlaPage({ searchParams }: PageProps) {
         </div>
         <DegradedAuthNotice />
         <h1 className="auth-title">
-          Yeni <span className="script">şifre.</span>
+          Yeni <span className="script">şifre</span>
         </h1>
         {token ? (
           <>
@@ -53,6 +53,6 @@ export default async function SifreSifirlaPage({ searchParams }: PageProps) {
           </>
         )}
       </div>
-    </main>
+    </div>
   );
 }

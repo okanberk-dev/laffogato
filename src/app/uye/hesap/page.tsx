@@ -86,7 +86,7 @@ export default async function HesapPage() {
           <div className="account-firstrun-copy">
             <div className="eyebrow">Hoş geldin</div>
             <h2 className="h3" style={{ marginTop: 10 }}>
-              Hesabın hazır. Buradan başlayabilirsin.
+              Hesabın hazır, buradan başlayabilirsin
             </h2>
             <p>
               Siparişlerin, damgaların ve adreslerin burada toplanır - web’de ve
@@ -186,8 +186,8 @@ export default async function HesapPage() {
           </div>
           <div className="stamp-card-headline">
             {loyalty.rewardsReady > 0
-              ? `Ücretsiz içeceğin hazır${loyalty.rewardsReady > 1 ? ` - ${loyalty.rewardsReady} adet` : ""}.`
-              : `${loyalty.stampTarget - loyalty.stamps} damga kaldı - sonraki içecek bizden.`}
+              ? `Ücretsiz içeceğin hazır${loyalty.rewardsReady > 1 ? ` - ${loyalty.rewardsReady} adet` : ""}`
+              : `${loyalty.stampTarget - loyalty.stamps} damga kaldı - sonraki içecek bizden`}
           </div>
           <p className="stamp-card-note">
             L&apos;AF 0-11 · PEARL 12+ · RUBY 36+ sipariş. Seviyen şu an{" "}
@@ -205,7 +205,7 @@ export default async function HesapPage() {
         <div>
           <div className="account-app-kicker">Tek üyelik</div>
           <div className="account-app-title">
-            Aynı hesapla uygulamada devam et.
+            Aynı hesapla uygulamada devam et
           </div>
           <p>
             Damgan, kuponların ve adreslerin uygulamada birebir aynı. Uygulama

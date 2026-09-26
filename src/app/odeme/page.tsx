@@ -48,7 +48,7 @@ export default async function OdemePage({
     taxRatePct: settings.taxRatePct,
   };
   return (
-    <main className="checkout-page">
+    <div className="checkout-page">
       <div className="checkout-page-wrap">
         <header className="checkout-page-head">
           <Link href="/magaza" className="auth-back">
@@ -112,6 +112,6 @@ export default async function OdemePage({
           <CheckoutWizard customer={customer} config={config} />
         )}
       </div>
-    </main>
+    </div>
   );
 }

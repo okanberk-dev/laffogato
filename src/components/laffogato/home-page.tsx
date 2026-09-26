@@ -167,7 +167,7 @@ export function PageHome({
           business and what it does, which is what the heading is for. */}
       <h1 className="sr-only">
         L&apos;Affogato - Tuzla&apos;da İtalyan kahve ve gelato barı. Menü,
-        mağaza, karaoke ve ziyaret bilgileri.
+        mağaza, karaoke ve ziyaret bilgileri
       </h1>
 
       <HomeHeroSlider
@@ -384,7 +384,7 @@ export function PageHome({
           <div className="reveal r1">
             <div className="eyebrow">İmza ürün · 1897’den beri</div>
             <h2 className="h2" style={{ marginTop: 14 }}>
-              İçilir, sonra <span className="script">kupası yenir.</span>
+              İçilir, sonra <span className="script">kupası yenir</span>
             </h2>
             <p className="lede" style={{ marginTop: 18 }}>
               {c(
@@ -432,7 +432,7 @@ export function PageHome({
                 L’Af Ödüller · uygulama ve web’de tek hesap
               </div>
               <h2 className="h2" style={{ marginTop: 12 }}>
-                Altı damga, bir içecek bizden.
+                Altı damga, bir içecek bizden
               </h2>
               <p>
                 Uygulamadan verilen her kafe siparişi bir damga. Altıncı damga
@@ -484,7 +484,7 @@ export function PageHome({
                 ))}
               </div>
               <div className="loyalty-headline">
-                Altıncı içecek bizden - hesabında biriksin.
+                Altıncı içecek bizden - hesabında biriksin
               </div>
             </div>
           </div>
@@ -509,7 +509,7 @@ export function PageHome({
                 className="app-block-icon"
               />
               <div className="eyebrow">L’Affogato uygulaması</div>
-              <h2 className="h2">Köşk, cebinde.</h2>
+              <h2 className="h2">Köşk, cebinde</h2>
               <ul className="app-block-list">
                 {APP_FEATURES.map((f) => (
                   <li key={f.title}>
@@ -572,7 +572,7 @@ export function PageHome({
           <div className="reveal r1">
             <div className="eyebrow">Ziyaret · Tuzla, İstanbul</div>
             <h2 className="h2" style={{ marginTop: 14 }}>
-              200 yıllık köşkte, gece 02:00’e kadar.
+              200 yıllık köşkte, gece 02:00’e kadar
             </h2>
             <div className="visit-facts">
               <div>

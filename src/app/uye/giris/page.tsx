@@ -31,7 +31,7 @@ export default async function GirisPage({ searchParams }: PageProps) {
   const justVerified = dogrulandi === "1";
 
   return (
-    <main className="auth-page">
+    <div className="auth-page">
       <div className="auth-card">
         <div className="auth-head">
           <Link href="/" className="auth-back">
@@ -46,7 +46,7 @@ export default async function GirisPage({ searchParams }: PageProps) {
           </p>
         )}
         <h1 className="auth-title">
-          Giriş <span className="script">yap.</span>
+          Giriş <span className="script">yap</span>
         </h1>
         <p className="auth-lede">
           Hesabınla giriş yap; sipariş geçmişini gör, bilgileri saniyede doldur.
@@ -64,6 +64,6 @@ export default async function GirisPage({ searchParams }: PageProps) {
           </span>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

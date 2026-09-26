@@ -33,9 +33,9 @@ export default async function BultenOnayPage({ searchParams }: PageProps) {
 
   const heading = {
     ask: "Aboneliğini onayla",
-    done: "Aboneliğin başladı.",
-    failed: "Şu an işlenemedi.",
-    invalid: "Bağlantı geçersiz.",
+    done: "Aboneliğin başladı",
+    failed: "Şu an işlenemedi",
+    invalid: "Bağlantı geçersiz",
   }[state];
 
   return (

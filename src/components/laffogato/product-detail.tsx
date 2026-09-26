@@ -131,7 +131,7 @@ export function ProductDetail({
   const category = SHOP_CATEGORY_ROUTES.find((c) => c.productCat === p.cat);
 
   return (
-    <main className="pdp">
+    <div className="pdp">
       <div className="wrap-wide">
         <nav className="pdp-breadcrumb" aria-label="breadcrumb">
           <Link href="/">Ana Sayfa</Link>
@@ -380,7 +380,7 @@ export function ProductDetail({
           </section>
         )}
       </div>
-    </main>
+    </div>
   );
 }
 

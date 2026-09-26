@@ -44,7 +44,7 @@ export default function AppError({
               <span>!</span> Geçici bir aksaklık
             </p>
             <h1 id="err-title" className="nf-title">
-              Bir şey <span className="script">yarım kaldı.</span>
+              Bir şey <span className="script">yarım kaldı</span>
             </h1>
             <p className="nf-lede">
               Şu an bağlanamadık - büyük ihtimalle birkaç saniyelik bir şey.

@@ -64,7 +64,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
       <PageHero
         scene="velvet"
         eyebrow="Hikaye · 1897 → 2026"
-        title={["Bologna 1897’den", "Tuzla’ya."]}
+        title={["Bologna 1897’den", "Tuzla’ya"]}
         lede={c(
           "story.hero.lede",
           "İlk yurt dışı şubemiz - 200 yıllık, Rum’lardan kalma restore bir köşkte. İtalyan baba, İstanbullu anne: Eda Mancuso, büyük dedesinin 1897’de açtığı L’Affogato barını dördüncü kuşak olarak devraldı ve 2026’da markayı doğduğu şehre getirdi.",
@@ -189,7 +189,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
           <div className="reveal r1">
             <div className="eyebrow">Founder · Roaster · Üçüncü kuşak</div>
             <h2 className="h1" style={{ marginTop: 16 }}>
-              Eda <span className="script">Mancuso.</span>
+              Eda <span className="script">Mancuso</span>
             </h2>
             <p className="lede" style={{ marginTop: 22 }}>
               {c("story.founder.bio", STORY.founder.bio)}
@@ -233,7 +233,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
           <div className="reveal" style={{ marginBottom: 70 }}>
             <div className="eyebrow on-dark">Linea del tempo</div>
             <h2 className="h1" style={{ marginTop: 16, color: "#FFF" }}>
-              How we got <span className="script">here.</span>
+              How we got <span className="script">here</span>
             </h2>
           </div>
           <div className="timeline">
@@ -254,7 +254,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
                   <p
                     style={{
                       marginTop: 10,
-                      color: "rgba(255, 255, 255, 0.7)",
+                      color: "var(--green-mist)",
                       lineHeight: 1.6,
                       maxWidth: 540,
                     }}
@@ -275,7 +275,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
             eyebrow="Cosa contiamo"
             title={
               <>
-                Koruduğumuz <span className="script">altı ilke.</span>
+                Koruduğumuz <span className="script">altı ilke</span>
               </>
             }
           />
@@ -302,7 +302,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
             eyebrow="Il rituale · 27 secondi"
             title={
               <>
-                The <span className="script">pour.</span>
+                The <span className="script">pour</span>
               </>
             }
           />
@@ -344,7 +344,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
               eyebrow="Press · stamping kindly"
               title={
                 <>
-                  People <span className="script">talking.</span>
+                  People <span className="script">talking</span>
                 </>
               }
             />
@@ -397,7 +397,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
           <h2 className="h1 reveal r1">
             “Drink it. <span className="script">Eat the cup.</span>
             <br />
-            That’s the whole brand.”
+            That’s the whole brand”
           </h2>
           <div
             className="reveal r2"

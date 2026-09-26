@@ -130,7 +130,7 @@ function ProductOpenGraph({ product }: { product: Product }) {
  */
 function ProductUnavailable() {
   return (
-    <main
+    <div
       style={{
         maxWidth: 560,
         margin: "0 auto",
@@ -153,7 +153,7 @@ function ProductUnavailable() {
       <Link href="/magaza" className="btn btn-primary btn-sm">
         Mağazaya dön
       </Link>
-    </main>
+    </div>
   );
 }
 

@@ -174,7 +174,7 @@ export function PageMenu({ menu }: PageProps) {
           {items.length === 0 ? (
             <div className="menu-empty">
               <div className="menu-empty-mark">∅</div>
-              <h2 className="h3">Aradığın tatla eşleşen ürün yok.</h2>
+              <h2 className="h3">Aradığın tatla eşleşen ürün yok</h2>
               <p style={{ color: "var(--ink-mute)", marginTop: 10 }}>
                 Farklı bir kelime dene ya da filtreleri sıfırla.
               </p>
@@ -190,57 +190,64 @@ export function PageMenu({ menu }: PageProps) {
               </button>
             </div>
           ) : (
-            <div className="menu-grid" ref={gridRef}>
-              {items.map((it) => {
-                const badge = it.tags
-                  ?.map((t) => MENU_TAG_LABELS[t])
-                  .find(Boolean);
-                return (
-                  <article
-                    className="rail-card"
-                    key={`${it.catKey}:${it.name}`}
-                  >
-                    <div className="rail-card-media menu-card-media">
-                      <MenuPlate
-                        hue={it.hue}
-                        name={it.name}
-                        cat={it.catKey}
-                        image={it.image}
-                      />
-                      {badge && (
-                        <span
-                          className={`rail-card-badge ${badge === "YENİ" ? "new" : ""}`}
-                        >
-                          {badge}
-                        </span>
-                      )}
-                    </div>
-                    <div className="rail-card-body">
-                      <div>
-                        <span className="rail-card-cat">{it.catLabel}</span>
-                        <h3 className="rail-card-name menu-card-name">
-                          {it.name}
-                        </h3>
-                        <p className="rail-card-desc">{it.desc}</p>
+            <>
+              {/* The cards are h3s; without a heading between them and the
+                page's h1 the outline skipped a level. */}
+              <h2 className="sr-only">
+                {active === "all" ? "Tüm menü" : activeLabel}
+              </h2>
+              <div className="menu-grid" ref={gridRef}>
+                {items.map((it) => {
+                  const badge = it.tags
+                    ?.map((t) => MENU_TAG_LABELS[t])
+                    .find(Boolean);
+                  return (
+                    <article
+                      className="rail-card"
+                      key={`${it.catKey}:${it.name}`}
+                    >
+                      <div className="rail-card-media menu-card-media">
+                        <MenuPlate
+                          hue={it.hue}
+                          name={it.name}
+                          cat={it.catKey}
+                          image={it.image}
+                        />
+                        {badge && (
+                          <span
+                            className={`rail-card-badge ${badge === "YENİ" ? "new" : ""}`}
+                          >
+                            {badge}
+                          </span>
+                        )}
                       </div>
-                      <div className="rail-card-foot">
-                        <span className="rail-card-price">
-                          {it.priceL ? (
-                            <>
-                              <span className="size-key">M</span> {it.price}
-                              <span className="size-sep">·</span>
-                              <span className="size-key">L</span> {it.priceL}
-                            </>
-                          ) : (
-                            it.price
-                          )}
-                        </span>
+                      <div className="rail-card-body">
+                        <div>
+                          <span className="rail-card-cat">{it.catLabel}</span>
+                          <h3 className="rail-card-name menu-card-name">
+                            {it.name}
+                          </h3>
+                          <p className="rail-card-desc">{it.desc}</p>
+                        </div>
+                        <div className="rail-card-foot">
+                          <span className="rail-card-price">
+                            {it.priceL ? (
+                              <>
+                                <span className="size-key">M</span> {it.price}
+                                <span className="size-sep">·</span>
+                                <span className="size-key">L</span> {it.priceL}
+                              </>
+                            ) : (
+                              it.price
+                            )}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
 

@@ -204,6 +204,11 @@ cümle düzeninde yazar; site de öyle. `.eyebrow.caps` yalnız kart baskısınd
 Rakamlar: Inter'de `tabular-nums`. Poppins'in tabular rakamı yok (uygulamada
 da öyle); fiyat sütunları Inter'le hizalanır.
 
+**Başlıkta nokta yok.** `h1`–`h3` ve başlıktaki vurgu kelimesi (`.script`)
+noktayla bitmez: "Kahve hazır, sayfa değil", "Postane, Tuzla" (operatör, 26 Eyl
+2026). Gövde metni noktalamasını korur; tescilli slogan "Drink it. Eat the
+cup." kendi iç noktalarını korur. `tests/heading-punctuation.test.ts` tutar.
+
 **Tire:** Arayüz metninde uzun tire (U+2014) ve orta tire (U+2013) kullanılmaz,
 düz tire (`-`) kullanılır. Bu API'nin döndüğü etiketler için de geçerlidir.
 

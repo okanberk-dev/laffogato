@@ -792,7 +792,7 @@ export function Footer({ navigate, settings }: FooterProps) {
         <div className="footer-top">
           <div className="footer-brand">
             <LafMark tone="cream" label="L'Affogato" className="footer-mark" />
-            <p className="footer-motto">İçilir. Sonra kupası yenir.</p>
+            <p className="footer-motto">İçilir, sonra kupası yenir</p>
             <p className="footer-brand-line">
               Bologna 1897&apos;den İstanbul Tuzla&apos;ya - 200 yıllık, restore
               bir köşkte.
@@ -810,7 +810,7 @@ export function Footer({ navigate, settings }: FooterProps) {
                 className="footer-app-icon"
               />
               <div>
-                <h3 className="footer-card-title">L&apos;Affogato cebinde</h3>
+                <h2 className="footer-card-title">L&apos;Affogato cebinde</h2>
                 <p className="footer-card-text">
                   Damga kartın, kasa kodun ve siparişin tek uygulamada.
                 </p>
@@ -820,9 +820,9 @@ export function Footer({ navigate, settings }: FooterProps) {
           </div>
 
           <div className="footer-card footer-newsletter">
-            <h3 className="footer-card-title">
-              Bir mektup, <span className="script">ayda bir.</span>
-            </h3>
+            <h2 className="footer-card-title">
+              Bir mektup, <span className="script">ayda bir</span>
+            </h2>
             <p className="footer-card-text">
               Yeni sezon affogati, Bologna kavurma notları, küçük gelato
               denemeleri. Hiçbir zaman ayda birden fazla.
@@ -833,7 +833,7 @@ export function Footer({ navigate, settings }: FooterProps) {
 
         <div className="footer-grid">
           <div>
-            <h4>Menü</h4>
+            <h3 className="footer-col-title">Menü</h3>
             <ul>
               {MENU_DROPDOWN.map((m) => (
                 <li key={m.slug}>
@@ -848,7 +848,7 @@ export function Footer({ navigate, settings }: FooterProps) {
             </ul>
           </div>
           <div>
-            <h4>Mağaza</h4>
+            <h3 className="footer-col-title">Mağaza</h3>
             <ul>
               {SHOP_DROPDOWN.map((s) => (
                 <li key={s.slug}>
@@ -863,7 +863,7 @@ export function Footer({ navigate, settings }: FooterProps) {
             </ul>
           </div>
           <div>
-            <h4>Köşk</h4>
+            <h3 className="footer-col-title">Köşk</h3>
             <ul>
               <li>
                 <a href="/uye/hesap">Üyelik ve ödüller</a>
@@ -892,7 +892,7 @@ export function Footer({ navigate, settings }: FooterProps) {
           {/* Six documents, not twenty-four; the criterion for each is in
               src/lib/legal/nav.ts. The rest are one click away. */}
           <div>
-            <h4>Yasal</h4>
+            <h3 className="footer-col-title">Yasal</h3>
             <ul>
               {FOOTER_LEGAL_DOCS.map((d) => (
                 <li key={d.slug}>
@@ -916,7 +916,7 @@ export function Footer({ navigate, settings }: FooterProps) {
             </ul>
           </div>
           <div className="footer-contact-col">
-            <h4>İletişim</h4>
+            <h3 className="footer-col-title">İletişim</h3>
             <ul>
               {lines.map((line, i) => (
                 <li key={i}>{line}</li>

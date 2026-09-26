@@ -49,7 +49,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
   const paid = order.status === "paid";
 
   return (
-    <main className="order-done">
+    <div className="order-done">
       <ClearCart />
       <div className="order-done-card">
         <div className="order-done-head">
@@ -73,7 +73,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
           </p>
           <h1 className="order-done-title">
             Grazie, {order.customerName.split(" ")[0]}.{" "}
-            <span className="script">See you soon.</span>
+            <span className="script">See you soon</span>
           </h1>
           <p className="order-done-lede">
             {paid ? (
@@ -182,7 +182,7 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
           izleyebilirsin.
         </p>
       </div>
-    </main>
+    </div>
   );
 }
 

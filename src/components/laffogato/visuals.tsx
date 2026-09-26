@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import {
   BottleDrink,
   CakeSlice,
@@ -10,6 +12,7 @@ import {
   SnackPlate,
   TeaGlass,
 } from "./menu-visuals";
+import { isLocalStatic } from "./local-image";
 import { SCENES, sceneBackground, type SceneKey } from "./scenes";
 
 /* ─────────────────────────────────────────────────────────────
@@ -1577,20 +1580,45 @@ export function MenuPlate({
             padding: 14,
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={image}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              display: "block",
-              filter: "drop-shadow(0 18px 26px rgba(58,40,26,0.32))",
-            }}
-          />
+          {isLocalStatic(image) ? (
+            // The site's own photos are 600 px squares of ~150 KB; a card
+            // shows them at ~150 px on a phone. next/image sends the width
+            // the card needs (a few dozen KB) instead of the whole file.
+            <span
+              style={{
+                position: "relative",
+                display: "block",
+                width: "100%",
+                height: "100%",
+              }}
+            >
+              <Image
+                src={image}
+                alt=""
+                fill
+                sizes="(max-width: 560px) 45vw, (max-width: 1100px) 30vw, 280px"
+                style={{
+                  objectFit: "contain",
+                  filter: "drop-shadow(0 18px 26px rgba(58,40,26,0.32))",
+                }}
+              />
+            </span>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={image}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                display: "block",
+                filter: "drop-shadow(0 18px 26px rgba(58,40,26,0.32))",
+              }}
+            />
+          )}
         </div>
       </PhotoSurface>
     );

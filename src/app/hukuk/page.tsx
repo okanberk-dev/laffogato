@@ -33,7 +33,7 @@ export default function HukukIndexPage() {
   }
 
   return (
-    <main className="legal-page">
+    <div className="legal-page">
       <div className="legal-wrap">
         <PageHero
           scene="porcelain"
@@ -67,7 +67,7 @@ export default function HukukIndexPage() {
                         <span className="legal-index-link-summary">
                           {d.summary}
                         </span>
-                        <span className="eyebrow" style={{ opacity: 0.55 }}>
+                        <span className="eyebrow muted">
                           Güncel: {d.updatedAt} →
                         </span>
                       </Link>
@@ -78,6 +78,6 @@ export default function HukukIndexPage() {
             ))}
         </div>
       </div>
-    </main>
+    </div>
   );
 }

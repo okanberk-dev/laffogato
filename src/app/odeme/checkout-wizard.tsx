@@ -245,7 +245,7 @@ export function CheckoutWizard({
           ✻
         </div>
         <h1 className="h2" style={{ marginBottom: 10 }}>
-          Sepetin <span className="script">boş.</span>
+          Sepetin <span className="script">boş</span>
         </h1>
         <p className="lede" style={{ margin: "0 auto 24px" }}>
           Birkaç adım sonra evine espresso, gelato veya yenilebilir kup
@@ -407,7 +407,7 @@ function ReviewStep({
       <header className="checkout-step-head">
         <span className="eyebrow">01 - Sepet</span>
         <h2 className="h2" style={{ marginTop: 8 }}>
-          Sepetini <span className="script">incele.</span>
+          Sepetini <span className="script">incele</span>
         </h2>
       </header>
       <ul className="checkout-line-list">
@@ -680,7 +680,7 @@ function PaymentStep({
       <header className="checkout-step-head">
         <span className="eyebrow">03 - Ödeme</span>
         <h2 className="h2" style={{ marginTop: 8 }}>
-          Güvenli <span className="script">kapanış.</span>
+          Güvenli <span className="script">kapanış</span>
         </h2>
       </header>
 

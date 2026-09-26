@@ -284,8 +284,8 @@ export function PageShop({
         <div className="shop-helpline">
           <h2 className="shop-helpline-title">Hangi çekirdek?</h2>
           <p>
-            Espresso mu filtre mi karar veremediysen bize sor - barista
-            yardımcı olsun.
+            Espresso mu filtre mi karar veremediysen bize sor - barista yardımcı
+            olsun.
           </p>
           <div className="shop-helpline-actions">
             <a
@@ -408,6 +408,9 @@ export function PageShop({
               </label>
             </div>
 
+            {/* Product names are h3s; on a phone the filter headings live
+                in the closed sheet, so nothing sat between them and the h1. */}
+            <h2 className="sr-only">Ürünler</h2>
             <div className="shop-grid-3">
               {list.map((p, i) => (
                 <ProductCard
@@ -422,7 +425,7 @@ export function PageShop({
 
             {list.length === 0 && (
               <div className="shop-empty">
-                <p className="shop-empty-title">Bu filtreyle ürün yok.</p>
+                <p className="shop-empty-title">Bu filtreyle ürün yok</p>
                 <button
                   type="button"
                   className="btn btn-ghost"
@@ -523,7 +526,7 @@ export function PageShop({
             <div className="reveal r1">
               <div className="eyebrow">Evde ritüel · iki kişilik</div>
               <h2 className="h1" style={{ marginTop: 12 }}>
-                Evde <span className="script">tableside</span> servis.
+                Evde <span className="script">tableside</span> servis
               </h2>
               <p className="lede" style={{ marginTop: 18 }}>
                 {featured.desc}

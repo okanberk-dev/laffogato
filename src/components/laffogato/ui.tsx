@@ -388,7 +388,7 @@ export function CartDrawer({
                   />
                 </svg>
               </div>
-              <p className="cart-empty-title">Sepetin boş.</p>
+              <p className="cart-empty-title">Sepetin boş</p>
               <p className="cart-empty-text">
                 Bir çekirdek paketi, bir affogato seti, bir moka pot - eve ya da
                 hediyeye hazır.
@@ -1090,7 +1090,7 @@ export function SearchOverlay({
           ) : productResults.length === 0 && menuResults.length === 0 ? (
             <div className="search-empty">
               <div className="search-empty-title">
-                &quot;{q}&quot; için sonuç yok.
+                &quot;{q}&quot; için sonuç yok
               </div>
               <p>Farklı bir kelime dene ya da mağazaya göz at.</p>
               <Link href="/magaza" className="btn btn-ghost btn-sm">

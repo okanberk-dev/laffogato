@@ -5,9 +5,10 @@ import { useState, useMemo, Fragment } from "react";
 import { SITE } from "@/lib/seo/site";
 import { priceLabel } from "@/lib/utils/format";
 
+import { LafMark } from "./brand-mark";
 import { PageHero } from "./page-hero";
 import { LOCATION } from "./data";
-import { openStatus } from "./open-status";
+import { openStatus, upcomingDayLabels } from "./open-status";
 import { useClientValue } from "./use-client-value";
 import { SectionHead } from "./ui";
 import {
@@ -46,9 +47,15 @@ export function PageVisit({ visit, settings }: PageProps) {
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`;
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(mapQuery)}`;
   const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&hl=tr&z=16&output=embed`;
+  const [mapOn, setMapOn] = useState(false);
   const [partySize, setPartySize] = useState(2);
   const [day, setDay] = useState("Bu akşam");
   const [time, setTime] = useState("19:30");
+  // Real days from the köşk's calendar, worked out in the browser: the HTML
+  // may be cached across midnight, so the server shows only the two names
+  // that are always true and the weekdays follow on the client.
+  const dayKey = useClientValue(() => upcomingDayLabels().join("|"), "");
+  const dayLabels = dayKey ? dayKey.split("|") : ["Bu akşam", "Yarın"];
 
   return (
     <div className="page" data-screen-label="05 Visit">
@@ -158,7 +165,7 @@ export function PageVisit({ visit, settings }: PageProps) {
           <div className="reveal">
             <div className="eyebrow">{LOCATION.short}</div>
             <h2 className="h1" style={{ marginTop: 16 }}>
-              Postane, <span className="script">Tuzla.</span>
+              Postane, <span className="script">Tuzla</span>
             </h2>
             <div
               style={{
@@ -250,14 +257,40 @@ export function PageVisit({ visit, settings }: PageProps) {
           </div>
 
           <figure className="reveal r1 visit-map" style={{ margin: 0 }}>
-            <iframe
-              title="L’Affogato - Tuzla konumu, Google Haritalar"
-              src={mapEmbedUrl}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allow="fullscreen"
-              className="visit-map-frame"
-            />
+            {/* Click to load. The embed used to load with the page: the
+                visitor's address went to Google before they had asked for a
+                map, with no consent behind it, and the frame sat as a blank
+                box while it came in. The drawn card costs nothing and says
+                where the köşk is; the real map is one tap away. */}
+            {mapOn ? (
+              <iframe
+                title="L’Affogato - Tuzla konumu, Google Haritalar"
+                src={mapEmbedUrl}
+                referrerPolicy="no-referrer-when-downgrade"
+                allow="fullscreen"
+                className="visit-map-frame"
+              />
+            ) : (
+              <div className="visit-map-frame visit-map-facade">
+                <MapSketch />
+                <span className="visit-map-pin" aria-hidden="true">
+                  <LafMark tone="cream" />
+                </span>
+                <div className="visit-map-cta">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => setMapOn(true)}
+                  >
+                    Haritayı göster
+                  </button>
+                  <p>
+                    Harita Google Haritalar&apos;dan yüklenir; gösterince
+                    tarayıcın Google&apos;a bağlanır.
+                  </p>
+                </div>
+              </div>
+            )}
             <figcaption className="visit-map-caption">
               <span>
                 <strong>{LOCATION.landmark}</strong> ·{" "}
@@ -297,7 +330,7 @@ export function PageVisit({ visit, settings }: PageProps) {
                 </>
               ) : (
                 <>
-                  Açık olduğumuz <span className="script">saatler.</span>
+                  Açık olduğumuz <span className="script">saatler</span>
                 </>
               )}
             </h2>
@@ -329,16 +362,9 @@ export function PageVisit({ visit, settings }: PageProps) {
                 <div className="eyebrow" style={{ marginBottom: 6 }}>
                   Rezervasyon
                 </div>
-                <h3
-                  style={{
-                    fontFamily: "var(--serif)",
-                    fontStyle: "normal",
-                    fontSize: 28,
-                    margin: 0,
-                  }}
-                >
-                  Bu akşam · Tuzla
-                </h3>
+                {/* Follows the chosen day - it said "Bu akşam" whatever was
+                    picked below it. */}
+                <h3 className="reserve-card-title">{day} · Tuzla</h3>
               </div>
               <div
                 style={{
@@ -363,6 +389,9 @@ export function PageVisit({ visit, settings }: PageProps) {
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                   <button
                     key={n}
+                    type="button"
+                    aria-pressed={partySize === n}
+                    aria-label={`${n} kişi`}
                     className={cx("reserve-num", partySize === n && "on")}
                     onClick={() => setPartySize(n)}
                   >
@@ -381,17 +410,17 @@ export function PageVisit({ visit, settings }: PageProps) {
                 role="group"
                 aria-labelledby="rv-day-label"
               >
-                {["Bu akşam", "Yarın", "Cuma", "Cumartesi", "Pazar"].map(
-                  (d) => (
-                    <button
-                      key={d}
-                      className={cx("reserve-chip", day === d && "on")}
-                      onClick={() => setDay(d)}
-                    >
-                      {d}
-                    </button>
-                  ),
-                )}
+                {dayLabels.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    aria-pressed={day === d}
+                    className={cx("reserve-chip", day === d && "on")}
+                    onClick={() => setDay(d)}
+                  >
+                    {d}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -416,6 +445,8 @@ export function PageVisit({ visit, settings }: PageProps) {
                 ].map((t) => (
                   <button
                     key={t}
+                    type="button"
+                    aria-pressed={time === t}
                     className={cx("reserve-chip", time === t && "on")}
                     onClick={() => setTime(t)}
                   >
@@ -465,7 +496,7 @@ export function PageVisit({ visit, settings }: PageProps) {
             eyebrow="Il locale · tarihi köşk"
             title={
               <>
-                <span className="script">Mekan.</span>
+                <span className="script">Mekan</span>
               </>
             }
           />
@@ -565,7 +596,7 @@ export function PageVisit({ visit, settings }: PageProps) {
           <div className="reveal">
             <div className="eyebrow on-dark">Eventi privati</div>
             <h2 className="h1" style={{ marginTop: 16, color: "#FFF" }}>
-              Özel <span className="script">kiralama.</span>
+              Özel <span className="script">kiralama</span>
             </h2>
             <p
               className="lede"
@@ -661,5 +692,84 @@ function OpenNow({ rows }: { rows: [string, string][] }) {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * A drawn stand-in for the map until the visitor asks for the real one: the
+ * Marmara shore along the bottom, the E-5 and the coast road, a few
+ * neighbourhood streets, the station, a park - porcelain, not Google's
+ * palette. Decorative only; the pin and the caption carry the meaning.
+ */
+function MapSketch() {
+  return (
+    <svg
+      className="visit-map-art"
+      viewBox="0 0 400 500"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect width="400" height="500" fill="#f2ece4" />
+      {/* Sea */}
+      <path
+        d="M0 392 C 70 372 120 402 190 386 S 320 356 400 372 L 400 500 L 0 500 Z"
+        fill="#dce8ec"
+      />
+      <path
+        d="M0 392 C 70 372 120 402 190 386 S 320 356 400 372"
+        fill="none"
+        stroke="#c9dbe1"
+        strokeWidth="3"
+      />
+      {/* Parks */}
+      <rect x="36" y="70" width="92" height="64" rx="10" fill="#dcebd9" />
+      <circle cx="318" cy="118" r="42" fill="#dcebd9" />
+      <rect x="252" y="262" width="78" height="52" rx="10" fill="#dcebd9" />
+      {/* Blocks */}
+      <g fill="#ebe3d8">
+        <rect x="150" y="60" width="70" height="50" rx="6" />
+        <rect x="150" y="128" width="70" height="60" rx="6" />
+        <rect x="36" y="156" width="92" height="70" rx="6" />
+        <rect x="36" y="246" width="92" height="84" rx="6" />
+        <rect x="150" y="206" width="70" height="72" rx="6" />
+        <rect x="244" y="176" width="110" height="64" rx="6" />
+        <rect x="150" y="296" width="80" height="54" rx="6" />
+      </g>
+      {/* Streets */}
+      <g fill="none" stroke="#fffdfa" strokeLinecap="round">
+        <path d="M-10 142 C 120 150 260 130 410 150" strokeWidth="10" />
+        <path d="M-10 350 C 90 340 200 362 410 336" strokeWidth="12" />
+        <path d="M138 -10 L 140 510" strokeWidth="8" />
+        <path d="M234 -10 C 238 120 230 250 240 380" strokeWidth="8" />
+        <path d="M-10 238 C 90 236 190 244 410 250" strokeWidth="6" />
+        <path d="M360 -10 C 350 120 372 240 360 340" strokeWidth="6" />
+      </g>
+      {/* The E-5, drawn as the main road */}
+      <path
+        d="M-10 40 C 120 30 270 52 410 34"
+        fill="none"
+        stroke="#e8c877"
+        strokeWidth="12"
+        strokeLinecap="round"
+        opacity="0.75"
+      />
+      {/* Railway */}
+      <path
+        d="M-10 318 C 120 306 250 326 410 304"
+        fill="none"
+        stroke="#b9ada0"
+        strokeWidth="3"
+        strokeDasharray="10 7"
+      />
+      <circle
+        cx="86"
+        cy="314"
+        r="7"
+        fill="#fffdfa"
+        stroke="#877d74"
+        strokeWidth="3"
+      />
+    </svg>
   );
 }

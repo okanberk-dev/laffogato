@@ -18,7 +18,7 @@ export default async function VerifyPage({ searchParams }: PageProps) {
   const ok = result.ok;
 
   return (
-    <main className="auth-page">
+    <div className="auth-page">
       <div className="auth-card auth-card--center">
         <span
           className={`auth-badge ${ok ? "auth-badge--ok" : "auth-badge--fail"}`}
@@ -46,6 +46,6 @@ export default async function VerifyPage({ searchParams }: PageProps) {
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }

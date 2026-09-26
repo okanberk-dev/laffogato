@@ -30,7 +30,7 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
         {/* `.section-title`, not `.h1`: at clamp(36px, 5vw, 56px) this h2 was
             set LARGER than the page's own h1 sitting above it. */}
         <h2 id="sss-heading" className="section-title seo-block-title">
-          L&rsquo;Affogato hakkında merak edilenler.
+          L&rsquo;Affogato hakkında merak edilenler
         </h2>
         <p className="seo-block-lede">
           Tuzla&rsquo;daki kafe, menü, yenilebilir kup, rezervasyon ve online

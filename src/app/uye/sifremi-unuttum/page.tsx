@@ -18,7 +18,7 @@ export default async function SifremiUnuttumPage() {
   if (active) redirect("/uye/hesap/sifre");
 
   return (
-    <main className="auth-page">
+    <div className="auth-page">
       <div className="auth-card">
         <div className="auth-head">
           <Link href="/uye/giris" className="auth-back">
@@ -28,7 +28,7 @@ export default async function SifremiUnuttumPage() {
         </div>
         <DegradedAuthNotice />
         <h1 className="auth-title">
-          Şifremi <span className="script">unuttum.</span>
+          Şifremi <span className="script">unuttum</span>
         </h1>
         <p className="auth-lede">
           Hesabının e-posta adresini yaz; yeni şifre belirlemen için bir
@@ -36,6 +36,6 @@ export default async function SifremiUnuttumPage() {
         </p>
         <ForgotPasswordForm />
       </div>
-    </main>
+    </div>
   );
 }
