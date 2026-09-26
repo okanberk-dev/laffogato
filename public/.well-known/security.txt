@@ -1,0 +1,8 @@
+# L'Affogato - güvenlik açığı bildirimi (RFC 9116)
+# Bir açık bulduysanız lütfen önce bize yazın; kamuya açıklamadan önce
+# düzeltmemiz için makul süre tanıyın.
+Contact: mailto:info@nextgenlab.com.tr
+Expires: 2027-09-26T00:00:00.000Z
+Preferred-Languages: tr, en
+Canonical: https://laffogato.net/.well-known/security.txt
+Policy: https://laffogato.net/hukuk/kullanim-sartlari
