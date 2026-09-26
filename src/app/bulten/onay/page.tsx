@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { confirmNewsletterAction } from "@/app/newsletter/actions";
+import { LafMark } from "@/components/laffogato/brand-mark";
 
 export const metadata = {
   // `absolute`: the root template would append the brand a second time.
@@ -38,12 +39,15 @@ export default async function BultenOnayPage({ searchParams }: PageProps) {
   }[state];
 
   return (
-    <main className="auth-page">
+    <main className="auth-page auth-page--full">
       <div className="auth-card">
-        <Link href="/" className="eyebrow auth-back">
-          ← Anasayfa
-        </Link>
-        <h1 className="h1 auth-title">{heading}</h1>
+        <div className="auth-head">
+          <Link href="/" className="auth-back">
+            ← Anasayfa
+          </Link>
+          <LafMark tone="duo" />
+        </div>
+        <h1 className="auth-title">{heading}</h1>
 
         {state === "ask" ? (
           <>

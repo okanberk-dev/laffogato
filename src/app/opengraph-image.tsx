@@ -1,5 +1,10 @@
 import { ImageResponse } from "next/og";
 
+import {
+  LAF_BEAN_PATH,
+  LAF_LETTERS_PATH,
+  LAF_VIEWBOX,
+} from "@/components/laffogato/laf-paths";
 import { SITE } from "@/lib/seo/site";
 
 /**
@@ -15,57 +20,37 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function OgImage() {
+  // next/og rasterises this on the server, where CSS variables do not
+  // resolve, so the palette is spelled out - the app icon's own (globals.css
+  // :root since 25 Eyl 2026): the radial house green #23876a → #1d6d56 →
+  // #0c3b2d, the L'Af mark in cream #fbf8f4 with its bean in brass #e8c877.
+  const markHeight = 300;
+  const markWidth = Math.round(
+    (markHeight * LAF_VIEWBOX.width) / LAF_VIEWBOX.height,
+  );
   return new ImageResponse(
     <div
       style={{
         width: "100%",
         height: "100%",
-        // next/og rasterises this on the server, where CSS variables do not
-        // resolve, so the palette is written out - but it is the same one
-        // globals.css defines: --bg-espresso as the ground, --bg as the text,
-        // --gold-soft as the accent (the gold that carries on a dark field).
         background:
-          "linear-gradient(135deg, #0d2a1d 0%, #143d2b 55%, #1e5138 100%)",
-        color: "#ffffff",
+          "radial-gradient(circle at 30% 20%, #23876a 0%, #1d6d56 45%, #0c3b2d 100%)",
+        color: "#fbf8f4",
         display: "flex",
-        flexDirection: "column",
-        padding: "72px 80px",
-        fontFamily: "serif",
+        alignItems: "center",
+        padding: "72px 84px",
+        gap: 72,
         position: "relative",
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            // --gold-soft #e8d3a4 and --accent-on-dark #efb9c6, as washes.
-            "radial-gradient(ellipse at 25% 30%, rgba(232, 211, 164, 0.20), transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(239, 185, 198, 0.12), transparent 55%)",
-        }}
-      />
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-          fontSize: 18,
-          letterSpacing: 4,
-          textTransform: "uppercase",
-          opacity: 0.78,
-          position: "relative",
-        }}
+      <svg
+        width={markWidth}
+        height={markHeight}
+        viewBox={`0 0 ${LAF_VIEWBOX.width} ${LAF_VIEWBOX.height}`}
       >
-        <span
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: "50%",
-            background: "#e8c877",
-            display: "flex",
-          }}
-        />
-        Bologna · 1897 → İstanbul · 2026
-      </div>
+        <path fillRule="evenodd" fill="#fbf8f4" d={LAF_LETTERS_PATH} />
+        <path fillRule="evenodd" fill="#e8c877" d={LAF_BEAN_PATH} />
+      </svg>
 
       <div
         style={{
@@ -73,15 +58,33 @@ export default async function OgImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          position: "relative",
         }}
       >
         <div
           style={{
-            fontSize: 132,
-            lineHeight: 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            fontSize: 24,
             fontWeight: 600,
+            color: "#d3e2d9",
+          }}
+        >
+          {/* The tricolore, on the dark ground: mint, cream, rose. */}
+          <div style={{ display: "flex", width: 54, height: 6 }}>
+            <div style={{ flex: 1, background: "#d3e2d9", display: "flex" }} />
+            <div style={{ flex: 1, background: "#fbf8f4", display: "flex" }} />
+            <div style={{ flex: 1, background: "#f6e9ec", display: "flex" }} />
+          </div>
+          Bologna · 1897 → İstanbul · 2026
+        </div>
+        <div
+          style={{
+            fontSize: 104,
+            lineHeight: 1,
+            fontWeight: 700,
             letterSpacing: -3,
+            marginTop: 26,
             display: "flex",
           }}
         >
@@ -89,9 +92,9 @@ export default async function OgImage() {
         </div>
         <div
           style={{
-            fontSize: 56,
-            marginTop: 24,
-            fontStyle: "italic",
+            fontSize: 46,
+            marginTop: 20,
+            fontWeight: 600,
             color: "#e8c877",
             display: "flex",
           }}
@@ -101,10 +104,9 @@ export default async function OgImage() {
         <div
           style={{
             fontSize: 26,
-            marginTop: 28,
-            maxWidth: 820,
+            marginTop: 26,
             lineHeight: 1.35,
-            opacity: 0.86,
+            color: "#e6efe9",
             display: "flex",
           }}
         >
@@ -114,12 +116,14 @@ export default async function OgImage() {
 
       <div
         style={{
+          position: "absolute",
+          left: 84,
+          right: 84,
+          bottom: 44,
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "flex-end",
-          fontSize: 18,
-          opacity: 0.7,
-          position: "relative",
+          fontSize: 20,
+          color: "#d3e2d9",
         }}
       >
         <div style={{ display: "flex" }}>

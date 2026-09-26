@@ -91,8 +91,8 @@ bordo `#9d2543` / `#520f1f` / `#f9e6ea`, pirinç `#e8c877`, altın metin
 `<LafMark>`); uygulama ikonu da odur. Uygulamanın paleti değişirse site aynı
 PR serisinde izler (değer tablosu lafmobil `docs/SITE-PALETTE-SYNC.md`);
 ayrışma operatör kararı ister. Henüz taşınmayanlar arka yüz dosyalarıdır ve
-Köşk yeşili `#143d2b` üzerinde durur: e-posta şablonları, `opengraph-image.tsx`,
-PayNkolay köprüsü (`odeme/paynkolay/route.ts`) ve `scripts/gen-icons.mjs`
+Köşk yeşili `#143d2b` üzerinde durur: e-posta şablonları, PayNkolay köprüsü
+(`odeme/paynkolay/route.ts`) ve `scripts/gen-icons.mjs`
 ikonları (`public/icon-*.png`, JSON-LD logosu). `tests/brand-theme.test.ts`
 ikisini de ayrı ayrı tutar. Tam kılavuz ve geçmiş: `docs/BRAND.md`.
 

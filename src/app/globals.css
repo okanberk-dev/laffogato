@@ -8901,10 +8901,13 @@ select {
   align-items: center;
   gap: 24px;
   padding: 18px 22px;
-  border-radius: 18px;
-  background: var(--bg-cream);
-  border: 1px solid var(--ink-line-strong);
-  box-shadow: 0 18px 48px rgba(28, 22, 16, 0.22);
+  border-radius: var(--r-card);
+  /* Floating chrome, so real glass (the app's sheet). */
+  background: var(--glass-raised);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--ink-line);
+  box-shadow: var(--rim), var(--shadow-chrome);
 }
 .cookie-banner-body {
   flex: 1 1 auto;
@@ -9076,12 +9079,18 @@ select {
     bottom: calc(10px + env(safe-area-inset-bottom));
     padding: 16px 18px;
   }
+  /* The two decisions side by side at the same width; "Ayarla" under them
+     - flex-wrap had let the accept button take a whole row on its own. */
   .cookie-banner-actions {
-    justify-content: stretch;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
   .cookie-banner-actions .btn {
-    flex: 1 1 auto;
     justify-content: center;
+  }
+  .cookie-banner-actions .btn-ghost {
+    grid-column: 1 / -1;
+    order: 3;
   }
 }
 

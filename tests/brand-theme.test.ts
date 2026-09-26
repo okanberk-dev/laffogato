@@ -56,8 +56,8 @@ const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
  * the site moves in the same PR series (docs/SITE-PALETTE-SYNC.md in
  * lafmobil holds the value table). What has NOT moved yet is everything the
  * site paints outside the stylesheet where a CSS variable cannot reach: the
- * e-mails, the link preview, the PayNkolay bridge and the generated PWA
- * icons are still on the Köşk green #143d2b and say so in the blocks below.
+ * e-mails, the PayNkolay bridge and the generated JSON-LD icons are still on
+ * the Köşk green #143d2b and say so in the blocks below.
  * They are backend or script files, so they follow in a separate PR.
  * Contrast is a separate guard in contrast.test.ts.
  */
@@ -235,16 +235,28 @@ describe("surfaces outside globals.css follow the same palette", () => {
    * not resolve, so both spell the palette out. That is the only reason they
    * kept a retired one long after globals.css moved.
    *
-   * They are on the Köşk green (#143d2b) still, knowingly: the 25 Eyl move to
-   * the app's porcelain was a front-end change, and the mail templates, the
-   * OG route and the PayNkolay bridge are back-end files that follow in
-   * their own PR. When they move, these pins move with them.
+   * The link preview moved with the site. The mail templates and the
+   * PayNkolay bridge are on the Köşk green (#143d2b) still, knowingly: they
+   * are back-end files (src/lib, route.ts) and follow in their own PR. When
+   * they move, these pins move with them.
    */
-  it("shares the link preview on the house green", () => {
-    expect(ogImage).toContain("#143d2b"); // --bg-espresso
-    expect(ogImage).toContain("#ffffff"); // --bg
-    expect(ogImage).toContain("#e8d3a4"); // --gold-soft
-    for (const hex of ["#14100B", "#1F1813", "#2D2418", "#FAF6EE", "#C9A05A"]) {
+  it("shares the link preview as the app icon: L'Af on the house green", () => {
+    // Moved with the site on 25 Eyl 2026 (opengraph-image.tsx is a front-end
+    // file): the icon's radial green, the mark in cream, the bean in brass.
+    expect(ogImage).toContain("#1d6d56"); // --green
+    expect(ogImage).toContain("#0c3b2d"); // --bg-espresso-deep
+    expect(ogImage).toContain("#fbf8f4"); // cream
+    expect(ogImage).toContain("#e8c877"); // --gold-soft, brass
+    expect(ogImage).toContain("LAF_LETTERS_PATH");
+    for (const hex of [
+      "#14100B",
+      "#1F1813",
+      "#2D2418",
+      "#FAF6EE",
+      "#C9A05A",
+      "#143d2b",
+      "#e8d3a4",
+    ]) {
       expect(ogImage, `${hex} belongs to a retired palette`).not.toContain(hex);
     }
   });

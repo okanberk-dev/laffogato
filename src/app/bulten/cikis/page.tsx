@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { unsubscribeNewsletterAction } from "@/app/newsletter/actions";
+import { LafMark } from "@/components/laffogato/brand-mark";
 
 export const metadata = {
   // `absolute`: the root template would append the brand a second time.
@@ -43,14 +44,17 @@ export default async function BultenCikisPage({ searchParams }: PageProps) {
   }[state];
 
   return (
-    <main className="auth-page">
+    <main className="auth-page auth-page--full">
       <div className="auth-card">
-        <Link href="/" className="eyebrow auth-back">
-          ← Anasayfa
-        </Link>
+        <div className="auth-head">
+          <Link href="/" className="auth-back">
+            ← Anasayfa
+          </Link>
+          <LafMark tone="duo" />
+        </div>
         {/* The OUTCOME, not the topic: it is the one line a screen reader
             announces on arrival and the one line most people read. */}
-        <h1 className="h1 auth-title">{heading}</h1>
+        <h1 className="auth-title">{heading}</h1>
 
         {state === "ask" ? (
           <>
