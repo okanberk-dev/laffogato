@@ -21,6 +21,7 @@
  */
 
 import { FAQ, type FaqEntry } from "./faq";
+import { SHOP_CATEGORY_ROUTES } from "./pages";
 import { SITE } from "./site";
 import {
   STORY,
@@ -410,7 +411,12 @@ export function breadcrumbLd(
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    "@id": `${SITE.url}/#breadcrumbs`,
+    // Per page: one shared "#breadcrumbs" id told a crawler that every page's
+    // trail was the same node.
+    "@id": `${(() => {
+      const last = items[items.length - 1]?.url ?? "/";
+      return last.startsWith("http") ? last : `${SITE.url}${last}`;
+    })()}#breadcrumbs`,
     itemListElement: items.map((it, idx) => ({
       "@type": "ListItem",
       position: idx + 1,
@@ -547,7 +553,10 @@ export function productListLd(
           "@id": productId,
           name: p.name,
           description: p.desc,
-          category: p.cat,
+          // The shelf's Turkish name ("Çekirdek Kahve"), not the internal key.
+          category:
+            SHOP_CATEGORY_ROUTES.find((c) => c.productCat === p.cat)
+              ?.breadcrumbLabel ?? p.cat,
           sku: `LAF-${slug.toUpperCase().slice(0, 20)}`,
           mpn: `LAF-${slug.toUpperCase().slice(0, 20)}`,
           brand: {

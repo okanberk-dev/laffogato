@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 // content updates. A request-time `new Date()` would report every URL as
 // "just modified" on each crawl, noise that search engines learn to distrust.
 // Product detail pages still use their real per-row updatedAt below.
-const CONTENT_REVISION = new Date("2026-06-19T00:00:00.000Z");
+const CONTENT_REVISION = new Date("2026-09-26T00:00:00.000Z");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // A closed site publishes no sitemap. Both switches matter: the admin's
@@ -41,7 +41,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     products = all
       .filter((p) => p.isActive)
       .map((p) => {
-        const imgs = (p.images ?? []).filter((u) => /^https?:\/\//i.test(u));
+        // Site-relative uploads and public/ photos count too - made absolute,
+        // as the image sitemap requires; they used to be dropped.
+        const imgs = (p.images ?? [])
+          .map((u) => u.trim())
+          .filter((u) => /^https?:\/\//i.test(u) || u.startsWith("/"))
+          .map((u) => (u.startsWith("/") ? `${SITE.url}${u}` : u));
         return {
           url: `${SITE.url}/magaza/urun/${p.slug}`,
           lastModified: p.updatedAt ? new Date(p.updatedAt) : now,

@@ -9,7 +9,7 @@ import { JsonLd } from "@/lib/seo/json-ld";
 
 const TITLE = "Rehber - Affogato, Matcha, Espresso ve Tatlılar";
 const DESCRIPTION =
-  "Affogato nedir, matcha nasıl yapılır, flat white ile cortado farkı, San Sebastian cheesecake tarifi ve yenilebilir kahve fincanı - Tuzla'daki barın mutfağından ayrıntılı Türkçe rehberler.";
+  "Affogato nedir, matcha nasıl yapılır, flat white ile cortado farkı, San Sebastian cheesecake tarifi - Tuzla'daki barın mutfağından Türkçe rehberler.";
 
 export const metadata: Metadata = {
   title: TITLE,

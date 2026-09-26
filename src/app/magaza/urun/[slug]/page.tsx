@@ -15,7 +15,8 @@ import {
 } from "@/lib/admin/store";
 import { breadcrumbLd, singleProductLd } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/lib/seo/json-ld";
-import { SITE } from "@/lib/seo/site";
+import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
+import { metaDescription, openGraphDefaults } from "@/lib/seo/site";
 import { shortProductName } from "@/lib/utils/format";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +60,16 @@ export async function generateMetadata({
   } else {
     description = `${product.name} · L'Affogato mağazasından, Türkiye'ye kargo.`;
   }
+  // A one-line blurb ("Kakao, kuru incir, esmer şeker.") is too thin for a
+  // result snippet; give it the shelf and the delivery promise.
+  if (description.length < 90) {
+    const shelf =
+      SHOP_CATEGORY_ROUTES.find((c) => c.productCat === product.cat)
+        ?.breadcrumbLabel ?? "Mağaza";
+    description = metaDescription(
+      `${description.replace(/[.\s]+$/, "")}. ${shelf} · L'Affogato online mağaza, Türkiye'nin her yerine kargo.`,
+    );
+  }
   const path = PATH(slug);
   // Uploaded images are site-relative (`/gorsel/urun/...`); Next resolves them
   // against `metadataBase`. Only absolute-vs-relative matters here, so an
@@ -72,12 +83,13 @@ export async function generateMetadata({
     description,
     alternates: { canonical: path },
     openGraph: {
+      // The defaults first: without them a product with no photo shared
+      // with no image at all.
+      ...openGraphDefaults(),
       title,
       description,
       url: path,
-      siteName: SITE.name,
-      locale: SITE.locale,
-      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+      ...(ogImage ? { images: [{ url: ogImage, alt: product.name }] } : {}),
     },
     // The og:type / product:* tags are NOT emitted through `other`: Next
     // renders that map as <meta name="…">, and every Open Graph consumer reads

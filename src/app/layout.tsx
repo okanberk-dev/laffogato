@@ -66,13 +66,11 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  alternates: {
-    canonical: "/",
-    languages: {
-      "tr-TR": "/",
-      "x-default": "/",
-    },
-  },
+  // No site-wide `alternates`: a canonical here is inherited by every page
+  // that does not set its own, and pointed /uye/giris, /odeme and the like at
+  // the home page. Each indexable page declares its own canonical. hreflang
+  // is omitted - one language, and "tr-TR: /" on every page named the home
+  // page as each page's Turkish version.
   openGraph: {
     type: "website",
     locale: SITE.locale,
@@ -139,9 +137,6 @@ export const metadata: Metadata = {
     "DC.title": SITE.brand,
     "DC.language": SITE.locale,
     "DC.publisher": SITE.legalName,
-    // Misc
-    "format-detection": "telephone=no",
-    "apple-mobile-web-app-title": SITE.name,
     "msapplication-TileColor": "#1d6d56",
     "msapplication-config": "/browserconfig.xml",
     // Pinterest + Facebook domain verification (env-driven, optional)
@@ -151,14 +146,9 @@ export const metadata: Metadata = {
     ...(SITE.verification.facebook
       ? { "facebook-domain-verification": SITE.verification.facebook }
       : {}),
-    // Editorial / brand metadata
-    rating: "General",
-    distribution: "Global",
-    "revisit-after": "7 days",
-    // Mobile + theme defaults
-    "mobile-web-app-capable": "yes",
-    HandheldFriendly: "true",
-    MobileOptimized: "width",
+    // (rating / distribution / revisit-after / HandheldFriendly /
+    // MobileOptimized are gone: no engine reads them, and three duplicated
+    // tags Next already emits from `formatDetection` and `appleWebApp`.)
   },
 };
 

@@ -175,3 +175,31 @@ export function openGraphDefaults() {
     ],
   };
 }
+
+/** The brand suffix the root layout's title template appends. */
+export const TITLE_SUFFIX = " · L'Affogato";
+
+/**
+ * A `{ absolute }` title with the brand appended only when the whole still
+ * fits a search result (~60 characters). The layout template appended it
+ * unconditionally, so every guide title ran to 66-72 and was cut mid-word.
+ */
+export function brandedTitle(base: string, max = 60): { absolute: string } {
+  const t = base.trim();
+  return {
+    absolute: t.length + TITLE_SUFFIX.length <= max ? t + TITLE_SUFFIX : t,
+  };
+}
+
+/**
+ * A meta description cut to what a result shows (~158 characters), at a
+ * word boundary, with an ellipsis. The legal pages published 214-292
+ * character summaries and Google truncated them wherever it liked.
+ */
+export function metaDescription(text: string, max = 158): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max - 1);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,;:·-]+$/, "")}…`;
+}

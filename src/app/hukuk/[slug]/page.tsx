@@ -6,6 +6,9 @@ import { LEGAL_DOCS, findLegalDoc } from "@/lib/legal/documents";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { LegalMarkdown } from "@/lib/legal/markdown";
 import { getPublishedLegalOverride } from "@/lib/legal/store";
+import { JsonLd } from "@/lib/seo/json-ld";
+import { metaDescription, openGraphDefaults } from "@/lib/seo/site";
+import { breadcrumbLd } from "@/lib/seo/structured-data";
 
 export async function generateMetadata({
   params,
@@ -16,11 +19,23 @@ export async function generateMetadata({
   const doc = findLegalDoc(slug);
   if (!doc) return {};
   const override = await getPublishedLegalOverride(slug);
+  const title = override?.title || doc.title;
+  const description = metaDescription(override?.summary || doc.summary);
+  const url = `/hukuk/${slug}`;
   return {
-    title: override?.title || doc.title,
-    description: override?.summary || doc.summary,
-    alternates: { canonical: `/hukuk/${slug}` },
+    title,
+    description,
+    alternates: { canonical: url },
     robots: { index: true, follow: true },
+    // Its own og:url - it used to inherit the layout's, so a shared legal
+    // page unfurled as the home page.
+    openGraph: {
+      ...openGraphDefaults(),
+      title: `${title} · L'Affogato`,
+      description,
+      url,
+      type: "article",
+    },
   };
 }
 
@@ -41,6 +56,13 @@ export default async function LegalDocPage({
 
   return (
     <div className="legal-page">
+      <JsonLd
+        data={breadcrumbLd([
+          { name: "Ana Sayfa", url: "/" },
+          { name: "Hukuki bilgiler", url: "/hukuk" },
+          { name: title, url: `/hukuk/${slug}` },
+        ])}
+      />
       <div className="legal-wrap legal-wrap-narrow">
         <header className="legal-head">
           <Link
