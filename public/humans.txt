@@ -1,0 +1,13 @@
+/* EKİP */
+Marka: L'Affogato - Caffè · Gelato · Dolci
+Konum: Postane Mah. Atatürk Cad. No: 28, Tuzla / İstanbul
+İletişim: info@nextgenlab.com.tr
+İşleten: NEXTGEN YAZILIM EĞİTİM İNŞAAT SANAYİ VE TİCARET LİMİTED ŞİRKETİ
+
+/* SİTE */
+Son güncelleme: 2026/09/26
+Dil: Türkçe
+Teknoloji: Next.js, React, TypeScript, Tailwind CSS, PostgreSQL
+Barındırma: Vercel
+Yazı tipleri: Poppins, Inter
+Uygulama: L'Affogato (iOS / Android) - site ile tek hesap
