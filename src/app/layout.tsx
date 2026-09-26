@@ -27,17 +27,11 @@ const displayFont = Poppins({
   weight: ["500", "600", "700"],
   variable: "--font-display",
   display: "swap",
-  // Not preloaded: eight files (~180 KB) raced the render-blocking CSS on a
-  // slow link and pushed first paint back by ~0.8 s. With `swap` and the
-  // metric-matched fallback next/font generates, text paints at once and
-  // the face swaps in without moving the layout.
-  preload: false,
 });
 const textFont = Inter({
   subsets: ["latin", "latin-ext"],
   variable: "--font-text",
   display: "swap",
-  preload: false,
 });
 
 export const viewport: Viewport = {
