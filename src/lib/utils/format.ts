@@ -16,13 +16,22 @@ export function formatDate(value: string | Date): string {
  * Kuruş are shown only when there are any, so ₺185 stays "185₺" while ₺184,90
  * is no longer rounded away to "185₺" - which is what the site used to display
  * and publish while charging the real amount at checkout.
+ *
+ * Thousands are grouped with a dot, the Turkish way: the karaoke hour reads
+ * "1.000₺", not "1000₺". Every reader of these strings (`parsePriceLabel`,
+ * the JSON-LD `offerPrice`) already drops a dot that groups three digits.
  */
 export function priceLabel(amountMinor: number): string {
-  const kurus = Math.abs(amountMinor) % 100;
-  const major = amountMinor / 100;
+  const minor = Math.round(Math.abs(amountMinor));
+  const sign = amountMinor < 0 && minor > 0 ? "-" : "";
+  const kurus = minor % 100;
+  const major = String(Math.trunc(minor / 100)).replace(
+    /\B(?=(\d{3})+(?!\d))/g,
+    ".",
+  );
   return kurus === 0
-    ? `${Math.trunc(major)}₺`
-    : `${major.toFixed(2).replace(".", ",")}₺`;
+    ? `${sign}${major}₺`
+    : `${sign}${major},${String(kurus).padStart(2, "0")}₺`;
 }
 
 /**
