@@ -385,6 +385,24 @@ ${CAMPAIGN_TAIL}`,
   "kampanya-indirim": `${CAMPAIGN_HEAD}
 İndirim: [INDIRIM_ORAN] · [INDIRIM_URUN]
 ${CAMPAIGN_BODY}${CAMPAIGN_CODE}${CAMPAIGN_TAIL}`,
+
+  /**
+   * Every message to the team (karaoke request, settings test, whatever
+   * comes next): the rows arrive pre-formatted as one block, since the text
+   * half has no loop.
+   */
+  "operasyon-bildirim": `[BILDIRIM_BASLIK]
+[BILDIRIM_ALT]
+
+[SATIRLAR_METIN]
+<!--IF:NOT-->
+[NOT_ETIKET]: [NOT]
+<!--/IF:NOT-->
+[BUTON_METIN]: [BUTON_URL]
+
+[BILDIRIM_DIPNOT]
+
+- L'Affogato paneli`,
 } as const;
 
 export type EmailTextName = keyof typeof EMAIL_TEXT;

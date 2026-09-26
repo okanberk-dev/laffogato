@@ -688,8 +688,10 @@ ya da web `/karaoke` formundan (`bookKaraokeAction`) - köşke düz metin bir
 **Talep bildirimi e-postası** (`settings.karaokeNotifyEmail`, 26 Eyl 2026'dan
 beri `bizimfutbol9@gmail.com`); boşsa genel iletişim adresi (`settings.email`).
 
-- Konu satırı tarih, saat, kişi ve rezervasyon kimliğini taşır; gövde "Web
-  sitesinden" ya da "Uygulamadan" diye başlar.
+- Müşteri maillerinin tasarımıyla gider (`operasyon-bildirim.html`, bkz.
+  `src/lib/email/templates/README.md` "Ekibe giden mailler"); konu satırı
+  tarih, saat, kişi ve rezervasyon kimliğini taşır, alt başlık "Web
+  sitesinden" ya da "Uygulamadan" der.
 - **Yanıt adresi üyedir** - operatör "Yanıtla"ya basınca talep edene yazar.
 - `Idempotency-Key: karaoke-<id>-requested` - aynı istek yeniden denenirse
   ikinci kopya düşmez.

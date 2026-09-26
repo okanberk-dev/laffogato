@@ -8,7 +8,6 @@ import { hasAppLinks } from "@/lib/mobile/app-store";
 import { SITE } from "@/lib/seo/site";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
-import { escapeHtml } from "./fill";
 import { renderEmail, type RenderedEmail, type RenderInput } from "./render";
 import type { EmailTemplateName } from "./templates.generated";
 import { EMAIL_TEXT } from "./text";
@@ -240,19 +239,89 @@ function resendMessage(status: number, body: string): string {
  */
 export async function sendTestEmail(to: string): Promise<SendResult> {
   const { from } = await emailIdentity();
-  return deliver({
+  return sendOperatorNotice({
     to,
     subject: "L'Affogato - e-posta ayarları testi",
-    text: `Bu bir testtir. Bu mesaj sana ulaştıysa L'Affogato'nun sipariş, doğrulama ve şifre sıfırlama e-postaları da ulaşacak.
+    summary: "Bu mesaj ulaştıysa sipariş ve doğrulama e-postaları da ulaşacak.",
+    label: "E-POSTA AYARLARI",
+    title: "Test e-postası",
+    subtitle: "Bu mesaj ulaştıysa gönderim çalışıyor",
+    rows: [
+      { label: "Gönderen", value: from },
+      { label: "Alıcı", value: to },
+    ],
+    button: { label: "AYARLARA DÖN", url: `${SITE.url}/admin/ayarlar` },
+    footnote:
+      "Sipariş, doğrulama ve şifre sıfırlama e-postaları da aynı adresten, aynı yoldan çıkar.",
+  });
+}
 
-Gönderen: ${from}
+/**
+ * A message to the team, in the customer mails' design
+ * (`templates/operasyon-bildirim.html`): eyebrow, title, a white card of
+ * label/value rows, an optional note, one button. Every internal notice goes
+ * through here, so the köşk's inbox reads like the brand rather than a log.
+ */
+export interface OperatorNotice {
+  to: string;
+  subject: string;
+  /** Inbox preview line. */
+  summary: string;
+  /** Upper-case eyebrow, e.g. "KARAOKE · YENİ TALEP". */
+  label: string;
+  title: string;
+  subtitle: string;
+  rows: Array<{ label: string; value: string }>;
+  note?: { label: string; text: string };
+  button: { label: string; url: string };
+  footnote: string;
+  replyTo?: string;
+  idempotencyKey?: string;
+}
 
-- L'Affogato`,
-    html: `<div style="font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
-  <p style="font-size:15px;line-height:1.6">Bu bir testtir. Bu mesaj sana ulaştıysa L'Affogato'nun sipariş, doğrulama ve şifre sıfırlama e-postaları da ulaşacak.</p>
-  <p style="font-size:13px;color:#5f594e">Gönderen: ${from.replace(/</g, "&lt;")}</p>
-  <p style="font-size:13px;color:#201c17;margin-top:24px">- L'Affogato · Coffee Italiano</p>
-</div>`,
+export function renderOperatorNotice(n: OperatorNotice): RenderedEmail {
+  const rows = n.rows.filter((r) => r.value.trim() !== "");
+  return renderEmail("operasyon-bildirim", {
+    vars: {
+      BILDIRIM_KONU: n.subject,
+      BILDIRIM_OZET: n.summary,
+      BILDIRIM_ETIKET: n.label,
+      BILDIRIM_BASLIK: n.title,
+      BILDIRIM_ALT: n.subtitle,
+      SATIRLAR_METIN: rows.map((r) => `${r.label}: ${r.value}`).join("\n"),
+      NOT_ETIKET: n.note?.label ?? "",
+      NOT: n.note?.text ?? "",
+      BUTON_METIN: n.button.label,
+      BUTON_URL: n.button.url,
+      BILDIRIM_DIPNOT: n.footnote,
+    },
+    loops: {
+      SATIRLAR: rows.map((r) => ({
+        ETIKET: r.label.toLocaleUpperCase("tr-TR"),
+        DEGER: r.value,
+      })),
+    },
+    flags: { NOT: Boolean(n.note?.text.trim()) },
+    text: EMAIL_TEXT["operasyon-bildirim"],
+  });
+}
+
+async function sendOperatorNotice(n: OperatorNotice): Promise<SendResult> {
+  if (!n.to) return { ok: false, error: "Alıcı adresi boş." };
+  let r: RenderedEmail;
+  try {
+    r = renderOperatorNotice(n);
+  } catch (err) {
+    console.error("[email] operasyon-bildirim hazırlanamadı", err);
+    return { ok: false, error: "Şablon hazırlanamadı." };
+  }
+  return deliver({
+    to: n.to,
+    subject: r.subject,
+    html: r.html,
+    text: r.text,
+    ...(n.replyTo ? { replyTo: n.replyTo } : {}),
+    ...(n.idempotencyKey ? { idempotencyKey: n.idempotencyKey } : {}),
   });
 }
 
@@ -696,33 +765,34 @@ export async function sendKaraokeOperatorEmail(
     return { ok: false, error: "Ayarlar'da bildirim adresi tanımlı değil." };
 
   const origin = k.source === "web" ? "Web sitesinden" : "Uygulamadan";
-  const lines = [
-    `${origin} yeni bir karaoke rezervasyon talebi geldi.`,
-    ``,
-    `Rezervasyon : ${k.id}`,
-    `Tarih       : ${k.date}`,
-    `Saat        : ${k.time}`,
-    `Kişi        : ${k.guests}`,
-    `Tutar       : ${formatTRYMinor(k.totalMinor)}`,
-    ``,
-    `Üye         : ${k.customerName.trim() || "-"}`,
-    `E-posta     : ${k.customerEmail}`,
-    ...(k.note.trim() ? [``, `Notu        : ${k.note.trim()}`] : []),
-    ``,
-    `Durum: TALEP EDİLDİ - onaylanana kadar oda tutulmuş sayılmaz.`,
-    `Onaylamak ya da iptal etmek için: ${SITE.url}/admin/mobil/karaoke`,
-  ];
-
-  return deliver({
+  return sendOperatorNotice({
     to,
     subject: `Karaoke talebi · ${k.date} ${k.time} · ${k.guests} kişi (${k.id})`,
-    html: `<pre style="font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace">${lines
-      .map((l) => escapeHtml(l))
-      .join("\n")}</pre>`,
-    text: lines.join("\n"),
+    summary: `${origin} yeni talep: ${k.date} · ${k.time} · ${k.guests} kişi`,
+    label: "KARAOKE · YENİ TALEP",
+    title: "Yeni karaoke talebi",
+    subtitle: `${origin} geldi · onayını bekliyor`,
+    rows: [
+      { label: "Rezervasyon", value: k.id },
+      { label: "Tarih", value: k.date },
+      { label: "Saat", value: k.time },
+      { label: "Kişi", value: String(k.guests) },
+      { label: "Tutar", value: formatTRYMinor(k.totalMinor) },
+      { label: "Üye", value: k.customerName.trim() || "-" },
+      { label: "E-posta", value: k.customerEmail },
+    ],
+    ...(k.note.trim()
+      ? { note: { label: "ÜYENİN NOTU", text: k.note.trim() } }
+      : {}),
+    button: {
+      label: "PANELDE ONAYLA",
+      url: `${SITE.url}/admin/mobil/karaoke`,
+    },
+    footnote:
+      "Onaylanana kadar oda tutulmuş sayılmaz. Bu e-postayı yanıtlarsan doğrudan üyeye yazarsın.",
+    // Answering the mail reaches the person who asked.
     replyTo: k.customerEmail,
-    // A retried POST for the same row must not put a second copy in the
-    // inbox; the id is unique per booking.
+    // A retried request for the same row must not mail twice.
     idempotencyKey: `karaoke-${k.id}-requested`,
   });
 }

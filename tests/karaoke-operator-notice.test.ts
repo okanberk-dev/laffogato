@@ -95,7 +95,11 @@ describe("sendKaraokeOperatorEmail", () => {
     const body = JSON.parse(String(init.body));
     expect(body.to).toBe("bizimfutbol9@gmail.com");
     expect(body.reply_to).toBe("eda@ornek.com");
-    expect(body.text).toContain("Web sitesinden yeni bir karaoke");
+    expect(body.text).toContain("Web sitesinden geldi");
+    // The designed template, not a <pre> log: same shell as customer mail.
+    expect(body.html).toContain('data-mail="operasyon-bildirim"');
+    expect(body.html).toContain("KARAOKE · YENİ TALEP");
+    expect(body.html).not.toContain("<pre");
     expect(body.text).toContain("krk-00042");
     expect(body.subject).toContain("6 kişi");
     // A retried request for the same row must not mail twice.
@@ -119,7 +123,7 @@ describe("sendKaraokeOperatorEmail", () => {
       RequestInit,
     ];
     expect(JSON.parse(String(init.body)).text).toContain(
-      "Uygulamadan yeni bir karaoke",
+      "Uygulamadan geldi",
     );
   });
 
