@@ -49,6 +49,7 @@ export function formatDate(iso: string): string {
     day: "2-digit",
     month: "long",
     year: "numeric",
+    timeZone: "Europe/Istanbul",
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(iso));

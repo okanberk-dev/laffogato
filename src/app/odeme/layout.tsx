@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
-import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { getPublicSettings } from "@/lib/admin/store";
+
+import { OdemeChrome } from "./odeme-chrome";
 
 export const metadata: Metadata = {
   title: "Ödeme",
@@ -15,7 +16,7 @@ export default async function OdemeLayout({
 }) {
   const settings = await getPublicSettings();
   return (
-    <SiteChrome
+    <OdemeChrome
       settings={{
         phone: settings.phone,
         email: settings.email,
@@ -23,6 +24,6 @@ export default async function OdemeLayout({
       }}
     >
       {children}
-    </SiteChrome>
+    </OdemeChrome>
   );
 }

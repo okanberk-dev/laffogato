@@ -26,7 +26,7 @@ export default async function HukukLayout({
         address: settings.address,
       }}
     >
-      <div style={{ background: "var(--bg-warm)" }}>{children}</div>
+      {children}
     </SiteChrome>
   );
 }

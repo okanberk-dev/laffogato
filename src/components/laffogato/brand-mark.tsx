@@ -20,6 +20,8 @@
  * - `cream` cream letters, brass bean - on the green blocks, exactly the
  *           app icon
  */
+import { cx } from "./cx";
+
 export type LafTone = "ink" | "duo" | "green" | "cream";
 
 export function LafMark({
@@ -37,7 +39,7 @@ export function LafMark({
 }) {
   return (
     <span
-      className={`laf-mark laf-mark--${tone}${className ? ` ${className}` : ""}`}
+      className={cx("laf-mark", `laf-mark--${tone}`, className)}
       role={label ? "img" : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}

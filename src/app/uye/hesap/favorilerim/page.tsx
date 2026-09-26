@@ -6,6 +6,7 @@ import {
   EmptyState,
 } from "@/components/uye/account-shell";
 import { listProducts } from "@/lib/admin/store";
+import { productPath } from "@/components/laffogato/route-paths";
 import { requireCustomer } from "@/lib/customer/auth";
 
 import { toggleWishlistAction } from "../../actions";
@@ -75,10 +76,10 @@ export default async function FavorilerimPage() {
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <Link
-                    href={`/?item=${encodeURIComponent(p.slug)}#shop`}
+                    href={productPath(p.slug)}
                     className="btn btn-primary btn-sm"
                   >
-                    Mağazada gör →
+                    Ürüne git →
                   </Link>
                   <form action={toggleWishlistAction}>
                     <input type="hidden" name="productId" value={p.id} />

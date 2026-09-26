@@ -712,15 +712,7 @@ function PaymentStep({
           <span className="eyebrow on-dark tabular">PCI-DSS · 3D Secure</span>
         </div>
         <div className="checkout-payment-card-body">
-          <p
-            style={{
-              color: "var(--ink-soft)",
-              fontSize: 14,
-              lineHeight: 1.65,
-              maxWidth: "52ch",
-              margin: 0,
-            }}
-          >
+          <p className="checkout-payment-note">
             {/* Sağlayıcının adı yazılmıyor: sağlayıcı bir sunucu ayarı
                 (PAYMENT_PROVIDER) ve bir kez zaten değişti - adı buraya
                 yazmak, değiştiği gün müşteriye yanlış kurumu söylerdi. */}
@@ -826,13 +818,7 @@ function CheckoutField({
   required?: boolean;
   autoComplete?: string;
   inputMode?:
-    | "numeric"
-    | "tel"
-    | "email"
-    | "text"
-    | "url"
-    | "search"
-    | "decimal";
+    "numeric" | "tel" | "email" | "text" | "url" | "search" | "decimal";
   maxLength?: number;
   placeholder?: string;
 }) {

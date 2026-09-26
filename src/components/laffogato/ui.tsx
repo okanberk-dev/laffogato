@@ -12,6 +12,7 @@ import { useDialog } from "./use-dialog";
 import type { MenuCategory, Product } from "./data";
 import { EspressoCup, PhotoSurface, ProductSurface } from "./visuals";
 import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
+import { cx } from "./cx";
 
 export interface CartItem {
   /** Stable product id - preferred match key for merge + server resolution. */
@@ -326,12 +327,12 @@ export function CartDrawer({
     <>
       <div
         onClick={onClose}
-        className={`cart-scrim${open ? "open" : ""}`}
+        className={cx("cart-scrim", open && "open")}
         aria-hidden="true"
       />
       <aside
         ref={panelRef}
-        className={`cart-drawer${open ? "open" : ""}`}
+        className={cx("cart-drawer", open && "open")}
         // The drawer stays mounted so it can animate out. While it is closed
         // its buttons and links were still in the tab order off-screen, and
         // `aria-modal` was announced permanently - a screen reader believed a

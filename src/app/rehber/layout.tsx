@@ -31,7 +31,7 @@ export default async function RehberLayout({
         address: settings.address,
       }}
     >
-      <div style={{ background: "var(--bg-warm)" }}>{children}</div>
+      {children}
     </SiteChrome>
   );
 }

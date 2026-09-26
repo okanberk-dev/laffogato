@@ -7,6 +7,7 @@ import {
   EmptyState,
 } from "@/components/uye/account-shell";
 import { VerifyNotice } from "@/components/customer/verify-notice";
+import { AppStoreLinks } from "@/components/laffogato/app-links";
 import { listPromos } from "@/lib/admin/store";
 import { memberOrders } from "@/lib/customer/member-orders";
 import { requireCustomer } from "@/lib/customer/auth";
@@ -200,11 +201,9 @@ export default async function HesapPage() {
       {/* Single membership across both surfaces - the prototype's account
           screen makes this its own block, and it is the only place the site
           tells a member the app exists. */}
-      <div className="account-app-block">
+      <div className="account-app-block" data-ground="dark">
         <div>
-          <div className="eyebrow" style={{ color: "rgba(255,255,255,0.85)" }}>
-            Tek üyelik
-          </div>
+          <div className="account-app-kicker">Tek üyelik</div>
           <div className="account-app-title">
             Aynı hesapla uygulamada devam et.
           </div>
@@ -213,10 +212,7 @@ export default async function HesapPage() {
             üzerinden verdiğin kafe siparişleri de bu karta işler.
           </p>
         </div>
-        <div className="account-app-links">
-          <span>App Store ↗</span>
-          <span>Google Play ↗</span>
-        </div>
+        <AppStoreLinks tone="dark" className="account-app-links" />
       </div>
 
       <AccountCard
@@ -268,6 +264,7 @@ export default async function HesapPage() {
                         day: "2-digit",
                         month: "short",
                         year: "numeric",
+                        timeZone: "Europe/Istanbul",
                       }).format(new Date(o.createdAt))}
                     </span>
                     <span>{formatTRY(o.totalMinor)}</span>
@@ -313,6 +310,7 @@ export default async function HesapPage() {
                         day: "2-digit",
                         month: "short",
                         year: "numeric",
+                        timeZone: "Europe/Istanbul",
                       }).format(new Date(p.expiresAt))}{" "}
                       bitiyor
                     </span>
