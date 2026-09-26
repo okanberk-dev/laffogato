@@ -7,6 +7,8 @@ import { priceLabel } from "@/lib/utils/format";
 
 import { PageHero } from "./page-hero";
 import { LOCATION } from "./data";
+import { openStatus } from "./open-status";
+import { useClientValue } from "./use-client-value";
 import { SectionHead } from "./ui";
 import {
   BarRenderScene,
@@ -306,45 +308,16 @@ export function PageVisit({ visit, settings }: PageProps) {
                 </Fragment>
               ))}
             </div>
-            <div className="open-now">
-              <span className="open-dot" />
-              <div>
-                <div
-                  style={{ fontFamily: "var(--serif-display)", fontSize: 17 }}
-                >
-                  Şu an açık
-                </div>
-                <div className="eyebrow" style={{ marginTop: 4 }}>
-                  {/* Kapanıştan yarım saat önce - 02:00 kapanışla 01:30.
-                      (22:30, eski 23:00 kapanışından kalmıştı.) */}
-                  Son siparişler 00:30
-                </div>
+            <OpenNow rows={visitHours} />
+            <div className="visit-today-card">
+              <div className="eyebrow">Bugün</div>
+              <div className="visit-today-hours tabular">
+                {visit?.todayHours ?? visitHours[0]?.[1]}
               </div>
-            </div>
-            <div
-              style={{
-                marginTop: 30,
-                padding: 22,
-                background: "#FFF",
-                borderRadius: "var(--r-md)",
-              }}
-            >
-              <div className="eyebrow" style={{ marginBottom: 10 }}>
-                Yarın · 27 Mayıs
-              </div>
-              <div style={{ fontFamily: "var(--serif-display)", fontSize: 18 }}>
-                09:00 - 02:00
-              </div>
-              <p
-                style={{
-                  fontSize: 13,
-                  color: "var(--ink-soft)",
-                  marginTop: 10,
-                  lineHeight: 1.6,
-                }}
-              >
-                Yağmur tahmini. Köşkün avlusu hava müsait olursa açılır,
-                kötüleşirse köşk salonlarında devam ediyoruz.
+              <p>
+                Köşkün avlusu hava müsait olduğunda açık; hava kötüleşirse
+                köşkün salonlarında devam ediyoruz. Mutfak 23:30&apos;da
+                kapanır.
               </p>
             </div>
           </div>
@@ -550,7 +523,7 @@ export function PageVisit({ visit, settings }: PageProps) {
                 </div>
               </PhotoSurface>
             </div>
-            <div className="gallery-cell wide reveal r4">
+            <div className="gallery-cell reveal r4">
               <PhotoSurface
                 hue="matcha"
                 dotLabel="Matcha bar · Uji"
@@ -601,9 +574,22 @@ export function PageVisit({ visit, settings }: PageProps) {
               özel menü, barista demonstrasyonu, gelato workshop’u. Marka
               lansmanları, sosyal medya çekimleri ve yakın gruplar için ideal.
             </p>
-            <button className="btn btn-light btn-lg" style={{ marginTop: 30 }}>
-              Detaylı bilgi <span className="arrow">→</span>
-            </button>
+            {/* There is no form behind this: it used to be a button with no
+                handler. A private booking starts with a message or a call. */}
+            <div className="cta-row" style={{ marginTop: 30 }}>
+              <a
+                className="btn btn-light btn-lg"
+                href={`mailto:${visitEmail}?subject=${encodeURIComponent("Özel kiralama")}`}
+              >
+                E-postayla sor <span className="arrow">→</span>
+              </a>
+              <a
+                className="btn btn-glass-dark btn-lg"
+                href={`tel:${SITE.phoneE164}`}
+              >
+                Ara
+              </a>
+            </div>
           </div>
           <div className="reveal r1" data-row="private-stats">
             {[
@@ -638,6 +624,41 @@ export function PageVisit({ visit, settings }: PageProps) {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+/**
+ * The live line under the hours table - worked out from the same rows, in
+ * the köşk's time zone, on the visitor's clock. Nothing renders on the
+ * server (it does not know when the page will be read); the browser fills
+ * it in after hydration.
+ */
+function OpenNow({ rows }: { rows: [string, string][] }) {
+  const encoded = useClientValue(() => {
+    const st = openStatus(rows);
+    return st
+      ? `${st.open ? 1 : 0}|${st.at ?? ""}|${st.opensToday ? 1 : 0}`
+      : "";
+  }, "");
+  if (!encoded) return null;
+  const [open, at, today] = encoded.split("|");
+  const isOpen = open === "1";
+  return (
+    <div className={`open-now${isOpen ? "is-open" : "is-closed"}`}>
+      <span className="open-dot" aria-hidden="true" />
+      <div>
+        <div className="open-now-title">
+          {isOpen ? "Şu an açık" : "Şu an kapalı"}
+        </div>
+        {at && (
+          <div className="open-now-sub tabular">
+            {isOpen
+              ? `Kapanış ${at}`
+              : `${today === "1" ? "Bugün" : "Sonraki"} açılış ${at}`}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

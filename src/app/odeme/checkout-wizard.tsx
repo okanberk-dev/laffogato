@@ -251,7 +251,7 @@ export function CheckoutWizard({
           Birkaç adım sonra evine espresso, gelato veya yenilebilir kup
           gelebilir. Mağazaya göz at, gerisi bizde.
         </p>
-        <Link href="/#shop" className="btn btn-primary">
+        <Link href="/magaza" className="btn btn-primary">
           Mağazaya git →
         </Link>
       </section>
@@ -445,7 +445,7 @@ function ReviewStep({
         ))}
       </ul>
       <div className="checkout-step-actions">
-        <Link href="/#shop" className="btn btn-ghost btn-sm">
+        <Link href="/magaza" className="btn btn-ghost btn-sm">
           ← Alışverişe devam et
         </Link>
         <button

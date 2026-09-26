@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
 
 import { SiteChrome } from "@/components/laffogato/site-chrome";
@@ -57,9 +58,9 @@ export default function AppError({
               >
                 Tekrar dene
               </button>
-              <a href="/" className="btn btn-ghost btn-lg">
+              <Link href="/" className="btn btn-ghost btn-lg">
                 Anasayfa
-              </a>
+              </Link>
             </div>
           </section>
         </div>

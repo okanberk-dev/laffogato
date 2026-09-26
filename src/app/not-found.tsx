@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { SCENES, type SceneKey } from "@/components/laffogato/scenes";
@@ -108,12 +109,12 @@ export default async function NotFound() {
               mağaza ve köşk ise yerli yerinde - buradan devam et.
             </p>
             <div className="nf-actions">
-              <a href="/" className="btn btn-primary btn-lg">
+              <Link href="/" className="btn btn-primary btn-lg">
                 Anasayfaya dön
-              </a>
-              <a href="/menu" className="btn btn-ghost btn-lg">
+              </Link>
+              <Link href="/menu" className="btn btn-ghost btn-lg">
                 Menüye göz at
-              </a>
+              </Link>
             </div>
           </section>
 

@@ -97,9 +97,11 @@
 
   /* State, not brand. Success is the house green. --rose is the low-stock
      alarm on small text; it stays a brighter red than the bordo so "almost
-     gone" never reads as a brand accent. --info is the app's cobalt ice
-     (tone.ice, 7.26:1), for notes and "new" badges only. */
-  --rose: #c5435a;
+     gone" never reads as a brand accent. #c5435a measured 4.39:1 on the
+     porcelain (it was drawn for white), so it went one step darker: 4.92:1
+     here, 4.64:1 on --bg-stone. --info is the app's cobalt ice (tone.ice,
+     7.26:1), for notes and "new" badges only. */
+  --rose: #bb3b52;
   --matcha: #1d6d56;
   --info: #3442b8;
   --info-fill: #4858d2;
@@ -153,7 +155,8 @@
   --glass-dim: rgba(33, 28, 24, 0.28);
   --glass-blur: saturate(180%) blur(22px);
   /* The two-tone rim of a control: white lip at the top, ink shade below. */
-  --rim: inset 0 1px 0 rgba(255, 255, 255, 0.95),
+  --rim:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
     inset 0 -1px 0 rgba(33, 28, 24, 0.06);
 
   /* Shadows - warm earth #3B2A1E (the app's `shadow`), never black and never
@@ -162,9 +165,12 @@
   --shadow-glass: 0 6px 16px rgba(59, 42, 30, 0.06);
   --shadow-lift: 0 2px 8px rgba(59, 42, 30, 0.1);
   --shadow-chrome: 0 8px 24px rgba(59, 42, 30, 0.12);
-  --shadow-sm: 0 1px 2px rgba(59, 42, 30, 0.04), 0 4px 12px rgba(59, 42, 30, 0.05);
-  --shadow-md: 0 4px 14px rgba(59, 42, 30, 0.06), 0 16px 40px rgba(59, 42, 30, 0.07);
-  --shadow-lg: 0 10px 30px rgba(59, 42, 30, 0.08), 0 40px 90px rgba(59, 42, 30, 0.1);
+  --shadow-sm:
+    0 1px 2px rgba(59, 42, 30, 0.04), 0 4px 12px rgba(59, 42, 30, 0.05);
+  --shadow-md:
+    0 4px 14px rgba(59, 42, 30, 0.06), 0 16px 40px rgba(59, 42, 30, 0.07);
+  --shadow-lg:
+    0 10px 30px rgba(59, 42, 30, 0.08), 0 40px 90px rgba(59, 42, 30, 0.1);
 
   /* Focus - the house green ring with a soft halo, legible on porcelain, on
      white and (with the cream variant) on the green blocks. */
@@ -486,7 +492,9 @@ select {
 .btn-primary {
   background: var(--bg-espresso);
   color: #fbf8f4;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, var(--shadow-lift);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    var(--shadow-lift);
 }
 .btn-primary:hover {
   background: var(--green-pressed);
@@ -662,7 +670,9 @@ summary:focus-visible,
 }
 /* Without backdrop-filter the glass is too thin to read through - go opaque
    (the app's glass.chrome fallback). */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
   .site-header {
     background: #fbf8f4;
   }
@@ -1140,7 +1150,8 @@ summary:focus-visible,
   height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 16px var(--gutter) calc(32px + var(--bottom-nav-h) + env(safe-area-inset-bottom));
+  padding: 16px var(--gutter)
+    calc(32px + var(--bottom-nav-h) + env(safe-area-inset-bottom));
   max-width: 640px;
   margin: 0 auto;
 }
@@ -1301,7 +1312,9 @@ summary:focus-visible,
       inset 0 1px 0 rgba(255, 255, 255, 0.9),
       var(--shadow-chrome);
   }
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  @supports not (
+    (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+  ) {
     .tab-bar {
       background: rgba(251, 248, 244, 0.97);
     }
@@ -1339,9 +1352,7 @@ summary:focus-visible,
   .tab-item.active {
     color: var(--ink);
     background: #fff;
-    box-shadow:
-      var(--rim),
-      var(--shadow-lift);
+    box-shadow: var(--rim), var(--shadow-lift);
   }
   .tab-item.active svg {
     stroke: var(--green);
@@ -1368,7 +1379,9 @@ summary:focus-visible,
   }
   /* Keep the floating bar from covering the last of the page. */
   .footer {
-    padding-bottom: calc(var(--bottom-nav-h) + 24px + env(safe-area-inset-bottom));
+    padding-bottom: calc(
+      var(--bottom-nav-h) + 24px + env(safe-area-inset-bottom)
+    );
   }
 }
 
@@ -1583,7 +1596,11 @@ summary:focus-visible,
     clamp(64px, 6vw, 88px);
   border-radius: 36px;
   background:
-    radial-gradient(70% 90% at 78% 46%, var(--scene-edge) 0%, rgba(251, 248, 244, 0) 70%),
+    radial-gradient(
+      70% 90% at 78% 46%,
+      var(--scene-edge) 0%,
+      rgba(251, 248, 244, 0) 70%
+    ),
     linear-gradient(180deg, #fbf8f4 0%, #f7f3ed 100%);
   border: 1px solid var(--ink-line);
   box-shadow: var(--rim), var(--shadow-glass);
@@ -1867,7 +1884,11 @@ summary:focus-visible,
     padding: 16px clamp(18px, 5vw, 32px) clamp(64px, 14vw, 88px);
     border-radius: 30px;
     background:
-      radial-gradient(90% 55% at 50% 22%, var(--scene-edge) 0%, rgba(251, 248, 244, 0) 75%),
+      radial-gradient(
+        90% 55% at 50% 22%,
+        var(--scene-edge) 0%,
+        rgba(251, 248, 244, 0) 75%
+      ),
       linear-gradient(180deg, #fbf8f4 0%, #f7f3ed 100%);
   }
   .hero-x-copy {
@@ -2056,6 +2077,10 @@ summary:focus-visible,
   background: var(--tricolore);
   box-shadow: 0 0 0 1px rgba(33, 28, 24, 0.1);
 }
+[data-ground="dark"] .section-title::after {
+  background: var(--tricolore-on-dark);
+  box-shadow: none;
+}
 
 /* Page hero - every page but home ───────────────────────────────
    One component (`PageHero`) and one rule set: a porcelain panel, the
@@ -2207,11 +2232,17 @@ summary:focus-visible,
   padding: clamp(24px, 3vw, 36px) clamp(22px, 3vw, 40px);
   border-radius: var(--r-xl);
   background:
-    radial-gradient(80% 140% at 100% 0%, rgba(114, 203, 172, 0.28) 0%, rgba(114, 203, 172, 0) 60%),
+    radial-gradient(
+      80% 140% at 100% 0%,
+      rgba(114, 203, 172, 0.28) 0%,
+      rgba(114, 203, 172, 0) 60%
+    ),
     linear-gradient(135deg, #1d6d56 0%, #0c3b2d 100%);
   color: #fbf8f4;
   box-shadow: var(--shadow-md);
-  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s;
+  transition:
+    transform 0.3s var(--ease-spring),
+    box-shadow 0.3s;
 }
 .promo-banner.gold {
   background: linear-gradient(135deg, #e9d6b4 0%, #c79b5e 100%);
@@ -2321,7 +2352,11 @@ summary:focus-visible,
   display: grid;
   place-items: center;
   background:
-    radial-gradient(70% 90% at 30% 20%, rgba(114, 203, 172, 0.35) 0%, rgba(114, 203, 172, 0) 60%),
+    radial-gradient(
+      70% 90% at 30% 20%,
+      rgba(114, 203, 172, 0.35) 0%,
+      rgba(114, 203, 172, 0) 60%
+    ),
     linear-gradient(135deg, #1d6d56 0%, #0c3b2d 100%);
   color: #fbf6f1;
 }
@@ -2436,7 +2471,11 @@ summary:focus-visible,
    decided, brass reward, bordo signature, and one glass tile between. */
 .home-tile--green {
   background:
-    radial-gradient(90% 120% at 100% 0%, rgba(114, 203, 172, 0.3) 0%, rgba(114, 203, 172, 0) 60%),
+    radial-gradient(
+      90% 120% at 100% 0%,
+      rgba(114, 203, 172, 0.3) 0%,
+      rgba(114, 203, 172, 0) 60%
+    ),
     linear-gradient(135deg, #1d6d56 0%, #0c3b2d 100%);
   color: #fbf8f4;
 }
@@ -2452,7 +2491,11 @@ summary:focus-visible,
 }
 .home-tile--velvet {
   background:
-    radial-gradient(90% 120% at 100% 0%, rgba(243, 137, 155, 0.35) 0%, rgba(243, 137, 155, 0) 60%),
+    radial-gradient(
+      90% 120% at 100% 0%,
+      rgba(243, 137, 155, 0.35) 0%,
+      rgba(243, 137, 155, 0) 60%
+    ),
     linear-gradient(135deg, #9d2543 0%, #520f1f 100%);
   color: #f6e9ec;
 }
@@ -2753,7 +2796,11 @@ summary:focus-visible,
   isolation: isolate;
   border-radius: 32px;
   background:
-    radial-gradient(70% 110% at 100% 0%, rgba(243, 137, 155, 0.32) 0%, rgba(243, 137, 155, 0) 60%),
+    radial-gradient(
+      70% 110% at 100% 0%,
+      rgba(243, 137, 155, 0.32) 0%,
+      rgba(243, 137, 155, 0) 60%
+    ),
     linear-gradient(150deg, #9d2543 0%, #69172a 100%);
   color: #f6e9ec;
   --script-ink: #f6e9ec;
@@ -2857,7 +2904,11 @@ summary:focus-visible,
   padding: clamp(28px, 4.4vw, 64px) clamp(24px, 4.4vw, 72px) 0;
   border-radius: 36px;
   background:
-    radial-gradient(60% 80% at 80% 60%, rgba(114, 203, 172, 0.3) 0%, rgba(114, 203, 172, 0) 70%),
+    radial-gradient(
+      60% 80% at 80% 60%,
+      rgba(114, 203, 172, 0.3) 0%,
+      rgba(114, 203, 172, 0) 70%
+    ),
     linear-gradient(180deg, #fbf8f4 0%, #f2ece4 100%);
   border: 1px solid var(--ink-line);
   box-shadow: var(--rim), var(--shadow-glass);
@@ -2998,17 +3049,6 @@ summary:focus-visible,
     linear-gradient(180deg, #1d6d56 0%, #0c3b2d 100%);
   border-radius: 32px 32px 0 0;
   overflow: hidden;
-}
-/* The tricolore, 3px, across the top edge. */
-.footer::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--tricolore-on-dark);
-  opacity: 0.9;
 }
 .footer-inner {
   max-width: var(--content-wide);
@@ -4441,8 +4481,10 @@ summary:focus-visible,
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--gold);
-  box-shadow: 0 0 0 5px rgba(138, 130, 120, 0.18);
+  /* Brass on the green ground: --gold (#765923) is the text gold for light
+     grounds and turns to mud here. */
+  background: var(--gold-soft);
+  box-shadow: 0 0 0 5px rgba(232, 200, 119, 0.16);
 }
 @media (max-width: 720px) {
   .timeline-row {
@@ -4474,23 +4516,95 @@ summary:focus-visible,
 }
 
 .value-card {
-  padding: 32px;
-  background: var(--bg-warm);
-  border-radius: var(--r-md);
+  padding: 30px;
+  background: var(--glass);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--rim), var(--shadow-glass);
 }
 .value-num {
-  font-family: var(--serif);
-  font-weight: 700;
-  font-size: 36px;
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  background: rgba(232, 200, 119, 0.28);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 15px;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
   color: var(--gold);
-  margin-bottom: 22px;
-  letter-spacing: -0.01em;
+  margin-bottom: 20px;
 }
 .value-card p {
-  margin-top: 12px;
-  font-size: 14px;
+  margin-top: 10px;
+  font-size: 14.5px;
   line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* Story - the pour in four cards. Each is a scene with the step number in a
+   glass capsule and the caption in ink under it. Every scene is light now,
+   so ink reads on all four (step three used to print white on what had
+   become a pale espresso wash). */
+.pour-steps {
+  list-style: none;
+  margin: 50px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+.pour-step {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-glass);
+}
+.pour-step-art {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px 24px 76px;
+}
+.pour-step-num {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  min-width: 36px;
+  height: 26px;
+  padding: 0 10px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--glass-raised);
+  box-shadow: var(--rim), var(--shadow-lift);
+  font: 600 12px/1 var(--sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.pour-step-copy {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 18px;
+  color: var(--ink);
+}
+.pour-step-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.pour-step-note {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.45;
   color: var(--ink-soft);
 }
 
@@ -4549,53 +4663,102 @@ summary:focus-visible,
   }
 }
 
+/* The hours: an inset grouped list, the live line and today's card. */
 .hours-table {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 14px 30px;
-  margin-top: 36px;
+  margin-top: 28px;
   max-width: 460px;
+  background: #fff;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-glass);
+  overflow: hidden;
+}
+.hours-day,
+.hours-h {
+  padding: 13px 18px;
+  border-top: 1px solid var(--ink-line);
+}
+.hours-day:nth-child(1),
+.hours-h:nth-child(2) {
+  border-top: 0;
 }
 .hours-day {
-  font-family: var(--serif-display);
-  font-size: 17px;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 15.5px;
 }
 .hours-h {
-  font-family: var(--mono);
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .open-now {
-  margin-top: 30px;
-  padding: 16px 20px;
-  background: #fff;
+  margin-top: 16px;
+  padding: 14px 18px;
+  background: var(--glass);
   border: 1px solid var(--ink-line);
-  border-radius: var(--r-md);
+  border-radius: var(--r-panel);
+  box-shadow: var(--rim);
   display: flex;
   align-items: center;
-  gap: 16px;
-  max-width: 360px;
+  gap: 14px;
+  max-width: 460px;
 }
-/* "Şu an açık" is a success signal, so the dot is --matcha - the same token,
-   and the same reasoning, as `.pdp-stock [data-tone="in"]`. It was the brand
-   accent, which read as a warning even in terracotta and reads unambiguously
-   as a stop light in bordo: a dark red dot beside the words "we are open".
-   The halo was the retired terracotta hardcoded in DECIMAL rgba, which is
-   why the retired-hex ban in brand-theme.test.ts never saw it; that test now
-   bans the decimal forms too. */
+.open-now-title {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 600;
+}
+.open-now-sub {
+  margin-top: 2px;
+  font-size: 13.5px;
+  color: var(--ink-mute);
+}
+/* Open is the success signal (--matcha); closed is quiet ink, never red. */
 .open-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: var(--matcha);
-  box-shadow: 0 0 0 4px rgba(30, 124, 75, 0.2);
+  box-shadow: 0 0 0 4px rgba(29, 109, 86, 0.18);
+}
+.open-now.is-closed .open-dot {
+  background: var(--ink-quiet);
+  box-shadow: 0 0 0 4px rgba(135, 125, 116, 0.18);
+}
+.visit-today-card {
+  margin-top: 16px;
+  padding: 18px 20px;
+  max-width: 460px;
+  background: var(--glass);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-panel);
+  box-shadow: var(--rim);
+}
+.visit-today-hours {
+  margin-top: 4px;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.visit-today-card p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
 }
 
 .reserve-card {
-  padding: 36px;
-  background: #fff;
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-md);
+  padding: clamp(22px, 3vw, 34px);
+  background: var(--surface-sheet);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--rim), var(--shadow-md);
 }
 .reserve-card-head {
   display: flex;
@@ -4617,18 +4780,24 @@ summary:focus-visible,
   flex-wrap: wrap;
 }
 .reserve-num {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--ink-line);
-  font-family: var(--serif-display);
+  font-family: var(--display);
+  font-weight: 500;
   font-size: 16px;
-  background: #fff;
+  background: var(--bg-warm);
   color: var(--ink);
   transition:
-    background 0.2s,
+    background-color 0.2s,
     color 0.2s,
-    border-color 0.2s;
+    border-color 0.2s,
+    transform 0.2s var(--ease-spring);
+}
+.reserve-num:active,
+.reserve-chip:active {
+  transform: scale(0.94);
 }
 .reserve-num.on {
   background: var(--bg-espresso);
@@ -4642,20 +4811,23 @@ summary:focus-visible,
   flex-wrap: wrap;
 }
 .reserve-chip {
-  padding: 10px 14px;
+  min-height: 40px;
+  padding: 0 16px;
   border-radius: 999px;
   border: 1px solid var(--ink-line);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  background: #fff;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 13.5px;
+  background: var(--bg-warm);
   transition:
-    background 0.2s,
+    background-color 0.2s,
     color 0.2s,
-    border-color 0.2s;
+    border-color 0.2s,
+    transform 0.2s var(--ease-spring);
 }
 .reserve-chip:hover {
-  border-color: var(--bg-espresso);
+  border-color: var(--ink-line-strong);
+  background: #fff;
 }
 .reserve-chip.on {
   background: var(--bg-espresso);
@@ -4663,22 +4835,24 @@ summary:focus-visible,
   border-color: var(--bg-espresso);
 }
 
+/* A 4 × 2 bento: one 2 × 2 scene and four singles - five cells, eight
+   units, nothing left over. (A "wide" fifth cell used to need a third row
+   and left a hole beside the Doppio.) */
 .gallery {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: 360px 360px;
+  grid-template-rows: 320px 320px;
   gap: 16px;
 }
 .gallery-cell {
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-glass);
 }
 .gallery-cell.large {
   grid-column: span 2;
   grid-row: span 2;
-}
-.gallery-cell.wide {
-  grid-column: span 2;
+  border-radius: var(--r-card);
 }
 @media (max-width: 900px) {
   .gallery {
@@ -4686,11 +4860,14 @@ summary:focus-visible,
     grid-template-rows: auto;
   }
   .gallery-cell,
-  .gallery-cell.large,
-  .gallery-cell.wide {
+  .gallery-cell.large {
     grid-column: auto;
     grid-row: auto;
     aspect-ratio: 4/3;
+  }
+  .gallery-cell.large {
+    grid-column: 1 / -1;
+    aspect-ratio: 16/9;
   }
 }
 @media (max-width: 560px) {
@@ -4793,7 +4970,6 @@ select {
     padding: 22px;
   }
   .value-num {
-    font-size: 30px;
     margin-bottom: 16px;
   }
 }
@@ -4806,9 +4982,23 @@ select {
   }
 }
 @media (max-width: 480px) {
+  /* Two small cards a row, not four tall ones stacked. */
   [data-row="pour-row"] {
-    grid-template-columns: 1fr !important;
-    gap: 20px !important;
+    gap: 12px !important;
+  }
+  .pour-step-art {
+    padding: 16px 16px 64px;
+  }
+  .pour-step-copy {
+    left: 14px;
+    right: 14px;
+    bottom: 12px;
+  }
+  .pour-step-title {
+    font-size: 17px;
+  }
+  .pour-step-note {
+    font-size: 12px;
   }
 }
 
@@ -7502,7 +7692,7 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Shop hero slider - admin-managed banner on /#shop
+   Shop hero slider - admin-managed banner on /magaza
    ───────────────────────────────────────────────────────────── */
 
 /* An inset card, not a full-bleed band: the same rounded frame as every
@@ -8384,7 +8574,12 @@ select {
   position: relative;
   min-height: 320px;
   background:
-    radial-gradient(55% 60% at 50% 45%, rgba(253, 175, 109, 0.35) 0%, rgba(255, 207, 168, 0.25) 45%, rgba(253, 230, 213, 0) 80%),
+    radial-gradient(
+      55% 60% at 50% 45%,
+      rgba(253, 175, 109, 0.35) 0%,
+      rgba(255, 207, 168, 0.25) 45%,
+      rgba(253, 230, 213, 0) 80%
+    ),
     linear-gradient(180deg, #fde6d5 0%, #f7f3ed 100%);
 }
 .pour-module-stage {
@@ -8459,8 +8654,9 @@ select {
   color: var(--ink-soft);
 }
 .cookie-banner-text a {
-  /* --accent, not the deep step: #4a0f1e is 15.24:1 and reads as body ink,
-     so an underlined near-black link is only a link because of the rule. */
+  /* --accent, not the deep step: --accent-deep is a near-black and reads as
+     body ink, so an underlined near-black link is only a link because of the
+     rule. */
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -8628,41 +8824,84 @@ select {
 }
 
 /* ============================================================
-   Üyelik - şifre sıfırlama sayfaları
+   Üyelik - giriş, kayıt, şifre ve doğrulama sayfaları
+
+   The app's sign-in sheet on the web: one glass card on the porcelain with
+   the L'Af mark at its head, fields as the app draws them (white, 48 high,
+   hairline, green focus ring) and sentence-case labels in the reading
+   voice. Every member page shares these rules - sign-in and sign-up used to
+   carry their own inline copies, labels still in the old letter-spaced
+   capitals.
    ============================================================ */
 
 .auth-page {
-  /* Not 100vh: the header takes its own space in the flow now, so a full
+  /* Not 100vh: the header takes its own space in the flow, so a full
      viewport underneath it pushed the card down and left the page scrolling
      with nothing to scroll to. */
-  min-height: min(70vh, 620px);
+  min-height: min(76vh, 720px);
   display: grid;
   place-items: center;
-  padding: clamp(40px, 8vw, 80px) var(--gutter);
+  padding: clamp(36px, 7vw, 80px) var(--gutter);
+  background:
+    radial-gradient(
+      55% 45% at 50% 0%,
+      rgba(29, 109, 86, 0.07) 0%,
+      rgba(29, 109, 86, 0) 70%
+    ),
+    var(--bg);
 }
 .auth-card {
+  position: relative;
   width: 100%;
   max-width: 440px;
-  background: #fff;
-  padding: clamp(28px, 5vw, 44px);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-md);
+  padding: clamp(26px, 5vw, 40px);
+  background: var(--glass-raised);
   border: 1px solid var(--ink-line);
+  border-radius: var(--r-card);
+  box-shadow: var(--rim), var(--shadow-chrome);
+}
+.auth-card--wide {
+  max-width: 500px;
+}
+.auth-card--center {
+  text-align: center;
+}
+.auth-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.auth-head .laf-mark {
+  --laf-h: 30px;
 }
 .auth-back {
-  display: inline-block;
-  margin-bottom: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--green);
+  transition: color 0.15s var(--ease-out);
+}
+.auth-back:hover {
+  color: var(--green-pressed);
 }
 .auth-title {
-  margin-top: 4px;
-  margin-bottom: 24px;
-  font-size: clamp(32px, 5vw, 44px);
+  margin: 0 0 10px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(30px, 4.4vw, 38px);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
 }
 .auth-lede {
   color: var(--ink-soft);
-  font-size: 14px;
-  line-height: 1.6;
-  margin: 0 0 28px;
+  font-size: 15px;
+  line-height: 1.55;
+  margin: 0 0 26px;
 }
 .auth-form {
   display: grid;
@@ -8670,44 +8909,138 @@ select {
 }
 .auth-field {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 .auth-label {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.auth-hint {
+  font-weight: 500;
   color: var(--ink-mute);
 }
 .auth-field input {
   width: 100%;
-  padding: 12px 14px;
+  min-height: 48px;
+  padding: 0 16px;
   border: 1px solid var(--ink-line-strong);
-  border-radius: var(--r-sm);
-  font-size: 15px;
+  border-radius: var(--r-md);
+  font: inherit;
+  font-size: 16px;
   color: var(--ink);
-  background: var(--bg-cream);
+  background: #fff;
+  transition:
+    border-color 0.15s var(--ease-out),
+    box-shadow 0.15s var(--ease-out);
+}
+.auth-field input::placeholder {
+  color: var(--ink-quiet);
 }
 .auth-field input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--green);
+  box-shadow: var(--ring);
+}
+.auth-consents {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+}
+.auth-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.auth-consent input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--green);
+  cursor: pointer;
+}
+.auth-consent a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.auth-submit {
+  width: 100%;
+  justify-content: center;
+  margin-top: 6px;
+}
+.auth-submit[disabled] {
+  opacity: 0.7;
 }
 .auth-alert {
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
-  font-size: 13px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  border: 1px solid rgba(157, 37, 67, 0.2);
+  color: var(--accent-deep);
+  font-size: 14px;
+  line-height: 1.45;
 }
 .auth-note {
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--bg-warm);
-  border: 1px solid var(--ink-line-strong);
-  color: var(--ink-soft);
-  font-size: 13px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--green-mist);
+  border: 1px solid rgba(29, 109, 86, 0.18);
+  color: var(--ink);
+  font-size: 14px;
   line-height: 1.55;
+}
+.auth-note--status {
+  margin: 0 0 18px;
+}
+.auth-foot {
+  display: grid;
+  gap: 8px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ink-line);
+  font-size: 14px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+.auth-link {
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.auth-link:hover {
+  color: var(--green-pressed);
+}
+.auth-badge {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font: 700 24px/1 var(--display);
+}
+.auth-badge--ok {
+  background: var(--green-mist);
+  color: var(--green);
+}
+.auth-badge--fail {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.auth-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 /* Bülten onay kutusu - footer'ın koyu zemininde */

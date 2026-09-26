@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useRef } from "react";
 
+import Link from "next/link";
+
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 
 import { PageHero } from "./page-hero";
@@ -87,7 +89,7 @@ export function PageMenu({ menu }: PageProps) {
                 click filters in place (the page is already holding every
                 category); on a category page it navigates. */}
             <nav className="menu-tabs scroller" aria-label="Menü kategorileri">
-              <a
+              <Link
                 href="/menu"
                 className={`menu-tab ${active === "all" ? "on" : ""}`}
                 aria-current={active === "all" ? "page" : undefined}
@@ -102,13 +104,13 @@ export function PageMenu({ menu }: PageProps) {
               >
                 <span>Tümü</span>
                 {!scoped && <span className="count">{totalCount}</span>}
-              </a>
+              </Link>
               {MENU_CATEGORY_ROUTES.map((r) => {
                 const cat = liveMenu[r.menuKey];
                 if (!scoped && !cat) return null;
                 const on = active === r.menuKey;
                 return (
-                  <a
+                  <Link
                     key={r.slug}
                     href={`/menu/${r.slug}`}
                     className={`menu-tab ${on ? "on" : ""}`}
@@ -124,7 +126,7 @@ export function PageMenu({ menu }: PageProps) {
                   >
                     <span>{cat?.title ?? r.breadcrumbLabel}</span>
                     {cat && <span className="count">{cat.items.length}</span>}
-                  </a>
+                  </Link>
                 );
               })}
             </nav>

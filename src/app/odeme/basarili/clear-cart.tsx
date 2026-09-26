@@ -6,7 +6,7 @@ const CART_STORAGE_KEY = "laffogato_cart_v1";
 
 /**
  * Mounted on the order success page to empty the cart that LaffogatoApp
- * keeps in localStorage. Without this, navigating back to /#shop would
+ * keeps in localStorage. Without this, navigating back to /magaza would
  * still show the just-purchased items.
  */
 export function ClearCart() {

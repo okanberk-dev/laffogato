@@ -237,7 +237,7 @@ export default async function HesapPage() {
             title="Henüz siparişin yok"
             hint="Mağazadan bir affogato seç, ilk sipariş senin olsun."
             cta={
-              <Link href="/#shop" className="btn btn-primary btn-sm">
+              <Link href="/magaza" className="btn btn-primary btn-sm">
                 Mağazaya git →
               </Link>
             }

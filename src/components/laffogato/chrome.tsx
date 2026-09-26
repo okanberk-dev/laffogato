@@ -51,8 +51,18 @@ const MENU_MORE = MENU_CATEGORY_ROUTES.filter((c) => !c.nav).map((c) => ({
 }));
 
 const SHOP_DROPDOWN: DropdownEntry[] = [
-  { slug: "cekirdek", label: "Çekirdek Kahve", italian: "Caffè in grani", hue: "dark" },
-  { slug: "hediye", label: "Hediye Seti", italian: "Confezioni regalo", hue: "cream" },
+  {
+    slug: "cekirdek",
+    label: "Çekirdek Kahve",
+    italian: "Caffè in grani",
+    hue: "dark",
+  },
+  {
+    slug: "hediye",
+    label: "Hediye Seti",
+    italian: "Confezioni regalo",
+    hue: "cream",
+  },
   { slug: "ekipman", label: "Ekipman", italian: "Strumenti", hue: "caramel" },
   { slug: "giyim", label: "Giyim", italian: "Capi d'autore", hue: "dark" },
   { slug: "kiler", label: "Kiler", italian: "Dispensa", hue: "matcha" },
@@ -113,9 +123,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<DropdownKey | null>(null);
-  const [mobileSection, setMobileSection] = useState<DropdownKey | null>(
-    null,
-  );
+  const [mobileSection, setMobileSection] = useState<DropdownKey | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const closeTimerRef = useRef<number | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
@@ -210,18 +218,18 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
   return (
     <>
       <header
-        className={`site-header${scrolled || open ? " is-scrolled" : ""}${open ? " is-sheet-open" : ""}`}
+        className={`site-header${scrolled || open ? "is-scrolled" : ""}${open ? "is-sheet-open" : ""}`}
         ref={headerRef}
       >
         <nav className="nav" aria-label="Ana gezinme">
-          <a
+          <Link
             href="/"
             onClick={go(home)}
             className="nav-brand"
             aria-label="L'Affogato anasayfası"
           >
             <LafMark tone="duo" />
-          </a>
+          </Link>
 
           <div className="nav-center" onMouseLeave={onHoverClose}>
             {LINKS.map((link) => {
@@ -231,13 +239,13 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
               return (
                 <div
                   key={link.href}
-                  className={`nav-link-wrap${key ? " has-dropdown" : ""}`}
+                  className={`nav-link-wrap${key ? "has-dropdown" : ""}`}
                   onMouseEnter={key ? () => onHoverOpen(key) : undefined}
                 >
                   <a
                     href={link.href}
                     onClick={go(link)}
-                    className={`nav-link${active ? " active" : ""}${isOpen ? " is-open" : ""}`}
+                    className={`nav-link${active ? "active" : ""}${isOpen ? "is-open" : ""}`}
                     aria-current={active ? "page" : undefined}
                   >
                     {link.label}
@@ -248,7 +256,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                   {key && (
                     <button
                       type="button"
-                      className={`nav-link-caret-btn${isOpen ? " is-open" : ""}`}
+                      className={`nav-link-caret-btn${isOpen ? "is-open" : ""}`}
                       aria-haspopup="true"
                       aria-expanded={isOpen}
                       aria-label={`${link.label} alt menüsünü ${isOpen ? "kapat" : "aç"}`}
@@ -295,7 +303,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
               <BagGlyph />
               <span className="nav-cart-label">Sepet</span>
               <span
-                className={`nav-cart-count${cartCount > 0 ? " has-items" : ""}`}
+                className={`nav-cart-count${cartCount > 0 ? "has-items" : ""}`}
                 aria-hidden="true"
               >
                 {cartCount}
@@ -303,7 +311,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
             </button>
             <button
               type="button"
-              className={`nav-burger${open ? " open" : ""}`}
+              className={`nav-burger${open ? "open" : ""}`}
               onClick={() => setOpen((v) => !v)}
               aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
               aria-expanded={open}
@@ -320,21 +328,21 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
           big tappable rows, the two catalogues expandable in place. */}
       <div
         id="mobile-sheet"
-        className={`mobile-sheet${open ? " open" : ""}`}
+        className={`mobile-sheet${open ? "open" : ""}`}
         aria-hidden={!open}
         inert={!open}
       >
         <div className="mobile-sheet-scroll">
           <ul className="sheet-group" aria-label="Keşfet">
             <li>
-              <a
+              <Link
                 href="/"
                 onClick={go(home)}
-                className={`sheet-row${pathname === "/" ? " active" : ""}`}
+                className={`sheet-row${pathname === "/" ? "active" : ""}`}
               >
                 <span>Anasayfa</span>
                 <Chevron className="sheet-chev" dir="right" />
-              </a>
+              </Link>
             </li>
             {(["menu", "shop"] as const).map((key) => {
               const link = LINKS.find((l) => l.dropdown === key)!;
@@ -344,16 +352,16 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                 <li key={key}>
                   <button
                     type="button"
-                    className={`sheet-row${isActivePath(pathname, link.href) ? " active" : ""}`}
+                    className={`sheet-row${isActivePath(pathname, link.href) ? "active" : ""}`}
                     onClick={() => setMobileSection(expanded ? null : key)}
                     aria-expanded={expanded}
                   >
                     <span>{link.label}</span>
                     <Chevron
-                      className={`sheet-chev${expanded ? " open" : ""}`}
+                      className={`sheet-chev${expanded ? "open" : ""}`}
                     />
                   </button>
-                  <div className={`sheet-sub${expanded ? " open" : ""}`}>
+                  <div className={`sheet-sub${expanded ? "open" : ""}`}>
                     <div className="sheet-sub-inner">
                       <a
                         href={link.href}
@@ -408,7 +416,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                 <a
                   href={link.href}
                   onClick={go(link)}
-                  className={`sheet-row${isActivePath(pathname, link.href) ? " active" : ""}`}
+                  className={`sheet-row${isActivePath(pathname, link.href) ? "active" : ""}`}
                 >
                   <span>{link.label}</span>
                   <Chevron className="sheet-chev" dir="right" />
@@ -416,14 +424,14 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
               </li>
             ))}
             <li>
-              <a
+              <Link
                 href="/rehber"
                 onClick={() => setOpen(false)}
-                className={`sheet-row${isActivePath(pathname, "/rehber") ? " active" : ""}`}
+                className={`sheet-row${isActivePath(pathname, "/rehber") ? "active" : ""}`}
               >
                 <span>Rehber</span>
                 <Chevron className="sheet-chev" dir="right" />
-              </a>
+              </Link>
             </li>
           </ul>
 
@@ -463,10 +471,10 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
           bar (DESIGN-GLASS §4.5) - the selected tab sits in a white capsule
           that lifts off the glass. */}
       <nav className="tab-bar" aria-label="Mobil gezinme">
-        <a
+        <Link
           href="/"
           onClick={go(home)}
-          className={`tab-item${pathname === "/" ? " active" : ""}`}
+          className={`tab-item${pathname === "/" ? "active" : ""}`}
           aria-current={pathname === "/" ? "page" : undefined}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -474,11 +482,11 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
             <path d="M5.75 9.1v9.9c0 .7.55 1.25 1.25 1.25h3.25v-5.5h3.5v5.5H17c.7 0 1.25-.55 1.25-1.25V9.1" />
           </svg>
           <span>Anasayfa</span>
-        </a>
-        <a
+        </Link>
+        <Link
           href="/menu"
           onClick={go(LINKS[0])}
-          className={`tab-item${isActivePath(pathname, "/menu") ? " active" : ""}`}
+          className={`tab-item${isActivePath(pathname, "/menu") ? "active" : ""}`}
           aria-current={isActivePath(pathname, "/menu") ? "page" : undefined}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -487,11 +495,11 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
             <path d="M8.25 3.75v1.5M11.75 3.75v1.5M4.5 20.25h13" />
           </svg>
           <span>Menü</span>
-        </a>
-        <a
+        </Link>
+        <Link
           href="/magaza"
           onClick={go(LINKS[1])}
-          className={`tab-item${isActivePath(pathname, "/magaza") ? " active" : ""}`}
+          className={`tab-item${isActivePath(pathname, "/magaza") ? "active" : ""}`}
           aria-current={isActivePath(pathname, "/magaza") ? "page" : undefined}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -499,7 +507,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
             <path d="M9 10.5V7.5a3 3 0 0 1 6 0v3" />
           </svg>
           <span>Mağaza</span>
-        </a>
+        </Link>
         <button
           type="button"
           className="tab-item"
@@ -522,7 +530,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
         </button>
         <a
           href="/uye/hesap"
-          className={`tab-item${isActivePath(pathname, "/uye") ? " active" : ""}`}
+          className={`tab-item${isActivePath(pathname, "/uye") ? "active" : ""}`}
           aria-current={isActivePath(pathname, "/uye") ? "page" : undefined}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -643,27 +651,77 @@ function Chevron({
 
 function SearchGlyph() {
   return (
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="10.75" cy="10.75" r="6.5" stroke="currentColor" strokeWidth="1.75" />
-      <path d="m15.6 15.6 4.9 4.9" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    <svg
+      width="19"
+      height="19"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="10.75"
+        cy="10.75"
+        r="6.5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+      />
+      <path
+        d="m15.6 15.6 4.9 4.9"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 function PersonGlyph() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="8.25" r="3.75" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M4.75 20.25a7.25 7.25 0 0 1 14.5 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="12"
+        cy="8.25"
+        r="3.75"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+      <path
+        d="M4.75 20.25a7.25 7.25 0 0 1 14.5 0"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 function BagGlyph() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M5.25 8.25h13.5l-.9 11.1a1 1 0 0 1-1 .9H7.15a1 1 0 0 1-1-.9l-.9-11.1Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-      <path d="M9 10.5V7.5a3 3 0 0 1 6 0v3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M5.25 8.25h13.5l-.9 11.1a1 1 0 0 1-1 .9H7.15a1 1 0 0 1-1-.9l-.9-11.1Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 10.5V7.5a3 3 0 0 1 6 0v3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -714,8 +772,8 @@ export function Footer({ navigate, settings }: FooterProps) {
             <LafMark tone="cream" label="L'Affogato" className="footer-mark" />
             <p className="footer-motto">İçilir. Sonra kupası yenir.</p>
             <p className="footer-brand-line">
-              Bologna 1897&apos;den İstanbul Tuzla&apos;ya - 200 yıllık,
-              restore bir köşkte.
+              Bologna 1897&apos;den İstanbul Tuzla&apos;ya - 200 yıllık, restore
+              bir köşkte.
             </p>
           </div>
 
@@ -842,7 +900,10 @@ export function Footer({ navigate, settings }: FooterProps) {
                 <li key={i}>{line}</li>
               ))}
               <li>
-                <a href={`tel:${phone.replace(/\s+/g, "")}`} className="tabular">
+                <a
+                  href={`tel:${phone.replace(/\s+/g, "")}`}
+                  className="tabular"
+                >
                   {phone}
                 </a>
               </li>

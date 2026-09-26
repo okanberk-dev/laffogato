@@ -95,7 +95,11 @@ describe("colour contrast", () => {
     ).toBeGreaterThan(60);
     expect(hueGap(token("--matcha"), token("--accent"))).toBeGreaterThan(60);
     expect(contrast(token("--matcha"), bg)).toBeGreaterThanOrEqual(AA);
-    expect(contrast(token("--rose"), bg)).toBeGreaterThanOrEqual(3);
+    // --rose carries small text ("● Son 2 adet", "Sil"), so AA, not 3:1.
+    expect(contrast(token("--rose"), bg)).toBeGreaterThanOrEqual(AA);
+    expect(
+      contrast(token("--rose"), token("--bg-stone")),
+    ).toBeGreaterThanOrEqual(AA);
   });
 
   it("white badge text clears AA on every badge fill", () => {
@@ -189,12 +193,21 @@ describe("colour contrast", () => {
   });
 
   it("HUES are twelve different surfaces, not twelve names for one", () => {
-    const lights = Object.values(HUES).map((h) => luminance(h.from));
-    const spread = Math.max(...lights) - Math.min(...lights);
-    expect(spread, "hue set must span a real range").toBeGreaterThan(0.3);
+    // Since 25 Eyl 2026 the twelve surfaces are the app's scene lights
+    // (scenes.ts): each is a pale wash on porcelain, so they no longer differ
+    // in lightness - they differ in colour. The guard follows: twelve
+    // distinct values, and a set that walks round the colour wheel (amber,
+    // green, blue, pink) rather than twelve beiges.
     expect(new Set(Object.values(HUES).map((h) => h.from)).size).toBe(
       Object.keys(HUES).length,
     );
+    const bins = new Set(
+      Object.values(HUES).map((h) => Math.floor(hue(h.to) / 45)),
+    );
+    expect(
+      bins.size,
+      "hue set must span the colour wheel",
+    ).toBeGreaterThanOrEqual(4);
   });
 });
 

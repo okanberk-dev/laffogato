@@ -703,6 +703,55 @@ export function BeanIllo({
    Bag of coffee
    ───────────────────────────────────────────────────────────── */
 
+/**
+ * Set a product name inside the tin's 88-unit label box. The name used to be
+ * printed at a fixed 26 units, so "Sirena - Espresso Harmanı" ran straight
+ * off both sides of the tin. A dashed name splits into the blend (large) and
+ * its descriptor (small); a long name without one wraps onto two lines; the
+ * size then shrinks until the longest line fits.
+ */
+const LABEL_WIDTH = 80;
+/** Average advance of an italic serif, in ems - an estimate, erring wide. */
+const LABEL_EM = 0.52;
+
+function fitSize(text: string, max: number, min: number): number {
+  const size = LABEL_WIDTH / (Math.max(text.length, 1) * LABEL_EM);
+  return Math.max(min, Math.min(max, Math.floor(size * 10) / 10));
+}
+
+function balancedLines(text: string): [string, string] | null {
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length < 2) return null;
+  let best: [string, string] = [text, ""];
+  let longest = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const a = words.slice(0, i).join(" ");
+    const b = words.slice(i).join(" ");
+    if (Math.max(a.length, b.length) < longest) {
+      longest = Math.max(a.length, b.length);
+      best = [a, b];
+    }
+  }
+  return best;
+}
+
+export function tinLabel(label: string): {
+  lines: string[];
+  size: number;
+  note: string | null;
+  noteSize: number;
+} {
+  const [name, ...rest] = label.split(/\s+[-–—]\s+/);
+  const note = rest.length > 0 ? rest.join(" - ") : null;
+  const noteSize = note ? fitSize(note, 11, 7) : 0;
+  const single = fitSize(name, 26, 8);
+  if (single >= 14) return { lines: [name], size: single, note, noteSize };
+  const two = balancedLines(name);
+  if (!two) return { lines: [name], size: single, note, noteSize };
+  const size = fitSize(two[0].length > two[1].length ? two[0] : two[1], 22, 8);
+  return { lines: two, size, note, noteSize };
+}
+
 export function CoffeeBag({
   size = "100%",
   label = "Sirena",
@@ -714,6 +763,22 @@ export function CoffeeBag({
   sub?: string;
   tone?: string;
 }) {
+  const fit = tinLabel(label);
+  // The name block is centred in the band between the label's top rule
+  // (155) and the weight line under it (~199), shrunk if it would not fit.
+  const CAP = 0.72;
+  const measure = (size: number, noteSize: number) =>
+    CAP * size +
+    (fit.lines.length - 1) * size * 1.08 +
+    (fit.note ? noteSize + 5 : 0);
+  const shrink = Math.min(1, 38 / measure(fit.size, fit.noteSize));
+  const nameSize = fit.size * shrink;
+  const noteSize = fit.noteSize * shrink;
+  const lineGap = nameSize * 1.08;
+  const firstBaseline =
+    177.5 - measure(nameSize, noteSize) / 2 + CAP * nameSize;
+  const noteBaseline =
+    firstBaseline + (fit.lines.length - 1) * lineGap + noteSize + 5;
   const bg =
     tone === "dark" ? "#14100B" : tone === "gold" ? "#B88A4A" : "#FAF5EC";
   const ink =
@@ -780,15 +845,33 @@ export function CoffeeBag({
       />
       <text
         x="120"
-        y="186"
+        y={firstBaseline}
         textAnchor="middle"
         fontFamily="Playfair Display"
         fontStyle="italic"
-        fontSize="26"
+        fontSize={nameSize}
         fill={ink}
       >
-        {label}
+        {fit.lines.map((line, i) => (
+          <tspan key={i} x="120" dy={i === 0 ? 0 : lineGap}>
+            {line}
+          </tspan>
+        ))}
       </text>
+      {fit.note ? (
+        <text
+          x="120"
+          y={noteBaseline}
+          textAnchor="middle"
+          fontFamily="Playfair Display"
+          fontStyle="italic"
+          fontSize={noteSize}
+          fill={ink}
+          opacity="0.85"
+        >
+          {fit.note}
+        </text>
+      ) : null}
       <text
         x="120"
         y="206"
