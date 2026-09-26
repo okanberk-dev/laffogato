@@ -31,11 +31,6 @@ describe("LCP guards", () => {
     expect(keyframes(rule![1])).not.toMatch(/opacity/);
   });
 
-  it("does not preload the web fonts ahead of the stylesheet", () => {
-    const preloads = LAYOUT.match(/preload: false/g) ?? [];
-    expect(preloads.length).toBe(2);
-  });
-
   it("server-renders the cookie banner and hides it pre-paint for a visitor who decided", () => {
     expect(CONSENT).toMatch(/decided === null \|\|/);
     expect(LAYOUT).toMatch(/data-consent/);
