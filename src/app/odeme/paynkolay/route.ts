@@ -76,7 +76,9 @@ function escapeHtml(value: string): string {
  * ödeme yaparken en çok korkulan şeydir.
  *
  * This page is standalone HTML, outside globals.css, so it spells the
- * site's colours out: the button is --brand (#143d2b).
+ * site's colours out: the porcelain ground (--bg #f7f3ed), the ink
+ * (--ink #211c18, --ink-soft #564d46) and the button in --brand (#1d6d56),
+ * the app's palette since 25 Eyl 2026.
  */
 function renderAutoSubmitForm(
   action: string,
@@ -98,11 +100,11 @@ function renderAutoSubmitForm(
 <title>Güvenli ödemeye yönlendiriliyorsunuz…</title>
 <style>
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
-font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#faf7f2;color:#1f1b16}
+font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f7f3ed;color:#211c18}
 main{text-align:center;padding:2rem;max-width:22rem}
-p{margin:.75rem 0 0;font-size:.9rem;color:#6b625a}
+p{margin:.75rem 0 0;font-size:.9rem;color:#564d46}
 button{margin-top:1.25rem;padding:.75rem 1.5rem;border:0;border-radius:999px;
-background:#143d2b;color:#fff;font-size:1rem;cursor:pointer}
+background:#1d6d56;color:#fbf8f4;font-size:1rem;font-weight:600;cursor:pointer}
 </style>
 </head>
 <body>

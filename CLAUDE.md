@@ -90,11 +90,11 @@ bordo `#9d2543` / `#520f1f` / `#f9e6ea`, pirinç `#e8c877`, altın metin
 `#765923`, gölgeler `rgba(59, 42, 30, …)`. **Logo L'Af** (`public/brand/`,
 `<LafMark>`); uygulama ikonu da odur. Uygulamanın paleti değişirse site aynı
 PR serisinde izler (değer tablosu lafmobil `docs/SITE-PALETTE-SYNC.md`);
-ayrışma operatör kararı ister. Henüz taşınmayanlar arka yüz dosyalarıdır ve
-Köşk yeşili `#143d2b` üzerinde durur: e-posta şablonları, PayNkolay köprüsü
-(`odeme/paynkolay/route.ts`) ve `scripts/gen-icons.mjs`
-ikonları (`public/icon-*.png`, JSON-LD logosu). `tests/brand-theme.test.ts`
-ikisini de ayrı ayrı tutar. Tam kılavuz ve geçmiş: `docs/BRAND.md`.
+ayrışma operatör kararı ister. Henüz taşınmayan tek yüzey **e-posta
+şablonlarıdır**: Köşk yeşili `#143d2b` bant görsellerine, logo glint GIF'ine
+ve rozetlere gömülü; HTML rengi ancak bu görseller yeniden çizilince
+değişebilir. `tests/brand-theme.test.ts` iki paleti ayrı ayrı tutar. Tam
+kılavuz ve geçmiş: `docs/BRAND.md`.
 
 **Bordo ile yeşil asla üst üste yazılmaz.** `#9D2543` ile ev yeşili
 neredeyse aynı parlaklıkta (`--hero-green` ile 1.21:1). Koyu zeminde

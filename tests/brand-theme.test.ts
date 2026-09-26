@@ -54,11 +54,10 @@ const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
  *
  * Note on the phone: the app is the source now. When lafmobil's tokens move,
  * the site moves in the same PR series (docs/SITE-PALETTE-SYNC.md in
- * lafmobil holds the value table). What has NOT moved yet is everything the
- * site paints outside the stylesheet where a CSS variable cannot reach: the
- * e-mails, the PayNkolay bridge and the generated JSON-LD icons are still on
- * the Köşk green #143d2b and say so in the blocks below.
- * They are backend or script files, so they follow in a separate PR.
+ * lafmobil holds the value table). The one surface that has NOT moved yet
+ * is the e-mails: their bands, glint GIF and badges are rasters with the
+ * Köşk green #143d2b baked in, so the HTML cannot change colour without the
+ * images being redrawn with it (see the mail block below).
  * Contrast is a separate guard in contrast.test.ts.
  */
 describe("palette follows the app's porcelain", () => {
@@ -235,10 +234,11 @@ describe("surfaces outside globals.css follow the same palette", () => {
    * not resolve, so both spell the palette out. That is the only reason they
    * kept a retired one long after globals.css moved.
    *
-   * The link preview moved with the site. The mail templates and the
-   * PayNkolay bridge are on the Köşk green (#143d2b) still, knowingly: they
-   * are back-end files (src/lib, route.ts) and follow in their own PR. When
-   * they move, these pins move with them.
+   * The link preview and the PayNkolay bridge moved with the site. The mail
+   * templates are on the Köşk green (#143d2b) still, knowingly: their dark
+   * band, the logo glint GIF (whose first frame is what Outlook shows) and
+   * the badges are rasters with that green baked in, so the HTML can only
+   * move together with redrawn images. When they move, these pins move too.
    */
   it("shares the link preview as the app icon: L'Af on the house green", () => {
     // Moved with the site on 25 Eyl 2026 (opengraph-image.tsx is a front-end
@@ -393,30 +393,27 @@ describe("the app's retired green does not paint the site", () => {
   });
 
   it("keeps the PayNkolay bridge button on --brand, spelled out", () => {
-    // Standalone HTML: no stylesheet, so no var(--brand) to lean on.
-    expect(read("src/app/odeme/paynkolay/route.ts")).toContain(
-      "background:#143d2b",
-    );
+    // Standalone HTML: no stylesheet, so no var(--brand) to lean on. The
+    // app's green since 25 Eyl 2026 - the Köşk green is gone from it.
+    const bridge = read("src/app/odeme/paynkolay/route.ts");
+    expect(bridge).toContain("background:#1d6d56");
+    expect(bridge).not.toContain("#143d2b");
   });
 });
 
 /**
- * The PWA manifest icons double as the JSON-LD logo (structured-data.ts), so
- * they are the brand's face in the install prompt, the launcher and search
- * results. They kept the retired espresso "L" on cream for weeks after the
- * site moved on, because nothing looked at their pixels. This does:
- * scripts/gen-icons.mjs draws them, and these assertions hold the result to
- * the site palette (O26 default (a): --brand ground, --hero-cream mark) and
- * to the maskable safe zone.
- *
- * Since 25 Eyl 2026 the manifest installs the L'Af app icons in
- * public/brand (the app's own icon, on #1D6D56); these generated files are
- * the JSON-LD logo only, still on the Köşk green until scripts/gen-icons.mjs
- * is redrawn in the back-end follow-up.
+ * public/icon-192.png and icon-512.png are the JSON-LD logo
+ * (structured-data.ts): the brand's face in search results. They kept the
+ * retired espresso "L" on cream for weeks after the site moved on, because
+ * nothing looked at their pixels. This does: scripts/gen-icons.mjs draws
+ * them from the vector mark, and these assertions hold the result to the
+ * app icon (25 Eyl 2026: cream L'Af, brass bean, --brand #1d6d56 ground)
+ * and to the maskable safe zone.
  */
-describe("the PWA and JSON-LD icons are drawn on the site palette", () => {
-  const GROUND = [0x14, 0x3d, 0x2b] as const; // --brand #143d2b
-  const CREAM = [0xfa, 0xf6, 0xee] as const; // --hero-cream #faf6ee
+describe("the JSON-LD icons are the app icon, on the site palette", () => {
+  const GROUND = [0x1d, 0x6d, 0x56] as const; // --brand #1d6d56
+  const CREAM = [0xfb, 0xf8, 0xf4] as const; // the mark's cream
+  const BRASS = [0xe8, 0xc8, 0x77] as const; // --gold-soft, the bean
 
   async function pixels(file: string) {
     const { default: sharp } = await import("sharp");
@@ -438,16 +435,18 @@ describe("the PWA and JSON-LD icons are drawn on the site palette", () => {
     Math.abs(data[i + 2] - b) <= tolerance;
 
   for (const size of [192, 512]) {
-    it(`icon-${size}.png: cream monogram on --brand, inside the safe zone`, async () => {
+    it(`icon-${size}.png: cream L'Af with a brass bean on --brand, inside the safe zone`, async () => {
       const { data, width, height } = await pixels(`icon-${size}.png`);
       expect([width, height]).toEqual([size, size]);
 
       let cream = 0;
+      let brass = 0;
       let outside = 0;
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
           const i = (y * size + x) * 3;
           if (near(data, i, CREAM, 6)) cream++;
+          if (near(data, i, BRASS, 6)) brass++;
           if (near(data, i, GROUND)) continue;
           // Anything that is not ground is the mark; a maskable launcher
           // keeps only the centred circle of radius 0.4 * size.
@@ -470,6 +469,8 @@ describe("the PWA and JSON-LD icons are drawn on the site palette", () => {
       // The letters are really there, and really cream (the retired icon
       // was brown on cream, so it had no pixel near GROUND at all).
       expect(cream / (size * size)).toBeGreaterThan(0.02);
+      // …and the bean is brass, as on the app icon.
+      expect(brass / (size * size)).toBeGreaterThan(0.002);
     });
   }
 });
