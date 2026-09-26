@@ -111,15 +111,21 @@ export function CookieConsent() {
     setPanelOpen(false);
   }, []);
 
-  if (decided === null) return null;
-
-  const bannerVisible = !decided && !panelOpen;
+  // Before hydration (`decided === null`) the banner is rendered, not
+  // withheld: it is server HTML, painted with the page. Rendered only after
+  // hydration it arrived seconds late on a slow phone and was the page's
+  // largest paint. A visitor who has already decided never sees it - the
+  // inline script in the root layout marks <html data-consent="set"> before
+  // the first paint, the stylesheet hides the banner, and once hydrated this
+  // component drops it.
+  const bannerVisible = decided === null || (!decided && !panelOpen);
 
   return (
     <>
       {bannerVisible && (
         <div
           className="cookie-banner"
+          data-pending={decided === null ? "" : undefined}
           role="region"
           aria-label="Çerez tercihleri"
         >

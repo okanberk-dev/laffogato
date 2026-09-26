@@ -5,6 +5,7 @@ import { GoogleTagManager } from "@next/third-parties/google";
 
 import { CookieConsent } from "@/components/laffogato/cookie-consent";
 import { RevealMotion } from "@/components/laffogato/reveal-motion";
+import { CONSENT_COOKIE, CONSENT_VERSION } from "@/lib/consent/cookie";
 import { CONSENT_BOOTSTRAP } from "@/lib/consent/script";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
@@ -26,11 +27,17 @@ const displayFont = Poppins({
   weight: ["500", "600", "700"],
   variable: "--font-display",
   display: "swap",
+  // Not preloaded: eight files (~180 KB) raced the render-blocking CSS on a
+  // slow link and pushed first paint back by ~0.8 s. With `swap` and the
+  // metric-matched fallback next/font generates, text paints at once and
+  // the face swaps in without moving the layout.
+  preload: false,
 });
 const textFont = Inter({
   subsets: ["latin", "latin-ext"],
   variable: "--font-text",
   display: "swap",
+  preload: false,
 });
 
 export const viewport: Viewport = {
@@ -161,6 +168,15 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Marks <html data-consent="set"> before the first paint when the visitor
+ * has already answered the cookie banner. The banner is server-rendered (so
+ * it paints with the page instead of seconds later), and this is what keeps
+ * it from flashing for someone who answered it last week. Same validity test
+ * as `readConsent`: the cookie parses and carries the current version.
+ */
+const CONSENT_SEEN = `(function(){try{var m=document.cookie.split('; ').find(function(c){return c.indexOf('${CONSENT_COOKIE}=')===0});if(!m)return;var p=JSON.parse(decodeURIComponent(m.slice(${CONSENT_COOKIE.length + 1})));if(p&&p.version===${CONSENT_VERSION})document.documentElement.setAttribute('data-consent','set')}catch(e){}})();`;
+
 const fontVariables = `${displayFont.variable} ${textFont.variable}`;
 
 export default function RootLayout({
@@ -169,8 +185,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang={SITE.language} className={fontVariables}>
+    // suppressHydrationWarning: CONSENT_SEEN sets data-consent on <html>
+    // before React hydrates it.
+    <html
+      lang={SITE.language}
+      className={fontVariables}
+      suppressHydrationWarning
+    >
       <head>
+        <script
+          id="consent-seen"
+          dangerouslySetInnerHTML={{ __html: CONSENT_SEEN }}
+        />
         {/* Consent Mode v2 defaults - must be on the dataLayer before the GTM
             container initialises, otherwise the first tag fires with no
             consent signal at all. Everything except strictly-necessary storage

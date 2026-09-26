@@ -214,6 +214,30 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
     else router.push("/magaza?ara=1");
   };
 
+  // ⌘K / Ctrl+K anywhere, and "/" when the visitor is not typing: the
+  // keyboard way into search that the header's pill advertises.
+  const openSearchRef = useRef(openSearch);
+  useEffect(() => {
+    openSearchRef.current = openSearch;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const typing =
+        !!t &&
+        (t.isContentEditable ||
+          ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
+      const combo = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k";
+      const slash = e.key === "/" && !typing && !e.metaKey && !e.ctrlKey;
+      if (!combo && !slash) return;
+      if (document.querySelector(".search-overlay")) return;
+      e.preventDefault();
+      openSearchRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const home = { href: "/", route: "home" as Route };
 
   return (
@@ -288,13 +312,19 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
           </div>
 
           <div className="nav-right">
+            {/* A search field in the header's own glass, not an icon: it
+                says what it searches, and its shortcut. Narrow headers keep
+                the round button. */}
             <button
               type="button"
-              className="nav-icon-btn"
+              className="nav-search"
               aria-label="Menüde ve mağazada ara"
+              aria-keyshortcuts="Control+K Meta+K /"
               onClick={openSearch}
             >
               <SearchGlyph />
+              <span className="nav-search-text">Menüde, mağazada ara</span>
+              <kbd className="nav-search-kbd">/</kbd>
             </button>
             <a
               href="/uye/hesap"
@@ -807,6 +837,8 @@ export function Footer({ navigate, settings }: FooterProps) {
                 alt=""
                 width={48}
                 height={48}
+                loading="lazy"
+                decoding="async"
                 className="footer-app-icon"
               />
               <div>
