@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { accountMenuStateAction, logoutAction } from "@/app/uye/actions";
 import { CONSENT_OPEN_EVENT } from "@/lib/consent/script";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
@@ -312,9 +313,8 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
           </div>
 
           <div className="nav-right">
-            {/* A search field in the header's own glass, not an icon: it
-                says what it searches, and its shortcut. Narrow headers keep
-                the round button. */}
+            {/* Minimal: the glyph and one word. Narrow headers keep the
+                glyph alone. ⌘K / Ctrl+K / "/" open it from anywhere. */}
             <button
               type="button"
               className="nav-search"
@@ -323,16 +323,9 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
               onClick={openSearch}
             >
               <SearchGlyph />
-              <span className="nav-search-text">Menüde, mağazada ara</span>
-              <kbd className="nav-search-kbd">/</kbd>
+              <span className="nav-search-text">Ara</span>
             </button>
-            <a
-              href="/uye/hesap"
-              className="nav-icon-btn nav-account"
-              aria-label="Hesabım"
-            >
-              <PersonGlyph />
-            </a>
+            <AccountMenu />
             <button
               type="button"
               className="nav-cart"
@@ -698,6 +691,116 @@ function Chevron({
         fill="none"
       />
     </svg>
+  );
+}
+
+/**
+ * The header's person button: a small menu rather than a straight link, so
+ * signing out is one tap from any page. Whether anyone is signed in is asked
+ * the first time it opens (the session cookie is httpOnly), then kept.
+ */
+function AccountMenu() {
+  const [open, setOpen] = useState(false);
+  const [state, setState] = useState<{
+    signedIn: boolean;
+    firstName: string;
+  } | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next && state === null) {
+      accountMenuStateAction()
+        .then(setState)
+        .catch(() => setState({ signedIn: false, firstName: "" }));
+    }
+  };
+
+  return (
+    <div className="nav-account-wrap nav-account" ref={wrapRef}>
+      <button
+        type="button"
+        className="nav-icon-btn"
+        aria-label="Hesap menüsü"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={toggle}
+      >
+        <PersonGlyph />
+      </button>
+      {open && (
+        <div className="nav-account-menu" role="menu">
+          {state === null ? (
+            <span className="nav-account-loading" aria-live="polite">
+              …
+            </span>
+          ) : state.signedIn ? (
+            <>
+              <span className="nav-account-hello">
+                {state.firstName ? `Merhaba ${state.firstName}` : "Hesabın"}
+              </span>
+              <Link
+                href="/uye/hesap"
+                role="menuitem"
+                className="nav-account-item"
+              >
+                Hesabım
+              </Link>
+              <Link
+                href="/uye/hesap/siparislerim"
+                role="menuitem"
+                className="nav-account-item"
+              >
+                Siparişlerim
+              </Link>
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  role="menuitem"
+                  className="nav-account-item nav-account-logout"
+                >
+                  Çıkış yap
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/uye/giris"
+                role="menuitem"
+                className="nav-account-item"
+              >
+                Giriş yap
+              </Link>
+              <Link
+                href="/uye/kayit"
+                role="menuitem"
+                className="nav-account-item"
+              >
+                Üye ol
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

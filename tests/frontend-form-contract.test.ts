@@ -148,7 +148,17 @@ const CONTRACTS: FormContract[] = [
     action: "bookKaraokeAction",
     actionFile: "src/app/karaoke/actions.ts",
     forms: ["src/components/laffogato/karaoke-booking.tsx"],
-    fields: ["date", "startHour", "hours", "guests", "note"],
+    fields: [
+      "date",
+      "startHour",
+      "hours",
+      "guests",
+      "note",
+      "contactName",
+      "contactEmail",
+      "contactPhone",
+      "contactConsent",
+    ],
   },
   {
     action: "subscribeNewsletterAction",
@@ -222,6 +232,7 @@ describe("consent boxes a redesign must not pre-tick", () => {
     ["src/app/uye/kayit/register-form.tsx", 'name="marketing"'],
     ["src/app/uye/kayit/register-form.tsx", 'name="newsletter"'],
     ["src/components/laffogato/newsletter-form.tsx", 'name="consent"'],
+    ["src/components/laffogato/karaoke-booking.tsx", 'name="contactConsent"'],
   ];
 
   for (const [file, attr] of CONSENT_INPUTS) {

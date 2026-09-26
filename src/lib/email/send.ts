@@ -714,6 +714,8 @@ export interface KaraokeOperatorNotice {
   source: "app" | "web";
   customerName: string;
   customerEmail: string;
+  /** Contact phone from the web form, "+905321234567"; "" from the app. */
+  phone?: string;
   /** Already formatted for a reader: "12 Eylül 2026", "20:00 - 22:00". */
   date: string;
   time: string;
@@ -780,6 +782,7 @@ export async function sendKaraokeOperatorEmail(
       { label: "Tutar", value: formatTRYMinor(k.totalMinor) },
       { label: "Üye", value: k.customerName.trim() || "-" },
       { label: "E-posta", value: k.customerEmail },
+      { label: "Telefon", value: k.phone ?? "" },
     ],
     ...(k.note.trim()
       ? { note: { label: "ÜYENİN NOTU", text: k.note.trim() } }

@@ -20,11 +20,12 @@ vi.mock("@/lib/email/send", () => ({
     sendKaraokeOperatorEmail(...args),
 }));
 
-const { notifyOperatorOfReservation } = await import(
-  "@/lib/mobile/karaoke-notify"
-);
+const { notifyOperatorOfReservation } =
+  await import("@/lib/mobile/karaoke-notify");
 
-function reservation(over: Partial<KaraokeReservation> = {}): KaraokeReservation {
+function reservation(
+  over: Partial<KaraokeReservation> = {},
+): KaraokeReservation {
   return {
     id: "krk-00042",
     customerEmail: "eda@ornek.com",
@@ -59,6 +60,7 @@ describe("karaoke operator notice", () => {
       source: "app",
       customerName: "Eda Mancuso",
       customerEmail: "eda@ornek.com",
+      phone: "",
       // Not `new Date("2026-09-20")`: that is UTC midnight, and a formatter in
       // a negative-offset deployment would print the 19th.
       date: "20 Eylül 2026",
@@ -77,9 +79,7 @@ describe("karaoke operator notice", () => {
   });
 
   it("wraps a block that runs past midnight", async () => {
-    await notifyOperatorOfReservation(
-      reservation({ startHour: 23, hours: 2 }),
-    );
+    await notifyOperatorOfReservation(reservation({ startHour: 23, hours: 2 }));
     expect(sendKaraokeOperatorEmail.mock.calls[0]![0]).toMatchObject({
       time: "23:00 - 01:00",
     });

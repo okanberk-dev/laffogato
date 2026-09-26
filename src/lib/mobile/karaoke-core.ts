@@ -62,6 +62,66 @@ export interface KaraokeReservation {
   note: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Contact details from the web form (name goes to `customerName`). Empty
+   * on app bookings, which do not send them. `contactConsentAt` is when the
+   * member agreed to be reached about this booking.
+   */
+  contactEmail?: string;
+  contactPhone?: string;
+  contactConsentAt?: string;
+}
+
+/** What the web form collects about who to reach for a booking. */
+export interface ReservationContact {
+  name: string;
+  email: string;
+  phone: string;
+  consentAt: string;
+}
+
+/**
+ * The web form's contact block, validated. Pure so the form and the action
+ * share one set of rules.
+ */
+export function validateReservationContact(raw: {
+  name: string;
+  email: string;
+  phone: string;
+  consent: boolean;
+}):
+  | { ok: true; value: Omit<ReservationContact, "consentAt"> }
+  | { ok: false; message: string } {
+  const name = raw.name.replace(/\s+/g, " ").trim();
+  if (name.length < 3 || !name.includes(" ") || name.length > 80) {
+    return { ok: false, message: "Adını ve soyadını yaz." };
+  }
+  const email = raw.email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 120) {
+    return { ok: false, message: "Geçerli bir e-posta adresi yaz." };
+  }
+  const phone = normalizeTrPhone(raw.phone);
+  if (!phone) {
+    return {
+      ok: false,
+      message: "Geçerli bir cep telefonu yaz (ör. 0532 123 45 67).",
+    };
+  }
+  if (!raw.consent) {
+    return {
+      ok: false,
+      message:
+        "Rezervasyonunla ilgili sana ulaşabilmemiz için izin kutusunu işaretle.",
+    };
+  }
+  return { ok: true, value: { name, email, phone } };
+}
+
+/** "0532 123 45 67", "+90 532…", "532…" → "+905321234567"; else "". */
+export function normalizeTrPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  const local = digits.replace(/^(?:90|0)/, "");
+  return /^5\d{9}$/.test(local) ? `+90${local}` : "";
 }
 
 export interface KaraokeSlot {
@@ -250,8 +310,7 @@ function buildRequestSchema(
 }
 
 export type ValidateReservationResult =
-  | { ok: true; value: ReservationRequest }
-  | { ok: false; message: string };
+  { ok: true; value: ReservationRequest } | { ok: false; message: string };
 
 /**
  * Shape + business rules of a reservation request. `today` is the Istanbul

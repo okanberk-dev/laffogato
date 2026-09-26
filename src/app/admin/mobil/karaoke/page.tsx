@@ -89,8 +89,16 @@ export default async function AdminKaraokePage() {
                       <p className="mt-1 truncate text-sm">
                         {r.customerName || "İsimsiz"}{" "}
                         <span className="text-neutral-500">
-                          · {r.customerEmail}
+                          · {r.contactEmail || r.customerEmail}
                         </span>
+                        {r.contactPhone ? (
+                          <a
+                            href={`tel:${r.contactPhone}`}
+                            className="ml-1 text-neutral-700 underline"
+                          >
+                            {r.contactPhone}
+                          </a>
+                        ) : null}
                       </p>
                       <p className="text-sm text-neutral-500">
                         {r.guests} kişi · {r.hours} saat ·{" "}
