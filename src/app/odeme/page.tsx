@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { LafMark } from "@/components/laffogato/brand-mark";
 import { VerifyNotice } from "@/components/customer/verify-notice";
 import { getPublicSettings } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
@@ -8,17 +9,8 @@ import { CheckoutWizard } from "./checkout-wizard";
 
 function GatePanel({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        maxWidth: 520,
-        margin: "0 auto",
-        background: "#fff",
-        border: "1px solid var(--ink-line)",
-        // 18 was neither --r-md (14) nor --r-lg (22).
-        borderRadius: "var(--r-lg)",
-        padding: "32px 28px",
-      }}
-    >
+    <div className="checkout-gate">
+      <LafMark tone="duo" />
       {children}
     </div>
   );
@@ -59,113 +51,49 @@ export default async function OdemePage({
     <main className="checkout-page">
       <div className="checkout-page-wrap">
         <header className="checkout-page-head">
-          <Link
-            href="/magaza"
-            className="eyebrow"
-            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-          >
+          <Link href="/magaza" className="auth-back">
             ← Alışverişe dön
           </Link>
           <div className="checkout-brand">
-            {/* The site has one family and one display style; this was asking
-                for `--serif` - the retired second face, now an alias - at a
-                hardcoded 22px outside the type scale. */}
-            <span className="checkout-brand-name">L&apos;Affogato</span>
-            <span
-              style={{
-                fontFamily: "var(--mono)",
-                fontSize: 10,
-                letterSpacing: "0.28em",
-                textTransform: "uppercase",
-                color: "var(--ink-mute)",
-              }}
-            >
-              Sicuro · 256-bit SSL
+            <LafMark tone="duo" label="L'Affogato" />
+            <span className="checkout-secure">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M4.5 7V5.2a3.5 3.5 0 0 1 7 0V7" />
+                <rect x="3" y="7" width="10" height="7" rx="2" />
+              </svg>
+              Güvenli ödeme
             </span>
           </div>
         </header>
         {notice && (
-          <p
-            role="alert"
-            style={{
-              maxWidth: 640,
-              margin: "0 auto 24px",
-              padding: "14px 18px",
-              border: "1px solid rgba(180,60,40,0.28)",
-              background: "rgba(180,60,40,0.06)",
-              borderRadius: 14,
-              color: "#8c2f1e",
-              fontSize: 14,
-              lineHeight: 1.6,
-            }}
-          >
+          <p role="alert" className="auth-alert checkout-notice">
             {notice}
           </p>
         )}
         {!settings.isShopOpen ? (
           <GatePanel>
-            <h1
-              style={{
-                fontFamily: "var(--sans)",
-                fontWeight: 800,
-                letterSpacing: "-0.03em",
-                fontSize: 26,
-                marginBottom: 10,
-              }}
-            >
-              Şu an sipariş alamıyoruz
-            </h1>
-            <p
-              style={{
-                color: "var(--ink-soft)",
-                lineHeight: 1.6,
-                fontSize: 15,
-                marginBottom: 22,
-              }}
-            >
+            <h1 className="checkout-gate-title">Şu an sipariş alamıyoruz</h1>
+            <p className="checkout-gate-lede">
               Mağaza geçici olarak siparişe kapalı. Sepetin korunuyor - birazdan
               tekrar denersen kaldığın yerden devam edebilirsin.
             </p>
-            <Link href="/magaza" className="btn btn-primary btn-sm">
+            <Link href="/magaza" className="btn btn-primary">
               Mağazaya dön
             </Link>
           </GatePanel>
         ) : !customer ? (
           <GatePanel>
-            <h1
-              style={{
-                fontFamily: "var(--sans)",
-                fontWeight: 800,
-                letterSpacing: "-0.03em",
-                fontSize: 26,
-                marginBottom: 10,
-              }}
-            >
-              Sipariş için giriş yap
-            </h1>
-            <p
-              style={{
-                color: "var(--ink-soft)",
-                lineHeight: 1.6,
-                fontSize: 15,
-                marginBottom: 22,
-              }}
-            >
+            <h1 className="checkout-gate-title">Sipariş için giriş yap</h1>
+            <p className="checkout-gate-lede">
               Güvenliğin için siparişler yalnızca doğrulanmış hesaplarla
               verilebilir. Giriş yap ya da hızlıca bir hesap oluştur - e-postanı
               onayladıktan sonra ödemeye devam edebilirsin.
             </p>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <Link
-                href="/uye/giris?next=/odeme"
-                className="btn btn-primary btn-sm"
-              >
+            <div className="checkout-gate-actions">
+              <Link href="/uye/giris?next=/odeme" className="btn btn-primary">
                 Giriş yap
               </Link>
-              <Link
-                href="/uye/kayit?next=/odeme"
-                className="btn btn-ghost btn-sm"
-              >
+              <Link href="/uye/kayit?next=/odeme" className="btn btn-ghost">
                 Hesap oluştur
               </Link>
             </div>
@@ -175,15 +103,7 @@ export default async function OdemePage({
             {/* Every branch of this page needs its own h1: the wizard carries
                 one, but a visitor stopped at a gate used to get a checkout
                 page with no heading at all. */}
-            <h1
-              style={{
-                fontFamily: "var(--sans)",
-                fontWeight: 800,
-                letterSpacing: "-0.03em",
-                fontSize: 26,
-                marginBottom: 14,
-              }}
-            >
+            <h1 className="checkout-gate-title">
               Ödemeden önce e-postanı doğrula
             </h1>
             <VerifyNotice email={customer.email} />

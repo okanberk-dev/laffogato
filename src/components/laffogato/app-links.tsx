@@ -4,6 +4,8 @@ import {
   hasAppLinks,
 } from "@/lib/mobile/app-store";
 
+import { cx } from "./cx";
+
 /**
  * The two store buttons - the site's only door into the app.
  *
@@ -29,7 +31,11 @@ export function AppStoreLinks({
   if (!hasAppLinks()) {
     return (
       <p
-        className={`app-links-soon${tone === "dark" ? " on-dark" : ""}${className ? ` ${className}` : ""}`}
+        className={cx(
+          "app-links-soon",
+          tone === "dark" && "on-dark",
+          className,
+        )}
       >
         <span className="app-links-soon-dot" aria-hidden="true" />
         Çok yakında App Store ve Google Play&apos;de.
@@ -37,9 +43,7 @@ export function AppStoreLinks({
     );
   }
   return (
-    <div
-      className={`app-links${tone === "dark" ? " on-dark" : ""}${className ? ` ${className}` : ""}`}
-    >
+    <div className={cx("app-links", tone === "dark" && "on-dark", className)}>
       <a
         className="store-btn"
         href={APP_STORE_URL}

@@ -22,6 +22,7 @@ function formatShortDate(iso: string): string {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "Europe/Istanbul",
   }).format(new Date(iso));
 }
 
@@ -94,10 +95,9 @@ function CouponCard({
           style={{
             alignSelf: "flex-start",
             borderRadius: 999,
-            padding: "2px 10px",
-            fontSize: 11,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
+            padding: "3px 10px",
+            fontSize: 12,
+            fontWeight: 600,
             background: badge.bg,
             color: badge.fg,
           }}

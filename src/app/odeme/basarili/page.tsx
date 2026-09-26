@@ -6,6 +6,7 @@ import { getOrder } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
 
 import { ClearCart } from "./clear-cart";
+import { cx } from "@/components/laffogato/cx";
 
 export const metadata = { title: "Siparişin Alındı" };
 export const dynamic = "force-dynamic";
@@ -34,143 +35,103 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
     notFound();
   }
 
+  // The köşk's clock (rule 22): the server is UTC, so without the zone an
+  // order placed at 21:40 in Tuzla read "18:40" on its own receipt.
   const placedAt = new Intl.DateTimeFormat("tr-TR", {
     day: "2-digit",
     month: "long",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Istanbul",
   }).format(new Date(order.createdAt));
 
+  const paid = order.status === "paid";
+
   return (
-    <main
-      className="mx-auto min-h-screen max-w-3xl px-6 py-24"
-      style={{ background: "var(--bg-warm)" }}
-    >
+    <main className="order-done">
       <ClearCart />
-      {promoDropped && (
-        <div
-          className="mb-6 rounded-[var(--r-md)] border px-5 py-4 text-sm"
-          style={{
-            borderColor: "var(--ink-line-strong)",
-            background: "var(--bg-stone)",
-            color: "var(--gold-deep)",
-          }}
-        >
-          Promosyon kodun sipariş anında geçerli değildi (süresi dolmuş veya
-          limiti dolmuş olabilir), bu yüzden indirim uygulanmadı. Sorun olduğunu
-          düşünüyorsan bizimle iletişime geç.
-        </div>
-      )}
-      <div
-        className="rounded-[var(--r-xl)] border border-[var(--ink-line)] bg-white p-10 md:p-14"
-        style={{ boxShadow: "var(--shadow-lg)" }}
-      >
-        <div className="flex items-center gap-3">
+      <div className="order-done-card">
+        <div className="order-done-head">
           <span
-            className="inline-block h-2 w-2 rounded-full"
-            style={{ background: "var(--gold)" }}
-          />
-          <span
-            className="text-[10px] tracking-[0.24em] uppercase"
-            style={{ fontFamily: "var(--mono), monospace" }}
+            className={cx("order-done-badge", !paid && "is-pending")}
+            aria-hidden="true"
           >
-            Sipariş alındı · {placedAt}
+            {paid ? (
+              <svg viewBox="0 0 24 24">
+                <path d="M5 12.5l4.2 4.2L19 7" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="8" />
+                <path d="M12 8v4.5l3 1.8" />
+              </svg>
+            )}
           </span>
+          <p className="order-done-kicker">
+            {paid ? "Sipariş onaylandı" : "Sipariş alındı"} · {placedAt}
+          </p>
+          <h1 className="order-done-title">
+            Grazie, {order.customerName.split(" ")[0]}.{" "}
+            <span className="script">See you soon.</span>
+          </h1>
+          <p className="order-done-lede">
+            {paid ? (
+              <>
+                Ödemen alındı ve siparişin onaylandı. Hazır olunca seni
+                bilgilendireceğiz.
+              </>
+            ) : (
+              <>
+                Siparişini aldık; ödemen henüz tamamlanmadı (
+                <em>ödeme bekleniyor</em>). Ödeme tamamlandığında siparişin
+                işleme alınır.
+              </>
+            )}
+          </p>
         </div>
 
-        {/* The site retired its two-face system; this page was still asking
-            for a 500-weight Playfair and a cursive that no longer exists, so
-            it rendered in whatever the browser had. `.h1` is the one display
-            style, and `.script` is the accent word - which on this page is
-            genuinely earned. */}
-        <h1 className="h1 mt-5">
-          Grazie, {order.customerName.split(" ")[0]}.
-          <br />
-          <span className="script">See you soon.</span>
-        </h1>
+        {promoDropped && (
+          <p role="status" className="auth-alert order-done-notice">
+            Promosyon kodun sipariş anında geçerli değildi (süresi dolmuş veya
+            limiti dolmuş olabilir), bu yüzden indirim uygulanmadı. Sorun
+            olduğunu düşünüyorsan bizimle iletişime geç.
+          </p>
+        )}
 
-        <p className="mt-6 max-w-md" style={{ color: "var(--ink-soft)" }}>
-          {order.status === "paid" ? (
-            <>
-              Ödemen alındı ve siparişin onaylandı. Tuzla köşkünde bekleniyorsun
-              - hazır olunca seni bilgilendireceğiz.
-            </>
-          ) : (
-            <>
-              Siparişini aldık; ödemen henüz tamamlanmadı (
-              <em>ödeme bekleniyor</em>). Ödeme tamamlandığında siparişin işleme
-              alınır.
-            </>
-          )}
-        </p>
+        <dl className="order-done-facts">
+          <div>
+            <dt>Sipariş no</dt>
+            <dd>#{order.orderNo}</dd>
+          </div>
+          <div>
+            <dt>Ürün</dt>
+            <dd>{order.items.reduce((n, it) => n + it.qty, 0)}</dd>
+          </div>
+          <div>
+            <dt>Toplam</dt>
+            <dd>{formatTRY(order.totalMinor)}</dd>
+          </div>
+        </dl>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-[var(--r-md)] border border-[var(--ink-line)] p-4">
-            <div
-              className="text-[10px] tracking-[0.22em] uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Sipariş No
-            </div>
-            <div
-              className="mt-1 text-lg"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              #{order.orderNo}
-            </div>
-          </div>
-          <div className="rounded-[var(--r-md)] border border-[var(--ink-line)] p-4">
-            <div
-              className="text-[10px] tracking-[0.22em] uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Kalem
-            </div>
-            <div
-              className="mt-1 text-lg"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              {order.items.length}
-            </div>
-          </div>
-          <div className="rounded-[var(--r-md)] border border-[var(--ink-line)] p-4">
-            <div
-              className="text-[10px] tracking-[0.22em] uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Toplam
-            </div>
-            <div
-              className="mt-1 text-lg"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              {formatTRY(order.totalMinor)}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-10 border-t border-[var(--ink-line)] pt-6">
-          <div
-            className="text-[10px] tracking-[0.22em] uppercase"
-            style={{ fontFamily: "var(--mono), monospace" }}
-          >
+        <section className="order-done-summary" aria-labelledby="order-sum">
+          <h2 id="order-sum" className="order-done-sub">
             Özet
-          </div>
-          <ul className="mt-4 grid gap-2 text-sm text-[var(--ink)]">
+          </h2>
+          <ul className="order-done-lines">
             {order.items.map((it, i) => (
-              <li key={i} className="flex items-baseline justify-between gap-4">
+              <li key={i}>
                 <span>
                   {it.productName}
-                  <span className="text-[var(--ink-mute)]"> × {it.qty}</span>
+                  <span className="order-done-qty"> × {it.qty}</span>
                 </span>
-                <span style={{ fontFamily: "var(--mono), monospace" }}>
+                <span className="order-done-amount">
                   {formatTRY(it.unitPriceMinor * it.qty)}
                 </span>
               </li>
             ))}
           </ul>
-          <div className="mt-4 grid gap-1.5 border-t border-[var(--ink-line)] pt-4 text-sm">
+          <div className="order-done-totals">
             <SummaryRow
               label="Ara toplam"
               value={formatTRY(order.subtotalMinor)}
@@ -196,31 +157,29 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
               strong
             />
           </div>
-        </div>
+        </section>
 
-        <div className="mt-10 flex flex-wrap gap-3">
-          {/* The site's own buttons: --r-btn, the house green, the arrow that
-              every other primary carries. These were Tailwind neutral-900
-              capsules - a different shape and a different palette from every
-              other action on the site, on the last screen a paying customer
-              sees. */}
-          <Link href="/" className="btn btn-primary">
-            Ana sayfaya dön
+        <div className="order-done-actions">
+          {/* The order's own page, not the home page: it is where the status,
+              the cargo link and the receipt live from here on. */}
+          <Link
+            href={`/uye/hesap/siparislerim/${order.orderNo}`}
+            className="btn btn-primary"
+          >
+            Siparişi takip et
             <span className="arrow" aria-hidden>
               →
             </span>
           </Link>
-          <Link href="/magaza" className="btn btn-outline">
+          <Link href="/magaza" className="btn btn-ghost">
             Alışverişe devam et
           </Link>
         </div>
 
-        <p
-          className="mt-8 text-[10px] tracking-[0.22em] uppercase"
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
-          Sanal POS entegrasyonu sonrası ödeme makbuzu e-postan üzerinden
-          iletilecek.
+        <p className="order-done-foot">
+          Durumunu ve kargo bilgisini{" "}
+          <Link href="/uye/hesap/siparislerim">siparişlerinden</Link>{" "}
+          izleyebilirsin.
         </p>
       </div>
     </main>
@@ -240,24 +199,14 @@ function SummaryRow({
 }) {
   return (
     <div
-      className="flex items-baseline justify-between gap-4"
-      style={{
-        borderTop: strong ? "1px solid var(--ink-line, #e1e5e0)" : undefined,
-        paddingTop: strong ? 10 : undefined,
-        marginTop: strong ? 4 : undefined,
-        fontWeight: strong ? 600 : 400,
-        color: tone === "green" ? "var(--matcha)" : undefined,
-      }}
+      className={cx(
+        "order-done-row",
+        strong && "is-total",
+        tone === "green" && "is-green",
+      )}
     >
       <span>{label}</span>
-      <span
-        style={{
-          fontFamily: "var(--mono), monospace",
-          fontSize: strong ? 16 : undefined,
-        }}
-      >
-        {value}
-      </span>
+      <span className="order-done-amount">{value}</span>
     </div>
   );
 }

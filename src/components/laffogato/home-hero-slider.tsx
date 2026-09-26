@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { HOME_SLIDES, type HomeSlideAction } from "./data";
 import { SCENES } from "./scenes";
+import { cx } from "./cx";
 
 const AUTOPLAY_MS = 7000;
 
@@ -78,7 +79,8 @@ export function HomeHeroSlider({
   // Only the leading slide is operator-editable; the others are fixed
   // editorial. `index === 0` rather than "the first render" so the panel's
   // copy follows its own slide when the carousel comes back round.
-  const kicker = (index === 0 && content?.["home.hero.eyebrow"]) || slide.kicker;
+  const kicker =
+    (index === 0 && content?.["home.hero.eyebrow"]) || slide.kicker;
   const text = (index === 0 && content?.["home.hero.lede"]) || slide.text;
   const photo = (index === 0 && heroImageUrl) || slide.photo;
   const scene = SCENES[slide.scene];
@@ -135,7 +137,7 @@ export function HomeHeroSlider({
                   <li key={s.photo}>
                     <button
                       type="button"
-                      className={`hero-x-thumb${on ? " on" : ""}`}
+                      className={cx("hero-x-thumb", on && "on")}
                       onClick={() => goTo(i)}
                       aria-current={on || undefined}
                       aria-label={s.title.join(" ")}
@@ -196,7 +198,7 @@ export function HomeHeroSlider({
               <button
                 key={s.photo}
                 type="button"
-                className={`hero-x-dot${i === index ? " on" : ""}`}
+                className={cx("hero-x-dot", i === index && "on")}
                 onClick={() => goTo(i)}
                 aria-label={`${i + 1}. slayt: ${s.title.join(" ")}`}
                 aria-current={i === index || undefined}

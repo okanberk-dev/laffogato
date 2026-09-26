@@ -89,9 +89,12 @@ export function AccountTopNav({ active }: { active: AccountSection }) {
 function formatJoinDate(iso: string | undefined | null): string {
   if (!iso) return "-";
   try {
+    // The köşk's calendar (rule 22): on a UTC server a member who joined
+    // at 01:00 on the 1st would otherwise read as the previous month.
     return new Intl.DateTimeFormat("tr-TR", {
-      month: "short",
+      month: "long",
       year: "numeric",
+      timeZone: "Europe/Istanbul",
     }).format(new Date(iso));
   } catch {
     return "-";

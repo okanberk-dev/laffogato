@@ -18,6 +18,7 @@ import {
   PhotoSurface,
 } from "./visuals";
 import type { PageProps } from "./page-shared";
+import { cx } from "./cx";
 
 export function PageVisit({ visit, settings }: PageProps) {
   const courierFee = priceLabel(settings?.courierFeeMinor ?? 5500);
@@ -362,7 +363,7 @@ export function PageVisit({ visit, settings }: PageProps) {
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                   <button
                     key={n}
-                    className={`reserve-num ${partySize === n ? "on" : ""}`}
+                    className={cx("reserve-num", partySize === n && "on")}
                     onClick={() => setPartySize(n)}
                   >
                     {n}
@@ -384,7 +385,7 @@ export function PageVisit({ visit, settings }: PageProps) {
                   (d) => (
                     <button
                       key={d}
-                      className={`reserve-chip ${day === d ? "on" : ""}`}
+                      className={cx("reserve-chip", day === d && "on")}
                       onClick={() => setDay(d)}
                     >
                       {d}
@@ -415,7 +416,7 @@ export function PageVisit({ visit, settings }: PageProps) {
                 ].map((t) => (
                   <button
                     key={t}
-                    className={`reserve-chip ${time === t ? "on" : ""}`}
+                    className={cx("reserve-chip", time === t && "on")}
                     onClick={() => setTime(t)}
                   >
                     {t}
@@ -645,7 +646,7 @@ function OpenNow({ rows }: { rows: [string, string][] }) {
   const [open, at, today] = encoded.split("|");
   const isOpen = open === "1";
   return (
-    <div className={`open-now${isOpen ? "is-open" : "is-closed"}`}>
+    <div className={cx("open-now", isOpen ? "is-open" : "is-closed")}>
       <span className="open-dot" aria-hidden="true" />
       <div>
         <div className="open-now-title">

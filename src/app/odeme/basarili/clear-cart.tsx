@@ -13,6 +13,12 @@ export function ClearCart() {
   useEffect(() => {
     try {
       window.localStorage.removeItem(CART_STORAGE_KEY);
+      // The header's cart count listens for `storage`, which the browser
+      // only fires in OTHER tabs - so this page kept showing the basket it
+      // had just emptied. Tell this tab too.
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: CART_STORAGE_KEY }),
+      );
     } catch {
       // localStorage may be unavailable - silent no-op.
     }

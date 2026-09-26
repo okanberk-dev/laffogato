@@ -296,10 +296,8 @@ function DetailRow({
     >
       <span
         style={{
-          fontFamily: "var(--mono)",
-          fontSize: 10,
-          letterSpacing: "0.2em",
-          textTransform: "uppercase",
+          fontSize: 13,
+          fontWeight: 600,
           color: "var(--ink-mute)",
         }}
       >

@@ -16,6 +16,7 @@ import { LafMark } from "./brand-mark";
 import { NewsletterForm } from "./newsletter-form";
 import { ROUTE_PATHS, type Route } from "./route-paths";
 import { SCENES, sceneForHue } from "./scenes";
+import { cx } from "./cx";
 
 export type { Route };
 /** Re-export for legacy importers that still pull `ROUTE_PATHS` from here.
@@ -218,7 +219,11 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
   return (
     <>
       <header
-        className={`site-header${scrolled || open ? "is-scrolled" : ""}${open ? "is-sheet-open" : ""}`}
+        className={cx(
+          "site-header",
+          (scrolled || open) && "is-scrolled",
+          open && "is-sheet-open",
+        )}
         ref={headerRef}
       >
         <nav className="nav" aria-label="Ana gezinme">
@@ -239,13 +244,17 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
               return (
                 <div
                   key={link.href}
-                  className={`nav-link-wrap${key ? "has-dropdown" : ""}`}
+                  className={cx("nav-link-wrap", key && "has-dropdown")}
                   onMouseEnter={key ? () => onHoverOpen(key) : undefined}
                 >
                   <a
                     href={link.href}
                     onClick={go(link)}
-                    className={`nav-link${active ? "active" : ""}${isOpen ? "is-open" : ""}`}
+                    className={cx(
+                      "nav-link",
+                      active && "active",
+                      isOpen && "is-open",
+                    )}
                     aria-current={active ? "page" : undefined}
                   >
                     {link.label}
@@ -256,7 +265,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                   {key && (
                     <button
                       type="button"
-                      className={`nav-link-caret-btn${isOpen ? "is-open" : ""}`}
+                      className={cx("nav-link-caret-btn", isOpen && "is-open")}
                       aria-haspopup="true"
                       aria-expanded={isOpen}
                       aria-label={`${link.label} alt menüsünü ${isOpen ? "kapat" : "aç"}`}
@@ -303,7 +312,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
               <BagGlyph />
               <span className="nav-cart-label">Sepet</span>
               <span
-                className={`nav-cart-count${cartCount > 0 ? "has-items" : ""}`}
+                className={cx("nav-cart-count", cartCount > 0 && "has-items")}
                 aria-hidden="true"
               >
                 {cartCount}
@@ -311,7 +320,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
             </button>
             <button
               type="button"
-              className={`nav-burger${open ? "open" : ""}`}
+              className={cx("nav-burger", open && "open")}
               onClick={() => setOpen((v) => !v)}
               aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
               aria-expanded={open}
@@ -328,7 +337,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
           big tappable rows, the two catalogues expandable in place. */}
       <div
         id="mobile-sheet"
-        className={`mobile-sheet${open ? "open" : ""}`}
+        className={cx("mobile-sheet", open && "open")}
         aria-hidden={!open}
         inert={!open}
       >
@@ -338,7 +347,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
               <Link
                 href="/"
                 onClick={go(home)}
-                className={`sheet-row${pathname === "/" ? "active" : ""}`}
+                className={cx("sheet-row", pathname === "/" && "active")}
               >
                 <span>Anasayfa</span>
                 <Chevron className="sheet-chev" dir="right" />
@@ -352,16 +361,17 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                 <li key={key}>
                   <button
                     type="button"
-                    className={`sheet-row${isActivePath(pathname, link.href) ? "active" : ""}`}
+                    className={cx(
+                      "sheet-row",
+                      isActivePath(pathname, link.href) && "active",
+                    )}
                     onClick={() => setMobileSection(expanded ? null : key)}
                     aria-expanded={expanded}
                   >
                     <span>{link.label}</span>
-                    <Chevron
-                      className={`sheet-chev${expanded ? "open" : ""}`}
-                    />
+                    <Chevron className={cx("sheet-chev", expanded && "open")} />
                   </button>
-                  <div className={`sheet-sub${expanded ? "open" : ""}`}>
+                  <div className={cx("sheet-sub", expanded && "open")}>
                     <div className="sheet-sub-inner">
                       <a
                         href={link.href}
@@ -416,7 +426,10 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                 <a
                   href={link.href}
                   onClick={go(link)}
-                  className={`sheet-row${isActivePath(pathname, link.href) ? "active" : ""}`}
+                  className={cx(
+                    "sheet-row",
+                    isActivePath(pathname, link.href) && "active",
+                  )}
                 >
                   <span>{link.label}</span>
                   <Chevron className="sheet-chev" dir="right" />
@@ -427,7 +440,10 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
               <Link
                 href="/rehber"
                 onClick={() => setOpen(false)}
-                className={`sheet-row${isActivePath(pathname, "/rehber") ? "active" : ""}`}
+                className={cx(
+                  "sheet-row",
+                  isActivePath(pathname, "/rehber") && "active",
+                )}
               >
                 <span>Rehber</span>
                 <Chevron className="sheet-chev" dir="right" />
@@ -474,7 +490,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
         <Link
           href="/"
           onClick={go(home)}
-          className={`tab-item${pathname === "/" ? "active" : ""}`}
+          className={cx("tab-item", pathname === "/" && "active")}
           aria-current={pathname === "/" ? "page" : undefined}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -486,7 +502,10 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
         <Link
           href="/menu"
           onClick={go(LINKS[0])}
-          className={`tab-item${isActivePath(pathname, "/menu") ? "active" : ""}`}
+          className={cx(
+            "tab-item",
+            isActivePath(pathname, "/menu") && "active",
+          )}
           aria-current={isActivePath(pathname, "/menu") ? "page" : undefined}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -499,7 +518,10 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
         <Link
           href="/magaza"
           onClick={go(LINKS[1])}
-          className={`tab-item${isActivePath(pathname, "/magaza") ? "active" : ""}`}
+          className={cx(
+            "tab-item",
+            isActivePath(pathname, "/magaza") && "active",
+          )}
           aria-current={isActivePath(pathname, "/magaza") ? "page" : undefined}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -530,7 +552,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
         </button>
         <a
           href="/uye/hesap"
-          className={`tab-item${isActivePath(pathname, "/uye") ? "active" : ""}`}
+          className={cx("tab-item", isActivePath(pathname, "/uye") && "active")}
           aria-current={isActivePath(pathname, "/uye") ? "page" : undefined}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">

@@ -403,10 +403,8 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
             className="reveal r2"
             style={{
               marginTop: 24,
-              fontFamily: "var(--mono)",
-              fontSize: 11,
-              letterSpacing: "0.22em",
-              textTransform: "uppercase",
+              fontSize: 14,
+              fontWeight: 500,
               color: "var(--ink-mute)",
             }}
           >

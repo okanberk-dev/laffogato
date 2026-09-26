@@ -1529,12 +1529,11 @@ summary:focus-visible,
   gap: 8px;
   padding: 6px 14px;
   border-radius: var(--r-pill);
-  background: var(--bg-warm);
+  background: var(--glass-control);
+  border: 1px solid var(--ink-line);
   font-family: var(--sans);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--ink-soft);
 }
 .chip-gold {
@@ -2244,9 +2243,27 @@ summary:focus-visible,
     transform 0.3s var(--ease-spring),
     box-shadow 0.3s;
 }
+/* Brass: the app's reward fill. Ink sits on it (the eyebrow and body used
+   to inherit the green board's mint and mist and all but vanished on the
+   caramel this replaced). */
 .promo-banner.gold {
-  background: linear-gradient(135deg, #e9d6b4 0%, #c79b5e 100%);
+  background:
+    radial-gradient(
+      80% 140% at 100% 0%,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0) 60%
+    ),
+    linear-gradient(135deg, #efd490 0%, #e1bb62 100%);
   color: var(--gold-ink);
+}
+.promo-banner.gold .promo-banner-wave {
+  fill: rgba(255, 255, 255, 0.16);
+}
+.promo-banner.gold .promo-banner-eyebrow {
+  color: var(--gold-deep);
+}
+.promo-banner.gold .promo-banner-body {
+  color: rgba(46, 33, 19, 0.82);
 }
 .promo-banner:hover {
   transform: translateY(-2px);
@@ -5471,9 +5488,11 @@ select {
    Customer account dashboard (/uye/hesap/*)
    ───────────────────────────────────────────────────────────── */
 
+/* On the page's own porcelain: a second, lighter ground under the header
+   read as a stripe between the chrome and the content. The white cards lift
+   off --bg better anyway. */
 .account-shell {
   min-height: 100vh;
-  background: var(--bg-warm);
 }
 .account-shell-wrap {
   max-width: 1180px;
@@ -5531,10 +5550,11 @@ select {
 
 /* Sidebar nav */
 .account-nav {
-  background: #fff;
+  background: var(--glass-raised);
   border: 1px solid var(--ink-line);
-  border-radius: var(--r-lg);
-  padding: 10px;
+  border-radius: var(--r-panel);
+  box-shadow: var(--rim), var(--shadow-glass);
+  padding: 8px;
 }
 .account-nav-list {
   list-style: none;
@@ -5545,57 +5565,58 @@ select {
 }
 .account-nav-link {
   display: block;
-  padding: 12px 14px;
+  padding: 11px 14px;
   border-radius: var(--r-md);
-  transition: background 0.15s var(--ease-out);
+  transition:
+    background 0.15s var(--ease-out),
+    color 0.15s var(--ease-out);
 }
 .account-nav-link:hover {
-  background: var(--bg-warm);
+  background: var(--glass-disc);
 }
+/* The decided row, in the house green - the app's selected tab. */
 .account-nav-link[data-active="true"] {
-  background: var(--bg-espresso);
-  color: var(--bg);
+  background: var(--green);
+  color: #fbf8f4;
+  box-shadow: var(--shadow-lift);
 }
 .account-nav-link[data-active="true"] .account-nav-link-hint {
-  color: var(--gold-soft);
+  color: rgba(251, 248, 244, 0.78);
 }
 .account-nav-link-label {
   display: block;
-  font-family: var(--serif-display);
-  font-size: 16px;
-  letter-spacing: -0.005em;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 15.5px;
+  letter-spacing: -0.01em;
 }
 .account-nav-link-hint {
   display: block;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: 12.5px;
   color: var(--ink-mute);
-  margin-top: 4px;
+  margin-top: 2px;
 }
 .account-nav-meta {
   margin-top: 8px;
-  padding: 12px 14px;
+  padding: 12px 14px 8px;
   border-top: 1px solid var(--ink-line);
 }
 .account-nav-meta-row {
   display: flex;
   justify-content: space-between;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
   color: var(--ink-mute);
 }
 
 /* Mobile select */
 .account-topnav {
   display: grid;
-  gap: 6px;
-  background: #fff;
+  gap: 8px;
+  background: var(--glass-raised);
   border: 1px solid var(--ink-line);
-  border-radius: var(--r-md);
+  border-radius: var(--r-panel);
+  box-shadow: var(--rim), var(--shadow-glass);
   padding: 14px 16px;
 }
 .account-topnav-list {
@@ -5613,10 +5634,13 @@ select {
 .account-topnav-link {
   display: block;
   white-space: nowrap;
-  padding: 7px 14px;
+  min-height: 36px;
+  padding: 8px 15px;
   border-radius: 999px;
-  border: 1px solid var(--ink-line);
+  border: 1px solid var(--ink-line-strong);
+  background: var(--glass-control);
   font-size: 14px;
+  font-weight: 500;
   color: var(--ink-soft);
   transition:
     border-color 0.15s,
@@ -5628,13 +5652,13 @@ select {
   color: var(--ink);
 }
 .account-topnav-link[data-active="true"] {
-  background: var(--bg-espresso);
-  border-color: var(--ink);
-  color: #fff;
+  background: var(--green);
+  border-color: var(--green);
+  color: #fbf8f4;
 }
 .account-topnav-link:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--ring);
 }
 
 /* Cards */
@@ -5750,12 +5774,10 @@ select {
 
 /* Status chip */
 .status-chip {
-  padding: 3px 10px;
+  padding: 4px 11px;
   border-radius: 999px;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
   display: inline-block;
 }
 .status-chip[data-tone="pending_payment"] {
@@ -5819,14 +5841,12 @@ select {
   font-size: 18px;
 }
 .account-address-default-badge {
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  background: var(--bg-espresso);
-  color: var(--bg);
-  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--green-mist);
+  color: var(--green-pressed);
+  padding: 3px 9px;
   border-radius: 999px;
-  text-transform: uppercase;
 }
 .account-address-body {
   font-size: 13px;
@@ -5858,11 +5878,9 @@ select {
   }
 }
 .account-field label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--ink-mute);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
 }
 .account-field input,
 .account-field textarea,
@@ -6009,11 +6027,9 @@ select {
   font-size: 15px;
 }
 .account-timeline-hint {
-  font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
   color: var(--ink-mute);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
 }
 
 /* Wishlist heart button (used on shop cards) */
@@ -6053,7 +6069,6 @@ select {
 
 .checkout-page {
   min-height: 100vh;
-  background: var(--bg-warm);
 }
 .checkout-page-wrap {
   max-width: 1240px;
@@ -6069,18 +6084,255 @@ select {
   padding-bottom: 22px;
   border-bottom: 1px solid var(--ink-line);
 }
+/* Order placed ────────────────────────────────────────────────
+   The app's confirmation sheet: one glass card, a green check disc (a clock
+   while the payment is still pending), the facts as three quiet tiles and
+   the lines as a grouped list. The way on is the order's own page. */
+.order-done {
+  padding: clamp(20px, 4vw, 48px) var(--gutter) clamp(60px, 8vw, 100px);
+}
+.order-done-card {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: clamp(26px, 5vw, 48px);
+  background: var(--glass-raised);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-card);
+  box-shadow: var(--rim), var(--shadow-chrome);
+}
+.order-done-head {
+  text-align: center;
+}
+.order-done-badge {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fbf8f4;
+  box-shadow: 0 0 0 8px var(--green-mist);
+}
+.order-done-badge.is-pending {
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  box-shadow: 0 0 0 8px rgba(232, 200, 119, 0.28);
+}
+.order-done-badge svg {
+  width: 30px;
+  height: 30px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.order-done-kicker {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--green);
+  font-variant-numeric: tabular-nums;
+}
+.order-done-title {
+  margin: 10px 0 0;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(30px, 4.6vw, 42px);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.order-done-lede {
+  max-width: 46ch;
+  margin: 14px auto 0;
+  color: var(--ink-soft);
+  font-size: 15.5px;
+  line-height: 1.6;
+}
+.order-done-notice {
+  margin: 22px 0 0;
+}
+.order-done-facts {
+  margin: 28px 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.order-done-facts > div {
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+  border: 1px solid var(--ink-line);
+}
+.order-done-facts dt {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-mute);
+}
+.order-done-facts dd {
+  margin: 4px 0 0;
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.order-done-summary {
+  margin-top: 26px;
+}
+.order-done-sub {
+  margin: 0 0 10px;
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 600;
+}
+.order-done-lines {
+  list-style: none;
+  margin: 0;
+  padding: 4px 16px;
+  background: #fff;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-md);
+}
+.order-done-lines li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  font-size: 14.5px;
+}
+.order-done-lines li + li {
+  border-top: 1px solid var(--ink-line);
+}
+.order-done-qty {
+  color: var(--ink-mute);
+}
+.order-done-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.order-done-totals {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 0 16px;
+  font-size: 14.5px;
+  color: var(--ink-soft);
+}
+.order-done-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.order-done-row.is-green {
+  color: var(--green);
+}
+.order-done-row.is-total {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ink-line);
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
+}
+.order-done-actions {
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+.order-done-foot {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--ink-mute);
+}
+.order-done-foot a {
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (max-width: 520px) {
+  .order-done-facts {
+    grid-template-columns: 1fr 1fr;
+  }
+  .order-done-facts > div:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Signed out, unverified or shop closed: one glass card, like sign-in. */
+.checkout-gate {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: clamp(26px, 5vw, 36px);
+  background: var(--glass-raised);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-card);
+  box-shadow: var(--rim), var(--shadow-chrome);
+}
+.checkout-gate .laf-mark {
+  --laf-h: 30px;
+  margin-bottom: 18px;
+}
+.checkout-gate-title {
+  margin: 0 0 10px;
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+.checkout-gate-lede {
+  margin: 0 0 22px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.checkout-gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.checkout-notice {
+  max-width: 640px;
+  margin: 0 auto 24px;
+}
+
+/* The mark and a quiet "secure" capsule - the app's checkout header. */
 .checkout-brand {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  text-align: right;
-  gap: 4px;
+  align-items: center;
+  gap: 12px;
 }
-.checkout-brand-name {
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--bg-espresso);
+.checkout-brand .laf-mark {
+  --laf-h: 30px;
+}
+.checkout-secure {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  background: var(--green-mist);
+  color: var(--green-pressed);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.checkout-secure svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
 }
 
 .checkout-grid {
@@ -6139,9 +6391,9 @@ select {
   place-items: center;
   background: var(--bg-warm);
   border: 1px solid var(--ink-line);
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.05em;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 600;
   color: var(--ink-soft);
   transition:
     background 0.25s,
@@ -6153,10 +6405,12 @@ select {
   color: var(--bg);
   border-color: var(--bg-espresso);
 }
+/* Done is decided, and decided is green in the app - the gold read as a
+   reward the customer had not earned yet. */
 .checkout-stepper-item[data-state="done"] .checkout-stepper-num {
-  background: var(--gold);
-  color: #fff;
-  border-color: var(--gold);
+  background: var(--green-mist);
+  color: var(--green);
+  border-color: var(--green-mist);
 }
 .checkout-stepper-label {
   display: block;
@@ -6167,10 +6421,7 @@ select {
 }
 .checkout-stepper-hint {
   display: block;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--ink-mute);
   margin-top: 2px;
 }
@@ -6347,13 +6598,11 @@ select {
   letter-spacing: -0.005em;
 }
 .checkout-address-default {
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  background: var(--bg-espresso);
-  color: var(--bg);
-  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--green-mist);
+  color: var(--green-pressed);
+  padding: 3px 9px;
   border-radius: 999px;
 }
 .checkout-address-body {
@@ -6409,11 +6658,9 @@ select {
   gap: 6px;
 }
 .checkout-field span {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--ink-mute);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
 }
 .checkout-field input {
   width: 100%;
@@ -6453,12 +6700,10 @@ select {
   font-size: 14px;
 }
 .checkout-payment-info dt {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--ink-mute);
-  padding-top: 2px;
+  padding-top: 1px;
 }
 .checkout-payment-info dd {
   margin: 0;
@@ -6466,9 +6711,16 @@ select {
   line-height: 1.55;
 }
 .checkout-payment-card {
-  background: var(--bg-espresso);
-  color: var(--bg);
-  border-radius: var(--r-lg);
+  background:
+    radial-gradient(
+      80% 140% at 100% 0%,
+      rgba(114, 203, 172, 0.24) 0%,
+      rgba(114, 203, 172, 0) 60%
+    ),
+    linear-gradient(135deg, #1d6d56 0%, #0c3b2d 100%);
+  color: #fbf8f4;
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
 }
 .checkout-payment-card-strip {
@@ -6486,8 +6738,14 @@ select {
   align-items: flex-end;
   gap: 18px;
 }
-.checkout-payment-card-body p {
-  color: rgba(255, 255, 255, 0.78);
+/* Mist on the green (5.30:1). The paragraph used to carry an inline
+   --ink-soft, dark brown on the green card, and could not be read. */
+.checkout-payment-note {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--green-mist);
 }
 .checkout-payment-amount {
   display: flex;
@@ -6499,7 +6757,8 @@ select {
   color: var(--gold-soft);
 }
 .checkout-payment-amount > span:last-child {
-  font-family: var(--serif);
+  font-family: var(--display);
+  font-weight: 700;
   font-size: clamp(28px, 4vw, 40px);
   letter-spacing: -0.02em;
 }
@@ -6591,27 +6850,46 @@ select {
   grid-template-columns: 1fr auto;
   gap: 8px;
 }
+/* Codes are printed in capitals, so the typed value is too; the hint is
+   not a code and reads in sentence case. */
 .checkout-promo input {
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--ink-line);
-  background: var(--bg-warm);
-  font-family: var(--mono);
-  font-size: 12px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--ink-line-strong);
+  background: #fff;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--ink);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
+}
+.checkout-promo input::placeholder {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  color: var(--ink-quiet);
+}
+.checkout-promo input:focus-visible {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: var(--ring);
 }
 .checkout-promo button {
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  background: var(--bg-espresso);
-  color: var(--bg);
-  border: 1px solid var(--ink);
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--r-pill);
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--green);
+  color: #fbf8f4;
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.12s var(--ease-out);
+}
+.checkout-promo button:active {
+  transform: scale(var(--press-scale));
 }
 .checkout-promo button:hover {
   background: var(--bg-espresso);
@@ -6698,10 +6976,8 @@ select {
   align-items: center;
   gap: 8px;
   margin-bottom: 22px;
-  font-family: var(--mono), monospace;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--ink-mute);
 }
 .guide-breadcrumb a {
@@ -6952,7 +7228,6 @@ select {
 
 .legal-page {
   min-height: 100vh;
-  background: var(--bg-warm);
 }
 .legal-wrap {
   max-width: 1080px;
@@ -7125,12 +7400,9 @@ select {
   text-align: left;
   vertical-align: top;
   padding: 12px 16px 12px 0;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  font-size: 13px;
   color: var(--ink-mute);
-  font-weight: 500;
+  font-weight: 600;
   width: 32%;
   border-bottom: 1px solid var(--ink-line);
 }
@@ -7226,8 +7498,7 @@ select {
     margin-bottom: 22px;
   }
   .checkout-brand {
-    align-items: flex-start;
-    text-align: left;
+    gap: 10px;
   }
   .checkout-stepper {
     grid-template-columns: 1fr;
@@ -8641,10 +8912,10 @@ select {
 }
 .cookie-banner-title {
   margin: 0 0 4px;
-  font-size: 13px;
+  font-family: var(--display);
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 .cookie-banner-text {
@@ -8732,11 +9003,9 @@ select {
   color: var(--ink);
 }
 .cookie-cat-always {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-mute);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--green);
 }
 .cookie-cat-body {
   margin: 6px 0 0;
@@ -8862,6 +9131,20 @@ select {
 }
 .auth-card--wide {
   max-width: 500px;
+}
+/* A page with no chrome around it (the app's in-app browser): the card
+   centres in the whole viewport. */
+.auth-page--full {
+  min-height: 100svh;
+}
+.app-fail-badge {
+  margin-top: 22px;
+}
+.app-fail-ref {
+  margin: 18px 0 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-mute);
 }
 .auth-card--center {
   text-align: center;
@@ -9433,26 +9716,40 @@ select {
   max-width: 60ch;
 }
 
-/* One membership, two surfaces. The accent as a full fill - bordo carries
-   white at 9.18:1, so this block no longer needs the darker step the
-   terracotta version did. */
+/* One membership, two surfaces - the account page's one velvet surface,
+   the same bordo gradient as the home page's loyalty block (white on
+   --accent 7.56:1). */
 .account-app-block {
+  --script-ink: var(--accent-on-dark);
   margin-bottom: 18px;
   padding: 26px;
-  border-radius: var(--r-lg);
-  background: var(--accent);
+  border-radius: var(--r-card);
+  background:
+    radial-gradient(
+      120% 90% at 0% 0%,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0) 55%
+    ),
+    linear-gradient(160deg, #9d2543 0%, #69172a 100%);
+  box-shadow: var(--shadow-md);
   color: #fff;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 22px;
   align-items: center;
 }
+.account-app-kicker {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
 .account-app-title {
-  margin-top: 10px;
+  margin-top: 8px;
+  font-family: var(--display);
   font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
 }
 .account-app-block p {
   margin: 8px 0 0;
@@ -9461,21 +9758,16 @@ select {
   color: rgba(255, 255, 255, 0.92);
   max-width: 46ch;
 }
+/* The store pair is <AppStoreLinks tone="dark">: real links once
+   NEXT_PUBLIC_APP_STORE_URL / _PLAY_STORE_URL are set, an honest "yakında"
+   line until then - never two labels that look like buttons. */
 .account-app-links {
-  display: grid;
-  gap: 8px;
+  justify-self: end;
 }
-/* Not links yet: the apps are not published, and a button that goes nowhere
-   is worse than a label that does not pretend to. Swap these for anchors when
-   the store URLs exist. */
-.account-app-links span {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 15px;
-  border-radius: var(--r-md);
-  background: rgba(0, 0, 0, 0.28);
-  font-size: 13.5px;
-  font-weight: 700;
+@media (max-width: 640px) {
+  .account-app-links {
+    justify-self: start;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────
