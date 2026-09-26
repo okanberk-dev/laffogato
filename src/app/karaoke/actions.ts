@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireCustomer } from "@/lib/customer/auth";
 import { isDbUnreachable } from "@/lib/db/health";
 import { createReservation } from "@/lib/mobile/karaoke";
+import { notifyOperatorOfReservation } from "@/lib/mobile/karaoke-notify";
 
 export interface BookKaraokeState {
   error?: string;
@@ -48,6 +49,11 @@ export async function bookKaraokeAction(
   try {
     const result = await createReservation(customer, input);
     if (!result.ok) return { error: result.message };
+    // Same notice the app's POST sends: the room is confirmed by hand, and a
+    // web request nobody is told about waits unread in the panel. Awaited for
+    // the reason the route gives (the function can freeze after it returns);
+    // a failure is logged inside and never reaches the member.
+    await notifyOperatorOfReservation(result.reservation, "web");
     revalidatePath("/karaoke");
     return {
       booked: {

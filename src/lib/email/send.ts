@@ -133,6 +133,12 @@ interface SendArgs {
    * fact reach the provider cannot put a second copy in the inbox.
    */
   idempotencyKey?: string;
+  /**
+   * Overrides the panel's reply-to for this one message. Only the operator
+   * notices use it: their reader answers the MEMBER, not the köşk's own
+   * inbox.
+   */
+  replyTo?: string;
 }
 
 export type SendResult = { ok: true } | { ok: false; error: string };
@@ -152,9 +158,12 @@ async function deliver({
   text,
   unsubscribeUrl,
   idempotencyKey,
+  replyTo: replyToOverride,
 }: SendArgs): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
-  const { from, replyTo } = await emailIdentity();
+  const identity = await emailIdentity();
+  const from = identity.from;
+  const replyTo = replyToOverride?.trim() || identity.replyTo;
   if (!key) {
     // No provider configured. The body is worth logging in development -
     // without it a verification link is unrecoverable and the flow untestable
@@ -621,7 +630,7 @@ export async function sendKaraokeCancellationEmail(
 }
 
 /**
- * What the counter needs to know about a booking the app just took.
+ * What the counter needs to know about a booking that was just taken.
  *
  * Deliberately not `KaraokeEmailData`: that one is the MEMBER's confirmation
  * and its template says "Saatiniz ayrıldı". A reservation arrives with
@@ -632,6 +641,8 @@ export async function sendKaraokeCancellationEmail(
 export interface KaraokeOperatorNotice {
   /** `krk-00042`, so the row is findable in /admin/mobil/karaoke. */
   id: string;
+  /** Which surface took the booking: the phone or the web `/karaoke` form. */
+  source: "app" | "web";
   customerName: string;
   customerEmail: string;
   /** Already formatted for a reader: "12 Eylül 2026", "20:00 - 22:00". */
@@ -644,14 +655,28 @@ export interface KaraokeOperatorNotice {
 }
 
 /**
- * Tells the köşk that a karaoke hour was just requested from the app.
+ * Where karaoke requests go: the panel's karaoke address
+ * (`settings.karaokeNotifyEmail`, Ayarlar → Karaoke), else the operator
+ * address in Ayarlar (`settings.email`). "" when neither is set.
+ */
+export function karaokeNoticeRecipient(s: {
+  karaokeNotifyEmail?: string;
+  email?: string;
+}): string {
+  return s.karaokeNotifyEmail?.trim() || s.email?.trim() || "";
+}
+
+/**
+ * Tells the köşk that a karaoke hour was just requested, from the app or
+ * from the web.
  *
- * INTERNAL mail: it goes to the operator address in Ayarlar
- * (`settings.email`), carries no unsubscribe header (it is not a commercial
- * message and offering to unsubscribe from it would be misleading - see
- * `SendArgs.unsubscribeUrl`), and is written as plain text because its reader
- * is a person behind a counter deciding whether to confirm, not a customer
- * being courted.
+ * INTERNAL mail: it goes to the karaoke address in Ayarlar
+ * (`karaokeNoticeRecipient`), carries no unsubscribe header (it is not a
+ * commercial message and offering to unsubscribe from it would be misleading
+ * - see `SendArgs.unsubscribeUrl`), and is written as plain text because its
+ * reader is a person behind a counter deciding whether to confirm, not a
+ * customer being courted. Reply-to is the member, so answering the mail
+ * reaches the person who asked.
  *
  * The member's address IS printed in full here, unlike everywhere else in this
  * module: the operator has to be able to reply to them, and this message goes
@@ -663,18 +688,16 @@ export interface KaraokeOperatorNotice {
 export async function sendKaraokeOperatorEmail(
   k: KaraokeOperatorNotice,
 ): Promise<SendResult> {
-  const { email } = await (async () => {
-    // Dynamic, for the cycle `emailIdentity` documents: admin/store imports
-    // this module for order mail.
-    const { getSettings } = await import("@/lib/admin/store");
-    return getSettings();
-  })();
-  const to = email.trim();
+  // Dynamic, for the cycle `emailIdentity` documents: admin/store imports
+  // this module for order mail.
+  const { getSettings } = await import("@/lib/admin/store");
+  const to = karaokeNoticeRecipient(await getSettings());
   if (!to)
     return { ok: false, error: "Ayarlar'da bildirim adresi tanımlı değil." };
 
+  const origin = k.source === "web" ? "Web sitesinden" : "Uygulamadan";
   const lines = [
-    `Uygulamadan yeni bir karaoke rezervasyon talebi geldi.`,
+    `${origin} yeni bir karaoke rezervasyon talebi geldi.`,
     ``,
     `Rezervasyon : ${k.id}`,
     `Tarih       : ${k.date}`,
@@ -687,7 +710,7 @@ export async function sendKaraokeOperatorEmail(
     ...(k.note.trim() ? [``, `Notu        : ${k.note.trim()}`] : []),
     ``,
     `Durum: TALEP EDİLDİ - onaylanana kadar oda tutulmuş sayılmaz.`,
-    `Onaylamak ya da iptal etmek için: https://laffogato.net/admin/mobil/karaoke`,
+    `Onaylamak ya da iptal etmek için: ${SITE.url}/admin/mobil/karaoke`,
   ];
 
   return deliver({
@@ -697,6 +720,10 @@ export async function sendKaraokeOperatorEmail(
       .map((l) => escapeHtml(l))
       .join("\n")}</pre>`,
     text: lines.join("\n"),
+    replyTo: k.customerEmail,
+    // A retried POST for the same row must not put a second copy in the
+    // inbox; the id is unique per booking.
+    idempotencyKey: `karaoke-${k.id}-requested`,
   });
 }
 

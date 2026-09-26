@@ -424,6 +424,11 @@ export interface AdminSettings {
   courierFeeMinor: number;
   karaokeHourlyMinor: number;
   karaokeCapacity: number;
+  /**
+   * Where a new karaoke request is mailed (`sendKaraokeOperatorEmail`), from
+   * the app or the web. Empty falls back to `email`.
+   */
+  karaokeNotifyEmail: string;
 
   /**
    * Everything else the app is configured with (/admin/mobil/ayarlar,
@@ -572,8 +577,11 @@ function defaultSettings(): AdminSettings {
     emailFromAddress: "",
     emailReplyTo: "",
     courierFeeMinor: 5500,
-    karaokeHourlyMinor: 90000,
+    // ₺1.000 an hour (operator, 26 Eyl 2026); the live row is set by
+    // 20260926090000_karaoke_price_and_notify.sql.
+    karaokeHourlyMinor: 100000,
     karaokeCapacity: 8,
+    karaokeNotifyEmail: "bizimfutbol9@gmail.com",
     // A fresh copy: the constant is frozen and callers may edit sections.
     mobileApp: normalizeMobileAppConfig(DEFAULT_MOBILE_APP_CONFIG),
   };
