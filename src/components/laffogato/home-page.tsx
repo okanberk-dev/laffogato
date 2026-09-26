@@ -154,6 +154,70 @@ export function PageHome({
     navigate(r);
   };
 
+  const doors: Array<{
+    tone: "green" | "cream" | "brass" | "velvet";
+    href: string;
+    route?: Route;
+    kicker: string;
+    title: string;
+    sub: string;
+    icon: React.ReactNode;
+  }> = [
+    {
+      tone: "green",
+      href: "#uygulama",
+      kicker: "Sipariş",
+      title: "Gel-al · 15 dk",
+      sub: `Uygulamadan; Tuzla içi kurye ${courierFee}`,
+      icon: (
+        <>
+          <path d="M5.25 8.25h13.5l-.9 11.1a1 1 0 0 1-1 .9H7.15a1 1 0 0 1-1-.9l-.9-11.1Z" />
+          <path d="M9 10.5V7.5a3 3 0 0 1 6 0v3" />
+        </>
+      ),
+    },
+    {
+      tone: "cream",
+      href: ROUTE_PATHS.menu,
+      route: "menu",
+      kicker: "Menü",
+      title: `${menuItemCount} lezzet`,
+      sub: "Matcha barı, espresso, tatlılar",
+      icon: (
+        <>
+          <path d="M5 8.25h11.5v4.25a5 5 0 0 1-5 5h-1.5a5 5 0 0 1-5-5V8.25Z" />
+          <path d="M16.5 9.5h1.75a2.25 2.25 0 0 1 0 4.5H16.3" />
+        </>
+      ),
+    },
+    {
+      tone: "brass",
+      href: "/uye/hesap",
+      kicker: "Ödüller",
+      title: "6 damgada 1 içecek",
+      sub: "Uygulama ve web’de tek hesap",
+      icon: (
+        <>
+          <circle cx="12" cy="12" r="7.5" />
+          <path d="m9 12.2 2 2 4-4.4" />
+        </>
+      ),
+    },
+    {
+      tone: "velvet",
+      href: "/karaoke",
+      kicker: "Karaoke",
+      title: "Üst kat özel oda",
+      sub: "8 kişiye kadar · 24:00’e",
+      icon: (
+        <>
+          <rect x="9" y="3.75" width="6" height="10.5" rx="3" />
+          <path d="M6.25 11.5a5.75 5.75 0 0 0 11.5 0M12 17.25v3" />
+        </>
+      ),
+    },
+  ];
+
   const addressLines = visit?.addressLines ?? LOCATION.address;
   const phone = visit?.phone ?? LOCATION.phone;
   const email = visit?.email ?? LOCATION.email;
@@ -205,76 +269,48 @@ export function PageHome({
         </div>
       </section>
 
-      {/* Promo tiles ─────────────────────────────────────────── */}
-      {/* Four doors, each on the surface the app gives that thing: green for
-          ordering (which lives in the app, so the tile opens the app block
-          below rather than a menu that cannot take an order), glass for the
-          menu, brass for rewards, bordo for the karaoke room. */}
-      <section className="home-tiles" aria-label="Kısayollar">
+      {/* Four doors ─────────────────────────────────────────── */}
+      {/* The köşk's own shape: each shortcut is an arched window in a
+          porcelain frame, the colour living inside the arch - green for
+          ordering (which lives in the app, so it opens the app block below),
+          cream for the menu, brass for rewards, bordo for the karaoke room.
+          They used to be four flat colour blocks butted against the band
+          below; the section now has its own heading and room on both sides. */}
+      <section className="home-doors" aria-labelledby="home-doors-title">
         <div className="wrap">
-          <div className="home-tiles-grid">
-            <a href="#uygulama" className="home-tile home-tile--green">
-              <span className="home-tile-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <path d="M5.25 8.25h13.5l-.9 11.1a1 1 0 0 1-1 .9H7.15a1 1 0 0 1-1-.9l-.9-11.1Z" />
-                  <path d="M9 10.5V7.5a3 3 0 0 1 6 0v3" />
-                </svg>
-              </span>
-              <span className="home-tile-kicker">Sipariş</span>
-              <span className="home-tile-body">
-                <span className="home-tile-title">Gel-al · 15 dk</span>
-                <span className="home-tile-sub">
-                  Uygulamadan; Tuzla içi kurye {courierFee}
-                </span>
-              </span>
-            </a>
-            <a
-              href={ROUTE_PATHS.menu}
-              onClick={go("menu")}
-              className="home-tile home-tile--glass"
-            >
-              <span className="home-tile-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <path d="M5 8.25h11.5v4.25a5 5 0 0 1-5 5h-1.5a5 5 0 0 1-5-5V8.25Z" />
-                  <path d="M16.5 9.5h1.75a2.25 2.25 0 0 1 0 4.5H16.3" />
-                </svg>
-              </span>
-              <span className="home-tile-kicker">Menü</span>
-              <span className="home-tile-body">
-                <span className="home-tile-title">{menuItemCount} lezzet</span>
-                <span className="home-tile-sub">
-                  Matcha barı, espresso, tatlılar
-                </span>
-              </span>
-            </a>
-            <a href="/uye/hesap" className="home-tile home-tile--brass">
-              <span className="home-tile-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="7.5" />
-                  <path d="m9 12.2 2 2 4-4.4" />
-                </svg>
-              </span>
-              <span className="home-tile-kicker">Ödüller</span>
-              <span className="home-tile-body">
-                <span className="home-tile-title">6 damgada 1 içecek</span>
-                <span className="home-tile-sub">
-                  Uygulama ve web’de tek hesap
-                </span>
-              </span>
-            </a>
-            <a href="/karaoke" className="home-tile home-tile--velvet">
-              <span className="home-tile-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <rect x="9" y="3.75" width="6" height="10.5" rx="3" />
-                  <path d="M6.25 11.5a5.75 5.75 0 0 0 11.5 0M12 17.25v3" />
-                </svg>
-              </span>
-              <span className="home-tile-kicker">Karaoke</span>
-              <span className="home-tile-body">
-                <span className="home-tile-title">Üst kat özel oda</span>
-                <span className="home-tile-sub">8 kişiye kadar · 24:00’e</span>
-              </span>
-            </a>
+          <div className="home-doors-head reveal">
+            <span className="eyebrow">Kısayollar</span>
+            <h2 id="home-doors-title" className="home-doors-title">
+              Dört kapı, tek köşk
+            </h2>
+          </div>
+          <div className="home-doors-grid">
+            {doors.map((d, i) => (
+              <div key={d.kicker} className={`door-cell reveal r${i + 1}`}>
+                <a
+                  href={d.href}
+                  onClick={d.route ? go(d.route) : undefined}
+                  className={`door door--${d.tone}`}
+                >
+                  <span className="door-arch" aria-hidden="true">
+                    <span className="door-light" />
+                    <span className="door-icon">
+                      <svg viewBox="0 0 24 24">{d.icon}</svg>
+                    </span>
+                  </span>
+                  <span className="door-copy">
+                    <span className="door-kicker">{d.kicker}</span>
+                    <span className="door-title">{d.title}</span>
+                    <span className="door-sub">{d.sub}</span>
+                  </span>
+                  <span className="door-go" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M5 12h13M13 6.5 18.5 12 13 17.5" />
+                    </svg>
+                  </span>
+                </a>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -463,7 +499,12 @@ export function PageHome({
                     className={`stamp ${i < 2 ? "filled" : ""} ${i === 5 ? "reward" : ""}`}
                   >
                     {i === 5 ? (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
                         <path
                           d="M5 8.25h11.5v4.25a5 5 0 0 1-5 5h-1.5a5 5 0 0 1-5-5V8.25Z"
                           stroke="currentColor"
@@ -506,6 +547,8 @@ export function PageHome({
                 alt=""
                 width={64}
                 height={64}
+                loading="lazy"
+                decoding="async"
                 className="app-block-icon"
               />
               <div className="eyebrow">L’Affogato uygulaması</div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useMemo, Fragment } from "react";
 
 import { SITE } from "@/lib/seo/site";
@@ -72,10 +73,14 @@ export function PageVisit({ visit, settings }: PageProps) {
         <div className="wrap">
           <div className="visit-open-grid">
             <div className="visit-open-photo">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              {/* next/image, so a phone gets a phone-sized file: the plain
+                  <img> shipped the full 223 KB original to every width and
+                  was the page's LCP. */}
+              <Image
                 src="/photos/terrace-wide.webp"
                 alt="Köşkün terası ve bahçesi"
+                fill
+                sizes="(max-width: 900px) 100vw, 55vw"
                 loading="eager"
                 fetchPriority="high"
               />

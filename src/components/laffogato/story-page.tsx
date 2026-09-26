@@ -81,6 +81,8 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
                 alt="Tuzla'daki restore ahşap köşk"
                 width={765}
                 height={1020}
+                loading="eager"
+                fetchPriority="high"
                 sizes="(max-width: 560px) 100vw, 640px"
                 style={{ objectPosition: "50% 58%" }}
               />
