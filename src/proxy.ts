@@ -67,7 +67,11 @@ export const config = {
   matcher: [
     // Everything except: the mobile API, the payment webhook, the cron and
     // the one-click unsubscribe (no cookie session - bearer / HMAC / secret /
-    // token), Next's static assets, and image files.
-    "/((?!api/mobile|api/webhooks|api/cron|api/bulten|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // token), Next's static assets, and static files by extension - images,
+    // and since 9 Eki 2026 scripts, styles, fonts and text files too.
+    // `/laffogato-pour.js` (the home page's cup) ran the session refresh on
+    // every view and waited on the identity service like a page; no file
+    // with one of these extensions is a page that renders with a session.
+    "/((?!api/mobile|api/webhooks|api/cron|api/bulten|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|js|mjs|css|map|woff|woff2|ttf|otf|txt|xml|webmanifest|mp4|webm|pdf)$).*)",
   ],
 };
