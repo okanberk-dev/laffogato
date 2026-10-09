@@ -443,6 +443,18 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
 - `pending_payment` değilse ya da ödenecek tutar yoksa **409** `not_payable`
   ("Bu sipariş ödeme beklemiyor."): uygulama siparişi `GET /orders/{id}` ile yeniden
   çizer.
+- **Önce POS'a sorulur (9 Eki 2026, yalnız davranış):** PayNkolay aynı
+  `clientRefCode` ile ikinci bir satışı kabul eder. Dönüşü kaybolmuş (tarayıcı
+  kapanmış, `/odeme/donus`'taki doğrulama zaman aşımına uğramış) ama parası alınmış
+  bir siparişe yeni sayfa açmak kartı **ikinci kez** çekerdi. Uç bu yüzden yeni
+  oturumdan önce İşlem Doğrulama Servisi'ne sorar (`settlePendingBeforeRepay`,
+  kural 29'un sorgusu): ödeme orada `SUCCESS` ise sipariş ödendi işlenir ve
+  **409** `not_payable` ödenmiş siparişle döner; tutar uyuşmuyorsa da sayfa
+  açılmaz (409, panelde insan önüne düşer). POS'a ulaşılamazsa **503**
+  `payment_unavailable` ("Önceki ödemenin durumunu şu an doğrulayamıyoruz. Birkaç
+  dakika sonra tekrar dene."): sayfa açılmaz, hiçbir şey değişmez. Kod
+  `POST /orders`'ın sağlayıcıya ulaşamadığında verdiği kodla aynıdır; uygulama
+  sunucunun cümlesini gösterir.
 - POS açılamazsa **500** `internal`; hiçbir şey değişmez, tekrar denenebilir.
 - Neden: üç yarım ödeme `too_many_pending` (429) ile üyeyi siparişten kilitliyordu ve
   uygulamada çıkış yolu yoktu.

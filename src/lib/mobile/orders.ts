@@ -20,6 +20,7 @@ import {
   placeAppOrder,
   previewAppOrderLines,
   PENDING_ORDER_TTL_MINUTES,
+  settlePendingBeforeRepay,
   type AdminOrder,
   type AppOrderFailure,
   type OrderLegalConsent,
@@ -565,7 +566,9 @@ export async function getAppOrder(
 export type PayAppOrderResult =
   | { ok: true; order: MobileOrder; payment: AppPayment }
   | { ok: false; reason: "not_found" }
-  | { ok: false; reason: "not_payable"; order: MobileOrder };
+  | { ok: false; reason: "not_payable"; order: MobileOrder }
+  /** The POS could not be asked whether the last attempt was paid. */
+  | { ok: false; reason: "unverified" };
 
 /**
  * `POST /orders/{id}/payment` - a fresh checkout for the member's own app
@@ -579,10 +582,13 @@ export type PayAppOrderResult =
  * sweep expired them.
  *
  * This is the same replay by id: `replayAppOrder` opens a new provider
- * session against the SAME order, which is safe for the reason it is safe
- * there - `applyPaymentSucceeded` is idempotent and an order advances once.
- * Nothing is cancelled here, so rule 29 (ask the POS before cancelling) is not
- * in play.
+ * session against the SAME order. `applyPaymentSucceeded` is idempotent and
+ * an order advances once - but that protects the ORDER, not the card: the
+ * POS takes a second sale on the same `clientRefCode`, so a payment whose
+ * return was lost would be charged again. The POS is therefore asked first
+ * (`settlePendingBeforeRepay`, rule 29's lookup): a payment it already holds
+ * is booked and answered as `not_payable` with the paid order; a POS that
+ * cannot be asked answers `unverified` and no page is opened.
  *
  * The read gate is `getAppOrder`'s: the owner, with a verified e-mail, and a
  * stranger's id answers exactly like a missing one. Only an APP order is
@@ -610,6 +616,20 @@ export async function payAppOrder(
       reason: "not_payable",
       order: toMobileOrder(
         order,
+        new Date(),
+        await stampedOrders(customer.email),
+      ),
+    };
+  }
+  const verdict = await settlePendingBeforeRepay(order);
+  if (verdict === "unknown") return { ok: false, reason: "unverified" };
+  if (verdict === "paid" || verdict === "mismatch") {
+    const now = (await getOrder(id)) ?? order;
+    return {
+      ok: false,
+      reason: "not_payable",
+      order: toMobileOrder(
+        now,
         new Date(),
         await stampedOrders(customer.email),
       ),

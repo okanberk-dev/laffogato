@@ -73,6 +73,14 @@ const findAppOrderByClientId = vi.fn(
     ) ?? null,
 );
 
+/**
+ * What the POS says about the last attempt before a second page is opened
+ * (`settlePendingBeforeRepay`). Unpaid unless a test says otherwise.
+ */
+const settlePendingBeforeRepay = vi.fn(
+  async (): Promise<"paid" | "unpaid" | "unknown" | "mismatch"> => "unpaid",
+);
+
 vi.mock("@/lib/admin/store", () => ({
   PENDING_ORDER_TTL_MINUTES: 45,
   applyPaymentSucceeded: vi.fn(async () => ({ ok: true as const })),
@@ -88,6 +96,7 @@ vi.mock("@/lib/admin/store", () => ({
   })),
   placeAppOrder,
   previewAppOrderLines: vi.fn(),
+  settlePendingBeforeRepay,
 }));
 
 const createCheckoutSession = vi.fn(async () => ({
@@ -330,6 +339,51 @@ describe("POST /orders/{id}/payment", () => {
     expect(answer.ok).toBe(false);
     if (answer.ok || answer.reason !== "not_payable") return;
     expect(answer.order.id).toBe(first.order.id);
+    expect(createCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  /**
+   * PayNkolay takes a second sale on the same `clientRefCode`. A payment whose
+   * return was lost leaves the order `pending_payment`; a second page then
+   * charged the card twice, and the second charge waited for a human.
+   */
+  it("asks the POS first, and books a payment it already holds instead of opening a page", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    createCheckoutSession.mockClear();
+    settlePendingBeforeRepay.mockImplementationOnce(async () => {
+      // The lookup books it (applyPaymentSucceeded) before answering "paid".
+      placed[0] = { ...placed[0]!, status: "paid" } as AdminOrder;
+      return "paid";
+    });
+    const answer = await payAppOrder(customer, first.order.id);
+    expect(answer.ok).toBe(false);
+    if (answer.ok || answer.reason !== "not_payable") {
+      throw new Error("expected not_payable");
+    }
+    expect(answer.order.status).toBe("paid");
+    expect(createCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it("opens no page while the POS cannot be asked", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    createCheckoutSession.mockClear();
+    settlePendingBeforeRepay.mockResolvedValueOnce("unknown");
+    expect(await payAppOrder(customer, first.order.id)).toEqual({
+      ok: false,
+      reason: "unverified",
+    });
+    expect(createCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it("opens no page for an order whose money arrived at the wrong amount", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    createCheckoutSession.mockClear();
+    settlePendingBeforeRepay.mockResolvedValueOnce("mismatch");
+    const answer = await payAppOrder(customer, first.order.id);
+    expect(answer.ok).toBe(false);
     expect(createCheckoutSession).not.toHaveBeenCalled();
   });
 });

@@ -29,6 +29,17 @@ export async function POST(
       if (result.reason === "not_found") {
         return apiError(404, "not_found", "Sipariş bulunamadı.");
       }
+      if (result.reason === "unverified") {
+        // The last attempt's outcome could not be read from the POS. A new
+        // page now could charge the card a second time; the member tries
+        // again in a moment (the same code POST /orders answers when the
+        // provider cannot be reached).
+        return apiError(
+          503,
+          "payment_unavailable",
+          "Önceki ödemenin durumunu şu an doğrulayamıyoruz. Birkaç dakika sonra tekrar dene.",
+        );
+      }
       return apiError(409, "not_payable", "Bu sipariş ödeme beklemiyor.");
     }
     return apiJson(

@@ -751,3 +751,27 @@ yakalıyor; dönmek, "iade edildi" yazan ama parayı göndermemiş bir kayıt
    kolonun boş olduğu eski satırlar için kaldı (§14.5). Testler:
    `tests/payment-paynkolay.test.ts` (iki yol), `tests/admin-refund-hint.test.ts`,
    `tests/db-integration-payment-sweep.test.ts`.
+
+### 14.7 Yeniden ödemeden önce POS'a sorulur (9 Eki 2026)
+
+PayNkolay aynı `clientRefCode` ile ikinci bir satışı **kabul eder** (§2: "aynı
+`clientRefCode` ile birden çok işlem varsa hepsi döner"). Uygulamanın "Ödemeyi
+tamamla" düğmesi (`POST /api/mobile/v1/orders/{id}/payment`) eskiden, dönüşü
+kaybolmuş ama parası alınmış bir siparişe de yeni bir ödeme sayfası açıyordu:
+`applyPaymentSucceeded` siparişi bir kez ilerletir ama kart **iki kez** çekilir
+ve ikinci tahsilat elle iade bekler.
+
+Artık uç yeni oturumdan önce `settlePendingBeforeRepay` ile İşlem Doğrulama
+Servisi'ne sorar (süpürmenin kullandığı `lookupPayment`, kural 29):
+
+| POS'un cevabı               | Uç ne yapar                                                   |
+| --------------------------- | ------------------------------------------------------------- |
+| `SUCCESS`, tutar doğru      | Ödeme işlenir, **409** `not_payable` ödenmiş siparişle        |
+| `SUCCESS`, tutar farklı     | İnsan önüne düşer (`amount_mismatch`), **409**, sayfa açılmaz |
+| Kayıt yok / `NEW` / `ERROR` | Yeni ödeme sayfası açılır (eskisi gibi)                       |
+| POS'a ulaşılamadı           | **503** `payment_unavailable`, sayfa açılmaz                  |
+
+Kart verisi bu akışta da hiçbir yerde tutulmaz: sorgu yalnız sipariş kimliğini
+(`clientRefCode`) ve listeleme `sx`'ini gönderir, yanıttaki maskeli kart numarası
+`payment_transactions.raw`'a ödeme kaydı olarak yazılır (§2, değişmedi).
+Testler: `tests/mobile-order-idempotency.test.ts`.

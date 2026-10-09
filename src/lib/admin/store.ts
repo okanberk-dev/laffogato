@@ -1997,7 +1997,13 @@ const POS_LOOKUP_TIMEOUT_MS = 5_000;
  */
 const POS_LOOKUP_GIVE_UP_MS = 24 * 60 * 60_000;
 
-type PendingVerdict = "paid" | "unpaid" | "unknown";
+/**
+ * What the POS says about a pending order. "mismatch": money was collected
+ * but not the order's amount - booked in front of a human by
+ * applyPaymentSucceeded; the sweep cancels it like an unpaid order, and a
+ * second payment page is never offered for it.
+ */
+type PendingVerdict = "paid" | "unpaid" | "unknown" | "mismatch";
 
 /**
  * The provider the sweeps ask, or null when none can be built (a deployment
@@ -2070,11 +2076,30 @@ async function settlePendingFromProvider(
     return "unknown";
   }
   // Collected, but not what the order costs: the order cannot advance, and
-  // applyPaymentSucceeded has already put it in front of a human. It is
-  // cancelled like any unpaid order, so its stock does not stay held while
+  // applyPaymentSucceeded has already put it in front of a human. The sweep
+  // cancels it like any unpaid order, so its stock does not stay held while
   // that is sorted out - which is what the sweep always did with it.
-  if (applied.reconcile === "amount_mismatch") return "unpaid";
+  if (applied.reconcile === "amount_mismatch") return "mismatch";
   return "paid";
+}
+
+/**
+ * Asks the POS about a pending order before a SECOND payment page is opened
+ * for it (`POST /orders/{id}/payment`).
+ *
+ * PayNkolay sends no webhook; a payment lands only when the browser comes
+ * back to /odeme/donus and the confirmation there succeeds. When it does not
+ * (the confirmation's own POS query timed out, the phone dropped the return)
+ * the order stays `pending_payment` and the app offers "Ödemeyi tamamla" -
+ * and PayNkolay takes a second sale on the same `clientRefCode`. The member's
+ * card was charged twice and the second charge waited for a human to refund
+ * it. Asked first, a payment that already went through is booked here and no
+ * page is opened; "unknown" (the POS could not be asked) is not "unpaid".
+ */
+export async function settlePendingBeforeRepay(
+  order: AdminOrder,
+): Promise<PendingVerdict> {
+  return settlePendingFromProvider(order, await lookupProvider());
 }
 
 /**
