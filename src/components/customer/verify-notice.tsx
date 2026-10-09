@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { resendVerificationAction, type ResendState } from "@/app/uye/actions";
+import { BusyDots } from "@/components/laffogato/busy-dots";
 
 /**
  * Banner shown to a logged-in customer whose e-mail is not yet verified.
@@ -59,8 +60,16 @@ export function VerifyNotice({
           type="submit"
           disabled={pending}
           className="btn btn-primary btn-sm"
+          aria-busy={pending}
         >
-          {pending ? "Gönderiliyor…" : "Bağlantıyı yeniden gönder"}
+          {pending ? (
+            <>
+              <BusyDots />
+              Gönderiliyor…
+            </>
+          ) : (
+            "Bağlantıyı yeniden gönder"
+          )}
         </button>
         {state.message && (
           <span style={{ color: "var(--matcha)", fontSize: 13 }}>

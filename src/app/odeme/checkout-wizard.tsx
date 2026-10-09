@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useEffect, useMemo, useState } from "react";
 
+import { BusyDots } from "@/components/laffogato/busy-dots";
 import type { PublicCustomer, CustomerAddress } from "@/lib/customer/store";
 import {
   computeOrderTotals,
@@ -782,11 +783,15 @@ function PaymentStep({
           <button
             type="submit"
             disabled={placing || !consentGiven}
+            aria-busy={placing}
             className="btn btn-primary btn-lg"
             style={{ minWidth: 240, justifyContent: "center" }}
           >
             {placing ? (
-              "Sipariş veriliyor…"
+              <>
+                <BusyDots />
+                Sipariş veriliyor…
+              </>
             ) : (
               <>
                 Siparişi tamamla · {formatTRY(total)}{" "}
@@ -863,8 +868,17 @@ function PromoBlock({
         defaultValue={promoState.ok?.code ?? ""}
         autoCapitalize="characters"
       />
-      <button type="submit" disabled={promoPending}>
-        {promoPending ? "…" : "Uygula"}
+      <button type="submit" disabled={promoPending} aria-busy={promoPending}>
+        {/* A bare "…" was the whole pending label: nothing a screen reader
+            could say, and a glyph the eye reads as truncation. */}
+        {promoPending ? (
+          <>
+            <BusyDots />
+            <span className="sr-only">Kod kontrol ediliyor</span>
+          </>
+        ) : (
+          "Uygula"
+        )}
       </button>
       {/* Both outcomes were visual only: a rejected code looked exactly like
           a pending one to a screen-reader user. */}

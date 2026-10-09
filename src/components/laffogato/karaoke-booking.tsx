@@ -14,6 +14,7 @@ import {
   type KaraokeAvailability,
 } from "@/lib/mobile/karaoke-core";
 import { priceLabel } from "@/lib/utils/format";
+import { BusyDots } from "./busy-dots";
 
 const DAY_NAMES = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"];
 
@@ -421,8 +422,16 @@ export function KaraokeBooking({
                     className="btn btn-gold"
                     style={{ width: "100%" }}
                     disabled={!selectionValid || pending}
+                    aria-busy={pending}
                   >
-                    {pending ? "Gönderiliyor…" : "Rezervasyonu tamamla"}
+                    {pending ? (
+                      <>
+                        <BusyDots />
+                        Gönderiliyor…
+                      </>
+                    ) : (
+                      "Rezervasyonu tamamla"
+                    )}
                   </button>
                   <p className="karaoke-fine">
                     Rezervasyon uygulamadaki hesabına da düşer; ekibimiz

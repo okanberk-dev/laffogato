@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 
+import { BusyDots } from "@/components/laffogato/busy-dots";
+
 import { deleteAccountAction, type DeleteAccountState } from "../../actions";
 
 const initial: DeleteAccountState = {};
@@ -44,8 +46,19 @@ export function DeleteAccountForm({ email }: { email: string }) {
           {state.error}
         </p>
       )}
-      <button type="submit" disabled={pending || !confirmed}>
-        {pending ? "Siliniyor…" : "Hesabımı kalıcı olarak sil"}
+      <button
+        type="submit"
+        disabled={pending || !confirmed}
+        aria-busy={pending}
+      >
+        {pending ? (
+          <>
+            <BusyDots />
+            Siliniyor…
+          </>
+        ) : (
+          "Hesabımı kalıcı olarak sil"
+        )}
       </button>
     </form>
   );

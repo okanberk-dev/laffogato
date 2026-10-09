@@ -486,6 +486,67 @@ select {
   opacity: 0.45;
   transform: none;
 }
+/* A busy button is not a switched-off one. While its request is out it keeps
+   its fill and its label ink, the way the app's busy pill does (lafmobil
+   karar 315), and the three dots beside the words say it is working - faded
+   to 45 %, "Gönderiliyor…" read as a control that had broken. */
+.btn[aria-busy="true"]:disabled {
+  cursor: progress;
+  opacity: 1;
+}
+
+/* The wait mark (`BusyDots`): three dots in the label's own ink, lighting in
+   turn. Adapted from "hungry-otter-20" by ashish-yadv on Uiverse.io
+   (https://github.com/uiverse-io/galaxy, MIT, (c) 2023 Uiverse.io): sized in
+   em so it follows the type it stands beside, coloured by currentColor so it
+   needs no token of its own, and slowed and softened from the original's
+   0.6 s hop to read as patience rather than urgency. */
+.lf-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  margin-inline-end: 0.5em;
+  vertical-align: middle;
+}
+.btn .lf-dots {
+  margin-inline-end: 0; /* the button's own gap spaces it */
+}
+.lf-dots i {
+  width: 0.34em;
+  height: 0.34em;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  animation: lf-dots 1.2s ease-in-out infinite;
+}
+.lf-dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.lf-dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes lf-dots {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-0.22em);
+  }
+}
+/* Still, not slower: the first dot holds lit, so the row reads as a wait and
+   not as a rule of three identical marks. */
+@media (prefers-reduced-motion: reduce) {
+  .lf-dots i {
+    animation: none;
+  }
+  .lf-dots i:first-child {
+    opacity: 1;
+  }
+}
 
 /* The decided action: the house green, cream label (5.88:1). Bordo is a
    signature surface, never the button a page is built around. */
@@ -7235,6 +7296,9 @@ select {
 }
 .checkout-promo button {
   min-height: 44px;
+  /* "Uygula"'s own width, so the pill does not shrink to the dots while a
+     code is being checked. */
+  min-width: 88px;
   padding: 0 18px;
   border-radius: var(--r-pill);
   font-family: var(--display);

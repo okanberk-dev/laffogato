@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 
+import { BusyDots } from "@/components/laffogato/busy-dots";
+
 import { registerAction, type RegisterFormState } from "../actions";
 
 const initialState: RegisterFormState = {};
@@ -131,9 +133,17 @@ export function RegisterForm() {
         type="submit"
         disabled={pending}
         className="btn btn-primary btn-lg auth-submit"
+        aria-busy={pending}
       >
-        {pending ? "Oluşturuluyor…" : "Üyeliğimi oluştur"}
-        <span className="arrow">→</span>
+        {pending ? (
+          <>
+            <BusyDots />
+            Oluşturuluyor…
+          </>
+        ) : (
+          "Üyeliğimi oluştur"
+        )}
+        {!pending && <span className="arrow">→</span>}
       </button>
     </form>
   );
