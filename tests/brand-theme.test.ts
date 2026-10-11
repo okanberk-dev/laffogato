@@ -186,14 +186,25 @@ describe("palette follows the app's porcelain", () => {
     expect(css).not.toContain("rgba(18, 41, 31,");
   });
 
-  it("speaks in the app's two voices, and no retired one", () => {
-    // lafmobil BRAND-IDENTITY §2: Poppins displays, Inter reads.
+  it("speaks in one voice, Poppins, and no retired one", () => {
+    // Operator, 11 Eki 2026: "sitede poppins fontu olsun". Poppins used to
+    // display and Inter to read (the app's pair, BRAND-IDENTITY §2); the site
+    // now reads in Poppins too, with ExtraBold for its display moments.
     const layout = read("src/app/layout.tsx");
+    expect(layout).toMatch(/import \{ Poppins \} from "next\/font\/google"/);
     expect(layout).toMatch(
-      /import \{ Inter, Poppins \} from "next\/font\/google"/,
+      /weight: \["300", "400", "500", "600", "700", "800"\]/,
     );
     expect(css).toContain('"Poppins"');
-    expect(css).toContain('"Inter"');
+    // Every historical token resolves to the one family...
+    expect(cssCode).toContain("--sans: var(--display);");
+    // ...and the second voice is gone from the stylesheet and the loader,
+    // not merely unused: a stray "Inter" in a font stack would quietly
+    // become the reading face again wherever Poppins is missing a glyph.
+    expect(cssCode).not.toMatch(/\bInter\b/);
+    expect(layout).not.toMatch(/import \{[^}]*\bInter\b/);
+    expect(layout).not.toMatch(/\bInter\(/);
+    expect(layout).not.toContain("--font-text");
     expect(layout).not.toContain("Montserrat");
     expect(css).not.toContain("Montserrat");
     expect(css).not.toContain("Plus Jakarta Sans");

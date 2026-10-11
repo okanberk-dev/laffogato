@@ -85,7 +85,10 @@ site tasarımını buna uygun olarak güncelle"_. Bu, lafmobil karar 31'i (c)
 seçeneğiyle kapattı: site uygulamanın bütün paletini (`lafmobil/src/theme/tokens.ts`,
 `porcelain`, DESIGN-GLASS §13), iki yazı sesini (Poppins gösterim, Inter
 okuma) ve cam malzeme dilini (kapsül düğme, cam kart, yüzen cam krom, sekme
-çubuğu) aldı. Değerler: porselen zemin `#f7f3ed`, yapı yeşili `#1d6d56`,
+çubuğu) aldı. **Yazıda tek ayrışma (operatör, 11 Eki 2026):** site artık
+**tek ses Poppins** - Inter kalktı, gövde de Poppins (300-800; gösterim
+anlarında 800 ExtraBold). Uygulama hâlâ Poppins + Inter; onun izlemesi
+lafmobil'de ayrı bir karardır (`docs/BRAND.md` §2). Değerler: porselen zemin `#f7f3ed`, yapı yeşili `#1d6d56`,
 bordo `#9d2543` / `#520f1f` / `#f9e6ea`, pirinç `#e8c877`, altın metin
 `#765923`, gölgeler `rgba(59, 42, 30, …)`. **Logo L'Af** (`public/brand/`,
 `<LafMark>`); uygulama ikonu da odur. Uygulamanın paleti değişirse site aynı
@@ -144,7 +147,7 @@ yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
 src/
   app/
     page.tsx                 → Müşteri SPA entrysi (hash router: #home, #menu, ...)
-    layout.tsx               → next/font ile iki ses (Poppins + Inter) + Consent
+    layout.tsx               → next/font ile tek ses (Poppins 300-800) + Consent
                                Mode bootstrap (GTM'den önce) + GTM
     globals.css              → Tüm design tokens + müşteri SPA stilleri
     menu/ magaza/ hikayemiz/ → Müşteri rotaları (SPA içeriğinin SEO'lu karşılıkları)
@@ -338,9 +341,11 @@ durum bozulmaya uygundur.
   eylem), **bordo** `--accent` (ekran başına bir imza yüzeyi), pirinç
   `--gold-soft` (dolgu) ve `--gold` (metin), durum renkleri `--matcha`
   (olumlu), `--rose` (uyarı — marka değil) ve `--info` (kobalt).
-- **Yazı:** Poppins (`--display`: başlık, fiyat, düğme) + Inter (`--sans`:
-  gövde, etiket). Etiketler cümle düzeninde; büyük harfli geniş aralık yalnız
-  kart baskısında (`.eyebrow.caps`).
+- **Yazı:** tek aile Poppins (`--display`; `--sans` ve tarihsel token'lar ona
+  çözülür). Hiyerarşiyi ağırlık taşır: 400 gövde, 600 etiket/düğme, 700
+  başlık, 800 gösterim (hero, `.h-display`, büyük rakamlar). Poppins'te ok
+  glifi yok: etiketin ardındaki ok `.arrow` ile çizilir. Etiketler cümle
+  düzeninde; büyük harfli geniş aralık yalnız kart baskısında (`.eyebrow.caps`).
 - **Malzeme:** kapsül düğme (`--r-btn: 999px`, basınca 0.97), cam kart,
   gerçek bulanıklık yalnız yüzen kromda (başlık, sekme çubuğu, sepet, arama).
 - **Sahneler** (`scenes.ts`): ürünün arkasındaki ışık uygulamanın 14 sahne

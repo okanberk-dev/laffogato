@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Poppins } from "next/font/google";
+import { Poppins } from "next/font/google";
 
 import { GoogleTagManager } from "@next/third-parties/google";
 
@@ -15,22 +15,19 @@ import "./globals.css";
 // container id with NEXT_PUBLIC_GTM_ID; empty value disables the integration.
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
 
-// Two voices, the app's (lafmobil BRAND-IDENTITY §2, karar 311): Poppins is
-// the display voice - titles, names, prices, buttons, chips - and Inter the
-// reading voice - sentences, captions, help and legal text, field text. The
-// site followed the app's palette on 25 Eyl 2026 and its type with it, so one
-// brand reads the same on the phone and in the browser. Inter ships as a
-// variable font (every weight from one file); Poppins in the three cuts the
-// app draws (500 / 600 / 700). Turkish via latin-ext on both.
-const displayFont = Poppins({
+// One voice: Poppins (operator, 11 Eki 2026: "sitede poppins fontu olsun").
+// It was already the display voice - titles, names, prices, buttons, chips -
+// and now reads the sentences, captions, help, legal and field text too,
+// where Inter used to (the app still pairs the two; docs/BRAND.md §2).
+// Six static cuts: 300 for the large statement copy, 400 to read, 500 and
+// 600 for labels and controls, 700 for headings and 800 - ExtraBold - for
+// the few display moments (hero titles, .h-display, figures). Turkish via
+// latin-ext. Preloaded as before: the twelve files come to ~80 KB, about
+// half of what the Poppins + variable Inter pair cost.
+const brandFont = Poppins({
   subsets: ["latin", "latin-ext"],
-  weight: ["500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   variable: "--font-display",
-  display: "swap",
-});
-const textFont = Inter({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-text",
   display: "swap",
 });
 
@@ -161,7 +158,7 @@ export const metadata: Metadata = {
  */
 const CONSENT_SEEN = `(function(){try{var m=document.cookie.split('; ').find(function(c){return c.indexOf('${CONSENT_COOKIE}=')===0});if(!m)return;var p=JSON.parse(decodeURIComponent(m.slice(${CONSENT_COOKIE.length + 1})));if(p&&p.version===${CONSENT_VERSION})document.documentElement.setAttribute('data-consent','set')}catch(e){}})();`;
 
-const fontVariables = `${displayFont.variable} ${textFont.variable}`;
+const fontVariables = brandFont.variable;
 
 export default function RootLayout({
   children,

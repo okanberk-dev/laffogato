@@ -9,8 +9,9 @@ import { priceLabel } from "@/lib/utils/format";
 import { LafMark } from "./brand-mark";
 import { PageHero } from "./page-hero";
 import { LOCATION } from "./data";
-import { openStatus, upcomingDayLabels } from "./open-status";
+import { upcomingDayLabels } from "./open-status";
 import { useClientValue } from "./use-client-value";
+import { openStatusDetail, useOpenStatus } from "./use-open-status";
 import { SectionHead } from "./ui";
 import {
   BarRenderScene,
@@ -150,7 +151,10 @@ export function PageVisit({ visit, settings }: PageProps) {
                   rel="noopener noreferrer"
                   className="btn btn-primary"
                 >
-                  Yol tarifi al ↗
+                  Yol tarifi al
+                  <span className="arrow out" aria-hidden="true">
+                    ↗
+                  </span>
                 </a>
                 <a href="/karaoke" className="btn btn-ghost">
                   Karaoke rezervasyonu
@@ -672,29 +676,17 @@ export function PageVisit({ visit, settings }: PageProps) {
  * it in after hydration.
  */
 function OpenNow({ rows }: { rows: [string, string][] }) {
-  const encoded = useClientValue(() => {
-    const st = openStatus(rows);
-    return st
-      ? `${st.open ? 1 : 0}|${st.at ?? ""}|${st.opensToday ? 1 : 0}`
-      : "";
-  }, "");
-  if (!encoded) return null;
-  const [open, at, today] = encoded.split("|");
-  const isOpen = open === "1";
+  const st = useOpenStatus(rows);
+  if (!st) return null;
+  const detail = openStatusDetail(st);
   return (
-    <div className={cx("open-now", isOpen ? "is-open" : "is-closed")}>
+    <div className={cx("open-now", st.open ? "is-open" : "is-closed")}>
       <span className="open-dot" aria-hidden="true" />
       <div>
         <div className="open-now-title">
-          {isOpen ? "Şu an açık" : "Şu an kapalı"}
+          {st.open ? "Şu an açık" : "Şu an kapalı"}
         </div>
-        {at && (
-          <div className="open-now-sub tabular">
-            {isOpen
-              ? `Kapanış ${at}`
-              : `${today === "1" ? "Bugün" : "Sonraki"} açılış ${at}`}
-          </div>
-        )}
+        {detail && <div className="open-now-sub tabular">{detail}</div>}
       </div>
     </div>
   );

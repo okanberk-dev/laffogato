@@ -15,6 +15,8 @@ import { MENU, LOCATION, type HomeSlideAction } from "./data";
 import { ROUTE_PATHS, type Route } from "./route-paths";
 import { MenuPlate } from "./visuals";
 import { MENU_TAG_LABELS, type PageProps } from "./page-shared";
+import { splitLead } from "./split-lead";
+import { useOpenStatus } from "./use-open-status";
 
 /** What the app does that the site does not - the reasons to install it. */
 const APP_FEATURES = [
@@ -221,6 +223,19 @@ export function PageHome({
   const addressLines = visit?.addressLines ?? LOCATION.address;
   const phone = visit?.phone ?? LOCATION.phone;
   const email = visit?.email ?? LOCATION.email;
+  const hours = visit?.hours ?? LOCATION.hours;
+  // app-props spells a closed day "Bugün kapalı"; the card's label already
+  // says "Bugün".
+  const todayHours = (visit?.todayHours ?? LOCATION.hours[0][1]).replace(
+    /^Bugün kapalı$/,
+    "Kapalı",
+  );
+
+  // The panel's "Hero üst etiket" / "Hero açıklama". They used to overwrite
+  // the first slide's kicker and text; they are the brand's own line, so they
+  // open the page under the hero instead (see the statement band below).
+  const introKicker = content?.["home.hero.eyebrow"]?.trim();
+  const [introLead, introMore] = splitLead(content?.["home.hero.lede"] ?? "");
 
   return (
     <div className="page" data-screen-label="01 Home">
@@ -236,9 +251,29 @@ export function PageHome({
 
       <HomeHeroSlider
         onAction={onSlideAction}
-        content={content}
         heroImageUrl={heroImageUrl}
+        hours={hours}
       />
+
+      {/* The statement - who we are, in one paragraph, set large: the first
+          sentence in ExtraBold ink, the rest in Light. Operator copy from
+          /admin/icerik (home.hero.eyebrow / home.hero.lede), so it renders
+          only when the panel has something to say. */}
+      {introLead && (
+        <section className="home-intro" aria-label="L'Affogato hakkında">
+          <div className="wrap">
+            <div className="home-intro-inner reveal">
+              {introKicker && (
+                <p className="home-intro-kicker">{introKicker}</p>
+              )}
+              <p className="home-intro-text">
+                <span className="home-intro-lead">{introLead}</span>
+                {introMore && <> {introMore}</>}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* The reference's banner board, pointing at /kampanyalar - the offers
           themselves are operator-managed and live there, so this is a door,
@@ -380,7 +415,12 @@ export function PageHome({
                         <p className="rail-card-desc">{it.desc}</p>
                       </div>
                       <div className="rail-card-foot">
-                        <span className="rail-card-price">{it.price}</span>
+                        {/* During an outage the menu arrives with every price
+                            as "-" (a stale price at the counter is worse than
+                            none); a lone hyphen read as a glitch here. */}
+                        {/\d/.test(it.price) && (
+                          <span className="rail-card-price">{it.price}</span>
+                        )}
                         <a href={it.href} className="btn btn-outline btn-sm">
                           Menüde gör
                         </a>
@@ -617,8 +657,11 @@ export function PageHome({
             <h2 className="h2" style={{ marginTop: 14 }}>
               200 yıllık köşkte, gece 02:00’e kadar
             </h2>
+            {/* Where, when and how to reach us: the address across the
+                top, today's hours with the live open/closed line beside the
+                phone and e-mail (both tappable). */}
             <div className="visit-facts">
-              <div>
+              <div className="wide">
                 <div className="visit-fact-label">Adres</div>
                 <p className="visit-fact-body">
                   {addressLines.map((line, i) => (
@@ -630,11 +673,16 @@ export function PageHome({
                 </p>
               </div>
               <div>
+                <div className="visit-fact-label">Bugün</div>
+                <p className="visit-fact-body">{todayHours}</p>
+                <OpenLine hours={hours} />
+              </div>
+              <div>
                 <div className="visit-fact-label">İletişim</div>
                 <p className="visit-fact-body">
-                  {phone}
+                  <a href={`tel:${phone.replace(/[^\d+]/g, "")}`}>{phone}</a>
                   <br />
-                  {email}
+                  <a href={`mailto:${email}`}>{email}</a>
                 </p>
               </div>
             </div>
@@ -653,12 +701,35 @@ export function PageHome({
                 rel="noopener noreferrer"
                 className="btn btn-ghost"
               >
-                Yol tarifi al ↗
+                Yol tarifi al
+                <span className="arrow out" aria-hidden="true">
+                  ↗
+                </span>
               </a>
             </div>
           </div>
         </div>
       </section>
     </div>
+  );
+}
+
+/**
+ * "Şu an açık" / "Şu an kapalı" under today's hours in the visit block -
+ * the same live answer as the hero's line (useOpenStatus), shorter: the
+ * hours are printed right above it. Nothing until the browser has answered.
+ */
+function OpenLine({
+  hours,
+}: {
+  hours: ReadonlyArray<readonly [string, string]>;
+}) {
+  const st = useOpenStatus(hours);
+  if (!st) return null;
+  return (
+    <p className={`visit-fact-live ${st.open ? "is-open" : "is-closed"}`}>
+      <span className="visit-fact-dot" aria-hidden="true" />
+      {st.open ? "Şu an açık" : "Şu an kapalı"}
+    </p>
   );
 }

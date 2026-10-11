@@ -106,19 +106,21 @@
   --info: #3442b8;
   --info-fill: #4858d2;
 
-  /* Type - two voices, the app's (lafmobil karar 311, BRAND-IDENTITY §2):
-     Poppins is the DISPLAY voice - anything that is a name, a title, a price
-     or a control label; Inter is the READING voice - sentences, captions,
-     help and legal text, field text. Both load through next/font in
-     layout.tsx. The historical names (--serif, --script, --mono, …) are kept
-     so every call site resolves: the display-ish ones point at Poppins, the
-     eyebrow/numeric one (--mono) at Inter. */
+  /* Type - one voice, Poppins (operator, 11 Eki 2026: "sitede poppins fontu
+     olsun"). Names, titles, prices and control labels already spoke it (the
+     app's display voice); sentences, captions, help, legal and field text
+     now do too, where Inter used to. Six cuts load through next/font in
+     layout.tsx: 300 · 400 · 500 · 600 · 700 · 800. The weight carries the
+     hierarchy the second family used to: 400 reads, 500-600 labels, 700
+     heads, 800 (ExtraBold) is kept for the display moments - hero titles,
+     .h-display, the big figures. The historical names (--sans, --serif,
+     --script, --mono, …) all resolve to it so every call site keeps working.
+     Poppins has no arrow or symbol glyphs; those fall through to the system
+     font, and the arrow after a label is drawn instead (.arrow). */
   --display:
     var(--font-display), "Poppins", -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", sans-serif;
-  --sans:
-    var(--font-text), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "Helvetica Neue", sans-serif;
+  --sans: var(--display);
   --serif: var(--display);
   --serif-modern: var(--display);
   --serif-display: var(--display);
@@ -217,13 +219,13 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   font-size: 16px;
-  line-height: 1.55;
-  font-feature-settings: "calt", "kern";
-  /* Prices, stamp counts, opening hours and phone numbers all sit in running
-     text on this site; Inter's tabular figures keep them from jittering. The
-     display voice (Poppins) has no tnum, exactly as in the app, so prices set
-     in it align by the box, not by the figure. */
-  font-variant-numeric: tabular-nums;
+  /* Poppins is a wide face with a tall x-height: a little more lead than
+     Inter needed keeps a paragraph of it from reading as a block. */
+  line-height: 1.6;
+  font-feature-settings: "kern";
+  /* No tabular-nums here any more: Poppins (Google's cut) has proportional
+     figures and no tnum, so the property only ever reached the fallback
+     font. Nothing on the site ticks in place; prices align by their box. */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -232,7 +234,9 @@ body {
 }
 
 /* Numeric content (prices, SKUs, time, addresses) - tabular + lining
-   numerals + zero with slash. Apply via .tabular utility or [data-tnum]. */
+   numerals + zero with slash where the face has them. Poppins (Google's
+   cut) has none of the three, so today this only steadies the fallback font
+   while Poppins loads; kept so a face that does have them picks them up. */
 .tabular,
 [data-tnum] {
   font-variant-numeric: tabular-nums lining-nums slashed-zero;
@@ -262,22 +266,28 @@ textarea,
 select {
   font: inherit;
   color: inherit;
+  /* A field's intrinsic width (~20 characters) is measured in the page's
+     face, and Poppins sets wider than Inter did: in a flex or grid row the
+     automatic minimum let a field push its row past its card, and on a
+     phone past the screen (the checkout's promo row, 11 Eki 2026). Zero
+     lets a field give way instead; its preferred width is unchanged. */
+  min-width: 0;
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Type primitives - Poppins for what is named, Inter for what is read
+   Type primitives - one family, Poppins; the weight sets the role
    ───────────────────────────────────────────────────────────── */
 
 /* The section kicker. The app dropped the spaced, all-caps "eyebrow" for a
    quiet semibold line in the house green (DESIGN-GLASS §2.6: `eyebrow` is
    kept only on membership and tier cards, everywhere else `captionStrong`).
-   The site follows: sentence case as written in the markup, 13.5px Inter 600,
-   green on porcelain (5.63:1), mint on the green blocks. */
+   The site follows: sentence case as written in the markup, 13.5px Poppins
+   600, green on porcelain (5.63:1), mint on the green blocks. */
 .eyebrow {
   font-family: var(--sans);
   font-size: 13.5px;
   line-height: 1.3;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
   color: var(--green);
   font-weight: 600;
   font-feature-settings: "tnum", "lnum", "zero";
@@ -334,16 +344,17 @@ select {
 }
 
 /* Headlines: Poppins 700, the app's four heading roles (hero · title ·
-   display · heading) scaled up for a browser window. Tracking tightens with
-   size the way Apple's display type does; never below -0.03em, where
-   Poppins' round letters start to touch. `.script` is the accent-coloured
-   word in a headline ("içilir, sonra kupası yenir"). */
+   display · heading) scaled up for a browser window; the largest, the
+   display role, in ExtraBold 800. Tracking tightens with size the way
+   Apple's display type does; never below -0.035em, where Poppins' round
+   letters start to touch. `.script` is the accent-coloured word in a
+   headline ("içilir, sonra kupası yenir"). */
 .h-display {
   font-family: var(--display);
-  font-weight: 700;
+  font-weight: 800;
   font-size: clamp(38px, 5.6vw, 76px);
   line-height: 1.04;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   margin: 0;
   text-wrap: balance;
   font-feature-settings: "lnum", "kern", "liga";
@@ -393,12 +404,12 @@ select {
   font-feature-settings: "lnum", "kern", "liga";
 }
 
-/* The subhead under a headline - Apple's large, calm second line: Inter at
-   18-20px in the secondary ink. */
+/* The subhead under a headline - Apple's large, calm second line: Poppins
+   400 at 16.5-19px in the secondary ink. */
 .lede {
   font-size: clamp(16.5px, 1.3vw, 19px);
-  line-height: 1.55;
-  letter-spacing: -0.011em;
+  line-height: 1.6;
+  letter-spacing: -0.005em;
   color: var(--ink-soft);
   max-width: 56ch;
   margin: 0;
@@ -469,13 +480,41 @@ select {
   -webkit-user-select: none;
   user-select: none;
 }
-.btn .arrow {
-  font-family: var(--sans);
-  transition: transform 0.3s var(--ease-spring);
+/* The arrow after a label ("Menüyü gör →"). Poppins has no arrow glyph, so
+   the "→" in the markup used to borrow Inter's and would now fall to
+   whatever the system has. It is drawn instead, in the stroke the door
+   arrows use (.door-go): the glyph stays in the DOM for a reader without
+   CSS, is pushed out of its box, and currentColor paints the mask - so the
+   arrow takes the label's colour on every button tone. */
+.arrow {
   display: inline-block;
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
+  overflow: hidden;
+  text-indent: 110%;
+  white-space: nowrap;
+  vertical-align: -0.16em;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12h14M13 6.5 18.5 12 13 17.5'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12h14M13 6.5 18.5 12 13 17.5'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+/* "Leaves the site" (maps, carrier tracking): the same stroke, turned
+   north-east, in place of a "↗" glyph Poppins does not have either. */
+.arrow.out {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7M9 7h8v8'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7M9 7h8v8'/%3E%3C/svg%3E");
+}
+.btn .arrow {
+  transition: transform 0.3s var(--ease-spring);
 }
 .btn:hover .arrow {
   transform: translateX(3px);
+}
+.btn:hover .arrow.out {
+  transform: translate(2px, -2px);
 }
 .btn:active {
   transform: scale(var(--press-scale));
@@ -605,7 +644,7 @@ summary:focus-visible,
   font-size: 16px;
 }
 
-/* The text link with a chevron - Apple's "Daha fazla ›". Green, Inter 600. */
+/* The text link with a chevron - Apple's "Daha fazla ›". Green, Poppins 600. */
 .link-more {
   display: inline-flex;
   align-items: center;
@@ -1697,8 +1736,7 @@ summary:focus-visible,
   align-items: center;
   gap: clamp(16px, 3vw, 48px);
   min-height: clamp(540px, 60vw, 740px);
-  padding: clamp(28px, 4vw, 64px) clamp(20px, 4.4vw, 72px)
-    clamp(64px, 6vw, 88px);
+  padding: clamp(28px, 4vw, 64px) clamp(20px, 4.4vw, 72px);
   border-radius: 36px;
   background:
     radial-gradient(
@@ -1746,9 +1784,10 @@ summary:focus-visible,
   display: grid;
   font-family: var(--display);
   font-size: clamp(42px, 6vw, 86px);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.035em;
+  /* ExtraBold: the one place a single word has to carry a whole screen. */
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
   color: var(--ink);
   animation: hero-x-copy-in 0.6s var(--ease-spring) both;
 }
@@ -1772,8 +1811,61 @@ summary:focus-visible,
 .hero-x-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
   margin-top: 8px;
+}
+
+/* "Şu an açık · Kapanış 02:00" - live, beside the buttons, opening the visit
+   page. Quiet ink with the state in the dot: the success green when open,
+   quiet ink when closed - never red, the same rule as /ziyaret's line. */
+.hero-x-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-left: 6px;
+  padding: 0 4px;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--ink-mute);
+  border-radius: var(--r-pill);
+}
+.hero-x-status strong {
+  font-weight: 600;
+  color: var(--ink);
+  transition: color 0.2s;
+}
+.hero-x-status:hover strong {
+  color: var(--green);
+}
+.hero-x-status:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.hero-x-status-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--matcha);
+  box-shadow: 0 0 0 4px rgba(29, 109, 86, 0.16);
+  /* Two slow rings and it settles: a live signal, not a blinking one
+     (WCAG 2.2.2 - every motion on the site is over within five seconds). */
+  animation: hero-x-live 2s var(--ease-out) 2;
+}
+.hero-x-status.is-closed .hero-x-status-dot {
+  background: var(--ink-quiet);
+  box-shadow: 0 0 0 4px rgba(135, 125, 116, 0.18);
+  animation: none;
+}
+@keyframes hero-x-live {
+  0% {
+    box-shadow: 0 0 0 0 rgba(29, 109, 86, 0.42);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(29, 109, 86, 0);
+  }
 }
 
 /* Thumbnails: glass tiles; the selected one is opaque white with the
@@ -1850,6 +1942,30 @@ summary:focus-visible,
 .hero-x-thumb.on .hero-x-thumb-name {
   color: var(--ink);
   font-weight: 600;
+}
+/* The autoplay's clock. It runs along the selected thumbnail's foot for
+   --autoplay-ms and its animationend advances the slide, so pausing the
+   animation (pointer or focus in the hero, a hidden tab) pauses the carousel
+   exactly where it stands. Rendered only while autoplay is on. */
+.hero-x-thumb-progress {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 5px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--green);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: hero-x-progress var(--autoplay-ms, 7s) linear forwards;
+}
+.hero-x-frame[data-autoplay="paused"] .hero-x-thumb-progress {
+  animation-play-state: paused;
+}
+@keyframes hero-x-progress {
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* Stage ─────────────────────────────────────────────────────────── */
@@ -1942,41 +2058,10 @@ summary:focus-visible,
   }
 }
 
-/* Page dots: the active one stretches into a capsule, iOS style. */
-.hero-x-dots {
-  position: absolute;
-  left: 50%;
-  bottom: clamp(20px, 2.4vw, 30px);
-  translate: -50% 0;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: var(--r-pill);
-  background: var(--glass-control);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
-}
-.hero-x-dot {
-  width: 8px;
-  height: 8px;
-  padding: 0;
-  border-radius: var(--r-pill);
-  background: rgba(33, 28, 24, 0.22);
-  cursor: pointer;
-  transition:
-    width 0.35s var(--ease-spring),
-    background-color 0.25s;
-}
-.hero-x-dot.on {
-  width: 24px;
-  background: var(--ink);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .hero-x-photo,
-  .hero-x-title {
+  .hero-x-title,
+  .hero-x-status-dot {
     animation: none;
   }
 }
@@ -1986,7 +2071,7 @@ summary:focus-visible,
     grid-template-columns: minmax(0, 1fr);
     min-height: 0;
     gap: 4px;
-    padding: 16px clamp(18px, 5vw, 32px) clamp(64px, 14vw, 88px);
+    padding: 12px clamp(18px, 5vw, 32px) clamp(22px, 5vw, 32px);
     border-radius: 30px;
     background:
       radial-gradient(
@@ -2009,12 +2094,73 @@ summary:focus-visible,
   }
   .hero-x-stage {
     order: 1;
-    --stage: clamp(260px, 78vw, 420px);
+    /* Bounded by the screen's height as well as its width: on a phone the
+       drink, the name and both buttons have to clear the floating tab bar
+       in the first view. */
+    --stage: clamp(210px, min(60vw, 34vh), 400px);
   }
   .hero-x-thumbs {
     width: 100%;
     max-width: 420px;
   }
+  .hero-x-status {
+    margin-left: 0;
+  }
+}
+/* A phone shows each slide's first sentence; the rest is on the menu. */
+@media (max-width: 520px) {
+  .hero-x-text-more {
+    display: none;
+  }
+}
+
+/* Statement band ────────────────────────────────────────────────
+   The brand's own paragraph (the panel's "Hero üst etiket" + "Hero
+   açıklama"), right under the hero, set as a statement: the first sentence
+   in ExtraBold ink, the rest in Light in the secondary ink (7.46:1). Poppins'
+   widest contrast of weight, used once on the page. */
+.home-intro {
+  padding: clamp(56px, 8vw, 120px) 0 clamp(4px, 1vw, 12px);
+}
+.home-intro-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: grid;
+  justify-items: center;
+  gap: clamp(16px, 2vw, 24px);
+  text-align: center;
+}
+.home-intro-kicker {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--green);
+}
+.home-intro-kicker::before {
+  content: "";
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tricolore);
+  box-shadow: 0 0 0 1px rgba(33, 28, 24, 0.1);
+}
+.home-intro-text {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(23px, 2.8vw, 38px);
+  font-weight: 300;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--ink-soft);
+  text-wrap: balance;
+}
+.home-intro-lead {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
 }
 
 /* The SEO block (seo-content.tsx) ──────────────────────────────── */
@@ -2412,8 +2558,8 @@ summary:focus-visible,
 .promo-banner-title {
   font-family: var(--display);
   font-size: clamp(22px, 2.4vw, 30px);
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 .promo-banner-body {
   font-size: 15px;
@@ -2970,6 +3116,10 @@ summary:focus-visible,
   letter-spacing: -0.01em;
   color: var(--ink);
 }
+/* Kept at the right edge even when the card has no price to show. */
+.rail-card-foot .btn {
+  margin-left: auto;
+}
 
 /* Signature block ───────────────────────────────────────────── */
 
@@ -3022,8 +3172,8 @@ summary:focus-visible,
 .stat-n {
   font-family: var(--display);
   font-size: clamp(26px, 2.6vw, 34px);
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 800;
+  letter-spacing: -0.035em;
   color: var(--green);
   line-height: 1;
 }
@@ -3263,8 +3413,14 @@ summary:focus-visible,
 .visit-facts {
   margin-top: 22px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  /* Side by side while each card has room for an e-mail address, stacked
+     once it would not (the split column is narrowest around 700-800 px). */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: 12px;
+}
+/* The address runs across the top; today and contact share the row below. */
+.visit-facts > .wide {
+  grid-column: 1 / -1;
 }
 .visit-facts > div {
   padding: 16px 18px;
@@ -3282,6 +3438,41 @@ summary:focus-visible,
   margin: 6px 0 0;
   font-size: 15px;
   line-height: 1.6;
+}
+.visit-fact-body a {
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-color: var(--ink-line-strong);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s;
+}
+.visit-fact-body a:hover {
+  text-decoration-color: currentColor;
+}
+/* The live line under today's hours: green while open, quiet ink when
+   closed - never red (the same rule as the hero's and /ziyaret's). */
+.visit-fact-live {
+  margin: 8px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--green);
+}
+.visit-fact-live.is-closed {
+  color: var(--ink-mute);
+}
+.visit-fact-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--matcha);
+  box-shadow: 0 0 0 3px rgba(29, 109, 86, 0.16);
+}
+.visit-fact-live.is-closed .visit-fact-dot {
+  background: var(--ink-quiet);
+  box-shadow: 0 0 0 3px rgba(135, 125, 116, 0.18);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -3313,7 +3504,10 @@ summary:focus-visible,
 
 .footer-top {
   display: grid;
-  grid-template-columns: 1.1fr 1fr 1.2fr;
+  /* minmax(0, …): a bare `fr` cannot shrink below its content, and the
+     newsletter row (field + "Abone ol") pushed the pair past a tablet's
+     width once the page set in Poppins. */
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.2fr);
   gap: clamp(20px, 3vw, 40px);
   align-items: stretch;
   padding-bottom: clamp(36px, 5vw, 56px);
@@ -3528,7 +3722,7 @@ summary:focus-visible,
 
 @media (max-width: 1100px) {
   .footer-top {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .footer-brand {
     grid-column: 1 / -1;
@@ -3762,7 +3956,7 @@ summary:focus-visible,
   font-family: var(--sans);
   font-size: 13.5px;
   font-weight: 600;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
   color: var(--ink-soft);
   margin-bottom: 8px;
 }
@@ -5895,7 +6089,9 @@ select {
 }
 @media (max-width: 900px) {
   .account-shell-body {
-    grid-template-columns: 1fr;
+    /* minmax(0, …): the tab strip scrolls inside the column; a bare 1fr
+       grew to its full width and pushed a 320 px screen sideways. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
   }
   .account-shell-sidebar {
@@ -7205,12 +7401,13 @@ select {
 /* Promo block (inside summary) */
 .checkout-promo {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
 }
 /* Codes are printed in capitals, so the typed value is too; the hint is
    not a code and reads in sentence case. */
 .checkout-promo input {
+  width: 100%;
   min-height: 44px;
   padding: 0 14px;
   border-radius: var(--r-pill);

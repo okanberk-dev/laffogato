@@ -179,8 +179,10 @@ function CardGrid({ title, posts }: { title: string; posts: CampaignPost[] }) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {p.linkLabel || "Ayrıntılar"}
-                    <span aria-hidden="true"> ↗</span>
+                    {p.linkLabel || "Ayrıntılar"}{" "}
+                    <span className="arrow out" aria-hidden="true">
+                      ↗
+                    </span>
                   </a>
                 ) : null}
               </div>
