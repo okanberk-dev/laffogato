@@ -12,15 +12,18 @@ import { useClientValue } from "./use-client-value";
  *
  * It used to BE the home page hero, a full `100svh` of it above everything
  * else. The Köşk redesign demotes it to a card low on the page ("küçük bir
- * oyun"), which is a better bargain in every direction: the 860 KB bundle is
+ * oyun"), which is a better bargain in every direction: the 610 KB bundle is
  * now genuinely below the fold, the hero slot goes to the slider, and the
  * widget is a reward for scrolling rather than a toll gate in front of the
  * menu.
  *
  * Two things still shape how it is loaded:
  *
- * 1. The bundle is ~860 KB (three.js plus the brand font, inlined so the
- *    widget never depends on a font host). It is fetched when the card is
+ * 1. The bundle is ~610 KB, almost all of it three.js. It used to inline
+ *    its own Cormorant Garamond (~250 KB of base64); since the site went to
+ *    one voice (11 Eki 2026) the widget sets its type - title, tagline, the
+ *    DÖK button, the hint and the cup's printed band - in the page's own
+ *    Poppins, which next/font has already loaded. It is fetched when the card is
  *    near the viewport AND the page has finished loading AND the browser is
  *    idle - and not at all on a metered or very slow connection, where the
  *    static wash is the whole of it.
@@ -64,7 +67,7 @@ function loadWidget(): Promise<void> {
 }
 
 /**
- * Metered or very slow connection: the widget is never fetched. A 860 KB toy
+ * Metered or very slow connection: the widget is never fetched. A 610 KB toy
  * is not worth someone's data plan, and the card still reads as a card
  * without it - copy, wash and CTA are all server-rendered.
  */
@@ -97,7 +100,7 @@ export function PourModule({ onOrder }: { onOrder?: () => void } = {}) {
     let cancelled = false;
     let element: HTMLElement | undefined;
 
-    // Keeps the 860 KB off the critical path: wait for the load event, then
+    // Keeps the 610 KB off the critical path: wait for the load event, then
     // for an idle moment. Both have hard timeouts so the cup still arrives on
     // a busy page.
     const startWhenIdle = () => {
