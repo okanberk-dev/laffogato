@@ -321,7 +321,11 @@ async function replayAppOrder(
 ): Promise<CreateAppOrderResult> {
   let payment: AppPayment | null = null;
   if (order.status === "pending_payment" && order.totalMinor > 0) {
-    payment = await createAppPaymentSession(order, customer, "");
+    // The caller's own IP, as the first attempt sends it (`consent.ip`): an
+    // empty one reached PayNkolay as `cardHolderIP: 0.0.0.0`, and every
+    // reopened checkout - the retry of a lost POST, "Şimdi öde" from the
+    // order - went to the bank's fraud screen with no address at all.
+    payment = await createAppPaymentSession(order, customer, await clientIp());
   }
   return {
     ok: true,

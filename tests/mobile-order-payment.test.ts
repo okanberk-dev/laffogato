@@ -68,6 +68,17 @@ describe("POST /orders - what happens before anything is persisted", () => {
   });
 });
 
+describe("a reopened checkout carries the buyer's IP", () => {
+  it("passes the caller's IP to the POS, not an empty string", () => {
+    const from = orders.indexOf("async function replayAppOrder");
+    const to = orders.indexOf("export async function createAppOrder");
+    expect(from).toBeGreaterThan(-1);
+    const replay = orders.slice(from, to);
+    expect(replay).toContain("createAppPaymentSession(order, customer, await clientIp())");
+    expect(replay).not.toContain('createAppPaymentSession(order, customer, "")');
+  });
+});
+
 describe("idempotency key storage", () => {
   it("is unique per member and exempts the empty default", () => {
     expect(migrations).toContain(
