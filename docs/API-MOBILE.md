@@ -33,7 +33,7 @@ Karar kayıtları: `docs/DESIGN-UYGULAMA.md`.
 | Kimlik       | `Authorization: Bearer <Supabase access JWT>`. Sunucu `supabase.auth.getUser(jwt)` ile doğrular, `user.email` → Neon `customers` satırı (yoksa **oluşturur**).     |
 | Hata gövdesi | `{ "error": "<kod>", "message": "<Türkçe, kullanıcıya gösterilebilir>" }`                                                                                          |
 | HTTP         | 200/201 · 400 geçersiz istek · 401 kimlik yok/geçersiz · 403 e-posta doğrulanmamış (sipariş) · 404 · 409 çakışma (stok/kapalı) · 429 · 503 veritabanı ulaşılamıyor |
-| Runtime      | Her route: `export const runtime = "nodejs"; export const dynamic = "force-dynamic"; export const maxDuration = 15;`                                               |
+| Runtime      | Her route: `export const runtime = "nodejs"; export const dynamic = "force-dynamic"; export const maxDuration = 15;` Tek istisna `POST /fal` (§20): `maxDuration = 30`, çünkü model yorumu 20 saniyeye kadar sürer; uygulama bu uca 30 sn zaman aşımı verir. |
 | Sızıntı      | Store satırı doğrudan JSON'a **yayılmaz**; her uç açık izin-listesi eşleyici kullanır.                                                                             |
 | Fiyat        | **İstemciden fiyat alınmaz.** Sipariş tutarı sunucuda DB fiyatı + seçenek fiyatından hesaplanır.                                                                   |
 | Sürüm        | Yol ile (`/v1/`). v1 içinde yalnız ekleme yapılır.                                                                                                                 |
@@ -555,12 +555,14 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
     "badges": [ { "id": "first-affogato", "label": "İlk affogato", "earned": true }, { "id": "streak-10", "label": "10 gün üst üste", "earned": false }, { "id": "early-bird", "label": "Erken kuş", "earned": true }, { "id": "matcha-fan", "label": "Matcha meraklısı", "earned": false }, { "id": "bean-subscriber", "label": "Çekirdek abonesi", "earned": false }, { "id": "orders-50", "label": "50 sipariş", "earned": false } ]
   },
   "invite": { "code": "LAF-EDA24", "invited": 3, "joined": 2, "earned": 2,
-              "people": [ { "name": "Selin K.", "status": "joined" | "pending", "at": "…" } ] },
+              "people": [ { "name": "Selin K.", "status": "joined" | "pending", "at": "…", "rewarded": true } ] },
   "usual": { "menuItemId": "mnu-0007", "size": "M", "options": { … } } | null
 }
 ```
 
-`PATCH /me` gövdesi: `{ name?, phone?, birthday?, notificationPrefs?, usual? }` → güncel `/me`.
+`invite.people[].rewarded` (yalnız ekleme): bu kişinin daveti davet edene kupon kazandırdı mı. `false` ise ya davetli henüz şartı sağlamadı ya da davet eden 5 ödül tavanını (§5) aşmıştı. Alan gelmezse uygulama `joined` satırını ödüllenmiş sayar (eski sunucu).
+
+`PATCH /me` gövdesi: `{ name?, phone?, birthday?, notificationPrefs?, usual? }` → güncel `/me`. `birthday` `YYYY-AA-GG` biçiminde ve takvimde olan bir gün olmalı (`1990-02-30` 400 `invalid_request`).
 Adresler: `POST /me/addresses` (gövde adres) · `PATCH /me/addresses/{id}` · `DELETE /me/addresses/{id}` · `POST /me/addresses/{id}/default` → hepsi güncel `addresses[]` döner.
 Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği silinir (service role varsa; sonucu yanıttaki `identity` söyler, aşağıya bak) + oturum istemcide kapatılır (mağaza zorunluluğu). Devam eden sipariş varsa **409** `orders_in_progress`.
 
@@ -621,7 +623,11 @@ kurar (O28).
 > (siparişi olan hesap). `invites.status` `joined` hiç yazılmaz: claim → `pending`, davetlinin
 > ilk ödenmiş siparişi → `rewarded` (iki tarafa panelde tanımlı ücretsiz içecek kuponu —
 > `rewardTitle` / `rewardValueMinor` / `rewardTtlDays`, varsayılan 280₺ · 90 gün — `source: "invite"`).
-> `/me.invite.joined` = pending olmayan satır sayısı, `earned` = rewarded sayısı.
+> Daveti kapatan sipariş yalnız **kafe** siparişidir ve ödenen tutarı (`totalMinor`) en az
+> **150₺**'dir (`INVITE_MIN_ORDER_MINOR`); mağaza (kargo) siparişi ve daha küçük kafe siparişi
+> daveti açık bırakır. Davet eden en çok **5** davetten ödül alır (`INVITE_REWARD_CAP`).
+> `/me.invite.joined` = pending olmayan satır sayısı, `earned` = ödül getiren davet sayısı
+> (5 ile sınırlı; tavanı aşan davetlerde `people[].rewarded` `false`).
 
 ## 6. Canlı durum — `GET /live-status` (herkese açık)
 
@@ -658,8 +664,9 @@ Cache: `public, s-maxage=30` — `stale-while-revalidate` **yok**: panel persone
 > `note` ≤ 200 karakter. Sunucu her isteği o anki config'e göre doğrular; uygulama seçiciyi
 > availability yanıtındaki alanlarla kurar, kural değişince yanıt önbelleksiz olduğu için hemen
 > görür. Gövde JSON değilse 400 `invalid_request`. `requested` ve `confirmed` slotu bloke eder,
-> `cancelled` etmez. Çakışma kontrolü oku-sonra-yaz (SQL kilidi yok): aynı saniyede iki istek
-> ikisi de `requested` olabilir; panelde görünür, personel birini iptal eder. ORO indirimi
+> `cancelled` etmez. Çakışmayı veritabanı tutar: `karaoke_reservations_no_overlap` dışlama
+> kısıtı aynı saate düşen ikinci kaydı reddeder ve uç bunu **409** `slot_taken` olarak döner
+> (aynı saniyede gelen iki istekten yalnız biri yazılır). ORO indirimi
 > (`oroDiscountPct`, %15) `/me.loyalty.tier`'dan; rezervasyon anındaki yüzde kaydedilir, sonraki
 > değişiklik eski kayıtları etkilemez. Panel onay/iptali `audit_logs`'a `karaoke_reservation`
 > olarak düşer.
@@ -883,7 +890,7 @@ alter table public.karaoke_reservations enable row level security;
 | 18 Kampanyalar                             | `/app-content.posts` (kind campaign) + sabit kartlar (`/bootstrap.app.campaignCards`) · `/promo/preview` |
 | 19 Davet                                   | `/me.invite` · `Share`                                                                                   |
 | 21 Sipariş Geçmişi                         | `/orders`                                                                                                |
-| 22 Cüzdan · 23 Hediye Kartı                | **Yazılmadı** (karar 20) — uç yok; ekran da "yakında" düğmesi de çizilmez                                |
+| 22 Cüzdan · 23 Hediye Kartı                | Ekranlar yazıldı (lafmobil karar 60), uçlar (§18, §19) henüz yok: uygulama `GET /me/wallet` ve `GET /gift-cards/designs` `enabled: true` döndürmedikçe ikisini de gizler |
 | 26 Karaoke                                 | `/karaoke/availability` (kurallar dahil) · `POST /karaoke/reservations`                                  |
 | 27 Ziyaret                                 | `/bootstrap.venue` (adres, yer tarifi, harita sorgusu, 7 günlük saat tablosu) — seed yedek               |
 | 28 Hikâye                                  | `/story` (§16) — seed yedek                                                                              |
@@ -1110,7 +1117,7 @@ tekrarlayabileceği bir metodun arkasında durmamalı.
 | Aynı anda      | Üye başına en fazla **3 açık jeton**; yenisi istenince eskilerin ömrü o an biter                         |
 | Saklama        | Ham jeton **saklanmaz**; `counter_tokens."tokenHash"` = `sha256(token)`                                  |
 | Jeton alfabesi | `0123456789ABCDEFGHJKMNPQRSTVWXYZ` (Crockford base32), **26 karakter** = 128 bit                         |
-| Kod alfabesi   | `23456789ABCDEFGHJKLMNPQRSTUVWXYZ` (O/0, I/1/L yok), 8 karakter, yalnız açık jetonlar arasında benzersiz |
+| Kod alfabesi   | `23456789ABCDEFGHJKMNPQRSTUVWXYZ` (31 simge; O/0, I/1/L yok), 8 karakter, yalnız açık jetonlar arasında benzersiz. 13 Eki 2026'ya kadar dizide yanlışlıkla `L` vardı; o tarihten önce verilmiş kodlar zaten 120 sn'de biter |
 | QR             | Sürüm 2, **25×25 modül**, hata düzeltme **Q** (%25), sessiz alan **4 modül**                             |
 | Hız sınırı     | Üye başına **dakikada 10 jeton** → **429** `rate_limited` + `Retry-After`                                |
 | Doğrulama      | E-posta doğrulanmamışsa **403** `email_unverified` (sipariş kuralıyla aynı)                              |
@@ -1277,8 +1284,13 @@ Hatalar: **400** `invalid_amount` (seçenek listesinde yok / min altında) · **
   "designs": [ { "key": "classic", "label": "Klasik", "artKey": "gift-classic" }, … ],
   "amountOptions": [ 25000, 50000, 100000 ],
   "minAmountMinor": 10000, "maxAmountMinor": 200000,
-  "canSchedule": true, "maxScheduleDays": 90 }
+  "canSchedule": true, "maxScheduleDays": 90,
+  "consentDocs": ["on-bilgilendirme-formu", "mesafeli-satis-sozlesmesi"] }
 ```
+
+`consentDocs` (yalnız ekleme): satın almadan önce onaylanacak belgelerin `slug`ları (§13).
+**Boş ya da eksikse uygulama hediye kartı için ödeme almaz** - ekran açılır ama "Gönder"
+etkin olmaz, çünkü onay kutusu olmadan mesafeli satış kurulamaz (lafmobil karar 267).
 
 `artKey` bir **çizim anahtarıdır**, URL değil: kart yüzü uygulamada `src/components/art` ile
 çizilir, sunucudan görsel inmez (karar 40 fotoğraf politikası).
@@ -1289,7 +1301,8 @@ Hatalar: **400** `invalid_amount` (seçenek listesinde yok / min altında) · **
 { "designKey": "classic", "amountMinor": 50000,
   "recipient": { "phone": "+905320000000" },   // phone VEYA email, ikisi birden değil
   "message": "Doğum günün kutlu olsun",        // en fazla 140 karakter
-  "deliverAt": "2026-09-12T06:00:00Z" }        // null ⇒ hemen
+  "deliverAt": "2026-09-12T06:00:00Z",        // null ⇒ hemen
+  "legalConsent": true }                       // consentDocs onayı (zorunlu, §3'teki gibi)
 ```
 
 → **201** `{ "giftCard": { "id", "status": "pending_payment", "amountMinor", "deliverAt" },
@@ -1303,7 +1316,7 @@ Kart **ödeme onaylanınca** üretilir ve `deliverAt`'te SMS/e-posta ile gider.
 `POST /gift-cards/redeem { "code" }` (kimlik) → kodu **cüzdana** yükler (§18);
 yanıt `{ "creditedMinor": 50000, "balanceMinor": 174000 }`. Cüzdan kapalıysa kupon üretir.
 
-Hatalar: **400** `invalid_amount` · **400** `invalid_recipient` (telefon/e-posta biçimi) ·
+Hatalar: **400** `invalid_request` (`legalConsent` yok, §3 siparişiyle aynı `z.literal(true)` kuralı) · **400** `invalid_amount` · **400** `invalid_recipient` (telefon/e-posta biçimi) ·
 **400** `message_too_long` · **400** `invalid_schedule` (geçmiş ya da `maxScheduleDays` ötesi) ·
 **404** `gift_card_not_found` · **409** `already_redeemed` · **409** `own_card` ·
 **429** `too_many_gift_cards` · **503** `unavailable`.
