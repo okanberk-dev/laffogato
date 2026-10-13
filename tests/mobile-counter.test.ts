@@ -87,7 +87,21 @@ describe("issueCounterToken", () => {
     const { code } = await issue();
     expect(code).toHaveLength(8);
     // No O/0, no I/1/L - the whole point of the reduced alphabet.
-    expect(code).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{8}$/);
+    expect(code).toMatch(/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/);
+  });
+
+  it("never prints an L, however many codes it draws", async () => {
+    // The alphabet carried an `L` for weeks while its comment said it did
+    // not; one 8-character code shows it only now and then, sixty do not lie.
+    const letters = new Set<string>();
+    for (let i = 0; i < 60; i += 1) {
+      const res = await issueCounterToken(`tur${i}@ornek.com`);
+      if (!res.ok) throw new Error(`beklenmedik hız sınırı: ${res.error}`);
+      for (const ch of res.issue.code) letters.add(ch);
+    }
+    expect(letters.has("L")).toBe(false);
+    expect(letters.has("I")).toBe(false);
+    expect(letters.has("O")).toBe(false);
   });
 
   it("draws a token QR can encode in its cheap mode", async () => {

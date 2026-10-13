@@ -33,8 +33,17 @@ const MAX_ISSUES_PER_WINDOW = 10;
 /** Spent and expired rows are swept a day later, on the redeem path. */
 const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 
-/** No O/0, no I/1/L: the cashier reads this out loud when the camera fails. */
-const CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+/**
+ * No O/0, no I/1/L: the cashier reads this out loud when the camera fails.
+ *
+ * The comment always said so and the string still carried an `L` - on a till
+ * screen, in a hurry, read as `1` or `I` and typed as either, it turned a
+ * good code into `not_found`. Without it the alphabet is 31 symbols, which is
+ * no longer a divisor of 256, so `newCode` draws by rejection rather than by
+ * `% length`: a plain modulo would make the first eight symbols a little
+ * likelier than the rest.
+ */
+const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
 const CODE_LENGTH = 8;
 
 /**
@@ -113,9 +122,17 @@ export function hashCounterToken(token: string): string {
 
 /** The 8 characters the cashier may have to type - unbiased, 32 = 2^5 per byte. */
 function newCode(): string {
-  const bytes = randomBytes(CODE_LENGTH);
+  // The largest multiple of the alphabet's length that fits in a byte: bytes
+  // at or above it are thrown back, so every symbol is equally likely.
+  const fair = 256 - (256 % CODE_ALPHABET.length);
   let out = "";
-  for (const byte of bytes) out += CODE_ALPHABET[byte % CODE_ALPHABET.length];
+  while (out.length < CODE_LENGTH) {
+    for (const byte of randomBytes(CODE_LENGTH)) {
+      if (byte >= fair) continue;
+      out += CODE_ALPHABET[byte % CODE_ALPHABET.length];
+      if (out.length === CODE_LENGTH) break;
+    }
+  }
   return out;
 }
 
