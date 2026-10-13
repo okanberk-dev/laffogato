@@ -30,6 +30,20 @@ export const usualSchema = z
 
 const BIRTHDAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * A birthday the calendar actually has. The shape alone let `1990-13-45`
+ * through, and the birthday job - which looks for this month and this day -
+ * then never found the member: no greeting, no coupon, and no error anywhere
+ * to say why. `Date.UTC` rolls an impossible day over into the next month, so
+ * a date that does not read back as itself was never a date.
+ */
+export function isCalendarDate(v: string): boolean {
+  if (!BIRTHDAY_RE.test(v)) return false;
+  const [y, m, d] = v.split("-").map(Number);
+  const at = new Date(Date.UTC(y, m - 1, d));
+  return at.getUTCFullYear() === y && at.getUTCMonth() === m - 1 && at.getUTCDate() === d;
+}
+
 export const mePatchSchema = z
   .object({
     name: trimmed(100, "Ad").min(2, "Ad en az 2 karakter olmalı.").optional(),
@@ -37,7 +51,7 @@ export const mePatchSchema = z
     birthday: z
       .string()
       .trim()
-      .refine((v) => v === "" || BIRTHDAY_RE.test(v), {
+      .refine((v) => v === "" || isCalendarDate(v), {
         message: "Doğum günü YYYY-AA-GG biçiminde olmalı.",
       })
       .optional(),
