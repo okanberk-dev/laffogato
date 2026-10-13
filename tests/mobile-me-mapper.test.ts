@@ -278,6 +278,12 @@ describe("mePatchSchema", () => {
       false,
     );
     expect(mePatchSchema.safeParse({ birthday: "" }).success).toBe(true);
+    // The shape is not enough: the birthday job looks for a month and a day
+    // the calendar has, and a member saved as 13/45 was never greeted.
+    expect(mePatchSchema.safeParse({ birthday: "1990-13-45" }).success).toBe(false);
+    expect(mePatchSchema.safeParse({ birthday: "1990-02-30" }).success).toBe(false);
+    expect(mePatchSchema.safeParse({ birthday: "1992-02-29" }).success).toBe(true);
+    expect(mePatchSchema.safeParse({ birthday: "1991-02-29" }).success).toBe(false);
     expect(
       mePatchSchema.safeParse({ usual: { menuItemId: "x", size: "XL" } })
         .success,
