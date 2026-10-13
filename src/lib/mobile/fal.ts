@@ -93,23 +93,72 @@ export async function falReadingsToday(email: string, now: Date = new Date()): P
 }
 
 /**
- * The usage record: the day, whether a cup was seen, the model. Never the
- * photo, never the words - R12 promises exactly this much and no more.
+ * A seat on today's quota, taken BEFORE the photo goes to the model.
+ *
+ * The count used to be read, the model asked, and the row written only after
+ * the answer came back. Two requests from the same member in the same second
+ * both read "2 of 3", both paid for a reading, and both recorded one - the
+ * daily cap held for a patient caller and not for a scripted one (CLAUDE.md
+ * rule 20/30: count first, then do the costly thing).
+ *
+ * So the row is the reservation. It is inserted first, and the member's seat
+ * is its RANK among today's rows - how many of their rows carry a smaller
+ * id. Ranking by id rather than re-counting after the insert matters: two
+ * concurrent inserts would both re-count "4 of 3" and both give up, while by
+ * rank exactly one of them is third. A seat past the limit deletes its own
+ * row and answers `{ ok: false }`.
+ *
+ * A failed reading gives the seat back (`releaseFalReading`), so a model
+ * error never spends a member's turn, as before; a successful one fills the
+ * row in (`completeFalReading`). A process that dies between the two leaves
+ * an empty row that counts - the model may well have been paid for.
  */
-export async function recordFalReading(
+export type FalSeat = { ok: true; id: number; used: number } | { ok: false };
+
+export async function reserveFalReading(
   email: string,
-  cupSeen: boolean,
-  model: string,
+  limit: number,
   now: Date = new Date(),
-): Promise<void> {
-  const { error } = await getDb().from(TABLES.falReadings).insert({
-    customerEmail: owner(email),
-    day: istanbulClock(now).date,
-    createdAt: now.toISOString(),
-    model,
-    cupSeen,
-  });
-  checkErr(error, "recordFalReading");
+): Promise<FalSeat> {
+  const db = getDb();
+  const who = owner(email);
+  const day = istanbulClock(now).date;
+  const { data, error } = await db
+    .from(TABLES.falReadings)
+    .insert({ customerEmail: who, day, createdAt: now.toISOString(), model: "", cupSeen: false })
+    .select("id");
+  checkErr(error, "reserveFalReading");
+  const id = Number(((data as { id: number | string }[] | null) ?? [])[0]?.id);
+  if (!Number.isFinite(id)) throw new Error("reserveFalReading: insert returned no id");
+
+  const before = await db
+    .from(TABLES.falReadings)
+    .select("id")
+    .eq("customerEmail", who)
+    .eq("day", day)
+    .lt("id", id);
+  checkErr(before.error, "reserveFalReading");
+  const used = ((before.data as unknown[] | null) ?? []).length;
+  if (used >= limit) {
+    await releaseFalReading(id);
+    return { ok: false };
+  }
+  return { ok: true, id, used };
+}
+
+/** Gives a seat back: the reading did not happen, so it does not count. */
+export async function releaseFalReading(id: number): Promise<void> {
+  const { error } = await getDb().from(TABLES.falReadings).delete().eq("id", id);
+  checkErr(error, "releaseFalReading");
+}
+
+/**
+ * The usage record: whether a cup was seen, the model. Never the photo,
+ * never the words - R12 promises exactly this much and no more.
+ */
+export async function completeFalReading(id: number, cupSeen: boolean, model: string): Promise<void> {
+  const { error } = await getDb().from(TABLES.falReadings).update({ cupSeen, model }).eq("id", id);
+  checkErr(error, "completeFalReading");
 }
 
 /** One "Bu yorumu bildir" report, as the table records it. */
