@@ -156,6 +156,9 @@ describe("POST /fal", () => {
     lib.hasFalConsent.mockResolvedValue(true);
     lib.falReadingsToday.mockResolvedValue(0);
     lib.reserveFalReading.mockResolvedValue({ ok: true, id: 7, used: 0 });
+    // Promises, as the real ones are: the route chains .catch() on the release.
+    lib.releaseFalReading.mockResolvedValue(undefined);
+    lib.completeFalReading.mockResolvedValue(undefined);
     lib.buildFalContext.mockResolvedValue({ tier: "L'AF", visits: "new", usual: "" });
     lib.readCupWithAI.mockResolvedValue({ ok: true, reading: READING, model: "gpt-5.4-mini" });
   });
