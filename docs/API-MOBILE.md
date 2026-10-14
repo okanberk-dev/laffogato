@@ -685,6 +685,11 @@ Cache: `public, s-maxage=30` — `stale-while-revalidate` **yok**: panel persone
   uygulama sunucunun mesajını gösterir, tekrar denemeyi önermez.
 - **403 `email_unverified`**: e-postası doğrulanmamış üye rezervasyon yapamaz
   (sipariş kuralıyla aynı; web `/karaoke` formu da aynı kuralı uygular).
+- **400 `invalid_request` + `field` (14 Eki 2026, yalnız ekleme):** ret `note` alanından
+  geliyorsa (200 karakteri aşan ya da metin olmayan not) gövde
+  `{ "error": "invalid_request", "message": "Not en fazla 200 karakter.", "field": "note" }`
+  olur; uygulama hatayı not kutusunun altında gösterebilir. Başka 400'lerde `field` yoktur;
+  `error` ve `message` değişmez.
 
 > **Uygulama notu (§7).** `date` verilmezse İstanbul'a göre bugün; biçim bozuksa 400
 > `invalid_request`. Kurallar (varsayılanlar parantezde, tümü panelden değişir):

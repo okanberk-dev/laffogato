@@ -57,7 +57,15 @@ export async function POST(request: Request) {
     }
     const result = await createReservation(auth.customer, body);
     if (!result.ok) {
-      return apiError(result.status, result.error, result.message);
+      // `field` is additive (§7): an older app reads `error` and `message`
+      // exactly as before.
+      return apiError(
+        result.status,
+        result.error,
+        result.message,
+        undefined,
+        result.field ? { field: result.field } : undefined,
+      );
     }
     // The room is booked by hand, so a request nobody reads is a request
     // nobody honours. Awaited rather than fired and forgotten: this runtime
