@@ -1,0 +1,29 @@
+<!--
+  Supabase Auth → Email Templates → "Magic Link".
+  Konu: L'Affogato - giriş kodun
+
+  Uygulamadaki "E-postama giriş kodu gönder" bunu tetikler (lafmobil ·
+  src/lib/supabase/session.ts · requestSignInCode → signInWithOtp,
+  shouldCreateUser: false). Üye kodu uygulamadaki "E-postadaki giriş kodu"
+  alanına yazar (verifySignInCode → verifyOtp, type 'email').
+
+  {{ .Token }} ŞART. Supabase'in varsayılan Magic Link şablonu yalnız bağlantı
+  taşır; uygulama bağlantıyla değil KODLA giriş yapar. Kodun uzunluğu
+  Authentication → Email → "Email OTP Length" (varsayılan 6; uygulama 6-10
+  rakam kabul eder), ömrü "Email OTP Expiration" (3600 sn; değiştirme -
+  lafmobil docs/AUTH.md §5b).
+
+  Bağlantı bilerek yok: telefonda açılan bir magic link Site URL'sine iner ve
+  uygulamada oturum açmaz. Tek yol kod.
+
+  Bu yorum Supabase'in şablon kutusuna yapıştırıldığında da orada durur;
+  zararsızdır ama doğru olmak zorundadır - bir sonraki okuyan onu okuyacak.
+-->
+<div style="font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
+  <p style="font-size:16px">Merhaba,</p>
+  <p style="font-size:15px;line-height:1.6">L'Affogato uygulamasına giriş kodun:</p>
+  <p style="margin:24px 0;font-size:32px;font-weight:700;letter-spacing:0.3em;color:#143d2b">{{ .Token }}</p>
+  <p style="font-size:13px;color:#5f594e;line-height:1.6">Kodu uygulamadaki "E-postadaki giriş kodu" alanına yaz. Kod 1 saat geçerlidir ve bir kez kullanılabilir.</p>
+  <p style="font-size:12px;color:#746b5d">Bu kodu sen istemediysen hiçbir şey yapmana gerek yok; kod olmadan hesabına giriş yapılamaz. Kodu kimseyle paylaşma: L'Affogato senden asla bu kodu istemez.</p>
+  <p style="font-size:13px;color:#201c17;margin-top:24px">- L'Affogato · Coffee Italiano</p>
+</div>
