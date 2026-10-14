@@ -409,3 +409,29 @@ hariç - belge onları "henüz yok, 404 beklenir" diye yazıyor, uygulama 404'ü
 duran iş: PayNkolay'ın canlı ölçüm listesi (`docs/PAYNKOLAY.md` §12) - köprü
 formunun POS'a gidişi (CSP artık izin veriyor), `PaymentList` üretim ucu ve
 dönüş hash'inin `CURRENCY_CODE` alanı.
+
+## 9. Mobil denetim turu - 14 Eki 2026
+
+lafmobil'in uygulama denetimi (`lafmobil/docs/AUDIT-APP-2026-10-14.md`,
+karar 312) iki depo arasını da okudu: `src/lib/mobile/**`, `api/mobile/v1/**`
+ve `docs/API-MOBILE.md` uygulamanın okuduğu alanlarla karşılaştırıldı.
+
+### Düzeltilenler
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | `POST /fal` günlük sınırı oku-sonra-yaz ile denetleniyordu; kayıt yalnız başarılı yorumdan sonra yazıldığı için aynı üyenin paralel istekleri `FAL_DAILY_LIMIT`'i aşıp her biri ücretli bir model çağrısı yapıyordu | Koltuk modelden önce SQL'de alınır: `reserve_fal_reading` (üye + İstanbul günü üstünde advisory lock, say, sınırın altındaysa ekle). Başarısız yorum koltuğu geri verir. Satırı id sırasıyla sıralamak yetmedi: gerçek Postgres'te altı paralel istekte dördüncüsü yaklaşık yirmi koşuda bir geçti | `mobile-fal-seat`, `db-integration-fal-seat`, `mobile-fal` |
+| 🟡 | Yeniden açılan ödeme oturumları (`POST /orders/{id}/payment`, `clientOrderId` tekrarı) POS'a boş alıcı IP'si geçiriyordu (`cardHolderIP: 0.0.0.0`) | `replayAppOrder` isteğin IP'sini (`clientIp()`) taşır | `mobile-order-payment` |
+| 🟡 | Kasa kodu alfabesi `L` içeriyordu; sözleşme (§17) ve kodun kendi yorumu "I/1/L yok" diyor | `L` çıktı; harf seçimi modulo sapmasız (reddetmeli örnekleme) | `mobile-counter` |
+| 🟡 | `PATCH /me` `birthday` yalnız desenle doğrulanıyordu; `1990-13-45` gibi takvimde olmayan tarih kaydediliyor, doğum günü kuponu hiç tetiklenmiyordu | `isCalendarDate` | `mobile-me-mapper` |
+| 🟢 | `docs/API-MOBILE.md` yedi yerde iki uygulamanın yaptığını söylemiyordu: hediye kartı `consentDocs` + `legalConsent` (§19), `invite.people[].rewarded` ve davet kuralları (§4, §5), karaoke çakışma kısıtı (§7), cüzdan/hediye kartı satırı (§12), `POST /fal`'ın 30 sn süresi (§0), kasa kodu alfabesi (§17) | Belge düzeltildi; lafmobil kopyası aynı (RECONCILED hash güncel) | `api-contract-parity`, lafmobil `contract-sync` |
+
+### Açık
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟡 | `/odeme/donus` POST dalı, `applyPaymentSucceeded` siparişi ilerletmemişken de uygulamaya `?status=success` veriyor | Bilerek bırakıldı: dönüş POS'un sonucunu söyler; "başarısız" demek parası çekilmiş üyeyi ikinci ödemeye iter. Uygulamanın sipariş ekranı sunucunun durumunu okur |
+| 🟢 | `POST /orders/preview` kapalı mağazayı da fiyatlıyor; yalnız `POST /orders` 409 `shop_closed` veriyor | Ayrı PR: önizlemeye yeni bir ret eklemek sahadaki sürümlerin okuduğu bir davranış değişikliği |
+| 🟢 | Sipariş adresi, kayıtlı adres ve `PATCH /me` telefonları yalnız uzunlukla doğrulanıyor; `normalizeTrPhone` kullanılmıyor | Ayrı PR: doğrulamayı sıkılaştırmak eski sürümlerin gönderdiğini reddedebilir, önce ölçülmeli |
+| 🟢 | Davet ödülünün 150 TL alt sınırı kurye ücretini de içeren `totalMinor` ile ölçülüyor | Operatör kararı: alt sınır kurye ücretini sayar mı |
+| 🟢 | Hangi kafe kategorilerinin özelleştirilemeyeceği yalnız uygulamada (`NON_CUSTOMIZABLE`); sunucu her satıra süt/şurup/shot ek ücretini uygular | Ayrı PR: uygulama bu kategorilerde özelleştirme göndermez, sunucu tarafı sertleştirme |
