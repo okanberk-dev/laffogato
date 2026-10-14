@@ -20,6 +20,7 @@ Site ile uygulama **tek bir Supabase projesini** kimlik için paylaşır
 | **Uygulamada kayıt → doğrulama** | **Supabase Auth**              | **Resend SMTP**     |
 | **Uygulamada "şifremi unuttum"** | **Supabase Auth**              | **Resend SMTP**     |
 | Üye e-posta adresini değiştirdi  | Supabase Auth                  | Resend SMTP         |
+| **Uygulamada kodla giriş**       | **Supabase Auth**              | **Resend SMTP**     |
 
 İkisini de yapılandırmak gerekir. Yalnız birini yaparsan yarısı sessizce
 çalışmaz: sitenin e-postaları sunucu günlüğüne düşer, uygulamanınkiler
@@ -141,12 +142,19 @@ Supabase Dashboard → proje → **Authentication → Emails → SMTP Settings**
 | Sender email       | `siparis@laffogato.net`                            |
 | Sender name        | `L'Affogato`                                       |
 
-Ardından **Authentication → Emails → Templates**. Üç şablonun Türkçe ve marka
+Ardından **Authentication → Emails → Templates**. Dört şablonun Türkçe ve marka
 uyumlu hâli bu depoda duruyor; içeriği olduğu gibi yapıştır:
 
 - `docs/email/supabase-confirm-signup.html` → _Confirm signup_
 - `docs/email/supabase-reset-password.html` → _Reset Password_
 - `docs/email/supabase-change-email.html` → _Change Email Address_
+- `docs/email/supabase-magic-link.html` → _Magic Link_ (14 Eki 2026,
+  lafmobil karar 316: uygulamanın "E-postama giriş kodu gönder"i
+  `signInWithOtp` ile bunu tetikler). Şablon `{{ .Token }}` taşımak
+  **zorunda**: Supabase'in varsayılanı yalnız bağlantı taşır, bağlantı
+  telefonda Site URL'sine iner ve uygulamada oturum açmaz. Kodun uzunluğu
+  Authentication → Email → "Email OTP Length" (uygulama 6-10 rakam kabul
+  eder); ömrü "Email OTP Expiration" (3600 sn, değiştirme).
 
 Konu satırları (tek çizgi, tire; 23 Eyl 2026'dan önce yapıştırılanlar uzun
 tireyle yazılmıştı, şablonlarla birlikte bunları da güncelle):
@@ -154,6 +162,7 @@ tireyle yazılmıştı, şablonlarla birlikte bunları da güncelle):
 - Confirm signup - `L'Affogato - e-posta adresini doğrula`
 - Reset Password - `L'Affogato - şifre sıfırlama`
 - Change Email - `L'Affogato - e-posta adresi değişikliği`
+- Magic Link - `L'Affogato - giriş kodun`
 
 Şablonlar `src/lib/email/send.ts`'teki mesajlarla aynı tasarımı kullanır. Üye
 ikisini de aynı markadan alıyor; biri değişirse diğeri de değişmeli.
