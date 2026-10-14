@@ -186,21 +186,58 @@ describe("palette follows the app's porcelain", () => {
     expect(css).not.toContain("rgba(18, 41, 31,");
   });
 
-  it("speaks in one voice, Poppins, and no retired one", () => {
-    // Operator, 11 Eki 2026: "sitede poppins fontu olsun". Poppins used to
-    // display and Inter to read (the app's pair, BRAND-IDENTITY §2); the site
-    // now reads in Poppins too, with ExtraBold for its display moments.
+  it("speaks in two voices - Poppins reads, Gabarito heads - and no retired one", () => {
+    // Operator, 11 Eki 2026: "sitede poppins fontu olsun"; 14 Eki 2026:
+    // "sitede yapay zeka gibi duruyor, yazı tipleri poppins ve biennale vs
+    // kullan". Biennale needs a licence; Gabarito (OFL) stands in for it on
+    // the headlines, and Poppins keeps the text and the controls.
     const layout = read("src/app/layout.tsx");
-    expect(layout).toMatch(/import \{ Poppins \} from "next\/font\/google"/);
+    expect(layout).toMatch(
+      /import \{ Gabarito, Poppins \} from "next\/font\/google"/,
+    );
     expect(layout).toMatch(
       /weight: \["300", "400", "500", "600", "700", "800"\]/,
     );
+    expect(layout).toMatch(
+      /weight: \["600", "700", "800"\],\n\s*variable: "--font-headline"/,
+    );
     expect(css).toContain('"Poppins"');
-    // Every historical token resolves to the one family...
+    // Every historical token resolves to the reading voice...
     expect(cssCode).toContain("--sans: var(--display);");
-    // ...and the second voice is gone from the stylesheet and the loader,
-    // not merely unused: a stray "Inter" in a font stack would quietly
-    // become the reading face again wherever Poppins is missing a glyph.
+    // ...and the headline voice falls back to it, never to the system font.
+    expect(cssCode).toContain(
+      '--headline: var(--font-headline), "Gabarito", var(--display);',
+    );
+    const rule = (selector: string) => {
+      const at = cssCode.indexOf(`\n${selector} {`);
+      expect(at, `${selector} is missing from globals.css`).toBeGreaterThan(-1);
+      return cssCode.slice(at, cssCode.indexOf("\n}", at));
+    };
+    // Titles and display figures head; controls, names and list prices read.
+    for (const heading of [
+      ".h-display",
+      ".h1",
+      ".h2",
+      ".h3",
+      ".hero-x-title",
+      ".section-title",
+      ".stat-n",
+      ".pdp-title",
+    ]) {
+      expect(rule(heading)).toContain("font-family: var(--headline);");
+    }
+    for (const control of [
+      ".btn",
+      ".chip-link",
+      ".product-card-name",
+      ".product-card-price",
+      ".home-intro-text",
+    ]) {
+      expect(rule(control)).toContain("font-family: var(--display);");
+    }
+    // The retired faces are gone from the stylesheet and the loader, not
+    // merely unused: a stray "Inter" in a font stack would quietly become
+    // the reading face again wherever Poppins is missing a glyph.
     expect(cssCode).not.toMatch(/\bInter\b/);
     expect(layout).not.toMatch(/import \{[^}]*\bInter\b/);
     expect(layout).not.toMatch(/\bInter\(/);
