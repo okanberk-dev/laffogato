@@ -101,12 +101,13 @@ export async function falReadingsToday(email: string, now: Date = new Date()): P
  * daily cap held for a patient caller and not for a scripted one (CLAUDE.md
  * rule 20/30: count first, then do the costly thing).
  *
- * So the row is the reservation. It is inserted first, and the member's seat
- * is its RANK among today's rows - how many of their rows carry a smaller
- * id. Ranking by id rather than re-counting after the insert matters: two
- * concurrent inserts would both re-count "4 of 3" and both give up, while by
- * rank exactly one of them is third. A seat past the limit deletes its own
- * row and answers `{ ok: false }`.
+ * So the row is the reservation, and `reserve_fal_reading` takes it in one
+ * statement: an advisory lock on the member and the Istanbul day, a count,
+ * and the insert only under the limit. Ranking an inserted row by id was not
+ * enough - an earlier id can still be uncommitted when a later one ranks
+ * itself, and a real Postgres let a fourth of six parallel requests through
+ * (tests/db-integration-fal-seat.test.ts). `used` is how many seats were
+ * taken before this one.
  *
  * A failed reading gives the seat back (`releaseFalReading`), so a model
  * error never spends a member's turn, as before; a successful one fills the
@@ -120,28 +121,21 @@ export async function reserveFalReading(
   limit: number,
   now: Date = new Date(),
 ): Promise<FalSeat> {
-  const db = getDb();
-  const who = owner(email);
-  const day = istanbulClock(now).date;
-  const { data, error } = await db
-    .from(TABLES.falReadings)
-    .insert({ customerEmail: who, day, createdAt: now.toISOString(), model: "", cupSeen: false })
-    .select("id");
+  const { data, error } = await getDb().rpc<{ id: number | string; used: number | string } | null>(
+    "reserve_fal_reading",
+    {
+      p_email: owner(email),
+      p_day: istanbulClock(now).date,
+      p_limit: limit,
+      p_created_at: now.toISOString(),
+    },
+  );
   checkErr(error, "reserveFalReading");
-  const id = Number(((data as { id: number | string }[] | null) ?? [])[0]?.id);
-  if (!Number.isFinite(id)) throw new Error("reserveFalReading: insert returned no id");
-
-  const before = await db
-    .from(TABLES.falReadings)
-    .select("id")
-    .eq("customerEmail", who)
-    .eq("day", day)
-    .lt("id", id);
-  checkErr(before.error, "reserveFalReading");
-  const used = ((before.data as unknown[] | null) ?? []).length;
-  if (used >= limit) {
-    await releaseFalReading(id);
-    return { ok: false };
+  if (!data) return { ok: false };
+  const id = Number(data.id);
+  const used = Number(data.used);
+  if (!Number.isFinite(id) || !Number.isFinite(used)) {
+    throw new Error("reserveFalReading: the seat came back without an id");
   }
   return { ok: true, id, used };
 }
