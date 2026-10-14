@@ -592,6 +592,11 @@ Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği
 > anahtarında da tutar (JSONB, migration yok) ve okurken o tercih edilir; böylece
 > sonek taşımayan bir mahalle ("Postane") de `neighbourhood` olarak geri döner. Bu anahtarı
 > taşımayan eski satırlar ve sitede düzenlenen adresler yukarıdaki ayrıştırmayla okunur.
+> **Telefon (14 Eki 2026, yalnız ekleme):** `PATCH /me` `phone`, adres `phone` ve
+> `POST /orders` satır içi adres `phone` doğrulanmadan önce normalleştirilir: Türkiye cep
+> numarası hangi yazımla gelirse gelsin (`0532 123 45 67`, `+90 (532) 123-45-67`,
+> `5321234567`) `+905321234567` olarak saklanır ve geri döner. Cep olmayan numara (sabit hat,
+> yurt dışı) yazıldığı gibi kalır; daha önce kabul edilen hiçbir biçim reddedilmez.
 > `loyalty.badges` ve `tier` yalnız `paid/preparing/shipped/completed` siparişleri sayar
 > (ödenmemiş/iptal/iade sayılmaz).
 

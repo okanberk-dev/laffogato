@@ -14,6 +14,7 @@ import {
   type InviteSummary,
 } from "@/lib/mobile/me-mapper";
 import { addressInputSchema, mePatchSchema } from "@/lib/mobile/me-schema";
+import { inlineAddressSchema } from "@/lib/mobile/order-schema";
 
 const address: CustomerAddress = {
   id: "adr-1",
@@ -334,6 +335,46 @@ describe("mePatchSchema", () => {
     expect(
       mePatchSchema.safeParse({ usual: { menuItemId: "x", size: "XL" } })
         .success,
+    ).toBe(false);
+  });
+});
+
+describe("phone fields are normalised before validation (W1-04)", () => {
+  const addressBody = {
+    title: "Ev",
+    fullName: "Eda Mancuso",
+    city: "İstanbul",
+    line: "Atatürk Cad. No: 28",
+  };
+
+  it("stores a Turkish mobile in one form, whatever the spelling", () => {
+    for (const raw of [
+      "0532 123 45 67",
+      "+90 (532) 123-45-67",
+      "5321234567",
+      "905321234567",
+    ]) {
+      const a = addressInputSchema.safeParse({ ...addressBody, phone: raw });
+      expect(a.success && a.data.phone, raw).toBe("+905321234567");
+      const p = mePatchSchema.safeParse({ phone: raw });
+      expect(p.success && p.data.phone, raw).toBe("+905321234567");
+      const o = inlineAddressSchema.safeParse({
+        ...addressBody,
+        phone: raw,
+      });
+      expect(o.success && o.data.phone, raw).toBe("+905321234567");
+    }
+  });
+
+  it("keeps any other number as typed and refuses nothing it used to accept", () => {
+    for (const raw of ["0216 123 45 67", "+44 20 7946 0958", "1234567"]) {
+      const a = addressInputSchema.safeParse({ ...addressBody, phone: raw });
+      expect(a.success && a.data.phone, raw).toBe(raw);
+    }
+    // Profile phone may still be cleared, and the old floor still holds.
+    expect(mePatchSchema.safeParse({ phone: "" }).success).toBe(true);
+    expect(
+      addressInputSchema.safeParse({ ...addressBody, phone: "12345" }).success,
     ).toBe(false);
   });
 });

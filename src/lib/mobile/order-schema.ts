@@ -6,6 +6,7 @@
 import { z } from "zod";
 
 import { lineOptionsSchema, orderItemSizeSchema } from "./customization";
+import { phoneField } from "./me-schema";
 import { fulfillmentAllowed } from "./order-pricing";
 
 /** Per-line quantity ceiling - mirrors `MAX_LINE_QTY` in the store. */
@@ -118,11 +119,14 @@ export const inlineAddressSchema = z
       .trim()
       .min(2, { error: "Alıcı adı zorunlu." })
       .max(100, { error: "Alıcı adı çok uzun." }),
-    phone: z
-      .string({ error: "Telefon geçersiz." })
-      .trim()
-      .min(7, { error: "Geçerli bir telefon gir." })
-      .max(30, { error: "Telefon çok uzun." }),
+    // Normalised before it is checked, like the saved address (W1-04).
+    phone: phoneField(
+      z
+        .string({ error: "Telefon geçersiz." })
+        .trim()
+        .min(7, { error: "Geçerli bir telefon gir." })
+        .max(30, { error: "Telefon çok uzun." }),
+    ),
     city: z
       .string({ error: "Şehir geçersiz." })
       .trim()
