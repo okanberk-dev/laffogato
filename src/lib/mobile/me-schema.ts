@@ -41,7 +41,11 @@ export function isCalendarDate(v: string): boolean {
   if (!BIRTHDAY_RE.test(v)) return false;
   const [y, m, d] = v.split("-").map(Number);
   const at = new Date(Date.UTC(y, m - 1, d));
-  return at.getUTCFullYear() === y && at.getUTCMonth() === m - 1 && at.getUTCDate() === d;
+  return (
+    at.getUTCFullYear() === y &&
+    at.getUTCMonth() === m - 1 &&
+    at.getUTCDate() === d
+  );
 }
 
 export const mePatchSchema = z
