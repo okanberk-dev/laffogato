@@ -306,7 +306,7 @@ yazma, eskiyor). Sayaç fonksiyonları: `next_seq` / `claim_order_stock` /
 `release_order_stock` / `redeem_promo` / `release_promo_usage` /
 `increment_promo_usage` / `adjust_product_stock` / `record_auth_failure` /
 `reserve_auth_attempt` / `reserve_order_refund` / `drop_order_refund` /
-`toggle_wishlist` / `campaign_email_claim`, ve üye başına tavanları tutan
+`toggle_wishlist` / `campaign_email_claim` / `reserve_fal_reading`, ve üye başına tavanları tutan
 tetikleyiciler (`app_pending_order_cap`, `karaoke_open_cap`,
 `counter_token_issue_cap`). Her biri, JavaScript'te yapılan bir
 oku-değiştir-yaz'ın eşzamanlılık altında kaybettiği yazımlar yüzünden var. Şema yoksa uygulama onu ilk sorguda kendisi kurar
