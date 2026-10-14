@@ -232,6 +232,30 @@ const orderFields = {
     .trim()
     .max(64, { error: "İstek kimliği çok uzun." })
     .default(""),
+  /**
+   * Pay the whole order from the member's wallet (docs/API-MOBILE.md §18):
+   * all of it or nothing - a short balance is 409 `insufficient_balance` and
+   * no order is written. Optional and false by default, so every existing
+   * build orders exactly as before. Accepted and ignored on the preview,
+   * which posts the same basket object.
+   */
+  payWithWallet: z
+    .boolean({ error: "Cüzdan seçimi geçersiz." })
+    .default(false),
+  /**
+   * The total the member saw and agreed to, in kuruş. Honoured only with
+   * `payWithWallet: true`: a wallet order is charged at once, so it never
+   * reaches the "Tutar değişti" card a card checkout shows before paying.
+   * When the server's total differs, the answer is 409 `total_changed` with
+   * the new `totalMinor`, and nothing is written or charged. Optional; absent
+   * is the behaviour before it existed.
+   */
+  expectedTotalMinor: z
+    .number({ error: "Beklenen tutar geçersiz." })
+    .int({ error: "Beklenen tutar kuruş cinsinden tam sayı olmalı." })
+    .min(0, { error: "Beklenen tutar negatif olamaz." })
+    .max(100_000_000, { error: "Beklenen tutar geçersiz." })
+    .optional(),
 };
 
 type OrderFieldsParsed = {

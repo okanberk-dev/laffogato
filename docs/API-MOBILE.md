@@ -391,6 +391,11 @@ Kurallar:
 >   köşk açık göründüğü hâlde her gel-al siparişi reddediliyordu.)
 > - `totalMinor === 0` (kupon toplamı sıfırladı) → sipariş sunucuda anında `paid`
 >   (`payment_transactions.provider = "free"`), `payment: null`.
+> - `payWithWallet: true` (opsiyonel, varsayılan `false`; §18, 14 Eki 2026): bakiye
+>   siparişin tamamını öder → **201**, sipariş `paid`, `payment: null`
+>   (`payment_transactions.provider = "wallet"`). Bakiye yetmezse ya da cüzdan kapalıysa
+>   **409** `insufficient_balance`; sipariş yazılmaz. `/orders/preview` alanı kabul eder ve
+>   yok sayar. Yanında opsiyonel `expectedTotalMinor` (kuruş) gönderilebilir; ayrıntı §18.
 > - `clientOrderId` (opsiyonel, `/orders` ve `/orders/preview`): aynı üye aynı değerle
 >   tekrar gönderirse **aynı sipariş** döner, yenisi açılmaz; hâlâ `pending_payment` ise
 >   yeni bir ödeme oturumu açılır. POS o an açılamazsa tekrar da ilk deneme gibi **500**
@@ -1257,9 +1262,31 @@ istemciden alınmaz" kuralının cüzdandaki karşılığı).
 Ödemede cüzdan kullanımı `POST /orders` gövdesine `"payWithWallet": true` ile girer; bakiye
 yetmezse **409** `insufficient_balance` ve sipariş **oluşmaz** (kısmi çekim yok).
 
+> **Sunucu (14 Eki 2026, yalnız ekleme).** `payWithWallet` yazıldı. Bakiye
+> `wallet_transactions` defterindeki satırların toplamıdır (saklanan bir sayı yok);
+> sipariş satırı ve harcama satırı tek SQL işleminde, üye başına kilit altında yazılır
+> (`wallet_place_order`), dolayısıyla birlikte bakiyeyi aşan iki eşzamanlı siparişten
+> yalnız biri geçer. Başarılı cüzdan siparişi kart ödemesiyle aynı yoldan `paid` olur
+> (damga, davet, "ödemen alındı" e-postası) ve yanıt `payment: null` taşır. Cüzdan
+> sunucuda `WALLET_ENABLED=true` olmadıkça kapalıdır; kapalıyken `payWithWallet: true`
+> **409** `insufficient_balance` döner ve sipariş yazılmaz. Cüzdanla ödenmiş siparişin
+> iadesi karta değil **cüzdana** döner (`kind: "refund"`). `GET /me/wallet`, yükleme ve
+> otomatik yükleme uçları henüz yok (404, yukarıdaki not).
+>
+> **`expectedTotalMinor` (opsiyonel, 14 Eki 2026, yalnız ekleme).** Üyenin gördüğü ve
+> onayladığı toplam, kuruş tamsayı. **Yalnız `payWithWallet: true` ile birlikte**
+> dikkate alınır: kartla ödemede uygulama ödeme sayfası açılmadan önce "Tutar değişti"
+> kartını gösterebilir, cüzdan ise anında çeker. Sunucunun hesapladığı toplam (veritabanı
+> fiyatları, düşen kupon dahil) bu değerden farklıysa **409** `total_changed` döner, gövdede
+> yeni toplam `totalMinor` bulunur (`{ "error": "total_changed", "message": "…",
+> "totalMinor": 12500 }`); sipariş yazılmaz, bakiyeden hiçbir şey düşmez, alınan kupon geri
+> verilir. Alan yoksa davranış öncekiyle aynıdır. `/orders/preview` alanı kabul eder ve
+> yok sayar.
+
 Hatalar: **400** `invalid_amount` (seçenek listesinde yok / min altında) · **409** `balance_cap` ·
 **409** `insufficient_balance` · **409** `no_saved_card` · **429** `too_many_topups` ·
-**503** `unavailable`.
+**503** `unavailable` · **409** `total_changed` (yalnız `POST /orders` + `payWithWallet` +
+`expectedTotalMinor`; gövdede `totalMinor`).
 
 > **Sadakat notu.** Tasarımın "cüzdanla ödeyene +%5 puan" satırı **yazılmadı**: bu uygulamada
 > sadakat damgadır, puan yoktur (karar 37) ve ödenmiş kafe siparişi zaten +1 damga verir.

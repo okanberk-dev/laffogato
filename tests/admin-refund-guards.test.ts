@@ -55,6 +55,23 @@ describe("refundRefusal - decided before the POS is asked for money", () => {
   });
 });
 
+describe("refunding a wallet-paid order (§18)", () => {
+  it("credits the wallet instead of asking the POS to refund a card", () => {
+    const action = readFileSync("src/app/admin/siparisler/actions.ts", "utf8");
+    const body = action.slice(
+      action.indexOf("export async function refundOrderAction"),
+    );
+    const walletBranch = body.indexOf("ref?.provider === WALLET_PROVIDER");
+    expect(walletBranch).toBeGreaterThan(-1);
+    expect(body.indexOf("creditWalletRefund(")).toBeGreaterThan(walletBranch);
+    // The wallet branch comes first; the card refund is the `else`.
+    expect(walletBranch).toBeLessThan(
+      body.indexOf("getPaymentProvider().refund("),
+    );
+    expect(body).toContain("} else if (ref) {");
+  });
+});
+
 describe("parseMoneyInput - lira typed into an admin form", () => {
   it("reads Turkish and plain spellings as the same amount", () => {
     expect(parseMoneyInput("1.250,00")).toBe(125000);

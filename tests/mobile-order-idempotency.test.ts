@@ -88,6 +88,7 @@ vi.mock("@/lib/admin/store", () => ({
   })),
   placeAppOrder,
   previewAppOrderLines: vi.fn(),
+  settleWalletPayment: vi.fn(async () => null),
 }));
 
 const createCheckoutSession = vi.fn(async () => ({

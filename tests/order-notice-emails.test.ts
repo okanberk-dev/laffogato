@@ -395,7 +395,8 @@ describe("every trigger calls its notice", () => {
       "notifyOrderRefunded(",
     );
     expect(body(action, "refundOrderAction")).toMatch(
-      /finalizeRefund\(reserved\.order, \{\s*refund: reserved\.refund,\s*viaCard: Boolean\(ref\),/,
+      // A wallet-paid order's refund goes back to the wallet, not a card.
+      /finalizeRefund\(reserved\.order, \{\s*refund: reserved\.refund,[\s\S]*?viaCard: Boolean\(ref\) && ref\?\.provider !== WALLET_PROVIDER,/,
     );
   });
 });
