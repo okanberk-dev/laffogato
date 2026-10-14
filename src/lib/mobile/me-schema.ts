@@ -4,9 +4,30 @@
 import { z } from "zod";
 
 import { lineOptionsSchema } from "./customization";
+import { normalizeTrPhone } from "./karaoke-core";
 
 const trimmed = (max: number, label: string) =>
   z.string().trim().max(max, `${label} en fazla ${max} karakter olabilir.`);
+
+/**
+ * A phone field as the app sends it, normalised BEFORE it is validated
+ * (W1-04): a Turkish mobile in any spelling ("0532 123 45 67",
+ * "+90 (532) 123-45-67", "5321234567") is stored as "+905321234567" - the
+ * form the karaoke booking, the POS and an SMS read - so one member's number
+ * is not three different strings. Anything that is not a Turkish mobile (a
+ * landline, a foreign number, a half-typed value an older build lets
+ * through) is kept as typed and checked exactly as before: no format an old
+ * app version sends is newly refused.
+ */
+export function normalizePhoneInput(raw: unknown): unknown {
+  if (typeof raw !== "string") return raw;
+  return normalizeTrPhone(raw) || raw.trim();
+}
+
+/** `schema` applied to the normalised phone. */
+export function phoneField<T extends z.ZodType>(schema: T) {
+  return z.preprocess(normalizePhoneInput, schema);
+}
 
 export const notificationPrefsPatchSchema = z
   .object({
@@ -51,7 +72,7 @@ export function isCalendarDate(v: string): boolean {
 export const mePatchSchema = z
   .object({
     name: trimmed(100, "Ad").min(2, "Ad en az 2 karakter olmalı.").optional(),
-    phone: trimmed(30, "Telefon").optional(),
+    phone: phoneField(trimmed(30, "Telefon")).optional(),
     birthday: z
       .string()
       .trim()
@@ -71,7 +92,9 @@ export const addressInputSchema = z
   .object({
     title: trimmed(40, "Adres başlığı").default(""),
     fullName: trimmed(100, "Ad soyad").min(2, "Alıcı adı zorunlu."),
-    phone: trimmed(30, "Telefon").min(7, "Geçerli bir telefon gir."),
+    phone: phoneField(
+      trimmed(30, "Telefon").min(7, "Geçerli bir telefon gir."),
+    ),
     city: trimmed(80, "Şehir").min(2, "Şehir zorunlu."),
     district: trimmed(80, "İlçe").default(""),
     neighbourhood: trimmed(80, "Mahalle").default(""),

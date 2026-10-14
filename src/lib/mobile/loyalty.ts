@@ -172,6 +172,7 @@ export async function onOrderPaid(order: AdminOrder): Promise<void> {
   await rewardInviteOnFirstPaidOrder(owner, {
     kind: orderKind(order),
     totalMinor: order.totalMinor,
+    shippingMinor: order.shippingMinor,
     discountMinor: order.discountMinor,
   });
 }

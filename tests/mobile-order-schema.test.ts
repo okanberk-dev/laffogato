@@ -235,6 +235,45 @@ describe("placeOrderBodySchema", () => {
   });
 });
 
+describe("payWithWallet (§18)", () => {
+  it("is optional and false by default, so an older build orders as before", () => {
+    const r = placeOrderBodySchema.safeParse(cafeDelivery());
+    expect(r.success && r.data.payWithWallet).toBe(false);
+  });
+
+  it("is accepted on both endpoints - the app posts one basket object", () => {
+    const r = placeOrderBodySchema.safeParse(
+      cafeDelivery({ payWithWallet: true }),
+    );
+    expect(r.success && r.data.payWithWallet).toBe(true);
+    const { legalConsent: _c, ...body } = cafeDelivery({ payWithWallet: true });
+    void _c;
+    expect(previewOrderBodySchema.safeParse(body).success).toBe(true);
+  });
+
+  it("takes an optional whole-kuruş expectedTotalMinor", () => {
+    const ok = placeOrderBodySchema.safeParse(
+      cafeDelivery({ payWithWallet: true, expectedTotalMinor: 12500 }),
+    );
+    expect(ok.success && ok.data.expectedTotalMinor).toBe(12500);
+    const absent = placeOrderBodySchema.safeParse(cafeDelivery());
+    expect(absent.success && absent.data.expectedTotalMinor).toBeUndefined();
+    for (const bad of [125.5, -1, "12500"]) {
+      expect(
+        placeOrderBodySchema.safeParse(cafeDelivery({ expectedTotalMinor: bad }))
+          .success,
+      ).toBe(false);
+    }
+  });
+
+  it("refuses anything but a boolean", () => {
+    const r = placeOrderBodySchema.safeParse(
+      cafeDelivery({ payWithWallet: "true" }),
+    );
+    expect(r.success).toBe(false);
+  });
+});
+
 describe("previewOrderBodySchema", () => {
   it("is the order body without the consent flag", () => {
     const { legalConsent: _consent, ...body } = cafeDelivery();

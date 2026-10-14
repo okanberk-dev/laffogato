@@ -365,6 +365,10 @@ Kurallar:
 - `customers.emailVerified` yoksa **403** `email_unverified`.
 - Kafe satırları `menu_items` (aktif) ile, mağaza satırları `products` ile çözülür; **fiyat DB'den**.
 - Seçenek fiyatları `customization` sabitinden; `size: "L"` → `priceMinorL`, yoksa **400**.
+- Özelleştirilemeyen kategoriler (`dessert` · `snack` · `extras`; uygulamanın `NON_CUSTOMIZABLE`
+  listesi) seçenek almaz (14 Eki 2026, yalnız ekleme): bu satırlarda gönderilen `options`
+  **yok sayılır** (reddedilmez), satır varsayılan seçeneklerle ve sade fiyatıyla yazılır.
+  `/orders/preview` aynı kuralla fiyatlar.
 - `kind: "cafe"`: stok yok; `kind: "shop"`: mevcut `placeOrder` stok/claim mantığı **aynen** kullanılır.
 - Kargo/kurye: `pickup` → 0; `delivery` → `settings.courierFeeMinor` (varsayılan 5500); `shipping` → mevcut `computeOrderTotals`.
 - `kind: "shop"` ve `settings.isShopOpen === false` → **409** `shop_closed`. Bu anahtar **yalnızca kargolu mağaza** siparişlerini durdurur. Kafe siparişi için köşk kapalıysa (`live-status.isOpen === false`) **409** `cafe_closed`.
@@ -391,6 +395,11 @@ Kurallar:
 >   köşk açık göründüğü hâlde her gel-al siparişi reddediliyordu.)
 > - `totalMinor === 0` (kupon toplamı sıfırladı) → sipariş sunucuda anında `paid`
 >   (`payment_transactions.provider = "free"`), `payment: null`.
+> - `payWithWallet: true` (opsiyonel, varsayılan `false`; §18, 14 Eki 2026): bakiye
+>   siparişin tamamını öder → **201**, sipariş `paid`, `payment: null`
+>   (`payment_transactions.provider = "wallet"`). Bakiye yetmezse ya da cüzdan kapalıysa
+>   **409** `insufficient_balance`; sipariş yazılmaz. `/orders/preview` alanı kabul eder ve
+>   yok sayar. Yanında opsiyonel `expectedTotalMinor` (kuruş) gönderilebilir; ayrıntı §18.
 > - `clientOrderId` (opsiyonel, `/orders` ve `/orders/preview`): aynı üye aynı değerle
 >   tekrar gönderirse **aynı sipariş** döner, yenisi açılmaz; hâlâ `pending_payment` ise
 >   yeni bir ödeme oturumu açılır. POS o an açılamazsa tekrar da ilk deneme gibi **500**
@@ -528,6 +537,9 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
 > `{ "code", "ok": false, "message": "Çok fazla deneme. N saniye sonra tekrar dene." }`
 > olur (sepet hesabı hız sınırı yüzünden düşmesin diye). Mağaza satırlarında stok kontrolü
 > yapılır ama stok **ayrılmaz**. `stampsToEarn` kafe sepetinde 1, mağazada 0.
+> **14 Eki 2026 (yalnız ekleme):** `kind: "shop"` sepeti `settings.isShopOpen === false`
+> iken artık fiyatlanmaz; `POST /orders` ile aynı **409** `shop_closed` (aynı mesaj) döner.
+> Önceden önizleme kapalı mağazanın sepetini fiyatlıyor, ret yalnız son adımda geliyordu.
 
 ## 4. `GET /me` · `PATCH /me` (kimlik gerekli)
 
@@ -583,6 +595,15 @@ Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği
 > `{ "ok": true, "identity": "deleted" | "skipped" | "failed" }` olur; ayrıntı
 > aşağıda. `neighbourhood` sütunu yoktur: `line1`'e
 > `"<mahalle>, <satır>"` olarak katlanır, okurken `Mah.`/`Mahallesi`/`Mh.` sonekiyle ayrıştırılır.
+> **14 Eki 2026 (yalnız ekleme):** uygulamadan yazılan adres mahalleyi ayrıca kendi
+> anahtarında da tutar (JSONB, migration yok) ve okurken o tercih edilir; böylece
+> sonek taşımayan bir mahalle ("Postane") de `neighbourhood` olarak geri döner. Bu anahtarı
+> taşımayan eski satırlar ve sitede düzenlenen adresler yukarıdaki ayrıştırmayla okunur.
+> **Telefon (14 Eki 2026, yalnız ekleme):** `PATCH /me` `phone`, adres `phone` ve
+> `POST /orders` satır içi adres `phone` doğrulanmadan önce normalleştirilir: Türkiye cep
+> numarası hangi yazımla gelirse gelsin (`0532 123 45 67`, `+90 (532) 123-45-67`,
+> `5321234567`) `+905321234567` olarak saklanır ve geri döner. Cep olmayan numara (sabit hat,
+> yurt dışı) yazıldığı gibi kalır; daha önce kabul edilen hiçbir biçim reddedilmez.
 > `loyalty.badges` ve `tier` yalnız `paid/preparing/shipped/completed` siparişleri sayar
 > (ödenmemiş/iptal/iade sayılmaz).
 
@@ -628,6 +649,14 @@ kurar (O28).
 > daveti açık bırakır. Davet eden en çok **5** davetten ödül alır (`INVITE_REWARD_CAP`).
 > `/me.invite.joined` = pending olmayan satır sayısı, `earned` = ödül getiren davet sayısı
 > (5 ile sınırlı; tavanı aşan davetlerde `people[].rewarded` `false`).
+>
+> **Davet ödülü kuralı (14 Eki 2026, operatör kararı; yalnız ekleme).** Ödülü kazandıran,
+> davetlinin ilk ödenmiş **kafe** siparişidir (gel-al ya da kurye; mağaza/kargo siparişi
+> hiçbir zaman saymaz). Asgari tutar **150,00 TL'lik ürün**dür: indirim düşüldükten sonra
+> ödenen ürün tutarı, yani `totalMinor − shippingMinor`; **kurye ücreti sayılmaz** (100 TL'lik
+> kahve + 55 TL kurye daveti kapatmaz). Yukarıdaki "ödenen tutarı (`totalMinor`)" ifadesi bu
+> kuralla okunur. Davet eden en çok **5** davetten ücretsiz içecek alır
+> (`INVITE_REWARD_CAP`); tavandan sonra davetli yine ödülünü alır, davet edene kupon yazılmaz.
 
 ## 6. Canlı durum — `GET /live-status` (herkese açık)
 
@@ -656,6 +685,11 @@ Cache: `public, s-maxage=30` — `stale-while-revalidate` **yok**: panel persone
   uygulama sunucunun mesajını gösterir, tekrar denemeyi önermez.
 - **403 `email_unverified`**: e-postası doğrulanmamış üye rezervasyon yapamaz
   (sipariş kuralıyla aynı; web `/karaoke` formu da aynı kuralı uygular).
+- **400 `invalid_request` + `field` (14 Eki 2026, yalnız ekleme):** ret `note` alanından
+  geliyorsa (200 karakteri aşan ya da metin olmayan not) gövde
+  `{ "error": "invalid_request", "message": "Not en fazla 200 karakter.", "field": "note" }`
+  olur; uygulama hatayı not kutusunun altında gösterebilir. Başka 400'lerde `field` yoktur;
+  `error` ve `message` değişmez.
 
 > **Uygulama notu (§7).** `date` verilmezse İstanbul'a göre bugün; biçim bozuksa 400
 > `invalid_request`. Kurallar (varsayılanlar parantezde, tümü panelden değişir):
@@ -1257,9 +1291,31 @@ istemciden alınmaz" kuralının cüzdandaki karşılığı).
 Ödemede cüzdan kullanımı `POST /orders` gövdesine `"payWithWallet": true` ile girer; bakiye
 yetmezse **409** `insufficient_balance` ve sipariş **oluşmaz** (kısmi çekim yok).
 
+> **Sunucu (14 Eki 2026, yalnız ekleme).** `payWithWallet` yazıldı. Bakiye
+> `wallet_transactions` defterindeki satırların toplamıdır (saklanan bir sayı yok);
+> sipariş satırı ve harcama satırı tek SQL işleminde, üye başına kilit altında yazılır
+> (`wallet_place_order`), dolayısıyla birlikte bakiyeyi aşan iki eşzamanlı siparişten
+> yalnız biri geçer. Başarılı cüzdan siparişi kart ödemesiyle aynı yoldan `paid` olur
+> (damga, davet, "ödemen alındı" e-postası) ve yanıt `payment: null` taşır. Cüzdan
+> sunucuda `WALLET_ENABLED=true` olmadıkça kapalıdır; kapalıyken `payWithWallet: true`
+> **409** `insufficient_balance` döner ve sipariş yazılmaz. Cüzdanla ödenmiş siparişin
+> iadesi karta değil **cüzdana** döner (`kind: "refund"`). `GET /me/wallet`, yükleme ve
+> otomatik yükleme uçları henüz yok (404, yukarıdaki not).
+>
+> **`expectedTotalMinor` (opsiyonel, 14 Eki 2026, yalnız ekleme).** Üyenin gördüğü ve
+> onayladığı toplam, kuruş tamsayı. **Yalnız `payWithWallet: true` ile birlikte**
+> dikkate alınır: kartla ödemede uygulama ödeme sayfası açılmadan önce "Tutar değişti"
+> kartını gösterebilir, cüzdan ise anında çeker. Sunucunun hesapladığı toplam (veritabanı
+> fiyatları, düşen kupon dahil) bu değerden farklıysa **409** `total_changed` döner, gövdede
+> yeni toplam `totalMinor` bulunur (`{ "error": "total_changed", "message": "…",
+> "totalMinor": 12500 }`); sipariş yazılmaz, bakiyeden hiçbir şey düşmez, alınan kupon geri
+> verilir. Alan yoksa davranış öncekiyle aynıdır. `/orders/preview` alanı kabul eder ve
+> yok sayar.
+
 Hatalar: **400** `invalid_amount` (seçenek listesinde yok / min altında) · **409** `balance_cap` ·
 **409** `insufficient_balance` · **409** `no_saved_card` · **429** `too_many_topups` ·
-**503** `unavailable`.
+**503** `unavailable` · **409** `total_changed` (yalnız `POST /orders` + `payWithWallet` +
+`expectedTotalMinor`; gövdede `totalMinor`).
 
 > **Sadakat notu.** Tasarımın "cüzdanla ödeyene +%5 puan" satırı **yazılmadı**: bu uygulamada
 > sadakat damgadır, puan yoktur (karar 37) ve ödenmiş kafe siparişi zaten +1 damga verir.

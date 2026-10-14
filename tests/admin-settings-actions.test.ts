@@ -39,7 +39,7 @@ vi.mock("@/lib/admin/store", () => ({
   updateSettings,
 }));
 
-const { saveShippingAction, saveKaraokeAction } =
+const { saveShippingAction, saveKaraokeAction, saveHoursAction } =
   await import("@/app/admin/ayarlar/actions");
 
 function form(fields: Record<string, string>): FormData {
@@ -172,6 +172,58 @@ describe("saveKaraokeAction", () => {
     expect(state.message).toBeTruthy();
     expect(updateSettings).toHaveBeenCalledWith(
       expect.objectContaining({ karaokeNotifyEmail: "" }),
+    );
+  });
+});
+
+describe("saveHoursAction - every time within 00:00-23:59 (S6-01)", () => {
+  const DAYS = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+  ];
+  const week = (over: Record<string, string> = {}) => {
+    const fields: Record<string, string> = {};
+    for (const d of DAYS) {
+      fields[`${d}-open`] = "09:00";
+      fields[`${d}-close`] = "00:00";
+    }
+    return form({ ...fields, ...over });
+  };
+
+  it("saves well-formed hours, a midnight close written as 00:00", async () => {
+    const res = await saveHoursAction({}, week({ "monday-open": "8:30" }));
+    expect(res.error).toBeUndefined();
+    const saved = updateSettings.mock.calls.at(-1)?.[0];
+    expect(saved.weeklyHours.monday).toEqual({
+      open: "08:30",
+      close: "00:00",
+      closed: false,
+    });
+  });
+
+  it("refuses 24:00 and other out-of-range or malformed times instead of storing them", async () => {
+    for (const bad of ["24:00", "24:30", "23:60", "99:99", "", "9", "ab:cd"]) {
+      updateSettings.mockClear();
+      const res = await saveHoursAction({}, week({ "friday-close": bad }));
+      expect(res.error, bad).toMatch(/00:00 ile 23:59/);
+      expect(updateSettings, bad).not.toHaveBeenCalled();
+    }
+  });
+
+  it("lets a day marked closed keep empty time boxes", async () => {
+    updateSettings.mockClear();
+    const res = await saveHoursAction(
+      {},
+      week({ "sunday-closed": "on", "sunday-open": "", "sunday-close": "" }),
+    );
+    expect(res.error).toBeUndefined();
+    expect(updateSettings.mock.calls[0][0].weeklyHours.sunday.closed).toBe(
+      true,
     );
   });
 });

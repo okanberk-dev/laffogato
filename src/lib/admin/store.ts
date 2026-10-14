@@ -49,6 +49,11 @@ import {
 } from "@/lib/mobile/order-pricing";
 import type { CheckoutConfig } from "@/lib/utils/commerce";
 import { priceLabel } from "@/lib/utils/format";
+import {
+  WALLET_PROVIDER,
+  walletProviderRef,
+  walletSpendFor,
+} from "@/lib/mobile/wallet";
 import { imageVersion } from "./image-bytes";
 import {
   heroImagePath,
@@ -1772,6 +1777,42 @@ interface FinalizeOrderInput {
   deliveryNote?: string;
   /** How shipping is charged; the shop's settings when omitted. */
   shipping?: ShippingMode;
+  /**
+   * Pay the whole order from the member's wallet (docs/API-MOBILE.md §18).
+   * The row and the spend are written by `wallet_place_order` in one
+   * transaction; a balance that does not cover the total writes neither and
+   * throws {@link WalletDeclinedError}. Ignored on a ₺0 order.
+   */
+  payWithWallet?: boolean;
+  /**
+   * With `payWithWallet`: the total the member agreed to. A different
+   * server total writes nothing and throws {@link WalletTotalChangedError}.
+   */
+  expectedTotalMinor?: number;
+}
+
+/**
+ * A wallet order whose server total is not the one the member agreed to.
+ * Nothing was written or charged, and the claimed discount was handed back:
+ * a wallet payment is taken at once, so it cannot be shown first.
+ */
+export class WalletTotalChangedError extends Error {
+  constructor(readonly totalMinor: number) {
+    super(`wallet order total changed to ${totalMinor}`);
+    this.name = "WalletTotalChangedError";
+  }
+}
+
+/**
+ * The wallet could not cover the order: nothing was written, and whatever
+ * discount the order claimed has been handed back. The caller answers 409
+ * `insufficient_balance`.
+ */
+export class WalletDeclinedError extends Error {
+  constructor(orderId: string) {
+    super(`wallet balance does not cover order ${orderId}`);
+    this.name = "WalletDeclinedError";
+  }
 }
 
 /** Order lines as they are written, from lines resolved against `products`. */
@@ -1914,28 +1955,69 @@ async function insertOrderRow(
     ...(f.deliveryNote !== undefined ? { deliveryNote: f.deliveryNote } : {}),
     ...(f.clientOrderId ? { clientOrderId: f.clientOrderId } : {}),
   };
+  // The discount was claimed before the row existed - deliberately, so it
+  // cannot be double-spent while the customer is on the POS page. If the row
+  // never lands, the claim has to come back: a member's single-use coupon
+  // was otherwise marked redeemed against an order number that does not
+  // exist, and a shared code lost a use nobody ever received.
+  const giveBackDiscount = async () => {
+    if (!promoCode) return;
+    // Never let the compensation replace the error that caused it.
+    try {
+      const returned = f.customerEmail
+        ? await releaseCustomerCoupon(promoCode, f.customerEmail, f.orderNo)
+        : false;
+      if (!returned) await releasePromoUsage(promoCode);
+    } catch (releaseErr) {
+      console.error(
+        `[orders] releasing ${promoCode} after a failed order insert failed`,
+        releaseErr,
+      );
+    }
+  };
+
+  if (
+    f.payWithWallet &&
+    f.expectedTotalMinor !== undefined &&
+    order.totalMinor !== f.expectedTotalMinor
+  ) {
+    // Before anything is written: the total is this server's own, from the
+    // claimed discount and the database prices, so there is nothing to race.
+    await giveBackDiscount();
+    throw new WalletTotalChangedError(order.totalMinor);
+  }
+
+  if (f.payWithWallet && order.totalMinor > 0) {
+    // The row and the wallet spend in ONE transaction (the SQL function), so
+    // there is never an order the wallet did not pay for, nor a spend without
+    // its order. The total it debits is this row's own `totalMinor`.
+    let placed: boolean;
+    try {
+      const { data, error, status } = await sb.rpc<boolean | null>(
+        "wallet_place_order",
+        {
+          p_order: order,
+          p_title: `Sipariş #${order.orderNo}`,
+          p_created_at: createdAt,
+        },
+      );
+      if (error) raiseDbError("finalizeOrder.wallet", error, status);
+      placed = data === true;
+    } catch (err) {
+      await giveBackDiscount();
+      throw err;
+    }
+    if (!placed) {
+      await giveBackDiscount();
+      throw new WalletDeclinedError(order.id);
+    }
+    return { order, promoDropped };
+  }
+
   try {
     check(await sb.from(TABLES.orders).insert(order), "finalizeOrder.insert");
   } catch (err) {
-    // The discount was claimed before the row existed - deliberately, so it
-    // cannot be double-spent while the customer is on the POS page. If the row
-    // never lands, the claim has to come back: a member's single-use coupon
-    // was otherwise marked redeemed against an order number that does not
-    // exist, and a shared code lost a use nobody ever received.
-    if (promoCode) {
-      // Never let the compensation replace the error that caused it.
-      try {
-        const returned = f.customerEmail
-          ? await releaseCustomerCoupon(promoCode, f.customerEmail, f.orderNo)
-          : false;
-        if (!returned) await releasePromoUsage(promoCode);
-      } catch (releaseErr) {
-        console.error(
-          `[orders] releasing ${promoCode} after a failed order insert failed`,
-          releaseErr,
-        );
-      }
-    }
+    await giveBackDiscount();
     throw err;
   }
   return { order, promoDropped };
@@ -2039,6 +2121,21 @@ async function settlePendingFromProvider(
   order: AdminOrder,
   provider: PaymentProvider | null,
 ): Promise<PendingVerdict> {
+  // The wallet first: an order whose spend exists WAS paid - the spend is
+  // written with the row - even if the process died before marking it so.
+  // It is booked now, and never cancelled here whatever the booking says:
+  // cancelling would keep the member's money for an order nobody makes.
+  const wallet = await settleWalletPayment(order.id);
+  if (wallet) {
+    if (!wallet.ok) {
+      console.error(
+        `[orders] wallet payment found but not booked order=${order.id}`,
+        wallet.error,
+      );
+    }
+    return "paid";
+  }
+
   if (!provider?.lookupPayment) return "unpaid";
 
   let found: ReturnConfirmation | null;
@@ -2387,12 +2484,21 @@ export interface AppOrderInput {
    * POST is recognised instead of placing a second order.
    */
   clientOrderId?: string;
+  /**
+   * Pay from the member's wallet (docs/API-MOBILE.md §18): all of it or
+   * nothing. The caller has already checked that the wallet is enabled.
+   */
+  payWithWallet?: boolean;
+  /** With `payWithWallet`: the total the member agreed to (§18). */
+  expectedTotalMinor?: number;
 }
 
 export type PlaceAppOrderResult =
   | { ok: true; order: AdminOrder; promoDropped: boolean }
   | Exclude<PlaceOrderResult, { ok: true }>
   | { ok: false; reason: "cafe_closed" }
+  | { ok: false; reason: "insufficient_balance" }
+  | { ok: false; reason: "total_changed"; totalMinor: number }
   | { ok: false; reason: "bad_line"; productName: string; message: string }
   | { ok: false; reason: "bad_request"; message: string };
 
@@ -2640,13 +2746,25 @@ export async function placeAppOrder(
     const orderSeq = await nextSeq("ord");
     const orderNo = await nextSeq("orderNo");
     const orderId = slugifyId("ord", orderSeq);
-    const { order, promoDropped } = await insertOrderRow(cafeRes.items, {
-      orderId,
-      orderNo,
-      clientOrderId: input.clientOrderId,
-      ...common,
-    });
-    return { ok: true, order, promoDropped };
+    try {
+      const { order, promoDropped } = await insertOrderRow(cafeRes.items, {
+        orderId,
+        orderNo,
+        clientOrderId: input.clientOrderId,
+        payWithWallet: input.payWithWallet,
+        expectedTotalMinor: input.expectedTotalMinor,
+        ...common,
+      });
+      return { ok: true, order, promoDropped };
+    } catch (err) {
+      if (err instanceof WalletDeclinedError) {
+        return { ok: false, reason: "insufficient_balance" };
+      }
+      if (err instanceof WalletTotalChangedError) {
+        return { ok: false, reason: "total_changed", totalMinor: err.totalMinor };
+      }
+      throw err;
+    }
   }
 
   const resolveRes = await resolveOrderLines(shop.map(toPlaceOrderItem));
@@ -2656,14 +2774,14 @@ export async function placeAppOrder(
   const claimRes = await claimOrderStock(resolved);
   if (!claimRes.ok) return claimRes.result;
 
-  // Same compensation as the web checkout: nothing between the claim and the
-  // insert may leave stock held by an order that does not exist.
-  try {
-    const orderSeq = await nextSeq("ord");
-    const orderNo = await nextSeq("orderNo");
-    const orderId = slugifyId("ord", orderSeq);
-
-    await recordOrderStockMoves(
+  // A wallet order is refused by the balance only at the insert, which is an
+  // everyday outcome rather than a fault. Its stock moves are therefore
+  // written AFTER the row exists: written first, a short balance would leave
+  // "Uygulama siparişi #…" sales in the stock ledger for an order that never
+  // existed. A card order keeps the original order of writes.
+  const walletPay = input.payWithWallet === true;
+  const recordMoves = (orderId: string, orderNo: number) =>
+    recordOrderStockMoves(
       resolved,
       claimRes.stockAfters,
       orderId,
@@ -2671,15 +2789,48 @@ export async function placeAppOrder(
       common.customerEmail,
     );
 
-    const { order, promoDropped } = await insertOrderRow(
+  // Same compensation as the web checkout: nothing between the claim and the
+  // insert may leave stock held by an order that does not exist.
+  let placed: { order: AdminOrder; promoDropped: boolean };
+  try {
+    const orderSeq = await nextSeq("ord");
+    const orderNo = await nextSeq("orderNo");
+    const orderId = slugifyId("ord", orderSeq);
+    if (!walletPay) await recordMoves(orderId, orderNo);
+    placed = await insertOrderRow(
       withShopNotes(shopLineItems(resolved), shop),
-      { orderId, orderNo, clientOrderId: input.clientOrderId, ...common },
+      {
+        orderId,
+        orderNo,
+        clientOrderId: input.clientOrderId,
+        payWithWallet: walletPay,
+        expectedTotalMinor: input.expectedTotalMinor,
+        ...common,
+      },
     );
-    return { ok: true, order, promoDropped };
   } catch (err) {
     await releaseClaimedStock(resolved);
+    if (err instanceof WalletDeclinedError) {
+      return { ok: false, reason: "insufficient_balance" };
+    }
+    if (err instanceof WalletTotalChangedError) {
+      return { ok: false, reason: "total_changed", totalMinor: err.totalMinor };
+    }
     throw err;
   }
+  if (walletPay) {
+    // The order exists and is paid for: a failed audit row must not hand its
+    // stock back. Logged loudly instead, for a human to add the move.
+    try {
+      await recordMoves(placed.order.id, placed.order.orderNo);
+    } catch (err) {
+      console.error(
+        `[orders] stock moves of wallet order ${placed.order.id} were not recorded`,
+        err,
+      );
+    }
+  }
+  return { ok: true, order: placed.order, promoDropped: placed.promoDropped };
 }
 
 // ── Payment application ───────────────────────────────────────────────────
@@ -2764,6 +2915,30 @@ async function hasOtherSucceededPayment(
   ).some(
     (t) => t.provider !== input.provider || t.providerRef !== input.providerRef,
   );
+}
+
+/**
+ * Books the wallet payment of an order the wallet paid for, through the same
+ * path a card confirmation takes - `paid`, the stamp, the invite, the
+ * "ödemen alındı" e-mail. Null when the wallet did not pay this order.
+ *
+ * The amount is the spend row's, written in the same transaction as the order
+ * from the row's own total, so it always matches. Idempotent like every
+ * confirmation: one `payment_transactions` row per order (`wallet_<id>`).
+ */
+export async function settleWalletPayment(
+  orderId: string,
+): Promise<PaymentApplyResult | null> {
+  const spend = await walletSpendFor(orderId);
+  if (!spend) return null;
+  return applyPaymentSucceeded({
+    orderId,
+    provider: WALLET_PROVIDER,
+    providerRef: walletProviderRef(orderId),
+    amountMinor: spend.amountMinor,
+    currency: "TRY",
+    raw: { source: "wallet" },
+  });
 }
 
 /**

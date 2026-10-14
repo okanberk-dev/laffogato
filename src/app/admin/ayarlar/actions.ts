@@ -66,13 +66,22 @@ function parseMoneyMinor(raw: unknown): number | null {
   return Math.round(v * 100);
 }
 
-function parseTime(raw: unknown): string {
+/**
+ * "HH:MM" (or "H:MM") within 00:00-23:59, normalised; null for anything
+ * else, which the action turns into the form's error.
+ *
+ * It used to clamp: "24:00", "99:99" or a hand-made POST came out as a
+ * stored "24:00" / "24:59", and garbage became "00:00" - a midnight close
+ * the operator never typed. A close at midnight is "00:00": the hours
+ * reader treats a close not later than the open as running past midnight.
+ */
+function parseTime(raw: unknown): string | null {
   const s = String(raw ?? "").trim();
-  // Allow HH:MM or H:MM (00:00-24:00). Return normalized or fallback.
   const m = /^(\d{1,2}):(\d{2})$/.exec(s);
-  if (!m) return "00:00";
-  const h = Math.min(24, Math.max(0, parseInt(m[1], 10)));
-  const min = Math.min(59, Math.max(0, parseInt(m[2], 10)));
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  if (h > 23 || min > 59) return null;
   return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
 
@@ -102,16 +111,29 @@ export async function saveHoursAction(
   formData: FormData,
 ): Promise<SettingsState> {
   await requireRole("settings");
+  const before = await getSettings();
   const weekly: WeeklyHours = {} as WeeklyHours;
   const summary: string[] = [];
   for (const day of DAYS_OF_WEEK) {
     const closed = formData.get(`${day}-closed`) === "on";
-    const open = parseTime(formData.get(`${day}-open`));
-    const close = parseTime(formData.get(`${day}-close`));
+    const rawOpen = String(formData.get(`${day}-open`) ?? "").trim();
+    const rawClose = String(formData.get(`${day}-close`) ?? "").trim();
+    // A day ticked "Kapalı" may have its time boxes cleared; it keeps the
+    // hours it had rather than failing the whole form over them.
+    const kept = before.weeklyHours?.[day as DayOfWeek];
+    const open =
+      closed && !rawOpen ? (kept?.open ?? "00:00") : parseTime(rawOpen);
+    const close =
+      closed && !rawClose ? (kept?.close ?? "00:00") : parseTime(rawClose);
+    if (open === null || close === null) {
+      return {
+        error:
+          "Saatler 00:00 ile 23:59 arasında olmalı (ss:dd). Gece yarısı kapanış için 00:00 yaz.",
+      };
+    }
     weekly[day as DayOfWeek] = { open, close, closed };
     summary.push(closed ? `${day} Kapalı` : `${day} ${open}-${close}`);
   }
-  const before = await getSettings();
   await updateSettings({
     weeklyHours: weekly,
     openingHours: summary.join(" · "),

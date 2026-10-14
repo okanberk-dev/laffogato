@@ -310,7 +310,18 @@ function buildRequestSchema(
 }
 
 export type ValidateReservationResult =
-  { ok: true; value: ReservationRequest } | { ok: false; message: string };
+  | { ok: true; value: ReservationRequest }
+  | {
+      ok: false;
+      message: string;
+      /**
+       * The request field the message is about, when the app can point at
+       * one (L7-21). Only `note` for now: it is the one free-text box on the
+       * booking form, and its 400 used to be indistinguishable from a bad
+       * date or hour.
+       */
+      field?: "note";
+    };
 
 /**
  * Shape + business rules of a reservation request. `today` is the Istanbul
@@ -332,9 +343,11 @@ export function validateReservationRequest(
   const rules = ctx.rules ?? DEFAULT_KARAOKE_RULES;
   const parsed = buildRequestSchema(rules).safeParse(input);
   if (!parsed.success) {
+    const first = parsed.error.issues[0];
     return {
       ok: false,
-      message: parsed.error.issues[0]?.message ?? "İstek geçersiz.",
+      message: first?.message ?? "İstek geçersiz.",
+      ...(first?.path[0] === "note" ? { field: "note" as const } : {}),
     };
   }
   const v = parsed.data;

@@ -148,6 +148,8 @@ export type CreateReservationResult =
       status: 400 | 409;
       error: "invalid_request" | "slot_taken" | "too_many_reservations";
       message: string;
+      /** §7: the request field a 400 is about (`note`), when known. */
+      field?: "note";
     };
 
 /**
@@ -182,6 +184,7 @@ export async function createReservation(
       status: 400,
       error: "invalid_request",
       message: validated.message,
+      ...(validated.field ? { field: validated.field } : {}),
     };
   }
   const req = validated.value;

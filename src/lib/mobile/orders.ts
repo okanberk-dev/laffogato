@@ -20,6 +20,7 @@ import {
   placeAppOrder,
   previewAppOrderLines,
   PENDING_ORDER_TTL_MINUTES,
+  settleWalletPayment,
   type AdminOrder,
   type AppOrderFailure,
   type OrderLegalConsent,
@@ -49,6 +50,7 @@ import {
   shippingModeFor,
 } from "./order-pricing";
 import type { PlaceOrderBody, PreviewOrderBody } from "./order-schema";
+import { WALLET_MESSAGES, walletPaymentsEnabled } from "./wallet";
 
 /**
  * Order use-cases behind `/api/mobile/v1/orders*` and `/promo/preview`
@@ -62,6 +64,8 @@ export interface AppFailure {
   status: number;
   code: string;
   message: string;
+  /** Additive body fields this refusal documents (e.g. `totalMinor`). */
+  extra?: Record<string, unknown>;
 }
 
 /** How many orders `GET /orders` returns, newest first. */
@@ -120,6 +124,19 @@ export function failureFromResult(result: AppOrderFailure): AppFailure {
       return { status: 400, code: "invalid_line", message: result.message };
     case "bad_request":
       return { status: 400, code: "invalid_body", message: result.message };
+    case "insufficient_balance":
+      return {
+        status: 409,
+        code: "insufficient_balance",
+        message: WALLET_MESSAGES.insufficient,
+      };
+    case "total_changed":
+      return {
+        status: 409,
+        code: "total_changed",
+        message: WALLET_MESSAGES.totalChanged(result.totalMinor),
+        extra: { totalMinor: result.totalMinor },
+      };
   }
 }
 
@@ -316,11 +333,34 @@ async function stampedOrders(email: string): Promise<ReadonlySet<string>> {
  * emptied the basket and showed an unpaid order as placed.
  */
 async function replayAppOrder(
-  order: AdminOrder,
+  first: AdminOrder,
   customer: PublicCustomer,
 ): Promise<CreateAppOrderResult> {
+  let order = first;
   let payment: AppPayment | null = null;
+  // A wallet order still `pending_payment` was paid all the same - its spend
+  // is written with the row - and only missed being marked. It is booked
+  // here and never sent to the card, even if the booking itself fails: a
+  // checkout session would charge the member a second time.
+  let paidByWallet = false;
   if (order.status === "pending_payment" && order.totalMinor > 0) {
+    const wallet = await settleWalletPayment(order.id);
+    if (wallet) {
+      paidByWallet = true;
+      if (!wallet.ok) {
+        console.error(
+          `[orders] booking the wallet payment of ${order.id} failed`,
+          wallet.error,
+        );
+      }
+      order = (await getOrder(order.id)) ?? order;
+    }
+  }
+  if (
+    !paidByWallet &&
+    order.status === "pending_payment" &&
+    order.totalMinor > 0
+  ) {
     // The caller's own IP, as the first attempt sends it (`consent.ip`): an
     // empty one reached PayNkolay as `cardHolderIP: 0.0.0.0`, and every
     // reopened checkout - the retry of a lost POST, "Şimdi öde" from the
@@ -367,6 +407,19 @@ export async function createAppOrder(
     (await getSettings()).mobileApp.ordering,
   );
   if (refused) return { ok: false, failure: refused };
+
+  // A wallet that is switched off has no balance to spend: the same refusal
+  // a short balance gets (§18), before anything is written.
+  if (body.payWithWallet && !walletPaymentsEnabled()) {
+    return {
+      ok: false,
+      failure: {
+        status: 409,
+        code: "insufficient_balance",
+        message: WALLET_MESSAGES.disabled,
+      },
+    };
+  }
 
   // Ask for the POS before anything is persisted. `getPaymentProvider()` fails
   // closed on a missing `PAYMENT_PROVIDER`, and it used to be reached only
@@ -443,6 +496,12 @@ export async function createAppOrder(
       promoCode: body.promoCode,
       legalConsent: consent,
       clientOrderId: body.clientOrderId,
+      payWithWallet: body.payWithWallet,
+      // Only a wallet order is held to it (§18); a card checkout re-prices
+      // on its own "Tutar değişti" card before anything is charged.
+      expectedTotalMinor: body.payWithWallet
+        ? body.expectedTotalMinor
+        : undefined,
     });
   } catch (err) {
     // The count above is the friendly answer; the database trigger
@@ -496,7 +555,19 @@ export async function createAppOrder(
   }
 
   let payment: AppPayment | null = null;
-  if (order.totalMinor > 0) {
+  if (body.payWithWallet && order.totalMinor > 0) {
+    // Already paid: `wallet_place_order` wrote the spend with the row. This
+    // books it the way a card confirmation is booked - `paid`, the stamp,
+    // the invite, "ödemen alındı" - and the answer carries no checkout.
+    const settled = await settleWalletPayment(order.id);
+    if (!settled?.ok) {
+      console.error(
+        "[orders] booking a wallet payment failed",
+        settled ? settled.error : "no spend",
+      );
+    }
+    order = (await getOrder(order.id)) ?? order;
+  } else if (order.totalMinor > 0) {
     payment = await createAppPaymentSession(order, customer, consent.ip ?? "");
   } else {
     const settled = await applyPaymentSucceeded({
@@ -620,10 +691,15 @@ export async function payAppOrder(
     };
   }
   const replay = await replayAppOrder(order, customer);
-  if (!replay.ok || !replay.payment) {
-    // Unreachable: the replay of an order awaiting a non-zero payment either
-    // opens a session or throws. Kept so the type says what the wire says.
+  if (!replay.ok) {
+    // Unreachable: a replay answers ok or throws. Kept so the type says what
+    // the wire says.
     throw new Error(`payAppOrder: no checkout for ${order.id}`);
+  }
+  // No checkout: the wallet had already paid this order (its spend is written
+  // with the row), so there is nothing left to pay - the order as it stands.
+  if (!replay.payment) {
+    return { ok: false, reason: "not_payable", order: replay.order };
   }
   return { ok: true, order: replay.order, payment: replay.payment };
 }
@@ -801,6 +877,17 @@ export async function previewAppOrder(
     settings.mobileApp.ordering,
   );
   if (refused) return { ok: false, failure: refused };
+  // The shop's own switch, which `placeAppOrder` enforces with 409
+  // `shop_closed`. The preview used to price a cargo basket regardless, so the
+  // basket and the checkout showed a total and a live Pay button over an
+  // order the till was going to refuse. Same code, status and message as the
+  // order endpoint; the app shows a 4xx preview's own message (W1-03).
+  if (body.kind === "shop" && !settings.isShopOpen) {
+    return {
+      ok: false,
+      failure: failureFromResult({ ok: false, reason: "shop_closed" }),
+    };
+  }
 
   const linesRes = await previewAppOrderLines(body.lines);
   if (!linesRes.ok) {

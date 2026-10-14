@@ -352,3 +352,24 @@ describe("toReservationJson - allow-list", () => {
     });
   });
 });
+
+describe("validateReservationRequest - which field a 400 is about (L7-21)", () => {
+  const ctx = { today: "2026-08-30", capacity: 8 };
+  const good = { date: "2026-09-05", startHour: 18, hours: 2, guests: 4 };
+
+  it("names the note when the note is what failed", () => {
+    for (const note of ["x".repeat(201), 42]) {
+      const r = validateReservationRequest({ ...good, note }, ctx);
+      expect(r.ok).toBe(false);
+      if (r.ok) return;
+      expect(r.field).toBe("note");
+    }
+  });
+
+  it("names no field for any other refusal", () => {
+    const r = validateReservationRequest({ ...good, startHour: 3 }, ctx);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.field).toBeUndefined();
+  });
+});
