@@ -8,8 +8,8 @@
 > reposu mobil uygulamanın reposu ve tasarımı apple'a uygun, sen de site
 > tasarımını buna uygun olarak güncelle"_. Bu, lafmobil karar 31'i (c)
 > seçeneğiyle kapattı: site uygulamanın **bütün** paletini, iki yazı sesini
-> ve cam malzeme dilini aldı. Yazıda tek bir ayrışma var: 11 Eki 2026'dan
-> beri site tek ses Poppins'le yazar (§2). Değerler o gün `lafmobil/src/theme/tokens.ts`
+> ve cam malzeme dilini aldı. Yazıda tek bir ayrışma var: 14 Eki 2026'dan
+> beri site başlıkları Gabarito'yla, gerisini Poppins'le yazar (§2). Değerler o gün `lafmobil/src/theme/tokens.ts`
 > (`porcelain`, DESIGN-GLASS §13) dosyasından okundu. Uygulama değişirse site
 > aynı PR serisinde izler; değer tablosu lafmobil `docs/SITE-PALETTE-SYNC.md`.
 >
@@ -174,10 +174,26 @@ başlığı etiketinin (`.page-hero-kicker`) önünde kısa hâli durur.
 
 ## 2. Tipografi
 
-**Tek ses: Poppins** (operatör, 11 Eki 2026: _"sitede poppins fontu
-olsun"_). Poppins zaten gösterim sesiydi (başlık, ürün adı, fiyat, düğme,
-çip); artık gövde, açıklama, etiket, form ve hukuk metnini de okutuyor -
-eskiden Inter'in yaptığı iş. Hiyerarşiyi ikinci aile değil **ağırlık** taşır:
+**İki ses: başlıkta Gabarito, metinde ve kontrolde Poppins** (operatör,
+14 Eki 2026: _"sitede yapay zeka gibi duruyor, yazı tipleri poppins ve
+biennale vs kullan"_).
+
+- **Gabarito** (`--headline`) sayfa, bölüm ve kart başlıklarını
+  (`.h-display`, `.h1`-`.h3`, `*-title`) ve gösterim rakamlarını (`.stat-n`,
+  ürün sayfasının fiyatı, ödenecek tutar) yazar. Operatörün adını verdiği
+  **Biennale**'nin (Latinotype) yerine durur: Biennale ücretlidir (web
+  lisansı; tek kesit 29 $'dan, aile Fontspring'de 99,50 $'dan) ve lisansı
+  yok. Gabarito (SIL OFL, Google Fonts) onun en yakın serbest akrabası:
+  geometrik, geniş x-yüksekliği, başlık ve marka için çizilmiş, Türkçe
+  işaretleri temiz. Adaylar sitenin başlıklarıyla çizilip karşılaştırıldı
+  (Urbanist, Outfit, Red Hat Display, Syne, Jost, Kumbh Sans, Sora): Syne'nin
+  Türkçe aksanları bozuk, Sora ve Urbanist Poppins'e fazla yakın. Lisans
+  alınırsa Biennale `layout.tsx`'teki tek yükleyicide ve `--headline`
+  yığınında Gabarito'nun yerine geçer, başka hiçbir yer değişmez.
+- **Poppins** (`--display`; operatör, 11 Eki 2026: _"sitede poppins fontu
+  olsun"_) gövde, açıklama, etiket, düğme, çip, form ve hukuk metnini,
+  ürün adlarını ve liste fiyatlarını yazar. Poppins içinde hiyerarşiyi
+  **ağırlık** taşır:
 
 | Ağırlık       | Rol                                                                                                         |
 | ------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -188,33 +204,37 @@ eskiden Inter'in yaptığı iş. Hiyerarşiyi ikinci aile değil **ağırlık** 
 | 700 Bold      | `.h1`, `.h2`, kart başlığı, fiyat                                                                           |
 | 800 ExtraBold | Gösterim anları: hero başlığı, `.h-display`, büyük rakamlar, manifesto ilk cümlesi, kampanya panosu başlığı |
 
-Altı kesim `next/font/google` ile self-host edilir (`--font-display`),
-Türkçe için `latin-ext` ile; on iki dosya ~80 KB, eski Poppins + değişken
-Inter çiftinin (~174 KB) yarısından az. Tarihsel token'ların hepsi
-(`--sans`, `--serif`, `--serif-modern`, `--serif-display`, `--script`,
-`--mono`) `--display`'e çözülür; `tests/brand-theme.test.ts` Inter'in bir
-yazı yığınına geri girmesini engeller.
+Poppins'in altı kesimi (`--font-display`) ve Gabarito'nun üç kesimi
+(600 · 700 · 800, `--font-headline`) `next/font/google` ile self-host edilir,
+Türkçe için `latin-ext` ile. Tarihsel token'ların hepsi (`--sans`,
+`--serif`, `--serif-modern`, `--serif-display`, `--script`, `--mono`)
+`--display`'e çözülür; `--headline`'ın son yedeği de `--display`'dir, eksik
+bir kesim sistem yazısına değil Poppins'e düşer. `tests/brand-theme.test.ts`
+iki sesi ve hangi sınıfın hangisini okuduğunu kilitler, Inter'in bir yazı
+yığınına geri girmesini engeller.
 
 | Sınıf           | Ağırlık | Not                                              |
 | --------------- | ------- | ------------------------------------------------ |
-| `.h-display`    | 800     | Negatif harf aralığı (-0.035em)                  |
-| `.hero-x-title` | 800     | -0.04em, satır aralığı 0.98                      |
-| `.h1`, `.h2`    | 700     |                                                  |
-| `.h3`           | 600     |                                                  |
+| `.h-display`    | 800     | Gabarito; negatif harf aralığı (-0.035em)        |
+| `.hero-x-title` | 800     | Gabarito; -0.04em, satır aralığı 0.98            |
+| `.h1`, `.h2`    | 700     | Gabarito                                         |
+| `.h3`           | 600     | Gabarito                                         |
 | `.lede`, gövde  | 400     | 16px / 1.6 - Poppins geniş, biraz daha ara ister |
 | `.eyebrow`      | 600     | **Cümle düzeni**, yeşil, 13.5px                  |
 | `.label`        | 600     | Form alanı başlığı, cümle düzeni                 |
 
-**Uygulamadan ayrışma.** lafmobil hâlâ iki sesle yazar (Poppins gösterir,
-Inter okutur - BRAND-IDENTITY §2). Site 11 Eki 2026'da operatör kararıyla
-tek sese geçti; uygulamanın da izlemesi ayrı bir karar ve lafmobil'de ayrı
-bir iştir. Palet ayrışmadı.
+**Uygulamadan ayrışma.** lafmobil iki sesle yazar ama başka bir çiftle
+(Poppins gösterir, Inter okutur - BRAND-IDENTITY §2). Site 11 Eki 2026'da
+tek sese, 14 Eki 2026'da Gabarito + Poppins çiftine operatör kararıyla geçti;
+uygulamanın da izlemesi ayrı bir karar ve lafmobil'de ayrı bir iştir. Palet
+ayrışmadı.
 
 **Büyük harfli, geniş aralıklı etiket dili emekli.** Uygulama etiketleri
 cümle düzeninde yazar; site de öyle. `.eyebrow.caps` yalnız kart baskısında kalır
 (üyelik, seviye, damga kartı) - uygulamanın `eyebrow` rolü.
 
-`.script` bir yazı tipi değil, **başlıktaki vurgu kelimesi**: Poppins,
+`.script` bir yazı tipi değil, **başlıktaki vurgu kelimesi**: başlığın kendi
+sesi (Gabarito),
 `--accent` rengi, koyu zeminde `--accent-on-dark`.
 
 Rakamlar: Poppins'in (Google kesimi) `tnum` özelliği yok, rakamları
@@ -406,6 +426,7 @@ Kullanım: hero slayt yarısı `object-fit: cover`, hikaye mozaiği
 | 23 Eyl 2026 | Uygulama kendi paletine geçti (karar 149); site almadı.                                                                                                                                                                                |
 | 25 Eyl 2026 | **Site uygulamayı izler** (karar 31, seçenek c): porselen `#f7f3ed`, yeşil `#1d6d56`, bordo `#9d2543`, pirinç `#e8c877`, Poppins + Inter, cam, kapsül. Logo L'Af.                                                                      |
 | 11 Eki 2026 | **Tek ses Poppins** (operatör): Inter kalktı, gövde de Poppins; 300-800 altı kesim, gösterim anlarında 800. Anasayfa: slayt başına kendi metni, manifesto bandı, canlı açık/kapalı, çizilen oklar. Dök oyunu Cormorant yerine Poppins. |
+| 14 Eki 2026 | **Başlıklar Gabarito** (operatör: "sitede yapay zeka gibi duruyor, yazı tipleri poppins ve biennale vs kullan"): Biennale lisanssız olduğu için en yakın serbest akrabası Gabarito başlıkları ve gösterim rakamlarını yazar (`--headline`); gövde, kontrol, ürün adı ve liste fiyatı Poppins'te kalır. |
 
 Bağlantı önizlemesi (`opengraph-image.tsx`), JSON-LD ikonları
 (`scripts/gen-icons.mjs` → `public/icon-*.png`) ve PayNkolay köprüsü de

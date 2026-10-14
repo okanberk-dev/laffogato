@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins } from "next/font/google";
+import { Gabarito, Poppins } from "next/font/google";
 
 import { GoogleTagManager } from "@next/third-parties/google";
 
@@ -15,19 +15,34 @@ import "./globals.css";
 // container id with NEXT_PUBLIC_GTM_ID; empty value disables the integration.
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
 
-// One voice: Poppins (operator, 11 Eki 2026: "sitede poppins fontu olsun").
-// It was already the display voice - titles, names, prices, buttons, chips -
-// and now reads the sentences, captions, help, legal and field text too,
-// where Inter used to (the app still pairs the two; docs/BRAND.md §2).
-// Six static cuts: 300 for the large statement copy, 400 to read, 500 and
-// 600 for labels and controls, 700 for headings and 800 - ExtraBold - for
-// the few display moments (hero titles, .h-display, figures). Turkish via
-// latin-ext. Preloaded as before: the twelve files come to ~80 KB, about
-// half of what the Poppins + variable Inter pair cost.
+// Two voices (operator, 14 Eki 2026: "sitede yapay zeka gibi duruyor, yazı
+// tipleri poppins ve biennale vs kullan"; docs/BRAND.md §2).
+//
+// Poppins reads and works the controls: sentences, captions, help, legal
+// and field text, buttons, chips, labels, product names and list prices
+// (operator, 11 Eki 2026: "sitede poppins fontu olsun"). Six static cuts:
+// 300 for the large statement copy, 400 to read, 500 and 600 for labels and
+// controls, 700 and 800 where a figure or a label must stand out. Turkish
+// via latin-ext.
 const brandFont = Poppins({
   subsets: ["latin", "latin-ext"],
   weight: ["300", "400", "500", "600", "700", "800"],
   variable: "--font-display",
+  display: "swap",
+});
+
+// Gabarito sets the headlines - page, section and card titles and the
+// display figures (`--headline` in globals.css). It stands in for Biennale
+// (Latinotype), the face the operator named: Biennale is sold per licence
+// and none is held, and Gabarito (SIL OFL, on Google Fonts) is its nearest
+// free kin - geometric, a large x-height, built for headlines and brands,
+// with clean Turkish marks. A licensed Biennale replaces it here and in the
+// `--headline` stack and nowhere else. Three cuts: 600 for card titles, 700
+// for headings, 800 for the display moments.
+const headlineFont = Gabarito({
+  subsets: ["latin", "latin-ext"],
+  weight: ["600", "700", "800"],
+  variable: "--font-headline",
   display: "swap",
 });
 
@@ -158,7 +173,7 @@ export const metadata: Metadata = {
  */
 const CONSENT_SEEN = `(function(){try{var m=document.cookie.split('; ').find(function(c){return c.indexOf('${CONSENT_COOKIE}=')===0});if(!m)return;var p=JSON.parse(decodeURIComponent(m.slice(${CONSENT_COOKIE.length + 1})));if(p&&p.version===${CONSENT_VERSION})document.documentElement.setAttribute('data-consent','set')}catch(e){}})();`;
 
-const fontVariables = brandFont.variable;
+const fontVariables = `${brandFont.variable} ${headlineFont.variable}`;
 
 export default function RootLayout({
   children,

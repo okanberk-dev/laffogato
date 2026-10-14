@@ -106,20 +106,28 @@
   --info: #3442b8;
   --info-fill: #4858d2;
 
-  /* Type - one voice, Poppins (operator, 11 Eki 2026: "sitede poppins fontu
-     olsun"). Names, titles, prices and control labels already spoke it (the
-     app's display voice); sentences, captions, help, legal and field text
-     now do too, where Inter used to. Six cuts load through next/font in
-     layout.tsx: 300 · 400 · 500 · 600 · 700 · 800. The weight carries the
-     hierarchy the second family used to: 400 reads, 500-600 labels, 700
-     heads, 800 (ExtraBold) is kept for the display moments - hero titles,
-     .h-display, the big figures. The historical names (--sans, --serif,
-     --script, --mono, …) all resolve to it so every call site keeps working.
-     Poppins has no arrow or symbol glyphs; those fall through to the system
-     font, and the arrow after a label is drawn instead (.arrow). */
+  /* Type - two voices (operator, 14 Eki 2026: "sitede yapay zeka gibi
+     duruyor, yazı tipleri poppins ve biennale vs kullan"; docs/BRAND.md §2).
+
+     --display is Poppins and does the work: sentences, captions, help,
+     legal and field text, buttons, chips, labels, product names and list
+     prices. Six cuts load through next/font in layout.tsx (300 · 400 · 500
+     · 600 · 700 · 800); 400 reads, 500-600 labels. The historical names
+     (--sans, --serif, --script, --mono, …) all resolve to it so every call
+     site keeps working. Poppins has no arrow or symbol glyphs; those fall
+     through to the system font, and the arrow after a label is drawn
+     instead (.arrow).
+
+     --headline is Gabarito and sets the headlines: page, section and card
+     titles (.h-display, .h1-.h3, *-title) and the display figures (.stat-n,
+     the product page's price, the amount to pay). It stands in for
+     Biennale, which needs a licence (layout.tsx); 600 for card titles, 700
+     for headings, 800 for the display moments. Its fallback is Poppins, so
+     a missing cut degrades to the reading voice, never to the system font. */
   --display:
     var(--font-display), "Poppins", -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", sans-serif;
+  --headline: var(--font-headline), "Gabarito", var(--display);
   --sans: var(--display);
   --serif: var(--display);
   --serif-modern: var(--display);
@@ -350,7 +358,7 @@ select {
    letters start to touch. `.script` is the accent-coloured word in a
    headline ("içilir, sonra kupası yenir"). */
 .h-display {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 800;
   font-size: clamp(38px, 5.6vw, 76px);
   line-height: 1.04;
@@ -367,7 +375,7 @@ select {
    (Tailwind generates .h-1, .h-2 ... as height utilities = 4px, 8px, ...).
    The typography classes intentionally use a non-hyphenated form. */
 .h1 {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(34px, 4.6vw, 60px);
   line-height: 1.06;
@@ -381,7 +389,7 @@ select {
 }
 
 .h2 {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(28px, 3.5vw, 46px);
   line-height: 1.08;
@@ -395,7 +403,7 @@ select {
 }
 
 .h3 {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 600;
   font-size: clamp(19px, 1.9vw, 23px);
   line-height: 1.25;
@@ -1782,7 +1790,7 @@ summary:focus-visible,
 .hero-x-title {
   margin: 0;
   display: grid;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(42px, 6vw, 86px);
   /* ExtraBold: the one place a single word has to carry a whole screen. */
   font-weight: 800;
@@ -2320,7 +2328,7 @@ summary:focus-visible,
 
 .section-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(24px, 2.8vw, 36px);
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -2441,7 +2449,7 @@ summary:focus-visible,
   /* `grid` puts each <span> of the two-line form on its own row. A single
      string has no spans and must wrap normally. */
   display: block;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(34px, 5vw, 66px);
   font-weight: 700;
   line-height: 1.04;
@@ -2556,7 +2564,7 @@ summary:focus-visible,
   color: var(--green-mint);
 }
 .promo-banner-title {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(22px, 2.4vw, 30px);
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -2665,7 +2673,7 @@ summary:focus-visible,
 }
 .campaign-card-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -2733,7 +2741,7 @@ summary:focus-visible,
 }
 .home-doors-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(26px, 3.2vw, 40px);
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -2851,7 +2859,7 @@ summary:focus-visible,
   color: var(--door-kicker);
 }
 .door-title {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(18px, 1.6vw, 21px);
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -3170,7 +3178,7 @@ summary:focus-visible,
   box-shadow: var(--rim);
 }
 .stat-n {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(26px, 2.6vw, 34px);
   font-weight: 800;
   letter-spacing: -0.035em;
@@ -3289,7 +3297,7 @@ summary:focus-visible,
 }
 .loyalty-headline {
   margin-top: 18px;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 19px;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -3525,7 +3533,7 @@ summary:focus-visible,
 }
 .footer-motto {
   margin: 6px 0 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(22px, 2.2vw, 28px);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -3565,7 +3573,7 @@ summary:focus-visible,
 }
 .footer-card-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.015em;
@@ -3976,7 +3984,7 @@ summary:focus-visible,
   margin-bottom: 24px;
 }
 .page-head h1 {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(34px, 4.6vw, 60px);
   line-height: 1.06;
@@ -4572,7 +4580,7 @@ summary:focus-visible,
 }
 .shop-empty-title {
   margin: 0 0 18px;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 26px;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -4656,7 +4664,7 @@ summary:focus-visible,
   margin-top: 22px;
 }
 .shop-featured-now {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 40px;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -4892,7 +4900,7 @@ summary:focus-visible,
   }
   .shop-sheet-title {
     margin: 2px 0 0;
-    font-family: var(--display);
+    font-family: var(--headline);
     font-size: 22px;
     font-weight: 700;
     letter-spacing: -0.02em;
@@ -5093,7 +5101,7 @@ summary:focus-visible,
   color: var(--ink);
 }
 .pour-step-title {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 600;
   font-size: 20px;
   line-height: 1.2;
@@ -5295,7 +5303,7 @@ summary:focus-visible,
 }
 .visit-today-hours {
   margin-top: 4px;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -5326,7 +5334,7 @@ summary:focus-visible,
 }
 .reserve-card-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(22px, 2.6vw, 28px);
   font-weight: 600;
   letter-spacing: -0.015em;
@@ -5805,7 +5813,7 @@ select {
 }
 .cart-drawer-title {
   margin: 2px 0 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -5901,7 +5909,7 @@ select {
 }
 .cart-empty-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -6691,7 +6699,7 @@ select {
 }
 .order-done-title {
   margin: 10px 0 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(30px, 4.6vw, 42px);
   line-height: 1.08;
@@ -6837,7 +6845,7 @@ select {
 }
 .checkout-gate-title {
   margin: 0 0 10px;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -7311,7 +7319,7 @@ select {
   color: var(--gold-soft);
 }
 .checkout-payment-amount > span:last-child {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(28px, 4vw, 40px);
   letter-spacing: -0.02em;
@@ -8393,7 +8401,7 @@ select {
 }
 .nf-title {
   margin: 18px 0 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(36px, 5.4vw, 68px);
   font-weight: 700;
   line-height: 1.04;
@@ -8607,7 +8615,7 @@ select {
   border-color: rgba(59, 42, 30, 0.16);
 }
 .shop-hero-title {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(34px, 5.6vw, 68px);
   line-height: 1.04;
@@ -9037,7 +9045,7 @@ select {
   margin-top: 6px;
 }
 .pdp-title {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(32px, 4.4vw, 52px);
   line-height: 1.05;
@@ -9052,7 +9060,7 @@ select {
   margin-top: 18px;
 }
 .pdp-price {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 32px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -9651,7 +9659,7 @@ select {
 }
 .search-empty-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -9777,7 +9785,7 @@ select {
 }
 .pour-module-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(26px, 2.8vw, 38px);
   font-weight: 700;
   line-height: 1.1;
@@ -10141,7 +10149,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 }
 .auth-title {
   margin: 0 0 10px;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(30px, 4.4vw, 38px);
   line-height: 1.08;
@@ -10791,7 +10799,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 }
 .account-app-title {
   margin-top: 8px;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.025em;
