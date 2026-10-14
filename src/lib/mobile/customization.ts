@@ -130,6 +130,24 @@ export const lineOptionsSchema = z.object({
     .default(DEFAULT_LINE_OPTIONS.note),
 });
 
+/**
+ * Menu categories that take no customisation: a slice of cake has no milk,
+ * roast, sugar, syrup, extra shot or barista note. Mirrors the app's
+ * `NON_CUSTOMIZABLE` (lafmobil src/components/menu/orderability.ts), which
+ * never draws the customise screen for them and always sends the defaults.
+ */
+export const NON_CUSTOMIZABLE_CATEGORIES: readonly string[] = [
+  "dessert",
+  "snack",
+  "extras",
+];
+
+export function isCustomizableCategory(
+  categoryKey: string | undefined,
+): boolean {
+  return !NON_CUSTOMIZABLE_CATEGORIES.includes(categoryKey ?? "");
+}
+
 export const orderItemSizeSchema = z.enum(ORDER_ITEM_SIZES, {
   error: "Geçersiz boy seçimi.",
 });

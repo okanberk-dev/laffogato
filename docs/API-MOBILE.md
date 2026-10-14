@@ -365,6 +365,10 @@ Kurallar:
 - `customers.emailVerified` yoksa **403** `email_unverified`.
 - Kafe satırları `menu_items` (aktif) ile, mağaza satırları `products` ile çözülür; **fiyat DB'den**.
 - Seçenek fiyatları `customization` sabitinden; `size: "L"` → `priceMinorL`, yoksa **400**.
+- Özelleştirilemeyen kategoriler (`dessert` · `snack` · `extras`; uygulamanın `NON_CUSTOMIZABLE`
+  listesi) seçenek almaz (14 Eki 2026, yalnız ekleme): bu satırlarda gönderilen `options`
+  **yok sayılır** (reddedilmez), satır varsayılan seçeneklerle ve sade fiyatıyla yazılır.
+  `/orders/preview` aynı kuralla fiyatlar.
 - `kind: "cafe"`: stok yok; `kind: "shop"`: mevcut `placeOrder` stok/claim mantığı **aynen** kullanılır.
 - Kargo/kurye: `pickup` → 0; `delivery` → `settings.courierFeeMinor` (varsayılan 5500); `shipping` → mevcut `computeOrderTotals`.
 - `kind: "shop"` ve `settings.isShopOpen === false` → **409** `shop_closed`. Bu anahtar **yalnızca kargolu mağaza** siparişlerini durdurur. Kafe siparişi için köşk kapalıysa (`live-status.isOpen === false`) **409** `cafe_closed`.
