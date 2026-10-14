@@ -533,6 +533,9 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
 > `{ "code", "ok": false, "message": "Çok fazla deneme. N saniye sonra tekrar dene." }`
 > olur (sepet hesabı hız sınırı yüzünden düşmesin diye). Mağaza satırlarında stok kontrolü
 > yapılır ama stok **ayrılmaz**. `stampsToEarn` kafe sepetinde 1, mağazada 0.
+> **14 Eki 2026 (yalnız ekleme):** `kind: "shop"` sepeti `settings.isShopOpen === false`
+> iken artık fiyatlanmaz; `POST /orders` ile aynı **409** `shop_closed` (aynı mesaj) döner.
+> Önceden önizleme kapalı mağazanın sepetini fiyatlıyor, ret yalnız son adımda geliyordu.
 
 ## 4. `GET /me` · `PATCH /me` (kimlik gerekli)
 

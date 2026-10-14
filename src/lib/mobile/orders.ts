@@ -877,6 +877,17 @@ export async function previewAppOrder(
     settings.mobileApp.ordering,
   );
   if (refused) return { ok: false, failure: refused };
+  // The shop's own switch, which `placeAppOrder` enforces with 409
+  // `shop_closed`. The preview used to price a cargo basket regardless, so the
+  // basket and the checkout showed a total and a live Pay button over an
+  // order the till was going to refuse. Same code, status and message as the
+  // order endpoint; the app shows a 4xx preview's own message (W1-03).
+  if (body.kind === "shop" && !settings.isShopOpen) {
+    return {
+      ok: false,
+      failure: failureFromResult({ ok: false, reason: "shop_closed" }),
+    };
+  }
 
   const linesRes = await previewAppOrderLines(body.lines);
   if (!linesRes.ok) {
