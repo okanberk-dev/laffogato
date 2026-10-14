@@ -588,6 +588,10 @@ Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği
 > `{ "ok": true, "identity": "deleted" | "skipped" | "failed" }` olur; ayrıntı
 > aşağıda. `neighbourhood` sütunu yoktur: `line1`'e
 > `"<mahalle>, <satır>"` olarak katlanır, okurken `Mah.`/`Mahallesi`/`Mh.` sonekiyle ayrıştırılır.
+> **14 Eki 2026 (yalnız ekleme):** uygulamadan yazılan adres mahalleyi ayrıca kendi
+> anahtarında da tutar (JSONB, migration yok) ve okurken o tercih edilir; böylece
+> sonek taşımayan bir mahalle ("Postane") de `neighbourhood` olarak geri döner. Bu anahtarı
+> taşımayan eski satırlar ve sitede düzenlenen adresler yukarıdaki ayrıştırmayla okunur.
 > `loyalty.badges` ve `tier` yalnız `paid/preparing/shipped/completed` siparişleri sayar
 > (ödenmemiş/iptal/iade sayılmaz).
 

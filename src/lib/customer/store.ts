@@ -24,6 +24,14 @@ export interface CustomerAddress {
   city: string;
   zip: string;
   isDefault: boolean;
+  /**
+   * The mahalle as the app typed it, kept in its own key (S8-02). `line1`
+   * still carries it folded in front ("Postane Mah., Atatürk Cad. …"), so
+   * the site, the order text and the courier read one complete line; this
+   * key is what lets the app read it back exactly. Absent on rows written
+   * by the site or before the key existed - those keep the old split.
+   */
+  neighbourhood?: string;
 }
 
 export interface NotificationPrefs {
@@ -871,6 +879,8 @@ export interface AddressInput {
   city: string;
   zip: string;
   isDefault: boolean;
+  /** Only the app sends it; the site's forms leave it out. */
+  neighbourhood?: string;
 }
 
 function normalizeAddress(input: AddressInput, id: string): CustomerAddress {
@@ -885,6 +895,11 @@ function normalizeAddress(input: AddressInput, id: string): CustomerAddress {
     city: input.city.trim().slice(0, 80),
     zip: input.zip.trim().slice(0, 12),
     isDefault: !!input.isDefault,
+    // Written only when the caller sent it: a site edit (no key) drops a
+    // stale one, so the next read splits the line the member just typed.
+    ...(typeof input.neighbourhood === "string"
+      ? { neighbourhood: input.neighbourhood.trim().slice(0, 80) }
+      : {}),
   };
 }
 

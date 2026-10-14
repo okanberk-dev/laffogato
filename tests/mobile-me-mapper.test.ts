@@ -140,6 +140,53 @@ describe("toMeAddress / fromMeAddress", () => {
       city: "İstanbul",
       zip: "",
       isDefault: true,
+      neighbourhood: "Postane Mah.",
+    });
+  });
+
+  // S8-02: the mahalle in its own key, preferred on read.
+  it("round-trips a mahalle typed without 'Mah.'", () => {
+    const input = {
+      title: "Ev",
+      fullName: "Eda Mancuso",
+      phone: "+90 555 000 00 00",
+      city: "İstanbul",
+      district: "Tuzla",
+      neighbourhood: "Postane",
+      line: "Atatürk Cad. No: 28",
+      note: "",
+      isDefault: false,
+    };
+    const stored = fromMeAddress(input);
+    // The folded line stays complete for the site, the order and the courier.
+    expect(stored.line1).toBe("Postane, Atatürk Cad. No: 28");
+    expect(stored.neighbourhood).toBe("Postane");
+    const back = toMeAddress({ id: "adr-9", ...stored });
+    expect(back.neighbourhood).toBe("Postane");
+    expect(back.line).toBe("Atatürk Cad. No: 28");
+  });
+
+  it("round-trips an empty neighbourhood without splitting the line", () => {
+    const stored = fromMeAddress({
+      title: "",
+      fullName: "Eda Mancuso",
+      phone: "05550000000",
+      city: "İstanbul",
+      district: "",
+      neighbourhood: "",
+      line: "Aydıntepe Mah., Sahil Yolu 5",
+      note: "",
+    });
+    const back = toMeAddress({ id: "adr-9", ...stored });
+    expect(back.neighbourhood).toBe("");
+    expect(back.line).toBe("Aydıntepe Mah., Sahil Yolu 5");
+  });
+
+  it("keeps the old split for a row without the key", () => {
+    expect("neighbourhood" in address).toBe(false);
+    expect(toMeAddress(address)).toMatchObject({
+      neighbourhood: "Postane Mah.",
+      line: "Atatürk Cad. No: 28",
     });
   });
 
