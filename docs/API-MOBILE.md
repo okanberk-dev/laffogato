@@ -649,6 +649,14 @@ kurar (O28).
 > daveti açık bırakır. Davet eden en çok **5** davetten ödül alır (`INVITE_REWARD_CAP`).
 > `/me.invite.joined` = pending olmayan satır sayısı, `earned` = ödül getiren davet sayısı
 > (5 ile sınırlı; tavanı aşan davetlerde `people[].rewarded` `false`).
+>
+> **Davet ödülü kuralı (14 Eki 2026, operatör kararı; yalnız ekleme).** Ödülü kazandıran,
+> davetlinin ilk ödenmiş **kafe** siparişidir (gel-al ya da kurye; mağaza/kargo siparişi
+> hiçbir zaman saymaz). Asgari tutar **150,00 TL'lik ürün**dür: indirim düşüldükten sonra
+> ödenen ürün tutarı, yani `totalMinor − shippingMinor`; **kurye ücreti sayılmaz** (100 TL'lik
+> kahve + 55 TL kurye daveti kapatmaz). Yukarıdaki "ödenen tutarı (`totalMinor`)" ifadesi bu
+> kuralla okunur. Davet eden en çok **5** davetten ücretsiz içecek alır
+> (`INVITE_REWARD_CAP`); tavandan sonra davetli yine ödülünü alır, davet edene kupon yazılmaz.
 
 ## 6. Canlı durum — `GET /live-status` (herkese açık)
 
