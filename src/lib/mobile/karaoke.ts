@@ -272,12 +272,15 @@ export async function listMine(email: string): Promise<KaraokeReservation[]> {
   const needle = normalizeEmail(email);
   if (!needle) return [];
   const sb = getDb();
-  const escaped = needle.replace(/[%_]/g, (c) => `\\${c}`);
+  // `ieq` (lower(col) = lower($1)), not an `ilike` prefilter: ILIKE has no
+  // btree opclass, so `karaoke_reservations_email_idx` (on lower()) could
+  // never be chosen and every call scanned the table (WP1: 47 ms -> 0.07 ms
+  // at 50k bookings). The exact compare below stays as the final word.
   const candidates = rows<KaraokeReservation>(
     await sb
       .from(TABLES.karaokeReservations)
       .select("*")
-      .ilike("customerEmail", escaped)
+      .ieq("customerEmail", needle)
       .order("date", { ascending: false })
       .order("startHour", { ascending: false }),
     "karaoke.listMine",
@@ -292,7 +295,7 @@ export async function listMine(email: string): Promise<KaraokeReservation[]> {
  * `updatedAt` is written when a booking is made and when its status moves
  * (`setReservationStatus`, and the cancellation `DELETE /me` makes), never by
  * anything else, so on a confirmed or cancelled row it IS the instant of the
- * decision. Matched like `listMine`: `ilike` prefilter, exact compare after.
+ * decision. Matched like `listMine`: indexed `ieq`, exact compare after.
  */
 export async function listReservationDecisions(
   email: string,
@@ -300,12 +303,13 @@ export async function listReservationDecisions(
 ): Promise<KaraokeReservation[]> {
   const needle = normalizeEmail(email);
   if (!needle) return [];
-  const escaped = needle.replace(/[%_]/g, (c) => `\\${c}`);
+  // Indexed case-insensitive equality, as in `listMine` (WP1: this runs on
+  // every inbox read; 66 ms -> 0.07 ms at 50k bookings).
   const candidates = rows<KaraokeReservation>(
     await getDb()
       .from(TABLES.karaokeReservations)
       .select("*")
-      .ilike("customerEmail", escaped)
+      .ieq("customerEmail", needle)
       .in("status", ["confirmed", "cancelled"])
       .gte("updatedAt", sinceIso),
     "karaoke.listReservationDecisions",
