@@ -18,7 +18,9 @@ import { ADMIN_ROLES, ROLE_LABELS } from "@/lib/admin/roles";
 import {
   createAdminUserAction,
   deleteAdminUserAction,
+  grantBaristaAction,
   resetAdminPasswordAction,
+  revokeBaristaAction,
   saveAdminUserAction,
   type AdminUserState,
 } from "./actions";
@@ -218,5 +220,96 @@ export function AdminUserRow({
         </div>
       </div>
     </Card>
+  );
+}
+
+// ─── Uygulamadan kasa (barista) ─────────────────────────────────────────
+
+export interface BaristaRowProps {
+  email: string;
+  name: string;
+  isActive: boolean;
+  grantedBy: string;
+  grantedAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Grants the till to an APP member account. The address must already be a
+ * member: the server refuses anything else rather than leave a grant waiting
+ * for whoever signs up with it first.
+ */
+export function GrantBaristaForm() {
+  const [state, formAction, pending] = useActionState(
+    grantBaristaAction,
+    initialState,
+  );
+
+  return (
+    <form action={formAction} className="grid gap-3">
+      <Field
+        label="Üye e-postası"
+        hint="Baristanın uygulamaya giriş yaptığı adres. Hesap önceden açılmış olmalı."
+      >
+        <TextInput
+          type="email"
+          name="email"
+          required
+          autoComplete="off"
+          placeholder="barista@ornek.com"
+        />
+      </Field>
+      <Notice state={state} />
+      <div>
+        <PrimaryButton type="submit" disabled={pending}>
+          {pending ? "Veriliyor…" : "Kasa yetkisi ver"}
+        </PrimaryButton>
+      </div>
+    </form>
+  );
+}
+
+export function BaristaRow({ barista }: { barista: BaristaRowProps }) {
+  const [state, formAction, pending] = useActionState(
+    revokeBaristaAction,
+    initialState,
+  );
+
+  return (
+    <div className="grid gap-2 border-t border-[var(--admin-border)] pt-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p
+          className="text-sm font-medium break-all"
+          style={{ fontFamily: "var(--mono), monospace" }}
+        >
+          {barista.email}
+          {barista.name ? (
+            <span className="ml-2 font-sans text-xs text-[var(--admin-text-mute)]">
+              {barista.name}
+            </span>
+          ) : null}
+        </p>
+        <p className="text-xs text-[var(--admin-text-mute)]">
+          {barista.isActive
+            ? `Veren: ${barista.grantedBy || "-"} · ${
+                barista.grantedAt ? formatDateTime(barista.grantedAt) : "-"
+              }`
+            : `Kaldırıldı · ${
+                barista.updatedAt ? formatDateTime(barista.updatedAt) : "-"
+              }`}
+        </p>
+      </div>
+      {barista.isActive ? (
+        <form action={formAction} className="grid gap-2">
+          <input type="hidden" name="email" value={barista.email} />
+          <div>
+            <DangerButton type="submit" disabled={pending}>
+              {pending ? "Kaldırılıyor…" : "Yetkiyi kaldır"}
+            </DangerButton>
+          </div>
+          <Notice state={state} />
+        </form>
+      ) : null}
+    </div>
   );
 }

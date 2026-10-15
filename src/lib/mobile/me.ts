@@ -9,6 +9,7 @@ import {
   getSettings,
   type AdminOrderStatus,
 } from "@/lib/admin/store";
+import { isActiveBarista } from "@/lib/admin/staff-members";
 import { appendConsentChanges } from "@/lib/customer/consent-ledger";
 import {
   getCustomerByEmail,
@@ -49,7 +50,7 @@ function checkErr(error: DbError | null, ctx: string): void {
 
 /** The full `/me` body for an authenticated member. */
 export async function buildMe(customer: PublicCustomer): Promise<MeResponse> {
-  const [loyalty, invite, grants, settings] = await Promise.all([
+  const [loyalty, invite, grants, settings, till] = await Promise.all([
     getLoyalty(customer.email),
     getInviteSummary(customer),
     // The road map is an addition to /me, never a reason for it to fail: if
@@ -60,6 +61,12 @@ export async function buildMe(customer: PublicCustomer): Promise<MeResponse> {
       return null;
     }),
     getSettings(),
+    // Like the road map: the till flag never fails /me. Unreadable (a deploy
+    // ahead of its migration) means no till, which is the safe answer.
+    isActiveBarista(customer.email).catch((err: unknown) => {
+      console.error("[me] staff flag unavailable", err);
+      return false;
+    }),
   ]);
   return toMe(
     customer,
@@ -71,6 +78,7 @@ export async function buildMe(customer: PublicCustomer): Promise<MeResponse> {
       perksByTier: perksByTier(settings.mobileApp.karaoke.oroDiscountPct),
     },
     invite,
+    { till },
   );
 }
 
@@ -331,6 +339,17 @@ export const ANON_SWEEPS: ReadonlyArray<{
     column: "customerEmail",
     caseInsensitive: true,
     patch: (anon) => ({ customerEmail: anon }),
+  },
+  {
+    // The barista grant is keyed on the address. Left alone, whoever next
+    // registered it would open the app with the till already in hand - a
+    // permission the panel gave somebody else. The row goes; the audit log
+    // keeps who granted and who revoked.
+    table: TABLES.staffMembers,
+    column: "email",
+    caseInsensitive: true,
+    op: "delete",
+    patch: () => ({}),
   },
 ];
 

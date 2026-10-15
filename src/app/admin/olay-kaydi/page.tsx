@@ -39,6 +39,7 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
   mobile_app_config: "Uygulama ayarları",
   admin_user: "Panel kullanıcısı",
   counter_token: "Kasa jetonu",
+  staff_member: "Barista (uygulamadan kasa)",
   campaign_email: "Kampanya e-postası",
 };
 

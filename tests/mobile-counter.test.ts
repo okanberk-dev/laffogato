@@ -336,6 +336,53 @@ describe("redeemCounterToken · jeton", () => {
   });
 });
 
+describe("redeemCounterToken · refuseOwner (barista in the app)", () => {
+  // POST /staff/stamp passes the barista's own address: a barista must not
+  // stamp their own QR or code. The refusal must come before the burn, or
+  // the member's code would be spent for nothing and fail at a real till.
+  it.each(["token", "code"] as const)(
+    "refuses the owner's own %s and leaves it unburned",
+    async (kind) => {
+      const { token, code } = await issue();
+      const res = await redeemCounterToken({
+        kind,
+        value: kind === "token" ? token : code,
+        stamps: 1,
+        actor: MEMBER,
+        refuseOwner: ` ${MEMBER.toUpperCase()} `,
+      });
+      expect(res).toMatchObject({ ok: false, error: "self_stamp" });
+      expect(addCounterStamp).not.toHaveBeenCalled();
+      expect(allTokens()[0].usedAt).toBe("");
+
+      const atTill = await redeemCounterToken({
+        kind,
+        value: kind === "token" ? token : code,
+        stamps: 1,
+        actor: CASHIER,
+      });
+      expect(atTill.ok).toBe(true);
+    },
+  );
+
+  it("stamps somebody else's code as usual", async () => {
+    const { code } = await issue();
+    const res = await redeemCounterToken({
+      kind: "code",
+      value: code,
+      stamps: 1,
+      actor: "bora@ornek.com",
+      refuseOwner: "bora@ornek.com",
+    });
+    expect(res.ok).toBe(true);
+    expect(addCounterStamp).toHaveBeenCalledWith(
+      MEMBER,
+      "bora@ornek.com",
+      "Kasa · kod",
+    );
+  });
+});
+
 describe("redeemCounterToken · e-posta", () => {
   it("keeps the address the cashier typed unmasked", async () => {
     const res = await redeemCounterToken({
