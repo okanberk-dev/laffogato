@@ -8,6 +8,7 @@ import {
   checkLoginLimit,
   clientIp,
   recordLoginFailure,
+  reserveLoginAttempt,
 } from "@/lib/admin/rate-limit";
 import {
   applyPaymentSucceeded,
@@ -66,6 +67,8 @@ export interface AppFailure {
   message: string;
   /** Additive body fields this refusal documents (e.g. `totalMinor`). */
   extra?: Record<string, unknown>;
+  /** Response headers the refusal carries (e.g. `Retry-After` on a 429). */
+  headers?: Record<string, string>;
 }
 
 /** How many orders `GET /orders` returns, newest first. */
@@ -317,6 +320,25 @@ async function stampedOrders(email: string): Promise<ReadonlySet<string>> {
 }
 
 /**
+ * The refusal for a member who has reopened the POS too often (§3).
+ *
+ * `rate_limited` and 429, the code and status §0 already uses for a
+ * throttle; the app's checkout and its "Şimdi öde" both show a refusal they
+ * do not know by its own sentence or a generic one, and neither retries on
+ * its own.
+ */
+function reopenLimited(retryAfterSeconds: number): AppFailure {
+  const seconds = Math.max(1, Math.ceil(retryAfterSeconds));
+  const minutes = Math.ceil(seconds / 60);
+  return {
+    status: 429,
+    code: "rate_limited",
+    message: `Ödeme sayfasını çok sık açtın. ${minutes} dakika sonra tekrar dene.`,
+    headers: { "Retry-After": String(seconds) },
+  };
+}
+
+/**
  * Answers a repeated checkout attempt with the order it already produced.
  *
  * An order still awaiting payment gets a fresh checkout session rather than
@@ -361,6 +383,21 @@ async function replayAppOrder(
     order.status === "pending_payment" &&
     order.totalMinor > 0
   ) {
+    // Every reopen is a call to the payment provider and a pending
+    // `payment_transactions` row, and nothing else bounded it: one member
+    // with one unpaid order could loop on it and open POS sessions from this
+    // merchant account as fast as they could send requests. Counted per
+    // member before the call, atomically (`reserve_auth_attempt`), so a
+    // parallel burst cannot slip past the count either. The first session of
+    // a new order is not counted here - `too_many_pending` bounds those.
+    const gate = await reserveLoginAttempt(
+      "checkout-reopen",
+      "",
+      customer.email,
+    );
+    if (gate.blocked) {
+      return { ok: false, failure: reopenLimited(gate.retryAfterSeconds) };
+    }
     // The caller's own IP, as the first attempt sends it (`consent.ip`): an
     // empty one reached PayNkolay as `cardHolderIP: 0.0.0.0`, and every
     // reopened checkout - the retry of a lost POST, "Şimdi öde" from the
@@ -640,7 +677,9 @@ export async function getAppOrder(
 export type PayAppOrderResult =
   | { ok: true; order: MobileOrder; payment: AppPayment }
   | { ok: false; reason: "not_found" }
-  | { ok: false; reason: "not_payable"; order: MobileOrder };
+  | { ok: false; reason: "not_payable"; order: MobileOrder }
+  /** Too many reopened checkouts for this member (§3, 429 `rate_limited`). */
+  | { ok: false; reason: "rate_limited"; failure: AppFailure };
 
 /**
  * `POST /orders/{id}/payment` - a fresh checkout for the member's own app
@@ -692,9 +731,8 @@ export async function payAppOrder(
   }
   const replay = await replayAppOrder(order, customer);
   if (!replay.ok) {
-    // Unreachable: a replay answers ok or throws. Kept so the type says what
-    // the wire says.
-    throw new Error(`payAppOrder: no checkout for ${order.id}`);
+    // The one refusal a replay makes: the member's reopen budget is spent.
+    return { ok: false, reason: "rate_limited", failure: replay.failure };
   }
   // No checkout: the wallet had already paid this order (its spend is written
   // with the row), so there is nothing left to pay - the order as it stands.

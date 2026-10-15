@@ -32,7 +32,8 @@ export type AuthPurpose =
   | "password-reset"
   | "unsubscribe"
   | "newsletter-signup"
-  | "staff-stamp";
+  | "staff-stamp"
+  | "checkout-reopen";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -66,12 +67,21 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // Fifteen misses in five minutes is far past a slow camera and well short
   // of walking an 8-character code space.
   "staff-stamp": 15,
+  // Reopening the POS for an app order that already exists (a repeated
+  // `clientOrderId`, or POST /orders/{id}/payment). Not a credential: every
+  // reopen is counted, success or not, because each one is a call to the
+  // payment provider and a `payment_transactions` row. Keyed on the member,
+  // not the IP. A member whose card was refused retries a handful of times;
+  // a script looping on one pending order was an unbounded stream of POS
+  // sessions opened from this merchant account.
+  "checkout-reopen": 8,
 };
 
 /** Lockout length per purpose; LOCKOUT_MS unless listed. */
 const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "admin-2fa-account": 15 * 60 * 1000,
   "newsletter-signup": 15 * 60 * 1000,
+  "checkout-reopen": 10 * 60 * 1000,
 };
 
 function lockoutMs(purpose: AuthPurpose): number {

@@ -404,7 +404,9 @@ Kurallar:
 >   tekrar gönderirse **aynı sipariş** döner, yenisi açılmaz; hâlâ `pending_payment` ise
 >   yeni bir ödeme oturumu açılır. POS o an açılamazsa tekrar da ilk deneme gibi **500**
 >   `internal` döner (23 Eyl 2026 — önceden 201 + `payment: null` dönüyor, uygulama ödenmemiş
->   siparişi verilmiş sanıyordu); sonraki deneme yine aynı siparişi açar.
+>   siparişi verilmiş sanıyordu); sonraki deneme yine aynı siparişi açar. Yeniden açılış
+  bütçesi aşılınca **429** `rate_limited` + `Retry-After` (15 Eki 2026, yalnız ekleme;
+  ayrıntı `POST /orders/{id}/payment` altında).
 > - `scheduledFor`: geçmiş (5 dk tolerans) ve 7 günden ileri → 400. `""`/`null` = en kısa sürede.
 > - Kafe + mağaza karışık sepet → 400 (teslimat türü ikisini birden karşılayamaz).
 > - Mağaza satırındaki `note` (öğütüm) `items[].detail` alanında taşınır.
@@ -453,6 +455,13 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
   ("Bu sipariş ödeme beklemiyor."): uygulama siparişi `GET /orders/{id}` ile yeniden
   çizer.
 - POS açılamazsa **500** `internal`; hiçbir şey değişmez, tekrar denenebilir.
+- **429** `rate_limited` (15 Eki 2026, yalnız ekleme): var olan bir sipariş için ödeme
+  oturumu yeniden açmak (bu uç **ve** `clientOrderId` tekrarı, ikisi aynı bütçeden) üye
+  başına sayılır; 5 dakikada 8 açılıştan sonra 10 dakika `Retry-After` ile reddedilir.
+  Her açılış ödeme sağlayıcısına bir çağrı ve bir `payment_transactions` satırıydı, tek
+  bir ödenmemiş siparişle sınırsız açılabiliyordu. Yeni siparişin ilk oturumu sayılmaz
+  (onu `too_many_pending` sınırlar). Uygulama bunu tanımadığı her ret gibi gösterir,
+  kendiliğinden tekrar denemez.
 - Neden: üç yarım ödeme `too_many_pending` (429) ile üyeyi siparişten kilitliyordu ve
   uygulamada çıkış yolu yoktu.
 
