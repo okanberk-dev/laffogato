@@ -20,10 +20,10 @@ import { grantMilestoneGifts } from "./milestones";
 import {
   buildLoyaltyView,
   computeStampBalance,
-  earnsStamp,
   freeDrinkRewardFor,
   rewardReadyAt,
-  stampedOrderIds,
+  stampsByOrder,
+  stampsForOrder,
   type LoyaltyRules,
   type LoyaltyStamp,
   type LoyaltyView,
@@ -32,8 +32,9 @@ import {
 /**
  * Loyalty ledger (docs/API-MOBILE.md §3, §4, §5).
  *
- * Append-only `loyalty_stamps`: an `earn` row per stamp, a `redeem` row per
- * reward. Balances are always recomputed from the ledger, never stored - a
+ * Append-only `loyalty_stamps`: an `earn` row per till stamp and one per
+ * paid app cafe order (its delta is the order's stamp count), a `redeem` row
+ * per reward. Balances are always recomputed from the ledger, never stored - a
  * counter that is written from two serverless invocations at once is exactly
  * how a member gets a free drink twice or loses a stamp.
  */
@@ -110,14 +111,15 @@ export async function getLoyalty(
 }
 
 /**
- * The member's orders that hold a stamp - one ledger read, for the whole
- * `/orders` list. The wire field `stampsEarned` is answered from this rather
- * than from the order's status; see `stampsEarnedFor` in `./order-mapper.ts`.
+ * How many stamps each of the member's orders holds - one ledger read, for the
+ * whole `/orders` list. The wire field `stampsEarned` is answered from this
+ * rather than from the order's status; see `stampsEarnedFor` in
+ * `./order-mapper.ts`.
  */
-export async function getStampedOrderIds(
+export async function getOrderStamps(
   email: string,
-): Promise<ReadonlySet<string>> {
-  return stampedOrderIds(await listStamps(email));
+): Promise<ReadonlyMap<string, number>> {
+  return stampsByOrder(await listStamps(email));
 }
 
 export interface RewardStatus {
@@ -149,9 +151,14 @@ export async function getRewardStatus(email: string): Promise<RewardStatus> {
  * Hook for the order machine: called once an order reaches `paid`
  * (`applyPaymentSucceeded`). Safe to call again for the same order.
  *
- * - An app cafe order earns one stamp. The partial unique index on `orderId`
- *   makes a duplicate webhook a 23505 that is swallowed here, so the stamp is
- *   earned exactly once.
+ * - An app cafe order earns `stampsForOrder` stamps (none under ₺140 of goods,
+ *   then one per started ₺320; operator, 15 Eki 2026), written as ONE `earn`
+ *   row whose delta is that count. The partial unique index on `orderId`
+ *   makes a duplicate webhook a 23505 that is swallowed here, so the stamps
+ *   are earned exactly once. A delta above 1 can fill one card or several:
+ *   the balance is read from the ledger (`computeStampBalance`), so every
+ *   full card is a reward waiting for `redeemStamps` and the rest carries
+ *   over, and every milestone the new lifetime count passes is given.
  * - The customer's first paid order settles a pending invite: both the
  *   inviter and the invitee receive a free-drink coupon (§5).
  *
@@ -162,16 +169,16 @@ export async function onOrderPaid(order: AdminOrder): Promise<void> {
   const owner = normalizeEmail(order.customerEmail);
   if (!owner || owner === "guest@laffogato.local") return;
 
-  if (
-    orderChannel(order) === "app" &&
-    orderKind(order) === "cafe" &&
-    earnsStamp(order)
-  ) {
+  const stamps =
+    orderChannel(order) === "app" && orderKind(order) === "cafe"
+      ? stampsForOrder(order)
+      : 0;
+  if (stamps > 0) {
     const row: LoyaltyStamp = {
       id: await newStampId(),
       customerEmail: owner,
       kind: "earn",
-      delta: 1,
+      delta: stamps,
       source: "order",
       orderId: order.id,
       note: `Sipariş #${order.orderNo}`,
@@ -179,7 +186,7 @@ export async function onOrderPaid(order: AdminOrder): Promise<void> {
       createdAt: new Date().toISOString(),
     };
     const { error } = await getDb().from(TABLES.loyaltyStamps).insert(row);
-    // 23505 on loyalty_stamps_order_key: this order already earned its stamp.
+    // 23505 on loyalty_stamps_order_key: this order already earned its stamps.
     if (error && error.code !== "23505") checkErr(error, "onOrderPaid.earn");
     await giveMilestones(owner);
   }
@@ -193,7 +200,8 @@ export async function onOrderPaid(order: AdminOrder): Promise<void> {
 }
 
 /**
- * Takes back the stamp an order earned, when that order is undone.
+ * Takes back the stamps an order earned, when that order is undone - exactly
+ * the delta of its `earn` row, so a ₺700 order that earned 3 loses 3.
  *
  * Pay → earn a stamp → ask for a refund was a way to collect free drinks: the
  * ledger only ever added. A reversal row is written instead of deleting the
@@ -217,12 +225,14 @@ export async function onOrderReversed(order: AdminOrder): Promise<void> {
   if (!earned) return;
   if (stamps.some((s) => s.orderId === order.id && s.kind === "reversal"))
     return;
+  const amount = Math.max(0, Math.round(Number(earned.delta)) || 0);
+  if (amount <= 0) return;
 
   const row: LoyaltyStamp = {
     id: `stamp-rev-${order.id}`,
     customerEmail: owner,
     kind: "reversal",
-    delta: -1,
+    delta: -amount,
     source: "order",
     orderId: order.id,
     note: `Sipariş #${order.orderNo} iade/iptal`,

@@ -58,7 +58,7 @@ export function CampaignsPage({
               <PromoBanner
                 eyebrow="Ödül programı"
                 title={`${stampTarget} damgada 1 ${rewardTitle.toLocaleLowerCase("tr-TR")}`}
-                body="Uygulamadan verdiğin her kafe siparişi bir damga kazandırır. Kart dolduğunda ödülün kuponlarına düşer."
+                body="Uygulamadan verdiğin 140 TL ve üzeri kafe siparişi damga kazandırır: 320 TL'ye kadar bir, 640 TL'ye kadar iki damga. Kart dolduğunda ödülün kuponlarına düşer."
                 href="/uye/hesap"
                 cta="Kartımı gör"
               />

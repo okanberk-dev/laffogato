@@ -26,7 +26,7 @@ const APP_FEATURES = [
   },
   {
     title: "Damga kartın",
-    body: "her kafe siparişi bir damga, altıncı içecek bizden.",
+    body: "140 TL'den itibaren başlayan her 320 TL bir damga, altıncı içecek bizden.",
   },
   {
     title: "Kasa kodu",
@@ -511,7 +511,8 @@ export function PageHome({
                 Altı damga, bir içecek bizden
               </h2>
               <p>
-                Uygulamadan verilen her kafe siparişi bir damga. Altıncı damga
+                Uygulamadan verilen 140 TL ve üzeri kafe siparişi damga
+                kazandırır: 320 TL’ye kadar bir, 640 TL’ye kadar iki. Altıncı damga
                 90 gün geçerli ücretsiz içecek kuponuna dönüşür.
               </p>
               <div className="cta-row">

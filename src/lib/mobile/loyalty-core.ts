@@ -18,7 +18,11 @@ export interface LoyaltyStamp {
    * append-only, so nothing is ever deleted to make a balance come out right.
    */
   kind: "earn" | "redeem" | "reversal";
-  /** +1 for an earned stamp, −6 for a redeemed reward, −1 for a reversal. */
+  /**
+   * Stamps earned (+1 per till stamp; an app cafe order earns `stampsFor` its
+   * goods, so +2 or more on a big order), −target for a redeemed reward, and
+   * for a reversal minus what that order earned (−1 for a till correction).
+   */
   delta: number;
   /** order | counter | invite | admin | app */
   source: string;
@@ -48,16 +52,54 @@ export const STAMP_TARGET = 6;
  */
 export const STAMP_MIN_ORDER_MINOR = 14000;
 
-/** Whether a paid app cafe order is big enough to earn its stamp. */
+/**
+ * Goods per stamp above the minimum, in kuruş (operator, 15 Eki 2026: "140
+ * TL'den 320 TL'ye kadar 1 tane sayılsın, damga toplam miktar ile
+ * hesaplansın"). Every started ₺320 of goods is one stamp: ₺140-₺320 → 1,
+ * ₺320,01-₺640 → 2, ₺640,01-₺960 → 3. A big order used to earn one stamp, the
+ * same as a ₺140 one.
+ */
+export const STAMP_STEP_MINOR = 32000;
+
+/**
+ * What a paid app cafe order counts towards its stamps, in kuruş: what the
+ * member paid for the goods - `totalMinor − shippingMinor`, so the discount is
+ * already out and the courier fee is not counted.
+ */
+export function stampGoodsMinor(order: {
+  totalMinor: number;
+  shippingMinor: number;
+}): number {
+  const total = Math.round(Number(order.totalMinor));
+  const shipping = Math.round(Number(order.shippingMinor));
+  if (!Number.isFinite(total)) return 0;
+  return Math.max(0, total - (Number.isFinite(shipping) ? Math.max(0, shipping) : 0));
+}
+
+/**
+ * Stamps for an amount of goods (kuruş): none under ₺140, otherwise one per
+ * started ₺320 (`ceil(goods / 32000)`).
+ */
+export function stampsFor(goodsMinor: number): number {
+  const goods = Math.round(Number(goodsMinor));
+  if (!Number.isFinite(goods) || goods < STAMP_MIN_ORDER_MINOR) return 0;
+  return Math.ceil(goods / STAMP_STEP_MINOR);
+}
+
+/** The stamps a paid app cafe order earns: `stampsFor` of its goods. */
+export function stampsForOrder(order: {
+  totalMinor: number;
+  shippingMinor: number;
+}): number {
+  return stampsFor(stampGoodsMinor(order));
+}
+
+/** Whether a paid app cafe order is big enough to earn a stamp at all. */
 export function earnsStamp(order: {
   totalMinor: number;
   shippingMinor: number;
 }): boolean {
-  const goods = Math.max(
-    0,
-    Math.round(order.totalMinor) - Math.max(0, Math.round(order.shippingMinor)),
-  );
-  return goods >= STAMP_MIN_ORDER_MINOR;
+  return stampsForOrder(order) > 0;
 }
 
 /** The loyalty knobs the operator turns; one shape for the core and the till. */
@@ -237,6 +279,33 @@ export function stampedOrderIds(
     if (!row.orderId) continue;
     if (row.kind === "earn") earned.add(row.orderId);
     else if (row.kind === "reversal") reversed.add(row.orderId);
+  }
+  for (const id of reversed) earned.delete(id);
+  return earned;
+}
+
+/**
+ * How many stamps each order really holds: the delta of its `earn` row, for
+ * every order whose stamps no `reversal` has taken back. One order earns at
+ * most one `earn` row (the unique index `loyalty_stamps_order_key`), and its
+ * reversal takes back exactly that row's delta, so a reversed order holds 0.
+ *
+ * `stampsEarned` on the wire is answered from this: an order of ₺700 of goods
+ * says 3, not 1.
+ */
+export function stampsByOrder(
+  rows: readonly Pick<LoyaltyStamp, "kind" | "orderId" | "delta">[],
+): ReadonlyMap<string, number> {
+  const earned = new Map<string, number>();
+  const reversed = new Set<string>();
+  for (const row of rows) {
+    if (!row.orderId) continue;
+    if (row.kind === "earn") {
+      const n = Math.max(0, Math.round(Number(row.delta)) || 0);
+      if (n > 0) earned.set(row.orderId, n);
+    } else if (row.kind === "reversal") {
+      reversed.add(row.orderId);
+    }
   }
   for (const id of reversed) earned.delete(id);
   return earned;

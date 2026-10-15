@@ -377,6 +377,7 @@ Kurallar:
 - Ödeme: mevcut `getPaymentProvider().createCheckoutSession()`; `successUrl = https://laffogato.net/odeme/donus?app=1`, `failureUrl = https://laffogato.net/odeme/app-hata`. Uygulama `redirectUrl`'i `expo-web-browser` ile açar; dönüş sayfası **`laffogato://siparis/<id>`** derin bağlantısına yönlendirir (sayfa `app=1` görünce).
 - Sadakat: sipariş **`paid`** olunca (`applyPaymentSucceeded`) `channel === "app" && kind === "cafe"` ise **+1 damga** (`loyalty_stamps`, kind `earn`, `orderId` benzersiz → idempotent).
   **15 Eki 2026:** damga yalnız ürün tutarı **en az 140₺** olan siparişe verilir (`STAMP_MIN_ORDER_MINOR` = 14000; `totalMinor − shippingMinor`, indirim düşülmüş, kurye ücreti sayılmaz). Altındaki ödenmiş kafe siparişi damga kazanmaz; değer `bootstrap.app.loyalty.stampMinOrderMinor` ile uygulamaya gider.
+  **15 Eki 2026 (aynı gün, ikinci karar; yalnız ekleme):** damga **toplam ürün tutarıyla** hesaplanır: 140₺'den itibaren **başlayan her 320₺ bir damga** (`STAMP_STEP_MINOR` = 32000; `damga = tutar < 14000 ? 0 : ceil(tutar / 32000)`). 140₺-320₺ → 1, 320,01₺-640₺ → 2, 640,01₺-960₺ → 3 … Tutar yukarıdakiyle aynı ölçülür (indirim düşülmüş, kurye ücreti sayılmaz). Sipariş başına yine **tek** `earn` satırı yazılır, `delta` o siparişin damga sayısıdır (idempotentlik `orderId` üzerinde aynen). İade/iptalde `reversal` satırı siparişin kazandığının **tamamını** geri alır (`delta = −earn.delta`). Tek sipariş kartı bir ya da birkaç kez doldurabilir: bakiye ledger'dan okunduğu için her dolu kart `rewardsReady`'ye eklenir, artan damga yeni karta geçer; kupon her zamanki gibi `POST /loyalty/redeem` ile kart başına bir tane alınır. Kasa / barista damgası (§17, §21) değişmedi: okutma başına seçilen adet kadar +1 satırı. Adım `bootstrap.app.loyalty.stampStepMinor` ile uygulamaya gider.
 - **Masaya sipariş (15 Eki 2026, yalnız ekleme).** Köşkteki her masanın üzerinde panelde
   üretilmiş bir QR vardır: `https://laffogato.net/masa/<kod>` (kod 10 karakter Crockford
   base32, rastgele; masanın adı panelde verilir, §22). Uygulama kodu `GET /tables/{code}` ile
@@ -524,7 +525,8 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
   "table": null,      // 15 Eki 2026, yalnız ekleme: fulfillment === "table" ise { "code": "7K3M9QX2TA", "name": "Bahçe 3" } (sipariş anındaki ad), aksi hâlde null
   "stampsEarned": 1, "createdAt": "…", "paidAt": "…" | null
   // stampsEarned = loyalty_stamps LEDGER'ından okunur: siparişin `earn` satırı
-  // varsa ve `reversal` ile geri alınmamışsa 1, aksi hâlde 0. Duruma bakıp
+  // varsa ve `reversal` ile geri alınmamışsa o satırın delta'sı (15 Eki 2026'dan
+  // beri 320₺'yi aşan siparişte 2, 3 …; önceki siparişlerde 1), aksi hâlde 0. Duruma bakıp
   // "ödendiyse damga vardır" DEMEZ — onOrderPaid best-effort'tur ve iade
   // edilen siparişin damgası geri alınır.
 }
@@ -588,7 +590,7 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
 > olur (sepet hesabı hız sınırı yüzünden düşmesin diye). Mağaza satırlarında stok kontrolü
 > yapılır ama stok **ayrılmaz**. `fulfillment: "table"` sepeti `POST /orders` ile aynı masa
 > kurallarından geçer (`invalid_body` / `invalid_table` / `table_inactive` / masa kodu
-> `rate_limited` + `Retry-After`, 15 Eki 2026), böylece ölü bir QR ödeme adımından önce anlaşılır. `stampsToEarn` kafe sepetinde 1, mağazada 0; ürün tutarı 140₺ altındaki kafe sepetinde de 0 (§3).
+> `rate_limited` + `Retry-After`, 15 Eki 2026), böylece ölü bir QR ödeme adımından önce anlaşılır. `stampsToEarn` mağazada 0; kafe sepetinde ödenince yazılacak damga sayısıdır: ürün tutarı 140₺ altındaysa 0, değilse başlayan her 320₺ için 1 (kurye ücreti sayılmaz; 15 Eki 2026, §3). Örnekteki `1` bu yüzden 2, 3 … da olabilir.
 > **14 Eki 2026 (yalnız ekleme):** `kind: "shop"` sepeti `settings.isShopOpen === false`
 > iken artık fiyatlanmaz; `POST /orders` ile aynı **409** `shop_closed` (aynı mesaj) döner.
 > Önceden önizleme kapalı mağazanın sepetini fiyatlıyor, ret yalnız son adımda geliyordu.
@@ -887,7 +889,7 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
       "courierEtaMinutes": [25, 35],
       "closedMessage": "Uygulamadan sipariş şu an kapalı. Köşkte görüşürüz."
     },
-    "loyalty": { "stampTarget": 6, "rewardTitle": "Ücretsiz içecek", "stampMinOrderMinor": 14000 },   // kupon değeri/süresi sunucuda kalır; stampMinOrderMinor eklemeli (15 Eki 2026, §3)
+    "loyalty": { "stampTarget": 6, "rewardTitle": "Ücretsiz içecek", "stampMinOrderMinor": 14000, "stampStepMinor": 32000 },   // kupon değeri/süresi sunucuda kalır; stampMinOrderMinor ve stampStepMinor eklemeli (15 Eki 2026, §3): başlayan her stampStepMinor bir damga
     "reminders": {
       "enabled": true,                            // false → uygulama hatırlatma anahtarını gizler, planlananları iptal eder
       "items": [ { "id": "morning", "hour": 10, "minute": 0, "title": "Günaydın ☕", "body": "Sabah kahven köşkte hazır. Bugün ne içiyoruz?" } ]   // 0..4 öğe; fiyat/indirim/aciliyet dili yok; "hour" 8..21 (panel dışını kaydetmez, uygulama okurken düşürür)
@@ -1392,7 +1394,7 @@ Hatalar: **400** `invalid_amount` (seçenek listesinde yok / min altında) · **
 `expectedTotalMinor`; gövdede `totalMinor`).
 
 > **Sadakat notu.** Tasarımın "cüzdanla ödeyene +%5 puan" satırı **yazılmadı**: bu uygulamada
-> sadakat damgadır, puan yoktur (karar 37) ve ödenmiş kafe siparişi zaten +1 damga verir.
+> sadakat damgadır, puan yoktur (karar 37) ve ödenmiş kafe siparişi zaten damga verir (140₺'den itibaren başlayan her 320₺ için 1, §3).
 > Cüzdanla ödemeye ek bir damga verilecekse bunu **sunucu** kararlaştırır ve
 > `bootstrap.app.loyalty` üzerinden bildirir; uygulama kendi başına bir kural uydurmaz.
 

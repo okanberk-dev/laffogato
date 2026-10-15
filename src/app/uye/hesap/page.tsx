@@ -191,9 +191,9 @@ export default async function HesapPage() {
           </div>
           <p className="stamp-card-note">
             L&apos;AF 0-11 · PEARL 12+ · RUBY 36+ sipariş. Seviyen şu an{" "}
-            <strong>{loyalty.tierLabel}</strong>. Uygulamadan verilen her kafe
-            siparişi bir damga; damgan, kuponların ve seviyen iki tarafta da
-            aynı.
+            <strong>{loyalty.tierLabel}</strong>. Uygulamadan verilen 140 TL ve
+            üzeri kafe siparişi, başlayan her 320 TL için bir damga; damgan,
+            kuponların ve seviyen iki tarafta da aynı.
           </p>
         </div>
       )}

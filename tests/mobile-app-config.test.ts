@@ -266,6 +266,7 @@ describe("toBootstrapApp", () => {
       stampTarget: 6,
       rewardTitle: "Ücretsiz içecek",
       stampMinOrderMinor: 14000,
+      stampStepMinor: 32000,
     });
     expect(app).not.toHaveProperty("karaoke");
     expect(app).not.toHaveProperty("venue");
