@@ -1483,8 +1483,11 @@ açılmadan önce gereken uç budur.
   bildirim sınırına ulaştın. Teşekkür ederiz; yarın yeniden bildirebilirsin.").
   Aynı gün aynı sözler ikinci kez gelirse yeniden yazılmaz ve **200**
   `{ "ok": true }` döner; uygulama her 2xx yanıtı başarı sayar.
-- Hatalar: **401** kimlik · **400** `invalid_json` / `invalid_request` ·
-  **429** `fal_report_limit` · **503** `unavailable` (veritabanı).
+- Hatalar: **401** kimlik · **403** `email_unverified` (15 Eki 2026, yalnız ekleme:
+  doğrulanmamış adrese yapay zekâ yorumu verilmez, bildirecek bir şeyi yoktur) ·
+  **400** `invalid_json` / `invalid_request` · **429** `fal_report_limit` ·
+  **503** `unavailable` (veritabanı). Günlük sınır kaydın ardından yeniden sayılır:
+  aynı anda gönderilen bildirimler sınırı aşarsa fazlası geri alınıp 429 döner.
 - **Saklama:** `fal_reports` (üye, gün, sebep, metin, model, zaman) 90 gün sonra
   silinir (`src/lib/retention.ts`, kural `fal-reports`; Veri Saklama ve İmha
   Politikası'ndaki satır). Hesap silinince satırın e-postası yer tutucuya

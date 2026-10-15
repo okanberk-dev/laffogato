@@ -189,7 +189,7 @@ export async function recordFalReport(
   email: string,
   report: { reason: FalReportReason; text: string; model: string },
   now: Date = new Date(),
-): Promise<void> {
+): Promise<number | null> {
   const row: FalReport = {
     customerEmail: owner(email),
     day: istanbulClock(now).date,
@@ -198,8 +198,22 @@ export async function recordFalReport(
     model: report.model,
     createdAt: now.toISOString(),
   };
-  const { error } = await getDb().from(TABLES.falReports).insert(row);
+  const { data, error } = await getDb()
+    .from(TABLES.falReports)
+    .insert(row)
+    .select("id");
   checkErr(error, "recordFalReport");
+  const id = Number((data as { id?: unknown }[] | null)?.[0]?.id);
+  return Number.isFinite(id) ? id : null;
+}
+
+/**
+ * Takes back a report the daily cap turned out not to cover (the route
+ * re-counts after its own insert; see POST /fal/report).
+ */
+export async function withdrawFalReport(id: number): Promise<void> {
+  const { error } = await getDb().from(TABLES.falReports).delete().eq("id", id);
+  checkErr(error, "withdrawFalReport");
 }
 
 /**
