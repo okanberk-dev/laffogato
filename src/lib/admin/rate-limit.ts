@@ -124,8 +124,43 @@ const OPEN: RateLimitStatus = {
   remaining: MAX_FAILS,
 };
 
+/**
+ * The address a budget is kept for. IPv4 as it came; IPv6 cut to its /64.
+ *
+ * A single host is routinely handed a whole /64 (every VPS, most home and
+ * mobile lines), so keying on the full IPv6 address gave an attacker 2^64
+ * fresh budgets for the price of one: the admin login, the 2FA step and the
+ * mail-sending forms could be retried without limit by changing the last
+ * four groups. One /64 is one subscriber, which is what a per-address budget
+ * means to count. IPv4-mapped IPv6 (`::ffff:1.2.3.4`) is read as the IPv4.
+ *
+ * Only the KEY changes: the IP stored as consent evidence (`clientIp()`) is
+ * untouched.
+ */
+export function rateLimitAddress(ip: string): string {
+  const raw = ip.trim().toLowerCase();
+  if (!raw.includes(":")) return raw;
+  // Strip brackets and a zone index ("fe80::1%eth0") before parsing.
+  const addr = raw.replace(/^\[|\]$/g, "").replace(/%.*$/, "");
+  const mapped =
+    /^(?:0{0,4}:){0,5}(?:0{0,4}:)?ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(addr);
+  if (mapped) return mapped[1];
+  const halves = addr.split("::");
+  if (halves.length > 2) return raw;
+  const head = halves[0] ? halves[0].split(":") : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(":") : [];
+  const missing = 8 - head.length - tail.length;
+  if (halves.length === 1 ? missing !== 0 : missing < 1) return raw;
+  const groups = [...head, ...Array(missing).fill("0"), ...tail];
+  if (!groups.every((g) => /^[0-9a-f]{1,4}$/.test(g))) return raw;
+  return `${groups
+    .slice(0, 4)
+    .map((g) => g.padStart(4, "0"))
+    .join(":")}::/64`;
+}
+
 function bucketKey(purpose: AuthPurpose, ip: string, identity: string): string {
-  return `${purpose}::${ip || "unknown"}::${identity.trim().toLowerCase()}`;
+  return `${purpose}::${rateLimitAddress(ip) || "unknown"}::${identity.trim().toLowerCase()}`;
 }
 
 function maxFails(purpose: AuthPurpose): number {

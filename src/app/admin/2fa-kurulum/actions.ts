@@ -56,12 +56,19 @@ export async function disable2FAAction(formData: FormData) {
   if (!session) redirect("/admin/giris");
   const token = String(formData.get("token") ?? "").trim();
   const ip = await clientIp();
-  const limit = await reserveLoginAttempt("admin-2fa", ip, session.email);
+  // Both budgets the sign-in step uses. The per-address one alone let a
+  // stolen cookie guess six digits from as many addresses as it could rotate
+  // through; the account key adds the guesses up wherever they come from.
+  const perAddress = await reserveLoginAttempt("admin-2fa", ip, session.email);
+  const limit = perAddress.blocked
+    ? perAddress
+    : await reserveLoginAttempt("admin-2fa-account", "*", session.email);
   if (limit.blocked) redirect("/admin/2fa-kurulum?hata=kilit");
   if (!/^\d{6}$/.test(token) || !(await verifyToken(session.email, token))) {
     redirect("/admin/2fa-kurulum?hata=kod");
   }
   await clearLoginLimit("admin-2fa", ip, session.email);
+  await clearLoginLimit("admin-2fa-account", "*", session.email);
   await disable2FA(session.email);
   await logAudit({
     action: "2fa_disable",
