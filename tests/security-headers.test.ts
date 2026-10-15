@@ -100,4 +100,35 @@ describe("security headers", () => {
     expect(vercel).toContain("camera=(self)");
     expect(vercel).not.toMatch(/camera=\(\)/);
   });
+
+  /**
+   * Vercel serves vercel.json's catch-all headers at the edge and Next serves
+   * its own. They had drifted (X-Frame-Options SAMEORIGIN vs DENY, a one-year
+   * HSTS without includeSubDomains, a Permissions-Policy without payment=()),
+   * so a response could carry two disagreeing copies of a header. Every key
+   * vercel.json sets must say exactly what next.config.ts says.
+   */
+  it("keeps vercel.json's copies identical to next.config.ts", async () => {
+    const next = await headerMap();
+    const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as {
+      headers: Array<{
+        source: string;
+        headers: Array<{ key: string; value: string }>;
+      }>;
+    };
+    const catchAll = vercel.headers.find((h) => h.source === "/(.*)");
+    expect(catchAll).toBeTruthy();
+    for (const { key, value } of catchAll!.headers) {
+      expect(next[key], key).toBe(value);
+    }
+  });
+
+  it("sends no referrer to an http page and only the origin cross-site", async () => {
+    const h = await headerMap();
+    expect(h["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
+  });
+
+  it("does not announce the framework", () => {
+    expect(nextConfig.poweredByHeader).toBe(false);
+  });
 });
