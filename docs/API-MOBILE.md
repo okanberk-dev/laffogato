@@ -1427,6 +1427,9 @@ Kayıt `feature_consents` satırıdır (üye, özellik, sürüm, zaman) ve rıza
 ```
 
 Sıra ve hatalar: **401** kimlik · **503** `fal_unavailable` (kapalı) · **403**
+`email_unverified` (e-posta doğrulanmamış; 15 Eki 2026, yalnız ekleme: her yorum ücretli
+bir model çağrısı, onaysız kayıtlar günlük hakkı adres başına yeniden açıyordu; uygulama
+her retteki gibi falı cihazda okur) · **403**
 `consent_required` (güncel rıza yok) · **429** `fal_limit` (İstanbul gününde üye başına
 5) · **400** `invalid_json` / `invalid_request` / `invalid_image` (JPEG değil ya da
 çözülmüş hâli 900 KB'tan büyük) · **502** `fal_failed` (model yanıt vermedi, şemaya

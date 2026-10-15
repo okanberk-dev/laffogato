@@ -425,6 +425,7 @@ ve `docs/API-MOBILE.md` uygulamanın okuduğu alanlarla karşılaştırıldı.
 | 🟡 | Kasa kodu alfabesi `L` içeriyordu; sözleşme (§17) ve kodun kendi yorumu "I/1/L yok" diyor | `L` çıktı; harf seçimi modulo sapmasız (reddetmeli örnekleme) | `mobile-counter` |
 | 🟡 | `PATCH /me` `birthday` yalnız desenle doğrulanıyordu; `1990-13-45` gibi takvimde olmayan tarih kaydediliyor, doğum günü kuponu hiç tetiklenmiyordu | `isCalendarDate` | `mobile-me-mapper` |
 | 🟢 | `docs/API-MOBILE.md` yedi yerde iki uygulamanın yaptığını söylemiyordu: hediye kartı `consentDocs` + `legalConsent` (§19), `invite.people[].rewarded` ve davet kuralları (§4, §5), karaoke çakışma kısıtı (§7), cüzdan/hediye kartı satırı (§12), `POST /fal`'ın 30 sn süresi (§0), kasa kodu alfabesi (§17) | Belge düzeltildi; lafmobil kopyası aynı (RECONCILED hash güncel) | `api-contract-parity`, lafmobil `contract-sync` |
+| 🟡 | WS1-01 (15 Eki): `POST /fal` e-posta doğrulamasına bakmıyordu; her Supabase kaydına (onaysız da) bir üye satırı açıldığı için atılabilir adreslerle adres başına günde `FAL_DAILY_LIMIT` ücretli model çağrısı alınabiliyordu (özellik açıldığında) | Doğrulanmamış üyeye **403** `email_unverified`, koltuk ve model çağrısından önce; uygulama her retteki gibi falı cihazda okur (§20, yalnız ekleme) | `mobile-fal` |
 
 ### Açık
 
