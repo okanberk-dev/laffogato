@@ -83,19 +83,29 @@ async function newStampId(): Promise<string> {
   return `stamp-${String(seq).padStart(6, "0")}`;
 }
 
-/** The `/me.loyalty` block for a member. */
-export async function getLoyalty(email: string): Promise<LoyaltyView> {
+/**
+ * The `/me.loyalty` block for a member.
+ *
+ * `rules` lets a caller that has already read the settings in this request
+ * hand them over (`buildMe` does): the settings row is otherwise read twice
+ * per `/me`, one more round trip on a pool of `max: 1`. Same request, same
+ * row - nothing is cached across requests.
+ */
+export async function getLoyalty(
+  email: string,
+  rules?: LoyaltyRules,
+): Promise<LoyaltyView> {
   const owner = normalizeEmail(email);
   // Three columns, not `select *`: the tier counts a rolling year and the
   // badges read a lifetime, so this read cannot be paged - but it does not
   // need the refund ledger, the consent evidence or the shipping address of
   // every order the member ever placed either.
-  const [stamps, orders, rules] = await Promise.all([
+  const [stamps, orders, live] = await Promise.all([
     listStamps(owner),
     customerLoyaltyOrders(owner),
-    loyaltyRules(),
+    rules ?? loyaltyRules(),
   ]);
-  return buildLoyaltyView(stamps, orders, Date.now(), rules.stampTarget);
+  return buildLoyaltyView(stamps, orders, Date.now(), live.stampTarget);
 }
 
 /**
