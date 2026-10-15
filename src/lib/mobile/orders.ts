@@ -7,7 +7,6 @@ import type { PublicCustomer } from "@/lib/customer/store";
 import {
   checkLoginLimit,
   clientIp,
-  recordLoginFailure,
   reserveLoginAttempt,
 } from "@/lib/admin/rate-limit";
 import {
@@ -856,6 +855,7 @@ export async function previewPromoRateLimited(
 ): Promise<LimitedPromoPreview> {
   const ip = await clientIp();
   const identity = customer?.email ?? "";
+  // The cheap early refusal while the bucket is locked out.
   const limit = await checkLoginLimit("promo-preview", ip, identity);
   if (limit.blocked) {
     return { limited: true, retryAfterSeconds: limit.retryAfterSeconds };
@@ -866,8 +866,27 @@ export async function previewPromoRateLimited(
     customer,
     kind,
   );
+  // The check above is not the limit: a burst sent in parallel passes it
+  // all at once, and the old "check, look up, then record the miss" order
+  // answered every guess in the burst - fifteen per window held only for a
+  // caller who waited for each answer (WS1-03, the same race rule 30 closed
+  // for sign-in). So each miss is COUNTED before it is answered, atomically
+  // (`reserve_auth_attempt`), and a miss past the cap is answered as limited.
   if (!preview.ok && !found) {
-    await recordLoginFailure("promo-preview", ip, identity);
+    const gate = await reserveLoginAttempt("promo-preview", ip, identity);
+    if (gate.blocked) {
+      return { limited: true, retryAfterSeconds: gate.retryAfterSeconds };
+    }
+    return { limited: false, preview };
+  }
+  // A real code is still not counted - a member re-pricing the basket with
+  // their own coupon applied must not lock themselves out - but it is only
+  // answered while the bucket is open. Otherwise "limited" would come back
+  // for the misses of a burst and a plain answer for its hits, and the
+  // limiter itself would say which guesses were real.
+  const after = await checkLoginLimit("promo-preview", ip, identity);
+  if (after.blocked) {
+    return { limited: true, retryAfterSeconds: after.retryAfterSeconds };
   }
   return { limited: false, preview };
 }
