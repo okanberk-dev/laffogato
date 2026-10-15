@@ -568,11 +568,19 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
   },
   "invite": { "code": "LAF-EDA24", "invited": 3, "joined": 2, "earned": 2,
               "people": [ { "name": "Selin K.", "status": "joined" | "pending", "at": "…", "rewarded": true } ] },
-  "usual": { "menuItemId": "mnu-0007", "size": "M", "options": { … } } | null
+  "usual": { "menuItemId": "mnu-0007", "size": "M", "options": { … } } | null,
+  "staff": { "till": false }     // 15 Eki 2026, yalnız ekleme: aşağıya ve §21'e bak
 }
 ```
 
 `invite.people[].rewarded` (yalnız ekleme): bu kişinin daveti davet edene kupon kazandırdı mı. `false` ise ya davetli henüz şartı sağlamadı ya da davet eden 5 ödül tavanını (§5) aşmıştı. Alan gelmezse uygulama `joined` satırını ödüllenmiş sayar (eski sunucu).
+
+`staff.till` (15 Eki 2026, yalnız ekleme): `true` ise panel bu üye hesabına
+uygulamadan kasa yetkisi vermiştir (barista, §21); uygulama okutucuyu yalnız o
+zaman gösterir. Sunucu alanı her `/me` yanıtında (GET ve PATCH) gönderir; yetki
+okunamazsa `false` döner, `/me` bu yüzden hiç başarısız olmaz. Alan **yoksa**
+(bu eklemeden önceki sunucu) uygulama `false` sayar. `staff` içinde yalnız
+`till` vardır; yetkiyi kimin verdiği uygulamaya gitmez.
 
 `PATCH /me` gövdesi: `{ name?, phone?, birthday?, notificationPrefs?, usual? }` → güncel `/me`. `birthday` `YYYY-AA-GG` biçiminde ve takvimde olan bir gün olmalı (`1990-02-30` 400 `invalid_request`).
 Adresler: `POST /me/addresses` (gövde adres) · `PATCH /me/addresses/{id}` · `DELETE /me/addresses/{id}` · `POST /me/addresses/{id}/default` → hepsi güncel `addresses[]` döner.
@@ -1478,3 +1486,87 @@ açılmadan önce gereken uç budur.
   (`src/lib/mobile/fal-core.ts`), `recordFalReport` (`src/lib/mobile/fal.ts`);
   `tests/mobile-fal-report.test.ts` tutar.
 
+## 21. `POST /staff/stamp` - uygulamadan kasa (barista) (kimlik)
+
+15 Eki 2026, yalnız ekleme. Operatör: *"barista yani kasiyer hesabı da admin
+panelden atayabilelim ki qr kodunu okutalım"*. Panelin `cashier` rolü (§17,
+`/admin/kasa`) yerinde kalır; bu uç, panele hiç girmeyen bir baristanın **kendi
+üye hesabıyla açtığı uygulamadan** üyenin QR'ını okutmasını sağlar.
+
+**Yetki panelde verilir.** `/admin/kullanicilar` → "Uygulamadan kasa
+(barista)" (`requireRole("adminUsers")`, yalnız sahip). Yönetici üyenin
+e-postasını yazar; adres **var olan ve açık** bir üye hesabına ait olmalıdır,
+yoksa panel reddeder ("Bu adrese ait üye hesabı yok..." / "Bu üye hesabı
+kapalı..."): kimsenin tutmadığı bir adrese verilen yetki, o adresle ilk kaydolan
+kişiye geçerdi. Yetki `staff_members` tablosunda durur (`email`, `role =
+'barista'`, `isActive`, `grantedBy`, `grantedAt`, `updatedAt`); kaldırınca satır
+silinmez, `isActive = false` olur ve bir sonraki okutma reddedilir. Verme ve
+kaldırma `audit_logs`'a `staff_member` olarak yazılır. Üye hesabını silerse
+(`DELETE /me`) yetki satırı da silinir; adresi sonra kim alırsa yetkisiz başlar.
+
+```jsonc
+// İstek
+{ "kind": "token" | "code", "value": "…", "stamps": 1 }   // stamps isteğe bağlı, varsayılan 1
+
+// 200 · Cache-Control: private, no-store - kasanın gördüğü sonucun aynısı
+{
+  "name": "Eda",                    // üyenin adı; yoksa ""
+  "memberLabel": "e***@ornek.com",  // maskeli adres (kasadaki gibi)
+  "code": "K7P42M9X",
+  "stampsGiven": 1,
+  "stamps": 4,                      // üyenin yeni damga durumu (§5)
+  "stampTarget": 6,
+  "rewardsReady": 0
+}
+```
+
+| Alan | Kural |
+| --- | --- |
+| `kind` | `token` (kameranın çözdüğü QR içeriği, olduğu gibi) ya da `code` (8 karakter; boşluk, tire ve küçük harf kasadaki gibi normalleşir). Kasanın üçüncü yolu olan **e-posta yok**: üyenin kendisi olmadan bir üyeyi adıyla damgalamak panel kararıdır. Başka bir değer **400** `invalid_request`. |
+| `value` | Boş olamaz, en fazla 200 karakter → aksi **400** `invalid_request`. |
+| `stamps` | Tam sayı, verilmezse 1. Aralık (**1-5**) burada değil, kasanın kendi fonksiyonunda denetlenir: dışındaysa **400** `invalid_stamps`. Kırpılmaz. |
+
+**Kurallar kasayla birebir aynı.** Uç, kasanın kullandığı
+`redeemCounterToken`'ı (`src/lib/mobile/counter.ts`) çağırır: jeton 120 sn
+yaşar, bir jeton bir kez damga verir (koşullu UPDATE), aralık 1-5, damga
+`loyalty_stamps`'e `source: "counter"` ile yazılır. Fark iki satırdadır:
+`actor` (ve jetonun `usedBy`'ı) baristanın e-postasıdır ve not
+`Kasa · QR · Uygulama` / `Kasa · kod · Uygulama` olur. Okutma `audit_logs`'a
+`counter_token` olarak, **aktör baristanın e-postasıyla** ve
+`payload.via = "app"` ile yazılır; denetim satırı yazılamazsa damga geri
+alınmaz ve yanıt yine 200'dür.
+
+**Kendi kodu yok.** Barista kendi QR'ını ya da kodunu okutursa **403**
+`self_stamp` ("Kendi koduna damga veremezsin. Damganı başka bir barista ya da
+kasa versin."). Ret, jeton yakılmadan önce, yakılacak satırın kendisine bakılarak
+verilir; baristanın kodu kullanılmamış kalır ve gerçek kasada çalışır.
+
+**Sıra.** Kimlik → e-posta doğrulanmış mı → yetki (`not_staff`) → gövde → hız
+sınırı → okutma. Yetkisi olmayan üye gövdesi okunmadan reddedilir.
+
+| Hata | Ne zaman |
+| --- | --- |
+| **401** `unauthorized` · **403** `account_disabled` | Kimlik katmanı (§0) |
+| **403** `email_unverified` | Baristanın e-postası doğrulanmamış (yetki adrese bağlı olduğu için) |
+| **403** `not_staff` | **Yeni.** Bu hesabın açık barista yetkisi yok ya da kaldırıldı. "Bu hesabın kasa yetkisi yok. Yetkiyi panelden yönetici verir." |
+| **403** `self_stamp` | **Yeni.** Baristanın kendi kodu (yukarıda) |
+| **400** `invalid_json` · `invalid_request` | Gövde JSON değil ya da şemaya uymuyor |
+| **400** `invalid_stamps` | Damga sayısı 1-5 dışında (§17'deki kasa sonucu) |
+| **404** `not_found` | Kod bulunamadı. "Kod bulunamadı. Üyeden kartını yeniden açmasını iste." |
+| **409** `expired` | Kodun 2 dakikası doldu (§17'deki metin) |
+| **409** `already_used` | Kod daha önce okutuldu; aynı QR ikinci kez damga vermez (§17'deki metin) |
+| **429** `rate_limited` + `Retry-After` | Baristanın 5 dakikada 15 `not_found`'u (`auth_attempts`, amaç `staff-stamp`, IP + barista); 1 dakika kilit. Süresi dolmuş ya da kullanılmış kod sayılmaz: kalabalık bir barda dürüst hatalardır, tahmin `not_found` üretir. |
+| **503** `unavailable` | Veritabanına ulaşılamadı |
+
+> **Uygulama notu (§21).** Okutucu yalnız `/me.staff.till === true` iken
+> görünür; 403 `not_staff` gelirse uygulama `/me`'yi tazeler ve okutucuyu
+> kapatır (yetki bu arada kaldırılmış olabilir). Kasadaki okuma kapısının
+> (§17 "Kasa tarafı") üç durumu burada da geçerlidir: aynı değer 2,5 sn içinde
+> yeniden gönderilmez, `already_used`/`expired`/`self_stamp` dönen değer bir
+> daha gönderilmez, ağ hatasında hemen yeniden okunabilir.
+
+- Site: `src/app/api/mobile/v1/staff/stamp/route.ts`, `staffStampSchema`
+  (`src/lib/mobile/staff-schema.ts`), yetki `src/lib/admin/staff-members.ts`,
+  panel `src/app/admin/kullanicilar/`; `tests/mobile-staff-stamp-route.test.ts`,
+  `tests/admin-staff-actions.test.ts` ve gerçek Postgres'te
+  `tests/db-integration-staff-stamp.test.ts` tutar.

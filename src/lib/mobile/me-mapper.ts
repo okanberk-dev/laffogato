@@ -184,17 +184,29 @@ export type MeLoyalty = LoyaltyView & {
   perksByTier?: Record<"verde" | "argento" | "oro", string[]>;
 };
 
+/**
+ * `/me.staff` (15 Eki 2026, additive): what the member may do behind the bar.
+ * `till` is true while the panel lets this account stamp from the app
+ * (`POST /staff/stamp`, docs/API-MOBILE.md §21). An older server sends no
+ * `staff` at all, which the app reads as false.
+ */
+export interface MeStaff {
+  till: boolean;
+}
+
 export interface MeResponse {
   customer: MeCustomer;
   loyalty: MeLoyalty;
   invite: InviteSummary;
   usual: CustomerUsual | null;
+  staff: MeStaff;
 }
 
 export function toMe(
   customer: PublicCustomer,
   loyalty: MeLoyalty,
   invite: InviteSummary,
+  staff: MeStaff = { till: false },
 ): MeResponse {
   return {
     customer: {
@@ -216,6 +228,8 @@ export function toMe(
     loyalty,
     invite,
     usual: customer.usual,
+    // Copied field by field like everything else here: only `till` leaves.
+    staff: { till: staff.till === true },
   };
 }
 

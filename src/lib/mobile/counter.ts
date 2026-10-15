@@ -357,6 +357,14 @@ export interface RedeemCounterTokenInput {
   /** The cashier's e-mail; written onto every ledger row. */
   actor: string;
   note?: string;
+  /**
+   * A member whose own QR or code this scan must not redeem - the barista
+   * stamping from the app (`POST /staff/stamp`). Checked against the exact
+   * row about to be burned, before it is burned, so a refused self-scan
+   * leaves the member's code usable at a real till. The panel till does not
+   * pass it: a cashier account is not a member.
+   */
+  refuseOwner?: string;
 }
 
 export type CounterRedeemError =
@@ -364,7 +372,8 @@ export type CounterRedeemError =
   | "invalid_email"
   | "expired"
   | "already_used"
-  | "not_found";
+  | "not_found"
+  | "self_stamp";
 
 export interface CounterRedemption {
   /** The member's name, empty when the account has none. */
@@ -387,6 +396,8 @@ const MESSAGES: Record<CounterRedeemError, string> = {
   expired: "Bu kodun süresi doldu. Üyeden yeni QR göstermesini iste.",
   already_used: "Bu kod kullanıldı. Aynı QR ikinci kez damga vermez.",
   not_found: "Kod bulunamadı. Kodu kontrol et ya da e-posta ile ara.",
+  self_stamp:
+    "Kendi koduna damga veremezsin. Damganı başka bir barista ya da kasa versin.",
 };
 
 function fail(error: CounterRedeemError): RedeemCounterTokenResult {
@@ -499,6 +510,11 @@ export async function redeemCounterToken(
           ? fail("already_used")
           : fail("expired");
       }
+    }
+
+    const refuse = normalizeEmail(input.refuseOwner ?? "");
+    if (refuse && normalizeEmail(row.customerEmail) === refuse) {
+      return fail("self_stamp");
     }
 
     if (!(await burn(row.tokenHash, actor, nowIso))) {

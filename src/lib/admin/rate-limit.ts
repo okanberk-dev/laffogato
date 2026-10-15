@@ -31,7 +31,8 @@ export type AuthPurpose =
   | "promo-preview"
   | "password-reset"
   | "unsubscribe"
-  | "newsletter-signup";
+  | "newsletter-signup"
+  | "staff-stamp";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -59,6 +60,12 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // is typed. Three per address per window, counted on success too (like
   // password-reset), so the form cannot be used to flood someone's inbox.
   "newsletter-signup": 3,
+  // A barista scanning from the app (POST /api/mobile/v1/staff/stamp). Only a
+  // code that matched nothing counts: that is what typing guesses produces,
+  // while a busy bar's expired or already-spent scans are honest mistakes.
+  // Fifteen misses in five minutes is far past a slow camera and well short
+  // of walking an 8-character code space.
+  "staff-stamp": 15,
 };
 
 /** Lockout length per purpose; LOCKOUT_MS unless listed. */

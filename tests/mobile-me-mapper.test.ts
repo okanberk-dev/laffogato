@@ -211,6 +211,7 @@ describe("toMe", () => {
       "customer",
       "invite",
       "loyalty",
+      "staff",
       "usual",
     ]);
     expect(Object.keys(me.customer).sort()).toEqual(
@@ -246,6 +247,30 @@ describe("toMe", () => {
     // account is closed is not the app's business to render.
     expect(JSON.stringify(me)).not.toContain("isActive");
     expect(JSON.stringify(me)).not.toContain("passwordHash");
+  });
+});
+
+describe("toMe staff", () => {
+  // `/me.staff` (docs/API-MOBILE.md §4, §21): additive, always present, and
+  // only `till` leaves - the app turns its scanner on from this one flag.
+  it("says no till unless the server found an active barista grant", () => {
+    expect(toMe(customer, loyalty, invite).staff).toEqual({ till: false });
+    expect(toMe(customer, loyalty, invite, { till: false }).staff).toEqual({
+      till: false,
+    });
+  });
+
+  it("says till: true for an active barista", () => {
+    expect(toMe(customer, loyalty, invite, { till: true }).staff).toEqual({
+      till: true,
+    });
+  });
+
+  it("copies nothing else that rides along on the flag object", () => {
+    const leaky = { till: true, grantedBy: "patron@laffogato.net" };
+    expect(toMe(customer, loyalty, invite, leaky).staff).toEqual({
+      till: true,
+    });
   });
 });
 
