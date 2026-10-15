@@ -442,8 +442,9 @@ describe("the app's retired green does not paint the site", () => {
 
   it("keeps the PayNkolay bridge button on --brand, spelled out", () => {
     // Standalone HTML: no stylesheet, so no var(--brand) to lean on. The
-    // app's green since 25 Eyl 2026 - the Köşk green is gone from it.
-    const bridge = read("src/app/odeme/paynkolay/route.ts");
+    // app's green since 25 Eyl 2026 - the Köşk green is gone from it. The
+    // pages moved out of the route into paynkolay-page.ts (15 Eki 2026).
+    const bridge = read("src/lib/payment/paynkolay-page.ts");
     expect(bridge).toContain("background:#1d6d56");
     expect(bridge).not.toContain("#143d2b");
   });

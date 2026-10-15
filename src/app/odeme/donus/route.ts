@@ -32,7 +32,7 @@ export const dynamic = "force-dynamic";
  * app, not on the web success page: the checkout was opened in an in-app
  * browser, and the deep link `laffogato://siparis/<id>` closes it and shows
  * the order. The app marks its return URL with `app=1`; a provider whose
- * callback URL is fixed (iyzico) cannot carry that, so the order's own
+ * return URL is fixed in its configuration cannot carry that, so the order's own
  * `channel` is the second signal.
  */
 export async function GET(req: NextRequest) {
@@ -143,7 +143,7 @@ async function settledStatus(orderId: string): Promise<PaymentReturnStatus> {
 /**
  * The virtual POS returns the CUSTOMER'S BROWSER here with a form POST.
  *
- * `IYZICO_CALLBACK_URL` used to point at the signed webhook, which answers a
+ * The POS callback once pointed at the signed webhook, which answers a
  * browser with `401 {"error":"invalid_signature"}` - so the last thing a paying
  * customer saw was a JSON error. This is the page they land on instead.
  *
@@ -275,7 +275,7 @@ function appRedirect(orderId: string, status: PaymentReturnStatus) {
  * Whether this return belongs to an app order - the ROW decides.
  *
  * `app=1` on the URL used to be taken as proof, but anyone can type it, and a
- * provider with a fixed callback (iyzico) cannot carry it anyway. The order's
+ * provider with a fixed callback cannot carry it anyway. The order's
  * own `channel` answers both cases. A database hiccup here answers "web" -
  * the customer then lands on the web success page, which still shows the
  * order - rather than an error page.

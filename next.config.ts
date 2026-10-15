@@ -22,11 +22,18 @@ import type { NextConfig } from "next";
 const DEV_SCRIPT_SRC =
   process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
 
-/** The hosts the PayNkolay bridge form posts to (docs/PAYNKOLAY.md §1). */
-const PAYNKOLAY_FORM_HOSTS = [
-  "https://paynkolay.nkolayislem.com.tr",
-  "https://paynkolaytest.nkolayislem.com.tr",
-];
+/**
+ * The payment page (/odeme/paynkolay) is the one path this policy does NOT
+ * cover. It hands the customer's browser to forms that post elsewhere - the
+ * POS's hosted page, or the card's own bank for 3D Secure, whose host differs
+ * per bank (docs/PAYNKOLAY.md §15). Two CSP headers on one response are both
+ * enforced, so the site policy cannot be loosened there; that route sends its
+ * own policy instead, narrower than this one: `default-src 'none'`, scripts
+ * only by the SHA-256 of its own inline blocks, no third party at all
+ * (`src/lib/payment/paynkolay-page.ts`, `tests/paynkolay-card-page.test.ts`).
+ * `$` keeps the exclusion to that exact path.
+ */
+const CSP_SOURCE = "/:path((?!odeme/paynkolay$).*)";
 
 const CSP = [
   "default-src 'self'",
@@ -46,13 +53,10 @@ const CSP = [
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  // Where a form on this site may submit. One form posts cross-origin: the
-  // PayNkolay bridge page (/odeme/paynkolay) sends the signed checkout to the POS's
-  // hosted payment page, test or live host (docs/PAYNKOLAY.md §14.6/1). With
-  // 'self' alone the browser refused that POST and no payment could start.
-  // Chrome checks redirects after a form submission against this list too;
-  // the live run in §13 confirms the POS answers without leaving it.
-  `form-action 'self' ${PAYNKOLAY_FORM_HOSTS.join(" ")}`,
+  // Where a form on this site may submit: this site only. The one form that
+  // posts cross-origin lives on /odeme/paynkolay, outside this policy
+  // (CSP_SOURCE above), and names its destination in its own policy.
+  "form-action 'self'",
   "frame-ancestors 'none'",
   "upgrade-insecure-requests",
 ].join("; ");
@@ -64,7 +68,6 @@ const CSP = [
  * carry both. `tests/security-headers.test.ts` compares them key by key.
  */
 const SECURITY_HEADERS = [
-  { key: "Content-Security-Policy", value: CSP },
   {
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains; preload",
@@ -118,6 +121,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: SECURITY_HEADERS },
+      {
+        source: CSP_SOURCE,
+        headers: [{ key: "Content-Security-Policy", value: CSP }],
+      },
       {
         // Brand art and venue photos are not content-hashed, so a day in the
         // browser with a week of stale-while-revalidate - they used to be

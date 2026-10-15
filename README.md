@@ -71,7 +71,7 @@ src/components/
 src/lib/
   db/                    pg havuzu · sorgu kurucu · SQL derleyici · sağlık
   admin/ · customer/     Veri katmanı ve iş kuralları
-  payment/               PaymentProvider · MockPaymentProvider · IyzicoPaymentProvider
+  payment/               PaymentProvider · MockPaymentProvider · PaynkolayPaymentProvider
   legal/                 Yasal kimlik (tek kaynak) · 25 sözleşme · render · meta
   consent/               Çerez rızası durumu + Consent Mode v2 bootstrap
   newsletter/            6563 onay kaydı + tek tıkla çıkış
@@ -125,8 +125,8 @@ verildiği kadar kolay geri alınır (footer → "Çerez Tercihleri").
 | `NEXT_PUBLIC_SITE_URL`           | Kanonik site adresi                                 |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin girişi                                        |
 | `ADMIN_SESSION_SECRET`           | İmzalı cookie anahtarı (≥32 karakter)               |
-| `PAYMENT_PROVIDER`               | `mock` \| `paynkolay` \| `iyzico`                    |
-| `PAYMENT_WEBHOOK_SECRET`         | Webhook imza doğrulaması (`mock` ve `iyzico`)       |
+| `PAYMENT_PROVIDER`               | `mock` \| `paynkolay`                               |
+| `PAYMENT_WEBHOOK_SECRET`         | Webhook imza doğrulaması (yalnız `mock`)            |
 | `RESEND_API_KEY`                 | Sipariş, doğrulama ve şifre sıfırlama e-postaları   |
 | `SUPABASE_SERVICE_ROLE_KEY`      | Sıfırlanan parolayı Supabase'e de yazar             |
 

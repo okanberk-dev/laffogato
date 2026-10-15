@@ -437,14 +437,28 @@ describe("confirmReturn", () => {
     );
   });
 
-  it("başka bir üye işyerinin dönüşünü hiç sormadan reddeder", async () => {
+  it("üye işyeri numarası uyuşmazlığında uyarır, kararı yine sorgu verir", async () => {
+    // Yanlış girilmiş bir PAYNKOLAY_MERCHANT_NO her gerçek ödemeyi
+    // reddettirmesin: sorgu bizim sx List'imizle yapılıyor ve yalnız bizim
+    // işlemlerimizi döndürüyor.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const calls = stubFetch({ Data: [transactionRow()] });
     const result = await makeProvider().confirmReturn({
       ...RETURN_PARAMS,
       MERCHANT_NO: "999999999",
     });
+    expect(calls).toHaveLength(1);
+    expect(result.status).toBe("succeeded");
+    expect(warn.mock.calls.flat().join(" ")).toMatch(/MERCHANT_NO/);
+  });
+
+  it("başka üye işyerinden gelen sahte dönüş sorguda karşılık bulamaz", async () => {
+    stubFetch({ result: { RESPONSE_CODE: "0", LIST: null } });
+    const result = await makeProvider().confirmReturn({
+      ...RETURN_PARAMS,
+      MERCHANT_NO: "999999999",
+    });
     expect(result.status).toBe("failed");
-    expect(calls).toHaveLength(0);
   });
 
   it("sipariş referansı olmadan çalışmaz", async () => {
@@ -733,10 +747,33 @@ describe("getPaymentProvider", () => {
     expect(() => getPaymentProvider()).toThrow(/mock/);
   });
 
-  it("iyzico modülü duruyor - operatör geri dönebilsin", () => {
+  it("PayNkolay tek gerçek sağlayıcıdır; iyzico kaldırıldı (15 Eki 2026)", async () => {
     const index = readFileSync("src/lib/payment/index.ts", "utf8");
-    expect(index).toContain('case "iyzico"');
     expect(index).toContain('case "paynkolay"');
+    expect(index).not.toMatch(/iyzico/i);
+    vi.stubEnv("PAYMENT_PROVIDER", "iyzico");
+    const { getPaymentProvider } = await import("@/lib/payment");
+    expect(() => getPaymentProvider()).toThrow(/Unknown PAYMENT_PROVIDER/);
+  });
+
+  it("ödeme modunu PAYNKOLAY_CHECKOUT_MODE'dan okur, yazım hatasında açılmaz", async () => {
+    vi.stubEnv("PAYNKOLAY_CHECKOUT_MODE", "direct");
+    let mod = await import("@/lib/payment");
+    expect(
+      (mod.getPaymentProvider() as PaynkolayPaymentProvider).checkoutMode,
+    ).toBe("direct");
+
+    vi.resetModules();
+    vi.stubEnv("PAYNKOLAY_CHECKOUT_MODE", "");
+    mod = await import("@/lib/payment");
+    expect(
+      (mod.getPaymentProvider() as PaynkolayPaymentProvider).checkoutMode,
+    ).toBe("hosted");
+
+    vi.resetModules();
+    vi.stubEnv("PAYNKOLAY_CHECKOUT_MODE", "dirct");
+    mod = await import("@/lib/payment");
+    expect(() => mod.getPaymentProvider()).toThrow(/PAYNKOLAY_CHECKOUT_MODE/);
   });
 });
 
@@ -745,8 +782,9 @@ describe("getPaymentProvider", () => {
 describe(".env.example", () => {
   const envExample = readFileSync(".env.example", "utf8");
 
-  it("operatörün gireceği dokuz değişkeni sayar", () => {
+  it("operatörün gireceği dokuz değişkeni ve ödeme modunu sayar", () => {
     for (const name of [
+      "PAYNKOLAY_CHECKOUT_MODE",
       "PAYMENT_PROVIDER",
       "PAYNKOLAY_SX",
       "PAYNKOLAY_SX_LIST",

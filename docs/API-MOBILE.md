@@ -1069,12 +1069,17 @@ doğruluyor (iyimser güncelleme yanlış çıkarsa önbellek düzeltiliyor).
 Operatör talimatı (3 Eyl): _"Kart bizim sistemde kaydedilmesin, ödeme
 sağlayıcıda kaydedilecek."_ Uygulama da site de tam olarak böyle çalışır.
 
-**Kartın gitmediği yerler:** uygulama paketi, uygulamanın belleği, kafenin
-sunucusu, Neon veritabanı, loglar. Kart numarası (PAN), son kullanma tarihi ve
-CVV **sağlayıcının kendi barındırdığı ödeme sayfasında** girilir ve orada
-kalır. Uygulama o sayfayı `expo-web-browser` ile açar; formun HTML'i bize ait
-değildir. Sağlayıcının adı burada bilerek geçmiyor: hangi PSP'nin kullanıldığı
-sunucu ayarıdır (`PAYMENT_PROVIDER`) ve bir kez zaten değişti.
+**Kartın gitmediği yerler:** uygulama paketi, uygulamanın belleği, Neon
+veritabanı, loglar, dosyalar. 15 Eki 2026'dan beri (operatör kararı) kart
+numarası (PAN), son kullanma tarihi ve CVV **sitenin kendi ödeme sayfasında**
+girilir - `redirectUrl`'nin açtığı sayfa - ve müşteri oradan doğrudan
+bankanın 3D ekranına gider. Kart sunucudan yalnızca ödeme sağlayıcısına
+iletilmek için, o tek isteğin içinde geçer; hiçbir yere yazılmaz (web
+`docs/PAYNKOLAY.md` §15, kural 28). Uygulama o sayfayı `expo-web-browser` ile
+açar; kart uygulamanın kodundan hiç geçmez ve **sözleşme değişmedi**: aynı
+`redirectUrl`, aynı dönüş. Sağlayıcının adı burada bilerek geçmiyor: hangi
+PSP'nin kullanıldığı sunucu ayarıdır (`PAYMENT_PROVIDER`) ve bir kez zaten
+değişti.
 
 **v1'de kart saklama KAPALI.** Üretimdeki sağlayıcıda (PayNkolay) kart saklama
 kapsam dışı bırakıldı: alan adının üç ayrı yazımı dokümante edilmiş ve saklanan

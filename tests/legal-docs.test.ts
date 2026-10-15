@@ -181,8 +181,9 @@ describe("legal content - identity is the tax certificate, never a placeholder",
   });
 
   it("names the infrastructure and payment provider the project actually uses", () => {
-    // The data layer moved off Supabase to Neon-hosted Postgres, and the
-    // virtual POS is iyzico - no other provider may be described as ours.
+    // The data layer moved off Supabase to Neon-hosted Postgres. The virtual
+    // POS is PayNkolay; the texts still name iyzico until the lawyer-approved
+    // R1 redline lands (docs/LEGAL-REDLINES-2026-09.md §3).
     expect(rendered).not.toMatch(/Supabase/i);
     expect(rendered).not.toMatch(/PayTR/i);
     expect(rendered).not.toMatch(/Stripe/i);

@@ -709,15 +709,20 @@ function PaymentStep({
       <div className="checkout-payment-card">
         <div className="checkout-payment-card-strip">
           <span className="eyebrow on-dark">Sanal POS</span>
-          <span className="eyebrow on-dark tabular">PCI-DSS · 3D Secure</span>
+          <span className="eyebrow on-dark tabular">3D Secure</span>
         </div>
         <div className="checkout-payment-card-body">
           <p className="checkout-payment-note">
             {/* Sağlayıcının adı yazılmıyor: sağlayıcı bir sunucu ayarı
                 (PAYMENT_PROVIDER) ve bir kez zaten değişti - adı buraya
-                yazmak, değiştiği gün müşteriye yanlış kurumu söylerdi. */}
-            Ödemen sağlayıcının güvenli ödeme sayfasında tamamlanır. Kart bilgin
-            hiçbir aşamada bu siteye girilmez ve burada saklanmaz.
+                yazmak, değiştiği gün müşteriye yanlış kurumu söylerdi.
+                Cümle iki ödeme modunda da doğrudur (docs/PAYNKOLAY.md §15):
+                kart ister sitenin ister sağlayıcının güvenli sayfasında
+                girilsin, bizde kaydedilmez. "PCI-DSS" etiketi kaldırıldı:
+                kart sitede alındığında bu bir sertifika iddiası olurdu. */}
+            Kartını bir sonraki adımda güvenli ödeme sayfasında girersin ve
+            ödemeyi bankanın 3D Secure ekranında onaylarsın. Kart bilgin bizde
+            kaydedilmez.
           </p>
           <div className="checkout-payment-amount">
             <span className="eyebrow">Tahsil edilecek</span>
