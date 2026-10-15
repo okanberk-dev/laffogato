@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { isDbUnreachable } from "@/lib/db/health";
@@ -34,6 +35,7 @@ import {
 } from "@/lib/customer/supabase-bridge";
 import { deleteMe } from "@/lib/mobile/me";
 import { accountClosureParam } from "@/lib/customer/account-closure";
+import { RESET_PATH, RESET_TOKEN_COOKIE } from "@/lib/customer/reset-link";
 import { ensureCustomerForSupabaseUser } from "@/lib/customer/supabase-bridge";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendVerificationEmail } from "@/lib/email/send";
@@ -152,6 +154,14 @@ export async function resetPasswordAction(
     await linkIdentityAfterReset(result.email, password);
   } catch (err) {
     console.error("[uye] identity link after reset failed", err);
+  }
+
+  // The token is spent; drop the copy the proxy parked for the reset page.
+  // Best-effort: it is dead either way and expires within the hour.
+  try {
+    (await cookies()).delete({ name: RESET_TOKEN_COOKIE, path: RESET_PATH });
+  } catch (err) {
+    console.error("[uye] reset cookie cleanup failed", err);
   }
 
   // Signed in straight away: they have just proved control of the address and

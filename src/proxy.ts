@@ -4,6 +4,12 @@ import {
   ADMIN_COOKIE_NAME,
   readSessionFromCookieValue,
 } from "@/lib/admin/auth";
+import {
+  RESET_PATH,
+  RESET_TOKEN_COOKIE,
+  RESET_TOKEN_COOKIE_MAX_AGE_SECONDS,
+  RESET_TOKEN_MAX_LENGTH,
+} from "@/lib/customer/reset-link";
 import { updateSession } from "@/lib/supabase/proxy";
 
 /**
@@ -27,6 +33,28 @@ export async function proxy(request: NextRequest) {
 
   if (path.startsWith("/api/")) {
     return NextResponse.next();
+  }
+
+  // The reset link carries its token in the query string; the page loads
+  // GTM, whose tags report the full URL to third parties. Move the token into
+  // a cookie scoped to this path and reload without it (lib/customer/reset-link.ts).
+  if (path === RESET_PATH && request.nextUrl.searchParams.has("token")) {
+    const token = (request.nextUrl.searchParams.get("token") ?? "").trim();
+    const url = request.nextUrl.clone();
+    url.search = "";
+    const moved = NextResponse.redirect(url, 303);
+    if (token && token.length <= RESET_TOKEN_MAX_LENGTH) {
+      moved.cookies.set({
+        name: RESET_TOKEN_COOKIE,
+        value: token,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: RESET_PATH,
+        maxAge: RESET_TOKEN_COOKIE_MAX_AGE_SECONDS,
+      });
+    }
+    return moved;
   }
 
   const response = await updateSession(request);
