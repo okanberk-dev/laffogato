@@ -17,11 +17,7 @@ import { checkoutConsentVersion } from "@/lib/legal/store";
 import { getCardUserKey } from "@/lib/customer/store";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
-import {
-  checkLoginLimit,
-  clientIp,
-  recordLoginFailure,
-} from "@/lib/admin/rate-limit";
+import { clientIp, reserveLoginAttempt } from "@/lib/admin/rate-limit";
 
 export interface PromoPreviewState {
   error?: string;
@@ -39,8 +35,14 @@ export async function previewPromoAction(
   // or a real discount, which is a working oracle for guessing codes. The same
   // counter that guards the login forms bounds it - generously, because a
   // customer mistyping their own coupon is the common case.
+  //
+  // Reserved (counted before the lookup), not checked here and recorded on a
+  // miss: a burst sent in parallel all passed the check before the first miss
+  // was written, so the cap bounded nothing for a script. A hit counts too and
+  // is never cleared - clearing on a valid code would let anyone holding one
+  // public campaign code reset the counter between guesses.
   const ip = await clientIp();
-  const limit = await checkLoginLimit("promo-preview", ip, "");
+  const limit = await reserveLoginAttempt("promo-preview", ip, "");
   if (limit.blocked) {
     return {
       error: `Çok fazla deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
@@ -76,10 +78,7 @@ export async function previewPromoAction(
     if (coupon.found) return { error: coupon.error };
   }
   const result = await applyPromoCode(code, subtotalMinor);
-  if (!result.ok) {
-    await recordLoginFailure("promo-preview", ip, "");
-    return { error: result.error };
-  }
+  if (!result.ok) return { error: result.error };
   return {
     ok: {
       code: result.promo.code,
