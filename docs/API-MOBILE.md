@@ -375,6 +375,7 @@ Kurallar:
 - Sipariş satırı `orders` tablosuna **mevcut şekliyle** yazılır; ek sütunlar: `channel = "app"`, `kind`, `fulfillment`, `scheduledFor`, `deliveryNote`. Satır `items[]` öğesine `menuItemId`, `size`, `options` eklenir (jsonb — geriye uyumlu).
 - Ödeme: mevcut `getPaymentProvider().createCheckoutSession()`; `successUrl = https://laffogato.net/odeme/donus?app=1`, `failureUrl = https://laffogato.net/odeme/app-hata`. Uygulama `redirectUrl`'i `expo-web-browser` ile açar; dönüş sayfası **`laffogato://siparis/<id>`** derin bağlantısına yönlendirir (sayfa `app=1` görünce).
 - Sadakat: sipariş **`paid`** olunca (`applyPaymentSucceeded`) `channel === "app" && kind === "cafe"` ise **+1 damga** (`loyalty_stamps`, kind `earn`, `orderId` benzersiz → idempotent).
+  **15 Eki 2026:** damga yalnız ürün tutarı **en az 140₺** olan siparişe verilir (`STAMP_MIN_ORDER_MINOR` = 14000; `totalMinor − shippingMinor`, indirim düşülmüş, kurye ücreti sayılmaz). Altındaki ödenmiş kafe siparişi damga kazanmaz; değer `bootstrap.app.loyalty.stampMinOrderMinor` ile uygulamaya gider.
 
 > **Uygulama notu (POST /orders).**
 >
@@ -545,7 +546,7 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
 > uygulanır; sınıra takılan istek **429 dönmez** — yanıt 200'dür ve `promo`
 > `{ "code", "ok": false, "message": "Çok fazla deneme. N saniye sonra tekrar dene." }`
 > olur (sepet hesabı hız sınırı yüzünden düşmesin diye). Mağaza satırlarında stok kontrolü
-> yapılır ama stok **ayrılmaz**. `stampsToEarn` kafe sepetinde 1, mağazada 0.
+> yapılır ama stok **ayrılmaz**. `stampsToEarn` kafe sepetinde 1, mağazada 0; ürün tutarı 140₺ altındaki kafe sepetinde de 0 (§3).
 > **14 Eki 2026 (yalnız ekleme):** `kind: "shop"` sepeti `settings.isShopOpen === false`
 > iken artık fiyatlanmaz; `POST /orders` ile aynı **409** `shop_closed` (aynı mesaj) döner.
 > Önceden önizleme kapalı mağazanın sepetini fiyatlıyor, ret yalnız son adımda geliyordu.
@@ -843,7 +844,7 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
       "courierEtaMinutes": [25, 35],
       "closedMessage": "Uygulamadan sipariş şu an kapalı. Köşkte görüşürüz."
     },
-    "loyalty": { "stampTarget": 6, "rewardTitle": "Ücretsiz içecek" },   // kupon değeri/süresi sunucuda kalır
+    "loyalty": { "stampTarget": 6, "rewardTitle": "Ücretsiz içecek", "stampMinOrderMinor": 14000 },   // kupon değeri/süresi sunucuda kalır; stampMinOrderMinor eklemeli (15 Eki 2026, §3)
     "reminders": {
       "enabled": true,                            // false → uygulama hatırlatma anahtarını gizler, planlananları iptal eder
       "items": [ { "id": "morning", "hour": 10, "minute": 0, "title": "Günaydın ☕", "body": "Sabah kahven köşkte hazır. Bugün ne içiyoruz?" } ]   // 0..4 öğe; fiyat/indirim/aciliyet dili yok; "hour" 8..21 (panel dışını kaydetmez, uygulama okurken düşürür)

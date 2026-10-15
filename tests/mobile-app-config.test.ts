@@ -263,6 +263,7 @@ describe("toBootstrapApp", () => {
     expect(app.loyalty).toEqual({
       stampTarget: 6,
       rewardTitle: "Ücretsiz içecek",
+      stampMinOrderMinor: 14000,
     });
     expect(app).not.toHaveProperty("karaoke");
     expect(app).not.toHaveProperty("venue");

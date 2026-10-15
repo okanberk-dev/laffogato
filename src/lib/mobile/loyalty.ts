@@ -20,6 +20,7 @@ import { grantMilestoneGifts } from "./milestones";
 import {
   buildLoyaltyView,
   computeStampBalance,
+  earnsStamp,
   freeDrinkRewardFor,
   rewardReadyAt,
   stampedOrderIds,
@@ -161,7 +162,11 @@ export async function onOrderPaid(order: AdminOrder): Promise<void> {
   const owner = normalizeEmail(order.customerEmail);
   if (!owner || owner === "guest@laffogato.local") return;
 
-  if (orderChannel(order) === "app" && orderKind(order) === "cafe") {
+  if (
+    orderChannel(order) === "app" &&
+    orderKind(order) === "cafe" &&
+    earnsStamp(order)
+  ) {
     const row: LoyaltyStamp = {
       id: await newStampId(),
       customerEmail: owner,

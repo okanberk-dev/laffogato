@@ -672,6 +672,7 @@ describe("buildBootstrap (contract §10)", () => {
     expect(b.app.loyalty).toEqual({
       stampTarget: 8,
       rewardTitle: "Ücretsiz içecek",
+      stampMinOrderMinor: 14000,
     });
     expect(b.app.reminders.items.map((i) => i.id)).toEqual([
       "morning",

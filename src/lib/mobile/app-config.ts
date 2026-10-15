@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { STAMP_MIN_ORDER_MINOR } from "./loyalty-core";
 
 /**
  * Mobile app configuration - the business knobs the operator turns at
@@ -145,7 +146,12 @@ export interface BootstrapApp {
    * switch for one fact, and the two would drift.
    */
   ordering: MobileAppConfig["ordering"] & { shopEnabled: boolean };
-  loyalty: { stampTarget: number; rewardTitle: string };
+  loyalty: {
+    stampTarget: number;
+    rewardTitle: string;
+    /** Smallest app cafe order that earns a stamp, kuruş (additive, 15 Eki 2026). */
+    stampMinOrderMinor: number;
+  };
   reminders: MobileAppConfig["reminders"];
   campaignCards: MobileAppConfig["campaignCards"];
   /**
@@ -590,6 +596,7 @@ export function toBootstrapApp(
     loyalty: {
       stampTarget: cfg.loyalty.stampTarget,
       rewardTitle: cfg.loyalty.rewardTitle,
+      stampMinOrderMinor: STAMP_MIN_ORDER_MINOR,
     },
     reminders: {
       enabled: cfg.reminders.enabled,
