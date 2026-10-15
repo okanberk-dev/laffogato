@@ -77,3 +77,19 @@ describe("bucket keys", () => {
     expect(first).toBe("admin-login::2a02:4780:0010:5be0::/64::o@x.co");
   });
 });
+
+describe("mail-sending budgets", () => {
+  const MIN = 60 * 1000;
+
+  it.each([
+    ["password-reset", 3, 30 * MIN],
+    ["password-reset-ip", 10, 30 * MIN],
+    ["newsletter-signup-ip", 5, 60 * MIN],
+    ["register-ip", 10, 30 * MIN],
+    ["verify-resend", 3, 15 * MIN],
+  ] as const)("%s allows %i, then locks", async (purpose, max, lockout) => {
+    await reserveLoginAttempt(purpose, "203.0.113.7", "*");
+    expect(lastCall().p_max_fails).toBe(max);
+    expect(lastCall().p_lockout_ms).toBe(lockout);
+  });
+});

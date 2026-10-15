@@ -32,6 +32,10 @@ export type AuthPurpose =
   | "password-reset"
   | "unsubscribe"
   | "newsletter-signup"
+  | "newsletter-signup-ip"
+  | "register-ip"
+  | "password-reset-ip"
+  | "verify-resend"
   | "staff-stamp"
   | "checkout-reopen";
 
@@ -42,8 +46,26 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // scripted enumeration still hits a wall quickly.
   "promo-preview": 15,
   // Every request costs an e-mail to somebody else's inbox, so this one counts
-  // successes as well as failures - five links per address per five minutes.
-  "password-reset": 5,
+  // successes as well as failures. Keyed by the ADDRESS alone (any IP): keyed
+  // by IP + address, a sender rotating source addresses could mail one member
+  // a reset link five times a minute, indefinitely. Three links per address,
+  // then half an hour.
+  "password-reset": 3,
+  // The mail-sending forms per SENDER, whatever address they target. The
+  // per-address keys stop flooding ONE inbox; these stop one sender from
+  // mailing a list of strangers - every message leaves under our domain and
+  // counts against the mail provider's daily quota, which the order and reset
+  // mails share.
+  "password-reset-ip": 10,
+  "newsletter-signup-ip": 5,
+  // Web sign-up: each one mails a verification link to the typed address and
+  // opens a Supabase identity, and a refused one ("already registered") says
+  // whether an address has an account.
+  "register-ip": 10,
+  // "Doğrulama e-postasını yeniden gönder" for a signed-in, unverified
+  // member: an account registered with a stranger's address could otherwise
+  // re-send to that inbox in a loop.
+  "verify-resend": 3,
   // The one-click unsubscribe route (RFC 8058 POST). Its "failure" is a
   // token that matched nothing - unknown or already spent; a valid opt-out
   // never counts, because the POST comes from the mail provider's shared
@@ -82,6 +104,11 @@ const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "admin-2fa-account": 15 * 60 * 1000,
   "newsletter-signup": 15 * 60 * 1000,
   "checkout-reopen": 10 * 60 * 1000,
+  "newsletter-signup-ip": 60 * 60 * 1000,
+  "password-reset": 30 * 60 * 1000,
+  "password-reset-ip": 30 * 60 * 1000,
+  "register-ip": 30 * 60 * 1000,
+  "verify-resend": 15 * 60 * 1000,
 };
 
 function lockoutMs(purpose: AuthPurpose): number {
