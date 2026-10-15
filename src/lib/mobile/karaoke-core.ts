@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 import { DEFAULT_MOBILE_APP_CONFIG, type MobileAppConfig } from "./app-config";
+import {
+  karaokeDiscountPctFor,
+  quoteKaraoke,
+  type KaraokeQuote,
+} from "./karaoke-quote";
 
 /**
  * Karaoke reservation rules and pure helpers (docs/API-MOBILE.md §7).
@@ -220,27 +225,22 @@ export function karaokeDiscountPct(
   tier: string | null | undefined,
   oroDiscountPct: number = ORO_DISCOUNT_PCT,
 ): number {
-  return tier === "oro" ? oroDiscountPct : 0;
+  return karaokeDiscountPctFor(tier, oroDiscountPct);
 }
 
-export interface KaraokeQuote {
-  priceMinor: number;
-  discountMinor: number;
-  totalMinor: number;
-}
+export type { KaraokeQuote };
 
-/** hours × hourly, minus the tier discount, all in kuruş. */
+/**
+ * hours × hourly, minus the tier discount, all in kuruş. The arithmetic is in
+ * `./karaoke-quote` so the browser can have it without Zod; see there.
+ */
 export function quoteReservation(
   hours: number,
   hourlyMinor: number,
   tier: string | null | undefined,
   oroDiscountPct: number = ORO_DISCOUNT_PCT,
 ): KaraokeQuote {
-  const priceMinor = Math.max(0, Math.round(hours * hourlyMinor));
-  const discountMinor = Math.round(
-    (priceMinor * karaokeDiscountPct(tier, oroDiscountPct)) / 100,
-  );
-  return { priceMinor, discountMinor, totalMinor: priceMinor - discountMinor };
+  return quoteKaraoke(hours, hourlyMinor, tier, oroDiscountPct);
 }
 
 // ─── Pure: request validation ──────────────────────────────────────────────
