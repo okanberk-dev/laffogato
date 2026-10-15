@@ -100,4 +100,67 @@ describe("security headers", () => {
     expect(vercel).toContain("camera=(self)");
     expect(vercel).not.toMatch(/camera=\(\)/);
   });
+
+  /**
+   * Vercel serves vercel.json's catch-all headers at the edge and Next serves
+   * its own. They had drifted (X-Frame-Options SAMEORIGIN vs DENY, a one-year
+   * HSTS without includeSubDomains, a Permissions-Policy without payment=()),
+   * so a response could carry two disagreeing copies of a header. Every key
+   * vercel.json sets must say exactly what next.config.ts says.
+   */
+  it("keeps vercel.json's copies identical to next.config.ts", async () => {
+    const next = await headerMap();
+    const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as {
+      headers: Array<{
+        source: string;
+        headers: Array<{ key: string; value: string }>;
+      }>;
+    };
+    const catchAll = vercel.headers.find((h) => h.source === "/(.*)");
+    expect(catchAll).toBeTruthy();
+    for (const { key, value } of catchAll!.headers) {
+      expect(next[key], key).toBe(value);
+    }
+  });
+
+  it("sends no referrer to an http page and only the origin cross-site", async () => {
+    const h = await headerMap();
+    expect(h["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
+  });
+
+  it("does not announce the framework", () => {
+    expect(nextConfig.poweredByHeader).toBe(false);
+  });
+
+  /**
+   * The pour widget is rebuilt in place under one name, so it gets an hour
+   * (plus a day of background revalidation), not the day-long art rule - and
+   * vercel.json must not serve a second, different Cache-Control for it.
+   */
+  it("caches the pour widget for an hour, in one place", async () => {
+    const rules = await nextConfig.headers!();
+    const pour = rules.find((r) => r.source === "/laffogato-pour.js");
+    expect(pour?.headers).toEqual([
+      {
+        key: "Cache-Control",
+        value: "public, max-age=3600, stale-while-revalidate=86400",
+      },
+    ]);
+    const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as {
+      headers: Array<{
+        source: string;
+        headers: Array<{ key: string; value: string }>;
+      }>;
+    };
+    for (const rule of vercel.headers) {
+      if (!new RegExp(`^${rule.source}$`).test("/laffogato-pour.js")) continue;
+      for (const h of rule.headers) {
+        if (h.key.toLowerCase() === "cache-control") {
+          expect(h.value).toBe(
+            "public, max-age=3600, stale-while-revalidate=86400",
+          );
+        }
+      }
+    }
+  });
 });

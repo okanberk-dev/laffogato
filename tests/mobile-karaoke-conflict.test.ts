@@ -25,6 +25,10 @@ class FakeQuery implements PromiseLike<unknown> {
   ilike() {
     return this;
   }
+  // listMine matches the member with the indexed `ieq` (WP1).
+  ieq() {
+    return this;
+  }
   order() {
     return this;
   }

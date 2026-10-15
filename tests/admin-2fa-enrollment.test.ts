@@ -45,5 +45,11 @@ describe("2FA enrollment", () => {
       body.indexOf("await disable2FA(session.email)"),
     );
     expect(body).toContain('reserveLoginAttempt("admin-2fa"');
+    // The account-wide budget too: per address alone, a stolen cookie could
+    // keep guessing from fresh addresses.
+    expect(body).toContain('reserveLoginAttempt("admin-2fa-account", "*"');
+    expect(body.indexOf('"admin-2fa-account"')).toBeLessThan(
+      body.indexOf("verifyToken(session.email, token)"),
+    );
   });
 });

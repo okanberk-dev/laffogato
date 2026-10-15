@@ -66,6 +66,7 @@ const requireMobileCustomer = vi.fn();
 const lib = {
   falReportsToday: vi.fn(),
   recordFalReport: vi.fn(),
+  withdrawFalReport: vi.fn(),
 };
 vi.mock("@/lib/mobile/auth", () => ({ requireMobileCustomer }));
 vi.mock("@/lib/mobile/fal", () => lib);
@@ -87,7 +88,36 @@ describe("POST /fal/report", () => {
     vi.unstubAllEnvs();
     requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "Eda@Ornek.com", emailVerified: true } });
     lib.falReportsToday.mockReset().mockResolvedValue([]);
-    lib.recordFalReport.mockReset().mockResolvedValue(undefined);
+    lib.recordFalReport.mockReset().mockResolvedValue(41);
+    lib.withdrawFalReport.mockReset().mockResolvedValue(undefined);
+  });
+
+  it("is 403 email_unverified for an unconfirmed sign-up, and stores nothing (WS1-04)", async () => {
+    // No AI reading is ever given to an unverified address (POST /fal), so
+    // there is nothing it could report - only free text to post.
+    requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "x@ornek.com", emailVerified: false } });
+    const res = await req({ text: WORDS });
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe("email_unverified");
+    expect(lib.recordFalReport).not.toHaveBeenCalled();
+  });
+
+  it("takes its own row back when a burst carried the day past the cap (WS1-04)", async () => {
+    // Read before the insert: room for one more. Read after it: the burst's
+    // other rows landed too.
+    lib.falReportsToday
+      .mockResolvedValueOnce(Array.from({ length: FAL_REPORT_DAILY_LIMIT - 1 }, (_, i) => `yorum ${i}`))
+      .mockResolvedValueOnce(Array.from({ length: FAL_REPORT_DAILY_LIMIT + 3 }, (_, i) => `yorum ${i}`));
+    const res = await req({ text: WORDS });
+    expect(res.status).toBe(429);
+    expect((await res.json()).error).toBe("fal_report_limit");
+    expect(lib.withdrawFalReport).toHaveBeenCalledWith(41);
+  });
+
+  it("keeps the row when the re-count is within the cap", async () => {
+    lib.falReportsToday.mockResolvedValueOnce([]).mockResolvedValueOnce([WORDS]);
+    expect((await req({ text: WORDS })).status).toBe(201);
+    expect(lib.withdrawFalReport).not.toHaveBeenCalled();
   });
 
   it("refuses a caller without a bearer and stores nothing", async () => {

@@ -8,11 +8,14 @@ import {
   type BookKaraokeState,
 } from "@/app/karaoke/actions";
 import { PageHero } from "./page-hero";
+// Type-only: karaoke-core builds Zod schemas at load, and a value import from
+// it ships all of Zod to the browser. The quote maths comes from the
+// dependency-free module instead.
+import type { KaraokeAvailability } from "@/lib/mobile/karaoke-core";
 import {
-  karaokeDiscountPct,
-  quoteReservation,
-  type KaraokeAvailability,
-} from "@/lib/mobile/karaoke-core";
+  karaokeDiscountPctFor,
+  quoteKaraoke,
+} from "@/lib/mobile/karaoke-quote";
 import { priceLabel } from "@/lib/utils/format";
 
 const DAY_NAMES = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"];
@@ -77,14 +80,13 @@ export function KaraokeBooking({
 
   const maxHours = availability?.maxHours ?? 3;
   const hourly = availability?.hourlyMinor ?? hourlyMinor;
-  const discountPct = karaokeDiscountPct(
+  const discountPct = karaokeDiscountPctFor(
     tier,
     availability?.oroDiscountPct ?? 15,
   );
 
   const quote = useMemo(
-    () =>
-      quoteReservation(hours, hourly, tier, availability?.oroDiscountPct ?? 15),
+    () => quoteKaraoke(hours, hourly, tier, availability?.oroDiscountPct ?? 15),
     [hours, hourly, tier, availability?.oroDiscountPct],
   );
 

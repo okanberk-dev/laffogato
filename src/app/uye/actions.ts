@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { isDbUnreachable } from "@/lib/db/health";
@@ -34,6 +35,7 @@ import {
 } from "@/lib/customer/supabase-bridge";
 import { deleteMe } from "@/lib/mobile/me";
 import { accountClosureParam } from "@/lib/customer/account-closure";
+import { RESET_PATH, RESET_TOKEN_COOKIE } from "@/lib/customer/reset-link";
 import { ensureCustomerForSupabaseUser } from "@/lib/customer/supabase-bridge";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendVerificationEmail } from "@/lib/email/send";
@@ -44,11 +46,9 @@ import {
 import { SITE } from "@/lib/seo/site";
 import { sameSitePath } from "@/lib/http/same-site-path";
 import {
-  checkLoginLimit,
   clearLoginLimit,
   reserveLoginAttempt,
   clientIp,
-  recordLoginFailure,
 } from "@/lib/admin/rate-limit";
 import {
   createPasswordResetToken,
@@ -84,14 +84,20 @@ export async function requestPasswordResetAction(
     return { error: "Geçerli bir e-posta adresi gir." };
   }
 
+  // Two budgets, both counted before anything is looked up or sent, and both
+  // counted whether or not the address has an account (so the refusal says
+  // nothing about membership): one per SENDER, so a script cannot mail a list
+  // of strangers, and one per ADDRESS from anywhere, so rotating source
+  // addresses cannot flood one inbox. The old check-then-record pair let a
+  // parallel burst through before the first failure was written.
   const ip = await clientIp();
-  const limit = await checkLoginLimit("password-reset", ip, email);
+  const perSender = await reserveLoginAttempt("password-reset-ip", ip, "*");
+  const limit = perSender.blocked
+    ? perSender
+    : await reserveLoginAttempt("password-reset", "*", email);
   if (limit.blocked) {
-    return {
-      error: `Çok fazla istek. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
-    };
+    return { error: tooManyRequests(limit.retryAfterSeconds) };
   }
-  await recordLoginFailure("password-reset", ip, email);
 
   try {
     const request = await createPasswordResetToken(email);
@@ -108,6 +114,14 @@ export async function requestPasswordResetAction(
     console.error("[uye] password reset request failed", err);
   }
   return { message: SAME_ANSWER };
+}
+
+/** The refusal for a mail-sending form that hit its budget. */
+function tooManyRequests(retryAfterSeconds: number): string {
+  const minutes = Math.ceil(retryAfterSeconds / 60);
+  return minutes > 1
+    ? `Çok fazla istek. ${minutes} dakika sonra tekrar dene.`
+    : `Çok fazla istek. ${retryAfterSeconds} saniye sonra tekrar dene.`;
 }
 
 export type ResetPasswordState = { error?: string; message?: string };
@@ -140,6 +154,14 @@ export async function resetPasswordAction(
     await linkIdentityAfterReset(result.email, password);
   } catch (err) {
     console.error("[uye] identity link after reset failed", err);
+  }
+
+  // The token is spent; drop the copy the proxy parked for the reset page.
+  // Best-effort: it is dead either way and expires within the hour.
+  try {
+    (await cookies()).delete({ name: RESET_TOKEN_COOKIE, path: RESET_PATH });
+  } catch (err) {
+    console.error("[uye] reset cookie cleanup failed", err);
   }
 
   // Signed in straight away: they have just proved control of the address and
@@ -186,6 +208,14 @@ export async function registerAction(
         "Devam etmek için kullanım şartları ve gizlilik politikasını kabul etmelisin.",
       values,
     };
+  }
+
+  // Every sign-up mails a link to the typed address and opens a Supabase
+  // identity, and a refused one tells whether that address has an account:
+  // counted per sender before any of it happens.
+  const limit = await reserveLoginAttempt("register-ip", await clientIp(), "*");
+  if (limit.blocked) {
+    return { error: tooManyRequests(limit.retryAfterSeconds), values };
   }
 
   let result;
@@ -257,6 +287,10 @@ export async function resendVerificationAction(
   const current = await getActiveCustomer();
   if (!current) return { error: "Önce giriş yap." };
   if (current.emailVerified) return { message: "E-postan zaten doğrulanmış." };
+  // An account can be registered with somebody else's address; without a
+  // budget this button re-sent to that inbox for as long as it was pressed.
+  const limit = await reserveLoginAttempt("verify-resend", "*", current.email);
+  if (limit.blocked) return { error: tooManyRequests(limit.retryAfterSeconds) };
   const result = await createVerificationToken(current.email);
   if (!result.ok) {
     return result.alreadyVerified
@@ -309,7 +343,13 @@ export async function loginAction(
   try {
     // Counted BEFORE the password is checked (reserveLoginAttempt), so a
     // burst sent in parallel cannot get more guesses than the cap.
-    const limit = await reserveLoginAttempt("customer-login", ip, email);
+    // The address's budget across every account goes first: per account
+    // alone, one address could try a leaked e-mail/password list one
+    // account at a time and never meet a limit.
+    const perAddress = await reserveLoginAttempt("customer-login-ip", ip, "*");
+    const limit = perAddress.blocked
+      ? perAddress
+      : await reserveLoginAttempt("customer-login", ip, email);
     if (limit.blocked) {
       return {
         error: `Çok fazla başarısız deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
@@ -556,8 +596,21 @@ export async function changePasswordAction(
   const newPw = String(formData.get("newPassword") ?? "");
   const confirm = String(formData.get("newPasswordConfirm") ?? "");
   if (newPw !== confirm) return { error: "Yeni şifreler eşleşmiyor." };
+  // The current password is checked here, so this form is a password oracle
+  // for whoever holds the session - a cookie lifted from a shared computer
+  // could guess it without limit (and learn a password the member may use
+  // elsewhere), each guess also a Supabase sign-in from our servers for an
+  // app member. It shares the login form's budget.
+  const ip = await clientIp();
+  const limit = await reserveLoginAttempt("customer-login", ip, current.email);
+  if (limit.blocked) {
+    return {
+      error: `Çok fazla başarısız deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
+    };
+  }
   const result = await changeCustomerPassword(current.email, currentPw, newPw);
   if (!result.ok) return { error: result.error };
+  await clearLoginLimit("customer-login", ip, current.email);
   // The mirror lives in `changeCustomerPassword` now, with the service role
   // and a record of whether it landed. It used to be here, conditional on this
   // browser holding a Supabase session - so the same change mirrored or not
@@ -729,6 +782,14 @@ export async function deleteAccountAction(
   }
 
   const password = String(formData.get("password") ?? "");
+  // Same oracle as the password change: counted against the login budget.
+  const ip = await clientIp();
+  const limit = await reserveLoginAttempt("customer-login", ip, current.email);
+  if (limit.blocked) {
+    return {
+      error: `Çok fazla başarısız deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
+    };
+  }
   const check = await checkSitePassword(current.email, password);
   if (check === "mismatch") return { error: "Şifre hatalı." };
 

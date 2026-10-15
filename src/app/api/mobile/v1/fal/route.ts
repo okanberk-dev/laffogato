@@ -36,7 +36,8 @@ const BODY = z.object({
  * `POST /fal` - fA'L read by AI (karar 177, docs/API-MOBILE.md §20).
  *
  * In order: the member is signed in; the feature is on (key AND switch,
- * else 503 `fal_unavailable` and the app reads the cup itself); their R12
+ * else 503 `fal_unavailable` and the app reads the cup itself); their e-mail
+ * is verified (else 403 `email_unverified`); their R12
  * consent stands at the current version (else 403 `consent_required`);
  * today's readings are under the limit (else 429 `fal_limit`); the body is
  * a JPEG of a sane size (else 400 `invalid_image`). The photo goes to the
@@ -49,6 +50,15 @@ export async function POST(request: Request) {
 
     if (!falAiEnabled(process.env)) {
       return apiError(503, "fal_unavailable", "fA'L'ın yapay zekâ yorumu şu an kapalı; falına cihazında bakıyoruz.");
+    }
+    // Every reading is a paid model call. The daily cap is per member row, and
+    // a row is opened for any Supabase sign-up, confirmed or not - so without
+    // this gate a script minting throwaway sign-ups bought FAL_DAILY_LIMIT
+    // model calls per address it never had to own. The same gate as
+    // POST /orders and the counter code; the app reads the cup on the device
+    // on any refusal, so a member who has not verified yet still gets a fal.
+    if (!auth.customer.emailVerified) {
+      return apiError(403, "email_unverified", "Yapay zekâ yorumu için önce e-postanı doğrula. Falına cihazında bakıyoruz.");
     }
     if (!(await hasFalConsent(auth.customer.email))) {
       return apiError(403, "consent_required", "Yapay zekâ yorumu için önce onayın gerekiyor.");

@@ -57,6 +57,12 @@ const CSP = [
   "upgrade-insecure-requests",
 ].join("; ");
 
+/**
+ * vercel.json repeats these values for the edge and the two
+ * copies must not drift: they did (X-Frame-Options DENY here, SAMEORIGIN
+ * there; a one-year HSTS there under this two-year one) and a response could
+ * carry both. `tests/security-headers.test.ts` compares them key by key.
+ */
 const SECURITY_HEADERS = [
   { key: "Content-Security-Policy", value: CSP },
   {
@@ -65,7 +71,10 @@ const SECURITY_HEADERS = [
   },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
-  { key: "Referrer-Policy", value: "origin-when-cross-origin" },
+  // strict-: never send even the origin from an https page to an http one.
+  // Same-origin requests keep the full URL, which the reset and verification
+  // pages need nothing from; other sites get the origin only, as before.
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     // `camera=(self)`, not `camera=()`: the till desk at /admin/kasa reads the
     // member's QR through getUserMedia, and an empty allowlist denies the
@@ -78,6 +87,9 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // Every response said `X-Powered-By: Next.js`: a free fingerprint for
+  // whoever is matching the site against a framework advisory.
+  poweredByHeader: false,
   experimental: {
     /**
      * The admin posts a product's photos as base64 data URLs, all of them on
@@ -115,6 +127,20 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+      {
+        // The 610 KB pour widget (pour-module.tsx) was served max-age=0 and
+        // re-validated on every home visit. Not the day-long rule above: the
+        // file is rebuilt IN PLACE under the same name (be2e506 did), so a
+        // long cache would pin visitors to an old build. An hour, then a day
+        // of background revalidation, bounds that to one stale load.
+        source: "/laffogato-pour.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600, stale-while-revalidate=86400",
           },
         ],
       },

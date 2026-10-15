@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 const subscribeNewsletter = vi.fn();
 const sendNewsletterConfirmEmail = vi.fn(async () => true);
-const reserveLoginAttempt = vi.fn(async () => ({
+const reserveLoginAttempt = vi.fn(async (..._args: string[]) => ({
   blocked: false,
   remaining: 2,
   retryAfterSeconds: 0,
@@ -85,6 +85,31 @@ describe("footer signup", () => {
     const res = await subscribeNewsletterAction({}, form("a@b.co"));
     expect(res.error).toMatch(/çok fazla istek/i);
     expect(subscribeNewsletter).not.toHaveBeenCalled();
+  });
+
+  it("is rate limited per sender, whatever address it names", async () => {
+    // A script cycling through strangers' addresses never meets the
+    // per-address budget; the sender's own budget is taken first.
+    reserveLoginAttempt.mockClear();
+    reserveLoginAttempt.mockImplementation(async (...args: string[]) =>
+      args[0] === "newsletter-signup-ip"
+        ? { blocked: true, remaining: 0, retryAfterSeconds: 3600 }
+        : { blocked: false, remaining: 2, retryAfterSeconds: 0 },
+    );
+    const res = await subscribeNewsletterAction({}, form("yeni@b.co"));
+    expect(res.error).toMatch(/çok fazla istek/i);
+    expect(reserveLoginAttempt).toHaveBeenCalledWith(
+      "newsletter-signup-ip",
+      "10.0.0.9",
+      "*",
+    );
+    expect(subscribeNewsletter).not.toHaveBeenCalled();
+    expect(sendNewsletterConfirmEmail).not.toHaveBeenCalled();
+    reserveLoginAttempt.mockImplementation(async () => ({
+      blocked: false,
+      remaining: 2,
+      retryAfterSeconds: 0,
+    }));
   });
 });
 

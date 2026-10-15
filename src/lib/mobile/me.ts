@@ -50,8 +50,11 @@ function checkErr(error: DbError | null, ctx: string): void {
 
 /** The full `/me` body for an authenticated member. */
 export async function buildMe(customer: PublicCustomer): Promise<MeResponse> {
+  // Read once and shared with the loyalty block, which used to read the same
+  // row again (WP1: one round trip of nine, on a pool of one connection).
+  const settingsRead = getSettings();
   const [loyalty, invite, grants, settings, till] = await Promise.all([
-    getLoyalty(customer.email),
+    settingsRead.then((s) => getLoyalty(customer.email, s.mobileApp.loyalty)),
     getInviteSummary(customer),
     // The road map is an addition to /me, never a reason for it to fail: if
     // the milestone table cannot be read (a deploy ahead of its migration),
@@ -60,7 +63,7 @@ export async function buildMe(customer: PublicCustomer): Promise<MeResponse> {
       console.error("[me] milestone grants unavailable", err);
       return null;
     }),
-    getSettings(),
+    settingsRead,
     // Like the road map: the till flag never fails /me. Unreadable (a deploy
     // ahead of its migration) means no till, which is the safe answer.
     isActiveBarista(customer.email).catch((err: unknown) => {

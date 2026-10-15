@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { getDb, TABLES } from "@/lib/db";
 import { publicRead, raiseDbError } from "@/lib/db/health";
 
@@ -29,18 +31,21 @@ export interface LegalDocInput {
   isPublished: boolean;
 }
 
-/** A published, non-empty override for the public /hukuk/<slug> page, or null. */
-export async function getPublishedLegalOverride(
-  slug: string,
-): Promise<LegalDocOverride | null> {
-  // Degrades to "no override", which renders the document bundled in
-  // src/lib/legal/documents.ts. That text is the authoritative default the site
-  // ships with — the database only ever holds edits on top of it — so an outage
-  // shows the real policy, never a fabricated one.
-  return publicRead("getPublishedLegalOverride", null, () =>
-    getPublishedLegalOverrideLive(slug),
-  );
-}
+/**
+ * A published, non-empty override for the public /hukuk/<slug> page, or null.
+ *
+ * Memoised per request (WP1): the page's metadata and body both ask.
+ */
+export const getPublishedLegalOverride = cache(
+  async (slug: string): Promise<LegalDocOverride | null> =>
+    // Degrades to "no override", which renders the document bundled in
+    // src/lib/legal/documents.ts. That text is the authoritative default the
+    // site ships with - the database only ever holds edits on top of it - so
+    // an outage shows the real policy, never a fabricated one.
+    publicRead("getPublishedLegalOverride", null, () =>
+      getPublishedLegalOverrideLive(slug),
+    ),
+);
 
 async function getPublishedLegalOverrideLive(
   slug: string,

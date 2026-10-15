@@ -177,6 +177,17 @@ describe("POST /fal", () => {
     expect(lib.readCupWithAI).not.toHaveBeenCalled();
   });
 
+  it("is 403 email_unverified for an unconfirmed sign-up, before any seat or model call", async () => {
+    // A row exists for every Supabase sign-up, confirmed or not; without the
+    // gate each throwaway address bought FAL_DAILY_LIMIT paid model calls.
+    requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "throwaway@ornek.com", emailVerified: false } });
+    const res = await POST(req({ image: JPEG }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe("email_unverified");
+    expect(lib.reserveFalReading).not.toHaveBeenCalled();
+    expect(lib.readCupWithAI).not.toHaveBeenCalled();
+  });
+
   it("wants the member's consent before the photo goes anywhere", async () => {
     lib.hasFalConsent.mockResolvedValue(false);
     const res = await POST(req({ image: JPEG }));

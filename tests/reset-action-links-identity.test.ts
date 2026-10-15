@@ -16,6 +16,10 @@ const redirect = vi.fn(() => {
 });
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+const deleteCookie = vi.fn();
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ delete: deleteCookie }),
+}));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/lib/customer/auth", () => ({
   clearCustomerSession: vi.fn(),
@@ -97,10 +101,13 @@ beforeEach(() => {
 
 describe("resetPasswordAction and the unlinked identity", () => {
   it("links the identity with the new password, then signs the member in", async () => {
-    await expect(resetPasswordAction({}, form("yeni-sifre-123"))).rejects.toThrow(
-      "NEXT_REDIRECT",
+    await expect(
+      resetPasswordAction({}, form("yeni-sifre-123")),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(resetPasswordWithToken).toHaveBeenCalledWith(
+      "tok-1",
+      "yeni-sifre-123",
     );
-    expect(resetPasswordWithToken).toHaveBeenCalledWith("tok-1", "yeni-sifre-123");
     expect(linkIdentityAfterReset).toHaveBeenCalledWith(
       "eda@example.com",
       "yeni-sifre-123",
@@ -109,11 +116,21 @@ describe("resetPasswordAction and the unlinked identity", () => {
     expect(redirect).toHaveBeenCalledWith("/uye/hesap");
   });
 
+  it("drops the reset token the proxy parked in a cookie", async () => {
+    await expect(
+      resetPasswordAction({}, form("yeni-sifre-123")),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(deleteCookie).toHaveBeenCalledWith({
+      name: "laffogato_reset_token",
+      path: "/uye/sifre-sifirla",
+    });
+  });
+
   it("keeps the completed reset when the link throws", async () => {
     linkIdentityAfterReset.mockRejectedValue(new Error("db failure"));
-    await expect(resetPasswordAction({}, form("yeni-sifre-123"))).rejects.toThrow(
-      "NEXT_REDIRECT",
-    );
+    await expect(
+      resetPasswordAction({}, form("yeni-sifre-123")),
+    ).rejects.toThrow("NEXT_REDIRECT");
     expect(setActiveCustomerSession).toHaveBeenCalledWith("eda@example.com");
     expect(errorSpy).toHaveBeenCalled();
   });
@@ -123,7 +140,9 @@ describe("resetPasswordAction and the unlinked identity", () => {
       ok: false,
       error: "Bağlantı geçersiz veya kullanılmış.",
     });
-    await expect(resetPasswordAction({}, form("yeni-sifre-123"))).resolves.toEqual({
+    await expect(
+      resetPasswordAction({}, form("yeni-sifre-123")),
+    ).resolves.toEqual({
       error: "Bağlantı geçersiz veya kullanılmış.",
     });
     expect(linkIdentityAfterReset).not.toHaveBeenCalled();

@@ -109,10 +109,13 @@ vi.mock("@/lib/customer/coupons", () => ({
   couponAllowedForKind: () => true,
   CAFE_ONLY_COUPON_MESSAGE: "",
 }));
+const OPEN_GATE = { blocked: false, retryAfterSeconds: 0, remaining: 7 };
+const reserveLoginAttempt = vi.fn(async () => OPEN_GATE);
 vi.mock("@/lib/admin/rate-limit", () => ({
   checkLoginLimit: vi.fn(),
   clientIp: async () => "10.0.0.1",
   recordLoginFailure: vi.fn(),
+  reserveLoginAttempt,
 }));
 vi.mock("next/headers", () => ({
   headers: async () => new Headers({ "user-agent": "LaffogatoApp/1.0" }),
@@ -171,6 +174,8 @@ beforeEach(() => {
   placeAppOrder.mockClear();
   sendOrderPlacedEmail.mockClear();
   createCheckoutSession.mockClear();
+  reserveLoginAttempt.mockReset();
+  reserveLoginAttempt.mockResolvedValue(OPEN_GATE);
 });
 
 describe("POST /orders - clientOrderId", () => {
@@ -331,6 +336,61 @@ describe("POST /orders/{id}/payment", () => {
     expect(answer.ok).toBe(false);
     if (answer.ok || answer.reason !== "not_payable") return;
     expect(answer.order.id).toBe(first.order.id);
+    expect(createCheckoutSession).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * WS1-02: every reopened checkout is a call to the payment provider and a
+ * pending `payment_transactions` row. Nothing bounded it, so one member with
+ * one unpaid order could open POS sessions from the merchant account in a
+ * loop, by either door.
+ */
+describe("reopening the POS is budgeted per member", () => {
+  const BLOCKED = { blocked: true, retryAfterSeconds: 540, remaining: 0 };
+
+  it("does not count the first session of a new order", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    expect(first.ok && first.payment?.redirectUrl).toBeTruthy();
+    expect(reserveLoginAttempt).not.toHaveBeenCalled();
+  });
+
+  it("counts a clientOrderId replay against the member, before the POS is called", async () => {
+    await createAppOrder(customer, body("attempt-1"));
+    createCheckoutSession.mockClear();
+    await createAppOrder(customer, body("attempt-1"));
+    expect(reserveLoginAttempt).toHaveBeenCalledWith(
+      "checkout-reopen",
+      "",
+      customer.email,
+    );
+    expect(createCheckoutSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers a spent budget with 429 rate_limited and opens no session", async () => {
+    await createAppOrder(customer, body("attempt-1"));
+    createCheckoutSession.mockClear();
+    reserveLoginAttempt.mockResolvedValue(BLOCKED);
+    const retry = await createAppOrder(customer, body("attempt-1"));
+    expect(retry.ok).toBe(false);
+    if (retry.ok) return;
+    expect(retry.failure).toMatchObject({ status: 429, code: "rate_limited" });
+    expect(retry.failure.headers).toEqual({ "Retry-After": "540" });
+    expect(createCheckoutSession).not.toHaveBeenCalled();
+    expect(placeAppOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it("holds the same budget on POST /orders/{id}/payment", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    createCheckoutSession.mockClear();
+    reserveLoginAttempt.mockResolvedValue(BLOCKED);
+    const paid = await payAppOrder(customer, first.order.id);
+    expect(paid.ok).toBe(false);
+    if (paid.ok || paid.reason !== "rate_limited") {
+      throw new Error(`expected rate_limited, got ${JSON.stringify(paid)}`);
+    }
+    expect(paid.failure.code).toBe("rate_limited");
     expect(createCheckoutSession).not.toHaveBeenCalled();
   });
 });
