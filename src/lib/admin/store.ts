@@ -1,4 +1,6 @@
 import "server-only";
+
+import { cache } from "react";
 import { isHandedOver, isStaleShipmentEvent } from "@/lib/mobile/geliver";
 
 import type { DbError } from "@/lib/db";
@@ -3942,14 +3944,21 @@ export async function refundOrder(
  * can never leave checkout looking open. Commerce and admin must keep calling
  * `getSettings()`, which throws - deciding tax, shipping or whether an order
  * may be placed from fallback values would be a real financial error.
+ *
+ * Memoised per request (`React.cache`, WP1): the home page's metadata and its
+ * body, and the /odeme and /uye layouts and their pages, each asked for the
+ * same row in the same render. Scoped to one request - nothing is shared
+ * between visitors, and outside a render (actions, route handlers) it reads
+ * every time.
  */
-export async function getPublicSettings(): Promise<AdminSettings> {
-  return publicRead(
-    "getPublicSettings",
-    { ...defaultSettings(), isShopOpen: false },
-    () => getSettings(),
-  );
-}
+export const getPublicSettings = cache(
+  async (): Promise<AdminSettings> =>
+    publicRead(
+      "getPublicSettings",
+      { ...defaultSettings(), isShopOpen: false },
+      () => getSettings(),
+    ),
+);
 
 export async function getSettings(): Promise<AdminSettings> {
   await ensureSeed();
@@ -4142,14 +4151,19 @@ export async function listShopProducts(): Promise<DesignProduct[]> {
   });
 }
 
-/** Single active product by slug - for the PDP (/magaza/urun/<slug>). */
-export async function getShopProductBySlug(
-  slug: string,
-): Promise<DesignProduct | null> {
-  return publicRead("getShopProductBySlug", null, () =>
-    getShopProductBySlugLive(slug),
-  );
-}
+/**
+ * Single active product by slug - for the PDP (/magaza/urun/<slug>).
+ *
+ * Memoised per request (WP1): the product page's `generateMetadata` and its
+ * body both read the product, which was two identical queries per view.
+ * Display only - checkout re-reads prices and stock with its own query.
+ */
+export const getShopProductBySlug = cache(
+  async (slug: string): Promise<DesignProduct | null> =>
+    publicRead("getShopProductBySlug", null, () =>
+      getShopProductBySlugLive(slug),
+    ),
+);
 
 async function getShopProductBySlugLive(
   slug: string,
