@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { AdminOrder, AdminOrderStatus } from "@/lib/admin/store";
 import { DEFAULT_MOBILE_APP_CONFIG } from "@/lib/mobile/app-config";
 import {
+  earnsStamp,
+  STAMP_MIN_ORDER_MINOR,
   BADGE_IDS,
   buildLoyaltyView,
   computeBadges,
@@ -498,5 +500,26 @@ describe("stampedOrderIds", () => {
     // reversals globally would have taken the newest order's stamp away.
     const ids = stampedOrderIds([row("earn", "ord-4"), row("reversal", "")]);
     expect([...ids]).toEqual(["ord-4"]);
+  });
+});
+
+/**
+ * Operator, 15 Eki 2026: "minimum sipariş tutarı 140 TL". Six ₺25 extras
+ * used to buy a ₺280 drink (WS1-05); the goods are measured like the invite
+ * minimum, discount out and courier fee not counted.
+ */
+describe("earnsStamp (stamp minimum)", () => {
+  it("is ₺140", () => {
+    expect(STAMP_MIN_ORDER_MINOR).toBe(14000);
+  });
+  it("refuses a ₺25 extra and accepts ₺140 of goods", () => {
+    expect(earnsStamp({ totalMinor: 2500, shippingMinor: 0 })).toBe(false);
+    expect(earnsStamp({ totalMinor: 13999, shippingMinor: 0 })).toBe(false);
+    expect(earnsStamp({ totalMinor: 14000, shippingMinor: 0 })).toBe(true);
+  });
+  it("does not count the courier fee towards the minimum", () => {
+    // ₺100 latte + ₺55 courier = ₺155 paid, ₺100 of goods.
+    expect(earnsStamp({ totalMinor: 15500, shippingMinor: 5500 })).toBe(false);
+    expect(earnsStamp({ totalMinor: 19500, shippingMinor: 5500 })).toBe(true);
   });
 });

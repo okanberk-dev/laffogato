@@ -439,6 +439,7 @@ ve `docs/API-MOBILE.md` uygulamanın okuduğu alanlarla karşılaştırıldı.
 | 🟢 | Sipariş adresi, kayıtlı adres ve `PATCH /me` telefonları yalnız uzunlukla doğrulanıyor; `normalizeTrPhone` kullanılmıyor | Ayrı PR: doğrulamayı sıkılaştırmak eski sürümlerin gönderdiğini reddedebilir, önce ölçülmeli |
 | 🟢 | Davet ödülünün 150 TL alt sınırı kurye ücretini de içeren `totalMinor` ile ölçülüyor | Operatör kararı: alt sınır kurye ücretini sayar mı |
 | 🟢 | Hangi kafe kategorilerinin özelleştirilemeyeceği yalnız uygulamada (`NON_CUSTOMIZABLE`); sunucu her satıra süt/şurup/shot ek ücretini uygular | Ayrı PR: uygulama bu kategorilerde özelleştirme göndermez, sunucu tarafı sertleştirme |
+| 🟡 | Her ödenmiş uygulama kafe siparişi tutarına bakılmadan +1 damga kazanıyordu: tek başına 25₺'lik "Alternatif Süt" 6 kez sipariş edilip 280₺'lik ücretsiz içecek kuponu alınabiliyordu (WS1-05) | Operatör kararı (15 Eki 2026, "minimum sipariş tutarı 140 TL"): damga yalnız ürün tutarı en az 140₺ olan siparişe (`STAMP_MIN_ORDER_MINOR`, indirim düşülmüş, kurye hariç); `stampsToEarn` aynı kuralı söyler, değer `bootstrap.app.loyalty.stampMinOrderMinor` ile uygulamaya gider - `tests/mobile-loyalty.test.ts` |
 
 ## 10. Hız turu (WP1) - 15 Eki 2026
 

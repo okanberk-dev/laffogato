@@ -241,12 +241,13 @@ maybe("paying an app order from the wallet in a real Postgres", () => {
         status: "succeeded",
       },
     ]);
-    // The paid path's side effects: the stamp a paid app cafe order earns.
+    // The paid path's side effects ran: a ₺100 order is under the ₺140
+    // stamp minimum (STAMP_MIN_ORDER_MINOR), so it earns no stamp.
     const { rows: stamps } = await pool!.query(
       `select 1 from public.loyalty_stamps where "orderId" = $1`,
       [order.id],
     );
-    expect(stamps).toHaveLength(1);
+    expect(stamps).toHaveLength(0);
   });
 
   it("refuses a short balance with 409 and writes no order and no spend", async () => {

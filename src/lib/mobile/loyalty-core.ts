@@ -39,6 +39,27 @@ export interface LoyaltyStamp {
  */
 export const STAMP_TARGET = 6;
 
+/**
+ * The smallest app cafe order that earns a stamp, in kuruş (operator, 15 Eki
+ * 2026: "minimum sipariş tutarı 140 TL"). Every paid app cafe order used to
+ * earn one, so six ₺25 "Alternatif Süt" orders (₺150) bought a ₺280 free
+ * drink (WS1-05). Measured like the invite minimum: what the member paid for
+ * the goods, discount already out, courier fee not counted.
+ */
+export const STAMP_MIN_ORDER_MINOR = 14000;
+
+/** Whether a paid app cafe order is big enough to earn its stamp. */
+export function earnsStamp(order: {
+  totalMinor: number;
+  shippingMinor: number;
+}): boolean {
+  const goods = Math.max(
+    0,
+    Math.round(order.totalMinor) - Math.max(0, Math.round(order.shippingMinor)),
+  );
+  return goods >= STAMP_MIN_ORDER_MINOR;
+}
+
 /** The loyalty knobs the operator turns; one shape for the core and the till. */
 export type LoyaltyRules = MobileAppConfig["loyalty"];
 

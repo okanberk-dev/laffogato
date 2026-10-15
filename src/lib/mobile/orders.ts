@@ -42,6 +42,7 @@ import { SITE } from "@/lib/seo/site";
 
 import { orderChannel } from "@/lib/admin/order-channel";
 import { getStampedOrderIds } from "./loyalty";
+import { earnsStamp } from "./loyalty-core";
 import { resolveOrderAddress } from "./order-address";
 import { toMobileOrder, type MobileOrder } from "./order-mapper";
 import {
@@ -997,7 +998,16 @@ export async function previewAppOrder(
       shippingMinor: totals.shippingMinor,
       totalMinor: totals.totalMinor,
       promo,
-      stampsToEarn: linesRes.kind === "cafe" ? 1 : 0,
+      // Same rule as the award (onOrderPaid): a cafe basket under the stamp
+      // minimum earns none, so the summary must not promise one.
+      stampsToEarn:
+        linesRes.kind === "cafe" &&
+        earnsStamp({
+          totalMinor: totals.totalMinor,
+          shippingMinor: totals.shippingMinor,
+        })
+          ? 1
+          : 0,
     },
   };
 }
