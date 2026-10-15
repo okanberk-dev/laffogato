@@ -113,10 +113,13 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // The site's own card form (/odeme/paynkolay POST, docs/PAYNKOLAY.md §15).
   // A merchant page that forwards card numbers to the POS is what card
   // testers look for: they replay a stolen list through it to learn which
-  // cards are live. Every submission that reaches the POS counts, success
-  // or not. Per ORDER: a member whose bank says no retries two or three
-  // times; five is generous and still leaves a pending order useless as a
-  // testing slot. Per ADDRESS across all orders: ten, then an hour.
+  // cards are live. Like every purpose here the window is WINDOW_MS (five
+  // minutes, fixed from the first count), then the lockout below.
+  // Per ORDER (reserved before the POS is asked, success or not): a member
+  // whose bank says no retries two or three times; five per window leaves a
+  // pending order useless as a testing slot. Per ADDRESS: only the POS's
+  // refusals and errors count (recordLoginFailure). Counting successes too
+  // locked a whole café Wi-Fi out after ten paying customers.
   "card-payment-order": 5,
   "card-payment-ip": 10,
 };

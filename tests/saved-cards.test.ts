@@ -98,7 +98,11 @@ describe("saved cards", () => {
     "src/lib/payment/paynkolay-page.ts",
     "src/app/odeme/paynkolay/route.ts",
   ];
-  const CARD_WORDS = /\b(cardNumber|cvv|cvc|expiryMonth|expireMonth)\b/i;
+  // The real form field names (cardCvv, cardExpiry …) and the module's own
+  // identifiers, not just four English words: an earlier version of this
+  // list missed `form.get("cardCvv")` because of its word boundaries.
+  const CARD_WORDS =
+    /cardNumber|cardCvv|cardExpiry|cardHolderName|\bcvv\b|\bcvc\b|expiryMonth|expireMonth|CARD_FORM_FIELDS|parseCardForm|CardInput|paynkolay-card/i;
   const codeOnly = (text: string) =>
     text
       .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -132,6 +136,8 @@ describe("saved cards", () => {
   });
 
   it("the card path cannot persist a card - no database, no store", () => {
+    // Directly. route.ts does import rate-limit, which writes to Postgres,
+    // but hands it only the client address and the order reference.
     for (const file of CARD_PATH) {
       const code = codeOnly(read(file));
       expect(code, file).not.toMatch(/from "@\/lib\/db/);
@@ -140,13 +146,50 @@ describe("saved cards", () => {
     }
   });
 
+  /**
+   * The identifiers a console call in the card path may print. Anything else
+   * - an aliased card, the form, the request - fails here, whatever it is
+   * called. String and template text is ignored; `${...}` is not.
+   */
+  const LOGGABLE = new Set([
+    "err",
+    "instanceof",
+    "Error",
+    "message",
+    "orderRef",
+    "orderId",
+    "result",
+    "code",
+    "post",
+    "fields",
+    "clientRefCode",
+  ]);
+  function identifiersIn(args: string): string[] {
+    const expressions: string[] = [];
+    const withoutTemplates = args.replace(/`(?:[^`\\]|\\.)*`/g, (t) => {
+      for (const m of t.matchAll(/\$\{([^}]*)\}/g)) expressions.push(m[1]);
+      return " ";
+    });
+    const withoutStrings = withoutTemplates.replace(
+      /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
+      " ",
+    );
+    return [
+      ...`${withoutStrings} ${expressions.join(" ")}`.matchAll(
+        /[A-Za-z_$][\w$]*/g,
+      ),
+    ].map((m) => m[0]);
+  }
+
   it("the card path never logs the card", () => {
     for (const file of CARD_PATH) {
       const code = codeOnly(read(file));
       for (const call of code.matchAll(/console\.\w+\(([\s\S]*?)\);/g)) {
-        expect(call[1], file).not.toMatch(
-          /\bcard\b|card\.|\bcheck\b|\bform\b|read\(|cardNumber|cvv/i,
-        );
+        for (const name of identifiersIn(call[1])) {
+          expect(LOGGABLE.has(name), `${file}: console prints ${name}`).toBe(
+            true,
+          );
+        }
       }
     }
   });

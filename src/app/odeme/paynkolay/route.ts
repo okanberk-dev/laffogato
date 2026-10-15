@@ -1,8 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { clientIpFrom, reserveLoginAttempt } from "@/lib/admin/rate-limit";
+import {
+  checkLoginLimit,
+  clientIpFrom,
+  recordLoginFailure,
+  reserveLoginAttempt,
+} from "@/lib/admin/rate-limit";
+import { appOrderDeepLink } from "@/lib/mobile/deep-link";
 import { getPaymentProvider } from "@/lib/payment";
-import { PaynkolayPaymentProvider } from "@/lib/payment/paynkolay";
+import {
+  PaynkolayPaymentProvider,
+  type PaynkolayFormPost,
+} from "@/lib/payment/paynkolay";
 import { CARD_FORM_FIELDS, parseCardForm } from "@/lib/payment/paynkolay-card";
 import {
   bankChallengePage,
@@ -56,7 +65,7 @@ export async function GET(req: NextRequest) {
   if (provider.checkoutMode !== "direct") {
     return respond(renderHostedRedirect(post.action, post.fields));
   }
-  if (!provider.isBridgeFresh(post)) return respond(expiredNotice());
+  if (!provider.isBridgeFresh(post)) return respond(expiredNotice(post));
   return respond(
     renderCardForm({ data, signature, amount: post.fields.amount }),
   );
@@ -95,7 +104,7 @@ export async function POST(req: NextRequest) {
     console.error("[odeme/paynkolay] imzasız ya da bozuk ödeme yükü (POST)");
     return failure(base);
   }
-  if (!provider.isBridgeFresh(post)) return respond(expiredNotice());
+  if (!provider.isBridgeFresh(post)) return respond(expiredNotice(post));
 
   // Hata sonrası forma geri yazılabilenler: ad ve son kullanma. Kart
   // numarası ve CVV hiçbir yanıta geri basılmaz.
@@ -118,11 +127,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // POS'a giden her deneme, sonucundan önce sayılır (kart denemesi
-  // saldırısı; `rate-limit.ts` gerekçesi).
+  // Kart denemesine (çalıntı kart listesini sınama) karşı iki bütçe
+  // (`rate-limit.ts` gerekçesi):
+  // - Sipariş başına: POS'a giden HER deneme, sonucundan önce sayılır.
+  // - Adres başına: yalnızca POS'un REDDETTİĞİ ya da yanıtlayamadığı
+  //   denemeler sayılır. Başarılıları saymak, kafenin Wi-Fi'ı gibi tek
+  //   adresi paylaşan müşterileri birbirine kilitliyordu.
   const ip = clientIpFrom(req.headers);
   const orderRef = post.fields.clientRefCode;
-  const perIp = await reserveLoginAttempt("card-payment-ip", ip, "*");
+  const perIp = await checkLoginLimit("card-payment-ip", ip, "*");
   const perOrder = perIp.blocked
     ? perIp
     : await reserveLoginAttempt("card-payment-order", "*", orderRef);
@@ -153,6 +166,7 @@ export async function POST(req: NextRequest) {
       `[odeme/paynkolay] kartlı ödeme başlatılamadı order=${orderRef}:`,
       err instanceof Error ? err.message : "bilinmeyen hata",
     );
+    await recordLoginFailure("card-payment-ip", ip, "*");
     return respond(
       renderCardForm({
         ...state,
@@ -170,6 +184,7 @@ export async function POST(req: NextRequest) {
   console.warn(
     `[odeme/paynkolay] POS ödemeyi başlatmadı order=${orderRef} code=${result.code}`,
   );
+  await recordLoginFailure("card-payment-ip", ip, "*");
   return respond(
     renderCardForm({
       ...state,
@@ -215,11 +230,30 @@ function respond(page: PaynkolayPage, status = 200): NextResponse {
   });
 }
 
-function expiredNotice(): PaynkolayPage {
-  return renderPaymentNotice(
-    "Ödeme süresi doldu",
-    "Bu ödeme sayfasının süresi doldu; kartından para çekilmedi. Siparişine dönüp ödemeyi yeniden başlatabilirsin.",
-  );
+/**
+ * Süresi dolmuş ödeme sayfası - ve bir sonraki adım.
+ *
+ * Uygulama siparişinde (`successUrl`'de `app=1`) sipariş uygulamada durur ve
+ * ödeme oradan yeniden açılır: bağlantı, `/odeme/app-hata`'nın kullandığı
+ * derin bağlantıdır. Web'de mevcut bir siparişi yeniden ödeme adımı yok;
+ * sepet tarayıcıda durduğu için yol `/odeme`'dir.
+ */
+function expiredNotice(post: PaynkolayFormPost): PaynkolayPage {
+  const fromApp = post.fields.successUrl.includes("app=1");
+  return fromApp
+    ? renderPaymentNotice(
+        "Ödeme süresi doldu",
+        "Bu ödeme sayfasının süresi doldu; kartından para çekilmedi. Siparişin uygulamada duruyor, ödemeyi oradan yeniden başlatabilirsin.",
+        {
+          href: appOrderDeepLink(post.fields.clientRefCode, "failed"),
+          label: "Uygulamaya dön",
+        },
+      )
+    : renderPaymentNotice(
+        "Ödeme süresi doldu",
+        "Bu ödeme sayfasının süresi doldu; kartından para çekilmedi. Sepetin duruyor, ödeme adımından yeniden devam edebilirsin.",
+        { href: "/odeme", label: "Ödemeye dön" },
+      );
 }
 
 function failure(base: string) {

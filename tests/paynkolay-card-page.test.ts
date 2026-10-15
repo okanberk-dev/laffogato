@@ -526,14 +526,225 @@ describe("the bank's 3D page", () => {
   });
 });
 
+// ── İnceleme turu (PR #109) ─────────────────────────────────────────────────
+
+describe("the direct-mode payload", () => {
+  it("is sealed: the browser cannot read sx or a valid hash out of it", async () => {
+    const { data, post } = await signedPayload();
+    expect(data.startsWith("e1.")).toBe(true);
+    const visible = Buffer.from(data.slice(3), "base64url").toString("latin1");
+    expect(visible).not.toContain("SX-TOKEN");
+    expect(visible).not.toContain(post.fields.hashDataV2);
+    expect(post.fields.sx).toBe("SX-TOKEN");
+  });
+
+  it("opens only in the mode it was made for", async () => {
+    const sealed = await signedPayload(makeProvider("direct"));
+    expect(
+      makeProvider("hosted").readBridgePost(sealed.data, sealed.signature),
+    ).toBeNull();
+    const plain = await signedPayload(makeProvider("hosted"));
+    expect(
+      makeProvider("direct").readBridgePost(plain.data, plain.signature),
+    ).toBeNull();
+  });
+
+  it("refuses a sealed payload whose ciphertext was touched", async () => {
+    const { data, signature } = await signedPayload();
+    const flipped =
+      data.slice(0, -2) + (data.at(-2) === "A" ? "B" : "A") + data.at(-1);
+    expect(makeProvider().readBridgePost(flipped, signature)).toBeNull();
+  });
+});
+
+describe("confirmReturn after a same-day cancel", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("does not take the rewritten CANCEL/SUCCESS row as a payment", async () => {
+    // Measured on the sandbox: the cancel rewrites the SAME row.
+    stubPos({
+      id: "",
+      result: {
+        LIST: [
+          {
+            STATUS: "SUCCESS",
+            TRANSACTION_TYPE: "CANCEL",
+            REFERENCE_CODE: "IKSIRPF2022539",
+            CLIENT_REFERENCE_CODE: "ord-0284",
+            AUTHORIZATION_AMOUNT: "1280.10",
+            TRX_DATE: "2026-10-15",
+          },
+        ],
+      },
+      error: null,
+    });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = await makeProvider().confirmReturn({
+      CLIENT_REFERENCE_CODE: "ord-0284",
+      REFERENCE_CODE: "IKSIRPF2022539",
+    });
+    expect(result.status).toBe("failed");
+  });
+
+  it("reads LIST: null as 'no payment' only for CORE0305", async () => {
+    stubPos({
+      result: {
+        RESPONSE_CODE: "0",
+        LIST: null,
+        ERROR_CODE: "CORE9999",
+        RESPONSE_DATA: "Servis hatası",
+      },
+    });
+    await expect(makeProvider().lookupPayment("ord-0284", NOW)).rejects.toThrow(
+      /Servis hatası/,
+    );
+  });
+});
+
+/** Runs the card page's own script against a minimal fake DOM. */
+function runCardScript(html: string) {
+  const [script] = inline(html, "script");
+  const handlers: Record<string, Record<string, (ev: object) => void>> = {};
+  const make = (id: string) => ({
+    id,
+    value: "",
+    textContent: "Öde",
+    disabled: false,
+    hidden: false,
+    attrs: {} as Record<string, string>,
+    addEventListener(type: string, fn: (ev: object) => void) {
+      (handlers[id] ??= {})[type] = fn;
+    },
+    getAttribute(k: string) {
+      return this.attrs[k] ?? null;
+    },
+    setAttribute(k: string, v: string) {
+      this.attrs[k] = v;
+    },
+    removeAttribute(k: string) {
+      delete this.attrs[k];
+    },
+    querySelectorAll: () => [],
+  });
+  const els: Record<string, ReturnType<typeof make>> = {};
+  for (const id of [
+    "pay",
+    "cc-number",
+    "cc-exp",
+    "cc-csc",
+    "pay-btn",
+    "new-card",
+  ]) {
+    els[id] = make(id);
+  }
+  const document = {
+    getElementById: (id: string) => els[id],
+    querySelectorAll: () => [],
+  };
+  const window = {
+    addEventListener(type: string, fn: (ev: object) => void) {
+      (handlers.window ??= {})[type] = fn;
+    },
+  };
+  new Function("document", "window", script)(document, window);
+  return {
+    els,
+    type(id: string, value: string, inputType = "insertText") {
+      els[id].value = value;
+      handlers[id].input({ inputType });
+      return els[id].value;
+    },
+    fire(target: string, type: string, ev: object) {
+      handlers[target][type](ev);
+    },
+  };
+}
+
+describe("the card page script", () => {
+  const html = renderCardForm({
+    data: "D",
+    signature: "S",
+    amount: "1.00",
+  }).html;
+
+  it("keeps Chrome's MM/YYYY autofill instead of cutting it to an expired MM/20", () => {
+    const page = runCardScript(html);
+    expect(page.type("cc-exp", "08/2029", "")).toBe("08/2029");
+    expect(page.type("cc-exp", "05/2028", "insertFromPaste")).toBe("05/2028");
+    expect(page.type("cc-exp", "082029", "")).toBe("08/2029");
+    // And the server reads what the script leaves.
+    expect(parseExpiry("08/2029")).toEqual({ month: 8, year: 2029 });
+  });
+
+  it("formats what a customer types", () => {
+    const page = runCardScript(html);
+    expect(page.type("cc-exp", "0829")).toBe("08/29");
+    expect(page.type("cc-exp", "1/")).toBe("01/");
+    expect(page.type("cc-exp", "08 / 29")).toBe("08/29");
+    expect(page.type("cc-number", "4155650100416111")).toBe(
+      "4155 6501 0041 6111",
+    );
+  });
+
+  it("clears the card number and CVV whenever the page is shown again", () => {
+    const page = runCardScript(html);
+    page.els["cc-number"].value = "4155 6501 0041 6111";
+    page.els["cc-csc"].value = "715";
+    page.fire("window", "pageshow", { persisted: false });
+    expect(page.els["cc-number"].value).toBe("");
+    expect(page.els["cc-csc"].value).toBe("");
+  });
+});
+
+describe("the bank's 3D page, as banks actually write it", () => {
+  it("normalises CRLF so the served script matches its hash", () => {
+    const crlf =
+      "<html><body><form id=f action='https://acs.bank.example/x'></form>\r\n<script>\r\nvar f=document.getElementById('f');\r\nf.submit();\r\n</script></body></html>";
+    const page = bankChallengePage(crlf);
+    expect(page.html).not.toContain("\r");
+    const [script] = inline(
+      page.html.replace(/<script>/, "<script>"),
+      "script",
+    );
+    expect(page.csp).toContain(sha256(script));
+  });
+
+  it("covers an unquoted onload and hashes an entity-encoded one decoded", () => {
+    const unquoted = bankChallengePage(
+      "<body onload=OnLoadEvent();><form action='https://acs.example/a'></form></body>",
+    );
+    expect(unquoted.csp).toContain(sha256("OnLoadEvent();"));
+    expect(unquoted.csp).toContain("'unsafe-hashes'");
+    const encoded = bankChallengePage(
+      '<body onload="document.title=&#39;x&#39;;document.forms[0].submit()"></body>',
+    );
+    expect(encoded.csp).toContain(
+      sha256("document.title='x';document.forms[0].submit()"),
+    );
+  });
+
+  it("loads no image or font from elsewhere", () => {
+    const page = bankChallengePage("<p>x</p>");
+    expect(page.csp).toContain("img-src data:;");
+    expect(page.csp).toContain("font-src data:;");
+  });
+});
+
 // ── Rota ────────────────────────────────────────────────────────────────────
 
 const getPaymentProvider = vi.fn();
 const reserveLoginAttempt = vi.fn();
+const checkLoginLimit = vi.fn();
+const recordLoginFailure = vi.fn();
 
 vi.mock("@/lib/payment", () => ({ getPaymentProvider }));
 vi.mock("@/lib/admin/rate-limit", () => ({
   reserveLoginAttempt,
+  checkLoginLimit,
+  recordLoginFailure,
   clientIpFrom: (h: Headers) =>
     h.get("x-forwarded-for")?.split(",")[0].trim() ?? "",
 }));
@@ -565,6 +776,10 @@ describe("/odeme/paynkolay", () => {
     getPaymentProvider.mockReturnValue(makeProvider("direct"));
     reserveLoginAttempt.mockReset();
     reserveLoginAttempt.mockResolvedValue(OPEN);
+    checkLoginLimit.mockReset();
+    checkLoginLimit.mockResolvedValue(OPEN);
+    recordLoginFailure.mockReset();
+    recordLoginFailure.mockResolvedValue(OPEN);
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -623,11 +838,16 @@ describe("/odeme/paynkolay", () => {
       "form-action https:",
     );
     expect(calls[0].fields.cardHolderIP).toBe("85.105.1.1");
-    // Counted before the POS was asked: per address, then per order.
-    expect(reserveLoginAttempt.mock.calls).toEqual([
+    // The address is checked, the order is counted - both before the POS.
+    // A payment that reaches 3D is not a failure: the café's shared Wi-Fi
+    // must not lock itself out after ten paying customers.
+    expect(checkLoginLimit.mock.calls).toEqual([
       ["card-payment-ip", "85.105.1.1", "*"],
+    ]);
+    expect(reserveLoginAttempt.mock.calls).toEqual([
       ["card-payment-order", "*", "ord-0284"],
     ]);
+    expect(recordLoginFailure).not.toHaveBeenCalled();
   });
 
   it("refuses a card posted from another site", async () => {
@@ -666,7 +886,20 @@ describe("/odeme/paynkolay", () => {
     expect(reserveLoginAttempt).not.toHaveBeenCalled();
   });
 
-  it("stops at the attempt limit before the POS is asked", async () => {
+  it("stops at the address limit before the POS is asked", async () => {
+    const calls = stubPos(POS_3D);
+    checkLoginLimit.mockResolvedValue({
+      blocked: true,
+      retryAfterSeconds: 3600,
+      remaining: 0,
+    });
+    const res = await route.POST(postRequest(await validBody()));
+    expect(res.status).toBe(429);
+    expect(calls).toHaveLength(0);
+    expect(reserveLoginAttempt).not.toHaveBeenCalled();
+  });
+
+  it("stops at the order limit before the POS is asked", async () => {
     const calls = stubPos(POS_3D);
     reserveLoginAttempt.mockResolvedValue({
       blocked: true,
@@ -687,6 +920,36 @@ describe("/odeme/paynkolay", () => {
     expect(html).toMatch(/Ödeme başlatılamadı: Kart limiti yetersiz/);
     expect(html).toContain('autocomplete="cc-number"');
     expect(html).not.toContain(TEST_CARD);
+    // A refusal is what card testing produces: it counts against the address.
+    expect(recordLoginFailure.mock.calls).toEqual([
+      ["card-payment-ip", "85.105.1.1", "*"],
+    ]);
+  });
+
+  it("sends an expired page onward: the app to its order, the web to checkout", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(NOW);
+      const web = await signedPayload();
+      const app = await (async () => {
+        const provider = makeProvider();
+        const session = await provider.createCheckoutSession({
+          ...checkoutInput(),
+          successUrl: "https://laffogato.net/odeme/donus?app=1",
+        });
+        return new URL(session.redirectUrl);
+      })();
+      vi.setSystemTime(new Date(NOW.getTime() + 31 * 60_000));
+      const webHtml = await (await route.GET(new NextRequest(web.url))).text();
+      expect(webHtml).toMatch(/Ödeme süresi doldu/);
+      expect(webHtml).toContain('href="/odeme"');
+      const appHtml = await (await route.GET(new NextRequest(app))).text();
+      expect(appHtml).toContain(
+        'href="laffogato://siparis/ord-0284?status=failed"',
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("never logs the card, whatever happens", async () => {

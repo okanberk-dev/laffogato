@@ -480,7 +480,9 @@ durum bozulmaya uygundur.
 ## Yapılmayacaklar
 
 - **PayNkolay canlıda (15 Eki 2026).** Anahtarlar Vercel production'da,
-  kurulum `docs/PAYNKOLAY.md` §13, sitedeki kart formu §15. Ödeme akışına
+  kurulum `docs/PAYNKOLAY.md` §13, sitedeki kart formu §15. §12'deki canlı
+  ölçüm listesinin çoğu sandbox'ta kapandı (§12.1); açık kalanlar orada.
+  İlk gerçek kartlı ödeme operatörün işidir. Ödeme akışına
   dokunurken iki tuzağı unutma: `PAYNKOLAY_SUCCESS_URL` **ve**
   `PAYNKOLAY_FAIL_URL` ikisi de `/odeme/donus` olmalıdır (PayNkolay sonucu
   form-POST eder), ve `PAYMENT_PROVIDER` her ortamda tanımlı olmalıdır

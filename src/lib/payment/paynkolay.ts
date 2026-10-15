@@ -1,4 +1,11 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from "node:crypto";
 
 import { maskCardLikeDigits, type CardInput } from "./paynkolay-card";
 import type {
@@ -78,7 +85,10 @@ const CHECKOUT_TTL_MS = 20 * 60_000;
  */
 export const DIRECT_FORM_MAX_AGE_MS = 30 * 60_000;
 
-/** Ara sayfamızın yolu. Ödeme formunu taşıyıp otomatik submit eder. */
+/**
+ * Ara sayfamızın yolu: `direct` modda sitenin kart formu, `hosted` modda
+ * PayNkolay'ın ortak ödeme sayfasına kendiliğinden giden form (§15).
+ */
 export const PAYNKOLAY_BRIDGE_PATH = "/odeme/paynkolay";
 
 /** Kartın sitede alındığı API ucu (§15). Canlı istek sunucudan gitmeli. */
@@ -88,6 +98,19 @@ export type PaynkolayCheckoutMode = "hosted" | "direct";
 
 /** İmzanın hangi amaçla üretildiğini sabitler (alan ayrımı). */
 const BRIDGE_DOMAIN = "paynkolay-bridge-v1";
+
+/**
+ * `direct` modda yük şifrelenir; bu önek şifreli yükü düz yükten ayırır.
+ *
+ * Düz yük tarayıcıya `sx` ile geçerli bir `hashDataV2` veriyor. Ortak ödeme
+ * sayfasında bu kaçınılmaz (tarayıcı alanları POS'a kendisi POST ediyor) ve
+ * o uç kartı PayNkolay'ın kendi sayfasında alıyor. Ama `direct` modda üye
+ * işyerinin "API ile ödeme" yetkisi açık: aynı ikili `/Vpos/v1/Payment`'a
+ * doğrudan gönderilip kart listesi bizim deneme sınırlarımızdan geçmeden
+ * sınanabilirdi. Şifreli yükte tarayıcı hiçbir şey okuyamaz; POS'a tek yol
+ * bizim formumuzdur.
+ */
+const SEALED_PREFIX = "e1.";
 
 /**
  * İade için işlemi geriye doğru ararken kaç aylık pencere taranır.
@@ -412,7 +435,12 @@ function paymentListRows(payload: unknown): Record<string, unknown>[] {
   const body = unwrapPaynkolayResult(payload);
   if (Array.isArray(body)) return [];
   if (isRecord(body)) {
-    if ("LIST" in body || Object.values(body).some(Array.isArray)) return [];
+    if (Object.values(body).some(Array.isArray)) return [];
+    // `LIST: null` her yanıtta var (çekirdek servisin zarfı); yalnız "kayıt
+    // yok" (`CORE0305`) boş liste demektir. Başka bir hata kodu "ödenmedi"
+    // değil, "soramadım"dır.
+    const errorCode = readField(body, "ERROR_CODE");
+    if ("LIST" in body && (!errorCode || errorCode === "CORE0305")) return [];
     const message = readField(
       body,
       "RESPONSE_DATA",
@@ -459,11 +487,6 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     return this.cfg.checkoutMode;
   }
 
-  /** POS'un origin'i - ara sayfanın `form-action`'ı buna izin verir. */
-  get posOrigin(): string {
-    return new URL(this.cfg.baseUrl).origin;
-  }
-
   // ── Ara sayfa ────────────────────────────────────────────────────────────
 
   /**
@@ -481,17 +504,62 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       .digest("base64url");
   }
 
+  /** AES-256-GCM anahtarı: sırdan, imzadan ayrı bir alan adıyla türetilir. */
+  private sealKey(): Buffer {
+    return createHash("sha256")
+      .update(`paynkolay-bridge-seal-v1|${this.cfg.merchantSecretKey}`, "utf8")
+      .digest();
+  }
+
+  /** `direct` modda yükü tarayıcının okuyamayacağı hâle getirir. */
+  private seal(json: string): string {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv("aes-256-gcm", this.sealKey(), iv);
+    const body = Buffer.concat([cipher.update(json, "utf8"), cipher.final()]);
+    return (
+      SEALED_PREFIX +
+      Buffer.concat([iv, body, cipher.getAuthTag()]).toString("base64url")
+    );
+  }
+
+  private unseal(data: string): string | null {
+    try {
+      const raw = Buffer.from(data.slice(SEALED_PREFIX.length), "base64url");
+      if (raw.length < 12 + 16) return null;
+      const decipher = createDecipheriv(
+        "aes-256-gcm",
+        this.sealKey(),
+        raw.subarray(0, 12),
+      );
+      decipher.setAuthTag(raw.subarray(raw.length - 16));
+      return Buffer.concat([
+        decipher.update(raw.subarray(12, raw.length - 16)),
+        decipher.final(),
+      ]).toString("utf8");
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * Ara sayfanın URL'den okuduğu yükü çözer ve doğrular. Uymayan her şeyde
    * `null` - sayfa o zaman form kurmaz, müşteriyi hata ekranına gönderir.
+   * Şifreli yük yalnızca `direct` modda kabul edilir, düz yük yalnızca
+   * `hosted` modda: bir moddan diğerine kopyalanan bağlantı açılmaz.
    */
   readBridgePost(data: string, signature: string): PaynkolayFormPost | null {
     if (!data || !signature) return null;
     if (!safeEqual(this.signBridge(data), signature)) return null;
 
+    const sealed = data.startsWith(SEALED_PREFIX);
+    if (sealed !== (this.cfg.checkoutMode === "direct")) return null;
     let parsed: unknown;
     try {
-      parsed = JSON.parse(Buffer.from(data, "base64url").toString("utf8"));
+      parsed = JSON.parse(
+        sealed
+          ? (this.unseal(data) ?? "")
+          : Buffer.from(data, "base64url").toString("utf8"),
+      );
     } catch {
       return null;
     }
@@ -735,10 +803,11 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     };
     fields.hashDataV2 = checkoutRequestHash(fields, this.cfg.merchantSecretKey);
 
-    const payload = Buffer.from(
-      JSON.stringify({ action: this.paymentFormAction(), fields }),
-      "utf8",
-    ).toString("base64url");
+    const json = JSON.stringify({ action: this.paymentFormAction(), fields });
+    const payload =
+      this.cfg.checkoutMode === "direct"
+        ? this.seal(json)
+        : Buffer.from(json, "utf8").toString("base64url");
     const bridge = new URL(PAYNKOLAY_BRIDGE_PATH, successUrl);
     bridge.searchParams.set("d", payload);
     bridge.searchParams.set("s", this.signBridge(payload));
@@ -833,6 +902,15 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     // `NEW` = başlatılmış ama tamamlanmamış; para çekilmemiş (§2, §8.1). Bu,
     // AUTOCOMPLETE ayarı yanlışsa ücretsiz sipariş üretmenin önündeki kilit.
     if (status !== "SUCCESS") return failed(`status_${status || "unknown"}`);
+    // Aynı gün iptal edilen satış, PaymentList'te AYNI satırın
+    // `TRANSACTION_TYPE: "CANCEL"`, `STATUS: "SUCCESS"` olarak yeniden
+    // yazılmasıyla görünür (sandbox, 15 Eki 2026). "SUCCESS" iptalin başarısı;
+    // para iade edilmiştir. Yalnızca satış ödeme sayılır - `lookupPayment`'ın
+    // kuralı.
+    const kind = readField(row, "TRANSACTION_TYPE", "transactionType")
+      .trim()
+      .toLowerCase();
+    if (kind && kind !== "sales") return failed(`transaction_${kind}`);
 
     const settledMinor = paynkolayAmountToMinor(
       readField(row, "AUTHORIZATION_AMOUNT", "authorizationAmount"),

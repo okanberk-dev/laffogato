@@ -58,9 +58,7 @@ export interface CheckoutSession {
 }
 
 export type WebhookEventType =
-  | "payment.succeeded"
-  | "payment.failed"
-  | "payment.refunded";
+  "payment.succeeded" | "payment.failed" | "payment.refunded";
 
 export interface WebhookEvent {
   type: WebhookEventType;

@@ -9,8 +9,8 @@ import { paynkolayAmountToMinor, PAYNKOLAY_BRIDGE_PATH } from "./paynkolay";
  * `/odeme/paynkolay`'ın çizdiği üç sayfa - her biri kendi CSP'siyle.
  *
  * Bu yol sitenin genel CSP'sinin DIŞINDA (`next.config.ts`): genel politika
- * `form-action`'ı siteye ve PayNkolay'a kısıtlıyor, oysa bankanın 3D formu
- * her bankada başka bir hosta gider. İki CSP başlığı birlikte uygulanır
+ * `form-action`'ı yalnız siteye kısıtlıyor, oysa bu sayfalar PayNkolay'a ya
+ * da kartı veren bankanın 3D adresine gönderir ve o host bankaya göre değişir. İki CSP başlığı birlikte uygulanır
  * (kesişim), yani genel politikayı burada genişletmek mümkün değil; bu yol
  * onun yerine her yanıtta KENDİ politikasını gönderir ve o politika genelden
  * daha dardır:
@@ -85,7 +85,9 @@ background:#f9e6ea;color:#520f1f;font-size:.9rem}
 font-size:.82rem;color:#564d46}
 .note svg{flex:none;margin-top:.2rem}
 .psp{margin:.5rem .25rem 0;font-size:.75rem;color:#564d46}
-.center{text-align:center;padding-top:20vh}`;
+.center{text-align:center;padding-top:20vh}
+.next{display:inline-block;margin-top:.5rem;padding:.75rem 1.5rem;border-radius:999px;
+background:#1d6d56;color:#fbf8f4;font-weight:600;text-decoration:none}`;
 
 const LOCK_ICON =
   '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">' +
@@ -169,7 +171,16 @@ ${inputs}
 /**
  * Kolaylık betiği: kart numarasını dörder gruplar, son kullanmaya `/` koyar,
  * çift gönderimi engeller. Betiksiz form aynı sunucu doğrulamasından geçer.
- * Geri tuşuyla dönülen (bfcache) sayfada düğme yeniden açılır.
+ *
+ * Son kullanma: Chrome `cc-exp`'i `AA/YYYY` olarak doldurur ("08/2029"); ilk
+ * hâli bunu "08/20" yapıyordu ve her otomatik doldurma reddediliyordu. Yıl
+ * "20" ile başlayıp dört haneye uzanıyorsa olduğu gibi kalır (sunucu
+ * `AA/YYYY`'yi okur); tek haneli aydan sonra yazılan ayraç ("1/29") başa
+ * sıfır koyar.
+ *
+ * Geri tuşu: sayfa `no-store` olsa da tarayıcı formun durumunu yeniden
+ * doldurur; kart numarası ve güvenlik kodu her `pageshow`'da silinir (ortak
+ * bir bilgisayarda bir sonraki kişi Geri'ye bastığında kart görünmesin).
  */
 const CARD_FORM_SCRIPT = `(function(){
 var f=document.getElementById("pay"),n=document.getElementById("cc-number"),
@@ -179,7 +190,10 @@ function digits(v){return v.replace(/\\D/g,"");}
 n.addEventListener("input",function(){
 n.value=digits(n.value).slice(0,19).replace(/(\\d{4})(?=\\d)/g,"$1 ");});
 e.addEventListener("input",function(ev){
-var d=digits(e.value).slice(0,4);
+var raw=e.value,d=digits(raw);
+if(/^\\d\\D/.test(raw))d="0"+d;
+if(d.length>4&&d.slice(2,4)==="20"){d=d.slice(0,6);e.value=d.slice(0,2)+"/"+d.slice(2);return;}
+d=d.slice(0,4);
 if(ev.inputType&&ev.inputType.indexOf("delete")===0&&d.length<=2){e.value=d;return;}
 e.value=d.length>=2?d.slice(0,2)+"/"+d.slice(2):d;});
 c.addEventListener("input",function(){c.value=digits(c.value).slice(0,4);});
@@ -188,6 +202,7 @@ if(f.getAttribute("data-sent")){ev.preventDefault();return;}
 f.setAttribute("data-sent","1");b.disabled=true;
 b.textContent="Bankaya yönlendiriliyorsun…";});
 window.addEventListener("pageshow",function(ev){
+n.value="";c.value="";
 if(ev.persisted){f.removeAttribute("data-sent");b.disabled=false;b.textContent=label;}});
 })();`;
 
@@ -257,7 +272,11 @@ ${error}
 export function renderPaymentNotice(
   title: string,
   message: string,
+  next?: { href: string; label: string },
 ): PaynkolayPage {
+  const link = next
+    ? `<p class="lead"><a class="next" href="${escapeHtml(next.href)}">${escapeHtml(next.label)}</a></p>`
+    : "";
   return page({
     title: `${title} · L'Affogato`,
     formAction: "'none'",
@@ -265,6 +284,7 @@ export function renderPaymentNotice(
 <p class="brand">L'Affogato</p>
 <h1>${escapeHtml(title)}</h1>
 <p class="lead">${escapeHtml(message)}</p>
+${link}
 </main>`,
   });
 }
@@ -284,7 +304,12 @@ export function renderPaymentNotice(
  * hostu bankaya göre değişir ve önceden bilinemez - düz `http:` hedefe kart
  * akışı yine engellenir.
  */
-export function bankChallengePage(html: string): PaynkolayPage {
+export function bankChallengePage(raw: string): PaynkolayPage {
+  // Tarayıcı HTML'i ayrıştırırken CRLF ve tek CR'yi LF yapar ve CSP özetini
+  // o metinden hesaplar. .NET/ASPX MPI çıktısında CRLF olağan (PayNkolay'ın
+  // C# örneği de satır sonlarını siler). Sunulan bayt ile özetlenen bayt aynı
+  // olsun diye satır sonları önce burada normalleştirilir.
+  const html = raw.replace(/\r\n?/g, "\n");
   const scriptSources = new Set<string>();
   let hasHandlers = false;
 
@@ -301,9 +326,16 @@ export function bankChallengePage(html: string): PaynkolayPage {
     }
     scriptSources.add(sha256Source(m[2]));
   }
-  for (const m of html.matchAll(/\son[a-z]+\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)) {
+  // Olay öznitelikleri (`<body onload=…>`): tırnaklı ya da tırnaksız (EST /
+  // Asseco formları tırnaksız yazıyor). Betik gövdeleri önce çıkarılır, kod
+  // içindeki "x. onload =" öznitelik sanılmasın. Tarayıcı özeti çözülmüş
+  // değerden hesaplar (`&quot;` → `"`), bu yüzden değer önce çözülür.
+  const markup = html.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
+  for (const m of markup.matchAll(
+    /\son[a-z]+\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/gi,
+  )) {
     hasHandlers = true;
-    scriptSources.add(sha256Source(m[1] ?? m[2] ?? ""));
+    scriptSources.add(sha256Source(decodeEntities(m[1] ?? m[2] ?? m[3] ?? "")));
   }
 
   const scriptSrc = scriptSources.size
@@ -314,8 +346,12 @@ export function bankChallengePage(html: string): PaynkolayPage {
     `script-src ${scriptSrc}`,
     // Banka işaretlemesi değişken; stil bir betik vektörü değil.
     "style-src 'unsafe-inline'",
-    "img-src https: data:",
-    "font-src https: data:",
+    // Görsel ve yazı tipi yalnız gömülü: bu sayfa yalnızca bankaya giden bir
+    // ara adımdır ve bizim origin'imizde çalışır. Dışarıdan görsel yüklemeye
+    // izin vermek, bir betiğin çerezleri bir görsel isteğiyle dışarı
+    // taşımasının yolunu açık bırakırdı.
+    "img-src data:",
+    "font-src data:",
     // 3DS2 cihaz parmak izi gizli bir iframe'le alınabiliyor.
     "frame-src https:",
     "form-action https:",
@@ -323,4 +359,22 @@ export function bankChallengePage(html: string): PaynkolayPage {
     "base-uri 'none'",
   ].join("; ");
   return { html, csp };
+}
+
+/** HTML karakter referanslarını çözer - olay özniteliği özeti için. */
+function decodeEntities(value: string): string {
+  return value.replace(
+    /&(#x[0-9a-f]+|#\d+|quot|apos|amp|lt|gt);/gi,
+    (whole, ref: string) => {
+      const name = ref.toLowerCase();
+      if (name.startsWith("#x")) {
+        return String.fromCodePoint(parseInt(name.slice(2), 16));
+      }
+      if (name.startsWith("#"))
+        return String.fromCodePoint(Number(name.slice(1)));
+      return (
+        { quot: '"', apos: "'", amp: "&", lt: "<", gt: ">" }[name] ?? whole
+      );
+    },
+  );
 }
