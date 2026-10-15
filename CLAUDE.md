@@ -98,10 +98,14 @@ bordo `#9d2543` / `#520f1f` / `#f9e6ea`, pirinç `#e8c877`, altın metin
 `#765923`, gölgeler `rgba(59, 42, 30, …)`. **Logo L'Af** (`public/brand/`,
 `<LafMark>`); uygulama ikonu da odur. Uygulamanın paleti değişirse site aynı
 PR serisinde izler (değer tablosu lafmobil `docs/SITE-PALETTE-SYNC.md`);
-ayrışma operatör kararı ister. Henüz taşınmayan tek yüzey **e-posta
-şablonlarıdır**: Köşk yeşili `#143d2b` bant görsellerine, logo glint GIF'ine
-ve rozetlere gömülü; HTML rengi ancak bu görseller yeniden çizilince
-değişebilir. `tests/brand-theme.test.ts` iki paleti ayrı ayrı tutar. Tam
+ayrışma operatör kararı ister. **E-postalar da 15 Eki 2026'dan beri bu
+palette** ve açık/koyu modda okunur: zemini gömülü bantlar HTML çubuğa,
+logo çifti ve glint GIF'i tek opak karoya (`public/email/logo-laf-tile.png`)
+döndü; koyu mod sınıf kancalarıyla (`em-card`, `em-t1`… ;
+`prefers-color-scheme` + Outlook `[data-ogsc]`/`[data-ogsb]`), ayrıntı
+`src/lib/email/templates/README.md` "Palet". Supabase'in dört giriş
+e-postası (`docs/email/`) aynı iskelette; panele elle yapıştırılır.
+`tests/brand-theme.test.ts` ve `tests/email-templates.test.ts` tutar. Tam
 kılavuz ve geçmiş: `docs/BRAND.md`.
 
 **Bordo ile yeşil asla üst üste yazılmaz.** `#9D2543` ile ev yeşili

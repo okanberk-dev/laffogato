@@ -430,8 +430,8 @@ Kullanım: hero slayt yarısı `object-fit: cover`, hikaye mozaiği
 
 Bağlantı önizlemesi (`opengraph-image.tsx`), JSON-LD ikonları
 (`scripts/gen-icons.mjs` → `public/icon-*.png`) ve PayNkolay köprüsü de
-uygulama paletine taşındı. Köşk yeşilinde kalan tek yüzey e-posta
-şablonlarıdır: `#143d2b` bant görsellerine, logo glint GIF'ine (Outlook'un
-gösterdiği ilk kare) ve rozetlere gömülü olduğundan HTML ancak görsellerle
-birlikte taşınabilir. `tests/brand-theme.test.ts` o yüzeyi şimdilik
-`#143d2b` üzerinde tutar.
+uygulama paletine taşındı. E-posta şablonları da 15 Eki 2026'da taşındı:
+zemini gömülü bant görselleri HTML çubuğa, logo çifti ile glint GIF'i tek
+opak karoya döndü, böylece HTML rengi değişebildi; şablonlar artık açık ve
+koyu modda okunur (`src/lib/email/templates/README.md` "Palet").
+`tests/brand-theme.test.ts` mail HTML'ini bu palete kilitler.

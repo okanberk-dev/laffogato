@@ -9,7 +9,11 @@
 <title>[BILDIRIM_KONU]</title>
 <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
 <style>
-/* Satir ici stiller tek basina yeterlidir; bu blok yalnizca iyilestirmedir. */
+/* Satir ici stiller tek basina yeterlidir; bu blok yalnizca iyilestirmedir.
+   Koyu mod siniflarla: em-card/em-panel/em-foot/em-bg yuzeyler, em-t1/t2/t3
+   metin, em-tg altin, em-tb yesil metin, em-ln cizgi. Yesil ve pirinc
+   yuzeylerdeki ogeler sinif tasimaz: iki modda da okunur. */
+:root{color-scheme:light dark;supported-color-schemes:light dark}
 @media only screen and (max-width:620px){
   table[width="598"],table[width="510"],table[width="460"],table[width="440"],table[width="420"],table[width="380"]{width:100%!important}
   .em-pad{padding-left:22px!important;padding-right:22px!important}
@@ -17,39 +21,46 @@
   td[width="150"]{width:33%!important}
 }
 @media (prefers-color-scheme:dark){
-  body,.em-bg[style]{background:#14110d!important}
-  [style*="background:#ffffff"]{background:#201c17!important}
-  [style*="background:#f6f5f2"]{background:#2a251e!important}
-  [style*="background:#faf6ee"]{background:#2a251e!important}
-  [style*="color:#201c17"]{color:#f6f5f2!important}
-  [style*="color:#5f594e"]{color:#d5cec2!important}
-  [style*="color:#746b5d"]{color:#b3aa9b!important}
-  [style*="color:#8a6526"]{color:#e8d3a4!important}
-  .em-ink,.em-ink a{color:#cfe3d5!important}
-  .em-logo-light{display:none!important}
-  .em-logo-dark{display:inline-block!important}
-  [style*="1px solid #ebe7de"]{border-color:#3a332a!important}
-  [style*="1px solid #e1dcd1"]{border-color:#3a332a!important}
+  body,.em-bg{background:#12100e!important}
+  .em-card{background:#1c1916!important}
+  .em-panel{background:#27221d!important}
+  .em-foot{background:#171411!important}
+  .em-t1{color:#f3ece3!important}
+  .em-t2{color:#d3c9bd!important}
+  .em-t3{color:#a99d91!important}
+  .em-tg{color:#e8c877!important}
+  .em-tb{color:#8fd3b6!important}
+  .em-ln{border-color:#3a332c!important}
+  .em-only-light{display:none!important}
+  .em-only-dark{display:inline-block!important}
 }
+[data-ogsb] body,[data-ogsb] .em-bg{background:#12100e!important}
+[data-ogsb] .em-card{background:#1c1916!important}
+[data-ogsb] .em-panel{background:#27221d!important}
+[data-ogsb] .em-foot{background:#171411!important}
+[data-ogsc] .em-t1{color:#f3ece3!important}
+[data-ogsc] .em-t2{color:#d3c9bd!important}
+[data-ogsc] .em-t3{color:#a99d91!important}
+[data-ogsc] .em-tg{color:#e8c877!important}
+[data-ogsc] .em-tb{color:#8fd3b6!important}
 </style>
 </head>
-<body class="em-bg" style="margin:0;padding:0;background:#f1eee8;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
+<body class="em-bg"  style="margin:0;padding:0;background:#f7f3ed;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
 <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;max-height:0;max-width:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px">[BILDIRIM_OZET]</span>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;background:#f1eee8" class="em-bg">
+<table class="em-bg" role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;background:#f7f3ed" >
   <tr><td align="center" style="padding:24px 12px 40px">
-    <table data-mail="operasyon-bildirim" data-subject="[BILDIRIM_KONU]" data-preheader="[BILDIRIM_OZET]" role="presentation" cellpadding="0" cellspacing="0" border="0" width="598" style="width:100%;max-width:598px;border-collapse:separate;background:#143d2b;border-radius:20px">
-<tr><td align="center" style="padding:0;line-height:0;font-size:0"><img src="https://laffogato.net/email/band-dark-top.png" width="598" height="130" alt="" style="display:block;border-radius:20px 20px 0 0;border:0;outline:none;text-decoration:none;width:100%;height:auto;max-width:598px"></td></tr>
-<tr><td class="em-pad" align="center" style="padding:18px 44px 0;line-height:0;font-size:0"><img src="https://laffogato.net/email/logo-laf-glint.gif" width="160" height="130" alt="L'Affogato" style="display:inline-block;border:0;outline:none;text-decoration:none;width:160px;height:130px;max-width:100%"></td></tr>
-<tr><td class="em-pad" align="center" style="padding:26px 44px 0"><div style="font:700 12px/1.4 'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;letter-spacing:0.24em;color:#e8d3a4">[BILDIRIM_ETIKET]</div></td></tr>
-<tr><td class="em-pad" align="center" style="padding:12px 44px 0"><div style="font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-weight:700;font-size:30px;line-height:1.15;letter-spacing:-0.01em;word-break:break-word;overflow-wrap:break-word;color:#ffffff;mso-line-height-rule:exactly">[BILDIRIM_BASLIK]</div></td></tr>
-<tr><td class="em-pad" align="center" style="padding:10px 44px 0"><div style="font:600 17px/1.45 'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#cfe3d5">[BILDIRIM_ALT]</div></td></tr>
-<tr><td class="em-pad" align="center" style="padding:28px 44px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="510" style="width:100%;max-width:510px;border-collapse:separate;background:#ffffff;border-radius:16px"><tr><td style="padding:10px 24px 10px"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse"><!--EACH:SATIRLAR--><tr><td valign="top" style="padding:12px 12px 12px 0;border-bottom:1px solid #ebe7de;font:700 11px/1.5 'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;letter-spacing:0.16em;color:#8a6526;white-space:nowrap">[ETIKET]</td><td valign="top" align="right" style="padding:12px 0;border-bottom:1px solid #ebe7de;font:600 15px/1.5 'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#201c17;word-break:break-word;overflow-wrap:break-word">[DEGER]</td></tr><!--/EACH:SATIRLAR--></table></td></tr></table></td></tr>
-<!--IF:NOT--><tr><td class="em-pad" align="center" style="padding:16px 44px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="510" style="width:100%;max-width:510px;border-collapse:separate;background:#1e5b3f;border-radius:14px"><tr><td style="padding:16px 22px"><div style="font:700 10px/1.3 'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;letter-spacing:0.18em;color:#e8d3a4">[NOT_ETIKET]</div><div style="padding-top:6px;font:400 15px/1.6 'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#ffffff;word-break:break-word;overflow-wrap:break-word">[NOT]</div></td></tr></table></td></tr>
-<!--/IF:NOT--><tr><td class="em-pad" align="center" style="padding:28px 44px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate"><tr><td bgcolor="#e8d3a4" style="background:#e8d3a4;border-radius:999px"><a href="[BUTON_URL]" style="display:block;padding:17px 36px;font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-weight:700;font-size:13px;line-height:1;letter-spacing:0.14em;color:#143d2b;text-decoration:none;border-radius:999px;mso-line-height-rule:exactly">[BUTON_METIN]</a></td></tr></table></td></tr>
-<tr><td class="em-pad" align="center" style="padding:20px 44px 0"><div style="font:400 14px/1.65 'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#cfe3d5">[BILDIRIM_DIPNOT]</div></td></tr>
+    <table data-mail="operasyon-bildirim" data-subject="[BILDIRIM_KONU]" data-preheader="[BILDIRIM_OZET]" role="presentation" cellpadding="0" cellspacing="0" border="0" width="598" style="width:100%;max-width:598px;border-collapse:separate;background:#17594a;border-radius:20px">
+<tr><td bgcolor="#e8c877" style="height:8px;line-height:8px;font-size:0;background:#e8c877;border-radius:20px 20px 0 0">&nbsp;</td></tr>
+<tr><td class="em-pad" align="center" style="padding:18px 44px 0;line-height:0;font-size:0"><img src="https://laffogato.net/email/logo-laf-tile.png" width="76" height="76" alt="L'Affogato" style="display:inline-block;border:0;outline:none;text-decoration:none;width:76px;height:76px;border-radius:19px"></td></tr>
+<tr><td class="em-pad" align="center" style="padding:26px 44px 0"><div style="font:700 12px/1.4 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;letter-spacing:0.24em;color:#e8c877">[BILDIRIM_ETIKET]</div></td></tr>
+<tr><td class="em-pad" align="center" style="padding:12px 44px 0"><div style="font-family:'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-weight:700;font-size:30px;line-height:1.15;letter-spacing:-0.01em;word-break:break-word;overflow-wrap:break-word;color:#ffffff;mso-line-height-rule:exactly">[BILDIRIM_BASLIK]</div></td></tr>
+<tr><td class="em-pad" align="center" style="padding:10px 44px 0"><div style="font:600 17px/1.45 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#d4ebe1">[BILDIRIM_ALT]</div></td></tr>
+<tr><td class="em-pad" align="center" style="padding:28px 44px 0"><table class="em-card" role="presentation" cellpadding="0" cellspacing="0" border="0" width="510" style="width:100%;max-width:510px;border-collapse:separate;background:#ffffff;border-radius:16px"><tr><td style="padding:10px 24px 10px"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse"><!--EACH:SATIRLAR--><tr><td class="em-tg em-ln" valign="top" style="padding:12px 12px 12px 0;border-bottom:1px solid #e8e0d4;font:700 11px/1.5 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;letter-spacing:0.16em;color:#765923;white-space:nowrap">[ETIKET]</td><td class="em-t1 em-ln" valign="top" align="right" style="padding:12px 0;border-bottom:1px solid #e8e0d4;font:600 15px/1.5 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#211c18;word-break:break-word;overflow-wrap:break-word">[DEGER]</td></tr><!--/EACH:SATIRLAR--></table></td></tr></table></td></tr>
+<!--IF:NOT--><tr><td class="em-pad" align="center" style="padding:16px 44px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="510" style="width:100%;max-width:510px;border-collapse:separate;background:#2b6b5a;border-radius:14px"><tr><td style="padding:16px 22px"><div style="font:700 10px/1.3 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;letter-spacing:0.18em;color:#e8c877">[NOT_ETIKET]</div><div style="padding-top:6px;font:400 15px/1.6 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#ffffff;word-break:break-word;overflow-wrap:break-word">[NOT]</div></td></tr></table></td></tr>
+<!--/IF:NOT--><tr><td class="em-pad" align="center" style="padding:28px 44px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate"><tr><td bgcolor="#e8c877" style="background:#e8c877;border-radius:999px"><a href="[BUTON_URL]" style="display:block;padding:17px 36px;font-family:'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-weight:700;font-size:13px;line-height:1;letter-spacing:0.14em;color:#17594a;text-decoration:none;border-radius:999px;mso-line-height-rule:exactly">[BUTON_METIN]</a></td></tr></table></td></tr>
+<tr><td class="em-pad" align="center" style="padding:20px 44px 0"><div style="font:400 14px/1.65 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#d4ebe1">[BILDIRIM_DIPNOT]</div></td></tr>
 <tr><td style="padding:0;height:30px;line-height:30px;font-size:0">&nbsp;</td></tr>
-<tr><td align="center" style="padding:0;line-height:0;font-size:0"><img src="https://laffogato.net/email/band-dark-bottom.png" width="598" height="100" alt="" style="display:block;border:0;outline:none;text-decoration:none;width:100%;height:auto;max-width:598px"></td></tr>
-<tr><td class="em-pad" align="center" style="background:#f6f5f2;border-top:1px solid #ebe7de;border-radius:0 0 20px 20px;padding:26px 44px 32px"><div style="line-height:0;font-size:0;padding-bottom:12px"><img src="https://laffogato.net/email/mono-golddeep.png" width="19" height="34" alt="" style="display:inline-block;border:0;outline:none;text-decoration:none;width:19px;height:34px;max-width:100%"></div><div style="font:700 11px/1 'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;letter-spacing:0.22em;color:#8a6526">L'AFFOGATO · EKİP BİLDİRİMİ</div><div style="margin-top:14px;font:400 13px/1.7 'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#5f594e">Bu ileti köşkün paneli tarafından ekibe gönderildi; müşteriye gitmez.</div><div style="margin-top:18px;padding-top:14px;border-top:1px solid #ebe7de;font:400 11px/1.7 'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#746b5d"><a href="https://laffogato.net/admin" style="color:#8a6526">laffogato.net/admin</a></div></td></tr>
+<tr><td class="em-pad em-foot em-ln"  align="center" style="background:#f3eee6;border-top:1px solid #e8e0d4;border-radius:0 0 20px 20px;padding:26px 44px 32px"><div style="line-height:0;font-size:0;padding-bottom:12px"><img src="https://laffogato.net/email/logo-laf-tile.png" width="34" height="34" alt="L'Affogato" style="display:inline-block;border:0;outline:none;text-decoration:none;width:34px;height:34px;border-radius:9px"></div><div class="em-tg" style="font:700 11px/1 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;letter-spacing:0.22em;color:#765923">L'AFFOGATO · EKİP BİLDİRİMİ</div><div class="em-t2" style="margin-top:14px;font:400 13px/1.7 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#564d46">Bu ileti köşkün paneli tarafından ekibe gönderildi; müşteriye gitmez.</div><div class="em-t3 em-ln" style="margin-top:18px;padding-top:14px;border-top:1px solid #e8e0d4;font:400 11px/1.7 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#6f655d"><a class="em-tg" href="https://laffogato.net/admin" style="color:#765923">laffogato.net/admin</a></div></td></tr>
     </table>
   </td></tr>
 </table>

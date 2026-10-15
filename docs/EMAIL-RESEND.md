@@ -164,8 +164,11 @@ tireyle yazılmıştı, şablonlarla birlikte bunları da güncelle):
 - Change Email - `L'Affogato - e-posta adresi değişikliği`
 - Magic Link - `L'Affogato - giriş kodun`
 
-Şablonlar `src/lib/email/send.ts`'teki mesajlarla aynı tasarımı kullanır. Üye
-ikisini de aynı markadan alıyor; biri değişirse diğeri de değişmeli.
+Şablonlar sitenin e-postalarıyla aynı iskeleti ve aynı `<style>` bloğunu
+kullanır (15 Eki 2026): açık ve koyu modda okunur, logo
+`https://laffogato.net/email/logo-laf-tile.png` karosudur. Görsel siteden
+gelir; şablonları **site deploy edildikten sonra** yapıştır. Üye ikisini de
+aynı markadan alıyor; biri değişirse diğeri de değişmeli.
 
 ---
 
