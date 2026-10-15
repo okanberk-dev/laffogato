@@ -1,5 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
+import { maskCardLikeDigits, type CardInput } from "./paynkolay-card";
 import type {
   CheckoutInput,
   CheckoutSession,
@@ -11,24 +12,33 @@ import type {
 } from "./provider";
 
 /**
- * PayNkolay sanal POS sağlayıcısı - barındırılan ödeme formu.
+ * PayNkolay sanal POS sağlayıcısı.
  *
  * Sözleşmenin tamamı `docs/PAYNKOLAY.md`'de; buradaki `§` göndermeleri o
  * belgenin bölümleridir. Doğrulanamamış her nokta orada işaretli ve §12'de
  * "canlı testte ölçülecek" listesinde.
  *
- * Neden barındırılan form: kart numarası, CVV ve son kullanma tarihi
- * PayNkolay'ın kendi sayfasında girilir; PAN hiçbir zaman bu sunucuya
- * girmez, PCI yüzeyimiz iyzico soyutlamasındakiyle aynı kalır. `cardNumber`
- * kabul eden doğrudan uçlar (`CardStorageCardRegister`) bilinçli olarak
- * kullanılmıyor (§0).
+ * İki ödeme modu var (`PAYNKOLAY_CHECKOUT_MODE`, §15):
+ *
+ * - `direct` (operatör kararı, 15 Eki 2026): kart sitenin kendi ödeme
+ *   sayfasında girilir, bu sunucu onu `/Vpos/v1/Payment`'a iletir ve dönen
+ *   banka 3D formunu müşteriye verir - müşteri doğrudan bankanın ekranına
+ *   gider. Kart SAKLANMAZ: ne veritabanına ne loga yazılır, yalnız o tek
+ *   isteğin gövdesinde durur (kural 28, `tests/saved-cards.test.ts`).
+ * - `hosted`: kart PayNkolay'ın ortak ödeme sayfasında girilir; PAN bu
+ *   sunucuya hiç girmez. Değişken tanımsızsa bu mod çalışır.
+ *
+ * İki modda da kart saklama kapalıdır: `customerKey` boş gider ve kart
+ * numarası alan saklama uçları (`CardStorageCardRegister`) kullanılmaz (§0).
  *
  * Akış:
  *   1. `createCheckoutSession` → PayNkolay'a POST edilecek form alanları (§9)
  *      ve istek hash'i (§10) üretilir. PayNkolay bir yönlendirme URL'si
  *      vermez - form POST ister - bu yüzden alanlar imzalanıp kendi
  *      `/odeme/paynkolay` ara sayfamıza taşınır; uygulama ve tarayıcı tek bir
- *      URL görür (`CheckoutSession.redirectUrl`).
+ *      URL görür (`CheckoutSession.redirectUrl`). `direct` modda o sayfa kart
+ *      formunu gösterir, `startDirectPayment` kartı aynı imzalı alanlarla
+ *      POS'a iletir.
  *   2. Müşteri 3D akışını bitirir → PayNkolay MÜŞTERİNİN TARAYICISINI
  *      `successUrl`/`failUrl`'e form-POST eder (§1). Bu POST müşterinin
  *      elinden geçer; delil sayılmaz.
@@ -59,8 +69,22 @@ const CURRENCY_CODE = "949";
  */
 const CHECKOUT_TTL_MS = 20 * 60_000;
 
+/**
+ * Sitedeki kart formunun bir ödeme yükünü kabul ettiği en uzun süre.
+ * Uygulamaya söylenen ömrün (`CHECKOUT_TTL_MS`) üstünde, 45 dakikalık
+ * süpürmenin (`expireStalePendingOrders`) altında: süpürülmüş bir siparişe
+ * kart çekilmesin, ama formu açık bırakıp birkaç dakika geç gönderen müşteri
+ * de geri çevrilmesin.
+ */
+export const DIRECT_FORM_MAX_AGE_MS = 30 * 60_000;
+
 /** Ara sayfamızın yolu. Ödeme formunu taşıyıp otomatik submit eder. */
 export const PAYNKOLAY_BRIDGE_PATH = "/odeme/paynkolay";
+
+/** Kartın sitede alındığı API ucu (§15). Canlı istek sunucudan gitmeli. */
+const DIRECT_PAYMENT_PATH = "/Vpos/v1/Payment";
+
+export type PaynkolayCheckoutMode = "hosted" | "direct";
 
 /** İmzanın hangi amaçla üretildiğini sabitler (alan ayrımı). */
 const BRIDGE_DOMAIN = "paynkolay-bridge-v1";
@@ -98,6 +122,11 @@ export interface PaynkolayConfig {
    */
   successUrl: string;
   failUrl: string;
+  /**
+   * `direct`: kart sitede alınır, banka 3D sayfasına doğrudan gidilir.
+   * `hosted` (varsayılan): PayNkolay'ın ortak ödeme sayfası (§15).
+   */
+  checkoutMode?: PaynkolayCheckoutMode;
 }
 
 /** Ara sayfanın tarayıcıya kurduğu form. */
@@ -105,6 +134,13 @@ export interface PaynkolayFormPost {
   action: string;
   fields: Record<string, string>;
 }
+
+/** `startDirectPayment`'in sonucu. */
+export type DirectPaymentResult =
+  /** POS ödemeyi hazırladı; `html` bankanın 3D formudur, müşteriye verilir. */
+  | { kind: "3d"; html: string; referenceCode: string }
+  /** POS ödemeyi başlatmadı; `message` müşteriye gösterilebilir. */
+  | { kind: "declined"; code: string; message: string };
 
 // ── Saf yardımcılar (test edilebilir; sınıftan bağımsız) ───────────────────
 
@@ -194,6 +230,21 @@ function istanbulClock(at: Date): Clock {
 export function formatPaynkolayRnd(at: Date): string {
   const c = istanbulClock(at);
   return `${c.day}.${c.month}.${c.year} ${c.hour}:${c.minute}:${c.second}`;
+}
+
+/**
+ * `formatPaynkolayRnd`'nin tersi: ödeme yükünün ne zaman üretildiği. Saat
+ * köşkün sabit UTC+3'üdür (kural 22). Okunamazsa `null` - çağıran onu
+ * "süresi dolmuş" sayar.
+ */
+export function parsePaynkolayRnd(rnd: string | undefined): Date | null {
+  const m = /^(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2}):(\d{2})$/.exec(
+    (rnd ?? "").trim(),
+  );
+  if (!m) return null;
+  const [day, month, year, hour, minute, second] = m.slice(1).map(Number);
+  const at = new Date(Date.UTC(year, month - 1, day, hour - 3, minute, second));
+  return Number.isNaN(at.getTime()) ? null : at;
 }
 
 /** `DD.MM.YYYY` - doğrulama ve raporlama servislerinin tarih aralığı (§2). */
@@ -298,20 +349,81 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * Servislerin sardığı gövdeyi açar.
+ *
+ * Canlıda ölçüldü (15 Eki 2026, §12): `PaymentList` yanıtı
+ * `{"id":"","result":{…,"LIST":[…]},"error":null}` biçiminde geliyor, yani
+ * asıl alanlar `result`'ın altında. Hash hatasında ise `result` bir nesne
+ * değil, JSON DİZESİ (`"result":"{\"RESPONSE_CODE\":0,…}"`). Ödeme ucu
+ * (`/Vpos/v1/Payment`) ise düz döner. Üçü de buradan geçer.
+ */
+export function unwrapPaynkolayResult(payload: unknown): unknown {
+  let current = payload;
+  for (let depth = 0; depth < 3; depth++) {
+    if (!isRecord(current) || !("result" in current)) return current;
+    const inner = current.result;
+    if (typeof inner === "string") {
+      try {
+        current = JSON.parse(inner) as unknown;
+      } catch {
+        return current;
+      }
+    } else if (isRecord(inner) || Array.isArray(inner)) {
+      current = inner;
+    } else {
+      return current;
+    }
+  }
+  return current;
+}
+
+/**
  * Servis yanıtından işlem satırlarını çıkarır.
  *
  * Doğrulama servisi alanları `UPPER_SNAKE`, raporlama servisi `camelCase`
- * veriyor ve satırların yanıt gövdesinde hangi anahtarın altında durduğu
- * dokümanda yazmıyor (§12). Bu yüzden yanıt üç biçimde de kabul edilir: dizi,
- * içinde dizi taşıyan nesne, ya da tek satırlık nesne.
+ * veriyor. Satırlar canlıda `result.LIST` altında geliyor (§12); yine de yanıt
+ * üç biçimde kabul edilir: dizi, içinde dizi taşıyan nesne, ya da tek
+ * satırlık nesne. Eskiden yalnız en üst seviyeye bakılıyordu ve gerçek
+ * yanıttaki satırlar `result`'ın içinde kaldığı için her ödeme "işlem
+ * bulunamadı" sayılırdı.
  */
-function extractRows(payload: unknown): Record<string, unknown>[] {
-  if (Array.isArray(payload)) return payload.filter(isRecord);
-  if (!isRecord(payload)) return [];
-  for (const value of Object.values(payload)) {
+export function extractRows(payload: unknown): Record<string, unknown>[] {
+  const body = unwrapPaynkolayResult(payload);
+  if (Array.isArray(body)) return body.filter(isRecord);
+  if (!isRecord(body)) return [];
+  for (const value of Object.values(body)) {
     if (Array.isArray(value)) return value.filter(isRecord);
   }
-  return readField(payload, "REFERENCE_CODE", "referenceCode") ? [payload] : [];
+  return readField(body, "REFERENCE_CODE", "referenceCode") ? [body] : [];
+}
+
+/**
+ * `PaymentList`'in satırları - ya da yanıt bir liste taşımıyorsa HATA.
+ *
+ * Boş liste ile okunamayan yanıt aynı şey değildir. Canlıda "kayıt yok"
+ * yanıtı `LIST: null` taşıyor (`ERROR_CODE: CORE0305`); yanlış anahtar ise
+ * `"API : hashData error"` diyen ve hiç `LIST` alanı olmayan bir gövde.
+ * İkincisini "ödeme yok" saymak, süpürmenin parası çekilmiş siparişi iptal
+ * etmesine yol açardı (kural 29: POS'a soramamak "ödenmedi" değildir).
+ */
+function paymentListRows(payload: unknown): Record<string, unknown>[] {
+  const rows = extractRows(payload);
+  if (rows.length > 0) return rows;
+  const body = unwrapPaynkolayResult(payload);
+  if (Array.isArray(body)) return [];
+  if (isRecord(body)) {
+    if ("LIST" in body || Object.values(body).some(Array.isArray)) return [];
+    const message = readField(
+      body,
+      "RESPONSE_DATA",
+      "ERROR_MESSAGE",
+      "responseData",
+    );
+    throw new Error(
+      `paynkolay PaymentList yanıtı işlem listesi taşımıyor${message ? `: ${message}` : ""}`,
+    );
+  }
+  throw new Error("paynkolay PaymentList yanıtı okunamadı");
 }
 
 /** Satırdan alan okur; iki servis iki ayrı yazım kullanıyor. */
@@ -329,13 +441,27 @@ function readField(row: Record<string, unknown>, ...names: string[]): string {
 export class PaynkolayPaymentProvider implements PaymentProvider {
   readonly name = "paynkolay";
 
-  private readonly cfg: Omit<PaynkolayConfig, "baseUrl"> & { baseUrl: string };
+  private readonly cfg: Omit<PaynkolayConfig, "baseUrl" | "checkoutMode"> & {
+    baseUrl: string;
+    checkoutMode: PaynkolayCheckoutMode;
+  };
 
   constructor(cfg: PaynkolayConfig) {
     this.cfg = {
       ...cfg,
       baseUrl: (cfg.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, ""),
+      checkoutMode: cfg.checkoutMode ?? "hosted",
     };
+  }
+
+  /** Ara sayfa kart formunu mu gösterir, ortak ödeme sayfasına mı gönderir. */
+  get checkoutMode(): PaynkolayCheckoutMode {
+    return this.cfg.checkoutMode;
+  }
+
+  /** POS'un origin'i - ara sayfanın `form-action`'ı buna izin verir. */
+  get posOrigin(): string {
+    return new URL(this.cfg.baseUrl).origin;
   }
 
   // ── Ara sayfa ────────────────────────────────────────────────────────────
@@ -392,6 +518,102 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     return `${this.cfg.baseUrl}/Vpos`;
   }
 
+  /**
+   * Yük sitedeki kart formu için hâlâ geçerli mi. Yaşı yükün kendi `rnd`'inden
+   * okunur - o alan imzalı ve hash'e giriyor, müşteri değiştiremez.
+   */
+  isBridgeFresh(post: PaynkolayFormPost, now: Date = new Date()): boolean {
+    const issued = parsePaynkolayRnd(post.fields.rnd);
+    if (!issued) return false;
+    const age = now.getTime() - issued.getTime();
+    // Bir dakikalık saat kayması payı; gelecekten gelen yük sahtedir.
+    return age >= -60_000 && age <= DIRECT_FORM_MAX_AGE_MS;
+  }
+
+  /**
+   * Sitede alınan kartla ödemeyi başlatır (`POST /Vpos/v1/Payment`, §15).
+   *
+   * Alanlar ara sayfanın İMZALI yükünden gelir: tutar, sipariş referansı,
+   * dönüş adresleri, `rnd` ve hash müşterinin elinde değiştirilemez. Bu uç
+   * aynı istek hash'ini kullanıyor (`sx|clientRefCode|amount|successUrl|
+   * failUrl|rnd|customerKey|secret`, sandbox'ta ölçüldü), bu yüzden hash
+   * yükten yeniden hesaplanır ve yükteki değerle karşılaştırılır.
+   *
+   * Kart yalnızca bu isteğin gövdesine girer. Fırlatılan hatalar gövdeyi
+   * taşımaz (`postForm`), dönen mesaj kart numarasına benzeyen her diziyi
+   * maskeler.
+   *
+   * `use3D` daima `"true"` (§8): yükteki değer başka bir şeyse istek hiç
+   * gitmez.
+   */
+  async startDirectPayment(
+    post: PaynkolayFormPost,
+    card: CardInput,
+    cardHolderIp: string,
+  ): Promise<DirectPaymentResult> {
+    const f = post.fields;
+    if (f.use3D !== "true" || f.transactionType !== "SALES") {
+      throw new Error("paynkolay: yük 3D'li satış değil; ödeme başlatılmadı");
+    }
+    const hash = checkoutRequestHash(f, this.cfg.merchantSecretKey);
+    if (hash !== f.hashDataV2) {
+      throw new Error("paynkolay: yükün hash'i tutmuyor; ödeme başlatılmadı");
+    }
+
+    const response = unwrapPaynkolayResult(
+      await this.postForm(DIRECT_PAYMENT_PATH, {
+        sx: f.sx,
+        clientRefCode: f.clientRefCode,
+        successUrl: f.successUrl,
+        failUrl: f.failUrl,
+        amount: f.amount,
+        // Taksit yok (§9): tek çekim.
+        installmentNo: "1",
+        cardHolderName: card.holderName,
+        cardNumber: card.number,
+        month: card.expMonth,
+        year: card.expYear,
+        cvv: card.cvv,
+        use3D: "true",
+        transactionType: "SALES",
+        rnd: f.rnd,
+        // Bu uçta alan adı küçük `v` ile yazılıyor (§11.1, Postman örneği).
+        hashDatav2: hash,
+        environment: "API",
+        currencyNumber: f.currencyCode || CURRENCY_CODE,
+        cardHolderIP: cardHolderIp.trim() || f.cardHolderIP || "0.0.0.0",
+      }),
+    );
+
+    const body = isRecord(response) ? response : {};
+    const code = readField(body, "RESPONSE_CODE", "responseCode");
+    const html = readField(body, "BANK_REQUEST_MESSAGE");
+    if (code === "2" && html) {
+      return {
+        kind: "3d",
+        html,
+        referenceCode: readField(body, "REFERENCE_CODE", "referenceCode"),
+      };
+    }
+    const message = maskCardLikeDigits(
+      readField(
+        body,
+        "ERROR_MESSAGE",
+        "RESPONSE_DATA",
+        "BANK_MESSAGE",
+        "responseData",
+      )
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim(),
+    ).slice(0, 200);
+    return {
+      kind: "declined",
+      code: readField(body, "ERROR_CODE", "BANK_ERROR_CODE") || code || "?",
+      message,
+    };
+  }
+
   // ── HTTP ─────────────────────────────────────────────────────────────────
 
   /** Servis çağrıları `multipart/form-data` ister (§2, §3). */
@@ -426,7 +648,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
   ): Promise<Record<string, unknown>[]> {
     const startDate = formatPaynkolayDayDmy(from);
     const endDate = formatPaynkolayDayDmy(to);
-    return extractRows(
+    return paymentListRows(
       await this.postForm("/Vpos/Payment/PaymentList", {
         sx: this.cfg.sxList,
         startDate,
@@ -552,10 +774,18 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
    * Tarayıcı dönüşünü gerçek bir ödemeye çevirir.
    *
    * Dönen parametreler müşterinin tarayıcısından geliyor; hiçbiri delil
-   * sayılmaz. Sıra: (1) üye işyeri numarası bizimki mi, (2) yanıt hash'i tutuyor
-   * mu - tutmuyorsa yalnızca uyarı, çünkü formülün `CURRENCY_CODE` alanı henüz
-   * ölçülmedi (§1.3) ve tek başına ret gerçek ödemeleri de reddederdi, (3)
-   * PayNkolay'a sor. Karar üçüncü adımdan çıkar.
+   * sayılmaz. Sıra: (1) üye işyeri numarası ve (2) yanıt hash'i - ikisi de
+   * yalnızca uyarı, (3) PayNkolay'a sor. Karar üçüncü adımdan çıkar.
+   *
+   * Üye işyeri numarası eskiden ölümcüldü. Ama sorgu bizim `sx List`'imizle
+   * yapılıyor ve yalnız BİZİM işlemlerimizi döndürüyor, satır da tarayıcının
+   * getirdiği `REFERENCE_CODE`'la eşleşmek zorunda - yani başka bir üye
+   * işyerinin dönüşü zaten geçemez. Ölümcül bırakmak tek bir şey
+   * sağlıyordu: `PAYNKOLAY_MERCHANT_NO` panele yanlış girilirse (sx'in
+   * başındaki sayı üye işyeri numarası DEĞİL; test hesabında `118591467|…`
+   * sx'li işyerinin numarası `400000273`, §12) her gerçek ödeme reddedilir,
+   * para çekilmiş müşteri "ödeme alınamadı" görürdü. Hash için de aynı
+   * gerekçe: `CURRENCY_CODE` alanı henüz ölçülmedi (§1.3).
    */
   async confirmReturn(
     params: Record<string, string>,
@@ -574,8 +804,10 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     });
 
     const merchantNo = (params.MERCHANT_NO ?? "").trim();
-    if (merchantNo && merchantNo !== this.cfg.merchantNo) {
-      return failed("merchant_no_mismatch");
+    if (merchantNo && merchantNo !== this.cfg.merchantNo.trim()) {
+      console.warn(
+        `[paynkolay] dönüşteki MERCHANT_NO yapılandırmayla uyuşmuyor order=${orderId} — PAYNKOLAY_MERCHANT_NO'yu kontrol edin; karar sorgudan verilecek`,
+      );
     }
     const hashOk = verifyPaynkolayReturnHash(
       params,
@@ -731,17 +963,19 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     // İptal yalnızca aynı gün yapılan işlemler için; sonrası iade (§3.1).
     const type = tx.dayKey === istanbulDayKey(new Date()) ? "cancel" : "refund";
     const amount = minorToPaynkolayAmount(tx.amountMinor);
-    const res = await this.postForm("/Vpos/v1/CancelRefundPayment", {
-      sx: this.cfg.sxCancel,
-      referenceCode,
-      type,
-      amount,
-      trxDate: tx.trxDate,
-      hashDatav2: paynkolayHash(
-        [this.cfg.sxCancel, referenceCode, type, amount, tx.trxDate],
-        this.cfg.merchantSecretKey,
-      ),
-    });
+    const res = unwrapPaynkolayResult(
+      await this.postForm("/Vpos/v1/CancelRefundPayment", {
+        sx: this.cfg.sxCancel,
+        referenceCode,
+        type,
+        amount,
+        trxDate: tx.trxDate,
+        hashDatav2: paynkolayHash(
+          [this.cfg.sxCancel, referenceCode, type, amount, tx.trxDate],
+          this.cfg.merchantSecretKey,
+        ),
+      }),
+    );
 
     const code = isRecord(res)
       ? readField(res, "responseCode", "RESPONSE_CODE")

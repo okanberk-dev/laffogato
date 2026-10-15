@@ -34,8 +34,8 @@ export interface CheckoutInput {
   successUrl: string;
   failureUrl: string;
   /**
-   * Buyer's IP as seen by the server. iyzico feeds it into fraud scoring and
-   * rejects an obviously bogus value less often than a missing one; empty when
+   * Buyer's IP as seen by the server. PayNkolay requires it (`cardHolderIP`)
+   * and feeds it into fraud scoring; empty when
    * the request carries no forwarding header (local dev).
    */
   buyerIp?: string;

@@ -1,21 +1,56 @@
 import { describe, expect, it } from "vitest";
 
 import { readFileSync } from "node:fs";
+import { getPathMatch } from "next/dist/shared/lib/router/utils/path-match";
 
 import nextConfig from "../next.config";
 
+/** The site's CSP rule: every path but the payment page (see below). */
+const CSP_SOURCE = "/:path((?!odeme/paynkolay$).*)";
+
+/**
+ * The headers an ordinary page gets: the catch-all rule plus the CSP rule.
+ * The CSP sits in a rule of its own because /odeme/paynkolay is outside it.
+ */
 async function headerMap() {
   const rules = await nextConfig.headers!();
-  const entries = rules[0].headers.map((h) => [h.key, h.value] as const);
+  const entries = rules
+    .filter((r) => r.source === "/:path*" || r.source === CSP_SOURCE)
+    .flatMap((r) => r.headers.map((h) => [h.key, h.value] as const));
   return Object.fromEntries(entries) as Record<string, string>;
 }
 
+/** Next's own matcher for a `source` - what decides which paths get a rule. */
+function matches(source: string, path: string): boolean {
+  return !!getPathMatch(source, { strict: true, removeUnnamedParams: true })(
+    path,
+  );
+}
+
 describe("security headers", () => {
-  it("sends a Content-Security-Policy on every route", async () => {
+  it("sends a Content-Security-Policy on every route but the payment page", async () => {
     const h = await headerMap();
     expect(h["Content-Security-Policy"]).toBeTruthy();
     const rules = await nextConfig.headers!();
     expect(rules[0].source).toBe("/:path*");
+    const csp = rules.filter((r) =>
+      r.headers.some((x) => x.key === "Content-Security-Policy"),
+    );
+    expect(csp.map((r) => r.source)).toEqual([CSP_SOURCE]);
+    // Exactly one path is outside it. /odeme/paynkolay sends its own,
+    // narrower policy on every response (tests/paynkolay-card-page.test.ts).
+    for (const path of [
+      "/",
+      "/odeme",
+      "/odeme/donus",
+      "/odeme/paynkolayx",
+      "/odeme/paynkolay/x",
+      "/admin/kasa",
+      "/uye/giris",
+    ]) {
+      expect(matches(CSP_SOURCE, path), path).toBe(true);
+    }
+    expect(matches(CSP_SOURCE, "/odeme/paynkolay")).toBe(false);
   });
 
   it("confines scripts to this origin and Google Tag Manager", async () => {
@@ -51,20 +86,16 @@ describe("security headers", () => {
     expect(csp).toContain("frame-ancestors 'none'");
   });
 
-  it("lets the PayNkolay bridge form reach the POS, and no other host", async () => {
-    // docs/PAYNKOLAY.md §14.6/1: with `form-action 'self'` the browser refused
-    // the bridge page's POST to the hosted payment page - no payment started.
+  it("lets a form on an ordinary page post to this site only", async () => {
+    // The PayNkolay hosts used to be listed here for the bridge page's POST
+    // (docs/PAYNKOLAY.md §14.6/1). That page is outside this policy now and
+    // names the POS - or the bank - in its own (§15), so no other page may
+    // post a form off-site.
     const csp = (await headerMap())["Content-Security-Policy"];
     const formAction = csp
       .split("; ")
       .find((d) => d.startsWith("form-action "))!;
-    expect(formAction.split(" ").slice(1).sort()).toEqual(
-      [
-        "'self'",
-        "https://paynkolay.nkolayislem.com.tr",
-        "https://paynkolaytest.nkolayislem.com.tr",
-      ].sort(),
-    );
+    expect(formAction).toBe("form-action 'self'");
   });
 
   it("does not let an injected script exfiltrate to an arbitrary host", async () => {

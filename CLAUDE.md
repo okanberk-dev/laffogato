@@ -26,9 +26,12 @@ yapılır.
 - **Auth:** Admin için env-credentialed imzalı cookie (`ADMIN_EMAIL` +
   `ADMIN_PASSWORD` + HMAC SHA256) ve TOTP 2FA. Müşteri için bcrypt hesap
 - **Ödeme:** Sağlayıcı bağımsız soyutlama (`src/lib/payment/`). Sanal POS
-  **PayNkolay** (barındırılan ödeme sayfası — kart verisi siteye hiç girmez,
-  **kart saklanmaz**: kural 28, `docs/PAYNKOLAY.md`); geliştirmede `MockPaymentProvider`. iyzico modülü
-  duruyor ama üretimde kullanılmıyor
+  **PayNkolay**; kart **sitenin kendi ödeme sayfasında** (`/odeme/paynkolay`)
+  girilir, sunucu onu yalnızca PayNkolay'a iletir ve müşteri doğrudan bankanın
+  3D ekranına gider (`PAYNKOLAY_CHECKOUT_MODE=direct`). **Kart saklanmaz**:
+  kural 28, `docs/PAYNKOLAY.md` §15. Geliştirmede `MockPaymentProvider`.
+  iyzico 15 Eki 2026'da koddan kaldırıldı (hukuki metinlerde hâlâ geçiyor:
+  avukat onaylı R1 düzeltmesi bekliyor, `docs/LEGAL-REDLINES-2026-09.md` §3)
 - **Dil:** Arayüz **Türkçe**. Kod, dosya adı, identifier, commit mesajı
   **İngilizce**
 
@@ -220,7 +223,9 @@ src/
                                orders · order-{schema,pricing,mapper,address} ·
                                me(-mapper/-schema) · loyalty(-core) · invite(-code) ·
                                venue · karaoke · notifications · deep-link
-    payment/                 → PaymentProvider arayüzü + Mock/PayNkolay/iyzico sağlayıcıları
+    payment/                 → PaymentProvider arayüzü + Mock/PayNkolay sağlayıcıları ·
+                               paynkolay-card (kart doğrulama) · paynkolay-page
+                               (ödeme sayfaları + kendi CSP'leri)
     legal/                   → entity.ts (yasal kimlik TEK KAYNAK + {{TOKEN}}) ·
                                content.ts (sözleşme metinleri, ham veri) ·
                                documents.ts (token doldurma + LEGAL_DOCS) ·
@@ -423,12 +428,18 @@ durum bozulmaya uygundur.
     Oraya yardımcı fonksiyon koyma (2FA'yı kapatan `freshEnrollment` böyle
     açıktaydı); her action kendi oturum + rol kontrolünü yapar — `proxy.ts`
     yalnız sayfa yönlendirmesidir, yetki kontrolü değil
-28. **Kart verisi saklanmaz, bu sunucudan geçmez** (operatör kararı). Kart
-    numarası, son kullanma tarihi ve CVV yalnız PayNkolay'ın barındırılan
-    ödeme sayfasında girilir; kart numarası alan PayNkolay uçları
-    (`CardStorageCardRegister` vb.) kullanılmaz, şemada kart alanı olmaz.
-    v1'de sağlayıcı tarafında kart saklama da kapalı (`customerKey` boş,
-    `docs/API-MOBILE.md` §15). `tests/saved-cards.test.ts` tutar
+28. **Kart verisi saklanmaz** (operatör kararı, 23 Eyl ve 15 Eki 2026). Kart
+    sitenin ödeme sayfasında (`/odeme/paynkolay`) girilir; sunucu onu aynı
+    istekte yalnızca PayNkolay'a (`/Vpos/v1/Payment`) iletir. Veritabanına,
+    loga, dosyaya yazılmaz; hata sayfası kart numarasını ve CVV'yi geri
+    basmaz. Kart alanları yalnız dört dosyada geçer (`paynkolay-card.ts`,
+    `paynkolay.ts`, `paynkolay-page.ts`, `odeme/paynkolay/route.ts`) ve bu
+    dosyalar DB/store import etmez. PayNkolay'ın kart saklama uçları
+    (`CardStorageCardRegister` vb.) kullanılmaz, `customerKey` boş, şemada kart
+    alanı yok. `tests/saved-cards.test.ts` + `tests/paynkolay-card-page.test.ts`
+    tutar. Ödeme sayfası sitenin genel CSP'si dışındadır ve kendi, daha dar
+    CSP'sini gönderir (üçüncü taraf betik yok, `frame-ancestors 'none'`); kart
+    denemesi IP ve sipariş başına sınırlıdır (`card-payment-*`)
 29. **Ödenmemiş sipariş POS'a sorulmadan iptal edilmez.** Süpürme ve yeni
     ödemenin eski denemeyi bırakması `cancelUnpaidOrder` → `lookupPayment`
     (`PaymentList`) üzerinden geçer; POS'a ulaşılamaması "ödenmedi" sayılmaz.
@@ -468,16 +479,15 @@ durum bozulmaya uygundur.
 
 ## Yapılmayacaklar
 
-- **PayNkolay canlıya alınmadı.** Sağlayıcı kodu ve testleri hazır; panel
-  anahtarları ve canlı deneme operatörde. Kurulum ve on maddelik canlı ölçüm
-  listesi `docs/PAYNKOLAY.md` §13'te. Ödeme akışına dokunurken iki tuzağı
-  unutma: `PAYNKOLAY_SUCCESS_URL` **ve** `PAYNKOLAY_FAIL_URL` ikisi de
-  `/odeme/donus` olmalıdır (PayNkolay sonucu form-POST eder), ve
-  `PAYMENT_PROVIDER` her ortamda tanımlı olmalıdır
+- **PayNkolay canlıda (15 Eki 2026).** Anahtarlar Vercel production'da,
+  kurulum `docs/PAYNKOLAY.md` §13, sitedeki kart formu §15. Ödeme akışına
+  dokunurken iki tuzağı unutma: `PAYNKOLAY_SUCCESS_URL` **ve**
+  `PAYNKOLAY_FAIL_URL` ikisi de `/odeme/donus` olmalıdır (PayNkolay sonucu
+  form-POST eder), ve `PAYMENT_PROVIDER` her ortamda tanımlı olmalıdır
 - **Kart saklamayı açma.** Operatör kararı: kart bilgisi saklanmaz (kural 28).
-  PayNkolay formundaki `customerKey` boş kalır; "kartımı kaydet" ya da kart
-  numarası alan bir uç eklemek bu kararın değişmesini ister, önce kullanıcıya
-  sor
+  PayNkolay formundaki `customerKey` boş kalır; "kartımı kaydet", kart
+  numarasını yazan/loglayan bir yol ya da kart alanlarını dört dosyanın
+  dışına taşımak bu kararın değişmesini ister, önce kullanıcıya sor
 - **Canlı anahtarlarla çekim denemesi yapma** — test hostu
   (`PAYNKOLAY_BASE_URL`) dışında gerçek kartla deneme operatörün işidir
 - **PayNkolay webhook'u ARAMA.** Sunucudan sunucuya bildirim yok

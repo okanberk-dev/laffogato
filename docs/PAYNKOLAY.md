@@ -595,6 +595,33 @@ sonucu buraya yazılacak:
     [43-error-codes](https://paynkolay.com.tr/entegrasyon/43-error-codes.php)
     POS hata kodlarını veriyor, servis yanıt kodlarını değil)
 
+### 12.1 Ölçüldü (15 Eki 2026)
+
+Canlı anahtarlar Vercel production'a girildi; para çekmeyen iki ölçüm yapıldı
+(canlı `PaymentList` ve sandbox'ta test kartıyla `/Vpos/v1/Payment`):
+
+- **§12/5 (kısmen):** canlı `PaymentList` ucu
+  `https://paynkolay.nkolayislem.com.tr/Vpos/Payment/PaymentList`. Anahtarlar
+  doğru: doğru sırla "Listelenecek kayıt bulunamadı", yanlış sırla
+  "API : hashData error".
+- **Yanıt biçimi:** `PaymentList` gövdesi
+  `{"id":"","result":{…,"LIST":[…]},"error":null}` - satırlar `result.LIST`
+  altında. Kayıt yoksa `LIST: null`, `ERROR_CODE: CORE0305`. Hash hatasında
+  `result` bir JSON **dizesi**. Kod eskiden yalnız en üst seviyede dizi
+  arıyordu; gerçek bir ödemede satırı bulamayıp ödemeyi reddederdi.
+  `unwrapPaynkolayResult` / `paymentListRows` düzeltti; hash hatası artık
+  "ödeme yok" değil, hata (kural 29).
+- **Üye işyeri numarası sx'in başındaki sayı DEĞİL:** sandbox'ta
+  `118591467|…` sx'li işyerinin `MERCHANT_NO`'su `400000273`. Panelden
+  "Üye İşyeri No" ayrıca okunmalı. Yanlış girilirse eskiden her dönüş
+  reddedilirdi; artık uyarı yazılır, karar sorgudan verilir (§14.4).
+- **`/Vpos/v1/Payment` (sandbox):** düz JSON döner; başarıda
+  `RESPONSE_CODE: 2`, `RESPONSE_DATA: "Ödeme hazırlık süreci başarılı."` ve
+  `BANK_REQUEST_MESSAGE` içinde bankanın 3D formu (QNB simülatörü: göreli
+  `action` + `frm.action = 'https://…'; frm.submit()` yapan satır içi betik).
+  `rnd` `dd.MM.yyyy HH:mm:ss` kabul edildi; `customerKey` alanı gönderilmeden,
+  hash'teki konumu boş bırakılarak çalıştı.
+
 Test kartları
 ([07-test-cards](https://paynkolay.com.tr/entegrasyon/07-test-cards.php)),
 örn. Vakıfbank Visa `4029400000000001`, 05/2028, CVV `951`.
@@ -751,3 +778,79 @@ yakalıyor; dönmek, "iade edildi" yazan ama parayı göndermemiş bir kayıt
    kolonun boş olduğu eski satırlar için kaldı (§14.5). Testler:
    `tests/payment-paynkolay.test.ts` (iki yol), `tests/admin-refund-hint.test.ts`,
    `tests/db-integration-payment-sweep.test.ts`.
+
+---
+
+## 15. Sitede kart formu - `PAYNKOLAY_CHECKOUT_MODE=direct`
+
+**Operatör kararı (15 Eki 2026):** _"site içerisinden direkt ödeme alınırsa
+daha kolay olur, direk banka sayfası aşamasında atarsa"_ ve _"kart
+bilgilerini saklamıyoruz"_. Müşteri kartını PayNkolay'ın ortak ödeme
+sayfasında değil, **sitenin kendi ödeme sayfasında** girer ve oradan doğrudan
+**bankanın 3D ekranına** gider. `hosted` mod (eski akış) kodda duruyor;
+değişken boşsa o çalışır.
+
+### 15.1 Akış
+
+1. `createCheckoutSession` değişmedi: imzalı yük (`d` + `s`) ve
+   `redirectUrl = /odeme/paynkolay?d=…&s=…`. Mobil sözleşme (`redirectUrl`)
+   aynı; uygulama aynı adresi açar, mağaza güncellemesi gerekmez.
+2. `GET /odeme/paynkolay` imzayı ve yaşı (`rnd`'den, en çok 30 dk -
+   `DIRECT_FORM_MAX_AGE_MS`, 45 dk'lık süpürmenin altında) doğrular ve kart
+   formunu çizer (`renderCardForm`).
+3. `POST /odeme/paynkolay` (aynı sayfanın formu):
+   aynı site (`Sec-Fetch-Site` / `Origin`) → imza + yaş → kart doğrulama
+   (`parseCardForm`: Luhn, İstanbul ayına göre son kullanma, CVV, ad) →
+   deneme sınırı → `startDirectPayment` → `POST /Vpos/v1/Payment`.
+4. Başarıda yanıttaki `BANK_REQUEST_MESSAGE` müşteriye verilir
+   (`bankChallengePage`); banka 3D'den sonra PayNkolay sonucu her zamanki
+   gibi `/odeme/donus`'a POST eder ve karar `PaymentList`'ten verilir (§2).
+   Ret ya da hata: form, POS'un mesajıyla yeniden çizilir; kart numarası ve
+   CVV geri basılmaz.
+
+`/Vpos/v1/Payment` alanları (sandbox'ta doğrulandı): `sx`, `clientRefCode`,
+`successUrl`, `failUrl`, `amount`, `installmentNo=1`, `cardHolderName`,
+`cardNumber`, `month` (`MM`), `year` (`YYYY`), `cvv`, `use3D=true`,
+`transactionType=SALES`, `rnd`, `hashDatav2` (§10 ile aynı formül),
+`environment=API`, `currencyNumber=949`, `cardHolderIP` (kartı gönderen
+isteğin IP'si). Doküman canlı isteğin **sunucudan** gitmesini istiyor.
+
+### 15.2 Kart nerede durur
+
+Hiçbir yerde. Tarayıcı → (TLS) → bu sunucu → (TLS) → PayNkolay; sunucuda
+yalnız o isteğin belleğinde. Veritabanı, log, dosya yok; kart saklama uçları
+kullanılmaz, `customerKey` boş. Kart alanları yalnız `paynkolay-card.ts`,
+`paynkolay.ts`, `paynkolay-page.ts` ve `odeme/paynkolay/route.ts`'te geçer;
+bu dosyalar DB/store import etmez, `console` çağrılarına kart girmez
+(`tests/saved-cards.test.ts`). POS'un hata metni gösterilmeden ve loglanmadan
+önce kart numarasına benzeyen diziler maskelenir. **Kart hash'lenmez:**
+`hashDatav2` işlem alanlarını (sipariş, tutar, adresler, `rnd`) imzalar;
+bankanın çekim için gerçek numarayı görmesi gerekir.
+
+### 15.3 Güvenlik önlemleri
+
+| Tehdit                                                   | Önlem                                                                                                                                                                                                             |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Formdaki üçüncü taraf betiğin kartı okuması (skimming)   | Sayfa sitenin genel CSP'sinin dışında (`next.config.ts` `CSP_SOURCE`) ve kendi CSP'sini gönderir: `default-src 'none'`, betik ve stil yalnız sayfanın kendi bloklarının SHA-256'sıyla, GTM ve dış kaynak yok      |
+| Formun başka siteye gömülmesi (clickjacking)             | `frame-ancestors 'none'` + `X-Frame-Options: DENY`                                                                                                                                                                |
+| Kart denemesi (çalıntı kart listesini sitemizde sınamak) | POS'a giden her deneme önce sayılır: IP başına 10 (sonra 1 saat), sipariş başına 5 (sonra 30 dk) - `card-payment-ip` / `card-payment-order`                                                                       |
+| Başka siteden kart POST'u                                | `Sec-Fetch-Site`/`Origin` aynı site değilse 403                                                                                                                                                                   |
+| Tutarın / siparişin değiştirilmesi                       | Alanlar imzalı yükten gelir (HMAC) ve `hashDatav2` yeniden hesaplanıp karşılaştırılır                                                                                                                             |
+| 3D'siz ödeme                                             | `use3D` yükte `"true"` değilse istek gitmez                                                                                                                                                                       |
+| Eski bağlantıyla geç ödeme                               | Yük 30 dk sonra reddedilir                                                                                                                                                                                        |
+| Bankanın 3D formu                                        | Olduğu gibi verilir; CSP yalnız o yanıttaki satır içi betiklerin özetine (gerekirse `'unsafe-hashes'` ile `onload`) ve `form-action https:`'e izin verir - ACS hostu bankaya göre değişir, düz `http:` engellenir |
+| Önbellek                                                 | Her yanıt `Cache-Control: no-store`                                                                                                                                                                               |
+
+### 15.4 PCI DSS - operatörün bilmesi gereken
+
+PayNkolay dokümanı: _"Bu yapıda kart bilgileri üye işyeri tarafından
+alındığı için PCI DSS gereklilikleri üye işyerine aittir."_ Ortak ödeme
+sayfasında (`hosted`) bu yük PayNkolay'daydı. `direct` modda:
+
+- PayNkolay'ın üye işyeri için **API ile ödeme** yetkisini açmış olması
+  gerekir; açık değilse `/Vpos/v1/Payment` reddeder ve müşteri formda hata
+  görür. Geri dönüş: `PAYNKOLAY_CHECKOUT_MODE=hosted` + redeploy.
+- PayNkolay yıllık bir PCI DSS öz değerlendirme anketi (SAQ) isteyebilir.
+- Hukuki metinler "kart bilgisi sunucularımızdan geçmez" diyor; bu modda
+  doğru değil. Düzeltme R1 ile birlikte avukat onayına bağlı
+  (`docs/LEGAL-REDLINES-2026-09.md` §3).

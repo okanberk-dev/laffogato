@@ -5,15 +5,17 @@ const envExample = readFileSync(".env.example", "utf8");
 const returnRoute = readFileSync("src/app/odeme/donus/route.ts", "utf8");
 
 describe("virtual POS browser return", () => {
-  it("does not point the customer-facing callback at the signed webhook", () => {
+  it("does not point the customer-facing callbacks at the signed webhook", () => {
     // The webhook answers an unsigned browser request with 401 JSON, so the
     // last thing a paying customer saw was an error page.
-    const line = envExample
+    const lines = envExample
       .split("\n")
-      .find((l) => l.includes("IYZICO_CALLBACK_URL=") && !l.startsWith("#   "));
-    expect(line).toBeTruthy();
-    expect(line).toContain("/odeme/donus");
-    expect(line).not.toContain("/api/webhooks/payment");
+      .filter((l) => /PAYNKOLAY_(SUCCESS|FAIL)_URL=/.test(l));
+    expect(lines).toHaveLength(2);
+    for (const line of lines) {
+      expect(line).toContain("/odeme/donus");
+      expect(line).not.toContain("/api/webhooks/payment");
+    }
   });
 
   it("accepts the provider's form POST", () => {

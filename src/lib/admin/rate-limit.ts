@@ -39,7 +39,9 @@ export type AuthPurpose =
   | "admin-login-ip"
   | "customer-login-ip"
   | "staff-stamp"
-  | "checkout-reopen";
+  | "checkout-reopen"
+  | "card-payment-ip"
+  | "card-payment-order";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -108,6 +110,15 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // a script looping on one pending order was an unbounded stream of POS
   // sessions opened from this merchant account.
   "checkout-reopen": 8,
+  // The site's own card form (/odeme/paynkolay POST, docs/PAYNKOLAY.md §15).
+  // A merchant page that forwards card numbers to the POS is what card
+  // testers look for: they replay a stolen list through it to learn which
+  // cards are live. Every submission that reaches the POS counts, success
+  // or not. Per ORDER: a member whose bank says no retries two or three
+  // times; five is generous and still leaves a pending order useless as a
+  // testing slot. Per ADDRESS across all orders: ten, then an hour.
+  "card-payment-order": 5,
+  "card-payment-ip": 10,
 };
 
 /** Lockout length per purpose; LOCKOUT_MS unless listed. */
@@ -115,6 +126,8 @@ const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "admin-2fa-account": 15 * 60 * 1000,
   "newsletter-signup": 15 * 60 * 1000,
   "checkout-reopen": 10 * 60 * 1000,
+  "card-payment-order": 30 * 60 * 1000,
+  "card-payment-ip": 60 * 60 * 1000,
   "newsletter-signup-ip": 60 * 60 * 1000,
   "password-reset": 30 * 60 * 1000,
   "password-reset-ip": 30 * 60 * 1000,

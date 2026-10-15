@@ -1,0 +1,326 @@
+import { createHash } from "node:crypto";
+
+import { priceLabel } from "@/lib/utils/format";
+
+import { CARD_FORM_FIELDS, type CardField } from "./paynkolay-card";
+import { paynkolayAmountToMinor, PAYNKOLAY_BRIDGE_PATH } from "./paynkolay";
+
+/**
+ * `/odeme/paynkolay`'ın çizdiği üç sayfa - her biri kendi CSP'siyle.
+ *
+ * Bu yol sitenin genel CSP'sinin DIŞINDA (`next.config.ts`): genel politika
+ * `form-action`'ı siteye ve PayNkolay'a kısıtlıyor, oysa bankanın 3D formu
+ * her bankada başka bir hosta gider. İki CSP başlığı birlikte uygulanır
+ * (kesişim), yani genel politikayı burada genişletmek mümkün değil; bu yol
+ * onun yerine her yanıtta KENDİ politikasını gönderir ve o politika genelden
+ * daha dardır:
+ *
+ * - `default-src 'none'`: sayfa hiçbir yerden bir şey yüklemez.
+ * - Betik ve stil yalnızca sayfanın kendi satır içi bloklarının SHA-256
+ *   özetiyle çalışır - `'unsafe-inline'` yok, GTM yok, üçüncü taraf yok.
+ *   Kart formunda üçüncü taraf betik, kart hırsızlığının (skimming) klasik
+ *   yoludur.
+ * - `frame-ancestors 'none'`: form başka bir sitenin içine gömülemez.
+ *
+ * Saf modül: veritabanına ve loga dokunmaz, testlerde doğrudan çağrılır.
+ */
+
+export interface PaynkolayPage {
+  html: string;
+  csp: string;
+}
+
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function sha256Source(text: string): string {
+  return `'sha256-${createHash("sha256").update(text, "utf8").digest("base64")}'`;
+}
+
+/**
+ * The site's palette spelled out (this HTML is outside globals.css): the
+ * porcelain ground (--bg #f7f3ed), the ink (--ink #211c18, --ink-soft
+ * #564d46), the green (--brand #1d6d56) for the one action, bordo
+ * (#9d2543 / #520f1f on #f9e6ea) for the brand line and the error. Bordo and
+ * green never touch.
+ */
+const BASE_STYLE = `:root{color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#f7f3ed;color:#211c18;
+font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+display:flex;justify-content:center;padding:24px 16px}
+main{width:100%;max-width:26rem}
+.brand{margin:0;font-weight:700;letter-spacing:.02em;color:#9d2543}
+h1{margin:.25rem 0 0;font-size:1.5rem;line-height:1.2}
+.lead{margin:.75rem 0 0;color:#564d46}
+.amount{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;
+margin:1rem 0 1.25rem;padding:.875rem 1rem;background:#fff;border-radius:16px;
+box-shadow:0 1px 2px rgba(59,42,30,.08)}
+.amount span{color:#564d46;font-size:.9rem}
+.amount strong{font-size:1.25rem}
+form{background:#fff;border-radius:20px;padding:1.25rem;
+box-shadow:0 8px 24px rgba(59,42,30,.08)}
+label{display:block;font-size:.85rem;font-weight:600;margin:0 0 .375rem}
+input{width:100%;font:inherit;font-size:1rem;padding:.75rem .875rem;
+border:1px solid #d9d0c5;border-radius:12px;background:#fdfcfa;color:#211c18;
+margin:0 0 1rem}
+input:focus{outline:2px solid #1d6d56;outline-offset:1px;border-color:#1d6d56}
+input[aria-invalid=true]{border-color:#9d2543}
+.row{display:flex;gap:.75rem}
+.row>div{flex:1;min-width:0}
+button{width:100%;margin-top:.25rem;padding:.9rem 1.25rem;border:0;
+border-radius:999px;background:#1d6d56;color:#fbf8f4;font:inherit;
+font-weight:600;font-size:1.05rem;cursor:pointer}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.7;cursor:progress}
+.alert{margin:0 0 1rem;padding:.75rem 1rem;border-radius:12px;
+background:#f9e6ea;color:#520f1f;font-size:.9rem}
+.note{display:flex;gap:.5rem;align-items:flex-start;margin:1rem .25rem 0;
+font-size:.82rem;color:#564d46}
+.note svg{flex:none;margin-top:.2rem}
+.psp{margin:.5rem .25rem 0;font-size:.75rem;color:#564d46}
+.center{text-align:center;padding-top:20vh}`;
+
+const LOCK_ICON =
+  '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">' +
+  '<path fill="#1d6d56" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 8V7a3 3 0 0 1 6 0v3H9Z"/>' +
+  "</svg>";
+
+/** Sayfa iskeleti + o sayfaya özgü CSP. */
+function page(opts: {
+  title: string;
+  body: string;
+  script?: string;
+  formAction: string;
+}): PaynkolayPage {
+  const scriptTag = opts.script ? `<script>${opts.script}</script>` : "";
+  const html = `<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="format-detection" content="telephone=no">
+<title>${escapeHtml(opts.title)}</title>
+<style>${BASE_STYLE}</style>
+</head>
+<body>
+${opts.body}
+${scriptTag}
+</body>
+</html>`;
+  const csp = [
+    "default-src 'none'",
+    `script-src ${opts.script ? sha256Source(opts.script) : "'none'"}`,
+    `style-src ${sha256Source(BASE_STYLE)}`,
+    "img-src data:",
+    `form-action ${opts.formAction}`,
+    "frame-ancestors 'none'",
+    "base-uri 'none'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+  return { html, csp };
+}
+
+// ── Ortak ödeme sayfasına yönlendirme (`hosted`) ───────────────────────────
+
+const AUTO_SUBMIT_SCRIPT =
+  'document.getElementById("paynkolay-form").submit();';
+
+/**
+ * Script kapalıysa müşteri ekranda kalır; bu yüzden `<noscript>` içinde
+ * elle basılabilen bir düğme var. Sayfa hiç görünmesin diye bir şey
+ * yapılmıyor: yönlendirme milisaniyeler sürüyor ve boş bir beyaz ekran,
+ * ödeme yaparken en çok korkulan şeydir.
+ */
+export function renderHostedRedirect(
+  action: string,
+  fields: Record<string, string>,
+): PaynkolayPage {
+  const inputs = Object.entries(fields)
+    .map(
+      ([name, value]) =>
+        `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}">`,
+    )
+    .join("");
+  return page({
+    title: "Güvenli ödemeye yönlendiriliyorsunuz…",
+    formAction: new URL(action).origin,
+    script: AUTO_SUBMIT_SCRIPT,
+    body: `<main class="center">
+<h1>Güvenli ödeme sayfasına yönlendiriliyorsunuz</h1>
+<p class="lead">Kart bilgileriniz ödeme kuruluşunun sayfasında girilir.</p>
+<form id="paynkolay-form" method="post" action="${escapeHtml(action)}">
+${inputs}
+<noscript><button type="submit">Ödemeye devam et</button></noscript>
+</form>
+</main>`,
+  });
+}
+
+// ── Sitedeki kart formu (`direct`) ─────────────────────────────────────────
+
+/**
+ * Kolaylık betiği: kart numarasını dörder gruplar, son kullanmaya `/` koyar,
+ * çift gönderimi engeller. Betiksiz form aynı sunucu doğrulamasından geçer.
+ * Geri tuşuyla dönülen (bfcache) sayfada düğme yeniden açılır.
+ */
+const CARD_FORM_SCRIPT = `(function(){
+var f=document.getElementById("pay"),n=document.getElementById("cc-number"),
+e=document.getElementById("cc-exp"),c=document.getElementById("cc-csc"),
+b=document.getElementById("pay-btn"),label=b.textContent;
+function digits(v){return v.replace(/\\D/g,"");}
+n.addEventListener("input",function(){
+n.value=digits(n.value).slice(0,19).replace(/(\\d{4})(?=\\d)/g,"$1 ");});
+e.addEventListener("input",function(ev){
+var d=digits(e.value).slice(0,4);
+if(ev.inputType&&ev.inputType.indexOf("delete")===0&&d.length<=2){e.value=d;return;}
+e.value=d.length>=2?d.slice(0,2)+"/"+d.slice(2):d;});
+c.addEventListener("input",function(){c.value=digits(c.value).slice(0,4);});
+f.addEventListener("submit",function(ev){
+if(f.getAttribute("data-sent")){ev.preventDefault();return;}
+f.setAttribute("data-sent","1");b.disabled=true;
+b.textContent="Bankaya yönlendiriliyorsun…";});
+window.addEventListener("pageshow",function(ev){
+if(ev.persisted){f.removeAttribute("data-sent");b.disabled=false;b.textContent=label;}});
+})();`;
+
+export interface CardFormState {
+  /** İmzalı yük ve imzası - forma gizli alan olarak geri yazılır. */
+  data: string;
+  signature: string;
+  /** PayNkolay biçiminde tutar (`1280.10`), imzalı yükten. */
+  amount: string;
+  /** Müşteriye gösterilecek hata ve hangi alana ait olduğu. */
+  error?: { message: string; field?: CardField };
+  /**
+   * Hata sonrası geri yazılabilecek alanlar. Kart numarası ve CVV BURADA
+   * YOKTUR: bir hata sayfası kartı asla geri basmaz.
+   */
+  holderName?: string;
+  expiry?: string;
+}
+
+function invalid(state: CardFormState, field: CardField): string {
+  return state.error?.field === field
+    ? ' aria-invalid="true" aria-describedby="pay-error"'
+    : "";
+}
+
+export function renderCardForm(state: CardFormState): PaynkolayPage {
+  const minor = paynkolayAmountToMinor(state.amount);
+  const amount = minor === null ? state.amount : priceLabel(minor);
+  const error = state.error
+    ? `<p class="alert" id="pay-error" role="alert">${escapeHtml(state.error.message)}</p>`
+    : "";
+  return page({
+    title: "Kartla öde · L'Affogato",
+    formAction: "'self'",
+    script: CARD_FORM_SCRIPT,
+    body: `<main>
+<p class="brand">L'Affogato</p>
+<h1>Kartla öde</h1>
+<p class="amount"><span>Ödenecek tutar</span><strong>${escapeHtml(amount)}</strong></p>
+${error}
+<form id="pay" method="post" action="${PAYNKOLAY_BRIDGE_PATH}" autocomplete="on">
+<label for="cc-name">Kart üzerindeki ad</label>
+<input id="cc-name" name="${CARD_FORM_FIELDS.holderName}" autocomplete="cc-name" autocapitalize="characters" spellcheck="false" maxlength="60" required value="${escapeHtml(state.holderName ?? "")}"${invalid(state, "holderName")}>
+<label for="cc-number">Kart numarası</label>
+<input id="cc-number" name="${CARD_FORM_FIELDS.number}" autocomplete="cc-number" inputmode="numeric" spellcheck="false" maxlength="23" placeholder="0000 0000 0000 0000" required${invalid(state, "number")}>
+<div class="row">
+<div>
+<label for="cc-exp">Son kullanma</label>
+<input id="cc-exp" name="${CARD_FORM_FIELDS.expiry}" autocomplete="cc-exp" inputmode="numeric" maxlength="7" placeholder="AA/YY" required value="${escapeHtml(state.expiry ?? "")}"${invalid(state, "expiry")}>
+</div>
+<div>
+<label for="cc-csc">Güvenlik kodu</label>
+<input id="cc-csc" name="${CARD_FORM_FIELDS.cvv}" autocomplete="cc-csc" inputmode="numeric" maxlength="4" placeholder="CVV" required${invalid(state, "cvv")}>
+</div>
+</div>
+<input type="hidden" name="d" value="${escapeHtml(state.data)}">
+<input type="hidden" name="s" value="${escapeHtml(state.signature)}">
+<button type="submit" id="pay-btn">${escapeHtml(amount)} öde</button>
+</form>
+<p class="note">${LOCK_ICON}<span>Kart bilgilerin kaydedilmez; yalnızca bu ödeme için şifreli bağlantıyla ödeme kuruluşuna iletilir. Ödemeyi kartını veren bankanın 3D Secure ekranında onaylarsın.</span></p>
+<p class="psp">Ödeme altyapısı: PayNkolay · N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.</p>
+</main>`,
+  });
+}
+
+/** Kart formunun yerine çizilen, devam edilemeyen durum sayfası. */
+export function renderPaymentNotice(
+  title: string,
+  message: string,
+): PaynkolayPage {
+  return page({
+    title: `${title} · L'Affogato`,
+    formAction: "'none'",
+    body: `<main class="center">
+<p class="brand">L'Affogato</p>
+<h1>${escapeHtml(title)}</h1>
+<p class="lead">${escapeHtml(message)}</p>
+</main>`,
+  });
+}
+
+// ── Bankanın 3D formu ──────────────────────────────────────────────────────
+
+/**
+ * PayNkolay'ın döndürdüğü `BANK_REQUEST_MESSAGE`'ı müşteriye verirken
+ * kullanılacak CSP.
+ *
+ * HTML PayNkolay'dan, sunucudan sunucuya TLS ile geliyor ve olduğu gibi
+ * verilir: bir `<form>` + kendini bankanın ACS adresine gönderen satır içi
+ * betik (sandbox'ta QNB: `frm.action = 'https://…/Default.aspx'; frm.submit()`;
+ * bazı bankalar `<body onload=…>` kullanır). Betiğe `'unsafe-inline'` yerine
+ * BU yanıttaki her satır içi betiğin ve olay özniteliğinin özeti izin verilir;
+ * HTML'e sonradan sızan bir betik çalışmaz. `form-action https:` çünkü ACS
+ * hostu bankaya göre değişir ve önceden bilinemez - düz `http:` hedefe kart
+ * akışı yine engellenir.
+ */
+export function bankChallengePage(html: string): PaynkolayPage {
+  const scriptSources = new Set<string>();
+  let hasHandlers = false;
+
+  for (const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)) {
+    const src = /\bsrc\s*=\s*["']?([^"'\s>]+)/i.exec(m[1])?.[1];
+    if (src) {
+      try {
+        const url = new URL(src);
+        if (url.protocol === "https:") scriptSources.add(url.origin);
+      } catch {
+        // Göreli adres bizim origin'imize çözülür; izin verilmez.
+      }
+      continue;
+    }
+    scriptSources.add(sha256Source(m[2]));
+  }
+  for (const m of html.matchAll(/\son[a-z]+\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)) {
+    hasHandlers = true;
+    scriptSources.add(sha256Source(m[1] ?? m[2] ?? ""));
+  }
+
+  const scriptSrc = scriptSources.size
+    ? [...(hasHandlers ? ["'unsafe-hashes'"] : []), ...scriptSources].join(" ")
+    : "'none'";
+  const csp = [
+    "default-src 'none'",
+    `script-src ${scriptSrc}`,
+    // Banka işaretlemesi değişken; stil bir betik vektörü değil.
+    "style-src 'unsafe-inline'",
+    "img-src https: data:",
+    "font-src https: data:",
+    // 3DS2 cihaz parmak izi gizli bir iframe'le alınabiliyor.
+    "frame-src https:",
+    "form-action https:",
+    "frame-ancestors 'none'",
+    "base-uri 'none'",
+  ].join("; ");
+  return { html, csp };
+}

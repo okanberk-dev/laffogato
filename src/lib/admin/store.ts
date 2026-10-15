@@ -3199,14 +3199,14 @@ export async function applyPaymentSucceeded(input: {
  *
  * The ledger row is keyed on `${providerRef}:refund`, NOT on the bare
  * reference. `payment_txn_provider_ref_key` is (provider, "providerRef") with
- * no status column, and iyzico derives the same `paymentId` for a charge and
- * for its later refund - so the bare reference collided with the succeeded
+ * no status column, and a provider may derive the same reference for a charge
+ * and for its later refund - so the bare reference collided with the succeeded
  * row that is always inserted first, every provider-side refund was mistaken
  * for a duplicate notification, and the order silently stayed `paid` while
  * the money had left. Suffixing the refund gives the two events distinct
  * identities without a migration.
  *
- * Limitation worth naming: iyzico's notification carries no per-refund id, so
+ * Limitation worth naming: a notification that carries no per-refund id means
  * two SEPARATE partial refunds from the provider produce the same suffixed
  * reference and only the first is recorded. Partial refunds issued from the
  * admin panel go through `refundOrder`, which is unaffected.
