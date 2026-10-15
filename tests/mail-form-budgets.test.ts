@@ -21,6 +21,8 @@ const createPasswordResetToken = vi.fn();
 const registerCustomer = vi.fn();
 const createVerificationToken = vi.fn();
 const getActiveCustomer = vi.fn();
+const changeCustomerPassword = vi.fn();
+const clearLoginLimit = vi.fn();
 const sendPasswordResetEmail = vi.fn(async () => true);
 const sendVerificationEmail = vi.fn(async () => true);
 
@@ -39,7 +41,7 @@ vi.mock("@/lib/customer/auth", () => ({
 vi.mock("@/lib/customer/store", () => ({
   addCustomerAddress: vi.fn(),
   adoptSupabasePassword: vi.fn(),
-  changeCustomerPassword: vi.fn(),
+  changeCustomerPassword,
   checkSitePassword: vi.fn(),
   createPasswordResetToken,
   createVerificationToken,
@@ -64,7 +66,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 vi.mock("@/lib/mobile/me", () => ({ deleteMe: vi.fn() }));
 vi.mock("@/lib/admin/rate-limit", () => ({
-  clearLoginLimit: vi.fn(),
+  clearLoginLimit,
   clientIp: vi.fn(async () => "203.0.113.9"),
   reserveLoginAttempt,
 }));
@@ -77,8 +79,12 @@ vi.mock("@/lib/email/send", () => ({
   sendPasswordResetEmail,
 }));
 
-const { requestPasswordResetAction, registerAction, resendVerificationAction } =
-  await import("@/app/uye/actions");
+const {
+  changePasswordAction,
+  requestPasswordResetAction,
+  registerAction,
+  resendVerificationAction,
+} = await import("@/app/uye/actions");
 
 function fd(fields: Record<string, string>): FormData {
   const f = new FormData();
@@ -191,5 +197,54 @@ describe("verification re-send", () => {
     );
     expect(createVerificationToken).not.toHaveBeenCalled();
     expect(sendVerificationEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe("password checks behind a session", () => {
+  const change = () =>
+    fd({
+      currentPassword: "tahmin-1",
+      newPassword: "yeni-sifre-123",
+      newPasswordConfirm: "yeni-sifre-123",
+    });
+
+  beforeEach(() => {
+    getActiveCustomer.mockResolvedValue({
+      email: "eda@example.com",
+      emailVerified: true,
+    });
+  });
+
+  it("counts a current-password guess against the login budget", async () => {
+    changeCustomerPassword.mockResolvedValue({
+      ok: false,
+      error: "Mevcut şifre hatalı.",
+    });
+    const res = await changePasswordAction({}, change());
+    expect(res.error).toBe("Mevcut şifre hatalı.");
+    expect(reserveLoginAttempt).toHaveBeenCalledWith(
+      "customer-login",
+      "203.0.113.9",
+      "eda@example.com",
+    );
+    expect(clearLoginLimit).not.toHaveBeenCalled();
+  });
+
+  it("stops checking once the budget is spent", async () => {
+    blockOnly("customer-login");
+    const res = await changePasswordAction({}, change());
+    expect(res.error).toMatch(/çok fazla başarısız deneme/i);
+    expect(changeCustomerPassword).not.toHaveBeenCalled();
+  });
+
+  it("clears the budget after the right password", async () => {
+    changeCustomerPassword.mockResolvedValue({ ok: true });
+    const res = await changePasswordAction({}, change());
+    expect(res.message).toBeTruthy();
+    expect(clearLoginLimit).toHaveBeenCalledWith(
+      "customer-login",
+      "203.0.113.9",
+      "eda@example.com",
+    );
   });
 });

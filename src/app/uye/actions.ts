@@ -580,8 +580,21 @@ export async function changePasswordAction(
   const newPw = String(formData.get("newPassword") ?? "");
   const confirm = String(formData.get("newPasswordConfirm") ?? "");
   if (newPw !== confirm) return { error: "Yeni şifreler eşleşmiyor." };
+  // The current password is checked here, so this form is a password oracle
+  // for whoever holds the session - a cookie lifted from a shared computer
+  // could guess it without limit (and learn a password the member may use
+  // elsewhere), each guess also a Supabase sign-in from our servers for an
+  // app member. It shares the login form's budget.
+  const ip = await clientIp();
+  const limit = await reserveLoginAttempt("customer-login", ip, current.email);
+  if (limit.blocked) {
+    return {
+      error: `Çok fazla başarısız deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
+    };
+  }
   const result = await changeCustomerPassword(current.email, currentPw, newPw);
   if (!result.ok) return { error: result.error };
+  await clearLoginLimit("customer-login", ip, current.email);
   // The mirror lives in `changeCustomerPassword` now, with the service role
   // and a record of whether it landed. It used to be here, conditional on this
   // browser holding a Supabase session - so the same change mirrored or not
@@ -753,6 +766,14 @@ export async function deleteAccountAction(
   }
 
   const password = String(formData.get("password") ?? "");
+  // Same oracle as the password change: counted against the login budget.
+  const ip = await clientIp();
+  const limit = await reserveLoginAttempt("customer-login", ip, current.email);
+  if (limit.blocked) {
+    return {
+      error: `Çok fazla başarısız deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
+    };
+  }
   const check = await checkSitePassword(current.email, password);
   if (check === "mismatch") return { error: "Şifre hatalı." };
 
