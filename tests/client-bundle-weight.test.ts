@@ -22,7 +22,13 @@ const ROOT = process.cwd();
 const SRC = join(ROOT, "src");
 
 /** Packages the storefront must never pull into the browser. */
-const DENIED = ["zod", "pg", "bcryptjs", "server-only", "@supabase/supabase-js"];
+const DENIED = [
+  "zod",
+  "pg",
+  "bcryptjs",
+  "server-only",
+  "@supabase/supabase-js",
+];
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -87,7 +93,8 @@ function deniedReach(entry: string): string[] {
     for (const spec of specifiers(src)) {
       if (spec.startsWith(".") || spec.startsWith("@/")) {
         const next = resolveLocal(file, spec);
-        if (next) stack.push({ file: next, trail: [...trail, relative(ROOT, next)] });
+        if (next)
+          stack.push({ file: next, trail: [...trail, relative(ROOT, next)] });
       } else if (DENIED.includes(packageName(spec))) {
         hits.push(`${[...trail, spec].join(" -> ")}`);
       }

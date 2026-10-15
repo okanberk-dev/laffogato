@@ -12,7 +12,10 @@ import { PageHero } from "./page-hero";
 // it ships all of Zod to the browser. The quote maths comes from the
 // dependency-free module instead.
 import type { KaraokeAvailability } from "@/lib/mobile/karaoke-core";
-import { karaokeDiscountPctFor, quoteKaraoke } from "@/lib/mobile/karaoke-quote";
+import {
+  karaokeDiscountPctFor,
+  quoteKaraoke,
+} from "@/lib/mobile/karaoke-quote";
 import { priceLabel } from "@/lib/utils/format";
 
 const DAY_NAMES = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"];
@@ -83,8 +86,7 @@ export function KaraokeBooking({
   );
 
   const quote = useMemo(
-    () =>
-      quoteKaraoke(hours, hourly, tier, availability?.oroDiscountPct ?? 15),
+    () => quoteKaraoke(hours, hourly, tier, availability?.oroDiscountPct ?? 15),
     [hours, hourly, tier, availability?.oroDiscountPct],
   );
 

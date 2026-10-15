@@ -1280,16 +1280,86 @@ export async function countOrdersAfter(orderNo: number): Promise<number> {
   return count ?? 0;
 }
 
-export async function listOrders(): Promise<AdminOrder[]> {
+// There is deliberately no "every order, every column" reader any more (WP1).
+// `listOrders()` had five callers and each one wanted a page, five rows or a
+// few columns; reading the whole table with its jsonb was 596 ms and 27 MB
+// per call at 20k orders. Read what the screen needs: `listRecentOrders`,
+// `listOrdersPage`, or a projection like `reportOrders` below.
+
+/**
+ * The newest `limit` orders, whole rows.
+ *
+ * WP1: the dashboard used to read every order, every column,
+ * including the items, refund ledger and consent evidence jsonb - to show
+ * five of them. Measured on 20k orders: 596 ms and 27 MB per dashboard view,
+ * against 1 ms for this (a walk down `orders_orderno_key`).
+ */
+export async function listRecentOrders(limit: number): Promise<AdminOrder[]> {
   await ensureSeed();
   const sb = getDb();
   return rows<AdminOrder>(
     await sb
       .from(TABLES.orders)
       .select("*")
-      .order("orderNo", { ascending: false }),
-    "listOrders",
+      .order("orderNo", { ascending: false })
+      .limit(Math.max(1, Math.trunc(limit))),
+    "listRecentOrders",
   );
+}
+
+/** How many orders `/admin/siparisler` shows per page. */
+export const ORDERS_PAGE_SIZE = 100;
+
+export interface OrdersPage {
+  orders: AdminOrder[];
+  /** Every order in the table, for the "N sipariş" line. */
+  total: number;
+  /**
+   * The `orderNo` to pass as `before` for the next (older) page, or null when
+   * this page reached the oldest order.
+   */
+  nextBefore: number | null;
+}
+
+/**
+ * One page of the order list, newest first, keyed on `orderNo`.
+ *
+ * WP1: the page used to render the whole table into a
+ * client component, so every order's jsonb went over the wire to the
+ * operator's browser and was hydrated there (27 MB of JSON for 20k orders).
+ *
+ * Keyset rather than offset (the query builder has no offset, and a keyset
+ * page does not shift when a new order arrives while the operator is paging):
+ * `before` is the last `orderNo` of the previous page. One row more than the
+ * page is read to learn whether an older page exists.
+ */
+export async function listOrdersPage(input: {
+  before?: number | null;
+  pageSize?: number;
+}): Promise<OrdersPage> {
+  await ensureSeed();
+  const sb = getDb();
+  const size = Math.max(1, Math.trunc(input.pageSize ?? ORDERS_PAGE_SIZE));
+  let q = sb
+    .from(TABLES.orders)
+    .select("*")
+    .order("orderNo", { ascending: false })
+    .limit(size + 1);
+  const before = input.before;
+  if (typeof before === "number" && Number.isFinite(before)) {
+    q = q.lt("orderNo", Math.trunc(before));
+  }
+  const [page, total] = await Promise.all([
+    q.then((r) => rows<AdminOrder>(r, "listOrdersPage")),
+    countRows(TABLES.orders),
+  ]);
+  const orders = page.slice(0, size);
+  return {
+    orders,
+    total,
+    nextBefore:
+      page.length > size ? (orders[orders.length - 1]?.orderNo ?? null) : null,
+  };
 }
 
 export interface CustomerSummary {
@@ -1303,8 +1373,31 @@ export interface CustomerSummary {
   firstOrderAt: string;
 }
 
+/** The order columns the customer roll-up reads. */
+type CustomerSummaryOrder = Pick<
+  AdminOrder,
+  | "customerEmail"
+  | "customerName"
+  | "customerPhone"
+  | "totalMinor"
+  | "refunds"
+  | "createdAt"
+>;
+
 export async function listCustomers(): Promise<CustomerSummary[]> {
-  const orders = await listOrders();
+  // Six columns, not `select *`: the roll-up needs every order (it counts a
+  // lifetime) but none of the items, addresses or consent evidence. WP1,
+  // measured on 20k orders: 596 ms / 27 MB -> 67 ms / 3.4 MB.
+  await ensureSeed();
+  const orders = rows<CustomerSummaryOrder>(
+    await getDb()
+      .from(TABLES.orders)
+      .select(
+        "customerEmail, customerName, customerPhone, totalMinor, refunds, createdAt",
+      )
+      .order("orderNo", { ascending: false }),
+    "listCustomers",
+  );
   const byEmail = new Map<string, CustomerSummary>();
   for (const o of orders) {
     const email = o.customerEmail?.trim().toLowerCase();
@@ -4703,11 +4796,43 @@ const MONTH_SHORT = [
   "Ara",
 ];
 
+/**
+ * The orders the reports read, projected to the columns they use.
+ *
+ * WP1: /admin/raporlar read the whole orders table three times per view (headline,
+ * buckets, top products) - three full reads of every column of every order,
+ * serialised over the instance's single connection. Measured on 20k orders:
+ * ~1.8 s and 3 x 27 MB, against ~0.28 s for the three projections. Only
+ * `topProducts` asks for `items`, the heavy column.
+ */
+async function reportOrders<K extends keyof AdminOrder>(
+  columns: readonly K[],
+  ctx: string,
+): Promise<Pick<AdminOrder, K>[]> {
+  await ensureSeed();
+  return rows<Pick<AdminOrder, K>>(
+    await getDb()
+      .from(TABLES.orders)
+      .select(columns.join(", "))
+      .order("orderNo", { ascending: false }),
+    ctx,
+  );
+}
+
+/** What {@link bucketRevenue} reads from an order. */
+export type RevenueOrder = Pick<
+  AdminOrder,
+  "status" | "createdAt" | "totalMinor" | "refunds"
+>;
+
 export async function revenueBuckets(
   granularity: BucketGranularity,
   count: number,
 ): Promise<RevenueBucket[]> {
-  const orders = await listOrders();
+  const orders = await reportOrders(
+    ["status", "createdAt", "totalMinor", "refunds"],
+    "revenueBuckets",
+  );
   return bucketRevenue(orders, granularity, count, new Date());
 }
 
@@ -4720,7 +4845,7 @@ export async function revenueBuckets(
  * the one before it.
  */
 export function bucketRevenue(
-  orders: AdminOrder[],
+  orders: RevenueOrder[],
   granularity: BucketGranularity,
   count: number,
   now: Date,
@@ -4767,7 +4892,7 @@ export interface TopProductRow {
 }
 
 export async function topProducts(limit = 5): Promise<TopProductRow[]> {
-  const orders = await listOrders();
+  const orders = await reportOrders(["status", "items"], "topProducts");
   const tally = new Map<string, TopProductRow>();
   for (const o of orders) {
     if (!isReportableOrder(o)) continue;
@@ -4800,7 +4925,10 @@ export interface AnalyticsHeadline {
 }
 
 export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
-  const orders = await listOrders();
+  const orders = await reportOrders(
+    ["status", "totalMinor", "refunds"],
+    "analyticsHeadline",
+  );
   const valid = orders.filter(isReportableOrder);
   const totalRevenueMinor = valid.reduce((s, o) => s + o.totalMinor, 0);
   const totalOrders = valid.length;

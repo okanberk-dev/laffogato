@@ -6,7 +6,7 @@ import { canAccess } from "@/lib/admin/roles";
 import {
   getDashboardStats,
   getSettings,
-  listOrders,
+  listRecentOrders,
   type AdminOrderStatus,
 } from "@/lib/admin/store";
 import { emailHealth } from "@/lib/email/health";
@@ -57,13 +57,14 @@ function todayLabel(): string {
 export default async function AdminDashboardPage({ searchParams }: PageProps) {
   const session = await requireRole("dashboard");
   const sp = await searchParams;
-  const [stats, orders, settings, mail] = await Promise.all([
+  const [stats, recent, settings, mail] = await Promise.all([
     getDashboardStats(),
-    listOrders(),
+    // Five rows, read as five rows: this used to be every order in the
+    // table, sliced here (WP1).
+    listRecentOrders(5),
     getSettings(),
     emailHealth(),
   ]);
-  const recent = orders.slice(0, 5);
 
   const userLabel = session.email.split("@")[0];
 
