@@ -130,6 +130,20 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // The 610 KB pour widget (pour-module.tsx) was served max-age=0 and
+        // re-validated on every home visit. Not the day-long rule above: the
+        // file is rebuilt IN PLACE under the same name (be2e506 did), so a
+        // long cache would pin visitors to an old build. An hour, then a day
+        // of background revalidation, bounds that to one stale load.
+        source: "/laffogato-pour.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600, stale-while-revalidate=86400",
+          },
+        ],
+      },
     ];
   },
 };
