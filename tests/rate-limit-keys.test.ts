@@ -87,6 +87,8 @@ describe("mail-sending budgets", () => {
     ["newsletter-signup-ip", 5, 60 * MIN],
     ["register-ip", 10, 30 * MIN],
     ["verify-resend", 3, 15 * MIN],
+    ["admin-login-ip", 20, 15 * MIN],
+    ["customer-login-ip", 30, 15 * MIN],
   ] as const)("%s allows %i, then locks", async (purpose, max, lockout) => {
     await reserveLoginAttempt(purpose, "203.0.113.7", "*");
     expect(lastCall().p_max_fails).toBe(max);

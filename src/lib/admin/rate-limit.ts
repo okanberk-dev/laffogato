@@ -36,6 +36,8 @@ export type AuthPurpose =
   | "register-ip"
   | "password-reset-ip"
   | "verify-resend"
+  | "admin-login-ip"
+  | "customer-login-ip"
   | "staff-stamp"
   | "checkout-reopen";
 
@@ -66,6 +68,15 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // member: an account registered with a stranger's address could otherwise
   // re-send to that inbox in a loop.
   "verify-resend": 3,
+  // Sign-ins from one address across ALL accounts. The per-account keys give
+  // every address five tries at each e-mail, so one address could walk a
+  // leaked e-mail/password list (credential stuffing) or spray one password
+  // over every panel account and never meet a limit - and each refused admin
+  // attempt writes a `login_fail` audit row. Every attempt counts, success
+  // included: clearing on success would let an attacker reset the budget by
+  // signing in to an account of their own between guesses.
+  "admin-login-ip": 20,
+  "customer-login-ip": 30,
   // The one-click unsubscribe route (RFC 8058 POST). Its "failure" is a
   // token that matched nothing - unknown or already spent; a valid opt-out
   // never counts, because the POST comes from the mail provider's shared
@@ -109,6 +120,8 @@ const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "password-reset-ip": 30 * 60 * 1000,
   "register-ip": 30 * 60 * 1000,
   "verify-resend": 15 * 60 * 1000,
+  "admin-login-ip": 15 * 60 * 1000,
+  "customer-login-ip": 15 * 60 * 1000,
 };
 
 function lockoutMs(purpose: AuthPurpose): number {

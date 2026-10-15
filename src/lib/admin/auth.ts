@@ -251,7 +251,12 @@ export async function signInAdmin(
   // Counted BEFORE the credentials are checked (reserveLoginAttempt): a
   // burst sent in parallel used to pass the check all at once and get every
   // guess verified. A success clears the key below.
-  const limit = await reserveLoginAttempt("admin-login", ip, email);
+  // Per address across every account first (credential stuffing, password
+  // spraying), then this address + account.
+  const perAddress = await reserveLoginAttempt("admin-login-ip", ip, "*");
+  const limit = perAddress.blocked
+    ? perAddress
+    : await reserveLoginAttempt("admin-login", ip, email);
   if (limit.blocked) {
     return {
       ok: false,

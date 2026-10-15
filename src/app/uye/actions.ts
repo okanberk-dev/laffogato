@@ -343,7 +343,13 @@ export async function loginAction(
   try {
     // Counted BEFORE the password is checked (reserveLoginAttempt), so a
     // burst sent in parallel cannot get more guesses than the cap.
-    const limit = await reserveLoginAttempt("customer-login", ip, email);
+    // The address's budget across every account goes first: per account
+    // alone, one address could try a leaked e-mail/password list one
+    // account at a time and never meet a limit.
+    const perAddress = await reserveLoginAttempt("customer-login-ip", ip, "*");
+    const limit = perAddress.blocked
+      ? perAddress
+      : await reserveLoginAttempt("customer-login", ip, email);
     if (limit.blocked) {
       return {
         error: `Çok fazla başarısız deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
