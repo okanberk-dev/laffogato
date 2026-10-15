@@ -439,3 +439,16 @@ ve `docs/API-MOBILE.md` uygulamanın okuduğu alanlarla karşılaştırıldı.
 | 🟢 | Sipariş adresi, kayıtlı adres ve `PATCH /me` telefonları yalnız uzunlukla doğrulanıyor; `normalizeTrPhone` kullanılmıyor | Ayrı PR: doğrulamayı sıkılaştırmak eski sürümlerin gönderdiğini reddedebilir, önce ölçülmeli |
 | 🟢 | Davet ödülünün 150 TL alt sınırı kurye ücretini de içeren `totalMinor` ile ölçülüyor | Operatör kararı: alt sınır kurye ücretini sayar mı |
 | 🟢 | Hangi kafe kategorilerinin özelleştirilemeyeceği yalnız uygulamada (`NON_CUSTOMIZABLE`); sunucu her satıra süt/şurup/shot ek ücretini uygular | Ayrı PR: uygulama bu kategorilerde özelleştirme göndermez, sunucu tarafı sertleştirme |
+
+## 10. Hız turu (WP1) - 15 Eki 2026
+
+Operatör: _"kötü niyetli kişilere karşı güvenlik önlemi al, güvenli ve hızlı
+yap"_. Bu bölüm hız kolunun bulgularıdır: uygulamanın her açılışta okuduğu
+mobil uçlar, sitenin genel sayfaları ve admin listeleri. Sayılar yerel
+Postgres 16'da (`EXPLAIN ANALYZE`) ve `next build` çıktısında ölçüldü.
+
+### Düzeltilenler
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Üye e-postasıyla tam eşleşen okumalar (`"col" = $1`) tablonun `lower(col)` indeksini kullanamıyordu: her bearer isteğindeki `customers` okuması, `/me` · `/orders` · `/notifications`'taki damga defteri, kuponlar, kasa kodları ve davetler tam tablo taraması yapıyordu (20 bin üye / 200 bin damgada üye başına 1,9 ms ve 20 ms) | Düz kolon indeksleri (`20261015060020_exact_email_indexes.sql`); sonuçlar aynı kalır. 0,12 ms ve 0,16 ms | `db-exact-email-indexes` |
