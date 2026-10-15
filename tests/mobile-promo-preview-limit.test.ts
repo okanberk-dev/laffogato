@@ -68,7 +68,7 @@ vi.mock("@/lib/admin/store", () => ({
   previewAppOrderLines: vi.fn(),
   settleWalletPayment: vi.fn(),
 }));
-vi.mock("@/lib/customer/store", () => ({ getCardUserKey: async () => "" }));
+vi.mock("@/lib/customer/store", () => ({ ensureCardUserKey: async () => "" }));
 vi.mock("@/lib/customer/coupons", () => ({
   applyCustomerCoupon: vi.fn(async () => ({ ok: false, found: false })),
   couponAllowedForKind: () => true,

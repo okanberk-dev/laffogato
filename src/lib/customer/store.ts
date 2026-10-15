@@ -7,6 +7,10 @@ import type { DbError } from "@/lib/db";
 
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
+import {
+  newPaynkolayMemberKey,
+  PAYNKOLAY_MEMBER_KEY,
+} from "@/lib/payment/paynkolay";
 import { updateSupabasePassword } from "@/lib/supabase/admin";
 import { getSupabaseAnonClient } from "@/lib/supabase/anon";
 
@@ -367,8 +371,7 @@ export async function registerCustomer(
 }
 
 export type VerifyResult =
-  | { ok: true; email: string }
-  | { ok: false; error: string };
+  { ok: true; email: string } | { ok: false; error: string };
 
 /** Marks a customer verified given a valid, unexpired token (single-use). */
 export async function verifyCustomerEmail(
@@ -515,8 +518,7 @@ export async function createPasswordResetToken(
 }
 
 export type ResetResult =
-  | { ok: true; email: string }
-  | { ok: false; error: string };
+  { ok: true; email: string } | { ok: false; error: string };
 
 /**
  * Spends a reset token and sets the new password.
@@ -600,8 +602,7 @@ export interface LoginInput {
 }
 
 export type LoginResult =
-  | { ok: true; customer: PublicCustomer }
-  | { ok: false; error: string };
+  { ok: true; customer: PublicCustomer } | { ok: false; error: string };
 
 export async function verifyCustomerLogin(
   input: LoginInput,
@@ -904,8 +905,7 @@ function normalizeAddress(input: AddressInput, id: string): CustomerAddress {
 }
 
 export type AddressResult =
-  | { ok: true; customer: PublicCustomer }
-  | { ok: false; error: string };
+  { ok: true; customer: PublicCustomer } | { ok: false; error: string };
 
 function validateAddress(input: AddressInput): string | null {
   if (input.recipientName.trim().length < 2) return "Alıcı adı zorunlu.";
@@ -1026,19 +1026,47 @@ export async function setCustomerDefaultAddress(
 // ─── Saved cards ──────────────────────────────────────────────────────────
 
 /**
- * The payment provider's key for this member's stored cards.
+ * The member's key for the cards PayNkolay stores for them (docs/PAYNKOLAY.md
+ * §16): a random 11-character value this server generates, sent to the POS as
+ * `csCustomerKey`. Not a card, not a national ID or phone number.
  *
  * Server-only on purpose. It is deliberately NOT part of `PublicCustomer` and
  * never reaches `/me`: the app has no use for it, and a value that only the
- * server needs is a value the client should never be handed. It is not a card
- * number - the card is typed on the provider's own page and stays there - but
- * it does point at one, so it is treated as identifying data and cleared when
- * the account is closed.
+ * server needs is a value the client should never be handed. It does point at
+ * stored cards, so it is treated as identifying data and cleared when the
+ * account is closed (after the cards themselves are deleted at the POS).
  */
 export async function getCardUserKey(email: string): Promise<string> {
   const row = await fetchCustomer(normalizeEmail(email));
   const key = (row as { cardUserKey?: unknown } | null)?.cardUserKey;
   return typeof key === "string" ? key : "";
+}
+
+/**
+ * The member's card key, created on first use.
+ *
+ * Compare-and-set: the new key is written only while the column still holds
+ * what was read, then the stored value is read back. Two checkouts opened at
+ * once by the same member therefore end up with ONE key - with a plain write
+ * the second would overwrite the first, and a card saved under the first key
+ * would vanish from the member's list.
+ */
+export async function ensureCardUserKey(email: string): Promise<string> {
+  const needle = normalizeEmail(email);
+  if (!needle) return "";
+  const current = await getCardUserKey(needle);
+  if (PAYNKOLAY_MEMBER_KEY.test(current)) return current;
+  const { error } = await getDb()
+    .from(TABLES.customers)
+    .update({
+      cardUserKey: newPaynkolayMemberKey(),
+      updatedAt: new Date().toISOString(),
+    })
+    .eq("email", needle)
+    .eq("cardUserKey", current);
+  checkErr(error, "ensureCardUserKey");
+  const stored = await getCardUserKey(needle);
+  return PAYNKOLAY_MEMBER_KEY.test(stored) ? stored : "";
 }
 
 /**

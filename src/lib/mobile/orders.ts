@@ -26,7 +26,7 @@ import {
   type OrderLegalConsent,
   type PlaceAppOrderResult,
 } from "@/lib/admin/store";
-import { getCardUserKey } from "@/lib/customer/store";
+import { ensureCardUserKey } from "@/lib/customer/store";
 import {
   applyCustomerCoupon,
   couponAllowedForKind,
@@ -175,9 +175,10 @@ async function createAppPaymentSession(
   buyerIp: string,
 ): Promise<AppPayment> {
   const provider = getPaymentProvider();
-  // Saved cards: hand the provider the member's key so its form lists the
-  // cards they saved before. Empty on a first order, which is exactly right.
-  const cardUserKey = await getCardUserKey(customer.email);
+  // Saved cards: the member's key lets the payment page list the cards they
+  // saved at PayNkolay and save a new one (docs/PAYNKOLAY.md §16). Created on
+  // the member's first checkout.
+  const cardUserKey = await ensureCardUserKey(customer.email);
   const address = {
     city: "",
     district: "",
@@ -913,8 +914,7 @@ export interface AppOrderPreview {
 }
 
 export type PreviewAppOrderResult =
-  | { ok: true; preview: AppOrderPreview }
-  | { ok: false; failure: AppFailure };
+  { ok: true; preview: AppOrderPreview } | { ok: false; failure: AppFailure };
 
 /**
  * `POST /orders/preview`: the basket priced exactly as checkout will price

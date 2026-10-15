@@ -438,9 +438,13 @@ durum bozulmaya uygundur.
     loga, dosyaya yazılmaz; hata sayfası kart numarasını ve CVV'yi geri
     basmaz. Kart alanları yalnız dört dosyada geçer (`paynkolay-card.ts`,
     `paynkolay.ts`, `paynkolay-page.ts`, `odeme/paynkolay/route.ts`) ve bu
-    dosyalar DB/store import etmez. PayNkolay'ın kart saklama uçları
-    (`CardStorageCardRegister` vb.) kullanılmaz, `customerKey` boş, şemada kart
-    alanı yok. `tests/saved-cards.test.ts` + `tests/paynkolay-card-page.test.ts`
+    dosyalar DB/store import etmez. Kayıtlı kart **PayNkolay'da** durur
+    (operatör, 15 Eki 2026; `docs/PAYNKOLAY.md` §16): biz yalnız rastgele
+    11 karakterlik üye anahtarını (`customers."cardUserKey"`) tutarız, token
+    tarayıcıya gitmez, kaydetme kutusu işaretsiz gelir, hesap kapanınca
+    kartlar POS'tan silinir. `CardStorageCardRegister` (kart numarasıyla
+    ödemesiz saklama) kullanılmaz; ortak ödeme sayfasında `customerKey` boş;
+    şemada kart alanı yok; ödeme kaydında kart sahibinin adı tutulmaz. `tests/saved-cards.test.ts` + `tests/paynkolay-card-page.test.ts`
     tutar. Ödeme sayfası sitenin genel CSP'si dışındadır ve kendi, daha dar
     CSP'sini gönderir (üçüncü taraf betik yok, `frame-ancestors 'none'`); kart
     denemesi IP ve sipariş başına sınırlıdır (`card-payment-*`)
@@ -490,10 +494,11 @@ durum bozulmaya uygundur.
   dokunurken iki tuzağı unutma: `PAYNKOLAY_SUCCESS_URL` **ve**
   `PAYNKOLAY_FAIL_URL` ikisi de `/odeme/donus` olmalıdır (PayNkolay sonucu
   form-POST eder), ve `PAYMENT_PROVIDER` her ortamda tanımlı olmalıdır
-- **Kart saklamayı açma.** Operatör kararı: kart bilgisi saklanmaz (kural 28).
-  PayNkolay formundaki `customerKey` boş kalır; "kartımı kaydet", kart
-  numarasını yazan/loglayan bir yol ya da kart alanlarını dört dosyanın
-  dışına taşımak bu kararın değişmesini ister, önce kullanıcıya sor
+- **Kartı bizde saklama.** Operatör kararı: kart bilgisi bizde saklanmaz
+  (kural 28); kayıtlı kart yalnız PayNkolay'da. Kart numarasını yazan,
+  loglayan bir yol, kart alanlarını dört dosyanın dışına taşımak ya da
+  `CardStorageCardRegister` bu kararın değişmesini ister, önce kullanıcıya
+  sor
 - **Canlı anahtarlarla çekim denemesi yapma** — test hostu
   (`PAYNKOLAY_BASE_URL`) dışında gerçek kartla deneme operatörün işidir
 - **PayNkolay webhook'u ARAMA.** Sunucudan sunucuya bildirim yok

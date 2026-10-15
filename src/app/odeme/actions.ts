@@ -14,7 +14,7 @@ import { applyCustomerCoupon } from "@/lib/customer/coupons";
 import { sendOrderPlacedEmail } from "@/lib/email/send";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
 import { checkoutConsentVersion } from "@/lib/legal/store";
-import { getCardUserKey } from "@/lib/customer/store";
+import { ensureCardUserKey } from "@/lib/customer/store";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
 import { clientIp, reserveLoginAttempt } from "@/lib/admin/rate-limit";
@@ -299,8 +299,8 @@ export async function placeOrderAction(formData: FormData) {
     failureUrl: `${SITE.url}/odeme?error=payment`,
     buyerIp: legalConsent.ip,
     // The same saved cards as in the app: one member, one set of cards,
-    // whichever surface they check out from.
-    cardUserKey: (await getCardUserKey(customer.email)) || undefined,
+    // whichever surface they check out from (docs/PAYNKOLAY.md §16).
+    cardUserKey: (await ensureCardUserKey(customer.email)) || undefined,
   });
 
   redirect(session.redirectUrl);

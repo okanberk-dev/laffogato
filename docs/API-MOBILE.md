@@ -1081,6 +1081,13 @@ açar; kart uygulamanın kodundan hiç geçmez ve **sözleşme değişmedi**: ay
 PSP'nin kullanıldığı sunucu ayarıdır (`PAYMENT_PROVIDER`) ve bir kez zaten
 değişti.
 
+**Kayıtlı kart (15 Eki 2026):** ödeme sayfası üyenin sağlayıcıda saklı
+kartlarını listeler, "bu kartı kaydet" kutusu sunar (işaretsiz) ve kart
+silmeye izin verir. Kart sağlayıcıda durur; sunucu yalnız rastgele bir üye
+anahtarı tutar (web `docs/PAYNKOLAY.md` §16). Uygulamada değişen bir şey
+yok: kart seçimi de silme de aynı `redirectUrl` sayfasında olur. Aşağıdaki
+"v1'de kart saklama KAPALI" paragrafı tarihçedir.
+
 **v1'de kart saklama KAPALI.** Üretimdeki sağlayıcıda (PayNkolay) kart saklama
 kapsam dışı bırakıldı: alan adının üç ayrı yazımı dokümante edilmiş ve saklanan
 kartın anahtarının yanıtta hangi alanla döndüğü hiçbir sayfada yazmıyor (web

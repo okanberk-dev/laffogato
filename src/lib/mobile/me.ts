@@ -12,6 +12,7 @@ import {
 import { isActiveBarista } from "@/lib/admin/staff-members";
 import { appendConsentChanges } from "@/lib/customer/consent-ledger";
 import {
+  getCardUserKey,
   getCustomerByEmail,
   updateCustomerProfile,
   updateNotificationPrefs,
@@ -22,6 +23,8 @@ import {
 } from "@/lib/customer/store";
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
+import { getPaymentProvider } from "@/lib/payment";
+import { PaynkolayPaymentProvider } from "@/lib/payment/paynkolay";
 import {
   subscribeNewsletter,
   unsubscribeNewsletterByEmail,
@@ -77,7 +80,9 @@ export async function buildMe(customer: PublicCustomer): Promise<MeResponse> {
       ...loyalty,
       // Karar 175: the road map of milestone gifts, and each tier's perks -
       // only those the server applies.
-      ...(grants ? { milestones: milestoneRoadmap(loyalty.lifetimeStamps, grants) } : {}),
+      ...(grants
+        ? { milestones: milestoneRoadmap(loyalty.lifetimeStamps, grants) }
+        : {}),
       perksByTier: perksByTier(settings.mobileApp.karaoke.oroDiscountPct),
     },
     invite,
@@ -333,7 +338,10 @@ export const ANON_SWEEPS: ReadonlyArray<{
     table: TABLES.featureConsents,
     column: "customerEmail",
     caseInsensitive: true,
-    patch: (anon) => ({ customerEmail: anon, revokedAt: new Date().toISOString() }),
+    patch: (anon) => ({
+      customerEmail: anon,
+      revokedAt: new Date().toISOString(),
+    }),
   },
   {
     // fA'L's usage record: the next owner of the address must not inherit
@@ -431,6 +439,30 @@ async function redactPaymentPayloads(
 }
 
 /** The Supabase user this row is linked to, or "" when it never was. */
+/**
+ * Asks PayNkolay to delete the cards it stores for this member (docs/
+ * PAYNKOLAY.md §16) before the key that points at them is cleared below.
+ *
+ * Best effort: a POS that cannot be reached must not keep a member from
+ * closing their account. The key is logged on failure so the cards can be
+ * removed by hand - it is a random 11-character value, not personal data.
+ */
+async function deleteSavedCardsAtPos(email: string): Promise<void> {
+  let key = "";
+  try {
+    key = await getCardUserKey(email);
+    if (!key) return;
+    const provider = getPaymentProvider();
+    if (!(provider instanceof PaynkolayPaymentProvider)) return;
+    await provider.deleteAllSavedCards(key);
+  } catch (err) {
+    console.error(
+      `[deleteMe] saved cards not deleted at the POS key=${key || "?"}:`,
+      err instanceof Error ? err.message : "unknown error",
+    );
+  }
+}
+
 async function linkedIdentityId(email: string): Promise<string> {
   const { data, error } = await getDb()
     .from(TABLES.customers)
@@ -497,6 +529,7 @@ export async function deleteMe(
 
   const identityId = await linkedIdentityId(customer.email);
   await cancelFutureKaraoke(customer.email, at);
+  await deleteSavedCardsAtPos(customer.email);
   const { error } = await getDb()
     .from(TABLES.customers)
     .update({

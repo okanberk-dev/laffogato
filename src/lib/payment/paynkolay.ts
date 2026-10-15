@@ -4,6 +4,7 @@ import {
   createHash,
   createHmac,
   randomBytes,
+  randomInt,
   timingSafeEqual,
 } from "node:crypto";
 
@@ -156,7 +157,49 @@ export interface PaynkolayConfig {
 export interface PaynkolayFormPost {
   action: string;
   fields: Record<string, string>;
+  /**
+   * Üyenin kart saklama anahtarı (`csCustomerKey`, §16) - yük yalnızca
+   * oturumu doğrulanmış bir üye için açıldıysa vardır. İmzalı yükün içinde
+   * taşınır; müşteri başka bir üyenin anahtarını yazamaz.
+   */
+  member?: string;
 }
+
+/**
+ * PayNkolay'ın kart saklama anahtarı: en fazla 11 karakter (sandbox:
+ * "CS_CUSTOMER_KEY maksimum 11 karakter olmalıdır", CORE0364). Doküman TCKN
+ * ya da telefon öneriyor; biz kişisel veri göndermemek için rastgele, opak
+ * 11 karakter üretiyoruz ve sandbox bunu kabul etti (§16).
+ */
+export const PAYNKOLAY_MEMBER_KEY = /^[A-Z0-9]{11}$/;
+
+/** Yeni bir üye kart anahtarı - 36^11 ≈ 1,3e17 olasılık, tahmin edilemez. */
+export function newPaynkolayMemberKey(): string {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let key = "";
+  for (let i = 0; i < 11; i++) key += alphabet[randomInt(alphabet.length)];
+  return key;
+}
+
+/** PayNkolay'da saklı bir kart - ekranda gösterilecek kadarı. */
+export interface SavedCard {
+  /** Ödeme ve silme için PayNkolay'ın token'ı. Tarayıcıya ASLA gitmez. */
+  token: string;
+  /** Formda kartı seçmek için kullanılan kimlik (`TranId`). */
+  tranId: string;
+  /** `41556501****6111` */
+  maskedPan: string;
+  bank: string;
+  brand: string;
+  alias: string;
+}
+
+/** Sitedeki formun POS'a ilettiği ödeme aracı. */
+export type DirectPaymentMethod =
+  /** Yeni kart; `save` varsa PayNkolay kartı üyenin anahtarıyla saklar. */
+  | { card: CardInput; save?: { alias: string } }
+  /** Üyenin PayNkolay'da saklı kartı - kart verisi bu sunucudan hiç geçmez. */
+  | { savedToken: string };
 
 /** `startDirectPayment`'in sonucu. */
 export type DirectPaymentResult =
@@ -579,7 +622,12 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     ) {
       return null;
     }
-    return { action: parsed.action, fields };
+    const member =
+      typeof parsed.member === "string" &&
+      PAYNKOLAY_MEMBER_KEY.test(parsed.member)
+        ? parsed.member
+        : undefined;
+    return { action: parsed.action, fields, ...(member ? { member } : {}) };
   }
 
   private paymentFormAction(): string {
@@ -616,17 +664,56 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
    */
   async startDirectPayment(
     post: PaynkolayFormPost,
-    card: CardInput,
+    method: DirectPaymentMethod,
     cardHolderIp: string,
   ): Promise<DirectPaymentResult> {
     const f = post.fields;
     if (f.use3D !== "true" || f.transactionType !== "SALES") {
       throw new Error("paynkolay: yük 3D'li satış değil; ödeme başlatılmadı");
     }
-    const hash = checkoutRequestHash(f, this.cfg.merchantSecretKey);
-    if (hash !== f.hashDataV2) {
+    if (checkoutRequestHash(f, this.cfg.merchantSecretKey) !== f.hashDataV2) {
       throw new Error("paynkolay: yükün hash'i tutmuyor; ödeme başlatılmadı");
     }
+
+    // Kart saklama alanları (§16): saklı kartla ödeme ya da "bu kartı kaydet"
+    // yalnızca imzalı yükte üye anahtarı varsa. Anahtar gönderildiğinde
+    // hash'teki `customerKey` konumuna o girer (Postman: `csCustomerKey`).
+    const storage: Record<string, string> = {};
+    let cardFields: Record<string, string> = {};
+    if ("savedToken" in method) {
+      if (!post.member) {
+        throw new Error(
+          "paynkolay: saklı kart üye anahtarı olmadan kullanılamaz",
+        );
+      }
+      storage.csCustomerKey = post.member;
+      storage.csToken = method.savedToken;
+    } else {
+      cardFields = {
+        cardHolderName: method.card.holderName,
+        cardNumber: method.card.number,
+        month: method.card.expMonth,
+        year: method.card.expYear,
+        cvv: method.card.cvv,
+      };
+      if (method.save && post.member) {
+        storage.csCustomerKey = post.member;
+        storage.csAutoSave = "true";
+        storage.csCardAlias = method.save.alias;
+      }
+    }
+    const hash = paynkolayHash(
+      [
+        f.sx,
+        f.clientRefCode,
+        f.amount,
+        f.successUrl,
+        f.failUrl,
+        f.rnd,
+        storage.csCustomerKey ?? "",
+      ],
+      this.cfg.merchantSecretKey,
+    );
 
     const response = unwrapPaynkolayResult(
       await this.postForm(DIRECT_PAYMENT_PATH, {
@@ -637,11 +724,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
         amount: f.amount,
         // Taksit yok (§9): tek çekim.
         installmentNo: "1",
-        cardHolderName: card.holderName,
-        cardNumber: card.number,
-        month: card.expMonth,
-        year: card.expYear,
-        cvv: card.cvv,
+        ...cardFields,
         use3D: "true",
         transactionType: "SALES",
         rnd: f.rnd,
@@ -650,6 +733,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
         environment: "API",
         currencyNumber: f.currencyCode || CURRENCY_CODE,
         cardHolderIP: cardHolderIp.trim() || f.cardHolderIP || "0.0.0.0",
+        ...storage,
       }),
     );
 
@@ -680,6 +764,93 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       code: readField(body, "ERROR_CODE", "BANK_ERROR_CODE") || code || "?",
       message,
     };
+  }
+
+  // ── Kart saklama (§16) ───────────────────────────────────────────────────
+
+  /**
+   * Üyenin PayNkolay'da saklı kartları. Kart yoksa boş liste (sandbox:
+   * `ProcReturnCode: "02"`, "Gecerli Kart Yok"); başka her hata fırlatır.
+   *
+   * Yanıt XML'den çevrilmiş gibi derin: `Data.cards.Card.CardFileds.Detail`
+   * (yazım PayNkolay'ın). `Detail` tek kartta da dizi geldi; nesne gelirse de
+   * okunur.
+   */
+  async listSavedCards(member: string): Promise<SavedCard[]> {
+    if (!PAYNKOLAY_MEMBER_KEY.test(member)) return [];
+    const res = await this.postForm("/Vpos/Payment/CardStorageCardList", {
+      sx: this.cfg.sx,
+      customerKey: member,
+      hashDatav2: paynkolayHash(
+        [this.cfg.sx, member],
+        this.cfg.merchantSecretKey,
+      ),
+    });
+    const body = unwrapPaynkolayResult(res);
+    if (!isRecord(body)) throw new Error("paynkolay kart listesi okunamadı");
+    const code = readField(body, "ProcReturnCode");
+    if (code === "02") return [];
+    if (code !== "00") {
+      throw new Error(
+        `paynkolay kart listesi: ${code || "?"} ${readField(body, "ErrMsg")}`.trim(),
+      );
+    }
+    let detail: unknown = body.Data;
+    for (const key of ["cards", "Card", "CardFileds", "Detail"]) {
+      detail = isRecord(detail) ? detail[key] : undefined;
+    }
+    const rows = Array.isArray(detail)
+      ? detail.filter(isRecord)
+      : isRecord(detail)
+        ? [detail]
+        : [];
+    return rows
+      .map((row) => ({
+        token: readField(row, "Token"),
+        tranId: readField(row, "TranId"),
+        maskedPan: readField(row, "Maskedpan"),
+        bank: readField(row, "CARDISSUER"),
+        brand: readField(row, "CARDBRAND"),
+        alias: readField(row, "CARD_ALIACE"),
+      }))
+      .filter((card) => card.token && card.tranId);
+  }
+
+  /**
+   * Saklı kartı siler. Sandbox'ta yalnız `token` ile çalıştı; `tranId` ile
+   * silme "Gecersiz Veri" döndü (Postman "biri yeter" diyor) - bu yüzden
+   * token gönderilir, `tranId` boş kalır ama hash'teki konumu korunur.
+   */
+  async deleteSavedCard(member: string, token: string): Promise<void> {
+    if (!PAYNKOLAY_MEMBER_KEY.test(member) || !token) {
+      throw new Error("paynkolay: silinecek kart belirsiz");
+    }
+    const tranId = "";
+    const res = unwrapPaynkolayResult(
+      await this.postForm("/Vpos/Payment/CardStorageCardDelete", {
+        sx: this.cfg.sx,
+        customerKey: member,
+        tranId,
+        token,
+        hashDatav2: paynkolayHash(
+          [this.cfg.sx, member, tranId, token],
+          this.cfg.merchantSecretKey,
+        ),
+      }),
+    );
+    const code = isRecord(res) ? readField(res, "RESPONSE_CODE") : "";
+    if (code !== "2") {
+      throw new Error(
+        `paynkolay kart silme: ${code || "?"} ${isRecord(res) ? readField(res, "RESPONSE_DATA") : ""}`.trim(),
+      );
+    }
+  }
+
+  /** Hesap kapanırken: üyenin PayNkolay'daki bütün saklı kartları. */
+  async deleteAllSavedCards(member: string): Promise<number> {
+    const cards = await this.listSavedCards(member);
+    for (const card of cards) await this.deleteSavedCard(member, card.token);
+    return cards.length;
   }
 
   // ── HTTP ─────────────────────────────────────────────────────────────────
@@ -803,7 +974,16 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     };
     fields.hashDataV2 = checkoutRequestHash(fields, this.cfg.merchantSecretKey);
 
-    const json = JSON.stringify({ action: this.paymentFormAction(), fields });
+    // Kart saklama anahtarı formun alanlarına girmez (ortak ödeme sayfasında
+    // `customerKey` boş kalır); yalnızca sitedeki kart formu onu kullanır.
+    const member = PAYNKOLAY_MEMBER_KEY.test(input.cardUserKey ?? "")
+      ? input.cardUserKey
+      : undefined;
+    const json = JSON.stringify({
+      action: this.paymentFormAction(),
+      fields,
+      member,
+    });
     const payload =
       this.cfg.checkoutMode === "direct"
         ? this.seal(json)
@@ -933,7 +1113,12 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
         readField(row, "REFERENCE_CODE", "referenceCode") || returnedRef,
       amountMinor: settledMinor,
       currency: "TRY",
-      raw: { source: "paynkolay_return", hashOk, params, transaction: row },
+      raw: {
+        source: "paynkolay_return",
+        hashOk,
+        params,
+        transaction: withoutHolderName(row),
+      },
       ...transactionDay(row),
     };
   }
@@ -994,7 +1179,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       providerRef: readField(row, "REFERENCE_CODE", "referenceCode") || id,
       amountMinor: settledMinor,
       currency: "TRY",
-      raw: { source: "paynkolay_lookup", transaction: row },
+      raw: { source: "paynkolay_lookup", transaction: withoutHolderName(row) },
       ...transactionDay(row),
     };
   }
@@ -1100,6 +1285,23 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     }
     return null;
   }
+}
+
+/**
+ * Doğrulama servisinin satırı, kart sahibinin adı çıkarılmış olarak.
+ *
+ * Satır `payment_transactions.raw`'a yazılıyor ve `CARD_HOLDER_NAME`
+ * taşıyor. İade ve itiraz için işlem referansı, maskeli kart ve banka yeter;
+ * adı tutmak bir amaca hizmet etmiyordu (KVKK m.4/2-ç veri en aza indirme,
+ * hukuki metinler Ö7).
+ */
+function withoutHolderName(
+  row: Record<string, unknown>,
+): Record<string, unknown> {
+  const copy = { ...row };
+  delete copy.CARD_HOLDER_NAME;
+  delete copy.cardHolderName;
+  return copy;
 }
 
 /**
