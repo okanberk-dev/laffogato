@@ -165,13 +165,31 @@ describe("saved cards", () => {
 
   it("the card path cannot persist a card - no database, no store", () => {
     // Directly. route.ts does import rate-limit, which writes to Postgres,
-    // but hands it only the client address and the order reference.
+    // and bridge-gate, which reads the order or the booking - but hands each
+    // only the client address and the order reference.
     for (const file of CARD_PATH) {
       const code = codeOnly(read(file));
       expect(code, file).not.toMatch(/from "@\/lib\/db/);
       expect(code, file).not.toMatch(/from "@\/lib\/[\w/-]*store"/);
       expect(code, file).not.toMatch(/from "node:fs"|from "fs"/);
     }
+  });
+
+  it("the last look before the sale gets the order reference, never the form", () => {
+    // docs/PAYNKOLAY.md §14.7: the route asks bridge-gate whether the order
+    // is still due. The gate is outside the card path, so it must not be
+    // handed anything a card could ride in.
+    const route = codeOnly(read("src/app/odeme/paynkolay/route.ts"));
+    const calls = [...route.matchAll(/bridgeChargeGate\(([\s\S]*?)\)\s*;/g)];
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1].replace(/\s+/g, "")).toBe(
+      'orderRef,post.fields.successUrl.includes("app=1"),',
+    );
+    const gate = codeOnly(read("src/lib/payment/bridge-gate.ts"));
+    expect(gate).toMatch(
+      /export async function bridgeChargeGate\(\s*ref: string,\s*fromApp: boolean,\s*\)/,
+    );
+    expect(gate).not.toMatch(/FormData|NextRequest|PaynkolayFormPost/);
   });
 
   /**

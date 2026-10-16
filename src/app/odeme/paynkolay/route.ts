@@ -14,6 +14,7 @@ import {
 import { APP_SCHEME, appOrderDeepLink } from "@/lib/mobile/deep-link";
 import { karaokeExpiredNotice } from "@/lib/mobile/karaoke-bridge-copy";
 import { getPaymentProvider } from "@/lib/payment";
+import { bridgeChargeGate } from "@/lib/payment/bridge-gate";
 import {
   PaynkolayPaymentProvider,
   type DirectPaymentMethod,
@@ -319,6 +320,38 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Son bakış, satıştan hemen önce (docs/PAYNKOLAY.md §14.7): imzalı form iki
+  // sekmeden ya da geri tuşuyla ikinci kez gelebilir ve PayNkolay aynı
+  // `clientRefCode` ile ikinci satışı kabul eder. Ödenmiş ya da artık ödeme
+  // beklemeyen bir sipariş / rezervasyon için satış başlamaz; kayıt
+  // okunamazsa da başlamaz (alınan para hiçbir yere işlenemezdi). Modüle
+  // yalnız sipariş referansı gider, kart değil.
+  const gate = await bridgeChargeGate(
+    orderRef,
+    post.fields.successUrl.includes("app=1"),
+  );
+  if (gate.kind === "unreadable") {
+    if (toCheckout) return back("baslatilamadi");
+    return respond(
+      await withCards({
+        error: {
+          message:
+            "Ödeme şu an başlatılamadı ve kartından para çekilmedi. Birazdan yeniden dene.",
+        },
+      }),
+      503,
+    );
+  }
+  if (gate.kind === "settled") {
+    if (toCheckout) {
+      return gate.paid
+        ? seeOther(base, gate.notice.link.href)
+        : back("sure_doldu");
+    }
+    const { title, body, link } = gate.notice;
+    return respond(renderPaymentNotice(title, body, link), 409);
+  }
+
   let result: Awaited<
     ReturnType<PaynkolayPaymentProvider["startDirectPayment"]>
   >;
@@ -471,10 +504,12 @@ function backToCheckout(
   code: CheckoutReturnCode,
   extra: { field?: CheckoutReturnField; minutes?: number },
 ): NextResponse {
-  const res = NextResponse.redirect(
-    new URL(checkoutReturnPath(code, extra), base),
-    303,
-  );
+  return seeOther(base, checkoutReturnPath(code, extra));
+}
+
+/** Sitenin kendi bir sayfasına 303; önbelleğe alınmaz. */
+function seeOther(base: string, path: string): NextResponse {
+  const res = NextResponse.redirect(new URL(path, base), 303);
   res.headers.set("cache-control", "no-store, max-age=0");
   return res;
 }

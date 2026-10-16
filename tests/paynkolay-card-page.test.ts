@@ -948,10 +948,27 @@ vi.mock("@/lib/admin/rate-limit", () => ({
   clientIpFrom: (h: Headers) =>
     h.get("x-forwarded-for")?.split(",")[0].trim() ?? "",
 }));
+// The rows the last look before the sale reads (src/lib/payment/bridge-gate.ts,
+// docs/PAYNKOLAY.md §14.7). The route itself never imports either.
+const getOrder = vi.fn();
+const getReservation = vi.fn();
+vi.mock("@/lib/admin/store", () => ({ getOrder }));
+vi.mock("@/lib/mobile/karaoke", () => ({ getReservation }));
 
 const route = await import("@/app/odeme/paynkolay/route");
 
 const OPEN = { blocked: false, retryAfterSeconds: 0, remaining: 4 };
+const PENDING_ORDER = {
+  id: "ord-0284",
+  status: "pending_payment",
+  totalMinor: 128010,
+};
+const PENDING_HOLD = {
+  id: "krk-00042",
+  status: "requested",
+  paymentStatus: "pending",
+  totalMinor: 128010,
+};
 
 function postRequest(
   body: Record<string, string>,
@@ -980,6 +997,10 @@ describe("/odeme/paynkolay", () => {
     checkLoginLimit.mockResolvedValue(OPEN);
     recordLoginFailure.mockReset();
     recordLoginFailure.mockResolvedValue(OPEN);
+    getOrder.mockReset();
+    getOrder.mockResolvedValue(PENDING_ORDER);
+    getReservation.mockReset();
+    getReservation.mockResolvedValue(PENDING_HOLD);
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -1172,5 +1193,133 @@ describe("/odeme/paynkolay", () => {
     const logged = JSON.stringify([error.mock.calls, warn.mock.calls]);
     expect(logged).not.toContain(TEST_CARD);
     expect(logged).not.toContain("715");
+  });
+
+  // ── The last look before the sale (§14.7) ───────────────────────────────
+  // PayNkolay takes a second sale on the same clientRefCode. The signed form
+  // posted twice (two tabs, the back button after the bank's page) charged an
+  // order the first post had already paid.
+
+  async function karaokeBody(successUrl = "https://laffogato.net/odeme/donus") {
+    const session = await makeProvider().createCheckoutSession({
+      ...checkoutInput(),
+      orderId: "krk-00042",
+      successUrl,
+    });
+    const url = new URL(session.redirectUrl);
+    return validBody({
+      d: url.searchParams.get("d") ?? "",
+      s: url.searchParams.get("s") ?? "",
+    });
+  }
+
+  it("reads the order by the signed reference before the sale, and sells when it is still due", async () => {
+    const calls = stubPos(POS_3D);
+    const res = await route.POST(postRequest(await validBody()));
+    expect(res.status).toBe(200);
+    expect(getOrder.mock.calls).toEqual([["ord-0284"]]);
+    expect(getReservation).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(1);
+  });
+
+  it("starts no second sale for an order that is already paid", async () => {
+    const calls = stubPos(POS_3D);
+    getOrder.mockResolvedValue({ ...PENDING_ORDER, status: "paid" });
+    const res = await route.POST(postRequest(await validBody()));
+    expect(res.status).toBe(409);
+    expect(res.headers.get("content-security-policy")).toContain(
+      "default-src 'none'",
+    );
+    const html = await res.text();
+    expect(html).toContain("ikinci kez para çekilmedi");
+    expect(html).toContain('href="/odeme/basarili?ref=ord-0284"');
+    expect(calls).toHaveLength(0);
+    expect(recordLoginFailure).not.toHaveBeenCalled();
+  });
+
+  it("sends the web checkout's second post for a paid order to its success page", async () => {
+    const calls = stubPos(POS_3D);
+    getOrder.mockResolvedValue({ ...PENDING_ORDER, status: "preparing" });
+    const res = await route.POST(
+      postRequest(await validBody({ return: "checkout" })),
+    );
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe(
+      "https://laffogato.net/odeme/basarili?ref=ord-0284",
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  it("starts no sale for an order that no longer awaits payment, and says the card was not charged", async () => {
+    const calls = stubPos(POS_3D);
+    getOrder.mockResolvedValue({ ...PENDING_ORDER, status: "cancelled" });
+    const res = await route.POST(postRequest(await validBody()));
+    expect(res.status).toBe(409);
+    expect(await res.text()).toMatch(
+      /ödeme beklemiyor; kartından para çekilmedi/,
+    );
+    expect(calls).toHaveLength(0);
+    const web = await route.POST(
+      postRequest(await validBody({ return: "checkout" })),
+    );
+    expect(web.headers.get("location")).toBe(
+      "https://laffogato.net/odeme?odeme=sure_doldu",
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  it("starts no second sale for a karaoke hold that is already paid", async () => {
+    const calls = stubPos(POS_3D);
+    getReservation.mockResolvedValue({
+      ...PENDING_HOLD,
+      status: "confirmed",
+      paymentStatus: "paid",
+    });
+    const res = await route.POST(postRequest(await karaokeBody()));
+    expect(getReservation.mock.calls).toEqual([["krk-00042"]]);
+    expect(getOrder).not.toHaveBeenCalled();
+    expect(res.status).toBe(409);
+    const html = await res.text();
+    expect(html).toContain("Bu rezervasyonun ödemesi daha önce alındı");
+    expect(html).toContain("/rezervasyon?ref=krk-00042");
+    expect(calls).toHaveLength(0);
+
+    const app = await route.POST(
+      postRequest(await karaokeBody("https://laffogato.net/odeme/donus?app=1")),
+    );
+    expect(await app.text()).toContain(
+      'href="laffogato://karaoke?status=success&amp;ref=krk-00042"',
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  it("starts no sale when the row cannot be read: nothing could record the payment", async () => {
+    const calls = stubPos(POS_3D);
+    getOrder.mockRejectedValue(new Error("connect ECONNREFUSED"));
+    const res = await route.POST(postRequest(await validBody()));
+    expect(res.status).toBe(503);
+    const html = await res.text();
+    expect(html).toContain(
+      "Ödeme şu an başlatılamadı ve kartından para çekilmedi.",
+    );
+    expect(html).not.toContain(TEST_CARD);
+    expect(html).not.toContain('value="715"');
+    expect(res.headers.get("content-security-policy")).toContain(
+      "default-src 'none'",
+    );
+    expect(calls).toHaveLength(0);
+
+    const web = await route.POST(
+      postRequest(await validBody({ return: "checkout" })),
+    );
+    expect(web.status).toBe(303);
+    expect(web.headers.get("location")).toBe(
+      "https://laffogato.net/odeme?odeme=baslatilamadi",
+    );
+    getReservation.mockRejectedValue(new Error("connect ECONNREFUSED"));
+    expect((await route.POST(postRequest(await karaokeBody()))).status).toBe(
+      503,
+    );
+    expect(calls).toHaveLength(0);
   });
 });

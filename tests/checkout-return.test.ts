@@ -94,6 +94,11 @@ vi.mock("@/lib/admin/rate-limit", () => ({
   clientIpFrom: (h: Headers) =>
     h.get("x-forwarded-for")?.split(",")[0].trim() ?? "",
 }));
+// Every order here still awaits its payment; the last look before the sale
+// has its own tests (paynkolay-card-page.test.ts).
+vi.mock("@/lib/payment/bridge-gate", () => ({
+  bridgeChargeGate: async () => ({ kind: "open" }),
+}));
 
 const route = await import("@/app/odeme/paynkolay/route");
 
