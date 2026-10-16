@@ -775,7 +775,7 @@ describe("the bank's 3D page, as banks actually write it", () => {
       "3D Secure doğrulama sayfasına yönlendiriliyorsun",
     );
     expect(est.html).toMatch(
-      /<button type="submit" form="form"[^>]*>Bankanın sayfasına git<\/button>/,
+      /<button type="button" data-form="form"[^>]*>Bankanın sayfasına git<\/button>/,
     );
     // The note sits inside the body, before it closes.
     expect(est.html.indexOf("laf-bank-wait")).toBeLessThan(
@@ -795,9 +795,9 @@ describe("the bank's 3D page, as banks actually write it", () => {
     const page = bankChallengePage(
       '<form id="x&quot;&gt;&lt;img src=x onerror=alert(1)&gt;" action="https://acs.bank.example/a"></form>',
     );
-    expect(page.html).not.toContain('form="x"><img');
+    expect(page.html).not.toContain('data-form="x"><img');
     expect(page.html).toContain(
-      'form="x&quot;&gt;&lt;img src=x onerror=alert(1)&gt;"',
+      'data-form="x&quot;&gt;&lt;img src=x onerror=alert(1)&gt;"',
     );
   });
 

@@ -409,15 +409,20 @@ const NOTICE_ID = "laf-bank-wait";
 /**
  * Bekleme notunun tek betiği. Sayfa ayrılmaya başlayınca (`beforeunload`,
  * `pagehide`: bankanın kendi gönderimi yola çıktı) gecikmeli düğmeyi gizler
- * ve düğmeye bir kez basılınca kapatır. Böylece banka yanıtı yavaşken
- * müşteri 3D formunu (içinde kart bilgisiyle) ikinci kez göndermez.
+ * ve düğmeye bir kez basılınca kapatır. Düğme formu kendisi gönderir ve o
+ * formun sonraki `submit()`/`requestSubmit()` çağrılarını etkisiz kılar:
+ * gönderimini geciktiren bir banka betiği 3D formunu (içinde kart
+ * bilgisiyle) ikinci kez göndermez. Düğme `form=` taşımaz, bu yüzden
+ * bankanın `form.elements` listesine de girmez.
  */
-const BANK_WAIT_SCRIPT = `(function(){var w=document.getElementById("${NOTICE_ID}");if(!w)return;
-function leaving(){w.setAttribute("data-leaving","1");}
+const BANK_WAIT_SCRIPT = `(function(){var w=document.getElementById("${NOTICE_ID}");if(!w)return;var left=false;
+function leaving(){left=true;w.setAttribute("data-leaving","1");}
 addEventListener("beforeunload",leaving);addEventListener("pagehide",leaving);
-addEventListener("pageshow",function(e){if(e.persisted)w.removeAttribute("data-leaving");});
-var b=w.querySelector("button");
-if(b){b.addEventListener("click",function(){leaving();setTimeout(function(){b.disabled=true;},0);});}})();`;
+addEventListener("pageshow",function(e){if(e.persisted){left=false;w.removeAttribute("data-leaving");}});
+var b=w.querySelector("button[data-form]");
+if(b){b.addEventListener("click",function(){if(left)return;var f=document.getElementById(b.getAttribute("data-form"));if(!f||f.tagName!=="FORM")return;
+leaving();b.disabled=true;var send=HTMLFormElement.prototype.submit;
+f.submit=function(){};f.requestSubmit=function(){};send.call(f);});}})();`;
 
 /** Banka sayfasına eklenen bekleme notu ve gecikmeli "devam" düğmesi. */
 function bankNotice(forms: BankForm[]): string {
@@ -426,7 +431,7 @@ function bankNotice(forms: BankForm[]): string {
   );
   const later = target
     ? `<p style="margin:1rem 0 0;color:#564d46;font-size:.9rem">Sayfa açılmadıysa aşağıdaki düğmeyle devam edebilirsin.</p>` +
-      `<button type="submit" form="${escapeHtml(target.id)}" style="margin-top:1.25rem;padding:.8rem 1.5rem;border:0;border-radius:999px;background:#1d6d56;color:#fbf8f4;font:inherit;font-weight:600;cursor:pointer">Bankanın sayfasına git</button>`
+      `<button type="button" data-form="${escapeHtml(target.id)}" style="margin-top:1.25rem;padding:.8rem 1.5rem;border:0;border-radius:999px;background:#1d6d56;color:#fbf8f4;font:inherit;font-weight:600;cursor:pointer">Bankanın sayfasına git</button>`
     : `<p style="margin:1rem 0 0;color:#564d46;font-size:.9rem">Sayfa açılmazsa geri dönüp yeniden deneyebilirsin; kartından para çekilmedi.</p>`;
   return (
     `<div id="${NOTICE_ID}" style="font:16px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#211c18;text-align:center;padding:20vh 16px 0">` +
