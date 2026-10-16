@@ -100,8 +100,12 @@ vi.mock("@/lib/payment", () => ({
   getPaymentProvider: () => ({ name: "mock", createCheckoutSession }),
 }));
 
-const sendOrderPlacedEmail = vi.fn(async () => undefined);
-vi.mock("@/lib/email/send", () => ({ sendOrderPlacedEmail }));
+// The customer's one order mail is "ödemen alındı" (`notifyOrderPaid`), sent
+// when the payment moves the order to paid - creating an order sends nothing
+// (operator, 16 Eki 2026). The mock stands in for it; the tests below hold
+// that it is not called at creation.
+const notifyOrderPaid = vi.fn(async () => "sent");
+vi.mock("@/lib/email/order-notices", () => ({ notifyOrderPaid }));
 
 vi.mock("@/lib/customer/store", () => ({ ensureCardUserKey: async () => "" }));
 vi.mock("@/lib/customer/coupons", () => ({
@@ -172,7 +176,7 @@ beforeEach(() => {
   placed.length = 0;
   seq = 0;
   placeAppOrder.mockClear();
-  sendOrderPlacedEmail.mockClear();
+  notifyOrderPaid.mockClear();
   createCheckoutSession.mockClear();
   reserveLoginAttempt.mockReset();
   reserveLoginAttempt.mockResolvedValue(OPEN_GATE);
@@ -197,7 +201,7 @@ describe("POST /orders - clientOrderId", () => {
     // order to paid (notifyOrderPaid), never at creation.
     await createAppOrder(customer, body("attempt-1"));
     await createAppOrder(customer, body("attempt-1"));
-    expect(sendOrderPlacedEmail).not.toHaveBeenCalled();
+    expect(notifyOrderPaid).not.toHaveBeenCalled();
   });
 
   it("re-opens the checkout for the retry - provider sessions expire", async () => {
@@ -296,7 +300,7 @@ describe("POST /orders/{id}/payment", () => {
     expect(paid.payment.redirectUrl).toBeTruthy();
     expect(createCheckoutSession).toHaveBeenCalledTimes(1);
     expect(placeAppOrder).toHaveBeenCalledTimes(1);
-    expect(sendOrderPlacedEmail).not.toHaveBeenCalled();
+    expect(notifyOrderPaid).not.toHaveBeenCalled();
   });
 
   it("answers a stranger's id exactly like a missing one", async () => {

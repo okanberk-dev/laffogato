@@ -382,6 +382,7 @@ export async function notifyOrderPaid(
         })),
         subtotalMinor: order.subtotalMinor,
         shippingMinor: order.shippingMinor,
+        discountMinor: order.discountMinor,
         totalMinor: order.totalMinor,
         servedAtTable: orderFulfillment(order) === "table",
         // The rule `onOrderPaid` stamps by: an app cafe order, one per started

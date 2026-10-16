@@ -11458,17 +11458,28 @@ button.co-steps-link {
 .co-number[data-brand="amex"] .is-amex {
   display: block;
 }
+/* A 44px target around a 28px mark. */
 .co-help {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1px solid var(--ink-line-strong);
-  background: var(--surface);
+  position: relative;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px -8px 0;
+  border: 0;
+  background: none;
   color: var(--ink-soft);
   font: inherit;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+}
+.co-help::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--ink-line-strong);
+  background: var(--surface);
+  z-index: -1;
 }
 .co-help-text {
   margin: 0;
@@ -11534,9 +11545,30 @@ button.co-steps-link {
   background: var(--bg-warm);
 }
 .co-confirm .checkout-consent input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
+  margin-top: 0;
   accent-color: var(--green);
+}
+/* Each row is one 44px-high target: the box, its label, the whole line. */
+.co-confirm .checkout-consent-row {
+  align-items: center;
+  min-height: 44px;
+  gap: 12px;
+}
+.co-confirm .checkout-consent label {
+  padding: 6px 0;
+  line-height: 1.5;
+}
+/* The document links sit inside a sentence; their hit area grows
+   vertically without moving the lines. */
+.co-confirm .checkout-consent a,
+.co-docs a {
+  padding-block: 11px;
+  margin-block: -11px;
+}
+.co-summary .checkout-promo input {
+  font-size: 16px;
 }
 .co-consent:focus {
   outline: none;
@@ -11673,7 +11705,8 @@ button.co-steps-link {
   color: var(--ink);
 }
 .co-line-side .co-link {
-  min-height: 32px;
+  min-width: 44px;
+  min-height: 44px;
   font-size: 13px;
   font-weight: 500;
   color: var(--ink-mute);
@@ -11691,8 +11724,8 @@ button.co-steps-link {
   border-radius: var(--r-pill);
 }
 .co-qty button {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: 0;
   background: none;
   font: inherit;
@@ -11748,6 +11781,16 @@ button.co-steps-link {
   font-size: 24px;
   color: var(--ink);
 }
+.co-docs-seller {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+}
+.co-freeship {
+  margin: 0 16px 16px;
+}
 .co-seller {
   margin: 0;
   font-size: 11.5px;
@@ -11760,6 +11803,12 @@ button.co-steps-link {
 }
 
 @media (min-width: 960px) {
+  .co-docs-seller {
+    display: none;
+  }
+  .co-freeship {
+    margin: 0 22px 22px;
+  }
   .co-layout {
     grid-template-columns: minmax(0, 1fr) 380px;
     grid-template-areas: "head head" "main side";
@@ -11791,8 +11840,11 @@ button.co-steps-link {
   /* Step 2 on a phone: the total and the pay button stay on screen. The
      bar is fixed; the page is padded for it so it never covers the consent
      boxes above it. */
-  .co-layout[data-step="2"] {
-    padding-bottom: calc(176px + env(safe-area-inset-bottom));
+  /* The bar covers the bottom of the screen: whatever scrolls into view
+     (a card field, its error) stops above it. The page's own end is padded
+     once, at the foot below - not here as well. */
+  html:has(.co-layout[data-step="2"]) {
+    scroll-padding-bottom: calc(176px + env(safe-area-inset-bottom));
   }
   /* The checkout's own footer links sit below the layout: the fixed bar
      must not cover them either. */
@@ -11827,6 +11879,26 @@ button.co-steps-link {
     margin-left: 0;
   }
   .co-chrome-help-label {
+    display: none;
+  }
+}
+
+/* A 320px phone: the header's three parts must fit one line, so the number
+   gives way to the word (the link's aria-label still carries it). 375px
+   still has room for the number. */
+@media (max-width: 350px) {
+  .co-chrome-inner {
+    gap: 8px;
+  }
+  .co-chrome-secure {
+    padding: 0 8px;
+  }
+  .co-chrome-help-label {
+    display: inline;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .co-chrome-help-number {
     display: none;
   }
 }

@@ -72,8 +72,12 @@ const createCheckoutSession = vi.fn(async () => ({
 vi.mock("@/lib/payment", () => ({
   getPaymentProvider: () => ({ name: "mock", createCheckoutSession }),
 }));
-const sendOrderPlacedEmail = vi.fn(async () => true);
-vi.mock("@/lib/email/send", () => ({ sendOrderPlacedEmail }));
+// The customer's one order mail is "ödemen alındı" (`notifyOrderPaid`), sent
+// when the payment moves the order to paid - creating an order sends nothing
+// (operator, 16 Eki 2026). The mock stands in for it; the tests below hold
+// that it is not called at creation.
+const notifyOrderPaid = vi.fn(async () => "sent");
+vi.mock("@/lib/email/order-notices", () => ({ notifyOrderPaid }));
 vi.mock("@/lib/customer/store", () => ({
   getCardUserKey: async () => "",
   ensureCardUserKey: async () => "",
@@ -149,7 +153,7 @@ beforeEach(() => {
   ordering = { ...DEFAULT_MOBILE_APP_CONFIG.ordering };
   placeAppOrder.mockClear();
   createCheckoutSession.mockClear();
-  sendOrderPlacedEmail.mockClear();
+  notifyOrderPaid.mockClear();
   lookupTableLimited.mockReset();
   lookupTableLimited.mockResolvedValue({
     ok: true,
@@ -246,6 +250,6 @@ describe("POST /orders - fulfillment: table", () => {
     // The confirmation goes out when the payment lands (notifyOrderPaid,
     // tests/order-notice-emails.test.ts covers the table case).
     await createAppOrder(customer, body());
-    expect(sendOrderPlacedEmail).not.toHaveBeenCalled();
+    expect(notifyOrderPaid).not.toHaveBeenCalled();
   });
 });

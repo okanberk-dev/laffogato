@@ -40,6 +40,12 @@ describe("checkoutCsp", () => {
     expect(csp.get("default-src")).toEqual(["'self'"]);
   });
 
+  it("loads images from this origin and data: only", () => {
+    expect(csp.get("img-src")).toEqual(["'self'", "data:"]);
+    expect(csp.get("img-src")).not.toContain("https:");
+    expect(csp.get("img-src")).not.toContain("blob:");
+  });
+
   it("closes the injection and framing primitives", () => {
     expect(csp.get("form-action")).toEqual(["'self'"]);
     expect(csp.get("frame-ancestors")).toEqual(["'none'"]);
@@ -96,7 +102,7 @@ describe("the proxy's wiring", () => {
   });
 
   it("keeps /odeme dynamic, so every view gets its own nonce", () => {
-    const page = readFileSync("src/app/odeme/page.tsx", "utf8");
+    const page = readFileSync("src/app/odeme/(checkout)/page.tsx", "utf8");
     expect(page).toContain('export const dynamic = "force-dynamic";');
   });
 });

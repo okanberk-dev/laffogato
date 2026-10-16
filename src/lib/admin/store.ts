@@ -2305,6 +2305,25 @@ async function settlePendingFromProvider(
 }
 
 /**
+ * Asks the POS whether this pending order was already paid, booking the
+ * payment when it was - the check the web checkout runs BEFORE it hands a
+ * customer the old order's payment payload again.
+ *
+ * The scenario it closes: the customer pays at the bank, the browser's
+ * return POST is lost, they press "öde" again and the same order is charged
+ * a second time. `paid` means the money is there and booked (go to the
+ * success page); `unpaid` means the POS knows nothing (the retry may reuse
+ * the order); `unknown` means the POS could not be asked - the caller must
+ * NOT reuse the order then. Short deadline (`POS_LOOKUP_TIMEOUT_MS`).
+ */
+export async function checkPendingOrderPaid(
+  order: AdminOrder,
+  provider: PaymentProvider | null,
+): Promise<PendingVerdict> {
+  return settlePendingFromProvider(order, provider);
+}
+
+/**
  * Cancels one unpaid order and returns what it held - after asking the POS.
  * The write is conditional on `pending_payment`, so a payment or a staff
  * action that lands in between wins. Resolves true when this call cancelled.
@@ -2880,11 +2899,7 @@ export async function placeAppOrder(
   const tableCode = (input.tableCode ?? "").trim();
   if (input.fulfillment === "table") {
     if (!tableCode) {
-      return {
-        ok: false,
-        reason: "bad_request",
-        message: "Masa kodu gerekli.",
-      };
+      return { ok: false, reason: "bad_request", message: "Masa kodu gerekli." };
     }
     if (input.scheduledFor) {
       return {
@@ -2959,11 +2974,7 @@ export async function placeAppOrder(
         return { ok: false, reason: "insufficient_balance" };
       }
       if (err instanceof WalletTotalChangedError) {
-        return {
-          ok: false,
-          reason: "total_changed",
-          totalMinor: err.totalMinor,
-        };
+        return { ok: false, reason: "total_changed", totalMinor: err.totalMinor };
       }
       throw err;
     }
@@ -3039,7 +3050,9 @@ export async function placeAppOrder(
 
 /** Why a payment arrived but could not be applied to its order. */
 export type PaymentReconcileReason =
-  "amount_mismatch" | "order_not_open" | "duplicate_payment";
+  | "amount_mismatch"
+  | "order_not_open"
+  | "duplicate_payment";
 
 export type PaymentApplyResult =
   | { ok: true; reconcile?: PaymentReconcileReason }
@@ -3140,6 +3153,9 @@ export async function settleWalletPayment(
     raw: { source: "wallet" },
   });
 }
+
+/** How long after `paidAt` a repeated confirmation re-offers the customer's mail. */
+const PAID_NOTICE_REOFFER_MS = 24 * 60 * 60_000;
 
 /** Order states in which a repeated confirmation may re-offer the staff mail. */
 const STAFF_NOTICE_STATES: ReadonlySet<string> = new Set([
@@ -3296,6 +3312,20 @@ export async function applyPaymentSucceeded(input: {
         STAFF_NOTICE_STATES.has(current.status)
       ) {
         scheduleStaffNewOrderNotice(order.id, input.provider);
+      }
+      // The same for the customer's "ödemen alındı": if the mail of the
+      // confirmation that paid the order did not get out (the provider was
+      // down for both attempts, the claim was released), the bank's return
+      // arriving again is the next chance. The claim in `notifyOrderPaid`
+      // makes this a no-op once one was sent or is being sent. Bounded by
+      // the age of the payment: a replay weeks later is not news.
+      if (
+        !isFirstConfirmation &&
+        current &&
+        STAFF_NOTICE_STATES.has(current.status) &&
+        Date.now() - Date.parse(current.paidAt ?? "") <= PAID_NOTICE_REOFFER_MS
+      ) {
+        await notifyOrderPaid(current);
       }
     }
   }
@@ -3468,7 +3498,11 @@ export async function getOrderPaymentRef(orderId: string): Promise<{
 }
 
 export type OrderTransition =
-  "start_preparing" | "mark_shipped" | "complete" | "cancel" | "mark_paid";
+  | "start_preparing"
+  | "mark_shipped"
+  | "complete"
+  | "cancel"
+  | "mark_paid";
 
 const TRANSITION_MAP: Record<
   OrderTransition,
@@ -4151,12 +4185,13 @@ export async function refundOrder(
  * between visitors, and outside a render (actions, route handlers) it reads
  * every time.
  */
-export const getPublicSettings = cache(async (): Promise<AdminSettings> =>
-  publicRead(
-    "getPublicSettings",
-    { ...defaultSettings(), isShopOpen: false },
-    () => getSettings(),
-  ),
+export const getPublicSettings = cache(
+  async (): Promise<AdminSettings> =>
+    publicRead(
+      "getPublicSettings",
+      { ...defaultSettings(), isShopOpen: false },
+      () => getSettings(),
+    ),
 );
 
 export async function getSettings(): Promise<AdminSettings> {
@@ -4755,7 +4790,8 @@ function normalizeCode(raw: string): string {
 }
 
 export type PromoMutationResult =
-  { ok: true; promo: AdminPromo } | { ok: false; error: string };
+  | { ok: true; promo: AdminPromo }
+  | { ok: false; error: string };
 
 export async function createPromo(
   input: PromoInput,

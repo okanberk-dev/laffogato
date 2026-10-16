@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import {
   applyPaymentSucceeded,
   applyPromoCode,
+  checkPendingOrderPaid,
   getOrder,
   isOwnUnpaidWebOrder,
   placeOrder,
@@ -402,16 +403,36 @@ export async function startCheckoutAction(
       submitted,
     });
     if (decision.reuse && order) {
-      return {
-        kind: "card",
-        d: claim.data,
-        s: claim.signature,
-        quote: quoteOf(order, submitted, false),
-      };
+      // Ask the POS BEFORE the old payload goes out again: the customer may
+      // have paid at the bank and lost the return (a closed tab, a dropped
+      // connection), and a second press must never charge the same order
+      // twice. Paid: it is booked and the customer goes to the success page.
+      // Unpaid: the order is reused as decided. Unknown (the POS could not
+      // be asked): not reused - a new order is made, and the old one is
+      // judged by the sweep, which asks the POS again.
+      const verdict = await checkPendingOrderPaid(order, direct);
+      if (verdict === "paid") {
+        return {
+          kind: "paid",
+          url: `/odeme/basarili?ref=${encodeURIComponent(order.id)}`,
+        };
+      }
+      if (verdict === "unpaid") {
+        return {
+          kind: "card",
+          d: claim.data,
+          s: claim.signature,
+          quote: quoteOf(order, submitted, false),
+        };
+      }
+      console.info(
+        `[odeme] new order instead of reuse order=${claim.orderId} reason=pos_unknown`,
+      );
+    } else {
+      console.info(
+        `[odeme] new order instead of reuse order=${claim.orderId} reason=${decision.reuse ? "unread" : decision.reason}`,
+      );
     }
-    console.info(
-      `[odeme] new order instead of reuse order=${claim.orderId} reason=${decision.reuse ? "unread" : decision.reason}`,
-    );
   }
 
   let result: Awaited<ReturnType<typeof placeOrder>>;
@@ -471,10 +492,15 @@ export async function startCheckoutAction(
       raw: { source: "zero_total" },
     });
     if (!settled.ok) {
+      // Nothing was charged, but the order is not paid either: saying "paid"
+      // sent the customer to a success page for an order that stays pending
+      // and is then swept. An error instead; the retry has no payload to
+      // reuse (a zero-total order never had one) and makes a new order.
       console.error(
-        "[odeme] settling a zero-total order failed",
+        `[odeme] settling a zero-total order failed order=${order.id}`,
         settled.error,
       );
+      return UNAVAILABLE;
     }
     const promoParam = result.promoDropped ? "&promo=dropped" : "";
     return {

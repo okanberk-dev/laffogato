@@ -150,7 +150,7 @@ describe("saved cards", () => {
     for (const file of [
       "src/app/odeme/actions.ts",
       "src/app/odeme/checkout.tsx",
-      "src/app/odeme/page.tsx",
+      "src/app/odeme/(checkout)/page.tsx",
       "src/lib/checkout/start.ts",
       "src/lib/checkout/start-schema.ts",
       "src/lib/checkout/session-keys.ts",

@@ -156,7 +156,10 @@ Sipariş No: #[SIPARIS_NO]
 
 [KALEMLER]
 
-Ödenen toplam: [TOPLAM]
+Ara toplam: [ARA_TOPLAM]
+<!--IF:KARGO_SATIRI-->Kargo: [KARGO]
+<!--/IF:KARGO_SATIRI--><!--IF:INDIRIM_SATIRI-->İndirim: [INDIRIM]
+<!--/IF:INDIRIM_SATIRI-->Ödenen toplam: [TOPLAM]
 <!--IF:DAMGA-->
 Bu siparişle [DAMGA_SAYISI] damga kazandınız; [DAMGA_HEDEFI] damgada bir
 içecek bizden.

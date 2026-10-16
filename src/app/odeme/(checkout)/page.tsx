@@ -1,12 +1,15 @@
 import { LafMark } from "@/components/laffogato/brand-mark";
 import { VerifyNotice } from "@/components/customer/verify-notice";
 import { getPublicSettings } from "@/lib/admin/store";
-import { readCheckoutReturn } from "@/lib/checkout/return-codes";
+import {
+  checkoutReturnCopy,
+  readCheckoutReturn,
+} from "@/lib/checkout/return-codes";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { LEGAL_ADDRESS_LINE, LEGAL_ENTITY } from "@/lib/legal/entity";
 import { checkoutPaymentSetup } from "@/lib/payment/saved-cards";
 
-import { Checkout } from "./checkout";
+import { Checkout } from "../checkout";
 
 function GatePanel({ children }: { children: React.ReactNode }) {
   return (
@@ -48,6 +51,12 @@ export default async function OdemePage({
   // Only fixed codes are read (return-codes.ts): a hand-made link cannot put
   // its own words on this page.
   const returned = readCheckoutReturn(await searchParams);
+
+  // A return notice ("Ödeme tamamlanmadı") is said ABOVE the gate panels
+  // too: a customer whose session ended on the bank's page, or who comes
+  // back while the shop is closed, still learns what happened to the payment.
+  // The checkout itself shows it in its own step 2 instead (checkout.tsx).
+  const gateNotice = returned ? checkoutReturnCopy(returned) : null;
 
   let body: React.ReactNode;
   if (!settings.isShopOpen) {
@@ -121,9 +130,20 @@ export default async function OdemePage({
     );
   }
 
+  const showGateNotice =
+    !!gateNotice &&
+    (!settings.isShopOpen || !customer || !customer.emailVerified);
   return (
     <div className="checkout-page">
-      <div className="checkout-page-wrap">{body}</div>
+      <div className="checkout-page-wrap">
+        {showGateNotice && gateNotice ? (
+          <p role="alert" className="auth-alert checkout-notice">
+            <strong>{gateNotice.title}.</strong> {gateNotice.reason}
+            {gateNotice.notCharged ? " Kartından para çekilmedi." : ""}
+          </p>
+        ) : null}
+        {body}
+      </div>
     </div>
   );
 }

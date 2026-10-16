@@ -2,7 +2,7 @@
  * Client-safe ticaret hesaplamaları - kargo, KDV, para biçimleme.
  *
  * Hem server action'lar (`placeOrder`, checkout actions) hem de client
- * bileşenleri (CartDrawer, CheckoutWizard) buradan okur ki kargo eşiği ve
+ * bileşenleri (CartDrawer, tek sayfa checkout) buradan okur ki kargo eşiği ve
  * KDV oranı tek bir yerden gelsin. "server-only" YOK - saf fonksiyonlar.
  */
 

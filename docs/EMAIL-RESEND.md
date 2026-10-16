@@ -14,7 +14,7 @@ Site ile uygulama **tek bir Supabase projesini** kimlik için paylaşır
 
 | Mesaj                            | Kim gönderir                   | Nasıl               |
 | -------------------------------- | ------------------------------ | ------------------- |
-| Sipariş alındı · Ödeme onaylandı | Site (`src/lib/email/send.ts`) | Resend **HTTP API** |
+| Ödeme onaylandı (tek sipariş maili) | Site (`src/lib/email/send.ts`) | Resend **HTTP API** |
 | Sitede kayıt → e-posta doğrulama | Site                           | Resend HTTP API     |
 | Sitede "şifremi unuttum"         | Site                           | Resend HTTP API     |
 | **Uygulamada kayıt → doğrulama** | **Supabase Auth**              | **Resend SMTP**     |
@@ -227,34 +227,34 @@ içinde durur; `send.ts` yalnızca alanları doldurur. Şablon dili, alan
 listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
 `README.md`'sinde.
 
-| Dosya                    | Ne yapar                                                                                                                                                                                                              |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `templates/*.html`       | tasarımın kendisi; elle düzenlenen tek yer                                                                                                                                                                            |
-| `templates.generated.ts` | derlenmiş string haritası - **commit'lenir**, elle düzenlenmez                                                                                                                                                        |
-| `public/email/**`        | şablonların çağırdığı görseller (logo, bant, damga, ikon) - `https://laffogato.net/email/…` ile mutlak                                                                                                                |
-| `fill.ts`                | `[ALAN]`, `<!--IF:-->`, `<!--EACH:-->` ve HTML kaçışlama                                                                                                                                                              |
+| Dosya                    | Ne yapar                                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `templates/*.html`       | tasarımın kendisi; elle düzenlenen tek yer                                                                                            |
+| `templates.generated.ts` | derlenmiş string haritası - **commit'lenir**, elle düzenlenmez                                                                        |
+| `public/email/**`        | şablonların çağırdığı görseller (logo, bant, damga, ikon) - `https://laffogato.net/email/…` ile mutlak                                |
+| `fill.ts`                | `[ALAN]`, `<!--IF:-->`, `<!--EACH:-->` ve HTML kaçışlama                                                                              |
 | `render.ts`              | şablon + değer → `{subject, html, text}` + 6563 kontrolü + bayraklar (`AD`, `APP_LINKS`, `GORSEL`, `KOD`, `TARIH`, `DIPNOT`, `VURGU`, `TAKIP_LINKI`, `FIRMA`; çağırandan `ODEME_ALINDI` / `ODEME_YOK` / `KARTA_IADE`) |
-| `text.ts`                | her mesajın düz metin yarısı                                                                                                                                                                                          |
+| `text.ts`                | her mesajın düz metin yarısı                                                                                                          |
 
 Yirmi iki şablon - her satırda **tetikleyici · izin sınıfı · idempotency**:
 
-| Şablon                                 | Tür               | Tetikleyici · idempotency                                                                                                                                                                                                                                          |
-| -------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `eposta-dogrulama`                     | işlemsel          | sitede kayıt / adres değişikliği (`uye/actions.ts`, `admin/musteriler`)                                                                                                                                                                                            |
-| `sifre-sifirlama`                      | işlemsel          | sitede "şifremi unuttum"                                                                                                                                                                                                                                           |
-| `siparis-alindi`                       | işlemsel          | **gönderilmiyor** (16 Eki 2026: _"sipariş maili ödeme tam alınmadan gitmesin"_); şablon duruyor, çağıran yok                                                                                                                                                       |
-| `odeme-onaylandi`                      | işlemsel          | müşterinin kargoya kadar aldığı TEK sipariş maili: ödeme siparişi `paid`'e taşıdığında (`applyPaymentSucceeded`, elle "Ödendi"; ₺0 sipariş de) · `order_notice_emails` (sipariş, `paid`). Kalemler, toplam ve ÖBF/MSS/cayma bağlantıları (kalıcı veri saklayıcısı) |
-| `siparis-kargoda`                      | işlemsel          | panelin kargo formu, "Kargoya ver", Geliver'ın teslim olayı · `order_notice_emails` (sipariş, `shipped:<numara özeti>`)                                                                                                                                            |
-| `siparis-iptal`                        | işlemsel          | `transitionOrder` iptali (toplu iptal de oradan geçer) · (sipariş, `cancelled`)                                                                                                                                                                                    |
-| `siparis-iade`                         | işlemsel          | panel iadesi (`finalizeRefund`), sağlayıcı iadesi (`recordProviderRefund`) · (sipariş, `refund:<iade id>`)                                                                                                                                                         |
-| `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, **çağıran yok**                                                                                                                                                                                                                          |
-| `karaoke-rezervasyon`                  | işlemsel          | personel panelden onayladı (`setReservationStatus`) · durum geçişi bir kez olur                                                                                                                                                                                    |
-| `karaoke-iptal`                        | işlemsel          | personel panelden iptal etti (`setReservationStatus`) · aynı geçiş kilidi                                                                                                                                                                                          |
-| `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                                                                                                                                                                                                    |
-| `bulten-kampanya`                      | **ticari (6563)** | `sendCampaignMail` · 3 ürün seçkisi + kod · `cmp-<kampanya>-b<parti>`                                                                                                                                                                                              |
-| `mobil-uygulama`                       | **ticari (6563)** | `/admin/bulten/kampanya` "Uygulama duyurusu" · `cmp-<kampanya>-b<parti>` · mağaza linkleri olmadan seçilemez                                                                                                                                                       |
-| `dogum-gunu`                           | **ticari (6563)** | günlük cron (`/api/cron/birthday`) · idempotency = kuponun kendisi                                                                                                                                                                                                 |
-| `kampanya-duyuru` … `kampanya-indirim` | **ticari (6563)** | `/admin/bulten/kampanya`, zamanlama ve gönderi kancası - bkz. §7                                                                                                                                                                                                   |
+| Şablon                                 | Tür               | Tetikleyici · idempotency                                                       |
+| -------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
+| `eposta-dogrulama`                     | işlemsel          | sitede kayıt / adres değişikliği (`uye/actions.ts`, `admin/musteriler`)         |
+| `sifre-sifirlama`                      | işlemsel          | sitede "şifremi unuttum"                                                        |
+| `siparis-alindi` | işlemsel | **gönderilmiyor** (16 Eki 2026: _"sipariş maili ödeme tam alınmadan gitmesin"_); şablon duruyor, çağıran yok |
+| `odeme-onaylandi` | işlemsel | müşterinin kargoya kadar aldığı TEK sipariş maili: ödeme siparişi `paid`'e taşıdığında (`applyPaymentSucceeded`, elle "Ödendi"; ₺0 sipariş de) · `order_notice_emails` (sipariş, `paid`). Kalemler, toplam ve ÖBF/MSS/cayma bağlantıları (kalıcı veri saklayıcısı) |
+| `siparis-kargoda`                      | işlemsel          | panelin kargo formu, "Kargoya ver", Geliver'ın teslim olayı · `order_notice_emails` (sipariş, `shipped:<numara özeti>`) |
+| `siparis-iptal`                        | işlemsel          | `transitionOrder` iptali (toplu iptal de oradan geçer) · (sipariş, `cancelled`) |
+| `siparis-iade`                         | işlemsel          | panel iadesi (`finalizeRefund`), sağlayıcı iadesi (`recordProviderRefund`) · (sipariş, `refund:<iade id>`) |
+| `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, **çağıran yok**                                       |
+| `karaoke-rezervasyon`                  | işlemsel          | personel panelden onayladı (`setReservationStatus`) · durum geçişi bir kez olur |
+| `karaoke-iptal`                        | işlemsel          | personel panelden iptal etti (`setReservationStatus`) · aynı geçiş kilidi       |
+| `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                 |
+| `bulten-kampanya`                      | **ticari (6563)** | `sendCampaignMail` · 3 ürün seçkisi + kod · `cmp-<kampanya>-b<parti>`           |
+| `mobil-uygulama`                       | **ticari (6563)** | `/admin/bulten/kampanya` "Uygulama duyurusu" · `cmp-<kampanya>-b<parti>` · mağaza linkleri olmadan seçilemez |
+| `dogum-gunu`                           | **ticari (6563)** | günlük cron (`/api/cron/birthday`) · idempotency = kuponun kendisi              |
+| `kampanya-duyuru` … `kampanya-indirim` | **ticari (6563)** | `/admin/bulten/kampanya`, zamanlama ve gönderi kancası - bkz. §7                |
 
 **`mobil-uygulama` kampanya panelinde (23 Eyl 2026).** Şablon listesinde
 "Uygulama duyurusu (sabit metin)" olarak durur: doldurulacak alanı yok, konu
@@ -559,9 +559,9 @@ sözleşmenin §18/§19'u, panel sinyalleri) depoda bekledi.
 
 Şimdi iki cron var:
 
-| Yol                         | Program                    | Ne yapar                                  |
-| --------------------------- | -------------------------- | ----------------------------------------- |
-| `/api/cron/daily`           | 06:00 UTC (09:00 İstanbul) | kampanyalar → doğum günü → imha, sırayla  |
+| Yol | Program | Ne yapar |
+|---|---|---|
+| `/api/cron/daily` | 06:00 UTC (09:00 İstanbul) | kampanyalar → doğum günü → imha, sırayla |
 | `/api/cron/campaign-emails` | 12:00 UTC (15:00 İstanbul) | zamanlanmış kampanyalar için ikinci geçiş |
 
 > ⚠️ **Kanonik ad APEX: `https://laffogato.net`** (22 Eyl 2026 kararı).
@@ -613,11 +613,11 @@ zamanlı karşılaştırma; `CRON_SECRET` tanımsızsa **503**, yanlışsa 401.
 Vercel başlığı kendisi ekler; yapılacak tek şey ortam değişkenini tanımlamak
 (`.env.example`).
 
-| Görev                       | Kim, ne sıklıkla                                              | Ne yapar                                                                                                                            |
-| --------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/cron/daily`           | Vercel, `0 6 * * *` (UTC)                                     | aşağıdaki kampanya işi, sonra doğum günü, en son imha                                                                               |
-| `/api/cron/campaign-emails` | Vercel `0 12 * * *` (UTC) + GitHub Actions (2-5,5 saatte bir) | (1) `scheduledAt`'i gelmiş taslakları kuyruğa alır, (2) `queued`/`sending` her kampanyayı kaldığı yerden sürdürür; ortak süre 240 s |
-| `/api/cron/birthday`        | programda değil (işi `/api/cron/daily` yapar)                 | o günün doğum günleri: kupon herkese, kutlama yalnız izin verene                                                                    |
+| Görev                       | Kim, ne sıklıkla                                                  | Ne yapar                                                                                                                             |
+| --------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `/api/cron/daily`           | Vercel, `0 6 * * *` (UTC)                                         | aşağıdaki kampanya işi, sonra doğum günü, en son imha                                                                                |
+| `/api/cron/campaign-emails` | Vercel `0 12 * * *` (UTC) + GitHub Actions (2-5,5 saatte bir)     | (1) `scheduledAt`'i gelmiş taslakları kuyruğa alır, (2) `queued`/`sending` her kampanyayı kaldığı yerden sürdürür; ortak süre 240 s |
+| `/api/cron/birthday`        | programda değil (işi `/api/cron/daily` yapar)                     | o günün doğum günleri: kupon herkese, kutlama yalnız izin verene                                                                     |
 
 Kampanya işi ne kadar sık koşarsa zamanlamanın saati o kadar anlamlı olur;
 boş bir kuyruk ucuzdur (tek `select`), bu yüzden sıklık maliyet getirmez.

@@ -138,7 +138,19 @@ interface SendArgs {
    * inbox.
    */
   replyTo?: string;
+  /**
+   * One more attempt, in this request, when the provider answers 429 or 5xx
+   * or cannot be reached - with the SAME idempotency key, so an attempt that
+   * did reach the provider is answered from its record, not sent twice. The
+   * wait is short on purpose (`RETRY_WAIT_MS`): the caller is a payment
+   * return that must answer within its function's time budget. Only the
+   * customer's one order mail asks for it; everything else keeps trying once.
+   */
+  retryOnce?: boolean;
 }
+
+/** The longest pause before the one retry; `Retry-After` is honoured up to it. */
+const RETRY_WAIT_MS = 1_500;
 
 export type SendResult = { ok: true } | { ok: false; error: string };
 
@@ -158,6 +170,7 @@ async function deliver({
   unsubscribeUrl,
   idempotencyKey,
   replyTo: replyToOverride,
+  retryOnce,
 }: SendArgs): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
   const identity = await emailIdentity();
@@ -177,46 +190,65 @@ async function deliver({
     }
     return { ok: false, error: "RESEND_API_KEY tanımlı değil." };
   }
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-      },
-      body: JSON.stringify({
-        from,
-        to,
-        subject,
-        html,
-        ...(text ? { text } : {}),
-        ...(replyTo ? { reply_to: replyTo } : {}),
-        // Ticari ileti için tek tıkla çıkış: hem mail istemcisinin kendi
-        // "abonelikten çık" düğmesi bunu okur, hem de 6563'ün aradığı
-        // "kolayca reddetme imkânı" bu başlıkla karşılanır.
-        ...(unsubscribeUrl
-          ? {
-              headers: {
-                "List-Unsubscribe": `<${unsubscribeUrl}>`,
-                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-              },
-            }
-          : {}),
-      }),
-    });
-    if (!res.ok) {
+  const payload = JSON.stringify({
+    from,
+    to,
+    subject,
+    html,
+    ...(text ? { text } : {}),
+    ...(replyTo ? { reply_to: replyTo } : {}),
+    // Ticari ileti için tek tıkla çıkış: hem mail istemcisinin kendi
+    // "abonelikten çık" düğmesi bunu okur, hem de 6563'ün aradığı
+    // "kolayca reddetme imkânı" bu başlıkla karşılanır.
+    ...(unsubscribeUrl
+      ? {
+          headers: {
+            "List-Unsubscribe": `<${unsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        }
+      : {}),
+  });
+  for (let attempt = 0; ; attempt++) {
+    const again = retryOnce === true && attempt === 0;
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+        },
+        body: payload,
+      });
+      if (res.ok) return { ok: true };
       const body = await res.text();
       console.error(
         `[email] Resend failed (${res.status}): ${maskAddressesIn(body)}`,
       );
+      if (again && (res.status === 429 || res.status >= 500)) {
+        const asked = Number(res.headers.get("retry-after")) * 1000;
+        await pause(
+          Number.isFinite(asked) && asked > 0 ? asked : RETRY_WAIT_MS,
+        );
+        continue;
+      }
       return { ok: false, error: resendMessage(res.status, body) };
+    } catch (err) {
+      console.error("[email] send error", err);
+      if (again) {
+        await pause(RETRY_WAIT_MS);
+        continue;
+      }
+      return { ok: false, error: "Sağlayıcıya ulaşılamadı." };
     }
-    return { ok: true };
-  } catch (err) {
-    console.error("[email] send error", err);
-    return { ok: false, error: "Sağlayıcıya ulaşılamadı." };
   }
+}
+
+function pause(ms: number): Promise<void> {
+  return new Promise((resolve) =>
+    setTimeout(resolve, Math.min(ms, RETRY_WAIT_MS)),
+  );
 }
 
 /** Resend answers with `{"message": "..."}`; the raw body is the fallback. */
@@ -359,6 +391,7 @@ async function sendTemplateResult(
   to: string,
   input: Omit<RenderInput, "text">,
   idempotencyKey?: string,
+  { retryOnce }: { retryOnce?: boolean } = {},
 ): Promise<SendResult> {
   if (!to) return { ok: false, error: "Alıcı adresi boş." };
   let r: RenderedEmail;
@@ -375,6 +408,7 @@ async function sendTemplateResult(
     text: r.text,
     ...(r.unsubscribeUrl ? { unsubscribeUrl: r.unsubscribeUrl } : {}),
     ...(idempotencyKey ? { idempotencyKey } : {}),
+    ...(retryOnce ? { retryOnce } : {}),
   });
 }
 
@@ -426,6 +460,8 @@ export interface OrderEmailData {
    */
   subtotalMinor?: number;
   shippingMinor?: number;
+  /** The code's discount, if any; lets the rows above the total add up. */
+  discountMinor?: number;
   totalMinor: number;
   /**
    * A table order (`fulfillment: "table"`): served in the köşk, so the mail
@@ -472,7 +508,9 @@ function orderVars(o: OrderEmailData) {
   const subtotal =
     o.subtotalMinor ??
     o.items.reduce((sum, it) => sum + it.unitPriceMinor * it.qty, 0);
-  const shipping = o.shippingMinor ?? Math.max(0, o.totalMinor - subtotal);
+  const discount = Math.max(0, o.discountMinor ?? 0);
+  const shipping =
+    o.shippingMinor ?? Math.max(0, o.totalMinor - subtotal + discount);
   return {
     AD: o.customerName.trim(),
     SIPARIS_NO: String(o.orderNo),
@@ -486,6 +524,8 @@ function orderVars(o: OrderEmailData) {
       : shipping === 0
         ? "Ücretsiz"
         : formatTRYMinor(shipping),
+    // "" drops the discount row (`INDIRIM_SATIRI`, render.ts).
+    INDIRIM: discount > 0 ? `-${formatTRYMinor(discount)}` : "",
     TOPLAM: formatTRYMinor(o.totalMinor),
     KALEMLER: orderLinesText(o.items),
     BELGELER: CONSENT_DOCS_TEXT,
@@ -546,6 +586,8 @@ export async function sendOrderPaidEmail(
       loops: { ITEMS: itemRows(o.items) },
     },
     idempotencyKey,
+    // The one mail the customer gets before the parcel: worth one more try.
+    { retryOnce: true },
   );
 }
 

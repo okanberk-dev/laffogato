@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -125,7 +125,7 @@ describe("which document is the checkout's", () => {
       "src/app/odeme/checkout.tsx",
       "src/app/odeme/checkout-chrome.tsx",
       "src/app/odeme/card-payment.tsx",
-      "src/app/odeme/page.tsx",
+      "src/app/odeme/(checkout)/page.tsx",
     ]) {
       expect(readFileSync(file, "utf8"), file).not.toMatch(/from "next\/link"/);
     }
@@ -145,7 +145,8 @@ describe("which document is the checkout's", () => {
  */
 describe("the checkout never leaves the customer on a white or stuck page", () => {
   it("a render error shows a message and 'Tekrar dene'", async () => {
-    const { default: CheckoutError } = await import("@/app/odeme/error");
+    const { default: CheckoutError } =
+      await import("@/app/odeme/(checkout)/error");
     const html = renderToStaticMarkup(
       createElement(CheckoutError, { error: new Error("boom") }),
     );
@@ -153,21 +154,71 @@ describe("the checkout never leaves the customer on a white or stuck page", () =
     expect(html).toContain("<h1");
     expect(html).toMatch(/<a href="\/odeme"[^>]*>Tekrar dene<\/a>/);
     expect(html).toContain("kartından para çekilmedi");
-    expect(readFileSync("src/app/odeme/error.tsx", "utf8")).toMatch(
+    expect(readFileSync("src/app/odeme/(checkout)/error.tsx", "utf8")).toMatch(
       /^"use client";/,
     );
   });
 
+  it("the other pages under /odeme get neutral error copy - no word about money", async () => {
+    // /odeme/basarili is where a customer who HAS paid lands: a database
+    // blip there must never say "kartından para çekilmedi", and "Tekrar
+    // dene" must retry that page, not lead back to the checkout.
+    const { default: OdemeError } = await import("@/app/odeme/error");
+    const html = renderToStaticMarkup(
+      createElement(OdemeError, {
+        error: new Error("boom"),
+        reset: () => {},
+      }),
+    );
+    expect(html).toContain('role="alert"');
+    expect(html).toContain("Tekrar dene");
+    expect(html).not.toMatch(/para çekil|tahsilat|ödeme tamamlanmad/i);
+    expect(html).not.toContain('href="/odeme"');
+    const source = readFileSync("src/app/odeme/error.tsx", "utf8");
+    expect(source).toMatch(/onClick=\{reset\}/);
+    // The checkout's own error page is the ONLY one that says it, and it
+    // only wraps the checkout page (a route group next to page.tsx).
+    expect(readFileSync("src/app/odeme/(checkout)/error.tsx", "utf8")).toMatch(
+      /kartından\s+para\s+çekilmedi/,
+    );
+    for (const file of [
+      "src/app/odeme/basarili/page.tsx",
+      "src/app/odeme/app-hata/page.tsx",
+    ]) {
+      expect(readFileSync(file, "utf8"), file).not.toContain(
+        "kartından para çekilmedi",
+      );
+    }
+    expect(existsSync("src/app/odeme/error.tsx")).toBe(true);
+    expect(existsSync("src/app/odeme/loading.tsx")).toBe(false);
+    expect(existsSync("src/app/odeme/(checkout)/loading.tsx")).toBe(true);
+  });
+
   it("the wait for the server part is a skeleton, not nothing", async () => {
-    const { default: CheckoutLoading } = await import("@/app/odeme/loading");
+    const { default: CheckoutLoading } =
+      await import("@/app/odeme/(checkout)/loading");
     const html = renderToStaticMarkup(createElement(CheckoutLoading));
     expect(html).toContain("checkout-skeleton");
     expect(html).toContain('role="status"');
   });
 
-  it("'Bankaya yönlendiriliyorsun…' gives way after 20 s, and on Back", () => {
+  it("'Bankaya yönlendiriliyorsun…' gives way after 30 s, and on Back", () => {
     const checkout = readFileSync("src/app/odeme/checkout.tsx", "utf8");
-    expect(checkout).toContain("const BANK_HANDOFF_WAIT_MS = 20_000;");
+    // Longer than the POS deadline for a payment (25 s, paynkolay.ts): a slow
+    // bank must not look like a failure while the request is still alive.
+    const wait = Number(
+      checkout
+        .match(/const BANK_HANDOFF_WAIT_MS = ([\d_]+);/)?.[1]
+        .replace(/_/g, ""),
+    );
+    const pos = Number(
+      readFileSync("src/lib/payment/paynkolay.ts", "utf8")
+        .match(/payment: ([\d_]+),/)?.[1]
+        .replace(/_/g, ""),
+    );
+    expect(pos).toBeGreaterThan(0);
+    expect(wait).toBeGreaterThanOrEqual(30_000);
+    expect(wait).toBeGreaterThan(pos);
     // Armed right before every navigation away: the bank, a hosted page,
     // the success page.
     expect(checkout).toMatch(

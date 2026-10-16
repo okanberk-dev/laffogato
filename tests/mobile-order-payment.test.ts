@@ -74,12 +74,8 @@ describe("a reopened checkout carries the buyer's IP", () => {
     const to = orders.indexOf("export async function createAppOrder");
     expect(from).toBeGreaterThan(-1);
     const replay = orders.slice(from, to);
-    expect(replay).toContain(
-      "createAppPaymentSession(order, customer, await clientIp())",
-    );
-    expect(replay).not.toContain(
-      'createAppPaymentSession(order, customer, "")',
-    );
+    expect(replay).toContain("createAppPaymentSession(order, customer, await clientIp())");
+    expect(replay).not.toContain('createAppPaymentSession(order, customer, "")');
   });
 });
 

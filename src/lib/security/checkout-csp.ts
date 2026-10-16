@@ -21,7 +21,10 @@ import { randomBytes } from "node:crypto";
  * - `frame-ancestors 'none'`, `base-uri 'none'`, `object-src 'none'`.
  *
  * The other directives follow the site policy minus its third parties (no
- * Google Analytics, no Maps frame). Pure apart from the nonce generator;
+ * Google Analytics, no Maps frame) and minus remote images (`img-src` is
+ * this origin and `data:` only). `style-src` keeps `'unsafe-inline'`: the
+ * page's React `style=` attributes need it, and this was NOT tried without
+ * it in a browser (a nonce on styles would also need `style-src-attr`). Pure apart from the nonce generator;
  * `tests/checkout-csp.test.ts` reads every directive.
  */
 
@@ -49,7 +52,10 @@ export function checkoutCsp(
     `script-src 'self' 'nonce-${nonce}'${development ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
-    "img-src 'self' data: blob: https:",
+    // The page draws everything itself (inline SVG marks, no photo): images
+    // from this origin and data: URIs, no other host. A card page that may
+    // load `https:` images is a page a skimmer can beacon from.
+    "img-src 'self' data:",
     "media-src 'self'",
     "connect-src 'self'",
     "frame-src 'none'",

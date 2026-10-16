@@ -184,7 +184,11 @@ export function CardPayment({
         setErrors(found);
         const first = FIELD_ORDER.find((f) => found[f]);
         if (!first) return true;
-        document.getElementById(INPUT_ID[first])?.focus();
+        // The fixed pay bar sits over the bottom of a phone's screen: bring
+        // the field to the middle, then focus it without a second scroll.
+        const el = document.getElementById(INPUT_ID[first]);
+        el?.scrollIntoView({ block: "center" });
+        el?.focus({ preventScroll: true });
         return false;
       },
       submitToBank(data: string, signature: string) {

@@ -32,7 +32,7 @@ vi.mock("@/lib/customer/auth", () => ({
   getActiveCustomer: vi.fn(async () => null),
 }));
 vi.mock("@/lib/customer/coupons", () => ({ applyCustomerCoupon: vi.fn() }));
-vi.mock("@/lib/email/send", () => ({ sendOrderPlacedEmail: vi.fn() }));
+vi.mock("@/lib/email/send", () => ({ sendOrderPaidEmail: vi.fn() }));
 vi.mock("@/lib/legal/store", () => ({ checkoutConsentVersion: vi.fn() }));
 vi.mock("@/lib/customer/store", () => ({ ensureCardUserKey: vi.fn() }));
 vi.mock("@/lib/payment", () => ({ getPaymentProvider: vi.fn() }));

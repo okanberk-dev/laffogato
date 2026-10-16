@@ -186,7 +186,7 @@ export type CardBrand = "visa" | "mastercard" | "amex" | "troy" | "unknown";
 
 /**
  * Numaranın ilk hanelerinden şema: Visa `4`, Mastercard `51-55` ve
- * `2221-2720`, American Express `34`/`37`, Troy `9792`. Belirsiz başlangıç
+ * `2221-2720`, American Express `34`/`37`, Troy `9792`, `2205` ve `65`. Belirsiz başlangıç
  * `unknown` kalır; şema yalnız alandaki işaret ve gruplama içindir, kart
  * onunla doğrulanmaz.
  */
@@ -199,7 +199,11 @@ export function cardBrand(value: string): CardBrand {
     const head = Number(digits.slice(0, 4));
     if (head >= 2221 && head <= 2720) return "mastercard";
     if (head === 9792) return "troy";
+    // Troy's other issuer ranges (BKM): 2205 and 65xx. Checked after the
+    // other schemes, so a prefix that is theirs stays theirs.
+    if (head === 2205) return "troy";
   }
+  if (digits.startsWith("65")) return "troy";
   return "unknown";
 }
 

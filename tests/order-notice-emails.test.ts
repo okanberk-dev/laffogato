@@ -26,10 +26,7 @@ function chain(op: "update" | "delete", patch?: Row) {
     const hit = rows.filter((r) => filters.every((f) => f(r)));
     if (op === "update") {
       for (const r of hit) Object.assign(r, patch);
-      return {
-        data: selected ? hit.map((r) => ({ ...r })) : null,
-        error: null,
-      };
+      return { data: selected ? hit.map((r) => ({ ...r })) : null, error: null };
     }
     for (const r of hit) rows.splice(rows.indexOf(r), 1);
     return { data: null, error: null };
@@ -182,10 +179,7 @@ describe("the tracking-number mail", () => {
     expect(await notifyOrderShipped(order())).toBe("duplicate");
     expect(
       await notifyOrderShipped(
-        order({
-          shipmentStatus: "shipped",
-          trackingUrl: "https://kargo.example/t/1",
-        }),
+        order({ shipmentStatus: "shipped", trackingUrl: "https://kargo.example/t/1" }),
       ),
     ).toBe("duplicate");
     expect(
@@ -275,10 +269,7 @@ describe("the tracking-number mail", () => {
 
 describe("the cancellation mail", () => {
   it("is sent once, saying whether money was taken", async () => {
-    const cancelled = order({
-      status: "cancelled",
-      paidAt: "2026-09-20T10:05:00Z",
-    });
+    const cancelled = order({ status: "cancelled", paidAt: "2026-09-20T10:05:00Z" });
     expect(await notifyOrderCancelled(cancelled, { collected: true })).toBe(
       "sent",
     );
@@ -287,53 +278,33 @@ describe("the cancellation mail", () => {
     );
     expect(sendOrderCancelledEmail).toHaveBeenCalledTimes(1);
     const [data, key] = sendOrderCancelledEmail.mock.calls[0];
-    expect(data).toMatchObject({
-      orderNo: 1042,
-      collected: true,
-      totalMinor: 45_000,
-    });
+    expect(data).toMatchObject({ orderNo: 1042, collected: true, totalMinor: 45_000 });
     expect(data.items).toEqual([
-      {
-        productName: "Sirena Espresso Harmanı",
-        qty: 1,
-        unitPriceMinor: 45_000,
-      },
+      { productName: "Sirena Espresso Harmanı", qty: 1, unitPriceMinor: 45_000 },
     ]);
     expect(key).toBe("order-ord-1-cancelled");
   });
 
   it("passes an unknown payment state through rather than guessing", async () => {
-    await notifyOrderCancelled(order({ status: "cancelled" }), {
-      collected: null,
-    });
+    await notifyOrderCancelled(order({ status: "cancelled" }), { collected: null });
     expect(sendOrderCancelledEmail.mock.calls[0][0].collected).toBeNull();
   });
 });
 
 describe("the refund mail", () => {
   it("is sent once per refund entry, with the running total", async () => {
-    const first = {
-      id: "rfn-1-1695",
-      amountMinor: 10_000,
-      reason: "",
-      createdAt: "",
-    };
-    const second = {
-      id: "rfn-2-1696",
-      amountMinor: 5_000,
-      reason: "",
-      createdAt: "",
-    };
+    const first = { id: "rfn-1-1695", amountMinor: 10_000, reason: "", createdAt: "" };
+    const second = { id: "rfn-2-1696", amountMinor: 5_000, reason: "", createdAt: "" };
     const afterFirst = order({ status: "paid", refunds: [first] });
     const afterSecond = order({ status: "paid", refunds: [first, second] });
 
-    expect(
-      await notifyOrderRefunded(afterFirst, first, { viaCard: true }),
-    ).toBe("sent");
+    expect(await notifyOrderRefunded(afterFirst, first, { viaCard: true })).toBe(
+      "sent",
+    );
     // The provider reporting the same refund again.
-    expect(
-      await notifyOrderRefunded(afterFirst, first, { viaCard: true }),
-    ).toBe("duplicate");
+    expect(await notifyOrderRefunded(afterFirst, first, { viaCard: true })).toBe(
+      "duplicate",
+    );
     expect(
       await notifyOrderRefunded(afterSecond, second, { viaCard: true }),
     ).toBe("sent");
@@ -369,9 +340,7 @@ describe("the cafe pickup flow gets none of them", () => {
     );
     // Even with a number typed into it by mistake.
     expect(
-      await notifyOrderShipped(
-        cafePickup({ trackingNumber: "YK1", status: "shipped" }),
-      ),
+      await notifyOrderShipped(cafePickup({ trackingNumber: "YK1", status: "shipped" })),
     ).toBe("not_due");
     expect(
       await notifyOrderCancelled(cafePickup({ status: "cancelled" }), {
@@ -379,9 +348,7 @@ describe("the cafe pickup flow gets none of them", () => {
       }),
     ).toBe("not_due");
     expect(
-      await notifyOrderRefunded(cafePickup({ refunds: [r] }), r, {
-        viaCard: true,
-      }),
+      await notifyOrderRefunded(cafePickup({ refunds: [r] }), r, { viaCard: true }),
     ).toBe("not_due");
     expect(sendOrderShippedEmail).not.toHaveBeenCalled();
     expect(sendOrderCancelledEmail).not.toHaveBeenCalled();
@@ -390,9 +357,9 @@ describe("the cafe pickup flow gets none of them", () => {
   });
 
   it("sends no tracking mail for a shop order the köşk's courier carries", async () => {
-    expect(await notifyOrderShipped(order({ fulfillment: "delivery" }))).toBe(
-      "not_due",
-    );
+    expect(
+      await notifyOrderShipped(order({ fulfillment: "delivery" })),
+    ).toBe("not_due");
   });
 });
 

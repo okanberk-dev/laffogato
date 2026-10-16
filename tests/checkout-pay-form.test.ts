@@ -161,6 +161,16 @@ describe("card formatting on /odeme", () => {
     expect(cardBrand("2221 00")).toBe("mastercard");
     expect(cardBrand("3714")).toBe("amex");
     expect(cardBrand("9792 03")).toBe("troy");
+    // Troy's other issuer ranges (BKM), read after the other schemes.
+    expect(cardBrand("6500 12")).toBe("troy");
+    expect(cardBrand("65")).toBe("troy");
+    expect(cardBrand("2205 12")).toBe("troy");
+    // ...which leave the others alone: Mastercard 2221-2720, Visa 4, Amex.
+    expect(cardBrand("2221 00")).toBe("mastercard");
+    expect(cardBrand("2720 99")).toBe("mastercard");
+    expect(cardBrand("2204 00")).toBe("unknown");
+    expect(cardBrand("6")).toBe("unknown");
+    expect(cardBrand("6011")).toBe("unknown");
     expect(cardBrand("6011")).toBe("unknown");
   });
 

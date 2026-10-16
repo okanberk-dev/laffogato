@@ -945,12 +945,20 @@ adımda, "Ödeme tamamlanmadı" başlıklı `role="alert"` bir notla açılır;
 adres seçimi ve bekleyen sipariş `sessionStorage`'dan geri gelir, kart
 numarası ve CVV her dönüşte boştur (ad ve son kullanma da saklanmaz).
 Uygulama yükünde (`successUrl`'de `app=1`) işaret yok sayılır; uygulamanın
-ayrı sayfası bayt bayt aynı davranır.
+ayrı sayfası kart, ret, sınır ve süre durumlarında eskisi gibi davranır.
+**Bilinçli tek fark:** okunamayan (imzasız, bozuk ya da bu dağıtımın
+anahtarıyla uyuşmayan) bir ödeme yükü eskiden `303 /odeme?error=payment` idi
+- uygulamanın tarayıcısını boş sepetli web checkout'una atıyordu. Şimdi
+`GET` ve `POST` o durumda 400 (sağlayıcı PayNkolay değilse 503) ile
+"Ödeme sayfası açılamadı" notunu verir: "Uygulamaya dön" ve "Sitede ödemeye
+dön". Yük okunamadığı için hangi sipariş olduğu bilinmez; not ikisini de
+sunar.
 
 **Belgenin kendi CSP'si.** `/odeme` sitenin genel CSP'sinin dışındadır
 (`CSP_SOURCE`, yalnız tam bu yol) ve `src/proxy.ts` her istekte taze bir
 nonce'la kendi politikasını gönderir: `script-src 'self' 'nonce-…'`,
-`'unsafe-inline'`/`'unsafe-eval'` yok, üçüncü taraf yok, `connect-src
+betikte `'unsafe-inline'`/`'unsafe-eval'` yok, üçüncü taraf yok, `img-src
+'self' data:` (uzak görsel yok), `connect-src
 'self'`, `frame-src 'none'`, `form-action 'self'`, `frame-ancestors 'none'`,
 `base-uri 'none'`, `object-src 'none'` (`src/lib/security/checkout-csp.ts`).
 Next.js nonce'u isteğin `Content-Security-Policy` başlığından okur ve kendi
@@ -966,7 +974,14 @@ al"ı, sepet çekmecesi, e-posta doğrulama sayfası) tam sayfa yüklemesidir.
 **Yeniden deneme aynı siparişi kullanır.** Tarayıcı sekmede yalnız
 `{orderId, d, s, cartKey, createdAt}` ve sunucunun tutar teklifini tutar
 (kart yok, kişisel veri yok). Eylem siparişi ancak hepsi tutarsa yeniden
-kullanır: yük doğrulanır ve en az 5 dk daha tazedir, `clientRefCode ===
+kullanır, ve ESKİ yükü yeniden vermeden önce POS'a sorar
+(`checkPendingOrderPaid`, `settlePendingFromProvider`'ın kısa zaman aşımlı
+hâli): müşteri bankada ödemiş, dönüş POST'u kaybolmuş ve yeniden bastıysa
+aynı sipariş ikinci kez çekilmesin. POS "ödendi" derse sipariş
+`applyPaymentSucceeded` ile işlenir ve müşteri başarı sayfasına gider;
+"ödenmedi" derse yük yeniden verilir; POS'a ulaşılamazsa (`unknown`) sipariş
+yeniden KULLANILMAZ, yeni sipariş açılır (eskisini süpürme yine POS'a sorarak
+ele alır). Yeniden kullanım için koşullar: yük doğrulanır ve en az 5 dk daha tazedir, `clientRefCode ===
 orderId`, sipariş oturumdaki üyenindir, hâlâ `pending_payment`, web
 siparişidir, tutarı yükün tutarına eşittir, sepet anahtarı ve sipariş
 satırları gönderilenle aynıdır (`src/lib/checkout/reuse.ts`). Aksi hâlde
@@ -977,11 +992,24 @@ yeni sipariş açılır, eskisi `supersedeUnpaidWebOrders` ile bırakılır. Eyl
 bir sonraki adımı olan bir sayfadır (`tests/checkout-return.test.ts`).
 Okunamayan bir ödeme bağlantısı artık web checkout'una (boş sepetle)
 yönlendirilmez; sayfa uygulamanındır ve "Uygulamaya dön" + "Sitede ödemeye
-dön" diyen bir not gösterilir. "Bankaya yönlendiriliyorsun…" 20 sn içinde
-sayfa değişmezse düğmeyi geri verir ve yeniden denemeyi söyler; eylem 30
-sn'de yanıt vermezse aynısı; bfcache'ten (`pageshow`) dönüşte düğme açılır.
-`/odeme/error.tsx` ve `loading.tsx` çizim hatasında ve beklerken mesaj ve
-"Tekrar dene" gösterir.
+dön" diyen bir not gösterilir. "Bankaya yönlendiriliyorsun…" 30 sn içinde
+(POS'un ödeme süresi sınırı olan 25 sn'den uzun) sayfa değişmezse düğmeyi
+geri verir ve yeniden denemeyi söyler; eylem 30 sn'de yanıt vermezse aynısı; bfcache'ten (`pageshow`) dönüşte düğme açılır.
+`/odeme/(checkout)/error.tsx` ve `loading.tsx` yalnız checkout sayfasını
+sarar ("kartından para çekilmedi" der). `/odeme/basarili`, `/app-hata` ve
+dönüş için `/odeme/error.tsx` paranın lafını etmez (ödemiş bir müşteri
+orada olabilir): sayfayı yeniden dener, "Siparişlerim"e götürür.
+
+**Tek sipariş maili ve sıfır tutar.** Müşteri kargoya kadar yalnız "ödemen
+alındı" mailini alır (`notifyOrderPaid`, `order_notice_emails` türü `paid`):
+satırlar, Ara toplam, Kargo, İndirim ve toplam birbirini tutar, ÖBF/MSS/cayma
+bağlantıları kalır. Sağlayıcı 429/5xx verirse ya da ulaşılamazsa AYNI
+istekte, aynı `Idempotency-Key` ile bir kez daha denenir (en çok 1,5 sn
+bekleyerek); o da olmazsa kayıt serbest kalır ve bankanın dönüşü yeniden
+gelirse (24 saat içinde) mail yeniden önerilir; talep tek seferlik kalır.
+Tutarı sıfır olan sipariş kapanamazsa (`applyPaymentSucceeded` hata verirse)
+"ödendi" denmez: hata gösterilir, kart çekilmedi, yeniden deneme yeni sipariş
+açar.
 
 **Kayıtlı kartlar** (`PAYNKOLAY_CARD_STORAGE=on` olmadan görünmez, §16):
 sunucu bileşeni üyenin anahtarıyla 3 sn sınırla listeler; tarayıcıya yalnız

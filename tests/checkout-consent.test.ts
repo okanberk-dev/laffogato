@@ -101,6 +101,35 @@ describe("checkout consent: two boxes, both required", () => {
     }
   });
 
+  it("names the order form on the hidden consent field, so it travels with the order and never with the card", () => {
+    // The consent boxes sit beside the pay button, outside the order form the
+    // action reads; only this `form` attribute ties the hidden `legalConsent`
+    // to it. Without it every order is refused as "no consent" and nothing
+    // else fails - so it is rendered and read here.
+    const both = { preInfo: true, contract: true };
+    const named = renderToStaticMarkup(
+      createElement(CheckoutConsent, {
+        ticks: both,
+        onTick: () => {},
+        disabled: false,
+        form: "order-form",
+      }),
+    );
+    const hidden = named.match(/<input[^>]*name="legalConsent"[^>]*>/)?.[0];
+    expect(hidden).toBeTruthy();
+    expect(hidden).toContain('form="order-form"');
+    expect(hidden).toContain('value="on"');
+    // Without it the field belongs to whichever form contains it.
+    expect(
+      render(both).match(/<input[^>]*name="legalConsent"[^>]*>/)?.[0],
+    ).not.toContain("form=");
+    // And the checkout wires the one to the other.
+    const checkout = readFileSync("src/app/odeme/checkout.tsx", "utf8");
+    expect(checkout).toContain('export const ORDER_FORM_ID = "order-form";');
+    expect(checkout).toMatch(/form=\{ORDER_FORM_ID\}/);
+    expect(checkout).toMatch(/<form\s+id=\{ORDER_FORM_ID\}/);
+  });
+
   it("the payment step starts unticked and gates its button on both boxes", () => {
     // The checkout owns the state; the markup above is what it renders.
     // These three lines are the whole of the wiring, so a redesign that

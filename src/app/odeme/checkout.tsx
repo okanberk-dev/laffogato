@@ -103,8 +103,13 @@ const PENDING_MAX_AGE_MS = 25 * 60_000;
  * and the bank's page replaces this one; if nothing has replaced it by then
  * (a dropped connection, a blocked navigation) the button comes back with a
  * message instead of leaving a page that waits forever.
+ *
+ * The route may legitimately take as long as the POS deadline for a payment
+ * (`POS_TIMEOUT_MS.payment`, 25 s, paynkolay.ts) before it answers, so this
+ * wait is longer than that - a slow bank must not look like a failure while
+ * the request is still alive (`tests/checkout-document.test.ts` keeps it so).
  */
-const BANK_HANDOFF_WAIT_MS = 20_000;
+const BANK_HANDOFF_WAIT_MS = 30_000;
 
 /** The order step's own bound: an action that never answers is an error. */
 const ACTION_WAIT_MS = 30_000;
@@ -646,22 +651,33 @@ function CheckoutForm({
   );
   const topRef = useRef<HTMLDivElement | null>(null);
 
+  /**
+   * A step change moves the reader: to the top of the page, and keyboard and
+   * screen-reader focus onto the new step's heading (`tabIndex={-1}`) - the
+   * button that was pressed is hidden with its step, which would otherwise
+   * drop focus on the document.
+   */
+  const showStep = useCallback((which: 1 | 2) => {
+    window.setTimeout(() => {
+      topRef.current?.scrollIntoView({ block: "start" });
+      document
+        .getElementById(which === 1 ? "co-delivery-title" : "co-pay-title")
+        ?.focus({ preventScroll: true });
+    }, 0);
+  }, []);
+
   // Back and Forward move between the steps: step 2 is its own history
   // entry when it was reached from step 1 (same URL, a marker in the state).
   useEffect(() => {
     const onPop = (event: PopStateEvent) => {
       const state = event.state as { coStep?: number } | null;
-      setStep(state?.coStep === 2 ? 2 : 1);
+      const next = state?.coStep === 2 ? 2 : 1;
+      setStep(next);
+      showStep(next);
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, []);
-
-  const showStepTop = () => {
-    window.setTimeout(() => {
-      topRef.current?.scrollIntoView({ block: "start" });
-    }, 0);
-  };
+  }, [showStep]);
 
   const handoffTimer = useRef<number | null>(null);
   const stop = useCallback(() => {
@@ -794,7 +810,7 @@ function CheckoutForm({
     } catch {
       // Without history the visible "Değiştir" link still goes back.
     }
-    showStepTop();
+    showStep(2);
   };
 
   const goToDelivery = () => {
@@ -809,8 +825,10 @@ function CheckoutForm({
     // The entry step 2 pushed is the one Back leaves; the popstate handler
     // above shows step 1.
     if (pushed) window.history.back();
-    else setStep(1);
-    showStepTop();
+    else {
+      setStep(1);
+      showStep(1);
+    }
   };
 
   const saveDraft = () =>
@@ -1036,6 +1054,203 @@ function CheckoutForm({
         </ol>
       </div>
 
+      <aside className="co-side">
+        {/* Sipariş özeti ------------------------------------------------- */}
+        <section className="co-summary" aria-labelledby="co-summary-title">
+          <button
+            type="button"
+            className="co-summary-toggle"
+            aria-expanded={summaryOpen}
+            aria-controls="co-summary-body"
+            onClick={() => setSummaryOpen((open) => !open)}
+          >
+            <span>
+              Sipariş özeti{" "}
+              <span className="co-summary-count">· {unitCount} ürün</span>
+            </span>
+            <strong className="tabular">{priceLabel(payAmountMinor)}</strong>
+            <span className="co-chevron" aria-hidden="true" />
+          </button>
+          <h2 className="co-summary-title" id="co-summary-title">
+            Sipariş özeti
+          </h2>
+          <div
+            className="co-summary-body"
+            id="co-summary-body"
+            data-open={summaryOpen ? "true" : undefined}
+          >
+            <ul className="co-lines">
+              {items.map((it, i) => {
+                const qty = it.qty || 1;
+                const cap = Math.min(
+                  MAX_LINE_QTY,
+                  Math.max(1, it.maxStock ?? 99),
+                );
+                const line = quoted?.lines.find(
+                  (l) =>
+                    l.productId === it.productId &&
+                    (l.variantId ?? "") === (it.variantId ?? ""),
+                );
+                const lineMinor = line
+                  ? line.unitPriceMinor * qty
+                  : unitMinor(it) * qty;
+                return (
+                  <li key={`${it.productId ?? it.name}::${it.variantId ?? ""}`}>
+                    <div className="co-line-info">
+                      <span className="co-line-name">{itemLabel(it)}</span>
+                      <span className="co-qty" role="group" aria-label="Adet">
+                        <button
+                          type="button"
+                          aria-label={`${itemLabel(it)}: bir azalt`}
+                          onClick={() => setQty(i, qty - 1)}
+                          disabled={placing || qty <= 1}
+                        >
+                          −
+                        </button>
+                        <span className="tabular" aria-live="polite">
+                          {qty}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`${itemLabel(it)}: bir arttır`}
+                          onClick={() => setQty(i, qty + 1)}
+                          disabled={placing || qty >= cap}
+                        >
+                          +
+                        </button>
+                      </span>
+                    </div>
+                    <div className="co-line-side">
+                      <span className="tabular">{priceLabel(lineMinor)}</span>
+                      <button
+                        type="button"
+                        className="co-link"
+                        aria-label={`${itemLabel(it)} ürününü sepetten çıkar`}
+                        onClick={() => removeItem(i)}
+                        disabled={placing}
+                      >
+                        Çıkar
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <form
+              action={promoDispatch}
+              className="checkout-promo"
+              onSubmit={(e) => {
+                const code = promoInput.trim();
+                if (!code || placing) {
+                  e.preventDefault();
+                  return;
+                }
+                setAsked({ code, at: subtotalMinor });
+                setIntent({ code, source: "preview" });
+              }}
+            >
+              <input
+                type="hidden"
+                name="subtotal"
+                value={String(subtotalMinor / 100)}
+              />
+              <input
+                name="code"
+                aria-label="İndirim kodu"
+                placeholder="İndirim kodu"
+                value={promoInput}
+                onChange={(e) => setPromoInput(e.target.value)}
+                autoCapitalize="characters"
+                disabled={placing}
+              />
+              <button type="submit" disabled={promoPending || placing}>
+                {promoPending ? "…" : "Uygula"}
+              </button>
+              {promoRefused && promoState.error ? (
+                <div
+                  className="checkout-promo-msg"
+                  data-tone="error"
+                  role="alert"
+                >
+                  {promoState.error}
+                </div>
+              ) : null}
+              {promoFresh ? (
+                <div
+                  className="checkout-promo-msg"
+                  data-tone="ok"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {promoFresh.code} uygulandı{" "}
+                  <button
+                    type="button"
+                    className="co-link"
+                    onClick={() => {
+                      setIntent(null);
+                      setPromoInput("");
+                    }}
+                    disabled={placing}
+                  >
+                    Kaldır
+                  </button>
+                </div>
+              ) : promoStale ? (
+                <div
+                  className="checkout-promo-msg"
+                  role="status"
+                  aria-live="polite"
+                >
+                  İndirim yeniden hesaplanıyor…
+                </div>
+              ) : null}
+            </form>
+
+            <dl className="co-totals">
+              <div>
+                <dt>Ara toplam</dt>
+                <dd className="tabular">{priceLabel(totals.subtotalMinor)}</dd>
+              </div>
+              {totals.discountMinor > 0 ? (
+                <div className="co-totals-discount">
+                  <dt>İndirim{promoFresh ? ` · ${promoFresh.code}` : ""}</dt>
+                  <dd className="tabular">
+                    −{priceLabel(totals.discountMinor)}
+                  </dd>
+                </div>
+              ) : null}
+              <div>
+                <dt>Kargo</dt>
+                <dd className="tabular">
+                  {totals.shippingMinor > 0
+                    ? priceLabel(totals.shippingMinor)
+                    : "Ücretsiz"}
+                </dd>
+              </div>
+              <div className="co-totals-total">
+                <dt>
+                  Toplam <span>(KDV dahil)</span>
+                </dt>
+                <dd className="tabular">{priceLabel(totals.totalMinor)}</dd>
+              </div>
+            </dl>
+            {sellerLine ? (
+              <p className="co-seller">Satıcı: {sellerLine}</p>
+            ) : null}
+          </div>
+          {/* Outside the collapsible body: on a phone the summary is closed,
+              and this is what tells the customer how far free shipping is,
+              on both steps. */}
+          {computed.freeShippingRemainingMinor > 0 && !quoted ? (
+            <p className="checkout-freeship-hint co-freeship">
+              <strong>{priceLabel(computed.freeShippingRemainingMinor)}</strong>{" "}
+              daha ekle, kargo ücretsiz olsun
+            </p>
+          ) : null}
+        </section>
+      </aside>
+
       <div className="co-main">
         {/* 1 - Teslimat ------------------------------------------------ */}
         <section
@@ -1224,13 +1439,6 @@ function CheckoutForm({
                 : "Ücretsiz"}
             </span>
           </div>
-          {computed.freeShippingRemainingMinor > 0 && !quoted ? (
-            <p className="checkout-freeship-hint">
-              <strong>{priceLabel(computed.freeShippingRemainingMinor)}</strong>{" "}
-              daha ekle, kargo ücretsiz olsun
-            </p>
-          ) : null}
-
           <div className="co-next">
             <button
               type="button"
@@ -1277,7 +1485,7 @@ function CheckoutForm({
               <span className="co-step" aria-hidden="true">
                 2
               </span>
-              <h2 className="co-section-title" id="co-pay-title">
+              <h2 className="co-section-title" id="co-pay-title" tabIndex={-1}>
                 Ödeme
               </h2>
               <span className="checkout-secure co-section-secure">
@@ -1321,6 +1529,13 @@ function CheckoutForm({
               >
                 Mesafeli Satış Sözleşmesi
               </a>
+              {seller.name ? (
+                <span className="co-docs-seller">
+                  <br />
+                  Satıcı: {seller.name}
+                  {seller.mersis ? ` · MERSİS ${seller.mersis}` : ""}
+                </span>
+              ) : null}
             </p>
             <div className="co-accepted">
               <span>Kabul edilen kartlar</span>
@@ -1407,194 +1622,6 @@ function CheckoutForm({
           </section>
         </div>
       </div>
-
-      <aside className="co-side">
-        {/* Sipariş özeti ------------------------------------------------- */}
-        <section className="co-summary" aria-labelledby="co-summary-title">
-          <button
-            type="button"
-            className="co-summary-toggle"
-            aria-expanded={summaryOpen}
-            aria-controls="co-summary-body"
-            onClick={() => setSummaryOpen((open) => !open)}
-          >
-            <span>
-              Sipariş özeti{" "}
-              <span className="co-summary-count">· {unitCount} ürün</span>
-            </span>
-            <strong className="tabular">{priceLabel(payAmountMinor)}</strong>
-            <span className="co-chevron" aria-hidden="true" />
-          </button>
-          <h2 className="co-summary-title" id="co-summary-title">
-            Sipariş özeti
-          </h2>
-          <div
-            className="co-summary-body"
-            id="co-summary-body"
-            data-open={summaryOpen ? "true" : undefined}
-          >
-            <ul className="co-lines">
-              {items.map((it, i) => {
-                const qty = it.qty || 1;
-                const cap = Math.min(
-                  MAX_LINE_QTY,
-                  Math.max(1, it.maxStock ?? 99),
-                );
-                const line = quoted?.lines.find(
-                  (l) =>
-                    l.productId === it.productId &&
-                    (l.variantId ?? "") === (it.variantId ?? ""),
-                );
-                const lineMinor = line
-                  ? line.unitPriceMinor * qty
-                  : unitMinor(it) * qty;
-                return (
-                  <li key={`${it.productId ?? it.name}::${it.variantId ?? ""}`}>
-                    <div className="co-line-info">
-                      <span className="co-line-name">{itemLabel(it)}</span>
-                      <span className="co-qty" role="group" aria-label="Adet">
-                        <button
-                          type="button"
-                          aria-label={`${itemLabel(it)}: bir azalt`}
-                          onClick={() => setQty(i, qty - 1)}
-                          disabled={placing || qty <= 1}
-                        >
-                          −
-                        </button>
-                        <span className="tabular" aria-live="polite">
-                          {qty}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label={`${itemLabel(it)}: bir arttır`}
-                          onClick={() => setQty(i, qty + 1)}
-                          disabled={placing || qty >= cap}
-                        >
-                          +
-                        </button>
-                      </span>
-                    </div>
-                    <div className="co-line-side">
-                      <span className="tabular">{priceLabel(lineMinor)}</span>
-                      <button
-                        type="button"
-                        className="co-link"
-                        aria-label={`${itemLabel(it)} ürününü sepetten çıkar`}
-                        onClick={() => removeItem(i)}
-                        disabled={placing}
-                      >
-                        Çıkar
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-
-            <form
-              action={promoDispatch}
-              className="checkout-promo"
-              onSubmit={(e) => {
-                const code = promoInput.trim();
-                if (!code || placing) {
-                  e.preventDefault();
-                  return;
-                }
-                setAsked({ code, at: subtotalMinor });
-                setIntent({ code, source: "preview" });
-              }}
-            >
-              <input
-                type="hidden"
-                name="subtotal"
-                value={String(subtotalMinor / 100)}
-              />
-              <input
-                name="code"
-                aria-label="İndirim kodu"
-                placeholder="İndirim kodu"
-                value={promoInput}
-                onChange={(e) => setPromoInput(e.target.value)}
-                autoCapitalize="characters"
-                disabled={placing}
-              />
-              <button type="submit" disabled={promoPending || placing}>
-                {promoPending ? "…" : "Uygula"}
-              </button>
-              {promoRefused && promoState.error ? (
-                <div
-                  className="checkout-promo-msg"
-                  data-tone="error"
-                  role="alert"
-                >
-                  {promoState.error}
-                </div>
-              ) : null}
-              {promoFresh ? (
-                <div
-                  className="checkout-promo-msg"
-                  data-tone="ok"
-                  role="status"
-                  aria-live="polite"
-                >
-                  {promoFresh.code} uygulandı{" "}
-                  <button
-                    type="button"
-                    className="co-link"
-                    onClick={() => {
-                      setIntent(null);
-                      setPromoInput("");
-                    }}
-                    disabled={placing}
-                  >
-                    Kaldır
-                  </button>
-                </div>
-              ) : promoStale ? (
-                <div
-                  className="checkout-promo-msg"
-                  role="status"
-                  aria-live="polite"
-                >
-                  İndirim yeniden hesaplanıyor…
-                </div>
-              ) : null}
-            </form>
-
-            <dl className="co-totals">
-              <div>
-                <dt>Ara toplam</dt>
-                <dd className="tabular">{priceLabel(totals.subtotalMinor)}</dd>
-              </div>
-              {totals.discountMinor > 0 ? (
-                <div className="co-totals-discount">
-                  <dt>İndirim{promoFresh ? ` · ${promoFresh.code}` : ""}</dt>
-                  <dd className="tabular">
-                    −{priceLabel(totals.discountMinor)}
-                  </dd>
-                </div>
-              ) : null}
-              <div>
-                <dt>Kargo</dt>
-                <dd className="tabular">
-                  {totals.shippingMinor > 0
-                    ? priceLabel(totals.shippingMinor)
-                    : "Ücretsiz"}
-                </dd>
-              </div>
-              <div className="co-totals-total">
-                <dt>
-                  Toplam <span>(KDV dahil)</span>
-                </dt>
-                <dd className="tabular">{priceLabel(totals.totalMinor)}</dd>
-              </div>
-            </dl>
-            {sellerLine ? (
-              <p className="co-seller">Satıcı: {sellerLine}</p>
-            ) : null}
-          </div>
-        </section>
-      </aside>
 
       {/* The order form: what the server action reads. Hidden fields only -
           the card is in the pay form above, which this one never contains. */}

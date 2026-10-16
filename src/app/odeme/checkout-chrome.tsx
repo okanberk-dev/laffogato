@@ -43,9 +43,13 @@ export function CheckoutChrome({
             Güvenli ödeme
           </span>
           {tel ? (
-            <a className="co-chrome-help" href={`tel:${tel}`}>
+            <a
+              className="co-chrome-help"
+              href={`tel:${tel}`}
+              aria-label={`Yardım: ${phone}`}
+            >
               <span className="co-chrome-help-label">Yardım</span>
-              <span className="tabular">{phone}</span>
+              <span className="tabular co-chrome-help-number">{phone}</span>
             </a>
           ) : null}
         </div>

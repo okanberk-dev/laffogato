@@ -55,7 +55,7 @@ vi.mock("next/headers", () => ({
   }),
 }));
 vi.mock("@/lib/email/send", () => ({
-  sendOrderPaidEmail: async () => {},
+  sendOrderPaidEmail: async () => ({ ok: true as const }),
 }));
 vi.mock("@/lib/payment", () => ({
   getPaymentProvider: () => ({
@@ -261,5 +261,43 @@ maybe("unpaid orders are cancelled only after asking the POS", () => {
 
     expect(await supersedeUnpaidWebOrders(member)).toBe(0);
     expect(await statusOf("ord-swp-web3")).toBe("pending_payment");
+  });
+
+  // The web checkout asks the POS before it hands an old order's payload
+  // out again (startCheckoutAction, docs/PAYNKOLAY.md §15.5): a customer who
+  // paid at the bank and lost the return must not be charged twice.
+  describe("checkPendingOrderPaid (the reuse gate)", () => {
+    it("books an order the POS shows as paid, and says so", async () => {
+      await insertPending("ord-swp-reuse1", 993021, { ageMs: 60_000 });
+      pos.answers.set("ord-swp-reuse1", "paid");
+      const { checkPendingOrderPaid, getOrder } =
+        await import("@/lib/admin/store");
+      const order = (await getOrder("ord-swp-reuse1"))!;
+      const provider = (await import("@/lib/payment")).getPaymentProvider();
+      expect(await checkPendingOrderPaid(order, provider)).toBe("paid");
+      expect(await statusOf("ord-swp-reuse1")).toBe("paid");
+    });
+
+    it("lets an order the POS knows nothing about be reused", async () => {
+      await insertPending("ord-swp-reuse2", 993022, { ageMs: 60_000 });
+      pos.answers.set("ord-swp-reuse2", "unpaid");
+      const { checkPendingOrderPaid, getOrder } =
+        await import("@/lib/admin/store");
+      const order = (await getOrder("ord-swp-reuse2"))!;
+      const provider = (await import("@/lib/payment")).getPaymentProvider();
+      expect(await checkPendingOrderPaid(order, provider)).toBe("unpaid");
+      expect(await statusOf("ord-swp-reuse2")).toBe("pending_payment");
+    });
+
+    it("answers unknown, never unpaid, when the POS cannot be asked", async () => {
+      await insertPending("ord-swp-reuse3", 993023, { ageMs: 60_000 });
+      pos.answers.set("ord-swp-reuse3", "down");
+      const { checkPendingOrderPaid, getOrder } =
+        await import("@/lib/admin/store");
+      const order = (await getOrder("ord-swp-reuse3"))!;
+      const provider = (await import("@/lib/payment")).getPaymentProvider();
+      expect(await checkPendingOrderPaid(order, provider)).toBe("unknown");
+      expect(await statusOf("ord-swp-reuse3")).toBe("pending_payment");
+    });
   });
 });

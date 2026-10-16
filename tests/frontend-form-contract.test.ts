@@ -62,6 +62,14 @@ const CONTRACTS: FormContract[] = [
     fields: ["code", "subtotal"],
   },
   {
+    // Deleting a saved card from the checkout: the browser names the card
+    // by its `tranId` only; the member's key comes from the session.
+    action: "deleteSavedCardAction",
+    actionFile: "src/app/odeme/actions.ts",
+    forms: ["src/app/odeme/checkout.tsx", "src/app/odeme/card-payment.tsx"],
+    fields: ["tranId"],
+  },
+  {
     // Not a Server Action: the checkout's NATIVE pay form posts here, and
     // the route reads it by name all the same. The card's own four fields
     // are named through CARD_FORM_FIELDS on both sides
@@ -207,9 +215,16 @@ function actionReads(source: string, field: string): boolean {
   return new RegExp(`\\(\\s*["']${field}["']\\s*\\)`).test(source);
 }
 
+/**
+ * An input with that `name`, or - for the checkout's actions that are called
+ * with a FormData built in code, not submitted from a <form> - a
+ * `fd.set("field", …)`.
+ */
 function formSends(source: string, field: string): boolean {
-  return new RegExp(`name=(?:"${field}"|\\{\\s*["']${field}["']\\s*\\})`).test(
-    source,
+  return (
+    new RegExp(`name=(?:"${field}"|\\{\\s*["']${field}["']\\s*\\})`).test(
+      source,
+    ) || new RegExp(`\\bfd\\.set\\(\\s*["']${field}["']`).test(source)
   );
 }
 
@@ -292,7 +307,9 @@ describe("redirect query strings the pages must keep handling", () => {
     // never read: no message at all. The page reads its query through
     // readCheckoutReturn (src/lib/checkout/return-codes.ts) since 16 Eki 2026.
     const page = read("src/lib/checkout/return-codes.ts");
-    expect(read("src/app/odeme/page.tsx")).toContain("readCheckoutReturn(");
+    expect(read("src/app/odeme/(checkout)/page.tsx")).toContain(
+      "readCheckoutReturn(",
+    );
     const senders = [
       "src/app/odeme/actions.ts",
       "src/app/odeme/donus/route.ts",
@@ -363,6 +380,8 @@ describe("redirect query strings the pages must keep handling", () => {
     const page = read("src/app/uye/giris/page.tsx");
     expect(page).toMatch(/next\??:\s*string/);
     expect(page).toContain("<LoginForm next={next}");
-    expect(read("src/app/odeme/page.tsx")).toContain("/uye/giris?next=/odeme");
+    expect(read("src/app/odeme/(checkout)/page.tsx")).toContain(
+      "/uye/giris?next=/odeme",
+    );
   });
 });

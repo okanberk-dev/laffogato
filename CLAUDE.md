@@ -27,7 +27,8 @@ yapılır.
   `ADMIN_PASSWORD` + HMAC SHA256) ve TOTP 2FA. Müşteri için bcrypt hesap
 - **Ödeme:** Sağlayıcı bağımsız soyutlama (`src/lib/payment/`). Sanal POS
   **PayNkolay**; kart web'de **checkout sayfasının kendisinde** (`/odeme`,
-  iki adım: Teslimat → Ödeme), uygulamada `/odeme/paynkolay`'da girilir, sunucu onu yalnızca PayNkolay'a iletir ve müşteri doğrudan bankanın
+  iki adım: Teslimat → Ödeme), uygulamada `/odeme/paynkolay`'da girilir,
+  sunucu onu yalnızca PayNkolay'a iletir ve müşteri doğrudan bankanın
   3D ekranına gider (`PAYNKOLAY_CHECKOUT_MODE=direct`). **Kart saklanmaz**:
   kural 28, `docs/PAYNKOLAY.md` §15. Geliştirmede `MockPaymentProvider`.
   iyzico 15 Eki 2026'da koddan kaldırıldı (hukuki metinlerde hâlâ geçiyor:
@@ -147,7 +148,7 @@ yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
      bileşende `@/lib/db` yok; istemci bileşeni `server-only` modül import
      edemez (saf mantık için `*-core.ts` / `*-utils.ts`).
 - **Ön yüz PR'ı bitmeden:** `git diff --stat origin/main -- src/lib src/app/api
-db scripts src/proxy.ts 'src/app/**/actions.ts' 'src/app/**/route.ts'`
+  db scripts src/proxy.ts 'src/app/**/actions.ts' 'src/app/**/route.ts'`
   **boş** dönmeli.
 
 ## Klasör Yapısı
@@ -451,7 +452,7 @@ durum bozulmaya uygundur.
     `istanbulDay` / `istanbulClock` (`src/lib/mobile/*`), panelden gelen
     `datetime-local` için `parsePublishInstant` / `normalizePublishInstant`
 23. **`RETURNS TABLE` / `SETOF` SQL fonksiyonu → `rpcRows()`.** `rpc()` tek
-    hücre okur; tablo döndüren fonksiyonda kayıt _dizesi_ gelir ve iş sessizce
+    hücre okur; tablo döndüren fonksiyonda kayıt *dizesi* gelir ve iş sessizce
     boş çalışır (doğum günü cron'u böyle aylarca kimseyi kutlamadı).
     `tests/db-rpc-table-functions.test.ts` tutar
 24. **Admin formundan gelen tutar → `parseMoneyInput()`**
@@ -471,8 +472,8 @@ durum bozulmaya uygundur.
     Eki 2026: _"kart girerken başka sayfaya vs atmasın"_; bu, kartın yalnız
     `/odeme/paynkolay`'da girildiği eski kararın bilinçli tersidir
     (`docs/PAYNKOLAY.md` §15.5). Uygulama aynı `/odeme/paynkolay` sayfasını
-    açmaya devam eder. Kart `/odeme`'de yerli bir `<form method="post"
-action="/odeme/paynkolay">`'da, kontrolsüz alanlarda durur: Server
+    açmaya devam eder. Kart `/odeme`'de yerli bir POST formunda
+    (`action="/odeme/paynkolay"`), kontrolsüz alanlarda durur: Server
     Action'a, serileşen React state'ine, depolamaya, loga ve adrese girmez;
     sunucu onu aynı istekte yalnızca PayNkolay'a (`/Vpos/v1/Payment`)
     iletir. Veritabanına, loga, dosyaya yazılmaz; hata yanıtı kart

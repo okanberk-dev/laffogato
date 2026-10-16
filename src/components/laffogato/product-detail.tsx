@@ -325,9 +325,13 @@ export function ProductDetail({
                   İstanbul içi siparişler aynı gün, Türkiye geneli 2-3 iş günü
                   içinde teslim edilir. 500₺ ve üzeri siparişlerde kargo
                   ücretsizdir. Sipariş durumunu{" "}
-                  <Link href="/uye/hesap/siparislerim">üyelik hesabından</Link>{" "}
+                  <Link href="/uye/hesap/siparislerim">
+                    üyelik hesabından
+                  </Link>{" "}
                   takip edebilirsin. Ayrıntılar:{" "}
-                  <Link href="/hukuk/teslimat-ve-kargo">Teslimat ve Kargo</Link>
+                  <Link href="/hukuk/teslimat-ve-kargo">
+                    Teslimat ve Kargo
+                  </Link>
                   .
                 </p>
               </Accordion>
