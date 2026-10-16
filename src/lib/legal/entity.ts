@@ -29,6 +29,8 @@ export const LEGAL_ENTITY = {
   /** Vergi levhasındaki iş yeri adresi. */
   address: {
     line1: "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
+    /** Posta kodu: vergi levhasıyla doğrulandı, `SITE.address.postalCode` ile aynı. */
+    postalCode: "34940",
     district: "Tuzla",
     city: "İstanbul",
     country: "Türkiye",
@@ -124,10 +126,10 @@ export const LEGAL_ENTITY = {
   siteUrl: "https://laffogato.net",
 } as const;
 
-/** Tek satırlık, tam yasal adres. */
+/** Tek satırlık, tam yasal adres (posta kodu dâhil). */
 export const LEGAL_ADDRESS_LINE = [
   LEGAL_ENTITY.address.line1,
-  `${LEGAL_ENTITY.address.district}/${LEGAL_ENTITY.address.city}`,
+  `${LEGAL_ENTITY.address.postalCode} ${LEGAL_ENTITY.address.district}/${LEGAL_ENTITY.address.city}`,
   LEGAL_ENTITY.address.country,
 ].join(", ");
 
@@ -150,7 +152,7 @@ const TOKENS: Record<string, string> = {
   TAX_NO: LEGAL_ENTITY.taxNo,
   TAX_TYPE: LEGAL_ENTITY.taxType,
   STARTED_AT: LEGAL_ENTITY.startedAt,
-  NACE: `${LEGAL_ENTITY.naceCode} — ${LEGAL_ENTITY.naceName}`,
+  NACE: `${LEGAL_ENTITY.naceCode} - ${LEGAL_ENTITY.naceName}`,
   MERSIS: LEGAL_ENTITY.mersisNo,
   TRADE_REGISTRY: LEGAL_ENTITY.tradeRegistryNo,
   KEP: LEGAL_ENTITY.kep,

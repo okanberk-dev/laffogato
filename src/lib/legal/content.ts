@@ -4860,7 +4860,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "gizlilik-politikasi",
     title: "Gizlilik Politikası",
     shortTitle: "Gizlilik",
-    updatedAt: "23 Eylül 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{LEGAL_NAME}} tarafından işletilen {{BRAND}} web sitesi, mobil uygulaması ve kafesinde kişisel verilerinizin hangi amaçlarla işlendiğini, kimlere aktarıldığını, ne kadar süreyle saklandığını ve KVKK ile GDPR kapsamındaki haklarınızı açıklar.",
@@ -5672,7 +5671,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "kvkk-aydinlatma-metni",
     title: "KVKK Aydınlatma Metni",
     shortTitle: "Aydınlatma Metni",
-    updatedAt: "23 Eylül 2026",
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun'un 10. maddesi uyarınca {{BRAND}} internet sitesi ve mobil uygulamasında hangi kişisel verilerin hangi amaç ve hukuki sebeple işlendiğini, kimlere aktarıldığını, ne kadar saklandığını ve ilgili kişinin haklarını açıklayan aydınlatma metnidir.",
@@ -6414,7 +6412,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "acik-riza-metni",
     title: "Açık Rıza Metni",
     shortTitle: "Açık Rıza",
-    updatedAt: "23 Eylül 2026",
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun uyarınca {{SHORT_NAME}}'nin web sitesi ve mobil uygulamada hangi işlemler için açık rızanıza başvurduğunu, rızanın nasıl verilip geri çekileceğini, vermemeniz hâlinde hizmetin ve puan kazanmanızın etkilenmediğini açıklar.",
@@ -7708,7 +7705,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "veri-saklama-ve-imha-politikasi",
     title: "Kişisel Veri Saklama ve İmha Politikası",
     shortTitle: "Saklama ve İmha",
-    updatedAt: "23 Eylül 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{SHORT_NAME}} tarafından {{BRAND}} markası altında işlenen kişisel verilerin hangi ortamlarda, hangi sebeple ve ne kadar süreyle saklandığını; süre sonunda hangi yöntemle silineceğini, yok edileceğini veya anonim hâle getirileceğini gösterir.",
@@ -10379,7 +10375,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "uyelik-sozlesmesi",
     title: "Üyelik Sözleşmesi",
     shortTitle: "Üyelik",
-    updatedAt: "5 Eylül 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} internet sitesi ve mobil uygulamasına üye olan kullanıcı ile {{LEGAL_NAME}} arasındaki üyelik ilişkisini, hesap güvenliğini, sadakat programını, tarafların yükümlülüklerini, askıya alma ve fesih hâllerini düzenleyen sözleşmedir.",
@@ -10996,7 +10991,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "hesap-silme",
     title: "Hesap Silme ve Üyelik Sonlandırma Prosedürü",
     shortTitle: "Hesap Silme",
-    updatedAt: "5 Eylül 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} üyeliğinizi ve mobil uygulama hesabınızı nasıl sildireceğinizi; talebin nereden iletileceğini, kimlik teyidini, süreleri ve silme sonrasında hangi verilerin silindiğini, hangilerinin anonim hâle getirildiğini, hangilerinin mevzuat gereği saklandığını adım adım açıklar.",
@@ -11146,7 +11140,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "odul-programi",
     title: "Sadakat (Damga) Programı Kuralları",
     shortTitle: "Ödül Programı",
-    updatedAt: "23 Eylül 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} sadakat programının kuralları: damga nasıl kazanılır, kart kaç damgada dolar, ücretsiz içecek kuponu nasıl alınır ve nerede kullanılır, iade hâlinde damgaya ne olur, kademeler ve davet ödülü nasıl işler.",
@@ -11512,7 +11505,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "mobil-uygulama-kosullari",
     title: "Mobil Uygulama Kullanım Koşulları",
     shortTitle: "Mobil Uygulama",
-    updatedAt: "5 Eylül 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} iOS ve Android mobil uygulamasının indirilmesi ve kullanılmasına ilişkin son kullanıcı lisans ve kullanım koşulları; lisansın kapsamı, yasak kullanımlar, cihaz izinleri, cihazda planlanan hatırlatmalar, sadakat damgası ve sorumluluk sınırları düzenlenir.",
@@ -12685,7 +12677,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "sirket-bilgileri",
     title: "Şirket ve İletişim Bilgileri",
     shortTitle: "Şirket Bilgileri",
-    updatedAt: "22 Eylül 2026",
     category: "Kurumsal",
     summary:
       "{{SITE_URL}} adresini, {{BRAND}} mobil uygulamasını ve markayı işleten hizmet sağlayıcının unvan, adres, vergi, iletişim ve altyapı bilgilerini; müşteri hizmetleri kanallarını, resmî sosyal medya hesaplarını ve başvuru mercilerini sunar.",
@@ -14283,7 +14274,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "kafe-hizmet-kosullari",
     title: "Kafe Hizmet ve Rezervasyon Koşulları",
     shortTitle: "Kafe Koşulları",
-    updatedAt: "5 Eylül 2026",
     category: "Kurumsal",
     summary:
       "{{BRAND}} kafesinde yerinde sunulan yiyecek-içecek hizmetine, masa rezervasyonuna, özel etkinliklere, mobil uygulama kullanımına, sadakat damgası ve ücretsiz içecek kuponu kurallarına ve misafir haklarına ilişkin usul ve esasları düzenleyen metindir.",
