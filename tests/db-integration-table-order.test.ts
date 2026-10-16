@@ -260,6 +260,10 @@ maybe("table orders in a real Postgres", () => {
   });
 
   beforeEach(() => {
+    // CI sets a break-glass admin (ADMIN_EMAIL); it is a valid recipient
+    // in production but not part of this test's team.
+    vi.stubEnv("ADMIN_EMAIL", "");
+    vi.stubEnv("ADMIN_USERS", "");
     hooks.afters.length = 0;
     hooks.batches.length = 0;
     hooks.sessions = 0;
