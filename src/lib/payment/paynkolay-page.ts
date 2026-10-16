@@ -391,9 +391,14 @@ export function renderPaymentNotice(
   title: string,
   message: string,
   next?: { href: string; label: string },
+  /** A second way on, drawn as a plain link under the first. */
+  also?: { href: string; label: string },
 ): PaynkolayPage {
   const link = next
     ? `<p class="lead"><a class="next" href="${escapeHtml(next.href)}">${escapeHtml(next.label)}</a></p>`
+    : "";
+  const second = also
+    ? `<p class="lead"><a href="${escapeHtml(also.href)}">${escapeHtml(also.label)}</a></p>`
     : "";
   return page({
     title: `${title} · L'Affogato`,
@@ -403,6 +408,7 @@ export function renderPaymentNotice(
 <h1>${escapeHtml(title)}</h1>
 <p class="lead">${escapeHtml(message)}</p>
 ${link}
+${second}
 </main>`,
   });
 }
