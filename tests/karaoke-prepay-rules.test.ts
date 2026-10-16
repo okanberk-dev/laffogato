@@ -327,4 +327,19 @@ describe("the booking form", () => {
     expect(html).toContain("Giriş yap ve rezerve et");
     expect(html).not.toContain('name="guestFirstName"');
   });
+
+  it("names the checkout section only by a heading that is there", () => {
+    // Prepayment off: a verified member books, the box and its heading are
+    // gone, so the section must not point at a missing id.
+    const html = render({
+      prepay: false,
+      isAuthenticated: true,
+      emailVerified: true,
+    });
+    expect(html).toContain('class="karaoke-checkout"');
+    expect(html).not.toContain("karaoke-preinfo-title");
+    const on = render();
+    expect(on).toContain('aria-labelledby="karaoke-preinfo-title"');
+    expect(on).toContain('id="karaoke-preinfo-title"');
+  });
 });

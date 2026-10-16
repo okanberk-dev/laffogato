@@ -62,5 +62,10 @@ describe("the wait mark", () => {
     const src = read("src/app/odeme/checkout.tsx");
     expect(src).not.toContain('promoPending ? "…"');
     expect(src).toContain("Kod kontrol ediliyor");
+    // Alone in the pill (the words are sr-only), the dots drop the spacing
+    // they keep beside a label, or they sit off centre.
+    expect(read("src/app/globals.css")).toMatch(
+      /\.checkout-promo button \.lf-dots \{\s*margin-inline-end: 0;/,
+    );
   });
 });

@@ -7083,6 +7083,11 @@ select {
   cursor: pointer;
   transition: transform 0.12s var(--ease-out);
 }
+/* The dots stand alone here (the words are sr-only), so they drop the
+   spacing they keep beside a label and sit in the middle of the pill. */
+.checkout-promo button .lf-dots {
+  margin-inline-end: 0;
+}
 .checkout-promo button:active {
   transform: scale(var(--press-scale));
 }

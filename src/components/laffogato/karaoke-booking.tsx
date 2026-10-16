@@ -516,7 +516,8 @@ export function KaraokeBooking({
           {canBook ? (
             <section
               className="karaoke-checkout"
-              aria-labelledby="karaoke-preinfo-title"
+              // The heading it names exists only with prepayment on.
+              aria-labelledby={prepay ? "karaoke-preinfo-title" : undefined}
             >
               {prepay ? (
                 <>
