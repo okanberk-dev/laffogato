@@ -767,6 +767,136 @@ Cache: `public, s-maxage=30` — `stale-while-revalidate` **yok**: panel persone
 > değişiklik eski kayıtları etkilemez. Panel onay/iptali `audit_logs`'a `karaoke_reservation`
 > olarak düşer.
 
+### 7.1 Online ön ödeme (16 Eki 2026, yalnız ekleme)
+
+Operatör kararı: karaoke rezervasyonu yapılırken PayNkolay ile kartla ödenir ve
+ödeme onaylanınca rezervasyon **kendiliğinden** `confirmed` olur. Ödemesi
+alınmamış rezervasyon onaylanmaz (panelde de). Panelde bir anahtar var
+(`settings.karaokePrepay`, Ayarlar → Karaoke, varsayılan açık); kapalıyken eski
+akış döner (talep, köşkte ödeme, elle onay) ve aşağıdaki her şey `none`'a düşer.
+
+**`GET /karaoke/availability`** yanıtına eklenen alanlar:
+
+```json
+{
+  "paymentRequired": true,
+  "freeCancelHours": 2,
+  "consentDocs": ["karaoke-odasi-rezervasyon"],
+  "privacyDoc": "kvkk-aydinlatma-metni",
+  "cancellationRules": [
+    "Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.",
+    "Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz."
+  ]
+}
+```
+
+`paymentRequired` anahtarın kendisidir. `consentDocs` ve `privacyDoc` §13'teki
+`/legal/{slug}` belgeleridir. `cancellationRules` ödeme kutusunun üstünde
+**olduğu gibi** yazılır.
+
+**`POST /karaoke/reservations`** gövdesine iki isteğe bağlı alan:
+
+```json
+{
+  "date": "2026-10-30",
+  "startHour": 20,
+  "hours": 2,
+  "guests": 4,
+  "note": "",
+  "prepay": true, // bu sürüm ödeme alabiliyor
+  "legalConsent": true
+} // üç kutunun üçü de işaretli (aşağıda)
+```
+
+- `paymentRequired: true` iken `prepay` gönderen sürüm: **201**
+  `{ "reservation": {…, "status": "requested", "paymentStatus": "pending", "paymentDueAt": "…" }, "payment": { "provider": "paynkolay", "redirectUrl": "…", "expiresAt": "…" } }`.
+  Uygulama `redirectUrl`'i `openAuthSessionAsync` ile açar (dönüş adresi
+  `laffogato://karaoke`). Toplam 0 ise (`oroDiscountPct` 100) `payment: null`
+  döner ve rezervasyon zaten `paid` + `confirmed`'dır.
+- `prepay: true` ile `legalConsent: true` yoksa **400** `invalid_request`,
+  `field: "legalConsent"`.
+- **426 `app_update_required`**: `paymentRequired: true` iken `prepay`
+  göndermeyen (eski) sürüm. Hiçbir şey yazılmaz. Eski sürüm bilinmeyen hatada
+  sunucunun mesajını gösterir: "…Devam etmek için uygulamayı güncelle."
+  Anahtar kapalıyken eski sürümler eskisi gibi 201 alır (`payment: null`,
+  `paymentStatus: "none"`).
+- **429 `rate_limited`** + `Retry-After`: aynı üyenin kısa sürede çok sayıda
+  ödenmemiş rezervasyonu (`karaoke-hold`, günde 4; ödeme sayacı sıfırlar).
+- **503 `payment_unavailable`**: ödeme sayfası açılamadı; rezervasyon hemen
+  bırakılır, karttan para çekilmez.
+- Onay kutuları (MSY m.5, m.6, m.7; KVKK m.10), her biri ayrı ve **işaretsiz**
+  başlar; `legalConsent: true` ancak üçü de işaretliyken gönderilir:
+  1. "Ön Bilgilendirme Formu'nu okudum ve onaylıyorum" (bağlantı
+     `/legal/karaoke-odasi-rezervasyon`)
+  2. "Mesafeli Hizmet Sözleşmesi'ni okudum ve kabul ediyorum" (aynı belge)
+  3. "Kişisel verilerimin rezervasyonun yapılması ve yönetilmesi için
+     işlenmesine ilişkin Aydınlatma Metni'ni okudum" (`/legal/kvkk-aydinlatma-metni`;
+     bu bir bilgilendirmedir, rıza değildir)
+
+  Kutuların üstünde ödeme öncesi bilgi kutusu durur: tarih, başlangıç saati,
+  süre, kişi, KDV dahil toplam, "Belirli bir tarihte sunulan eğlence hizmeti
+  olduğu için cayma hakkı yoktur (MSY m.15/1-g).", `cancellationRules`'un iki
+  cümlesi ve işletme iptalinde tam iade. Düğme: "Rezervasyonu onayla ve {toplam}
+  öde". Sunucu onayı zaman, belge, sürüm, IP ve `User-Agent` ile rezervasyon
+  satırına yazar.
+
+**Rezervasyon nesnesine eklenen alanlar** (`GET` ve `POST` yanıtlarında):
+
+| Alan               | Değerler                                                                                                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `paymentStatus`    | `none` (köşkte ödeme; eski kayıtlar) · `pending` (ödeme bekliyor, saat tutuluyor) · `paid` · `refunding` (iade sonucu bekleniyor) · `refunded` · `expired` (ödenmedi, düştü) |
+| `paymentDueAt`     | `pending` iken ödeme sayfasının kapandığı an (ISO), yoksa `""`                                                                                                               |
+| `cancellableUntil` | Üyenin kendisi iptal edip tam iade alabileceği son an (başlangıçtan 2 saat önce, ISO)                                                                                        |
+
+`status` üç değerini korur: `pending` rezervasyon `requested`'dır (saati tutar,
+2 açık rezervasyon sınırına sayılır), `refunded` ve `expired` her zaman
+`cancelled`'dır. Ödeme sayfası 30 dakika açıktır; ödenmeyen rezervasyon,
+POS'a sorulduktan sonra düşer (POS'a ulaşılamaması "ödenmedi" sayılmaz, 24
+saate kadar beklenir).
+
+**`POST /karaoke/reservations/{id}/payment`** (kimlik): üyenin kendi ödenmemiş
+rezervasyonu için yeni ödeme sayfası, sipariş yeniden açmanın (§3) eşi.
+**200** `{ "reservation", "payment" }`. Başkasının ya da olmayan rezervasyon
+**404** `not_found`; ödenmiş, düşmüş ya da rezervasyondan 30 dakikadan eski
+**409** `not_payable` (gövdede `reservation`); sık deneme **429**
+`rate_limited` (`checkout-reopen`); sayfa açılamadı **503** `payment_unavailable`.
+
+**`POST /karaoke/reservations/{id}/cancel`** (kimlik): üye kendi rezervasyonunu
+iptal eder. Başlangıca **2 saatten fazla** varken (İstanbul saati) olur; ödenmişse
+tutarın tamamı önce POS'tan karta iade edilir. **200**
+`{ "reservation", "refunded": true|false }`. Hatalar (gövdede varsa
+`reservation`):
+
+| Durum | `error`           | Anlamı                                                                                                                                      |
+| ----- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 404   | `not_found`       | Başkasının ya da olmayan rezervasyon                                                                                                        |
+| 409   | `too_late`        | 2 saatten az kaldı; mesaj "…Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz." |
+| 409   | `not_cancellable` | Zaten iptal ya da iadesi sürüyor                                                                                                            |
+| 409   | `refund_pending`  | İade gönderildi, POS yanıt vermedi; ekip sonuçlandırır, üyeye e-posta gider                                                                 |
+| 502   | `refund_failed`   | POS iadeyi reddetti; rezervasyon olduğu gibi duruyor                                                                                        |
+| 503   | `payment_unknown` | Ödenmemiş rezervasyonun ödeme durumu POS'a sorulamadı; hiçbir şey değişmedi                                                                 |
+
+**Ödeme dönüşü.** Ödeme sayfası her zaman `/odeme/donus`'a döner; dönüş nereye
+gideceğini rezervasyonun kendi `channel`'ından bilir (sorgu dizesinden değil).
+Uygulamadan yapılan rezervasyon **`laffogato://karaoke?status=success|failed&ref=krk-00042`**
+derin bağlantısına 303 ile yönlenir. `status` yalnız ipucudur: uygulama karar
+vermeden önce `GET /karaoke/reservations` ile satırı yeniden okur (POS'a
+sorulamayan dönüşte `status` her zaman `failed`'dır). Uygulamanın
+`+native-intent.tsx` `PAYMENT_RETURN` düzenine `karaoke` eklenmelidir. Süresi
+dolmuş ödeme sayfası da `laffogato://karaoke?status=failed&ref=…` bağlantısı
+verir; `/odeme/app-hata?orderId=krk-…` aynısını yapar.
+
+**Web.** Aynı kurallar `/karaoke` formunda da geçerlidir (aynı `bookKaraoke`).
+Web ayrıca **üyeliksiz** rezervasyon alır (ad, soyad, cep telefonu, e-posta);
+bu rezervasyonlar hiçbir üyenin `GET /karaoke/reservations` listesinde ya da
+bildirim kutusunda görünmez, e-postadaki imzalı bağlantıyla (`/rezervasyon?t=…`)
+yönetilir. Üye web'de "Karaoke rezervasyonlarım" (`/uye/hesap/karaoke`)
+bölümünden aynı iptali yapar. Hesap silinince (`DELETE /me`) başlangıca 2
+saatten fazla olan ödenmiş rezervasyonlar karta iade edilerek iptal edilir; 2
+saatten az kalanlara iade yapılmaz, rezervasyon kalır ve ekibe haber gider.
+Üyeliksiz rezervasyonlar hesap silmeden etkilenmez.
+
+
 ## 8. Bildirimler — `GET /notifications` (kimlik)
 
 `{ "items": [ { "id", "kind": "order" | "reward" | "campaign" | "announcement" | "reservation", "title", "body", "at", "orderId": "…" | null } ] }` - sunucu **türetir**: son 30 günün sipariş durum değişiklikleri + aktif duyurular + ödül hazırsa bir kayıt + son 30 günün karaoke kararları ve kilometre taşı hediyeleri (23 Eyl 2026, aşağıda). Okundu durumu **cihazda** tutulur (`laf.notifications.readAt`).
@@ -792,7 +922,7 @@ bir kilometre taşı hediyesi verdiğinde ise kutuda hiçbir şey görünmüyord
 
 | Kaynak | `kind` | `id` | `at` | Başlık |
 | --- | --- | --- | --- | --- |
-| Personelin onayladığı karaoke rezervasyonu (`karaoke_reservations.status = "confirmed"`) | `reservation` | `karaoke-<rezervasyon id>-confirmed` | onay anı (`updatedAt`) | "Karaoke saatin ayrıldı" |
+| Onaylanan karaoke rezervasyonu (`karaoke_reservations.status = "confirmed"`; personel ya da, 16 Eki 2026'dan beri, ödemenin kendisi) | `reservation` | `karaoke-<rezervasyon id>-confirmed` | onay anı (`updatedAt`) | "Karaoke saatin ayrıldı" |
 | Personelin iptal ettiği karaoke rezervasyonu (`"cancelled"`) | `reservation` | `karaoke-<rezervasyon id>-cancelled` | iptal anı (`updatedAt`) | "Karaoke rezervasyonun iptal edildi" |
 | Verilmiş kilometre taşı hediyesi (`customer_milestone_rewards`, karar 175) | `reward` | `milestone-<damga sayısı>` | hediyenin verildiği an (`createdAt`) | "<damga sayısı> kahve oldu!" |
 
@@ -805,6 +935,9 @@ bırakıldı."` (onay ve iptal e-postalarının kendi cümleleri), hediye
 - **`at` sabittir.** `karaoke_reservations."updatedAt"`'i yalnız rezervasyonun
   açılışı ve durum değişikliği yazar, yani onaylanmış ya da iptal edilmiş
   satırda o an kararın anıdır. 30 günlük pencere `at`'e uygulanır.
+- Ödenmediği için düşen rezervasyon (`paymentStatus: "expired"`) ve üyeliksiz
+  web rezervasyonu kutuya hiç düşmez (16 Eki 2026): ilki kimsenin verdiği bir
+  karar değil, yarım bırakılmış bir ödemedir.
 - `requested` sessizdir: talebi üye kendisi yaptı. Onaylanıp sonra iptal edilen
   rezervasyon yalnız iptal kaydıyla, **yeni bir `id`** ile görünür; plan
   değiştiği için okunmamış gelir.

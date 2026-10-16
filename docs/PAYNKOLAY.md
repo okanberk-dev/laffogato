@@ -639,7 +639,12 @@ Canlı anahtarlar Vercel production'a girildi; para çekmeyen iki ölçüm yapı
 
 Test kartları
 ([07-test-cards](https://paynkolay.com.tr/entegrasyon/07-test-cards.php)),
-örn. Vakıfbank Visa `4029400000000001`, 05/2028, CVV `951`.
+örn. QNB Finansbank Visa `4155650100416111`, 01/2030, CVV `715` (16 Eki 2026'da
+sandbox'ta 3D'ye kadar denendi; 3D simülatörü tek kullanımlık kodu sayfada
+gösterir). Eski örnek Vakıfbank kartı (`4029400000000001`) güncel listede yok ve
+sandbox `1001-` ile reddediyor. Üç `sx` anahtarı (ödeme, liste, iptal) sandbox'ta
+birbirinden FARKLIdır: iptal/iade için ödeme `sx`'i kullanılırsa "İptal token
+hatalı" döner.
 
 ---
 
@@ -726,6 +731,18 @@ referans başkasının ödemesini kapatamasın.
 Bunun yan faydası: `/odeme/donus` teyit edemediğinde bile müşteriyi kendi
 siparişine gönderebiliyor - dönüşteki `CLIENT_REFERENCE_CODE` sipariş
 kimliğinin ta kendisi.
+
+**Karaoke rezervasyonu (16 Eki 2026).** Aynı POS ile ödenir; `clientRefCode`
+rezervasyon kimliğidir (`krk-00042`) ve ödeme satırları `payment_transactions`'ta
+`"orderId" = krk-…` ile durur. Hangisinin sipariş, hangisinin rezervasyon
+olduğuna her yerde tek fonksiyon karar verir: `isKaraokeRef`
+(`src/lib/mobile/karaoke-ref.ts`, bağımlılıksız; kart yolu da onu kullanır).
+`/odeme/donus` POS'un teyit ettiği referansa bakarak dallanır (gönderilen alana
+değil), rezervasyonu `applyKaraokePaymentSucceeded` ile işler ve dönüşte hiçbir
+şeyi iptal etmez (kural 29). Ödenmemiş rezervasyonu `expireUnpaidReservations`
+POS'a sorduktan sonra düşürür; iptal ve iadeler yalnız tam tutardır (§3.2).
+Süresi geçmiş ya da iptal edilmiş rezervasyona gelen ödeme ve ikinci tahsilat
+kendiliğinden iade edilir. Akışın tamamı `src/lib/mobile/karaoke-payment.ts`.
 
 ### 14.3 `successUrl` / `failUrl` - ikisi de `/odeme/donus`
 

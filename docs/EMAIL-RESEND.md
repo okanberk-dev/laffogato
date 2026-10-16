@@ -247,8 +247,8 @@ Yirmi iki şablon - her satırda **tetikleyici · izin sınıfı · idempotency*
 | `siparis-iptal`                        | işlemsel          | `transitionOrder` iptali (toplu iptal de oradan geçer) · (sipariş, `cancelled`) |
 | `siparis-iade`                         | işlemsel          | panel iadesi (`finalizeRefund`), sağlayıcı iadesi (`recordProviderRefund`) · (sipariş, `refund:<iade id>`) |
 | `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, **çağıran yok**                                       |
-| `karaoke-rezervasyon`                  | işlemsel          | personel panelden onayladı (`setReservationStatus`) · durum geçişi bir kez olur |
-| `karaoke-iptal`                        | işlemsel          | personel panelden iptal etti (`setReservationStatus`) · aynı geçiş kilidi       |
+| `karaoke-rezervasyon`                  | işlemsel          | ödeme onaylandı (otomatik onay) ya da personel onayladı (`setReservationStatus`) · durum geçişi bir kez olur; ödenmişse makbuz + iki saat kuralı + imzalı rezervasyon bağlantısı |
+| `karaoke-iptal`                        | işlemsel          | üye, misafir bağlantısı, personel ya da hesap kapanışı iptal etti · aynı geçiş kilidi; ödenmişse iade tutarı |
 | `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                 |
 | `bulten-kampanya`                      | **ticari (6563)** | `sendCampaignMail` · 3 ürün seçkisi + kod · `cmp-<kampanya>-b<parti>`           |
 | `mobil-uygulama`                       | **ticari (6563)** | `/admin/bulten/kampanya` "Uygulama duyurusu" · `cmp-<kampanya>-b<parti>` · mağaza linkleri olmadan seçilemez |
@@ -690,6 +690,24 @@ aranmaz, çıkış bağlantısı konmaz.
 - Sağlayıcı hatası rezervasyonu **düşürmez** (sipariş mailindeki kalıp), ama
   panel bunu söyler: "Bilgilendirme e-postası GÖNDERİLEMEDİ - üyeye kendin
   ulaş." Log'da adres maskelidir (KVKK).
+
+### Karaoke - online ön ödeme (16 Eki 2026)
+
+Rezervasyon ödenince kendiliğinden `confirmed` olur ve `karaoke-rezervasyon`
+**makbuz** olarak gider (`KARAOKE_ODENDI`): ödenen tutar, operatörün iki
+cümlesi ("Rezervasyon saatine 2 saatten fazla varken iptal edersen…" / "…2
+saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi
+yapılmaz."), cayma hakkı yokluğu (MSY m.15/1-g), işletme iptalinde tam iade ve
+rezervasyonun imzalı sayfası (`[KARAOKE_LINK]`, `/rezervasyon?t=…`; misafir
+rezervasyonu yalnız bununla yönetilir). Köşkte ödenen eski akışta
+`KARAOKE_ODEME_MEKANDA` bölümü gider. İptalde `karaoke-iptal` iade tutarını
+(`KARAOKE_IADE`) ya da ödeme alınmadığını (`KARAOKE_ODEMESIZ`) söyler.
+
+Operatöre iki yeni iç mail: `sendKaraokePaidOperatorEmail` (ödendi ve
+kesinleşti, `Idempotency-Key: karaoke-<id>-paid`; ödenmemiş rezervasyon için
+"talep" maili gitmez) ve `sendKaraokeMoneyAlertEmail` (POS'un reddettiği ya da
+yanıt vermediği iade, ikinci tahsilat, süresi dolmuş rezervasyona gelen ödeme,
+tutar uyuşmazlığı; `karaoke-<id>-<olay>`).
 
 ### Karaoke - yeni talep bildirimi (operatöre)
 
