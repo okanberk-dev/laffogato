@@ -112,43 +112,56 @@ export async function bridgeChargeGate(
   };
 }
 
-function orderNotice(ref: string, paid: boolean, fromApp: boolean) {
-  const back = { href: appOrderDeepLink(ref, paid ? "success" : "failed") };
+function orderNotice(
+  ref: string,
+  paid: boolean,
+  fromApp: boolean,
+): BridgeNotice {
+  // The app's order screen; on the web the success page (it shows the
+  // order to its owner only) or, for an order that is gone, the checkout.
+  const link = fromApp
+    ? {
+        href: appOrderDeepLink(ref, paid ? "success" : "failed"),
+        label: "Uygulamaya dön",
+      }
+    : paid
+      ? {
+          href: `/odeme/basarili?ref=${encodeURIComponent(ref)}`,
+          label: "Siparişini gör",
+        }
+      : { href: "/odeme", label: "Ödemeye dön" };
   if (paid) {
     return {
       title: "Ödemen zaten alındı",
       body: "Bu siparişin ödemesi daha önce alındı; kartından ikinci kez para çekilmedi.",
-      link: fromApp
-        ? { ...back, label: "Uygulamaya dön" }
-        : {
-            href: `/odeme/basarili?ref=${encodeURIComponent(ref)}`,
-            label: "Siparişini gör",
-          },
+      link,
     };
   }
-  return fromApp
-    ? {
-        title: "Bu sipariş ödeme beklemiyor",
-        body: "Bu sipariş artık ödeme beklemiyor; kartından para çekilmedi. Siparişinin son durumunu uygulamada görebilirsin.",
-        link: { ...back, label: "Uygulamaya dön" },
-      }
-    : {
-        title: "Bu sipariş ödeme beklemiyor",
-        body: "Bu sipariş artık ödeme beklemiyor; kartından para çekilmedi. Sepetin duruyor, ödeme adımından yeniden devam edebilirsin.",
-        link: { href: "/odeme", label: "Ödemeye dön" },
-      };
+  return {
+    title: "Bu sipariş ödeme beklemiyor",
+    body: fromApp
+      ? "Bu sipariş artık ödeme beklemiyor; kartından para çekilmedi. Siparişinin son durumunu uygulamada görebilirsin."
+      : "Bu sipariş artık ödeme beklemiyor; kartından para çekilmedi. Sepetin duruyor, ödeme adımından yeniden devam edebilirsin.",
+    link,
+  };
 }
 
-function reservationNotice(ref: string, paid: boolean, fromApp: boolean) {
-  // The same page /odeme/donus sends a web booking to, which shows the
-  // details only to its owner (karaoke-return.ts).
-  const page = `${KARAOKE_LINK_PATH}?ref=${encodeURIComponent(ref)}&odeme=${paid ? "basarili" : "sonuc"}`;
+function reservationNotice(
+  ref: string,
+  paid: boolean,
+  fromApp: boolean,
+): BridgeNotice {
+  // The app's karaoke screen, or the page /odeme/donus sends a web booking
+  // to, which shows the details only to its owner (karaoke-return.ts).
   const link = fromApp
     ? {
         href: appKaraokeDeepLink(ref, paid ? "success" : "failed"),
         label: "Uygulamaya dön",
       }
-    : { href: page, label: "Rezervasyonuna git" };
+    : {
+        href: `${KARAOKE_LINK_PATH}?ref=${encodeURIComponent(ref)}&odeme=${paid ? "basarili" : "sonuc"}`,
+        label: "Rezervasyonuna git",
+      };
   return paid
     ? {
         title: "Ödemen zaten alındı",
