@@ -11,6 +11,8 @@
  * paragraphs / bullets / ordered / table alanlarıyla kurun.
  */
 
+import { KARAOKE_ROOM_DOC } from "./content-karaoke";
+
 export interface LegalDocSource {
   slug: string;
   title: string;
@@ -15412,4 +15414,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
     ],
   },
+  // Karaoke odası (16 Eki 2026): ayrı dosyada, bkz. ./content-karaoke.ts.
+  // Sonda durur: LEGAL_DOCS kategoriye göre kararlı sıralanır, "Sipariş"
+  // belgelerinin sonuncusu olur.
+  KARAOKE_ROOM_DOC,
 ];

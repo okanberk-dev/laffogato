@@ -75,7 +75,7 @@ Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" 
 | `toggleWishlistAction`                          | `src/components/laffogato/ui.tsx`, `…/favorilerim/page.tsx` | `productId`, `back` (yalnız site içi yol; dışarısı yok sayılır)            |
 | `updateNotificationsAction`                     | `src/app/uye/hesap/bildirimler/notifications-form.tsx` | `orderUpdates`, `marketing`, `newsletter`                                       |
 | `deleteAccountAction`                           | `src/app/uye/hesap/sil/delete-account-form.tsx`       | `confirmEmail`, `password`                                                       |
-| `bookKaraokeAction`                             | `src/components/laffogato/karaoke-booking.tsx`        | `date`, `startHour`, `hours`, `guests`, `note`                                   |
+| `bookKaraokeAction`                             | `src/components/laffogato/karaoke-booking.tsx`        | `date`, `startHour`, `hours`, `guests`, `note`, `contactName`, `contactEmail`, `contactPhone`, `guestFirstName`, `guestLastName`, `consentPreInfo`, `consentContract`, `consentKvkk` (üç kutu ayrı ve işaretsiz; tests/frontend-form-contract.test.ts) |
 | `subscribeNewsletterAction`                     | `src/components/laffogato/newsletter-form.tsx`        | `email`, `consent`                                                               |
 | `confirmNewsletterAction`                       | `src/app/bulten/onay/page.tsx`                        | `token` (gizli) - bülten onayı bir **düğme**dir, bağlantı değil                   |
 | `unsubscribeNewsletterAction`                   | `src/app/bulten/cikis/page.tsx`                       | `token` (gizli) - çıkış da düğmeyle; sayfa GET'te hiçbir şey harcamaz            |

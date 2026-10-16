@@ -34,7 +34,6 @@ import {
 } from "@/lib/customer/coupons";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
 import { checkoutConsentVersion } from "@/lib/legal/store";
-import { getDb, TABLES } from "@/lib/db";
 import { DbQueryError } from "@/lib/db/health";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
@@ -43,6 +42,7 @@ import { orderChannel } from "@/lib/admin/order-channel";
 import { getOrderStamps } from "./loyalty";
 import { stampsForOrder } from "./loyalty-core";
 import { resolveOrderAddress } from "./order-address";
+import { recordPendingCheckout } from "./checkout-ref";
 import { toMobileOrder, type MobileOrder } from "./order-mapper";
 import {
   computeTotalsWithShipping,
@@ -212,62 +212,13 @@ async function createAppPaymentSession(
   return { redirectUrl: session.redirectUrl, expiresAt: session.expiresAt };
 }
 
-/**
- * Remembers which checkout reference was opened for the order.
- *
- * The in-app browser carries no site cookie, so /odeme/donus cannot tie a
- * mock return to a signed-in member the way it does on the web. What it can
- * check is that the reference on the return URL is the one this server
- * issued - kept as a `pending` transaction whose reference is prefixed so it
- * never collides with the `succeeded` row the confirmation inserts. A real
- * POS settles by signed webhook; this row is then only an audit breadcrumb.
- */
-async function recordPendingCheckout(
-  orderId: string,
-  provider: string,
-  providerRef: string,
-): Promise<void> {
-  const { error } = await getDb()
-    .from(TABLES.paymentTransactions)
-    .insert({
-      orderId,
-      provider,
-      providerRef: pendingCheckoutRef(providerRef),
-      status: "pending",
-      amountMinor: 0,
-      currency: "TRY",
-      raw: { source: "app_checkout" },
-      createdAt: new Date().toISOString(),
-    });
-  if (error && error.code !== "23505") {
-    console.error(`[orders] pending checkout record failed: ${error.message}`);
-  }
-}
-
-export function pendingCheckoutRef(providerRef: string): string {
-  return `pending:${providerRef}`;
-}
-
-/** True when `providerRef` is the reference this server opened for the order. */
-export async function isIssuedCheckoutRef(
-  orderId: string,
-  provider: string,
-  providerRef: string,
-): Promise<boolean> {
-  if (!providerRef) return false;
-  const { data, error } = await getDb()
-    .from(TABLES.paymentTransactions)
-    .select("orderId")
-    .eq("orderId", orderId)
-    .eq("provider", provider)
-    .eq("providerRef", pendingCheckoutRef(providerRef))
-    .limit(1);
-  if (error) {
-    console.error(`[orders] checkout ref lookup failed: ${error.message}`);
-    return false;
-  }
-  return ((data as unknown[] | null) ?? []).length > 0;
-}
+// The checkout-reference helpers live in ./checkout-ref (the karaoke
+// booking uses them too, without the rest of this module).
+export {
+  isIssuedCheckoutRef,
+  pendingCheckoutRef,
+  recordPendingCheckout,
+} from "./checkout-ref";
 
 export type CreateAppOrderResult =
   | {

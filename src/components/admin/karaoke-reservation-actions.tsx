@@ -5,37 +5,43 @@ import { useActionState } from "react";
 import {
   cancelReservationAction,
   confirmReservationAction,
+  retryKaraokeRefundAction,
+  settleKaraokeRefundAction,
   type ReservationActionState,
 } from "@/app/admin/mobil/karaoke/actions";
 
-import { DangerButton, PrimaryButton } from "./forms";
+import { DangerButton, GhostButton, PrimaryButton } from "./forms";
 
 const initial: ReservationActionState = {};
 
 interface Props {
   id: string;
-  /** Only a `requested` booking can still be confirmed. */
+  /**
+   * Only a paid booking waiting for its confirmation, or a pay-at-the-venue
+   * request while prepayment is switched off. An unpaid hold never.
+   */
   canConfirm: boolean;
   /** A cancelled booking has nothing left to cancel. */
   canCancel: boolean;
+  /** Cancelling sends the payment back to the card (and needs `refunds`). */
+  cancelRefunds: boolean;
+  /** A refund that did not settle itself, and this user may move money. */
+  canResolveRefund: boolean;
 }
 
 /**
  * Onayla / İptal buttons with somewhere for the refusal to land.
  *
- * The two actions can legitimately fail - the hour was taken by another
- * confirmed booking in the meantime, or someone else already answered this
- * request - and they used to return void, so the button just re-rendered the
- * same row and the staff member assumed it had worked.
- *
- * Both now also mail the member (confirmation or cancellation), so the
- * success sentence is shown too: it says whether that message left. A booking
- * the member was never told about is the whole failure this was built to end.
+ * The actions can legitimately fail - the hour was taken, someone else
+ * answered first, the POS declined a refund - and each says which. Both also
+ * mail the member, so the success sentence says whether that message left.
  */
 export function KaraokeReservationActions({
   id,
   canConfirm,
   canCancel,
+  cancelRefunds,
+  canResolveRefund,
 }: Props) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
     confirmReservationAction,
@@ -45,14 +51,30 @@ export function KaraokeReservationActions({
     cancelReservationAction,
     initial,
   );
-  const error = confirmState.error ?? cancelState.error;
-  const message = confirmState.message ?? cancelState.message;
+  const [retryState, retryAction, retryPending] = useActionState(
+    retryKaraokeRefundAction,
+    initial,
+  );
+  const [settleState, settleAction, settlePending] = useActionState(
+    settleKaraokeRefundAction,
+    initial,
+  );
+  const error =
+    confirmState.error ??
+    cancelState.error ??
+    retryState.error ??
+    settleState.error;
+  const message =
+    confirmState.message ??
+    cancelState.message ??
+    retryState.message ??
+    settleState.message;
   // "Gönderilemedi" is the one success worth reading as a warning.
   const mailFailed = Boolean(message?.includes("GÖNDERİLEMEDİ"));
 
   return (
     <div className="grid justify-items-end gap-2">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         {canConfirm ? (
           <form action={confirmAction}>
             <input type="hidden" name="id" value={id} />
@@ -62,12 +84,51 @@ export function KaraokeReservationActions({
           </form>
         ) : null}
         {canCancel ? (
-          <form action={cancelAction}>
+          <form
+            action={cancelAction}
+            onSubmit={(e) => {
+              if (
+                cancelRefunds &&
+                !window.confirm(
+                  "Bu rezervasyon ödenmiş. İptal edersen tutarın tamamı karta iade edilir. Devam edilsin mi?",
+                )
+              ) {
+                e.preventDefault();
+              }
+            }}
+          >
             <input type="hidden" name="id" value={id} />
             <DangerButton type="submit" disabled={cancelPending}>
-              İptal
+              {cancelRefunds ? "İptal et ve iade et" : "İptal"}
             </DangerButton>
           </form>
+        ) : null}
+        {canResolveRefund ? (
+          <>
+            <form action={retryAction}>
+              <input type="hidden" name="id" value={id} />
+              <GhostButton type="submit" disabled={retryPending}>
+                İadeyi yeniden dene
+              </GhostButton>
+            </form>
+            <form
+              action={settleAction}
+              onSubmit={(e) => {
+                if (
+                  !window.confirm(
+                    "PayNkolay panelinde bu iadeyi gördün mü? İade yapılmış olarak kaydedilecek.",
+                  )
+                ) {
+                  e.preventDefault();
+                }
+              }}
+            >
+              <input type="hidden" name="id" value={id} />
+              <GhostButton type="submit" disabled={settlePending}>
+                İade POS&apos;ta görüldü
+              </GhostButton>
+            </form>
+          </>
         ) : null}
       </div>
       {error ? (

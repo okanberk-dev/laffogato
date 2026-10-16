@@ -163,8 +163,12 @@ describe("the twenty-two templates render", () => {
     expect(of("karaoke-iptal")).toEqual([
       "KARAOKE_KISI",
       "KARAOKE_KOD",
+      // The booking's own signed page, and what was paid / refunded
+      // (online prepayment, 16 Eki 2026).
+      "KARAOKE_LINK",
       "KARAOKE_SAAT",
       "KARAOKE_TARIH",
+      "KARAOKE_TUTAR",
     ]);
   });
 

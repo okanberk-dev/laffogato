@@ -12,6 +12,12 @@ import {
   appOrderDeepLink,
   type PaymentReturnStatus,
 } from "@/lib/mobile/deep-link";
+import { isKaraokeRef } from "@/lib/mobile/karaoke-ref";
+import {
+  karaokeReturnDestination,
+  settleKaraokeMockReturn,
+  settleKaraokeReturn,
+} from "@/lib/mobile/karaoke-return";
 import { isIssuedCheckoutRef } from "@/lib/mobile/orders";
 import { getPaymentProvider, type PaymentProvider } from "@/lib/payment";
 
@@ -48,6 +54,21 @@ export async function GET(req: NextRequest) {
   }
 
   const provider = safeProvider();
+  // A karaoke booking (`krk-`, docs/API-MOBILE.md §7): its own settle and its
+  // own landing page; nothing below is order-shaped enough for it.
+  if (isKaraokeRef(orderId)) {
+    let proved = false;
+    if (provider && status === "success") {
+      const customer = await getActiveCustomer();
+      proved = await settleKaraokeMockReturn({
+        ref: orderId,
+        providerRef,
+        provider,
+        customerEmail: customer?.email ?? null,
+      });
+    }
+    return karaokeRedirect(orderId, base, proved);
+  }
   const [customer, order] = await Promise.all([
     getActiveCustomer(),
     safeGetOrder(orderId),
@@ -174,6 +195,7 @@ export async function POST(req: NextRequest) {
     // deployment is missing its POS configuration: send the customer to the
     // page that reads the order's real status rather than asserting "success".
     const orderId = returnedOrderId(params);
+    if (isKaraokeRef(orderId)) return karaokeRedirect(orderId, base);
     if (await isAppOrder(orderId)) {
       return appRedirect(orderId, await settledStatus(orderId));
     }
@@ -182,6 +204,18 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await provider.confirmReturn(params);
+    // The reference is the one the POS confirmed, never the posted field.
+    // Nothing is cancelled on a failure here either (rule 29).
+    if (isKaraokeRef(result.orderId)) {
+      await settleKaraokeReturn(result, provider);
+      // Only a payment the POS confirmed (which a forger cannot produce:
+      // it needs that payment's own REFERENCE_CODE) lets the row speak.
+      return karaokeRedirect(
+        result.orderId,
+        base,
+        result.status === "succeeded",
+      );
+    }
     if (result.status === "succeeded") {
       const applied = await applyPaymentSucceeded({
         orderId: result.orderId,
@@ -233,6 +267,7 @@ export async function POST(req: NextRequest) {
     // order's actual status rather than guessing.
     console.error("[odeme/donus] confirmReturn failed", err);
     const orderId = returnedOrderId(params);
+    if (isKaraokeRef(orderId)) return karaokeRedirect(orderId, base);
     if (await isAppOrder(orderId)) {
       return appRedirect(orderId, await settledStatus(orderId));
     }
@@ -262,6 +297,14 @@ function successRedirect(orderId: string, promo: string, base: string) {
       `/odeme/basarili?ref=${encodeURIComponent(orderId)}${suffix}`,
       base,
     ),
+    303,
+  );
+}
+
+/** A karaoke return: the row decides between the app and the web page. */
+async function karaokeRedirect(ref: string, base: string, verified = false) {
+  return NextResponse.redirect(
+    await karaokeReturnDestination(ref, base, verified),
     303,
   );
 }

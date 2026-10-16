@@ -9,14 +9,15 @@ import {
 } from "node:crypto";
 
 import { maskCardLikeDigits, type CardInput } from "./paynkolay-card";
-import type {
-  CheckoutInput,
-  CheckoutSession,
-  PaymentProvider,
-  RefundHint,
-  RefundResult,
-  ReturnConfirmation,
-  WebhookEvent,
+import {
+  PaymentRefusedError,
+  type CheckoutInput,
+  type CheckoutSession,
+  type PaymentProvider,
+  type RefundHint,
+  type RefundResult,
+  type ReturnConfirmation,
+  type WebhookEvent,
 } from "./provider";
 
 /**
@@ -1256,14 +1257,28 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     amountMinor?: number,
     hint?: RefundHint,
   ): Promise<RefundResult> {
+    // İade edilmeyeceği KESİN olan her durum `PaymentRefusedError` ile
+    // fırlar (para hareket etmedi, çağıran geri alabilir). İade isteği
+    // gönderildikten sonra yanıtın gelmemesi ise düz `Error`'dır: iade olmuş
+    // olabilir, "iade edilmedi" sayılmaz (kural 29'un iade karşılığı).
     const referenceCode = providerRef.trim();
-    if (!referenceCode) throw new Error("paynkolay: REFERENCE_CODE boş");
+    if (!referenceCode) {
+      throw new PaymentRefusedError("paynkolay: REFERENCE_CODE boş");
+    }
 
-    const tx =
-      storedTransaction(hint) ??
-      (await this.findTransactionByReference(referenceCode));
+    let tx = storedTransaction(hint);
     if (!tx) {
-      throw new Error(
+      try {
+        tx = await this.findTransactionByReference(referenceCode);
+      } catch (err) {
+        // Arama iade isteğinden ÖNCE: iade hiç gönderilmedi.
+        throw new PaymentRefusedError(
+          `paynkolay: ${referenceCode} işlemi aranamadı, iade denenmedi: ${err instanceof Error ? err.message : "bilinmeyen hata"}`,
+        );
+      }
+    }
+    if (!tx) {
+      throw new PaymentRefusedError(
         `paynkolay: ${referenceCode} referanslı işlem son ${REFUND_LOOKBACK_MONTHS} ayda bulunamadı; iade edilemez`,
       );
     }
@@ -1271,7 +1286,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       // §3.2: kısmi iadenin `type=refund` küçük tutarla mı yoksa
       // `type=refundp` ile mi yapıldığı doğrulanamadı. Yanlış tutarı sessizce
       // iade etmektense reddediyoruz.
-      throw new Error(
+      throw new PaymentRefusedError(
         "paynkolay: kısmi iade desteklenmiyor (docs/PAYNKOLAY.md §3.2); " +
           `işlem tutarı ${tx.amountMinor} kuruş, istenen ${amountMinor} kuruş`,
       );
@@ -1305,9 +1320,10 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       const message = isRecord(res)
         ? readField(res, "responseData", "RESPONSE_DATA")
         : "";
-      throw new Error(
-        `paynkolay ${type} reddedildi: responseCode=${code || "?"} ${message}`.trim(),
-      );
+      const text =
+        `paynkolay ${type} reddedildi: responseCode=${code || "?"} ${message}`.trim();
+      // Kodsuz bir gövde POS'un cevabı sayılmaz: iade olmuş da olabilir.
+      throw code ? new PaymentRefusedError(text) : new Error(text);
     }
 
     return {

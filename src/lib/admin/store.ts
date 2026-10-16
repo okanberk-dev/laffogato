@@ -459,6 +459,13 @@ export interface AdminSettings {
    * the app or the web. Empty falls back to `email`.
    */
   karaokeNotifyEmail: string;
+  /**
+   * Karaoke bookings are paid online when they are made (PayNkolay, operator
+   * 16 Eki 2026) and confirm themselves once paid. Off: the old flow - a
+   * request the staff confirm, paid at the venue. Applies to new bookings
+   * only: from the web, and from app builds that opt in (`prepay: true`).
+   */
+  karaokePrepay: boolean;
 
   /**
    * Everything else the app is configured with (/admin/mobil/ayarlar,
@@ -617,6 +624,8 @@ function defaultSettings(): AdminSettings {
     karaokeHourlyMinor: 100000,
     karaokeCapacity: 8,
     karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+    // 20261016063311_karaoke_prepay.sql gives the column the same default.
+    karaokePrepay: true,
     // A fresh copy: the constant is frozen and callers may edit sections.
     mobileApp: normalizeMobileAppConfig(DEFAULT_MOBILE_APP_CONFIG),
   };

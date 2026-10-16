@@ -1,5 +1,10 @@
 import { LafMark } from "@/components/laffogato/brand-mark";
-import { appOrderDeepLink, isSafeOrderId } from "@/lib/mobile/deep-link";
+import {
+  appKaraokeDeepLink,
+  appOrderDeepLink,
+  isSafeOrderId,
+} from "@/lib/mobile/deep-link";
+import { isKaraokeRef } from "@/lib/mobile/karaoke-ref";
 
 export const metadata = {
   title: "Ödeme geçemedi",
@@ -22,7 +27,14 @@ export default async function AppPaymentFailedPage({
 }: PageProps) {
   const { orderId } = await searchParams;
   const safeId = orderId && isSafeOrderId(orderId) ? orderId : "";
-  const href = safeId ? appOrderDeepLink(safeId, "failed") : "laffogato://";
+  // A karaoke booking returns to the app's karaoke screen, never its order
+  // screen (docs/API-MOBILE.md §7).
+  const karaoke = isKaraokeRef(safeId);
+  const href = !safeId
+    ? "laffogato://"
+    : karaoke
+      ? appKaraokeDeepLink(safeId, "failed")
+      : appOrderDeepLink(safeId, "failed");
 
   return (
     <main className="auth-page auth-page--full">
@@ -36,8 +48,9 @@ export default async function AppPaymentFailedPage({
         </span>
         <h1 className="auth-title">Ödeme geçemedi</h1>
         <p className="auth-lede">
-          Kartından çekim yapılmadı; siparişin ödeme bekliyor. Uygulamaya dönüp
-          yeniden deneyebilirsin.
+          {karaoke
+            ? "Kartından çekim yapılmadı; rezervasyonun ödenmediği için kesinleşmedi. Uygulamaya dönüp yeniden deneyebilirsin."
+            : "Kartından çekim yapılmadı; siparişin ödeme bekliyor. Uygulamaya dönüp yeniden deneyebilirsin."}
         </p>
         {/* The house green, not the accent: this is a payment-failure screen -
             the worst page on which to paint the way OUT in the same red as
@@ -46,7 +59,9 @@ export default async function AppPaymentFailedPage({
           Uygulamaya dön
         </a>
         {safeId ? (
-          <p className="app-fail-ref">Sipariş referansı: {safeId}</p>
+          <p className="app-fail-ref">
+            {karaoke ? "Rezervasyon" : "Sipariş"} referansı: {safeId}
+          </p>
         ) : null}
       </div>
     </main>

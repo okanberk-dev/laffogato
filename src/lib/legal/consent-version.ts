@@ -91,15 +91,21 @@ function overrideLabel(o: ConsentOverride): string | null {
 
 /**
  * The version a checkout consent records, given the overrides by slug. Only
- * the checkout documents count; drafts and empty overrides are ignored, as
+ * the consented documents count; drafts and empty overrides are ignored, as
  * on the public page.
+ *
+ * `docs` and `base` default to the order checkout's documents and revision;
+ * the karaoke booking passes its own (`KARAOKE_CONSENT_DOCS`,
+ * `KARAOKE_LEGAL_UPDATED`) through the same rule.
  */
 export function consentVersionFrom(
   overrides: Readonly<Record<string, ConsentOverride | null | undefined>>,
+  docs: readonly string[] = CHECKOUT_CONSENT_DOCS,
+  base: string = LEGAL_UPDATED,
 ): string {
-  let version = LEGAL_UPDATED;
-  let latest = legalDayNumber(LEGAL_UPDATED) ?? 0;
-  for (const slug of CHECKOUT_CONSENT_DOCS) {
+  let version = base;
+  let latest = legalDayNumber(base) ?? 0;
+  for (const slug of docs) {
     const o = overrides[slug];
     if (!isLiveLegalOverride(o)) continue;
     const label = overrideLabel(o);

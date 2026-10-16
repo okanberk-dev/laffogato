@@ -13,9 +13,20 @@ import { PageHero } from "./page-hero";
 // dependency-free module instead.
 import type { KaraokeAvailability } from "@/lib/mobile/karaoke-core";
 import {
+  formatReservationDate,
+  formatReservationTime,
+} from "@/lib/mobile/karaoke-format";
+import {
   karaokeDiscountPctFor,
   quoteKaraoke,
 } from "@/lib/mobile/karaoke-quote";
+import {
+  KARAOKE_BUSINESS_CANCEL,
+  KARAOKE_NO_REFUND_RULE,
+  KARAOKE_NO_WITHDRAWAL,
+  KARAOKE_PAYMENT_PAGE_MINUTES,
+  KARAOKE_REFUND_RULE,
+} from "@/lib/mobile/karaoke-time";
 import { priceLabel } from "@/lib/utils/format";
 
 const DAY_NAMES = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"];
@@ -49,8 +60,23 @@ export interface KaraokeBookingProps {
   isAuthenticated: boolean;
   emailVerified: boolean;
   phone: string;
+  /** The köşk's address, printed in the pre-payment box (MSY m.5/1-c). */
+  address: string;
+  /**
+   * Online prepayment is on (`settings.karaokePrepay`): the booking is paid
+   * right away, confirmed by its payment, and open to guests without an
+   * account. Off: the old request flow, members only, paid at the venue.
+   */
+  prepay: boolean;
   /** The signed-in member's details, to prefill the contact block. */
   contact?: { name: string; email: string; phone: string };
+}
+
+/** The three boxes before a paid booking; each its own, never pre-ticked. */
+interface KaraokeTicks {
+  preInfo: boolean;
+  contract: boolean;
+  kvkk: boolean;
 }
 
 export function KaraokeBooking({
@@ -65,6 +91,8 @@ export function KaraokeBooking({
   isAuthenticated,
   emailVerified,
   phone,
+  address,
+  prepay,
   contact,
 }: KaraokeBookingProps) {
   const slots = availability?.slots ?? [];
@@ -73,6 +101,20 @@ export function KaraokeBooking({
   const [hours, setHours] = useState(1);
   const [guests, setGuests] = useState(Math.min(4, capacity));
   const [note, setNote] = useState("");
+  const [ticks, setTicks] = useState<KaraokeTicks>({
+    preInfo: false,
+    contract: false,
+    kvkk: false,
+  });
+  const tick = (key: keyof KaraokeTicks) => (ticked: boolean) =>
+    setTicks((t) => ({ ...t, [key]: ticked }));
+  // Who may submit: a verified member, or - with prepayment on - anyone,
+  // who then types their own contact details.
+  const guest = !isAuthenticated && prepay;
+  const canBook = (isAuthenticated && emailVerified) || guest;
+  const ticked = prepay
+    ? ticks.preInfo && ticks.contract && ticks.kvkk
+    : ticks.kvkk;
   const [state, formAction, pending] = useActionState<
     BookKaraokeState,
     FormData
@@ -113,7 +155,8 @@ export function KaraokeBooking({
             {dayLabel(state.booked.date, today, tomorrow)} ·{" "}
             {hourLabel(state.booked.startHour)} · {state.booked.hours} saat ·{" "}
             {state.booked.guests} kişi. Rezervasyonun uygulamadaki hesabına da
-            düştü; ekibimiz onayladığında haber vereceğiz.
+            düştü; ekibimiz onayladığında haber vereceğiz. Ödemeyi köşkte
+            yaparsın.
           </p>
           <div className="cta-row">
             <Link href="/uye/hesap" className="btn btn-primary">
@@ -135,7 +178,11 @@ export function KaraokeBooking({
         scene="berry"
         eyebrow="Karaoke · köşkün üst katı"
         title={["Özel oda,", "gece 24:00’e kadar"]}
-        lede="Köşkün üst katındaki karaoke odası sekiz kişiye kadar. Gün ve saat seç, kişi sayısını gir; rezervasyonunu web'den ya da uygulamadan tamamla."
+        lede={
+          prepay
+            ? "Köşkün üst katındaki karaoke odası sekiz kişiye kadar. Gün ve saat seç, kişi sayısını gir, kartınla öde; rezervasyonun ödemeyle hemen kesinleşir. Üye olmadan da rezervasyon yapabilirsin."
+            : "Köşkün üst katındaki karaoke odası sekiz kişiye kadar. Gün ve saat seç, kişi sayısını gir; rezervasyonunu web'den ya da uygulamadan tamamla."
+        }
       />
       <div className="wrap">
         <form action={formAction} className="karaoke-layout">
@@ -310,16 +357,71 @@ export function KaraokeBooking({
                     />
                   </label>
                 )}
-                <label className="karaoke-consent">
-                  <input type="checkbox" name="contactConsent" required />
-                  <span>
-                    Rezervasyonumla ilgili (onay, değişiklik, iptal) bana
-                    e-posta ve telefonla ulaşılmasına izin veriyorum.{" "}
-                    <Link href="/hukuk/kvkk-aydinlatma-metni" target="_blank">
-                      KVKK Aydınlatma Metni
-                    </Link>
-                  </span>
-                </label>
+              </fieldset>
+            )}
+
+            {guest && (
+              <fieldset className="karaoke-contact">
+                <legend className="eyebrow muted">İletişim</legend>
+                <p className="karaoke-hint" style={{ marginTop: 0 }}>
+                  Üye olmadan rezervasyon yapıyorsun. Bilgilerin yalnız bu
+                  rezervasyon için kaydedilir, senin adına hesap açılmaz.
+                  Rezervasyon bağlantın e-postana gelir.{" "}
+                  <a
+                    href={`/uye/giris?next=${encodeURIComponent(`/karaoke?tarih=${date}`)}`}
+                    className="karaoke-link"
+                  >
+                    Üyeysen giriş yap
+                  </a>
+                  .
+                </p>
+                <div className="karaoke-guest-grid">
+                  <label className="karaoke-field">
+                    <span>Ad</span>
+                    <input
+                      className="input"
+                      name="guestFirstName"
+                      autoComplete="given-name"
+                      maxLength={60}
+                      required
+                    />
+                  </label>
+                  <label className="karaoke-field">
+                    <span>Soyad</span>
+                    <input
+                      className="input"
+                      name="guestLastName"
+                      autoComplete="family-name"
+                      maxLength={60}
+                      required
+                    />
+                  </label>
+                  <label className="karaoke-field">
+                    <span>Cep telefonu</span>
+                    <input
+                      className="input"
+                      name="contactPhone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      placeholder="0532 123 45 67"
+                      maxLength={40}
+                      required
+                    />
+                  </label>
+                  <label className="karaoke-field">
+                    <span>E-posta</span>
+                    <input
+                      className="input"
+                      name="contactEmail"
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      maxLength={200}
+                      required
+                    />
+                  </label>
+                </div>
               </fieldset>
             )}
 
@@ -377,20 +479,21 @@ export function KaraokeBooking({
                   </div>
                 )}
                 <div className="karaoke-total">
-                  <span>Ödenecek</span>
+                  <span>Ödenecek toplam (KDV dahil)</span>
                   <span className="karaoke-total-n">
                     {priceLabel(quote.totalMinor)}
                   </span>
                 </div>
               </div>
 
-              {state.error && (
-                <p role="alert" className="karaoke-error">
-                  {state.error}
-                </p>
-              )}
+              {canBook && prepay ? (
+                <div className="karaoke-rules-short">
+                  <p>{KARAOKE_REFUND_RULE}</p>
+                  <p>{KARAOKE_NO_REFUND_RULE}</p>
+                </div>
+              ) : null}
 
-              {!isAuthenticated ? (
+              {!canBook && !isAuthenticated ? (
                 <>
                   <a
                     href={`/uye/giris?next=${encodeURIComponent(`/karaoke?tarih=${date}`)}`}
@@ -408,7 +511,7 @@ export function KaraokeBooking({
                     .
                   </p>
                 </>
-              ) : !emailVerified ? (
+              ) : !canBook ? (
                 <p className="karaoke-fine">
                   Rezervasyon yapabilmek için önce e-postanı doğrula.{" "}
                   <a href="/uye/hesap" className="karaoke-link">
@@ -416,25 +519,172 @@ export function KaraokeBooking({
                   </a>
                   .
                 </p>
-              ) : (
-                <>
-                  <button
-                    type="submit"
-                    className="btn btn-gold"
-                    style={{ width: "100%" }}
-                    disabled={!selectionValid || pending}
-                  >
-                    {pending ? "Gönderiliyor…" : "Rezervasyonu tamamla"}
-                  </button>
-                  <p className="karaoke-fine">
-                    Rezervasyon uygulamadaki hesabına da düşer; ekibimiz
-                    onayladığında haber veririz. 2 saat öncesine kadar ücretsiz
-                    iptal.
-                  </p>
-                </>
-              )}
+              ) : null}
             </div>
           </div>
+
+          {canBook ? (
+            <section
+              className="karaoke-checkout"
+              aria-labelledby="karaoke-preinfo-title"
+            >
+              {prepay ? (
+                <div className="karaoke-preinfo">
+                  <h2 id="karaoke-preinfo-title" className="h4">
+                    Ödemeden önce: rezervasyon özeti ve koşullar
+                  </h2>
+                  <ul>
+                    <li>
+                      <strong>Hizmet:</strong> Karaoke odası kullanımı. Oda
+                      seçtiğin saatlerde yalnız senin grubuna ayrılır.
+                      L&apos;Affogato, {address}.
+                    </li>
+                    <li>
+                      <strong>Tarih ve saat:</strong>{" "}
+                      {formatReservationDate(date)}
+                      {startHour !== null
+                        ? `, ${formatReservationTime(startHour, hours)} (${hours} saat)`
+                        : " (saat seçilmedi)"}
+                    </li>
+                    <li>
+                      <strong>Kişi sayısı:</strong> {guests} kişi (en fazla{" "}
+                      {capacity})
+                    </li>
+                    <li>
+                      <strong>Bedel:</strong> {hours} saat ×{" "}
+                      {priceLabel(hourly)} = {priceLabel(quote.priceMinor)}
+                      {discountPct > 0
+                        ? `; ${tierLabel ?? "üyelik"} indirimi %${discountPct}: −${priceLabel(quote.discountMinor)}`
+                        : ""}
+                      .{" "}
+                      <strong>
+                        Ödenecek toplam: {priceLabel(quote.totalMinor)} (KDV
+                        dahil).
+                      </strong>{" "}
+                      Bu tutar kesindir; rezervasyondan sonra değişmez. Yiyecek
+                      ve içecekler oda bedeline dahil değildir, kafede ayrıca
+                      ödenir; bunun dışında ek ücret alınmaz.
+                    </li>
+                    <li>
+                      <strong>Ödeme:</strong> Kredi kartı ya da banka kartıyla,
+                      PayNkolay güvenli ödeme altyapısı üzerinden, bankanın 3D
+                      Secure doğrulamasıyla tek çekim. Kart bilgilerin bizde
+                      saklanmaz. Ödeme sayfası {KARAOKE_PAYMENT_PAGE_MINUTES}{" "}
+                      dakika açık kalır; o süre içinde saat senin için tutulur.
+                    </li>
+                    <li>
+                      <strong>Kesinleşme:</strong> Rezervasyonun ödemen
+                      onaylandığı anda kesinleşir; ödemesi alınmayan rezervasyon
+                      onaylanmaz ve süresi dolunca düşer. Rezervasyon kodun ve
+                      rezervasyon bağlantın e-postana gelir.
+                    </li>
+                    <li>
+                      <strong>Cayma hakkı:</strong> {KARAOKE_NO_WITHDRAWAL}
+                    </li>
+                    <li>
+                      <strong>İptal:</strong> {KARAOKE_REFUND_RULE}{" "}
+                      {KARAOKE_NO_REFUND_RULE}
+                    </li>
+                    <li>
+                      <strong>Bizim iptalimiz:</strong>{" "}
+                      {KARAOKE_BUSINESS_CANCEL}
+                    </li>
+                    <li>
+                      <strong>Satıcı:</strong> L&apos;Affogato, {address},{" "}
+                      {phone}.
+                    </li>
+                  </ul>
+                </div>
+              ) : null}
+
+              <div
+                className="karaoke-consents"
+                role="group"
+                aria-label="Onaylar"
+              >
+                {prepay ? (
+                  <>
+                    <label className="karaoke-consent">
+                      <input
+                        type="checkbox"
+                        name="consentPreInfo"
+                        required
+                        checked={ticks.preInfo}
+                        onChange={(e) => tick("preInfo")(e.target.checked)}
+                      />
+                      <span>
+                        <Link
+                          href="/hukuk/karaoke-odasi-rezervasyon"
+                          target="_blank"
+                        >
+                          Ön Bilgilendirme Formu
+                        </Link>
+                        &apos;nu okudum ve onaylıyorum.
+                      </span>
+                    </label>
+                    <label className="karaoke-consent">
+                      <input
+                        type="checkbox"
+                        name="consentContract"
+                        required
+                        checked={ticks.contract}
+                        onChange={(e) => tick("contract")(e.target.checked)}
+                      />
+                      <span>
+                        <Link
+                          href="/hukuk/karaoke-odasi-rezervasyon"
+                          target="_blank"
+                        >
+                          Mesafeli Hizmet Sözleşmesi
+                        </Link>
+                        &apos;ni okudum ve kabul ediyorum.
+                      </span>
+                    </label>
+                  </>
+                ) : null}
+                <label className="karaoke-consent">
+                  <input
+                    type="checkbox"
+                    name="consentKvkk"
+                    required
+                    checked={ticks.kvkk}
+                    onChange={(e) => tick("kvkk")(e.target.checked)}
+                  />
+                  <span>
+                    Kişisel verilerimin rezervasyonun yapılması ve yönetilmesi
+                    için işlenmesine ilişkin{" "}
+                    <Link href="/hukuk/kvkk-aydinlatma-metni" target="_blank">
+                      Aydınlatma Metni
+                    </Link>
+                    &apos;ni okudum.
+                  </span>
+                </label>
+              </div>
+
+              {state.error && (
+                <p role="alert" className="karaoke-error">
+                  {state.error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="btn btn-gold karaoke-pay"
+                disabled={!selectionValid || !ticked || pending}
+              >
+                {pending
+                  ? "Gönderiliyor…"
+                  : prepay
+                    ? `Rezervasyonu onayla ve ${priceLabel(quote.totalMinor)} öde`
+                    : "Rezervasyon iste"}
+              </button>
+              <p className="karaoke-fine">
+                {prepay
+                  ? "Bu düğmeye bastığında ödeme yükümlülüğü altına girersin. Kart bilgilerini bir sonraki adımda, sitemizin güvenli ödeme sayfasında girersin."
+                  : "Rezervasyon uygulamadaki hesabına da düşer; ekibimiz onayladığında haber veririz. Ödemeyi köşkte yaparsın."}
+              </p>
+            </section>
+          ) : null}
         </form>
       </div>
     </div>

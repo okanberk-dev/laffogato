@@ -136,20 +136,23 @@ describe("saveKaraokeAction", () => {
       karaokeHourlyMinor: 100000,
       karaokeCapacity: 10,
       karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+      // An unticked checkbox sends nothing: the switch goes off.
+      karaokePrepay: false,
     });
     expect(logAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         payload: expect.objectContaining({
           section: "karaoke",
-          before: {
+          before: expect.objectContaining({
             karaokeHourlyMinor: 90000,
             karaokeCapacity: 8,
             karaokeNotifyEmail: "",
-          },
+          }),
           after: {
             karaokeHourlyMinor: 100000,
             karaokeCapacity: 10,
             karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+            karaokePrepay: false,
           },
         }),
       }),

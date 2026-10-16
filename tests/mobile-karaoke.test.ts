@@ -349,6 +349,11 @@ describe("toReservationJson - allow-list", () => {
       discountMinor: 27_000,
       totalMinor: 153_000,
       createdAt: "2026-08-30T10:00:00.000Z",
+      // Additive (16 Eki 2026): money state, an unpaid hold's deadline, and
+      // the last moment of a free cancel (18:00 Tuzla - 2 h = 13:00Z).
+      paymentStatus: "none",
+      paymentDueAt: "",
+      cancellableUntil: "2026-09-05T13:00:00.000Z",
     });
   });
 });

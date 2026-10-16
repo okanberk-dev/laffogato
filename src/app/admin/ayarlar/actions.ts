@@ -234,11 +234,14 @@ export async function saveKaraokeAction(
   if (notifyEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifyEmail)) {
     return { error: "Talep bildirimi için geçerli bir e-posta gir." };
   }
+  // The online-prepayment switch (16 Eki 2026). A checkbox: absent = off.
+  const prepay = formData.get("karaokePrepay") === "on";
   const before = await getSettings();
   await updateSettings({
     karaokeHourlyMinor: hourlyMinor,
     karaokeCapacity: capacity,
     karaokeNotifyEmail: notifyEmail,
+    karaokePrepay: prepay,
   });
   revalidateAll();
   return ok("karaoke", "Karaoke ayarları kaydedildi.", {
@@ -246,11 +249,13 @@ export async function saveKaraokeAction(
       karaokeHourlyMinor: before.karaokeHourlyMinor,
       karaokeCapacity: before.karaokeCapacity,
       karaokeNotifyEmail: before.karaokeNotifyEmail,
+      karaokePrepay: before.karaokePrepay,
     },
     after: {
       karaokeHourlyMinor: hourlyMinor,
       karaokeCapacity: capacity,
       karaokeNotifyEmail: notifyEmail,
+      karaokePrepay: prepay,
     },
   });
 }

@@ -6,6 +6,9 @@ import {
   quoteKaraoke,
   type KaraokeQuote,
 } from "./karaoke-quote";
+import { karaokeCancelDeadline } from "./karaoke-time";
+
+export * from "./karaoke-time";
 
 /**
  * Karaoke reservation rules and pure helpers (docs/API-MOBILE.md §7).
@@ -51,6 +54,82 @@ export const KARAOKE_STATUS_LABELS: Record<KaraokeReservationStatus, string> = {
   cancelled: "İptal",
 };
 
+export { isKaraokeRef } from "./karaoke-ref";
+
+/**
+ * Where the booking's money stands (16 Eki 2026, `20261016063311_karaoke_
+ * prepay.sql` carries the full table). Beside `status`, never instead of it:
+ * `requested` is what holds the hour in the overlap constraint and the cap.
+ *
+ * - `none`: paid at the venue - older rows, the panel's switch off, an app
+ *   build that does not opt in to `prepay`.
+ * - `pending`: an unpaid hold (always `requested`), until `paymentDueAt`.
+ * - `paid`: collected; the booking is confirmed on its own.
+ * - `refunding`: a refund was started and is not settled. A POS that did not
+ *   answer is not a refund (CLAUDE.md rule 29), so a person settles it.
+ * - `refunded`: the money went back (always `cancelled`).
+ * - `expired`: the hold lapsed unpaid (always `cancelled`).
+ */
+export type KaraokePaymentStatus =
+  "none" | "pending" | "paid" | "refunding" | "refunded" | "expired";
+
+export const KARAOKE_PAYMENT_STATUSES: readonly KaraokePaymentStatus[] = [
+  "none",
+  "pending",
+  "paid",
+  "refunding",
+  "refunded",
+  "expired",
+];
+
+export const KARAOKE_PAYMENT_LABELS: Record<KaraokePaymentStatus, string> = {
+  none: "Ödeme mekânda",
+  pending: "Ödeme bekleniyor",
+  paid: "Ödendi",
+  refunding: "İade sonucu bekleniyor",
+  refunded: "İade edildi",
+  expired: "Ödenmedi, süresi doldu",
+};
+
+/** The row's payment state; rows written before the column read `none`. */
+export function paymentStatusOf(
+  r: Pick<KaraokeReservation, "paymentStatus">,
+): KaraokePaymentStatus {
+  const s = r.paymentStatus;
+  return s && (KARAOKE_PAYMENT_STATUSES as readonly string[]).includes(s)
+    ? s
+    : "none";
+}
+
+/**
+ * The confirmation a paid booking records before it is made - the same shape
+ * as an order's `legalConsent` (`OrderLegalConsent`), so one review reads one
+ * format: when, which documents, which revision, and from where.
+ */
+export interface KaraokeLegalConsent {
+  acceptedAt: string;
+  documents: string[];
+  version: string;
+  /**
+   * The separate boxes that were ticked, each its own act (operator, 16 Eki
+   * 2026): `on-bilgilendirme` (MSY m.7 teyit), `hizmet-sozlesmesi` (the
+   * contract accepted) and `kvkk-aydinlatma` - an ACKNOWLEDGEMENT that the
+   * privacy notice was read, not a consent (KVKK m.10).
+   */
+  confirmations?: string[];
+  /** `web` or `app`: which surface showed the boxes. */
+  surface?: "web" | "app";
+  ip?: string;
+  userAgent?: string;
+}
+
+/** The three boxes a paid booking needs, in the order they are shown. */
+export const KARAOKE_CONFIRMATIONS = [
+  "on-bilgilendirme",
+  "hizmet-sozlesmesi",
+  "kvkk-aydinlatma",
+] as const;
+
 export interface KaraokeReservation {
   id: string;
   customerEmail: string;
@@ -75,6 +154,29 @@ export interface KaraokeReservation {
   contactEmail?: string;
   contactPhone?: string;
   contactConsentAt?: string;
+  /**
+   * Online prepayment (16 Eki 2026). Optional in the type because a row
+   * written before the migration, and a test fixture, may lack them; read
+   * the state through `paymentStatusOf`.
+   */
+  paymentStatus?: KaraokePaymentStatus;
+  /** ISO instant the newest payment page stops taking the card; "" if none. */
+  paymentDueAt?: string;
+  paidAt?: string;
+  refundedAt?: string;
+  /** What the POS collected for THIS booking, kuruş. 0 until paid. */
+  paidMinor?: number;
+  /** Provider reference of the payment that paid the row; "" until paid. */
+  paymentRef?: string;
+  /** Where it was booked; decides where a payment return lands. */
+  channel?: "web" | "app" | "";
+  legalConsent?: KaraokeLegalConsent | null;
+  /**
+   * Booked on the web without an account (16 Eki 2026). Never listed for a
+   * member, never in an app inbox, never discounted by a member's tier;
+   * reached through its signed link (karaoke-link.ts) only.
+   */
+  guest?: boolean;
 }
 
 /** What the web form collects about who to reach for a booking. */
@@ -145,6 +247,23 @@ export interface KaraokeAvailability {
   closeHour: number;
   maxHours: number;
   bookingWindowDays: number;
+  /**
+   * Additive (16 Eki 2026, §7): a new booking is paid online when it is made
+   * (`settings.karaokePrepay`). Off, the old request flow, paid at the venue.
+   */
+  paymentRequired: boolean;
+  /** Up to how many hours before the start the member may cancel for a full refund. */
+  freeCancelHours: number;
+  /**
+   * Additive (16 Eki 2026, §7): the documents a paid booking confirms
+   * (`/legal/{slug}`, §13) and the privacy notice it acknowledges - the app
+   * shows one unticked box for each, and sends `legalConsent: true` only when
+   * every one is ticked.
+   */
+  consentDocs: string[];
+  privacyDoc: string;
+  /** The cancellation rule, verbatim, to print above the boxes. */
+  cancellationRules: string[];
 }
 
 /** Wire shape of a reservation - an explicit allow-list (§7). */
@@ -159,11 +278,21 @@ export interface KaraokeReservationJson {
   discountMinor: number;
   totalMinor: number;
   createdAt: string;
+  /**
+   * Additive (16 Eki 2026, §7). An app build that predates them ignores all
+   * three; one that does not opt in to `prepay` only ever sees `none`.
+   */
+  paymentStatus: KaraokePaymentStatus;
+  /** When an unpaid hold's payment page closes (ISO); "" unless `pending`. */
+  paymentDueAt: string;
+  /** Last moment the member may cancel it themselves (ISO, 2 h before). */
+  cancellableUntil: string;
 }
 
 export function toReservationJson(
   r: KaraokeReservation,
 ): KaraokeReservationJson {
+  const paymentStatus = paymentStatusOf(r);
   return {
     id: r.id,
     date: r.date,
@@ -175,6 +304,9 @@ export function toReservationJson(
     discountMinor: r.discountMinor,
     totalMinor: r.totalMinor,
     createdAt: r.createdAt,
+    paymentStatus,
+    paymentDueAt: paymentStatus === "pending" ? (r.paymentDueAt ?? "") : "",
+    cancellableUntil: karaokeCancelDeadline(r).toISOString(),
   };
 }
 
