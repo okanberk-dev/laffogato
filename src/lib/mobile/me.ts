@@ -36,7 +36,6 @@ import {
 
 import { getInviteSummary } from "./invite";
 import { getLoyalty } from "./loyalty";
-import { istanbulClock } from "./venue";
 import { toMe, type MeResponse } from "./me-mapper";
 import { listMilestoneGrants } from "./milestones";
 import { milestoneRoadmap, perksByTier } from "./milestones-core";
@@ -246,6 +245,8 @@ export const ANON_SWEEPS: ReadonlyArray<{
   caseInsensitive?: boolean;
   op?: "update" | "delete";
   patch: (anon: string) => Record<string, unknown>;
+  /** Extra equality filters, e.g. a member's rows only. */
+  only?: Record<string, string | boolean>;
 }> = [
   {
     table: TABLES.orders,
@@ -266,7 +267,19 @@ export const ANON_SWEEPS: ReadonlyArray<{
   {
     table: TABLES.karaokeReservations,
     column: "customerEmail",
-    patch: (anon) => ({ customerEmail: anon, customerName: "" }),
+    // A guest booking with the same address is not this account's: an
+    // account can be opened with any address and closed unverified.
+    only: { guest: false },
+    // The contact the web form collected goes too (krk-legal additions[52]):
+    // the booking stays for the books, the person does not. The consent
+    // record (`legalConsent`: time, IP, revision) is kept - MSY m.20 asks for
+    // it for three years.
+    patch: (anon) => ({
+      customerEmail: anon,
+      customerName: "",
+      contactEmail: "",
+      contactPhone: "",
+    }),
   },
   {
     table: TABLES.invites,
@@ -368,19 +381,42 @@ export const ANON_SWEEPS: ReadonlyArray<{
  * A booking the member will not come to. Anonymising it alone left the room
  * held on the karaoke board for a nameless, uncontactable guest, so the future
  * ones are cancelled first - while the rows still carry the real address.
+ *
+ * A booking paid online is refunded in full on the way (hesap-silme; the
+ * business keeps no money for an evening nobody will have), each POS call
+ * bounded; what the POS does not settle on the spot is still cancelled and
+ * put in front of a person (`cancelKaraokeForClosedAccount`). Never fatal:
+ * the account closes either way.
  */
 async function cancelFutureKaraoke(email: string, now: Date): Promise<void> {
-  // Today at the venue. `toISOString()` is UTC, so from 00:00 to 03:00 in
-  // Tuzla this also cancelled yesterday's bookings - nights already sung.
-  const today = istanbulClock(now).date;
-  const { error } = await getDb()
-    .from(TABLES.karaokeReservations)
-    .update({ status: "cancelled", updatedAt: now.toISOString() })
-    .eq("customerEmail", email.trim().toLowerCase())
-    .gte("date", today)
-    .neq("status", "cancelled");
-  if (error)
-    console.error(`[deleteMe] karaoke cancel failed: ${error.message}`);
+  try {
+    const { cancelKaraokeForClosedAccount } = await import("./karaoke-payment");
+    await cancelKaraokeForClosedAccount(email.trim().toLowerCase(), now);
+  } catch (err) {
+    console.error(
+      "[deleteMe] karaoke cancel failed",
+      err instanceof Error ? err.message : "unknown error",
+    );
+  }
+}
+
+/**
+ * The member's own karaoke booking ids, read BEFORE the anonymiser rewrites
+ * the address: their payment payloads are redacted with the orders'
+ * (`redactPaymentPayloads`). Guest bookings that carry the same address are
+ * not the account's and are not touched.
+ */
+async function karaokeIdsOf(email: string): Promise<string[]> {
+  try {
+    const { listMine } = await import("./karaoke");
+    return (await listMine(email)).map((r) => r.id);
+  } catch (err) {
+    console.error(
+      "[deleteMe] karaoke ids not read",
+      err instanceof Error ? err.message : "unknown error",
+    );
+    return [];
+  }
 }
 
 /** `%` and `_` are LIKE wildcards; an address may legitimately contain both. */
@@ -543,6 +579,7 @@ export async function deleteMe(
 
   const identityId = await linkedIdentityId(customer.email);
   await cancelFutureKaraoke(customer.email, at);
+  const karaokeIds = await karaokeIdsOf(customer.email);
   await deleteSavedCardsAtPos(customer.email);
   const { error } = await getDb()
     .from(TABLES.customers)
@@ -609,10 +646,13 @@ export async function deleteMe(
   const db = getDb();
   const sweeps: Array<PromiseLike<{ error: DbError | null }>> = ANON_SWEEPS.map(
     (sweep) => {
-      const q =
+      let q =
         sweep.op === "delete"
           ? db.from(sweep.table).delete()
           : db.from(sweep.table).update(sweep.patch(anon));
+      for (const [col, value] of Object.entries(sweep.only ?? {})) {
+        q = q.eq(col, value);
+      }
       // `ilike`, not `eq`, where the column is written with whatever case the
       // caller captured - `customerOrdersByEmail` reads orders that way too,
       // and an `eq` sweep would leave `Ayse@…` behind for `ayse@…` to inherit.
@@ -629,10 +669,7 @@ export async function deleteMe(
   }
 
   await purgeAuthAttempts(customer.email);
-  await redactPaymentPayloads(
-    orders.map((o) => o.id),
-    now,
-  );
+  await redactPaymentPayloads([...orders.map((o) => o.id), ...karaokeIds], now);
 
   const identity = await deleteSupabaseIdentity(identityId);
   if (identity === "skipped") logIdentitySkip(identityId);

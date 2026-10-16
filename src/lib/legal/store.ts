@@ -6,7 +6,11 @@ import { getDb, TABLES } from "@/lib/db";
 import { publicRead, raiseDbError } from "@/lib/db/health";
 
 import { consentVersionFrom } from "./consent-version";
-import { CHECKOUT_CONSENT_DOCS } from "./meta";
+import {
+  CHECKOUT_CONSENT_DOCS,
+  KARAOKE_CONSENT_DOCS,
+  KARAOKE_LEGAL_UPDATED,
+} from "./meta";
 
 /**
  * Admin overrides for the coded legal documents. A published override with a
@@ -81,6 +85,26 @@ export async function checkoutConsentVersion(): Promise<string> {
     bySlug[slug] = rows[i];
   });
   return consentVersionFrom(bySlug);
+}
+
+/**
+ * The version a paid karaoke booking's consent records: the karaoke
+ * document's own revision, moved forward by a published override of it -
+ * the checkout's rule, applied to the karaoke document.
+ */
+export async function karaokeConsentVersion(): Promise<string> {
+  const rows = await Promise.all(
+    KARAOKE_CONSENT_DOCS.map((slug) => getPublishedLegalOverride(slug)),
+  );
+  const bySlug: Record<string, LegalDocOverride | null> = {};
+  KARAOKE_CONSENT_DOCS.forEach((slug, i) => {
+    bySlug[slug] = rows[i];
+  });
+  return consentVersionFrom(
+    bySlug,
+    KARAOKE_CONSENT_DOCS,
+    KARAOKE_LEGAL_UPDATED,
+  );
 }
 
 /** Any override (published or draft) for the admin editor, or null. */

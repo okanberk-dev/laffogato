@@ -45,3 +45,20 @@ export const CHECKOUT_CONSENT_DOCS = [
   "on-bilgilendirme-formu",
   "mesafeli-satis-sozlesmesi",
 ] as const;
+
+/**
+ * Online ön ödemeli karaoke rezervasyonunda ödemeden önce onaylanan belge
+ * (16 Eki 2026). Karaoke odası bir hizmettir: Mesafeli Satış Sözleşmesi mal
+ * satışıyla sınırlı, Ön Bilgilendirme Formu kargo ve cayma üzerine kurulu;
+ * ikisini onaylatmak hizmete uymayan şartları onaylatmak olurdu. Ön
+ * bilgilendirme ile sözleşme tek belgede, onay kutusu iki (MSY m.7 teyit +
+ * sözleşmenin kabulü), kayıt `karaoke_reservations."legalConsent"`.
+ */
+export const KARAOKE_CONSENT_DOCS = ["karaoke-odasi-rezervasyon"] as const;
+
+/**
+ * Karaoke belgesinin kodda yazılı sürümü: belgenin kendi `updatedAt`'i ile
+ * aynı gün olmak zorunda (tests/legal-dates.test.ts). Panelden yayımlanan bir
+ * geçersiz kılma, kaydedilen sürümü bunun ötesine taşır (`consentVersionFrom`).
+ */
+export const KARAOKE_LEGAL_UPDATED = "16 Ekim 2026";

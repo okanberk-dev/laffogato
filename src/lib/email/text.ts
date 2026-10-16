@@ -255,7 +255,9 @@ ${SIGNATURE}
 ${COMMERCIAL_FOOTER}`,
 
   // The redesigned HTML greets without the name; the two halves of one
-  // message say the same thing.
+  // message say the same thing. A booking paid online carries its receipt
+  // and its cancellation terms (KARAOKE_ODENDI); one paid at the venue only
+  // how to cancel (KARAOKE_ODEME_MEKANDA). send.ts sets exactly one of them.
   "karaoke-rezervasyon": `Merhaba,
 
 Karaoke saatiniz ayrıldı. Girişte kodunuzu söylemeniz yeterli.
@@ -268,14 +270,34 @@ Kişi: [KARAOKE_KISI]
 Yol tarifi:
 https://www.google.com/maps/search/?api=1&query=40.8165716,29.3032493
 
-Planınız değişirse rezervasyonunuzu uygulamadan iptal edebilir ya da bizi
-arayabilirsiniz: +90 536 429 09 19
+<!--IF:KARAOKE_ODENDI-->Ödenen tutar: [KARAOKE_TUTAR] (KDV dahil), kartından PayNkolay
+üzerinden tek çekimle alındı.
+
+Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.
+Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.
+
+Belirli bir tarihte sunulan eğlence hizmeti olduğu için cayma hakkı yoktur (MSY m.15/1-g).
+Rezervasyonu biz karşılayamazsak ödediğin tutarın tamamını kartına iade ederiz.
+
+Rezervasyonunu görmek ya da iptal etmek için:
+[KARAOKE_LINK]
+
+Koşulların tamamı:
+https://laffogato.net/hukuk/karaoke-odasi-rezervasyon
+
+Sorun olursa bizi ara: +90 536 429 09 19<!--/IF:KARAOKE_ODENDI--><!--IF:KARAOKE_ODEME_MEKANDA-->Ödemeyi köşkte yaparsın. Planın değişirse rezervasyon saatine 2 saatten
+fazla varken rezervasyon sayfandan iptal edebilir ya da bizi arayabilirsin:
++90 536 429 09 19
+
+Rezervasyon sayfan:
+[KARAOKE_LINK]<!--/IF:KARAOKE_ODEME_MEKANDA-->
 
 ${SIGNATURE}`,
 
   // The cancellation twin. Same shape, same greeting without a name: the
-  // member is told what changed, what it cost them (nothing) and how to get
-  // another evening - nothing to confirm, nothing to click.
+  // member is told what changed, what happened to their money (it went back:
+  // KARAOKE_IADE; none was taken: KARAOKE_ODEMESIZ) and how to get another
+  // evening - nothing to confirm, nothing to click.
   "karaoke-iptal": `Merhaba,
 
 Karaoke rezervasyonunuz iptal edildi. Oda serbest bırakıldı; sizden bir şey
@@ -286,9 +308,15 @@ Tarih: [KARAOKE_TARIH]
 Saat: [KARAOKE_SAAT]
 Kişi: [KARAOKE_KISI]
 
-Ödeme alınmadıysa tahsilat da yapılmaz.
+<!--IF:KARAOKE_IADE-->Ödediğiniz [KARAOKE_TUTAR] kartınıza iade edildi; tutarın hesabınıza
+yansıması bankanıza göre birkaç iş günü sürebilir.
 
-Yeni bir saat ayırtmak için: https://laffogato.net/karaoke
+Rezervasyonun son durumu:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_IADE--><!--IF:KARAOKE_ODEMESIZ-->Bu rezervasyon için sizden ödeme alınmadı.
+
+<!--/IF:KARAOKE_ODEMESIZ-->Yeni bir saat ayırtmak için: https://laffogato.net/karaoke
 Bir yanlışlık olduğunu düşünüyorsanız bizi arayın: +90 536 429 09 19
 
 ${SIGNATURE}`,

@@ -739,9 +739,30 @@ export interface KaraokeEmailData {
    * string both halves of the message print.
    */
   code: string;
+  /**
+   * How the evening is paid for (16 Eki 2026). `online`: by card when it was
+   * booked, `paidMinor` collected - the confirmation is then also the
+   * receipt and carries the cancellation terms (MSY m.5/2: the pre-
+   * information is part of the contract, on a durable medium). `venue`: at
+   * the köşk, the old flow. Absent reads as `venue`.
+   */
+  payment?: { kind: "online"; paidMinor: number } | { kind: "venue" };
+  /**
+   * Cancellation only: the whole payment went back to the card. Absent on a
+   * booking nothing was collected for; the message then says so.
+   */
+  refundedMinor?: number;
+  /**
+   * The booking's own page: its signed link (karaoke-link.ts), so a guest
+   * without an account - and a member on a phone without the app - can see
+   * and cancel it. Falls back to the karaoke page when no link can be made.
+   */
+  manageUrl?: string;
 }
 
 function karaokeVars(k: KaraokeEmailData) {
+  const amount =
+    k.refundedMinor ?? (k.payment?.kind === "online" ? k.payment.paidMinor : 0);
   return {
     AD: k.name.trim(),
     KARAOKE_TARIH: k.date,
@@ -751,11 +772,14 @@ function karaokeVars(k: KaraokeEmailData) {
     // ASCII (`krk-00042`), and tr-TR would turn an "i" into "İ" if one ever
     // appeared in it.
     KARAOKE_KOD: k.code.toUpperCase(),
+    KARAOKE_TUTAR: formatTRYMinor(amount),
+    KARAOKE_LINK: k.manageUrl || `${SITE.url}/karaoke`,
   };
 }
 
 /**
- * Sent when staff confirm a karaoke block (`setReservationStatus`).
+ * Sent when a karaoke block is confirmed: by the staff (`setReservationStatus`)
+ * or, for a booking paid online, by its payment.
  *
  * Transactional: the member asked for the evening and is being told whether
  * they have it. No consent gate, no unsubscribe link - `renderEmail` refuses
@@ -764,18 +788,31 @@ function karaokeVars(k: KaraokeEmailData) {
 export async function sendKaraokeConfirmationEmail(
   k: KaraokeEmailData,
 ): Promise<boolean> {
-  return sendTemplate("karaoke-rezervasyon", k.to, { vars: karaokeVars(k) });
+  const online = k.payment?.kind === "online";
+  return sendTemplate("karaoke-rezervasyon", k.to, {
+    vars: karaokeVars(k),
+    flags: { KARAOKE_ODENDI: online, KARAOKE_ODEME_MEKANDA: !online },
+  });
 }
 
 /**
- * Sent when staff cancel a karaoke block. Transactional for the same reason
- * as the confirmation, and more urgently: without it the member finds out at
- * the door.
+ * Sent when a karaoke block is cancelled - by the staff, by the member, or
+ * when an account closes. Transactional for the same reason as the
+ * confirmation, and more urgently: without it the member finds out at the
+ * door. A refund says how much went back (MSY m.16/4 asks the business to
+ * tell the member when it cannot honour the booking; this is that notice).
  */
 export async function sendKaraokeCancellationEmail(
   k: KaraokeEmailData,
 ): Promise<boolean> {
-  return sendTemplate("karaoke-iptal", k.to, { vars: karaokeVars(k) });
+  const refunded = k.refundedMinor !== undefined;
+  return sendTemplate("karaoke-iptal", k.to, {
+    vars: karaokeVars(k),
+    flags: {
+      KARAOKE_IADE: refunded,
+      KARAOKE_ODEMESIZ: !refunded && k.payment?.kind !== "online",
+    },
+  });
 }
 
 /**
@@ -803,6 +840,8 @@ export interface KaraokeOperatorNotice {
   totalMinor: number;
   /** The member's own note, or "" - printed as-is, never interpreted. */
   note: string;
+  /** Booked without an account (the contact was typed, not verified). */
+  guest?: boolean;
 }
 
 /**
@@ -860,7 +899,10 @@ export async function sendKaraokeOperatorEmail(
       { label: "Saat", value: k.time },
       { label: "Kişi", value: String(k.guests) },
       { label: "Tutar", value: formatTRYMinor(k.totalMinor) },
-      { label: "Üye", value: k.customerName.trim() || "-" },
+      {
+        label: k.guest ? "Misafir (üyeliksiz)" : "Üye",
+        value: k.customerName.trim() || "-",
+      },
       { label: "E-posta", value: k.customerEmail },
       { label: "Telefon", value: k.phone ?? "" },
     ],
@@ -877,6 +919,120 @@ export async function sendKaraokeOperatorEmail(
     replyTo: k.customerEmail,
     // A retried request for the same row must not mail twice.
     idempotencyKey: `karaoke-${k.id}-requested`,
+  });
+}
+
+/** A booking that was just paid online and so confirmed itself. */
+export interface KaraokePaidNotice {
+  id: string;
+  source: "app" | "web";
+  customerName: string;
+  customerEmail: string;
+  phone?: string;
+  /** Already formatted for a reader: "12 Eylül 2026", "20:00 - 22:00". */
+  date: string;
+  time: string;
+  guests: number;
+  /** What the POS collected, kuruş. */
+  paidMinor: number;
+  note: string;
+  /** Booked without an account (the contact was typed, not verified). */
+  guest?: boolean;
+}
+
+/**
+ * Tells the köşk that a karaoke evening is paid for and booked.
+ *
+ * The other half of "member and staff get mail" (operator, 16 Eki 2026): a
+ * paid booking confirms itself, so nobody has to press Onayla - but somebody
+ * has to know the room is taken. No "requested" notice precedes it: an
+ * unpaid hold is not a booking yet, and most of the ones that lapse are
+ * somebody changing their mind at the card form. Internal mail, like
+ * `sendKaraokeOperatorEmail`; reply-to is the member.
+ */
+export async function sendKaraokePaidOperatorEmail(
+  k: KaraokePaidNotice,
+): Promise<SendResult> {
+  const { getSettings } = await import("@/lib/admin/store");
+  const to = karaokeNoticeRecipient(await getSettings());
+  if (!to)
+    return { ok: false, error: "Ayarlar'da bildirim adresi tanımlı değil." };
+
+  const origin = k.source === "web" ? "Web sitesinden" : "Uygulamadan";
+  return sendOperatorNotice({
+    to,
+    subject: `Karaoke ödendi · ${k.date} ${k.time} · ${k.guests} kişi (${k.id})`,
+    summary: `${origin} ödendi ve kesinleşti: ${k.date} · ${k.time} · ${k.guests} kişi`,
+    label: "KARAOKE · ÖDENDİ",
+    title: "Karaoke rezervasyonu kesinleşti",
+    subtitle: `${origin} · ödeme alındı, rezervasyon kendiliğinden onaylandı`,
+    rows: [
+      { label: "Rezervasyon", value: k.id },
+      { label: "Tarih", value: k.date },
+      { label: "Saat", value: k.time },
+      { label: "Kişi", value: String(k.guests) },
+      { label: "Ödenen", value: formatTRYMinor(k.paidMinor) },
+      {
+        label: k.guest ? "Misafir (üyeliksiz)" : "Üye",
+        value: k.customerName.trim() || "-",
+      },
+      { label: "E-posta", value: k.customerEmail },
+      { label: "Telefon", value: k.phone ?? "" },
+    ],
+    ...(k.note.trim()
+      ? { note: { label: "ÜYENİN NOTU", text: k.note.trim() } }
+      : {}),
+    button: { label: "PANELDE GÖR", url: `${SITE.url}/admin/mobil/karaoke` },
+    footnote:
+      "Ödeme PayNkolay'dan doğrulandı; ayrıca onaylaman gerekmez. İptal edilirse tutarın tamamı karta iade edilir. Bu e-postayı yanıtlarsan doğrudan üyeye yazarsın.",
+    replyTo: k.customerEmail,
+    // The browser return and the sweep may both book the same payment.
+    idempotencyKey: `karaoke-${k.id}-paid`,
+  });
+}
+
+/** Karaoke money that needs a person. */
+export interface KaraokeMoneyAlert {
+  /** The reservation, `krk-00042`. */
+  id: string;
+  /** Short and specific: what happened to which money. */
+  title: string;
+  summary: string;
+  rows: Array<{ label: string; value: string }>;
+  /** What the person should do now. */
+  footnote: string;
+  /**
+   * Names the event in the idempotency key (`karaoke-<id>-<key>`), so the
+   * same alert raised by a repeated return is mailed once.
+   */
+  key: string;
+}
+
+/**
+ * The operator's inbox for karaoke payments that did not resolve on their
+ * own: a refund the POS refused, a refund whose answer never came, a second
+ * charge, a payment that arrived for a booking that no longer exists. Each
+ * one is also an audit row; this is how a person hears about it the same day
+ * rather than at the next audit-log read.
+ */
+export async function sendKaraokeMoneyAlertEmail(
+  a: KaraokeMoneyAlert,
+): Promise<SendResult> {
+  const { getSettings } = await import("@/lib/admin/store");
+  const to = karaokeNoticeRecipient(await getSettings());
+  if (!to)
+    return { ok: false, error: "Ayarlar'da bildirim adresi tanımlı değil." };
+  return sendOperatorNotice({
+    to,
+    subject: `Karaoke ödeme kontrolü · ${a.title} (${a.id})`,
+    summary: a.summary,
+    label: "KARAOKE · ÖDEME KONTROLÜ",
+    title: a.title,
+    subtitle: a.summary,
+    rows: [{ label: "Rezervasyon", value: a.id }, ...a.rows],
+    button: { label: "PANELDE AÇ", url: `${SITE.url}/admin/mobil/karaoke` },
+    footnote: a.footnote,
+    idempotencyKey: `karaoke-${a.id}-${a.key}`,
   });
 }
 

@@ -44,7 +44,9 @@ export type AuthPurpose =
   | "card-payment-order"
   | "table-lookup"
   | "checkout-start"
-  | "card-delete";
+  | "card-delete"
+  | "karaoke-hold"
+  | "karaoke-guest-ip";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -139,10 +141,38 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "checkout-start": 10,
   // Deleting a saved card from /odeme: two POS calls each (list, delete).
   "card-delete": 10,
+  // A karaoke booking that waits for its payment holds the hour while it
+  // waits (up to ~75 minutes, karaoke-time.ts), and the open-bookings cap of
+  // two says nothing about how often one member makes and abandons them. So
+  // each NEW unpaid hold is counted per member, in a day-long window, and a
+  // paid one clears the count: someone who pays is never limited, someone
+  // who keeps two four-hour blocks on hold without paying gets four of them
+  // a day. Reopening the payment of an existing hold is `checkout-reopen`.
+  "karaoke-hold": 4,
+  // A booking without an account has no verified handle at all, so the
+  // network it comes from is counted too: eight new guest holds per address
+  // a day - a busy café Wi-Fi books far fewer evenings than that.
+  "karaoke-guest-ip": 8,
 };
+
+/**
+ * Counting window per purpose; WINDOW_MS (five minutes) unless listed. A
+ * credential guess is a burst, so five minutes catches it; an abandoned
+ * karaoke hold is a slow cycle, so its window is a day.
+ */
+const WINDOW_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
+  "karaoke-hold": 24 * 60 * 60 * 1000,
+  "karaoke-guest-ip": 24 * 60 * 60 * 1000,
+};
+
+function windowMs(purpose: AuthPurpose): number {
+  return WINDOW_MS_BY_PURPOSE[purpose] ?? WINDOW_MS;
+}
 
 /** Lockout length per purpose; LOCKOUT_MS unless listed. */
 const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
+  "karaoke-hold": 12 * 60 * 60 * 1000,
+  "karaoke-guest-ip": 12 * 60 * 60 * 1000,
   "admin-2fa-account": 15 * 60 * 1000,
   "newsletter-signup": 15 * 60 * 1000,
   "checkout-reopen": 10 * 60 * 1000,
@@ -293,7 +323,7 @@ export async function checkLoginLimit(
 
   // A window that has fully expired is not a partial count any more.
   const started = row.firstFailedAt ? Date.parse(row.firstFailedAt) : 0;
-  const stale = !started || now - started > WINDOW_MS;
+  const stale = !started || now - started > windowMs(purpose);
   return statusFrom(stale ? 0 : row.failedCount, row.lockedUntil, now, purpose);
 }
 
@@ -310,7 +340,7 @@ export async function recordLoginFailure(
   const { data, error } = await sb.rpcRows<AttemptRow>("record_auth_failure", {
     p_key: bucketKey(purpose, ip, identity),
     p_now: new Date(now).toISOString(),
-    p_window_ms: WINDOW_MS,
+    p_window_ms: windowMs(purpose),
     p_max_fails: maxFails(purpose),
     p_lockout_ms: lockoutMs(purpose),
   });
@@ -352,7 +382,7 @@ export async function reserveLoginAttempt(
   }>("reserve_auth_attempt", {
     p_key: bucketKey(purpose, ip, identity),
     p_now: new Date(now).toISOString(),
-    p_window_ms: WINDOW_MS,
+    p_window_ms: windowMs(purpose),
     p_max_fails: maxFails(purpose),
     p_lockout_ms: lockoutMs(purpose),
   });

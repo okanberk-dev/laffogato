@@ -15,8 +15,19 @@ describe("the venue's calendar, not UTC's", () => {
   it("account deletion cancels only bookings from the venue's today on", () => {
     // toISOString() also cancelled yesterday's, already-sung nights between
     // 00:00 and 03:00 in Tuzla.
+    // The closure now refunds paid bookings on the way, so the day is read
+    // where that happens (karaoke-payment.ts), and me.ts calls it.
     const me = readFileSync("src/lib/mobile/me.ts", "utf8");
-    const body = me.slice(me.indexOf("async function cancelFutureKaraoke"));
+    expect(
+      me.slice(
+        me.indexOf("async function cancelFutureKaraoke"),
+        me.indexOf("async function karaokeIdsOf"),
+      ),
+    ).toContain("cancelKaraokeForClosedAccount");
+    const pay = readFileSync("src/lib/mobile/karaoke-payment.ts", "utf8");
+    const body = pay.slice(
+      pay.indexOf("export async function cancelKaraokeForClosedAccount"),
+    );
     expect(body).toContain("istanbulClock(now).date");
     expect(body.slice(0, 400)).not.toContain("toISOString().slice(0, 10)");
   });
