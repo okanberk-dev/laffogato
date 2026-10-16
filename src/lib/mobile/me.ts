@@ -447,6 +447,9 @@ async function redactPaymentPayloads(
  * closing their account. The key is logged on failure so the cards can be
  * removed by hand - it is a random 11-character value, not personal data.
  */
+/** Hesap kapanırken POS'taki kart silmenin üst süresi (ms). */
+const SAVED_CARD_DELETE_DEADLINE_MS = 6_000;
+
 async function deleteSavedCardsAtPos(email: string): Promise<void> {
   let key = "";
   try {
@@ -454,7 +457,18 @@ async function deleteSavedCardsAtPos(email: string): Promise<void> {
     if (!key) return;
     const provider = getPaymentProvider();
     if (!(provider instanceof PaynkolayPaymentProvider)) return;
-    await provider.deleteAllSavedCards(key);
+    // Hesap kapatma bu uca bağlı kalmaz: POS yavaşsa kartlar silinmemiş
+    // olarak loglanır ve anonimleştirme yine yapılır (uç `maxDuration = 15`).
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      provider.deleteAllSavedCards(key),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("POS card deletion timed out")),
+          SAVED_CARD_DELETE_DEADLINE_MS,
+        );
+      }),
+    ]).finally(() => clearTimeout(timer));
   } catch (err) {
     console.error(
       `[deleteMe] saved cards not deleted at the POS key=${key || "?"}:`,

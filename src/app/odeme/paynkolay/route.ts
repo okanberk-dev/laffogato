@@ -135,7 +135,6 @@ export async function POST(req: NextRequest) {
 
   // Hata sonrası forma geri yazılabilenler: ad ve son kullanma. Kart
   // numarası ve CVV hiçbir yanıta geri basılmaz.
-  const saved = await savedCardsOf(provider, post);
   const choice = read("cardChoice") ?? "new";
   const state: CardFormState = {
     data,
@@ -143,19 +142,31 @@ export async function POST(req: NextRequest) {
     amount: post.fields.amount,
     holderName: (read(CARD_FORM_FIELDS.holderName) ?? "").slice(0, 60),
     expiry: (read(CARD_FORM_FIELDS.expiry) ?? "").slice(0, 7),
-    savedCards: publicCards(saved),
     choice,
     canSave: !!post.member,
   };
+  // Saklı kart listesi yalnızca gerektiğinde istenir: silmede, saklı kartla
+  // ödemede ve formu bir hatayla yeniden çizerken. Yeni kartla ödeme liste
+  // ucuna hiç bağlı değildir; liste ucu yavaşsa ödeme beklemez.
+  let savedPromise: Promise<SavedCard[]> | null = null;
+  const savedCards = () => (savedPromise ??= savedCardsOf(provider, post));
+  const withCards = async (
+    extra: Partial<CardFormState>,
+  ): Promise<PaynkolayPage> =>
+    renderCardForm({
+      ...state,
+      savedCards: publicCards(await savedCards()),
+      ...extra,
+    });
 
   // Saklı kartı silmek (§16): ödeme değil, POS'a kart gitmez.
   const toDelete = read("deleteCard");
   if (toDelete) {
+    const saved = await savedCards();
     const card = saved.find((c) => c.tranId === toDelete);
     if (!post.member || !card) {
       return respond(
-        renderCardForm({
-          ...state,
+        await withCards({
           error: { message: "Silinecek kart bulunamadı." },
         }),
         404,
@@ -169,8 +180,7 @@ export async function POST(req: NextRequest) {
         err instanceof Error ? err.message : "bilinmeyen hata",
       );
       return respond(
-        renderCardForm({
-          ...state,
+        await withCards({
           error: { message: "Kart şu an silinemedi. Birazdan yeniden dene." },
         }),
         502,
@@ -178,8 +188,7 @@ export async function POST(req: NextRequest) {
     }
     const left = saved.filter((c) => c.token !== card.token);
     return respond(
-      renderCardForm({
-        ...state,
+      await withCards({
         savedCards: publicCards(left),
         choice: left[0]?.tranId ?? "new",
         notice: "Kayıtlı kart silindi.",
@@ -192,14 +201,14 @@ export async function POST(req: NextRequest) {
   // kartı seçilemez.
   let method: DirectPaymentMethod;
   if (choice !== "new") {
+    const saved = await savedCards();
     // Betik, saklı kart seçiliyken yeni kart alanlarını kapatır ve
     // göndermez. Alan yine de doluysa (betiksiz tarayıcı) müşteri yeni kartı
     // yazmış ama seçimi değiştirmemiştir: saklı karttan sessizce çekmek
     // yerine sorulur.
     if (/\d/.test(read(CARD_FORM_FIELDS.number) ?? "")) {
       return respond(
-        renderCardForm({
-          ...state,
+        await withCards({
           error: {
             message:
               "Yeni bir kart yazdın ama kayıtlı kartın seçili. Yeni kartla ödemek için “Yeni kartla öde”yi seç.",
@@ -211,8 +220,7 @@ export async function POST(req: NextRequest) {
     const card = saved.find((c) => c.tranId === choice);
     if (!post.member || !card) {
       return respond(
-        renderCardForm({
-          ...state,
+        await withCards({
           choice: "new",
           error: {
             message: "Seçtiğin kayıtlı kart bulunamadı; yeni kartla öde.",
@@ -226,8 +234,7 @@ export async function POST(req: NextRequest) {
     const check = parseCardForm(read);
     if (!check.ok) {
       return respond(
-        renderCardForm({
-          ...state,
+        await withCards({
           error: { message: check.message, field: check.field },
         }),
         422,
@@ -260,8 +267,7 @@ export async function POST(req: NextRequest) {
       `[odeme/paynkolay] kartlı ödeme deneme sınırı order=${orderRef}`,
     );
     return respond(
-      renderCardForm({
-        ...state,
+      await withCards({
         error: {
           message: `Çok fazla deneme yapıldı. Güvenliğin için ${minutes} dakika sonra yeniden dene.`,
         },
@@ -283,8 +289,7 @@ export async function POST(req: NextRequest) {
     );
     await recordLoginFailure("card-payment-ip", ip, "*");
     return respond(
-      renderCardForm({
-        ...state,
+      await withCards({
         error: {
           message:
             "Ödeme şu an başlatılamadı ve kartından para çekilmedi. Birazdan yeniden dene.",
@@ -301,8 +306,7 @@ export async function POST(req: NextRequest) {
   );
   await recordLoginFailure("card-payment-ip", ip, "*");
   return respond(
-    renderCardForm({
-      ...state,
+    await withCards({
       error: {
         message: result.message
           ? `Ödeme başlatılamadı: ${result.message}`

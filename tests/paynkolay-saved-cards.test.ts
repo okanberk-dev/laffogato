@@ -579,6 +579,27 @@ describe("/odeme/paynkolay with saved cards", () => {
     expect(calls.some((c) => c.path === "/Vpos/v1/Payment")).toBe(false);
   });
 
+  it("POST pays with a new card without waiting on the saved-card list", async () => {
+    const calls = stubPos({
+      "/Vpos/Payment/CardStorageCardList": LIST_ONE,
+      "/Vpos/v1/Payment": POS_3D,
+    });
+    const { data, signature } = await session(MEMBER);
+    const res = await route.POST(
+      post({
+        d: data,
+        s: signature,
+        cardChoice: "new",
+        [CARD_FORM_FIELDS.holderName]: "Ada Lovelace",
+        [CARD_FORM_FIELDS.number]: "4155 6501 0041 6111",
+        [CARD_FORM_FIELDS.expiry]: "01/30",
+        [CARD_FORM_FIELDS.cvv]: "715",
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(calls.map((c) => c.path)).toEqual(["/Vpos/v1/Payment"]);
+  });
+
   it("gives every POS call a deadline", async () => {
     const calls = stubPos({
       "/Vpos/Payment/CardStorageCardList": LIST_ONE,
