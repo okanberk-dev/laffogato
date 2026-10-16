@@ -150,18 +150,30 @@ canlı testte ölçülecek (§12).
 
 ## 2. İşlem doğrulama / sorgulama servisi
 
-**Durum: doğrulandı** (üretim ucu hariç). Kaynak:
+**Durum: doğrulandı** (üretim ucu dahil, 17 Eki 2026). Kaynak:
 [İşlem Doğrulama Servisi](https://paynkolay.com.tr/entegrasyon/10-verification-service.php).
 
 Doküman bu servisin amacını şöyle tarif ediyor: işlemin doğruluğunu ve paranın
 gerçekten çekilip çekilmediğini kontrol etmek. Bizim `confirmReturn`'ün
 dayanağı budur.
 
-|             |                                                                                                                                                                 |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Uç (test)   | `POST https://paynkolaytest.nkolayislem.com.tr/Vpos/Payment/PaymentList`                                                                                        |
-| Uç (üretim) | **doğrulanamadı** - doküman yazmıyor. Host değişimiyle `https://paynkolay.nkolayislem.com.tr/Vpos/Payment/PaymentList` olması beklenir; canlıda teyit edilecek. |
-| Gövde       | `multipart/form-data`                                                                                                                                           |
+|             |                                                                                                     |
+| ----------- | --------------------------------------------------------------------------------------------------- |
+| Uç (test)   | `POST https://paynkolaytest.nkolayislem.com.tr/Vpos/Payment/PaymentList`                            |
+| Uç (üretim) | `POST https://paynkolay.nkolayislem.com.tr/Vpos/Payment/PaymentList` - **doğrulandı** (17 Eki 2026) |
+| Gövde       | `multipart/form-data`                                                                               |
+
+**Sorun giderme (canlıda ölçüldü, 17 Eki 2026).** Anahtar hatası "kayıt yok"
+değildir; kod ikisini de hata sayar (kural 29) ve log satırı bakılacak
+değişkenin **adını** yazar, değerini değil (`paymentListKeyRefusal`):
+
+| `RESPONSE_DATA`                                | Bakılacak değişken               |
+| ---------------------------------------------- | -------------------------------- |
+| `"API : clientId veya token hatalı<clientId>"` | `PAYNKOLAY_SX_LIST` (liste sx'i) |
+| `"API : hashData error"`                       | `PAYNKOLAY_MERCHANT_SECRET_KEY`  |
+
+İlki işyerinin kimliğini geri bastığı için POS'un metni bu iki durumda loga
+yazılmaz.
 
 İstek alanları:
 
@@ -819,6 +831,64 @@ yakalıyor; dönmek, "iade edildi" yazan ama parayı göndermemiş bir kayıt
    kolonun boş olduğu eski satırlar için kaldı (§14.5). Testler:
    `tests/payment-paynkolay.test.ts` (iki yol), `tests/admin-refund-hint.test.ts`,
    `tests/db-integration-payment-sweep.test.ts`.
+
+### 14.7 İkinci satışa karşı: yeniden açma kapıları ve kart sayfasının son bakışı (17 Eki 2026)
+
+PayNkolay aynı `clientRefCode` ile ikinci bir satışı **kabul eder** (§2: "aynı
+`clientRefCode` ile birden çok işlem varsa hepsi döner"). `applyPaymentSucceeded`
+siparişi bir kez ilerletir, ama bu siparişi korur, kartı değil: ikinci tahsilat
+elle iade bekler. Webhook yok (§4); ödeme yalnız `/odeme/donus`'ta ya da
+süpürmede işlenir, dönüş her zaman gelmez (sekme kapanır, telefon bankanın
+ekranında kilitlenir). Üç kapı ikinci satışı durdurur:
+
+**1. Uygulama siparişini yeniden açmak** (`POST /api/mobile/v1/orders/{id}/payment`
+ve `POST /orders`'ın `clientOrderId` tekrarı, ikisi de `replayAppOrder`).
+`checkout-reopen` bütçesinden sonra, yeni oturumdan önce `checkPendingOrderPaid`
+(web ödemesinin §15.5'te kullandığı kontrol) önceki denemeyi `lookupPayment` ile
+sorar:
+
+| POS'un cevabı               | Ne olur                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `SUCCESS`, tutar doğru      | Ödeme işlenir, oturum açılmaz: **409** `not_payable` (ya da tekrarda 201, `payment: null`) |
+| `SUCCESS`, tutar farklı     | İnsan önüne düşer (`amount_mismatch`), sayfa açılmaz: **503** `payment_unavailable`        |
+| Kayıt yok / `NEW` / `ERROR` | Yeni ödeme sayfası açılır (eskisi gibi)                                                    |
+| POS'a ulaşılamadı           | Sayfa açılmaz: **503** `payment_unavailable`                                               |
+
+Bütçeden sonra sorulur: önce sorulsaydı her istek bütçesiz bir `PaymentList`
+çağrısı olurdu.
+
+**2. Karaoke ödemesini yeniden açmak** (`reopenKaraokePayment`: uygulamanın
+`POST /karaoke/reservations/{id}/payment`'ı, web'in "Ödemeyi tamamla"sı). POS
+eskiden yalnız "ödendi" derse durduruyordu; artık sorulamazsa da, tutar farklıysa
+da sayfa açılmaz (`payment_unknown` → mobilde **503** `payment_unavailable`,
+web'de "odeme-dogrulanamadi" notu). Tutar farkı yalnız burada "bilinmiyor"
+sayılır; süpürme ve iptal o rezervasyonu eskisi gibi serbest bırakır
+(`askPosAboutHold`'un `onAmountMismatch` seçeneği).
+
+**3. Kart sayfasının son bakışı** (`/odeme/paynkolay` POST,
+`src/lib/payment/bridge-gate.ts`). İmzalı form ömrü boyunca geçerlidir; iki
+sekme ya da bankanın sayfasından geri tuşu aynı formu ikinci kez gönderebilir.
+`startDirectPayment`'tan hemen önce kayıt, imzalı yükün `clientRefCode`'uyla
+okunur (`krk-` ise rezervasyon, `isKaraokeRef`):
+
+| Kayıt                                         | Ne olur                                                                                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Ödeme bekliyor                                | Satış başlar (eskisi gibi)                                                                                                                                   |
+| Ödenmiş                                       | Satış başlamaz; **409** not sayfası ("kartından ikinci kez para çekilmedi") ve siparişe / rezervasyona bağlantı. `/odeme`'nin formu `/odeme/basarili`'ye 303 |
+| İptal, süresi dolmuş, iade edilmiş, kayıt yok | Satış başlamaz; **409** not sayfası. `/odeme`'nin formu `?odeme=sure_doldu`                                                                                  |
+| Okunamadı (veritabanı)                        | Satış başlamaz (alınan para hiçbir yere işlenemezdi); genel "Ödeme şu an başlatılamadı" hatası, `/odeme`'de `baslatilamadi`                                  |
+
+Kart yolu yine store ya da veritabanı import etmez (kural 28): modül
+`route.ts`'ten yalnız sipariş referansını alır, formu ve kartı görmez
+(`tests/saved-cards.test.ts`). Son bakış POS'a **sormaz**: ilk ödemenin dönüşü
+kaybolduysa kayıt hâlâ ödeme bekler görünür ve ikinci sekmedeki eski form yine
+satış başlatabilir. Bu boşluk açık (`docs/AUDIT.md` §11 "Açık"); yeni sayfa
+dağıtan iki kapı (1, 2) ve web ödemesinin yeniden kullanımı (§15.5) POS'a sorar.
+
+Testler: `tests/mobile-order-idempotency.test.ts`,
+`tests/mobile-checkout-reopen-route.test.ts`, `tests/mobile-order-payment.test.ts`,
+`tests/karaoke-reopen-pos-gate.test.ts`, `tests/mobile-karaoke-prepay-routes.test.ts`,
+`tests/paynkolay-card-page.test.ts`.
 
 ---
 
