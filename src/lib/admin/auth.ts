@@ -108,6 +108,14 @@ function loadEnvAdminUsers(): AdminUserRecord[] {
   return out;
 }
 
+/**
+ * The break-glass accounts' addresses and roles - never their passwords. For
+ * the staff "new order" e-mail, which mails the roles Ayarlar names.
+ */
+export function listEnvAdminContacts(): { email: string; role: AdminRole }[] {
+  return loadEnvAdminUsers().map(({ email, role }) => ({ email, role }));
+}
+
 function getSecret(): string {
   const secret = process.env.ADMIN_SESSION_SECRET;
   if (!secret) {

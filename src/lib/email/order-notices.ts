@@ -326,3 +326,11 @@ export async function notifyOrderRefunded(
     ),
   );
 }
+
+/**
+ * The same once-only claim and settle, for a notice that is not one of the
+ * three customer mails above: the staff "new order" mail
+ * (`staff-order-notice.ts`, kind `staff-new`) sends to several inboxes under
+ * one claim.
+ */
+export { claim as claimOrderNotice, settle as settleOrderNotice };

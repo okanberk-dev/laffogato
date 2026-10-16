@@ -99,6 +99,11 @@ function stageTitle(stage: StageKey, fulfillment: string): string {
     if (stage === "shipped") return "Hazır - gel al";
     if (stage === "completed") return "Teslim alındı";
   }
+  // Nor is a table order: it is carried to where the member sits.
+  if (fulfillment === "table") {
+    if (stage === "shipped") return "Masana getirildi";
+    if (stage === "completed") return "Tamamlandı";
+  }
   return STAGE_TITLES[stage];
 }
 
@@ -118,6 +123,8 @@ function stageBody(
         return `${no} numaralı siparişin hazır, tezgâhta seni bekliyor.`;
       if (fulfillment === "delivery")
         return `${no} numaralı siparişin kuryede, yola çıktı.`;
+      if (fulfillment === "table")
+        return `${no} numaralı siparişin masana getirildi. Afiyet olsun.`;
       return `${no} numaralı siparişin kargoya verildi.`;
     case "completed":
       return `${no} numaralı siparişin teslim edildi. Afiyet olsun.`;

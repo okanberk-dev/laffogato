@@ -7,8 +7,12 @@
 export type OrderChannel = "web" | "app";
 /** What the order is: shop goods shipped by courier, or cafe drinks/food. */
 export type OrderKind = "shop" | "cafe";
-/** How the order reaches the customer. Absent on older rows: "shipping". */
-export type OrderFulfillment = "shipping" | "pickup" | "delivery";
+/**
+ * How the order reaches the customer. Absent on older rows: "shipping".
+ * `table`: an app cafe order brought to a table in the köşk, named by the
+ * table's QR code (docs/API-MOBILE.md §3, 15 Eki 2026).
+ */
+export type OrderFulfillment = "shipping" | "pickup" | "delivery" | "table";
 
 export const ORDER_CHANNEL_LABELS: Record<OrderChannel, string> = {
   web: "Web",
@@ -24,6 +28,7 @@ export const ORDER_FULFILLMENT_LABELS: Record<OrderFulfillment, string> = {
   shipping: "Kargo",
   pickup: "Gel-al",
   delivery: "Kurye",
+  table: "Masaya servis",
 };
 
 /** Channel of an order, defaulting rows written before the column existed. */
@@ -40,7 +45,9 @@ export function orderKind(order: { kind?: string }): OrderKind {
 export function orderFulfillment(order: {
   fulfillment?: string;
 }): OrderFulfillment {
-  return order.fulfillment === "pickup" || order.fulfillment === "delivery"
+  return order.fulfillment === "pickup" ||
+    order.fulfillment === "delivery" ||
+    order.fulfillment === "table"
     ? order.fulfillment
     : "shipping";
 }
@@ -54,6 +61,7 @@ export function orderFulfillment(order: {
 export function shippedStatusLabel(fulfillment: OrderFulfillment): string {
   if (fulfillment === "pickup") return "Hazır";
   if (fulfillment === "delivery") return "Kuryede";
+  if (fulfillment === "table") return "Masada";
   return "Kargoda";
 }
 
@@ -61,5 +69,22 @@ export function shippedStatusLabel(fulfillment: OrderFulfillment): string {
 export function markShippedLabel(fulfillment: OrderFulfillment): string {
   if (fulfillment === "pickup") return "Hazır - teslime hazır";
   if (fulfillment === "delivery") return "Kuryeye ver";
+  if (fulfillment === "table") return "Masaya götürüldü";
   return "Kargoya ver";
+}
+
+/**
+ * The table an order was placed at, from its snapshot columns; null for
+ * every order that is not a table order (and for rows written before the
+ * columns existed).
+ */
+export function orderTable(order: {
+  fulfillment?: string;
+  tableCode?: string;
+  tableName?: string;
+}): { code: string; name: string } | null {
+  if (order.fulfillment !== "table") return null;
+  const code = String(order.tableCode ?? "").trim();
+  if (!code) return null;
+  return { code, name: String(order.tableName ?? "").trim() };
 }

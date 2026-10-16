@@ -145,7 +145,10 @@ function withDefaults(
 export type OrderingRules = Pick<
   MobileAppConfig["ordering"],
   "cafeEnabled" | "deliveryEnabled" | "pickupEnabled" | "closedMessage"
->;
+> & {
+  /** Table service (15 Eki 2026). Absent reads as on, its default. */
+  tableEnabled?: boolean;
+};
 
 /** Message the app shows when a chosen fulfillment is switched off. */
 export const FULFILLMENT_UNAVAILABLE_MESSAGE =
@@ -163,16 +166,18 @@ export interface OrderingRefusal {
 }
 
 /**
- * Shape rule: cafe orders are picked up or brought by the courier; shop
- * goods ship. A basket that mixes the two cannot be fulfilled one way, so
- * the schema refuses it before this is asked.
+ * Shape rule: cafe orders are picked up, brought by the courier or served at
+ * a table; shop goods ship. A basket that mixes the two cannot be fulfilled
+ * one way, so the schema refuses it before this is asked.
  */
 function fulfillmentFitsKind(
   kind: OrderKind,
   fulfillment: OrderFulfillment,
 ): boolean {
   return kind === "cafe"
-    ? fulfillment === "pickup" || fulfillment === "delivery"
+    ? fulfillment === "pickup" ||
+        fulfillment === "delivery" ||
+        fulfillment === "table"
     : fulfillment === "shipping";
 }
 
@@ -194,6 +199,27 @@ export function orderingRefusal(
   ordering: OrderingRules,
 ): OrderingRefusal | null {
   if (kind !== "cafe") return null;
+  // A table order is placed by someone already sitting in the köşk: the
+  // courier and gel-al switches say nothing about it, so "both of them off"
+  // closes ordering for the other two only. `cafeEnabled` stays the master
+  // switch for all three.
+  if (fulfillment === "table") {
+    if (!ordering.cafeEnabled) {
+      return {
+        status: 409,
+        code: "ordering_closed",
+        message: ordering.closedMessage,
+      };
+    }
+    if (ordering.tableEnabled === false) {
+      return {
+        status: 400,
+        code: "fulfillment_unavailable",
+        message: FULFILLMENT_UNAVAILABLE_MESSAGE,
+      };
+    }
+    return null;
+  }
   const closed =
     !ordering.cafeEnabled ||
     (!ordering.deliveryEnabled && !ordering.pickupEnabled);
@@ -250,6 +276,7 @@ export function shippingModeFor(
 ): ShippingMode {
   switch (fulfillment) {
     case "pickup":
+    case "table":
       return { mode: "fixed", minor: 0 };
     case "delivery":
       return { mode: "fixed", minor: Math.max(0, settings.courierFeeMinor) };

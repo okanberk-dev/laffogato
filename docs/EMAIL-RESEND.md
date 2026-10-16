@@ -710,6 +710,38 @@ beri `bizimfutbol9@gmail.com`); boşsa genel iletişim adresi (`settings.email`)
 - Mail hatası rezervasyonu **düşürmez**: satır zaten yazılmış ve panelde
   görünür; hata log'a gider.
 
+### Yeni sipariş bildirimi (ekibe, 15 Eki 2026)
+
+Ödemesi onaylanan her sipariş (uygulama ve web; masa, gel-al, kurye, kargo)
+için ekibe bir **iç** "Yeni sipariş" e-postası gider
+(`src/lib/email/staff-order-notice{,-core}.ts`, `operasyon-bildirim.html`).
+
+- **Tetik:** `applyPaymentSucceeded` siparişi `pending_payment`'tan `paid`'e
+  taşıdığında, yanıt gittikten **sonra** (`after()`). Ödemeyi beklemez,
+  bozamaz; hata log'a gider.
+- **Bir kez:** `order_notice_emails` satırı (kind `staff-new`) gönderimden önce
+  alınır; ikinci tetik satırı dolu bulur.
+- **Gönderim:** bütün alıcılar **tek istekte** (`POST /emails/batch`, istek
+  başına 100), `Idempotency-Key: order-<id>-staff-new-<alıcı listesinin özeti>-b<n>`
+  (adres anahtara yazılmaz). 429, 5xx ya da bağlantı hatası aynı anahtarla iki
+  kez daha denenir (1 sn, 2,5 sn; `Retry-After` en çok 3 sn beklenir).
+  Hiçbir alıcıya ulaşılamazsa satır bırakılır ve **aynı ödemenin** sonraki
+  onayı (bankanın dönüşü, tekrar gelen webhook) maili yeniden dener - yalnız
+  `paidAt`'ten sonraki **30 dakika** içinde. Daha uzun bir sağlayıcı kesintisinde
+  sipariş panelden görülür; geç gelen "yeni sipariş" maili mutfağı yanıltır.
+- **Alıcılar** (Ayarlar → Bildirimler, yalnız sahip): işaretli rollerdeki aktif
+  panel kullanıcıları ve env yöneticileri, ek adresler (en çok 20) ve operasyon
+  adresi; küçük harfe çevrilir, her adres bir kez. Kasiyerin düğmesi kasaya,
+  diğerlerininki siparişe gider. Olay kaydı adresleri metin olarak yazmaz:
+  sayı, eklenen/çıkarılan adet ve alan adları.
+- **İçerik (KVKK m.4 ölçülülük):** sipariş no, kanal, tür, teslimat ya da masa,
+  planlı saat, ürünler, toplam, ödeme yolu ve müşterinin **yalnız adı** (e-posta
+  ya da telefona benzeyen "ad" düşer). Soyad, telefon, e-posta, adres yazılmaz;
+  not yalnız masa ve gel-al siparişinde (kurye notu kapı kodu taşır).
+- Üyenin ya da panelin yazdığı metin şablon alanı sayılmaz: notta "[OK]",
+  üründe "Kahve [250G]" olduğu gibi gider (`fill.ts` tek geçişte doldurur,
+  eksik alan şablonun kendisinden aranır).
+
 ### Emniyet kilitleri
 
 - `RESEND_API_KEY` yoksa parti `skipped` işaretlenir, kampanya `failed` +

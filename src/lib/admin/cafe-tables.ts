@@ -1,0 +1,223 @@
+import "server-only";
+
+import { getDb, TABLES, type DbError } from "@/lib/db";
+import { nextSeq } from "@/lib/db/counters";
+import { raiseDbError } from "@/lib/db/health";
+
+import {
+  generateTableCode,
+  normalizeTableCode,
+  normalizeTableName,
+} from "./cafe-tables-core";
+
+/**
+ * The köşk's tables (`public.cafe_tables`), each with the QR printed on it.
+ *
+ * A table is a name staff use ("Bahçe 3") and a random code the server
+ * generates (`cafe-tables-core.ts`). The QR opens `/masa/<code>` on the site,
+ * or the app when it is installed; an app cafe order placed with
+ * `fulfillment: "table"` names the code and the order row keeps a snapshot
+ * of the code and the name (docs/API-MOBILE.md §3).
+ *
+ * Nothing here deletes. A table taken out of service is deactivated, which
+ * keeps the row for the orders and the audit log that name it; a code that
+ * leaked is rotated, which kills the old QR at once.
+ */
+
+const TABLE = TABLES.cafeTables;
+
+export interface CafeTable {
+  id: string;
+  code: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  rotatedAt: string;
+}
+
+/** What a public lookup may learn about a table: nothing but its label. */
+export interface PublicCafeTable {
+  code: string;
+  name: string;
+}
+
+export type CafeTableErrorCode = "invalid_name" | "not_found";
+
+export type CafeTableResult =
+  | { ok: true; value: CafeTable }
+  | { ok: false; error: CafeTableErrorCode; message: string };
+
+const MESSAGES: Record<CafeTableErrorCode, string> = {
+  invalid_name: "Masa adı 1-40 karakter olmalı.",
+  not_found: "Masa bulunamadı.",
+};
+
+function fail(error: CafeTableErrorCode): CafeTableResult {
+  return { ok: false, error, message: MESSAGES[error] };
+}
+
+function checkErr(error: DbError | null, ctx: string): void {
+  if (error) raiseDbError(ctx, error, error.code === "" ? 0 : 400);
+}
+
+function toTable(row: Record<string, unknown>): CafeTable {
+  return {
+    id: String(row.id ?? ""),
+    code: String(row.code ?? ""),
+    name: String(row.name ?? ""),
+    sortOrder: Number(row.sortOrder ?? 0) || 0,
+    isActive: row.isActive !== false,
+    createdAt: String(row.createdAt ?? ""),
+    updatedAt: String(row.updatedAt ?? ""),
+    rotatedAt: String(row.rotatedAt ?? ""),
+  };
+}
+
+/** Every table, in the panel's order: sort order, then name. */
+export async function listCafeTables(): Promise<CafeTable[]> {
+  const { data, error } = await getDb()
+    .from(TABLE)
+    .select("*")
+    .order("sortOrder", { ascending: true })
+    .order("name", { ascending: true });
+  checkErr(error, "cafeTables.list");
+  return ((data as Record<string, unknown>[] | null) ?? []).map(toTable);
+}
+
+export async function getCafeTable(id: string): Promise<CafeTable | null> {
+  if (!id) return null;
+  const { data, error } = await getDb()
+    .from(TABLE)
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  checkErr(error, "cafeTables.get");
+  return data ? toTable(data as Record<string, unknown>) : null;
+}
+
+/** How many fresh codes to try before giving up on a unique one. */
+const CODE_ATTEMPTS = 5;
+
+function isUniqueViolation(error: DbError | null): boolean {
+  return Boolean(error && error.code === "23505");
+}
+
+/**
+ * A new table. The code is the server's - never typed by staff, never read
+ * from the request - and a collision on the unique index (one in 2^50 per
+ * existing table) is answered by drawing again.
+ */
+export async function createCafeTable(
+  rawName: string,
+): Promise<CafeTableResult> {
+  const name = normalizeTableName(rawName);
+  if (!name) return fail("invalid_name");
+  const seq = await nextSeq("tbl");
+  const id = `tbl-${String(seq).padStart(4, "0")}`;
+  const now = new Date().toISOString();
+  for (let attempt = 0; attempt < CODE_ATTEMPTS; attempt += 1) {
+    const row = {
+      id,
+      code: generateTableCode(),
+      name,
+      sortOrder: seq,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+      rotatedAt: "",
+    };
+    const { error } = await getDb().from(TABLE).insert(row);
+    if (isUniqueViolation(error)) continue;
+    checkErr(error, "cafeTables.create");
+    return { ok: true, value: toTable(row) };
+  }
+  throw new Error("cafeTables.create: no unique code after retries");
+}
+
+export interface UpdateCafeTableInput {
+  name: string;
+  sortOrder: number;
+}
+
+export async function updateCafeTable(
+  id: string,
+  input: UpdateCafeTableInput,
+): Promise<CafeTableResult> {
+  const name = normalizeTableName(input.name);
+  if (!name) return fail("invalid_name");
+  const sortOrder = Number.isFinite(input.sortOrder)
+    ? Math.trunc(input.sortOrder)
+    : 0;
+  const { data, error } = await getDb()
+    .from(TABLE)
+    .update({ name, sortOrder, updatedAt: new Date().toISOString() })
+    .eq("id", id)
+    .select("*");
+  checkErr(error, "cafeTables.update");
+  const row = ((data as Record<string, unknown>[] | null) ?? [])[0];
+  return row ? { ok: true, value: toTable(row) } : fail("not_found");
+}
+
+export async function setCafeTableActive(
+  id: string,
+  isActive: boolean,
+): Promise<CafeTableResult> {
+  const { data, error } = await getDb()
+    .from(TABLE)
+    .update({ isActive, updatedAt: new Date().toISOString() })
+    .eq("id", id)
+    .select("*");
+  checkErr(error, "cafeTables.setActive");
+  const row = ((data as Record<string, unknown>[] | null) ?? [])[0];
+  return row ? { ok: true, value: toTable(row) } : fail("not_found");
+}
+
+/**
+ * A new code for the same table. The printed QR stops working immediately
+ * (its code no longer resolves), so the sheet has to be printed again; orders
+ * already placed keep the code they were placed with.
+ */
+export async function rotateCafeTableCode(
+  id: string,
+): Promise<CafeTableResult> {
+  const now = new Date().toISOString();
+  for (let attempt = 0; attempt < CODE_ATTEMPTS; attempt += 1) {
+    const { data, error } = await getDb()
+      .from(TABLE)
+      .update({ code: generateTableCode(), rotatedAt: now, updatedAt: now })
+      .eq("id", id)
+      .select("*");
+    if (isUniqueViolation(error)) continue;
+    checkErr(error, "cafeTables.rotate");
+    const row = ((data as Record<string, unknown>[] | null) ?? [])[0];
+    return row ? { ok: true, value: toTable(row) } : fail("not_found");
+  }
+  throw new Error("cafeTables.rotate: no unique code after retries");
+}
+
+/**
+ * The table behind a code from outside (a QR, the app):
+ *
+ *   `{ code, name }`  the code names an active table;
+ *   `"inactive"`      it names a table taken out of service;
+ *   `null`            it names nothing (or is not a code at all - such a
+ *                     value never reaches the database).
+ */
+export async function resolveActiveTable(
+  raw: unknown,
+): Promise<PublicCafeTable | "inactive" | null> {
+  const code = normalizeTableCode(raw);
+  if (!code) return null;
+  const { data, error } = await getDb()
+    .from(TABLE)
+    .select("code, name, isActive")
+    .eq("code", code)
+    .maybeSingle();
+  checkErr(error, "cafeTables.resolve");
+  if (!data) return null;
+  const row = data as Record<string, unknown>;
+  if (row.isActive === false) return "inactive";
+  return { code: String(row.code ?? code), name: String(row.name ?? "") };
+}

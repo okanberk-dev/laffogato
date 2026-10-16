@@ -336,7 +336,8 @@ stale-while-revalidate=300` (stok bayrağı taşır); `GET /bootstrap` menü ile
 ```jsonc
 {
   "kind": "cafe",                          // cafe | shop
-  "fulfillment": "delivery",               // cafe: pickup | delivery · shop: shipping
+  "fulfillment": "delivery",               // cafe: pickup | delivery | table · shop: shipping
+  "tableCode": "",                         // yalnız fulfillment "table": masadaki QR'ın kodu (opsiyonel, varsayılan "", en fazla 16 karakter; 15 Eki 2026)
   "lines": [
     { "menuItemId": "mnu-0007", "qty": 1, "size": "M",            // cafe satırı; size: "M" | "L" | "single"
       "options": { "milk": "oat", "roast": "intense", "sugar": 0, "syrup": "none", "extraShot": true, "note": "" } },
@@ -370,24 +371,60 @@ Kurallar:
   **yok sayılır** (reddedilmez), satır varsayılan seçeneklerle ve sade fiyatıyla yazılır.
   `/orders/preview` aynı kuralla fiyatlar.
 - `kind: "cafe"`: stok yok; `kind: "shop"`: mevcut `placeOrder` stok/claim mantığı **aynen** kullanılır.
-- Kargo/kurye: `pickup` → 0; `delivery` → `settings.courierFeeMinor` (varsayılan 5500); `shipping` → mevcut `computeOrderTotals`.
+- Kargo/kurye: `pickup` → 0; `table` → 0; `delivery` → `settings.courierFeeMinor` (varsayılan 5500); `shipping` → mevcut `computeOrderTotals`.
 - `kind: "shop"` ve `settings.isShopOpen === false` → **409** `shop_closed`. Bu anahtar **yalnızca kargolu mağaza** siparişlerini durdurur. Kafe siparişi için köşk kapalıysa (`live-status.isOpen === false`) **409** `cafe_closed`.
 - Sipariş satırı `orders` tablosuna **mevcut şekliyle** yazılır; ek sütunlar: `channel = "app"`, `kind`, `fulfillment`, `scheduledFor`, `deliveryNote`. Satır `items[]` öğesine `menuItemId`, `size`, `options` eklenir (jsonb — geriye uyumlu).
 - Ödeme: mevcut `getPaymentProvider().createCheckoutSession()`; `successUrl = https://laffogato.net/odeme/donus?app=1`, `failureUrl = https://laffogato.net/odeme/app-hata`. Uygulama `redirectUrl`'i `expo-web-browser` ile açar; dönüş sayfası **`laffogato://siparis/<id>`** derin bağlantısına yönlendirir (sayfa `app=1` görünce).
 - Sadakat: sipariş **`paid`** olunca (`applyPaymentSucceeded`) `channel === "app" && kind === "cafe"` ise **+1 damga** (`loyalty_stamps`, kind `earn`, `orderId` benzersiz → idempotent).
   **15 Eki 2026:** damga yalnız ürün tutarı **en az 140₺** olan siparişe verilir (`STAMP_MIN_ORDER_MINOR` = 14000; `totalMinor − shippingMinor`, indirim düşülmüş, kurye ücreti sayılmaz). Altındaki ödenmiş kafe siparişi damga kazanmaz; değer `bootstrap.app.loyalty.stampMinOrderMinor` ile uygulamaya gider.
+- **Masaya sipariş (15 Eki 2026, yalnız ekleme).** Köşkteki her masanın üzerinde panelde
+  üretilmiş bir QR vardır: `https://laffogato.net/masa/<kod>` (kod 10 karakter Crockford
+  base32, rastgele; masanın adı panelde verilir, §22). Uygulama kodu `GET /tables/{code}` ile
+  doğrular (§22) ve siparişi `"kind": "cafe"`, `"fulfillment": "table"`, `"tableCode": "<kod>"`
+  ile verir. Bağlantıyı uygulamanın açması (AASA `/masa/*`, Android `pathPrefix` `/masa/`)
+  **henüz açık değil**: site bu yolu, masa ekranı olan uygulama sürümüyle birlikte talep eder
+  (§22).
+  Kurallar:
+  - `table` yalnız `kind: "cafe"` ile; mağaza sepeti → **400** `invalid_body`.
+  - `address` **null** olmalı (gönderilirse **400** `invalid_body`, "Masaya siparişte adres
+    gönderilmez."); `scheduledFor` **null/boş** olmalı (planlı masa siparişi yok: **400**
+    `invalid_body`, "Masaya sipariş planlanamaz; hemen hazırlanır.").
+  - `tableCode` başka bir `fulfillment` ile gönderilirse **400** `invalid_body`. Alanı hiç
+    göndermeyen eski sürümler eskisi gibi sipariş verir.
+  - Kod hiçbir masaya karşılık gelmiyorsa (boş, biçimsiz, bilinmeyen ya da panelde
+    **yenilenmiş** eski kod) **400** `invalid_table` ("Masa bulunamadı. Masadaki QR kodunu
+    yeniden okut."). Masa panelde pasifse **409** `table_inactive` ("Bu masa şu an siparişe
+    kapalı. Bir görevliye sorabilirsin."). Bulunamayan kodlar üye + adres başına sayılır (§22);
+    sınır aşılınca **429** `rate_limited` + `Retry-After`. Hepsi sipariş yazılmadan ve ödeme
+    açılmadan döner. Kod büyük/küçük harf, boşluk, tire ve `O`/`I`/`L` benzerlerinden
+    bağımsız okunur (`o` → `0`, `i`/`l` → `1`).
+  - Anahtarlar: `mobileApp.ordering.tableEnabled === false` → **400** `fulfillment_unavailable`;
+    `cafeEnabled === false` → **409** `ordering_closed` (ana anahtar). Kurye ve gel-al'ın
+    **ikisinin birden** kapalı olması masaya siparişi **kapatmaz**.
+  - **Ön ödeme zorunlu**, diğer siparişler gibi: kart (PayNkolay ödeme sayfası,
+    `payment.redirectUrl`), cüzdan (`payWithWallet`, §18) ya da kupon toplamı sıfırladıysa
+    `free`. Kasada ödeme yoktur.
+  - Masa, sipariş yazıldığı anda **anlık görüntü** olarak saklanır (`orders."tableCode"`,
+    `"tableName"`): masa sonradan yeniden adlandırılsa ya da kodu yenilense de sipariş aynı
+    masayı gösterir → `Order.table`.
+  - "Siparişinizi aldık" e-postası masa siparişinde kargo satırını ve "kargo ücretsiz" notunu
+    taşımaz.
 
 > **Uygulama notu (POST /orders).**
 >
 > - Hata kodları — 400: `invalid_json`, `invalid_body` (Zod), `invalid_address`,
 >   `invalid_line` (L boyu yok / bilinmeyen seçenek / pasif ürün), `line_not_found`,
 >   `qty_too_high` (satır başına en fazla 99, en fazla 30 satır), `empty_cart`,
->   `fulfillment_unavailable` (kafe siparişinde seçilen `delivery`/`pickup` panelden kapatılmış —
->   `mobileApp.ordering.deliveryEnabled` / `pickupEnabled`; mesaj "Bu teslimat seçeneği şu an kapalı.");
+>   `fulfillment_unavailable` (kafe siparişinde seçilen `delivery`/`pickup`/`table` panelden kapatılmış —
+>   `mobileApp.ordering.deliveryEnabled` / `pickupEnabled` / `tableEnabled`; mesaj "Bu teslimat seçeneği şu an kapalı."),
+>   `invalid_table` (yalnız `fulfillment: "table"`, 15 Eki 2026);
 >   403: `email_unverified`; 409: `shop_closed`, `cafe_closed`, `out_of_stock`,
+>   `table_inactive` (yalnız `fulfillment: "table"`, 15 Eki 2026);
+>   429: `rate_limited` (yalnız `fulfillment: "table"`: bulunamayan masa kodu sınırı, §22);
 >   `ordering_closed` (kafe siparişi ve `mobileApp.ordering.cafeEnabled === false`, ya da kurye ve
->   gel-al birlikte kapalı; mesaj = `ordering.closedMessage`). `ordering_closed` ve
->   `fulfillment_unavailable` hem `POST /orders` hem `POST /orders/preview` için geçerlidir.
+>   gel-al birlikte kapalı - masaya sipariş hariç; mesaj = `ordering.closedMessage`).
+>   `ordering_closed`, `fulfillment_unavailable`, `invalid_table`, `table_inactive` ve masa kodu
+>   `rate_limited`'ı hem `POST /orders` hem `POST /orders/preview` için geçerlidir.
 > - `shop_closed` **yalnızca** `kind: "shop"` siparişlerinde döner ("Online mağaza açık",
 >   /admin/ayarlar). Kafe siparişi bu anahtara bakmaz; onu `mobileApp.ordering.cafeEnabled`
 >   ile köşkün saatleri yönetir → `ordering_closed` / `cafe_closed`. Kontrol `scheduledFor`
@@ -413,12 +450,14 @@ Kurallar:
 > - Mağaza satırındaki `note` (öğütüm) `items[].detail` alanında taşınır.
 > - `items[].options` sunucuda tam `LineOptions` nesnesi (varsayılanlarla) olarak döner.
 > - `timeline` anahtarları teslimata göre: delivery `received/preparing/on_the_way/delivered`
->   · pickup `received/preparing/ready/picked_up` · shipping `received/preparing/shipped/delivered`.
+>   · pickup `received/preparing/ready/picked_up` · shipping `received/preparing/shipped/delivered`
+>   · table `received/preparing/served/completed` ("Masana getirildi", "Tamamlandı"; 15 Eki 2026).
 > - `timeline[].at` her adımın **kendi** sütunundan gelir: `createdAt` · `preparingAt` ·
 >   `shippedAt` · `completedAt`. Bu sütunlar yoktan önce yazılmış siparişlerde boş olabilir;
 >   o durumda tamamlanmış bir adım `at: null` döner (sonraki bir anı ödünç almaz).
->   `statusLabel` bu adımdan gelir (pickup + shipped → "Hazır - gel al").
-> - `etaMinutes`: delivery paid/preparing 35, shipped 10 · pickup 15 / 0 · shipping null.
+>   `statusLabel` bu adımdan gelir (pickup + shipped → "Hazır - gel al", table + shipped →
+>   "Masana getirildi"). Sipariş bildirimi de aynı dili kullanır.
+> - `etaMinutes`: delivery paid/preparing 35, shipped 10 · pickup ve table 15 / 0 · shipping null.
 > - Dönüş sayfası `/odeme/donus` app siparişini `app=1` parametresine ek olarak
 >   `orders.channel === "app"` ile de tanır (sağlayıcının callback URL'i sabittir);
 >   `laffogato://siparis/<id>?status=success|failed` derin bağlantısına 303 ile yönlendirir.
@@ -482,6 +521,7 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
   "subtotalMinor": 83500, "discountMinor": 0, "shippingMinor": 5500, "totalMinor": 89000,
   "promoCode": "", "address": "Evim - …", "scheduledFor": null, "etaMinutes": 35, "etaAt": "…",
   "shipment": null,   // yalnız fulfillment === "shipping" → §3.1
+  "table": null,      // 15 Eki 2026, yalnız ekleme: fulfillment === "table" ise { "code": "7K3M9QX2TA", "name": "Bahçe 3" } (sipariş anındaki ad), aksi hâlde null
   "stampsEarned": 1, "createdAt": "…", "paidAt": "…" | null
   // stampsEarned = loyalty_stamps LEDGER'ından okunur: siparişin `earn` satırı
   // varsa ve `reversal` ile geri alınmamışsa 1, aksi hâlde 0. Duruma bakıp
@@ -546,7 +586,9 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
 > uygulanır; sınıra takılan istek **429 dönmez** — yanıt 200'dür ve `promo`
 > `{ "code", "ok": false, "message": "Çok fazla deneme. N saniye sonra tekrar dene." }`
 > olur (sepet hesabı hız sınırı yüzünden düşmesin diye). Mağaza satırlarında stok kontrolü
-> yapılır ama stok **ayrılmaz**. `stampsToEarn` kafe sepetinde 1, mağazada 0; ürün tutarı 140₺ altındaki kafe sepetinde de 0 (§3).
+> yapılır ama stok **ayrılmaz**. `fulfillment: "table"` sepeti `POST /orders` ile aynı masa
+> kurallarından geçer (`invalid_body` / `invalid_table` / `table_inactive` / masa kodu
+> `rate_limited` + `Retry-After`, 15 Eki 2026), böylece ölü bir QR ödeme adımından önce anlaşılır. `stampsToEarn` kafe sepetinde 1, mağazada 0; ürün tutarı 140₺ altındaki kafe sepetinde de 0 (§3).
 > **14 Eki 2026 (yalnız ekleme):** `kind: "shop"` sepeti `settings.isShopOpen === false`
 > iken artık fiyatlanmaz; `POST /orders` ile aynı **409** `shop_closed` (aynı mesaj) döner.
 > Önceden önizleme kapalı mağazanın sepetini fiyatlıyor, ret yalnız son adımda geliyordu.
@@ -839,6 +881,7 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
     "ordering": {
       "cafeEnabled": true,                        // false → "Sepete ekle" kapalı; sunucu 409 ordering_closed
       "deliveryEnabled": true, "pickupEnabled": true,   // false → ilgili teslimat seçeneği gizli; sunucu 400 fulfillment_unavailable
+      "tableEnabled": true,                       // 15 Eki 2026, yalnız ekleme: masaya sipariş (QR, §3 ve §22). false → uygulama masa seçeneğini gizler; sunucu 400 fulfillment_unavailable. Alan yoksa true say; cafeEnabled yine ana anahtardır
       "shopEnabled": true,                        // MAĞAZA anahtarı = settings.isShopOpen (/admin/ayarlar). false → kargolu mağaza siparişi kapalı; sunucu 409 shop_closed.
                                                   // Mobil panelin anahtarı DEĞİLDİR: tek gerçeğin ikinci bir kopyası olmasın diye MobileAppConfig'e yazılmaz, yalnız telde görünür.
       "courierEtaMinutes": [25, 35],
@@ -946,6 +989,7 @@ alter table public.karaoke_reservations enable row level security;
 | 26 Karaoke                                 | `/karaoke/availability` (kurallar dahil) · `POST /karaoke/reservations`                                  |
 | 27 Ziyaret                                 | `/bootstrap.venue` (adres, yer tarifi, harita sorgusu, 7 günlük saat tablosu) — seed yedek               |
 | 28 Hikâye                                  | `/story` (§16) — seed yedek                                                                              |
+| Masa QR (`/masa/<kod>`, 15 Eki 2026)       | `GET /tables/{code}` (§22) · `POST /orders` `fulfillment: "table"` + `tableCode` (§3) · `/bootstrap.app.ordering.tableEnabled` |
 | Kök yerleşim (bakım · zorunlu güncelleme)  | `/bootstrap.app.maintenance` · `/bootstrap.app.minSupportedAppVersion` — bootstrap gelmezse kapı açık    |
 | Hatırlatmalar (cihaz bildirimi)            | `/bootstrap.app.reminders` — `enabled=false` → anahtar gizli, planlananlar iptal                         |
 
@@ -1598,3 +1642,68 @@ sınırı → okutma. Yetkisi olmayan üye gövdesi okunmadan reddedilir.
   panel `src/app/admin/kullanicilar/`; `tests/mobile-staff-stamp-route.test.ts`,
   `tests/admin-staff-actions.test.ts` ve gerçek Postgres'te
   `tests/db-integration-staff-stamp.test.ts` tutar.
+
+---
+
+## 22. Masalar - `GET /tables/{code}` (herkese açık)
+
+15 Eki 2026, yalnız ekleme. Operatör: masalarda sitede üretilen QR kodları olsun,
+her masanın kendi adlandırılabilir QR'ı olsun, QR menüyü açsın; uygulama QR'ı
+okuyunca hangi masa olduğunu bilsin ve parayı sanal POS alsın (ön ödeme, kasada
+ödeme yok).
+
+**QR.** Masalar `/admin/masalar`'da yönetilir (yalnız sahip ve yönetici). Her
+masanın bir adı (1-40 karakter, panelde verilir) ve sunucunun ürettiği rastgele
+bir kodu vardır: 10 karakter Crockford base32 (`0-9`, `I L O U` hariç büyük harf),
+50 bit, tahmin edilemez ve sıralı değildir. QR'ın içeriği her zaman
+`https://laffogato.net/masa/<kod>`'dur (apex alan adı, sabit). Site bu adreste
+menüyü (salt görüntüleme), masanın adını ve uygulama bağlantılarını gösterir.
+**Evrensel bağlantı henüz yok (16 Eki 2026):** AASA `/masa/*`'ı talep etmez, çünkü
+yayındaki hiçbir uygulama sürümünde `/masa/<kod>` ekranı yok; talep edilse iPhone'da
+uygulaması kurulu misafir bulunamadı ekranına düşer ve web menüsüne de ulaşamaz.
+Masa ekranı olan lafmobil sürümü yayınlanınca site AASA'ya `/masa/*`'ı, uygulama
+Android `intentFilters`'a `pathPrefix: "/masa/"`'ı aynı adımda ekler. O zamana kadar
+web sayfası da "uygulamadan sipariş ver" demez; siparişi bir görevliye yönlendirir. Masa silinmez, **pasifleştirilir**; basılı kart
+çalındı ya da kötüye kullanıldıysa panel **kodu yeniler** ve eski QR anında
+çalışmaz olur.
+
+```jsonc
+// 200 · Cache-Control: private, no-store
+{ "table": { "code": "7K3M9QX2TA", "name": "Bahçe 3" } }
+```
+
+Yanıt masa hakkında **yalnız** `code` ve `name` taşır (kimlik, sıra, tarih,
+durum yok). `code` kanonik biçimdir: uygulama `POST /orders`'a bunu gönderir.
+
+| Hata | Ne zaman |
+| --- | --- |
+| **404** `table_not_found` | Kod hiçbir masaya karşılık gelmiyor: bilinmeyen, biçimsiz ya da yenilenmiş eski kod. "Masa bulunamadı. Masadaki QR kodunu yeniden okut." |
+| **410** `table_inactive` | Masa panelde pasif. "Bu masa şu an siparişe kapalı. Bir görevliye sorabilirsin." |
+| **429** `rate_limited` + `Retry-After` | 5 dakikada 20 bulunamayan kod (`auth_attempts`, amaç `table-lookup`); 15 dakika kilit. Sayaç **kimin**: geçerli bir `Authorization: Bearer` varsa o üyenin o adresteki sayacı, yoksa adresin (IP) kendi sayacı. Jeton isteğe bağlıdır; eksik, süresi dolmuş ya da doğrulanamayan jeton hata değildir, ziyaretçi sayılır. Böylece köşkün ortak Wi-Fi'ında başkasının denemeleri (ya da yenilenmiş eski bir kartın okutulması) giriş yapmış üyeyi kilitlemez. Yalnız **bulunamayan** kod sayılır (gerçek QR her zaman çözülür, pasif masa gerçek bir masadır). Kilitliyken gerçek kod da 429 alır, böylece sınır hangi tahminin doğru olduğunu söylemez. Sayaç `POST /orders` ve `POST /orders/preview`'daki masa kodu denetimiyle **ortaktır** (aynı üye, aynı adres). |
+| **503** `unavailable` | Veritabanına ulaşılamadı |
+
+Kod biçimi gevşek okunur: boşluk ve tire atılır, küçük harf büyür, `O` → `0`,
+`I`/`L` → `1`. Bunun dışında 10 karakter olmayan değer veritabanına sorulmadan
+404 alır (ve bulunamayan kod olarak sayılır).
+
+> **Uygulama notu (§22).** Uygulama bu ucu oturum açıksa `Authorization: Bearer`
+> ile çağırmalı (sayaç üyeye bağlanır, yukarı). `/masa/<kod>` bağlantısı (evrensel
+> bağlantı, masa ekranıyla birlikte açılır) ya da kameranın okuduğu
+> aynı URL geldiğinde uygulama bu ucu çağırır; 200 ise masa ekranını
+> (`Masa: <name>`) açar ve kafe sepetini `fulfillment: "table"`, `tableCode:
+> <code>` ile sipariş eder (§3; adres ve planlı saat gönderilmez). Masa seçeneği
+> `bootstrap.app.ordering.tableEnabled === false` iken gizlenir. 404/410'da
+> sunucunun mesajını gösterir ve masa seçimini düşürür; 429'da kendiliğinden
+> tekrar denemez. Masa yalnız o ziyaret için tutulmalı: ertesi gün aynı masa
+> varsayılmamalı.
+
+**Personel e-postası (sitenin işi, sözleşmeyi değiştirmez).** Ödemesi onaylanan
+her sipariş için (uygulama ve web, masa dâhil) panel kullanıcılarına bir kez
+"Yeni sipariş" e-postası gider (Ayarlar → Bildirimler: aç/kapat, roller, ek
+adresler). E-posta müşterinin yalnız adını taşır; telefon, e-posta ve adres
+yazılmaz. Ödeme onayını beklemez ve bozamaz (ayrıntı `docs/EMAIL-RESEND.md`).
+
+- Site: `src/app/api/mobile/v1/tables/[code]/route.ts`, `src/lib/mobile/tables.ts`
+  (sayaç), `src/lib/admin/cafe-tables{,-core}.ts`, panel `src/app/admin/masalar/`,
+  web sayfası `src/app/masa/[code]/page.tsx`; `tests/mobile-tables-route.test.ts`,
+  `tests/cafe-tables-core.test.ts`, `tests/mobile-order-table*.test.ts` tutar.

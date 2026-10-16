@@ -30,6 +30,7 @@ export type AdminSection =
   | "dashboard"
   | "till"
   | "orders"
+  | "tables"
   | "refunds"
   | "products"
   | "menu"
@@ -58,6 +59,9 @@ const SECTION_ROLES: Record<AdminSection, AdminRole[]> = {
   // worker at the counter has no reason to.
   till: ["owner", "manager", "staff", "cashier"],
   orders: ["owner", "manager", "staff"],
+  // The köşk's tables and their QR codes. Rotating a code kills a printed
+  // card at once, so it is not a shift task.
+  tables: ["owner", "manager"],
   // Moving money back out is not a shift task: a refund is irreversible and
   // has no approval step behind it.
   refunds: ["owner", "manager"],

@@ -80,6 +80,22 @@ describe("public.settings", () => {
     }
   });
 
+  it("carries the staff new-order mail columns the Bildirimler tab saves", () => {
+    const columns = settingsColumns();
+    for (const key of [
+      "orderNotifyEnabled",
+      "orderNotifyRoles",
+      "orderNotifyEmails",
+    ]) {
+      expect(columns.has(key)).toBe(true);
+    }
+    // The default role list is a jsonb array the app trusts only after
+    // normalizeNotifyRoles; the column must not default to SQL NULL.
+    expect(BUNDLE).toContain(
+      `"orderNotifyRoles" jsonb not null default '["owner","manager","cashier"]'`,
+    );
+  });
+
   it("found a believable set of columns at all, so a silent regex miss cannot pass it", () => {
     const columns = settingsColumns();
     expect(columns.size).toBeGreaterThan(10);

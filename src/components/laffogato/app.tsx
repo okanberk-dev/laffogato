@@ -107,6 +107,7 @@ export function LaffogatoApp({
   freeShippingThreshold = 0,
   degraded = false,
   initialRoute = "home",
+  leadSlot,
 }: {
   products?: Product[];
   /** True when the database was unreachable and this page is running on
@@ -145,6 +146,9 @@ export function LaffogatoApp({
   /** The SPA section to render on first paint. Set by sub-page routes
       (e.g. /menu → initialRoute="menu"); defaults to "home" for `/`. */
   initialRoute?: Route;
+  /** Server-rendered block shown at the top of <main>, above the page
+      (the table banner on /masa/[code]). */
+  leadSlot?: React.ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -306,6 +310,7 @@ export function LaffogatoApp({
           onSearch={() => setSearchOpen(true)}
         />
         <main id="main">
+          {leadSlot}
           <Page
             navigate={navigate}
             settings={settings}
@@ -341,6 +346,7 @@ export function LaffogatoApp({
         onSearch={() => setSearchOpen(true)}
       />
       <main id="main">
+        {leadSlot}
         <Page
           navigate={navigate}
           settings={settings}

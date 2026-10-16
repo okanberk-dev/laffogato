@@ -42,6 +42,12 @@ export interface MobileAppConfig {
     cafeEnabled: boolean;
     deliveryEnabled: boolean;
     pickupEnabled: boolean;
+    /**
+     * Ordering to a table from its QR (`fulfillment: "table"`, 15 Eki 2026).
+     * false → the app hides the table option; the server answers 400
+     * fulfillment_unavailable. `cafeEnabled` still closes it too.
+     */
+    tableEnabled: boolean;
     /** Courier ETA window shown before an order is placed, in minutes. */
     courierEtaMinutes: [number, number];
     closedMessage: string;
@@ -233,6 +239,7 @@ export const DEFAULT_MOBILE_APP_CONFIG: MobileAppConfig = deepFreeze({
     cafeEnabled: true,
     deliveryEnabled: true,
     pickupEnabled: true,
+    tableEnabled: true,
     courierEtaMinutes: [25, 35],
     closedMessage: "Uygulamadan sipariş şu an kapalı. Köşkte görüşürüz.",
   },
@@ -465,6 +472,7 @@ const configSchema = z.object({
     cafeEnabled: bool(D.ordering.cafeEnabled),
     deliveryEnabled: bool(D.ordering.deliveryEnabled),
     pickupEnabled: bool(D.ordering.pickupEnabled),
+    tableEnabled: bool(D.ordering.tableEnabled),
     courierEtaMinutes: courierEta,
     closedMessage: text(L.closedMessageMax, D.ordering.closedMessage),
   }).catch(() => ({

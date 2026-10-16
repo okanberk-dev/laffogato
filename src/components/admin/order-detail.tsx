@@ -19,7 +19,11 @@ import {
   type RefundActionState,
   type TransitionActionState,
 } from "@/app/admin/siparisler/actions";
-import { markShippedLabel, orderFulfillment } from "@/lib/admin/order-channel";
+import {
+  markShippedLabel,
+  orderFulfillment,
+  orderTable,
+} from "@/lib/admin/order-channel";
 import type {
   AdminOrder,
   AdminOrderItemStatus,
@@ -781,7 +785,13 @@ function PrintableReceipt({
             Teslimat
           </div>
           <address className="mt-1 whitespace-pre-line text-neutral-700 not-italic">
-            {order.shippingAddress || "-"}
+            {(() => {
+              // A table order has no address: the fiş says which table.
+              const table = orderTable(order);
+              return table
+                ? `Masa: ${table.name || table.code}`
+                : order.shippingAddress || "-";
+            })()}
           </address>
         </div>
       </div>

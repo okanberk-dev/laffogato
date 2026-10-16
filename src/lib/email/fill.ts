@@ -47,16 +47,32 @@ export interface RenderOptions {
   loops?: Record<string, TemplateVars[]>;
 }
 
+/**
+ * Field names that had no value, collected while filling. The check runs on
+ * the TEMPLATE's fields, never on the output: a value is the member's or the
+ * operator's own text, and "Şekersiz [OK]" in an order note is not a hole in
+ * the message (15 Eki 2026 review).
+ */
+export type MissingFields = Set<string>;
+
 function substitute(
   source: string,
   vars: TemplateVars,
   escape: (v: string) => string,
+  missing?: MissingFields,
 ): string {
+  // One `replace` call: what a value brings in is never scanned again, so a
+  // name typed as "[BUTON_URL]" stays those characters instead of becoming
+  // the link.
   return source.replace(FIELD, (whole, key: string) => {
     const value = vars[key];
-    // An unknown field is left alone so `assertFilled` can name it, rather
-    // than silently becoming an empty gap in a sent message.
-    return value === undefined ? whole : escape(value);
+    // An unknown field is left alone and reported, rather than silently
+    // becoming an empty gap in a sent message.
+    if (value === undefined) {
+      missing?.add(whole);
+      return whole;
+    }
+    return escape(value);
   });
 }
 
@@ -71,18 +87,9 @@ export function fillText(
   template: string,
   vars: TemplateVars,
   flags: Record<string, boolean> = {},
+  missing?: MissingFields,
 ): string {
-  return substitute(resolveFlags(template, flags), vars, raw);
-}
-
-function expandLoops(source: string, loops: Record<string, TemplateVars[]>) {
-  return source.replace(
-    /<!--EACH:([A-Z0-9_]+)-->([\s\S]*?)<!--\/EACH:\1-->/g,
-    (_whole, name: string, body: string) =>
-      (loops[name] ?? [])
-        .map((row) => substitute(body, row, escapeHtml))
-        .join(""),
-  );
+  return substitute(resolveFlags(template, flags), vars, raw, missing);
 }
 
 function resolveFlags(source: string, flags: Record<string, boolean>) {
@@ -92,22 +99,60 @@ function resolveFlags(source: string, flags: Record<string, boolean>) {
   );
 }
 
+/** A loop body, or a field outside any loop - matched in one pass. */
+const LOOP_OR_FIELD =
+  /<!--EACH:([A-Z0-9_]+)-->([\s\S]*?)<!--\/EACH:\1-->|\[([A-Z0-9_]+)\]/g;
+
 /**
- * Loops first: a row body may carry `[FIELD]`s of its own, and expanding it
- * before the global pass is what keeps per-row and global fields apart.
+ * Flags first, on the template alone, so a value can never open or close a
+ * section. Then ONE pass over what is left: a loop body is filled per row
+ * (the row's fields win over the global ones of the same name), every other
+ * field from `vars`. Nothing a value brings in is scanned again - neither by
+ * a later pass nor by the missing-field check - so a member's "[OK]" is text,
+ * not a field.
  */
-export function fill(template: string, opts: RenderOptions): string {
-  let out = expandLoops(template, opts.loops ?? {});
-  out = resolveFlags(out, opts.flags ?? {});
-  return substitute(out, opts.vars, escapeHtml);
+export function fill(
+  template: string,
+  opts: RenderOptions,
+  missing?: MissingFields,
+): string {
+  const loops = opts.loops ?? {};
+  return resolveFlags(template, opts.flags ?? {}).replace(
+    LOOP_OR_FIELD,
+    (whole, loop: string | undefined, body: string, field: string) => {
+      if (loop !== undefined) {
+        return (loops[loop] ?? [])
+          .map((row) =>
+            substitute(body, { ...opts.vars, ...row }, escapeHtml, missing),
+          )
+          .join("");
+      }
+      const value = opts.vars[field];
+      if (value === undefined) {
+        missing?.add(whole);
+        return whole;
+      }
+      return escapeHtml(value);
+    },
+  );
+}
+
+/** Throws if `fill`/`fillText` reported a field without a value. */
+export function assertNoneMissing(missing: MissingFields, label: string): void {
+  if (missing.size > 0) {
+    throw new Error(
+      `${label}: doldurulmamış alan - ${[...missing].join(", ")}`,
+    );
+  }
 }
 
 /**
- * Throws if anything is still unfilled.
+ * Throws if a template still has a `[FIELD]` in it.
  *
  * A mail that goes out reading "Merhaba [AD]" is worse than one that fails
- * loudly in the log, so the send path calls this before handing anything to
- * the provider.
+ * loudly in the log. For a rendered message use `assertNoneMissing` with the
+ * set `fill` collected instead: run over the OUTPUT, this also trips on a
+ * value that merely contains brackets.
  */
 export function assertFilled(html: string, label: string): void {
   const left = [...new Set(html.match(FIELD) ?? [])];

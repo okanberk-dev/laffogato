@@ -51,6 +51,7 @@ import {
   shippingModeFor,
 } from "./order-pricing";
 import type { PlaceOrderBody, PreviewOrderBody } from "./order-schema";
+import { lookupTableLimited, tableLookupFailure } from "./tables";
 import { WALLET_MESSAGES, walletPaymentsEnabled } from "./wallet";
 
 /**
@@ -446,6 +447,20 @@ export async function createAppOrder(
   );
   if (refused) return { ok: false, failure: refused };
 
+  // A table order names an ACTIVE table, resolved here and snapshotted onto
+  // the row (§3): unknown → 400 invalid_table, out of service → 409
+  // table_inactive, both before anything is written or charged.
+  let table: { code: string; name: string } | null = null;
+  if (body.fulfillment === "table") {
+    const lookup = await lookupTableLimited(
+      body.tableCode,
+      await clientIp(),
+      customer.id,
+    );
+    if (!lookup.ok) return { ok: false, failure: tableLookupFailure(lookup) };
+    table = lookup.table;
+  }
+
   // A wallet that is switched off has no balance to spend: the same refusal
   // a short balance gets (§18), before anything is written.
   if (body.payWithWallet && !walletPaymentsEnabled()) {
@@ -503,7 +518,9 @@ export async function createAppOrder(
 
   const addressRes = resolveOrderAddress(
     customer.addresses,
-    body.fulfillment === "pickup" ? null : body.address,
+    body.fulfillment === "pickup" || body.fulfillment === "table"
+      ? null
+      : body.address,
   );
   if (!addressRes.ok) {
     return {
@@ -535,6 +552,8 @@ export async function createAppOrder(
       legalConsent: consent,
       clientOrderId: body.clientOrderId,
       payWithWallet: body.payWithWallet,
+      // The table, snapshotted onto the row (§3).
+      ...(table ? { tableCode: table.code, tableName: table.name } : {}),
       // Only a wallet order is held to it (§18); a card checkout re-prices
       // on its own "Tutar değişti" card before anything is charged.
       expectedTotalMinor: body.payWithWallet
@@ -587,6 +606,7 @@ export async function createAppOrder(
       subtotalMinor: order.subtotalMinor,
       shippingMinor: order.shippingMinor,
       totalMinor: order.totalMinor,
+      servedAtTable: order.fulfillment === "table",
     });
   } catch (err) {
     console.error("[email] order placed notification failed", err);
@@ -935,6 +955,16 @@ export async function previewAppOrder(
     settings.mobileApp.ordering,
   );
   if (refused) return { ok: false, failure: refused };
+  // Same table gate as the order, so the basket learns about a dead QR
+  // before the member reaches the checkout.
+  if (body.fulfillment === "table") {
+    const lookup = await lookupTableLimited(
+      body.tableCode,
+      await clientIp(),
+      customer?.id,
+    );
+    if (!lookup.ok) return { ok: false, failure: tableLookupFailure(lookup) };
+  }
   // The shop's own switch, which `placeAppOrder` enforces with 409
   // `shop_closed`. The preview used to price a cargo basket regardless, so the
   // basket and the checkout showed a total and a live Pay button over an

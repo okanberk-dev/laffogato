@@ -123,6 +123,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
       // `till`, not `orders`: this is the one page a cashier can open, and a
       // cashier must not reach the order list, refunds or customer records.
       { href: "/admin/kasa", label: "Kasa · damga", section: "till" },
+      { href: "/admin/masalar", label: "Masalar · QR", section: "tables" },
       { href: "/admin/musteriler", label: "Müşteriler", section: "customers" },
       { href: "/admin/bulten", label: "Bülten", section: "newsletter" },
       // Same section as Bülten: composing a commercial mail is the same trust

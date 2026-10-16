@@ -39,7 +39,8 @@ export type AuditEntity =
   | "admin_user"
   | "counter_token"
   | "staff_member"
-  | "campaign_email";
+  | "campaign_email"
+  | "cafe_table";
 
 export type AuditAction =
   | "create"
