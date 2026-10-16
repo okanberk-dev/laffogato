@@ -157,10 +157,10 @@ Sipariş No: #[SIPARIS_NO]
 [KALEMLER]
 
 Ödenen toplam: [TOPLAM]
-
-[DAMGA_HEDEFI] damgada bir içecek bizden - bu siparişle bir damga daha
-kazandınız.
-
+<!--IF:DAMGA-->
+Bu siparişle [DAMGA_SAYISI] damga kazandınız; [DAMGA_HEDEFI] damgada bir
+içecek bizden.
+<!--/IF:DAMGA-->
 Sipariş durumu: [SIPARIS_URL]
 
 Sipariş sırasında onayladığınız belgeler - kalıcı veri saklayıcısı olarak

@@ -41,8 +41,8 @@ import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
 
 import { orderChannel } from "@/lib/admin/order-channel";
-import { getStampedOrderIds } from "./loyalty";
-import { earnsStamp } from "./loyalty-core";
+import { getOrderStamps } from "./loyalty";
+import { stampsForOrder } from "./loyalty-core";
 import { resolveOrderAddress } from "./order-address";
 import { toMobileOrder, type MobileOrder } from "./order-mapper";
 import {
@@ -304,7 +304,8 @@ const TOO_MANY_PENDING = {
 } as const;
 
 /**
- * The member's stamped orders, or an empty set when the ledger cannot be read.
+ * The stamps each of the member's orders holds, or an empty map when the
+ * ledger cannot be read.
  *
  * `stampsEarned` is a caption on an order card; failing to draw it must not
  * fail the order list - and least of all the POST that has just placed an
@@ -312,12 +313,14 @@ const TOO_MANY_PENDING = {
  * second one. The authoritative balance is `/me.loyalty`, which does surface
  * a ledger outage.
  */
-async function stampedOrders(email: string): Promise<ReadonlySet<string>> {
+async function stampedOrders(
+  email: string,
+): Promise<ReadonlyMap<string, number>> {
   try {
-    return await getStampedOrderIds(email);
+    return await getOrderStamps(email);
   } catch (err) {
     console.error("[orders] reading the stamp ledger failed", err);
-    return new Set<string>();
+    return new Map<string, number>();
   }
 }
 
@@ -1028,15 +1031,15 @@ export async function previewAppOrder(
       shippingMinor: totals.shippingMinor,
       totalMinor: totals.totalMinor,
       promo,
-      // Same rule as the award (onOrderPaid): a cafe basket under the stamp
-      // minimum earns none, so the summary must not promise one.
+      // Same rule as the award (onOrderPaid): none under ₺140 of goods, then
+      // one per started ₺320, courier fee not counted - the summary promises
+      // exactly what the paid order will write.
       stampsToEarn:
-        linesRes.kind === "cafe" &&
-        earnsStamp({
-          totalMinor: totals.totalMinor,
-          shippingMinor: totals.shippingMinor,
-        })
-          ? 1
+        linesRes.kind === "cafe"
+          ? stampsForOrder({
+              totalMinor: totals.totalMinor,
+              shippingMinor: totals.shippingMinor,
+            })
           : 0,
     },
   };

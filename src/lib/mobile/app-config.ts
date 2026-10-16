@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { STAMP_MIN_ORDER_MINOR } from "./loyalty-core";
+import { STAMP_MIN_ORDER_MINOR, STAMP_STEP_MINOR } from "./loyalty-core";
 
 /**
  * Mobile app configuration - the business knobs the operator turns at
@@ -157,6 +157,11 @@ export interface BootstrapApp {
     rewardTitle: string;
     /** Smallest app cafe order that earns a stamp, kuruş (additive, 15 Eki 2026). */
     stampMinOrderMinor: number;
+    /**
+     * Goods per stamp from the minimum on, kuruş: one stamp per started step
+     * (₺140-₺320 → 1, up to ₺640 → 2 ...). Additive, 15 Eki 2026.
+     */
+    stampStepMinor: number;
   };
   reminders: MobileAppConfig["reminders"];
   campaignCards: MobileAppConfig["campaignCards"];
@@ -605,6 +610,7 @@ export function toBootstrapApp(
       stampTarget: cfg.loyalty.stampTarget,
       rewardTitle: cfg.loyalty.rewardTitle,
       stampMinOrderMinor: STAMP_MIN_ORDER_MINOR,
+      stampStepMinor: STAMP_STEP_MINOR,
     },
     reminders: {
       enabled: cfg.reminders.enabled,
