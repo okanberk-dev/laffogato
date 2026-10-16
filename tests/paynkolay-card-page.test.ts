@@ -902,6 +902,8 @@ describe("/odeme/paynkolay", () => {
     getPaymentProvider.mockReturnValue(makeProvider("hosted"));
     const res = await route.POST(postRequest(await validBody()));
     expect(res.status).toBe(405);
+    // Never a blank page: the customer is told what happened.
+    expect(await res.text()).toContain("kartından para çekilmedi");
   });
 
   it("POST hands back the bank's 3D form under a CSP made for it", async () => {
@@ -934,6 +936,8 @@ describe("/odeme/paynkolay", () => {
       }),
     );
     expect(res.status).toBe(403);
+    // Never a blank page: the customer is told what happened.
+    expect(await res.text()).toContain("kartından para çekilmedi");
     expect(calls).toHaveLength(0);
   });
 
