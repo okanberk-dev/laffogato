@@ -496,16 +496,16 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "17. Sadakat (Damga) Programı: Kazanım, Kullanım ve İptal",
         paragraphs: [
-          "{{BRAND}} sadakat programı damga esaslıdır. Mobil uygulama üzerinden verilen, ödemesi tamamlanan ve indirimler düşüldükten sonra ürün tutarı (kurye ücreti hariç) en az 140 TL olan her kafe siparişi bir damga kazandırır; kafede kasada personel tarafından da damga eklenebilir. Online mağaza (kargo) siparişleri damga kazandırmaz. Damga kazanımı üyeliğe bağlıdır; damgalar yalnızca kazanan üyenin hesabına işlenir ve başka bir hesaba devredilemez.",
+          "{{BRAND}} sadakat programı damga esaslıdır. Mobil uygulama üzerinden verilen, ödemesi tamamlanan ve indirimler düşüldükten sonra ürün tutarı (kurye ücreti hariç) en az 140 TL olan kafe siparişi, ürün tutarının başlanan her 320 TL'si için bir damga kazandırır (140 TL ile 320 TL arası 1, 320,01 TL ile 640 TL arası 2 damga ve böyle devam eder); kafede kasada personel tarafından da damga eklenebilir. Online mağaza (kargo) siparişleri damga kazandırmaz. Damga kazanımı üyeliğe bağlıdır; damgalar yalnızca kazanan üyenin hesabına işlenir ve başka bir hesaba devredilemez.",
           "Kart, Sadakat (Damga) Programı Kuralları'nda belirtilen sayıda damgayla dolar ve üyenin talebiyle bir ücretsiz içecek kuponuna çevrilir. Kupon yalnızca kafe siparişlerinde, kuponda belirtilen tutar ve süre içinde kullanılabilir; nakde çevrilemez, devredilemez ve aynı siparişte bir promosyon koduyla birleştirilemez.",
           "Sipariş bedeli damga ile ödenemez; damganın kendi başına parasal bir karşılığı yoktur. Programın bütün kuralları {{SITE_URL}}/hukuk/odul-programi adresindeki Sadakat (Damga) Programı Kuralları'ndadır. Üyelik hesabının kapatılması hâlinde biriken damgalar ve kullanılmamış kuponlar sona erer.",
-          "Siparişin iptali veya bedelinin tamamen iade edilmesi hâlinde o siparişten kazanılan damga geri alınır. Sipariş iptal edilirse siparişte kullanılan kupon hesaba geri tanımlanır. Kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; fiilen ödenen tutar bu formun 13. maddesindeki usulle iade edilir.",
+          "Siparişin iptali veya bedelinin tamamen iade edilmesi hâlinde o siparişten kazanılan damgaların tamamı, bedelin bir kısmının iade edilmesi hâlinde ise iade sonrası kalan ürün tutarına göre fazla kalan damgalar geri alınır. Sipariş iptal edilirse siparişte kullanılan kupon hesaba geri tanımlanır. Kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; fiilen ödenen tutar bu formun 13. maddesindeki usulle iade edilir.",
         ],
         table: [
           {
             key: "Damga kazanımı",
             value:
-              "Mobil uygulamadan verilen, ödemesi tamamlanan ve indirimler düşüldükten sonra ürün tutarı (kurye ücreti hariç) en az 140 TL olan kafe siparişi başına 1 damga; kafede kasada personel tarafından eklenen damga",
+              "Mobil uygulamadan verilen, ödemesi tamamlanan ve indirimler düşüldükten sonra ürün tutarı (kurye ücreti hariç) en az 140 TL olan kafe siparişinde başlanan her 320 TL ürün tutarı için 1 damga; kafede kasada personel tarafından eklenen damga",
           },
           {
             key: "Ödül",
@@ -524,7 +524,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "İptal veya tam iade hâlinde",
             value:
-              "Siparişten kazanılan damga geri alınır; sipariş iptal edilirse kullanılan kupon hesaba geri tanımlanır",
+              "Siparişten kazanılan damgalar iptalde ve tam iadede tamamen, kısmi iadede kalan ürün tutarına göre geri alınır; sipariş iptal edilirse kullanılan kupon hesaba geri tanımlanır",
           },
           {
             key: "Hesabın kapatılması",
@@ -975,10 +975,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "8. Sadakat (Damga) Programı",
         paragraphs: [
-          "{{BRAND}} sadakat programı damga esaslıdır ve üyelik hesabına bağlıdır. Damga, yalnızca mobil uygulama üzerinden verilen, ödemesi tamamlanan ve Sadakat (Damga) Programı Kuralları'nda belirtilen asgari tutara ulaşan kafe siparişlerinden kazanılır; kafede personel tarafından da damga eklenebilir. Çevrimiçi mağaza (kargo) siparişleri ve internet sitesinden verilen siparişler damga kazandırmaz. Damga hareketleri mobil uygulamanın ödüller ekranından görüntülenebilir.",
+          "{{BRAND}} sadakat programı damga esaslıdır ve üyelik hesabına bağlıdır. Damga, yalnızca mobil uygulama üzerinden verilen, ödemesi tamamlanan ve Sadakat (Damga) Programı Kuralları'nda belirtilen asgari tutara (140 TL ürün tutarı) ulaşan kafe siparişlerinden, ürün tutarının başlanan her 320 TL'si için bir damga olarak kazanılır; kafede personel tarafından da damga eklenebilir. Çevrimiçi mağaza (kargo) siparişleri ve internet sitesinden verilen siparişler damga kazandırmaz. Damga hareketleri mobil uygulamanın ödüller ekranından görüntülenebilir.",
           "Programda puan bulunmaz. Damga bir para birimi değildir; nakde çevrilemez, devredilemez ve sipariş bedelinin ödenmesinde kullanılamaz. Kart, Kurallar'da belirtilen sayıda damgayla dolar; kart dolduğunda üye, uygulamanın ödüller ekranından bir ücretsiz içecek kuponu almayı seçebilir. Kupon yalnızca kafe siparişlerinde kullanılabilir, tek kullanımlıktır, nakde çevrilemez ve devredilemez; kuponun tutarı ve geçerlilik süresi Kurallar'da ve kupon ekranında belirtilir.",
           "Ücretsiz içecek kuponu kullanılmışsa kuponun karşıladığı tutar sipariş özetinde indirim olarak gösterilir ve toplam sipariş bedelinden düşülür.",
-          "Siparişin iptal edilmesi veya tamamen iade edilmesi hâlinde o siparişten kazanılan damga geri alınır. Siparişte ücretsiz içecek kuponu kullanılmışsa ve sipariş iptal edilirse kupon hesaba geri tanımlanır; kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz, ALICI'nın fiilen ödediği tutar ise işbu Sözleşme'nin 7. maddesindeki esaslara göre ödemenin yapıldığı karta iade edilir.",
+          "Siparişin iptal edilmesi veya tamamen iade edilmesi hâlinde o siparişten kazanılan damgaların tamamı, kısmen iade edilmesi hâlinde ise iade sonrası kalan ürün tutarına göre fazla kalan damgalar geri alınır. Siparişte ücretsiz içecek kuponu kullanılmışsa ve sipariş iptal edilirse kupon hesaba geri tanımlanır; kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz, ALICI'nın fiilen ödediği tutar ise işbu Sözleşme'nin 7. maddesindeki esaslara göre ödemenin yapıldığı karta iade edilir.",
           "Programın bütün kuralları {{SITE_URL}}/hukuk/odul-programi adresinde yayımlanan Sadakat (Damga) Programı Kuralları'nda yer alır. SATICI'nın sadakat programında yapacağı değişiklikler ileriye etkilidir; kurulmuş sipariş ilişkilerini ve hesaba tanımlanmış kuponların koşullarını etkilemez.",
           "Damganın veya kuponun hile, sahte sipariş, mükerrer hesap açma, kasa kodunun izinsiz çoğaltılması veya benzeri yollarla elde edildiğinin tespiti hâlinde SATICI, ilgili damga ve kuponları iptal etme ve gerektiğinde hesabı askıya alma hakkına sahiptir. Bu hâlde ALICI'nın itiraz ve başvuru hakları saklıdır.",
         ],
@@ -1581,9 +1581,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "12. Sadakat (Damga) Programı ve Kuponlu Siparişlerin İadesi",
         paragraphs: [
-          "{{BRAND}} sadakat programı damga esaslıdır; programda puan yoktur. Mobil uygulama üzerinden verilen, ödemesi tamamlanan ve Ödül Programı Kuralları'ndaki koşulları taşıyan kafe siparişleri bir damga kazandırır; kafede kasada personel tarafından da damga eklenebilir. Online mağaza (kargo) siparişleri ve internet sitesinden verilen siparişler damga kazandırmaz. Damganın kendi başına parasal bir karşılığı yoktur; sipariş bedeli damga ile ödenemez.",
+          "{{BRAND}} sadakat programı damga esaslıdır; programda puan yoktur. Mobil uygulama üzerinden verilen, ödemesi tamamlanan ve Ödül Programı Kuralları'ndaki koşulları taşıyan kafe siparişleri, ürün tutarının başlanan her 320 TL'si için bir damga kazandırır; kafede kasada personel tarafından da damga eklenebilir. Online mağaza (kargo) siparişleri ve internet sitesinden verilen siparişler damga kazandırmaz. Damganın kendi başına parasal bir karşılığı yoktur; sipariş bedeli damga ile ödenemez.",
           "Kart, Ödül Programı Kuralları'nda belirtilen sayıda damgayla dolar ve üyenin talebiyle ücretsiz içecek kuponuna çevrilir. Bu kupon yalnızca kafe siparişlerinde kullanılabilir, nakde çevrilemez ve devredilemez. Programın bütün kuralları {{SITE_URL}}/hukuk/odul-programi adresindeki Ödül Programı Kuralları'ndadır.",
-          "Siparişin iptal edilmesi veya bedelinin tamamının iade edilmesi hâlinde o siparişten kazanılan damga geri alınır. Sipariş iptal edilirse siparişte kullanılan kişisel kupon hesabınıza geri tanımlanır. Kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; fiilen ödenen tutar, bu belgenin 10. maddesindeki usulle ödemenin yapıldığı karta iade edilir.",
+          "Siparişin iptal edilmesi veya bedelinin tamamının iade edilmesi hâlinde o siparişten kazanılan damgaların tamamı, bedelin bir kısmının iade edilmesi hâlinde ise iade sonrası kalan ürün tutarına göre fazla kalan damgalar geri alınır. Sipariş iptal edilirse siparişte kullanılan kişisel kupon hesabınıza geri tanımlanır. Kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; fiilen ödenen tutar, bu belgenin 10. maddesindeki usulle ödemenin yapıldığı karta iade edilir.",
         ],
         bullets: [
           "Tam iade: Siparişin tamamı iade edildiğinde kurye veya kargo ücreti dâhil fiilen ödenen tutarın tamamı ödemenin yapıldığı karta iade edilir ve siparişten kazanılan damga geri alınır.",
@@ -3515,10 +3515,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "20. Sadakat (Damga) Programı",
         paragraphs: [
-          "{{BRAND}} sadakat programı damga esaslıdır. Mobil uygulama üzerinden verilen ve ödemesi tamamlanan, indirimler düşüldükten sonraki ürün tutarı (kurye ücreti hariç) en az 140 TL olan her kafe siparişi bir damga kazandırır; kafede kasada personel tarafından da damga eklenebilir. Online mağaza (bottega) siparişleri ve internet sitesinden verilen siparişler damga kazandırmaz.",
+          "{{BRAND}} sadakat programı damga esaslıdır. Mobil uygulama üzerinden verilen ve ödemesi tamamlanan, indirimler düşüldükten sonraki ürün tutarı (kurye ücreti hariç) en az 140 TL olan kafe siparişi, ürün tutarının başlanan her 320 TL'si için bir damga kazandırır (140 TL ile 320 TL arası 1, 320,01 TL ile 640 TL arası 2 damga ve böyle devam eder); kafede kasada personel tarafından da damga eklenebilir. Online mağaza (bottega) siparişleri ve internet sitesinden verilen siparişler damga kazandırmaz.",
           "Kart, Sadakat (Damga) Programı Kuralları'nda belirtilen sayıda damgayla dolar ve üyenin talebiyle bir ücretsiz içecek kuponuna çevrilir. Kupon yalnızca kafe siparişlerinde, tanımlandığı andaki üst tutar ve süre içinde kullanılabilir; nakde çevrilemez, devredilemez ve aynı siparişte bir promosyon koduyla birleştirilemez.",
           "Programda puan yoktur. Sipariş bedeli damga ile ödenemez; damganın kendi başına parasal bir karşılığı yoktur. Damga ve kupon bir ödeme aracı, elektronik para, menkul kıymet veya yatırım aracı değildir.",
-          "Siparişin iptal edilmesi veya bedelinin tamamen iade edilmesi hâlinde o siparişten kazanılan damga geri alınır. Sipariş iptal edilirse siparişte kullanılan kupon hesaba geri tanımlanır. Kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; fiilen ödenen tutar ödemenin yapıldığı karta iade edilir.",
+          "Siparişin iptal edilmesi veya bedelinin tamamen iade edilmesi hâlinde o siparişten kazanılan damgaların tamamı, kısmen iade edilmesi hâlinde ise iade sonrası kalan ürün tutarına göre fazla kalan damgalar geri alınır. Sipariş iptal edilirse siparişte kullanılan kupon hesaba geri tanımlanır. Kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; fiilen ödenen tutar ödemenin yapıldığı karta iade edilir.",
           "Programın bütün kuralları {{SITE_URL}}/hukuk/odul-programi adresindeki Sadakat (Damga) Programı Kuralları'ndadır.",
         ],
       },
@@ -10454,7 +10454,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Sipariş geçmişi: Üye, geçmiş siparişlerini, sipariş numarasını, sipariş kalemlerini, tutarları ve güncel durumunu hesabından görüntüleyebilir; kargo takip numarasına buradan erişebilir.",
           "Adres defteri: Birden fazla teslimat ve fatura adresi kaydedilebilir, adreslere isim verilebilir ve varsayılan adres seçilebilir. Böylece her siparişte adres bilgisi yeniden girilmez.",
           "Favori listesi: İlgi duyulan ürünler favorilere eklenebilir.",
-          "Sadakat programı: Üye, Mobil Uygulama'dan verdiği, ürün tutarı (indirimler düşüldükten sonra kalan tutar; kurye ücreti hariç) en az 140,00 ₺ olan ödenmiş kafe siparişlerinden ve kafede kasada eklenen damgalardan kartını doldurur; dolan kart bir ücretsiz içecek kuponuna çevrilir. Damga üyeliğe bağlıdır; üyelik sona erdiğinde damgalar da sona erer. Programın ayrıntıları işbu Sözleşme'nin onuncu maddesinde düzenlenmiştir.",
+          "Sadakat programı: Üye, Mobil Uygulama'dan verdiği, ürün tutarı (indirimler düşüldükten sonra kalan tutar; kurye ücreti hariç) en az 140,00 ₺ olan ödenmiş kafe siparişlerinden (başlanan her 320,00 ₺ ürün tutarı için bir damga) ve kafede kasada eklenen damgalardan kartını doldurur; dolan kart bir ücretsiz içecek kuponuna çevrilir. Damga üyeliğe bağlıdır; üyelik sona erdiğinde damgalar da sona erer. Programın ayrıntıları işbu Sözleşme'nin onuncu maddesinde düzenlenmiştir.",
           "Kişiye özel kupon ve kampanyalar: Şirket, üyelik geçmişine bağlı olarak Üye'ye özel indirim kodları tanımlayabilir. Kuponların geçerlilik süresi, asgari sepet tutarı ve kapsam dışı ürünler kupon tanımında gösterilir.",
           "Hoş geldin kuponu: E-posta adresini doğrulayan Üye'ye bir kez, yüzde on beş (%15) indirim sağlayan, tanımlandığı tarihten itibaren otuz gün geçerli ve asgari sepet tutarı 200,00 ₺ olan bir hoş geldin kuponu tanımlanır. Kupon, mağaza ve kafe siparişlerinde, Site'de ve Mobil Uygulama'da kullanılabilir; bir siparişte yalnızca bir indirim kodu kullanılabildiğinden başka bir kuponla birleştirilemez.",
           "Doğum günü kuponu: Üyelik hesabında doğum tarihi kayıtlı olan, hesabı açık ve e-posta adresi doğrulanmış Üye'ye doğum gününde, yılda bir kez, yüzde yirmi (%20) indirim sağlayan, yedi gün geçerli ve asgari sepet tutarı 150,00 ₺ olan bir kupon tanımlanır; 29 Şubat doğumlu Üye'ye artık olmayan yıllarda 1 Mart'ta tanımlanır. Üye doğum ayında Site'deki promosyonlar sayfasını açtığında o yılın kuponu henüz tanımlanmamışsa kupon o anda tanımlanır. Kupon, hoş geldin kuponuyla aynı yerlerde kullanılabilir ve ticari elektronik ileti onayına bağlı değildir; kuponu duyuran kutlama e-postası ise yalnızca ticari elektronik ileti onayı bulunan üyelere gönderilir. Şirket, bu kuponların oranını, asgari sepet tutarını ve süresini ileriye etkili olarak değiştirebilir.",
@@ -10466,16 +10466,16 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "10. Sadakat (Damga) Programı",
         paragraphs: [
-          "Şirket, üyelerine yönelik bir sadakat programı yürütür. Üye, Mobil Uygulama üzerinden verdiği ve ödemesi tamamlanan, ürün tutarı (indirimler düşüldükten sonra kalan tutar; kurye ücreti hariç) en az 140,00 ₺ olan her kafe siparişinden bir damga kazanır; bu tutarın altında kalan siparişler damga kazandırmaz. Programa katılım üyeliğe bağlıdır ve ayrıca bir bedel gerektirmez.",
+          "Şirket, üyelerine yönelik bir sadakat programı yürütür. Üye, Mobil Uygulama üzerinden verdiği ve ödemesi tamamlanan, ürün tutarı (indirimler düşüldükten sonra kalan tutar; kurye ücreti hariç) en az 140,00 ₺ olan kafe siparişlerinden, ürün tutarının başlanan her 320,00 ₺'si için bir damga kazanır (140,00 ₺ ile 320,00 ₺ arası 1, 320,01 ₺ ile 640,00 ₺ arası 2 damga ve böyle devam eder); 140,00 ₺'nin altında kalan siparişler damga kazandırmaz. Programa katılım üyeliğe bağlıdır ve ayrıca bir bedel gerektirmez.",
           "Kafede damga, kasada personel tarafından eklenir: Üye, Mobil Uygulama'daki kasa kodunu (iki dakika geçerli, tek kullanımlık karekod ve sekiz karakterlik kod) personele gösterir, personel kodu okur veya elle girer; kod okunamazsa damga Üye'nin üyelik e-posta adresi girilerek de eklenebilir. Şirket'in panelden yetkilendirdiği bir personel, kendi üyelik hesabıyla açtığı Mobil Uygulama'daki kasa ekranından da kodu okuyarak veya yazarak damga ekleyebilir; kendi koduna damga veremez. Mobil Uygulama, damga kazanmak amacıyla Üye'nin kamerasını kullanmaz.",
           "Damga bir para birimi ya da elektronik para değildir; tek başına parasal bir karşılığı yoktur. Nakde çevrilemez, başka bir üyeye devredilemez, satılamaz, miras yoluyla intikal etmez ve üyelik hesabı dışında kullanılamaz.",
-          "Kartın dolması için gereken damga sayısı (varsayılan altı; Şirket tarafından 3 ile 20 arasında belirlenebilir), ödülün tutarı ve kuponun geçerlilik süresi Platform'da yayımlanan Sadakat Programı Kuralları'nda ve Mobil Uygulama'nın ödüller ekranında gösterilir. Şirket bu kuralları yalnızca ileriye etkili olarak ve önceden duyurmak suretiyle değiştirebilir; değişiklik, o tarihte kazanılmış damgaların toplam sayısını azaltmaz. Ancak kart yeni sayıya göre yeniden hesaplandığından, daha önce ödül almış bir Üye'nin kartında gösterilen damga sayısı, kartın dolması için gereken sayı artırıldığında azalabilir, azaltıldığında artabilir; ayrıntı Sadakat Programı Kuralları'ndadır.",
+          "Kartın dolması için gereken damga sayısı (varsayılan altı; Şirket tarafından 3 ile 20 arasında belirlenebilir), ödülün tutarı ve kuponun geçerlilik süresi Platform'da yayımlanan Sadakat Programı Kuralları'nda ve Mobil Uygulama'nın ödüller ekranında gösterilir. Şirket bu kuralları yalnızca ileriye etkili olarak ve önceden duyurmak suretiyle değiştirebilir; değişiklik, o tarihte kazanılmış damgaların toplam sayısını azaltmaz; daha önce ödüle çevrilmiş kartlar ödüle çevrildikleri andaki sayıyla hesaplanmaya devam eder. Ayrıntı Sadakat Programı Kuralları'ndadır.",
           "Şirket, Programı tümüyle sonlandırmaya karar verirse üyeleri en az otuz gün önceden bilgilendirir ve bu süre boyunca dolmuş kartların ödüle çevrilmesine imkân tanır.",
         ],
         bullets: [
           "Kart dolduğunda ödül kendiliğinden verilmez; Üye, Mobil Uygulama'daki ödüller ekranından ödülü almayı seçer ve hesabına bir ücretsiz içecek kuponu tanımlanır.",
           "Ücretsiz içecek kuponu yalnızca Mobil Uygulama'dan verilen kafe siparişlerinde, ödeme adımındaki kod alanına girilerek kullanılabilir; kasada yapılan alışverişte uygulanmaz. Kupon tek kullanımlıktır ve süresi dolmadan kullanılmalıdır. Kupon ürün tutarından düşülür; kurye ile teslim edilen siparişlerde kurye ücreti kuponla karşılanmaz ve ayrıca ödenir. Kuponun karşıladığı tutar sipariş özetinde ayrı bir indirim kalemi olarak gösterilir.",
-          "Sipariş iptal edilirse veya sipariş bedelinin tamamı iade edilirse (cayma hakkının kullanılması nedeniyle yapılan iade dahil), o siparişten kazanılmış damga geri alınır; kartla ödenen kısım ödemenin yapıldığı karta iade edilir.",
+          "Sipariş iptal edilirse veya sipariş bedelinin tamamı iade edilirse (cayma hakkının kullanılması nedeniyle yapılan iade dahil), o siparişten kazanılmış damgaların tamamı geri alınır; sipariş bedelinin bir kısmı iade edilirse siparişin damga sayısı kalan ürün tutarına göre yeniden hesaplanır ve fazla damgalar geri alınır. Geri alınan damgalarla alınmış kullanılmamış bir ücretsiz içecek kuponu, damgalar karşılamaz hâle gelirse geri alınabilir (ayrıntı Sadakat Programı Kuralları'nda). Kartla ödenen kısım ödemenin yapıldığı karta iade edilir.",
           "Kuponla karşılanan kısım için nakit ödeme yapılmaz; Üye'nin fiilen ödediği tutar iade edilir.",
           "Damga üyeliğe bağlıdır; üyeliğin sona ermesi veya hesabın kapatılması hâlinde biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer, karşılığında herhangi bir bedel ödenmez.",
           "Hile, sahte işlem, çoklu hesap veya sistem açığı kullanılarak kazanıldığı tespit edilen damgalar iptal edilir; bu hâlde ayrıca işbu Sözleşme'nin on üçüncü ve on altıncı maddeleri uygulanabilir.",
@@ -10513,7 +10513,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Şirket, teknik bakım, altyapı güncellemesi veya güvenlik gereği Hizmet'i geçici olarak durdurabilir; planlı kesintileri mümkün olduğunca önceden Platform üzerinden duyurur.",
           "Şirket, kişisel verileri 6698 sayılı Kanun'un genel ilkelerine uygun şekilde, belirli, açık ve meşru amaçlarla, sınırlı ve ölçülü olarak işler ve veri güvenliğine ilişkin idari ve teknik tedbirleri alır.",
           "Şirket, mevzuattan doğan bilgi verme ve saklama yükümlülüklerini yerine getirir; yetkili merci taleplerine mevzuatın öngördüğü çerçevede yanıt verir.",
-          "Şirket, ürün fiyatlarını, kampanyaları, sadakat kartının hedefini ve kargo koşullarını ileriye etkili olarak değiştirme hakkını saklı tutar. Onaylanmış ve ödemesi alınmış siparişlerin koşulları ile kazanılmış damgaların toplam sayısı bu değişikliklerden etkilenmez; sadakat kartının hedefi değiştiğinde karttaki damga sayısının nasıl hesaplandığı onuncu maddede açıklanmıştır.",
+          "Şirket, ürün fiyatlarını, kampanyaları, sadakat kartının hedefini ve kargo koşullarını ileriye etkili olarak değiştirme hakkını saklı tutar. Onaylanmış ve ödemesi alınmış siparişlerin koşulları ile kazanılmış damgaların toplam sayısı bu değişikliklerden etkilenmez; sadakat kartının hedefi değiştiğinde daha önce ödüle çevrilmiş kartların nasıl sayıldığı onuncu maddede açıklanmıştır.",
           "Şirket, açık maddi hata sonucu yanlış gösterilen fiyat veya stok bilgisinde, Üye'yi gecikmeksizin bilgilendirmek ve tahsil edilmiş bedeli iade etmek kaydıyla siparişi iptal edebilir; Üye dilerse doğru fiyat üzerinden siparişi sürdürebilir.",
           "Şirket, Platform'da üçüncü kişilere ait bağlantılara yer verebilir; bu sitelerin içeriğinden ve gizlilik uygulamalarından sorumlu değildir.",
         ],
@@ -11073,7 +11073,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Program yalnızca gerçek kişi tüketicilere yöneliktir. Kurumsal, toptan veya yeniden satış amaçlı alımlar Program kapsamı dışındadır.",
         ],
         bullets: [
-          "Damga yalnızca Uygulama üzerinden verilen, ödemesi tamamlanan ve ürün tutarı (indirimler düşüldükten sonra kalan tutar; kurye ücreti hariç) en az 140,00 ₺ olan kafe siparişlerinden ve Kafe'de kasada eklenen Kasa Damgası'ndan kazanılır.",
+          "Damga yalnızca Uygulama üzerinden verilen, ödemesi tamamlanan ve ürün tutarı (indirimler düşüldükten sonra kalan tutar; kurye ücreti hariç) en az 140,00 ₺ olan kafe siparişlerinden (6. maddedeki basamaklara göre bir veya daha fazla damga) ve Kafe'de kasada eklenen Kasa Damgası'ndan kazanılır.",
           "Çevrimiçi mağaza (kargo ile gönderilen paket ürünler) siparişlerinden damga kazanılmaz.",
           "İnternet sitesinden verilen siparişlerden damga kazanılmaz; damga Uygulama siparişlerine bağlıdır.",
           "Program, Şirket'in kendi kanallarıyla sınırlıdır; üçüncü kişi pazar yerleri ile yemek ve teslimat platformları kapsam dışıdır.",
@@ -11112,15 +11112,16 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "6. Damga Kazanma Yolları",
         paragraphs: [
           "Damga yalnızca iki yoldan kazanılır ve her ikisinde de kazanım, üyelik hesabına bağlıdır.",
-          "Birincisi, Uygulama üzerinden verilen bir kafe siparişinin ödemesinin tamamlanması ve siparişin ürün tutarının (indirimler düşüldükten sonra kalan tutar; kurye ücreti hariç) en az 140,00 ₺ olmasıdır: koşulu sağlayan siparişte ödeme onaylandığı anda hesaba bir damga işlenir. Sipariş başına en fazla bir damga kazanılır; sipariş içindeki ürün adedi ve ürün çeşidi damga sayısını değiştirmez. Ürün tutarı 140,00 ₺'nin altında kalan sipariş damga kazandırmaz; siparişte bir kupon veya promosyon kodu kullanılmışsa bu tutar indirimden sonra kalan ürün tutarıdır. Şirket bu tutarı ileriye etkili olarak ve önceden duyurmak suretiyle değiştirebilir.",
+          "Birincisi, Uygulama üzerinden verilen bir kafe siparişinin ödemesinin tamamlanması ve siparişin ürün tutarının (indirimler düşüldükten sonra kalan tutar; kurye ücreti hariç) en az 140,00 ₺ olmasıdır: koşulu sağlayan siparişte ödeme onaylandığı anda hesaba, ürün tutarının başlanan her 320,00 ₺'si için bir damga işlenir: ürün tutarı 140,00 ₺ ile 320,00 ₺ arasındaysa 1, 320,01 ₺ ile 640,00 ₺ arasındaysa 2, 640,01 ₺ ile 960,00 ₺ arasındaysa 3 damga kazanılır ve basamaklar aynı biçimde devam eder. Damga sayısı yalnızca ürün tutarına bağlıdır; sipariş içindeki ürün adedi ve ürün çeşidi damga sayısını ayrıca değiştirmez. Kurye ücreti ve indirim tutarı hesaba katılmaz: siparişte bir kupon veya promosyon kodu kullanılmışsa damga, indirimden sonra kalan ürün tutarı üzerinden hesaplanır. Ürün tutarı 140,00 ₺'nin altında kalan sipariş damga kazandırmaz. Şirket bu tutarları ve basamağı ileriye etkili olarak ve önceden duyurmak suretiyle değiştirebilir.",
           "İkincisi, Kafe'de kasada personelin üyelik hesabına eklediği Kasa Damgası'dır. Bu yol, uygulama üzerinden verilmeyen kafe içi harcamalar ile Şirket'in uygun gördüğü hâllerde kullanılır ve tamamen Şirket'in takdirindedir; Kasa Damgası için ürün tutarı koşulu aranmaz.",
           "Şirket, süreli kampanyalarla ek damga verebilir; ek damga kafede kasada personel tarafından eklenir, uygulama siparişlerine kendiliğinden işlenmez ve kampanyanın koşulları duyuruda belirtilir.",
-          "Siparişten kazanılan damga sayısı, Katılımcı'nın kademesinden veya ödeme yönteminden etkilenmez; indirim yalnızca yukarıda belirtilen ürün tutarı koşulu üzerinden etkili olur.",
+          "Siparişten kazanılan damga sayısı, Katılımcı'nın kademesinden veya ödeme yönteminden etkilenmez; indirim yalnızca ürün tutarını azaltması yoluyla etkili olur.",
         ],
         table: [
           {
             key: "Uygulamadan ödenmiş kafe siparişi",
-            value: "Ürün tutarı en az 140,00 ₺ ise sipariş başına 1 damga",
+            value:
+              "Ürün tutarı en az 140,00 ₺ ise başlanan her 320,00 ₺ için 1 damga (140,00 ₺ ile 320,00 ₺ arası 1; 320,01 ₺ ile 640,00 ₺ arası 2; 640,01 ₺ ile 960,00 ₺ arası 3 ve böyle devam eder)",
           },
           {
             key: "Çevrimiçi mağaza (kargo) siparişi",
@@ -11156,9 +11157,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "8. Damganın Hesaba Geçmesi",
         paragraphs: [
-          "Koşulu sağlayan Uygulama siparişinden doğan damga, ödemenin onaylandığı anda hesaba işlenir; ayrı bir bekleme veya olgunlaşma süresi uygulanmaz.",
+          "Koşulu sağlayan Uygulama siparişinden doğan damgalar, ödemenin onaylandığı anda hesaba işlenir; ayrı bir bekleme veya olgunlaşma süresi uygulanmaz.",
           "Damga Defteri yalnızca satır eklenen bir kayıttır: kazanılmış hiçbir damga kaydı silinerek bakiye düzeltilmez, düzeltmeler ayrı bir satır olarak yazılır; yalnızca tamamlanamayan bir ödül işleminin satırı geri çekilir. Bakiye her zaman bu satırlardan yeniden hesaplanır.",
-          "Aynı siparişin ödemesi teknik nedenlerle birden fazla kez işlenmeye çalışılsa dahi o siparişten yalnızca bir damga kazanılır.",
+          "Aynı siparişin ödemesi teknik nedenlerle birden fazla kez işlenmeye çalışılsa dahi o siparişten damga yalnızca bir kez kazanılır; tekrar, damga sayısını artırmaz.",
           "Teknik bir aksaklık nedeniyle hesaba işlenmemiş bir damga, Katılımcı'nın {{EMAIL}} adresine yapacağı başvuru üzerine sipariş kaydı incelenerek elle tanımlanır.",
         ],
       },
@@ -11167,7 +11168,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Kart, Hedef sayıda damga biriktiğinde dolar. Hedef varsayılan olarak 6'dır; Şirket bu sayıyı 3 ile 20 arasında belirleyebilir ve güncel değer Uygulama'nın ödüller ekranındaki kart üzerinde gösterilir.",
           "Kart dolduğunda ödül kendiliğinden verilmez: Katılımcı, Uygulama'daki ödüller ekranından ödülü almayı seçer. Bu işlemle Hedef sayıda damga karttan düşülür ve hesaba bir ücretsiz içecek kuponu tanımlanır.",
-          "Ödül alındığı anda kartta kalan fazla damgalar yeni karta devreder; birden fazla dolu kart varsa her biri ayrı ayrı ödüle çevrilebilir.",
+          "Ödül alındığı anda kartta kalan fazla damgalar yeni karta devreder. Tek bir sipariş kartı bir ya da birkaç kez doldurabilir; birden fazla dolu kart varsa her biri ayrı ayrı ödüle çevrilebilir.",
           "Kart dolmadan ödül talep edilemez; damga yeterli değilse talep reddedilir ve karttan damga düşülmez.",
         ],
       },
@@ -11205,7 +11206,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "12. Hedefin ve Ödül Koşullarının Değiştirilmesi",
         paragraphs: [
           "Şirket, kartın Hedef sayısını, ödül tutarını ve kuponun geçerlilik süresini ileriye etkili olmak üzere değiştirebilir. Güncel değerler her zaman Uygulama'da gösterilir.",
-          "Hedef değiştiğinde, kart yeni Hedef'e göre yeniden hesaplanır. Katılımcı'nın kazandığı damgaların toplam sayısı değişmez; ancak kartta gösterilen damga sayısı, kazanılan toplam damgadan ödüle çevrilen her kart için yeni Hedef kadar damga düşülerek bulunur. Bu nedenle daha önce ödül almış bir Katılımcı'nın kartındaki damga sayısı, Hedef artırıldığında azalabilir, azaltıldığında artabilir; dolu kart sayısı da aynı şekilde yeniden hesaplanır.",
+          "Hedef değiştiğinde, daha önce ödüle çevrilmiş kartlar ödüle çevrildikleri andaki Hedef'le sayılmaya devam eder; Katılımcı'nın kazandığı damgalar Hedef değişikliği nedeniyle azalmaz ve Hedef değişikliği tek başına hiçbir kuponu geri aldırmaz. Değişiklikten etkilenen tek şey, henüz dolmamış kartın dolması için gereken sayıdır.",
           "Zaten tanımlanmış bir ücretsiz içecek kuponunun tutarı ve süresi, sonradan yapılan değişikliklerden etkilenmez; kupon, tanımlandığı andaki koşullarla kullanılır.",
           "Katılımcı aleyhine sonuç doğuran değişiklikler, Uygulama ve {{SITE_URL}} üzerinden makul bir süre önce duyurulur.",
         ],
@@ -11213,8 +11214,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "13. İptal, İade ve Cayma Hâlinde Damganın Durumu",
         paragraphs: [
-          "Bir siparişin iptal edilmesi veya sipariş bedelinin tamamının iade edilmesi hâlinde (cayma hakkının kullanılması nedeniyle yapılan iade dahil), o siparişten kazanılmış damga geri alınır. Geri alma, Damga Defteri'nde ayrı bir düzeltme satırı olarak yazılır; kazanım kaydı silinmez.",
-          "Geri alınan damga nedeniyle kart bakiyesi azalır. Bakiye hiçbir hâlde sıfırın altına düşmez.",
+          "Bir siparişin iptal edilmesi veya sipariş bedelinin tamamının iade edilmesi hâlinde (cayma hakkının kullanılması nedeniyle yapılan iade dahil), o siparişten kazanılmış damgaların tamamı geri alınır. Sipariş bedelinin bir kısmı iade edilirse, siparişin damga sayısı iade sonrası kalan ürün tutarına göre yeniden hesaplanır ve fazla kalan damgalar geri alınır; iade tutarı ürün ve kurye ücreti olarak ayrılamadığından önce kurye ücretinden, kalanı ürün tutarından düşülmüş sayılır, yani yalnızca kurye ücretinin iadesi damga geri aldırmaz. Geri alma, Damga Defteri'nde ayrı bir düzeltme satırı olarak yazılır; kazanım kaydı silinmez.",
+          "Geri alınan damga nedeniyle kart bakiyesi azalır. Bakiye hiçbir hâlde sıfırın altına düşmez. Geri alınan damgalar sonucunda kazanılmış damga, daha önce alınmış ücretsiz içecek kuponlarını karşılamaz hâle gelirse, kullanılmamış ve süresi geçmemiş en yeni ücretsiz içecek kuponu Şirket tarafından geri alınır ve o kartın ödüle çevrilmesi geri alınır. Kullanılmış bir kupon geri alınmaz; bu durumda eksik kalan kısım, Katılımcı'nın sonraki damgalarından karşılanır. Katılımcı'dan bu nedenle ödeme veya iade talep edilmez.",
           "Sipariş bedelinin iadesi, işbu Kurallardan bağımsız olarak İade ve Cayma Prosedürü ile Mesafeli Satış Sözleşmesi hükümlerine göre yapılır; damganın geri alınması, Katılımcı'nın para iadesine ilişkin haklarını etkilemez.",
           "Ücretsiz içecek kuponu kullanılarak verilen bir siparişin iptali veya iadesi hâlinde, kuponla karşılanan kısım için nakit ödeme yapılmaz; Katılımcı'nın fiilen ödediği tutar ödemenin yapıldığı kanala iade edilir.",
         ],
@@ -11251,7 +11252,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Uygulama, Katılımcı'nın son 365 gün içindeki ödenmiş sipariş sayısına göre bir kademe (L'AF, PEARL, RUBY) ve tamamlanan başarılara göre rozetler gösterir. Kademe, Katılımcı'nın Site'den veya Uygulama'dan, mağazadan veya kafeden verdiği, ödemesi tamamlanmış (hazırlanan, gönderilen veya tamamlanan dahil) siparişlerin sayısına göre belirlenir; sipariş tutarına bakılmaz, iptal edilen, iade edilen ve ödemesi tamamlanmamış siparişler sayılmaz. Son 365 günde 0 ile 11 sipariş L'AF, 12 ile 35 sipariş PEARL, 36 ve üzeri sipariş RUBY kademesine karşılık gelir. Kademe ve rozetler damgadan bağımsızdır; damga kazandırmaz ve damga harcamaz.",
           "Kademe ve rozetlerin kendi başına parasal bir karşılığı yoktur; nakde çevrilemez ve devredilemez. Sipariş sayısı azaldıkça kademe geriye de gidebilir.",
           "RUBY kademesindeki Katılımcı'ya karaoke salonu rezervasyonunda, panelde tanımlı oranda (varsayılan %15) indirim uygulanır. İndirim oranı rezervasyon talebinin oluşturulduğu anda belirlenir ve kaydedilir; sonradan yapılan değişiklik o rezervasyonu etkilemez. Bu indirimin oranı ve varlığı Şirket tarafından ileriye etkili olarak değiştirilebilir.",
-          "Katılımcı'nın kazandığı damgaların toplamı (ödenmiş uygulama kafe siparişleri ve kasa damgaları; iade ya da iptal nedeniyle geri alınanlar düşülerek) 10'a ulaştığında bir Filtre Kahve, 20'ye ulaştığında bir Americano, 30'a ve 40'a ulaştığında menüdeki satıştaki içecek ya da tatlılardan Şirket sistemince rastgele seçilen bir ürün tutarında bir hediye kuponu tanımlanır. Kuponun tutarı, ürünün kupon tanımlandığı andaki menü fiyatıdır (iki boyutlu ürünlerde standart boyutun fiyatı). Her eşik bir kez hediye kazandırır.",
+          "Katılımcı'nın kazandığı damgaların toplamı (ödenmiş uygulama kafe siparişleri ve kasa damgaları; iade ya da iptal nedeniyle geri alınanlar düşülerek) 10'a ulaştığında bir Filtre Kahve, 20'ye ulaştığında bir Americano, 30'a ve 40'a ulaştığında menüdeki satıştaki içecek ya da tatlılardan Şirket sistemince rastgele seçilen bir ürün tutarında bir hediye kuponu tanımlanır. Kuponun tutarı, ürünün kupon tanımlandığı andaki menü fiyatıdır (iki boyutlu ürünlerde standart boyutun fiyatı). Her eşik bir kez hediye kazandırır. Damga geri alınması sonucunda toplam bir eşiğin altına inerse, o eşik için tanımlanmış ve kullanılmamış hediye kuponu geri alınır; eşik yeniden aşıldığında hediye yeniden kazanılabilir.",
           "Kilometre taşı hediye kuponu, tanımlandığı tarihten itibaren 30 gün geçerlidir, yalnız Uygulama'dan verilen kafe siparişlerinde kullanılabilir, asgari sepet tutarı aranmaz, kurye ücretini karşılamaz, nakde çevrilemez ve devredilemez. Hediye edilecek ürün satıştan kalkmışsa satıştaki içecek ya da tatlılardan biri seçilir. Şirket kilometre taşlarını ve hediyelerini ileriye etkili olarak değiştirebilir; kazanılmış kuponlar süreleri boyunca geçerliliğini korur.",
         ],
       },
@@ -11687,7 +11688,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "11. Sadakat (Damga) Programı",
         paragraphs: [
           "Sadakat damgası, üyelik hesabına bağlı olarak kazanılan ve tek başına parasal karşılığı bulunmayan bir kayıttır. Damga bir ödeme aracı, elektronik para veya menkul kıymet değildir; nakde çevrilemez, üçüncü kişilere devredilemez, satılamaz ve başka bir hesaba aktarılamaz.",
-          "Damga iki yoldan kazanılır: Uygulama üzerinden verilen ve ürün tutarı (indirimler düşüldükten sonra, kurye ücreti hariç) en az 140,00 TL olan bir kafe siparişinin ödemesinin tamamlanması (sipariş başına bir damga) ve kafede kasada personelin üyelik hesabına eklediği damga; kasada eklenen damga için tutar şartı aranmaz. Kart, Uygulama'da gösterilen hedef sayıda damga ile dolar (varsayılan altı) ve dolan kart, Kullanıcı'nın talebiyle bir ücretsiz içecek kuponuna çevrilir.",
+          "Damga iki yoldan kazanılır: Uygulama üzerinden verilen ve ürün tutarı (indirimler düşüldükten sonra, kurye ücreti hariç) en az 140,00 TL olan bir kafe siparişinin ödemesinin tamamlanması (ürün tutarının başlanan her 320,00 TL'si için bir damga: 140,00 TL ile 320,00 TL arası 1, 320,01 TL ile 640,00 TL arası 2 damga ve böyle devam eder) ve kafede kasada personelin üyelik hesabına eklediği damga; kasada eklenen damga için tutar şartı aranmaz. Kart, Uygulama'da gösterilen hedef sayıda damga ile dolar (varsayılan altı) ve dolan kart, Kullanıcı'nın talebiyle bir ücretsiz içecek kuponuna çevrilir.",
           "Kasada damga eklenirken Uygulama'nın gösterdiği kasa kodu (iki dakika geçerli ve tek kullanımlık karekod ile sekiz karakterlik kod) personele gösterilir; personel kodu okutur veya elle girer, kod okunamazsa Üye'nin e-posta adresini seçerek de damga ekleyebilir. Üye'nin cihazındaki Uygulama bu amaçla kamera kullanmaz. Kasada eklenen her damga, işlemi yapan personel ve işlem anı ile birlikte kaydedilir ve yanlışlıkla eklenen bir damga aynı yolla geri alınabilir.",
           "Şirket, panelden belirlediği üye hesaplarına (personel hesapları) Uygulama'da kasa ekranını açabilir. Bu ekran yalnızca yetki verilen hesapta görünür; yetki Şirket tarafından her zaman kaldırılabilir ve sunucu her okutmada yetkiyi yeniden denetler. Kasa ekranında kamera, üyenin kasa kodunu okumak için kullanılır; görüntü kaydedilmez, yalnızca okunan kodun metni sunucuya iletilir ve personele üyenin adı ile maskelenmiş e-posta adresi gösterilir. Her damga, işlemi yapan personel hesabıyla kaydedilir; personel kendi koduna damga veremez ve hatalı okutmalar sınırlandırılır. Bu ekranın kötüye kullanılması, Yasak Kullanımlar kapsamında yetkinin kaldırılmasına yol açabilir.",
           "Ücretsiz içecek kuponu yalnızca kafe siparişlerinde geçerlidir, tek kullanımlıktır ve tanımlandığı tarihten itibaren Uygulama'da gösterilen süre boyunca (varsayılan doksan gün) kullanılabilir. Kuponun karşıladığı tutar sipariş özetinde ve faturada indirim olarak gösterilir.",
@@ -11695,7 +11696,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Damga üyeliğe bağlıdır; hesabın kapatılması hâlinde biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer ve herhangi bir bedele dönüştürülmez.",
-          "Sipariş iptal edilir veya bedelinin tamamı iade edilirse, o siparişten kazanılmış damga geri alınır.",
+          "Sipariş iptal edilir veya bedelinin tamamı iade edilirse, o siparişten kazanılmış damgaların tamamı geri alınır; bedelin bir kısmı iade edilirse siparişin damga sayısı kalan ürün tutarına göre yeniden hesaplanır ve fazla damgalar geri alınır.",
           "Ücretsiz içecek kuponu kullanılan bir siparişin iadesinde, kuponla karşılanan kısım için nakit ödeme yapılmaz; Kullanıcı'nın fiilen ödediği tutar ödemenin yapıldığı kanala iade edilir.",
           "Uygulama'da karttaki damga sayısı, toplam damga sayısı, kilometre taşları ve her uygulama siparişinin damga kazandırıp kazandırmadığı gösterilir; kasada eklenen damgalar ve düzeltmeler dâhil damga hareketlerinin tarihli dökümü {{EMAIL}} adresine yapılacak talep üzerine iletilir.",
           "Harcama alışkanlıklarının kişiselleştirilmiş öneri üretmek amacıyla analiz edilmesi Uygulama'nın bir işlevi değildir; böyle bir işleme yapılacak olması hâlinde ayrıca açık rıza alınır ve rıza verilmemesi damga kazanmayı engellemez.",
@@ -14441,7 +14442,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "14. Sadakat Programı: Damga ve Ücretsiz İçecek Kuponu",
         paragraphs: [
           "İşletme, üyelerine yönelik bir sadakat programı yürütür. Programa katılım, {{SITE_URL}} adresindeki web sitesi veya {{BRAND}} mobil uygulaması üzerinden üyelik hesabı oluşturulmasıyla mümkündür ve tamamen isteğe bağlıdır. Programa katılmamanız, işletmede hizmet almanızı veya rezervasyon yaptırmanızı hiçbir şekilde etkilemez.",
-          "Damga iki yoldan kazanılır: {{BRAND}} mobil uygulaması üzerinden verilen ve ödemesi tamamlanan, ürün tutarı (indirimler düşüldükten sonra, kurye ücreti hariç) en az 140,00 TL olan bir kafe siparişi (sipariş başına bir damga) ve kafede kasada personelin üyelik hesabınıza eklediği damga. Kartın dolması için gereken damga sayısı uygulamada gösterilir (varsayılan altı). İşletme bu sayıyı yalnızca ileriye etkili olmak ve önceden duyurmak kaydıyla değiştirebilir; değişiklik, o tarihe kadar kazanılmış damgaları ortadan kaldırmaz.",
+          "Damga iki yoldan kazanılır: {{BRAND}} mobil uygulaması üzerinden verilen ve ödemesi tamamlanan, ürün tutarı (indirimler düşüldükten sonra, kurye ücreti hariç) en az 140,00 TL olan bir kafe siparişi (ürün tutarının başlanan her 320,00 TL'si için bir damga: 140,00 TL ile 320,00 TL arası 1, 320,01 TL ile 640,00 TL arası 2 damga ve böyle devam eder) ve kafede kasada personelin üyelik hesabınıza eklediği damga. Kartın dolması için gereken damga sayısı uygulamada gösterilir (varsayılan altı). İşletme bu sayıyı yalnızca ileriye etkili olmak ve önceden duyurmak kaydıyla değiştirebilir; değişiklik, o tarihe kadar kazanılmış damgaları ortadan kaldırmaz; daha önce ödüle çevrilmiş kartlar ödüle çevrildikleri andaki sayıyla hesaplanmaya devam eder.",
           "Damga bir ödeme aracı, elektronik para veya kıymetli evrak değildir; tek başına parasal bir karşılığı yoktur. Damga nakde çevrilemez, banka hesabına aktarılamaz, üçüncü kişilere devredilemez, satılamaz ve başka bir üyelik hesabıyla birleştirilemez.",
           "Damgalar üyelik hesabına bağlıdır. Üyeliğin Misafir tarafından kapatılması hâlinde biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında herhangi bir ödeme talep edilemez.",
           "Kafede damga kazanmak için uygulama kameranıza erişmez: kasada uygulamanın gösterdiği kasa kodunu (iki dakika geçerli, tek kullanımlık karekod ve sekiz karakterlik kod) personel kendi cihazıyla okur veya girer; kod okunamazsa damga üyelik e-posta adresiniz seçilerek de eklenebilir. Kasa kodunu başkasıyla paylaşmayınız.",
@@ -14450,7 +14451,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama, uygulamada gösterdiğiniz kasa kodu veya üyelik e-posta adresiniz üzerinden yapılır.",
           "Kasada eklenen her damga, işlemi yapan personel ve işlem anı ile birlikte kaydedilir; kartınızdaki güncel damga sayısı uygulamanın ödüller ekranında gösterilir ve damga hareketlerinizin tarihli dökümünü {{EMAIL}} adresine yapacağınız talep üzerine isteyebilirsiniz.",
           "Yanlışlıkla eklenen bir damga, personel tarafından aynı panelden bir düzeltme kaydı yazılarak geri alınabilir; kullanılabilir damganız yoksa düzeltme yapılamaz.",
-          "İptal edilen veya iade edilen bir siparişten kazanılmış damga geri alınır ve kartınızdaki damga sayısı buna göre güncellenir.",
+          "İptal edilen veya tamamen iade edilen bir siparişten kazanılmış damgaların tamamı geri alınır; kısmi iadede siparişin damga sayısı kalan ürün tutarına göre yeniden hesaplanır. Kartınızdaki damga sayısı buna göre güncellenir.",
           "Sahte hesap oluşturulması, mükerrer hesap açılması veya sistemin manipüle edilmesi hâllerinde İşletme, somut gerekçeye dayanarak ve üyeye bildirim yaparak ilgili damgaları iptal edebilir ve üyeliği askıya alabilir; üyenin itiraz hakkı saklıdır.",
         ],
         bullets: [
@@ -14469,7 +14470,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Kazanım kanalları",
             value:
-              "Uygulamadan ödenmiş ve ürün tutarı en az 140,00 TL olan kafe siparişi; kafede kasada eklenen damga",
+              "Uygulamadan ödenmiş ve ürün tutarı en az 140,00 TL olan kafe siparişi (başlanan her 320,00 TL için 1 damga); kafede kasada eklenen damga",
           },
           {
             key: "Kartın dolması",
@@ -14483,7 +14484,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "İade hâlinde",
             value:
-              "Siparişten kazanılmış damga geri alınır; ödenen TL ödeme kanalına iade edilir",
+              "Siparişten kazanılmış damgalar geri alınır (kısmi iadede kalan tutara göre yeniden hesaplanır); ödenen TL ödeme kanalına iade edilir",
           },
           {
             key: "Üyeliğin kapatılması",
