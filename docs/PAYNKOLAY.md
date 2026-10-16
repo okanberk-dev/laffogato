@@ -173,7 +173,9 @@ değişkenin **adını** yazar, değerini değil (`paymentListKeyRefusal`):
 | `"API : hashData error"`                       | `PAYNKOLAY_MERCHANT_SECRET_KEY`  |
 
 İlki işyerinin kimliğini geri bastığı için POS'un metni bu iki durumda loga
-yazılmaz.
+yazılmaz. Anahtar reddi `ERROR_CODE: ""` ve `LIST: null` ile geldi; bu yüzden
+kodsuz bir yanıt yalnız metni yoksa ya da "kayıt bulunamadı" diyorsa boş liste
+sayılır, başka her metin hatadır (`paymentListRows`).
 
 İstek alanları:
 
@@ -884,6 +886,8 @@ Kart yolu yine store ya da veritabanı import etmez (kural 28): modül
 kaybolduysa kayıt hâlâ ödeme bekler görünür ve ikinci sekmedeki eski form yine
 satış başlatabilir. Bu boşluk açık (`docs/AUDIT.md` §11 "Açık"); yeni sayfa
 dağıtan iki kapı (1, 2) ve web ödemesinin yeniden kullanımı (§15.5) POS'a sorar.
+Son bakış yalnız `direct` modun POST'unda var: `hosted` modda (§15, geri dönüş
+yolu) GET formu kayda bakmadan PayNkolay'ın sayfasına gönderir.
 
 Testler: `tests/mobile-order-idempotency.test.ts`,
 `tests/mobile-checkout-reopen-route.test.ts`, `tests/mobile-order-payment.test.ts`,

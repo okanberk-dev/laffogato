@@ -473,6 +473,31 @@ describe("the services' real response shape", () => {
     ).rejects.toThrow(/PAYNKOLAY_SX_LIST/);
   });
 
+  it("any other refusal in the same envelope is an error too, not an empty list (rule 29)", async () => {
+    // The token refusal came with `ERROR_CODE: ""` and `LIST: null`, the
+    // envelope a real "no record" answer has apart from its CORE0305. A
+    // refusal worded any other way must not read as "not paid" either.
+    stubPos({
+      result:
+        '{"RESPONSE_CODE":0,"ERROR_CODE":"","RESPONSE_DATA":"API : IP adresi yetkisiz","LIST":null}',
+    });
+    await expect(makeProvider().lookupPayment("ord-0284", NOW)).rejects.toThrow(
+      /IP adresi yetkisiz/,
+    );
+    // The "no record" sentence without its code is still no record.
+    stubPos({
+      result: {
+        RESPONSE_CODE: "0",
+        ERROR_CODE: "",
+        RESPONSE_DATA: "Listelenecek kayıt bulunamadı.",
+        LIST: null,
+      },
+    });
+    await expect(makeProvider().lookupPayment("ord-0284", NOW)).resolves.toBe(
+      null,
+    );
+  });
+
   it("other refusals keep the POS's own words", () => {
     expect(paymentListKeyRefusal("Listelenecek kayıt bulunamadı.")).toBeNull();
     expect(paymentListKeyRefusal("")).toBeNull();

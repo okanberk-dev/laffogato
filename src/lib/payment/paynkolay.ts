@@ -513,9 +513,17 @@ function paymentListRows(payload: unknown): Record<string, unknown>[] {
     if (Object.values(body).some(Array.isArray)) return [];
     // `LIST: null` her yanıtta var (çekirdek servisin zarfı); yalnız "kayıt
     // yok" (`CORE0305`) boş liste demektir. Başka bir hata kodu "ödenmedi"
-    // değil, "soramadım"dır.
+    // değil, "soramadım"dır. Kodsuz yanıt da bir ret taşıyabilir (anahtar
+    // reddi canlıda `ERROR_CODE: ""` ile geldi): metni varsa ve "kayıt yok"
+    // demiyorsa o da hatadır.
     const errorCode = readField(body, "ERROR_CODE");
-    if ("LIST" in body && (!errorCode || errorCode === "CORE0305")) return [];
+    if (
+      "LIST" in body &&
+      (errorCode === "CORE0305" ||
+        (!errorCode && (!message || /kay[ıi]t bulunamad/i.test(message))))
+    ) {
+      return [];
+    }
     throw new Error(
       `paynkolay PaymentList yanıtı işlem listesi taşımıyor${message ? `: ${message}` : ""}`,
     );
