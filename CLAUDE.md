@@ -31,8 +31,11 @@ yapılır.
   sunucu onu yalnızca PayNkolay'a iletir ve müşteri doğrudan bankanın
   3D ekranına gider (`PAYNKOLAY_CHECKOUT_MODE=direct`). **Kart saklanmaz**:
   kural 28, `docs/PAYNKOLAY.md` §15. Geliştirmede `MockPaymentProvider`.
-  iyzico 15 Eki 2026'da koddan kaldırıldı (hukuki metinlerde hâlâ geçiyor:
-  avukat onaylı R1 düzeltmesi bekliyor, `docs/LEGAL-REDLINES-2026-09.md` §3)
+  iyzico 15 Eki 2026'da koddan kaldırıldı; hukuki metinler 16 Eki 2026'da
+  PayNkolay'a çevrildi (`docs/LEGAL-REDLINES-2026-09.md` başındaki durum
+  tablosu; `tests/legal-docs.test.ts` metinde iyzico, uzun tire, "kart
+  sunucumuza uğramaz" ve cüzdan / hediye çeki sözü kalmadığını tutar). Metinler
+  avukat okumasını bekler
 - **Dil:** Arayüz **Türkçe**. Kod, dosya adı, identifier, commit mesajı
   **İngilizce**
 
