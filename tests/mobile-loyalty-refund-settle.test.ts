@@ -164,9 +164,15 @@ const {
   onOrderPaid,
   onOrderReversed,
   redeemStamps,
+  settleLoyaltyDebt,
 } = await import("@/lib/mobile/loyalty");
-const { grantCoupon, listCustomerCoupons, redeemCustomerCoupon } =
-  await import("@/lib/customer/coupons");
+const {
+  grantCoupon,
+  listCustomerCoupons,
+  redeemCustomerCoupon,
+  releaseCustomerCoupon,
+} = await import("@/lib/customer/coupons");
+const { getSettings } = await import("@/lib/admin/store");
 const { listMilestoneGrants } = await import("@/lib/mobile/milestones");
 
 const MEMBER = "eda@example.com";
@@ -237,7 +243,21 @@ async function loyaltyCoupons() {
   );
 }
 
+/** The operator changes the card size at /admin/mobil/ayarlar. */
+function setCardSize(stampTarget: number): void {
+  vi.mocked(getSettings).mockImplementation(
+    async () =>
+      ({
+        mobileApp: {
+          ...DEFAULT_MOBILE_APP_CONFIG,
+          loyalty: { ...DEFAULT_MOBILE_APP_CONFIG.loyalty, stampTarget },
+        },
+      }) as unknown as Awaited<ReturnType<typeof getSettings>>,
+  );
+}
+
 beforeEach(() => {
+  setCardSize(DEFAULT_MOBILE_APP_CONFIG.loyalty.stampTarget);
   vi.useFakeTimers({ toFake: ["Date"] });
   clock = Date.parse("2026-10-16T09:00:00.000Z");
   vi.setSystemTime(clock);
@@ -551,5 +571,172 @@ describe("a reversal below a milestone already given", () => {
       (c) => c.source === "milestone",
     );
     expect(milestoneCoupons).toHaveLength(1);
+  });
+});
+
+/**
+ * Second review of 16 Eki 2026: a settlement must only take coupons for
+ * stamps that order reversals actually took back. Growing or shrinking the
+ * card changes how the balance is read, never what a member owes.
+ */
+describe("a change of the card size is not a debt", () => {
+  it("a refund that reverses nothing keeps a coupon earned on the old card", async () => {
+    const big = order("ord-1", 192000); // ₺1.920 → 6 stamps
+    await pay(big);
+    tick();
+    const redeemed = await redeemStamps(MEMBER);
+    if (!redeemed.ok) throw new Error("redeem failed");
+    const small = order("ord-2", 20000); // ₺200 → 1
+    await pay(small);
+
+    setCardSize(8);
+    await reverse(refunded(small, 1000)); // ₺190 kept, still 1 stamp
+    expect(reversals("ord-2")).toHaveLength(0);
+    expect(ledger().filter((r) => r.kind === "unredeem")).toHaveLength(0);
+    expect((await loyaltyCoupons())[0].isActive).toBe(true);
+
+    // Cancelling the small order takes its one stamp; the card was paid by
+    // the big one, whose 6 stamps still stand.
+    await reverse({ ...small, status: "cancelled" }, true);
+    expect(reversals("ord-2")).toHaveLength(1);
+    expect((await loyaltyCoupons())[0].isActive).toBe(true);
+    expect(ledger().filter((r) => r.kind === "unredeem")).toHaveLength(0);
+  });
+
+  it("the same with till stamps (scenario A of the review)", async () => {
+    await counterStamps(6);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    const paid = order("ord-7", 20000); // 1 → lifetime 7
+    await pay(paid);
+    setCardSize(8);
+    await reverse(refunded(paid, 1000));
+    expect(ledger().filter((r) => r.kind === "unredeem")).toHaveLength(0);
+    expect((await loyaltyCoupons())[0].isActive).toBe(true);
+    // A settlement with no order behind it (the release hook) takes nothing
+    // either.
+    await settleLoyaltyDebt(MEMBER);
+    expect((await loyaltyCoupons())[0].isActive).toBe(true);
+  });
+
+  it("a card that shrank and a coupon bought on it are not a debt either", async () => {
+    setCardSize(8);
+    await counterStamps(8);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true); // cost 8
+    setCardSize(6);
+    const paid = order("ord-1", 100000); // +4 → 12; 12 − 6 = 6 available
+    await pay(paid);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true); // cost 6
+    // ₺10 back: ₺990 kept, still 4 stamps.
+    await reverse(refunded(paid, 1000));
+    expect(reversals("ord-1")).toHaveLength(0);
+    expect((await loyaltyCoupons()).every((c) => c.isActive)).toBe(true);
+  });
+
+  it("still takes back a coupon whose own stamps were reversed after the card grew", async () => {
+    await counterStamps(3);
+    const paid = order("ord-1", 100000); // +4 → 7
+    await pay(paid);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true); // a card of 6
+    setCardSize(8);
+    await reverse({ ...paid, status: "cancelled" }, true); // → 3
+    const [coupon] = await loyaltyCoupons();
+    expect(coupon.isActive).toBe(false);
+    const [unredeem] = ledger().filter((r) => r.kind === "unredeem");
+    // The row carries what the card cost, not the new card size.
+    expect(unredeem.delta).toBe(6);
+    expect((await getLoyalty(MEMBER)).lifetimeStamps).toBe(3);
+  });
+});
+
+/**
+ * A coupon is claimed when an order is created, before payment, so a
+ * reversal that lands while an unpaid order holds the coupon cannot take it.
+ * The cancel of that order hands it back unused, and the settlement then
+ * runs again (`releaseOrderInventory` → `settleLoyaltyDebt`).
+ */
+describe("a reward held by an unpaid order when its stamps were reversed", () => {
+  it("is taken back once the unpaid order lets go of it (scenario B)", async () => {
+    const a = order("ord-1", 180000); // ₺1.800 → 6
+    await pay(a);
+    tick();
+    const redeemed = await redeemStamps(MEMBER);
+    if (!redeemed.ok) throw new Error("redeem failed");
+    tick();
+    expect(
+      await redeemCustomerCoupon(redeemed.coupon.code, MEMBER, 20009),
+    ).toBe(true);
+
+    await reverse({ ...a, status: "refunded" }, true);
+    // Held: it cannot be taken yet, and the debt stays on the ledger.
+    expect((await loyaltyCoupons())[0].isActive).toBe(true);
+    expect(ledger().filter((r) => r.kind === "unredeem")).toHaveLength(0);
+
+    // Order B is cancelled unpaid: the store hands the coupon back and
+    // settles again.
+    tick();
+    expect(
+      await releaseCustomerCoupon(redeemed.coupon.code, MEMBER, 20009),
+    ).toBe(true);
+    await settleLoyaltyDebt(MEMBER);
+    const [coupon] = await loyaltyCoupons();
+    expect(coupon).toMatchObject({ isActive: false, redeemedAt: "" });
+    expect(ledger().filter((r) => r.kind === "unredeem")).toHaveLength(1);
+    expect(await getLoyalty(MEMBER)).toMatchObject({
+      stamps: 0,
+      lifetimeStamps: 0,
+      rewardsReady: 0,
+    });
+    // Another settlement (a retry) changes nothing.
+    await settleLoyaltyDebt(MEMBER);
+    expect(ledger().filter((r) => r.kind === "unredeem")).toHaveLength(1);
+  });
+
+  it("stays used when the order that held it is paid after all", async () => {
+    const a = order("ord-1", 180000); // 6
+    await pay(a);
+    tick();
+    const redeemed = await redeemStamps(MEMBER);
+    if (!redeemed.ok) throw new Error("redeem failed");
+    tick();
+    await redeemCustomerCoupon(redeemed.coupon.code, MEMBER, 20009);
+    await reverse({ ...a, status: "refunded" }, true);
+    await settleLoyaltyDebt(MEMBER);
+    const [coupon] = await loyaltyCoupons();
+    expect(coupon.isActive).toBe(true);
+    expect(coupon.redeemedAt).not.toBe("");
+    // The debt of 6 is paid by the next six stamps.
+    await counterStamps(6);
+    expect((await getLoyalty(MEMBER)).stamps).toBe(0);
+    await counterStamps(1);
+    expect((await getLoyalty(MEMBER)).stamps).toBe(1);
+  });
+
+  it("the same for a milestone gift", async () => {
+    await counterStamps(7);
+    const paid = order("ord-1", 100000); // +4 → 11: the tenth-stamp gift
+    await pay(paid);
+    const [given] = await listMilestoneGrants(MEMBER);
+    const gift = (await listCustomerCoupons(MEMBER)).find(
+      (c) => c.id === given.couponId,
+    )!;
+    tick();
+    expect(await redeemCustomerCoupon(gift.code, MEMBER, 20010)).toBe(true);
+
+    await reverse({ ...paid, status: "cancelled" }, true); // → 7
+    expect((await listMilestoneGrants(MEMBER)).map((g) => g.milestone)).toEqual(
+      [10],
+    );
+
+    tick();
+    expect(await releaseCustomerCoupon(gift.code, MEMBER, 20010)).toBe(true);
+    await settleLoyaltyDebt(MEMBER);
+    expect(await listMilestoneGrants(MEMBER)).toEqual([]);
+    expect(
+      (await listCustomerCoupons(MEMBER)).find((c) => c.id === gift.id),
+    ).toMatchObject({ isActive: false, redeemedAt: "" });
   });
 });

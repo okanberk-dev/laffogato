@@ -26,7 +26,7 @@ import {
   computeStampBalance,
   freeDrinkRewardFor,
   plannedStampReversals,
-  redeemsToWithdraw,
+  plannedWithdrawals,
   rewardReadyAt,
   stampsByOrder,
   stampsForOrder,
@@ -240,7 +240,10 @@ export interface OrderReversalOptions {
  * - Then `settleLoyaltyDebt`: when the reversed stamps had already paid for a
  *   free-drink coupon or reached a milestone gift, the unused ones are taken
  *   back. It runs on every call, even when no new row was written, so a
- *   retry also finishes a settlement that stopped half-way.
+ *   retry also finishes a settlement that stopped half-way; it only ever
+ *   takes coupons for stamps order reversals actually took back
+ *   (`reversalDebt`), so a call that reversed nothing cannot take a coupon
+ *   on its own.
  *
  * Pay → earn → ask for a refund (in full or in parts) was a way to collect
  * free drinks; this closes both doors.
@@ -292,10 +295,12 @@ export async function onOrderReversed(
  * (`grantMilestoneGifts`). The reversal alone only wrote negative stamps: the
  * coupons stayed live and `available` clamped at 0 hid the hole.
  *
- * 1. Free drinks. While `target × redeemed > lifetime` (`stampDebt`), one
- *    `redeem` row per card the stamps no longer cover is withdrawn, newest
- *    first (`redeemsToWithdraw`), and for each the newest UNUSED, unexpired
- *    `loyalty` coupon is taken back (`withdrawUnusedCoupon`). The withdrawal
+ * 1. Free drinks. While reversals left a debt (`reversalDebt`: the redeemed
+ *    cards cost more than the stamps left, priced both at the current card
+ *    and at what each card cost, and never more than order reversals took
+ *    back), one `redeem` row per card the stamps no longer cover is
+ *    withdrawn, newest first (`plannedWithdrawals`), and for each the newest
+ *    UNUSED, unexpired `loyalty` coupon is taken back (`withdrawUnusedCoupon`). The withdrawal
  *    is an `unredeem` row with a deterministic id - written FIRST, so two
  *    settlements running together pick the same row and only one of them
  *    goes on to take a coupon. When no unused coupon is left to take (the
@@ -304,6 +309,10 @@ export async function onOrderReversed(
  *    `max(0, lifetime − target × redeemed)` with `redeemed` counting only
  *    the cards whose coupon still stands, so the stamps earned next pay the
  *    debt off before a new card fills. Used coupons stay used.
+ *    A coupon held by an order that is not paid yet counts as used here
+ *    (`redeemedAt` is set when the order is created). If that order is
+ *    cancelled the coupon comes back unused, and `releaseOrderInventory`
+ *    (admin store) calls this again so it is taken back then.
  * 2. Milestones. Every milestone above the new lifetime whose gift is still
  *    unused is clawed back (`clawBackMilestoneGifts`): coupon withdrawn,
  *    claim row dropped, so it can be earned again later.
@@ -320,7 +329,7 @@ export async function settleLoyaltyDebt(email: string): Promise<void> {
 
   let rows = await listStamps(owner);
   let coupons: CustomerCoupon[] | null = null;
-  const withdrawals = redeemsToWithdraw(rows, target);
+  const withdrawals = plannedWithdrawals(rows, target);
   if (withdrawals.length > 0) {
     coupons = await listCustomerCoupons(owner);
     const nowMs = Date.now();
@@ -339,12 +348,12 @@ export async function settleLoyaltyDebt(email: string): Promise<void> {
           ? b.id.localeCompare(a.id)
           : b.createdAt.localeCompare(a.createdAt),
       );
-    for (const redeemId of withdrawals) {
+    for (const { redeemId, cost } of withdrawals) {
       const row: LoyaltyStamp = {
         id: unredeemId(redeemId),
         customerEmail: owner,
         kind: "unredeem",
-        delta: target,
+        delta: cost,
         source: "order",
         orderId: "",
         note: "Ödül geri alındı: damgaları iade/iptal edildi",

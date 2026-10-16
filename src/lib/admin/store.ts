@@ -2097,6 +2097,7 @@ async function insertOrderRow(
         ? await releaseCustomerCoupon(promoCode, f.customerEmail, f.orderNo)
         : false;
       if (!returned) await releasePromoUsage(promoCode);
+      else await settleLoyaltyAfterRelease(f.customerEmail, f.orderNo);
     } catch (releaseErr) {
       console.error(
         `[orders] releasing ${promoCode} after a failed order insert failed`,
@@ -3587,6 +3588,33 @@ async function releaseOrderInventory(order: AdminOrder): Promise<void> {
         )
       : false;
     if (!returned) await releasePromoUsage(order.promoCode);
+    else await settleLoyaltyAfterRelease(order.customerEmail, order.orderNo);
+  }
+}
+
+/**
+ * A coupon handed back by an order that was never paid is unused again. If
+ * it is a free drink or a milestone gift whose stamps a refund or a cancel
+ * took back while this order held it, the settlement then could not take it
+ * (a held coupon reads as used) and left the debt on the ledger. Settle
+ * again now, or the member keeps a reward for stamps they no longer have.
+ * A no-op when nothing is owed.
+ *
+ * Lazily imported and best-effort, like the other loyalty hooks: the cancel
+ * must go through whatever happens here.
+ */
+async function settleLoyaltyAfterRelease(
+  email: string,
+  orderNo: number,
+): Promise<void> {
+  try {
+    const { settleLoyaltyDebt } = await import("@/lib/mobile/loyalty");
+    await settleLoyaltyDebt(email);
+  } catch (err) {
+    console.error(
+      `[loyalty] settlement after coupon release failed orderNo=${orderNo}`,
+      err,
+    );
   }
 }
 

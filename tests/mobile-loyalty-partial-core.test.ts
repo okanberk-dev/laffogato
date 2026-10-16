@@ -4,7 +4,9 @@ import {
   computeStampBalance,
   orderStampHoldings,
   plannedStampReversals,
+  plannedWithdrawals,
   redeemsToWithdraw,
+  reversalDebt,
   stampDebt,
   stampedOrderIds,
   stampRefundedGoodsMinor,
@@ -191,14 +193,59 @@ describe("the debt a reversal leaves under spent cards", () => {
   it("withdraws one card per card short, newest first", () => {
     const rows = [
       row("earn", 8),
+      row("earn", 10, "ord-1"),
       row("redeem", -6),
       row("redeem", -6),
       row("redeem", -6),
+      ...Array.from({ length: 10 }, (_, i) =>
+        row("reversal", -1, "ord-1", { id: stampReversalId("ord-1", i + 1) }),
+      ),
     ];
     // 8 against 18: 10 short → two cards.
-    const [, older, middle, newest] = rows;
+    const [, , older, middle, newest] = rows;
     expect(redeemsToWithdraw(rows, 6)).toEqual([newest.id, middle.id]);
     expect(redeemsToWithdraw(rows, 6)).not.toContain(older.id);
+    expect(reversalDebt(rows, 6)).toBe(10);
+  });
+
+  it("owes nothing without a reversal, whatever the card size says", () => {
+    // Two cards of 6 redeemed, then the card grew to 8: the balance reads
+    // 12 against 16, but no stamp was ever taken back.
+    const rows = [row("earn", 12), row("redeem", -6), row("redeem", -6)];
+    expect(stampDebt(computeStampBalance(rows, 8), 8)).toBe(4);
+    expect(reversalDebt(rows, 8)).toBe(0);
+    expect(plannedWithdrawals(rows, 8)).toEqual([]);
+  });
+
+  it("prices a card at what it cost, and never above what reversals took", () => {
+    const base = [
+      row("earn", 3),
+      row("earn", 4, "ord-1"),
+      row("redeem", -6),
+      ...[4, 3, 2, 1].map((i) =>
+        row("reversal", -1, "ord-1", { id: stampReversalId("ord-1", i) }),
+      ),
+    ];
+    // At a card of 8: owed min(8, 6) − 3 = 3, capped by the 4 reversed.
+    expect(reversalDebt(base, 8)).toBe(3);
+    expect(plannedWithdrawals(base, 8)).toEqual([
+      { redeemId: base[2].id, cost: 6 },
+    ]);
+    // One stamp reversed while the card grew from 6 to 8: two cards of 6
+    // against 12 stamps are still paid in full.
+    const reversedOne = (counter: number) => [
+      row("earn", counter),
+      row("earn", 1, "ord-2"),
+      row("redeem", -6),
+      row("redeem", -6),
+      row("reversal", -1, "ord-2", { id: stampReversalId("ord-2", 1) }),
+    ];
+    expect(reversalDebt(reversedOne(12), 8)).toBe(0);
+    // With 11 till stamps the reversed one was under a card: 1 owed, one
+    // card withdrawn.
+    const short = reversedOne(11);
+    expect(reversalDebt(short, 6)).toBe(1);
+    expect(redeemsToWithdraw(short, 6)).toEqual([short[3].id]);
   });
 });
 

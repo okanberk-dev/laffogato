@@ -24,7 +24,7 @@ export interface LoyaltyStamp {
   /**
    * Stamps earned (+1 per till stamp; an app cafe order earns `stampsFor` its
    * goods, so +2 or more on a big order), −target for a redeemed reward,
-   * +target for an `unredeem`, and for a reversal −1 per stamp an order gives
+   * +the withdrawn card's cost for an `unredeem`, and for a reversal −1 per stamp an order gives
    * back (one row per stamp, see `plannedStampReversals`; rows written before
    * 16 Eki 2026 carry the order's whole earn delta in one row, −1 for a till
    * correction).
@@ -274,9 +274,12 @@ export function unredeemId(redeemRowId: string): string {
 }
 
 /**
- * Stamps the member owes: what their redeemed cards cost beyond the stamps
- * they still hold, after a reversal took back stamps a card was paid with.
- * 0 when nothing is owed.
+ * Stamps the member owes on the balance: what their redeemed cards cost at
+ * the CURRENT card size beyond the stamps they still hold. This is the hole
+ * `computeStampBalance` keeps under its clamp at 0 (the next stamps fill it
+ * before a new card does). It is not what a settlement takes coupons for:
+ * an operator who grows the card makes this positive without any stamp
+ * having been reversed; see `reversalDebt`.
  */
 export function stampDebt(
   balance: Pick<StampBalance, "lifetimeStamps" | "redeemCount">,
@@ -287,30 +290,116 @@ export function stampDebt(
 }
 
 /**
- * The `redeem` rows a debt withdraws, newest first: one per card the stamps
- * no longer cover (`ceil(debt / target)`), never one already withdrawn.
- * Deterministic for a given ledger, so two callers settling the same debt at
- * the same moment pick the same rows and the primary key on `unredeemId`
- * keeps one withdrawal per row.
+ * What one card cost when it was redeemed: the stamps its `redeem` row (or
+ * the `unredeem` row that withdrew it) carries. A row without a usable
+ * delta is priced at the current card.
  */
-export function redeemsToWithdraw(
-  rows: readonly Pick<LoyaltyStamp, "id" | "kind" | "delta" | "createdAt">[],
-  stampTarget: number = STAMP_TARGET,
-): string[] {
-  const target = Math.max(1, Math.round(stampTarget));
-  const debt = stampDebt(computeStampBalance(rows, target), target);
-  if (debt <= 0) return [];
+function cardCost(row: { delta?: number }, target: number): number {
+  const n = Math.round(Math.abs(Number(row.delta)));
+  return Number.isFinite(n) && n > 0 ? n : target;
+}
+
+type SettleRow = Pick<
+  LoyaltyStamp,
+  "id" | "kind" | "delta" | "createdAt" | "orderId"
+>;
+
+function openRedeems<T extends SettleRow>(rows: readonly T[]): T[] {
   const withdrawn = new Set(
     rows.filter((r) => r.kind === "unredeem").map((r) => r.id),
   );
-  const open = rows
+  return rows
     .filter((r) => r.kind === "redeem" && !withdrawn.has(unredeemId(r.id)))
     .sort((a, b) =>
       a.createdAt === b.createdAt
         ? b.id.localeCompare(a.id)
         : b.createdAt.localeCompare(a.createdAt),
     );
-  return open.slice(0, Math.ceil(debt / target)).map((r) => r.id);
+}
+
+/**
+ * The stamps a settlement may still take coupons back for: the part of the
+ * member's debt that ORDER REVERSALS created and no withdrawal has covered
+ * yet. The smallest of three numbers:
+ *
+ * 1. The debt at the current card: `target × open cards − lifetime`.
+ * 2. The debt at what each card really cost (its own `redeem` delta). A card
+ *    of 6 redeemed before the operator grew the card to 8 still cost 6: the
+ *    setting re-reads the BALANCE at 8 (that is what it promises), but it
+ *    never makes a member owe a coupon they paid for in full.
+ * 3. The stamps order reversals took back, minus what the withdrawals so far
+ *    settled (the cost on each `unredeem` row). Without a reversal nothing
+ *    is ever owed: a change of the card size, a till correction (refused
+ *    when it would leave the member short) or a hand edit is not a refund.
+ *
+ * 1 and 2 together keep a card-size change in either direction from
+ * inventing a debt; 3 keeps it from ever exceeding what refunds and cancels
+ * actually took back. Settlement uses this, never `stampDebt`.
+ */
+export function reversalDebt(
+  rows: readonly SettleRow[],
+  stampTarget: number = STAMP_TARGET,
+): number {
+  const target = Math.max(1, Math.round(stampTarget));
+  const lifetime = computeStampBalance(rows, target).lifetimeStamps;
+  const open = openRedeems(rows);
+  const atCurrent = target * open.length;
+  const atCost = open.reduce((sum, r) => sum + cardCost(r, target), 0);
+  const owed = Math.min(atCurrent, atCost) - lifetime;
+  if (owed <= 0) return 0;
+  let reversed = 0;
+  for (const holding of orderStampHoldings(rows).values()) {
+    reversed += holding.reversed;
+  }
+  let settled = 0;
+  for (const r of rows)
+    if (r.kind === "unredeem") settled += cardCost(r, target);
+  return Math.max(0, Math.min(owed, reversed - settled));
+}
+
+/** One card a settlement withdraws. */
+export interface PlannedWithdrawal {
+  /** The `redeem` row withdrawn. */
+  redeemId: string;
+  /** What that card cost; the `unredeem` row carries it. */
+  cost: number;
+}
+
+/**
+ * The `redeem` rows a reversal debt withdraws, newest first, as few as clear
+ * it (`reversalDebt` re-read after each), never one already withdrawn.
+ * Deterministic for a given ledger, so two callers settling the same debt at
+ * the same moment pick the same rows and the primary key on `unredeemId`
+ * keeps one withdrawal per row.
+ */
+export function plannedWithdrawals(
+  rows: readonly SettleRow[],
+  stampTarget: number = STAMP_TARGET,
+): PlannedWithdrawal[] {
+  const target = Math.max(1, Math.round(stampTarget));
+  const sim: SettleRow[] = [...rows];
+  const plan: PlannedWithdrawal[] = [];
+  for (const redeem of openRedeems(rows)) {
+    if (reversalDebt(sim, target) <= 0) break;
+    const cost = cardCost(redeem, target);
+    plan.push({ redeemId: redeem.id, cost });
+    sim.push({
+      id: unredeemId(redeem.id),
+      kind: "unredeem",
+      delta: cost,
+      createdAt: "",
+      orderId: "",
+    });
+  }
+  return plan;
+}
+
+/** The ids of {@link plannedWithdrawals}. */
+export function redeemsToWithdraw(
+  rows: readonly SettleRow[],
+  stampTarget: number = STAMP_TARGET,
+): string[] {
+  return plannedWithdrawals(rows, stampTarget).map((w) => w.redeemId);
 }
 
 /** The loyalty knobs the operator turns; one shape for the core and the till. */

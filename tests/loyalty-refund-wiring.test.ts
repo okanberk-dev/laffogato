@@ -14,6 +14,9 @@ import { renderEmail } from "@/lib/email/render";
  */
 
 const onOrderReversed = vi.fn(async (..._args: unknown[]) => {});
+const settleLoyaltyDebt = vi.fn(async (..._args: unknown[]) => {});
+/** Whether `releaseCustomerCoupon` finds the member's coupon on the order. */
+let couponHeld = false;
 const sendOrderPaidEmail = vi.fn(async (..._args: unknown[]) => true);
 const notifyOrderRefunded = vi.fn(async () => {});
 
@@ -26,6 +29,11 @@ const exec: Executor = async ({ text }) => {
   }
   if (/^UPDATE "orders"/.test(text) && /RETURNING/.test(text)) {
     return { rows: [{ id: orderRow.id }], rowCount: 1 };
+  }
+  if (/^UPDATE "customer_coupons"/.test(text) && /RETURNING/.test(text)) {
+    return couponHeld
+      ? { rows: [{ id: "cpn-0001" }], rowCount: 1 }
+      : { rows: [], rowCount: 0 };
   }
   return { rows: [], rowCount: 1 };
 };
@@ -47,10 +55,15 @@ vi.mock("@/lib/admin/audit", () => ({ logAudit: vi.fn(async () => {}) }));
 vi.mock("@/lib/mobile/loyalty", () => ({
   onOrderPaid: vi.fn(async () => {}),
   onOrderReversed,
+  settleLoyaltyDebt,
 }));
 
-const { applyPaymentSucceeded, finalizeRefund, recordProviderRefund } =
-  await import("@/lib/admin/store");
+const {
+  applyPaymentSucceeded,
+  finalizeRefund,
+  recordProviderRefund,
+  transitionOrder,
+} = await import("@/lib/admin/store");
 
 function order(over: Partial<AdminOrder> = {}): AdminOrder {
   return {
@@ -81,6 +94,8 @@ const refund = (id: string, amountMinor: number) => ({
 
 beforeEach(() => {
   onOrderReversed.mockClear();
+  settleLoyaltyDebt.mockClear();
+  couponHeld = false;
   sendOrderPaidEmail.mockClear();
   notifyOrderRefunded.mockClear();
   orderRow = order() as unknown as Record<string, unknown>;
@@ -149,6 +164,30 @@ describe("every refund settles the stamps", () => {
     ];
     expect(opts).toEqual({ full: true });
     expect(passed.status).toBe("refunded");
+  });
+});
+
+describe("a coupon handed back by an unpaid order", () => {
+  // Review of 16 Eki 2026: a reward held by an unpaid order reads as used, so
+  // a reversal cannot take it; once the order lets go, settle again.
+  it("settles the member's loyalty again when their coupon comes back", async () => {
+    orderRow = order({
+      status: "pending_payment",
+      promoCode: "SD-ABC123",
+    }) as unknown as Record<string, unknown>;
+    couponHeld = true;
+    const out = await transitionOrder("ord-0001", "cancel");
+    expect(out.ok).toBe(true);
+    expect(settleLoyaltyDebt).toHaveBeenCalledWith("eda@example.com");
+  });
+
+  it("does not when no personal coupon came back", async () => {
+    orderRow = order({
+      status: "pending_payment",
+      promoCode: "HOSGELDIN",
+    }) as unknown as Record<string, unknown>;
+    await transitionOrder("ord-0001", "cancel");
+    expect(settleLoyaltyDebt).not.toHaveBeenCalled();
   });
 });
 
