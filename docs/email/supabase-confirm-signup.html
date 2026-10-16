@@ -6,16 +6,69 @@
   (src/lib/email/send.ts · sendVerificationEmail).
 
   Değişkenler Supabase tarafından doldurulur: {{ .ConfirmationURL }}.
-  Tasarım src/lib/email/send.ts'teki mesajlarla aynı; biri değişirse diğeri de
-  değişmeli - üye ikisini de aynı markadan alıyor.
+  Tasarım sitenin e-posta şablonlarıyla aynı iskelet ve aynı <style> bloğu:
+  açık ve koyu modda okunur (src/lib/email/templates/README.md).
 -->
-<div style="font-family:'Montserrat',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#201c17">
-  <p style="font-size:16px">Merhaba,</p>
-  <p style="font-size:15px;line-height:1.6">L'Affogato hesabını oluşturduğun için teşekkürler. Sipariş verebilmek ve damgalarını toplayabilmek için e-posta adresini doğrulaman gerekiyor.</p>
-  <p style="margin:28px 0">
-    <a href="{{ .ConfirmationURL }}" style="background:#143d2b;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:14px;letter-spacing:0.04em">E-postamı doğrula</a>
-  </p>
-  <p style="font-size:13px;color:#5f594e;line-height:1.6">Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:<br><a href="{{ .ConfirmationURL }}" style="color:#8a6526">{{ .ConfirmationURL }}</a></p>
-  <p style="font-size:12px;color:#746b5d">Bağlantı 24 saat geçerlidir. Bu hesabı sen oluşturmadıysan e-postayı yok say - hesap açılmaz.</p>
-  <p style="font-size:13px;color:#201c17;margin-top:24px">- L'Affogato · Coffee Italiano</p>
-</div>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>L'Affogato - E-postanı doğrula</title>
+<style>
+/* Satir ici stiller tek basina yeterlidir; bu blok yalnizca iyilestirmedir.
+   Koyu mod siniflarla: em-card/em-panel/em-foot/em-bg yuzeyler, em-t1/t2/t3
+   metin, em-tg altin, em-tb yesil metin, em-ln cizgi. Yesil ve pirinc
+   yuzeylerdeki ogeler sinif tasimaz: iki modda da okunur. */
+:root{color-scheme:light dark;supported-color-schemes:light dark}
+@media only screen and (max-width:620px){
+  table[width="598"],table[width="510"],table[width="460"],table[width="440"],table[width="420"],table[width="380"]{width:100%!important}
+  .em-pad{padding-left:22px!important;padding-right:22px!important}
+  img[width="598"]{width:100%!important;height:auto!important}
+  td[width="150"]{width:33%!important}
+}
+@media (prefers-color-scheme:dark){
+  body,.em-bg{background:#12100e!important}
+  .em-card{background:#1c1916!important}
+  .em-panel{background:#27221d!important}
+  .em-foot{background:#171411!important}
+  .em-t1{color:#f3ece3!important}
+  .em-t2{color:#d3c9bd!important}
+  .em-t3{color:#a99d91!important}
+  .em-tg{color:#e8c877!important}
+  .em-tb{color:#8fd3b6!important}
+  .em-ln{border-color:#3a332c!important}
+  .em-only-light{display:none!important}
+  .em-only-dark{display:inline-block!important}
+}
+[data-ogsb] body,[data-ogsb] .em-bg{background:#12100e!important}
+[data-ogsb] .em-card{background:#1c1916!important}
+[data-ogsb] .em-panel{background:#27221d!important}
+[data-ogsb] .em-foot{background:#171411!important}
+[data-ogsc] .em-t1{color:#f3ece3!important}
+[data-ogsc] .em-t2{color:#d3c9bd!important}
+[data-ogsc] .em-t3{color:#a99d91!important}
+[data-ogsc] .em-tg{color:#e8c877!important}
+[data-ogsc] .em-tb{color:#8fd3b6!important}
+</style>
+</head>
+<body class="em-bg" style="margin:0;padding:0;background:#f7f3ed;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="em-bg" style="width:100%;border-collapse:collapse;background:#f7f3ed">
+  <tr><td align="center" style="padding:24px 12px 40px">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="598" class="em-card em-ln" style="width:100%;max-width:598px;border-collapse:separate;background:#ffffff;border:1px solid #e3dbcf;border-radius:20px">
+<tr><td bgcolor="#1d6d56" style="height:8px;line-height:8px;font-size:0;background:#1d6d56;border-radius:20px 20px 0 0">&nbsp;</td></tr>
+<tr><td class="em-pad" align="center" style="padding:28px 44px 0;line-height:0;font-size:0"><img src="https://laffogato.net/email/logo-laf-tile.png" width="76" height="76" alt="L'Affogato" style="display:inline-block;border:0;outline:none;text-decoration:none;width:76px;height:76px;border-radius:19px"></td></tr>
+<tr><td class="em-pad" align="center" style="padding:26px 44px 0"><div class="em-tg" style="font:700 12px/1.4 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;letter-spacing:0.24em;color:#765923">HESAP DOĞRULAMA</div></td></tr>
+<tr><td class="em-pad" align="center" style="padding:12px 44px 0"><div class="em-tb" style="font-family:'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-weight:700;font-size:30px;line-height:1.2;letter-spacing:-0.01em;color:#17594a;mso-line-height-rule:exactly">E-postanı doğrula</div></td></tr>
+<tr><td class="em-pad" align="center" style="padding:18px 44px 0"><div class="em-t2" style="font:400 16px/1.65 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#564d46">Merhaba,<br>L'Affogato hesabını oluşturduğun için teşekkürler. Sipariş verebilmek ve damgalarını toplayabilmek için e-posta adresini doğrulaman gerekiyor.</div></td></tr><tr><td class="em-pad" align="center" style="padding:28px 44px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate"><tr><td bgcolor="#1d6d56" style="background:#1d6d56;border-radius:999px"><a href="{{ .ConfirmationURL }}" style="display:block;padding:17px 40px;font-family:'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-weight:700;font-size:13px;line-height:1;letter-spacing:0.14em;color:#ffffff;text-decoration:none;border-radius:999px;mso-line-height-rule:exactly">E-POSTAMI DOĞRULA</a></td></tr></table></td></tr><tr><td class="em-pad" align="center" style="padding:22px 44px 0"><div class="em-t3" style="font:400 13px/1.6 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#6f655d">Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:<br><a class="em-tg" href="{{ .ConfirmationURL }}" style="color:#765923;word-break:break-all">{{ .ConfirmationURL }}</a></div></td></tr><tr><td class="em-pad" align="center" style="padding:16px 44px 0"><div class="em-t3" style="font:400 12px/1.6 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#6f655d">Bağlantı 24 saat geçerlidir. Bu hesabı sen oluşturmadıysan e-postayı yok say - hesap açılmaz.</div></td></tr>
+<tr><td class="em-pad" align="center" style="padding:22px 44px 0"><div class="em-t3" style="font:400 14px/1.5 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#6f655d">L'Affogato · Coffee Italiano</div></td></tr>
+<tr><td style="padding:0;height:36px;line-height:36px;font-size:0">&nbsp;</td></tr>
+<tr><td class="em-pad em-foot em-ln" align="center" style="background:#f3eee6;border-top:1px solid #e8e0d4;border-radius:0 0 20px 20px;padding:28px 44px 34px"><div style="line-height:0;font-size:0;padding-bottom:12px"><img src="https://laffogato.net/email/logo-laf-tile.png" width="34" height="34" alt="" style="display:inline-block;border:0;outline:none;text-decoration:none;width:34px;height:34px;border-radius:9px"></div><div class="em-tg" style="font:700 11px/1 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;letter-spacing:0.22em;color:#765923">L'AFFOGATO · TUZLA · İSTANBUL</div><div class="em-t3" style="margin-top:14px;font:400 12px/1.7 'Poppins',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;mso-line-height-rule:exactly;color:#6f655d"><a class="em-tg" href="https://laffogato.net" style="color:#765923">laffogato.net</a></div></td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>

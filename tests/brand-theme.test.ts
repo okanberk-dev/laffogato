@@ -55,9 +55,9 @@ const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
  * Note on the phone: the app is the source now. When lafmobil's tokens move,
  * the site moves in the same PR series (docs/SITE-PALETTE-SYNC.md in
  * lafmobil holds the value table). The one surface that has NOT moved yet
- * is the e-mails: their bands, glint GIF and badges are rasters with the
- * Köşk green #143d2b baked in, so the HTML cannot change colour without the
- * images being redrawn with it (see the mail block below).
+ * was the e-mails, until 15 Eki 2026: their baked bands and glint GIF went
+ * with the light/dark restyle, and the mail is on this palette now (see the
+ * mail block below).
  * Contrast is a separate guard in contrast.test.ts.
  */
 describe("palette follows the app's porcelain", () => {
@@ -282,11 +282,10 @@ describe("surfaces outside globals.css follow the same palette", () => {
    * not resolve, so both spell the palette out. That is the only reason they
    * kept a retired one long after globals.css moved.
    *
-   * The link preview and the PayNkolay bridge moved with the site. The mail
-   * templates are on the Köşk green (#143d2b) still, knowingly: their dark
-   * band, the logo glint GIF (whose first frame is what Outlook shows) and
-   * the badges are rasters with that green baked in, so the HTML can only
-   * move together with redrawn images. When they move, these pins move too.
+   * The link preview and the PayNkolay bridge moved with the site, and the
+   * mail followed on 15 Eki 2026: the baked bands became an HTML bar and the
+   * logo pair plus the glint GIF one opaque tile, so the HTML could change
+   * colour at last.
    */
   it("shares the link preview as the app icon: L'Af on the house green", () => {
     // Moved with the site on 25 Eyl 2026 (opengraph-image.tsx is a front-end
@@ -310,12 +309,16 @@ describe("surfaces outside globals.css follow the same palette", () => {
   });
 
   it("sends transactional mail in the site's ink, green and gold", () => {
-    expect(emails).toContain("background:#143d2b"); // --brand, the button
-    expect(emails).toContain("color:#201c17"); // --ink
-    // The site dropped its serif; the mail should not still be setting one.
-    expect(emails).toContain("Montserrat");
+    expect(emails).toContain("background:#1d6d56"); // --brand, the button
+    expect(emails).toContain("color:#211c18"); // --ink
+    expect(emails).toContain("color:#765923"); // --gold, text gold
+    // The site's text face; the site dropped its serif long ago.
+    expect(emails).toContain("Poppins");
+    expect(emails).not.toContain("Montserrat");
     expect(emails).not.toContain("Times New Roman");
     for (const hex of [
+      "#143d2b",
+      "#201c17",
       "#3A2A20",
       "#F6EFE4",
       "#C49A5A",
@@ -347,13 +350,13 @@ describe("surfaces outside globals.css follow the same palette", () => {
         ).toBe(true);
       }
     }
-    // The lockup: the L'Af letterforms at 200 px, no frame around them
-    // (operator, 8 Sep 2026 evening; source logos/2.png). Three files carry
-    // it - the espresso PNG for a light card, the cream PNG the dark-mode
-    // media query swaps in, and the GIF whose gold glint runs once over the
-    // deep-green band. The GIF's first frame is the plain cream mark, which
-    // is what Outlook renders.
+    // The lockup (15 Eki 2026): the app icon as an opaque rounded tile - L'Af
+    // in cream on the house green. Opaque on purpose: Gmail's dark mode
+    // inverts colours but not images, so a transparent mark (the old
+    // espresso/cream pair) vanished on an inverted card. The old files stay
+    // in public/email because mails already in inboxes still point at them.
     for (const file of [
+      "logo-laf-tile.png",
       "logo-laf-espresso.png",
       "logo-laf-cream.png",
       "logo-laf-glint.gif",
@@ -363,10 +366,10 @@ describe("surfaces outside globals.css follow the same palette", () => {
         `public/email/${file} is missing`,
       ).toBe(true);
     }
-    // Every template shows the lockup, and never the retired badge.
+    // Every template shows the tile, and never the retired badge.
     for (const [file, source] of templateFiles) {
       expect(
-        /logo-laf-(espresso|cream|glint)/.test(source),
+        source.includes("logo-laf-tile.png"),
         `${file} shows no lockup`,
       ).toBe(true);
       expect(source, `${file} still points at the retired badge`).not.toContain(
