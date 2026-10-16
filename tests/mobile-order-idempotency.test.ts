@@ -73,10 +73,20 @@ const findAppOrderByClientId = vi.fn(
     ) ?? null,
 );
 
+/**
+ * What the POS says about the last attempt before a second page is opened
+ * (`checkPendingOrderPaid`, the web checkout's gate). Unpaid unless a test
+ * says otherwise; an amount mismatch arrives here as "unknown".
+ */
+const checkPendingOrderPaid = vi.fn(
+  async (): Promise<"paid" | "unpaid" | "unknown"> => "unpaid",
+);
+
 vi.mock("@/lib/admin/store", () => ({
   PENDING_ORDER_TTL_MINUTES: 45,
   applyPaymentSucceeded: vi.fn(async () => ({ ok: true as const })),
   applyPromoCode: vi.fn(),
+  checkPendingOrderPaid,
   customerOrdersByEmail: vi.fn(async () => placed),
   expireStalePendingOrders: vi.fn(async () => 0),
   findAppOrderByClientId,
@@ -180,6 +190,8 @@ beforeEach(() => {
   createCheckoutSession.mockClear();
   reserveLoginAttempt.mockReset();
   reserveLoginAttempt.mockResolvedValue(OPEN_GATE);
+  checkPendingOrderPaid.mockReset();
+  checkPendingOrderPaid.mockResolvedValue("unpaid");
 });
 
 describe("POST /orders - clientOrderId", () => {
@@ -394,10 +406,104 @@ describe("reopening the POS is budgeted per member", () => {
     reserveLoginAttempt.mockResolvedValue(BLOCKED);
     const paid = await payAppOrder(customer, first.order.id);
     expect(paid.ok).toBe(false);
-    if (paid.ok || paid.reason !== "rate_limited") {
-      throw new Error(`expected rate_limited, got ${JSON.stringify(paid)}`);
+    if (paid.ok || paid.reason !== "refused") {
+      throw new Error(`expected refused, got ${JSON.stringify(paid)}`);
     }
     expect(paid.failure.code).toBe("rate_limited");
     expect(createCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it("asks the POS only after the budget, so a spent budget asks nothing", async () => {
+    await createAppOrder(customer, body("attempt-1"));
+    reserveLoginAttempt.mockResolvedValue(BLOCKED);
+    await createAppOrder(customer, body("attempt-1"));
+    expect(checkPendingOrderPaid).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * PayNkolay takes a second sale on the same `clientRefCode` (docs/PAYNKOLAY.md
+ * §2). A payment whose return was lost - a closed tab, a phone that locked on
+ * the bank's page - leaves the order `pending_payment`, and a second page then
+ * charged the card twice. Both doors that reopen an order ask the POS first
+ * (`checkPendingOrderPaid`), after the reopen budget and before the session.
+ */
+describe("reopening asks the POS about the last attempt first", () => {
+  /** The lookup books a payment it finds (applyPaymentSucceeded) before it answers. */
+  function paidAtThePos() {
+    checkPendingOrderPaid.mockImplementationOnce(async () => {
+      placed[0] = { ...placed[0]!, status: "paid" } as AdminOrder;
+      return "paid";
+    });
+  }
+
+  it("POST /orders/{id}/payment: a payment the POS holds is booked, no session, not_payable", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    createCheckoutSession.mockClear();
+    paidAtThePos();
+    const answer = await payAppOrder(customer, first.order.id);
+    if (answer.ok || answer.reason !== "not_payable") {
+      throw new Error(`expected not_payable, got ${JSON.stringify(answer)}`);
+    }
+    expect(answer.order.status).toBe("paid");
+    expect(createCheckoutSession).not.toHaveBeenCalled();
+    expect(checkPendingOrderPaid).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(checkPendingOrderPaid).mock.calls[0]).toEqual([
+      expect.objectContaining({ id: first.order.id }),
+      expect.objectContaining({ name: "mock" }),
+    ]);
+  });
+
+  it("POST /orders/{id}/payment: a POS that cannot be asked is 503 payment_unavailable, no session", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    createCheckoutSession.mockClear();
+    checkPendingOrderPaid.mockResolvedValueOnce("unknown");
+    const answer = await payAppOrder(customer, first.order.id);
+    if (answer.ok || answer.reason !== "refused") {
+      throw new Error(`expected refused, got ${JSON.stringify(answer)}`);
+    }
+    expect(answer.failure).toMatchObject({
+      status: 503,
+      code: "payment_unavailable",
+    });
+    expect(answer.failure.message).toMatch(/doğrulayamıyoruz/);
+    expect(createCheckoutSession).not.toHaveBeenCalled();
+    expect(placed[0]!.status).toBe("pending_payment");
+  });
+
+  it("the clientOrderId replay: a payment the POS holds is booked and answered without a session", async () => {
+    await createAppOrder(customer, body("attempt-1"));
+    createCheckoutSession.mockClear();
+    paidAtThePos();
+    const retry = await createAppOrder(customer, body("attempt-1"));
+    expect(retry.ok).toBe(true);
+    if (!retry.ok) return;
+    expect(retry.order.status).toBe("paid");
+    expect(retry.payment).toBeNull();
+    expect(createCheckoutSession).not.toHaveBeenCalled();
+    expect(placeAppOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it("the clientOrderId replay: a POS that cannot be asked is 503 payment_unavailable, no session", async () => {
+    await createAppOrder(customer, body("attempt-1"));
+    createCheckoutSession.mockClear();
+    checkPendingOrderPaid.mockResolvedValueOnce("unknown");
+    const retry = await createAppOrder(customer, body("attempt-1"));
+    expect(retry.ok).toBe(false);
+    if (retry.ok) return;
+    expect(retry.failure).toMatchObject({
+      status: 503,
+      code: "payment_unavailable",
+    });
+    expect(createCheckoutSession).not.toHaveBeenCalled();
+    expect(placeAppOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it("a first checkout asks nothing: there is no earlier attempt", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    expect(first.ok && first.payment?.redirectUrl).toBeTruthy();
+    expect(checkPendingOrderPaid).not.toHaveBeenCalled();
   });
 });

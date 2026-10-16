@@ -41,7 +41,7 @@ describe("POST /orders/{id}/payment", () => {
   it("is 429 rate_limited with Retry-After once the reopen budget is spent", async () => {
     payAppOrder.mockResolvedValue({
       ok: false,
-      reason: "rate_limited",
+      reason: "refused",
       failure: LIMITED,
     });
     const res = await payment.POST(
@@ -56,6 +56,32 @@ describe("POST /orders/{id}/payment", () => {
     const body = await res.json();
     expect(body.error).toBe("rate_limited");
     expect(body.message).toBe(LIMITED.message);
+  });
+});
+
+describe("POST /orders/{id}/payment while the POS cannot be asked", () => {
+  it("is 503 payment_unavailable with the server's sentence", async () => {
+    const UNVERIFIED = {
+      status: 503,
+      code: "payment_unavailable",
+      message:
+        "Önceki ödemenin durumunu şu an doğrulayamıyoruz. Birkaç dakika sonra tekrar dene.",
+    };
+    payAppOrder.mockResolvedValue({
+      ok: false,
+      reason: "refused",
+      failure: UNVERIFIED,
+    });
+    const res = await payment.POST(
+      new Request("https://laffogato.net/api/mobile/v1/orders/ord-1/payment", {
+        method: "POST",
+      }) as never,
+      { params: Promise.resolve({ id: "ord-1" }) },
+    );
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.error).toBe("payment_unavailable");
+    expect(body.message).toBe(UNVERIFIED.message);
   });
 });
 
