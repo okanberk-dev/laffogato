@@ -80,17 +80,30 @@ export function CustomerCoupons({
                   >
                     {badge.label}
                   </span>
-                  <form action={revokeCustomerCouponAction}>
-                    <input type="hidden" name="id" value={c.id} />
-                    <input type="hidden" name="email" value={email} />
-                    <button
-                      type="submit"
-                      className="text-xs text-rose-600 underline-offset-2 hover:underline"
-                      title="Kuponu sil"
-                    >
-                      Sil
-                    </button>
-                  </form>
+                  {/* A stamp-card or milestone coupon is never deleted (its
+                      card would lose its coupon and give the stamps back):
+                      unused ones are deactivated, used or inactive ones have
+                      nothing left to do. */}
+                  {(c.source === "loyalty" || c.source === "milestone") &&
+                  (c.redeemedAt || !c.isActive) ? null : (
+                    <form action={revokeCustomerCouponAction}>
+                      <input type="hidden" name="id" value={c.id} />
+                      <input type="hidden" name="email" value={email} />
+                      <button
+                        type="submit"
+                        className="text-xs text-rose-600 underline-offset-2 hover:underline"
+                        title={
+                          c.source === "loyalty" || c.source === "milestone"
+                            ? "Kuponu pasifleştir"
+                            : "Kuponu sil"
+                        }
+                      >
+                        {c.source === "loyalty" || c.source === "milestone"
+                          ? "Pasifleştir"
+                          : "Sil"}
+                      </button>
+                    </form>
+                  )}
                 </div>
               </li>
             );

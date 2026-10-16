@@ -193,6 +193,7 @@ const {
   listCustomerCoupons,
   redeemCustomerCoupon,
   releaseCustomerCoupon,
+  revokeCustomerCoupon,
 } = await import("@/lib/customer/coupons");
 const { getSettings } = await import("@/lib/admin/store");
 const { listMilestoneGrants } = await import("@/lib/mobile/milestones");
@@ -1764,7 +1765,7 @@ describe("review 5, defect 2: the grace window, with a paused query", () => {
     expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(1);
   });
 
-  it("POLICY: a loyalty coupon an admin hard-deletes leaves a card with no coupon; past the grace window its stamps come back", async () => {
+  it("POLICY: a loyalty coupon removed behind the app's back (a database edit) leaves a card with no coupon; past the grace window its stamps come back", async () => {
     const c = await redeemedMember();
     const i = tables.customer_coupons.findIndex((x) => x.id === c.id);
     tables.customer_coupons.splice(i, 1);
@@ -1774,6 +1775,71 @@ describe("review 5, defect 2: the grace window, with a paused query", () => {
     await settleLoyaltyDebt(MEMBER);
     expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(0);
     expect((await getLoyalty(MEMBER)).rewardsReady).toBe(1);
+  });
+});
+
+describe('review 5, the admin "Sil" never gives stamps back', () => {
+  async function stateOf() {
+    const view = await getLoyalty(MEMBER);
+    return {
+      stamps: view.stamps,
+      rewardsReady: view.rewardsReady,
+      lifetime: view.lifetimeStamps,
+      redeems: ledger().filter((r) => r.kind === "redeem").length,
+    };
+  }
+
+  it("a USED loyalty coupon is left as it is: no second free drink for the same stamps", async () => {
+    const c = await redeemedMember();
+    expect(await redeemCustomerCoupon(c.code, MEMBER, 91001)).toBe(true);
+    const before = await stateOf();
+    expect(await revokeCustomerCoupon(c.id)).toBe(false);
+    pastGrace();
+    await settleLoyaltyDebt(MEMBER);
+    expect(await stateOf()).toEqual(before);
+    expect(before.rewardsReady).toBe(0);
+    const [used] = await loyaltyCoupons();
+    expect(used).toMatchObject({ id: c.id, isActive: true });
+    expect(used.redeemedAt).not.toBe("");
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(false);
+  });
+
+  it("an UNUSED loyalty coupon is deactivated, not deleted: the card keeps its coupon and no stamps come back", async () => {
+    const c = await redeemedMember();
+    const before = await stateOf();
+    expect(await revokeCustomerCoupon(c.id)).toBe(true);
+    expect(await loyaltyCoupons()).toHaveLength(1);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(0);
+    pastGrace();
+    await settleLoyaltyDebt(MEMBER);
+    expect(await stateOf()).toEqual(before);
+    expect(unredeems()).toHaveLength(0);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(false);
+    // A second "Sil" finds nothing to do.
+    expect(await revokeCustomerCoupon(c.id)).toBe(false);
+  });
+
+  it("a milestone gift is deactivated too; any other kind is still deleted", async () => {
+    tick();
+    const gift = await grantCoupon({
+      email: MEMBER,
+      kind: "fixed",
+      value: 1000,
+      source: "milestone",
+    });
+    const welcome = await grantCoupon({
+      email: MEMBER,
+      kind: "pct",
+      value: 10,
+      source: "welcome",
+    });
+    expect(await revokeCustomerCoupon(gift.id)).toBe(true);
+    // (the in-memory database returns no rows for a DELETE, so only the effect is read)
+    await revokeCustomerCoupon(welcome.id);
+    const left = await listCustomerCoupons(MEMBER);
+    expect(left.map((x) => [x.id, x.isActive])).toEqual([[gift.id, false]]);
   });
 });
 

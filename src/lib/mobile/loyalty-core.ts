@@ -485,6 +485,12 @@ function withdrawnCards(rows: readonly Pick<CardRow, "id" | "kind">[]) {
  *    only the coupon is left to take.
  * 3. while `stampCoverage < 0`, the newest standing card's coupon, at that
  *    card's cost.
+ *    MIGRATION NOTE: a ledger that already owed a reversal before this rule
+ *    existed (coverage -1 on first read) loses its newest unused coupon at
+ *    its first trigger, legacy `cpn-NNNN` ones included. A reversal row does
+ *    not say which version wrote it, so legacy coupons cannot be spared
+ *    "only for old reversals" without also sparing them for new ones;
+ *    documented in docs/AUDIT.md instead.
  *
  * Deterministic for a given ledger and coupon list, so two settlements running
  * at once pick the same coupon and the primary key on `unredeemId` plus the
@@ -614,11 +620,15 @@ export function couponlessCards<T extends CardRow & { source?: string }>(
  * member's stamps against a card nobody can use. Within the grace window the
  * row is a redeem in flight and is never touched.
  *
- * POLICY (deliberate, the consequence of this rule): the card and its coupon
- * live and die together. A coupon an admin hard-deletes
- * (`revokeCustomerCoupon`) leaves a card with no coupon, and after the grace
- * window its stamps are given back - the mirror image of a hand-deleted
- * `redeem` row withdrawing its coupon (`nextFreeDrinkWithdrawal`, rule 1).
+ * POLICY (deliberate): the card and its coupon live and die together. A
+ * hand-deleted loyalty coupon would give the stamps back after the grace
+ * window - also when the coupon was already used, a second free drink for the
+ * same stamps - so the admin "Sil" never deletes one: `revokeCustomerCoupon`
+ * deactivates an unused loyalty / milestone coupon and leaves a used one
+ * alone, and the card keeps its coupon. Only a coupon removed behind the
+ * app's back (a database edit) returns the stamps, the mirror image of a
+ * hand-deleted `redeem` row withdrawing its coupon (`nextFreeDrinkWithdrawal`,
+ * rule 1).
  */
 export function abandonedCards<T extends CardRow & { source?: string }>(
   rows: readonly T[],

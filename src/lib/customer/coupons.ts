@@ -452,10 +452,45 @@ export async function adminListCustomerCoupons(
   return listCustomerCoupons(email);
 }
 
-/** Hard-delete a coupon by id. Returns true when a row was removed. */
+/**
+ * Admin "Sil". A stamp card's free drink and a milestone gift
+ * (`source` loyalty / milestone) are NEVER deleted: the card that bought the
+ * coupon is found through the coupon (`settleLoyaltyDebt`), and a card with
+ * no coupon is dropped as abandoned after a grace window, which gives its
+ * stamps back - a second free drink for the same stamps, also when the
+ * deleted coupon had been used. So an unused one is deactivated (the card
+ * still has its coupon, nothing comes back) and a used or already inactive
+ * one is left exactly as it is (it can no longer be spent). Every other kind
+ * is deleted as before. Returns true when a row was removed or deactivated.
+ */
 export async function revokeCustomerCoupon(id: string): Promise<boolean> {
   if (!id) return false;
   const sb = getDb();
+  const found = await sb
+    .from(TABLES.customerCoupons)
+    .select("id, source, redeemedAt, isActive")
+    .eq("id", id);
+  checkErr(found.error, "revokeCustomerCoupon.read");
+  const coupon = (
+    found.data as
+      | { id: string; source: string; redeemedAt: string; isActive: boolean }[]
+      | null
+  )?.[0];
+  if (
+    coupon &&
+    (coupon.source === "loyalty" || coupon.source === "milestone")
+  ) {
+    if (coupon.redeemedAt || !coupon.isActive) return false;
+    const { data, error } = await sb
+      .from(TABLES.customerCoupons)
+      .update({ isActive: false, updatedAt: new Date().toISOString() })
+      .eq("id", id)
+      .eq("redeemedAt", "")
+      .eq("isActive", true)
+      .select("id");
+    checkErr(error, "revokeCustomerCoupon.deactivate");
+    return ((data as { id: string }[] | null) ?? []).length > 0;
+  }
   const { data, error } = await sb
     .from(TABLES.customerCoupons)
     .delete()
