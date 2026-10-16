@@ -907,6 +907,12 @@ detaylarını toplamayalım, PayNkolay'da kalsın"_. §9.1'deki "kart saklama v1
 dışında" kararının yerini alır. Kart PayNkolay'ın kart saklama hizmetinde
 durur; biz yalnız onu üyeyle eşleştiren anahtarı tutarız.
 
+**Açma anahtarı:** `PAYNKOLAY_CARD_STORAGE=on`. PayNkolay kart saklamayı üye
+işyerine ayrıca yetkiyle açar; operatör yetkiyi 16 Eki 2026'da istedi. Yetki
+gelene kadar değişken boş kalır: yüke üye anahtarı girmez, kayıtlı kart
+listesi, "kartımı kaydet" ve silme görünmez, POS'a `cs*` alanı gitmez. Yetki
+gelince Vercel'de `on` yapılıp yeniden yayınlanır.
+
 ### 16.1 Ölçülen API (sandbox, Postman "Kart Saklama")
 
 | İş | Uç | Alanlar | Hash |

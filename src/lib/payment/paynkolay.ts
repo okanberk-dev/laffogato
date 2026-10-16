@@ -166,6 +166,13 @@ export interface PaynkolayConfig {
    * `hosted` (varsayılan): PayNkolay'ın ortak ödeme sayfası (§15).
    */
   checkoutMode?: PaynkolayCheckoutMode;
+  /**
+   * PayNkolay'ın kart saklama hizmeti (§16) üye işyeri için açık mı. Açılması
+   * PayNkolay'ın ayrıca yetki vermesine bağlı (16 Eki 2026: operatör yetkiyi
+   * istedi). Kapalıyken yüke üye anahtarı girmez: kayıtlı kart listesi,
+   * "kartımı kaydet" ve silme hiç sunulmaz, POS'a `cs*` alanı gitmez.
+   */
+  cardStorage?: boolean;
 }
 
 /** Ara sayfanın tarayıcıya kurduğu form. */
@@ -527,9 +534,13 @@ function readField(row: Record<string, unknown>, ...names: string[]): string {
 export class PaynkolayPaymentProvider implements PaymentProvider {
   readonly name = "paynkolay";
 
-  private readonly cfg: Omit<PaynkolayConfig, "baseUrl" | "checkoutMode"> & {
+  private readonly cfg: Omit<
+    PaynkolayConfig,
+    "baseUrl" | "checkoutMode" | "cardStorage"
+  > & {
     baseUrl: string;
     checkoutMode: PaynkolayCheckoutMode;
+    cardStorage: boolean;
   };
 
   constructor(cfg: PaynkolayConfig) {
@@ -537,7 +548,13 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       ...cfg,
       baseUrl: (cfg.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, ""),
       checkoutMode: cfg.checkoutMode ?? "hosted",
+      cardStorage: cfg.cardStorage ?? false,
     };
+  }
+
+  /** Kart saklama açık mı (yetki + `direct` mod). */
+  get cardStorageEnabled(): boolean {
+    return this.cfg.cardStorage && this.cfg.checkoutMode === "direct";
   }
 
   /** Ara sayfa kart formunu mu gösterir, ortak ödeme sayfasına mı gönderir. */
@@ -1012,7 +1029,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     // düz base64'tür ve adres çubuğunda, geçmişte okunurdu - orada zaten
     // saklı kart sunulmuyor.
     const member =
-      this.cfg.checkoutMode === "direct" &&
+      this.cardStorageEnabled &&
       PAYNKOLAY_MEMBER_KEY.test(input.cardUserKey ?? "")
         ? input.cardUserKey
         : undefined;

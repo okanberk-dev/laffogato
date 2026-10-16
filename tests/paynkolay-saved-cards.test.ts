@@ -32,6 +32,7 @@ function makeProvider() {
     successUrl: "https://laffogato.net/odeme/donus",
     failUrl: "https://laffogato.net/odeme/donus",
     checkoutMode: "direct",
+    cardStorage: true,
   });
 }
 
@@ -171,6 +172,30 @@ describe("the member key", () => {
     // The hosted form still saves nothing.
     expect(post.fields.customerKey).toBe("");
     expect(Object.values(post.fields)).not.toContain(MEMBER);
+  });
+
+  it("stays out of the payload until PayNkolay grants card storage", async () => {
+    // Off by default (PAYNKOLAY_CARD_STORAGE unset): no member key, so no
+    // saved-card list, no "kartımı kaydet", no cs* field to the POS.
+    const off = new PaynkolayPaymentProvider({
+      sx: "SX-TOKEN",
+      sxList: "SX-LIST",
+      sxCancel: "SX-CANCEL",
+      merchantSecretKey: SECRET,
+      merchantNo: "400000001",
+      baseUrl: "https://paynkolaytest.nkolayislem.com.tr",
+      successUrl: "https://laffogato.net/odeme/donus",
+      failUrl: "https://laffogato.net/odeme/donus",
+      checkoutMode: "direct",
+    });
+    expect(off.cardStorageEnabled).toBe(false);
+    const session = await off.createCheckoutSession(checkoutInput(MEMBER));
+    const url = new URL(session.redirectUrl);
+    const post = off.readBridgePost(
+      url.searchParams.get("d")!,
+      url.searchParams.get("s")!,
+    );
+    expect(post?.member).toBeUndefined();
   });
 
   it("stays out of the hosted mode's plain, readable payload", async () => {

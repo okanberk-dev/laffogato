@@ -83,6 +83,9 @@ export function getPaymentProvider(): PaymentProvider {
         successUrl: required("PAYNKOLAY_SUCCESS_URL", "paynkolay"),
         failUrl: required("PAYNKOLAY_FAIL_URL", "paynkolay"),
         checkoutMode: paynkolayCheckoutMode(),
+        cardStorage: ["1", "true", "on"].includes(
+          (process.env.PAYNKOLAY_CARD_STORAGE ?? "").trim().toLowerCase(),
+        ),
       });
       return cached;
     }
