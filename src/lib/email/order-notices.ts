@@ -2,20 +2,31 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
-import { orderFulfillment, orderKind } from "@/lib/admin/order-channel";
+import {
+  orderChannel,
+  orderFulfillment,
+  orderKind,
+} from "@/lib/admin/order-channel";
 import type { AdminOrder, AdminRefund } from "@/lib/admin/store";
 import { getDb, TABLES } from "@/lib/db";
+import { stampsForOrder } from "@/lib/mobile/loyalty-core";
 
 import {
   sendOrderCancelledEmail,
+  sendOrderPaidEmail,
   sendOrderRefundedEmail,
   sendOrderShippedEmail,
   type SendResult,
 } from "./send";
 
 /**
- * The three order mails the legal texts promise, each sent once.
+ * The order mails, each sent once.
  *
+ *   paid       the payment is confirmed (`applyPaymentSucceeded` moved the
+ *              order to `paid`). The customer's first and only mail about
+ *              the order until it ships: no mail goes out while the payment
+ *              is pending (operator, 16 Eki 2026). It carries the lines, the
+ *              total and the contract links (durable medium, MSY m.7).
  *   shipped    Teslimat ve Kargo Politikası m.15 and the Mesafeli Satış
  *              Sözleşmesi: the tracking number goes to the buyer's address
  *              when the parcel is handed to the carrier.
@@ -117,6 +128,9 @@ export function refundNoticeKind(refundId: string): string {
 
 export const CANCEL_NOTICE_KIND = "cancelled";
 
+/** One "ödemen alındı" per order, whichever confirmation gets there first. */
+export const PAID_NOTICE_KIND = "paid";
+
 /** A 'sending' claim older than this belongs to a request that died. */
 const STALE_CLAIM_MS = 15 * 60_000;
 
@@ -214,7 +228,10 @@ async function once(
   }
   let result: SendResult;
   try {
-    result = await deliver(`order-${order.id}-${kind}`);
+    result = (await deliver(`order-${order.id}-${kind}`)) ?? {
+      ok: false,
+      error: "no result",
+    };
   } catch (err) {
     result = {
       ok: false,
@@ -224,7 +241,10 @@ async function once(
   try {
     await settle(order.id, kind, result);
   } catch (err) {
-    console.error(`[order-notice] ${kind} settle failed order=${order.id}`, err);
+    console.error(
+      `[order-notice] ${kind} settle failed order=${order.id}`,
+      err,
+    );
   }
   if (!result.ok) {
     console.error(
@@ -334,3 +354,45 @@ export async function notifyOrderRefunded(
  * one claim.
  */
 export { claim as claimOrderNotice, settle as settleOrderNotice };
+
+/**
+ * "Ödemen alındı", once per order, after the payment moved it to `paid`.
+ * Every channel and kind (a shop parcel, an app cafe order) gets it; a
+ * checkout placeholder or a closed account does not. The caller is the one
+ * place an order becomes paid (`applyPaymentSucceeded`), and only when its
+ * guarded update actually advanced the order; the claim makes a replayed or
+ * concurrent confirmation a `duplicate` rather than a second mail.
+ */
+export async function notifyOrderPaid(
+  order: AdminOrder,
+): Promise<OrderNoticeOutcome> {
+  if (orderNoticeRecipient(order) === null) return "not_due";
+  return once(order, PAID_NOTICE_KIND, (key) =>
+    sendOrderPaidEmail(
+      {
+        to: orderNoticeRecipient(order) as string,
+        customerName: order.customerName ?? "",
+        orderNo: order.orderNo,
+        items: (order.items ?? []).map((it) => ({
+          productName: it.detail
+            ? `${it.productName} (${it.detail})`
+            : it.productName,
+          qty: it.qty,
+          unitPriceMinor: it.unitPriceMinor,
+        })),
+        subtotalMinor: order.subtotalMinor,
+        shippingMinor: order.shippingMinor,
+        totalMinor: order.totalMinor,
+        servedAtTable: orderFulfillment(order) === "table",
+        // The rule `onOrderPaid` stamps by: an app cafe order, one per started
+        // 320 TL of goods from 140 TL. Anything else earns none and the mail
+        // says nothing about stamps.
+        stampsEarned:
+          orderChannel(order) === "app" && orderKind(order) === "cafe"
+            ? stampsForOrder(order)
+            : 0,
+      },
+      key,
+    ),
+  );
+}

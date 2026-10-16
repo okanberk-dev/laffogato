@@ -492,16 +492,6 @@ function orderVars(o: OrderEmailData) {
   };
 }
 
-/** Sent when an order is created (payment still pending). */
-export async function sendOrderPlacedEmail(
-  o: OrderEmailData,
-): Promise<boolean> {
-  return sendTemplate("siparis-alindi", o.to, {
-    vars: orderVars(o),
-    loops: { ITEMS: itemRows(o.items) },
-  });
-}
-
 /**
  * The stamp target the operator has configured, for the "one more stamp" panel.
  *
@@ -523,23 +513,40 @@ export async function stampTarget(): Promise<string> {
 }
 
 /**
- * Sent when an order's payment is confirmed (status → paid). `stampsEarned`
- * is what the order earns on the stamp card (an app cafe order: one per
- * started 320 TL of goods from 140 TL); the stamp panel is left out when it
- * is 0 or absent, so a shop order is never promised a stamp.
+ * The one order mail a customer gets before the parcel leaves: sent once,
+ * when the payment is confirmed and the order moves to `paid` (a zero-total
+ * order counts as paid). It carries the lines, the total and the links to
+ * the confirmed Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi and
+ * cayma text - the durable copy Mesafeli Sözleşmeler Yönetmeliği asks for.
+ *
+ * There is no "siparişin alındı" mail before the payment any more (operator,
+ * 16 Eki 2026: "sipariş maili ödeme tam alınmadan gitmesin"): a declined
+ * card used to leave the customer one "order received" mail per attempt for
+ * orders that never existed for them. Who gets it, and exactly once, is
+ * decided by `notifyOrderPaid` (`order-notices.ts`).
+ *
+ * `stampsEarned` is what the order earns on the stamp card (an app cafe
+ * order: one per started 320 TL of goods from 140 TL); the stamp panel is
+ * left out when it is 0 or absent, so a shop order is never promised a stamp.
  */
 export async function sendOrderPaidEmail(
   o: OrderEmailData & { stampsEarned?: number },
-): Promise<boolean> {
+  idempotencyKey?: string,
+): Promise<SendResult> {
   const stamps = Math.max(0, Math.round(Number(o.stampsEarned ?? 0)) || 0);
-  return sendTemplate("odeme-onaylandi", o.to, {
-    vars: {
-      ...orderVars(o),
-      DAMGA_HEDEFI: await stampTarget(),
-      DAMGA_SAYISI: stamps > 0 ? String(stamps) : "",
+  return sendTemplateResult(
+    "odeme-onaylandi",
+    o.to,
+    {
+      vars: {
+        ...orderVars(o),
+        DAMGA_HEDEFI: await stampTarget(),
+        DAMGA_SAYISI: stamps > 0 ? String(stamps) : "",
+      },
+      loops: { ITEMS: itemRows(o.items) },
     },
-    loops: { ITEMS: itemRows(o.items) },
-  });
+    idempotencyKey,
+  );
 }
 
 // ── Order notices ──────────────────────────────────────────────────────────

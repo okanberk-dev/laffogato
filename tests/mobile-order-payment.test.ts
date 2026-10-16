@@ -74,8 +74,12 @@ describe("a reopened checkout carries the buyer's IP", () => {
     const to = orders.indexOf("export async function createAppOrder");
     expect(from).toBeGreaterThan(-1);
     const replay = orders.slice(from, to);
-    expect(replay).toContain("createAppPaymentSession(order, customer, await clientIp())");
-    expect(replay).not.toContain('createAppPaymentSession(order, customer, "")');
+    expect(replay).toContain(
+      "createAppPaymentSession(order, customer, await clientIp())",
+    );
+    expect(replay).not.toContain(
+      'createAppPaymentSession(order, customer, "")',
+    );
   });
 });
 
@@ -112,7 +116,13 @@ describe("a payment that cannot be applied to its order", () => {
   });
 
   it("does not mail 'ödemen alındı' for an order that is cancelled", () => {
-    expect(body).toContain("if (isFirstConfirmation && !unreconciled) {");
+    // Only a confirmation that moved the order to paid mails, once
+    // (order_notice_emails claim); a cancelled, repeated or second charge
+    // never advances it.
+    expect(body).toMatch(
+      /if \(advanced\) \{\s+await notifyOrderPaid\(\{ \.\.\.order, status: "paid", paidAt \}\);/,
+    );
+    expect(body).not.toContain("sendOrderPaidEmail(");
   });
 
   it("writes the unapplied payment to the audit log, not only to stderr", () => {

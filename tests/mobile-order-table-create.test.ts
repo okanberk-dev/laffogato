@@ -241,10 +241,11 @@ describe("POST /orders - fulfillment: table", () => {
     );
   });
 
-  it("mails the confirmation without a cargo line", async () => {
+  it("mails nothing before the payment (the paid mail carries no cargo line)", async () => {
+    // Operator, 16 Eki 2026: "sipariş maili ödeme tam alınmadan gitmesin".
+    // The confirmation goes out when the payment lands (notifyOrderPaid,
+    // tests/order-notice-emails.test.ts covers the table case).
     await createAppOrder(customer, body());
-    expect(sendOrderPlacedEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ servedAtTable: true }),
-    );
+    expect(sendOrderPlacedEmail).not.toHaveBeenCalled();
   });
 });

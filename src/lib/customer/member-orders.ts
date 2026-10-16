@@ -2,6 +2,8 @@ import "server-only";
 
 import { customerOrdersByEmail, type AdminOrder } from "@/lib/admin/store";
 
+import { memberMaySeeOrder } from "./member-order-visibility";
+
 /**
  * The orders a signed-in member may see on the site: matched by e-mail, and
  * only once that e-mail is proven theirs.
@@ -12,11 +14,15 @@ import { customerOrdersByEmail, type AdminOrder } from "@/lib/admin/store";
  * up - so whoever registered that address first saw the name, phone number
  * and delivery address on it. Web checkout already requires a verified
  * address; reading the history now does too.
+ *
+ * Unpaid attempts are left out (`memberMaySeeOrder`): an order the payment
+ * never completed is not one the member placed.
  */
 export async function memberOrders(customer: {
   email: string;
   emailVerified: boolean;
 }): Promise<AdminOrder[]> {
   if (!customer.emailVerified) return [];
-  return customerOrdersByEmail(customer.email);
+  const orders = await customerOrdersByEmail(customer.email);
+  return orders.filter(memberMaySeeOrder);
 }

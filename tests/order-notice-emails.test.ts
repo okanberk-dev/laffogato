@@ -26,7 +26,10 @@ function chain(op: "update" | "delete", patch?: Row) {
     const hit = rows.filter((r) => filters.every((f) => f(r)));
     if (op === "update") {
       for (const r of hit) Object.assign(r, patch);
-      return { data: selected ? hit.map((r) => ({ ...r })) : null, error: null };
+      return {
+        data: selected ? hit.map((r) => ({ ...r })) : null,
+        error: null,
+      };
     }
     for (const r of hit) rows.splice(rows.indexOf(r), 1);
     return { data: null, error: null };
@@ -75,14 +78,17 @@ vi.mock("@/lib/db", () => ({
 const sendOrderShippedEmail = vi.fn();
 const sendOrderCancelledEmail = vi.fn();
 const sendOrderRefundedEmail = vi.fn();
+const sendOrderPaidEmail = vi.fn();
 vi.mock("@/lib/email/send", () => ({
   sendOrderShippedEmail,
   sendOrderCancelledEmail,
   sendOrderRefundedEmail,
+  sendOrderPaidEmail,
 }));
 
 const {
   notifyOrderCancelled,
+  notifyOrderPaid,
   notifyOrderRefunded,
   notifyOrderShipped,
   shipmentNoticeKind,
@@ -176,7 +182,10 @@ describe("the tracking-number mail", () => {
     expect(await notifyOrderShipped(order())).toBe("duplicate");
     expect(
       await notifyOrderShipped(
-        order({ shipmentStatus: "shipped", trackingUrl: "https://kargo.example/t/1" }),
+        order({
+          shipmentStatus: "shipped",
+          trackingUrl: "https://kargo.example/t/1",
+        }),
       ),
     ).toBe("duplicate");
     expect(
@@ -266,7 +275,10 @@ describe("the tracking-number mail", () => {
 
 describe("the cancellation mail", () => {
   it("is sent once, saying whether money was taken", async () => {
-    const cancelled = order({ status: "cancelled", paidAt: "2026-09-20T10:05:00Z" });
+    const cancelled = order({
+      status: "cancelled",
+      paidAt: "2026-09-20T10:05:00Z",
+    });
     expect(await notifyOrderCancelled(cancelled, { collected: true })).toBe(
       "sent",
     );
@@ -275,33 +287,53 @@ describe("the cancellation mail", () => {
     );
     expect(sendOrderCancelledEmail).toHaveBeenCalledTimes(1);
     const [data, key] = sendOrderCancelledEmail.mock.calls[0];
-    expect(data).toMatchObject({ orderNo: 1042, collected: true, totalMinor: 45_000 });
+    expect(data).toMatchObject({
+      orderNo: 1042,
+      collected: true,
+      totalMinor: 45_000,
+    });
     expect(data.items).toEqual([
-      { productName: "Sirena Espresso Harmanı", qty: 1, unitPriceMinor: 45_000 },
+      {
+        productName: "Sirena Espresso Harmanı",
+        qty: 1,
+        unitPriceMinor: 45_000,
+      },
     ]);
     expect(key).toBe("order-ord-1-cancelled");
   });
 
   it("passes an unknown payment state through rather than guessing", async () => {
-    await notifyOrderCancelled(order({ status: "cancelled" }), { collected: null });
+    await notifyOrderCancelled(order({ status: "cancelled" }), {
+      collected: null,
+    });
     expect(sendOrderCancelledEmail.mock.calls[0][0].collected).toBeNull();
   });
 });
 
 describe("the refund mail", () => {
   it("is sent once per refund entry, with the running total", async () => {
-    const first = { id: "rfn-1-1695", amountMinor: 10_000, reason: "", createdAt: "" };
-    const second = { id: "rfn-2-1696", amountMinor: 5_000, reason: "", createdAt: "" };
+    const first = {
+      id: "rfn-1-1695",
+      amountMinor: 10_000,
+      reason: "",
+      createdAt: "",
+    };
+    const second = {
+      id: "rfn-2-1696",
+      amountMinor: 5_000,
+      reason: "",
+      createdAt: "",
+    };
     const afterFirst = order({ status: "paid", refunds: [first] });
     const afterSecond = order({ status: "paid", refunds: [first, second] });
 
-    expect(await notifyOrderRefunded(afterFirst, first, { viaCard: true })).toBe(
-      "sent",
-    );
+    expect(
+      await notifyOrderRefunded(afterFirst, first, { viaCard: true }),
+    ).toBe("sent");
     // The provider reporting the same refund again.
-    expect(await notifyOrderRefunded(afterFirst, first, { viaCard: true })).toBe(
-      "duplicate",
-    );
+    expect(
+      await notifyOrderRefunded(afterFirst, first, { viaCard: true }),
+    ).toBe("duplicate");
     expect(
       await notifyOrderRefunded(afterSecond, second, { viaCard: true }),
     ).toBe("sent");
@@ -337,7 +369,9 @@ describe("the cafe pickup flow gets none of them", () => {
     );
     // Even with a number typed into it by mistake.
     expect(
-      await notifyOrderShipped(cafePickup({ trackingNumber: "YK1", status: "shipped" })),
+      await notifyOrderShipped(
+        cafePickup({ trackingNumber: "YK1", status: "shipped" }),
+      ),
     ).toBe("not_due");
     expect(
       await notifyOrderCancelled(cafePickup({ status: "cancelled" }), {
@@ -345,7 +379,9 @@ describe("the cafe pickup flow gets none of them", () => {
       }),
     ).toBe("not_due");
     expect(
-      await notifyOrderRefunded(cafePickup({ refunds: [r] }), r, { viaCard: true }),
+      await notifyOrderRefunded(cafePickup({ refunds: [r] }), r, {
+        viaCard: true,
+      }),
     ).toBe("not_due");
     expect(sendOrderShippedEmail).not.toHaveBeenCalled();
     expect(sendOrderCancelledEmail).not.toHaveBeenCalled();
@@ -354,9 +390,9 @@ describe("the cafe pickup flow gets none of them", () => {
   });
 
   it("sends no tracking mail for a shop order the köşk's courier carries", async () => {
-    expect(
-      await notifyOrderShipped(order({ fulfillment: "delivery" })),
-    ).toBe("not_due");
+    expect(await notifyOrderShipped(order({ fulfillment: "delivery" }))).toBe(
+      "not_due",
+    );
   });
 });
 
@@ -397,6 +433,129 @@ describe("every trigger calls its notice", () => {
     expect(body(action, "refundOrderAction")).toMatch(
       // A wallet-paid order's refund goes back to the wallet, not a card.
       /finalizeRefund\(reserved\.order, \{\s*refund: reserved\.refund,[\s\S]*?viaCard: Boolean\(ref\) && ref\?\.provider !== WALLET_PROVIDER,/,
+    );
+  });
+});
+
+/**
+ * "Ödemen alındı" - the customer's one order mail before shipping (operator,
+ * 16 Eki 2026: "sipariş maili ödeme tam alınmadan gitmesin"). Nothing is
+ * mailed while the payment is pending; the paid mail leaves once.
+ */
+describe("the paid notice", () => {
+  beforeEach(() => {
+    sendOrderPaidEmail.mockReset();
+    sendOrderPaidEmail.mockResolvedValue({ ok: true, id: "re_1" });
+  });
+
+  it("is sent once, whichever confirmation gets there first", async () => {
+    const paid = order({ status: "paid", trackingNumber: "" });
+    expect(await notifyOrderPaid(paid)).toBe("sent");
+    expect(await notifyOrderPaid(paid)).toBe("duplicate");
+    expect(sendOrderPaidEmail).toHaveBeenCalledTimes(1);
+    const [data, key] = sendOrderPaidEmail.mock.calls[0];
+    expect(key).toBe("order-ord-1-paid");
+    expect(data).toMatchObject({
+      to: "eda@example.com",
+      orderNo: 1042,
+      totalMinor: 45_000,
+      items: [{ productName: "Sirena Espresso Harmanı", qty: 1 }],
+    });
+  });
+
+  it("goes to an app cafe order too, with the line's detail", async () => {
+    await notifyOrderPaid(
+      cafePickup({
+        status: "paid",
+        items: [
+          {
+            productName: "Latte",
+            detail: "Yulaf sütü",
+            qty: 1,
+            unitPriceMinor: 14_000,
+            status: "pending",
+          },
+        ] as AdminOrder["items"],
+      }),
+    );
+    expect(sendOrderPaidEmail.mock.calls[0][0].items[0].productName).toBe(
+      "Latte (Yulaf sütü)",
+    );
+  });
+
+  it("carries no cargo line for a table order", async () => {
+    await notifyOrderPaid(
+      cafePickup({ status: "paid", fulfillment: "table" as never }),
+    );
+    expect(sendOrderPaidEmail.mock.calls[0][0]).toMatchObject({
+      servedAtTable: true,
+    });
+  });
+
+  it("is retried after a failed delivery", async () => {
+    sendOrderPaidEmail.mockResolvedValueOnce({ ok: false, error: "down" });
+    const paid = order({ status: "paid" });
+    expect(await notifyOrderPaid(paid)).toBe("failed");
+    expect(await notifyOrderPaid(paid)).toBe("sent");
+  });
+
+  it("is not due for a checkout placeholder", async () => {
+    expect(
+      await notifyOrderPaid(order({ customerEmail: "guest@laffogato.local" })),
+    ).toBe("not_due");
+    expect(sendOrderPaidEmail).not.toHaveBeenCalled();
+  });
+
+  it("is the only order mail, sent where an order becomes paid", () => {
+    const store = readFileSync("src/lib/admin/store.ts", "utf8");
+    const pay = store.slice(
+      store.indexOf("export async function applyPaymentSucceeded"),
+      store.indexOf("export async function recordProviderRefund"),
+    );
+    expect(pay).toMatch(/if \(advanced\) \{\s+await notifyOrderPaid\(/);
+    const transition = store.slice(
+      store.indexOf("export async function transitionOrder"),
+      store.indexOf("async function noticeCancelled"),
+    );
+    expect(transition).toContain("notifyOrderPaid(");
+    // No "siparişin alındı" before payment, from the web or the app.
+    const send = readFileSync("src/lib/email/send.ts", "utf8");
+    expect(send).not.toContain("export async function sendOrderPlacedEmail");
+    for (const file of [
+      "src/app/odeme/actions.ts",
+      "src/lib/mobile/orders.ts",
+      "src/lib/admin/store.ts",
+    ]) {
+      const code = readFileSync(file, "utf8");
+      expect(code, file).not.toContain("sendOrderPlacedEmail");
+      expect(code, file).not.toContain("sendOrderPaidEmail(");
+    }
+  });
+
+  it("keeps the contract links on the mail the customer gets", () => {
+    const html = readFileSync(
+      "src/lib/email/templates/odeme-onaylandi.html",
+      "utf8",
+    );
+    for (const slug of [
+      "on-bilgilendirme-formu",
+      "mesafeli-satis-sozlesmesi",
+      "iade-ve-cayma",
+    ]) {
+      expect(html, slug).toContain(`/hukuk/${slug}`);
+    }
+    const text = readFileSync("src/lib/email/text.ts", "utf8");
+    const paidText = text.slice(text.indexOf('"odeme-onaylandi"'));
+    expect(paidText.slice(0, paidText.indexOf("SIGNATURE"))).toContain(
+      "[BELGELER]",
+    );
+  });
+
+  it("does not tell a customer about cancelling an attempt they never paid", () => {
+    const store = readFileSync("src/lib/admin/store.ts", "utf8");
+    const notice = store.slice(store.indexOf("async function noticeCancelled"));
+    expect(notice).toContain(
+      "if (unpaidAttempt && collected !== true) return;",
     );
   });
 });

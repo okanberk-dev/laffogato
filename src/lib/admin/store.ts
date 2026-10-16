@@ -32,10 +32,10 @@ import {
 import {
   cancelNoticeDue,
   notifyOrderCancelled,
+  notifyOrderPaid,
   notifyOrderRefunded,
   notifyOrderShipped,
 } from "@/lib/email/order-notices";
-import { sendOrderPaidEmail } from "@/lib/email/send";
 import { normalizeNotifyRoles } from "@/lib/email/staff-order-notice-core";
 import {
   DEFAULT_MOBILE_APP_CONFIG,
@@ -2880,7 +2880,11 @@ export async function placeAppOrder(
   const tableCode = (input.tableCode ?? "").trim();
   if (input.fulfillment === "table") {
     if (!tableCode) {
-      return { ok: false, reason: "bad_request", message: "Masa kodu gerekli." };
+      return {
+        ok: false,
+        reason: "bad_request",
+        message: "Masa kodu gerekli.",
+      };
     }
     if (input.scheduledFor) {
       return {
@@ -2955,7 +2959,11 @@ export async function placeAppOrder(
         return { ok: false, reason: "insufficient_balance" };
       }
       if (err instanceof WalletTotalChangedError) {
-        return { ok: false, reason: "total_changed", totalMinor: err.totalMinor };
+        return {
+          ok: false,
+          reason: "total_changed",
+          totalMinor: err.totalMinor,
+        };
       }
       throw err;
     }
@@ -3031,9 +3039,7 @@ export async function placeAppOrder(
 
 /** Why a payment arrived but could not be applied to its order. */
 export type PaymentReconcileReason =
-  | "amount_mismatch"
-  | "order_not_open"
-  | "duplicate_payment";
+  "amount_mismatch" | "order_not_open" | "duplicate_payment";
 
 export type PaymentApplyResult =
   | { ok: true; reconcile?: PaymentReconcileReason }
@@ -3216,7 +3222,7 @@ export async function applyPaymentSucceeded(input: {
     createdAt: new Date().toISOString(),
   });
   // A clean insert means this is the FIRST confirmation; a 23505 is a duplicate
-  // webhook/return - used below to send the "paid" e-mail exactly once.
+  // webhook/return - used below to tell a second charge from a replay.
   const isFirstConfirmation = !ins.error;
   if (ins.error && ins.error.code !== "23505") {
     return { ok: false, error: ins.error.message };
@@ -3303,39 +3309,14 @@ export async function applyPaymentSucceeded(input: {
     scheduleStaffNewOrderNotice(order.id, input.provider);
   }
 
-  // No "ödemen alındı" for an order that is cancelled: the customer used to be
-  // told their order was on its way while the row said otherwise.
-  if (isFirstConfirmation && !unreconciled) {
-    // Best-effort payment-confirmed e-mail (logs in dev when Resend is unset).
-    try {
-      if (
-        order.customerEmail &&
-        order.customerEmail !== "guest@laffogato.local"
-      ) {
-        await sendOrderPaidEmail({
-          to: order.customerEmail,
-          customerName: order.customerName,
-          orderNo: order.orderNo,
-          items: order.items.map((it) => ({
-            productName: it.productName,
-            qty: it.qty,
-            unitPriceMinor: it.unitPriceMinor,
-          })),
-          subtotalMinor: order.subtotalMinor,
-          shippingMinor: order.shippingMinor,
-          totalMinor: order.totalMinor,
-          // The rule `onOrderPaid` stamps by: an app cafe order, one per
-          // started 320 TL of goods from 140 TL. Anything else earns none
-          // and the mail says nothing about stamps.
-          stampsEarned:
-            orderChannel(order) === "app" && orderKind(order) === "cafe"
-              ? stampsForOrder(order)
-              : 0,
-        });
-      }
-    } catch (err) {
-      console.error("[email] order paid notification failed", err);
-    }
+  // "Ödemen alındı" - the customer's only order mail before shipping - goes
+  // out when, and only when, THIS confirmation moved the order to paid. Not
+  // for an order the sweep cancelled while the bank was asking (the customer
+  // used to be told it was on its way while the row said otherwise), not for
+  // a repeated or second confirmation, never twice (`notifyOrderPaid` claims
+  // its row first). It never throws into the payment that just landed.
+  if (advanced) {
+    await notifyOrderPaid({ ...order, status: "paid", paidAt });
   }
   return unreconciled ? { ok: true, reconcile: unreconciled } : { ok: true };
 }
@@ -3487,11 +3468,7 @@ export async function getOrderPaymentRef(orderId: string): Promise<{
 }
 
 export type OrderTransition =
-  | "start_preparing"
-  | "mark_shipped"
-  | "complete"
-  | "cancel"
-  | "mark_paid";
+  "start_preparing" | "mark_shipped" | "complete" | "cancel" | "mark_paid";
 
 const TRANSITION_MAP: Record<
   OrderTransition,
@@ -3709,11 +3686,20 @@ export async function transitionOrder(
   if (map.to === "cancelled") {
     await releaseOrderInventory(existing);
     await reverseLoyalty(existing, "cancelled", { full: true });
-    await noticeCancelled({ ...existing, status: "cancelled" });
+    await noticeCancelled(
+      { ...existing, status: "cancelled" },
+      {
+        unpaidAttempt:
+          existing.status === "pending_payment" && !existing.paidAt,
+      },
+    );
   } else if (settles) {
     // Idempotent on the order id, so a later payment webhook for the same
     // order does not hand out a second stamp.
     await awardLoyalty({ ...existing, status: map.to, paidAt }, "transition");
+    // Settled by hand is paid all the same: the customer's one order mail
+    // goes out now, once (a later POS confirmation finds it claimed).
+    await notifyOrderPaid({ ...existing, status: map.to, paidAt });
   }
   const nextOrder = { ...existing, ...patch, status: map.to };
   // "Kargoya ver" after the tracking number was typed: the parcel has left,
@@ -3729,7 +3715,10 @@ export async function transitionOrder(
  * mail carries: the refund to come, or "no payment on record". A failed
  * lookup says neither rather than guess about somebody's card.
  */
-async function noticeCancelled(order: AdminOrder): Promise<void> {
+async function noticeCancelled(
+  order: AdminOrder,
+  { unpaidAttempt = false }: { unpaidAttempt?: boolean } = {},
+): Promise<void> {
   if (!cancelNoticeDue(order)) return;
   let collected: boolean | null = Boolean(order.paidAt) || null;
   if (collected === null) {
@@ -3742,6 +3731,12 @@ async function noticeCancelled(order: AdminOrder): Promise<void> {
       );
     }
   }
+  // An attempt whose payment never completed was never an order for the
+  // customer: no mail went out for it (orders are mailed once paid,
+  // `notifyOrderPaid`) and it is not in their profile. Cancelling it says
+  // nothing - unless the POS shows money was taken after all, which the
+  // customer must hear about.
+  if (unpaidAttempt && collected !== true) return;
   await notifyOrderCancelled(order, { collected });
 }
 
@@ -4156,13 +4151,12 @@ export async function refundOrder(
  * between visitors, and outside a render (actions, route handlers) it reads
  * every time.
  */
-export const getPublicSettings = cache(
-  async (): Promise<AdminSettings> =>
-    publicRead(
-      "getPublicSettings",
-      { ...defaultSettings(), isShopOpen: false },
-      () => getSettings(),
-    ),
+export const getPublicSettings = cache(async (): Promise<AdminSettings> =>
+  publicRead(
+    "getPublicSettings",
+    { ...defaultSettings(), isShopOpen: false },
+    () => getSettings(),
+  ),
 );
 
 export async function getSettings(): Promise<AdminSettings> {
@@ -4761,8 +4755,7 @@ function normalizeCode(raw: string): string {
 }
 
 export type PromoMutationResult =
-  | { ok: true; promo: AdminPromo }
-  | { ok: false; error: string };
+  { ok: true; promo: AdminPromo } | { ok: false; error: string };
 
 export async function createPromo(
   input: PromoInput,

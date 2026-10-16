@@ -191,10 +191,13 @@ describe("POST /orders - clientOrderId", () => {
     expect(placed).toHaveLength(1);
   });
 
-  it("does not mail the confirmation twice", async () => {
+  it("mails nothing while the order is unpaid, however often it is retried", async () => {
+    // Operator, 16 Eki 2026: "sipariş maili ödeme tam alınmadan gitmesin".
+    // The customer's one order mail goes out when the payment moves the
+    // order to paid (notifyOrderPaid), never at creation.
     await createAppOrder(customer, body("attempt-1"));
     await createAppOrder(customer, body("attempt-1"));
-    expect(sendOrderPlacedEmail).toHaveBeenCalledTimes(1);
+    expect(sendOrderPlacedEmail).not.toHaveBeenCalled();
   });
 
   it("re-opens the checkout for the retry - provider sessions expire", async () => {
@@ -293,7 +296,7 @@ describe("POST /orders/{id}/payment", () => {
     expect(paid.payment.redirectUrl).toBeTruthy();
     expect(createCheckoutSession).toHaveBeenCalledTimes(1);
     expect(placeAppOrder).toHaveBeenCalledTimes(1);
-    expect(sendOrderPlacedEmail).toHaveBeenCalledTimes(1);
+    expect(sendOrderPlacedEmail).not.toHaveBeenCalled();
   });
 
   it("answers a stranger's id exactly like a missing one", async () => {
