@@ -697,11 +697,15 @@ Rezervasyon ödenince kendiliğinden `confirmed` olur ve `karaoke-rezervasyon`
 **makbuz** olarak gider (`KARAOKE_ODENDI`): ödenen tutar, operatörün iki
 cümlesi ("Rezervasyon saatine 2 saatten fazla varken iptal edersen…" / "…2
 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi
-yapılmaz."), cayma hakkı yokluğu (MSY m.15/1-g), işletme iptalinde tam iade ve
-rezervasyonun imzalı sayfası (`[KARAOKE_LINK]`, `/rezervasyon?t=…`; misafir
-rezervasyonu yalnız bununla yönetilir). Köşkte ödenen eski akışta
+yapılmaz."), cayma hakkı yokluğu (MSY m.15/1-g), rezervasyonun imzalı sayfası
+(`[KARAOKE_LINK]`, `/rezervasyon?t=…`; misafir rezervasyonu yalnız bununla
+yönetilir) ve koşulların tamamına bağlantı. İşletme iptalinde tam iade ve
+tahsilatın ayrıntısı (PayNkolay, tek çekim) mailde yok, bağlantılı belgede
+(17 Eki 2026, metin kısaltma). Köşkte ödenen eski akışta
 `KARAOKE_ODEME_MEKANDA` bölümü gider. İptalde `karaoke-iptal` iade tutarını
-(`KARAOKE_IADE`) ya da ödeme alınmadığını (`KARAOKE_ODEMESIZ`) söyler.
+(`KARAOKE_IADE`) ya da ödeme alınmadığını (`KARAOKE_ODEMESIZ`) söyler. İki
+mail de baştan sona "sen" der; ortak uygulama bloğu ("Köşk cebinizde") ailenin
+"siz"iyle kalır.
 
 Operatöre iki yeni iç mail: `sendKaraokePaidOperatorEmail` (ödendi ve
 kesinleşti, `Idempotency-Key: karaoke-<id>-paid`; ödenmemiş rezervasyon için
