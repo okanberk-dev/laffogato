@@ -39,14 +39,14 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 - [Mağaza](/magaza): Çekirdek kahve, edible cup, hediye seti, ekipman, giyim
 - [Hikaye](/hikayemiz): 1897 Bologna'dan 2026 İstanbul'a markanın hikayesi
 - [Ziyaret](/ziyaret): Tuzla lokasyonu, ulaşım, gömülü harita (rezervasyon telefonla)
-- [Kampanyalar](/kampanyalar): Sezon kampanyaları, iş birlikleri ve etkinlikler; damga kartı (uygulamadan verilen her kafe siparişi bir damga) ve arkadaş davet ödülü
+- [Kampanyalar](/kampanyalar): Sezon kampanyaları, iş birlikleri ve etkinlikler; damga kartı (uygulamadan verilen 140 TL ve üzeri kafe siparişinde başlayan her 320 TL bir damga) ve arkadaş davet ödülü
 - [Karaoke](/karaoke): Köşkün üst katındaki özel karaoke odası; saati 1.000₺, sekiz kişiye kadar, gün ve saat seçilerek web'den ya da uygulamadan rezerve edilir, talep ekip onaylayınca kesinleşir
 - [Rehber](/rehber): Affogato, espresso çeşitleri, matcha ve yenilebilir fincan üzerine yazılar
 
 ## Uygulama ve Üyelik
 
 - L'Affogato mobil uygulaması (iOS / Android) ve site tek hesap kullanır: damga kartı, kuponlar, adresler ve karaoke rezervasyonları iki yerde aynıdır
-- Damga programı: 6 damgada 1 içecek; uygulamadan verilen her kafe siparişi bir damga
+- Damga programı: 6 damgada 1 içecek; uygulamadan verilen 140 TL ve üzeri kafe siparişinde başlayan her 320 TL bir damga (kurye ücreti sayılmaz)
 - Kafe siparişi uygulamadan verilir (gel-al ya da Tuzla içi kurye); online mağaza sitede
 
 ## Menü Özeti

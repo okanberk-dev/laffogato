@@ -87,7 +87,11 @@ vi.mock("@/lib/mobile/free-drink", () => ({
   grantFreeDrinkCoupon,
 }));
 const grantMilestoneGifts = vi.fn(async () => []);
-vi.mock("@/lib/mobile/milestones", () => ({ grantMilestoneGifts }));
+const clawBackMilestoneGifts = vi.fn(async () => []);
+vi.mock("@/lib/mobile/milestones", () => ({
+  grantMilestoneGifts,
+  clawBackMilestoneGifts,
+}));
 vi.mock("@/lib/mobile/invite", () => ({
   rewardInviteOnFirstPaidOrder: vi.fn(async () => undefined),
 }));
@@ -172,10 +176,18 @@ describe("reversing a multi-stamp order", () => {
     await onOrderPaid(big);
     expect((await getLoyalty(MEMBER)).stamps).toBe(4);
 
-    await Promise.all([onOrderReversed(big), onOrderReversed(big)]);
+    await Promise.all([
+      onOrderReversed(big, { full: true }),
+      onOrderReversed(big, { full: true }),
+    ]);
+    // One row per stamp given back, each once, whoever got there first.
     const reversals = ledger.filter((r) => r.kind === "reversal");
-    expect(reversals).toHaveLength(1);
-    expect(reversals[0]).toMatchObject({ orderId: "ord-2", delta: -3 });
+    expect(reversals.map((r) => [r.id, r.delta]).sort()).toEqual([
+      ["stamp-rev-ord-2", -1],
+      ["stamp-rev-ord-2:2", -1],
+      ["stamp-rev-ord-2:3", -1],
+    ]);
+    expect(reversals.every((r) => r.orderId === "ord-2")).toBe(true);
     const after = await getLoyalty(MEMBER);
     expect(after.stamps).toBe(1);
     expect(after.lifetimeStamps).toBe(1);
@@ -194,8 +206,10 @@ describe("reversing a multi-stamp order", () => {
       actor: "",
       createdAt: "2026-10-01T10:00:00.000Z",
     });
-    await onOrderReversed(order("ord-old", 90000));
-    expect(ledger.find((r) => r.kind === "reversal")?.delta).toBe(-1);
+    await onOrderReversed(order("ord-old", 90000), { full: true });
+    expect(
+      ledger.filter((r) => r.kind === "reversal").map((r) => r.delta),
+    ).toEqual([-1]);
   });
 });
 
@@ -207,7 +221,11 @@ describe("a multi-stamp order crossing the card", () => {
     expect(ledger.every((r) => r.delta === 1)).toBe(true);
     await onOrderPaid(order("ord-1", 70000));
     const view = await getLoyalty(MEMBER);
-    expect(view).toMatchObject({ stamps: 2, rewardsReady: 1, lifetimeStamps: 8 });
+    expect(view).toMatchObject({
+      stamps: 2,
+      rewardsReady: 1,
+      lifetimeStamps: 8,
+    });
     // Milestones are read from the new lifetime count after the order.
     expect(grantMilestoneGifts).toHaveBeenLastCalledWith(MEMBER, 8);
   });

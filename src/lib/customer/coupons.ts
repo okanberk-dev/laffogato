@@ -216,6 +216,57 @@ export async function releaseCustomerCoupon(
   return ((data as { id: string }[] | null) ?? []).length > 0;
 }
 
+/**
+ * Takes back a coupon the member has not used: one guarded UPDATE that only
+ * flips an active, unredeemed coupon of this member and of this `source`.
+ * Returns true only when WE flipped it - a coupon spent at the checkout a
+ * moment earlier (`redeemCustomerCoupon` is guarded on `isActive` the same
+ * way) stays spent, and exactly one of the two writers wins.
+ *
+ * Used when the stamps that paid for a loyalty reward or reached a milestone
+ * are reversed (`settleLoyaltyDebt`). The row is kept, inactive: the member's
+ * coupon list and the admin page still show what was given and taken back.
+ */
+export async function withdrawUnusedCoupon(
+  id: string,
+  email: string,
+  source: CouponSource,
+): Promise<boolean> {
+  const owner = normalizeEmail(email);
+  if (!id || !owner) return false;
+  const { data, error } = await getDb()
+    .from(TABLES.customerCoupons)
+    .update({ isActive: false, updatedAt: new Date().toISOString() })
+    .eq("id", id)
+    .eq("customerEmail", owner)
+    .eq("source", source)
+    .eq("redeemedAt", "")
+    .eq("isActive", true)
+    .select("id");
+  checkErr(error, "withdrawUnusedCoupon");
+  return ((data as { id: string }[] | null) ?? []).length > 0;
+}
+
+/**
+ * Undoes {@link withdrawUnusedCoupon} when the ledger row that had to go with
+ * it could not be written, so a coupon is never taken back for nothing.
+ */
+export async function restoreWithdrawnCoupon(
+  id: string,
+  email: string,
+): Promise<void> {
+  const owner = normalizeEmail(email);
+  if (!id || !owner) return;
+  const { error } = await getDb()
+    .from(TABLES.customerCoupons)
+    .update({ isActive: true, updatedAt: new Date().toISOString() })
+    .eq("id", id)
+    .eq("customerEmail", owner)
+    .eq("redeemedAt", "")
+    .eq("isActive", false);
+  checkErr(error, "restoreWithdrawnCoupon");
+}
+
 export interface GrantCouponInput {
   email: string;
   kind: CouponKind;

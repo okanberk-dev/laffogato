@@ -522,10 +522,22 @@ export async function stampTarget(): Promise<string> {
   }
 }
 
-/** Sent when an order's payment is confirmed (status → paid). */
-export async function sendOrderPaidEmail(o: OrderEmailData): Promise<boolean> {
+/**
+ * Sent when an order's payment is confirmed (status → paid). `stampsEarned`
+ * is what the order earns on the stamp card (an app cafe order: one per
+ * started 320 TL of goods from 140 TL); the stamp panel is left out when it
+ * is 0 or absent, so a shop order is never promised a stamp.
+ */
+export async function sendOrderPaidEmail(
+  o: OrderEmailData & { stampsEarned?: number },
+): Promise<boolean> {
+  const stamps = Math.max(0, Math.round(Number(o.stampsEarned ?? 0)) || 0);
   return sendTemplate("odeme-onaylandi", o.to, {
-    vars: { ...orderVars(o), DAMGA_HEDEFI: await stampTarget() },
+    vars: {
+      ...orderVars(o),
+      DAMGA_HEDEFI: await stampTarget(),
+      DAMGA_SAYISI: stamps > 0 ? String(stamps) : "",
+    },
     loops: { ITEMS: itemRows(o.items) },
   });
 }

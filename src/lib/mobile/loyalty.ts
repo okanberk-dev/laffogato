@@ -9,21 +9,29 @@ import {
   orderKind,
   type AdminOrder,
 } from "@/lib/admin/store";
-import type { CustomerCoupon } from "@/lib/customer/coupons";
+import {
+  listCustomerCoupons,
+  withdrawUnusedCoupon,
+  type CustomerCoupon,
+} from "@/lib/customer/coupons";
 import { getDb, TABLES } from "@/lib/db";
 import { nextSeq } from "@/lib/db/counters";
 import { raiseDbError } from "@/lib/db/health";
 
 import { grantFreeDrinkCoupon } from "./free-drink";
 import { rewardInviteOnFirstPaidOrder } from "./invite";
-import { grantMilestoneGifts } from "./milestones";
+import { clawBackMilestoneGifts, grantMilestoneGifts } from "./milestones";
 import {
   buildLoyaltyView,
   computeStampBalance,
   freeDrinkRewardFor,
+  plannedStampReversals,
+  redeemsToWithdraw,
   rewardReadyAt,
   stampsByOrder,
   stampsForOrder,
+  stampTargetForOrder,
+  unredeemId,
   type LoyaltyRules,
   type LoyaltyStamp,
   type LoyaltyView,
@@ -199,48 +207,183 @@ export async function onOrderPaid(order: AdminOrder): Promise<void> {
   });
 }
 
+export interface OrderReversalOptions {
+  /**
+   * The order is undone as a whole (cancelled, or refunded in full): it keeps
+   * no stamp, whatever its refund entries add up to.
+   */
+  full?: boolean;
+}
+
 /**
- * Takes back the stamps an order earned, when that order is undone - exactly
- * the delta of its `earn` row, so a ₺700 order that earned 3 loses 3.
+ * Brings an order's stamps down to what it may still hold after a refund or
+ * a cancel, and settles what that leaves the member owing. Called after
+ * EVERY refund (the admin path, the provider's webhook) and on a cancel.
  *
- * Pay → earn a stamp → ask for a refund was a way to collect free drinks: the
- * ledger only ever added. A reversal row is written instead of deleting the
- * earn, so the history still shows what happened, and it is idempotent on the
- * order: one reversal per order.
+ * - The target is `stampTargetForOrder`: `stampsFor(goods − refunded goods)`
+ *   (refunds are charged to the goods first - an `AdminRefund` does not say
+ *   what part was courier fee; see `stampRefundedGoodsMinor`), and 0 for a
+ *   cancelled or fully refunded order or when `full` is set. A ₺700 order
+ *   (3 stamps) refunded ₺100 keeps 2, then another ₺300 keeps 1, then the
+ *   rest keeps none.
+ * - Each stamp above the target is taken back with its own `reversal` row
+ *   (delta −1) whose id is derived from the order and the stamp
+ *   (`stampReversalId`). A retry finds its rows already there; two refunds
+ *   settled at the same moment insert overlapping ids and the primary key
+ *   keeps one row per stamp (23505, ignored), so the order ends at exactly
+ *   the lower of the two targets. The ledger stays append-only: the history
+ *   still shows the earn and every take-back.
+ * - Stamps only ever go down here. A refund the POS refuses is released
+ *   before its own path settles any stamp, but a second refund settled in
+ *   that short window still counts it; a stamp taken that way stays taken,
+ *   and the operator can give it back as a till stamp.
+ * - Then `settleLoyaltyDebt`: when the reversed stamps had already paid for a
+ *   free-drink coupon or reached a milestone gift, the unused ones are taken
+ *   back. It runs on every call, even when no new row was written, so a
+ *   retry also finishes a settlement that stopped half-way.
  *
- * The read below catches a repeat that comes later; two that run at the same
- * moment (a provider refund webhook and an admin cancel) both pass it. The
- * unique index only covers `kind = 'earn'`, so nothing stopped the second
- * insert and a card of 6 dropped to 4. The reversal's id is therefore derived
- * from the order: the primary key refuses the second row (23505, ignored).
+ * Pay → earn → ask for a refund (in full or in parts) was a way to collect
+ * free drinks; this closes both doors.
  */
-export async function onOrderReversed(order: AdminOrder): Promise<void> {
+export async function onOrderReversed(
+  order: AdminOrder,
+  opts: OrderReversalOptions = {},
+): Promise<void> {
   const owner = normalizeEmail(order.customerEmail);
   if (!owner || owner === "guest@laffogato.local") return;
 
   const stamps = await listStamps(owner);
-  const earned = stamps.find(
-    (s) => s.orderId === order.id && s.kind === "earn",
-  );
-  if (!earned) return;
-  if (stamps.some((s) => s.orderId === order.id && s.kind === "reversal"))
-    return;
-  const amount = Math.max(0, Math.round(Number(earned.delta)) || 0);
-  if (amount <= 0) return;
+  if (!stamps.some((s) => s.orderId === order.id && s.kind === "earn")) return;
 
-  const row: LoyaltyStamp = {
-    id: `stamp-rev-${order.id}`,
-    customerEmail: owner,
-    kind: "reversal",
-    delta: -amount,
-    source: "order",
-    orderId: order.id,
-    note: `Sipariş #${order.orderNo} iade/iptal`,
-    actor: "",
-    createdAt: new Date().toISOString(),
-  };
-  const { error } = await getDb().from(TABLES.loyaltyStamps).insert(row);
-  if (error && error.code !== "23505") checkErr(error, "onOrderReversed");
+  const target = stampTargetForOrder(order, opts);
+  const ids = plannedStampReversals(stamps, order.id, target);
+  const full = target === 0;
+  const db = getDb();
+  for (const id of ids) {
+    const row: LoyaltyStamp = {
+      id,
+      customerEmail: owner,
+      kind: "reversal",
+      delta: -1,
+      source: "order",
+      orderId: order.id,
+      note: full
+        ? `Sipariş #${order.orderNo} iade/iptal`
+        : `Sipariş #${order.orderNo} kısmi iade`,
+      actor: "",
+      createdAt: new Date().toISOString(),
+    };
+    const { error } = await db.from(TABLES.loyaltyStamps).insert(row);
+    // 23505: this stamp was taken back already (a retry, or a concurrent
+    // refund of the same order).
+    if (error && error.code !== "23505") checkErr(error, "onOrderReversed");
+  }
+
+  await settleLoyaltyDebt(owner);
+}
+
+/**
+ * What a reversal leaves the member owing, settled against what they were
+ * given for it (option (c) of the 16 Eki 2026 review).
+ *
+ * Stamps are paid out at `paid`, so by the time an order is refunded or
+ * cancelled its stamps may already have filled a card the member redeemed
+ * (`redeemStamps` → a free-drink coupon) and reached a milestone gift
+ * (`grantMilestoneGifts`). The reversal alone only wrote negative stamps: the
+ * coupons stayed live and `available` clamped at 0 hid the hole.
+ *
+ * 1. Free drinks. While `target × redeemed > lifetime` (`stampDebt`), one
+ *    `redeem` row per card the stamps no longer cover is withdrawn, newest
+ *    first (`redeemsToWithdraw`), and for each the newest UNUSED, unexpired
+ *    `loyalty` coupon is taken back (`withdrawUnusedCoupon`). The withdrawal
+ *    is an `unredeem` row with a deterministic id - written FIRST, so two
+ *    settlements running together pick the same row and only one of them
+ *    goes on to take a coupon. When no unused coupon is left to take (the
+ *    member already drank it, or let it expire) the `unredeem` row is
+ *    removed again and the debt stays on the ledger: `available` is
+ *    `max(0, lifetime − target × redeemed)` with `redeemed` counting only
+ *    the cards whose coupon still stands, so the stamps earned next pay the
+ *    debt off before a new card fills. Used coupons stay used.
+ * 2. Milestones. Every milestone above the new lifetime whose gift is still
+ *    unused is clawed back (`clawBackMilestoneGifts`): coupon withdrawn,
+ *    claim row dropped, so it can be earned again later.
+ *
+ * Coupons of any other source (welcome, birthday, invite, manual, review)
+ * are never touched.
+ */
+export async function settleLoyaltyDebt(email: string): Promise<void> {
+  const owner = normalizeEmail(email);
+  if (!owner) return;
+  const rules = await loyaltyRules();
+  const target = rules.stampTarget;
+  const db = getDb();
+
+  let rows = await listStamps(owner);
+  let coupons: CustomerCoupon[] | null = null;
+  const withdrawals = redeemsToWithdraw(rows, target);
+  if (withdrawals.length > 0) {
+    coupons = await listCustomerCoupons(owner);
+    const nowMs = Date.now();
+    // Newest first - the coupon the member received last is the one the
+    // reversed stamps paid for, as far as anything can tell.
+    const candidates = coupons
+      .filter(
+        (c) =>
+          c.source === "loyalty" &&
+          c.isActive &&
+          !c.redeemedAt &&
+          !(c.expiresAt && Date.parse(c.expiresAt) < nowMs),
+      )
+      .sort((a, b) =>
+        a.createdAt === b.createdAt
+          ? b.id.localeCompare(a.id)
+          : b.createdAt.localeCompare(a.createdAt),
+      );
+    for (const redeemId of withdrawals) {
+      const row: LoyaltyStamp = {
+        id: unredeemId(redeemId),
+        customerEmail: owner,
+        kind: "unredeem",
+        delta: target,
+        source: "order",
+        orderId: "",
+        note: "Ödül geri alındı: damgaları iade/iptal edildi",
+        actor: "",
+        createdAt: new Date().toISOString(),
+      };
+      const ins = await db.from(TABLES.loyaltyStamps).insert(row);
+      // 23505: a concurrent settlement claimed this card; it takes the coupon.
+      if (ins.error?.code === "23505") continue;
+      checkErr(ins.error, "settleLoyaltyDebt.unredeem");
+
+      let taken: CustomerCoupon | null = null;
+      while (candidates.length > 0 && !taken) {
+        const next = candidates.shift()!;
+        if (await withdrawUnusedCoupon(next.id, owner, "loyalty")) taken = next;
+      }
+      if (!taken) {
+        // Nothing unused left to take back: the card stays redeemed and the
+        // debt stays on the ledger for the next stamps to pay.
+        const del = await db
+          .from(TABLES.loyaltyStamps)
+          .delete()
+          .eq("id", row.id);
+        checkErr(del.error, "settleLoyaltyDebt.keep");
+        break;
+      }
+      const upd = await db
+        .from(TABLES.loyaltyStamps)
+        .update({ note: `${row.note} (${taken.code})` })
+        .eq("id", row.id);
+      if (upd.error) {
+        console.error("[loyalty] unredeem note not updated", upd.error);
+      }
+    }
+    rows = await listStamps(owner);
+  }
+
+  const lifetime = computeStampBalance(rows, target).lifetimeStamps;
+  await clawBackMilestoneGifts(owner, lifetime, coupons ?? undefined);
 }
 
 export type RedeemStampsResult =
@@ -308,8 +451,7 @@ export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
 }
 
 export type ReverseCounterStampResult =
-  | { ok: true; stamp: LoyaltyStamp }
-  | { ok: false; error: "no_stamps" };
+  { ok: true; stamp: LoyaltyStamp } | { ok: false; error: "no_stamps" };
 
 /**
  * Takes back a stamp given by mistake at the till (admin panel, "−1 düzeltme").
@@ -391,7 +533,10 @@ export async function addCounterStamp(
 async function giveMilestones(owner: string): Promise<void> {
   try {
     const rules = await loyaltyRules();
-    const lifetime = computeStampBalance(await listStamps(owner), rules.stampTarget).lifetimeStamps;
+    const lifetime = computeStampBalance(
+      await listStamps(owner),
+      rules.stampTarget,
+    ).lifetimeStamps;
     await grantMilestoneGifts(owner, lifetime);
   } catch (err) {
     console.error("[milestones] grant failed", err);

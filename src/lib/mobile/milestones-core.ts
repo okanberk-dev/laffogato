@@ -53,18 +53,30 @@ export type GiftCandidate = {
 };
 
 /** Milestones reached at this lifetime count, in order. */
-export function reachedMilestones(lifetime: number, specs: readonly MilestoneSpec[] = MILESTONE_GIFTS): MilestoneSpec[] {
+export function reachedMilestones(
+  lifetime: number,
+  specs: readonly MilestoneSpec[] = MILESTONE_GIFTS,
+): MilestoneSpec[] {
   return specs.filter((m) => lifetime >= m.at).sort((a, b) => a.at - b.at);
 }
 
 /** The next milestone not yet reached, or null past the last. */
-export function nextMilestone(lifetime: number, specs: readonly MilestoneSpec[] = MILESTONE_GIFTS): MilestoneSpec | null {
-  return [...specs].sort((a, b) => a.at - b.at).find((m) => lifetime < m.at) ?? null;
+export function nextMilestone(
+  lifetime: number,
+  specs: readonly MilestoneSpec[] = MILESTONE_GIFTS,
+): MilestoneSpec | null {
+  return (
+    [...specs].sort((a, b) => a.at - b.at).find((m) => lifetime < m.at) ?? null
+  );
 }
 
 /** Whether an item may be given: on sale, priced, a drink or a dessert. */
 export function isGiftable(item: GiftCandidate): boolean {
-  return item.isActive && item.priceMinor > 0 && GIFT_CATEGORIES.has(item.categoryKey);
+  return (
+    item.isActive &&
+    item.priceMinor > 0 &&
+    GIFT_CATEGORIES.has(item.categoryKey)
+  );
 }
 
 /**
@@ -80,7 +92,11 @@ export function pickGift(
 ): GiftCandidate | null {
   const pool = menu.filter(isGiftable);
   if (spec.item) {
-    const named = pool.find((m) => m.name.trim().toLocaleLowerCase("tr-TR") === spec.item!.toLocaleLowerCase("tr-TR"));
+    const named = pool.find(
+      (m) =>
+        m.name.trim().toLocaleLowerCase("tr-TR") ===
+        spec.item!.toLocaleLowerCase("tr-TR"),
+    );
     if (named) return named;
   }
   if (pool.length === 0) return null;
@@ -126,7 +142,9 @@ export function milestoneRoadmap(
  * Kanunu md. 61: a perk printed and not given misleads). Today that is one:
  * RUBY's karaoke discount, at the operator's configured percentage.
  */
-export function perksByTier(oroKaraokePct: number): Record<"verde" | "argento" | "oro", string[]> {
+export function perksByTier(
+  oroKaraokePct: number,
+): Record<"verde" | "argento" | "oro", string[]> {
   const pct = Math.max(0, Math.round(oroKaraokePct));
   return {
     verde: [],
@@ -138,4 +156,58 @@ export function perksByTier(oroKaraokePct: number): Record<"verde" | "argento" |
 /** The coupon's title: what the gift is. */
 export function giftTitle(item: Pick<GiftCandidate, "name">): string {
   return `Hediye: ${item.name}`;
+}
+
+/** What a claw-back does to one milestone grant above the new lifetime. */
+export type MilestoneClawBack = {
+  milestone: number;
+  couponId: string;
+  /**
+   * `withdraw`: the gift is unused - take the coupon back, then drop the
+   * claim. `release`: the coupon is already inactive and unused (a claw-back
+   * that stopped between its two writes) - only the claim is left to drop.
+   */
+  action: "withdraw" | "release";
+};
+
+/**
+ * The milestone gifts a reversal no longer covers (karar 175 read against a
+ * lifetime that went DOWN): every grant above the new lifetime whose gift is
+ * still unused. Dropping its claim row lets the member earn that milestone
+ * again, honestly, later - `grantMilestoneGifts` gives it once the lifetime
+ * gets back there.
+ *
+ * A gift that was already used, or let expire, keeps its claim: it was
+ * given and consumed, and handing it out a second time when the member
+ * passes the milestone again would be the double gift. A claim still being
+ * written (no coupon yet) and a coupon the admin revoked by hand are left
+ * alone too. Only coupons of the `milestone` source are ever touched.
+ */
+export function milestonesToClawBack(
+  lifetime: number,
+  grants: readonly { milestone: number; couponId: string }[],
+  coupons: readonly {
+    id: string;
+    source: string;
+    isActive: boolean;
+    redeemedAt: string;
+    expiresAt: string;
+  }[],
+  nowMs: number,
+): MilestoneClawBack[] {
+  const byId = new Map(coupons.map((c) => [c.id, c]));
+  const out: MilestoneClawBack[] = [];
+  for (const g of [...grants].sort((a, b) => b.milestone - a.milestone)) {
+    if (g.milestone <= lifetime || !g.couponId) continue;
+    const c = byId.get(g.couponId);
+    if (!c || c.source !== "milestone" || c.redeemedAt) continue;
+    if (!c.isActive) {
+      out.push({ milestone: g.milestone, couponId: c.id, action: "release" });
+      continue;
+    }
+    const expires = c.expiresAt ? Date.parse(c.expiresAt) : Number.NaN;
+    if (Number.isFinite(expires) && expires < nowMs) continue;
+    out.push({ milestone: g.milestone, couponId: c.id, action: "withdraw" });
+  }
+  return out;
 }

@@ -14,14 +14,20 @@ export interface LoyaltyStamp {
   customerEmail: string;
   /**
    * `earn` adds a stamp, `redeem` spends a full card, `reversal` takes back a
-   * stamp whose order was refunded or cancelled - the ledger stays
-   * append-only, so nothing is ever deleted to make a balance come out right.
+   * stamp whose order was refunded or cancelled, `unredeem` withdraws a
+   * `redeem` whose free-drink coupon was taken back because the stamps that
+   * paid for it were reversed (`settleLoyaltyDebt` in `./loyalty.ts`). The
+   * ledger stays append-only, so nothing is ever deleted to make a balance
+   * come out right.
    */
-  kind: "earn" | "redeem" | "reversal";
+  kind: "earn" | "redeem" | "reversal" | "unredeem";
   /**
    * Stamps earned (+1 per till stamp; an app cafe order earns `stampsFor` its
-   * goods, so +2 or more on a big order), −target for a redeemed reward, and
-   * for a reversal minus what that order earned (−1 for a till correction).
+   * goods, so +2 or more on a big order), −target for a redeemed reward,
+   * +target for an `unredeem`, and for a reversal −1 per stamp an order gives
+   * back (one row per stamp, see `plannedStampReversals`; rows written before
+   * 16 Eki 2026 carry the order's whole earn delta in one row, −1 for a till
+   * correction).
    */
   delta: number;
   /** order | counter | invite | admin | app */
@@ -73,7 +79,10 @@ export function stampGoodsMinor(order: {
   const total = Math.round(Number(order.totalMinor));
   const shipping = Math.round(Number(order.shippingMinor));
   if (!Number.isFinite(total)) return 0;
-  return Math.max(0, total - (Number.isFinite(shipping) ? Math.max(0, shipping) : 0));
+  return Math.max(
+    0,
+    total - (Number.isFinite(shipping) ? Math.max(0, shipping) : 0),
+  );
 }
 
 /**
@@ -100,6 +109,208 @@ export function earnsStamp(order: {
   shippingMinor: number;
 }): boolean {
   return stampsForOrder(order) > 0;
+}
+
+/**
+ * How much of an order's goods has been refunded, in kuruş, as far as the
+ * stamps are concerned.
+ *
+ * A refund entry (`AdminRefund`) carries an amount and a free-text reason,
+ * never a split between goods and courier fee, so there is no honest way to
+ * tell a refunded courier fee from refunded goods. Every refunded kuruş is
+ * therefore charged to the goods first, capped at the goods
+ * (`min(refunded, goods)`): a refund can only ever lower the stamps, never
+ * leave the member holding stamps for goods they got their money back for.
+ * The one case this reads against the member - the courier fee refunded on
+ * its own - costs at most the stamp of one ₺320 step, and is the house's
+ * call to make by hand (a till stamp) rather than a hole to farm.
+ */
+export function stampRefundedGoodsMinor(order: {
+  totalMinor: number;
+  shippingMinor: number;
+  refunds?: readonly { amountMinor: number }[];
+}): number {
+  const goods = stampGoodsMinor(order);
+  let refunded = 0;
+  for (const r of order.refunds ?? []) {
+    const n = Math.round(Number(r.amountMinor));
+    if (Number.isFinite(n) && n > 0) refunded += n;
+  }
+  return Math.min(goods, refunded);
+}
+
+/** Order statuses that keep no stamp at all, whatever was refunded. */
+const STAMPLESS_STATUSES: ReadonlySet<string> = new Set([
+  "cancelled",
+  "refunded",
+]);
+
+/**
+ * The stamps an order may still hold after its refunds:
+ * `stampsFor(goods − refunded goods)`, and none once the order is cancelled
+ * or fully refunded (or the caller says so with `full`).
+ *
+ * Re-derived from the order after EVERY refund, so a ₺700 order (3 stamps)
+ * refunded ₺100 keeps 2 (₺600), then ₺300 more keeps 1 (₺300), then the rest
+ * keeps none - the stamps follow the goods that were actually kept, exactly
+ * as `stampsFor` would have counted them had the member ordered only those.
+ */
+export function stampTargetForOrder(
+  order: {
+    totalMinor: number;
+    shippingMinor: number;
+    refunds?: readonly { amountMinor: number }[];
+    status?: string;
+  },
+  opts: { full?: boolean } = {},
+): number {
+  if (opts.full) return 0;
+  if (order.status && STAMPLESS_STATUSES.has(order.status)) return 0;
+  return stampsFor(stampGoodsMinor(order) - stampRefundedGoodsMinor(order));
+}
+
+/**
+ * The ledger id of the reversal that takes back an order's `index`-th stamp
+ * (1-based). One row per stamp, with an id derived from the order and the
+ * stamp, is what keeps reversals idempotent AND safe under concurrency: two
+ * refunds settled at the same moment each insert the ids of the stamps they
+ * think must go, the primary key keeps one row per stamp, and the order ends
+ * up holding exactly the lowest target either of them computed. A single row
+ * per refund carrying "earned − already reversed − target" could not do
+ * that - both callers read the same "already reversed" and both subtract.
+ *
+ * The first stamp keeps the id the whole-order reversal always had
+ * (`stamp-rev-<orderId>`), so a reversal written by an older deployment and
+ * one written now collide on the primary key instead of both counting.
+ */
+export function stampReversalId(orderId: string, index: number): string {
+  return index <= 1 ? `stamp-rev-${orderId}` : `stamp-rev-${orderId}:${index}`;
+}
+
+/** What one order holds on the ledger. */
+export interface OrderStampHolding {
+  /** The delta of the order's `earn` row; 0 when it has none. */
+  earned: number;
+  /** Stamps its `reversal` rows took back, capped at `earned`. */
+  reversed: number;
+  /** `earned − reversed`. */
+  held: number;
+}
+
+function earnDelta(row: { delta?: number }): number {
+  // A row read without its delta (an older caller's shape) is one stamp.
+  if (row.delta === undefined) return 1;
+  return Math.max(0, Math.round(Number(row.delta)) || 0);
+}
+
+function reversalDelta(row: { delta?: number }): number {
+  // A reversal read without its delta is the old whole-order take-back.
+  if (row.delta === undefined) return Number.POSITIVE_INFINITY;
+  return Math.max(0, Math.round(Math.abs(Number(row.delta))) || 0);
+}
+
+/**
+ * Per order: what its `earn` row gave and what its `reversal` rows SUM to.
+ * A reversal is no longer all-or-nothing - a partial refund takes back part
+ * of an order's stamps - so every caller that used to ask "is there a
+ * reversal?" now reads this. The sum is capped at the earn delta: however
+ * many rows a race or an older deployment left, an order never gives back
+ * more than it earned.
+ */
+export function orderStampHoldings(
+  rows: readonly (Pick<LoyaltyStamp, "kind" | "orderId"> & {
+    delta?: number;
+  })[],
+): ReadonlyMap<string, OrderStampHolding> {
+  const earned = new Map<string, number>();
+  const reversed = new Map<string, number>();
+  for (const row of rows) {
+    if (!row.orderId) continue;
+    if (row.kind === "earn") {
+      earned.set(row.orderId, earnDelta(row));
+    } else if (row.kind === "reversal") {
+      reversed.set(
+        row.orderId,
+        (reversed.get(row.orderId) ?? 0) + reversalDelta(row),
+      );
+    }
+  }
+  const out = new Map<string, OrderStampHolding>();
+  for (const [orderId, e] of earned) {
+    const r = Math.min(e, reversed.get(orderId) ?? 0);
+    out.set(orderId, { earned: e, reversed: r, held: e - r });
+  }
+  return out;
+}
+
+/**
+ * The reversal rows that bring an order down to `target` stamps: one id per
+ * stamp above the target that is still held, highest stamp first. Empty when
+ * the order already holds `target` or fewer (a retry, or a refund that did
+ * not cross a ₺320 step). Ids already on the ledger are left out; the primary
+ * key refuses any a concurrent caller wrote a moment ago.
+ */
+export function plannedStampReversals(
+  rows: readonly Pick<LoyaltyStamp, "id" | "kind" | "orderId" | "delta">[],
+  orderId: string,
+  target: number,
+): string[] {
+  const holding = orderStampHoldings(rows).get(orderId);
+  if (!holding) return [];
+  const keep = Math.max(0, Math.min(holding.earned, Math.round(target) || 0));
+  if (holding.held <= keep) return [];
+  const present = new Set(rows.map((r) => r.id));
+  const ids: string[] = [];
+  for (let index = holding.earned; index > keep; index -= 1) {
+    const id = stampReversalId(orderId, index);
+    if (!present.has(id)) ids.push(id);
+  }
+  return ids;
+}
+
+/** The ledger id of the `unredeem` row that withdraws one `redeem` row. */
+export function unredeemId(redeemRowId: string): string {
+  return `stamp-unredeem-${redeemRowId}`;
+}
+
+/**
+ * Stamps the member owes: what their redeemed cards cost beyond the stamps
+ * they still hold, after a reversal took back stamps a card was paid with.
+ * 0 when nothing is owed.
+ */
+export function stampDebt(
+  balance: Pick<StampBalance, "lifetimeStamps" | "redeemCount">,
+  stampTarget: number = STAMP_TARGET,
+): number {
+  const target = Math.max(1, Math.round(stampTarget));
+  return Math.max(0, target * balance.redeemCount - balance.lifetimeStamps);
+}
+
+/**
+ * The `redeem` rows a debt withdraws, newest first: one per card the stamps
+ * no longer cover (`ceil(debt / target)`), never one already withdrawn.
+ * Deterministic for a given ledger, so two callers settling the same debt at
+ * the same moment pick the same rows and the primary key on `unredeemId`
+ * keeps one withdrawal per row.
+ */
+export function redeemsToWithdraw(
+  rows: readonly Pick<LoyaltyStamp, "id" | "kind" | "delta" | "createdAt">[],
+  stampTarget: number = STAMP_TARGET,
+): string[] {
+  const target = Math.max(1, Math.round(stampTarget));
+  const debt = stampDebt(computeStampBalance(rows, target), target);
+  if (debt <= 0) return [];
+  const withdrawn = new Set(
+    rows.filter((r) => r.kind === "unredeem").map((r) => r.id),
+  );
+  const open = rows
+    .filter((r) => r.kind === "redeem" && !withdrawn.has(unredeemId(r.id)))
+    .sort((a, b) =>
+      a.createdAt === b.createdAt
+        ? b.id.localeCompare(a.id)
+        : b.createdAt.localeCompare(a.createdAt),
+    );
+  return open.slice(0, Math.ceil(debt / target)).map((r) => r.id);
 }
 
 /** The loyalty knobs the operator turns; one shape for the core and the till. */
@@ -230,28 +441,62 @@ export function isCountedOrder(order: Pick<AdminOrder, "status">): boolean {
  * a hand-edited −5 must not leave a phantom stamp, and a card that grew from
  * 6 to 8 re-reads old redeems at 8 - the operator changing the target is
  * changing the deal for everyone, past cards included, and that is what the
- * setting says.
+ * setting says. An `unredeem` row withdraws one redeem the same way, by
+ * presence, so `redeemCount` counts the cards whose coupon still stands
+ * (unused, or used) and never one that was taken back.
+ *
+ * `available` is clamped at 0, but the debt is not forgotten: it is
+ * `target × redeemCount − lifetimeStamps`, recomputed from the ledger every
+ * time, so the stamps a member earns after a reversal first fill the hole
+ * the reversal left under a coupon they already spent (`stampDebt`).
+ *
+ * Reversals of an order are summed per order and capped at what that order
+ * earned (`orderStampHoldings`); an orderless reversal (a till correction)
+ * counts as written.
  */
 export function computeStampBalance(
-  rows: readonly Pick<LoyaltyStamp, "kind" | "delta">[],
+  rows: readonly (Pick<LoyaltyStamp, "kind" | "delta"> & {
+    orderId?: string;
+  })[],
   stampTarget: number = STAMP_TARGET,
 ): StampBalance {
   const target = Math.max(1, Math.round(stampTarget));
   let lifetimeStamps = 0;
   let redeemCount = 0;
+  let unredeemCount = 0;
   let reversed = 0;
+  const earnedOrders = new Set<string>();
+  for (const row of rows) {
+    if (row.kind === "earn" && row.orderId) earnedOrders.add(row.orderId);
+  }
   for (const row of rows) {
     if (row.kind === "earn") {
       lifetimeStamps += Math.max(0, Math.round(row.delta));
     } else if (row.kind === "redeem") {
       redeemCount += 1;
-    } else if (row.kind === "reversal") {
+    } else if (row.kind === "unredeem") {
+      unredeemCount += 1;
+    } else if (
+      row.kind === "reversal" &&
+      !(row.orderId && earnedOrders.has(row.orderId))
+    ) {
       // A refunded order's stamp leaves the balance, and the lifetime count
-      // with it: it was never a visit that happened.
+      // with it: it was never a visit that happened. Reversals of an order
+      // that earned on this ledger are summed (and capped) below.
       reversed += Math.max(0, Math.round(Math.abs(row.delta)));
     }
   }
+  for (const holding of orderStampHoldings(
+    rows.map((r) => ({
+      kind: r.kind,
+      delta: r.delta,
+      orderId: r.orderId ?? "",
+    })),
+  ).values()) {
+    reversed += holding.reversed;
+  }
   lifetimeStamps = Math.max(0, lifetimeStamps - reversed);
+  redeemCount = Math.max(0, redeemCount - unredeemCount);
   const available = Math.max(0, lifetimeStamps - target * redeemCount);
   return {
     lifetimeStamps,
@@ -263,32 +508,33 @@ export function computeStampBalance(
 }
 
 /**
- * The orders that actually hold a stamp: an `earn` row that no `reversal` row
- * has taken back.
+ * The orders that actually hold a stamp: an `earn` row its `reversal` rows
+ * have not taken back in full (`orderStampHoldings`). A row read without a
+ * delta counts as the old shape: one stamp earned, a reversal takes it all.
  *
- * `toMobileOrder` needs this to answer `stampsEarned` honestly. Reversals are
- * matched per order rather than counted globally, because a counter stamp's
- * reversal carries no `orderId` and must not cancel some order's stamp.
+ * Reversals are matched per order rather than counted globally, because a
+ * counter stamp's reversal carries no `orderId` and must not cancel some
+ * order's stamp.
  */
 export function stampedOrderIds(
-  rows: readonly Pick<LoyaltyStamp, "kind" | "orderId">[],
+  rows: readonly (Pick<LoyaltyStamp, "kind" | "orderId"> & {
+    delta?: number;
+  })[],
 ): ReadonlySet<string> {
-  const earned = new Set<string>();
-  const reversed = new Set<string>();
-  for (const row of rows) {
-    if (!row.orderId) continue;
-    if (row.kind === "earn") earned.add(row.orderId);
-    else if (row.kind === "reversal") reversed.add(row.orderId);
+  const out = new Set<string>();
+  for (const [orderId, holding] of orderStampHoldings(rows)) {
+    if (holding.held > 0) out.add(orderId);
   }
-  for (const id of reversed) earned.delete(id);
-  return earned;
+  return out;
 }
 
 /**
- * How many stamps each order really holds: the delta of its `earn` row, for
- * every order whose stamps no `reversal` has taken back. One order earns at
- * most one `earn` row (the unique index `loyalty_stamps_order_key`), and its
- * reversal takes back exactly that row's delta, so a reversed order holds 0.
+ * How many stamps each order really holds: the delta of its `earn` row minus
+ * the SUM of its `reversal` rows, for every order still holding at least one.
+ * One order earns at most one `earn` row (the unique index
+ * `loyalty_stamps_order_key`); a partial refund takes back part of it and a
+ * cancel or full refund the rest, so a ₺700 order (3) refunded down to ₺300
+ * of goods holds 1 and a fully refunded one is not listed.
  *
  * `stampsEarned` on the wire is answered from this: an order of ₺700 of goods
  * says 3, not 1.
@@ -296,19 +542,11 @@ export function stampedOrderIds(
 export function stampsByOrder(
   rows: readonly Pick<LoyaltyStamp, "kind" | "orderId" | "delta">[],
 ): ReadonlyMap<string, number> {
-  const earned = new Map<string, number>();
-  const reversed = new Set<string>();
-  for (const row of rows) {
-    if (!row.orderId) continue;
-    if (row.kind === "earn") {
-      const n = Math.max(0, Math.round(Number(row.delta)) || 0);
-      if (n > 0) earned.set(row.orderId, n);
-    } else if (row.kind === "reversal") {
-      reversed.add(row.orderId);
-    }
+  const out = new Map<string, number>();
+  for (const [orderId, holding] of orderStampHoldings(rows)) {
+    if (holding.held > 0) out.set(orderId, holding.held);
   }
-  for (const id of reversed) earned.delete(id);
-  return earned;
+  return out;
 }
 
 /**
@@ -322,7 +560,9 @@ export function stampsByOrder(
  * stamps, the same way `computeStampBalance` counts them.
  */
 export function rewardReadyAt(
-  rows: readonly Pick<LoyaltyStamp, "kind" | "delta" | "createdAt">[],
+  rows: readonly (Pick<LoyaltyStamp, "kind" | "delta" | "createdAt"> & {
+    orderId?: string;
+  })[],
   stampTarget: number = STAMP_TARGET,
 ): string | null {
   const target = Math.max(1, Math.round(stampTarget));
@@ -467,7 +707,9 @@ export function computeBadges(
  * the app's card always has as many slots as the arithmetic assumed.
  */
 export function buildLoyaltyView(
-  stamps: readonly Pick<LoyaltyStamp, "kind" | "delta">[],
+  stamps: readonly (Pick<LoyaltyStamp, "kind" | "delta"> & {
+    orderId?: string;
+  })[],
   orders: readonly Pick<AdminOrder, "status" | "createdAt" | "items">[],
   nowMs: number,
   stampTarget: number = STAMP_TARGET,

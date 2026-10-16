@@ -80,8 +80,10 @@ import type {
 } from "@/lib/payment/provider";
 import type { WeeklyHours } from "./days";
 import type { AdminRole } from "./roles";
+import { stampsForOrder } from "@/lib/mobile/loyalty-core";
 import {
   orderChannel,
+  orderKind,
   type OrderChannel,
   type OrderFulfillment,
   type OrderKind,
@@ -3286,6 +3288,13 @@ export async function applyPaymentSucceeded(input: {
           subtotalMinor: order.subtotalMinor,
           shippingMinor: order.shippingMinor,
           totalMinor: order.totalMinor,
+          // The rule `onOrderPaid` stamps by: an app cafe order, one per
+          // started 320 TL of goods from 140 TL. Anything else earns none
+          // and the mail says nothing about stamps.
+          stampsEarned:
+            orderChannel(order) === "app" && orderKind(order) === "cafe"
+              ? stampsForOrder(order)
+              : 0,
         });
       }
     } catch (err) {
@@ -3376,10 +3385,15 @@ export async function recordProviderRefund(input: {
     .update({ refunds, status: fullyRefunded ? "refunded" : order.status })
     .eq("id", input.orderId);
   if (upd.error) return { ok: false, error: upd.error.message };
-  // Same rule as the admin path: a fully refunded order keeps nothing, so the
-  // stamp it earned goes back. Without this a member could farm stamps by
-  // ordering and refunding through the provider.
-  if (fullyRefunded) await reverseLoyalty(order, "provider-refund");
+  // Same rule as the admin path: after every refund the order keeps only the
+  // stamps its remaining goods earn (none once fully refunded). Without this
+  // a member could farm stamps by ordering and refunding through the
+  // provider, in full or in parts.
+  await reverseLoyalty(
+    { ...order, refunds, status: fullyRefunded ? "refunded" : order.status },
+    "provider-refund",
+    { full: fullyRefunded },
+  );
   // The provider has already moved the money back to the card it came from.
   await notifyOrderRefunded(
     {
@@ -3631,7 +3645,7 @@ export async function transitionOrder(
   }
   if (map.to === "cancelled") {
     await releaseOrderInventory(existing);
-    await reverseLoyalty(existing, "cancelled");
+    await reverseLoyalty(existing, "cancelled", { full: true });
     await noticeCancelled({ ...existing, status: "cancelled" });
   } else if (settles) {
     // Idempotent on the order id, so a later payment webhook for the same
@@ -3691,16 +3705,23 @@ async function awardLoyalty(order: AdminOrder, why: string): Promise<void> {
 }
 
 /**
- * Gives back the stamp an app order earned, when the order is undone.
+ * Takes back the stamps an app order no longer earns: all of them when the
+ * order is undone (`full`), otherwise the ones its refunds took the goods
+ * below (`onOrderReversed` re-derives the target from `order.refunds`, so the
+ * caller passes the order with the refund it just recorded).
  *
  * Best-effort and lazily imported for the same reasons the earning hook is:
  * loyalty reads orders from this module, and a bookkeeping failure must not
  * block the refund itself.
  */
-async function reverseLoyalty(order: AdminOrder, why: string): Promise<void> {
+async function reverseLoyalty(
+  order: AdminOrder,
+  why: string,
+  opts: { full: boolean },
+): Promise<void> {
   try {
     const { onOrderReversed } = await import("@/lib/mobile/loyalty");
-    await onOrderReversed(order);
+    await onOrderReversed(order, opts);
   } catch (err) {
     console.error(
       `[loyalty] reversal failed order=${order.id} orderNo=${order.orderNo} (${why})`,
@@ -3997,9 +4018,11 @@ export interface RefundNotice {
 }
 
 /**
- * Step 2: the money moved. A fully refunded order becomes `refunded` and
- * gives its stamp back - unless it was cancelled, which already did both and
- * must stay out of the reports.
+ * Step 2: the money moved. A fully refunded order becomes `refunded` - unless
+ * it was cancelled, which already did that and must stay out of the reports.
+ * After EVERY refund, partial ones included, the order's stamps are brought
+ * down to what its remaining goods earn (none once fully refunded or
+ * cancelled; a retry or a cancelled order's refund is a no-op there).
  *
  * With `notice`, the buyer is told first (a shop order only, once per refund
  * entry): the money has moved whatever the bookkeeping below then does.
@@ -4016,7 +4039,13 @@ export async function finalizeRefund(
   const refunded = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
   const fullyRefunded = refunded >= order.totalMinor;
   const wasCancelled = order.status === "cancelled";
-  if (!fullyRefunded || wasCancelled) return order;
+  if (!fullyRefunded || wasCancelled) {
+    // A partial refund keeps the stamps of the goods that were kept; a
+    // cancelled order keeps none (its cancel already took them back).
+    const why = wasCancelled ? "cancelled-refund" : "partial-refund";
+    await reverseLoyalty(order, why, { full: wasCancelled });
+    return order;
+  }
   check(
     await getDb()
       .from(TABLES.orders)
@@ -4024,8 +4053,10 @@ export async function finalizeRefund(
       .eq("id", order.id),
     "finalizeRefund",
   );
-  // A fully refunded order keeps nothing: the stamp it earned goes back too.
-  await reverseLoyalty(order, "refunded");
+  // A fully refunded order keeps nothing: the stamps it earned go back too.
+  await reverseLoyalty({ ...order, status: "refunded" }, "refunded", {
+    full: true,
+  });
   return { ...order, status: "refunded" };
 }
 

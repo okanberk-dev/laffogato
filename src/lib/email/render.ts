@@ -133,6 +133,10 @@ export function renderEmail(
     // the fee. A table order leaves KARGO empty - it is carried across the
     // room, and the mail must not talk about cargo (15 Eki 2026).
     KARGO_SATIRI: Boolean(vars.KARGO),
+    // The paid-order stamp card only when the order earned stamps: an app
+    // cafe order of at least 140 TL of goods, one per started 320 TL. A shop
+    // or web order used to be told "+1 damga" for a stamp it never got.
+    DAMGA: Boolean(vars.DAMGA_SAYISI) && vars.DAMGA_SAYISI !== "0",
   };
 
   // The holes are counted on the template's own fields while it is filled,
