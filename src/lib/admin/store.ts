@@ -3097,6 +3097,14 @@ export async function settleWalletPayment(
   });
 }
 
+/** Order states in which a repeated confirmation may re-offer the staff mail. */
+const STAFF_NOTICE_STATES: ReadonlySet<string> = new Set([
+  "paid",
+  "preparing",
+  "shipped",
+  "completed",
+]);
+
 /**
  * Hands the staff "new order" mail to `after()`: sent once the response is
  * out, never awaited by the payment and never able to fail it. Outside a
@@ -3231,6 +3239,20 @@ export async function applyPaymentSucceeded(input: {
       console.warn(
         `[payment] order ${input.orderId} was not pending — loyalty skipped`,
       );
+      // A repeat of the confirmation that already paid it (the same
+      // transaction again: the bank's return after the webhook, a replay):
+      // the staff mail is offered again. The notice's own claim makes this a
+      // no-op once one was sent or is being sent, so it only ever goes out
+      // here if the first attempt reached nobody, and only while the order
+      // is fresh. An order staff settled by hand is not a repeat and is not
+      // re-announced.
+      if (
+        !isFirstConfirmation &&
+        current &&
+        STAFF_NOTICE_STATES.has(current.status)
+      ) {
+        scheduleStaffNewOrderNotice(order.id, input.provider);
+      }
     }
   }
 
@@ -3238,8 +3260,8 @@ export async function applyPaymentSucceeded(input: {
   // land is logged, the money stays recorded.
   if (advanced) {
     await awardLoyalty({ ...order, status: "paid", paidAt }, "payment");
-    // The team's "yeni sipariş" mail: only for the confirmation that moved
-    // the order to `paid`, after the response, exactly once per order.
+    // The team's "yeni sipariş" mail: after the response, once per order
+    // (the notice claims it; a repeated confirmation below may re-offer it).
     scheduleStaffNewOrderNotice(order.id, input.provider);
   }
 

@@ -316,7 +316,11 @@ const notificationsSchema = z.object({
  * Ayarlar → Bildirimler: the operations address and who gets the staff
  * "yeni sipariş" mail (`src/lib/email/staff-order-notice.ts`). Owner only,
  * like every settings tab. The audit row keeps the before/after of the
- * switch and the roles; the addresses are logged as a count, not as text.
+ * switch and the roles. The addresses are not logged as text, but enough of
+ * them is to see a redirect: whether the operations address and the extra
+ * list changed, how many addresses were added and removed, and the domains
+ * on each side - so "kasa@laffogato.net" swapped for an outside inbox shows
+ * as a new domain rather than as a no-op save of one address.
  */
 export async function saveNotificationsAction(
   _prev: SettingsState,
@@ -347,19 +351,47 @@ export async function saveNotificationsAction(
     orderNotifyEmails: parsed.data.orderNotifyEmails,
   });
   revalidateAll();
-  const extraCount = (s: string) => (s ? s.split("\n").length : 0);
+  const list = (s: string) => parseNotifyEmails(s).valid;
+  const beforeList = list(before.orderNotifyEmails ?? "");
+  const afterList = list(parsed.data.orderNotifyEmails);
+  const beforeOps = (before.notificationEmail ?? "").trim().toLowerCase();
+  const afterOps = parsed.data.notificationEmail.trim().toLowerCase();
   return ok("notifications", "Bildirim ayarları kaydedildi.", {
     before: {
       orderNotifyEnabled: before.orderNotifyEnabled,
       orderNotifyRoles: before.orderNotifyRoles,
-      orderNotifyEmailCount: extraCount(before.orderNotifyEmails ?? ""),
+      orderNotifyEmailCount: beforeList.length,
+      orderNotifyEmailDomains: notifyDomains(beforeList),
+      notificationEmailDomain: notifyDomains([beforeOps])[0] ?? "",
     },
     after: {
       orderNotifyEnabled: parsed.data.orderNotifyEnabled,
       orderNotifyRoles: roles,
-      orderNotifyEmailCount: extraCount(parsed.data.orderNotifyEmails),
+      orderNotifyEmailCount: afterList.length,
+      orderNotifyEmailDomains: notifyDomains(afterList),
+      notificationEmailDomain: notifyDomains([afterOps])[0] ?? "",
+    },
+    changed: {
+      notificationEmail: beforeOps !== afterOps,
+      orderNotifyEmails:
+        beforeList.length !== afterList.length ||
+        beforeList.some((e) => !afterList.includes(e)),
+      orderNotifyEmailsAdded: afterList.filter((e) => !beforeList.includes(e))
+        .length,
+      orderNotifyEmailsRemoved: beforeList.filter((e) => !afterList.includes(e))
+        .length,
     },
   });
+}
+
+/** The sorted, distinct domains of a list of addresses - never the local part. */
+function notifyDomains(emails: readonly string[]): string[] {
+  const out = new Set<string>();
+  for (const e of emails) {
+    const at = e.lastIndexOf("@");
+    if (at > 0) out.add(e.slice(at + 1).toLowerCase());
+  }
+  return [...out].sort();
 }
 
 /**

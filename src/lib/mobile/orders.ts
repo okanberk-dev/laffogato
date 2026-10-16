@@ -452,7 +452,11 @@ export async function createAppOrder(
   // table_inactive, both before anything is written or charged.
   let table: { code: string; name: string } | null = null;
   if (body.fulfillment === "table") {
-    const lookup = await lookupTableLimited(body.tableCode, await clientIp());
+    const lookup = await lookupTableLimited(
+      body.tableCode,
+      await clientIp(),
+      customer.id,
+    );
     if (!lookup.ok) return { ok: false, failure: tableLookupFailure(lookup) };
     table = lookup.table;
   }
@@ -548,9 +552,10 @@ export async function createAppOrder(
       legalConsent: consent,
       clientOrderId: body.clientOrderId,
       payWithWallet: body.payWithWallet,
+      // The table, snapshotted onto the row (§3).
+      ...(table ? { tableCode: table.code, tableName: table.name } : {}),
       // Only a wallet order is held to it (§18); a card checkout re-prices
       // on its own "Tutar değişti" card before anything is charged.
-      ...(table ? { tableCode: table.code, tableName: table.name } : {}),
       expectedTotalMinor: body.payWithWallet
         ? body.expectedTotalMinor
         : undefined,
@@ -953,7 +958,11 @@ export async function previewAppOrder(
   // Same table gate as the order, so the basket learns about a dead QR
   // before the member reaches the checkout.
   if (body.fulfillment === "table") {
-    const lookup = await lookupTableLimited(body.tableCode, await clientIp());
+    const lookup = await lookupTableLimited(
+      body.tableCode,
+      await clientIp(),
+      customer?.id,
+    );
     if (!lookup.ok) return { ok: false, failure: tableLookupFailure(lookup) };
   }
   // The shop's own switch, which `placeAppOrder` enforces with 409

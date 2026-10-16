@@ -277,10 +277,16 @@ export function buildStaffNoticeContent(
   };
 }
 
-/** Per recipient, so a retry after a timeout never mails one inbox twice. */
+/**
+ * One key per provider request: the order, a digest of WHO it goes to (so a
+ * changed recipient list is a new request, not a 409 from the provider), and
+ * the batch number. A retry of the same request carries the same key, and
+ * Resend answers it from its record instead of mailing anyone twice.
+ */
 export function staffNoticeIdempotencyKey(
   orderId: string,
-  recipientDigest: string,
+  recipientsDigest: string,
+  batch: number,
 ): string {
-  return `order-${orderId}-staff-new-${recipientDigest}`;
+  return `order-${orderId}-staff-new-${recipientsDigest}-b${batch}`;
 }

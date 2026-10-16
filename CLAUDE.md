@@ -278,11 +278,15 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
   PayNkolay, cüzdan ya da sıfır tutar) - kasada ödeme yok. Masa kodu ve adı
   siparişe anlık görüntü olarak yazılır (`orders."tableCode"`, `"tableName"`).
   Herkese açık arama (`GET /api/mobile/v1/tables/{code}`, `/masa/[code]`, sipariş
-  yolu) yalnız `{code, name}` verir; bulunamayan kod IP başına sayılır
-  (`table-lookup`). Sözleşme: `docs/API-MOBILE.md` §3 ve §22.
+  yolu) yalnız `{code, name}` verir; bulunamayan kod üye + IP (oturum yoksa IP)
+  başına sayılır (`table-lookup`). Sözleşme: `docs/API-MOBILE.md` §3 ve §22.
+  AASA `/masa/*` **talep etmez** ve `/masa` sayfası "uygulamadan sipariş ver"
+  demez: masa ekranı olan lafmobil sürümü yayınlanınca ikisi birlikte açılır.
+  Kod yenilenince eski kart hemen masadan kaldırılmalı.
 - **Personel e-postası:** `applyPaymentSucceeded` siparişi gerçekten `paid`'e
   taşıdığında `after()` ile, sipariş başına **bir kez** (`order_notice_emails`,
-  kind `staff-new`), alıcı başına ayrı Idempotency-Key ile gider
+  kind `staff-new`), tek batch isteğinde, 429/5xx'te kısa yeniden denemeyle
+  gider (ayrıntı `docs/EMAIL-RESEND.md` "Yeni sipariş bildirimi")
   (`src/lib/email/staff-order-notice{,-core}.ts`, `operasyon-bildirim`
   şablonu). Alıcılar Ayarlar → Bildirimler: roller, ek adresler, operasyon
   adresi. İçerik müşterinin **yalnız adını** taşır; telefon, e-posta, adres,

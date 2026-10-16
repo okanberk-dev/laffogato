@@ -272,6 +272,58 @@ describe("saveNotificationsAction", () => {
     expect(payload).not.toContain("mutfak@ornek.com");
   });
 
+  it("makes a swapped address visible in the audit row without writing it out", async () => {
+    const saved = { ...SETTINGS };
+    Object.assign(SETTINGS, {
+      notificationEmail: "ops@laffogato.net",
+      orderNotifyEmails: "kasa@laffogato.net",
+    });
+    try {
+      await saveNotificationsAction(
+        {},
+        notifications(
+          {
+            notificationEmail: "ops@laffogato.net",
+            orderNotifyEnabled: "on",
+            orderNotifyEmails: "biri@disari.example",
+          },
+          ["owner"],
+        ),
+      );
+    } finally {
+      for (const k of Object.keys(SETTINGS)) {
+        if (!(k in saved)) delete (SETTINGS as Record<string, unknown>)[k];
+      }
+      Object.assign(SETTINGS, saved);
+    }
+    const entry = logAudit.mock.calls.at(-1)?.[0] as {
+      payload: {
+        before: Record<string, unknown>;
+        after: Record<string, unknown>;
+        changed: Record<string, unknown>;
+      };
+    };
+    // Same count on both sides - the old audit row read as a no-op.
+    expect(entry.payload.before.orderNotifyEmailCount).toBe(1);
+    expect(entry.payload.after.orderNotifyEmailCount).toBe(1);
+    expect(entry.payload.before.orderNotifyEmailDomains).toEqual([
+      "laffogato.net",
+    ]);
+    expect(entry.payload.after.orderNotifyEmailDomains).toEqual([
+      "disari.example",
+    ]);
+    expect(entry.payload.changed).toEqual({
+      notificationEmail: false,
+      orderNotifyEmails: true,
+      orderNotifyEmailsAdded: 1,
+      orderNotifyEmailsRemoved: 1,
+    });
+    const text = JSON.stringify(entry);
+    expect(text).not.toContain("kasa@");
+    expect(text).not.toContain("biri@");
+    expect(text).not.toContain("ops@");
+  });
+
   it("refuses an address it cannot mail, saving nothing", async () => {
     const state = await saveNotificationsAction(
       {},

@@ -41,7 +41,7 @@ function RotateButton() {
       onClick={(e) => {
         if (
           !confirm(
-            "Bu masanın kodu yenilensin mi? Masadaki basılı QR hemen çalışmaz olur; yeni kartı yazdırman gerekir.",
+            "Bu masanın kodu yenilensin mi? Masadaki basılı QR hemen çalışmaz olur; yeni kartı yazdırıp eskisini masadan hemen kaldırman gerekir.",
           )
         ) {
           e.preventDefault();

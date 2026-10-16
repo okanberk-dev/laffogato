@@ -17,6 +17,14 @@ import { checkLoginLimit, reserveLoginAttempt } from "@/lib/admin/rate-limit";
  * parallel burst cannot outrun it - the promo-preview pattern (WS1-03). While
  * the address is locked out even a real code answers "limited", so the
  * limiter itself never says which guesses were right.
+ *
+ * Whose counter: a signed-in member's lookups (the order path, and
+ * `GET /tables` with a valid bearer) count against that member at that
+ * address, an anonymous one (the web page, `GET /tables` without a token)
+ * against the address alone. A café shares one Wi-Fi address, and a rotated
+ * card left on a table is a miss on every scan; without the split, a handful
+ * of guests scanning it - or one guest on purpose - locked every member at
+ * that address out of table orders for the lock-out's length.
  */
 
 export type TableLookup =
@@ -26,11 +34,19 @@ export type TableLookup =
 
 const PURPOSE = "table-lookup" as const;
 
+/** The counter's identity: the member, or nobody (the address alone). */
+function counterIdentity(memberId: string | null | undefined): string {
+  const id = String(memberId ?? "").trim();
+  return id ? `member:${id}` : "";
+}
+
 export async function lookupTableLimited(
   raw: unknown,
   ip: string,
+  memberId?: string | null,
 ): Promise<TableLookup> {
-  const before = await checkLoginLimit(PURPOSE, ip, "");
+  const identity = counterIdentity(memberId);
+  const before = await checkLoginLimit(PURPOSE, ip, identity);
   if (before.blocked) {
     return {
       ok: false,
@@ -40,7 +56,7 @@ export async function lookupTableLimited(
   }
   const found = await resolveActiveTable(raw);
   if (found === null) {
-    const gate = await reserveLoginAttempt(PURPOSE, ip, "");
+    const gate = await reserveLoginAttempt(PURPOSE, ip, identity);
     if (gate.blocked) {
       return {
         ok: false,
@@ -50,7 +66,7 @@ export async function lookupTableLimited(
     }
     return { ok: false, reason: "missing" };
   }
-  const after = await checkLoginLimit(PURPOSE, ip, "");
+  const after = await checkLoginLimit(PURPOSE, ip, identity);
   if (after.blocked) {
     return {
       ok: false,

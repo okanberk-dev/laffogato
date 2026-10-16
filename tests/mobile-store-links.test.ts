@@ -191,11 +191,12 @@ describe("the paths the app is allowed to intercept", () => {
     expect(AASA).toContain('"NOT /uye/*"');
   });
 
-  it("claims the table QR path, and only as a prefix of the code", () => {
+  it("does not claim the table QR path before an app can open it", () => {
+    // No released app has a /masa/<code> screen yet; an iPhone with the app
+    // would open its not-found screen instead of the web menu. Flip this
+    // with the lafmobil release that ships the table screen (§22).
     const claimed = [...AASA.matchAll(/^\s+"(\/[^"]*)",$/gm)].map((m) => m[1]);
-    expect(claimed).toContain("/masa/*");
-    // /masa itself serves nothing; only /masa/<code> is a page.
-    expect(claimed).not.toContain("/masa");
+    expect(claimed.filter((p) => p.startsWith("/masa"))).toEqual([]);
   });
 
   it("compares iOS wildcards and Android prefixes as the same claim", () => {

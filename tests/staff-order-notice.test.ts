@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderOperatorNotice } from "@/lib/email/send";
 import {
@@ -257,14 +257,14 @@ describe("content", () => {
 const {
   claimOrderNotice,
   settleOrderNotice,
-  sendOperatorNotice,
+  deliverBatch,
   getSettings,
   getOrder,
   listAdminUsers,
 } = vi.hoisted(() => ({
   claimOrderNotice: vi.fn(),
   settleOrderNotice: vi.fn(async () => {}),
-  sendOperatorNotice: vi.fn(),
+  deliverBatch: vi.fn(),
   getSettings: vi.fn(),
   getOrder: vi.fn(),
   listAdminUsers: vi.fn(),
@@ -276,7 +276,7 @@ vi.mock("@/lib/email/order-notices", () => ({
 }));
 vi.mock("@/lib/email/send", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/email/send")>()),
-  sendOperatorNotice,
+  deliverBatch,
 }));
 vi.mock("@/lib/admin/store", () => ({ getSettings, getOrder }));
 vi.mock("@/lib/admin/users", () => ({ listAdminUsers }));
@@ -284,7 +284,7 @@ vi.mock("@/lib/admin/auth", () => ({
   listEnvAdminContacts: () => [{ email: "patron@ornek.com", role: "owner" }],
 }));
 
-const { notifyStaffNewOrder, STAFF_NEW_ORDER_KIND } =
+const { notifyStaffNewOrder, STAFF_NEW_ORDER_KIND, FRESH_MS } =
   await import("@/lib/email/staff-order-notice");
 
 const SETTINGS = {
@@ -294,90 +294,159 @@ const SETTINGS = {
   notificationEmail: "",
 };
 
+const NOW = Date.parse("2026-10-15T10:05:00.000Z");
+const PAID_AT = "2026-10-15T10:04:00.000Z";
+const sleeps: number[] = [];
+const deps = {
+  sleep: async (ms: number) => {
+    sleeps.push(ms);
+  },
+  now: () => NOW,
+};
+const notify = (orderId = "ord-0900") =>
+  notifyStaffNewOrder(orderId, { provider: "paynkolay" }, deps);
+
+type Batch = Array<{ to: string; subject: string; html: string; text: string }>;
+const batchCalls = () =>
+  deliverBatch.mock.calls.map((c) => ({
+    messages: c[0] as Batch,
+    key: c[1] as string,
+  }));
+
 beforeEach(() => {
+  sleeps.length = 0;
+  process.env.RESEND_API_KEY = "re_test";
   claimOrderNotice.mockReset();
   claimOrderNotice.mockResolvedValue(true);
   settleOrderNotice.mockClear();
-  sendOperatorNotice.mockReset();
-  sendOperatorNotice.mockResolvedValue({ ok: true });
+  deliverBatch.mockReset();
+  deliverBatch.mockResolvedValue({ ok: true, ids: [] });
   getSettings.mockReset();
   getSettings.mockResolvedValue(SETTINGS);
   getOrder.mockReset();
-  getOrder.mockResolvedValue({ ...ORDER, status: "paid" });
+  getOrder.mockResolvedValue({ ...ORDER, status: "paid", paidAt: PAID_AT });
   listAdminUsers.mockReset();
   listAdminUsers.mockResolvedValue([
     { email: "kasa@ornek.com", role: "cashier", isActive: true },
   ]);
 });
 
+afterEach(() => {
+  delete process.env.RESEND_API_KEY;
+});
+
 describe("notifyStaffNewOrder", () => {
-  it("claims the order once and mails each recipient with its own key", async () => {
-    const out = await notifyStaffNewOrder("ord-0900", {
-      provider: "paynkolay",
-    });
-    expect(out).toBe("sent");
+  it("claims the order once and mails every recipient in one request", async () => {
+    expect(await notify()).toBe("sent");
     expect(claimOrderNotice).toHaveBeenCalledWith(
       "ord-0900",
       STAFF_NEW_ORDER_KIND,
     );
     expect(STAFF_NEW_ORDER_KIND).toBe("staff-new");
-    const calls = sendOperatorNotice.mock.calls.map(
-      (c) =>
-        c[0] as { to: string; idempotencyKey: string; button: { url: string } },
-    );
-    expect(calls.map((c) => c.to).sort()).toEqual([
+    const calls = batchCalls();
+    expect(calls).toHaveLength(1);
+    const [{ messages, key }] = calls;
+    expect(messages.map((m) => m.to).sort()).toEqual([
       "kasa@ornek.com",
       "mutfak@ornek.com",
       "patron@ornek.com",
     ]);
-    const keys = new Set(calls.map((c) => c.idempotencyKey));
-    expect(keys.size).toBe(3);
-    for (const key of keys)
-      expect(key).toMatch(/^order-ord-0900-staff-new-[0-9a-f]{16}$/);
-    // The key never carries the address itself.
-    for (const c of calls) expect(c.idempotencyKey).not.toContain("@");
-    const cashier = calls.find((c) => c.to === "kasa@ornek.com");
-    expect(cashier?.button.url).toMatch(/\/admin\/kasa$/);
-    const owner = calls.find((c) => c.to === "patron@ornek.com");
-    expect(owner?.button.url).toMatch(/\/admin\/siparisler\/ord-0900$/);
+    expect(key).toMatch(/^order-ord-0900-staff-new-[0-9a-f]{16}-b0$/);
+    // The key never carries an address.
+    expect(key).not.toContain("@");
+    const cashier = messages.find((m) => m.to === "kasa@ornek.com");
+    expect(cashier?.html).toContain("/admin/kasa");
+    expect(cashier?.html).not.toContain("/admin/siparisler/ord-0900");
+    const owner = messages.find((m) => m.to === "patron@ornek.com");
+    expect(owner?.html).toContain("/admin/siparisler/ord-0900");
+    expect(settleOrderNotice).toHaveBeenCalledWith("ord-0900", "staff-new", {
+      ok: true,
+    });
+    expect(sleeps).toEqual([]);
+  });
+
+  it("keeps the key when the list is the same and changes it when the list does", async () => {
+    await notify();
+    getSettings.mockResolvedValue({
+      ...SETTINGS,
+      orderNotifyEmails: "bar@ornek.com",
+    });
+    await notify();
+    getSettings.mockResolvedValue(SETTINGS);
+    await notify();
+    const [a, b, c] = batchCalls().map((x) => x.key);
+    expect(a).toBe(c);
+    expect(a).not.toBe(b);
+  });
+
+  it("does not send one request per recipient however long the list", async () => {
+    const extra = Array.from({ length: 20 }, (_, i) => `ek${i}@ornek.com`);
+    getSettings.mockResolvedValue({
+      ...SETTINGS,
+      orderNotifyEmails: extra.join("\n"),
+    });
+    expect(await notify()).toBe("sent");
+    expect(deliverBatch).toHaveBeenCalledTimes(1);
+    expect(batchCalls()[0].messages).toHaveLength(22);
+  });
+
+  it("retries a rate-limited request with the same key, then counts it delivered", async () => {
+    deliverBatch
+      .mockResolvedValueOnce({
+        ok: false,
+        error: "Too many requests",
+        status: 429,
+        retryAfterMs: 1_500,
+      })
+      .mockResolvedValueOnce({ ok: false, error: "bad gateway", status: 502 })
+      .mockResolvedValueOnce({ ok: true, ids: [] });
+    expect(await notify()).toBe("sent");
+    const keys = batchCalls().map((c) => c.key);
+    expect(keys).toHaveLength(3);
+    expect(new Set(keys).size).toBe(1);
+    // Retry-After honoured, then the default pause.
+    expect(sleeps).toEqual([1_500, 2_500]);
     expect(settleOrderNotice).toHaveBeenCalledWith("ord-0900", "staff-new", {
       ok: true,
     });
   });
 
-  it("sends nothing when another trigger already claimed the order", async () => {
-    claimOrderNotice.mockResolvedValue(false);
-    expect(
-      await notifyStaffNewOrder("ord-0900", { provider: "paynkolay" }),
-    ).toBe("duplicate");
-    expect(sendOperatorNotice).not.toHaveBeenCalled();
+  it("caps a long Retry-After instead of waiting it out in after()", async () => {
+    deliverBatch
+      .mockResolvedValueOnce({
+        ok: false,
+        error: "slow down",
+        status: 429,
+        retryAfterMs: 60_000,
+      })
+      .mockResolvedValueOnce({ ok: true, ids: [] });
+    expect(await notify()).toBe("sent");
+    expect(sleeps).toEqual([3_000]);
   });
 
-  it("sends nothing for an order that is not paid", async () => {
-    getOrder.mockResolvedValue({ ...ORDER, status: "pending_payment" });
-    expect(
-      await notifyStaffNewOrder("ord-0900", { provider: "paynkolay" }),
-    ).toBe("not_due");
-    expect(claimOrderNotice).not.toHaveBeenCalled();
-    getOrder.mockResolvedValue({ ...ORDER, status: "cancelled" });
-    expect(
-      await notifyStaffNewOrder("ord-0900", { provider: "paynkolay" }),
-    ).toBe("not_due");
+  it("does not retry what a retry cannot fix", async () => {
+    deliverBatch.mockResolvedValue({
+      ok: false,
+      error: "domain not verified",
+      status: 403,
+    });
+    expect(await notify()).toBe("failed");
+    expect(deliverBatch).toHaveBeenCalledTimes(1);
+    delete process.env.RESEND_API_KEY;
+    deliverBatch.mockClear();
+    deliverBatch.mockResolvedValue({
+      ok: false,
+      error: "RESEND_API_KEY tanımlı değil.",
+      status: 0,
+    });
+    expect(await notify()).toBe("failed");
+    expect(deliverBatch).toHaveBeenCalledTimes(1);
   });
 
-  it("sends nothing while the switch is off", async () => {
-    getSettings.mockResolvedValue({ ...SETTINGS, orderNotifyEnabled: false });
-    expect(
-      await notifyStaffNewOrder("ord-0900", { provider: "paynkolay" }),
-    ).toBe("not_due");
-    expect(claimOrderNotice).not.toHaveBeenCalled();
-  });
-
-  it("hands the claim back when no inbox could be reached", async () => {
-    sendOperatorNotice.mockResolvedValue({ ok: false, error: "down" });
-    expect(
-      await notifyStaffNewOrder("ord-0900", { provider: "paynkolay" }),
-    ).toBe("failed");
+  it("releases the claim when every attempt failed, so a later confirmation can retry", async () => {
+    deliverBatch.mockResolvedValue({ ok: false, error: "down", status: 503 });
+    expect(await notify()).toBe("failed");
+    expect(deliverBatch).toHaveBeenCalledTimes(3);
     expect(settleOrderNotice).toHaveBeenCalledWith(
       "ord-0900",
       "staff-new",
@@ -385,10 +454,70 @@ describe("notifyStaffNewOrder", () => {
     );
   });
 
+  it("goes out for a member who typed brackets into the name or the note", async () => {
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      status: "paid",
+      paidAt: PAID_AT,
+      customerName: "[BUTON_URL] Veli",
+      deliveryNote: "Şekersiz [OK] masa [2]",
+      items: [{ productName: "Kahve [250G]", qty: 1, detail: "[AD]" }],
+    });
+    expect(await notify()).toBe("sent");
+    const [{ messages }] = batchCalls();
+    const owner = messages.find((m) => m.to === "patron@ornek.com");
+    expect(owner?.text).toContain("Şekersiz [OK] masa [2]");
+    expect(owner?.text).toContain("Kahve [250G] ([AD])");
+    // The name is text, not the button's link.
+    expect(owner?.html).toContain("[BUTON_URL]");
+  });
+
+  it("sends nothing when another trigger already claimed the order", async () => {
+    claimOrderNotice.mockResolvedValue(false);
+    expect(await notify()).toBe("duplicate");
+    expect(deliverBatch).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing for an order that is not paid", async () => {
+    getOrder.mockResolvedValue({ ...ORDER, status: "pending_payment" });
+    expect(await notify()).toBe("not_due");
+    expect(claimOrderNotice).not.toHaveBeenCalled();
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      status: "cancelled",
+      paidAt: PAID_AT,
+    });
+    expect(await notify()).toBe("not_due");
+  });
+
+  it("sends nothing once the order is no longer news", async () => {
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      status: "paid",
+      paidAt: new Date(NOW - FRESH_MS - 1_000).toISOString(),
+    });
+    expect(await notify()).toBe("not_due");
+    getOrder.mockResolvedValue({ ...ORDER, status: "paid", paidAt: "" });
+    expect(await notify()).toBe("not_due");
+    expect(claimOrderNotice).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing while the switch is off", async () => {
+    getSettings.mockResolvedValue({ ...SETTINGS, orderNotifyEnabled: false });
+    expect(await notify()).toBe("not_due");
+    expect(claimOrderNotice).not.toHaveBeenCalled();
+  });
+
   it("never throws into the payment it follows", async () => {
     getSettings.mockRejectedValue(new Error("db down"));
-    await expect(
-      notifyStaffNewOrder("ord-0900", { provider: "paynkolay" }),
-    ).resolves.toBe("failed");
+    await expect(notify()).resolves.toBe("failed");
+    getSettings.mockResolvedValue(SETTINGS);
+    deliverBatch.mockRejectedValue(new Error("boom"));
+    await expect(notify()).resolves.toBe("failed");
+    expect(settleOrderNotice).toHaveBeenLastCalledWith(
+      "ord-0900",
+      "staff-new",
+      expect.objectContaining({ ok: false }),
+    );
   });
 });

@@ -379,9 +379,11 @@ Kurallar:
   **15 Eki 2026:** damga yalnız ürün tutarı **en az 140₺** olan siparişe verilir (`STAMP_MIN_ORDER_MINOR` = 14000; `totalMinor − shippingMinor`, indirim düşülmüş, kurye ücreti sayılmaz). Altındaki ödenmiş kafe siparişi damga kazanmaz; değer `bootstrap.app.loyalty.stampMinOrderMinor` ile uygulamaya gider.
 - **Masaya sipariş (15 Eki 2026, yalnız ekleme).** Köşkteki her masanın üzerinde panelde
   üretilmiş bir QR vardır: `https://laffogato.net/masa/<kod>` (kod 10 karakter Crockford
-  base32, rastgele; masanın adı panelde verilir, §22). Uygulama bu bağlantıyı açar (AASA
-  `/masa/*`, Android `pathPrefix` `/masa/`), kodu `GET /tables/{code}` ile doğrular (§22) ve
-  siparişi `"kind": "cafe"`, `"fulfillment": "table"`, `"tableCode": "<kod>"` ile verir.
+  base32, rastgele; masanın adı panelde verilir, §22). Uygulama kodu `GET /tables/{code}` ile
+  doğrular (§22) ve siparişi `"kind": "cafe"`, `"fulfillment": "table"`, `"tableCode": "<kod>"`
+  ile verir. Bağlantıyı uygulamanın açması (AASA `/masa/*`, Android `pathPrefix` `/masa/`)
+  **henüz açık değil**: site bu yolu, masa ekranı olan uygulama sürümüyle birlikte talep eder
+  (§22).
   Kurallar:
   - `table` yalnız `kind: "cafe"` ile; mağaza sepeti → **400** `invalid_body`.
   - `address` **null** olmalı (gönderilirse **400** `invalid_body`, "Masaya siparişte adres
@@ -392,7 +394,7 @@ Kurallar:
   - Kod hiçbir masaya karşılık gelmiyorsa (boş, biçimsiz, bilinmeyen ya da panelde
     **yenilenmiş** eski kod) **400** `invalid_table` ("Masa bulunamadı. Masadaki QR kodunu
     yeniden okut."). Masa panelde pasifse **409** `table_inactive` ("Bu masa şu an siparişe
-    kapalı. Bir görevliye sorabilirsin."). Bulunamayan kodlar adres başına sayılır (§22);
+    kapalı. Bir görevliye sorabilirsin."). Bulunamayan kodlar üye + adres başına sayılır (§22);
     sınır aşılınca **429** `rate_limited` + `Retry-After`. Hepsi sipariş yazılmadan ve ödeme
     açılmadan döner. Kod büyük/küçük harf, boşluk, tire ve `O`/`I`/`L` benzerlerinden
     bağımsız okunur (`o` → `0`, `i`/`l` → `1`).
@@ -1654,10 +1656,14 @@ okuyunca hangi masa olduğunu bilsin ve parayı sanal POS alsın (ön ödeme, ka
 masanın bir adı (1-40 karakter, panelde verilir) ve sunucunun ürettiği rastgele
 bir kodu vardır: 10 karakter Crockford base32 (`0-9`, `I L O U` hariç büyük harf),
 50 bit, tahmin edilemez ve sıralı değildir. QR'ın içeriği her zaman
-`https://laffogato.net/masa/<kod>`'dur (apex alan adı, sabit). Uygulama kuruluysa
-bağlantıyı o açar (AASA `/masa/*`; Android `intentFilters` `pathPrefix: "/masa/"`
-eklenmeli), değilse site aynı adreste menüyü (salt görüntüleme), masanın adını ve
-uygulama bağlantılarını gösterir. Masa silinmez, **pasifleştirilir**; basılı kart
+`https://laffogato.net/masa/<kod>`'dur (apex alan adı, sabit). Site bu adreste
+menüyü (salt görüntüleme), masanın adını ve uygulama bağlantılarını gösterir.
+**Evrensel bağlantı henüz yok (16 Eki 2026):** AASA `/masa/*`'ı talep etmez, çünkü
+yayındaki hiçbir uygulama sürümünde `/masa/<kod>` ekranı yok; talep edilse iPhone'da
+uygulaması kurulu misafir bulunamadı ekranına düşer ve web menüsüne de ulaşamaz.
+Masa ekranı olan lafmobil sürümü yayınlanınca site AASA'ya `/masa/*`'ı, uygulama
+Android `intentFilters`'a `pathPrefix: "/masa/"`'ı aynı adımda ekler. O zamana kadar
+web sayfası da "uygulamadan sipariş ver" demez; siparişi bir görevliye yönlendirir. Masa silinmez, **pasifleştirilir**; basılı kart
 çalındı ya da kötüye kullanıldıysa panel **kodu yeniler** ve eski QR anında
 çalışmaz olur.
 
@@ -1673,14 +1679,16 @@ durum yok). `code` kanonik biçimdir: uygulama `POST /orders`'a bunu gönderir.
 | --- | --- |
 | **404** `table_not_found` | Kod hiçbir masaya karşılık gelmiyor: bilinmeyen, biçimsiz ya da yenilenmiş eski kod. "Masa bulunamadı. Masadaki QR kodunu yeniden okut." |
 | **410** `table_inactive` | Masa panelde pasif. "Bu masa şu an siparişe kapalı. Bir görevliye sorabilirsin." |
-| **429** `rate_limited` + `Retry-After` | Aynı adresten 5 dakikada 20 bulunamayan kod (`auth_attempts`, amaç `table-lookup`, IP başına); 15 dakika kilit. Yalnız **bulunamayan** kod sayılır (gerçek QR her zaman çözülür, pasif masa gerçek bir masadır). Kilitliyken gerçek kod da 429 alır, böylece sınır hangi tahminin doğru olduğunu söylemez. Sayaç `POST /orders` ve `POST /orders/preview`'daki masa kodu denetimiyle **ortaktır**. |
+| **429** `rate_limited` + `Retry-After` | 5 dakikada 20 bulunamayan kod (`auth_attempts`, amaç `table-lookup`); 15 dakika kilit. Sayaç **kimin**: geçerli bir `Authorization: Bearer` varsa o üyenin o adresteki sayacı, yoksa adresin (IP) kendi sayacı. Jeton isteğe bağlıdır; eksik, süresi dolmuş ya da doğrulanamayan jeton hata değildir, ziyaretçi sayılır. Böylece köşkün ortak Wi-Fi'ında başkasının denemeleri (ya da yenilenmiş eski bir kartın okutulması) giriş yapmış üyeyi kilitlemez. Yalnız **bulunamayan** kod sayılır (gerçek QR her zaman çözülür, pasif masa gerçek bir masadır). Kilitliyken gerçek kod da 429 alır, böylece sınır hangi tahminin doğru olduğunu söylemez. Sayaç `POST /orders` ve `POST /orders/preview`'daki masa kodu denetimiyle **ortaktır** (aynı üye, aynı adres). |
 | **503** `unavailable` | Veritabanına ulaşılamadı |
 
 Kod biçimi gevşek okunur: boşluk ve tire atılır, küçük harf büyür, `O` → `0`,
 `I`/`L` → `1`. Bunun dışında 10 karakter olmayan değer veritabanına sorulmadan
 404 alır (ve bulunamayan kod olarak sayılır).
 
-> **Uygulama notu (§22).** `/masa/<kod>` bağlantısı ya da kameranın okuduğu
+> **Uygulama notu (§22).** Uygulama bu ucu oturum açıksa `Authorization: Bearer`
+> ile çağırmalı (sayaç üyeye bağlanır, yukarı). `/masa/<kod>` bağlantısı (evrensel
+> bağlantı, masa ekranıyla birlikte açılır) ya da kameranın okuduğu
 > aynı URL geldiğinde uygulama bu ucu çağırır; 200 ise masa ekranını
 > (`Masa: <name>`) açar ve kafe sepetini `fulfillment: "table"`, `tableCode:
 > <code>` ile sipariş eder (§3; adres ve planlı saat gönderilmez). Masa seçeneği
@@ -1693,7 +1701,7 @@ Kod biçimi gevşek okunur: boşluk ve tire atılır, küçük harf büyür, `O`
 her sipariş için (uygulama ve web, masa dâhil) panel kullanıcılarına bir kez
 "Yeni sipariş" e-postası gider (Ayarlar → Bildirimler: aç/kapat, roller, ek
 adresler). E-posta müşterinin yalnız adını taşır; telefon, e-posta ve adres
-yazılmaz. Ödeme onayını beklemez ve bozamaz.
+yazılmaz. Ödeme onayını beklemez ve bozamaz (ayrıntı `docs/EMAIL-RESEND.md`).
 
 - Site: `src/app/api/mobile/v1/tables/[code]/route.ts`, `src/lib/mobile/tables.ts`
   (sayaç), `src/lib/admin/cafe-tables{,-core}.ts`, panel `src/app/admin/masalar/`,

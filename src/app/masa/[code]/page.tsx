@@ -10,11 +10,11 @@ import { loadAppProps } from "@/lib/seo/app-props";
 export const dynamic = "force-dynamic";
 
 /**
- * `/masa/<code>` - what a table's printed QR opens in a browser (the app
- * claims the same URL when it is installed: AASA `/masa/*`).
+ * `/masa/<code>` - what a table's printed QR opens in a browser. The app does
+ * not claim this URL yet (AASA, Android): it will with the release that ships
+ * its table screen (docs/API-MOBILE.md §22).
  *
- * The menu, view-only as on /menu, under a banner naming the table and
- * pointing at the app, where the order is placed and paid. An unknown,
+ * The menu, view-only as on /menu, under a banner naming the table. An unknown,
  * retired or rotated code still gets the menu, with a neutral line - never a
  * 404 and never a redirect: a guest holding an old card should still see
  * what the köşk serves.

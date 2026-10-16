@@ -8,8 +8,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const resolveActiveTable = vi.fn();
 const checkLoginLimit = vi.fn();
 const reserveLoginAttempt = vi.fn();
+const requireMobileCustomer = vi.fn();
 
 vi.mock("@/lib/admin/cafe-tables", () => ({ resolveActiveTable }));
+vi.mock("@/lib/mobile/auth", () => ({ requireMobileCustomer }));
 vi.mock("@/lib/admin/rate-limit", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/admin/rate-limit")>();
   return {
@@ -24,10 +26,15 @@ const { GET } = await import("@/app/api/mobile/v1/tables/[code]/route");
 const OPEN = { blocked: false, retryAfterSeconds: 0, remaining: 20 };
 const LOCKED = { blocked: true, retryAfterSeconds: 600, remaining: 0 };
 
-function call(code: string) {
+function call(code: string, bearer?: string) {
   const req = new Request(
     `https://laffogato.net/api/mobile/v1/tables/${encodeURIComponent(code)}`,
-    { headers: { "x-forwarded-for": "10.0.0.7" } },
+    {
+      headers: {
+        "x-forwarded-for": "10.0.0.7",
+        ...(bearer ? { authorization: `Bearer ${bearer}` } : {}),
+      },
+    },
   );
   return GET(req as never, { params: Promise.resolve({ code }) });
 }
@@ -38,6 +45,7 @@ beforeEach(() => {
   checkLoginLimit.mockResolvedValue(OPEN);
   reserveLoginAttempt.mockReset();
   reserveLoginAttempt.mockResolvedValue(OPEN);
+  requireMobileCustomer.mockReset();
 });
 
 describe("GET /tables/{code}", () => {
@@ -81,6 +89,49 @@ describe("GET /tables/{code}", () => {
       "10.0.0.7",
       "",
     );
+  });
+
+  it("counts a signed-in member's miss against the member, not the whole address", async () => {
+    // A café shares one Wi-Fi address: someone else's misses must not lock
+    // a member out of their table order.
+    requireMobileCustomer.mockResolvedValue({
+      ok: true,
+      customer: { id: "cst-1" },
+    });
+    resolveActiveTable.mockResolvedValue(null);
+    const res = await call("ZZZZZZZZZZ", "tok");
+    expect(res.status).toBe(404);
+    expect(checkLoginLimit).toHaveBeenCalledWith(
+      "table-lookup",
+      "10.0.0.7",
+      "member:cst-1",
+    );
+    expect(reserveLoginAttempt).toHaveBeenCalledWith(
+      "table-lookup",
+      "10.0.0.7",
+      "member:cst-1",
+    );
+  });
+
+  it("treats a token it cannot use as a visitor, never as an error", async () => {
+    const { NextResponse } = await import("next/server");
+    for (const status of [401, 403, 503]) {
+      requireMobileCustomer.mockResolvedValue({
+        ok: false,
+        response: NextResponse.json({ error: "x" }, { status }),
+      });
+      resolveActiveTable.mockResolvedValue({
+        code: "ABCDEFGH23",
+        name: "Bahçe 3",
+      });
+      const res = await call("ABCDEFGH23", "stale");
+      expect(res.status).toBe(200);
+      expect(checkLoginLimit).toHaveBeenLastCalledWith(
+        "table-lookup",
+        "10.0.0.7",
+        "",
+      );
+    }
   });
 
   it("answers 410 table_inactive for a table out of service, without counting it", async () => {

@@ -168,6 +168,13 @@ describe("POST /orders - fulfillment: table", () => {
       }),
     );
     expect(res.order.table).toEqual({ code: "ABCDEFGH23", name: "Bahçe 3" });
+    // The miss counter is the member's at this address, not the whole
+    // café Wi-Fi's (tables.ts).
+    expect(lookupTableLimited).toHaveBeenCalledWith(
+      "ABCDEFGH23",
+      "10.0.0.1",
+      "cst-1",
+    );
     // Prepayment is mandatory: there is no pay-at-the-table path.
     expect(res.payment?.redirectUrl).toContain("pos.example");
     expect(createCheckoutSession).toHaveBeenCalledTimes(1);

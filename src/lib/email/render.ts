@@ -22,7 +22,13 @@ import {
 } from "@/lib/mobile/app-store";
 import { SITE } from "@/lib/seo/site";
 
-import { assertFilled, fill, fillText, type TemplateVars } from "./fill";
+import {
+  assertNoneMissing,
+  fill,
+  fillText,
+  type MissingFields,
+  type TemplateVars,
+} from "./fill";
 import { EMAIL_TEMPLATES, type EmailTemplateName } from "./templates.generated";
 
 export interface RenderedEmail {
@@ -110,7 +116,7 @@ export function renderEmail(
     AD: Boolean(vars.AD),
     // The campaign family's optional blocks follow their field: no image URL,
     // no hero row; no code, no code box. A dropped block takes the fields
-    // inside it along, so `assertFilled` never asks for a value the operator
+    // inside it along, so the fill never asks for a value the operator
     // deliberately left blank - but a block that IS open still needs every
     // field in it (a code without an expiry is a render error, not a gap).
     GORSEL: Boolean(vars.KAMPANYA_GORSEL_URL),
@@ -129,13 +135,25 @@ export function renderEmail(
     KARGO_SATIRI: Boolean(vars.KARGO),
   };
 
-  const html = fill(template.html, { vars, loops: input.loops, flags });
-  const subject = fillText(template.subject, vars, flags);
-  const text = fillText(input.text, vars, flags);
+  // The holes are counted on the template's own fields while it is filled,
+  // not looked for in the result: a value may contain "[OK]" (a member's
+  // note, a product called "Kahve [250G]") and that is text, not a field.
+  const missing = {
+    html: new Set() as MissingFields,
+    subject: new Set() as MissingFields,
+    text: new Set() as MissingFields,
+  };
+  const html = fill(
+    template.html,
+    { vars, loops: input.loops, flags },
+    missing.html,
+  );
+  const subject = fillText(template.subject, vars, flags, missing.subject);
+  const text = fillText(input.text, vars, flags, missing.text);
 
-  assertFilled(html, name);
-  assertFilled(subject, `${name} (konu)`);
-  assertFilled(text, `${name} (düz metin)`);
+  assertNoneMissing(missing.html, name);
+  assertNoneMissing(missing.subject, `${name} (konu)`);
+  assertNoneMissing(missing.text, `${name} (düz metin)`);
 
   return {
     subject,

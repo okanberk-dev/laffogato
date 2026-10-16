@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { clientIpFrom } from "@/lib/admin/rate-limit";
-import { routeFailure } from "@/lib/mobile/http";
+import { optionalMobileCustomer, routeFailure } from "@/lib/mobile/http";
 import { apiError, apiJson } from "@/lib/mobile/respond";
 import { lookupTableLimited, TABLE_MESSAGES } from "@/lib/mobile/tables";
 
@@ -21,6 +21,11 @@ export const maxDuration = 15;
  *
  * Never cached anywhere: a rotated or deactivated code must stop resolving
  * the moment the panel says so.
+ *
+ * A valid bearer is optional and changes one thing: the misses count against
+ * that member rather than against the whole address (`tables.ts`), so a
+ * café's shared Wi-Fi is not locked out by someone else's misses. A missing,
+ * expired or unverifiable token is simply a visitor - never an error here.
  */
 export async function GET(
   request: NextRequest,
@@ -28,9 +33,11 @@ export async function GET(
 ) {
   try {
     const { code } = await params;
+    const who = await optionalMobileCustomer(request);
     const lookup = await lookupTableLimited(
       code,
       clientIpFrom(request.headers),
+      who.ok ? who.customer?.id : null,
     );
     if (lookup.ok) {
       return apiJson(

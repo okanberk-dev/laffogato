@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDb, type Executor } from "@/lib/db/client";
 
 /**
- * The staff "new order" mail is scheduled from `applyPaymentSucceeded`, and
- * only from the confirmation that actually moved the order to `paid` - not
- * from a replayed notification, not for an order that was no longer pending,
- * not for a short payment. It is handed to `after()`, so the payment never
- * waits for it.
+ * The staff "new order" mail is scheduled from `applyPaymentSucceeded`: by
+ * the confirmation that moved the order to `paid`, and again by a repeat of
+ * that same confirmation (the notice's claim makes the repeat a no-op unless
+ * the first attempt reached nobody). Not for an order staff settled by hand,
+ * not for a cancelled one, not for a short payment. It is handed to
+ * `after()`, so the payment never waits for it.
  */
 
 const { afterCallbacks, notifyStaffNewOrder } = vi.hoisted(() => ({
@@ -26,6 +27,8 @@ vi.mock("@/lib/email/staff-order-notice", () => ({ notifyStaffNewOrder }));
 let insertConflict = false;
 let advanced = true;
 let total = 50000;
+/** What the order reads as once the guarded UPDATE did not move it. */
+let settledStatus = "paid";
 
 const exec: Executor = async ({ text }) => {
   if (/count\(\*\)/i.test(text)) return { rows: [{ count: 1 }], rowCount: 1 };
@@ -52,7 +55,7 @@ const exec: Executor = async ({ text }) => {
           orderNo: 10001,
           customerName: "Ayşe",
           customerEmail: "ayse@example.com",
-          status: advanced ? "pending_payment" : "paid",
+          status: advanced ? "pending_payment" : settledStatus,
           items: [],
           refunds: [],
           subtotalMinor: total,
@@ -106,6 +109,7 @@ beforeEach(() => {
   insertConflict = false;
   advanced = true;
   total = 50000;
+  settledStatus = "paid";
 });
 
 describe("the staff new-order mail after a payment", () => {
@@ -121,9 +125,33 @@ describe("the staff new-order mail after a payment", () => {
     });
   });
 
-  it("is not scheduled by a confirmation that found the order already paid", async () => {
+  it("is re-offered by a repeat of the confirmation that paid the order", async () => {
+    // The bank's return after the webhook, or a replay: the notice's claim
+    // makes it a no-op unless the first attempt reached nobody.
     advanced = false;
     insertConflict = true;
+    const res = await applyPaymentSucceeded(payment());
+    expect(res).toEqual({ ok: true });
+    expect(afterCallbacks).toHaveLength(1);
+    await runAfter();
+    expect(notifyStaffNewOrder).toHaveBeenCalledWith("ord-0001", {
+      provider: "paynkolay",
+    });
+  });
+
+  it("is not offered for an order staff settled by hand before the bank's word", async () => {
+    // A first confirmation that finds the order already moved on is not a
+    // repeat; the team already knows about this order.
+    advanced = false;
+    settledStatus = "preparing";
+    await applyPaymentSucceeded(payment());
+    expect(afterCallbacks).toHaveLength(0);
+  });
+
+  it("is not offered for an order that was cancelled under the payment", async () => {
+    advanced = false;
+    insertConflict = true;
+    settledStatus = "cancelled";
     await applyPaymentSucceeded(payment());
     expect(afterCallbacks).toHaveLength(0);
   });
