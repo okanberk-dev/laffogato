@@ -150,6 +150,9 @@ interface SendArgs {
 }
 
 /** The longest pause before the one retry; `Retry-After` is honoured up to it. */
+/** Upper bound for one Resend request (ms). */
+const MAIL_REQUEST_TIMEOUT_MS = 4_000;
+
 const RETRY_WAIT_MS = 1_500;
 
 export type SendResult = { ok: true } | { ok: false; error: string };
@@ -220,6 +223,10 @@ async function deliver({
           ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
         },
         body: payload,
+        // The mail is awaited inside the payment return; a hung provider must
+        // not hold the customer on the bank's redirect (worst case with the
+        // one retry stays under 10 s).
+        signal: AbortSignal.timeout(MAIL_REQUEST_TIMEOUT_MS),
       });
       if (res.ok) return { ok: true };
       const body = await res.text();
@@ -1212,6 +1219,7 @@ export async function deliverBatch(
         "Idempotency-Key": idempotencyKey,
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(MAIL_REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) {
       const text = await res.text();

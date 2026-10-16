@@ -2250,6 +2250,7 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
 async function settlePendingFromProvider(
   order: AdminOrder,
   provider: PaymentProvider | null,
+  { onAmountMismatch = "unpaid" }: { onAmountMismatch?: PendingVerdict } = {},
 ): Promise<PendingVerdict> {
   // The wallet first: an order whose spend exists WAS paid - the spend is
   // written with the row - even if the process died before marking it so.
@@ -2300,7 +2301,7 @@ async function settlePendingFromProvider(
   // applyPaymentSucceeded has already put it in front of a human. It is
   // cancelled like any unpaid order, so its stock does not stay held while
   // that is sorted out - which is what the sweep always did with it.
-  if (applied.reconcile === "amount_mismatch") return "unpaid";
+  if (applied.reconcile === "amount_mismatch") return onAmountMismatch;
   return "paid";
 }
 
@@ -2320,7 +2321,13 @@ export async function checkPendingOrderPaid(
   order: AdminOrder,
   provider: PaymentProvider | null,
 ): Promise<PendingVerdict> {
-  return settlePendingFromProvider(order, provider);
+  // The POS collected a DIFFERENT amount: the sweep may cancel that order, but
+  // a checkout retry must not hand out its payload again (the customer would
+  // be charged on top of the wrong charge). "unknown" makes the caller open a
+  // new order and leaves the mismatch with the human it was put in front of.
+  return settlePendingFromProvider(order, provider, {
+    onAmountMismatch: "unknown",
+  });
 }
 
 /**

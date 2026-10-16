@@ -104,7 +104,11 @@ const payment = {
   currency: "TRY",
 };
 
-type Sent = { key: string | null; body: Record<string, string> };
+type Sent = {
+  key: string | null;
+  body: Record<string, string>;
+  signal: AbortSignal | undefined;
+};
 let sent: Sent[] = [];
 let answers: number[] = [];
 
@@ -117,6 +121,7 @@ function stubProvider() {
       sent.push({
         key: headers["Idempotency-Key"] ?? null,
         body: JSON.parse(String(init.body)),
+        signal: init.signal ?? undefined,
       });
       const status = answers.shift() ?? 200;
       return new Response(status === 200 ? "{}" : '{"message":"busy"}', {
@@ -171,6 +176,15 @@ describe("the paid mail", () => {
       expect(html).toContain(`/hukuk/${slug}`);
       expect(text).toContain(`/hukuk/${slug}`);
     }
+  });
+
+  it("never waits on the provider without a deadline", async () => {
+    // The mail is awaited inside the payment return: a hung Resend must not
+    // hold the customer on the bank's redirect.
+    answers = [429, 200];
+    await applyPaymentSucceeded(payment);
+    expect(sent.length).toBeGreaterThan(0);
+    for (const call of sent) expect(call.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("retries once, in the same request, when the provider is busy", async () => {
