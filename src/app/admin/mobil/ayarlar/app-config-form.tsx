@@ -276,6 +276,11 @@ function OrderingTab({ config }: { config: MobileAppConfig }) {
             label="Gel-al açık"
             defaultChecked={o.pickupEnabled}
           />
+          <Checkbox
+            name="tableEnabled"
+            label="Masaya sipariş açık (masadaki QR ile)"
+            defaultChecked={o.tableEnabled}
+          />
         </div>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Field

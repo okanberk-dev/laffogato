@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
@@ -11,7 +12,12 @@ import {
   type DayOfWeek,
   type WeeklyHours,
 } from "@/lib/admin/store";
+import { ADMIN_ROLES } from "@/lib/admin/roles";
 import { sendTestEmail } from "@/lib/email/send";
+import {
+  MAX_ORDER_NOTIFY_EMAILS,
+  parseNotifyEmails,
+} from "@/lib/email/staff-order-notice-core";
 import { forgetEmailHealth } from "@/lib/email/health";
 
 export interface SettingsState {
@@ -268,18 +274,92 @@ export async function saveSeoAction(
   return ok("seo", "SEO ayarları kaydedildi.");
 }
 
+const notificationsSchema = z.object({
+  notificationEmail: z
+    .string()
+    .trim()
+    .max(254, { error: "Operasyon e-postası çok uzun." })
+    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
+      error: "Geçerli bir e-posta gir.",
+    }),
+  orderNotifyEnabled: z.boolean(),
+  orderNotifyRoles: z
+    .array(z.enum(ADMIN_ROLES as [string, ...string[]]), {
+      error: "Rol seçimi geçersiz.",
+    })
+    .max(ADMIN_ROLES.length),
+  orderNotifyEmails: z
+    .string()
+    .max(4000, { error: "Ek adres listesi çok uzun." })
+    .transform((raw, ctx) => {
+      const { valid, invalid } = parseNotifyEmails(raw);
+      if (invalid.length > 0) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Geçersiz e-posta: ${invalid.slice(0, 3).join(", ")}`,
+        });
+        return z.NEVER;
+      }
+      if (valid.length > MAX_ORDER_NOTIFY_EMAILS) {
+        ctx.addIssue({
+          code: "custom",
+          message: `En fazla ${MAX_ORDER_NOTIFY_EMAILS} ek adres yazılabilir.`,
+        });
+        return z.NEVER;
+      }
+      // Stored one per line, normalised, so the panel shows what is used.
+      return valid.join("\n");
+    }),
+});
+
+/**
+ * Ayarlar → Bildirimler: the operations address and who gets the staff
+ * "yeni sipariş" mail (`src/lib/email/staff-order-notice.ts`). Owner only,
+ * like every settings tab. The audit row keeps the before/after of the
+ * switch and the roles; the addresses are logged as a count, not as text.
+ */
 export async function saveNotificationsAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
   await requireRole("settings");
-  const email = String(formData.get("notificationEmail") ?? "").trim();
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { error: "Geçerli bir e-posta gir." };
+  const parsed = notificationsSchema.safeParse({
+    notificationEmail: String(formData.get("notificationEmail") ?? ""),
+    orderNotifyEnabled: formData.get("orderNotifyEnabled") === "on",
+    orderNotifyRoles: formData
+      .getAll("orderNotifyRoles")
+      .map((v) => String(v)),
+    orderNotifyEmails: String(formData.get("orderNotifyEmails") ?? ""),
+  });
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Bildirim ayarları geçersiz.",
+    };
   }
-  await updateSettings({ notificationEmail: email });
+  const roles = ADMIN_ROLES.filter((r) =>
+    parsed.data.orderNotifyRoles.includes(r),
+  );
+  const before = await getSettings();
+  await updateSettings({
+    notificationEmail: parsed.data.notificationEmail,
+    orderNotifyEnabled: parsed.data.orderNotifyEnabled,
+    orderNotifyRoles: roles,
+    orderNotifyEmails: parsed.data.orderNotifyEmails,
+  });
   revalidateAll();
-  return ok("notifications", "Bildirim ayarları kaydedildi.");
+  const extraCount = (s: string) => (s ? s.split("\n").length : 0);
+  return ok("notifications", "Bildirim ayarları kaydedildi.", {
+    before: {
+      orderNotifyEnabled: before.orderNotifyEnabled,
+      orderNotifyRoles: before.orderNotifyRoles,
+      orderNotifyEmailCount: extraCount(before.orderNotifyEmails ?? ""),
+    },
+    after: {
+      orderNotifyEnabled: parsed.data.orderNotifyEnabled,
+      orderNotifyRoles: roles,
+      orderNotifyEmailCount: extraCount(parsed.data.orderNotifyEmails),
+    },
+  });
 }
 
 /**

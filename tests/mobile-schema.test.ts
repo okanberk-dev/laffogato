@@ -197,6 +197,7 @@ describe("order channel defaults", () => {
       shipping: "Kargo",
       pickup: "Gel-al",
       delivery: "Kurye",
+      table: "Masaya servis",
     });
   });
 });

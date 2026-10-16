@@ -142,7 +142,7 @@ yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
      **düğmedir** (POST) — e-posta tarayıcıları bağlantıları açar.
   5. Dışarıdan çağrılan yollar yeniden adlandırılmaz: e-posta linkleri,
      `/odeme/donus`, `/gorsel/**`, `/hukuk/[slug]`, `/bulten/cikis`,
-     `/bulten/onay`, `/api/**`.
+     `/bulten/onay`, `/masa/[code]` (masalardaki basılı QR), `/api/**`.
   6. Veri `loadAppProps()` / `getPublicSettings()` / `list*` ile okunur;
      bileşende `@/lib/db` yok; istemci bileşeni `server-only` modül import
      edemez (saf mantık için `*-core.ts` / `*-utils.ts`).
@@ -169,6 +169,8 @@ src/
       urunler/ kategoriler/  → Shop ürünleri (wizard) + kategoriler
       menu/                  → Kafe menüsü
       siparisler/            → Sipariş listesi + detay + manuel sipariş
+      masalar/               → Masalar · QR (sahip + yönetici): ad, QR, yazdır,
+                               pasifleştir, kodu yenile
       musteriler/            → CRM-lite
       promosyon/ raporlar/   → Promosyon kodları · ciro raporları
       stok-hareketleri/      → Stok audit + manuel düzeltme
@@ -178,6 +180,8 @@ src/
     hukuk/ bulten/ ayarlar/→ Hukuki metinler · bülten · ayarlar
       giris/ iki-asama/      → Login + 2FA akışı
       2fa-kurulum/
+    masa/[code]/             → Masadaki QR'ın açtığı salt görüntüleme menü +
+                               masa adı (noindex, sitemap'te yok)
     rehber/                  → SEO rehber hub'ı + /rehber/[slug] (Article +
                                FAQPage + Recipe yapısal verisi)
     api/webhooks/payment/    → Sunucudan sunucuya ödeme bildirimi (HMAC)
@@ -185,6 +189,7 @@ src/
                                menu · shop · bootstrap · live-status ·
                                karaoke/* (herkese açık) · me/* · orders/* ·
                                loyalty/redeem · coupons · invite/claim ·
+                               tables/{code} (herkese açık, masa QR'ı) ·
                                notifications (Bearer Supabase JWT) · app-content
     odeme/app-hata/          → Uygulama ödemesi başarısız → derin bağlantı
     odeme/donus/             → Sanal POS'un MÜŞTERİYİ POST ettiği dönüş
@@ -259,6 +264,29 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
                                EMAIL-RESEND.md · FRONTEND-SINIR.md (ön yüz ↔
                                arka yüz sınırı)
 ```
+
+## Masalar (QR) ve "yeni sipariş" e-postası (15 Eki 2026)
+
+- **Masa = ad + rastgele kod.** `public.cafe_tables`; kod 10 karakter Crockford
+  base32 (`cafe-tables-core.ts`, sunucu üretir, sıralı değil), QR içeriği hep
+  `https://laffogato.net/masa/<kod>` (apex, sabit - laminasyonlu kart).
+  Silinmez, pasifleşir; kart kötüye kullanılırsa "Kodu yenile". Panel
+  `/admin/masalar` (`tables` bölümü: sahip + yönetici); SVG indirme route
+  handler'ı (`/admin/masalar/[id]/qr`) oturumu ve rolü **kendisi** denetler.
+- **Masaya sipariş yalnız uygulamadan** (`fulfillment: "table"` + `tableCode`,
+  kafe; adres yok, planlı saat yok, pasif masaya yok) ve **ön ödemeli** (kart
+  PayNkolay, cüzdan ya da sıfır tutar) - kasada ödeme yok. Masa kodu ve adı
+  siparişe anlık görüntü olarak yazılır (`orders."tableCode"`, `"tableName"`).
+  Herkese açık arama (`GET /api/mobile/v1/tables/{code}`, `/masa/[code]`, sipariş
+  yolu) yalnız `{code, name}` verir; bulunamayan kod IP başına sayılır
+  (`table-lookup`). Sözleşme: `docs/API-MOBILE.md` §3 ve §22.
+- **Personel e-postası:** `applyPaymentSucceeded` siparişi gerçekten `paid`'e
+  taşıdığında `after()` ile, sipariş başına **bir kez** (`order_notice_emails`,
+  kind `staff-new`), alıcı başına ayrı Idempotency-Key ile gider
+  (`src/lib/email/staff-order-notice{,-core}.ts`, `operasyon-bildirim`
+  şablonu). Alıcılar Ayarlar → Bildirimler: roller, ek adresler, operasyon
+  adresi. İçerik müşterinin **yalnız adını** taşır; telefon, e-posta, adres,
+  soyad ve kurye notu (kapı kodu) yazılmaz. Ödemeyi bekletmez, bozamaz.
 
 ## Geliştirme Komutları
 

@@ -35,8 +35,9 @@ export async function POST(request: NextRequest) {
 
     const result = await previewAppOrder(parsed.data, who.customer);
     if (!result.ok) {
-      const { status, code, message } = result.failure;
-      return apiError(status, code, message);
+      // `headers`: a 429 carries its Retry-After (table code lookups, §3).
+      const { status, code, message, headers } = result.failure;
+      return apiError(status, code, message, headers);
     }
     // Private even though the bearer is optional: when one is present the
     // member's own coupons are tried, so the same basket prices differently

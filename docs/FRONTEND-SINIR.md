@@ -188,6 +188,7 @@ uygulama, arama motoru. Yeniden adlandırmak geri alınamaz şekilde kırar.
 | `/hukuk/[slug]`                                         | E-postalar, uygulama (`GET /legal`), sözleşme metinleri    |
 | `/gorsel/**`                                            | Uygulamanın ürün/menü görselleri (`image` alanı)           |
 | `/magaza/urun/[slug]`, `/menu`, `/magaza`, `/rehber/**` | Arama motoru, sitemap, paylaşılan bağlantılar              |
+| `/masa/[code]`                                          | Masalardaki basılı QR kartları (laminasyon - geri çağrılamaz), uygulamanın evrensel bağlantısı (`/masa/*`). `noindex`, sitemap'te yok |
 
 ---
 

@@ -7,6 +7,7 @@ import {
   orderChannel,
   orderFulfillment,
   orderKind,
+  orderTable,
   type OrderChannel,
   type OrderFulfillment,
   type OrderKind,
@@ -71,6 +72,11 @@ export interface MobileOrder {
   paidAt: string | null;
   /** Kargo - only for `fulfillment: "shipping"`, only after hand-over. §3.1. */
   shipment: MobileShipment | null;
+  /**
+   * The table a `fulfillment: "table"` order was placed at, as it was named
+   * then (15 Eki 2026, yalnız ekleme); null on every other order.
+   */
+  table: { code: string; name: string } | null;
 }
 
 /**
@@ -195,6 +201,12 @@ function stepsFor(fulfillment: OrderFulfillment): StepSpec[] {
         ...head,
         { key: "on_the_way", label: "Kuryede" },
         { key: "delivered", label: "Kapında" },
+      ];
+    case "table":
+      return [
+        ...head,
+        { key: "served", label: "Masana getirildi" },
+        { key: "completed", label: "Tamamlandı" },
       ];
     default:
       return [
@@ -360,5 +372,6 @@ export function toMobileOrder(
     createdAt: order.createdAt,
     paidAt: order.paidAt || null,
     shipment: toMobileShipment(order),
+    table: orderTable(order),
   };
 }

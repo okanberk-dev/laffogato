@@ -41,7 +41,8 @@ export type AuthPurpose =
   | "staff-stamp"
   | "checkout-reopen"
   | "card-payment-ip"
-  | "card-payment-order";
+  | "card-payment-order"
+  | "table-lookup";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -122,6 +123,11 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // locked a whole café Wi-Fi out after ten paying customers.
   "card-payment-order": 5,
   "card-payment-ip": 10,
+  // A table code (`GET /api/mobile/v1/tables/{code}`, the `table` order
+  // path) that matched nothing. A real QR always resolves, so only a miss
+  // counts, per address: twenty in five minutes is far past a shaky camera
+  // and far short of walking a 2^50 code space.
+  "table-lookup": 20,
 };
 
 /** Lockout length per purpose; LOCKOUT_MS unless listed. */
@@ -138,6 +144,7 @@ const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "verify-resend": 15 * 60 * 1000,
   "admin-login-ip": 15 * 60 * 1000,
   "customer-login-ip": 15 * 60 * 1000,
+  "table-lookup": 15 * 60 * 1000,
 };
 
 function lockoutMs(purpose: AuthPurpose): number {

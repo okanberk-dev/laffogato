@@ -56,6 +56,10 @@ const PATHS = [
   "/karaoke",
   "/kampanyalar",
   "/ziyaret",
+  // A table's printed QR (15 Eki 2026): the app opens its table screen for
+  // the code, the site serves /masa/<code> (the menu) when it is not
+  // installed. Android claims the same as pathPrefix "/masa/".
+  "/masa/*",
 ];
 
 export async function GET() {

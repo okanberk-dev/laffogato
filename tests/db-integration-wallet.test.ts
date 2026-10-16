@@ -126,6 +126,7 @@ function body(over: Partial<PlaceOrderBody> = {}): PlaceOrderBody {
   return {
     kind: "cafe",
     fulfillment: "pickup",
+    tableCode: "",
     lines: [
       {
         menuItemId: ITEM,

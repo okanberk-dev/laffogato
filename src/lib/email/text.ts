@@ -136,9 +136,9 @@ Sipariş No: #[SIPARIS_NO]
 [KALEMLER]
 
 Ara toplam: [ARA_TOPLAM]
-Kargo: [KARGO]
-Toplam: [TOPLAM]
-(KDV dâhil · 500,00 ₺ üzeri siparişlerde kargo ücretsiz)
+<!--IF:KARGO_SATIRI-->Kargo: [KARGO]
+<!--/IF:KARGO_SATIRI-->Toplam: [TOPLAM]
+(KDV dâhil<!--IF:KARGO_SATIRI--> · 500,00 ₺ üzeri siparişlerde kargo ücretsiz<!--/IF:KARGO_SATIRI-->)
 
 Siparişiniz: [SIPARIS_URL]
 

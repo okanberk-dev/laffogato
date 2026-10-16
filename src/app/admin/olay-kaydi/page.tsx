@@ -41,6 +41,7 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
   counter_token: "Kasa jetonu",
   staff_member: "Barista (uygulamadan kasa)",
   campaign_email: "Kampanya e-postası",
+  cafe_table: "Masa · QR",
 };
 
 const ACTION_LABEL: Record<AuditAction, string> = {

@@ -39,8 +39,13 @@ vi.mock("@/lib/admin/store", () => ({
   updateSettings,
 }));
 
-const { saveShippingAction, saveKaraokeAction, saveHoursAction } =
-  await import("@/app/admin/ayarlar/actions");
+const {
+  saveShippingAction,
+  saveKaraokeAction,
+  saveHoursAction,
+  saveNotificationsAction,
+} = await import("@/app/admin/ayarlar/actions");
+const { requireRole } = await import("@/lib/admin/auth");
 
 function form(fields: Record<string, string>): FormData {
   const fd = new FormData();
@@ -224,6 +229,71 @@ describe("saveHoursAction - every time within 00:00-23:59 (S6-01)", () => {
     expect(res.error).toBeUndefined();
     expect(updateSettings.mock.calls[0][0].weeklyHours.sunday.closed).toBe(
       true,
+    );
+  });
+});
+
+describe("saveNotificationsAction", () => {
+  function notifications(
+    fields: Record<string, string>,
+    roles: string[] = [],
+  ): FormData {
+    const fd = form(fields);
+    for (const r of roles) fd.append("orderNotifyRoles", r);
+    return fd;
+  }
+
+  it("is the owner's: it checks the settings section first", async () => {
+    await saveNotificationsAction({}, notifications({}));
+    expect(requireRole).toHaveBeenCalledWith("settings");
+  });
+
+  it("stores the switch, the known roles and the cleaned address list", async () => {
+    const state = await saveNotificationsAction(
+      {},
+      notifications(
+        {
+          notificationEmail: "info@ornek.com",
+          orderNotifyEnabled: "on",
+          orderNotifyEmails: "Mutfak@Ornek.com, bar@ornek.com\nmutfak@ornek.com",
+        },
+        ["cashier", "owner"],
+      ),
+    );
+    expect(state.error).toBeUndefined();
+    expect(updateSettings).toHaveBeenCalledWith({
+      notificationEmail: "info@ornek.com",
+      orderNotifyEnabled: true,
+      orderNotifyRoles: ["owner", "cashier"],
+      orderNotifyEmails: "mutfak@ornek.com\nbar@ornek.com",
+    });
+    // The audit row counts the addresses rather than copying them.
+    const payload = JSON.stringify(logAudit.mock.calls.at(-1));
+    expect(payload).not.toContain("mutfak@ornek.com");
+  });
+
+  it("refuses an address it cannot mail, saving nothing", async () => {
+    const state = await saveNotificationsAction(
+      {},
+      notifications({ orderNotifyEmails: "iyi@ornek.com, kötü-adres" }),
+    );
+    expect(state.error).toContain("kötü-adres");
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it("refuses a role that does not exist", async () => {
+    const state = await saveNotificationsAction(
+      {},
+      notifications({ orderNotifyEnabled: "on" }, ["owner", "root"]),
+    );
+    expect(state.error).toBeTruthy();
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it("turns the mail off when the box is unticked", async () => {
+    await saveNotificationsAction({}, notifications({}, ["owner"]));
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ orderNotifyEnabled: false }),
     );
   });
 });

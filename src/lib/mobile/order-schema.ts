@@ -190,9 +190,20 @@ const addressSchema = z
 
 const orderFields = {
   kind: z.enum(["cafe", "shop"], { error: "Sipariş türü geçersiz." }),
-  fulfillment: z.enum(["pickup", "delivery", "shipping"], {
+  fulfillment: z.enum(["pickup", "delivery", "shipping", "table"], {
     error: "Teslimat türü geçersiz.",
   }),
+  /**
+   * The table's QR code, with `fulfillment: "table"` only (15 Eki 2026, §3).
+   * Optional and "" by default, so every existing build orders exactly as
+   * before. Whether it names an active table is the order path's question
+   * (400 `invalid_table`, 409 `table_inactive`), not the schema's.
+   */
+  tableCode: z
+    .string({ error: "Masa kodu geçersiz." })
+    .trim()
+    .max(16, { error: "Masa kodu geçersiz." })
+    .default(""),
   lines: z
     .array(lineSchema, { error: "Sepet satırları geçersiz." })
     .min(1, { error: "Sepet boş." })
@@ -264,10 +275,19 @@ const orderFields = {
 
 type OrderFieldsParsed = {
   kind: "cafe" | "shop";
-  fulfillment: "pickup" | "delivery" | "shipping";
+  fulfillment: "pickup" | "delivery" | "shipping" | "table";
   lines: OrderLineInput[];
   address: OrderAddressInput;
+  tableCode: string;
+  scheduledFor: string | null;
 };
+
+/** Messages of the table rules below; exported for the tests. */
+export const TABLE_ORDER_MESSAGES = {
+  codeWithoutTable: "Masa kodu yalnız masaya siparişte gönderilir.",
+  address: "Masaya siparişte adres gönderilmez.",
+  scheduled: "Masaya sipariş planlanamaz; hemen hazırlanır.",
+} as const;
 
 /**
  * Rules that span fields. `kind` is what the basket says it is - the client's
@@ -310,9 +330,38 @@ function crossFieldRules(
       code: "custom",
       message:
         v.kind === "cafe"
-          ? "Kafe siparişi gel-al ya da kurye ile teslim edilir."
+          ? "Kafe siparişi gel-al, kurye ya da masaya servis ile teslim edilir."
           : "Mağaza siparişi kargo ile gönderilir.",
       path: ["fulfillment"],
+    });
+    return;
+  }
+  if (v.fulfillment === "table") {
+    // Brought to a table in the köşk, now: there is nowhere to deliver to
+    // and nothing to schedule. Both are refused rather than ignored, so an
+    // app that sends them learns it has the wrong idea of the order.
+    if (v.address !== null) {
+      ctx.addIssue({
+        code: "custom",
+        message: TABLE_ORDER_MESSAGES.address,
+        path: ["address"],
+      });
+      return;
+    }
+    if (v.scheduledFor) {
+      ctx.addIssue({
+        code: "custom",
+        message: TABLE_ORDER_MESSAGES.scheduled,
+        path: ["scheduledFor"],
+      });
+    }
+    return;
+  }
+  if (v.tableCode) {
+    ctx.addIssue({
+      code: "custom",
+      message: TABLE_ORDER_MESSAGES.codeWithoutTable,
+      path: ["tableCode"],
     });
     return;
   }

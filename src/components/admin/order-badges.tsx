@@ -5,6 +5,7 @@ import {
   orderChannel,
   orderFulfillment,
   orderKind,
+  orderTable,
   type OrderChannel,
   type OrderFulfillment,
 } from "@/lib/admin/order-channel";
@@ -18,10 +19,17 @@ const FULFILLMENT_TONE: Record<OrderFulfillment, string> = {
   shipping: "bg-indigo-50 text-indigo-700",
   pickup: "bg-amber-50 text-amber-700",
   delivery: "bg-sky-50 text-sky-700",
+  table: "bg-rose-50 text-rose-700",
 };
 
 interface Props {
-  order: { channel?: string; kind?: string; fulfillment?: string };
+  order: {
+    channel?: string;
+    kind?: string;
+    fulfillment?: string;
+    tableCode?: string;
+    tableName?: string;
+  };
 }
 
 /**
@@ -34,6 +42,7 @@ export function OrderChannelBadges({ order }: Props) {
   const channel = orderChannel(order);
   const fulfillment = orderFulfillment(order);
   const kind = orderKind(order);
+  const table = orderTable(order);
   const pill =
     "rounded-full px-2.5 py-0.5 text-[10px] tracking-[0.18em] uppercase";
   return (
@@ -44,6 +53,7 @@ export function OrderChannelBadges({ order }: Props) {
       </span>
       <span className={`${pill} ${FULFILLMENT_TONE[fulfillment]}`}>
         {ORDER_FULFILLMENT_LABELS[fulfillment]}
+        {table ? ` · ${table.name || table.code}` : ""}
       </span>
     </>
   );

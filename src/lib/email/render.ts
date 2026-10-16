@@ -123,6 +123,10 @@ export function renderEmail(
     // carrier name, so either can be missing on a real parcel.
     TAKIP_LINKI: Boolean(vars.TAKIP_URL),
     FIRMA: Boolean(vars.KARGO_FIRMASI),
+    // "Siparişiniz alındı": the cargo row and the free-shipping line follow
+    // the fee. A table order leaves KARGO empty - it is carried across the
+    // room, and the mail must not talk about cargo (15 Eki 2026).
+    KARGO_SATIRI: Boolean(vars.KARGO),
   };
 
   const html = fill(template.html, { vars, loops: input.loops, flags });

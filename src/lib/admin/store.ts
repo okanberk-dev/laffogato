@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { after } from "next/server";
 import { isHandedOver, isStaleShipmentEvent } from "@/lib/mobile/geliver";
 
 import type { DbError } from "@/lib/db";
@@ -35,6 +36,7 @@ import {
   notifyOrderShipped,
 } from "@/lib/email/order-notices";
 import { sendOrderPaidEmail } from "@/lib/email/send";
+import { normalizeNotifyRoles } from "@/lib/email/staff-order-notice-core";
 import {
   DEFAULT_MOBILE_APP_CONFIG,
   normalizeMobileAppConfig,
@@ -77,6 +79,7 @@ import type {
   ReturnConfirmation,
 } from "@/lib/payment/provider";
 import type { WeeklyHours } from "./days";
+import type { AdminRole } from "./roles";
 import {
   orderChannel,
   type OrderChannel,
@@ -364,6 +367,14 @@ export interface AdminOrder {
    * what makes a retried `POST /orders` return this order instead of a second.
    */
   clientOrderId?: string;
+  /**
+   * Table orders (`fulfillment: "table"`, docs/API-MOBILE.md §3): the code
+   * and name of the table the order was placed at, copied when the order is
+   * written - a table renamed or re-coded later does not rewrite the order.
+   * "" on every other order. Read through `orderTable()`.
+   */
+  tableCode?: string;
+  tableName?: string;
 }
 
 export {
@@ -373,6 +384,7 @@ export {
   orderChannel,
   orderFulfillment,
   orderKind,
+  orderTable,
 } from "./order-channel";
 
 export type { DayOfWeek, OpeningHour, WeeklyHours } from "./days";
@@ -411,6 +423,17 @@ export interface AdminSettings {
 
   /** Operational notifications email. */
   notificationEmail: string;
+
+  /**
+   * The staff "yeni sipariş" mail (`src/lib/email/staff-order-notice.ts`),
+   * sent once when an order's payment is confirmed: the switch, the panel
+   * roles whose active accounts receive it (env break-glass accounts by their
+   * env role), and extra addresses, comma or newline separated. The
+   * operations address above is always among the recipients while it is on.
+   */
+  orderNotifyEnabled: boolean;
+  orderNotifyRoles: AdminRole[];
+  orderNotifyEmails: string;
 
   /**
    * Transactional e-mail sender (Resend). Resend only delivers from a domain
@@ -582,6 +605,9 @@ function defaultSettings(): AdminSettings {
     seoOgImageUrl: "",
     seoIndexable: true,
     notificationEmail: "",
+    orderNotifyEnabled: true,
+    orderNotifyRoles: ["owner", "manager", "cashier"],
+    orderNotifyEmails: "",
     emailFromName: "L'Affogato",
     emailFromAddress: "",
     emailReplyTo: "",
@@ -1870,6 +1896,9 @@ interface FinalizeOrderInput {
   fulfillment?: OrderFulfillment;
   scheduledFor?: string;
   deliveryNote?: string;
+  /** Table orders only: the table snapshot (see `AdminOrder.tableCode`). */
+  tableCode?: string;
+  tableName?: string;
   /** How shipping is charged; the shop's settings when omitted. */
   shipping?: ShippingMode;
   /**
@@ -2049,6 +2078,9 @@ async function insertOrderRow(
     ...(f.scheduledFor !== undefined ? { scheduledFor: f.scheduledFor } : {}),
     ...(f.deliveryNote !== undefined ? { deliveryNote: f.deliveryNote } : {}),
     ...(f.clientOrderId ? { clientOrderId: f.clientOrderId } : {}),
+    ...(f.tableCode
+      ? { tableCode: f.tableCode, tableName: f.tableName ?? "" }
+      : {}),
   };
   // The discount was claimed before the row existed - deliberately, so it
   // cannot be double-spent while the customer is on the POS page. If the row
@@ -2586,6 +2618,12 @@ export interface AppOrderInput {
   payWithWallet?: boolean;
   /** With `payWithWallet`: the total the member agreed to (§18). */
   expectedTotalMinor?: number;
+  /**
+   * `fulfillment: "table"` only: the ACTIVE table the caller resolved from
+   * the request's code (`resolveActiveTable`). Snapshotted onto the row.
+   */
+  tableCode?: string;
+  tableName?: string;
 }
 
 export type PlaceAppOrderResult =
@@ -2795,9 +2833,24 @@ export async function placeAppOrder(
       reason: "bad_request",
       message:
         kind === "cafe"
-          ? "Kafe siparişi gel-al ya da kurye ile teslim edilir."
+          ? "Kafe siparişi gel-al, kurye ya da masaya servis ile teslim edilir."
           : "Mağaza siparişi kargo ile gönderilir.",
     };
+  }
+  // The wire schema and the use-case already hold these; the store does not
+  // write a table order it cannot attribute to a table, nor a scheduled one.
+  const tableCode = (input.tableCode ?? "").trim();
+  if (input.fulfillment === "table") {
+    if (!tableCode) {
+      return { ok: false, reason: "bad_request", message: "Masa kodu gerekli." };
+    }
+    if (input.scheduledFor) {
+      return {
+        ok: false,
+        reason: "bad_request",
+        message: "Masaya sipariş planlanamaz; hemen hazırlanır.",
+      };
+    }
   }
   const scheduled = normalizeScheduledFor(input.scheduledFor, new Date());
   if (!scheduled.ok) {
@@ -2822,7 +2875,9 @@ export async function placeAppOrder(
     customerName: input.customerName.trim() || "Üye",
     customerEmail: input.customerEmail.trim().toLowerCase(),
     customerPhone: input.customerPhone.trim(),
-    shippingAddress: input.shippingAddress.trim(),
+    // A table order goes across the room: no address is ever written for it.
+    shippingAddress:
+      input.fulfillment === "table" ? "" : input.shippingAddress.trim(),
     internalNote: "",
     promoCode: input.promoCode,
     legalConsent: input.legalConsent,
@@ -2832,6 +2887,12 @@ export async function placeAppOrder(
     scheduledFor: scheduled.value,
     deliveryNote: input.deliveryNote.trim().slice(0, 500),
     shipping: shippingModeFor(input.fulfillment, settings),
+    ...(input.fulfillment === "table"
+      ? {
+          tableCode,
+          tableName: (input.tableName ?? "").trim().slice(0, 40),
+        }
+      : {}),
   };
 
   if (kind === "cafe") {
@@ -3037,6 +3098,31 @@ export async function settleWalletPayment(
 }
 
 /**
+ * Hands the staff "new order" mail to `after()`: sent once the response is
+ * out, never awaited by the payment and never able to fail it. Outside a
+ * request (a script, a test) there is nothing to run it after, and the mail
+ * is skipped rather than sent from a promise nobody waits for.
+ */
+function scheduleStaffNewOrderNotice(orderId: string, provider: string): void {
+  try {
+    after(async () => {
+      try {
+        // Lazily: the notice module reads this store.
+        const { notifyStaffNewOrder } =
+          await import("@/lib/email/staff-order-notice");
+        await notifyStaffNewOrder(orderId, { provider });
+      } catch (err) {
+        console.error(`[staff-order-notice] order=${orderId}`, err);
+      }
+    });
+  } catch (err) {
+    console.warn(
+      `[staff-order-notice] not scheduled order=${orderId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+/**
  * Records a successful payment and advances the order to `paid`. Idempotent:
  * the unique (provider, providerRef) index makes a duplicate insert a no-op
  * (23505) and the order update is guarded on `pending_payment`. Used by the
@@ -3152,6 +3238,9 @@ export async function applyPaymentSucceeded(input: {
   // land is logged, the money stays recorded.
   if (advanced) {
     await awardLoyalty({ ...order, status: "paid", paidAt }, "payment");
+    // The team's "yeni sipariş" mail: only for the confirmation that moved
+    // the order to `paid`, after the response, exactly once per order.
+    scheduleStaffNewOrderNotice(order.id, input.provider);
   }
 
   // No "ödemen alındı" for an order that is cancelled: the customer used to be
@@ -3980,6 +4069,10 @@ export async function getSettings(): Promise<AdminSettings> {
     ...defaultSettings(),
     ...rest,
     mobileApp: normalizeMobileAppConfig(rest.mobileApp),
+    // jsonb from the row: only known roles reach the recipient list.
+    orderNotifyRoles: normalizeNotifyRoles(
+      rest.orderNotifyRoles ?? defaultSettings().orderNotifyRoles,
+    ),
   } as AdminSettings;
 }
 

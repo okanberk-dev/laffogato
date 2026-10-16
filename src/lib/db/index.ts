@@ -255,4 +255,5 @@ export const TABLES = {
   emailSuppressions: "email_suppressions",
   customerConsents: "customer_consents",
   orderNoticeEmails: "order_notice_emails",
+  cafeTables: "cafe_tables",
 } as const;

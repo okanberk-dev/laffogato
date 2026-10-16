@@ -306,7 +306,9 @@ export function renderOperatorNotice(n: OperatorNotice): RenderedEmail {
   });
 }
 
-async function sendOperatorNotice(n: OperatorNotice): Promise<SendResult> {
+export async function sendOperatorNotice(
+  n: OperatorNotice,
+): Promise<SendResult> {
   if (!n.to) return { ok: false, error: "Alıcı adresi boş." };
   let r: RenderedEmail;
   try {
@@ -425,6 +427,11 @@ export interface OrderEmailData {
   subtotalMinor?: number;
   shippingMinor?: number;
   totalMinor: number;
+  /**
+   * A table order (`fulfillment: "table"`): served in the köşk, so the mail
+   * carries no cargo row and no free-shipping line. Absent = as before.
+   */
+  servedAtTable?: boolean;
 }
 
 /** One `<!--EACH:ITEMS-->` pass per line. */
@@ -473,7 +480,12 @@ function orderVars(o: OrderEmailData) {
     // better and link the order it is actually about.
     SIPARIS_URL: `${SITE.url}/uye/hesap/siparislerim/${o.orderNo}`,
     ARA_TOPLAM: formatTRYMinor(subtotal),
-    KARGO: shipping === 0 ? "Ücretsiz" : formatTRYMinor(shipping),
+    // "" drops the cargo row (`KARGO_SATIRI`, render.ts) on a table order.
+    KARGO: o.servedAtTable
+      ? ""
+      : shipping === 0
+        ? "Ücretsiz"
+        : formatTRYMinor(shipping),
     TOPLAM: formatTRYMinor(o.totalMinor),
     KALEMLER: orderLinesText(o.items),
     BELGELER: CONSENT_DOCS_TEXT,

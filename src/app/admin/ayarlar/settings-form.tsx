@@ -11,6 +11,7 @@ import {
   Textarea,
 } from "@/components/admin/forms";
 import { DAYS_OF_WEEK, DAY_LABELS, type DayOfWeek } from "@/lib/admin/days";
+import { ADMIN_ROLES, ROLE_LABELS } from "@/lib/admin/roles";
 import type { AdminSettings } from "@/lib/admin/store";
 import type { EmailHealth } from "@/lib/email/health";
 
@@ -423,12 +424,13 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
     saveNotificationsAction,
     initial,
   );
+  const roles = new Set(settings.orderNotifyRoles ?? []);
   return (
     <form action={action}>
       <Section title="Bildirimler">
         <Field
           label="Operasyon e-postası"
-          hint="Test e-postasının varsayılan alıcısı. Yeni sipariş ve düşük stok için henüz otomatik uyarı gönderilmiyor - ikisi de panelde görünür (Siparişler, Ürünler → Düşük stok)."
+          hint="Test e-postasının varsayılan alıcısı. Yeni sipariş e-postası açıkken bu adrese de gider. Düşük stok uyarısı e-postayla gönderilmez; panelde görünür (Ürünler → Düşük stok)."
         >
           <TextInput
             name="notificationEmail"
@@ -437,6 +439,57 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
             placeholder="info@nextgenlab.com.tr"
           />
         </Field>
+        <div className="mt-5 grid gap-2">
+          <Checkbox
+            name="orderNotifyEnabled"
+            label="Yeni siparişte e-posta gönder"
+            defaultChecked={settings.orderNotifyEnabled}
+          />
+          <p className="text-xs text-[var(--admin-text-mute)]">
+            Ödemesi alınan her sipariş için bir kez gider: sipariş numarası,
+            ürünler, teslimat ya da masa, tutar ve müşterinin yalnız adı.
+            Telefon, e-posta ve adres e-postaya yazılmaz.
+          </p>
+        </div>
+        {/* A fieldset, not <Field>: Field is a <label>, and each checkbox
+            is a label of its own. */}
+        <fieldset className="mt-5 grid gap-2">
+          <legend
+            className="mb-2 text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
+            style={{ fontFamily: "var(--mono), monospace" }}
+          >
+            Alacak roller
+          </legend>
+          <div className="grid gap-1 sm:grid-cols-2">
+            {ADMIN_ROLES.map((role) => (
+              <Checkbox
+                key={role}
+                name="orderNotifyRoles"
+                value={role}
+                label={ROLE_LABELS[role]}
+                defaultChecked={roles.has(role)}
+              />
+            ))}
+          </div>
+          <span className="text-xs text-[var(--admin-text-mute)]">
+            Seçilen rollerdeki aktif panel kullanıcılarına gider. Kasiyer
+            sipariş sayfasını açamaz; ona giden e-postanın düğmesi kasaya
+            gider.
+          </span>
+        </fieldset>
+        <div className="mt-5">
+          <Field
+            label="Ek adresler"
+            hint="Her satıra ya da virgülle ayırarak bir adres. Panel hesabı olmayan alıcılar için (ör. mutfak tableti)."
+          >
+            <Textarea
+              name="orderNotifyEmails"
+              defaultValue={settings.orderNotifyEmails ?? ""}
+              placeholder={"mutfak@ornek.com\nbar@ornek.com"}
+              rows={3}
+            />
+          </Field>
+        </div>
         <SaveBar state={state} pending={pending} />
       </Section>
     </form>

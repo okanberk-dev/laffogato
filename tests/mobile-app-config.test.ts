@@ -98,6 +98,8 @@ describe("normalizeMobileAppConfig", () => {
       cafeEnabled: false,
       deliveryEnabled: true,
       pickupEnabled: true,
+      // Absent from the stored row (written before table orders): the default.
+      tableEnabled: true,
       courierEtaMinutes: [25, 35],
       closedMessage: DEFAULT_MOBILE_APP_CONFIG.ordering.closedMessage,
     });
