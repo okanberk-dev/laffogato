@@ -73,9 +73,9 @@ function renderWith(
   });
 }
 
-describe("the twenty-three templates render", () => {
-  it("ships exactly the twenty-three designed messages", () => {
-    expect(NAMES).toHaveLength(23);
+describe("the twenty-two templates render", () => {
+  it("ships exactly the twenty-two designed messages (siparis-alindi was removed 16 Eki 2026: the order mail waits for the payment)", () => {
+    expect(NAMES).toHaveLength(22);
     // Mail to the team, in the same design as the customers' mail.
     expect(NAMES).toContain("operasyon-bildirim");
     // The order notices the legal texts promise: the tracking number at

@@ -15,12 +15,6 @@ export interface CheckoutConfig {
   taxRatePct: number;
 }
 
-export const DEFAULT_CHECKOUT_CONFIG: CheckoutConfig = {
-  shippingFlatMinor: 4900,
-  shippingFreeThresholdMinor: 50000,
-  taxRatePct: 20,
-};
-
 /**
  * İndirim sonrası net ara toplama göre kargo ücretini hesaplar.
  * Net 0 ise (boş/sıfır sepet) kargo da 0.

@@ -242,7 +242,6 @@ Yirmi iki şablon - her satırda **tetikleyici · izin sınıfı · idempotency*
 | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
 | `eposta-dogrulama`                     | işlemsel          | sitede kayıt / adres değişikliği (`uye/actions.ts`, `admin/musteriler`)         |
 | `sifre-sifirlama`                      | işlemsel          | sitede "şifremi unuttum"                                                        |
-| `siparis-alindi` | işlemsel | **gönderilmiyor** (16 Eki 2026: _"sipariş maili ödeme tam alınmadan gitmesin"_); şablon duruyor, çağıran yok |
 | `odeme-onaylandi` | işlemsel | müşterinin kargoya kadar aldığı TEK sipariş maili: ödeme siparişi `paid`'e taşıdığında (`applyPaymentSucceeded`, elle "Ödendi"; ₺0 sipariş de) · `order_notice_emails` (sipariş, `paid`). Kalemler, toplam ve ÖBF/MSS/cayma bağlantıları (kalıcı veri saklayıcısı) |
 | `siparis-kargoda`                      | işlemsel          | panelin kargo formu, "Kargoya ver", Geliver'ın teslim olayı · `order_notice_emails` (sipariş, `shipped:<numara özeti>`) |
 | `siparis-iptal`                        | işlemsel          | `transitionOrder` iptali (toplu iptal de oradan geçer) · (sipariş, `cancelled`) |

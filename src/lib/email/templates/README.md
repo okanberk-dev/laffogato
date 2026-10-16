@@ -1,6 +1,6 @@
 # Mail şablonları
 
-Yirmi üç gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
+Yirmi iki gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
 stiller satır içi. E-posta tarafında JavaScript, harici CSS ve web fontu yok;
 `<style>` bloğu yalnızca satır içi stillere ek (mobil kırılma + koyu tema),
 tek başına gerekli değil.
@@ -19,7 +19,6 @@ kilitlediğine bak.
 | eposta-dogrulama.html     | işlemsel          | L'Affogato - e-posta adresinizi doğrulayın  |
 | sifre-sifirlama.html      | işlemsel          | L'Affogato - şifre sıfırlama                |
 | bulten-onay.html          | işlemsel          | L'Affogato - bülten aboneliğinizi onaylayın |
-| siparis-alindi.html       | işlemsel          | Siparişiniz alındı (#[SIPARIS_NO])          |
 | odeme-onaylandi.html      | işlemsel          | Ödemeniz onaylandı (#[SIPARIS_NO])          |
 | siparis-kargoda.html      | işlemsel          | Siparişiniz kargoya verildi (#[SIPARIS_NO]) |
 | siparis-iptal.html        | işlemsel          | Siparişiniz iptal edildi (#[SIPARIS_NO])    |
@@ -253,9 +252,9 @@ Tarayıcıda görmek için `npm run dev` sonrası
 production'da 404. Kampanya ailesi için örnek değerler `SAMPLE`'da; bir alanı
 silip bölümün nasıl düştüğünü oradan görebilirsin.
 
-**`siparis-alindi` artık gönderilmez** (16 Eki 2026, operatör: "sipariş maili
-ödeme tam alınmadan gitmesin"). Müşterinin kargoya kadar aldığı tek sipariş
-maili `odeme-onaylandi`'dir: ödeme siparişi `paid`'e taşıyınca
-(`notifyOrderPaid`, `order_notice_emails` türü `paid`) bir kez gider;
-satırlar, Ara toplam, Kargo, İndirim ve toplam ile ÖBF/MSS/cayma bağlantılarını
-taşır.
+**"Siparişiniz alındı" mailı yoktur** (16 Eki 2026, operatör: "sipariş maili
+ödeme tam alınmadan gitmesin"; `siparis-alindi` şablonu kaldırıldı).
+Müşterinin kargoya kadar aldığı tek sipariş maili `odeme-onaylandi`'dir:
+ödeme siparişi `paid`'e taşıyınca (`notifyOrderPaid`, `order_notice_emails`
+türü `paid`) bir kez gider; satırlar, Ara toplam, Kargo (masa siparişinde yok),
+İndirim ve toplam ile ÖBF/MSS/cayma bağlantılarını taşır.
