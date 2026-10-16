@@ -10130,16 +10130,6 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .karaoke-mine .karaoke-link {
   color: var(--green);
 }
-.karaoke-rules-short {
-  display: grid;
-  gap: 6px;
-  font-size: 13px;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.88);
-}
-.karaoke-rules-short p {
-  margin: 0;
-}
 .karaoke-checkout {
   grid-column: 1 / -1;
   min-width: 0;
@@ -10164,6 +10154,54 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   padding-left: 18px;
   display: grid;
   gap: 8px;
+}
+/* "Ayrıntılar": the rest of the pre-information, closed by default. Same
+   16px as the box when open; the platform triangle gives way to the FAQ's
+   chevron. */
+.karaoke-preinfo-more {
+  margin-top: 12px;
+}
+.karaoke-preinfo-more summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--green);
+}
+.karaoke-preinfo-more summary::-webkit-details-marker {
+  display: none;
+}
+.karaoke-preinfo-more summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-top: -3px;
+  border-right: 1.75px solid currentColor;
+  border-bottom: 1.75px solid currentColor;
+  rotate: 45deg;
+  transition: rotate 0.25s var(--ease-spring);
+}
+.karaoke-preinfo-more[open] summary::after {
+  margin-top: 3px;
+  rotate: -135deg;
+}
+.karaoke-preinfo-more ul {
+  margin-top: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .karaoke-preinfo-more summary::after {
+    transition: none;
+  }
+}
+/* The seller, always in sight under the box (MSY m.5/1-c), at the box's
+   16px (m.6/1). */
+.karaoke-seller {
+  margin: -6px 0 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-soft);
 }
 .karaoke-consents .karaoke-consent {
   font-size: 15px;

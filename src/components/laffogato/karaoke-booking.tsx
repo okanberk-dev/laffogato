@@ -15,6 +15,7 @@ import type { KaraokeAvailability } from "@/lib/mobile/karaoke-core";
 import {
   formatReservationDate,
   formatReservationTime,
+  hourFromLabel,
 } from "@/lib/mobile/karaoke-format";
 import {
   karaokeDiscountPctFor,
@@ -154,9 +155,8 @@ export function KaraokeBooking({
           <p className="lede" style={{ marginTop: 16 }}>
             {dayLabel(state.booked.date, today, tomorrow)} ·{" "}
             {hourLabel(state.booked.startHour)} · {state.booked.hours} saat ·{" "}
-            {state.booked.guests} kişi. Rezervasyonun uygulamadaki hesabına da
-            düştü; ekibimiz onayladığında haber vereceğiz. Ödemeyi köşkte
-            yaparsın.
+            {state.booked.guests} kişi. Ekibimiz onaylayınca haber veririz;
+            ödemeyi köşkte yaparsın.
           </p>
           <div className="cta-row">
             <Link href="/uye/hesap" className="btn btn-primary">
@@ -180,8 +180,8 @@ export function KaraokeBooking({
         title={["Özel oda,", "gece 24:00’e kadar"]}
         lede={
           prepay
-            ? "Köşkün üst katındaki karaoke odası sekiz kişiye kadar. Gün ve saat seç, kişi sayısını gir, kartınla öde; rezervasyonun ödemeyle hemen kesinleşir. Üye olmadan da rezervasyon yapabilirsin."
-            : "Köşkün üst katındaki karaoke odası sekiz kişiye kadar. Gün ve saat seç, kişi sayısını gir; rezervasyonunu web'den ya da uygulamadan tamamla."
+            ? `${capacity} kişilik oda. Saatini seç, kartınla öde; rezervasyonun hemen kesinleşir.`
+            : `${capacity} kişilik oda. Saatini seç, isteğini gönder.`
         }
       />
       <div className="wrap">
@@ -215,13 +215,12 @@ export function KaraokeBooking({
               <span className="eyebrow muted">Saat</span>
               {unavailable ? (
                 <p className="karaoke-warn">
-                  Rezervasyon takvimine şu an ulaşamıyoruz, bu yüzden boş
-                  saatleri gösteremiyoruz. Kısa süre içinde tekrar dene ya da
-                  bizi ara: {phone}.
+                  Takvime şu an ulaşamıyoruz. Biraz sonra tekrar dene ya da bizi
+                  ara: {phone}.
                 </p>
               ) : slots.length === 0 ? (
                 <p className="karaoke-warn">
-                  Bu gün için uygun saat kalmadı. Başka bir gün seçebilirsin.
+                  Bu gün boş saat kalmadı. Başka bir gün seç.
                 </p>
               ) : (
                 <div className="karaoke-hours">
@@ -273,8 +272,8 @@ export function KaraokeBooking({
               </div>
               {startHour !== null && !blockIsFree(startHour, hours) && (
                 <div className="karaoke-hint karaoke-hint-warn">
-                  {hourLabel(startHour)}’dan itibaren {hours} saat boş değil -
-                  daha kısa bir süre ya da başka bir saat seç.
+                  {hourFromLabel(startHour)} itibaren {hours} saat boş değil.
+                  Süreyi kısalt ya da başka saat seç.
                 </div>
               )}
             </div>
@@ -301,8 +300,8 @@ export function KaraokeBooking({
                 </button>
               </div>
               <div className="karaoke-hint">
-                Oda {capacity} kişiye kadar. Daha kalabalık gruplar için bizi
-                arayın: {phone}.
+                En fazla {capacity} kişi. Daha kalabalık gruplar için ara:{" "}
+                {phone}.
               </div>
             </div>
 
@@ -364,9 +363,7 @@ export function KaraokeBooking({
               <fieldset className="karaoke-contact">
                 <legend className="eyebrow muted">İletişim</legend>
                 <p className="karaoke-hint" style={{ marginTop: 0 }}>
-                  Üye olmadan rezervasyon yapıyorsun. Bilgilerin yalnız bu
-                  rezervasyon için kaydedilir, senin adına hesap açılmaz.
-                  Rezervasyon bağlantın e-postana gelir.{" "}
+                  Hesap açılmaz; rezervasyon bağlantın e-postana gelir.{" "}
                   <a
                     href={`/uye/giris?next=${encodeURIComponent(`/karaoke?tarih=${date}`)}`}
                     className="karaoke-link"
@@ -486,13 +483,6 @@ export function KaraokeBooking({
                 </div>
               </div>
 
-              {canBook && prepay ? (
-                <div className="karaoke-rules-short">
-                  <p>{KARAOKE_REFUND_RULE}</p>
-                  <p>{KARAOKE_NO_REFUND_RULE}</p>
-                </div>
-              ) : null}
-
               {!canBook && !isAuthenticated ? (
                 <>
                   <a
@@ -503,7 +493,6 @@ export function KaraokeBooking({
                     Giriş yap ve rezerve et
                   </a>
                   <p className="karaoke-fine">
-                    Rezervasyon hesabına işlenir, bu yüzden giriş gerekiyor.
                     Hesabın yoksa{" "}
                     <a href="/uye/kayit" className="karaoke-link">
                       üye ol
@@ -513,9 +502,9 @@ export function KaraokeBooking({
                 </>
               ) : !canBook ? (
                 <p className="karaoke-fine">
-                  Rezervasyon yapabilmek için önce e-postanı doğrula.{" "}
+                  Önce e-postanı doğrula.{" "}
                   <a href="/uye/hesap" className="karaoke-link">
-                    Doğrulama bağlantısını yeniden gönder
+                    Bağlantıyı yeniden gönder
                   </a>
                   .
                 </p>
@@ -529,72 +518,57 @@ export function KaraokeBooking({
               aria-labelledby="karaoke-preinfo-title"
             >
               {prepay ? (
-                <div className="karaoke-preinfo">
-                  <h2 id="karaoke-preinfo-title" className="h4">
-                    Ödemeden önce: rezervasyon özeti ve koşullar
-                  </h2>
-                  <ul>
-                    <li>
-                      <strong>Hizmet:</strong> Karaoke odası kullanımı. Oda
-                      seçtiğin saatlerde yalnız senin grubuna ayrılır.
-                      L&apos;Affogato, {address}.
-                    </li>
-                    <li>
-                      <strong>Tarih ve saat:</strong>{" "}
-                      {formatReservationDate(date)}
-                      {startHour !== null
-                        ? `, ${formatReservationTime(startHour, hours)} (${hours} saat)`
-                        : " (saat seçilmedi)"}
-                    </li>
-                    <li>
-                      <strong>Kişi sayısı:</strong> {guests} kişi (en fazla{" "}
-                      {capacity})
-                    </li>
-                    <li>
-                      <strong>Bedel:</strong> {hours} saat ×{" "}
-                      {priceLabel(hourly)} = {priceLabel(quote.priceMinor)}
-                      {discountPct > 0
-                        ? `; ${tierLabel ?? "üyelik"} indirimi %${discountPct}: −${priceLabel(quote.discountMinor)}`
-                        : ""}
-                      .{" "}
-                      <strong>
-                        Ödenecek toplam: {priceLabel(quote.totalMinor)} (KDV
-                        dahil).
-                      </strong>{" "}
-                      Bu tutar kesindir; rezervasyondan sonra değişmez. Yiyecek
-                      ve içecekler oda bedeline dahil değildir, kafede ayrıca
-                      ödenir; bunun dışında ek ücret alınmaz.
-                    </li>
-                    <li>
-                      <strong>Ödeme:</strong> Kredi kartı ya da banka kartıyla,
-                      PayNkolay güvenli ödeme altyapısı üzerinden, bankanın 3D
-                      Secure doğrulamasıyla tek çekim. Kart bilgilerin bizde
-                      saklanmaz. Ödeme sayfası {KARAOKE_PAYMENT_PAGE_MINUTES}{" "}
-                      dakika açık kalır; o süre içinde saat senin için tutulur.
-                    </li>
-                    <li>
-                      <strong>Kesinleşme:</strong> Rezervasyonun ödemen
-                      onaylandığı anda kesinleşir; ödemesi alınmayan rezervasyon
-                      onaylanmaz ve süresi dolunca düşer. Rezervasyon kodun ve
-                      rezervasyon bağlantın e-postana gelir.
-                    </li>
-                    <li>
-                      <strong>Cayma hakkı:</strong> {KARAOKE_NO_WITHDRAWAL}
-                    </li>
-                    <li>
-                      <strong>İptal:</strong> {KARAOKE_REFUND_RULE}{" "}
-                      {KARAOKE_NO_REFUND_RULE}
-                    </li>
-                    <li>
-                      <strong>Bizim iptalimiz:</strong>{" "}
-                      {KARAOKE_BUSINESS_CANCEL}
-                    </li>
-                    <li>
-                      <strong>Satıcı:</strong> L&apos;Affogato, {address},{" "}
-                      {phone}.
-                    </li>
-                  </ul>
-                </div>
+                <>
+                  <div className="karaoke-preinfo">
+                    <h2 id="karaoke-preinfo-title" className="h4">
+                      Ödemeden önce
+                    </h2>
+                    <ul>
+                      <li>
+                        {formatReservationDate(date)}
+                        {startHour !== null
+                          ? `, ${formatReservationTime(startHour, hours)} (${hours} saat)`
+                          : " (saat seçilmedi)"}{" "}
+                        · {guests} kişi ·{" "}
+                        <strong>
+                          Toplam {priceLabel(quote.totalMinor)} (KDV dahil)
+                        </strong>
+                      </li>
+                      <li>{KARAOKE_NO_WITHDRAWAL}</li>
+                      <li>
+                        <strong>İptal:</strong> {KARAOKE_REFUND_RULE}{" "}
+                        {KARAOKE_NO_REFUND_RULE}
+                      </li>
+                    </ul>
+                    {/* The rest of the pre-information, one tap away: native
+                        and JS-free, and still in the markup when closed. */}
+                    <details className="karaoke-preinfo-more">
+                      <summary>Ayrıntılar</summary>
+                      <ul>
+                        <li>
+                          Oda seçtiğin saatlerde yalnız senin grubuna ayrılır.
+                          Yiyecek ve içecek ayrıca ödenir; başka ücret yok.
+                        </li>
+                        <li>
+                          Kartla tek çekim, PayNkolay 3D Secure ile. Kart
+                          bilgilerin bizde saklanmaz. Ödeme sayfası{" "}
+                          {KARAOKE_PAYMENT_PAGE_MINUTES} dakika açık kalır; saat
+                          bu sürede senin için tutulur.
+                        </li>
+                        <li>
+                          Ödeme onaylanınca rezervasyonun kesinleşir, ödenmezse
+                          düşer. Kodun ve bağlantın e-postana gelir.
+                        </li>
+                        <li>{KARAOKE_BUSINESS_CANCEL}</li>
+                      </ul>
+                    </details>
+                  </div>
+                  {/* Who sells stays in sight, not behind the disclosure
+                      (MSY m.5/1-c). */}
+                  <p className="karaoke-seller">
+                    Satıcı: L&apos;Affogato, {address}, {phone}.
+                  </p>
+                </>
               ) : null}
 
               <div
@@ -680,8 +654,8 @@ export function KaraokeBooking({
               </button>
               <p className="karaoke-fine">
                 {prepay
-                  ? "Bu düğmeye bastığında ödeme yükümlülüğü altına girersin. Kart bilgilerini bir sonraki adımda, sitemizin güvenli ödeme sayfasında girersin."
-                  : "Rezervasyon uygulamadaki hesabına da düşer; ekibimiz onayladığında haber veririz. Ödemeyi köşkte yaparsın."}
+                  ? "Bu düğmeyle ödeme yükümlülüğü altına girersin. Kartını bir sonraki sayfada yazarsın."
+                  : "Ekibimiz onaylayınca haber veririz; ödemeyi köşkte yaparsın."}
               </p>
             </section>
           ) : null}
