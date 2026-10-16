@@ -501,7 +501,11 @@ describe("the hosted redirect page", () => {
 describe("the bank's 3D page", () => {
   it("lets the bank's own inline script run, by its hash", () => {
     const page = bankChallengePage(SANDBOX_3D_HTML);
-    expect(page.html).toBe(SANDBOX_3D_HTML);
+    // The bank's markup goes out untouched; only our wait note is added
+    // before </body>.
+    expect(
+      page.html.replace(/<div id="laf-bank-wait"[\s\S]*?<\/div><\/div>/, ""),
+    ).toBe(SANDBOX_3D_HTML);
     const script = /<script[^>]*>([\s\S]*?)<\/script>/.exec(
       SANDBOX_3D_HTML,
     )![1];
@@ -726,6 +730,77 @@ describe("the bank's 3D page, as banks actually write it", () => {
     );
   });
 
+  // The EST / Asseco template (Ziraat, Akbank, Denizbank, ING in the
+  // PayNkolay sandbox, 2026-10-16) writes its submit as an UNQUOTED handler
+  // holding double quotes. The browser keeps the quotes in the value (a parse
+  // error, not a terminator) and hashes all of it; reading the value only up
+  // to the first `"` gave the hash of `document.forms[`, the browser blocked
+  // the handler and the customer sat on a blank page.
+  const EST_3D_HTML =
+    '<html>\r\n<body onload=document.forms["form"].submit()>\r\n' +
+    '    <form name="form" id="form" action="https://acs.bank.example/fim/est3Dgate" method="POST">\r\n' +
+    '       <input name="amount" type="hidden" id="amount" value="1.00" />\r\n' +
+    '       <input name="oid" type="hidden" id="oid" value="IKSIRPF2030812">\r\n' +
+    "    </form>\r\n</body>\r\n</html>";
+
+  it("hashes the EST template's unquoted onload whole, quotes included", () => {
+    const page = bankChallengePage(EST_3D_HTML);
+    expect(page.csp).toContain("'unsafe-hashes'");
+    expect(page.csp).toContain(sha256('document.forms["form"].submit()'));
+    expect(page.csp).not.toContain(sha256("document.forms["));
+  });
+
+  it("reads quoted, unquoted and odd attribute values as the browser does", () => {
+    const page = bankChallengePage(
+      "<body onload=a(\"x\")'y'=z ONCLICK = 'b(1)' onfocus=\"c(&quot;q&quot;)\" onblur=d()/>" +
+        '<!-- <p onload="commented()"> -->' +
+        '<textarea><b onload="inTextarea()"></textarea>' +
+        "<script>var s = '<b onload=\"inScript()\">';</script></body>",
+    );
+    expect(page.csp).toContain(sha256("a(\"x\")'y'=z"));
+    expect(page.csp).toContain(sha256("b(1)"));
+    expect(page.csp).toContain(sha256('c("q")'));
+    // An unquoted value runs to whitespace or `>`; a trailing `/` is part of
+    // it, not a self-closing mark.
+    expect(page.csp).toContain(sha256("d()/"));
+    for (const skipped of ["commented()", "inTextarea()", "inScript()"]) {
+      expect(page.csp).not.toContain(sha256(skipped));
+    }
+    expect(page.csp).toContain(sha256("var s = '<b onload=\"inScript()\">';"));
+  });
+
+  it("shows a wait note, and a delayed no-script button only for an absolute https form", () => {
+    const est = bankChallengePage(EST_3D_HTML);
+    expect(est.html).toContain(
+      "3D Secure doğrulama sayfasına yönlendiriliyorsun",
+    );
+    expect(est.html).toMatch(
+      /<button type="submit" form="form"[^>]*>Bankanın sayfasına git<\/button>/,
+    );
+    // The note sits inside the body, before it closes.
+    expect(est.html.indexOf("laf-bank-wait")).toBeLessThan(
+      est.html.indexOf("</body>"),
+    );
+    // QNB's static action is relative (its script writes the real one): a
+    // button would post to our own site, so none is offered.
+    const qnb = bankChallengePage(SANDBOX_3D_HTML);
+    expect(qnb.html).toContain("laf-bank-wait");
+    expect(qnb.html).not.toContain("<button");
+    // The note's CSS reveal needs no script: the script-src list is only
+    // the bank's own.
+    expect(est.csp).not.toMatch(/script-src[^;]*unsafe-inline/);
+  });
+
+  it("escapes the bank's form id where it reuses it", () => {
+    const page = bankChallengePage(
+      '<form id="x&quot;&gt;&lt;img src=x onerror=alert(1)&gt;" action="https://acs.bank.example/a"></form>',
+    );
+    expect(page.html).not.toContain('form="x"><img');
+    expect(page.html).toContain(
+      'form="x&quot;&gt;&lt;img src=x onerror=alert(1)&gt;"',
+    );
+  });
+
   it("loads no image or font from elsewhere", () => {
     const page = bankChallengePage("<p>x</p>");
     expect(page.csp).toContain("img-src data:;");
@@ -833,7 +908,7 @@ describe("/odeme/paynkolay", () => {
     const calls = stubPos(POS_3D);
     const res = await route.POST(postRequest(await validBody()));
     expect(res.status).toBe(200);
-    expect(await res.text()).toBe(SANDBOX_3D_HTML);
+    expect(await res.text()).toBe(bankChallengePage(SANDBOX_3D_HTML).html);
     expect(res.headers.get("content-security-policy")).toContain(
       "form-action https:",
     );

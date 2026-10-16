@@ -859,6 +859,15 @@ bankanın çekim için gerçek numarayı görmesi gerekir.
 | Bankanın 3D formu                                        | Satır sonları normalleştirilip verilir (CRLF, tarayıcının özetiyle aynı bayt olsun diye); CSP yalnız o yanıttaki satır içi betiklerin ve tırnaklı/tırnaksız olay özniteliklerinin (çözülmüş) özetine (`'unsafe-hashes'`), `form-action https:`'e ve yalnız gömülü görsel/yazı tipine izin verir - ACS hostu bankaya göre değişir, düz `http:` engellenir |
 | Önbellek                                                 | Her yanıt `Cache-Control: no-store`                                                                                                                                                                                                                                                                                                                      |
 
+Bankanın 3D formunda öznitelikler tarayıcının ayrıştırma kuralıyla okunur.
+EST/Asseco şablonu (sandbox'ta Ziraat, Akbank, Denizbank, ING)
+`<body onload=document.forms["form"].submit()>` yazar: tırnaksız değerin
+içindeki `"` değerin parçasıdır. Değeri ilk `"`'da kesen eski okuma özeti
+bozuyordu; tarayıcı `onload`'u engelliyor, müşteri kartı yazdıktan sonra
+beyaz sayfada kalıyordu (2026-10-16). Sayfanın sonuna bir bekleme notu ve,
+formun adresi mutlak https ise, 6 sn sonra beliren betiksiz bir "Bankanın
+sayfasına git" düğmesi eklenir.
+
 ### 15.4 PCI DSS - operatörün bilmesi gereken
 
 PayNkolay dokümanı: _"Bu yapıda kart bilgileri üye işyeri tarafından

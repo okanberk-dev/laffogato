@@ -296,50 +296,64 @@ ${link}
  * kullanılacak CSP.
  *
  * HTML PayNkolay'dan, sunucudan sunucuya TLS ile geliyor ve olduğu gibi
- * verilir: bir `<form>` + kendini bankanın ACS adresine gönderen satır içi
- * betik (sandbox'ta QNB: `frm.action = 'https://…/Default.aspx'; frm.submit()`;
- * bazı bankalar `<body onload=…>` kullanır). Betiğe `'unsafe-inline'` yerine
- * BU yanıttaki her satır içi betiğin ve olay özniteliğinin özeti izin verilir;
- * HTML'e sonradan sızan bir betik çalışmaz. `form-action https:` çünkü ACS
- * hostu bankaya göre değişir ve önceden bilinemez - düz `http:` hedefe kart
- * akışı yine engellenir.
+ * verilir: bir `<form>` + onu bankanın ACS adresine gönderen satır içi betik
+ * ya da olay özniteliği. Bankaya göre üç biçim görüldü (sandbox, 2026-10-16):
+ *
+ * - QNB: `frm.action = 'https://…/Default.aspx'; frm.submit()` betiği.
+ * - Garanti: `document.PostForm.submit()` betiği.
+ * - EST / Asseco altyapısı (Ziraat, Akbank, Denizbank, ING, …):
+ *   `<body onload=document.forms["form"].submit()>` - TIRNAKSIZ ve içinde
+ *   çift tırnak olan bir değer.
+ *
+ * Betiğe `'unsafe-inline'` yerine BU yanıttaki her satır içi betiğin ve olay
+ * özniteliğinin özeti izin verilir; HTML'e sonradan sızan bir betik
+ * çalışmaz. Özet, tarayıcının okuduğu değerin aynısından hesaplanmalı:
+ * öznitelikler bu yüzden düzenli ifadeyle değil, tarayıcının ayrıştırma
+ * kuralıyla okunur (`readBankMarkup`). Tırnaksız değeri ilk `"`'da kesen eski
+ * okuma EST formunun özetini yanlış hesaplıyordu; tarayıcı `onload`'u
+ * engelliyor, müşteri bembeyaz bir sayfada kalıyordu.
+ *
+ * `form-action https:` çünkü ACS hostu bankaya göre değişir ve önceden
+ * bilinemez - düz `http:` hedefe kart akışı yine engellenir.
+ *
+ * Sayfanın sonuna bizim kısa bir notumuz eklenir: banka yanıt verene kadar
+ * müşteri boş bir sayfa değil, ne olduğunu görür. Formun kendi adresi
+ * mutlak bir https adresiyse, birkaç saniye sonra betiksiz çalışan bir
+ * "devam" düğmesi de belirir (yalnız CSS ile; düğme `form=` ile formu
+ * gönderir). Adres göreliyse (QNB: asıl adresi betik yazıyor) düğme
+ * konmaz - göreli adres bizim sitemize çözülür.
  */
 export function bankChallengePage(raw: string): PaynkolayPage {
   // Tarayıcı HTML'i ayrıştırırken CRLF ve tek CR'yi LF yapar ve CSP özetini
   // o metinden hesaplar. .NET/ASPX MPI çıktısında CRLF olağan (PayNkolay'ın
   // C# örneği de satır sonlarını siler). Sunulan bayt ile özetlenen bayt aynı
   // olsun diye satır sonları önce burada normalleştirilir.
-  const html = raw.replace(/\r\n?/g, "\n");
-  const scriptSources = new Set<string>();
-  let hasHandlers = false;
+  const bank = raw.replace(/\r\n?/g, "\n");
+  const html = withBankNotice(bank, readBankMarkup(bank).forms);
+  const markup = readBankMarkup(html);
 
-  for (const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)) {
-    const src = /\bsrc\s*=\s*["']?([^"'\s>]+)/i.exec(m[1])?.[1];
-    if (src) {
-      try {
-        const url = new URL(src);
-        if (url.protocol === "https:") scriptSources.add(url.origin);
-      } catch {
-        // Göreli adres bizim origin'imize çözülür; izin verilmez.
-      }
+  const scriptSources = new Set<string>();
+  for (const script of markup.scripts) {
+    if (script.src === null) {
+      scriptSources.add(sha256Source(script.body));
       continue;
     }
-    scriptSources.add(sha256Source(m[2]));
+    try {
+      const url = new URL(script.src);
+      if (url.protocol === "https:") scriptSources.add(url.origin);
+    } catch {
+      // Göreli adres bizim origin'imize çözülür; izin verilmez.
+    }
   }
-  // Olay öznitelikleri (`<body onload=…>`): tırnaklı ya da tırnaksız (EST /
-  // Asseco formları tırnaksız yazıyor). Betik gövdeleri önce çıkarılır, kod
-  // içindeki "x. onload =" öznitelik sanılmasın. Tarayıcı özeti çözülmüş
-  // değerden hesaplar (`&quot;` → `"`), bu yüzden değer önce çözülür.
-  const markup = html.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
-  for (const m of markup.matchAll(
-    /\son[a-z]+\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/gi,
-  )) {
-    hasHandlers = true;
-    scriptSources.add(sha256Source(decodeEntities(m[1] ?? m[2] ?? m[3] ?? "")));
+  for (const handler of markup.handlers) {
+    scriptSources.add(sha256Source(handler));
   }
 
   const scriptSrc = scriptSources.size
-    ? [...(hasHandlers ? ["'unsafe-hashes'"] : []), ...scriptSources].join(" ")
+    ? [
+        ...(markup.handlers.length ? ["'unsafe-hashes'"] : []),
+        ...scriptSources,
+      ].join(" ")
     : "'none'";
   const csp = [
     "default-src 'none'",
@@ -359,6 +373,183 @@ export function bankChallengePage(raw: string): PaynkolayPage {
     "base-uri 'none'",
   ].join("; ");
   return { html, csp };
+}
+
+/** Banka sayfasına eklenen bekleme notu ve gecikmeli "devam" düğmesi. */
+function withBankNotice(html: string, forms: BankForm[]): string {
+  const target = forms.find(
+    (f) => f.id && /^https:\/\//i.test(f.action.trim()),
+  );
+  const button = target
+    ? `<button type="submit" form="${escapeHtml(target.id)}" style="margin-top:1.25rem;padding:.8rem 1.5rem;border:0;border-radius:999px;background:#1d6d56;color:#fbf8f4;font:inherit;font-weight:600;cursor:pointer">Bankanın sayfasına git</button>`
+    : "";
+  const notice =
+    `<div id="laf-bank-wait" style="font:16px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#211c18;text-align:center;padding:20vh 16px 0">` +
+    `<style>@keyframes laf-bank-reveal{to{visibility:visible}}#laf-bank-wait .later{visibility:hidden;animation:laf-bank-reveal 0s 6s forwards}</style>` +
+    `<p style="margin:0;font-weight:700;color:#9d2543">L'Affogato</p>` +
+    `<p style="margin:.5rem 0 0">Bankanın 3D Secure doğrulama sayfasına yönlendiriliyorsun…</p>` +
+    `<div class="later"><p style="margin:1rem 0 0;color:#564d46;font-size:.9rem">Sayfa açılmadıysa aşağıdaki düğmeyle devam edebilirsin.</p>${button}</div>` +
+    `</div>`;
+  const close = html.search(/<\/body\s*>/i);
+  return close === -1
+    ? html + notice
+    : html.slice(0, close) + notice + html.slice(close);
+}
+
+interface BankForm {
+  id: string;
+  action: string;
+}
+
+interface BankMarkup {
+  /** Satır içi betiklerin gövdesi (`src: null`) ya da dış betiğin adresi. */
+  scripts: { src: string | null; body: string }[];
+  /** Olay özniteliklerinin (`onload=…`) tarayıcının okuduğu değeri. */
+  handlers: string[];
+  forms: BankForm[];
+}
+
+/** İçeriği HTML olarak ayrıştırılmayan öğeler: kapanış etiketine dek atlanır. */
+const RAW_TEXT = new Set(["script", "style", "textarea", "title", "xmp"]);
+
+/**
+ * Banka HTML'indeki betikleri, olay özniteliklerini ve formları HTML
+ * ayrıştırma kuralıyla okur (WHATWG tokenizer'ın başlangıç etiketi ve
+ * öznitelik durumları; yorumlar ve ham metin öğeleri atlanır).
+ *
+ * Önemli olan değerin sınırı: çift tırnaklı değer `"`'a, tek tırnaklı `'`'a,
+ * tırnaksız değer boşluğa ya da `>`'a dek sürer - tırnaksız değerdeki `"`,
+ * `'`, `=`, `<` ve `` ` `` tarayıcı için ayrıştırma hatasıdır ama değere
+ * eklenir. Karakter referansları çözülür (`&quot;` → `"`): tarayıcı özeti
+ * çözülmüş değerden hesaplar.
+ */
+function readBankMarkup(html: string): BankMarkup {
+  const out: BankMarkup = { scripts: [], handlers: [], forms: [] };
+  const lower = html.toLowerCase();
+  const n = html.length;
+  let i = 0;
+  const isSpace = (c: string) =>
+    c === " " || c === "\n" || c === "\t" || c === "\f";
+
+  while (i < n) {
+    const lt = html.indexOf("<", i);
+    if (lt === -1) break;
+    i = lt;
+    if (html.startsWith("<!--", i)) {
+      const end = html.indexOf("-->", i + 4);
+      i = end === -1 ? n : end + 3;
+      continue;
+    }
+    const next = html[i + 1] ?? "";
+    if (next === "!" || next === "?" || next === "/") {
+      const end = html.indexOf(">", i + 1);
+      i = end === -1 ? n : end + 1;
+      continue;
+    }
+    if (!/[a-z]/i.test(next)) {
+      i += 1;
+      continue;
+    }
+
+    // Etiket adı.
+    let j = i + 1;
+    while (j < n && !isSpace(html[j]) && html[j] !== "/" && html[j] !== ">") {
+      j += 1;
+    }
+    const tag = lower.slice(i + 1, j);
+    const attrs = new Map<string, string>();
+
+    // Öznitelikler.
+    while (j < n) {
+      while (j < n && (isSpace(html[j]) || html[j] === "/")) j += 1;
+      if (j >= n || html[j] === ">") break;
+      const nameStart = j;
+      // Adın ilk karakteri `=` olabilir (ayrıştırma hatası, adın parçası).
+      j += 1;
+      while (
+        j < n &&
+        !isSpace(html[j]) &&
+        html[j] !== "/" &&
+        html[j] !== ">" &&
+        html[j] !== "="
+      ) {
+        j += 1;
+      }
+      const name = lower.slice(nameStart, j);
+      let value = "";
+      let k = j;
+      while (k < n && isSpace(html[k])) k += 1;
+      if (html[k] === "=") {
+        k += 1;
+        while (k < n && isSpace(html[k])) k += 1;
+        const quote = html[k];
+        if (quote === '"' || quote === "'") {
+          const close = html.indexOf(quote, k + 1);
+          const stop = close === -1 ? n : close;
+          value = html.slice(k + 1, stop);
+          j = close === -1 ? n : close + 1;
+        } else {
+          let end = k;
+          while (end < n && !isSpace(html[end]) && html[end] !== ">") {
+            end += 1;
+          }
+          value = html.slice(k, end);
+          j = end;
+        }
+      }
+      value = decodeEntities(value);
+      // Tarayıcı aynı adı taşıyan ikinci özniteliği yok sayar.
+      if (!attrs.has(name)) attrs.set(name, value);
+    }
+    i = j < n ? j + 1 : n;
+
+    for (const [name, value] of attrs) {
+      if (/^on[a-z]+$/.test(name)) out.handlers.push(value);
+    }
+    if (tag === "form") {
+      out.forms.push({
+        id: attrs.get("id") ?? "",
+        action: attrs.get("action") ?? "",
+      });
+    }
+    if (RAW_TEXT.has(tag)) {
+      const close = findRawTextEnd(lower, tag, i);
+      if (tag === "script") {
+        out.scripts.push({
+          src: attrs.has("src") ? (attrs.get("src") ?? "").trim() : null,
+          body: html.slice(i, close.start),
+        });
+      }
+      i = close.after;
+    }
+  }
+  return out;
+}
+
+/** `</tag` + boşluk, `/` ya da `>` - ham metin öğesinin bittiği yer. */
+function findRawTextEnd(
+  lower: string,
+  tag: string,
+  from: number,
+): { start: number; after: number } {
+  let at = from;
+  for (;;) {
+    const start = lower.indexOf(`</${tag}`, at);
+    if (start === -1) return { start: lower.length, after: lower.length };
+    const c = lower[start + 2 + tag.length] ?? ">";
+    if (
+      c === ">" ||
+      c === "/" ||
+      c === " " ||
+      c === "\n" ||
+      c === "\t" ||
+      c === "\f"
+    ) {
+      const gt = lower.indexOf(">", start);
+      return { start, after: gt === -1 ? lower.length : gt + 1 };
+    }
+    at = start + 2;
+  }
 }
 
 /** HTML karakter referanslarını çözer - olay özniteliği özeti için. */
