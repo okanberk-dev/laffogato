@@ -207,8 +207,10 @@ describe("the paid-order mail states the stamps the order earns", () => {
       unknown
     >;
     await paid();
+    // The second argument is the once-only Idempotency-Key (`notifyOrderPaid`).
     expect(sendOrderPaidEmail).toHaveBeenCalledWith(
       expect.objectContaining({ stampsEarned: 4 }),
+      "order-ord-0001-paid",
     );
   });
 
@@ -219,8 +221,10 @@ describe("the paid-order mail states the stamps the order earns", () => {
       channel: "web",
     }) as unknown as Record<string, unknown>;
     await paid();
+    // The second argument is the once-only Idempotency-Key (`notifyOrderPaid`).
     expect(sendOrderPaidEmail).toHaveBeenCalledWith(
       expect.objectContaining({ stampsEarned: 0 }),
+      "order-ord-0001-paid",
     );
   });
 
