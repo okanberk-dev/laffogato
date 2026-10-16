@@ -373,7 +373,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Bu Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi'nin okunması ve her biri için ayrı onay kutucuğunun işaretlenmesi.",
           "Kart bilgilerinin {{SITE}} üzerindeki güvenli ödeme sayfasında girilmesi (mobil uygulamada bu sayfa cihazın tarayıcı penceresinde açılır; kart saklama özelliği açıldığında üye, kayıtlı kartını da seçebilir) ve ödemenin kartı veren bankanın 3D Secure ekranında onaylanması; sipariş toplamı kupon veya promosyonla sıfıra iniyorsa bu adım uygulanmaz.",
           "SATICI sunucusunun ödeme sonucunu PayNkolay işlem doğrulama servisine sorarak teyit etmesi; ödemenin başarılı ve tahsil edilen tutarın sipariş tutarıyla aynı olması hâlinde siparişin ödenmiş olarak kesinleşmesi ve sipariş numarasının ekranda gösterilmesi.",
-          "Sipariş e-postalarında, onaylanan bu form ile Mesafeli Satış Sözleşmesi'nin ve iade ve cayma belgesinin kalıcı bağlantılarının ALICI'nın e-posta adresine iletilmesi.",
+          "Ödemenin onaylanmasından sonra gönderilen, ödemenin onaylandığını bildiren e-postada, onaylanan bu form ile Mesafeli Satış Sözleşmesi'nin ve iade ve cayma belgesinin kalıcı bağlantılarının ALICI'nın e-posta adresine iletilmesi.",
         ],
       },
       {
@@ -575,7 +575,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "22. Kalıcı Veri Saklayıcısı, Onay Kaydı ve Delil Sözleşmesi",
         paragraphs: [
-          "Bu Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin kalıcı bağlantıları, sipariş e-postalarında ALICI'ya gönderilir; ALICI'nın onayladığı belge sürümü ve onay tarihi sipariş kaydında tutulur ve internet sitesindeki üye hesabında sipariş detay ekranında, üyelik devam ettiği sürece ve mevzuatta öngörülen saklama süreleri boyunca görüntülenebilir. ALICI, bu belgeleri kendi cihazına kaydedebilir veya çıktısını alabilir.",
+          "Bu Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin kalıcı bağlantıları, ödemenin onaylanmasından sonra gönderilen ve ödemenin onaylandığını bildiren e-postada ALICI'ya gönderilir; ödeme onaylanmadan bu e-posta gönderilmez; ALICI'nın onayladığı belge sürümü ve onay tarihi sipariş kaydında tutulur ve internet sitesindeki üye hesabında sipariş detay ekranında, üyelik devam ettiği sürece ve mevzuatta öngörülen saklama süreleri boyunca görüntülenebilir. ALICI, bu belgeleri kendi cihazına kaydedebilir veya çıktısını alabilir.",
           "Onay anında ve ödeme tamamlandığında, ispat kolaylığı sağlamak ve PayNkolay ile banka nezdindeki itiraz süreçlerinde kullanılmak üzere aşağıdaki kayıtlar sipariş kaydına yazılır.",
           "Taraflar; SATICI'nın sistem, sunucu ve veri tabanı kayıtlarının, e-posta gönderim kayıtlarının, PayNkolay ve banka işlem kayıtlarının ile taşıyıcı teslim kayıtlarının, 6100 sayılı Hukuk Muhakemeleri Kanunu'nun delil sözleşmesine ilişkin hükmü uyarınca bağlayıcı delil teşkil edeceğini kabul eder. Bu hüküm, ALICI'nın aksini ispat etme hakkını ve tüketici mevzuatından doğan haklarını ortadan kaldırmaz.",
         ],
@@ -876,7 +876,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "4. Sözleşme Konusu Mal, Fiyat ve Ödeme Bilgileri",
         paragraphs: [
-          "Sözleşme konusu mal veya malların cinsi, türü, miktarı, marka ve modeli, rengi, varyantı, birim fiyatı, adedi, tüm vergiler dâhil toplam satış bedeli, kargo veya kurye ücreti, varsa uygulanan promosyon kodu veya kupon indirimi ve genel toplam; sipariş sırasında ALICI'ya gösterilen sipariş özetinde yer alır, sipariş kalemleri ve ödenen toplam tutar ayrıca Sipariş Onayı e-postasında bildirilir. ALICI tarafından onaylanan Ön Bilgilendirme Formu da işbu Sözleşme'nin ayrılmaz eki ve tamamlayıcı parçasıdır.",
+          "Sözleşme konusu mal veya malların cinsi, türü, miktarı, marka ve modeli, rengi, varyantı, birim fiyatı, adedi, tüm vergiler dâhil toplam satış bedeli, kargo veya kurye ücreti, varsa uygulanan promosyon kodu veya kupon indirimi ve genel toplam; sipariş sırasında ALICI'ya gösterilen sipariş özetinde yer alır, sipariş kalemleri ve ödenen toplam tutar ayrıca ödemenin onaylanmasından sonra gönderilen, ödemenin onaylandığını bildiren e-postada yer alır. ALICI tarafından onaylanan Ön Bilgilendirme Formu da işbu Sözleşme'nin ayrılmaz eki ve tamamlayıcı parçasıdır.",
           "Site'de belirtilen tüm fiyatlar Türk Lirası (TRY) cinsinden olup, aksi açıkça belirtilmedikçe %20 oranındaki Katma Değer Vergisi dâhildir. Fiyatlar teknik altyapıda kuruş (minor unit) olarak saklanır ve arayüzde Türk Lirası biçiminde gösterilir. Vergi oranlarında mevzuat değişikliği olması hâlinde güncel oran uygulanır ve bu durum Site üzerinde gösterilir.",
           "SATICI, Site üzerindeki listeleme fiyatlarını, kampanyaları ve promosyon kodlarını dilediği zaman güncelleme hakkını saklı tutar. Ancak ALICI'nın siparişini onayladığı ve ödemesini tamamladığı an itibarıyla geçerli olan fiyat, o sipariş bakımından bağlayıcıdır; sipariş sonrasında yapılan fiyat değişiklikleri kurulmuş sözleşmeyi etkilemez.",
           "Sistemsel, teknik veya dizgi kaynaklı bariz fiyat hatası (örneğin ürünün maliyetiyle açıkça bağdaşmayan, ortalama bir tüketicinin dahi hata olduğunu anlayabileceği bir tutar) bulunması hâlinde SATICI, durumu tespit ettiği anda ALICI'yı derhâl bilgilendirir ve siparişi iptal ederek tahsil edilen bedelin tamamını herhangi bir kesinti yapılmaksızın en geç 14 (on dört) gün içinde iade eder. Bu durum, ALICI'nın Kanun'dan doğan diğer haklarını ortadan kaldırmaz.",
@@ -932,7 +932,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "ALICI, ödeme adımına geçmeden önce Ön Bilgilendirme Formu'nun ve işbu Mesafeli Satış Sözleşmesi'nin tam metnine web sitesi veya mobil uygulama üzerinden erişir. Her iki belge, ALICI tarafından okunup incelenebilecek şekilde ayrı ayrı görüntülenir; ALICI bunları dilerse cihazına kaydedebilir veya yazdırabilir.",
           "ALICI, ödeme adımında yer alan ve varsayılan olarak işaretsiz gelen, her belge için ayrı iki onay kutucuğunu kendi iradesiyle işaretleyerek Ön Bilgilendirme Formu'nu okuyup bilgilendirildiğini, işbu Sözleşme'yi ise okuduğunu, anladığını ve kabul ettiğini beyan eder. Bu kutucukların ikisi de işaretlenmeden ödeme adımı tamamlanamaz ve sipariş oluşturulamaz.",
           "Onay işlemi anında; onay tarihi ve saati, ALICI'nın bağlandığı IP adresi, tarayıcı ve cihaz bilgisi (user-agent) ile onaylanan belgelerin adları ve sürümü (son güncelleme tarihi) sipariş kaydına yazılır; sipariş kaydı ALICI'nın üyelik hesabıyla ilişkilidir. Bu kayıtlar, SATICI'nın ön bilgilendirme yükümlülüğünü yerine getirdiğinin ispatı bakımından tutulur ve talep hâlinde ALICI ile paylaşılır.",
-          "Sözleşme, ödemenin PayNkolay altyapısı üzerinden başarıyla tamamlanması, sonucun SATICI sunucusu tarafından PayNkolay işlem doğrulama servisine sorularak teyit edilmesi ve siparişin SATICI sistemine ödenmiş olarak kaydedilmesi anında kurulur. Kupon veya promosyon kodu indiriminin sipariş tutarının tamamını karşıladığı siparişlerde kartla ödeme alınmaz; bu siparişlerde Sözleşme, siparişin SATICI sistemine kaydedilmesi anında kurulur. Sözleşme metninin, Ön Bilgilendirme Formu'nun ve iade ile cayma koşullarının bağlantıları ALICI'nın kayıtlı e-posta adresine gönderilen sipariş e-postalarında yer alır; ayrıca ALICI'nın web sitesindeki üyelik hesabının sipariş detay sayfasında, onay tarihi ve belge sürümüyle birlikte aynı belgelerin bağlantıları bulunur.",
+          "Sözleşme, ödemenin PayNkolay altyapısı üzerinden başarıyla tamamlanması, sonucun SATICI sunucusu tarafından PayNkolay işlem doğrulama servisine sorularak teyit edilmesi ve siparişin SATICI sistemine ödenmiş olarak kaydedilmesi anında kurulur. Kupon veya promosyon kodu indiriminin sipariş tutarının tamamını karşıladığı siparişlerde kartla ödeme alınmaz; bu siparişlerde Sözleşme, siparişin SATICI sistemine kaydedilmesi anında kurulur. Sözleşme metninin, Ön Bilgilendirme Formu'nun ve iade ile cayma koşullarının bağlantıları ALICI'nın kayıtlı e-posta adresine, ödemenin onaylanmasından sonra gönderilen ve ödemenin onaylandığını bildiren e-postada yer alır; ayrıca ALICI'nın web sitesindeki üyelik hesabının sipariş detay sayfasında, onay tarihi ve belge sürümüyle birlikte aynı belgelerin bağlantıları bulunur.",
           "Ödeme adımına ulaşılmış ancak ödeme tamamlanmamış (terk edilmiş sepet) hâllerde Sözleşme kurulmuş sayılmaz ve Taraflar arasında herhangi bir borç ilişkisi doğmaz.",
         ],
       },
@@ -1189,7 +1189,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "21. Yürürlük, Elektronik Onay ve Sözleşme Sürümü",
         paragraphs: [
           "İşbu Sözleşme, yukarıda yer alan 21 (yirmi bir) maddeden ibaret olup, ALICI tarafından ödeme adımında elektronik ortamda ayrı bir onay kutucuğu işaretlenmek suretiyle okunup kabul edildikten ve ödemenin başarıyla tamamlanmasının (kupon veya promosyon kodu indiriminin sipariş tutarının tamamını karşıladığı siparişlerde siparişin SATICI sistemine kaydedilmesinin) ardından yürürlüğe girmiştir.",
-          "Sözleşme metninin, Ön Bilgilendirme Formu'nun ve iade ile cayma koşullarının bağlantıları ALICI'nın kayıtlı e-posta adresine gönderilen sipariş e-postalarında yer alır. ALICI, dilediği zaman web sitesindeki üyelik hesabının sipariş detay sayfasından, bu belgelerin bağlantılarına, onay tarihine ve onayladığı belge sürümüne ulaşabilir.",
+          "Sözleşme metninin, Ön Bilgilendirme Formu'nun ve iade ile cayma koşullarının bağlantıları ALICI'nın kayıtlı e-posta adresine, ödemenin onaylanmasından sonra gönderilen ve ödemenin onaylandığını bildiren e-postada yer alır. ALICI, dilediği zaman web sitesindeki üyelik hesabının sipariş detay sayfasından, bu belgelerin bağlantılarına, onay tarihine ve onayladığı belge sürümüne ulaşabilir.",
           "SATICI, mevzuat değişiklikleri veya ticari uygulamalarındaki güncellemeler nedeniyle işbu Sözleşme metninde değişiklik yapma hakkını saklı tutar. Ancak yapılan değişiklikler geriye etkili değildir; her sipariş bakımından, siparişin verildiği anda yürürlükte olan ve ALICI tarafından onaylanan sürüm bağlayıcıdır. Bu nedenle her sipariş kaydında onaylanan belge sürümü ayrıca saklanır.",
           "Sözleşme metninin güncel hâli her zaman {{SITE_URL}} adresinde kamuya açık ve ücretsiz olarak erişilebilir durumda tutulur. SATICI, 6102 sayılı Türk Ticaret Kanunu'nun internet sitesine ilişkin düzenlemeleri ile 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik kapsamında bilgi verme yükümlülüklerini Site üzerinden yerine getirir.",
           "İşbu Sözleşme Türkçe olarak düzenlenmiştir. Farklı bir dilde çeviri sunulması hâlinde, çeviri ile Türkçe metin arasında çelişki bulunursa Türkçe metin esas alınır.",
@@ -1229,7 +1229,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "İletim Yöntemi",
             value:
-              "Sipariş e-postalarındaki belge bağlantıları ve web sitesindeki üyelik hesabı sipariş detay sayfası",
+              "Ödemenin onaylandığını bildiren e-postadaki belge bağlantıları ve web sitesindeki üyelik hesabı sipariş detay sayfası",
           },
           {
             key: "İletişim",
@@ -2305,7 +2305,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "15. Kargo Takip Numarası, Bildirimler ve Teslimat İletişimi",
         paragraphs: [
           "Gönderi taşıyıcıya teslim edildiğinde, ALICI'nın üye hesabında kayıtlı e-posta adresine kargo takip numarasını ve gönderiyi taşıyan kargo firmasını içeren bir bildirim gönderilir; taşıyıcı bir takip sayfası yayımlıyorsa bu sayfanın bağlantısı da bildirime eklenir. Aynı bilgiler, web sitesindeki üye hesabı sipariş detay sayfasından ve {{BRAND}} mobil uygulamasının sipariş detay ekranından her zaman görüntülenebilir; kargo takibi mobil uygulama üzerinden de adım adım izlenebilir. Tahminî teslim süreleri bu metnin 5. maddesindeki tabloda yer alır.",
-          "Sipariş alındığında, ödeme onaylandığında ve sipariş kargoya verildiğinde ALICI'ya e-posta gönderilir; siparişin iptal edilmesi veya bedelin iade edilmesi hâlinde de e-posta ile bilgi verilir. Siparişin hazırlanıyor, kargoya verildi ve teslim edildi aşamaları ayrıca web sitesindeki üye hesabı sipariş detay sayfasında ve mobil uygulamada gösterilir. Bu bildirimler siparişin ifasına ilişkin işlemsel iletiler olup, 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik anlamında ticari elektronik ileti niteliği taşımaz; bu nedenle İleti Yönetim Sistemi (İYS) üzerinden ayrıca onay aranmaz.",
+          "Ödeme onaylandığında ve sipariş kargoya verildiğinde ALICI'ya e-posta gönderilir; ödemesi onaylanmamış bir sipariş için sipariş e-postası gönderilmez; siparişin iptal edilmesi veya bedelin iade edilmesi hâlinde de e-posta ile bilgi verilir. Siparişin hazırlanıyor, kargoya verildi ve teslim edildi aşamaları ayrıca web sitesindeki üye hesabı sipariş detay sayfasında ve mobil uygulamada gösterilir. Bu bildirimler siparişin ifasına ilişkin işlemsel iletiler olup, 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik anlamında ticari elektronik ileti niteliği taşımaz; bu nedenle İleti Yönetim Sistemi (İYS) üzerinden ayrıca onay aranmaz.",
           "{{BRAND}} mobil uygulamasında siparişin ödendi, hazırlanıyor, kargoya verildi ve teslim edildi aşamaları, uygulamanın sunucudan aldığı bilgilerle sipariş detay ekranında ve uygulama içindeki bildirimler ekranında gösterilir; kargo gönderisinin yola çıktı, yolda ve teslim edildi durumları da taşıyıcıdan Geliver aracılığıyla alınan bilgilere göre sipariş takip ekranında izlenebilir. Uygulama sunucuya anlık bildirim (push) tokeni göndermez ve sunucudan anlık bildirim gönderilmez; bu nedenle sipariş aşamalarına ilişkin bilgiler ve kampanya içerikleri push bildirim olarak iletilmez. Uygulamanın gösterdiği hatırlatmalar cihazda planlanır ve cihazın bildirim ayarlarından her zaman kapatılabilir; bu ayar işlemsel e-postaların gönderilmesini etkilemez.",
           "Kampanya, indirim ve yeni ürün duyurusu içeren pazarlama amaçlı iletiler ise ticari elektronik ileti niteliğindedir ve yalnızca ALICI'nın önceden açık onayı alınarak gönderilir. ALICI bu onayı her zaman ve gerekçe göstermeksizin geri alabilir.",
           "İşlemsel e-postalar Resend altyapısı üzerinden iletilir. E-postaların istenmeyen posta klasörüne düşmesi ihtimaline karşı ALICI'nın {{EMAIL}} adresini güvenli gönderen listesine eklemesi önerilir.",
@@ -4011,7 +4011,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "19. Ödeme Öncesi Onay, Delil Kaydı ve Sözleşme Sürümü",
         paragraphs: [
-          "Ödeme adımında, Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi ayrı bir onay kutucuğu ile onaylanır. Bu kutucuk önceden işaretlenmiş olarak sunulmaz; onay vermeden ödeme adımına geçilemez. Onayladığınız metinlerin bağlantıları sipariş bildirimi e-postanızda yer alır ve metinler {{SITE_URL}}/hukuk adresinde her zaman görüntülenebilir.",
+          "Ödeme adımında, Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi ayrı bir onay kutucuğu ile onaylanır. Bu kutucuk önceden işaretlenmiş olarak sunulmaz; onay vermeden ödeme adımına geçilemez. Onayladığınız metinlerin bağlantıları, ödemeniz onaylandıktan sonra gönderilen ve ödemenin onaylandığını bildiren e-postada yer alır ve metinler {{SITE_URL}}/hukuk adresinde her zaman görüntülenebilir.",
           "Onayın hukuken kanıtlanabilir olması için, onay anına ilişkin şu kayıtlar sipariş kaydına yazılır: onay tarihi ve saati, IP adresi, tarayıcı veya cihazın istemci bilgisi (user-agent) ve onaylanan belgelerin sürüm numarası. Bu kayıtlar, hangi metnin hangi sürümünü onayladığınızı sonradan tereddütsüz belirlemek için tutulur.",
           "Sipariş yalnızca e-posta adresi doğrulanmış üye hesabıyla verilebilir. Doğrulanmış e-posta adresi, sipariş onayı, ödeme bildirimi, kargo takibi ve iade yazışmalarının tebliğ adresi olarak kullanılır.",
           "Taraflar; sipariş kayıtlarının, PayNkolay işlem kayıtlarının, sunucu günlüklerinin, yönetici olay kayıtlarının (audit log) ve elektronik posta kayıtlarının, 6100 sayılı Hukuk Muhakemeleri Kanunu'nun delil sözleşmesine ilişkin hükmü (m.193) uyarınca delil teşkil edeceğini kabul eder. Bu hüküm; tüketicinin kendi delillerini sunma ve karşı delil gösterme hakkını ortadan kaldırmaz, ispat yükünü tüketici aleyhine çevirmez ve 6502 sayılı Kanun ile Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında Yönetmelik uyarınca haksız şart sayılacak biçimde uygulanamaz.",
@@ -4593,7 +4593,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Cihazınızın işletim sistemini, tarayıcınızı ve güvenlik yazılımlarınızı güncel tutun; bilinmeyen kaynaklardan uygulama veya kurulum dosyası yüklemeyin.",
           "Ödeme yapmadan önce adres çubuğunda kilit simgesini ve alan adının tam olarak {{SITE}} olduğunu doğrulayın; benzer yazılışlı alan adlarına dikkat edin.",
           "Bankanızın işlem bildirimi ve harcama limiti özelliklerini etkinleştirin; ekstrenizi düzenli kontrol edin ve tanımadığınız bir işlem görürseniz önce bankanızı arayın.",
-          "Sipariş onay e-postalarını saklayın; sipariş numarası, iade ve destek taleplerinizde işinizi hızlandırır.",
+          "Ödemenin onaylandığını bildiren e-postayı saklayın; sipariş numarası, iade ve destek taleplerinizde işinizi hızlandırır.",
           "Hesabınızda tanımadığınız bir hareket fark ederseniz derhal parolanızı değiştirin ve {{EMAIL}} adresinden bize bildirin.",
         ],
       },
@@ -11679,7 +11679,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Hatırlatma örnekleri: Şirket'in belirlediği saatlerde gösterilen günlük hatırlatmalar ve kafenin açılışını bildiren tek seferlik bildirim. Bunlar cihazda planlanır; hangi hatırlatmanın açık olduğu sunucuya bildirilmez.",
           "Uygulama içi bildirim kutusu örnekleri: sipariş durumu değişikliği, ödülün hazır olması, kilometre taşı hediyesi ve yayındaki duyurular. Kampanya nitelikli duyurular yalnızca Üye'nin ticari elektronik ileti tercihi açıksa gösterilir. Bunlar Uygulama açıldığında sunucudan okunur.",
-          "İşlemsel e-posta örnekleri: sipariş alındı, ödeme onaylandı, şifre sıfırlama, e-posta doğrulama.",
+          "İşlemsel e-posta örnekleri: ödeme onaylandı (sipariş özeti ve sözleşme bağlantılarıyla), şifre sıfırlama, e-posta doğrulama.",
           "Ticari ileti örnekleri: indirim kampanyası duyurusu, yeni ürün tanıtımı, etkinlik daveti.",
           "Ticari ileti onayının geri alınması, işlemsel bilgilendirmelerin gönderilmesine engel değildir.",
         ],
@@ -12968,7 +12968,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi, ödeme adımında ayrı bir onay kutucuğu ile ve satın alma işleminden bağımsız olarak onaylanır.",
           "Onay anında; tarih ve saat, IP adresi, tarayıcı bilgisi ve belge sürüm numarası sipariş kaydına işlenir.",
-          "Sipariş onayı ve sözleşme metinleri, sipariş sonrası kayıtlı e-posta adresinize kalıcı veri saklayıcısı niteliğinde gönderilir.",
+          "Sözleşme metinlerinin bağlantıları, ödemeniz onaylandıktan sonra kayıtlı e-posta adresinize, ödemenin onaylandığını bildiren e-postada gönderilir.",
           "Sözleşmenin kurulması, ifası ve sona ermesine ilişkin olarak bu belgelerde hüküm bulunmayan hâllerde 6098 sayılı Türk Borçlar Kanunu'nun genel hükümleri ile 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve ikincil mevzuatı uygulanır.",
           "Bu belgelerin hiçbir hükmü, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve ilgili mevzuatın tüketici lehine emredici hükümlerini sınırlandıracak biçimde yorumlanamaz.",
         ],
@@ -13130,7 +13130,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Telefon görüşmeleri hizmet kalitesi ve uyuşmazlıkların çözümü amacıyla kayıt altına alınabilir; kayıt yapılması hâlinde görüşme başında bilgilendirme yapılır.",
           "Şirket, hiçbir koşulda telefonla veya e-postayla kart numarası, CVV kodu, kart şifresi veya tek kullanımlık doğrulama kodu talep etmez.",
-          "Sipariş durumu değişikliklerinde kayıtlı e-posta adresinize otomatik bilgilendirme gönderilir: sipariş alındığında ve ödemeniz onaylandığında; online mağaza siparişlerinde ayrıca kargoya verildiğinde, iptal edildiğinde ve iade yapıldığında.",
+          "Sipariş durumu değişikliklerinde kayıtlı e-posta adresinize otomatik bilgilendirme gönderilir: ödemeniz onaylandığında (ödemesi onaylanmamış sipariş için e-posta gönderilmez); online mağaza siparişlerinde ayrıca kargoya verildiğinde, iptal edildiğinde ve iade yapıldığında.",
           "Ticari elektronik ileti gönderimi, 6563 sayılı Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca yalnızca onayınız bulunması hâlinde ve İleti Yönetim Sistemi (İYS) üzerinden kaydedilerek yapılır; her iletide ücretsiz ret hakkı sunulur. Ayrıntılar /hukuk/ticari-elektronik-ileti adresindeki belgede yer alır.",
           "Mobil uygulama sunucudan anlık bildirim (push) göndermez; uygulamadaki hatırlatmalar cihazınızda planlanır, sipariş durumu ve duyurular ise uygulamadaki Bildirimler ekranında listelenir. Kampanya, indirim ve tanıtım içerikli ticari elektronik iletiler yalnızca onayınız bulunması hâlinde gönderilir. Bildirim izni, cihazınızın ayarlarından veya uygulama içindeki bildirim tercihlerinden her zaman kapatılabilir.",
         ],
@@ -13639,7 +13639,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         ordered: [
           "Ad, soyad ve iletişim bilgisi: Size dönüş yapabileceğimiz e-posta adresi ve tercihen telefon numarası. Sipariş kaydındaki bilgilerle uyumlu olması kimlik doğrulamayı kolaylaştırır.",
-          "Sipariş numarası: Sipariş onay e-postanızda ve üye panelinizdeki sipariş listesinde yer alan numara. Sipariş numaramız 10001'den başlayan sıralı bir numaradır.",
+          "Sipariş numarası: Ödemenin onaylandığını bildiren e-postanızda ve üye panelinizdeki sipariş listesinde yer alan numara. Sipariş numaramız 10001'den başlayan sıralı bir numaradır.",
           "Sipariş tarihi ve teslim tarihi: Cayma hakkı, ayıplı mal ve zamanaşımı sürelerinin doğru hesaplanabilmesi için gereklidir.",
           "Şikâyete konu ürün veya hizmet: Ürün adı, varsa varyant (öğütüm derecesi, gramaj, renk, beden) ve adet. Birden fazla kalem varsa hangi kalemlere ilişkin olduğunu belirtiniz.",
           "Şikâyetin konusu ve talebiniz: Yaşadığınız sorunu kendi cümlelerinizle açıklayınız ve ne istediğinizi (değişim, iade, onarım, indirim, kupon, açıklama) net biçimde belirtiniz. Talebinizi belirtmeniz, sizin için en uygun çözümü doğrudan sunmamızı sağlar.",
