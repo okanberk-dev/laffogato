@@ -117,7 +117,11 @@ const POS_3D = {
 
 /** POS taklidi: yanıt, çağrılan uca göre. */
 function stubPos(byPath: Record<string, unknown>) {
-  const calls: { path: string; fields: Record<string, string> }[] = [];
+  const calls: {
+    path: string;
+    fields: Record<string, string>;
+    signal?: AbortSignal;
+  }[] = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string | URL, init?: RequestInit) => {
@@ -126,7 +130,7 @@ function stubPos(byPath: Record<string, unknown>) {
       for (const [k, v] of (init?.body as FormData).entries()) {
         if (typeof v === "string") fields[k] = v;
       }
-      calls.push({ path, fields });
+      calls.push({ path, fields, signal: init?.signal ?? undefined });
       return new Response(JSON.stringify(byPath[path] ?? {}), {
         headers: { "content-type": "application/json" },
       });
@@ -167,6 +171,23 @@ describe("the member key", () => {
     // The hosted form still saves nothing.
     expect(post.fields.customerKey).toBe("");
     expect(Object.values(post.fields)).not.toContain(MEMBER);
+  });
+
+  it("stays out of the hosted mode's plain, readable payload", async () => {
+    const hosted = new PaynkolayPaymentProvider({
+      sx: "SX-TOKEN",
+      sxList: "SX-LIST",
+      sxCancel: "SX-CANCEL",
+      merchantSecretKey: SECRET,
+      merchantNo: "400000001",
+      baseUrl: "https://paynkolaytest.nkolayislem.com.tr",
+      successUrl: "https://laffogato.net/odeme/donus",
+      failUrl: "https://laffogato.net/odeme/donus",
+      checkoutMode: "hosted",
+    });
+    const session = await hosted.createCheckoutSession(checkoutInput(MEMBER));
+    const d = new URL(session.redirectUrl).searchParams.get("d")!;
+    expect(Buffer.from(d, "base64url").toString("utf8")).not.toContain(MEMBER);
   });
 
   it("is dropped when it is not a valid key", async () => {
@@ -380,9 +401,34 @@ describe("the card page with saved cards", () => {
     expect(page.html).toContain("QNB BANK A.Ş. · VISA · Test Kartim");
     expect(page.html).toMatch(/value="yes21405" checked/);
     expect(page.html).toMatch(
-      /name="deleteCard" value="yes21405" formnovalidate/,
+      /form="del-card" name="deleteCard" value="yes21405"/,
     );
     expect(page.html).toContain('value="new"');
+  });
+
+  // Implicit submission (Enter, a phone keyboard's Go) clicks the form's
+  // default button: the first submit button whose form owner is that form.
+  // A "Sil" owned by #pay and placed before the pay button made Enter delete
+  // the first saved card instead of paying (review of PR #110).
+  it("makes the pay button the pay form's only, so default, submit button", () => {
+    const pay = /<form id="pay"[\s\S]*?<\/form>/.exec(page.html)![0];
+    const owned = [...pay.matchAll(/<button\b[^>]*>/g)]
+      .map((m) => m[0])
+      .filter((tag) => /type="submit"/.test(tag) && !/\bform=/.test(tag));
+    expect(owned).toHaveLength(1);
+    expect(owned[0]).toContain('id="pay-btn"');
+  });
+
+  it("deletes through its own form, which carries no card field", () => {
+    const del = /<form id="del-card"[\s\S]*?<\/form>/.exec(page.html)![0];
+    expect(page.html.indexOf('<form id="del-card"')).toBeGreaterThan(
+      page.html.indexOf("</form>"),
+    );
+    expect(del).toContain('name="d"');
+    expect(del).toContain('name="s"');
+    for (const field of Object.values(CARD_FORM_FIELDS)) {
+      expect(del).not.toContain(`name="${field}"`);
+    }
   });
 
   it("offers saving unticked, and does not force new-card fields", () => {
@@ -512,6 +558,40 @@ describe("/odeme/paynkolay with saved cards", () => {
       csCustomerKey: MEMBER,
       csCardAlias: "Kartım 6111",
     });
+  });
+
+  it("POST asks instead of charging the saved card when a new card was typed", async () => {
+    const calls = stubPos({
+      "/Vpos/Payment/CardStorageCardList": LIST_ONE,
+      "/Vpos/v1/Payment": POS_3D,
+    });
+    const { data, signature } = await session(MEMBER);
+    const res = await route.POST(
+      post({
+        d: data,
+        s: signature,
+        cardChoice: "yes21405",
+        [CARD_FORM_FIELDS.number]: "4155 6501 0041 6111",
+      }),
+    );
+    expect(res.status).toBe(422);
+    expect(await res.text()).toContain("Yeni kartla öde");
+    expect(calls.some((c) => c.path === "/Vpos/v1/Payment")).toBe(false);
+  });
+
+  it("gives every POS call a deadline", async () => {
+    const calls = stubPos({
+      "/Vpos/Payment/CardStorageCardList": LIST_ONE,
+      "/Vpos/Payment/CardStorageCardDelete": { RESPONSE_CODE: 2 },
+      "/Vpos/v1/Payment": POS_3D,
+    });
+    const provider = makeProvider();
+    await provider.listSavedCards(MEMBER);
+    await provider.deleteSavedCard(MEMBER, TOKEN);
+    const { post: payload } = await session(MEMBER);
+    await provider.startDirectPayment(payload, { savedToken: TOKEN }, "");
+    expect(calls).toHaveLength(3);
+    for (const call of calls) expect(call.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("POST deletes a saved card and redraws the page without it", async () => {

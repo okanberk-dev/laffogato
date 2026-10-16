@@ -226,11 +226,15 @@ var isNew=choices.length===0;
 for(var i=0;i<choices.length;i++){if(choices[i].checked&&choices[i].value==="new")isNew=true;}
 box.hidden=!isNew;
 var req=box.querySelectorAll("[data-req]");
-for(var j=0;j<req.length;j++){req[j].required=isNew;}}
+for(var j=0;j<req.length;j++){req[j].required=isNew;}
+var all=box.querySelectorAll("input");
+for(var m=0;m<all.length;m++){all[m].disabled=!isNew;}}
 for(var k=0;k<choices.length;k++){choices[k].addEventListener("change",sync);}
 sync();
+var del=document.getElementById("del-card");
+if(del){del.addEventListener("submit",function(ev){
+if(!window.confirm("Bu kayıtlı kart silinsin mi?"))ev.preventDefault();});}
 f.addEventListener("submit",function(ev){
-if(ev.submitter&&ev.submitter.name==="deleteCard")return;
 if(f.getAttribute("data-sent")){ev.preventDefault();return;}
 f.setAttribute("data-sent","1");b.disabled=true;
 b.textContent="Bankaya yönlendiriliyorsun…";});
@@ -289,7 +293,7 @@ function savedCardChoices(state: CardFormState): string {
       return `<div class="choice">
 <input type="radio" id="${id}" name="cardChoice" value="${escapeHtml(card.tranId)}"${chosen === card.tranId ? " checked" : ""}>
 <label for="${id}">•••• ${escapeHtml(four)}<small>${escapeHtml(title)}${card.alias ? ` · ${escapeHtml(card.alias)}` : ""}</small></label>
-<button type="submit" class="link" name="deleteCard" value="${escapeHtml(card.tranId)}" formnovalidate aria-label="•••• ${escapeHtml(four)} kartını sil">Sil</button>
+<button type="submit" class="link" form="del-card" name="deleteCard" value="${escapeHtml(card.tranId)}" aria-label="•••• ${escapeHtml(four)} kartını sil">Sil</button>
 </div>`;
     })
     .join("\n");
@@ -301,6 +305,22 @@ ${rows}
 <label for="saved-new">Yeni kartla öde</label>
 </div>
 </fieldset>`;
+}
+
+/**
+ * Saklı kartı silmenin ayrı formu. "Sil" düğmeleri kart listesinde görünür
+ * ama `form="del-card"` ile BU forma aittir: ödeme formunun içinde, ödeme
+ * düğmesinden önce duran bir gönder düğmesi o formun varsayılan düğmesi
+ * olurdu ve kart alanında Enter'a basmak ödemek yerine ilk kartı silerdi
+ * (PR #110 incelemesi). Bu formda kart alanı yoktur; silme isteği kart
+ * numarası taşımaz.
+ */
+function deleteCardForm(state: CardFormState): string {
+  if ((state.savedCards ?? []).length === 0) return "";
+  return `<form id="del-card" method="post" action="${PAYNKOLAY_BRIDGE_PATH}">
+<input type="hidden" name="d" value="${escapeHtml(state.data)}">
+<input type="hidden" name="s" value="${escapeHtml(state.signature)}">
+</form>`;
 }
 
 function invalid(state: CardFormState, field: CardField): string {
@@ -359,6 +379,7 @@ ${save}
 <input type="hidden" name="s" value="${escapeHtml(state.signature)}">
 <button type="submit" id="pay-btn">${escapeHtml(amount)} öde</button>
 </form>
+${deleteCardForm(state)}
 <p class="note">${LOCK_ICON}<span>Kart bilgilerini biz kaydetmeyiz; ödeme için şifreli bağlantıyla yalnızca ödeme kuruluşuna iletilir. Ödemeyi kartını veren bankanın 3D Secure ekranında onaylarsın.</span></p>
 <p class="psp">Ödeme altyapısı: PayNkolay · N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.</p>
 </main>`,

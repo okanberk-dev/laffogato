@@ -192,6 +192,22 @@ export async function POST(req: NextRequest) {
   // kartı seçilemez.
   let method: DirectPaymentMethod;
   if (choice !== "new") {
+    // Betik, saklı kart seçiliyken yeni kart alanlarını kapatır ve
+    // göndermez. Alan yine de doluysa (betiksiz tarayıcı) müşteri yeni kartı
+    // yazmış ama seçimi değiştirmemiştir: saklı karttan sessizce çekmek
+    // yerine sorulur.
+    if (/\d/.test(read(CARD_FORM_FIELDS.number) ?? "")) {
+      return respond(
+        renderCardForm({
+          ...state,
+          error: {
+            message:
+              "Yeni bir kart yazdın ama kayıtlı kartın seçili. Yeni kartla ödemek için “Yeni kartla öde”yi seç.",
+          },
+        }),
+        422,
+      );
+    }
     const card = saved.find((c) => c.tranId === choice);
     if (!post.member || !card) {
       return respond(

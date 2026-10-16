@@ -95,6 +95,21 @@ export const PAYNKOLAY_BRIDGE_PATH = "/odeme/paynkolay";
 /** Kartın sitede alındığı API ucu (§15). Canlı istek sunucudan gitmeli. */
 const DIRECT_PAYMENT_PATH = "/Vpos/v1/Payment";
 
+/**
+ * PayNkolay çağrılarının üst süresi (ms). Kart listesi kart sayfası çizilirken
+ * beklenir, bu yüzden kısa; 3D başlatma bankaya kadar gidip döndüğü için
+ * uzun. Süre dolarsa istek iptal edilir ve hata fırlar.
+ */
+const POS_TIMEOUT_MS = {
+  default: 15_000,
+  payment: 25_000,
+  cardList: 8_000,
+  cardDelete: 10_000,
+  // İade yarıda kesilirse sonucu belirsiz kalır (para dönmüş olabilir);
+  // bekleme payı geniş tutulur.
+  refund: 30_000,
+} as const;
+
 export type PaynkolayCheckoutMode = "hosted" | "direct";
 
 /** İmzanın hangi amaçla üretildiğini sabitler (alan ayrımı). */
@@ -716,25 +731,29 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     );
 
     const response = unwrapPaynkolayResult(
-      await this.postForm(DIRECT_PAYMENT_PATH, {
-        sx: f.sx,
-        clientRefCode: f.clientRefCode,
-        successUrl: f.successUrl,
-        failUrl: f.failUrl,
-        amount: f.amount,
-        // Taksit yok (§9): tek çekim.
-        installmentNo: "1",
-        ...cardFields,
-        use3D: "true",
-        transactionType: "SALES",
-        rnd: f.rnd,
-        // Bu uçta alan adı küçük `v` ile yazılıyor (§11.1, Postman örneği).
-        hashDatav2: hash,
-        environment: "API",
-        currencyNumber: f.currencyCode || CURRENCY_CODE,
-        cardHolderIP: cardHolderIp.trim() || f.cardHolderIP || "0.0.0.0",
-        ...storage,
-      }),
+      await this.postForm(
+        DIRECT_PAYMENT_PATH,
+        {
+          sx: f.sx,
+          clientRefCode: f.clientRefCode,
+          successUrl: f.successUrl,
+          failUrl: f.failUrl,
+          amount: f.amount,
+          // Taksit yok (§9): tek çekim.
+          installmentNo: "1",
+          ...cardFields,
+          use3D: "true",
+          transactionType: "SALES",
+          rnd: f.rnd,
+          // Bu uçta alan adı küçük `v` ile yazılıyor (§11.1, Postman örneği).
+          hashDatav2: hash,
+          environment: "API",
+          currencyNumber: f.currencyCode || CURRENCY_CODE,
+          cardHolderIP: cardHolderIp.trim() || f.cardHolderIP || "0.0.0.0",
+          ...storage,
+        },
+        POS_TIMEOUT_MS.payment,
+      ),
     );
 
     const body = isRecord(response) ? response : {};
@@ -778,14 +797,18 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
    */
   async listSavedCards(member: string): Promise<SavedCard[]> {
     if (!PAYNKOLAY_MEMBER_KEY.test(member)) return [];
-    const res = await this.postForm("/Vpos/Payment/CardStorageCardList", {
-      sx: this.cfg.sx,
-      customerKey: member,
-      hashDatav2: paynkolayHash(
-        [this.cfg.sx, member],
-        this.cfg.merchantSecretKey,
-      ),
-    });
+    const res = await this.postForm(
+      "/Vpos/Payment/CardStorageCardList",
+      {
+        sx: this.cfg.sx,
+        customerKey: member,
+        hashDatav2: paynkolayHash(
+          [this.cfg.sx, member],
+          this.cfg.merchantSecretKey,
+        ),
+      },
+      POS_TIMEOUT_MS.cardList,
+    );
     const body = unwrapPaynkolayResult(res);
     if (!isRecord(body)) throw new Error("paynkolay kart listesi okunamadı");
     const code = readField(body, "ProcReturnCode");
@@ -827,16 +850,20 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     }
     const tranId = "";
     const res = unwrapPaynkolayResult(
-      await this.postForm("/Vpos/Payment/CardStorageCardDelete", {
-        sx: this.cfg.sx,
-        customerKey: member,
-        tranId,
-        token,
-        hashDatav2: paynkolayHash(
-          [this.cfg.sx, member, tranId, token],
-          this.cfg.merchantSecretKey,
-        ),
-      }),
+      await this.postForm(
+        "/Vpos/Payment/CardStorageCardDelete",
+        {
+          sx: this.cfg.sx,
+          customerKey: member,
+          tranId,
+          token,
+          hashDatav2: paynkolayHash(
+            [this.cfg.sx, member, tranId, token],
+            this.cfg.merchantSecretKey,
+          ),
+        },
+        POS_TIMEOUT_MS.cardDelete,
+      ),
     );
     const code = isRecord(res) ? readField(res, "RESPONSE_CODE") : "";
     if (code !== "2") {
@@ -859,6 +886,7 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
   private async postForm(
     path: string,
     fields: Record<string, string>,
+    timeoutMs: number = POS_TIMEOUT_MS.default,
   ): Promise<unknown> {
     const body = new FormData();
     for (const [key, value] of Object.entries(fields)) body.append(key, value);
@@ -868,6 +896,10 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       body,
       // Ödeme çağrıları asla önbelleğe alınmaz.
       cache: "no-store",
+      // Yanıt vermeyen POS isteği (ve onu bekleyen sayfayı, hesap kapatmayı)
+      // sonsuza dek tutmasın. Zaman aşımı "ödenmedi" demek değildir (kural
+      // 29): çağıranlar hatayı "bilinmiyor" diye ele alır.
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) throw new Error(`paynkolay ${path} HTTP ${res.status}`);
 
@@ -976,9 +1008,14 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
 
     // Kart saklama anahtarı formun alanlarına girmez (ortak ödeme sayfasında
     // `customerKey` boş kalır); yalnızca sitedeki kart formu onu kullanır.
-    const member = PAYNKOLAY_MEMBER_KEY.test(input.cardUserKey ?? "")
-      ? input.cardUserKey
-      : undefined;
+    // Anahtar yalnız `direct` modda, şifreli yükte taşınır: `hosted` modda yük
+    // düz base64'tür ve adres çubuğunda, geçmişte okunurdu - orada zaten
+    // saklı kart sunulmuyor.
+    const member =
+      this.cfg.checkoutMode === "direct" &&
+      PAYNKOLAY_MEMBER_KEY.test(input.cardUserKey ?? "")
+        ? input.cardUserKey
+        : undefined;
     const json = JSON.stringify({
       action: this.paymentFormAction(),
       fields,
@@ -1227,17 +1264,21 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
     const type = tx.dayKey === istanbulDayKey(new Date()) ? "cancel" : "refund";
     const amount = minorToPaynkolayAmount(tx.amountMinor);
     const res = unwrapPaynkolayResult(
-      await this.postForm("/Vpos/v1/CancelRefundPayment", {
-        sx: this.cfg.sxCancel,
-        referenceCode,
-        type,
-        amount,
-        trxDate: tx.trxDate,
-        hashDatav2: paynkolayHash(
-          [this.cfg.sxCancel, referenceCode, type, amount, tx.trxDate],
-          this.cfg.merchantSecretKey,
-        ),
-      }),
+      await this.postForm(
+        "/Vpos/v1/CancelRefundPayment",
+        {
+          sx: this.cfg.sxCancel,
+          referenceCode,
+          type,
+          amount,
+          trxDate: tx.trxDate,
+          hashDatav2: paynkolayHash(
+            [this.cfg.sxCancel, referenceCode, type, amount, tx.trxDate],
+            this.cfg.merchantSecretKey,
+          ),
+        },
+        POS_TIMEOUT_MS.refund,
+      ),
     );
 
     const code = isRecord(res)
