@@ -80,10 +80,8 @@ import type {
 } from "@/lib/payment/provider";
 import type { WeeklyHours } from "./days";
 import type { AdminRole } from "./roles";
-import { stampsForOrder } from "@/lib/mobile/loyalty-core";
 import {
   orderChannel,
-  orderKind,
   type OrderChannel,
   type OrderFulfillment,
   type OrderKind,
