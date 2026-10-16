@@ -181,12 +181,59 @@ describe("legal content - identity is the tax certificate, never a placeholder",
   });
 
   it("names the infrastructure and payment provider the project actually uses", () => {
-    // The data layer moved off Supabase to Neon-hosted Postgres. The virtual
-    // POS is PayNkolay; the texts still name iyzico until the lawyer-approved
-    // R1 redline lands (docs/LEGAL-REDLINES-2026-09.md §3).
-    expect(rendered).not.toMatch(/Supabase/i);
+    // The virtual POS is PayNkolay. The data layer is {{DB_PROVIDER}} and the
+    // member identity is {{AUTH_PROVIDER}}; both names come from the entity
+    // module (tests/legal-single-source.test.ts forbids them in the source).
+    expect(rendered).toContain("PayNkolay");
+    expect(rendered).toContain(LEGAL_ENTITY.dbProvider);
+    expect(rendered).toContain(LEGAL_ENTITY.authProvider);
     expect(rendered).not.toMatch(/PayTR/i);
     expect(rendered).not.toMatch(/Stripe/i);
+  });
+
+  it("never names the payment provider that was removed from the code", () => {
+    // iyzico left the code on 15 Ekim 2026; 264 passages still named it.
+    expect(JSON.stringify(LEGAL_CONTENT)).not.toMatch(/iyzico/i);
+  });
+
+  it("prints no long dash or en dash in the legal copy", () => {
+    // Operator rule (22 Eylül 2026): a single hyphen. The ranges and
+    // parentheticals that used U+2014 / U+2013 read " - " now.
+    expect(rendered).not.toMatch(/[\u2013\u2014]/);
+  });
+
+  it("does not claim that card data stays away from the seller's servers", () => {
+    // The card is typed on the site's own payment page and passes through the
+    // server once, on its way to PayNkolay; it is not stored or logged. The
+    // old sentences said it never reached the seller's servers.
+    const claims = [
+      /kart[^.]{0,80}(sunucular\w*|sistem\w*)[^.]{0,40}(geçmez|ulaşmaz|uğramaz)/i,
+      /satıcı[^.]{0,60}kart[^.]{0,60}(ulaşmaz|görmez|erişemez)/i,
+      /ödeme (kuruluşunun|hizmeti sağlayıcısının) (kendi )?(güvenli )?(sayfasında|ortamında)[^.]{0,60}girilir/i,
+    ];
+    for (const re of claims) {
+      expect(rendered, String(re)).not.toMatch(re);
+    }
+  });
+
+  it("promises no wallet, gift card or points", () => {
+    // None exists. Gift vouchers may be mentioned only as not sold; points
+    // were replaced by stamps.
+    expect(rendered).not.toMatch(/Ödül puanı|puan bakiye|puan kazan/i);
+    for (const d of LEGAL_DOCS) {
+      for (const s of d.sections) {
+        for (const text of [
+          ...(s.paragraphs ?? []),
+          ...(s.bullets ?? []),
+          ...(s.ordered ?? []),
+        ]) {
+          if (!/hediye (çeki|kartı)|mağaza kredisi/i.test(text)) continue;
+          expect(text, `${d.slug}: ${s.heading}`).toMatch(
+            /satılmamakta|yapılmamakta|satılmaz|bulunmamakta|yoktur|sunulmamakta|geçerli değildir|uygulanmaz|yürütülmemekte/i,
+          );
+        }
+      }
+    }
   });
 
   it("drops table rows whose value is an unknown token", () => {

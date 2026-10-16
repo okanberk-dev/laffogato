@@ -55,6 +55,17 @@ export const LEGAL_ENTITY = {
   dbProvider: "Neon",
 
   /**
+   * Üyelik kimliğini (e-posta + parola, oturum, uygulama jetonu) tutan
+   * kimlik doğrulama sağlayıcısının adı (`docs/AUTH-BRIDGE.md`).
+   *
+   * Veri tabanından AYRIDIR: sipariş, fiyat ve üye kaydı `dbProvider`'da
+   * durur, bu sağlayıcıda yalnız kimlik vardır. KVKK aydınlatma, gizlilik,
+   * şirket bilgileri ve üyelik metinlerinde alıcı olarak geçer; ad değişirse
+   * tek yerden değişsin diye `{{AUTH_PROVIDER}}` token'ıdır.
+   */
+  authProvider: "Supabase",
+
+  /**
    * Kafenin açılış saatleri — koddaki TEK kaynak.
    *
    * `closes` `opens`'tan KÜÇÜKTÜR: 01:00 ertesi sabaha aittir. schema.org bunu
@@ -146,6 +157,7 @@ const TOKENS: Record<string, string> = {
   ADDRESS: LEGAL_ADDRESS_LINE,
   CAFE_HOURS: LEGAL_ENTITY.cafeHours.display,
   DB_PROVIDER: LEGAL_ENTITY.dbProvider,
+  AUTH_PROVIDER: LEGAL_ENTITY.authProvider,
   PHONE: LEGAL_ENTITY.phone,
   EMAIL: LEGAL_ENTITY.email,
   TAX_OFFICE: LEGAL_ENTITY.taxOffice,
