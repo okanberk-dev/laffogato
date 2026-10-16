@@ -12,6 +12,7 @@ import {
   type CheckoutReturnField,
 } from "@/lib/checkout/return-codes";
 import { APP_SCHEME, appOrderDeepLink } from "@/lib/mobile/deep-link";
+import { karaokeExpiredNotice } from "@/lib/mobile/karaoke-bridge-copy";
 import { getPaymentProvider } from "@/lib/payment";
 import {
   PaynkolayPaymentProvider,
@@ -436,6 +437,10 @@ function respond(page: PaynkolayPage, status = 200): NextResponse {
  */
 function expiredNotice(post: PaynkolayFormPost): PaynkolayPage {
   const fromApp = post.fields.successUrl.includes("app=1");
+  const karaoke = karaokeExpiredNotice(post.fields.clientRefCode, fromApp);
+  if (karaoke) {
+    return renderPaymentNotice(karaoke.title, karaoke.body, karaoke.link);
+  }
   return fromApp
     ? renderPaymentNotice(
         "Ödeme süresi doldu",

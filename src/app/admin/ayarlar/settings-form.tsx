@@ -106,7 +106,6 @@ export function SettingsForm({
   );
 }
 
-
 /** One tab's panel; `hidden` keeps its fields alive between tab switches. */
 function Pane({ show, children }: { show: boolean; children: ReactNode }) {
   return <div hidden={!show}>{children}</div>;
@@ -372,6 +371,11 @@ function KaraokeTab({ settings }: { settings: AdminSettings }) {
             />
           </Field>
         </div>
+        <Checkbox
+          name="karaokePrepay"
+          defaultChecked={settings.karaokePrepay}
+          label="Online ön ödeme: rezervasyon ödenince kendiliğinden kesinleşir; ödenmemiş rezervasyon onaylanmaz (üyeliksiz rezervasyon da bununla açılır). Kapatırsan web'de ve uygulamada eski akış döner: talep, köşkte ödeme, elle onay."
+        />
         <SaveBar state={state} pending={pending} />
       </Section>
     </form>

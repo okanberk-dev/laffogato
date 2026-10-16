@@ -10117,6 +10117,205 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   max-width: 60ch;
 }
 
+/* Guest contact block and the checkout band under the picker (16 Eki 2026):
+   both sit on the light ground, so the summary's on-dark text styles are
+   re-pointed at the ink tokens here. */
+.karaoke-guest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.karaoke-contact .karaoke-link,
+.karaoke-mine .karaoke-link {
+  color: var(--green);
+}
+.karaoke-rules-short {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
+}
+.karaoke-rules-short p {
+  margin: 0;
+}
+.karaoke-checkout {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: 26px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--ink-line);
+  background: var(--bg-warm);
+  display: grid;
+  gap: 18px;
+}
+/* MSY m.6/1: the pre-payment information at a readable size - 16px. */
+.karaoke-preinfo {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.karaoke-preinfo h2 {
+  margin: 0 0 10px;
+}
+.karaoke-preinfo ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+}
+.karaoke-consents .karaoke-consent {
+  font-size: 15px;
+  color: var(--ink);
+}
+.karaoke-consents .karaoke-consent:first-child {
+  margin-top: 0;
+}
+.karaoke-checkout .karaoke-error {
+  background: #fff;
+  border-color: var(--rose);
+  color: var(--rose);
+}
+.karaoke-checkout .karaoke-fine {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+.karaoke-pay {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* The booking's own page: "Karaoke rezervasyonlarım" and the guest link. */
+.karaoke-link-page {
+  padding: clamp(32px, 6vw, 72px) 0 0;
+  max-width: 720px;
+}
+.karaoke-link-page .karaoke-mine {
+  margin-top: 20px;
+  padding: 24px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--ink-line);
+  background: var(--surface);
+}
+.karaoke-mine {
+  display: grid;
+  gap: 18px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.karaoke-mine p {
+  margin: 0;
+}
+.karaoke-mine-section + .karaoke-mine-section {
+  margin-top: 22px;
+}
+.karaoke-mine-section h3 {
+  margin: 0 0 8px;
+}
+.karaoke-mine-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.karaoke-mine-code {
+  font-family: var(--headline);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.karaoke-mine-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px 18px;
+}
+.karaoke-mine-grid dt {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-mute);
+}
+.karaoke-mine-grid dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+.karaoke-mine-sub {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-mute);
+}
+.karaoke-mine-rules {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+  border: 1px solid var(--ink-line);
+  font-size: 14px;
+}
+.karaoke-mine-pay {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.karaoke-mine-notice {
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-line);
+  font-size: 14px;
+}
+.karaoke-mine-notice--ok {
+  border-color: var(--matcha);
+  color: var(--matcha);
+}
+.karaoke-mine-notice--warn {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.karaoke-mine-notice--error {
+  border-color: var(--rose);
+  color: var(--rose);
+}
+.karaoke-mine-confirm {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-line);
+}
+.karaoke-mine-confirm h3 {
+  margin: 0;
+}
+.karaoke-mine-outcome {
+  font-weight: 600;
+}
+.karaoke-mine-confirm-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+/* Deliberately quiet (operator, 16 Eki 2026: "iptali zorlaştırabilirsin
+   biraz silinik"): small, muted, at the bottom - but still a real link with
+   a visible underline and AA contrast, so it is findable and accessible. */
+.karaoke-mine-quiet {
+  margin-top: 8px;
+  text-align: right;
+}
+.karaoke-mine-cancel {
+  /* Invisible padding: the link stays small to the eye but is a real tap
+     target (44px high) on a phone. */
+  display: inline-block;
+  padding: 13px 0;
+  font-size: 12.5px;
+  color: var(--ink-mute);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ─────────────────────────────────────────────────────────────
    Account dashboard - first run, stamp card, app block
    ───────────────────────────────────────────────────────────── */

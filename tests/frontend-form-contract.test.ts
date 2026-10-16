@@ -181,7 +181,14 @@ const CONTRACTS: FormContract[] = [
       "contactName",
       "contactEmail",
       "contactPhone",
-      "contactConsent",
+      // A booking without an account types its own name (16 Eki 2026).
+      "guestFirstName",
+      "guestLastName",
+      // Three separate boxes before a paid booking: pre-information
+      // confirmed, contract accepted, privacy notice acknowledged.
+      "consentPreInfo",
+      "consentContract",
+      "consentKvkk",
     ],
   },
   {
@@ -263,7 +270,9 @@ describe("consent boxes a redesign must not pre-tick", () => {
     ["src/app/uye/kayit/register-form.tsx", 'name="marketing"'],
     ["src/app/uye/kayit/register-form.tsx", 'name="newsletter"'],
     ["src/components/laffogato/newsletter-form.tsx", 'name="consent"'],
-    ["src/components/laffogato/karaoke-booking.tsx", 'name="contactConsent"'],
+    ["src/components/laffogato/karaoke-booking.tsx", 'name="consentPreInfo"'],
+    ["src/components/laffogato/karaoke-booking.tsx", 'name="consentContract"'],
+    ["src/components/laffogato/karaoke-booking.tsx", 'name="consentKvkk"'],
   ];
 
   for (const [file, attr] of CONSENT_INPUTS) {
