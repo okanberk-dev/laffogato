@@ -504,7 +504,7 @@ describe("the bank's 3D page", () => {
     // The bank's markup goes out untouched; only our wait note is added
     // before </body>.
     expect(
-      page.html.replace(/<div id="laf-bank-wait"[\s\S]*?<\/div><\/div>/, ""),
+      page.html.replace(/<div id="laf-bank-wait"[\s\S]*?<\/script><\/div>/, ""),
     ).toBe(SANDBOX_3D_HTML);
     const script = /<script[^>]*>([\s\S]*?)<\/script>/.exec(
       SANDBOX_3D_HTML,
@@ -799,6 +799,88 @@ describe("the bank's 3D page, as banks actually write it", () => {
     expect(page.html).toContain(
       'form="x&quot;&gt;&lt;img src=x onerror=alert(1)&gt;"',
     );
+  });
+
+  // ── Review round on the fix (PR #113) ──
+
+  it("keeps every hash right after a Turkish İ (no whole-page lowercasing)", () => {
+    // "İ".toLowerCase() is two UTF-16 units; lowercasing the page shifted
+    // every later index, so the script after it went unhashed.
+    const page = bankChallengePage(
+      "<html><head><title>İŞLEM İŞLENİYOR</title></head>" +
+        '<body onload=document.forms["form"].submit()>' +
+        '<form id="form" action="https://acs.bank.example/a"></form>' +
+        "<script>var İ=1;document.forms[0].submit();</script></body></html>",
+    );
+    expect(page.csp).toContain(sha256('document.forms["form"].submit()'));
+    expect(page.csp).toContain(sha256("var İ=1;document.forms[0].submit();"));
+  });
+
+  it("places the note at the real </body>, never inside a script or attribute", () => {
+    const script = "var s='</body>';document.getElementById('f').submit();";
+    const html =
+      `<html><body><form id="f" action="https://acs.bank.example/a">` +
+      `<input type="hidden" name="x" value="</body><img src=x onerror=alert(1)>">` +
+      `</form><script>${script}</script></body></html>`;
+    const page = bankChallengePage(html);
+    // The bank's script and the inert value are served byte for byte.
+    expect(page.html).toContain(`<script>${script}</script>`);
+    expect(page.html).toContain('value="</body><img src=x onerror=alert(1)>"');
+    expect(page.html.indexOf("laf-bank-wait")).toBeGreaterThan(
+      page.html.indexOf(`${script}</script>`),
+    );
+    // Nothing from inside the value becomes an allowed handler.
+    expect(page.csp).not.toContain(sha256("alert(1)"));
+    expect(page.csp).toContain(sha256(script));
+  });
+
+  it("adds no note when the bank page does not end cleanly", () => {
+    const html =
+      '<form id="f" action="https://acs.bank.example/a"></form><script>document.forms[0].submit();';
+    const page = bankChallengePage(html);
+    expect(page.html).toBe(html);
+    expect(page.csp).toContain(sha256("document.forms[0].submit();"));
+  });
+
+  it("allows the note's own script by its hash, and nothing broader", () => {
+    const page = bankChallengePage(EST_3D_HTML);
+    const ours =
+      /<div id="laf-bank-wait"[\s\S]*?<script>([\s\S]*?)<\/script>/.exec(
+        page.html,
+      )![1];
+    expect(page.csp).toContain(sha256(ours));
+    expect(ours).toContain("beforeunload");
+    expect(page.csp).not.toMatch(/script-src[^;]*unsafe-inline/);
+  });
+
+  it("does not promise a button where none is offered", () => {
+    const qnb = bankChallengePage(SANDBOX_3D_HTML);
+    expect(qnb.html).not.toContain("düğmeyle devam");
+    expect(qnb.html).toContain("kartından para çekilmedi");
+  });
+
+  it("survives an out-of-range character reference instead of throwing", () => {
+    expect(() =>
+      bankChallengePage(
+        '<body onload="a(&#x110000;)" title="&#0;&#xD800;"></body>',
+      ),
+    ).not.toThrow();
+    expect(
+      bankChallengePage('<body onload="a(&#x110000;)"></body>').csp,
+    ).toContain(sha256("a(\uFFFD)"));
+  });
+
+  it("follows the browser on comments, noscript and protocol-relative scripts", () => {
+    const page = bankChallengePage(
+      "<!--><body onload=early()>" +
+        "<!-- x --!><p onclick=afterBang()>" +
+        "<noscript><p onload=inNoscript()></noscript>" +
+        '<script src="//cdn.bank.example/x.js"></script></body>',
+    );
+    expect(page.csp).toContain(sha256("early()"));
+    expect(page.csp).toContain(sha256("afterBang()"));
+    expect(page.csp).not.toContain(sha256("inNoscript()"));
+    expect(page.csp).toContain("https://cdn.bank.example");
   });
 
   it("loads no image or font from elsewhere", () => {

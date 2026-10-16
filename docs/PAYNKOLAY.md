@@ -860,13 +860,16 @@ bankanın çekim için gerçek numarayı görmesi gerekir.
 | Önbellek                                                 | Her yanıt `Cache-Control: no-store`                                                                                                                                                                                                                                                                                                                      |
 
 Bankanın 3D formunda öznitelikler tarayıcının ayrıştırma kuralıyla okunur.
-EST/Asseco şablonu (sandbox'ta Ziraat, Akbank, Denizbank, ING)
+Sandbox'ta Ziraat, Akbank, Denizbank ve ING'nin formu (EST tipi şablon)
 `<body onload=document.forms["form"].submit()>` yazar: tırnaksız değerin
 içindeki `"` değerin parçasıdır. Değeri ilk `"`'da kesen eski okuma özeti
 bozuyordu; tarayıcı `onload`'u engelliyor, müşteri kartı yazdıktan sonra
-beyaz sayfada kalıyordu (2026-10-16). Sayfanın sonuna bir bekleme notu ve,
-formun adresi mutlak https ise, 6 sn sonra beliren betiksiz bir "Bankanın
-sayfasına git" düğmesi eklenir.
+beyaz sayfada kalıyordu (2026-10-16). Metin küçük harfe çevrilmeden okunur
+(`"İ".toLowerCase()` dizinleri kaydırır). Gövdeye, ayrıştırıcının gösterdiği
+gerçek `</body>` sınırında, bir bekleme notu eklenir; formun adresi mutlak
+https ise 8 sn sonra bir "Bankanın sayfasına git" düğmesi belirir. Sayfa
+ayrılmaya başlayınca not düğmeyi gizler, böylece 3D formu ikinci kez
+gönderilmez.
 
 ### 15.4 PCI DSS - operatörün bilmesi gereken
 

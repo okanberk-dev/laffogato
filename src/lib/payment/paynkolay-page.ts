@@ -301,7 +301,7 @@ ${link}
  *
  * - QNB: `frm.action = 'https://…/Default.aspx'; frm.submit()` betiği.
  * - Garanti: `document.PostForm.submit()` betiği.
- * - EST / Asseco altyapısı (Ziraat, Akbank, Denizbank, ING, …):
+ * - Ziraat, Akbank, Denizbank, ING (EST tipi şablon, ACS hostları farklı):
  *   `<body onload=document.forms["form"].submit()>` - TIRNAKSIZ ve içinde
  *   çift tırnak olan bir değer.
  *
@@ -316,12 +316,13 @@ ${link}
  * `form-action https:` çünkü ACS hostu bankaya göre değişir ve önceden
  * bilinemez - düz `http:` hedefe kart akışı yine engellenir.
  *
- * Sayfanın sonuna bizim kısa bir notumuz eklenir: banka yanıt verene kadar
- * müşteri boş bir sayfa değil, ne olduğunu görür. Formun kendi adresi
- * mutlak bir https adresiyse, birkaç saniye sonra betiksiz çalışan bir
- * "devam" düğmesi de belirir (yalnız CSS ile; düğme `form=` ile formu
- * gönderir). Adres göreliyse (QNB: asıl adresi betik yazıyor) düğme
- * konmaz - göreli adres bizim sitemize çözülür.
+ * Sayfanın gövdesine bizim kısa bir notumuz eklenir: banka yanıt verene
+ * kadar müşteri boş bir sayfa değil, ne olduğunu görür. Formun kendi adresi
+ * mutlak bir https adresiyse 8 sn sonra bir "devam" düğmesi de belirir
+ * (görünmesi yalnız CSS ile, gönderimi `form=` ile; betik gerekmez). Adres
+ * göreliyse (QNB: asıl adresi betik yazıyor) düğme konmaz - göreli adres
+ * bizim sitemize çözülür. Sayfa ayrılmaya başlayınca notun küçük betiği
+ * düğmeyi gizler; banka yavaşken 3D formu ikinci kez gönderilmez.
  */
 export function bankChallengePage(raw: string): PaynkolayPage {
   // Tarayıcı HTML'i ayrıştırırken CRLF ve tek CR'yi LF yapar ve CSP özetini
@@ -329,25 +330,35 @@ export function bankChallengePage(raw: string): PaynkolayPage {
   // C# örneği de satır sonlarını siler). Sunulan bayt ile özetlenen bayt aynı
   // olsun diye satır sonları önce burada normalleştirilir.
   const bank = raw.replace(/\r\n?/g, "\n");
-  const html = withBankNotice(bank, readBankMarkup(bank).forms);
-  const markup = readBankMarkup(html);
+  const markup = readBankMarkup(bank);
 
+  // İzin listesi YALNIZCA bankanın kendi işaretlemesinden çıkar; bizim
+  // eklediğimiz notun tek betiği ayrıca, sabit özetiyle eklenir. Not, bankanın
+  // metnine ancak ayrıştırıcının bir etiket sınırı gösterdiği yerde girer
+  // (`withBankNotice`): bir betik dizesinin ya da öznitelik değerinin ortasına
+  // yapıştırılıp etkisiz banka verisini canlı işaretlemeye çeviremez.
   const scriptSources = new Set<string>();
   for (const script of markup.scripts) {
     if (script.src === null) {
       scriptSources.add(sha256Source(script.body));
       continue;
     }
-    try {
-      const url = new URL(script.src);
-      if (url.protocol === "https:") scriptSources.add(url.origin);
-    } catch {
-      // Göreli adres bizim origin'imize çözülür; izin verilmez.
-    }
+    const origin = httpsOrigin(script.src);
+    // Göreli adres bizim origin'imize çözülür; izin verilmez.
+    if (origin) scriptSources.add(origin);
   }
   for (const handler of markup.handlers) {
     scriptSources.add(sha256Source(handler));
   }
+
+  const notice = bankNotice(markup.forms);
+  const html =
+    markup.bodyEnd >= 0
+      ? bank.slice(0, markup.bodyEnd) + notice + bank.slice(markup.bodyEnd)
+      : markup.endsClean
+        ? bank + notice
+        : bank;
+  if (html !== bank) scriptSources.add(sha256Source(BANK_WAIT_SCRIPT));
 
   const scriptSrc = scriptSources.size
     ? [
@@ -375,25 +386,47 @@ export function bankChallengePage(raw: string): PaynkolayPage {
   return { html, csp };
 }
 
+/** Mutlak (ya da `//` ile başlayan) https betik adresinin origin'i. */
+function httpsOrigin(src: string): string | null {
+  try {
+    const url = new URL(src.startsWith("//") ? `https:${src}` : src);
+    return url.protocol === "https:" ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Bekleme notunun tek betiği. Sayfa ayrılmaya başlayınca (`beforeunload`,
+ * `pagehide`: bankanın kendi gönderimi yola çıktı) gecikmeli düğmeyi gizler
+ * ve düğmeye bir kez basılınca kapatır. Böylece banka yanıtı yavaşken
+ * müşteri 3D formunu (içinde kart bilgisiyle) ikinci kez göndermez.
+ */
+const BANK_WAIT_SCRIPT = `(function(){var w=document.getElementById("laf-bank-wait");if(!w)return;
+function leaving(){w.setAttribute("data-leaving","1");}
+addEventListener("beforeunload",leaving);addEventListener("pagehide",leaving);
+addEventListener("pageshow",function(e){if(e.persisted)w.removeAttribute("data-leaving");});
+var b=w.querySelector("button");
+if(b){b.addEventListener("click",function(){leaving();setTimeout(function(){b.disabled=true;},0);});}})();`;
+
 /** Banka sayfasına eklenen bekleme notu ve gecikmeli "devam" düğmesi. */
-function withBankNotice(html: string, forms: BankForm[]): string {
+function bankNotice(forms: BankForm[]): string {
   const target = forms.find(
     (f) => f.id && /^https:\/\//i.test(f.action.trim()),
   );
-  const button = target
-    ? `<button type="submit" form="${escapeHtml(target.id)}" style="margin-top:1.25rem;padding:.8rem 1.5rem;border:0;border-radius:999px;background:#1d6d56;color:#fbf8f4;font:inherit;font-weight:600;cursor:pointer">Bankanın sayfasına git</button>`
-    : "";
-  const notice =
+  const later = target
+    ? `<p style="margin:1rem 0 0;color:#564d46;font-size:.9rem">Sayfa açılmadıysa aşağıdaki düğmeyle devam edebilirsin.</p>` +
+      `<button type="submit" form="${escapeHtml(target.id)}" style="margin-top:1.25rem;padding:.8rem 1.5rem;border:0;border-radius:999px;background:#1d6d56;color:#fbf8f4;font:inherit;font-weight:600;cursor:pointer">Bankanın sayfasına git</button>`
+    : `<p style="margin:1rem 0 0;color:#564d46;font-size:.9rem">Sayfa açılmazsa geri dönüp yeniden deneyebilirsin; kartından para çekilmedi.</p>`;
+  return (
     `<div id="laf-bank-wait" style="font:16px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#211c18;text-align:center;padding:20vh 16px 0">` +
-    `<style>@keyframes laf-bank-reveal{to{visibility:visible}}#laf-bank-wait .later{visibility:hidden;animation:laf-bank-reveal 0s 6s forwards}</style>` +
+    `<style>@keyframes laf-bank-reveal{to{visibility:visible}}#laf-bank-wait .later{visibility:hidden;animation:laf-bank-reveal 0s 8s forwards}#laf-bank-wait[data-leaving] .later{display:none}</style>` +
     `<p style="margin:0;font-weight:700;color:#9d2543">L'Affogato</p>` +
     `<p style="margin:.5rem 0 0">Bankanın 3D Secure doğrulama sayfasına yönlendiriliyorsun…</p>` +
-    `<div class="later"><p style="margin:1rem 0 0;color:#564d46;font-size:.9rem">Sayfa açılmadıysa aşağıdaki düğmeyle devam edebilirsin.</p>${button}</div>` +
-    `</div>`;
-  const close = html.search(/<\/body\s*>/i);
-  return close === -1
-    ? html + notice
-    : html.slice(0, close) + notice + html.slice(close);
+    `<div class="later">${later}</div>` +
+    `<script>${BANK_WAIT_SCRIPT}</script>` +
+    `</div>`
+  );
 }
 
 interface BankForm {
@@ -407,62 +440,125 @@ interface BankMarkup {
   /** Olay özniteliklerinin (`onload=…`) tarayıcının okuduğu değeri. */
   handlers: string[];
   forms: BankForm[];
+  /** İlk gerçek `</body>` bitiş etiketinin başladığı yer; yoksa -1. */
+  bodyEnd: number;
+  /** Metin bir yorumun, etiketin ya da ham metin öğesinin içinde bitmiyor. */
+  endsClean: boolean;
 }
 
-/** İçeriği HTML olarak ayrıştırılmayan öğeler: kapanış etiketine dek atlanır. */
-const RAW_TEXT = new Set(["script", "style", "textarea", "title", "xmp"]);
+/**
+ * İçeriği HTML olarak ayrıştırılmayan öğeler: kapanış etiketine dek atlanır.
+ * `noscript` betik açıkken ham metindir (tarayıcı betikli çalışır).
+ */
+const RAW_TEXT = new Set([
+  "script",
+  "style",
+  "textarea",
+  "title",
+  "xmp",
+  "iframe",
+  "noembed",
+  "noframes",
+  "noscript",
+]);
+
+const isSpace = (c: string | undefined) =>
+  c === " " || c === "\n" || c === "\t" || c === "\f";
 
 /**
  * Banka HTML'indeki betikleri, olay özniteliklerini ve formları HTML
- * ayrıştırma kuralıyla okur (WHATWG tokenizer'ın başlangıç etiketi ve
- * öznitelik durumları; yorumlar ve ham metin öğeleri atlanır).
+ * ayrıştırma kuralıyla okur (WHATWG tokenizer'ın veri, etiket ve öznitelik
+ * durumları; yorumlar ve ham metin öğeleri atlanır).
  *
  * Önemli olan değerin sınırı: çift tırnaklı değer `"`'a, tek tırnaklı `'`'a,
  * tırnaksız değer boşluğa ya da `>`'a dek sürer - tırnaksız değerdeki `"`,
  * `'`, `=`, `<` ve `` ` `` tarayıcı için ayrıştırma hatasıdır ama değere
  * eklenir. Karakter referansları çözülür (`&quot;` → `"`): tarayıcı özeti
  * çözülmüş değerden hesaplar.
+ *
+ * Metnin tamamı küçük harfe ÇEVRİLMEZ: `"İ".toLowerCase()` iki karakterdir
+ * ve bütün dizinleri kaydırırdı. Yalnız ad karşılaştırmaları küçük harfle
+ * yapılır.
+ *
+ * Bilinçli sadeleştirme: betik içindeki `<!-- <script>` kaçış durumları
+ * izlenmez. Böyle bir sayfada fark yalnızca bir özetin eksik ya da fazla
+ * olmasıdır; eksikse tarayıcı engeller (kapalı kalır), fazlası banka
+ * metninin kendisidir.
  */
 function readBankMarkup(html: string): BankMarkup {
-  const out: BankMarkup = { scripts: [], handlers: [], forms: [] };
-  const lower = html.toLowerCase();
+  const out: BankMarkup = {
+    scripts: [],
+    handlers: [],
+    forms: [],
+    bodyEnd: -1,
+    endsClean: true,
+  };
   const n = html.length;
   let i = 0;
-  const isSpace = (c: string) =>
-    c === " " || c === "\n" || c === "\t" || c === "\f";
 
   while (i < n) {
     const lt = html.indexOf("<", i);
     if (lt === -1) break;
     i = lt;
-    if (html.startsWith("<!--", i)) {
-      const end = html.indexOf("-->", i + 4);
-      i = end === -1 ? n : end + 3;
-      continue;
-    }
     const next = html[i + 1] ?? "";
-    if (next === "!" || next === "?" || next === "/") {
-      const end = html.indexOf(">", i + 1);
-      i = end === -1 ? n : end + 1;
+
+    if (html.startsWith("<!--", i)) {
+      // `<!-->` ve `<!--->` yorumu hemen kapatır; sonra `-->` ya da `--!>`.
+      if (html[i + 4] === ">") {
+        i += 5;
+        continue;
+      }
+      if (html.startsWith("->", i + 4)) {
+        i += 6;
+        continue;
+      }
+      const a = html.indexOf("-->", i + 4);
+      const b = html.indexOf("--!>", i + 4);
+      if (a === -1 && b === -1) {
+        out.endsClean = false;
+        break;
+      }
+      i = a !== -1 && (b === -1 || a < b) ? a + 3 : b + 4;
       continue;
     }
-    if (!/[a-z]/i.test(next)) {
+    if (
+      next === "!" ||
+      next === "?" ||
+      (next === "/" && !/[a-z]/i.test(html[i + 2] ?? ""))
+    ) {
+      // Doctype, işleme talimatı, sahte yorum ya da `</>`: ilk `>`'a dek.
+      const end = html.indexOf(">", i + 1);
+      if (end === -1) {
+        out.endsClean = false;
+        break;
+      }
+      i = end + 1;
+      continue;
+    }
+    const closing = next === "/";
+    const nameAt = i + (closing ? 2 : 1);
+    if (!/[a-z]/i.test(html[nameAt] ?? "")) {
       i += 1;
       continue;
     }
 
     // Etiket adı.
-    let j = i + 1;
+    let j = nameAt;
     while (j < n && !isSpace(html[j]) && html[j] !== "/" && html[j] !== ">") {
       j += 1;
     }
-    const tag = lower.slice(i + 1, j);
+    const tag = html.slice(nameAt, j).toLowerCase();
     const attrs = new Map<string, string>();
 
-    // Öznitelikler.
+    // Öznitelikler (bitiş etiketinde de aynı kuralla okunur, sonra atılır).
+    let closed = false;
     while (j < n) {
       while (j < n && (isSpace(html[j]) || html[j] === "/")) j += 1;
-      if (j >= n || html[j] === ">") break;
+      if (j >= n) break;
+      if (html[j] === ">") {
+        closed = true;
+        break;
+      }
       const nameStart = j;
       // Adın ilk karakteri `=` olabilir (ayrıştırma hatası, adın parçası).
       j += 1;
@@ -475,7 +571,7 @@ function readBankMarkup(html: string): BankMarkup {
       ) {
         j += 1;
       }
-      const name = lower.slice(nameStart, j);
+      const name = html.slice(nameStart, j).toLowerCase();
       let value = "";
       let k = j;
       while (k < n && isSpace(html[k])) k += 1;
@@ -485,9 +581,12 @@ function readBankMarkup(html: string): BankMarkup {
         const quote = html[k];
         if (quote === '"' || quote === "'") {
           const close = html.indexOf(quote, k + 1);
-          const stop = close === -1 ? n : close;
-          value = html.slice(k + 1, stop);
-          j = close === -1 ? n : close + 1;
+          if (close === -1) {
+            j = n;
+            break;
+          }
+          value = html.slice(k + 1, close);
+          j = close + 1;
         } else {
           let end = k;
           while (end < n && !isSpace(html[end]) && html[end] !== ">") {
@@ -497,12 +596,20 @@ function readBankMarkup(html: string): BankMarkup {
           j = end;
         }
       }
-      value = decodeEntities(value);
       // Tarayıcı aynı adı taşıyan ikinci özniteliği yok sayar.
-      if (!attrs.has(name)) attrs.set(name, value);
+      if (!attrs.has(name)) attrs.set(name, decodeEntities(value));
     }
-    i = j < n ? j + 1 : n;
+    if (!closed) {
+      out.endsClean = false;
+      break;
+    }
+    const tagStart = i;
+    i = j + 1;
 
+    if (closing) {
+      if (tag === "body" && out.bodyEnd === -1) out.bodyEnd = tagStart;
+      continue;
+    }
     for (const [name, value] of attrs) {
       if (/^on[a-z]+$/.test(name)) out.handlers.push(value);
     }
@@ -512,57 +619,69 @@ function readBankMarkup(html: string): BankMarkup {
         action: attrs.get("action") ?? "",
       });
     }
+    if (tag === "plaintext") {
+      // Belgenin sonuna dek düz metin.
+      out.endsClean = false;
+      break;
+    }
     if (RAW_TEXT.has(tag)) {
-      const close = findRawTextEnd(lower, tag, i);
+      const end = rawTextEnd(html, tag, i);
       if (tag === "script") {
         out.scripts.push({
           src: attrs.has("src") ? (attrs.get("src") ?? "").trim() : null,
-          body: html.slice(i, close.start),
+          body: html.slice(i, end?.start ?? n),
         });
       }
-      i = close.after;
+      if (!end) {
+        out.endsClean = false;
+        break;
+      }
+      i = end.after;
     }
   }
   return out;
 }
 
-/** `</tag` + boşluk, `/` ya da `>` - ham metin öğesinin bittiği yer. */
-function findRawTextEnd(
-  lower: string,
+/**
+ * `</tag` + boşluk, `/` ya da `>` (büyük/küçük harf duyarsız): ham metin
+ * öğesinin bittiği yer. Kapanmıyorsa null.
+ */
+function rawTextEnd(
+  html: string,
   tag: string,
   from: number,
-): { start: number; after: number } {
-  let at = from;
-  for (;;) {
-    const start = lower.indexOf(`</${tag}`, at);
-    if (start === -1) return { start: lower.length, after: lower.length };
-    const c = lower[start + 2 + tag.length] ?? ">";
-    if (
-      c === ">" ||
-      c === "/" ||
-      c === " " ||
-      c === "\n" ||
-      c === "\t" ||
-      c === "\f"
-    ) {
-      const gt = lower.indexOf(">", start);
-      return { start, after: gt === -1 ? lower.length : gt + 1 };
-    }
-    at = start + 2;
-  }
+): { start: number; after: number } | null {
+  const re = new RegExp(`</${tag}(?=[\\s/>])`, "gi");
+  re.lastIndex = from;
+  const m = re.exec(html);
+  if (!m) return null;
+  const gt = html.indexOf(">", m.index);
+  if (gt === -1) return null;
+  return { start: m.index, after: gt + 1 };
 }
 
-/** HTML karakter referanslarını çözer - olay özniteliği özeti için. */
+/**
+ * HTML karakter referanslarını çözer - olay özniteliği özeti için. Geçersiz
+ * sayısal referans (0, vekil çift, U+10FFFF üstü) tarayıcıdaki gibi U+FFFD
+ * olur; `String.fromCodePoint` o değerlerde fırlatır ve 3D adımını 500'e
+ * çevirirdi.
+ */
 function decodeEntities(value: string): string {
   return value.replace(
     /&(#x[0-9a-f]+|#\d+|quot|apos|amp|lt|gt);/gi,
     (whole, ref: string) => {
       const name = ref.toLowerCase();
-      if (name.startsWith("#x")) {
-        return String.fromCodePoint(parseInt(name.slice(2), 16));
+      if (name.startsWith("#")) {
+        const code = name.startsWith("#x")
+          ? parseInt(name.slice(2), 16)
+          : Number(name.slice(1));
+        const valid =
+          Number.isFinite(code) &&
+          code > 0 &&
+          code <= 0x10ffff &&
+          (code < 0xd800 || code > 0xdfff);
+        return valid ? String.fromCodePoint(code) : "�";
       }
-      if (name.startsWith("#"))
-        return String.fromCodePoint(Number(name.slice(1)));
       return (
         { quot: '"', apos: "'", amp: "&", lt: "<", gt: ">" }[name] ?? whole
       );
