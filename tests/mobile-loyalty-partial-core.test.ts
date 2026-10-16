@@ -9,6 +9,7 @@ import {
   plannedStampReversals,
   redeemIdOfCoupon,
   stampCoverage,
+  staleFreeDrinkClaims,
   stampedOrderIds,
   stampRefundedGoodsMinor,
   stampReversalId,
@@ -275,6 +276,7 @@ describe("nextFreeDrinkWithdrawal", () => {
       couponId: freeDrinkCouponId(newer.id),
       redeemId: newer.id,
       cost: 4,
+      claimed: false,
     });
     expect(redeemIdOfCoupon(plan!.couponId)).toBe(newer.id);
   });
@@ -307,10 +309,11 @@ describe("nextFreeDrinkWithdrawal", () => {
       couponId: freeDrinkCouponId(a.id),
       redeemId: a.id,
       cost: 6,
+      claimed: false,
     });
   });
 
-  it("leaves a card another settlement has claimed to that settlement", () => {
+  it("finishes a withdrawal another settlement claimed and left half done", () => {
     const a = row("redeem", -6);
     const b = row("redeem", -6);
     const claimed = [
@@ -319,12 +322,76 @@ describe("nextFreeDrinkWithdrawal", () => {
       b,
       row("unredeem", 6, "", { id: unredeemId(b.id) }),
     ];
-    // Still 5 short after the claim: the next card, not the claimed one.
+    // Still 5 short after the claim, but b's coupon is unused on a card
+    // already unredeemed: that one goes first, with no new row to write.
     expect(stampCoverage(claimed)).toBe(-5);
     expect(
-      nextFreeDrinkWithdrawal(claimed, [couponFor(a), couponFor(b)], NOW)
-        ?.redeemId,
-    ).toBe(a.id);
+      nextFreeDrinkWithdrawal(claimed, [couponFor(a), couponFor(b)], NOW),
+    ).toEqual({
+      couponId: freeDrinkCouponId(b.id),
+      redeemId: b.id,
+      cost: 6,
+      claimed: true,
+    });
+    // Once it is taken the next card is a fresh claim.
+    expect(
+      nextFreeDrinkWithdrawal(
+        claimed,
+        [couponFor(a), couponFor(b, { isActive: false })],
+        NOW,
+      ),
+    ).toMatchObject({ redeemId: a.id, claimed: false });
+  });
+
+  it("finishes a half-done withdrawal although the stamps cover every card", () => {
+    const a = row("redeem", -6);
+    // 12 stamps, one card of 6, and its coupon is still unused: covered 12.
+    const rows = [
+      row("earn", 12),
+      a,
+      row("unredeem", 6, "", { id: unredeemId(a.id) }),
+    ];
+    expect(stampCoverage(rows)).toBeGreaterThanOrEqual(0);
+    expect(nextFreeDrinkWithdrawal(rows, [couponFor(a)], NOW)).toEqual({
+      couponId: freeDrinkCouponId(a.id),
+      redeemId: a.id,
+      cost: 6,
+      claimed: true,
+    });
+    // Nothing to finish once the coupon is inactive, used or expired.
+    for (const extra of [
+      { isActive: false },
+      { redeemedAt: "2026-10-16T11:00:00.000Z" },
+      { expiresAt: "2026-10-16T11:59:00.000Z" },
+    ]) {
+      expect(
+        nextFreeDrinkWithdrawal(rows, [couponFor(a, extra)], NOW),
+      ).toBeNull();
+    }
+  });
+
+  it("takes an orphan: a coupon whose redeem row is gone, whatever the coverage", () => {
+    const a = row("redeem", -6);
+    const rows = [row("earn", 12), a];
+    const gone = freeDrinkCouponId("stamp-999999");
+    expect(
+      nextFreeDrinkWithdrawal(
+        rows,
+        [couponFor(a), coupon({ id: gone, createdAt: a.createdAt })],
+        NOW,
+      ),
+    ).toEqual({ couponId: gone, redeemId: "", cost: 0, claimed: false });
+    // An unlinked coupon with no card before it is no orphan.
+    expect(
+      nextFreeDrinkWithdrawal(
+        rows,
+        [
+          couponFor(a),
+          coupon({ id: "cpn-0007", createdAt: "2026-01-01T00:00:00.000Z" }),
+        ],
+        NOW,
+      ),
+    ).toBeNull();
   });
 
   it("pairs a coupon granted before ids were linked with the newest card before it", () => {
@@ -349,7 +416,80 @@ describe("nextFreeDrinkWithdrawal", () => {
       couponId: "cpn-0101",
       redeemId: r1.id,
       cost: 6,
+      claimed: false,
     });
+  });
+});
+
+describe("legacy pairing does not depend on the claims", () => {
+  // Two cards and their two plain-id coupons, granted before ids were linked.
+  const r1 = row("redeem", -6, "", { createdAt: "2026-09-01T10:00:00.000Z" });
+  const r2 = row("redeem", -6, "", { createdAt: "2026-09-10T10:00:00.000Z" });
+  const l1 = coupon({ id: "cpn-0101", createdAt: "2026-09-01T10:00:01.000Z" });
+  const l2 = coupon({ id: "cpn-0102", createdAt: "2026-09-10T10:00:01.000Z" });
+  const earn = row("earn", 0, "", { createdAt: "2026-08-01T10:00:00.000Z" });
+
+  it("keeps each coupon on its own card once the newer card is claimed", () => {
+    // Settlement A has claimed r2 (l2's card). Settlement B reads now: l2 must
+    // not slide onto r1, or B would claim r1 for l2 and strand l1.
+    const claimedNewest = [
+      earn,
+      r1,
+      r2,
+      row("unredeem", 6, "", { id: unredeemId(r2.id) }),
+    ];
+    expect(nextFreeDrinkWithdrawal(claimedNewest, [l1, l2], NOW)).toEqual({
+      couponId: "cpn-0102",
+      redeemId: r2.id,
+      cost: 6,
+      claimed: true,
+    });
+    // A took l2: the next card is r1, with l1, not a second claim on r2.
+    expect(
+      nextFreeDrinkWithdrawal(
+        claimedNewest,
+        [l1, { ...l2, isActive: false }],
+        NOW,
+      ),
+    ).toEqual({
+      couponId: "cpn-0101",
+      redeemId: r1.id,
+      cost: 6,
+      claimed: false,
+    });
+  });
+
+  it("pairs over used and withdrawn coupons too", () => {
+    // l2 is spent; l1 is still on r1, never on the newer r2.
+    const used = { ...l2, redeemedAt: "2026-09-11T10:00:00.000Z" };
+    expect(nextFreeDrinkWithdrawal([earn, r1, r2], [l1, used], NOW)).toEqual({
+      couponId: "cpn-0101",
+      redeemId: r1.id,
+      cost: 6,
+      claimed: false,
+    });
+  });
+});
+
+describe("staleFreeDrinkClaims", () => {
+  it("names a claim whose coupon was spent or is held, and no other", () => {
+    const a = row("redeem", -6);
+    const b = row("redeem", -6);
+    const c = row("redeem", -6);
+    const rows = [
+      row("earn", 3),
+      a,
+      b,
+      c,
+      row("unredeem", 6, "", { id: unredeemId(a.id) }),
+      row("unredeem", 6, "", { id: unredeemId(b.id) }),
+    ];
+    const spent = couponFor(a, { redeemedAt: "2026-10-16T11:00:00.000Z" });
+    const withdrawn = couponFor(b, { isActive: false });
+    const standing = couponFor(c, { redeemedAt: "2026-10-16T11:00:00.000Z" });
+    expect(staleFreeDrinkClaims(rows, [spent, withdrawn, standing])).toEqual([
+      { redeemId: a.id, couponId: spent.id },
+    ]);
   });
 });
 

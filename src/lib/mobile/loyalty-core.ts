@@ -342,10 +342,20 @@ export type SettleCoupon = Pick<
 /** One free drink a settlement takes back, and the card it withdraws. */
 export interface FreeDrinkWithdrawal {
   couponId: string;
-  /** The coupon's own `redeem` row; its `unredeem` row is `unredeemId(redeemId)`. */
+  /**
+   * The coupon's own `redeem` row; its `unredeem` row is
+   * `unredeemId(redeemId)`. Empty for an orphan: a coupon whose `redeem` row
+   * is gone, so there is no card to withdraw, only the coupon.
+   */
   redeemId: string;
-  /** What that card cost; the `unredeem` row carries it. */
+  /** What that card cost; the `unredeem` row carries it. 0 for an orphan. */
   cost: number;
+  /**
+   * The card's `unredeem` row is already on the ledger: a settlement wrote it
+   * and stopped before taking the coupon. The coupon is still to be taken,
+   * with no new row to write.
+   */
+  claimed: boolean;
 }
 
 function newestFirst(
@@ -357,64 +367,146 @@ function newestFirst(
     : b.createdAt.localeCompare(a.createdAt);
 }
 
+/** The ledger fields settlement reads (`orderId` feeds `stampCoverage`). */
+type CardRow = Pick<
+  LoyaltyStamp,
+  "id" | "kind" | "delta" | "orderId" | "createdAt"
+>;
+
+/** A loyalty coupon and the `redeem` row that bought it (null: none found). */
+interface CouponCard {
+  coupon: SettleCoupon;
+  card: CardRow | null;
+}
+
 /**
- * The next free drink to take back, or `null` when nothing is owed
- * (`stampCoverage ≥ 0`) or nothing unused is left to take.
+ * Pairs every loyalty coupon, newest first, with its card.
  *
- * The coupon is the newest UNUSED, unexpired, active `loyalty` coupon whose
- * card is still standing. Its card is the `redeem` row its id names
- * (`redeemIdOfCoupon`). A coupon granted before ids were linked is paired
- * with the newest standing `redeem` row created no later than it that no
- * linked coupon claims. A coupon whose card a concurrent settlement has
- * already withdrawn (its `unredeem` row is there, the coupon not yet
- * deactivated) is left to that settlement: the coverage already counts it.
+ * A coupon whose id is `freeDrinkCouponId(redeem row)` names its card. A
+ * coupon granted before ids were linked is paired with the newest `redeem`
+ * row created no later than it that no linked coupon claims.
  *
- * Deterministic for a given ledger and coupon list, so two settlements
- * running at once pick the same card and the primary key on `unredeemId`
- * lets only one of them take the coupon.
+ * The pairing reads ALL coupons (used, withdrawn, expired) and ALL `redeem`
+ * rows, and never looks at `unredeem` rows. It is therefore the same for
+ * every settlement running at once, whatever each has already claimed or
+ * withdrawn: a coupon cannot slide onto a card that a concurrent settlement
+ * has just withdrawn, which is how two of them used to take the same coupon
+ * for two different cards and leave another coupon stranded.
+ */
+function pairCouponsWithCards(
+  rows: readonly CardRow[],
+  coupons: readonly SettleCoupon[],
+): CouponCard[] {
+  const redeems = rows.filter((r) => r.kind === "redeem");
+  const byId = new Map(redeems.map((r) => [r.id, r]));
+  const loyalty = coupons.filter((c) => c.source === "loyalty");
+  const linked = new Set(
+    loyalty.map((c) => redeemIdOfCoupon(c.id)).filter(Boolean),
+  );
+  const legacyCards = redeems
+    .filter((r) => !linked.has(r.id))
+    .sort(newestFirst);
+  const taken = new Set<string>();
+  return [...loyalty].sort(newestFirst).map((coupon) => {
+    const own = redeemIdOfCoupon(coupon.id);
+    if (own) return { coupon, card: byId.get(own) ?? null };
+    const card =
+      legacyCards.find(
+        (r) => !taken.has(r.id) && r.createdAt <= coupon.createdAt,
+      ) ?? null;
+    if (card) taken.add(card.id);
+    return { coupon, card };
+  });
+}
+
+function withdrawnCards(rows: readonly Pick<CardRow, "id" | "kind">[]) {
+  return new Set(rows.filter((r) => r.kind === "unredeem").map((r) => r.id));
+}
+
+/**
+ * The next free drink to take back, or `null` when there is nothing to do.
+ * Candidates are the UNUSED, active, unexpired `loyalty` coupons
+ * (`pairCouponsWithCards` names each one's card), newest first, and the rule
+ * picks, in this order:
+ *
+ * 1. an orphan: a coupon whose own `redeem` row is gone (a coupon insert
+ *    that committed after its request had given up: `redeemStamps` rolled
+ *    the card back, the coupon stayed). No stamps paid for it; it goes,
+ *    whatever the coverage.
+ * 2. a half-done withdrawal: the card's `unredeem` row is on the ledger and
+ *    the coupon is still active and unused (a settlement died between its two
+ *    writes, or lost a race for the coupon). The coverage already counts
+ *    the card as withdrawn, so the coupon must go too, whatever the coverage
+ *    is now. `claimed` is true; only the coupon is left to take.
+ * 3. while `stampCoverage < 0`, the newest standing card's coupon, at that
+ *    card's cost.
+ *
+ * Deterministic for a given ledger and coupon list, so two settlements running
+ * at once pick the same coupon and the primary key on `unredeemId` plus the
+ * guarded coupon update let only one of them take it.
  */
 export function nextFreeDrinkWithdrawal(
-  rows: readonly Pick<
-    LoyaltyStamp,
-    "id" | "kind" | "delta" | "orderId" | "createdAt"
-  >[],
+  rows: readonly CardRow[],
   coupons: readonly SettleCoupon[],
   nowMs: number,
 ): FreeDrinkWithdrawal | null {
-  if (stampCoverage(rows) >= 0) return null;
-  const withdrawn = new Set(
-    rows.filter((r) => r.kind === "unredeem").map((r) => r.id),
-  );
-  const redeems = rows.filter((r) => r.kind === "redeem");
-  const byId = new Map(redeems.map((r) => [r.id, r]));
-  const linked = new Set(
-    coupons.map((c) => redeemIdOfCoupon(c.id)).filter(Boolean),
-  );
-  const legacy = redeems
-    .filter((r) => !linked.has(r.id) && !withdrawn.has(unredeemId(r.id)))
-    .sort(newestFirst);
-  const taken = new Set<string>();
-
-  const unused = coupons
-    .filter(
-      (c) =>
-        c.source === "loyalty" &&
-        c.isActive &&
-        !c.redeemedAt &&
-        !(c.expiresAt && Date.parse(c.expiresAt) < nowMs),
-    )
-    .sort(newestFirst);
-  for (const coupon of unused) {
-    const own = redeemIdOfCoupon(coupon.id);
-    const card = own
-      ? byId.get(own)
-      : legacy.find((r) => !taken.has(r.id) && r.createdAt <= coupon.createdAt);
-    if (!card) continue;
-    if (!own) taken.add(card.id);
-    if (withdrawn.has(unredeemId(card.id))) continue;
-    return { couponId: coupon.id, redeemId: card.id, cost: cardCost(card) };
+  const withdrawn = withdrawnCards(rows);
+  const owed = stampCoverage(rows) < 0;
+  let fresh: FreeDrinkWithdrawal | null = null;
+  for (const { coupon, card } of pairCouponsWithCards(rows, coupons)) {
+    if (
+      !coupon.isActive ||
+      coupon.redeemedAt ||
+      (coupon.expiresAt && Date.parse(coupon.expiresAt) < nowMs)
+    ) {
+      continue;
+    }
+    if (!card) {
+      // A linked id with no card behind it is an orphan; an unlinked coupon
+      // with no card before it is just not ours to judge.
+      if (redeemIdOfCoupon(coupon.id)) {
+        return { couponId: coupon.id, redeemId: "", cost: 0, claimed: false };
+      }
+      continue;
+    }
+    const claimed = withdrawn.has(unredeemId(card.id));
+    const plan = {
+      couponId: coupon.id,
+      redeemId: card.id,
+      cost: cardCost(card),
+      claimed,
+    };
+    if (claimed) return plan;
+    if (owed && !fresh) fresh = plan;
   }
-  return null;
+  return fresh;
+}
+
+/** A withdrawal claim whose coupon turned out to be spent. */
+export interface StaleClaim {
+  redeemId: string;
+  couponId: string;
+}
+
+/**
+ * The `unredeem` rows to drop: a settlement wrote one, then the member spent
+ * (or an unpaid order is holding) the coupon before it could be taken, and
+ * the settlement died before it could drop its claim again. A used coupon is
+ * never taken back, so its card stands - the claim only hides a card the
+ * member really spent, and the next stamps pay for it.
+ */
+export function staleFreeDrinkClaims(
+  rows: readonly CardRow[],
+  coupons: readonly SettleCoupon[],
+): StaleClaim[] {
+  const withdrawn = withdrawnCards(rows);
+  const out: StaleClaim[] = [];
+  for (const { coupon, card } of pairCouponsWithCards(rows, coupons)) {
+    if (card && coupon.redeemedAt && withdrawn.has(unredeemId(card.id))) {
+      out.push({ redeemId: card.id, couponId: coupon.id });
+    }
+  }
+  return out;
 }
 
 /** The loyalty knobs the operator turns; one shape for the core and the till. */
