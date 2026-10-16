@@ -1,12 +1,19 @@
+import { headers } from "next/headers";
+import { z } from "zod";
+
+import { clientIp } from "@/lib/admin/rate-limit";
+import { getSettings } from "@/lib/admin/store";
 import { isDbUnreachable } from "@/lib/db/health";
+import { karaokeConsentVersion } from "@/lib/legal/store";
+import { KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import { requireMobileCustomer } from "@/lib/mobile/auth";
 import {
-  createReservation,
+  KARAOKE_CONFIRMATIONS,
   listMine,
   toReservationJson,
 } from "@/lib/mobile/karaoke";
+import { bookKaraoke } from "@/lib/mobile/karaoke-payment";
 import { apiError, apiJson } from "@/lib/mobile/respond";
-import { notifyOperatorOfReservation } from "@/lib/mobile/karaoke-notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +25,20 @@ const MSG = {
   badJson: "İstek gövdesi geçerli JSON olmalı.",
   internal: "Beklenmeyen bir hata oluştu.",
   unverified: "Rezervasyon yapabilmek için önce e-postanı doğrula.",
+  update:
+    "Karaoke rezervasyonu artık rezervasyon sırasında kartla ödeniyor. Devam etmek için uygulamayı güncelle.",
+  consent:
+    "Ödemeden önce Ön Bilgilendirme Formu'nu ve Mesafeli Hizmet Sözleşmesi'ni onaylaman, Aydınlatma Metni'ni okuduğunu belirtmen gerekiyor.",
 } as const;
+
+/**
+ * The two additive request fields (16 Eki 2026, §7). Both optional: an app
+ * build from before them sends neither and is answered exactly as it reads.
+ */
+const PrepayFields = z.object({
+  prepay: z.boolean().optional(),
+  legalConsent: z.boolean().optional(),
+});
 
 /** GET /api/mobile/v1/karaoke/reservations - the member's own bookings (§7). */
 export async function GET(request: Request) {
@@ -37,7 +57,18 @@ export async function GET(request: Request) {
   }
 }
 
-/** POST /api/mobile/v1/karaoke/reservations → 201 · 400 · 409 slot_taken (§7). */
+/**
+ * POST /api/mobile/v1/karaoke/reservations → 201 `{ reservation, payment }`
+ * (§7).
+ *
+ * With prepayment on (`settings.karaokePrepay`, the default) a booking is an
+ * unpaid hold confirmed only by its payment: the app sends `prepay: true`
+ * and `legalConsent: true` and opens `payment.redirectUrl`. A build that does
+ * not send `prepay` cannot pay, so it is told to update (426
+ * `app_update_required`) instead of being taken as a pay-at-the-venue request
+ * the köşk would never confirm. With prepayment off, every build gets the old
+ * request flow (`payment: null`, `paymentStatus: "none"`).
+ */
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -45,37 +76,72 @@ export async function POST(request: Request) {
   } catch {
     return apiError(400, "invalid_request", MSG.badJson);
   }
+  const extra = PrepayFields.safeParse(body ?? {});
+  if (!extra.success) {
+    return apiError(400, "invalid_request", MSG.consent, undefined, {
+      field: "legalConsent",
+    });
+  }
 
   try {
     const auth = await requireMobileCustomer(request);
     if (!auth.ok) return auth.response;
-    // A booking holds the room for four hours and there is no payment behind
-    // it; the same gate POST /orders has keeps an unconfirmed sign-up from
+    // The same gate POST /orders has keeps an unconfirmed sign-up from
     // filling the calendar.
     if (!auth.customer.emailVerified) {
       return apiError(403, "email_unverified", MSG.unverified);
     }
-    const result = await createReservation(auth.customer, body);
+    const { karaokePrepay } = await getSettings();
+    const prepay = karaokePrepay && extra.data.prepay === true;
+    if (karaokePrepay && !prepay) {
+      return apiError(426, "app_update_required", MSG.update);
+    }
+    const ip = await clientIp();
+    let legalConsent;
+    if (prepay) {
+      if (extra.data.legalConsent !== true) {
+        return apiError(400, "invalid_request", MSG.consent, undefined, {
+          field: "legalConsent",
+        });
+      }
+      const h = await headers();
+      legalConsent = {
+        acceptedAt: new Date().toISOString(),
+        documents: [...KARAOKE_CONSENT_DOCS],
+        version: await karaokeConsentVersion(),
+        confirmations: [...KARAOKE_CONFIRMATIONS],
+        surface: "app" as const,
+        ip,
+        userAgent: (h.get("user-agent") ?? "").slice(0, 300),
+      };
+    }
+
+    const result = await bookKaraoke(auth.customer, body, {
+      channel: "app",
+      prepay,
+      legalConsent,
+      buyerIp: ip,
+    });
     if (!result.ok) {
       // `field` is additive (§7): an older app reads `error` and `message`
       // exactly as before.
+      const retry =
+        "retryAfterSeconds" in result && result.retryAfterSeconds
+          ? { "Retry-After": String(result.retryAfterSeconds) }
+          : undefined;
       return apiError(
         result.status,
         result.error,
         result.message,
-        undefined,
-        result.field ? { field: result.field } : undefined,
+        retry,
+        "field" in result && result.field ? { field: result.field } : undefined,
       );
     }
-    // The room is booked by hand, so a request nobody reads is a request
-    // nobody honours. Awaited rather than fired and forgotten: this runtime
-    // can freeze the moment the response is returned, and a 15-second budget
-    // has room for one mail. Its failure is logged inside and never reaches
-    // the member - the reservation is already written and visible in the
-    // panel, and losing a booking over a bounced mail would be the worse bug.
-    await notifyOperatorOfReservation(result.reservation);
     return apiJson(
-      { reservation: toReservationJson(result.reservation) },
+      {
+        reservation: toReservationJson(result.reservation),
+        payment: result.payment,
+      },
       { status: 201, private: true },
     );
   } catch (err) {
