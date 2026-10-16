@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
 
+import {
+  parse as parseHtml,
+  type DefaultTreeAdapterTypes as Html,
+} from "parse5";
+
 import { priceLabel } from "@/lib/utils/format";
 
 import { CARD_FORM_FIELDS, type CardField } from "./paynkolay-card";
@@ -296,50 +301,78 @@ ${link}
  * kullanılacak CSP.
  *
  * HTML PayNkolay'dan, sunucudan sunucuya TLS ile geliyor ve olduğu gibi
- * verilir: bir `<form>` + kendini bankanın ACS adresine gönderen satır içi
- * betik (sandbox'ta QNB: `frm.action = 'https://…/Default.aspx'; frm.submit()`;
- * bazı bankalar `<body onload=…>` kullanır). Betiğe `'unsafe-inline'` yerine
- * BU yanıttaki her satır içi betiğin ve olay özniteliğinin özeti izin verilir;
- * HTML'e sonradan sızan bir betik çalışmaz. `form-action https:` çünkü ACS
- * hostu bankaya göre değişir ve önceden bilinemez - düz `http:` hedefe kart
- * akışı yine engellenir.
+ * verilir: bir `<form>` + onu bankanın ACS adresine gönderen satır içi betik
+ * ya da olay özniteliği. Bankaya göre üç biçim görüldü (sandbox, 2026-10-16):
+ *
+ * - QNB: `frm.action = 'https://…/Default.aspx'; frm.submit()` betiği.
+ * - Garanti: `document.PostForm.submit()` betiği.
+ * - Ziraat, Akbank, Denizbank, ING (EST tipi şablon, ACS hostları farklı):
+ *   `<body onload=document.forms["form"].submit()>` - TIRNAKSIZ ve içinde
+ *   çift tırnak olan bir değer.
+ *
+ * Betiğe `'unsafe-inline'` yerine BU yanıttaki her satır içi betiğin ve olay
+ * özniteliğinin özeti izin verilir; HTML'e sonradan sızan bir betik
+ * çalışmaz. Özet, tarayıcının okuduğu değerin aynısından hesaplanmalı:
+ * sayfa bu yüzden düzenli ifadeyle değil, tarayıcıların kullandığı WHATWG
+ * ayrıştırıcısıyla (parse5) okunur (`readBankMarkup`). Tırnaksız değeri ilk
+ * `"`'da kesen eski okuma EST formunun özetini yanlış hesaplıyordu; tarayıcı
+ * `onload`'u engelliyor, müşteri bembeyaz bir sayfada kalıyordu.
+ *
+ * `form-action https:` çünkü ACS hostu bankaya göre değişir ve önceden
+ * bilinemez - düz `http:` hedefe kart akışı yine engellenir.
+ *
+ * Gövdenin başına bizim kısa bir notumuz eklenir: banka yanıt verene kadar
+ * müşteri boş bir sayfa değil, ne olduğunu görür. Formun kendi adresi
+ * mutlak bir https adresiyse 8 sn sonra bir "devam" düğmesi de belirir
+ * (görünmesi yalnız CSS ile, gönderimi `form=` ile; betik gerekmez). Adres
+ * göreliyse (QNB: asıl adresi betik yazıyor) düğme konmaz - göreli adres
+ * bizim sitemize çözülür. Sayfa ayrılmaya başlayınca notun küçük betiği
+ * düğmeyi gizler; banka yavaşken 3D formu ikinci kez gönderilmez.
  */
 export function bankChallengePage(raw: string): PaynkolayPage {
   // Tarayıcı HTML'i ayrıştırırken CRLF ve tek CR'yi LF yapar ve CSP özetini
   // o metinden hesaplar. .NET/ASPX MPI çıktısında CRLF olağan (PayNkolay'ın
   // C# örneği de satır sonlarını siler). Sunulan bayt ile özetlenen bayt aynı
   // olsun diye satır sonları önce burada normalleştirilir.
-  const html = raw.replace(/\r\n?/g, "\n");
-  const scriptSources = new Set<string>();
-  let hasHandlers = false;
+  const bank = raw.replace(/\r\n?/g, "\n");
+  const bankMarkup = readBankMarkup(bank);
 
-  for (const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)) {
-    const src = /\bsrc\s*=\s*["']?([^"'\s>]+)/i.exec(m[1])?.[1];
-    if (src) {
-      try {
-        const url = new URL(src);
-        if (url.protocol === "https:") scriptSources.add(url.origin);
-      } catch {
-        // Göreli adres bizim origin'imize çözülür; izin verilmez.
-      }
+  // Not yalnızca, eklendikten sonra yeniden okunan sayfa bankanın betik ve
+  // öznitelik listesini AYNEN koruyorsa ve tek yeni betik notun kendi
+  // betiğiyse kullanılır. Aksi hâlde banka sayfası notsuz verilir: not bir
+  // kolaylık, izin listesi ise bankanın yazdığından ibaret kalmalı.
+  let html = bank;
+  let markup = bankMarkup;
+  const at = noticeOffset(bankMarkup);
+  if (at !== null && !bankMarkup.hasNoticeId) {
+    const candidate =
+      bank.slice(0, at) + bankNotice(bankMarkup.forms) + bank.slice(at);
+    const reread = readBankMarkup(candidate);
+    if (keepsBankMarkup(bankMarkup, reread)) {
+      html = candidate;
+      markup = reread;
+    }
+  }
+
+  const scriptSources = new Set<string>();
+  for (const script of markup.scripts) {
+    if (script.src === null) {
+      scriptSources.add(sha256Source(script.body));
       continue;
     }
-    scriptSources.add(sha256Source(m[2]));
+    const origin = httpsOrigin(script.src);
+    // Göreli adres bizim origin'imize çözülür; izin verilmez.
+    if (origin) scriptSources.add(origin);
   }
-  // Olay öznitelikleri (`<body onload=…>`): tırnaklı ya da tırnaksız (EST /
-  // Asseco formları tırnaksız yazıyor). Betik gövdeleri önce çıkarılır, kod
-  // içindeki "x. onload =" öznitelik sanılmasın. Tarayıcı özeti çözülmüş
-  // değerden hesaplar (`&quot;` → `"`), bu yüzden değer önce çözülür.
-  const markup = html.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
-  for (const m of markup.matchAll(
-    /\son[a-z]+\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/gi,
-  )) {
-    hasHandlers = true;
-    scriptSources.add(sha256Source(decodeEntities(m[1] ?? m[2] ?? m[3] ?? "")));
+  for (const handler of markup.handlers) {
+    scriptSources.add(sha256Source(handler));
   }
 
   const scriptSrc = scriptSources.size
-    ? [...(hasHandlers ? ["'unsafe-hashes'"] : []), ...scriptSources].join(" ")
+    ? [
+        ...(markup.handlers.length ? ["'unsafe-hashes'"] : []),
+        ...scriptSources,
+      ].join(" ")
     : "'none'";
   const csp = [
     "default-src 'none'",
@@ -361,20 +394,186 @@ export function bankChallengePage(raw: string): PaynkolayPage {
   return { html, csp };
 }
 
-/** HTML karakter referanslarını çözer - olay özniteliği özeti için. */
-function decodeEntities(value: string): string {
-  return value.replace(
-    /&(#x[0-9a-f]+|#\d+|quot|apos|amp|lt|gt);/gi,
-    (whole, ref: string) => {
-      const name = ref.toLowerCase();
-      if (name.startsWith("#x")) {
-        return String.fromCodePoint(parseInt(name.slice(2), 16));
-      }
-      if (name.startsWith("#"))
-        return String.fromCodePoint(Number(name.slice(1)));
-      return (
-        { quot: '"', apos: "'", amp: "&", lt: "<", gt: ">" }[name] ?? whole
-      );
-    },
+/** Mutlak (ya da `//` ile başlayan) https betik adresinin origin'i. */
+function httpsOrigin(src: string): string | null {
+  try {
+    const url = new URL(src.startsWith("//") ? `https:${src}` : src);
+    return url.protocol === "https:" ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
+
+const NOTICE_ID = "laf-bank-wait";
+
+/**
+ * Bekleme notunun tek betiği. Sayfa ayrılmaya başlayınca (`beforeunload`,
+ * `pagehide`: bankanın kendi gönderimi yola çıktı) gecikmeli düğmeyi gizler
+ * ve düğmeye bir kez basılınca kapatır. Düğme formu kendisi gönderir ve o
+ * formun sonraki `submit()`/`requestSubmit()` çağrılarını etkisiz kılar:
+ * gönderimini geciktiren bir banka betiği 3D formunu (içinde kart
+ * bilgisiyle) ikinci kez göndermez. Düğme `form=` taşımaz, bu yüzden
+ * bankanın `form.elements` listesine de girmez.
+ */
+const BANK_WAIT_SCRIPT = `(function(){var w=document.getElementById("${NOTICE_ID}");if(!w)return;var left=false;
+function leaving(){left=true;w.setAttribute("data-leaving","1");}
+addEventListener("beforeunload",leaving);addEventListener("pagehide",leaving);
+addEventListener("pageshow",function(e){if(e.persisted){left=false;w.removeAttribute("data-leaving");}});
+var b=w.querySelector("button[data-form]");
+if(b){b.addEventListener("click",function(){if(left)return;var f=document.getElementById(b.getAttribute("data-form"));if(!f||f.tagName!=="FORM")return;
+leaving();b.disabled=true;var send=HTMLFormElement.prototype.submit;
+f.submit=function(){};f.requestSubmit=function(){};send.call(f);});}})();`;
+
+/** Banka sayfasına eklenen bekleme notu ve gecikmeli "devam" düğmesi. */
+function bankNotice(forms: BankForm[]): string {
+  const target = forms.find(
+    (f) => f.id && /^https:\/\//i.test(f.action.trim()),
   );
+  const later = target
+    ? `<p style="margin:1rem 0 0;color:#564d46;font-size:.9rem">Sayfa açılmadıysa aşağıdaki düğmeyle devam edebilirsin.</p>` +
+      `<button type="button" data-form="${escapeHtml(target.id)}" style="margin-top:1.25rem;padding:.8rem 1.5rem;border:0;border-radius:999px;background:#1d6d56;color:#fbf8f4;font:inherit;font-weight:600;cursor:pointer">Bankanın sayfasına git</button>`
+    : `<p style="margin:1rem 0 0;color:#564d46;font-size:.9rem">Sayfa açılmazsa geri dönüp yeniden deneyebilirsin; kartından para çekilmedi.</p>`;
+  return (
+    `<div id="${NOTICE_ID}" style="font:16px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#211c18;text-align:center;padding:20vh 16px 0">` +
+    `<style>@keyframes laf-bank-reveal{to{visibility:visible}}#${NOTICE_ID} .later{visibility:hidden;animation:laf-bank-reveal 0s 8s forwards}#${NOTICE_ID}[data-leaving] .later{display:none}</style>` +
+    `<p style="margin:0;font-weight:700;color:#9d2543">L'Affogato</p>` +
+    `<p style="margin:.5rem 0 0">Bankanın 3D Secure doğrulama sayfasına yönlendiriliyorsun…</p>` +
+    `<div class="later">${later}</div>` +
+    `<script>${BANK_WAIT_SCRIPT}</script>` +
+    `</div>`
+  );
+}
+
+interface BankForm {
+  id: string;
+  action: string;
+}
+
+interface BankScript {
+  /** Dış betiğin adresi; satır içi betikte null. */
+  src: string | null;
+  /** Satır içi betiğin tarayıcının gördüğü metni. */
+  body: string;
+}
+
+interface BankMarkup {
+  scripts: BankScript[];
+  /** Olay özniteliklerinin (`onload=…`) tarayıcının okuduğu değeri. */
+  handlers: string[];
+  forms: BankForm[];
+  /** `<body ...>` başlangıç etiketinin bittiği yer (kaynakta varsa). */
+  bodyStartEnd: number | null;
+  /** Gövdenin kaynakta yeri olan ilk çocuğunun başladığı yer. */
+  firstBodyChildStart: number | null;
+  /** Bankanın sayfasında bizim not kimliğimizi taşıyan bir öğe var mı. */
+  hasNoticeId: boolean;
+  /** Not, gövdenin doğrudan çocuğu olarak bulundu mu (yeniden okumada). */
+  noticeInBody: boolean;
+}
+
+/**
+ * Banka HTML'ini tarayıcıların kullandığı WHATWG ayrıştırıcısıyla (parse5)
+ * okur: satır içi betiklerin metni, olay özniteliklerinin çözülmüş değeri,
+ * formlar ve notun gireceği yer. Elle yazılmış bir okuyucu tırnaksız
+ * değerlerde, Türkçe "İ"de, betik içindeki `<!--` kaçışlarında ve karakter
+ * referanslarında art arda tarayıcıdan ayrıştı (PR #113 incelemeleri);
+ * özetin tarayıcınınkiyle aynı olması için ayrıştırmayı standart yapar.
+ *
+ * `<template>` içeriği çalışmaz ve atlanır; SVG içindeki `<script>` çalışır
+ * ve sayılır.
+ */
+function readBankMarkup(html: string): BankMarkup {
+  const doc = parseHtml(html, {
+    sourceCodeLocationInfo: true,
+    scriptingEnabled: true,
+  });
+  const out: BankMarkup = {
+    scripts: [],
+    handlers: [],
+    forms: [],
+    bodyStartEnd: null,
+    firstBodyChildStart: null,
+    hasNoticeId: false,
+    noticeInBody: false,
+  };
+
+  const visit = (node: Html.Node, inBody: boolean): void => {
+    if (!("tagName" in node)) {
+      if ("childNodes" in node) {
+        for (const child of node.childNodes) visit(child, inBody);
+      }
+      return;
+    }
+    const el = node as Html.Element;
+    const attr = (name: string): string | undefined =>
+      el.attrs.find((a) => a.name === name && !a.prefix)?.value;
+    for (const a of el.attrs) {
+      if (/^on[a-z]+$/i.test(a.name)) out.handlers.push(a.value);
+    }
+    if (attr("id") === NOTICE_ID) {
+      out.hasNoticeId = true;
+      if (inBody && el.parentNode && "tagName" in el.parentNode) {
+        out.noticeInBody = el.parentNode.tagName === "body";
+      }
+    }
+    if (el.tagName === "form") {
+      out.forms.push({ id: attr("id") ?? "", action: attr("action") ?? "" });
+    }
+    if (el.tagName === "script") {
+      const src = attr("src");
+      out.scripts.push({
+        src: src === undefined ? null : src.trim(),
+        body: src === undefined ? textOf(el) : "",
+      });
+    }
+    if (el.tagName === "body" && el.namespaceURI === HTML_NS) {
+      out.bodyStartEnd = el.sourceCodeLocation?.startTag?.endOffset ?? null;
+      const first = el.childNodes.find((c) => c.sourceCodeLocation);
+      out.firstBodyChildStart = first?.sourceCodeLocation?.startOffset ?? null;
+    }
+    // Şablon içeriği belgeye girmez, betikleri çalışmaz.
+    if (el.tagName === "template") return;
+    for (const child of el.childNodes) {
+      visit(child, inBody || el.tagName === "body");
+    }
+  };
+  visit(doc, false);
+  return out;
+}
+
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+
+function textOf(el: Html.Element): string {
+  return el.childNodes
+    .map((c) => ("value" in c && c.nodeName === "#text" ? c.value : ""))
+    .join("");
+}
+
+/**
+ * Notun gireceği yer: `<body>` etiketinin hemen ardı, etiket yazılmamışsa
+ * gövdenin ilk öğesinin önü, gövde boşsa sayfanın sonu. Not, bankanın
+ * gönderen betiğinden ÖNCE gelmeli: tarayıcı betik gezinmeyi başlatınca
+ * sayfanın kalanını ayrıştırmayı bırakıyor (Garanti, QNB), sonda kalan not
+ * hiç görünmüyordu.
+ */
+function noticeOffset(markup: BankMarkup): number | null {
+  if (markup.bodyStartEnd !== null) return markup.bodyStartEnd;
+  return markup.firstBodyChildStart;
+}
+
+/** Not eklendikten sonra bankanın betik ve öznitelikleri aynı mı? */
+function keepsBankMarkup(bank: BankMarkup, withNotice: BankMarkup): boolean {
+  if (!withNotice.noticeInBody) return false;
+  const ours: BankScript = { src: null, body: BANK_WAIT_SCRIPT };
+  const expected = [...bank.scripts.map(scriptKey), scriptKey(ours)].sort();
+  const actual = withNotice.scripts.map(scriptKey).sort();
+  if (expected.length !== actual.length) return false;
+  if (expected.some((k, i) => k !== actual[i])) return false;
+  const a = [...bank.handlers].sort();
+  const b = [...withNotice.handlers].sort();
+  return a.length === b.length && a.every((h, i) => h === b[i]);
+}
+
+function scriptKey(s: BankScript): string {
+  return s.src === null ? `inline:${s.body}` : `src:${s.src}`;
 }

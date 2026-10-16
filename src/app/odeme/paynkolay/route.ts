@@ -78,12 +78,30 @@ export async function POST(req: NextRequest) {
     !(provider instanceof PaynkolayPaymentProvider) ||
     provider.checkoutMode !== "direct"
   ) {
-    return new NextResponse(null, { status: 405, headers: { allow: "GET" } });
+    const res = respond(
+      renderPaymentNotice(
+        "Ödeme başlatılamadı",
+        "Bu ödeme sayfası şu an kart kabul etmiyor; kartından para çekilmedi. Ödeme adımına dönüp yeniden dene.",
+        { href: "/odeme", label: "Ödemeye dön" },
+      ),
+      405,
+    );
+    res.headers.set("allow", "GET");
+    return res;
   }
   // Kart yalnızca bu sitenin kendi formundan kabul edilir. Başka bir siteden
   // POST edilen form, kart denemesi için bir yan kapı olurdu.
+  // Gövdesiz bir 403 müşteriye beyaz sayfa olarak görünürdü; ne olduğunu
+  // söyleyen bir not verilir (kart işlenmez, POS'a gidilmez).
   if (!sameOrigin(req)) {
-    return new NextResponse(null, { status: 403 });
+    return respond(
+      renderPaymentNotice(
+        "Ödeme doğrulanamadı",
+        "Kart bilgisi bu sitenin kendi ödeme sayfasından gelmediği için işlenmedi; kartından para çekilmedi. Ödeme adımına dönüp yeniden dene.",
+        { href: "/odeme", label: "Ödemeye dön" },
+      ),
+      403,
+    );
   }
 
   let form: FormData;

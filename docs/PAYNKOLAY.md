@@ -859,6 +859,22 @@ bankanın çekim için gerçek numarayı görmesi gerekir.
 | Bankanın 3D formu                                        | Satır sonları normalleştirilip verilir (CRLF, tarayıcının özetiyle aynı bayt olsun diye); CSP yalnız o yanıttaki satır içi betiklerin ve tırnaklı/tırnaksız olay özniteliklerinin (çözülmüş) özetine (`'unsafe-hashes'`), `form-action https:`'e ve yalnız gömülü görsel/yazı tipine izin verir - ACS hostu bankaya göre değişir, düz `http:` engellenir |
 | Önbellek                                                 | Her yanıt `Cache-Control: no-store`                                                                                                                                                                                                                                                                                                                      |
 
+Bankanın 3D formunda öznitelikler tarayıcının ayrıştırma kuralıyla okunur.
+Sandbox'ta Ziraat, Akbank, Denizbank ve ING'nin formu (EST tipi şablon)
+`<body onload=document.forms["form"].submit()>` yazar: tırnaksız değerin
+içindeki `"` değerin parçasıdır. Değeri ilk `"`'da kesen eski okuma özeti
+bozuyordu; tarayıcı `onload`'u engelliyor, müşteri kartı yazdıktan sonra
+beyaz sayfada kalıyordu (2026-10-16). Sayfa elle yazılmış bir okuyucuyla
+değil, tarayıcıların kullandığı WHATWG ayrıştırıcısıyla (`parse5`) okunur:
+tırnaksız değerler, Türkçe "İ", betik içindeki `<!--` kaçışları ve karakter
+referansları tarayıcıyla aynı sonucu verir. Gövdenin başına (bankanın
+gönderen betiğinden önce; tarayıcı gezinme başlayınca ayrıştırmayı
+bırakıyor) bir bekleme notu eklenir; formun adresi mutlak https ise 8 sn
+sonra bir "Bankanın sayfasına git" düğmesi belirir. Sayfa ayrılmaya
+başlayınca not düğmeyi gizler, böylece 3D formu ikinci kez gönderilmez. Not
+eklendikten sonra sayfa yeniden okunur; bankanın betik ve öznitelik listesi
+değişmişse not eklenmez.
+
 ### 15.4 PCI DSS - operatörün bilmesi gereken
 
 PayNkolay dokümanı: _"Bu yapıda kart bilgileri üye işyeri tarafından
