@@ -19,7 +19,7 @@
  * override of a checkout document moves the RECORDED version past it without
  * touching this constant (`consentVersionFrom`, `./consent-version`).
  */
-export const LEGAL_UPDATED = "1 Eylül 2026";
+export const LEGAL_UPDATED = "16 Ekim 2026";
 
 /**
  * /hukuk dizin sayfasındaki kategori sırası. Listede olmayan bir kategori

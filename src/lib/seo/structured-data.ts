@@ -220,6 +220,7 @@ function organizationLd(): Json {
     address: {
       "@type": "PostalAddress",
       streetAddress: LEGAL_ENTITY.address.line1,
+      postalCode: LEGAL_ENTITY.address.postalCode,
       addressLocality: LEGAL_ENTITY.address.district,
       addressRegion: LEGAL_ENTITY.address.city,
       addressCountry: "TR",

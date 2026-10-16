@@ -89,7 +89,7 @@ const index = LEGAL_DOCS.map((d) => ({
 
 const payload = {
   _generated:
-    "RiosenBeq/laffogato · scripts/legal-export.mjs — ELLE DÜZENLEME; kaynak src/lib/legal/content.ts",
+    "RiosenBeq/laffogato · scripts/legal-export.mjs - ELLE DÜZENLEME; kaynak src/lib/legal/content.ts",
   LEGAL_UPDATED,
   CONSENT_DOCS: [...CHECKOUT_CONSENT_DOCS],
   /** Every published contract, title only - so the list is complete offline. */

@@ -895,9 +895,10 @@ sayfasında (`hosted`) bu yük PayNkolay'daydı. `direct` modda:
   gerekir; açık değilse `/Vpos/v1/Payment` reddeder ve müşteri formda hata
   görür. Geri dönüş: `PAYNKOLAY_CHECKOUT_MODE=hosted` + redeploy.
 - PayNkolay yıllık bir PCI DSS öz değerlendirme anketi (SAQ) isteyebilir.
-- Hukuki metinler "kart bilgisi sunucularımızdan geçmez" diyor; bu modda
-  doğru değil. Düzeltme R1 ile birlikte avukat onayına bağlı
-  (`docs/LEGAL-REDLINES-2026-09.md` §3).
+- Hukuki metinler 16 Eki 2026'da düzeltildi: kart sitenin ödeme sayfasında
+  girilir, sunucudan aynı istekte yalnızca PayNkolay'a geçer, saklanmaz ve
+  loglanmaz (`docs/LEGAL-REDLINES-2026-09.md` §3). PCI DSS sertifikası
+  iddia edilmez.
 
 ### 15.5 Kart `/odeme`'de, tek sayfada (16 Eki 2026)
 

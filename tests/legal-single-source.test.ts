@@ -75,6 +75,12 @@ describe("Veri tabanı sağlayıcısı - tek kaynak", () => {
     }
   });
 
+  it("kimlik sağlayıcısı da token'dır ve doldurulunca basılır", () => {
+    const rendered = fillTokens(JSON.stringify(LEGAL_CONTENT));
+    expect(rendered).toContain(LEGAL_ENTITY.authProvider);
+    expect(LEGAL_ENTITY.authProvider.trim().length).toBeGreaterThan(0);
+  });
+
   it("token doldurulunca gerçek sağlayıcı adı basılır", () => {
     const rendered = fillTokens(JSON.stringify(LEGAL_CONTENT));
     expect(rendered).toContain(LEGAL_ENTITY.dbProvider);
