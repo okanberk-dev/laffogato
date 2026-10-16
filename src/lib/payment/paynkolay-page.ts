@@ -93,6 +93,7 @@ font-size:.82rem;color:#564d46}
 .center{text-align:center;padding-top:20vh}
 .next{display:inline-block;margin-top:.5rem;padding:.75rem 1.5rem;border-radius:999px;
 background:#1d6d56;color:#fbf8f4;font-weight:600;text-decoration:none}
+.center a:not(.next){color:#1d6d56}
 
 [hidden]{display:none!important}
 fieldset{border:0;margin:0 0 1rem;padding:0}

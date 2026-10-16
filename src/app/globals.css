@@ -11029,6 +11029,8 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 }
 
 .co-layout {
+  /* The step change scrolls here: clear the sticky checkout header. */
+  scroll-margin-top: 80px;
   display: grid;
   gap: 20px;
   grid-template-columns: minmax(0, 1fr);
@@ -11790,7 +11792,12 @@ button.co-steps-link {
      bar is fixed; the page is padded for it so it never covers the consent
      boxes above it. */
   .co-layout[data-step="2"] {
-    padding-bottom: calc(150px + env(safe-area-inset-bottom));
+    padding-bottom: calc(176px + env(safe-area-inset-bottom));
+  }
+  /* The checkout's own footer links sit below the layout: the fixed bar
+     must not cover them either. */
+  .co-chrome-body:has(.co-layout[data-step="2"]) + .co-chrome-foot {
+    padding-bottom: calc(176px + env(safe-area-inset-bottom));
   }
   .co-paybar {
     position: fixed;
