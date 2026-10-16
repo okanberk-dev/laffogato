@@ -819,7 +819,7 @@ export async function sendKaraokeCancellationEmail(
  * What the counter needs to know about a booking that was just taken.
  *
  * Deliberately not `KaraokeEmailData`: that one is the MEMBER's confirmation
- * and its template says "Saatiniz ayrıldı". A reservation arrives with
+ * and its template says "Saatin ayrıldı". A reservation arrives with
  * `status: "requested"`, so telling the member it is confirmed would be a
  * promise the staff have not made yet. This is the other direction - the room
  * is booked by hand, and nobody was being told.

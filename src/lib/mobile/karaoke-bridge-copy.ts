@@ -24,7 +24,7 @@ export function karaokeExpiredNotice(
 ): BridgeNoticeCopy | null {
   if (!isKaraokeRef(ref)) return null;
   const body =
-    "Bu ödeme sayfasının süresi doldu; kartından para çekilmedi. Ödemesi alınmayan rezervasyon kesinleşmez ve saat kısa süre içinde yeniden boşa çıkar.";
+    "Ödeme sayfasının süresi doldu; kartından para çekilmedi, rezervasyon kesinleşmedi.";
   return fromApp
     ? {
         title: "Ödeme süresi doldu",

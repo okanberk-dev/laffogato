@@ -149,6 +149,34 @@ describe("the twenty-two templates render", () => {
   );
 
   /**
+   * Both karaoke messages speak "sen", like the /karaoke page that took the
+   * booking and the rule they quote ("iptal edersen"). They used to switch
+   * voice mid-message: "Saatiniz ayrıldı" above "iptal edersen". The shared
+   * app block is left out: it is every mail's, in the family's own voice.
+   */
+  it.each(["karaoke-rezervasyon", "karaoke-iptal"] as const)(
+    "%s speaks sen, not siz, in both halves",
+    (name) => {
+      const t = EMAIL_TEMPLATES[name];
+      const body = t.html
+        .replace(/<head>[\s\S]*?<\/head>/, "")
+        .replace(/<!--IF:APP_LINKS-->[\s\S]*?<!--\/IF:APP_LINKS-->/g, "")
+        .replace(/<[^>]+>/g, " ");
+      for (const part of [t.subject, t.preheader, body, EMAIL_TEXT[name]]) {
+        const siz = part
+          .split(/[^a-zA-ZçğıöşüÇĞİÖŞÜ]+/)
+          .filter(
+            (w) =>
+              /^(siz|sizden|size|sizin|sizi)$/i.test(w) ||
+              /n[ıiuü]z([ıiuü]|d[ae]n?|[ae])?$/.test(w) ||
+              /[aeıioöuü]y[ıiuü]n$/.test(w),
+          );
+        expect(siz, name).toEqual([]);
+      }
+    },
+  );
+
+  /**
    * Confirmation and cancellation are one pair: whatever the staff do to a
    * booking, the member is told the same four facts about the same evening.
    * A field in one and not the other is how a cancellation ends up unable to

@@ -24,8 +24,8 @@ kilitlediğine bak.
 | siparis-iptal.html        | işlemsel          | Siparişiniz iptal edildi (#[SIPARIS_NO])    |
 | siparis-iade.html         | işlemsel          | İadeniz yapıldı (#[SIPARIS_NO])             |
 | hos-geldin.html           | ilişki            | L'Affogato'ya hoş geldiniz                  |
-| karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonunuz onaylandı           |
-| karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonunuz iptal edildi        |
+| karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonun onaylandı             |
+| karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonun iptal edildi          |
 | sadakat-ikram.html        | işlemsel          | Kartınız doldu - bir içecek bizden          |
 | bulten-kampanya.html      | **ticari (6563)** | [KAMPANYA_BASLIK] - 3 ürün seçkisi + kod    |
 | mobil-uygulama.html       | **ticari (6563)** | L'Affogato uygulaması yayında               |

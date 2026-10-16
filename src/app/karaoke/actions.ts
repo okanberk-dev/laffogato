@@ -33,9 +33,9 @@ export interface BookKaraokeState {
 
 const MSG = {
   unverified:
-    "Rezervasyon yapabilmek için önce e-postanı doğrula. Doğrulama bağlantısını hesabından yeniden gönderebilirsin.",
+    "Rezervasyon için önce e-postanı doğrula. Bağlantıyı hesabından yeniden gönderebilirsin.",
   consent:
-    "Ödemeye geçmeden önce Ön Bilgilendirme Formu'nu onaylaman ve Mesafeli Hizmet Sözleşmesi'ni kabul etmen gerekiyor; ikisinin de kutusunu işaretle.",
+    "Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi kutularını işaretle.",
   kvkk: "Aydınlatma Metni'ni okuduğunu belirten kutuyu işaretle.",
   dbDown:
     "Rezervasyon servisine şu an ulaşılamıyor. Kısa süre içinde tekrar dene.",
