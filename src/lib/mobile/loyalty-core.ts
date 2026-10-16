@@ -272,9 +272,50 @@ export function plannedStampReversals(
   return ids;
 }
 
+const UNREDEEM_PREFIX = "stamp-unredeem-";
+
 /** The ledger id of the `unredeem` row that withdraws one `redeem` row. */
 export function unredeemId(redeemRowId: string): string {
-  return `stamp-unredeem-${redeemRowId}`;
+  return `${UNREDEEM_PREFIX}${redeemRowId}`;
+}
+
+/** The `redeem` row an `unredeem` row id withdraws; null for any other id. */
+export function redeemIdOfClaim(claimId: string): string | null {
+  return claimId.startsWith(UNREDEEM_PREFIX) &&
+    claimId.length > UNREDEEM_PREFIX.length
+    ? claimId.slice(UNREDEEM_PREFIX.length)
+    : null;
+}
+
+/**
+ * The id of a till "−1" row. It names the ledger state the correction was
+ * decided on (a fingerprint of the ids of the member's rows), so two clicks
+ * that read the same ledger write the SAME id and the primary key keeps one
+ * of them (23505): a conditional insert. The loser reads the ledger again,
+ * now with the winner's row in it, and decides afresh. Two till corrections
+ * can therefore never both be in the ledger on the strength of one stamp, and
+ * no settlement ever sees the transient overdraft that two rows would make.
+ *
+ * Any row that lands or goes changes the fingerprint, so a click is never
+ * stuck behind its own earlier row (ties on `createdAt` do not matter). A
+ * hash collision between two different ledgers only costs a click one more
+ * round. The id carries nothing about the member.
+ */
+export function tillCorrectionId(rows: readonly { id: string }[]): string {
+  const ids = rows.map((r) => r.id).sort();
+  // FNV-1a, twice with different offsets: 64 bits are plenty to tell the
+  // ledgers of one member apart.
+  let a = 0x811c9dc5;
+  let b = 0x9747b28c;
+  for (const id of ids) {
+    for (let i = 0; i <= id.length; i += 1) {
+      const c = i < id.length ? id.charCodeAt(i) : 0; // 0 separates the ids
+      a = Math.imul(a ^ c, 0x01000193) >>> 0;
+      b = Math.imul(b ^ c, 0x01000193) >>> 0;
+    }
+  }
+  const hex = (n: number) => n.toString(16).padStart(8, "0");
+  return `stamp-till-${hex(a)}${hex(b)}`;
 }
 
 /**
@@ -432,12 +473,16 @@ function withdrawnCards(rows: readonly Pick<CardRow, "id" | "kind">[]) {
  * 1. an orphan: a coupon whose own `redeem` row is gone (a coupon insert
  *    that committed after its request had given up: `redeemStamps` rolled
  *    the card back, the coupon stayed). No stamps paid for it; it goes,
- *    whatever the coverage.
+ *    whatever the coverage. POLICY, deliberate: this is also what happens
+ *    when someone deletes a ledger `redeem` row by hand - the coupon is
+ *    withdrawn at the next trigger, with no stamp refund.
  * 2. a half-done withdrawal: the card's `unredeem` row is on the ledger and
  *    the coupon is still active and unused (a settlement died between its two
  *    writes, or lost a race for the coupon). The coverage already counts
  *    the card as withdrawn, so the coupon must go too, whatever the coverage
- *    is now. `claimed` is true; only the coupon is left to take.
+ *    is now (POLICY, deliberate, like rule 1: finishing a withdrawal does not
+ *    ask whether the stamps would cover the card today). `claimed` is true;
+ *    only the coupon is left to take.
  * 3. while `stampCoverage < 0`, the newest standing card's coupon, at that
  *    card's cost.
  *
@@ -507,6 +552,83 @@ export function staleFreeDrinkClaims(
     }
   }
   return out;
+}
+
+/**
+ * The `unredeem` rows to drop because their `redeem` row is gone: a claim
+ * written for a card that a redeem's rollback (or a hand edit) deleted a
+ * moment later. It would credit the member the card's cost for nothing, and
+ * `redeemStamps` would sell those stamps a second time.
+ */
+export function orphanClaimIds(
+  rows: readonly Pick<CardRow, "id" | "kind">[],
+): string[] {
+  const redeems = new Set(
+    rows.filter((r) => r.kind === "redeem").map((r) => r.id),
+  );
+  return rows
+    .filter((r) => {
+      if (r.kind !== "unredeem") return false;
+      const own = redeemIdOfClaim(r.id);
+      return own !== null && !redeems.has(own);
+    })
+    .map((r) => r.id);
+}
+
+/**
+ * How long an app `redeem` row may stand without its coupon before it counts
+ * as abandoned. A live redeem writes the row and the coupon within two
+ * statements; two minutes is far past any request that is still running, and
+ * short enough that the stamps of a request that died are back soon.
+ */
+export const REDEEM_ROW_GRACE_MS = 2 * 60 * 1000;
+
+/**
+ * The app `redeem` rows no loyalty coupon belongs to (`pairCouponsWithCards`,
+ * legacy pairing included): a redeem in flight, between its row and its
+ * coupon, or a card whose request died and whose rollback could not delete
+ * it. Empty while a loyalty coupon exists that no card claims (an old coupon
+ * of unknown origin): which card lacks a coupon is then a guess.
+ *
+ * A settlement never takes a real free drink to "cover" such a card
+ * (`healLedger` leaves it out of the ledger it decides on): the stamps are
+ * not in the member's hands, the coupon they bought does not exist, and if
+ * the card is in flight its own redeem settles once its coupon is there.
+ */
+export function couponlessCards<T extends CardRow & { source?: string }>(
+  rows: readonly T[],
+  coupons: readonly SettleCoupon[],
+): T[] {
+  const paired = pairCouponsWithCards(rows, coupons);
+  if (paired.some((p) => !p.card && !redeemIdOfCoupon(p.coupon.id))) return [];
+  const hasCoupon = new Set(paired.flatMap((p) => (p.card ? [p.card.id] : [])));
+  return rows.filter(
+    (r) => r.kind === "redeem" && r.source === "app" && !hasCoupon.has(r.id),
+  );
+}
+
+/**
+ * The couponless cards to DROP: older than the grace window, so no redeem can
+ * still be on its way to creating a coupon. The request that wrote the row
+ * died and its rollback could not delete it; the row would keep holding the
+ * member's stamps against a card nobody can use. Within the grace window the
+ * row is a redeem in flight and is never touched.
+ *
+ * POLICY (deliberate, the consequence of this rule): the card and its coupon
+ * live and die together. A coupon an admin hard-deletes
+ * (`revokeCustomerCoupon`) leaves a card with no coupon, and after the grace
+ * window its stamps are given back - the mirror image of a hand-deleted
+ * `redeem` row withdrawing its coupon (`nextFreeDrinkWithdrawal`, rule 1).
+ */
+export function abandonedCards<T extends CardRow & { source?: string }>(
+  rows: readonly T[],
+  coupons: readonly SettleCoupon[],
+  nowMs: number,
+  graceMs: number = REDEEM_ROW_GRACE_MS,
+): T[] {
+  return couponlessCards(rows, coupons).filter(
+    (r) => nowMs - Date.parse(r.createdAt) > graceMs,
+  );
 }
 
 /** The loyalty knobs the operator turns; one shape for the core and the till. */

@@ -941,25 +941,17 @@ describe("review 4, defect 4: a coupon insert that commits but loses its answer"
     expect((await redeemStamps(MEMBER)).ok).toBe(false);
   });
 
-  it("if the withdrawal fails too, the next settlement takes the orphan", async () => {
+  it("if every withdrawal attempt fails too, the next settlement takes the orphan", async () => {
     await counterStamps(6);
-    // The insert commits and loses its answer; the withdrawal then fails once.
-    let step = 0;
-    gate = async (q) => {
-      if (step === 0 && /^INSERT INTO "customer_coupons"/.test(q.text)) {
-        step = 1;
-        await baseExec(q);
-        throw Object.assign(new Error("socket hang up"), { code: "" });
-      }
-      if (step === 1 && /^UPDATE "customer_coupons"/.test(q.text)) {
-        step = 2;
-        throw Object.assign(new Error("socket hang up"), { code: "" });
-      }
-    };
+    // The insert commits and loses its answer; the withdrawal then fails on
+    // every attempt (an outage), so the coupon outlives its row.
+    const lost = failOnce(/^INSERT INTO "customer_coupons"/, true);
+    const outage = failTimes(/^UPDATE "customer_coupons"/, 99);
     tick();
     await expect(redeemStamps(MEMBER)).rejects.toThrow();
     gate = null;
-    expect(step).toBe(2);
+    expect(lost.fired).toBe(true);
+    expect(outage.fired).toBeGreaterThan(0);
     // The redeem row is gone and its coupon is not: an active free drink
     // that no card paid for.
     expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(0);
@@ -1010,6 +1002,968 @@ describe("review 4: a redeem that cannot read the ledger back", () => {
   });
 });
 
+// ── review 5 (16 Eki 2026, third independent review) ──────────────────────
+//
+// Seven defects in failure and concurrency windows, none in fault-free
+// operation. Every scenario below was reproduced against the commit before
+// this one (the repros of that review are the A-G blocks).
+
+/** A request can die between two statements; the clock then moves on. */
+function pastGrace(): void {
+  clock += core.REDEEM_ROW_GRACE_MS + 1_000;
+  vi.setSystemTime(clock);
+}
+
+/** Yields to the event loop until `until` holds (a paused request has reached its pause). */
+async function spin(until: () => boolean): Promise<void> {
+  for (let i = 0; i < 500 && !until(); i += 1) {
+    await new Promise((r) => setImmediate(r));
+  }
+}
+
+async function redeemedMember() {
+  await counterStamps(6);
+  tick();
+  const r = await redeemStamps(MEMBER);
+  if (!r.ok) throw new Error("redeem");
+  return r.coupon;
+}
+
+/** Fails the first query `match` accepts, `times` times in a row. */
+function failTimes(match: RegExp, times: number, after = false) {
+  const state = { fired: 0 };
+  const prev = gate;
+  gate = async (q) => {
+    if (prev) await prev(q);
+    if (state.fired >= times || !match.test(q.text)) return;
+    state.fired += 1;
+    if (after && state.fired === 1) await baseExec(q);
+    throw Object.assign(new Error("connection terminated"), { code: "" });
+  };
+  return state;
+}
+
+const failEveryDelete = () =>
+  failTimes(/^DELETE FROM "loyalty_stamps"/, Number.POSITIVE_INFINITY);
+
+describe("review 5, A: the orphan rule against honest coupons", () => {
+  it("a settlement that runs while the redeem is paused before the coupon insert takes nothing, and the coupon lands intact", async () => {
+    await counterStamps(12);
+    const pause = pauseAt(/^INSERT INTO "customer_coupons"/);
+    tick();
+    const redeeming = redeemStamps(MEMBER);
+    await untilPaused(pause.state);
+    // The row is in the ledger, the coupon is not yet.
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(1);
+    gate = null;
+    tick();
+    await settleLoyaltyDebt(MEMBER);
+    expect(unredeems()).toHaveLength(0);
+    pause.release();
+    const res = await redeeming;
+    expect(res.ok).toBe(true);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    expect(unredeems()).toHaveLength(0);
+  });
+
+  it("a settlement that runs after the coupon committed but before the redeem went on takes nothing", async () => {
+    await counterStamps(12);
+    let sawInsert = false;
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    let paused = false;
+    gate = async (q) => {
+      if (/^INSERT INTO "customer_coupons"/.test(q.text)) sawInsert = true;
+      else if (
+        sawInsert &&
+        !paused &&
+        /^SELECT .*"customer_coupons"/.test(q.text)
+      ) {
+        paused = true; // the coupon is committed; the redeem has not gone on
+        await held;
+      }
+    };
+    tick();
+    const redeeming = redeemStamps(MEMBER);
+    await spin(() => paused);
+    expect(paused).toBe(true);
+    gate = null;
+    tick();
+    await settleLoyaltyDebt(MEMBER);
+    expect(unredeems()).toHaveLength(0);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    release();
+    expect((await redeeming).ok).toBe(true);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+  });
+
+  it("a settlement that read the coupons, then waits while a whole redeem lands, then reads the ledger", async () => {
+    await counterStamps(12);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    let reads = 0;
+    let paused = false;
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    gate = async (q) => {
+      if (/^SELECT .*"loyalty_stamps"/.test(q.text)) {
+        reads += 1;
+        if (reads === 1) {
+          paused = true;
+          await held;
+        }
+      }
+    };
+    tick();
+    const settling = settleLoyaltyDebt(MEMBER);
+    await spin(() => paused);
+    expect(paused).toBe(true);
+    gate = null;
+    await counterStamps(6);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    release();
+    await settling;
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(2);
+    expect(unredeems()).toHaveLength(0);
+  });
+
+  it("anonymisation sweeps the ledger first and the coupons second: a settlement in between only takes what the sweep takes anyway", async () => {
+    const c = await redeemedMember();
+    for (const r of ledger()) r.customerEmail = "deleted-1@anon.invalid";
+    tick();
+    await settleLoyaltyDebt(MEMBER);
+    const cs = await loyaltyCoupons();
+    expect(cs.find((x) => x.id === c.id)).toMatchObject({ isActive: false });
+  });
+
+  it("POLICY: a ledger redeem row deleted by hand withdraws the coupon at the next trigger, with no stamp refund", async () => {
+    const c = await redeemedMember();
+    const redeem = ledger().find((r) => r.kind === "redeem")!;
+    ledger().splice(ledger().indexOf(redeem), 1);
+    tick();
+    await settleLoyaltyDebt(MEMBER);
+    const cs = await loyaltyCoupons();
+    // Deliberate: whatever the coverage, the coupon goes.
+    expect(cs.find((x) => x.id === c.id)).toMatchObject({ isActive: false });
+    expect(covered()).toBe(6);
+  });
+
+  it("changing stampTarget alone never withdraws anything, with every kind of coupon around", async () => {
+    await counterStamps(12);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    for (const t of [3, 4, 8, 12, 20, 6]) {
+      setCardSize(t);
+      await settleLoyaltyDebt(MEMBER);
+      expect(unusedLive(await loyaltyCoupons())).toHaveLength(2);
+      expect(unredeems()).toHaveLength(0);
+    }
+  });
+
+  it("old pre-change coupons with no card at all are left alone", async () => {
+    tick();
+    await grantCoupon({
+      email: MEMBER,
+      kind: "fixed",
+      value: 28000,
+      source: "loyalty",
+    });
+    await counterStamps(3);
+    await settleLoyaltyDebt(MEMBER);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+  });
+
+  it("a legacy coupon whose card has gone is not an orphan (no cpn-stamp- id); its linked neighbour is intact", async () => {
+    await counterStamps(12);
+    tick();
+    ledger().push({
+      id: "stamp-legacy-1",
+      customerEmail: MEMBER,
+      kind: "redeem",
+      delta: -6,
+      source: "app",
+      orderId: "",
+      note: "",
+      actor: "",
+      createdAt: new Date(clock).toISOString(),
+    });
+    tick();
+    await grantCoupon({
+      email: MEMBER,
+      kind: "fixed",
+      value: 28000,
+      source: "loyalty",
+    });
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    pastGrace();
+    await settleLoyaltyDebt(MEMBER);
+    // The legacy card pairs with the legacy coupon: neither is touched, even
+    // past the grace window.
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(2);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(2);
+  });
+
+  it("a redeem row under a different owner string (case): the coupon is the orphan of its own list", async () => {
+    const c = await redeemedMember();
+    for (const r of ledger()) r.customerEmail = "Eda@example.com";
+    tick();
+    await settleLoyaltyDebt(MEMBER);
+    // Documents: listStamps is an exact match, so the coupon looks orphaned.
+    expect((await loyaltyCoupons()).find((x) => x.id === c.id)).toMatchObject({
+      isActive: false,
+    });
+  });
+});
+
+describe("review 5, defect 1: till -1, failures after the row is committed", () => {
+  /** The coverage check is the member's second ledger read of the click. */
+  function failSecondRead() {
+    let reads = 0;
+    const state = { fired: false };
+    gate = (q) => {
+      if (!/^SELECT .*"loyalty_stamps"/.test(q.text)) return;
+      reads += 1;
+      if (reads !== 2) return;
+      state.fired = true;
+      throw Object.assign(new Error("connection terminated"), { code: "" });
+    };
+    return state;
+  }
+  const lifetime = () => core.computeStampBalance(rows()).lifetimeStamps;
+
+  it("the coverage read fails once: the row is rolled back and the operator is told, so the retry takes exactly one stamp", async () => {
+    await counterStamps(3);
+    const failure = failSecondRead();
+    tick();
+    await expect(
+      reverseCounterStamp(MEMBER, "kasa@laffogato.net"),
+    ).rejects.toThrow();
+    gate = null;
+    expect(failure.fired).toBe(true);
+    expect(lifetime()).toBe(3);
+    expect(ledger().filter((r) => r.kind === "reversal")).toHaveLength(0);
+    tick();
+    expect((await reverseCounterStamp(MEMBER, "kasa@laffogato.net")).ok).toBe(
+      true,
+    );
+    expect(lifetime()).toBe(2);
+  });
+
+  it("the coverage read fails and the rollback cannot go through either: the stamp stands, and the click says so (no second stamp on a retry)", async () => {
+    await counterStamps(3);
+    failSecondRead();
+    failEveryDelete();
+    tick();
+    const res = await reverseCounterStamp(MEMBER, "kasa@laffogato.net");
+    gate = null;
+    expect(res.ok).toBe(true);
+    expect(lifetime()).toBe(2);
+    expect(ledger().filter((r) => r.kind === "reversal")).toHaveLength(1);
+  });
+
+  it("the insert commits and loses its answer: the row is taken back before the error is shown", async () => {
+    await counterStamps(3);
+    const failure = failOnce(/^INSERT INTO "loyalty_stamps"/, true);
+    tick();
+    await expect(
+      reverseCounterStamp(MEMBER, "kasa@laffogato.net"),
+    ).rejects.toThrow();
+    gate = null;
+    expect(failure.fired).toBe(true);
+    expect(lifetime()).toBe(3);
+    tick();
+    expect((await reverseCounterStamp(MEMBER, "kasa@laffogato.net")).ok).toBe(
+      true,
+    );
+    expect(lifetime()).toBe(2);
+  });
+});
+
+describe("review 5, defect 6: two till corrections never overlap", () => {
+  /** Holds the first two reversal INSERTs, then the first two ledger SELECTs after them. */
+  function twoClicksHeld() {
+    const st = {
+      insertsHeld: 0,
+      selectsHeld: 0,
+      phase: "inserts" as "inserts" | "selects" | "free",
+    };
+    let releaseInserts!: () => void;
+    let releaseSelects!: () => void;
+    const insertsGate = new Promise<void>((r) => (releaseInserts = r));
+    const selectsGate = new Promise<void>((r) => (releaseSelects = r));
+    gate = async (q) => {
+      if (
+        st.phase === "inserts" &&
+        /^INSERT INTO "loyalty_stamps"/.test(q.text)
+      ) {
+        st.insertsHeld += 1;
+        await insertsGate;
+        return;
+      }
+      if (
+        st.phase === "selects" &&
+        /^SELECT .*"loyalty_stamps"/.test(q.text) &&
+        st.selectsHeld < 2
+      ) {
+        st.selectsHeld += 1;
+        await selectsGate;
+      }
+    };
+    return {
+      st,
+      toSelects: () => {
+        st.phase = "selects";
+        releaseInserts();
+      },
+      free: () => {
+        st.phase = "free";
+        gate = null;
+        releaseSelects();
+      },
+    };
+  }
+
+  it("a double click with one stamp to spare and a settlement in between: one correction, the free drink stays", async () => {
+    await counterStamps(7);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true); // 7 - 6 = 1 spare
+    expect(covered()).toBe(1);
+
+    const h = twoClicksHeld();
+    tick();
+    const a = reverseCounterStamp(MEMBER, "kasa@laffogato.net");
+    const b = reverseCounterStamp(MEMBER, "kasa@laffogato.net");
+    await spin(() => h.st.insertsHeld >= 2);
+    expect(h.st.insertsHeld).toBe(2);
+    h.toSelects();
+    await spin(() => h.st.selectsHeld >= 2);
+    expect(h.st.selectsHeld).toBe(2);
+    // The second click lost the primary key: only one row is in, and the
+    // ledger never dips below its cards.
+    expect(ledger().filter((r) => r.kind === "reversal")).toHaveLength(1);
+    expect(covered()).toBe(0);
+
+    // Any other trigger runs now: a refund webhook, a redeem, a released coupon.
+    await settleLoyaltyDebt(MEMBER);
+    h.free();
+    const res = await Promise.all([a, b]);
+    expect(res.filter((r) => r.ok)).toHaveLength(1);
+    expect(res.filter((r) => !r.ok)).toEqual([
+      { ok: false, error: "no_stamps" },
+    ]);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    expect(unredeems()).toHaveLength(0);
+    expect(covered()).toBe(0);
+  });
+
+  it("with stamps to spare a double click takes two, as two clicks always did", async () => {
+    await counterStamps(4);
+    const h = twoClicksHeld();
+    tick();
+    const a = reverseCounterStamp(MEMBER, "kasa@laffogato.net");
+    const b = reverseCounterStamp(MEMBER, "kasa@laffogato.net");
+    await spin(() => h.st.insertsHeld >= 2);
+    h.toSelects();
+    await spin(() => h.st.selectsHeld >= 2);
+    h.free();
+    const res = await Promise.all([a, b]);
+    expect(res.map((r) => r.ok)).toEqual([true, true]);
+    expect(ledger().filter((r) => r.kind === "reversal")).toHaveLength(2);
+    expect(core.computeStampBalance(rows()).lifetimeStamps).toBe(2);
+  });
+
+  it("a redeem that lands between the check and the row overdraws the correction: the row is withdrawn and the free drink kept", async () => {
+    await counterStamps(6);
+    const pause = pauseAt(/^INSERT INTO "loyalty_stamps"/);
+    tick();
+    const click = reverseCounterStamp(MEMBER, "kasa@laffogato.net");
+    await untilPaused(pause.state);
+    gate = null;
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    pause.release();
+    expect(await click).toEqual({ ok: false, error: "no_stamps" });
+    expect(ledger().filter((r) => r.kind === "reversal")).toHaveLength(0);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    expect(covered()).toBe(0);
+  });
+
+  it("KNOWN WINDOW: when that withdrawal cannot go through, the error says so and the next settlement pays the overdraft with the free drink", async () => {
+    await counterStamps(6);
+    const pause = pauseAt(/^INSERT INTO "loyalty_stamps"/);
+    tick();
+    const click = reverseCounterStamp(MEMBER, "kasa@laffogato.net");
+    await untilPaused(pause.state);
+    gate = null;
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    pause.release();
+    failEveryDelete();
+    await expect(click).rejects.toThrow(/not withdrawn/);
+    gate = null;
+    expect(covered()).toBe(-1);
+    await settleLoyaltyDebt(MEMBER);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(0);
+  });
+
+  it("the refused click's rollback fails once: it is retried, no stray row, no collateral withdrawal", async () => {
+    await counterStamps(6);
+    const pause = pauseAt(/^INSERT INTO "loyalty_stamps"/);
+    tick();
+    const click = reverseCounterStamp(MEMBER, "kasa@laffogato.net");
+    await untilPaused(pause.state);
+    gate = null;
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    pause.release();
+    failTimes(/^DELETE FROM "loyalty_stamps"/, 1);
+    expect(await click).toEqual({ ok: false, error: "no_stamps" });
+    gate = null;
+    expect(ledger().filter((r) => r.kind === "reversal")).toHaveLength(0);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+  });
+});
+
+describe("review 5, defect 2 and 5: redeemStamps compensations", () => {
+  async function lostRace() {
+    await counterStamps(11);
+    const a = order("ord-1", 20000); // +1 -> 12
+    await pay(a);
+    tick();
+    const first = await redeemStamps(MEMBER); // c0, cost 6
+    expect(first.ok).toBe(true);
+    // The member taps redeem: the balance check passes (6 available)...
+    const pause = pauseAt(/^INSERT INTO "loyalty_stamps"/);
+    tick();
+    const redeeming = redeemStamps(MEMBER);
+    await untilPaused(pause.state);
+    // ...and a refund lands before the row does (11 stamps now).
+    gate = null;
+    await onOrderReversed({ ...a, status: "cancelled" }, { full: true });
+    expect(covered()).toBe(5);
+    return { pause, redeeming };
+  }
+  const redeemRowsWithoutCoupon = () =>
+    ledger().filter(
+      (r) =>
+        r.kind === "redeem" &&
+        !tables.customer_coupons.some(
+          (c) => c.id === core.freeDrinkCouponId(String(r.id)),
+        ),
+    );
+
+  it("E1 the lost-race rollback DELETE fails once: it is retried, no card is left without its coupon", async () => {
+    const { pause, redeeming } = await lostRace();
+    pause.release();
+    const failure = failTimes(/^DELETE FROM "loyalty_stamps"/, 1);
+    expect(await redeeming).toMatchObject({
+      ok: false,
+      error: "not_enough_stamps",
+    });
+    gate = null;
+    expect(failure.fired).toBe(1);
+    expect(redeemRowsWithoutCoupon()).toHaveLength(0);
+    // Before the race the member had one free drink and 5 stamps: still so.
+    await settleLoyaltyDebt(MEMBER);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    expect(await getLoyalty(MEMBER)).toMatchObject({ stamps: 5 });
+  });
+
+  it("E1c the rollback never goes through: the card with no coupon is dropped after the grace window, and the real coupon is never taken for it", async () => {
+    const { pause, redeeming } = await lostRace();
+    pause.release();
+    failEveryDelete();
+    await redeeming; // refused; the row it could not delete stays
+    gate = null;
+    expect(redeemRowsWithoutCoupon()).toHaveLength(1);
+    // Inside the window it may still be a redeem in flight: not touched.
+    clock += core.REDEEM_ROW_GRACE_MS / 2;
+    vi.setSystemTime(clock);
+    await settleLoyaltyDebt(MEMBER);
+    expect(redeemRowsWithoutCoupon()).toHaveLength(1);
+    // ... and the real coupon is not taken to cover a card that has none.
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    expect(unredeems()).toHaveLength(0);
+    // Past it, the row is dropped and the stamps are back: 11 - 6 = 5, one coupon.
+    pastGrace();
+    await settleLoyaltyDebt(MEMBER);
+    expect(redeemRowsWithoutCoupon()).toHaveLength(0);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    expect(unredeems()).toHaveLength(0);
+    expect(covered()).toBe(5);
+  });
+
+  it("E1d a refused tap is itself the trigger that drops an abandoned card", async () => {
+    const { pause, redeeming } = await lostRace();
+    pause.release();
+    failEveryDelete();
+    await redeeming;
+    gate = null;
+    pastGrace();
+    // 11 stamps, 1 coupon + 1 abandoned card: 5 are free, the tap is refused ...
+    expect((await redeemStamps(MEMBER)).ok).toBe(false);
+    // ... but the abandoned card is gone, and the next 1 stamp makes 6.
+    expect(redeemRowsWithoutCoupon()).toHaveLength(0);
+    await counterStamps(1);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(2);
+  });
+
+  it("E2 the coupon insert commits and loses its answer, and the first withdrawal fails: it is retried, there is no orphan to spend", async () => {
+    await counterStamps(6);
+    let step = 0;
+    gate = async (q) => {
+      if (step === 0 && /^INSERT INTO "customer_coupons"/.test(q.text)) {
+        step = 1;
+        await baseExec(q);
+        throw Object.assign(new Error("socket hang up"), { code: "" });
+      }
+      if (step === 1 && /^UPDATE "customer_coupons"/.test(q.text)) {
+        step = 2;
+        throw Object.assign(new Error("socket hang up"), { code: "" });
+      }
+    };
+    tick();
+    await expect(redeemStamps(MEMBER)).rejects.toThrow();
+    gate = null;
+    expect(step).toBe(2);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(0);
+    // Nothing usable before any trigger runs.
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(0);
+    // The six stamps are back: they buy exactly one free drink.
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    const cs = await loyaltyCoupons();
+    expect(cs.filter((c) => c.isActive)).toHaveLength(1);
+    expect(cs.filter((c) => c.redeemedAt)).toHaveLength(0);
+  });
+
+  it("E2b every withdrawal fails: the coupon is an orphan until the next trigger, which takes it; the stamps were given back", async () => {
+    await counterStamps(6);
+    const failure = failTimes(/^UPDATE "customer_coupons"/, 99);
+    const lost = failTimes(/^INSERT INTO "customer_coupons"/, 1, true);
+    tick();
+    await expect(redeemStamps(MEMBER)).rejects.toThrow();
+    gate = null;
+    expect(failure.fired).toBeGreaterThan(1); // retried, to no avail
+    expect(lost.fired).toBe(1);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(0);
+    // The residual window: active, with no card behind it.
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    await settleLoyaltyDebt(MEMBER);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(0);
+    expect(unredeems()).toHaveLength(0);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+  });
+
+  it("E3 the coupon is written and loses its answer, then the row delete fails once: the row goes on the retry, the stamps are not burned", async () => {
+    await counterStamps(6);
+    let step = 0;
+    gate = async (q) => {
+      if (step === 0 && /^INSERT INTO "customer_coupons"/.test(q.text)) {
+        step = 1;
+        await baseExec(q);
+        throw Object.assign(new Error("socket hang up"), { code: "" });
+      }
+      if (step === 1 && /^DELETE FROM "loyalty_stamps"/.test(q.text)) {
+        step = 2;
+        throw Object.assign(new Error("socket hang up"), { code: "" });
+      }
+    };
+    tick();
+    await expect(redeemStamps(MEMBER)).rejects.toThrow();
+    gate = null;
+    expect(step).toBe(2);
+    await settleLoyaltyDebt(MEMBER);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(0);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(0);
+    expect((await getLoyalty(MEMBER)).rewardsReady).toBe(1);
+  });
+
+  it("E3b the row cannot be deleted at all: the coupon is kept with it, never withdrawn while its card stands", async () => {
+    await counterStamps(6);
+    failTimes(/^INSERT INTO "customer_coupons"/, 1, true);
+    failEveryDelete();
+    tick();
+    await expect(redeemStamps(MEMBER)).rejects.toThrow();
+    gate = null;
+    // Both stand, consistently: a redeem that reported an error.
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(1);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    pastGrace();
+    await settleLoyaltyDebt(MEMBER);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(1);
+    expect(unredeems()).toHaveLength(0);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(false);
+  });
+
+  it("E4 the insert answer is lost AFTER commit and the follow-up delete is lost BEFORE: the row goes on the retry", async () => {
+    await counterStamps(6);
+    let n = 0;
+    gate = async (q) => {
+      if (/^INSERT INTO "loyalty_stamps"/.test(q.text) && n === 0) {
+        n = 1;
+        await baseExec(q);
+        throw Object.assign(new Error("socket hang up"), { code: "" });
+      }
+      if (n === 1 && /^DELETE FROM "loyalty_stamps"/.test(q.text)) {
+        n = 2;
+        throw Object.assign(new Error("socket hang up"), { code: "" });
+      }
+    };
+    tick();
+    await expect(redeemStamps(MEMBER)).rejects.toThrow();
+    gate = null;
+    expect(n).toBe(2);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(0);
+  });
+});
+
+describe("review 5, defect 2: the grace window, with a paused query", () => {
+  it("a redeem in flight (row in, coupon not yet) is never dropped, however many settlements run, and lands intact", async () => {
+    await counterStamps(6);
+    const pause = pauseAt(/^INSERT INTO "customer_coupons"/);
+    tick();
+    const redeeming = redeemStamps(MEMBER);
+    await untilPaused(pause.state);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(1);
+    gate = null;
+    // Almost at the end of the window, and a settlement runs: the row stays.
+    clock += core.REDEEM_ROW_GRACE_MS - 5_000;
+    vi.setSystemTime(clock);
+    await settleLoyaltyDebt(MEMBER);
+    await settleLoyaltyDebt(MEMBER);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(1);
+    pause.release();
+    const res = await redeeming;
+    expect(res.ok).toBe(true);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    expect(unredeems()).toHaveLength(0);
+    expect(covered()).toBe(0);
+  });
+
+  it("a redeem slower than the window loses its row: it ends refused, the stamps stay the member's, and no coupon is left", async () => {
+    await counterStamps(6);
+    const pause = pauseAt(/^INSERT INTO "customer_coupons"/);
+    tick();
+    const redeeming = redeemStamps(MEMBER);
+    await untilPaused(pause.state);
+    gate = null;
+    pastGrace();
+    await settleLoyaltyDebt(MEMBER);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(0);
+    pause.release();
+    expect((await redeeming).ok).toBe(false);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(0);
+    expect(unredeems()).toHaveLength(0);
+    expect((await getLoyalty(MEMBER)).rewardsReady).toBe(1);
+  });
+
+  it("a coupon that lands between the settlement's first coupon read and its decision keeps its card", async () => {
+    await counterStamps(6);
+    // One gate for both requests: the redeem stops before its coupon insert;
+    // the settlement, once the window has passed, stops at its SECOND coupon
+    // read (the one that re-checks an abandoned card).
+    let redeemHeld = false;
+    let settleHeld = false;
+    let couponReads = 0;
+    let releaseRedeem!: () => void;
+    let releaseSettle!: () => void;
+    const redeemWait = new Promise<void>((r) => (releaseRedeem = r));
+    const settleWait = new Promise<void>((r) => (releaseSettle = r));
+    let settling = false;
+    gate = async (q) => {
+      if (!redeemHeld && /^INSERT INTO "customer_coupons"/.test(q.text)) {
+        redeemHeld = true;
+        await redeemWait;
+      } else if (
+        settling &&
+        !settleHeld &&
+        /^SELECT .*"customer_coupons"/.test(q.text)
+      ) {
+        couponReads += 1;
+        if (couponReads === 2) {
+          settleHeld = true;
+          await settleWait;
+        }
+      }
+    };
+    tick();
+    const redeeming = redeemStamps(MEMBER);
+    await spin(() => redeemHeld);
+    expect(redeemHeld).toBe(true);
+    pastGrace();
+    settling = true;
+    const settle = settleLoyaltyDebt(MEMBER);
+    await spin(() => settleHeld);
+    expect(settleHeld).toBe(true);
+    // The redeem's coupon lands while the settlement waits.
+    settling = false;
+    releaseRedeem();
+    await spin(() => tables.customer_coupons.length > 0);
+    expect(tables.customer_coupons).toHaveLength(1);
+    releaseSettle();
+    await settle;
+    gate = null;
+    expect((await redeeming).ok).toBe(true);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(1);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+  });
+
+  it("only app cards are dropped", async () => {
+    await counterStamps(6);
+    ledger().push({
+      id: "stamp-counter-redeem",
+      customerEmail: MEMBER,
+      kind: "redeem",
+      delta: -3,
+      source: "counter",
+      orderId: "",
+      note: "",
+      actor: "",
+      createdAt: new Date(clock).toISOString(),
+    });
+    pastGrace();
+    await settleLoyaltyDebt(MEMBER);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(1);
+  });
+
+  it("nothing is dropped while an old coupon of unknown origin makes the pairing a guess", async () => {
+    await counterStamps(6);
+    tick();
+    // A loyalty coupon granted before ids were linked, older than every card.
+    await grantCoupon({
+      email: MEMBER,
+      kind: "fixed",
+      value: 28000,
+      source: "loyalty",
+    });
+    tick();
+    ledger().push({
+      id: "stamp-000900",
+      customerEmail: MEMBER,
+      kind: "redeem",
+      delta: -3,
+      source: "app",
+      orderId: "",
+      note: "",
+      actor: "",
+      createdAt: new Date(clock).toISOString(),
+    });
+    pastGrace();
+    await settleLoyaltyDebt(MEMBER);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(1);
+  });
+
+  it("POLICY: a loyalty coupon an admin hard-deletes leaves a card with no coupon; past the grace window its stamps come back", async () => {
+    const c = await redeemedMember();
+    const i = tables.customer_coupons.findIndex((x) => x.id === c.id);
+    tables.customer_coupons.splice(i, 1);
+    await settleLoyaltyDebt(MEMBER);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(1);
+    pastGrace();
+    await settleLoyaltyDebt(MEMBER);
+    expect(ledger().filter((r) => r.kind === "redeem")).toHaveLength(0);
+    expect((await getLoyalty(MEMBER)).rewardsReady).toBe(1);
+  });
+});
+
+describe("review 5, defect 3: a claim never outlives its redeem row", () => {
+  /** A refund settles while a redeem's coupon insert lost its answer. */
+  async function ripe() {
+    await counterStamps(11);
+    const a = order("ord-1", 20000);
+    await pay(a); // 12
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true); // c0 (card A)
+    return a;
+  }
+  const noClaimWithoutCard = () => {
+    const redeems = ledger()
+      .filter((r) => r.kind === "redeem")
+      .map((r) => r.id);
+    for (const u of unredeems()) {
+      expect(redeems).toContain(String(u.id).replace(/^stamp-unredeem-/, ""));
+    }
+  };
+
+  it("a settlement claims the card of a redeem that is rolling back: the rollback takes the claim with the row", async () => {
+    const a = await ripe();
+    let phase = 0;
+    let paused = false;
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    gate = async (q) => {
+      if (phase === 0 && /^INSERT INTO "customer_coupons"/.test(q.text)) {
+        phase = 1;
+        await baseExec(q);
+        throw Object.assign(new Error("socket hang up"), { code: "" });
+      }
+      // R2's own compensation waits at the delete of its row
+      if (
+        phase === 1 &&
+        !paused &&
+        /^DELETE FROM "loyalty_stamps"/.test(q.text)
+      ) {
+        paused = true;
+        await held;
+      }
+    };
+    tick();
+    const r2 = redeemStamps(MEMBER);
+    await spin(() => paused);
+    expect(paused).toBe(true);
+    // Meanwhile a refund lands and its settlement runs: it sees R2's row and
+    // coupon, claims the card and takes the coupon.
+    await onOrderReversed({ ...a, status: "cancelled" }, { full: true });
+    expect(unredeems().map((u) => u.id)).toContain(
+      core.unredeemId("stamp-000014"),
+    );
+    release();
+    await expect(r2).rejects.toThrow();
+    gate = null;
+    noClaimWithoutCard();
+    const view = await getLoyalty(MEMBER);
+    expect(view.rewardsReady).toBe(0);
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(false);
+  });
+
+  it("a settlement that read the row writes its claim after the rollback finished: the phantom claim is dropped, by the settlement that wrote it or the next one", async () => {
+    const a = await ripe();
+    let phase = 0;
+    let rollbackPaused = false;
+    let claimPaused = false;
+    let releaseRollback!: () => void;
+    let releaseClaim!: () => void;
+    const rollbackHeld = new Promise<void>((r) => (releaseRollback = r));
+    const claimHeld = new Promise<void>((r) => (releaseClaim = r));
+    gate = async (q) => {
+      if (phase === 0 && /^INSERT INTO "customer_coupons"/.test(q.text)) {
+        phase = 1;
+        await baseExec(q);
+        throw Object.assign(new Error("socket hang up"), { code: "" });
+      }
+      if (
+        phase === 1 &&
+        !rollbackPaused &&
+        /^DELETE FROM "loyalty_stamps"/.test(q.text)
+      ) {
+        rollbackPaused = true;
+        await rollbackHeld;
+        return;
+      }
+      if (
+        !claimPaused &&
+        /^INSERT INTO "loyalty_stamps"/.test(q.text) &&
+        q.params.includes("unredeem")
+      ) {
+        claimPaused = true;
+        await claimHeld;
+      }
+    };
+    tick();
+    const r2 = redeemStamps(MEMBER);
+    await spin(() => rollbackPaused);
+    const refund = onOrderReversed(
+      { ...a, status: "cancelled" },
+      { full: true },
+    );
+    await spin(() => claimPaused);
+    expect(claimPaused).toBe(true);
+    // The rollback goes through (row, claim, coupon) while the settlement
+    // still holds its claim in hand ...
+    releaseRollback();
+    await expect(r2).rejects.toThrow();
+    expect(ledger().filter((r) => r.id === "stamp-000014")).toHaveLength(0);
+    // ... then the claim lands: a phantom, the card is gone.
+    releaseClaim();
+    await refund;
+    gate = null;
+    await settleLoyaltyDebt(MEMBER);
+    noClaimWithoutCard();
+    expect(unusedLive(await loyaltyCoupons())).toHaveLength(1);
+    expect(covered()).toBe(5);
+  });
+
+  it("settlement drops a claim whose redeem row is gone, and nothing else", async () => {
+    const c = await redeemedMember();
+    await counterStamps(1);
+    // Withdraw by hand: claim + coupon, as a settlement would.
+    ledger().push({
+      id: core.unredeemId("stamp-000099"),
+      customerEmail: MEMBER,
+      kind: "unredeem",
+      delta: 6,
+      source: "order",
+      orderId: "",
+      note: "",
+      actor: "",
+      createdAt: new Date(clock).toISOString(),
+    });
+    const before = unredeems().length;
+    expect(before).toBe(1);
+    expect(covered()).toBe(7); // 7 stamps - 6 + the phantom 6
+    await settleLoyaltyDebt(MEMBER);
+    expect(unredeems()).toHaveLength(0);
+    expect(covered()).toBe(1);
+    // The honest coupon is untouched.
+    expect(unusedLive(await loyaltyCoupons()).map((x) => x.id)).toEqual([c.id]);
+  });
+});
+
+describe("review 5, defect 4: dropping a claim looks at the coupon again", () => {
+  it("the coupon is released and withdrawn by another settlement while the first one drops its stale claim: the claim is written back, one debt costs one free drink", async () => {
+    await counterStamps(11);
+    const a = order("ord-1", 20000);
+    await pay(a); // 12
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(true);
+    const [newest] = await loyaltyCoupons();
+    expect(covered()).toBe(0);
+
+    const p1 = pauseAt(/^UPDATE "customer_coupons"/);
+    tick();
+    const cancel = onOrderReversed(
+      { ...a, status: "cancelled" },
+      { full: true },
+    );
+    await untilPaused(p1.state);
+    expect(unredeems()).toHaveLength(1);
+    expect(await redeemCustomerCoupon(newest.code, MEMBER, 90001)).toBe(true);
+    p1.release();
+    const p2 = pauseAt(/^DELETE FROM "loyalty_stamps"/);
+    await untilPaused(p2.state);
+    expect(await releaseCustomerCoupon(newest.code, MEMBER, 90001)).toBe(true);
+    tick();
+    await settleLoyaltyDebt(MEMBER); // finishes the half-done withdrawal
+    p2.release();
+    await cancel;
+    await settleLoyaltyDebt(MEMBER);
+    await settleLoyaltyDebt(MEMBER);
+
+    const cs = await loyaltyCoupons();
+    for (const c of cs) {
+      const own = core.redeemIdOfCoupon(c.id)!;
+      const claimed = unredeems().some((u) => u.id === core.unredeemId(own));
+      expect(claimed, `${c.id} active=${c.isActive}`).toBe(!c.isActive);
+    }
+    expect(unusedLive(cs)).toHaveLength(1);
+  });
+});
+
 describe("api output stays as it was", () => {
   it("coupon codes stay random; the id is the stamp sequence and never reaches the code", async () => {
     await counterStamps(12);
@@ -1047,18 +2001,19 @@ const SEEDS = Array.from({ length: CASES }, (_, i) => 7919 * (i + 1));
 type Coupon = Awaited<ReturnType<typeof listCustomerCoupons>>[number];
 
 /**
- * Fails the `nth` write (INSERT, UPDATE or DELETE) of the step, once. `after`
- * lets it commit first and loses only the answer, the way a dropped
- * connection does.
+ * Fails the `nth` write (INSERT, UPDATE or DELETE) of the step, and the
+ * `burst - 1` writes after it: one dropped statement, or an outage long
+ * enough to defeat a compensation's retries. `after` lets the first commit
+ * and loses only its answer, the way a dropped connection does.
  */
-function injectFailure(nth: number, after: boolean) {
+function injectFailure(nth: number, after: boolean, burst: number) {
   const state = { writes: 0, fired: false };
   gate = async (q) => {
     if (!/^(INSERT|UPDATE|DELETE)/.test(q.text)) return;
     state.writes += 1;
-    if (state.writes !== nth) return;
+    if (state.writes < nth || state.writes >= nth + burst) return;
+    if (state.writes === nth && after) await baseExec(q);
     state.fired = true;
-    if (after) await baseExec(q);
     throw Object.assign(new Error("connection terminated"), { code: "" });
   };
   return state;
@@ -1087,9 +2042,6 @@ async function runCase(seed: number): Promise<void> {
   const log: string[] = [];
   const where = () => `seed ${seed}: ${log.join(" | ")}`;
   const live = () => [...orders.values()].filter((o) => o.status === "paid");
-  /** A write failed in the last step: how its caller tries again, if it may. */
-  let pending: { redo: (() => Promise<unknown>) | null } | null = null;
-
   for (let step = 0; step < STEPS; step += 1) {
     tick();
     const before = await listCustomerCoupons(MEMBER);
@@ -1102,9 +2054,11 @@ async function runCase(seed: number): Promise<void> {
     const failRoll = x();
     const failAt = 1 + Math.floor(x() * 3);
     const failAfter = x() < 0.5;
+    // One statement, or (a third of the time) an outage of up to four.
+    const failBurst = x() < 0.33 ? 2 + Math.floor(x() * 3) : 1;
     const tillRoll = x();
     const tillTwice = x() < 0.3;
-    const healed = pending !== null;
+    let healed = false;
     let injected: ReturnType<typeof injectFailure> | null = null;
 
     const operate = async (): Promise<void> => {
@@ -1212,30 +2166,52 @@ async function runCase(seed: number): Promise<void> {
       }
     };
 
-    if (pending) {
-      // The step after a failure is the next trigger: the caller tries again
-      // (a replayed webhook, a second click on the cancel) and a settlement
-      // runs. Whatever the failure left half done is finished now.
-      log.push("retry + settle");
-      const again = pending.redo;
-      pending = null;
+    const wasUsed = new Map(before.map((c) => [c.id, c.redeemedAt]));
+    const assertUsedNeverWithdrawn = (cs: Coupon[]) => {
+      // (b) A used coupon is never withdrawn, whatever failed.
+      expect(
+        cs.filter((c) => c.redeemedAt && !c.isActive),
+        `(b) ${where()}`,
+      ).toEqual([]);
+      for (const c of cs) {
+        if (wasUsed.get(c.id) && !releasedByState(cs)) {
+          expect(c.isActive, `(b) ${c.id}: ${where()}`).toBe(true);
+        }
+      }
+    };
+    /** A coupon the member had spent or held is unused again: it was released. */
+    const releasedByState = (cs: Coupon[]) =>
+      released || cs.some((c) => wasUsed.get(c.id) && !c.redeemedAt);
+
+    if (failRoll < FAILURE_RATE) {
+      injected = injectFailure(failAt, failAfter, failBurst);
+      log.push(
+        `[write ${failAt}${failBurst > 1 ? `+${failBurst - 1}` : ""} fails ${failAfter ? "after" : "before"}]`,
+      );
+    }
+    try {
+      await operate();
+    } catch (err) {
+      if (!injected?.fired) throw err;
+    } finally {
+      gate = null;
+    }
+    if (injected?.fired) {
+      // The request died. What a used coupon must never suffer holds even now.
+      assertUsedNeverWithdrawn(await listCustomerCoupons(MEMBER));
+      // Then the heal step, run BEFORE the invariants are read, so none of
+      // them is skipped: the caller tries again (a replayed webhook, a second
+      // click) and a settlement runs, after the grace window, so a card whose
+      // rollback died is dropped. Whatever the failure left half done is
+      // finished now.
+      healed = true;
+      log.push("retry + heal");
+      pastGrace();
+      // (`redo` is set inside `operate`, which TypeScript cannot follow.)
+      const again = redo as (() => Promise<unknown>) | null;
       if (again) await again();
       await settleLoyaltyDebt(MEMBER);
-    } else {
-      if (failRoll < FAILURE_RATE) {
-        injected = injectFailure(failAt, failAfter);
-        log.push(`[write ${failAt} fails ${failAfter ? "after" : "before"}]`);
-      }
-      try {
-        await operate();
-      } catch (err) {
-        if (!injected?.fired) throw err;
-      } finally {
-        gate = null;
-      }
-      if (injected?.fired) pending = { redo };
     }
-    const failedStep = Boolean(injected?.fired);
 
     const after = await listCustomerCoupons(MEMBER);
     const now = Date.now();
@@ -1245,20 +2221,7 @@ async function runCase(seed: number): Promise<void> {
         !(c.expiresAt && Date.parse(c.expiresAt) < now),
     );
 
-    // (b) A used coupon is never withdrawn, whatever failed.
-    expect(
-      after.filter((c) => c.redeemedAt && !c.isActive),
-      `(b) ${where()}`,
-    ).toEqual([]);
-    const wasUsed = new Map(before.map((c) => [c.id, c.redeemedAt]));
-    for (const c of after) {
-      if (wasUsed.get(c.id) && !released) {
-        expect(c.isActive, `(b) ${c.id}: ${where()}`).toBe(true);
-      }
-    }
-    // A step with a failed write may leave a withdrawal half done; the next
-    // step, a trigger, finishes it and everything below holds again.
-    if (failedStep) continue;
+    assertUsedNeverWithdrawn(after);
 
     // (a) The stamps cover every standing card, or nothing unused is left.
     if (covered() < 0) {
@@ -1267,26 +2230,52 @@ async function runCase(seed: number): Promise<void> {
       );
     }
 
-    // Nothing is left half done: no unused coupon on a withdrawn card, no
-    // claim on a coupon the member spent, no coupon without its card.
+    // Nothing is left half done, in either direction. Checked on EVERY step,
+    // the ones where a fault fired included: those ran their heal step first.
+    const redeemIds = new Set(
+      ledger()
+        .filter((x) => x.kind === "redeem")
+        .map((x) => String(x.id)),
+    );
+    const claimIds = new Set(unredeems().map((u) => String(u.id)));
     for (const c of after) {
       const own = c.source === "loyalty" ? core.redeemIdOfCoupon(c.id) : null;
       if (!own) continue;
-      const claimed = unredeems().some((u) => u.id === core.unredeemId(own));
+      const claimed = claimIds.has(core.unredeemId(own));
       if (c.isActive && !c.redeemedAt) {
-        expect(
-          ledger().some((x) => x.kind === "redeem" && x.id === own),
-          `orphan ${c.id}: ${where()}`,
-        ).toBe(true);
+        // no coupon without its card, and no unused coupon on a withdrawn one
+        expect(redeemIds.has(own), `orphan ${c.id}: ${where()}`).toBe(true);
         expect(claimed, `half-done ${c.id}: ${where()}`).toBe(false);
       }
       if (c.redeemedAt) {
         expect(claimed, `stale claim ${c.id}: ${where()}`).toBe(false);
       }
+      if (!c.isActive && !c.redeemedAt && redeemIds.has(own)) {
+        // a withdrawn coupon means its card is claimed
+        expect(claimed, `withdrawn but card stands ${c.id}: ${where()}`).toBe(
+          true,
+        );
+      }
+    }
+    // No card without its coupon (after the grace window: the heal step).
+    for (const id of redeemIds) {
+      expect(
+        after.some((c) => c.id === core.freeDrinkCouponId(id)),
+        `card ${id} without its coupon: ${where()}`,
+      ).toBe(true);
+    }
+    // No claim without its redeem row.
+    for (const id of claimIds) {
+      expect(
+        redeemIds.has(String(core.redeemIdOfClaim(id))),
+        `claim ${id} without its redeem row: ${where()}`,
+      ).toBe(true);
     }
 
-    // (c) Nothing is withdrawn by a step that reversed no stamp and
-    // released no coupon (a retry after a failure may finish one).
+    // (c) Nothing is withdrawn by a step that reversed no stamp and released
+    // no coupon. A step where a fault fired counts as a whole: the failed
+    // request, its retry and the settlement after the grace window together
+    // may finish a withdrawal, but only one a reversal or a release asked for.
     const reversedNow =
       ledger().filter((x) => x.kind === "reversal").length > reversalsBefore;
     const wasActive = new Set(
@@ -1295,7 +2284,7 @@ async function runCase(seed: number): Promise<void> {
     const withdrawn: Coupon[] = after.filter(
       (c) => wasActive.has(c.id) && !c.isActive,
     );
-    if (!reversedNow && !released && !healed) {
+    if (!reversedNow && !releasedByState(after)) {
       expect(withdrawn, `(c) ${where()}`).toEqual([]);
     }
 
@@ -1318,7 +2307,7 @@ async function runCase(seed: number): Promise<void> {
     ).toBe(standing);
     // No unused milestone gift above the lifetime after a reversal settled.
     const lifetime = core.computeStampBalance(rows()).lifetimeStamps;
-    if (reversedNow || released || healed) {
+    if (reversedNow || releasedByState(after) || healed) {
       for (const g of await listMilestoneGrants(MEMBER)) {
         const c = after.find((x) => x.id === g.couponId);
         if (c && c.isActive && !c.redeemedAt) {

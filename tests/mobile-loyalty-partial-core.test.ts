@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  abandonedCards,
   cardCost,
+  couponlessCards,
   computeStampBalance,
   freeDrinkCouponId,
   nextFreeDrinkWithdrawal,
   orderStampHoldings,
+  orphanClaimIds,
   plannedStampReversals,
+  REDEEM_ROW_GRACE_MS,
+  redeemIdOfClaim,
   redeemIdOfCoupon,
   stampCoverage,
   staleFreeDrinkClaims,
@@ -15,6 +20,7 @@ import {
   stampReversalId,
   stampsByOrder,
   stampTargetForOrder,
+  tillCorrectionId,
   unredeemId,
   type LoyaltyStamp,
   type SettleCoupon,
@@ -490,6 +496,110 @@ describe("staleFreeDrinkClaims", () => {
     expect(staleFreeDrinkClaims(rows, [spent, withdrawn, standing])).toEqual([
       { redeemId: a.id, couponId: spent.id },
     ]);
+  });
+});
+
+describe("orphanClaimIds and redeemIdOfClaim", () => {
+  it("names a claim whose redeem row is gone, and no other", () => {
+    const a = row("redeem", -6);
+    const gone = row("redeem", -6);
+    const rows = [
+      row("earn", 3),
+      a,
+      row("unredeem", 6, "", { id: unredeemId(a.id) }),
+      row("unredeem", 6, "", { id: unredeemId(gone.id) }),
+      // Not one of ours: no id to read a card from.
+      row("unredeem", 6, "", { id: "stamp-hand-written" }),
+    ];
+    expect(orphanClaimIds(rows)).toEqual([unredeemId(gone.id)]);
+  });
+
+  it("reads the card out of a claim id", () => {
+    expect(redeemIdOfClaim(unredeemId("stamp-000007"))).toBe("stamp-000007");
+    expect(redeemIdOfClaim("stamp-000007")).toBeNull();
+    expect(redeemIdOfClaim("stamp-unredeem-")).toBeNull();
+  });
+});
+
+describe("couponlessCards and abandonedCards", () => {
+  const T0 = Date.parse("2026-10-16T09:00:00.000Z");
+  const card = (extra: Partial<LoyaltyStamp> = {}) =>
+    row("redeem", -6, "", {
+      source: "app",
+      createdAt: new Date(T0).toISOString(),
+      ...extra,
+    });
+
+  it("a card with no coupon is couponless at once, abandoned only past the grace window", () => {
+    const withCoupon = card();
+    const bare = card();
+    const rows = [row("earn", 12), withCoupon, bare];
+    const coupons = [couponFor(withCoupon)];
+    expect(couponlessCards(rows, coupons).map((r) => r.id)).toEqual([bare.id]);
+    expect(abandonedCards(rows, coupons, T0 + REDEEM_ROW_GRACE_MS)).toEqual([]);
+    expect(
+      abandonedCards(rows, coupons, T0 + REDEEM_ROW_GRACE_MS + 1).map(
+        (r) => r.id,
+      ),
+    ).toEqual([bare.id]);
+  });
+
+  it("a used or withdrawn coupon is still the card's coupon", () => {
+    const a = card();
+    const b = card();
+    const rows = [row("earn", 12), a, b];
+    const coupons = [
+      couponFor(a, { redeemedAt: "2026-10-16T09:30:00.000Z" }),
+      couponFor(b, { isActive: false }),
+    ];
+    expect(couponlessCards(rows, coupons)).toEqual([]);
+  });
+
+  it("leaves other sources alone", () => {
+    const rows = [row("earn", 12), card({ source: "counter" })];
+    expect(couponlessCards(rows, [])).toEqual([]);
+  });
+
+  it("a legacy coupon pairs with the newest earlier card, so only the other is bare", () => {
+    const old = card({ createdAt: "2026-09-01T10:00:00.000Z" });
+    const newer = card({ createdAt: "2026-09-10T10:00:00.000Z" });
+    const legacy = coupon({
+      id: "cpn-0900",
+      createdAt: "2026-09-10T10:00:01.000Z",
+    });
+    expect(
+      couponlessCards([row("earn", 12), old, newer], [legacy]).map((r) => r.id),
+    ).toEqual([old.id]);
+  });
+
+  it("returns nothing while a coupon of unknown origin matches no card", () => {
+    const bare = card({ createdAt: "2026-10-16T10:00:00.000Z" });
+    const stray = coupon({
+      id: "cpn-0901",
+      createdAt: "2026-10-16T09:00:00.000Z",
+    });
+    expect(couponlessCards([row("earn", 12), bare], [stray])).toEqual([]);
+  });
+});
+
+describe("tillCorrectionId", () => {
+  const ids = (...xs: string[]) => xs.map((id) => ({ id }));
+
+  it("is the same for two clicks that read the same ledger, in any order", () => {
+    const rows = ids("stamp-000001", "stamp-000002", "stamp-till-x");
+    expect(tillCorrectionId(rows)).toBe(tillCorrectionId([...rows].reverse()));
+    expect(tillCorrectionId(rows)).toMatch(/^stamp-till-[0-9a-f]{16}$/);
+  });
+
+  it("moves on whenever a row lands or goes, even one written in the same instant", () => {
+    const base = ids("stamp-000001", "stamp-000002");
+    const seen = new Set([
+      tillCorrectionId(base),
+      tillCorrectionId([...base, ...ids("stamp-000003")]),
+      tillCorrectionId(ids("stamp-000001")),
+      tillCorrectionId([...base, ...ids("stamp-till-aaaaaaaaaaaaaaaa")]),
+    ]);
+    expect(seen.size).toBe(4);
   });
 });
 

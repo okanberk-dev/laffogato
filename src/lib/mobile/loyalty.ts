@@ -22,11 +22,15 @@ import { grantFreeDrinkCoupon } from "./free-drink";
 import { rewardInviteOnFirstPaidOrder } from "./invite";
 import { clawBackMilestoneGifts, grantMilestoneGifts } from "./milestones";
 import {
+  abandonedCards,
   buildLoyaltyView,
+  cardCost,
   computeStampBalance,
+  couponlessCards,
   freeDrinkCouponId,
   freeDrinkRewardFor,
   nextFreeDrinkWithdrawal,
+  orphanClaimIds,
   plannedStampReversals,
   rewardReadyAt,
   stampCoverage,
@@ -34,6 +38,7 @@ import {
   stampsByOrder,
   stampsForOrder,
   stampTargetForOrder,
+  tillCorrectionId,
   unredeemId,
   type LoyaltyRules,
   type LoyaltyStamp,
@@ -305,27 +310,178 @@ async function couponIsSpent(
   return Boolean(coupon?.redeemedAt);
 }
 
+/** Statements a compensation tries before it gives up (see `attempt`). */
+const COMPENSATION_ATTEMPTS = 3;
+
+/**
+ * Runs a compensating write up to `COMPENSATION_ATTEMPTS` times and never
+ * throws. The usual failure is a dropped connection, and the pool opens a
+ * fresh one for the next statement, so trying again is what a retry is for.
+ * Every compensation passed here is idempotent: deleting a row that is gone,
+ * or withdrawing a coupon that is no longer unused, matches nothing and
+ * succeeds, which is also how an answer lost after a commit resolves.
+ * Returns whether one attempt went through.
+ */
+async function attempt(
+  label: string,
+  write: () => Promise<void>,
+): Promise<boolean> {
+  for (let i = 1; i <= COMPENSATION_ATTEMPTS; i += 1) {
+    try {
+      await write();
+      return true;
+    } catch (err) {
+      console.error(`[loyalty] ${label} (attempt ${i})`, err);
+    }
+  }
+  return false;
+}
+
+/**
+ * Deletes one ledger row by id, with retries; true once it is known to be
+ * gone. `createdAt` narrows the delete to the caller's own row when the id is
+ * shared (a till correction's id is the same for every click that read the
+ * same ledger).
+ */
+async function dropLedgerRow(id: string, createdAt?: string): Promise<boolean> {
+  return attempt(`drop ledger row ${id}`, async () => {
+    let q = getDb().from(TABLES.loyaltyStamps).delete().eq("id", id);
+    if (createdAt !== undefined) q = q.eq("createdAt", createdAt);
+    checkErr((await q).error, "dropLedgerRow");
+  });
+}
+
+/**
+ * Writes a card's `unredeem` row. False: 23505, a concurrent settlement wrote
+ * it first.
+ */
+async function writeClaim(
+  owner: string,
+  redeemId: string,
+  cost: number,
+): Promise<boolean> {
+  const claim: LoyaltyStamp = {
+    id: unredeemId(redeemId),
+    customerEmail: owner,
+    kind: "unredeem",
+    delta: cost,
+    source: "order",
+    orderId: "",
+    note: "Ödül geri alındı: damgaları iade/iptal edildi",
+    actor: "",
+    createdAt: new Date().toISOString(),
+  };
+  const ins = await getDb().from(TABLES.loyaltyStamps).insert(claim);
+  if (ins.error?.code === "23505") return false;
+  checkErr(ins.error, "settleFreeDrinks.unredeem");
+  return true;
+}
+
+/**
+ * A claim and a coupon withdrawal are two writes, and a stale settlement's
+ * claim delete can land between them. Whoever takes a coupon, and whoever
+ * drops a claim, therefore looks again afterwards: a coupon that is
+ * withdrawn and unused while its card still stands with no claim is a
+ * withdrawal with its claim missing, and the claim is written back. One of
+ * the two parties always looks last, so one stamp of debt never costs two
+ * free drinks (the stamps would otherwise be "burned" for a dead coupon, and
+ * the next settlement would take a second coupon for the same debt).
+ *
+ * `couponId` null: the caller has just withdrawn the coupon itself.
+ */
+async function restoreClaim(
+  owner: string,
+  redeemId: string,
+  couponId: string | null,
+): Promise<void> {
+  if (couponId !== null) {
+    const coupon = (await listCustomerCoupons(owner)).find(
+      (c) => c.id === couponId,
+    );
+    if (!coupon || coupon.isActive || coupon.redeemedAt) return;
+  }
+  const rows = await listStamps(owner);
+  const card = rows.find((r) => r.id === redeemId && r.kind === "redeem");
+  if (!card || rows.some((r) => r.id === unredeemId(redeemId))) return;
+  await writeClaim(owner, redeemId, cardCost(card));
+}
+
+/** Drops the claim on a card whose coupon the member spent, then looks again. */
+async function dropSpentClaim(
+  owner: string,
+  redeemId: string,
+  couponId: string,
+): Promise<void> {
+  const del = await getDb()
+    .from(TABLES.loyaltyStamps)
+    .delete()
+    .eq("id", unredeemId(redeemId));
+  checkErr(del.error, "settleFreeDrinks.staleClaim");
+  await restoreClaim(owner, redeemId, couponId);
+}
+
+/**
+ * Heals what a dead request left in the ledger and returns the ledger this
+ * round decides on.
+ *
+ * - A claim whose `redeem` row is gone is dropped (`orphanClaimIds`).
+ * - An app `redeem` row with no coupon, older than the grace window, is
+ *   dropped (`abandonedCards`): the stamps come back and the row stops
+ *   counting as a standing card. A redeem in flight is younger than the
+ *   window and is never deleted; the coupons are read once more right before
+ *   deciding, so a coupon that landed after this settlement's first read
+ *   keeps its card. A redeem slower than the window loses its row; the coupon
+ *   it then creates is an orphan, taken at once by its own settlement, and
+ *   the stamps stay the member's.
+ * - Every card with no coupon, young or old, and every claim without a card
+ *   is left out of the returned ledger, also when a delete failed (the next
+ *   trigger deletes again): a settlement covers cards that have a coupon, and
+ *   never takes a real free drink for one that has none. An in-flight redeem
+ *   settles itself once its coupon exists (`redeemStamps`).
+ */
+async function healLedger(
+  owner: string,
+  rows: LoyaltyStamp[],
+  coupons: CustomerCoupon[],
+): Promise<LoyaltyStamp[]> {
+  const orphans = orphanClaimIds(rows);
+  const couponless = couponlessCards(rows, coupons);
+  if (orphans.length === 0 && couponless.length === 0) return rows;
+
+  const drop = new Set(orphans);
+  if (abandonedCards(rows, coupons, Date.now()).length > 0) {
+    const fresh = await listCustomerCoupons(owner);
+    for (const card of abandonedCards(rows, fresh, Date.now())) {
+      drop.add(card.id);
+    }
+  }
+  for (const id of drop) await dropLedgerRow(id);
+  const hide = new Set([...drop, ...couponless.map((c) => c.id)]);
+  return rows.filter((r) => !hide.has(r.id));
+}
+
 /**
  * Takes back unused free drinks the stamps no longer cover, one per round,
  * and finishes the withdrawals an earlier settlement left half done:
  *
  * 1. Read the coupons, then the ledger (in that order: a coupon is minted
  *    after its `redeem` row is written, so a coupon read first always finds
- *    its row in the ledger read after it). First drop the stale claims
- *    (`staleFreeDrinkClaims`); otherwise `nextFreeDrinkWithdrawal` names the
- *    coupon to take - an orphan, a half-done withdrawal (its card already
- *    unredeemed), or while `stampCoverage < 0` the newest unused, unexpired
- *    free drink - or nothing.
+ *    its row in the ledger read after it). Heal the ledger (`healLedger`).
+ *    Then drop the stale claims (`staleFreeDrinkClaims`); otherwise
+ *    `nextFreeDrinkWithdrawal` names the coupon to take - an orphan, a
+ *    half-done withdrawal (its card already unredeemed), or while
+ *    `stampCoverage < 0` the newest unused, unexpired free drink - or nothing.
  * 2. Claim the card, unless it is claimed already: an `unredeem` row with the
  *    idempotent id `unredeemId(card)` carrying the card's cost. A concurrent
  *    settlement that claimed it first wins (23505) and this one reads again.
- * 3. Take the coupon (`withdrawUnusedCoupon`, guarded on unused + active).
- *    Failing that, read the coupon again. If the member spent it at the
- *    checkout a moment earlier the claim is dropped and the next round looks
- *    afresh - re-reading the coupons after the drop is what keeps a redeem
- *    landing in that moment from slipping through. If it is merely inactive
- *    or gone, a concurrent settlement took it and its claim is that
- *    settlement's: it stays.
+ * 3. Take the coupon (`withdrawUnusedCoupon`, guarded on unused + active),
+ *    then check the claim is still there (`restoreClaim`). Failing to take
+ *    it, read the coupon again. If the member spent it at the checkout a
+ *    moment earlier the claim is dropped and the next round looks afresh -
+ *    re-reading the coupons after the drop is what keeps a redeem landing in
+ *    that moment from slipping through - and the coupon is looked at once more
+ *    (`dropSpentClaim`). If it is merely inactive or gone, a concurrent
+ *    settlement took it and its claim is that settlement's: it stays.
  *
  * Two writes make a withdrawal (claim, coupon), so one can land without the
  * other. A claim without its coupon taken is picked up by the next run
@@ -339,21 +495,16 @@ async function couponIsSpent(
  * touched. Returns the ids of the coupons it took back.
  */
 async function settleFreeDrinks(owner: string): Promise<string[]> {
-  const db = getDb();
   const taken: string[] = [];
   for (let round = 0; round < MAX_SETTLE_ROUNDS; round += 1) {
     const coupons = await listCustomerCoupons(owner);
-    const rows = await listStamps(owner);
+    const rows = await healLedger(owner, await listStamps(owner), coupons);
 
     const stale = staleFreeDrinkClaims(rows, coupons);
     if (stale.length > 0) {
       for (const claim of stale) {
         if (!(await couponIsSpent(owner, claim.couponId))) continue;
-        const del = await db
-          .from(TABLES.loyaltyStamps)
-          .delete()
-          .eq("id", unredeemId(claim.redeemId));
-        checkErr(del.error, "settleFreeDrinks.staleClaim");
+        await dropSpentClaim(owner, claim.redeemId, claim.couponId);
       }
       continue;
     }
@@ -361,38 +512,25 @@ async function settleFreeDrinks(owner: string): Promise<string[]> {
     const next = nextFreeDrinkWithdrawal(rows, coupons, Date.now());
     if (!next) return taken;
 
-    const claimId = unredeemId(next.redeemId);
-    if (next.redeemId && !next.claimed) {
-      const claim: LoyaltyStamp = {
-        id: claimId,
-        customerEmail: owner,
-        kind: "unredeem",
-        delta: next.cost,
-        source: "order",
-        orderId: "",
-        note: "Ödül geri alındı: damgaları iade/iptal edildi",
-        actor: "",
-        createdAt: new Date().toISOString(),
-      };
-      const ins = await db.from(TABLES.loyaltyStamps).insert(claim);
-      // 23505: a concurrent settlement claimed this card; it takes the coupon.
-      if (ins.error?.code === "23505") continue;
-      checkErr(ins.error, "settleFreeDrinks.unredeem");
+    // 23505: a concurrent settlement claimed this card; read again.
+    if (
+      next.redeemId &&
+      !next.claimed &&
+      !(await writeClaim(owner, next.redeemId, next.cost))
+    ) {
+      continue;
     }
 
     if (await withdrawUnusedCoupon(next.couponId, owner, "loyalty")) {
       taken.push(next.couponId);
+      if (next.redeemId) await restoreClaim(owner, next.redeemId, null);
       continue;
     }
     // Not taken by us. Spent in the meantime: the card stands, so the claim
     // goes. Anything else (taken by a concurrent settlement, revoked by an
     // admin): the coupon is gone and the claim stays with it.
     if (next.redeemId && (await couponIsSpent(owner, next.couponId))) {
-      const del = await db
-        .from(TABLES.loyaltyStamps)
-        .delete()
-        .eq("id", claimId);
-      checkErr(del.error, "settleFreeDrinks.release");
+      await dropSpentClaim(owner, next.redeemId, next.couponId);
     }
   }
   console.error(
@@ -435,19 +573,42 @@ export async function settleLoyaltyDebt(email: string): Promise<void> {
   await clawBackMilestoneGifts(owner, lifetime);
 }
 
-/** Deletes a `redeem` row nobody owns a coupon for; never throws. */
-async function dropRedeemRowBestEffort(id: string): Promise<void> {
-  try {
-    const del = await getDb().from(TABLES.loyaltyStamps).delete().eq("id", id);
-    if (del.error) console.error("[loyalty] redeem rollback", del.error);
-  } catch (err) {
-    console.error("[loyalty] redeem rollback", err);
-  }
-}
-
 export type RedeemStampsResult =
   | { ok: true; coupon: CustomerCoupon; loyalty: LoyaltyView }
   | { ok: false; error: "not_enough_stamps"; stampTarget: number };
+
+/**
+ * Gives a redeem back after its coupon could not be created (or its answer
+ * was lost): the row is deleted FIRST, then its claim, then the coupon is
+ * withdrawn by its id. Each write is retried and none throws.
+ *
+ * - The row's delete failed: nothing else is touched. The coupon (if its
+ *   insert did commit) and the row stay together, a redeem like any other,
+ *   and if there is no coupon the row is a card without one, which the
+ *   settlement drops after the grace window (`abandonedCards`). The stamps
+ *   are never burned for a dead coupon, because the coupon is never
+ *   withdrawn while its card stands.
+ * - The row is gone: a settlement that saw both the row and the coupon may
+ *   have claimed the card meanwhile, so the claim goes too (a claim without
+ *   its row would credit the stamps twice; the settlement drops any that
+ *   slips through, `orphanClaimIds`), and the coupon is withdrawn. Should
+ *   that last write fail on every attempt, the coupon is an orphan - active
+ *   with no card - and the next settlement takes it (`nextFreeDrinkWithdrawal`,
+ *   rule 1). Until some trigger runs that coupon is spendable: it takes the
+ *   outage that made the compensation fail, so the window is the length of
+ *   the outage plus the time to the next trigger.
+ */
+async function abandonRedeem(
+  owner: string,
+  redeemId: string,
+  couponId: string,
+): Promise<void> {
+  if (!(await dropLedgerRow(redeemId))) return;
+  await dropLedgerRow(unredeemId(redeemId));
+  await attempt(`withdraw coupon ${couponId}`, async () => {
+    await withdrawUnusedCoupon(couponId, owner, "loyalty");
+  });
+}
 
 /**
  * Turns a full card of stamps into a free-drink coupon (`POST /loyalty/redeem`).
@@ -459,17 +620,21 @@ export type RedeemStampsResult =
  *
  * - After the `redeem` row: if the stamps no longer cover the standing cards
  *   (`stampCoverage < 0`: a concurrent redeem, or a reversal), the row is
- *   removed again and the request fails before any coupon exists.
+ *   removed again and the request fails before any coupon exists. The delete
+ *   is best effort and retried; one that never goes through leaves a card
+ *   with no coupon, which the settlement drops after the grace window
+ *   (`abandonedCards`).
  * - After the coupon: a reversal can still land between the row and the
  *   coupon, and its settlement finds no unused coupon to take back yet. So
  *   the free-drink settlement runs here too, under the same rule; if it
  *   takes this coupon back, the request fails with `not_enough_stamps`.
  *
- * A request that dies between the row and the coupon gives the stamps back:
- * the row is deleted, and the coupon too if its insert had committed with
- * the answer lost (withdrawn by its id; should that fail as well, the next
- * settlement takes it, see `nextFreeDrinkWithdrawal`). So does a row whose
- * own insert got no answer.
+ * A request that dies between the row and the coupon gives the stamps back
+ * (`abandonRedeem`). So does a row whose own insert got no answer.
+ *
+ * A member whose balance looks short while a card of theirs has no coupon
+ * (its request died and its rollback failed) is refused only after a
+ * settlement has had its chance to drop that card: their own tap is a trigger.
  *
  * The coupon's id is `freeDrinkCouponId(redeem row)`, which is how a
  * settlement finds what each card cost.
@@ -484,7 +649,17 @@ export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
     error: "not_enough_stamps" as const,
     stampTarget: target,
   };
-  const before = computeStampBalance(await listStamps(owner), target);
+  let ledger = await listStamps(owner);
+  let before = computeStampBalance(ledger, target);
+  if (before.available < target && ledger.some((r) => r.kind === "redeem")) {
+    try {
+      await settleFreeDrinks(owner);
+      ledger = await listStamps(owner);
+      before = computeStampBalance(ledger, target);
+    } catch (err) {
+      console.error("[loyalty] settlement before a refused redeem", err);
+    }
+  }
   if (before.available < target) return refused;
 
   const db = getDb();
@@ -505,7 +680,7 @@ export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
   if (ins.error?.code === "") {
     // The request never got an answer: the row may or may not have landed.
     // It is ours alone (a sequence id) and no coupon exists for it yet.
-    await dropRedeemRowBestEffort(id);
+    await dropLedgerRow(id);
   }
   checkErr(ins.error, "redeemStamps.insert");
 
@@ -513,13 +688,12 @@ export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
   try {
     coverage = stampCoverage(await listStamps(owner));
   } catch (err) {
-    await dropRedeemRowBestEffort(id);
+    await dropLedgerRow(id);
     throw err;
   }
   if (coverage < 0) {
     // Lost a race: the stamps went elsewhere first. Withdraw our row.
-    const del = await db.from(TABLES.loyaltyStamps).delete().eq("id", id);
-    checkErr(del.error, "redeemStamps.rollback");
+    await dropLedgerRow(id);
     return refused;
   }
 
@@ -529,22 +703,9 @@ export async function redeemStamps(email: string): Promise<RedeemStampsResult> {
     coupon = await grantFreeDrinkCoupon(owner, "loyalty", reward, couponId);
   } catch (err) {
     // The stamps were spent for a coupon that never existed - or did: the
-    // insert may have committed with its answer lost. Take that coupon back
-    // by its id first (best effort), or it would outlive the row about to be
-    // deleted and be a free drink for nothing. Then give the stamps back and
-    // let the caller fail loudly, rather than leaving the member a card
-    // poorer with nothing to show for it. Should the withdrawal fail too, the
-    // next settlement takes the orphan (`nextFreeDrinkWithdrawal`).
-    try {
-      await withdrawUnusedCoupon(couponId, owner, "loyalty");
-    } catch (withdrawErr) {
-      console.error(
-        "[loyalty] redeem rollback: coupon withdrawal",
-        withdrawErr,
-      );
-    }
-    const del = await db.from(TABLES.loyaltyStamps).delete().eq("id", id);
-    checkErr(del.error, "redeemStamps.grantRollback");
+    // insert may have committed with its answer lost. Let the caller fail
+    // loudly, but give the card back first.
+    await abandonRedeem(owner, id, couponId);
     throw err;
   }
 
@@ -561,6 +722,13 @@ export type ReverseCounterStampResult =
   { ok: true; stamp: LoyaltyStamp } | { ok: false; error: "no_stamps" };
 
 /**
+ * Rounds a till correction may lose to concurrent corrections before it gives
+ * up. Every lost round means another click made progress, so n clicks at once
+ * need at most n; the cap only keeps a bug from looping.
+ */
+const TILL_ATTEMPTS = 16;
+
+/**
  * Takes back a stamp given by mistake at the till (admin panel, "−1 düzeltme").
  *
  * `onOrderReversed` covers the other case - an order that was refunded or
@@ -573,6 +741,30 @@ export type ReverseCounterStampResult =
  * cannot push the balance below zero and swallow a card the member later
  * earns honestly. Like any reversal it then settles (`settleLoyaltyDebt`):
  * the lifetime count fell, so a milestone gift above it is taken back.
+ *
+ * Two clicks at once used to both pass that check and write a row each, and
+ * for a moment the ledger overdrew the member: a settlement running then took
+ * their free drink before either click withdrew its row. The row's id now
+ * names the ledger state it was decided on (`tillCorrectionId`), so two
+ * clicks that read the same ledger write the same id and the primary key
+ * lets one in; the other reads again (sees the first row, so it is refused
+ * when nothing is left, or writes its own row when stamps are). Till
+ * corrections therefore never overlap.
+ *
+ * KNOWN WINDOW (documented, docs/AUDIT.md): a correction racing a DIFFERENT
+ * writer - a redeem, an order reversal - can still be overdrawn by it. The
+ * coverage read after the row catches that and withdraws the row, but
+ * between the row and its withdrawal (milliseconds) a settlement running at
+ * that very moment sees the overdraft and may take a free drink the member
+ * keeps the stamps for. Closing it needs a transaction or a database
+ * function; the pool has neither (one statement at a time).
+ *
+ * Failure windows, so that the operator's message always matches the ledger:
+ * an insert whose answer is lost is rolled back before the error is shown
+ * (the retry takes exactly one stamp); a coverage read that fails after the
+ * row is in rolls the row back and reports the error; if that rollback fails
+ * too the row stands and the click reports success - the stamp IS taken, and
+ * an error would have the operator click again and take a second one.
  */
 export async function reverseCounterStamp(
   email: string,
@@ -582,36 +774,54 @@ export async function reverseCounterStamp(
   const owner = normalizeEmail(email);
   if (!owner) throw new Error("reverseCounterStamp: e-mail required");
   const rules = await loyaltyRules();
-  const balance = computeStampBalance(
-    await listStamps(owner),
-    rules.stampTarget,
-  );
-  if (balance.available <= 0) return { ok: false, error: "no_stamps" };
-
-  const row: LoyaltyStamp = {
-    id: await newStampId(),
-    customerEmail: owner,
-    kind: "reversal",
-    delta: -1,
-    source: "admin",
-    orderId: "",
-    note: note.trim().slice(0, 120) || "Kasa damgası düzeltmesi",
-    actor: normalizeEmail(actor),
-    createdAt: new Date().toISOString(),
-  };
   const db = getDb();
-  const { error } = await db.from(TABLES.loyaltyStamps).insert(row);
-  checkErr(error, "reverseCounterStamp");
 
-  // The check above and the row are not one statement: two clicks at once
-  // can both pass it. Read the coverage again with our row in; if it dips
-  // below zero the stamps went below what the standing cards cost, so this
-  // correction takes more than the member had left. Withdraw our row (both
-  // clicks do, when both rows are in: the operator clicks once more) rather
-  // than settle by taking the member's free drink for it.
-  if (stampCoverage(await listStamps(owner)) < 0) {
-    const del = await db.from(TABLES.loyaltyStamps).delete().eq("id", row.id);
-    checkErr(del.error, "reverseCounterStamp.rollback");
+  let row: LoyaltyStamp | null = null;
+  for (let tries = 0; tries < TILL_ATTEMPTS && !row; tries += 1) {
+    const ledger = await listStamps(owner);
+    if (computeStampBalance(ledger, rules.stampTarget).available <= 0) {
+      return { ok: false, error: "no_stamps" };
+    }
+    const candidate: LoyaltyStamp = {
+      id: tillCorrectionId(ledger),
+      customerEmail: owner,
+      kind: "reversal",
+      delta: -1,
+      source: "admin",
+      orderId: "",
+      note: note.trim().slice(0, 120) || "Kasa damgası düzeltmesi",
+      actor: normalizeEmail(actor),
+      createdAt: new Date().toISOString(),
+    };
+    const { error } = await db.from(TABLES.loyaltyStamps).insert(candidate);
+    // 23505: another click wrote its row against this very ledger; read again.
+    if (error?.code === "23505") continue;
+    if (error?.code === "") {
+      // No answer: the row may have landed. Take it back before the error is
+      // shown, or the operator's retry would take a second stamp.
+      await dropLedgerRow(candidate.id, candidate.createdAt);
+    }
+    checkErr(error, "reverseCounterStamp");
+    row = candidate;
+  }
+  if (!row) throw new Error("reverseCounterStamp: concurrent corrections");
+
+  // The check above and the row are not one statement: a redeem or a
+  // reversal can land between them. Read the coverage again with our row in;
+  // if it dips below zero the stamps went below what the standing cards cost,
+  // so this correction takes more than the member had left. Withdraw our row
+  // rather than settle by taking the member's free drink for it.
+  let coverage = 0;
+  try {
+    coverage = stampCoverage(await listStamps(owner));
+  } catch (err) {
+    if (await dropLedgerRow(row.id, row.createdAt)) throw err;
+    console.error("[loyalty] till correction kept: coverage unread", err);
+  }
+  if (coverage < 0) {
+    if (!(await dropLedgerRow(row.id, row.createdAt))) {
+      throw new Error("reverseCounterStamp: overdrawn and not withdrawn");
+    }
     return { ok: false, error: "no_stamps" };
   }
 
