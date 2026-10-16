@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 import { Card, PageHeader, formatTRY } from "@/components/admin/forms";
+import { OrderStatusBadge } from "@/components/admin/ui/badge";
 import { requireRole } from "@/lib/admin/auth";
 import { canAccess } from "@/lib/admin/roles";
 import {
   getDashboardStats,
   getSettings,
   listRecentOrders,
-  type AdminOrderStatus,
 } from "@/lib/admin/store";
 import { emailHealth } from "@/lib/email/health";
 
@@ -17,26 +17,6 @@ export const dynamic = "force-dynamic";
 interface PageProps {
   searchParams: Promise<{ denied?: string }>;
 }
-
-const ORDER_STATUS_LABEL: Record<AdminOrderStatus, string> = {
-  pending_payment: "Ödeme bekleniyor",
-  paid: "Ödendi",
-  preparing: "Hazırlanıyor",
-  shipped: "Kargoda",
-  completed: "Tamamlandı",
-  cancelled: "İptal",
-  refunded: "İade",
-};
-
-const ORDER_STATUS_TONE: Record<AdminOrderStatus, string> = {
-  pending_payment: "bg-amber-50 text-amber-700",
-  paid: "bg-blue-50 text-blue-700",
-  preparing: "bg-purple-50 text-purple-700",
-  shipped: "bg-indigo-50 text-indigo-700",
-  completed: "bg-green-50 text-green-700",
-  cancelled: "bg-neutral-100 text-neutral-500",
-  refunded: "bg-rose-50 text-rose-700",
-};
 
 function turkishGreeting(): string {
   const hour = new Date().getHours();
@@ -234,11 +214,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                         <div className="truncate text-xs text-neutral-700">
                           {o.customerName}
                         </div>
-                        <span
-                          className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ORDER_STATUS_TONE[o.status]}`}
-                        >
-                          {ORDER_STATUS_LABEL[o.status]}
-                        </span>
+                        <OrderStatusBadge order={o} className="mt-1" />
                       </div>
                       <div
                         className="shrink-0 text-right text-sm text-neutral-900"
@@ -280,11 +256,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                       </td>
                       <td className="text-neutral-700">{o.customerName}</td>
                       <td>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ORDER_STATUS_TONE[o.status]}`}
-                        >
-                          {ORDER_STATUS_LABEL[o.status]}
-                        </span>
+                        <OrderStatusBadge order={o} />
                       </td>
                       <td
                         className="text-right"

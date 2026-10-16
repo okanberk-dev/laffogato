@@ -4,7 +4,9 @@ import {
   AdminSidebar,
   type AdminNavGroup,
 } from "@/components/admin/admin-sidebar";
+import { ToastProvider } from "@/components/admin/ui/toast";
 import { getAdminSession } from "@/lib/admin/auth";
+import { readAdminFlash } from "@/lib/admin/flash";
 import { canAccess, ROLE_LABELS, type AdminSection } from "@/lib/admin/roles";
 
 import { logoutAction } from "./actions";
@@ -46,7 +48,30 @@ const adminFontStyle = {
   "--admin-primary-hover": "#2C1D11",
   "--admin-accent": "#B88A4A",
   "--admin-danger": "#C5435A",
+  // Tones (components/admin/ui/tone.ts): an ink for text and a soft ground
+  // for badges, toasts and notices. Every ink clears AA (4.5:1) on its soft
+  // ground and on white - tests/admin-ui-kit.test.ts holds them to it.
+  // --admin-danger itself stays for buttons and borders; on its soft pink
+  // it is 4.05:1, so danger TEXT uses --admin-danger-ink.
+  "--admin-neutral-soft": "#F1ECE4",
+  "--admin-primary-soft": "#F1E8DA",
+  "--admin-accent-ink": "#765923",
+  "--admin-accent-soft": "#F6ECD6",
+  "--admin-info": "#1F5C99",
+  "--admin-info-soft": "#E4EEF8",
+  "--admin-success": "#1D6D56",
+  "--admin-success-soft": "#E3F1EA",
+  "--admin-warning": "#8A5300",
+  "--admin-warning-soft": "#FBEFD9",
+  "--admin-danger-ink": "#A8344B",
+  "--admin-danger-soft": "#F9E6EA",
 } as React.CSSProperties;
+
+// The same ground for the signed-in panel and the login / 2FA screens. The
+// signed-in wrapper used to be bg-neutral-50 and only the logged-out one
+// carried the (never styled) `admin-shell` class.
+const shellClass = (fontVariable: string) =>
+  `${fontVariable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)]`;
 
 interface NavItemDef {
   href: string;
@@ -158,17 +183,19 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getAdminSession();
+  const [session, flash] = await Promise.all([
+    getAdminSession(),
+    // A toast left by a redirecting action (lib/admin/flash.ts); the client
+    // deletes the cookie once it is on screen.
+    readAdminFlash(),
+  ]);
 
   // Unauthenticated routes (login, 2FA challenge) render bare - they ship
   // their own centered layout and must not show the admin sidebar.
   if (!session) {
     return (
-      <div
-        className={`admin-shell ${poppins.variable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)]`}
-        style={adminFontStyle}
-      >
-        {children}
+      <div className={shellClass(poppins.variable)} style={adminFontStyle}>
+        <ToastProvider flash={flash}>{children}</ToastProvider>
       </div>
     );
   }
@@ -179,17 +206,16 @@ export default async function AdminLayout({
   })).filter((g) => g.items.length > 0);
 
   return (
-    <div
-      className={`${poppins.variable} min-h-screen bg-neutral-50`}
-      style={adminFontStyle}
-    >
-      <AdminSidebar
-        groups={groups}
-        email={session.email}
-        roleLabel={ROLE_LABELS[session.role]}
-        logout={logoutAction}
-      />
-      <div className="lg:pl-64">{children}</div>
+    <div className={shellClass(poppins.variable)} style={adminFontStyle}>
+      <ToastProvider flash={flash}>
+        <AdminSidebar
+          groups={groups}
+          email={session.email}
+          roleLabel={ROLE_LABELS[session.role]}
+          logout={logoutAction}
+        />
+        <div className="lg:pl-64">{children}</div>
+      </ToastProvider>
     </div>
   );
 }

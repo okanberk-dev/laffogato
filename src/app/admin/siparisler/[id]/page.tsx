@@ -5,17 +5,14 @@ import { OrderChannelBadges } from "@/components/admin/order-badges";
 import { OrderDetail } from "@/components/admin/order-detail";
 import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
-import {
-  orderFulfillment,
-  shippedStatusLabel,
-} from "@/lib/admin/order-channel";
+import { orderFulfillment } from "@/lib/admin/order-channel";
+import { orderStatusLabel, orderStatusTone } from "@/lib/admin/order-ui";
 import { canAccess } from "@/lib/admin/roles";
 import {
   availableTransitions,
   getOrder,
   getSettings,
   orderWasCollected,
-  type AdminOrderStatus,
 } from "@/lib/admin/store";
 
 export const dynamic = "force-dynamic";
@@ -23,28 +20,6 @@ export const dynamic = "force-dynamic";
 interface PageProps {
   params: Promise<{ id: string }>;
 }
-
-const STATUS_LABEL: Record<AdminOrderStatus, string> = {
-  pending_payment: "Ödeme bekleniyor",
-  paid: "Ödendi",
-  preparing: "Hazırlanıyor",
-  // Replaced per fulfillment below: a pickup order is "Hazır", a kurye order
-  // "Kuryede". Only a shop parcel is actually in kargo.
-  shipped: "Kargoda",
-  completed: "Tamamlandı",
-  cancelled: "İptal edildi",
-  refunded: "İade edildi",
-};
-
-const STATUS_TONE: Record<AdminOrderStatus, string> = {
-  pending_payment: "bg-amber-50 text-amber-700",
-  paid: "bg-blue-50 text-blue-700",
-  preparing: "bg-purple-50 text-purple-700",
-  shipped: "bg-indigo-50 text-indigo-700",
-  completed: "bg-green-50 text-green-700",
-  cancelled: "bg-neutral-100 text-neutral-500",
-  refunded: "bg-rose-50 text-rose-700",
-};
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params;
@@ -64,10 +39,9 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   const collected = await orderWasCollected(order);
 
   const transitions = availableTransitions(order.status);
-  const statusLabel =
-    order.status === "shipped"
-      ? shippedStatusLabel(orderFulfillment(order))
-      : STATUS_LABEL[order.status];
+  // A pickup order is "Hazır", a kurye order "Kuryede"; only a shop parcel
+  // is actually in kargo (lib/admin/order-ui.ts).
+  const statusLabel = orderStatusLabel(order);
   const refundedMinor = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
   const remainingRefundableMinor = Math.max(
     0,
@@ -113,7 +87,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         settings={settings}
         transitions={transitions}
         statusLabel={statusLabel}
-        statusTone={STATUS_TONE[order.status]}
+        statusTone={orderStatusTone(order)}
         refundedMinor={refundedMinor}
         remainingRefundableMinor={remainingRefundableMinor}
         canRefund={canAccess("refunds", session.role)}

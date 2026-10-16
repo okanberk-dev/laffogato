@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState } from "react";
 
 import {
   bulkProductsAction,
@@ -66,24 +66,12 @@ function ProductThumb({ src, alt }: { src?: string; alt: string }) {
 }
 
 export function ProductsList({ products, categories, labelByCat }: Props) {
-  const selection = useSelection();
   const [state, formAction, pending] = useActionState(
     bulkProductsAction,
     initialBulkState,
   );
-  const lastFlash = useRef<string>("");
-
-  // When a bulk action succeeds, clear the selection so the bar disappears
-  // and the next interaction starts from a clean slate.
-  useEffect(() => {
-    if (state.ok && state.ok.updated >= 0) {
-      const flashKey = `${state.ok.op}:${state.ok.updated}:${Date.now()}`;
-      if (flashKey !== lastFlash.current) {
-        lastFlash.current = flashKey;
-        selection.clear();
-      }
-    }
-  }, [state, selection]);
+  // A completed bulk action closes the bar once (bulk.tsx useSelection).
+  const selection = useSelection({ resetOn: state.ok });
 
   const ids = products.map((p) => p.id);
   const idsCsv = selection.ids.join(",");

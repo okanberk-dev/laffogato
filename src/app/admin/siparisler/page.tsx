@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Card, PageHeader } from "@/components/admin/forms";
 import { OrdersList } from "@/components/admin/orders-list";
 import { requireRole } from "@/lib/admin/auth";
+import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/admin/order-ui";
 import {
   BULK_ORDER_TRANSITIONS,
   listOrdersPage,
@@ -12,31 +13,13 @@ import {
 export const metadata = { title: "Admin · Siparişler" };
 export const dynamic = "force-dynamic";
 
-const STATUS_OPTIONS: Array<[AdminOrderStatus, string]> = [
-  ["pending_payment", "Ödeme bekleniyor"],
-  ["paid", "Ödendi"],
-  ["preparing", "Hazırlanıyor"],
-  ["shipped", "Kargoda"],
-  ["completed", "Tamamlandı"],
-  ["cancelled", "İptal"],
-  ["refunded", "İade"],
-];
-
 // Only the statuses `bulkUpdateOrders` can actually reach, derived from the
 // store so the dropdown can never drift back to offering `paid`/`refunded`.
-const BULK_STATUS_OPTIONS = STATUS_OPTIONS.filter(
-  ([k]) => BULK_ORDER_TRANSITIONS[k] !== undefined,
-);
-
-const STATUS_TONE: Record<AdminOrderStatus, string> = {
-  pending_payment: "bg-amber-50 text-amber-700",
-  paid: "bg-blue-50 text-blue-700",
-  preparing: "bg-purple-50 text-purple-700",
-  shipped: "bg-indigo-50 text-indigo-700",
-  completed: "bg-green-50 text-green-700",
-  cancelled: "bg-neutral-100 text-neutral-500",
-  refunded: "bg-rose-50 text-rose-700",
-};
+// Labels are the shared ones (lib/admin/order-ui.ts).
+const BULK_STATUS_OPTIONS: Array<[AdminOrderStatus, string]> =
+  ORDER_STATUSES.filter((k) => BULK_ORDER_TRANSITIONS[k] !== undefined).map(
+    (k) => [k, ORDER_STATUS_LABELS[k]],
+  );
 
 interface PageProps {
   /** `once`: show orders numbered below this one (the next, older page). */
@@ -84,9 +67,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
           orders={orders}
           total={total}
           live={before === null}
-          statusOptions={STATUS_OPTIONS}
           bulkStatusOptions={BULK_STATUS_OPTIONS}
-          statusTone={STATUS_TONE}
         />
       )}
 

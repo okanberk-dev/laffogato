@@ -10,13 +10,10 @@ import {
   formatDateTime,
   formatTRY,
 } from "@/components/admin/forms";
+import { OrderStatusBadge } from "@/components/admin/ui/badge";
 import { requireRole } from "@/lib/admin/auth";
 import { getAdminInviteTree } from "@/lib/admin/invites";
-import {
-  customerOrdersByEmail,
-  listProducts,
-  type AdminOrderStatus,
-} from "@/lib/admin/store";
+import { customerOrdersByEmail, listProducts } from "@/lib/admin/store";
 import { adminListCustomerCoupons } from "@/lib/customer/coupons";
 import { getAdminCustomerByEmail } from "@/lib/customer/store";
 import { getLoyalty, listStamps } from "@/lib/mobile/loyalty";
@@ -32,26 +29,6 @@ const INVITE_STATUS_LABEL: Record<string, string> = {
   pending: "Bekliyor",
   joined: "Katıldı",
   rewarded: "Ödüllendi",
-};
-
-const STATUS_LABEL: Record<AdminOrderStatus, string> = {
-  pending_payment: "Ödeme bekleniyor",
-  paid: "Ödendi",
-  preparing: "Hazırlanıyor",
-  shipped: "Kargoda",
-  completed: "Tamamlandı",
-  cancelled: "İptal",
-  refunded: "İade",
-};
-
-const STATUS_TONE: Record<AdminOrderStatus, string> = {
-  pending_payment: "bg-amber-50 text-amber-700",
-  paid: "bg-blue-50 text-blue-700",
-  preparing: "bg-purple-50 text-purple-700",
-  shipped: "bg-indigo-50 text-indigo-700",
-  completed: "bg-green-50 text-green-700",
-  cancelled: "bg-neutral-100 text-neutral-500",
-  refunded: "bg-rose-50 text-rose-700",
 };
 
 const PREF_LABEL: Record<string, string> = {
@@ -383,11 +360,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                         {formatDateTime(o.createdAt)}
                       </td>
                       <td className="pr-3">
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] tracking-[0.18em] uppercase ${STATUS_TONE[o.status]}`}
-                        >
-                          {STATUS_LABEL[o.status]}
-                        </span>
+                        <OrderStatusBadge order={o} />
                       </td>
                       <td className="pr-3 text-xs text-neutral-700">
                         {o.items
