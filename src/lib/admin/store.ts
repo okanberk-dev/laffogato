@@ -2418,6 +2418,41 @@ export async function supersedeUnpaidWebOrders(
   return outcomes.filter((o) => o.status === "fulfilled" && o.value).length;
 }
 
+/**
+ * Whether order `orderNo` is the member's own web checkout still waiting
+ * for its payment.
+ *
+ * A single-use coupon is claimed when the order is created, before payment.
+ * After a declined card the customer is back on /odeme with that order
+ * pending, and the promo preview read the claim as "Bu kupon zaten
+ * kullanıldı" - although the next order would release it first
+ * (`supersedeUnpaidWebOrders`) and the retry may even pay for this very
+ * order. The preview asks this before calling the coupon spent.
+ */
+export async function isOwnUnpaidWebOrder(
+  customerEmail: string,
+  orderNo: number,
+): Promise<boolean> {
+  const owner = customerEmail.trim().toLowerCase();
+  if (!owner || !Number.isSafeInteger(orderNo) || orderNo <= 0) return false;
+  await ensureSeed();
+  const found = rows<AdminOrder>(
+    await getDb()
+      .from(TABLES.orders)
+      .select("*")
+      .eq("orderNo", orderNo)
+      .limit(1),
+    "isOwnUnpaidWebOrder",
+  );
+  const order = found[0];
+  return (
+    !!order &&
+    order.status === "pending_payment" &&
+    orderChannel(order) === "web" &&
+    order.customerEmail.trim().toLowerCase() === owner
+  );
+}
+
 export async function placeOrder(
   input: PlaceOrderInput,
 ): Promise<PlaceOrderResult> {

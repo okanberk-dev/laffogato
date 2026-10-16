@@ -5,8 +5,8 @@
 > uygulamaya** (`RiosenBeq/lafmobil`) - dokunmadan yapılabilmesi için sınırı
 > çizer. Kısa özeti `CLAUDE.md` → "Ön yüz ↔ arka yüz sınırı"nda.
 >
-> **Tek cümle:** Ön yüz işi *nasıl göründüğünü* değiştirir; *ne gönderdiğini,
-> neyi okuduğunu ve nereye gittiğini* değiştirmez.
+> **Tek cümle:** Ön yüz işi _nasıl göründüğünü_ değiştirir; _ne gönderdiğini,
+> neyi okuduğunu ve nereye gittiğini_ değiştirmez.
 
 ---
 
@@ -14,28 +14,28 @@
 
 ### Ön yüz - yeniden tasarımda serbestçe değişir
 
-| Yol                                              | Not                                                                                     |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `src/components/laffogato/**`                    | Müşteri SPA'sı. Form içeren dosyalar için §2'ye bak (`ui.tsx`, `karaoke-booking.tsx`, `newsletter-form.tsx`) |
-| `src/components/uye/**`, `src/components/customer/**` | Üye hesabı parçaları                                                               |
-| `src/app/globals.css`                            | Token'lar `tests/contrast.test.ts` ve `tests/brand-theme.test.ts`'e bağlı               |
-| Müşteri `page.tsx` / `layout.tsx` / `*-form.tsx` | **İşaretleme** serbest; veri çağrıları ve form alanları değil (§2, §4)                  |
-| `public/**`                                      | Görseller, ikonlar                                                                      |
+| Yol                                                   | Not                                                                                                          |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `src/components/laffogato/**`                         | Müşteri SPA'sı. Form içeren dosyalar için §2'ye bak (`ui.tsx`, `karaoke-booking.tsx`, `newsletter-form.tsx`) |
+| `src/components/uye/**`, `src/components/customer/**` | Üye hesabı parçaları                                                                                         |
+| `src/app/globals.css`                                 | Token'lar `tests/contrast.test.ts` ve `tests/brand-theme.test.ts`'e bağlı                                    |
+| Müşteri `page.tsx` / `layout.tsx` / `*-form.tsx`      | **İşaretleme** serbest; veri çağrıları ve form alanları değil (§2, §4)                                       |
+| `public/**`                                           | Görseller, ikonlar                                                                                           |
 
 ### Arka yüz - ön yüz PR'ında değişmez
 
-| Yol                                   | Neden                                                                                       |
-| ------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `src/lib/**`                          | Veri, fiyat, stok, ödeme, kimlik, e-posta, hukuk, mobil iş mantığı                           |
-| `src/app/**/actions.ts`               | Server action'lar (`"use server"`) - her `export` herkese açık bir POST ucu                  |
-| `src/app/**/route.ts`                 | API, webhook, cron, `/odeme/donus`, `/odeme/paynkolay`, `/gorsel/**`, `/api/bulten/cikis`   |
-| `src/app/api/mobile/v1/**`            | **Mobil uygulamanın sözleşmesi** - sahadaki sürümler buna bağlı (`docs/API-MOBILE.md`)       |
-| `src/proxy.ts`                        | Admin koruması + Supabase oturum yenileme                                                   |
-| `db/**`, `scripts/**`                 | Migration'lar, şema paketi                                                                  |
-| `next.config.ts`, `vercel.json`       | Güvenlik başlıkları (`tests/security-headers.test.ts`), cron'lar (`tests/vercel-crons.test.ts`) |
-| `.github/workflows/**`                | CI ve saatlik kampanya tetikleyicisi                                                        |
-| `docs/API-MOBILE.md`                  | İki depoda bayt bayt aynı; `lafmobil` tarafında SHA-256 ile kilitli                          |
-| `src/app/admin/**`                    | Yönetim paneli ayrı bir yüzey; müşteri yeniden tasarımının kapsamı dışında                  |
+| Yol                             | Neden                                                                                           |
+| ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `src/lib/**`                    | Veri, fiyat, stok, ödeme, kimlik, e-posta, hukuk, mobil iş mantığı                              |
+| `src/app/**/actions.ts`         | Server action'lar (`"use server"`) - her `export` herkese açık bir POST ucu                     |
+| `src/app/**/route.ts`           | API, webhook, cron, `/odeme/donus`, `/odeme/paynkolay`, `/gorsel/**`, `/api/bulten/cikis`       |
+| `src/app/api/mobile/v1/**`      | **Mobil uygulamanın sözleşmesi** - sahadaki sürümler buna bağlı (`docs/API-MOBILE.md`)          |
+| `src/proxy.ts`                  | Admin koruması + Supabase oturum yenileme                                                       |
+| `db/**`, `scripts/**`           | Migration'lar, şema paketi                                                                      |
+| `next.config.ts`, `vercel.json` | Güvenlik başlıkları (`tests/security-headers.test.ts`), cron'lar (`tests/vercel-crons.test.ts`) |
+| `.github/workflows/**`          | CI ve saatlik kampanya tetikleyicisi                                                            |
+| `docs/API-MOBILE.md`            | İki depoda bayt bayt aynı; `lafmobil` tarafında SHA-256 ile kilitli                             |
+| `src/app/admin/**`              | Yönetim paneli ayrı bir yüzey; müşteri yeniden tasarımının kapsamı dışında                      |
 
 Ön yüz işi sırasında bu listedeki bir dosyaya dokunmak **gerekiyorsa**, o
 değişiklik ayrı bir PR'dır ve kendi testiyle gelir. "Tasarımı oturtmak için
@@ -59,25 +59,26 @@ sorunsuz derlenir ve:
 Bu yüzden bağ bir testte yazılı: **`tests/frontend-form-contract.test.ts`**.
 Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" der.
 
-| Action                                          | Form dosyası                                          | Alanlar                                                                          |
-| ----------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `placeOrderAction`                              | `src/app/odeme/checkout-wizard.tsx`                   | `items` (JSON), `legalConsent`, `customerName`, `customerPhone`, `shippingAddress`, `promoCode` |
-| `previewPromoAction`                            | `src/app/odeme/checkout-wizard.tsx`                   | `code`, `subtotal`                                                               |
-| `registerAction`                                | `src/app/uye/kayit/register-form.tsx`                 | `email`, `name`, `phone`, `password`, `passwordConfirm`, `acceptedTerms`, `marketing`, `newsletter` |
-| `loginAction`                                   | `src/app/uye/giris/login-form.tsx`                    | `email`, `password`, `next` (gizli; sayfa `?next=` ile açıldıysa - ödemeye/karaoke'ye geri döner) |
-| `requestPasswordResetAction`                    | `src/app/uye/sifremi-unuttum/forgot-form.tsx`         | `email`                                                                          |
-| `resetPasswordAction`                           | `src/app/uye/sifre-sifirla/reset-form.tsx`            | `token`, `password`, `passwordConfirm`                                           |
-| `updateProfileAction`                           | `src/app/uye/hesap/profile-form.tsx`                  | `name`, `phone`, `birthday`                                                      |
-| `changePasswordAction`                          | `src/app/uye/hesap/sifre/password-form.tsx`           | `currentPassword`, `newPassword`, `newPasswordConfirm`                           |
-| `createAddressAction` / `updateAddressAction`   | `src/app/uye/hesap/adreslerim/address-form.tsx`       | `label`, `recipientName`, `phone`, `line1`, `line2`, `district`, `city`, `zip`, `isDefault` |
-| `deleteAddressAction` / `setDefaultAddressAction` | `src/app/uye/hesap/adreslerim/page.tsx`             | `addressId`                                                                      |
-| `toggleWishlistAction`                          | `src/components/laffogato/ui.tsx`, `…/favorilerim/page.tsx` | `productId`, `back` (yalnız site içi yol; dışarısı yok sayılır)            |
-| `updateNotificationsAction`                     | `src/app/uye/hesap/bildirimler/notifications-form.tsx` | `orderUpdates`, `marketing`, `newsletter`                                       |
-| `deleteAccountAction`                           | `src/app/uye/hesap/sil/delete-account-form.tsx`       | `confirmEmail`, `password`                                                       |
-| `bookKaraokeAction`                             | `src/components/laffogato/karaoke-booking.tsx`        | `date`, `startHour`, `hours`, `guests`, `note`                                   |
-| `subscribeNewsletterAction`                     | `src/components/laffogato/newsletter-form.tsx`        | `email`, `consent`                                                               |
-| `confirmNewsletterAction`                       | `src/app/bulten/onay/page.tsx`                        | `token` (gizli) - bülten onayı bir **düğme**dir, bağlantı değil                   |
-| `unsubscribeNewsletterAction`                   | `src/app/bulten/cikis/page.tsx`                       | `token` (gizli) - çıkış da düğmeyle; sayfa GET'te hiçbir şey harcamaz            |
+| Action                                             | Form dosyası                                                | Alanlar                                                                                                                                                        |
+| -------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `startCheckoutAction` (16 Eki 2026'dan beri)       | `src/app/odeme/checkout.tsx` (sipariş formu, kart YOK)      | `items` (JSON), `legalConsent`, `customerName`, `customerPhone`, `shippingAddress`, `promoCode`, `reuseOrderId`, `reuseData`, `reuseSignature`, `reuseCartKey` |
+| `previewPromoAction`                               | `src/app/odeme/checkout.tsx`                                | `code`, `subtotal`                                                                                                                                             |
+| `POST /odeme/paynkolay` (yerli form, action değil) | `src/app/odeme/card-payment.tsx`                            | `d`, `s`, `return=checkout`, `cardChoice`, `saveCard` + `CARD_FORM_FIELDS`                                                                                     |
+| `registerAction`                                   | `src/app/uye/kayit/register-form.tsx`                       | `email`, `name`, `phone`, `password`, `passwordConfirm`, `acceptedTerms`, `marketing`, `newsletter`                                                            |
+| `loginAction`                                      | `src/app/uye/giris/login-form.tsx`                          | `email`, `password`, `next` (gizli; sayfa `?next=` ile açıldıysa - ödemeye/karaoke'ye geri döner)                                                              |
+| `requestPasswordResetAction`                       | `src/app/uye/sifremi-unuttum/forgot-form.tsx`               | `email`                                                                                                                                                        |
+| `resetPasswordAction`                              | `src/app/uye/sifre-sifirla/reset-form.tsx`                  | `token`, `password`, `passwordConfirm`                                                                                                                         |
+| `updateProfileAction`                              | `src/app/uye/hesap/profile-form.tsx`                        | `name`, `phone`, `birthday`                                                                                                                                    |
+| `changePasswordAction`                             | `src/app/uye/hesap/sifre/password-form.tsx`                 | `currentPassword`, `newPassword`, `newPasswordConfirm`                                                                                                         |
+| `createAddressAction` / `updateAddressAction`      | `src/app/uye/hesap/adreslerim/address-form.tsx`             | `label`, `recipientName`, `phone`, `line1`, `line2`, `district`, `city`, `zip`, `isDefault`                                                                    |
+| `deleteAddressAction` / `setDefaultAddressAction`  | `src/app/uye/hesap/adreslerim/page.tsx`                     | `addressId`                                                                                                                                                    |
+| `toggleWishlistAction`                             | `src/components/laffogato/ui.tsx`, `…/favorilerim/page.tsx` | `productId`, `back` (yalnız site içi yol; dışarısı yok sayılır)                                                                                                |
+| `updateNotificationsAction`                        | `src/app/uye/hesap/bildirimler/notifications-form.tsx`      | `orderUpdates`, `marketing`, `newsletter`                                                                                                                      |
+| `deleteAccountAction`                              | `src/app/uye/hesap/sil/delete-account-form.tsx`             | `confirmEmail`, `password`                                                                                                                                     |
+| `bookKaraokeAction`                                | `src/components/laffogato/karaoke-booking.tsx`              | `date`, `startHour`, `hours`, `guests`, `note`                                                                                                                 |
+| `subscribeNewsletterAction`                        | `src/components/laffogato/newsletter-form.tsx`              | `email`, `consent`                                                                                                                                             |
+| `confirmNewsletterAction`                          | `src/app/bulten/onay/page.tsx`                              | `token` (gizli) - bülten onayı bir **düğme**dir, bağlantı değil                                                                                                |
+| `unsubscribeNewsletterAction`                      | `src/app/bulten/cikis/page.tsx`                             | `token` (gizli) - çıkış da düğmeyle; sayfa GET'te hiçbir şey harcamaz                                                                                          |
 
 **Bülten sayfalarında bağlantıyı "tek tık"a geri çevirme.** E-posta güvenlik
 tarayıcıları (Outlook Safe Links, Gmail ön-getirme) iletideki her bağlantıyı
@@ -93,7 +94,15 @@ ayrı bir arka yüz PR'ıdır.
 ### `items` - sepetin sunucuya gidiş biçimi
 
 ```json
-[{ "productId": "prd-0001", "variantId": "v-250g", "name": "…", "price": 245, "qty": 2 }]
+[
+  {
+    "productId": "prd-0001",
+    "variantId": "v-250g",
+    "name": "…",
+    "price": 245,
+    "qty": 2
+  }
+]
 ```
 
 `price` **lira** cinsindendir ve yalnız gösterim içindir: sunucu her satırı
@@ -113,11 +122,11 @@ yazan `defaultChecked={values.x}` serbesttir.
 
 ## 3. Sepet ve tarayıcı durumu
 
-| Ne                     | Değer                                     | Kim okur/yazar                                                                  |
-| ---------------------- | ----------------------------------------- | ------------------------------------------------------------------------------- |
-| Sepet anahtarı         | `localStorage["laffogato_cart_v1"]`       | `app.tsx`, `product-detail.tsx`, `site-chrome.tsx`, `checkout-wizard.tsx`, `odeme/basarili/clear-cart.tsx` |
-| Sepet temizleme        | `/odeme/basarili` içindeki `<ClearCart>`  | Server action client state'e dönemez; temizlik başarı sayfasında olur          |
-| Çerez rızası           | `src/lib/consent/cookie.ts`               | `cookie-consent.tsx` - Consent Mode v2 sinyalleri buradan                       |
+| Ne              | Değer                                    | Kim okur/yazar                                                                                            |
+| --------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Sepet anahtarı  | `localStorage["laffogato_cart_v1"]`      | `app.tsx`, `product-detail.tsx`, `site-chrome.tsx`, `odeme/checkout.tsx`, `odeme/basarili/clear-cart.tsx` |
+| Sepet temizleme | `/odeme/basarili` içindeki `<ClearCart>` | Server action client state'e dönemez; temizlik başarı sayfasında olur                                     |
+| Çerez rızası    | `src/lib/consent/cookie.ts`              | `cookie-consent.tsx` - Consent Mode v2 sinyalleri buradan                                                 |
 
 Anahtarın adını değiştirmek sahadaki her ziyaretçinin sepetini sessizce
 boşaltır. Değişmesi gerekiyorsa eskiyi okuyup yeniye taşıyan bir geçiş yaz.
@@ -149,19 +158,17 @@ boşaltır. Değişmesi gerekiyorsa eskiyi okuyup yeniye taşıyan bir geçiş y
 Action'lar sonucu URL'le bildirir. Yeniden tasarlanan sayfa bu parametreleri
 okumaya devam etmezse müşteri "hiçbir şey olmadı" ekranında kalır.
 
-| Yönlendirme                                           | Kaynak                          | Karşılayan                        |
-| ----------------------------------------------------- | ------------------------------- | --------------------------------- |
-| `/?cart=empty`                                        | `placeOrderAction`              | `src/app/page.tsx` bildirimi      |
-| `/?cart=out_of_stock&item=…&available=…`              | `placeOrderAction`              | `src/app/page.tsx`                |
-| `/?cart=qty_too_high&item=…&available=…`              | `placeOrderAction`              | `src/app/page.tsx`                |
-| `/?cart=shop_closed`, `/?cart=not_found&item=…`       | `placeOrderAction`              | `src/app/page.tsx`                |
-| `/odeme?error=consent`                                | `placeOrderAction`              | `src/app/odeme/page.tsx` (`CHECKOUT_NOTICES`) |
-| `/odeme?error=payment`                                | POS `failureUrl`, `/odeme/donus`, `/odeme/paynkolay` | `src/app/odeme/page.tsx` (`CHECKOUT_NOTICES`) |
-| `/odeme?verify=required`                              | `placeOrderAction`              | Sayfa doğrulama panelini üyenin durumundan zaten gösterir; parametre bilgi amaçlı |
-| `/uye/giris?next=/odeme`                              | `placeOrderAction`              | `src/app/uye/giris/page.tsx`      |
-| `/?hesap=silindi\|kapatildi`                          | `deleteAccountAction`           | ana sayfa (`accountClosureNotice`): `silindi` yalnız Supabase giriş kimliği de silindiyse |
-| `/bulten/onay?sonuc=tamam\|gecersiz\|hata`             | `confirmNewsletterAction`       | `src/app/bulten/onay/page.tsx`    |
-| `/bulten/cikis?sonuc=tamam&adres=…`, `?sonuc=gecersiz\|hata` | `unsubscribeNewsletterAction` | `src/app/bulten/cikis/page.tsx` (`adres` maskeli: `a***@alan.com`) |
+| Yönlendirme                                                                | Kaynak                                                                                                                                       | Karşılayan                                                                                |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `/?cart=empty`, `out_of_stock`, `qty_too_high`, `shop_closed`, `not_found` | Eski `placeOrderAction` (16 Eki 2026'dan beri checkout bunları sayfada, `startCheckoutAction`'ın `error.code === "cart"` yanıtıyla gösterir) | `src/app/page.tsx` bildirimi (eski bağlantılar için duruyor)                              |
+| `/odeme?error=consent`                                                     | Eski bağlantılar (checkout onayı sayfada ister)                                                                                              | `src/lib/checkout/return-codes.ts` (`readCheckoutReturn`)                                 |
+| `/odeme?error=payment`                                                     | POS `failureUrl`, `/odeme/donus`                                                                                                             | `src/lib/checkout/return-codes.ts`                                                        |
+| `/odeme?odeme=<kod>[&alan=][&dk=]`                                         | `/odeme/paynkolay` (`return=checkout`)                                                                                                       | `src/lib/checkout/return-codes.ts` - yalnız sabit kodlar                                  |
+| `/odeme?verify=required`                                                   | `startCheckoutAction`                                                                                                                        | Sayfa doğrulama panelini üyenin durumundan zaten gösterir; parametre bilgi amaçlı         |
+| `/uye/giris?next=/odeme`                                                   | `startCheckoutAction`, `/odeme` kapısı                                                                                                       | `src/app/uye/giris/page.tsx`                                                              |
+| `/?hesap=silindi\|kapatildi`                                               | `deleteAccountAction`                                                                                                                        | ana sayfa (`accountClosureNotice`): `silindi` yalnız Supabase giriş kimliği de silindiyse |
+| `/bulten/onay?sonuc=tamam\|gecersiz\|hata`                                 | `confirmNewsletterAction`                                                                                                                    | `src/app/bulten/onay/page.tsx`                                                            |
+| `/bulten/cikis?sonuc=tamam&adres=…`, `?sonuc=gecersiz\|hata`               | `unsubscribeNewsletterAction`                                                                                                                | `src/app/bulten/cikis/page.tsx` (`adres` maskeli: `a***@alan.com`)                        |
 
 `?cart=` gerekçelerinin, her `/odeme?error=` nedeninin, `?hesap=` değerlerinin
 ve girişteki `?next=` taşımasının karşılandığını
@@ -174,20 +181,20 @@ ve girişteki `?next=` taşımasının karşılandığını
 Bu URL'lere site dışından gelinir: gönderilmiş e-postalar, sanal POS, mobil
 uygulama, arama motoru. Yeniden adlandırmak geri alınamaz şekilde kırar.
 
-| Yol                                                     | Kim çağırır                                                |
-| ------------------------------------------------------- | ---------------------------------------------------------- |
-| `/api/mobile/v1/**`                                     | `lafmobil` (sahadaki tüm sürümler)                         |
-| `/odeme/donus`                                          | PayNkolay form-POST'u (`PAYNKOLAY_SUCCESS_URL` / `_FAIL_URL`) |
-| `/odeme/paynkolay`, `/odeme/app-hata`                   | Ödeme akışı, uygulama derin bağlantısı                     |
-| `/api/webhooks/payment`, `/api/webhooks/geliver`        | Ödeme sağlayıcısı, kargo                                   |
-| `/api/cron/**`                                          | Vercel cron + GitHub Actions (`campaign-hourly.yml`)       |
-| `/bulten/cikis`, `/api/bulten/cikis`                    | Her ticari e-postadaki tek tıkla çıkış                     |
-| `/bulten/onay?token=`                                   | Bülten onay e-postası (çift onay, 7 gün geçerli)           |
-| `/uye/sifre-sifirla?token=`, `/uye/dogrula?token=`      | Parola sıfırlama ve e-posta doğrulama e-postaları          |
-| `/uye/hesap/siparislerim/[orderNo]`, `/uye/hesap/sil`   | İşlemsel e-postalar, uygulama                              |
-| `/hukuk/[slug]`                                         | E-postalar, uygulama (`GET /legal`), sözleşme metinleri    |
-| `/gorsel/**`                                            | Uygulamanın ürün/menü görselleri (`image` alanı)           |
-| `/magaza/urun/[slug]`, `/menu`, `/magaza`, `/rehber/**` | Arama motoru, sitemap, paylaşılan bağlantılar              |
+| Yol                                                     | Kim çağırır                                                                                                                                                                               |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/mobile/v1/**`                                     | `lafmobil` (sahadaki tüm sürümler)                                                                                                                                                        |
+| `/odeme/donus`                                          | PayNkolay form-POST'u (`PAYNKOLAY_SUCCESS_URL` / `_FAIL_URL`)                                                                                                                             |
+| `/odeme/paynkolay`, `/odeme/app-hata`                   | Ödeme akışı, uygulama derin bağlantısı                                                                                                                                                    |
+| `/api/webhooks/payment`, `/api/webhooks/geliver`        | Ödeme sağlayıcısı, kargo                                                                                                                                                                  |
+| `/api/cron/**`                                          | Vercel cron + GitHub Actions (`campaign-hourly.yml`)                                                                                                                                      |
+| `/bulten/cikis`, `/api/bulten/cikis`                    | Her ticari e-postadaki tek tıkla çıkış                                                                                                                                                    |
+| `/bulten/onay?token=`                                   | Bülten onay e-postası (çift onay, 7 gün geçerli)                                                                                                                                          |
+| `/uye/sifre-sifirla?token=`, `/uye/dogrula?token=`      | Parola sıfırlama ve e-posta doğrulama e-postaları                                                                                                                                         |
+| `/uye/hesap/siparislerim/[orderNo]`, `/uye/hesap/sil`   | İşlemsel e-postalar, uygulama                                                                                                                                                             |
+| `/hukuk/[slug]`                                         | E-postalar, uygulama (`GET /legal`), sözleşme metinleri                                                                                                                                   |
+| `/gorsel/**`                                            | Uygulamanın ürün/menü görselleri (`image` alanı)                                                                                                                                          |
+| `/magaza/urun/[slug]`, `/menu`, `/magaza`, `/rehber/**` | Arama motoru, sitemap, paylaşılan bağlantılar                                                                                                                                             |
 | `/masa/[code]`                                          | Masalardaki basılı QR kartları (laminasyon - geri çağrılamaz), uygulamanın masa ekranıyla birlikte evrensel bağlantı olacak (`/masa/*`, henüz talep edilmiyor). `noindex`, sitemap'te yok |
 
 ---

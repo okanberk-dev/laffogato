@@ -42,7 +42,9 @@ export type AuthPurpose =
   | "checkout-reopen"
   | "card-payment-ip"
   | "card-payment-order"
-  | "table-lookup";
+  | "table-lookup"
+  | "checkout-start"
+  | "card-delete";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -128,6 +130,15 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // counts, per address: twenty in five minutes is far past a shaky camera
   // and far short of walking a 2^50 code space.
   "table-lookup": 20,
+  // "Siparişi onayla ve öde" on /odeme (startCheckoutAction). Each press may
+  // create an order - a stock and coupon claim, POS lookups for the
+  // member's older unpaid orders - so every press is
+  // counted, success or not. Keyed on the member, not the address, like
+  // checkout-reopen: a declined card, a retry and a price confirmation are
+  // three presses; ten in five minutes is a script.
+  "checkout-start": 10,
+  // Deleting a saved card from /odeme: two POS calls each (list, delete).
+  "card-delete": 10,
 };
 
 /** Lockout length per purpose; LOCKOUT_MS unless listed. */
@@ -135,6 +146,8 @@ const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "admin-2fa-account": 15 * 60 * 1000,
   "newsletter-signup": 15 * 60 * 1000,
   "checkout-reopen": 10 * 60 * 1000,
+  "checkout-start": 10 * 60 * 1000,
+  "card-delete": 10 * 60 * 1000,
   "card-payment-order": 30 * 60 * 1000,
   "card-payment-ip": 60 * 60 * 1000,
   "newsletter-signup-ip": 60 * 60 * 1000,

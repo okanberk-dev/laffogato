@@ -64,7 +64,9 @@ describe("checkout consent: two boxes, both required", () => {
     // One box per document the server records the consent against, so the
     // record never claims a document the customer had no box for.
     expect(CHECKOUT_CONSENT_DOCS).toHaveLength(2);
-    const labels = [...html.matchAll(/<label for="([^"]+)">([\s\S]*?)<\/label>/g)];
+    const labels = [
+      ...html.matchAll(/<label for="([^"]+)">([\s\S]*?)<\/label>/g),
+    ];
     expect(labels.map((m) => m[1]).sort()).toEqual([...ids].sort());
     for (const slug of CHECKOUT_CONSENT_DOCS) {
       const own = labels.filter((m) => m[2].includes(`href="/hukuk/${slug}"`));
@@ -100,18 +102,24 @@ describe("checkout consent: two boxes, both required", () => {
   });
 
   it("the payment step starts unticked and gates its button on both boxes", () => {
-    // The wizard owns the state; the markup above is what it renders. These
-    // three lines are the whole of the wiring, so a redesign that starts
-    // pre-ticked or enables the button on one box fails here.
-    const wizard = readFileSync("src/app/odeme/checkout-wizard.tsx", "utf8");
+    // The checkout owns the state; the markup above is what it renders.
+    // These three lines are the whole of the wiring, so a redesign that
+    // starts pre-ticked or enables the button on one box fails here. (The
+    // one-page checkout replaced the 3-step wizard on 16 Eki 2026.)
+    const wizard = readFileSync("src/app/odeme/checkout.tsx", "utf8");
     expect(wizard).toMatch(
       /useState<CheckoutConsentTicks>\(\s*NO_CHECKOUT_CONSENT\s*\)/,
     );
     expect(wizard).toContain(
       "const consentGiven = checkoutConsentGiven(consent);",
     );
-    expect(wizard).toMatch(/type="submit"\s+disabled=\{placing \|\| !consentGiven\}/);
+    expect(wizard).toMatch(
+      /type="submit"\s+disabled=\{placing \|\| !consentGiven\}/,
+    );
     expect(wizard).toMatch(/<CheckoutConsent\s+ticks=\{consent\}/);
+    // The hidden `legalConsent` rides with the ORDER form the action reads,
+    // never with the card's native form.
+    expect(wizard).toMatch(/<CheckoutConsent[\s\S]*?form=\{ORDER_FORM_ID\}/);
     // The single-box checkout must not come back beside the new one.
     expect(wizard).not.toContain('name="legalConsent"');
   });

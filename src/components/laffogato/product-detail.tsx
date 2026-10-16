@@ -1,7 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import Link from "next/link";
 import { useState } from "react";
 
@@ -56,7 +54,6 @@ export function ProductDetail({
   product: Product;
   related: Product[];
 }) {
-  const router = useRouter();
   const variants = (p.variants ?? []).filter((v) => v.isActive !== false);
   const gallery = (p.images ?? []).filter(
     (u) => typeof u === "string" && u.length > 0,
@@ -112,7 +109,10 @@ export function ProductDetail({
     if (outOfStock) return;
     pushToCart(toCartItem(p, selectedVariant), qty);
     if (goCheckout) {
-      router.push("/odeme");
+      // A full page load: the checkout opens in a document of its own,
+      // without this page's tags (src/lib/security/checkout-document.ts).
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the full load is the point
+      window.location.assign("/odeme");
     } else {
       setAdded(true);
       window.setTimeout(() => setAdded(false), 2200);
@@ -325,13 +325,9 @@ export function ProductDetail({
                   İstanbul içi siparişler aynı gün, Türkiye geneli 2-3 iş günü
                   içinde teslim edilir. 500₺ ve üzeri siparişlerde kargo
                   ücretsizdir. Sipariş durumunu{" "}
-                  <Link href="/uye/hesap/siparislerim">
-                    üyelik hesabından
-                  </Link>{" "}
+                  <Link href="/uye/hesap/siparislerim">üyelik hesabından</Link>{" "}
                   takip edebilirsin. Ayrıntılar:{" "}
-                  <Link href="/hukuk/teslimat-ve-kargo">
-                    Teslimat ve Kargo
-                  </Link>
+                  <Link href="/hukuk/teslimat-ve-kargo">Teslimat ve Kargo</Link>
                   .
                 </p>
               </Accordion>

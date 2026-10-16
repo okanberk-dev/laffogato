@@ -1,11 +1,12 @@
-import Link from "next/link";
-
 import { LafMark } from "@/components/laffogato/brand-mark";
 import { VerifyNotice } from "@/components/customer/verify-notice";
 import { getPublicSettings } from "@/lib/admin/store";
+import { readCheckoutReturn } from "@/lib/checkout/return-codes";
 import { getActiveCustomer } from "@/lib/customer/auth";
+import { LEGAL_ADDRESS_LINE, LEGAL_ENTITY } from "@/lib/legal/entity";
+import { checkoutPaymentSetup } from "@/lib/payment/saved-cards";
 
-import { CheckoutWizard } from "./checkout-wizard";
+import { Checkout } from "./checkout";
 
 function GatePanel({ children }: { children: React.ReactNode }) {
   return (
@@ -20,98 +21,109 @@ function GatePanel({ children }: { children: React.ReactNode }) {
 // page in the same folder as its layout, and this string already carries the
 // brand ("Ödeme · L'Affogato · L'Affogato" in the tab before).
 export const metadata = { title: { absolute: "Ödeme · L'Affogato" } };
+// Dynamic on purpose, and it must stay so: the document's CSP nonce is
+// minted per request (src/proxy.ts) and Next.js stamps it while rendering.
 export const dynamic = "force-dynamic";
 
-/** Redirect reasons the checkout can bounce back with. */
-const CHECKOUT_NOTICES: Record<string, string> = {
-  consent:
-    "Siparişi tamamlamak için Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi onayı zorunludur. Lütfen iki onay kutusunu da işaretleyin.",
-  payment:
-    "Ödeme tamamlanamadı. Kartınızdan tahsilat yapılmadı - dilerseniz tekrar deneyebilirsiniz.",
-};
-
+/**
+ * The checkout (docs/PAYNKOLAY.md §15.5): delivery, the card and the order
+ * summary on one page, in two steps. Every link out of here is a plain <a>
+ * - leaving must be a full page load (see checkout-chrome.tsx).
+ */
 export default async function OdemePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{
+    error?: string | string[];
+    odeme?: string | string[];
+    alan?: string | string[];
+    dk?: string | string[];
+  }>;
 }) {
   // Settings first: if the shop is closed - including because the database is
   // unreachable, which forces it closed - nothing else needs loading, and the
-  // wizard must not render against fallback tax and shipping values.
+  // checkout must not render against fallback tax and shipping values.
   const settings = await getPublicSettings();
   const customer = settings.isShopOpen ? await getActiveCustomer() : null;
-  const { error } = await searchParams;
-  const notice = error ? CHECKOUT_NOTICES[error] : undefined;
-  const config = {
-    shippingFlatMinor: settings.shippingFlatMinor,
-    shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
-    taxRatePct: settings.taxRatePct,
-  };
+  // Only fixed codes are read (return-codes.ts): a hand-made link cannot put
+  // its own words on this page.
+  const returned = readCheckoutReturn(await searchParams);
+
+  let body: React.ReactNode;
+  if (!settings.isShopOpen) {
+    body = (
+      <GatePanel>
+        <h1 className="checkout-gate-title">Şu an sipariş alamıyoruz</h1>
+        <p className="checkout-gate-lede">
+          Mağaza geçici olarak siparişe kapalı. Sepetin korunuyor - birazdan
+          tekrar denersen kaldığın yerden devam edebilirsin.
+        </p>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full page load on purpose: the checkout document keeps its own policy (checkout-chrome.tsx) */}
+        <a href="/magaza" className="btn btn-primary">
+          Mağazaya dön
+        </a>
+      </GatePanel>
+    );
+  } else if (!customer) {
+    body = (
+      <GatePanel>
+        <h1 className="checkout-gate-title">Sipariş için giriş yap</h1>
+        <p className="checkout-gate-lede">
+          Güvenliğin için siparişler yalnızca doğrulanmış hesaplarla
+          verilebilir. Giriş yap ya da hızlıca bir hesap oluştur - e-postanı
+          onayladıktan sonra ödemeye devam edebilirsin.
+        </p>
+        <div className="checkout-gate-actions">
+          <a href="/uye/giris?next=/odeme" className="btn btn-primary">
+            Giriş yap
+          </a>
+          <a href="/uye/kayit?next=/odeme" className="btn btn-ghost">
+            Hesap oluştur
+          </a>
+        </div>
+      </GatePanel>
+    );
+  } else if (!customer.emailVerified) {
+    body = (
+      <GatePanel>
+        {/* Every branch of this page needs its own h1: the checkout carries
+            one, and a visitor stopped at a gate gets one here. */}
+        <h1 className="checkout-gate-title">Ödemeden önce e-postanı doğrula</h1>
+        <VerifyNotice email={customer.email} />
+      </GatePanel>
+    );
+  } else {
+    const payment = await checkoutPaymentSetup(customer.email);
+    body = (
+      <Checkout
+        // Only what the page shows: never the whole account row.
+        customer={{
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          addresses: customer.addresses,
+        }}
+        config={{
+          shippingFlatMinor: settings.shippingFlatMinor,
+          shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
+          taxRatePct: settings.taxRatePct,
+        }}
+        payment={payment}
+        seller={{
+          name: LEGAL_ENTITY.legalName,
+          address: LEGAL_ADDRESS_LINE,
+          phone: LEGAL_ENTITY.phone,
+          email: LEGAL_ENTITY.email,
+          mersis: LEGAL_ENTITY.mersisNo,
+        }}
+        returned={returned}
+      />
+    );
+  }
+
   return (
     <div className="checkout-page">
-      <div className="checkout-page-wrap">
-        <header className="checkout-page-head">
-          <Link href="/magaza" className="auth-back">
-            ← Alışverişe dön
-          </Link>
-          <div className="checkout-brand">
-            <LafMark tone="duo" label="L'Affogato" />
-            <span className="checkout-secure">
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M4.5 7V5.2a3.5 3.5 0 0 1 7 0V7" />
-                <rect x="3" y="7" width="10" height="7" rx="2" />
-              </svg>
-              Güvenli ödeme
-            </span>
-          </div>
-        </header>
-        {notice && (
-          <p role="alert" className="auth-alert checkout-notice">
-            {notice}
-          </p>
-        )}
-        {!settings.isShopOpen ? (
-          <GatePanel>
-            <h1 className="checkout-gate-title">Şu an sipariş alamıyoruz</h1>
-            <p className="checkout-gate-lede">
-              Mağaza geçici olarak siparişe kapalı. Sepetin korunuyor - birazdan
-              tekrar denersen kaldığın yerden devam edebilirsin.
-            </p>
-            <Link href="/magaza" className="btn btn-primary">
-              Mağazaya dön
-            </Link>
-          </GatePanel>
-        ) : !customer ? (
-          <GatePanel>
-            <h1 className="checkout-gate-title">Sipariş için giriş yap</h1>
-            <p className="checkout-gate-lede">
-              Güvenliğin için siparişler yalnızca doğrulanmış hesaplarla
-              verilebilir. Giriş yap ya da hızlıca bir hesap oluştur - e-postanı
-              onayladıktan sonra ödemeye devam edebilirsin.
-            </p>
-            <div className="checkout-gate-actions">
-              <Link href="/uye/giris?next=/odeme" className="btn btn-primary">
-                Giriş yap
-              </Link>
-              <Link href="/uye/kayit?next=/odeme" className="btn btn-ghost">
-                Hesap oluştur
-              </Link>
-            </div>
-          </GatePanel>
-        ) : !customer.emailVerified ? (
-          <GatePanel>
-            {/* Every branch of this page needs its own h1: the wizard carries
-                one, but a visitor stopped at a gate used to get a checkout
-                page with no heading at all. */}
-            <h1 className="checkout-gate-title">
-              Ödemeden önce e-postanı doğrula
-            </h1>
-            <VerifyNotice email={customer.email} />
-          </GatePanel>
-        ) : (
-          <CheckoutWizard customer={customer} config={config} />
-        )}
-      </div>
+      <div className="checkout-page-wrap">{body}</div>
     </div>
   );
 }
