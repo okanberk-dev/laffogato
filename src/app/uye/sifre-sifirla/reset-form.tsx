@@ -6,6 +6,7 @@ import {
   resetPasswordAction,
   type ResetPasswordState,
 } from "@/app/uye/actions";
+import { BusyDots } from "@/components/laffogato/busy-dots";
 
 const initial: ResetPasswordState = {};
 
@@ -50,8 +51,16 @@ export function ResetPasswordForm({ token }: { token: string }) {
         type="submit"
         className="btn btn-primary btn-lg auth-submit"
         disabled={pending}
+        aria-busy={pending}
       >
-        {pending ? "Kaydediliyor…" : "Şifreyi kaydet ve giriş yap"}
+        {pending ? (
+          <>
+            <BusyDots />
+            Kaydediliyor…
+          </>
+        ) : (
+          "Şifreyi kaydet ve giriş yap"
+        )}
       </button>
     </form>
   );

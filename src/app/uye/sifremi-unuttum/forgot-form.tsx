@@ -6,6 +6,7 @@ import {
   requestPasswordResetAction,
   type ForgotPasswordState,
 } from "@/app/uye/actions";
+import { BusyDots } from "@/components/laffogato/busy-dots";
 
 const initial: ForgotPasswordState = {};
 
@@ -44,8 +45,16 @@ export function ForgotPasswordForm() {
         type="submit"
         className="btn btn-primary btn-lg auth-submit"
         disabled={pending}
+        aria-busy={pending}
       >
-        {pending ? "Gönderiliyor…" : "Sıfırlama bağlantısı gönder"}
+        {pending ? (
+          <>
+            <BusyDots />
+            Gönderiliyor…
+          </>
+        ) : (
+          "Sıfırlama bağlantısı gönder"
+        )}
       </button>
     </form>
   );

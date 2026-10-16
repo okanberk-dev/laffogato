@@ -4,6 +4,8 @@ import { useActionState } from "react";
 
 import type { NotificationPrefs } from "@/lib/customer/store";
 
+import { BusyDots } from "@/components/laffogato/busy-dots";
+
 import {
   updateNotificationsAction,
   type NotificationFormState,
@@ -54,9 +56,17 @@ export function NotificationsForm({
         type="submit"
         disabled={pending}
         className="btn btn-primary btn-sm"
-        style={{ justifySelf: "start", opacity: pending ? 0.7 : 1 }}
+        style={{ justifySelf: "start" }}
+        aria-busy={pending}
       >
-        {pending ? "Kaydediliyor…" : "Tercihleri kaydet"}
+        {pending ? (
+          <>
+            <BusyDots />
+            Kaydediliyor…
+          </>
+        ) : (
+          "Tercihleri kaydet"
+        )}
       </button>
     </form>
   );

@@ -7,6 +7,7 @@ import {
   bookKaraokeAction,
   type BookKaraokeState,
 } from "@/app/karaoke/actions";
+import { BusyDots } from "./busy-dots";
 import { PageHero } from "./page-hero";
 // Type-only: karaoke-core builds Zod schemas at load, and a value import from
 // it ships all of Zod to the browser. The quote maths comes from the
@@ -645,12 +646,18 @@ export function KaraokeBooking({
                 type="submit"
                 className="btn btn-gold karaoke-pay"
                 disabled={!selectionValid || !ticked || pending}
+                aria-busy={pending}
               >
-                {pending
-                  ? "Gönderiliyor…"
-                  : prepay
-                    ? `Rezervasyonu onayla ve ${priceLabel(quote.totalMinor)} öde`
-                    : "Rezervasyon iste"}
+                {pending ? (
+                  <>
+                    <BusyDots />
+                    Gönderiliyor…
+                  </>
+                ) : prepay ? (
+                  `Rezervasyonu onayla ve ${priceLabel(quote.totalMinor)} öde`
+                ) : (
+                  "Rezervasyon iste"
+                )}
               </button>
               <p className="karaoke-fine">
                 {prepay
