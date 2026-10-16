@@ -7,6 +7,7 @@ import {
   extractRows,
   parsePaynkolayRnd,
   formatPaynkolayRnd,
+  paymentListKeyRefusal,
   paynkolayHash,
   unwrapPaynkolayResult,
   type PaynkolayCheckoutMode,
@@ -420,6 +421,63 @@ describe("the services' real response shape", () => {
     stubPos(LIVE_EMPTY);
     await expect(makeProvider().lookupPayment("ord-0284", NOW)).resolves.toBe(
       null,
+    );
+  });
+
+  // Measured in production, 17 Eki 2026 (docs/PAYNKOLAY.md §2): both are a
+  // configuration mistake, and the log line names the variable to check -
+  // never a value, and never the POS's own text (the token refusal echoes
+  // the merchant's id).
+  const LIVE_TOKEN_ERROR = {
+    result:
+      '{"RESPONSE_CODE":0,"ERROR_CODE":"","RESPONSE_DATA":"API : clientId veya token hatalı118591467","LIST":null}',
+  };
+
+  async function lookupError(): Promise<string> {
+    try {
+      await makeProvider().lookupPayment("ord-0284", NOW);
+    } catch (err) {
+      return err instanceof Error ? err.message : String(err);
+    }
+    throw new Error("expected the lookup to throw");
+  }
+
+  it("names PAYNKOLAY_SX_LIST when the list token is refused, without any value", async () => {
+    stubPos(LIVE_TOKEN_ERROR);
+    const message = await lookupError();
+    expect(message).toContain("PAYNKOLAY_SX_LIST");
+    expect(message).not.toContain("PAYNKOLAY_MERCHANT_SECRET_KEY");
+    expect(message).not.toContain("118591467");
+    expect(message).not.toContain("SX-LIST");
+    expect(message).not.toContain(SECRET);
+  });
+
+  it("names PAYNKOLAY_MERCHANT_SECRET_KEY on a hash refusal, without any value", async () => {
+    stubPos(LIVE_HASH_ERROR);
+    const message = await lookupError();
+    expect(message).toContain("PAYNKOLAY_MERCHANT_SECRET_KEY");
+    expect(message).toContain("hashData error");
+    expect(message).not.toContain("SX-LIST");
+    expect(message).not.toContain(SECRET);
+  });
+
+  it("a refused token is never an empty list, even with LIST in the body (rule 29)", async () => {
+    stubPos(LIVE_TOKEN_ERROR);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(
+      makeProvider().confirmReturn({
+        CLIENT_REFERENCE_CODE: "ord-0284",
+        REFERENCE_CODE: "IKSIRPF102168",
+        AUTHORIZATION_AMOUNT: "1280.10",
+      }),
+    ).rejects.toThrow(/PAYNKOLAY_SX_LIST/);
+  });
+
+  it("other refusals keep the POS's own words", () => {
+    expect(paymentListKeyRefusal("Listelenecek kayıt bulunamadı.")).toBeNull();
+    expect(paymentListKeyRefusal("")).toBeNull();
+    expect(paymentListKeyRefusal("API : hashData error :: ")).toMatch(
+      /PAYNKOLAY_MERCHANT_SECRET_KEY/,
     );
   });
 });
