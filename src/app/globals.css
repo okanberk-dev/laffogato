@@ -208,6 +208,15 @@
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
   --press-scale: 0.97;
+
+  /* Card scheme marks on /odeme (scheme-marks.tsx), drawn locally - the
+     checkout loads no image from anywhere else. The schemes' own colours. */
+  --scheme-visa: #1a1f71;
+  --scheme-mc-red: #eb001b;
+  --scheme-mc-yellow: #f79e1b;
+  --scheme-mc-orange: #ff5f00;
+  --scheme-troy: #1f8fc4;
+  --scheme-amex: #2e77bc;
 }
 
 * {
@@ -6676,15 +6685,6 @@ select {
   margin: 0 auto;
   padding: clamp(24px, 4vw, 40px) var(--gutter) clamp(60px, 8vw, 100px);
 }
-.checkout-page-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: clamp(28px, 4vw, 44px);
-  padding-bottom: 22px;
-  border-bottom: 1px solid var(--ink-line);
-}
 /* Order placed ────────────────────────────────────────────────
    The app's confirmation sheet: one glass card, a green check disc (a clock
    while the payment is still pending), the facts as three quiet tiles and
@@ -6907,14 +6907,6 @@ select {
 }
 
 /* The mark and a quiet "secure" capsule - the app's checkout header. */
-.checkout-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.checkout-brand .laf-mark {
-  --laf-h: 30px;
-}
 .checkout-secure {
   display: inline-flex;
   align-items: center;
@@ -6936,120 +6928,7 @@ select {
   stroke-linecap: round;
 }
 
-.checkout-grid {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: clamp(24px, 4vw, 48px);
-  align-items: start;
-}
-@media (max-width: 980px) {
-  .checkout-grid {
-    grid-template-columns: 1fr;
-  }
-}
-.checkout-main {
-  display: grid;
-  gap: 24px;
-}
 
-/* Stepper */
-.checkout-stepper {
-  list-style: none;
-  margin: 0;
-  padding: 18px 22px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  background: #fff;
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-lg);
-}
-@media (max-width: 720px) {
-  .checkout-stepper {
-    grid-template-columns: 1fr;
-  }
-}
-.checkout-stepper-item {
-  display: grid;
-  grid-template-columns: 36px 1fr;
-  gap: 10px;
-  align-items: center;
-  position: relative;
-  opacity: 0.45;
-  transition: opacity 0.25s var(--ease-out);
-}
-.checkout-stepper-item[data-state="active"] {
-  opacity: 1;
-}
-.checkout-stepper-item[data-state="done"] {
-  opacity: 0.85;
-}
-.checkout-stepper-num {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: var(--bg-warm);
-  border: 1px solid var(--ink-line);
-  font-family: var(--display);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-soft);
-  transition:
-    background 0.25s,
-    color 0.25s,
-    border-color 0.25s;
-}
-.checkout-stepper-item[data-state="active"] .checkout-stepper-num {
-  background: var(--bg-espresso);
-  color: var(--bg);
-  border-color: var(--bg-espresso);
-}
-/* Done is decided, and decided is green in the app - the gold read as a
-   reward the customer had not earned yet. */
-.checkout-stepper-item[data-state="done"] .checkout-stepper-num {
-  background: var(--green-mist);
-  color: var(--green);
-  border-color: var(--green-mist);
-}
-.checkout-stepper-label {
-  display: block;
-  font-family: var(--serif-modern);
-  font-weight: 500;
-  font-size: 16px;
-  letter-spacing: -0.005em;
-}
-.checkout-stepper-hint {
-  display: block;
-  font-size: 12px;
-  color: var(--ink-mute);
-  margin-top: 2px;
-}
-
-/* Step card */
-.checkout-step {
-  background: #fff;
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-lg);
-  padding: clamp(24px, 3.5vw, 40px);
-  display: grid;
-  gap: 22px;
-}
-.checkout-step-head {
-  display: grid;
-  gap: 2px;
-}
-.checkout-step-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding-top: 8px;
-  margin-top: 8px;
-  border-top: 1px solid var(--ink-line);
-}
 
 /* Skeleton (mount) */
 .checkout-skeleton {
@@ -7089,361 +6968,10 @@ select {
   margin-bottom: 14px;
 }
 
-/* Cart line items (review step) */
-.checkout-line-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 14px;
-}
-.checkout-line {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 18px;
-  padding: 16px 18px;
-  background: var(--bg-warm);
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-md);
-}
-@media (max-width: 540px) {
-  .checkout-line {
-    grid-template-columns: 1fr;
-    text-align: left;
-  }
-}
-.checkout-line-name {
-  font-family: var(--serif-modern);
-  font-weight: 500;
-  font-size: 16px;
-  letter-spacing: -0.01em;
-}
-.checkout-line-qty {
-  display: inline-flex;
-  align-items: center;
-  background: #fff;
-  border: 1px solid var(--ink-line-strong);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.checkout-line-qty button {
-  padding: 8px 14px;
-  font-family: var(--mono);
-  font-size: 14px;
-  color: var(--ink-soft);
-  background: transparent;
-}
-.checkout-line-qty button:hover {
-  background: var(--bg-warm);
-}
-.checkout-line-qty span {
-  padding: 8px 12px;
-  font-family: var(--mono);
-  font-size: 13px;
-  min-width: 40px;
-  text-align: center;
-  border-left: 1px solid var(--ink-line);
-  border-right: 1px solid var(--ink-line);
-}
-.checkout-line-price {
-  font-family: var(--mono);
-  font-size: 14px;
-  color: var(--ink);
-}
 
-/* Address grid */
-.checkout-address-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-}
-@media (max-width: 720px) {
-  .checkout-address-grid {
-    grid-template-columns: 1fr;
-  }
-}
-.checkout-address-card {
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 18px;
-  background: var(--bg-warm);
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-md);
-  cursor: pointer;
-  transition:
-    border-color 0.18s,
-    box-shadow 0.18s,
-    background 0.18s;
-}
-.checkout-address-card:hover {
-  border-color: var(--ink-line-strong);
-}
-.checkout-address-card[data-active="true"] {
-  background: #fff;
-  border-color: var(--ink);
-  box-shadow: 0 0 0 1px var(--ink);
-}
-.checkout-address-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-.checkout-address-label {
-  font-family: var(--serif-modern);
-  font-weight: 500;
-  font-size: 16px;
-  letter-spacing: -0.005em;
-}
-.checkout-address-default {
-  font-size: 11.5px;
-  font-weight: 600;
-  background: var(--green-mist);
-  color: var(--green-pressed);
-  padding: 3px 9px;
-  border-radius: 999px;
-}
-.checkout-address-body {
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--ink-soft);
-}
-.checkout-address-new {
-  align-items: center;
-  justify-content: center;
-  border-style: dashed;
-  text-align: center;
-}
-.checkout-address-plus {
-  font-family: var(--serif);
-  font-size: 30px;
-  color: var(--ink-mute);
-  line-height: 1;
-}
 
-/* Shipping form */
-.checkout-shipping-form {
-  display: grid;
-  gap: 14px;
-  padding-top: 18px;
-  margin-top: 4px;
-  border-top: 1px dashed var(--ink-line);
-}
-.checkout-guest-note {
-  padding: 14px 16px;
-  background: var(--bg-warm);
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-md);
-}
-.checkout-guest-note p {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--ink-soft);
-  line-height: 1.55;
-}
-.checkout-field-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-@media (max-width: 540px) {
-  .checkout-field-row {
-    grid-template-columns: 1fr;
-  }
-}
-.checkout-field {
-  display: grid;
-  gap: 6px;
-}
-.checkout-field span {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
-}
-.checkout-field input {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--ink-line);
-  background: #fff;
-  font-family: inherit;
-  font-size: 15px;
-  color: var(--ink);
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
-.checkout-field input:focus {
-  outline: none;
-  border-color: var(--ink);
-  box-shadow: 0 0 0 3px rgba(59, 42, 30, 0.06);
-}
 
-/* Payment step */
-.checkout-payment-info {
-  padding: 18px 20px;
-  background: var(--bg-warm);
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-md);
-}
-.checkout-payment-info dl {
-  display: grid;
-  gap: 8px;
-  margin: 10px 0 0;
-}
-.checkout-payment-info dl > div {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 14px;
-  font-size: 14px;
-}
-.checkout-payment-info dt {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-mute);
-  padding-top: 1px;
-}
-.checkout-payment-info dd {
-  margin: 0;
-  color: var(--ink);
-  line-height: 1.55;
-}
-.checkout-payment-card {
-  background:
-    radial-gradient(
-      80% 140% at 100% 0%,
-      rgba(114, 203, 172, 0.24) 0%,
-      rgba(114, 203, 172, 0) 60%
-    ),
-    linear-gradient(135deg, #1d6d56 0%, #0c3b2d 100%);
-  color: #fbf8f4;
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
-}
-.checkout-payment-card-strip {
-  padding: 14px 22px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-.checkout-payment-card-body {
-  padding: 28px 24px 32px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 18px;
-}
-/* Mist on the green (5.30:1). The paragraph used to carry an inline
-   --ink-soft, dark brown on the green card, and could not be read. */
-.checkout-payment-note {
-  margin: 0;
-  max-width: 52ch;
-  font-size: 14px;
-  line-height: 1.65;
-  color: var(--green-mist);
-}
-.checkout-payment-amount {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-.checkout-payment-amount .eyebrow {
-  color: var(--gold-soft);
-}
-.checkout-payment-amount > span:last-child {
-  font-family: var(--headline);
-  font-weight: 700;
-  font-size: clamp(28px, 4vw, 40px);
-  letter-spacing: -0.02em;
-}
 
-/* Summary sidebar */
-.checkout-summary {
-  position: sticky;
-  top: 24px;
-  align-self: start;
-}
-.checkout-summary-card {
-  background: #fff;
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-lg);
-  padding: 24px;
-  display: grid;
-  gap: 14px;
-}
-.checkout-summary-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--ink-line);
-}
-.checkout-summary-items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 12px;
-  max-height: 280px;
-  overflow-y: auto;
-}
-.checkout-summary-items li {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px dashed var(--ink-line);
-}
-.checkout-summary-items li:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-.checkout-summary-name {
-  font-family: var(--serif-modern);
-  font-weight: 500;
-  font-size: 14px;
-  letter-spacing: -0.005em;
-}
-.checkout-summary-qty {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--ink-mute);
-  margin-top: 4px;
-}
-.checkout-summary-price {
-  font-size: 14px;
-  white-space: nowrap;
-}
-.checkout-summary-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: var(--ink-soft);
-}
-.checkout-summary-total {
-  display: flex;
-  justify-content: space-between;
-  padding-top: 14px;
-  margin-top: 4px;
-  border-top: 1px solid var(--ink-line);
-  font-family: var(--serif);
-  font-size: 22px;
-}
-.checkout-summary-note {
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--ink-mute);
-  line-height: 1.55;
-  margin-top: 4px;
-}
 
 /* Promo block (inside summary) */
 .checkout-promo {
@@ -7508,12 +7036,6 @@ select {
   color: #15803d;
 }
 
-/* Payment form */
-.checkout-payment-form .checkout-step-actions {
-  border-top: none;
-  padding-top: 0;
-  margin-top: 0;
-}
 
 /* Distance-selling consent - Mesafeli Sözleşmeler Yönetmeliği requires an
    explicit, never pre-ticked confirmation before the order is created: one
@@ -8072,104 +7594,9 @@ select {
 /* ─────────────────────────────────────────────────────────────
    Mobile refinements - checkout, nav, account
    ───────────────────────────────────────────────────────────── */
-
-/* Checkout - mobile order summary moves below */
-@media (max-width: 980px) {
-  .checkout-grid {
-    grid-template-columns: 1fr;
-  }
-  .checkout-summary {
-    position: static;
-    order: 2;
-  }
-  .checkout-main {
-    order: 1;
-  }
-  .checkout-summary-items {
-    max-height: none;
-  }
-}
 @media (max-width: 540px) {
   .checkout-page-wrap {
     padding-top: 16px;
-  }
-  .checkout-page-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    padding-bottom: 18px;
-    margin-bottom: 22px;
-  }
-  .checkout-brand {
-    gap: 10px;
-  }
-  .checkout-stepper {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 14px 16px;
-  }
-  .checkout-stepper-item {
-    grid-template-columns: 28px 1fr;
-    gap: 10px;
-  }
-  .checkout-stepper-num {
-    width: 28px;
-    height: 28px;
-    font-size: 11px;
-  }
-  .checkout-stepper-label {
-    font-size: 14px;
-  }
-  .checkout-stepper-hint {
-    display: none;
-  }
-  .checkout-stepper-item[data-state="active"] .checkout-stepper-hint,
-  .checkout-stepper-item[data-state="done"] .checkout-stepper-hint {
-    display: none;
-  }
-  .checkout-line {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 14px;
-  }
-  .checkout-line-name {
-    font-size: 15px;
-  }
-  .checkout-line-qty {
-    justify-self: start;
-  }
-  .checkout-line-price {
-    justify-self: end;
-    font-size: 14px;
-  }
-  .checkout-step-actions {
-    flex-direction: column-reverse;
-  }
-  .checkout-step-actions .btn-lg {
-    width: 100%;
-    justify-content: center;
-  }
-  .checkout-step-actions .btn-sm {
-    width: 100%;
-    justify-content: center;
-  }
-  .checkout-payment-card-body {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .checkout-payment-amount {
-    align-items: flex-start;
-    width: 100%;
-  }
-  .checkout-payment-info dl > div {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
-  .checkout-summary-card {
-    padding: 18px;
-  }
-  .checkout-summary-total {
-    font-size: 20px;
   }
 }
 
@@ -10952,4 +10379,944 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 }
 .account-delete-link a:hover {
   color: var(--rose);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   One-page checkout (/odeme, checkout.tsx) - 1 Teslimat → 2 Ödeme
+   Its own chrome (no nav, no footer farm), a sticky order summary on the
+   right from 960px, and on a phone a summary bar at the top and the pay
+   bar fixed at the bottom of step 2. Inputs are the site's `.input`
+   (48px, 16px text: no iOS zoom).
+   ────────────────────────────────────────────────────────────── */
+.co-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--glass-chrome);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--ink-line);
+}
+.co-chrome-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  min-height: 64px;
+  padding: 0 var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.co-chrome-brand {
+  display: inline-flex;
+  align-items: center;
+  --laf-h: 30px;
+  margin-right: auto;
+}
+.co-chrome-help {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--ink);
+  text-decoration: none;
+}
+.co-chrome-help-label {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+}
+.co-chrome-body {
+  background: var(--bg);
+  min-height: calc(100vh - 64px);
+}
+.co-chrome-body .checkout-page-wrap {
+  padding-top: clamp(16px, 3vw, 32px);
+}
+.co-chrome-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 20px;
+  padding: 24px var(--gutter) 32px;
+  font-size: 13px;
+  color: var(--ink-mute);
+  border-top: 1px solid var(--ink-line);
+}
+.co-chrome-foot a {
+  color: var(--ink-soft);
+}
+
+.co-layout {
+  /* The step change scrolls here: clear the sticky checkout header. */
+  scroll-margin-top: 80px;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "side" "main";
+}
+.co-layout [hidden] {
+  display: none !important;
+}
+.co-head {
+  grid-area: head;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+.co-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-weight: 700;
+  font-size: clamp(26px, 3.2vw, 36px);
+  line-height: 1.1;
+  color: var(--ink);
+}
+.co-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.co-steps-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-mute);
+  font-size: 14px;
+  font-weight: 600;
+}
+.co-steps-item + .co-steps-item::before {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: var(--ink-line-strong);
+}
+.co-steps-item.is-current {
+  color: var(--ink);
+}
+.co-steps-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+button.co-steps-link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--ink-line-strong);
+}
+.co-step {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-stone);
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.is-current .co-step,
+.co-section-head .co-step {
+  background: var(--green);
+  color: var(--bg-warm);
+}
+.co-step.is-done {
+  background: var(--green-mist);
+  color: var(--green-pressed);
+}
+
+.co-main {
+  grid-area: main;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.co-step2 {
+  display: grid;
+  gap: 16px;
+}
+.co-section {
+  background: var(--surface);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-lg);
+  padding: clamp(18px, 3vw, 28px);
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.co-section-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+}
+.co-section-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-weight: 600;
+  font-size: clamp(19px, 2vw, 22px);
+  color: var(--ink);
+}
+.co-section-title:focus {
+  outline: none;
+}
+.co-section-secure {
+  margin-left: auto;
+}
+
+.co-addresses {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+}
+.co-address {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-height: 48px;
+  padding: 14px 16px;
+  border: 1px solid var(--ink-line-strong);
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.co-address input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--green);
+}
+.co-address.is-active {
+  background: var(--surface);
+  border-color: var(--green);
+  box-shadow: var(--ring);
+}
+.co-address-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.co-address-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.co-address-badge {
+  padding: 1px 8px;
+  border-radius: var(--r-pill);
+  background: var(--green-mist);
+  color: var(--green-pressed);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.co-address-lines {
+  overflow-wrap: anywhere;
+}
+.co-address-new {
+  border-style: dashed;
+  align-items: center;
+}
+.co-address-form {
+  display: grid;
+  gap: 14px;
+}
+.co-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.co-field-row {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.co-field-row-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.co-label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.co-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.co-field .input[aria-invalid="true"] {
+  border-color: var(--accent);
+}
+.co-field-hint,
+.co-quiet {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+}
+.co-field-error {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent-deep);
+}
+.co-ship-method {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--green-mist);
+  font-size: 14px;
+}
+.co-ship-method-name {
+  font-weight: 600;
+  color: var(--ink);
+}
+.co-ship-method-meta {
+  grid-row: 2;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+.co-ship-method-price {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  font-weight: 600;
+  color: var(--green-pressed);
+}
+.co-next {
+  display: flex;
+  justify-content: flex-end;
+}
+.co-delivery-summary {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+.co-delivery-summary-text {
+  margin: 4px 0 2px;
+  font-size: 15px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.co-link {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--green-pressed);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.co-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.co-link-danger {
+  color: var(--accent-deep);
+}
+
+.co-banner {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.co-banner p {
+  margin: 0;
+}
+.co-banner:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.co-banner-title {
+  font-weight: 700;
+}
+.co-banner-safe {
+  font-weight: 600;
+}
+.co-docs {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+.co-docs a {
+  color: var(--ink);
+  text-underline-offset: 3px;
+}
+.co-accepted {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 13px;
+  color: var(--ink-mute);
+}
+.co-schemes {
+  display: inline-flex;
+  gap: 6px;
+}
+.co-scheme {
+  width: 38px;
+  height: 24px;
+  flex: none;
+}
+
+.co-pay {
+  display: grid;
+  gap: 14px;
+}
+.co-methods {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.co-method {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-height: 52px;
+  padding: 8px 14px;
+  border: 1px solid var(--ink-line-strong);
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+}
+.co-method.is-active {
+  background: var(--surface);
+  border-color: var(--green);
+  box-shadow: var(--ring);
+}
+.co-method input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--green);
+}
+.co-method-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.co-method-main {
+  font-weight: 600;
+  color: var(--ink);
+}
+.co-method-meta {
+  font-size: 13px;
+  color: var(--ink-mute);
+}
+.co-method-confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 13px;
+  color: var(--accent-deep);
+}
+.co-pay-form,
+.co-card {
+  display: grid;
+  gap: 14px;
+}
+.co-number {
+  position: relative;
+}
+.co-number .input {
+  padding-right: 58px;
+}
+.co-number-scheme {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  display: flex;
+  pointer-events: none;
+}
+.co-number-scheme .co-scheme {
+  display: none;
+}
+.co-number[data-brand="visa"] .is-visa,
+.co-number[data-brand="mastercard"] .is-mastercard,
+.co-number[data-brand="troy"] .is-troy,
+.co-number[data-brand="amex"] .is-amex {
+  display: block;
+}
+/* A 44px target around a 28px mark. */
+.co-help {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px -8px 0;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.co-help::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--ink-line-strong);
+  background: var(--surface);
+  z-index: -1;
+}
+.co-help-text {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--bg-stone);
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.co-save {
+  display: grid;
+  gap: 4px;
+}
+.co-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.co-check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--green);
+}
+.co-installment {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.co-trust-note {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.co-trust-note svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.co-psp {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-mute);
+}
+
+.co-confirm .checkout-consent {
+  margin: 0;
+  border: 1px solid var(--ink-line);
+  background: var(--bg-warm);
+}
+.co-confirm .checkout-consent input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  margin-top: 0;
+  accent-color: var(--green);
+}
+/* Each row is one 44px-high target: the box, its label, the whole line. */
+.co-confirm .checkout-consent-row {
+  align-items: center;
+  min-height: 44px;
+  gap: 12px;
+}
+.co-confirm .checkout-consent label {
+  padding: 6px 0;
+  line-height: 1.5;
+}
+/* The document links sit inside a sentence; their hit area grows
+   vertically without moving the lines. */
+.co-confirm .checkout-consent a,
+.co-docs a {
+  padding-block: 11px;
+  margin-block: -11px;
+}
+.co-summary .checkout-promo input {
+  font-size: 16px;
+}
+.co-consent:focus {
+  outline: none;
+}
+.co-consent:focus-visible .checkout-consent {
+  box-shadow: var(--ring);
+}
+.co-notice,
+.co-pay-error {
+  margin: 0;
+}
+.co-paybar {
+  display: grid;
+  gap: 10px;
+}
+.co-paybar-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.co-paybar-total strong {
+  font-family: var(--headline);
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--ink);
+}
+.co-pay-btn {
+  width: 100%;
+}
+.co-paybar-hint {
+  margin: 0;
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--ink-mute);
+}
+.co-trust {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-mute);
+}
+
+.co-side {
+  grid-area: side;
+  min-width: 0;
+}
+.co-summary {
+  background: var(--surface);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.co-summary-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 16px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.co-summary-toggle > span:first-child {
+  margin-right: auto;
+}
+.co-summary-count {
+  font-weight: 400;
+  color: var(--ink-mute);
+}
+.co-chevron {
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--ink-soft);
+  border-bottom: 2px solid var(--ink-soft);
+  transform: rotate(45deg) translateY(-3px);
+  transition: transform 0.2s var(--ease-out);
+}
+.co-summary-toggle[aria-expanded="true"] .co-chevron {
+  transform: rotate(-135deg) translateY(-3px);
+}
+.co-summary-title {
+  display: none;
+  margin: 0;
+  padding: 22px 22px 0;
+  font-family: var(--headline);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--ink);
+}
+.co-summary-body {
+  display: none;
+  gap: 16px;
+  padding: 4px 16px 18px;
+}
+.co-summary-body[data-open="true"] {
+  display: grid;
+}
+.co-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.co-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--ink-line-strong);
+}
+.co-line-info,
+.co-line-side {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.co-line-side {
+  justify-items: end;
+  font-weight: 600;
+  color: var(--ink);
+}
+.co-line-side .co-link {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-mute);
+}
+.co-line-name {
+  font-size: 14px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.co-qty {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  border: 1px solid var(--ink-line-strong);
+  border-radius: var(--r-pill);
+}
+.co-qty button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 18px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.co-qty button:disabled {
+  color: var(--ink-quiet);
+  cursor: not-allowed;
+}
+.co-qty span {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 600;
+}
+.co-totals {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.co-totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.co-totals dt,
+.co-totals dd {
+  margin: 0;
+}
+.co-totals-discount dd {
+  color: var(--green-pressed);
+}
+.co-totals-total {
+  padding-top: 10px;
+  border-top: 1px solid var(--ink-line);
+  align-items: baseline;
+}
+.co-totals-total dt {
+  font-weight: 600;
+  color: var(--ink);
+}
+.co-totals-total dt span {
+  font-weight: 400;
+  font-size: 12.5px;
+  color: var(--ink-mute);
+}
+.co-totals-total dd {
+  font-family: var(--headline);
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--ink);
+}
+.co-docs-seller {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+}
+.co-freeship {
+  margin: 0 16px 16px;
+}
+.co-seller {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+  overflow-wrap: anywhere;
+}
+.co-order-form {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .co-docs-seller {
+    display: none;
+  }
+  .co-freeship {
+    margin: 0 22px 22px;
+  }
+  .co-layout {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-areas: "head head" "main side";
+    gap: 24px 32px;
+    align-items: start;
+  }
+  .co-side {
+    position: sticky;
+    top: calc(64px + 16px);
+  }
+  .co-summary-toggle {
+    display: none;
+  }
+  .co-summary-title {
+    display: block;
+  }
+  .co-summary-body,
+  .co-summary-body[data-open="true"] {
+    display: grid;
+    padding: 16px 22px 22px;
+  }
+  .co-lines {
+    max-height: 320px;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 959.98px) {
+  /* Step 2 on a phone: the total and the pay button stay on screen. The
+     bar is fixed; the page is padded for it so it never covers the consent
+     boxes above it. */
+  /* The bar covers the bottom of the screen: whatever scrolls into view
+     (a card field, its error) stops above it. The page's own end is padded
+     once, at the foot below - not here as well. */
+  html:has(.co-layout[data-step="2"]) {
+    scroll-padding-bottom: calc(176px + env(safe-area-inset-bottom));
+  }
+  /* The checkout's own footer links sit below the layout: the fixed bar
+     must not cover them either. */
+  .co-chrome-body:has(.co-layout[data-step="2"]) + .co-chrome-foot {
+    padding-bottom: calc(176px + env(safe-area-inset-bottom));
+  }
+  .co-paybar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 45;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--ink-line);
+    box-shadow: 0 -8px 24px rgba(59, 42, 30, 0.08);
+  }
+  .co-paybar-total strong {
+    font-size: 20px;
+  }
+  .co-next-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 540px) {
+  .co-field-row,
+  .co-field-row-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .co-section-secure {
+    margin-left: 0;
+  }
+  .co-chrome-help-label {
+    display: none;
+  }
+}
+
+/* A 320px phone: the header's three parts must fit one line, so the number
+   gives way to the word (the link's aria-label still carries it). 375px
+   still has room for the number. */
+@media (max-width: 350px) {
+  .co-chrome-inner {
+    gap: 8px;
+  }
+  .co-chrome-secure {
+    padding: 0 8px;
+  }
+  .co-chrome-help-label {
+    display: inline;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .co-chrome-help-number {
+    display: none;
+  }
 }

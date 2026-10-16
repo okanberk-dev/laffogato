@@ -37,7 +37,7 @@ const execute: Executor = async (q) => {
 
 /** What the fake POS answers for each order id. */
 const pos = vi.hoisted(() => ({
-  answers: new Map<string, "paid" | "unpaid" | "down">(),
+  answers: new Map<string, "paid" | "unpaid" | "down" | "wrong-amount">(),
   asked: [] as string[],
 }));
 
@@ -55,7 +55,7 @@ vi.mock("next/headers", () => ({
   }),
 }));
 vi.mock("@/lib/email/send", () => ({
-  sendOrderPaidEmail: async () => {},
+  sendOrderPaidEmail: async () => ({ ok: true as const }),
 }));
 vi.mock("@/lib/payment", () => ({
   getPaymentProvider: () => ({
@@ -69,7 +69,8 @@ vi.mock("@/lib/payment", () => ({
         status: "succeeded",
         orderId,
         providerRef: `REF-${orderId}`,
-        amountMinor: 5000,
+        // "wrong-amount": the bank collected something other than the order costs.
+        amountMinor: answer === "wrong-amount" ? 4000 : 5000,
         currency: "TRY",
         raw: { source: "test" },
         trxDate: "2026-09-22",
@@ -261,5 +262,56 @@ maybe("unpaid orders are cancelled only after asking the POS", () => {
 
     expect(await supersedeUnpaidWebOrders(member)).toBe(0);
     expect(await statusOf("ord-swp-web3")).toBe("pending_payment");
+  });
+
+  // The web checkout asks the POS before it hands an old order's payload
+  // out again (startCheckoutAction, docs/PAYNKOLAY.md §15.5): a customer who
+  // paid at the bank and lost the return must not be charged twice.
+  describe("checkPendingOrderPaid (the reuse gate)", () => {
+    it("books an order the POS shows as paid, and says so", async () => {
+      await insertPending("ord-swp-reuse1", 993021, { ageMs: 60_000 });
+      pos.answers.set("ord-swp-reuse1", "paid");
+      const { checkPendingOrderPaid, getOrder } =
+        await import("@/lib/admin/store");
+      const order = (await getOrder("ord-swp-reuse1"))!;
+      const provider = (await import("@/lib/payment")).getPaymentProvider();
+      expect(await checkPendingOrderPaid(order, provider)).toBe("paid");
+      expect(await statusOf("ord-swp-reuse1")).toBe("paid");
+    });
+
+    it("lets an order the POS knows nothing about be reused", async () => {
+      await insertPending("ord-swp-reuse2", 993022, { ageMs: 60_000 });
+      pos.answers.set("ord-swp-reuse2", "unpaid");
+      const { checkPendingOrderPaid, getOrder } =
+        await import("@/lib/admin/store");
+      const order = (await getOrder("ord-swp-reuse2"))!;
+      const provider = (await import("@/lib/payment")).getPaymentProvider();
+      expect(await checkPendingOrderPaid(order, provider)).toBe("unpaid");
+      expect(await statusOf("ord-swp-reuse2")).toBe("pending_payment");
+    });
+
+    it("answers unknown, not unpaid, when the POS collected a different amount", async () => {
+      // The sweep may cancel such an order, but a retry that reused it would
+      // charge the customer again on top of the wrong charge.
+      await insertPending("ord-swp-reuse4", 993024, { ageMs: 60_000 });
+      pos.answers.set("ord-swp-reuse4", "wrong-amount");
+      const { checkPendingOrderPaid, getOrder } =
+        await import("@/lib/admin/store");
+      const order = (await getOrder("ord-swp-reuse4"))!;
+      const provider = (await import("@/lib/payment")).getPaymentProvider();
+      expect(await checkPendingOrderPaid(order, provider)).toBe("unknown");
+      expect(await statusOf("ord-swp-reuse4")).toBe("pending_payment");
+    });
+
+    it("answers unknown, never unpaid, when the POS cannot be asked", async () => {
+      await insertPending("ord-swp-reuse3", 993023, { ageMs: 60_000 });
+      pos.answers.set("ord-swp-reuse3", "down");
+      const { checkPendingOrderPaid, getOrder } =
+        await import("@/lib/admin/store");
+      const order = (await getOrder("ord-swp-reuse3"))!;
+      const provider = (await import("@/lib/payment")).getPaymentProvider();
+      expect(await checkPendingOrderPaid(order, provider)).toBe("unknown");
+      expect(await statusOf("ord-swp-reuse3")).toBe("pending_payment");
+    });
   });
 });

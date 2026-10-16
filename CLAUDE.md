@@ -26,8 +26,9 @@ yapılır.
 - **Auth:** Admin için env-credentialed imzalı cookie (`ADMIN_EMAIL` +
   `ADMIN_PASSWORD` + HMAC SHA256) ve TOTP 2FA. Müşteri için bcrypt hesap
 - **Ödeme:** Sağlayıcı bağımsız soyutlama (`src/lib/payment/`). Sanal POS
-  **PayNkolay**; kart **sitenin kendi ödeme sayfasında** (`/odeme/paynkolay`)
-  girilir, sunucu onu yalnızca PayNkolay'a iletir ve müşteri doğrudan bankanın
+  **PayNkolay**; kart web'de **checkout sayfasının kendisinde** (`/odeme`,
+  iki adım: Teslimat → Ödeme), uygulamada `/odeme/paynkolay`'da girilir,
+  sunucu onu yalnızca PayNkolay'a iletir ve müşteri doğrudan bankanın
   3D ekranına gider (`PAYNKOLAY_CHECKOUT_MODE=direct`). **Kart saklanmaz**:
   kural 28, `docs/PAYNKOLAY.md` §15. Geliştirmede `MockPaymentProvider`.
   iyzico 15 Eki 2026'da koddan kaldırıldı (hukuki metinlerde hâlâ geçiyor:
@@ -162,7 +163,9 @@ src/
     globals.css              → Tüm design tokens + müşteri SPA stilleri
     menu/ magaza/ hikayemiz/ → Müşteri rotaları (SPA içeriğinin SEO'lu karşılıkları)
     ziyaret/ hukuk/
-    odeme/                   → Checkout + placeOrderAction + /basarili
+    odeme/                   → Tek sayfa checkout (checkout.tsx + kartın yerli
+                               formu card-payment.tsx) + startCheckoutAction +
+                               /basarili
     uye/                     → Müşteri hesabı (giriş, kayıt, sipariş geçmişi,
                                adresler, favoriler, promosyonlar, bildirimler)
     admin/                   → Admin panel (proxy korumalı)
@@ -417,7 +420,7 @@ durum bozulmaya uygundur.
 9. **PII:** Logging'de email/telefon maskelenmeli
 10. **`DATABASE_URL` SADECE server-side** — asla `NEXT_PUBLIC_*` ile expose edilmez
 11. **Veri erişimi yalnız `src/lib/db` üzerinden** — ham SQL'i çağrı noktalarına yayma
-12. **Mesafeli satış onayı zorunlu.** Ödeme adımındaki onay kutusu ön işaretli olamaz; `placeOrderAction` onaysız siparişi reddeder ve onayı (tarih, IP, tarayıcı, belge sürümü) `orders."legalConsent"` JSONB kolonuna yazar — sanal POS / chargeback delili
+12. **Mesafeli satış onayı zorunlu.** Ödeme adımındaki onay kutusu ön işaretli olamaz; `startCheckoutAction` onaysız siparişi reddeder ve onayı (tarih, IP, tarayıcı, belge sürümü) `orders."legalConsent"` JSONB kolonuna yazar — sanal POS / chargeback delili
 13. **Yasal kimlik uydurulmaz.** `src/lib/legal/entity.ts` içinde MERSİS / ticaret sicil / KEP / IBAN bilinmiyorsa **boş bırakılır**; boş token içeren tablo satırı render edilmeden düşürülür. Sahte numara yazmak yerine satırı gizle
 14. **NACE / faaliyet kodu sitede yayımlanmaz** — yalnızca iç kayıt
 15. **SEO içeriği veriye dayanır.** Yeni bir rehber/landing sayfası açmadan önce
@@ -465,12 +468,21 @@ durum bozulmaya uygundur.
     açıktaydı); her action kendi oturum + rol kontrolünü yapar — `proxy.ts`
     yalnız sayfa yönlendirmesidir, yetki kontrolü değil
 28. **Kart verisi saklanmaz** (operatör kararı, 23 Eyl ve 15 Eki 2026). Kart
-    sitenin ödeme sayfasında (`/odeme/paynkolay`) girilir; sunucu onu aynı
-    istekte yalnızca PayNkolay'a (`/Vpos/v1/Payment`) iletir. Veritabanına,
-    loga, dosyaya yazılmaz; hata sayfası kart numarasını ve CVV'yi geri
-    basmaz. Kart alanları yalnız dört dosyada geçer (`paynkolay-card.ts`,
-    `paynkolay.ts`, `paynkolay-page.ts`, `odeme/paynkolay/route.ts`) ve bu
-    dosyalar DB/store import etmez. Kayıtlı kart **PayNkolay'da** durur
+    web'de checkout sayfasının kendisinde (`/odeme`) girilir - operatör, 16
+    Eki 2026: _"kart girerken başka sayfaya vs atmasın"_; bu, kartın yalnız
+    `/odeme/paynkolay`'da girildiği eski kararın bilinçli tersidir
+    (`docs/PAYNKOLAY.md` §15.5). Uygulama aynı `/odeme/paynkolay` sayfasını
+    açmaya devam eder. Kart `/odeme`'de yerli bir POST formunda
+    (`action="/odeme/paynkolay"`), kontrolsüz alanlarda durur: Server
+    Action'a, serileşen React state'ine, depolamaya, loga ve adrese girmez;
+    sunucu onu aynı istekte yalnızca PayNkolay'a (`/Vpos/v1/Payment`)
+    iletir. Veritabanına, loga, dosyaya yazılmaz; hata yanıtı kart
+    numarasını ve CVV'yi geri basmaz (`/odeme`'ye yalnız sabit kodla döner).
+    `/odeme` belgesi kendi nonce CSP'siyle, GTM'siz ve üçüncü taraf betiksiz
+    sunulur (`src/proxy.ts`, `src/lib/security/checkout-csp.ts`). Kart
+    alanları yalnız beş dosyada geçer (`paynkolay-card.ts`, `paynkolay.ts`,
+    `paynkolay-page.ts`, `odeme/paynkolay/route.ts`, `odeme/card-payment.tsx`)
+    ve bu dosyalar DB/store import etmez. Kayıtlı kart **PayNkolay'da** durur
     (operatör, 15 Eki 2026; `docs/PAYNKOLAY.md` §16): biz yalnız rastgele
     11 karakterlik üye anahtarını (`customers."cardUserKey"`) tutarız, token
     tarayıcıya gitmez, kaydetme kutusu işaretsiz gelir, hesap kapanınca

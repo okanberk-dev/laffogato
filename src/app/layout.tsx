@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Gabarito, Poppins } from "next/font/google";
 
-import { GoogleTagManager } from "@next/third-parties/google";
-
-import { CookieConsent } from "@/components/laffogato/cookie-consent";
 import { RevealMotion } from "@/components/laffogato/reveal-motion";
-import { CONSENT_COOKIE, CONSENT_VERSION } from "@/lib/consent/cookie";
-import { CONSENT_BOOTSTRAP } from "@/lib/consent/script";
+import {
+  ConsentScripts,
+  CookieBanner,
+  TagManager,
+} from "@/components/laffogato/site-tags";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
 
@@ -164,15 +164,6 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Marks <html data-consent="set"> before the first paint when the visitor
- * has already answered the cookie banner. The banner is server-rendered (so
- * it paints with the page instead of seconds later), and this is what keeps
- * it from flashing for someone who answered it last week. Same validity test
- * as `readConsent`: the cookie parses and carries the current version.
- */
-const CONSENT_SEEN = `(function(){try{var m=document.cookie.split('; ').find(function(c){return c.indexOf('${CONSENT_COOKIE}=')===0});if(!m)return;var p=JSON.parse(decodeURIComponent(m.slice(${CONSENT_COOKIE.length + 1})));if(p&&p.version===${CONSENT_VERSION})document.documentElement.setAttribute('data-consent','set')}catch(e){}})();`;
-
 const fontVariables = `${brandFont.variable} ${headlineFont.variable}`;
 
 export default function RootLayout({
@@ -189,20 +180,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script
-          id="consent-seen"
-          dangerouslySetInnerHTML={{ __html: CONSENT_SEEN }}
-        />
-        {/* Consent Mode v2 defaults - must be on the dataLayer before the GTM
-            container initialises, otherwise the first tag fires with no
-            consent signal at all. Everything except strictly-necessary storage
-            starts denied and is only raised by an explicit choice. */}
-        {GTM_ID ? (
-          <script
-            id="consent-bootstrap"
-            dangerouslySetInnerHTML={{ __html: CONSENT_BOOTSTRAP }}
-          />
-        ) : null}
+        {/* The consent scripts, GTM and the cookie banner render in every
+            document but the checkout's (site-tags.tsx): the card is typed
+            on /odeme under a policy that admits no third party. The
+            Consent Mode defaults stay ahead of the GTM container. */}
+        <ConsentScripts withTagManager={!!GTM_ID} />
         {/* next/font self-hosts the fonts - no Google Fonts origin is hit at
             runtime, so preconnect/dns-prefetch hints would be dead weight. */}
         <link
@@ -218,10 +200,10 @@ export default function RootLayout({
           title="LLM full content"
         />
       </head>
-      {GTM_ID ? <GoogleTagManager gtmId={GTM_ID} /> : null}
+      {GTM_ID ? <TagManager gtmId={GTM_ID} /> : null}
       <body>
         {children}
-        <CookieConsent />
+        <CookieBanner />
         <RevealMotion />
       </body>
     </html>

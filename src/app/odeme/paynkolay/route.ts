@@ -6,7 +6,12 @@ import {
   recordLoginFailure,
   reserveLoginAttempt,
 } from "@/lib/admin/rate-limit";
-import { appOrderDeepLink } from "@/lib/mobile/deep-link";
+import {
+  checkoutReturnPath,
+  type CheckoutReturnCode,
+  type CheckoutReturnField,
+} from "@/lib/checkout/return-codes";
+import { APP_SCHEME, appOrderDeepLink } from "@/lib/mobile/deep-link";
 import { getPaymentProvider } from "@/lib/payment";
 import {
   PaynkolayPaymentProvider,
@@ -14,7 +19,11 @@ import {
   type PaynkolayFormPost,
   type SavedCard,
 } from "@/lib/payment/paynkolay";
-import { CARD_FORM_FIELDS, parseCardForm } from "@/lib/payment/paynkolay-card";
+import {
+  CARD_FORM_FIELDS,
+  parseCardForm,
+  type CardField,
+} from "@/lib/payment/paynkolay-card";
 import {
   bankChallengePage,
   renderCardForm,
@@ -48,12 +57,19 @@ export const dynamic = "force-dynamic";
  *
  * Bu yol sitenin genel CSP'sinin dışındadır ve her yanıtta kendi, daha dar
  * CSP'sini gönderir (`paynkolay-page.ts`, `next.config.ts`).
+ *
+ * İki istemci (§15.5): uygulamanın tarayıcısı `GET ?d&s` ile bu sayfanın
+ * kendi formunu açar; web'de ise kart `/odeme`'nin kendi formunda yazılır ve
+ * buraya `return=checkout` ile POST edilir. O zaman bankaya gidemeyen her
+ * sonuç (kart hatası, ret, deneme sınırı, POS hatası, süre, saklı kart)
+ * formu burada yeniden çizmek yerine `303 /odeme?odeme=<kod>` döner: sabit
+ * bir kod listesi (`return-codes.ts`), POS'un serbest metni ya da kartın
+ * herhangi bir parçası adrese girmez. Bankaya giden yol iki istemcide aynı.
  */
 export async function GET(req: NextRequest) {
-  const base = req.nextUrl.origin;
   const provider = safeProvider();
   if (!(provider instanceof PaynkolayPaymentProvider)) {
-    return failure(base);
+    return respond(unreadableNotice(), 503);
   }
 
   const data = req.nextUrl.searchParams.get("d") ?? "";
@@ -61,7 +77,7 @@ export async function GET(req: NextRequest) {
   const post = provider.readBridgePost(data, signature);
   if (!post) {
     console.error("[odeme/paynkolay] imzasız ya da bozuk ödeme yükü");
-    return failure(base);
+    return respond(unreadableNotice(), 400);
   }
 
   if (provider.checkoutMode !== "direct") {
@@ -117,7 +133,7 @@ export async function POST(req: NextRequest) {
   try {
     form = await req.formData();
   } catch {
-    return failure(base);
+    return respond(unreadableNotice(), 400);
   }
   const read = (name: string): string | null => {
     const value = form.get(name);
@@ -126,12 +142,28 @@ export async function POST(req: NextRequest) {
 
   const data = read("d") ?? "";
   const signature = read("s") ?? "";
+  const back = (
+    code: CheckoutReturnCode,
+    extra: { field?: CheckoutReturnField; minutes?: number } = {},
+  ) => backToCheckout(base, code, extra);
   const post = provider.readBridgePost(data, signature);
   if (!post) {
     console.error("[odeme/paynkolay] imzasız ya da bozuk ödeme yükü (POST)");
-    return failure(base);
+    // `/odeme`'nin formu: ödeme başlamadı; sayfa yeni bir yükle yeniden
+    // dener (bozuk yük eski siparişi yeniden kullandırmaz).
+    return read("return") === "checkout"
+      ? back("baslatilamadi")
+      : respond(unreadableNotice(), 400);
   }
-  if (!provider.isBridgeFresh(post)) return respond(expiredNotice(post));
+  // `/odeme`'deki form (§15.5): hatalar kendi sayfasına, sabit bir kodla
+  // döner. Uygulama siparişinin yükü bu yola hiç girmez - uygulamanın
+  // tarayıcısı bu sayfanın kendi formunu kullanır ve web ödeme sayfası onun
+  // için değildir.
+  const toCheckout =
+    read("return") === "checkout" && !post.fields.successUrl.includes("app=1");
+  if (!provider.isBridgeFresh(post)) {
+    return toCheckout ? back("sure_doldu") : respond(expiredNotice(post));
+  }
 
   // Hata sonrası forma geri yazılabilenler: ad ve son kullanma. Kart
   // numarası ve CVV hiçbir yanıta geri basılmaz.
@@ -159,8 +191,12 @@ export async function POST(req: NextRequest) {
       ...extra,
     });
 
-  // Saklı kartı silmek (§16): ödeme değil, POS'a kart gitmez.
+  // Saklı kartı silmek (§16): ödeme değil, POS'a kart gitmez. `/odeme`
+  // kartı kendi eylemiyle siler (oturumdaki üyenin anahtarıyla); oradan
+  // gelen bir POST'ta silme alanı varsa form bizim değildir - hiçbir şey
+  // yapılmaz.
   const toDelete = read("deleteCard");
+  if (toDelete && toCheckout) return back("baslatilamadi");
   if (toDelete) {
     const saved = await savedCards();
     const card = saved.find((c) => c.tranId === toDelete);
@@ -207,6 +243,7 @@ export async function POST(req: NextRequest) {
     // yazmış ama seçimi değiştirmemiştir: saklı karttan sessizce çekmek
     // yerine sorulur.
     if (/\d/.test(read(CARD_FORM_FIELDS.number) ?? "")) {
+      if (toCheckout) return back("kart_secimi");
       return respond(
         await withCards({
           error: {
@@ -219,6 +256,7 @@ export async function POST(req: NextRequest) {
     }
     const card = saved.find((c) => c.tranId === choice);
     if (!post.member || !card) {
+      if (toCheckout) return back("kart_yok");
       return respond(
         await withCards({
           choice: "new",
@@ -233,6 +271,9 @@ export async function POST(req: NextRequest) {
   } else {
     const check = parseCardForm(read);
     if (!check.ok) {
+      if (toCheckout) {
+        return back("kart_hatali", { field: RETURN_FIELD[check.field] });
+      }
       return respond(
         await withCards({
           error: { message: check.message, field: check.field },
@@ -266,6 +307,7 @@ export async function POST(req: NextRequest) {
     console.warn(
       `[odeme/paynkolay] kartlı ödeme deneme sınırı order=${orderRef}`,
     );
+    if (toCheckout) return back("cok_deneme", { minutes });
     return respond(
       await withCards({
         error: {
@@ -288,6 +330,7 @@ export async function POST(req: NextRequest) {
       err instanceof Error ? err.message : "bilinmeyen hata",
     );
     await recordLoginFailure("card-payment-ip", ip, "*");
+    if (toCheckout) return back("baslatilamadi");
     return respond(
       await withCards({
         error: {
@@ -305,6 +348,9 @@ export async function POST(req: NextRequest) {
     `[odeme/paynkolay] POS ödemeyi başlatmadı order=${orderRef} code=${result.code}`,
   );
   await recordLoginFailure("card-payment-ip", ip, "*");
+  // POS'un metni (`result.message`) adrese girmez: dışarıdan gelen serbest
+  // metin, sitenin adresinde müşteriye okunacak bir bağlantı olurdu.
+  if (toCheckout) return back("reddedildi");
   return respond(
     await withCards({
       error: {
@@ -406,9 +452,42 @@ function expiredNotice(post: PaynkolayFormPost): PaynkolayPage {
       );
 }
 
-function failure(base: string) {
-  // `?error=payment` is what /odeme renders a notice for (CHECKOUT_NOTICES);
-  // `?durum=basarisiz` was read by nothing, so a declined card came back to
-  // the checkout with no word about what had happened.
-  return NextResponse.redirect(new URL("/odeme?error=payment", base), 303);
+/** Kart alanının `/odeme` adresindeki adı (`alan=`): sabit, kartsız. */
+const RETURN_FIELD: Record<CardField, CheckoutReturnField> = {
+  holderName: "ad",
+  number: "numara",
+  expiry: "skt",
+  cvv: "guvenlik",
+};
+
+/** `/odeme`'ye dönüş: 303, önbelleğe alınmaz, yalnız sabit kodlar. */
+function backToCheckout(
+  base: string,
+  code: CheckoutReturnCode,
+  extra: { field?: CheckoutReturnField; minutes?: number },
+): NextResponse {
+  const res = NextResponse.redirect(
+    new URL(checkoutReturnPath(code, extra), base),
+    303,
+  );
+  res.headers.set("cache-control", "no-store, max-age=0");
+  return res;
+}
+
+/**
+ * An unreadable payment link - forged, cut short, or from a deployment whose
+ * key has changed - on the standalone page. That page is the APP's (the web
+ * checkout posts with `return=checkout` and is answered above), and its
+ * in-app browser used to be sent to the web checkout with an empty cart.
+ * The payload cannot be trusted to say which order it was, so the page says
+ * what happened and offers both ways on: back to the app, or the site's
+ * checkout. Never a blank page, never a card processed.
+ */
+function unreadableNotice(): PaynkolayPage {
+  return renderPaymentNotice(
+    "Ödeme sayfası açılamadı",
+    "Bu ödeme bağlantısı okunamadı; kartından para çekilmedi. Uygulamadan geldiysen uygulamaya dönüp siparişinin ödemesini yeniden başlat. Sitedeysen ödeme adımından yeniden devam edebilirsin.",
+    { href: APP_SCHEME, label: "Uygulamaya dön" },
+    { href: "/odeme", label: "Sitede ödemeye dön" },
+  );
 }

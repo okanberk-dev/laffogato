@@ -61,8 +61,9 @@ Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" 
 
 | Action                                          | Form dosyası                                          | Alanlar                                                                          |
 | ----------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `placeOrderAction`                              | `src/app/odeme/checkout-wizard.tsx`                   | `items` (JSON), `legalConsent`, `customerName`, `customerPhone`, `shippingAddress`, `promoCode` |
-| `previewPromoAction`                            | `src/app/odeme/checkout-wizard.tsx`                   | `code`, `subtotal`                                                               |
+| `startCheckoutAction` (16 Eki 2026'dan beri) | `src/app/odeme/checkout.tsx` (sipariş formu, kart YOK) | `items` (JSON), `legalConsent`, `customerName`, `customerPhone`, `shippingAddress`, `promoCode`, `reuseOrderId`, `reuseData`, `reuseSignature`, `reuseCartKey` |
+| `previewPromoAction` | `src/app/odeme/checkout.tsx` | `code`, `subtotal` |
+| `POST /odeme/paynkolay` (yerli form, action değil) | `src/app/odeme/card-payment.tsx` | `d`, `s`, `return=checkout`, `cardChoice`, `saveCard` + `CARD_FORM_FIELDS` |
 | `registerAction`                                | `src/app/uye/kayit/register-form.tsx`                 | `email`, `name`, `phone`, `password`, `passwordConfirm`, `acceptedTerms`, `marketing`, `newsletter` |
 | `loginAction`                                   | `src/app/uye/giris/login-form.tsx`                    | `email`, `password`, `next` (gizli; sayfa `?next=` ile açıldıysa - ödemeye/karaoke'ye geri döner) |
 | `requestPasswordResetAction`                    | `src/app/uye/sifremi-unuttum/forgot-form.tsx`         | `email`                                                                          |
@@ -115,7 +116,7 @@ yazan `defaultChecked={values.x}` serbesttir.
 
 | Ne                     | Değer                                     | Kim okur/yazar                                                                  |
 | ---------------------- | ----------------------------------------- | ------------------------------------------------------------------------------- |
-| Sepet anahtarı         | `localStorage["laffogato_cart_v1"]`       | `app.tsx`, `product-detail.tsx`, `site-chrome.tsx`, `checkout-wizard.tsx`, `odeme/basarili/clear-cart.tsx` |
+| Sepet anahtarı         | `localStorage["laffogato_cart_v1"]`       | `app.tsx`, `product-detail.tsx`, `site-chrome.tsx`, `odeme/checkout.tsx`, `odeme/basarili/clear-cart.tsx` |
 | Sepet temizleme        | `/odeme/basarili` içindeki `<ClearCart>`  | Server action client state'e dönemez; temizlik başarı sayfasında olur          |
 | Çerez rızası           | `src/lib/consent/cookie.ts`               | `cookie-consent.tsx` - Consent Mode v2 sinyalleri buradan                       |
 
@@ -151,14 +152,12 @@ okumaya devam etmezse müşteri "hiçbir şey olmadı" ekranında kalır.
 
 | Yönlendirme                                           | Kaynak                          | Karşılayan                        |
 | ----------------------------------------------------- | ------------------------------- | --------------------------------- |
-| `/?cart=empty`                                        | `placeOrderAction`              | `src/app/page.tsx` bildirimi      |
-| `/?cart=out_of_stock&item=…&available=…`              | `placeOrderAction`              | `src/app/page.tsx`                |
-| `/?cart=qty_too_high&item=…&available=…`              | `placeOrderAction`              | `src/app/page.tsx`                |
-| `/?cart=shop_closed`, `/?cart=not_found&item=…`       | `placeOrderAction`              | `src/app/page.tsx`                |
-| `/odeme?error=consent`                                | `placeOrderAction`              | `src/app/odeme/page.tsx` (`CHECKOUT_NOTICES`) |
-| `/odeme?error=payment`                                | POS `failureUrl`, `/odeme/donus`, `/odeme/paynkolay` | `src/app/odeme/page.tsx` (`CHECKOUT_NOTICES`) |
-| `/odeme?verify=required`                              | `placeOrderAction`              | Sayfa doğrulama panelini üyenin durumundan zaten gösterir; parametre bilgi amaçlı |
-| `/uye/giris?next=/odeme`                              | `placeOrderAction`              | `src/app/uye/giris/page.tsx`      |
+| `/?cart=empty`, `out_of_stock`, `qty_too_high`, `shop_closed`, `not_found` | Eski `placeOrderAction` (16 Eki 2026'dan beri checkout bunları sayfada, `startCheckoutAction`'ın `error.code === "cart"` yanıtıyla gösterir) | `src/app/page.tsx` bildirimi (eski bağlantılar için duruyor) |
+| `/odeme?error=consent` | Eski bağlantılar (checkout onayı sayfada ister) | `src/lib/checkout/return-codes.ts` (`readCheckoutReturn`) |
+| `/odeme?error=payment` | POS `failureUrl`, `/odeme/donus` | `src/lib/checkout/return-codes.ts` |
+| `/odeme?odeme=<kod>[&alan=][&dk=]` | `/odeme/paynkolay` (`return=checkout`) | `src/lib/checkout/return-codes.ts` - yalnız sabit kodlar |
+| `/odeme?verify=required` | `startCheckoutAction` | Sayfa doğrulama panelini üyenin durumundan zaten gösterir; parametre bilgi amaçlı |
+| `/uye/giris?next=/odeme` | `startCheckoutAction`, `/odeme` kapısı | `src/app/uye/giris/page.tsx` |
 | `/?hesap=silindi\|kapatildi`                          | `deleteAccountAction`           | ana sayfa (`accountClosureNotice`): `silindi` yalnız Supabase giriş kimliği de silindiyse |
 | `/bulten/onay?sonuc=tamam\|gecersiz\|hata`             | `confirmNewsletterAction`       | `src/app/bulten/onay/page.tsx`    |
 | `/bulten/cikis?sonuc=tamam&adres=…`, `?sonuc=gecersiz\|hata` | `unsubscribeNewsletterAction` | `src/app/bulten/cikis/page.tsx` (`adres` maskeli: `a***@alan.com`) |

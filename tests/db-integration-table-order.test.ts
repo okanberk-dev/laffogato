@@ -75,8 +75,7 @@ vi.mock("@/lib/email/send", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/email/send")>();
   return {
     ...real,
-    sendOrderPlacedEmail: async () => true,
-    sendOrderPaidEmail: async () => true,
+    sendOrderPaidEmail: async () => ({ ok: true as const }),
     deliverBatch: async (messages: Array<{ to: string }>, key: string) => {
       // A provider round trip, so concurrent claims really overlap.
       await new Promise((r) => setTimeout(r, 20));

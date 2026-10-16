@@ -5,12 +5,19 @@ import { getPathMatch } from "next/dist/shared/lib/router/utils/path-match";
 
 import nextConfig from "../next.config";
 
-/** The site's CSP rule: every path but the payment page (see below). */
-const CSP_SOURCE = "/:path((?!odeme/paynkolay$).*)";
+/**
+ * The site's CSP rule: every path but the two pages that send a narrower
+ * policy of their own - the checkout (/odeme, a nonce policy from
+ * src/proxy.ts, tests/checkout-csp.test.ts) and the payment page
+ * (/odeme/paynkolay). Changed deliberately on 16 Eki 2026, when the card
+ * moved onto /odeme (docs/PAYNKOLAY.md §15.5).
+ */
+const CSP_SOURCE = "/:path((?!odeme$|odeme/paynkolay$).*)";
 
 /**
  * The headers an ordinary page gets: the catch-all rule plus the CSP rule.
- * The CSP sits in a rule of its own because /odeme/paynkolay is outside it.
+ * The CSP sits in a rule of its own because /odeme and /odeme/paynkolay are
+ * outside it.
  */
 async function headerMap() {
   const rules = await nextConfig.headers!();
@@ -28,7 +35,7 @@ function matches(source: string, path: string): boolean {
 }
 
 describe("security headers", () => {
-  it("sends a Content-Security-Policy on every route but the payment page", async () => {
+  it("sends a Content-Security-Policy on every route but the checkout and the payment page", async () => {
     const h = await headerMap();
     expect(h["Content-Security-Policy"]).toBeTruthy();
     const rules = await nextConfig.headers!();
@@ -37,12 +44,17 @@ describe("security headers", () => {
       r.headers.some((x) => x.key === "Content-Security-Policy"),
     );
     expect(csp.map((r) => r.source)).toEqual([CSP_SOURCE]);
-    // Exactly one path is outside it. /odeme/paynkolay sends its own,
-    // narrower policy on every response (tests/paynkolay-card-page.test.ts).
+    // Exactly two paths are outside it, each sending its own, narrower
+    // policy: /odeme/paynkolay on every response
+    // (tests/paynkolay-card-page.test.ts) and /odeme from the proxy
+    // (tests/checkout-csp.test.ts). Everything else under /odeme stays in.
     for (const path of [
       "/",
-      "/odeme",
       "/odeme/donus",
+      "/odeme/basarili",
+      "/odeme/app-hata",
+      "/odemex",
+      "/odeme/x",
       "/odeme/paynkolayx",
       "/odeme/paynkolay/x",
       "/admin/kasa",
@@ -51,6 +63,7 @@ describe("security headers", () => {
       expect(matches(CSP_SOURCE, path), path).toBe(true);
     }
     expect(matches(CSP_SOURCE, "/odeme/paynkolay")).toBe(false);
+    expect(matches(CSP_SOURCE, "/odeme")).toBe(false);
   });
 
   it("confines scripts to this origin and Google Tag Manager", async () => {

@@ -32,10 +32,10 @@ import {
 import {
   cancelNoticeDue,
   notifyOrderCancelled,
+  notifyOrderPaid,
   notifyOrderRefunded,
   notifyOrderShipped,
 } from "@/lib/email/order-notices";
-import { sendOrderPaidEmail } from "@/lib/email/send";
 import { normalizeNotifyRoles } from "@/lib/email/staff-order-notice-core";
 import {
   DEFAULT_MOBILE_APP_CONFIG,
@@ -80,10 +80,8 @@ import type {
 } from "@/lib/payment/provider";
 import type { WeeklyHours } from "./days";
 import type { AdminRole } from "./roles";
-import { stampsForOrder } from "@/lib/mobile/loyalty-core";
 import {
   orderChannel,
-  orderKind,
   type OrderChannel,
   type OrderFulfillment,
   type OrderKind,
@@ -2250,6 +2248,7 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
 async function settlePendingFromProvider(
   order: AdminOrder,
   provider: PaymentProvider | null,
+  { onAmountMismatch = "unpaid" }: { onAmountMismatch?: PendingVerdict } = {},
 ): Promise<PendingVerdict> {
   // The wallet first: an order whose spend exists WAS paid - the spend is
   // written with the row - even if the process died before marking it so.
@@ -2300,8 +2299,33 @@ async function settlePendingFromProvider(
   // applyPaymentSucceeded has already put it in front of a human. It is
   // cancelled like any unpaid order, so its stock does not stay held while
   // that is sorted out - which is what the sweep always did with it.
-  if (applied.reconcile === "amount_mismatch") return "unpaid";
+  if (applied.reconcile === "amount_mismatch") return onAmountMismatch;
   return "paid";
+}
+
+/**
+ * Asks the POS whether this pending order was already paid, booking the
+ * payment when it was - the check the web checkout runs BEFORE it hands a
+ * customer the old order's payment payload again.
+ *
+ * The scenario it closes: the customer pays at the bank, the browser's
+ * return POST is lost, they press "öde" again and the same order is charged
+ * a second time. `paid` means the money is there and booked (go to the
+ * success page); `unpaid` means the POS knows nothing (the retry may reuse
+ * the order); `unknown` means the POS could not be asked - the caller must
+ * NOT reuse the order then. Short deadline (`POS_LOOKUP_TIMEOUT_MS`).
+ */
+export async function checkPendingOrderPaid(
+  order: AdminOrder,
+  provider: PaymentProvider | null,
+): Promise<PendingVerdict> {
+  // The POS collected a DIFFERENT amount: the sweep may cancel that order, but
+  // a checkout retry must not hand out its payload again (the customer would
+  // be charged on top of the wrong charge). "unknown" makes the caller open a
+  // new order and leaves the mismatch with the human it was put in front of.
+  return settlePendingFromProvider(order, provider, {
+    onAmountMismatch: "unknown",
+  });
 }
 
 /**
@@ -2416,6 +2440,41 @@ export async function supersedeUnpaidWebOrders(
     ),
   );
   return outcomes.filter((o) => o.status === "fulfilled" && o.value).length;
+}
+
+/**
+ * Whether order `orderNo` is the member's own web checkout still waiting
+ * for its payment.
+ *
+ * A single-use coupon is claimed when the order is created, before payment.
+ * After a declined card the customer is back on /odeme with that order
+ * pending, and the promo preview read the claim as "Bu kupon zaten
+ * kullanıldı" - although the next order would release it first
+ * (`supersedeUnpaidWebOrders`) and the retry may even pay for this very
+ * order. The preview asks this before calling the coupon spent.
+ */
+export async function isOwnUnpaidWebOrder(
+  customerEmail: string,
+  orderNo: number,
+): Promise<boolean> {
+  const owner = customerEmail.trim().toLowerCase();
+  if (!owner || !Number.isSafeInteger(orderNo) || orderNo <= 0) return false;
+  await ensureSeed();
+  const found = rows<AdminOrder>(
+    await getDb()
+      .from(TABLES.orders)
+      .select("*")
+      .eq("orderNo", orderNo)
+      .limit(1),
+    "isOwnUnpaidWebOrder",
+  );
+  const order = found[0];
+  return (
+    !!order &&
+    order.status === "pending_payment" &&
+    orderChannel(order) === "web" &&
+    order.customerEmail.trim().toLowerCase() === owner
+  );
 }
 
 export async function placeOrder(
@@ -3100,6 +3159,9 @@ export async function settleWalletPayment(
   });
 }
 
+/** How long after `paidAt` a repeated confirmation re-offers the customer's mail. */
+const PAID_NOTICE_REOFFER_MS = 24 * 60 * 60_000;
+
 /** Order states in which a repeated confirmation may re-offer the staff mail. */
 const STAFF_NOTICE_STATES: ReadonlySet<string> = new Set([
   "paid",
@@ -3181,7 +3243,7 @@ export async function applyPaymentSucceeded(input: {
     createdAt: new Date().toISOString(),
   });
   // A clean insert means this is the FIRST confirmation; a 23505 is a duplicate
-  // webhook/return - used below to send the "paid" e-mail exactly once.
+  // webhook/return - used below to tell a second charge from a replay.
   const isFirstConfirmation = !ins.error;
   if (ins.error && ins.error.code !== "23505") {
     return { ok: false, error: ins.error.message };
@@ -3256,6 +3318,20 @@ export async function applyPaymentSucceeded(input: {
       ) {
         scheduleStaffNewOrderNotice(order.id, input.provider);
       }
+      // The same for the customer's "ödemen alındı": if the mail of the
+      // confirmation that paid the order did not get out (the provider was
+      // down for both attempts, the claim was released), the bank's return
+      // arriving again is the next chance. The claim in `notifyOrderPaid`
+      // makes this a no-op once one was sent or is being sent. Bounded by
+      // the age of the payment: a replay weeks later is not news.
+      if (
+        !isFirstConfirmation &&
+        current &&
+        STAFF_NOTICE_STATES.has(current.status) &&
+        Date.now() - Date.parse(current.paidAt ?? "") <= PAID_NOTICE_REOFFER_MS
+      ) {
+        await notifyOrderPaid(current);
+      }
     }
   }
 
@@ -3268,39 +3344,14 @@ export async function applyPaymentSucceeded(input: {
     scheduleStaffNewOrderNotice(order.id, input.provider);
   }
 
-  // No "ödemen alındı" for an order that is cancelled: the customer used to be
-  // told their order was on its way while the row said otherwise.
-  if (isFirstConfirmation && !unreconciled) {
-    // Best-effort payment-confirmed e-mail (logs in dev when Resend is unset).
-    try {
-      if (
-        order.customerEmail &&
-        order.customerEmail !== "guest@laffogato.local"
-      ) {
-        await sendOrderPaidEmail({
-          to: order.customerEmail,
-          customerName: order.customerName,
-          orderNo: order.orderNo,
-          items: order.items.map((it) => ({
-            productName: it.productName,
-            qty: it.qty,
-            unitPriceMinor: it.unitPriceMinor,
-          })),
-          subtotalMinor: order.subtotalMinor,
-          shippingMinor: order.shippingMinor,
-          totalMinor: order.totalMinor,
-          // The rule `onOrderPaid` stamps by: an app cafe order, one per
-          // started 320 TL of goods from 140 TL. Anything else earns none
-          // and the mail says nothing about stamps.
-          stampsEarned:
-            orderChannel(order) === "app" && orderKind(order) === "cafe"
-              ? stampsForOrder(order)
-              : 0,
-        });
-      }
-    } catch (err) {
-      console.error("[email] order paid notification failed", err);
-    }
+  // "Ödemen alındı" - the customer's only order mail before shipping - goes
+  // out when, and only when, THIS confirmation moved the order to paid. Not
+  // for an order the sweep cancelled while the bank was asking (the customer
+  // used to be told it was on its way while the row said otherwise), not for
+  // a repeated or second confirmation, never twice (`notifyOrderPaid` claims
+  // its row first). It never throws into the payment that just landed.
+  if (advanced) {
+    await notifyOrderPaid({ ...order, status: "paid", paidAt });
   }
   return unreconciled ? { ok: true, reconcile: unreconciled } : { ok: true };
 }
@@ -3674,11 +3725,20 @@ export async function transitionOrder(
   if (map.to === "cancelled") {
     await releaseOrderInventory(existing);
     await reverseLoyalty(existing, "cancelled", { full: true });
-    await noticeCancelled({ ...existing, status: "cancelled" });
+    await noticeCancelled(
+      { ...existing, status: "cancelled" },
+      {
+        unpaidAttempt:
+          existing.status === "pending_payment" && !existing.paidAt,
+      },
+    );
   } else if (settles) {
     // Idempotent on the order id, so a later payment webhook for the same
     // order does not hand out a second stamp.
     await awardLoyalty({ ...existing, status: map.to, paidAt }, "transition");
+    // Settled by hand is paid all the same: the customer's one order mail
+    // goes out now, once (a later POS confirmation finds it claimed).
+    await notifyOrderPaid({ ...existing, status: map.to, paidAt });
   }
   const nextOrder = { ...existing, ...patch, status: map.to };
   // "Kargoya ver" after the tracking number was typed: the parcel has left,
@@ -3694,7 +3754,10 @@ export async function transitionOrder(
  * mail carries: the refund to come, or "no payment on record". A failed
  * lookup says neither rather than guess about somebody's card.
  */
-async function noticeCancelled(order: AdminOrder): Promise<void> {
+async function noticeCancelled(
+  order: AdminOrder,
+  { unpaidAttempt = false }: { unpaidAttempt?: boolean } = {},
+): Promise<void> {
   if (!cancelNoticeDue(order)) return;
   let collected: boolean | null = Boolean(order.paidAt) || null;
   if (collected === null) {
@@ -3707,6 +3770,12 @@ async function noticeCancelled(order: AdminOrder): Promise<void> {
       );
     }
   }
+  // An attempt whose payment never completed was never an order for the
+  // customer: no mail went out for it (orders are mailed once paid,
+  // `notifyOrderPaid`) and it is not in their profile. Cancelling it says
+  // nothing - unless the POS shows money was taken after all, which the
+  // customer must hear about.
+  if (unpaidAttempt && collected !== true) return;
   await notifyOrderCancelled(order, { collected });
 }
 

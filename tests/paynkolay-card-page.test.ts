@@ -1070,7 +1070,13 @@ describe("/odeme/paynkolay", () => {
     const calls = stubPos(POS_3D);
     const body = await validBody();
     const res = await route.POST(postRequest({ ...body, s: "forged" }));
-    expect(res.status).toBe(303);
+    // A notice page, not a redirect to the web checkout: this page is the
+    // app's, and its in-app browser has no cart there (16 Eki 2026).
+    expect(res.status).toBe(400);
+    const html = await res.text();
+    expect(html).toContain("kartından para çekilmedi");
+    expect(html).toContain('href="laffogato://"');
+    expect(html).toContain('href="/odeme"');
     expect(calls).toHaveLength(0);
   });
 

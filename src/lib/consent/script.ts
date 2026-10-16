@@ -1,6 +1,15 @@
 import { CONSENT_COOKIE, CONSENT_VERSION, type ConsentState } from "./cookie";
 
 /**
+ * Marks <html data-consent="set"> before the first paint when the visitor
+ * has already answered the cookie banner. The banner is server-rendered (so
+ * it paints with the page instead of seconds later), and this is what keeps
+ * it from flashing for someone who answered it last week. Same validity test
+ * as `readConsent`: the cookie parses and carries the current version.
+ */
+export const CONSENT_SEEN = `(function(){try{var m=document.cookie.split('; ').find(function(c){return c.indexOf('${CONSENT_COOKIE}=')===0});if(!m)return;var p=JSON.parse(decodeURIComponent(m.slice(${CONSENT_COOKIE.length + 1})));if(p&&p.version===${CONSENT_VERSION})document.documentElement.setAttribute('data-consent','set')}catch(e){}})();`;
+
+/**
  * The Consent Mode v2 bootstrap that has to run *before* Google Tag Manager.
  *
  * GTM reads the consent state at load time; if the default is not already on

@@ -207,7 +207,11 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
   const openCart = () => {
     setOpen(false);
     if (onCart) onCart();
-    else router.push("/odeme");
+    // A full page load, never a client-side one: the checkout must open in
+    // a document of its own, under its own policy and without the tags this
+    // page has already run (src/lib/security/checkout-document.ts).
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the full load is the point
+    else window.location.assign("/odeme");
   };
   const openSearch = () => {
     setOpen(false);

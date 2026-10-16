@@ -844,7 +844,8 @@ isteğin IP'si). Doküman canlı isteğin **sunucudan** gitmesini istiyor.
 Hiçbir yerde. Tarayıcı → (TLS) → bu sunucu → (TLS) → PayNkolay; sunucuda
 yalnız o isteğin belleğinde. Veritabanı, log, dosya yok; kart saklama uçları
 kullanılmaz, `customerKey` boş. Kart alanları yalnız `paynkolay-card.ts`,
-`paynkolay.ts`, `paynkolay-page.ts` ve `odeme/paynkolay/route.ts`'te geçer;
+`paynkolay.ts`, `paynkolay-page.ts`, `odeme/paynkolay/route.ts` ve (16 Eki
+2026'dan beri, §15.5) `odeme/card-payment.tsx`'te geçer;
 bu dosyalar DB/store import etmez, `console` çağrılarına kart girmez
 (`tests/saved-cards.test.ts`). POS'un hata metni gösterilmeden ve loglanmadan
 önce kart numarasına benzeyen diziler maskelenir. **Kart hash'lenmez:**
@@ -898,6 +899,127 @@ sayfasında (`hosted`) bu yük PayNkolay'daydı. `direct` modda:
   doğru değil. Düzeltme R1 ile birlikte avukat onayına bağlı
   (`docs/LEGAL-REDLINES-2026-09.md` §3).
 
+### 15.5 Kart `/odeme`'de, tek sayfada (16 Eki 2026)
+
+**Operatör kararı (16 Eki 2026):** _"checkout sihirbazını genel bilinen
+e-ticaret siteleri gibi tasarla baştan kart girerken başka sayfaya vs
+atmasın"_, _"lütfen kontrollü git ve hiçbir açık verme"_ ve sonra _"sipariş
+verme tamamlama wizardını genel aynı oluştur hızlı ve güzel adımlarla yap ve
+mobile uyumlu yap"_. CLAUDE.md kural 28'deki "kart alanları yalnız
+`/odeme/paynkolay`'da" kararının bilinçli tersine çevrilmesidir; kuralın geri
+kalanı aynen durur (kart saklanmaz, loglanmaz, PayNkolay dışında bir yere
+gitmez, Server Action'a girmez).
+
+Web'de 3 adımlı sihirbaz ve "kart bir sonraki sayfada" kalktı. `/odeme` tek
+sayfa, istemci tarafında iki adım: **1 Teslimat** (adres + iletişim) → **2
+Ödeme** (kart, kayıtlı kartlar, onaylar, öde). Adımlar arasında sayfa
+yenilenmez; 2. adım tarayıcı geçmişine kendi kaydıyla girer (Geri tuşu 1.
+adıma döner), görünür "Değiştir" de aynı işi yapar. Varsayılan adresi tam
+olan üye doğrudan 2. adımda açılır. Sipariş özeti iki adımda da görünür
+(masaüstünde yapışkan sağ sütun; telefonda üstte açılır "Sipariş özeti · ₺X"
+çubuğu ve 2. adımda altta sabit ödeme çubuğu).
+
+**Akış.**
+
+1. "Siparişi onayla ve öde": tarayıcı adresi, iki onay kutusunu ve kartı
+   (`cardFieldErrors`, `parseCardForm`'un aynısı ya da sıkısı) denetler.
+2. `startCheckoutAction` (Server Action) yalnız AYRI bir formu okur
+   (`items`, alıcı, adres, kod, `legalConsent`, yeniden kullanım alanları):
+   siparişi açar ya da reddedilen denemenin bıraktığı siparişi yeniden
+   kullanır, `createCheckoutSession`'dan `d`/`s`'yi çıkarıp döner. Kart bu
+   isteğe hiç girmez (`tests/saved-cards.test.ts`).
+3. Tutar düğmedekiyle aynıysa tarayıcı `d`/`s`'yi kartın **yerli** formuna
+   (`<form method="post" action="/odeme/paynkolay">`, kontrolsüz alanlar,
+   React state'i yok) yazar ve `form.submit()` eder; yanıt bankanın 3D
+   sayfasıdır. Tutar farklıysa (panelde fiyat değişti, kod uygulanamadı)
+   yeni tutar gösterilir ve müşteri yeniden basar (MSY m.6, m.8).
+4. Tutar 0'sa sipariş `provider:"free"` ile kapanır, `/odeme/basarili`.
+
+**Hatalar `/odeme`'ye sabit kodla döner.** `return=checkout` taşıyan POST'ta
+bankaya gidemeyen her sonuç (kart hatası, ret, deneme sınırı, POS hatası,
+süre, kayıtlı kart yok/seçim) `303 /odeme?odeme=<kod>[&alan=][&dk=]` olur:
+`kart_hatali`, `reddedildi`, `cok_deneme`, `baslatilamadi`, `sure_doldu`,
+`kart_yok`, `kart_secimi` (`src/lib/checkout/return-codes.ts`). POS'un
+serbest metni, kartın bir parçası ya da sipariş adrese girmez. Sayfa 2.
+adımda, "Ödeme tamamlanmadı" başlıklı `role="alert"` bir notla açılır;
+adres seçimi ve bekleyen sipariş `sessionStorage`'dan geri gelir, kart
+numarası ve CVV her dönüşte boştur (ad ve son kullanma da saklanmaz).
+Uygulama yükünde (`successUrl`'de `app=1`) işaret yok sayılır; uygulamanın
+ayrı sayfası kart, ret, sınır ve süre durumlarında eskisi gibi davranır.
+**Bilinçli tek fark:** okunamayan (imzasız, bozuk ya da bu dağıtımın
+anahtarıyla uyuşmayan) bir ödeme yükü eskiden `303 /odeme?error=payment` idi
+- uygulamanın tarayıcısını boş sepetli web checkout'una atıyordu. Şimdi
+`GET` ve `POST` o durumda 400 (sağlayıcı PayNkolay değilse 503) ile
+"Ödeme sayfası açılamadı" notunu verir: "Uygulamaya dön" ve "Sitede ödemeye
+dön". Yük okunamadığı için hangi sipariş olduğu bilinmez; not ikisini de
+sunar.
+
+**Belgenin kendi CSP'si.** `/odeme` sitenin genel CSP'sinin dışındadır
+(`CSP_SOURCE`, yalnız tam bu yol) ve `src/proxy.ts` her istekte taze bir
+nonce'la kendi politikasını gönderir: `script-src 'self' 'nonce-…'`,
+betikte `'unsafe-inline'`/`'unsafe-eval'` yok, üçüncü taraf yok, `img-src
+'self' data:` (uzak görsel yok), `connect-src
+'self'`, `frame-src 'none'`, `form-action 'self'`, `frame-ancestors 'none'`,
+`base-uri 'none'`, `object-src 'none'` (`src/lib/security/checkout-csp.ts`).
+Next.js nonce'u isteğin `Content-Security-Policy` başlığından okur ve kendi
+satır içi betiklerine basar; sayfa `force-dynamic`'tir. GTM, rıza betikleri
+ve çerez bandı bu belgede hiç çizilmez (`site-tags.tsx`, `usePathname`;
+kök layout `headers()` okumaz). Başka bir sayfadan istemci tarafı gezinmeyle
+gelinirse belge o sayfanınkidir (GTM yüklenmiş olabilir): checkout
+`performance.getEntriesByType("navigation")[0]`'ın yoluna bakar, `/odeme`
+değilse kendini bir kez yeniden yükler ve o zamana kadar yalnız iskelet
+çizer. Sitenin girişleri (`chrome.tsx` sepet düğmesi, ürün sayfasının "hemen
+al"ı, sepet çekmecesi, e-posta doğrulama sayfası) tam sayfa yüklemesidir.
+
+**Yeniden deneme aynı siparişi kullanır.** Tarayıcı sekmede yalnız
+`{orderId, d, s, cartKey, createdAt}` ve sunucunun tutar teklifini tutar
+(kart yok, kişisel veri yok). Eylem siparişi ancak hepsi tutarsa yeniden
+kullanır, ve ESKİ yükü yeniden vermeden önce POS'a sorar
+(`checkPendingOrderPaid`, `settlePendingFromProvider`'ın kısa zaman aşımlı
+hâli): müşteri bankada ödemiş, dönüş POST'u kaybolmuş ve yeniden bastıysa
+aynı sipariş ikinci kez çekilmesin. POS "ödendi" derse sipariş
+`applyPaymentSucceeded` ile işlenir ve müşteri başarı sayfasına gider;
+"ödenmedi" derse yük yeniden verilir; POS'a ulaşılamazsa (`unknown`) sipariş
+yeniden KULLANILMAZ, yeni sipariş açılır (eskisini süpürme yine POS'a sorarak
+ele alır). Yeniden kullanım için koşullar: yük doğrulanır ve en az 5 dk daha tazedir, `clientRefCode ===
+orderId`, sipariş oturumdaki üyenindir, hâlâ `pending_payment`, web
+siparişidir, tutarı yükün tutarına eşittir, sepet anahtarı ve sipariş
+satırları gönderilenle aynıdır (`src/lib/checkout/reuse.ts`). Aksi hâlde
+yeni sipariş açılır, eskisi `supersedeUnpaidWebOrders` ile bırakılır. Eylem
+üye başına `checkout-start` bütçesiyle sınırlıdır (10 / 5 dk, sonra 10 dk).
+
+**Beyaz sayfa yok.** Kart POST'unun yönlendirme olmayan her yanıtı metni ve
+bir sonraki adımı olan bir sayfadır (`tests/checkout-return.test.ts`).
+Okunamayan bir ödeme bağlantısı artık web checkout'una (boş sepetle)
+yönlendirilmez; sayfa uygulamanındır ve "Uygulamaya dön" + "Sitede ödemeye
+dön" diyen bir not gösterilir. "Bankaya yönlendiriliyorsun…" 30 sn içinde
+(POS'un ödeme süresi sınırı olan 25 sn'den uzun) sayfa değişmezse düğmeyi
+geri verir ve yeniden denemeyi söyler; eylem 30 sn'de yanıt vermezse aynısı; bfcache'ten (`pageshow`) dönüşte düğme açılır.
+`/odeme/(checkout)/error.tsx` ve `loading.tsx` yalnız checkout sayfasını
+sarar ("kartından para çekilmedi" der). `/odeme/basarili`, `/app-hata` ve
+dönüş için `/odeme/error.tsx` paranın lafını etmez (ödemiş bir müşteri
+orada olabilir): sayfayı yeniden dener, "Siparişlerim"e götürür.
+
+**Tek sipariş maili ve sıfır tutar.** Müşteri kargoya kadar yalnız "ödemen
+alındı" mailini alır (`notifyOrderPaid`, `order_notice_emails` türü `paid`):
+satırlar, Ara toplam, Kargo, İndirim ve toplam birbirini tutar, ÖBF/MSS/cayma
+bağlantıları kalır. Sağlayıcı 429/5xx verirse ya da ulaşılamazsa AYNI
+istekte, aynı `Idempotency-Key` ile bir kez daha denenir (en çok 1,5 sn
+bekleyerek); o da olmazsa kayıt serbest kalır ve bankanın dönüşü yeniden
+gelirse (24 saat içinde) mail yeniden önerilir; talep tek seferlik kalır.
+Tutarı sıfır olan sipariş kapanamazsa (`applyPaymentSucceeded` hata verirse)
+"ödendi" denmez: hata gösterilir, kart çekilmedi, yeniden deneme yeni sipariş
+açar.
+
+**Kayıtlı kartlar** (`PAYNKOLAY_CARD_STORAGE=on` olmadan görünmez, §16):
+sunucu bileşeni üyenin anahtarıyla 3 sn sınırla listeler; tarayıcıya yalnız
+`{tranId, last4, bank, brand, alias}` gider, token gitmez. Seçim yerli
+formda `cardChoice=<tranId>` olarak gider. "Sil" ödeme formunun DIŞINDA,
+`type="button"` bir düğmedir, onay ister ve üyenin anahtarını sunucuda
+oturumdan türeten, sınırlı (`card-delete`) bir Server Action'dan geçer.
+Formun tek gönderme düğmesi ödeme düğmesidir: kart alanında Enter öder ya
+da (onaylar boşken) hiçbir şey yapmaz.
+
 ---
 
 ## 16. Kayıtlı kart - kart PayNkolay'da durur
@@ -915,12 +1037,12 @@ gelince Vercel'de `on` yapılıp yeniden yayınlanır.
 
 ### 16.1 Ölçülen API (sandbox, Postman "Kart Saklama")
 
-| İş | Uç | Alanlar | Hash |
-| --- | --- | --- | --- |
-| Ödemede kaydet | `POST /Vpos/v1/Payment` | kart alanları + `csCustomerKey`, `csAutoSave=true`, `csCardAlias` | `sx\|clientRefCode\|amount\|successUrl\|failUrl\|rnd\|csCustomerKey` |
-| Listele | `POST /Vpos/Payment/CardStorageCardList` | `sx`, `customerKey` | `sx\|customerKey` |
-| Saklı kartla öde | `POST /Vpos/v1/Payment` | kart alanı YOK; `csCustomerKey`, `csToken` | ödemedekiyle aynı |
-| Sil | `POST /Vpos/Payment/CardStorageCardDelete` | `sx`, `customerKey`, `tranId` (boş), `token` | `sx\|customerKey\|tranId\|token` |
+| İş               | Uç                                         | Alanlar                                                           | Hash                                                                 |
+| ---------------- | ------------------------------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Ödemede kaydet   | `POST /Vpos/v1/Payment`                    | kart alanları + `csCustomerKey`, `csAutoSave=true`, `csCardAlias` | `sx\|clientRefCode\|amount\|successUrl\|failUrl\|rnd\|csCustomerKey` |
+| Listele          | `POST /Vpos/Payment/CardStorageCardList`   | `sx`, `customerKey`                                               | `sx\|customerKey`                                                    |
+| Saklı kartla öde | `POST /Vpos/v1/Payment`                    | kart alanı YOK; `csCustomerKey`, `csToken`                        | ödemedekiyle aynı                                                    |
+| Sil              | `POST /Vpos/Payment/CardStorageCardDelete` | `sx`, `customerKey`, `tranId` (boş), `token`                      | `sx\|customerKey\|tranId\|token`                                     |
 
 Ölçülenler:
 
@@ -930,8 +1052,8 @@ gelince Vercel'de `on` yapılıp yeniden yayınlanır.
   (`newPaynkolayMemberKey`).
 - Kart, **3D onayından sonra** saklanıyor; dönüşte `TRAN_ID` geliyor.
 - Liste yanıtı: `{ProcReturnCode:"00", Data:{totalcount, cards:{Card:{
-  CardFileds:{Detail:[{Token, TranId, Maskedpan:"41556501****6111",
-  CARDISSUER, CARDTYPE, CARDBRAND, CARD_ALIACE, EXP_DATE}]}}}}}`. Kart yoksa
+CardFileds:{Detail:[{Token, TranId, Maskedpan:"41556501****6111",
+CARDISSUER, CARDTYPE, CARDBRAND, CARD_ALIACE, EXP_DATE}]}}}}}`. Kart yoksa
   `ProcReturnCode:"02"`, "Gecerli Kart Yok".
 - Saklı kartla ödemede de **3D isteniyor** (ters ibraz koruması sürer).
 - Silme **yalnız `token` ile** çalıştı; yalnız `tranId` ile "Gecersiz Veri"
@@ -959,4 +1081,3 @@ gelince Vercel'de `on` yapılıp yeniden yayınlanır.
   (`withoutHolderName`; KVKK veri en aza indirme, hukuki metinler Ö7).
 - `CardStorageCardRegister` (kart numarasıyla, ödemesiz saklama) hiçbir
   yerde çağrılmaz (`tests/saved-cards.test.ts`).
-

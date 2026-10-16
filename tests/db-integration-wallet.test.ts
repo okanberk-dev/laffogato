@@ -63,8 +63,7 @@ vi.mock("@/lib/email/send", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/email/send")>();
   return {
     ...real,
-    sendOrderPlacedEmail: async () => {},
-    sendOrderPaidEmail: async () => {},
+    sendOrderPaidEmail: async () => ({ ok: true as const }),
   };
 });
 vi.mock("@/lib/legal/store", async (importOriginal) => {

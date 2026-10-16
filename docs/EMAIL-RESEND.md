@@ -14,7 +14,7 @@ Site ile uygulama **tek bir Supabase projesini** kimlik için paylaşır
 
 | Mesaj                            | Kim gönderir                   | Nasıl               |
 | -------------------------------- | ------------------------------ | ------------------- |
-| Sipariş alındı · Ödeme onaylandı | Site (`src/lib/email/send.ts`) | Resend **HTTP API** |
+| Ödeme onaylandı (tek sipariş maili) | Site (`src/lib/email/send.ts`) | Resend **HTTP API** |
 | Sitede kayıt → e-posta doğrulama | Site                           | Resend HTTP API     |
 | Sitede "şifremi unuttum"         | Site                           | Resend HTTP API     |
 | **Uygulamada kayıt → doğrulama** | **Supabase Auth**              | **Resend SMTP**     |
@@ -242,8 +242,7 @@ Yirmi iki şablon - her satırda **tetikleyici · izin sınıfı · idempotency*
 | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
 | `eposta-dogrulama`                     | işlemsel          | sitede kayıt / adres değişikliği (`uye/actions.ts`, `admin/musteriler`)         |
 | `sifre-sifirlama`                      | işlemsel          | sitede "şifremi unuttum"                                                        |
-| `siparis-alindi`                       | işlemsel          | sipariş oluşturuldu (`odeme/actions.ts`, mobil `orders.ts`) · sipariş satırı    |
-| `odeme-onaylandi`                      | işlemsel          | ödeme onaylandı (`admin/store.ts`) · ödeme durumu geçişi                        |
+| `odeme-onaylandi` | işlemsel | müşterinin kargoya kadar aldığı TEK sipariş maili: ödeme siparişi `paid`'e taşıdığında (`applyPaymentSucceeded`, elle "Ödendi"; ₺0 sipariş de) · `order_notice_emails` (sipariş, `paid`). Kalemler, toplam ve ÖBF/MSS/cayma bağlantıları (kalıcı veri saklayıcısı) |
 | `siparis-kargoda`                      | işlemsel          | panelin kargo formu, "Kargoya ver", Geliver'ın teslim olayı · `order_notice_emails` (sipariş, `shipped:<numara özeti>`) |
 | `siparis-iptal`                        | işlemsel          | `transitionOrder` iptali (toplu iptal de oradan geçer) · (sipariş, `cancelled`) |
 | `siparis-iade`                         | işlemsel          | panel iadesi (`finalizeRefund`), sağlayıcı iadesi (`recordProviderRefund`) · (sipariş, `refund:<iade id>`) |

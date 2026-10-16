@@ -92,11 +92,18 @@ describe("saved cards", () => {
    * this server, and these tests pin the only shape that is allowed: in at
    * the payment page, out to the POS in the same request, nowhere else.
    */
+  //
+  // Operator, 16 Eki 2026 ("kart girerken başka sayfaya vs atmasın"): the
+  // card is typed on /odeme itself, so the checkout's card form joins the
+  // path - its inputs live in a native form that posts to
+  // /odeme/paynkolay, never in a Server Action (docs/PAYNKOLAY.md §15.5).
+  // The checkout page and its action are deliberately NOT on it (below).
   const CARD_PATH = [
     "src/lib/payment/paynkolay-card.ts",
     "src/lib/payment/paynkolay.ts",
     "src/lib/payment/paynkolay-page.ts",
     "src/app/odeme/paynkolay/route.ts",
+    "src/app/odeme/card-payment.tsx",
   ];
   // The real form field names (cardCvv, cardExpiry …) and the module's own
   // identifiers, not just four English words: an earlier version of this
@@ -133,6 +140,27 @@ describe("saved cards", () => {
         CARD_WORDS.test(codeOnly(read(file))),
     );
     expect(offenders).toEqual([]);
+  });
+
+  it("keeps the card out of the checkout's Server Action and page state", () => {
+    // The order is created by a Server Action that reads a DIFFERENT form;
+    // the card goes from the native pay form straight to the payment route.
+    // A card identifier in either file would mean the card reached React
+    // state that is serialised, or the action's POST body.
+    for (const file of [
+      "src/app/odeme/actions.ts",
+      "src/app/odeme/checkout.tsx",
+      "src/app/odeme/(checkout)/page.tsx",
+      "src/lib/checkout/start.ts",
+      "src/lib/checkout/start-schema.ts",
+      "src/lib/checkout/session-keys.ts",
+    ]) {
+      expect(CARD_PATH, file).not.toContain(file);
+      expect(CARD_WORDS.test(codeOnly(read(file))), file).toBe(false);
+    }
+    // And the action file never imports the card form or the card module.
+    const action = codeOnly(read("src/app/odeme/actions.ts"));
+    expect(action).not.toMatch(/card-payment|paynkolay-card/);
   });
 
   it("the card path cannot persist a card - no database, no store", () => {

@@ -23,17 +23,24 @@ const DEV_SCRIPT_SRC =
   process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
 
 /**
- * The payment page (/odeme/paynkolay) is the one path this policy does NOT
- * cover. It hands the customer's browser to forms that post elsewhere - the
- * POS's hosted page, or the card's own bank for 3D Secure, whose host differs
- * per bank (docs/PAYNKOLAY.md §15). Two CSP headers on one response are both
- * enforced, so the site policy cannot be loosened there; that route sends its
- * own policy instead, narrower than this one: `default-src 'none'`, scripts
- * only by the SHA-256 of its own inline blocks, no third party at all
- * (`src/lib/payment/paynkolay-page.ts`, `tests/paynkolay-card-page.test.ts`).
- * `$` keeps the exclusion to that exact path.
+ * Two paths this policy does NOT cover, each because it sends a narrower
+ * policy of its own (two CSP headers on one response are both enforced, so
+ * the site policy could only ever add to theirs):
+ *
+ * - /odeme/paynkolay hands the customer's browser to forms that post
+ *   elsewhere - the POS's hosted page, or the card's own bank for 3D Secure,
+ *   whose host differs per bank (docs/PAYNKOLAY.md §15). Its policy:
+ *   `default-src 'none'`, scripts only by the SHA-256 of its own inline
+ *   blocks, no third party at all (`src/lib/payment/paynkolay-page.ts`).
+ * - /odeme is where the card is typed (§15.5). Google Tag Manager and
+ *   `'unsafe-inline'` scripts have no business on a page with a card field;
+ *   src/proxy.ts sends it a per-request nonce policy with no third party
+ *   (`src/lib/security/checkout-csp.ts`).
+ *
+ * `$` keeps each exclusion to that exact path: /odeme/donus, /odeme/basarili
+ * and /odeme/app-hata stay under this policy (`tests/security-headers.test.ts`).
  */
-const CSP_SOURCE = "/:path((?!odeme/paynkolay$).*)";
+const CSP_SOURCE = "/:path((?!odeme$|odeme/paynkolay$).*)";
 
 const CSP = [
   "default-src 'self'",
@@ -53,9 +60,9 @@ const CSP = [
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  // Where a form on this site may submit: this site only. The one form that
-  // posts cross-origin lives on /odeme/paynkolay, outside this policy
-  // (CSP_SOURCE above), and names its destination in its own policy.
+  // Where a form on this site may submit: this site only. The forms that
+  // post cross-origin live on /odeme/paynkolay, outside this policy
+  // (CSP_SOURCE above), and name their destination in its own policy.
   "form-action 'self'",
   "frame-ancestors 'none'",
   "upgrade-insecure-requests",

@@ -75,7 +75,7 @@ vi.mock("@/lib/customer/coupons", () => ({
   CAFE_ONLY_COUPON_MESSAGE: "",
 }));
 vi.mock("@/lib/payment", () => ({ getPaymentProvider: vi.fn() }));
-vi.mock("@/lib/email/send", () => ({ sendOrderPlacedEmail: vi.fn() }));
+vi.mock("@/lib/email/send", () => ({ sendOrderPaidEmail: vi.fn() }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 vi.mock("@/lib/mobile/loyalty", () => ({
   getStampedOrderIds: async () => new Set<string>(),

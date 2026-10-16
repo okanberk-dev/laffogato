@@ -3,8 +3,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const action = readFileSync("src/app/odeme/actions.ts", "utf8");
+// The one-page checkout's action (16 Eki 2026) replaced placeOrderAction.
 const body = action.slice(
-  action.indexOf("export async function placeOrderAction"),
+  action.indexOf("export async function startCheckoutAction"),
+  action.indexOf("export async function deleteSavedCardAction"),
 );
 
 describe("web checkout", () => {
@@ -16,6 +18,8 @@ describe("web checkout", () => {
     expect(zero).toBeLessThan(body.indexOf("provider.createCheckoutSession("));
     expect(body).toContain('provider: "free"');
     expect(body).toContain("applyPaymentSucceeded(");
+    // And the browser is sent to the success page, not to a card form.
+    expect(body).toMatch(/kind: "paid",\s+url: `\/odeme\/basarili\?ref=/);
   });
 
   it("uses the same 'free' provider name as the app's zero-total path", () => {

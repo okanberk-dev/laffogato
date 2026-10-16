@@ -127,27 +127,6 @@ siz yapmadıysanız hiçbir şey yapmanıza gerek yok - mevcut şifreniz değiş
 
 ${SIGNATURE}`,
 
-  "siparis-alindi": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
-
-Siparişinizi aldık. Ödemeniz onaylandığı anda hazırlamaya başlıyoruz.
-
-Sipariş No: #[SIPARIS_NO]
-
-[KALEMLER]
-
-Ara toplam: [ARA_TOPLAM]
-<!--IF:KARGO_SATIRI-->Kargo: [KARGO]
-<!--/IF:KARGO_SATIRI-->Toplam: [TOPLAM]
-(KDV dâhil<!--IF:KARGO_SATIRI--> · 500,00 ₺ üzeri siparişlerde kargo ücretsiz<!--/IF:KARGO_SATIRI-->)
-
-Siparişiniz: [SIPARIS_URL]
-
-Sipariş sırasında onayladığınız belgeler - kalıcı veri saklayıcısı olarak
-saklamanız için:
-[BELGELER]
-
-${SIGNATURE}`,
-
   "odeme-onaylandi": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
 Ödemeniz alındı ve siparişiniz onaylandı - hazırlanmaya başlandı.
@@ -156,7 +135,10 @@ Sipariş No: #[SIPARIS_NO]
 
 [KALEMLER]
 
-Ödenen toplam: [TOPLAM]
+Ara toplam: [ARA_TOPLAM]
+<!--IF:KARGO_SATIRI-->Kargo: [KARGO]
+<!--/IF:KARGO_SATIRI--><!--IF:INDIRIM_SATIRI-->İndirim: [INDIRIM]
+<!--/IF:INDIRIM_SATIRI-->Ödenen toplam: [TOPLAM]
 <!--IF:DAMGA-->
 Bu siparişle [DAMGA_SAYISI] damga kazandınız; [DAMGA_HEDEFI] damgada bir
 içecek bizden.

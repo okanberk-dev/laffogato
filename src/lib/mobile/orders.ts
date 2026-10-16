@@ -32,7 +32,6 @@ import {
   couponAllowedForKind,
   CAFE_ONLY_COUPON_MESSAGE,
 } from "@/lib/customer/coupons";
-import { sendOrderPlacedEmail } from "@/lib/email/send";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
 import { checkoutConsentVersion } from "@/lib/legal/store";
 import { getDb, TABLES } from "@/lib/db";
@@ -593,27 +592,10 @@ export async function createAppOrder(
 
   let order = result.order;
 
-  // Best-effort "order received" e-mail, exactly as the web checkout sends.
-  try {
-    await sendOrderPlacedEmail({
-      to: order.customerEmail,
-      customerName: order.customerName,
-      orderNo: order.orderNo,
-      items: order.items.map((it) => ({
-        productName: it.detail
-          ? `${it.productName} (${it.detail})`
-          : it.productName,
-        qty: it.qty,
-        unitPriceMinor: it.unitPriceMinor,
-      })),
-      subtotalMinor: order.subtotalMinor,
-      shippingMinor: order.shippingMinor,
-      totalMinor: order.totalMinor,
-      servedAtTable: order.fulfillment === "table",
-    });
-  } catch (err) {
-    console.error("[email] order placed notification failed", err);
-  }
+  // No mail here: the order is not paid yet. "Ödemen alındı" goes out once
+  // the payment moves it to paid - a card return, the wallet below or the
+  // zero-total settle - from `applyPaymentSucceeded` (operator, 16 Eki 2026:
+  // "sipariş maili ödeme tam alınmadan gitmesin").
 
   let payment: AppPayment | null = null;
   if (body.payWithWallet && order.totalMinor > 0) {
