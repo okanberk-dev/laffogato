@@ -321,13 +321,17 @@ describe("partial refunds re-derive the order's stamps", () => {
     expect((await getOrderStamps(MEMBER)).has("ord-2")).toBe(false);
   });
 
-  it("charges every refunded kuruş to the goods, courier fee included", async () => {
-    // ₺1.000 of goods + ₺55 courier. ₺55 back: the refund entry does not say
-    // it was the courier fee, so ₺945 of goods are kept → 3, not 4.
+  it("counts a refund against the courier fee first", async () => {
+    // ₺1.000 of goods + ₺55 courier. ₺55 back: a refund cannot be split, so
+    // it is the courier fee and the goods keep their 4 stamps.
     const paid = order("ord-3", 105500, { shippingMinor: 5500 });
     await pay(paid);
     expect((await getOrderStamps(MEMBER)).get("ord-3")).toBe(4);
-    await reverse(refunded(paid, 5500));
+    const courier = refunded(paid, 5500);
+    await reverse(courier);
+    expect((await getOrderStamps(MEMBER)).get("ord-3")).toBe(4);
+    // ₺100 more is goods: ₺900 kept → 3.
+    await reverse(refunded(courier, 10000));
     expect((await getOrderStamps(MEMBER)).get("ord-3")).toBe(3);
   });
 
@@ -625,8 +629,16 @@ describe("a change of the card size is not a debt", () => {
     tick();
     expect((await redeemStamps(MEMBER)).ok).toBe(true); // cost 8
     setCardSize(6);
-    const paid = order("ord-1", 100000); // +4 → 12; 12 − 6 = 6 available
+    const paid = order("ord-1", 100000); // +4 → 12
     await pay(paid);
+    // The old card cost 8: 12 − 8 = 4 left, not a card of 6 yet.
+    expect(await getLoyalty(MEMBER)).toMatchObject({
+      stamps: 4,
+      rewardsReady: 0,
+    });
+    tick();
+    expect((await redeemStamps(MEMBER)).ok).toBe(false);
+    await counterStamps(2); // 14 − 8 = 6
     tick();
     expect((await redeemStamps(MEMBER)).ok).toBe(true); // cost 6
     // ₺10 back: ₺990 kept, still 4 stamps.

@@ -4,6 +4,7 @@
 // lives in `./loyalty.ts`.
 
 import type { AdminOrder, AdminOrderStatus } from "@/lib/admin/store";
+import type { CustomerCoupon } from "@/lib/customer/coupon-utils";
 
 import type { MobileAppConfig } from "./app-config";
 
@@ -116,14 +117,15 @@ export function earnsStamp(order: {
  * stamps are concerned.
  *
  * A refund entry (`AdminRefund`) carries an amount and a free-text reason,
- * never a split between goods and courier fee, so there is no honest way to
- * tell a refunded courier fee from refunded goods. Every refunded kuruş is
- * therefore charged to the goods first, capped at the goods
- * (`min(refunded, goods)`): a refund can only ever lower the stamps, never
- * leave the member holding stamps for goods they got their money back for.
- * The one case this reads against the member - the courier fee refunded on
- * its own - costs at most the stamp of one ₺320 step, and is the house's
- * call to make by hand (a till stamp) rather than a hole to farm.
+ * never a split between goods and courier fee, and one refund cannot be split
+ * after the fact. The refunded total is therefore counted against the
+ * courier fee FIRST and only the rest against the goods:
+ * `refundedGoods = min(goods, max(0, refundedTotal − courierFee))`. This
+ * favours the member (third review, 16 Eki 2026): a courier fee refunded on
+ * its own - the courier was late - takes no stamp, and a refund of the goods
+ * takes the same stamps it always did once it is larger than the fee. The
+ * most a member can keep this way is the stamp of one courier fee's worth of
+ * goods.
  */
 export function stampRefundedGoodsMinor(order: {
   totalMinor: number;
@@ -131,12 +133,14 @@ export function stampRefundedGoodsMinor(order: {
   refunds?: readonly { amountMinor: number }[];
 }): number {
   const goods = stampGoodsMinor(order);
+  const shipping = Math.round(Number(order.shippingMinor));
+  const courier = Number.isFinite(shipping) ? Math.max(0, shipping) : 0;
   let refunded = 0;
   for (const r of order.refunds ?? []) {
     const n = Math.round(Number(r.amountMinor));
     if (Number.isFinite(n) && n > 0) refunded += n;
   }
-  return Math.min(goods, refunded);
+  return Math.min(goods, Math.max(0, refunded - courier));
 }
 
 /** Order statuses that keep no stamp at all, whatever was refunded. */
@@ -274,132 +278,143 @@ export function unredeemId(redeemRowId: string): string {
 }
 
 /**
- * Stamps the member owes on the balance: what their redeemed cards cost at
- * the CURRENT card size beyond the stamps they still hold. This is the hole
- * `computeStampBalance` keeps under its clamp at 0 (the next stamps fill it
- * before a new card does). It is not what a settlement takes coupons for:
- * an operator who grows the card makes this positive without any stamp
- * having been reversed; see `reversalDebt`.
+ * The id of the free-drink coupon a `redeem` row bought. `redeemStamps`
+ * gives the coupon this id, so every card knows its own coupon and every
+ * coupon its own card (and what that card cost) without a lookup table.
+ * Coupons granted before 16 Eki 2026 carry a plain `cpn-NNNN` id; see
+ * `nextFreeDrinkWithdrawal` for how they are paired.
  */
-export function stampDebt(
-  balance: Pick<StampBalance, "lifetimeStamps" | "redeemCount">,
-  stampTarget: number = STAMP_TARGET,
-): number {
-  const target = Math.max(1, Math.round(stampTarget));
-  return Math.max(0, target * balance.redeemCount - balance.lifetimeStamps);
+export function freeDrinkCouponId(redeemRowId: string): string {
+  return `cpn-${redeemRowId}`;
+}
+
+/** The `redeem` row behind a coupon id from {@link freeDrinkCouponId}. */
+export function redeemIdOfCoupon(couponId: string): string | null {
+  return couponId.startsWith("cpn-stamp-") ? couponId.slice(4) : null;
 }
 
 /**
- * What one card cost when it was redeemed: the stamps its `redeem` row (or
- * the `unredeem` row that withdrew it) carries. A row without a usable
- * delta is priced at the current card.
+ * What one card cost: the stamps its own `redeem` row consumed (the card
+ * size in force when it was redeemed), or, on an `unredeem` row, the cost of
+ * the card it withdrew. Never the current card size: an operator who changes
+ * `stampTarget` changes what the NEXT card costs, not what an old one did.
  */
-function cardCost(row: { delta?: number }, target: number): number {
+export function cardCost(row: { delta?: number }): number {
   const n = Math.round(Math.abs(Number(row.delta)));
-  return Number.isFinite(n) && n > 0 ? n : target;
+  return Number.isFinite(n) ? n : 0;
 }
 
-type SettleRow = Pick<
-  LoyaltyStamp,
-  "id" | "kind" | "delta" | "createdAt" | "orderId"
+/**
+ * The settlement invariant (third review of 16 Eki 2026):
+ *
+ *   covered = lifetimeStamps − Σ cost of every redeemed card still standing
+ *
+ * "Still standing" is every `redeem` row no `unredeem` row withdrew, whether
+ * its coupon is unused, used or expired; each is priced at its own cost
+ * (`cardCost`). The `unredeem` row carries the cost of the card it withdrew,
+ * so the sum is `Σ redeem costs − Σ unredeem costs` and needs no ids.
+ *
+ * `covered < 0` means stamps that paid for a card were reversed. It does not
+ * depend on `stampTarget` at all, so changing the card size can never make
+ * it negative. A settlement withdraws unused free drinks while it is
+ * negative (`nextFreeDrinkWithdrawal`); what is left once none is unused is
+ * paid by the next stamps.
+ */
+export function stampCoverage(
+  rows: readonly (Pick<LoyaltyStamp, "kind" | "delta"> & {
+    orderId?: string;
+  })[],
+): number {
+  let spent = 0;
+  for (const row of rows) {
+    if (row.kind === "redeem") spent += cardCost(row);
+    else if (row.kind === "unredeem") spent -= cardCost(row);
+  }
+  return computeStampBalance(rows).lifetimeStamps - spent;
+}
+
+/** The coupon fields a settlement reads. */
+export type SettleCoupon = Pick<
+  CustomerCoupon,
+  "id" | "source" | "isActive" | "redeemedAt" | "expiresAt" | "createdAt"
 >;
 
-function openRedeems<T extends SettleRow>(rows: readonly T[]): T[] {
-  const withdrawn = new Set(
-    rows.filter((r) => r.kind === "unredeem").map((r) => r.id),
-  );
-  return rows
-    .filter((r) => r.kind === "redeem" && !withdrawn.has(unredeemId(r.id)))
-    .sort((a, b) =>
-      a.createdAt === b.createdAt
-        ? b.id.localeCompare(a.id)
-        : b.createdAt.localeCompare(a.createdAt),
-    );
-}
-
-/**
- * The stamps a settlement may still take coupons back for: the part of the
- * member's debt that ORDER REVERSALS created and no withdrawal has covered
- * yet. The smallest of three numbers:
- *
- * 1. The debt at the current card: `target × open cards − lifetime`.
- * 2. The debt at what each card really cost (its own `redeem` delta). A card
- *    of 6 redeemed before the operator grew the card to 8 still cost 6: the
- *    setting re-reads the BALANCE at 8 (that is what it promises), but it
- *    never makes a member owe a coupon they paid for in full.
- * 3. The stamps order reversals took back, minus what the withdrawals so far
- *    settled (the cost on each `unredeem` row). Without a reversal nothing
- *    is ever owed: a change of the card size, a till correction (refused
- *    when it would leave the member short) or a hand edit is not a refund.
- *
- * 1 and 2 together keep a card-size change in either direction from
- * inventing a debt; 3 keeps it from ever exceeding what refunds and cancels
- * actually took back. Settlement uses this, never `stampDebt`.
- */
-export function reversalDebt(
-  rows: readonly SettleRow[],
-  stampTarget: number = STAMP_TARGET,
-): number {
-  const target = Math.max(1, Math.round(stampTarget));
-  const lifetime = computeStampBalance(rows, target).lifetimeStamps;
-  const open = openRedeems(rows);
-  const atCurrent = target * open.length;
-  const atCost = open.reduce((sum, r) => sum + cardCost(r, target), 0);
-  const owed = Math.min(atCurrent, atCost) - lifetime;
-  if (owed <= 0) return 0;
-  let reversed = 0;
-  for (const holding of orderStampHoldings(rows).values()) {
-    reversed += holding.reversed;
-  }
-  let settled = 0;
-  for (const r of rows)
-    if (r.kind === "unredeem") settled += cardCost(r, target);
-  return Math.max(0, Math.min(owed, reversed - settled));
-}
-
-/** One card a settlement withdraws. */
-export interface PlannedWithdrawal {
-  /** The `redeem` row withdrawn. */
+/** One free drink a settlement takes back, and the card it withdraws. */
+export interface FreeDrinkWithdrawal {
+  couponId: string;
+  /** The coupon's own `redeem` row; its `unredeem` row is `unredeemId(redeemId)`. */
   redeemId: string;
   /** What that card cost; the `unredeem` row carries it. */
   cost: number;
 }
 
-/**
- * The `redeem` rows a reversal debt withdraws, newest first, as few as clear
- * it (`reversalDebt` re-read after each), never one already withdrawn.
- * Deterministic for a given ledger, so two callers settling the same debt at
- * the same moment pick the same rows and the primary key on `unredeemId`
- * keeps one withdrawal per row.
- */
-export function plannedWithdrawals(
-  rows: readonly SettleRow[],
-  stampTarget: number = STAMP_TARGET,
-): PlannedWithdrawal[] {
-  const target = Math.max(1, Math.round(stampTarget));
-  const sim: SettleRow[] = [...rows];
-  const plan: PlannedWithdrawal[] = [];
-  for (const redeem of openRedeems(rows)) {
-    if (reversalDebt(sim, target) <= 0) break;
-    const cost = cardCost(redeem, target);
-    plan.push({ redeemId: redeem.id, cost });
-    sim.push({
-      id: unredeemId(redeem.id),
-      kind: "unredeem",
-      delta: cost,
-      createdAt: "",
-      orderId: "",
-    });
-  }
-  return plan;
+function newestFirst(
+  a: { createdAt: string; id: string },
+  b: { createdAt: string; id: string },
+): number {
+  return a.createdAt === b.createdAt
+    ? b.id.localeCompare(a.id)
+    : b.createdAt.localeCompare(a.createdAt);
 }
 
-/** The ids of {@link plannedWithdrawals}. */
-export function redeemsToWithdraw(
-  rows: readonly SettleRow[],
-  stampTarget: number = STAMP_TARGET,
-): string[] {
-  return plannedWithdrawals(rows, stampTarget).map((w) => w.redeemId);
+/**
+ * The next free drink to take back, or `null` when nothing is owed
+ * (`stampCoverage ≥ 0`) or nothing unused is left to take.
+ *
+ * The coupon is the newest UNUSED, unexpired, active `loyalty` coupon whose
+ * card is still standing. Its card is the `redeem` row its id names
+ * (`redeemIdOfCoupon`). A coupon granted before ids were linked is paired
+ * with the newest standing `redeem` row created no later than it that no
+ * linked coupon claims. A coupon whose card a concurrent settlement has
+ * already withdrawn (its `unredeem` row is there, the coupon not yet
+ * deactivated) is left to that settlement: the coverage already counts it.
+ *
+ * Deterministic for a given ledger and coupon list, so two settlements
+ * running at once pick the same card and the primary key on `unredeemId`
+ * lets only one of them take the coupon.
+ */
+export function nextFreeDrinkWithdrawal(
+  rows: readonly Pick<
+    LoyaltyStamp,
+    "id" | "kind" | "delta" | "orderId" | "createdAt"
+  >[],
+  coupons: readonly SettleCoupon[],
+  nowMs: number,
+): FreeDrinkWithdrawal | null {
+  if (stampCoverage(rows) >= 0) return null;
+  const withdrawn = new Set(
+    rows.filter((r) => r.kind === "unredeem").map((r) => r.id),
+  );
+  const redeems = rows.filter((r) => r.kind === "redeem");
+  const byId = new Map(redeems.map((r) => [r.id, r]));
+  const linked = new Set(
+    coupons.map((c) => redeemIdOfCoupon(c.id)).filter(Boolean),
+  );
+  const legacy = redeems
+    .filter((r) => !linked.has(r.id) && !withdrawn.has(unredeemId(r.id)))
+    .sort(newestFirst);
+  const taken = new Set<string>();
+
+  const unused = coupons
+    .filter(
+      (c) =>
+        c.source === "loyalty" &&
+        c.isActive &&
+        !c.redeemedAt &&
+        !(c.expiresAt && Date.parse(c.expiresAt) < nowMs),
+    )
+    .sort(newestFirst);
+  for (const coupon of unused) {
+    const own = redeemIdOfCoupon(coupon.id);
+    const card = own
+      ? byId.get(own)
+      : legacy.find((r) => !taken.has(r.id) && r.createdAt <= coupon.createdAt);
+    if (!card) continue;
+    if (!own) taken.add(card.id);
+    if (withdrawn.has(unredeemId(card.id))) continue;
+    return { couponId: coupon.id, redeemId: card.id, cost: cardCost(card) };
+  }
+  return null;
 }
 
 /** The loyalty knobs the operator turns; one shape for the core and the till. */
@@ -534,10 +549,17 @@ export function isCountedOrder(order: Pick<AdminOrder, "status">): boolean {
  * presence, so `redeemCount` counts the cards whose coupon still stands
  * (unused, or used) and never one that was taken back.
  *
+ * `available` is also never more than the stamps the standing cards left
+ * at what each of them cost (`stampCoverage`). That second bound matters
+ * only after the card SHRANK: a card of 6 redeemed before the operator set 4
+ * still cost 6, so it does not hand out a free card of 4 the stamps never
+ * paid for - and `redeemStamps`, which checks `available`, never mints a
+ * coupon the settlement invariant would call uncovered.
+ *
  * `available` is clamped at 0, but the debt is not forgotten: it is
- * `target × redeemCount − lifetimeStamps`, recomputed from the ledger every
- * time, so the stamps a member earns after a reversal first fill the hole
- * the reversal left under a coupon they already spent (`stampDebt`).
+ * recomputed from the ledger every time, so the stamps a member earns after
+ * a reversal first fill the hole the reversal left under a coupon they
+ * already spent.
  *
  * Reversals of an order are summed per order and capped at what that order
  * earned (`orderStampHoldings`); an orderless reversal (a till correction)
@@ -553,6 +575,7 @@ export function computeStampBalance(
   let lifetimeStamps = 0;
   let redeemCount = 0;
   let unredeemCount = 0;
+  let spentCost = 0;
   let reversed = 0;
   const earnedOrders = new Set<string>();
   for (const row of rows) {
@@ -563,8 +586,10 @@ export function computeStampBalance(
       lifetimeStamps += Math.max(0, Math.round(row.delta));
     } else if (row.kind === "redeem") {
       redeemCount += 1;
+      spentCost += cardCost(row);
     } else if (row.kind === "unredeem") {
       unredeemCount += 1;
+      spentCost -= cardCost(row);
     } else if (
       row.kind === "reversal" &&
       !(row.orderId && earnedOrders.has(row.orderId))
@@ -586,7 +611,13 @@ export function computeStampBalance(
   }
   lifetimeStamps = Math.max(0, lifetimeStamps - reversed);
   redeemCount = Math.max(0, redeemCount - unredeemCount);
-  const available = Math.max(0, lifetimeStamps - target * redeemCount);
+  const available = Math.max(
+    0,
+    Math.min(
+      lifetimeStamps - target * redeemCount,
+      lifetimeStamps - Math.max(0, spentCost),
+    ),
+  );
   return {
     lifetimeStamps,
     redeemCount,

@@ -247,26 +247,6 @@ export async function withdrawUnusedCoupon(
   return ((data as { id: string }[] | null) ?? []).length > 0;
 }
 
-/**
- * Undoes {@link withdrawUnusedCoupon} when the ledger row that had to go with
- * it could not be written, so a coupon is never taken back for nothing.
- */
-export async function restoreWithdrawnCoupon(
-  id: string,
-  email: string,
-): Promise<void> {
-  const owner = normalizeEmail(email);
-  if (!id || !owner) return;
-  const { error } = await getDb()
-    .from(TABLES.customerCoupons)
-    .update({ isActive: true, updatedAt: new Date().toISOString() })
-    .eq("id", id)
-    .eq("customerEmail", owner)
-    .eq("redeemedAt", "")
-    .eq("isActive", false);
-  checkErr(error, "restoreWithdrawnCoupon");
-}
-
 export interface GrantCouponInput {
   email: string;
   kind: CouponKind;
@@ -278,6 +258,12 @@ export interface GrantCouponInput {
   expiresAt?: string;
   /** Explicit code; auto-generated from the source prefix when omitted. */
   code?: string;
+  /**
+   * Explicit row id; `cpn-NNNN` from the sequence when omitted. The stamp
+   * card passes the id of the card it bought (`freeDrinkCouponId`), so a
+   * settlement knows which card a free drink belongs to.
+   */
+  id?: string;
 }
 
 /** Create + persist a coupon for a member. Retries once on a code collision. */
@@ -286,10 +272,10 @@ export async function grantCoupon(
 ): Promise<CustomerCoupon> {
   const email = normalizeEmail(input.email);
   const source = input.source ?? "manual";
-  const seq = await nextSeq("cpn");
+  const id = input.id || `cpn-${String(await nextSeq("cpn")).padStart(4, "0")}`;
   const now = new Date().toISOString();
   const coupon: CustomerCoupon = {
-    id: `cpn-${String(seq).padStart(4, "0")}`,
+    id,
     customerEmail: email,
     code: input.code
       ? normalizeCouponCode(input.code)

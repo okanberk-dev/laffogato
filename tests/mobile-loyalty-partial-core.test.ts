@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cardCost,
   computeStampBalance,
+  freeDrinkCouponId,
+  nextFreeDrinkWithdrawal,
   orderStampHoldings,
   plannedStampReversals,
-  plannedWithdrawals,
-  redeemsToWithdraw,
-  reversalDebt,
-  stampDebt,
+  redeemIdOfCoupon,
+  stampCoverage,
   stampedOrderIds,
   stampRefundedGoodsMinor,
   stampReversalId,
@@ -15,6 +16,7 @@ import {
   stampTargetForOrder,
   unredeemId,
   type LoyaltyStamp,
+  type SettleCoupon,
 } from "@/lib/mobile/loyalty-core";
 import { milestonesToClawBack } from "@/lib/mobile/milestones-core";
 
@@ -68,14 +70,33 @@ describe("stampTargetForOrder", () => {
     expect(stampTargetForOrder(order, { full: true })).toBe(0);
   });
 
-  it("charges refunds to the goods first, never beyond them", () => {
+  it("counts a refund against the courier fee first, never beyond the goods", () => {
     const withCourier = { totalMinor: 105500, shippingMinor: 5500 };
+    // The courier fee on its own: no goods refunded.
     expect(
       stampRefundedGoodsMinor({ ...withCourier, refunds: refunds(5500) }),
-    ).toBe(5500);
+    ).toBe(0);
+    expect(
+      stampRefundedGoodsMinor({ ...withCourier, refunds: refunds(3000, 2500) }),
+    ).toBe(0);
+    // Past the fee, the rest is goods.
+    expect(
+      stampRefundedGoodsMinor({ ...withCourier, refunds: refunds(15500) }),
+    ).toBe(10000);
     expect(
       stampRefundedGoodsMinor({ ...withCourier, refunds: refunds(105500) }),
     ).toBe(100000);
+    expect(
+      stampTargetForOrder({ ...withCourier, refunds: refunds(5500) }),
+    ).toBe(4);
+    // No courier fee: every refunded kuruş is goods.
+    expect(
+      stampRefundedGoodsMinor({
+        totalMinor: 100000,
+        shippingMinor: 0,
+        refunds: refunds(5500),
+      }),
+    ).toBe(5500);
     // Junk amounts are ignored rather than added back.
     expect(
       stampRefundedGoodsMinor({
@@ -158,94 +179,177 @@ describe("per-order sums", () => {
   });
 });
 
-describe("the debt a reversal leaves under spent cards", () => {
-  it("is target × redeemed − lifetime, and an unredeem withdraws one card", () => {
-    const earned = [row("earn", 3), row("earn", 4, "ord-1")];
+let c = 0;
+function coupon(extra: Partial<SettleCoupon> = {}): SettleCoupon {
+  c += 1;
+  return {
+    id: `cpn-${String(c).padStart(4, "0")}`,
+    source: "loyalty",
+    isActive: true,
+    redeemedAt: "",
+    expiresAt: "",
+    createdAt: `2026-10-16T10:${String(c).padStart(2, "0")}:00.000Z`,
+    ...extra,
+  };
+}
+
+/** The coupon `redeemStamps` mints for a redeem row. */
+const couponFor = (redeem: LoyaltyStamp, extra: Partial<SettleCoupon> = {}) =>
+  coupon({
+    id: freeDrinkCouponId(redeem.id),
+    createdAt: redeem.createdAt,
+    ...extra,
+  });
+
+const NOW = Date.parse("2026-10-16T12:00:00.000Z");
+
+describe("stampCoverage: lifetime − Σ cost of the standing cards", () => {
+  it("prices each card at its own redeem delta, never the current card", () => {
+    const rows = [row("earn", 14), row("redeem", -6), row("redeem", -4)];
+    expect(stampCoverage(rows)).toBe(4);
+    expect(cardCost(rows[1])).toBe(6);
+    // The same ledger read on any card size covers the same.
+    for (const t of [3, 4, 6, 8, 20]) {
+      expect(stampCoverage(rows)).toBe(14 - 10);
+      expect(computeStampBalance(rows, t).lifetimeStamps).toBe(14);
+    }
+  });
+
+  it("goes negative when reversed stamps had paid for a card, and an unredeem restores it", () => {
     const redeem = row("redeem", -6);
     const reversed = [
-      ...earned,
+      row("earn", 3),
+      row("earn", 4, "ord-1"),
       redeem,
       ...[4, 3, 2, 1].map((i) =>
         row("reversal", -1, "ord-1", { id: stampReversalId("ord-1", i) }),
       ),
     ];
-    const owed = computeStampBalance(reversed, 6);
-    expect(owed).toMatchObject({
-      lifetimeStamps: 3,
-      redeemCount: 1,
-      available: 0,
-    });
-    expect(stampDebt(owed, 6)).toBe(3);
-    expect(redeemsToWithdraw(reversed, 6)).toEqual([redeem.id]);
-
+    expect(stampCoverage(reversed)).toBe(3 - 6);
+    expect(computeStampBalance(reversed, 6).available).toBe(0);
     const settled = [
       ...reversed,
       row("unredeem", 6, "", { id: unredeemId(redeem.id) }),
     ];
+    expect(stampCoverage(settled)).toBe(3);
     expect(computeStampBalance(settled, 6)).toMatchObject({
       redeemCount: 0,
       available: 3,
       stamps: 3,
     });
-    expect(redeemsToWithdraw(settled, 6)).toEqual([]);
   });
 
-  it("withdraws one card per card short, newest first", () => {
+  it("bounds the balance by card cost after the card shrank", () => {
+    // A card of 6, then the operator set 4: 8 stamps leave 2, not 4.
+    const rows = [row("earn", 8), row("redeem", -6)];
+    expect(computeStampBalance(rows, 4)).toMatchObject({
+      available: 2,
+      rewardsReady: 0,
+    });
+    // A card that grew still reads at the new size (the setting's promise).
+    expect(
+      computeStampBalance([row("earn", 14), row("redeem", -6)], 8),
+    ).toMatchObject({ available: 6, rewardsReady: 0 });
+  });
+});
+
+describe("nextFreeDrinkWithdrawal", () => {
+  it("names nothing while the stamps cover every card", () => {
+    const r = row("redeem", -6);
+    const rows = [row("earn", 6), r];
+    expect(stampCoverage(rows)).toBe(0);
+    expect(nextFreeDrinkWithdrawal(rows, [couponFor(r)], NOW)).toBeNull();
+  });
+
+  it("takes the newest unused coupon and its own card at that card's cost", () => {
+    const older = row("redeem", -6);
+    const newer = row("redeem", -4);
+    const rows = [row("earn", 9), older, newer];
+    expect(stampCoverage(rows)).toBe(-1);
+    const plan = nextFreeDrinkWithdrawal(
+      rows,
+      [couponFor(older), couponFor(newer)],
+      NOW,
+    );
+    expect(plan).toEqual({
+      couponId: freeDrinkCouponId(newer.id),
+      redeemId: newer.id,
+      cost: 4,
+    });
+    expect(redeemIdOfCoupon(plan!.couponId)).toBe(newer.id);
+  });
+
+  it("skips used, expired, inactive and foreign coupons", () => {
+    const a = row("redeem", -6);
+    const b = row("redeem", -6);
+    const rows = [row("earn", 6), a, b];
+    const used = couponFor(b, { redeemedAt: "2026-10-16T11:00:00.000Z" });
+    expect(
+      nextFreeDrinkWithdrawal(
+        rows,
+        [
+          used,
+          coupon({ source: "invite" }),
+          couponFor(a, { expiresAt: "2026-10-16T11:59:00.000Z" }),
+        ],
+        NOW,
+      ),
+    ).toBeNull();
+    expect(
+      nextFreeDrinkWithdrawal(
+        rows,
+        [used, couponFor(a, { isActive: false })],
+        NOW,
+      ),
+    ).toBeNull();
+    // The older card's coupon is unused: it goes, the used one stays.
+    expect(nextFreeDrinkWithdrawal(rows, [used, couponFor(a)], NOW)).toEqual({
+      couponId: freeDrinkCouponId(a.id),
+      redeemId: a.id,
+      cost: 6,
+    });
+  });
+
+  it("leaves a card another settlement has claimed to that settlement", () => {
+    const a = row("redeem", -6);
+    const b = row("redeem", -6);
+    const claimed = [
+      row("earn", 1),
+      a,
+      b,
+      row("unredeem", 6, "", { id: unredeemId(b.id) }),
+    ];
+    // Still 5 short after the claim: the next card, not the claimed one.
+    expect(stampCoverage(claimed)).toBe(-5);
+    expect(
+      nextFreeDrinkWithdrawal(claimed, [couponFor(a), couponFor(b)], NOW)
+        ?.redeemId,
+    ).toBe(a.id);
+  });
+
+  it("pairs a coupon granted before ids were linked with the newest card before it", () => {
+    const r1 = row("redeem", -6, "", { createdAt: "2026-09-01T10:00:00.000Z" });
+    const r2 = row("redeem", -6, "", { createdAt: "2026-09-10T10:00:00.000Z" });
     const rows = [
-      row("earn", 8),
-      row("earn", 10, "ord-1"),
-      row("redeem", -6),
-      row("redeem", -6),
-      row("redeem", -6),
-      ...Array.from({ length: 10 }, (_, i) =>
-        row("reversal", -1, "ord-1", { id: stampReversalId("ord-1", i + 1) }),
-      ),
+      row("earn", 7, "", { createdAt: "2026-08-01T10:00:00.000Z" }),
+      r1,
+      r2,
     ];
-    // 8 against 18: 10 short → two cards.
-    const [, , older, middle, newest] = rows;
-    expect(redeemsToWithdraw(rows, 6)).toEqual([newest.id, middle.id]);
-    expect(redeemsToWithdraw(rows, 6)).not.toContain(older.id);
-    expect(reversalDebt(rows, 6)).toBe(10);
-  });
-
-  it("owes nothing without a reversal, whatever the card size says", () => {
-    // Two cards of 6 redeemed, then the card grew to 8: the balance reads
-    // 12 against 16, but no stamp was ever taken back.
-    const rows = [row("earn", 12), row("redeem", -6), row("redeem", -6)];
-    expect(stampDebt(computeStampBalance(rows, 8), 8)).toBe(4);
-    expect(reversalDebt(rows, 8)).toBe(0);
-    expect(plannedWithdrawals(rows, 8)).toEqual([]);
-  });
-
-  it("prices a card at what it cost, and never above what reversals took", () => {
-    const base = [
-      row("earn", 3),
-      row("earn", 4, "ord-1"),
-      row("redeem", -6),
-      ...[4, 3, 2, 1].map((i) =>
-        row("reversal", -1, "ord-1", { id: stampReversalId("ord-1", i) }),
-      ),
-    ];
-    // At a card of 8: owed min(8, 6) − 3 = 3, capped by the 4 reversed.
-    expect(reversalDebt(base, 8)).toBe(3);
-    expect(plannedWithdrawals(base, 8)).toEqual([
-      { redeemId: base[2].id, cost: 6 },
-    ]);
-    // One stamp reversed while the card grew from 6 to 8: two cards of 6
-    // against 12 stamps are still paid in full.
-    const reversedOne = (counter: number) => [
-      row("earn", counter),
-      row("earn", 1, "ord-2"),
-      row("redeem", -6),
-      row("redeem", -6),
-      row("reversal", -1, "ord-2", { id: stampReversalId("ord-2", 1) }),
-    ];
-    expect(reversalDebt(reversedOne(12), 8)).toBe(0);
-    // With 11 till stamps the reversed one was under a card: 1 owed, one
-    // card withdrawn.
-    const short = reversedOne(11);
-    expect(reversalDebt(short, 6)).toBe(1);
-    expect(redeemsToWithdraw(short, 6)).toEqual([short[3].id]);
+    const l1 = coupon({
+      id: "cpn-0101",
+      createdAt: "2026-09-01T10:00:01.000Z",
+    });
+    const l2 = coupon({
+      id: "cpn-0102",
+      createdAt: "2026-09-10T10:00:01.000Z",
+      redeemedAt: "2026-09-11T10:00:00.000Z",
+    });
+    // l2 is used; l1 belongs to r1, not to the newer r2.
+    expect(nextFreeDrinkWithdrawal(rows, [l1, l2], NOW)).toEqual({
+      couponId: "cpn-0101",
+      redeemId: r1.id,
+      cost: 6,
+    });
   });
 });
 
