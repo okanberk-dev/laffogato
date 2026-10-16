@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
 
+import {
+  parse as parseHtml,
+  type DefaultTreeAdapterTypes as Html,
+} from "parse5";
+
 import { priceLabel } from "@/lib/utils/format";
 
 import { CARD_FORM_FIELDS, type CardField } from "./paynkolay-card";
@@ -308,16 +313,16 @@ ${link}
  * Betiğe `'unsafe-inline'` yerine BU yanıttaki her satır içi betiğin ve olay
  * özniteliğinin özeti izin verilir; HTML'e sonradan sızan bir betik
  * çalışmaz. Özet, tarayıcının okuduğu değerin aynısından hesaplanmalı:
- * öznitelikler bu yüzden düzenli ifadeyle değil, tarayıcının ayrıştırma
- * kuralıyla okunur (`readBankMarkup`). Tırnaksız değeri ilk `"`'da kesen eski
- * okuma EST formunun özetini yanlış hesaplıyordu; tarayıcı `onload`'u
- * engelliyor, müşteri bembeyaz bir sayfada kalıyordu.
+ * sayfa bu yüzden düzenli ifadeyle değil, tarayıcıların kullandığı WHATWG
+ * ayrıştırıcısıyla (parse5) okunur (`readBankMarkup`). Tırnaksız değeri ilk
+ * `"`'da kesen eski okuma EST formunun özetini yanlış hesaplıyordu; tarayıcı
+ * `onload`'u engelliyor, müşteri bembeyaz bir sayfada kalıyordu.
  *
  * `form-action https:` çünkü ACS hostu bankaya göre değişir ve önceden
  * bilinemez - düz `http:` hedefe kart akışı yine engellenir.
  *
- * Sayfanın gövdesine bizim kısa bir notumuz eklenir: banka yanıt verene
- * kadar müşteri boş bir sayfa değil, ne olduğunu görür. Formun kendi adresi
+ * Gövdenin başına bizim kısa bir notumuz eklenir: banka yanıt verene kadar
+ * müşteri boş bir sayfa değil, ne olduğunu görür. Formun kendi adresi
  * mutlak bir https adresiyse 8 sn sonra bir "devam" düğmesi de belirir
  * (görünmesi yalnız CSS ile, gönderimi `form=` ile; betik gerekmez). Adres
  * göreliyse (QNB: asıl adresi betik yazıyor) düğme konmaz - göreli adres
@@ -330,13 +335,25 @@ export function bankChallengePage(raw: string): PaynkolayPage {
   // C# örneği de satır sonlarını siler). Sunulan bayt ile özetlenen bayt aynı
   // olsun diye satır sonları önce burada normalleştirilir.
   const bank = raw.replace(/\r\n?/g, "\n");
-  const markup = readBankMarkup(bank);
+  const bankMarkup = readBankMarkup(bank);
 
-  // İzin listesi YALNIZCA bankanın kendi işaretlemesinden çıkar; bizim
-  // eklediğimiz notun tek betiği ayrıca, sabit özetiyle eklenir. Not, bankanın
-  // metnine ancak ayrıştırıcının bir etiket sınırı gösterdiği yerde girer
-  // (`withBankNotice`): bir betik dizesinin ya da öznitelik değerinin ortasına
-  // yapıştırılıp etkisiz banka verisini canlı işaretlemeye çeviremez.
+  // Not yalnızca, eklendikten sonra yeniden okunan sayfa bankanın betik ve
+  // öznitelik listesini AYNEN koruyorsa ve tek yeni betik notun kendi
+  // betiğiyse kullanılır. Aksi hâlde banka sayfası notsuz verilir: not bir
+  // kolaylık, izin listesi ise bankanın yazdığından ibaret kalmalı.
+  let html = bank;
+  let markup = bankMarkup;
+  const at = noticeOffset(bankMarkup);
+  if (at !== null && !bankMarkup.hasNoticeId) {
+    const candidate =
+      bank.slice(0, at) + bankNotice(bankMarkup.forms) + bank.slice(at);
+    const reread = readBankMarkup(candidate);
+    if (keepsBankMarkup(bankMarkup, reread)) {
+      html = candidate;
+      markup = reread;
+    }
+  }
+
   const scriptSources = new Set<string>();
   for (const script of markup.scripts) {
     if (script.src === null) {
@@ -350,15 +367,6 @@ export function bankChallengePage(raw: string): PaynkolayPage {
   for (const handler of markup.handlers) {
     scriptSources.add(sha256Source(handler));
   }
-
-  const notice = bankNotice(markup.forms);
-  const html =
-    markup.bodyEnd >= 0
-      ? bank.slice(0, markup.bodyEnd) + notice + bank.slice(markup.bodyEnd)
-      : markup.endsClean
-        ? bank + notice
-        : bank;
-  if (html !== bank) scriptSources.add(sha256Source(BANK_WAIT_SCRIPT));
 
   const scriptSrc = scriptSources.size
     ? [
@@ -396,13 +404,15 @@ function httpsOrigin(src: string): string | null {
   }
 }
 
+const NOTICE_ID = "laf-bank-wait";
+
 /**
  * Bekleme notunun tek betiği. Sayfa ayrılmaya başlayınca (`beforeunload`,
  * `pagehide`: bankanın kendi gönderimi yola çıktı) gecikmeli düğmeyi gizler
  * ve düğmeye bir kez basılınca kapatır. Böylece banka yanıtı yavaşken
  * müşteri 3D formunu (içinde kart bilgisiyle) ikinci kez göndermez.
  */
-const BANK_WAIT_SCRIPT = `(function(){var w=document.getElementById("laf-bank-wait");if(!w)return;
+const BANK_WAIT_SCRIPT = `(function(){var w=document.getElementById("${NOTICE_ID}");if(!w)return;
 function leaving(){w.setAttribute("data-leaving","1");}
 addEventListener("beforeunload",leaving);addEventListener("pagehide",leaving);
 addEventListener("pageshow",function(e){if(e.persisted)w.removeAttribute("data-leaving");});
@@ -419,8 +429,8 @@ function bankNotice(forms: BankForm[]): string {
       `<button type="submit" form="${escapeHtml(target.id)}" style="margin-top:1.25rem;padding:.8rem 1.5rem;border:0;border-radius:999px;background:#1d6d56;color:#fbf8f4;font:inherit;font-weight:600;cursor:pointer">Bankanın sayfasına git</button>`
     : `<p style="margin:1rem 0 0;color:#564d46;font-size:.9rem">Sayfa açılmazsa geri dönüp yeniden deneyebilirsin; kartından para çekilmedi.</p>`;
   return (
-    `<div id="laf-bank-wait" style="font:16px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#211c18;text-align:center;padding:20vh 16px 0">` +
-    `<style>@keyframes laf-bank-reveal{to{visibility:visible}}#laf-bank-wait .later{visibility:hidden;animation:laf-bank-reveal 0s 8s forwards}#laf-bank-wait[data-leaving] .later{display:none}</style>` +
+    `<div id="${NOTICE_ID}" style="font:16px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#211c18;text-align:center;padding:20vh 16px 0">` +
+    `<style>@keyframes laf-bank-reveal{to{visibility:visible}}#${NOTICE_ID} .later{visibility:hidden;animation:laf-bank-reveal 0s 8s forwards}#${NOTICE_ID}[data-leaving] .later{display:none}</style>` +
     `<p style="margin:0;font-weight:700;color:#9d2543">L'Affogato</p>` +
     `<p style="margin:.5rem 0 0">Bankanın 3D Secure doğrulama sayfasına yönlendiriliyorsun…</p>` +
     `<div class="later">${later}</div>` +
@@ -434,257 +444,131 @@ interface BankForm {
   action: string;
 }
 
+interface BankScript {
+  /** Dış betiğin adresi; satır içi betikte null. */
+  src: string | null;
+  /** Satır içi betiğin tarayıcının gördüğü metni. */
+  body: string;
+}
+
 interface BankMarkup {
-  /** Satır içi betiklerin gövdesi (`src: null`) ya da dış betiğin adresi. */
-  scripts: { src: string | null; body: string }[];
+  scripts: BankScript[];
   /** Olay özniteliklerinin (`onload=…`) tarayıcının okuduğu değeri. */
   handlers: string[];
   forms: BankForm[];
-  /** İlk gerçek `</body>` bitiş etiketinin başladığı yer; yoksa -1. */
-  bodyEnd: number;
-  /** Metin bir yorumun, etiketin ya da ham metin öğesinin içinde bitmiyor. */
-  endsClean: boolean;
+  /** `<body ...>` başlangıç etiketinin bittiği yer (kaynakta varsa). */
+  bodyStartEnd: number | null;
+  /** Gövdenin kaynakta yeri olan ilk çocuğunun başladığı yer. */
+  firstBodyChildStart: number | null;
+  /** Bankanın sayfasında bizim not kimliğimizi taşıyan bir öğe var mı. */
+  hasNoticeId: boolean;
+  /** Not, gövdenin doğrudan çocuğu olarak bulundu mu (yeniden okumada). */
+  noticeInBody: boolean;
 }
 
 /**
- * İçeriği HTML olarak ayrıştırılmayan öğeler: kapanış etiketine dek atlanır.
- * `noscript` betik açıkken ham metindir (tarayıcı betikli çalışır).
- */
-const RAW_TEXT = new Set([
-  "script",
-  "style",
-  "textarea",
-  "title",
-  "xmp",
-  "iframe",
-  "noembed",
-  "noframes",
-  "noscript",
-]);
-
-const isSpace = (c: string | undefined) =>
-  c === " " || c === "\n" || c === "\t" || c === "\f";
-
-/**
- * Banka HTML'indeki betikleri, olay özniteliklerini ve formları HTML
- * ayrıştırma kuralıyla okur (WHATWG tokenizer'ın veri, etiket ve öznitelik
- * durumları; yorumlar ve ham metin öğeleri atlanır).
+ * Banka HTML'ini tarayıcıların kullandığı WHATWG ayrıştırıcısıyla (parse5)
+ * okur: satır içi betiklerin metni, olay özniteliklerinin çözülmüş değeri,
+ * formlar ve notun gireceği yer. Elle yazılmış bir okuyucu tırnaksız
+ * değerlerde, Türkçe "İ"de, betik içindeki `<!--` kaçışlarında ve karakter
+ * referanslarında art arda tarayıcıdan ayrıştı (PR #113 incelemeleri);
+ * özetin tarayıcınınkiyle aynı olması için ayrıştırmayı standart yapar.
  *
- * Önemli olan değerin sınırı: çift tırnaklı değer `"`'a, tek tırnaklı `'`'a,
- * tırnaksız değer boşluğa ya da `>`'a dek sürer - tırnaksız değerdeki `"`,
- * `'`, `=`, `<` ve `` ` `` tarayıcı için ayrıştırma hatasıdır ama değere
- * eklenir. Karakter referansları çözülür (`&quot;` → `"`): tarayıcı özeti
- * çözülmüş değerden hesaplar.
- *
- * Metnin tamamı küçük harfe ÇEVRİLMEZ: `"İ".toLowerCase()` iki karakterdir
- * ve bütün dizinleri kaydırırdı. Yalnız ad karşılaştırmaları küçük harfle
- * yapılır.
- *
- * Bilinçli sadeleştirme: betik içindeki `<!-- <script>` kaçış durumları
- * izlenmez. Böyle bir sayfada fark yalnızca bir özetin eksik ya da fazla
- * olmasıdır; eksikse tarayıcı engeller (kapalı kalır), fazlası banka
- * metninin kendisidir.
+ * `<template>` içeriği çalışmaz ve atlanır; SVG içindeki `<script>` çalışır
+ * ve sayılır.
  */
 function readBankMarkup(html: string): BankMarkup {
+  const doc = parseHtml(html, {
+    sourceCodeLocationInfo: true,
+    scriptingEnabled: true,
+  });
   const out: BankMarkup = {
     scripts: [],
     handlers: [],
     forms: [],
-    bodyEnd: -1,
-    endsClean: true,
+    bodyStartEnd: null,
+    firstBodyChildStart: null,
+    hasNoticeId: false,
+    noticeInBody: false,
   };
-  const n = html.length;
-  let i = 0;
 
-  while (i < n) {
-    const lt = html.indexOf("<", i);
-    if (lt === -1) break;
-    i = lt;
-    const next = html[i + 1] ?? "";
-
-    if (html.startsWith("<!--", i)) {
-      // `<!-->` ve `<!--->` yorumu hemen kapatır; sonra `-->` ya da `--!>`.
-      if (html[i + 4] === ">") {
-        i += 5;
-        continue;
+  const visit = (node: Html.Node, inBody: boolean): void => {
+    if (!("tagName" in node)) {
+      if ("childNodes" in node) {
+        for (const child of node.childNodes) visit(child, inBody);
       }
-      if (html.startsWith("->", i + 4)) {
-        i += 6;
-        continue;
+      return;
+    }
+    const el = node as Html.Element;
+    const attr = (name: string): string | undefined =>
+      el.attrs.find((a) => a.name === name && !a.prefix)?.value;
+    for (const a of el.attrs) {
+      if (/^on[a-z]+$/i.test(a.name)) out.handlers.push(a.value);
+    }
+    if (attr("id") === NOTICE_ID) {
+      out.hasNoticeId = true;
+      if (inBody && el.parentNode && "tagName" in el.parentNode) {
+        out.noticeInBody = el.parentNode.tagName === "body";
       }
-      const a = html.indexOf("-->", i + 4);
-      const b = html.indexOf("--!>", i + 4);
-      if (a === -1 && b === -1) {
-        out.endsClean = false;
-        break;
-      }
-      i = a !== -1 && (b === -1 || a < b) ? a + 3 : b + 4;
-      continue;
     }
-    if (
-      next === "!" ||
-      next === "?" ||
-      (next === "/" && !/[a-z]/i.test(html[i + 2] ?? ""))
-    ) {
-      // Doctype, işleme talimatı, sahte yorum ya da `</>`: ilk `>`'a dek.
-      const end = html.indexOf(">", i + 1);
-      if (end === -1) {
-        out.endsClean = false;
-        break;
-      }
-      i = end + 1;
-      continue;
+    if (el.tagName === "form") {
+      out.forms.push({ id: attr("id") ?? "", action: attr("action") ?? "" });
     }
-    const closing = next === "/";
-    const nameAt = i + (closing ? 2 : 1);
-    if (!/[a-z]/i.test(html[nameAt] ?? "")) {
-      i += 1;
-      continue;
-    }
-
-    // Etiket adı.
-    let j = nameAt;
-    while (j < n && !isSpace(html[j]) && html[j] !== "/" && html[j] !== ">") {
-      j += 1;
-    }
-    const tag = html.slice(nameAt, j).toLowerCase();
-    const attrs = new Map<string, string>();
-
-    // Öznitelikler (bitiş etiketinde de aynı kuralla okunur, sonra atılır).
-    let closed = false;
-    while (j < n) {
-      while (j < n && (isSpace(html[j]) || html[j] === "/")) j += 1;
-      if (j >= n) break;
-      if (html[j] === ">") {
-        closed = true;
-        break;
-      }
-      const nameStart = j;
-      // Adın ilk karakteri `=` olabilir (ayrıştırma hatası, adın parçası).
-      j += 1;
-      while (
-        j < n &&
-        !isSpace(html[j]) &&
-        html[j] !== "/" &&
-        html[j] !== ">" &&
-        html[j] !== "="
-      ) {
-        j += 1;
-      }
-      const name = html.slice(nameStart, j).toLowerCase();
-      let value = "";
-      let k = j;
-      while (k < n && isSpace(html[k])) k += 1;
-      if (html[k] === "=") {
-        k += 1;
-        while (k < n && isSpace(html[k])) k += 1;
-        const quote = html[k];
-        if (quote === '"' || quote === "'") {
-          const close = html.indexOf(quote, k + 1);
-          if (close === -1) {
-            j = n;
-            break;
-          }
-          value = html.slice(k + 1, close);
-          j = close + 1;
-        } else {
-          let end = k;
-          while (end < n && !isSpace(html[end]) && html[end] !== ">") {
-            end += 1;
-          }
-          value = html.slice(k, end);
-          j = end;
-        }
-      }
-      // Tarayıcı aynı adı taşıyan ikinci özniteliği yok sayar.
-      if (!attrs.has(name)) attrs.set(name, decodeEntities(value));
-    }
-    if (!closed) {
-      out.endsClean = false;
-      break;
-    }
-    const tagStart = i;
-    i = j + 1;
-
-    if (closing) {
-      if (tag === "body" && out.bodyEnd === -1) out.bodyEnd = tagStart;
-      continue;
-    }
-    for (const [name, value] of attrs) {
-      if (/^on[a-z]+$/.test(name)) out.handlers.push(value);
-    }
-    if (tag === "form") {
-      out.forms.push({
-        id: attrs.get("id") ?? "",
-        action: attrs.get("action") ?? "",
+    if (el.tagName === "script") {
+      const src = attr("src");
+      out.scripts.push({
+        src: src === undefined ? null : src.trim(),
+        body: src === undefined ? textOf(el) : "",
       });
     }
-    if (tag === "plaintext") {
-      // Belgenin sonuna dek düz metin.
-      out.endsClean = false;
-      break;
+    if (el.tagName === "body" && el.namespaceURI === HTML_NS) {
+      out.bodyStartEnd = el.sourceCodeLocation?.startTag?.endOffset ?? null;
+      const first = el.childNodes.find((c) => c.sourceCodeLocation);
+      out.firstBodyChildStart = first?.sourceCodeLocation?.startOffset ?? null;
     }
-    if (RAW_TEXT.has(tag)) {
-      const end = rawTextEnd(html, tag, i);
-      if (tag === "script") {
-        out.scripts.push({
-          src: attrs.has("src") ? (attrs.get("src") ?? "").trim() : null,
-          body: html.slice(i, end?.start ?? n),
-        });
-      }
-      if (!end) {
-        out.endsClean = false;
-        break;
-      }
-      i = end.after;
+    // Şablon içeriği belgeye girmez, betikleri çalışmaz.
+    if (el.tagName === "template") return;
+    for (const child of el.childNodes) {
+      visit(child, inBody || el.tagName === "body");
     }
-  }
+  };
+  visit(doc, false);
   return out;
 }
 
-/**
- * `</tag` + boşluk, `/` ya da `>` (büyük/küçük harf duyarsız): ham metin
- * öğesinin bittiği yer. Kapanmıyorsa null.
- */
-function rawTextEnd(
-  html: string,
-  tag: string,
-  from: number,
-): { start: number; after: number } | null {
-  const re = new RegExp(`</${tag}(?=[\\s/>])`, "gi");
-  re.lastIndex = from;
-  const m = re.exec(html);
-  if (!m) return null;
-  const gt = html.indexOf(">", m.index);
-  if (gt === -1) return null;
-  return { start: m.index, after: gt + 1 };
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+
+function textOf(el: Html.Element): string {
+  return el.childNodes
+    .map((c) => ("value" in c && c.nodeName === "#text" ? c.value : ""))
+    .join("");
 }
 
 /**
- * HTML karakter referanslarını çözer - olay özniteliği özeti için. Geçersiz
- * sayısal referans (0, vekil çift, U+10FFFF üstü) tarayıcıdaki gibi U+FFFD
- * olur; `String.fromCodePoint` o değerlerde fırlatır ve 3D adımını 500'e
- * çevirirdi.
+ * Notun gireceği yer: `<body>` etiketinin hemen ardı, etiket yazılmamışsa
+ * gövdenin ilk öğesinin önü, gövde boşsa sayfanın sonu. Not, bankanın
+ * gönderen betiğinden ÖNCE gelmeli: tarayıcı betik gezinmeyi başlatınca
+ * sayfanın kalanını ayrıştırmayı bırakıyor (Garanti, QNB), sonda kalan not
+ * hiç görünmüyordu.
  */
-function decodeEntities(value: string): string {
-  return value.replace(
-    /&(#x[0-9a-f]+|#\d+|quot|apos|amp|lt|gt);/gi,
-    (whole, ref: string) => {
-      const name = ref.toLowerCase();
-      if (name.startsWith("#")) {
-        const code = name.startsWith("#x")
-          ? parseInt(name.slice(2), 16)
-          : Number(name.slice(1));
-        const valid =
-          Number.isFinite(code) &&
-          code > 0 &&
-          code <= 0x10ffff &&
-          (code < 0xd800 || code > 0xdfff);
-        return valid ? String.fromCodePoint(code) : "�";
-      }
-      return (
-        { quot: '"', apos: "'", amp: "&", lt: "<", gt: ">" }[name] ?? whole
-      );
-    },
-  );
+function noticeOffset(markup: BankMarkup): number | null {
+  if (markup.bodyStartEnd !== null) return markup.bodyStartEnd;
+  return markup.firstBodyChildStart;
+}
+
+/** Not eklendikten sonra bankanın betik ve öznitelikleri aynı mı? */
+function keepsBankMarkup(bank: BankMarkup, withNotice: BankMarkup): boolean {
+  if (!withNotice.noticeInBody) return false;
+  const ours: BankScript = { src: null, body: BANK_WAIT_SCRIPT };
+  const expected = [...bank.scripts.map(scriptKey), scriptKey(ours)].sort();
+  const actual = withNotice.scripts.map(scriptKey).sort();
+  if (expected.length !== actual.length) return false;
+  if (expected.some((k, i) => k !== actual[i])) return false;
+  const a = [...bank.handlers].sort();
+  const b = [...withNotice.handlers].sort();
+  return a.length === b.length && a.every((h, i) => h === b[i]);
+}
+
+function scriptKey(s: BankScript): string {
+  return s.src === null ? `inline:${s.body}` : `src:${s.src}`;
 }

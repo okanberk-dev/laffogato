@@ -509,7 +509,7 @@ describe("the bank's 3D page", () => {
     const script = /<script[^>]*>([\s\S]*?)<\/script>/.exec(
       SANDBOX_3D_HTML,
     )![1];
-    expect(page.csp).toContain(`script-src ${sha256(script)}`);
+    expect(page.csp).toContain(sha256(script));
     expect(page.csp).not.toMatch(/script-src[^;]*unsafe-inline/);
     // The ACS host differs per bank; plain http stays out.
     expect(page.csp).toContain("form-action https:");
@@ -816,30 +816,38 @@ describe("the bank's 3D page, as banks actually write it", () => {
     expect(page.csp).toContain(sha256("var İ=1;document.forms[0].submit();"));
   });
 
-  it("places the note at the real </body>, never inside a script or attribute", () => {
+  it("places the note right after <body>, before the bank's submitting script", () => {
+    // Chrome stops parsing once a script starts the navigation (Garanti,
+    // QNB): a note after that script never rendered (PR #113 re-review).
     const script = "var s='</body>';document.getElementById('f').submit();";
     const html =
       `<html><body><form id="f" action="https://acs.bank.example/a">` +
       `<input type="hidden" name="x" value="</body><img src=x onerror=alert(1)>">` +
       `</form><script>${script}</script></body></html>`;
     const page = bankChallengePage(html);
-    // The bank's script and the inert value are served byte for byte.
-    expect(page.html).toContain(`<script>${script}</script>`);
-    expect(page.html).toContain('value="</body><img src=x onerror=alert(1)>"');
-    expect(page.html.indexOf("laf-bank-wait")).toBeGreaterThan(
-      page.html.indexOf(`${script}</script>`),
+    // The bank's markup is served byte for byte, only the note is added.
+    expect(
+      page.html.replace(/<div id="laf-bank-wait"[\s\S]*?<\/script><\/div>/, ""),
+    ).toBe(html);
+    expect(page.html.indexOf('<div id="laf-bank-wait"')).toBe(
+      "<html><body>".length,
     );
     // Nothing from inside the value becomes an allowed handler.
     expect(page.csp).not.toContain(sha256("alert(1)"));
     expect(page.csp).toContain(sha256(script));
   });
 
-  it("adds no note when the bank page does not end cleanly", () => {
-    const html =
-      '<form id="f" action="https://acs.bank.example/a"></form><script>document.forms[0].submit();';
-    const page = bankChallengePage(html);
-    expect(page.html).toBe(html);
-    expect(page.csp).toContain(sha256("document.forms[0].submit();"));
+  it("puts the note before the first element when the bank writes no <body>", () => {
+    const garanti =
+      '<form id="PostForm" name="PostForm" action="https://acs.bank.example/g" method="POST">' +
+      '<input type="hidden" name="a" value="1" /></form>' +
+      '<script language="javascript">var v = document.PostForm; v.submit();</script>';
+    const page = bankChallengePage(garanti);
+    expect(page.html.startsWith('<div id="laf-bank-wait"')).toBe(true);
+    expect(page.html.endsWith(garanti)).toBe(true);
+    expect(page.csp).toContain(
+      sha256("var v = document.PostForm; v.submit();"),
+    );
   });
 
   it("allows the note's own script by its hash, and nothing broader", () => {
@@ -881,6 +889,41 @@ describe("the bank's 3D page, as banks actually write it", () => {
     expect(page.csp).toContain(sha256("afterBang()"));
     expect(page.csp).not.toContain(sha256("inNoscript()"));
     expect(page.csp).toContain("https://cdn.bank.example");
+  });
+
+  it("hashes a legacy <!-- document.write('<script>') //--> script whole", () => {
+    // Script-data escape states: the inner </script> does not end the outer
+    // script in a browser.
+    const body =
+      '<!--\ndocument.write(\'<script type="text/javascript">window.x=1</script>\');\nfunction go(){ document.forms["form"].submit(); }\n//-->';
+    const page = bankChallengePage(
+      `<html><body onload="go()"><script language="javascript">${body}</script>` +
+        '<form name="form" id="form" action="https://acs.bank.example/3d"></form></body></html>',
+    );
+    expect(page.csp).toContain(sha256(body));
+    expect(page.csp).toContain(sha256("go()"));
+  });
+
+  it("decodes handler values like the browser (named and legacy references)", () => {
+    const page = bankChallengePage(
+      '<body onload="a(&nbsp;&quot;x&quot;&amp)"></body>',
+    );
+    expect(page.csp).toContain(sha256('a(\u00a0"x"&)'));
+  });
+
+  it("does not end a script at </script followed by a non-HTML space", () => {
+    const body = "var a='</script\u00a0>';document.forms[0].submit();";
+    const page = bankChallengePage(
+      `<html><body><form action="https://acs.bank.example/a"></form><script>${body}</script></body></html>`,
+    );
+    expect(page.csp).toContain(sha256(body));
+  });
+
+  it("skips the note when the bank page already uses its id", () => {
+    const html =
+      '<html><body><div id="laf-bank-wait"></div><form id="f" action="https://acs.bank.example/a"></form><script>document.forms[0].submit();</script></body></html>';
+    const page = bankChallengePage(html);
+    expect(page.html).toBe(html);
   });
 
   it("loads no image or font from elsewhere", () => {
