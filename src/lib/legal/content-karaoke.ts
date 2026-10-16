@@ -91,7 +91,7 @@ export const KARAOKE_ROOM_DOC: LegalDocSource = {
     {
       heading: "7. Sizin İptaliniz ve Gelmeme",
       bullets: [
-        "Rezervasyon saatine 2 saatten fazla varken rezervasyonunuzu hesabınızdaki Karaoke rezervasyonlarım bölümünden, e-postanızdaki kişiye özel bağlantıdan ya da mobil uygulamadan kendiniz iptal edebilir ya da bizi arayarak iptal ettirebilirsiniz. Bu durumda ödediğiniz tutarın tamamı ödemeyi yaptığınız karta iade edilir.",
+        "Rezervasyon saatine 2 saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. İptali hesabınızdaki Karaoke rezervasyonlarım bölümünden, e-postanızdaki kişiye özel bağlantıdan ya da mobil uygulamadan kendiniz yapabilir ya da bizi arayarak yaptırabilirsiniz.",
         "Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.",
         "Saatler Türkiye saatiyle (İstanbul) hesaplanır.",
         "İptal ve sorularınız için: {{PHONE}} veya {{EMAIL}}.",
@@ -125,7 +125,7 @@ export const KARAOKE_ROOM_DOC: LegalDocSource = {
     {
       heading: "12. Fatura",
       paragraphs: [
-        "Ödenen bedel için faturanız mevzuata uygun olarak düzenlenir ve e-posta adresinize gönderilir. İptal ve iade hâlinde gerekli düzeltme belgesi düzenlenir.",
+        "Ödenen bedel için fatura mevzuata uygun olarak düzenlenir; faturanızın bir örneğini {{EMAIL}} adresinden talep edebilirsiniz. İptal ve iade hâlinde gerekli düzeltme belgesi düzenlenir.",
       ],
     },
     {
