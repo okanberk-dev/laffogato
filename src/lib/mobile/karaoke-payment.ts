@@ -625,7 +625,12 @@ export type ReopenKaraokePaymentResult =
       ok: false;
       reason: "payment_unavailable";
       reservation: KaraokeReservation;
-    };
+    }
+  /**
+   * The POS could not say whether the last page was paid, or it collected a
+   * different amount: a new page could charge on top of it (rule 29).
+   */
+  | { ok: false; reason: "payment_unknown"; reservation: KaraokeReservation };
 
 /**
  * A fresh payment page for the member's own unpaid hold
@@ -634,9 +639,12 @@ export type ReopenKaraokePaymentResult =
  * Only within `KARAOKE_PAYMENT_REOPEN_MINUTES` of the booking: each page lives
  * half an hour, and a hold renewed without end would hold its hour for as long
  * as somebody kept clicking. The POS is asked first - a payment whose return
- * never arrived is booked instead of being charged a second time - and every
- * reopen counts against the member's `checkout-reopen` budget, the one the
- * order reopen uses.
+ * never arrived is booked instead of being charged a second time, since
+ * PayNkolay takes a second sale on the same reference - and every reopen
+ * counts against the member's `checkout-reopen` budget, the one the order
+ * reopen uses. Not knowing is never "not paid" (rule 29): a POS that cannot be
+ * asked, or money collected at the wrong amount, opens no page
+ * (`payment_unknown`).
  */
 export async function reopenKaraokePayment(
   owner: KaraokeOwner,
@@ -669,13 +677,21 @@ export async function reopenKaraokePayment(
     };
   }
 
-  const verdict = await askPosAboutHold(r, now, lookupProvider());
+  // A mismatch is "unknown" here, not "unpaid": money is at the POS, and a
+  // second page would charge on top of it. The sweep still lets such a hold
+  // go (a person already has it).
+  const verdict = await askPosAboutHold(r, now, lookupProvider(), {
+    onAmountMismatch: "unknown",
+  });
   if (verdict === "paid") {
     return {
       ok: false,
       reason: "not_payable",
       reservation: (await getReservation(id)) ?? r,
     };
+  }
+  if (verdict === "unknown") {
+    return { ok: false, reason: "payment_unknown", reservation: r };
   }
   const started = await startKaraokePayment(r, customer, {
     buyerIp: opts.buyerIp,
@@ -1154,11 +1170,16 @@ type HoldVerdict = "paid" | "unpaid" | "unknown";
  * Asks the POS whether an unpaid hold was paid after all - the return does
  * not always arrive (a closed tab, a phone that locked on the bank's page) -
  * and books the payment when it was. "unknown" is never "unpaid".
+ *
+ * `onAmountMismatch`: what money at the wrong amount means to the caller.
+ * The sweep and a cancellation let the hour go ("unpaid", the default); a
+ * reopen must not open a second page on top of it ("unknown").
  */
 async function askPosAboutHold(
   r: KaraokeReservation,
   now: Date,
   provider: PaymentProvider | null,
+  { onAmountMismatch = "unpaid" }: { onAmountMismatch?: HoldVerdict } = {},
 ): Promise<HoldVerdict> {
   // No provider at all (a deployment missing its POS configuration): the
   // POS could not be asked, which is never "unpaid" (rule 29). The mock has
@@ -1191,8 +1212,8 @@ async function askPosAboutHold(
   });
   if (!applied.ok) return "unknown";
   // Collected, but not what the booking costs: it cannot be confirmed, and a
-  // person already has it. The hour is let go like any unpaid hold's.
-  if (applied.outcome === "amount_mismatch") return "unpaid";
+  // person already has it. The sweep lets the hour go like any unpaid hold's.
+  if (applied.outcome === "amount_mismatch") return onAmountMismatch;
   return "paid";
 }
 
