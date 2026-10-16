@@ -194,15 +194,23 @@ describe("saved cards", () => {
     }
   });
 
-  it("the POS's card-storage endpoints are never called", () => {
-    // PayNkolay's CardStorageCardRegister and friends keep the card at the
-    // POS against a key; the operator's decision is that no card is kept
-    // anywhere. Comments may name them, code may not.
+  it("uses only the card-storage endpoints that take no card number", () => {
+    // Operator, 15 Eki 2026: saved cards are fine "as long as the card stays
+    // at PayNkolay". CardStorageCardList and CardStorageCardDelete take the
+    // member's key and a token; CardStorageCardRegister takes a card NUMBER
+    // to store it without a payment, and is never called. Cards are saved
+    // only as part of a 3D-approved payment (csAutoSave, docs/PAYNKOLAY.md
+    // §16). Comments may name it, code may not.
     for (const file of sourceFiles("src")) {
-      expect(codeOnly(read(file)), file).not.toMatch(/\bCardStorage/);
+      const code = codeOnly(read(file));
+      expect(code, file).not.toMatch(/CardStorageCardRegister/);
+      if (file !== "src/lib/payment/paynkolay.ts") {
+        expect(code, file).not.toMatch(/\bCardStorageCard(List|Delete)/);
+      }
     }
-    // And the one card-storage switch the payment form has stays off
-    // (docs/API-MOBILE.md §15): an empty customerKey saves nothing.
+    // The hosted form's own card-storage switch stays off: an empty
+    // customerKey there saves nothing (the member key travels only to the
+    // site's card page, outside the hosted form's fields).
     expect(read("src/lib/payment/paynkolay.ts")).toMatch(
       /const customerKey = "";/,
     );

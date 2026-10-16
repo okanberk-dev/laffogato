@@ -92,7 +92,24 @@ font-size:.82rem;color:#564d46}
 .psp{margin:.5rem .25rem 0;font-size:.75rem;color:#564d46}
 .center{text-align:center;padding-top:20vh}
 .next{display:inline-block;margin-top:.5rem;padding:.75rem 1.5rem;border-radius:999px;
-background:#1d6d56;color:#fbf8f4;font-weight:600;text-decoration:none}`;
+background:#1d6d56;color:#fbf8f4;font-weight:600;text-decoration:none}
+
+[hidden]{display:none!important}
+fieldset{border:0;margin:0 0 1rem;padding:0}
+legend{font-size:.85rem;font-weight:600;margin:0 0 .5rem;padding:0}
+.choice{display:flex;align-items:center;gap:.75rem;padding:.75rem .875rem;
+border:1px solid #d9d0c5;border-radius:12px;margin:0 0 .5rem;background:#fdfcfa}
+.choice input{width:auto;margin:0;accent-color:#1d6d56}
+.choice label{flex:1;margin:0;font-weight:500;font-size:.95rem;cursor:pointer}
+.choice small{display:block;font-weight:400;color:#564d46;font-size:.8rem}
+.link{width:auto;margin:0;padding:.25rem .5rem;background:none;color:#564d46;
+font-size:.85rem;font-weight:500;text-decoration:underline;border-radius:8px}
+.check{display:flex;align-items:flex-start;gap:.5rem;font-weight:500;font-size:.9rem;
+margin:0 0 .25rem}
+.check input{width:auto;margin:.2rem 0 0;accent-color:#1d6d56}
+.hint{margin:0 0 1rem;font-size:.8rem;color:#564d46}
+.ok{margin:0 0 1rem;padding:.75rem 1rem;border-radius:12px;background:#e6f0ec;
+color:#16503f;font-size:.9rem}`;
 
 const LOCK_ICON =
   '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">' +
@@ -190,7 +207,9 @@ ${inputs}
 const CARD_FORM_SCRIPT = `(function(){
 var f=document.getElementById("pay"),n=document.getElementById("cc-number"),
 e=document.getElementById("cc-exp"),c=document.getElementById("cc-csc"),
-b=document.getElementById("pay-btn"),label=b.textContent;
+b=document.getElementById("pay-btn"),label=b.textContent,
+box=document.getElementById("new-card"),
+choices=document.querySelectorAll('input[name="cardChoice"]');
 function digits(v){return v.replace(/\\D/g,"");}
 n.addEventListener("input",function(){
 n.value=digits(n.value).slice(0,19).replace(/(\\d{4})(?=\\d)/g,"$1 ");});
@@ -202,6 +221,19 @@ d=d.slice(0,4);
 if(ev.inputType&&ev.inputType.indexOf("delete")===0&&d.length<=2){e.value=d;return;}
 e.value=d.length>=2?d.slice(0,2)+"/"+d.slice(2):d;});
 c.addEventListener("input",function(){c.value=digits(c.value).slice(0,4);});
+function sync(){
+var isNew=choices.length===0;
+for(var i=0;i<choices.length;i++){if(choices[i].checked&&choices[i].value==="new")isNew=true;}
+box.hidden=!isNew;
+var req=box.querySelectorAll("[data-req]");
+for(var j=0;j<req.length;j++){req[j].required=isNew;}
+var all=box.querySelectorAll("input");
+for(var m=0;m<all.length;m++){all[m].disabled=!isNew;}}
+for(var k=0;k<choices.length;k++){choices[k].addEventListener("change",sync);}
+sync();
+var del=document.getElementById("del-card");
+if(del){del.addEventListener("submit",function(ev){
+if(!window.confirm("Bu kayıtlı kart silinsin mi?"))ev.preventDefault();});}
 f.addEventListener("submit",function(ev){
 if(f.getAttribute("data-sent")){ev.preventDefault();return;}
 f.setAttribute("data-sent","1");b.disabled=true;
@@ -225,6 +257,70 @@ export interface CardFormState {
    */
   holderName?: string;
   expiry?: string;
+  /**
+   * Üyenin PayNkolay'da saklı kartları (§16) - token'sız. Token tarayıcıya
+   * gitmez; form kartı `tranId` ile seçer, sunucu token'ı listeden bulur.
+   */
+  savedCards?: Array<{
+    tranId: string;
+    maskedPan: string;
+    bank: string;
+    brand: string;
+    alias: string;
+  }>;
+  /** Seçili ödeme aracı: `"new"` ya da saklı kartın `tranId`'si. */
+  choice?: string;
+  /** "Bu kartı kaydet" sunulsun mu - yalnızca üye anahtarı olan yükte. */
+  canSave?: boolean;
+  /** Başarılı bir işlemin bildirimi ("Kayıtlı kart silindi."). */
+  notice?: string;
+}
+
+function lastFour(maskedPan: string): string {
+  const digits = maskedPan.replace(/\D/g, "");
+  return digits.slice(-4);
+}
+
+function savedCardChoices(state: CardFormState): string {
+  const cards = state.savedCards ?? [];
+  if (cards.length === 0) return "";
+  const chosen = state.choice ?? cards[0].tranId;
+  const rows = cards
+    .map((card, i) => {
+      const id = `saved-${i}`;
+      const four = lastFour(card.maskedPan);
+      const title = [card.bank, card.brand].filter(Boolean).join(" · ");
+      return `<div class="choice">
+<input type="radio" id="${id}" name="cardChoice" value="${escapeHtml(card.tranId)}"${chosen === card.tranId ? " checked" : ""}>
+<label for="${id}">•••• ${escapeHtml(four)}<small>${escapeHtml(title)}${card.alias ? ` · ${escapeHtml(card.alias)}` : ""}</small></label>
+<button type="submit" class="link" form="del-card" name="deleteCard" value="${escapeHtml(card.tranId)}" aria-label="•••• ${escapeHtml(four)} kartını sil">Sil</button>
+</div>`;
+    })
+    .join("\n");
+  return `<fieldset>
+<legend>Kayıtlı kartların</legend>
+${rows}
+<div class="choice">
+<input type="radio" id="saved-new" name="cardChoice" value="new"${chosen === "new" ? " checked" : ""}>
+<label for="saved-new">Yeni kartla öde</label>
+</div>
+</fieldset>`;
+}
+
+/**
+ * Saklı kartı silmenin ayrı formu. "Sil" düğmeleri kart listesinde görünür
+ * ama `form="del-card"` ile BU forma aittir: ödeme formunun içinde, ödeme
+ * düğmesinden önce duran bir gönder düğmesi o formun varsayılan düğmesi
+ * olurdu ve kart alanında Enter'a basmak ödemek yerine ilk kartı silerdi
+ * (PR #110 incelemesi). Bu formda kart alanı yoktur; silme isteği kart
+ * numarası taşımaz.
+ */
+function deleteCardForm(state: CardFormState): string {
+  if ((state.savedCards ?? []).length === 0) return "";
+  return `<form id="del-card" method="post" action="${PAYNKOLAY_BRIDGE_PATH}">
+<input type="hidden" name="d" value="${escapeHtml(state.data)}">
+<input type="hidden" name="s" value="${escapeHtml(state.signature)}">
+</form>`;
 }
 
 function invalid(state: CardFormState, field: CardField): string {
@@ -239,6 +335,18 @@ export function renderCardForm(state: CardFormState): PaynkolayPage {
   const error = state.error
     ? `<p class="alert" id="pay-error" role="alert">${escapeHtml(state.error.message)}</p>`
     : "";
+  const notice = state.notice
+    ? `<p class="ok" role="status">${escapeHtml(state.notice)}</p>`
+    : "";
+  // Saklı kart varken yeni kart alanları zorunlu değildir (saklı kartla
+  // ödenebilir); betik seçime göre `required`'ı açıp kapatır, betiksiz form
+  // sunucunun doğrulamasına kalır.
+  const hasSaved = (state.savedCards ?? []).length > 0;
+  const req = hasSaved ? " data-req" : " data-req required";
+  const save = state.canSave
+    ? `<label class="check"><input type="checkbox" name="saveCard" value="1"> Bu kartı sonraki ödemeler için kaydet</label>
+<p class="hint">Kart, ödeme kuruluşu PayNkolay'ın kart saklama hizmetinde saklanır; biz kart bilgisini tutmayız. Kayıtlı kartını bu sayfadan istediğin zaman silebilirsin.</p>`
+    : "";
   return page({
     title: "Kartla öde · L'Affogato",
     formAction: "'self'",
@@ -247,27 +355,32 @@ export function renderCardForm(state: CardFormState): PaynkolayPage {
 <p class="brand">L'Affogato</p>
 <h1>Kartla öde</h1>
 <p class="amount"><span>Ödenecek tutar</span><strong>${escapeHtml(amount)}</strong></p>
-${error}
+${notice}${error}
 <form id="pay" method="post" action="${PAYNKOLAY_BRIDGE_PATH}" autocomplete="on">
+${savedCardChoices(state)}
+<div id="new-card">
 <label for="cc-name">Kart üzerindeki ad</label>
-<input id="cc-name" name="${CARD_FORM_FIELDS.holderName}" autocomplete="cc-name" autocapitalize="characters" spellcheck="false" maxlength="60" required value="${escapeHtml(state.holderName ?? "")}"${invalid(state, "holderName")}>
+<input id="cc-name" name="${CARD_FORM_FIELDS.holderName}" autocomplete="cc-name" autocapitalize="characters" spellcheck="false" maxlength="60"${req} value="${escapeHtml(state.holderName ?? "")}"${invalid(state, "holderName")}>
 <label for="cc-number">Kart numarası</label>
-<input id="cc-number" name="${CARD_FORM_FIELDS.number}" autocomplete="cc-number" inputmode="numeric" spellcheck="false" maxlength="23" placeholder="0000 0000 0000 0000" required${invalid(state, "number")}>
+<input id="cc-number" name="${CARD_FORM_FIELDS.number}" autocomplete="cc-number" inputmode="numeric" spellcheck="false" maxlength="23" placeholder="0000 0000 0000 0000"${req}${invalid(state, "number")}>
 <div class="row">
 <div>
 <label for="cc-exp">Son kullanma</label>
-<input id="cc-exp" name="${CARD_FORM_FIELDS.expiry}" autocomplete="cc-exp" inputmode="numeric" maxlength="7" placeholder="AA/YY" required value="${escapeHtml(state.expiry ?? "")}"${invalid(state, "expiry")}>
+<input id="cc-exp" name="${CARD_FORM_FIELDS.expiry}" autocomplete="cc-exp" inputmode="numeric" maxlength="7" placeholder="AA/YY"${req} value="${escapeHtml(state.expiry ?? "")}"${invalid(state, "expiry")}>
 </div>
 <div>
 <label for="cc-csc">Güvenlik kodu</label>
-<input id="cc-csc" name="${CARD_FORM_FIELDS.cvv}" autocomplete="cc-csc" inputmode="numeric" maxlength="4" placeholder="CVV" required${invalid(state, "cvv")}>
+<input id="cc-csc" name="${CARD_FORM_FIELDS.cvv}" autocomplete="cc-csc" inputmode="numeric" maxlength="4" placeholder="CVV"${req}${invalid(state, "cvv")}>
 </div>
+</div>
+${save}
 </div>
 <input type="hidden" name="d" value="${escapeHtml(state.data)}">
 <input type="hidden" name="s" value="${escapeHtml(state.signature)}">
 <button type="submit" id="pay-btn">${escapeHtml(amount)} öde</button>
 </form>
-<p class="note">${LOCK_ICON}<span>Kart bilgilerin kaydedilmez; yalnızca bu ödeme için şifreli bağlantıyla ödeme kuruluşuna iletilir. Ödemeyi kartını veren bankanın 3D Secure ekranında onaylarsın.</span></p>
+${deleteCardForm(state)}
+<p class="note">${LOCK_ICON}<span>Kart bilgilerini biz kaydetmeyiz; ödeme için şifreli bağlantıyla yalnızca ödeme kuruluşuna iletilir. Ödemeyi kartını veren bankanın 3D Secure ekranında onaylarsın.</span></p>
 <p class="psp">Ödeme altyapısı: PayNkolay · N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.</p>
 </main>`,
   });

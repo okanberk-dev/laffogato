@@ -628,6 +628,15 @@ Canlı anahtarlar Vercel production'a girildi; para çekmeyen iki ölçüm yapı
   `rnd` `dd.MM.yyyy HH:mm:ss` kabul edildi; `customerKey` alanı gönderilmeden,
   hash'teki konumu boş bırakılarak çalıştı.
 
+- **Dönüş POST'u (sandbox, API ile başlatılan 3D, 15 Eki 2026) - §12/1-4
+  çözüldü:** `CURRENCY_CODE` gönderiliyor ve değeri **`"TRY"`** (949 değil);
+  yanıt hash'i `"TRY"` ile birebir tuttu (`verifyPaynkolayReturnHash` gelen
+  değeri kullandığı için doğru). `RND` gönderdiğimizden FARKLI, epoch-ms
+  (`1792074787037`). `USE_3D` küçük harf `"true"`. `AUTO_COMPLETE: "true"`
+  (tek adımlı; `NEW` tuzağı yok). Ek alanlar: `TRAN_ID` (kart saklandıysa
+  saklı kartın kimliği), `CARD_BANK_CODE`, `PAYMENT_SYSTEM`,
+  `MERCHANT_OID`, `ERROR_CODE: "00"`.
+
 Test kartları
 ([07-test-cards](https://paynkolay.com.tr/entegrasyon/07-test-cards.php)),
 örn. Vakıfbank Visa `4029400000000001`, 05/2028, CVV `951`.
@@ -888,3 +897,66 @@ sayfasında (`hosted`) bu yük PayNkolay'daydı. `direct` modda:
 - Hukuki metinler "kart bilgisi sunucularımızdan geçmez" diyor; bu modda
   doğru değil. Düzeltme R1 ile birlikte avukat onayına bağlı
   (`docs/LEGAL-REDLINES-2026-09.md` §3).
+
+---
+
+## 16. Kayıtlı kart - kart PayNkolay'da durur
+
+**Operatör kararı (15 Eki 2026):** _"kayıtlı kart olsun ama kart
+detaylarını toplamayalım, PayNkolay'da kalsın"_. §9.1'deki "kart saklama v1
+dışında" kararının yerini alır. Kart PayNkolay'ın kart saklama hizmetinde
+durur; biz yalnız onu üyeyle eşleştiren anahtarı tutarız.
+
+**Açma anahtarı:** `PAYNKOLAY_CARD_STORAGE=on`. PayNkolay kart saklamayı üye
+işyerine ayrıca yetkiyle açar; operatör yetkiyi 16 Eki 2026'da istedi. Yetki
+gelene kadar değişken boş kalır: yüke üye anahtarı girmez, kayıtlı kart
+listesi, "kartımı kaydet" ve silme görünmez, POS'a `cs*` alanı gitmez. Yetki
+gelince Vercel'de `on` yapılıp yeniden yayınlanır.
+
+### 16.1 Ölçülen API (sandbox, Postman "Kart Saklama")
+
+| İş | Uç | Alanlar | Hash |
+| --- | --- | --- | --- |
+| Ödemede kaydet | `POST /Vpos/v1/Payment` | kart alanları + `csCustomerKey`, `csAutoSave=true`, `csCardAlias` | `sx\|clientRefCode\|amount\|successUrl\|failUrl\|rnd\|csCustomerKey` |
+| Listele | `POST /Vpos/Payment/CardStorageCardList` | `sx`, `customerKey` | `sx\|customerKey` |
+| Saklı kartla öde | `POST /Vpos/v1/Payment` | kart alanı YOK; `csCustomerKey`, `csToken` | ödemedekiyle aynı |
+| Sil | `POST /Vpos/Payment/CardStorageCardDelete` | `sx`, `customerKey`, `tranId` (boş), `token` | `sx\|customerKey\|tranId\|token` |
+
+Ölçülenler:
+
+- **Anahtar en fazla 11 karakter** (`CORE0364`). Doküman TCKN/telefon
+  öneriyor; **rastgele, opak 11 karakter (`[A-Z0-9]`) kabul edildi.** Bu
+  yüzden PayNkolay'a üyenin kimliği ya da telefonu gitmez
+  (`newPaynkolayMemberKey`).
+- Kart, **3D onayından sonra** saklanıyor; dönüşte `TRAN_ID` geliyor.
+- Liste yanıtı: `{ProcReturnCode:"00", Data:{totalcount, cards:{Card:{
+  CardFileds:{Detail:[{Token, TranId, Maskedpan:"41556501****6111",
+  CARDISSUER, CARDTYPE, CARDBRAND, CARD_ALIACE, EXP_DATE}]}}}}}`. Kart yoksa
+  `ProcReturnCode:"02"`, "Gecerli Kart Yok".
+- Saklı kartla ödemede de **3D isteniyor** (ters ibraz koruması sürer).
+- Silme **yalnız `token` ile** çalıştı; yalnız `tranId` ile "Gecersiz Veri"
+  döndü (Postman "biri yeter" diyor - yanlış).
+- Liste ve silme, ödeme `sx`'iyle çalıştı.
+- Üye işyerinin "kart saklama yetkisi" olmalı; yoksa `csAutoSave` sessizce
+  bir şey saklamayabilir - ödeme yine geçer.
+
+### 16.2 Bizdeki karşılığı
+
+- Anahtar `customers."cardUserKey"`'de (sütun zaten vardı, hiç dolmamıştı).
+  Üyenin ilk ödemesinde `ensureCardUserKey` üretir; karşılaştır-ve-yaz ile
+  yazılır, aynı anda açılan iki ödeme tek anahtarda buluşur.
+- Anahtar ödeme yükünde **imzalı** taşınır (`member`), formun alanlarına
+  girmez: ortak ödeme sayfasında `customerKey` boş kalır.
+- Kart sayfası: saklı kartlar maskeli (son 4), bankası, markası ve adıyla
+  listelenir; **token tarayıcıya gitmez** - form kartı `TranId` ile seçer,
+  sunucu token'ı üyenin listesinden bulur (başka üyenin kartı seçilemez).
+  "Bu kartı sonraki ödemeler için kaydet" işaretsiz gelir. Her kartın
+  yanında "Sil".
+- Hesap kapanınca (`deleteMe`, web ve uygulama) önce PayNkolay'daki kartlar
+  silinir, sonra anahtar temizlenir. POS'a ulaşılamazsa kapanış durmaz;
+  anahtar elle temizlik için loglanır (kişisel veri değil).
+- Ödeme kaydına (`payment_transactions.raw`) **kart sahibinin adı yazılmaz**
+  (`withoutHolderName`; KVKK veri en aza indirme, hukuki metinler Ö7).
+- `CardStorageCardRegister` (kart numarasıyla, ödemesiz saklama) hiçbir
+  yerde çağrılmaz (`tests/saved-cards.test.ts`).
+

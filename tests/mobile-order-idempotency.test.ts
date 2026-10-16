@@ -103,7 +103,7 @@ vi.mock("@/lib/payment", () => ({
 const sendOrderPlacedEmail = vi.fn(async () => undefined);
 vi.mock("@/lib/email/send", () => ({ sendOrderPlacedEmail }));
 
-vi.mock("@/lib/customer/store", () => ({ getCardUserKey: async () => "" }));
+vi.mock("@/lib/customer/store", () => ({ ensureCardUserKey: async () => "" }));
 vi.mock("@/lib/customer/coupons", () => ({
   applyCustomerCoupon: vi.fn(),
   couponAllowedForKind: () => true,

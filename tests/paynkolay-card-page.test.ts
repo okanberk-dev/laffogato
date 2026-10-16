@@ -270,7 +270,7 @@ describe("startDirectPayment", () => {
       .card;
     const result = await makeProvider().startDirectPayment(
       post,
-      card,
+      { card },
       "85.105.1.1",
     );
 
@@ -323,7 +323,7 @@ describe("startDirectPayment", () => {
     });
     const card = (parseCardForm(cardForm(), NOW) as { ok: true; card: never })
       .card;
-    const result = await makeProvider().startDirectPayment(post, card, "");
+    const result = await makeProvider().startDirectPayment(post, { card }, "");
     expect(result).toEqual({
       kind: "declined",
       code: "VPS-1005",
@@ -337,7 +337,7 @@ describe("startDirectPayment", () => {
     const card = (parseCardForm(cardForm(), NOW) as { ok: true; card: never })
       .card;
     const err = await makeProvider()
-      .startDirectPayment(post, card, "")
+      .startDirectPayment(post, { card }, "")
       .catch((e: unknown) => e as Error);
     expect(err).toBeInstanceOf(Error);
     expect(String((err as Error).message)).not.toMatch(/4155|715/);
@@ -351,7 +351,7 @@ describe("startDirectPayment", () => {
     await expect(
       makeProvider().startDirectPayment(
         { ...post, fields: { ...post.fields, use3D: "" } },
-        card,
+        { card },
         "",
       ),
     ).rejects.toThrow(/3D/);
@@ -461,7 +461,7 @@ describe("the card form page", () => {
     }
     expect(page.html).toContain('action="/odeme/paynkolay"');
     expect(page.html).toContain("1.280,10₺ öde");
-    expect(page.html).toMatch(/Kart bilgilerin kaydedilmez/);
+    expect(page.html).toMatch(/Kart bilgilerini biz kaydetmeyiz/);
   });
 
   it("escapes what it writes back after an error", () => {
