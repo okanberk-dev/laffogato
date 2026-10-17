@@ -23,6 +23,7 @@ const setCustomerActive = vi.fn();
 const getCustomerByEmail = vi.fn();
 const deleteMe = vi.fn();
 const setAdminFlash = vi.fn();
+const hasServiceRole = vi.fn(() => true);
 const redirect = vi.fn(() => {
   throw new Error("NEXT_REDIRECT");
 });
@@ -46,6 +47,7 @@ vi.mock("@/lib/customer/store", () => ({
 }));
 vi.mock("@/lib/email/send", () => ({ sendVerificationEmail: vi.fn() }));
 vi.mock("@/lib/mobile/me", () => ({ deleteMe }));
+vi.mock("@/lib/supabase/admin", () => ({ hasServiceRole }));
 vi.mock("@/lib/mobile/loyalty", () => ({
   addCounterStamp,
   listStamps,
@@ -87,6 +89,8 @@ beforeEach(() => {
   deleteMe.mockReset();
   deleteMe.mockResolvedValue({ ok: true, identity: "deleted" });
   setAdminFlash.mockReset();
+  hasServiceRole.mockReset();
+  hasServiceRole.mockReturnValue(true);
   redirect.mockClear();
 });
 
@@ -289,7 +293,7 @@ describe("closeCustomerAccountAction (Hesabı sil)", () => {
     const store = readFileSync("src/lib/customer/store.ts", "utf8");
     expect(store).not.toMatch(/export async function adminDeleteCustomer/);
     const src = readFileSync("src/app/admin/musteriler/actions.ts", "utf8");
-    expect(src).toContain('import { deleteMe } from "@/lib/mobile/me";');
+    expect(src).toMatch(/import \{ deleteMe\b[^}]*\} from "@\/lib\/mobile\/me";/);
   });
 
   it("refuses unless the member's address is typed out", async () => {
@@ -314,7 +318,8 @@ describe("closeCustomerAccountAction (Hesabı sil)", () => {
     // The same function DELETE /me and /uye/hesap/sil call: it cancels and
     // refunds future karaoke, removes the barista grant and anonymises.
     expect(getCustomerByEmail).toHaveBeenCalledWith("uye@ornek.com");
-    expect(deleteMe).toHaveBeenCalledWith(MEMBER);
+    // As the panel's act: the consent history gets no admin IP (DeleteMeOptions).
+    expect(deleteMe).toHaveBeenCalledWith(MEMBER, { by: "admin" });
     // Named by id: the address is what is being erased.
     expect(logAudit).toHaveBeenCalledWith({
       action: "delete",
@@ -357,6 +362,61 @@ describe("closeCustomerAccountAction (Hesabı sil)", () => {
       expect.stringContaining("Supabase"),
       "warning",
     );
+  });
+
+  it("does not call a skipped identity a clean closure when the key is missing", async () => {
+    // No service-role key: every closure skips the identity, and an app
+    // member's e-mail and name stay in Supabase.
+    hasServiceRole.mockReturnValue(false);
+    deleteMe.mockResolvedValue({ ok: true, identity: "skipped" });
+    await expect(
+      closeCustomerAccountAction(
+        null,
+        form({ email: "uye@ornek.com", confirm: "uye@ornek.com" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      expect.stringContaining("Supabase'de duruyor"),
+      "warning",
+    );
+  });
+
+  it("calls a skipped identity a clean closure when the row was never linked", async () => {
+    // The key is there, so a skip means there was no identity to delete.
+    deleteMe.mockResolvedValue({ ok: true, identity: "skipped" });
+    await expect(
+      closeCustomerAccountAction(
+        null,
+        form({ email: "uye@ornek.com", confirm: "uye@ornek.com" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      "Hesap kapatıldı. Kişisel veriler anonimleştirildi.",
+    );
+  });
+
+  it("says plainly when the closure stopped half-way, and leaves a row", async () => {
+    // deleteMe throws only before the member row is rewritten; karaoke and
+    // the saved cards may already be done.
+    deleteMe.mockRejectedValue(new Error("connection terminated"));
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await closeCustomerAccountAction(
+      null,
+      form({ email: "uye@ornek.com", confirm: "uye@ornek.com" }),
+    );
+    expect(res.ok).toBe(false);
+    expect(res.ok ? "" : res.error).toMatch(/kapatılamadı, üye kaydı değişmedi/);
+    expect(res.ok ? "" : res.error).toMatch(/karaoke/);
+    expect(logAudit).toHaveBeenCalledWith({
+      action: "update",
+      entity: "customer",
+      entityId: "cus-0042",
+      payload: { closedBy: "admin", closure: "failed" },
+    });
+    // PII rule: the id in the log, never the address.
+    expect(JSON.stringify(errors.mock.calls)).not.toContain("uye@ornek.com");
+    expect(redirect).not.toHaveBeenCalled();
+    errors.mockRestore();
   });
 
   it("reports an address with no member account", async () => {

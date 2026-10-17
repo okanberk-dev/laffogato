@@ -110,8 +110,10 @@ export function CustomerActions({ email, isActive, emailVerified }: Props) {
               Üyenin kendi hesap silmesiyle aynı işlem yapılır, geri alınamaz.
             </li>
             <li>
-              Gelecekteki karaoke rezervasyonları iptal edilir; ödenmiş olanlar
-              karta iade edilir.
+              Gelecekteki karaoke rezervasyonları iptal edilir, ödenmiş olanlar
+              karta iade edilir. Saatine 2 saatten az kalan ödenmiş rezervasyon
+              iade edilmez, olduğu gibi kalır. Bu durumda ve POS iadeyi hemen
+              onaylamazsa ekibe e-posta gider.
             </li>
             <li>Uygulamadan kasa (barista) yetkisi varsa kaldırılır.</li>
             <li>

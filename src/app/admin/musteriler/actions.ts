@@ -25,8 +25,9 @@ import {
   setCustomerActive,
 } from "@/lib/customer/store";
 import { sendVerificationEmail } from "@/lib/email/send";
-import { deleteMe } from "@/lib/mobile/me";
+import { deleteMe, type DeleteMeResult } from "@/lib/mobile/me";
 import { SITE } from "@/lib/seo/site";
+import { hasServiceRole } from "@/lib/supabase/admin";
 
 function verifyUrl(token: string): string {
   return `${SITE.url}/uye/dogrula?token=${encodeURIComponent(token)}`;
@@ -287,7 +288,33 @@ export async function closeCustomerAccountAction(
   const customer = await getCustomerByEmail(email);
   if (!customer) return actionError("Üye hesabı bulunamadı.");
 
-  const result = await deleteMe(customer);
+  let result: DeleteMeResult;
+  try {
+    result = await deleteMe(customer, { by: "admin" });
+  } catch (err) {
+    // deleteMe throws only before the member row is rewritten (reading the
+    // orders, or that write itself): the account is still open and a retry
+    // runs every step again safely. The future karaoke may already be
+    // cancelled and refunded and the saved cards dropped at the POS; both
+    // leave their own record, this row says the closure did not finish.
+    console.error(
+      `[admin] account closure failed ${customer.id}: ${err instanceof Error ? err.message : "unknown error"}`,
+    );
+    try {
+      await logAudit({
+        action: "update",
+        entity: "customer",
+        entityId: customer.id,
+        payload: { closedBy: "admin", closure: "failed" },
+      });
+    } catch {
+      // The database that just failed may refuse this row too; the answer
+      // below still tells the operator.
+    }
+    return actionError(
+      "Hesap kapatılamadı, üye kaydı değişmedi. Gelecekteki karaoke rezervasyonları iptal edilip iade edilmiş, kayıtlı kartlar silinmiş olabilir. Biraz sonra yeniden dene.",
+    );
+  }
   if (!result.ok) {
     return actionError(
       `Bu üyenin devam eden ${result.count} siparişi var. Siparişler tamamlanınca ya da iptal edilince hesabı kapatabilirsin.`,
@@ -304,10 +331,19 @@ export async function closeCustomerAccountAction(
   revalidatePath("/admin/mobil/karaoke");
   revalidatePath("/admin");
   if (result.identity === "failed") {
-    // Supabase did not answer: the account is closed and anonymised here,
-    // the sign-in identity still exists there.
+    // Supabase refused or did not answer in time: the account is closed and
+    // anonymised here, the sign-in identity (e-mail and name) may still
+    // exist there.
     await setAdminFlash(
-      "Hesap kapatıldı ve kişisel veriler anonimleştirildi, ama Supabase'deki giriş kimliği silinemedi. Supabase'de elle sil.",
+      "Hesap kapatıldı ve kişisel veriler anonimleştirildi, ama Supabase'deki giriş kimliği silinemedi (hata ya da yanıt yok). Supabase'de elle sil.",
+      "warning",
+    );
+  } else if (result.identity === "skipped" && !hasServiceRole()) {
+    // Without the service-role key every closure skips the identity: an
+    // app member's e-mail and name stay in Supabase. Saying only "closed"
+    // here read as if nothing of them was left.
+    await setAdminFlash(
+      "Hesap kapatıldı ve kişisel veriler anonimleştirildi. Supabase anahtarı tanımlı değil: üyenin uygulama giriş kimliği varsa Supabase'de duruyor, orada elle sil.",
       "warning",
     );
   } else {
