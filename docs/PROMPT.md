@@ -34,7 +34,7 @@ Laffogato, bir kafe markasının online vitrinidir. İki temel kullanım vardır
 - [x] Ürün hızlı bakış modal (galeri yok ama varyant + detay var)
 - [x] Sepet (CartDrawer) - kalemler, sil, toplam, kargo bilgisi, "Ödemeye geç"; localStorage'da kalıcı
 - [x] Ödeme (`/odeme/basarili?ref=<id>`) - `placeOrderAction` ile gerçek sipariş yaratır, premium başarı sayfası, sepet otomatik temizlenir
-- [x] Hikaye (`#story`) · Visit (`#visit`, interaktif rezervasyon kartı + gömülü harita)
+- [x] Hikaye (`#story`) · Visit (`#visit`, gömülü harita; masa rezervasyonu kartı 17 Eki 2026'da kalktı, sitede rezervasyon yalnız karaoke odası için)
 - [x] Hesabım - müşteri auth + sipariş geçmişi (`/uye/hesap`: siparişler, adresler, favoriler, promosyonlar, bildirimler, hesap silme)
 
 ### Admin tarafı (`/admin`)

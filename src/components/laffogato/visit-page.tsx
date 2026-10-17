@@ -9,8 +9,6 @@ import { priceLabel } from "@/lib/utils/format";
 import { LafMark } from "./brand-mark";
 import { PageHero } from "./page-hero";
 import { LOCATION } from "./data";
-import { upcomingDayLabels } from "./open-status";
-import { useClientValue } from "./use-client-value";
 import { openStatusDetail, useOpenStatus } from "./use-open-status";
 import { SectionHead } from "./ui";
 import {
@@ -50,14 +48,6 @@ export function PageVisit({ visit, settings }: PageProps) {
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(mapQuery)}`;
   const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&hl=tr&z=16&output=embed`;
   const [mapOn, setMapOn] = useState(false);
-  const [partySize, setPartySize] = useState(2);
-  const [day, setDay] = useState("Bu akşam");
-  const [time, setTime] = useState("19:30");
-  // Real days from the köşk's calendar, worked out in the browser: the HTML
-  // may be cached across midnight, so the server shows only the two names
-  // that are always true and the weekdays follow on the client.
-  const dayKey = useClientValue(() => upcomingDayLabels().join("|"), "");
-  const dayLabels = dayKey ? dayKey.split("|") : ["Bu akşam", "Yarın"];
 
   return (
     <div className="page" data-screen-label="05 Visit">
@@ -318,9 +308,18 @@ export function PageVisit({ visit, settings }: PageProps) {
         className="section"
         style={{ background: "var(--bg-warm)" }}
       >
+        {/* The hours on the left, the live line and today's card on the
+            right, bottoms aligned. The right half used to hold a table
+            booking card; the only booking on the site is the karaoke room
+            (/karaoke). */}
         <div
           className="wrap"
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80 }}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 80,
+            alignItems: "end",
+          }}
           data-row="visit-book-row"
         >
           <div className="reveal">
@@ -351,6 +350,9 @@ export function PageVisit({ visit, settings }: PageProps) {
                 </Fragment>
               ))}
             </div>
+          </div>
+
+          <div className="reveal r1 visit-today-col">
             <OpenNow rows={visitHours} />
             <div className="visit-today-card">
               <div className="eyebrow">Bugün</div>
@@ -362,138 +364,6 @@ export function PageVisit({ visit, settings }: PageProps) {
                 köşkün salonlarında devam ediyoruz. Mutfak 23:30&apos;da
                 kapanır.
               </p>
-            </div>
-          </div>
-
-          <div className="reveal r1 reserve-card">
-            <div className="reserve-card-head">
-              <div>
-                <div className="eyebrow" style={{ marginBottom: 6 }}>
-                  Rezervasyon
-                </div>
-                {/* Follows the chosen day - it said "Bu akşam" whatever was
-                    picked below it. */}
-                <h3 className="reserve-card-title">{day} · Tuzla</h3>
-              </div>
-              <div
-                style={{
-                  fontFamily: "var(--script)",
-                  fontSize: 28,
-                  color: "var(--gold)",
-                }}
-              >
-                prenotare
-              </div>
-            </div>
-
-            <div className="reserve-section">
-              <div className="label" id="rv-party-label">
-                Kişi sayısı
-              </div>
-              <div
-                className="reserve-party"
-                role="group"
-                aria-labelledby="rv-party-label"
-              >
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    aria-pressed={partySize === n}
-                    aria-label={`${n} kişi`}
-                    className={cx("reserve-num", partySize === n && "on")}
-                    onClick={() => setPartySize(n)}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="reserve-section">
-              <div className="label" id="rv-day-label">
-                Gün
-              </div>
-              <div
-                className="reserve-chips"
-                role="group"
-                aria-labelledby="rv-day-label"
-              >
-                {dayLabels.map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    aria-pressed={day === d}
-                    className={cx("reserve-chip", day === d && "on")}
-                    onClick={() => setDay(d)}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="reserve-section">
-              <div className="label" id="rv-time-label">
-                Saat
-              </div>
-              <div
-                className="reserve-chips"
-                role="group"
-                aria-labelledby="rv-time-label"
-              >
-                {[
-                  "18:00",
-                  "18:30",
-                  "19:00",
-                  "19:30",
-                  "20:00",
-                  "20:30",
-                  "21:00",
-                  "21:30",
-                ].map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    aria-pressed={time === t}
-                    className={cx("reserve-chip", time === t && "on")}
-                    onClick={() => setTime(t)}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Rezervasyon telefonla alınıyor: site üzerinden masa ayırtma
-                yok ve Kullanım Şartları da bunu böyle yazıyor. Buradaki
-                seçimler, aramadan önce ne söyleyeceğinizi hazırlar. */}
-            <a
-              className="btn btn-primary btn-lg"
-              href={`tel:${SITE.phoneE164}`}
-              style={{
-                width: "100%",
-                justifyContent: "space-between",
-                marginTop: 8,
-              }}
-            >
-              <span>
-                {partySize} kişi · {day} · {time} için ara
-              </span>
-              <span className="arrow">→</span>
-            </a>
-
-            <div
-              style={{
-                fontSize: 12,
-                color: "var(--ink-mute)",
-                lineHeight: 1.55,
-                marginTop: 14,
-              }}
-            >
-              Rezervasyon yalnızca telefonla: <strong>{SITE.phone}</strong>. 90
-              dk masa; iptal için en az 3 saat önce haber verin. Bar köşesi
-              rezervasyona kapalı - yürüyüşle gelin.
             </div>
           </div>
         </div>
