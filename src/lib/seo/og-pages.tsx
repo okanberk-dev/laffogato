@@ -2,6 +2,7 @@ import "server-only";
 
 import type { ReactElement } from "react";
 
+import { ILLUSTRATIONS } from "@/components/laffogato/illustration";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import type { Guide } from "@/lib/seo/guides";
 import type { MenuCategoryRoute, ShopCategoryRoute } from "@/lib/seo/pages";
@@ -62,7 +63,7 @@ export async function karaokeCard(): Promise<ReactElement> {
       subtitle="Saatini seç, mikrofon senin"
       detail="Online rezervasyon · Tuzla, İstanbul"
       path="/karaoke"
-      {...await photoArt("/illustrations/karaoke-room.webp", SQUARE, SQUARE)}
+      {...await photoArt(ILLUSTRATIONS["karaoke-room"].src, SQUARE, SQUARE)}
     />
   );
 }
