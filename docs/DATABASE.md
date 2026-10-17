@@ -166,6 +166,23 @@ Korunan davranışlar (çağrı noktaları bunlara bağlı):
 Bu katmanın tamamı veritabanı olmadan test edilir: `tests/db-sql.test.ts` ve
 `tests/db-client.test.ts` (45 test) üretilen SQL'i ve sonuç semantiğini doğrular.
 
+### Tohum (seed) bir veritabanına bir kez yazılır
+
+Store bir tabloyu ancak tablo boşken **ve** `counters` içinde
+`seed:<tablo>` işareti yokken tohumlar (`seedOnce`, `src/lib/admin/store.ts`);
+ilk karar işareti yazar. Böylece operatörün boşalttığı tablo (son ürün, son
+vitrin slaytı, son duyuru) bir sonraki soğuk başlangıçta geri dolmaz (admin
+denetimi CAT-04, CON-01, karar D17). Katalog (ürün, kategori, menü) üretim
+derlemesinde (Vercel önizlemeleri dahil) hiç tohumlanmaz; ayarlar satırı
+eksikse her zaman yazılır. Kullanımdaki her veritabanına işaretleri
+`20261017200100_seed_markers.sql` bir kez yazdı. Sayaçlar `raise_counter` ile
+yalnız yükselir (`setCounter`), silinmiş bir satırın kimliği yeniden
+verilmez.
+
+Bir geliştirme veritabanını yeniden tohumlamak için:
+`delete from public.counters where id like 'seed:%';` (ve boşaltılacak
+tablolar).
+
 ## Yeni migration
 
 `db/migrations/YYYYMMDDHHMMSS_aciklama.sql` oluştur, sonra `npm run db:migrate`.

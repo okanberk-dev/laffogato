@@ -625,13 +625,10 @@ Kite eklenenler (alanlar kendi PR'larında kullanır):
 Ürün şemasına ad (120), SKU (40), etiket (80) ve açıklama (2000) için uzunluk
 sınırı eklendi; CSV içe aktarma da aynı şemadan geçer.
 
-Açık (paket 5a'nın kalanı, sonraki admin dalgası; bu PR migration eklemez):
+Açık (katalog paketinin kalanı; adım 4 ve 5 aşağıda, "Katalog: stok ve tohumlar"):
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟠 | Ürün formu stoğu körlemesine yazar: form açıkken gelen siparişin düşüşü kayıtta kaybolur; varyant stoğu atomik değil (CAT-03) | Adım 4 (karar D16): açılış anı farkı, `adjust_product_stock` + stok hareketi, yeni `adjust_variant_stock` SQL fonksiyonu (migration). CSV içe aktarma stoğu zaten fark olarak yazar |
-| 🟡 | Varyant stoğu ürün stoğundan ayrı; `resolveOrderLines` varyantı `claim_order_stock` gibi denetlemez (CAT-14) | Adım 4 |
-| 🟠 / 🟡 | Tablo boşken tohum (CON-01, CAT-04) | Adım 5 (karar D17) |
 | 🟢 | Menü ve vitrin tarafı: menü toplu kaydı kimlik, vitrin silme başlık yazmıyor (CAT-20), menü / kategori / vitrin "Vazgeç" (CAT-22), vitrin güncellemesi silinmiş slaytta (CAT-28), diğer katalog ekranlarının metni (CAT-24), toplu geri çağırmalar `withPanelCatch` (CAT-17) | Kendi dosyalarının PR'larında (5c, 5d) |
 
 Eklenen: **ürünleri CSV ile içe aktarma** (`/admin/urunler/ice-aktar`, ürün
@@ -685,3 +682,18 @@ yakalar).
 | 🟢 | Rıza kaydının IP adresi ve tarayıcısı personele gösteriliyordu (ORD-29) | Müşteri görünümü olmayan rol "Kayıtlı" görür; kayıt değişmedi (karar D3). Sipariş sayfası başlık düğmelerine, liste her satırına rıza kaydı olmadan sipariş verir (`orderForClient`): istemci bileşenine giden her prop sayfanın RSC verisinde, yani kaynağında duruyordu (doğrulayıcı C2) | `admin-order-detail`, `admin-order-consent-payload` |
 | 🟢 | Manuel formda stok hiç görünmüyordu, tükenmiş ürün seçilebiliyor, adet stoğa bakmıyordu (ORD-M03) | Seçeneklerde "(stok: N)", tükenen ürün ve varyant pasif, adet seçilenin stoğuyla sınırlı; sunucunun denetimi yine son söz | `admin-manual-order` |
 | 🟢 | "Vazgeç" bağlantı içinde düğmeydi, her "Kaldır" aynı adı taşıyordu (ORD-18); formda gri `neutral-400` metin, "İçsel not", "opsiyonel", "SUMMER25" (ORD-05, ORD-26 form kısmı) | Tek `Link` (`BUTTON.ghost`); "1. satırı kaldır", tek satırda nedeniyle pasif; panel renkleri, "İç not", "isteğe bağlı", "YAZ25" | `admin-manual-order` |
+
+### Katalog: stok ve tohumlar (paket 5a, 4-5. adımlar)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Ürün formu stoğu ve varyant stoğunu açıldığı andaki değerle yazıyordu: form açıkken gelen siparişin düşüşü kayıtta geri alınıyor, stok hareketi yazılmıyordu (CAT-03) | Form açılış anındaki stoğu da gönderir (`stockAtOpen`, varyant başına da); kayıt önce diğer alanları, sonra fiyat, varyant ve stoğu tek SQL fonksiyonunda (`save_product_variants`, satır kilidi altında) yazar ve stoğu yalnız formda yapılan değişiklik kadar oynatır, her değişikliği stok hareketi olarak ("Ürün formu") kaydeder. Eksiye düşecek değişiklik alanın altında, kayıtlı stokla reddedilir; fiyat, varyant ve stok değişmez, form bir sonraki farkı kayıtlı stoktan ölçer. Diğer alanlar önce yazıldığı için hata sonrası yeniden kayıt stoğu iki kez oynatmaz | `admin-catalog-stock`, `admin-product-wizard`, `db-integration-variant-stock` |
+| 🟡 | Varyantlı ürünün toplamı varyantlardan ayrıydı: toplam 0 kalınca ürün "Stoksuz" görünüp siparişte düşüyordu, sipariş ön denetimi yalnız varyantı okuyordu, varyant stoğu hiçbir ekrandan düzeltilemiyordu (CAT-14) | Varyantlı ürünün toplamı aktif varyantlarından gelir: yeni üründe toplam, ilk varyantları alan üründe toplam onların toplamı; sonra her varyant değişikliği (aktifse) toplamı aynı fark kadar oynatır. Sihirbazda toplam salt okunur. Ön denetim `claim_order_stock` gibi ürün toplamını da ister. Stok ekranı varyantlı ürünü varyantlarıyla listeler ve tek varyantı `adjust_variant_stock` ile düzeltir; `adjust_product_stock` varyantlı ürünü reddeder. Toplamı 0 kalmış varyantlı ürünler bir kez varyantlarının toplamını alır (stok hareketiyle) | `admin-catalog-stock`, `admin-stock-adjust`, `db-integration-variant-stock` |
+| 🟠 / 🟡 | Tablo boşken tohum: son ürünü, kategoriyi, menü kalemini, vitrin slaytını, hikaye dönemini, uygulama slaytını, duyuruyu ya da gönderiyi silmek bir sonraki soğuk başlangıçta paketteki satırları geri getiriyordu (satışa açık demo ürünler, "500₺ üzeri ücretsiz kargo", "Hafta sonu 24:00'e kadar", kasanın uygulamadığı yarı fiyat kampanyası); `setCounter` sayaçları geri sarıp silinmiş satırın kimliğini yeniden veriyordu (CAT-04, CON-01) | Her tohum bir veritabanında bir kez karar verir (`seedOnce`, `counters` içinde `seed:<tablo>` işareti); işaret varken boş tablo boş kalır. Katalog üretim derlemesinde hiç tohumlanmaz. `setCounter` `raise_counter` ile yalnız yükseltir. Kullanımdaki veritabanlarına işaretleri migration bir kez yazar | `admin-content-deletes`, `admin-seed-markers`, `db-integration-seed-markers` |
+
+Migration: `20261017200000_variant_stock_adjust.sql`,
+`20261017200100_seed_markers.sql`. Açık kalan risk: mağaza kartındaki hızlı
+"sepete ekle" varyantlı ürünü varyantsız ekler; böyle bir satır yalnız ürün
+toplamından düşer ve taban fiyattan satılır. Toplam bu yüzden yeniden
+hesaplanmaz, farkla oynar (satılan birimi satışa geri açmamak için). Kartın
+varyantlı üründe hızlı ekleme yerine ürünü açması ayrı bir ön yüz işidir.
