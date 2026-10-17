@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import {
@@ -32,10 +37,18 @@ function revalidate() {
   revalidatePath("/", "layout");
 }
 
-export async function createStoryAction(fd: FormData) {
+/** Every save and delete answers an ActionResult: a toast, or the error. */
+export async function createStoryAction(
+  _prev: ActionResult | null,
+  fd: FormData,
+): Promise<ActionResult> {
   await requireRole("story");
   const input = parse(fd);
-  if (!input.title) return;
+  if (!input.title) {
+    return actionError("Formdaki uyarıları gider.", {
+      title: "Başlığı yaz.",
+    });
+  }
   const created = await createStoryEvent(input);
   await logAudit({
     action: "create",
@@ -44,20 +57,39 @@ export async function createStoryAction(fd: FormData) {
     payload: { year: created.year },
   });
   revalidate();
+  return actionOk(`"${created.title}" eklendi.`);
 }
 
-export async function updateStoryAction(id: string, fd: FormData) {
+export async function updateStoryAction(
+  id: string,
+  _prev: ActionResult | null,
+  fd: FormData,
+): Promise<ActionResult> {
   await requireRole("story");
-  await updateStoryEvent(id, parse(fd));
+  const input = parse(fd);
+  if (!input.title) {
+    return actionError("Formdaki uyarıları gider.", {
+      title: "Başlığı yaz.",
+    });
+  }
+  const updated = await updateStoryEvent(id, input);
+  if (!updated) return actionError("Bu dönem silinmiş; sayfayı yenile.");
   await logAudit({ action: "update", entity: "story", entityId: id });
   revalidate();
+  return actionOk(`"${updated.title}" kaydedildi.`);
 }
 
-export async function deleteStoryAction(fd: FormData) {
+/** "Sil", behind a confirm. It used to delete on the first click, silently. */
+export async function deleteStoryAction(
+  _prev: ActionResult | null,
+  fd: FormData,
+): Promise<ActionResult> {
   await requireRole("story");
   const id = String(fd.get("id") ?? "");
-  if (!id) return;
-  await deleteStoryEvent(id);
-  await logAudit({ action: "delete", entity: "story", entityId: id });
+  if (!id) return actionError("Dönem seçilmedi.");
+  const removed = await deleteStoryEvent(id);
   revalidate();
+  if (!removed) return actionError("Dönem zaten silinmiş.");
+  await logAudit({ action: "delete", entity: "story", entityId: id });
+  return actionOk("Dönem silindi.");
 }

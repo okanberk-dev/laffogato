@@ -1,13 +1,18 @@
 import {
+  ActionForm,
+  FormFieldError,
+  FormMessage,
+  SubmitButton,
+} from "@/components/admin/action-form";
+import {
   Card,
   Checkbox,
-  DangerButton,
   Field,
   PageHeader,
-  PrimaryButton,
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
+import { ConfirmButton } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { listPress, type AdminPress } from "@/lib/admin/store";
 
@@ -23,13 +28,16 @@ export const dynamic = "force-dynamic";
 function Row({ item }: { item: AdminPress }) {
   return (
     <Card>
-      <form
+      <ActionForm
         action={updatePressAction.bind(null, item.id)}
         className="grid gap-3"
       >
-        <Field label="Yayın adı">
-          <TextInput name="name" defaultValue={item.name} />
-        </Field>
+        <div className="grid content-start gap-1.5">
+          <Field label="Yayın adı">
+            <TextInput name="name" defaultValue={item.name} />
+          </Field>
+          <FormFieldError name="name" />
+        </div>
         <Field label="Alıntı">
           <Textarea name="quote" defaultValue={item.quote} />
         </Field>
@@ -47,17 +55,20 @@ function Row({ item }: { item: AdminPress }) {
               label="Aktif"
               defaultChecked={item.isActive}
             />
-            <PrimaryButton type="submit">Kaydet</PrimaryButton>
+            <SubmitButton>Kaydet</SubmitButton>
           </div>
         </div>
-      </form>
-      <form
-        action={deletePressAction}
-        className="mt-2 border-t border-neutral-100 pt-2"
-      >
-        <input type="hidden" name="id" value={item.id} />
-        <DangerButton type="submit">Sil</DangerButton>
-      </form>
+        <FormMessage />
+      </ActionForm>
+      <div className="mt-2 border-t border-neutral-100 pt-2">
+        <ConfirmButton
+          action={deletePressAction}
+          hidden={{ id: item.id }}
+          label="Sil"
+          title="Alıntı silinsin mi?"
+          description="Alıntı sitenin basın bölümünden kalkar ve kalıcı olarak silinir. Bir süreliğine kaldırmak için Aktif kutusunu kaldırıp kaydet."
+        />
+      </div>
     </Card>
   );
 }
@@ -76,10 +87,17 @@ export default async function AdminPressPage() {
 
       <Card className="mb-6">
         <h3 className="mb-3 text-sm font-medium">+ Yeni basın alıntısı</h3>
-        <form action={createPressAction} className="grid gap-3">
-          <Field label="Yayın adı">
-            <TextInput name="name" placeholder="Monocle" />
-          </Field>
+        <ActionForm
+          action={createPressAction}
+          resetOnSuccess
+          className="grid gap-3"
+        >
+          <div className="grid content-start gap-1.5">
+            <Field label="Yayın adı">
+              <TextInput name="name" placeholder="Monocle" />
+            </Field>
+            <FormFieldError name="name" />
+          </div>
           <Field label="Alıntı">
             <Textarea
               name="quote"
@@ -96,10 +114,11 @@ export default async function AdminPressPage() {
             </Field>
             <div className="flex items-end justify-between gap-3">
               <Checkbox name="isActive" label="Aktif" defaultChecked />
-              <PrimaryButton type="submit">Ekle</PrimaryButton>
+              <SubmitButton pendingLabel="Ekleniyor…">Ekle</SubmitButton>
             </div>
           </div>
-        </form>
+          <FormMessage />
+        </ActionForm>
       </Card>
 
       <div className="grid gap-3">

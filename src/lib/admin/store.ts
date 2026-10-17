@@ -5582,13 +5582,15 @@ export async function updateShopHeroSlide(
   return getShopHeroSlide(id);
 }
 
-export async function deleteShopHeroSlide(id: string): Promise<void> {
+/** True when a slide was removed (false: it was already gone). */
+export async function deleteShopHeroSlide(id: string): Promise<boolean> {
   await ensureShopHeroSeed();
   const sb = getDb();
-  check(
-    await sb.from(TABLES.shopHeroSlides).delete().eq("id", id),
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.shopHeroSlides).delete().eq("id", id).select("id"),
     "deleteShopHeroSlide",
   );
+  return deleted.length > 0;
 }
 
 // ─── Editorial content (reels / press / story) ─────────────────
@@ -5683,10 +5685,15 @@ function contentResource<Row extends ContentRowBase>(
     return get(id);
   };
 
-  const remove = async (id: string): Promise<void> => {
+  /** True when a row was removed (false: it was already gone). */
+  const remove = async (id: string): Promise<boolean> => {
     await ensure();
     const sb = getDb();
-    check(await sb.from(table).delete().eq("id", id), `delete.${table}`);
+    const deleted = rows<{ id: string }>(
+      await sb.from(table).delete().eq("id", id).select("id"),
+      `delete.${table}`,
+    );
+    return deleted.length > 0;
   };
 
   return { list, listActive, get, create, update, remove };
@@ -6084,13 +6091,15 @@ export async function updateAppSlide(
   return getAppSlide(id);
 }
 
-export async function deleteAppSlide(id: string): Promise<void> {
+/** True when a slide was removed (false: it was already gone). */
+export async function deleteAppSlide(id: string): Promise<boolean> {
   await ensureAppContentSeed();
   const sb = getDb();
-  check(
-    await sb.from(TABLES.appHeroSlides).delete().eq("id", id),
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.appHeroSlides).delete().eq("id", id).select("id"),
     "deleteAppSlide",
   );
+  return deleted.length > 0;
 }
 
 // ─── Mobile app posts: campaigns, collaborations, events ──────────────────
@@ -6299,10 +6308,15 @@ export async function setAppPostEmailCampaign(
   return rows<{ id: string }>(res, "setAppPostEmailCampaign").length > 0;
 }
 
-export async function deleteAppPost(id: string): Promise<void> {
+/** True when a post was removed (false: it was already gone). */
+export async function deleteAppPost(id: string): Promise<boolean> {
   await ensureAppContentSeed();
   const sb = getDb();
-  check(await sb.from(TABLES.appPosts).delete().eq("id", id), "deleteAppPost");
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.appPosts).delete().eq("id", id).select("id"),
+    "deleteAppPost",
+  );
+  return deleted.length > 0;
 }
 
 export async function listAppAnnouncements(): Promise<AdminAppAnnouncement[]> {
@@ -6406,11 +6420,13 @@ export async function updateAppAnnouncement(
   return getAppAnnouncement(id);
 }
 
-export async function deleteAppAnnouncement(id: string): Promise<void> {
+/** True when an announcement was removed (false: it was already gone). */
+export async function deleteAppAnnouncement(id: string): Promise<boolean> {
   await ensureAppContentSeed();
   const sb = getDb();
-  check(
-    await sb.from(TABLES.appAnnouncements).delete().eq("id", id),
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.appAnnouncements).delete().eq("id", id).select("id"),
     "deleteAppAnnouncement",
   );
+  return deleted.length > 0;
 }

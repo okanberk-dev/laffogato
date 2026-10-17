@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { Card, DangerButton, PageHeader } from "@/components/admin/forms";
+import { Card, PageHeader } from "@/components/admin/forms";
+import { ConfirmButton } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { listShopHeroSlides } from "@/lib/admin/store";
 
@@ -98,10 +99,13 @@ export default async function AdminShopHeroPage() {
                   >
                     Düzenle
                   </Link>
-                  <form action={deleteSlideAction}>
-                    <input type="hidden" name="id" value={s.id} />
-                    <DangerButton type="submit">Sil</DangerButton>
-                  </form>
+                  <ConfirmButton
+                    action={deleteSlideAction}
+                    hidden={{ id: s.id }}
+                    label="Sil"
+                    title={`"${s.title}" silinsin mi?`}
+                    description="Slayt mağaza sayfasının karuselinden hemen kalkar ve kalıcı olarak silinir. Bir süreliğine kaldırmak için Düzenle'den pasif yap."
+                  />
                 </div>
               </div>
             </Card>

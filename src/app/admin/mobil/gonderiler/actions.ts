@@ -3,9 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { startCampaignSend } from "@/lib/admin/campaign-mail";
+import { setAdminFlash } from "@/lib/admin/flash";
 import { isPublishWindowOpen } from "@/lib/admin/publish-window";
 import {
   createAppPost,
@@ -154,6 +160,7 @@ export async function createPostAction(formData: FormData) {
     session.email,
   );
   revalidatePath(LIST_PATH);
+  await setAdminFlash(`"${created.title}" gönderisi eklendi.`);
   redirect(listPathAfter(outcome));
 }
 
@@ -182,14 +189,21 @@ export async function updatePostAction(id: string, formData: FormData) {
     session.email,
   );
   revalidatePath(LIST_PATH);
+  await setAdminFlash(`"${updated.title}" kaydedildi.`);
   redirect(listPathAfter(outcome));
 }
 
-export async function deletePostAction(formData: FormData) {
+/** "Sil", behind a confirm. It used to delete on the first click, silently. */
+export async function deletePostAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("mobileApp");
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
-  await deleteAppPost(id);
-  await logAudit({ action: "delete", entity: "app_post", entityId: id });
+  if (!id) return actionError("Gönderi seçilmedi.");
+  const removed = await deleteAppPost(id);
   revalidatePath(LIST_PATH);
+  if (!removed) return actionError("Gönderi zaten silinmiş.");
+  await logAudit({ action: "delete", entity: "app_post", entityId: id });
+  return actionOk("Gönderi silindi, uygulamadan kalktı.");
 }

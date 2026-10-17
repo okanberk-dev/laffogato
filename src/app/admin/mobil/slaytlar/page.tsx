@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { Card, DangerButton, PageHeader } from "@/components/admin/forms";
+import { Card, PageHeader } from "@/components/admin/forms";
+import { ConfirmButton } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import {
   APP_SLIDE_ROUTE_LABELS,
@@ -132,10 +133,13 @@ export default async function AdminAppSlidesPage() {
                   >
                     Düzenle
                   </Link>
-                  <form action={deleteSlideAction}>
-                    <input type="hidden" name="id" value={s.id} />
-                    <DangerButton type="submit">Sil</DangerButton>
-                  </form>
+                  <ConfirmButton
+                    action={deleteSlideAction}
+                    hidden={{ id: s.id }}
+                    label="Sil"
+                    title={`"${s.title}" silinsin mi?`}
+                    description="Slayt uygulamanın ana sayfasından hemen kalkar ve kalıcı olarak silinir. Bir süreliğine kaldırmak için Düzenle'den yayından al."
+                  />
                 </div>
               </div>
             </Card>
