@@ -18,7 +18,7 @@ export default function AdminLoading() {
         Sayfa yükleniyor
       </p>
       <div aria-hidden="true" className="motion-safe:animate-pulse">
-        <div className="mb-8 grid gap-3">
+        <div className="mb-8 flex flex-col gap-3">
           <div className="h-3 w-32 rounded-full bg-[var(--admin-neutral-soft)]" />
           <div className="h-8 w-64 max-w-full rounded-xl bg-[var(--admin-neutral-soft)]" />
           <div className="h-4 w-96 max-w-full rounded-full bg-[var(--admin-neutral-soft)]" />
