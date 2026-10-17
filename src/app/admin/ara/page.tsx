@@ -3,12 +3,11 @@ import { redirect } from "next/navigation";
 
 import { AdminSearchField } from "@/components/admin/admin-search";
 import {
-  Card,
   PageHeader,
   formatDateTime,
   formatTRY,
 } from "@/components/admin/forms";
-import { EmptyState } from "@/components/admin/ui/detail";
+import { EmptyState, Section } from "@/components/admin/ui/detail";
 import { NUMERIC_STYLE } from "@/components/admin/ui/styles";
 import { getAdminSession } from "@/lib/admin/auth";
 import { landingPathFor } from "@/lib/admin/roles";
@@ -39,74 +38,63 @@ const SECTION_HINTS: Record<SearchSection, string> = {
 };
 
 function ResultGroup({ group }: { group: SearchGroup }) {
-  const headingId = `ara-${group.section}`;
+  const more = group.more ? (
+    group.listHref ? (
+      <Link
+        href={group.listHref}
+        className="inline-flex min-h-8 items-center text-sm text-[var(--admin-primary)] underline-offset-4 hover:underline"
+      >
+        İlk {SEARCH_LIMIT} sonuç · listede ara
+      </Link>
+    ) : (
+      <span className="text-sm text-[var(--admin-text-soft)]">
+        İlk {SEARCH_LIMIT} sonuç
+      </span>
+    )
+  ) : null;
   return (
-    <Card className="p-0 sm:p-0">
-      <section aria-labelledby={headingId}>
-        <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[var(--admin-border)] px-4 py-3 sm:px-6">
-          <h2
-            id={headingId}
-            className="text-base font-semibold text-[var(--admin-text)]"
-          >
-            {group.label}
-          </h2>
-          {group.more && group.listHref ? (
-            <Link
-              href={group.listHref}
-              className="inline-flex min-h-8 items-center text-sm text-[var(--admin-primary)] underline-offset-4 hover:underline"
-            >
-              İlk {SEARCH_LIMIT} sonuç · listede ara
-            </Link>
-          ) : group.more ? (
-            <span className="text-sm text-[var(--admin-text-mute)]">
-              İlk {SEARCH_LIMIT} sonuç
-            </span>
-          ) : null}
-        </header>
-        {group.hits.length === 0 ? (
-          <p className="px-4 py-4 text-sm text-[var(--admin-text-soft)] sm:px-6">
-            Sonuç yok.
-          </p>
-        ) : (
-          <ul className="divide-y divide-[var(--admin-border)]">
-            {group.hits.map((hit) => (
-              <li key={hit.href}>
-                <Link
-                  href={hit.href}
-                  className="flex min-h-[44px] flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 hover:bg-[var(--admin-surface-2)] sm:px-6"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium text-[var(--admin-text)]">
-                      {hit.title}
-                    </span>
-                    {hit.meta.length > 0 && (
-                      <span className="block truncate text-xs text-[var(--admin-text-soft)]">
-                        {hit.meta.join(" · ")}
-                      </span>
-                    )}
+    <Section title={group.label} actions={more} flush>
+      {group.hits.length === 0 ? (
+        <p className="px-4 py-4 text-sm text-[var(--admin-text-soft)] sm:px-6">
+          Sonuç yok.
+        </p>
+      ) : (
+        <ul className="divide-y divide-[var(--admin-border)]">
+          {group.hits.map((hit) => (
+            <li key={hit.href}>
+              <Link
+                href={hit.href}
+                className="grid min-h-[44px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-3 hover:bg-[var(--admin-surface-2)] sm:px-6"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-medium text-[var(--admin-text)]">
+                    {hit.title}
                   </span>
-                  {(hit.amountMinor !== undefined || hit.at) && (
-                    <span className="shrink-0 text-right text-xs text-[var(--admin-text-soft)]">
-                      {hit.amountMinor !== undefined && (
-                        <span
-                          className="block text-sm text-[var(--admin-text)]"
-                          style={NUMERIC_STYLE}
-                        >
-                          {formatTRY(hit.amountMinor)}
-                        </span>
-                      )}
-                      {hit.at && (
-                        <span className="block">{formatDateTime(hit.at)}</span>
-                      )}
+                  {hit.meta.length > 0 && (
+                    <span className="block truncate text-xs text-[var(--admin-text-soft)]">
+                      {hit.meta.join(" · ")}
                     </span>
                   )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </Card>
+                </span>
+                <span className="text-right text-xs text-[var(--admin-text-soft)]">
+                  {hit.amountMinor !== undefined && (
+                    <span
+                      className="block text-sm text-[var(--admin-text)]"
+                      style={NUMERIC_STYLE}
+                    >
+                      {formatTRY(hit.amountMinor)}
+                    </span>
+                  )}
+                  {hit.at && (
+                    <span className="block">{formatDateTime(hit.at)}</span>
+                  )}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
   );
 }
 
