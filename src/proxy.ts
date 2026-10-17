@@ -103,7 +103,11 @@ export async function proxy(request: NextRequest) {
   if (!session) {
     const url = request.nextUrl.clone();
     url.pathname = "/admin/giris";
-    url.searchParams.set("next", path);
+    // The query goes INTO `next`, not along with it: the old clone kept it
+    // on the sign-in URL (`/admin/giris?q=<customer e-mail>&next=…`) and
+    // dropped it from the way back, so a re-login lost the filters.
+    url.search = "";
+    url.searchParams.set("next", path + request.nextUrl.search);
     const redirect = NextResponse.redirect(url);
     // Keep any token the refresh above rotated; dropping it would leave the
     // browser holding a refresh token Supabase has already retired.

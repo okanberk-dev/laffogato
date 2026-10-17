@@ -36,6 +36,24 @@ describe("admin proxy and the 2FA step", () => {
     );
   });
 
+  it("carries the page's query in next, not on the sign-in URL", async () => {
+    // A re-login used to land on the unfiltered list, and the original query
+    // (here a customer e-mail) stayed on /admin/giris's own URL.
+    const { proxy } = await import("@/proxy");
+    const res = await proxy(
+      new NextRequest(
+        "https://site.test/admin/siparisler?durum=acik&q=ayse%40example.com",
+      ),
+    );
+    expect(res.status).toBe(307);
+    const to = new URL(res.headers.get("location")!);
+    expect(to.pathname).toBe("/admin/giris");
+    expect([...to.searchParams.keys()]).toEqual(["next"]);
+    expect(to.searchParams.get("next")).toBe(
+      "/admin/siparisler?durum=acik&q=ayse%40example.com",
+    );
+  });
+
   it("does not open look-alike paths", async () => {
     const { proxy } = await import("@/proxy");
     const res = await proxy(

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { TwoFAVerifyForm } from "@/components/admin/twofa-verify-form";
 import { getPendingSession } from "@/lib/admin/auth";
+import { adminNextPath } from "@/lib/admin/next-path";
 
 export const metadata = { title: "Admin · 2FA" };
 export const dynamic = "force-dynamic";
@@ -13,8 +14,8 @@ interface PageProps {
 export default async function TwoFAPage({ searchParams }: PageProps) {
   const session = await getPendingSession();
   if (!session) redirect("/admin/giris");
-  const sp = await searchParams;
-  const next = sp.next ?? "/admin";
+  // Empty, not "/admin": the action then picks the page the role can open.
+  const next = adminNextPath((await searchParams).next) ?? "";
 
   return (
     <main className="mx-auto grid min-h-[70vh] max-w-md place-items-center px-4 py-10 sm:px-6">

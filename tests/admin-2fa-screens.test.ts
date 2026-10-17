@@ -42,9 +42,10 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+const complete2FA = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/admin/auth", () => ({
   cancelPending2FA: vi.fn(),
-  complete2FA: vi.fn(),
+  complete2FA,
   getAdminSession: async () => session.current,
 }));
 vi.mock("@/lib/admin/flash", () => ({
@@ -137,6 +138,28 @@ describe("turning 2FA off", () => {
       "danger",
     ]);
     expect(verifyToken).not.toHaveBeenCalled();
+  });
+});
+
+describe("the 2FA step of signing in", () => {
+  it("lands a cashier on the till, not on the dashboard that bounces them", async () => {
+    const { verify2FAAction } = await import("@/app/admin/iki-asama/actions");
+    complete2FA.mockResolvedValue({ ok: true, role: "cashier" });
+    const fd = code("123456");
+    fd.set("next", "");
+    expect(await redirectOf(() => verify2FAAction({}, fd))).toBe("/admin/kasa");
+  });
+
+  it("returns to the page the session expired on, query included", async () => {
+    const { verify2FAAction } = await import("@/app/admin/iki-asama/actions");
+    complete2FA.mockResolvedValue({ ok: true, role: "owner" });
+    const fd = code("123456");
+    fd.set("next", "/admin/siparisler?durum=acik");
+    expect(await redirectOf(() => verify2FAAction({}, fd))).toBe(
+      "/admin/siparisler?durum=acik",
+    );
+    fd.set("next", "//evil.example");
+    expect(await redirectOf(() => verify2FAAction({}, fd))).toBe("/admin");
   });
 });
 

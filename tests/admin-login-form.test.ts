@@ -11,8 +11,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const signInAdmin = vi.hoisted(() => vi.fn());
 const logAudit = vi.hoisted(() => vi.fn());
 
+const redirect = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({
-  redirect: vi.fn(),
+  redirect,
   unstable_rethrow: () => {},
 }));
 vi.mock("@/lib/admin/auth", () => ({ signInAdmin }));
@@ -30,6 +31,7 @@ function form(fields: Record<string, string>): FormData {
 beforeEach(() => {
   signInAdmin.mockReset();
   logAudit.mockReset();
+  redirect.mockReset();
   signInAdmin.mockResolvedValue({ ok: false, error: "E-posta veya şifre hatalı." });
 });
 
@@ -50,6 +52,21 @@ describe("loginAction", () => {
     );
     expect(res.error).toBe("Geçerli bir e-posta gir.");
     expect(signInAdmin).not.toHaveBeenCalled();
+  });
+
+  it("follows a panel next with its query, and nothing else", async () => {
+    signInAdmin.mockResolvedValue({ ok: true, role: "cashier" });
+    const sign = (next: string) =>
+      loginAction(
+        {},
+        form({ email: "kasa@laffogato.net", password: "parola", next }),
+      );
+    await sign("/admin/kasa?sekme=damga");
+    expect(redirect).toHaveBeenLastCalledWith("/admin/kasa?sekme=damga");
+    for (const off of ["/odeme", "/admin/../uye/hesap", "//evil.example"]) {
+      await sign(off);
+      expect(redirect, off).toHaveBeenLastCalledWith("/admin/kasa");
+    }
   });
 
   it("still checks a 254-character address", async () => {

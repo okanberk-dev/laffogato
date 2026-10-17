@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getAdminSession } from "@/lib/admin/auth";
+import { adminNextPath } from "@/lib/admin/next-path";
 import { landingPathFor } from "@/lib/admin/roles";
 
 import { LoginForm } from "./login-form";
@@ -13,12 +14,10 @@ interface PageProps {
 
 export default async function AdminLoginPage({ searchParams }: PageProps) {
   const session = await getAdminSession();
-  const { next } = await searchParams;
+  const next = adminNextPath((await searchParams).next) ?? undefined;
 
   if (session) {
-    redirect(
-      next && next.startsWith("/admin") ? next : landingPathFor(session.role),
-    );
+    redirect(next ?? landingPathFor(session.role));
   }
 
   return (

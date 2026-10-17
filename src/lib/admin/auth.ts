@@ -423,6 +423,8 @@ export async function getPendingSession(): Promise<PendingAuthSession | null> {
 export interface TwoFAResult {
   ok: boolean;
   error?: string;
+  /** Role of the signed-in account - the 2FA step redirects on it. */
+  role?: AdminRole;
 }
 
 export async function complete2FA(token: string): Promise<TwoFAResult> {
@@ -473,7 +475,7 @@ export async function complete2FA(token: string): Promise<TwoFAResult> {
   await clearLoginLimit("admin-2fa-account", "*", pending.email);
   const cookieStore = await cookies();
   await setActiveSession(account, cookieStore);
-  return { ok: true };
+  return { ok: true, role: account.role };
 }
 
 export async function cancelPending2FA(): Promise<void> {

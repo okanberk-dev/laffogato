@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { logAudit } from "@/lib/admin/audit";
 import { signInAdmin } from "@/lib/admin/auth";
+import { adminNextPath } from "@/lib/admin/next-path";
 import { landingPathFor } from "@/lib/admin/roles";
 
 export interface LoginState {
@@ -60,7 +61,7 @@ export async function loginAction(
   // there and bounce them straight back out. `landingPathFor` is where the
   // role can actually work.
   const landing = landingPathFor(result.role ?? "staff");
-  const next = requested.startsWith("/admin") ? requested : landing;
+  const next = adminNextPath(requested) ?? landing;
 
   if (result.needs2FA) {
     redirect(`/admin/iki-asama?next=${encodeURIComponent(next)}`);
