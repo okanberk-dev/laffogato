@@ -46,6 +46,22 @@ function atBlock(prelude: string, containing = "") {
 }
 
 const layout = read("src/app/admin/layout.tsx");
+const token = (name: string) => {
+  const m = new RegExp(`"${name}":\\s*"(#[0-9A-Fa-f]{6})"`).exec(layout);
+  if (!m) throw new Error(`${name} not in layout.tsx`);
+  return m[1];
+};
+const luminance = (hex: string) => {
+  const c = (i: number) => {
+    const v = parseInt(hex.slice(1 + i, 3 + i), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * c(0) + 0.7152 * c(2) + 0.0722 * c(4);
+};
+const contrast = (a: string, b: string) => {
+  const [x, y] = [luminance(a), luminance(b)];
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+};
 
 describe("the panel's buttons keep their Tailwind look", () => {
   it("rolls the site's element resets back inside the admin root", () => {
@@ -108,5 +124,33 @@ describe("the panel's fields keep their size classes", () => {
     expect(guard.at).toBeGreaterThan(
       rule("[data-admin-root] :is(input, textarea, select)").at,
     );
+  });
+});
+
+describe("the panel draws one focus ring", () => {
+  it("an espresso outline, no halo, never the faint gold ring", () => {
+    const focus = rule("[data-admin-root] :focus-visible");
+    expect(focus.at).toBeGreaterThan(-1);
+    expect(focus.body).toContain("outline: 2px solid var(--admin-primary);");
+    expect(focus.body).toContain("outline-offset: 2px;");
+    expect(focus.body).toContain("box-shadow: none;");
+    // Rolling back would bring the kit's gold /45 ring: 1.59:1 on white.
+    expect(focus.body).not.toContain("revert-layer");
+    // The site's `[tabindex]:focus-visible` weighs the same (0,2,0).
+    const site = code.indexOf("[tabindex]:focus-visible {");
+    expect(site).toBeGreaterThan(-1);
+    expect(focus.at).toBeGreaterThan(site);
+  });
+
+  it("clears 3:1 on every ground of the panel (WCAG 1.4.11)", () => {
+    const ring = token("--admin-primary");
+    for (const ground of [
+      "#FFFFFF",
+      token("--admin-bg"),
+      token("--admin-surface-2"),
+      token("--admin-neutral-soft"),
+    ]) {
+      expect(contrast(ring, ground), ground).toBeGreaterThanOrEqual(3);
+    }
   });
 });

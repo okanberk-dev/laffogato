@@ -6633,6 +6633,18 @@ select {
   }
 }
 
+/* One focus ring in the panel (SHE-16): the site's green ring and halo
+   (`:focus-visible` near the top) beat the kit's ring classes, and a
+   focused field showed both. The kit's own gold ring at /45 measures 1.59:1
+   on white, under the 3:1 a focus indicator needs, so the panel does not
+   roll back to it: a 2px espresso outline (12.46:1 on white), and no shadow,
+   so neither the halo nor the kit's ring doubles it. */
+[data-admin-root] :focus-visible {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
 /* ────────────────────────────────────────────────────────────────
    Print rules - used by admin order detail "Fiş yazdır"
    ──────────���───────────────────────────────────────────────────── */
