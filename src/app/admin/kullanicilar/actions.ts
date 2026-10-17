@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { grantBarista, revokeBarista } from "@/lib/admin/staff-members";
@@ -107,14 +112,18 @@ export async function resetAdminPasswordAction(
   return { message: "Parola değiştirildi." };
 }
 
+/**
+ * "Kullanıcıyı sil", behind a confirm (it used to delete on the first
+ * click). Answers an ActionResult for ConfirmButton's toast.
+ */
 export async function deleteAdminUserAction(
-  _prev: AdminUserState,
+  _prev: ActionResult | null,
   formData: FormData,
-): Promise<AdminUserState> {
+): Promise<ActionResult> {
   await requireRole("adminUsers");
   const email = normalizeAdminEmail(String(formData.get("email") ?? ""));
   const result = await deleteAdminUser(email);
-  if (!result.ok) return failed(result);
+  if (!result.ok) return actionError(result.message);
 
   await logAudit({
     action: "delete",
@@ -123,7 +132,7 @@ export async function deleteAdminUserAction(
     payload: { role: result.value.role },
   });
   revalidatePath("/admin/kullanicilar");
-  return { message: `${result.value.email} silindi.` };
+  return actionOk(`${result.value.email} silindi.`);
 }
 
 // ─── Uygulamadan kasa (barista) ─────────────────────────────────────────
@@ -162,16 +171,17 @@ export async function grantBaristaAction(
   };
 }
 
+/** "Yetkiyi kaldır", behind a confirm; the answer is ConfirmButton's toast. */
 export async function revokeBaristaAction(
-  _prev: AdminUserState,
+  _prev: ActionResult | null,
   formData: FormData,
-): Promise<AdminUserState> {
+): Promise<ActionResult> {
   await requireRole("adminUsers");
   const email = staffEmail(formData);
-  if (!email) return { error: "Geçerli bir e-posta gir." };
+  if (!email) return actionError("Geçerli bir e-posta gir.");
 
   const result = await revokeBarista(email);
-  if (!result.ok) return { error: result.message };
+  if (!result.ok) return actionError(result.message);
 
   await logAudit({
     action: "delete",
@@ -180,5 +190,5 @@ export async function revokeBaristaAction(
     payload: { role: result.value.role },
   });
   revalidatePath("/admin/kullanicilar");
-  return { message: `${result.value.email} kasa yetkisi kaldırıldı.` };
+  return actionOk(`${result.value.email} kasa yetkisi kaldırıldı.`);
 }

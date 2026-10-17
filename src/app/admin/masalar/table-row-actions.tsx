@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useFormStatus } from "react-dom";
 
 import { GhostButton } from "@/components/admin/forms";
 
@@ -28,43 +27,5 @@ export function CopyTableLink({ url }: { url: string }) {
           ? "Kopyalanamadı"
           : "Bağlantıyı kopyala"}
     </GhostButton>
-  );
-}
-
-function RotateButton() {
-  const { pending } = useFormStatus();
-  return (
-    <GhostButton
-      type="submit"
-      className="text-xs"
-      disabled={pending}
-      onClick={(e) => {
-        if (
-          !confirm(
-            "Bu masanın kodu yenilensin mi? Masadaki basılı QR hemen çalışmaz olur; yeni kartı yazdırıp eskisini masadan hemen kaldırman gerekir.",
-          )
-        ) {
-          e.preventDefault();
-        }
-      }}
-    >
-      {pending ? "Yenileniyor…" : "Kodu yenile"}
-    </GhostButton>
-  );
-}
-
-/** "Kodu yenile", behind a confirm: it kills the printed card at once. */
-export function RotateTableCodeForm({
-  id,
-  action,
-}: {
-  id: string;
-  action: (formData: FormData) => Promise<void>;
-}) {
-  return (
-    <form action={action}>
-      <input type="hidden" name="id" value={id} />
-      <RotateButton />
-    </form>
   );
 }

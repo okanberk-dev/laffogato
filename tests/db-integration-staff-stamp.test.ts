@@ -216,16 +216,19 @@ maybe("barista stamping from the app, in a real Postgres", () => {
 
     it("revokes, keeps the row, and re-grants it later", async () => {
       await actions.grantBaristaAction({}, form(BARISTA));
-      const revoked = await actions.revokeBaristaAction({}, form(BARISTA));
-      expect(revoked.error).toBeUndefined();
+      const revoked = await actions.revokeBaristaAction(null, form(BARISTA));
+      expect(revoked.ok).toBe(true);
       const { rows } = await pool!.query(
         `select "isActive" from public.staff_members where email = $1`,
         [BARISTA],
       );
       expect(rows).toEqual([{ isActive: false }]);
 
-      const twice = await actions.revokeBaristaAction({}, form(BARISTA));
-      expect(twice.error).toMatch(/açık bir barista yetkisi yok/);
+      const twice = await actions.revokeBaristaAction(null, form(BARISTA));
+      expect(twice).toMatchObject({
+        ok: false,
+        error: expect.stringMatching(/açık bir barista yetkisi yok/),
+      });
 
       const back = await actions.grantBaristaAction({}, form(BARISTA));
       expect(back.error).toBeUndefined();
@@ -347,7 +350,7 @@ maybe("barista stamping from the app, in a real Postgres", () => {
 
     it("stops stamping the moment the grant is revoked", async () => {
       await actions.grantBaristaAction({}, form(BARISTA));
-      await actions.revokeBaristaAction({}, form(BARISTA));
+      await actions.revokeBaristaAction(null, form(BARISTA));
       const issued = await issueCounterToken(MEMBER);
       if (!issued.ok) throw new Error("rate limited");
       const res = await POST(
@@ -373,7 +376,7 @@ maybe("barista stamping from the app, in a real Postgres", () => {
         till: true,
       });
 
-      await actions.revokeBaristaAction({}, form(BARISTA));
+      await actions.revokeBaristaAction(null, form(BARISTA));
       const revoked = await GET_ME(meRequest(BARISTA));
       expect(((await revoked.json()) as { staff: unknown }).staff).toEqual({
         till: false,

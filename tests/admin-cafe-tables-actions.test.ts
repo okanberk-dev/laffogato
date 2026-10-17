@@ -16,6 +16,7 @@ const {
   setCafeTableActive,
   rotateCafeTableCode,
   redirect,
+  setAdminFlash,
 } = vi.hoisted(() => ({
   requireRole: vi.fn(async () => ({ email: "m@ornek.com", role: "manager" })),
   logAudit: vi.fn(async () => {}),
@@ -26,12 +27,14 @@ const {
   redirect: vi.fn(() => {
     throw new Error("NEXT_REDIRECT");
   }),
+  setAdminFlash: vi.fn(async () => {}),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/lib/admin/auth", () => ({ requireRole }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit }));
+vi.mock("@/lib/admin/flash", () => ({ setAdminFlash }));
 vi.mock("@/lib/admin/cafe-tables", () => ({
   createCafeTable,
   updateCafeTable,
@@ -97,9 +100,10 @@ describe("masalar actions", () => {
     for (const run of [
       () =>
         actions.setCafeTableActiveAction(
+          null,
           form({ id: "tbl-0003", isActive: "false" }),
         ),
-      () => actions.rotateCafeTableCodeAction(form({ id: "tbl-0003" })),
+      () => actions.rotateCafeTableCodeAction(null, form({ id: "tbl-0003" })),
     ]) {
       requireRole.mockClear();
       await run();
@@ -119,6 +123,10 @@ describe("masalar actions", () => {
     expect(logAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "create", entity: "cafe_table" }),
     );
+    // The list it lands on says so (a toast from the flash cookie).
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      expect.stringContaining("Bahçe 3 eklendi"),
+    );
   });
 
   it("refuses an empty or too long name without touching the store", async () => {
@@ -134,14 +142,17 @@ describe("masalar actions", () => {
   });
 
   it("refuses an id that is not a table's", async () => {
-    await actions.rotateCafeTableCodeAction(form({ id: "ord-0001" }));
-    await actions.setCafeTableActiveAction(form({ id: "x", isActive: "true" }));
+    await actions.rotateCafeTableCodeAction(null, form({ id: "ord-0001" }));
+    await actions.setCafeTableActiveAction(
+      null,
+      form({ id: "x", isActive: "true" }),
+    );
     expect(rotateCafeTableCode).not.toHaveBeenCalled();
     expect(setCafeTableActive).not.toHaveBeenCalled();
   });
 
   it("logs a rotation without either code", async () => {
-    await actions.rotateCafeTableCodeAction(form({ id: "tbl-0003" }));
+    await actions.rotateCafeTableCodeAction(null, form({ id: "tbl-0003" }));
     expect(rotateCafeTableCode).toHaveBeenCalledWith("tbl-0003");
     const payload = JSON.stringify(logAudit.mock.calls.at(-1));
     expect(payload).toContain("code_rotated");
@@ -149,10 +160,52 @@ describe("masalar actions", () => {
   });
 
   it("toggles the active flag from an explicit value", async () => {
-    await actions.setCafeTableActiveAction(
+    const res = await actions.setCafeTableActiveAction(
+      null,
       form({ id: "tbl-0003", isActive: "false" }),
     );
     expect(setCafeTableActive).toHaveBeenCalledWith("tbl-0003", false);
+    expect(res).toMatchObject({ ok: true });
+  });
+
+  it("says what failed instead of returning nothing", async () => {
+    // Pasifleştir, Etkinleştir and Kodu yenile used to `return;` on every
+    // refusal: the operator could not tell a failure from a slow page.
+    const bad = await actions.setCafeTableActiveAction(
+      null,
+      form({ id: "x", isActive: "true" }),
+    );
+    expect(bad.ok).toBe(false);
+    setCafeTableActive.mockResolvedValueOnce({
+      ok: false,
+      error: "not_found",
+      message: "Masa bulunamadı.",
+    });
+    expect(
+      await actions.setCafeTableActiveAction(
+        null,
+        form({ id: "tbl-0003", isActive: "true" }),
+      ),
+    ).toEqual({ ok: false, error: "Masa bulunamadı." });
+    rotateCafeTableCode.mockResolvedValueOnce({
+      ok: false,
+      error: "not_found",
+      message: "Masa bulunamadı.",
+    });
+    expect(
+      await actions.rotateCafeTableCodeAction(null, form({ id: "tbl-0003" })),
+    ).toEqual({ ok: false, error: "Masa bulunamadı." });
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("answers a rotation with a warning that stays until read", async () => {
+    // The printed card is dead from now on; the toast must not fade.
+    const res = await actions.rotateCafeTableCodeAction(
+      null,
+      form({ id: "tbl-0003" }),
+    );
+    expect(res).toMatchObject({ ok: true, tone: "warning" });
+    expect(res.ok && res.message).toContain("Bahçe 3");
   });
 });
 
