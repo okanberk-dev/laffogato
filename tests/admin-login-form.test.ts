@@ -114,8 +114,8 @@ describe("LoginForm", () => {
   });
 
   it("names its fields with the kit's labels", () => {
-    expect(html).toMatch(/<label[^>]*>.*E-posta.*<input[^>]*name="email"/s);
-    expect(html).toMatch(/<label[^>]*>.*Şifre.*<input[^>]*name="password"/s);
+    expect(html).toMatch(/<label[^>]*>[\s\S]*E-posta[\s\S]*<input[^>]*name="email"/);
+    expect(html).toMatch(/<label[^>]*>[\s\S]*Şifre[\s\S]*<input[^>]*name="password"/);
   });
 });
 
