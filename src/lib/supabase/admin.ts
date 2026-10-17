@@ -16,9 +16,10 @@ import { SUPABASE_URL } from "./config";
  *   - `server-only`, and read from `process.env` with NO `NEXT_PUBLIC_`
  *     prefix, so it can never reach a browser or the app bundle;
  *   - the exports that use it (`deleteSupabaseIdentity`,
- *     `updateSupabasePassword`, `findSupabaseIdentityByEmail`) touch the auth
- *     admin API and nothing in the data schema - member records, orders and
- *     money stay in this project's own Postgres (docs/API-MOBILE.md §0).
+ *     `updateSupabasePassword`, `findSupabaseIdentityByEmail`,
+ *     `keepSupabaseAwake`) touch the auth admin API and nothing in the data
+ *     schema - member records, orders and money stay in this project's own
+ *     Postgres (docs/API-MOBILE.md §0).
  *     `hasServiceRole` reports presence only, never the value;
  *   - optional: without the variable the site behaves exactly as before, and
  *     the caller falls back to marking the identity closed instead.
@@ -38,6 +39,13 @@ import { SUPABASE_URL } from "./config";
  * the app after a reset here. Finding that identity by the address the member
  * has just proved they read is read-only, returns an id and one flag, and is
  * called from exactly one place.
+ *
+ * The keep-alive is the one export not about a member, and it is here because
+ * the key may be read nowhere else. A free-plan Supabase project pauses after
+ * 7 days without database activity, and a paused project refuses every
+ * sign-in, the app's and the site's. The daily cron asks the auth admin API
+ * for one page of one user and throws the answer away unread: read-only, no
+ * member data kept or logged. On Supabase Pro it is not needed.
  */
 
 declare global {
@@ -310,4 +318,63 @@ export async function findSupabaseIdentityByEmail(
       typeof match.email_confirmed_at === "string" &&
       match.email_confirmed_at.trim() !== "",
   };
+}
+
+/**
+ * What the daily keep-alive ping got. `skipped` is the same supported
+ * configuration as everywhere in this file (no key); `failed` is Supabase not
+ * answering within {@link KEEPALIVE_TIMEOUT_MS}, or answering with an error.
+ */
+export type SupabaseKeepalive = "ok" | "failed" | "skipped";
+
+/** A healthy answer takes well under a second; the cron has more jobs to run. */
+export const KEEPALIVE_TIMEOUT_MS = 5_000;
+
+/**
+ * Touches the Supabase project's Postgres once, so a free-plan project never
+ * pauses for inactivity (Supabase pauses one after 7 days without database
+ * activity; Pro does not).
+ *
+ * Why this call: it has to reach the database, and `/auth/v1/health` does
+ * not. No table of ours is guaranteed to exist in Supabase (our data lives in
+ * our own Postgres, docs/API-MOBILE.md §0), so a PostgREST `select` has
+ * nothing safe to read. GoTrue's admin user list is a `select` on
+ * `auth.users`, read-only, the same endpoint and headers
+ * `findSupabaseIdentityByEmail` already uses, and needs no new dependency.
+ * One user per page, and that user's record is never read.
+ *
+ * Never throws: it runs inside the daily cron beside jobs it must not take
+ * down. Logs the HTTP status or the error message only, never the key, the
+ * response body or anything about a member.
+ */
+export async function keepSupabaseAwake(): Promise<SupabaseKeepalive> {
+  const key = serviceRoleKey();
+  if (!key) {
+    console.warn(
+      "[supabase] keep-alive skipped: SUPABASE_SERVICE_ROLE_KEY is not set, a free-plan project pauses after 7 quiet days",
+    );
+    return "skipped";
+  }
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=1`,
+      {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(KEEPALIVE_TIMEOUT_MS),
+      },
+    );
+    // The status is the whole answer; the body is one member's record.
+    void res.body?.cancel().catch(() => {});
+    if (!res.ok) {
+      console.error(`[supabase] keep-alive failed: HTTP ${res.status}`);
+      return "failed";
+    }
+    return "ok";
+  } catch (err) {
+    console.error(
+      `[supabase] keep-alive threw: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return "failed";
+  }
 }

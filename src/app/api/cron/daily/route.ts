@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { resumePendingCampaigns } from "@/lib/email/campaigns";
 import { expireUnpaidReservations } from "@/lib/mobile/karaoke-payment";
 import { destructionEnabled, runRetention } from "@/lib/retention";
+import { keepSupabaseAwake } from "@/lib/supabase/admin";
 
 import { cronGate, NO_STORE } from "../_auth";
 import { runBirthdayGreetings } from "../_birthday";
@@ -24,11 +25,17 @@ import { runBirthdayGreetings } from "../_birthday";
  * with real cron support, put the old three-entry `crons` array back in
  * `vercel.json` and delete nothing - the routes are all still there.
  *
- * **Order matters.** Campaigns first, because they are the only piece with a
- * deadline a member can notice; retention last, because it is the only piece
- * that deletes. A failure in one must not swallow the others, so each is
- * awaited inside its own try and reports its own outcome - a 200 here means
- * "the run happened", and the body says what each part did.
+ * **The Supabase ping has no route of its own.** A free-plan Supabase project
+ * pauses after 7 days without database activity, and a paused project is
+ * nobody signing in to the app. On Supabase Pro, drop the step.
+ *
+ * **Order matters.** The ping first: it is over in well under a second (5 s at
+ * worst), and its whole point is that it runs at all. Campaigns next, because
+ * they are the only piece with a deadline a member can notice; retention last,
+ * because it is the only piece that deletes. A failure in one must not
+ * swallow the others, so each is awaited inside its own try and reports its
+ * own outcome - a 200 here means "the run happened", and the body says what
+ * each part did.
  */
 
 export const runtime = "nodejs";
@@ -50,6 +57,11 @@ export async function GET(request: Request) {
   const denied = cronGate(request);
   if (denied) return denied;
 
+  // One read on Supabase's auth schema, so the project never pauses for
+  // inactivity. Never throws; `ping` says whether it got through.
+  const keepalive = await step("supabase-keepalive", async () => ({
+    ping: await keepSupabaseAwake(),
+  }));
   // 240 s of the 300 s budget, leaving the other two room to finish.
   const campaigns = await step("campaign-emails", async () => ({
     campaigns: await resumePendingCampaigns({ deadlineMs: 180_000 }),
@@ -66,7 +78,7 @@ export async function GET(request: Request) {
   );
 
   return NextResponse.json(
-    { ok: true, campaigns, birthday, karaoke, retention },
+    { ok: true, keepalive, campaigns, birthday, karaoke, retention },
     { headers: NO_STORE },
   );
 }
