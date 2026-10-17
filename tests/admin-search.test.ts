@@ -19,9 +19,8 @@ let unreachable = false;
 
 vi.mock("@/lib/db", async () => {
   const { createDb } = await import("@/lib/db/client");
-  const { TABLES } = await vi.importActual<typeof import("@/lib/db")>(
-    "@/lib/db",
-  );
+  const { TABLES } =
+    await vi.importActual<typeof import("@/lib/db")>("@/lib/db");
   const db = createDb(async (q) => {
     sent.push(q);
     if (unreachable) {
@@ -220,7 +219,13 @@ describe("the answer", () => {
 
   it("links products and menu items to their edit pages", async () => {
     answers.products = [
-      { id: "prd-0001", name: "Fındık", sku: "FND-1", isActive: false, priceMinor: 1000 },
+      {
+        id: "prd-0001",
+        name: "Fındık",
+        sku: "FND-1",
+        isActive: false,
+        priceMinor: 1000,
+      },
     ];
     answers.menu_items = [
       { id: "mnu-1", name: "Affogato", isActive: true, priceMinor: 9000 },
