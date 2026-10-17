@@ -136,7 +136,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
       <PageHeader
         eyebrow="Pazarlama · CRM"
         title="Müşteriler"
-        description="Kayıtlı üye hesapları ile misafir siparişlerinden çıkarılan profiller bir arada. Üye satırlarından hesabı düzenleyebilir, pasifleştirebilir ya da silebilirsin."
+        description="Kayıtlı üye hesapları ile misafir siparişlerinden çıkarılan profiller bir arada. Sipariş sayısı ve lifetime value Raporlar'la aynı kuralla hesaplanır: ödemesi beklenen ve iptal edilen siparişler sayılmaz."
       />
 
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">

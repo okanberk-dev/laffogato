@@ -3,8 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { setAdminFlash } from "@/lib/admin/flash";
 import {
   createAppAnnouncement,
   deleteAppAnnouncement,
@@ -47,6 +53,7 @@ export async function createAnnouncementAction(formData: FormData) {
     payload: { title: created.title, kind: created.kind },
   });
   revalidatePath("/admin/mobil/duyurular");
+  await setAdminFlash(`"${created.title}" duyurusu eklendi.`);
   redirect("/admin/mobil/duyurular");
 }
 
@@ -68,18 +75,25 @@ export async function updateAnnouncementAction(id: string, formData: FormData) {
     payload: { title: input.title, isActive: input.isActive },
   });
   revalidatePath("/admin/mobil/duyurular");
+  await setAdminFlash(`"${updated.title}" kaydedildi.`);
   redirect("/admin/mobil/duyurular");
 }
 
-export async function deleteAnnouncementAction(formData: FormData) {
+/** "Sil", behind a confirm. It used to delete on the first click, silently. */
+export async function deleteAnnouncementAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("mobileApp");
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
-  await deleteAppAnnouncement(id);
+  if (!id) return actionError("Duyuru seçilmedi.");
+  const removed = await deleteAppAnnouncement(id);
+  revalidatePath("/admin/mobil/duyurular");
+  if (!removed) return actionError("Duyuru zaten silinmiş.");
   await logAudit({
     action: "delete",
     entity: "app_announcement",
     entityId: id,
   });
-  revalidatePath("/admin/mobil/duyurular");
+  return actionOk("Duyuru silindi, uygulamadan kalktı.");
 }

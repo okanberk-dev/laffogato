@@ -65,6 +65,8 @@ vi.mock("@/lib/admin/auth", () => ({
   requireRole: vi.fn(async () => ({ email: ADMIN, role: "owner" })),
 }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit }));
+// A save leaves its toast in a cookie; there is no request here.
+vi.mock("@/lib/admin/flash", () => ({ setAdminFlash: vi.fn() }));
 vi.mock("@/lib/admin/users", () => ({ listAdminUsers }));
 vi.mock("@/lib/admin/store", () => ({
   createAppPost,

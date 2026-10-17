@@ -28,6 +28,8 @@ vi.mock("@/lib/admin/auth", () => ({
   requireRole: vi.fn(async () => ({ email: "menu@laffogato.net" })),
 }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit: vi.fn() }));
+// The saves leave a toast in a cookie; there is no request here.
+vi.mock("@/lib/admin/flash", () => ({ setAdminFlash: vi.fn() }));
 vi.mock("@/lib/admin/store", () => ({
   bulkUpdateMenuItems: vi.fn(),
   bulkUpdateProducts: vi.fn(),
@@ -116,6 +118,7 @@ beforeEach(() => {
 describe("a save when sharp will not load", () => {
   it("stores a new photo without a pick, taken as opaque, and says why in the log", async () => {
     await createMenuItemAction(
+      null,
       menuForm({ image: JSON.stringify([PHOTO]), backdrop: "auto" }),
     );
     expect(createMenuItem).toHaveBeenCalledTimes(1);
@@ -156,6 +159,7 @@ describe("a save when sharp will not load", () => {
     });
     await updateMenuItemAction(
       "mnu-0042",
+      null,
       menuForm({
         image: JSON.stringify([PHOTO]),
         backdrop: "auto",
@@ -204,7 +208,7 @@ describe("a save when sharp will not load", () => {
   it("leaves the actions that never read a photo untouched", async () => {
     const fd = new FormData();
     fd.set("id", "mnu-0042");
-    await deleteMenuItemAction(fd);
+    await deleteMenuItemAction(null, fd);
     expect(deleteMenuItem).toHaveBeenCalledWith("mnu-0042");
   });
 });

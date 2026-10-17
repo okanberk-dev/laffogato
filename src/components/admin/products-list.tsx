@@ -16,8 +16,8 @@ import {
   SelectAllCheckbox,
   useSelection,
 } from "./bulk";
-import { DeleteRowForm } from "./delete-row-form";
 import { formatTRY } from "./forms";
+import { ConfirmButton, useToast } from "./ui";
 
 interface Props {
   products: AdminProduct[];
@@ -66,8 +66,21 @@ function ProductThumb({ src, alt }: { src?: string; alt: string }) {
 }
 
 export function ProductsList({ products, categories, labelByCat }: Props) {
+  const toast = useToast();
+  // The bulk result is a toast (it used to be a banner at the top of the
+  // list, out of sight of the bar at the bottom that triggered it).
   const [state, formAction, pending] = useActionState(
-    bulkProductsAction,
+    async (prev: BulkActionState, formData: FormData) => {
+      const next = await bulkProductsAction(prev, formData);
+      if (next.ok) {
+        toast.show({
+          message: `${OP_LABEL[next.ok.op] ?? next.ok.op}: ${next.ok.updated} ürün güncellendi.`,
+        });
+      } else if (next.error) {
+        toast.show({ message: next.error, tone: "danger" });
+      }
+      return next;
+    },
     initialBulkState,
   );
   // A completed bulk action closes the bar once (bulk.tsx useSelection).
@@ -76,24 +89,8 @@ export function ProductsList({ products, categories, labelByCat }: Props) {
   const ids = products.map((p) => p.id);
   const idsCsv = selection.ids.join(",");
 
-  const flash = state.ok
-    ? `${OP_LABEL[state.ok.op] ?? state.ok.op}: ${state.ok.updated} ürün güncellendi.`
-    : state.error;
-
   return (
     <>
-      {flash && (
-        <div
-          className={`mb-3 rounded-md border px-3 py-2 text-sm ${
-            state.error
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
-          }`}
-        >
-          {flash}
-        </div>
-      )}
-
       {products.length === 0 ? (
         <p className="text-sm text-neutral-500">Bu filtreyle ürün yok.</p>
       ) : (
@@ -208,11 +205,7 @@ export function ProductsList({ products, categories, labelByCat }: Props) {
                         >
                           Düzenle
                         </Link>
-                        <DeleteRowForm
-                          action={deleteProductAction}
-                          id={p.id}
-                          confirmMessage={`"${p.name}" ürününü silmek istediğine emin misin? Bu işlem geri alınamaz.`}
-                        />
+                        <DeleteProduct product={p} />
                       </div>
                     </div>
                   </div>
@@ -349,11 +342,7 @@ export function ProductsList({ products, categories, labelByCat }: Props) {
                           >
                             Düzenle
                           </Link>
-                          <DeleteRowForm
-                            action={deleteProductAction}
-                            id={p.id}
-                            confirmMessage={`"${p.name}" ürününü silmek istediğine emin misin? Bu işlem geri alınamaz.`}
-                          />
+                          <DeleteProduct product={p} />
                         </div>
                       </td>
                     </tr>
@@ -432,6 +421,19 @@ export function ProductsList({ products, categories, labelByCat }: Props) {
         </BulkActionBar>
       </form>
     </>
+  );
+}
+
+/** A row's "Sil": a confirm dialog, then a toast. */
+function DeleteProduct({ product }: { product: AdminProduct }) {
+  return (
+    <ConfirmButton
+      action={deleteProductAction}
+      hidden={{ id: product.id }}
+      label="Sil"
+      title={`"${product.name}" silinsin mi?`}
+      description="Ürün mağazadan ve panelden kalıcı olarak silinir; geçmiş siparişlerdeki satırlar kalır. Yalnız satıştan kaldırmak istiyorsan pasif yap."
+    />
   );
 }
 

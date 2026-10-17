@@ -5,7 +5,6 @@ import { useActionState } from "react";
 import {
   Card,
   Checkbox,
-  DangerButton,
   Field,
   GhostButton,
   PrimaryButton,
@@ -13,6 +12,7 @@ import {
   TextInput,
   formatDateTime,
 } from "@/components/admin/forms";
+import { ConfirmButton } from "@/components/admin/ui";
 import { ADMIN_ROLES, ROLE_LABELS } from "@/lib/admin/roles";
 
 import {
@@ -143,10 +143,6 @@ export function AdminUserRow({
     resetAdminPasswordAction,
     initialState,
   );
-  const [deleteState, deleteAction, deleting] = useActionState(
-    deleteAdminUserAction,
-    initialState,
-  );
 
   return (
     <Card>
@@ -208,15 +204,20 @@ export function AdminUserRow({
             <Notice state={passwordState} />
           </form>
 
-          <form action={deleteAction} className="grid content-end gap-3">
-            <input type="hidden" name="email" value={user.email} />
+          {/* Asks first: the account and its sign-in go at once. The last
+              owner is refused on the server (lib/admin/users.ts). */}
+          <div className="grid content-end gap-3">
             <div>
-              <DangerButton type="submit" disabled={deleting}>
-                {deleting ? "Siliniyor…" : "Kullanıcıyı sil"}
-              </DangerButton>
+              <ConfirmButton
+                action={deleteAdminUserAction}
+                hidden={{ email: user.email }}
+                label="Kullanıcıyı sil"
+                title={`${user.email} silinsin mi?`}
+                description="Panel hesabı kalıcı olarak silinir, oturumu hemen kapanır. Yalnız erişimi durdurmak istiyorsan Aktif kutusunu kaldırıp kaydet."
+                confirmLabel="Sil"
+              />
             </div>
-            <Notice state={deleteState} />
-          </form>
+          </div>
         </div>
       </div>
     </Card>
@@ -270,11 +271,6 @@ export function GrantBaristaForm() {
 }
 
 export function BaristaRow({ barista }: { barista: BaristaRowProps }) {
-  const [state, formAction, pending] = useActionState(
-    revokeBaristaAction,
-    initialState,
-  );
-
   return (
     <div className="grid gap-2 border-t border-[var(--admin-border)] pt-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -300,15 +296,16 @@ export function BaristaRow({ barista }: { barista: BaristaRowProps }) {
         </p>
       </div>
       {barista.isActive ? (
-        <form action={formAction} className="grid gap-2">
-          <input type="hidden" name="email" value={barista.email} />
-          <div>
-            <DangerButton type="submit" disabled={pending}>
-              {pending ? "Kaldırılıyor…" : "Yetkiyi kaldır"}
-            </DangerButton>
-          </div>
-          <Notice state={state} />
-        </form>
+        <div>
+          <ConfirmButton
+            action={revokeBaristaAction}
+            hidden={{ email: barista.email }}
+            label="Yetkiyi kaldır"
+            title="Kasa yetkisi kaldırılsın mı?"
+            description={`${barista.email} uygulamadan damga veremez. Yetkiyi sonra yeniden verebilirsin.`}
+            confirmLabel="Kaldır"
+          />
+        </div>
       ) : null}
     </div>
   );

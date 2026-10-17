@@ -90,9 +90,20 @@ function getSupabaseAdminClient(): SupabaseClient | null {
 export type IdentityDeletion = "deleted" | "skipped" | "failed";
 
 /**
+ * How long a closure waits for Supabase to delete the identity. supabase-js
+ * sets no limit, and this is the last step of `deleteMe`: a Supabase that
+ * took the connection and never answered held an already anonymised closure
+ * until the platform killed the function (DELETE /me allows 15 s, the
+ * panel's customer page 30 s), so the caller never got to report it.
+ */
+export const IDENTITY_DELETE_TIMEOUT_MS = 4_000;
+
+/**
  * Deletes a Supabase Auth user. Never throws: account closure has already
  * happened in our own database by the time this runs, and it must not be
- * undone by an auth-service outage.
+ * undone by an auth-service outage. No answer within
+ * {@link IDENTITY_DELETE_TIMEOUT_MS} is `failed`: the closed row keeps
+ * `supabaseUserId`, so the identity still cannot open a membership.
  */
 export async function deleteSupabaseIdentity(
   userId: string,
@@ -100,8 +111,17 @@ export async function deleteSupabaseIdentity(
   if (!userId.trim()) return "skipped";
   const admin = getSupabaseAdminClient();
   if (!admin) return "skipped";
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const { error } = await admin.auth.admin.deleteUser(userId);
+    const { error } = await Promise.race([
+      admin.auth.admin.deleteUser(userId),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("identity delete timed out")),
+          IDENTITY_DELETE_TIMEOUT_MS,
+        );
+      }),
+    ]).finally(() => clearTimeout(timer));
     if (error) {
       // PII rule: the id, never the address.
       console.error(`[supabase] identity delete failed: ${error.message}`);

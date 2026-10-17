@@ -532,6 +532,18 @@ export type DeleteMeResult =
   | { ok: true; identity: IdentityDeletion }
   | { ok: false; error: "orders_in_progress"; count: number };
 
+export interface DeleteMeOptions {
+  /**
+   * Who is closing the account. `admin`: the panel's "Hesabı sil", on the
+   * member's behalf. The consent history then records the withdrawal as the
+   * panel's act, with no IP or User-Agent, the way the admin customer form
+   * does (`adminUpdateCustomer`): the request is the admin's, and its IP is
+   * neither the member's evidence nor the member's data. The admin's
+   * identity is in the audit row the action writes.
+   */
+  by?: "member" | "admin";
+}
+
 /**
  * `DELETE /me`: the member row stays (orders reference it, and invoices must
  * be kept for the statutory period) but every personal field is blanked and
@@ -553,6 +565,7 @@ export type DeleteMeResult =
  */
 export async function deleteMe(
   customer: PublicCustomer,
+  { by = "member" }: DeleteMeOptions = {},
 ): Promise<DeleteMeResult> {
   const at = new Date();
   const now = at.toISOString();
@@ -626,7 +639,9 @@ export async function deleteMe(
     customer.email,
     customer.notificationPrefs,
     { marketing: false, newsletter: false },
-    { source: "account-deletion", now: at },
+    by === "admin"
+      ? { source: "account-deletion", now: at, ip: "" }
+      : { source: "account-deletion", now: at },
   );
 
   // The same address sits in the loyalty ledger, the invite graph, the

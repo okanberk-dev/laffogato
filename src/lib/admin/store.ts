@@ -1268,6 +1268,25 @@ export async function deleteCategory(id: string): Promise<boolean> {
   return deleted.length > 0;
 }
 
+/**
+ * Puts a just-deleted category back, id and all. For the panel's delete when
+ * its after-check finds products left without a category (a twin deleted in
+ * the same moment, or products moved in after the first check).
+ */
+export async function restoreCategory(category: AdminCategory): Promise<void> {
+  const sb = getDb();
+  check(
+    await sb.from(TABLES.categories).insert({
+      id: category.id,
+      slug: category.slug,
+      label: category.label,
+      icon: category.icon,
+      sortOrder: category.sortOrder,
+    }),
+    "restoreCategory",
+  );
+}
+
 // ─── Orders ───────────────────────────────────────────────────────────────
 
 /** The statuses a shift still owes work on. Same set the dashboard counts. */
@@ -1411,18 +1430,19 @@ export interface CustomerSummary {
 }
 
 /** The order columns the customer roll-up reads. */
-type CustomerSummaryOrder = Pick<
+export type CustomerSummaryOrder = Pick<
   AdminOrder,
   | "customerEmail"
   | "customerName"
   | "customerPhone"
+  | "status"
   | "totalMinor"
   | "refunds"
   | "createdAt"
 >;
 
 export async function listCustomers(): Promise<CustomerSummary[]> {
-  // Six columns, not `select *`: the roll-up needs every order (it counts a
+  // Seven columns, not `select *`: the roll-up needs every order (it counts a
   // lifetime) but none of the items, addresses or consent evidence. WP1,
   // measured on 20k orders: 596 ms / 27 MB -> 67 ms / 3.4 MB.
   await ensureSeed();
@@ -1430,31 +1450,53 @@ export async function listCustomers(): Promise<CustomerSummary[]> {
     await getDb()
       .from(TABLES.orders)
       .select(
-        "customerEmail, customerName, customerPhone, totalMinor, refunds, createdAt",
+        "customerEmail, customerName, customerPhone, status, totalMinor, refunds, createdAt",
       )
       .order("orderNo", { ascending: false }),
     "listCustomers",
   );
+  return summarizeCustomers(orders);
+}
+
+/**
+ * The pure half of {@link listCustomers}, exported for tests.
+ *
+ * Order count, lifetime value and refunds follow the reports' rule
+ * ({@link isReportableOrder}): an abandoned checkout (`pending_payment`) and
+ * a cancelled order are not money the customer spent. They used to count in
+ * full, so after the one-page checkout every customer who opened the card
+ * step and walked away carried that basket as lifetime value, and Müşteriler
+ * disagreed with Raporlar. The profile itself still comes from every order:
+ * someone who only ever abandoned a checkout is still a contact, shown with
+ * 0 orders, and the last attempt still dates their activity.
+ */
+export function summarizeCustomers(
+  orders: readonly CustomerSummaryOrder[],
+): CustomerSummary[] {
   const byEmail = new Map<string, CustomerSummary>();
   for (const o of orders) {
     const email = o.customerEmail?.trim().toLowerCase();
     if (!email || email === "guest@laffogato.local") continue;
+    const counts = isReportableOrder(o);
+    const valueHere = counts ? o.totalMinor : 0;
+    const refundedHere = counts
+      ? o.refunds.reduce((s, r) => s + r.amountMinor, 0)
+      : 0;
     const existing = byEmail.get(email);
-    const refundedHere = o.refunds.reduce((s, r) => s + r.amountMinor, 0);
     if (!existing) {
       byEmail.set(email, {
         email,
         name: o.customerName,
         phone: o.customerPhone,
-        orderCount: 1,
-        lifetimeValueMinor: o.totalMinor,
+        orderCount: counts ? 1 : 0,
+        lifetimeValueMinor: valueHere,
         refundedMinor: refundedHere,
         lastOrderAt: o.createdAt,
         firstOrderAt: o.createdAt,
       });
     } else {
-      existing.orderCount += 1;
-      existing.lifetimeValueMinor += o.totalMinor;
+      if (counts) existing.orderCount += 1;
+      existing.lifetimeValueMinor += valueHere;
       existing.refundedMinor += refundedHere;
       if (o.createdAt > existing.lastOrderAt) {
         existing.lastOrderAt = o.createdAt;
@@ -1469,6 +1511,25 @@ export async function listCustomers(): Promise<CustomerSummary[]> {
   return Array.from(byEmail.values()).sort((a, b) =>
     b.lastOrderAt.localeCompare(a.lastOrderAt),
   );
+}
+
+/**
+ * A customer's lifetime figures from their own orders, by the same rule as
+ * {@link summarizeCustomers} and the reports. For the customer detail page.
+ */
+export function customerLifetime(
+  orders: ReadonlyArray<Pick<AdminOrder, "status" | "totalMinor" | "refunds">>,
+): { orderCount: number; lifetimeValueMinor: number; refundedMinor: number } {
+  let orderCount = 0;
+  let lifetimeValueMinor = 0;
+  let refundedMinor = 0;
+  for (const o of orders) {
+    if (!isReportableOrder(o)) continue;
+    orderCount += 1;
+    lifetimeValueMinor += o.totalMinor;
+    refundedMinor += o.refunds.reduce((s, r) => s + r.amountMinor, 0);
+  }
+  return { orderCount, lifetimeValueMinor, refundedMinor };
 }
 
 /** The columns the loyalty view and the badge rules actually read. */
@@ -4876,6 +4937,24 @@ export async function updatePromo(
   return { ok: true, promo: next };
 }
 
+/** The list's Aktif / Pasif switch; null when the code is gone. */
+export async function setPromoActive(
+  id: string,
+  isActive: boolean,
+): Promise<AdminPromo | null> {
+  await ensureSeed();
+  const sb = getDb();
+  const updated = rows<AdminPromo>(
+    await sb
+      .from(TABLES.promos)
+      .update({ isActive, updatedAt: new Date().toISOString() })
+      .eq("id", id)
+      .select("*"),
+    "setPromoActive",
+  );
+  return updated[0] ?? null;
+}
+
 export async function deletePromo(id: string): Promise<boolean> {
   await ensureSeed();
   const sb = getDb();
@@ -4966,6 +5045,23 @@ async function releasePromoUsage(code: string): Promise<void> {
 // ─── Analytics aggregations ───────────────────────────────────────────────
 
 export type BucketGranularity = "day" | "week" | "month";
+
+const BUCKET_GRANULARITIES: readonly BucketGranularity[] = [
+  "day",
+  "week",
+  "month",
+];
+
+/**
+ * The report's `?g=` as a granularity; anything else is the default "day".
+ * An unknown value used to draw the daily chart with no tab marked.
+ */
+export function parseGranularity(raw: unknown): BucketGranularity {
+  return typeof raw === "string" &&
+    (BUCKET_GRANULARITIES as readonly string[]).includes(raw)
+    ? (raw as BucketGranularity)
+    : "day";
+}
 
 /**
  * Whether an order is revenue.
@@ -5183,9 +5279,14 @@ export async function topProducts(limit = 5): Promise<TopProductRow[]> {
 }
 
 export interface AnalyticsHeadline {
-  totalRevenueMinor: number;
+  /** What the counted orders were placed for, refunds not taken off. */
+  grossRevenueMinor: number;
+  /** Gross minus refunds, clamped per order like the chart's buckets. */
+  netRevenueMinor: number;
   totalOrders: number;
+  /** Gross per counted order. */
   averageOrderMinor: number;
+  /** Refunds on the counted orders: the difference between gross and net. */
   refundedMinor: number;
   conversionRatePct: number | null;
 }
@@ -5195,21 +5296,135 @@ export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
     ["status", "totalMinor", "refunds"],
     "analyticsHeadline",
   );
-  const valid = orders.filter(isReportableOrder);
-  const totalRevenueMinor = valid.reduce((s, o) => s + o.totalMinor, 0);
-  const totalOrders = valid.length;
-  const refundedMinor = orders.reduce(
-    (s, o) => s + o.refunds.reduce((r, x) => r + x.amountMinor, 0),
-    0,
-  );
+  return headlineFrom(orders);
+}
+
+/**
+ * The pure half of {@link analyticsHeadline}, exported for tests.
+ *
+ * The page said "Net ciro" over a figure that was gross (refunded orders in
+ * at their full total), with a refund line beside it that also summed the
+ * refunds of cancelled orders the gross never counted. Both figures now read
+ * the same orders ({@link isReportableOrder}), and net is gross minus those
+ * refunds, per order as {@link bucketRevenue} books it, so the headline and
+ * the chart agree.
+ */
+export function headlineFrom(
+  orders: ReadonlyArray<Pick<AdminOrder, "status" | "totalMinor" | "refunds">>,
+): AnalyticsHeadline {
+  let grossRevenueMinor = 0;
+  let netRevenueMinor = 0;
+  let refundedMinor = 0;
+  let totalOrders = 0;
+  for (const o of orders) {
+    if (!isReportableOrder(o)) continue;
+    const refunded = o.refunds.reduce((r, x) => r + x.amountMinor, 0);
+    totalOrders += 1;
+    grossRevenueMinor += o.totalMinor;
+    refundedMinor += refunded;
+    netRevenueMinor += Math.max(0, o.totalMinor - refunded);
+  }
   return {
-    totalRevenueMinor,
+    grossRevenueMinor,
+    netRevenueMinor,
     totalOrders,
     averageOrderMinor:
-      totalOrders > 0 ? Math.round(totalRevenueMinor / totalOrders) : 0,
+      totalOrders > 0 ? Math.round(grossRevenueMinor / totalOrders) : 0,
     refundedMinor,
     conversionRatePct: null,
   };
+}
+
+/** The karaoke columns the revenue report reads. */
+export interface KaraokeRevenueRow {
+  paymentStatus?: string | null;
+  paidMinor?: number | null;
+  paidAt?: string | null;
+  createdAt: string;
+}
+
+export interface KaraokeRevenue {
+  /** Everything the POS collected for bookings, refunds not taken off. */
+  collectedMinor: number;
+  /** Paid back in full (`refunded`). */
+  refundedMinor: number;
+  /** Collected minus refunded: what the köşk keeps. */
+  netMinor: number;
+  /** Bookings whose money is still with the köşk (paid or refund pending). */
+  paidCount: number;
+  /** Part of net whose refund was started and is not settled yet. */
+  refundPendingMinor: number;
+  /** Net in the chart's period (same buckets as the order revenue). */
+  periodNetMinor: number;
+  periodCount: number;
+}
+
+/** The payment states that mean money reached the POS. */
+const KARAOKE_COLLECTED = ["paid", "refunding", "refunded"] as const;
+
+/**
+ * Prepaid karaoke (16 Eki 2026) in the reports. The reports read only
+ * `orders`, so the money collected for bookings was in no figure.
+ *
+ * Read from `karaoke_reservations`: `paidMinor` of every booking the POS
+ * collected, minus the ones refunded. A refund is always the full amount,
+ * so a `refunded` row nets to 0. A `refunding` row still counts: the POS has
+ * not confirmed the money went back (CLAUDE.md rule 29), it is shown apart as
+ * "iadesi bekleyen". The period figure books a payment in the bucket of its
+ * `paidAt`, and its refund against that same bucket, as the order chart does.
+ */
+export async function karaokeRevenue(
+  granularity: BucketGranularity,
+  count: number,
+): Promise<KaraokeRevenue> {
+  const data = rows<KaraokeRevenueRow>(
+    await getDb()
+      .from(TABLES.karaokeReservations)
+      .select("paymentStatus, paidMinor, paidAt, createdAt")
+      .in("paymentStatus", [...KARAOKE_COLLECTED]),
+    "karaokeRevenue",
+  );
+  return karaokeRevenueFrom(data, granularity, count, new Date());
+}
+
+/** The pure half of {@link karaokeRevenue}, exported for tests. */
+export function karaokeRevenueFrom(
+  bookings: readonly KaraokeRevenueRow[],
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): KaraokeRevenue {
+  const period = new Set(
+    bucketRevenue([], granularity, count, now).map((b) => b.bucket),
+  );
+  const out: KaraokeRevenue = {
+    collectedMinor: 0,
+    refundedMinor: 0,
+    netMinor: 0,
+    paidCount: 0,
+    refundPendingMinor: 0,
+    periodNetMinor: 0,
+    periodCount: 0,
+  };
+  for (const r of bookings) {
+    const status = r.paymentStatus ?? "";
+    if (!(KARAOKE_COLLECTED as readonly string[]).includes(status)) continue;
+    const paid = Math.max(0, Math.round(Number(r.paidMinor) || 0));
+    if (paid === 0) continue;
+    const kept = status === "refunded" ? 0 : paid;
+    out.collectedMinor += paid;
+    out.refundedMinor += paid - kept;
+    out.netMinor += kept;
+    if (kept > 0) out.paidCount += 1;
+    if (status === "refunding") out.refundPendingMinor += paid;
+    const at = new Date(r.paidAt || r.createdAt);
+    if (Number.isNaN(at.getTime())) continue;
+    if (period.has(bucketKey(istanbulWall(at), granularity)) && kept > 0) {
+      out.periodNetMinor += kept;
+      out.periodCount += 1;
+    }
+  }
+  return out;
 }
 
 // ─── Shop hero slides ─────────────────────────────────────────────────────
@@ -5386,13 +5601,15 @@ export async function updateShopHeroSlide(
   return getShopHeroSlide(id);
 }
 
-export async function deleteShopHeroSlide(id: string): Promise<void> {
+/** True when a slide was removed (false: it was already gone). */
+export async function deleteShopHeroSlide(id: string): Promise<boolean> {
   await ensureShopHeroSeed();
   const sb = getDb();
-  check(
-    await sb.from(TABLES.shopHeroSlides).delete().eq("id", id),
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.shopHeroSlides).delete().eq("id", id).select("id"),
     "deleteShopHeroSlide",
   );
+  return deleted.length > 0;
 }
 
 // ─── Editorial content (reels / press / story) ─────────────────
@@ -5487,10 +5704,15 @@ function contentResource<Row extends ContentRowBase>(
     return get(id);
   };
 
-  const remove = async (id: string): Promise<void> => {
+  /** True when a row was removed (false: it was already gone). */
+  const remove = async (id: string): Promise<boolean> => {
     await ensure();
     const sb = getDb();
-    check(await sb.from(table).delete().eq("id", id), `delete.${table}`);
+    const deleted = rows<{ id: string }>(
+      await sb.from(table).delete().eq("id", id).select("id"),
+      `delete.${table}`,
+    );
+    return deleted.length > 0;
   };
 
   return { list, listActive, get, create, update, remove };
@@ -5888,13 +6110,15 @@ export async function updateAppSlide(
   return getAppSlide(id);
 }
 
-export async function deleteAppSlide(id: string): Promise<void> {
+/** True when a slide was removed (false: it was already gone). */
+export async function deleteAppSlide(id: string): Promise<boolean> {
   await ensureAppContentSeed();
   const sb = getDb();
-  check(
-    await sb.from(TABLES.appHeroSlides).delete().eq("id", id),
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.appHeroSlides).delete().eq("id", id).select("id"),
     "deleteAppSlide",
   );
+  return deleted.length > 0;
 }
 
 // ─── Mobile app posts: campaigns, collaborations, events ──────────────────
@@ -6103,10 +6327,15 @@ export async function setAppPostEmailCampaign(
   return rows<{ id: string }>(res, "setAppPostEmailCampaign").length > 0;
 }
 
-export async function deleteAppPost(id: string): Promise<void> {
+/** True when a post was removed (false: it was already gone). */
+export async function deleteAppPost(id: string): Promise<boolean> {
   await ensureAppContentSeed();
   const sb = getDb();
-  check(await sb.from(TABLES.appPosts).delete().eq("id", id), "deleteAppPost");
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.appPosts).delete().eq("id", id).select("id"),
+    "deleteAppPost",
+  );
+  return deleted.length > 0;
 }
 
 export async function listAppAnnouncements(): Promise<AdminAppAnnouncement[]> {
@@ -6210,11 +6439,13 @@ export async function updateAppAnnouncement(
   return getAppAnnouncement(id);
 }
 
-export async function deleteAppAnnouncement(id: string): Promise<void> {
+/** True when an announcement was removed (false: it was already gone). */
+export async function deleteAppAnnouncement(id: string): Promise<boolean> {
   await ensureAppContentSeed();
   const sb = getDb();
-  check(
-    await sb.from(TABLES.appAnnouncements).delete().eq("id", id),
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.appAnnouncements).delete().eq("id", id).select("id"),
     "deleteAppAnnouncement",
   );
+  return deleted.length > 0;
 }

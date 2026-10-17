@@ -6,18 +6,20 @@ import { useActionState } from "react";
 import {
   bulkMenuAction,
   deleteMenuItemAction,
+  setMenuItemActiveAction,
   type BulkMenuActionState,
 } from "@/app/admin/menu/actions";
 import type { AdminMenuItem, MenuCategoryKey } from "@/lib/admin/store";
 
+import { ActionButton } from "./action-form";
 import {
   BulkActionBar,
   RowCheckbox,
   SelectAllCheckbox,
   useSelection,
 } from "./bulk";
-import { DeleteRowForm } from "./delete-row-form";
 import { formatTRY } from "./forms";
+import { ConfirmButton, useToast } from "./ui";
 
 interface Props {
   itemsByCategory: Record<MenuCategoryKey, AdminMenuItem[]>;
@@ -32,32 +34,30 @@ export function MenuList({
   categoryKeys,
   categoryLabels,
 }: Props) {
+  const toast = useToast();
+  // The bulk result is a toast, beside the bar that triggered it (it used to
+  // be a banner at the top of a long page).
   const [state, formAction, pending] = useActionState(
-    bulkMenuAction,
+    async (prev: BulkMenuActionState, formData: FormData) => {
+      const next = await bulkMenuAction(prev, formData);
+      if (next.ok) {
+        toast.show({
+          message: `${OP_LABEL[next.ok.op] ?? next.ok.op}: ${next.ok.updated} kalem güncellendi.`,
+        });
+      } else if (next.error) {
+        toast.show({ message: next.error, tone: "danger" });
+      }
+      return next;
+    },
     initialBulkState,
   );
   // A completed bulk action closes the bar once (bulk.tsx useSelection).
   const selection = useSelection({ resetOn: state.ok });
 
   const idsCsv = selection.ids.join(",");
-  const flash = state.ok
-    ? `${OP_LABEL[state.ok.op] ?? state.ok.op}: ${state.ok.updated} kalem güncellendi.`
-    : state.error;
 
   return (
     <>
-      {flash && (
-        <div
-          className={`mb-3 rounded-md border px-3 py-2 text-sm ${
-            state.error
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
-          }`}
-        >
-          {flash}
-        </div>
-      )}
-
       <div className="flex flex-col gap-6">
         {categoryKeys.map((key) => {
           const items = itemsByCategory[key];
@@ -165,7 +165,7 @@ export function MenuList({
                                   </span>
                                 ) : (
                                   <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                                    Gizli
+                                    Pasif
                                   </span>
                                 )}
                                 {it.tags.map((t) => (
@@ -177,18 +177,15 @@ export function MenuList({
                                   </span>
                                 ))}
                               </div>
-                              <div className="mt-3 flex gap-2">
+                              <div className="mt-3 flex flex-wrap gap-2">
                                 <Link
                                   href={`/admin/menu/${it.id}/duzenle`}
-                                  className="inline-flex min-h-[40px] flex-1 items-center justify-center rounded-full border border-[var(--admin-border)] px-3 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                                  className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full border border-[var(--admin-border)] px-3 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                                 >
                                   Düzenle
                                 </Link>
-                                <DeleteRowForm
-                                  action={deleteMenuItemAction}
-                                  id={it.id}
-                                  confirmMessage={`"${it.name}" kalemini silmek istediğine emin misin?`}
-                                />
+                                <SoldOutToggle item={it} />
+                                <DeleteMenuItem item={it} />
                               </div>
                             </div>
                           </div>
@@ -283,7 +280,7 @@ export function MenuList({
                                   </span>
                                 ) : (
                                   <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                                    Gizli
+                                    Pasif
                                   </span>
                                 )}
                               </td>
@@ -295,11 +292,8 @@ export function MenuList({
                                   >
                                     Düzenle
                                   </Link>
-                                  <DeleteRowForm
-                                    action={deleteMenuItemAction}
-                                    id={it.id}
-                                    confirmMessage={`"${it.name}" kalemini silmek istediğine emin misin?`}
-                                  />
+                                  <SoldOutToggle item={it} />
+                                  <DeleteMenuItem item={it} />
                                 </div>
                               </td>
                             </tr>
@@ -382,6 +376,41 @@ export function MenuList({
         </BulkActionBar>
       </form>
     </>
+  );
+}
+
+/**
+ * One click, no tick and no bulk bar: "Tükendi" hides the item from the menu
+ * (site and app), "Satışa aç" brings it back. The answer is a toast.
+ */
+function SoldOutToggle({ item }: { item: AdminMenuItem }) {
+  return (
+    <ActionButton
+      action={setMenuItemActiveAction}
+      hidden={{ id: item.id, isActive: item.isActive ? "false" : "true" }}
+      variant={item.isActive ? "ghost" : "primary"}
+      ariaLabel={`${item.isActive ? "Tükendi" : "Satışa aç"}: ${item.name}`}
+      title={
+        item.isActive
+          ? "Menüden gizle: tükendi ya da satışta değil"
+          : "Menüde yeniden göster"
+      }
+    >
+      {item.isActive ? "Tükendi" : "Satışa aç"}
+    </ActionButton>
+  );
+}
+
+/** A row's "Sil": a confirm dialog, then a toast. */
+function DeleteMenuItem({ item }: { item: AdminMenuItem }) {
+  return (
+    <ConfirmButton
+      action={deleteMenuItemAction}
+      hidden={{ id: item.id }}
+      label="Sil"
+      title={`"${item.name}" silinsin mi?`}
+      description="Kalem menüden ve panelden kalıcı olarak silinir. Bir süreliğine kaldırmak istiyorsan Tükendi'ye bas."
+    />
   );
 }
 

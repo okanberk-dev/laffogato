@@ -1,10 +1,5 @@
-import {
-  Card,
-  DangerButton,
-  GhostButton,
-  PageHeader,
-  formatDateTime,
-} from "@/components/admin/forms";
+import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
+import { ConfirmButton } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { listNewsletterSubscribers } from "@/lib/newsletter/store";
 
@@ -139,19 +134,24 @@ export default async function NewsletterPage() {
                         {/* Off only: re-subscribing is the person's own
                             act, confirmed from their inbox (6563). */}
                         {s.isActive ? (
-                          <form action={deactivateNewsletterAction}>
-                            <input type="hidden" name="id" value={s.id} />
-                            <GhostButton type="submit" className="text-xs">
-                              Pasifleştir
-                            </GhostButton>
-                          </form>
+                          <ConfirmButton
+                            action={deactivateNewsletterAction}
+                            hidden={{ id: s.id }}
+                            label="Pasifleştir"
+                            variant="ghost"
+                            className="text-xs"
+                            title={`${s.email} pasifleşsin mi?`}
+                            description="Bu adrese bülten gitmez. Panelden geri açılamaz; kişi yeniden abone olup e-postasından onaylamalı."
+                          />
                         ) : null}
-                        <form action={deleteNewsletterSubscriberAction}>
-                          <input type="hidden" name="id" value={s.id} />
-                          <DangerButton type="submit" className="text-xs">
-                            Sil
-                          </DangerButton>
-                        </form>
+                        <ConfirmButton
+                          action={deleteNewsletterSubscriberAction}
+                          hidden={{ id: s.id }}
+                          label="Sil"
+                          className="text-xs"
+                          title={`${s.email} silinsin mi?`}
+                          description="Abone ve onay kaydı (tarih, IP, metin) kalıcı olarak silinir. Şikâyette onayı göstermen gerekebilir: yalnız göndermeyi durdurmak için Pasifleştir yeterli."
+                        />
                       </div>
                     </td>
                   </tr>

@@ -19,6 +19,7 @@ import {
   parseNotifyEmails,
 } from "@/lib/email/staff-order-notice-core";
 import { forgetEmailHealth } from "@/lib/email/health";
+import { parseMoneyInput } from "@/lib/utils/format";
 
 export interface SettingsState {
   message?: string;
@@ -54,22 +55,20 @@ function revalidateAll() {
 }
 
 /**
- * Money in kuruş, or null when the field is not a plain non-negative number.
+ * Money in kuruş, or null when the field is not a plain non-negative amount.
  *
  * It used to fall back to 0, which turned "₺75" - a perfectly natural thing to
  * type into a price box - into free courier delivery for every order that
  * evening, silently. A bad number is now an error the operator sees.
+ *
+ * Read by parseMoneyInput (CLAUDE.md rule 24). The comma swap plus
+ * parseFloat it replaces read "1.000", which is how the panel prints the
+ * karaoke hour, as 1,00 TL.
  */
 function parseMoneyMinor(raw: unknown): number | null {
-  const s = String(raw ?? "")
-    .replace(",", ".")
-    .trim();
+  const s = String(raw ?? "").trim();
   if (!s) return null;
-  // parseFloat("75 TL") is 75; require the whole field to be a number.
-  if (!/^\d+(\.\d+)?$/.test(s)) return null;
-  const v = parseFloat(s);
-  if (!Number.isFinite(v) || v < 0) return null;
-  return Math.round(v * 100);
+  return parseMoneyInput(s);
 }
 
 /**

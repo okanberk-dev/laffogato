@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { Card, DangerButton, PageHeader } from "@/components/admin/forms";
+import { Card, PageHeader } from "@/components/admin/forms";
+import { ConfirmButton } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { APP_POST_KIND_LABELS, listAppPosts } from "@/lib/admin/store";
 
@@ -134,10 +135,13 @@ export default async function AdminAppPostsPage({ searchParams }: PageProps) {
                   >
                     Düzenle
                   </Link>
-                  <form action={deletePostAction}>
-                    <input type="hidden" name="id" value={p.id} />
-                    <DangerButton type="submit">Sil</DangerButton>
-                  </form>
+                  <ConfirmButton
+                    action={deletePostAction}
+                    hidden={{ id: p.id }}
+                    label="Sil"
+                    title={`"${p.title}" silinsin mi?`}
+                    description="Gönderi uygulamadan hemen kalkar ve kalıcı olarak silinir. Gönderilmiş e-posta geri alınmaz."
+                  />
                 </div>
               </div>
             </Card>

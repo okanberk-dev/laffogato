@@ -1,13 +1,15 @@
 import Link from "next/link";
 
-import { Card, GhostButton, PageHeader } from "@/components/admin/forms";
+import { ActionButton } from "@/components/admin/action-form";
+import { Card, PageHeader } from "@/components/admin/forms";
+import { ConfirmButton } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { tableQrSvg } from "@/lib/admin/cafe-table-qr";
 import { tableUrl } from "@/lib/admin/cafe-tables-core";
 import { listCafeTables, type CafeTable } from "@/lib/admin/cafe-tables";
 
 import { rotateCafeTableCodeAction, setCafeTableActiveAction } from "./actions";
-import { CopyTableLink, RotateTableCodeForm } from "./table-row-actions";
+import { CopyTableLink } from "./table-row-actions";
 
 export const metadata = { title: "Admin · Masalar" };
 export const dynamic = "force-dynamic";
@@ -57,20 +59,38 @@ function TableRow({ table, svg }: { table: CafeTable; svg: string }) {
             >
               Düzenle
             </Link>
-            <form action={setCafeTableActiveAction}>
-              <input type="hidden" name="id" value={table.id} />
-              <input
-                type="hidden"
-                name="isActive"
-                value={table.isActive ? "false" : "true"}
+            {/* Taking a table out of service asks first; putting it back
+                does not. Both answer with a toast. */}
+            {table.isActive ? (
+              <ConfirmButton
+                action={setCafeTableActiveAction}
+                hidden={{ id: table.id, isActive: "false" }}
+                label="Pasifleştir"
+                variant="ghost"
+                className="text-xs"
+                title={`${table.name} pasifleşsin mi?`}
+                description="Masanın QR'ı menüyü açmaya devam eder ama bu masaya sipariş verilemez. Kod değişmez; istediğin zaman yeniden etkinleştirebilirsin."
               />
-              <GhostButton type="submit" className="text-xs">
-                {table.isActive ? "Pasifleştir" : "Etkinleştir"}
-              </GhostButton>
-            </form>
-            <RotateTableCodeForm
-              id={table.id}
+            ) : (
+              <ActionButton
+                action={setCafeTableActiveAction}
+                hidden={{ id: table.id, isActive: "true" }}
+                ariaLabel={`Etkinleştir: ${table.name}`}
+                className="text-xs"
+                pendingLabel="Etkinleştiriliyor…"
+              >
+                Etkinleştir
+              </ActionButton>
+            )}
+            <ConfirmButton
               action={rotateCafeTableCodeAction}
+              hidden={{ id: table.id }}
+              label="Kodu yenile"
+              variant="ghost"
+              className="text-xs"
+              title={`${table.name} için kod yenilensin mi?`}
+              description="Masadaki basılı QR hemen çalışmaz olur. Yeni kartı yazdırıp eskisini masadan hemen kaldırman gerekir."
+              confirmLabel="Kodu yenile"
             />
           </div>
         </div>

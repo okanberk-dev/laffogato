@@ -106,6 +106,11 @@ export interface AuditFilter {
   actor?: string;
   entity?: AuditEntity;
   action?: AuditAction;
+  /** Exact record id ("prd-0001"), as the row's own link writes it. */
+  entityId?: string;
+  /** ISO instants: from (inclusive) and to (exclusive). */
+  from?: string;
+  to?: string;
   limit?: number;
 }
 
@@ -115,13 +120,20 @@ export async function listAuditLogs(
   const sb = getDb();
   let q = sb.from(TABLES.auditLogs).select("*");
   if (filter.actor) {
+    // Literal match: `%` and `_` are wildcards and `\` is ILIKE's escape
+    // character, so a typed backslash is escaped too (it used to turn the
+    // closing `%` into a literal one).
     const escaped = filter.actor
       .toLowerCase()
-      .replace(/[%_]/g, (c) => `\\${c}`);
+      .replace(/[%_\\]/g, (c) => `\\${c}`);
     q = q.ilike("actor", `%${escaped}%`);
   }
   if (filter.entity) q = q.eq("entity", filter.entity);
   if (filter.action) q = q.eq("action", filter.action);
+  if (filter.entityId) q = q.eq("entityId", filter.entityId);
+  // `createdAt` is ISO-8601 text: string order is time order.
+  if (filter.from) q = q.gte("createdAt", filter.from);
+  if (filter.to) q = q.lt("createdAt", filter.to);
   const { data, error } = await q
     .order("createdAt", { ascending: false })
     .limit(filter.limit ?? 500);

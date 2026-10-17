@@ -3,8 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { setAdminFlash } from "@/lib/admin/flash";
 import {
   createAppSlide,
   deleteAppSlide,
@@ -52,6 +58,7 @@ export async function createSlideAction(formData: FormData) {
     payload: { title: created.title, tone: created.tone },
   });
   revalidatePath("/admin/mobil/slaytlar");
+  await setAdminFlash(`"${created.title}" slaytı eklendi.`);
   redirect("/admin/mobil/slaytlar");
 }
 
@@ -73,14 +80,21 @@ export async function updateSlideAction(id: string, formData: FormData) {
     payload: { title: input.title, isActive: input.isActive },
   });
   revalidatePath("/admin/mobil/slaytlar");
+  await setAdminFlash(`"${updated.title}" kaydedildi.`);
   redirect("/admin/mobil/slaytlar");
 }
 
-export async function deleteSlideAction(formData: FormData) {
+/** "Sil", behind a confirm. It used to delete on the first click, silently. */
+export async function deleteSlideAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("mobileApp");
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
-  await deleteAppSlide(id);
-  await logAudit({ action: "delete", entity: "app_hero_slide", entityId: id });
+  if (!id) return actionError("Slayt seçilmedi.");
+  const removed = await deleteAppSlide(id);
   revalidatePath("/admin/mobil/slaytlar");
+  if (!removed) return actionError("Slayt zaten silinmiş.");
+  await logAudit({ action: "delete", entity: "app_hero_slide", entityId: id });
+  return actionOk("Slayt silindi, uygulamadan kalktı.");
 }

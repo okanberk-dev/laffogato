@@ -16,6 +16,8 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/lib/admin/auth", () => ({ requireRole: vi.fn(async () => ({})) }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit }));
+// A save leaves its toast in a cookie; there is no request here.
+vi.mock("@/lib/admin/flash", () => ({ setAdminFlash: vi.fn() }));
 vi.mock("@/lib/mobile/karaoke", () => ({ setReservationStatus }));
 vi.mock("@/lib/admin/store", () => ({
   createAppSlide: vi.fn(),

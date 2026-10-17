@@ -1,102 +1,111 @@
 import Link from "next/link";
 
-import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
+import { PageHeader, formatDateTime } from "@/components/admin/forms";
+import { Badge, DataTable, EmptyState, FilterBar } from "@/components/admin/ui";
 import {
   listAuditLogs,
+  type AdminAuditLog,
   type AuditAction,
   type AuditEntity,
 } from "@/lib/admin/audit";
+import {
+  AUDIT_ACTION_LABELS,
+  AUDIT_ACTION_TONES,
+  AUDIT_ENTITY_LABELS,
+  AUDIT_FILTER_FIELDS,
+  auditPayloadEntries,
+  auditRecordHref,
+  istanbulDayRange,
+} from "@/lib/admin/audit-view";
 import { requireRole } from "@/lib/admin/auth";
+import { parseFilters, withParams } from "@/lib/admin/list-params";
 
 export const metadata = { title: "Admin · Olay Kaydı" };
 export const dynamic = "force-dynamic";
 
-const ENTITY_LABEL: Record<AuditEntity, string> = {
-  product: "Ürün",
-  menu_item: "Menü",
-  category: "Kategori",
-  shop_hero_slide: "Mağaza Hero",
-  app_hero_slide: "Uygulama slaytı",
-  app_announcement: "Uygulama duyurusu",
-  app_post: "Uygulama gönderisi",
-  reel: "Reel",
-  press: "Basın",
-  story: "Hikaye",
-  content: "Site metni",
-  order: "Sipariş",
-  order_item: "Sipariş kalemi",
-  promo: "Promosyon",
-  coupon: "Kupon",
-  settings: "Ayar",
-  stock: "Stok",
-  customer: "Üye",
-  newsletter: "Bülten",
-  legal_doc: "Yasal belge",
-  auth: "Giriş",
-  "2fa": "2FA",
-  venue_status: "Canlı durum",
-  karaoke_reservation: "Karaoke rezervasyonu",
-  mobile_app_config: "Uygulama ayarları",
-  admin_user: "Panel kullanıcısı",
-  counter_token: "Kasa jetonu",
-  staff_member: "Barista (uygulamadan kasa)",
-  campaign_email: "Kampanya e-postası",
-  cafe_table: "Masa · QR",
-};
-
-const ACTION_LABEL: Record<AuditAction, string> = {
-  create: "Oluşturma",
-  update: "Güncelleme",
-  delete: "Silme",
-  bulk_update: "Toplu güncelleme",
-  bulk_delete: "Toplu silme",
-  transition: "Durum geçişi",
-  refund: "İade",
-  note: "Not",
-  login_success: "Giriş başarılı",
-  login_fail: "Giriş başarısız",
-  logout: "Çıkış",
-  "2fa_enable": "2FA aktif",
-  "2fa_disable": "2FA kapatma",
-  send: "Gönderim",
-  send_test: "Test gönderimi",
-};
-
-const ACTION_TONE: Record<AuditAction, string> = {
-  create: "bg-emerald-50 text-emerald-700",
-  update: "bg-blue-50 text-blue-700",
-  delete: "bg-red-50 text-red-700",
-  bulk_update: "bg-blue-50 text-blue-700",
-  bulk_delete: "bg-red-50 text-red-700",
-  transition: "bg-purple-50 text-purple-700",
-  refund: "bg-rose-50 text-rose-700",
-  note: "bg-neutral-100 text-neutral-700",
-  login_success: "bg-emerald-50 text-emerald-700",
-  login_fail: "bg-amber-50 text-amber-700",
-  logout: "bg-neutral-100 text-neutral-500",
-  "2fa_enable": "bg-emerald-50 text-emerald-700",
-  "2fa_disable": "bg-amber-50 text-amber-700",
-  send: "bg-purple-50 text-purple-700",
-  send_test: "bg-neutral-100 text-neutral-700",
-};
+const LIMIT = 500;
+const PATH = "/admin/olay-kaydi";
+const MONO = { fontFamily: "var(--mono), monospace" } as const;
 
 interface PageProps {
-  searchParams: Promise<{
-    actor?: string;
-    entity?: AuditEntity;
-    action?: AuditAction;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+function RecordCell({ row }: { row: AdminAuditLog }) {
+  const label = AUDIT_ENTITY_LABELS[row.entity] ?? row.entity;
+  const href = row.entityId ? auditRecordHref(row.entity, row.entityId) : null;
+  return (
+    <div className="grid gap-0.5">
+      <span className="text-[var(--admin-text)]">{label}</span>
+      {row.entityId ? (
+        <span className="flex flex-wrap items-baseline gap-x-2 text-xs">
+          {href ? (
+            <Link
+              href={href}
+              className="break-all text-[var(--admin-primary)] underline-offset-4 hover:underline"
+              style={MONO}
+            >
+              {row.entityId}
+            </Link>
+          ) : (
+            <span
+              className="break-all text-[var(--admin-text-soft)]"
+              style={MONO}
+            >
+              {row.entityId}
+            </span>
+          )}
+          {/* The name starts with the visible word "Geçmişi", so voice
+              control still finds the link. */}
+          <Link
+            href={withParams(
+              {},
+              { entity: row.entity, entityId: row.entityId },
+              PATH,
+            )}
+            className="text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+            aria-label={`Geçmişi: ${label} ${row.entityId}, bütün olaylar`}
+          >
+            Geçmişi
+          </Link>
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function PayloadCell({ row }: { row: AdminAuditLog }) {
+  const entries = auditPayloadEntries(row.payload);
+  if (entries.length === 0) {
+    return <span className="text-[var(--admin-text-mute)]">-</span>;
+  }
+  return (
+    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+      {entries.map((e) => (
+        <div key={e.key} className="contents">
+          <dt className="text-[var(--admin-text-soft)]">{e.label}</dt>
+          <dd className="break-all text-[var(--admin-text)]">{e.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
 }
 
 export default async function AuditLogPage({ searchParams }: PageProps) {
   await requireRole("audit");
   const sp = await searchParams;
+  const filters = parseFilters(sp, AUDIT_FILTER_FIELDS);
+  const range = istanbulDayRange(filters.bas, filters.bit);
   const rows = await listAuditLogs({
-    actor: sp.actor || undefined,
-    entity: sp.entity,
-    action: sp.action,
-    limit: 500,
+    actor: filters.actor,
+    entity: filters.entity as AuditEntity | undefined,
+    action: filters.action as AuditAction | undefined,
+    entityId: filters.entityId,
+    from: range.from,
+    to: range.to,
+    limit: LIMIT,
   });
+  const filtered = Object.keys(filters).length > 0;
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
@@ -106,214 +115,75 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
         description="Admin mutasyonlarının değiştirilemez tarihçesi. Yalnız okuma - kim, neyi, ne zaman değiştirdi."
       />
 
-      <Card className="mb-4">
-        <form className="grid gap-3 sm:grid-cols-2 sm:items-end md:grid-cols-[1fr_1fr_1fr_auto_auto]">
-          <label className="grid gap-1">
-            <span
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Aktör
-            </span>
-            <input
-              type="text"
-              name="actor"
-              defaultValue={sp.actor ?? ""}
-              placeholder="ali@…"
-              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
-            />
-          </label>
-          <label className="grid gap-1">
-            <span
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Entite
-            </span>
-            <select
-              name="entity"
-              defaultValue={sp.entity ?? ""}
-              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
-            >
-              <option value="">Tümü</option>
-              {(Object.keys(ENTITY_LABEL) as AuditEntity[]).map((e) => (
-                <option key={e} value={e}>
-                  {ENTITY_LABEL[e]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-1">
-            <span
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Aksiyon
-            </span>
-            <select
-              name="action"
-              defaultValue={sp.action ?? ""}
-              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
-            >
-              <option value="">Tümü</option>
-              {(Object.keys(ACTION_LABEL) as AuditAction[]).map((a) => (
-                <option key={a} value={a}>
-                  {ACTION_LABEL[a]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="submit"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
-          >
-            Uygula
-          </button>
-          <Link
-            href="/admin/olay-kaydi"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--admin-border)] px-4 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-          >
-            Sıfırla
-          </Link>
-        </form>
-      </Card>
+      <FilterBar
+        fields={[...AUDIT_FILTER_FIELDS]}
+        searchParams={sp}
+        pathname={PATH}
+        values={filters}
+      />
 
-      <Card>
-        {rows.length === 0 ? (
-          <p className="text-sm text-neutral-500">
-            Henüz olay yok. Bir ürün oluştur veya bir sipariş durumu güncelle -
-            burada görünecek.
-          </p>
-        ) : (
-          <>
-            {/* Mobile cards */}
-            <ul className="flex flex-col gap-3 md:hidden">
-              {rows.map((r) => (
-                <li
-                  key={r.id}
-                  className="rounded-lg border border-[var(--admin-border)] p-3"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-sm text-neutral-900">
-                        <span className="font-medium">
-                          {ENTITY_LABEL[r.entity]}
-                        </span>
-                        {r.entityId && (
-                          <span
-                            className="ml-2 text-[10px] text-neutral-500"
-                            style={{ fontFamily: "var(--mono), monospace" }}
-                          >
-                            {r.entityId}
-                          </span>
-                        )}
-                      </div>
-                      <div
-                        className="mt-0.5 text-[10px] text-neutral-500"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {formatDateTime(r.createdAt)} · {r.actor}
-                      </div>
-                    </div>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ACTION_TONE[r.action]}`}
-                    >
-                      {ACTION_LABEL[r.action]}
-                    </span>
-                  </div>
-                  {Object.keys(r.payload).length > 0 && (
-                    <details className="mt-2">
-                      <summary className="cursor-pointer text-[11px] text-neutral-500 hover:text-[var(--admin-primary)]">
-                        Payload göster
-                      </summary>
-                      <code
-                        className="mt-2 block rounded bg-neutral-50 p-2 break-all"
-                        style={{
-                          fontFamily: "var(--mono), monospace",
-                          fontSize: 11,
-                        }}
-                      >
-                        {JSON.stringify(r.payload)}
-                      </code>
-                    </details>
-                  )}
-                </li>
-              ))}
-            </ul>
-
-            {/* Desktop table */}
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr
-                    className="border-b border-[var(--admin-border)] text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
-                    <th className="py-3 pr-3">Zaman</th>
-                    <th className="pr-3">Aktör</th>
-                    <th className="pr-3">Aksiyon</th>
-                    <th className="pr-3">Entite</th>
-                    <th className="pr-3">ID</th>
-                    <th>Payload</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr
-                      key={r.id}
-                      className="border-b border-neutral-100 align-top last:border-b-0"
-                    >
-                      <td
-                        className="py-3 pr-3 text-xs whitespace-nowrap text-neutral-500"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {formatDateTime(r.createdAt)}
-                      </td>
-                      <td
-                        className="pr-3 text-xs text-neutral-700"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {r.actor}
-                      </td>
-                      <td className="pr-3">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ACTION_TONE[r.action]}`}
-                        >
-                          {ACTION_LABEL[r.action]}
-                        </span>
-                      </td>
-                      <td className="pr-3 text-neutral-800">
-                        {ENTITY_LABEL[r.entity]}
-                      </td>
-                      <td
-                        className="pr-3 text-xs text-neutral-500"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {r.entityId || "-"}
-                      </td>
-                      <td className="text-xs text-neutral-600">
-                        {Object.keys(r.payload).length === 0 ? (
-                          <span className="text-neutral-400">-</span>
-                        ) : (
-                          <code
-                            className="break-all"
-                            style={{
-                              fontFamily: "var(--mono), monospace",
-                              fontSize: 11,
-                            }}
-                          >
-                            {JSON.stringify(r.payload)}
-                          </code>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </Card>
+      <DataTable
+        caption="Olay kaydı"
+        rows={rows}
+        rowKey={(r) => r.id}
+        empty={
+          <EmptyState
+            title={filtered ? "Bu filtreyle olay yok." : "Henüz olay yok."}
+            description={
+              filtered
+                ? "Filtreleri gevşet ya da Sıfırla'ya bas."
+                : "Bir ürün oluştur ya da bir sipariş durumu güncelle, burada görünür."
+            }
+          />
+        }
+        columns={[
+          {
+            key: "at",
+            header: "Zaman",
+            className: "whitespace-nowrap",
+            cell: (r) => (
+              <span className="text-xs" style={MONO}>
+                {formatDateTime(r.createdAt)}
+              </span>
+            ),
+          },
+          {
+            key: "actor",
+            header: "Kim",
+            cell: (r) => (
+              <span className="text-xs break-all" style={MONO}>
+                {r.actor}
+              </span>
+            ),
+          },
+          {
+            key: "action",
+            header: "İşlem",
+            cell: (r) => (
+              <Badge tone={AUDIT_ACTION_TONES[r.action] ?? "neutral"}>
+                {AUDIT_ACTION_LABELS[r.action] ?? r.action}
+              </Badge>
+            ),
+          },
+          {
+            key: "record",
+            header: "Kayıt",
+            cell: (r) => <RecordCell row={r} />,
+          },
+          {
+            key: "payload",
+            header: "Ayrıntı",
+            className: "min-w-[220px]",
+            cell: (r) => <PayloadCell row={r} />,
+          },
+        ]}
+      />
+      {rows.length >= LIMIT ? (
+        <p className="mt-3 text-xs text-[var(--admin-text-soft)]">
+          En yeni {LIMIT} olay gösteriliyor. Daha eskisi için tarih aralığını
+          daralt.
+        </p>
+      ) : null}
     </main>
   );
 }

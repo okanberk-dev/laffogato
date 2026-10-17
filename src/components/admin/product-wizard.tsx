@@ -10,6 +10,7 @@ import {
 
 import { type ProductActionState } from "@/app/admin/urunler/actions";
 import { photoKind } from "@/lib/backdrop/scene-core";
+import { parseMoneyInput } from "@/lib/utils/format";
 import type {
   AdminCategory,
   AdminProduct,
@@ -205,18 +206,14 @@ export function ProductWizard({
     if (!skuTouched && next) setSku(skuFromName(next));
   };
 
-  const priceMinor = useMemo(() => {
-    const v = parseFloat(price.replace(",", "."));
-    return Number.isFinite(v) ? Math.round(v * 100) : 0;
-  }, [price]);
-  const compareMinor = useMemo(() => {
-    const v = parseFloat(compareAtPrice.replace(",", "."));
-    return Number.isFinite(v) ? Math.round(v * 100) : 0;
-  }, [compareAtPrice]);
-  const costMinor = useMemo(() => {
-    const v = parseFloat(cost.replace(",", "."));
-    return Number.isFinite(v) ? Math.round(v * 100) : 0;
-  }, [cost]);
+  // The preview reads the amounts the way the save does (parseMoneyInput):
+  // "1.250,00" is 1.250 TL here too, not the 1,25 TL parseFloat made of it.
+  const priceMinor = useMemo(() => parseMoneyInput(price) ?? 0, [price]);
+  const compareMinor = useMemo(
+    () => parseMoneyInput(compareAtPrice) ?? 0,
+    [compareAtPrice],
+  );
+  const costMinor = useMemo(() => parseMoneyInput(cost) ?? 0, [cost]);
 
   const marginPct = useMemo(() => {
     if (priceMinor <= 0 || costMinor <= 0) return null;
@@ -439,9 +436,10 @@ export function ProductWizard({
             <Field
               label="Eski fiyat (was, ₺)"
               hint={
-                discountPct !== null
+                fieldError("compareAtPrice") ??
+                (discountPct !== null
                   ? `−%${discountPct} indirim olarak görünür`
-                  : "Opsiyonel - boşsa indirim gösterilmez."
+                  : "Opsiyonel - boşsa indirim gösterilmez.")
               }
             >
               <TextInput
@@ -455,9 +453,10 @@ export function ProductWizard({
             <Field
               label="Maliyet (₺)"
               hint={
-                marginPct !== null
+                fieldError("cost") ??
+                (marginPct !== null
                   ? `Marj: %${marginPct}`
-                  : "Müşteriye gizli; raporlama için."
+                  : "Müşteriye gizli; raporlama için.")
               }
             >
               <TextInput
@@ -533,6 +532,11 @@ export function ProductWizard({
             &quot;250g&quot;, &quot;Stracciatella&quot;. Her varyantın kendi
             stoğu ve fiyat delta&apos;sı olur.
           </p>
+          {fieldError("variants") ? (
+            <p role="alert" className="text-sm text-[var(--admin-danger-ink)]">
+              {fieldError("variants")}
+            </p>
+          ) : null}
           {variants.length === 0 ? (
             <Card className="bg-neutral-50 text-center">
               <p className="text-sm text-neutral-500">
@@ -578,13 +582,16 @@ export function ProductWizard({
                           placeholder="SIRE-V1"
                         />
                       </Field>
-                      <Field label="Fiyat Δ (₺)">
+                      <Field
+                        label="Fiyat Δ (₺)"
+                        hint="Ucuzsa başına - koy: -10,50"
+                      >
+                        {/* No decimal keypad: on iOS it has no minus key. */}
                         <TextInput
                           value={v.priceDelta}
                           onChange={(e) =>
                             updateVariant(i, "priceDelta", e.target.value)
                           }
-                          inputMode="decimal"
                           placeholder="0,00"
                         />
                       </Field>
@@ -660,7 +667,6 @@ export function ProductWizard({
                             onChange={(e) =>
                               updateVariant(i, "priceDelta", e.target.value)
                             }
-                            inputMode="decimal"
                             placeholder="0,00"
                           />
                         </td>

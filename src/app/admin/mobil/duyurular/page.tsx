@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { Card, DangerButton, PageHeader } from "@/components/admin/forms";
+import { Card, PageHeader } from "@/components/admin/forms";
+import { ConfirmButton } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import {
   APP_ANNOUNCEMENT_KIND_LABELS,
@@ -64,10 +65,13 @@ export default async function AdminAppAnnouncementsPage() {
                   >
                     Düzenle
                   </Link>
-                  <form action={deleteAnnouncementAction}>
-                    <input type="hidden" name="id" value={a.id} />
-                    <DangerButton type="submit">Sil</DangerButton>
-                  </form>
+                  <ConfirmButton
+                    action={deleteAnnouncementAction}
+                    hidden={{ id: a.id }}
+                    label="Sil"
+                    title={`"${a.title}" silinsin mi?`}
+                    description="Duyuru uygulamadan hemen kalkar ve kalıcı olarak silinir. Bir süreliğine kaldırmak için Düzenle'den yayından al."
+                  />
                 </div>
               </div>
             </Card>

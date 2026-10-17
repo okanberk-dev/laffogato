@@ -17,6 +17,7 @@ import {
   TextInput,
   formatTRY,
 } from "./forms";
+import { ConfirmButton } from "./ui";
 
 const initial: CouponGrantState = {};
 
@@ -86,23 +87,20 @@ export function CustomerCoupons({
                       nothing left to do. */}
                   {(c.source === "loyalty" || c.source === "milestone") &&
                   (c.redeemedAt || !c.isActive) ? null : (
-                    <form action={revokeCustomerCouponAction}>
-                      <input type="hidden" name="id" value={c.id} />
-                      <input type="hidden" name="email" value={email} />
-                      <button
-                        type="submit"
-                        className="text-xs text-rose-600 underline-offset-2 hover:underline"
-                        title={
-                          c.source === "loyalty" || c.source === "milestone"
-                            ? "Kuponu pasifleştir"
-                            : "Kuponu sil"
-                        }
-                      >
-                        {c.source === "loyalty" || c.source === "milestone"
+                    <ConfirmButton
+                      action={revokeCustomerCouponAction}
+                      hidden={{ id: c.id, email }}
+                      label={
+                        c.source === "loyalty" || c.source === "milestone"
                           ? "Pasifleştir"
-                          : "Sil"}
-                      </button>
-                    </form>
+                          : "Sil"
+                      }
+                      description={
+                        c.source === "loyalty" || c.source === "milestone"
+                          ? `${c.code} pasifleşir, üye artık kullanamaz. Damgalar geri dönmez.`
+                          : `${c.code} silinir, üye artık kullanamaz.`
+                      }
+                    />
                   )}
                 </div>
               </li>

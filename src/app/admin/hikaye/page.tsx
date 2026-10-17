@@ -1,13 +1,18 @@
 import {
+  ActionForm,
+  FormFieldError,
+  FormMessage,
+  SubmitButton,
+} from "@/components/admin/action-form";
+import {
   Card,
   Checkbox,
-  DangerButton,
   Field,
   PageHeader,
-  PrimaryButton,
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
+import { ConfirmButton } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { listStoryEvents, type AdminStoryEvent } from "@/lib/admin/store";
 
@@ -23,7 +28,7 @@ export const dynamic = "force-dynamic";
 function Row({ item }: { item: AdminStoryEvent }) {
   return (
     <Card>
-      <form
+      <ActionForm
         action={updateStoryAction.bind(null, item.id)}
         className="grid gap-3"
       >
@@ -31,9 +36,12 @@ function Row({ item }: { item: AdminStoryEvent }) {
           <Field label="Yıl">
             <TextInput name="year" defaultValue={item.year} />
           </Field>
-          <Field label="Başlık">
-            <TextInput name="title" defaultValue={item.title} />
-          </Field>
+          <div className="grid content-start gap-1.5">
+            <Field label="Başlık">
+              <TextInput name="title" defaultValue={item.title} />
+            </Field>
+            <FormFieldError name="title" />
+          </div>
         </div>
         <Field label="Açıklama">
           <Textarea name="body" defaultValue={item.body} />
@@ -52,17 +60,20 @@ function Row({ item }: { item: AdminStoryEvent }) {
               label="Aktif"
               defaultChecked={item.isActive}
             />
-            <PrimaryButton type="submit">Kaydet</PrimaryButton>
+            <SubmitButton>Kaydet</SubmitButton>
           </div>
         </div>
-      </form>
-      <form
-        action={deleteStoryAction}
-        className="mt-2 border-t border-neutral-100 pt-2"
-      >
-        <input type="hidden" name="id" value={item.id} />
-        <DangerButton type="submit">Sil</DangerButton>
-      </form>
+        <FormMessage />
+      </ActionForm>
+      <div className="mt-2 border-t border-neutral-100 pt-2">
+        <ConfirmButton
+          action={deleteStoryAction}
+          hidden={{ id: item.id }}
+          label="Sil"
+          title="Dönem silinsin mi?"
+          description="Dönem hikaye sayfasından kalkar ve kalıcı olarak silinir. Bir süreliğine kaldırmak için Aktif kutusunu kaldırıp kaydet."
+        />
+      </div>
     </Card>
   );
 }
@@ -81,14 +92,21 @@ export default async function AdminStoryPage() {
 
       <Card className="mb-6">
         <h3 className="mb-3 text-sm font-medium">+ Yeni dönem</h3>
-        <form action={createStoryAction} className="grid gap-3">
+        <ActionForm
+          action={createStoryAction}
+          resetOnSuccess
+          className="grid gap-3"
+        >
           <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
             <Field label="Yıl">
               <TextInput name="year" placeholder="1897" />
             </Field>
-            <Field label="Başlık">
-              <TextInput name="title" placeholder="Bologna · 1897" />
-            </Field>
+            <div className="grid content-start gap-1.5">
+              <Field label="Başlık">
+                <TextInput name="title" placeholder="Bologna · 1897" />
+              </Field>
+              <FormFieldError name="title" />
+            </div>
           </div>
           <Field label="Açıklama">
             <Textarea
@@ -106,10 +124,11 @@ export default async function AdminStoryPage() {
             </Field>
             <div className="flex items-end justify-between gap-3">
               <Checkbox name="isActive" label="Aktif" defaultChecked />
-              <PrimaryButton type="submit">Ekle</PrimaryButton>
+              <SubmitButton pendingLabel="Ekleniyor…">Ekle</SubmitButton>
             </div>
           </div>
-        </form>
+          <FormMessage />
+        </ActionForm>
       </Card>
 
       <div className="grid gap-3">

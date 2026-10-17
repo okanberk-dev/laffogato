@@ -5,6 +5,8 @@ import { RevenueChart } from "@/components/admin/revenue-chart";
 import { requireRole } from "@/lib/admin/auth";
 import {
   analyticsHeadline,
+  karaokeRevenue,
+  parseGranularity,
   revenueBuckets,
   topProducts,
   type BucketGranularity,
@@ -14,7 +16,7 @@ export const metadata = { title: "Admin · Raporlar" };
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ g?: BucketGranularity }>;
+  searchParams: Promise<{ g?: string | string[] }>;
 }
 
 const G_OPTIONS: Array<{
@@ -30,13 +32,15 @@ const G_OPTIONS: Array<{
 export default async function ReportsPage({ searchParams }: PageProps) {
   await requireRole("reports");
   const sp = await searchParams;
-  const g: BucketGranularity = sp.g ?? "day";
+  // An unknown ?g= falls back to the daily view AND marks its tab.
+  const g = parseGranularity(sp.g);
   const opt = G_OPTIONS.find((x) => x.value === g) ?? G_OPTIONS[0];
 
-  const [head, buckets, top] = await Promise.all([
+  const [head, buckets, top, karaoke] = await Promise.all([
     analyticsHeadline(),
     revenueBuckets(opt.value, opt.count),
     topProducts(5),
+    karaokeRevenue(opt.value, opt.count),
   ]);
 
   const periodRevenue = buckets.reduce((s, b) => s + b.revenueMinor, 0);
@@ -52,15 +56,19 @@ export default async function ReportsPage({ searchParams }: PageProps) {
       <PageHeader
         eyebrow="Operasyon · İçgörüler"
         title="Raporlar"
-        description="Net ciro, sipariş hacmi ve en çok satan ürünler. İptal edilen siparişler hariç tutulur; iade edilen tutarlar siparişin kendi döneminden düşülür."
+        description="Ödemesi alınmış siparişler sayılır; ödeme bekleyen ve iptal edilenler hariç. Net ciro iadeler düşülmüş tutardır, iade siparişin kendi döneminden düşülür. Karaoke ön ödemeleri ayrı gösterilir."
       />
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-4">
-        <Stat label="Toplam ciro" value={formatTRY(head.totalRevenueMinor)} />
-        <Stat label="Toplam sipariş" value={String(head.totalOrders)} />
+      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat
-          label="Ortalama sepet"
-          value={formatTRY(head.averageOrderMinor)}
+          label="Net ciro"
+          value={formatTRY(head.netRevenueMinor)}
+          hint="Siparişler, iadeler düşülmüş"
+        />
+        <Stat
+          label="Brüt ciro"
+          value={formatTRY(head.grossRevenueMinor)}
+          hint="İadeler düşülmeden"
         />
         <Stat
           label="İade"
@@ -69,7 +77,53 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           }
           tone={head.refundedMinor > 0 ? "warn" : undefined}
         />
+        <Stat label="Sipariş" value={String(head.totalOrders)} />
+        <Stat
+          label="Ortalama sepet"
+          value={formatTRY(head.averageOrderMinor)}
+          hint="Brüt / sipariş"
+        />
       </div>
+
+      <Card className="mb-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2
+              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+              style={{ fontFamily: "var(--mono), monospace" }}
+            >
+              Karaoke ön ödemesi (net)
+            </h2>
+            <div
+              className="mt-1 text-2xl text-neutral-900"
+              style={{ fontFamily: "var(--mono), monospace" }}
+            >
+              {formatTRY(karaoke.netMinor)}
+            </div>
+            <p className="mt-1 text-xs text-neutral-500">
+              {karaoke.paidCount} ödenmiş rezervasyon · tahsil edilen{" "}
+              {formatTRY(karaoke.collectedMinor)} · iade edilen{" "}
+              {formatTRY(karaoke.refundedMinor)}
+            </p>
+            {karaoke.refundPendingMinor > 0 ? (
+              <p className="mt-1 text-xs text-[var(--admin-danger-ink)]">
+                {formatTRY(karaoke.refundPendingMinor)} için iade başlatıldı,
+                sonucu bekleniyor; nete dahil.
+              </p>
+            ) : null}
+          </div>
+          <div className="text-right text-xs text-neutral-500">
+            Bu dönemde ({opt.label.toLocaleLowerCase("tr-TR")}):{" "}
+            <span
+              className="text-sm text-neutral-900"
+              style={{ fontFamily: "var(--mono), monospace" }}
+            >
+              {formatTRY(karaoke.periodNetMinor)}
+            </span>{" "}
+            · {karaoke.periodCount} rezervasyon
+          </div>
+        </div>
+      </Card>
 
       <Card className="mb-4">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -78,7 +132,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
               className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
-              Ciro
+              Net sipariş cirosu
             </h2>
             <div
               className="mt-1 text-3xl"
@@ -99,8 +153,9 @@ export default async function ReportsPage({ searchParams }: PageProps) {
               <Link
                 key={o.value}
                 href={`/admin/raporlar?g=${o.value}`}
+                aria-current={o.value === opt.value ? "page" : undefined}
                 className={`rounded-full px-3 py-1.5 text-xs ${
-                  o.value === g
+                  o.value === opt.value
                     ? "bg-[var(--admin-primary)] text-white"
                     : "border border-[var(--admin-border)] text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                 }`}
@@ -189,10 +244,12 @@ function Stat({
   label,
   value,
   tone,
+  hint,
 }: {
   label: string;
   value: string;
   tone?: "warn";
+  hint?: string;
 }) {
   return (
     <div className="rounded-xl border border-[var(--admin-border)] bg-white p-4 shadow-sm">
@@ -208,6 +265,9 @@ function Stat({
       >
         {value}
       </div>
+      {hint ? (
+        <div className="mt-1 text-xs text-neutral-500">{hint}</div>
+      ) : null}
     </div>
   );
 }
