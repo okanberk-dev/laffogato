@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 
 import { createElement, type ReactNode } from "react";
@@ -99,7 +99,7 @@ function webpInfo(buf: Buffer) {
 
 describe("the migration", () => {
   it("lists one photo per item, each item and file once", () => {
-    expect(rows).toHaveLength(76);
+    expect(rows).toHaveLength(75);
     expect(new Set(rows.map((r) => r.id)).size).toBe(rows.length);
     expect(new Set(rows.map((r) => r.image)).size).toBe(rows.length);
   });
@@ -151,7 +151,7 @@ describe("the photo files", () => {
   ];
 
   it("exist for every path the migration and the seed name", () => {
-    expect(referenced.length).toBeGreaterThanOrEqual(79);
+    expect(referenced.length).toBeGreaterThanOrEqual(78);
     for (const path of referenced) {
       expect(existsSync(file(path)), path).toBe(true);
     }
@@ -163,6 +163,14 @@ describe("the photo files", () => {
       expect(info, path).not.toBeNull();
       expect(info!.width, path).toBe(info!.height);
     }
+  });
+
+  it("are all in use: a photo taken off the menu leaves the folder too", () => {
+    // The *-cut.webp cutouts are the home hero's (HOME_SLIDES in data.ts).
+    const onDisk = readdirSync(file("menu"))
+      .filter((name) => name.endsWith(".webp") && !name.endsWith("-cut.webp"))
+      .map((name) => `/menu/${name}`);
+    expect(onDisk.sort()).toEqual([...referenced].sort());
   });
 
   it("are 900 px squares of at most 150 KB, with no alpha and no metadata", () => {
@@ -187,7 +195,7 @@ describe("the bundled seed", () => {
 
   it("leaves only the items docs/MENU-PHOTOS.md lists without a photo", () => {
     const missing = seed.filter((s) => !s.image).map((s) => s.name);
-    expect(missing).toEqual(["Çarkıfelek", "Ananas", "Şurup"]);
+    expect(missing).toEqual(["Salep", "Çarkıfelek", "Ananas", "Şurup"]);
     const docs = readFileSync("docs/MENU-PHOTOS.md", "utf8");
     const section = docs.slice(
       docs.indexOf("## Fotoğrafsız kalanlar"),

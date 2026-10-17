@@ -412,7 +412,6 @@ export const MENU: Record<string, MenuCategory> = {
         price: "245₺",
         priceL: "265₺",
         hue: "cream",
-        image: "/menu/salep.webp",
       },
       {
         name: "Çay",

@@ -1,8 +1,8 @@
 # Menü fotoğrafları
 
-> **Durum (17 Eki 2026):** 82 menü kaleminin 79'unda fotoğraf var. Üçü Ağustos
+> **Durum (17 Eki 2026):** 82 menü kaleminin 78'inde fotoğraf var. Üçü Ağustos
 > menüsüyle geldi (`matcha-latte`, `strawberry-matcha`, `matcha-affogato`);
-> 76'sı bu belgede listelenen stok fotoğraflar. Üç kalem fotoğrafsız, çizimle
+> 75'i bu belgede listelenen stok fotoğraflar. Dört kalem fotoğrafsız, çizimle
 > kalıyor (aşağıda, nedenleriyle).
 
 Operatör, 17 Eki 2026: _"menüdeki ürünlere telifsiz görseller bularak hem site
@@ -22,7 +22,8 @@ hem uygulama tarafında yükle"_.
   `src/components/laffogato/data.ts` aynı yolları taşır. Veritabanına
   ulaşılamadığında gösterilen menü de bu tohumdur.
 - Uygulama aynı `GET /api/mobile/v1/menu`'dan okur (`image` mutlak adres olarak
-  gelir) ve fotoğrafı daire içinde gösterir: `photoCutout` false, bu
+  gelir, `https://laffogato.net/menu/<ad>.webp`) ve fotoğrafı kare bir karoda,
+  küçük önizlemelerde daire içinde gösterir: `photoCutout` false, bu
   fotoğraflar dekupe değil, kare. Sözleşme değişmedi, yalnız değerler.
 - Sahne rengi (`backdrop`, `backdropHex`) yazılmadı. Site-göreli bir fotoğrafın
   sahnesini `scripts/backfill-backdrops.mjs` seçer (önce kuru koşu, sonra
@@ -35,16 +36,16 @@ hem uygulama tarafında yükle"_.
 
 ## Lisans
 
-- 76 fotoğrafın 73'ü **CC0 1.0**, 3'ü **Public Domain Mark 1.0** (Flickr):
+- 75 fotoğrafın 74'ü **CC0 1.0**, 1'i **Public Domain Mark 1.0** (Flickr):
   ticari kullanım serbest, atıf zorunlu değil, copyleft yok. Atıf zorunlu
   olmasa da her dosyanın kaynağı, yaratıcısı ve orijinal adresi aşağıda
   kayıtlı.
 - Hepsi Openverse API'sinden bulundu (`license=cc0,pdm`): rawpixel 22,
-  Wikimedia Commons 21, Flickr 13, WordPress Photo Directory 12, StockSnap 8.
-- Lisans 46 dosyada kaynağın kendisinde de doğrulandı: Wikimedia Commons'ta
+  Wikimedia Commons 21, WordPress Photo Directory 12, Flickr 11, StockSnap 9.
+- Lisans 44 dosyada kaynağın kendisinde de doğrulandı: Wikimedia Commons'ta
   Commons API'siyle (hepsi CC0, atıf istemiyor), Flickr ve WordPress Photo
   Directory'de fotoğrafın sayfasında. rawpixel ve StockSnap sayfaları bot
-  doğrulamasının arkasında, açılamadı; bu 30 dosyanın lisansı Openverse
+  doğrulamasının arkasında, açılamadı; bu 31 dosyanın lisansı Openverse
   kaydından, iki site de bu koleksiyonları CC0 olarak yayımlıyor
   (StockSnap'in tamamı CC0). İstenirse sayfalar tarayıcıda açılıp bakılabilir.
 - Unsplash ve Pexels kullanılmadı: ikisi de sayfayı bot doğrulamasının arkasına
@@ -57,10 +58,11 @@ hem uygulama tarafında yükle"_.
 ## İşleme
 
 Ham dosyalar ayrı bir klasöre indirildi ve yalnız `sips` ile `cwebp` ile
-işlendi: sRGB, ürün ortada kare kırpma (uygulama daireye kırpar), 900 x 900,
-WebP kalite 80 (üç dosyada 72 ile 76), alfa yok, EXIF, XMP ve ICC yok. En büyük
-dosya 113 KB, toplam 3,8 MB. `tests/menu-photos.test.ts` her dosyanın var,
-kare WebP ve 150 KB'tan küçük olduğunu tutar.
+işlendi: sRGB, ürün ortada kare kırpma (uygulama kare karoda ya da daire içinde
+gösterir), 900 x 900, WebP kalite 80 (120 KB'a sığmayan birkaçında biraz daha
+düşük), alfa yok, EXIF, XMP ve ICC yok. En büyük dosya 113 KB, toplam 3,8 MB.
+`tests/menu-photos.test.ts` her dosyanın var, kare WebP ve 150 KB'tan küçük
+olduğunu tutar.
 
 ## Değiştirmek ya da kaldırmak
 
@@ -75,12 +77,13 @@ kare WebP ve 150 KB'tan küçük olduğunu tutar.
 
 | id       | Ad         | Neden                                                                                                                                                                            |
 | -------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| mnu-0041 | Salep      | Bardakta ya da fincanda salep fotoğrafı yok: tek sonuç tarçınlı yüzeyin yakın çekimi, içecek görünmüyor; tarçınlı köpüklü kahve salep değil.                                     |
 | mnu-0053 | Çarkıfelek | CC0 ya da PDM bir çarkıfelekli frozen ya da içecek fotoğrafı yok: sonuçlar bitki, çiçek ve botanik çizim; tek bardak fotoğrafı (buz ve çekirdek, yakın çekim) ürünü göstermiyor. |
 | mnu-0054 | Ananas     | Ananaslı frozen ya da smoothie yok: sonuçlar kokteyl kadehi (alkol izlenimi), plastik bardakta düşük kaliteli bir meyve suyu ya da bütün ananas.                                 |
 | mnu-0080 | Şurup      | Markasız bir şurup şişesi yok: sonuçlar akçaağaç şurubu, ilaç şişesi, bar şişeleri ya da çizim.                                                                                  |
 
 Site ve uygulama bu kalemlerde bugünkü gibi çizimi gösterir. Başka bir meyvenin
-fotoğrafı ürünü yanlış gösterirdi.
+ya da içeceğin fotoğrafı ürünü yanlış gösterirdi.
 
 ## Notlar
 
@@ -94,7 +97,6 @@ Kırpılarak kadraj dışında bırakılanlar:
   amblemi vardı, fotoğraf değiştirildi.
 - mnu-0046 Karamel Frappe: bardağın kenarındaki muz dilimi.
 - mnu-0057 Donostia: arkadaki barista.
-- mnu-0063 Çilek Magnolia: kaptaki etiket.
 - mnu-0065 Lotus Magnolia: markalı bisküvi.
 - mnu-0071 Cookie Aşkı: kenardaki el ve bardak.
 - mnu-0073 Karabuğday Simit: simidi tutan el yalnız alt kenarda kalıyor.
@@ -108,11 +110,17 @@ Temsilî ama tam eşleşmeyenler:
 - mnu-0027 Buzlu Toffeenut Latte ve mnu-0028 Buzlu Balkabağı Latte: genel buzlu
   latte.
 - mnu-0067 Klasik Spoonful: bardakta kremalı bir tatlı (parfe).
+- mnu-0018 Balkabağı Latte: tarçın serpilmiş köpüklü latte, balkabağı
+  görünmüyor.
+- mnu-0059 Yaban Mersinli San Sebastian: yaban mersinli cheesecake dilimi,
+  bisküvi tabanlı ve üstü yanık değil.
+- mnu-0063 Çilek Magnolia: kadehte krema ve çilek dilimleri, bisküvi katı
+  görünmüyor.
 
 Markaya bağlı ya da genel kalemler, brifteki gibi: mnu-0079 Koska Fındık için
 düz fındık (marka görünmez), mnu-0032 Sürpriz İçecek için nötr, renkli buzlu
-bir içecek (frambuazlı limonata); Su, Soda, Ekstra Shot ve Alternatif Süt için
-genel birer fotoğraf.
+bir içecek (frambuazlı limonata); Su, Soda (limon dilimli bir bardak maden
+suyu), Ekstra Shot ve Alternatif Süt için genel birer fotoğraf.
 
 ## Kalem kalem kaynaklar
 
@@ -135,7 +143,7 @@ kayıtlarında ad yok.
 | mnu-0015 | Karamel Latte                | `caramel-latte.webp`             | https://www.flickr.com/photos/37996646802@N01/26488792749                                   | cogdogblog          | CC0 1.0                      | 2026-10-17 | https://live.staticflickr.com/4470/26488792749_1e52bc5ded_b.jpg                                                                                                          |
 | mnu-0016 | Tuzlu Karamel Latte          | `salted-caramel-latte.webp`      | https://www.rawpixel.com/image/5927674/photo-image-public-domain-glass-coffee               | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvZnJlZXJhbmdlcGV4ZWxzMDIxOTQtaW1hZ2Uta3d2eWlwZnAuanBn.jpg         |
 | mnu-0017 | Toffeenut Latte              | `toffee-nut-latte.webp`          | https://www.rawpixel.com/image/5919178/image-public-domain-coffee-free                      | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/cHJpdmF0ZS9zdGF0aWMvaW1hZ2Uvd2Vic2l0ZS8yMDIyLTA0L2xyL2ZmNDAxOS1pbWFnZS1rd3Z4NGdjdC5qcGc.jpg                                      |
-| mnu-0018 | Balkabağı Latte              | `pumpkin-latte.webp`             | https://www.rawpixel.com/image/5972160/free-public-domain-cc0-photo                         | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvZnJqaWxsd2VsbGluZ3RvbjAwMDY0LWltYWdlLWt3eXNweXBjLmpwZw.jpg       |
+| mnu-0018 | Balkabağı Latte              | `pumpkin-latte.webp`             | https://www.rawpixel.com/image/3303445/free-photo-image-beverage-break-breakfast            | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIyLTA0L3Vwd2s2MTcxNDQwNS13aWtpbWVkaWEtaW1hZ2Uta293cXhleWwuanBn.jpg                         |
 | mnu-0019 | Türk Kahvesi                 | `turkish-coffee.webp`            | https://stocksnap.io/photo/coffee-cup-3F1F16DEA8                                            | Travel Coffee Book  | CC0 1.0                      | 2026-10-17 | https://cdn.stocksnap.io/img-thumbs/960w/3F1F16DEA8.jpg                                                                                                                  |
 | mnu-0020 | Filtre Kahve                 | `filter-coffee.webp`             | https://www.rawpixel.com/image/6042664/photo-image-public-domain-coffee-water               | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvZmw0Njg2OTI2MDI0NS1pbWFnZS1reWJlaHZsOS5qcGc.jpg                  |
 | mnu-0021 | Buzlu Chai                   | `iced-chai.webp`                 | https://commons.wikimedia.org/w/index.php?curid=163369434                                   | Andy Li             | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/9/9a/Iced_mocha_-_Cafe_Rust_2025-03-31.jpg                                                                                |
@@ -152,13 +160,12 @@ kayıtlarında ad yok.
 | mnu-0032 | Sürpriz İçecek               | `surprise-drink.webp`            | https://www.flickr.com/photos/157635012@N07/43108065435                                     | Artem Beliaikin     | CC0 1.0                      | 2026-10-17 | https://live.staticflickr.com/938/43108065435_92f27fdf66_b.jpg                                                                                                           |
 | mnu-0033 | Cool Lime                    | `cool-lime.webp`                 | https://www.flickr.com/photos/29507259@N02/3605879317                                       | D Coetzee           | CC0 1.0                      | 2026-10-17 | https://live.staticflickr.com/2421/3605879317_51fc2f6010_b.jpg                                                                                                           |
 | mnu-0034 | L'Af Limon                   | `lemonade.webp`                  | https://www.flickr.com/photos/157635012@N07/44997490262                                     | Artem Beliaikin     | CC0 1.0                      | 2026-10-17 | https://live.staticflickr.com/1908/44997490262_d27d625368_b.jpg                                                                                                          |
-| mnu-0035 | Soda                         | `soda.webp`                      | https://www.rawpixel.com/image/6042373/photo-image-public-domain-blue-bubbles               | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvZmwzNTMzNjYzMjA2NC1pbWFnZS1reWJlZzlobS5qcGc.jpg                  |
+| mnu-0035 | Soda                         | `soda.webp`                      | https://www.rawpixel.com/image/5902681/photo-image-public-domain-plant-lemon                | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvc2s4MDQ4LWltYWdlLWt3dnVreG9tLmpwZw.jpg                           |
 | mnu-0036 | Su                           | `water.webp`                     | https://commons.wikimedia.org/w/index.php?curid=105399729                                   | Kurt Kaiser         | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/0/01/Glass_of_water_ouside.jpg                                                                                            |
 | mnu-0037 | Chai Latte                   | `chai-latte.webp`                | https://commons.wikimedia.org/w/index.php?curid=171231799                                   | Andy Li             | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/9/92/Homemade_Chai_Latte_with_Almond_milk_-_Moksha_2025-08-01.jpg                                                         |
 | mnu-0038 | Sıcak Çikolata               | `hot-chocolate.webp`             | https://commons.wikimedia.org/w/index.php?curid=150181652                                   | Mx. Granger         | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/a/a0/Hot_chocolate_from_ChocoVivo.jpg                                                                                     |
 | mnu-0039 | Beyaz Sıcak Çikolata         | `white-hot-chocolate.webp`       | https://www.rawpixel.com/image/3283047/free-photo-image-chocolate-coffee-cream              | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvdXB3azU4ODU5NzAzLXdpa2ltZWRpYS1pbWFnZS1rb3diNXpody5qcGc.jpg      |
 | mnu-0040 | Karamelli Sıcak Çikolata     | `caramel-hot-chocolate.webp`     | https://commons.wikimedia.org/w/index.php?curid=141601684                                   | Derk29              | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/d/d3/Hot_Chocolate_drinks.jpg                                                                                             |
-| mnu-0041 | Salep                        | `salep.webp`                     | https://www.flickr.com/photos/154133126@N08/43813036130                                     | firatsoygul         | PDM 1.0 (Public Domain Mark) | 2026-10-17 | https://live.staticflickr.com/1911/43813036130_af7962f963_b.jpg                                                                                                          |
 | mnu-0042 | Çay                          | `turkish-tea.webp`               | https://wordpress.org/photos/photo/8636890a5e/                                              | Rubel Miah          | CC0 1.0                      | 2026-10-17 | https://pd.w.org/2025/08/8636890a5e8c36c54.45906496-1347x2048.jpg                                                                                                        |
 | mnu-0043 | Frappe                       | `frappe.webp`                    | https://commons.wikimedia.org/w/index.php?curid=151464153                                   | Andy Li             | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/1/10/Vanilla_Frappe_-_Blossom_Cafe_Bar_2024-08-13.jpg                                                                     |
 | mnu-0044 | Espresso Frappe              | `espresso-frappe.webp`           | https://www.flickr.com/photos/37996646802@N01/1757655381                                    | cogdogblog          | CC0 1.0                      | 2026-10-17 | https://live.staticflickr.com/2411/1757655381_88c9fb0ae9_b.jpg                                                                                                           |
@@ -178,7 +185,7 @@ kayıtlarında ad yok.
 | mnu-0060 | L'Af Mango                   | `mango-cake.webp`                | https://wordpress.org/photos/photo/375653a94f/                                              | Shilpa Manoj        | CC0 1.0                      | 2026-10-17 | https://pd.w.org/2023/10/375653a94fe987d28.54130884-2048x922.jpg                                                                                                         |
 | mnu-0061 | L'Af Kahve                   | `coffee-cake.webp`               | https://commons.wikimedia.org/w/index.php?curid=185680508                                   | Andy Li             | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/3/33/A_slice_of_coffee_and_walnut_cake_-_Audit_Room_Caf%C3%A9%2C_Petworth_House.jpg                                       |
 | mnu-0062 | L'Af Antep Fıstığı           | `pistachio-cake.webp`            | https://commons.wikimedia.org/w/index.php?curid=156988958                                   | Fumikas Sagisavas   | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/5/51/Double_crumble_pistachio_cake_%28close-up%29.jpg                                                                     |
-| mnu-0063 | Çilek Magnolia               | `strawberry-magnolia.webp`       | https://www.flickr.com/photos/191581825@N06/50769315428                                     | madamruby168        | PDM 1.0 (Public Domain Mark) | 2026-10-17 | https://live.staticflickr.com/65535/50769315428_196bf377d3_b.jpg                                                                                                         |
+| mnu-0063 | Çilek Magnolia               | `strawberry-magnolia.webp`       | https://stocksnap.io/photo/yogurt-parfait-L6ATDVSEMJ                                        | Tim Sullivan        | CC0 1.0                      | 2026-10-17 | https://cdn.stocksnap.io/img-thumbs/960w/L6ATDVSEMJ.jpg                                                                                                                  |
 | mnu-0064 | Muz Magnolia                 | `banana-magnolia.webp`           | https://commons.wikimedia.org/w/index.php?curid=102658496                                   | Alabama Extension   | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/5/5a/Classic_Banana_Pudding.jpg                                                                                           |
 | mnu-0065 | Lotus Magnolia               | `lotus-magnolia.webp`            | https://commons.wikimedia.org/w/index.php?curid=138067834                                   | Andy Li             | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/7/7c/Biscoff_Mousse_-_The_Roundhill_Pub_2023-09-24.jpg                                                                    |
 | mnu-0066 | Marlenka                     | `marlenka-honey-cake.webp`       | https://www.rawpixel.com/image/5928292/photo-image-public-domain-food-free                  | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvZmYxNzg0LWltYWdlLWt3dnltNDJiLmpwZw.jpg                           |

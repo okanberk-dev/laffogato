@@ -4993,7 +4993,7 @@ insert into public._migrations (name) values ('20261017100000_admin_order_manage
 -- ─────────────────────────────────────────────────────────────────────
 -- 20261017120000_menu_photos.sql
 -- ─────────────────────────────────────────────────────────────────────
--- Menu photos for the 76 items that had none (17 Oct 2026).
+-- Menu photos for 75 of the 79 items that had none (17 Oct 2026).
 --
 -- Operator, 17 Oct 2026: "menüdeki ürünlere telifsiz görseller bularak hem
 -- site hem uygulama tarafında yükle". Each photo is a stock photo released as
@@ -5006,11 +5006,12 @@ insert into public._migrations (name) values ('20261017100000_admin_order_manage
 -- August menu shipped with (20260827124000_menu_two_sizes_and_photos.sql).
 -- The web menu and GET /api/mobile/v1/menu both read this column, so the app
 -- shows the photos too. "photoCutout" is false: these are opaque squares,
--- which the app crops round. The scene family (`backdrop`, "backdropHex") is
--- not set here. A site-relative photo gets it from
--- scripts/backfill-backdrops.mjs (dry run first, then --apply), like the three
--- August photos, which have no pick yet either; until it runs, the app keeps
--- drawing the scene from `hue`, as it does today.
+-- which the app shows in a square tile (round in its small thumbnails), never
+-- cut free. The scene family (`backdrop`, "backdropHex") is not set here. A
+-- site-relative photo gets it from scripts/backfill-backdrops.mjs (dry run
+-- first, then --apply), like the three August photos, which have no pick yet
+-- either; until it runs, the app keeps drawing the scene from `hue`, as it
+-- does today.
 --
 -- A row is written only when all three hold:
 -- - it has no photo (`image = ''`). A photo the operator uploaded or linked is
@@ -5074,7 +5075,6 @@ update public.menu_items as m
     ('mnu-0038', 'Sıcak Çikolata',               '/menu/hot-chocolate.webp'),
     ('mnu-0039', 'Beyaz Sıcak Çikolata',         '/menu/white-hot-chocolate.webp'),
     ('mnu-0040', 'Karamelli Sıcak Çikolata',     '/menu/caramel-hot-chocolate.webp'),
-    ('mnu-0041', 'Salep',                        '/menu/salep.webp'),
     ('mnu-0042', 'Çay',                          '/menu/turkish-tea.webp'),
     ('mnu-0043', 'Frappe',                       '/menu/frappe.webp'),
     ('mnu-0044', 'Espresso Frappe',              '/menu/espresso-frappe.webp'),
