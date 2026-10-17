@@ -46,3 +46,36 @@ export function parseStockDelta(raw: string): StockDeltaResult {
   }
   return { ok: true, delta: sign * n };
 }
+
+/**
+ * The total of a product with variants, as `variant_stock_total` (SQL)
+ * counts it: the stock of the active variants. A product getting its first
+ * variants takes this as its stock; after that the total moves with each
+ * variant's change (admin audit CAT-14, D16). Client-safe: the product form
+ * shows the same number before it saves.
+ */
+export function variantStockTotal(
+  variants: ReadonlyArray<{ stock: number; isActive: boolean }>,
+): number {
+  let total = 0;
+  for (const v of variants) {
+    if (v.isActive === true) total += Math.max(0, Math.trunc(v.stock) || 0);
+  }
+  return total;
+}
+
+/**
+ * What the Stok screen's "Ürün" select posts: a product id ("prd-0004"), or
+ * a product and one of its variants ("prd-0004#var-2"). Product ids never
+ * hold a "#" (`slugifyId`), so the first one splits them.
+ */
+export function splitStockTarget(raw: string): {
+  productId: string;
+  variantId: string | null;
+} {
+  const text = raw.trim();
+  const at = text.indexOf("#");
+  if (at < 0) return { productId: text, variantId: null };
+  const variantId = text.slice(at + 1).trim();
+  return { productId: text.slice(0, at).trim(), variantId: variantId || null };
+}

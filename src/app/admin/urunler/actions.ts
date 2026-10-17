@@ -21,8 +21,8 @@ import {
   listProductLabels,
   updateProduct,
   type AdminProduct,
-  type AdminProductVariant,
   type BulkProductOp,
+  type ProductVariantInput,
   type ShopCategoryId,
 } from "@/lib/admin/store";
 import { sceneColumns } from "@/lib/backdrop/scene";
@@ -36,13 +36,14 @@ function revalidateShop() {
 type ParsedProduct = ReturnType<typeof productFormSchema.parse>;
 
 function toInput(parsed: ParsedProduct) {
-  const variants: AdminProductVariant[] = parsed.variants.map((v, i) => ({
+  const variants: ProductVariantInput[] = parsed.variants.map((v, i) => ({
     id: v.id || `var-${i + 1}`,
     name: v.name,
     priceDeltaMinor: v.priceDeltaMinor,
     stock: v.stock,
     sku: v.sku,
     isActive: v.isActive,
+    stockAtOpen: v.stockAtOpen,
   }));
   return {
     name: parsed.name,
@@ -60,6 +61,7 @@ function toInput(parsed: ParsedProduct) {
     brand: parsed.brand,
     notes: parsed.notes,
     stock: parsed.stock,
+    stockAtOpen: parsed.stockAtOpen,
     lowStockThreshold: parsed.lowStockThreshold,
     weightGrams: parsed.weightGrams,
     taxRatePct: parsed.taxRatePct,
@@ -103,9 +105,17 @@ function readFormDataToObject(formData: FormData): Record<string, string> {
 export interface ProductActionState {
   error?: string;
   fieldErrors?: Record<string, string>;
+  /**
+   * The stored stock after a save refused for it (admin audit CAT-03): the
+   * form measures the next change from these instead of the values it was
+   * opened with, so saving again does not repeat the refused change.
+   */
+  stockNow?: { stock: number; variants: Record<string, number> };
 }
 
 const PRODUCT_GONE_ERROR = "Bu ürün silinmiş; listeye dön.";
+const STOCK_REFUSED_ERROR =
+  "Fiyat, stok ve varyantlar kaydedilmedi; diğer alanlar kaydedildi. Uyarıya bakıp yeniden kaydet.";
 
 export async function createProductAction(
   _prev: ProductActionState,
@@ -142,7 +152,7 @@ export async function updateProductAction(
   _prev: ProductActionState,
   formData: FormData,
 ): Promise<ProductActionState> {
-  await requireRole("products");
+  const session = await requireRole("products");
   const parsed = productFormSchema.safeParse(readFormDataToObject(formData));
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
@@ -160,8 +170,32 @@ export async function updateProductAction(
   // for a save that wrote nothing (admin audit CAT-28).
   if (!previous) return { error: PRODUCT_GONE_ERROR };
   const scene = await productScene(parsed.data, previous);
-  const saved = await updateProduct(id, { ...toInput(parsed.data), ...scene });
+  const saved = await updateProduct(
+    id,
+    { ...toInput(parsed.data), ...scene },
+    { actor: session.email },
+  );
   if (!saved) return { error: PRODUCT_GONE_ERROR };
+  // The stock typed would go below zero (orders came in while the form was
+  // open): price, variants and stock stay as stored, the rest is written.
+  if ("refusal" in saved) {
+    await logAudit({
+      action: "update",
+      entity: "product",
+      entityId: id,
+      payload: {
+        name: parsed.data.name,
+        sku: parsed.data.sku,
+        stockRefused: saved.refusal.field,
+      },
+    });
+    revalidateShop();
+    return {
+      error: STOCK_REFUSED_ERROR,
+      fieldErrors: { [saved.refusal.field]: saved.refusal.message },
+      stockNow: saved.refusal.stockNow,
+    };
+  }
   await logAudit({
     action: "update",
     entity: "product",

@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const h = vi.hoisted(() => ({
   adjustStock: vi.fn(),
+  adjustVariantStock: vi.fn(),
   logAudit: vi.fn(async () => {}),
 }));
 
@@ -20,7 +21,10 @@ vi.mock("@/lib/admin/auth", () => ({
   requireRole: vi.fn(async () => ({ email: "stok@laffogato.net" })),
 }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit: h.logAudit }));
-vi.mock("@/lib/admin/store", () => ({ adjustStock: h.adjustStock }));
+vi.mock("@/lib/admin/store", () => ({
+  adjustStock: h.adjustStock,
+  adjustVariantStock: h.adjustVariantStock,
+}));
 
 const { parseStockDelta, STOCK_DELTA_MAX } =
   await import("@/lib/admin/stock-delta");
@@ -41,6 +45,7 @@ beforeEach(() => {
     ok: true,
     product: { name: "Sirena Espresso", stock: 20 + delta },
   }));
+  h.adjustVariantStock.mockReset();
   h.logAudit.mockClear();
 });
 
@@ -131,6 +136,83 @@ describe("adjustStockAction", () => {
       error: "Stok eksiye düşemez (mevcut: 2).",
     });
     expect(h.logAudit).not.toHaveBeenCalled();
+  });
+});
+
+describe("a variant (admin audit CAT-14)", () => {
+  it("moves the variant the select names, and says its new stock", async () => {
+    h.adjustVariantStock.mockResolvedValue({
+      ok: true,
+      label: "Sirena Espresso · 250 g",
+      variantStock: 9,
+      stock: 15,
+    });
+    const res = await adjustStockAction(
+      null,
+      form({ productId: "prd-0001#var-2", delta: "+3", note: "Sayım fazlası" }),
+    );
+    expect(h.adjustVariantStock).toHaveBeenCalledWith({
+      productId: "prd-0001",
+      variantId: "var-2",
+      delta: 3,
+      note: "Sayım fazlası",
+      actor: "stok@laffogato.net",
+    });
+    expect(h.adjustStock).not.toHaveBeenCalled();
+    expect(res).toMatchObject({
+      ok: true,
+      message: "Sirena Espresso · 250 g: +3 adet. Yeni stok: 9.",
+    });
+    expect(h.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: "stock",
+        entityId: "prd-0001",
+        payload: expect.objectContaining({
+          variantId: "var-2",
+          delta: 3,
+          stockAfter: 9,
+          totalAfter: 15,
+        }),
+      }),
+    );
+  });
+
+  it("passes the refusal on and audits nothing", async () => {
+    h.adjustVariantStock.mockResolvedValue({
+      ok: false,
+      error: "Stok eksiye düşemez (mevcut: 1).",
+    });
+    const res = await adjustStockAction(
+      null,
+      form({ productId: "prd-0001#var-2", delta: "-4", note: "Hasar" }),
+    );
+    expect(res).toEqual({ ok: false, error: "Stok eksiye düşemez (mevcut: 1)." });
+    expect(h.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("lists a product with variants as a group of its variants", () => {
+    const html = renderToStaticMarkup(
+      createElement(StockAdjustForm, {
+        products: [
+          {
+            id: "prd-0001",
+            name: "Sirena",
+            stock: 10,
+            variants: [
+              { id: "var-1", name: "250 g", stock: 6, isActive: true },
+              { id: "var-2", name: "1 kg", stock: 4, isActive: false },
+            ],
+          },
+          { id: "prd-0002", name: "Moka", stock: 3, variants: [] },
+        ] as never,
+      }),
+    );
+    expect(html).toContain('<optgroup label="Sirena · toplam 10">');
+    expect(html).toContain('value="prd-0001#var-1"');
+    expect(html).toContain("1 kg · stok 4 · pasif");
+    // The product itself is not offered: its total follows the variants.
+    expect(html).not.toContain('value="prd-0001"');
+    expect(html).toContain('value="prd-0002"');
   });
 });
 

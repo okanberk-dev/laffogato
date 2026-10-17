@@ -26,6 +26,7 @@ import {
 } from "@/lib/db/health";
 import { nextSeq } from "@/lib/db/counters";
 import { deriveSku } from "@/lib/admin/sku";
+import { variantStockTotal } from "@/lib/admin/stock-delta";
 import {
   applyCustomerCoupon,
   couponAllowedForKind,
@@ -1014,7 +1015,59 @@ export interface ProductInput extends BackdropColumns {
   isActive: boolean;
   seoTitle: string;
   seoDescription: string;
-  variants: AdminProductVariant[];
+  variants: ProductVariantInput[];
+  /**
+   * The product's stock when the form was opened (admin audit CAT-03). An
+   * edit moves the stock by `stock - stockAtOpen`, never to `stock`: an
+   * order taken while the form was open keeps its decrement. Absent or null
+   * (a new product, a form from before this field) leaves the stock alone.
+   * Read only for a product without variants; with variants the total
+   * follows them.
+   */
+  stockAtOpen?: number | null;
+}
+
+/** A variant as the product form posts it: the stored shape plus its snapshot. */
+export interface ProductVariantInput extends AdminProductVariant {
+  /** This variant's stock when the form was opened; null for a new row. */
+  stockAtOpen?: number | null;
+}
+
+/**
+ * Why a product save was refused after its other fields were written: a
+ * stock change typed in the form would take a count below zero (orders were
+ * taken while it was open), or a variant would sell under 1 kuruş. Price,
+ * variants and stock are then unchanged. `stockNow` is what is stored now,
+ * so the form can measure the next change from it.
+ */
+export interface ProductStockRefusal {
+  refusal: {
+    field: "stock" | "variants";
+    message: string;
+    stockNow: { stock: number; variants: Record<string, number> };
+  };
+}
+
+/** The stock of each variant in a stored list, by id. */
+function variantStockMap(list: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!Array.isArray(list)) return out;
+  for (const v of list as Array<Partial<AdminProductVariant>>) {
+    if (typeof v?.id === "string") out[v.id] = Number(v.stock) || 0;
+  }
+  return out;
+}
+
+/** The stored variant shape, without the form's snapshot. */
+function storedVariant(v: ProductVariantInput): AdminProductVariant {
+  return {
+    id: v.id,
+    name: v.name,
+    priceDeltaMinor: v.priceDeltaMinor,
+    stock: v.stock,
+    sku: v.sku,
+    isActive: v.isActive,
+  };
 }
 
 async function uniqueSlug(
@@ -1048,22 +1101,51 @@ export async function createProduct(
     input.slug || slugify(input.name) || `urun-${seq}`,
   );
   const sku = input.sku || deriveSku(input.name, seq);
+  const { stockAtOpen: _snapshot, ...fields } = input;
+  const variants = fields.variants.map(storedVariant);
   const product: AdminProduct = {
     ...NO_BACKDROP,
-    ...input,
+    ...fields,
     id,
     slug,
     sku,
+    variants,
+    // With variants the total is theirs (admin audit CAT-14): a total left
+    // at 0 beside stocked variants read "Stoksuz" and failed at the claim.
+    stock: variants.length > 0 ? variantStockTotal(variants) : fields.stock,
     updatedAt: new Date().toISOString(),
   };
   check(await sb.from(TABLES.products).insert(product), "createProduct");
   return product;
 }
 
+/** What save_product_variants answers (see its migration). */
+type SaveVariantsAnswer =
+  | { error: "product" }
+  | { error: "floor"; variant: string }
+  | {
+      error: "negative";
+      variant?: string;
+      variantId?: string;
+      stock: number;
+      variants: unknown;
+    }
+  | {
+      error?: undefined;
+      stockBefore: number;
+      stockAfter: number;
+      variants: AdminProductVariant[];
+      moves: number;
+    };
+
+/** The note on the stock moves a product form save writes. */
+export const PRODUCT_FORM_STOCK_NOTE = "Ürün formu";
+
 export async function updateProduct(
   id: string,
   input: ProductInput,
-): Promise<AdminProduct | null> {
+  { actor = "system" }: { actor?: string } = {},
+): Promise<AdminProduct | ProductStockRefusal | null> {
   await ensureSeed();
   const sb = getDb();
   const existing = await getProduct(id);
@@ -1072,9 +1154,15 @@ export async function updateProduct(
     input.slug || slugify(input.name) || existing.slug,
     id,
   );
-  const next: AdminProduct = {
-    ...existing,
-    ...input,
+  const {
+    stock: _stock,
+    variants: _variants,
+    priceMinor: _price,
+    stockAtOpen,
+    ...rest
+  } = input;
+  const fields = {
+    ...rest,
     slug,
     // An empty field keeps the stored code; a product that never had one
     // gets the one its name and id imply (the wizard no longer prefills it).
@@ -1084,11 +1172,90 @@ export async function updateProduct(
       deriveSku(input.name, Number(id.replace(/\D/g, "")) || 0),
     updatedAt: new Date().toISOString(),
   };
-  check(
-    await sb.from(TABLES.products).update(next).eq("id", id),
+  // Everything but price, variants and stock first. Those three are written
+  // together below, under the row lock, and only as changes since the form
+  // was opened (admin audit CAT-03): the form used to write the stock it had
+  // read when it opened over every order taken since. Written in this order
+  // so a retry after a failure cannot apply a stock change twice. An absent
+  // key (taxRatePct) keeps the stored value.
+  const patch = Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined),
+  );
+  const written = rows<{ id: string }>(
+    await sb.from(TABLES.products).update(patch).eq("id", id).select("id"),
     "updateProduct",
   );
-  return next;
+  if (written.length === 0) return null;
+
+  const variants = input.variants.map((v) => ({
+    id: v.id,
+    name: v.name,
+    priceDeltaMinor: v.priceDeltaMinor,
+    sku: v.sku,
+    isActive: v.isActive,
+    // A stored variant moves by what was typed since the form opened; one
+    // without a snapshot (a new row, an old form) keeps the stored count.
+    stockDelta:
+      typeof v.stockAtOpen === "number" ? v.stock - v.stockAtOpen : 0,
+    initialStock: v.stock,
+  }));
+  const stockDelta =
+    variants.length === 0 && typeof stockAtOpen === "number"
+      ? input.stock - stockAtOpen
+      : 0;
+  const res = await sb.rpc("save_product_variants", {
+    p_product_id: id,
+    p_price_minor: input.priceMinor,
+    p_variants: variants,
+    p_stock_delta: stockDelta,
+    p_note: PRODUCT_FORM_STOCK_NOTE,
+    p_actor: actor,
+    p_now: fields.updatedAt,
+  });
+  if (res.error) raiseDbError("updateProduct.stock", res.error, res.status);
+  const answer = res.data as SaveVariantsAnswer;
+  if (answer.error === "product") return null;
+  if (answer.error === "floor") {
+    // productFormSchema refuses this first (variantFloorError); the SQL
+    // check holds the floor for any other caller.
+    return {
+      refusal: {
+        field: "variants",
+        message: `"${answer.variant}" varyantının fiyatı (satış fiyatı + fark) en az 0,01 TL olmalı.`,
+        stockNow: {
+          stock: existing.stock,
+          variants: variantStockMap(existing.variants),
+        },
+      },
+    };
+  }
+  if (answer.error === "negative") {
+    const stockNow = {
+      stock: Number(answer.stock) || 0,
+      variants: variantStockMap(answer.variants),
+    };
+    const name = answer.variant;
+    const now =
+      name && answer.variantId !== undefined
+        ? (stockNow.variants[answer.variantId] ?? 0)
+        : stockNow.stock;
+    return {
+      refusal: {
+        field: name ? "variants" : "stock",
+        message: name
+          ? `"${name}" stoğu bu arada değişti, şu an ${now} adet. Adedi kontrol edip yeniden kaydet.`
+          : `Bu arada satış oldu, stok şu an ${now} adet. Adedi kontrol edip yeniden kaydet.`,
+        stockNow,
+      },
+    };
+  }
+  return {
+    ...existing,
+    ...(patch as Partial<AdminProduct>),
+    priceMinor: input.priceMinor,
+    stock: answer.stockAfter,
+    variants: answer.variants,
+  };
 }
 
 /** Id, name and SKU of the given products: what an audit row names. */
@@ -1357,6 +1524,8 @@ export async function adjustStock(
   if (error) return { ok: false, error: error.message };
   const next = typeof data === "number" ? data : Number(data);
   if (next === -1) return { ok: false, error: "Ürün bulunamadı." };
+  // A product with variants: its total follows them (admin audit CAT-14).
+  if (next === -3) return { ok: false, error: VARIANT_PRODUCT_STOCK_ERROR };
   if (next === -2) {
     // Re-read so the message names the stock as it actually stands now.
     const fresh = await getProduct(input.productId);
@@ -1379,6 +1548,76 @@ export async function adjustStock(
     ok: true,
     move,
     product: { ...product, stock: next, updatedAt },
+  };
+}
+
+/** Why a product with variants is not adjusted as a whole. */
+export const VARIANT_PRODUCT_STOCK_ERROR =
+  "Bu ürünün varyantları var: listeden varyantı seç.";
+
+export interface AdjustVariantStockInput extends AdjustStockInput {
+  variantId: string;
+}
+
+export type AdjustVariantStockResult =
+  | {
+      ok: true;
+      /** "Ürün · Varyant", as the stock move and the order line name it. */
+      label: string;
+      /** The variant's stock after the change. */
+      variantStock: number;
+      /** The product's total after the change. */
+      stock: number;
+    }
+  | { ok: false; error: string };
+
+/**
+ * The Stok screen's correction of one variant (admin audit CAT-14, D16).
+ * `adjust_variant_stock` moves the variant and, when it is active, the
+ * product's total by the same delta, and writes the stock move, all under
+ * the row lock the order claim takes.
+ */
+export async function adjustVariantStock(
+  input: AdjustVariantStockInput,
+): Promise<AdjustVariantStockResult> {
+  await ensureSeed();
+  if (!Number.isInteger(input.delta) || input.delta === 0) {
+    return { ok: false, error: "Geçerli bir değer gir (0 olamaz)." };
+  }
+  const sb = getDb();
+  const { data, error, status } = await sb.rpc("adjust_variant_stock", {
+    p_product_id: input.productId,
+    p_variant_id: input.variantId,
+    p_delta: input.delta,
+    p_note: input.note.trim().slice(0, 500),
+    p_actor: input.actor,
+    p_now: new Date().toISOString(),
+  });
+  if (error) raiseDbError("adjustVariantStock", error, status);
+  const answer = (data ?? {}) as {
+    error?: "product" | "variant" | "negative";
+    variantStock?: number;
+    stock?: number;
+    productName?: string;
+    variantName?: string;
+  };
+  if (answer.error === "product") {
+    return { ok: false, error: "Ürün bulunamadı." };
+  }
+  if (answer.error === "variant") {
+    return { ok: false, error: "Varyant bulunamadı; sayfayı yenile." };
+  }
+  if (answer.error === "negative") {
+    return {
+      ok: false,
+      error: `Stok eksiye düşemez (mevcut: ${Number(answer.variantStock) || 0}).`,
+    };
+  }
+  return {
+    ok: true,
+    label: `${answer.productName ?? ""} · ${answer.variantName ?? ""}`,
+    variantStock: Number(answer.variantStock) || 0,
+    stock: Number(answer.stock) || 0,
   };
 }
 
@@ -2052,8 +2291,13 @@ async function resolveOrderLines(
     if (it.priceMinor !== undefined && it.priceMinor !== unitPriceMinor) {
       priceAdjusted = true;
     }
-    // Stock check (variant stock when a variant is chosen, else product stock).
-    const available = variant ? variant.stock : product.stock;
+    // Stock check, as claim_order_stock makes it: a variant line needs both
+    // the variant's stock and the product's total (admin audit CAT-14). The
+    // check read the variant alone, so a line could pass here and fail at
+    // the claim.
+    const available = variant
+      ? Math.min(variant.stock, product.stock)
+      : product.stock;
     if (available < it.qty) {
       return {
         ok: false,

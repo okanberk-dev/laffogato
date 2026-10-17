@@ -17,6 +17,10 @@ import { Card, Field, Select, TextInput, Textarea } from "./forms";
  * typed on a phone. The server reads "+12", "-3" and "−3" alike
  * (lib/admin/stock-delta.ts) and answers under each field; the new stock
  * comes back as a toast and the form empties.
+ *
+ * A product with variants is corrected one variant at a time (admin audit
+ * CAT-14): it is listed as a group of its variants, each posting
+ * "productId#variantId", and its total follows them.
  */
 export function StockAdjustForm({ products }: { products: AdminProduct[] }) {
   return (
@@ -38,11 +42,22 @@ export function StockAdjustForm({ products }: { products: AdminProduct[] }) {
               <option value="" disabled>
                 Ürün seç…
               </option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} · stok {p.stock}
-                </option>
-              ))}
+              {products.map((p) =>
+                p.variants.length > 0 ? (
+                  <optgroup key={p.id} label={`${p.name} · toplam ${p.stock}`}>
+                    {p.variants.map((v) => (
+                      <option key={v.id} value={`${p.id}#${v.id}`}>
+                        {v.name} · stok {v.stock}
+                        {v.isActive ? "" : " · pasif"}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · stok {p.stock}
+                  </option>
+                ),
+              )}
             </Select>
           </Field>
           <FormFieldError name="productId" />

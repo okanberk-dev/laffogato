@@ -534,6 +534,50 @@ describe("CAT-28: saving a product deleted in another tab", () => {
   });
 });
 
+describe("CAT-03: a save refused for stock", () => {
+  it("answers under the field with the stored counts, audits the partial save and stays", async () => {
+    h.store.getProduct.mockResolvedValue(STORED);
+    h.store.updateProduct.mockResolvedValue({
+      refusal: {
+        field: "stock",
+        message: "Bu arada satış oldu, stok şu an 1 adet. Adedi kontrol edip yeniden kaydet.",
+        stockNow: { stock: 1, variants: {} },
+      },
+    });
+    const res = await products.updateProductAction(
+      "prd-0007",
+      {},
+      form({ ...VALID, stock: "0", stockAtOpen: "4" }),
+    );
+    expect(h.store.updateProduct).toHaveBeenCalledWith(
+      "prd-0007",
+      expect.objectContaining({ stock: 0, stockAtOpen: 4 }),
+      { actor: "owner@laffogato.net" },
+    );
+    expect(res).toEqual({
+      error: expect.stringMatching(/Fiyat, stok ve varyantlar kaydedilmedi/),
+      fieldErrors: {
+        stock: "Bu arada satış oldu, stok şu an 1 adet. Adedi kontrol edip yeniden kaydet.",
+      },
+      stockNow: { stock: 1, variants: {} },
+    });
+    expect(h.redirect).not.toHaveBeenCalled();
+    expect(h.setAdminFlash).not.toHaveBeenCalled();
+    expect(h.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "update",
+        entityId: "prd-0007",
+        payload: expect.objectContaining({ stockRefused: "stock" }),
+      }),
+    );
+  });
+
+  it("measures the next change from the stored counts the refusal brought back", () => {
+    const src = readFileSync("src/components/admin/product-wizard.tsx", "utf8");
+    expect(src).toMatch(/if \(next\.stockNow\) \{\s*setStockSnapshot\(next\.stockNow\.stock\);\s*setVariantSnapshots\(next\.stockNow\.variants\);/);
+  });
+});
+
 describe("CAT-20: bulk audit rows say what they touched", () => {
   it("logs the ids and the names read before a delete", async () => {
     h.store.listProductLabels.mockResolvedValue([

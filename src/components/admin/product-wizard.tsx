@@ -14,6 +14,7 @@ import { flushSync } from "react-dom";
 
 import { type ProductActionState } from "@/app/admin/urunler/actions";
 import { skuPrefix } from "@/lib/admin/sku";
+import { variantStockTotal } from "@/lib/admin/stock-delta";
 import { photoKind } from "@/lib/backdrop/scene-core";
 import { parseMoneyInput } from "@/lib/utils/format";
 import {
@@ -98,6 +99,7 @@ export const FIELD_STEP: Readonly<Record<string, number>> = {
   cost: 2,
   sku: 2,
   stock: 2,
+  stockAtOpen: 2,
   lowStockThreshold: 2,
   weightGrams: 2,
   taxRatePct: 2,
@@ -257,12 +259,29 @@ export function ProductWizard({
   const [step, setStep] = useState(1);
   const totalSteps = 5;
 
+  /* The stock the form was opened with (admin audit CAT-03). The save
+     moves stock by what was typed since, so an order taken while the form
+     is open keeps its decrement. A save refused for stock answers with the
+     stored counts, and the next change is measured from those. */
+  const [stockSnapshot, setStockSnapshot] = useState<number | null>(
+    product ? product.stock : null,
+  );
+  const [variantSnapshots, setVariantSnapshots] = useState<
+    Record<string, number>
+  >(() =>
+    Object.fromEntries((product?.variants ?? []).map((v) => [v.id, v.stock])),
+  );
+
   const save = withPanelCatch<ProductActionState>(action, () => ({
     error: PANEL_ACTION_FAILED,
   }));
   const [state, formAction, pending] = useActionState(
     async (prev: ProductActionState, formData: FormData) => {
       const next = await save(prev, formData);
+      if (next.stockNow) {
+        setStockSnapshot(next.stockNow.stock);
+        setVariantSnapshots(next.stockNow.variants);
+      }
       // Open the step that holds the first refused field.
       const target = firstErrorStep(next.fieldErrors);
       if (target !== null) setStep(target);
@@ -387,10 +406,33 @@ export function ProductWizard({
           stock: v.stock,
           sku: v.sku,
           isActive: v.isActive,
+          // Null for a row added here: it starts at the stock typed.
+          stockAtOpen: variantSnapshots[v.id] ?? null,
         })),
       ),
-    [variants],
+    [variants, variantSnapshots],
   );
+
+  /* With variants the product's total is theirs, not typed (D16): what the
+     save will make of it, the way save_product_variants counts it. */
+  const hasVariants = variants.length > 0;
+  const variantTotal = useMemo(() => {
+    const typed = variants.map((v) => ({
+      stock: Number.parseInt(v.stock, 10) || 0,
+      isActive: v.isActive,
+    }));
+    const stored = (product?.variants ?? []).map((v) => ({
+      stock: variantSnapshots[v.id] ?? v.stock,
+      isActive: v.isActive,
+    }));
+    if (stored.length === 0 || stockSnapshot === null) {
+      return variantStockTotal(typed);
+    }
+    return Math.max(
+      0,
+      stockSnapshot + variantStockTotal(typed) - variantStockTotal(stored),
+    );
+  }, [variants, product?.variants, variantSnapshots, stockSnapshot]);
 
   /**
    * What the `tags` field posts: the allergens ticked above, plus any tag the
@@ -761,16 +803,39 @@ export function ProductWizard({
               {errorFor("sku")}
             </div>
             <div className="grid gap-1.5">
-              <Field label="Stok (adet)">
-                <TextInput
-                  name="stock"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={stock}
-                  onChange={(e) => setStock(e.target.value)}
+              {hasVariants ? (
+                <Field
+                  label="Toplam stok (adet)"
+                  hint="Aktif varyantların stoğundan gelir. Varyant stoğunu Varyantlar adımında ya da Stok ekranında değiştir."
+                >
+                  <TextInput value={String(variantTotal)} readOnly />
+                </Field>
+              ) : (
+                <Field
+                  label="Stok (adet)"
+                  hint={
+                    product
+                      ? "Form açıkken gelen siparişler kaybolmaz: kayıt yalnız senin yaptığın değişikliği uygular."
+                      : undefined
+                  }
+                >
+                  <TextInput
+                    name="stock"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                  />
+                </Field>
+              )}
+              {stockSnapshot !== null && (
+                <input
+                  type="hidden"
+                  name="stockAtOpen"
+                  value={String(stockSnapshot)}
                 />
-              </Field>
+              )}
               {errorFor("stock")}
             </div>
             <div className="grid gap-1.5">
@@ -843,8 +908,9 @@ export function ProductWizard({
           <p className="text-sm text-[var(--admin-text-soft)]">
             Boyut ya da lezzet seçenekleri, ör. &quot;250 g&quot;, &quot;1
             kg&quot;, &quot;Stracciatella&quot;. Her varyantın kendi stoğu ve
-            satış fiyatına eklenen (ucuzsa düşülen) fiyat farkı olur. Tek
-            seçenekle satılan ürüne varyant eklemen gerekmez.
+            satış fiyatına eklenen (ucuzsa düşülen) fiyat farkı olur; ürünün
+            toplam stoğu aktif varyantların stoğundan gelir. Tek seçenekle
+            satılan ürüne varyant eklemen gerekmez.
           </p>
           {errorFor("variants")}
           {variants.length === 0 ? (
@@ -1216,7 +1282,14 @@ export function ProductWizard({
                   : "Yok"
               }
             />
-            <SummaryRow k="Stok" v={`${stock || 0} adet`} />
+            <SummaryRow
+              k="Stok"
+              v={
+                hasVariants
+                  ? `${variantTotal} adet (varyantlardan)`
+                  : `${stock || 0} adet`
+              }
+            />
             <SummaryRow
               k="SKU"
               v={

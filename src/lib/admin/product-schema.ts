@@ -212,6 +212,22 @@ const intInput = z
     return Number.isFinite(v) ? Math.max(0, v) : 0;
   });
 
+/**
+ * A stock count the form read when it was opened (admin audit CAT-03), or
+ * null when it posts none: a new product, a new variant row, a form from
+ * before the field. The save moves stock by the difference from this, so
+ * only a whole number of 0 or more counts.
+ */
+export function parseStockSnapshot(raw: unknown): number | null {
+  if (typeof raw === "number") {
+    return Number.isInteger(raw) && raw >= 0 ? raw : null;
+  }
+  if (typeof raw !== "string" || !/^\d+$/.test(raw.trim())) return null;
+  return Number(raw.trim());
+}
+
+const stockSnapshot = z.string().optional().transform(parseStockSnapshot);
+
 const MAX_IMAGES = 8;
 /**
  * The stored data URL's length cap. The uploader downscales until a photo
@@ -301,6 +317,7 @@ const variantsJson = z
             stock: Number.isFinite(stock) ? Math.max(0, stock) : 0,
             sku,
             isActive,
+            stockAtOpen: parseStockSnapshot(o.stockAtOpen),
           };
         })
         .filter((v): v is NonNullable<typeof v> => v !== null);
@@ -368,6 +385,7 @@ export const productFormSchema = z
     compareAtPrice: moneyToMinor.optional(),
     cost: moneyToMinor.optional(),
     stock: intInput,
+    stockAtOpen: stockSnapshot,
     lowStockThreshold: intInput,
     weightGrams: intInput,
     taxRatePct: taxRateInput,
@@ -410,6 +428,7 @@ export const productFormSchema = z
     compareAtPriceMinor: v.compareAtPrice ?? 0,
     costMinor: v.cost ?? 0,
     stock: v.stock,
+    stockAtOpen: v.stockAtOpen,
     lowStockThreshold: v.lowStockThreshold,
     weightGrams: v.weightGrams,
     taxRatePct: v.taxRatePct ?? null,
