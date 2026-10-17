@@ -99,7 +99,13 @@ export async function deleteHomeSlideAction(
   const removed = await deleteHomeHeroSlide(id);
   revalidate();
   if (!removed) return actionError("Slayt zaten silinmiş.");
-  await logAudit({ action: "delete", entity: "home_hero_slide", entityId: id });
+  await logAudit({
+    action: "delete",
+    entity: "home_hero_slide",
+    entityId: id,
+    // The row is gone: without its title the log names nothing.
+    payload: { title: removed.title },
+  });
   return actionOk("Slayt silindi, anasayfadan kalktı.");
 }
 

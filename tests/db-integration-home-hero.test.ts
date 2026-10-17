@@ -93,8 +93,11 @@ maybe("home hero slides, in SQL", () => {
       kicker: "Düzenlendi",
     });
     expect(edited?.kicker).toBe("Düzenlendi");
-    expect(await store.deleteHomeHeroSlide(first[1].id)).toBe(true);
-    expect(await store.deleteHomeHeroSlide(first[1].id)).toBe(false);
+    // The delete hands back the removed slide's title for the audit log.
+    expect(await store.deleteHomeHeroSlide(first[1].id)).toEqual({
+      title: HOME_SLIDES[1].title.join(" "),
+    });
+    expect(await store.deleteHomeHeroSlide(first[1].id)).toBeNull();
     expect(await store.importDefaultHomeSlides()).toEqual({
       added: 1,
       total: 4,

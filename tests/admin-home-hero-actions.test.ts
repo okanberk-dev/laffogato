@@ -207,17 +207,21 @@ describe("saving a slide", () => {
 
 describe("the list's one-click actions", () => {
   it("deletes behind the confirm and audits only a real delete", async () => {
-    h.store.deleteHomeHeroSlide.mockResolvedValue(true);
+    h.store.deleteHomeHeroSlide.mockResolvedValue({ title: "Sonbahar Menüsü" });
     const ok = await actions.deleteHomeSlideAction(null, form({ id: "x" }));
     expect(ok).toMatchObject({
       ok: true,
       message: expect.stringMatching(/silindi/),
     });
-    expect(h.logAudit).toHaveBeenCalledWith(
-      expect.objectContaining({ action: "delete", entityId: "x" }),
-    );
+    // The row is gone, so the log keeps its title: the id alone names nothing.
+    expect(h.logAudit).toHaveBeenCalledWith({
+      action: "delete",
+      entity: "home_hero_slide",
+      entityId: "x",
+      payload: { title: "Sonbahar Menüsü" },
+    });
     h.logAudit.mockClear();
-    h.store.deleteHomeHeroSlide.mockResolvedValue(false);
+    h.store.deleteHomeHeroSlide.mockResolvedValue(null);
     const gone = await actions.deleteHomeSlideAction(null, form({ id: "x" }));
     expect(gone.ok).toBe(false);
     expect(h.logAudit).not.toHaveBeenCalled();

@@ -199,15 +199,26 @@ export async function setHomeHeroSlideActive(
   return row ? toSlide(row) : null;
 }
 
-/** True when a slide was removed (false: it was already gone). */
-export async function deleteHomeHeroSlide(id: string): Promise<boolean> {
+/**
+ * The removed slide's title, for the audit log (once the row is gone, its id
+ * alone names nothing), or null when it was already gone.
+ */
+export async function deleteHomeHeroSlide(
+  id: string,
+): Promise<{ title: string } | null> {
   const { data, error, status } = await getDb()
     .from(TABLE)
     .delete()
     .eq("id", id)
-    .select("id");
+    .select("id, titleLine1, titleLine2");
   checkErr(error, status, "deleteHomeHeroSlide");
-  return (data ?? []).length > 0;
+  const row = (data ?? [])[0] as Record<string, unknown> | undefined;
+  if (!row) return null;
+  const title = [row.titleLine1, row.titleLine2]
+    .map((t) => String(t ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
+  return { title };
 }
 
 export type MoveResult = "moved" | "edge" | "not_found";
