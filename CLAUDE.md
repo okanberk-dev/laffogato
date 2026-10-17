@@ -174,7 +174,8 @@ src/
     uye/                     → Müşteri hesabı (giriş, kayıt, sipariş geçmişi,
                                adresler, favoriler, promosyonlar, bildirimler)
     admin/                   → Admin panel (proxy korumalı)
-      urunler/ kategoriler/  → Shop ürünleri (wizard) + kategoriler
+      urunler/ kategoriler/  → Shop ürünleri (wizard, ice-aktar: CSV) +
+                               kategoriler
       menu/                  → Kafe menüsü
       siparisler/            → Sipariş listesi + detay + manuel sipariş
       masalar/               → Masalar · QR (sahip + yönetici): ad, QR, yazdır,
@@ -538,7 +539,11 @@ durum bozulmaya uygundur.
 - **Admin form akışı:** Yeni ürün → `ProductWizard mode="wizard"`; düzenleme →
   aynı bileşen `mode="tabs"`. Yeni alan eklerken **5 yer** güncellenir:
   `AdminProduct` (store), seed, `ProductInput`, `product-schema.ts`,
-  `product-wizard.tsx`. Skill: `add-admin-resource`
+  `product-wizard.tsx` (alan `FIELD_STEP`'e de girer, yoksa reddi özet
+  adımında açılır; `admin-product-wizard` testi tutar). Alan CSV ile de
+  gelecekse `product-import-core.ts` (sütun) ve `product-import.ts` (plan).
+  Sihirbaz elle gönderir (`useNoResetSubmit`, `noValidate` + kendi adım
+  denetimi); `<form action>`'a geri dönme. Skill: `add-admin-resource`
 - **Server action pattern:** Zod parse → store call → revalidatePath →
   redirect. Skill: `server-action-pattern`
 - **Migration:** `db/migrations/YYYYMMDDHHMMSS_aciklama.sql`, ardından
