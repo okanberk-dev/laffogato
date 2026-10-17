@@ -27,7 +27,13 @@ import { DbQueryError, DbUnreachableError } from "@/lib/db/health";
  */
 
 const saveSiteContent = vi.hoisted(() => vi.fn(async () => {}));
-vi.mock("@/lib/admin/site-content", () => ({ saveSiteContent }));
+vi.mock("@/lib/admin/site-content", async () => {
+  const fields = await import("@/lib/admin/content-fields");
+  return {
+    saveSiteContent,
+    getSiteContent: vi.fn(async () => fields.contentDefaults()),
+  };
+});
 vi.mock("@/lib/admin/auth", () => ({ requireRole: vi.fn(async () => ({})) }));
 const safeAudit = vi.hoisted(() => vi.fn(async () => true));
 vi.mock("@/lib/admin/audit", () => ({ safeAudit }));
@@ -39,6 +45,7 @@ vi.mock("next/navigation", () => ({
 
 const { saveContentAction } = await import("@/app/admin/icerik/actions");
 const { ContentForm } = await import("@/app/admin/icerik/content-form");
+const { default: AdminContentPage } = await import("@/app/admin/icerik/page");
 
 const DEFAULTS = contentDefaults();
 
@@ -197,5 +204,15 @@ describe("ContentForm", () => {
     expect(bar).toContain("border");
     expect(html).toContain("<h2");
     expect(html).not.toContain("<h3");
+  });
+});
+
+describe("Site Metinleri page", () => {
+  it("does not promise the app a five-minute update", async () => {
+    // lafmobil keeps the story payload for a day (useStory staleTime: DAY,
+    // persisted to disk), on top of the endpoint's five-minute CDN cache.
+    const html = renderToStaticMarkup(await AdminContentPage());
+    expect(html).not.toContain("5 dakika");
+    expect(html).toContain("bir gün içinde");
   });
 });
