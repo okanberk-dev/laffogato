@@ -1,5 +1,8 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
+import { PRODUCTS } from "@/components/laffogato/data";
 import {
   allocateMinor,
   isTaxRate,
@@ -37,6 +40,64 @@ describe("the legal defaults", () => {
       Object.keys(LEGAL_TAX_RATES).sort(),
     );
     expect(KDV_RATE_CHOICES).toEqual([0, 1, 10, 20]);
+  });
+});
+
+describe("the seeded shop catalogue", () => {
+  // Food is in list (I) at 1% since Karar 5189; 20% is for goods that are not
+  // food. A gift label does not move a food to 20%. Every seeded product is
+  // named here, so a new one has to be put on one side on purpose.
+  const FOOD = [
+    "Sirena - Espresso Harmanı",
+    "Notturna - Filtre Lotu",
+    "Yenilebilir Kup - 6'lı Kutu",
+    "Uji Matcha - Seremoni Sınıfı",
+    "Cantucci - Bronte Pistachio",
+  ];
+  const NOT_FOOD = [
+    // Coffee, gelato, cups and a porcelain spoon at one price: the
+    // accountant decides (LEGAL-REDLINES Y2-3); until then the gift 20%.
+    "Affogato Seti - İki Kişilik",
+    "Moka - Bialetti × L'Affogato",
+    "Porselen Fincan Seti",
+    "Bambu Chasen",
+    "Pamuk Önlük",
+    "Emaye Bardak",
+  ];
+
+  it("names every seeded product once", () => {
+    expect([...PRODUCTS.map((p) => p.name)].sort()).toEqual(
+      [...FOOD, ...NOT_FOOD].sort(),
+    );
+  });
+
+  it("gives no food the 20% rate, under the legal defaults", () => {
+    for (const p of PRODUCTS) {
+      const rate = productTaxRate(p, LEGAL_TAX_RATES);
+      expect(rate, p.name).toBe(FOOD.includes(p.name) ? 1 : 20);
+    }
+  });
+
+  it("keeps the edible cup box at 1% though it sits under gift", () => {
+    const cups = PRODUCTS.find((p) => p.name.startsWith("Yenilebilir Kup"))!;
+    expect(cups.cat).toBe("gift");
+    expect(cups.taxRatePct).toBe(1);
+    // Its own rate wins over the gift default, whatever the panel says.
+    expect(productTaxRate(cups, { ...LEGAL_TAX_RATES, gift: 20 })).toBe(1);
+  });
+
+  it("the seed writes that rate onto the row, and the migration onto the live one", () => {
+    const store = readFileSync("src/lib/admin/store.ts", "utf8");
+    expect(store).toContain(
+      'taxRatePct: typeof p.taxRatePct === "number" ? p.taxRatePct : null,',
+    );
+    const migration = readFileSync(
+      "db/migrations/20261017150000_kdv_rates.sql",
+      "utf8",
+    );
+    expect(migration).toMatch(
+      /update public\.products\s+set "taxRatePct" = 1\s+where id = 'prd-0003'/,
+    );
   });
 });
 

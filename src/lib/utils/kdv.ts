@@ -18,7 +18,8 @@
  *   neither list.
  * - Shop, by category: coffee beans and pantry food 1% (list (I) after
  *   Cumhurbaşkanı Kararı 5189, chapters 09 and 17-21), equipment, gifts and
- *   merch 20%.
+ *   merch 20%. The rate follows the goods, not the shelf: a food under
+ *   "gift" carries its own rate (the edible cup box, 1%).
  * - Shipping or courier fee charged with a sale: part of that sale's taxable
  *   base (KDV Kanunu m.24/b), so it takes the rate of what it carries. A
  *   parcel with mixed rates shares the fee out in proportion.

@@ -276,7 +276,7 @@ const TAX_HINTS: Record<TaxRateKey, string> = {
   karaoke: "Oda kiralama bir eğlence hizmeti: genel oran %20.",
   beans: "Paketli kavrulmuş ya da öğütülmüş kahve: %1.",
   pantry: "Krema, şurup, şeker, kakao ürünü gibi paketli gıda: %1.",
-  gift: "Kutunun içine göre değişir. Kahve ve fincan bir aradaysa %20 güvenli seçim.",
+  gift: "Gıda dışı hediyelik: %20. Yalnız gıdaysa (ör. yenilebilir kup kutusu) üründe %1 seç. Kahve ve fincan bir aradaysa %20 güvenli seçim.",
   gear: "Değirmen, moka pot, fincan gibi ekipman: %20.",
   merch: "Önlük, çanta, tişört gibi marka ürünleri: %20.",
 };

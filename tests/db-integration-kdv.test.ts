@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import pg from "pg";
 import {
   afterAll,
@@ -398,5 +400,54 @@ maybe("KDV per item in a real Postgres", () => {
       "menu_items_tax_rate_pct_check",
       "products_tax_rate_pct_check",
     ]);
+  });
+
+  it("gives the seeded edible cup box its own 1%, once, and never again", async () => {
+    // One transaction, rolled back: the shared database keeps its prd-0003.
+    const MIGRATION = "20261017150000_kdv_rates.sql";
+    const sql = readFileSync(`db/migrations/${MIGRATION}`, "utf8");
+    const client = await pool!.connect();
+    const rate = async () =>
+      (
+        await client.query(
+          `select "taxRatePct" from public.products where id = 'prd-0003'`,
+        )
+      ).rows[0]?.taxRatePct;
+    try {
+      await client.query("begin");
+      await client.query(`delete from public.products where id = 'prd-0003'`);
+      await client.query(
+        `insert into public.products (id, name, slug, tag, "priceMinor", cat, stock, "isActive", "taxRatePct")
+         values ('prd-0003', 'Yenilebilir Kup - 6''lı Kutu', $1, 'Waffle kupları', 24000, 'gift', 25, true, null)`,
+        [`yenilebilir-kup-${RUN}`],
+      );
+      // The first run, as db-migrate.mjs does it: the file, then its record.
+      await client.query(`delete from public._migrations where name = $1`, [
+        MIGRATION,
+      ]);
+      await client.query(sql);
+      expect(await rate()).toBe(1);
+      await client.query(`insert into public._migrations (name) values ($1)`, [
+        MIGRATION,
+      ]);
+      // The operator clears it in the panel; a later replay leaves it cleared.
+      await client.query(
+        `update public.products set "taxRatePct" = null where id = 'prd-0003'`,
+      );
+      await client.query(sql);
+      expect(await rate()).toBeNull();
+      // A prd-0003 that is no longer the cup box is never touched.
+      await client.query(`delete from public._migrations where name = $1`, [
+        MIGRATION,
+      ]);
+      await client.query(
+        `update public.products set name = 'Porselen Kupa', tag = 'Kupa' where id = 'prd-0003'`,
+      );
+      await client.query(sql);
+      expect(await rate()).toBeNull();
+    } finally {
+      await client.query("rollback");
+      client.release();
+    }
   });
 });

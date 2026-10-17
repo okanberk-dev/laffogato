@@ -5145,7 +5145,8 @@ insert into public._migrations (name) values ('20261017120000_menu_photos.sql')
 --                         for the live row (normalizeTaxRates).
 --   products."taxRatePct"            the product's own rate; NULL = its
 --   menu_items."taxRatePct"          category's (menu's) default. Every
---                                    existing row starts NULL.
+--                                    existing row starts NULL, except the
+--                                    seeded edible cup box (below).
 --   karaoke_reservations."taxRatePct" the karaoke rate the booking was made
 --                                    at; NULL on bookings made before this.
 --
@@ -5204,6 +5205,26 @@ begin
       check ("taxRatePct" is null or "taxRatePct" between 0 and 100) not valid;
   end if;
 end $$;
+
+-- The edible cup box (prd-0003, seeded under "gift") is boxed waffle cups:
+-- bakery goods, GTİP 19.05, list (I) after Karar 5189, so 1%, not the gift
+-- default of 20%. Its own rate, so the category default stays as the law
+-- has it for non-food gifts. Only the seeded product as the renames left it
+-- (20260922120000, 20260923230500), only while it has no rate of its own,
+-- and only once: the bundle replays every migration when a deploy adds one,
+-- and a rate the operator later clears in the panel must stay cleared. A
+-- fresh database gets the same rate from the seed (data.ts).
+update public.products
+   set "taxRatePct" = 1
+ where id = 'prd-0003'
+   and cat = 'gift'
+   and "taxRatePct" is null
+   and (name like 'Yenilebilir Kup%' or tag = 'Waffle kupları')
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261017150000_kdv_rates.sql'
+   );
 
 insert into public._migrations (name) values ('20261017150000_kdv_rates.sql')
   on conflict (name) do nothing;

@@ -307,6 +307,8 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
 - **Oran ürüne göre** (`src/lib/utils/kdv.ts`): ürünün / menü kaleminin kendi
   `"taxRatePct"`'i, yoksa Ayarlar → Vergi varsayılanı (`settings."taxRates"`:
   menü %10, karaoke %20, `beans`/`pantry` %1, `gift`/`gear`/`merch` %20).
+  Oran malın cinsine bağlıdır, rafına değil: `gift` altındaki gıda kendi
+  oranını taşır (yenilebilir kup kutusu `prd-0003` %1; seed ve migration).
   Tam sayı 0-100; kesir reddedilir. Dayanak ve muhasebeci notları:
   `docs/LEGAL-REDLINES-2026-09.md` §16.
 - **Satış anındaki oran saklanır.** Sipariş satırı `items[].taxRatePct`,

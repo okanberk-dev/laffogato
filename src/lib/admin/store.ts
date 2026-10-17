@@ -719,6 +719,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         // The seed marks the one product that carries an allergen (the
         // pistachio biscotti); `/admin/urunler` marks the rest.
         tags: p.tags ? [...p.tags] : [],
+        // Null: the category's default. The seed sets it only where that
+        // default is wrong (the edible cup box is food under "gift").
+        taxRatePct: typeof p.taxRatePct === "number" ? p.taxRatePct : null,
         // Filled per product in /admin/urunler; empty draws nothing new.
         brand: "",
         notes: [],
