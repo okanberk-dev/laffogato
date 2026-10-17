@@ -319,7 +319,7 @@ radyal yeşil, krem L'Af, pirinç çekirdek. Üstte uygulama kartı ve bülten.
 
 | Parça                          | Nerede                   | Ne yapar                                                                      |
 | ------------------------------ | ------------------------ | ----------------------------------------------------------------------------- |
-| `<PageHero>` (`page-hero.tsx`) | Anasayfa dışı her sayfa  | Porselen panel, köşede sayfanın sahne ışığı, L'Af filigranı.                  |
+| `<PageHero>` (`page-hero.tsx`) | Anasayfa dışı her sayfa  | Porselen panel, köşede sahne ışığı, L'Af filigranı; `art` ile çizim (§6.1).   |
 | `.section-title`               | Sayfa içi blok başlığı   | Altında tricolore çizgisi olan h2.                                            |
 | `.band-cream`                  | Uzun sayfalarda ritim    | Bölümü açık şeride alır.                                                      |
 | `.seo-block`                   | Sayfa sonu SSS           | Gruplu liste SSS + rehber çipleri.                                            |
@@ -327,6 +327,8 @@ radyal yeşil, krem L'Af, pirinç çekirdek. Üstte uygulama kartı ve bülten.
 | `.nf-*`                        | 404 ve hata sınırı       | Harflerin içinden kahve yükselen L'Af (uygulamanın açılışı).                  |
 | `.home-intro`                  | Anasayfa, hero'nun altı  | Panelin "Hero üst etiket" + "Hero açıklama" metni: ilk cümle 800, devamı 300. |
 | `.hero-x-status`               | Anasayfa hero'su         | Canlı "Şu an açık · Kapanış 02:00"; /ziyaret'in saat satırıyla aynı kaynak.   |
+| `.home-karaoke`                | Anasayfa, girişin altı   | Karaoke bandı: oda çizimi, panelin değerleri, bugünün boş saatleri.           |
+| `<Illustration>`               | Çizim gereken her yer    | `public/illustrations/` dosyası, `alt=""` ve `aria-hidden` (§6.1).            |
 
 `<PageHero scene="…">` her sayfaya kendi ışığını verir: menü latte, mağaza
 karamel, kampanyalar narenciye, karaoke böğürtlen, hikaye kadife, ziyaret ev
@@ -373,6 +375,34 @@ Kullanım: hero slayt yarısı `object-fit: cover`, hikaye mozaiği
 (lead 2×2 + dört destek), imza bloğunda 4/5 oranlı ikili, ziyaret sayfasında
 16/11.
 
+### 6.1 Çizimler
+
+Operatör, 17 Eki 2026: _"websitesine de birkaç görsel çizip görsel gereken
+yerlere ekle"_. Fotoğrafı olmayan yerler (boş durumlar, fotoğrafsız kampanya
+kartı, hikaye satırları, rehber kartları, bülten) kendi çizimini taşır.
+Kurallar karaoke odası çiziminden gelir (`karaoke-room.webp`, uygulamayla aynı
+dosya):
+
+- Düz dolgu, 2 px espresso kontur, en çok altı renk: orman `#1E4031`, bordo
+  `#6B1A2B`, krem `#FFF2E4`, pembe `#F59BBE`, fıstık `#9FCB82`, espresso
+  `#2E1A12`. Gradyan, filtre ve saydamlık yok; zemin saydam, porselenin
+  üstünde durur.
+- Elle yazılmış SVG, her biri 15 KB altında, `public/illustrations/`; kayıt
+  `illustration.tsx` (`ILLUSTRATIONS`). Sayfalar yalnız `<Illustration>` ile
+  basar: `alt=""` ve `aria-hidden`, anlamı yanındaki başlık taşır.
+- Bu altı renk yalnız çizimlerin içinde yaşar; düğme ve yazı `globals.css`
+  token'larında kalır (`tests/brand-theme.test.ts`).
+- L'Af işareti kol bandında, bilette, etikette durur, hiçbir zaman daire
+  içinde değil: hesaptaki karaoke boş durumu bu yüzden yuvarlatılmış karedir.
+  Çizimde yazı yok; tedarikçi adı da, bardağın neyden yapıldığına dair söz de
+  girmez.
+- Hero'nun dördüncü slaytı içecek değil, oda çiziminden kesilmiş mikrofondur
+  (`karaoke-mic-cut.webp`, içeceklerin kesimleri gibi 581×942, saydam),
+  böğürtlen ışığında.
+
+`tests/site-illustrations.test.ts` boyutu, renkleri, konturu, `aria-hidden`'ı
+ve her çizimin yerini tutar.
+
 ---
 
 ## 7. Hareket
@@ -390,6 +420,10 @@ Kullanım: hero slayt yarısı `object-fit: cover`, hikaye mozaiği
   `prefers-reduced-motion` altında hiç başlamaz. Noktalar kaldırıldı: küçük
   resimler kontroldür.
 - Hero'daki canlı "açık" noktası iki halka atar ve durur (4 sn, WCAG 2.2.2).
+- Anasayfanın karaoke bandı `.reveal` ile gelirken oda çiziminin üstünden
+  bir kez ışık geçer (1.5 sn); sadakat bloğunun iki dolu damgası sırayla
+  basılır (1.3 → 1 ve genişleyip sönen bir pirinç halka, yarım saniye, bir
+  kez). İkisi de `prefers-reduced-motion` altında yerinde durur.
 - `.reveal` yalnızca client'ta, yalnız ekranın altındaki öğelere uygulanır;
   JS yoksa hiçbir şey gizlenmez.
 - `prefers-reduced-motion: reduce` altında tüm animasyon ve geçişler durur.
@@ -427,6 +461,7 @@ Kullanım: hero slayt yarısı `object-fit: cover`, hikaye mozaiği
 | 25 Eyl 2026 | **Site uygulamayı izler** (karar 31, seçenek c): porselen `#f7f3ed`, yeşil `#1d6d56`, bordo `#9d2543`, pirinç `#e8c877`, Poppins + Inter, cam, kapsül. Logo L'Af.                                                                      |
 | 11 Eki 2026 | **Tek ses Poppins** (operatör): Inter kalktı, gövde de Poppins; 300-800 altı kesim, gösterim anlarında 800. Anasayfa: slayt başına kendi metni, manifesto bandı, canlı açık/kapalı, çizilen oklar. Dök oyunu Cormorant yerine Poppins. |
 | 14 Eki 2026 | **Başlıklar Gabarito** (operatör: "sitede yapay zeka gibi duruyor, yazı tipleri poppins ve biennale vs kullan"): Biennale lisanssız olduğu için en yakın serbest akrabası Gabarito başlıkları ve gösterim rakamlarını yazar (`--headline`); gövde, kontrol, ürün adı ve liste fiyatı Poppins'te kalır. |
+| 17 Eki 2026 | **Çizimler ve karaoke** (operatör): anasayfada karaoke bandı ve dördüncü hero slaytı (mikrofon kesimi), sadakat bloğunda damga baskısı, fotoğrafı olmayan yerlere elle çizilmiş SVG'ler ve `<PageHero art>` (§6.1).                    |
 
 Bağlantı önizlemesi (`opengraph-image.tsx`), JSON-LD ikonları
 (`scripts/gen-icons.mjs` → `public/icon-*.png`) ve PayNkolay köprüsü de
