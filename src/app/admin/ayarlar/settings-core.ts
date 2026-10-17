@@ -115,6 +115,55 @@ export function formSnapshot(
   return JSON.stringify(out);
 }
 
+/** The part of a form control `defaultsSnapshot` reads. */
+export interface DefaultsControl {
+  tagName: string;
+  name: string;
+  type?: string;
+  disabled?: boolean;
+  value?: string;
+  defaultValue?: string;
+  defaultChecked?: boolean;
+  multiple?: boolean;
+  options?: ArrayLike<{ value: string; defaultSelected: boolean }>;
+}
+
+/**
+ * The snapshot the form would post as it was rendered: each control's
+ * default (`defaultValue`, `defaultChecked`, `defaultSelected`), in the
+ * order and shape FormData uses (an unticked box sends nothing, buttons and
+ * disabled controls send nothing). That is the saved state "unsaved
+ * changes" is measured against, with no snapshot taken on load.
+ */
+export function defaultsSnapshot(controls: Iterable<DefaultsControl>): string {
+  const out: [string, string][] = [];
+  for (const el of controls) {
+    if (!el.name || el.disabled) continue;
+    const tag = el.tagName.toLowerCase();
+    const type = (el.type ?? "").toLowerCase();
+    if (tag === "button" || tag === "fieldset" || tag === "output") continue;
+    if (tag === "input") {
+      if (["submit", "button", "reset", "image", "file"].includes(type)) {
+        continue;
+      }
+      if (type === "checkbox" || type === "radio") {
+        if (el.defaultChecked) out.push([el.name, el.value || "on"]);
+        continue;
+      }
+    }
+    if (tag === "select") {
+      const options = Array.from(el.options ?? []);
+      const chosen = options.filter((o) => o.defaultSelected);
+      const picked =
+        chosen.length > 0 || el.multiple ? chosen : options.slice(0, 1);
+      for (const o of picked) out.push([el.name, o.value]);
+      continue;
+    }
+    out.push([el.name, el.defaultValue ?? ""]);
+  }
+  return formSnapshot(out);
+}
+
 /** Longest values Genel keeps; the form's maxLength and the action agree. */
 export const GENERAL_LIMITS = {
   name: 80,

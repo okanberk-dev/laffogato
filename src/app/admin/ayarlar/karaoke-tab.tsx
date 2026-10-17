@@ -1,20 +1,25 @@
 "use client";
 
-import { useActionState } from "react";
-
-import { Checkbox, Field, TextInput } from "@/components/admin/forms";
+import { Checkbox, TextInput } from "@/components/admin/forms";
+import { Section } from "@/components/admin/ui";
 import type { AdminSettings } from "@/lib/admin/store";
 
 import { saveKaraokeAction } from "./karaoke-actions";
-import { initial, SaveBar, Section } from "./settings-ui";
+import {
+  SaveBar,
+  SettingsField,
+  SettingsTabForm,
+  useSettingsForm,
+} from "./settings-ui";
 
 export function KaraokeTab({ settings }: { settings: AdminSettings }) {
-  const [state, action, pending] = useActionState(saveKaraokeAction, initial);
+  const form = useSettingsForm(saveKaraokeAction, { tab: "karaoke" });
   return (
-    <form action={action}>
+    <SettingsTabForm form={form}>
       <Section title="Karaoke">
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field
+          <SettingsField
+            name="karaokeHourly"
             label="Saatlik ücret (₺)"
             hint="Uygulamadaki rezervasyon ekranında gösterilir; RUBY üyelere indirim sunucuda uygulanır."
           >
@@ -24,19 +29,25 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
               defaultValue={(settings.karaokeHourlyMinor / 100).toFixed(2)}
               required
             />
-          </Field>
-          <Field
+          </SettingsField>
+          <SettingsField
+            name="karaokeCapacity"
             label="Kapasite (kişi)"
-            hint="Bir rezervasyonda kabul edilen en fazla misafir sayısı."
+            hint="Bir rezervasyonda kabul edilen en fazla misafir sayısı (1 ile 50 arası)."
           >
             <TextInput
               name="karaokeCapacity"
+              type="number"
               inputMode="numeric"
+              min={1}
+              max={50}
+              step={1}
               defaultValue={String(settings.karaokeCapacity)}
               required
             />
-          </Field>
-          <Field
+          </SettingsField>
+          <SettingsField
+            name="karaokeNotifyEmail"
             label="Talep bildirimi e-postası"
             hint="Uygulamadan ya da web'den gelen her yeni rezervasyon talebi bu adrese düşer. Boş bırakılırsa genel iletişim adresine gider."
           >
@@ -46,15 +57,15 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
               defaultValue={settings.karaokeNotifyEmail}
               placeholder={settings.email}
             />
-          </Field>
+          </SettingsField>
         </div>
         <Checkbox
           name="karaokePrepay"
           defaultChecked={settings.karaokePrepay}
           label="Online ön ödeme: rezervasyon ödenince kendiliğinden kesinleşir; ödenmemiş rezervasyon onaylanmaz (üyeliksiz rezervasyon da bununla açılır). Kapatırsan web'de ve uygulamada eski akış döner: talep, köşkte ödeme, elle onay."
         />
-        <SaveBar state={state} pending={pending} />
+        <SaveBar form={form} />
       </Section>
-    </form>
+    </SettingsTabForm>
   );
 }
