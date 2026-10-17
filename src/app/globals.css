@@ -6473,6 +6473,10 @@ select {
     aspect-ratio: auto !important;
     height: 280px !important;
   }
+  /* The sheet scrolls as one; the text column does not scroll inside it. */
+  .product-modal > div:last-of-type {
+    max-height: none !important;
+  }
 }
 
 /* Misc - prevent horizontal overflow on grid sections at tiny widths */

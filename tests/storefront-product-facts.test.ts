@@ -241,6 +241,22 @@ describe("the quick look", () => {
     expect(nuts).toContain('href="mailto:merhaba@laffogato.net"');
     expect(await modal(base)).not.toContain("açılmamış ürünlerde iade");
   });
+
+  it("keeps the text column half the panel and lets it scroll", async () => {
+    // With a bare "1fr 1fr" the photo's 4/5 box widened with a taller row,
+    // so the longer list squeezed the text column, and "Sepete ekle" sat
+    // below the panel's clipped edge.
+    const html = await modal(gift);
+    expect(html).toContain(
+      "grid-template-columns:minmax(0, 1fr) minmax(0, 1fr)",
+    );
+    expect(html).toContain("max-height:92vh;overflow-y:auto");
+    // The phone sheet scrolls as one, not a column inside it.
+    const css = readFileSync("src/app/globals.css", "utf8");
+    expect(css).toMatch(
+      /\.product-modal > div:last-of-type \{\s*max-height: none !important;/,
+    );
+  });
 });
 
 describe("the shop page", () => {

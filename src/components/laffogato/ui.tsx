@@ -682,7 +682,9 @@ export function ProductModal({
           boxShadow: "var(--shadow-lg)",
           overflow: "hidden",
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          // minmax(0, 1fr): with a bare 1fr the photo's 4/5 box widened
+          // with the row, so a longer detail list squeezed the text column.
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
           position: "relative",
         }}
         className="product-modal"
@@ -762,7 +764,17 @@ function ProductModalBody({
 
   return (
     <>
-      <div style={{ aspectRatio: "4/5", position: "relative" }}>
+      {/* At least the row's height: a long detail list makes the row
+          taller than the 4/5 photo, which left a bare strip under it. The
+          width stays the column's, or the ratio would widen it again. */}
+      <div
+        style={{
+          aspectRatio: "4/5",
+          width: "100%",
+          minHeight: "100%",
+          position: "relative",
+        }}
+      >
         <ProductSurface
           cat={p.cat}
           tone={p.img}
@@ -783,6 +795,9 @@ function ProductModalBody({
       <div
         style={{
           padding: "clamp(28px, 4vw, 50px)",
+          // The panel's own height, so the column scrolls instead of the
+          // "Sepete ekle" row being cut off at the panel's edge.
+          maxHeight: "92vh",
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
