@@ -442,11 +442,15 @@ export function ProductWizard({
       errors,
       (key) => `${baseId}-err-${key}`,
     );
-    if (first instanceof HTMLElement) {
+    // A control on a step that is not open cannot take focus (Varyantlar
+    // and a later field refused together): its step's message does.
+    if (first instanceof HTMLElement && first.getClientRects().length > 0) {
       first.focus();
       return;
     }
-    const firstKey = Object.keys(errors)[0];
+    const [firstKey] = Object.keys(errors).sort(
+      (a, b) => stepOfField(a) - stepOfField(b),
+    );
     if (firstKey) document.getElementById(`${baseId}-err-${firstKey}`)?.focus();
   }, [state, baseId]);
 
