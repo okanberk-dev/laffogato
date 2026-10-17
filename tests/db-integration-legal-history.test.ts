@@ -205,6 +205,35 @@ maybe("legal override archive, in SQL", () => {
     ).rejects.toThrow(/append-only/);
   });
 
+  it("lets the periodic destruction remove an archived text past its period, and only that", async () => {
+    // The trigger refuses UPDATE only; retention.ts deletes by archivedAt.
+    const { RETENTION_RULES } = await import("@/lib/retention");
+    const { getDb, TABLES } = await import("@/lib/db");
+    const rule = RETENTION_RULES.find(
+      (r) => r.id === "legal-override-history",
+    )!;
+    expect(rule.table).toBe(TABLES.legalOverrideHistory);
+    await pool!.query(
+      `insert into public.legal_override_history (slug, "bodyMarkdown", "archivedAt", reason)
+       values ($1, 'eski', '2014-01-01T00:00:00.000Z', 'reset'),
+              ($1, 'yeni', '2026-10-01T00:00:00.000Z', 'reset')`,
+      [SLUG],
+    );
+    const cutoff = new Date(
+      Date.parse("2026-10-18T00:00:00.000Z") - rule.days * 86_400_000,
+    ).toISOString();
+    const removed = await getDb()
+      .from(rule.table)
+      .delete()
+      .select(rule.idColumn)
+      .lt(rule.column, cutoff)
+      .neq(rule.column, "");
+    expect(removed.error).toBeNull();
+    expect(removed.data).toHaveLength(1);
+    const left = await store.listConsentArchive([SLUG]);
+    expect(left.map((r) => r.bodyMarkdown)).toEqual(["yeni"]);
+  });
+
   it("reads an unknown or malformed archive id as missing", async () => {
     expect(await store.getLegalOverrideArchive("999999999")).toBeNull();
     expect(await store.getLegalOverrideArchive("1; drop")).toBeNull();

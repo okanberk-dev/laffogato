@@ -5946,7 +5946,10 @@ insert into public._migrations (name) values ('20261017200100_seed_markers.sql')
 -- in turn). `updatedAt` is when that text was saved; `archivedAt` and
 -- `archivedBy` when and by whom it was replaced.
 --
--- Rows are never updated (a trigger refuses it). Nothing deletes them.
+-- Rows are never updated (a trigger refuses it). Only the periodic
+-- destruction deletes them (src/lib/retention.ts, "legal-override-history"):
+-- eleven years after archivedAt, the published period of the consent record
+-- whose version label points at them.
 -- Both functions take a per-document advisory lock, so two saves of one
 -- document cannot both archive the same row and lose the one in between.
 --

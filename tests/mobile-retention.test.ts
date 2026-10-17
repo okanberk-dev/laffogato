@@ -54,6 +54,9 @@ describe("every retention period is quoted from the published policy", () => {
       // "Bu yorumu bildir": the reported words, ninety days.
       "fal_reports",
       "feature_consents",
+      // The panel's earlier legal texts: what an order's consent version
+      // points at, as long as that consent record lives.
+      "legal_override_history",
     ]);
   });
 
@@ -70,6 +73,11 @@ describe("every retention period is quoted from the published policy", () => {
     const by = (id: string) => RETENTION_RULES.find((r) => r.id === id)!;
     expect(by("campaign-email-sends").days).toBeGreaterThanOrEqual(3 * 365 + 1);
     expect(by("audit-logs").days).toBeGreaterThanOrEqual(10 * 365 + 2);
+    // Ten years from the contract's performance, which comes after the
+    // text was archived: never less than a decade and a year from then.
+    expect(by("legal-override-history").days).toBeGreaterThanOrEqual(
+      11 * 365 + 2,
+    );
   });
 
   it("keeps the security counter far inside its one-year ceiling", () => {

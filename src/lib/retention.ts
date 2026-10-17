@@ -136,6 +136,26 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "matches nothing - the oldest row is months old - and that is correct.",
   },
   {
+    id: "legal-override-history",
+    table: TABLES.legalOverrideHistory,
+    column: "archivedAt",
+    idColumn: "id",
+    days: 11 * YEAR_DAYS,
+    basis:
+      "Sözleşmenin ifasından itibaren 10 yıl; uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar.",
+    note:
+      "The panel's replaced and reset legal texts (admin audit CON-02). An " +
+      "order's consent records only a version label (`belge sürümü` in the " +
+      "Mesafeli satış onay kaydı); the text behind an old label lives here, " +
+      "so a row lives as long as a consent recorded under it may: the text " +
+      "was accepted until archivedAt, the contract is performed after that " +
+      "(goods within 30 days, Mesafeli Sözleşmeler Yönetmeliği m.16; a " +
+      "karaoke evening when it takes place), and ten years run from the " +
+      "performance. One year past the decade covers the performance; " +
+      "counted in 366-day years so nothing goes early. The only personal " +
+      "datum is archivedBy, the panel user's address for the act.",
+  },
+  {
     id: "fal-readings",
     table: TABLES.falReadings,
     column: "createdAt",
