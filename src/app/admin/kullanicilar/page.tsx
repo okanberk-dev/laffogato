@@ -1,8 +1,14 @@
 import { Card, PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
-import { ROLE_LABELS } from "@/lib/admin/roles";
+import { roleSectionLabels } from "@/lib/admin/role-summary";
+import { ADMIN_ROLES, ROLE_LABELS } from "@/lib/admin/roles";
 import { listStaffMembers } from "@/lib/admin/staff-members";
-import { listAdminUsers, MIN_ADMIN_PASSWORD_LENGTH } from "@/lib/admin/users";
+import { has2FA } from "@/lib/admin/twofa";
+import {
+  listAdminUsers,
+  MIN_ADMIN_PASSWORD_LENGTH,
+  normalizeAdminEmail,
+} from "@/lib/admin/users";
 
 import {
   AdminUserRow,
@@ -23,11 +29,15 @@ export const dynamic = "force-dynamic";
  * wrong.
  */
 export default async function AdminUsersPage() {
-  await requireRole("adminUsers");
+  const session = await requireRole("adminUsers");
   const [users, baristas] = await Promise.all([
     listAdminUsers(),
     listStaffMembers(),
   ]);
+  // Who has an authenticator, so the owner can see who a lost phone locks
+  // out. A handful of accounts: one small read each.
+  const twoFA = await Promise.all(users.map((u) => has2FA(u.email)));
+  const me = normalizeAdminEmail(session.email);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
@@ -48,7 +58,7 @@ export default async function AdminUsersPage() {
             </p>
           </Card>
         ) : (
-          users.map((u) => (
+          users.map((u, i) => (
             <AdminUserRow
               key={u.email}
               minPasswordLength={MIN_ADMIN_PASSWORD_LENGTH}
@@ -58,19 +68,33 @@ export default async function AdminUsersPage() {
                 role: u.role,
                 isActive: u.isActive,
                 updatedAt: u.updatedAt,
+                has2FA: twoFA[i],
+                isSelf: u.email === me,
               }}
             />
           ))
         )}
 
         <Card>
-          <p className="text-xs leading-relaxed text-[var(--admin-text-mute)]">
-            Roller: {ROLE_LABELS.owner} her şeyi görür ve kullanıcı yönetir ·{" "}
-            {ROLE_LABELS.manager} katalog, içerik ve siparişleri yönetir ·{" "}
-            {ROLE_LABELS.staff} sipariş, stok ve kasayı görür ·{" "}
-            {ROLE_LABELS.cashier} yalnız kasada damga düşer. Son aktif sahip
-            hesabı kapatılamaz; ortam değişkenindeki hesaplar bu listede
-            görünmez ve acil giriş için durur.
+          {/* From the matrix the server gates read (roles.ts), not a
+              sentence of its own: the old one hid refunds, member deletion
+              and mass e-mail behind "Yönetici". */}
+          <h2 className="mb-3 text-base font-semibold">Roller neyi açar</h2>
+          <dl className="grid gap-3 text-sm">
+            {ADMIN_ROLES.map((role) => (
+              <div key={role} className="grid gap-0.5">
+                <dt className="font-medium text-[var(--admin-text)]">
+                  {ROLE_LABELS[role]}
+                </dt>
+                <dd className="text-xs leading-relaxed text-[var(--admin-text-soft)]">
+                  {roleSectionLabels(role).join(" · ")}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-xs leading-relaxed text-[var(--admin-text-mute)]">
+            Son aktif sahip hesabı kapatılamaz; ortam değişkenindeki hesaplar bu
+            listede görünmez ve acil giriş için durur.
           </p>
         </Card>
 

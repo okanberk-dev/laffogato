@@ -18,13 +18,14 @@ import {
   TextInput,
   formatDateTime,
 } from "@/components/admin/forms";
-import { ConfirmButton } from "@/components/admin/ui";
+import { Badge, ConfirmButton } from "@/components/admin/ui";
 import { ADMIN_ROLES, ROLE_LABELS } from "@/lib/admin/roles";
 
 import {
   createAdminUserAction,
   deleteAdminUserAction,
   grantBaristaAction,
+  reset2FAAction,
   resetAdminPasswordAction,
   revokeBaristaAction,
   saveAdminUserAction,
@@ -153,6 +154,10 @@ export interface AdminUserRowProps {
   role: string;
   isActive: boolean;
   updatedAt: string;
+  /** Whether the account has an authenticator enrolled. */
+  has2FA?: boolean;
+  /** The signed-in owner's own account (2FA is managed on its own page). */
+  isSelf?: boolean;
 }
 
 export function AdminUserRow({
@@ -168,12 +173,19 @@ export function AdminUserRow({
     <Card>
       <div className="grid gap-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p
-            className="text-sm font-medium break-all"
-            style={{ fontFamily: "var(--mono), monospace" }}
-          >
-            {user.email}
-          </p>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <p
+              className="text-sm font-medium break-all"
+              style={{ fontFamily: "var(--mono), monospace" }}
+            >
+              {user.email}
+            </p>
+            {user.has2FA === undefined ? null : (
+              <Badge tone={user.has2FA ? "success" : "neutral"}>
+                {user.has2FA ? "2FA açık" : "2FA kapalı"}
+              </Badge>
+            )}
+          </div>
           <p className="text-xs text-[var(--admin-text-mute)]">
             {user.updatedAt
               ? `Son güncelleme: ${formatDateTime(user.updatedAt)}`
@@ -235,13 +247,34 @@ export function AdminUserRow({
           {/* Asks first: the account and its sign-in go at once. The last
               owner is refused on the server (lib/admin/users.ts). */}
           <div className="grid content-end gap-3">
+            {user.has2FA ? (
+              <div>
+                {/* A lost or replaced phone: without this, only a SQL
+                    console let the user back in. */}
+                <ConfirmButton
+                  action={reset2FAAction}
+                  hidden={{ email: user.email }}
+                  label="2FA'yı sıfırla"
+                  variant="ghost"
+                  title={`${user.email} için 2FA sıfırlansın mı?`}
+                  description="Telefonunu kaybeden ya da değiştiren kullanıcı için. Hesaba bir sonraki girişte yalnız parolayla girilir; kullanıcı 2FA'yı yeniden kurmalı."
+                  confirmPhrase={user.email}
+                  confirmLabel="Sıfırla"
+                  disabledReason={
+                    user.isSelf
+                      ? "Kendi 2FA'nı 2FA kurulumu sayfasından kapatırsın."
+                      : undefined
+                  }
+                />
+              </div>
+            ) : null}
             <div>
               <ConfirmButton
                 action={deleteAdminUserAction}
                 hidden={{ email: user.email }}
                 label="Kullanıcıyı sil"
                 title={`${user.email} silinsin mi?`}
-                description="Panel hesabı kalıcı olarak silinir, oturumu hemen kapanır. Yalnız erişimi durdurmak istiyorsan Aktif kutusunu kaldırıp kaydet."
+                description="Panel hesabı ve 2FA kaydı kalıcı olarak silinir, oturumu hemen kapanır. Yalnız erişimi durdurmak istiyorsan Aktif kutusunu kaldırıp kaydet."
                 confirmLabel="Sil"
               />
             </div>

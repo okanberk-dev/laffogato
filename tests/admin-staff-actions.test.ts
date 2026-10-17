@@ -17,25 +17,40 @@ const revalidatePath = vi.fn();
 const grantBarista = vi.fn();
 const revokeBarista = vi.fn();
 const deleteAdminUser = vi.fn();
+const createAdminUser = vi.fn();
+const listAdminUsers = vi.fn();
+const disable2FA = vi.fn();
+/** The break-glass accounts of ADMIN_USERS / ADMIN_EMAIL. */
+const listEnvAdminContacts = vi.fn(() => [
+  { email: "acil@laffogato.net", role: "owner" },
+]);
 
-vi.mock("@/lib/admin/auth", () => ({ requireRole }));
+vi.mock("@/lib/admin/auth", () => ({ listEnvAdminContacts, requireRole }));
+vi.mock("@/lib/admin/twofa", () => ({ disable2FA }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit }));
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("@/lib/admin/staff-members", () => ({ grantBarista, revokeBarista }));
 vi.mock("@/lib/admin/users", () => ({
-  createAdminUser: vi.fn(),
+  createAdminUser,
   deleteAdminUser,
+  listAdminUsers,
   normalizeAdminEmail: (e: string) => e.trim().toLowerCase(),
   setAdminPassword: vi.fn(),
   updateAdminUser: vi.fn(),
 }));
 
-const { deleteAdminUserAction, grantBaristaAction, revokeBaristaAction } =
-  await import("@/app/admin/kullanicilar/actions");
+const {
+  createAdminUserAction,
+  deleteAdminUserAction,
+  grantBaristaAction,
+  reset2FAAction,
+  revokeBaristaAction,
+} = await import("@/app/admin/kullanicilar/actions");
 
-function form(email: string): FormData {
+function form(email: string, extra: Record<string, string> = {}): FormData {
   const fd = new FormData();
   fd.set("email", email);
+  for (const [k, v] of Object.entries(extra)) fd.set(k, v);
   return fd;
 }
 
@@ -61,6 +76,14 @@ beforeEach(() => {
     ok: true,
     value: { ...ROW, isActive: false },
   });
+  deleteAdminUser.mockReset();
+  createAdminUser.mockReset();
+  disable2FA.mockReset();
+  listAdminUsers.mockReset();
+  listAdminUsers.mockResolvedValue([
+    { email: "kasa@laffogato.net", role: "cashier", isActive: true },
+    { email: "patron@laffogato.net", role: "owner", isActive: true },
+  ]);
 });
 
 describe("grantBaristaAction", () => {
@@ -163,6 +186,18 @@ describe("deleteAdminUserAction", () => {
     expect(logAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "delete", entity: "admin_user" }),
     );
+    // The authenticator goes with the account: a re-created account with the
+    // same address inherited the lost secret.
+    expect(disable2FA).toHaveBeenCalledWith("kasa@laffogato.net");
+  });
+
+  it("leaves a break-glass account's 2FA alone", async () => {
+    deleteAdminUser.mockResolvedValue({
+      ok: true,
+      value: { email: "acil@laffogato.net", role: "owner" },
+    });
+    await deleteAdminUserAction(null, form("acil@laffogato.net"));
+    expect(disable2FA).not.toHaveBeenCalled();
   });
 
   it("keeps the dialog open on the last-owner refusal", async () => {
@@ -173,6 +208,89 @@ describe("deleteAdminUserAction", () => {
     });
     const res = await deleteAdminUserAction(null, form("patron@laffogato.net"));
     expect(res).toEqual({ ok: false, error: "Son sahip hesabı silinemez." });
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+});
+
+describe("createAdminUserAction", () => {
+  const fields = { name: "Eda", role: "cashier", password: "cokGizliParola1" };
+
+  it("drops a 2FA row an earlier account of the address left behind", async () => {
+    createAdminUser.mockResolvedValue({
+      ok: true,
+      value: { email: "kasa@laffogato.net", role: "cashier", name: "Eda" },
+    });
+    const state = await createAdminUserAction(
+      {},
+      form("kasa@laffogato.net", fields),
+    );
+    expect(state.message).toBeTruthy();
+    expect(disable2FA).toHaveBeenCalledWith("kasa@laffogato.net");
+  });
+
+  it("touches nothing when the create is refused", async () => {
+    // "exists": the address is a live account whose 2FA must stay.
+    createAdminUser.mockResolvedValue({
+      ok: false,
+      error: "exists",
+      message: "Bu e-posta zaten kayıtlı.",
+    });
+    const state = await createAdminUserAction(
+      {},
+      form("kasa@laffogato.net", fields),
+    );
+    expect(state.error).toBe("Bu e-posta zaten kayıtlı.");
+    expect(disable2FA).not.toHaveBeenCalled();
+  });
+});
+
+describe("reset2FAAction (lost phone)", () => {
+  const confirmed = (email: string) => form(email, { confirm: email });
+
+  it("opens the adminUsers gate before anything else", async () => {
+    requireRole.mockRejectedValue(new Error("NEXT_REDIRECT"));
+    await expect(
+      reset2FAAction(null, confirmed("kasa@laffogato.net")),
+    ).rejects.toThrow();
+    expect(requireRole).toHaveBeenCalledWith("adminUsers");
+    expect(disable2FA).not.toHaveBeenCalled();
+  });
+
+  it("resets another user's 2FA, audited first and without the secret", async () => {
+    const res = await reset2FAAction(null, confirmed(" Kasa@Laffogato.net "));
+    expect(res).toMatchObject({ ok: true });
+    expect(disable2FA).toHaveBeenCalledWith("kasa@laffogato.net");
+    expect(logAudit).toHaveBeenCalledWith({
+      action: "2fa_disable",
+      entity: "2fa",
+      entityId: "kasa@laffogato.net",
+      payload: { reset: "owner" },
+    });
+    // No unaudited security change: the row goes in before the reset.
+    expect(logAudit.mock.invocationCallOrder[0]).toBeLessThan(
+      disable2FA.mock.invocationCallOrder[0],
+    );
+    expect(JSON.stringify(logAudit.mock.calls)).not.toMatch(/secret/i);
+  });
+
+  it("refuses the signed-in owner's own account", async () => {
+    // There the 2FA page asks for a code; a stolen session must not strip it.
+    const res = await reset2FAAction(null, confirmed("patron@laffogato.net"));
+    expect(res.ok).toBe(false);
+    expect(disable2FA).not.toHaveBeenCalled();
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("refuses a break-glass account, an unknown one, and a missing confirm", async () => {
+    for (const fd of [
+      confirmed("acil@laffogato.net"),
+      confirmed("yok@laffogato.net"),
+      form("kasa@laffogato.net", { confirm: "kasa" }),
+    ]) {
+      const res = await reset2FAAction(null, fd);
+      expect(res.ok).toBe(false);
+    }
+    expect(disable2FA).not.toHaveBeenCalled();
     expect(logAudit).not.toHaveBeenCalled();
   });
 });

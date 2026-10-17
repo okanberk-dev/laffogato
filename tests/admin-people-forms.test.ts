@@ -165,3 +165,51 @@ describe("Hesabı sil says what stays", () => {
     );
   });
 });
+
+describe("2FA on the users page", () => {
+  const user = {
+    email: "kasa@laffogato.net",
+    name: "Eda",
+    role: "cashier",
+    isActive: true,
+    updatedAt: "2026-10-01T09:00:00.000Z",
+  };
+
+  it("shows who has 2FA and offers the owner a reset behind a dialog", async () => {
+    const { AdminUserRow } =
+      await import("@/app/admin/kullanicilar/user-forms");
+    const html = renderToStaticMarkup(
+      createElement(AdminUserRow, {
+        user: { ...user, has2FA: true },
+        minPasswordLength: 10,
+      }),
+    );
+    expect(html).toContain("2FA açık");
+    expect(html).toMatch(
+      /<button[^>]*aria-haspopup="dialog"[^>]*>2FA&#x27;yı sıfırla<\/button>/,
+    );
+    const off = renderToStaticMarkup(
+      createElement(AdminUserRow, {
+        user: { ...user, has2FA: false },
+        minPasswordLength: 10,
+      }),
+    );
+    expect(off).toContain("2FA kapalı");
+    expect(off).not.toContain("2FA&#x27;yı sıfırla");
+  });
+
+  it("switches the reset off on the owner's own row, with the reason", async () => {
+    const { AdminUserRow } =
+      await import("@/app/admin/kullanicilar/user-forms");
+    const html = renderToStaticMarkup(
+      createElement(AdminUserRow, {
+        user: { ...user, has2FA: true, isSelf: true },
+        minPasswordLength: 10,
+      }),
+    );
+    expect(html).toMatch(
+      /<button[^>]*aria-disabled="true"[^>]*>2FA&#x27;yı sıfırla/,
+    );
+    expect(html).toContain("2FA kurulumu sayfasından");
+  });
+});
