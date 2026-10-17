@@ -392,6 +392,66 @@ maybe("admin order rules, in SQL", () => {
     }
   });
 
+  it("one manual order per attempt id, sent again or twice at once", async () => {
+    // Verifier C3: an answer lost on the way back left the form filled and
+    // enabled, and the second press made a second paid order.
+    await q(
+      `insert into public.products (id, name, slug, stock, "priceMinor")
+       values ('prd-adm-r', 'Sirena', 'prd-adm-r', 6, 32000)`,
+    );
+    const store = await import("@/lib/admin/store");
+    const attempt = (clientOrderId: string) =>
+      store.createManualOrder({
+        items: [{ productId: "prd-adm-r", qty: 1 }],
+        customerName: "Kasa satışı",
+        status: "paid",
+        fulfillment: "pickup",
+        paymentMethod: "nakit",
+        actor: "panel@laffogato.net",
+        clientOrderId,
+      });
+    const ids: string[] = [];
+    try {
+      const first = await attempt("c3-seq-0001-aaaa");
+      const again = await attempt("c3-seq-0001-aaaa");
+      expect(again).toMatchObject({ ok: true, replay: true });
+      // Two posts of one attempt in flight at once: the index keeps one.
+      const both = await Promise.all([
+        attempt("c3-par-0002-bbbb"),
+        attempt("c3-par-0002-bbbb"),
+      ]);
+      for (const r of [first, again, ...both]) if (r.ok) ids.push(r.order.id);
+      expect(both.every((r) => r.ok)).toBe(true);
+      expect(new Set(ids).size).toBe(2);
+      const orders = await q<{ id: string }>(
+        `select id from public.orders where "clientOrderId" like 'c3-%'`,
+      );
+      expect(orders).toHaveLength(2);
+      const pay = await q<{ orderId: string }>(
+        `select "orderId" from public.payment_transactions
+          where "orderId" = any($1::text[])`,
+        [[...new Set(ids)]],
+      );
+      expect(pay).toHaveLength(2);
+      // One unit per order: the racing post's claim came back.
+      expect(await stockOf("prd-adm-r")).toBe(4);
+    } finally {
+      const all = await q<{ id: string }>(
+        `select id from public.orders where "clientOrderId" like 'c3-%'`,
+      );
+      const gone = all.map((o) => o.id);
+      await q(
+        `delete from public.payment_transactions where "orderId" = any($1::text[])`,
+        [gone],
+      );
+      await q(
+        `delete from public.stock_moves where "orderId" = any($1::text[])`,
+        [gone],
+      );
+      await q(`delete from public.orders where id = any($1::text[])`, [gone]);
+    }
+  });
+
   it("edits the customer card only from the status and e-mail it was judged by", async () => {
     // Admin audit ORD-16: the save is conditional, the old values come back.
     await insertOrder(`${PREFIX}20`, 994020, { status: "preparing" });

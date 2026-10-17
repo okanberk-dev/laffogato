@@ -79,6 +79,9 @@ export function manualStartIsPaid(status: string): boolean {
   return status === "paid" || status === "preparing";
 }
 
+/** An attempt id as the order page makes it (a UUID), or close to one. */
+const CLIENT_ORDER_ID_RE = /^[A-Za-z0-9-]{8,64}$/;
+
 const tooLong = (what: string, max: number) =>
   `${what} en fazla ${max} karakter olabilir.`;
 
@@ -150,6 +153,9 @@ export const manualOrderSchema = z
       .default("pickup"),
     // Read only for a paid start; an unpaid one owes no payment record.
     paymentMethod: z.string().trim().optional().default(""),
+    // The form's id for this attempt (one per page load): the same id again
+    // is the same order. Anything else is ignored, never refused.
+    clientOrderId: z.string().trim().optional().default(""),
   })
   .transform((v) => ({
     lines: parseLines(v.items ?? "[]"),
@@ -165,6 +171,9 @@ export const manualOrderSchema = z
     (MANUAL_PAYMENT_METHODS as readonly string[]).includes(v.paymentMethod)
       ? v.paymentMethod
       : null) as ManualPaymentMethod | null,
+    clientOrderId: CLIENT_ORDER_ID_RE.test(v.clientOrderId ?? "")
+      ? (v.clientOrderId as string)
+      : "",
   }))
   .superRefine((v, ctx) => {
     if (v.lines.length === 0) {

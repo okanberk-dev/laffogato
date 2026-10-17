@@ -1171,6 +1171,39 @@ describe("createManualOrderAction", () => {
     );
   });
 
+  // Verifier C3: the form's attempt id reaches the store, and the same
+  // attempt again lands on its order with no second audit row.
+  it("lands a repeated attempt on the order it made, writing no second audit row", async () => {
+    setAdminFlash.mockClear();
+    safeAudit.mockClear();
+    store.createManualOrder.mockResolvedValue({
+      ok: true,
+      order: { id: "ord-9", orderNo: 10099, totalMinor: 10_000 },
+      priceAdjusted: false,
+      promoDropped: false,
+      payment: "none",
+      replay: true,
+    });
+    await actions.createManualOrderAction(
+      {},
+      form({
+        ...fields,
+        clientOrderId: "8d3c2f4e-0b1a-4c5d-9e6f-7a8b9c0d1e2f",
+      }),
+    );
+    expect(store.createManualOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientOrderId: "8d3c2f4e-0b1a-4c5d-9e6f-7a8b9c0d1e2f",
+      }),
+    );
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      "Sipariş #10099 zaten oluşturulmuştu, ikinci gönderim yeni sipariş açmadı.",
+      "warning",
+    );
+    expect(redirect).toHaveBeenCalledWith("/admin/siparisler/ord-9");
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+
   it("refuses a paid start without a method before the store is asked", async () => {
     const res = await actions.createManualOrderAction(
       {},

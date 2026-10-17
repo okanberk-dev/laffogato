@@ -571,6 +571,7 @@ export async function createManualOrderAction(
     fulfillment: d.fulfillment,
     paymentMethod: d.paymentMethod,
     actor: session.email,
+    clientOrderId: d.clientOrderId,
   });
   if (!result.ok) {
     // Under the product list, where the line to change is.
@@ -593,6 +594,16 @@ export async function createManualOrderAction(
       );
     }
     return { error: "Sipariş oluşturulamadı." };
+  }
+  if (result.replay) {
+    // The same attempt again, after an answer that never arrived: no second
+    // order and no second audit row; the operator lands on the one there is.
+    await setAdminFlash(
+      `Sipariş #${result.order.orderNo} zaten oluşturulmuştu, ikinci gönderim yeni sipariş açmadı.`,
+      "warning",
+    );
+    revalidatePath("/admin/siparisler");
+    return redirect(`/admin/siparisler/${result.order.id}`);
   }
   await safeAudit({
     action: "create",

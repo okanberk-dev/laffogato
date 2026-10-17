@@ -33,6 +33,9 @@ const db = vi.hoisted(() => ({
   inserts: [] as { table: string; row: Record<string, unknown> }[],
   seq: 0,
   failPayments: false,
+  /** A concurrent post of the same attempt, committed just before ours. */
+  raced: null as Record<string, unknown> | null,
+  claims: 0,
 }));
 
 const exec: Executor = async ({ text, params }) => {
@@ -47,7 +50,15 @@ const exec: Executor = async ({ text, params }) => {
     const rows = /"name"/.test(text) ? [] : db.products;
     return { rows, rowCount: rows.length };
   }
+  if (/^SELECT .* FROM "orders" WHERE "clientOrderId"/.test(text)) {
+    const rows = db.inserts
+      .filter((i) => i.table === "orders")
+      .map((i) => i.row)
+      .filter((r) => r.clientOrderId === params[0]);
+    return { rows, rowCount: rows.length };
+  }
   if (/"claim_order_stock"/.test(text)) {
+    db.claims += 1;
     return { rows: [{ result: [10] }], rowCount: 1 };
   }
   if (/"next_seq"/.test(text)) {
@@ -58,6 +69,12 @@ const exec: Executor = async ({ text, params }) => {
   if (insert) {
     const columns = insert[2].split(", ").map((c) => c.replace(/"/g, ""));
     const row = Object.fromEntries(columns.map((c, i) => [c, params[i]]));
+    if (insert[1] === "orders" && db.raced) {
+      // The index (`orders_client_order_id_key`) refuses the second row.
+      db.inserts.push({ table: "orders", row: db.raced });
+      db.raced = null;
+      throw Object.assign(new Error("duplicate key value"), { code: "23505" });
+    }
     db.inserts.push({ table: insert[1], row });
     if (db.failPayments && insert[1] === "payment_transactions") {
       throw Object.assign(new Error("payment_transactions is read-only"), {
@@ -144,6 +161,8 @@ beforeEach(() => {
   db.inserts = [];
   db.seq = 0;
   db.failPayments = false;
+  db.raced = null;
+  db.claims = 0;
   h.state = null;
 });
 
@@ -271,6 +290,67 @@ describe("ORD-19: a paid start records how it was paid", () => {
   });
 });
 
+// Verifier C3: an answer lost on the way back left the form filled and
+// "Siparişi oluştur" enabled, and the second press made a second paid
+// order: stock claimed twice, a second payment row, the revenue counted
+// twice. The form now sends one attempt id per page load.
+describe("C3: the same attempt sent twice is one order", () => {
+  it("returns the order the attempt already made, claiming and writing nothing", async () => {
+    const attempt = {
+      ...BASE,
+      status: "paid" as const,
+      paymentMethod: "nakit" as const,
+      clientOrderId: "8d3c2f4e-0b1a-4c5d-9e6f-7a8b9c0d1e2f",
+    };
+    const first = await store.createManualOrder(attempt);
+    expect(first.ok).toBe(true);
+    const again = await store.createManualOrder(attempt);
+    expect(again).toMatchObject({ ok: true, replay: true });
+    if (!first.ok || !again.ok) return;
+    expect(again.order.id).toBe(first.order.id);
+    expect(insertsInto("orders")).toHaveLength(1);
+    expect(insertsInto("payment_transactions")).toHaveLength(1);
+    expect(db.claims).toBe(1);
+  });
+
+  it("answers a post racing the first with the first, its stock given back", async () => {
+    db.raced = {
+      id: "ord-0900",
+      orderNo: 10900,
+      clientOrderId: "k-raced-0001",
+      source: "manual",
+      status: "paid",
+    };
+    const res = await store.createManualOrder({
+      ...BASE,
+      status: "paid",
+      paymentMethod: "nakit",
+      clientOrderId: "k-raced-0001",
+    });
+    expect(res).toMatchObject({
+      ok: true,
+      replay: true,
+      order: { id: "ord-0900" },
+    });
+    expect(insertsInto("payment_transactions")).toEqual([]);
+  });
+
+  it("still makes a new order for a new attempt, and without an id", async () => {
+    await store.createManualOrder({
+      ...BASE,
+      status: "pending_payment",
+      clientOrderId: "k-a-000001",
+    });
+    await store.createManualOrder({
+      ...BASE,
+      status: "pending_payment",
+      clientOrderId: "k-b-000002",
+    });
+    await store.createManualOrder({ ...BASE, status: "pending_payment" });
+    expect(insertsInto("orders")).toHaveLength(3);
+  });
+});
+
 // ── The form ───────────────────────────────────────────────────────────
 
 const PRODUCTS = [
@@ -312,6 +392,7 @@ function markup(): string {
       products: PRODUCTS,
       shipping: SHIPPING,
       action: async () => ({}),
+      clientOrderId: "attempt-0001",
     }),
   );
 }
@@ -436,5 +517,20 @@ describe("ORD-18 / ORD-26: links, names and words", () => {
 
   it("adds no long dash", () => {
     expect(formSource).not.toMatch(/[\u2013\u2014]/);
+  });
+});
+
+describe("C3: one attempt id per page load", () => {
+  it("sends the page's attempt id with every post of this form", () => {
+    expect(markup()).toMatch(
+      /<input type="hidden"[^>]* name="clientOrderId" value="attempt-0001"/,
+    );
+    // Pinned for the life of the form: a later render cannot swap it.
+    expect(formSource).toContain("useState(clientOrderId)");
+  });
+
+  it("gets a fresh id from the server for each new form", () => {
+    const page = readFileSync("src/app/admin/siparisler/yeni/page.tsx", "utf8");
+    expect(page).toContain("clientOrderId={randomUUID()}");
   });
 });

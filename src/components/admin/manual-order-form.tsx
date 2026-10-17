@@ -86,6 +86,12 @@ interface Props {
     prev: ManualOrderActionState,
     formData: FormData,
   ) => Promise<ManualOrderActionState>;
+  /**
+   * This page load's attempt id (the page makes one per render). Sent with
+   * every post of the form: after an answer that never arrived, a second
+   * press finds the order the first one made instead of making another.
+   */
+  clientOrderId: string;
 }
 
 const SECTION_TITLE =
@@ -127,7 +133,12 @@ function lineCap(available: number | null): number {
  * refusal is shown under its own field. Stock is shown in the options and
  * caps the quantity (ORD-M03); the server's check stays the authority.
  */
-export function ManualOrderForm({ products, shipping, action }: Props) {
+export function ManualOrderForm({
+  products,
+  shipping,
+  action,
+  clientOrderId,
+}: Props) {
   const save = withPanelCatch<ManualOrderActionState>(action, () => ({
     error: PANEL_ACTION_FAILED,
   }));
@@ -144,6 +155,9 @@ export function ManualOrderForm({ products, shipping, action }: Props) {
   const [nextKey, setNextKey] = useState(2);
   const [fulfillment, setFulfillment] = useState<ManualFulfillment>("pickup");
   const [status, setStatus] = useState("paid");
+  // Pinned for the life of the form: a refreshed page payload brings a new
+  // id, and the retry must carry the one the lost post carried.
+  const [attemptId] = useState(clientOrderId);
 
   const byId = useMemo(
     () => new Map(products.map((p) => [p.id, p])),
@@ -269,6 +283,7 @@ export function ManualOrderForm({ products, shipping, action }: Props) {
   return (
     <form ref={formRef} onSubmit={onSubmit} className="grid gap-5">
       <input type="hidden" name="items" value={itemsPayload} readOnly />
+      <input type="hidden" name="clientOrderId" value={attemptId} readOnly />
 
       <Card className="grid gap-4">
         <h2 className={SECTION_TITLE} style={SECTION_TITLE_STYLE}>

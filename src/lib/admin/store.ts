@@ -19,6 +19,7 @@ import {
 
 import { getDb, TABLES } from "@/lib/db";
 import {
+  DbQueryError,
   memoizeUntilRejected,
   publicRead,
   raiseDbError,
@@ -2899,6 +2900,11 @@ export interface CreateManualOrderInput {
   paymentMethod?: ManualPaymentMethod | null;
   /** Admin email recorded as the stock-move actor. */
   actor: string;
+  /**
+   * The form's id for this attempt, one per page load. The same id again is
+   * the same order: it is returned, not made a second time.
+   */
+  clientOrderId?: string;
 }
 
 export type ManualOrderResult =
@@ -2908,8 +2914,37 @@ export type ManualOrderResult =
        * the caller says so), or none owed.
        */
       payment: "recorded" | "failed" | "none";
+      /** The attempt had already made this order; nothing was written now. */
+      replay?: boolean;
     })
   | PlaceOrderFailure;
+
+/** The manual order an attempt id already made, if any. */
+async function findManualOrderByClientId(
+  clientOrderId: string,
+): Promise<AdminOrder | null> {
+  const found = rows<AdminOrder>(
+    await getDb()
+      .from(TABLES.orders)
+      .select("*")
+      .eq("clientOrderId", clientOrderId)
+      .eq("source", "manual")
+      .limit(1),
+    "findManualOrderByClientId",
+  );
+  return found[0] ?? null;
+}
+
+function manualReplay(order: AdminOrder): ManualOrderResult {
+  return {
+    ok: true,
+    order,
+    priceAdjusted: false,
+    promoDropped: false,
+    payment: "none",
+    replay: true,
+  };
+}
 
 /**
  * Creates an order entered by an admin (phone/in-store sale). Mirrors
@@ -2925,6 +2960,18 @@ export async function createManualOrder(
   // rule is applied by insertOrderRow.
   const settings = await getSettings();
   const fulfillment: ManualFulfillment = input.fulfillment ?? "pickup";
+
+  // An answer lost on the way back (a dropped connection, a timeout after
+  // the insert) left the operator a filled form and an enabled button, and
+  // the second press made a second paid order: the stock claimed twice, a
+  // second payment row. The same attempt id returns the order it made; two
+  // posts in flight at once meet the unique index
+  // (`orders_client_order_id_key`) and the second gets the first.
+  const clientOrderId = input.clientOrderId?.trim() ?? "";
+  if (clientOrderId) {
+    const earlier = await findManualOrderByClientId(clientOrderId);
+    if (earlier) return manualReplay(earlier);
+  }
 
   const resolveRes = await resolveOrderLines(
     input.items.map((it) => ({
@@ -2975,9 +3022,14 @@ export async function createManualOrder(
       shipping: manualShippingMode(fulfillment, settings),
       // No POS behind it: the stale-checkout sweep must leave it alone.
       source: "manual",
+      ...(clientOrderId ? { clientOrderId } : {}),
     });
   } catch (err) {
     await releaseClaimedStock(resolved);
+    if (clientOrderId && err instanceof DbQueryError && err.code === "23505") {
+      const raced = await findManualOrderByClientId(clientOrderId);
+      if (raced) return manualReplay(raced);
+    }
     throw err;
   }
   const { order, promoDropped } = placed;
@@ -4804,7 +4856,9 @@ export type OrderDetailsResult =
  * the stamp is written just after the payment, under the e-mail the order
  * had then. A coupon is claimed when the order is placed, unpaid ones too.
  */
-export async function orderEmailLedgerHeld(order: AdminOrder): Promise<boolean> {
+export async function orderEmailLedgerHeld(
+  order: AdminOrder,
+): Promise<boolean> {
   const paid = Boolean(order.paidAt) || order.status !== "pending_payment";
   if (
     paid &&

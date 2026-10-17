@@ -175,6 +175,34 @@ describe("manualOrderSchema", () => {
     expect(r.success && r.data.paymentMethod).toBeNull();
   });
 
+  it("carries the form's attempt id, and ignores one that is not an id", () => {
+    // Verifier C3: the same id again is the same order.
+    const ok = manualOrderSchema.safeParse({
+      items: LINE,
+      customerName: "Eda",
+      status: "pending_payment",
+      clientOrderId: "8d3c2f4e-0b1a-4c5d-9e6f-7a8b9c0d1e2f",
+    });
+    expect(ok.success && ok.data.clientOrderId).toBe(
+      "8d3c2f4e-0b1a-4c5d-9e6f-7a8b9c0d1e2f",
+    );
+    for (const clientOrderId of [
+      undefined,
+      "",
+      "kısa",
+      "x".repeat(65),
+      "a b c d e f g h",
+    ]) {
+      const r = manualOrderSchema.safeParse({
+        items: LINE,
+        customerName: "Eda",
+        status: "pending_payment",
+        clientOrderId,
+      });
+      expect(r.success && r.data.clientOrderId, String(clientOrderId)).toBe("");
+    }
+  });
+
   it("says every length cap in Turkish (the e-mail cap was Zod's English)", () => {
     const cases: Array<[string, number, RegExp]> = [
       ["customerEmail", 161, /E-posta en fazla 160 karakter/],

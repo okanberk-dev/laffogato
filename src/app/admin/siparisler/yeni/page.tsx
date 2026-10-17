@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import Link from "next/link";
 
 import { Card, PageHeader } from "@/components/admin/forms";
@@ -65,6 +67,9 @@ export default async function NewOrderPage() {
             shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
           }}
           action={createManualOrderAction}
+          // One per page load: a second press after a lost answer finds the
+          // order the first one made.
+          clientOrderId={randomUUID()}
         />
       )}
     </main>
