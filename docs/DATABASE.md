@@ -270,6 +270,21 @@ ne kadar eski olursa olsun kapsam dışıdır; üyeye giden postanın dayanağı
 odur. Testler: `tests/consent-ledger.test.ts`,
 `tests/db-integration-consent-ledger.test.ts`.
 
+### Yasal metin arşivi (`legal_override_history`)
+
+Panelin hukuk geçersiz kılmalarının (`legal_docs`, belge başına bir satır)
+önceki metinleri. Bir kayıt değişen bir satırın üzerine yazmadan
+(`legal_doc_save`, neden `replaced`) ve "Varsayılana döndür" silmeden
+(`legal_doc_reset`, neden `reset`) önce eski satır aynı işlemde buraya
+kopyalanır; ikisi de belge başına advisory lock alır. Panel arşivi listeler,
+önizler ve geri yükler (geri yükleme bir `legal_doc_save`'dir, değiştirdiği
+metni de arşive alır). Sipariş onayı yalnız sürüm etiketini kaydeder
+(`legalConsent.version`); o etiketin arkasındaki metin buradadır. Satır
+güncellenemez (`legal_override_history_no_update`), hiçbir şey silmez ve imha
+kuralı yoktur: süre avukat okumasını bekler. `archivedBy` panel kullanıcısının
+adresidir. Testler: `tests/db-integration-legal-history.test.ts`,
+`tests/admin-legal-actions.test.ts`.
+
 ### Kapsam dışı - bilerek
 
 `newsletter_subscribers` ret (opt-out) kayıtları **süpürülmez**: onları silmek
