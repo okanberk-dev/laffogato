@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { MAX_STORED_IMAGE_LENGTH } from "@/lib/admin/image-encode";
 import { slugify } from "@/lib/admin/store";
+import { parseStockSnapshot } from "@/lib/admin/stock-delta";
 import {
   parseBackdropChoice,
   parseVesselChoice,
@@ -212,19 +213,9 @@ const intInput = z
     return Number.isFinite(v) ? Math.max(0, v) : 0;
   });
 
-/**
- * A stock count the form read when it was opened (admin audit CAT-03), or
- * null when it posts none: a new product, a new variant row, a form from
- * before the field. The save moves stock by the difference from this, so
- * only a whole number of 0 or more counts.
- */
-export function parseStockSnapshot(raw: unknown): number | null {
-  if (typeof raw === "number") {
-    return Number.isInteger(raw) && raw >= 0 ? raw : null;
-  }
-  if (typeof raw !== "string" || !/^\d+$/.test(raw.trim())) return null;
-  return Number(raw.trim());
-}
+// The stock a form was opened with (admin audit CAT-03). It lives with the
+// other client-safe stock helpers: the wizard reads its own post with it.
+export { parseStockSnapshot };
 
 const stockSnapshot = z.string().optional().transform(parseStockSnapshot);
 

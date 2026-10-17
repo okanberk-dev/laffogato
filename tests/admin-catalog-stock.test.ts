@@ -60,9 +60,12 @@ vi.mock("@/lib/db", async (importOriginal) => {
 });
 
 const store = await import("@/lib/admin/store");
-const { variantStockTotal, splitStockTarget } = await import(
-  "@/lib/admin/stock-delta"
-);
+const {
+  variantStockTotal,
+  splitStockTarget,
+  readPostedStock,
+  rebaseStockSnapshots,
+} = await import("@/lib/admin/stock-delta");
 const { productFormSchema, parseStockSnapshot } = await import(
   "@/lib/admin/product-schema"
 );
@@ -430,6 +433,67 @@ describe("the pure halves", () => {
         price: "320",
       }).stockAtOpen,
     ).toBeNull();
+  });
+});
+
+describe("CAT-03: after a refusal, the next save's snapshots", () => {
+  // The form opened with 250 g at 10 and 1 kg at 5. The operator set 1 kg
+  // to 0 and left 250 g alone; one of each sold meanwhile (9 and 4), so
+  // 1 kg would go to -1 and the save was refused with the stored counts.
+  const NOW = { stock: 13, variants: { "var-a": 9, "var-b": 4 } };
+  const posted = (a: number, b: number) =>
+    readPostedStock({
+      stock: null,
+      stockAtOpen: "15",
+      variants: JSON.stringify([
+        { id: "var-a", name: "250 g", stock: String(a), stockAtOpen: 10 },
+        { id: "var-b", name: "1 kg", stock: String(b), stockAtOpen: 5 },
+      ]),
+    });
+
+  it("an untouched variant keeps its snapshot, so its sale stays sold", () => {
+    const next = rebaseStockSnapshots(posted(10, 0), NOW);
+    // 250 g posts 10 against 10 again: no change, it stays at 9. Re-based
+    // on 9 it posted +1 and was back at 10.
+    expect(next.variants["var-a"]).toBe(10);
+    // 1 kg is the refused one: 0 against the 4 stored is the count to save.
+    expect(next.variants["var-b"]).toBe(4);
+    // With variants the product's snapshot is the total shown beside them.
+    expect(next.stock).toBe(13);
+  });
+
+  it("a variant changed by hand keeps its change, not the typed count", () => {
+    // 250 g raised from 10 to 20 (+10): 9 + 10 = 19 after the next save.
+    expect(rebaseStockSnapshots(posted(20, 0), NOW).variants["var-a"]).toBe(10);
+  });
+
+  it("a product without variants moves to the stored count when refused", () => {
+    const stock = (typed: string, stored: number) =>
+      rebaseStockSnapshots(
+        readPostedStock({ stock: typed, stockAtOpen: "4", variants: "[]" }),
+        { stock: stored, variants: {} },
+      ).stock;
+    // 4 at open, 0 typed, 1 stored: 0 is what the next save writes.
+    expect(stock("0", 1)).toBe(1);
+    // A change that still fits keeps the open count.
+    expect(stock("9", 1)).toBe(4);
+  });
+
+  it("a row added in the form stays new, and a broken post reads as empty", () => {
+    const next = rebaseStockSnapshots(
+      readPostedStock({
+        stock: null,
+        stockAtOpen: "5",
+        variants: JSON.stringify([{ id: "var-9", stock: "3", stockAtOpen: null }]),
+      }),
+      { stock: 5, variants: { "var-9": 3 } },
+    );
+    expect(next.variants).toEqual({});
+    expect(readPostedStock({ stock: null, stockAtOpen: null, variants: "{" })).toEqual({
+      stock: null,
+      stockAtOpen: null,
+      variants: [],
+    });
   });
 });
 

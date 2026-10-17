@@ -79,3 +79,106 @@ export function splitStockTarget(raw: string): {
   const variantId = text.slice(at + 1).trim();
   return { productId: text.slice(0, at).trim(), variantId: variantId || null };
 }
+
+/**
+ * A stock count the form read when it was opened (admin audit CAT-03), or
+ * null when it posts none: a new product, a new variant row, a form from
+ * before the field. The save moves stock by the difference from this, so
+ * only a whole number of 0 or more counts.
+ */
+export function parseStockSnapshot(raw: unknown): number | null {
+  if (typeof raw === "number") {
+    return Number.isInteger(raw) && raw >= 0 ? raw : null;
+  }
+  if (typeof raw !== "string" || !/^\d+$/.test(raw.trim())) return null;
+  return Number(raw.trim());
+}
+
+/** The stock fields of one product form save. */
+export interface PostedStock {
+  /** The product's own count as typed; null when the form shows the
+   * variants' total instead of a field. */
+  stock: number | null;
+  /** The product's stock when the form was opened; null for a new one. */
+  stockAtOpen: number | null;
+  variants: Array<{ id: string; stock: number; stockAtOpen: number | null }>;
+}
+
+function postedCount(raw: unknown): number {
+  const n = Number.parseInt(String(raw ?? "0"), 10);
+  return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
+
+/**
+ * The stock fields of a product form save (`stock`, `stockAtOpen` and the
+ * `variants` JSON), read as productFormSchema reads them. Client-safe: the
+ * wizard reads back what it posted when the save is refused.
+ */
+export function readPostedStock(fields: {
+  stock: unknown;
+  stockAtOpen: unknown;
+  variants: unknown;
+}): PostedStock {
+  let rows: unknown = [];
+  try {
+    rows = JSON.parse(
+      typeof fields.variants === "string" ? fields.variants : "[]",
+    );
+  } catch {
+    rows = [];
+  }
+  const variants = (Array.isArray(rows) ? rows : [])
+    .filter((v): v is Record<string, unknown> => !!v && typeof v === "object")
+    .map((v, i) => ({
+      id: String(v.id || `var-${i + 1}`),
+      stock: postedCount(v.stock),
+      stockAtOpen: parseStockSnapshot(v.stockAtOpen),
+    }));
+  return {
+    stock:
+      fields.stock === null || fields.stock === undefined
+        ? null
+        : postedCount(fields.stock),
+    stockAtOpen: parseStockSnapshot(fields.stockAtOpen),
+    variants,
+  };
+}
+
+/**
+ * The snapshots a product form measures its next save from, after a save
+ * refused for stock (admin audit CAT-03). `now` is what the refusal says is
+ * stored. Only a count whose typed change would still take it below zero is
+ * re-based on the stored one: the operator was told what it is now, and the
+ * typed value becomes the count to save. Every other count keeps the
+ * snapshot it was opened with, so its next save applies the change typed in
+ * it, or none. Re-basing them all turned an untouched variant's next save
+ * into "back to the count at open", which put the units sold while the
+ * form was open back on sale.
+ *
+ * With variants the product's own snapshot only feeds the total the form
+ * shows (the save does not read it), so it starts from the stored total.
+ */
+export function rebaseStockSnapshots(
+  posted: PostedStock,
+  now: { stock: number; variants: Readonly<Record<string, number>> },
+): { stock: number | null; variants: Record<string, number> } {
+  const variants: Record<string, number> = {};
+  for (const v of posted.variants) {
+    if (v.stockAtOpen === null) continue;
+    const stored = now.variants[v.id];
+    variants[v.id] =
+      stored !== undefined && stored + (v.stock - v.stockAtOpen) < 0
+        ? stored
+        : v.stockAtOpen;
+  }
+  const opened = posted.stockAtOpen;
+  let stock = opened;
+  if (opened !== null) {
+    if (posted.variants.length > 0) {
+      stock = now.stock;
+    } else if (now.stock + ((posted.stock ?? opened) - opened) < 0) {
+      stock = now.stock;
+    }
+  }
+  return { stock, variants };
+}

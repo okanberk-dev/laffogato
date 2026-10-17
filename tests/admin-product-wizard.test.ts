@@ -572,9 +572,16 @@ describe("CAT-03: a save refused for stock", () => {
     );
   });
 
-  it("measures the next change from the stored counts the refusal brought back", () => {
+  it("re-bases only the counts the refusal is about, from what it posted", () => {
     const src = readFileSync("src/components/admin/product-wizard.tsx", "utf8");
-    expect(src).toMatch(/if \(next\.stockNow\) \{\s*setStockSnapshot\(next\.stockNow\.stock\);\s*setVariantSnapshots\(next\.stockNow\.variants\);/);
+    // Every snapshot moved to the stored count while the typed values
+    // stayed, so an untouched variant's next save gave back the units sold
+    // while the form was open (rebaseStockSnapshots, admin-catalog-stock).
+    expect(src).not.toMatch(/setVariantSnapshots\(next\.stockNow\.variants\)/);
+    expect(src).toMatch(
+      /rebaseStockSnapshots\(\s*readPostedStock\(\{\s*stock: formData\.get\("stock"\),\s*stockAtOpen: formData\.get\("stockAtOpen"\),\s*variants: formData\.get\("variants"\),\s*\}\),\s*next\.stockNow,\s*\)/,
+    );
+    expect(src).toMatch(/setStockSnapshot\(rebased\.stock\);\s*setVariantSnapshots\(\(was\) => \(\{ \.\.\.was, \.\.\.rebased\.variants \}\)\);/);
   });
 });
 

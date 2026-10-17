@@ -14,7 +14,11 @@ import { flushSync } from "react-dom";
 
 import { type ProductActionState } from "@/app/admin/urunler/actions";
 import { skuPrefix } from "@/lib/admin/sku";
-import { variantStockTotal } from "@/lib/admin/stock-delta";
+import {
+  readPostedStock,
+  rebaseStockSnapshots,
+  variantStockTotal,
+} from "@/lib/admin/stock-delta";
 import { photoKind } from "@/lib/backdrop/scene-core";
 import { parseMoneyInput } from "@/lib/utils/format";
 import {
@@ -262,7 +266,9 @@ export function ProductWizard({
   /* The stock the form was opened with (admin audit CAT-03). The save
      moves stock by what was typed since, so an order taken while the form
      is open keeps its decrement. A save refused for stock answers with the
-     stored counts, and the next change is measured from those. */
+     stored counts: a count whose change would still go below zero is
+     measured from the stored one next time, every other keeps its own
+     (rebaseStockSnapshots). */
   const [stockSnapshot, setStockSnapshot] = useState<number | null>(
     product ? product.stock : null,
   );
@@ -279,8 +285,18 @@ export function ProductWizard({
     async (prev: ProductActionState, formData: FormData) => {
       const next = await save(prev, formData);
       if (next.stockNow) {
-        setStockSnapshot(next.stockNow.stock);
-        setVariantSnapshots(next.stockNow.variants);
+        // Read back from what was posted, not from state that may have
+        // moved on while the save was out.
+        const rebased = rebaseStockSnapshots(
+          readPostedStock({
+            stock: formData.get("stock"),
+            stockAtOpen: formData.get("stockAtOpen"),
+            variants: formData.get("variants"),
+          }),
+          next.stockNow,
+        );
+        setStockSnapshot(rebased.stock);
+        setVariantSnapshots((was) => ({ ...was, ...rebased.variants }));
       }
       // Open the step that holds the first refused field.
       const target = firstErrorStep(next.fieldErrors);

@@ -51,6 +51,7 @@ const CUPS = `prd-vs-cups-${RUN}`;
 const SOLD = `prd-vs-sold-${RUN}`;
 const ORDERED = `prd-vs-ordered-${RUN}`;
 const ORDER = `ord-vs-${RUN}`;
+const TEA = `prd-vs-tea-${RUN}`;
 
 const VARIANTS = [
   { id: "a", name: "250 g", priceDeltaMinor: 0, stock: 6, sku: "", isActive: true },
@@ -122,10 +123,10 @@ maybe("variant stock in a real Postgres", () => {
   afterAll(async () => {
     try {
       await pool?.query(`delete from public.stock_moves where "productId" = any($1)`, [
-        [BEANS, MOKA, CUPS, SOLD, ORDERED],
+        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA],
       ]);
       await pool?.query(`delete from public.products where id = any($1)`, [
-        [BEANS, MOKA, CUPS, SOLD, ORDERED],
+        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA],
       ]);
       await pool?.query(`delete from public.orders where id = $1`, [ORDER]);
     } finally {
@@ -253,6 +254,56 @@ maybe("variant stock in a real Postgres", () => {
     expect(after.priceMinor).toBe(32_000);
     expect(after.stock).toBe(8);
     expect(after.variants.find((v) => v.id === "b")?.stock).toBe(1);
+  });
+
+  it("after a refusal the next save keeps an untouched variant's sale (CAT-03)", async () => {
+    const { readPostedStock, rebaseStockSnapshots } = await import("@/lib/admin/stock-delta");
+    await pool!.query(
+      `insert into public.products (id, name, slug, "priceMinor", cat, stock, "isActive", variants)
+       values ($1, 'VS Cay', $2, 20000, 'beans', 15, true, $3::jsonb)`,
+      [
+        TEA,
+        `vs-cay-${RUN}`,
+        JSON.stringify([
+          { id: "a", name: "A", priceDeltaMinor: 0, stock: 10, sku: "", isActive: true },
+          { id: "b", name: "B", priceDeltaMinor: 0, stock: 5, sku: "", isActive: true },
+        ]),
+      ],
+    );
+    // The form opens at A 10, B 5; the operator sets B to 0 and leaves A.
+    const opened = (await store.getProduct(TEA))!;
+    let snapshots: Record<string, number> = { a: 10, b: 5 };
+    const typed: Record<string, number> = { a: 10, b: 0 };
+    const post = () =>
+      opened.variants.map((v) => ({ ...v, stock: typed[v.id], stockAtOpen: snapshots[v.id] }));
+    // One A and one B sell meanwhile: 9 and 4.
+    await pool!.query(`select public.claim_order_stock($1::jsonb, 'now')`, [
+      JSON.stringify([
+        { productId: TEA, variantId: "a", qty: 1 },
+        { productId: TEA, variantId: "b", qty: 1 },
+      ]),
+    ]);
+    const first = await store.updateProduct(TEA, { ...opened, stockAtOpen: 15, variants: post() });
+    expect(first).toMatchObject({ refusal: { field: "variants" } });
+    if (!first || !("refusal" in first)) throw new Error("not refused");
+    // What the wizard does with the answer, from what it posted.
+    const rebased = rebaseStockSnapshots(
+      readPostedStock({ stock: null, stockAtOpen: "15", variants: JSON.stringify(post()) }),
+      first.refusal.stockNow,
+    );
+    snapshots = { ...snapshots, ...rebased.variants };
+    const second = await store.updateProduct(TEA, { ...opened, stockAtOpen: 15, variants: post() });
+    expect(second).toMatchObject({ stock: 9 });
+    const after = await row(TEA);
+    expect(after.variants.map((v) => [v.id, v.stock])).toEqual([
+      ["a", 9],
+      ["b", 0],
+    ]);
+    expect(after.stock).toBe(9);
+    // One move, for B; A's sale was not handed back with an "Ürün formu" +1.
+    expect((await moves(TEA)).map((m) => [m.productName, m.delta])).toEqual([
+      ["VS Cay · B", -4],
+    ]);
   });
 
   it("a product getting its first variants takes their sum, and the ledger explains it", async () => {
