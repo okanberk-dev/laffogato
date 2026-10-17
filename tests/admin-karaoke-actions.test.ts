@@ -252,7 +252,9 @@ describe("money moves only behind a reason", () => {
       null,
       form({ id: ID, reason: "Panelde görüldü" }),
     );
-    expect(!settled.ok && settled.error).toMatch(/başka yoldan kaydedildi/);
+    // A lost race recorded nothing, and the sentence must not say otherwise.
+    expect(!settled.ok && settled.error).toMatch(/iade kaydedilmedi/);
+    expect(!settled.ok && settled.error).not.toMatch(/kaydedildi\./);
   });
 
   it("the refund cancel needs a reason; an unpaid one does not", async () => {
@@ -299,6 +301,18 @@ describe("an unpaid cancel never turns into a refund nobody confirmed", () => {
       form({ id: ID, beklenen: "odenmemis" }),
     );
     expect(!res.ok && res.error).toMatch(/ödemesi bu arada geldi/);
+    expect(h.cancel).not.toHaveBeenCalled();
+  });
+
+  it("tells Personel who can cancel it, not to use a refund they cannot reach", async () => {
+    h.role = "staff";
+    h.reservation = { id: ID, status: "requested", paymentStatus: "paid" };
+    const res = await admin.cancelReservationAction(
+      null,
+      form({ id: ID, beklenen: "odenmemis" }),
+    );
+    expect(!res.ok && res.error).toMatch(/sahip ya da yönetici/);
+    expect(!res.ok && res.error).not.toMatch(/İptal et ve iade et/);
     expect(h.cancel).not.toHaveBeenCalled();
   });
 

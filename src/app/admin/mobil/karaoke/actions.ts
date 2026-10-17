@@ -197,7 +197,8 @@ export async function cancelReservationAction(
   if (!current) return actionError(CANCEL_MESSAGE.not_found);
   if (!expectsRefund && paymentStatusOf(current) === "paid") {
     revalidate(id);
-    return actionError(PAID_MEANWHILE);
+    // Personel cannot take the refund route the sentence points at.
+    return actionError(canRefund ? PAID_MEANWHILE : REFUND_FORBIDDEN);
   }
 
   const result = await cancelKaraokeReservation(id, {
@@ -279,8 +280,10 @@ export async function settleKaraokeRefundAction(
   revalidate(id);
   if (!result.ok) {
     return actionError(
+      // `raced`: the row moved under this call (a refund under way, another
+      // person's settle) and nothing was recorded; it does not say which.
       result.reason === "raced"
-        ? "Bu rezervasyonun iadesi az önce başka yoldan kaydedildi. Sayfayı yenile."
+        ? "Bu rezervasyonu az önce başka biri değiştirdi, iade kaydedilmedi. Sayfayı yenileyip durumuna bak."
         : "Bu rezervasyonun iadesi beklenmiyor. Sayfayı yenile.",
     );
   }

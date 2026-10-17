@@ -1662,9 +1662,43 @@ export async function retryKaraokeRefund(
   return { ok: true, reservation: settled, refunded: true, notified };
 }
 
+/** The refund's claim row, as refunded, for a refund a person recorded. */
+async function recordRefundByHand(
+  reservationId: string,
+  payment: PaymentRecord,
+  actor: string,
+  now: Date,
+): Promise<void> {
+  const refundRef = refundRefOf(payment.providerRef);
+  const db = getDb();
+  const ins = await db.from(TABLES.paymentTransactions).insert({
+    orderId: reservationId,
+    provider: payment.provider,
+    providerRef: refundRef,
+    status: "refunded",
+    amountMinor: payment.amountMinor,
+    currency: "TRY",
+    raw: { source: "karaoke_refund", mode: "manual", actor },
+    trxDate: "",
+    createdAt: now.toISOString(),
+  });
+  if (!ins.error) return;
+  if (ins.error.code !== "23505") {
+    raiseDbError("karaoke.settleKaraokeRefundByHand", ins.error, ins.status);
+  }
+  check(
+    await db
+      .from(TABLES.paymentTransactions)
+      .update({ status: "refunded" })
+      .eq("orderId", reservationId)
+      .eq("providerRef", refundRef),
+    "karaoke.settleKaraokeRefundByHand.claim",
+  );
+}
+
 /**
  * "İade POS'ta görüldü": a person looked at PayNkolay's panel and the refund
- * is there. Records it as refunded - claim row and booking - and tells the
+ * is there. Records it as refunded - booking, then claim row - and tells the
  * member. Two rows qualify:
  *
  * - `refunding`: a refund whose answer never came;
@@ -1689,38 +1723,11 @@ export async function settleKaraokeRefundByHand(
     return { ok: false, reason: "not_refundable" };
   }
   const payment = await paymentRecord(r.id, r.paymentRef ?? "");
-  if (payment) {
-    const refundRef = refundRefOf(payment.providerRef);
-    const db = getDb();
-    const ins = await db.from(TABLES.paymentTransactions).insert({
-      orderId: r.id,
-      provider: payment.provider,
-      providerRef: refundRef,
-      status: "refunded",
-      amountMinor: payment.amountMinor,
-      currency: "TRY",
-      raw: { source: "karaoke_refund", mode: "manual", actor },
-      trxDate: "",
-      createdAt: now.toISOString(),
-    });
-    if (ins.error) {
-      if (ins.error.code !== "23505") {
-        raiseDbError(
-          "karaoke.settleKaraokeRefundByHand",
-          ins.error,
-          ins.status,
-        );
-      }
-      check(
-        await db
-          .from(TABLES.paymentTransactions)
-          .update({ status: "refunded" })
-          .eq("orderId", r.id)
-          .eq("providerRef", refundRef),
-        "karaoke.settleKaraokeRefundByHand.claim",
-      );
-    }
-  }
+  // The booking first, guarded on the state that was read; the claim row only
+  // once this call has won it. The other way round, a settle that lost to a
+  // colleague's "İadeyi başlat" left a `refunded` claim behind, and the next
+  // refund took that claim for a refund already made: "İade yapıldı" and the
+  // member's mail, with nothing sent to the POS.
   const moved = heldAfterCancel
     ? await moveRow(
         r.id,
@@ -1733,9 +1740,18 @@ export async function settleKaraokeRefundByHand(
         r.status === "cancelled" ? "stray" : "cancel",
         now,
       );
-  // Someone else moved it in between (a retry that went through, a second
-  // person settling it): their path told the member; this one does not again.
+  // Someone else moved it in between (a refund under way, a second person
+  // settling it): this call recorded nothing and tells nobody.
   if (!moved) return { ok: false, reason: "raced" };
+  if (payment) {
+    // The booking already says refunded: a failed claim write must not cost
+    // the audit row and the member's mail below.
+    try {
+      await recordRefundByHand(r.id, payment, actor, now);
+    } catch (err) {
+      console.error(`[karaoke] manual refund claim not written ${r.id}`, err);
+    }
+  }
   await auditStaff(r, actor, "refund", {
     event: "refund_settled_by_hand",
     from: money,

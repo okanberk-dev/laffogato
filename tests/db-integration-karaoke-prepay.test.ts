@@ -28,9 +28,22 @@ import {
 const URL_ = process.env.TEST_DATABASE_URL;
 const maybe = URL_ ? describe : describe.skip;
 
+/**
+ * Runs once, just before the next INSERT or UPDATE: a test puts a second
+ * person's action between another call's read and its first write.
+ */
+const dbHook = vi.hoisted(() => ({
+  beforeWrite: null as null | (() => Promise<void>),
+}));
+
 let pool: pg.Pool | null = null;
 const execute: Executor = async (q) => {
   if (!pool) throw new Error("pool not ready");
+  if (dbHook.beforeWrite && /^(INSERT|UPDATE)\b/.test(q.text)) {
+    const run = dbHook.beforeWrite;
+    dbHook.beforeWrite = null;
+    await run();
+  }
   const r = await pool.query(q.text, q.params as unknown[]);
   return {
     rows: (r.rows ?? []) as Record<string, unknown>[],
@@ -45,6 +58,8 @@ const pos = vi.hoisted(() => ({
     "paid" | "unpaid" | "down" | { amountMinor: number; ref: string }
   >(),
   refund: "ok" as "ok" | "refused" | "timeout",
+  /** Holds the next refund call at the POS until `release` settles. */
+  hold: null as null | { entered: () => void; release: Promise<void> },
   refunds: [] as Array<{ ref: string; amountMinor?: number }>,
   sessions: [] as Array<{
     orderId: string;
@@ -163,6 +178,12 @@ vi.mock("@/lib/payment", async () => {
         };
       },
       refund: async (ref: string, amountMinor?: number) => {
+        if (pos.hold) {
+          const gate = pos.hold;
+          pos.hold = null;
+          gate.entered();
+          await gate.release;
+        }
         if (pos.refund === "refused") {
           throw new PaymentRefusedError(
             "paynkolay refund reddedildi: responseCode=5",
@@ -281,6 +302,8 @@ maybe("karaoke prepayment (real Postgres)", () => {
     );
     pos.lookup.clear();
     pos.refund = "ok";
+    pos.hold = null;
+    dbHook.beforeWrite = null;
     pos.refunds.length = 0;
     pos.sessions.length = 0;
     pos.failSession = false;
@@ -1231,6 +1254,59 @@ maybe("karaoke prepayment (real Postgres)", () => {
           reason: "Geç gelen ödeme",
         }),
       );
+    });
+
+    it("a settle that loses to a colleague's refund writes nothing", async () => {
+      const id = await heldAfterCancel();
+      let entered: () => void = () => {};
+      const inPos = new Promise<void>((resolve) => {
+        entered = resolve;
+      });
+      let release: () => void = () => {};
+      pos.hold = {
+        entered: () => entered(),
+        release: new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+      };
+      const bg: { retry?: ReturnType<typeof pay.retryKaraokeRefund> } = {};
+      // The settle has read the row (cancelled, still paid). Before its first
+      // write, a colleague's "İadeyi başlat" takes the row to the POS.
+      dbHook.beforeWrite = async () => {
+        bg.retry = pay.retryKaraokeRefund(id, "manager@kosk", undefined, {
+          reason: "Geç gelen ödeme",
+        });
+        await inPos;
+      };
+      const settled = await pay.settleKaraokeRefundByHand(
+        id,
+        "owner@kosk",
+        undefined,
+        { reason: "PayNkolay panelinde gördüm" },
+      );
+      expect(settled).toEqual({ ok: false, reason: "raced" });
+
+      // The POS declines the colleague's refund: no money moved.
+      pos.refund = "refused";
+      release();
+      expect(await bg.retry).toMatchObject({ ok: false, reason: "refused" });
+      expect(await row(id)).toMatchObject({
+        status: "cancelled",
+        paymentStatus: "paid",
+      });
+      // The settle that lost left no "refunded" claim behind, so the next
+      // refund really goes to the POS instead of being taken as done.
+      pos.refund = "ok";
+      const again = await pay.retryKaraokeRefund(
+        id,
+        "manager@kosk",
+        undefined,
+        {
+          reason: "Yeniden",
+        },
+      );
+      expect(again).toMatchObject({ ok: true, refunded: true });
+      expect(pos.refunds).toEqual([{ ref: id, amountMinor: 200_000 }]);
     });
 
     it("an unanswered refund settled by hand reports its mail too", async () => {
