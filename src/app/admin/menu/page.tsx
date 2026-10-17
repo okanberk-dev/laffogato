@@ -27,7 +27,7 @@ export default async function AdminMenuPage() {
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Bar · Il menù"
+        eyebrow="Katalog · Kafe menüsü"
         title="Kafe Menüsü"
         description="Basılı menünün tamamı - matcha bar, espresso, buzlu kahveler, soğuk/sıcak içecekler, frappe, smoothie, frozen, ice tea, tatlılar ve atıştırmalıklar. Birden fazla seçerek toplu işlem yapabilirsin."
         action={

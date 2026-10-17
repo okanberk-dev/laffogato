@@ -11,11 +11,17 @@ import {
   Checkbox,
   Field,
   GhostButton,
-  PrimaryButton,
   Select,
   TextInput,
   Textarea,
 } from "./forms";
+import {
+  ActionForm,
+  FormFieldError,
+  FormMessage,
+  SubmitButton,
+} from "./action-form";
+import type { ModalAction } from "./ui";
 import { BackdropField } from "@/components/admin/backdrop-field";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { photoKind } from "@/lib/backdrop/scene-core";
@@ -38,7 +44,8 @@ const HUE_OPTIONS = [
 ] as const;
 
 export interface MenuItemFormProps {
-  action: (formData: FormData) => void | Promise<void>;
+  /** Answers a refusal with field errors; a save redirects with a toast. */
+  action: ModalAction;
   item?: AdminMenuItem;
   defaultCategoryKey?: string;
   submitLabel: string;
@@ -58,35 +65,50 @@ export function MenuItemForm({
   const tagsValue = item ? item.tags.join(", ") : "";
 
   return (
-    <form action={action} className="grid gap-6 lg:grid-cols-3">
+    <ActionForm action={action} className="grid gap-6 lg:grid-cols-3">
       <Card className="grid gap-5 lg:col-span-2">
         <Field label="Ürün adı" hint="Örn: Çilekli Matcha">
-          <TextInput name="name" defaultValue={item?.name} required />
+          <TextInput
+            name="name"
+            defaultValue={item?.name}
+            required
+            maxLength={120}
+          />
         </Field>
+        <FormFieldError name="name" />
 
         <Field label="Açıklama">
           <Textarea name="desc" defaultValue={item?.desc} required />
         </Field>
 
         <div className="grid gap-5 md:grid-cols-3">
-          <Field label="Fiyat M (₺)" hint="Tek boy ise buraya yaz. Örn: 245,00">
-            <TextInput
-              name="price"
-              type="text"
-              inputMode="decimal"
-              defaultValue={priceValue}
-              required
-            />
-          </Field>
-          <Field label="Fiyat L (₺)" hint="İkinci boy yoksa boş bırak.">
-            <TextInput
-              name="priceL"
-              type="text"
-              inputMode="decimal"
-              defaultValue={priceLValue}
-              placeholder="-"
-            />
-          </Field>
+          <div className="grid content-start gap-1.5">
+            <Field
+              label="Fiyat M (₺)"
+              hint="Tek boy ise buraya yaz. Örn: 245 ya da 1.250,00"
+            >
+              <TextInput
+                name="price"
+                type="text"
+                inputMode="decimal"
+                defaultValue={priceValue}
+                required
+              />
+            </Field>
+            <FormFieldError name="price" />
+          </div>
+          <div className="grid content-start gap-1.5">
+            <Field label="Fiyat L (₺)" hint="İkinci boy yoksa boş bırak.">
+              <TextInput
+                name="priceL"
+                type="text"
+                inputMode="decimal"
+                defaultValue={priceLValue}
+                placeholder="-"
+              />
+            </Field>
+            <FormFieldError name="priceL" />
+          </div>
           <Field label="Sıralama" hint="Kategori içinde küçükten büyüğe">
             <TextInput
               name="sortOrder"
@@ -176,7 +198,8 @@ export function MenuItemForm({
         </div>
 
         <div className="mt-2 flex flex-col gap-2">
-          <PrimaryButton type="submit">{submitLabel}</PrimaryButton>
+          <FormMessage />
+          <SubmitButton>{submitLabel}</SubmitButton>
           <Link href={cancelHref}>
             <GhostButton type="button" className="w-full">
               Vazgeç
@@ -184,6 +207,6 @@ export function MenuItemForm({
           </Link>
         </div>
       </Card>
-    </form>
+    </ActionForm>
   );
 }

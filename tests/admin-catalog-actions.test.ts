@@ -1,0 +1,375 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+/**
+ * Menü, Kategoriler, Ürünler and Promosyon actions as the panel now calls
+ * them: every one answers an ActionResult (a toast, or errors under the
+ * fields), deletes sit behind ConfirmButton, and the silent paths are gone:
+ *
+ * - a menu item with no name, or a price the panel cannot read, was created
+ *   as nothing (create) or saved blank (update);
+ * - a category delete had no confirm and left products in a filter that no
+ *   longer existed; an empty label returned without a word;
+ * - a promo was hard-deleted on the first click, and there was no switch;
+ * - the counter's "Tükendi" took a tick and the bulk bar.
+ */
+
+const h = vi.hoisted(() => ({
+  logAudit: vi.fn(async () => {}),
+  setAdminFlash: vi.fn(async () => {}),
+  redirect: vi.fn(() => {
+    throw new Error("NEXT_REDIRECT");
+  }),
+  store: {
+    bulkUpdateMenuItems: vi.fn(),
+    bulkUpdateProducts: vi.fn(),
+    createMenuItem: vi.fn(),
+    createProduct: vi.fn(),
+    deleteMenuItem: vi.fn(),
+    deleteProduct: vi.fn(),
+    getMenuItem: vi.fn(),
+    getProduct: vi.fn(),
+    updateMenuItem: vi.fn(),
+    updateProduct: vi.fn(),
+    createCategory: vi.fn(),
+    deleteCategory: vi.fn(),
+    getCategory: vi.fn(),
+    listCategories: vi.fn(),
+    listProducts: vi.fn(),
+    updateCategory: vi.fn(),
+    createPromo: vi.fn(),
+    deletePromo: vi.fn(),
+    getPromo: vi.fn(),
+    setPromoActive: vi.fn(),
+    updatePromo: vi.fn(),
+  },
+}));
+
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/navigation", () => ({ redirect: h.redirect }));
+vi.mock("@/lib/admin/auth", () => ({
+  requireRole: vi.fn(async () => ({ email: "menu@laffogato.net" })),
+}));
+vi.mock("@/lib/admin/audit", () => ({ logAudit: h.logAudit }));
+vi.mock("@/lib/admin/flash", () => ({ setAdminFlash: h.setAdminFlash }));
+vi.mock("@/lib/admin/store", () => ({
+  ...h.store,
+  MENU_CATEGORY_KEYS: ["matcha", "frozen"],
+  slugify: (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+}));
+
+const menu = await import("@/app/admin/menu/actions");
+const categories = await import("@/app/admin/kategoriler/actions");
+const products = await import("@/app/admin/urunler/actions");
+const promos = await import("@/app/admin/promosyon/actions");
+const { categoryDeleteBlocker } = await import("@/lib/admin/category-schema");
+
+function form(fields: Record<string, string>): FormData {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields)) fd.set(k, v);
+  return fd;
+}
+
+const MENU_FORM = {
+  categoryKey: "matcha",
+  name: "Çilekli Matcha",
+  desc: "Taze çilek",
+  price: "245",
+  priceL: "",
+  hue: "rose",
+  tags: "",
+  sortOrder: "0",
+  isActive: "on",
+  image: "[]",
+};
+
+const ITEM = {
+  id: "mnu-0042",
+  categoryKey: "matcha",
+  name: "Çilekli Matcha",
+  desc: "Taze çilek",
+  priceMinor: 24_500,
+  priceMinorL: 0,
+  hue: "rose",
+  image: "",
+  tags: [],
+  isActive: true,
+  sortOrder: 0,
+  updatedAt: "2026-10-01T10:00:00.000Z",
+  backdrop: null,
+  backdropSource: "auto",
+  backdropHex: null,
+  photoCutout: false,
+  vessel: null,
+};
+
+beforeEach(() => {
+  for (const fn of Object.values(h.store)) fn.mockReset();
+  h.logAudit.mockClear();
+  h.setAdminFlash.mockClear();
+  h.redirect.mockClear();
+  h.store.createMenuItem.mockImplementation(async (input) => ({
+    id: "mnu-0099",
+    ...input,
+  }));
+  h.store.updateMenuItem.mockResolvedValue({});
+});
+
+describe("menu item create / update", () => {
+  it("refuses a missing name and an unreadable price under their fields", async () => {
+    const res = await menu.createMenuItemAction(
+      null,
+      form({ ...MENU_FORM, name: " ", price: "1,250.00" }),
+    );
+    expect(res).toMatchObject({
+      ok: false,
+      fieldErrors: {
+        name: "Kalemin adını yaz.",
+        price: expect.stringMatching(/rakamla yaz/i),
+      },
+    });
+    expect(h.store.createMenuItem).not.toHaveBeenCalled();
+  });
+
+  it("stores 1.250,00 as 1250 TL and leaves a toast for the list", async () => {
+    await expect(
+      menu.createMenuItemAction(
+        null,
+        form({ ...MENU_FORM, price: "1.250,00" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(h.store.createMenuItem.mock.calls[0][0]).toMatchObject({
+      name: "Çilekli Matcha",
+      priceMinor: 125_000,
+      priceMinorL: 0,
+    });
+    expect(h.setAdminFlash).toHaveBeenCalledWith(
+      '"Çilekli Matcha" menüye eklendi.',
+    );
+  });
+
+  it("no longer saves a blank name on an edit", async () => {
+    h.store.getMenuItem.mockResolvedValue(ITEM);
+    const res = await menu.updateMenuItemAction(
+      "mnu-0042",
+      null,
+      form({ ...MENU_FORM, name: "" }),
+    );
+    expect(res.ok).toBe(false);
+    expect(h.store.updateMenuItem).not.toHaveBeenCalled();
+  });
+
+  it("says so when the item was deleted while the form was open", async () => {
+    h.store.getMenuItem.mockResolvedValue(null);
+    const res = await menu.updateMenuItemAction(
+      "mnu-0042",
+      null,
+      form(MENU_FORM),
+    );
+    expect(res).toEqual({
+      ok: false,
+      error: "Bu kalem silinmiş; listeye dön.",
+    });
+    expect(h.store.updateMenuItem).not.toHaveBeenCalled();
+    expect(h.logAudit).not.toHaveBeenCalled();
+  });
+});
+
+describe("the row's Tükendi / Satışa aç", () => {
+  it("hides the item in one click and says so", async () => {
+    h.store.getMenuItem.mockResolvedValue(ITEM);
+    h.store.bulkUpdateMenuItems.mockResolvedValue({ updated: 1 });
+    const res = await menu.setMenuItemActiveAction(
+      null,
+      form({ id: "mnu-0042", isActive: "false" }),
+    );
+    expect(h.store.bulkUpdateMenuItems).toHaveBeenCalledWith(["mnu-0042"], {
+      kind: "deactivate",
+    });
+    expect(res).toMatchObject({ ok: true });
+    expect(res.ok && res.message).toContain("tükendi");
+    expect(h.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: { name: ITEM.name, isActive: false },
+      }),
+    );
+  });
+
+  it("takes the state asked for, not a flip, and refuses anything else", async () => {
+    const res = await menu.setMenuItemActiveAction(
+      null,
+      form({ id: "mnu-0042", isActive: "toggle" }),
+    );
+    expect(res.ok).toBe(false);
+    expect(h.store.bulkUpdateMenuItems).not.toHaveBeenCalled();
+  });
+});
+
+describe("menu and product deletes", () => {
+  it("answers a real delete and audits it with the name", async () => {
+    h.store.getMenuItem.mockResolvedValue(ITEM);
+    h.store.deleteMenuItem.mockResolvedValue(true);
+    const res = await menu.deleteMenuItemAction(null, form({ id: "mnu-0042" }));
+    expect(res).toEqual({
+      ok: true,
+      message: '"Çilekli Matcha" silindi.',
+      tone: "success",
+    });
+    expect(h.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "delete", entityId: "mnu-0042" }),
+    );
+  });
+
+  it("does not claim a delete that removed nothing", async () => {
+    h.store.getProduct.mockResolvedValue(null);
+    h.store.deleteProduct.mockResolvedValue(false);
+    const res = await products.deleteProductAction(
+      null,
+      form({ id: "prd-0001" }),
+    );
+    expect(res).toEqual({ ok: false, error: "Ürün zaten silinmiş." });
+    expect(h.logAudit).not.toHaveBeenCalled();
+  });
+});
+
+describe("categories", () => {
+  const BEANS = { id: "cat-1", slug: "beans", label: "Çekirdek" };
+
+  it("refuses an empty label and an unknown slug under their fields", async () => {
+    const res = await categories.createCategoryAction(
+      null,
+      form({ slug: "shoes", label: " ", icon: "", sortOrder: "" }),
+    );
+    expect(res).toMatchObject({
+      ok: false,
+      fieldErrors: {
+        slug: "Listeden bir slug seç.",
+        label: "Kategorinin görünen adını yaz.",
+      },
+    });
+    expect(h.store.createCategory).not.toHaveBeenCalled();
+  });
+
+  it("creates with a toast for the list", async () => {
+    h.store.createCategory.mockResolvedValue({ ...BEANS, id: "cat-9" });
+    await expect(
+      categories.createCategoryAction(
+        null,
+        form({ slug: "beans", label: "Çekirdek", icon: "", sortOrder: "3" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(h.store.createCategory).toHaveBeenCalledWith({
+      slug: "beans",
+      label: "Çekirdek",
+      icon: "◯",
+      sortOrder: 3,
+    });
+    expect(h.setAdminFlash).toHaveBeenCalledWith(
+      '"Çekirdek" kategorisi eklendi.',
+    );
+  });
+
+  it("refuses to delete a category its products still use", async () => {
+    h.store.getCategory.mockResolvedValue(BEANS);
+    h.store.listCategories.mockResolvedValue([BEANS]);
+    h.store.listProducts.mockResolvedValue([
+      { cat: "beans" },
+      { cat: "beans" },
+    ]);
+    const res = await categories.deleteCategoryAction(
+      null,
+      form({ id: "cat-1" }),
+    );
+    expect(res.ok).toBe(false);
+    expect(res.ok ? "" : res.error).toContain("2 ürün");
+    expect(h.store.deleteCategory).not.toHaveBeenCalled();
+  });
+
+  it("deletes an empty one, or a duplicate of a slug that stays", async () => {
+    h.store.getCategory.mockResolvedValue(BEANS);
+    h.store.listCategories.mockResolvedValue([
+      BEANS,
+      { id: "cat-2", slug: "beans", label: "Kahve" },
+    ]);
+    h.store.listProducts.mockResolvedValue([{ cat: "beans" }]);
+    h.store.deleteCategory.mockResolvedValue(true);
+    const res = await categories.deleteCategoryAction(
+      null,
+      form({ id: "cat-1" }),
+    );
+    expect(res).toMatchObject({ ok: true, message: '"Çekirdek" silindi.' });
+    expect(h.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "delete", entity: "category" }),
+    );
+  });
+
+  it("categoryDeleteBlocker: products by slug, twins exempt", () => {
+    const cats = [BEANS, { id: "cat-3", slug: "gift", label: "Hediye" }];
+    expect(categoryDeleteBlocker(BEANS, cats, [{ cat: "gift" }])).toBeNull();
+    expect(categoryDeleteBlocker(BEANS, cats, [{ cat: "beans" }])).toMatch(
+      /1 ürün var/,
+    );
+    expect(
+      categoryDeleteBlocker(
+        BEANS,
+        [...cats, { id: "cat-4", slug: "beans" }],
+        [{ cat: "beans" }],
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("promos", () => {
+  const PROMO = { id: "prm-0003", code: "GUZ10", isActive: true };
+
+  it("switches a code off from the list and audits the state", async () => {
+    h.store.setPromoActive.mockResolvedValue({ ...PROMO, isActive: false });
+    const res = await promos.setPromoActiveAction(
+      null,
+      form({ id: "prm-0003", isActive: "false" }),
+    );
+    expect(h.store.setPromoActive).toHaveBeenCalledWith("prm-0003", false);
+    expect(res).toMatchObject({ ok: true });
+    expect(res.ok && res.message).toContain("GUZ10");
+    expect(h.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "update",
+        payload: { code: "GUZ10", isActive: false },
+      }),
+    );
+  });
+
+  it("refuses a flip request and a code that is gone", async () => {
+    expect(
+      (await promos.setPromoActiveAction(null, form({ id: "prm-0003" }))).ok,
+    ).toBe(false);
+    h.store.setPromoActive.mockResolvedValue(null);
+    const gone = await promos.setPromoActiveAction(
+      null,
+      form({ id: "prm-0003", isActive: "true" }),
+    );
+    expect(gone).toEqual({
+      ok: false,
+      error: "Kod bulunamadı; sayfayı yenile.",
+    });
+    expect(h.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("deletes with a toast, and only audits a real removal", async () => {
+    h.store.getPromo.mockResolvedValue(PROMO);
+    h.store.deletePromo.mockResolvedValue(true);
+    const res = await promos.deletePromoAction(null, form({ id: "prm-0003" }));
+    expect(res).toMatchObject({ ok: true, message: "GUZ10 silindi." });
+    expect(h.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "delete", payload: { code: "GUZ10" } }),
+    );
+
+    h.logAudit.mockClear();
+    h.store.deletePromo.mockResolvedValue(false);
+    const again = await promos.deletePromoAction(
+      null,
+      form({ id: "prm-0003" }),
+    );
+    expect(again).toEqual({ ok: false, error: "Kod zaten silinmiş." });
+    expect(h.logAudit).not.toHaveBeenCalled();
+  });
+});

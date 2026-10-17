@@ -21,6 +21,8 @@ vi.mock("@/lib/admin/auth", () => ({
   requireRole: vi.fn(async () => ({ email: "menu@laffogato.net" })),
 }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit: vi.fn() }));
+// The saves leave a toast in a cookie; there is no request here.
+vi.mock("@/lib/admin/flash", () => ({ setAdminFlash: vi.fn() }));
 vi.mock("@/lib/admin/store", () => ({
   bulkUpdateMenuItems: vi.fn(),
   bulkUpdateProducts: vi.fn(),
@@ -176,6 +178,7 @@ beforeEach(() => {
 describe("menu item form", () => {
   it("stores the automatic pick of an uploaded cutout, marked as a cutout", async () => {
     await createMenuItemAction(
+      null,
       menuForm({
         image: JSON.stringify([STRAWBERRY_CUT]),
         backdrop: "auto",
@@ -196,6 +199,7 @@ describe("menu item form", () => {
 
   it("stores an opaque photo's pick with no cutout", async () => {
     await createMenuItemAction(
+      null,
       menuForm({
         categoryKey: "ice-coffee",
         hue: "caramel",
@@ -219,6 +223,7 @@ describe("menu item form", () => {
     );
     await updateMenuItemAction(
       "mnu-0042",
+      null,
       menuForm({ image: JSON.stringify([STRAWBERRY_CUT]), backdrop: "gelato" }),
     );
     expect(lastMenuWrite()).toMatchObject({
@@ -241,6 +246,7 @@ describe("menu item form", () => {
     );
     await updateMenuItemAction(
       "mnu-0042",
+      null,
       menuForm({ image: JSON.stringify([STRAWBERRY_CUT]), backdrop: "auto" }),
     );
     expect(lastMenuWrite()).toMatchObject({
@@ -260,6 +266,7 @@ describe("menu item form", () => {
     );
     await updateMenuItemAction(
       "mnu-0042",
+      null,
       menuForm({ image: "[]", backdrop: "auto" }),
     );
     expect(lastMenuWrite()).toMatchObject({
@@ -274,6 +281,7 @@ describe("menu item form", () => {
     getMenuItem.mockResolvedValue(storedMenuItem({}));
     await updateMenuItemAction(
       "mnu-0042",
+      null,
       menuForm({ image: "[]", backdrop: "auto", vessel: "tulip" }),
     );
     expect(lastMenuWrite().vessel).toBe("tulip");
@@ -281,6 +289,7 @@ describe("menu item form", () => {
     getMenuItem.mockResolvedValue(storedMenuItem({ vessel: "tulip" }));
     await updateMenuItemAction(
       "mnu-0042",
+      null,
       menuForm({ image: "[]", backdrop: "auto", vessel: "" }),
     );
     expect(lastMenuWrite().vessel).toBeNull();
@@ -298,6 +307,7 @@ describe("menu item form", () => {
     );
     await updateMenuItemAction(
       "mnu-0042",
+      null,
       menuForm({ image: JSON.stringify([STRAWBERRY_CUT]) }),
     );
     expect(lastMenuWrite()).toMatchObject({
@@ -313,6 +323,7 @@ describe("menu item form", () => {
     // downscales or refuses before it gets here): no photo, no pick.
     const huge = `data:image/png;base64,${"A".repeat(2 * 1024 * 1024)}`;
     await createMenuItemAction(
+      null,
       menuForm({ image: JSON.stringify([huge]), backdrop: "auto" }),
     );
     expect(createMenuItem.mock.calls[0][0]).toMatchObject({

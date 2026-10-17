@@ -3,9 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { bulkProductSchema } from "@/lib/admin/bulk-schema";
+import { setAdminFlash } from "@/lib/admin/flash";
 import { productFormSchema } from "@/lib/admin/product-schema";
 import {
   bulkUpdateProducts,
@@ -123,6 +129,7 @@ export async function createProductAction(
     payload: { name: created.name, sku: created.sku },
   });
   revalidateShop();
+  await setAdminFlash(`"${created.name}" eklendi.`);
   redirect("/admin/urunler");
 }
 
@@ -154,16 +161,29 @@ export async function updateProductAction(
   });
   revalidateShop();
   revalidatePath(`/admin/urunler/${id}/duzenle`);
+  await setAdminFlash(`"${parsed.data.name}" kaydedildi.`);
   redirect("/admin/urunler");
 }
 
-export async function deleteProductAction(formData: FormData) {
+/** A row's "Sil", behind ConfirmButton; the answer comes back as a toast. */
+export async function deleteProductAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("products");
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
-  await deleteProduct(id);
-  await logAudit({ action: "delete", entity: "product", entityId: id });
+  if (!id) return actionError("Ürün seçilmedi.");
+  const product = await getProduct(id);
+  const removed = await deleteProduct(id);
   revalidateShop();
+  if (!removed) return actionError("Ürün zaten silinmiş.");
+  await logAudit({
+    action: "delete",
+    entity: "product",
+    entityId: id,
+    payload: product ? { name: product.name, sku: product.sku } : {},
+  });
+  return actionOk(`"${product?.name ?? id}" silindi.`);
 }
 
 export interface BulkActionState {

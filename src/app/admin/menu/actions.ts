@@ -3,10 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  actionError,
+  actionOk,
+  fieldErrorsFromIssues,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { bulkMenuSchema } from "@/lib/admin/bulk-schema";
+import { setAdminFlash } from "@/lib/admin/flash";
 import { MAX_STORED_IMAGE_LENGTH } from "@/lib/admin/image-encode";
+import { menuItemFieldsSchema } from "@/lib/admin/menu-item-schema";
 import {
   bulkUpdateMenuItems,
   createMenuItem,
@@ -43,6 +51,45 @@ const HUE_VALUES = [
   "strawberry",
 ];
 
+type ParsedMenuInput = ReturnType<typeof parseInput> & {
+  name: string;
+  priceMinor: number;
+  priceMinorL: number;
+};
+
+/**
+ * The form, validated: name and both prices through menuItemFieldsSchema
+ * (parseMoneyInput, CLAUDE.md rule 24), or the refusal with an error under
+ * each field.
+ */
+function readMenuForm(
+  formData: FormData,
+): { ok: true; input: ParsedMenuInput } | { ok: false; result: ActionResult } {
+  const fields = menuItemFieldsSchema.safeParse({
+    name: String(formData.get("name") ?? ""),
+    price: String(formData.get("price") ?? ""),
+    priceL: String(formData.get("priceL") ?? ""),
+  });
+  if (!fields.success) {
+    return {
+      ok: false,
+      result: actionError(
+        "Formdaki uyarıları gider.",
+        fieldErrorsFromIssues(fields.error.issues),
+      ),
+    };
+  }
+  return {
+    ok: true,
+    input: {
+      ...parseInput(formData),
+      name: fields.data.name,
+      priceMinor: fields.data.price,
+      priceMinorL: fields.data.priceL,
+    },
+  };
+}
+
 function parseInput(formData: FormData) {
   const categoryRaw = String(
     formData.get("categoryKey") ?? "matcha",
@@ -50,21 +97,7 @@ function parseInput(formData: FormData) {
   const categoryKey: MenuCategoryKey = MENU_CATEGORY_KEYS.includes(categoryRaw)
     ? categoryRaw
     : "matcha";
-  const name = String(formData.get("name") ?? "").trim();
   const desc = String(formData.get("desc") ?? "").trim();
-  const priceText = String(formData.get("price") ?? "0").replace(",", ".");
-  const priceMajor = parseFloat(priceText);
-  const priceMinor = Number.isFinite(priceMajor)
-    ? Math.round(priceMajor * 100)
-    : 0;
-  const priceLText = String(formData.get("priceL") ?? "")
-    .trim()
-    .replace(",", ".");
-  const priceLMajor = parseFloat(priceLText);
-  const priceMinorL =
-    priceLText !== "" && Number.isFinite(priceLMajor) && priceLMajor > 0
-      ? Math.round(priceLMajor * 100)
-      : 0;
   const image = parseMenuImage(String(formData.get("image") ?? ""));
   const hueRaw = String(formData.get("hue") ?? "cream");
   const hue = HUE_VALUES.includes(hueRaw) ? hueRaw : "cream";
@@ -78,10 +111,7 @@ function parseInput(formData: FormData) {
 
   return {
     categoryKey,
-    name,
     desc,
-    priceMinor,
-    priceMinorL,
     hue,
     image,
     tags,
@@ -139,7 +169,7 @@ function parseMenuImage(raw: string): string {
  * stored row on an edit, null on a new item.
  */
 function menuScene(
-  input: ReturnType<typeof parseInput>,
+  input: ParsedMenuInput,
   formData: FormData,
   previous: AdminMenuItem | null,
 ) {
@@ -161,10 +191,14 @@ function revalidateMenu() {
   revalidatePath("/");
 }
 
-export async function createMenuItemAction(formData: FormData) {
+export async function createMenuItemAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("menu");
-  const input = parseInput(formData);
-  if (!input.name) return;
+  const form = readMenuForm(formData);
+  if (!form.ok) return form.result;
+  const { input } = form;
   const scene = await menuScene(input, formData, null);
   const created = await createMenuItem({ ...input, ...scene });
   await logAudit({
@@ -174,13 +208,22 @@ export async function createMenuItemAction(formData: FormData) {
     payload: { name: created.name, categoryKey: created.categoryKey },
   });
   revalidateMenu();
+  await setAdminFlash(`"${created.name}" menüye eklendi.`);
   redirect("/admin/menu");
 }
 
-export async function updateMenuItemAction(id: string, formData: FormData) {
+export async function updateMenuItemAction(
+  id: string,
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("menu");
-  const input = parseInput(formData);
-  const scene = await menuScene(input, formData, await getMenuItem(id));
+  const form = readMenuForm(formData);
+  if (!form.ok) return form.result;
+  const { input } = form;
+  const previous = await getMenuItem(id);
+  if (!previous) return actionError("Bu kalem silinmiş; listeye dön.");
+  const scene = await menuScene(input, formData, previous);
   await updateMenuItem(id, { ...input, ...scene });
   await logAudit({
     action: "update",
@@ -190,16 +233,67 @@ export async function updateMenuItemAction(id: string, formData: FormData) {
   });
   revalidateMenu();
   revalidatePath(`/admin/menu/${id}/duzenle`);
+  await setAdminFlash(`"${input.name}" kaydedildi.`);
   redirect("/admin/menu");
 }
 
-export async function deleteMenuItemAction(formData: FormData) {
+/** A row's "Sil", behind ConfirmButton; the answer comes back as a toast. */
+export async function deleteMenuItemAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("menu");
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
-  await deleteMenuItem(id);
-  await logAudit({ action: "delete", entity: "menu_item", entityId: id });
+  if (!id) return actionError("Kalem seçilmedi.");
+  const item = await getMenuItem(id);
+  const removed = await deleteMenuItem(id);
   revalidateMenu();
+  if (!removed) return actionError("Kalem zaten silinmiş.");
+  await logAudit({
+    action: "delete",
+    entity: "menu_item",
+    entityId: id,
+    payload: item ? { name: item.name } : {},
+  });
+  return actionOk(`"${item?.name ?? id}" silindi.`);
+}
+
+/**
+ * The row's one-click "Tükendi" (hide from the menu) and "Satışa aç". It used
+ * to take a tick and the bulk bar for the most common thing the counter does
+ * all day. `isActive` is the state asked for, not a flip, so a double click
+ * cannot undo itself.
+ */
+export async function setMenuItemActiveAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireRole("menu");
+  const id = String(formData.get("id") ?? "");
+  const raw = String(formData.get("isActive") ?? "");
+  if (!id || (raw !== "true" && raw !== "false")) {
+    return actionError("Geçersiz istek.");
+  }
+  const isActive = raw === "true";
+  const item = await getMenuItem(id);
+  if (!item) return actionError("Kalem bulunamadı; sayfayı yenile.");
+  const { updated } = await bulkUpdateMenuItems([id], {
+    kind: isActive ? "activate" : "deactivate",
+  });
+  revalidateMenu();
+  if (updated > 0) {
+    await logAudit({
+      action: "update",
+      entity: "menu_item",
+      entityId: id,
+      payload: { name: item.name, isActive },
+    });
+  }
+  return actionOk(
+    isActive
+      ? `"${item.name}" yeniden menüde.`
+      : `"${item.name}" menüden gizlendi (tükendi).`,
+  );
 }
 
 export interface BulkMenuActionState {

@@ -4876,6 +4876,24 @@ export async function updatePromo(
   return { ok: true, promo: next };
 }
 
+/** The list's Aktif / Pasif switch; null when the code is gone. */
+export async function setPromoActive(
+  id: string,
+  isActive: boolean,
+): Promise<AdminPromo | null> {
+  await ensureSeed();
+  const sb = getDb();
+  const updated = rows<AdminPromo>(
+    await sb
+      .from(TABLES.promos)
+      .update({ isActive, updatedAt: new Date().toISOString() })
+      .eq("id", id)
+      .select("*"),
+    "setPromoActive",
+  );
+  return updated[0] ?? null;
+}
+
 export async function deletePromo(id: string): Promise<boolean> {
   await ensureSeed();
   const sb = getDb();

@@ -91,7 +91,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Shop · La bottega"
+        eyebrow="Katalog · Mağaza ürünleri"
         title="Ürünler"
         description="Online mağazada satılan ürünler. Yeni: 5 adımlı sihirbaz; düzenleme: tüm sekmeler tek formda. Birden fazla seç ⇒ toplu işlem."
         action={

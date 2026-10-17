@@ -22,7 +22,7 @@ export default async function NewMenuItemPage({ searchParams }: PageProps) {
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Bar · Il menù"
+        eyebrow="Katalog · Kafe menüsü"
         title="Yeni menü kalemi"
         description="Menüye yeni bir içecek, tatlı veya atıştırmalık ekle."
       />
