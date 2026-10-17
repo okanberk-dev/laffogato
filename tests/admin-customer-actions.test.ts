@@ -128,12 +128,65 @@ describe("grantCustomerCouponAction", () => {
       form({
         kind: "fixed",
         value: "100",
-        expiresAt: "2026-08-31",
+        expiresAt: "2036-08-31",
       }),
     );
     expect(grantCoupon).toHaveBeenCalledWith(
-      expect.objectContaining({ expiresAt: "2026-08-31T20:59:59.000Z" }),
+      expect.objectContaining({ expiresAt: "2036-08-31T20:59:59.000Z" }),
     );
+  });
+
+  it("refuses a day already over, and still takes today", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // 17 Eki 2026 23:30 in Tuzla (20:30 UTC): today is not over yet.
+    vi.setSystemTime(new Date("2026-10-17T20:30:00.000Z"));
+    try {
+      const past = await grantCustomerCouponAction(
+        "uye@ornek.com",
+        {},
+        form({ kind: "pct", value: "10", expiresAt: "2026-10-16" }),
+      );
+      expect(past.error).toMatch(/geçmişte kaldı/);
+      expect(grantCoupon).not.toHaveBeenCalled();
+      const today = await grantCustomerCouponAction(
+        "uye@ornek.com",
+        {},
+        form({ kind: "pct", value: "10", expiresAt: "2026-10-17" }),
+      );
+      expect(today.message).toBeTruthy();
+      expect(grantCoupon).toHaveBeenCalledWith(
+        expect.objectContaining({ expiresAt: "2026-10-17T20:59:59.000Z" }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("refuses a minimum basket the column cannot hold", async () => {
+    // 2.500.000.000 kuruş: Postgres 22003, and the member page went with it.
+    const state = await grantCustomerCouponAction(
+      "uye@ornek.com",
+      {},
+      form({ kind: "pct", value: "10", minSubtotal: "25.000.000" }),
+    );
+    expect(state.error).toBe(
+      "Min. sepet: Tutar en fazla 1.000.000 TL olabilir.",
+    );
+    expect(grantCoupon).not.toHaveBeenCalled();
+  });
+
+  it("answers a store failure instead of throwing to the error page", async () => {
+    grantCoupon.mockRejectedValue(new Error("grantCoupon: connection lost"));
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const state = await grantCustomerCouponAction(
+      "uye@ornek.com",
+      {},
+      form({ kind: "pct", value: "10" }),
+    );
+    expect(state.error).toBe("Kupon tanımlanamadı. Biraz sonra yeniden dene.");
+    expect(logAudit).not.toHaveBeenCalled();
+    expect(JSON.stringify(errors.mock.calls)).not.toContain("uye@ornek.com");
+    errors.mockRestore();
   });
 
   it("refuses a fat-fingered fixed coupon", async () => {

@@ -9,7 +9,11 @@ import {
   type ActionResult,
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
-import { parseMoneyInput } from "@/lib/utils/format";
+import {
+  CATALOG_MONEY_MAX_MINOR,
+  MONEY_TOO_LARGE_ERROR,
+  parseMoneyInput,
+} from "@/lib/utils/format";
 import { requireRole } from "@/lib/admin/auth";
 import { customerEditSchema } from "@/lib/admin/customer-schema";
 import { setAdminFlash } from "@/lib/admin/flash";
@@ -176,6 +180,11 @@ export async function grantCustomerCouponAction(
       error: "Geçerli bir alt sepet tutarı gir (ör. 250 ya da 1.250,00).",
     };
   }
+  // The column is an `integer`: "25.000.000" died on Postgres 22003 and the
+  // member page went with it.
+  if (minMinor > CATALOG_MONEY_MAX_MINOR) {
+    return { error: `Min. sepet: ${MONEY_TOO_LARGE_ERROR}` };
+  }
   const rawMin = minMinor / 100;
   const title = String(formData.get("title") ?? "")
     .trim()
@@ -212,17 +221,35 @@ export async function grantCustomerCouponAction(
     // alive until 02:59 on 1 September Istanbul time. Türkiye has been on a
     // fixed UTC+3 since 2016, so the offset is a constant, not a lookup.
     expiresAt = `${m[1]}-${m[2]}-${m[3]}T20:59:59.000Z`;
+    // A day already over gave a coupon that was born expired and answered
+    // "Kupon tanımlandı" all the same.
+    if (!(Date.parse(expiresAt) > Date.now())) {
+      return {
+        error:
+          "Son kullanma tarihi geçmişte kaldı. Bugün ya da ileri bir gün seç, süresiz için boş bırak.",
+      };
+    }
   }
 
-  const coupon = await grantCoupon({
-    email,
-    kind,
-    value,
-    minSubtotalMinor,
-    title: title || (kind === "pct" ? `%${value} indirim` : "İndirim kuponu"),
-    source: "manual",
-    expiresAt,
-  });
+  let coupon: { code: string };
+  try {
+    coupon = await grantCoupon({
+      email,
+      kind,
+      value,
+      minSubtotalMinor,
+      title: title || (kind === "pct" ? `%${value} indirim` : "İndirim kuponu"),
+      source: "manual",
+      expiresAt,
+    });
+  } catch (err) {
+    // The store error only; no address in the log (rule 9).
+    console.error(
+      "[admin] coupon grant failed:",
+      err instanceof Error ? err.message : "unknown error",
+    );
+    return { error: "Kupon tanımlanamadı. Biraz sonra yeniden dene." };
+  }
   await logAudit({
     action: "create",
     entity: "coupon",

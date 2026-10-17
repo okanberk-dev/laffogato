@@ -98,7 +98,7 @@ export function PromoForm({ promo, action, submitLabel }: Props) {
             </div>
           ) : (
             <div className="grid gap-1.5">
-              <Field label="Tutar (₺)">
+              <Field label="Tutar (₺)" hint="En fazla 2.000 TL.">
                 <TextInput
                   name="valueFixed"
                   inputMode="decimal"
@@ -134,7 +134,7 @@ export function PromoForm({ promo, action, submitLabel }: Props) {
           <div className="grid gap-1.5">
             <Field
               label="Kullanım limiti"
-              hint="0 = sınırsız. Tüketim her başarılı siparişte 1 artar."
+              hint="0 = sınırsız, en fazla 1.000.000. Tüketim her başarılı siparişte 1 artar."
             >
               <TextInput
                 name="usageLimit"
@@ -149,7 +149,10 @@ export function PromoForm({ promo, action, submitLabel }: Props) {
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="grid gap-1.5">
-            <Field label="Son geçerlilik (opsiyonel)" hint="Boş = süresiz.">
+            <Field
+              label="Son geçerlilik (opsiyonel)"
+              hint="Boş = süresiz. Geçmiş bir tarih kabul edilmez."
+            >
               <TextInput
                 name="expiresAt"
                 type="datetime-local"
