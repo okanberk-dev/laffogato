@@ -10,6 +10,9 @@ export interface LoginState {
   error?: string;
 }
 
+/** The longest address SMTP carries (RFC 5321); nobody's login is longer. */
+const MAX_EMAIL_LENGTH = 254;
+
 export async function loginAction(
   _prev: LoginState,
   formData: FormData,
@@ -20,6 +23,13 @@ export async function loginAction(
 
   if (!email || !password) {
     return { error: "E-posta ve şifre gerekli." };
+  }
+  // Before anything is counted or written: the address becomes the rate-limit
+  // key and the audit row's actor, and the page is open to anyone, so an
+  // unbounded string reached both (a value past the index row limit was the
+  // error screen instead of an answer).
+  if (email.length > MAX_EMAIL_LENGTH || !email.includes("@")) {
+    return { error: "Geçerli bir e-posta gir." };
   }
 
   const result = await signInAdmin(email, password);
