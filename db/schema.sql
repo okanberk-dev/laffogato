@@ -5731,15 +5731,30 @@ $$;
 -- A product with variants whose total is 0 while its active variants hold
 -- stock is the CAT-14 state: the field defaulted to 0 and the operator only
 -- filled the variants, so nothing of it could be sold. Its total becomes the
--- sum, with a stock move. Any other total is left as it stands: units sold
--- without a variant may be missing from it. Once only, like every data step
--- the bundle replays.
+-- sum, with a stock move. Only a product nothing ever moved: no stock move
+-- and no order line names it. A total that reached 0 through sales is sold
+-- out, not unfilled: units sold without a variant (the shop card's quick
+-- add) left the total and not the variants, so the variants still read
+-- stock that is gone, and the sum would put it back on sale. Any other
+-- total is left as it stands for the same reason. Once only, like every
+-- data step the bundle replays.
 with fixed as (
   update public.products as p
      set stock = public.variant_stock_total(p.variants),
          "updatedAt" = to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
    where p.stock = 0
      and public.variant_stock_total(p.variants) > 0
+     and not exists (
+       select 1 from public.stock_moves as m where m."productId" = p.id
+     )
+     and not exists (
+       select 1
+         from public.orders as o
+        cross join lateral jsonb_array_elements(
+                case when jsonb_typeof(o.items) = 'array' then o.items else '[]'::jsonb end
+              ) as line
+        where line ->> 'productId' = p.id
+     )
      and not exists (
        select 1
          from public._migrations as applied

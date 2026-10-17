@@ -48,6 +48,9 @@ const RUN = Date.now().toString(36);
 const BEANS = `prd-vs-beans-${RUN}`;
 const MOKA = `prd-vs-moka-${RUN}`;
 const CUPS = `prd-vs-cups-${RUN}`;
+const SOLD = `prd-vs-sold-${RUN}`;
+const ORDERED = `prd-vs-ordered-${RUN}`;
+const ORDER = `ord-vs-${RUN}`;
 
 const VARIANTS = [
   { id: "a", name: "250 g", priceDeltaMinor: 0, stock: 6, sku: "", isActive: true },
@@ -119,11 +122,12 @@ maybe("variant stock in a real Postgres", () => {
   afterAll(async () => {
     try {
       await pool?.query(`delete from public.stock_moves where "productId" = any($1)`, [
-        [BEANS, MOKA, CUPS],
+        [BEANS, MOKA, CUPS, SOLD, ORDERED],
       ]);
       await pool?.query(`delete from public.products where id = any($1)`, [
-        [BEANS, MOKA, CUPS],
+        [BEANS, MOKA, CUPS, SOLD, ORDERED],
       ]);
+      await pool?.query(`delete from public.orders where id = $1`, [ORDER]);
     } finally {
       await pool?.end();
       pool = null;
@@ -272,6 +276,44 @@ maybe("variant stock in a real Postgres", () => {
   });
 
   it("the fix of totals left at 0 runs once", async () => {
+    // Two totals at 0 that are not the CAT-14 state: units sold without a
+    // variant (the shop card's quick add) took the total and left the
+    // variants as they were, so nothing of them is left to sell. One is
+    // known from its stock moves, the other from an order line alone.
+    await pool!.query(
+      `insert into public.products (id, name, slug, "priceMinor", cat, stock, "isActive", variants)
+       values ($1, 'VS Satildi', $3, 30000, 'beans', 10, true, $5::jsonb),
+              ($2, 'VS Siparis', $4, 30000, 'beans', 0, true, $6::jsonb)`,
+      [
+        SOLD,
+        ORDERED,
+        `vs-sold-${RUN}`,
+        `vs-ordered-${RUN}`,
+        JSON.stringify([
+          { id: "a", name: "250 g", priceDeltaMinor: 0, stock: 5, sku: "", isActive: true },
+          { id: "b", name: "1 kg", priceDeltaMinor: 0, stock: 5, sku: "", isActive: true },
+        ]),
+        JSON.stringify([
+          { id: "a", name: "250 g", priceDeltaMinor: 0, stock: 2, sku: "", isActive: true },
+        ]),
+      ],
+    );
+    await pool!.query(`select public.claim_order_stock($1::jsonb, 'now')`, [
+      JSON.stringify([{ productId: SOLD, variantId: null, qty: 10 }]),
+    ]);
+    await pool!.query(
+      `insert into public.stock_moves (id, "productId", "productName", delta, "stockAfter", reason, actor, "createdAt")
+       values ($1, $2, 'VS Satildi', -10, 0, 'order_placed', 'customer', 'now')`,
+      [`mov-vs-${RUN}`, SOLD],
+    );
+    await pool!.query(
+      `insert into public.orders (id, "orderNo", items) values ($1, $2, $3::jsonb)`,
+      [
+        ORDER,
+        1_900_000_000 + (Date.now() % 100_000_000),
+        JSON.stringify([{ productId: ORDERED, productName: "VS Siparis", qty: 2 }]),
+      ],
+    );
     // The bundle's own run already fixed nothing of ours (the row came
     // later); replay the migration as a deploy that has not seen it would.
     const sql = readFileSync(`db/migrations/${MIGRATION}`, "utf8");
@@ -292,6 +334,11 @@ maybe("variant stock in a real Postgres", () => {
     expect(await moves(CUPS)).toEqual([
       expect.objectContaining({ delta: 5, stockAfter: 5, actor: "system" }),
     ]);
+    // Sold out, not unfilled: they stay at 0, with no move of the fix.
+    expect((await row(SOLD)).stock).toBe(0);
+    expect(await moves(SOLD)).toHaveLength(1);
+    expect((await row(ORDERED)).stock).toBe(0);
+    expect(await moves(ORDERED)).toEqual([]);
     // A later replay finds it recorded and changes nothing.
     await pool!.query(`update public.products set stock = 0 where id = $1`, [CUPS]);
     await applyBundledSchema(pool!);
