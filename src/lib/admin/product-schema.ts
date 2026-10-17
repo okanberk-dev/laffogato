@@ -389,6 +389,8 @@ export const productFormSchema = z
     stock: intInput,
     stockAtOpen: stockSnapshot,
     saveToken: z.string().optional().transform(parseSaveToken),
+    // A product with variants: set its total to their stock (CAT-14).
+    stockFromVariants: z.string().optional(),
     lowStockThreshold: intInput,
     weightGrams: intInput,
     taxRatePct: taxRateInput,
@@ -433,6 +435,7 @@ export const productFormSchema = z
     stock: v.stock,
     stockAtOpen: v.stockAtOpen,
     saveToken: v.saveToken,
+    stockFromVariants: v.stockFromVariants === "on",
     lowStockThreshold: v.lowStockThreshold,
     weightGrams: v.weightGrams,
     taxRatePct: v.taxRatePct ?? null,

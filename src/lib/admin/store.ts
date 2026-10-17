@@ -1098,6 +1098,14 @@ export interface ProductInput extends BackdropColumns {
    * own, as for a form from before this field.
    */
   saveToken?: string | null;
+  /**
+   * Sets the total of a product with variants to the stock of its active
+   * variants (admin audit CAT-14). The total moves by deltas, so a unit sold
+   * without a variant and then corrected on a variant on Stok takes it down
+   * twice; the operator who counted the shelf ticks this in the form, the
+   * only way to set it.
+   */
+  stockFromVariants?: boolean;
 }
 
 /** A variant as the product form posts it: the stored shape plus its snapshot. */
@@ -1175,7 +1183,12 @@ export async function createProduct(
     input.slug || slugify(input.name) || `urun-${seq}`,
   );
   const sku = input.sku || deriveSku(input.name, seq);
-  const { stockAtOpen: _snapshot, saveToken: _token, ...fields } = input;
+  const {
+    stockAtOpen: _snapshot,
+    saveToken: _token,
+    stockFromVariants: _reset,
+    ...fields
+  } = input;
   const variants = fields.variants.map(storedVariant);
   const product: AdminProduct = {
     ...NO_BACKDROP,
@@ -1272,6 +1285,7 @@ export async function updateProduct(
     priceMinor: _price,
     stockAtOpen,
     saveToken,
+    stockFromVariants,
     ...rest
   } = input;
   const fields = {
@@ -1326,6 +1340,7 @@ export async function updateProduct(
     p_actor: actor,
     p_now: fields.updatedAt,
     p_save_token: saveToken ?? null,
+    p_total_from_variants: stockFromVariants === true,
   });
   if (res.error) raiseDbError("updateProduct.stock", res.error, res.status);
   const answer = res.data as SaveVariantsAnswer;

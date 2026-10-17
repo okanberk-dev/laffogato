@@ -63,6 +63,7 @@ function toInput(parsed: ParsedProduct) {
     stock: parsed.stock,
     stockAtOpen: parsed.stockAtOpen,
     saveToken: parsed.saveToken,
+    stockFromVariants: parsed.stockFromVariants,
     lowStockThreshold: parsed.lowStockThreshold,
     weightGrams: parsed.weightGrams,
     taxRatePct: parsed.taxRatePct,

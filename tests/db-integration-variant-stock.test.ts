@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+import type { ProductInput } from "@/lib/admin/store";
 import type { Executor } from "@/lib/db/client";
 
 import { applyBundledSchema } from "./_support/apply-schema";
@@ -53,6 +54,7 @@ const ORDERED = `prd-vs-ordered-${RUN}`;
 const ORDER = `ord-vs-${RUN}`;
 const TEA = `prd-vs-tea-${RUN}`;
 const GRINDER = `prd-vs-grinder-${RUN}`;
+const MATCHA = `prd-vs-matcha-${RUN}`;
 
 const VARIANTS = [
   { id: "a", name: "250 g", priceDeltaMinor: 0, stock: 6, sku: "", isActive: true },
@@ -124,14 +126,14 @@ maybe("variant stock in a real Postgres", () => {
   afterAll(async () => {
     try {
       await pool?.query(`delete from public.stock_moves where "productId" = any($1)`, [
-        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA, GRINDER],
+        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA, GRINDER, MATCHA],
       ]);
       await pool?.query(`delete from public.products where id = any($1)`, [
-        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA, GRINDER],
+        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA, GRINDER, MATCHA],
       ]);
       await pool?.query(`delete from public.orders where id = $1`, [ORDER]);
       await pool?.query(`delete from public.product_form_saves where "productId" = any($1)`, [
-        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA, GRINDER],
+        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA, GRINDER, MATCHA],
       ]);
     } finally {
       await pool?.end();
@@ -356,6 +358,64 @@ maybe("variant stock in a real Postgres", () => {
     });
     // The wizard's next save from there writes the 5 typed.
     expect(await save(5, 2 - 60)).toMatchObject({ stock: 5 });
+  });
+
+  it("a total that drifted below its variants is set to their sum when the form asks (CAT-14)", async () => {
+    await pool!.query(
+      `insert into public.products (id, name, slug, "priceMinor", cat, stock, "isActive", variants)
+       values ($1, 'VS Matcha', $2, 30000, 'beans', 10, true, $3::jsonb)`,
+      [
+        MATCHA,
+        `vs-matcha-${RUN}`,
+        JSON.stringify([
+          { id: "a", name: "30 g", priceDeltaMinor: 0, stock: 5, sku: "", isActive: true },
+          { id: "b", name: "100 g", priceDeltaMinor: 20_000, stock: 5, sku: "", isActive: true },
+        ]),
+      ],
+    );
+    const claim = (lines: unknown[]) =>
+      pool!.query(`select public.claim_order_stock($1::jsonb, 'now') as r`, [
+        JSON.stringify(lines),
+      ]);
+    // The shop card's quick add sells two without a variant: the total
+    // alone goes down. The operator ships two 30 g bags and corrects that
+    // variant on Stok: the total goes down a second time.
+    await claim([{ productId: MATCHA, variantId: null, qty: 2 }]);
+    await store.adjustVariantStock({
+      productId: MATCHA,
+      variantId: "a",
+      delta: -2,
+      note: "Kargo",
+      actor: "stok@laffogato.net",
+    });
+    expect(await row(MATCHA)).toMatchObject({ stock: 6 });
+    const form = async (over: Partial<ProductInput> = {}) => {
+      const opened = (await store.getProduct(MATCHA))!;
+      return store.updateProduct(
+        MATCHA,
+        {
+          ...opened,
+          stockAtOpen: opened.stock,
+          variants: opened.variants.map((v) => ({ ...v, stockAtOpen: v.stock })),
+          ...over,
+        },
+        { actor: "urun@laffogato.net" },
+      );
+    };
+    // Saved as it is, the form keeps the total: nothing was typed.
+    expect(await form()).toMatchObject({ stock: 6 });
+    // Asked to, it takes the active variants' sum, with a stock move.
+    expect(await form({ stockFromVariants: true })).toMatchObject({ stock: 8 });
+    expect((await moves(MATCHA)).at(-1)).toEqual({
+      productName: "VS Matcha",
+      delta: 2,
+      stockAfter: 8,
+      note: "Ürün formu: varyant toplamı",
+      actor: "urun@laffogato.net",
+    });
+    // Every bag on the shelf sells again: five 100 g, then three 30 g.
+    await claim([{ productId: MATCHA, variantId: "b", qty: 5 }]);
+    expect((await claim([{ productId: MATCHA, variantId: "a", qty: 3 }])).rows[0].r).toEqual([0]);
   });
 
   it("a product getting its first variants takes their sum, and the ledger explains it", async () => {

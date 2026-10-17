@@ -5332,7 +5332,8 @@ insert into public._migrations (name) values ('20261017173100_pickup_ready_minut
 --   save_product_variants   the product form's save of price, variants and
 --                           stock. Each variant moves by its change since the
 --                           form was opened, never to the opened value, and
---                           once per form (product_form_saves).
+--                           once per form (product_form_saves). Asked to, it
+--                           sets the total to the active variants' sum.
 --   adjust_product_stock    now refuses (-3) a product with variants: its
 --                           total follows the variants, it is not set alone.
 -- Every change writes its stock move in the same transaction.
@@ -5340,8 +5341,11 @@ insert into public._migrations (name) values ('20261017173100_pickup_ready_minut
 -- The total moves by deltas instead of being recomputed as the sum: the
 -- shop card's quick add can still sell a product with variants without a
 -- variant, which takes a unit from the total only, and a recomputed sum
--- would hand that unit back for sale. The one exception is a product getting
--- its first variants: then the total is their sum.
+-- would hand that unit back for sale. The exceptions: a product getting its
+-- first variants takes their sum, and so does a form that asks for it
+-- (p_total_from_variants). That is the way back for a total gone apart from
+-- its variants: a unit sold without a variant and then corrected on one
+-- variant on Stok took the total down twice, and nothing else sets it.
 --
 -- Re-runnable: the bundle replays every migration when a deploy adds one.
 -- The data step at the end runs once (guarded on _migrations).
@@ -5521,13 +5525,17 @@ alter table public.product_form_saves enable row level security;
 -- when the list is empty. The total of a product with variants follows them
 -- (see the header); a product getting its first variants takes their sum.
 -- With p_save_token, what earlier saves of the same form applied
--- (product_form_saves) is taken off each change first.
+-- (product_form_saves) is taken off each change first. With
+-- p_total_from_variants the total of a product with variants becomes the
+-- stock of its active variants after the save: the operator counted the
+-- shelf and says the variants are right.
 --
 -- Every stock change is written as a stock move: one per variant whose
 -- stock changed ("Ürün · Varyant", stockAfter = its new stock), and one for
 -- the product ("Ürün", stockAfter = the new total) for whatever the variant
 -- moves do not explain (a variant switched on or off, the first variants
--- replacing the product's own count, the variants removed).
+-- replacing the product's own count, the variants removed, the total set
+-- to the variants).
 --
 -- Nothing is written when anything is refused. Returns
 --   {"error": "product"}                                 the row is gone,
@@ -5541,10 +5549,13 @@ alter table public.product_form_saves enable row level security;
 --   form's earlier saves moved ({"stock": n, "variants": {id: n}}),
 --   {"stockBefore", "stockAfter", "variants", "moves"}   saved.
 --
--- The signature without the token came first in this file; it is dropped
--- so a call by name cannot find two.
+-- The signatures without the token and without the total's reset came
+-- first in this file; they are dropped so a call by name cannot find two.
 drop function if exists public.save_product_variants(
   text, integer, jsonb, integer, text, text, text
+);
+drop function if exists public.save_product_variants(
+  text, integer, jsonb, integer, text, text, text, text
 );
 create or replace function public.save_product_variants(
   p_product_id  text,
@@ -5554,7 +5565,8 @@ create or replace function public.save_product_variants(
   p_note        text,
   p_actor       text,
   p_now         text,
-  p_save_token  text default null
+  p_save_token  text default null,
+  p_total_from_variants boolean default false
 )
 returns jsonb
 language plpgsql
@@ -5678,7 +5690,7 @@ begin
         'error', 'negative', 'stock', cur_total, 'variants', cur_variants,
         'applied', prior);
     end if;
-  elsif jsonb_array_length(cur_variants) = 0 then
+  elsif jsonb_array_length(cur_variants) = 0 or coalesce(p_total_from_variants, false) then
     next_total := public.variant_stock_total(next_list);
   else
     next_total := greatest(0,

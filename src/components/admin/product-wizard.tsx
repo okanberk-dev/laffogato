@@ -105,6 +105,7 @@ export const FIELD_STEP: Readonly<Record<string, number>> = {
   stock: 2,
   stockAtOpen: 2,
   saveToken: 2,
+  stockFromVariants: 2,
   lowStockThreshold: 2,
   weightGrams: 2,
   taxRatePct: 2,
@@ -448,23 +449,37 @@ export function ProductWizard({
   /* With variants the product's total is theirs, not typed (D16): what the
      save will make of it, the way save_product_variants counts it. */
   const hasVariants = variants.length > 0;
+  const typedVariantSum = useMemo(
+    () =>
+      variantStockTotal(
+        variants.map((v) => ({
+          stock: Number.parseInt(v.stock, 10) || 0,
+          isActive: v.isActive,
+        })),
+      ),
+    [variants],
+  );
   const variantTotal = useMemo(() => {
-    const typed = variants.map((v) => ({
-      stock: Number.parseInt(v.stock, 10) || 0,
-      isActive: v.isActive,
-    }));
     const stored = (product?.variants ?? []).map((v) => ({
       stock: variantSnapshots[v.id] ?? v.stock,
       isActive: v.isActive,
     }));
-    if (stored.length === 0 || stockSnapshot === null) {
-      return variantStockTotal(typed);
-    }
+    if (stored.length === 0 || stockSnapshot === null) return typedVariantSum;
     return Math.max(
       0,
-      stockSnapshot + variantStockTotal(typed) - variantStockTotal(stored),
+      stockSnapshot + typedVariantSum - variantStockTotal(stored),
     );
-  }, [variants, product?.variants, variantSnapshots, stockSnapshot]);
+  }, [typedVariantSum, product?.variants, variantSnapshots, stockSnapshot]);
+
+  /* The total moves by deltas, so a unit sold without a variant (the shop
+     card's quick add) and then corrected on a variant on Stok takes it down
+     twice (admin audit CAT-14). When it stands apart from the active
+     variants the operator can set it to them (`stockFromVariants`); nothing
+     else sets it. */
+  const [totalFromVariants, setTotalFromVariants] = useState(false);
+  const totalApart = hasVariants && variantTotal !== typedVariantSum;
+  const shownTotal =
+    totalApart && totalFromVariants ? typedVariantSum : variantTotal;
 
   /**
    * What the `tags` field posts: the allergens ticked above, plus any tag the
@@ -838,12 +853,16 @@ export function ProductWizard({
               {hasVariants ? (
                 <Field
                   label="Toplam stok (adet)"
-                  hint="Aktif varyantların stoğundan gelir. Varyant stoğunu Varyantlar adımında ya da Stok ekranında değiştir."
+                  hint={
+                    totalApart
+                      ? `Toplam aktif varyantlardan (${typedVariantSum} adet) farklı: varyant seçilmeden satılan adet yalnız toplamdan düşer. Varyant stokları raftakiyle aynıysa toplamı onlara eşitle.`
+                      : "Aktif varyantların stoğundan gelir. Varyant stoğunu Varyantlar adımında ya da Stok ekranında değiştir."
+                  }
                 >
                   {/* Not a field: nothing to type. An output is labelable,
                       so the label still names it. */}
                   <output className="block w-full rounded-xl border border-dashed border-[var(--admin-border-strong)] px-3.5 py-2.5 text-base text-[var(--admin-text)] sm:text-sm">
-                    {variantTotal} adet
+                    {shownTotal} adet
                   </output>
                 </Field>
               ) : (
@@ -864,6 +883,14 @@ export function ProductWizard({
                     onChange={(e) => setStock(e.target.value)}
                   />
                 </Field>
+              )}
+              {totalApart && (
+                <Checkbox
+                  name="stockFromVariants"
+                  label={`Toplamı aktif varyantlara eşitle (${typedVariantSum} adet)`}
+                  checked={totalFromVariants}
+                  onChange={(e) => setTotalFromVariants(e.target.checked)}
+                />
               )}
               {stockSnapshot !== null && (
                 <input
@@ -1322,7 +1349,7 @@ export function ProductWizard({
               k="Stok"
               v={
                 hasVariants
-                  ? `${variantTotal} adet (varyantlardan)`
+                  ? `${shownTotal} adet (varyantlardan)`
                   : `${stock || 0} adet`
               }
             />

@@ -316,6 +316,12 @@ describe("CAT-03: the product form moves stock by the change since it opened", (
     expect(insert?.text).toBeDefined();
     expect(insert!.text).not.toMatch(/saveToken|stockAtOpen/);
   });
+
+  it("a new product never writes the total's reset as a column", async () => {
+    await store.createProduct(input({ stockFromVariants: true }));
+    const insert = seen.find((q) => /^INSERT INTO "products"/.test(q.text));
+    expect(insert!.text).not.toMatch(/stockFromVariants/);
+  });
 });
 
 describe("CAT-14: product and variant stock in step", () => {
@@ -337,6 +343,34 @@ describe("CAT-14: product and variant stock in step", () => {
     // The form's snapshot is not a column.
     expect(cols).not.toContain('"stockAtOpen"');
     expect(String(at("variants"))).not.toContain("stockAtOpen");
+  });
+
+  it("a form that asks sets the total to its active variants in SQL, never as a column", async () => {
+    // Sold without a variant, then the variant corrected on Stok: the total
+    // went down twice and no screen could raise it again.
+    const variants = [
+      { id: "var-1", name: "30 g", priceDeltaMinor: 0, stock: 3, sku: "", isActive: true, stockAtOpen: 3 },
+      { id: "var-2", name: "100 g", priceDeltaMinor: 0, stock: 5, sku: "", isActive: true, stockAtOpen: 5 },
+    ];
+    await store.updateProduct(
+      "prd-0007",
+      input({ stock: 6, stockAtOpen: 6, variants, stockFromVariants: true }),
+    );
+    expect(rpcCall("save_product_variants")).toMatchObject({
+      p_stock_delta: 0,
+      p_total_from_variants: true,
+    });
+    expect(updates()[0]).not.toMatch(/stockFromVariants/);
+    seen.length = 0;
+    await store.updateProduct("prd-0007", input({ stock: 6, stockAtOpen: 6, variants }));
+    expect(rpcCall("save_product_variants")).toMatchObject({ p_total_from_variants: false });
+  });
+
+  it("the form's reset of the total reads as a tick, and nothing else as one", () => {
+    const base = { name: "Matcha", tag: "Çay", desc: "Matcha", price: "300" };
+    expect(productFormSchema.parse({ ...base, stockFromVariants: "on" }).stockFromVariants).toBe(true);
+    expect(productFormSchema.parse(base).stockFromVariants).toBe(false);
+    expect(productFormSchema.parse({ ...base, stockFromVariants: "yes" }).stockFromVariants).toBe(false);
   });
 
   it("the order check needs the product's total as well as the variant's stock, as the claim does", async () => {
@@ -612,5 +646,26 @@ describe("the product form", () => {
     expect(html).toMatch(/<output[^>]*>10 adet<\/output>/);
     expect(html).toContain("10 adet (varyantlardan)");
     expect(variantsPosted(html).map((v) => v.stockAtOpen)).toEqual([6, 4]);
+    // In step with its variants: nothing to reset.
+    expect(html).not.toContain('name="stockFromVariants"');
+  });
+
+  it("a total apart from its active variants can be reset to them, unticked", async () => {
+    const html = await render({
+      ...STORED,
+      stock: 1,
+      variants: [
+        { id: "var-1", name: "30 g", priceDeltaMinor: 0, stock: 3, sku: "", isActive: true },
+        { id: "var-2", name: "100 g", priceDeltaMinor: 20_000, stock: 0, sku: "", isActive: true },
+        { id: "var-3", name: "Eski", priceDeltaMinor: 0, stock: 4, sku: "", isActive: false },
+      ],
+    });
+    expect(html).toMatch(/<output[^>]*>1 adet<\/output>/);
+    const box = /<input[^>]*name="stockFromVariants"[^>]*>/.exec(html)?.[0];
+    expect(box).toBeDefined();
+    expect(box).not.toMatch(/checked/);
+    expect(html).toContain("Toplamı aktif varyantlara eşitle (3 adet)");
+    // The hint no longer says the total is the variants' when it is not.
+    expect(html).not.toContain("Aktif varyantların stoğundan gelir.");
   });
 });
