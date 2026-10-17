@@ -6,7 +6,7 @@ import {
   type ManualProduct,
 } from "@/components/admin/manual-order-form";
 import { requireRole } from "@/lib/admin/auth";
-import { listProducts } from "@/lib/admin/store";
+import { getSettings, listProducts } from "@/lib/admin/store";
 
 import { createManualOrderAction } from "../actions";
 
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function NewOrderPage() {
   await requireRole("orders");
-  const all = await listProducts();
+  const [all, settings] = await Promise.all([listProducts(), getSettings()]);
 
   const products: ManualProduct[] = all
     .filter((p) => p.isActive)
@@ -39,7 +39,7 @@ export default async function NewOrderPage() {
       <PageHeader
         eyebrow="E-ticaret"
         title="Yeni sipariş"
-        description="Telefon / mağaza siparişini manuel gir. Fiyatlar üründen sunucuda çözülür, stok düşülür."
+        description="Telefon ya da köşkteki satışı elle gir: gel-al, kurye ya da kargo. Fiyatlar üründen sunucuda çözülür, stok düşülür."
         action={
           <Link
             href="/admin/siparisler"
@@ -57,7 +57,15 @@ export default async function NewOrderPage() {
           </p>
         </Card>
       ) : (
-        <ManualOrderForm products={products} action={createManualOrderAction} />
+        <ManualOrderForm
+          products={products}
+          shipping={{
+            courierFeeMinor: settings.courierFeeMinor,
+            shippingFlatMinor: settings.shippingFlatMinor,
+            shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
+          }}
+          action={createManualOrderAction}
+        />
       )}
     </main>
   );

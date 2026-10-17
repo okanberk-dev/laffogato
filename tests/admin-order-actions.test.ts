@@ -1036,4 +1036,77 @@ describe("createManualOrderAction", () => {
     await actions.createManualOrderAction({}, form(fields));
     expect(setAdminFlash).toHaveBeenCalledWith("Sipariş #10099 oluşturuldu.", "success");
   });
+
+  it("hands the store the delivery and, for a paid start, how it was paid", async () => {
+    store.createManualOrder.mockResolvedValue({
+      ok: true,
+      order: { id: "ord-9", orderNo: 10099, totalMinor: 10_000 },
+      priceAdjusted: false,
+      promoDropped: false,
+      payment: "recorded",
+    });
+    await actions.createManualOrderAction(
+      {},
+      form({ ...fields, promoCode: "", status: "paid", paymentMethod: "kart" }),
+    );
+    expect(store.createManualOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "paid",
+        fulfillment: "pickup",
+        paymentMethod: "kart",
+      }),
+    );
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          fulfillment: "pickup",
+          paymentMethod: "kart",
+        }),
+      }),
+    );
+  });
+
+  it("refuses a paid start without a method before the store is asked", async () => {
+    const res = await actions.createManualOrderAction(
+      {},
+      form({ ...fields, status: "paid" }),
+    );
+    expect(res.fieldErrors?.paymentMethod).toBe("Ödemenin nasıl alındığını seç.");
+    expect(store.createManualOrder).not.toHaveBeenCalled();
+  });
+
+  it("puts a stock refusal under the product list", async () => {
+    redirect.mockClear();
+    store.createManualOrder.mockResolvedValue({
+      ok: false,
+      reason: "out_of_stock",
+      productName: "Sirena Espresso",
+      available: 2,
+    });
+    const res = await actions.createManualOrderAction({}, form(fields));
+    expect(res.fieldErrors?.items).toBe(
+      "Yetersiz stok: Sirena Espresso (mevcut: 2).",
+    );
+    expect(res.error).toBeTruthy();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("warns when the payment row could not be written, the order made", async () => {
+    setAdminFlash.mockClear();
+    store.createManualOrder.mockResolvedValue({
+      ok: true,
+      order: { id: "ord-9", orderNo: 10099, totalMinor: 10_000 },
+      priceAdjusted: false,
+      promoDropped: false,
+      payment: "failed",
+    });
+    await actions.createManualOrderAction(
+      {},
+      form({ ...fields, promoCode: "", status: "paid", paymentMethod: "nakit" }),
+    );
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      expect.stringContaining("Ödeme kaydı yazılamadı"),
+      "warning",
+    );
+  });
 });

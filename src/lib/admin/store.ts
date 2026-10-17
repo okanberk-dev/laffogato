@@ -106,6 +106,10 @@ import {
   type OrderAttention,
   type RefundDestination,
 } from "./order-actions";
+import {
+  manualShippingMode,
+  type ManualFulfillment,
+} from "./manual-order-schema";
 import type { OrderListQuery } from "./order-filters";
 import { ORDER_STATUS_LABELS } from "./order-ui";
 
@@ -2182,9 +2186,10 @@ interface FinalizeOrderInput {
   promoCode?: string;
   legalConsent?: OrderLegalConsent;
   /**
-   * Mobile app columns (docs/API-MOBILE.md §3). All optional: the web and
-   * admin paths leave them out and the row takes the database defaults, so
-   * an order written by those paths is byte-for-byte what it was before.
+   * Mobile app columns (docs/API-MOBILE.md §3). All optional: the web path
+   * leaves them out and the row takes the database defaults, so a web order
+   * is byte-for-byte what it was before. The panel's manual order sets
+   * `fulfillment` (Gel-al, Kurye, Kargo).
    */
   channel?: OrderChannel;
   kind?: OrderKind;
@@ -2877,9 +2882,31 @@ export interface CreateManualOrderInput {
   internalNote?: string;
   promoCode?: string;
   status: ManualOrderStatus;
+  /**
+   * How the order reaches the customer (admin audit ORD-01, karar D4);
+   * Gel-al when omitted. It decides the delivery fee: nothing for Gel-al,
+   * the courier fee for Kurye, the shop's shipping rule for Kargo.
+   */
+  fulfillment?: ManualFulfillment;
+  /**
+   * How the money was taken, for a paid or preparing start (karar D5):
+   * written as the same `manual:<method>` payment row "Ödendi olarak
+   * işaretle" writes. Never for an unpaid start.
+   */
+  paymentMethod?: ManualPaymentMethod | null;
   /** Admin email recorded as the stock-move actor. */
   actor: string;
 }
+
+export type ManualOrderResult =
+  | (Extract<PlaceOrderResult, { ok: true }> & {
+      /**
+       * The payment row of a paid start: written, failed (the order stands,
+       * the caller says so), or none owed.
+       */
+      payment: "recorded" | "failed" | "none";
+    })
+  | PlaceOrderFailure;
 
 /**
  * Creates an order entered by an admin (phone/in-store sale). Mirrors
@@ -2888,11 +2915,13 @@ export interface CreateManualOrderInput {
  */
 export async function createManualOrder(
   input: CreateManualOrderInput,
-): Promise<PlaceOrderResult> {
+): Promise<ManualOrderResult> {
   await ensureSeed();
-  // Only the KDV defaults are read from it: a manual order bypasses the
-  // shop's open switch (see placeOrder) and takes shipping from insertOrderRow.
-  const { taxRates } = await getSettings();
+  // A manual order bypasses the shop's open switch (see placeOrder). The
+  // settings give the KDV defaults and the courier fee; the shop's shipping
+  // rule is applied by insertOrderRow.
+  const settings = await getSettings();
+  const fulfillment: ManualFulfillment = input.fulfillment ?? "pickup";
 
   const resolveRes = await resolveOrderLines(
     input.items.map((it) => ({
@@ -2926,7 +2955,7 @@ export async function createManualOrder(
       input.actor || "admin",
     );
 
-    placed = await finalizeOrder(resolved, taxRates, {
+    placed = await finalizeOrder(resolved, settings.taxRates, {
       orderId,
       orderNo,
       status: input.status,
@@ -2936,6 +2965,11 @@ export async function createManualOrder(
       shippingAddress: input.shippingAddress?.trim() ?? "",
       internalNote: input.internalNote?.trim().slice(0, 2000) ?? "",
       promoCode: input.promoCode,
+      // Every manual order used to be a parcel: a counter sale could only
+      // be closed with an invented tracking number, and under the
+      // free-shipping threshold it paid the flat shipping fee.
+      fulfillment,
+      shipping: manualShippingMode(fulfillment, settings),
       // No POS behind it: the stale-checkout sweep must leave it alone.
       source: "manual",
     });
@@ -2944,7 +2978,38 @@ export async function createManualOrder(
     throw err;
   }
   const { order, promoDropped } = placed;
-  return { ok: true, order, priceAdjusted: false, promoDropped };
+
+  // A paid start records how it was paid, like "Ödendi olarak işaretle":
+  // the order page said "Bu siparişte ödeme kaydı yok." and cash, the
+  // counter's card terminal and a transfer could not be told apart. After
+  // the insert, and never fatal: the sale happened and its row is written.
+  let payment: "recorded" | "failed" | "none" = "none";
+  if (
+    input.paymentMethod &&
+    (order.status === "paid" || order.status === "preparing")
+  ) {
+    try {
+      const row = await insertManualPaymentRow(
+        order,
+        input.paymentMethod,
+        input.actor,
+      );
+      payment = row.error ? "failed" : "recorded";
+      if (row.error) {
+        console.error(
+          `[orders] manual order ${order.id}: payment row not written`,
+          row.error,
+        );
+      }
+    } catch (err) {
+      payment = "failed";
+      console.error(
+        `[orders] manual order ${order.id}: payment row not written`,
+        err,
+      );
+    }
+  }
+  return { ok: true, order, priceAdjusted: false, promoDropped, payment };
 }
 
 // ── App orders (docs/API-MOBILE.md §3) ────────────────────────────────────
@@ -4787,6 +4852,37 @@ export async function setOrderItemStatus(
  * back by hand. If the move to `paid` is then refused, the row is taken
  * back. The POS check for a card order is the caller's (order-ops.ts).
  */
+/**
+ * The `manual:<method>` payment row of money taken outside the POS, for the
+ * order's whole total. `error` is null once the row is there (a 23505 is an
+ * earlier attempt's row, which stands for this one). Shared by "Ödendi
+ * olarak işaretle" and a manual order that starts paid.
+ */
+async function insertManualPaymentRow(
+  order: Pick<AdminOrder, "id" | "totalMinor">,
+  method: ManualPaymentMethod,
+  actor?: string,
+): Promise<{ provider: string; providerRef: string; error: string | null }> {
+  const provider = `${MANUAL_PROVIDER_PREFIX}${method}`;
+  const providerRef = `manual-${order.id}`;
+  const ins = await getDb()
+    .from(TABLES.paymentTransactions)
+    .insert({
+      orderId: order.id,
+      provider,
+      providerRef,
+      status: "succeeded",
+      amountMinor: order.totalMinor,
+      currency: "TRY",
+      raw: { source: "admin", method, actor: actor ?? "" },
+      trxDate: "",
+      createdAt: new Date().toISOString(),
+    });
+  const error =
+    ins.error && ins.error.code !== "23505" ? ins.error.message : null;
+  return { provider, providerRef, error };
+}
+
 export async function markOrderPaidManually(
   id: string,
   method: ManualPaymentMethod,
@@ -4801,24 +4897,13 @@ export async function markOrderPaidManually(
       error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
     };
   }
-  const provider = `${MANUAL_PROVIDER_PREFIX}${method}`;
-  const providerRef = `manual-${id}`;
-  const ins = await getDb()
-    .from(TABLES.paymentTransactions)
-    .insert({
-      orderId: id,
-      provider,
-      providerRef,
-      status: "succeeded",
-      amountMinor: existing.totalMinor,
-      currency: "TRY",
-      raw: { source: "admin", method, actor: actor ?? "" },
-      trxDate: "",
-      createdAt: new Date().toISOString(),
-    });
-  // 23505: an earlier attempt left its row; it stands for this one.
-  if (ins.error && ins.error.code !== "23505") {
-    return { ok: false, error: `Ödeme kaydı yazılamadı: ${ins.error.message}` };
+  const { provider, providerRef, error } = await insertManualPaymentRow(
+    existing,
+    method,
+    actor,
+  );
+  if (error) {
+    return { ok: false, error: `Ödeme kaydı yazılamadı: ${error}` };
   }
   const res = await transitionOrder(id, "mark_paid", { actor });
   if (!res.ok) {

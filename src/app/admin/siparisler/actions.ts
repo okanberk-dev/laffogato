@@ -532,19 +532,29 @@ export async function createManualOrderAction(
     internalNote: d.internalNote,
     promoCode: d.promoCode,
     status: d.status,
+    fulfillment: d.fulfillment,
+    paymentMethod: d.paymentMethod,
     actor: session.email,
   });
   if (!result.ok) {
-    if (result.reason === "empty") {
-      return { error: "En az bir ürün ekle." };
-    }
+    // Under the product list, where the line to change is.
+    const refusal = (message: string): ManualOrderActionState => ({
+      error: "Ürün satırlarındaki uyarıyı gider.",
+      fieldErrors: { items: message },
+    });
+    if (result.reason === "empty") return refusal("En az bir ürün ekle.");
     if (result.reason === "not_found") {
-      return { error: `Ürün bulunamadı: ${result.productName}` };
+      return refusal(`Ürün bulunamadı: ${result.productName}`);
     }
     if (result.reason === "out_of_stock") {
-      return {
-        error: `Yetersiz stok: ${result.productName} (mevcut: ${result.available}).`,
-      };
+      return refusal(
+        `Yetersiz stok: ${result.productName} (mevcut: ${result.available}).`,
+      );
+    }
+    if (result.reason === "qty_too_high") {
+      return refusal(
+        `${result.productName}: bir satırda en fazla ${result.max} adet.`,
+      );
     }
     return { error: "Sipariş oluşturulamadı." };
   }
@@ -556,16 +566,27 @@ export async function createManualOrderAction(
       orderNo: result.order.orderNo,
       manual: true,
       total: result.order.totalMinor,
+      fulfillment: d.fulfillment,
+      ...(d.paymentMethod ? { paymentMethod: d.paymentMethod } : {}),
+      ...(result.payment === "failed" ? { paymentRow: "failed" } : {}),
       ...(result.promoDropped ? { promoDropped: d.promoCode ?? "" } : {}),
     },
   });
   // A code that no longer applies is dropped by the store. It used to be
   // dropped silently: the admin quoted a discount the order does not carry.
-  await setAdminFlash(
+  const warnings = [
     result.promoDropped
-      ? `Sipariş #${result.order.orderNo} oluşturuldu, ama ${d.promoCode ? `"${d.promoCode}" ` : ""}promosyon kodu artık geçerli değil: indirim uygulanmadı. Müşteriye söyle.`
+      ? `${d.promoCode ? `"${d.promoCode}" ` : ""}promosyon kodu artık geçerli değil: indirim uygulanmadı. Müşteriye söyle.`
+      : "",
+    result.payment === "failed"
+      ? "Ödeme kaydı yazılamadı: ödemenin nasıl alındığını iç nota yaz."
+      : "",
+  ].filter(Boolean);
+  await setAdminFlash(
+    warnings.length > 0
+      ? `Sipariş #${result.order.orderNo} oluşturuldu, ama ${warnings.join(" ")}`
       : `Sipariş #${result.order.orderNo} oluşturuldu.`,
-    result.promoDropped ? "warning" : "success",
+    warnings.length > 0 ? "warning" : "success",
   );
   revalidatePath("/admin/siparisler");
   revalidatePath("/admin");
