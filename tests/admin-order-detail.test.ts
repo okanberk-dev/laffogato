@@ -253,7 +253,11 @@ describe("consent evidence on the page (ORD-29, karar D3)", () => {
   it("the page decides it from the customers section", () => {
     const page = readFileSync("src/app/admin/siparisler/[id]/page.tsx", "utf8");
     expect(page).toContain('canSeeEvidence={canAccess("customers", session.role)}');
-    expect(page).toContain("detailsRules={orderDetailsRules(order, session.role)}");
+    // Stamps or a member coupon under the e-mail lock it (verifier C1).
+    expect(page).toContain(
+      "detailsRules={orderDetailsRules(order, session.role, ledgerHeld)}",
+    );
+    expect(page).toContain("await orderEmailLedgerHeld(order)");
   });
 });
 
