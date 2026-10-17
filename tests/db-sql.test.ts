@@ -188,6 +188,63 @@ describe("select", () => {
     ).toThrow(UnsafeIdentifierError);
   });
 
+  it("folds a substring search on both sides, every part a parameter", () => {
+    // The panel's search: ILIKE does not fold İ / I / ı, so "ismail" missed
+    // "İsmail". translate() + lower() on the column AND on the pattern.
+    const q = compile({
+      ...base,
+      table: "orders",
+      filters: [
+        {
+          op: "any",
+          column: "",
+          value: [
+            { column: "orderNo", op: "eq", value: 10023 },
+            {
+              column: "customerName",
+              op: "foldLike",
+              value: { pattern: "%ismail%", from: "İIı", to: "iii" },
+            },
+          ],
+        },
+      ],
+    });
+    expect(q.text).toBe(
+      'SELECT * FROM "orders" WHERE ("orderNo" = $1 OR ' +
+        'lower(translate("customerName", $2, $3)) LIKE ' +
+        "lower(translate($4, $2, $3)))",
+    );
+    expect(q.params).toEqual([10023, "İIı", "iii", "%ismail%"]);
+  });
+
+  it("refuses a foldLike without its three strings, and a bad column", () => {
+    for (const value of [
+      "%a%",
+      null,
+      { pattern: "%a%", from: "x" },
+      { pattern: 1, from: "x", to: "y" },
+    ]) {
+      expect(() =>
+        compile({
+          ...base,
+          filters: [{ op: "foldLike", column: "name", value }],
+        }),
+      ).toThrow(/foldLike needs/);
+    }
+    expect(() =>
+      compile({
+        ...base,
+        filters: [
+          {
+            op: "foldLike",
+            column: 'name") OR true --',
+            value: { pattern: "%", from: "", to: "" },
+          },
+        ],
+      }),
+    ).toThrow(UnsafeIdentifierError);
+  });
+
   it("skips rows with OFFSET after LIMIT, both parameterised", () => {
     const q = compile({
       ...base,
