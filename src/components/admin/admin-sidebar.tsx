@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { karaokeTodayCountAction } from "@/app/admin/mobil/karaoke/actions";
 import { openOrderCountAction } from "@/app/admin/siparisler/actions";
+import { activeNavHref } from "@/lib/admin/nav-match";
 
 export interface AdminNavItem {
   href: string;
@@ -75,6 +77,44 @@ const ICONS: Record<string, React.ReactNode> = {
     <>
       <path d="M6 8h12l-1 12H7L6 8Z" />
       <path d="M9 8a3 3 0 0 1 6 0" />
+    </>
+  ),
+  // Kasa · damga: the counter's register.
+  till: (
+    <>
+      <rect x="3" y="10" width="18" height="10" rx="2" />
+      <path d="M7 10V5h10v5" />
+      <path d="M7 14h2M11 14h2M15 14h2M7 17h10" />
+    </>
+  ),
+  // Masalar · QR: a café table.
+  tables: (
+    <>
+      <path d="M3 8.5h18" />
+      <path d="M6 8.5V20M18 8.5V20M6 14h12" />
+      <path d="M9 4.5h6" />
+    </>
+  ),
+  // Every Mobil Uygulama entry: the phone.
+  mobileApp: (
+    <>
+      <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
+      <path d="M11 18.5h2" />
+    </>
+  ),
+  karaoke: (
+    <>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0" />
+      <path d="M12 17.5V21M9 21h6" />
+    </>
+  ),
+  // Kullanıcılar: a person with a shield (who may open the panel).
+  adminUsers: (
+    <>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+      <path d="M18 10.5 21 11.7V14c0 2-1.3 3.4-3 4-1.7-.6-3-2-3-4v-2.3l3-1.2Z" />
     </>
   ),
   customers: (
@@ -165,54 +205,61 @@ interface SidebarProps {
   logout: () => void;
 }
 
-/** How often the nav re-counts the open orders. Slower than the list's own poll. */
-const ORDER_BADGE_POLL_MS = 60_000;
+/** How often the nav re-counts its badges. Slower than the lists' own polls. */
+const NAV_BADGE_POLL_MS = 60_000;
 
 /**
- * Open orders, counted for the nav badge.
+ * A count for a nav badge, polled.
  *
  * The panel has no other standing surface: every page is `force-dynamic` and
- * dead once rendered, so an order that arrives from the app while the
- * operator is on Stok changes nothing anywhere. The badge is that one
- * standing surface. Returns null for a role with no order access (the action
- * answers null itself) and for a poll that failed, and the badge then simply
- * does not render.
+ * dead once rendered, so an order that arrives from the app, or a karaoke
+ * booking paid for tonight, while the operator is on Stok changes nothing
+ * anywhere. The badges are that one standing surface. Returns null when the
+ * section is not in this role's nav (no request at all), for a role the
+ * action refuses (it answers null itself) and for a poll that failed; the
+ * badge then simply does not render.
  */
-function useOpenOrderCount(pathname: string): number | null {
+function useNavCount(
+  pathname: string,
+  read: () => Promise<number | null>,
+  enabled: boolean,
+): number | null {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
-    async function read() {
+    async function tick() {
       if (document.visibilityState === "visible") {
         try {
-          const n = await openOrderCountAction();
+          const n = await read();
           if (!cancelled) setCount(typeof n === "number" ? n : null);
         } catch {
           // Never let a background count take the panel down.
         }
       }
-      if (!cancelled) timer = setTimeout(read, ORDER_BADGE_POLL_MS);
+      if (!cancelled) timer = setTimeout(tick, NAV_BADGE_POLL_MS);
     }
 
-    void read();
+    void tick();
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
     // Re-read on navigation too: the operator who just completed an order
     // should not wait a minute to watch the badge drop.
-  }, [pathname]);
+  }, [pathname, read, enabled]);
 
-  return count;
+  return enabled ? count : null;
 }
 
-function isActive(pathname: string, href: string): boolean {
-  if (href === "/admin") return pathname === "/admin";
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+/** What each badge counts, for its tooltip. */
+const BADGE_TITLES: Record<string, string> = {
+  orders: "Açık sipariş (ödeme bekleyen · ödenen · hazırlanan)",
+  karaoke: "Bugünkü karaoke rezervasyonu (iptal edilmemiş)",
+};
 
 function SidebarBody({
   groups,
@@ -220,13 +267,17 @@ function SidebarBody({
   roleLabel,
   logout,
   pathname,
-  openOrders,
+  counts,
   onNavigate,
 }: SidebarProps & {
   pathname: string;
-  openOrders: number | null;
+  counts: Record<string, number | null>;
   onNavigate?: () => void;
 }) {
+  const activeHref = activeNavHref(
+    pathname,
+    groups.flatMap((g) => g.items.map((i) => i.href)),
+  );
   return (
     <div className="flex h-full flex-col">
       {/* Brand */}
@@ -258,11 +309,9 @@ function SidebarBody({
             </div>
             <ul className="flex flex-col gap-0.5">
               {group.items.map((item) => {
-                const active = isActive(pathname, item.href);
-                const badge =
-                  item.section === "orders" && openOrders && openOrders > 0
-                    ? openOrders
-                    : null;
+                const active = item.href === activeHref;
+                const n = counts[item.section] ?? null;
+                const badge = n && n > 0 ? n : null;
                 return (
                   <li key={item.href}>
                     <Link
@@ -289,9 +338,13 @@ function SidebarBody({
                         <span
                           className="ml-auto min-w-[22px] rounded-full bg-[var(--admin-primary)] px-1.5 py-0.5 text-center text-[10px] leading-4 font-medium text-white"
                           style={{ fontFamily: "var(--mono), monospace" }}
-                          title="Açık sipariş (ödeme bekleyen · ödenen · hazırlanan)"
+                          title={BADGE_TITLES[item.section]}
                         >
                           {badge > 99 ? "99+" : badge}
+                          <span className="sr-only">
+                            {" "}
+                            {BADGE_TITLES[item.section]}
+                          </span>
                         </span>
                       )}
                     </Link>
@@ -351,13 +404,21 @@ export function AdminSidebar(props: SidebarProps) {
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn !== null && openOn === pathname;
   const setOpen = (next: boolean) => setOpenOn(next ? pathname : null);
-  const openOrders = useOpenOrderCount(pathname);
+  const has = (section: string) =>
+    props.groups.some((g) => g.items.some((i) => i.section === section));
+  const openOrders = useNavCount(pathname, openOrderCountAction, has("orders"));
+  const karaokeToday = useNavCount(
+    pathname,
+    karaokeTodayCountAction,
+    has("karaoke"),
+  );
+  const counts = { orders: openOrders, karaoke: karaokeToday };
 
   return (
     <>
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-[var(--admin-border)] bg-white lg:block">
-        <SidebarBody {...props} pathname={pathname} openOrders={openOrders} />
+        <SidebarBody {...props} pathname={pathname} counts={counts} />
       </aside>
 
       {/* Mobile top bar */}
@@ -431,7 +492,7 @@ export function AdminSidebar(props: SidebarProps) {
             <SidebarBody
               {...props}
               pathname={pathname}
-              openOrders={openOrders}
+              counts={counts}
               onNavigate={() => setOpen(false)}
             />
           </aside>

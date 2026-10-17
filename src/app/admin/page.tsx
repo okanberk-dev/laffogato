@@ -1,8 +1,10 @@
 import Link from "next/link";
 
 import { Card, PageHeader, formatTRY } from "@/components/admin/forms";
+import { KaraokeTodayCard } from "@/components/admin/karaoke-today-card";
 import { OrderStatusBadge } from "@/components/admin/ui/badge";
 import { requireRole } from "@/lib/admin/auth";
+import { karaokeRowViews } from "@/lib/admin/karaoke-panel";
 import { canAccess } from "@/lib/admin/roles";
 import {
   getDashboardStats,
@@ -10,6 +12,12 @@ import {
   listRecentOrders,
 } from "@/lib/admin/store";
 import { emailHealth } from "@/lib/email/health";
+import {
+  listKaraokeRefundsOwed,
+  listReservationsForDate,
+  type KaraokeReservation,
+} from "@/lib/mobile/karaoke";
+import { istanbulClock } from "@/lib/mobile/venue";
 
 export const metadata = { title: "Admin · Genel Bakış" };
 export const dynamic = "force-dynamic";
@@ -26,6 +34,26 @@ function turkishGreeting(): string {
   return "İyi akşamlar";
 }
 
+/**
+ * Today's karaoke rows and the refunds still owed, or nulls when they could
+ * not be read: the card says so and the rest of the dashboard stands.
+ */
+async function readKaraoke(today: string): Promise<{
+  today: KaraokeReservation[] | null;
+  owed: KaraokeReservation[] | null;
+}> {
+  try {
+    const [rows, owed] = await Promise.all([
+      listReservationsForDate(today),
+      listKaraokeRefundsOwed(),
+    ]);
+    return { today: rows, owed };
+  } catch (err) {
+    console.error("[admin] karaoke kartı okunamadı", err);
+    return { today: null, owed: null };
+  }
+}
+
 function todayLabel(): string {
   return new Intl.DateTimeFormat("tr-TR", {
     day: "numeric",
@@ -37,14 +65,23 @@ function todayLabel(): string {
 export default async function AdminDashboardPage({ searchParams }: PageProps) {
   const session = await requireRole("dashboard");
   const sp = await searchParams;
-  const [stats, recent, settings, mail] = await Promise.all([
+  const now = new Date();
+  const showKaraoke = canAccess("karaoke", session.role);
+  const [stats, recent, settings, mail, karaoke] = await Promise.all([
     getDashboardStats(),
     // Five rows, read as five rows: this used to be every order in the
     // table, sliced here (WP1).
     listRecentOrders(5),
     getSettings(),
     emailHealth(),
+    showKaraoke ? readKaraoke(istanbulClock(now).date) : null,
   ]);
+  const karaokeCtx = {
+    today: istanbulClock(now).date,
+    now,
+    prepay: settings.karaokePrepay,
+    canRefund: canAccess("refunds", session.role),
+  };
 
   const userLabel = session.email.split("@")[0];
 
@@ -171,6 +208,20 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
           </Card>
         ))}
       </div>
+
+      {karaoke ? (
+        <div className="mt-6">
+          <KaraokeTodayCard
+            today={
+              karaoke.today ? karaokeRowViews(karaoke.today, karaokeCtx) : null
+            }
+            owed={
+              karaoke.owed ? karaokeRowViews(karaoke.owed, karaokeCtx) : null
+            }
+            now={now}
+          />
+        </div>
+      ) : null}
 
       <div className="mt-10 grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
