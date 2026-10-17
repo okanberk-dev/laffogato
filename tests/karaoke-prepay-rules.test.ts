@@ -250,6 +250,7 @@ describe("the booking form", () => {
     unavailable: false,
     capacity: 8,
     hourlyMinor: 100_000,
+    closeHour: 24,
     tier: null,
     tierLabel: null,
     isAuthenticated: false,

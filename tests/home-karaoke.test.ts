@@ -323,6 +323,7 @@ describe("?saat= on the booking page", () => {
     unavailable: false,
     capacity: 8,
     hourlyMinor: 90_000,
+    closeHour: 24,
     tier: null,
     tierLabel: null,
     isAuthenticated: false,
@@ -350,6 +351,22 @@ describe("?saat= on the booking page", () => {
     expect(pressed({ initialHour: 22 })).toEqual(["20:00"]);
     expect(pressed({ initialHour: 9 })).toEqual(["20:00"]);
     expect(pressed({})).toEqual(["20:00"]);
+  });
+
+  it("names the panel's closing hour in its heading, not a typed-in one", () => {
+    const at = (closeHour: number) =>
+      renderToStaticMarkup(
+        createElement(KaraokeBooking, { ...props, closeHour }),
+      );
+    expect(at(24)).toContain("gece 24:00’e kadar");
+    expect(at(22)).toContain("gece 22:00’ye kadar");
+    expect(at(22)).not.toContain("24:00");
+    expect(read("src/components/laffogato/karaoke-booking.tsx")).not.toMatch(
+      /gece 24:00/,
+    );
+    expect(read("src/app/karaoke/page.tsx")).toContain(
+      "closeHour={settings.mobileApp.karaoke.closeHour}",
+    );
   });
 
   it("keeps the picked hour across signing in", () => {

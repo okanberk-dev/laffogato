@@ -9,6 +9,7 @@ import {
 } from "@/app/karaoke/actions";
 import { BusyDots } from "./busy-dots";
 import { Illustration } from "./illustration";
+import { hourToLabel } from "./karaoke-today";
 import { PageHero } from "./page-hero";
 // Type-only: karaoke-core builds Zod schemas at load, and a value import from
 // it ships all of Zod to the browser. The quote maths comes from the
@@ -63,6 +64,11 @@ export interface KaraokeBookingProps {
   unavailable: boolean;
   capacity: number;
   hourlyMinor: number;
+  /**
+   * The evening's closing hour (`mobileApp.karaoke.closeHour`, 24 =
+   * midnight), named in the heading. It used to be typed in there.
+   */
+  closeHour: number;
   tier: string | null;
   tierLabel: string | null;
   isAuthenticated: boolean;
@@ -95,6 +101,7 @@ export function KaraokeBooking({
   unavailable,
   capacity,
   hourlyMinor,
+  closeHour,
   tier,
   tierLabel,
   isAuthenticated,
@@ -205,7 +212,7 @@ export function KaraokeBooking({
       <PageHero
         scene="berry"
         eyebrow="Karaoke · köşkün üst katı"
-        title={["Özel oda,", "gece 24:00’e kadar"]}
+        title={["Özel oda,", `gece ${hourToLabel(closeHour)} kadar`]}
         art={
           <Illustration
             name="karaoke-room"
