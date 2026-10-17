@@ -38,13 +38,27 @@ const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 
 describe("fal-core: on and off", () => {
   it("is off without the key, off with the key alone, on with both", () => {
     expect(falAiEnabled({})).toBe(false);
-    expect(falAiEnabled({ OPENAI_API_KEY: "sk-test" })).toBe(false);
+    expect(falAiEnabled({ ANTHROPIC_API_KEY: "test-key" })).toBe(false);
     expect(falAiEnabled({ FAL_AI_ENABLED: "true" })).toBe(false);
-    expect(falAiEnabled({ OPENAI_API_KEY: "sk-test", FAL_AI_ENABLED: "true" })).toBe(true);
-    expect(falAiEnabled({ OPENAI_API_KEY: "  ", FAL_AI_ENABLED: "true" })).toBe(false);
+    expect(falAiEnabled({ ANTHROPIC_API_KEY: "test-key", FAL_AI_ENABLED: "true" })).toBe(true);
+    expect(falAiEnabled({ ANTHROPIC_API_KEY: "  ", FAL_AI_ENABLED: "true" })).toBe(false);
   });
 
-  it("reads with the configured model, a small vision model by default", () => {
+  it("stays off on OpenAI while the published texts name Anthropic as the recipient", () => {
+    // 17 Eki 2026: the R12, aydınlatma and gizlilik texts name Anthropic,
+    // PBC. Sending the photo to OpenAI would be a transfer the member was not
+    // told about, so its key and the switch are not enough any more.
+    expect(falAiEnabled({ OPENAI_API_KEY: "sk-test", FAL_AI_ENABLED: "true" })).toBe(false);
+    expect(falAiEnabled({ OPENAI_API_KEY: "sk-test", FAL_AI_PROVIDER: "openai", FAL_AI_ENABLED: "true" })).toBe(false);
+    expect(
+      falAiEnabled({ ANTHROPIC_API_KEY: "test-key", OPENAI_API_KEY: "sk-test", FAL_AI_PROVIDER: "openai", FAL_AI_ENABLED: "true" }),
+    ).toBe(false);
+  });
+
+  it("reads with the configured model, Claude Opus by default", () => {
+    expect(falModel({ ANTHROPIC_API_KEY: "test-key" })).toBe("claude-opus-5-5");
+    expect(falModel({ ANTHROPIC_API_KEY: "test-key", ANTHROPIC_FAL_MODEL: "claude-sonnet-5-5" })).toBe("claude-sonnet-5-5");
+    // The OpenAI path keeps its own default and switch.
     expect(falModel({})).toBe("gpt-5.4-mini");
     expect(falModel({ OPENAI_FAL_MODEL: "gpt-5.6-luna" })).toBe("gpt-5.6-luna");
   });
@@ -152,8 +166,8 @@ describe("POST /fal", () => {
   beforeEach(() => {
     // Every switch set here, so a key in the shell running the tests decides nothing.
     vi.stubEnv("FAL_AI_PROVIDER", "");
-    vi.stubEnv("ANTHROPIC_API_KEY", "");
-    vi.stubEnv("OPENAI_API_KEY", "sk-test");
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_API_KEY", "");
     vi.stubEnv("FAL_AI_ENABLED", "true");
     requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "eda@ornek.com", emailVerified: true } });
     for (const fn of Object.values(lib)) fn.mockReset();
@@ -164,7 +178,7 @@ describe("POST /fal", () => {
     lib.releaseFalReading.mockResolvedValue(undefined);
     lib.completeFalReading.mockResolvedValue(undefined);
     lib.buildFalContext.mockResolvedValue({ tier: "L'AF", visits: "new", usual: "" });
-    lib.readCupWithAI.mockResolvedValue({ ok: true, reading: READING, model: "gpt-5.4-mini" });
+    lib.readCupWithAI.mockResolvedValue({ ok: true, reading: READING, model: "claude-opus-5-5" });
   });
 
   it("refuses a caller without a bearer", async () => {
@@ -178,6 +192,17 @@ describe("POST /fal", () => {
     const res = await POST(req({ image: JPEG }));
     expect(res.status).toBe(503);
     expect((await res.json()).error).toBe("fal_unavailable");
+    expect(lib.readCupWithAI).not.toHaveBeenCalled();
+  });
+
+  it("is 503 fal_unavailable, before any consent or photo, for a provider the texts do not name", async () => {
+    vi.stubEnv("FAL_AI_PROVIDER", "openai");
+    vi.stubEnv("OPENAI_API_KEY", "sk-test");
+    const res = await POST(req({ image: JPEG }));
+    expect(res.status).toBe(503);
+    expect((await res.json()).error).toBe("fal_unavailable");
+    expect(lib.hasFalConsent).not.toHaveBeenCalled();
+    expect(lib.reserveFalReading).not.toHaveBeenCalled();
     expect(lib.readCupWithAI).not.toHaveBeenCalled();
   });
 
@@ -219,9 +244,9 @@ describe("POST /fal", () => {
     const body = await res.json();
     expect(body).toMatchObject({ reading: READING, ai: true, consentVersion: FAL_CONSENT_VERSION, remainingToday: FAL_DAILY_LIMIT - 1 });
     // Additive: which model wrote it, so "Bu yorumu bildir" can name it.
-    expect(body.model).toBe("gpt-5.4-mini");
+    expect(body.model).toBe("claude-opus-5-5");
     expect(lib.reserveFalReading).toHaveBeenCalledWith("eda@ornek.com", FAL_DAILY_LIMIT);
-    expect(lib.completeFalReading).toHaveBeenCalledWith(7, true, "gpt-5.4-mini");
+    expect(lib.completeFalReading).toHaveBeenCalledWith(7, true, "claude-opus-5-5");
     expect(res.headers.get("Cache-Control")).toContain("private");
   });
 
@@ -272,6 +297,7 @@ describe("POST /fal", () => {
 
 describe("/fal/consent", () => {
   beforeEach(() => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "");
     vi.stubEnv("FAL_AI_ENABLED", "");
     requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "eda@ornek.com", emailVerified: true } });
@@ -291,6 +317,16 @@ describe("/fal/consent", () => {
     const ok = await consent.POST(req({ version: FAL_CONSENT_VERSION }));
     expect(ok.status).toBe(200);
     expect(lib.grantFalConsent).toHaveBeenCalledWith("eda@ornek.com");
+  });
+
+  it("refuses the 23 Eyl version, whose text named OpenAI: the new recipient is read first", async () => {
+    expect(FAL_CONSENT_VERSION).toBe("2026-10-17-anthropic");
+    const old = await consent.POST(req({ version: "2026-09-23" }));
+    expect(old.status).toBe(409);
+    expect((await old.json()).error).toBe("consent_outdated");
+    // The same day's text naming another recipient is another version too.
+    expect((await consent.POST(req({ version: "2026-10-17-openai" }))).status).toBe(409);
+    expect(lib.grantFalConsent).not.toHaveBeenCalled();
   });
 
   it("withdraws it", async () => {

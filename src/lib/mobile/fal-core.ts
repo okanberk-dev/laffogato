@@ -23,8 +23,9 @@
  *     published texts name (`FAL_DISCLOSED_PROVIDER`): a photo sent to a
  *     company the member was never told about is a transfer abroad without
  *     consent, whatever the environment says.
- *   - Only a consent recorded at `FAL_CONSENT_VERSION` counts; a new version
- *     asks again.
+ *   - Only a consent recorded at `FAL_CONSENT_VERSION` counts. The version
+ *     names the text's day and its recipient, so a new text and a new
+ *     recipient both ask again.
  *   - The member is described by their tier, a visit-frequency word and, if
  *     they saved one, their usual drink - never a name, an e-mail, a phone
  *     number or an id.
@@ -34,9 +35,6 @@
  */
 
 export const FAL_FEATURE = "fal-ai";
-
-/** The R12 text's version; bump it when the consent text changes. */
-export const FAL_CONSENT_VERSION = "2026-09-23";
 
 /** Readings a member may ask the AI for in one Istanbul day. */
 export const FAL_DAILY_LIMIT = 5;
@@ -83,11 +81,32 @@ export const FAL_PROVIDER_INFO: Record<
 
 /**
  * The provider the published texts name as the photo's recipient (Açık Rıza
- * Metni R12, KVKK Aydınlatma Metni, Gizlilik Politikası) and the only one
- * the photo may go to. Changing it is a change of those texts and of the
- * consent version, never an environment switch.
+ * Metni R12, KVKK Aydınlatma Metni, Gizlilik Politikası: "Anthropic, PBC",
+ * 17 Eki 2026) and the only one the photo may go to. Changing it is a change
+ * of those texts and of the consent version, never an environment switch;
+ * tests/legal-fal-recipient.test.ts holds the texts to it.
  */
-export const FAL_DISCLOSED_PROVIDER: FalProvider = "openai";
+export const FAL_DISCLOSED_PROVIDER: FalProvider = "anthropic";
+
+/** The day the R12 text last changed: its recipient became Anthropic. */
+export const FAL_CONSENT_TEXT_DAY = "2026-10-17";
+
+/**
+ * The R12 consent's version for a recipient: the text's day and the
+ * provider it names ("2026-10-17-anthropic"). The consent row keeps it, so
+ * the proof says whom the member agreed to send the photo to.
+ */
+export function falConsentVersionFor(provider: FalProvider): string {
+  return `${FAL_CONSENT_TEXT_DAY}-${provider}`;
+}
+
+/**
+ * The version a consent must carry to count (`hasFalConsent`); the app asks
+ * again for any other. A new text moves it, and so does a new recipient: a
+ * yes given for one provider is never read as a yes for another. The 23 Eyl
+ * 2026 consents ("2026-09-23", the text that named OpenAI) no longer count.
+ */
+export const FAL_CONSENT_VERSION = falConsentVersionFor(FAL_DISCLOSED_PROVIDER);
 
 /**
  * Which provider reads: the one `FAL_AI_PROVIDER` names; unset, Anthropic
