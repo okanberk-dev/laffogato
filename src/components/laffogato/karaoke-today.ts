@@ -78,16 +78,17 @@ export function hourToLabel(hour: number): string {
 /**
  * The karaoke door's line on the home page: how many hours are still free
  * today once the calendar has answered, the room's size and closing hour
- * until then (and when it could not answer, or nothing is free).
+ * until then (and when it could not answer, or nothing is free). Without the
+ * panel's facts it names no number at all rather than a typed-in one.
  */
 export function karaokeDoorLine(
   today: KaraokeToday,
   facts: KaraokeFacts | undefined,
-): string | undefined {
+): string {
   if (today.kind === "open") return `Bugün ${today.free} boş saat`;
   return facts
     ? `${facts.capacity} kişiye kadar · ${hourToLabel(facts.closeHour)}`
-    : undefined;
+    : "Saatini seç";
 }
 
 /** The booking page for `date`, with `hour` preselected when given. */

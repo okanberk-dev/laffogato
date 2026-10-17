@@ -262,10 +262,12 @@ describe("the band", () => {
     expect(
       today.karaokeDoorLine(today.readKaraokeDay(DAY, 23 * 60 + 10), FACTS),
     ).toBe(facts);
+    // Without the panel's facts: no number typed in as a stand-in.
     expect(today.karaokeDoorLine({ kind: "loading" }, undefined)).toBe(
-      undefined,
+      "Saatini seç",
     );
-    expect(HOME).toContain("karaokeDoorLine(karaokeToday, karaoke)");
+    expect(HOME).toContain("sub: karaokeDoorLine(karaokeToday, karaoke),");
+    expect(HOME).not.toMatch(/8 kişiye kadar|24:00’e/);
   });
 
   it("names a closing hour the way it is read aloud", () => {

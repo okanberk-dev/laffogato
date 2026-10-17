@@ -221,7 +221,7 @@ export function PageHome({
       href: "/karaoke",
       kicker: "Karaoke",
       title: "Üst kat özel oda",
-      sub: karaokeDoorLine(karaokeToday, karaoke) ?? "8 kişiye kadar · 24:00’e",
+      sub: karaokeDoorLine(karaokeToday, karaoke),
       icon: (
         <>
           <rect x="9" y="3.75" width="6" height="10.5" rx="3" />
