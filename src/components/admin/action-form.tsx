@@ -1,15 +1,12 @@
 "use client";
 
-import { unstable_rethrow } from "next/navigation";
 import {
   createContext,
-  startTransition,
   useActionState,
   useContext,
   useEffect,
   useId,
   useRef,
-  type FormEvent,
   type ReactNode,
 } from "react";
 
@@ -17,6 +14,20 @@ import { cx } from "@/components/laffogato/cx";
 import type { ActionResult } from "@/lib/admin/action-result";
 
 import { BUTTON, useToast, type ButtonVariant, type ModalAction } from "./ui";
+import {
+  useNoResetSubmit,
+  withPanelCatch,
+  type BeforeSubmit,
+} from "./ui/submit";
+
+// The hand-dispatch helpers live in ui/submit.ts (ActionModal uses them
+// too); the panel's forms import them from here.
+export {
+  submitByHand,
+  useNoResetSubmit,
+  withPanelCatch,
+  type BeforeSubmit,
+} from "./ui/submit";
 
 /**
  * The two pieces the panel's plain forms and one-click buttons were missing:
@@ -48,17 +59,15 @@ interface ToastActionOptions {
  * still run (unstable_rethrow). An action that redirected answers nothing
  * (null); its flash cookie is the toast.
  */
-export async function runPanelAction(
+export function runPanelAction(
   action: ModalAction,
   prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult | null> {
-  try {
-    return (await action(prev, formData)) ?? null;
-  } catch (err) {
-    unstable_rethrow(err);
-    return { ok: false, error: PANEL_ACTION_FAILED };
-  }
+  return withPanelCatch<ActionResult | null>(
+    async (p, fd) => (await action(p, fd)) ?? null,
+    () => ({ ok: false, error: PANEL_ACTION_FAILED }),
+  )(prev, formData);
 }
 
 /** `useActionState` for a panel action, with its answer shown as a toast. */
@@ -205,22 +214,29 @@ export function markFieldErrors(
 /**
  * A page form driven by an ActionResult action.
  *
- * Dispatched by hand (like ActionModal) rather than through `<form action>`:
- * React resets an action form's uncontrolled fields once the action
- * finishes, which wiped everything the operator typed each time the server
- * refused one field.
+ * Dispatched by hand (useNoResetSubmit, like ActionModal) rather than
+ * through `<form action>`: React resets an action form's uncontrolled
+ * fields before the action runs, which wiped everything the operator typed
+ * each time the server refused one field. A second submit before the
+ * answer is dropped.
  */
 export function ActionForm({
   action,
   children,
   className,
   resetOnSuccess = false,
+  beforeSubmit,
 }: {
   action: ModalAction;
   children: ReactNode;
   className?: string;
   /** Empty the form after a success that stays on the page. */
   resetOnSuccess?: boolean;
+  /**
+   * Runs before the post; return `false` to stop it (nothing is sent, the
+   * form stays as typed). For a check only the browser can make.
+   */
+  beforeSubmit?: BeforeSubmit;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const baseId = useId();
@@ -232,13 +248,7 @@ export function ActionForm({
     },
   });
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (pending) return;
-    const submitter = (e.nativeEvent as SubmitEvent).submitter;
-    const formData = new FormData(e.currentTarget, submitter);
-    startTransition(() => formAction(formData));
-  };
+  const onSubmit = useNoResetSubmit(formAction, pending, { beforeSubmit });
 
   const errorId = (name: string) => `${baseId}-err-${name}`;
   const ctx: FormState = {

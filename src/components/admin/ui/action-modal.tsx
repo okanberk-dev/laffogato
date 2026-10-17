@@ -3,14 +3,12 @@
 import { unstable_rethrow } from "next/navigation";
 import {
   createContext,
-  startTransition,
   useActionState,
   useContext,
   useEffect,
   useId,
   useRef,
   useState,
-  type FormEvent,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -21,6 +19,7 @@ import type { ActionResult } from "@/lib/admin/action-result";
 
 import { Field, TextInput, Textarea } from "../forms";
 import { BUTTON, MONO_STYLE, type ButtonVariant } from "./styles";
+import { useNoResetSubmit } from "./submit";
 import { adminPortalRoot, useToast } from "./toast";
 
 /**
@@ -297,15 +296,9 @@ function ModalDialog({
   }, []);
 
   // Dispatched by hand rather than through `<form action>`: React resets an
-  // action form's uncontrolled fields when the action finishes, which would
+  // action form's uncontrolled fields before the action runs, which would
   // wipe the reason the operator typed every time the server refuses it.
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (pending) return;
-    const submitter = (e.nativeEvent as SubmitEvent).submitter;
-    const formData = new FormData(e.currentTarget, submitter);
-    startTransition(() => formAction(formData));
-  };
+  const onSubmit = useNoResetSubmit(formAction, pending);
 
   const fieldErrors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
   const ctx: ActionModalState = {
