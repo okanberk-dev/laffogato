@@ -28,6 +28,17 @@ Proje bugün canlı ve sağlıklı (auth ucu cevap veriyor, publishable anahtar
 geçerli - bu oturumda doğrulandı). Ama "bugün canlı" ile "plan gereği kalıcı"
 aynı şey değil.
 
+**Uyku koruması (17 Eki 2026).** Ücretsiz plandaki proje 7 gün veritabanı
+etkinliği görmezse duraklatılır ve duraklamış proje uygulamada da sitede de
+her girişi reddeder. Bu yüzden `/api/cron/daily` her sabah ilk iş olarak
+servis rolüyle auth yönetim API'sinden tek kullanıcılık bir sayfa ister
+(`keepSupabaseAwake`, `src/lib/supabase/admin.ts`): `auth.users` üzerinde
+gerçek bir okuma; yanıt okunmadan atılır. `/auth/v1/health` veritabanına
+inmediği için yetmez. Sonuç cron yanıtındaki `keepalive.ping`'dir (`ok` ·
+`failed` · `skipped`; `SUPABASE_SERVICE_ROLE_KEY` yoksa `skipped`). Bu
+yalnız duraklamayı önler, yukarıdaki 2 proje sınırı yüzünden kaldırılmayı
+değil. Pro planda duraklama yoktur; orada adım silinebilir.
+
 ## 1. Neden bu geçiş küçük bir iş: veri katmanı sağlayıcı tanımıyor
 
 `src/lib/db/index.ts` düz `pg` sürücüsüdür; sorgular adlandırılmış prepared
