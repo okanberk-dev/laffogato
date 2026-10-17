@@ -5,12 +5,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 /**
  * /admin/musteriler/[email]: the stats use the reports' rule (an abandoned
  * checkout or a cancelled order is not money spent), and the page lists the
- * address's karaoke bookings, which it never showed.
+ * address's karaoke bookings, which it never showed. Each booking opens its
+ * own page and reads as it does there (the karaoke panel's row view).
  */
 
 const h = vi.hoisted(() => ({
   orders: [] as Record<string, unknown>[],
   bookings: [] as Record<string, unknown>[],
+  released: {
+    staff: new Set<string>(),
+    unverified: new Set<string>(),
+  },
+  releasedFails: false,
+  releasedAsked: [] as string[][],
 }));
 
 vi.mock("next/link", () => ({
@@ -35,6 +42,14 @@ vi.mock("@/lib/admin/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/admin/store")>()),
   customerOrdersByEmail: vi.fn(async () => h.orders),
   listProducts: vi.fn(async () => []),
+  getSettings: vi.fn(async () => ({ karaokePrepay: true })),
+}));
+vi.mock("@/lib/admin/karaoke-audit", () => ({
+  listReleasedHolds: vi.fn(async (ids: readonly string[]) => {
+    h.releasedAsked.push([...ids]);
+    if (h.releasedFails) throw new Error("audit down");
+    return h.released;
+  }),
 }));
 vi.mock("@/lib/customer/store", () => ({
   getAdminCustomerByEmail: vi.fn(async () => null),
@@ -118,9 +133,18 @@ async function render(email = "misafir%40ornek.com"): Promise<string> {
 const text = (html: string) =>
   html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 
+/** The text of the karaoke row that carries `id`. */
+function rowText(html: string, id: string): string {
+  const part = html.split("<li").find((p) => p.includes(id)) ?? "";
+  return text(`<li${part.split("</li>")[0]}`);
+}
+
 beforeEach(() => {
   h.orders = [];
   h.bookings = [];
+  h.released = { staff: new Set(), unverified: new Set() };
+  h.releasedFails = false;
+  h.releasedAsked = [];
 });
 
 describe("customer detail", () => {
@@ -159,7 +183,76 @@ describe("customer detail", () => {
     expect(t).toContain("ödenen ₺2.000,00");
     // Newest first.
     expect(html.indexOf("krk-0001")).toBeLessThan(html.indexOf("krk-0002"));
+    // Each row opens its booking's own page; the header opens the list.
+    expect(html).toContain('href="/admin/mobil/karaoke/krk-0001"');
+    expect(html).toContain('href="/admin/mobil/karaoke/krk-0002"');
     expect(html).toContain('href="/admin/mobil/karaoke"');
+    // Nothing was released, so the audit log is not read.
+    expect(h.releasedAsked).toEqual([]);
+  });
+
+  it("says what the karaoke page says about a released hold", async () => {
+    h.bookings = [
+      booking({
+        id: "krk-0010",
+        date: "2026-10-03",
+        status: "cancelled",
+        paymentStatus: "expired",
+        paidMinor: 0,
+      }),
+      booking({
+        id: "krk-0011",
+        date: "2026-10-02",
+        status: "cancelled",
+        paymentStatus: "expired",
+        paidMinor: 0,
+      }),
+      booking({
+        id: "krk-0012",
+        date: "2026-10-01",
+        status: "cancelled",
+        paymentStatus: "expired",
+        paidMinor: 0,
+      }),
+    ];
+    h.released = {
+      staff: new Set(["krk-0011"]),
+      unverified: new Set(["krk-0010"]),
+    };
+    const html = await render();
+    // Let go without the POS's answer: never "not paid" (rule 29).
+    expect(rowText(html, "krk-0010")).toContain("Ödeme doğrulanamadı");
+    expect(rowText(html, "krk-0010")).not.toContain("Ödenmedi");
+    // A panel user let it go before it was paid.
+    expect(rowText(html, "krk-0011")).toContain("Ödeme alınmamıştı");
+    // Lapsed on its own.
+    expect(rowText(html, "krk-0012")).toContain("Ödenmedi, süresi doldu");
+    expect(h.releasedAsked).toEqual([["krk-0010", "krk-0011", "krk-0012"]]);
+  });
+
+  it("flags a cancelled booking whose money is still in", async () => {
+    h.bookings = [
+      booking({ status: "cancelled", paymentStatus: "paid" }),
+      booking({ id: "krk-0002", date: "2026-10-01" }),
+    ];
+    const html = await render();
+    expect(rowText(html, "krk-0001")).toContain("İade borcu");
+    expect(rowText(html, "krk-0002")).not.toContain("İade borcu");
+  });
+
+  it("stands when the audit log cannot be read", async () => {
+    h.releasedFails = true;
+    h.bookings = [
+      booking({ status: "cancelled", paymentStatus: "expired", paidMinor: 0 }),
+    ];
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const t = text(await render());
+      expect(t).toContain("Karaoke rezervasyonları (1)");
+      expect(t).toContain("Ödenmedi, süresi doldu");
+    } finally {
+      errors.mockRestore();
+    }
   });
 
   it("opens for an address that only ever booked karaoke", async () => {

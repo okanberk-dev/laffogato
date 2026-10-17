@@ -14,24 +14,27 @@ import { Badge, OrderStatusBadge } from "@/components/admin/ui/badge";
 import { requireRole } from "@/lib/admin/auth";
 import { getAdminInviteTree } from "@/lib/admin/invites";
 import {
+  listReleasedHolds,
+  type KaraokeReleasedHolds,
+} from "@/lib/admin/karaoke-audit";
+import {
+  KARAOKE_PANEL_PATH,
+  karaokeDetailHref,
+  karaokeRowViews,
+  moneyOf,
+} from "@/lib/admin/karaoke-panel";
+import { canAccess } from "@/lib/admin/roles";
+import {
   customerLifetime,
   customerOrdersByEmail,
+  getSettings,
   listProducts,
 } from "@/lib/admin/store";
-import type { AdminTone } from "@/lib/admin/tone";
 import { adminListCustomerCoupons } from "@/lib/customer/coupons";
 import { getAdminCustomerByEmail } from "@/lib/customer/store";
-import {
-  KARAOKE_PAYMENT_LABELS,
-  KARAOKE_STATUS_LABELS,
-  formatReservationDate,
-  formatReservationTime,
-  listByAddress,
-  paymentStatusOf,
-  type KaraokePaymentStatus,
-  type KaraokeReservationStatus,
-} from "@/lib/mobile/karaoke";
+import { listByAddress, type KaraokeReservation } from "@/lib/mobile/karaoke";
 import { getLoyalty, listStamps } from "@/lib/mobile/loyalty";
+import { istanbulClock } from "@/lib/mobile/venue";
 
 export const dynamic = "force-dynamic";
 // "Hesabı sil" runs here and closes the account the member's way (deleteMe):
@@ -50,23 +53,31 @@ const INVITE_STATUS_LABEL: Record<string, string> = {
   rewarded: "Ödüllendi",
 };
 
-const KARAOKE_STATUS_TONE: Record<KaraokeReservationStatus, AdminTone> = {
-  requested: "warning",
-  confirmed: "success",
-  cancelled: "neutral",
-};
-
-const KARAOKE_PAYMENT_TONE: Record<KaraokePaymentStatus, AdminTone> = {
-  none: "neutral",
-  pending: "warning",
-  paid: "success",
-  refunding: "danger",
-  refunded: "info",
-  expired: "neutral",
-};
-
 /** How many bookings the card lists; the rest are on the karaoke page. */
 const KARAOKE_SHOWN = 20;
+
+/**
+ * Which of these released holds a panel user let go, and which were let go
+ * without the POS's answer: the karaoke page's own read, so a booking here
+ * says what it says there (never "not paid" for an unanswered one, rule 29).
+ * A failed read leaves them as lapsed, as the karaoke page does.
+ */
+async function releasedHolds(
+  rows: readonly KaraokeReservation[],
+): Promise<KaraokeReleasedHolds> {
+  const released = rows
+    .filter((r) => r.status === "cancelled" && moneyOf(r) === "expired")
+    .map((r) => r.id);
+  if (released.length === 0) {
+    return { staff: new Set(), unverified: new Set() };
+  }
+  try {
+    return await listReleasedHolds(released);
+  } catch (err) {
+    console.error("[admin/musteriler] iptal kayıtları okunamadı", err);
+    return { staff: new Set(), unverified: new Set() };
+  }
+}
 
 const PREF_LABEL: Record<string, string> = {
   orderUpdates: "Sipariş güncellemeleri",
@@ -80,11 +91,11 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function CustomerDetailPage({ params }: PageProps) {
-  await requireRole("customers");
+  const session = await requireRole("customers");
   const { email: raw } = await params;
   const email = decodeURIComponent(raw);
 
-  const [member, orders, coupons, loyalty, stamps, invites, karaoke] =
+  const [member, orders, coupons, loyalty, stamps, invites, karaoke, settings] =
     await Promise.all([
       getAdminCustomerByEmail(email),
       customerOrdersByEmail(email),
@@ -95,6 +106,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
       // Every booking under the address, guest ones included (flagged): the
       // operator answering this person's call needs the whole picture.
       listByAddress(email),
+      getSettings(),
     ]);
 
   // Neither a member account, an order nor a booking for this e-mail → 404.
@@ -106,6 +118,19 @@ export default async function CustomerDetailPage({ params }: PageProps) {
   const bookings = [...karaoke].sort(
     (a, b) => b.date.localeCompare(a.date) || b.startHour - a.startHour,
   );
+  // Badges from the karaoke panel's own row view, so a booking reads the
+  // same here as on its page.
+  const shown = bookings.slice(0, KARAOKE_SHOWN);
+  const now = new Date();
+  const released = await releasedHolds(shown);
+  const bookingViews = karaokeRowViews(shown, {
+    today: istanbulClock(now).date,
+    now,
+    prepay: settings.karaokePrepay,
+    canRefund: canAccess("refunds", session.role),
+    staffReleased: released.staff,
+    unverified: released.unverified,
+  });
 
   // Resolve wishlist product names (best-effort).
   let wishlistNames: string[] = [];
@@ -367,7 +392,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
             Karaoke rezervasyonları ({bookings.length})
           </SectionTitle>
           <Link
-            href="/admin/mobil/karaoke"
+            href={KARAOKE_PANEL_PATH}
             className="text-xs text-[var(--admin-primary)] underline-offset-4 hover:underline"
           >
             Karaoke ekranı →
@@ -379,40 +404,41 @@ export default async function CustomerDetailPage({ params }: PageProps) {
           </p>
         ) : (
           <ul className="grid gap-2">
-            {bookings.slice(0, KARAOKE_SHOWN).map((r) => {
-              const money = paymentStatusOf(r);
+            {bookingViews.map((v) => {
+              const r = v.r;
               return (
-                <li
-                  key={r.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--admin-border)] p-3 text-sm"
-                >
-                  <div className="min-w-0">
-                    <div className="font-medium text-neutral-900">
-                      {formatReservationDate(r.date)} ·{" "}
-                      {formatReservationTime(r.startHour, r.hours)}
-                    </div>
-                    <div className="text-xs text-neutral-500">
-                      {r.guests} kişi · {formatTRY(r.totalMinor)}
-                      {money !== "none" && (r.paidMinor ?? 0) > 0
-                        ? ` · ödenen ${formatTRY(r.paidMinor ?? 0)}`
-                        : ""}
-                      <span
-                        className="ml-2"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {r.id}
+                <li key={r.id}>
+                  {/* The whole row opens the booking's own page. */}
+                  <Link
+                    href={karaokeDetailHref(r.id)}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--admin-border)] p-3 text-sm hover:border-[var(--admin-primary)]"
+                  >
+                    <span className="block min-w-0">
+                      <span className="block font-medium text-neutral-900">
+                        {v.day} · {v.time}
                       </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {r.guest ? <Badge>Üyeliksiz</Badge> : null}
-                    <Badge tone={KARAOKE_STATUS_TONE[r.status]}>
-                      {KARAOKE_STATUS_LABELS[r.status]}
-                    </Badge>
-                    <Badge tone={KARAOKE_PAYMENT_TONE[money]}>
-                      {KARAOKE_PAYMENT_LABELS[money]}
-                    </Badge>
-                  </div>
+                      <span className="block text-xs text-neutral-500">
+                        {r.guests} kişi · {formatTRY(r.totalMinor)}
+                        {v.money !== "none" && (r.paidMinor ?? 0) > 0
+                          ? ` · ödenen ${formatTRY(r.paidMinor ?? 0)}`
+                          : ""}
+                        <span
+                          className="ml-2"
+                          style={{ fontFamily: "var(--mono), monospace" }}
+                        >
+                          {r.id}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      {r.guest ? <Badge>Üyeliksiz</Badge> : null}
+                      <Badge tone={v.statusTone}>{v.statusLabel}</Badge>
+                      <Badge tone={v.paymentTone}>{v.paymentLabel}</Badge>
+                      {v.attention.includes("refund_owed") ? (
+                        <Badge tone="danger">İade borcu</Badge>
+                      ) : null}
+                    </span>
+                  </Link>
                 </li>
               );
             })}

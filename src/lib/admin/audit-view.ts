@@ -3,7 +3,10 @@
 // JSON.stringify; these turn them into a link to the record and a short list
 // of fields.
 
+import { isKaraokeRef } from "@/lib/mobile/karaoke-ref";
+
 import type { AuditAction, AuditEntity } from "./audit";
+import { KARAOKE_PANEL_PATH, karaokeDetailHref } from "./karaoke-panel";
 import type { FilterField } from "./list-params";
 import type { AdminTone } from "./tone";
 
@@ -164,7 +167,9 @@ export function auditRecordHref(
         ? `/admin/musteriler/${encodeURIComponent(id.toLowerCase())}`
         : null;
     case "karaoke_reservation":
-      return "/admin/mobil/karaoke";
+      // The booking's own page (`krk-00042`, the id its rows carry);
+      // anything else, the list.
+      return isKaraokeRef(id) ? karaokeDetailHref(id) : KARAOKE_PANEL_PATH;
     case "admin_user":
     case "staff_member":
       return "/admin/kullanicilar";

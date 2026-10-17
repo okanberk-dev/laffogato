@@ -48,8 +48,20 @@ describe("auditRecordHref", () => {
     ["campaign_email", "cmp-0001", "/admin/bulten/kampanya/cmp-0001"],
     ["legal_doc", "gizlilik", "/admin/hukuk/gizlilik"],
     ["app_post", "apost-001", "/admin/mobil/gonderiler/apost-001"],
+    ["karaoke_reservation", "krk-00042", "/admin/mobil/karaoke/krk-00042"],
+    ["karaoke_reservation", " krk-100000 ", "/admin/mobil/karaoke/krk-100000"],
   ])("%s %s → %s", (entity, id, href) => {
     expect(view.auditRecordHref(entity, id)).toBe(href);
+  });
+
+  it("sends a karaoke id that cannot be a booking's to the list", () => {
+    // The booking page answers only `krk-` + digits; anything else would be
+    // its 404.
+    for (const id of ["KRK-00042", "krk-", "krk-42/../x", "42"]) {
+      expect(view.auditRecordHref("karaoke_reservation", id)).toBe(
+        "/admin/mobil/karaoke",
+      );
+    }
   });
 
   it("links nowhere when there is no page, or the account is closed", () => {
@@ -190,6 +202,15 @@ describe("the page", () => {
         payload: { name: "Sirena", isActive: true },
         createdAt: "2026-10-16T09:00:00.000Z",
       },
+      {
+        id: "aud-0000002",
+        actor: "system",
+        action: "update",
+        entity: "karaoke_reservation",
+        entityId: "krk-00042",
+        payload: { event: "refund_unanswered", amountMinor: 200_000 },
+        createdAt: "2026-10-16T08:00:00.000Z",
+      },
     ]);
     vi.doMock("@/lib/admin/audit", () => ({ listAuditLogs: listed }));
     const { default: AuditLogPage } =
@@ -216,6 +237,9 @@ describe("the page", () => {
     expect(html).toContain(
       'href="/admin/olay-kaydi?entity=product&amp;entityId=prd-0001"',
     );
+    // A karaoke row opens its booking's own page, not the list.
+    expect(html).toContain('href="/admin/mobil/karaoke/krk-00042"');
+    expect(html).not.toContain('href="/admin/mobil/karaoke"');
     expect(html).toMatch(/<dt[^>]*>Ad<\/dt><dd[^>]*>Sirena<\/dd>/);
     expect(html).not.toContain("{&quot;name&quot;");
   });
