@@ -66,7 +66,7 @@ export default async function TwoFAEnrollPage() {
                 pattern="[0-9]{6}"
                 maxLength={6}
                 required
-                placeholder="6 haneli kod"
+                placeholder="123456"
                 aria-label="6 haneli doğrulama kodu"
                 style={{ ...NUMERIC_STYLE, textAlign: "center" }}
               />
