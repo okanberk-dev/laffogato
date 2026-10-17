@@ -13,7 +13,8 @@ import {
  * GTM never runs in the checkout document (docs/PAYNKOLAY.md §15.5): the
  * root layout's tags stay out of a document LOADED at /odeme, the site's
  * own ways in are full page loads, and the checkout reloads itself when a
- * client-side navigation brought it into another page's document.
+ * client-side navigation brought it into another page's document. The admin
+ * panel's documents carry none of them either.
  */
 
 let pathname = "/";
@@ -55,6 +56,51 @@ describe("the root layout's tags", () => {
 
   it("render nothing at all in the checkout document", () => {
     expect(tags("/odeme")).toBe("<div></div>");
+  });
+
+  it("render nothing at all in an admin panel document", () => {
+    // GTM beside customer data and an admin session, GA reporting admin
+    // addresses that carry customer e-mails, the banner over the panel's
+    // toasts (admin audit SHE-02 / KAR-09, 17 Eki 2026).
+    for (const path of [
+      "/admin",
+      "/admin/",
+      "/admin/siparisler",
+      "/admin/siparisler/ord-0001",
+      "/admin/musteriler/ayse%40example.com",
+      "/admin/giris",
+      "/admin/iki-asama",
+    ]) {
+      expect(tags(path), path).toBe("<div></div>");
+    }
+  });
+
+  it("keep them on site pages whose path only starts like the panel's", () => {
+    for (const path of [
+      "/administrator",
+      "/admin-x",
+      "/adminler",
+      "/x/admin",
+    ]) {
+      const html = tags(path);
+      expect(html, path).toContain('data-gtm="GTM-TEST"');
+      expect(html, path).toContain('id="consent-bootstrap"');
+      expect(html, path).toContain('id="consent-seen"');
+      expect(html, path).toContain("data-banner");
+    }
+  });
+
+  it("decide once per document, and leave the checkout's own test alone", () => {
+    const src = readFileSync("src/components/laffogato/site-tags.tsx", "utf8");
+    // The first path the document rendered with wins for its whole life (a
+    // useState initialiser), for the panel exactly as for the checkout.
+    expect(src).toMatch(
+      /useState\(\s*\(\) => !isCheckoutPath\(pathname\) && !isAdminDocumentPath\(pathname\),?\s*\)/,
+    );
+    // The panel gets its own predicate: the proxy's nonce policy and the
+    // checkout's guard read isCheckoutPath, which stays "/odeme" only.
+    expect(isCheckoutPath("/admin")).toBe(false);
+    expect(isCheckoutPath("/admin/siparisler")).toBe(false);
   });
 
   it("the root layout reaches GTM only through them", () => {
