@@ -1004,3 +1004,21 @@ Açık:
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | E-posta veya postayla gelen silme talebinde karaoke kuralı hâlâ kapanış anına göre | Panelin kaydettiği tek talep anı Site'ninki; e-postayla gelen talebin anını "Hesabı sil" diyaloğuna yazdıracak alan ayrı bir PR. O zamana kadar ekip e-posta talebini ödenmiş rezervasyonun saatinden önce kapatır; `hesap-silme` §8 talep anı kuralını yalnız Site talebi için söyler |
+
+### Katalog: mağaza ürün sayfası, kart, vitrin (paket 5b)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Ürün sayfası ve hızlı bakış rafa göre sabit satırlar basıyordu: her hediyeye "Gluten · süt · soya izi" ve "90 gün", her ekipmana "Bialetti × L'Affogato" ve "Garanti: 2 yıl", her çekirdeğe Sirena'nın kökeni ve tat notları; paneldeki marka ve tat notları okunmuyordu. Kargo eşiği Ayarlar ne derse desin "500₺" yazıyordu, eşik kapalıyken de; sayfa yasal metinlerin vermediği "14 gün koşulsuz iade"yi vaat ediyordu (CAT-M01, karar D19) | Satırlar ürünün kendi verisinden gelir (`product-facts.ts`): marka, tat notları, SKU, 0'dan büyük ağırlık, `nuts` alerjeni; sabit köken, tat, demleme, saklama, içerik, marka, garanti ve alerjen satırları kalktı, satırı olmayan üründe "Ürün detayları" çizilmez. Gıda raflarında (çekirdek, kiler, hediye) içindekiler, alerjen ve saklama bilgisi için sipariş öncesi Ayarlar'daki e-posta ve telefon adıyla verilir (TGK Etiketleme m.17/2-a). Kargo eşiği Ayarlar'dan gelir (ürün sayfası, mağaza vitrini ve güvence kutuları), 0'da hiç yazılmaz. İade metni cayma hakkının istisnalarını söyler (MSY m.15) | `storefront-product-facts` |
+| 🟡 | Mağaza kartındaki hızlı "+" ve öne çıkan setin "Sepete ekle"si varyantlı ürünü varyantsız ekliyordu: satır taban fiyattan, yalnız ürün toplamından düşüyordu (5a'da bulundu) | `toCartItem` varyantlı üründe ürünün kendi aktif varyantı olmadan satır üretmez; kart böyle üründe "Seçenekleri gör" ile hızlı bakışı (yoksa ürün sayfasını) açar, öne çıkan set de; hızlı bakışın gövdesi ürüne göre anahtarlanır | `storefront-variant-cart` |
+| 🟢 | Hızlı bakışın ızgarası `1fr 1fr` idi: fotoğrafın 4/5 kutusu satırla büyüyor, uzun ayrıntı listesi 1280 px'te metin sütununu daraltıyordu; "Sepete ekle" panelin kesilen kenarının altında kalıyordu (bu turda görüldü) | Sütunlar `minmax(0, 1fr)`, fotoğraf sütun genişliğinde ve en az satır yüksekliğinde; metin sütunu panelin 92vh'sıyla sınırlı ve kayar, telefonda sayfa tek parça kayar | `storefront-product-facts` |
+| 🟢 | Mağaza vitrininin fotoğrafı tırnaksız `url()` içindeydi: boşluk ya da parantez görseli düşürüyor, `");...;("` ile biten adres vitrine kendi CSS bildirimlerini ekliyordu (CAT-27'nin mağaza kısmı); panel önizlemesi canlı slaytı çizemiyordu (CAT-25'in mağaza kısmı) | `cssUrl()` (`css-url.ts`) adresi tırnaklar, tırnağı, ters bölüyü ve kontrol karakterlerini CSS kaçışıyla yazar; `Slide` dışa açıldı | `storefront-hero-slide` |
+
+Açık (paket 5b'nin dışında kalan kısımlar):
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟡 | Ürünün markası ve tat notları mağazaya ulaşmıyor: `toDesignProduct` (`src/lib/admin/store.ts`) `brand` ve `notes`'u göndermiyor; sayfa ikisini de hazır okur | Arka yüz değişikliği, ön yüz PR'ında yapılmaz (iki satırlık ayrı PR) |
+| 🟡 | Paketli gıdada içindekiler, Ek-1 alerjenleri, net miktar ve saklama koşulu ürünün kendi alanı olarak yok; sayfa şimdilik sipariş öncesi iletişimi gösteriyor (TGK Etiketleme m.17/2-a) | Ürün şemasına alan eklemek arka yüz (migration, panel, uygulama) işidir |
+| 🟡 | Sunucu varyantlı ürünün varyantsız satırını hâlâ kabul ediyor (eski sepetlerde ya da elle yazılmış istekte) | `resolveOrderLines` reddi ayrı arka yüz PR'ı |
+| 🟢 | Panelde vitrin adresinin ve CTA'nın doğrulanması, panel önizlemesinin `Slide` + `cssUrl` kullanması (CAT-25, CAT-27'nin panel kısmı) | Paket 5c (catalog-forms) |
