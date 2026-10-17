@@ -214,12 +214,28 @@ export async function saveShippingAction(
   if (courierFeeMinor === null || courierFeeMinor <= 0) {
     return { error: "Kurye ücreti sıfırdan büyük bir sayı olmalı." };
   }
+  // The home page's "Gel-al · N dk". A form without the field (an open tab
+  // from before it existed) leaves the stored value alone.
+  const pickupRaw = formData.get("pickupReadyMinutes");
+  let pickupReadyMinutes: number | undefined;
+  if (pickupRaw !== null) {
+    const text = String(pickupRaw).trim();
+    const n = Number(text);
+    if (!/^\d+$/.test(text) || n < 1 || n > 180) {
+      return {
+        error:
+          "Gel-al hazırlık süresi 1 ile 180 dakika arasında tam sayı olmalı.",
+      };
+    }
+    pickupReadyMinutes = n;
+  }
 
   const before = await getSettings();
   await updateSettings({
     shippingFlatMinor,
     shippingFreeThresholdMinor,
     courierFeeMinor,
+    ...(pickupReadyMinutes === undefined ? {} : { pickupReadyMinutes }),
   });
   revalidateAll();
   return ok("shipping", "Kargo ve kurye ayarları kaydedildi.", {
@@ -227,11 +243,15 @@ export async function saveShippingAction(
       shippingFlatMinor: before.shippingFlatMinor,
       shippingFreeThresholdMinor: before.shippingFreeThresholdMinor,
       courierFeeMinor: before.courierFeeMinor,
+      ...(pickupReadyMinutes === undefined
+        ? {}
+        : { pickupReadyMinutes: before.pickupReadyMinutes }),
     },
     after: {
       shippingFlatMinor,
       shippingFreeThresholdMinor,
       courierFeeMinor,
+      ...(pickupReadyMinutes === undefined ? {} : { pickupReadyMinutes }),
     },
   });
 }

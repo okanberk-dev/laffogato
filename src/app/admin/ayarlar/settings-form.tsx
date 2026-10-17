@@ -359,6 +359,21 @@ function ShippingTab({ settings }: { settings: AdminSettings }) {
               defaultValue={(settings.courierFeeMinor / 100).toFixed(2)}
             />
           </Field>
+          <Field
+            label="Gel-al hazırlık süresi (dk)"
+            hint="Anasayfadaki sipariş kartında “Gel-al · 15 dk” diye yazan süre. Yalnız gösterilir; siparişin kendisini etkilemez."
+          >
+            <TextInput
+              name="pickupReadyMinutes"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={180}
+              step={1}
+              defaultValue={String(settings.pickupReadyMinutes)}
+              required
+            />
+          </Field>
         </div>
         <SaveBar state={state} pending={pending} />
       </Section>

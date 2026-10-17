@@ -23,12 +23,15 @@ export const MENU_TAG_LABELS: Record<string, string> = {
 /** The props LaffogatoApp (app.tsx) renders every page with. */
 export interface PageProps {
   navigate: (r: Route) => void;
-  /** Operator settings from /admin/ayarlar (contact + courier fee). */
+  /** Operator settings from /admin/ayarlar (contact, courier fee, the home
+      page's pickup time and stamp count). */
   settings?: {
     phone?: string;
     email?: string;
     address?: string;
     courierFeeMinor?: number;
+    pickupReadyMinutes?: number;
+    stampTarget?: number;
   };
   addToCart: (item: CartItem) => void;
   openProduct: (p: Product | null) => void;

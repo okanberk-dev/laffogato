@@ -74,6 +74,9 @@ export async function loadAppProps({
         email: settings.email,
         address: settings.address,
         courierFeeMinor: settings.courierFeeMinor,
+        // The home page's order and rewards shortcuts (presentation only).
+        pickupReadyMinutes: settings.pickupReadyMinutes,
+        stampTarget: settings.mobileApp.loyalty.stampTarget,
       },
       menu,
       wishlist: customer?.wishlist,

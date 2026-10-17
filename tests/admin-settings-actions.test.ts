@@ -15,6 +15,7 @@ const SETTINGS = {
   shippingFlatMinor: 4900,
   shippingFreeThresholdMinor: 75000,
   courierFeeMinor: 5500,
+  pickupReadyMinutes: 15,
   karaokeHourlyMinor: 90000,
   karaokeCapacity: 8,
   karaokeNotifyEmail: "",
@@ -129,6 +130,45 @@ describe("saveShippingAction", () => {
         }),
       }),
     );
+  });
+});
+
+describe("Gel-al hazırlık süresi (the home page's order card)", () => {
+  it("stores whole minutes and audits the change", async () => {
+    const state = await saveShippingAction(
+      {},
+      shipping({ pickupReadyMinutes: "20" }),
+    );
+    expect(state.error).toBeUndefined();
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ pickupReadyMinutes: 20 }),
+    );
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          before: expect.objectContaining({ pickupReadyMinutes: 15 }),
+          after: expect.objectContaining({ pickupReadyMinutes: 20 }),
+        }),
+      }),
+    );
+  });
+
+  it.each(["0", "181", "12.5", "on beş", "", "-5"])(
+    "refuses %j and saves nothing",
+    async (value) => {
+      const state = await saveShippingAction(
+        {},
+        shipping({ pickupReadyMinutes: value }),
+      );
+      expect(state.error).toMatch(/Gel-al/);
+      expect(updateSettings).not.toHaveBeenCalled();
+    },
+  );
+
+  it("leaves the stored value alone when an old form does not send it", async () => {
+    await saveShippingAction({}, shipping());
+    const saved = updateSettings.mock.calls[0][0] as Record<string, unknown>;
+    expect(saved).not.toHaveProperty("pickupReadyMinutes");
   });
 });
 
