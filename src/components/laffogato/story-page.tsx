@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 
+import { Illustration, type IllustrationName } from "./illustration";
 import { PageHero } from "./page-hero";
 import { PRESS as SEED_PRESS, STORY } from "./data";
 import { SectionHead, Stat } from "./ui";
@@ -14,39 +15,65 @@ import {
 } from "./visuals";
 import type { PageProps } from "./page-shared";
 
+/**
+ * A drawing for each milestone the timeline knows by its year: the Bologna
+ * portico with the bar's sign, the cup and its spoon, a Bronte pistachio
+ * branch, the Tuzla köşk. A year the panel adds later simply has none.
+ */
+const TIMELINE_ART: Record<string, IllustrationName> = {
+  "1897": "story-1897",
+  "1994": "story-1994",
+  "2008": "story-2008",
+  "2026": "story-2026",
+};
+
 export function PageStory({ press, storyTimeline, content }: PageProps) {
   const PRESS = press ?? SEED_PRESS;
   const heritage = storyTimeline ?? STORY.heritage;
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
 
-  const values = [
+  // Each card has its line icon: the köşk's door (the one bar), a cup with a
+  // leaf (the recipe and the milk), a speaker turned low, the refill tin, a
+  // slow clock, and a laptop shut for the day (people first).
+  const values: Array<{
+    n: string;
+    icon: IllustrationName;
+    t: string;
+    d: string;
+  }> = [
     {
       n: "01",
+      icon: "ilke-kapi",
       t: "Tek bir bar, tek bir ritüel",
       d: "Menü kısa kalır. Sezonluk değişir ama liste hiçbir zaman altı affogato’dan fazla olmaz.",
     },
     {
       n: "02",
+      icon: "ilke-fincan",
       t: "İtalyan reçete, yerel süt",
       d: "Haftalık taze kavurma. Trakya küçük mandıradan günlük süt. Her ürün izlenebilir.",
     },
     {
       n: "03",
+      icon: "ilke-hoparlor",
       t: "Laptop yok, ses az",
       d: "Akşam 18:00’den sonra çalışma yok. Müzik 65dB üzerine çıkmaz. Bar, sohbet için.",
     },
     {
       n: "04",
+      icon: "ilke-teneke",
       t: "Zero waste",
       d: "Yenilebilir kup, kompost gelato bardağı, yeniden doldurulan teneke. 2025'ten beri tek kullanımlık plastik yok.",
     },
     {
       n: "05",
+      icon: "ilke-saat",
       t: "Yavaş büyüme",
       d: "Acele açılış yok. Her yeni fikir önce Tuzla köşkünde denenir; ana mekân her zaman ana mekân kalır.",
     },
     {
       n: "06",
+      icon: "ilke-laptop",
       t: "Personel mutluluğu",
       d: "İlk yıl çalışan turnover’ı %0. Yıllık 6 hafta tatil, sigorta artı, Bologna ziyareti.",
     },
@@ -245,7 +272,15 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
                 className="timeline-row reveal"
                 style={{ transitionDelay: `${i * 60}ms` }}
               >
-                <div className="timeline-year">{ev.y}</div>
+                <div className="timeline-when">
+                  <div className="timeline-year">{ev.y}</div>
+                  {TIMELINE_ART[ev.y.trim()] ? (
+                    <Illustration
+                      name={TIMELINE_ART[ev.y.trim()]}
+                      className="timeline-art"
+                    />
+                  ) : null}
+                </div>
                 <div className="timeline-dot">
                   <span></span>
                 </div>
@@ -288,6 +323,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
                 className="reveal value-card"
                 style={{ transitionDelay: `${(i % 3) * 60}ms` }}
               >
+                <Illustration name={v.icon} className="value-icon" />
                 <div className="value-num">{v.n}</div>
                 <h3 className="h3">{v.t}</h3>
                 <p>{v.d}</p>
@@ -393,6 +429,8 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
 
       <section className="section" style={{ background: "var(--bg-cream)" }}>
         <div className="wrap-narrow" style={{ textAlign: "center" }}>
+          {/* The whole brand in one picture: the cup, bitten. */}
+          <Illustration name="story-kupa" className="story-close-art reveal" />
           <div className="eyebrow reveal" style={{ marginBottom: 24 }}>
             Per chiudere
           </div>

@@ -5516,6 +5516,18 @@ summary:focus-visible,
   background: var(--gold-soft);
   box-shadow: 0 0 0 5px rgba(232, 200, 119, 0.16);
 }
+/* The year over its drawing (story-page.tsx TIMELINE_ART); beside it on a
+   phone, where the row is one column. */
+.timeline-when {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+}
+.timeline-art {
+  display: block;
+  width: 120px;
+  height: auto;
+}
 @media (max-width: 720px) {
   .timeline-row {
     grid-template-columns: 1fr;
@@ -5526,6 +5538,15 @@ summary:focus-visible,
   }
   .timeline-year {
     font-size: 36px;
+  }
+  .timeline-when {
+    grid-auto-flow: column;
+    justify-content: start;
+    align-items: center;
+    gap: 16px;
+  }
+  .timeline-art {
+    width: 72px;
   }
 }
 
@@ -5546,11 +5567,27 @@ summary:focus-visible,
 }
 
 .value-card {
+  position: relative;
   padding: 30px;
   background: var(--glass);
   border: 1px solid var(--ink-line);
   border-radius: var(--r-lg);
   box-shadow: var(--rim), var(--shadow-glass);
+}
+/* Each principle's line icon, in the corner across from its number. */
+.value-icon {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  width: 48px;
+  height: 48px;
+}
+/* The closing: the bitten cup over "Drink it. Eat the cup." */
+.story-close-art {
+  display: block;
+  width: clamp(140px, 22vw, 200px);
+  height: auto;
+  margin: 0 auto 20px;
 }
 .value-num {
   display: inline-grid;
