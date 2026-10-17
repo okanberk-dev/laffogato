@@ -567,7 +567,7 @@ sözleşmenin §18/§19'u, panel sinyalleri) depoda bekledi.
 
 | Yol | Program | Ne yapar |
 |---|---|---|
-| `/api/cron/daily` | 06:00 UTC (09:00 İstanbul) | kampanyalar → doğum günü → imha, sırayla |
+| `/api/cron/daily` | 06:00 UTC (09:00 İstanbul) | Supabase yoklaması → kampanyalar → doğum günü → karaoke tutmaları → imha, sırayla |
 | `/api/cron/campaign-emails` | 12:00 UTC (15:00 İstanbul) | zamanlanmış kampanyalar için ikinci geçiş |
 
 > ⚠️ **Kanonik ad APEX: `https://laffogato.net`** (22 Eyl 2026 kararı).
@@ -621,7 +621,7 @@ Vercel başlığı kendisi ekler; yapılacak tek şey ortam değişkenini tanım
 
 | Görev                       | Kim, ne sıklıkla                                                  | Ne yapar                                                                                                                             |
 | --------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `/api/cron/daily`           | Vercel, `0 6 * * *` (UTC)                                         | aşağıdaki kampanya işi, sonra doğum günü, en son imha                                                                                |
+| `/api/cron/daily`           | Vercel, `0 6 * * *` (UTC)                                         | önce Supabase yoklaması (`docs/SUPABASE-GECIS.md` §0), sonra aşağıdaki kampanya işi, doğum günü, karaoke tutmaları, en son imha      |
 | `/api/cron/campaign-emails` | Vercel `0 12 * * *` (UTC) + GitHub Actions (2-5,5 saatte bir)     | (1) `scheduledAt`'i gelmiş taslakları kuyruğa alır, (2) `queued`/`sending` her kampanyayı kaldığı yerden sürdürür; ortak süre 240 s |
 | `/api/cron/birthday`        | programda değil (işi `/api/cron/daily` yapar)                     | o günün doğum günleri: kupon herkese, kutlama yalnız izin verene                                                                     |
 
