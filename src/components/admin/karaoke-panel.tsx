@@ -95,6 +95,35 @@ function amount(view: KaraokeRowView): string {
 }
 
 /**
+ * The title and text of an unpaid booking's cancel dialog. An evening
+ * already over is written off without a mail (karar D7), and its dialog
+ * says so. Exported for tests: a closed dialog renders no text.
+ */
+export function unpaidCancelText(
+  cancel: NonNullable<KaraokeRowView["plan"]["cancel"]>,
+): { title: string; description: string } {
+  if (cancel.kind === "hold") {
+    return {
+      title: "Rezervasyonu iptal et",
+      description:
+        "Ödeme bekleyen bir rezervasyon. Önce POS'a ödenip ödenmediği sorulur: ödenmemişse saat boşa çıkar ve müşteriye iptal e-postası gider. Bu arada ödenmişse iptal edilmez, sana söylenir.",
+    };
+  }
+  if (cancel.ended) {
+    return {
+      title: "Geçmiş rezervasyonu iptal et",
+      description:
+        "Saati geçmiş, köşkte ödenecek bir rezervasyon; iade yok. İptal olarak kaydedilir (ör. müşteri gelmedi), müşteriye e-posta gitmez.",
+    };
+  }
+  return {
+    title: "Rezervasyonu iptal et",
+    description:
+      "Ödeme alınmamıştı, iade yok. Saat boşa çıkar ve müşteriye iptal e-postası gider.",
+  };
+}
+
+/**
  * The booking's actions as kit dialogs: `menu` rows for the list's ⋯ menu,
  * `page` buttons for the booking's page. Which ones exist, and which are
  * shown off with a reason, is `view.plan` (lib/admin/karaoke-panel.ts).
@@ -155,12 +184,7 @@ export function KaraokeActions({
         action={cancelReservationAction}
         hidden={{ id: r.id, beklenen: "odenmemis" }}
         label="İptal et"
-        title="Rezervasyonu iptal et"
-        description={
-          plan.cancel.kind === "hold"
-            ? "Ödeme bekleyen bir rezervasyon. Önce POS'a ödenip ödenmediği sorulur: ödenmemişse saat boşa çıkar ve müşteriye iptal e-postası gider. Bu arada ödenmişse iptal edilmez, sana söylenir."
-            : "Ödeme alınmamıştı, iade yok. Saat boşa çıkar ve müşteriye iptal e-postası gider."
-        }
+        {...unpaidCancelText(plan.cancel)}
         variant={menu ? "menuDanger" : "danger"}
         reason={{ required: false, maxLength: 500 }}
         disabledReason={plan.cancel.disabledReason}

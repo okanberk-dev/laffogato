@@ -373,8 +373,14 @@ export interface KaraokeActionPlan {
   /**
    * İptal. `refund`: paid, so the money goes back first (needs refunds);
    * `hold`: an unpaid hold, the POS is asked first; `plain`: pay at venue.
+   * `ended`: a pay-at-the-venue evening already over, written off without
+   * a mail to the customer (karar D7).
    */
-  cancel: { kind: "refund" | "hold" | "plain"; disabledReason?: string } | null;
+  cancel: {
+    kind: "refund" | "hold" | "plain";
+    ended?: true;
+    disabledReason?: string;
+  } | null;
   /** `first`: a cancelled booking still paid; `retry`: an unanswered refund. */
   refund: { kind: "first" | "retry"; disabledReason?: string } | null;
   /** Record a refund someone saw (or did) in PayNkolay's panel. */
@@ -387,9 +393,11 @@ export interface KaraokeActionPlan {
 /**
  * The actions a booking offers. Mirrors the server: `setReservationStatus`
  * confirms only a paid booking, or a pay-at-the-venue one while prepayment is
- * off; `cancelKaraokeReservation` refunds a paid one and asks the POS about
- * an unpaid hold; `retryKaraokeRefund` / `settleKaraokeRefundByHand` take a
- * `refunding` row or a cancelled one that is still `paid`.
+ * off, and `confirmReservationAction` nothing once the evening is over;
+ * `cancelKaraokeReservation` refunds a paid one, asks the POS about an
+ * unpaid hold and writes off an ended pay-at-the-venue one without a mail;
+ * `retryKaraokeRefund` / `settleKaraokeRefundByHand` take a `refunding` row
+ * or a cancelled one that is still `paid`.
  */
 export function karaokeActionPlan(
   r: KaraokeReservation,
@@ -417,7 +425,9 @@ export function karaokeActionPlan(
   if (r.status !== "cancelled") {
     if (money === "paid") cancel = { kind: "refund", ...noRefund };
     else if (money === "pending") cancel = { kind: "hold" };
-    else if (money === "none") cancel = { kind: "plain" };
+    else if (money === "none") {
+      cancel = ended ? { kind: "plain", ended: true } : { kind: "plain" };
+    }
   }
 
   const heldAfterCancel = money === "paid" && r.status === "cancelled";
@@ -865,7 +875,9 @@ function auditEntry(row: KaraokeAuditRow): KaraokeHistoryItem {
     title =
       p.paymentStatus === "expired"
         ? "İptal edildi (ödeme alınmamıştı)"
-        : "İptal edildi";
+        : p.ended === true
+          ? "İptal edildi (saati geçmişti, müşteriye e-posta gitmedi)"
+          : "İptal edildi";
   } else {
     title = row.action;
   }

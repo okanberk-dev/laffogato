@@ -815,11 +815,16 @@ export type SetReservationStatusResult =
  * booking is cancelled through this path: a paid one needs its refund, an
  * unpaid hold needs the POS asked first (rule 29), and both are
  * `cancelKaraokeReservation` in karaoke-payment.ts.
+ *
+ * `notify: false` writes the change without the member's mail (and answers
+ * `notified: true`, none being due): the köşk cancelling a pay-at-the-venue
+ * evening that is already over (karar D7).
  */
 export async function setReservationStatus(
   id: string,
   status: KaraokeReservationStatus,
   now: Date = new Date(),
+  opts: { notify?: boolean } = {},
 ): Promise<SetReservationStatusResult> {
   const existing = await getReservation(id);
   if (!existing) return { ok: false, reason: "not_found" };
@@ -871,7 +876,8 @@ export async function setReservationStatus(
     status,
     updatedAt: now.toISOString(),
   };
-  const notified = await notifyReservationStatus(reservation);
+  const notified =
+    opts.notify === false ? true : await notifyReservationStatus(reservation);
   return { ok: true, reservation, notified };
 }
 
