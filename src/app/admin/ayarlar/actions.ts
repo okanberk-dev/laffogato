@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import {
   DAYS_OF_WEEK,
@@ -19,7 +18,6 @@ import {
   parseNotifyEmails,
 } from "@/lib/email/staff-order-notice-core";
 import { forgetEmailHealth } from "@/lib/email/health";
-import { parseMoneyInput } from "@/lib/utils/format";
 import {
   parseTaxRateInput,
   TAX_RATE_INPUT_ERROR,
@@ -28,55 +26,8 @@ import {
   type TaxRates,
 } from "@/lib/utils/kdv";
 
-export interface SettingsState {
-  message?: string;
-  error?: string;
-}
-
-/**
- * Audit row for a settings change.
- *
- * `payload` carries the before/after of the keys that actually moved: the
- * section name alone ("shipping") does not let anyone reconstruct what a
- * courier fee was yesterday, which is the whole point of Olay kaydı for
- * numbers that price live orders.
- */
-async function ok(
-  section: string,
-  message: string,
-  payload?: Record<string, unknown>,
-): Promise<SettingsState> {
-  await logAudit({
-    action: "update",
-    entity: "settings",
-    entityId: section,
-    payload: payload ? { section, ...payload } : { section },
-  });
-  return { message };
-}
-
-function revalidateAll() {
-  revalidatePath("/admin/ayarlar");
-  revalidatePath("/admin");
-  revalidatePath("/");
-}
-
-/**
- * Money in kuruş, or null when the field is not a plain non-negative amount.
- *
- * It used to fall back to 0, which turned "₺75" - a perfectly natural thing to
- * type into a price box - into free courier delivery for every order that
- * evening, silently. A bad number is now an error the operator sees.
- *
- * Read by parseMoneyInput (CLAUDE.md rule 24). The comma swap plus
- * parseFloat it replaces read "1.000", which is how the panel prints the
- * karaoke hour, as 1,00 TL.
- */
-function parseMoneyMinor(raw: unknown): number | null {
-  const s = String(raw ?? "").trim();
-  if (!s) return null;
-  return parseMoneyInput(s);
-}
+import { ok, parseMoneyMinor, revalidateAll } from "./action-helpers";
+import type { SettingsState } from "./settings-core";
 
 /**
  * "HH:MM" (or "H:MM") within 00:00-23:59, normalised; null for anything
@@ -256,49 +207,6 @@ export async function saveShippingAction(
   });
 }
 
-export async function saveKaraokeAction(
-  _prev: SettingsState,
-  formData: FormData,
-): Promise<SettingsState> {
-  await requireRole("settings");
-  const hourlyMinor = parseMoneyMinor(formData.get("karaokeHourly"));
-  if (hourlyMinor === null || hourlyMinor <= 0) {
-    return { error: "Karaoke saatlik ücreti sıfırdan büyük bir sayı olmalı." };
-  }
-  const capacity = parseInt(String(formData.get("karaokeCapacity") ?? ""), 10);
-  if (!Number.isFinite(capacity) || capacity < 1 || capacity > 50) {
-    return { error: "Karaoke kapasitesi 1 ile 50 arasında olmalı." };
-  }
-  const notifyEmail = String(formData.get("karaokeNotifyEmail") ?? "").trim();
-  if (notifyEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifyEmail)) {
-    return { error: "Talep bildirimi için geçerli bir e-posta gir." };
-  }
-  // The online-prepayment switch (16 Eki 2026). A checkbox: absent = off.
-  const prepay = formData.get("karaokePrepay") === "on";
-  const before = await getSettings();
-  await updateSettings({
-    karaokeHourlyMinor: hourlyMinor,
-    karaokeCapacity: capacity,
-    karaokeNotifyEmail: notifyEmail,
-    karaokePrepay: prepay,
-  });
-  revalidateAll();
-  return ok("karaoke", "Karaoke ayarları kaydedildi.", {
-    before: {
-      karaokeHourlyMinor: before.karaokeHourlyMinor,
-      karaokeCapacity: before.karaokeCapacity,
-      karaokeNotifyEmail: before.karaokeNotifyEmail,
-      karaokePrepay: before.karaokePrepay,
-    },
-    after: {
-      karaokeHourlyMinor: hourlyMinor,
-      karaokeCapacity: capacity,
-      karaokeNotifyEmail: notifyEmail,
-      karaokePrepay: prepay,
-    },
-  });
-}
-
 export async function saveSeoAction(
   _prev: SettingsState,
   formData: FormData,
@@ -374,9 +282,7 @@ export async function saveNotificationsAction(
   const parsed = notificationsSchema.safeParse({
     notificationEmail: String(formData.get("notificationEmail") ?? ""),
     orderNotifyEnabled: formData.get("orderNotifyEnabled") === "on",
-    orderNotifyRoles: formData
-      .getAll("orderNotifyRoles")
-      .map((v) => String(v)),
+    orderNotifyRoles: formData.getAll("orderNotifyRoles").map((v) => String(v)),
     orderNotifyEmails: String(formData.get("orderNotifyEmails") ?? ""),
   });
   if (!parsed.success) {

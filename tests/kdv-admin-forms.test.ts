@@ -25,7 +25,6 @@ vi.mock("@/app/admin/ayarlar/actions", () => {
     saveEmailSenderAction: noop,
     saveGeneralAction: noop,
     saveHoursAction: noop,
-    saveKaraokeAction: noop,
     saveNotificationsAction: noop,
     saveSeoAction: noop,
     saveShippingAction: noop,
@@ -33,6 +32,10 @@ vi.mock("@/app/admin/ayarlar/actions", () => {
     sendTestEmailAction: noop,
   };
 });
+
+vi.mock("@/app/admin/ayarlar/karaoke-actions", () => ({
+  saveKaraokeAction: async () => ({}),
+}));
 
 const { ProductWizard } = await import("@/components/admin/product-wizard");
 const { SettingsForm } = await import("@/app/admin/ayarlar/settings-form");

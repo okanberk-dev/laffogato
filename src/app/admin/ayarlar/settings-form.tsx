@@ -2,14 +2,7 @@
 
 import { useActionState, useState, type ReactNode } from "react";
 
-import {
-  Card,
-  Checkbox,
-  Field,
-  PrimaryButton,
-  TextInput,
-  Textarea,
-} from "@/components/admin/forms";
+import { Checkbox, Field, TextInput, Textarea } from "@/components/admin/forms";
 import { DAYS_OF_WEEK, DAY_LABELS, type DayOfWeek } from "@/lib/admin/days";
 import { ADMIN_ROLES, ROLE_LABELS } from "@/lib/admin/roles";
 import type { AdminSettings } from "@/lib/admin/store";
@@ -25,16 +18,14 @@ import {
   saveEmailSenderAction,
   saveGeneralAction,
   saveHoursAction,
-  saveKaraokeAction,
   saveNotificationsAction,
   saveSeoAction,
   saveShippingAction,
   saveTaxAction,
   sendTestEmailAction,
-  type SettingsState,
 } from "./actions";
-
-const initial: SettingsState = {};
+import { KaraokeTab } from "./karaoke-tab";
+import { initial, SaveBar, Section } from "./settings-ui";
 
 const TABS = [
   { id: "general", label: "Genel" },
@@ -115,55 +106,6 @@ export function SettingsForm({
 /** One tab's panel; `hidden` keeps its fields alive between tab switches. */
 function Pane({ show, children }: { show: boolean; children: ReactNode }) {
   return <div hidden={!show}>{children}</div>;
-}
-
-function SaveBar({
-  state,
-  pending,
-  label = "Kaydet",
-  pendingLabel = "Kaydediliyor…",
-  idle = "Değişiklikler bu sekme kaydedildiğinde anında uygulanır.",
-}: {
-  state: SettingsState;
-  pending: boolean;
-  label?: string;
-  pendingLabel?: string;
-  idle?: string;
-}) {
-  return (
-    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
-      <span className="text-xs">
-        {state.error ? (
-          <span className="text-red-600">{state.error}</span>
-        ) : state.message ? (
-          <span className="text-emerald-700">{state.message}</span>
-        ) : (
-          <span className="text-neutral-400">{idle}</span>
-        )}
-      </span>
-      <PrimaryButton type="submit" disabled={pending}>
-        {pending ? pendingLabel : label}
-      </PrimaryButton>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <Card>
-      <h2
-        className="mb-4 text-xl"
-        style={{
-          fontFamily: "var(--serif), 'Playfair Display', serif",
-          fontStyle: "italic",
-          fontWeight: 500,
-        }}
-      >
-        {title}
-      </h2>
-      {children}
-    </Card>
-  );
 }
 
 function GeneralTab({ settings }: { settings: AdminSettings }) {
@@ -384,57 +326,6 @@ function ShippingTab({ settings }: { settings: AdminSettings }) {
   );
 }
 
-function KaraokeTab({ settings }: { settings: AdminSettings }) {
-  const [state, action, pending] = useActionState(saveKaraokeAction, initial);
-  return (
-    <form action={action}>
-      <Section title="Karaoke">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field
-            label="Saatlik ücret (₺)"
-            hint="Uygulamadaki rezervasyon ekranında gösterilir; RUBY üyelere indirim sunucuda uygulanır."
-          >
-            <TextInput
-              name="karaokeHourly"
-              inputMode="decimal"
-              defaultValue={(settings.karaokeHourlyMinor / 100).toFixed(2)}
-              required
-            />
-          </Field>
-          <Field
-            label="Kapasite (kişi)"
-            hint="Bir rezervasyonda kabul edilen en fazla misafir sayısı."
-          >
-            <TextInput
-              name="karaokeCapacity"
-              inputMode="numeric"
-              defaultValue={String(settings.karaokeCapacity)}
-              required
-            />
-          </Field>
-          <Field
-            label="Talep bildirimi e-postası"
-            hint="Uygulamadan ya da web'den gelen her yeni rezervasyon talebi bu adrese düşer. Boş bırakılırsa genel iletişim adresine gider."
-          >
-            <TextInput
-              name="karaokeNotifyEmail"
-              type="email"
-              defaultValue={settings.karaokeNotifyEmail}
-              placeholder={settings.email}
-            />
-          </Field>
-        </div>
-        <Checkbox
-          name="karaokePrepay"
-          defaultChecked={settings.karaokePrepay}
-          label="Online ön ödeme: rezervasyon ödenince kendiliğinden kesinleşir; ödenmemiş rezervasyon onaylanmaz (üyeliksiz rezervasyon da bununla açılır). Kapatırsan web'de ve uygulamada eski akış döner: talep, köşkte ödeme, elle onay."
-        />
-        <SaveBar state={state} pending={pending} />
-      </Section>
-    </form>
-  );
-}
-
 function SeoTab({ settings }: { settings: AdminSettings }) {
   const [state, action, pending] = useActionState(saveSeoAction, initial);
   return (
@@ -530,8 +421,7 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
           </div>
           <span className="text-xs text-[var(--admin-text-mute)]">
             Seçilen rollerdeki aktif panel kullanıcılarına gider. Kasiyer
-            sipariş sayfasını açamaz; ona giden e-postanın düğmesi kasaya
-            gider.
+            sipariş sayfasını açamaz; ona giden e-postanın düğmesi kasaya gider.
           </span>
         </fieldset>
         <div className="mt-5">

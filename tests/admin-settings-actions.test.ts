@@ -50,11 +50,12 @@ vi.mock("@/lib/admin/store", () => ({
 
 const {
   saveShippingAction,
-  saveKaraokeAction,
   saveHoursAction,
   saveNotificationsAction,
   saveTaxAction,
 } = await import("@/app/admin/ayarlar/actions");
+const { saveKaraokeAction } =
+  await import("@/app/admin/ayarlar/karaoke-actions");
 const { requireRole } = await import("@/lib/admin/auth");
 
 function form(fields: Record<string, string>): FormData {
@@ -370,7 +371,8 @@ describe("saveNotificationsAction", () => {
         {
           notificationEmail: "info@ornek.com",
           orderNotifyEnabled: "on",
-          orderNotifyEmails: "Mutfak@Ornek.com, bar@ornek.com\nmutfak@ornek.com",
+          orderNotifyEmails:
+            "Mutfak@Ornek.com, bar@ornek.com\nmutfak@ornek.com",
         },
         ["cashier", "owner"],
       ),
