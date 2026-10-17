@@ -24,6 +24,7 @@ import {
   raiseDbError,
 } from "@/lib/db/health";
 import { nextSeq } from "@/lib/db/counters";
+import { deriveSku } from "@/lib/admin/sku";
 import {
   applyCustomerCoupon,
   couponAllowedForKind,
@@ -633,15 +634,6 @@ export function slugify(input: string): string {
     .slice(0, 80);
 }
 
-function deriveSku(name: string, n: number): string {
-  const prefix = name
-    .replace(/[^A-Za-z0-9]+/g, "")
-    .slice(0, 4)
-    .toUpperCase()
-    .padEnd(4, "X");
-  return `${prefix}-${String(n).padStart(5, "0")}`;
-}
-
 // ─── Seed (idempotent - yalnızca tablo boşsa çalışır) ─────────────────────
 
 function defaultWeeklyHours(): WeeklyHours {
@@ -1076,7 +1068,12 @@ export async function updateProduct(
     ...existing,
     ...input,
     slug,
-    sku: input.sku || existing.sku,
+    // An empty field keeps the stored code; a product that never had one
+    // gets the one its name and id imply (the wizard no longer prefills it).
+    sku:
+      input.sku ||
+      existing.sku ||
+      deriveSku(input.name, Number(id.replace(/\D/g, "")) || 0),
     updatedAt: new Date().toISOString(),
   };
   check(
@@ -1084,6 +1081,19 @@ export async function updateProduct(
     "updateProduct",
   );
   return next;
+}
+
+/** Id, name and SKU of the given products: what an audit row names. */
+export async function listProductLabels(
+  ids: readonly string[],
+): Promise<Array<{ id: string; name: string; sku: string }>> {
+  if (ids.length === 0) return [];
+  await ensureSeed();
+  const sb = getDb();
+  return rows<{ id: string; name: string; sku: string }>(
+    await sb.from(TABLES.products).select("id, name, sku").in("id", ids),
+    "listProductLabels",
+  );
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
