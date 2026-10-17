@@ -222,7 +222,7 @@ describe("sendCampaignMailAction", () => {
     getCampaignEmail.mockResolvedValue(draft());
     queueCampaignEmail.mockResolvedValue({ total: 42 });
 
-    const state = await sendCampaignMailAction("cmail-1", {}, new FormData());
+    const state = await sendCampaignMailAction("cmail-1", null, new FormData());
 
     expect(queueCampaignEmail).toHaveBeenCalledWith("cmail-1");
     // The send is handed to `after()` - the response does not wait for it.
@@ -243,8 +243,12 @@ describe("sendCampaignMailAction", () => {
         }),
       }),
     );
-    expect(state.error).toBeUndefined();
-    expect(state.message).toContain("42");
+    // An ActionResult: the dialog closes on it and the toast outlives the
+    // list row, which stops offering "Gönder" once the campaign is queued.
+    expect(state).toMatchObject({
+      ok: true,
+      message: expect.stringContaining("42"),
+    });
     expect(revalidatePath).toHaveBeenCalledWith(LIST);
   });
 
@@ -254,9 +258,9 @@ describe("sendCampaignMailAction", () => {
       new Error("kampanya-duyuru: doldurulmamış alan - [KAMPANYA_METIN]"),
     );
 
-    const state = await sendCampaignMailAction("cmail-1", {}, new FormData());
+    const state = await sendCampaignMailAction("cmail-1", null, new FormData());
 
-    expect(state.error).toContain("[KAMPANYA_METIN]");
+    expect(state.ok ? "" : state.error).toContain("[KAMPANYA_METIN]");
     expect(after).not.toHaveBeenCalled();
     expect(runCampaignEmail).not.toHaveBeenCalled();
     expect(logAudit).not.toHaveBeenCalled();
@@ -264,16 +268,16 @@ describe("sendCampaignMailAction", () => {
 
   it("does nothing for a campaign that is not there", async () => {
     getCampaignEmail.mockResolvedValue(null);
-    const state = await sendCampaignMailAction("cmail-x", {}, new FormData());
-    expect(state.error).toContain("bulunamadı");
+    const state = await sendCampaignMailAction("cmail-x", null, new FormData());
+    expect(state.ok ? "" : state.error).toContain("bulunamadı");
     expect(queueCampaignEmail).not.toHaveBeenCalled();
   });
 
   it("keeps a runner crash in the background out of the response", async () => {
     getCampaignEmail.mockResolvedValue(draft());
     runCampaignEmail.mockRejectedValue(new Error("boom"));
-    const state = await sendCampaignMailAction("cmail-1", {}, new FormData());
-    expect(state.message).toBeTruthy();
+    const state = await sendCampaignMailAction("cmail-1", null, new FormData());
+    expect(state.ok).toBe(true);
     await expect(flushAfter()).resolves.toBeUndefined();
     expect(console.error).toHaveBeenCalled();
   });
@@ -281,12 +285,14 @@ describe("sendCampaignMailAction", () => {
   it("says what an empty audience actually becomes: 'Gönderildi' with nobody in it", async () => {
     getCampaignEmail.mockResolvedValue(draft());
     queueCampaignEmail.mockResolvedValue({ total: 0 });
-    const state = await sendCampaignMailAction("cmail-1", {}, new FormData());
-    expect(state.error).toBeUndefined();
+    const state = await sendCampaignMailAction("cmail-1", null, new FormData());
+    if (!state.ok) throw new Error(state.error);
     expect(state.message).toContain("Kitle boş");
     expect(state.message).toContain("0 alıcıyla");
     expect(state.message).toContain("Gönderildi");
     expect(state.message).not.toContain("kapatıldı");
+    // A toast that waits for the operator: nobody was mailed.
+    expect(state.tone).toBe("warning");
   });
 });
 
@@ -540,17 +546,63 @@ describe("updateCampaignMailAction", () => {
 });
 
 describe("deleteCampaignMailAction", () => {
-  it("audits only a delete that removed a draft", async () => {
+  it("audits only a delete that removed a draft, and says which it was", async () => {
     deleteCampaignEmail.mockResolvedValue(true);
-    await deleteCampaignMailAction(form({ id: "cmail-1" }));
+    const done = await deleteCampaignMailAction(null, form({ id: "cmail-1" }));
+    expect(done).toEqual({
+      ok: true,
+      message: "Taslak silindi.",
+      tone: "success",
+    });
     expect(logAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "delete", entityId: "cmail-1" }),
     );
 
     logAudit.mockClear();
+    // Queued in another tab meanwhile: it used to answer nothing at all.
     deleteCampaignEmail.mockResolvedValue(false);
-    await deleteCampaignMailAction(form({ id: "cmail-sent" }));
+    const kept = await deleteCampaignMailAction(
+      null,
+      form({ id: "cmail-sent" }),
+    );
+    expect(kept.ok).toBe(false);
+    expect(kept.ok ? "" : kept.error).toMatch(/kuyruğa alınmış/);
     expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("answers a database failure instead of throwing", async () => {
+    deleteCampaignEmail.mockRejectedValue(new Error("connection lost"));
+    const res = await deleteCampaignMailAction(null, form({ id: "cmail-1" }));
+    expect(res.ok).toBe(false);
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+});
+
+describe("the send confirm (D15)", () => {
+  it("asks for the recipient count typed back, or GÖNDER when uncounted", async () => {
+    const { campaignSendPhrase } =
+      await import("@/app/admin/bulten/kampanya/campaign-mail-controls");
+    expect(campaignSendPhrase(128)).toBe("128");
+    expect(campaignSendPhrase(0)).toBe("0");
+    expect(campaignSendPhrase(null)).toBe("GÖNDER");
+  });
+
+  it("is a kit dialog, not window.confirm, and the draft delete asks first", async () => {
+    const { readFileSync } = await import("node:fs");
+    const controls = readFileSync(
+      "src/app/admin/bulten/kampanya/campaign-mail-controls.tsx",
+      "utf8",
+    );
+    expect(controls).not.toMatch(/\bconfirm\(/);
+    expect(controls).toContain("<ActionModal");
+    expect(controls).toContain(
+      "confirmPhrase={campaignSendPhrase(audienceCount)}",
+    );
+    const list = readFileSync("src/app/admin/bulten/kampanya/page.tsx", "utf8");
+    expect(list).not.toContain("DeleteRowForm");
+    expect(list).toMatch(
+      /<ConfirmButton\s+action=\{deleteCampaignMailAction\}/,
+    );
   });
 });
 

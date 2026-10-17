@@ -46,6 +46,7 @@ const FORMS = [
   "src/components/admin/customer-stamps.tsx",
   "src/components/admin/customer-actions.tsx",
   "src/app/admin/kullanicilar/user-forms.tsx",
+  "src/app/admin/bulten/kampanya/campaign-mail-controls.tsx",
 ];
 
 describe("the people forms keep what was typed after a refusal", () => {
@@ -211,5 +212,24 @@ describe("2FA on the users page", () => {
       /<button[^>]*aria-disabled="true"[^>]*>2FA&#x27;yı sıfırla/,
     );
     expect(html).toContain("2FA kurulumu sayfasından");
+  });
+});
+
+describe("campaign Gönder", () => {
+  it("opens a dialog instead of posting on one click", async () => {
+    const { CampaignSendForm } =
+      await import("@/app/admin/bulten/kampanya/campaign-mail-controls");
+    const html = renderToStaticMarkup(
+      createElement(CampaignSendForm, {
+        action: vi.fn(),
+        audienceCount: 128,
+        audienceLabel: "Kampanya izni olan üyeler",
+      }),
+    );
+    expect(html).toMatch(
+      /<button[^>]*aria-haspopup="dialog"[^>]*>Gönder<\/button>/,
+    );
+    expect(html).not.toContain('type="submit"');
+    expect(html).not.toContain("<form");
   });
 });
