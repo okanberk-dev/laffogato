@@ -707,6 +707,47 @@ describe("server-rendered markup", () => {
     expect(card).not.toContain(">Ek<");
   });
 
+  it("DataTable: the row menu stays in view while a wide table scrolls", () => {
+    const selection = {
+      selected: new Set(["o1"]),
+      has: (id: string) => id === "o1",
+      toggle: () => {},
+      set: () => {},
+      clear: () => {},
+      count: 1,
+      ids: ["o1"],
+    };
+    const out = html(
+      createElement(ui.DataTable<Row>, {
+        columns,
+        rows,
+        rowKey: (r) => r.id,
+        selection,
+        rowActions: (r) => createElement("button", null, `⋯ ${r.no}`),
+      }),
+    );
+    // The scroll box contains the sr-only texts (no sideways page scroll).
+    expect(out).toMatch(/<div class="relative hidden overflow-x-auto /);
+    const th =
+      /<th scope="col" class="([^"]*)"><span class="sr-only">İşlemler/.exec(
+        out,
+      );
+    expect(th?.[1]).toContain("sticky right-0 bg-[var(--admin-surface)]");
+    const cells = [...out.matchAll(/<td class="([^"]*sticky right-0[^"]*)">/g)];
+    expect(cells).toHaveLength(2);
+    // An opaque ground that follows the row: the selection tint as it shows
+    // over white for the selected row, white otherwise, the hover ground on
+    // hover.
+    expect(cells[0][1]).toContain(
+      "bg-[color-mix(in_srgb,var(--admin-primary-soft)_50%,var(--admin-surface))]",
+    );
+    expect(cells[1][1]).toContain("bg-[var(--admin-surface)]");
+    for (const [, cls] of cells) {
+      expect(cls).toContain("group-hover:bg-[var(--admin-surface-2)]");
+    }
+    expect(out.match(/<tr class="group /g)).toHaveLength(2);
+  });
+
   it("DataTable: nothing to show is a sentence, not an empty table", () => {
     const out = html(
       createElement(ui.DataTable<Row>, {

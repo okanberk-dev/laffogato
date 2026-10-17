@@ -82,6 +82,18 @@ const ALIGN: Record<NonNullable<DataTableColumn<unknown>["align"]>, string> = {
   right: "text-right",
 };
 
+// The row-action column stays in view while a wide table scrolls sideways
+// (admin audit ORD-02, KAR-03): at 768-1366 px the orders and karaoke
+// tables were wider than their card and the "⋯" menu, the row's only
+// action, sat behind a scrollbar 50 rows down. Pinned cells need a ground
+// of their own, the same as the row's: white, the hover ground, or, for a
+// selected row, the selection tint as it shows over white (the row's
+// tint is see-through, which a pinned cell must not be).
+const PINNED = "sticky right-0";
+const PINNED_GROUND = "bg-[var(--admin-surface)]";
+const PINNED_SELECTED =
+  "bg-[color-mix(in_srgb,var(--admin-primary-soft)_50%,var(--admin-surface))]";
+
 const HIDE_BELOW: Record<
   NonNullable<DataTableColumn<unknown>["hideBelow"]>,
   string
@@ -266,8 +278,11 @@ export function DataTable<T>({
         })}
       </ul>
 
-      {/* From md: the table. */}
-      <div className="hidden overflow-x-auto rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] shadow-[0_1px_3px_rgba(68,48,28,0.06)] md:block">
+      {/* From md: the table. `relative` makes the scroll box the containing
+          block of the sr-only header texts (absolutely positioned): without
+          it they hung past the viewport and the whole page scrolled
+          sideways (ORD-M01). */}
+      <div className="relative hidden overflow-x-auto rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] shadow-[0_1px_3px_rgba(68,48,28,0.06)] md:block">
         <table className="w-full border-collapse text-sm">
           {caption ? <caption className="sr-only">{caption}</caption> : null}
           <thead>
@@ -299,7 +314,14 @@ export function DataTable<T>({
                 </th>
               ))}
               {rowActions ? (
-                <th scope="col" className="w-14 px-4 py-3 text-right">
+                <th
+                  scope="col"
+                  className={cx(
+                    "w-14 px-4 py-3 text-right",
+                    PINNED,
+                    PINNED_GROUND,
+                  )}
+                >
                   <span className="sr-only">İşlemler</span>
                 </th>
               ) : null}
@@ -308,12 +330,13 @@ export function DataTable<T>({
           <tbody>
             {rows.map((row) => {
               const id = rowKey(row);
+              const selected = selection?.has(id) ?? false;
               return (
                 <tr
                   key={id}
                   className={cx(
-                    "border-t border-[var(--admin-border)] align-middle transition-colors hover:bg-[var(--admin-surface-2)]",
-                    selection?.has(id) && "bg-[var(--admin-primary-soft)]/50",
+                    "group border-t border-[var(--admin-border)] align-middle transition-colors hover:bg-[var(--admin-surface-2)]",
+                    selected && "bg-[var(--admin-primary-soft)]/50",
                     rowClassName?.(row),
                   )}
                 >
@@ -340,7 +363,15 @@ export function DataTable<T>({
                     </td>
                   ))}
                   {rowActions ? (
-                    <td className="px-4 py-2 text-right">{rowActions(row)}</td>
+                    <td
+                      className={cx(
+                        "px-4 py-2 text-right transition-colors group-hover:bg-[var(--admin-surface-2)]",
+                        PINNED,
+                        selected ? PINNED_SELECTED : PINNED_GROUND,
+                      )}
+                    >
+                      {rowActions(row)}
+                    </td>
                   ) : null}
                 </tr>
               );
