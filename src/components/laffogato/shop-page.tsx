@@ -11,6 +11,7 @@ import type { Product } from "./data";
 import { Illustration } from "./illustration";
 import type { PageProps } from "./page-shared";
 import { PageHero } from "./page-hero";
+import { freeShippingFrom } from "./product-facts";
 import { productPath } from "./route-paths";
 import { ShopHeroSlider } from "./shop-hero-slider";
 import { activeVariants, ProductCard, toCartItem } from "./ui";
@@ -66,12 +67,22 @@ const SLUG_FOR = Object.fromEntries(
   SHOP_CATEGORY_ROUTES.map((c) => [c.productCat, c.slug]),
 );
 
-const TRUST = [
-  { k: "Bologna kavurma", v: "Çekirdek haftalık, taze kavrulur" },
-  { k: "Aynı gün", v: "İstanbul içi, 14:00'a kadar" },
-  { k: "Ücretsiz kargo", v: "500₺ ve üzeri siparişte" },
-  { k: "14 gün iade", v: "Açılmamış üründe kolay iade" },
-];
+/**
+ * The shop's promises. The free-shipping tile reads Ayarlar's threshold and
+ * is left out when free shipping is off: it said "500₺" whatever the
+ * checkout applied. The return tile names that some food is excepted (MSY
+ * m.15), as the legal pages and the product page do.
+ */
+function trustTiles(freeFrom: string | null) {
+  return [
+    { k: "Bologna kavurma", v: "Çekirdek haftalık, taze kavrulur" },
+    { k: "Aynı gün", v: "İstanbul içi, 14:00'a kadar" },
+    ...(freeFrom
+      ? [{ k: "Ücretsiz kargo", v: `${freeFrom} ve üzeri siparişte` }]
+      : []),
+    { k: "14 gün iade", v: "Gerekçesiz; bazı gıdalar hariç" },
+  ];
+}
 
 export function PageShop({
   addToCart,
@@ -79,6 +90,7 @@ export function PageShop({
   products,
   shopHeroSlides,
   settings,
+  freeShippingThreshold,
 }: PageProps) {
   const pathname = usePathname();
   // `[]` means "the shop really has nothing to show" - during a database
@@ -164,6 +176,15 @@ export function PageShop({
       ),
     [shopProducts],
   );
+
+  // The threshold arrives in whole lira (the cart bar's figure).
+  const freeFrom = freeShippingFrom(
+    freeShippingThreshold === undefined
+      ? undefined
+      : Math.round(freeShippingThreshold * 100),
+  );
+
+  const trust = trustTiles(freeFrom);
 
   const phone = settings?.phone ?? "+90 536 429 09 19";
   const email = settings?.email ?? "info@nextgenlab.com.tr";
@@ -321,7 +342,7 @@ export function PageShop({
         >
           <ul className="shop-promises" aria-label="Teslimat ve iade">
             <li>Aynı gün İstanbul içi</li>
-            <li>500₺+ ücretsiz kargo</li>
+            {freeFrom && <li>{freeFrom}+ ücretsiz kargo</li>}
             <li>14 gün iade</li>
           </ul>
         </PageHero>
@@ -587,8 +608,12 @@ export function PageShop({
       )}
 
       <section className="section-tight">
-        <ul className="wrap trust-row" aria-label="Güvenceler">
-          {TRUST.map((b) => (
+        <ul
+          className="wrap trust-row"
+          aria-label="Güvenceler"
+          data-count={trust.length}
+        >
+          {trust.map((b) => (
             <li key={b.k} className="trust-tile">
               <span className="trust-k">{b.k}</span>
               <span className="trust-v">{b.v}</span>

@@ -9,6 +9,7 @@ import { productPath } from "./route-paths";
 import { useDialog } from "./use-dialog";
 
 import type { Product } from "./data";
+import { productFacts, type ProductFact } from "./product-facts";
 import { ProductSurface } from "./visuals";
 import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
 import { cx } from "./cx";
@@ -82,6 +83,45 @@ export function toCartItem(
     cat: p.cat,
     maxStock: chosen?.stock ?? p.stock,
   };
+}
+
+/** The shop's contact for questions before an order (Ayarlar). */
+export interface ShopContact {
+  phone?: string;
+  email?: string;
+}
+
+/**
+ * A detail row's value. An `ask` row (product-facts.ts) names where the
+ * answer is: the shop's e-mail and phone, as links.
+ */
+export function ProductFactValue({
+  fact,
+  contact,
+}: {
+  fact: ProductFact;
+  contact?: ShopContact;
+}) {
+  if (!fact.ask) return <>{fact.v}</>;
+  const email = contact?.email?.trim();
+  const phone = contact?.phone?.trim();
+  if (!email && !phone) return <>{fact.v}.</>;
+  return (
+    <>
+      {fact.v}:{" "}
+      {email && (
+        <a className="fact-contact" href={`mailto:${email}`}>
+          {email}
+        </a>
+      )}
+      {email && phone ? " ya da " : null}
+      {phone && (
+        <a className="fact-contact" href={`tel:${phone.replace(/\s+/g, "")}`}>
+          {phone}
+        </a>
+      )}
+    </>
+  );
 }
 
 export interface ProductCardProps {
@@ -336,7 +376,7 @@ export function Stat({
   );
 }
 
-export function DetailRow({ k, v }: { k: string; v: string }) {
+export function DetailRow({ k, v }: { k: string; v: ReactNode }) {
   return (
     <div
       style={{
@@ -597,12 +637,15 @@ export function ProductModal({
   addToCart,
   wishlist,
   isAuthenticated,
+  contact,
 }: {
   product: Product | null;
   onClose: () => void;
   addToCart: (item: CartItem) => void;
   wishlist?: string[];
   isAuthenticated?: boolean;
+  /** Where a food page sends questions before the order (Ayarlar). */
+  contact?: ShopContact;
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   useDialog(Boolean(product), onClose, panelRef);
@@ -678,6 +721,7 @@ export function ProductModal({
           addToCart={addToCart}
           wishlist={wishlist}
           isAuthenticated={isAuthenticated}
+          contact={contact}
         />
       </div>
     </div>
@@ -690,16 +734,19 @@ function ProductModalBody({
   addToCart,
   wishlist,
   isAuthenticated,
+  contact,
 }: {
   product: Product;
   onClose: () => void;
   addToCart: (item: CartItem) => void;
   wishlist?: string[];
   isAuthenticated?: boolean;
+  contact?: ShopContact;
 }) {
   const label = shortProductName(p.name).split(" ")[0];
   const isFavorite = !!(p.id && wishlist?.includes(p.id));
   const variants = activeVariants(p);
+  const facts = productFacts(p);
   const [variantId, setVariantId] = useState<string | undefined>(
     variants.find((v) => (v.stock ?? 1) > 0)?.id ?? variants[0]?.id,
   );
@@ -811,28 +858,19 @@ function ProductModalBody({
           </div>
         )}
 
-        <div style={{ marginTop: 24, display: "grid", gap: 14 }}>
-          {p.cat === "beans" && (
-            <>
-              <DetailRow k="Köken" v="Brezilya doğal + Etiyopya yıkanmış" />
-              <DetailRow k="Tat notları" v="Kakao · kuru incir · esmer şeker" />
-              <DetailRow k="Demleme" v="Espresso, moka, AeroPress" />
-            </>
-          )}
-          {p.cat === "gift" && (
-            <>
-              <DetailRow k="İçerik" v="Edible cup · sleeve" />
-              <DetailRow k="Saklama" v="Kuru, serin · 90 gün" />
-              <DetailRow k="Alerjenler" v="Gluten · süt · soya izi" />
-            </>
-          )}
-          {p.cat === "gear" && (
-            <>
-              <DetailRow k="Marka" v="Bialetti × L'Affogato" />
-              <DetailRow k="Garanti" v="2 yıl" />
-            </>
-          )}
-        </div>
+        {/* The product's own details (product-facts.ts): the fixed rows
+            per shelf this replaced gave the chasen a Bialetti warranty. */}
+        {facts.length > 0 && (
+          <div style={{ marginTop: 24, display: "grid", gap: 14 }}>
+            {facts.map((f) => (
+              <DetailRow
+                key={f.k}
+                k={f.k}
+                v={<ProductFactValue fact={f} contact={contact} />}
+              />
+            ))}
+          </div>
+        )}
 
         {stock !== undefined && (
           <div style={{ marginTop: 18, fontSize: 13 }}>
@@ -922,8 +960,9 @@ function ProductModalBody({
           <div
             style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}
           >
-            İstanbul içi aynı gün · Yurt içi 2-3 iş günü · 14 gün açılmamış
-            ürünlerde iade.
+            İstanbul içi aynı gün · Yurt içi 2-3 iş günü · 14 gün iade hakkı
+            (çabuk bozulan gıda, açılmış hijyen ürünü ve sana özel hazırlanan
+            ürün hariç).
           </div>
         </div>
       </div>

@@ -7,7 +7,19 @@ import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
 
 import type { Product } from "./data";
-import { activeVariants, ProductCard, toCartItem, type CartItem } from "./ui";
+import {
+  freeShippingFrom,
+  productFacts,
+  type ProductFact,
+} from "./product-facts";
+import {
+  activeVariants,
+  ProductCard,
+  ProductFactValue,
+  toCartItem,
+  type CartItem,
+  type ShopContact,
+} from "./ui";
 import { ProductSurface } from "./visuals";
 
 const CART_STORAGE_KEY = "laffogato_cart_v1";
@@ -50,9 +62,15 @@ function cartKey(it: {
 export function ProductDetail({
   product: p,
   related,
+  freeShippingThresholdMinor,
+  contact,
 }: {
   product: Product;
   related: Product[];
+  /** Ayarlar → "Ücretsiz kargo eşiği" (kuruş); 0 or absent = no free-shipping line. */
+  freeShippingThresholdMinor?: number;
+  /** Ayarlar's e-mail and phone: where questions before an order go. */
+  contact?: ShopContact;
 }) {
   const variants = activeVariants(p);
   const gallery = (p.images ?? []).filter(
@@ -131,6 +149,11 @@ export function ProductDetail({
   };
 
   const category = SHOP_CATEGORY_ROUTES.find((c) => c.productCat === p.cat);
+  const facts = productFacts(p);
+  // The threshold the checkout applies, or no line at all: the page said
+  // "500₺" whatever Ayarlar held, and also when free shipping was off.
+  const freeFrom = freeShippingFrom(freeShippingThresholdMinor);
+  const returnsEmail = contact?.email?.trim() || "info@nextgenlab.com.tr";
 
   return (
     <div className="pdp">
@@ -312,21 +335,30 @@ export function ProductDetail({
             {/* Trust badges */}
             <ul className="pdp-trust">
               <li>İstanbul içi aynı gün teslimat</li>
-              <li>500₺ üzeri ücretsiz kargo</li>
-              <li>14 gün koşulsuz iade</li>
+              {freeFrom && (
+                <li>{freeFrom} ve üzeri siparişte ücretsiz kargo</li>
+              )}
+              {/* Not "koşulsuz": the legal pages keep the regulation's
+                  exceptions (MSY m.15) and say this page names them. */}
+              <li>14 gün iade hakkı (istisnalar aşağıda)</li>
               <li>3D Secure ödeme; kart bilgin bizde saklanmaz</li>
             </ul>
 
             {/* Accordions */}
             <div className="pdp-accordions">
-              <Accordion title="Ürün detayları" defaultOpen>
-                <DetailGrid product={p} />
-              </Accordion>
+              {facts.length > 0 && (
+                <Accordion title="Ürün detayları" defaultOpen>
+                  <DetailGrid facts={facts} contact={contact} />
+                </Accordion>
+              )}
               <Accordion title="Teslimat ve kargo">
                 <p>
                   İstanbul içi siparişler aynı gün, Türkiye geneli 2-3 iş günü
-                  içinde teslim edilir. 500₺ ve üzeri siparişlerde kargo
-                  ücretsizdir. Sipariş durumunu{" "}
+                  içinde teslim edilir.
+                  {freeFrom
+                    ? ` ${freeFrom} ve üzeri siparişlerde kargo ücretsizdir.`
+                    : null}{" "}
+                  Sipariş durumunu{" "}
                   <Link href="/uye/hesap/siparislerim">
                     üyelik hesabından
                   </Link>{" "}
@@ -339,12 +371,14 @@ export function ProductDetail({
               </Accordion>
               <Accordion title="İade ve değişim">
                 <p>
-                  Açılmamış ürünleri teslim aldıktan sonra 14 gün içinde
-                  ücretsiz iade edebilirsin. İade talebin için{" "}
-                  <a href="mailto:info@nextgenlab.com.tr">
-                    info@nextgenlab.com.tr
-                  </a>{" "}
-                  adresine yazman yeterli. Haklarının tamamı:{" "}
+                  Teslim aldığın günden itibaren 14 gün içinde gerekçe
+                  göstermeden ve ücretsiz iade edebilirsin. Çabuk bozulabilen
+                  gıdalarda, ambalajı açılmış olup sağlık ya da hijyen açısından
+                  iadesi uygun olmayan ürünlerde ve isteğine göre hazırlanan
+                  ürünlerde (örneğin özel öğütüm) cayma hakkı yoktur. İade
+                  talebin için{" "}
+                  <a href={`mailto:${returnsEmail}`}>{returnsEmail}</a> adresine
+                  yazman yeterli. Haklarının tamamı:{" "}
                   <Link href="/hukuk/iade-ve-cayma">İptal, İade ve Cayma</Link>.
                 </p>
               </Accordion>
@@ -414,40 +448,21 @@ function Accordion({
   );
 }
 
-function DetailGrid({ product: p }: { product: Product }) {
-  const rows: Array<[string, string]> = [];
-  if (p.sku) rows.push(["SKU", p.sku]);
-  if (p.weightGrams) rows.push(["Ağırlık", `${p.weightGrams} g`]);
-  if (p.cat === "beans") {
-    rows.push(["Köken", "Brezilya doğal + Etiyopya yıkanmış"]);
-    rows.push(["Tat notları", "Kakao · kuru incir · esmer şeker"]);
-    rows.push(["Demleme", "Espresso · moka · AeroPress"]);
-  } else if (p.cat === "gift") {
-    rows.push(["Saklama", "Kuru, serin · 90 gün"]);
-    rows.push(["Alerjenler", "Gluten · süt · soya izi"]);
-  } else if (p.cat === "gear") {
-    rows.push(["Marka", "Bialetti × L'Affogato"]);
-    rows.push(["Garanti", "2 yıl"]);
-  } else if (p.cat === "pantry") {
-    rows.push(["Saklama", "Ağzı kapalı, serin yer"]);
-  }
-  // An allergen is never withheld, and the legal pages promise it is shown on
-  // the product page before the purchase. The shelf's `nuts` tag is the same
-  // one the app reads; "kuruyemiş" is the menu band's own word, and the
-  // regulation's term follows it because a pistachio is not a hazelnut.
-  if (p.tags?.includes("nuts")) {
-    const nuts = "Kuruyemiş (sert kabuklu meyve) içerir";
-    const at = rows.findIndex(([k]) => k === "Alerjenler");
-    if (at >= 0) rows[at] = ["Alerjenler", `${rows[at]![1]} · ${nuts}`];
-    else rows.push(["Alerjenler", nuts]);
-  }
-  if (rows.length === 0) rows.push(["Kategori", p.cat]);
+function DetailGrid({
+  facts,
+  contact,
+}: {
+  facts: ProductFact[];
+  contact?: ShopContact;
+}) {
   return (
     <dl className="pdp-detail-grid">
-      {rows.map(([k, v]) => (
-        <div key={k}>
-          <dt>{k}</dt>
-          <dd>{v}</dd>
+      {facts.map((f) => (
+        <div key={f.k}>
+          <dt>{f.k}</dt>
+          <dd>
+            <ProductFactValue fact={f} contact={contact} />
+          </dd>
         </div>
       ))}
     </dl>

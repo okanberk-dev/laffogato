@@ -221,7 +221,12 @@ export default async function ProductDetailPage({ params }: RouteParams) {
       <JsonLd data={breadcrumb} />
       <JsonLd data={productJsonLd} />
       <ProductOpenGraph product={product} />
-      <ProductDetail product={product} related={related} />
+      <ProductDetail
+        product={product}
+        related={related}
+        freeShippingThresholdMinor={settings.shippingFreeThresholdMinor}
+        contact={{ phone: settings.phone, email: settings.email }}
+      />
     </SiteChrome>
   );
 }

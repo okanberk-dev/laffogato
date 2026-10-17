@@ -333,6 +333,7 @@ export function LaffogatoApp({
             heroImageUrl={heroImageUrl}
             homeSlides={homeSlides}
             karaoke={karaoke}
+            freeShippingThreshold={freeShippingThreshold}
           />
           {seoSlot}
         </main>
@@ -371,6 +372,7 @@ export function LaffogatoApp({
           heroImageUrl={heroImageUrl}
           homeSlides={homeSlides}
           karaoke={karaoke}
+          freeShippingThreshold={freeShippingThreshold}
         />
         {seoSlot}
       </main>
@@ -400,6 +402,7 @@ export function LaffogatoApp({
         addToCart={addToCart}
         wishlist={wishlist}
         isAuthenticated={isAuthenticated}
+        contact={{ phone: settings?.phone, email: settings?.email }}
       />
       <SearchOverlay
         open={searchOpen}
