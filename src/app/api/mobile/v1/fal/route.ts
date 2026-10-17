@@ -35,8 +35,10 @@ const BODY = z.object({
 /**
  * `POST /fal` - fA'L read by AI (karar 177, docs/API-MOBILE.md §20).
  *
- * In order: the member is signed in; the feature is on (key AND switch,
- * else 503 `fal_unavailable` and the app reads the cup itself); their e-mail
+ * In order: the member is signed in; the feature is on (the switch, the
+ * chosen provider's key, and that provider is the recipient the published
+ * texts name - `falAiEnabled`; else 503 `fal_unavailable` and the app reads
+ * the cup itself); their e-mail
  * is verified (else 403 `email_unverified`); their R12
  * consent stands at the current version (else 403 `consent_required`);
  * today's readings are under the limit (else 429 `fal_limit`); the body is

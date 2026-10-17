@@ -6,16 +6,23 @@ import { getDb, TABLES, type DbError } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
 
 import {
+  ANTHROPIC_MESSAGES_URL,
+  ANTHROPIC_VERSION,
   FAL_CONSENT_VERSION,
   FAL_FEATURE,
   FAL_TIMEOUT_MS,
+  anthropicReplyText,
+  anthropicRequestBody,
+  falApiKey,
   falModel,
+  falProvider,
   falRequestBody,
   parseFalReply,
   responseText,
   visitsWord,
   type FalAiReading,
   type FalContext,
+  type FalProvider,
   type FalReportReason,
 } from "./fal-core";
 import { getLoyalty } from "./loyalty";
@@ -249,47 +256,95 @@ export type FalAiOutcome =
   | { ok: true; reading: FalAiReading; model: string }
   | { ok: false; reason: "failed" | "unfit" };
 
+type Env = Record<string, string | undefined>;
+
+/** Where one provider's request goes, with what, and how its answer is read. */
+type ProviderCall = {
+  url: string;
+  headers: Record<string, string>;
+  body: unknown;
+  /** The reply's JSON text, or the stop reason to log (a short word, never content). */
+  read: (reply: unknown) => { text: string } | { stop: string };
+};
+
+function providerCall(provider: FalProvider, env: Env, model: string, context: FalContext, jpegBase64: string): ProviderCall {
+  const key = falApiKey(env, provider);
+  if (provider === "anthropic") {
+    return {
+      url: ANTHROPIC_MESSAGES_URL,
+      headers: { "x-api-key": key, "anthropic-version": ANTHROPIC_VERSION, "content-type": "application/json" },
+      body: anthropicRequestBody(model, context, jpegBase64),
+      read: (reply) => {
+        const r = anthropicReplyText(reply);
+        return r.ok ? { text: r.text } : { stop: r.stop };
+      },
+    };
+  }
+  return {
+    url: "https://api.openai.com/v1/responses",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: falRequestBody(model, context, jpegBase64),
+    read: (reply) => {
+      const text = responseText(reply);
+      return text ? { text } : { stop: "empty" };
+    },
+  };
+}
+
+/** An error's class name for the log ("AbortError", "TypeError") - never its message. */
+function errorName(err: unknown): string {
+  const name = err instanceof Error ? err.name : "";
+  return /^[A-Za-z]{1,40}$/.test(name) ? name : "Error";
+}
+
 /**
- * One reading from the Responses API: the downscaled photo, the identity-free
- * note, a strict JSON schema, `store: false`. Times out after
- * `FAL_TIMEOUT_MS`; any failure is a reason, never a throw, so the app can
- * read the cup itself.
+ * One reading from the chosen provider (`falProvider`): Anthropic's Messages
+ * API or OpenAI's Responses API, with the downscaled photo, the identity-free
+ * note and the reply held to `FAL_SCHEMA`. Times out after `FAL_TIMEOUT_MS`;
+ * any failure is a reason, never a throw, so the app can read the cup itself.
+ *
+ * The log says which provider, and only a status code, a stop reason or an
+ * error's class name: never the photo, the prompt, the member or the key.
+ * Whether the provider may be used at all is the route's `falAiEnabled`.
  */
 export async function readCupWithAI(
   jpegBase64: string,
   context: FalContext,
-  env: Record<string, string | undefined> = process.env,
+  env: Env = process.env,
   fetcher: typeof fetch = fetch,
 ): Promise<FalAiOutcome> {
-  const model = falModel(env);
+  const provider = falProvider(env);
+  if (!provider) return { ok: false, reason: "failed" };
+  const model = falModel(env, provider);
+  const call = providerCall(provider, env, model, context, jpegBase64);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FAL_TIMEOUT_MS);
   try {
-    const res = await fetcher("https://api.openai.com/v1/responses", {
+    const res = await fetcher(call.url, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.OPENAI_API_KEY ?? ""}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(falRequestBody(model, context, jpegBase64)),
+      headers: call.headers,
+      body: JSON.stringify(call.body),
       signal: controller.signal,
     });
     if (!res.ok) {
-      console.error("[fal] openai status", res.status);
+      console.error(`[fal] ${provider} status`, res.status);
       return { ok: false, reason: "failed" };
     }
-    const text = responseText(await res.json());
-    if (!text) return { ok: false, reason: "unfit" };
+    const reply = call.read(await res.json());
+    if ("stop" in reply) {
+      console.warn(`[fal] ${provider} no reading`, reply.stop);
+      return { ok: false, reason: "unfit" };
+    }
     let parsed: unknown;
     try {
-      parsed = JSON.parse(text);
+      parsed = JSON.parse(reply.text);
     } catch {
       return { ok: false, reason: "unfit" };
     }
     const reading = parseFalReply(parsed);
     return reading ? { ok: true, reading, model } : { ok: false, reason: "unfit" };
   } catch (err) {
-    console.error("[fal] openai request failed", err instanceof Error ? err.name : err);
+    console.error(`[fal] ${provider} request failed`, errorName(err));
     return { ok: false, reason: "failed" };
   } finally {
     clearTimeout(timer);

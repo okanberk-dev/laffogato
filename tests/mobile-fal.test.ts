@@ -6,6 +6,7 @@ import {
   FAL_DAILY_LIMIT,
   FAL_IMAGE_MAX_BYTES,
   FAL_INSTRUCTIONS,
+  FAL_TIMEOUT_MS,
   decodeCupImage,
   falAiEnabled,
   falContextLine,
@@ -136,7 +137,7 @@ const lib = {
 vi.mock("@/lib/mobile/auth", () => ({ requireMobileCustomer }));
 vi.mock("@/lib/mobile/fal", () => lib);
 
-const { POST } = await import("@/app/api/mobile/v1/fal/route");
+const { POST, maxDuration } = await import("@/app/api/mobile/v1/fal/route");
 const consent = await import("@/app/api/mobile/v1/fal/consent/route");
 
 function req(body: unknown, method = "POST") {
@@ -149,6 +150,9 @@ function req(body: unknown, method = "POST") {
 
 describe("POST /fal", () => {
   beforeEach(() => {
+    // Every switch set here, so a key in the shell running the tests decides nothing.
+    vi.stubEnv("FAL_AI_PROVIDER", "");
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "sk-test");
     vi.stubEnv("FAL_AI_ENABLED", "true");
     requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "eda@ornek.com", emailVerified: true } });
@@ -256,6 +260,13 @@ describe("POST /fal", () => {
     lib.reserveFalReading.mockResolvedValue({ ok: true, id: 9, used: FAL_DAILY_LIMIT - 2 });
     const body = await (await POST(req({ image: JPEG }))).json();
     expect(body.remainingToday).toBe(1);
+  });
+
+  it("waits for the model no longer than the route may run, with room for the steps before it", () => {
+    // maxDuration is 30 s and the app waits 30 s (docs/API-MOBILE.md §0);
+    // sign-in, consent, quota, the seat and the member's context come first.
+    expect(maxDuration).toBe(30);
+    expect(FAL_TIMEOUT_MS + 5_000).toBeLessThanOrEqual(maxDuration * 1000);
   });
 });
 
