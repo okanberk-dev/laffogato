@@ -64,6 +64,7 @@ const {
 } = await import("@/app/admin/musteriler/actions");
 const { addCounterStampAction, reverseCounterStampAction } =
   await import("@/app/admin/musteriler/[email]/actions");
+const { requireRole } = await import("@/lib/admin/auth");
 
 function form(fields: Record<string, string>): FormData {
   const fd = new FormData();
@@ -100,6 +101,7 @@ const MEMBER = {
   id: "cus-0042",
   email: "uye@ornek.com",
   name: "Ayşe Yılmaz",
+  isActive: true,
   notificationPrefs: { orderUpdates: true, marketing: true, newsletter: true },
 };
 
@@ -219,6 +221,45 @@ describe("grantCustomerCouponAction", () => {
 });
 
 describe("addCounterStampAction", () => {
+  it("opens the customers gate, the gate of the page that offers it", async () => {
+    vi.mocked(requireRole).mockClear();
+    await addCounterStampAction("uye@ornek.com", {}, form({}));
+    // It was `orders`: shift staff could post any address the client bound.
+    expect(vi.mocked(requireRole)).toHaveBeenCalledWith("customers");
+    expect(vi.mocked(requireRole)).not.toHaveBeenCalledWith("orders");
+  });
+
+  it("refuses an address with no member account, writing nothing", async () => {
+    getCustomerByEmail.mockResolvedValue(null);
+    const state = await addCounterStampAction(
+      "uye@gmial.com",
+      {},
+      form({ force: "on" }),
+    );
+    expect(state.error).toBe("Bu adrese ait üye hesabı yok.");
+    expect(addCounterStamp).not.toHaveBeenCalled();
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("refuses a closed account", async () => {
+    getCustomerByEmail.mockResolvedValue({ ...MEMBER, isActive: false });
+    const state = await addCounterStampAction("uye@ornek.com", {}, form({}));
+    expect(state.error).toBe("Bu üye hesabı kapalı; damga işlenmez.");
+    expect(addCounterStamp).not.toHaveBeenCalled();
+  });
+
+  it("keeps the stamp's answer when the audit row fails after it", async () => {
+    logAudit.mockRejectedValueOnce(new Error("logAudit: db down"));
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const state = await addCounterStampAction("uye@ornek.com", {}, form({}));
+    // The stamp is in; the error page would have made the staff press again.
+    expect(state).toEqual({ message: "Damga eklendi." });
+    expect(errors).toHaveBeenCalled();
+    expect(JSON.stringify(errors.mock.calls)).toContain("stamp-000001");
+    expect(JSON.stringify(errors.mock.calls)).not.toContain("uye@ornek.com");
+    errors.mockRestore();
+  });
+
   it("refuses a second counter stamp inside the double-submit window", async () => {
     listStamps.mockResolvedValue([
       {
