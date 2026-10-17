@@ -42,6 +42,7 @@ import {
 } from "@/lib/admin/order-actions";
 import type { AdminOrder, AdminOrderItemStatus } from "@/lib/admin/store";
 
+import { PANEL_ACTION_FAILED, runPanelAction } from "./action-form";
 import {
   Checkbox,
   Field,
@@ -84,15 +85,13 @@ export interface OrderControlsProps {
   refundToken: string;
 }
 
-const GENERIC_ERROR =
-  "Bir hata oldu ve işlem yarıda kalmış olabilir. Sayfayı yenileyip durumu kontrol et.";
-
 // ── One-click runs ──────────────────────────────────────────────────────
 
 /**
  * Runs a Server Action without a modal and shows its answer as a toast:
  * for moves that need no reason or choice ("Hazırlamaya başla", "POS'tan
- * kontrol et"). `onResult` sees every answer, ok or not.
+ * kontrol et"). `onResult` sees every answer, ok or not. A thrown action
+ * becomes the panel's "Bir hata oldu…" answer (runPanelAction).
  */
 function useRunAction(
   action: ModalAction,
@@ -104,13 +103,9 @@ function useRunAction(
     const formData = new FormData();
     for (const [k, v] of Object.entries(fields)) formData.set(k, String(v));
     startTransition(async () => {
-      let result: ActionResult;
-      try {
-        result = await action(null, formData);
-      } catch (err) {
-        unstable_rethrow(err);
-        result = { ok: false, error: GENERIC_ERROR };
-      }
+      const result = await runPanelAction(action, null, formData);
+      // An action that redirected answers nothing; its flash is the toast.
+      if (!result) return;
       toast.fromResult(result);
       onResult?.(result);
     });
@@ -862,7 +857,7 @@ export function OrderNoteForm({
         next = await saveOrderNoteAction(state, formData);
       } catch (err) {
         unstable_rethrow(err);
-        next = { error: GENERIC_ERROR };
+        next = { error: PANEL_ACTION_FAILED };
       }
       setState(next);
       if (next.savedAt) {

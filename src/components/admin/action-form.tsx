@@ -32,7 +32,8 @@ import { BUTTON, useToast, type ButtonVariant, type ModalAction } from "./ui";
  *   its toast with setAdminFlash (lib/admin/flash.ts).
  */
 
-const FAILED =
+/** The answer to an action that threw: something may have been written. */
+export const PANEL_ACTION_FAILED =
   "Bir hata oldu ve işlem yarıda kalmış olabilir. Sayfayı yenileyip durumu kontrol et.";
 
 interface ToastActionOptions {
@@ -56,7 +57,7 @@ export async function runPanelAction(
     return (await action(prev, formData)) ?? null;
   } catch (err) {
     unstable_rethrow(err);
-    return { ok: false, error: FAILED };
+    return { ok: false, error: PANEL_ACTION_FAILED };
   }
 }
 
