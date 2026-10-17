@@ -13,7 +13,7 @@ import type { PageProps } from "./page-shared";
 import { PageHero } from "./page-hero";
 import { productPath } from "./route-paths";
 import { ShopHeroSlider } from "./shop-hero-slider";
-import { ProductCard, toCartItem } from "./ui";
+import { activeVariants, ProductCard, toCartItem } from "./ui";
 import { useDialog } from "./use-dialog";
 import {
   CoffeeBag,
@@ -543,14 +543,35 @@ export function PageShop({
                 )}
               </div>
               <div className="cta-row">
-                <button
-                  type="button"
-                  className="btn btn-primary btn-lg"
-                  disabled={featured.stock !== undefined && featured.stock <= 0}
-                  onClick={() => addToCart(toCartItem(featured))}
-                >
-                  Sepete ekle
-                </button>
+                {/* A set sold in variants opens for the choice, like a card:
+                    a line without its variant has no price or stock of its
+                    own. */}
+                {activeVariants(featured).length > 0 ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-lg"
+                    disabled={
+                      featured.stock !== undefined && featured.stock <= 0
+                    }
+                    onClick={() => openProduct(featured)}
+                  >
+                    Seçenekleri gör
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-lg"
+                    disabled={
+                      featured.stock !== undefined && featured.stock <= 0
+                    }
+                    onClick={() => {
+                      const item = toCartItem(featured);
+                      if (item) addToCart(item);
+                    }}
+                  >
+                    Sepete ekle
+                  </button>
+                )}
                 {featured.slug && (
                   <a
                     href={productPath(featured.slug)}

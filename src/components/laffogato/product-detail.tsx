@@ -7,7 +7,7 @@ import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
 
 import type { Product } from "./data";
-import { ProductCard, toCartItem, type CartItem } from "./ui";
+import { activeVariants, ProductCard, toCartItem, type CartItem } from "./ui";
 import { ProductSurface } from "./visuals";
 
 const CART_STORAGE_KEY = "laffogato_cart_v1";
@@ -54,7 +54,7 @@ export function ProductDetail({
   product: Product;
   related: Product[];
 }) {
-  const variants = (p.variants ?? []).filter((v) => v.isActive !== false);
+  const variants = activeVariants(p);
   const gallery = (p.images ?? []).filter(
     (u) => typeof u === "string" && u.length > 0,
   );
@@ -107,7 +107,9 @@ export function ProductDetail({
 
   const addToCart = (goCheckout: boolean) => {
     if (outOfStock) return;
-    pushToCart(toCartItem(p, selectedVariant), qty);
+    const item = toCartItem(p, selectedVariant);
+    if (!item) return;
+    pushToCart(item, qty);
     if (goCheckout) {
       // A full page load: the checkout opens in a document of its own,
       // without this page's tags (src/lib/security/checkout-document.ts).

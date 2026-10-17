@@ -44,25 +44,43 @@ export function cartItemKey(it: {
   return `${it.productId ?? it.name}::${it.variantId ?? ""}`;
 }
 
-/** Build a CartItem from a Product (+ optional variant) with all metadata. */
+/** The variants a product is sold in: the shop offers only active ones. */
+export function activeVariants(p: Product) {
+  return (p.variants ?? []).filter((v) => v.isActive !== false);
+}
+
+/**
+ * Build a CartItem from a Product (+ the chosen variant) with all metadata.
+ *
+ * Null for a product sold in variants when no variant of its own is given:
+ * such a line has no variant to price or to take stock from. The card's
+ * quick "+" used to add exactly that line, at the base price and against
+ * the product total only, so every caller now has to have a variant chosen
+ * first (the card opens the product instead, see ProductCard).
+ */
 export function toCartItem(
   p: Product,
   variant?: { id: string; name: string; priceDelta: number; stock?: number },
-): CartItem {
+): CartItem | null {
+  const variants = activeVariants(p);
+  if (variants.length > 0 && !variants.some((v) => v.id === variant?.id)) {
+    return null;
+  }
+  const chosen = variants.length > 0 ? variant : undefined;
   const base =
     p.priceMinor !== undefined ? p.priceMinor / 100 : parsePriceLabel(p.price);
-  const price = base + (variant?.priceDelta ?? 0);
+  const price = base + (chosen?.priceDelta ?? 0);
   return {
     productId: p.id,
-    variantId: variant?.id,
-    variantName: variant?.name,
+    variantId: chosen?.id,
+    variantName: chosen?.name,
     name: p.name,
     price,
     tag: p.tag,
     slug: p.slug,
     img: p.img,
     cat: p.cat,
-    maxStock: variant?.stock ?? p.stock,
+    maxStock: chosen?.stock ?? p.stock,
   };
 }
 
@@ -99,11 +117,16 @@ export function ProductCard({
   const name = shortProductName(p.name);
   const label = name.split(" ")[0];
   const href = p.slug ? productPath(p.slug) : undefined;
+  // A product sold in variants cannot go in from the card: the "+" opens it
+  // so the variant is chosen first (toCartItem refuses a line without one).
+  const needsChoice = activeVariants(p).length > 0;
 
   const onAdd = () => {
     if (outOfStock || !addToCart) return;
-    addToCart(toCartItem(p));
+    const item = toCartItem(p);
+    if (item) addToCart(item);
   };
+
   // The card opens the quick look where the page has one (the shop); where
   // it does not (the related row on a product page) it is a plain link to
   // the product - it used to be a dead surface there, with two dead buttons.
@@ -172,7 +195,30 @@ export function ProductCard({
           <span>{p.price}</span>
           {p.compareAtPrice && <span className="was">{p.compareAtPrice}</span>}
         </div>
-        {addToCart && (
+        {addToCart && !outOfStock && needsChoice ? (
+          onOpen ? (
+            <button
+              type="button"
+              className="product-card-add"
+              data-kind="options"
+              onClick={() => onOpen(p)}
+              aria-label={`${name} - seçenekleri gör`}
+              title="Seçenekleri gör"
+            >
+              <OptionsGlyph />
+            </button>
+          ) : href ? (
+            <a
+              className="product-card-add"
+              data-kind="options"
+              href={href}
+              aria-label={`${name} - seçenekleri gör`}
+              title="Seçenekleri gör"
+            >
+              <OptionsGlyph />
+            </a>
+          ) : null
+        ) : addToCart ? (
           <button
             type="button"
             className="product-card-add"
@@ -191,9 +237,24 @@ export function ProductCard({
               />
             </svg>
           </button>
-        )}
+        ) : null}
       </div>
     </article>
+  );
+}
+
+/** The card's "choose an option" disc: a chevron, not the "+" that adds. */
+function OptionsGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M6 3.5 10.5 8 6 12.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -609,7 +670,9 @@ export function ProductModal({
             />
           </svg>
         </button>
+        {/* Keyed: the chosen variant belongs to this product only. */}
         <ProductModalBody
+          key={product.id ?? product.name}
           product={product}
           onClose={onClose}
           addToCart={addToCart}
@@ -636,7 +699,7 @@ function ProductModalBody({
 }) {
   const label = shortProductName(p.name).split(" ")[0];
   const isFavorite = !!(p.id && wishlist?.includes(p.id));
-  const variants = (p.variants ?? []).filter((v) => v.isActive !== false);
+  const variants = activeVariants(p);
   const [variantId, setVariantId] = useState<string | undefined>(
     variants.find((v) => (v.stock ?? 1) > 0)?.id ?? variants[0]?.id,
   );
@@ -819,6 +882,7 @@ function ProductModalBody({
             onClick={() => {
               if (outOfStock) return;
               const item = toCartItem(p, selectedVariant);
+              if (!item) return;
               for (let i = 0; i < qty; i += 1) addToCart(item);
               onClose();
             }}
