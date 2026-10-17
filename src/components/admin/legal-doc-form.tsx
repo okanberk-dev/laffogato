@@ -1,21 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
 
-import type { LegalActionState } from "@/app/admin/hukuk/actions";
+import type { ActionResult } from "@/lib/admin/action-result";
+import { LEGAL_LIMITS } from "@/lib/admin/legal-schema";
 
 import {
-  Card,
-  Checkbox,
-  Field,
-  GhostButton,
-  PrimaryButton,
-  Textarea,
-  TextInput,
-} from "./forms";
-
-const initialState: LegalActionState = {};
+  ActionForm,
+  FormFieldError,
+  FormMessage,
+  SubmitButton,
+} from "./action-form";
+import { Card, Checkbox, Field, Textarea, TextInput } from "./forms";
+import { BUTTON, NUMERIC_STYLE } from "./ui";
 
 export interface LegalDocInitial {
   slug: string;
@@ -28,78 +25,97 @@ export interface LegalDocInitial {
 
 interface Props {
   initial: LegalDocInitial;
-  action: (
-    prev: LegalActionState,
-    formData: FormData,
-  ) => Promise<LegalActionState>;
+  action: (prev: ActionResult | null, formData: FormData) => Promise<ActionResult>;
 }
 
-export function LegalDocForm({ initial, action }: Props) {
-  const [state, formAction, pending] = useActionState(action, initialState);
-  const fe = (k: string) => state.fieldErrors?.[k];
+// Markdown in a real monospace face: --mono resolves to Poppins. The size is
+// the field's own (16px on a phone, so iOS does not zoom; an inline 13px
+// used to beat that guard).
+const MARKDOWN_STYLE = { fontFamily: NUMERIC_STYLE.fontFamily } as const;
 
+/**
+ * The legal editor. Posts through ActionForm (by hand, no form reset): a
+ * refused save used to come back with the whole edited Markdown body
+ * replaced by the stored one. Each refusal sits under its own field.
+ */
+export function LegalDocForm({ initial, action }: Props) {
   return (
-    <form action={formAction} className="grid gap-5">
+    <ActionForm action={action} className="grid gap-5">
       <Card className="grid gap-5">
-        <Field label="Başlık" hint={fe("title")}>
-          <TextInput
-            name="title"
-            defaultValue={initial.title}
-            required
-            aria-invalid={Boolean(fe("title"))}
-          />
-        </Field>
+        <div className="grid content-start gap-1.5">
+          <Field label="Başlık">
+            <TextInput
+              name="title"
+              defaultValue={initial.title}
+              required
+              maxLength={LEGAL_LIMITS.title}
+            />
+          </Field>
+          <FormFieldError name="title" />
+        </div>
+        <div className="grid content-start gap-1.5">
+          <Field label="Özet" hint="Başlığın altındaki kısa açıklama.">
+            <Textarea
+              name="summary"
+              defaultValue={initial.summary}
+              rows={2}
+              maxLength={LEGAL_LIMITS.summary}
+            />
+          </Field>
+          <FormFieldError name="summary" />
+        </div>
+        <div className="grid content-start gap-1.5">
+          <Field
+            label="Yürürlük tarihi"
+            hint="26 Mayıs 2026 gibi yaz. Boş bırakırsan yayınladığın gün yazılır."
+          >
+            <TextInput
+              name="effectiveDate"
+              defaultValue={initial.effectiveDate}
+              maxLength={LEGAL_LIMITS.effectiveDate}
+              placeholder="26 Mayıs 2026"
+              autoComplete="off"
+            />
+          </Field>
+          <FormFieldError name="effectiveDate" />
+        </div>
+        <div className="grid content-start gap-1.5">
+          <Field
+            label="İçerik (Markdown)"
+            hint="## Başlık · ### Alt başlık · - madde · 1. sıralı · **kalın** desteklenir. Yayınlamadığın sürece sitede hazır metin görünür."
+          >
+            <Textarea
+              name="bodyMarkdown"
+              defaultValue={initial.bodyMarkdown}
+              rows={26}
+              maxLength={LEGAL_LIMITS.bodyMarkdown}
+              className="min-h-[480px]"
+              style={MARKDOWN_STYLE}
+            />
+          </Field>
+          <FormFieldError name="bodyMarkdown" />
+        </div>
         <Field
-          label="Özet"
-          hint={fe("summary") ?? "H1 altındaki kısa açıklama."}
+          as="fieldset"
+          label="Yayın durumu"
+          hint="İşaretsiz kaydedersen metin taslak olur ve sitede hazır metin görünür."
         >
-          <Textarea name="summary" defaultValue={initial.summary} rows={2} />
-        </Field>
-        <Field label="Yürürlük tarihi" hint="Örn: 26 Mayıs 2026">
-          <TextInput
-            name="effectiveDate"
-            defaultValue={initial.effectiveDate}
-          />
-        </Field>
-        <Field
-          label="İçerik (Markdown)"
-          hint={
-            fe("bodyMarkdown") ??
-            "## Başlık · ### Alt başlık · - madde · 1. sıralı · **kalın** desteklenir. Boş bırakıp yayınlamazsan kodlu varsayılan metin gösterilir."
-          }
-        >
-          <Textarea
-            name="bodyMarkdown"
-            defaultValue={initial.bodyMarkdown}
-            rows={26}
-            className="min-h-[480px]"
-            style={{ fontFamily: "var(--mono, monospace)", fontSize: 13 }}
-            aria-invalid={Boolean(fe("bodyMarkdown"))}
-          />
-        </Field>
-        <Field label="Yayın durumu">
           <Checkbox
             name="isPublished"
-            label="Yayında - bu özel metni /hukuk sayfasında göster"
+            label="Yayında: bu metni /hukuk sayfasında ve uygulamada göster"
             defaultChecked={initial.isPublished}
           />
         </Field>
 
-        {state.error && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {state.error}
-          </div>
-        )}
+        <FormMessage />
       </Card>
 
       <Card className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/admin/hukuk">
-          <GhostButton type="button">Vazgeç</GhostButton>
+        <Link href="/admin/hukuk" className={BUTTON.ghost}>
+          Vazgeç
         </Link>
-        <PrimaryButton type="submit" disabled={pending}>
-          {pending ? "Kaydediliyor…" : "Kaydet"}
-        </PrimaryButton>
+        <SubmitButton>Kaydet</SubmitButton>
       </Card>
-    </form>
+    </ActionForm>
   );
 }
