@@ -17,7 +17,7 @@ import { firstParam } from "@/lib/admin/list-params";
 import { PrintButton } from "./print-button";
 
 interface PageProps {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export const metadata = { title: "Admin · Masa kartları" };
