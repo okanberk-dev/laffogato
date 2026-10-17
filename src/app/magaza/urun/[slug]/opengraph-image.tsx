@@ -1,5 +1,3 @@
-import { notFound } from "next/navigation";
-
 import { OG_JPEG, OG_SIZE, ogJpeg } from "@/lib/seo/og-card";
 import { productCard } from "@/lib/seo/og-product";
 import { SITE } from "@/lib/seo/site";
@@ -15,9 +13,10 @@ import { SITE } from "@/lib/seo/site";
  * read, sharp and a render). A price change reaches new previews within the
  * hour; sites that already fetched the image keep their own copy longer.
  *
- * A slug with no active product is a 404, as the page is. A database that
- * cannot answer is an error, not a stand-in card: on revalidation the last
- * good card keeps being served instead of a fallback kept for an hour.
+ * A slug with no active product is a 404, as the page is, kept an hour like
+ * a card (see below). A database that cannot answer is an error, not a
+ * stand-in card: on revalidation the last good card keeps being served
+ * instead of a fallback kept for an hour.
  */
 export const runtime = "nodejs";
 export const revalidate = 3600;
@@ -41,6 +40,11 @@ export default async function Image({
 }) {
   const { slug } = await params;
   const card = await productCard(slug);
-  if (!card) notFound();
+  // A returned 404, not `notFound()`: Next keeps a route's thrown 404 in the
+  // incremental cache with no revalidation (it skips the segment's
+  // `revalidate`; the answer went out with `s-maxage=31536000`), so a product
+  // activated after its link was first fetched kept a 404 preview until the
+  // next deploy. A returned 404 is kept an hour, as the card is.
+  if (!card) return new Response(null, { status: 404 });
   return ogJpeg(card);
 }

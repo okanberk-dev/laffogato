@@ -107,7 +107,10 @@ Eat the cup.") ana sayfanın ve kendi kartı olmayan her sayfanın (`/hukuk`,
   - **Ürün kartı** ilk istekte, sayfanın okuduğu sorguyla (yedeksiz hâli,
     `getShopProductBySlugLive`) çizilir ve bir saat saklanır (ISR); fiyat,
     sayfanın ilk açtığı varyantın KDV dahil fiyatıdır. Aktif ürün yoksa kart
-    da sayfa gibi **404**'tür. Veritabanı cevap vermezse kart **hata verir**:
+    da sayfa gibi **404**'tür ve bu cevap da bir saat saklanır. 404
+    `notFound()` ile fırlatılmaz, döndürülür: Next fırlatılan 404'ü
+    `revalidate`'siz saklıyor, sonradan aktifleşen ürünün kartı bir sonraki
+    deploy'a kadar 404 kalıyordu. Veritabanı cevap vermezse kart **hata verir**:
     saatlik yenilemede son iyi kart sunulmaya devam eder (ilk istekte 500);
     yerine çizilen bir kart bir saat saklanmaz. Fotoğraf okunamazsa paket
     çizimi çıkar.

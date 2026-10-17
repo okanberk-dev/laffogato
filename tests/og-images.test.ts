@@ -147,9 +147,6 @@ function weekly(over: Partial<WeeklyHours> = {}, every?: OpeningHour) {
   ) as WeeklyHours;
 }
 
-/** What `notFound()` throws: Next turns it into a 404 for a route. */
-const NOT_FOUND = { digest: expect.stringMatching(/;404$/) };
-
 beforeEach(() => {
   store.getShopProductBySlugLive.mockReset();
   store.getProduct.mockReset();
@@ -534,9 +531,25 @@ describe("the product card", () => {
     const { productCard } = await import("@/lib/seo/og-product");
     expect(await productCard("yok")).toBeNull();
     expect(store.getProduct).not.toHaveBeenCalled();
-    await expect(
-      render(await route(), "urun-missing", { slug: "yok" }),
-    ).rejects.toMatchObject(NOT_FOUND);
+    const res = (await (
+      await route()
+    ).default({ params: Promise.resolve({ slug: "yok" }) })) as Response;
+    expect(res.status).toBe(404);
+    expect((await res.arrayBuffer()).byteLength).toBe(0);
+  });
+
+  it("returns its 404 rather than throwing notFound(), so it is not kept for good", () => {
+    // Next stores a route's thrown 404 in the incremental cache without the
+    // segment's `revalidate` (s-maxage=31536000): a product activated after
+    // its link was fetched kept a 404 preview until the next deploy. A
+    // returned 404 is cached like the card, an hour.
+    const source = readFileSync(
+      join(APP, "magaza/urun/[slug]/opengraph-image.tsx"),
+      "utf8",
+    );
+    // notFound() comes from next/navigation; the route does not load it.
+    expect(source).not.toContain("next/navigation");
+    expect(source).toContain("new Response(null, { status: 404 })");
   });
 
   it("fails, not stands in, when the database cannot answer", async () => {
