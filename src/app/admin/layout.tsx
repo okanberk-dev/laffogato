@@ -69,7 +69,8 @@ const adminFontStyle = {
 
 // The same ground for the signed-in panel and the login / 2FA screens. The
 // signed-in wrapper used to be bg-neutral-50 and only the logged-out one
-// carried the (never styled) `admin-shell` class.
+// carried the (never styled) `admin-shell` class. `data-admin-root` lets
+// the panel's Tailwind classes beat the site's element resets (globals.css).
 const shellClass = (fontVariable: string) =>
   `${fontVariable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)]`;
 
@@ -197,7 +198,11 @@ export default async function AdminLayout({
   // their own centered layout and must not show the admin sidebar.
   if (!session) {
     return (
-      <div className={shellClass(poppins.variable)} style={adminFontStyle}>
+      <div
+        data-admin-root=""
+        className={shellClass(poppins.variable)}
+        style={adminFontStyle}
+      >
         <ToastProvider flash={flash}>{children}</ToastProvider>
       </div>
     );
@@ -209,7 +214,11 @@ export default async function AdminLayout({
   })).filter((g) => g.items.length > 0);
 
   return (
-    <div className={shellClass(poppins.variable)} style={adminFontStyle}>
+    <div
+      data-admin-root=""
+      className={shellClass(poppins.variable)}
+      style={adminFontStyle}
+    >
       <ToastProvider flash={flash}>
         <AdminSidebar
           groups={groups}
