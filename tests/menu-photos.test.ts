@@ -193,6 +193,18 @@ describe("the bundled seed", () => {
     }
   });
 
+  it("has no photo the live menu would miss: only the August three are not in the migration", () => {
+    const listed = new Set(rows.map((r) => r.id));
+    const seedOnly = seed
+      .filter((s) => s.image && !listed.has(s.id))
+      .map((s) => s.image);
+    expect(seedOnly).toEqual([
+      "/menu/matcha-latte.webp",
+      "/menu/strawberry-matcha.webp",
+      "/menu/matcha-affogato.webp",
+    ]);
+  });
+
   it("leaves only the items docs/MENU-PHOTOS.md lists without a photo", () => {
     const missing = seed.filter((s) => !s.image).map((s) => s.name);
     expect(missing).toEqual(["Salep", "Çarkıfelek", "Ananas", "Şurup"]);

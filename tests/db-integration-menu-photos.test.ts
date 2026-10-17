@@ -78,7 +78,7 @@ maybe("the menu-photos migration in a real Postgres", () => {
     return rows[0];
   }
 
-  it("fills an empty photo, keeps the operator's and skips a renamed row", async () => {
+  it("fills an empty photo, keeps the operator's, skips a renamed or deleted row", async () => {
     await inRollback(async (db) => {
       // The database as it was before this file ran.
       await db.query(`delete from public._migrations where name = $1`, [FILE]);
@@ -86,6 +86,8 @@ maybe("the menu-photos migration in a real Postgres", () => {
       await put(db, "mnu-0004", "L'Affogato", OPERATOR_PHOTO);
       await put(db, "mnu-0005", "Espresso (çift)", "");
       await put(db, "mnu-0001", "Matcha Latte", "/menu/matcha-latte.webp");
+      await put(db, "mnu-0041", "Salep", "");
+      await db.query(`delete from public.menu_items where id = 'mnu-0006'`);
 
       await db.query(MIGRATION);
 
@@ -98,6 +100,10 @@ maybe("the menu-photos migration in a real Postgres", () => {
       expect((await photo(db, "mnu-0001")).image).toBe(
         "/menu/matcha-latte.webp",
       );
+      // Salep has no acceptable photo: the migration does not list it.
+      expect((await photo(db, "mnu-0041")).image).toBe("");
+      // A deleted item is not brought back.
+      expect(await photo(db, "mnu-0006")).toBeUndefined();
     });
   });
 
