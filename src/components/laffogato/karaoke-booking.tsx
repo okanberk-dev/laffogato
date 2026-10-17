@@ -52,6 +52,11 @@ export interface KaraokeBookingProps {
   /** The bookable window, as Istanbul calendar days. */
   days: string[];
   date: string;
+  /**
+   * The hour asked for in the URL (`?saat=`, the home page's chips). Taken
+   * only when it is free on `date`; the first free hour otherwise.
+   */
+  initialHour?: number | null;
   availability: KaraokeAvailability | null;
   /** True when the calendar could not be read at all. */
   unavailable: boolean;
@@ -84,6 +89,7 @@ interface KaraokeTicks {
 export function KaraokeBooking({
   days,
   date,
+  initialHour = null,
   availability,
   unavailable,
   capacity,
@@ -99,7 +105,12 @@ export function KaraokeBooking({
 }: KaraokeBookingProps) {
   const slots = availability?.slots ?? [];
   const firstFree = slots.find((s) => s.available)?.startHour;
-  const [startHour, setStartHour] = useState<number | null>(firstFree ?? null);
+  const askedFree =
+    initialHour !== null &&
+    slots.some((s) => s.startHour === initialHour && s.available);
+  const [startHour, setStartHour] = useState<number | null>(
+    askedFree ? initialHour : (firstFree ?? null),
+  );
   const [hours, setHours] = useState(1);
   const [guests, setGuests] = useState(Math.min(4, capacity));
   const [note, setNote] = useState("");
@@ -142,6 +153,11 @@ export function KaraokeBooking({
 
   const today = days[0];
   const tomorrow = days[1];
+  // Signing in comes back to this day and this hour.
+  const backHere =
+    startHour !== null
+      ? `/karaoke?tarih=${date}&saat=${startHour}`
+      : `/karaoke?tarih=${date}`;
   const selectionValid =
     startHour !== null && blockIsFree(startHour, hours) && !unavailable;
 
@@ -366,7 +382,7 @@ export function KaraokeBooking({
                 <p className="karaoke-hint" style={{ marginTop: 0 }}>
                   Hesap açılmaz; rezervasyon bağlantın e-postana gelir.{" "}
                   <a
-                    href={`/uye/giris?next=${encodeURIComponent(`/karaoke?tarih=${date}`)}`}
+                    href={`/uye/giris?next=${encodeURIComponent(backHere)}`}
                     className="karaoke-link"
                   >
                     Üyeysen giriş yap
@@ -487,7 +503,7 @@ export function KaraokeBooking({
               {!canBook && !isAuthenticated ? (
                 <>
                   <a
-                    href={`/uye/giris?next=${encodeURIComponent(`/karaoke?tarih=${date}`)}`}
+                    href={`/uye/giris?next=${encodeURIComponent(backHere)}`}
                     className="btn btn-gold"
                     style={{ width: "100%" }}
                   >
