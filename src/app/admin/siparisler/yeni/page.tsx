@@ -2,11 +2,12 @@ import { randomUUID } from "node:crypto";
 
 import Link from "next/link";
 
-import { Card, PageHeader } from "@/components/admin/forms";
+import { PageHeader } from "@/components/admin/forms";
 import {
   ManualOrderForm,
   type ManualProduct,
 } from "@/components/admin/manual-order-form";
+import { BUTTON, EmptyState } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { getSettings, listProducts } from "@/lib/admin/store";
 
@@ -39,25 +40,28 @@ export default async function NewOrderPage() {
   return (
     <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="E-ticaret"
+        eyebrow="Satış"
         title="Yeni sipariş"
         description="Telefon ya da köşkteki satışı elle gir: gel-al, kurye ya da kargo. Fiyatlar üründen sunucuda çözülür, stok düşülür."
         action={
-          <Link
-            href="/admin/siparisler"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--admin-border)] px-4 py-2 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-          >
+          // A text link, as on the order page: the old pill read as a
+          // second button next to the form's own (admin audit ORD-22).
+          <Link href="/admin/siparisler" className={BUTTON.link}>
             ← Tüm siparişler
           </Link>
         }
       />
 
       {products.length === 0 ? (
-        <Card>
-          <p className="text-sm text-neutral-500">
-            Aktif ürün yok. Önce ürün ekle.
-          </p>
-        </Card>
+        <EmptyState
+          title="Aktif ürün yok."
+          description="Elle sipariş, satıştaki bir ürünle girilir."
+          action={
+            <Link href="/admin/urunler/yeni" className={BUTTON.ghost}>
+              Ürün ekle
+            </Link>
+          }
+        />
       ) : (
         <ManualOrderForm
           products={products}
