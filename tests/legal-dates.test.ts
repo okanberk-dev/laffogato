@@ -48,7 +48,12 @@ describe("legal document dates", () => {
   it("a document that changes after the revision carries its own day", () => {
     // Empty on 16 Ekim 2026: every document changed that day. Add a document
     // here, with its date, when only it changes later.
-    const expected: Record<string, string> = {};
+    const expected: Record<string, string> = {
+      // fA'L's AI recipient became Anthropic, PBC (R12 and the two privacy texts).
+      "gizlilik-politikasi": "17 Ekim 2026",
+      "kvkk-aydinlatma-metni": "17 Ekim 2026",
+      "acik-riza-metni": "17 Ekim 2026",
+    };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);
     }

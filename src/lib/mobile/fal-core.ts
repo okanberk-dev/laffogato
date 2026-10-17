@@ -3,19 +3,29 @@
  *
  * The operator: "let them photograph their americano or latte and read it
  * by the situation; they are members, so you know a little about them; say
- * 'AI ile yorumlanıyor'; I will give the OpenAI key later."
+ * 'AI ile yorumlanıyor'; I will give the OpenAI key later." On 17 Eki 2026
+ * the operator moved the reading to Anthropic's Claude API; the OpenAI path
+ * stays in the code, chosen by the environment.
  *
  * What this module decides, without touching the network or the database:
- * whether the feature is on at all, which model reads, what the model is
- * told, what it may answer, and whether an answer is fit to show. The rules
- * that make it lawful live here too, so they are tested rather than trusted:
+ * whether the feature is on at all, which provider and model read, what the
+ * model is told, what it may answer, and whether an answer is fit to show.
+ * The rules that make it lawful live here too, so they are tested rather
+ * than trusted:
  *
- *   - The feature is OFF unless BOTH `OPENAI_API_KEY` and
- *     `FAL_AI_ENABLED=true` are set. The key alone does not switch it on:
- *     the explicit-consent text (Açık Rıza Metni R12) and the transfer
- *     abroad want a lawyer's reading and a standard contract first.
- *   - Only a consent recorded at `FAL_CONSENT_VERSION` counts; a new version
- *     asks again.
+ *   - The provider is `FAL_AI_PROVIDER` (anthropic | openai); unset, it is
+ *     Anthropic when `ANTHROPIC_API_KEY` is set and OpenAI otherwise.
+ *   - The feature is OFF unless `FAL_AI_ENABLED=true` AND the chosen
+ *     provider's key is set. The key alone does not switch it on: the
+ *     explicit-consent text (Açık Rıza Metni R12) and the transfer abroad
+ *     want a lawyer's reading and a standard contract first.
+ *   - It is also OFF when the chosen provider is not the recipient the
+ *     published texts name (`FAL_DISCLOSED_PROVIDER`): a photo sent to a
+ *     company the member was never told about is a transfer abroad without
+ *     consent, whatever the environment says.
+ *   - Only a consent recorded at `FAL_CONSENT_VERSION` counts. The version
+ *     names the text's day and its recipient, so a new text and a new
+ *     recipient both ask again.
  *   - The member is described by their tier, a visit-frequency word and, if
  *     they saved one, their usual drink - never a name, an e-mail, a phone
  *     number or an id.
@@ -26,33 +36,109 @@
 
 export const FAL_FEATURE = "fal-ai";
 
-/** The R12 text's version; bump it when the consent text changes. */
-export const FAL_CONSENT_VERSION = "2026-09-23";
-
 /** Readings a member may ask the AI for in one Istanbul day. */
 export const FAL_DAILY_LIMIT = 5;
 
 /** The downscaled JPEG the app sends, decoded - a 768 px image is ~150 KB. */
 export const FAL_IMAGE_MAX_BYTES = 900_000;
 
-/** How long the model may take before the app reads the cup itself. */
+/**
+ * How long the model may take before the app reads the cup itself. POST /fal
+ * runs for at most 30 s (`maxDuration`, and the app waits 30 s too); the
+ * sign-in and database steps before the call need the rest.
+ */
 export const FAL_TIMEOUT_MS = 20_000;
 
 /** Each part of a reading, at most - a story line, not a paragraph. */
 export const FAL_PART_MAX = 160;
 
-/** The default reader: a small vision model (developers.openai.com, 23 Eyl 2026). */
-export const FAL_DEFAULT_MODEL = "gpt-5.4-mini";
-
 type Env = Record<string, string | undefined>;
 
-/** On only with the key AND the explicit switch. */
-export function falAiEnabled(env: Env): boolean {
-  return Boolean(env.OPENAI_API_KEY?.trim()) && env.FAL_AI_ENABLED?.trim().toLowerCase() === "true";
+export const FAL_PROVIDERS = ["anthropic", "openai"] as const;
+export type FalProvider = (typeof FAL_PROVIDERS)[number];
+
+/** Where each provider's key and model come from, its default reader, and who it is in law. */
+export const FAL_PROVIDER_INFO: Record<
+  FalProvider,
+  { keyEnv: string; modelEnv: string; defaultModel: string; legalName: string }
+> = {
+  // Claude's current models are claude-opus-5-5, claude-sonnet-5-5 and
+  // claude-haiku-5-5 (platform.claude.com, 17 Eki 2026); Opus by default.
+  anthropic: {
+    keyEnv: "ANTHROPIC_API_KEY",
+    modelEnv: "ANTHROPIC_FAL_MODEL",
+    defaultModel: "claude-opus-5-5",
+    legalName: "Anthropic, PBC",
+  },
+  // A small vision model (developers.openai.com, 23 Eyl 2026).
+  openai: {
+    keyEnv: "OPENAI_API_KEY",
+    modelEnv: "OPENAI_FAL_MODEL",
+    defaultModel: "gpt-5.4-mini",
+    legalName: "OpenAI, L.L.C.",
+  },
+};
+
+/**
+ * The provider the published texts name as the photo's recipient (Açık Rıza
+ * Metni R12, KVKK Aydınlatma Metni, Gizlilik Politikası: "Anthropic, PBC",
+ * 17 Eki 2026) and the only one the photo may go to. Changing it is a change
+ * of those texts and of the consent version, never an environment switch;
+ * tests/legal-fal-recipient.test.ts holds the texts to it.
+ */
+export const FAL_DISCLOSED_PROVIDER: FalProvider = "anthropic";
+
+/** The day the R12 text last changed: its recipient became Anthropic. */
+export const FAL_CONSENT_TEXT_DAY = "2026-10-17";
+
+/**
+ * The R12 consent's version for a recipient: the text's day and the
+ * provider it names ("2026-10-17-anthropic"). The consent row keeps it, so
+ * the proof says whom the member agreed to send the photo to.
+ */
+export function falConsentVersionFor(provider: FalProvider): string {
+  return `${FAL_CONSENT_TEXT_DAY}-${provider}`;
 }
 
-export function falModel(env: Env): string {
-  return env.OPENAI_FAL_MODEL?.trim() || FAL_DEFAULT_MODEL;
+/**
+ * The version a consent must carry to count (`hasFalConsent`); the app asks
+ * again for any other. A new text moves it, and so does a new recipient: a
+ * yes given for one provider is never read as a yes for another. The 23 Eyl
+ * 2026 consents ("2026-09-23", the text that named OpenAI) no longer count.
+ */
+export const FAL_CONSENT_VERSION = falConsentVersionFor(FAL_DISCLOSED_PROVIDER);
+
+/**
+ * Which provider reads: the one `FAL_AI_PROVIDER` names; unset, Anthropic
+ * when its key is there and OpenAI otherwise. A value that names neither is
+ * a typo, and a typo reads with nobody (null: the feature stays off) rather
+ * than with whichever key happens to be set.
+ */
+export function falProvider(env: Env): FalProvider | null {
+  const chosen = env.FAL_AI_PROVIDER?.trim().toLowerCase() ?? "";
+  if (!chosen) return env.ANTHROPIC_API_KEY?.trim() ? "anthropic" : "openai";
+  return (FAL_PROVIDERS as readonly string[]).includes(chosen) ? (chosen as FalProvider) : null;
+}
+
+/** The provider's API key, trimmed, or "" when it is not set. */
+export function falApiKey(env: Env, provider: FalProvider): string {
+  return env[FAL_PROVIDER_INFO[provider].keyEnv]?.trim() ?? "";
+}
+
+/**
+ * On only with the explicit switch AND the chosen provider's key, and only
+ * when that provider is the recipient the texts name.
+ */
+export function falAiEnabled(env: Env): boolean {
+  if (env.FAL_AI_ENABLED?.trim().toLowerCase() !== "true") return false;
+  const provider = falProvider(env);
+  return provider === FAL_DISCLOSED_PROVIDER && falApiKey(env, provider) !== "";
+}
+
+/** The model that reads: the provider's model switch, else its default. */
+export function falModel(env: Env, provider: FalProvider = falProvider(env) ?? FAL_DISCLOSED_PROVIDER): string {
+  const info = FAL_PROVIDER_INFO[provider];
+  return env[info.modelEnv]?.trim() || info.defaultModel;
 }
 
 /** What the model is told about the member - no identity. */
@@ -78,14 +164,18 @@ const VISITS_TR: Record<FalContext["visits"], string> = {
   loyal: "köşkün sadık dostu",
 };
 
-/** The standing instructions: voice, rules, and what never to say. */
+/**
+ * The standing instructions: voice, rules, and what never to say. Both
+ * providers get the same words (OpenAI as `instructions`, Anthropic as
+ * `system`).
+ */
 export const FAL_INSTRUCTIONS = [
   "Sen L'Affogato'nun (İstanbul Tuzla'da, iki yüz yıllık bir Rum köşkünde İtalyan kahve ve gelato barı) fincan falcısısın. Adın fA'L: L'Af tersten.",
-  "Sana üyenin içeceğinin fotoğrafı ve üye hakkında kısa bir not verilir. Türkçe, sıcak, esprili ve nazik bir fal yaz; kişi hakkında güzel şeyler söyle.",
+  "Sana üyenin içeceğinin fotoğrafı ve üye hakkında kısa bir not verilir. Türkçe, sıcak, esprili ve nazik bir fal yaz; üyeye 'sen' diye seslen ve kişi hakkında güzel şeyler söyle.",
   "Önce fotoğrafta bir içecek görüp görmediğini söyle (cupSeen). Gördüysen içeceği kısaca adlandır (drink; örneğin Americano, Latte, Affogato, matcha); emin değilsen genel bir ad kullan. Görmediysen drink boş olsun ve fal yine nazik olsun.",
   "symbol: fincanda ya da köpükte gördüğün bir şekli anlat. trait: bu şekilden kişinin iyi bir yanını çıkar. forecast: yakın gelecek için küçük, tatlı bir öngörü.",
   "Her alan en fazla bir iki kısa cümle olsun. Emoji ve uzun tire kullanma.",
-  "Kesin kurallar: Fotoğraftaki kişileri, yüzleri veya belgeleri tanımlama ve yorumlama. Sağlık, hastalık, hamilelik, ilişki, para, yatırım, sınav veya iş sonucu hakkında öngöride bulunma. İndirim, bedava ya da ücretsiz ürün, hediye, kupon, puan, damga veya herhangi bir ayrıcalık vaat etme. Kötü haber, korkutma ve olumsuz kehanet yok. Siyaset ve din yok.",
+  "Kesin kurallar: Fotoğraftaki kişileri, yüzleri veya belgeleri tanımlama ve yorumlama. Sağlık, hastalık, hamilelik, ilişki, para, yatırım, dava ya da başka hukuki konular, sınav veya iş sonucu hakkında öngöride bulunma. İndirim, bedava ya da ücretsiz ürün, hediye, kupon, puan, damga veya herhangi bir ayrıcalık vaat etme. Kötü haber, korkutma ve olumsuz kehanet yok. Siyaset ve din yok.",
   "Bu bir eğlencedir; gerçeği yansıttığını ima etme.",
 ].join("\n");
 
@@ -97,7 +187,10 @@ export function falContextLine(context: FalContext): string {
   return parts.join(" ");
 }
 
-/** The reply's JSON Schema, for Structured Outputs (strict). */
+/**
+ * The reply's JSON Schema, for structured outputs: OpenAI's strict
+ * `json_schema` text format and Anthropic's `output_config.format`.
+ */
 export const FAL_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -204,7 +297,7 @@ export function decodeCupImage(base64: string): Buffer | null {
   return bytes;
 }
 
-/** The request body the Responses API takes. `store: false` - nothing kept. */
+/** The request body OpenAI's Responses API takes. `store: false` - nothing kept. */
 export function falRequestBody(model: string, context: FalContext, jpegBase64: string) {
   return {
     model,
@@ -222,6 +315,73 @@ export function falRequestBody(model: string, context: FalContext, jpegBase64: s
     max_output_tokens: 600,
     store: false,
   };
+}
+
+// ─── Anthropic's Messages API (17 Eki 2026) ──────────────────────────────
+
+export const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
+export const ANTHROPIC_VERSION = "2023-06-01";
+
+/**
+ * The reply is four short fields, a few hundred tokens. Claude's current
+ * models think before they answer (on claude-opus-5-5 it cannot be switched
+ * off, only kept short with `effort: "low"`) and the thinking counts toward
+ * this cap, so it leaves room for that and still bounds what one reading
+ * can cost.
+ */
+export const FAL_ANTHROPIC_MAX_TOKENS = 2048;
+
+/**
+ * The request body the Messages API takes: the same persona and rules as
+ * `system`, the same downscaled, metadata-free JPEG as a base64 image block
+ * (before the text, where Claude reads images best) and the same note about
+ * the member. The answer is held to `FAL_SCHEMA` by structured outputs
+ * (`output_config.format`): Claude's current Opus and Sonnet refuse a forced
+ * tool call (`tool_choice` "tool" is a 400 there), and a forced call was only
+ * ever a way to get this JSON back. The Messages API keeps no conversation
+ * state, so there is no `store` switch to send.
+ */
+export function anthropicRequestBody(model: string, context: FalContext, jpegBase64: string) {
+  return {
+    model,
+    max_tokens: FAL_ANTHROPIC_MAX_TOKENS,
+    system: FAL_INSTRUCTIONS,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: jpegBase64 } },
+          { type: "text", text: falContextLine(context) },
+        ],
+      },
+    ],
+    output_config: { effort: "low", format: { type: "json_schema", schema: FAL_SCHEMA } },
+  };
+}
+
+/** A Messages API reply: its JSON text, or why there is none. */
+export type AnthropicReply = { ok: true; text: string } | { ok: false; stop: string };
+
+/**
+ * The reply's text, read only when the model finished on its own
+ * (`end_turn`). `refusal` is the model's safety decline and `max_tokens` a
+ * cut-off answer: neither is shown, and the app reads the cup itself. The
+ * text is the first `text` block, found by type - thinking blocks come
+ * first. `stop` is a short lowercase word or "unknown", so it can be logged.
+ */
+export function anthropicReplyText(body: unknown): AnthropicReply {
+  if (!body || typeof body !== "object") return { ok: false, stop: "unknown" };
+  const reply = body as { stop_reason?: unknown; content?: unknown };
+  const stop = typeof reply.stop_reason === "string" ? reply.stop_reason : "";
+  if (stop !== "end_turn") return { ok: false, stop: /^[a-z_]{1,32}$/.test(stop) ? stop : "unknown" };
+  if (Array.isArray(reply.content)) {
+    for (const block of reply.content) {
+      if (!block || typeof block !== "object" || (block as { type?: unknown }).type !== "text") continue;
+      const text = (block as { text?: unknown }).text;
+      if (typeof text === "string" && text.trim()) return { ok: true, text };
+    }
+  }
+  return { ok: false, stop: "empty" };
 }
 
 // ─── "Bu yorumu bildir" (docs/API-MOBILE.md §20, additive) ─────────────────
