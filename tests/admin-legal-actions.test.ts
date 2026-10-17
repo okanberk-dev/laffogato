@@ -115,8 +115,8 @@ vi.mock("@/lib/legal/store", () => ({
     async (id: string) =>
       (db.archive as Archived[]).find((r) => r.id === id) ?? null,
   ),
-  listPublishedLegalArchive: vi.fn(async (slug: string) =>
-    (db.archive as Archived[]).filter((r) => r.slug === slug && r.isPublished),
+  listConsentArchive: vi.fn(async (slugs: readonly string[]) =>
+    (db.archive as Archived[]).filter((r) => slugs.includes(r.slug)),
   ),
 }));
 
@@ -330,6 +330,30 @@ describe("restoreLegalDocAction (Geri yükle)", () => {
     if (r.ok) return;
     expect(r.error).toMatch(/^Geri yüklenmedi\./);
     expect(upsertLegalDoc).not.toHaveBeenCalled();
+  });
+
+  it("brings an Ön Bilgilendirme text back as a draft once Mesafeli Satış changed beside it", async () => {
+    // Orders recorded LATEST for (this text, coded Mesafeli Satış). With a
+    // Mesafeli Satış text live now, LATEST would stand for a second pair.
+    const ONB = CHECKOUT_CONSENT_DOCS[0];
+    const row = archived({
+      slug: ONB,
+      effectiveDate: LATEST,
+      bodyMarkdown: "## 1. Taraflar\n\nÖn bilgilendirme metni.",
+      updatedAt: "2030-03-08T09:00:00.000Z",
+      archivedAt: "2030-03-09T09:00:00.000Z",
+    });
+    db.overrides.set(MSS, live(MSS, { updatedAt: "2030-03-10T09:00:00.000Z" }));
+    const r = await actions.restoreLegalDocAction(null, form({ id: row.id }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.tone).toBe("warning");
+    expect(r.message).toMatch(/tek sürümü paylaşır/);
+    expect(upsertLegalDoc).toHaveBeenCalledWith(
+      ONB,
+      expect.objectContaining({ isPublished: false }),
+      { by: OWNER },
+    );
   });
 
   it("refuses an unknown archive id", async () => {

@@ -122,6 +122,17 @@ export function resolveEffectiveDate(
   return istanbulDayLabel(nowIso) ?? "";
 }
 
+/**
+ * An archived text of a consent document (legal_override_history), as the
+ * version history reads it. The text was shown from its `updatedAt` (a save
+ * that changes nothing writes nothing, so that is when it went up) until
+ * `archivedAt`.
+ */
+export interface ConsentArchiveRow extends ConsentOverride {
+  slug: string;
+  archivedAt: string;
+}
+
 /** One save of an override, for `consentSaveRefusal`. */
 export interface ConsentSaveCheck {
   slug: string;
@@ -131,13 +142,77 @@ export interface ConsentSaveCheck {
   after: ConsentOverride;
   /** Every override stored now, by slug (the rule picks the live ones). */
   overrides: Readonly<Record<string, ConsentOverride | null | undefined>>;
-  /** The document's earlier published texts (the archive). */
-  archived: readonly ConsentOverride[];
+  /**
+   * Every archived text of the scope's documents, drafts included: both
+   * checkout documents share one version, and a draft span is a span the
+   * coded text was shown.
+   */
+  archived: readonly ConsentArchiveRow[];
+}
+
+function normText(s: string): string {
+  return s.replace(/\r\n/g, "\n").trim();
 }
 
 function sameText(a: string, b: string): boolean {
-  const norm = (s: string) => s.replace(/\r\n/g, "\n").trim();
-  return norm(a) === norm(b);
+  return normText(a) === normText(b);
+}
+
+type ConsentRows = Readonly<Record<string, ConsentOverride | null | undefined>>;
+
+/** The texts a scope's customers are shown: each live body, null = coded. */
+function textsKey(docs: readonly string[], rows: ConsentRows): string {
+  return JSON.stringify(
+    docs.map((slug) => {
+      const o = rows[slug];
+      return isLiveLegalOverride(o) ? normText(o.bodyMarkdown) : null;
+    }),
+  );
+}
+
+/**
+ * Every version a scope's consents have recorded, each with the texts it
+ * stood for (`textsKey`), rebuilt from the archive and the rows stored now:
+ * at every moment a text of the scope went up or came down, the version
+ * rule's answer and what the customers were shown.
+ */
+export function recordedConsentStates(
+  scope: { docs: readonly string[]; base: string },
+  archived: readonly ConsentArchiveRow[],
+  current: ConsentRows,
+): Map<string, Set<string>> {
+  type Span = { from: string; to: string | null; row: ConsentOverride };
+  const spans = new Map<string, Span[]>();
+  // "" is before any override: every document on its coded text.
+  const instants = new Set<string>([""]);
+  for (const slug of scope.docs) {
+    const list: Span[] = archived
+      .filter((r) => r.slug === slug)
+      .map((row) => ({ from: row.updatedAt, to: row.archivedAt, row }));
+    const now = current[slug];
+    if (now) list.push({ from: now.updatedAt, to: null, row: now });
+    for (const s of list) {
+      instants.add(s.from);
+      if (s.to !== null) instants.add(s.to);
+    }
+    spans.set(slug, list);
+  }
+  const out = new Map<string, Set<string>>();
+  for (const at of [...instants].sort()) {
+    const rows: Record<string, ConsentOverride | null> = {};
+    for (const slug of scope.docs) {
+      rows[slug] =
+        spans
+          .get(slug)
+          ?.find((s) => s.from <= at && (s.to === null || at < s.to))?.row ??
+        null;
+    }
+    const version = consentVersionFrom(rows, scope.docs, scope.base);
+    const texts = out.get(version) ?? new Set<string>();
+    texts.add(textsKey(scope.docs, rows));
+    out.set(version, texts);
+  }
+  return out;
 }
 
 /**
@@ -157,11 +232,17 @@ function sameText(a: string, b: string): boolean {
  * - A live override always needs a date later than the coded revision;
  *   otherwise consentVersionFrom ignores it and orders record the coded
  *   text's label while the customer is shown this one.
- * - A date already used by an earlier published text of the document with a
- *   different body is refused: after a reset, the old label is free again in
- *   the version rule but not in the orders that recorded it.
+ * - The version after the save must not be one an earlier state of the
+ *   scope recorded for other texts (`recordedConsentStates`): after a
+ *   reset, a restore, or a date moved back, an old label is free again in
+ *   the version rule but not in the orders that recorded it. Across both
+ *   checkout documents: a Mesafeli Satış text may not take the date an
+ *   archived Ön Bilgilendirme text was recorded under.
  *
- * Drafts, unpublished saves and documents no consent records pass.
+ * Drafts, unpublished saves and documents no consent records pass. Taking a
+ * live text down (a draft save, "Varsayılana döndür") is not refused: the
+ * archive keeps when each text was shown, and with both checkout documents
+ * live no date can move the version past it (see docs/AUDIT.md, 6a).
  */
 export function consentSaveRefusal({
   slug,
@@ -188,17 +269,13 @@ export function consentSaveRefusal({
     return `Yürürlük tarihi sitedeki hazır metnin tarihinden (${scope.base}) sonra olmalı; yoksa onaylar bu metni hazır metinle aynı sürümle kaydeder.`;
   }
 
-  for (const old of archived) {
-    if (
-      !isLiveLegalOverride(old) ||
-      sameText(old.bodyMarkdown, after.bodyMarkdown)
-    ) {
-      continue;
-    }
-    const oldLabel = overrideLabel(old);
-    if (oldLabel !== null && legalDayNumber(oldLabel) === day) {
-      return `"${label}" bu belgenin önceki bir metninde kullanıldı; onaylar iki metni ayırt edemez. Başka bir tarih yaz.`;
-    }
+  const next = { ...overrides, [slug]: after };
+  const version = consentVersionFrom(next, scope.docs, scope.base);
+  const named = recordedConsentStates(scope, archived, overrides).get(version);
+  if (named && !named.has(textsKey(scope.docs, next))) {
+    const shared =
+      scope.docs.length > 1 ? " (iki ödeme belgesi tek sürümü paylaşır)" : "";
+    return `"${version}" sürümü onaylarda daha önce başka bir metinle kaydedildi${shared}; onaylar iki metni ayırt edemez. Başka bir tarih yaz.`;
   }
   return null;
 }

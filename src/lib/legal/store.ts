@@ -258,19 +258,20 @@ export async function getLegalOverrideArchive(
 }
 
 /**
- * Every text of `slug` that was ever published, as archived: the versions
- * orders may have recorded. The editor checks a new effective date against
- * them (`consentSaveRefusal`).
+ * Every archived text of `slugs`, drafts included, oldest first: with the
+ * rows stored now, when each text of a consent's documents was shown. The
+ * editor checks a new effective date against the versions they recorded
+ * (`consentSaveRefusal`); the two checkout documents share one version, so
+ * it reads both.
  */
-export async function listPublishedLegalArchive(
-  slug: string,
+export async function listConsentArchive(
+  slugs: readonly string[],
 ): Promise<LegalOverrideArchive[]> {
   const { data, error, status } = await getDb()
     .from(TABLES.legalOverrideHistory)
     .select("*")
-    .eq("slug", slug)
-    .eq("isPublished", true)
-    .order("id", { ascending: false });
-  if (error) raiseDbError("listPublishedLegalArchive", error, status);
+    .in("slug", slugs)
+    .order("id", { ascending: true });
+  if (error) raiseDbError("listConsentArchive", error, status);
   return ((data as LegalOverrideArchive[] | null) ?? []).map(toArchive);
 }

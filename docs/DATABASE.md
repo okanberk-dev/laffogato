@@ -276,7 +276,10 @@ Panelin hukuk geçersiz kılmalarının (`legal_docs`, belge başına bir satır
 önceki metinleri. Bir kayıt değişen bir satırın üzerine yazmadan
 (`legal_doc_save`, neden `replaced`) ve "Varsayılana döndür" silmeden
 (`legal_doc_reset`, neden `reset`) önce eski satır aynı işlemde buraya
-kopyalanır; ikisi de belge başına advisory lock alır. Panel arşivi listeler,
+kopyalanır; ikisi de belge başına advisory lock alır. Hiçbir şeyi
+değiştirmeyen kayıt hiçbir şey yazmaz: `updatedAt` metnin yayına girdiği an
+kalır, böylece her metnin gösterildiği aralık `updatedAt` → `archivedAt`
+olarak tam bilinir. Panel arşivi listeler,
 önizler ve geri yükler (geri yükleme bir `legal_doc_save`'dir, değiştirdiği
 metni de arşive alır). Sipariş onayı yalnız sürüm etiketini kaydeder
 (`legalConsent.version`); o etiketin arkasındaki metin buradadır. Satır

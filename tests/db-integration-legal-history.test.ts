@@ -150,7 +150,7 @@ maybe("legal override archive, in SQL", () => {
     expect(list).toHaveLength(1);
   });
 
-  it("lists newest first without bodies, and the published texts with them", async () => {
+  it("lists newest first without bodies, and every text with its body for the version check", async () => {
     await store.upsertLegalDoc(SLUG, input({ isPublished: false }), {
       by: OWNER,
     });
@@ -165,9 +165,12 @@ maybe("legal override archive, in SQL", () => {
     expect(list[0]).not.toHaveProperty("bodyMarkdown");
     expect(typeof list[0].id).toBe("string");
 
-    const published = await store.listPublishedLegalArchive(SLUG);
-    expect(published).toHaveLength(1);
-    expect(published[0].bodyMarkdown).toBe("## B\n\nx.");
+    // The version check's read: every text of the documents, oldest
+    // first, bodies and drafts included.
+    const texts = await store.listConsentArchive([SLUG, "baska-belge"]);
+    expect(texts.map((r) => r.reason)).toEqual(["replaced", "reset"]);
+    expect(texts.map((r) => r.isPublished)).toEqual([false, true]);
+    expect(texts[1].bodyMarkdown).toBe("## B\n\nx.");
   });
 
   it("puts an archived text back, archiving the one it replaces", async () => {

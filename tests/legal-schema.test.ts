@@ -5,8 +5,10 @@ import {
   consentScope,
   EFFECTIVE_DATE_FORMAT_ERROR,
   legalDocSchema,
+  recordedConsentStates,
   recordedConsentVersion,
   resolveEffectiveDate,
+  type ConsentArchiveRow,
   type ConsentSaveCheck,
 } from "@/lib/admin/legal-schema";
 import { canAccess } from "@/lib/admin/roles";
@@ -221,14 +223,31 @@ describe("consentSaveRefusal (CON-M01, D25)", () => {
     ).toContain(KARAOKE_LEGAL_UPDATED);
   });
 
+  // An archived text, shown from its updatedAt until archivedAt.
+  function shown(
+    slug: string,
+    from: string,
+    to: string,
+    patch: Partial<ConsentOverride> = {},
+  ): ConsentArchiveRow {
+    return { ...text(patch), slug, updatedAt: from, archivedAt: to };
+  }
+
   it("refuses a date an earlier published text of the document used", () => {
-    const old = text({
-      bodyMarkdown: "## 1. Taraflar\n\nArşivdeki metin.",
-      effectiveDate: LATEST,
-    });
+    const old = shown(
+      MSS,
+      "2030-03-08T09:00:00.000Z",
+      "2030-03-09T09:00:00.000Z",
+      {
+        bodyMarkdown: "## 1. Taraflar\n\nArşivdeki metin.",
+        effectiveDate: LATEST,
+      },
+    );
     expect(
       check({ after: text({ effectiveDate: LATEST }), archived: [old] }),
-    ).toMatch(/önceki bir metninde kullanıldı/);
+    ).toMatch(
+      /^"11 Mart 2030" sürümü onaylarda daha önce başka bir metinle kaydedildi/,
+    );
     // The same text coming back under its own date is fine (a restore).
     expect(check({ after: { ...old }, archived: [old] })).toBeNull();
     // A draft in the archive never reached an order.
@@ -238,6 +257,128 @@ describe("consentSaveRefusal (CON-M01, D25)", () => {
         archived: [{ ...old, isPublished: false }],
       }),
     ).toBeNull();
+  });
+
+  // Both checkout documents share one version: a label stands for the pair.
+  const ONB_TEXT = "## 1. Taraflar\n\nÖn bilgilendirme metni.";
+  const MSS_TEXT = "## 1. Taraflar\n\nMesafeli satış metni.";
+
+  it("refuses the date an archived text of the other checkout document was recorded under", () => {
+    // Ön Bilgilendirme went live at LATEST and was reset: orders recorded
+    // LATEST for (that text, coded Mesafeli Satış). A Mesafeli Satış text
+    // going live at LATEST would put a second pair under the same label.
+    const onb = shown(
+      ONB,
+      "2030-03-08T09:00:00.000Z",
+      "2030-03-09T09:00:00.000Z",
+      {
+        bodyMarkdown: ONB_TEXT,
+        effectiveDate: LATEST,
+      },
+    );
+    expect(
+      check({
+        after: text({ bodyMarkdown: MSS_TEXT, effectiveDate: LATEST }),
+        archived: [onb],
+      }),
+    ).toMatch(/tek sürümü paylaşır/);
+    expect(
+      check({
+        after: text({ bodyMarkdown: MSS_TEXT, effectiveDate: "12 Mart 2030" }),
+        archived: [onb],
+      }),
+    ).toBeNull();
+  });
+
+  it("refuses a restore under its old date once the other checkout document changed", () => {
+    // Ön Bilgilendirme LATEST was shown with the coded Mesafeli Satış and
+    // reset; Mesafeli Satış then went live at LATER. Restoring the
+    // Ön Bilgilendirme text under LATEST would record LATEST for a new pair.
+    const onb = shown(
+      ONB,
+      "2030-03-08T09:00:00.000Z",
+      "2030-03-09T09:00:00.000Z",
+      {
+        bodyMarkdown: ONB_TEXT,
+        effectiveDate: LATEST,
+      },
+    );
+    const mss = text({
+      bodyMarkdown: MSS_TEXT,
+      effectiveDate: LATER,
+      updatedAt: "2030-03-10T09:00:00.000Z",
+    });
+    const restored = { ...onb, updatedAt: "2030-03-12T09:00:00.000Z" };
+    expect(
+      check({
+        slug: ONB,
+        after: restored,
+        overrides: { [MSS]: mss },
+        archived: [onb],
+      }),
+    ).toMatch(/^"11 Mart 2030" sürümü/);
+    // Nothing changed beside it: the text comes back under its own label.
+    expect(
+      check({ slug: ONB, after: restored, overrides: {}, archived: [onb] }),
+    ).toBeNull();
+  });
+
+  it("refuses moving a live date back onto a label the other document's earlier pair holds", () => {
+    // ONB went live at LATER (pair: ONB, coded), MSS at LATEST (pair: ONB,
+    // MSS). Re-dating MSS to LATER, body unchanged, would record LATER for
+    // (ONB, MSS) as well.
+    const onb = text({
+      bodyMarkdown: ONB_TEXT,
+      effectiveDate: LATER,
+      updatedAt: "2030-03-08T09:00:00.000Z",
+    });
+    const mss = text({
+      bodyMarkdown: MSS_TEXT,
+      effectiveDate: LATEST,
+      updatedAt: "2030-03-09T09:00:00.000Z",
+    });
+    const overrides = { [ONB]: onb, [MSS]: mss };
+    expect(
+      check({
+        before: mss,
+        after: { ...mss, effectiveDate: LATER },
+        overrides,
+      }),
+    ).toMatch(/^"10 Mart 2030" sürümü/);
+    // Forward is fine: a new label for the same pair.
+    expect(
+      check({
+        before: mss,
+        after: { ...mss, effectiveDate: "12 Mart 2030" },
+        overrides,
+      }),
+    ).toBeNull();
+  });
+
+  it("rebuilds the recorded versions from the archive and the stored rows", () => {
+    const onb = shown(
+      ONB,
+      "2030-03-08T09:00:00.000Z",
+      "2030-03-09T09:00:00.000Z",
+      {
+        bodyMarkdown: ONB_TEXT,
+        effectiveDate: LATER,
+      },
+    );
+    const mss = text({
+      bodyMarkdown: MSS_TEXT,
+      effectiveDate: LATEST,
+      updatedAt: "2030-03-10T09:00:00.000Z",
+    });
+    const states = recordedConsentStates(
+      { docs: CHECKOUT_CONSENT_DOCS, base: LEGAL_UPDATED },
+      [onb],
+      { [MSS]: mss },
+    );
+    const pair = (a: string | null, b: string | null) => JSON.stringify([a, b]);
+    expect(states.get(LEGAL_UPDATED)).toEqual(new Set([pair(null, null)]));
+    expect(states.get(LATER)).toEqual(new Set([pair(ONB_TEXT, null)]));
+    expect(states.get(LATEST)).toEqual(new Set([pair(null, MSS_TEXT)]));
   });
 
   it("names the version orders record now", () => {

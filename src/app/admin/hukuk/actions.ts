@@ -26,8 +26,8 @@ import { findLegalDoc } from "@/lib/legal/documents";
 import {
   getLegalDocOverride,
   getLegalOverrideArchive,
+  listConsentArchive,
   listLegalDocOverrides,
-  listPublishedLegalArchive,
   resetLegalDoc,
   upsertLegalDoc,
   type LegalDocInput,
@@ -53,8 +53,9 @@ function revalidateLegal(slug: string) {
 
 /**
  * Why writing `next` would make a consent record name the wrong text
- * (consentSaveRefusal), or null. Reads the overrides and the archive only
- * for a checkout or karaoke document that goes live.
+ * (consentSaveRefusal), or null. Reads the overrides and the archive of the
+ * consent's documents only for a checkout or karaoke document that goes
+ * live.
  */
 async function consentRefusal(
   slug: string,
@@ -62,10 +63,11 @@ async function consentRefusal(
   at: string,
 ): Promise<string | null> {
   const after = { ...next, updatedAt: at };
-  if (!consentScope(slug) || !isLiveLegalOverride(after)) return null;
+  const scope = consentScope(slug);
+  if (!scope || !isLiveLegalOverride(after)) return null;
   const [overrides, archived] = await Promise.all([
     listLegalDocOverrides(),
-    listPublishedLegalArchive(slug),
+    listConsentArchive(scope.docs),
   ]);
   return consentSaveRefusal({
     slug,
