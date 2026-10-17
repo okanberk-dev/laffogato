@@ -205,6 +205,7 @@ minimizasyonu ihlaliydi (KVKK m.4/2-d).
 | `customer_consents`    | (fonksiyon) | **3 yıl**  | "onayın geçerliliğinin sona erdiği tarihten itibaren 3 yıl; ... ret kaydı ... bu süre boyunca" - aşağıya bak               |
 | `email_suppressions`   | `updatedAt` | **3 yıl**  | Ticari ileti gönderim kaydı ("kayıt tarihinden itibaren 3 yıl"); son bounce/şikâyetten sayılır                            |
 | `audit_logs`           | `createdAt` | **10 yıl** | "İşlemin gerçekleştiği tarihten itibaren 10 yıl… (append-only)" - **asgari**                                               |
+| `legal_override_history` | `archivedAt` | **11 yıl** | "Sözleşmenin ifasından itibaren 10 yıl…" (Mesafeli satış onay kaydı); ifa arşivden sonra gelir, fazladan yıl onu karşılar |
 | `counter_tokens`       | `expiresAt` | **1 gün**  | Jeton süresinin dolmasına bağlı otomatik imha; kalıcı kayıt `loyalty_stamps`'tir                                           |
 
 Süreler **politikadan okunur, uydurulmaz**: `src/lib/retention.ts` içindeki
@@ -269,6 +270,28 @@ yıldan eskiyse gider (`customer_consents_retention`). Hâlâ geçerli bir onay
 ne kadar eski olursa olsun kapsam dışıdır; üyeye giden postanın dayanağı
 odur. Testler: `tests/consent-ledger.test.ts`,
 `tests/db-integration-consent-ledger.test.ts`.
+
+### Yasal metin arşivi (`legal_override_history`)
+
+Panelin hukuk geçersiz kılmalarının (`legal_docs`, belge başına bir satır)
+önceki metinleri. Bir kayıt değişen bir satırın üzerine yazmadan
+(`legal_doc_save`, neden `replaced`) ve "Varsayılana döndür" silmeden
+(`legal_doc_reset`, neden `reset`) önce eski satır aynı işlemde buraya
+kopyalanır; ikisi de belge başına advisory lock alır. Hiçbir şeyi
+değiştirmeyen kayıt hiçbir şey yazmaz: `updatedAt` metnin yayına girdiği an
+kalır, böylece her metnin gösterildiği aralık `updatedAt` → `archivedAt`
+olarak tam bilinir. Panel arşivi listeler,
+önizler ve geri yükler (geri yükleme bir `legal_doc_save`'dir, değiştirdiği
+metni de arşive alır). Sipariş onayı yalnız sürüm etiketini kaydeder
+(`legalConsent.version`); o etiketin arkasındaki metin buradadır. Satır
+güncellenemez (`legal_override_history_no_update`); yalnız periyodik imha
+siler: `archivedAt`'ten 11 yıl sonra (`legal-override-history` kuralı).
+Dayanak, siparişin sürüm etiketinin bağlı olduğu "Mesafeli satış onay kaydı"
+satırıdır ("Sözleşmenin ifasından itibaren 10 yıl"): metin `archivedAt`'e
+kadar onaylandı, sözleşme ondan sonra ifa edilir, fazladan yıl ifayı karşılar.
+Satırdaki tek kişisel veri `archivedBy`, panel kullanıcısının adresidir.
+Testler: `tests/db-integration-legal-history.test.ts`,
+`tests/admin-legal-actions.test.ts`, `tests/mobile-retention.test.ts`.
 
 ### Kapsam dışı - bilerek
 

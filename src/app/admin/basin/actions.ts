@@ -9,25 +9,8 @@ import {
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
-import {
-  createPress,
-  updatePress,
-  deletePress,
-  type PressInput,
-} from "@/lib/admin/store";
-
-function parse(fd: FormData): PressInput {
-  return {
-    name: String(fd.get("name") ?? "")
-      .trim()
-      .slice(0, 80),
-    quote: String(fd.get("quote") ?? "")
-      .trim()
-      .slice(0, 300),
-    sortOrder: parseInt(String(fd.get("sortOrder") ?? "0"), 10) || 0,
-    isActive: fd.get("isActive") === "on",
-  };
-}
+import { createPress, updatePress, deletePress } from "@/lib/admin/store";
+import { parsePressForm } from "@/lib/admin/story-press-form";
 
 function revalidate() {
   revalidatePath("/admin/basin");
@@ -40,11 +23,9 @@ export async function createPressAction(
   fd: FormData,
 ): Promise<ActionResult> {
   await requireRole("press");
-  const input = parse(fd);
-  if (!input.name) {
-    return actionError("Formdaki uyarıları gider.", {
-      name: "Yayının adını yaz.",
-    });
+  const { input, fieldErrors } = parsePressForm(fd);
+  if (Object.keys(fieldErrors).length > 0) {
+    return actionError("Formdaki uyarıları gider.", fieldErrors);
   }
   const created = await createPress(input);
   await logAudit({
@@ -63,11 +44,9 @@ export async function updatePressAction(
   fd: FormData,
 ): Promise<ActionResult> {
   await requireRole("press");
-  const input = parse(fd);
-  if (!input.name) {
-    return actionError("Formdaki uyarıları gider.", {
-      name: "Yayının adını yaz.",
-    });
+  const { input, fieldErrors } = parsePressForm(fd);
+  if (Object.keys(fieldErrors).length > 0) {
+    return actionError("Formdaki uyarıları gider.", fieldErrors);
   }
   const updated = await updatePress(id, input);
   if (!updated) return actionError("Bu alıntı silinmiş; sayfayı yenile.");

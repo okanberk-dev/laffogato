@@ -13,24 +13,8 @@ import {
   createStoryEvent,
   updateStoryEvent,
   deleteStoryEvent,
-  type StoryEventInput,
 } from "@/lib/admin/store";
-
-function parse(fd: FormData): StoryEventInput {
-  return {
-    year: String(fd.get("year") ?? "")
-      .trim()
-      .slice(0, 12),
-    title: String(fd.get("title") ?? "")
-      .trim()
-      .slice(0, 120),
-    body: String(fd.get("body") ?? "")
-      .trim()
-      .slice(0, 500),
-    sortOrder: parseInt(String(fd.get("sortOrder") ?? "0"), 10) || 0,
-    isActive: fd.get("isActive") === "on",
-  };
-}
+import { parseStoryForm } from "@/lib/admin/story-press-form";
 
 function revalidate() {
   revalidatePath("/admin/hikaye");
@@ -43,11 +27,9 @@ export async function createStoryAction(
   fd: FormData,
 ): Promise<ActionResult> {
   await requireRole("story");
-  const input = parse(fd);
-  if (!input.title) {
-    return actionError("Formdaki uyarıları gider.", {
-      title: "Başlığı yaz.",
-    });
+  const { input, fieldErrors } = parseStoryForm(fd);
+  if (Object.keys(fieldErrors).length > 0) {
+    return actionError("Formdaki uyarıları gider.", fieldErrors);
   }
   const created = await createStoryEvent(input);
   await logAudit({
@@ -66,11 +48,9 @@ export async function updateStoryAction(
   fd: FormData,
 ): Promise<ActionResult> {
   await requireRole("story");
-  const input = parse(fd);
-  if (!input.title) {
-    return actionError("Formdaki uyarıları gider.", {
-      title: "Başlığı yaz.",
-    });
+  const { input, fieldErrors } = parseStoryForm(fd);
+  if (Object.keys(fieldErrors).length > 0) {
+    return actionError("Formdaki uyarıları gider.", fieldErrors);
   }
   const updated = await updateStoryEvent(id, input);
   if (!updated) return actionError("Bu dönem silinmiş; sayfayı yenile.");

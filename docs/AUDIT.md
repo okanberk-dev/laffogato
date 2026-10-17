@@ -723,3 +723,36 @@ Açık (paket 4a'nın dışında kalan kısımlar):
 | --- | --- | --- |
 | 🟢 | Üye sayfasında `<ul>` içinde `<div>`, "-" başlıklı işlem sütunları, 32 px başlık bağlantıları (PEO-20'nin kalanı); kampanya formunun hata kutusunda rol yok (PEO-09, `campaign-mail-form.tsx`) | Kendi dosyalarının PR'larında (4b üye sayfası, 4c kampanya ekranları) |
 | 🟢 | 2FA kurulum sayfası "telefonunu kaybedersen önce 2FA'yı kapat" diyor, oysa kapatmak o telefondaki kodu ister (SHE-10 metni) | Kabuk erişim PR'ında; tek sahip için veritabanı yolu da orada belgelenir |
+
+### İçerik: yasal belgeler ve site metinleri (paket 6a)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | "Varsayılana döndür" tek tıkla, onaysız ve yanıtsız özel hukuk metnini siliyordu; metin (taslak dahil) geri gelmiyordu, olay kaydı yalnız `{ reset: true }` yazıyordu (CON-02) | Onay penceresi, `ActionResult` yanıtı. Yeni `legal_override_history` tablosu (migration `20261017210000`, yalnız ekleme, güncellenemez): `legal_doc_reset` metni aynı işlemde arşive alıp siler, `legal_doc_save` her kayıtta değişen eski metni arşive alır (karar D22). Arşiv listede ve düzenleyicide; "Önizle" ve "Geri yükle" (geri yükleme şu anki metni de arşive alır) | `admin-legal-actions`, `admin-legal-ui`, `db-integration-legal-history` |
+| 🟠 | Hukuk ve Site Metinleri formları React 19 `<form action>` sıfırlamasıyla reddedilen kayıtta yazılanı siliyordu: tek uzun özet bütün Markdown gövdesini götürüyordu (CON-03, bu iki form) | İkisi de `ActionForm` (elle gönderim); red alanın altında | `admin-legal-ui`, `admin-site-content` |
+| 🟡 | Düzenleyici yeni bir metne kodlu tarihi dolduruyordu: yeniden yazılan Mesafeli Satış metni dokunulmadan yayımlanınca siparişler kodlu metinle aynı sürümü kaydediyordu; sonraki düzenlemelerde de tarih kıpırdamıyordu (CON-M01) | Yeni metinde tarih boş başlar; yayımlanan tarihsiz metne kaydın İstanbul günü yazılır (sayfanın gösterdiği tarih = siparişin kaydettiği sürüm). Ödeme ve karaoke belgelerinde canlı metin değişirse tarih şu an kaydedilen sürümden sonra olmalı (iki ödeme belgesi tek sürümü paylaşır), canlı metin kodlu sürümden sonra tarihli olmalı; kayıttan sonraki sürüm, arşivden yeniden kurulan geçmişte iki belgenin başka bir metin çiftiyle kaydedildiyse reddedilir (sıfırlama, geri yükleme ya da geri alınan tarih eski etiketi yeniden boşa çıkarıyordu; iki ödeme belgesi birbirinin tarihini de görür). İçeriği değişmeyen kayıt hiçbir şey yazmaz, arşiv her metnin ne zaman göründüğünü tam söyler (karar D25). Düzenleyici siparişlerin kaydettiği sürümü gösterir | `legal-schema`, `legal-consent-history`, `admin-legal-actions`, `db-integration-legal-history` |
+| 🟡 | Taslağın önizlemesi yoktu; "Önizle ↗" taslakta kodlu metni açıyordu (CON-10) | Yalnız sahibin açtığı `/admin/hukuk/<slug>/onizle` (taslak, kayıtlı metin ya da `?arsiv=` ile arşivdeki metin); listede "Taslağı önizle" ve "Yayındakini aç ↗" | `admin-legal-ui` |
+| 🟡 | Hikaye, Basın ve Site Metinleri uzun metni sessizce kesiyordu (`.slice`, sonra "kaydedildi"); boş alıntı hikaye sayfasında boş tırnak çiziyordu (CON-15) | Her alanda `maxLength`; sınırı aşan değer alanın altında reddedilir (satır sonu tarayıcıdaki gibi bir sayılır); basın alıntısı zorunlu | `admin-story-press`, `admin-site-content` |
+| 🟢 | Hukukta yürürlük tarihi serbest metindi: "26.05.2026" sayfada öyle görünüyor, sipariş kayıt gününü yazıyordu (CON-30) | Yalnız "26 Mayıs 2026" biçimi ya da boş | `legal-schema` |
+| 🟢 | Site Metinleri'nde boşaltılan alan siteye ve uygulamaya boş gidiyordu, varsayılana dönüş yoktu (CON-13) | Hikaye ve kurucu alanları boş kaydedilmez; ana sayfa bandının iki alanı boş kalabilir (bandın kapatma yolu). Alan başına "Varsayılana dön"; varsayılanla aynı değer satırını siler, kodlu varsayılan yeniden siteye ulaşır (karar D23) | `admin-site-content`, `admin-site-content-store` |
+| 🟢 | "Anında siteye yansır" kurucu adı ve unvanı için yanlıştı (yalnız uygulama okur); "Hero" etiketleri yanlış yeri gösteriyordu, ipuçları ham anahtardı (CON-14) | Etiketler "Ana sayfa giriş etiketi / metni", "(yalnız uygulamada)"; ipucu metnin nerede göründüğünü söyler (karar D24) | `admin-site-content` |
+| 🟢 | Veritabanı hatasında Site Metinleri İngilizce iç mesaj gösteriyordu (CON-16) | "Kaydedilemedi. Biraz sonra tekrar dene." ya da ulaşılamayan veritabanı cümlesi; ayrıntı loga | `admin-site-content` |
+| 🟢 | Basın uydurma atıfları (Monocle, Cereal) öneriyor, olmayan bir ana sayfa yerinden söz ediyordu (CON-17) | Nötr yer tutucular, "yalnız gerçekten yayımlanmış olanlar" | `admin-story-press` |
+| 🟢 | Hukuk düzenleyicisinde tarih hatası hiç görünmüyordu, hatalar ipucu gibi griydi, başarı bildirimi yoktu, "Vazgeç" bağlantı içinde düğmeydi (CON-22) | Her alanda `FormFieldError`, `maxLength` 200 / 600 / 60 / 60.000, kayıt toast'ı (`setAdminFlash`), tek `Link` | `admin-legal-ui`, `admin-legal-actions` |
+| 🟢 | Site Metinleri'nin yapışkan kayıt çubuğu zeminsizdi (CON-28) | Beyaz zemin, kenar ve gölge | `admin-site-content` |
+
+Aynı PR'da gelenler: hukuk listesindeki durum hapları `Badge` (CON-07);
+"Yayın durumu" kutusu `Field as="fieldset"` (CON-05); Markdown kutusu gerçek
+eşaralıklı yazıyla ve alanın kendi boyutunda, iOS 16px korumasını ezmez
+(CON-27); Hikaye ve Basın kart başlıkları h2, satırlar adlı grup, "Sil"
+satırın adını taşır, Site Metinleri ve hukuk kayıt sonucu `role="alert"` /
+toast (CON-23); boş Hikaye ve Basın listesi boş durum gösterir (CON-24);
+"Story sayfası" ve hukuktaki "kodlu varsayılan" dili sadeleşti (CON-25).
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Kurucu unvanının varsayılanı İngilizce ("Founder & Roaster") (CON-25) | Varsayılan `STORY.founder` (`data.ts`, bu turda dokunulmayan dosya) ile eşit olmak zorunda (`mobile-story` testi, API-MOBILE §story); kaydedilmiş satır zaten onu örter. Operatör Site Metinleri'nden Türkçe unvanı yazabilir |
+| 🟢 | Hikaye ve Basın'da satır başına "Kaydet" adını taşımıyor | `SubmitButton`'da `ariaLabel` yok (kabuk kiti); satır adlı `group` içinde |
+| 🟢 | İki ödeme belgesi de panelden yayındayken birini varsayılana döndürmek ya da taslağa almak sürüm etiketini değiştirmeyebilir: daha yeni tarihli öteki belge sürümü taşır, aynı etiket o andan sonra başka bir metin çiftini gösterir | Bilerek reddedilmiyor: hazır metne dönüşe tarih verilemez, iki belge yayındayken hiçbir tarih sürümü ilerletemez ve ret varsayılana dönüşü kalıcı olarak kilitlerdi. Arşiv her metnin gösterildiği aralığı tam tutar (`updatedAt` → `archivedAt`), siparişin onay zamanıyla metin bulunur; kaydetme ve geri yükleme etiketi tekrar kullanamaz (`legal-consent-history`) |

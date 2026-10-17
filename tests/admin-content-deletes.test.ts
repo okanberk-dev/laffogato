@@ -172,7 +172,11 @@ describe("story and press saves answer too", () => {
   it("say what was saved, and that a deleted row cannot be", async () => {
     h.store.createPress.mockResolvedValue({ id: "press-9", name: "Monocle" });
     expect(
-      await press.createPressAction(null, form({ name: "Monocle" })),
+      // A quote is required too (CON-15: an empty one drew bare quotes).
+      await press.createPressAction(
+        null,
+        form({ name: "Monocle", quote: "Özenli bir bar." }),
+      ),
     ).toMatchObject({ ok: true, message: "Monocle alıntısı eklendi." });
     h.store.updateStoryEvent.mockResolvedValue(null);
     expect(

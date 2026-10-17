@@ -2,37 +2,52 @@
 
 import { revalidatePath } from "next/cache";
 
-import { logAudit } from "@/lib/admin/audit";
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
+import { safeAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
-import { CONTENT_FIELDS } from "@/lib/admin/content-fields";
-import { updateSiteContent } from "@/lib/admin/site-content";
+import { CONTENT_FIELDS, planContentSave } from "@/lib/admin/content-fields";
+import { saveSiteContent } from "@/lib/admin/site-content";
+import { isDbUnreachable } from "@/lib/db/health";
 
-export interface ContentState {
-  message?: string;
-  error?: string;
-}
-
+/**
+ * "Tümünü kaydet" on Site Metinleri. Answers an ActionResult: refusals sit
+ * under their fields, a database failure is a plain Turkish sentence (it
+ * used to show the function name and Postgres's English message).
+ */
 export async function saveContentAction(
-  _prev: ContentState,
+  _prev: ActionResult | null,
   formData: FormData,
-): Promise<ContentState> {
+): Promise<ActionResult> {
   await requireRole("content");
-  const entries: Record<string, string> = {};
+  const form: Record<string, string> = {};
   for (const field of CONTENT_FIELDS) {
     const v = formData.get(field.key);
-    if (typeof v === "string") entries[field.key] = v;
+    if (typeof v === "string") form[field.key] = v;
+  }
+  const plan = planContentSave(form);
+  if (Object.keys(plan.fieldErrors).length > 0) {
+    return actionError("Formdaki uyarıları gider.", plan.fieldErrors);
   }
   try {
-    await updateSiteContent(entries);
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "Kaydedilemedi." };
+    await saveSiteContent(plan);
+  } catch (err) {
+    console.error("[icerik] site metinleri kaydedilemedi", err);
+    return actionError(
+      isDbUnreachable(err)
+        ? "Veritabanına şu an ulaşılamıyor. Kısa süre içinde tekrar dene."
+        : "Kaydedilemedi. Biraz sonra tekrar dene.",
+    );
   }
-  await logAudit({
+  await safeAudit({
     action: "update",
     entity: "content",
-    payload: { count: Object.keys(entries).length },
+    payload: { saved: Object.keys(plan.upserts), toDefault: plan.deletes },
   });
   revalidatePath("/admin/icerik");
   revalidatePath("/", "layout");
-  return { message: "Site metinleri kaydedildi." };
+  return actionOk("Site metinleri kaydedildi.");
 }
