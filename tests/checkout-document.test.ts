@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -101,6 +101,32 @@ describe("the root layout's tags", () => {
     // checkout's guard read isCheckoutPath, which stays "/odeme" only.
     expect(isCheckoutPath("/admin")).toBe(false);
     expect(isCheckoutPath("/admin/siparisler")).toBe(false);
+  });
+
+  it("no site page takes a client-side step into the panel", () => {
+    // A site document has run GTM already: a next/link, a router push or a
+    // site action's redirect into /admin would keep it running under the
+    // panel. The panel is reached by a full load (a typed address, the
+    // proxy's redirect to the sign-in), so it is a document of its own.
+    const toPanel =
+      /(?:href\s*[=:]\s*\{?\s*|\b(?:push|replace|redirect|permanentRedirect)\(\s*)["'`]\/admin(?=["'`/?#])/;
+    const panel = /^src\/(?:app\/admin|components\/admin|lib\/admin)\//;
+    const files = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory()
+          ? files(`${dir}/${e.name}`)
+          : /\.tsx?$/.test(e.name)
+            ? [`${dir}/${e.name}`]
+            : [],
+      );
+    const all = files("src");
+    // The pattern does find the panel's own links and redirects.
+    expect(readFileSync("src/app/admin/layout.tsx", "utf8")).toMatch(toPanel);
+    expect(readFileSync("src/app/admin/actions.ts", "utf8")).toMatch(toPanel);
+    const outside = all.filter(
+      (f) => !panel.test(f) && toPanel.test(readFileSync(f, "utf8")),
+    );
+    expect(outside).toEqual([]);
   });
 
   it("the root layout reaches GTM only through them", () => {
