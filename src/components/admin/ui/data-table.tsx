@@ -15,6 +15,7 @@ import {
 
 import { RowCheckbox, SelectAllCheckbox, type Selection } from "../bulk";
 import { EmptyState } from "./detail";
+import { LinkPending } from "./link-pending";
 import { EYEBROW, MONO_STYLE } from "./styles";
 
 export interface DataTableColumn<T> {
@@ -198,7 +199,7 @@ export function DataTable<T>({
       <Link
         href={href}
         className={cx(
-          "inline-flex items-center gap-1 rounded hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
+          "relative inline-flex items-center gap-1 rounded hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
           col.align === "right" && "flex-row-reverse",
         )}
       >
@@ -211,6 +212,7 @@ export function DataTable<T>({
               ? ", azalan sıralı; artana çevir"
               : ", sırala"}
         </span>
+        <LinkPending className="-bottom-1" />
       </Link>
     );
   };

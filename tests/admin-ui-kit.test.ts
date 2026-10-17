@@ -24,6 +24,8 @@ vi.mock("next/link", () => ({
     children?: ReactNode;
     prefetch?: boolean;
   }) => createElement("a", { href, ...rest }, children),
+  // LinkPending (status tabs, pages, sort headers) reads the link's state.
+  useLinkStatus: () => ({ pending: false }),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -793,6 +795,58 @@ describe("server-rendered markup", () => {
     expect(out).toContain('href="/l?q=x"');
     expect(out).toMatch(/href="\/l\?q=x&amp;sayfa=2"[^>]*aria-current="page"/);
     expect(out).toContain('href="/l?q=x&amp;sayfa=3"');
+  });
+
+  it("tabs, page links and sort headers mark the clicked link while it loads", () => {
+    // LinkPending: always there, faded in only while that link navigates.
+    const MARK =
+      /<span aria-hidden="true" class="pointer-events-none absolute [^"]*opacity-0/g;
+    const tabs = html(
+      createElement(ui.StatusTabs, {
+        tabs: [
+          { value: null, label: "Tümü", count: 12 },
+          { value: "paid", label: "Ödendi", count: 3 },
+        ],
+        current: null,
+        pathname: "/admin/siparisler",
+      }),
+    );
+    expect(tabs.match(MARK)).toHaveLength(2);
+    expect(tabs.match(/<a [^>]*class="relative /g)).toHaveLength(2);
+    const pages = html(
+      createElement(ui.Pagination, {
+        page: 2,
+        pageSize: 10,
+        total: 50,
+        pathname: "/l",
+      }),
+    );
+    const links = pages.match(/<a /g) ?? [];
+    expect(links.length).toBeGreaterThan(2);
+    expect(pages.match(MARK)).toHaveLength(links.length);
+    const table = html(
+      createElement(ui.DataTable<Row>, {
+        columns,
+        rows,
+        rowKey: (r) => r.id,
+        pathname: "/l",
+      }),
+    );
+    // One sortable column, one mark in its header link.
+    expect(table.match(MARK)).toHaveLength(1);
+  });
+
+  it("Pagination: page cells are 44px touch targets", () => {
+    const out = html(
+      createElement(ui.Pagination, {
+        page: 1,
+        pageSize: 10,
+        total: 30,
+        pathname: "/l",
+      }),
+    );
+    expect(out).toContain("h-11 min-w-11");
+    expect(out).not.toContain("h-10 min-w-10");
   });
 
   it("FilterBar: a GET search form that carries the tab and drops the page", () => {

@@ -7,6 +7,7 @@ import {
   type SearchParamsInput,
 } from "@/lib/admin/list-params";
 
+import { LinkPending } from "./link-pending";
 import { MONO_STYLE } from "./styles";
 
 export interface StatusTab {
@@ -18,9 +19,10 @@ export interface StatusTab {
 }
 
 /**
- * Filament-style status tabs: links (no JavaScript) that set one URL param
- * and keep the others, with a count on each. On phones the row scrolls
- * sideways instead of wrapping.
+ * Filament-style status tabs: links (no JavaScript needed) that set one URL
+ * param and keep the others, with a count on each. On phones the row
+ * scrolls sideways instead of wrapping. A clicked tab marks itself while
+ * its list loads (LinkPending).
  *
  * @example
  * <StatusTabs
@@ -69,7 +71,7 @@ export function StatusTabs({
                 )}
                 aria-current={active ? "page" : undefined}
                 className={cx(
-                  "inline-flex min-h-[40px] items-center gap-2 rounded-lg px-3 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
+                  "relative inline-flex min-h-[40px] items-center gap-2 rounded-lg px-3 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
                   active
                     ? "bg-[var(--admin-primary)] font-medium text-white"
                     : "text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)]",
@@ -89,6 +91,7 @@ export function StatusTabs({
                     {tab.count}
                   </span>
                 ) : null}
+                <LinkPending />
               </Link>
             </li>
           );

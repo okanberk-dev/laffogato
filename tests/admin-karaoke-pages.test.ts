@@ -33,6 +33,8 @@ vi.mock("next/link", () => ({
     children?: ReactNode;
     prefetch?: boolean;
   }) => createElement("a", { href, ...rest }, children),
+  // The kit's status tabs and sort headers read the link's pending state.
+  useLinkStatus: () => ({ pending: false }),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
