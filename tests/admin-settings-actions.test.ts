@@ -68,9 +68,20 @@ beforeEach(() => {
 
 describe("saveShippingAction", () => {
   it("refuses a courier fee it cannot read instead of storing 0", async () => {
-    const state = await saveShippingAction({}, shipping({ courierFee: "₺75" }));
+    const state = await saveShippingAction(
+      {},
+      shipping({ courierFee: "75 lira" }),
+    );
     expect(state.error).toBeTruthy();
     expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it("reads ₺75 as 75 TL (parseMoneyInput drops the sign), never 0", async () => {
+    const state = await saveShippingAction({}, shipping({ courierFee: "₺75" }));
+    expect(state.error).toBeUndefined();
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ courierFeeMinor: 7500 }),
+    );
   });
 
   it("refuses a zero courier fee - cafe delivery is never free", async () => {
@@ -109,6 +120,58 @@ describe("saveShippingAction", () => {
         }),
       }),
     );
+  });
+});
+
+describe("amounts typed the Turkish way (parseMoneyInput)", () => {
+  // The panel prints the karaoke hour as "1.000₺". The settings read it with
+  // parseFloat after one comma swap, so "1.000" was 1,00 TL: a prepaid hour
+  // for one lira, and "1.500" as the free-shipping line meant free shipping
+  // on almost every order.
+  it("reads 1.000 as a thousand lira for the karaoke hour", async () => {
+    const state = await saveKaraokeAction(
+      {},
+      form({ karaokeHourly: "1.000", karaokeCapacity: "8" }),
+    );
+    expect(state.error).toBeUndefined();
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ karaokeHourlyMinor: 100_000 }),
+    );
+  });
+
+  it("reads 1.500 and 1.250,50 in the shipping box", async () => {
+    const state = await saveShippingAction(
+      {},
+      shipping({ shippingFreeThreshold: "1.500", shippingFlat: "1.250,50" }),
+    );
+    expect(state.error).toBeUndefined();
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shippingFreeThresholdMinor: 150_000,
+        shippingFlatMinor: 125_050,
+      }),
+    );
+  });
+
+  it("still reads what the form fills in itself (toFixed(2))", async () => {
+    await saveShippingAction(
+      {},
+      shipping({ shippingFlat: "49.90", shippingFreeThreshold: "750.00" }),
+    );
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shippingFlatMinor: 4990,
+        shippingFreeThresholdMinor: 75_000,
+      }),
+    );
+  });
+
+  it("refuses an English grouping or a third decimal it cannot be sure of", async () => {
+    for (const courierFee of ["1,250.00", "55,555", "1.2.3"]) {
+      const state = await saveShippingAction({}, shipping({ courierFee }));
+      expect(state.error, courierFee).toBeTruthy();
+    }
+    expect(updateSettings).not.toHaveBeenCalled();
   });
 });
 

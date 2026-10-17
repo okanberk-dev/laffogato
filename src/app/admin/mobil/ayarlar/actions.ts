@@ -13,6 +13,7 @@ import {
   reminderCopyIssue,
   type MobileAppConfig,
 } from "@/lib/mobile/app-config";
+import { parseMoneyInput } from "@/lib/utils/format";
 
 export interface AppConfigState {
   message?: string;
@@ -41,13 +42,16 @@ const textField = (max: number, label: string) =>
     .min(1, `${label} boş olamaz.`)
     .max(max, `${label} en fazla ${max} karakter olabilir.`);
 
-/** "280" / "280,50" / "280.50" (₺) → kuruş; the form never edits kuruş directly. */
+/**
+ * "280" / "280,50" / "280.50" / "1.000" (₺) → kuruş, NaN (refused by the
+ * schema) for anything else; the form never edits kuruş directly. Read by
+ * parseMoneyInput (CLAUDE.md rule 24): the comma swap plus parseFloat it
+ * replaces read "1.000" as 1,00 TL and "12abc" as 12 TL.
+ */
 function parseMoneyMinor(raw: string): number {
-  const s = raw.replace(",", ".").trim();
+  const s = raw.trim();
   if (!s) return Number.NaN;
-  const v = parseFloat(s);
-  if (!Number.isFinite(v)) return Number.NaN;
-  return Math.round(v * 100);
+  return parseMoneyInput(s) ?? Number.NaN;
 }
 
 // ─── Shared save path ─────────────────────────────────────────────────────
