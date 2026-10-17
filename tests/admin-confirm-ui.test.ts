@@ -27,6 +27,8 @@ vi.mock("next/link", () => ({
     children?: ReactNode;
     prefetch?: boolean;
   }) => createElement("a", { href, ...rest }, children),
+  // The kit's status tabs and sort headers read the link's pending state.
+  useLinkStatus: () => ({ pending: false }),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
@@ -378,9 +380,11 @@ describe("list pages", () => {
     const html = await renderPage("@/app/admin/masalar/page");
     expectConfirmed(html, "Pasifleştir");
     expectConfirmed(html, "Kodu yenile");
+    // One inactive table; its ⋯ menu is drawn for the table and the phone
+    // card alike (DataTable), so each copy posts on its own.
     const on = buttons(html, "Etkinleştir");
-    expect(on).toHaveLength(1);
-    expect(on[0]).not.toContain("aria-haspopup");
+    expect(on.length).toBeGreaterThan(0);
+    for (const b of on) expect(b).not.toContain("aria-haspopup");
     expect(html).not.toContain("window.confirm");
   });
 });

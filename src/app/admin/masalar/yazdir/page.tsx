@@ -1,11 +1,24 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/admin/forms";
+import { BUTTON } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { tableQrSvg } from "@/lib/admin/cafe-table-qr";
+import { cafeTableIdSchema } from "@/lib/admin/cafe-table-schema";
 import { listCafeTables } from "@/lib/admin/cafe-tables";
+import {
+  CAFE_TABLE_PRINT_PARAM,
+  CAFE_TABLES_PATH,
+  cafeTableHref,
+  tablesToPrint,
+} from "@/lib/admin/cafe-tables-panel";
+import { firstParam } from "@/lib/admin/list-params";
 
 import { PrintButton } from "./print-button";
+
+interface PageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
 
 export const metadata = { title: "Admin · Masa kartları" };
 export const dynamic = "force-dynamic";
@@ -31,25 +44,39 @@ const PRINT_CSS = `
 }
 `;
 
-export default async function PrintCafeTablesPage() {
+/**
+ * The cards to print: every active table, or with `?masa=<id>` that one
+ * table's card alone (after "Kodu yenile", admin audit KAR-24).
+ */
+export default async function PrintCafeTablesPage({ searchParams }: PageProps) {
   await requireRole("tables");
-  const tables = (await listCafeTables()).filter((t) => t.isActive);
+  const raw = firstParam(await searchParams, CAFE_TABLE_PRINT_PARAM);
+  const parsed = raw ? cafeTableIdSchema.safeParse(raw) : null;
+  // A ?masa= that is not a table id prints nothing rather than every card.
+  const only = parsed ? (parsed.success ? parsed.data : "-") : undefined;
+  const tables = tablesToPrint(await listCafeTables(), only);
   const svgs = await Promise.all(tables.map((t) => tableQrSvg(t.code)));
+  const single = only !== undefined;
+  const back =
+    single && tables[0] ? cafeTableHref(tables[0].id) : CAFE_TABLES_PATH;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <style>{PRINT_CSS}</style>
       <PageHeader
         eyebrow="Satış · Masalar"
-        title="Masa kartları"
-        description="Aktif her masa için bir kart. Yazdır, kes, masaya koy. Kodu yenilenen masanın kartını yeniden yazdır."
+        title={
+          single && tables[0] ? `${tables[0].name} kartı` : "Masa kartları"
+        }
+        description={
+          single
+            ? "Yalnız bu masanın kartı. Yazdır, kes, masaya koy; eski kartı masadan kaldır."
+            : "Aktif her masa için bir kart. Yazdır, kes, masaya koy. Kodu yenilenen masanın kartını yeniden yazdır."
+        }
         action={
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/admin/masalar"
-              className="inline-flex min-h-[44px] items-center rounded-xl border border-[var(--admin-border-strong)] px-4 py-2 text-sm text-[var(--admin-text-soft)]"
-            >
-              Masalara dön
+            <Link href={back} className={BUTTON.ghost}>
+              {single && tables[0] ? "Masaya dön" : "Masalara dön"}
             </Link>
             <PrintButton disabled={tables.length === 0} />
           </div>
@@ -57,7 +84,7 @@ export default async function PrintCafeTablesPage() {
       />
       {tables.length === 0 ? (
         <p className="text-sm text-[var(--admin-text-soft)]">
-          Yazdırılacak aktif masa yok.
+          {single ? "Bu masa bulunamadı." : "Yazdırılacak aktif masa yok."}
         </p>
       ) : (
         <div className="qr-sheet" data-print-receipt="">

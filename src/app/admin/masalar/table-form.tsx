@@ -1,38 +1,39 @@
 "use client";
 
-import { useActionState } from "react";
+import Link from "next/link";
 
 import {
-  Card,
-  Field,
-  PrimaryButton,
-  TextInput,
-} from "@/components/admin/forms";
-
-import type { CafeTableFormState } from "./actions";
-
-const initial: CafeTableFormState = {};
+  ActionForm,
+  FormFieldError,
+  FormMessage,
+  SubmitButton,
+} from "@/components/admin/action-form";
+import { Card, Field, TextInput } from "@/components/admin/forms";
+import { BUTTON, type ModalAction } from "@/components/admin/ui";
 
 /**
  * Name (and, when editing, sort order) of a table. The code is never a field:
  * the server draws it, and only "Kodu yenile" changes it.
+ *
+ * Posted by hand (ActionForm): a refusal keeps what was typed and says what
+ * to change under the field, and a database error answers "Bir hata oldu…"
+ * in place instead of the panel's error screen (admin audit KAR-14).
+ * `back` is where Vazgeç goes (KAR-24).
  */
 export function CafeTableForm({
   action,
   table,
   submitLabel,
+  back,
 }: {
-  action: (
-    prev: CafeTableFormState,
-    formData: FormData,
-  ) => Promise<CafeTableFormState>;
+  action: ModalAction;
   table?: { id: string; name: string; sortOrder: number };
   submitLabel: string;
+  back: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, initial);
   return (
     <Card>
-      <form action={formAction} className="grid gap-4">
+      <ActionForm action={action} className="grid gap-4">
         {table ? <input type="hidden" name="id" value={table.id} /> : null}
         <Field
           label="Masa adı"
@@ -46,32 +47,33 @@ export function CafeTableForm({
             autoFocus
           />
         </Field>
+        <FormFieldError name="name" />
         {table ? (
-          <Field
-            label="Sıra"
-            hint="Listede ve baskı sayfasında küçükten büyüğe."
-          >
-            <TextInput
-              name="sortOrder"
-              type="number"
-              min={0}
-              max={9999}
-              inputMode="numeric"
-              defaultValue={String(table.sortOrder)}
-            />
-          </Field>
+          <>
+            <Field
+              label="Sıra"
+              hint="Listede ve baskı sayfasında küçükten büyüğe."
+            >
+              <TextInput
+                name="sortOrder"
+                type="number"
+                min={0}
+                max={9999}
+                inputMode="numeric"
+                defaultValue={String(table.sortOrder)}
+              />
+            </Field>
+            <FormFieldError name="sortOrder" />
+          </>
         ) : null}
-        {state.error ? (
-          <p role="alert" className="text-sm text-[var(--admin-danger)]">
-            {state.error}
-          </p>
-        ) : null}
-        <div>
-          <PrimaryButton type="submit" disabled={pending}>
-            {pending ? "Kaydediliyor…" : submitLabel}
-          </PrimaryButton>
+        <FormMessage />
+        <div className="flex flex-wrap items-center gap-2">
+          <SubmitButton>{submitLabel}</SubmitButton>
+          <Link href={back} className={BUTTON.ghost}>
+            Vazgeç
+          </Link>
         </div>
-      </form>
+      </ActionForm>
     </Card>
   );
 }

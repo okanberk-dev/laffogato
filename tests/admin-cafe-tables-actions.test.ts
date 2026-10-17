@@ -31,7 +31,13 @@ const {
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect }));
+vi.mock("next/navigation", () => ({
+  redirect,
+  // Next's own control flow is rethrown; anything else is not.
+  unstable_rethrow: (err: unknown) => {
+    if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
+  },
+}));
 vi.mock("@/lib/admin/auth", () => ({ requireRole }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit }));
 vi.mock("@/lib/admin/flash", () => ({ setAdminFlash }));
@@ -43,6 +49,8 @@ vi.mock("@/lib/admin/cafe-tables", () => ({
 }));
 
 const actions = await import("@/app/admin/masalar/actions");
+const { PANEL_ACTION_FAILED, runPanelAction } =
+  await import("@/components/admin/action-form");
 
 const TABLE = {
   id: "tbl-0003",
@@ -93,7 +101,7 @@ describe("masalar actions", () => {
   it("each checks the tables section before anything else", async () => {
     requireRole.mockRejectedValueOnce(new Error("NEXT_REDIRECT"));
     await expect(
-      actions.createCafeTableAction({}, form({ name: "Bahçe 3" })),
+      actions.createCafeTableAction(null, form({ name: "Bahçe 3" })),
     ).rejects.toThrow();
     expect(createCafeTable).not.toHaveBeenCalled();
 
@@ -114,7 +122,7 @@ describe("masalar actions", () => {
   it("creates with the name only and audits it", async () => {
     await expect(
       actions.createCafeTableAction(
-        {},
+        null,
         form({ name: "  Bahçe 3 ", code: "HANDMADE01" }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT");
@@ -130,15 +138,67 @@ describe("masalar actions", () => {
   });
 
   it("refuses an empty or too long name without touching the store", async () => {
-    const empty = await actions.createCafeTableAction({}, form({ name: " " }));
-    expect(empty.error).toBeTruthy();
+    const empty = await actions.createCafeTableAction(
+      null,
+      form({ name: " " }),
+    );
+    expect(empty.ok).toBe(false);
     const long = await actions.updateCafeTableAction(
-      {},
+      null,
       form({ id: "tbl-0003", name: "x".repeat(41), sortOrder: "1" }),
     );
-    expect(long.error).toBeTruthy();
+    expect(long.ok).toBe(false);
     expect(createCafeTable).not.toHaveBeenCalled();
     expect(updateCafeTable).not.toHaveBeenCalled();
+  });
+
+  it("puts each refusal under its own field (KAR-14)", async () => {
+    const res = await actions.updateCafeTableAction(
+      null,
+      form({ id: "tbl-0003", name: "", sortOrder: "-1" }),
+    );
+    expect(res).toMatchObject({
+      ok: false,
+      fieldErrors: {
+        name: "Masa adı gerekli.",
+        sortOrder: "Sıra 0 ile 9999 arasında olmalı.",
+      },
+    });
+    // The store's own name check lands on the name field too.
+    createCafeTable.mockResolvedValueOnce({
+      ok: false,
+      error: "invalid_name",
+      message: "Masa adı 1-40 karakter olmalı.",
+    });
+    const store = await actions.createCafeTableAction(
+      null,
+      form({ name: "Bahçe 3" }),
+    );
+    expect(store).toMatchObject({
+      ok: false,
+      fieldErrors: { name: "Masa adı 1-40 karakter olmalı." },
+    });
+  });
+
+  it("a database error reaches the form as 'Bir hata oldu', not the error screen (KAR-14)", async () => {
+    createCafeTable.mockRejectedValueOnce(new Error("db down"));
+    const res = await runPanelAction(
+      actions.createCafeTableAction,
+      null,
+      form({ name: "Bahçe 3" }),
+    );
+    expect(res).toEqual({ ok: false, error: PANEL_ACTION_FAILED });
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("a saved table opens its own page", async () => {
+    await expect(
+      actions.updateCafeTableAction(
+        null,
+        form({ id: "tbl-0003", name: "Bahçe 3", sortOrder: "3" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenLastCalledWith("/admin/masalar/tbl-0003");
   });
 
   it("refuses an id that is not a table's", async () => {

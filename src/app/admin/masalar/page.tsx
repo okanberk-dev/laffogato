@@ -1,109 +1,82 @@
 import Link from "next/link";
 
-import { ActionButton } from "@/components/admin/action-form";
-import { Card, PageHeader } from "@/components/admin/forms";
-import { ConfirmButton } from "@/components/admin/ui";
+import { formatDateTime, PageHeader } from "@/components/admin/forms";
+import {
+  Badge,
+  BUTTON,
+  DataTable,
+  EmptyState,
+  FilterBar,
+  NUMERIC_STYLE,
+  Pagination,
+  StatusTabs,
+} from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
-import { tableQrSvg } from "@/lib/admin/cafe-table-qr";
-import { tableUrl } from "@/lib/admin/cafe-tables-core";
 import { listCafeTables, type CafeTable } from "@/lib/admin/cafe-tables";
+import {
+  CAFE_TABLE_DEFAULT_SORT,
+  CAFE_TABLE_FILTER_FIELDS,
+  CAFE_TABLE_PAGE_SIZE,
+  CAFE_TABLE_SORT_KEYS,
+  CAFE_TABLE_TAB_PARAM,
+  CAFE_TABLE_TABS,
+  CAFE_TABLES_PATH,
+  cafeTableHref,
+  cafeTablePrintHref,
+  cafeTablesList,
+  parseCafeTableTab,
+} from "@/lib/admin/cafe-tables-panel";
+import { parseFilters, parsePage, parseSort } from "@/lib/admin/list-params";
 
-import { rotateCafeTableCodeAction, setCafeTableActiveAction } from "./actions";
-import { CopyTableLink } from "./table-row-actions";
+import { CafeTableRowMenu } from "./table-actions";
 
 export const metadata = { title: "Admin · Masalar" };
 export const dynamic = "force-dynamic";
 
-const linkButton =
-  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 py-2 text-xs text-[var(--admin-text-soft)] transition-colors hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]";
+interface PageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
 
-function TableRow({ table, svg }: { table: CafeTable; svg: string }) {
-  const url = tableUrl(table.code);
+function StatusBadge({ table }: { table: CafeTable }) {
   return (
-    <Card>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-        {/* The SVG is the qrcode library's output for our own URL - no user
-            text reaches it (the code is server-drawn base32). */}
-        <div
-          className={`h-28 w-28 shrink-0 rounded-xl border border-[var(--admin-border)] bg-white p-1 [&_svg]:h-full [&_svg]:w-full ${table.isActive ? "" : "opacity-40"}`}
-          aria-label={`${table.name} QR kodu`}
-          role="img"
-          dangerouslySetInnerHTML={{ __html: svg }}
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-base font-medium text-[var(--admin-text)]">
-              {table.name}
-            </h2>
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-[10px] tracking-[0.18em] uppercase ${
-                table.isActive
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-neutral-100 text-neutral-600"
-              }`}
-            >
-              {table.isActive ? "Aktif" : "Pasif"}
-            </span>
-          </div>
-          <p className="mt-1 text-xs break-all text-[var(--admin-text-mute)]">
-            {url}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <CopyTableLink url={url} />
-            <a className={linkButton} href={`/admin/masalar/${table.id}/qr`}>
-              SVG indir
-            </a>
-            <Link
-              className={linkButton}
-              href={`/admin/masalar/${table.id}/duzenle`}
-            >
-              Düzenle
-            </Link>
-            {/* Taking a table out of service asks first; putting it back
-                does not. Both answer with a toast. */}
-            {table.isActive ? (
-              <ConfirmButton
-                action={setCafeTableActiveAction}
-                hidden={{ id: table.id, isActive: "false" }}
-                label="Pasifleştir"
-                variant="ghost"
-                className="text-xs"
-                title={`${table.name} pasifleşsin mi?`}
-                description="Masanın QR'ı menüyü açmaya devam eder ama bu masaya sipariş verilemez. Kod değişmez; istediğin zaman yeniden etkinleştirebilirsin."
-              />
-            ) : (
-              <ActionButton
-                action={setCafeTableActiveAction}
-                hidden={{ id: table.id, isActive: "true" }}
-                ariaLabel={`Etkinleştir: ${table.name}`}
-                className="text-xs"
-                pendingLabel="Etkinleştiriliyor…"
-              >
-                Etkinleştir
-              </ActionButton>
-            )}
-            <ConfirmButton
-              action={rotateCafeTableCodeAction}
-              hidden={{ id: table.id }}
-              label="Kodu yenile"
-              variant="ghost"
-              className="text-xs"
-              title={`${table.name} için kod yenilensin mi?`}
-              description="Masadaki basılı QR hemen çalışmaz olur. Yeni kartı yazdırıp eskisini masadan hemen kaldırman gerekir."
-              confirmLabel="Kodu yenile"
-            />
-          </div>
-        </div>
-      </div>
-    </Card>
+    <Badge tone={table.isActive ? "success" : "neutral"} dot>
+      {table.isActive ? "Aktif" : "Pasif"}
+    </Badge>
   );
 }
 
-export default async function CafeTablesPage() {
+function Code({ table }: { table: CafeTable }) {
+  return (
+    <span
+      className="text-xs text-[var(--admin-text-soft)]"
+      style={NUMERIC_STYLE}
+    >
+      {table.code}
+    </span>
+  );
+}
+
+/**
+ * The köşk's tables, Filament style: tabs with counts (Tümü, Aktif, Pasif),
+ * a search box, a table (cards on phones) with a ⋯ menu per row, and a
+ * page per table with its QR and every action. Nothing deletes: a table
+ * leaves service by being deactivated, its code by being rotated.
+ */
+export default async function CafeTablesPage({ searchParams }: PageProps) {
   await requireRole("tables");
+  const sp = (await searchParams) ?? {};
   const tables = await listCafeTables();
-  const svgs = await Promise.all(tables.map((t) => tableQrSvg(t.code)));
+  const filters = parseFilters(sp, CAFE_TABLE_FILTER_FIELDS);
+  const tab = parseCafeTableTab(sp);
+  const sort = parseSort(sp, CAFE_TABLE_SORT_KEYS, CAFE_TABLE_DEFAULT_SORT);
+  const list = cafeTablesList(tables, {
+    tab,
+    filters,
+    sort,
+    page: parsePage(sp),
+  });
   const active = tables.filter((t) => t.isActive).length;
+  const tabValue = CAFE_TABLE_TABS.find((t) => t.tab === tab)?.value ?? null;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
@@ -113,30 +86,130 @@ export default async function CafeTablesPage() {
         description="Her masanın QR'ı menüyü açar; uygulaması olan misafir siparişini o masaya verir. Ödeme her zaman sipariş verilirken uygulamada alınır."
         action={
           <div className="flex flex-wrap gap-2">
-            <Link className={linkButton} href="/admin/masalar/yazdir">
-              Yazdır ({active})
+            <Link className={BUTTON.ghost} href={cafeTablePrintHref()}>
+              Kartları yazdır ({active})
             </Link>
-            <Link
-              className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
-              href="/admin/masalar/yeni"
-            >
+            <Link className={BUTTON.primary} href={`${CAFE_TABLES_PATH}/yeni`}>
               + Yeni masa
             </Link>
           </div>
         }
       />
+
       {tables.length === 0 ? (
-        <Card>
-          <p className="text-sm text-[var(--admin-text-soft)]">
-            Henüz masa yok. İlk masayı ekle, kartını yazdır ve masaya koy.
-          </p>
-        </Card>
+        <EmptyState
+          title="Henüz masa yok."
+          description="İlk masayı ekle, kartını yazdır ve masaya koy."
+          action={
+            <Link className={BUTTON.primary} href={`${CAFE_TABLES_PATH}/yeni`}>
+              + Yeni masa
+            </Link>
+          }
+        />
       ) : (
-        <div className="grid gap-3">
-          {tables.map((t, i) => (
-            <TableRow key={t.id} table={t} svg={svgs[i]} />
-          ))}
-        </div>
+        <>
+          <StatusTabs
+            tabs={CAFE_TABLE_TABS.map((t) => ({
+              value: t.value,
+              label: t.label,
+              count: list.counts[t.tab],
+            }))}
+            current={tabValue}
+            searchParams={sp}
+            pathname={CAFE_TABLES_PATH}
+            param={CAFE_TABLE_TAB_PARAM}
+            label="Masa sekmeleri"
+          />
+
+          <div className="mb-4">
+            <FilterBar
+              fields={CAFE_TABLE_FILTER_FIELDS}
+              searchParams={sp}
+              pathname={CAFE_TABLES_PATH}
+              values={filters}
+            />
+          </div>
+
+          <DataTable<CafeTable>
+            caption="Masalar"
+            rows={list.rows}
+            rowKey={(t) => t.id}
+            rowHref={(t) => cafeTableHref(t.id)}
+            sort={sort}
+            searchParams={sp}
+            pathname={CAFE_TABLES_PATH}
+            empty={<EmptyState title="Bu sekmede masa yok." />}
+            rowClassName={(t) =>
+              t.isActive ? null : "text-[var(--admin-text-soft)]"
+            }
+            columns={[
+              {
+                key: "ad",
+                header: "Masa",
+                sortable: true,
+                cell: (t) => t.name,
+              },
+              {
+                key: "durum",
+                header: "Durum",
+                cell: (t) => <StatusBadge table={t} />,
+              },
+              {
+                key: "kod",
+                header: "Kod",
+                cell: (t) => <Code table={t} />,
+              },
+              {
+                key: "sira",
+                header: "Sıra",
+                sortable: true,
+                align: "right",
+                hideBelow: "lg",
+                cell: (t) => <span style={NUMERIC_STYLE}>{t.sortOrder}</span>,
+              },
+              {
+                key: "yenileme",
+                header: "Kod yenilendi",
+                hideBelow: "lg",
+                cell: (t) =>
+                  t.rotatedAt ? (
+                    <span className="text-xs whitespace-nowrap text-[var(--admin-text-soft)]">
+                      {formatDateTime(t.rotatedAt)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-[var(--admin-text-soft)]">
+                      Yenilenmedi
+                    </span>
+                  ),
+              },
+            ]}
+            rowActions={(t) => <CafeTableRowMenu table={t} />}
+            mobileCard={(t) => (
+              <div className="flex flex-col gap-1.5">
+                <Link
+                  href={cafeTableHref(t.id)}
+                  className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+                >
+                  {t.name}
+                </Link>
+                <span className="flex flex-wrap items-center gap-2">
+                  <StatusBadge table={t} />
+                  <Code table={t} />
+                </span>
+              </div>
+            )}
+          />
+
+          {list.total > CAFE_TABLE_PAGE_SIZE ? (
+            <Pagination
+              page={list.page}
+              pageSize={CAFE_TABLE_PAGE_SIZE}
+              total={list.total}
+              searchParams={sp}
+              pathname={CAFE_TABLES_PATH}
+            />
+          ) : null}
+        </>
       )}
     </main>
   );
