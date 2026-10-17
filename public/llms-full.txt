@@ -48,7 +48,7 @@ Mekan özellikleri:
 Kapanış saati ertesi sabaha sarkar: gece 02:00, bir sonraki günün ilk saatidir.
 Üst katta rezervasyonla kullanılabilen bir karaoke odası vardır: saati 1.000₺,
 en fazla 8 kişi, gece 24:00'e kadar. Rezervasyon web'den (/karaoke) ya da
-uygulamadan yapılır; talep ekip onaylayınca kesinleşir.
+uygulamadan yapılır; kartla ödeme alınınca kesinleşir.
 
 Tüm yıl açığız; tek istisna 1 Ocak günüdür. 31 Aralık gecesi servis 1 Ocak saat 02:00'de biter, 1 Ocak günü kapalıyız.
 
