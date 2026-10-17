@@ -39,10 +39,17 @@ const adminFontStyle = {
   "--admin-surface-2": "#FBF6EC",
   "--admin-border": "#E7DAC2",
   "--admin-border-strong": "#D7C7A9",
+  // A field's outline: 3.31:1 on a white card and 3.07:1 on the field's
+  // own fill, so an empty field can be found (non-text contrast is 3:1).
+  // --admin-border is 1.38:1 on white and stays for cards and dividers.
+  "--admin-border-field": "#9C8B70",
   // Text (espresso ink)
   "--admin-text": "#2C1D11",
   "--admin-text-soft": "#5A4636",
-  "--admin-text-mute": "#8A7A64",
+  // Labels, hints, eyebrows and placeholders. #8A7A64 was 4.16:1 on white
+  // and 3.70:1 on the page; this clears 4.5:1 on white, the page,
+  // surface-2 and neutral-soft (tests/admin-ui-kit.test.ts).
+  "--admin-text-mute": "#74644F",
   // Brand actions
   "--admin-primary": "#44301C",
   "--admin-primary-hover": "#2C1D11",

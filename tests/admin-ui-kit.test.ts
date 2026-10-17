@@ -609,6 +609,49 @@ describe("tone colours clear AA", () => {
     }
   });
 
+  it("labels, hints, eyebrows and placeholders clear AA on every panel ground", () => {
+    // --admin-text-mute was #8A7A64: 4.16:1 on white, 3.70:1 on the page.
+    for (const ground of [
+      "#FFFFFF",
+      token("--admin-bg"),
+      token("--admin-surface-2"),
+      token("--admin-neutral-soft"),
+    ]) {
+      expect(
+        contrast(token("--admin-text-mute"), ground),
+        `mute on ${ground}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("a field's outline clears 3:1 on a white card and on its own fill", () => {
+    for (const ground of ["#FFFFFF", token("--admin-surface-2")]) {
+      expect(
+        contrast(token("--admin-border-field"), ground),
+        `field border on ${ground}`,
+      ).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("kit fields use that outline and a full-strength placeholder", async () => {
+    const { FIELD_INPUT } = await import("@/components/admin/forms");
+    expect(FIELD_INPUT).toContain("border-[var(--admin-border-field)]");
+    expect(FIELD_INPUT).toMatch(
+      /placeholder:text-\[var\(--admin-text-mute\)\](\s|$)/,
+    );
+    for (const path of [
+      "src/components/admin/forms.tsx",
+      "src/components/admin/ui/filter-bar.tsx",
+      "src/components/admin/ui/action-modal.tsx",
+    ]) {
+      const src = read(path);
+      expect(src, path).not.toMatch(/admin-text-mute\)\]\/\d/);
+      expect(src, path).not.toContain(
+        "border-[var(--admin-border)] bg-[var(--admin-surface-2)]",
+      );
+    }
+  });
+
   it("the signed-in panel and the login share one ground, and toasts are mounted", () => {
     const code = layout.replace(/^\s*\/\/.*$/gm, "");
     expect(code).not.toContain("admin-shell");

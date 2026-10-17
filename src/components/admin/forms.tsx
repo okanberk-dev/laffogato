@@ -27,12 +27,15 @@ export function Field({
   );
 }
 
-const baseInput =
-  "w-full rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)]/70 focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm";
+// The panel's field: the outline is --admin-border-field (3:1 against the
+// white card and the field's own fill, so an empty field can be found) and
+// the placeholder is the full label ink, not a faded one (it was 2.41:1).
+export const FIELD_INPUT =
+  "w-full rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm";
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <input {...props} className={`${baseInput} ${props.className ?? ""}`} />
+    <input {...props} className={`${FIELD_INPUT} ${props.className ?? ""}`} />
   );
 }
 
@@ -42,14 +45,14 @@ export function Textarea(
   return (
     <textarea
       {...props}
-      className={`${baseInput} min-h-[100px] ${props.className ?? ""}`}
+      className={`${FIELD_INPUT} min-h-[100px] ${props.className ?? ""}`}
     />
   );
 }
 
 export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select {...props} className={`${baseInput} ${props.className ?? ""}`} />
+    <select {...props} className={`${FIELD_INPUT} ${props.className ?? ""}`} />
   );
 }
 

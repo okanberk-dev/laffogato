@@ -17,10 +17,8 @@ import {
   type FilterValues,
 } from "@/lib/admin/list-params";
 
+import { FIELD_INPUT } from "../forms";
 import { BUTTON, EYEBROW, MONO_STYLE } from "./styles";
-
-const INPUT =
-  "w-full rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)]/70 focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm";
 
 export interface FilterBarProps {
   fields: readonly FilterField[];
@@ -123,7 +121,7 @@ export function FilterBar({
                   placeholder={field.placeholder}
                   maxLength={field.maxLength ?? 100}
                   enterKeyHint="search"
-                  className={INPUT}
+                  className={FIELD_INPUT}
                 />
               </div>
             );
@@ -142,7 +140,7 @@ export function FilterBar({
                   id={id}
                   name={field.name}
                   defaultValue={values[field.name] ?? ""}
-                  className={INPUT}
+                  className={FIELD_INPUT}
                 >
                   <option value="">{field.allLabel ?? "Tümü"}</option>
                   {field.options.map((o) => (
@@ -173,7 +171,7 @@ export function FilterBar({
                   type="date"
                   name={field.from}
                   defaultValue={values[field.from] ?? ""}
-                  className={cx(INPUT, "min-w-0")}
+                  className={cx(FIELD_INPUT, "min-w-0")}
                 />
                 <span
                   aria-hidden="true"
@@ -189,7 +187,7 @@ export function FilterBar({
                   type="date"
                   name={field.to}
                   defaultValue={values[field.to] ?? ""}
-                  className={cx(INPUT, "min-w-0")}
+                  className={cx(FIELD_INPUT, "min-w-0")}
                 />
               </div>
             </fieldset>

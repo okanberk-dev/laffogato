@@ -19,7 +19,7 @@ import { createPortal } from "react-dom";
 import { cx } from "@/components/laffogato/cx";
 import type { ActionResult } from "@/lib/admin/action-result";
 
-import { Field, Textarea } from "../forms";
+import { Field, TextInput, Textarea } from "../forms";
 import { BUTTON, MONO_STYLE, type ButtonVariant } from "./styles";
 import { adminPortalRoot, useToast } from "./toast";
 
@@ -396,7 +396,7 @@ function ModalDialog({
                   </>
                 )}
               </label>
-              <input
+              <TextInput
                 id={confirmId}
                 name="confirm"
                 value={typed}
@@ -404,7 +404,6 @@ function ModalDialog({
                 autoComplete="off"
                 autoCapitalize="off"
                 spellCheck={false}
-                className="w-full rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-base text-[var(--admin-text)] outline-none focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm"
               />
             </div>
           ) : null}
