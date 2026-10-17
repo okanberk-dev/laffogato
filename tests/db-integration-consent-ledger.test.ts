@@ -268,6 +268,37 @@ maybe("consent ledger against a real Postgres", () => {
     ).toEqual([["marketing", false, "admin"]]);
   });
 
+  it("admin edit: a switch drawn off keeps the member's opt-in", async () => {
+    // The form drew marketing off (disabled, not posted); the member opted
+    // in from the app before the operator saved a phone fix.
+    const { adminUpdateCustomer } = await import("@/lib/customer/store");
+    const email = `${PREFIX}panel-eski@laffogato.net`;
+    await insertMember(email, { marketing: true, newsletter: false });
+    const res = await adminUpdateCustomer(email, {
+      name: "Üye",
+      phone: "0532 000 00 00",
+      birthday: "",
+      notificationPrefs: {
+        orderUpdates: true,
+        marketing: false,
+        newsletter: false,
+      },
+      shownPrefs: { marketing: false, newsletter: false },
+    });
+    expect(res.ok).toBe(true);
+    const { rows } = await pool!.query(
+      `select phone, "notificationPrefs", "marketingConsentAt"
+         from public.customers where email = $1`,
+      [email],
+    );
+    expect(rows[0]).toMatchObject({
+      phone: "0532 000 00 00",
+      notificationPrefs: { marketing: true },
+      marketingConsentAt: "2026-01-01T00:00:00.000Z",
+    });
+    expect(await ledger(email)).toEqual([]);
+  });
+
   it("member unsubscribe link: both purposes that were on are withdrawn", async () => {
     const { unsubscribeCustomerByToken } =
       await import("@/lib/customer/unsubscribe");
