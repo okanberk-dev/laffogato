@@ -3,12 +3,17 @@
 import Link from "next/link";
 import {
   useActionState,
+  useEffect,
+  useId,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
 
 import { type ProductActionState } from "@/app/admin/urunler/actions";
+import { skuPrefix } from "@/lib/admin/sku";
 import { photoKind } from "@/lib/backdrop/scene-core";
 import { parseMoneyInput } from "@/lib/utils/format";
 import {
@@ -24,6 +29,12 @@ import type {
 } from "@/lib/admin/store";
 
 import {
+  markFieldErrors,
+  PANEL_ACTION_FAILED,
+  useNoResetSubmit,
+  withPanelCatch,
+} from "./action-form";
+import {
   Card,
   Checkbox,
   Field,
@@ -36,6 +47,7 @@ import {
 } from "./forms";
 import { BackdropField } from "./backdrop-field";
 import { ImageUpload } from "./image-upload";
+import { BUTTON } from "./ui/styles";
 
 const HUE_OPTIONS = [
   ["cream", "Krem"],
@@ -44,8 +56,8 @@ const HUE_OPTIONS = [
   ["caramel", "Karamel"],
   ["espresso", "Espresso"],
   ["matcha", "Matcha"],
-  ["pistachio", "Pistachio"],
-  ["rose", "Rose"],
+  ["pistachio", "Antep fıstığı"],
+  ["rose", "Gül"],
   ["dawn", "Şafak"],
   ["gold", "Altın"],
   ["sky", "Gök"],
@@ -65,6 +77,98 @@ const HUE_OPTIONS = [
 const ALLERGEN_OPTIONS = [
   ["nuts", "Sert kabuklu yemiş (fındık · fıstık)"],
 ] as const;
+
+/**
+ * Which step holds each posted field, so a refusal can open the step with
+ * the field in it and mark its pill. A key the server answers under that is
+ * not here (a "form" error) belongs to the summary. Exported for tests.
+ */
+export const FIELD_STEP: Readonly<Record<string, number>> = {
+  name: 1,
+  slug: 1,
+  tag: 1,
+  desc: 1,
+  brand: 1,
+  notes: 1,
+  cat: 1,
+  isActive: 1,
+  tags: 1,
+  price: 2,
+  compareAtPrice: 2,
+  cost: 2,
+  sku: 2,
+  stock: 2,
+  lowStockThreshold: 2,
+  weightGrams: 2,
+  taxRatePct: 2,
+  variants: 3,
+  img: 4,
+  images: 4,
+  backdrop: 4,
+  vessel: 4,
+  seoTitle: 4,
+  seoDescription: 4,
+  featured: 4,
+  isNew: 4,
+};
+
+const SUMMARY_STEP = 5;
+
+export function stepOfField(key: string): number {
+  return FIELD_STEP[key.split(".")[0]] ?? SUMMARY_STEP;
+}
+
+/** The first step holding a refused field, or null when none is refused. */
+export function firstErrorStep(
+  fieldErrors?: Record<string, string>,
+): number | null {
+  const keys = Object.keys(fieldErrors ?? {});
+  return keys.length > 0 ? Math.min(...keys.map(stepOfField)) : null;
+}
+
+type Validatable = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
+/** The controls under `root` the browser would refuse, in document order. */
+function invalidControls(root: ParentNode): Validatable[] {
+  return Array.from(
+    root.querySelectorAll<Validatable>("input, select, textarea"),
+  ).filter((el) => el.willValidate && !el.validity.valid);
+}
+
+/** The wizard step a control sits in (its `data-step` wrapper), or 0. */
+function stepOfControl(el: Element): number {
+  return Number(el.closest("[data-step]")?.getAttribute("data-step") ?? 0);
+}
+
+/**
+ * The browser-side check before a post: every step holding an invalid
+ * control, and the step of the first one (0 when it sits outside the
+ * steps). Exported for tests.
+ */
+export function checkSteps(
+  root: ParentNode,
+): { ok: true } | { ok: false; steps: number[]; first: number } {
+  const bad = invalidControls(root);
+  if (bad.length === 0) return { ok: true };
+  return {
+    ok: false,
+    steps: [...new Set(bad.map(stepOfControl).filter((s) => s > 0))],
+    first: stepOfControl(bad[0]),
+  };
+}
+
+/**
+ * Shows the browser's own message on the first invalid control under
+ * `root` that is drawn. Variant rows are rendered twice (cards on a phone,
+ * a table on a wide screen) and the browser cannot show its bubble on the
+ * copy that is hidden. Exported for tests.
+ */
+export function reportFirstInvalid(root: ParentNode): boolean {
+  const bad = invalidControls(root);
+  const target = bad.find((el) => el.getClientRects().length > 0) ?? bad[0];
+  target?.reportValidity();
+  return Boolean(target);
+}
 
 function slugifyClient(input: string): string {
   const map: Record<string, string> = {
@@ -89,15 +193,6 @@ function slugifyClient(input: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
-}
-
-function skuFromName(name: string, n = 1): string {
-  const prefix = name
-    .replace(/[^A-Za-z0-9]+/g, "")
-    .slice(0, 4)
-    .toUpperCase()
-    .padEnd(4, "X");
-  return `${prefix}-${String(n).padStart(5, "0")}`;
 }
 
 interface VariantRow {
@@ -136,6 +231,21 @@ export interface ProductWizardProps {
 
 const initialState: ProductActionState = {};
 
+/**
+ * The product form: a five-step wizard for a new product, every section on
+ * one page for an edit.
+ *
+ * It posts by hand (useNoResetSubmit), not through `<form action>`: React
+ * resets an action form after every answer, so a refused save came back
+ * with the category, the scene and the image tone on their first option and
+ * the Aktif / Öne çıkan boxes flipped, and the next save stored them
+ * (admin audit CAT-01). The browser's own validation is off (`noValidate`):
+ * on step 5 the earlier steps are hidden, the browser cannot show its
+ * message on a hidden field and silently dropped the submit (CAT-02). The
+ * form checks itself instead, opens the step with the first problem and
+ * shows the message there; a server refusal does the same and marks the
+ * step pills that hold errors. A thrown save answers in place (CAT-17).
+ */
 export function ProductWizard({
   product,
   categories,
@@ -144,14 +254,32 @@ export function ProductWizard({
   mode,
   taxRates = LEGAL_TAX_RATES,
 }: ProductWizardProps) {
-  const [state, formAction, pending] = useActionState(action, initialState);
-
   const [step, setStep] = useState(1);
   const totalSteps = 5;
 
+  const save = withPanelCatch<ProductActionState>(action, () => ({
+    error: PANEL_ACTION_FAILED,
+  }));
+  const [state, formAction, pending] = useActionState(
+    async (prev: ProductActionState, formData: FormData) => {
+      const next = await save(prev, formData);
+      // Open the step that holds the first refused field.
+      const target = firstErrorStep(next.fieldErrors);
+      if (target !== null) setStep(target);
+      return next;
+    },
+    initialState,
+  );
+
+  const formRef = useRef<HTMLFormElement>(null);
+  const baseId = useId();
+  const errorId = (key: string) => `${baseId}-err-${key}`;
+  // Steps the last check in the browser found a problem in.
+  const [invalidSteps, setInvalidSteps] = useState<number[]>([]);
+
   const [name, setName] = useState(product?.name ?? "");
-  /* A product saved without a slug or SKU starts with the ones its name
-     implies, exactly what the old mount-time effect filled in. */
+  /* A product saved without a slug starts with the one its name implies,
+     exactly what the old mount-time effect filled in. */
   const [slug, setSlug] = useState(
     product?.slug || slugifyClient(product?.name ?? ""),
   );
@@ -160,7 +288,9 @@ export function ProductWizard({
   const [desc, setDesc] = useState(product?.desc ?? "");
   const [brand, setBrand] = useState(product?.brand ?? "");
   const [notes, setNotes] = useState((product?.notes ?? []).join(", "));
-  const [cat, setCat] = useState(product?.cat ?? "beans");
+  const [cat, setCat] = useState(
+    product?.cat ?? categories[0]?.slug ?? "beans",
+  );
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
   const [allergens, setAllergens] = useState<string[]>(
     (product?.tags ?? []).filter((t) =>
@@ -181,16 +311,18 @@ export function ProductWizard({
       ? (product.costMinor / 100).toFixed(2)
       : "",
   );
-  const [sku, setSku] = useState(
-    product?.sku || (product?.name ? skuFromName(product.name) : ""),
-  );
-  const [skuTouched, setSkuTouched] = useState(Boolean(product?.sku));
+  // Empty unless typed: the server then derives a code numbered by the
+  // product's own sequence (CAT-18). A prefilled "-00001" was posted as is
+  // and two products with the same first letters shared one SKU.
+  const [sku, setSku] = useState(product?.sku ?? "");
   const [stock, setStock] = useState(String(product?.stock ?? 0));
   const [lowStockThreshold, setLowStockThreshold] = useState(
     String(product?.lowStockThreshold ?? 5),
   );
+  // Empty (not shown) unless known: a default of 250 g was published on the
+  // product page and to Google for a mug or an apron (CAT-M02, D20).
   const [weightGrams, setWeightGrams] = useState(
-    String(product?.weightGrams ?? 250),
+    product?.weightGrams ? String(product.weightGrams) : "",
   );
   // "" = the category's default; a number = the product's own rate.
   const [taxRate, setTaxRate] = useState(
@@ -216,13 +348,12 @@ export function ProductWizard({
   const [featured, setFeatured] = useState(product?.featured ?? false);
   const [isNew, setIsNew] = useState(product?.isNew ?? false);
 
-  /* Auto-fill slug + sku as the operator types the name, until either field
-     has been edited by hand. Done in the change handler, not an effect, so
-     the three fields update in one render. */
+  /* Auto-fill the slug as the operator types the name, until it has been
+     edited by hand. Done in the change handler, not an effect, so both
+     fields update in one render. */
   const onNameChange = (next: string) => {
     setName(next);
     if (!slugTouched) setSlug(slugifyClient(next));
-    if (!skuTouched && next) setSku(skuFromName(next));
   };
 
   // The preview reads the amounts the way the save does (parseMoneyInput):
@@ -276,6 +407,80 @@ export function ProductWizard({
 
   const fieldError = (key: string) => state.fieldErrors?.[key];
 
+  /** The refusal under a field: danger ink, announced, tied by its id. */
+  const errorFor = (key: string) => {
+    const message = fieldError(key);
+    if (!message) return null;
+    return (
+      <p
+        id={errorId(key)}
+        role="alert"
+        tabIndex={-1}
+        className="text-xs text-[var(--admin-danger-ink)]"
+      >
+        {message}
+      </p>
+    );
+  };
+
+  // Steps holding a field the server refused, plus what the browser found.
+  const flaggedSteps = new Set<number>([
+    ...Object.keys(state.fieldErrors ?? {}).map(stepOfField),
+    ...invalidSteps,
+  ]);
+
+  // After each answer: mark the refused controls for assistive tech and put
+  // focus on the first one (its step is already open, see the action
+  // above). A refusal with no control of its own (Varyantlar) focuses its
+  // message instead.
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form || state === initialState) return;
+    const errors = state.fieldErrors ?? {};
+    const first = markFieldErrors(
+      Array.from(form.elements),
+      errors,
+      (key) => `${baseId}-err-${key}`,
+    );
+    if (first instanceof HTMLElement) {
+      first.focus();
+      return;
+    }
+    const firstKey = Object.keys(errors)[0];
+    if (firstKey) document.getElementById(`${baseId}-err-${firstKey}`)?.focus();
+  }, [state, baseId]);
+
+  /**
+   * The check the browser no longer runs on its own: before the post, find
+   * every invalid field, mark its step, open the step of the first one and
+   * show the browser's message there. Nothing is sent until all are fixed.
+   */
+  const beforeSubmit = (form: HTMLFormElement) => {
+    const check = checkSteps(form);
+    setInvalidSteps(check.ok ? [] : check.steps);
+    if (check.ok) return true;
+    const target = check.first || step;
+    if (mode === "wizard" && target !== step) {
+      // Render the step now, so its field can show the message.
+      flushSync(() => setStep(target));
+    }
+    reportFirstInvalid(form.querySelector(`[data-step="${target}"]`) ?? form);
+    return false;
+  };
+
+  const onSubmit = useNoResetSubmit(formAction, pending, { beforeSubmit });
+
+  /** "Sonraki adım": only once this step's fields are fine. */
+  const goNext = () => {
+    const root = formRef.current?.querySelector(`[data-step="${step}"]`);
+    if (root && reportFirstInvalid(root)) {
+      setInvalidSteps((prev) => [...new Set([...prev, step])]);
+      return;
+    }
+    setInvalidSteps((prev) => prev.filter((s) => s !== step));
+    setStep((s) => Math.min(totalSteps, s + 1));
+  };
+
   const addVariant = () => {
     setVariants((vs) => [
       ...vs,
@@ -302,116 +507,141 @@ export function ProductWizard({
     );
   };
 
+  const categoryLabel = categories.find((c) => c.slug === cat)?.label ?? cat;
+  const skuPlaceholder = name ? `${skuPrefix(name)}-00042` : "SIRE-00042";
+
   const steps: Array<{ id: number; title: string; body: ReactNode }> = [
     {
       id: 1,
       title: "Temel bilgi",
       body: (
         <div className="grid gap-5">
-          <Field
-            label="Ürün adı"
-            hint={fieldError("name") ?? "Müşterinin gördüğü ad - kısa, çekici."}
-          >
-            <TextInput
-              name="name"
-              value={name}
-              onChange={(e) => onNameChange(e.target.value)}
-              required
-              aria-invalid={Boolean(fieldError("name"))}
-            />
-          </Field>
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid gap-1.5">
             <Field
-              label="Slug"
-              hint={
-                fieldError("slug") ??
-                "URL'de görünecek. Ad'dan otomatik üretilir; gerekirse override et."
-              }
+              label="Ürün adı"
+              hint="Müşterinin gördüğü ad: kısa ve açık."
             >
               <TextInput
-                name="slug"
-                value={slug}
-                onChange={(e) => {
-                  setSlug(slugifyClient(e.target.value));
-                  setSlugTouched(true);
-                }}
-                placeholder="sirena-espresso-blend"
-              />
-            </Field>
-            <Field label="Etiket / alt başlık" hint={fieldError("tag")}>
-              <TextInput
-                name="tag"
-                value={tag}
-                onChange={(e) => setTag(e.target.value)}
-                placeholder="Çekirdek · 250 g"
+                name="name"
+                value={name}
+                onChange={(e) => onNameChange(e.target.value)}
                 required
+                minLength={2}
+                maxLength={120}
               />
             </Field>
-          </div>
-          <Field label="Açıklama" hint={fieldError("desc")}>
-            <Textarea
-              name="desc"
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-              required
-              rows={4}
-            />
-          </Field>
-          <div className="grid gap-5 md:grid-cols-2">
-            <Field
-              label="Marka (künye)"
-              hint={
-                fieldError("brand") ??
-                "Uygulamada ürün adının üstünde, yazdığın büyük/küçük harflerle görünür; otomatik büyütülmez. Boş bırakılırsa gösterilmez."
-              }
-            >
-              <TextInput
-                name="brand"
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                maxLength={40}
-                placeholder="Sirena"
-              />
-            </Field>
-            <Field
-              label="Tat notları"
-              hint={
-                fieldError("notes") ??
-                "Virgülle ayır; en fazla 5 not, her biri en fazla 24 karakter. Uygulamada başlığın altında çip olarak görünür; açıklama her durumda tamamen gösterilir."
-              }
-            >
-              <TextInput
-                name="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Kakao, Kuru incir, Esmer şeker"
-              />
-            </Field>
+            {errorFor("name")}
           </div>
           <div className="grid gap-5 md:grid-cols-2">
-            <Field label="Kategori">
-              <Select
-                name="cat"
-                value={cat}
-                onChange={(e) => setCat(e.target.value as typeof cat)}
+            <div className="grid gap-1.5">
+              <Field
+                label="Adres (slug)"
+                hint="Ürün sayfasının adresinde görünür. Addan üretilir; istersen değiştir."
               >
-                {categories.map((c) => (
-                  <option key={c.slug} value={c.slug}>
-                    {c.label}
-                  </option>
-                ))}
-              </Select>
+                <TextInput
+                  name="slug"
+                  value={slug}
+                  onChange={(e) => {
+                    setSlug(slugifyClient(e.target.value));
+                    setSlugTouched(true);
+                  }}
+                  placeholder="sirena-espresso-blend"
+                />
+              </Field>
+              {errorFor("slug")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="Etiket / alt başlık"
+                hint="Kartta adın altında görünür."
+              >
+                <TextInput
+                  name="tag"
+                  value={tag}
+                  onChange={(e) => setTag(e.target.value)}
+                  placeholder="Çekirdek · 250 g"
+                  required
+                  maxLength={80}
+                />
+              </Field>
+              {errorFor("tag")}
+            </div>
+          </div>
+          <div className="grid gap-1.5">
+            <Field label="Açıklama">
+              <Textarea
+                name="desc"
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                required
+                maxLength={2000}
+                rows={4}
+              />
             </Field>
-            <Field label="Yayın durumu">
+            {errorFor("desc")}
+          </div>
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Field
+                label="Marka (künye)"
+                hint="Uygulamada ürün adının üstünde, yazdığın büyük/küçük harflerle görünür; otomatik büyütülmez. Boş bırakırsan gösterilmez."
+              >
+                <TextInput
+                  name="brand"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  maxLength={40}
+                  placeholder="Sirena"
+                />
+              </Field>
+              {errorFor("brand")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="Tat notları"
+                hint="Virgülle ayır; en fazla 5 not, her biri en fazla 24 karakter. Uygulamada başlığın altında çip olarak görünür; açıklama her durumda tamamen gösterilir."
+              >
+                <TextInput
+                  name="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Kakao, Kuru incir, Esmer şeker"
+                />
+              </Field>
+              {errorFor("notes")}
+            </div>
+          </div>
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Field label="Kategori">
+                <Select
+                  name="cat"
+                  value={cat}
+                  onChange={(e) => setCat(e.target.value as typeof cat)}
+                >
+                  {categories.map((c) => (
+                    <option key={c.slug} value={c.slug}>
+                      {c.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              {errorFor("cat")}
+            </div>
+            <Field as="fieldset" label="Yayın durumu">
               <Checkbox
                 name="isActive"
-                label="Aktif (vitrinde göster)"
+                label="Aktif (mağazada göster)"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
               />
             </Field>
           </div>
+          {/* A fieldset, not a label: inside a label a tap on the hint
+              ticked or unticked the nut box, and with it the customer's
+              allergen warning (admin audit SYS-M02). */}
           <Field
+            as="fieldset"
             label="Alerjen"
             hint="Ürün içeriyorsa işaretle. Ürün sayfasında ve sepette uyarı olarak görünür - gizlenmez."
           >
@@ -438,127 +668,153 @@ export function ProductWizard({
     },
     {
       id: 2,
-      title: "Fiyatlandırma & stok",
+      title: "Fiyat ve stok",
       body: (
         <div className="grid gap-5">
           <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3">
-            <Field label="Satış fiyatı (₺)" hint={fieldError("price")}>
-              <TextInput
-                name="price"
-                inputMode="decimal"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="320,00"
-                required
-              />
-            </Field>
-            <Field
-              label="Eski fiyat (was, ₺)"
-              hint={
-                fieldError("compareAtPrice") ??
-                (discountPct !== null
-                  ? `−%${discountPct} indirim olarak görünür`
-                  : "Opsiyonel - boşsa indirim gösterilmez.")
-              }
-            >
-              <TextInput
-                name="compareAtPrice"
-                inputMode="decimal"
-                value={compareAtPrice}
-                onChange={(e) => setCompareAtPrice(e.target.value)}
-                placeholder="360,00"
-              />
-            </Field>
-            <Field
-              label="Maliyet (₺)"
-              hint={
-                fieldError("cost") ??
-                (marginPct !== null
-                  ? `Marj: %${marginPct}`
-                  : "Müşteriye gizli; raporlama için.")
-              }
-            >
-              <TextInput
-                name="cost"
-                inputMode="decimal"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-                placeholder="180,00"
-              />
-            </Field>
+            <div className="grid gap-1.5">
+              <Field
+                label="Satış fiyatı (₺)"
+                hint="KDV dahil, en az 0,01 TL."
+              >
+                <TextInput
+                  name="price"
+                  inputMode="decimal"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="320,00"
+                  required
+                />
+              </Field>
+              {errorFor("price")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="Eski fiyat (₺)"
+                hint={
+                  discountPct !== null
+                    ? `−%${discountPct} indirim olarak görünür`
+                    : "İsteğe bağlı. Satış fiyatından yüksekse üstü çizili görünür."
+                }
+              >
+                <TextInput
+                  name="compareAtPrice"
+                  inputMode="decimal"
+                  value={compareAtPrice}
+                  onChange={(e) => setCompareAtPrice(e.target.value)}
+                  placeholder="360,00"
+                />
+              </Field>
+              {errorFor("compareAtPrice")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="Maliyet (₺)"
+                hint={
+                  marginPct !== null
+                    ? `Marj: %${marginPct}`
+                    : "Müşteri görmez; marj hesabı için."
+                }
+              >
+                <TextInput
+                  name="cost"
+                  inputMode="decimal"
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value)}
+                  placeholder="180,00"
+                />
+              </Field>
+              {errorFor("cost")}
+            </div>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3">
-            <Field
-              label="SKU"
-              hint={
-                fieldError("sku") ??
-                "Stok-takip kodu. Ad'dan otomatik; override edebilirsin."
-              }
-            >
-              <TextInput
-                name="sku"
-                value={sku}
-                onChange={(e) => {
-                  setSku(e.target.value.toUpperCase());
-                  setSkuTouched(true);
-                }}
-                placeholder="SIRE-00001"
-              />
-            </Field>
-            <Field label="Stok adet">
-              <TextInput
-                name="stock"
-                type="number"
-                min={0}
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-              />
-            </Field>
-            <Field
-              label="Düşük stok uyarısı"
-              hint="Bu seviyenin altına düşince admin tabloda turuncu görünür."
-            >
-              <TextInput
-                name="lowStockThreshold"
-                type="number"
-                min={0}
-                value={lowStockThreshold}
-                onChange={(e) => setLowStockThreshold(e.target.value)}
-              />
-            </Field>
+            <div className="grid gap-1.5">
+              <Field
+                label="SKU"
+                hint="Stok takip kodu. Boş bırakırsan kayıtta addan üretilir, her ürüne ayrı numarayla."
+              >
+                <TextInput
+                  name="sku"
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value.toUpperCase())}
+                  maxLength={40}
+                  placeholder={skuPlaceholder}
+                />
+              </Field>
+              {errorFor("sku")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field label="Stok (adet)">
+                <TextInput
+                  name="stock"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                />
+              </Field>
+              {errorFor("stock")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="Düşük stok uyarısı"
+                hint={
+                  'Stok bu sayıya inince panelde turuncu görünür, mağazada "Son N adet" rozeti çıkar.'
+                }
+              >
+                <TextInput
+                  name="lowStockThreshold"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={lowStockThreshold}
+                  onChange={(e) => setLowStockThreshold(e.target.value)}
+                />
+              </Field>
+              {errorFor("lowStockThreshold")}
+            </div>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Ağırlık (gram)" hint="Kargo hesabı için.">
-              <TextInput
-                name="weightGrams"
-                type="number"
-                min={0}
-                value={weightGrams}
-                onChange={(e) => setWeightGrams(e.target.value)}
-              />
-            </Field>
-            <Field
-              label="KDV oranı"
-              hint={
-                fieldError("taxRatePct") ??
-                "Fiyat KDV dahil; oran fiyatı değiştirmez. Kahve ve gıda %1, ekipman ve hediye %20. Varsayılanlar Ayarlar > Vergi'de."
-              }
-            >
-              <Select
-                name="taxRatePct"
-                value={taxRate}
-                onChange={(e) => setTaxRate(e.target.value)}
+            <div className="grid gap-1.5">
+              <Field
+                label="Ağırlık (gram)"
+                hint="Ürün sayfasında ve Google'da görünür. Boş bırakırsan gösterilmez; kargo ücretini değiştirmez."
               >
-                <option value="">Kategorinin oranı (%{categoryTaxRate})</option>
-                {taxRateChoices.map((r) => (
-                  <option key={r} value={String(r)}>
-                    %{r}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+                <TextInput
+                  name="weightGrams"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={weightGrams}
+                  onChange={(e) => setWeightGrams(e.target.value)}
+                  placeholder="Ör. 250"
+                />
+              </Field>
+              {errorFor("weightGrams")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="KDV oranı"
+                hint="Fiyat KDV dahil; oran fiyatı değiştirmez. Kahve ve gıda %1, ekipman ve hediye %20. Varsayılanlar Ayarlar > Vergi'de."
+              >
+                <Select
+                  name="taxRatePct"
+                  value={taxRate}
+                  onChange={(e) => setTaxRate(e.target.value)}
+                >
+                  <option value="">Kategorinin oranı (%{categoryTaxRate})</option>
+                  {taxRateChoices.map((r) => (
+                    <option key={r} value={String(r)}>
+                      %{r}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              {errorFor("taxRatePct")}
+            </div>
           </div>
         </div>
       ),
@@ -568,25 +824,22 @@ export function ProductWizard({
       title: "Varyantlar",
       body: (
         <div className="grid gap-5">
-          <p className="text-sm text-neutral-600">
-            Boyut, lezzet veya seçenek varyantları - örn. &quot;Küçük&quot;,
-            &quot;250g&quot;, &quot;Stracciatella&quot;. Her varyantın kendi
-            stoğu ve fiyat delta&apos;sı olur.
+          <p className="text-sm text-[var(--admin-text-soft)]">
+            Boyut ya da lezzet seçenekleri, ör. &quot;250 g&quot;, &quot;1
+            kg&quot;, &quot;Stracciatella&quot;. Her varyantın kendi stoğu ve
+            satış fiyatına eklenen (ucuzsa düşülen) fiyat farkı olur. Tek
+            seçenekle satılan ürüne varyant eklemen gerekmez.
           </p>
-          {fieldError("variants") ? (
-            <p role="alert" className="text-sm text-[var(--admin-danger-ink)]">
-              {fieldError("variants")}
-            </p>
-          ) : null}
+          {errorFor("variants")}
           {variants.length === 0 ? (
             <Card className="bg-neutral-50 text-center">
-              <p className="text-sm text-neutral-500">
-                Henüz varyant eklenmedi. Bu ürün tek seçenekle satılır.
+              <p className="text-sm text-[var(--admin-text-soft)]">
+                Henüz varyant yok. Bu ürün tek seçenekle satılır.
               </p>
               <button
                 type="button"
                 onClick={addVariant}
-                className="mt-4 inline-flex items-center justify-center rounded-full border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full border border-neutral-300 px-4 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
               >
                 + Varyant ekle
               </button>
@@ -607,7 +860,8 @@ export function ProductWizard({
                           onChange={(e) =>
                             updateVariant(i, "name", e.target.value)
                           }
-                          placeholder="250g"
+                          placeholder="250 g"
+                          required
                         />
                       </Field>
                       <Field label="SKU">
@@ -624,7 +878,7 @@ export function ProductWizard({
                         />
                       </Field>
                       <Field
-                        label="Fiyat Δ (₺)"
+                        label="Fiyat farkı (₺)"
                         hint="Ucuzsa başına - koy: -10,50"
                       >
                         {/* No decimal keypad: on iOS it has no minus key. */}
@@ -644,6 +898,7 @@ export function ProductWizard({
                           }
                           type="number"
                           min={0}
+                          step={1}
                         />
                       </Field>
                     </div>
@@ -680,11 +935,13 @@ export function ProductWizard({
                       style={{ fontFamily: "var(--mono), monospace" }}
                     >
                       <th className="py-2 pr-3">Ad</th>
-                      <th className="pr-3">Fiyat Δ (₺)</th>
+                      <th className="pr-3">Fiyat farkı (₺)</th>
                       <th className="pr-3">Stok</th>
                       <th className="pr-3">SKU</th>
                       <th className="pr-3">Aktif</th>
-                      <th className="text-right">-</th>
+                      <th className="text-right">
+                        <span className="sr-only">Sil</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -695,15 +952,18 @@ export function ProductWizard({
                       >
                         <td className="py-2 pr-3">
                           <TextInput
+                            aria-label={`${i + 1}. varyantın adı`}
                             value={v.name}
                             onChange={(e) =>
                               updateVariant(i, "name", e.target.value)
                             }
-                            placeholder="250g"
+                            placeholder="250 g"
+                            required
                           />
                         </td>
                         <td className="pr-3">
                           <TextInput
+                            aria-label={`${i + 1}. varyantın fiyat farkı`}
                             value={v.priceDelta}
                             onChange={(e) =>
                               updateVariant(i, "priceDelta", e.target.value)
@@ -713,16 +973,19 @@ export function ProductWizard({
                         </td>
                         <td className="pr-3">
                           <TextInput
+                            aria-label={`${i + 1}. varyantın stoğu`}
                             value={v.stock}
                             onChange={(e) =>
                               updateVariant(i, "stock", e.target.value)
                             }
                             type="number"
                             min={0}
+                            step={1}
                           />
                         </td>
                         <td className="pr-3">
                           <TextInput
+                            aria-label={`${i + 1}. varyantın SKU'su`}
                             value={v.sku}
                             onChange={(e) =>
                               updateVariant(
@@ -737,18 +1000,20 @@ export function ProductWizard({
                         <td className="pr-3">
                           <input
                             type="checkbox"
+                            aria-label={`${i + 1}. varyant aktif`}
                             checked={v.isActive}
                             onChange={(e) =>
                               updateVariant(i, "isActive", e.target.checked)
                             }
-                            className="h-4 w-4 rounded border-neutral-300"
+                            className="h-5 w-5 rounded border-neutral-300 accent-[var(--admin-primary)]"
                           />
                         </td>
                         <td className="text-right">
                           <button
                             type="button"
                             onClick={() => removeVariant(i)}
-                            className="text-xs text-red-600 underline-offset-4 hover:underline"
+                            aria-label={`Sil: ${v.name || `${i + 1}. varyant`}`}
+                            className="min-h-[44px] text-xs text-red-600 underline-offset-4 hover:underline"
                           >
                             Sil
                           </button>
@@ -777,7 +1042,7 @@ export function ProductWizard({
       body: (
         <div className="grid gap-5">
           <Field
-            label="Görsel ton (placeholder)"
+            label="Görsel tonu"
             hint="Fotoğraf yokken sitedeki kartın çizim rengi. Uygulamada sahne seçiminin ipucu; seçim yoksa sahne bu tondan gelir."
           >
             <Select
@@ -795,18 +1060,17 @@ export function ProductWizard({
 
           <div className="flex flex-col gap-2">
             <div
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+              className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Görseller
             </div>
             <ImageUpload name="images" initial={initialImages} />
-            <span className="text-xs text-neutral-500">
-              Sürükle bırak, tıkla veya URL yapıştır. İlk görsel kart görseli
-              olur ve uygulamanın sahnesi ondan seçilir. Yüklenen dosyalar
-              tarayıcıda küçültülüp base64 olarak saklanır (nesne depolama
-              gelene kadar); saydam arka planlı (dekupe) fotoğraf saydamlığını
-              korur.
+            <span className="text-xs text-[var(--admin-text-mute)]">
+              Sürükle bırak, tıkla ya da bağlantı yapıştır. İlk görsel kartta
+              görünür, uygulamanın sahnesi de ondan seçilir. Dosyalar
+              yüklenmeden önce küçültülür; arka planı saydam (dekupe) fotoğraf
+              saydam kalır.
             </span>
           </div>
 
@@ -821,36 +1085,42 @@ export function ProductWizard({
 
           <div className="border-t border-[var(--admin-border)] pt-5">
             <div
-              className="mb-3 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+              className="mb-3 text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               SEO
             </div>
             <div className="grid gap-5">
-              <Field
-                label="Meta başlık"
-                hint={`${seoTitle.length}/80 karakter`}
-              >
-                <TextInput
-                  name="seoTitle"
-                  value={seoTitle}
-                  onChange={(e) => setSeoTitle(e.target.value)}
-                  maxLength={80}
-                  placeholder="Sirena Espresso Blend · 250g · L’Affogato"
-                />
-              </Field>
-              <Field
-                label="Meta açıklama"
-                hint={`${seoDescription.length}/220 karakter`}
-              >
-                <Textarea
-                  name="seoDescription"
-                  value={seoDescription}
-                  onChange={(e) => setSeoDescription(e.target.value)}
-                  maxLength={220}
-                  rows={3}
-                />
-              </Field>
+              <div className="grid gap-1.5">
+                <Field
+                  label="Meta başlık"
+                  hint={`${seoTitle.length}/80 karakter. Boşsa ürün adı kullanılır.`}
+                >
+                  <TextInput
+                    name="seoTitle"
+                    value={seoTitle}
+                    onChange={(e) => setSeoTitle(e.target.value)}
+                    maxLength={80}
+                    placeholder="Sirena Espresso Blend · 250g · L’Affogato"
+                  />
+                </Field>
+                {errorFor("seoTitle")}
+              </div>
+              <div className="grid gap-1.5">
+                <Field
+                  label="Meta açıklama"
+                  hint={`${seoDescription.length}/220 karakter`}
+                >
+                  <Textarea
+                    name="seoDescription"
+                    value={seoDescription}
+                    onChange={(e) => setSeoDescription(e.target.value)}
+                    maxLength={220}
+                    rows={3}
+                  />
+                </Field>
+                {errorFor("seoDescription")}
+              </div>
             </div>
           </div>
 
@@ -876,10 +1146,14 @@ export function ProductWizard({
       title: "Özet & onayla",
       body: (
         <div className="grid gap-4">
+          <p className="text-sm text-[var(--admin-text-soft)]">
+            Kaydetmeden önce bir bak. Bir şeyi değiştirmek için üstteki adıma
+            dokun.
+          </p>
           <Card className="bg-neutral-50">
             <SummaryRow k="Ad" v={name || "-"} />
-            <SummaryRow k="Slug" v={slug || "-"} mono />
-            <SummaryRow k="Kategori" v={cat} />
+            <SummaryRow k="Adres" v={slug || "-"} mono />
+            <SummaryRow k="Kategori" v={categoryLabel} />
             <SummaryRow
               k="Fiyat"
               v={
@@ -898,7 +1172,7 @@ export function ProductWizard({
                     )}
                   </span>
                 ) : (
-                  "-"
+                  "Yazılmadı"
                 )
               }
             />
@@ -909,6 +1183,10 @@ export function ProductWizard({
                 muted
               />
             )}
+            <SummaryRow
+              k="KDV"
+              v={`%${effectiveTaxRate} dahil${taxRate === "" ? " (kategorinin oranı)" : ""}`}
+            />
             <SummaryRow
               k="Alerjen"
               v={
@@ -922,20 +1200,30 @@ export function ProductWizard({
                   : "Yok"
               }
             />
+            <SummaryRow k="Stok" v={`${stock || 0} adet`} />
             <SummaryRow
-              k="KDV"
-              v={`%${effectiveTaxRate} dahil${taxRate === "" ? " (kategorinin oranı)" : ""}`}
+              k="SKU"
+              v={
+                sku ||
+                (name
+                  ? `Kayıtta üretilir (${skuPrefix(name)}-…)`
+                  : "Kayıtta üretilir")
+              }
+              mono={Boolean(sku)}
             />
-            <SummaryRow k="Stok" v={`${stock} adet`} />
-            <SummaryRow k="SKU" v={sku || "-"} mono />
+            <SummaryRow
+              k="Ağırlık"
+              v={Number(weightGrams) > 0 ? `${weightGrams} g` : "Gösterilmez"}
+              muted={!(Number(weightGrams) > 0)}
+            />
             {variants.length > 0 && (
               <SummaryRow
                 k="Varyant"
-                v={`${variants.length} varyant: ${variants.map((v) => v.name || "?").join(", ")}`}
+                v={`${variants.length} varyant: ${variants.map((v) => v.name || "(adsız)").join(", ")}`}
               />
             )}
             <SummaryRow
-              k="Bayraklar"
+              k="Durum"
               v={
                 [
                   isActive ? "Aktif" : "Pasif",
@@ -948,77 +1236,97 @@ export function ProductWizard({
               muted
             />
           </Card>
-
-          {state.error && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {state.error}
-            </div>
-          )}
         </div>
       ),
     },
   ];
 
   return (
-    <form action={formAction} className="grid gap-6">
+    <form
+      ref={formRef}
+      onSubmit={onSubmit}
+      noValidate
+      className="grid gap-6"
+    >
       {mode === "wizard" && (
         <Card>
-          <div className="-mx-1 flex [scrollbar-width:none] items-center gap-2 overflow-x-auto px-1 [&::-webkit-scrollbar]:hidden">
-            {steps.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setStep(s.id)}
-                className={`flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-xs transition-colors ${
-                  step === s.id
-                    ? "bg-[var(--admin-primary)] text-white"
-                    : step > s.id
-                      ? "bg-neutral-100 text-neutral-700"
-                      : "border border-[var(--admin-border)] text-neutral-500"
-                }`}
-              >
-                <span
-                  className="inline-grid h-5 w-5 place-items-center rounded-full text-[10px]"
-                  style={{
-                    background:
-                      step >= s.id ? "rgba(255,255,255,0.15)" : "transparent",
-                    border: step >= s.id ? "none" : "1px solid currentColor",
-                  }}
-                >
-                  {s.id}
-                </span>
-                <span className="whitespace-nowrap">{s.title}</span>
-              </button>
-            ))}
-          </div>
+          <ol className="-mx-1 flex [scrollbar-width:none] items-center gap-2 overflow-x-auto px-1 [&::-webkit-scrollbar]:hidden">
+            {steps.map((s) => {
+              const flagged = flaggedSteps.has(s.id);
+              const current = step === s.id;
+              return (
+                <li key={s.id} className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setStep(s.id)}
+                    aria-current={current ? "step" : undefined}
+                    aria-label={`${s.id}. ${s.title}${flagged ? ": düzeltilecek alan var" : ""}`}
+                    className={`flex min-h-[44px] items-center gap-2 rounded-full px-3 py-2 text-xs transition-colors ${
+                      current
+                        ? "bg-[var(--admin-primary)] text-white"
+                        : flagged
+                          ? "border border-[var(--admin-danger)] text-[var(--admin-danger-ink)]"
+                          : step > s.id
+                            ? "bg-neutral-100 text-neutral-700"
+                            : "border border-[var(--admin-border)] text-[var(--admin-text-soft)]"
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="inline-grid h-5 w-5 place-items-center rounded-full text-[10px]"
+                      style={{
+                        background:
+                          step >= s.id ? "rgba(255,255,255,0.15)" : "transparent",
+                        border: step >= s.id ? "none" : "1px solid currentColor",
+                      }}
+                    >
+                      {flagged ? "!" : s.id}
+                    </span>
+                    <span className="whitespace-nowrap">{s.title}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         </Card>
       )}
 
       {steps.map((s) => {
         const visible = mode === "tabs" || step === s.id;
         return (
-          <Card
-            key={s.id}
-            style={
-              visible ? undefined : ({ display: "none" } as React.CSSProperties)
-            }
-          >
-            {mode === "tabs" && (
-              <h2
-                className="mb-5 text-xl"
-                style={{
-                  fontFamily: "var(--serif), 'Playfair Display', serif",
-                  fontStyle: "italic",
-                  fontWeight: 500,
-                }}
-              >
-                {s.id}. {s.title}
-              </h2>
-            )}
-            {s.body}
-          </Card>
+          <div key={s.id} data-step={s.id} hidden={!visible}>
+            <Card>
+              {mode === "tabs" && (
+                <h2
+                  className="mb-5 text-xl"
+                  style={{
+                    fontFamily: "var(--serif), 'Playfair Display', serif",
+                    fontStyle: "italic",
+                    fontWeight: 500,
+                  }}
+                >
+                  {s.id}. {s.title}
+                  {flaggedSteps.has(s.id) ? (
+                    <span className="ml-3 align-middle text-sm text-[var(--admin-danger-ink)] not-italic">
+                      Düzeltilecek alan var
+                    </span>
+                  ) : null}
+                </h2>
+              )}
+              {s.body}
+            </Card>
+          </div>
         );
       })}
+
+      {state.error ? (
+        <div
+          role="alert"
+          className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+        >
+          {state.error}
+        </div>
+      ) : null}
 
       <Card className="flex flex-wrap items-center justify-between gap-4">
         {mode === "wizard" ? (
@@ -1032,17 +1340,14 @@ export function ProductWizard({
                 ← Geri
               </GhostButton>
               {step < totalSteps && (
-                <PrimaryButton
-                  type="button"
-                  onClick={() => setStep((s) => Math.min(totalSteps, s + 1))}
-                >
+                <PrimaryButton type="button" onClick={goNext}>
                   Sonraki adım →
                 </PrimaryButton>
               )}
             </div>
             <div className="flex gap-2">
-              <Link href="/admin/urunler">
-                <GhostButton type="button">Vazgeç</GhostButton>
+              <Link href="/admin/urunler" className={BUTTON.ghost}>
+                Vazgeç
               </Link>
               {step === totalSteps && (
                 <PrimaryButton type="submit" disabled={pending}>
@@ -1053,17 +1358,12 @@ export function ProductWizard({
           </>
         ) : (
           <>
-            <div
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              {state.error
-                ? state.error
-                : "Tüm sekmeler tek formda kaydedilir."}
-            </div>
+            <p className="text-xs text-[var(--admin-text-mute)]">
+              Bütün bölümler birlikte kaydedilir.
+            </p>
             <div className="flex gap-2">
-              <Link href="/admin/urunler">
-                <GhostButton type="button">Vazgeç</GhostButton>
+              <Link href="/admin/urunler" className={BUTTON.ghost}>
+                Vazgeç
               </Link>
               <PrimaryButton type="submit" disabled={pending}>
                 {pending ? "Kaydediliyor…" : submitLabel}
@@ -1090,13 +1390,13 @@ function SummaryRow({
   return (
     <div className="grid gap-1 border-b border-[var(--admin-border)] py-2 last:border-b-0 sm:grid-cols-[150px_1fr] sm:gap-3">
       <div
-        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+        className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         {k}
       </div>
       <div
-        className={`text-sm ${muted ? "text-neutral-500" : "text-neutral-900"}`}
+        className={`text-sm ${muted ? "text-[var(--admin-text-soft)]" : "text-neutral-900"}`}
         style={mono ? { fontFamily: "var(--mono), monospace" } : undefined}
       >
         {v}

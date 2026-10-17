@@ -20,7 +20,7 @@ export default async function NewProductPage() {
       <PageHeader
         eyebrow="Katalog · Mağaza ürünleri"
         title="Yeni ürün"
-        description="5 adımda yeni bir ürün: temel bilgi → fiyat & stok → varyantlar → görsel & SEO → özet."
+        description="Beş kısa adım; kaydetmeden önce özete bakarsın. Zorunlu olanlar yalnız ad, etiket, açıklama ve fiyat."
       />
       <ProductWizard
         categories={categories}

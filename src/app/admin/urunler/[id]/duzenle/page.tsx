@@ -34,7 +34,7 @@ export default async function EditProductPage({ params }: PageProps) {
       <PageHeader
         eyebrow={`SKU ${product.sku} · son güncelleme ${formatDateTime(product.updatedAt)}`}
         title={product.name}
-        description="Tüm alanlar tek sayfada. Kaydedince /, /admin/urunler ve genel bakış tazelenir."
+        description="Bütün alanlar tek sayfada. Kaydedince mağaza ve panel hemen güncellenir."
       />
       <ProductWizard
         product={product}
