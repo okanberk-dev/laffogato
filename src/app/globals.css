@@ -6581,13 +6581,56 @@ select {
    bare text, the active status tab as dark text on a dark ground. Inside the
    admin root (app/admin/layout.tsx) those properties roll back to the
    layers, so the utilities win again; with no utility, Tailwind's own reset
-   applies, which is the same as the one above. */
+   applies, which is the same as the one above.
+
+   The font as well (admin audit SHE-03, 17 Eki 2026): a <button> took its
+   parent's 16px / 400 / 1.6 instead of its text-sm, font-medium and
+   leading-*, so a button and a link with the same classes differed side by
+   side ("Uygula" at 16px next to "Sıfırla" at 14px). The cursor is NOT
+   rolled back: Tailwind 4's own reset sets none on buttons, so every panel
+   button would lose its pointer. */
 [data-admin-root] :is(a, button) {
   color: revert-layer;
   background: revert-layer;
   border: revert-layer;
   padding: revert-layer;
   text-decoration: revert-layer;
+  font: revert-layer;
+}
+
+/* A disabled control looks it: `button { cursor: pointer }` beat
+   disabled:cursor-not-allowed, so a disabled "Kaydet" and a menu row that
+   only shows its reason (aria-disabled) still looked clickable. */
+[data-admin-root] :is(button:disabled, [aria-disabled="true"]) {
+  cursor: not-allowed;
+}
+
+/* The fields' size classes too (KAR-M01): `font: inherit` near the top and
+   the 16px rule for iOS (Responsive overrides) beat the kit's
+   `text-base sm:text-sm`, so a field drew at 16px on a desktop beside 14px
+   labels and buttons. `min-width: 0` stays as it is. */
+[data-admin-root] :is(input, textarea, select) {
+  font: revert-layer;
+}
+/* Below the kit's `sm` (40rem) a field keeps the 16px floor: iOS Safari
+   zooms into a smaller field when it takes focus. The kit fields say
+   text-base there anyway; this holds the hand-made ones (the sign-in form,
+   the small selects in list rows). */
+@media (width < 40rem) {
+  [data-admin-root]
+    :is(
+      input:not(
+        [type="checkbox"],
+        [type="radio"],
+        [type="range"],
+        [type="color"],
+        [type="file"]
+      ),
+      textarea,
+      select
+    ) {
+    font-size: 16px;
+  }
 }
 
 /* ────────────────────────────────────────────────────────────────
