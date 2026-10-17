@@ -3,9 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { startCampaignSend } from "@/lib/admin/campaign-mail";
+import { setAdminFlash } from "@/lib/admin/flash";
 import {
   CAMPAIGN_MAIL_APP_LINKS_MISSING,
   CAMPAIGN_MAIL_AUDIENCE_MISMATCH,
@@ -164,6 +170,9 @@ export async function createCampaignMailAction(
     return { error: describe(err) };
   }
   revalidatePath(LIST_PATH);
+  await setAdminFlash(
+    "Taslak oluşturuldu. Önizle, kendine test gönder, sonra gönder.",
+  );
   // Straight to the draft's own page: the preview and the test send live there.
   redirect(`${LIST_PATH}/${id}`);
 }
@@ -216,21 +225,38 @@ export async function updateCampaignMailAction(
   };
 }
 
-export async function deleteCampaignMailAction(formData: FormData) {
+/**
+ * "Sil" on a draft, behind a confirm. It answered nothing: a campaign queued
+ * meanwhile (no longer a draft, so not deleted) or a database error looked
+ * exactly like a delete.
+ */
+export async function deleteCampaignMailAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("newsletter");
   const id = String(formData.get("id") ?? "").trim();
-  if (!id) return;
+  if (!id) return actionError("Kampanya seçilmedi.");
   // Only a draft goes; a campaign with a send log is the record of who was
   // mailed what, and stays.
-  const removed = await deleteCampaignEmail(id);
-  if (removed) {
-    await logAudit({
-      action: "delete",
-      entity: "campaign_email",
-      entityId: id,
-    });
+  let removed: boolean;
+  try {
+    removed = await deleteCampaignEmail(id);
+  } catch (err) {
+    return actionError(`Taslak silinemedi - ${describe(err)}`);
   }
   revalidatePath(LIST_PATH);
+  if (!removed) {
+    return actionError(
+      "Taslak silinmedi: bu arada kuyruğa alınmış ya da silinmiş. Sayfayı yenile.",
+    );
+  }
+  await logAudit({
+    action: "delete",
+    entity: "campaign_email",
+    entityId: id,
+  });
+  return actionOk("Taslak silindi.");
 }
 
 const TEST_RECIPIENTS_ONLY = "Test yalnız panel kullanıcılarına gönderilir.";
@@ -298,23 +324,27 @@ export async function sendCampaignMailTestAction(
  * the background (`after()`), and the row on the list page tells the rest.
  * Safe to press twice - the enqueue skips everyone already queued - which is
  * also how a campaign left half-sent by a timeout is resumed by hand.
+ *
+ * Answers an ActionResult for its confirm dialog: the answer is a toast, so
+ * it outlives the list row, which stops offering "Gönder" the moment the
+ * campaign is queued and took its message with it.
  */
 export async function sendCampaignMailAction(
   id: string,
-  _prev: CampaignMailState,
+  _prev: ActionResult | null,
   _formData: FormData,
-): Promise<CampaignMailState> {
+): Promise<ActionResult> {
   await requireRole("newsletter");
   let c;
   let total: number;
   try {
     c = await getCampaignEmail(id);
-    if (!c) return { error: "Kampanya bulunamadı." };
+    if (!c) return actionError("Kampanya bulunamadı.");
     ({ total } = await startCampaignSend(id));
   } catch (err) {
     // A missing field ("doldurulmamış alan - [KAMPANYA_METIN]"), a campaign
     // that is already sent, or the database: the message names which.
-    return { error: `Gönderim başlatılamadı - ${describe(err)}` };
+    return actionError(`Gönderim başlatılamadı - ${describe(err)}`);
   }
   await logAudit({
     action: "send",
@@ -332,12 +362,12 @@ export async function sendCampaignMailAction(
   if (total === 0) {
     // What the runner does with an empty send log: no batch, no failure -
     // the row closes as 'sent' with zero recipients (runCampaignEmail).
-    return {
-      message:
-        "Kitle boş: bu kampanya için gönderilecek adres yok; kampanya 0 alıcıyla “Gönderildi” olarak kapanır.",
-    };
+    return actionOk(
+      "Kitle boş: bu kampanya için gönderilecek adres yok; kampanya 0 alıcıyla “Gönderildi” olarak kapanır.",
+      "warning",
+    );
   }
-  return {
-    message: `${total} adres kuyruğa alındı; gönderim arka planda sürüyor. Sayacı görmek için sayfayı yenile.`,
-  };
+  return actionOk(
+    `${total} adres kuyruğa alındı; gönderim arka planda sürüyor. Sayacı görmek için sayfayı yenile.`,
+  );
 }

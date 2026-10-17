@@ -28,7 +28,7 @@ const h = vi.hoisted(() => ({
     updatePress: vi.fn(),
   },
   newsletter: {
-    deactivateNewsletterSubscriber: vi.fn(async () => {}),
+    deactivateNewsletterSubscriber: vi.fn(async () => true),
     deleteNewsletterSubscriber: vi.fn(),
   },
 }));

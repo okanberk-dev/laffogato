@@ -7,7 +7,7 @@ import {
   formatTRY,
 } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
-import { listCustomers } from "@/lib/admin/store";
+import { isClosedAccountEmail, listCustomers } from "@/lib/admin/store";
 import { listAllCustomers } from "@/lib/customer/store";
 
 export const metadata = { title: "Admin · Müşteriler" };
@@ -56,10 +56,14 @@ export default async function CustomersPage({ searchParams }: PageProps) {
   const sort: SortKey = (sp.sort ?? "recent") as SortKey;
   const filter: FilterKey = (sp.filter ?? "all") as FilterKey;
 
-  const [members, summaries] = await Promise.all([
+  const [allMembers, summaries] = await Promise.all([
     listAllCustomers(),
     listCustomers(),
   ]);
+  // A closed account is not a customer to call: its row is anonymised and
+  // its orders' invoice name and phone are kept only for fiscal retention
+  // (listCustomers leaves those orders out too).
+  const members = allMembers.filter((m) => !isClosedAccountEmail(m.email));
 
   // Merge member accounts with order-derived CRM summaries, keyed by e-mail.
   const byEmail = new Map<string, CustomerRow>();

@@ -374,6 +374,14 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                   );
                 })}
               </ul>
+              {/* The date the campaign e-mails need besides the switch; the
+                  panel can only clear it, never set it. */}
+              <p className="mt-3 text-xs text-[var(--admin-text-soft)]">
+                Ticari ileti izni:{" "}
+                {member.marketingConsentAt
+                  ? formatDateTime(member.marketingConsentAt)
+                  : "tarih kaydı yok"}
+              </p>
             </Card>
           </aside>
         </div>

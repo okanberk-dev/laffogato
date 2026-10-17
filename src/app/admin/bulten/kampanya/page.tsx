@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { DeleteRowForm } from "@/components/admin/delete-row-form";
 import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
+import { ConfirmButton } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { campaignAudienceCount } from "@/lib/admin/campaign-mail";
 import {
@@ -131,10 +131,13 @@ export default async function CampaignMailListPage() {
                       />
                     )}
                     {c.status === "draft" && (
-                      <DeleteRowForm
+                      <ConfirmButton
                         action={deleteCampaignMailAction}
-                        id={c.id}
-                        confirmMessage="Bu taslağı silmek istediğine emin misin?"
+                        hidden={{ id: c.id }}
+                        label="Sil"
+                        ariaLabel={`Sil: ${c.subject || "başlıksız taslak"}`}
+                        title="Taslak silinsin mi?"
+                        description="Taslak kalıcı olarak silinir. Kuyruğa alınmış ya da gönderilmiş bir kampanya silinmez."
                       />
                     )}
                   </div>

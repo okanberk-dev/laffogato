@@ -325,18 +325,25 @@ export async function listNewsletterSubscribers(): Promise<
  */
 export async function deactivateNewsletterSubscriber(
   id: string,
-): Promise<void> {
+): Promise<boolean> {
   const sb = getDb();
-  const { error } = await sb
+  const { data, error } = await sb
     .from(TABLES.newsletterSubscribers)
     .update({
       isActive: false,
       unsubscribedAt: new Date().toISOString(),
       confirmToken: "",
     })
-    .eq("id", id);
+    .eq("id", id)
+    // An inactive row is left alone: matching it moved the withdrawal date
+    // of someone who had unsubscribed by the link to the panel's later click.
+    .eq("isActive", true)
+    .select("id");
   if (error)
     throw new Error(`deactivateNewsletterSubscriber: ${error.message}`);
+  // Whether a row changed: a subscriber deleted, or already off, used to be
+  // answered "Abone pasif" all the same.
+  return ((data as { id: string }[] | null) ?? []).length > 0;
 }
 
 export async function deleteNewsletterSubscriber(id: string): Promise<boolean> {

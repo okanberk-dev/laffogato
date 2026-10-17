@@ -226,6 +226,79 @@ maybe("consent ledger against a real Postgres", () => {
     ]);
   });
 
+  it("admin edit: withdraws with the date, never grants", async () => {
+    const { adminUpdateCustomer } = await import("@/lib/customer/store");
+    const email = `${PREFIX}panel-geri@laffogato.net`;
+    await insertMember(email, { marketing: true, newsletter: false });
+    const edit = (marketing: boolean, newsletter: boolean) =>
+      adminUpdateCustomer(email, {
+        name: "Üye",
+        phone: "",
+        birthday: "",
+        notificationPrefs: { orderUpdates: true, marketing, newsletter },
+      });
+    const row = async () =>
+      (
+        await pool!.query(
+          `select "notificationPrefs", "marketingConsentAt"
+             from public.customers where email = $1`,
+          [email],
+        )
+      ).rows[0];
+
+    expect((await edit(false, false)).ok).toBe(true);
+    // The opt-out takes the date with it, as the member's own does: panel
+    // OFF then ON used to revive the old date and the e-mail audiences.
+    expect(await row()).toMatchObject({
+      notificationPrefs: { marketing: false },
+      marketingConsentAt: "",
+    });
+    expect(await edit(true, true)).toEqual({
+      ok: false,
+      error: "consent_grant",
+      purposes: ["marketing", "newsletter"],
+    });
+    expect((await row()).notificationPrefs).toMatchObject({
+      marketing: false,
+      newsletter: false,
+    });
+    // One withdrawal, no admin grant.
+    expect(
+      (await ledger(email)).map((r) => [r.purpose, r.granted, r.source]),
+    ).toEqual([["marketing", false, "admin"]]);
+  });
+
+  it("admin edit: a switch drawn off keeps the member's opt-in", async () => {
+    // The form drew marketing off (disabled, not posted); the member opted
+    // in from the app before the operator saved a phone fix.
+    const { adminUpdateCustomer } = await import("@/lib/customer/store");
+    const email = `${PREFIX}panel-eski@laffogato.net`;
+    await insertMember(email, { marketing: true, newsletter: false });
+    const res = await adminUpdateCustomer(email, {
+      name: "Üye",
+      phone: "0532 000 00 00",
+      birthday: "",
+      notificationPrefs: {
+        orderUpdates: true,
+        marketing: false,
+        newsletter: false,
+      },
+      shownPrefs: { marketing: false, newsletter: false },
+    });
+    expect(res.ok).toBe(true);
+    const { rows } = await pool!.query(
+      `select phone, "notificationPrefs", "marketingConsentAt"
+         from public.customers where email = $1`,
+      [email],
+    );
+    expect(rows[0]).toMatchObject({
+      phone: "0532 000 00 00",
+      notificationPrefs: { marketing: true },
+      marketingConsentAt: "2026-01-01T00:00:00.000Z",
+    });
+    expect(await ledger(email)).toEqual([]);
+  });
+
   it("member unsubscribe link: both purposes that were on are withdrawn", async () => {
     const { unsubscribeCustomerByToken } =
       await import("@/lib/customer/unsubscribe");

@@ -3,7 +3,12 @@ import { z } from "zod";
 /**
  * Admin edit of a member account. E-mail (the unique key) and the password are
  * intentionally NOT editable here. Checkboxes arrive as "on" / absent.
+ * `shownMarketing` / `shownNewsletter` ("on" / "off") say how the form drew
+ * the commercial switches: one drawn off is disabled and never posted.
  */
+const shown = (v: string | undefined) =>
+  v === "on" ? true : v === "off" ? false : undefined;
+
 export const customerEditSchema = z
   .object({
     name: z
@@ -21,6 +26,8 @@ export const customerEditSchema = z
     notifyOrderUpdates: z.string().optional(),
     notifyMarketing: z.string().optional(),
     notifyNewsletter: z.string().optional(),
+    shownMarketing: z.string().optional(),
+    shownNewsletter: z.string().optional(),
   })
   .transform((v) => ({
     name: v.name,
@@ -30,5 +37,9 @@ export const customerEditSchema = z
       orderUpdates: v.notifyOrderUpdates === "on",
       marketing: v.notifyMarketing === "on",
       newsletter: v.notifyNewsletter === "on",
+    },
+    shownPrefs: {
+      marketing: shown(v.shownMarketing),
+      newsletter: shown(v.shownNewsletter),
     },
   }));

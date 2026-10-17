@@ -27,14 +27,16 @@ export async function deactivateNewsletterAction(
   await requireRole("newsletter");
   const id = String(formData.get("id") ?? "");
   if (!id) return actionError("Abone seçilmedi.");
-  await deactivateNewsletterSubscriber(id);
+  const changed = await deactivateNewsletterSubscriber(id);
+  revalidatePath("/admin/bulten");
+  if (!changed)
+    return actionError("Abone zaten pasif ya da silinmiş; sayfayı yenile.");
   await logAudit({
     action: "update",
     entity: "newsletter",
     entityId: id,
     payload: { isActive: false },
   });
-  revalidatePath("/admin/bulten");
   return actionOk("Abone pasif, artık bülten gitmez.");
 }
 

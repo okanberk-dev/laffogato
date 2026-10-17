@@ -2093,6 +2093,17 @@ export async function listCustomers(): Promise<CustomerSummary[]> {
 }
 
 /**
+ * The placeholder a closed account's rows point at (`anonymizedEmail` in
+ * lib/mobile/me.ts: `deleted-<id>@anon.local`). Its orders keep the invoice
+ * name and phone for fiscal retention, so a roll-up keyed on it listed the
+ * closed member under their real name, found by a name search. Müşteriler
+ * leaves these out (decision D13).
+ */
+export function isClosedAccountEmail(email: string): boolean {
+  return email.trim().toLowerCase().endsWith("@anon.local");
+}
+
+/**
  * The pure half of {@link listCustomers}, exported for tests.
  *
  * Order count, lifetime value and refunds follow the reports' rule
@@ -2111,6 +2122,7 @@ export function summarizeCustomers(
   for (const o of orders) {
     const email = o.customerEmail?.trim().toLowerCase();
     if (!email || email === "guest@laffogato.local") continue;
+    if (isClosedAccountEmail(email)) continue;
     const counts = isReportableOrder(o);
     const valueHere = counts ? o.totalMinor : 0;
     const refundedHere = counts
@@ -6407,22 +6419,30 @@ export async function updatePromo(
     "updatePromo.conflict",
   );
   if (conflict) return { ok: false, error: "Başka bir kod aynı koda sahip." };
-  const next: AdminPromo = {
-    ...existing,
-    code,
-    kind: input.kind,
-    value: input.value,
-    minSubtotalMinor: input.minSubtotalMinor,
-    usageLimit: input.usageLimit,
-    expiresAt: input.expiresAt,
-    isActive: input.isActive,
-    updatedAt: new Date().toISOString(),
-  };
-  check(
-    await sb.from(TABLES.promos).update(next).eq("id", id),
+  // The form's fields only. The whole row read above used to go back,
+  // `usageCount` included: a redemption (redeem_promo) or a cancellation
+  // (release_promo_usage) that landed between that read and this write was
+  // overwritten, and a limited code could be used past its limit.
+  const updated = rows<AdminPromo>(
+    await sb
+      .from(TABLES.promos)
+      .update({
+        code,
+        kind: input.kind,
+        value: input.value,
+        minSubtotalMinor: input.minSubtotalMinor,
+        usageLimit: input.usageLimit,
+        expiresAt: input.expiresAt,
+        isActive: input.isActive,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select("*"),
     "updatePromo.update",
   );
-  return { ok: true, promo: next };
+  const promo = updated[0];
+  if (!promo) return { ok: false, error: "Kod bulunamadı." };
+  return { ok: true, promo };
 }
 
 /** The list's Aktif / Pasif switch; null when the code is gone. */

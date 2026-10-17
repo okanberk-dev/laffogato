@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import {
   grantCustomerCouponAction,
@@ -9,6 +9,12 @@ import {
 } from "@/app/admin/musteriler/actions";
 import { couponStatus, type CustomerCoupon } from "@/lib/customer/coupon-utils";
 
+import {
+  PANEL_ACTION_FAILED,
+  useNoResetSubmit,
+  withPanelCatch,
+} from "./action-form";
+import { FormError, FormSuccess } from "./form-feedback";
 import {
   Card,
   Field,
@@ -35,8 +41,19 @@ export function CustomerCoupons({
   email: string;
   coupons: CustomerCoupon[];
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const boundGrant = grantCustomerCouponAction.bind(null, email);
-  const [state, action, pending] = useActionState(boundGrant, initial);
+  // Posted by hand: a refused grant used to reset the form, putting "Tür"
+  // back on % so a retyped "15" became 15% instead of 15 TL. A grant that
+  // went through empties it for the next one.
+  const [state, action, pending] = useActionState(
+    withPanelCatch(boundGrant, () => ({ error: PANEL_ACTION_FAILED })),
+    initial,
+  );
+  const onSubmit = useNoResetSubmit(action, pending);
+  useEffect(() => {
+    if (state.message && !state.error) formRef.current?.reset();
+  }, [state]);
   // Read once when the card mounts; a render-time Date.now() is impure and
   // would let two renders disagree about which coupon has expired.
   const [now] = useState(() => Date.now());
@@ -110,7 +127,8 @@ export function CustomerCoupons({
       )}
 
       <form
-        action={action}
+        ref={formRef}
+        onSubmit={onSubmit}
         className="grid gap-3 border-t border-[var(--admin-border)] pt-4"
       >
         <h3
@@ -150,10 +168,8 @@ export function CustomerCoupons({
         <Field label="Başlık (opsiyonel)">
           <TextInput name="title" placeholder="Hediye kuponu" maxLength={80} />
         </Field>
-        {state.error && <p className="text-xs text-red-600">{state.error}</p>}
-        {state.message && (
-          <p className="text-xs text-green-700">{state.message}</p>
-        )}
+        <FormError message={state.error} />
+        <FormSuccess message={state.error ? undefined : state.message} />
         <PrimaryButton type="submit" disabled={pending}>
           {pending ? "Tanımlanıyor…" : "Kupon tanımla"}
         </PrimaryButton>

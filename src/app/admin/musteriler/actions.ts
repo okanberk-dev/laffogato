@@ -9,7 +9,11 @@ import {
   type ActionResult,
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
-import { parseMoneyInput } from "@/lib/utils/format";
+import {
+  CATALOG_MONEY_MAX_MINOR,
+  MONEY_TOO_LARGE_ERROR,
+  parseMoneyInput,
+} from "@/lib/utils/format";
 import { requireRole } from "@/lib/admin/auth";
 import { customerEditSchema } from "@/lib/admin/customer-schema";
 import { setAdminFlash } from "@/lib/admin/flash";
@@ -47,6 +51,8 @@ function revalidateCustomer(email: string) {
   revalidatePath("/admin");
 }
 
+const CONSENT_GRANT_REFUSED = "Bu izni yalnız üye açabilir.";
+
 export interface CustomerActionState {
   error?: string;
   fieldErrors?: Record<string, string>;
@@ -68,7 +74,22 @@ export async function updateCustomerAction(
     return { error: "Formdaki uyarıları gider.", fieldErrors: fe };
   }
   const updated = await adminUpdateCustomer(email, parsed.data);
-  if (!updated) return { error: "Üye bulunamadı." };
+  if (!updated.ok && updated.error === "consent_grant") {
+    // Only the member can give commercial consent (6563); the form offers
+    // the switches off only, so this is a stale form or a forged post.
+    const fieldErrors: Record<string, string> = {};
+    for (const purpose of updated.purposes) {
+      fieldErrors[
+        purpose === "marketing" ? "notifyMarketing" : "notifyNewsletter"
+      ] = CONSENT_GRANT_REFUSED;
+    }
+    return {
+      error:
+        "Kampanya ve bülten izni panelden açılamaz, yalnız üye kendisi açabilir. Sayfayı yenile; üye bu arada izni kapatmış olabilir.",
+      fieldErrors,
+    };
+  }
+  if (!updated.ok) return { error: "Üye bulunamadı." };
   await logAudit({
     action: "update",
     entity: "customer",
@@ -76,6 +97,7 @@ export async function updateCustomerAction(
     payload: { name: parsed.data.name },
   });
   revalidateCustomer(email);
+  await setAdminFlash("Üye bilgileri kaydedildi.");
   redirect(`/admin/musteriler/${encodeURIComponent(email)}`);
 }
 
@@ -175,6 +197,11 @@ export async function grantCustomerCouponAction(
       error: "Geçerli bir alt sepet tutarı gir (ör. 250 ya da 1.250,00).",
     };
   }
+  // The column is an `integer`: "25.000.000" died on Postgres 22003 and the
+  // member page went with it.
+  if (minMinor > CATALOG_MONEY_MAX_MINOR) {
+    return { error: `Min. sepet: ${MONEY_TOO_LARGE_ERROR}` };
+  }
   const rawMin = minMinor / 100;
   const title = String(formData.get("title") ?? "")
     .trim()
@@ -211,17 +238,35 @@ export async function grantCustomerCouponAction(
     // alive until 02:59 on 1 September Istanbul time. Türkiye has been on a
     // fixed UTC+3 since 2016, so the offset is a constant, not a lookup.
     expiresAt = `${m[1]}-${m[2]}-${m[3]}T20:59:59.000Z`;
+    // A day already over gave a coupon that was born expired and answered
+    // "Kupon tanımlandı" all the same.
+    if (!(Date.parse(expiresAt) > Date.now())) {
+      return {
+        error:
+          "Son kullanma tarihi geçmişte kaldı. Bugün ya da ileri bir gün seç, süresiz için boş bırak.",
+      };
+    }
   }
 
-  const coupon = await grantCoupon({
-    email,
-    kind,
-    value,
-    minSubtotalMinor,
-    title: title || (kind === "pct" ? `%${value} indirim` : "İndirim kuponu"),
-    source: "manual",
-    expiresAt,
-  });
+  let coupon: { code: string };
+  try {
+    coupon = await grantCoupon({
+      email,
+      kind,
+      value,
+      minSubtotalMinor,
+      title: title || (kind === "pct" ? `%${value} indirim` : "İndirim kuponu"),
+      source: "manual",
+      expiresAt,
+    });
+  } catch (err) {
+    // The store error only; no address in the log (rule 9).
+    console.error(
+      "[admin] coupon grant failed:",
+      err instanceof Error ? err.message : "unknown error",
+    );
+    return { error: "Kupon tanımlanamadı. Biraz sonra yeniden dene." };
+  }
   await logAudit({
     action: "create",
     entity: "coupon",

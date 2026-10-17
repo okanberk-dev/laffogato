@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { getCustomerByEmail } from "@/lib/customer/store";
 import {
   addCounterStamp,
   listStamps,
@@ -24,22 +25,32 @@ export interface CounterStampState {
 }
 
 /**
- * "Damga ekle (kasa)": the member paid at the counter and showed their QR;
- * the shift staff presses this instead of the app earning the stamp itself.
- * Gated on the orders section - the same people who take an order at the
- * till - rather than customers, which is a management view.
+ * "Damga ekle (kasa)" on the member page: the member paid at the counter and
+ * the staff presses this instead of the app earning the stamp itself.
+ *
+ * Gated on `customers`, the gate of the only page that offers it. It was
+ * `orders`, so shift staff could post it with any address the client bound,
+ * for an account that did not exist or was closed, and get ledger rows under
+ * it. The till (/admin/kasa) is the shift's way to stamp, with its own gate.
  */
 export async function addCounterStampAction(
   email: string,
   _prev: CounterStampState,
   formData: FormData,
 ): Promise<CounterStampState> {
-  const session = await requireRole("orders");
+  const session = await requireRole("customers");
   const owner = email.trim().toLowerCase();
   if (!owner) return { error: "E-posta eksik." };
   const note = String(formData.get("note") ?? "")
     .trim()
     .slice(0, 120);
+
+  // The same check the till makes for a typed address (kasa/actions.ts).
+  const member = await getCustomerByEmail(owner);
+  if (!member) return { error: "Bu adrese ait üye hesabı yok." };
+  if (!member.isActive) {
+    return { error: "Bu üye hesabı kapalı; damga işlenmez." };
+  }
 
   // A counter stamp carries no orderId, so the partial unique index that keeps
   // an app order from earning twice does not apply to it: a double click or a
@@ -60,12 +71,22 @@ export async function addCounterStampAction(
   }
 
   const stamp = await addCounterStamp(owner, session.email, note);
-  await logAudit({
-    action: "update",
-    entity: "customer",
-    entityId: owner,
-    payload: { stamp: stamp.id, source: "counter", note },
-  });
+  // The stamp is in: a failed audit row must not turn it into the error
+  // page (the operator would press again and stamp twice). Logged without
+  // the address (rule 9).
+  try {
+    await logAudit({
+      action: "update",
+      entity: "customer",
+      entityId: owner,
+      payload: { stamp: stamp.id, source: "counter", note },
+    });
+  } catch (err) {
+    console.error(
+      `[audit] row not written customer stamp ${stamp.id}:`,
+      err instanceof Error ? err.message : "unknown error",
+    );
+  }
   revalidatePath(`/admin/musteriler/${encodeURIComponent(owner)}`);
   revalidatePath("/admin/kasa");
   return { message: "Damga eklendi." };

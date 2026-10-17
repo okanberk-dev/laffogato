@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 
 const grantCoupon = vi.fn();
+const adminUpdateCustomer = vi.fn();
 const revokeCustomerCoupon = vi.fn();
 const addCounterStamp = vi.fn();
 const listStamps = vi.fn();
@@ -40,7 +41,7 @@ vi.mock("@/lib/customer/coupons", () => ({
   revokeCustomerCoupon,
 }));
 vi.mock("@/lib/customer/store", () => ({
-  adminUpdateCustomer: vi.fn(),
+  adminUpdateCustomer,
   createVerificationToken: vi.fn(),
   getCustomerByEmail,
   setCustomerActive,
@@ -59,9 +60,11 @@ const {
   grantCustomerCouponAction,
   revokeCustomerCouponAction,
   setCustomerActiveAction,
+  updateCustomerAction,
 } = await import("@/app/admin/musteriler/actions");
 const { addCounterStampAction, reverseCounterStampAction } =
   await import("@/app/admin/musteriler/[email]/actions");
+const { requireRole } = await import("@/lib/admin/auth");
 
 function form(fields: Record<string, string>): FormData {
   const fd = new FormData();
@@ -98,8 +101,67 @@ const MEMBER = {
   id: "cus-0042",
   email: "uye@ornek.com",
   name: "Ayşe Yılmaz",
+  isActive: true,
   notificationPrefs: { orderUpdates: true, marketing: true, newsletter: true },
 };
+
+describe("updateCustomerAction", () => {
+  it("leaves a toast before it goes back to the member page", async () => {
+    adminUpdateCustomer.mockResolvedValue({ ok: true, customer: MEMBER });
+    await expect(
+      updateCustomerAction(
+        "uye@ornek.com",
+        {},
+        form({ name: "Ayşe Yılmaz Demir", notifyMarketing: "on" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(setAdminFlash).toHaveBeenCalledWith("Üye bilgileri kaydedildi.");
+    expect(redirect).toHaveBeenCalledWith("/admin/musteriler/uye%40ornek.com");
+  });
+
+  it("passes on how the form drew the commercial switches", async () => {
+    adminUpdateCustomer.mockResolvedValue({ ok: true, customer: MEMBER });
+    await expect(
+      updateCustomerAction(
+        "uye@ornek.com",
+        {},
+        form({
+          name: "Ayşe Yılmaz",
+          shownMarketing: "off",
+          shownNewsletter: "on",
+          notifyNewsletter: "on",
+        }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(adminUpdateCustomer).toHaveBeenCalledWith(
+      "uye@ornek.com",
+      expect.objectContaining({
+        shownPrefs: { marketing: false, newsletter: true },
+      }),
+    );
+  });
+});
+
+describe("updateCustomerAction and commercial consent", () => {
+  it("refuses a switch-on under the field, and redirects nowhere", async () => {
+    adminUpdateCustomer.mockResolvedValue({
+      ok: false,
+      error: "consent_grant",
+      purposes: ["marketing"],
+    });
+    const state = await updateCustomerAction(
+      "uye@ornek.com",
+      {},
+      form({ name: "Ayşe Yılmaz", notifyMarketing: "on" }),
+    );
+    expect(state.error).toMatch(/yalnız üye kendisi açabilir/);
+    expect(state.fieldErrors).toEqual({
+      notifyMarketing: "Bu izni yalnız üye açabilir.",
+    });
+    expect(logAudit).not.toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+});
 
 describe("grantCustomerCouponAction", () => {
   it("expires at the end of the ISTANBUL day, not the server's", async () => {
@@ -111,12 +173,65 @@ describe("grantCustomerCouponAction", () => {
       form({
         kind: "fixed",
         value: "100",
-        expiresAt: "2026-08-31",
+        expiresAt: "2036-08-31",
       }),
     );
     expect(grantCoupon).toHaveBeenCalledWith(
-      expect.objectContaining({ expiresAt: "2026-08-31T20:59:59.000Z" }),
+      expect.objectContaining({ expiresAt: "2036-08-31T20:59:59.000Z" }),
     );
+  });
+
+  it("refuses a day already over, and still takes today", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // 17 Eki 2026 23:30 in Tuzla (20:30 UTC): today is not over yet.
+    vi.setSystemTime(new Date("2026-10-17T20:30:00.000Z"));
+    try {
+      const past = await grantCustomerCouponAction(
+        "uye@ornek.com",
+        {},
+        form({ kind: "pct", value: "10", expiresAt: "2026-10-16" }),
+      );
+      expect(past.error).toMatch(/geçmişte kaldı/);
+      expect(grantCoupon).not.toHaveBeenCalled();
+      const today = await grantCustomerCouponAction(
+        "uye@ornek.com",
+        {},
+        form({ kind: "pct", value: "10", expiresAt: "2026-10-17" }),
+      );
+      expect(today.message).toBeTruthy();
+      expect(grantCoupon).toHaveBeenCalledWith(
+        expect.objectContaining({ expiresAt: "2026-10-17T20:59:59.000Z" }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("refuses a minimum basket the column cannot hold", async () => {
+    // 2.500.000.000 kuruş: Postgres 22003, and the member page went with it.
+    const state = await grantCustomerCouponAction(
+      "uye@ornek.com",
+      {},
+      form({ kind: "pct", value: "10", minSubtotal: "25.000.000" }),
+    );
+    expect(state.error).toBe(
+      "Min. sepet: Tutar en fazla 1.000.000 TL olabilir.",
+    );
+    expect(grantCoupon).not.toHaveBeenCalled();
+  });
+
+  it("answers a store failure instead of throwing to the error page", async () => {
+    grantCoupon.mockRejectedValue(new Error("grantCoupon: connection lost"));
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const state = await grantCustomerCouponAction(
+      "uye@ornek.com",
+      {},
+      form({ kind: "pct", value: "10" }),
+    );
+    expect(state.error).toBe("Kupon tanımlanamadı. Biraz sonra yeniden dene.");
+    expect(logAudit).not.toHaveBeenCalled();
+    expect(JSON.stringify(errors.mock.calls)).not.toContain("uye@ornek.com");
+    errors.mockRestore();
   });
 
   it("refuses a fat-fingered fixed coupon", async () => {
@@ -149,6 +264,45 @@ describe("grantCustomerCouponAction", () => {
 });
 
 describe("addCounterStampAction", () => {
+  it("opens the customers gate, the gate of the page that offers it", async () => {
+    vi.mocked(requireRole).mockClear();
+    await addCounterStampAction("uye@ornek.com", {}, form({}));
+    // It was `orders`: shift staff could post any address the client bound.
+    expect(vi.mocked(requireRole)).toHaveBeenCalledWith("customers");
+    expect(vi.mocked(requireRole)).not.toHaveBeenCalledWith("orders");
+  });
+
+  it("refuses an address with no member account, writing nothing", async () => {
+    getCustomerByEmail.mockResolvedValue(null);
+    const state = await addCounterStampAction(
+      "uye@gmial.com",
+      {},
+      form({ force: "on" }),
+    );
+    expect(state.error).toBe("Bu adrese ait üye hesabı yok.");
+    expect(addCounterStamp).not.toHaveBeenCalled();
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("refuses a closed account", async () => {
+    getCustomerByEmail.mockResolvedValue({ ...MEMBER, isActive: false });
+    const state = await addCounterStampAction("uye@ornek.com", {}, form({}));
+    expect(state.error).toBe("Bu üye hesabı kapalı; damga işlenmez.");
+    expect(addCounterStamp).not.toHaveBeenCalled();
+  });
+
+  it("keeps the stamp's answer when the audit row fails after it", async () => {
+    logAudit.mockRejectedValueOnce(new Error("logAudit: db down"));
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const state = await addCounterStampAction("uye@ornek.com", {}, form({}));
+    // The stamp is in; the error page would have made the staff press again.
+    expect(state).toEqual({ message: "Damga eklendi." });
+    expect(errors).toHaveBeenCalled();
+    expect(JSON.stringify(errors.mock.calls)).toContain("stamp-000001");
+    expect(JSON.stringify(errors.mock.calls)).not.toContain("uye@ornek.com");
+    errors.mockRestore();
+  });
+
   it("refuses a second counter stamp inside the double-submit window", async () => {
     listStamps.mockResolvedValue([
       {

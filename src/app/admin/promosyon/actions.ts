@@ -11,7 +11,10 @@ import {
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { setAdminFlash } from "@/lib/admin/flash";
-import { promoFormSchema } from "@/lib/admin/promo-schema";
+import {
+  buildPromoFormSchema,
+  promoFormSchema,
+} from "@/lib/admin/promo-schema";
 import {
   createPromo,
   deletePromo,
@@ -71,7 +74,13 @@ export async function updatePromoAction(
   formData: FormData,
 ): Promise<PromoActionState> {
   await requireRole("promos");
-  const parsed = promoFormSchema.safeParse(readForm(formData));
+  const existing = await getPromo(id);
+  if (!existing) return { error: "Kod bulunamadı; sayfayı yenile." };
+  // The code's own expiry may come back untouched even when it has passed:
+  // an expired code stays expired through an edit of its limit or text.
+  const parsed = buildPromoFormSchema(existing.expiresAt).safeParse(
+    readForm(formData),
+  );
   if (!parsed.success) {
     const fe: Record<string, string> = {};
     for (const i of parsed.error.issues) {
