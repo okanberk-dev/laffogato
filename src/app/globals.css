@@ -2864,6 +2864,52 @@ summary:focus-visible,
     bottom: -8%;
   }
 }
+/* A page's own drawing (`<PageHero art>`, 17 Eki 2026) stands in the light's
+   corner, where the watermark was: the two would only crowd each other. On a
+   phone it moves above the kicker, smaller. */
+.page-hero-frame.has-art {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: clamp(20px, 4vw, 56px);
+}
+.page-hero-frame.has-art .page-hero-watermark {
+  display: none;
+}
+.page-hero-art {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+.page-hero-art .illo {
+  display: block;
+  width: clamp(150px, 17vw, 220px);
+  height: auto;
+}
+/* A raster picture (the karaoke room) is framed like a window, not cut out;
+   wherever it is used (the page hero, "Görüşmek üzere", /rezervasyon). */
+.illo-framed {
+  border-radius: 26px;
+  box-shadow:
+    0 0 0 1px rgba(33, 28, 24, 0.08),
+    0 20px 40px -22px rgba(59, 42, 30, 0.45);
+}
+@media (max-width: 760px) {
+  .page-hero-frame.has-art {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 18px;
+  }
+  .page-hero-art {
+    order: -1;
+    justify-items: start;
+  }
+  .page-hero-art .illo {
+    width: 116px;
+  }
+  .page-hero-art .illo-framed {
+    border-radius: 20px;
+  }
+}
 
 /* Promo banners ─────────────────────────────────────────────────
    A green board, the app's gradient.brand (#1D6D56 → #0C3B2D, 135°), with a
@@ -3047,22 +3093,14 @@ summary:focus-visible,
   height: 100%;
   object-fit: cover;
 }
+/* No photo: the kind's drawing on the kind's light (campaigns-page.tsx sets
+   the scene inline), contained so the drawing is never cropped. */
 .campaign-card-photo.empty {
-  display: grid;
-  place-items: center;
-  background:
-    radial-gradient(
-      70% 90% at 30% 20%,
-      rgba(114, 203, 172, 0.35) 0%,
-      rgba(114, 203, 172, 0) 60%
-    ),
-    linear-gradient(135deg, #1d6d56 0%, #0c3b2d 100%);
-  color: #fbf6f1;
+  padding: 4% 6%;
+  background: var(--bg-warm);
 }
-.campaign-card-photo.empty .brand-mark {
-  width: 72px;
-  height: 60px;
-  opacity: 0.9;
+.campaign-card-photo.empty img {
+  object-fit: contain;
 }
 .campaign-card-body {
   display: grid;
@@ -3102,8 +3140,21 @@ summary:focus-visible,
   color: var(--green);
 }
 .campaign-empty {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 12px 0 8px;
+  text-align: center;
+}
+.campaign-empty p {
   margin: 0;
+  max-width: 46ch;
   color: var(--ink-soft);
+}
+.campaign-empty-art {
+  display: block;
+  width: 160px;
+  height: auto;
 }
 
 /* Section rhythm ────────────────────────────────────────────────
