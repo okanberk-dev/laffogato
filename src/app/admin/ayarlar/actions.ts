@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/admin/auth";
+import { fieldErrorsFromIssues } from "@/lib/admin/action-result";
+import { listEnvAdminContacts, requireRole } from "@/lib/admin/auth";
+import { DAY_LABELS } from "@/lib/admin/days";
 import {
   DAYS_OF_WEEK,
   getSettings,
@@ -12,12 +14,16 @@ import {
   type WeeklyHours,
 } from "@/lib/admin/store";
 import { ADMIN_ROLES } from "@/lib/admin/roles";
+import { listAdminUsers } from "@/lib/admin/users";
 import { sendTestEmail } from "@/lib/email/send";
 import {
   MAX_ORDER_NOTIFY_EMAILS,
+  normalizeNotifyRoles,
   parseNotifyEmails,
+  resolveStaffRecipients,
 } from "@/lib/email/staff-order-notice-core";
-import { forgetEmailHealth } from "@/lib/email/health";
+import { forgetEmailHealth, senderDomainStatus } from "@/lib/email/health";
+import { MONEY_TOO_LARGE_ERROR } from "@/lib/utils/format";
 import {
   parseTaxRateInput,
   TAX_RATE_INPUT_ERROR,
@@ -26,8 +32,18 @@ import {
   type TaxRates,
 } from "@/lib/utils/kdv";
 
-import { ok, parseMoneyMinor, revalidateAll } from "./action-helpers";
-import type { SettingsState } from "./settings-core";
+import {
+  askToConfirm,
+  changedKeys,
+  EMAIL_RE,
+  NO_CHANGE,
+  ok,
+  readMoney,
+  readWholeNumber,
+  refuse,
+  revalidateAll,
+} from "./action-helpers";
+import { GENERAL_LIMITS, type SettingsState } from "./settings-core";
 
 /**
  * "HH:MM" (or "H:MM") within 00:00-23:59, normalised; null for anything
@@ -48,25 +64,102 @@ function parseTime(raw: unknown): string | null {
   return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
 
+/** The first refusal of a zod parse, and every field's own message. */
+function refuseIssues(
+  issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }>,
+  fallback: string,
+): SettingsState {
+  return {
+    error: issues[0]?.message ?? fallback,
+    fieldErrors: fieldErrorsFromIssues(issues),
+  };
+}
+
+const tooLong = (what: string, max: number) => ({
+  error: `${what} en fazla ${max} karakter olabilir.`,
+});
+
+/**
+ * Genel. The browser's type="url" / type="email" were the only checks: a
+ * hand-made POST, or an http:// image the browser accepts and the site's
+ * CSP then blocks, reached the home hero and the reply-to address as typed.
+ */
+const generalSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, { error: "Kafe adı en az 2 karakter olmalı." })
+    .max(GENERAL_LIMITS.name, tooLong("Kafe adı", GENERAL_LIMITS.name)),
+  tagline: z
+    .string()
+    .trim()
+    .max(GENERAL_LIMITS.tagline, tooLong("Slogan", GENERAL_LIMITS.tagline)),
+  phone: z
+    .string()
+    .trim()
+    .max(GENERAL_LIMITS.phone, tooLong("Telefon", GENERAL_LIMITS.phone)),
+  email: z
+    .string()
+    .trim()
+    .max(GENERAL_LIMITS.email, tooLong("E-posta", GENERAL_LIMITS.email))
+    .refine((v) => !v || EMAIL_RE.test(v), {
+      error: "Geçerli bir e-posta gir ya da alanı boş bırak.",
+    }),
+  address: z
+    .string()
+    .trim()
+    .max(GENERAL_LIMITS.address, tooLong("Adres", GENERAL_LIMITS.address)),
+  heroImageUrl: z
+    .string()
+    .trim()
+    .max(
+      GENERAL_LIMITS.heroImageUrl,
+      tooLong("Görsel adresi", GENERAL_LIMITS.heroImageUrl),
+    )
+    .refine((v) => !v || /^https:\/\/\S+$/i.test(v), {
+      error:
+        "Görsel adresi https:// ile başlamalı (http görseller sitede açılmaz).",
+    }),
+  isShopOpen: z.boolean(),
+});
+
 export async function saveGeneralAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
   await requireRole("settings");
-  const name = String(formData.get("name") ?? "").trim();
-  if (name.length < 2) return { error: "Kafe adı en az 2 karakter olmalı." };
-
-  await updateSettings({
-    name,
-    tagline: String(formData.get("tagline") ?? "").trim(),
-    phone: String(formData.get("phone") ?? "").trim(),
-    email: String(formData.get("email") ?? "").trim(),
-    address: String(formData.get("address") ?? "").trim(),
-    heroImageUrl: String(formData.get("heroImageUrl") ?? "").trim(),
+  const parsed = generalSchema.safeParse({
+    name: String(formData.get("name") ?? ""),
+    tagline: String(formData.get("tagline") ?? ""),
+    phone: String(formData.get("phone") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    address: String(formData.get("address") ?? ""),
+    heroImageUrl: String(formData.get("heroImageUrl") ?? ""),
     isShopOpen: formData.get("isShopOpen") === "on",
   });
+  if (!parsed.success) {
+    return refuseIssues(parsed.error.issues, "Genel bilgiler geçersiz.");
+  }
+  const next = parsed.data;
+  const before = await getSettings();
+  if (before.isShopOpen && !next.isShopOpen) {
+    const ask = askToConfirm(
+      formData,
+      [
+        {
+          key: "shop-off",
+          line: "Online mağaza kapanır: sitede ve uygulamada kargolu ürün siparişi alınmaz. Kafe siparişleri (gel-al, kurye, masa) etkilenmez.",
+        },
+      ],
+      { title: "Online mağaza kapansın mı?", submitLabel: "Mağazayı kapat" },
+    );
+    if (ask) return ask;
+  }
+  const moved = changedKeys(before, next);
+  if (!moved) return NO_CHANGE;
+  await updateSettings(next);
   revalidateAll();
-  return ok("general", "Genel bilgiler kaydedildi.");
+  return ok("general", "Genel bilgiler kaydedildi.", moved);
 }
 
 export async function saveHoursAction(
@@ -89,14 +182,16 @@ export async function saveHoursAction(
     const close =
       closed && !rawClose ? (kept?.close ?? "00:00") : parseTime(rawClose);
     if (open === null || close === null) {
-      return {
-        error:
-          "Saatler 00:00 ile 23:59 arasında olmalı (ss:dd). Gece yarısı kapanış için 00:00 yaz.",
-      };
+      const label = DAY_LABELS[day as DayOfWeek] ?? day;
+      return refuse(
+        `${label}: saatler 00:00 ile 23:59 arasında olmalı (ss:dd). Gece yarısı kapanış için 00:00 yaz.`,
+        open === null ? `${day}-open` : `${day}-close`,
+      );
     }
     weekly[day as DayOfWeek] = { open, close, closed };
     summary.push(closed ? `${day} Kapalı` : `${day} ${open}-${close}`);
   }
+  if (!changedKeys(before, { weeklyHours: weekly })) return NO_CHANGE;
   await updateSettings({
     weeklyHours: weekly,
     openingHours: summary.join(" · "),
@@ -125,22 +220,22 @@ export async function saveTaxAction(
   for (const key of TAX_RATE_KEYS) {
     const parsed = parseTaxRateInput(formData.get(`taxRate_${key}`));
     if (!parsed.ok || parsed.value === null) {
-      return {
-        error: `${TAX_RATE_LABELS[key]}: ${TAX_RATE_INPUT_ERROR}`,
-      };
+      return refuse(
+        `${TAX_RATE_LABELS[key]}: ${TAX_RATE_INPUT_ERROR}`,
+        `taxRate_${key}`,
+      );
     }
     taxRates[key] = parsed.value;
   }
   const before = await getSettings();
+  const moved = changedKeys(before, { taxRates });
+  if (!moved) return NO_CHANGE;
   await updateSettings({ taxRates });
   revalidateAll();
   // The menu, the shop and karaoke pages print these rates.
   revalidatePath("/admin/menu");
   revalidatePath("/admin/urunler");
-  return ok("tax", "KDV oranları kaydedildi.", {
-    before: { taxRates: before.taxRates },
-    after: { taxRates },
-  });
+  return ok("tax", "KDV oranları kaydedildi.", moved);
 }
 
 export async function saveShippingAction(
@@ -148,63 +243,63 @@ export async function saveShippingAction(
   formData: FormData,
 ): Promise<SettingsState> {
   await requireRole("settings");
-  const shippingFlatMinor = parseMoneyMinor(formData.get("shippingFlat"));
-  if (shippingFlatMinor === null) {
-    return { error: "Kargo ücreti sayı olmalı (örn. 49 ya da 49,90)." };
+  const flat = readMoney(formData.get("shippingFlat"));
+  if (!flat.ok) {
+    return refuse(
+      flat.tooLarge
+        ? MONEY_TOO_LARGE_ERROR
+        : "Kargo ücreti sayı olmalı (örn. 49 ya da 49,90).",
+      "shippingFlat",
+    );
   }
-  const shippingFreeThresholdMinor = parseMoneyMinor(
-    formData.get("shippingFreeThreshold"),
-  );
-  if (shippingFreeThresholdMinor === null) {
-    return { error: "Ücretsiz kargo eşiği sayı olmalı (0 = kapalı)." };
+  const threshold = readMoney(formData.get("shippingFreeThreshold"));
+  if (!threshold.ok) {
+    return refuse(
+      threshold.tooLarge
+        ? MONEY_TOO_LARGE_ERROR
+        : "Ücretsiz kargo eşiği sayı olmalı (0 = kapalı).",
+      "shippingFreeThreshold",
+    );
   }
   // Cafe delivery (mobile app): a flat courier fee, never free - the
   // free-shipping threshold above applies to shop parcels only. Zero would
   // make every kurye order ship free, so it is rejected rather than stored.
-  const courierFeeMinor = parseMoneyMinor(formData.get("courierFee"));
-  if (courierFeeMinor === null || courierFeeMinor <= 0) {
-    return { error: "Kurye ücreti sıfırdan büyük bir sayı olmalı." };
+  const courier = readMoney(formData.get("courierFee"));
+  if (!courier.ok || courier.minor <= 0) {
+    return refuse(
+      !courier.ok && courier.tooLarge
+        ? MONEY_TOO_LARGE_ERROR
+        : "Kurye ücreti sıfırdan büyük bir sayı olmalı.",
+      "courierFee",
+    );
   }
   // The home page's "Gel-al · N dk". A form without the field (an open tab
   // from before it existed) leaves the stored value alone.
   const pickupRaw = formData.get("pickupReadyMinutes");
   let pickupReadyMinutes: number | undefined;
   if (pickupRaw !== null) {
-    const text = String(pickupRaw).trim();
-    const n = Number(text);
-    if (!/^\d+$/.test(text) || n < 1 || n > 180) {
-      return {
-        error:
-          "Gel-al hazırlık süresi 1 ile 180 dakika arasında tam sayı olmalı.",
-      };
+    const n = readWholeNumber(pickupRaw);
+    if (n === null || n < 1 || n > 180) {
+      return refuse(
+        "Gel-al hazırlık süresi 1 ile 180 dakika arasında tam sayı olmalı.",
+        "pickupReadyMinutes",
+      );
     }
     pickupReadyMinutes = n;
   }
 
-  const before = await getSettings();
-  await updateSettings({
-    shippingFlatMinor,
-    shippingFreeThresholdMinor,
-    courierFeeMinor,
+  const next = {
+    shippingFlatMinor: flat.minor,
+    shippingFreeThresholdMinor: threshold.minor,
+    courierFeeMinor: courier.minor,
     ...(pickupReadyMinutes === undefined ? {} : { pickupReadyMinutes }),
-  });
+  };
+  const before = await getSettings();
+  const moved = changedKeys(before, next);
+  if (!moved) return NO_CHANGE;
+  await updateSettings(next);
   revalidateAll();
-  return ok("shipping", "Kargo ve kurye ayarları kaydedildi.", {
-    before: {
-      shippingFlatMinor: before.shippingFlatMinor,
-      shippingFreeThresholdMinor: before.shippingFreeThresholdMinor,
-      courierFeeMinor: before.courierFeeMinor,
-      ...(pickupReadyMinutes === undefined
-        ? {}
-        : { pickupReadyMinutes: before.pickupReadyMinutes }),
-    },
-    after: {
-      shippingFlatMinor,
-      shippingFreeThresholdMinor,
-      courierFeeMinor,
-      ...(pickupReadyMinutes === undefined ? {} : { pickupReadyMinutes }),
-    },
-  });
+  return ok("shipping", "Kargo ve kurye ayarları kaydedildi.", moved);
 }
 
 export async function saveSeoAction(
@@ -213,17 +308,49 @@ export async function saveSeoAction(
 ): Promise<SettingsState> {
   await requireRole("settings");
   const seoTitle = String(formData.get("seoTitle") ?? "").trim();
-  const ogImage = String(formData.get("seoOgImageUrl") ?? "").trim();
-  if (ogImage && !/^https?:\/\//i.test(ogImage)) {
-    return { error: "Open Graph görseli http(s) URL olmalı." };
+  if (seoTitle.length > 120) {
+    return refuse(
+      "Ana sayfa başlığı en fazla 120 karakter olabilir.",
+      "seoTitle",
+    );
   }
-  await updateSettings({
+  const ogImage = String(formData.get("seoOgImageUrl") ?? "").trim();
+  if (
+    ogImage &&
+    (!/^https?:\/\/\S+$/i.test(ogImage) || ogImage.length > 2000)
+  ) {
+    return refuse(
+      "Paylaşım görseli http(s) ile başlayan bir adres olmalı.",
+      "seoOgImageUrl",
+    );
+  }
+  const next = {
     seoTitle,
     seoOgImageUrl: ogImage,
     seoIndexable: formData.get("seoIndexable") === "on",
-  });
+  };
+  const before = await getSettings();
+  if (before.seoIndexable && !next.seoIndexable) {
+    const ask = askToConfirm(
+      formData,
+      [
+        {
+          key: "indexing-off",
+          line: "Arama motorları siteyi taramayı bırakır ve site haritası boş döner. Google'da zaten görünen sayfalar kendiliğinden düşmez; yeni ürünler ve sayfalar da aramada görünmez.",
+        },
+      ],
+      {
+        title: "Site arama motorlarına kapansın mı?",
+        submitLabel: "Taramayı kapat",
+      },
+    );
+    if (ask) return ask;
+  }
+  const moved = changedKeys(before, next);
+  if (!moved) return NO_CHANGE;
+  await updateSettings(next);
   revalidateAll();
-  return ok("seo", "SEO ayarları kaydedildi.");
+  return ok("seo", "SEO ayarları kaydedildi.", moved);
 }
 
 const notificationsSchema = z.object({
@@ -231,7 +358,7 @@ const notificationsSchema = z.object({
     .string()
     .trim()
     .max(254, { error: "Operasyon e-postası çok uzun." })
-    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
+    .refine((v) => !v || EMAIL_RE.test(v), {
       error: "Geçerli bir e-posta gir.",
     }),
   orderNotifyEnabled: z.boolean(),
@@ -265,6 +392,32 @@ const notificationsSchema = z.object({
 });
 
 /**
+ * How many inboxes the staff "yeni sipariş" mail would reach with these
+ * settings, by the sender's own rule (resolveStaffRecipients). Null when the
+ * panel accounts cannot be read: then nobody is warned on a guess.
+ */
+async function staffRecipientCount(input: {
+  roles: string[];
+  extraEmails: string;
+  notificationEmail: string;
+}): Promise<number | null> {
+  let panelUsers: Awaited<ReturnType<typeof listAdminUsers>>;
+  try {
+    panelUsers = await listAdminUsers();
+  } catch {
+    return null;
+  }
+  return resolveStaffRecipients({
+    enabled: true,
+    roles: normalizeNotifyRoles(input.roles),
+    extraEmails: input.extraEmails,
+    notificationEmail: input.notificationEmail,
+    panelUsers,
+    envAdmins: listEnvAdminContacts(),
+  }).length;
+}
+
+/**
  * Ayarlar → Bildirimler: the operations address and who gets the staff
  * "yeni sipariş" mail (`src/lib/email/staff-order-notice.ts`). Owner only,
  * like every settings tab. The audit row keeps the before/after of the
@@ -273,6 +426,9 @@ const notificationsSchema = z.object({
  * list changed, how many addresses were added and removed, and the domains
  * on each side - so "kasa@laffogato.net" swapped for an outside inbox shows
  * as a new domain rather than as a no-op save of one address.
+ *
+ * Switching the mail off, or leaving it on with nobody to receive it, asks
+ * first: either way the köşk stops hearing about paid orders.
  */
 export async function saveNotificationsAction(
   _prev: SettingsState,
@@ -286,14 +442,64 @@ export async function saveNotificationsAction(
     orderNotifyEmails: String(formData.get("orderNotifyEmails") ?? ""),
   });
   if (!parsed.success) {
-    return {
-      error: parsed.error.issues[0]?.message ?? "Bildirim ayarları geçersiz.",
-    };
+    return refuseIssues(parsed.error.issues, "Bildirim ayarları geçersiz.");
   }
   const roles = ADMIN_ROLES.filter((r) =>
     parsed.data.orderNotifyRoles.includes(r),
   );
   const before = await getSettings();
+  const list = (s: string) => parseNotifyEmails(s).valid;
+  const beforeList = list(before.orderNotifyEmails ?? "");
+  const afterList = list(parsed.data.orderNotifyEmails);
+  const beforeOps = (before.notificationEmail ?? "").trim().toLowerCase();
+  const afterOps = parsed.data.notificationEmail.trim().toLowerCase();
+  const unchanged =
+    before.orderNotifyEnabled === parsed.data.orderNotifyEnabled &&
+    JSON.stringify(normalizeNotifyRoles(before.orderNotifyRoles)) ===
+      JSON.stringify(roles) &&
+    (before.orderNotifyEmails ?? "") === parsed.data.orderNotifyEmails &&
+    (before.notificationEmail ?? "") === parsed.data.notificationEmail;
+  if (unchanged) return NO_CHANGE;
+
+  if (before.orderNotifyEnabled && !parsed.data.orderNotifyEnabled) {
+    const ask = askToConfirm(
+      formData,
+      [
+        {
+          key: "order-mail-off",
+          line: "Ödemesi alınan siparişler için ekibe e-posta gitmez. Yeni siparişleri yalnız panelden görürsün.",
+        },
+      ],
+      {
+        title: "Yeni sipariş e-postası kapansın mı?",
+        submitLabel: "E-postayı kapat",
+      },
+    );
+    if (ask) return ask;
+  } else if (parsed.data.orderNotifyEnabled) {
+    const count = await staffRecipientCount({
+      roles,
+      extraEmails: parsed.data.orderNotifyEmails,
+      notificationEmail: parsed.data.notificationEmail,
+    });
+    if (count === 0) {
+      const ask = askToConfirm(
+        formData,
+        [
+          {
+            key: "no-recipients",
+            line: "Seçili rollerde aktif panel kullanıcısı yok; operasyon e-postası ve ek adresler de boş. Yeni sipariş e-postası kimseye gitmez.",
+          },
+        ],
+        {
+          title: "Bu e-postayı kimse almayacak",
+          submitLabel: "Yine de kaydet",
+        },
+      );
+      if (ask) return ask;
+    }
+  }
+
   await updateSettings({
     notificationEmail: parsed.data.notificationEmail,
     orderNotifyEnabled: parsed.data.orderNotifyEnabled,
@@ -301,11 +507,6 @@ export async function saveNotificationsAction(
     orderNotifyEmails: parsed.data.orderNotifyEmails,
   });
   revalidateAll();
-  const list = (s: string) => parseNotifyEmails(s).valid;
-  const beforeList = list(before.orderNotifyEmails ?? "");
-  const afterList = list(parsed.data.orderNotifyEmails);
-  const beforeOps = (before.notificationEmail ?? "").trim().toLowerCase();
-  const afterOps = parsed.data.notificationEmail.trim().toLowerCase();
   return ok("notifications", "Bildirim ayarları kaydedildi.", {
     before: {
       orderNotifyEnabled: before.orderNotifyEnabled,
@@ -344,6 +545,15 @@ function notifyDomains(emails: readonly string[]): string[] {
   return [...out].sort();
 }
 
+/** What Resend's word for a domain means, for the confirm sentence. */
+const UNVERIFIED_SENDER: Partial<Record<string, string>> = {
+  absent: "Resend hesabında kayıtlı değil",
+  not_started: "henüz doğrulanmadı",
+  pending: "henüz doğrulanmadı (DNS kayıtları bekleniyor)",
+  failed: "doğrulanamadı",
+  temporary_failure: "şu an doğrulanamıyor",
+};
+
 /**
  * Who transactional mail comes from.
  *
@@ -351,6 +561,10 @@ function notifyDomains(emails: readonly string[]): string[] {
  * which domain that is changes outside this codebase - a DNS record added on
  * a Tuesday. Compiling the address in would mean a deploy each time; this is
  * the panel field that avoids one.
+ *
+ * A new address on a domain Resend says is not verified asks first: saved,
+ * it stops every mail the site sends, verification links included, and the
+ * banner only turned red after the fact.
  */
 export async function saveEmailSenderAction(
   _prev: SettingsState,
@@ -364,21 +578,49 @@ export async function saveEmailSenderAction(
   const emailReplyTo = String(formData.get("emailReplyTo") ?? "")
     .trim()
     .toLowerCase();
-  const looksLikeEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+  const looksLikeEmail = (s: string) => EMAIL_RE.test(s) && s.length <= 254;
+  if (emailFromName.length > 80) {
+    return refuse(
+      "Gönderen adı en fazla 80 karakter olabilir.",
+      "emailFromName",
+    );
+  }
   if (emailFromAddress && !looksLikeEmail(emailFromAddress)) {
-    return { error: "Gönderen adresi geçerli bir e-posta olmalı." };
+    return refuse(
+      "Gönderen adresi geçerli bir e-posta olmalı.",
+      "emailFromAddress",
+    );
   }
   if (emailReplyTo && !looksLikeEmail(emailReplyTo)) {
-    return { error: "Yanıt adresi geçerli bir e-posta olmalı." };
+    return refuse("Yanıt adresi geçerli bir e-posta olmalı.", "emailReplyTo");
   }
-  await updateSettings({ emailFromName, emailFromAddress, emailReplyTo });
+  const next = { emailFromName, emailFromAddress, emailReplyTo };
+  const before = await getSettings();
+  const moved = changedKeys(before, next);
+  if (!moved) return NO_CHANGE;
+  if (emailFromAddress && emailFromAddress !== before.emailFromAddress) {
+    const why = UNVERIFIED_SENDER[await senderDomainStatus(emailFromAddress)];
+    if (why) {
+      const domain = emailFromAddress.slice(emailFromAddress.indexOf("@") + 1);
+      const ask = askToConfirm(
+        formData,
+        [
+          {
+            key: `sender-unverified:${domain}`,
+            line: `${domain} alan adı ${why}. Kaydedersen site hiçbir e-posta gönderemez: sipariş onayı, doğrulama bağlantısı ve şifre sıfırlama da gitmez.`,
+          },
+        ],
+        { title: "Bu adresten e-posta çıkmaz", submitLabel: "Yine de kaydet" },
+      );
+      if (ask) return ask;
+    }
+  }
+  await updateSettings(next);
   // The banner is about the address that was just changed; a two-minute cache
   // would show the operator the old verdict on the new sender.
   forgetEmailHealth();
   revalidateAll();
-  return ok("email", "E-posta gönderim ayarları kaydedildi.", {
-    emailFromAddress,
-  });
+  return ok("email", "E-posta gönderim ayarları kaydedildi.", moved);
 }
 
 /**
@@ -387,6 +629,10 @@ export async function saveEmailSenderAction(
  * Every other path swallows a delivery failure on purpose - a customer must
  * not lose an order because mail bounced - so without this the operator's
  * only signal that nothing is arriving is that nothing is arriving.
+ *
+ * It tests the SAVED sender; the form holds the button back while the
+ * sender form has unsaved changes. The banner above is read again either
+ * way: a failed test is news about the sender too.
  */
 export async function sendTestEmailAction(
   _prev: SettingsState,
@@ -396,13 +642,19 @@ export async function sendTestEmailAction(
   const to = String(formData.get("testEmailTo") ?? "")
     .trim()
     .toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
-    return { error: "Test için geçerli bir e-posta gir." };
+  if (!EMAIL_RE.test(to) || to.length > 254) {
+    return refuse("Test için geçerli bir e-posta gir.", "testEmailTo");
   }
   forgetEmailHealth();
   const result = await sendTestEmail(to);
-  if (!result.ok) return { error: `Gönderilemedi - ${result.error}` };
+  revalidatePath("/admin/ayarlar");
+  if (!result.ok) return { error: `Gönderilemedi: ${result.error}` };
   // The address is the point of the audit row: it is the one place a test
   // mail's recipient is recorded, and it left the building.
-  return ok("email-test", `Test e-postası ${to} adresine gönderildi.`, { to });
+  return ok(
+    "email-test",
+    `Test e-postası ${to} adresine gönderildi.`,
+    { to },
+    "send_test",
+  );
 }
