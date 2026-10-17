@@ -1511,36 +1511,41 @@ function CheckoutForm({
               </div>
             ) : null}
 
-            <p className="co-docs">
-              Ödemeden önce okuyabilirsin:{" "}
-              <a
-                href="/hukuk/on-bilgilendirme-formu"
-                target="_blank"
-                rel="noopener"
-              >
-                Ön Bilgilendirme Formu
-              </a>{" "}
-              ·{" "}
-              <a
-                href="/hukuk/mesafeli-satis-sozlesmesi"
-                target="_blank"
-                rel="noopener"
-              >
-                Mesafeli Satış Sözleşmesi
-              </a>{" "}
-              ·{" "}
-              <a href="/hukuk/iade-ve-cayma" target="_blank" rel="noopener">
-                İptal, iade ve cayma
-              </a>
+            <div className="co-docs">
+              <p>Ödemeden önce okuyabilirsin:</p>
+              {/* One item each: inside a sentence a link that wraps on a
+                  phone had its tap area over the line of the next one. */}
+              <ul className="co-docs-links">
+                <li>
+                  <a
+                    href="/hukuk/on-bilgilendirme-formu"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    Ön Bilgilendirme Formu
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/hukuk/mesafeli-satis-sozlesmesi"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    Mesafeli Satış Sözleşmesi
+                  </a>
+                </li>
+                <li>
+                  <a href="/hukuk/iade-ve-cayma" target="_blank" rel="noopener">
+                    İptal, iade ve cayma
+                  </a>
+                </li>
+              </ul>
               {/* The seller's one identity line on the page (MSY m.5/1-b, c),
                   on every screen size, before the card and the pay button. */}
               {sellerLine ? (
-                <span className="co-docs-seller">
-                  <br />
-                  Satıcı: {sellerLine}
-                </span>
+                <p className="co-docs-seller">Satıcı: {sellerLine}</p>
               ) : null}
-            </p>
+            </div>
             {nothingToPay ? null : (
               <div className="co-accepted">
                 <span>Kabul edilen kartlar</span>
@@ -1624,7 +1629,7 @@ function CheckoutForm({
               </button>
               {!consentGiven && !placing ? (
                 <p className="co-paybar-hint">
-                  Ödemek için sözleşme onaylarını işaretle.
+                  Devam etmek için iki sözleşme onayını da işaretle.
                 </p>
               ) : null}
             </div>

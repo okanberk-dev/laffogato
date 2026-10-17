@@ -11576,7 +11576,25 @@ button.co-steps-link {
 }
 .co-docs a {
   color: var(--ink);
+  text-decoration: underline;
   text-underline-offset: 3px;
+}
+/* The documents as items: a padded link inside a sentence that wrapped on
+   a phone reached over the next line, and its tap area covered the link
+   there. Here each link is one 44px box in its own place in the row; the
+   underline, not a dot, tells one from the next when they wrap. */
+.co-docs-links {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.co-docs-links a {
+  display: inline-block;
+  padding-block: 11px;
+  line-height: 22px;
 }
 .co-accepted {
   display: flex;
@@ -11787,8 +11805,7 @@ button.co-steps-link {
 }
 /* The document links sit inside a sentence; their hit area grows
    vertically without moving the lines. */
-.co-confirm .checkout-consent a,
-.co-docs a {
+.co-confirm .checkout-consent a {
   padding-block: 11px;
   margin-block: -11px;
 }
@@ -11997,7 +12014,6 @@ button.co-steps-link {
   color: var(--ink);
 }
 .co-docs-seller {
-  display: inline-block;
   margin-top: 4px;
   font-size: 12px;
   line-height: 1.5;
