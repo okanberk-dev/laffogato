@@ -251,7 +251,9 @@ src/
     seo/                     → site.ts (NAP + sabitler) · structured-data ·
                                section-page · pages.ts (route SEO) · faq.ts ·
                                guides.ts + guide-content.ts (rehber içeriği) ·
-                               guide-structured-data.ts · guide-nav.ts
+                               guide-structured-data.ts · guide-nav.ts ·
+                               og-card · og-pages · og-drawings · og-product
+                               (paylaşım kartları, docs/SEO.md §2)
     consent/                 → cookie.ts (rıza durumu) · script.ts (Consent Mode v2)
     newsletter/              → store.ts (6563 onay kaydı + tek tıkla çıkış)
     utils/                   → commerce.ts (vergi/kargo) · format.ts (priceLabel,

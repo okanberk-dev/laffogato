@@ -74,6 +74,52 @@ her zaman **gerçek route'u** işaret eder.
 | 0.6-0.7 | `/hikayemiz`, `/ziyaret`      |
 | 0.4-0.5 | `/hukuk` ve belgeler          |
 
+**Paylaşım kartları (Open Graph / X)**
+
+Bağlantı WhatsApp'ta, Instagram'da ya da X'te paylaşılınca görünen 1200 x 630
+görsel. Kök kart (`src/app/opengraph-image.tsx`: yeşil zemin, L'Af, "Drink it.
+Eat the cup.") ana sayfanın ve kendi kartı olmayan her sayfanın (`/hukuk`,
+`/uye` …) kartıdır. Sayfaların kendi kartı, 17 Eki 2026'dan beri:
+
+| Sayfa                                    | Sağ taraf                          | Biçim |
+| ---------------------------------------- | ---------------------------------- | ----- |
+| `/karaoke`                               | karaoke odası çizimi               | JPEG  |
+| `/menu`                                  | yenilebilir kupa fotoğrafı         | JPEG  |
+| `/menu/[kategori]`, `/magaza/[kategori]` | büyük L'Af                         | PNG   |
+| `/magaza`                                | kahve paketi çizimi                | PNG   |
+| `/magaza/urun/[slug]`                    | ürünün ilk fotoğrafı (yoksa paket) | JPEG  |
+| `/ziyaret`                               | köşkün gece fotoğrafı              | JPEG  |
+| `/hikayemiz`                             | köşkün gündüz fotoğrafı            | JPEG  |
+| `/kampanyalar`                           | iki bilet çizimi                   | PNG   |
+| `/rehber`, `/rehber/[slug]`              | büyük L'Af                         | PNG   |
+
+- **Nerede:** her sayfanın yanında `opengraph-image.tsx` + aynı kartı veren
+  `twitter-image.tsx`. Ortak sistem `src/lib/seo/og-card.tsx` (palet, logo,
+  sayfa kartı düzeni, fotoğraf okuma), kartların metni `og-pages.tsx`, çizimler
+  `og-drawings.tsx`, ürün kartı `og-product.tsx`.
+- **Sayfa kendi `images`'ını vermez.** Next, segmentin `opengraph-image`
+  dosyasını yalnız sayfanın `openGraph`'ında `images` anahtarı **hiç yokken**
+  kullanır. Kartı olan sayfa `openGraphBase()` yayar (site adı + dil);
+  `openGraphDefaults()` genel kartı adıyla yazdığı için sayfanın kartını
+  gizler. `tests/og-images.test.ts` bunu tutar.
+- **Veritabanı yok:** sayfa kartları build sırasında sitenin kendi metni ve
+  `public/` dosyalarıyla çizilir. Tek istisna ürün kartı: ilk istekte
+  `getShopProductBySlug` ile çizilir, bir saat saklanır (ISR); fiyat, sayfanın
+  ilk açtığı varyantın KDV dahil fiyatıdır. Ürün yoksa ya da veritabanı
+  cevap vermezse mağaza kartı, fotoğraf okunamazsa paket çizimi çıkar. Dış
+  (`https://`) fotoğraf çekilmez.
+- **Fotoğraflı kart JPEG'dir** (q88, 50-90 KB): PNG hâlinde 0,3-0,6 MB
+  tutuyor, bazı mesajlaşma uygulamaları bu boyutta önizleme göstermeyebiliyor.
+- **Yazı:** next/og'un kendi Geist'i, kerning tablosu bellekte gizlenmiş
+  (`withoutKerning`): next/og kelimeyi harf harf ölçüp kernli çizdiği için
+  "mikrofon", "Atatürk" gibi kelimelerden sonra boşluk büyüyordu. Geist'te ₺
+  yok; olmayan bir harf next/og'u Google'dan font indirmeye götürür. Fiyat
+  "TL" yazılır, `ogText()` emoji ve ₺ temizler.
+- **Yeni kart:** sayfanın klasörüne iki dosya, `og-pages.tsx`'e bir fonksiyon,
+  testteki `ROUTES` listesine bir satır. Başlıkta nokta yok, uzun tire yok.
+  Önizlemeyi görmek için:
+  `OG_PREVIEW_DIR=/tmp/og npx vitest run tests/og-images.test.ts`.
+
 ---
 
 ## 3. İçerik SEO - `/rehber`
@@ -176,7 +222,9 @@ Boş bırakılan doğrulama token'ı için Next.js meta etiketini hiç basmaz.
 - [ ] `generateMetadata` ya da `metadata`: `title`, `description`,
       `alternates.canonical`
 - [ ] OG + Twitter kartı (layout'tan miras alınanları yeniden bildir -
-      `openGraph` segmentler arası **sığ** birleşir)
+      `openGraph` segmentler arası **sığ** birleşir). Sayfanın kendi kartı
+      varsa `openGraphBase()`, yoksa `openGraphDefaults()` (§2 "Paylaşım
+      kartları")
 - [ ] Sayfaya uygun JSON-LD + `BreadcrumbList`
 - [ ] `sitemap.ts` içine giriş (dinamikse otomatik)
 - [ ] Gizli kalması gerekiyorsa `robots.ts` disallow listesi
