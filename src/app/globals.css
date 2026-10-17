@@ -6859,6 +6859,20 @@ select {
   color: var(--gold);
   margin-bottom: 14px;
 }
+/* The list's own drawing (EmptyState `art`). The karaoke room is a picture,
+   so it gets a rounded frame - a soft square, not a circle: the drawing
+   carries the L'Af mark, and the mark is never set inside a circle. */
+.account-empty-art {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 14px;
+}
+.account-empty-art.is-picture {
+  border-radius: 28px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px var(--ink-line-strong);
+}
 .account-empty-title {
   font-family: var(--serif-display);
   font-size: 20px;

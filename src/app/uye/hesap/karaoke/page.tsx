@@ -57,11 +57,13 @@ export default async function KaraokeMinePage() {
       >
         {!customer.emailVerified ? (
           <EmptyState
+            art="bulten-zarf"
             title="Rezervasyonların e-posta doğrulamasından sonra görünür"
             hint="Hesabım sayfasından doğrulama bağlantısını yeniden gönderebilirsin."
           />
         ) : shown.length === 0 ? (
           <EmptyState
+            art="karaoke-room"
             title="Henüz karaoke rezervasyonun yok"
             cta={
               <Link href="/karaoke" className="btn btn-primary btn-sm">
