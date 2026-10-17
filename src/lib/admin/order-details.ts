@@ -18,7 +18,7 @@
 
 import { OPEN_ORDER_STATUSES } from "./order-filters";
 import { canAccess, type AdminRole } from "./roles";
-import type { AdminOrderStatus } from "./store";
+import type { AdminOrder, AdminOrderStatus } from "./store";
 
 export interface OrderDetailsFields {
   customerName: string;
@@ -149,4 +149,18 @@ export function orderDetailsChange(
     before: Object.fromEntries(changed.map((k) => [k, before[k] ?? ""])),
     after: Object.fromEntries(changed.map((k) => [k, after[k] ?? ""])),
   };
+}
+
+/**
+ * `order` as a page may hand it to a "use client" component: without the
+ * consent record. Every prop a client component gets is serialized whole
+ * into the page's RSC payload, read or not, so the IP address and browser
+ * string the consent section shows only as "Kayıtlı" sat in the page source
+ * of every order a role without the customer view opened, and of every row
+ * of the list (ORD-29, karar D3; verifier C2). No client island reads the
+ * record: the consent section draws it on the server.
+ */
+export function orderForClient(order: AdminOrder): AdminOrder {
+  const { legalConsent: _consent, ...rest } = order;
+  return rest;
 }

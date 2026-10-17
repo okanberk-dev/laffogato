@@ -16,7 +16,7 @@ import {
   orderPaymentState,
   refundableMinor,
 } from "@/lib/admin/order-actions";
-import { orderDetailsRules } from "@/lib/admin/order-details";
+import { orderDetailsRules, orderForClient } from "@/lib/admin/order-details";
 import { orderTimeline } from "@/lib/admin/order-timeline";
 import { canAccess } from "@/lib/admin/roles";
 import {
@@ -129,7 +129,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
           </div>
         </div>
         <OrderHeaderActions
-          order={order}
+          order={orderForClient(order)}
           money={money}
           actions={actions}
           refundToken={randomUUID()}

@@ -17,6 +17,7 @@ import {
   orderActions,
   orderPaymentState,
 } from "@/lib/admin/order-actions";
+import { orderForClient } from "@/lib/admin/order-details";
 import {
   OPEN_ORDER_STATUSES,
   ORDER_FILTER_FIELDS,
@@ -76,7 +77,8 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
       destination: "none" as const,
     };
     return {
-      order,
+      // No consent record: a client prop is in the page source (ORD-29).
+      order: orderForClient(order),
       money: {
         collected: m.collected,
         collectedMinor: m.collectedMinor,
