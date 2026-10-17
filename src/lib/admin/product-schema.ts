@@ -6,6 +6,7 @@ import {
   parseBackdropChoice,
   parseVesselChoice,
 } from "@/lib/backdrop/scene-core";
+import { parseMoneyInput, parseSignedMoneyInput } from "@/lib/utils/format";
 
 const HUE_VALUES = [
   "cream",
@@ -109,15 +110,25 @@ const notesList = z
       ),
   );
 
-const moneyToMinor = z
-  .string()
-  .transform((s) => s.trim().replace(",", "."))
-  .transform((s) => {
-    if (!s) return 0;
-    const v = parseFloat(s);
-    return Number.isFinite(v) ? Math.round(v * 100) : 0;
-  })
-  .pipe(z.number().int().nonnegative());
+/** What an amount the panel cannot read is answered with, under its field. */
+export const MONEY_INPUT_ERROR = "Tutarı rakamla yaz, ör. 250 ya da 1.250,00.";
+
+/**
+ * A lira field as kuruş. Empty is 0 (the optional prices); anything else goes
+ * through parseMoneyInput (CLAUDE.md rule 24). `parseFloat(s.replace(",",
+ * "."))` read "1.250,00" as 1,25 TL, and an unreadable value was saved as 0
+ * without a word.
+ */
+const moneyToMinor = z.string().transform((s, ctx) => {
+  const text = s.trim();
+  if (!text) return 0;
+  const minor = parseMoneyInput(text);
+  if (minor === null) {
+    ctx.addIssue({ code: "custom", message: MONEY_INPUT_ERROR });
+    return z.NEVER;
+  }
+  return minor;
+});
 
 const intInput = z
   .string()
@@ -169,7 +180,7 @@ const imagesJsonArray = z
 const variantsJson = z
   .string()
   .optional()
-  .transform((raw) => {
+  .transform((raw, ctx) => {
     if (!raw) return [];
     try {
       const data = JSON.parse(raw);
@@ -180,17 +191,26 @@ const variantsJson = z
           const o = v as Record<string, unknown>;
           const name = String(o.name ?? "").trim();
           if (!name) return null;
-          const priceDeltaText = String(o.priceDelta ?? "0").replace(",", ".");
-          const priceDelta = parseFloat(priceDeltaText);
+          // Signed: a smaller bag is cheaper ("-10,50"). Same reading as every
+          // other amount; an unreadable one is refused under "Varyantlar"
+          // instead of quietly becoming 0.
+          const priceDeltaText = String(o.priceDelta ?? "").trim();
+          const priceDeltaMinor = priceDeltaText
+            ? parseSignedMoneyInput(priceDeltaText)
+            : 0;
+          if (priceDeltaMinor === null) {
+            ctx.addIssue({
+              code: "custom",
+              message: `"${name}" varyantının fiyat farkı okunamadı. ${MONEY_INPUT_ERROR} İndirim için başına - koy.`,
+            });
+          }
           const stock = parseInt(String(o.stock ?? "0"), 10);
           const sku = String(o.sku ?? "").trim();
           const isActive = Boolean(o.isActive ?? true);
           return {
             id: String(o.id ?? `var-${idx + 1}`),
             name,
-            priceDeltaMinor: Number.isFinite(priceDelta)
-              ? Math.round(priceDelta * 100)
-              : 0,
+            priceDeltaMinor: priceDeltaMinor ?? 0,
             stock: Number.isFinite(stock) ? Math.max(0, stock) : 0,
             sku,
             isActive,

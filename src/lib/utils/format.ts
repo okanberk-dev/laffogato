@@ -74,6 +74,41 @@ export function parseMoneyInput(raw: string): number | null {
 }
 
 /**
+ * A leading minus sign as a typed or pasted number may carry it: the ASCII
+ * hyphen, the Unicode minus (U+2212, what a copied price or a phone's maths
+ * keyboard gives), the figure and en dashes (U+2012, U+2013: autocorrect)
+ * and the small and full-width hyphen-minus (U+FE63, U+FF0D).
+ */
+const LEADING_MINUS = /^[-\u2212\u2012\u2013\uFE63\uFF0D]/;
+
+/**
+ * Splits a leading "+" or minus sign ({@link LEADING_MINUS}) off a typed
+ * number: `{ sign: -1, rest: "3" }` for "−3", `{ sign: 1, rest: "12" }` for
+ * "+12" or "12". Spaces around the sign are dropped.
+ */
+export function splitSign(raw: string): { sign: 1 | -1; rest: string } {
+  const text = raw.trim();
+  if (text.startsWith("+")) return { sign: 1, rest: text.slice(1).trim() };
+  if (LEADING_MINUS.test(text)) {
+    return { sign: -1, rest: text.slice(1).trim() };
+  }
+  return { sign: 1, rest: text };
+}
+
+/**
+ * {@link parseMoneyInput} for an amount that may go either way - a variant's
+ * price difference ("-10,50" for the smaller bag). A leading "+" or minus
+ * sign ({@link splitSign}) is read off first; the rest follows
+ * parseMoneyInput's rules.
+ */
+export function parseSignedMoneyInput(raw: string): number | null {
+  const { sign, rest } = splitSign(raw);
+  const minor = parseMoneyInput(rest);
+  if (minor === null) return null;
+  return minor === 0 ? 0 : sign * minor;
+}
+
+/**
  * The display name without its qualifier: "Sirena - Espresso Blend" → "Sirena".
  *
  * Splits on a dash SURROUNDED BY WHITESPACE, and accepts every dash glyph. Two
