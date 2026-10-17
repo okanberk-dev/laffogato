@@ -76,7 +76,6 @@ export function LegalDocForm({ initial, action }: Props) {
               name="effectiveDate"
               defaultValue={initial.effectiveDate}
               maxLength={LEGAL_LIMITS.effectiveDate}
-              placeholder="26 Mayıs 2026"
               autoComplete="off"
             />
           </Field>
