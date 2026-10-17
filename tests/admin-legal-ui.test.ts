@@ -162,7 +162,8 @@ describe("the editor", () => {
 
   it("starts a new override with no date, not the coded one", async () => {
     const html = await edit(MSS);
-    const date = html.match(/<input\b[^>]*name="effectiveDate"[^>]*>/)?.[0] ?? "";
+    const date =
+      html.match(/<input\b[^>]*name="effectiveDate"[^>]*>/)?.[0] ?? "";
     expect(date).not.toContain(`value="${LEGAL_UPDATED}"`);
     expect(date).not.toMatch(/value="[^"]+"/);
     expect(date).toContain('maxLength="60"');
@@ -203,7 +204,9 @@ describe("the editor", () => {
     expect(body).not.toMatch(/font-size/);
     expect(body).toContain('maxLength="60000"');
     const tag = (name: string) =>
-      html.match(new RegExp(`<(?:input|textarea)\\b[^>]*name="${name}"[^>]*>`))?.[0] ?? "";
+      html.match(
+        new RegExp(`<(?:input|textarea)\\b[^>]*name="${name}"[^>]*>`),
+      )?.[0] ?? "";
     expect(tag("title")).toContain('maxLength="200"');
     expect(tag("summary")).toContain('maxLength="600"');
   });

@@ -2,10 +2,7 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  parsePressForm,
-  parseStoryForm,
-} from "@/lib/admin/story-press-form";
+import { parsePressForm, parseStoryForm } from "@/lib/admin/story-press-form";
 
 /**
  * Hikaye and Basın (/admin/hikaye, /admin/basin):
@@ -42,10 +39,12 @@ const store = vi.hoisted(() => ({
     id: "story-9",
     ...input,
   })),
-  updateStoryEvent: vi.fn(async (id: string, input: Record<string, unknown>) => ({
-    id,
-    ...input,
-  })),
+  updateStoryEvent: vi.fn(
+    async (id: string, input: Record<string, unknown>) => ({
+      id,
+      ...input,
+    }),
+  ),
   deleteStoryEvent: vi.fn(async () => true),
   createPress: vi.fn(async (input: Record<string, unknown>) => ({
     id: "press-9",
@@ -171,10 +170,17 @@ async function render(path: string) {
 }
 
 describe("the pages", () => {
-  const base = { sortOrder: 1, isActive: true, createdAt: STAMP, updatedAt: STAMP };
+  const base = {
+    sortOrder: 1,
+    isActive: true,
+    createdAt: STAMP,
+    updatedAt: STAMP,
+  };
 
   it("say so when the list is empty", async () => {
-    expect(await render("@/app/admin/hikaye/page")).toContain("Henüz dönem yok");
+    expect(await render("@/app/admin/hikaye/page")).toContain(
+      "Henüz dönem yok",
+    );
     expect(await render("@/app/admin/basin/page")).toContain(
       "Henüz basın alıntısı yok",
     );

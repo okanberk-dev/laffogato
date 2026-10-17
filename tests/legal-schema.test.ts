@@ -56,10 +56,19 @@ describe("legalDocSchema", () => {
 
   it("takes the effective date only as 'D Ay YYYY', or blank (CON-30)", () => {
     expect(issue({ effectiveDate: "" }, "effectiveDate")).toBeNull();
-    expect(issue({ effectiveDate: "26 Mayıs 2026" }, "effectiveDate")).toBeNull();
-    expect(issue({ effectiveDate: "26 mayıs 2026" }, "effectiveDate")).toBeNull();
+    expect(
+      issue({ effectiveDate: "26 Mayıs 2026" }, "effectiveDate"),
+    ).toBeNull();
+    expect(
+      issue({ effectiveDate: "26 mayıs 2026" }, "effectiveDate"),
+    ).toBeNull();
     // Shown on the page as typed, while the consent recorded the save day.
-    for (const typed of ["26.05.2026", "2026-05-26", "Mayıs 2026", "31 Şubat 2026"]) {
+    for (const typed of [
+      "26.05.2026",
+      "2026-05-26",
+      "Mayıs 2026",
+      "31 Şubat 2026",
+    ]) {
       expect(issue({ effectiveDate: typed }, "effectiveDate"), typed).toBe(
         EFFECTIVE_DATE_FORMAT_ERROR,
       );
@@ -68,7 +77,9 @@ describe("legalDocSchema", () => {
 
   it("refuses over-long fields with a Turkish message per field (CON-22)", () => {
     expect(issue({ title: "x".repeat(201) }, "title")).toMatch(/200 karakter/);
-    expect(issue({ summary: "x".repeat(601) }, "summary")).toMatch(/600 karakter/);
+    expect(issue({ summary: "x".repeat(601) }, "summary")).toMatch(
+      /600 karakter/,
+    );
     expect(issue({ effectiveDate: "1".repeat(61) }, "effectiveDate")).toBe(
       EFFECTIVE_DATE_FORMAT_ERROR,
     );
@@ -83,7 +94,9 @@ describe("resolveEffectiveDate", () => {
   const NOW = "2026-10-19T20:30:00.000Z";
 
   it("keeps what was typed", () => {
-    expect(resolveEffectiveDate(" 5 Kasım 2026 ", true, NOW)).toBe("5 Kasım 2026");
+    expect(resolveEffectiveDate(" 5 Kasım 2026 ", true, NOW)).toBe(
+      "5 Kasım 2026",
+    );
   });
 
   it("dates a text going live with no date by the Istanbul day of the save", () => {
@@ -187,12 +200,13 @@ describe("consentSaveRefusal (CON-M01, D25)", () => {
     const onb = text({ effectiveDate: LATER });
     expect(check({ overrides: { [ONB]: onb } })).toMatch(/^Metin değişti/);
     expect(
-      check({ after: text({ effectiveDate: LATEST }), overrides: { [ONB]: onb } }),
+      check({
+        after: text({ effectiveDate: LATEST }),
+        overrides: { [ONB]: onb },
+      }),
     ).toBeNull();
     // The karaoke contract is its own scope.
-    expect(
-      check({ slug: KARAOKE, overrides: { [ONB]: onb } }),
-    ).toBeNull();
+    expect(check({ slug: KARAOKE, overrides: { [ONB]: onb } })).toBeNull();
   });
 
   it("refuses a live override dated at or before the coded revision, even unchanged", () => {
@@ -216,9 +230,7 @@ describe("consentSaveRefusal (CON-M01, D25)", () => {
       check({ after: text({ effectiveDate: LATEST }), archived: [old] }),
     ).toMatch(/önceki bir metninde kullanıldı/);
     // The same text coming back under its own date is fine (a restore).
-    expect(
-      check({ after: { ...old }, archived: [old] }),
-    ).toBeNull();
+    expect(check({ after: { ...old }, archived: [old] })).toBeNull();
     // A draft in the archive never reached an order.
     expect(
       check({

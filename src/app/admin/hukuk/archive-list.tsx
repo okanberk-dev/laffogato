@@ -1,7 +1,12 @@
 import Link from "next/link";
 
 import { Card, formatDateTime } from "@/components/admin/forms";
-import { Badge, BUTTON, ConfirmButton, EmptyState } from "@/components/admin/ui";
+import {
+  Badge,
+  BUTTON,
+  ConfirmButton,
+  EmptyState,
+} from "@/components/admin/ui";
 import { findLegalDoc } from "@/lib/legal/documents";
 import type { LegalOverrideArchiveSummary } from "@/lib/legal/store";
 
@@ -54,7 +59,9 @@ export function LegalArchiveList({
                     <span className="font-medium break-words text-[var(--admin-text)]">
                       {showDoc ? docTitle : row.title || docTitle}
                     </span>
-                    <Badge tone={row.reason === "reset" ? "warning" : "neutral"}>
+                    <Badge
+                      tone={row.reason === "reset" ? "warning" : "neutral"}
+                    >
                       {REASON[row.reason] ?? row.reason}
                     </Badge>
                     <Badge tone={row.isPublished ? "success" : "neutral"}>

@@ -25,7 +25,10 @@ export interface LegalDocInitial {
 
 interface Props {
   initial: LegalDocInitial;
-  action: (prev: ActionResult | null, formData: FormData) => Promise<ActionResult>;
+  action: (
+    prev: ActionResult | null,
+    formData: FormData,
+  ) => Promise<ActionResult>;
 }
 
 // Markdown in a real monospace face: --mono resolves to Poppins. The size is

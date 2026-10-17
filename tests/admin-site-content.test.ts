@@ -133,7 +133,12 @@ describe("saveContentAction", () => {
 
   it("answers a refused query in Turkish, without the database's message", async () => {
     saveSiteContent.mockRejectedValueOnce(
-      new DbQueryError("saveSiteContent", 'relation "site_content" does not exist', "42P01", 400),
+      new DbQueryError(
+        "saveSiteContent",
+        'relation "site_content" does not exist',
+        "42P01",
+        400,
+      ),
     );
     const r = await saveContentAction(null, form({}));
     expect(r).toEqual({

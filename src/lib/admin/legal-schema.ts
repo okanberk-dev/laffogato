@@ -53,7 +53,10 @@ export const legalDocSchema = z
       .default(""),
     bodyMarkdown: z
       .string()
-      .max(LEGAL_LIMITS.bodyMarkdown, "İçerik en fazla 60.000 karakter olabilir.")
+      .max(
+        LEGAL_LIMITS.bodyMarkdown,
+        "İçerik en fazla 60.000 karakter olabilir.",
+      )
       .optional()
       .default(""),
     isPublished: z.string().optional(),
@@ -186,7 +189,10 @@ export function consentSaveRefusal({
   }
 
   for (const old of archived) {
-    if (!isLiveLegalOverride(old) || sameText(old.bodyMarkdown, after.bodyMarkdown)) {
+    if (
+      !isLiveLegalOverride(old) ||
+      sameText(old.bodyMarkdown, after.bodyMarkdown)
+    ) {
       continue;
     }
     const oldLabel = overrideLabel(old);
