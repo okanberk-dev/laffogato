@@ -31,9 +31,11 @@ import type {
   OrderLegalConsent,
   OrderTransition,
 } from "@/lib/admin/store";
+import type { AdminTone } from "@/lib/admin/tone";
 
 import { Card, formatDateTime, formatTRY } from "./forms";
 import { OrderCustomerEditor } from "./order-customer-editor";
+import { Badge } from "./ui/badge";
 
 const TRANSITION_LABEL: Record<OrderTransition, string> = {
   mark_paid: "Ödendi olarak işaretle",
@@ -73,8 +75,10 @@ interface Props {
   order: AdminOrder;
   settings: AdminSettings;
   transitions: OrderTransition[];
+  /** orderStatusLabel(order) (lib/admin/order-ui.ts). */
   statusLabel: string;
-  statusTone: string;
+  /** orderStatusTone(order) (lib/admin/order-ui.ts). */
+  statusTone: AdminTone;
   refundedMinor: number;
   remainingRefundableMinor: number;
   /** False for staff - refunds are an owner/manager action. */
@@ -187,11 +191,9 @@ export function OrderDetail({
           <Card>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <span
-                  className={`rounded-full px-3 py-1 text-[10px] tracking-[0.18em] uppercase ${statusTone}`}
-                >
+                <Badge tone={statusTone} className="px-3 py-1">
                   {statusLabel}
-                </span>
+                </Badge>
                 {order.refunds.length > 0 && (
                   <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] tracking-[0.18em] text-rose-700 uppercase">
                     {formatTRY(refundedMinor)} iade

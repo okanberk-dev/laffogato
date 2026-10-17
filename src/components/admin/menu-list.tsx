@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState } from "react";
 
 import {
   bulkMenuAction,
@@ -32,22 +32,12 @@ export function MenuList({
   categoryKeys,
   categoryLabels,
 }: Props) {
-  const selection = useSelection();
   const [state, formAction, pending] = useActionState(
     bulkMenuAction,
     initialBulkState,
   );
-  const lastFlash = useRef<string>("");
-
-  useEffect(() => {
-    if (state.ok && state.ok.updated >= 0) {
-      const flashKey = `${state.ok.op}:${state.ok.updated}:${Date.now()}`;
-      if (flashKey !== lastFlash.current) {
-        lastFlash.current = flashKey;
-        selection.clear();
-      }
-    }
-  }, [state, selection]);
+  // A completed bulk action closes the bar once (bulk.tsx useSelection).
+  const selection = useSelection({ resetOn: state.ok });
 
   const idsCsv = selection.ids.join(",");
   const flash = state.ok

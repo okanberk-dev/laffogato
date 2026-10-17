@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useMemo,
-  useState,
-  type ChangeEvent,
-  type ReactNode,
-} from "react";
+import { useMemo, useReducer, type ChangeEvent, type ReactNode } from "react";
 
 export interface Selection {
   selected: Set<string>;
@@ -18,35 +12,92 @@ export interface Selection {
   ids: string[];
 }
 
-export function useSelection(): Selection {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+export interface SelectionState {
+  selected: Set<string>;
+  /** The last `resetOn` value the hook has seen (see useSelection). */
+  resetOn: unknown;
+}
 
-  const toggle = useCallback((id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+export type SelectionEvent =
+  | { type: "toggle"; id: string }
+  | { type: "set"; ids: readonly string[] }
+  | { type: "clear" }
+  | { type: "result"; resetOn: unknown };
 
-  const set = useCallback((ids: string[]) => {
-    setSelected(new Set(ids));
-  }, []);
+/**
+ * The selection as a pure reducer, so the "clear after a bulk action" rule
+ * can be tested without a browser (tests/admin-ui-kit.test.ts).
+ *
+ * `result` clears only when `resetOn` is a NEW truthy value. The same value
+ * seen again - the next render, the next checkbox tick - changes nothing.
+ */
+export function selectionReducer(
+  state: SelectionState,
+  event: SelectionEvent,
+): SelectionState {
+  switch (event.type) {
+    case "toggle": {
+      const next = new Set(state.selected);
+      if (next.has(event.id)) next.delete(event.id);
+      else next.add(event.id);
+      return { ...state, selected: next };
+    }
+    case "set":
+      return { ...state, selected: new Set(event.ids) };
+    case "clear":
+      return state.selected.size === 0
+        ? state
+        : { ...state, selected: new Set() };
+    case "result":
+      if (Object.is(event.resetOn, state.resetOn)) return state;
+      return {
+        resetOn: event.resetOn,
+        selected:
+          event.resetOn && state.selected.size > 0 ? new Set() : state.selected,
+      };
+  }
+}
 
-  const clear = useCallback(() => setSelected(new Set()), []);
+/**
+ * Row selection for a bulk bar.
+ *
+ * `resetOn`: pass the success half of the bulk action's state
+ * (`useSelection({ resetOn: state.ok })`). Each new truthy value - a new
+ * object from each completed action - clears the selection once, so the bar
+ * closes after a bulk action and the next one starts from nothing.
+ *
+ * This replaces an effect each list carried, keyed on `[state, selection]`
+ * with a "dedupe" key built from `Date.now()`. The selection object changes
+ * on every tick and the key never matched, so after the first successful
+ * bulk action every new tick was wiped at once: bulk worked once per page
+ * load. The reset is now decided while rendering, by identity, in one place.
+ */
+export function useSelection(options: { resetOn?: unknown } = {}): Selection {
+  const { resetOn } = options;
+  const [state, dispatch] = useReducer(
+    selectionReducer,
+    resetOn,
+    (initial): SelectionState => ({ selected: new Set(), resetOn: initial }),
+  );
 
+  // React's "adjust state when a prop changes" pattern: a render-phase
+  // update on this component's own reducer, applied before anything paints.
+  if (!Object.is(resetOn, state.resetOn)) {
+    dispatch({ type: "result", resetOn });
+  }
+
+  const { selected } = state;
   return useMemo(
     () => ({
       selected,
       has: (id: string) => selected.has(id),
-      toggle,
-      set,
-      clear,
+      toggle: (id: string) => dispatch({ type: "toggle", id }),
+      set: (ids: string[]) => dispatch({ type: "set", ids }),
+      clear: () => dispatch({ type: "clear" }),
       count: selected.size,
       ids: Array.from(selected),
     }),
-    [selected, toggle, set, clear],
+    [selected],
   );
 }
 
@@ -120,9 +171,14 @@ export interface BulkActionBarProps {
 }
 
 /**
- * Sticky bottom bar that slides in when at least one row is selected.
+ * Bottom bar that appears when at least one row is selected.
  * Hosts the action buttons / parametric selects supplied by the parent.
  * All actions submit to a single server action via the wrapping form.
+ *
+ * Fixed to the viewport, not `sticky`: every list wraps only this bar in its
+ * form, and a sticky element cannot leave its parent, so the "sticky" bar sat
+ * below the last row - an operator ticking rows at the top of a 100-order
+ * page never saw it. The spacer keeps the last rows reachable above it.
  */
 export function BulkActionBar({
   selection,
@@ -132,31 +188,40 @@ export function BulkActionBar({
 }: BulkActionBarProps) {
   if (selection.count === 0) return null;
   return (
-    <div className="sticky bottom-4 z-30 mt-4">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--admin-border)] bg-white/95 px-5 py-3 shadow-lg backdrop-blur">
-        <div className="flex items-center gap-3">
-          <span
-            className="rounded-full bg-[var(--admin-primary)] px-3 py-1 text-xs font-medium text-white"
-            style={{ fontFamily: "var(--mono), monospace" }}
-          >
-            {selection.count} seçili
-          </span>
-          <button
-            type="button"
-            onClick={selection.clear}
-            className="text-xs text-neutral-500 underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
-          >
-            Seçimi temizle
-          </button>
-          {message && (
-            <span className="text-xs text-neutral-600">{message}</span>
-          )}
-          {pending && (
-            <span className="text-xs text-neutral-500">İşleniyor…</span>
-          )}
+    <>
+      <div aria-hidden="true" className="h-32 sm:h-24" />
+      {/* data-admin-bulk-bar lifts the toast stack above this bar (ui/toast.tsx). */}
+      <div
+        data-admin-bulk-bar=""
+        role="region"
+        aria-label="Toplu işlem"
+        className="fixed inset-x-4 bottom-4 z-30 lg:left-[calc(16rem+1rem)]"
+      >
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--admin-border)] bg-white/95 px-5 py-3 shadow-lg backdrop-blur">
+          <div className="flex items-center gap-3">
+            <span
+              className="rounded-full bg-[var(--admin-primary)] px-3 py-1 text-xs font-medium text-white"
+              style={{ fontFamily: "var(--mono), monospace" }}
+            >
+              {selection.count} seçili
+            </span>
+            <button
+              type="button"
+              onClick={selection.clear}
+              className="text-xs text-neutral-500 underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+            >
+              Seçimi temizle
+            </button>
+            {message && (
+              <span className="text-xs text-neutral-600">{message}</span>
+            )}
+            {pending && (
+              <span className="text-xs text-neutral-500">İşleniyor…</span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">{children}</div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">{children}</div>
       </div>
-    </div>
+    </>
   );
 }

@@ -27,18 +27,16 @@ import {
 } from "./bulk";
 import { formatDateTime, formatTRY } from "./forms";
 import { OrderChannelBadges } from "./order-badges";
+import { OrderStatusBadge } from "./ui/badge";
 
 interface Props {
   orders: AdminOrder[];
-  /** Every status, for the badge label. */
-  statusOptions: Array<[AdminOrderStatus, string]>;
   /**
-   * The subset the bulk tool may set. Narrower than `statusOptions`: the
+   * The subset the bulk tool may set. Narrower than every status: the
    * dropdown used to offer `paid` and `refunded`, which the store refuses
    * because neither writes the ledger row that moves the money.
    */
   bulkStatusOptions: Array<[AdminOrderStatus, string]>;
-  statusTone: Record<AdminOrderStatus, string>;
   /**
    * Every order in the table. The list is paged (WP1), so `orders.length` is
    * only this page; omitted, the line counts the page as before.
@@ -107,19 +105,17 @@ function writeSoundPref(next: boolean): void {
 
 export function OrdersList({
   orders,
-  statusOptions,
   bulkStatusOptions,
-  statusTone,
   total,
   live = true,
 }: Props) {
-  const selection = useSelection();
   const router = useRouter();
   const [state, formAction, pending] = useActionState(
     bulkOrdersAction,
     initialBulkState,
   );
-  const lastFlash = useRef<string>("");
+  // A completed bulk action closes the bar once (bulk.tsx useSelection).
+  const selection = useSelection({ resetOn: state.ok });
 
   // The newest order on screen. Everything the poll reports is counted
   // strictly above it, so the answer is "how many has this page not seen".
@@ -199,16 +195,6 @@ export function OrdersList({
     if (next) beep(true);
   }, []);
 
-  useEffect(() => {
-    if (state.ok && state.ok.updated >= 0) {
-      const flashKey = `${state.ok.op}:${state.ok.updated}:${Date.now()}`;
-      if (flashKey !== lastFlash.current) {
-        lastFlash.current = flashKey;
-        selection.clear();
-      }
-    }
-  }, [state, selection]);
-
   const ids = orders.map((o) => o.id);
   const idsCsv = selection.ids.join(",");
   // The skipped count is the whole point of naming it: the machine refuses an
@@ -287,9 +273,6 @@ export function OrdersList({
 
       <div className="flex flex-col gap-4">
         {orders.map((o) => {
-          const statusLabel =
-            statusOptions.find(([k]) => k === o.status)?.[1] ?? o.status;
-          const tone = statusTone[o.status];
           const isSelected = selection.has(o.id);
           const isNew = markAfter !== null && o.orderNo > markAfter;
           return (
@@ -320,11 +303,7 @@ export function OrdersList({
                       >
                         #{o.orderNo}
                       </span>
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] tracking-[0.18em] uppercase ${tone}`}
-                      >
-                        {statusLabel}
-                      </span>
+                      <OrderStatusBadge order={o} />
                       {isNew && (
                         <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] tracking-[0.18em] text-amber-800 uppercase">
                           Yeni

@@ -573,21 +573,99 @@ export async function listReservationDecisions(
 
 // ─── Admin ─────────────────────────────────────────────────────────────────
 
-/** Every reservation from `fromDate` on (default: today), soonest first. */
+/**
+ * The panel's columns: everything but `legalConsent` (the buyer's IP and
+ * browser), which only the booking's own page reads.
+ */
+const ADMIN_LIST_COLUMNS = [
+  "id",
+  "customerEmail",
+  "customerName",
+  "date",
+  "startHour",
+  "hours",
+  "guests",
+  "status",
+  "priceMinor",
+  "discountMinor",
+  "totalMinor",
+  "note",
+  "createdAt",
+  "updatedAt",
+  "contactEmail",
+  "contactPhone",
+  "contactConsentAt",
+  "paymentStatus",
+  "paymentDueAt",
+  "paidAt",
+  "refundedAt",
+  "paidMinor",
+  "paymentRef",
+  "channel",
+  "guest",
+].join(", ");
+
+/** Rows one panel read returns at most; the page says so when it is hit. */
+export const KARAOKE_ADMIN_LIST_LIMIT = 5000;
+
+/**
+ * The panel's list: every reservation (or those between `from` and `to`,
+ * both YYYY-MM-DD and inclusive), newest day first. One room booked by the
+ * hour is a few thousand rows a year, so the panel sorts, searches and
+ * counts its tabs in memory; the date range is the one filter the database
+ * applies (`karaoke_reservations_date_idx`).
+ */
 export async function listReservationsForAdmin(
-  fromDate?: string,
+  opts: { from?: string; to?: string; limit?: number } = {},
 ): Promise<KaraokeReservation[]> {
-  const from = fromDate ?? istanbulClock(new Date()).date;
-  const sb = getDb();
+  let q = getDb().from(TABLES.karaokeReservations).select(ADMIN_LIST_COLUMNS);
+  if (opts.from) q = q.gte("date", opts.from);
+  if (opts.to) q = q.lt("date", nextDay(opts.to));
   return rows<KaraokeReservation>(
-    await sb
-      .from(TABLES.karaokeReservations)
-      .select("*")
-      .gte("date", from)
-      .order("date", { ascending: true })
-      .order("startHour", { ascending: true }),
+    await q
+      .order("date", { ascending: false })
+      .order("startHour", { ascending: false })
+      .limit(opts.limit ?? KARAOKE_ADMIN_LIST_LIMIT),
     "karaoke.listReservationsForAdmin",
   );
+}
+
+/** The day after a YYYY-MM-DD, as YYYY-MM-DD (for an inclusive upper bound). */
+function nextDay(date: string): string {
+  const [y, m, d] = date.split("-").map((s) => parseInt(s, 10));
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}
+
+/** One day's bookings, earliest first (the nav badge, the dashboard). */
+export async function listReservationsForDate(
+  date: string,
+): Promise<KaraokeReservation[]> {
+  return listByDate(date);
+}
+
+/**
+ * Money the köşk owes back, whatever the day: a refund whose answer never
+ * came (`refunding`), and a cancelled booking that is still `paid`. Both are
+ * small sets; the dashboard shows them so they do not wait for someone to
+ * open the karaoke page.
+ */
+export async function listKaraokeRefundsOwed(): Promise<KaraokeReservation[]> {
+  const db = getDb();
+  const [refunding, held] = await Promise.all([
+    db
+      .from(TABLES.karaokeReservations)
+      .select(ADMIN_LIST_COLUMNS)
+      .eq("paymentStatus", "refunding"),
+    db
+      .from(TABLES.karaokeReservations)
+      .select(ADMIN_LIST_COLUMNS)
+      .eq("paymentStatus", "paid")
+      .eq("status", "cancelled"),
+  ]);
+  return [
+    ...rows<KaraokeReservation>(refunding, "karaoke.listKaraokeRefundsOwed"),
+    ...rows<KaraokeReservation>(held, "karaoke.listKaraokeRefundsOwed"),
+  ];
 }
 
 export async function getReservation(

@@ -1,15 +1,23 @@
 import Link from "next/link";
 
 import { Card, PageHeader, formatTRY } from "@/components/admin/forms";
+import { KaraokeTodayCard } from "@/components/admin/karaoke-today-card";
+import { OrderStatusBadge } from "@/components/admin/ui/badge";
 import { requireRole } from "@/lib/admin/auth";
+import { karaokeRowViews } from "@/lib/admin/karaoke-panel";
 import { canAccess } from "@/lib/admin/roles";
 import {
   getDashboardStats,
   getSettings,
   listRecentOrders,
-  type AdminOrderStatus,
 } from "@/lib/admin/store";
 import { emailHealth } from "@/lib/email/health";
+import {
+  listKaraokeRefundsOwed,
+  listReservationsForDate,
+  type KaraokeReservation,
+} from "@/lib/mobile/karaoke";
+import { istanbulClock } from "@/lib/mobile/venue";
 
 export const metadata = { title: "Admin · Genel Bakış" };
 export const dynamic = "force-dynamic";
@@ -18,32 +26,32 @@ interface PageProps {
   searchParams: Promise<{ denied?: string }>;
 }
 
-const ORDER_STATUS_LABEL: Record<AdminOrderStatus, string> = {
-  pending_payment: "Ödeme bekleniyor",
-  paid: "Ödendi",
-  preparing: "Hazırlanıyor",
-  shipped: "Kargoda",
-  completed: "Tamamlandı",
-  cancelled: "İptal",
-  refunded: "İade",
-};
-
-const ORDER_STATUS_TONE: Record<AdminOrderStatus, string> = {
-  pending_payment: "bg-amber-50 text-amber-700",
-  paid: "bg-blue-50 text-blue-700",
-  preparing: "bg-purple-50 text-purple-700",
-  shipped: "bg-indigo-50 text-indigo-700",
-  completed: "bg-green-50 text-green-700",
-  cancelled: "bg-neutral-100 text-neutral-500",
-  refunded: "bg-rose-50 text-rose-700",
-};
-
 function turkishGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 6) return "İyi geceler";
   if (hour < 12) return "Günaydın";
   if (hour < 18) return "İyi günler";
   return "İyi akşamlar";
+}
+
+/**
+ * Today's karaoke rows and the refunds still owed, or nulls when they could
+ * not be read: the card says so and the rest of the dashboard stands.
+ */
+async function readKaraoke(today: string): Promise<{
+  today: KaraokeReservation[] | null;
+  owed: KaraokeReservation[] | null;
+}> {
+  try {
+    const [rows, owed] = await Promise.all([
+      listReservationsForDate(today),
+      listKaraokeRefundsOwed(),
+    ]);
+    return { today: rows, owed };
+  } catch (err) {
+    console.error("[admin] karaoke kartı okunamadı", err);
+    return { today: null, owed: null };
+  }
 }
 
 function todayLabel(): string {
@@ -57,14 +65,23 @@ function todayLabel(): string {
 export default async function AdminDashboardPage({ searchParams }: PageProps) {
   const session = await requireRole("dashboard");
   const sp = await searchParams;
-  const [stats, recent, settings, mail] = await Promise.all([
+  const now = new Date();
+  const showKaraoke = canAccess("karaoke", session.role);
+  const [stats, recent, settings, mail, karaoke] = await Promise.all([
     getDashboardStats(),
     // Five rows, read as five rows: this used to be every order in the
     // table, sliced here (WP1).
     listRecentOrders(5),
     getSettings(),
     emailHealth(),
+    showKaraoke ? readKaraoke(istanbulClock(now).date) : null,
   ]);
+  const karaokeCtx = {
+    today: istanbulClock(now).date,
+    now,
+    prepay: settings.karaokePrepay,
+    canRefund: canAccess("refunds", session.role),
+  };
 
   const userLabel = session.email.split("@")[0];
 
@@ -192,6 +209,20 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         ))}
       </div>
 
+      {karaoke ? (
+        <div className="mt-6">
+          <KaraokeTodayCard
+            today={
+              karaoke.today ? karaokeRowViews(karaoke.today, karaokeCtx) : null
+            }
+            owed={
+              karaoke.owed ? karaokeRowViews(karaoke.owed, karaokeCtx) : null
+            }
+            now={now}
+          />
+        </div>
+      ) : null}
+
       <div className="mt-10 grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
@@ -234,11 +265,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                         <div className="truncate text-xs text-neutral-700">
                           {o.customerName}
                         </div>
-                        <span
-                          className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ORDER_STATUS_TONE[o.status]}`}
-                        >
-                          {ORDER_STATUS_LABEL[o.status]}
-                        </span>
+                        <OrderStatusBadge order={o} className="mt-1" />
                       </div>
                       <div
                         className="shrink-0 text-right text-sm text-neutral-900"
@@ -280,11 +307,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                       </td>
                       <td className="text-neutral-700">{o.customerName}</td>
                       <td>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ORDER_STATUS_TONE[o.status]}`}
-                        >
-                          {ORDER_STATUS_LABEL[o.status]}
-                        </span>
+                        <OrderStatusBadge order={o} />
                       </td>
                       <td
                         className="text-right"
