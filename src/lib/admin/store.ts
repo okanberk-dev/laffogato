@@ -1090,6 +1090,14 @@ export interface ProductInput extends BackdropColumns {
    * follows them.
    */
   stockAtOpen?: number | null;
+  /**
+   * The opened form's own token (admin audit CAT-03). The same form saved
+   * again, after an answer that never arrived, does not move the stock
+   * twice: the save takes off what this token already applied
+   * (`product_form_saves`). Absent or null: every save is a change of its
+   * own, as for a form from before this field.
+   */
+  saveToken?: string | null;
 }
 
 /** A variant as the product form posts it: the stored shape plus its snapshot. */
@@ -1103,7 +1111,8 @@ export interface ProductVariantInput extends AdminProductVariant {
  * stock change typed in the form would take a count below zero (orders were
  * taken while it was open), or a variant would sell under 1 kuruş. Price,
  * variants and stock are then unchanged. `stockNow` is what is stored now,
- * so the form can measure the next change from it.
+ * less what this form's earlier saves moved, so the form can measure the
+ * next change from it.
  */
 export interface ProductStockRefusal {
   refusal: {
@@ -1166,7 +1175,7 @@ export async function createProduct(
     input.slug || slugify(input.name) || `urun-${seq}`,
   );
   const sku = input.sku || deriveSku(input.name, seq);
-  const { stockAtOpen: _snapshot, ...fields } = input;
+  const { stockAtOpen: _snapshot, saveToken: _token, ...fields } = input;
   const variants = fields.variants.map(storedVariant);
   const product: AdminProduct = {
     ...NO_BACKDROP,
@@ -1184,16 +1193,29 @@ export async function createProduct(
   return product;
 }
 
+/** What this form's earlier saves moved, as save_product_variants keeps it. */
+interface FormSaveApplied {
+  stock?: number;
+  variants?: Record<string, number>;
+}
+
 /** What save_product_variants answers (see its migration). */
 type SaveVariantsAnswer =
   | { error: "product" }
-  | { error: "floor"; variant: string }
+  | {
+      error: "floor";
+      variant: string;
+      stock?: number;
+      variants?: unknown;
+      applied?: FormSaveApplied;
+    }
   | {
       error: "negative";
       variant?: string;
       variantId?: string;
       stock: number;
       variants: unknown;
+      applied?: FormSaveApplied;
     }
   | {
       error?: undefined;
@@ -1205,6 +1227,31 @@ type SaveVariantsAnswer =
 
 /** The note on the stock moves a product form save writes. */
 export const PRODUCT_FORM_STOCK_NOTE = "Ürün formu";
+
+/**
+ * The counts a refused form measures its next change from: the stored ones
+ * less what the same form's earlier saves already moved. A form whose
+ * answer was lost moved the stock once; measured from the stored count, its
+ * next save would move it again.
+ */
+function formStockBasis(
+  stored: { stock: number; variants: unknown },
+  applied: FormSaveApplied | undefined,
+): { stock: number; variants: Record<string, number> } {
+  const moved = applied?.variants ?? {};
+  const variants = variantStockMap(stored.variants);
+  let stock = (Number(stored.stock) || 0) - (Number(applied?.stock) || 0);
+  if (Array.isArray(stored.variants)) {
+    for (const v of stored.variants as Array<Partial<AdminProductVariant>>) {
+      if (typeof v?.id !== "string") continue;
+      const by = Number(moved[v.id]) || 0;
+      variants[v.id] -= by;
+      // The total moved with an active variant.
+      if (v.isActive === true) stock -= by;
+    }
+  }
+  return { stock, variants };
+}
 
 export async function updateProduct(
   id: string,
@@ -1224,6 +1271,7 @@ export async function updateProduct(
     variants: _variants,
     priceMinor: _price,
     stockAtOpen,
+    saveToken,
     ...rest
   } = input;
   const fields = {
@@ -1240,9 +1288,10 @@ export async function updateProduct(
   // Everything but price, variants and stock first. Those three are written
   // together below, under the row lock, and only as changes since the form
   // was opened (admin audit CAT-03): the form used to write the stock it had
-  // read when it opened over every order taken since. Written in this order
-  // so a retry after a failure cannot apply a stock change twice. An absent
-  // key (taxRatePct) keeps the stored value.
+  // read when it opened over every order taken since. A save of the same
+  // form sent again (its answer lost after the write) moves the stock once:
+  // the form's token tells the SQL what it already applied. An absent key
+  // (taxRatePct) keeps the stored value.
   const patch = Object.fromEntries(
     Object.entries(fields).filter(([, value]) => value !== undefined),
   );
@@ -1276,6 +1325,7 @@ export async function updateProduct(
     p_note: PRODUCT_FORM_STOCK_NOTE,
     p_actor: actor,
     p_now: fields.updatedAt,
+    p_save_token: saveToken ?? null,
   });
   if (res.error) raiseDbError("updateProduct.stock", res.error, res.status);
   const answer = res.data as SaveVariantsAnswer;
@@ -1287,23 +1337,27 @@ export async function updateProduct(
       refusal: {
         field: "variants",
         message: `"${answer.variant}" varyantının fiyatı (satış fiyatı + fark) en az 0,01 TL olmalı.`,
-        stockNow: {
-          stock: existing.stock,
-          variants: variantStockMap(existing.variants),
-        },
+        stockNow: formStockBasis(
+          answer.stock === undefined
+            ? existing
+            : { stock: answer.stock, variants: answer.variants },
+          answer.applied,
+        ),
       },
     };
   }
   if (answer.error === "negative") {
-    const stockNow = {
+    // The message names the count as it stands; the form gets the basis.
+    const stored = {
       stock: Number(answer.stock) || 0,
       variants: variantStockMap(answer.variants),
     };
+    const stockNow = formStockBasis(answer, answer.applied);
     const name = answer.variant;
     const now =
       name && answer.variantId !== undefined
-        ? (stockNow.variants[answer.variantId] ?? 0)
-        : stockNow.stock;
+        ? (stored.variants[answer.variantId] ?? 0)
+        : stored.stock;
     return {
       refusal: {
         field: name ? "variants" : "stock",

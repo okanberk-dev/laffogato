@@ -259,6 +259,63 @@ describe("CAT-03: the product form moves stock by the change since it opened", (
     rpcAnswer = { error: "product" };
     expect(await store.updateProduct("prd-0007", input())).toBeNull();
   });
+
+  it("hands the form's token to the SQL, never to the row", async () => {
+    await store.updateProduct(
+      "prd-0007",
+      input({ stock: 60, stockAtOpen: 10, saveToken: "f3a1c2d4-tok" }),
+    );
+    expect(rpcCall("save_product_variants")).toMatchObject({
+      p_stock_delta: 50,
+      p_save_token: "f3a1c2d4-tok",
+    });
+    expect(updates()[0]).not.toMatch(/saveToken/);
+    seen.length = 0;
+    await store.updateProduct("prd-0007", input({ stock: 60, stockAtOpen: 10 }));
+    expect(rpcCall("save_product_variants")).toMatchObject({ p_save_token: null });
+  });
+
+  it("a refusal on a form that already moved the stock measures from before it", async () => {
+    // This form restocked 250 g by 50 and its answer was lost; 58 sold since.
+    rpcAnswer = {
+      error: "negative",
+      variant: "250 g",
+      variantId: "var-1",
+      stock: 3,
+      variants: [
+        { id: "var-1", name: "250 g", stock: 2, isActive: true },
+        { id: "var-2", name: "1 kg", stock: 1, isActive: false },
+      ],
+      applied: { stock: 0, variants: { "var-1": 50, "var-2": 4 } },
+    };
+    const saved = await store.updateProduct(
+      "prd-0007",
+      input({
+        saveToken: "f3a1c2d4-tok",
+        variants: [
+          { id: "var-1", name: "250 g", priceDeltaMinor: 0, stock: 5, sku: "", isActive: true, stockAtOpen: 10 },
+          { id: "var-2", name: "1 kg", priceDeltaMinor: 0, stock: 5, sku: "", isActive: false, stockAtOpen: 1 },
+        ],
+      }),
+    );
+    expect(saved).toMatchObject({
+      refusal: {
+        field: "variants",
+        // What is there now, as the operator counts it...
+        message: expect.stringContaining('"250 g" stoğu bu arada değişti, şu an 2 adet'),
+        // ...and what the form measures from: less what it moved. The
+        // total moved with the active variant only.
+        stockNow: { stock: 3 - 50, variants: { "var-1": 2 - 50, "var-2": 1 - 4 } },
+      },
+    });
+  });
+
+  it("a new product never writes the token as a column", async () => {
+    await store.createProduct(input({ saveToken: "f3a1c2d4-tok", stockAtOpen: null }));
+    const insert = seen.find((q) => /^INSERT INTO "products"/.test(q.text));
+    expect(insert?.text).toBeDefined();
+    expect(insert!.text).not.toMatch(/saveToken|stockAtOpen/);
+  });
 });
 
 describe("CAT-14: product and variant stock in step", () => {
@@ -408,7 +465,11 @@ describe("the pure halves", () => {
     expect(parseStockSnapshot("12")).toBe(12);
     expect(parseStockSnapshot(" 0 ")).toBe(0);
     expect(parseStockSnapshot(3)).toBe(3);
-    for (const bad of [undefined, null, "", "-1", "1.5", "on iki", 2.5, -1]) {
+    // Below 0 only as the basis a refusal hands a form that already moved
+    // the stock (formStockBasis): stored 2, restocked 50 by this form.
+    expect(parseStockSnapshot("-48")).toBe(-48);
+    expect(parseStockSnapshot(-48)).toBe(-48);
+    for (const bad of [undefined, null, "", "1.5", "on iki", "1e3", "12345678901", 2.5]) {
       expect(parseStockSnapshot(bad), String(bad)).toBeNull();
     }
     const parsed = productFormSchema.parse({

@@ -5331,7 +5331,8 @@ insert into public._migrations (name) values ('20261017173100_pickup_ready_minut
 --                           delta when the variant is active.
 --   save_product_variants   the product form's save of price, variants and
 --                           stock. Each variant moves by its change since the
---                           form was opened, never to the opened value.
+--                           form was opened, never to the opened value, and
+--                           once per form (product_form_saves).
 --   adjust_product_stock    now refuses (-3) a product with variants: its
 --                           total follows the variants, it is not set alone.
 -- Every change writes its stock move in the same transaction.
@@ -5493,6 +5494,22 @@ begin
 end;
 $$;
 
+-- ── product_form_saves ────────────────────────────────────────────────────
+-- What each opened product form has already moved. The form posts a token
+-- of its own with every save, and save_product_variants applies a change
+-- less what the same token has applied: the same form saved again after an
+-- answer that never arrived (a dropped connection, an error after the
+-- write) does not move the stock twice, and a count changed again moves by
+-- the difference. One row per form and product, kept for two days.
+create table if not exists public.product_form_saves (
+  "productId" text  not null,
+  token       text  not null,
+  applied     jsonb not null default '{}'::jsonb,
+  "createdAt" text  not null default '',
+  primary key ("productId", token)
+);
+alter table public.product_form_saves enable row level security;
+
 -- ── save_product_variants ─────────────────────────────────────────────────
 -- The product form's save of what has to stay together: the sale price, the
 -- variant list and the stock. p_variants is the form's list:
@@ -5503,6 +5520,8 @@ $$;
 -- units. p_stock_delta is the change to the product's own stock, used only
 -- when the list is empty. The total of a product with variants follows them
 -- (see the header); a product getting its first variants takes their sum.
+-- With p_save_token, what earlier saves of the same form applied
+-- (product_form_saves) is taken off each change first.
 --
 -- Every stock change is written as a stock move: one per variant whose
 -- stock changed ("Ürün · Varyant", stockAfter = its new stock), and one for
@@ -5512,14 +5531,21 @@ $$;
 --
 -- Nothing is written when anything is refused. Returns
 --   {"error": "product"}                                 the row is gone,
---   {"error": "floor", "variant": name}                  a variant would sell
+--   {"error": "floor", "variant": name, "stock", "variants", "applied"}
+--                                                        a variant would sell
 --                                                        under 1 kuruş,
---   {"error": "negative", "variant"?, "variantId"?, "stock", "variants"}
---                                                        a count would go
---                                                        below zero; "stock"
---                                                        and "variants" are the
---                                                        stored ones now,
+--   {"error": "negative", "variant"?, "variantId"?, "stock", "variants",
+--    "applied"}                                          a count would go
+--                                                        below zero;
+--   "stock" and "variants" are the stored ones now, "applied" what this
+--   form's earlier saves moved ({"stock": n, "variants": {id: n}}),
 --   {"stockBefore", "stockAfter", "variants", "moves"}   saved.
+--
+-- The signature without the token came first in this file; it is dropped
+-- so a call by name cannot find two.
+drop function if exists public.save_product_variants(
+  text, integer, jsonb, integer, text, text, text
+);
 create or replace function public.save_product_variants(
   p_product_id  text,
   p_price_minor int,
@@ -5527,7 +5553,8 @@ create or replace function public.save_product_variants(
   p_stock_delta int,
   p_note        text,
   p_actor       text,
-  p_now         text
+  p_now         text,
+  p_save_token  text default null
 )
 returns jsonb
 language plpgsql
@@ -5537,6 +5564,8 @@ declare
   cur_variants jsonb;
   cur_total    int;
   prod_name    text;
+  prior        jsonb;
+  requested    jsonb := '{}'::jsonb;
   inc          jsonb;
   hit          jsonb;
   before_stock int;
@@ -5558,11 +5587,25 @@ begin
     return jsonb_build_object('error', 'product');
   end if;
 
+  -- Under the product's lock, like every save of it.
+  if p_save_token is not null then
+    select s.applied into prior
+      from public.product_form_saves as s
+     where s."productId" = p_product_id
+       and s.token = p_save_token;
+  end if;
+  prior := coalesce(prior, '{}'::jsonb);
+
   for inc in
     select value from jsonb_array_elements(public.product_variant_list(p_variants))
   loop
     if p_price_minor + coalesce((inc ->> 'priceDeltaMinor')::int, 0) < 1 then
-      return jsonb_build_object('error', 'floor', 'variant', coalesce(inc ->> 'name', ''));
+      return jsonb_build_object(
+        'error', 'floor',
+        'variant', coalesce(inc ->> 'name', ''),
+        'stock', cur_total,
+        'variants', cur_variants,
+        'applied', prior);
     end if;
     inc_active := coalesce((inc ->> 'isActive')::boolean, false);
     hit := null;
@@ -5575,14 +5618,19 @@ begin
       next_stock := greatest(0, coalesce((inc ->> 'initialStock')::int, 0));
     else
       before_stock := greatest(0, coalesce((hit ->> 'stock')::int, 0));
-      next_stock := before_stock + coalesce((inc ->> 'stockDelta')::int, 0);
+      requested := requested || jsonb_build_object(
+        inc ->> 'id', coalesce((inc ->> 'stockDelta')::int, 0));
+      next_stock := before_stock
+        + coalesce((inc ->> 'stockDelta')::int, 0)
+        - coalesce((prior -> 'variants' ->> (inc ->> 'id'))::int, 0);
       if next_stock < 0 then
         return jsonb_build_object(
           'error', 'negative',
           'variant', coalesce(inc ->> 'name', ''),
           'variantId', inc ->> 'id',
           'stock', cur_total,
-          'variants', cur_variants);
+          'variants', cur_variants,
+          'applied', prior);
       end if;
     end if;
     next_list := next_list || jsonb_build_array(jsonb_build_object(
@@ -5622,10 +5670,13 @@ begin
 
   if jsonb_array_length(next_list) = 0 then
     -- No variants (any more): the product's own count, moved by the form.
-    next_total := cur_total + coalesce(p_stock_delta, 0);
+    next_total := cur_total
+      + coalesce(p_stock_delta, 0)
+      - coalesce((prior ->> 'stock')::int, 0);
     if next_total < 0 then
       return jsonb_build_object(
-        'error', 'negative', 'stock', cur_total, 'variants', cur_variants);
+        'error', 'negative', 'stock', cur_total, 'variants', cur_variants,
+        'applied', prior);
     end if;
   elsif jsonb_array_length(cur_variants) = 0 then
     next_total := public.variant_stock_total(next_list);
@@ -5673,6 +5724,22 @@ begin
       p_actor,
       p_now);
     moves := moves + 1;
+  end if;
+
+  if p_save_token is not null then
+    -- This form has now moved each count by what it asked for in all.
+    insert into public.product_form_saves as s ("productId", token, applied, "createdAt")
+    values (
+      p_product_id,
+      p_save_token,
+      jsonb_build_object('stock', coalesce(p_stock_delta, 0), 'variants', requested),
+      p_now)
+    on conflict ("productId", token) do update set applied = excluded.applied;
+    delete from public.product_form_saves as s
+     where s."productId" = p_product_id
+       and s."createdAt" < to_char(
+             (now() - interval '2 days') at time zone 'UTC',
+             'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
   end if;
 
   return jsonb_build_object(

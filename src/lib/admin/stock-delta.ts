@@ -84,13 +84,15 @@ export function splitStockTarget(raw: string): {
  * A stock count the form read when it was opened (admin audit CAT-03), or
  * null when it posts none: a new product, a new variant row, a form from
  * before the field. The save moves stock by the difference from this, so
- * only a whole number of 0 or more counts.
+ * only a whole number counts. It is below 0 only when a refusal handed the
+ * form a basis net of what its earlier saves moved (a restock of 50 whose
+ * answer was lost, then 58 sold: stored 2, basis 2 - 50).
  */
 export function parseStockSnapshot(raw: unknown): number | null {
   if (typeof raw === "number") {
-    return Number.isInteger(raw) && raw >= 0 ? raw : null;
+    return Number.isSafeInteger(raw) ? raw : null;
   }
-  if (typeof raw !== "string" || !/^\d+$/.test(raw.trim())) return null;
+  if (typeof raw !== "string" || !/^-?\d{1,9}$/.test(raw.trim())) return null;
   return Number(raw.trim());
 }
 

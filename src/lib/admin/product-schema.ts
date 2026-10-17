@@ -219,6 +219,17 @@ export { parseStockSnapshot };
 
 const stockSnapshot = z.string().optional().transform(parseStockSnapshot);
 
+/**
+ * The opened form's own token (admin audit CAT-03): a save of the same form
+ * sent again moves the stock once (`product_form_saves`). Anything that is
+ * not one reads as none, and that save is a change of its own.
+ */
+export function parseSaveToken(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const token = raw.trim();
+  return /^[A-Za-z0-9-]{8,64}$/.test(token) ? token : null;
+}
+
 const MAX_IMAGES = 8;
 /**
  * The stored data URL's length cap. The uploader downscales until a photo
@@ -377,6 +388,7 @@ export const productFormSchema = z
     cost: moneyToMinor.optional(),
     stock: intInput,
     stockAtOpen: stockSnapshot,
+    saveToken: z.string().optional().transform(parseSaveToken),
     lowStockThreshold: intInput,
     weightGrams: intInput,
     taxRatePct: taxRateInput,
@@ -420,6 +432,7 @@ export const productFormSchema = z
     costMinor: v.cost ?? 0,
     stock: v.stock,
     stockAtOpen: v.stockAtOpen,
+    saveToken: v.saveToken,
     lowStockThreshold: v.lowStockThreshold,
     weightGrams: v.weightGrams,
     taxRatePct: v.taxRatePct ?? null,

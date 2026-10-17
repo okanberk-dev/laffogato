@@ -104,6 +104,7 @@ export const FIELD_STEP: Readonly<Record<string, number>> = {
   sku: 2,
   stock: 2,
   stockAtOpen: 2,
+  saveToken: 2,
   lowStockThreshold: 2,
   weightGrams: 2,
   taxRatePct: 2,
@@ -210,6 +211,13 @@ interface VariantRow {
   isActive: boolean;
 }
 
+/** A token for one opened product form (see `saveToken` in the wizard). */
+export function newSaveToken(): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) return uuid;
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 function variantToRow(v: AdminProductVariant): VariantRow {
   return {
     id: v.id,
@@ -278,11 +286,19 @@ export function ProductWizard({
     Object.fromEntries((product?.variants ?? []).map((v) => [v.id, v.stock])),
   );
 
+  /* One token for every save of this opened form: when an answer is lost
+     after the write (a dropped connection) and the operator saves again,
+     the stock moves once (product_form_saves). Made at the first save, not
+     in render, so the server markup and the browser agree. */
+  const saveToken = useRef<string | null>(null);
+
   const save = withPanelCatch<ProductActionState>(action, () => ({
     error: PANEL_ACTION_FAILED,
   }));
   const [state, formAction, pending] = useActionState(
     async (prev: ProductActionState, formData: FormData) => {
+      saveToken.current ??= newSaveToken();
+      formData.set("saveToken", saveToken.current);
       const next = await save(prev, formData);
       if (next.stockNow) {
         // Read back from what was posted, not from state that may have

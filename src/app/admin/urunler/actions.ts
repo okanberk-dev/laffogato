@@ -8,7 +8,7 @@ import {
   actionOk,
   type ActionResult,
 } from "@/lib/admin/action-result";
-import { logAudit } from "@/lib/admin/audit";
+import { logAudit, safeAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { bulkProductSchema } from "@/lib/admin/bulk-schema";
 import { setAdminFlash } from "@/lib/admin/flash";
@@ -62,6 +62,7 @@ function toInput(parsed: ParsedProduct) {
     notes: parsed.notes,
     stock: parsed.stock,
     stockAtOpen: parsed.stockAtOpen,
+    saveToken: parsed.saveToken,
     lowStockThreshold: parsed.lowStockThreshold,
     weightGrams: parsed.weightGrams,
     taxRatePct: parsed.taxRatePct,
@@ -178,8 +179,10 @@ export async function updateProductAction(
   if (!saved) return { error: PRODUCT_GONE_ERROR };
   // The stock typed would go below zero (orders came in while the form was
   // open): price, variants and stock stay as stored, the rest is written.
+  // The audit rows below come after the write: a failed one must not turn
+  // the answer into an error the operator saves again over (safeAudit).
   if ("refusal" in saved) {
-    await logAudit({
+    await safeAudit({
       action: "update",
       entity: "product",
       entityId: id,
@@ -196,7 +199,7 @@ export async function updateProductAction(
       stockNow: saved.refusal.stockNow,
     };
   }
-  await logAudit({
+  await safeAudit({
     action: "update",
     entity: "product",
     entityId: id,

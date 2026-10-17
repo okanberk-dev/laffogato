@@ -52,6 +52,7 @@ const SOLD = `prd-vs-sold-${RUN}`;
 const ORDERED = `prd-vs-ordered-${RUN}`;
 const ORDER = `ord-vs-${RUN}`;
 const TEA = `prd-vs-tea-${RUN}`;
+const GRINDER = `prd-vs-grinder-${RUN}`;
 
 const VARIANTS = [
   { id: "a", name: "250 g", priceDeltaMinor: 0, stock: 6, sku: "", isActive: true },
@@ -123,12 +124,15 @@ maybe("variant stock in a real Postgres", () => {
   afterAll(async () => {
     try {
       await pool?.query(`delete from public.stock_moves where "productId" = any($1)`, [
-        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA],
+        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA, GRINDER],
       ]);
       await pool?.query(`delete from public.products where id = any($1)`, [
-        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA],
+        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA, GRINDER],
       ]);
       await pool?.query(`delete from public.orders where id = $1`, [ORDER]);
+      await pool?.query(`delete from public.product_form_saves where "productId" = any($1)`, [
+        [BEANS, MOKA, CUPS, SOLD, ORDERED, TEA, GRINDER],
+      ]);
     } finally {
       await pool?.end();
       pool = null;
@@ -304,6 +308,54 @@ maybe("variant stock in a real Postgres", () => {
     expect((await moves(TEA)).map((m) => [m.productName, m.delta])).toEqual([
       ["VS Cay · B", -4],
     ]);
+  });
+
+  it("the same form saved again after a lost answer moves the stock once (CAT-03)", async () => {
+    await pool!.query(
+      `insert into public.products (id, name, slug, "priceMinor", cat, stock, "isActive", variants)
+       values ($1, 'VS Degirmen', $2, 90000, 'gear', 10, true, '[]'::jsonb)`,
+      [GRINDER, `vs-degirmen-${RUN}`],
+    );
+    const opened = (await store.getProduct(GRINDER))!;
+    const token = `tok-${RUN}-grinder`;
+    const save = (typed: number, stockAtOpen = 10) =>
+      store.updateProduct(GRINDER, {
+        ...opened,
+        stock: typed,
+        stockAtOpen,
+        saveToken: token,
+      });
+    // Restocked 10 -> 60; the answer never reaches the browser, so the
+    // operator presses Kaydet again on the same form.
+    expect(await save(60)).toMatchObject({ stock: 60 });
+    expect(await save(60)).toMatchObject({ stock: 60 });
+    expect((await row(GRINDER)).stock).toBe(60);
+    // Changed again on the same form: only the difference moves.
+    expect(await save(70)).toMatchObject({ stock: 70 });
+    expect((await moves(GRINDER)).map((m) => m.delta)).toEqual([50, 10]);
+    // Another form (another token) is a change of its own.
+    expect(
+      await store.updateProduct(GRINDER, {
+        ...opened,
+        stock: 12,
+        stockAtOpen: 10,
+        saveToken: `tok-${RUN}-other`,
+      }),
+    ).toMatchObject({ stock: 72 });
+
+    // A refusal on a form that already moved the stock answers with the
+    // count to measure from: what is stored less what this form moved.
+    await pool!.query(`update public.products set stock = 2 where id = $1`, [GRINDER]);
+    const refused = await save(5);
+    expect(refused).toMatchObject({
+      refusal: {
+        field: "stock",
+        message: expect.stringContaining("şu an 2 adet"),
+        stockNow: { stock: 2 - 60 },
+      },
+    });
+    // The wizard's next save from there writes the 5 typed.
+    expect(await save(5, 2 - 60)).toMatchObject({ stock: 5 });
   });
 
   it("a product getting its first variants takes their sum, and the ledger explains it", async () => {
