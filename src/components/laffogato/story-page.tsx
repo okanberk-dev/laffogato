@@ -33,8 +33,8 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
 
   // Each card has its line icon: the köşk's door (the one bar), a cup with a
-  // leaf (the recipe and the milk), a speaker turned low, the refill tin, a
-  // slow clock, and a laptop shut for the day (people first).
+  // leaf (the recipe and the milk), a laptop asleep (no work after 18:00),
+  // the refill tin, a slow clock, and a barista's apron with a heart.
   const values: Array<{
     n: string;
     icon: IllustrationName;
@@ -55,7 +55,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
     },
     {
       n: "03",
-      icon: "ilke-hoparlor",
+      icon: "ilke-laptop",
       t: "Laptop yok, ses az",
       d: "Akşam 18:00’den sonra çalışma yok. Müzik 65dB üzerine çıkmaz. Bar, sohbet için.",
     },
@@ -73,7 +73,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
     },
     {
       n: "06",
-      icon: "ilke-laptop",
+      icon: "ilke-onluk",
       t: "Personel mutluluğu",
       d: "İlk yıl çalışan turnover’ı %0. Yıllık 6 hafta tatil, sigorta artı, Bologna ziyareti.",
     },

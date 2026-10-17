@@ -96,8 +96,8 @@ export const ILLUSTRATIONS = {
     width: 48,
     height: 48,
   },
-  "ilke-hoparlor": {
-    src: "/illustrations/ilke-hoparlor.svg",
+  "ilke-onluk": {
+    src: "/illustrations/ilke-onluk.svg",
     width: 48,
     height: 48,
   },

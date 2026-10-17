@@ -232,10 +232,10 @@ describe("how the pages show them", () => {
           "story-kupa",
           "ilke-kapi",
           "ilke-fincan",
-          "ilke-hoparlor",
+          "ilke-laptop",
           "ilke-teneke",
           "ilke-saat",
-          "ilke-laptop",
+          "ilke-onluk",
         ],
       ],
       ["src/components/laffogato/shop-page.tsx", ["magaza-teneke"]],
@@ -268,5 +268,21 @@ describe("how the pages show them", () => {
     expect(read("src/components/laffogato/menu-page.tsx")).not.toContain(
       "Illustration",
     );
+  });
+
+  it("gives each of the six principles the icon that says it", () => {
+    // "Laptop yok, ses az" is the laptop asleep; "Personel mutluluğu" the
+    // barista's apron (a shut laptop said nothing about the staff).
+    const story = read("src/components/laffogato/story-page.tsx");
+    const iconOf = (n: string) =>
+      new RegExp(`n: "${n}",\\s*icon: "([^"]+)"`).exec(story)?.[1];
+    expect(["01", "02", "03", "04", "05", "06"].map(iconOf)).toEqual([
+      "ilke-kapi",
+      "ilke-fincan",
+      "ilke-laptop",
+      "ilke-teneke",
+      "ilke-saat",
+      "ilke-onluk",
+    ]);
   });
 });
