@@ -177,6 +177,34 @@ describe("security headers", () => {
   });
 
   /**
+   * The files in public/ that are not content-hashed - brand art, venue and
+   * menu photos, the site's drawings - get a day in the browser and a week of
+   * background revalidation instead of a revalidation on every visit.
+   */
+  it("caches the brand art, photos and drawings for a day", async () => {
+    const rules = await nextConfig.headers!();
+    const cacheFor = (path: string) =>
+      rules
+        .filter((r) => matches(r.source, path))
+        .flatMap((r) => r.headers)
+        .filter((h) => h.key === "Cache-Control")
+        .map((h) => h.value);
+    for (const path of [
+      "/brand/laf-monogram.svg",
+      "/photos/kosk.webp",
+      "/menu/affogato.webp",
+      "/illustrations/spot-siparis.svg",
+      "/illustrations/karaoke-room.webp",
+    ]) {
+      expect(cacheFor(path), path).toEqual([
+        "public, max-age=86400, stale-while-revalidate=604800",
+      ]);
+    }
+    expect(cacheFor("/illustrations-x/a.svg")).toEqual([]);
+    expect(cacheFor("/kampanyalar")).toEqual([]);
+  });
+
+  /**
    * The pour widget is rebuilt in place under one name, so it gets an hour
    * (plus a day of background revalidation), not the day-long art rule - and
    * vercel.json must not serve a second, different Cache-Control for it.
