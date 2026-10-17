@@ -3676,6 +3676,61 @@ summary:focus-visible,
   border-color: var(--gold-soft);
   color: var(--gold-soft);
 }
+/* The stamp press (17 Eki 2026, the app's stamp-press): when the loyalty
+   block arrives, its two filled stamps land one after the other like a
+   rubber stamp - 1.3 → 1 on a stiff spring and one brass ring that widens
+   and fades, half a second each, once. Only on `.reveal`'s arrival (the
+   block was below the fold); under reduced motion they simply sit there. */
+.loyalty-block .stamp.filled {
+  position: relative;
+}
+.loyalty-block.will-reveal.is-in .stamp.filled {
+  animation: stamp-press 0.5s var(--ease-spring) 0.45s both;
+}
+.loyalty-block.will-reveal.is-in .stamp.filled::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--gold-soft);
+  pointer-events: none;
+  animation: stamp-ring 0.5s var(--ease-out) 0.6s both;
+}
+.loyalty-block.will-reveal.is-in .stamp.filled:nth-child(2) {
+  animation-delay: 0.8s;
+}
+.loyalty-block.will-reveal.is-in .stamp.filled:nth-child(2)::after {
+  animation-delay: 0.95s;
+}
+@keyframes stamp-press {
+  from {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes stamp-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loyalty-block .stamp.filled,
+  .loyalty-block .stamp.filled::after {
+    animation: none;
+  }
+}
 .loyalty-headline {
   margin-top: 18px;
   font-family: var(--headline);
