@@ -130,6 +130,20 @@ Bu adımlar avukat onayından **sonra**, ayrı bir PR'da yapılır.
 
 ## 3. R1 - Ödeme altyapısı: iyzico yerine PayNkolay
 
+> **Ek (15 Eki 2026) - kart akışı değişti.** Operatör kararıyla kart artık
+> PayNkolay'ın sayfasında değil, **sitenin kendi ödeme sayfasında** girilir;
+> sunucu onu aynı istekte yalnızca PayNkolay'a iletir, hiçbir yere yazmaz,
+> müşteri doğrudan bankanın 3D ekranına gider (`docs/PAYNKOLAY.md` §15).
+> Aşağıdaki önerilerde "kart bilgileri hiçbir aşamada Satıcı sunucularından
+> geçmez" anlamındaki her cümle bu yüzden **yanlış** olur. Önerilen karşılık:
+> "Kart numarası, son kullanma tarihi ve güvenlik kodu {{SITE}} üzerindeki
+> ödeme sayfasında girilir ve şifreli bağlantıyla yalnızca ödeme kuruluşu
+> PayNkolay'a (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.) iletilir;
+> Satıcı bu bilgileri kaydetmez, saklamaz ve kayıt sistemlerine yazmaz.
+> Ödeme, kartı veren bankanın 3D Secure ekranında onaylanır." PCI DSS
+> yükümlülüğünün kime ait olduğu cümleleri de buna göre gözden geçirilmeli.
+> iyzico 15 Eki 2026'da koddan tamamen kaldırıldı.
+
 ### 3.1 Neden
 
 Metinlerde 370 kez "iyzico", hiç "PayNkolay" geçmiyor. Sanal POS sağlayıcısı

@@ -249,20 +249,46 @@ export async function claimInvite(
  * The status flip is a guarded UPDATE (`pending` → `rewarded`), so a repeated
  * webhook - or two orders paid at the same moment - rewards exactly once.
  */
-/** A cafe order below this does not settle an invite (docs/REWARDS.md §2). */
+/**
+ * A cafe order whose GOODS come to less than this does not settle an invite
+ * (docs/REWARDS.md §2, docs/API-MOBILE.md §5). Goods only, never the courier
+ * fee (operator, 14 Eki 2026, W1-05): a ₺100 latte with a ₺55 courier is a
+ * ₺100 order, not a ₺155 one.
+ */
 export const INVITE_MIN_ORDER_MINOR = 15000;
+
+/**
+ * What the member paid for the goods: the total less the courier/shipping
+ * fee. The discount is already out of `totalMinor`, so a coupon that brings
+ * the goods under the minimum also keeps the invite pending.
+ */
+export function inviteQualifyingMinor(order: {
+  totalMinor: number;
+  shippingMinor: number;
+}): number {
+  return Math.max(
+    0,
+    Math.round(order.totalMinor) - Math.max(0, Math.round(order.shippingMinor)),
+  );
+}
 /** How many settled invites may reward one inviter, ever. */
 export const INVITE_REWARD_CAP = 5;
 
 export async function rewardInviteOnFirstPaidOrder(
   inviteeEmail: string,
-  order: { kind?: string; totalMinor: number; discountMinor?: number },
+  order: {
+    kind?: string;
+    totalMinor: number;
+    /** Courier or shipping fee inside `totalMinor`; never counts (W1-05). */
+    shippingMinor: number;
+    discountMinor?: number;
+  },
 ): Promise<boolean> {
   const invitee = normalizeEmail(inviteeEmail);
   if (!invitee) return false;
   // Only a paid cafe order of real size counts: a ₺25 pickup, or a shop
   // parcel, must not turn into two ₺280 drinks.
-  const paidMinor = order.totalMinor;
+  const paidMinor = inviteQualifyingMinor(order);
   if ((order.kind ?? "shop") !== "cafe" || paidMinor < INVITE_MIN_ORDER_MINOR) {
     return false;
   }

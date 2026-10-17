@@ -264,6 +264,14 @@ describe("eta and stamps", () => {
     expect(toMobileOrder(order({ status: "paid" }), NOW).stampsEarned).toBe(0);
   });
 
+  it("says how many stamps a multi-stamp order holds", () => {
+    // One stamp per started ₺320 from ₺140 (15 Eki 2026): the ledger's delta.
+    const counts = new Map([["ord-0284", 3]]);
+    expect(stampsEarnedFor(order({ status: "paid" }), counts)).toBe(3);
+    expect(toMobileOrder(order({ status: "paid" }), NOW, counts).stampsEarned).toBe(3);
+    expect(stampsEarnedFor(order({ status: "paid" }), new Map())).toBe(0);
+  });
+
   it("does not lend one order's stamp to another", () => {
     const other = new Set(["ord-0999"]);
     expect(stampsEarnedFor(order({ status: "paid" }), other)).toBe(0);

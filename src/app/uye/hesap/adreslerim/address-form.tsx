@@ -5,6 +5,8 @@ import { useActionState } from "react";
 
 import type { CustomerAddress } from "@/lib/customer/store";
 
+import { BusyDots } from "@/components/laffogato/busy-dots";
+
 import { createAddressAction, type AddressFormState } from "../../actions";
 
 const initial: AddressFormState = {};
@@ -147,9 +149,16 @@ export function AddressForm({
           type="submit"
           disabled={pending}
           className="btn btn-primary btn-sm"
-          style={{ opacity: pending ? 0.7 : 1 }}
+          aria-busy={pending}
         >
-          {pending ? "Kaydediliyor…" : submitLabel}
+          {pending ? (
+            <>
+              <BusyDots />
+              Kaydediliyor…
+            </>
+          ) : (
+            submitLabel
+          )}
         </button>
         <Link href="/uye/hesap/adreslerim" className="btn btn-ghost btn-sm">
           Vazgeç

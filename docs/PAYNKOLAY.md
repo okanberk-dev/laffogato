@@ -20,6 +20,11 @@ başlıkları aşağıda tek tek anılıyor.
 
 ## 0. Mimari uyum - neden bu sağlayıcı bizim modelimize oturuyor
 
+> **15 Eki 2026:** bu bölüm `hosted` modu anlatır. Üretimde `direct` mod
+> çalışır: kart sitenin kendi sayfasında girilir ve sunucudan
+> `/Vpos/v1/Payment`'a bir kez geçer (saklanmadan) - §15. "PAN sunucumuza
+> girmez" ve "PCI yüzeyimiz değişmez" cümleleri yalnız `hosted` için doğrudur.
+
 Barındırılan (hosted) form modeli: kart numarası, CVV ve son kullanma tarihi
 **PayNkolay'ın kendi sayfasında** girilir. Bizim tarafımızdan gönderilen
 alanların arasında kart alanı yoktur.
@@ -44,7 +49,8 @@ Uçlar
 | Test   | `https://paynkolaytest.nkolayislem.com.tr/Vpos` |
 | Üretim | `https://paynkolay.nkolayislem.com.tr/Vpos`     |
 
-Eski `v1/Payment` yolu güncel dokümanda geçmiyor; form doğrudan `/Vpos`'a
+(`direct` modun kullandığı `/Vpos/v1/Payment` §15'te.) Ortak ödeme sayfasının
+formu doğrudan `/Vpos`'a
 POST ediliyor.
 
 ---
@@ -144,18 +150,32 @@ canlı testte ölçülecek (§12).
 
 ## 2. İşlem doğrulama / sorgulama servisi
 
-**Durum: doğrulandı** (üretim ucu hariç). Kaynak:
+**Durum: doğrulandı** (üretim ucu dahil, 17 Eki 2026). Kaynak:
 [İşlem Doğrulama Servisi](https://paynkolay.com.tr/entegrasyon/10-verification-service.php).
 
 Doküman bu servisin amacını şöyle tarif ediyor: işlemin doğruluğunu ve paranın
 gerçekten çekilip çekilmediğini kontrol etmek. Bizim `confirmReturn`'ün
 dayanağı budur.
 
-|             |                                                                                                                                                                 |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Uç (test)   | `POST https://paynkolaytest.nkolayislem.com.tr/Vpos/Payment/PaymentList`                                                                                        |
-| Uç (üretim) | **doğrulanamadı** - doküman yazmıyor. Host değişimiyle `https://paynkolay.nkolayislem.com.tr/Vpos/Payment/PaymentList` olması beklenir; canlıda teyit edilecek. |
-| Gövde       | `multipart/form-data`                                                                                                                                           |
+|             |                                                                                                     |
+| ----------- | --------------------------------------------------------------------------------------------------- |
+| Uç (test)   | `POST https://paynkolaytest.nkolayislem.com.tr/Vpos/Payment/PaymentList`                            |
+| Uç (üretim) | `POST https://paynkolay.nkolayislem.com.tr/Vpos/Payment/PaymentList` - **doğrulandı** (17 Eki 2026) |
+| Gövde       | `multipart/form-data`                                                                               |
+
+**Sorun giderme (canlıda ölçüldü, 17 Eki 2026).** Anahtar hatası "kayıt yok"
+değildir; kod ikisini de hata sayar (kural 29) ve log satırı bakılacak
+değişkenin **adını** yazar, değerini değil (`paymentListKeyRefusal`):
+
+| `RESPONSE_DATA`                                | Bakılacak değişken               |
+| ---------------------------------------------- | -------------------------------- |
+| `"API : clientId veya token hatalı<clientId>"` | `PAYNKOLAY_SX_LIST` (liste sx'i) |
+| `"API : hashData error"`                       | `PAYNKOLAY_MERCHANT_SECRET_KEY`  |
+
+İlki işyerinin kimliğini geri bastığı için POS'un metni bu iki durumda loga
+yazılmaz. Anahtar reddi `ERROR_CODE: ""` ve `LIST: null` ile geldi; bu yüzden
+kodsuz bir yanıt yalnız metni yoksa ya da "kayıt bulunamadı" diyorsa boş liste
+sayılır, başka her metin hatadır (`paymentListRows`).
 
 İstek alanları:
 
@@ -595,9 +615,50 @@ sonucu buraya yazılacak:
     [43-error-codes](https://paynkolay.com.tr/entegrasyon/43-error-codes.php)
     POS hata kodlarını veriyor, servis yanıt kodlarını değil)
 
+### 12.1 Ölçüldü (15 Eki 2026)
+
+Canlı anahtarlar Vercel production'a girildi; para çekmeyen iki ölçüm yapıldı
+(canlı `PaymentList` ve sandbox'ta test kartıyla `/Vpos/v1/Payment`):
+
+- **§12/5 (kısmen):** canlı `PaymentList` ucu
+  `https://paynkolay.nkolayislem.com.tr/Vpos/Payment/PaymentList`. Anahtarlar
+  doğru: doğru sırla "Listelenecek kayıt bulunamadı", yanlış sırla
+  "API : hashData error".
+- **Yanıt biçimi:** `PaymentList` gövdesi
+  `{"id":"","result":{…,"LIST":[…]},"error":null}` - satırlar `result.LIST`
+  altında. Kayıt yoksa `LIST: null`, `ERROR_CODE: CORE0305`. Hash hatasında
+  `result` bir JSON **dizesi**. Kod eskiden yalnız en üst seviyede dizi
+  arıyordu; gerçek bir ödemede satırı bulamayıp ödemeyi reddederdi.
+  `unwrapPaynkolayResult` / `paymentListRows` düzeltti; hash hatası artık
+  "ödeme yok" değil, hata (kural 29).
+- **Üye işyeri numarası sx'in başındaki sayı DEĞİL:** sandbox'ta
+  `118591467|…` sx'li işyerinin `MERCHANT_NO`'su `400000273`. Panelden
+  "Üye İşyeri No" ayrıca okunmalı. Yanlış girilirse eskiden her dönüş
+  reddedilirdi; artık uyarı yazılır, karar sorgudan verilir (§14.4).
+- **`/Vpos/v1/Payment` (sandbox):** düz JSON döner; başarıda
+  `RESPONSE_CODE: 2`, `RESPONSE_DATA: "Ödeme hazırlık süreci başarılı."` ve
+  `BANK_REQUEST_MESSAGE` içinde bankanın 3D formu (QNB simülatörü: göreli
+  `action` + `frm.action = 'https://…'; frm.submit()` yapan satır içi betik).
+  `rnd` `dd.MM.yyyy HH:mm:ss` kabul edildi; `customerKey` alanı gönderilmeden,
+  hash'teki konumu boş bırakılarak çalıştı.
+
+- **Dönüş POST'u (sandbox, API ile başlatılan 3D, 15 Eki 2026) - §12/1-4
+  çözüldü:** `CURRENCY_CODE` gönderiliyor ve değeri **`"TRY"`** (949 değil);
+  yanıt hash'i `"TRY"` ile birebir tuttu (`verifyPaynkolayReturnHash` gelen
+  değeri kullandığı için doğru). `RND` gönderdiğimizden FARKLI, epoch-ms
+  (`1792074787037`). `USE_3D` küçük harf `"true"`. `AUTO_COMPLETE: "true"`
+  (tek adımlı; `NEW` tuzağı yok). Ek alanlar: `TRAN_ID` (kart saklandıysa
+  saklı kartın kimliği), `CARD_BANK_CODE`, `PAYMENT_SYSTEM`,
+  `MERCHANT_OID`, `ERROR_CODE: "00"`.
+
 Test kartları
 ([07-test-cards](https://paynkolay.com.tr/entegrasyon/07-test-cards.php)),
-örn. Vakıfbank Visa `4029400000000001`, 05/2028, CVV `951`.
+örn. QNB Finansbank Visa `4155650100416111`, 01/2030, CVV `715` (16 Eki 2026'da
+sandbox'ta 3D'ye kadar denendi; 3D simülatörü tek kullanımlık kodu sayfada
+gösterir). Eski örnek Vakıfbank kartı (`4029400000000001`) güncel listede yok ve
+sandbox `1001-` ile reddediyor. Üç `sx` anahtarı (ödeme, liste, iptal) sandbox'ta
+birbirinden FARKLIdır: iptal/iade için ödeme `sx`'i kullanılırsa "İptal token
+hatalı" döner.
 
 ---
 
@@ -607,17 +668,18 @@ Operatörün PayNkolay panelinden alıp (üye işyerini seçerek) dağıtım ort
 girmesi gerekenler. `src/lib/payment/index.ts` içindeki `required()` deseni
 korunacak: eksik değişkenle sağlayıcı **açılmaz**.
 
-| Değişken                        | Sır mı?                   | Kaynak / açıklama                                                                                                                                                                                                                     |
-| ------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PAYMENT_PROVIDER`              | hayır                     | `paynkolay`                                                                                                                                                                                                                           |
-| `PAYNKOLAY_SX`                  | hayır (forma yazılır)     | Panel → "sx (Token)" - ödeme formu için                                                                                                                                                                                               |
-| `PAYNKOLAY_SX_LIST`             | hayır                     | Panel → "sx List" - işlem doğrulama/raporlama için                                                                                                                                                                                    |
-| `PAYNKOLAY_SX_CANCEL`           | hayır                     | Panel → "sx İptal" - iptal/iade için                                                                                                                                                                                                  |
-| `PAYNKOLAY_MERCHANT_SECRET_KEY` | **EVET - tek gerçek sır** | Panel → "Merchant Secret Key". Yalnızca hash hesabına girer, hiçbir yere gönderilmez. Mobil pakete **asla** girmez.                                                                                                                   |
-| `PAYNKOLAY_MERCHANT_NO`         | hayır                     | Yanıt hash'inin ilk alanı; yanıttan da geliyor ama beklenen değerle karşılaştırmak için ayrıca tutulur                                                                                                                                |
-| `PAYNKOLAY_BASE_URL`            | hayır                     | `https://paynkolaytest.nkolayislem.com.tr` / `https://paynkolay.nkolayislem.com.tr`. Test-üretim farkı yalnızca host + anahtarlar olduğu için `NODE_ENV`'e değil bu değişkene bakılır (iyzico'daki `IYZICO_BASE_URL` deseniyle aynı). |
-| `PAYNKOLAY_SUCCESS_URL`         | hayır                     | Tam URL; hash'e girdiği için forma yazılanla **birebir aynı dize** olmalı                                                                                                                                                             |
-| `PAYNKOLAY_FAIL_URL`            | hayır                     | Aynı kural                                                                                                                                                                                                                            |
+| Değişken                        | Sır mı?                   | Kaynak / açıklama                                                                                                                                                                      |
+| ------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PAYMENT_PROVIDER`              | hayır                     | `paynkolay`                                                                                                                                                                            |
+| `PAYNKOLAY_SX`                  | hayır (forma yazılır)     | Panel → "sx (Token)" - ödeme formu için                                                                                                                                                |
+| `PAYNKOLAY_SX_LIST`             | hayır                     | Panel → "sx List" - işlem doğrulama/raporlama için                                                                                                                                     |
+| `PAYNKOLAY_SX_CANCEL`           | hayır                     | Panel → "sx İptal" - iptal/iade için                                                                                                                                                   |
+| `PAYNKOLAY_MERCHANT_SECRET_KEY` | **EVET - tek gerçek sır** | Panel → "Merchant Secret Key". Yalnızca hash hesabına girer, hiçbir yere gönderilmez. Mobil pakete **asla** girmez.                                                                    |
+| `PAYNKOLAY_MERCHANT_NO`         | hayır                     | Yanıt hash'inin ilk alanı; yanıttan da geliyor ama beklenen değerle karşılaştırmak için ayrıca tutulur                                                                                 |
+| `PAYNKOLAY_BASE_URL`            | hayır                     | `https://paynkolaytest.nkolayislem.com.tr` / `https://paynkolay.nkolayislem.com.tr`. Test-üretim farkı yalnızca host + anahtarlar olduğu için `NODE_ENV`'e değil bu değişkene bakılır. |
+| `PAYNKOLAY_SUCCESS_URL`         | hayır                     | Tam URL; hash'e girdiği için forma yazılanla **birebir aynı dize** olmalı                                                                                                              |
+| `PAYNKOLAY_FAIL_URL`            | hayır                     | Aynı kural                                                                                                                                                                             |
+| `PAYNKOLAY_CHECKOUT_MODE`       | hayır                     | `direct` (üretim, 15 Eki 2026) ya da `hosted`/boş - §15. Yalnız production'da `direct`; bu değişken olmadan kurulan ortam sessizce `hosted` çalışır.                                   |
 
 Kullanılmayacaklar: `PAYMENT_WEBHOOK_SECRET` (PayNkolay webhook göndermiyor,
 §4), `PAYNKOLAY_AGENT_CODE` (bayi yok, §7).
@@ -649,12 +711,14 @@ Kullanılmayacaklar: `PAYMENT_WEBHOOK_SECRET` (PayNkolay webhook göndermiyor,
 Sözleşme `src/lib/payment/paynkolay.ts` içinde uygulandı. Aşağıdakiler
 belgenin yazıldığı andan sonra, kodu yazarken verilen kararlardır.
 
-| Dosya                              | İşi                                                     |
-| ---------------------------------- | ------------------------------------------------------- |
-| `src/lib/payment/paynkolay.ts`     | Sağlayıcı, hash'ler, tutar dönüşümü, servis çağrıları   |
-| `src/app/odeme/paynkolay/route.ts` | Ödeme formunu kuran ve kendiliğinden gönderen ara sayfa |
-| `src/lib/payment/index.ts`         | `PAYMENT_PROVIDER=paynkolay` dalı                       |
-| `tests/payment-paynkolay.test.ts`  | Hash vektörleri, tutar, dönüş teyidi, iade              |
+| Dosya                               | İşi                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------- |
+| `src/lib/payment/paynkolay.ts`      | Sağlayıcı, hash'ler, tutar dönüşümü, servis çağrıları                                 |
+| `src/app/odeme/paynkolay/route.ts`  | Ödeme sayfası: `direct`'te kart formu + POST, `hosted`'ta kendiliğinden gönderen form |
+| `src/lib/payment/paynkolay-card.ts` | Kart doğrulama (Luhn, son kullanma, CVV, ad) - saf                                    |
+| `src/lib/payment/paynkolay-page.ts` | Üç sayfanın HTML'i ve her birinin kendi CSP'si                                        |
+| `src/lib/payment/index.ts`          | `PAYMENT_PROVIDER=paynkolay` dalı                                                     |
+| `tests/payment-paynkolay.test.ts`   | Hash vektörleri, tutar, dönüş teyidi, iade                                            |
 
 ### 14.1 Ara sayfa - `redirectUrl` ile form POST arasındaki fark
 
@@ -682,6 +746,18 @@ Bunun yan faydası: `/odeme/donus` teyit edemediğinde bile müşteriyi kendi
 siparişine gönderebiliyor - dönüşteki `CLIENT_REFERENCE_CODE` sipariş
 kimliğinin ta kendisi.
 
+**Karaoke rezervasyonu (16 Eki 2026).** Aynı POS ile ödenir; `clientRefCode`
+rezervasyon kimliğidir (`krk-00042`) ve ödeme satırları `payment_transactions`'ta
+`"orderId" = krk-…` ile durur. Hangisinin sipariş, hangisinin rezervasyon
+olduğuna her yerde tek fonksiyon karar verir: `isKaraokeRef`
+(`src/lib/mobile/karaoke-ref.ts`, bağımlılıksız; kart yolu da onu kullanır).
+`/odeme/donus` POS'un teyit ettiği referansa bakarak dallanır (gönderilen alana
+değil), rezervasyonu `applyKaraokePaymentSucceeded` ile işler ve dönüşte hiçbir
+şeyi iptal etmez (kural 29). Ödenmemiş rezervasyonu `expireUnpaidReservations`
+POS'a sorduktan sonra düşürür; iptal ve iadeler yalnız tam tutardır (§3.2).
+Süresi geçmiş ya da iptal edilmiş rezervasyona gelen ödeme ve ikinci tahsilat
+kendiliğinden iade edilir. Akışın tamamı `src/lib/mobile/karaoke-payment.ts`.
+
 ### 14.3 `successUrl` / `failUrl` - ikisi de `/odeme/donus`
 
 `PAYNKOLAY_FAIL_URL` de `/odeme/donus`'a bakar. Sebep: PayNkolay sonucu iki
@@ -703,10 +779,13 @@ formülündeki `CURRENCY_CODE`'un yanıtta gelip gelmediği ölçülmedi (§1.3,
 reddedilirdi. Sorgu ise müşterinin ulaşamadığı bir kanaldan geliyor ve
 sahtelenemiyor - karar oradan veriliyor.
 
-Reddedilen durumlar: üye işyeri numarası bizimki değilse (sorgu bile
-yapılmaz), sorguda karşılık yoksa, `STATUS ≠ SUCCESS` ise (`NEW` dahil, §8.1),
-tutar okunamıyorsa, ya da tarayıcının getirdiği `AUTHORIZATION_AMOUNT`
-sorgunun söylediğinden farklıysa.
+Reddedilen durumlar: sorguda karşılık yoksa, `STATUS ≠ SUCCESS` ise (`NEW`
+dahil, §8.1), satır satış değilse (`TRANSACTION_TYPE` `CANCEL`/`REFUND`: aynı
+gün iptal edilen satış, sandbox'ta aynı satırın `CANCEL`/`SUCCESS` olarak
+yeniden yazılmasıyla görünüyor), tutar okunamıyorsa, ya da tarayıcının
+getirdiği `AUTHORIZATION_AMOUNT` sorgunun söylediğinden farklıysa. Üye işyeri
+numarası uyuşmazlığı 15 Eki 2026'dan beri yalnız uyarıdır (§12.1): sorgu
+zaten bizim `sx List`'imizle yapılıyor.
 
 ### 14.5 İade - `TRX_DATE` ödeme satırından okunuyor, yoksa aranıyor
 
@@ -730,7 +809,10 @@ yakalıyor; dönmek, "iade edildi" yazan ama parayı göndermemiş bir kayıt
 
 ### 14.6 Açık kalan iş kalemleri
 
-1. ~~**`form-action` CSP'si.**~~ **Çözüldü (23 Eyl 2026).** `next.config.ts`
+1. ~~**`form-action` CSP'si.**~~ **Çözüldü (23 Eyl 2026), 15 Eki 2026'da
+   yerini §15'e bıraktı:** `/odeme/paynkolay` genel CSP'nin dışında ve her
+   yanıtta kendi politikasını gönderiyor; genel `form-action` artık yalnız
+   `'self'`. Eski not: `next.config.ts`
    `form-action`'a `https://paynkolay.nkolayislem.com.tr` ve
    `https://paynkolaytest.nkolayislem.com.tr` eklendi
    (`tests/security-headers.test.ts` başka host girmesini de reddeder).
@@ -751,3 +833,343 @@ yakalıyor; dönmek, "iade edildi" yazan ama parayı göndermemiş bir kayıt
    kolonun boş olduğu eski satırlar için kaldı (§14.5). Testler:
    `tests/payment-paynkolay.test.ts` (iki yol), `tests/admin-refund-hint.test.ts`,
    `tests/db-integration-payment-sweep.test.ts`.
+
+### 14.7 İkinci satışa karşı: yeniden açma kapıları ve kart sayfasının son bakışı (17 Eki 2026)
+
+PayNkolay aynı `clientRefCode` ile ikinci bir satışı **kabul eder** (§2: "aynı
+`clientRefCode` ile birden çok işlem varsa hepsi döner"). `applyPaymentSucceeded`
+siparişi bir kez ilerletir, ama bu siparişi korur, kartı değil: ikinci tahsilat
+elle iade bekler. Webhook yok (§4); ödeme yalnız `/odeme/donus`'ta ya da
+süpürmede işlenir, dönüş her zaman gelmez (sekme kapanır, telefon bankanın
+ekranında kilitlenir). Üç kapı ikinci satışı durdurur:
+
+**1. Uygulama siparişini yeniden açmak** (`POST /api/mobile/v1/orders/{id}/payment`
+ve `POST /orders`'ın `clientOrderId` tekrarı, ikisi de `replayAppOrder`).
+`checkout-reopen` bütçesinden sonra, yeni oturumdan önce `checkPendingOrderPaid`
+(web ödemesinin §15.5'te kullandığı kontrol) önceki denemeyi `lookupPayment` ile
+sorar:
+
+| POS'un cevabı               | Ne olur                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `SUCCESS`, tutar doğru      | Ödeme işlenir, oturum açılmaz: **409** `not_payable` (ya da tekrarda 201, `payment: null`) |
+| `SUCCESS`, tutar farklı     | İnsan önüne düşer (`amount_mismatch`), sayfa açılmaz: **503** `payment_unavailable`        |
+| Kayıt yok / `NEW` / `ERROR` | Yeni ödeme sayfası açılır (eskisi gibi)                                                    |
+| POS'a ulaşılamadı           | Sayfa açılmaz: **503** `payment_unavailable`                                               |
+
+Bütçeden sonra sorulur: önce sorulsaydı her istek bütçesiz bir `PaymentList`
+çağrısı olurdu.
+
+**2. Karaoke ödemesini yeniden açmak** (`reopenKaraokePayment`: uygulamanın
+`POST /karaoke/reservations/{id}/payment`'ı, web'in "Ödemeyi tamamla"sı). POS
+eskiden yalnız "ödendi" derse durduruyordu; artık sorulamazsa da, tutar farklıysa
+da sayfa açılmaz (`payment_unknown` → mobilde **503** `payment_unavailable`,
+web'de "odeme-dogrulanamadi" notu). Tutar farkı yalnız burada "bilinmiyor"
+sayılır; süpürme ve iptal o rezervasyonu eskisi gibi serbest bırakır
+(`askPosAboutHold`'un `onAmountMismatch` seçeneği).
+
+**3. Kart sayfasının son bakışı** (`/odeme/paynkolay` POST,
+`src/lib/payment/bridge-gate.ts`). İmzalı form ömrü boyunca geçerlidir; iki
+sekme ya da bankanın sayfasından geri tuşu aynı formu ikinci kez gönderebilir.
+`startDirectPayment`'tan hemen önce kayıt, imzalı yükün `clientRefCode`'uyla
+okunur (`krk-` ise rezervasyon, `isKaraokeRef`):
+
+| Kayıt                                         | Ne olur                                                                                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Ödeme bekliyor                                | Satış başlar (eskisi gibi)                                                                                                                                   |
+| Ödenmiş                                       | Satış başlamaz; **409** not sayfası ("kartından ikinci kez para çekilmedi") ve siparişe / rezervasyona bağlantı. `/odeme`'nin formu `/odeme/basarili`'ye 303 |
+| İptal, süresi dolmuş, iade edilmiş, kayıt yok | Satış başlamaz; **409** not sayfası. `/odeme`'nin formu `?odeme=sure_doldu`                                                                                  |
+| Okunamadı (veritabanı)                        | Satış başlamaz (alınan para hiçbir yere işlenemezdi); genel "Ödeme şu an başlatılamadı" hatası, `/odeme`'de `baslatilamadi`                                  |
+
+Kart yolu yine store ya da veritabanı import etmez (kural 28): modül
+`route.ts`'ten yalnız sipariş referansını alır, formu ve kartı görmez
+(`tests/saved-cards.test.ts`). Son bakış POS'a **sormaz**: ilk ödemenin dönüşü
+kaybolduysa kayıt hâlâ ödeme bekler görünür ve ikinci sekmedeki eski form yine
+satış başlatabilir. Bu boşluk açık (`docs/AUDIT.md` §11 "Açık"); yeni sayfa
+dağıtan iki kapı (1, 2) ve web ödemesinin yeniden kullanımı (§15.5) POS'a sorar.
+Son bakış yalnız `direct` modun POST'unda var: `hosted` modda (§15, geri dönüş
+yolu) GET formu kayda bakmadan PayNkolay'ın sayfasına gönderir.
+
+Testler: `tests/mobile-order-idempotency.test.ts`,
+`tests/mobile-checkout-reopen-route.test.ts`, `tests/mobile-order-payment.test.ts`,
+`tests/karaoke-reopen-pos-gate.test.ts`, `tests/mobile-karaoke-prepay-routes.test.ts`,
+`tests/paynkolay-card-page.test.ts`.
+
+---
+
+## 15. Sitede kart formu - `PAYNKOLAY_CHECKOUT_MODE=direct`
+
+**Operatör kararı (15 Eki 2026):** _"site içerisinden direkt ödeme alınırsa
+daha kolay olur, direk banka sayfası aşamasında atarsa"_ ve _"kart
+bilgilerini saklamıyoruz"_. Müşteri kartını PayNkolay'ın ortak ödeme
+sayfasında değil, **sitenin kendi ödeme sayfasında** girer ve oradan doğrudan
+**bankanın 3D ekranına** gider. `hosted` mod (eski akış) kodda duruyor;
+değişken boşsa o çalışır.
+
+### 15.1 Akış
+
+1. `createCheckoutSession` değişmedi: imzalı yük (`d` + `s`) ve
+   `redirectUrl = /odeme/paynkolay?d=…&s=…`. Mobil sözleşme (`redirectUrl`)
+   aynı; uygulama aynı adresi açar, mağaza güncellemesi gerekmez.
+2. `GET /odeme/paynkolay` imzayı ve yaşı (`rnd`'den, en çok 30 dk -
+   `DIRECT_FORM_MAX_AGE_MS`, 45 dk'lık süpürmenin altında) doğrular ve kart
+   formunu çizer (`renderCardForm`).
+3. `POST /odeme/paynkolay` (aynı sayfanın formu):
+   aynı site (`Sec-Fetch-Site` / `Origin`) → imza + yaş → kart doğrulama
+   (`parseCardForm`: Luhn, İstanbul ayına göre son kullanma, CVV, ad) →
+   deneme sınırı → `startDirectPayment` → `POST /Vpos/v1/Payment`.
+4. Başarıda yanıttaki `BANK_REQUEST_MESSAGE` müşteriye verilir
+   (`bankChallengePage`); banka 3D'den sonra PayNkolay sonucu her zamanki
+   gibi `/odeme/donus`'a POST eder ve karar `PaymentList`'ten verilir (§2).
+   Ret ya da hata: form, POS'un mesajıyla yeniden çizilir; kart numarası ve
+   CVV geri basılmaz.
+
+`/Vpos/v1/Payment` alanları (sandbox'ta doğrulandı): `sx`, `clientRefCode`,
+`successUrl`, `failUrl`, `amount`, `installmentNo=1`, `cardHolderName`,
+`cardNumber`, `month` (`MM`), `year` (`YYYY`), `cvv`, `use3D=true`,
+`transactionType=SALES`, `rnd`, `hashDatav2` (§10 ile aynı formül),
+`environment=API`, `currencyNumber=949`, `cardHolderIP` (kartı gönderen
+isteğin IP'si). Doküman canlı isteğin **sunucudan** gitmesini istiyor.
+
+### 15.2 Kart nerede durur
+
+Hiçbir yerde. Tarayıcı → (TLS) → bu sunucu → (TLS) → PayNkolay; sunucuda
+yalnız o isteğin belleğinde. Veritabanı, log, dosya yok; kart saklama uçları
+kullanılmaz, `customerKey` boş. Kart alanları yalnız `paynkolay-card.ts`,
+`paynkolay.ts`, `paynkolay-page.ts`, `odeme/paynkolay/route.ts` ve (16 Eki
+2026'dan beri, §15.5) `odeme/card-payment.tsx`'te geçer;
+bu dosyalar DB/store import etmez, `console` çağrılarına kart girmez
+(`tests/saved-cards.test.ts`). POS'un hata metni gösterilmeden ve loglanmadan
+önce kart numarasına benzeyen diziler maskelenir. **Kart hash'lenmez:**
+`hashDatav2` işlem alanlarını (sipariş, tutar, adresler, `rnd`) imzalar;
+bankanın çekim için gerçek numarayı görmesi gerekir.
+
+### 15.3 Güvenlik önlemleri
+
+| Tehdit                                                   | Önlem                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Formdaki üçüncü taraf betiğin kartı okuması (skimming)   | Sayfa sitenin genel CSP'sinin dışında (`next.config.ts` `CSP_SOURCE`) ve kendi CSP'sini gönderir: `default-src 'none'`, betik ve stil yalnız sayfanın kendi bloklarının SHA-256'sıyla, GTM ve dış kaynak yok                                                                                                                                             |
+| Formun başka siteye gömülmesi (clickjacking)             | `frame-ancestors 'none'` + `X-Frame-Options: DENY`                                                                                                                                                                                                                                                                                                       |
+| Kart denemesi (çalıntı kart listesini sitemizde sınamak) | 5 dakikalık pencerelerle: sipariş başına POS'a giden HER deneme önce sayılır (5, sonra 30 dk); adres başına yalnız POS'un reddettiği/yanıtlayamadığı denemeler sayılır (10, sonra 1 saat) - başarılıları saymak kafenin Wi-Fi'ını kilitliyordu. `card-payment-order` / `card-payment-ip`                                                                 |
+| Yükteki `sx` + hash ile API'yi doğrudan çağırmak         | `direct` modda yük AES-256-GCM ile şifrelidir (`e1.` öneki); tarayıcı `sx`'i ve hash'i göremez, POS'a tek yol bu formdur. Şifreli yük yalnız `direct`'te, düz yük yalnız `hosted`'ta açılır                                                                                                                                                              |
+| Aynı gün iptal edilmiş satışın "ödendi" sayılması        | `confirmReturn` yalnız `TRANSACTION_TYPE` boş ya da `sales` olan satırı kabul eder (§14.4)                                                                                                                                                                                                                                                               |
+| Geri tuşuyla kartın yeniden görünmesi                    | Sayfa her gösterildiğinde (`pageshow`) kart numarası ve CVV silinir                                                                                                                                                                                                                                                                                      |
+| Başka siteden kart POST'u                                | `Sec-Fetch-Site`/`Origin` aynı site değilse 403                                                                                                                                                                                                                                                                                                          |
+| Tutarın / siparişin değiştirilmesi                       | Alanlar imzalı yükten gelir (HMAC) ve `hashDatav2` yeniden hesaplanıp karşılaştırılır                                                                                                                                                                                                                                                                    |
+| 3D'siz ödeme                                             | `use3D` yükte `"true"` değilse istek gitmez                                                                                                                                                                                                                                                                                                              |
+| Eski bağlantıyla geç ödeme                               | Yük 30 dk sonra reddedilir                                                                                                                                                                                                                                                                                                                               |
+| Bankanın 3D formu                                        | Satır sonları normalleştirilip verilir (CRLF, tarayıcının özetiyle aynı bayt olsun diye); CSP yalnız o yanıttaki satır içi betiklerin ve tırnaklı/tırnaksız olay özniteliklerinin (çözülmüş) özetine (`'unsafe-hashes'`), `form-action https:`'e ve yalnız gömülü görsel/yazı tipine izin verir - ACS hostu bankaya göre değişir, düz `http:` engellenir |
+| Önbellek                                                 | Her yanıt `Cache-Control: no-store`                                                                                                                                                                                                                                                                                                                      |
+
+Bankanın 3D formunda öznitelikler tarayıcının ayrıştırma kuralıyla okunur.
+Sandbox'ta Ziraat, Akbank, Denizbank ve ING'nin formu (EST tipi şablon)
+`<body onload=document.forms["form"].submit()>` yazar: tırnaksız değerin
+içindeki `"` değerin parçasıdır. Değeri ilk `"`'da kesen eski okuma özeti
+bozuyordu; tarayıcı `onload`'u engelliyor, müşteri kartı yazdıktan sonra
+beyaz sayfada kalıyordu (2026-10-16). Sayfa elle yazılmış bir okuyucuyla
+değil, tarayıcıların kullandığı WHATWG ayrıştırıcısıyla (`parse5`) okunur:
+tırnaksız değerler, Türkçe "İ", betik içindeki `<!--` kaçışları ve karakter
+referansları tarayıcıyla aynı sonucu verir. Gövdenin başına (bankanın
+gönderen betiğinden önce; tarayıcı gezinme başlayınca ayrıştırmayı
+bırakıyor) bir bekleme notu eklenir; formun adresi mutlak https ise 8 sn
+sonra bir "Bankanın sayfasına git" düğmesi belirir. Sayfa ayrılmaya
+başlayınca not düğmeyi gizler, böylece 3D formu ikinci kez gönderilmez. Not
+eklendikten sonra sayfa yeniden okunur; bankanın betik ve öznitelik listesi
+değişmişse not eklenmez.
+
+### 15.4 PCI DSS - operatörün bilmesi gereken
+
+PayNkolay dokümanı: _"Bu yapıda kart bilgileri üye işyeri tarafından
+alındığı için PCI DSS gereklilikleri üye işyerine aittir."_ Ortak ödeme
+sayfasında (`hosted`) bu yük PayNkolay'daydı. `direct` modda:
+
+- PayNkolay'ın üye işyeri için **API ile ödeme** yetkisini açmış olması
+  gerekir; açık değilse `/Vpos/v1/Payment` reddeder ve müşteri formda hata
+  görür. Geri dönüş: `PAYNKOLAY_CHECKOUT_MODE=hosted` + redeploy.
+- PayNkolay yıllık bir PCI DSS öz değerlendirme anketi (SAQ) isteyebilir.
+- Hukuki metinler 16 Eki 2026'da düzeltildi: kart sitenin ödeme sayfasında
+  girilir, sunucudan aynı istekte yalnızca PayNkolay'a geçer, saklanmaz ve
+  loglanmaz (`docs/LEGAL-REDLINES-2026-09.md` §3). PCI DSS sertifikası
+  iddia edilmez.
+
+### 15.5 Kart `/odeme`'de, tek sayfada (16 Eki 2026)
+
+**Operatör kararı (16 Eki 2026):** _"checkout sihirbazını genel bilinen
+e-ticaret siteleri gibi tasarla baştan kart girerken başka sayfaya vs
+atmasın"_, _"lütfen kontrollü git ve hiçbir açık verme"_ ve sonra _"sipariş
+verme tamamlama wizardını genel aynı oluştur hızlı ve güzel adımlarla yap ve
+mobile uyumlu yap"_. CLAUDE.md kural 28'deki "kart alanları yalnız
+`/odeme/paynkolay`'da" kararının bilinçli tersine çevrilmesidir; kuralın geri
+kalanı aynen durur (kart saklanmaz, loglanmaz, PayNkolay dışında bir yere
+gitmez, Server Action'a girmez).
+
+Web'de 3 adımlı sihirbaz ve "kart bir sonraki sayfada" kalktı. `/odeme` tek
+sayfa, istemci tarafında iki adım: **1 Teslimat** (adres + iletişim) → **2
+Ödeme** (kart, kayıtlı kartlar, onaylar, öde). Adımlar arasında sayfa
+yenilenmez; 2. adım tarayıcı geçmişine kendi kaydıyla girer (Geri tuşu 1.
+adıma döner), görünür "Değiştir" de aynı işi yapar. Varsayılan adresi tam
+olan üye doğrudan 2. adımda açılır. Sipariş özeti iki adımda da görünür
+(masaüstünde yapışkan sağ sütun; telefonda üstte açılır "Sipariş özeti · ₺X"
+çubuğu ve 2. adımda altta sabit ödeme çubuğu).
+
+**Akış.**
+
+1. "Siparişi onayla ve öde": tarayıcı adresi, iki onay kutusunu ve kartı
+   (`cardFieldErrors`, `parseCardForm`'un aynısı ya da sıkısı) denetler.
+2. `startCheckoutAction` (Server Action) yalnız AYRI bir formu okur
+   (`items`, alıcı, adres, kod, `legalConsent`, yeniden kullanım alanları):
+   siparişi açar ya da reddedilen denemenin bıraktığı siparişi yeniden
+   kullanır, `createCheckoutSession`'dan `d`/`s`'yi çıkarıp döner. Kart bu
+   isteğe hiç girmez (`tests/saved-cards.test.ts`).
+3. Tutar düğmedekiyle aynıysa tarayıcı `d`/`s`'yi kartın **yerli** formuna
+   (`<form method="post" action="/odeme/paynkolay">`, kontrolsüz alanlar,
+   React state'i yok) yazar ve `form.submit()` eder; yanıt bankanın 3D
+   sayfasıdır. Tutar farklıysa (panelde fiyat değişti, kod uygulanamadı)
+   yeni tutar gösterilir ve müşteri yeniden basar (MSY m.6, m.8).
+4. Tutar 0'sa sipariş `provider:"free"` ile kapanır, `/odeme/basarili`.
+
+**Hatalar `/odeme`'ye sabit kodla döner.** `return=checkout` taşıyan POST'ta
+bankaya gidemeyen her sonuç (kart hatası, ret, deneme sınırı, POS hatası,
+süre, kayıtlı kart yok/seçim) `303 /odeme?odeme=<kod>[&alan=][&dk=]` olur:
+`kart_hatali`, `reddedildi`, `cok_deneme`, `baslatilamadi`, `sure_doldu`,
+`kart_yok`, `kart_secimi` (`src/lib/checkout/return-codes.ts`). POS'un
+serbest metni, kartın bir parçası ya da sipariş adrese girmez. Sayfa 2.
+adımda, "Ödeme tamamlanmadı" başlıklı `role="alert"` bir notla açılır;
+adres seçimi ve bekleyen sipariş `sessionStorage`'dan geri gelir, kart
+numarası ve CVV her dönüşte boştur (ad ve son kullanma da saklanmaz).
+Uygulama yükünde (`successUrl`'de `app=1`) işaret yok sayılır; uygulamanın
+ayrı sayfası kart, ret, sınır ve süre durumlarında eskisi gibi davranır.
+**Bilinçli tek fark:** okunamayan (imzasız, bozuk ya da bu dağıtımın
+anahtarıyla uyuşmayan) bir ödeme yükü eskiden `303 /odeme?error=payment` idi
+- uygulamanın tarayıcısını boş sepetli web checkout'una atıyordu. Şimdi
+`GET` ve `POST` o durumda 400 (sağlayıcı PayNkolay değilse 503) ile
+"Ödeme sayfası açılamadı" notunu verir: "Uygulamaya dön" ve "Sitede ödemeye
+dön". Yük okunamadığı için hangi sipariş olduğu bilinmez; not ikisini de
+sunar.
+
+**Belgenin kendi CSP'si.** `/odeme` sitenin genel CSP'sinin dışındadır
+(`CSP_SOURCE`, yalnız tam bu yol) ve `src/proxy.ts` her istekte taze bir
+nonce'la kendi politikasını gönderir: `script-src 'self' 'nonce-…'`,
+betikte `'unsafe-inline'`/`'unsafe-eval'` yok, üçüncü taraf yok, `img-src
+'self' data:` (uzak görsel yok), `connect-src
+'self'`, `frame-src 'none'`, `form-action 'self'`, `frame-ancestors 'none'`,
+`base-uri 'none'`, `object-src 'none'` (`src/lib/security/checkout-csp.ts`).
+Next.js nonce'u isteğin `Content-Security-Policy` başlığından okur ve kendi
+satır içi betiklerine basar; sayfa `force-dynamic`'tir. GTM, rıza betikleri
+ve çerez bandı bu belgede hiç çizilmez (`site-tags.tsx`, `usePathname`;
+kök layout `headers()` okumaz). Başka bir sayfadan istemci tarafı gezinmeyle
+gelinirse belge o sayfanınkidir (GTM yüklenmiş olabilir): checkout
+`performance.getEntriesByType("navigation")[0]`'ın yoluna bakar, `/odeme`
+değilse kendini bir kez yeniden yükler ve o zamana kadar yalnız iskelet
+çizer. Sitenin girişleri (`chrome.tsx` sepet düğmesi, ürün sayfasının "hemen
+al"ı, sepet çekmecesi, e-posta doğrulama sayfası) tam sayfa yüklemesidir.
+
+**Yeniden deneme aynı siparişi kullanır.** Tarayıcı sekmede yalnız
+`{orderId, d, s, cartKey, createdAt}` ve sunucunun tutar teklifini tutar
+(kart yok, kişisel veri yok). Eylem siparişi ancak hepsi tutarsa yeniden
+kullanır, ve ESKİ yükü yeniden vermeden önce POS'a sorar
+(`checkPendingOrderPaid`, `settlePendingFromProvider`'ın kısa zaman aşımlı
+hâli): müşteri bankada ödemiş, dönüş POST'u kaybolmuş ve yeniden bastıysa
+aynı sipariş ikinci kez çekilmesin. POS "ödendi" derse sipariş
+`applyPaymentSucceeded` ile işlenir ve müşteri başarı sayfasına gider;
+"ödenmedi" derse yük yeniden verilir; POS'a ulaşılamazsa (`unknown`) sipariş
+yeniden KULLANILMAZ, yeni sipariş açılır (eskisini süpürme yine POS'a sorarak
+ele alır). Yeniden kullanım için koşullar: yük doğrulanır ve en az 5 dk daha tazedir, `clientRefCode ===
+orderId`, sipariş oturumdaki üyenindir, hâlâ `pending_payment`, web
+siparişidir, tutarı yükün tutarına eşittir, sepet anahtarı ve sipariş
+satırları gönderilenle aynıdır (`src/lib/checkout/reuse.ts`). Aksi hâlde
+yeni sipariş açılır, eskisi `supersedeUnpaidWebOrders` ile bırakılır. Eylem
+üye başına `checkout-start` bütçesiyle sınırlıdır (10 / 5 dk, sonra 10 dk).
+
+**Beyaz sayfa yok.** Kart POST'unun yönlendirme olmayan her yanıtı metni ve
+bir sonraki adımı olan bir sayfadır (`tests/checkout-return.test.ts`).
+Okunamayan bir ödeme bağlantısı artık web checkout'una (boş sepetle)
+yönlendirilmez; sayfa uygulamanındır ve "Uygulamaya dön" + "Sitede ödemeye
+dön" diyen bir not gösterilir. "Bankaya yönlendiriliyorsun…" 30 sn içinde
+(POS'un ödeme süresi sınırı olan 25 sn'den uzun) sayfa değişmezse düğmeyi
+geri verir ve yeniden denemeyi söyler; eylem 30 sn'de yanıt vermezse aynısı; bfcache'ten (`pageshow`) dönüşte düğme açılır.
+`/odeme/(checkout)/error.tsx` ve `loading.tsx` yalnız checkout sayfasını
+sarar ("kartından para çekilmedi" der). `/odeme/basarili`, `/app-hata` ve
+dönüş için `/odeme/error.tsx` paranın lafını etmez (ödemiş bir müşteri
+orada olabilir): sayfayı yeniden dener, "Siparişlerim"e götürür.
+
+**Tek sipariş maili ve sıfır tutar.** Müşteri kargoya kadar yalnız "ödemen
+alındı" mailini alır (`notifyOrderPaid`, `order_notice_emails` türü `paid`):
+satırlar, Ara toplam, Kargo, İndirim ve toplam birbirini tutar, ÖBF/MSS/cayma
+bağlantıları kalır. Sağlayıcı 429/5xx verirse ya da ulaşılamazsa AYNI
+istekte, aynı `Idempotency-Key` ile bir kez daha denenir (en çok 1,5 sn
+bekleyerek); o da olmazsa kayıt serbest kalır ve bankanın dönüşü yeniden
+gelirse (24 saat içinde) mail yeniden önerilir; talep tek seferlik kalır.
+Tutarı sıfır olan sipariş kapanamazsa (`applyPaymentSucceeded` hata verirse)
+"ödendi" denmez: hata gösterilir, kart çekilmedi, yeniden deneme yeni sipariş
+açar.
+
+**Kayıtlı kartlar** (`PAYNKOLAY_CARD_STORAGE=on` olmadan görünmez, §16):
+sunucu bileşeni üyenin anahtarıyla 3 sn sınırla listeler; tarayıcıya yalnız
+`{tranId, last4, bank, brand, alias}` gider, token gitmez. Seçim yerli
+formda `cardChoice=<tranId>` olarak gider. "Sil" ödeme formunun DIŞINDA,
+`type="button"` bir düğmedir, onay ister ve üyenin anahtarını sunucuda
+oturumdan türeten, sınırlı (`card-delete`) bir Server Action'dan geçer.
+Formun tek gönderme düğmesi ödeme düğmesidir: kart alanında Enter öder ya
+da (onaylar boşken) hiçbir şey yapmaz.
+
+---
+
+## 16. Kayıtlı kart - kart PayNkolay'da durur
+
+**Operatör kararı (15 Eki 2026):** _"kayıtlı kart olsun ama kart
+detaylarını toplamayalım, PayNkolay'da kalsın"_. §9.1'deki "kart saklama v1
+dışında" kararının yerini alır. Kart PayNkolay'ın kart saklama hizmetinde
+durur; biz yalnız onu üyeyle eşleştiren anahtarı tutarız.
+
+**Açma anahtarı:** `PAYNKOLAY_CARD_STORAGE=on`. PayNkolay kart saklamayı üye
+işyerine ayrıca yetkiyle açar; operatör yetkiyi 16 Eki 2026'da istedi. Yetki
+gelene kadar değişken boş kalır: yüke üye anahtarı girmez, kayıtlı kart
+listesi, "kartımı kaydet" ve silme görünmez, POS'a `cs*` alanı gitmez. Yetki
+gelince Vercel'de `on` yapılıp yeniden yayınlanır.
+
+### 16.1 Ölçülen API (sandbox, Postman "Kart Saklama")
+
+| İş               | Uç                                         | Alanlar                                                           | Hash                                                                 |
+| ---------------- | ------------------------------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Ödemede kaydet   | `POST /Vpos/v1/Payment`                    | kart alanları + `csCustomerKey`, `csAutoSave=true`, `csCardAlias` | `sx\|clientRefCode\|amount\|successUrl\|failUrl\|rnd\|csCustomerKey` |
+| Listele          | `POST /Vpos/Payment/CardStorageCardList`   | `sx`, `customerKey`                                               | `sx\|customerKey`                                                    |
+| Saklı kartla öde | `POST /Vpos/v1/Payment`                    | kart alanı YOK; `csCustomerKey`, `csToken`                        | ödemedekiyle aynı                                                    |
+| Sil              | `POST /Vpos/Payment/CardStorageCardDelete` | `sx`, `customerKey`, `tranId` (boş), `token`                      | `sx\|customerKey\|tranId\|token`                                     |
+
+Ölçülenler:
+
+- **Anahtar en fazla 11 karakter** (`CORE0364`). Doküman TCKN/telefon
+  öneriyor; **rastgele, opak 11 karakter (`[A-Z0-9]`) kabul edildi.** Bu
+  yüzden PayNkolay'a üyenin kimliği ya da telefonu gitmez
+  (`newPaynkolayMemberKey`).
+- Kart, **3D onayından sonra** saklanıyor; dönüşte `TRAN_ID` geliyor.
+- Liste yanıtı: `{ProcReturnCode:"00", Data:{totalcount, cards:{Card:{
+CardFileds:{Detail:[{Token, TranId, Maskedpan:"41556501****6111",
+CARDISSUER, CARDTYPE, CARDBRAND, CARD_ALIACE, EXP_DATE}]}}}}}`. Kart yoksa
+  `ProcReturnCode:"02"`, "Gecerli Kart Yok".
+- Saklı kartla ödemede de **3D isteniyor** (ters ibraz koruması sürer).
+- Silme **yalnız `token` ile** çalıştı; yalnız `tranId` ile "Gecersiz Veri"
+  döndü (Postman "biri yeter" diyor - yanlış).
+- Liste ve silme, ödeme `sx`'iyle çalıştı.
+- Üye işyerinin "kart saklama yetkisi" olmalı; yoksa `csAutoSave` sessizce
+  bir şey saklamayabilir - ödeme yine geçer.
+
+### 16.2 Bizdeki karşılığı
+
+- Anahtar `customers."cardUserKey"`'de (sütun zaten vardı, hiç dolmamıştı).
+  Üyenin ilk ödemesinde `ensureCardUserKey` üretir; karşılaştır-ve-yaz ile
+  yazılır, aynı anda açılan iki ödeme tek anahtarda buluşur.
+- Anahtar ödeme yükünde **imzalı** taşınır (`member`), formun alanlarına
+  girmez: ortak ödeme sayfasında `customerKey` boş kalır.
+- Kart sayfası: saklı kartlar maskeli (son 4), bankası, markası ve adıyla
+  listelenir; **token tarayıcıya gitmez** - form kartı `TranId` ile seçer,
+  sunucu token'ı üyenin listesinden bulur (başka üyenin kartı seçilemez).
+  "Bu kartı sonraki ödemeler için kaydet" işaretsiz gelir. Her kartın
+  yanında "Sil".
+- Hesap kapanınca (`deleteMe`, web ve uygulama) önce PayNkolay'daki kartlar
+  silinir, sonra anahtar temizlenir. POS'a ulaşılamazsa kapanış durmaz;
+  anahtar elle temizlik için loglanır (kişisel veri değil).
+- Ödeme kaydına (`payment_transactions.raw`) **kart sahibinin adı yazılmaz**
+  (`withoutHolderName`; KVKK veri en aza indirme, hukuki metinler Ö7).
+- `CardStorageCardRegister` (kart numarasıyla, ödemesiz saklama) hiçbir
+  yerde çağrılmaz (`tests/saved-cards.test.ts`).

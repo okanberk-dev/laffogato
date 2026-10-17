@@ -26,9 +26,16 @@ yapılır.
 - **Auth:** Admin için env-credentialed imzalı cookie (`ADMIN_EMAIL` +
   `ADMIN_PASSWORD` + HMAC SHA256) ve TOTP 2FA. Müşteri için bcrypt hesap
 - **Ödeme:** Sağlayıcı bağımsız soyutlama (`src/lib/payment/`). Sanal POS
-  **PayNkolay** (barındırılan ödeme sayfası — kart verisi siteye hiç girmez,
-  **kart saklanmaz**: kural 28, `docs/PAYNKOLAY.md`); geliştirmede `MockPaymentProvider`. iyzico modülü
-  duruyor ama üretimde kullanılmıyor
+  **PayNkolay**; kart web'de **checkout sayfasının kendisinde** (`/odeme`,
+  iki adım: Teslimat → Ödeme), uygulamada `/odeme/paynkolay`'da girilir,
+  sunucu onu yalnızca PayNkolay'a iletir ve müşteri doğrudan bankanın
+  3D ekranına gider (`PAYNKOLAY_CHECKOUT_MODE=direct`). **Kart saklanmaz**:
+  kural 28, `docs/PAYNKOLAY.md` §15. Geliştirmede `MockPaymentProvider`.
+  iyzico 15 Eki 2026'da koddan kaldırıldı; hukuki metinler 16 Eki 2026'da
+  PayNkolay'a çevrildi (`docs/LEGAL-REDLINES-2026-09.md` başındaki durum
+  tablosu; `tests/legal-docs.test.ts` metinde iyzico, uzun tire, "kart
+  sunucumuza uğramaz" ve cüzdan / hediye çeki sözü kalmadığını tutar). Metinler
+  avukat okumasını bekler
 - **Dil:** Arayüz **Türkçe**. Kod, dosya adı, identifier, commit mesajı
   **İngilizce**
 
@@ -85,15 +92,24 @@ site tasarımını buna uygun olarak güncelle"_. Bu, lafmobil karar 31'i (c)
 seçeneğiyle kapattı: site uygulamanın bütün paletini (`lafmobil/src/theme/tokens.ts`,
 `porcelain`, DESIGN-GLASS §13), iki yazı sesini (Poppins gösterim, Inter
 okuma) ve cam malzeme dilini (kapsül düğme, cam kart, yüzen cam krom, sekme
-çubuğu) aldı. Değerler: porselen zemin `#f7f3ed`, yapı yeşili `#1d6d56`,
+çubuğu) aldı. **Yazıda tek ayrışma (operatör, 11 ve 14 Eki 2026):** site
+başlıkları ve gösterim rakamlarını **Gabarito**'yla (`--headline`; operatörün
+istediği Biennale'nin lisanssız olduğu için yerine duran serbest akrabası),
+gövdeyi, kontrolleri, ürün adlarını ve liste fiyatlarını **Poppins**'le
+(`--display`, 300-800) yazar; Inter yok. Uygulama hâlâ Poppins + Inter; onun
+izlemesi lafmobil'de ayrı bir karardır (`docs/BRAND.md` §2). Değerler: porselen zemin `#f7f3ed`, yapı yeşili `#1d6d56`,
 bordo `#9d2543` / `#520f1f` / `#f9e6ea`, pirinç `#e8c877`, altın metin
 `#765923`, gölgeler `rgba(59, 42, 30, …)`. **Logo L'Af** (`public/brand/`,
 `<LafMark>`); uygulama ikonu da odur. Uygulamanın paleti değişirse site aynı
 PR serisinde izler (değer tablosu lafmobil `docs/SITE-PALETTE-SYNC.md`);
-ayrışma operatör kararı ister. Henüz taşınmayan tek yüzey **e-posta
-şablonlarıdır**: Köşk yeşili `#143d2b` bant görsellerine, logo glint GIF'ine
-ve rozetlere gömülü; HTML rengi ancak bu görseller yeniden çizilince
-değişebilir. `tests/brand-theme.test.ts` iki paleti ayrı ayrı tutar. Tam
+ayrışma operatör kararı ister. **E-postalar da 15 Eki 2026'dan beri bu
+palette** ve açık/koyu modda okunur: zemini gömülü bantlar HTML çubuğa,
+logo çifti ve glint GIF'i tek opak karoya (`public/email/logo-laf-tile.png`)
+döndü; koyu mod sınıf kancalarıyla (`em-card`, `em-t1`… ;
+`prefers-color-scheme` + Outlook `[data-ogsc]`/`[data-ogsb]`), ayrıntı
+`src/lib/email/templates/README.md` "Palet". Supabase'in dört giriş
+e-postası (`docs/email/`) aynı iskelette; panele elle yapıştırılır.
+`tests/brand-theme.test.ts` ve `tests/email-templates.test.ts` tutar. Tam
 kılavuz ve geçmiş: `docs/BRAND.md`.
 
 **Bordo ile yeşil asla üst üste yazılmaz.** `#9D2543` ile ev yeşili
@@ -130,7 +146,7 @@ yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
      **düğmedir** (POST) — e-posta tarayıcıları bağlantıları açar.
   5. Dışarıdan çağrılan yollar yeniden adlandırılmaz: e-posta linkleri,
      `/odeme/donus`, `/gorsel/**`, `/hukuk/[slug]`, `/bulten/cikis`,
-     `/bulten/onay`, `/api/**`.
+     `/bulten/onay`, `/masa/[code]` (masalardaki basılı QR), `/api/**`.
   6. Veri `loadAppProps()` / `getPublicSettings()` / `list*` ile okunur;
      bileşende `@/lib/db` yok; istemci bileşeni `server-only` modül import
      edemez (saf mantık için `*-core.ts` / `*-utils.ts`).
@@ -144,18 +160,23 @@ yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
 src/
   app/
     page.tsx                 → Müşteri SPA entrysi (hash router: #home, #menu, ...)
-    layout.tsx               → next/font ile iki ses (Poppins + Inter) + Consent
+    layout.tsx               → next/font ile iki ses (Gabarito başlık 600-800,
+                               Poppins metin 300-800) + Consent
                                Mode bootstrap (GTM'den önce) + GTM
     globals.css              → Tüm design tokens + müşteri SPA stilleri
     menu/ magaza/ hikayemiz/ → Müşteri rotaları (SPA içeriğinin SEO'lu karşılıkları)
     ziyaret/ hukuk/
-    odeme/                   → Checkout + placeOrderAction + /basarili
+    odeme/                   → Tek sayfa checkout (checkout.tsx + kartın yerli
+                               formu card-payment.tsx) + startCheckoutAction +
+                               /basarili
     uye/                     → Müşteri hesabı (giriş, kayıt, sipariş geçmişi,
                                adresler, favoriler, promosyonlar, bildirimler)
     admin/                   → Admin panel (proxy korumalı)
       urunler/ kategoriler/  → Shop ürünleri (wizard) + kategoriler
       menu/                  → Kafe menüsü
       siparisler/            → Sipariş listesi + detay + manuel sipariş
+      masalar/               → Masalar · QR (sahip + yönetici): ad, QR, yazdır,
+                               pasifleştir, kodu yenile
       musteriler/            → CRM-lite
       promosyon/ raporlar/   → Promosyon kodları · ciro raporları
       stok-hareketleri/      → Stok audit + manuel düzeltme
@@ -165,6 +186,8 @@ src/
     hukuk/ bulten/ ayarlar/→ Hukuki metinler · bülten · ayarlar
       giris/ iki-asama/      → Login + 2FA akışı
       2fa-kurulum/
+    masa/[code]/             → Masadaki QR'ın açtığı salt görüntüleme menü +
+                               masa adı (noindex, sitemap'te yok)
     rehber/                  → SEO rehber hub'ı + /rehber/[slug] (Article +
                                FAQPage + Recipe yapısal verisi)
     api/webhooks/payment/    → Sunucudan sunucuya ödeme bildirimi (HMAC)
@@ -172,6 +195,7 @@ src/
                                menu · shop · bootstrap · live-status ·
                                karaoke/* (herkese açık) · me/* · orders/* ·
                                loyalty/redeem · coupons · invite/claim ·
+                               tables/{code} (herkese açık, masa QR'ı) ·
                                notifications (Bearer Supabase JWT) · app-content
     odeme/app-hata/          → Uygulama ödemesi başarısız → derin bağlantı
     odeme/donus/             → Sanal POS'un MÜŞTERİYİ POST ettiği dönüş
@@ -214,7 +238,9 @@ src/
                                orders · order-{schema,pricing,mapper,address} ·
                                me(-mapper/-schema) · loyalty(-core) · invite(-code) ·
                                venue · karaoke · notifications · deep-link
-    payment/                 → PaymentProvider arayüzü + Mock/PayNkolay/iyzico sağlayıcıları
+    payment/                 → PaymentProvider arayüzü + Mock/PayNkolay sağlayıcıları ·
+                               paynkolay-card (kart doğrulama) · paynkolay-page
+                               (ödeme sayfaları + kendi CSP'leri)
     legal/                   → entity.ts (yasal kimlik TEK KAYNAK + {{TOKEN}}) ·
                                content.ts (sözleşme metinleri, ham veri) ·
                                documents.ts (token doldurma + LEGAL_DOCS) ·
@@ -244,6 +270,33 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
                                EMAIL-RESEND.md · FRONTEND-SINIR.md (ön yüz ↔
                                arka yüz sınırı)
 ```
+
+## Masalar (QR) ve "yeni sipariş" e-postası (15 Eki 2026)
+
+- **Masa = ad + rastgele kod.** `public.cafe_tables`; kod 10 karakter Crockford
+  base32 (`cafe-tables-core.ts`, sunucu üretir, sıralı değil), QR içeriği hep
+  `https://laffogato.net/masa/<kod>` (apex, sabit - laminasyonlu kart).
+  Silinmez, pasifleşir; kart kötüye kullanılırsa "Kodu yenile". Panel
+  `/admin/masalar` (`tables` bölümü: sahip + yönetici); SVG indirme route
+  handler'ı (`/admin/masalar/[id]/qr`) oturumu ve rolü **kendisi** denetler.
+- **Masaya sipariş yalnız uygulamadan** (`fulfillment: "table"` + `tableCode`,
+  kafe; adres yok, planlı saat yok, pasif masaya yok) ve **ön ödemeli** (kart
+  PayNkolay, cüzdan ya da sıfır tutar) - kasada ödeme yok. Masa kodu ve adı
+  siparişe anlık görüntü olarak yazılır (`orders."tableCode"`, `"tableName"`).
+  Herkese açık arama (`GET /api/mobile/v1/tables/{code}`, `/masa/[code]`, sipariş
+  yolu) yalnız `{code, name}` verir; bulunamayan kod üye + IP (oturum yoksa IP)
+  başına sayılır (`table-lookup`). Sözleşme: `docs/API-MOBILE.md` §3 ve §22.
+  AASA `/masa/*` **talep etmez** ve `/masa` sayfası "uygulamadan sipariş ver"
+  demez: masa ekranı olan lafmobil sürümü yayınlanınca ikisi birlikte açılır.
+  Kod yenilenince eski kart hemen masadan kaldırılmalı.
+- **Personel e-postası:** `applyPaymentSucceeded` siparişi gerçekten `paid`'e
+  taşıdığında `after()` ile, sipariş başına **bir kez** (`order_notice_emails`,
+  kind `staff-new`), tek batch isteğinde, 429/5xx'te kısa yeniden denemeyle
+  gider (ayrıntı `docs/EMAIL-RESEND.md` "Yeni sipariş bildirimi")
+  (`src/lib/email/staff-order-notice{,-core}.ts`, `operasyon-bildirim`
+  şablonu). Alıcılar Ayarlar → Bildirimler: roller, ek adresler, operasyon
+  adresi. İçerik müşterinin **yalnız adını** taşır; telefon, e-posta, adres,
+  soyad ve kurye notu (kapı kodu) yazılmaz. Ödemeyi bekletmez, bozamaz.
 
 ## Geliştirme Komutları
 
@@ -303,7 +356,7 @@ yazma, eskiyor). Sayaç fonksiyonları: `next_seq` / `claim_order_stock` /
 `release_order_stock` / `redeem_promo` / `release_promo_usage` /
 `increment_promo_usage` / `adjust_product_stock` / `record_auth_failure` /
 `reserve_auth_attempt` / `reserve_order_refund` / `drop_order_refund` /
-`toggle_wishlist` / `campaign_email_claim`, ve üye başına tavanları tutan
+`toggle_wishlist` / `campaign_email_claim` / `reserve_fal_reading`, ve üye başına tavanları tutan
 tetikleyiciler (`app_pending_order_cap`, `karaoke_open_cap`,
 `counter_token_issue_cap`). Her biri, JavaScript'te yapılan bir
 oku-değiştir-yaz'ın eşzamanlılık altında kaybettiği yazımlar yüzünden var. Şema yoksa uygulama onu ilk sorguda kendisi kurar
@@ -338,9 +391,13 @@ durum bozulmaya uygundur.
   eylem), **bordo** `--accent` (ekran başına bir imza yüzeyi), pirinç
   `--gold-soft` (dolgu) ve `--gold` (metin), durum renkleri `--matcha`
   (olumlu), `--rose` (uyarı — marka değil) ve `--info` (kobalt).
-- **Yazı:** Poppins (`--display`: başlık, fiyat, düğme) + Inter (`--sans`:
-  gövde, etiket). Etiketler cümle düzeninde; büyük harfli geniş aralık yalnız
-  kart baskısında (`.eyebrow.caps`).
+- **Yazı:** iki ses. Başlık ve gösterim rakamı Gabarito (`--headline`: 600
+  kart başlığı, 700 başlık, 800 gösterim - hero, `.h-display`, büyük
+  rakamlar); gerisi Poppins (`--display`; `--sans` ve tarihsel token'lar ona
+  çözülür; 400 gövde, 600 etiket/düğme). Biennale lisanslanırsa yalnız
+  `layout.tsx`'teki yükleyici ve `--headline` yığını değişir. Poppins'te ok
+  glifi yok: etiketin ardındaki ok `.arrow` ile çizilir. Etiketler cümle
+  düzeninde; büyük harfli geniş aralık yalnız kart baskısında (`.eyebrow.caps`).
 - **Malzeme:** kapsül düğme (`--r-btn: 999px`, basınca 0.97), cam kart,
   gerçek bulanıklık yalnız yüzen kromda (başlık, sekme çubuğu, sepet, arama).
 - **Sahneler** (`scenes.ts`): ürünün arkasındaki ışık uygulamanın 14 sahne
@@ -366,7 +423,7 @@ durum bozulmaya uygundur.
 9. **PII:** Logging'de email/telefon maskelenmeli
 10. **`DATABASE_URL` SADECE server-side** — asla `NEXT_PUBLIC_*` ile expose edilmez
 11. **Veri erişimi yalnız `src/lib/db` üzerinden** — ham SQL'i çağrı noktalarına yayma
-12. **Mesafeli satış onayı zorunlu.** Ödeme adımındaki onay kutusu ön işaretli olamaz; `placeOrderAction` onaysız siparişi reddeder ve onayı (tarih, IP, tarayıcı, belge sürümü) `orders."legalConsent"` JSONB kolonuna yazar — sanal POS / chargeback delili
+12. **Mesafeli satış onayı zorunlu.** Ödeme adımındaki onay kutusu ön işaretli olamaz; `startCheckoutAction` onaysız siparişi reddeder ve onayı (tarih, IP, tarayıcı, belge sürümü) `orders."legalConsent"` JSONB kolonuna yazar — sanal POS / chargeback delili
 13. **Yasal kimlik uydurulmaz.** `src/lib/legal/entity.ts` içinde MERSİS / ticaret sicil / KEP / IBAN bilinmiyorsa **boş bırakılır**; boş token içeren tablo satırı render edilmeden düşürülür. Sahte numara yazmak yerine satırı gizle
 14. **NACE / faaliyet kodu sitede yayımlanmaz** — yalnızca iç kayıt
 15. **SEO içeriği veriye dayanır.** Yeni bir rehber/landing sayfası açmadan önce
@@ -413,12 +470,31 @@ durum bozulmaya uygundur.
     Oraya yardımcı fonksiyon koyma (2FA'yı kapatan `freshEnrollment` böyle
     açıktaydı); her action kendi oturum + rol kontrolünü yapar — `proxy.ts`
     yalnız sayfa yönlendirmesidir, yetki kontrolü değil
-28. **Kart verisi saklanmaz, bu sunucudan geçmez** (operatör kararı). Kart
-    numarası, son kullanma tarihi ve CVV yalnız PayNkolay'ın barındırılan
-    ödeme sayfasında girilir; kart numarası alan PayNkolay uçları
-    (`CardStorageCardRegister` vb.) kullanılmaz, şemada kart alanı olmaz.
-    v1'de sağlayıcı tarafında kart saklama da kapalı (`customerKey` boş,
-    `docs/API-MOBILE.md` §15). `tests/saved-cards.test.ts` tutar
+28. **Kart verisi saklanmaz** (operatör kararı, 23 Eyl ve 15 Eki 2026). Kart
+    web'de checkout sayfasının kendisinde (`/odeme`) girilir - operatör, 16
+    Eki 2026: _"kart girerken başka sayfaya vs atmasın"_; bu, kartın yalnız
+    `/odeme/paynkolay`'da girildiği eski kararın bilinçli tersidir
+    (`docs/PAYNKOLAY.md` §15.5). Uygulama aynı `/odeme/paynkolay` sayfasını
+    açmaya devam eder. Kart `/odeme`'de yerli bir POST formunda
+    (`action="/odeme/paynkolay"`), kontrolsüz alanlarda durur: Server
+    Action'a, serileşen React state'ine, depolamaya, loga ve adrese girmez;
+    sunucu onu aynı istekte yalnızca PayNkolay'a (`/Vpos/v1/Payment`)
+    iletir. Veritabanına, loga, dosyaya yazılmaz; hata yanıtı kart
+    numarasını ve CVV'yi geri basmaz (`/odeme`'ye yalnız sabit kodla döner).
+    `/odeme` belgesi kendi nonce CSP'siyle, GTM'siz ve üçüncü taraf betiksiz
+    sunulur (`src/proxy.ts`, `src/lib/security/checkout-csp.ts`). Kart
+    alanları yalnız beş dosyada geçer (`paynkolay-card.ts`, `paynkolay.ts`,
+    `paynkolay-page.ts`, `odeme/paynkolay/route.ts`, `odeme/card-payment.tsx`)
+    ve bu dosyalar DB/store import etmez. Kayıtlı kart **PayNkolay'da** durur
+    (operatör, 15 Eki 2026; `docs/PAYNKOLAY.md` §16): biz yalnız rastgele
+    11 karakterlik üye anahtarını (`customers."cardUserKey"`) tutarız, token
+    tarayıcıya gitmez, kaydetme kutusu işaretsiz gelir, hesap kapanınca
+    kartlar POS'tan silinir. `CardStorageCardRegister` (kart numarasıyla
+    ödemesiz saklama) kullanılmaz; ortak ödeme sayfasında `customerKey` boş;
+    şemada kart alanı yok; ödeme kaydında kart sahibinin adı tutulmaz. `tests/saved-cards.test.ts` + `tests/paynkolay-card-page.test.ts`
+    tutar. Ödeme sayfası sitenin genel CSP'si dışındadır ve kendi, daha dar
+    CSP'sini gönderir (üçüncü taraf betik yok, `frame-ancestors 'none'`); kart
+    denemesi IP ve sipariş başına sınırlıdır (`card-payment-*`)
 29. **Ödenmemiş sipariş POS'a sorulmadan iptal edilmez.** Süpürme ve yeni
     ödemenin eski denemeyi bırakması `cancelUnpaidOrder` → `lookupPayment`
     (`PaymentList`) üzerinden geçer; POS'a ulaşılamaması "ödenmedi" sayılmaz.
@@ -458,15 +534,17 @@ durum bozulmaya uygundur.
 
 ## Yapılmayacaklar
 
-- **PayNkolay canlıya alınmadı.** Sağlayıcı kodu ve testleri hazır; panel
-  anahtarları ve canlı deneme operatörde. Kurulum ve on maddelik canlı ölçüm
-  listesi `docs/PAYNKOLAY.md` §13'te. Ödeme akışına dokunurken iki tuzağı
-  unutma: `PAYNKOLAY_SUCCESS_URL` **ve** `PAYNKOLAY_FAIL_URL` ikisi de
-  `/odeme/donus` olmalıdır (PayNkolay sonucu form-POST eder), ve
-  `PAYMENT_PROVIDER` her ortamda tanımlı olmalıdır
-- **Kart saklamayı açma.** Operatör kararı: kart bilgisi saklanmaz (kural 28).
-  PayNkolay formundaki `customerKey` boş kalır; "kartımı kaydet" ya da kart
-  numarası alan bir uç eklemek bu kararın değişmesini ister, önce kullanıcıya
+- **PayNkolay canlıda (15 Eki 2026).** Anahtarlar Vercel production'da,
+  kurulum `docs/PAYNKOLAY.md` §13, sitedeki kart formu §15. §12'deki canlı
+  ölçüm listesinin çoğu sandbox'ta kapandı (§12.1); açık kalanlar orada.
+  İlk gerçek kartlı ödeme operatörün işidir. Ödeme akışına
+  dokunurken iki tuzağı unutma: `PAYNKOLAY_SUCCESS_URL` **ve**
+  `PAYNKOLAY_FAIL_URL` ikisi de `/odeme/donus` olmalıdır (PayNkolay sonucu
+  form-POST eder), ve `PAYMENT_PROVIDER` her ortamda tanımlı olmalıdır
+- **Kartı bizde saklama.** Operatör kararı: kart bilgisi bizde saklanmaz
+  (kural 28); kayıtlı kart yalnız PayNkolay'da. Kart numarasını yazan,
+  loglayan bir yol, kart alanlarını dört dosyanın dışına taşımak ya da
+  `CardStorageCardRegister` bu kararın değişmesini ister, önce kullanıcıya
   sor
 - **Canlı anahtarlarla çekim denemesi yapma** — test hostu
   (`PAYNKOLAY_BASE_URL`) dışında gerçek kartla deneme operatörün işidir

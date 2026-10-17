@@ -6,6 +6,7 @@
 import { z } from "zod";
 
 import { lineOptionsSchema, orderItemSizeSchema } from "./customization";
+import { phoneField } from "./me-schema";
 import { fulfillmentAllowed } from "./order-pricing";
 
 /** Per-line quantity ceiling - mirrors `MAX_LINE_QTY` in the store. */
@@ -118,11 +119,14 @@ export const inlineAddressSchema = z
       .trim()
       .min(2, { error: "Alıcı adı zorunlu." })
       .max(100, { error: "Alıcı adı çok uzun." }),
-    phone: z
-      .string({ error: "Telefon geçersiz." })
-      .trim()
-      .min(7, { error: "Geçerli bir telefon gir." })
-      .max(30, { error: "Telefon çok uzun." }),
+    // Normalised before it is checked, like the saved address (W1-04).
+    phone: phoneField(
+      z
+        .string({ error: "Telefon geçersiz." })
+        .trim()
+        .min(7, { error: "Geçerli bir telefon gir." })
+        .max(30, { error: "Telefon çok uzun." }),
+    ),
     city: z
       .string({ error: "Şehir geçersiz." })
       .trim()
@@ -186,9 +190,20 @@ const addressSchema = z
 
 const orderFields = {
   kind: z.enum(["cafe", "shop"], { error: "Sipariş türü geçersiz." }),
-  fulfillment: z.enum(["pickup", "delivery", "shipping"], {
+  fulfillment: z.enum(["pickup", "delivery", "shipping", "table"], {
     error: "Teslimat türü geçersiz.",
   }),
+  /**
+   * The table's QR code, with `fulfillment: "table"` only (15 Eki 2026, §3).
+   * Optional and "" by default, so every existing build orders exactly as
+   * before. Whether it names an active table is the order path's question
+   * (400 `invalid_table`, 409 `table_inactive`), not the schema's.
+   */
+  tableCode: z
+    .string({ error: "Masa kodu geçersiz." })
+    .trim()
+    .max(16, { error: "Masa kodu geçersiz." })
+    .default(""),
   lines: z
     .array(lineSchema, { error: "Sepet satırları geçersiz." })
     .min(1, { error: "Sepet boş." })
@@ -232,14 +247,47 @@ const orderFields = {
     .trim()
     .max(64, { error: "İstek kimliği çok uzun." })
     .default(""),
+  /**
+   * Pay the whole order from the member's wallet (docs/API-MOBILE.md §18):
+   * all of it or nothing - a short balance is 409 `insufficient_balance` and
+   * no order is written. Optional and false by default, so every existing
+   * build orders exactly as before. Accepted and ignored on the preview,
+   * which posts the same basket object.
+   */
+  payWithWallet: z
+    .boolean({ error: "Cüzdan seçimi geçersiz." })
+    .default(false),
+  /**
+   * The total the member saw and agreed to, in kuruş. Honoured only with
+   * `payWithWallet: true`: a wallet order is charged at once, so it never
+   * reaches the "Tutar değişti" card a card checkout shows before paying.
+   * When the server's total differs, the answer is 409 `total_changed` with
+   * the new `totalMinor`, and nothing is written or charged. Optional; absent
+   * is the behaviour before it existed.
+   */
+  expectedTotalMinor: z
+    .number({ error: "Beklenen tutar geçersiz." })
+    .int({ error: "Beklenen tutar kuruş cinsinden tam sayı olmalı." })
+    .min(0, { error: "Beklenen tutar negatif olamaz." })
+    .max(100_000_000, { error: "Beklenen tutar geçersiz." })
+    .optional(),
 };
 
 type OrderFieldsParsed = {
   kind: "cafe" | "shop";
-  fulfillment: "pickup" | "delivery" | "shipping";
+  fulfillment: "pickup" | "delivery" | "shipping" | "table";
   lines: OrderLineInput[];
   address: OrderAddressInput;
+  tableCode: string;
+  scheduledFor: string | null;
 };
+
+/** Messages of the table rules below; exported for the tests. */
+export const TABLE_ORDER_MESSAGES = {
+  codeWithoutTable: "Masa kodu yalnız masaya siparişte gönderilir.",
+  address: "Masaya siparişte adres gönderilmez.",
+  scheduled: "Masaya sipariş planlanamaz; hemen hazırlanır.",
+} as const;
 
 /**
  * Rules that span fields. `kind` is what the basket says it is - the client's
@@ -282,9 +330,38 @@ function crossFieldRules(
       code: "custom",
       message:
         v.kind === "cafe"
-          ? "Kafe siparişi gel-al ya da kurye ile teslim edilir."
+          ? "Kafe siparişi gel-al, kurye ya da masaya servis ile teslim edilir."
           : "Mağaza siparişi kargo ile gönderilir.",
       path: ["fulfillment"],
+    });
+    return;
+  }
+  if (v.fulfillment === "table") {
+    // Brought to a table in the köşk, now: there is nowhere to deliver to
+    // and nothing to schedule. Both are refused rather than ignored, so an
+    // app that sends them learns it has the wrong idea of the order.
+    if (v.address !== null) {
+      ctx.addIssue({
+        code: "custom",
+        message: TABLE_ORDER_MESSAGES.address,
+        path: ["address"],
+      });
+      return;
+    }
+    if (v.scheduledFor) {
+      ctx.addIssue({
+        code: "custom",
+        message: TABLE_ORDER_MESSAGES.scheduled,
+        path: ["scheduledFor"],
+      });
+    }
+    return;
+  }
+  if (v.tableCode) {
+    ctx.addIssue({
+      code: "custom",
+      message: TABLE_ORDER_MESSAGES.codeWithoutTable,
+      path: ["tableCode"],
     });
     return;
   }

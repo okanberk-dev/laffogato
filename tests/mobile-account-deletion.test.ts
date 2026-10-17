@@ -56,6 +56,8 @@ describe("account deletion sweeps", () => {
       `${TABLES.falReports}.customerEmail`,
       `${TABLES.featureConsents}.customerEmail`,
       `${TABLES.falReadings}.customerEmail`,
+      // A barista grant would pass to the next holder of the address.
+      `${TABLES.staffMembers}.email`,
     ]) {
       expect(covered, target).toContain(target);
     }
@@ -112,11 +114,20 @@ describe("what a closed account leaves behind", () => {
   it("keeps every other sweep an anonymising update", () => {
     for (const sweep of ANON_SWEEPS) {
       if (sweep.table === TABLES.newsletterSubscribers) continue;
+      // A barista grant is a permission, not a book entry: anonymised, it
+      // would be a till nobody holds; the audit log keeps the history.
+      if (sweep.table === TABLES.staffMembers) continue;
       expect(sweep.op ?? "update", sweep.table).toBe("update");
       expect(
         Object.keys(sweep.patch("deleted-cst-1@anon.local")).length,
       ).toBeGreaterThan(0);
     }
+  });
+
+  it("deletes the barista grant so the next holder of the address has no till", () => {
+    const staff = ANON_SWEEPS.find((s) => s.table === TABLES.staffMembers)!;
+    expect(staff.op).toBe("delete");
+    expect(staff.caseInsensitive).toBe(true);
   });
 
   it("empties the provider payload but keeps the row", () => {

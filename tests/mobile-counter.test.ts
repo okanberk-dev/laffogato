@@ -87,7 +87,21 @@ describe("issueCounterToken", () => {
     const { code } = await issue();
     expect(code).toHaveLength(8);
     // No O/0, no I/1/L - the whole point of the reduced alphabet.
-    expect(code).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{8}$/);
+    expect(code).toMatch(/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/);
+  });
+
+  it("never prints an L, however many codes it draws", async () => {
+    // The alphabet carried an `L` for weeks while its comment said it did
+    // not; one 8-character code shows it only now and then, sixty do not lie.
+    const letters = new Set<string>();
+    for (let i = 0; i < 60; i += 1) {
+      const res = await issueCounterToken(`tur${i}@ornek.com`);
+      if (!res.ok) throw new Error(`beklenmedik hız sınırı: ${res.error}`);
+      for (const ch of res.issue.code) letters.add(ch);
+    }
+    expect(letters.has("L")).toBe(false);
+    expect(letters.has("I")).toBe(false);
+    expect(letters.has("O")).toBe(false);
   });
 
   it("draws a token QR can encode in its cheap mode", async () => {
@@ -319,6 +333,53 @@ describe("redeemCounterToken · jeton", () => {
     });
     expect(again).toMatchObject({ ok: false, error: "already_used" });
     expect(addCounterStamp).not.toHaveBeenCalled();
+  });
+});
+
+describe("redeemCounterToken · refuseOwner (barista in the app)", () => {
+  // POST /staff/stamp passes the barista's own address: a barista must not
+  // stamp their own QR or code. The refusal must come before the burn, or
+  // the member's code would be spent for nothing and fail at a real till.
+  it.each(["token", "code"] as const)(
+    "refuses the owner's own %s and leaves it unburned",
+    async (kind) => {
+      const { token, code } = await issue();
+      const res = await redeemCounterToken({
+        kind,
+        value: kind === "token" ? token : code,
+        stamps: 1,
+        actor: MEMBER,
+        refuseOwner: ` ${MEMBER.toUpperCase()} `,
+      });
+      expect(res).toMatchObject({ ok: false, error: "self_stamp" });
+      expect(addCounterStamp).not.toHaveBeenCalled();
+      expect(allTokens()[0].usedAt).toBe("");
+
+      const atTill = await redeemCounterToken({
+        kind,
+        value: kind === "token" ? token : code,
+        stamps: 1,
+        actor: CASHIER,
+      });
+      expect(atTill.ok).toBe(true);
+    },
+  );
+
+  it("stamps somebody else's code as usual", async () => {
+    const { code } = await issue();
+    const res = await redeemCounterToken({
+      kind: "code",
+      value: code,
+      stamps: 1,
+      actor: "bora@ornek.com",
+      refuseOwner: "bora@ornek.com",
+    });
+    expect(res.ok).toBe(true);
+    expect(addCounterStamp).toHaveBeenCalledWith(
+      MEMBER,
+      "bora@ornek.com",
+      "Kasa · kod",
+    );
   });
 });
 

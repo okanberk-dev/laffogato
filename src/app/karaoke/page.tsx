@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 
 const TITLE = "Karaoke Odası Rezervasyonu - Tuzla | L'Affogato";
 const DESCRIPTION =
-  "Köşkün üst katında özel karaoke odası. Gün ve saat seç, kişi sayısını gir, rezervasyonunu web'den ya da uygulamadan tamamla.";
+  "Köşkün üst katında özel karaoke odası. Saatini seç, kartınla öde; rezervasyonun hemen kesinleşir.";
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -140,6 +140,13 @@ export default async function KaraokePage({ searchParams }: PageProps) {
               : undefined
           }
           phone={settings.phone || SITE.phone}
+          address={
+            settings.address ||
+            `${SITE.address.streetAddress}, ${SITE.address.postalCode} ${SITE.address.addressLocality} / ${SITE.address.addressRegion}`
+          }
+          // Presentation only: the action re-reads the switch with
+          // `getSettings()` and decides there.
+          prepay={availability?.paymentRequired ?? settings.karaokePrepay}
         />
       </SiteChrome>
     </>

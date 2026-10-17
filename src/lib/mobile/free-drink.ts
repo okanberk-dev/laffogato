@@ -36,15 +36,19 @@ export function freeDrinkExpiry(
 /**
  * Grants the coupon to `email`. `reward` lets a caller that has already read
  * the settings (the redeem path) pass them on; without it the live rules are
- * read here, so the invite path picks up the configured value too.
+ * read here, so the invite path picks up the configured value too. `id` is
+ * the coupon's row id when the caller names it (the stamp card does, see
+ * `freeDrinkCouponId`).
  */
 export async function grantFreeDrinkCoupon(
   email: string,
   source: "loyalty" | "invite",
   reward?: FreeDrinkReward,
+  id?: string,
 ): Promise<CustomerCoupon> {
   const r = reward ?? (await currentFreeDrinkReward());
   return grantCoupon({
+    id,
     email,
     kind: r.kind,
     value: r.valueMinor,

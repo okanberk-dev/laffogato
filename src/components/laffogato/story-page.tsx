@@ -33,7 +33,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
     {
       n: "03",
       t: "Laptop yok, ses az",
-      d: "Akşam 18:00’dan sonra çalışma yok. Müzik 65dB üzerine çıkmaz. Bar, sohbet için.",
+      d: "Akşam 18:00’den sonra çalışma yok. Müzik 65dB üzerine çıkmaz. Bar, sohbet için.",
     },
     {
       n: "04",

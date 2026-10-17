@@ -130,6 +130,7 @@ const orderingSchema = z
     cafeEnabled: z.boolean(),
     deliveryEnabled: z.boolean(),
     pickupEnabled: z.boolean(),
+    tableEnabled: z.boolean(),
     courierEtaMinutes: z.tuple([etaField, etaField]),
     closedMessage: textField(L.closedMessageMax, "Kapalı mesajı"),
   })
@@ -147,6 +148,7 @@ export async function saveOrderingAction(
     cafeEnabled: flag(formData, "cafeEnabled"),
     deliveryEnabled: flag(formData, "deliveryEnabled"),
     pickupEnabled: flag(formData, "pickupEnabled"),
+    tableEnabled: flag(formData, "tableEnabled"),
     courierEtaMinutes: [str(formData, "etaMin"), str(formData, "etaMax")],
     closedMessage: str(formData, "closedMessage"),
   });

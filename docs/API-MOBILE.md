@@ -33,7 +33,7 @@ Karar kayıtları: `docs/DESIGN-UYGULAMA.md`.
 | Kimlik       | `Authorization: Bearer <Supabase access JWT>`. Sunucu `supabase.auth.getUser(jwt)` ile doğrular, `user.email` → Neon `customers` satırı (yoksa **oluşturur**).     |
 | Hata gövdesi | `{ "error": "<kod>", "message": "<Türkçe, kullanıcıya gösterilebilir>" }`                                                                                          |
 | HTTP         | 200/201 · 400 geçersiz istek · 401 kimlik yok/geçersiz · 403 e-posta doğrulanmamış (sipariş) · 404 · 409 çakışma (stok/kapalı) · 429 · 503 veritabanı ulaşılamıyor |
-| Runtime      | Her route: `export const runtime = "nodejs"; export const dynamic = "force-dynamic"; export const maxDuration = 15;`                                               |
+| Runtime      | Her route: `export const runtime = "nodejs"; export const dynamic = "force-dynamic"; export const maxDuration = 15;` Tek istisna `POST /fal` (§20): `maxDuration = 30`, çünkü model yorumu 20 saniyeye kadar sürer; uygulama bu uca 30 sn zaman aşımı verir. |
 | Sızıntı      | Store satırı doğrudan JSON'a **yayılmaz**; her uç açık izin-listesi eşleyici kullanır.                                                                             |
 | Fiyat        | **İstemciden fiyat alınmaz.** Sipariş tutarı sunucuda DB fiyatı + seçenek fiyatından hesaplanır.                                                                   |
 | Sürüm        | Yol ile (`/v1/`). v1 içinde yalnız ekleme yapılır.                                                                                                                 |
@@ -336,7 +336,8 @@ stale-while-revalidate=300` (stok bayrağı taşır); `GET /bootstrap` menü ile
 ```jsonc
 {
   "kind": "cafe",                          // cafe | shop
-  "fulfillment": "delivery",               // cafe: pickup | delivery · shop: shipping
+  "fulfillment": "delivery",               // cafe: pickup | delivery | table · shop: shipping
+  "tableCode": "",                         // yalnız fulfillment "table": masadaki QR'ın kodu (opsiyonel, varsayılan "", en fazla 16 karakter; 15 Eki 2026)
   "lines": [
     { "menuItemId": "mnu-0007", "qty": 1, "size": "M",            // cafe satırı; size: "M" | "L" | "single"
       "options": { "milk": "oat", "roast": "intense", "sugar": 0, "syrup": "none", "extraShot": true, "note": "" } },
@@ -365,24 +366,66 @@ Kurallar:
 - `customers.emailVerified` yoksa **403** `email_unverified`.
 - Kafe satırları `menu_items` (aktif) ile, mağaza satırları `products` ile çözülür; **fiyat DB'den**.
 - Seçenek fiyatları `customization` sabitinden; `size: "L"` → `priceMinorL`, yoksa **400**.
+- Özelleştirilemeyen kategoriler (`dessert` · `snack` · `extras`; uygulamanın `NON_CUSTOMIZABLE`
+  listesi) seçenek almaz (14 Eki 2026, yalnız ekleme): bu satırlarda gönderilen `options`
+  **yok sayılır** (reddedilmez), satır varsayılan seçeneklerle ve sade fiyatıyla yazılır.
+  `/orders/preview` aynı kuralla fiyatlar.
 - `kind: "cafe"`: stok yok; `kind: "shop"`: mevcut `placeOrder` stok/claim mantığı **aynen** kullanılır.
-- Kargo/kurye: `pickup` → 0; `delivery` → `settings.courierFeeMinor` (varsayılan 5500); `shipping` → mevcut `computeOrderTotals`.
+- Kargo/kurye: `pickup` → 0; `table` → 0; `delivery` → `settings.courierFeeMinor` (varsayılan 5500); `shipping` → mevcut `computeOrderTotals`.
 - `kind: "shop"` ve `settings.isShopOpen === false` → **409** `shop_closed`. Bu anahtar **yalnızca kargolu mağaza** siparişlerini durdurur. Kafe siparişi için köşk kapalıysa (`live-status.isOpen === false`) **409** `cafe_closed`.
 - Sipariş satırı `orders` tablosuna **mevcut şekliyle** yazılır; ek sütunlar: `channel = "app"`, `kind`, `fulfillment`, `scheduledFor`, `deliveryNote`. Satır `items[]` öğesine `menuItemId`, `size`, `options` eklenir (jsonb — geriye uyumlu).
 - Ödeme: mevcut `getPaymentProvider().createCheckoutSession()`; `successUrl = https://laffogato.net/odeme/donus?app=1`, `failureUrl = https://laffogato.net/odeme/app-hata`. Uygulama `redirectUrl`'i `expo-web-browser` ile açar; dönüş sayfası **`laffogato://siparis/<id>`** derin bağlantısına yönlendirir (sayfa `app=1` görünce).
 - Sadakat: sipariş **`paid`** olunca (`applyPaymentSucceeded`) `channel === "app" && kind === "cafe"` ise **+1 damga** (`loyalty_stamps`, kind `earn`, `orderId` benzersiz → idempotent).
+  **15 Eki 2026:** damga yalnız ürün tutarı **en az 140₺** olan siparişe verilir (`STAMP_MIN_ORDER_MINOR` = 14000; `totalMinor − shippingMinor`, indirim düşülmüş, kurye ücreti sayılmaz). Altındaki ödenmiş kafe siparişi damga kazanmaz; değer `bootstrap.app.loyalty.stampMinOrderMinor` ile uygulamaya gider.
+  **15 Eki 2026 (aynı gün, ikinci karar; yalnız ekleme):** damga **toplam ürün tutarıyla** hesaplanır: 140₺'den itibaren **başlayan her 320₺ bir damga** (`STAMP_STEP_MINOR` = 32000; `damga = tutar < 14000 ? 0 : ceil(tutar / 32000)`). 140₺-320₺ → 1, 320,01₺-640₺ → 2, 640,01₺-960₺ → 3 … Tutar yukarıdakiyle aynı ölçülür (indirim düşülmüş, kurye ücreti sayılmaz). Sipariş başına yine **tek** `earn` satırı yazılır, `delta` o siparişin damga sayısıdır (idempotentlik `orderId` üzerinde aynen). **16 Eki 2026 (yalnız ekleme):** her iadeden sonra sipariş damgası **kalan** ürün tutarıyla yeniden hesaplanır (`hedef = damga(ürün − iade edilen ürün)`; iade bölünemediği için **önce kurye ücretinden** düşülür, kalanı ürün tutarından: `iade edilen ürün = max(0, iade toplamı − kurye ücreti)`, en çok ürün tutarı kadar; yalnız kurye ücreti iadesi damga almaz); aşan her damga için ayrı bir `reversal` satırı (`delta = −1`) yazılır, tam iade/iptal kalan damganın tamamını geri alır. Ödül hesabı tek kurala bağlıdır: `karşılanan = ömür boyu damga − ayakta duran her kartın maliyeti` (kartın maliyeti bozdurulduğu andaki kendi `redeem` satırının delta'sıdır, güncel `stampTarget` değil). Damga geri alındığında, tutulan kupon geri verildiğinde ya da kart bozdurulduğunda `karşılanan < 0` olduğu sürece en yeni **kullanılmamış**, süresi geçmemiş içecek kuponu pasifleştirilir ve kartı `unredeem` satırıyla geri alınır; kullanılmamış kupon kalmazsa borcu sonraki damgalar öder (bakiye 0'ın altına inmez), kullanılmış kupon kullanılmış kalır. Ömür boyu damga bir kilometre taşının altına inerse kullanılmamış hediyesi de pasifleştirilir ve yeniden kazanılabilir. `stampTarget` değişikliği tek başına hiçbir kuponu geri almaz; küçülen kartta eski kartlar kendi maliyetiyle sayıldığından `rewardsReady` onların karşılamadığı kartı göstermez. Tek sipariş kartı bir ya da birkaç kez doldurabilir: bakiye ledger'dan okunduğu için her dolu kart `rewardsReady`'ye eklenir, artan damga yeni karta geçer; kupon her zamanki gibi `POST /loyalty/redeem` ile kart başına bir tane alınır. Kasa / barista damgası (§17, §21) değişmedi: okutma başına seçilen adet kadar +1 satırı. Adım `bootstrap.app.loyalty.stampStepMinor` ile uygulamaya gider.
+- **Masaya sipariş (15 Eki 2026, yalnız ekleme).** Köşkteki her masanın üzerinde panelde
+  üretilmiş bir QR vardır: `https://laffogato.net/masa/<kod>` (kod 10 karakter Crockford
+  base32, rastgele; masanın adı panelde verilir, §22). Uygulama kodu `GET /tables/{code}` ile
+  doğrular (§22) ve siparişi `"kind": "cafe"`, `"fulfillment": "table"`, `"tableCode": "<kod>"`
+  ile verir. Bağlantıyı uygulamanın açması (AASA `/masa/*`, Android `pathPrefix` `/masa/`)
+  **henüz açık değil**: site bu yolu, masa ekranı olan uygulama sürümüyle birlikte talep eder
+  (§22).
+  Kurallar:
+  - `table` yalnız `kind: "cafe"` ile; mağaza sepeti → **400** `invalid_body`.
+  - `address` **null** olmalı (gönderilirse **400** `invalid_body`, "Masaya siparişte adres
+    gönderilmez."); `scheduledFor` **null/boş** olmalı (planlı masa siparişi yok: **400**
+    `invalid_body`, "Masaya sipariş planlanamaz; hemen hazırlanır.").
+  - `tableCode` başka bir `fulfillment` ile gönderilirse **400** `invalid_body`. Alanı hiç
+    göndermeyen eski sürümler eskisi gibi sipariş verir.
+  - Kod hiçbir masaya karşılık gelmiyorsa (boş, biçimsiz, bilinmeyen ya da panelde
+    **yenilenmiş** eski kod) **400** `invalid_table` ("Masa bulunamadı. Masadaki QR kodunu
+    yeniden okut."). Masa panelde pasifse **409** `table_inactive` ("Bu masa şu an siparişe
+    kapalı. Bir görevliye sorabilirsin."). Bulunamayan kodlar üye + adres başına sayılır (§22);
+    sınır aşılınca **429** `rate_limited` + `Retry-After`. Hepsi sipariş yazılmadan ve ödeme
+    açılmadan döner. Kod büyük/küçük harf, boşluk, tire ve `O`/`I`/`L` benzerlerinden
+    bağımsız okunur (`o` → `0`, `i`/`l` → `1`).
+  - Anahtarlar: `mobileApp.ordering.tableEnabled === false` → **400** `fulfillment_unavailable`;
+    `cafeEnabled === false` → **409** `ordering_closed` (ana anahtar). Kurye ve gel-al'ın
+    **ikisinin birden** kapalı olması masaya siparişi **kapatmaz**.
+  - **Ön ödeme zorunlu**, diğer siparişler gibi: kart (PayNkolay ödeme sayfası,
+    `payment.redirectUrl`), cüzdan (`payWithWallet`, §18) ya da kupon toplamı sıfırladıysa
+    `free`. Kasada ödeme yoktur.
+  - Masa, sipariş yazıldığı anda **anlık görüntü** olarak saklanır (`orders."tableCode"`,
+    `"tableName"`): masa sonradan yeniden adlandırılsa ya da kodu yenilense de sipariş aynı
+    masayı gösterir → `Order.table`.
+  - "Siparişinizi aldık" e-postası masa siparişinde kargo satırını ve "kargo ücretsiz" notunu
+    taşımaz.
 
 > **Uygulama notu (POST /orders).**
 >
 > - Hata kodları — 400: `invalid_json`, `invalid_body` (Zod), `invalid_address`,
 >   `invalid_line` (L boyu yok / bilinmeyen seçenek / pasif ürün), `line_not_found`,
 >   `qty_too_high` (satır başına en fazla 99, en fazla 30 satır), `empty_cart`,
->   `fulfillment_unavailable` (kafe siparişinde seçilen `delivery`/`pickup` panelden kapatılmış —
->   `mobileApp.ordering.deliveryEnabled` / `pickupEnabled`; mesaj "Bu teslimat seçeneği şu an kapalı.");
+>   `fulfillment_unavailable` (kafe siparişinde seçilen `delivery`/`pickup`/`table` panelden kapatılmış —
+>   `mobileApp.ordering.deliveryEnabled` / `pickupEnabled` / `tableEnabled`; mesaj "Bu teslimat seçeneği şu an kapalı."),
+>   `invalid_table` (yalnız `fulfillment: "table"`, 15 Eki 2026);
 >   403: `email_unverified`; 409: `shop_closed`, `cafe_closed`, `out_of_stock`,
+>   `table_inactive` (yalnız `fulfillment: "table"`, 15 Eki 2026);
+>   429: `rate_limited` (yalnız `fulfillment: "table"`: bulunamayan masa kodu sınırı, §22);
 >   `ordering_closed` (kafe siparişi ve `mobileApp.ordering.cafeEnabled === false`, ya da kurye ve
->   gel-al birlikte kapalı; mesaj = `ordering.closedMessage`). `ordering_closed` ve
->   `fulfillment_unavailable` hem `POST /orders` hem `POST /orders/preview` için geçerlidir.
+>   gel-al birlikte kapalı - masaya sipariş hariç; mesaj = `ordering.closedMessage`).
+>   `ordering_closed`, `fulfillment_unavailable`, `invalid_table`, `table_inactive` ve masa kodu
+>   `rate_limited`'ı hem `POST /orders` hem `POST /orders/preview` için geçerlidir.
 > - `shop_closed` **yalnızca** `kind: "shop"` siparişlerinde döner ("Online mağaza açık",
 >   /admin/ayarlar). Kafe siparişi bu anahtara bakmaz; onu `mobileApp.ordering.cafeEnabled`
 >   ile köşkün saatleri yönetir → `ordering_closed` / `cafe_closed`. Kontrol `scheduledFor`
@@ -391,22 +434,34 @@ Kurallar:
 >   köşk açık göründüğü hâlde her gel-al siparişi reddediliyordu.)
 > - `totalMinor === 0` (kupon toplamı sıfırladı) → sipariş sunucuda anında `paid`
 >   (`payment_transactions.provider = "free"`), `payment: null`.
+> - `payWithWallet: true` (opsiyonel, varsayılan `false`; §18, 14 Eki 2026): bakiye
+>   siparişin tamamını öder → **201**, sipariş `paid`, `payment: null`
+>   (`payment_transactions.provider = "wallet"`). Bakiye yetmezse ya da cüzdan kapalıysa
+>   **409** `insufficient_balance`; sipariş yazılmaz. `/orders/preview` alanı kabul eder ve
+>   yok sayar. Yanında opsiyonel `expectedTotalMinor` (kuruş) gönderilebilir; ayrıntı §18.
 > - `clientOrderId` (opsiyonel, `/orders` ve `/orders/preview`): aynı üye aynı değerle
 >   tekrar gönderirse **aynı sipariş** döner, yenisi açılmaz; hâlâ `pending_payment` ise
 >   yeni bir ödeme oturumu açılır. POS o an açılamazsa tekrar da ilk deneme gibi **500**
 >   `internal` döner (23 Eyl 2026 — önceden 201 + `payment: null` dönüyor, uygulama ödenmemiş
->   siparişi verilmiş sanıyordu); sonraki deneme yine aynı siparişi açar.
+>   siparişi verilmiş sanıyordu); sonraki deneme yine aynı siparişi açar. Yeniden açılış
+  bütçesi aşılınca **429** `rate_limited` + `Retry-After` (15 Eki 2026, yalnız ekleme;
+  ayrıntı `POST /orders/{id}/payment` altında).
+  Yeni oturumdan önce POS'a önceki deneme sorulur (17 Eki 2026, yalnız ekleme): ödenmişse
+  sipariş ödendi işlenir ve **201** `payment: null` ile döner; sorulamazsa **503**
+  `payment_unavailable` (ayrıntı aynı yerde).
 > - `scheduledFor`: geçmiş (5 dk tolerans) ve 7 günden ileri → 400. `""`/`null` = en kısa sürede.
 > - Kafe + mağaza karışık sepet → 400 (teslimat türü ikisini birden karşılayamaz).
 > - Mağaza satırındaki `note` (öğütüm) `items[].detail` alanında taşınır.
 > - `items[].options` sunucuda tam `LineOptions` nesnesi (varsayılanlarla) olarak döner.
 > - `timeline` anahtarları teslimata göre: delivery `received/preparing/on_the_way/delivered`
->   · pickup `received/preparing/ready/picked_up` · shipping `received/preparing/shipped/delivered`.
+>   · pickup `received/preparing/ready/picked_up` · shipping `received/preparing/shipped/delivered`
+>   · table `received/preparing/served/completed` ("Masana getirildi", "Tamamlandı"; 15 Eki 2026).
 > - `timeline[].at` her adımın **kendi** sütunundan gelir: `createdAt` · `preparingAt` ·
 >   `shippedAt` · `completedAt`. Bu sütunlar yoktan önce yazılmış siparişlerde boş olabilir;
 >   o durumda tamamlanmış bir adım `at: null` döner (sonraki bir anı ödünç almaz).
->   `statusLabel` bu adımdan gelir (pickup + shipped → "Hazır - gel al").
-> - `etaMinutes`: delivery paid/preparing 35, shipped 10 · pickup 15 / 0 · shipping null.
+>   `statusLabel` bu adımdan gelir (pickup + shipped → "Hazır - gel al", table + shipped →
+>   "Masana getirildi"). Sipariş bildirimi de aynı dili kullanır.
+> - `etaMinutes`: delivery paid/preparing 35, shipped 10 · pickup ve table 15 / 0 · shipping null.
 > - Dönüş sayfası `/odeme/donus` app siparişini `app=1` parametresine ek olarak
 >   `orders.channel === "app"` ile de tanır (sağlayıcının callback URL'i sabittir);
 >   `laffogato://siparis/<id>?status=success|failed` derin bağlantısına 303 ile yönlendirir.
@@ -444,6 +499,27 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
   ("Bu sipariş ödeme beklemiyor."): uygulama siparişi `GET /orders/{id}` ile yeniden
   çizer.
 - POS açılamazsa **500** `internal`; hiçbir şey değişmez, tekrar denenebilir.
+- **Önce POS'a sorulur; 503 `payment_unavailable`** (17 Eki 2026, yalnız ekleme):
+  PayNkolay aynı `clientRefCode` ile ikinci bir satışı kabul eder. Dönüşü kaybolmuş
+  (sekme kapanmış, telefon bankanın ekranında kilitlenmiş) ama parası alınmış bir
+  siparişe yeni sayfa açmak kartı **ikinci kez** çekerdi. Uç bu yüzden yeniden açılış
+  bütçesinden sonra, yeni oturumdan önce önceki denemeyi POS'a sorar (web ödemesinin de
+  kullandığı `checkPendingOrderPaid`). Ödeme orada bulunursa işlenir ve **409**
+  `not_payable` ödenmiş siparişle döner. POS'a ulaşılamazsa ya da tahsilat siparişin
+  tutarını tutmuyorsa sayfa açılmaz: **503** `payment_unavailable` ("Önceki ödemenin
+  durumunu şu an doğrulayamıyoruz. Birkaç dakika sonra tekrar dene."); hiçbir şey
+  değişmez, birkaç dakika sonra tekrar denenebilir. Kod, `POST /orders`'ın sağlayıcıya
+  ulaşamadığında verdiği kodla aynıdır. `clientOrderId` tekrarı da aynı kontrolden geçer;
+  orada ödenmiş bulunan sipariş **201** ve `payment: null` ile döner (cüzdanla ödenmiş
+  sipariş gibi). Sahadaki uygulama 503'ü tanımadığı her ret gibi gösterir ("Ödeme
+  sayfası açılamadı. Birazdan tekrar dene."), kendiliğinden tekrar denemez.
+- **429** `rate_limited` (15 Eki 2026, yalnız ekleme): var olan bir sipariş için ödeme
+  oturumu yeniden açmak (bu uç **ve** `clientOrderId` tekrarı, ikisi aynı bütçeden) üye
+  başına sayılır; 5 dakikada 8 açılıştan sonra 10 dakika `Retry-After` ile reddedilir.
+  Her açılış ödeme sağlayıcısına bir çağrı ve bir `payment_transactions` satırıydı, tek
+  bir ödenmemiş siparişle sınırsız açılabiliyordu. Yeni siparişin ilk oturumu sayılmaz
+  (onu `too_many_pending` sınırlar). Uygulama bunu tanımadığı her ret gibi gösterir,
+  kendiliğinden tekrar denemez.
 - Neden: üç yarım ödeme `too_many_pending` (429) ile üyeyi siparişten kilitliyordu ve
   uygulamada çıkış yolu yoktu.
 
@@ -463,9 +539,11 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
   "subtotalMinor": 83500, "discountMinor": 0, "shippingMinor": 5500, "totalMinor": 89000,
   "promoCode": "", "address": "Evim - …", "scheduledFor": null, "etaMinutes": 35, "etaAt": "…",
   "shipment": null,   // yalnız fulfillment === "shipping" → §3.1
+  "table": null,      // 15 Eki 2026, yalnız ekleme: fulfillment === "table" ise { "code": "7K3M9QX2TA", "name": "Bahçe 3" } (sipariş anındaki ad), aksi hâlde null
   "stampsEarned": 1, "createdAt": "…", "paidAt": "…" | null
-  // stampsEarned = loyalty_stamps LEDGER'ından okunur: siparişin `earn` satırı
-  // varsa ve `reversal` ile geri alınmamışsa 1, aksi hâlde 0. Duruma bakıp
+  // stampsEarned = loyalty_stamps LEDGER'ından okunur: siparişin `earn` satırının
+  // delta'sı eksi o siparişin `reversal` satırlarının toplamı (15 Eki 2026'dan
+  // beri 320₺'yi aşan siparişte 2, 3 …; kısmi iadede azalır), en az 0. Duruma bakıp
   // "ödendiyse damga vardır" DEMEZ — onOrderPaid best-effort'tur ve iade
   // edilen siparişin damgası geri alınır.
 }
@@ -527,7 +605,12 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
 > uygulanır; sınıra takılan istek **429 dönmez** — yanıt 200'dür ve `promo`
 > `{ "code", "ok": false, "message": "Çok fazla deneme. N saniye sonra tekrar dene." }`
 > olur (sepet hesabı hız sınırı yüzünden düşmesin diye). Mağaza satırlarında stok kontrolü
-> yapılır ama stok **ayrılmaz**. `stampsToEarn` kafe sepetinde 1, mağazada 0.
+> yapılır ama stok **ayrılmaz**. `fulfillment: "table"` sepeti `POST /orders` ile aynı masa
+> kurallarından geçer (`invalid_body` / `invalid_table` / `table_inactive` / masa kodu
+> `rate_limited` + `Retry-After`, 15 Eki 2026), böylece ölü bir QR ödeme adımından önce anlaşılır. `stampsToEarn` mağazada 0; kafe sepetinde ödenince yazılacak damga sayısıdır: ürün tutarı 140₺ altındaysa 0, değilse başlayan her 320₺ için 1 (kurye ücreti sayılmaz; 15 Eki 2026, §3). Örnekteki `1` bu yüzden 2, 3 … da olabilir.
+> **14 Eki 2026 (yalnız ekleme):** `kind: "shop"` sepeti `settings.isShopOpen === false`
+> iken artık fiyatlanmaz; `POST /orders` ile aynı **409** `shop_closed` (aynı mesaj) döner.
+> Önceden önizleme kapalı mağazanın sepetini fiyatlıyor, ret yalnız son adımda geliyordu.
 
 ## 4. `GET /me` · `PATCH /me` (kimlik gerekli)
 
@@ -555,12 +638,22 @@ Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
     "badges": [ { "id": "first-affogato", "label": "İlk affogato", "earned": true }, { "id": "streak-10", "label": "10 gün üst üste", "earned": false }, { "id": "early-bird", "label": "Erken kuş", "earned": true }, { "id": "matcha-fan", "label": "Matcha meraklısı", "earned": false }, { "id": "bean-subscriber", "label": "Çekirdek abonesi", "earned": false }, { "id": "orders-50", "label": "50 sipariş", "earned": false } ]
   },
   "invite": { "code": "LAF-EDA24", "invited": 3, "joined": 2, "earned": 2,
-              "people": [ { "name": "Selin K.", "status": "joined" | "pending", "at": "…" } ] },
-  "usual": { "menuItemId": "mnu-0007", "size": "M", "options": { … } } | null
+              "people": [ { "name": "Selin K.", "status": "joined" | "pending", "at": "…", "rewarded": true } ] },
+  "usual": { "menuItemId": "mnu-0007", "size": "M", "options": { … } } | null,
+  "staff": { "till": false }     // 15 Eki 2026, yalnız ekleme: aşağıya ve §21'e bak
 }
 ```
 
-`PATCH /me` gövdesi: `{ name?, phone?, birthday?, notificationPrefs?, usual? }` → güncel `/me`.
+`invite.people[].rewarded` (yalnız ekleme): bu kişinin daveti davet edene kupon kazandırdı mı. `false` ise ya davetli henüz şartı sağlamadı ya da davet eden 5 ödül tavanını (§5) aşmıştı. Alan gelmezse uygulama `joined` satırını ödüllenmiş sayar (eski sunucu).
+
+`staff.till` (15 Eki 2026, yalnız ekleme): `true` ise panel bu üye hesabına
+uygulamadan kasa yetkisi vermiştir (barista, §21); uygulama okutucuyu yalnız o
+zaman gösterir. Sunucu alanı her `/me` yanıtında (GET ve PATCH) gönderir; yetki
+okunamazsa `false` döner, `/me` bu yüzden hiç başarısız olmaz. Alan **yoksa**
+(bu eklemeden önceki sunucu) uygulama `false` sayar. `staff` içinde yalnız
+`till` vardır; yetkiyi kimin verdiği uygulamaya gitmez.
+
+`PATCH /me` gövdesi: `{ name?, phone?, birthday?, notificationPrefs?, usual? }` → güncel `/me`. `birthday` `YYYY-AA-GG` biçiminde ve takvimde olan bir gün olmalı (`1990-02-30` 400 `invalid_request`).
 Adresler: `POST /me/addresses` (gövde adres) · `PATCH /me/addresses/{id}` · `DELETE /me/addresses/{id}` · `POST /me/addresses/{id}/default` → hepsi güncel `addresses[]` döner.
 Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği silinir (service role varsa; sonucu yanıttaki `identity` söyler, aşağıya bak) + oturum istemcide kapatılır (mağaza zorunluluğu). Devam eden sipariş varsa **409** `orders_in_progress`.
 
@@ -581,6 +674,15 @@ Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği
 > `{ "ok": true, "identity": "deleted" | "skipped" | "failed" }` olur; ayrıntı
 > aşağıda. `neighbourhood` sütunu yoktur: `line1`'e
 > `"<mahalle>, <satır>"` olarak katlanır, okurken `Mah.`/`Mahallesi`/`Mh.` sonekiyle ayrıştırılır.
+> **14 Eki 2026 (yalnız ekleme):** uygulamadan yazılan adres mahalleyi ayrıca kendi
+> anahtarında da tutar (JSONB, migration yok) ve okurken o tercih edilir; böylece
+> sonek taşımayan bir mahalle ("Postane") de `neighbourhood` olarak geri döner. Bu anahtarı
+> taşımayan eski satırlar ve sitede düzenlenen adresler yukarıdaki ayrıştırmayla okunur.
+> **Telefon (14 Eki 2026, yalnız ekleme):** `PATCH /me` `phone`, adres `phone` ve
+> `POST /orders` satır içi adres `phone` doğrulanmadan önce normalleştirilir: Türkiye cep
+> numarası hangi yazımla gelirse gelsin (`0532 123 45 67`, `+90 (532) 123-45-67`,
+> `5321234567`) `+905321234567` olarak saklanır ve geri döner. Cep olmayan numara (sabit hat,
+> yurt dışı) yazıldığı gibi kalır; daha önce kabul edilen hiçbir biçim reddedilmez.
 > `loyalty.badges` ve `tier` yalnız `paid/preparing/shipped/completed` siparişleri sayar
 > (ödenmemiş/iptal/iade sayılmaz).
 
@@ -609,7 +711,7 @@ kurar (O28).
 ## 5. Sadakat
 
 - `POST /loyalty/redeem` → `stampTarget` damga (varsayılan 6) → **ücretsiz içecek kuponu** (`customer_coupons`, `source: "loyalty"`, `kind: "fixed"`, `value: loyalty.rewardValueMinor` (28000), `title: loyalty.rewardTitle` ("Ücretsiz içecek"), `loyalty.rewardTtlDays` gün (90)). Dördü de `/admin/mobil/ayarlar` → Sadakat'tan (§10 `settings.mobileApp.loyalty`); `stampTarget` ve `rewardTitle` uygulamaya `bootstrap.app.loyalty` ile de gider, kupon değeri/süresi sunucuda kalır. Yanıt `{ "coupon": { "code", "title", "expiresAt" }, "loyalty": { … } }`. Damga yoksa **409** `not_enough_stamps`.
-- `GET /coupons` → `{ "coupons": [ { "id", "code", "title", "body", "kind", "value", "minSpendMinor", "expiresAt", "usedAt", "cafeOnly" } ] }` (mevcut `listCustomerCoupons`). `cafeOnly: boolean` (23 Eyl 2026, yalnız ekleme): `true` ise kupon yalnız kafe sepetinde geçer (sadakat ve davet kuponları); mağaza sepetinde sunucu `CAFE_ONLY_COUPON_MESSAGE` ile reddeder. Uygulama bu alanı zaten okuyordu; sunucu göndermediği için hep `false` görünüyordu.
+- `GET /coupons` → `{ "coupons": [ { "id", "code", "title", "body", "kind", "value", "minSpendMinor", "expiresAt", "usedAt", "cafeOnly" } ] }` (mevcut `listCustomerCoupons`). `cafeOnly: boolean` (23 Eyl 2026, yalnız ekleme): `true` ise kupon yalnız kafe sepetinde geçer (sadakat ve davet kuponları); mağaza sepetinde sunucu `CAFE_ONLY_COUPON_MESSAGE` ile reddeder. Uygulama bu alanı zaten okuyordu; sunucu göndermediği için hep `false` görünüyordu. Pasifleştirilmiş kupon (16 Eki 2026: iade edilen siparişin damgalarıyla alınmış ve kullanılmamış kupon) listeye girmez; şekil değişmedi.
 - `POST /promo/preview { "code", "subtotalMinor", "kind"? }` → `{ "ok": true, "code", "discountMinor" } | { "ok": false, "code", "message" }` (mevcut `previewPromoAction` mantığı; hız sınırı `promo-preview`). `kind` (`"cafe" | "shop"`, opsiyonel): verilmezse kafe-yalnız kupon **geçmez** sayılır — söz verip kasada düşürmek yerine.
 - Davet: `POST /invite/claim { "code" }` (kimlik gerekli; yalnız hiç siparişi olmayan hesap) → `{ "ok": true }`. Davet eden, davetlinin **ilk ödenmiş siparişinde** +1 ücretsiz içecek kuponu alır; davetli de ilk siparişinde alır (`invites` tablosu: `code, inviterEmail, inviteeEmail, status: pending|joined|rewarded, createdAt, rewardedAt`).
 
@@ -621,7 +723,19 @@ kurar (O28).
 > (siparişi olan hesap). `invites.status` `joined` hiç yazılmaz: claim → `pending`, davetlinin
 > ilk ödenmiş siparişi → `rewarded` (iki tarafa panelde tanımlı ücretsiz içecek kuponu —
 > `rewardTitle` / `rewardValueMinor` / `rewardTtlDays`, varsayılan 280₺ · 90 gün — `source: "invite"`).
-> `/me.invite.joined` = pending olmayan satır sayısı, `earned` = rewarded sayısı.
+> Daveti kapatan sipariş yalnız **kafe** siparişidir ve ödenen tutarı (`totalMinor`) en az
+> **150₺**'dir (`INVITE_MIN_ORDER_MINOR`); mağaza (kargo) siparişi ve daha küçük kafe siparişi
+> daveti açık bırakır. Davet eden en çok **5** davetten ödül alır (`INVITE_REWARD_CAP`).
+> `/me.invite.joined` = pending olmayan satır sayısı, `earned` = ödül getiren davet sayısı
+> (5 ile sınırlı; tavanı aşan davetlerde `people[].rewarded` `false`).
+>
+> **Davet ödülü kuralı (14 Eki 2026, operatör kararı; yalnız ekleme).** Ödülü kazandıran,
+> davetlinin ilk ödenmiş **kafe** siparişidir (gel-al ya da kurye; mağaza/kargo siparişi
+> hiçbir zaman saymaz). Asgari tutar **150,00 TL'lik ürün**dür: indirim düşüldükten sonra
+> ödenen ürün tutarı, yani `totalMinor − shippingMinor`; **kurye ücreti sayılmaz** (100 TL'lik
+> kahve + 55 TL kurye daveti kapatmaz). Yukarıdaki "ödenen tutarı (`totalMinor`)" ifadesi bu
+> kuralla okunur. Davet eden en çok **5** davetten ücretsiz içecek alır
+> (`INVITE_REWARD_CAP`); tavandan sonra davetli yine ödülünü alır, davet edene kupon yazılmaz.
 
 ## 6. Canlı durum — `GET /live-status` (herkese açık)
 
@@ -650,6 +764,11 @@ Cache: `public, s-maxage=30` — `stale-while-revalidate` **yok**: panel persone
   uygulama sunucunun mesajını gösterir, tekrar denemeyi önermez.
 - **403 `email_unverified`**: e-postası doğrulanmamış üye rezervasyon yapamaz
   (sipariş kuralıyla aynı; web `/karaoke` formu da aynı kuralı uygular).
+- **400 `invalid_request` + `field` (14 Eki 2026, yalnız ekleme):** ret `note` alanından
+  geliyorsa (200 karakteri aşan ya da metin olmayan not) gövde
+  `{ "error": "invalid_request", "message": "Not en fazla 200 karakter.", "field": "note" }`
+  olur; uygulama hatayı not kutusunun altında gösterebilir. Başka 400'lerde `field` yoktur;
+  `error` ve `message` değişmez.
 
 > **Uygulama notu (§7).** `date` verilmezse İstanbul'a göre bugün; biçim bozuksa 400
 > `invalid_request`. Kurallar (varsayılanlar parantezde, tümü panelden değişir):
@@ -658,11 +777,146 @@ Cache: `public, s-maxage=30` — `stale-while-revalidate` **yok**: panel persone
 > `note` ≤ 200 karakter. Sunucu her isteği o anki config'e göre doğrular; uygulama seçiciyi
 > availability yanıtındaki alanlarla kurar, kural değişince yanıt önbelleksiz olduğu için hemen
 > görür. Gövde JSON değilse 400 `invalid_request`. `requested` ve `confirmed` slotu bloke eder,
-> `cancelled` etmez. Çakışma kontrolü oku-sonra-yaz (SQL kilidi yok): aynı saniyede iki istek
-> ikisi de `requested` olabilir; panelde görünür, personel birini iptal eder. ORO indirimi
+> `cancelled` etmez. Çakışmayı veritabanı tutar: `karaoke_reservations_no_overlap` dışlama
+> kısıtı aynı saate düşen ikinci kaydı reddeder ve uç bunu **409** `slot_taken` olarak döner
+> (aynı saniyede gelen iki istekten yalnız biri yazılır). ORO indirimi
 > (`oroDiscountPct`, %15) `/me.loyalty.tier`'dan; rezervasyon anındaki yüzde kaydedilir, sonraki
 > değişiklik eski kayıtları etkilemez. Panel onay/iptali `audit_logs`'a `karaoke_reservation`
 > olarak düşer.
+
+### 7.1 Online ön ödeme (16 Eki 2026, yalnız ekleme)
+
+Operatör kararı: karaoke rezervasyonu yapılırken PayNkolay ile kartla ödenir ve
+ödeme onaylanınca rezervasyon **kendiliğinden** `confirmed` olur. Ödemesi
+alınmamış rezervasyon onaylanmaz (panelde de). Panelde bir anahtar var
+(`settings.karaokePrepay`, Ayarlar → Karaoke, varsayılan açık); kapalıyken eski
+akış döner (talep, köşkte ödeme, elle onay) ve aşağıdaki her şey `none`'a düşer.
+
+**`GET /karaoke/availability`** yanıtına eklenen alanlar:
+
+```json
+{
+  "paymentRequired": true,
+  "freeCancelHours": 2,
+  "consentDocs": ["karaoke-odasi-rezervasyon"],
+  "privacyDoc": "kvkk-aydinlatma-metni",
+  "cancellationRules": [
+    "Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.",
+    "Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz."
+  ]
+}
+```
+
+`paymentRequired` anahtarın kendisidir. `consentDocs` ve `privacyDoc` §13'teki
+`/legal/{slug}` belgeleridir. `cancellationRules` ödeme kutusunun üstünde
+**olduğu gibi** yazılır.
+
+**`POST /karaoke/reservations`** gövdesine iki isteğe bağlı alan:
+
+```json
+{
+  "date": "2026-10-30",
+  "startHour": 20,
+  "hours": 2,
+  "guests": 4,
+  "note": "",
+  "prepay": true, // bu sürüm ödeme alabiliyor
+  "legalConsent": true
+} // üç kutunun üçü de işaretli (aşağıda)
+```
+
+- `paymentRequired: true` iken `prepay` gönderen sürüm: **201**
+  `{ "reservation": {…, "status": "requested", "paymentStatus": "pending", "paymentDueAt": "…" }, "payment": { "provider": "paynkolay", "redirectUrl": "…", "expiresAt": "…" } }`.
+  Uygulama `redirectUrl`'i `openAuthSessionAsync` ile açar (dönüş adresi
+  `laffogato://karaoke`). Toplam 0 ise (`oroDiscountPct` 100) `payment: null`
+  döner ve rezervasyon zaten `paid` + `confirmed`'dır.
+- `prepay: true` ile `legalConsent: true` yoksa **400** `invalid_request`,
+  `field: "legalConsent"`.
+- **426 `app_update_required`**: `paymentRequired: true` iken `prepay`
+  göndermeyen (eski) sürüm. Hiçbir şey yazılmaz. Eski sürüm bilinmeyen hatada
+  sunucunun mesajını gösterir: "…Devam etmek için uygulamayı güncelle."
+  Anahtar kapalıyken eski sürümler eskisi gibi 201 alır (`payment: null`,
+  `paymentStatus: "none"`).
+- **429 `rate_limited`** + `Retry-After`: aynı üyenin kısa sürede çok sayıda
+  ödenmemiş rezervasyonu (`karaoke-hold`, günde 4; ödeme sayacı sıfırlar).
+- **503 `payment_unavailable`**: ödeme sayfası açılamadı; rezervasyon hemen
+  bırakılır, karttan para çekilmez.
+- Onay kutuları (MSY m.5, m.6, m.7; KVKK m.10), her biri ayrı ve **işaretsiz**
+  başlar; `legalConsent: true` ancak üçü de işaretliyken gönderilir:
+  1. "Ön Bilgilendirme Formu'nu okudum ve onaylıyorum" (bağlantı
+     `/legal/karaoke-odasi-rezervasyon`)
+  2. "Mesafeli Hizmet Sözleşmesi'ni okudum ve kabul ediyorum" (aynı belge)
+  3. "Kişisel verilerimin rezervasyonun yapılması ve yönetilmesi için
+     işlenmesine ilişkin Aydınlatma Metni'ni okudum" (`/legal/kvkk-aydinlatma-metni`;
+     bu bir bilgilendirmedir, rıza değildir)
+
+  Kutuların üstünde ödeme öncesi bilgi kutusu durur: tarih, başlangıç saati,
+  süre, kişi, KDV dahil toplam, "Belirli bir tarihte sunulan eğlence hizmeti
+  olduğu için cayma hakkı yoktur (MSY m.15/1-g).", `cancellationRules`'un iki
+  cümlesi ve işletme iptalinde tam iade. Düğme: "Rezervasyonu onayla ve {toplam}
+  öde". Sunucu onayı zaman, belge, sürüm, IP ve `User-Agent` ile rezervasyon
+  satırına yazar.
+
+**Rezervasyon nesnesine eklenen alanlar** (`GET` ve `POST` yanıtlarında):
+
+| Alan               | Değerler                                                                                                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `paymentStatus`    | `none` (köşkte ödeme; eski kayıtlar) · `pending` (ödeme bekliyor, saat tutuluyor) · `paid` · `refunding` (iade sonucu bekleniyor) · `refunded` · `expired` (ödenmedi, düştü) |
+| `paymentDueAt`     | `pending` iken ödeme sayfasının kapandığı an (ISO), yoksa `""`                                                                                                               |
+| `cancellableUntil` | Üyenin kendisi iptal edip tam iade alabileceği son an (başlangıçtan 2 saat önce, ISO)                                                                                        |
+
+`status` üç değerini korur: `pending` rezervasyon `requested`'dır (saati tutar,
+2 açık rezervasyon sınırına sayılır), `refunded` ve `expired` her zaman
+`cancelled`'dır. Ödeme sayfası 30 dakika açıktır; ödenmeyen rezervasyon,
+POS'a sorulduktan sonra düşer (POS'a ulaşılamaması "ödenmedi" sayılmaz, 24
+saate kadar beklenir).
+
+**`POST /karaoke/reservations/{id}/payment`** (kimlik): üyenin kendi ödenmemiş
+rezervasyonu için yeni ödeme sayfası, sipariş yeniden açmanın (§3) eşi.
+**200** `{ "reservation", "payment" }`. Başkasının ya da olmayan rezervasyon
+**404** `not_found`; ödenmiş, düşmüş ya da rezervasyondan 30 dakikadan eski
+**409** `not_payable` (gövdede `reservation`); sık deneme **429**
+`rate_limited` (`checkout-reopen`); sayfa açılamadı **503** `payment_unavailable`.
+Yeni sayfadan önce POS'a önceki ödeme sorulur (17 Eki 2026, yalnız ekleme): ödenmişse
+işlenir ve **409** `not_payable` döner; POS'a sorulamazsa ya da tahsilat rezervasyonun
+tutarını tutmuyorsa yine **503** `payment_unavailable` ("Önceki ödemenin durumunu şu an
+doğrulayamıyoruz. Birkaç dakika sonra tekrar dene."): sayfa açılmaz, hiçbir şey değişmez.
+
+**`POST /karaoke/reservations/{id}/cancel`** (kimlik): üye kendi rezervasyonunu
+iptal eder. Başlangıca **2 saatten fazla** varken (İstanbul saati) olur; ödenmişse
+tutarın tamamı önce POS'tan karta iade edilir. **200**
+`{ "reservation", "refunded": true|false }`. Hatalar (gövdede varsa
+`reservation`):
+
+| Durum | `error`           | Anlamı                                                                                                                                      |
+| ----- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 404   | `not_found`       | Başkasının ya da olmayan rezervasyon                                                                                                        |
+| 409   | `too_late`        | 2 saatten az kaldı; mesaj "…Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz." |
+| 409   | `not_cancellable` | Zaten iptal ya da iadesi sürüyor                                                                                                            |
+| 409   | `refund_pending`  | İade gönderildi, POS yanıt vermedi; ekip sonuçlandırır, üyeye e-posta gider                                                                 |
+| 502   | `refund_failed`   | POS iadeyi reddetti; rezervasyon olduğu gibi duruyor                                                                                        |
+| 503   | `payment_unknown` | Ödenmemiş rezervasyonun ödeme durumu POS'a sorulamadı; hiçbir şey değişmedi                                                                 |
+
+**Ödeme dönüşü.** Ödeme sayfası her zaman `/odeme/donus`'a döner; dönüş nereye
+gideceğini rezervasyonun kendi `channel`'ından bilir (sorgu dizesinden değil).
+Uygulamadan yapılan rezervasyon **`laffogato://karaoke?status=success|failed&ref=krk-00042`**
+derin bağlantısına 303 ile yönlenir. `status` yalnız ipucudur: uygulama karar
+vermeden önce `GET /karaoke/reservations` ile satırı yeniden okur (POS'a
+sorulamayan dönüşte `status` her zaman `failed`'dır). Uygulamanın
+`+native-intent.tsx` `PAYMENT_RETURN` düzenine `karaoke` eklenmelidir. Süresi
+dolmuş ödeme sayfası da `laffogato://karaoke?status=failed&ref=…` bağlantısı
+verir; `/odeme/app-hata?orderId=krk-…` aynısını yapar.
+
+**Web.** Aynı kurallar `/karaoke` formunda da geçerlidir (aynı `bookKaraoke`).
+Web ayrıca **üyeliksiz** rezervasyon alır (ad, soyad, cep telefonu, e-posta);
+bu rezervasyonlar hiçbir üyenin `GET /karaoke/reservations` listesinde ya da
+bildirim kutusunda görünmez, e-postadaki imzalı bağlantıyla (`/rezervasyon?t=…`)
+yönetilir. Üye web'de "Karaoke rezervasyonlarım" (`/uye/hesap/karaoke`)
+bölümünden aynı iptali yapar. Hesap silinince (`DELETE /me`) başlangıca 2
+saatten fazla olan ödenmiş rezervasyonlar karta iade edilerek iptal edilir; 2
+saatten az kalanlara iade yapılmaz, rezervasyon kalır ve ekibe haber gider.
+Üyeliksiz rezervasyonlar hesap silmeden etkilenmez.
+
 
 ## 8. Bildirimler — `GET /notifications` (kimlik)
 
@@ -689,7 +943,7 @@ bir kilometre taşı hediyesi verdiğinde ise kutuda hiçbir şey görünmüyord
 
 | Kaynak | `kind` | `id` | `at` | Başlık |
 | --- | --- | --- | --- | --- |
-| Personelin onayladığı karaoke rezervasyonu (`karaoke_reservations.status = "confirmed"`) | `reservation` | `karaoke-<rezervasyon id>-confirmed` | onay anı (`updatedAt`) | "Karaoke saatin ayrıldı" |
+| Onaylanan karaoke rezervasyonu (`karaoke_reservations.status = "confirmed"`; personel ya da, 16 Eki 2026'dan beri, ödemenin kendisi) | `reservation` | `karaoke-<rezervasyon id>-confirmed` | onay anı (`updatedAt`) | "Karaoke saatin ayrıldı" |
 | Personelin iptal ettiği karaoke rezervasyonu (`"cancelled"`) | `reservation` | `karaoke-<rezervasyon id>-cancelled` | iptal anı (`updatedAt`) | "Karaoke rezervasyonun iptal edildi" |
 | Verilmiş kilometre taşı hediyesi (`customer_milestone_rewards`, karar 175) | `reward` | `milestone-<damga sayısı>` | hediyenin verildiği an (`createdAt`) | "<damga sayısı> kahve oldu!" |
 
@@ -702,6 +956,9 @@ bırakıldı."` (onay ve iptal e-postalarının kendi cümleleri), hediye
 - **`at` sabittir.** `karaoke_reservations."updatedAt"`'i yalnız rezervasyonun
   açılışı ve durum değişikliği yazar, yani onaylanmış ya da iptal edilmiş
   satırda o an kararın anıdır. 30 günlük pencere `at`'e uygulanır.
+- Ödenmediği için düşen rezervasyon (`paymentStatus: "expired"`) ve üyeliksiz
+  web rezervasyonu kutuya hiç düşmez (16 Eki 2026): ilki kimsenin verdiği bir
+  karar değil, yarım bırakılmış bir ödemedir.
 - `requested` sessizdir: talebi üye kendisi yaptı. Onaylanıp sonra iptal edilen
   rezervasyon yalnız iptal kaydıyla, **yeni bir `id`** ile görünür; plan
   değiştiği için okunmamış gelir.
@@ -780,12 +1037,13 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
     "ordering": {
       "cafeEnabled": true,                        // false → "Sepete ekle" kapalı; sunucu 409 ordering_closed
       "deliveryEnabled": true, "pickupEnabled": true,   // false → ilgili teslimat seçeneği gizli; sunucu 400 fulfillment_unavailable
+      "tableEnabled": true,                       // 15 Eki 2026, yalnız ekleme: masaya sipariş (QR, §3 ve §22). false → uygulama masa seçeneğini gizler; sunucu 400 fulfillment_unavailable. Alan yoksa true say; cafeEnabled yine ana anahtardır
       "shopEnabled": true,                        // MAĞAZA anahtarı = settings.isShopOpen (/admin/ayarlar). false → kargolu mağaza siparişi kapalı; sunucu 409 shop_closed.
                                                   // Mobil panelin anahtarı DEĞİLDİR: tek gerçeğin ikinci bir kopyası olmasın diye MobileAppConfig'e yazılmaz, yalnız telde görünür.
       "courierEtaMinutes": [25, 35],
       "closedMessage": "Uygulamadan sipariş şu an kapalı. Köşkte görüşürüz."
     },
-    "loyalty": { "stampTarget": 6, "rewardTitle": "Ücretsiz içecek" },   // kupon değeri/süresi sunucuda kalır
+    "loyalty": { "stampTarget": 6, "rewardTitle": "Ücretsiz içecek", "stampMinOrderMinor": 14000, "stampStepMinor": 32000 },   // kupon değeri/süresi sunucuda kalır; stampMinOrderMinor ve stampStepMinor eklemeli (15 Eki 2026, §3): başlayan her stampStepMinor bir damga
     "reminders": {
       "enabled": true,                            // false → uygulama hatırlatma anahtarını gizler, planlananları iptal eder
       "items": [ { "id": "morning", "hour": 10, "minute": 0, "title": "Günaydın ☕", "body": "Sabah kahven köşkte hazır. Bugün ne içiyoruz?" } ]   // 0..4 öğe; fiyat/indirim/aciliyet dili yok; "hour" 8..21 (panel dışını kaydetmez, uygulama okurken düşürür)
@@ -883,10 +1141,11 @@ alter table public.karaoke_reservations enable row level security;
 | 18 Kampanyalar                             | `/app-content.posts` (kind campaign) + sabit kartlar (`/bootstrap.app.campaignCards`) · `/promo/preview` |
 | 19 Davet                                   | `/me.invite` · `Share`                                                                                   |
 | 21 Sipariş Geçmişi                         | `/orders`                                                                                                |
-| 22 Cüzdan · 23 Hediye Kartı                | **Yazılmadı** (karar 20) — uç yok; ekran da "yakında" düğmesi de çizilmez                                |
+| 22 Cüzdan · 23 Hediye Kartı                | Ekranlar yazıldı (lafmobil karar 60), uçlar (§18, §19) henüz yok: uygulama `GET /me/wallet` ve `GET /gift-cards/designs` `enabled: true` döndürmedikçe ikisini de gizler |
 | 26 Karaoke                                 | `/karaoke/availability` (kurallar dahil) · `POST /karaoke/reservations`                                  |
 | 27 Ziyaret                                 | `/bootstrap.venue` (adres, yer tarifi, harita sorgusu, 7 günlük saat tablosu) — seed yedek               |
 | 28 Hikâye                                  | `/story` (§16) — seed yedek                                                                              |
+| Masa QR (`/masa/<kod>`, 15 Eki 2026)       | `GET /tables/{code}` (§22) · `POST /orders` `fulfillment: "table"` + `tableCode` (§3) · `/bootstrap.app.ordering.tableEnabled` |
 | Kök yerleşim (bakım · zorunlu güncelleme)  | `/bootstrap.app.maintenance` · `/bootstrap.app.minSupportedAppVersion` — bootstrap gelmezse kapı açık    |
 | Hatırlatmalar (cihaz bildirimi)            | `/bootstrap.app.reminders` — `enabled=false` → anahtar gizli, planlananlar iptal                         |
 
@@ -1010,12 +1269,24 @@ doğruluyor (iyimser güncelleme yanlış çıkarsa önbellek düzeltiliyor).
 Operatör talimatı (3 Eyl): _"Kart bizim sistemde kaydedilmesin, ödeme
 sağlayıcıda kaydedilecek."_ Uygulama da site de tam olarak böyle çalışır.
 
-**Kartın gitmediği yerler:** uygulama paketi, uygulamanın belleği, kafenin
-sunucusu, Neon veritabanı, loglar. Kart numarası (PAN), son kullanma tarihi ve
-CVV **sağlayıcının kendi barındırdığı ödeme sayfasında** girilir ve orada
-kalır. Uygulama o sayfayı `expo-web-browser` ile açar; formun HTML'i bize ait
-değildir. Sağlayıcının adı burada bilerek geçmiyor: hangi PSP'nin kullanıldığı
-sunucu ayarıdır (`PAYMENT_PROVIDER`) ve bir kez zaten değişti.
+**Kartın gitmediği yerler:** uygulama paketi, uygulamanın belleği, Neon
+veritabanı, loglar, dosyalar. 15 Eki 2026'dan beri (operatör kararı) kart
+numarası (PAN), son kullanma tarihi ve CVV **sitenin kendi ödeme sayfasında**
+girilir - `redirectUrl`'nin açtığı sayfa - ve müşteri oradan doğrudan
+bankanın 3D ekranına gider. Kart sunucudan yalnızca ödeme sağlayıcısına
+iletilmek için, o tek isteğin içinde geçer; hiçbir yere yazılmaz (web
+`docs/PAYNKOLAY.md` §15, kural 28). Uygulama o sayfayı `expo-web-browser` ile
+açar; kart uygulamanın kodundan hiç geçmez ve **sözleşme değişmedi**: aynı
+`redirectUrl`, aynı dönüş. Sağlayıcının adı burada bilerek geçmiyor: hangi
+PSP'nin kullanıldığı sunucu ayarıdır (`PAYMENT_PROVIDER`) ve bir kez zaten
+değişti.
+
+**Kayıtlı kart (15 Eki 2026):** ödeme sayfası üyenin sağlayıcıda saklı
+kartlarını listeler, "bu kartı kaydet" kutusu sunar (işaretsiz) ve kart
+silmeye izin verir. Kart sağlayıcıda durur; sunucu yalnız rastgele bir üye
+anahtarı tutar (web `docs/PAYNKOLAY.md` §16). Uygulamada değişen bir şey
+yok: kart seçimi de silme de aynı `redirectUrl` sayfasında olur. Aşağıdaki
+"v1'de kart saklama KAPALI" paragrafı tarihçedir.
 
 **v1'de kart saklama KAPALI.** Üretimdeki sağlayıcıda (PayNkolay) kart saklama
 kapsam dışı bırakıldı: alan adının üç ayrı yazımı dokümante edilmiş ve saklanan
@@ -1110,7 +1381,7 @@ tekrarlayabileceği bir metodun arkasında durmamalı.
 | Aynı anda      | Üye başına en fazla **3 açık jeton**; yenisi istenince eskilerin ömrü o an biter                         |
 | Saklama        | Ham jeton **saklanmaz**; `counter_tokens."tokenHash"` = `sha256(token)`                                  |
 | Jeton alfabesi | `0123456789ABCDEFGHJKMNPQRSTVWXYZ` (Crockford base32), **26 karakter** = 128 bit                         |
-| Kod alfabesi   | `23456789ABCDEFGHJKLMNPQRSTUVWXYZ` (O/0, I/1/L yok), 8 karakter, yalnız açık jetonlar arasında benzersiz |
+| Kod alfabesi   | `23456789ABCDEFGHJKMNPQRSTUVWXYZ` (31 simge; O/0, I/1/L yok), 8 karakter, yalnız açık jetonlar arasında benzersiz. 13 Eki 2026'ya kadar dizide yanlışlıkla `L` vardı; o tarihten önce verilmiş kodlar zaten 120 sn'de biter |
 | QR             | Sürüm 2, **25×25 modül**, hata düzeltme **Q** (%25), sessiz alan **4 modül**                             |
 | Hız sınırı     | Üye başına **dakikada 10 jeton** → **429** `rate_limited` + `Retry-After`                                |
 | Doğrulama      | E-posta doğrulanmamışsa **403** `email_unverified` (sipariş kuralıyla aynı)                              |
@@ -1250,12 +1521,34 @@ istemciden alınmaz" kuralının cüzdandaki karşılığı).
 Ödemede cüzdan kullanımı `POST /orders` gövdesine `"payWithWallet": true` ile girer; bakiye
 yetmezse **409** `insufficient_balance` ve sipariş **oluşmaz** (kısmi çekim yok).
 
+> **Sunucu (14 Eki 2026, yalnız ekleme).** `payWithWallet` yazıldı. Bakiye
+> `wallet_transactions` defterindeki satırların toplamıdır (saklanan bir sayı yok);
+> sipariş satırı ve harcama satırı tek SQL işleminde, üye başına kilit altında yazılır
+> (`wallet_place_order`), dolayısıyla birlikte bakiyeyi aşan iki eşzamanlı siparişten
+> yalnız biri geçer. Başarılı cüzdan siparişi kart ödemesiyle aynı yoldan `paid` olur
+> (damga, davet, "ödemen alındı" e-postası) ve yanıt `payment: null` taşır. Cüzdan
+> sunucuda `WALLET_ENABLED=true` olmadıkça kapalıdır; kapalıyken `payWithWallet: true`
+> **409** `insufficient_balance` döner ve sipariş yazılmaz. Cüzdanla ödenmiş siparişin
+> iadesi karta değil **cüzdana** döner (`kind: "refund"`). `GET /me/wallet`, yükleme ve
+> otomatik yükleme uçları henüz yok (404, yukarıdaki not).
+>
+> **`expectedTotalMinor` (opsiyonel, 14 Eki 2026, yalnız ekleme).** Üyenin gördüğü ve
+> onayladığı toplam, kuruş tamsayı. **Yalnız `payWithWallet: true` ile birlikte**
+> dikkate alınır: kartla ödemede uygulama ödeme sayfası açılmadan önce "Tutar değişti"
+> kartını gösterebilir, cüzdan ise anında çeker. Sunucunun hesapladığı toplam (veritabanı
+> fiyatları, düşen kupon dahil) bu değerden farklıysa **409** `total_changed` döner, gövdede
+> yeni toplam `totalMinor` bulunur (`{ "error": "total_changed", "message": "…",
+> "totalMinor": 12500 }`); sipariş yazılmaz, bakiyeden hiçbir şey düşmez, alınan kupon geri
+> verilir. Alan yoksa davranış öncekiyle aynıdır. `/orders/preview` alanı kabul eder ve
+> yok sayar.
+
 Hatalar: **400** `invalid_amount` (seçenek listesinde yok / min altında) · **409** `balance_cap` ·
 **409** `insufficient_balance` · **409** `no_saved_card` · **429** `too_many_topups` ·
-**503** `unavailable`.
+**503** `unavailable` · **409** `total_changed` (yalnız `POST /orders` + `payWithWallet` +
+`expectedTotalMinor`; gövdede `totalMinor`).
 
 > **Sadakat notu.** Tasarımın "cüzdanla ödeyene +%5 puan" satırı **yazılmadı**: bu uygulamada
-> sadakat damgadır, puan yoktur (karar 37) ve ödenmiş kafe siparişi zaten +1 damga verir.
+> sadakat damgadır, puan yoktur (karar 37) ve ödenmiş kafe siparişi zaten damga verir (140₺'den itibaren başlayan her 320₺ için 1, §3).
 > Cüzdanla ödemeye ek bir damga verilecekse bunu **sunucu** kararlaştırır ve
 > `bootstrap.app.loyalty` üzerinden bildirir; uygulama kendi başına bir kural uydurmaz.
 
@@ -1277,8 +1570,13 @@ Hatalar: **400** `invalid_amount` (seçenek listesinde yok / min altında) · **
   "designs": [ { "key": "classic", "label": "Klasik", "artKey": "gift-classic" }, … ],
   "amountOptions": [ 25000, 50000, 100000 ],
   "minAmountMinor": 10000, "maxAmountMinor": 200000,
-  "canSchedule": true, "maxScheduleDays": 90 }
+  "canSchedule": true, "maxScheduleDays": 90,
+  "consentDocs": ["on-bilgilendirme-formu", "mesafeli-satis-sozlesmesi"] }
 ```
+
+`consentDocs` (yalnız ekleme): satın almadan önce onaylanacak belgelerin `slug`ları (§13).
+**Boş ya da eksikse uygulama hediye kartı için ödeme almaz** - ekran açılır ama "Gönder"
+etkin olmaz, çünkü onay kutusu olmadan mesafeli satış kurulamaz (lafmobil karar 267).
 
 `artKey` bir **çizim anahtarıdır**, URL değil: kart yüzü uygulamada `src/components/art` ile
 çizilir, sunucudan görsel inmez (karar 40 fotoğraf politikası).
@@ -1289,7 +1587,8 @@ Hatalar: **400** `invalid_amount` (seçenek listesinde yok / min altında) · **
 { "designKey": "classic", "amountMinor": 50000,
   "recipient": { "phone": "+905320000000" },   // phone VEYA email, ikisi birden değil
   "message": "Doğum günün kutlu olsun",        // en fazla 140 karakter
-  "deliverAt": "2026-09-12T06:00:00Z" }        // null ⇒ hemen
+  "deliverAt": "2026-09-12T06:00:00Z",        // null ⇒ hemen
+  "legalConsent": true }                       // consentDocs onayı (zorunlu, §3'teki gibi)
 ```
 
 → **201** `{ "giftCard": { "id", "status": "pending_payment", "amountMinor", "deliverAt" },
@@ -1303,7 +1602,7 @@ Kart **ödeme onaylanınca** üretilir ve `deliverAt`'te SMS/e-posta ile gider.
 `POST /gift-cards/redeem { "code" }` (kimlik) → kodu **cüzdana** yükler (§18);
 yanıt `{ "creditedMinor": 50000, "balanceMinor": 174000 }`. Cüzdan kapalıysa kupon üretir.
 
-Hatalar: **400** `invalid_amount` · **400** `invalid_recipient` (telefon/e-posta biçimi) ·
+Hatalar: **400** `invalid_request` (`legalConsent` yok, §3 siparişiyle aynı `z.literal(true)` kuralı) · **400** `invalid_amount` · **400** `invalid_recipient` (telefon/e-posta biçimi) ·
 **400** `message_too_long` · **400** `invalid_schedule` (geçmiş ya da `maxScheduleDays` ötesi) ·
 **404** `gift_card_not_found` · **409** `already_redeemed` · **409** `own_card` ·
 **429** `too_many_gift_cards` · **503** `unavailable`.
@@ -1350,6 +1649,9 @@ Kayıt `feature_consents` satırıdır (üye, özellik, sürüm, zaman) ve rıza
 ```
 
 Sıra ve hatalar: **401** kimlik · **503** `fal_unavailable` (kapalı) · **403**
+`email_unverified` (e-posta doğrulanmamış; 15 Eki 2026, yalnız ekleme: her yorum ücretli
+bir model çağrısı, onaysız kayıtlar günlük hakkı adres başına yeniden açıyordu; uygulama
+her retteki gibi falı cihazda okur) · **403**
 `consent_required` (güncel rıza yok) · **429** `fal_limit` (İstanbul gününde üye başına
 5) · **400** `invalid_json` / `invalid_request` / `invalid_image` (JPEG değil ya da
 çözülmüş hâli 900 KB'tan büyük) · **502** `fal_failed` (model yanıt vermedi, şemaya
@@ -1394,8 +1696,11 @@ açılmadan önce gereken uç budur.
   bildirim sınırına ulaştın. Teşekkür ederiz; yarın yeniden bildirebilirsin.").
   Aynı gün aynı sözler ikinci kez gelirse yeniden yazılmaz ve **200**
   `{ "ok": true }` döner; uygulama her 2xx yanıtı başarı sayar.
-- Hatalar: **401** kimlik · **400** `invalid_json` / `invalid_request` ·
-  **429** `fal_report_limit` · **503** `unavailable` (veritabanı).
+- Hatalar: **401** kimlik · **403** `email_unverified` (15 Eki 2026, yalnız ekleme:
+  doğrulanmamış adrese yapay zekâ yorumu verilmez, bildirecek bir şeyi yoktur) ·
+  **400** `invalid_json` / `invalid_request` · **429** `fal_report_limit` ·
+  **503** `unavailable` (veritabanı). Günlük sınır kaydın ardından yeniden sayılır:
+  aynı anda gönderilen bildirimler sınırı aşarsa fazlası geri alınıp 429 döner.
 - **Saklama:** `fal_reports` (üye, gün, sebep, metin, model, zaman) 90 gün sonra
   silinir (`src/lib/retention.ts`, kural `fal-reports`; Veri Saklama ve İmha
   Politikası'ndaki satır). Hesap silinince satırın e-postası yer tutucuya
@@ -1409,3 +1714,152 @@ açılmadan önce gereken uç budur.
   (`src/lib/mobile/fal-core.ts`), `recordFalReport` (`src/lib/mobile/fal.ts`);
   `tests/mobile-fal-report.test.ts` tutar.
 
+## 21. `POST /staff/stamp` - uygulamadan kasa (barista) (kimlik)
+
+15 Eki 2026, yalnız ekleme. Operatör: *"barista yani kasiyer hesabı da admin
+panelden atayabilelim ki qr kodunu okutalım"*. Panelin `cashier` rolü (§17,
+`/admin/kasa`) yerinde kalır; bu uç, panele hiç girmeyen bir baristanın **kendi
+üye hesabıyla açtığı uygulamadan** üyenin QR'ını okutmasını sağlar.
+
+**Yetki panelde verilir.** `/admin/kullanicilar` → "Uygulamadan kasa
+(barista)" (`requireRole("adminUsers")`, yalnız sahip). Yönetici üyenin
+e-postasını yazar; adres **var olan ve açık** bir üye hesabına ait olmalıdır,
+yoksa panel reddeder ("Bu adrese ait üye hesabı yok..." / "Bu üye hesabı
+kapalı..."): kimsenin tutmadığı bir adrese verilen yetki, o adresle ilk kaydolan
+kişiye geçerdi. Yetki `staff_members` tablosunda durur (`email`, `role =
+'barista'`, `isActive`, `grantedBy`, `grantedAt`, `updatedAt`); kaldırınca satır
+silinmez, `isActive = false` olur ve bir sonraki okutma reddedilir. Verme ve
+kaldırma `audit_logs`'a `staff_member` olarak yazılır. Üye hesabını silerse
+(`DELETE /me`) yetki satırı da silinir; adresi sonra kim alırsa yetkisiz başlar.
+
+```jsonc
+// İstek
+{ "kind": "token" | "code", "value": "…", "stamps": 1 }   // stamps isteğe bağlı, varsayılan 1
+
+// 200 · Cache-Control: private, no-store - kasanın gördüğü sonucun aynısı
+{
+  "name": "Eda",                    // üyenin adı; yoksa ""
+  "memberLabel": "e***@ornek.com",  // maskeli adres (kasadaki gibi)
+  "code": "K7P42M9X",
+  "stampsGiven": 1,
+  "stamps": 4,                      // üyenin yeni damga durumu (§5)
+  "stampTarget": 6,
+  "rewardsReady": 0
+}
+```
+
+| Alan | Kural |
+| --- | --- |
+| `kind` | `token` (kameranın çözdüğü QR içeriği, olduğu gibi) ya da `code` (8 karakter; boşluk, tire ve küçük harf kasadaki gibi normalleşir). Kasanın üçüncü yolu olan **e-posta yok**: üyenin kendisi olmadan bir üyeyi adıyla damgalamak panel kararıdır. Başka bir değer **400** `invalid_request`. |
+| `value` | Boş olamaz, en fazla 200 karakter → aksi **400** `invalid_request`. |
+| `stamps` | Tam sayı, verilmezse 1. Aralık (**1-5**) burada değil, kasanın kendi fonksiyonunda denetlenir: dışındaysa **400** `invalid_stamps`. Kırpılmaz. |
+
+**Kurallar kasayla birebir aynı.** Uç, kasanın kullandığı
+`redeemCounterToken`'ı (`src/lib/mobile/counter.ts`) çağırır: jeton 120 sn
+yaşar, bir jeton bir kez damga verir (koşullu UPDATE), aralık 1-5, damga
+`loyalty_stamps`'e `source: "counter"` ile yazılır. Fark iki satırdadır:
+`actor` (ve jetonun `usedBy`'ı) baristanın e-postasıdır ve not
+`Kasa · QR · Uygulama` / `Kasa · kod · Uygulama` olur. Okutma `audit_logs`'a
+`counter_token` olarak, **aktör baristanın e-postasıyla** ve
+`payload.via = "app"` ile yazılır; denetim satırı yazılamazsa damga geri
+alınmaz ve yanıt yine 200'dür.
+
+**Kendi kodu yok.** Barista kendi QR'ını ya da kodunu okutursa **403**
+`self_stamp` ("Kendi koduna damga veremezsin. Damganı başka bir barista ya da
+kasa versin."). Ret, jeton yakılmadan önce, yakılacak satırın kendisine bakılarak
+verilir; baristanın kodu kullanılmamış kalır ve gerçek kasada çalışır.
+
+**Sıra.** Kimlik → e-posta doğrulanmış mı → yetki (`not_staff`) → gövde → hız
+sınırı → okutma. Yetkisi olmayan üye gövdesi okunmadan reddedilir.
+
+| Hata | Ne zaman |
+| --- | --- |
+| **401** `unauthorized` · **403** `account_disabled` | Kimlik katmanı (§0) |
+| **403** `email_unverified` | Baristanın e-postası doğrulanmamış (yetki adrese bağlı olduğu için) |
+| **403** `not_staff` | **Yeni.** Bu hesabın açık barista yetkisi yok ya da kaldırıldı. "Bu hesabın kasa yetkisi yok. Yetkiyi panelden yönetici verir." |
+| **403** `self_stamp` | **Yeni.** Baristanın kendi kodu (yukarıda) |
+| **400** `invalid_json` · `invalid_request` | Gövde JSON değil ya da şemaya uymuyor |
+| **400** `invalid_stamps` | Damga sayısı 1-5 dışında (§17'deki kasa sonucu) |
+| **404** `not_found` | Kod bulunamadı. "Kod bulunamadı. Üyeden kartını yeniden açmasını iste." |
+| **409** `expired` | Kodun 2 dakikası doldu (§17'deki metin) |
+| **409** `already_used` | Kod daha önce okutuldu; aynı QR ikinci kez damga vermez (§17'deki metin) |
+| **429** `rate_limited` + `Retry-After` | Baristanın 5 dakikada 15 `not_found`'u (`auth_attempts`, amaç `staff-stamp`, IP + barista); 1 dakika kilit. Süresi dolmuş ya da kullanılmış kod sayılmaz: kalabalık bir barda dürüst hatalardır, tahmin `not_found` üretir. |
+| **503** `unavailable` | Veritabanına ulaşılamadı |
+
+> **Uygulama notu (§21).** Okutucu yalnız `/me.staff.till === true` iken
+> görünür; 403 `not_staff` gelirse uygulama `/me`'yi tazeler ve okutucuyu
+> kapatır (yetki bu arada kaldırılmış olabilir). Kasadaki okuma kapısının
+> (§17 "Kasa tarafı") üç durumu burada da geçerlidir: aynı değer 2,5 sn içinde
+> yeniden gönderilmez, `already_used`/`expired`/`self_stamp` dönen değer bir
+> daha gönderilmez, ağ hatasında hemen yeniden okunabilir.
+
+- Site: `src/app/api/mobile/v1/staff/stamp/route.ts`, `staffStampSchema`
+  (`src/lib/mobile/staff-schema.ts`), yetki `src/lib/admin/staff-members.ts`,
+  panel `src/app/admin/kullanicilar/`; `tests/mobile-staff-stamp-route.test.ts`,
+  `tests/admin-staff-actions.test.ts` ve gerçek Postgres'te
+  `tests/db-integration-staff-stamp.test.ts` tutar.
+
+---
+
+## 22. Masalar - `GET /tables/{code}` (herkese açık)
+
+15 Eki 2026, yalnız ekleme. Operatör: masalarda sitede üretilen QR kodları olsun,
+her masanın kendi adlandırılabilir QR'ı olsun, QR menüyü açsın; uygulama QR'ı
+okuyunca hangi masa olduğunu bilsin ve parayı sanal POS alsın (ön ödeme, kasada
+ödeme yok).
+
+**QR.** Masalar `/admin/masalar`'da yönetilir (yalnız sahip ve yönetici). Her
+masanın bir adı (1-40 karakter, panelde verilir) ve sunucunun ürettiği rastgele
+bir kodu vardır: 10 karakter Crockford base32 (`0-9`, `I L O U` hariç büyük harf),
+50 bit, tahmin edilemez ve sıralı değildir. QR'ın içeriği her zaman
+`https://laffogato.net/masa/<kod>`'dur (apex alan adı, sabit). Site bu adreste
+menüyü (salt görüntüleme), masanın adını ve uygulama bağlantılarını gösterir.
+**Evrensel bağlantı henüz yok (16 Eki 2026):** AASA `/masa/*`'ı talep etmez, çünkü
+yayındaki hiçbir uygulama sürümünde `/masa/<kod>` ekranı yok; talep edilse iPhone'da
+uygulaması kurulu misafir bulunamadı ekranına düşer ve web menüsüne de ulaşamaz.
+Masa ekranı olan lafmobil sürümü yayınlanınca site AASA'ya `/masa/*`'ı, uygulama
+Android `intentFilters`'a `pathPrefix: "/masa/"`'ı aynı adımda ekler. O zamana kadar
+web sayfası da "uygulamadan sipariş ver" demez; siparişi bir görevliye yönlendirir. Masa silinmez, **pasifleştirilir**; basılı kart
+çalındı ya da kötüye kullanıldıysa panel **kodu yeniler** ve eski QR anında
+çalışmaz olur.
+
+```jsonc
+// 200 · Cache-Control: private, no-store
+{ "table": { "code": "7K3M9QX2TA", "name": "Bahçe 3" } }
+```
+
+Yanıt masa hakkında **yalnız** `code` ve `name` taşır (kimlik, sıra, tarih,
+durum yok). `code` kanonik biçimdir: uygulama `POST /orders`'a bunu gönderir.
+
+| Hata | Ne zaman |
+| --- | --- |
+| **404** `table_not_found` | Kod hiçbir masaya karşılık gelmiyor: bilinmeyen, biçimsiz ya da yenilenmiş eski kod. "Masa bulunamadı. Masadaki QR kodunu yeniden okut." |
+| **410** `table_inactive` | Masa panelde pasif. "Bu masa şu an siparişe kapalı. Bir görevliye sorabilirsin." |
+| **429** `rate_limited` + `Retry-After` | 5 dakikada 20 bulunamayan kod (`auth_attempts`, amaç `table-lookup`); 15 dakika kilit. Sayaç **kimin**: geçerli bir `Authorization: Bearer` varsa o üyenin o adresteki sayacı, yoksa adresin (IP) kendi sayacı. Jeton isteğe bağlıdır; eksik, süresi dolmuş ya da doğrulanamayan jeton hata değildir, ziyaretçi sayılır. Böylece köşkün ortak Wi-Fi'ında başkasının denemeleri (ya da yenilenmiş eski bir kartın okutulması) giriş yapmış üyeyi kilitlemez. Yalnız **bulunamayan** kod sayılır (gerçek QR her zaman çözülür, pasif masa gerçek bir masadır). Kilitliyken gerçek kod da 429 alır, böylece sınır hangi tahminin doğru olduğunu söylemez. Sayaç `POST /orders` ve `POST /orders/preview`'daki masa kodu denetimiyle **ortaktır** (aynı üye, aynı adres). |
+| **503** `unavailable` | Veritabanına ulaşılamadı |
+
+Kod biçimi gevşek okunur: boşluk ve tire atılır, küçük harf büyür, `O` → `0`,
+`I`/`L` → `1`. Bunun dışında 10 karakter olmayan değer veritabanına sorulmadan
+404 alır (ve bulunamayan kod olarak sayılır).
+
+> **Uygulama notu (§22).** Uygulama bu ucu oturum açıksa `Authorization: Bearer`
+> ile çağırmalı (sayaç üyeye bağlanır, yukarı). `/masa/<kod>` bağlantısı (evrensel
+> bağlantı, masa ekranıyla birlikte açılır) ya da kameranın okuduğu
+> aynı URL geldiğinde uygulama bu ucu çağırır; 200 ise masa ekranını
+> (`Masa: <name>`) açar ve kafe sepetini `fulfillment: "table"`, `tableCode:
+> <code>` ile sipariş eder (§3; adres ve planlı saat gönderilmez). Masa seçeneği
+> `bootstrap.app.ordering.tableEnabled === false` iken gizlenir. 404/410'da
+> sunucunun mesajını gösterir ve masa seçimini düşürür; 429'da kendiliğinden
+> tekrar denemez. Masa yalnız o ziyaret için tutulmalı: ertesi gün aynı masa
+> varsayılmamalı.
+
+**Personel e-postası (sitenin işi, sözleşmeyi değiştirmez).** Ödemesi onaylanan
+her sipariş için (uygulama ve web, masa dâhil) panel kullanıcılarına bir kez
+"Yeni sipariş" e-postası gider (Ayarlar → Bildirimler: aç/kapat, roller, ek
+adresler). E-posta müşterinin yalnız adını taşır; telefon, e-posta ve adres
+yazılmaz. Ödeme onayını beklemez ve bozamaz (ayrıntı `docs/EMAIL-RESEND.md`).
+
+- Site: `src/app/api/mobile/v1/tables/[code]/route.ts`, `src/lib/mobile/tables.ts`
+  (sayaç), `src/lib/admin/cafe-tables{,-core}.ts`, panel `src/app/admin/masalar/`,
+  web sayfası `src/app/masa/[code]/page.tsx`; `tests/mobile-tables-route.test.ts`,
+  `tests/cafe-tables-core.test.ts`, `tests/mobile-order-table*.test.ts` tutar.

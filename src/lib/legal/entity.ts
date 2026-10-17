@@ -29,6 +29,8 @@ export const LEGAL_ENTITY = {
   /** Vergi levhasındaki iş yeri adresi. */
   address: {
     line1: "Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1",
+    /** Posta kodu: vergi levhasıyla doğrulandı, `SITE.address.postalCode` ile aynı. */
+    postalCode: "34940",
     district: "Tuzla",
     city: "İstanbul",
     country: "Türkiye",
@@ -51,6 +53,17 @@ export const LEGAL_ENTITY = {
    * AYNI anda değişir.
    */
   dbProvider: "Neon",
+
+  /**
+   * Üyelik kimliğini (e-posta + parola, oturum, uygulama jetonu) tutan
+   * kimlik doğrulama sağlayıcısının adı (`docs/AUTH-BRIDGE.md`).
+   *
+   * Veri tabanından AYRIDIR: sipariş, fiyat ve üye kaydı `dbProvider`'da
+   * durur, bu sağlayıcıda yalnız kimlik vardır. KVKK aydınlatma, gizlilik,
+   * şirket bilgileri ve üyelik metinlerinde alıcı olarak geçer; ad değişirse
+   * tek yerden değişsin diye `{{AUTH_PROVIDER}}` token'ıdır.
+   */
+  authProvider: "Supabase",
 
   /**
    * Kafenin açılış saatleri — koddaki TEK kaynak.
@@ -124,10 +137,10 @@ export const LEGAL_ENTITY = {
   siteUrl: "https://laffogato.net",
 } as const;
 
-/** Tek satırlık, tam yasal adres. */
+/** Tek satırlık, tam yasal adres (posta kodu dâhil). */
 export const LEGAL_ADDRESS_LINE = [
   LEGAL_ENTITY.address.line1,
-  `${LEGAL_ENTITY.address.district}/${LEGAL_ENTITY.address.city}`,
+  `${LEGAL_ENTITY.address.postalCode} ${LEGAL_ENTITY.address.district}/${LEGAL_ENTITY.address.city}`,
   LEGAL_ENTITY.address.country,
 ].join(", ");
 
@@ -144,13 +157,14 @@ const TOKENS: Record<string, string> = {
   ADDRESS: LEGAL_ADDRESS_LINE,
   CAFE_HOURS: LEGAL_ENTITY.cafeHours.display,
   DB_PROVIDER: LEGAL_ENTITY.dbProvider,
+  AUTH_PROVIDER: LEGAL_ENTITY.authProvider,
   PHONE: LEGAL_ENTITY.phone,
   EMAIL: LEGAL_ENTITY.email,
   TAX_OFFICE: LEGAL_ENTITY.taxOffice,
   TAX_NO: LEGAL_ENTITY.taxNo,
   TAX_TYPE: LEGAL_ENTITY.taxType,
   STARTED_AT: LEGAL_ENTITY.startedAt,
-  NACE: `${LEGAL_ENTITY.naceCode} — ${LEGAL_ENTITY.naceName}`,
+  NACE: `${LEGAL_ENTITY.naceCode} - ${LEGAL_ENTITY.naceName}`,
   MERSIS: LEGAL_ENTITY.mersisNo,
   TRADE_REGISTRY: LEGAL_ENTITY.tradeRegistryNo,
   KEP: LEGAL_ENTITY.kep,

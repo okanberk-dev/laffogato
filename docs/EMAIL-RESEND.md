@@ -14,12 +14,13 @@ Site ile uygulama **tek bir Supabase projesini** kimlik için paylaşır
 
 | Mesaj                            | Kim gönderir                   | Nasıl               |
 | -------------------------------- | ------------------------------ | ------------------- |
-| Sipariş alındı · Ödeme onaylandı | Site (`src/lib/email/send.ts`) | Resend **HTTP API** |
+| Ödeme onaylandı (tek sipariş maili) | Site (`src/lib/email/send.ts`) | Resend **HTTP API** |
 | Sitede kayıt → e-posta doğrulama | Site                           | Resend HTTP API     |
 | Sitede "şifremi unuttum"         | Site                           | Resend HTTP API     |
 | **Uygulamada kayıt → doğrulama** | **Supabase Auth**              | **Resend SMTP**     |
 | **Uygulamada "şifremi unuttum"** | **Supabase Auth**              | **Resend SMTP**     |
 | Üye e-posta adresini değiştirdi  | Supabase Auth                  | Resend SMTP         |
+| **Uygulamada kodla giriş**       | **Supabase Auth**              | **Resend SMTP**     |
 
 İkisini de yapılandırmak gerekir. Yalnız birini yaparsan yarısı sessizce
 çalışmaz: sitenin e-postaları sunucu günlüğüne düşer, uygulamanınkiler
@@ -141,12 +142,19 @@ Supabase Dashboard → proje → **Authentication → Emails → SMTP Settings**
 | Sender email       | `siparis@laffogato.net`                            |
 | Sender name        | `L'Affogato`                                       |
 
-Ardından **Authentication → Emails → Templates**. Üç şablonun Türkçe ve marka
+Ardından **Authentication → Emails → Templates**. Dört şablonun Türkçe ve marka
 uyumlu hâli bu depoda duruyor; içeriği olduğu gibi yapıştır:
 
 - `docs/email/supabase-confirm-signup.html` → _Confirm signup_
 - `docs/email/supabase-reset-password.html` → _Reset Password_
 - `docs/email/supabase-change-email.html` → _Change Email Address_
+- `docs/email/supabase-magic-link.html` → _Magic Link_ (14 Eki 2026,
+  lafmobil karar 316: uygulamanın "E-postama giriş kodu gönder"i
+  `signInWithOtp` ile bunu tetikler). Şablon `{{ .Token }}` taşımak
+  **zorunda**: Supabase'in varsayılanı yalnız bağlantı taşır, bağlantı
+  telefonda Site URL'sine iner ve uygulamada oturum açmaz. Kodun uzunluğu
+  Authentication → Email → "Email OTP Length" (uygulama 6-10 rakam kabul
+  eder); ömrü "Email OTP Expiration" (3600 sn, değiştirme).
 
 Konu satırları (tek çizgi, tire; 23 Eyl 2026'dan önce yapıştırılanlar uzun
 tireyle yazılmıştı, şablonlarla birlikte bunları da güncelle):
@@ -154,9 +162,13 @@ tireyle yazılmıştı, şablonlarla birlikte bunları da güncelle):
 - Confirm signup - `L'Affogato - e-posta adresini doğrula`
 - Reset Password - `L'Affogato - şifre sıfırlama`
 - Change Email - `L'Affogato - e-posta adresi değişikliği`
+- Magic Link - `L'Affogato - giriş kodun`
 
-Şablonlar `src/lib/email/send.ts`'teki mesajlarla aynı tasarımı kullanır. Üye
-ikisini de aynı markadan alıyor; biri değişirse diğeri de değişmeli.
+Şablonlar sitenin e-postalarıyla aynı iskeleti ve aynı `<style>` bloğunu
+kullanır (15 Eki 2026): açık ve koyu modda okunur, logo
+`https://laffogato.net/email/logo-laf-tile.png` karosudur. Görsel siteden
+gelir; şablonları **site deploy edildikten sonra** yapıştır. Üye ikisini de
+aynı markadan alıyor; biri değişirse diğeri de değişmeli.
 
 ---
 
@@ -230,14 +242,13 @@ Yirmi iki şablon - her satırda **tetikleyici · izin sınıfı · idempotency*
 | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
 | `eposta-dogrulama`                     | işlemsel          | sitede kayıt / adres değişikliği (`uye/actions.ts`, `admin/musteriler`)         |
 | `sifre-sifirlama`                      | işlemsel          | sitede "şifremi unuttum"                                                        |
-| `siparis-alindi`                       | işlemsel          | sipariş oluşturuldu (`odeme/actions.ts`, mobil `orders.ts`) · sipariş satırı    |
-| `odeme-onaylandi`                      | işlemsel          | ödeme onaylandı (`admin/store.ts`) · ödeme durumu geçişi                        |
+| `odeme-onaylandi` | işlemsel | müşterinin kargoya kadar aldığı TEK sipariş maili: ödeme siparişi `paid`'e taşıdığında (`applyPaymentSucceeded`, elle "Ödendi"; ₺0 sipariş de) · `order_notice_emails` (sipariş, `paid`). Kalemler, toplam ve ÖBF/MSS/cayma bağlantıları (kalıcı veri saklayıcısı) |
 | `siparis-kargoda`                      | işlemsel          | panelin kargo formu, "Kargoya ver", Geliver'ın teslim olayı · `order_notice_emails` (sipariş, `shipped:<numara özeti>`) |
 | `siparis-iptal`                        | işlemsel          | `transitionOrder` iptali (toplu iptal de oradan geçer) · (sipariş, `cancelled`) |
 | `siparis-iade`                         | işlemsel          | panel iadesi (`finalizeRefund`), sağlayıcı iadesi (`recordProviderRefund`) · (sipariş, `refund:<iade id>`) |
 | `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, **çağıran yok**                                       |
-| `karaoke-rezervasyon`                  | işlemsel          | personel panelden onayladı (`setReservationStatus`) · durum geçişi bir kez olur |
-| `karaoke-iptal`                        | işlemsel          | personel panelden iptal etti (`setReservationStatus`) · aynı geçiş kilidi       |
+| `karaoke-rezervasyon`                  | işlemsel          | ödeme onaylandı (otomatik onay) ya da personel onayladı (`setReservationStatus`) · durum geçişi bir kez olur; ödenmişse makbuz + iki saat kuralı + imzalı rezervasyon bağlantısı |
+| `karaoke-iptal`                        | işlemsel          | üye, misafir bağlantısı, personel ya da hesap kapanışı iptal etti · aynı geçiş kilidi; ödenmişse iade tutarı |
 | `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                 |
 | `bulten-kampanya`                      | **ticari (6563)** | `sendCampaignMail` · 3 ürün seçkisi + kod · `cmp-<kampanya>-b<parti>`           |
 | `mobil-uygulama`                       | **ticari (6563)** | `/admin/bulten/kampanya` "Uygulama duyurusu" · `cmp-<kampanya>-b<parti>` · mağaza linkleri olmadan seçilemez |
@@ -680,6 +691,28 @@ aranmaz, çıkış bağlantısı konmaz.
   panel bunu söyler: "Bilgilendirme e-postası GÖNDERİLEMEDİ - üyeye kendin
   ulaş." Log'da adres maskelidir (KVKK).
 
+### Karaoke - online ön ödeme (16 Eki 2026)
+
+Rezervasyon ödenince kendiliğinden `confirmed` olur ve `karaoke-rezervasyon`
+**makbuz** olarak gider (`KARAOKE_ODENDI`): ödenen tutar, operatörün iki
+cümlesi ("Rezervasyon saatine 2 saatten fazla varken iptal edersen…" / "…2
+saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi
+yapılmaz."), cayma hakkı yokluğu (MSY m.15/1-g), rezervasyonun imzalı sayfası
+(`[KARAOKE_LINK]`, `/rezervasyon?t=…`; misafir rezervasyonu yalnız bununla
+yönetilir) ve koşulların tamamına bağlantı. İşletme iptalinde tam iade ve
+tahsilatın ayrıntısı (PayNkolay, tek çekim) mailde yok, bağlantılı belgede
+(17 Eki 2026, metin kısaltma). Köşkte ödenen eski akışta
+`KARAOKE_ODEME_MEKANDA` bölümü gider. İptalde `karaoke-iptal` iade tutarını
+(`KARAOKE_IADE`) ya da ödeme alınmadığını (`KARAOKE_ODEMESIZ`) söyler. İki
+mail de baştan sona "sen" der; ortak uygulama bloğu ("Köşk cebinizde") ailenin
+"siz"iyle kalır.
+
+Operatöre iki yeni iç mail: `sendKaraokePaidOperatorEmail` (ödendi ve
+kesinleşti, `Idempotency-Key: karaoke-<id>-paid`; ödenmemiş rezervasyon için
+"talep" maili gitmez) ve `sendKaraokeMoneyAlertEmail` (POS'un reddettiği ya da
+yanıt vermediği iade, ikinci tahsilat, süresi dolmuş rezervasyona gelen ödeme,
+tutar uyuşmazlığı; `karaoke-<id>-<olay>`).
+
 ### Karaoke - yeni talep bildirimi (operatöre)
 
 Bir karaoke saati istendiği anda - uygulamadan (`POST /karaoke/reservations`)
@@ -697,6 +730,38 @@ beri `bizimfutbol9@gmail.com`); boşsa genel iletişim adresi (`settings.email`)
   ikinci kopya düşmez.
 - Mail hatası rezervasyonu **düşürmez**: satır zaten yazılmış ve panelde
   görünür; hata log'a gider.
+
+### Yeni sipariş bildirimi (ekibe, 15 Eki 2026)
+
+Ödemesi onaylanan her sipariş (uygulama ve web; masa, gel-al, kurye, kargo)
+için ekibe bir **iç** "Yeni sipariş" e-postası gider
+(`src/lib/email/staff-order-notice{,-core}.ts`, `operasyon-bildirim.html`).
+
+- **Tetik:** `applyPaymentSucceeded` siparişi `pending_payment`'tan `paid`'e
+  taşıdığında, yanıt gittikten **sonra** (`after()`). Ödemeyi beklemez,
+  bozamaz; hata log'a gider.
+- **Bir kez:** `order_notice_emails` satırı (kind `staff-new`) gönderimden önce
+  alınır; ikinci tetik satırı dolu bulur.
+- **Gönderim:** bütün alıcılar **tek istekte** (`POST /emails/batch`, istek
+  başına 100), `Idempotency-Key: order-<id>-staff-new-<alıcı listesinin özeti>-b<n>`
+  (adres anahtara yazılmaz). 429, 5xx ya da bağlantı hatası aynı anahtarla iki
+  kez daha denenir (1 sn, 2,5 sn; `Retry-After` en çok 3 sn beklenir).
+  Hiçbir alıcıya ulaşılamazsa satır bırakılır ve **aynı ödemenin** sonraki
+  onayı (bankanın dönüşü, tekrar gelen webhook) maili yeniden dener - yalnız
+  `paidAt`'ten sonraki **30 dakika** içinde. Daha uzun bir sağlayıcı kesintisinde
+  sipariş panelden görülür; geç gelen "yeni sipariş" maili mutfağı yanıltır.
+- **Alıcılar** (Ayarlar → Bildirimler, yalnız sahip): işaretli rollerdeki aktif
+  panel kullanıcıları ve env yöneticileri, ek adresler (en çok 20) ve operasyon
+  adresi; küçük harfe çevrilir, her adres bir kez. Kasiyerin düğmesi kasaya,
+  diğerlerininki siparişe gider. Olay kaydı adresleri metin olarak yazmaz:
+  sayı, eklenen/çıkarılan adet ve alan adları.
+- **İçerik (KVKK m.4 ölçülülük):** sipariş no, kanal, tür, teslimat ya da masa,
+  planlı saat, ürünler, toplam, ödeme yolu ve müşterinin **yalnız adı** (e-posta
+  ya da telefona benzeyen "ad" düşer). Soyad, telefon, e-posta, adres yazılmaz;
+  not yalnız masa ve gel-al siparişinde (kurye notu kapı kodu taşır).
+- Üyenin ya da panelin yazdığı metin şablon alanı sayılmaz: notta "[OK]",
+  üründe "Kahve [250G]" olduğu gibi gider (`fill.ts` tek geçişte doldurur,
+  eksik alan şablonun kendisinden aranır).
 
 ### Emniyet kilitleri
 

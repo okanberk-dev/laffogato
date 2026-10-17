@@ -102,7 +102,8 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         ) : null}
         {order.deliveryNote ? (
           <span className="text-xs text-neutral-600">
-            Kurye notu: {order.deliveryNote}
+            {orderFulfillment(order) === "delivery" ? "Kurye notu" : "Not"}:{" "}
+            {order.deliveryNote}
           </span>
         ) : null}
       </div>

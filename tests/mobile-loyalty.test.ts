@@ -3,6 +3,13 @@ import { describe, expect, it } from "vitest";
 import type { AdminOrder, AdminOrderStatus } from "@/lib/admin/store";
 import { DEFAULT_MOBILE_APP_CONFIG } from "@/lib/mobile/app-config";
 import {
+  earnsStamp,
+  STAMP_MIN_ORDER_MINOR,
+  STAMP_STEP_MINOR,
+  stampGoodsMinor,
+  stampsByOrder,
+  stampsFor,
+  stampsForOrder,
   BADGE_IDS,
   buildLoyaltyView,
   computeBadges,
@@ -498,5 +505,145 @@ describe("stampedOrderIds", () => {
     // reversals globally would have taken the newest order's stamp away.
     const ids = stampedOrderIds([row("earn", "ord-4"), row("reversal", "")]);
     expect([...ids]).toEqual(["ord-4"]);
+  });
+});
+
+/**
+ * Operator, 15 Eki 2026: "minimum sipariş tutarı 140 TL". Six ₺25 extras
+ * used to buy a ₺280 drink (WS1-05); the goods are measured like the invite
+ * minimum, discount out and courier fee not counted.
+ */
+describe("earnsStamp (stamp minimum)", () => {
+  it("is ₺140", () => {
+    expect(STAMP_MIN_ORDER_MINOR).toBe(14000);
+  });
+  it("refuses a ₺25 extra and accepts ₺140 of goods", () => {
+    expect(earnsStamp({ totalMinor: 2500, shippingMinor: 0 })).toBe(false);
+    expect(earnsStamp({ totalMinor: 13999, shippingMinor: 0 })).toBe(false);
+    expect(earnsStamp({ totalMinor: 14000, shippingMinor: 0 })).toBe(true);
+  });
+  it("does not count the courier fee towards the minimum", () => {
+    // ₺100 latte + ₺55 courier = ₺155 paid, ₺100 of goods.
+    expect(earnsStamp({ totalMinor: 15500, shippingMinor: 5500 })).toBe(false);
+    expect(earnsStamp({ totalMinor: 19500, shippingMinor: 5500 })).toBe(true);
+  });
+});
+
+/**
+ * Operator, 15 Eki 2026: "alt limit 140 TL ama 140 TL'den 320 TL'ye kadar 1
+ * tane sayılsın, damga toplam miktar ile hesaplansın" - one stamp per started
+ * ₺320 of goods from ₺140 on. A big order used to earn one stamp, the same as
+ * a ₺140 one.
+ */
+describe("stampsFor (one stamp per started ₺320 from ₺140)", () => {
+  it("steps by ₺320", () => {
+    expect(STAMP_STEP_MINOR).toBe(32000);
+  });
+
+  it("holds the boundaries", () => {
+    expect(stampsFor(0)).toBe(0);
+    expect(stampsFor(13999)).toBe(0);
+    expect(stampsFor(14000)).toBe(1);
+    expect(stampsFor(32000)).toBe(1);
+    expect(stampsFor(32001)).toBe(2);
+    expect(stampsFor(64000)).toBe(2);
+    expect(stampsFor(64001)).toBe(3);
+    expect(stampsFor(96000)).toBe(3);
+    expect(stampsFor(96001)).toBe(4);
+  });
+
+  it("never answers a negative or a non-number", () => {
+    expect(stampsFor(-50000)).toBe(0);
+    expect(stampsFor(Number.NaN)).toBe(0);
+    expect(stampsFor(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+
+  it("measures the goods without the courier fee", () => {
+    expect(stampGoodsMinor({ totalMinor: 37500, shippingMinor: 5500 })).toBe(
+      32000,
+    );
+    // ₺320 of goods + ₺55 courier = ₺375 paid: still one stamp.
+    expect(stampsForOrder({ totalMinor: 37500, shippingMinor: 5500 })).toBe(1);
+    // ₺320,01 of goods + courier: two.
+    expect(stampsForOrder({ totalMinor: 37501, shippingMinor: 5500 })).toBe(2);
+    // ₺100 of goods + ₺55 courier: under the minimum.
+    expect(stampsForOrder({ totalMinor: 15500, shippingMinor: 5500 })).toBe(0);
+  });
+
+  it("agrees with earnsStamp", () => {
+    for (const goods of [0, 13999, 14000, 32001, 200000]) {
+      const o = { totalMinor: goods, shippingMinor: 0 };
+      expect(earnsStamp(o)).toBe(stampsForOrder(o) > 0);
+    }
+  });
+});
+
+describe("multi-stamp orders on the card", () => {
+  it("fills the card once and carries the remainder", () => {
+    // 5 on the card, then an order of 3: one reward ready, 2 on the next card.
+    const rows = [...Array.from({ length: 5 }, () => stamp("earn")), stamp("earn", 3)];
+    expect(computeStampBalance(rows, 6)).toMatchObject({
+      lifetimeStamps: 8,
+      rewardsReady: 1,
+      stamps: 2,
+    });
+  });
+
+  it("fills the card more than once", () => {
+    expect(computeStampBalance([stamp("earn", 13)], 6)).toMatchObject({
+      rewardsReady: 2,
+      stamps: 1,
+    });
+  });
+
+  it("takes a multi-stamp order's reversal back whole", () => {
+    const rows = [
+      stamp("earn", 1),
+      stamp("earn", 3),
+      { kind: "reversal" as const, delta: -3 },
+    ];
+    expect(computeStampBalance(rows, 6)).toMatchObject({
+      lifetimeStamps: 1,
+      stamps: 1,
+      rewardsReady: 0,
+    });
+  });
+
+  it("dates the reward at the order that filled the card", () => {
+    const rows = [
+      { kind: "earn" as const, delta: 4, createdAt: "2026-10-01T10:00:00.000Z" },
+      { kind: "earn" as const, delta: 3, createdAt: "2026-10-02T10:00:00.000Z" },
+    ];
+    expect(rewardReadyAt(rows, 6)).toBe("2026-10-02T10:00:00.000Z");
+  });
+});
+
+describe("stampsByOrder", () => {
+  const row = (
+    kind: "earn" | "redeem" | "reversal",
+    orderId: string,
+    delta: number,
+  ) => ({ kind, orderId, delta });
+
+  it("maps each order to the stamps its live earn row holds", () => {
+    const m = stampsByOrder([
+      row("earn", "ord-1", 1),
+      row("earn", "ord-2", 3),
+      row("earn", "", 1), // a till stamp belongs to no order
+    ]);
+    expect([...m.entries()].sort()).toEqual([
+      ["ord-1", 1],
+      ["ord-2", 3],
+    ]);
+  });
+
+  it("drops a reversed order and ignores an orderless correction", () => {
+    const m = stampsByOrder([
+      row("earn", "ord-1", 2),
+      row("earn", "ord-2", 3),
+      row("reversal", "ord-2", -3),
+      row("reversal", "", -1),
+    ]);
+    expect([...m.entries()]).toEqual([["ord-1", 2]]);
   });
 });

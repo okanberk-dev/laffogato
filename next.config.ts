@@ -22,11 +22,25 @@ import type { NextConfig } from "next";
 const DEV_SCRIPT_SRC =
   process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
 
-/** The hosts the PayNkolay bridge form posts to (docs/PAYNKOLAY.md §1). */
-const PAYNKOLAY_FORM_HOSTS = [
-  "https://paynkolay.nkolayislem.com.tr",
-  "https://paynkolaytest.nkolayislem.com.tr",
-];
+/**
+ * Two paths this policy does NOT cover, each because it sends a narrower
+ * policy of its own (two CSP headers on one response are both enforced, so
+ * the site policy could only ever add to theirs):
+ *
+ * - /odeme/paynkolay hands the customer's browser to forms that post
+ *   elsewhere - the POS's hosted page, or the card's own bank for 3D Secure,
+ *   whose host differs per bank (docs/PAYNKOLAY.md §15). Its policy:
+ *   `default-src 'none'`, scripts only by the SHA-256 of its own inline
+ *   blocks, no third party at all (`src/lib/payment/paynkolay-page.ts`).
+ * - /odeme is where the card is typed (§15.5). Google Tag Manager and
+ *   `'unsafe-inline'` scripts have no business on a page with a card field;
+ *   src/proxy.ts sends it a per-request nonce policy with no third party
+ *   (`src/lib/security/checkout-csp.ts`).
+ *
+ * `$` keeps each exclusion to that exact path: /odeme/donus, /odeme/basarili
+ * and /odeme/app-hata stay under this policy (`tests/security-headers.test.ts`).
+ */
+const CSP_SOURCE = "/:path((?!odeme$|odeme/paynkolay$).*)";
 
 const CSP = [
   "default-src 'self'",
@@ -46,26 +60,31 @@ const CSP = [
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  // Where a form on this site may submit. One form posts cross-origin: the
-  // PayNkolay bridge page (/odeme/paynkolay) sends the signed checkout to the POS's
-  // hosted payment page, test or live host (docs/PAYNKOLAY.md §14.6/1). With
-  // 'self' alone the browser refused that POST and no payment could start.
-  // Chrome checks redirects after a form submission against this list too;
-  // the live run in §13 confirms the POS answers without leaving it.
-  `form-action 'self' ${PAYNKOLAY_FORM_HOSTS.join(" ")}`,
+  // Where a form on this site may submit: this site only. The forms that
+  // post cross-origin live on /odeme/paynkolay, outside this policy
+  // (CSP_SOURCE above), and name their destination in its own policy.
+  "form-action 'self'",
   "frame-ancestors 'none'",
   "upgrade-insecure-requests",
 ].join("; ");
 
+/**
+ * vercel.json repeats these values for the edge and the two
+ * copies must not drift: they did (X-Frame-Options DENY here, SAMEORIGIN
+ * there; a one-year HSTS there under this two-year one) and a response could
+ * carry both. `tests/security-headers.test.ts` compares them key by key.
+ */
 const SECURITY_HEADERS = [
-  { key: "Content-Security-Policy", value: CSP },
   {
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains; preload",
   },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
-  { key: "Referrer-Policy", value: "origin-when-cross-origin" },
+  // strict-: never send even the origin from an https page to an http one.
+  // Same-origin requests keep the full URL, which the reset and verification
+  // pages need nothing from; other sites get the origin only, as before.
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     // `camera=(self)`, not `camera=()`: the till desk at /admin/kasa reads the
     // member's QR through getUserMedia, and an empty allowlist denies the
@@ -78,6 +97,9 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // Every response said `X-Powered-By: Next.js`: a free fingerprint for
+  // whoever is matching the site against a framework advisory.
+  poweredByHeader: false,
   experimental: {
     /**
      * The admin posts a product's photos as base64 data URLs, all of them on
@@ -107,6 +129,10 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: SECURITY_HEADERS },
       {
+        source: CSP_SOURCE,
+        headers: [{ key: "Content-Security-Policy", value: CSP }],
+      },
+      {
         // Brand art and venue photos are not content-hashed, so a day in the
         // browser with a week of stale-while-revalidate - they used to be
         // max-age=0 and re-validated on every visit.
@@ -115,6 +141,20 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+      {
+        // The 610 KB pour widget (pour-module.tsx) was served max-age=0 and
+        // re-validated on every home visit. Not the day-long rule above: the
+        // file is rebuilt IN PLACE under the same name (be2e506 did), so a
+        // long cache would pin visitors to an old build. An hour, then a day
+        // of background revalidation, bounds that to one stale load.
+        source: "/laffogato-pour.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600, stale-while-revalidate=86400",
           },
         ],
       },

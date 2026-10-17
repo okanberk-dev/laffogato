@@ -40,9 +40,10 @@ export default async function VerifyPage({ searchParams }: PageProps) {
             Giriş yap
           </Link>
           {ok && (
-            <Link href="/odeme" className="btn btn-ghost">
+            // A plain <a>: the checkout opens in a document of its own.
+            <a href="/odeme" className="btn btn-ghost">
               Ödemeye dön
-            </Link>
+            </a>
           )}
         </div>
       </div>

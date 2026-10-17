@@ -13,8 +13,11 @@ export const maxDuration = 15;
  * `POST /api/mobile/v1/orders/{id}/payment` - reopens the checkout of the
  * member's own app order that is still awaiting payment
  * (docs/API-MOBILE.md §3). Same body as a checkout's `{ order, payment }`;
- * a stranger's id is 404 like a missing one, and an order with nothing to pay
- * is 409 `not_payable`.
+ * a stranger's id is 404 like a missing one, an order with nothing to pay
+ * is 409 `not_payable`, a member who keeps reopening the POS is 429
+ * `rate_limited`, and a POS that cannot say whether the last attempt was
+ * paid is 503 `payment_unavailable` (no new page: it could be a second
+ * charge).
  */
 export async function POST(
   request: NextRequest,
@@ -28,6 +31,10 @@ export async function POST(
     if (!result.ok) {
       if (result.reason === "not_found") {
         return apiError(404, "not_found", "Sipariş bulunamadı.");
+      }
+      if (result.reason === "refused") {
+        const { status, code, message, headers } = result.failure;
+        return apiError(status, code, message, headers);
       }
       return apiError(409, "not_payable", "Bu sipariş ödeme beklemiyor.");
     }

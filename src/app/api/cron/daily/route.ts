@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { resumePendingCampaigns } from "@/lib/email/campaigns";
+import { expireUnpaidReservations } from "@/lib/mobile/karaoke-payment";
 import { destructionEnabled, runRetention } from "@/lib/retention";
 
 import { cronGate, NO_STORE } from "../_auth";
@@ -54,12 +55,18 @@ export async function GET(request: Request) {
     campaigns: await resumePendingCampaigns({ deadlineMs: 180_000 }),
   }));
   const birthday = await step("birthday", () => runBirthdayGreetings());
+  // Karaoke holds nobody paid: each asked about at the POS first, and only a
+  // "no payment" (or a day of not being able to ask) frees the hour
+  // (CLAUDE.md rule 29). Bookings run it too; this catches a quiet day.
+  const karaoke = await step("karaoke-holds", async () => ({
+    expired: await expireUnpaidReservations(),
+  }));
   const retention = await step("retention", () =>
     runRetention({ apply: destructionEnabled() }),
   );
 
   return NextResponse.json(
-    { ok: true, campaigns, birthday, retention },
+    { ok: true, campaigns, birthday, karaoke, retention },
     { headers: NO_STORE },
   );
 }

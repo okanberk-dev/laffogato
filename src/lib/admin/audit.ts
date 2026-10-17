@@ -38,7 +38,9 @@ export type AuditEntity =
   | "mobile_app_config"
   | "admin_user"
   | "counter_token"
-  | "campaign_email";
+  | "staff_member"
+  | "campaign_email"
+  | "cafe_table";
 
 export type AuditAction =
   | "create"

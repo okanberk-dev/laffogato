@@ -1,21 +1,69 @@
 import { describe, expect, it } from "vitest";
 
 import { readFileSync } from "node:fs";
+import { getPathMatch } from "next/dist/shared/lib/router/utils/path-match";
 
 import nextConfig from "../next.config";
 
+/**
+ * The site's CSP rule: every path but the two pages that send a narrower
+ * policy of their own - the checkout (/odeme, a nonce policy from
+ * src/proxy.ts, tests/checkout-csp.test.ts) and the payment page
+ * (/odeme/paynkolay). Changed deliberately on 16 Eki 2026, when the card
+ * moved onto /odeme (docs/PAYNKOLAY.md §15.5).
+ */
+const CSP_SOURCE = "/:path((?!odeme$|odeme/paynkolay$).*)";
+
+/**
+ * The headers an ordinary page gets: the catch-all rule plus the CSP rule.
+ * The CSP sits in a rule of its own because /odeme and /odeme/paynkolay are
+ * outside it.
+ */
 async function headerMap() {
   const rules = await nextConfig.headers!();
-  const entries = rules[0].headers.map((h) => [h.key, h.value] as const);
+  const entries = rules
+    .filter((r) => r.source === "/:path*" || r.source === CSP_SOURCE)
+    .flatMap((r) => r.headers.map((h) => [h.key, h.value] as const));
   return Object.fromEntries(entries) as Record<string, string>;
 }
 
+/** Next's own matcher for a `source` - what decides which paths get a rule. */
+function matches(source: string, path: string): boolean {
+  return !!getPathMatch(source, { strict: true, removeUnnamedParams: true })(
+    path,
+  );
+}
+
 describe("security headers", () => {
-  it("sends a Content-Security-Policy on every route", async () => {
+  it("sends a Content-Security-Policy on every route but the checkout and the payment page", async () => {
     const h = await headerMap();
     expect(h["Content-Security-Policy"]).toBeTruthy();
     const rules = await nextConfig.headers!();
     expect(rules[0].source).toBe("/:path*");
+    const csp = rules.filter((r) =>
+      r.headers.some((x) => x.key === "Content-Security-Policy"),
+    );
+    expect(csp.map((r) => r.source)).toEqual([CSP_SOURCE]);
+    // Exactly two paths are outside it, each sending its own, narrower
+    // policy: /odeme/paynkolay on every response
+    // (tests/paynkolay-card-page.test.ts) and /odeme from the proxy
+    // (tests/checkout-csp.test.ts). Everything else under /odeme stays in.
+    for (const path of [
+      "/",
+      "/odeme/donus",
+      "/odeme/basarili",
+      "/odeme/app-hata",
+      "/odemex",
+      "/odeme/x",
+      "/odeme/paynkolayx",
+      "/odeme/paynkolay/x",
+      "/admin/kasa",
+      "/uye/giris",
+    ]) {
+      expect(matches(CSP_SOURCE, path), path).toBe(true);
+    }
+    expect(matches(CSP_SOURCE, "/odeme/paynkolay")).toBe(false);
+    expect(matches(CSP_SOURCE, "/odeme")).toBe(false);
   });
 
   it("confines scripts to this origin and Google Tag Manager", async () => {
@@ -51,20 +99,16 @@ describe("security headers", () => {
     expect(csp).toContain("frame-ancestors 'none'");
   });
 
-  it("lets the PayNkolay bridge form reach the POS, and no other host", async () => {
-    // docs/PAYNKOLAY.md §14.6/1: with `form-action 'self'` the browser refused
-    // the bridge page's POST to the hosted payment page - no payment started.
+  it("lets a form on an ordinary page post to this site only", async () => {
+    // The PayNkolay hosts used to be listed here for the bridge page's POST
+    // (docs/PAYNKOLAY.md §14.6/1). That page is outside this policy now and
+    // names the POS - or the bank - in its own (§15), so no other page may
+    // post a form off-site.
     const csp = (await headerMap())["Content-Security-Policy"];
     const formAction = csp
       .split("; ")
       .find((d) => d.startsWith("form-action "))!;
-    expect(formAction.split(" ").slice(1).sort()).toEqual(
-      [
-        "'self'",
-        "https://paynkolay.nkolayislem.com.tr",
-        "https://paynkolaytest.nkolayislem.com.tr",
-      ].sort(),
-    );
+    expect(formAction).toBe("form-action 'self'");
   });
 
   it("does not let an injected script exfiltrate to an arbitrary host", async () => {
@@ -99,5 +143,68 @@ describe("security headers", () => {
     const vercel = readFileSync("vercel.json", "utf8");
     expect(vercel).toContain("camera=(self)");
     expect(vercel).not.toMatch(/camera=\(\)/);
+  });
+
+  /**
+   * Vercel serves vercel.json's catch-all headers at the edge and Next serves
+   * its own. They had drifted (X-Frame-Options SAMEORIGIN vs DENY, a one-year
+   * HSTS without includeSubDomains, a Permissions-Policy without payment=()),
+   * so a response could carry two disagreeing copies of a header. Every key
+   * vercel.json sets must say exactly what next.config.ts says.
+   */
+  it("keeps vercel.json's copies identical to next.config.ts", async () => {
+    const next = await headerMap();
+    const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as {
+      headers: Array<{
+        source: string;
+        headers: Array<{ key: string; value: string }>;
+      }>;
+    };
+    const catchAll = vercel.headers.find((h) => h.source === "/(.*)");
+    expect(catchAll).toBeTruthy();
+    for (const { key, value } of catchAll!.headers) {
+      expect(next[key], key).toBe(value);
+    }
+  });
+
+  it("sends no referrer to an http page and only the origin cross-site", async () => {
+    const h = await headerMap();
+    expect(h["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
+  });
+
+  it("does not announce the framework", () => {
+    expect(nextConfig.poweredByHeader).toBe(false);
+  });
+
+  /**
+   * The pour widget is rebuilt in place under one name, so it gets an hour
+   * (plus a day of background revalidation), not the day-long art rule - and
+   * vercel.json must not serve a second, different Cache-Control for it.
+   */
+  it("caches the pour widget for an hour, in one place", async () => {
+    const rules = await nextConfig.headers!();
+    const pour = rules.find((r) => r.source === "/laffogato-pour.js");
+    expect(pour?.headers).toEqual([
+      {
+        key: "Cache-Control",
+        value: "public, max-age=3600, stale-while-revalidate=86400",
+      },
+    ]);
+    const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as {
+      headers: Array<{
+        source: string;
+        headers: Array<{ key: string; value: string }>;
+      }>;
+    };
+    for (const rule of vercel.headers) {
+      if (!new RegExp(`^${rule.source}$`).test("/laffogato-pour.js")) continue;
+      for (const h of rule.headers) {
+        if (h.key.toLowerCase() === "cache-control") {
+          expect(h.value).toBe(
+            "public, max-age=3600, stale-while-revalidate=86400",
+          );
+        }
+      }
+    }
   });
 });

@@ -4187,3 +4187,479 @@ alter table public.karaoke_reservations add column if not exists "contactConsent
 
 insert into public._migrations (name) values ('20260926110000_karaoke_contact_consent.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261014173600_fal_reading_seat.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- fA'L daily quota: the seat is taken in SQL, under a per-member lock.
+--
+-- POST /api/mobile/v1/fal counted today's readings, asked the model (a paid
+-- OpenAI call, seconds long) and wrote the reading's row only after the
+-- answer, so a burst of parallel requests all read "2 of 3" and every one of
+-- them was paid for. Ranking an inserted row among the member's rows by id
+-- narrowed that window but did not close it: an earlier id can still be
+-- uncommitted when a later one ranks itself, and six parallel requests
+-- against a real Postgres let a fourth through about once in twenty runs
+-- (tests/db-integration-fal-seat.test.ts).
+--
+-- reserve_fal_reading takes a transaction-level advisory lock on the member
+-- and the Istanbul day, counts, and inserts only under the limit, in one
+-- statement (CLAUDE.md rules 20 and 30): the next caller for the same member
+-- waits for the lock, and its count sees the row this one committed.
+-- Returns jsonb {id, used} (rpc() reads one cell; `used` is how many seats
+-- were taken before this one), or null when the day's seats are gone.
+--
+-- Additive and idempotent: a new function, no table change.
+create or replace function public.reserve_fal_reading(
+  p_email      text,
+  p_day        text,
+  p_limit      integer,
+  p_created_at text
+)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_used integer;
+  v_id   bigint;
+begin
+  perform pg_advisory_xact_lock(hashtext('fal-seat:' || p_email || ':' || p_day));
+  select count(*) into v_used
+    from public.fal_readings
+   where "customerEmail" = p_email
+     and day = p_day;
+  if v_used >= p_limit then
+    return null;
+  end if;
+  insert into public.fal_readings ("customerEmail", day, "createdAt", model, "cupSeen")
+  values (p_email, p_day, p_created_at, '', false)
+  returning id into v_id;
+  return jsonb_build_object('id', v_id, 'used', v_used);
+end;
+$$;
+
+insert into public._migrations (name) values ('20261014173600_fal_reading_seat.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261014224120_wallet_ledger.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Wallet ledger and paying an app order from it (docs/API-MOBILE.md §18).
+--
+-- §18 promised `POST /orders` with `"payWithWallet": true` - the balance pays
+-- the whole order or nothing (409 `insufficient_balance`, no order, no partial
+-- charge) - but nothing on the server held a balance at all. This adds the
+-- ledger the promise needs and the one function that spends from it.
+--
+-- The balance is never stored: it is the sum of the member's rows. A stored
+-- balance would be a counter updated in JavaScript, which is exactly the
+-- read-modify-write that loses writes under concurrency (CLAUDE.md rule 20).
+-- `amountMinor` is signed: a top-up or a refund is positive, a spend negative.
+--
+-- Additive and idempotent: a new table, two partial unique indexes and a new
+-- function. No existing table changes.
+
+create table if not exists public.wallet_transactions (
+  id              text primary key
+                    default ('wtx_' || replace(gen_random_uuid()::text, '-', '')),
+  "customerEmail" text   not null,
+  kind            text   not null
+                    check (kind in ('topup', 'spend', 'refund', 'bonus', 'expiry', 'adjust')),
+  "amountMinor"   bigint not null,
+  "bonusMinor"    bigint not null default 0,
+  title           text   not null default '',
+  "orderId"       text   not null default '',
+  -- The order's refund ledger entry this row credits back (`orders.refunds[].id`).
+  "refundId"      text   not null default '',
+  "createdAt"     text   not null default ''
+);
+
+create index if not exists wallet_transactions_customer_idx
+  on public.wallet_transactions ("customerEmail", "createdAt" desc);
+
+-- One spend per order: a replayed placement can never charge twice.
+create unique index if not exists wallet_transactions_order_spend_key
+  on public.wallet_transactions ("orderId")
+  where kind = 'spend';
+
+-- One credit per refund entry: a retried admin refund credits once.
+create unique index if not exists wallet_transactions_refund_key
+  on public.wallet_transactions ("orderId", "refundId")
+  where kind = 'refund';
+
+alter table public.wallet_transactions enable row level security;
+
+-- Inserts the order AND its spend in ONE transaction, or neither.
+--
+-- `p_order` is the order row exactly as the store would insert it (camelCase
+-- keys = column names). Only the keys present are written, so every other
+-- column keeps its default - the same thing the query builder's INSERT does.
+-- The amount is the row's own `totalMinor`, never a separate argument, so the
+-- spend cannot drift from what the order costs.
+--
+-- A transaction-level advisory lock on the member serialises two checkouts of
+-- the same wallet: the second one waits, and its sum sees the spend the first
+-- one committed. Without it both would read the same balance and both spend it.
+--
+-- Returns true when the order was placed and paid from the wallet, false when
+-- the balance does not cover it (nothing is written). Errors from the order
+-- insert (the pending-order cap trigger, a duplicate clientOrderId) propagate
+-- and roll the whole call back.
+create or replace function public.wallet_place_order(
+  p_order      jsonb,
+  p_title      text,
+  p_created_at text
+)
+returns boolean
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_email   text   := lower(btrim(coalesce(p_order->>'customerEmail', '')));
+  v_order   text   := coalesce(p_order->>'id', '');
+  v_amount  bigint := (p_order->>'totalMinor')::bigint;
+  v_balance bigint;
+  v_cols    text;
+begin
+  if v_email = '' or v_order = '' or v_amount is null or v_amount <= 0 then
+    raise exception 'WALLET_BAD_ORDER';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtext('wallet:' || v_email));
+
+  select coalesce(sum("amountMinor"), 0) into v_balance
+    from public.wallet_transactions
+   where "customerEmail" = v_email;
+  if v_balance < v_amount then
+    return false;
+  end if;
+
+  select string_agg(quote_ident(k), ', ') into v_cols
+    from jsonb_object_keys(p_order) as k;
+  execute format(
+    'insert into public.orders (%1$s) select %1$s from jsonb_populate_record(null::public.orders, $1)',
+    v_cols
+  ) using p_order;
+
+  insert into public.wallet_transactions
+    ("customerEmail", kind, "amountMinor", title, "orderId", "createdAt")
+  values
+    (v_email, 'spend', -v_amount, coalesce(p_title, ''), v_order, p_created_at);
+  return true;
+end;
+$$;
+
+insert into public._migrations (name) values ('20261014224120_wallet_ledger.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261015050817_staff_members.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- App members who may stamp at the till from the mobile app (barista).
+--
+-- The panel's `cashier` role is an admin account: a password, the panel, the
+-- till page on a shared device. A barista behind the bar already has the app
+-- signed in with their own member account, and scanning the member's QR from
+-- that phone needs no second login - only the panel's say-so. This table is
+-- that say-so: one row per member address, granted and revoked from
+-- /admin/kullanicilar.
+--
+-- Revoking sets "isActive" = false rather than deleting, so the panel can
+-- still show who held the till and who took it away. `role` has one value
+-- today; the check keeps a typo from becoming a role nothing understands.
+--
+-- Additive and idempotent: a new table, no existing table changes.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+create table if not exists public.staff_members (
+  -- The member's `customers.email`, lower-cased.
+  email       text    primary key,
+  role        text    not null default 'barista' check (role in ('barista')),
+  "isActive"  boolean not null default true,
+  -- The admin who granted (or last re-granted) the row; revocations are in
+  -- audit_logs.
+  "grantedBy" text    not null default '',
+  "grantedAt" text    not null default '',
+  "updatedAt" text    not null default ''
+);
+alter table public.staff_members enable row level security;
+
+insert into public._migrations (name) values ('20261015050817_staff_members.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261015060020_exact_email_indexes.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Plain btree indexes for the member lookups that compare the stored e-mail
+-- exactly.
+--
+-- Every one of these tables already has an index on lower(<email column>),
+-- but the code reads them with `"col" = $1` (the value is normalised to
+-- lower case before the query). Postgres only uses an expression index for
+-- the same expression, so each of these reads was a sequential scan of the
+-- whole table:
+--
+--   customers.email          - supabase-bridge fetchRaw, on EVERY bearer
+--                              request (requireMobileCustomer -> finishLink),
+--                              plus the customer store and the invite names
+--   loyalty_stamps           - listStamps: /me, /orders, /notifications
+--   customer_coupons         - /coupons, checkout redeem/release
+--   counter_tokens           - /me/counter-token (open tokens, issue window)
+--   invites."inviterEmail"   - /me invite summary (no index at all before)
+--   invites."inviteeEmail"   - invite reward on a member's first paid order
+--   newsletter_subscribers   - PATCH /me newsletter toggle, unsubscribe
+--
+-- Measured on a local Postgres 16 with 20k customers, 200k stamps, 60k
+-- coupons, 30k invites, 100k counter tokens (EXPLAIN ANALYZE, one member):
+-- see the commit body for the before/after plans.
+--
+-- Why indexes and not `lower(col) = lower($1)` in the queries: the indexes
+-- leave every result exactly as it is today. Switching the predicates would
+-- also start matching rows stored with upper-case letters, which changes a
+-- member's stamp count or coupon list - a behaviour change, not a speed-up.
+--
+-- Safe on a live table: `if not exists`, additive, no constraint, so it can
+-- never fail on existing data. NOT `concurrently`: both scripts/db-migrate.mjs
+-- and the app's self-bootstrap (src/lib/db/bootstrap.ts) run each migration
+-- inside a transaction, where CREATE INDEX CONCURRENTLY is refused. These
+-- tables are small enough (thousands to low hundreds of thousands of rows)
+-- that the brief SHARE lock of a plain build is the lesser cost.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+create index if not exists customers_email_exact_idx
+  on public.customers (email);
+
+create index if not exists loyalty_stamps_owner_created_idx
+  on public.loyalty_stamps ("customerEmail", "createdAt");
+
+create index if not exists customer_coupons_owner_created_idx
+  on public.customer_coupons ("customerEmail", "createdAt");
+
+create index if not exists counter_tokens_owner_created_idx
+  on public.counter_tokens ("customerEmail", "createdAt");
+
+create index if not exists invites_inviter_created_idx
+  on public.invites ("inviterEmail", "createdAt");
+
+create index if not exists invites_invitee_exact_idx
+  on public.invites ("inviteeEmail");
+
+create index if not exists newsletter_subscribers_email_exact_idx
+  on public.newsletter_subscribers (email);
+
+insert into public._migrations (name) values ('20261015060020_exact_email_indexes.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261015180437_cafe_tables_and_order_notify.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Cafe tables with QR codes, table orders from the app, and the staff
+-- "new order" e-mail.
+--
+-- 1. public.cafe_tables - one row per table in the köşk. `code` is the
+--    random 10-character Crockford base32 value printed on the table's QR
+--    (https://laffogato.net/masa/<code>); the server generates it, the panel
+--    can rotate it ("Kodu yenile", `rotatedAt`) when a card is photographed
+--    and abused. Tables are never deleted: `isActive = false` keeps the row,
+--    so an old order's snapshot and the audit log still make sense.
+--
+-- 2. orders."tableCode" / "tableName" - a SNAPSHOT of the table an app cafe
+--    order with `fulfillment = 'table'` was placed at. Copied at creation, so
+--    renaming or rotating a table later does not rewrite history. '' on every
+--    other order.
+--
+-- 3. settings."orderNotify*" - who is mailed when an order is paid:
+--    a switch, the panel roles whose accounts receive it, and free-form
+--    extra addresses (comma or newline separated, validated by the panel).
+--
+-- Additive and idempotent: a new table, new columns with defaults.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+create table if not exists public.cafe_tables (
+  id          text    primary key,
+  code        text    not null unique,
+  name        text    not null,
+  "sortOrder" integer not null default 0,
+  "isActive"  boolean not null default true,
+  "createdAt" text    not null default '',
+  "updatedAt" text    not null default '',
+  "rotatedAt" text    not null default ''
+);
+alter table public.cafe_tables enable row level security;
+
+alter table public.orders add column if not exists "tableCode" text not null default '';
+alter table public.orders add column if not exists "tableName" text not null default '';
+
+alter table public.settings add column if not exists "orderNotifyEnabled" boolean not null default true;
+alter table public.settings add column if not exists "orderNotifyRoles" jsonb not null default '["owner","manager","cashier"]'::jsonb;
+alter table public.settings add column if not exists "orderNotifyEmails" text not null default '';
+
+insert into public._migrations (name) values ('20261015180437_cafe_tables_and_order_notify.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261016063311_karaoke_prepay.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Karaoke: the room is paid for online when it is booked (PayNkolay).
+--
+-- Operator, 16 Eki 2026: "Karaokede de ödeme alsın". A web booking, and an
+-- app booking that opts in with `prepay: true` (docs/API-MOBILE.md §7), is
+-- paid by card the moment it is made, and the payment confirms it on its own.
+-- The hour is held while the member pays; an unpaid hold lapses after the POS
+-- was asked (`expireUnpaidReservations`, CLAUDE.md rule 29) and frees the hour.
+--
+-- `status` keeps its three values on purpose. `requested` already holds the
+-- hour in the JS check, in `karaoke_reservations_no_overlap` (status <>
+-- 'cancelled') and in the `karaoke_open_cap` trigger, and every app build
+-- reads an unknown status as "requested". The payment lives beside it:
+--
+--   "paymentStatus"  none       pay at the venue: rows from before this, the
+--                               panel's switch off, app builds that do not
+--                               opt in
+--                    pending    hold waiting for its payment (status requested)
+--                    paid       collected; the booking is then confirmed
+--                    refunding  a refund was started and is not settled - a
+--                               POS that did not answer is not "refunded"
+--                    refunded   the money went back (status cancelled)
+--                    expired    the hold lapsed unpaid (status cancelled)
+--   "paymentDueAt"   when the newest payment page stops taking the card
+--   "paidAt" "refundedAt" "paidMinor"
+--   "paymentRef"     the provider reference of THE payment that paid the row.
+--                    Any other succeeded payment for the same reservation is
+--                    a second charge and is sent back (karaoke-payment.ts).
+--   channel          'web' | 'app' ('' on older rows): where the payment
+--                    return sends the member - decided by the row, never by a
+--                    query string anyone can type
+--   "legalConsent"   the pre-information and contract confirmation, in the
+--                    shape of orders."legalConsent" (MSY m.7; kept 3 years,
+--                    m.20)
+--   guest            true for a web booking made without an account
+--                    (operator, 16 Eki 2026: "üyeliksiz de yapabilsinler").
+--                    "customerEmail" then holds the contact address only so
+--                    the per-address cap below covers it; the row never
+--                    shows in a member's list, inbox or loyalty tier, and it
+--                    is reached through a signed link (karaoke-link.ts).
+--
+-- Payment rows reuse payment_transactions with "orderId" = the reservation id
+-- (the `krk-` namespace, `isKaraokeRef`); that column has no foreign key.
+--
+-- settings."karaokePrepay" is the panel's switch (Ayarlar → Karaoke). On by
+-- default; off brings back the pay-at-the-venue request flow.
+--
+-- Safe on a live table: every column is added with a default every existing
+-- row satisfies, and both checks hold for 'none'.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+alter table public.karaoke_reservations add column if not exists "paymentStatus" text    not null default 'none';
+alter table public.karaoke_reservations add column if not exists "paymentDueAt"  text    not null default '';
+alter table public.karaoke_reservations add column if not exists "paidAt"        text    not null default '';
+alter table public.karaoke_reservations add column if not exists "refundedAt"    text    not null default '';
+alter table public.karaoke_reservations add column if not exists "paidMinor"     integer not null default 0;
+alter table public.karaoke_reservations add column if not exists "paymentRef"    text    not null default '';
+alter table public.karaoke_reservations add column if not exists channel         text    not null default '';
+alter table public.karaoke_reservations add column if not exists "legalConsent"  jsonb;
+alter table public.karaoke_reservations add column if not exists guest           boolean not null default false;
+
+-- The six values, and the two facts every payment state implies about the
+-- booking: a hold waiting for its money is still a request, and money that
+-- lapsed or went back leaves no booking behind. A code path that moved one
+-- column without the other would otherwise strand an hour (held but never
+-- swept) or keep a slot for a refunded evening.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_payment_status_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_payment_status_check
+      check ("paymentStatus" in
+        ('none', 'pending', 'paid', 'refunding', 'refunded', 'expired'));
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_payment_state_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_payment_state_check
+      check (
+        ("paymentStatus" <> 'pending' or status = 'requested')
+        and ("paymentStatus" not in ('expired', 'refunded')
+             or status = 'cancelled')
+      );
+  end if;
+end $$;
+
+-- The sweep reads the oldest unpaid holds; the check above makes every
+-- pending row a live request, so the predicate needs no status term.
+create index if not exists karaoke_reservations_unpaid_hold_idx
+  on public.karaoke_reservations ("paymentDueAt")
+  where "paymentStatus" = 'pending';
+
+alter table public.settings add column if not exists "karaokePrepay" boolean not null default true;
+
+-- The open-bookings cap, now also per phone number for guest bookings. A
+-- guest has no verified address: the same person could otherwise hold the
+-- room under a fresh e-mail each time. Same lock-then-count shape as the
+-- e-mail branch (20260923110000_atomic_caps_and_refunds.sql), so two guest
+-- bookings with one number cannot both pass at the same instant.
+--
+-- Guest and member rows are counted APART: a guest types an address it
+-- does not have to own, and two guest holds under a member's address must
+-- not lock that member out of their own two bookings. Member rows (guest =
+-- false, which every row before this migration is) count exactly as before.
+create or replace function public.karaoke_open_cap()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  today      text;
+  open_count int;
+begin
+  if new.status = 'cancelled' then
+    return new;
+  end if;
+  perform pg_advisory_xact_lock(
+    hashtext('karaoke-open-cap:' || case when new.guest then 'guest:' else '' end
+             || lower(new."customerEmail")));
+  today := to_char((now() at time zone 'Europe/Istanbul')::date, 'YYYY-MM-DD');
+  select count(*) into open_count
+    from public.karaoke_reservations
+   where lower("customerEmail") = lower(new."customerEmail")
+     and guest = new.guest
+     and status <> 'cancelled'
+     and date >= today;
+  if open_count >= 2 then  -- KARAOKE_OPEN_CAP
+    raise exception 'TOO_MANY_OPEN_RESERVATIONS' using errcode = 'P0001';
+  end if;
+  if new.guest and new."contactPhone" <> '' then
+    perform pg_advisory_xact_lock(
+      hashtext('karaoke-open-cap-phone:' || new."contactPhone"));
+    select count(*) into open_count
+      from public.karaoke_reservations
+     where guest
+       and "contactPhone" = new."contactPhone"
+       and status <> 'cancelled'
+       and date >= today;
+    if open_count >= 2 then  -- KARAOKE_OPEN_CAP
+      raise exception 'TOO_MANY_OPEN_RESERVATIONS' using errcode = 'P0001';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+insert into public._migrations (name) values ('20261016063311_karaoke_prepay.sql')
+  on conflict (name) do nothing;

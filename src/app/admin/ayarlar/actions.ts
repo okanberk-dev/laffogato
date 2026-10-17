@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
@@ -11,7 +12,12 @@ import {
   type DayOfWeek,
   type WeeklyHours,
 } from "@/lib/admin/store";
+import { ADMIN_ROLES } from "@/lib/admin/roles";
 import { sendTestEmail } from "@/lib/email/send";
+import {
+  MAX_ORDER_NOTIFY_EMAILS,
+  parseNotifyEmails,
+} from "@/lib/email/staff-order-notice-core";
 import { forgetEmailHealth } from "@/lib/email/health";
 
 export interface SettingsState {
@@ -66,13 +72,22 @@ function parseMoneyMinor(raw: unknown): number | null {
   return Math.round(v * 100);
 }
 
-function parseTime(raw: unknown): string {
+/**
+ * "HH:MM" (or "H:MM") within 00:00-23:59, normalised; null for anything
+ * else, which the action turns into the form's error.
+ *
+ * It used to clamp: "24:00", "99:99" or a hand-made POST came out as a
+ * stored "24:00" / "24:59", and garbage became "00:00" - a midnight close
+ * the operator never typed. A close at midnight is "00:00": the hours
+ * reader treats a close not later than the open as running past midnight.
+ */
+function parseTime(raw: unknown): string | null {
   const s = String(raw ?? "").trim();
-  // Allow HH:MM or H:MM (00:00-24:00). Return normalized or fallback.
   const m = /^(\d{1,2}):(\d{2})$/.exec(s);
-  if (!m) return "00:00";
-  const h = Math.min(24, Math.max(0, parseInt(m[1], 10)));
-  const min = Math.min(59, Math.max(0, parseInt(m[2], 10)));
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  if (h > 23 || min > 59) return null;
   return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
 
@@ -102,16 +117,29 @@ export async function saveHoursAction(
   formData: FormData,
 ): Promise<SettingsState> {
   await requireRole("settings");
+  const before = await getSettings();
   const weekly: WeeklyHours = {} as WeeklyHours;
   const summary: string[] = [];
   for (const day of DAYS_OF_WEEK) {
     const closed = formData.get(`${day}-closed`) === "on";
-    const open = parseTime(formData.get(`${day}-open`));
-    const close = parseTime(formData.get(`${day}-close`));
+    const rawOpen = String(formData.get(`${day}-open`) ?? "").trim();
+    const rawClose = String(formData.get(`${day}-close`) ?? "").trim();
+    // A day ticked "Kapalı" may have its time boxes cleared; it keeps the
+    // hours it had rather than failing the whole form over them.
+    const kept = before.weeklyHours?.[day as DayOfWeek];
+    const open =
+      closed && !rawOpen ? (kept?.open ?? "00:00") : parseTime(rawOpen);
+    const close =
+      closed && !rawClose ? (kept?.close ?? "00:00") : parseTime(rawClose);
+    if (open === null || close === null) {
+      return {
+        error:
+          "Saatler 00:00 ile 23:59 arasında olmalı (ss:dd). Gece yarısı kapanış için 00:00 yaz.",
+      };
+    }
     weekly[day as DayOfWeek] = { open, close, closed };
     summary.push(closed ? `${day} Kapalı` : `${day} ${open}-${close}`);
   }
-  const before = await getSettings();
   await updateSettings({
     weeklyHours: weekly,
     openingHours: summary.join(" · "),
@@ -206,11 +234,14 @@ export async function saveKaraokeAction(
   if (notifyEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifyEmail)) {
     return { error: "Talep bildirimi için geçerli bir e-posta gir." };
   }
+  // The online-prepayment switch (16 Eki 2026). A checkbox: absent = off.
+  const prepay = formData.get("karaokePrepay") === "on";
   const before = await getSettings();
   await updateSettings({
     karaokeHourlyMinor: hourlyMinor,
     karaokeCapacity: capacity,
     karaokeNotifyEmail: notifyEmail,
+    karaokePrepay: prepay,
   });
   revalidateAll();
   return ok("karaoke", "Karaoke ayarları kaydedildi.", {
@@ -218,11 +249,13 @@ export async function saveKaraokeAction(
       karaokeHourlyMinor: before.karaokeHourlyMinor,
       karaokeCapacity: before.karaokeCapacity,
       karaokeNotifyEmail: before.karaokeNotifyEmail,
+      karaokePrepay: before.karaokePrepay,
     },
     after: {
       karaokeHourlyMinor: hourlyMinor,
       karaokeCapacity: capacity,
       karaokeNotifyEmail: notifyEmail,
+      karaokePrepay: prepay,
     },
   });
 }
@@ -246,18 +279,124 @@ export async function saveSeoAction(
   return ok("seo", "SEO ayarları kaydedildi.");
 }
 
+const notificationsSchema = z.object({
+  notificationEmail: z
+    .string()
+    .trim()
+    .max(254, { error: "Operasyon e-postası çok uzun." })
+    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
+      error: "Geçerli bir e-posta gir.",
+    }),
+  orderNotifyEnabled: z.boolean(),
+  orderNotifyRoles: z
+    .array(z.enum(ADMIN_ROLES as [string, ...string[]]), {
+      error: "Rol seçimi geçersiz.",
+    })
+    .max(ADMIN_ROLES.length),
+  orderNotifyEmails: z
+    .string()
+    .max(4000, { error: "Ek adres listesi çok uzun." })
+    .transform((raw, ctx) => {
+      const { valid, invalid } = parseNotifyEmails(raw);
+      if (invalid.length > 0) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Geçersiz e-posta: ${invalid.slice(0, 3).join(", ")}`,
+        });
+        return z.NEVER;
+      }
+      if (valid.length > MAX_ORDER_NOTIFY_EMAILS) {
+        ctx.addIssue({
+          code: "custom",
+          message: `En fazla ${MAX_ORDER_NOTIFY_EMAILS} ek adres yazılabilir.`,
+        });
+        return z.NEVER;
+      }
+      // Stored one per line, normalised, so the panel shows what is used.
+      return valid.join("\n");
+    }),
+});
+
+/**
+ * Ayarlar → Bildirimler: the operations address and who gets the staff
+ * "yeni sipariş" mail (`src/lib/email/staff-order-notice.ts`). Owner only,
+ * like every settings tab. The audit row keeps the before/after of the
+ * switch and the roles. The addresses are not logged as text, but enough of
+ * them is to see a redirect: whether the operations address and the extra
+ * list changed, how many addresses were added and removed, and the domains
+ * on each side - so "kasa@laffogato.net" swapped for an outside inbox shows
+ * as a new domain rather than as a no-op save of one address.
+ */
 export async function saveNotificationsAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
   await requireRole("settings");
-  const email = String(formData.get("notificationEmail") ?? "").trim();
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { error: "Geçerli bir e-posta gir." };
+  const parsed = notificationsSchema.safeParse({
+    notificationEmail: String(formData.get("notificationEmail") ?? ""),
+    orderNotifyEnabled: formData.get("orderNotifyEnabled") === "on",
+    orderNotifyRoles: formData
+      .getAll("orderNotifyRoles")
+      .map((v) => String(v)),
+    orderNotifyEmails: String(formData.get("orderNotifyEmails") ?? ""),
+  });
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "Bildirim ayarları geçersiz.",
+    };
   }
-  await updateSettings({ notificationEmail: email });
+  const roles = ADMIN_ROLES.filter((r) =>
+    parsed.data.orderNotifyRoles.includes(r),
+  );
+  const before = await getSettings();
+  await updateSettings({
+    notificationEmail: parsed.data.notificationEmail,
+    orderNotifyEnabled: parsed.data.orderNotifyEnabled,
+    orderNotifyRoles: roles,
+    orderNotifyEmails: parsed.data.orderNotifyEmails,
+  });
   revalidateAll();
-  return ok("notifications", "Bildirim ayarları kaydedildi.");
+  const list = (s: string) => parseNotifyEmails(s).valid;
+  const beforeList = list(before.orderNotifyEmails ?? "");
+  const afterList = list(parsed.data.orderNotifyEmails);
+  const beforeOps = (before.notificationEmail ?? "").trim().toLowerCase();
+  const afterOps = parsed.data.notificationEmail.trim().toLowerCase();
+  return ok("notifications", "Bildirim ayarları kaydedildi.", {
+    before: {
+      orderNotifyEnabled: before.orderNotifyEnabled,
+      orderNotifyRoles: before.orderNotifyRoles,
+      orderNotifyEmailCount: beforeList.length,
+      orderNotifyEmailDomains: notifyDomains(beforeList),
+      notificationEmailDomain: notifyDomains([beforeOps])[0] ?? "",
+    },
+    after: {
+      orderNotifyEnabled: parsed.data.orderNotifyEnabled,
+      orderNotifyRoles: roles,
+      orderNotifyEmailCount: afterList.length,
+      orderNotifyEmailDomains: notifyDomains(afterList),
+      notificationEmailDomain: notifyDomains([afterOps])[0] ?? "",
+    },
+    changed: {
+      notificationEmail: beforeOps !== afterOps,
+      orderNotifyEmails:
+        beforeList.length !== afterList.length ||
+        beforeList.some((e) => !afterList.includes(e)),
+      orderNotifyEmailsAdded: afterList.filter((e) => !beforeList.includes(e))
+        .length,
+      orderNotifyEmailsRemoved: beforeList.filter((e) => !afterList.includes(e))
+        .length,
+    },
+  });
+}
+
+/** The sorted, distinct domains of a list of addresses - never the local part. */
+function notifyDomains(emails: readonly string[]): string[] {
+  const out = new Set<string>();
+  for (const e of emails) {
+    const at = e.lastIndexOf("@");
+    if (at > 0) out.add(e.slice(at + 1).toLowerCase());
+  }
+  return [...out].sort();
 }
 
 /**

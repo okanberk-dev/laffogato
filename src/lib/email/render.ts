@@ -22,7 +22,13 @@ import {
 } from "@/lib/mobile/app-store";
 import { SITE } from "@/lib/seo/site";
 
-import { assertFilled, fill, fillText, type TemplateVars } from "./fill";
+import {
+  assertNoneMissing,
+  fill,
+  fillText,
+  type MissingFields,
+  type TemplateVars,
+} from "./fill";
 import { EMAIL_TEMPLATES, type EmailTemplateName } from "./templates.generated";
 
 export interface RenderedEmail {
@@ -110,7 +116,7 @@ export function renderEmail(
     AD: Boolean(vars.AD),
     // The campaign family's optional blocks follow their field: no image URL,
     // no hero row; no code, no code box. A dropped block takes the fields
-    // inside it along, so `assertFilled` never asks for a value the operator
+    // inside it along, so the fill never asks for a value the operator
     // deliberately left blank - but a block that IS open still needs every
     // field in it (a code without an expiry is a render error, not a gap).
     GORSEL: Boolean(vars.KAMPANYA_GORSEL_URL),
@@ -123,15 +129,38 @@ export function renderEmail(
     // carrier name, so either can be missing on a real parcel.
     TAKIP_LINKI: Boolean(vars.TAKIP_URL),
     FIRMA: Boolean(vars.KARGO_FIRMASI),
+    // "Ödemen alındı": the cargo row follows the fee. A table order leaves
+    // KARGO empty - it is carried across the room, and the mail must not
+    // talk about cargo (15 Eki 2026).
+    KARGO_SATIRI: Boolean(vars.KARGO),
+    // "Ödemen alındı": the discount row only when there was a discount, so
+    // the rows above the total always add up to it.
+    INDIRIM_SATIRI: Boolean(vars.INDIRIM),
+    // The paid-order stamp card only when the order earned stamps: an app
+    // cafe order of at least 140 TL of goods, one per started 320 TL. A shop
+    // or web order used to be told "+1 damga" for a stamp it never got.
+    DAMGA: Boolean(vars.DAMGA_SAYISI) && vars.DAMGA_SAYISI !== "0",
   };
 
-  const html = fill(template.html, { vars, loops: input.loops, flags });
-  const subject = fillText(template.subject, vars, flags);
-  const text = fillText(input.text, vars, flags);
+  // The holes are counted on the template's own fields while it is filled,
+  // not looked for in the result: a value may contain "[OK]" (a member's
+  // note, a product called "Kahve [250G]") and that is text, not a field.
+  const missing = {
+    html: new Set() as MissingFields,
+    subject: new Set() as MissingFields,
+    text: new Set() as MissingFields,
+  };
+  const html = fill(
+    template.html,
+    { vars, loops: input.loops, flags },
+    missing.html,
+  );
+  const subject = fillText(template.subject, vars, flags, missing.subject);
+  const text = fillText(input.text, vars, flags, missing.text);
 
-  assertFilled(html, name);
-  assertFilled(subject, `${name} (konu)`);
-  assertFilled(text, `${name} (düz metin)`);
+  assertNoneMissing(missing.html, name);
+  assertNoneMissing(missing.subject, `${name} (konu)`);
+  assertNoneMissing(missing.text, `${name} (düz metin)`);
 
   return {
     subject,

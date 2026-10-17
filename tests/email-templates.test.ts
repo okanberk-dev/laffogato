@@ -73,9 +73,9 @@ function renderWith(
   });
 }
 
-describe("the twenty-three templates render", () => {
-  it("ships exactly the twenty-three designed messages", () => {
-    expect(NAMES).toHaveLength(23);
+describe("the twenty-two templates render", () => {
+  it("ships exactly the twenty-two designed messages (siparis-alindi was removed 16 Eki 2026: the order mail waits for the payment)", () => {
+    expect(NAMES).toHaveLength(22);
     // Mail to the team, in the same design as the customers' mail.
     expect(NAMES).toContain("operasyon-bildirim");
     // The order notices the legal texts promise: the tracking number at
@@ -149,6 +149,34 @@ describe("the twenty-three templates render", () => {
   );
 
   /**
+   * Both karaoke messages speak "sen", like the /karaoke page that took the
+   * booking and the rule they quote ("iptal edersen"). They used to switch
+   * voice mid-message: "Saatiniz ayrıldı" above "iptal edersen". The shared
+   * app block is left out: it is every mail's, in the family's own voice.
+   */
+  it.each(["karaoke-rezervasyon", "karaoke-iptal"] as const)(
+    "%s speaks sen, not siz, in both halves",
+    (name) => {
+      const t = EMAIL_TEMPLATES[name];
+      const body = t.html
+        .replace(/<head>[\s\S]*?<\/head>/, "")
+        .replace(/<!--IF:APP_LINKS-->[\s\S]*?<!--\/IF:APP_LINKS-->/g, "")
+        .replace(/<[^>]+>/g, " ");
+      for (const part of [t.subject, t.preheader, body, EMAIL_TEXT[name]]) {
+        const siz = part
+          .split(/[^a-zA-ZçğıöşüÇĞİÖŞÜ]+/)
+          .filter(
+            (w) =>
+              /^(siz|sizden|size|sizin|sizi)$/i.test(w) ||
+              /n[ıiuü]z([ıiuü]|d[ae]n?|[ae])?$/.test(w) ||
+              /[aeıioöuü]y[ıiuü]n$/.test(w),
+          );
+        expect(siz, name).toEqual([]);
+      }
+    },
+  );
+
+  /**
    * Confirmation and cancellation are one pair: whatever the staff do to a
    * booking, the member is told the same four facts about the same evening.
    * A field in one and not the other is how a cancellation ends up unable to
@@ -163,8 +191,12 @@ describe("the twenty-three templates render", () => {
     expect(of("karaoke-iptal")).toEqual([
       "KARAOKE_KISI",
       "KARAOKE_KOD",
+      // The booking's own signed page, and what was paid / refunded
+      // (online prepayment, 16 Eki 2026).
+      "KARAOKE_LINK",
       "KARAOKE_SAAT",
       "KARAOKE_TARIH",
+      "KARAOKE_TUTAR",
     ]);
   });
 
@@ -367,10 +399,12 @@ describe("campaign blocks follow their fields", () => {
 });
 
 describe("the karaoke confirmation says the party size once", () => {
-  it("does not write \"kişi\" after a value that already carries it", () => {
+  it('does not write "kişi" after a value that already carries it', () => {
     // send.ts fills KARAOKE_KISI as "4 kişi"; the preheader used to append
     // its own " kişi", so the inbox preview read "4 kişi kişi".
-    expect(EMAIL_TEMPLATES["karaoke-rezervasyon"].preheader).not.toMatch(/\[KARAOKE_KISI\] kişi/);
+    expect(EMAIL_TEMPLATES["karaoke-rezervasyon"].preheader).not.toMatch(
+      /\[KARAOKE_KISI\] kişi/,
+    );
   });
 });
 
@@ -446,16 +480,19 @@ describe("the committed build matches its sources", () => {
 describe("the order notices say what happened, and nothing else", () => {
   const NOTICES = ["siparis-kargoda", "siparis-iptal", "siparis-iade"] as const;
 
-  it.each(NOTICES)("%s is transactional and carries nothing promotional", (name) => {
-    const t = EMAIL_TEMPLATES[name];
-    expect(t.commercial).toBe(false);
-    // No app strip and no social line: a notice about somebody's parcel or
-    // money is not the place to advertise, and doing so would make it a
-    // commercial message under 6563.
-    expect(t.html).not.toContain("APP_LINKS");
-    expect(t.html).not.toContain("instagram.com");
-    expect(EMAIL_TEXT[name]).not.toContain("App Store");
-  });
+  it.each(NOTICES)(
+    "%s is transactional and carries nothing promotional",
+    (name) => {
+      const t = EMAIL_TEMPLATES[name];
+      expect(t.commercial).toBe(false);
+      // No app strip and no social line: a notice about somebody's parcel or
+      // money is not the place to advertise, and doing so would make it a
+      // commercial message under 6563.
+      expect(t.html).not.toContain("APP_LINKS");
+      expect(t.html).not.toContain("instagram.com");
+      expect(EMAIL_TEXT[name]).not.toContain("App Store");
+    },
+  );
 
   const orderVars = {
     AD: "Eda",
@@ -464,7 +501,11 @@ describe("the order notices say what happened, and nothing else", () => {
   };
 
   it("gives the tracking number in both halves, and the carrier's page only when there is one", () => {
-    const base = { ...orderVars, TAKIP_NO: "YK123456789TR", KARGO_FIRMASI: "Yurtiçi Kargo" };
+    const base = {
+      ...orderVars,
+      TAKIP_NO: "YK123456789TR",
+      KARGO_FIRMASI: "Yurtiçi Kargo",
+    };
     const without = renderEmail("siparis-kargoda", {
       vars: { ...base, TAKIP_URL: "" },
       text: EMAIL_TEXT["siparis-kargoda"],
@@ -483,7 +524,9 @@ describe("the order notices say what happened, and nothing else", () => {
       vars: { ...base, TAKIP_URL: "https://kargo.example/t/YK123456789TR" },
       text: EMAIL_TEXT["siparis-kargoda"],
     });
-    expect(withPage.html).toContain('href="https://kargo.example/t/YK123456789TR"');
+    expect(withPage.html).toContain(
+      'href="https://kargo.example/t/YK123456789TR"',
+    );
     expect(withPage.text).toContain("https://kargo.example/t/YK123456789TR");
   });
 
@@ -507,7 +550,15 @@ describe("the order notices say what happened, and nothing else", () => {
   const cancel = (flags: Record<string, boolean>) =>
     renderEmail("siparis-iptal", {
       vars: cancelVars,
-      loops: { ITEMS: [{ URUN_AD: "Affogato Classico", URUN_ADET: "2", URUN_TUTAR: "260,00 ₺" }] },
+      loops: {
+        ITEMS: [
+          {
+            URUN_AD: "Affogato Classico",
+            URUN_ADET: "2",
+            URUN_TUTAR: "260,00 ₺",
+          },
+        ],
+      },
       text: EMAIL_TEXT["siparis-iptal"],
       flags,
     });
@@ -600,10 +651,11 @@ describe("one dash only", () => {
 
 describe("the palette is the site's, not the handoff's", () => {
   /**
-   * The design was drawn against globals.css as it stood on 8 Sep 2026 and
-   * migrated onto the Köşk/tricolore palette on the way in. These are the
-   * retired values; a template re-exported from the design tool would bring
-   * them back, and the mail would quietly stop looking like the site.
+   * 15 Eki 2026: the mail moved onto the site/app palette (porcelain, the
+   * house green #1d6d56, brass #e8c877, warm ink #211c18) when every
+   * template was restyled for light AND dark mode. The Köşk values it wore
+   * until then are retired here, next to the handoff's older ones; a
+   * template re-exported from an old source would bring them back.
    */
   const RETIRED = [
     "#1b4034",
@@ -611,9 +663,19 @@ describe("the palette is the site's, not the handoff's", () => {
     "#f6f9f7",
     "#eef3f0",
     "#dfeae4",
-    "#e8c877",
     "#7d5f27",
     "#1b2f28",
+    "#143d2b",
+    "#201c17",
+    "#5f594e",
+    "#746b5d",
+    "#8a6526",
+    "#e8d3a4",
+    "#f1eee8",
+    "#f6f5f2",
+    "#ebe7de",
+    "#e1dcd1",
+    "#cfe3d5",
   ];
 
   it.each(NAMES)("%s carries no retired hex", (name) => {
@@ -624,8 +686,75 @@ describe("the palette is the site's, not the handoff's", () => {
 
   it.each(NAMES)("%s paints the house green and the brand ink", (name) => {
     const html = EMAIL_TEMPLATES[name].html;
-    expect(html).toContain("#143d2b");
-    expect(html).toContain("#201c17");
-    expect(html).toContain("Montserrat");
+    // The brand green (#1d6d56: bars, buttons) or its deep shade (#17594a:
+    // whole dark sections, where small brass text needs the contrast).
+    expect(/#1d6d56|#17594a/.test(html)).toBe(true);
+    expect(html).toContain("Poppins");
+    expect(html).not.toContain("Montserrat");
+  });
+});
+
+describe("every template reads in light AND dark mode", () => {
+  /**
+   * Apple Mail, iOS Mail and Outlook for Mac honour prefers-color-scheme;
+   * Outlook.com and the Outlook apps mark what they recolour with
+   * data-ogsc/data-ogsb; Gmail honours neither and inverts colours but never
+   * images. So: one shared style block with both hooks, a class on every
+   * element whose colour must change, and no image with a baked ground.
+   */
+  const STYLE = /<style>[\s\S]*?<\/style>/;
+  const first = EMAIL_TEMPLATES[NAMES[0]].html.match(STYLE)?.[0] ?? "";
+
+  it("shares one style block with the Apple and Outlook dark hooks", () => {
+    expect(first).toContain(":root{color-scheme:light dark");
+    expect(first).toContain("@media (prefers-color-scheme:dark)");
+    expect(first).toContain("[data-ogsc] .em-t1");
+    expect(first).toContain("[data-ogsb] .em-card");
+    // Classes, not hex-coupled attribute selectors: a new colour would have
+    // silently escaped those.
+    expect(first).not.toContain("[style*=");
+    for (const name of NAMES) {
+      expect(EMAIL_TEMPLATES[name].html.match(STYLE)?.[0], name).toBe(first);
+    }
+  });
+
+  it.each(NAMES)("%s hooks every remapped colour to its class", (name) => {
+    const body = EMAIL_TEMPLATES[name].html.replace(STYLE, "");
+    const ROLE: Record<string, string> = {
+      "#211c18": "em-t1",
+      "#564d46": "em-t2",
+      "#6f655d": "em-t3",
+      "#765923": "em-tg",
+    };
+    for (const tag of body.match(/<[a-z]+\b[^>]*style="[^"]*"[^>]*>/g) ?? []) {
+      const color = /(?:^|[;"])\s*color:\s*(#[0-9a-f]{6})/.exec(
+        tag.slice(tag.indexOf('style="')),
+      )?.[1];
+      if (color && ROLE[color]) {
+        expect(tag, `${name}: ${color} without ${ROLE[color]}`).toContain(
+          ROLE[color],
+        );
+      }
+      if (/background:#ffffff/.test(tag)) {
+        expect(tag, `${name}: white card without em-card`).toContain("em-card");
+      }
+    }
+  });
+
+  it.each(NAMES)("%s carries no image with a baked ground", (name) => {
+    const html = EMAIL_TEMPLATES[name].html;
+    expect(html).toContain("email/logo-laf-tile.png");
+    for (const baked of [
+      "band-light-top",
+      "band-light-bottom",
+      "band-dark-top",
+      "band-dark-bottom",
+      "logo-laf-espresso",
+      "logo-laf-cream",
+      "logo-laf-glint",
+      "mono-golddeep",
+    ]) {
+      expect(html, `${name} still shows ${baked}`).not.toContain(baked);
+    }
   });
 });

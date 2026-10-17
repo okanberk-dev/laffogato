@@ -73,8 +73,32 @@ export function joinNeighbourhood(neighbourhood: string, line: string): string {
   return `${hood}, ${rest}`;
 }
 
+/**
+ * `line1` read back for the app. A record that kept the neighbourhood in its
+ * own key (written by `fromMeAddress`) is trusted: the mahalle is that key and
+ * the line is `line1` without the folded prefix. The guess below used to be
+ * the only way, and it misread every mahalle typed without "Mah." - "Postane"
+ * came back as part of the street, with an empty neighbourhood. Older rows
+ * and the site's own rows (no key) keep the split.
+ */
+function readNeighbourhood(a: CustomerAddress): {
+  neighbourhood: string;
+  line: string;
+} {
+  if (typeof a.neighbourhood !== "string") return splitNeighbourhood(a.line1);
+  const hood = a.neighbourhood.trim();
+  const line1 = (a.line1 ?? "").trim();
+  if (!hood) return { neighbourhood: "", line: line1 };
+  if (line1 === hood) return { neighbourhood: hood, line: "" };
+  const prefix = `${hood}, `;
+  return {
+    neighbourhood: hood,
+    line: line1.startsWith(prefix) ? line1.slice(prefix.length) : line1,
+  };
+}
+
 export function toMeAddress(a: CustomerAddress): MeAddress {
-  const { neighbourhood, line } = splitNeighbourhood(a.line1);
+  const { neighbourhood, line } = readNeighbourhood(a);
   return {
     id: a.id,
     title: a.label,
@@ -105,6 +129,7 @@ export function fromMeAddress(input: MeAddressInput): AddressInput {
     city: input.city,
     zip: "",
     isDefault: input.isDefault === true,
+    neighbourhood: (input.neighbourhood ?? "").trim(),
   };
 }
 
@@ -159,17 +184,29 @@ export type MeLoyalty = LoyaltyView & {
   perksByTier?: Record<"verde" | "argento" | "oro", string[]>;
 };
 
+/**
+ * `/me.staff` (15 Eki 2026, additive): what the member may do behind the bar.
+ * `till` is true while the panel lets this account stamp from the app
+ * (`POST /staff/stamp`, docs/API-MOBILE.md §21). An older server sends no
+ * `staff` at all, which the app reads as false.
+ */
+export interface MeStaff {
+  till: boolean;
+}
+
 export interface MeResponse {
   customer: MeCustomer;
   loyalty: MeLoyalty;
   invite: InviteSummary;
   usual: CustomerUsual | null;
+  staff: MeStaff;
 }
 
 export function toMe(
   customer: PublicCustomer,
   loyalty: MeLoyalty,
   invite: InviteSummary,
+  staff: MeStaff = { till: false },
 ): MeResponse {
   return {
     customer: {
@@ -191,6 +228,8 @@ export function toMe(
     loyalty,
     invite,
     usual: customer.usual,
+    // Copied field by field like everything else here: only `till` leaves.
+    staff: { till: staff.till === true },
   };
 }
 

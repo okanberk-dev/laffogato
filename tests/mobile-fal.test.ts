@@ -127,7 +127,9 @@ const lib = {
   grantFalConsent: vi.fn(),
   revokeFalConsent: vi.fn(),
   falReadingsToday: vi.fn(),
-  recordFalReading: vi.fn(),
+  reserveFalReading: vi.fn(),
+  releaseFalReading: vi.fn(),
+  completeFalReading: vi.fn(),
   buildFalContext: vi.fn(),
   readCupWithAI: vi.fn(),
 };
@@ -153,6 +155,10 @@ describe("POST /fal", () => {
     for (const fn of Object.values(lib)) fn.mockReset();
     lib.hasFalConsent.mockResolvedValue(true);
     lib.falReadingsToday.mockResolvedValue(0);
+    lib.reserveFalReading.mockResolvedValue({ ok: true, id: 7, used: 0 });
+    // Promises, as the real ones are: the route chains .catch() on the release.
+    lib.releaseFalReading.mockResolvedValue(undefined);
+    lib.completeFalReading.mockResolvedValue(undefined);
     lib.buildFalContext.mockResolvedValue({ tier: "L'AF", visits: "new", usual: "" });
     lib.readCupWithAI.mockResolvedValue({ ok: true, reading: READING, model: "gpt-5.4-mini" });
   });
@@ -168,6 +174,17 @@ describe("POST /fal", () => {
     const res = await POST(req({ image: JPEG }));
     expect(res.status).toBe(503);
     expect((await res.json()).error).toBe("fal_unavailable");
+    expect(lib.readCupWithAI).not.toHaveBeenCalled();
+  });
+
+  it("is 403 email_unverified for an unconfirmed sign-up, before any seat or model call", async () => {
+    // A row exists for every Supabase sign-up, confirmed or not; without the
+    // gate each throwaway address bought FAL_DAILY_LIMIT paid model calls.
+    requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "throwaway@ornek.com", emailVerified: false } });
+    const res = await POST(req({ image: JPEG }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe("email_unverified");
+    expect(lib.reserveFalReading).not.toHaveBeenCalled();
     expect(lib.readCupWithAI).not.toHaveBeenCalled();
   });
 
@@ -199,7 +216,8 @@ describe("POST /fal", () => {
     expect(body).toMatchObject({ reading: READING, ai: true, consentVersion: FAL_CONSENT_VERSION, remainingToday: FAL_DAILY_LIMIT - 1 });
     // Additive: which model wrote it, so "Bu yorumu bildir" can name it.
     expect(body.model).toBe("gpt-5.4-mini");
-    expect(lib.recordFalReading).toHaveBeenCalledWith("eda@ornek.com", true, "gpt-5.4-mini");
+    expect(lib.reserveFalReading).toHaveBeenCalledWith("eda@ornek.com", FAL_DAILY_LIMIT);
+    expect(lib.completeFalReading).toHaveBeenCalledWith(7, true, "gpt-5.4-mini");
     expect(res.headers.get("Cache-Control")).toContain("private");
   });
 
@@ -208,7 +226,36 @@ describe("POST /fal", () => {
     const res = await POST(req({ image: JPEG }));
     expect(res.status).toBe(502);
     expect((await res.json()).error).toBe("fal_failed");
-    expect(lib.recordFalReading).not.toHaveBeenCalled();
+    expect(lib.completeFalReading).not.toHaveBeenCalled();
+    // The seat goes back: a failed reading does not spend the member's turn.
+    expect(lib.releaseFalReading).toHaveBeenCalledWith(7);
+  });
+
+  it("is 429 fal_limit when a racing request took the last seat, and never asks the model", async () => {
+    lib.falReadingsToday.mockResolvedValue(FAL_DAILY_LIMIT - 1);
+    lib.reserveFalReading.mockResolvedValue({ ok: false });
+    const res = await POST(req({ image: JPEG }));
+    expect(res.status).toBe(429);
+    expect((await res.json()).error).toBe("fal_limit");
+    expect(lib.readCupWithAI).not.toHaveBeenCalled();
+  });
+
+  it("gives the seat back when the model call throws", async () => {
+    lib.readCupWithAI.mockRejectedValue(new Error("socket hang up"));
+    const res = await POST(req({ image: JPEG }));
+    expect(res.status).toBe(500);
+    expect(lib.releaseFalReading).toHaveBeenCalledWith(7);
+  });
+
+  it("does not take a seat for a photo it cannot read", async () => {
+    await POST(req({ image: Buffer.from("GIF89a-----").toString("base64") }));
+    expect(lib.reserveFalReading).not.toHaveBeenCalled();
+  });
+
+  it("counts the remaining readings from the seat it took", async () => {
+    lib.reserveFalReading.mockResolvedValue({ ok: true, id: 9, used: FAL_DAILY_LIMIT - 2 });
+    const body = await (await POST(req({ image: JPEG }))).json();
+    expect(body.remainingToday).toBe(1);
   });
 });
 

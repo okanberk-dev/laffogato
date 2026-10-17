@@ -1,6 +1,6 @@
 # Mail şablonları
 
-Yirmi üç gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
+Yirmi iki gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
 stiller satır içi. E-posta tarafında JavaScript, harici CSS ve web fontu yok;
 `<style>` bloğu yalnızca satır içi stillere ek (mobil kırılma + koyu tema),
 tek başına gerekli değil.
@@ -19,14 +19,13 @@ kilitlediğine bak.
 | eposta-dogrulama.html     | işlemsel          | L'Affogato - e-posta adresinizi doğrulayın  |
 | sifre-sifirlama.html      | işlemsel          | L'Affogato - şifre sıfırlama                |
 | bulten-onay.html          | işlemsel          | L'Affogato - bülten aboneliğinizi onaylayın |
-| siparis-alindi.html       | işlemsel          | Siparişiniz alındı (#[SIPARIS_NO])          |
 | odeme-onaylandi.html      | işlemsel          | Ödemeniz onaylandı (#[SIPARIS_NO])          |
 | siparis-kargoda.html      | işlemsel          | Siparişiniz kargoya verildi (#[SIPARIS_NO]) |
 | siparis-iptal.html        | işlemsel          | Siparişiniz iptal edildi (#[SIPARIS_NO])    |
 | siparis-iade.html         | işlemsel          | İadeniz yapıldı (#[SIPARIS_NO])             |
 | hos-geldin.html           | ilişki            | L'Affogato'ya hoş geldiniz                  |
-| karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonunuz onaylandı           |
-| karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonunuz iptal edildi        |
+| karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonun onaylandı             |
+| karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonun iptal edildi          |
 | sadakat-ikram.html        | işlemsel          | Kartınız doldu - bir içecek bizden          |
 | bulten-kampanya.html      | **ticari (6563)** | [KAMPANYA_BASLIK] - 3 ürün seçkisi + kod    |
 | mobil-uygulama.html       | **ticari (6563)** | L'Affogato uygulaması yayında               |
@@ -112,17 +111,17 @@ isteğe bağlı, aşağıdaki bayraklarla düşer.
 
 Bayraklar `render.ts`'te hesaplanır; şablon yalnızca adını bilir:
 
-| Bayrak      | Açık olduğu durum                       | Bölümle birlikte düşen alanlar                |
-| ----------- | --------------------------------------- | --------------------------------------------- |
-| `APP_LINKS` | iki mağaza linki de tanımlı             | `APP_STORE_URL` · `PLAY_STORE_URL`            |
-| `AD`        | ad boş değil ("Merhaba ," olmasın diye) | `AD`                                          |
-| `GORSEL`    | `KAMPANYA_GORSEL_URL` dolu              | `KAMPANYA_GORSEL_URL` · `KAMPANYA_GORSEL_ALT` |
-| `KOD`       | `KUPON_KODU` dolu                       | `KUPON_KODU` · `SON_KULLANIM`                 |
-| `TARIH`     | `KAMPANYA_TARIH` dolu                   | `KAMPANYA_TARIH`                              |
-| `DIPNOT`    | `KAMPANYA_DIPNOT` dolu                  | `KAMPANYA_DIPNOT`                             |
-| `VURGU`     | `KAMPANYA_VURGU` dolu                   | `KAMPANYA_VURGU`                              |
-| `TAKIP_LINKI` | `TAKIP_URL` dolu (Geliver'ın sayfası) | `TAKIP_URL`                                   |
-| `FIRMA`     | `KARGO_FIRMASI` dolu                    | `KARGO_FIRMASI`                               |
+| Bayrak        | Açık olduğu durum                       | Bölümle birlikte düşen alanlar                |
+| ------------- | --------------------------------------- | --------------------------------------------- |
+| `APP_LINKS`   | iki mağaza linki de tanımlı             | `APP_STORE_URL` · `PLAY_STORE_URL`            |
+| `AD`          | ad boş değil ("Merhaba ," olmasın diye) | `AD`                                          |
+| `GORSEL`      | `KAMPANYA_GORSEL_URL` dolu              | `KAMPANYA_GORSEL_URL` · `KAMPANYA_GORSEL_ALT` |
+| `KOD`         | `KUPON_KODU` dolu                       | `KUPON_KODU` · `SON_KULLANIM`                 |
+| `TARIH`       | `KAMPANYA_TARIH` dolu                   | `KAMPANYA_TARIH`                              |
+| `DIPNOT`      | `KAMPANYA_DIPNOT` dolu                  | `KAMPANYA_DIPNOT`                             |
+| `VURGU`       | `KAMPANYA_VURGU` dolu                   | `KAMPANYA_VURGU`                              |
+| `TAKIP_LINKI` | `TAKIP_URL` dolu (Geliver'ın sayfası)   | `TAKIP_URL`                                   |
+| `FIRMA`       | `KARGO_FIRMASI` dolu                    | `KARGO_FIRMASI`                               |
 
 Üç bayrak alandan değil olaydan gelir ve çağıran verir
 (`RenderInput.flags`): `ODEME_ALINDI` / `ODEME_YOK` (iptal edilen siparişte
@@ -167,29 +166,25 @@ adres bu yüzden `SITE.url` değil, kanonik alan adıdır.
 
 ```
 public/email/
-  logo-laf-espresso.png · logo-laf-cream.png    600×486 kaynak, 200×162 basılır - çerçevesiz L'Af harfleri; açık kartta
-                                                espresso, koyu mod medya sorgusu (`.em-logo-dark`) cream'i açar
-  logo-laf-glint.gif                            400×324 kaynak, 200×162 basılır - koyu yeşil bant üstünde bir kez akan
-                                                altın parıltı; ilk karesi düz cream mark (Outlook GIF oynatmaz, onu gösterir)
-  logo-laf-gold.png                             600×486 - altın ton; şu an hiçbir şablon çağırmıyor, yedek
-  mono-{cream,gold,golddeep}.png                57×102 kaynak, 19×34 basılır - alt bilgideki L'Af monogramı (şablonlar golddeep)
-  bean-{cream,espresso,gold,golddeep}.png       66×176 kaynak, 8×22 basılır - tarih/etkinlik satırının önündeki çekirdek;
-                                                koyu bantta gold, açık kartta golddeep
-  band-{dark,light}-{top,bottom}.png            1196 px kaynak, 598 px basılır - organik bantlar
-  stamp-{empty,full}.png                        96×96 kaynak, 40×40 basılır - damga kartı hücreleri
-  check-badge.png · wave-success.png            ödeme onayı rozeti (56×56 basılır) / dalgası (598 px)
-  icons/<ad>-{cream,espresso,gold,hero}.png     96×96 kaynak, 40-48 px basılır - disk ikonlar
+  logo-laf-tile.png                             192×192, 76 (başlık) / 34 (alt bilgi) px basılır - uygulama ikonu:
+                                                yeşil (#1d6d56) karo üstünde krem L'Af. OPAK: Gmail'in koyu modu
+                                                renkleri ters çevirir ama görselleri çevirmez; saydam bir harf
+                                                (eski espresso/cream çifti) ters çevrilmiş kartta kayboluyordu
+  bean-{gold,golddeep}.png                      66×176 kaynak, 8×22 basılır - tarih satırının çekirdeği; açık kartta
+                                                golddeep, koyu modda (`em-only-dark`) gold
+  stamp-{empty,full}.png                        96×96 kaynak, 40×40 basılır - damga kartı hücreleri (opak disk)
+  check-badge.png                               ödeme onayı rozeti (56×56, opak disk)
+  icons/<ad>-{cream,espresso,gold,hero}.png     96×96 kaynak, 40-48 px basılır - opak disk ikonlar
+  (emekli, dosyası duruyor) band-*, logo-laf-{espresso,cream,glint,gold}, mono-*, wave-success:
+                                                zemini gömülü görsellerdi; gönderilmiş eski e-postalar hâlâ bu
+                                                adreslere bağlandığı için silinmez, hiçbir şablon çağırmaz
 ```
 
-Logo üç dosyadır: mail istemcisi bir maskeyi boyayamadığı için ton başına
-ayrı dosya gerekir. 8 Eyl'de önce (commit `06b325d`) iki zeminde de okunan tek
-bir rozet (`logo-laf.png`) denendi; aynı akşam (`72acf21`) rozet emekli edildi
-ve yerini 200 px'lik çerçevesiz harflere bıraktı: açık kartlı sekiz şablon
-espresso PNG'yi basar ve koyu modda cream'e geçer, koyu bantlı dokuz şablon
-ise parıltılı GIF'i basar. `logo-laf.png` artık yok; `tests/brand-theme.test.ts`
-her şablonun bu üçünden birini çağırdığını ve eski rozete dönmediğini doğrular.
-Yeni bir renk tonu gerekirse yeni bir PNG üretilir, `tintColor` benzeri bir
-yol yoktur.
+Logo tek dosyadır: iki zeminde de okunan opak karo. Bantlar artık görsel
+değil, kartın üst kenarında 8 px'lik bir HTML hücresidir (açık kartta yeşil,
+koyu yeşil başlığın üstünde pirinç). `tests/email-templates.test.ts` hiçbir
+şablonun zemini gömülü bir görsel çağırmadığını ve her şablonun karoyu
+bastığını doğrular.
 
 İkon adları: bell · calendar · card · check · clock · cup · gift · mail ·
 phone · pin · qr · receipt · scooter · star · store · tag · users.
@@ -203,43 +198,46 @@ dosyanın diskte olduğunu doğrular.
 
 ## Palet
 
-Palet **sitenin** `globals.css` tokenlarıdır - uygulamanın Starbucks-ID
-paleti (`#29623F` / `#D1C59B`) değil (spesifikasyon §8, 8 Eyl 2026).
-Gerekçe: mailleri site gönderir, bağlantılar siteye iner ve
-`tests/brand-theme.test.ts` mail HTML'ini sitenin tokenlarına kilitler
-(`background:#143d2b` ve `color:#201c17` zorunlu; `#235347` ve emekli
-terrakota yasak). Site 5-7 Eyl'de Köşk + tricolore paletine geçti; bordo
-(`#84233c`) mailde **kullanılmaz**, dil yeşil + altın + krem.
+15 Eki 2026'dan beri palet **sitenin ve uygulamanın** paletidir (porselen,
+ev yeşili, pirinç, sıcak mürekkep); Köşk değerleri (`#143d2b`, `#201c17`,
+`#8a6526`, `#e8d3a4` …) emeklidir ve `tests/email-templates.test.ts` onları
+yasaklar. Bordo yeşilin üstüne yazılmaz.
 
-| Rol                                         | Token                                        | Değer                             |
-| ------------------------------------------- | -------------------------------------------- | --------------------------------- |
-| Koyu mod zemin, koyu bant, CTA dolgusu      | `--bg-espresso` / `--brand`                  | `#143d2b`                         |
-| Koyu mod organik dalga / leke               | `--hero-green` (+ `--green`)                 | `#1e5b3f` (`#1e7c4b`)             |
-| Koyu modda eyebrow, tarih, altın vurgu, CTA | `--gold-soft`                                | `#e8d3a4`                         |
-| Koyu modda CTA metni, vurgu metni           | `--bg-espresso`                              | `#143d2b`                         |
-| Koyu modda gövde                            | beyaz / `--green-mist`                       | `#ffffff` / `#cfe3d5`             |
-| Açık mod kart zemini                        | `--bg`                                       | `#ffffff`                         |
-| Açık mod dış zemin / krem plaka             | `--hero-cream` / `--bg-cream`                | `#faf6ee` / `#fbf9f4`             |
-| Krem plaka, ikon diski, teklif kutusu       | `--hero-tile` / `--hero-tile-deep`           | `#f7ebdc` / `#ebd9c4`             |
-| Açık modda başlık                           | `--bg-espresso`                              | `#143d2b`                         |
-| Metin / ikincil / sessiz                    | `--ink` / `--ink-soft` / `--ink-mute`        | `#201c17` / `#5f594e` / `#746b5d` |
-| Açık modda altın metin (eyebrow, fiyat)     | `--gold` (`--gold-deep`)                     | `#8a6526` (`#6b4e1a`)             |
-| Açık modda fosforlu vurgu                   | `--green-mist` zemin + `--bg-espresso` metin | `#cfe3d5` + `#143d2b`             |
-| Çizgiler                                    | `--ink-line` / `--ink-line-strong`           | `#ebe7de` / `#e1dcd1`             |
-| Altın hairline (teklif kutusu, kesikli)     | `--gold-soft`                                | `#e8d3a4`                         |
-| Footer zemini                               | `--bg-warm`                                  | `#f6f5f2`                         |
-| Dış zemin (kartın arkası)                   | `--bg-stone`                                 | `#f1eee8`                         |
+| Rol                                           | Açık mod                                                 | Koyu mod (sınıf)                                |
+| --------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------- |
+| Dış zemin                                     | `#f7f3ed`                                                | `#12100e` (`em-bg`)                             |
+| Kart                                          | `#ffffff`                                                | `#1c1916` (`em-card`)                           |
+| İç panel / teklif kutusu                      | `#faf6ee`                                                | `#27221d` (`em-panel`)                          |
+| Alt bilgi                                     | `#f3eee6`                                                | `#171411` (`em-foot`)                           |
+| Metin / ikincil / sessiz                      | `#211c18` / `#564d46` / `#6f655d`                        | `#f3ece3` / `#d3c9bd` / `#a99d91` (`em-t1/2/3`) |
+| Altın metin (eyebrow, bağlantı, fiyat)        | `#765923`                                                | `#e8c877` (`em-tg`)                             |
+| Yeşil metin (başlık, toplam)                  | `#17594a`                                                | `#8fd3b6` (`em-tb`)                             |
+| Çizgi                                         | `#e8e0d4` / `#e3dbcf` / `#e8c877`                        | `#3a332c` (`em-ln`)                             |
+| Düğme, üst çubuk                              | `#1d6d56` (beyaz yazı)                                   | aynı                                            |
+| Tam koyu bölüm (koyu başlık, uygulama şeridi) | `#17594a` (beyaz, krem `#d4ebe1`, pirinç `#e8c877` yazı) | aynı                                            |
+| Pirinç düğme                                  | `#e8c877` (yazı `#17594a`)                               | aynı                                            |
 
-Yazı: Montserrat yığını (`--sans`). Web fontu Gmail/Outlook'ta yüklenmez,
-Helvetica/Arial'a düşer - ağırlık ve harf aralığı ayrımı taşıyor.
-`tests/brand-theme.test.ts` bu dosyaları da okuyor: emekli palet geri
-gelirse build düşer.
+Tam koyu bölümler `#1d6d56` değil bir ton koyusu `#17594a`'dır: küçük pirinç
+yazı `#1d6d56` üstünde 3,8:1'de kalıyordu (AA altı), `#17594a` üstünde 5:1.
 
-Koyu tema: `color-scheme` meta'sı istemcinin kendi kendine ters çevirmesini
-engelliyor, `prefers-color-scheme` bloğu zeminleri markanın sıcak nötr
-eksenine (`#14110d` / `#201c17` / `#2a251e`) çeviriyor. Blok satır içi
-hexlere göre seçici kurar; yeni bir hex eklersen eşlemesini de ekle, yoksa
-koyu temada o parça olduğu gibi kalır.
+Yazı: Poppins yığını (sitenin metin sesi). Web fontu Gmail/Outlook'ta
+yüklenmez, sistem fontuna düşer.
+
+**Koyu mod - nasıl çalışır.** Her şablon AYNI `<style>` bloğunu taşır
+(`tests/email-templates.test.ts` birebir aynılığı doğrular):
+
+- Apple Mail, iOS Mail, Outlook for Mac `prefers-color-scheme`'i uygular;
+  blok sınıfları koyu değerlere çevirir.
+- Outlook.com ve Outlook uygulamaları yeniden boyadığı öğelere
+  `data-ogsc` / `data-ogsb` koyar; aynı sınıflar bu seçicilerle de eşlenir.
+- Gmail ikisini de uygulamaz, renkleri kendisi ters çevirir, görselleri
+  çevirmez. Bu yüzden zemini gömülü görsel yoktur ve logo opaktır.
+
+Sınıf, öğenin **üstünde durduğu yüzeye** göre konur: açık bir yüzeydeki
+metin ve zeminler sınıf taşır; yeşil ve pirinç yüzeylerdeki öğeler taşımaz,
+iki modda da okunur. Yeni bir öğe eklerken rengine karşılık gelen sınıfı da
+ver (`em-t1` `#211c18` için vb.); test, sınıfsız kalan bir eşlenen rengi
+yakalar.
 
 ## Değiştirdikten sonra
 
@@ -253,3 +251,10 @@ Tarayıcıda görmek için `npm run dev` sonrası
 `/dev/mail/<dosya-adi>` (düz metin için `?format=text`) - yalnız geliştirmede,
 production'da 404. Kampanya ailesi için örnek değerler `SAMPLE`'da; bir alanı
 silip bölümün nasıl düştüğünü oradan görebilirsin.
+
+**"Siparişiniz alındı" mailı yoktur** (16 Eki 2026, operatör: "sipariş maili
+ödeme tam alınmadan gitmesin"; `siparis-alindi` şablonu kaldırıldı).
+Müşterinin kargoya kadar aldığı tek sipariş maili `odeme-onaylandi`'dir:
+ödeme siparişi `paid`'e taşıyınca (`notifyOrderPaid`, `order_notice_emails`
+türü `paid`) bir kez gider; satırlar, Ara toplam, Kargo (masa siparişinde yok),
+İndirim ve toplam ile ÖBF/MSS/cayma bağlantılarını taşır.

@@ -11,6 +11,8 @@ import {
 
 import type { MobileAppConfig } from "./app-config";
 import {
+  DEFAULT_LINE_OPTIONS,
+  isCustomizableCategory,
   resolveOptionPricing,
   UnknownOptionError,
   type LineOptions,
@@ -26,6 +28,11 @@ export interface CafePriceable {
   /** L price; 0 means the item has a single size. */
   priceMinorL: number;
   isActive: boolean;
+  /**
+   * The menu category. A dessert, snack or extra takes no options (W1-08);
+   * absent means a drink, which is how a row without it was always priced.
+   */
+  categoryKey?: string;
 }
 
 export type CafeLinePrice =
@@ -90,9 +97,18 @@ export function priceCafeLine(
     baseMinor = item.priceMinor;
   }
 
+  // Enforced here as well as in the app: options sent for a category that
+  // takes none are IGNORED, not refused. The app never sends any (it draws no
+  // customise screen for these), so this only meets a hand-made request or
+  // an old basket - which then orders the plain item at its plain price
+  // instead of being charged for oat milk on a cheesecake, or stopped by a
+  // 400 the member could not fix from the basket.
+  const effective = isCustomizableCategory(item.categoryKey)
+    ? options
+    : DEFAULT_LINE_OPTIONS;
   try {
-    const priced = resolveOptionPricing(options, resolvedSize);
-    const merged = withDefaults(options);
+    const priced = resolveOptionPricing(effective, resolvedSize);
+    const merged = withDefaults(effective);
     return {
       ok: true,
       unitPriceMinor: Math.max(0, baseMinor + priced.extraMinor),
@@ -129,7 +145,10 @@ function withDefaults(
 export type OrderingRules = Pick<
   MobileAppConfig["ordering"],
   "cafeEnabled" | "deliveryEnabled" | "pickupEnabled" | "closedMessage"
->;
+> & {
+  /** Table service (15 Eki 2026). Absent reads as on, its default. */
+  tableEnabled?: boolean;
+};
 
 /** Message the app shows when a chosen fulfillment is switched off. */
 export const FULFILLMENT_UNAVAILABLE_MESSAGE =
@@ -147,16 +166,18 @@ export interface OrderingRefusal {
 }
 
 /**
- * Shape rule: cafe orders are picked up or brought by the courier; shop
- * goods ship. A basket that mixes the two cannot be fulfilled one way, so
- * the schema refuses it before this is asked.
+ * Shape rule: cafe orders are picked up, brought by the courier or served at
+ * a table; shop goods ship. A basket that mixes the two cannot be fulfilled
+ * one way, so the schema refuses it before this is asked.
  */
 function fulfillmentFitsKind(
   kind: OrderKind,
   fulfillment: OrderFulfillment,
 ): boolean {
   return kind === "cafe"
-    ? fulfillment === "pickup" || fulfillment === "delivery"
+    ? fulfillment === "pickup" ||
+        fulfillment === "delivery" ||
+        fulfillment === "table"
     : fulfillment === "shipping";
 }
 
@@ -178,6 +199,27 @@ export function orderingRefusal(
   ordering: OrderingRules,
 ): OrderingRefusal | null {
   if (kind !== "cafe") return null;
+  // A table order is placed by someone already sitting in the köşk: the
+  // courier and gel-al switches say nothing about it, so "both of them off"
+  // closes ordering for the other two only. `cafeEnabled` stays the master
+  // switch for all three.
+  if (fulfillment === "table") {
+    if (!ordering.cafeEnabled) {
+      return {
+        status: 409,
+        code: "ordering_closed",
+        message: ordering.closedMessage,
+      };
+    }
+    if (ordering.tableEnabled === false) {
+      return {
+        status: 400,
+        code: "fulfillment_unavailable",
+        message: FULFILLMENT_UNAVAILABLE_MESSAGE,
+      };
+    }
+    return null;
+  }
   const closed =
     !ordering.cafeEnabled ||
     (!ordering.deliveryEnabled && !ordering.pickupEnabled);
@@ -234,6 +276,7 @@ export function shippingModeFor(
 ): ShippingMode {
   switch (fulfillment) {
     case "pickup":
+    case "table":
       return { mode: "fixed", minor: 0 };
     case "delivery":
       return { mode: "fixed", minor: Math.max(0, settings.courierFeeMinor) };

@@ -39,8 +39,13 @@ vi.mock("@/lib/admin/store", () => ({
   updateSettings,
 }));
 
-const { saveShippingAction, saveKaraokeAction } =
-  await import("@/app/admin/ayarlar/actions");
+const {
+  saveShippingAction,
+  saveKaraokeAction,
+  saveHoursAction,
+  saveNotificationsAction,
+} = await import("@/app/admin/ayarlar/actions");
+const { requireRole } = await import("@/lib/admin/auth");
 
 function form(fields: Record<string, string>): FormData {
   const fd = new FormData();
@@ -131,20 +136,23 @@ describe("saveKaraokeAction", () => {
       karaokeHourlyMinor: 100000,
       karaokeCapacity: 10,
       karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+      // An unticked checkbox sends nothing: the switch goes off.
+      karaokePrepay: false,
     });
     expect(logAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         payload: expect.objectContaining({
           section: "karaoke",
-          before: {
+          before: expect.objectContaining({
             karaokeHourlyMinor: 90000,
             karaokeCapacity: 8,
             karaokeNotifyEmail: "",
-          },
+          }),
           after: {
             karaokeHourlyMinor: 100000,
             karaokeCapacity: 10,
             karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+            karaokePrepay: false,
           },
         }),
       }),
@@ -172,6 +180,175 @@ describe("saveKaraokeAction", () => {
     expect(state.message).toBeTruthy();
     expect(updateSettings).toHaveBeenCalledWith(
       expect.objectContaining({ karaokeNotifyEmail: "" }),
+    );
+  });
+});
+
+describe("saveHoursAction - every time within 00:00-23:59 (S6-01)", () => {
+  const DAYS = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+  ];
+  const week = (over: Record<string, string> = {}) => {
+    const fields: Record<string, string> = {};
+    for (const d of DAYS) {
+      fields[`${d}-open`] = "09:00";
+      fields[`${d}-close`] = "00:00";
+    }
+    return form({ ...fields, ...over });
+  };
+
+  it("saves well-formed hours, a midnight close written as 00:00", async () => {
+    const res = await saveHoursAction({}, week({ "monday-open": "8:30" }));
+    expect(res.error).toBeUndefined();
+    const saved = updateSettings.mock.calls.at(-1)?.[0];
+    expect(saved.weeklyHours.monday).toEqual({
+      open: "08:30",
+      close: "00:00",
+      closed: false,
+    });
+  });
+
+  it("refuses 24:00 and other out-of-range or malformed times instead of storing them", async () => {
+    for (const bad of ["24:00", "24:30", "23:60", "99:99", "", "9", "ab:cd"]) {
+      updateSettings.mockClear();
+      const res = await saveHoursAction({}, week({ "friday-close": bad }));
+      expect(res.error, bad).toMatch(/00:00 ile 23:59/);
+      expect(updateSettings, bad).not.toHaveBeenCalled();
+    }
+  });
+
+  it("lets a day marked closed keep empty time boxes", async () => {
+    updateSettings.mockClear();
+    const res = await saveHoursAction(
+      {},
+      week({ "sunday-closed": "on", "sunday-open": "", "sunday-close": "" }),
+    );
+    expect(res.error).toBeUndefined();
+    expect(updateSettings.mock.calls[0][0].weeklyHours.sunday.closed).toBe(
+      true,
+    );
+  });
+});
+
+describe("saveNotificationsAction", () => {
+  function notifications(
+    fields: Record<string, string>,
+    roles: string[] = [],
+  ): FormData {
+    const fd = form(fields);
+    for (const r of roles) fd.append("orderNotifyRoles", r);
+    return fd;
+  }
+
+  it("is the owner's: it checks the settings section first", async () => {
+    await saveNotificationsAction({}, notifications({}));
+    expect(requireRole).toHaveBeenCalledWith("settings");
+  });
+
+  it("stores the switch, the known roles and the cleaned address list", async () => {
+    const state = await saveNotificationsAction(
+      {},
+      notifications(
+        {
+          notificationEmail: "info@ornek.com",
+          orderNotifyEnabled: "on",
+          orderNotifyEmails: "Mutfak@Ornek.com, bar@ornek.com\nmutfak@ornek.com",
+        },
+        ["cashier", "owner"],
+      ),
+    );
+    expect(state.error).toBeUndefined();
+    expect(updateSettings).toHaveBeenCalledWith({
+      notificationEmail: "info@ornek.com",
+      orderNotifyEnabled: true,
+      orderNotifyRoles: ["owner", "cashier"],
+      orderNotifyEmails: "mutfak@ornek.com\nbar@ornek.com",
+    });
+    // The audit row counts the addresses rather than copying them.
+    const payload = JSON.stringify(logAudit.mock.calls.at(-1));
+    expect(payload).not.toContain("mutfak@ornek.com");
+  });
+
+  it("makes a swapped address visible in the audit row without writing it out", async () => {
+    const saved = { ...SETTINGS };
+    Object.assign(SETTINGS, {
+      notificationEmail: "ops@laffogato.net",
+      orderNotifyEmails: "kasa@laffogato.net",
+    });
+    try {
+      await saveNotificationsAction(
+        {},
+        notifications(
+          {
+            notificationEmail: "ops@laffogato.net",
+            orderNotifyEnabled: "on",
+            orderNotifyEmails: "biri@disari.example",
+          },
+          ["owner"],
+        ),
+      );
+    } finally {
+      for (const k of Object.keys(SETTINGS)) {
+        if (!(k in saved)) delete (SETTINGS as Record<string, unknown>)[k];
+      }
+      Object.assign(SETTINGS, saved);
+    }
+    const entry = logAudit.mock.calls.at(-1)?.[0] as {
+      payload: {
+        before: Record<string, unknown>;
+        after: Record<string, unknown>;
+        changed: Record<string, unknown>;
+      };
+    };
+    // Same count on both sides - the old audit row read as a no-op.
+    expect(entry.payload.before.orderNotifyEmailCount).toBe(1);
+    expect(entry.payload.after.orderNotifyEmailCount).toBe(1);
+    expect(entry.payload.before.orderNotifyEmailDomains).toEqual([
+      "laffogato.net",
+    ]);
+    expect(entry.payload.after.orderNotifyEmailDomains).toEqual([
+      "disari.example",
+    ]);
+    expect(entry.payload.changed).toEqual({
+      notificationEmail: false,
+      orderNotifyEmails: true,
+      orderNotifyEmailsAdded: 1,
+      orderNotifyEmailsRemoved: 1,
+    });
+    const text = JSON.stringify(entry);
+    expect(text).not.toContain("kasa@");
+    expect(text).not.toContain("biri@");
+    expect(text).not.toContain("ops@");
+  });
+
+  it("refuses an address it cannot mail, saving nothing", async () => {
+    const state = await saveNotificationsAction(
+      {},
+      notifications({ orderNotifyEmails: "iyi@ornek.com, kötü-adres" }),
+    );
+    expect(state.error).toContain("kötü-adres");
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it("refuses a role that does not exist", async () => {
+    const state = await saveNotificationsAction(
+      {},
+      notifications({ orderNotifyEnabled: "on" }, ["owner", "root"]),
+    );
+    expect(state.error).toBeTruthy();
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it("turns the mail off when the box is unticked", async () => {
+    await saveNotificationsAction({}, notifications({}, ["owner"]));
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ orderNotifyEnabled: false }),
     );
   });
 });

@@ -35,9 +35,15 @@ export function apiError(
   code: string,
   message: string,
   headers?: Record<string, string>,
+  /**
+   * Additive fields an error documents beyond the two every error has
+   * (e.g. `totalMinor` on 409 `total_changed`, `field` on a karaoke 400).
+   * Spread first, so they can never replace `error` or `message`.
+   */
+  extra?: Record<string, unknown>,
 ): NextResponse<ApiErrorBody> {
   return NextResponse.json(
-    { error: code, message },
+    { ...extra, error: code, message },
     { status, headers: { ...PRIVATE_CACHE_HEADERS, ...headers } },
   );
 }

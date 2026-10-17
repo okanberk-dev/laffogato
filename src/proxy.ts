@@ -4,10 +4,18 @@ import {
   ADMIN_COOKIE_NAME,
   readSessionFromCookieValue,
 } from "@/lib/admin/auth";
+import {
+  RESET_PATH,
+  RESET_TOKEN_COOKIE,
+  RESET_TOKEN_COOKIE_MAX_AGE_SECONDS,
+  RESET_TOKEN_MAX_LENGTH,
+} from "@/lib/customer/reset-link";
+import { checkoutCsp, newCspNonce } from "@/lib/security/checkout-csp";
+import { isCheckoutPath } from "@/lib/security/checkout-document";
 import { updateSession } from "@/lib/supabase/proxy";
 
 /**
- * Two jobs, in order:
+ * Three jobs, in order:
  *
  * 1. Supabase session refresh for every page request (docs/AUTH-BRIDGE.md).
  *    Rotated tokens are written back onto the response so Server Components,
@@ -17,7 +25,17 @@ import { updateSession } from "@/lib/supabase/proxy";
  *    `CRON_SECRET`, and the one-click unsubscribe with the token in its URL -
  *    none has a cookie session to refresh.
  *
- * 2. Admin route guard - unchanged. Reads the signed session cookie and
+ * 2. The checkout's own Content-Security-Policy. The card is typed on
+ *    /odeme (docs/PAYNKOLAY.md §15.5), so that one path is outside the site
+ *    policy (next.config.ts `CSP_SOURCE`) and gets a strict one here, with a
+ *    nonce minted for this request: no `'unsafe-inline'`, no third party
+ *    (src/lib/security/checkout-csp.ts). The policy goes on the REQUEST too -
+ *    Next.js reads the nonce from the request's `Content-Security-Policy`
+ *    header and stamps it on the inline scripts it renders - and on the
+ *    response, where the browser enforces it. The page is dynamic
+ *    (`force-dynamic`), so every view gets a fresh nonce.
+ *
+ * 3. Admin route guard - unchanged. Reads the signed session cookie and
  *    redirects unauthenticated visitors to /admin/giris. The cookie is
  *    verified in full by the admin layout; this only checks for its presence,
  *    which is all that is needed before the render.
@@ -27,6 +45,41 @@ export async function proxy(request: NextRequest) {
 
   if (path.startsWith("/api/")) {
     return NextResponse.next();
+  }
+
+  // The reset link carries its token in the query string; the page loads
+  // GTM, whose tags report the full URL to third parties. Move the token into
+  // a cookie scoped to this path and reload without it (lib/customer/reset-link.ts).
+  if (path === RESET_PATH && request.nextUrl.searchParams.has("token")) {
+    const token = (request.nextUrl.searchParams.get("token") ?? "").trim();
+    const url = request.nextUrl.clone();
+    url.search = "";
+    const moved = NextResponse.redirect(url, 303);
+    if (token && token.length <= RESET_TOKEN_MAX_LENGTH) {
+      moved.cookies.set({
+        name: RESET_TOKEN_COOKIE,
+        value: token,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: RESET_PATH,
+        maxAge: RESET_TOKEN_COOKIE_MAX_AGE_SECONDS,
+      });
+    }
+    return moved;
+  }
+
+  if (isCheckoutPath(path)) {
+    const csp = checkoutCsp(newCspNonce(), {
+      development: process.env.NODE_ENV !== "production",
+    });
+    // Set (not appended): a client cannot choose the nonce by sending its
+    // own header. `updateSession` forwards the request's headers - and the
+    // cookies it rotates - with every response it builds.
+    request.headers.set("content-security-policy", csp);
+    const checkout = await updateSession(request);
+    checkout.headers.set("Content-Security-Policy", csp);
+    return checkout;
   }
 
   const response = await updateSession(request);

@@ -1,0 +1,38 @@
+import { notFound } from "next/navigation";
+
+import { PageHeader } from "@/components/admin/forms";
+import { requireRole } from "@/lib/admin/auth";
+import { cafeTableIdSchema } from "@/lib/admin/cafe-table-schema";
+import { getCafeTable } from "@/lib/admin/cafe-tables";
+
+import { updateCafeTableAction } from "../../actions";
+import { CafeTableForm } from "../../table-form";
+
+export const metadata = { title: "Admin · Masayı düzenle" };
+export const dynamic = "force-dynamic";
+
+export default async function EditCafeTablePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  await requireRole("tables");
+  const { id } = await params;
+  const parsed = cafeTableIdSchema.safeParse(id);
+  const table = parsed.success ? await getCafeTable(parsed.data) : null;
+  if (!table) notFound();
+  return (
+    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+      <PageHeader
+        eyebrow="Satış · Masalar"
+        title={`${table.name} - düzenle`}
+        description="Adı ve sırayı değiştirmek QR kodunu değiştirmez; basılı kart çalışmaya devam eder."
+      />
+      <CafeTableForm
+        action={updateCafeTableAction}
+        table={{ id: table.id, name: table.name, sortOrder: table.sortOrder }}
+        submitLabel="Kaydet"
+      />
+    </main>
+  );
+}

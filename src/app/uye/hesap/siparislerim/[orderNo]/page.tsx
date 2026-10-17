@@ -191,7 +191,10 @@ export default async function OrderDetailPage({
                 rel="noopener noreferrer"
                 className="btn btn-outline btn-sm"
               >
-                Kargoyu takip et ↗
+                Kargoyu takip et
+                <span className="arrow out" aria-hidden="true">
+                  ↗
+                </span>
               </a>
             </div>
           )}

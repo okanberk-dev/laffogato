@@ -7,11 +7,12 @@ import type { PublicCustomer } from "@/lib/customer/store";
 import {
   checkLoginLimit,
   clientIp,
-  recordLoginFailure,
+  reserveLoginAttempt,
 } from "@/lib/admin/rate-limit";
 import {
   applyPaymentSucceeded,
   applyPromoCode,
+  checkPendingOrderPaid,
   customerOrdersByEmail,
   expireStalePendingOrders,
   findAppOrderByClientId,
@@ -20,28 +21,29 @@ import {
   placeAppOrder,
   previewAppOrderLines,
   PENDING_ORDER_TTL_MINUTES,
+  settleWalletPayment,
   type AdminOrder,
   type AppOrderFailure,
   type OrderLegalConsent,
   type PlaceAppOrderResult,
 } from "@/lib/admin/store";
-import { getCardUserKey } from "@/lib/customer/store";
+import { ensureCardUserKey } from "@/lib/customer/store";
 import {
   applyCustomerCoupon,
   couponAllowedForKind,
   CAFE_ONLY_COUPON_MESSAGE,
 } from "@/lib/customer/coupons";
-import { sendOrderPlacedEmail } from "@/lib/email/send";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
 import { checkoutConsentVersion } from "@/lib/legal/store";
-import { getDb, TABLES } from "@/lib/db";
 import { DbQueryError } from "@/lib/db/health";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
 
 import { orderChannel } from "@/lib/admin/order-channel";
-import { getStampedOrderIds } from "./loyalty";
+import { getOrderStamps } from "./loyalty";
+import { stampsForOrder } from "./loyalty-core";
 import { resolveOrderAddress } from "./order-address";
+import { recordPendingCheckout } from "./checkout-ref";
 import { toMobileOrder, type MobileOrder } from "./order-mapper";
 import {
   computeTotalsWithShipping,
@@ -49,6 +51,8 @@ import {
   shippingModeFor,
 } from "./order-pricing";
 import type { PlaceOrderBody, PreviewOrderBody } from "./order-schema";
+import { lookupTableLimited, tableLookupFailure } from "./tables";
+import { WALLET_MESSAGES, walletPaymentsEnabled } from "./wallet";
 
 /**
  * Order use-cases behind `/api/mobile/v1/orders*` and `/promo/preview`
@@ -62,6 +66,10 @@ export interface AppFailure {
   status: number;
   code: string;
   message: string;
+  /** Additive body fields this refusal documents (e.g. `totalMinor`). */
+  extra?: Record<string, unknown>;
+  /** Response headers the refusal carries (e.g. `Retry-After` on a 429). */
+  headers?: Record<string, string>;
 }
 
 /** How many orders `GET /orders` returns, newest first. */
@@ -76,6 +84,8 @@ const MSG = {
   empty: "Sepet boş.",
   paymentUnavailable:
     "Ödeme altyapısına şu an ulaşılamıyor. Birazdan tekrar dene.",
+  paymentUnverified:
+    "Önceki ödemenin durumunu şu an doğrulayamıyoruz. Birkaç dakika sonra tekrar dene.",
 } as const;
 
 /**
@@ -120,6 +130,19 @@ export function failureFromResult(result: AppOrderFailure): AppFailure {
       return { status: 400, code: "invalid_line", message: result.message };
     case "bad_request":
       return { status: 400, code: "invalid_body", message: result.message };
+    case "insufficient_balance":
+      return {
+        status: 409,
+        code: "insufficient_balance",
+        message: WALLET_MESSAGES.insufficient,
+      };
+    case "total_changed":
+      return {
+        status: 409,
+        code: "total_changed",
+        message: WALLET_MESSAGES.totalChanged(result.totalMinor),
+        extra: { totalMinor: result.totalMinor },
+      };
   }
 }
 
@@ -155,9 +178,10 @@ async function createAppPaymentSession(
   buyerIp: string,
 ): Promise<AppPayment> {
   const provider = getPaymentProvider();
-  // Saved cards: hand the provider the member's key so its form lists the
-  // cards they saved before. Empty on a first order, which is exactly right.
-  const cardUserKey = await getCardUserKey(customer.email);
+  // Saved cards: the member's key lets the payment page list the cards they
+  // saved at PayNkolay and save a new one (docs/PAYNKOLAY.md §16). Created on
+  // the member's first checkout.
+  const cardUserKey = await ensureCardUserKey(customer.email);
   const address = {
     city: "",
     district: "",
@@ -191,62 +215,13 @@ async function createAppPaymentSession(
   return { redirectUrl: session.redirectUrl, expiresAt: session.expiresAt };
 }
 
-/**
- * Remembers which checkout reference was opened for the order.
- *
- * The in-app browser carries no site cookie, so /odeme/donus cannot tie a
- * mock return to a signed-in member the way it does on the web. What it can
- * check is that the reference on the return URL is the one this server
- * issued - kept as a `pending` transaction whose reference is prefixed so it
- * never collides with the `succeeded` row the confirmation inserts. A real
- * POS settles by signed webhook; this row is then only an audit breadcrumb.
- */
-async function recordPendingCheckout(
-  orderId: string,
-  provider: string,
-  providerRef: string,
-): Promise<void> {
-  const { error } = await getDb()
-    .from(TABLES.paymentTransactions)
-    .insert({
-      orderId,
-      provider,
-      providerRef: pendingCheckoutRef(providerRef),
-      status: "pending",
-      amountMinor: 0,
-      currency: "TRY",
-      raw: { source: "app_checkout" },
-      createdAt: new Date().toISOString(),
-    });
-  if (error && error.code !== "23505") {
-    console.error(`[orders] pending checkout record failed: ${error.message}`);
-  }
-}
-
-export function pendingCheckoutRef(providerRef: string): string {
-  return `pending:${providerRef}`;
-}
-
-/** True when `providerRef` is the reference this server opened for the order. */
-export async function isIssuedCheckoutRef(
-  orderId: string,
-  provider: string,
-  providerRef: string,
-): Promise<boolean> {
-  if (!providerRef) return false;
-  const { data, error } = await getDb()
-    .from(TABLES.paymentTransactions)
-    .select("orderId")
-    .eq("orderId", orderId)
-    .eq("provider", provider)
-    .eq("providerRef", pendingCheckoutRef(providerRef))
-    .limit(1);
-  if (error) {
-    console.error(`[orders] checkout ref lookup failed: ${error.message}`);
-    return false;
-  }
-  return ((data as unknown[] | null) ?? []).length > 0;
-}
+// The checkout-reference helpers live in ./checkout-ref (the karaoke
+// booking uses them too, without the rest of this module).
+export {
+  isIssuedCheckoutRef,
+  pendingCheckoutRef,
+  recordPendingCheckout,
+} from "./checkout-ref";
 
 export type CreateAppOrderResult =
   | {
@@ -282,7 +257,8 @@ const TOO_MANY_PENDING = {
 } as const;
 
 /**
- * The member's stamped orders, or an empty set when the ledger cannot be read.
+ * The stamps each of the member's orders holds, or an empty map when the
+ * ledger cannot be read.
  *
  * `stampsEarned` is a caption on an order card; failing to draw it must not
  * fail the order list - and least of all the POST that has just placed an
@@ -290,24 +266,52 @@ const TOO_MANY_PENDING = {
  * second one. The authoritative balance is `/me.loyalty`, which does surface
  * a ledger outage.
  */
-async function stampedOrders(email: string): Promise<ReadonlySet<string>> {
+async function stampedOrders(
+  email: string,
+): Promise<ReadonlyMap<string, number>> {
   try {
-    return await getStampedOrderIds(email);
+    return await getOrderStamps(email);
   } catch (err) {
     console.error("[orders] reading the stamp ledger failed", err);
-    return new Set<string>();
+    return new Map<string, number>();
   }
+}
+
+/**
+ * The refusal for a member who has reopened the POS too often (§3).
+ *
+ * `rate_limited` and 429, the code and status §0 already uses for a
+ * throttle; the app's checkout and its "Şimdi öde" both show a refusal they
+ * do not know by its own sentence or a generic one, and neither retries on
+ * its own.
+ */
+function reopenLimited(retryAfterSeconds: number): AppFailure {
+  const seconds = Math.max(1, Math.ceil(retryAfterSeconds));
+  const minutes = Math.ceil(seconds / 60);
+  return {
+    status: 429,
+    code: "rate_limited",
+    message: `Ödeme sayfasını çok sık açtın. ${minutes} dakika sonra tekrar dene.`,
+    headers: { "Retry-After": String(seconds) },
+  };
 }
 
 /**
  * Answers a repeated checkout attempt with the order it already produced.
  *
  * An order still awaiting payment gets a fresh checkout session rather than
- * the first one's URL: provider sessions expire (30 minutes), and opening a
- * second one against the same order is safe - `applyPaymentSucceeded` is
- * idempotent and the order can only advance once. An order that has since
- * been paid or cancelled has nothing to pay, so `payment` is null and the app
- * shows it as it stands.
+ * the first one's URL: provider sessions expire (30 minutes). A second
+ * session is safe for the ORDER - `applyPaymentSucceeded` is idempotent and
+ * the order can only advance once - but not for the card: PayNkolay takes a
+ * second sale on the same `clientRefCode` (docs/PAYNKOLAY.md §2), so a first
+ * payment whose return was lost (a closed tab, a phone that locked on the
+ * bank's page) would be charged again. The POS is therefore asked first
+ * (`checkPendingOrderPaid`, the web checkout's gate): a payment it already
+ * holds is booked and no session is opened; a POS that cannot be asked, or
+ * money that arrived at the wrong amount, is 503 `payment_unavailable` and
+ * nothing is opened either (rule 29: not knowing is never "not paid"). An
+ * order that has since been paid or cancelled has nothing to pay, so
+ * `payment` is null and the app shows it as it stands.
  *
  * If the POS cannot be reopened the retry fails exactly as the first attempt
  * did (a throw → 500), and the next retry replays this same order again. It
@@ -316,13 +320,82 @@ async function stampedOrders(email: string): Promise<ReadonlySet<string>> {
  * emptied the basket and showed an unpaid order as placed.
  */
 async function replayAppOrder(
-  order: AdminOrder,
+  first: AdminOrder,
   customer: PublicCustomer,
 ): Promise<CreateAppOrderResult> {
+  let order = first;
   let payment: AppPayment | null = null;
+  // A wallet order still `pending_payment` was paid all the same - its spend
+  // is written with the row - and only missed being marked. It is booked
+  // here and never sent to the card, even if the booking itself fails: a
+  // checkout session would charge the member a second time.
+  let paidByWallet = false;
   if (order.status === "pending_payment" && order.totalMinor > 0) {
-    payment = await createAppPaymentSession(order, customer, "");
+    const wallet = await settleWalletPayment(order.id);
+    if (wallet) {
+      paidByWallet = true;
+      if (!wallet.ok) {
+        console.error(
+          `[orders] booking the wallet payment of ${order.id} failed`,
+          wallet.error,
+        );
+      }
+      order = (await getOrder(order.id)) ?? order;
+    }
   }
+  if (
+    !paidByWallet &&
+    order.status === "pending_payment" &&
+    order.totalMinor > 0
+  ) {
+    // Every reopen is a call to the payment provider and a pending
+    // `payment_transactions` row, and nothing else bounded it: one member
+    // with one unpaid order could loop on it and open POS sessions from this
+    // merchant account as fast as they could send requests. Counted per
+    // member before the call, atomically (`reserve_auth_attempt`), so a
+    // parallel burst cannot slip past the count either. The first session of
+    // a new order is not counted here - `too_many_pending` bounds those.
+    const gate = await reserveLoginAttempt(
+      "checkout-reopen",
+      "",
+      customer.email,
+    );
+    if (gate.blocked) {
+      return { ok: false, failure: reopenLimited(gate.retryAfterSeconds) };
+    }
+    // After the budget, so a member looping on "Şimdi öde" cannot turn it
+    // into unbounded PaymentList calls either. "unknown" includes an amount
+    // mismatch: money is at the POS, just not this order's total, and a
+    // second page would charge on top of it.
+    const verdict = await checkPendingOrderPaid(order, getPaymentProvider());
+    if (verdict === "unknown") {
+      return {
+        ok: false,
+        failure: {
+          status: 503,
+          code: "payment_unavailable",
+          message: MSG.paymentUnverified,
+        },
+      };
+    }
+    if (verdict === "paid") {
+      // Booked just now: the order as it stands, and no checkout.
+      return replayAnswer((await getOrder(order.id)) ?? order, null);
+    }
+    // The caller's own IP, as the first attempt sends it (`consent.ip`): an
+    // empty one reached PayNkolay as `cardHolderIP: 0.0.0.0`, and every
+    // reopened checkout - the retry of a lost POST, "Şimdi öde" from the
+    // order - went to the bank's fraud screen with no address at all.
+    payment = await createAppPaymentSession(order, customer, await clientIp());
+  }
+  return replayAnswer(order, payment);
+}
+
+/** A replay's answer: the order as it now stands, and its checkout if any. */
+async function replayAnswer(
+  order: AdminOrder,
+  payment: AppPayment | null,
+): Promise<CreateAppOrderResult> {
   return {
     ok: true,
     order: toMobileOrder(
@@ -363,6 +436,33 @@ export async function createAppOrder(
     (await getSettings()).mobileApp.ordering,
   );
   if (refused) return { ok: false, failure: refused };
+
+  // A table order names an ACTIVE table, resolved here and snapshotted onto
+  // the row (§3): unknown → 400 invalid_table, out of service → 409
+  // table_inactive, both before anything is written or charged.
+  let table: { code: string; name: string } | null = null;
+  if (body.fulfillment === "table") {
+    const lookup = await lookupTableLimited(
+      body.tableCode,
+      await clientIp(),
+      customer.id,
+    );
+    if (!lookup.ok) return { ok: false, failure: tableLookupFailure(lookup) };
+    table = lookup.table;
+  }
+
+  // A wallet that is switched off has no balance to spend: the same refusal
+  // a short balance gets (§18), before anything is written.
+  if (body.payWithWallet && !walletPaymentsEnabled()) {
+    return {
+      ok: false,
+      failure: {
+        status: 409,
+        code: "insufficient_balance",
+        message: WALLET_MESSAGES.disabled,
+      },
+    };
+  }
 
   // Ask for the POS before anything is persisted. `getPaymentProvider()` fails
   // closed on a missing `PAYMENT_PROVIDER`, and it used to be reached only
@@ -408,7 +508,9 @@ export async function createAppOrder(
 
   const addressRes = resolveOrderAddress(
     customer.addresses,
-    body.fulfillment === "pickup" ? null : body.address,
+    body.fulfillment === "pickup" || body.fulfillment === "table"
+      ? null
+      : body.address,
   );
   if (!addressRes.ok) {
     return {
@@ -439,6 +541,14 @@ export async function createAppOrder(
       promoCode: body.promoCode,
       legalConsent: consent,
       clientOrderId: body.clientOrderId,
+      payWithWallet: body.payWithWallet,
+      // The table, snapshotted onto the row (§3).
+      ...(table ? { tableCode: table.code, tableName: table.name } : {}),
+      // Only a wallet order is held to it (§18); a card checkout re-prices
+      // on its own "Tutar değişti" card before anything is charged.
+      expectedTotalMinor: body.payWithWallet
+        ? body.expectedTotalMinor
+        : undefined,
     });
   } catch (err) {
     // The count above is the friendly answer; the database trigger
@@ -470,29 +580,25 @@ export async function createAppOrder(
 
   let order = result.order;
 
-  // Best-effort "order received" e-mail, exactly as the web checkout sends.
-  try {
-    await sendOrderPlacedEmail({
-      to: order.customerEmail,
-      customerName: order.customerName,
-      orderNo: order.orderNo,
-      items: order.items.map((it) => ({
-        productName: it.detail
-          ? `${it.productName} (${it.detail})`
-          : it.productName,
-        qty: it.qty,
-        unitPriceMinor: it.unitPriceMinor,
-      })),
-      subtotalMinor: order.subtotalMinor,
-      shippingMinor: order.shippingMinor,
-      totalMinor: order.totalMinor,
-    });
-  } catch (err) {
-    console.error("[email] order placed notification failed", err);
-  }
+  // No mail here: the order is not paid yet. "Ödemen alındı" goes out once
+  // the payment moves it to paid - a card return, the wallet below or the
+  // zero-total settle - from `applyPaymentSucceeded` (operator, 16 Eki 2026:
+  // "sipariş maili ödeme tam alınmadan gitmesin").
 
   let payment: AppPayment | null = null;
-  if (order.totalMinor > 0) {
+  if (body.payWithWallet && order.totalMinor > 0) {
+    // Already paid: `wallet_place_order` wrote the spend with the row. This
+    // books it the way a card confirmation is booked - `paid`, the stamp,
+    // the invite, "ödemen alındı" - and the answer carries no checkout.
+    const settled = await settleWalletPayment(order.id);
+    if (!settled?.ok) {
+      console.error(
+        "[orders] booking a wallet payment failed",
+        settled ? settled.error : "no spend",
+      );
+    }
+    order = (await getOrder(order.id)) ?? order;
+  } else if (order.totalMinor > 0) {
     payment = await createAppPaymentSession(order, customer, consent.ip ?? "");
   } else {
     const settled = await applyPaymentSucceeded({
@@ -565,7 +671,13 @@ export async function getAppOrder(
 export type PayAppOrderResult =
   | { ok: true; order: MobileOrder; payment: AppPayment }
   | { ok: false; reason: "not_found" }
-  | { ok: false; reason: "not_payable"; order: MobileOrder };
+  | { ok: false; reason: "not_payable"; order: MobileOrder }
+  /**
+   * The replay refused, answered as-is (§3): too many reopened checkouts
+   * (429 `rate_limited`), or the POS could not say whether the last attempt
+   * was paid (503 `payment_unavailable`).
+   */
+  | { ok: false; reason: "refused"; failure: AppFailure };
 
 /**
  * `POST /orders/{id}/payment` - a fresh checkout for the member's own app
@@ -578,11 +690,13 @@ export type PayAppOrderResult =
  * `too_many_pending` and locked the member out of ordering at all until the
  * sweep expired them.
  *
- * This is the same replay by id: `replayAppOrder` opens a new provider
- * session against the SAME order, which is safe for the reason it is safe
- * there - `applyPaymentSucceeded` is idempotent and an order advances once.
- * Nothing is cancelled here, so rule 29 (ask the POS before cancelling) is not
- * in play.
+ * This is the same replay by id: `replayAppOrder` asks the POS about the last
+ * attempt and only then opens a new provider session against the SAME order.
+ * PayNkolay takes a second sale on the same reference, so a payment whose
+ * return was lost is booked there instead of being charged again (409
+ * `not_payable` with the paid order), and a POS that cannot be asked opens
+ * nothing (503 `payment_unavailable`): rule 29's "not knowing is never 'not
+ * paid'" holds for a second charge as it does for a cancellation.
  *
  * The read gate is `getAppOrder`'s: the owner, with a verified e-mail, and a
  * stranger's id answers exactly like a missing one. Only an APP order is
@@ -616,10 +730,16 @@ export async function payAppOrder(
     };
   }
   const replay = await replayAppOrder(order, customer);
-  if (!replay.ok || !replay.payment) {
-    // Unreachable: the replay of an order awaiting a non-zero payment either
-    // opens a session or throws. Kept so the type says what the wire says.
-    throw new Error(`payAppOrder: no checkout for ${order.id}`);
+  if (!replay.ok) {
+    // The member's reopen budget is spent, or the POS could not be asked:
+    // the replay's own refusal, passed through.
+    return { ok: false, reason: "refused", failure: replay.failure };
+  }
+  // No checkout: the wallet had already paid this order (its spend is written
+  // with the row), or the POS held a payment for it and it is booked now - so
+  // there is nothing left to pay. The order as it stands.
+  if (!replay.payment) {
+    return { ok: false, reason: "not_payable", order: replay.order };
   }
   return { ok: true, order: replay.order, payment: replay.payment };
 }
@@ -738,6 +858,7 @@ export async function previewPromoRateLimited(
 ): Promise<LimitedPromoPreview> {
   const ip = await clientIp();
   const identity = customer?.email ?? "";
+  // The cheap early refusal while the bucket is locked out.
   const limit = await checkLoginLimit("promo-preview", ip, identity);
   if (limit.blocked) {
     return { limited: true, retryAfterSeconds: limit.retryAfterSeconds };
@@ -748,8 +869,27 @@ export async function previewPromoRateLimited(
     customer,
     kind,
   );
+  // The check above is not the limit: a burst sent in parallel passes it
+  // all at once, and the old "check, look up, then record the miss" order
+  // answered every guess in the burst - fifteen per window held only for a
+  // caller who waited for each answer (WS1-03, the same race rule 30 closed
+  // for sign-in). So each miss is COUNTED before it is answered, atomically
+  // (`reserve_auth_attempt`), and a miss past the cap is answered as limited.
   if (!preview.ok && !found) {
-    await recordLoginFailure("promo-preview", ip, identity);
+    const gate = await reserveLoginAttempt("promo-preview", ip, identity);
+    if (gate.blocked) {
+      return { limited: true, retryAfterSeconds: gate.retryAfterSeconds };
+    }
+    return { limited: false, preview };
+  }
+  // A real code is still not counted - a member re-pricing the basket with
+  // their own coupon applied must not lock themselves out - but it is only
+  // answered while the bucket is open. Otherwise "limited" would come back
+  // for the misses of a burst and a plain answer for its hits, and the
+  // limiter itself would say which guesses were real.
+  const after = await checkLoginLimit("promo-preview", ip, identity);
+  if (after.blocked) {
+    return { limited: true, retryAfterSeconds: after.retryAfterSeconds };
   }
   return { limited: false, preview };
 }
@@ -775,8 +915,7 @@ export interface AppOrderPreview {
 }
 
 export type PreviewAppOrderResult =
-  | { ok: true; preview: AppOrderPreview }
-  | { ok: false; failure: AppFailure };
+  { ok: true; preview: AppOrderPreview } | { ok: false; failure: AppFailure };
 
 /**
  * `POST /orders/preview`: the basket priced exactly as checkout will price
@@ -797,6 +936,27 @@ export async function previewAppOrder(
     settings.mobileApp.ordering,
   );
   if (refused) return { ok: false, failure: refused };
+  // Same table gate as the order, so the basket learns about a dead QR
+  // before the member reaches the checkout.
+  if (body.fulfillment === "table") {
+    const lookup = await lookupTableLimited(
+      body.tableCode,
+      await clientIp(),
+      customer?.id,
+    );
+    if (!lookup.ok) return { ok: false, failure: tableLookupFailure(lookup) };
+  }
+  // The shop's own switch, which `placeAppOrder` enforces with 409
+  // `shop_closed`. The preview used to price a cargo basket regardless, so the
+  // basket and the checkout showed a total and a live Pay button over an
+  // order the till was going to refuse. Same code, status and message as the
+  // order endpoint; the app shows a 4xx preview's own message (W1-03).
+  if (body.kind === "shop" && !settings.isShopOpen) {
+    return {
+      ok: false,
+      failure: failureFromResult({ ok: false, reason: "shop_closed" }),
+    };
+  }
 
   const linesRes = await previewAppOrderLines(body.lines);
   if (!linesRes.ok) {
@@ -849,7 +1009,16 @@ export async function previewAppOrder(
       shippingMinor: totals.shippingMinor,
       totalMinor: totals.totalMinor,
       promo,
-      stampsToEarn: linesRes.kind === "cafe" ? 1 : 0,
+      // Same rule as the award (onOrderPaid): none under ₺140 of goods, then
+      // one per started ₺320, courier fee not counted - the summary promises
+      // exactly what the paid order will write.
+      stampsToEarn:
+        linesRes.kind === "cafe"
+          ? stampsForOrder({
+              totalMinor: totals.totalMinor,
+              shippingMinor: totals.shippingMinor,
+            })
+          : 0,
     },
   };
 }

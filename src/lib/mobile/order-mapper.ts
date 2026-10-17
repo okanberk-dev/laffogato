@@ -7,6 +7,7 @@ import {
   orderChannel,
   orderFulfillment,
   orderKind,
+  orderTable,
   type OrderChannel,
   type OrderFulfillment,
   type OrderKind,
@@ -71,6 +72,11 @@ export interface MobileOrder {
   paidAt: string | null;
   /** Kargo - only for `fulfillment: "shipping"`, only after hand-over. §3.1. */
   shipment: MobileShipment | null;
+  /**
+   * The table a `fulfillment: "table"` order was placed at, as it was named
+   * then (15 Eki 2026, yalnız ekleme); null on every other order.
+   */
+  table: { code: string; name: string } | null;
 }
 
 /**
@@ -196,6 +202,12 @@ function stepsFor(fulfillment: OrderFulfillment): StepSpec[] {
         { key: "on_the_way", label: "Kuryede" },
         { key: "delivered", label: "Kapında" },
       ];
+    case "table":
+      return [
+        ...head,
+        { key: "served", label: "Masana getirildi" },
+        { key: "completed", label: "Tamamlandı" },
+      ];
     default:
       return [
         ...head,
@@ -305,33 +317,48 @@ export function statusLabelFor(order: AdminOrder): string {
 }
 
 /** No ledger in hand: nothing is claimed. */
-const EMPTY_STAMPED: ReadonlySet<string> = new Set();
+const EMPTY_STAMPED: ReadonlyMap<string, number> = new Map();
 
 /**
- * The stamp this order really holds, read from the loyalty ledger.
+ * What the ledger says about the member's orders: how many stamps each one
+ * holds (`stampsByOrder`), or - the older shape - the set of orders holding
+ * one stamp (`stampedOrderIds`).
+ */
+export type OrderStampLedger =
+  | ReadonlyMap<string, number>
+  | ReadonlySet<string>;
+
+/**
+ * The stamps this order really holds, read from the loyalty ledger - the
+ * delta of its live `earn` row, so ₺700 of goods says 3 (one per started
+ * ₺320 from ₺140; operator, 15 Eki 2026).
  *
  * It used to be inferred from the status - a paid app cafe order "must have"
  * earned one. `onOrderPaid` is best-effort, though: when its insert failed
  * (or the order was later refunded and a `reversal` row written), the app
- * still printed "+1 damga" for a stamp the card never got. `stampedOrderIds`
- * is the set of orders with a live `earn` row, so this answers from what
- * happened rather than from what should have.
+ * still printed "+1 damga" for a stamp the card never got. `stampsByOrder`
+ * maps the orders with a live `earn` row to their stamps, so this answers
+ * from what happened rather than from what should have.
  *
- * An empty set is the honest default: no ledger in hand means no stamp is
+ * An empty map is the honest default: no ledger in hand means no stamp is
  * claimed. Eligibility itself stays where it is enforced - `onOrderPaid` in
  * `./loyalty.ts` writes the row for an app cafe order and nothing else.
  */
 export function stampsEarnedFor(
   order: AdminOrder,
-  stampedOrderIds: ReadonlySet<string>,
+  stamped: OrderStampLedger,
 ): number {
-  return stampedOrderIds.has(order.id) ? 1 : 0;
+  if ("get" in stamped) {
+    const n = stamped.get(order.id) ?? 0;
+    return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
+  }
+  return stamped.has(order.id) ? 1 : 0;
 }
 
 export function toMobileOrder(
   order: AdminOrder,
   now: Date = new Date(),
-  stampedOrderIds: ReadonlySet<string> = EMPTY_STAMPED,
+  stampedOrderIds: OrderStampLedger = EMPTY_STAMPED,
 ): MobileOrder {
   const etaMinutes = etaMinutesFor(order, now);
   return {
@@ -360,5 +387,6 @@ export function toMobileOrder(
     createdAt: order.createdAt,
     paidAt: order.paidAt || null,
     shipment: toMobileShipment(order),
+    table: orderTable(order),
   };
 }

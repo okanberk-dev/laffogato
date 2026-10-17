@@ -9,8 +9,10 @@ import {
   getSettings,
   type AdminOrderStatus,
 } from "@/lib/admin/store";
+import { isActiveBarista } from "@/lib/admin/staff-members";
 import { appendConsentChanges } from "@/lib/customer/consent-ledger";
 import {
+  getCardUserKey,
   getCustomerByEmail,
   updateCustomerProfile,
   updateNotificationPrefs,
@@ -21,6 +23,8 @@ import {
 } from "@/lib/customer/store";
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
+import { getPaymentProvider } from "@/lib/payment";
+import { PaynkolayPaymentProvider } from "@/lib/payment/paynkolay";
 import {
   subscribeNewsletter,
   unsubscribeNewsletterByEmail,
@@ -32,7 +36,6 @@ import {
 
 import { getInviteSummary } from "./invite";
 import { getLoyalty } from "./loyalty";
-import { istanbulClock } from "./venue";
 import { toMe, type MeResponse } from "./me-mapper";
 import { listMilestoneGrants } from "./milestones";
 import { milestoneRoadmap, perksByTier } from "./milestones-core";
@@ -49,8 +52,11 @@ function checkErr(error: DbError | null, ctx: string): void {
 
 /** The full `/me` body for an authenticated member. */
 export async function buildMe(customer: PublicCustomer): Promise<MeResponse> {
-  const [loyalty, invite, grants, settings] = await Promise.all([
-    getLoyalty(customer.email),
+  // Read once and shared with the loyalty block, which used to read the same
+  // row again (WP1: one round trip of nine, on a pool of one connection).
+  const settingsRead = getSettings();
+  const [loyalty, invite, grants, settings, till] = await Promise.all([
+    settingsRead.then((s) => getLoyalty(customer.email, s.mobileApp.loyalty)),
     getInviteSummary(customer),
     // The road map is an addition to /me, never a reason for it to fail: if
     // the milestone table cannot be read (a deploy ahead of its migration),
@@ -59,7 +65,13 @@ export async function buildMe(customer: PublicCustomer): Promise<MeResponse> {
       console.error("[me] milestone grants unavailable", err);
       return null;
     }),
-    getSettings(),
+    settingsRead,
+    // Like the road map: the till flag never fails /me. Unreadable (a deploy
+    // ahead of its migration) means no till, which is the safe answer.
+    isActiveBarista(customer.email).catch((err: unknown) => {
+      console.error("[me] staff flag unavailable", err);
+      return false;
+    }),
   ]);
   return toMe(
     customer,
@@ -67,10 +79,13 @@ export async function buildMe(customer: PublicCustomer): Promise<MeResponse> {
       ...loyalty,
       // Karar 175: the road map of milestone gifts, and each tier's perks -
       // only those the server applies.
-      ...(grants ? { milestones: milestoneRoadmap(loyalty.lifetimeStamps, grants) } : {}),
+      ...(grants
+        ? { milestones: milestoneRoadmap(loyalty.lifetimeStamps, grants) }
+        : {}),
       perksByTier: perksByTier(settings.mobileApp.karaoke.oroDiscountPct),
     },
     invite,
+    { till },
   );
 }
 
@@ -230,6 +245,8 @@ export const ANON_SWEEPS: ReadonlyArray<{
   caseInsensitive?: boolean;
   op?: "update" | "delete";
   patch: (anon: string) => Record<string, unknown>;
+  /** Extra equality filters, e.g. a member's rows only. */
+  only?: Record<string, string | boolean>;
 }> = [
   {
     table: TABLES.orders,
@@ -250,7 +267,19 @@ export const ANON_SWEEPS: ReadonlyArray<{
   {
     table: TABLES.karaokeReservations,
     column: "customerEmail",
-    patch: (anon) => ({ customerEmail: anon, customerName: "" }),
+    // A guest booking with the same address is not this account's: an
+    // account can be opened with any address and closed unverified.
+    only: { guest: false },
+    // The contact the web form collected goes too (krk-legal additions[52]):
+    // the booking stays for the books, the person does not. The consent
+    // record (`legalConsent`: time, IP, revision) is kept - MSY m.20 asks for
+    // it for three years.
+    patch: (anon) => ({
+      customerEmail: anon,
+      customerName: "",
+      contactEmail: "",
+      contactPhone: "",
+    }),
   },
   {
     table: TABLES.invites,
@@ -322,7 +351,10 @@ export const ANON_SWEEPS: ReadonlyArray<{
     table: TABLES.featureConsents,
     column: "customerEmail",
     caseInsensitive: true,
-    patch: (anon) => ({ customerEmail: anon, revokedAt: new Date().toISOString() }),
+    patch: (anon) => ({
+      customerEmail: anon,
+      revokedAt: new Date().toISOString(),
+    }),
   },
   {
     // fA'L's usage record: the next owner of the address must not inherit
@@ -332,25 +364,59 @@ export const ANON_SWEEPS: ReadonlyArray<{
     caseInsensitive: true,
     patch: (anon) => ({ customerEmail: anon }),
   },
+  {
+    // The barista grant is keyed on the address. Left alone, whoever next
+    // registered it would open the app with the till already in hand - a
+    // permission the panel gave somebody else. The row goes; the audit log
+    // keeps who granted and who revoked.
+    table: TABLES.staffMembers,
+    column: "email",
+    caseInsensitive: true,
+    op: "delete",
+    patch: () => ({}),
+  },
 ];
 
 /**
  * A booking the member will not come to. Anonymising it alone left the room
  * held on the karaoke board for a nameless, uncontactable guest, so the future
  * ones are cancelled first - while the rows still carry the real address.
+ *
+ * A booking paid online is refunded in full on the way (hesap-silme; the
+ * business keeps no money for an evening nobody will have), each POS call
+ * bounded; what the POS does not settle on the spot is still cancelled and
+ * put in front of a person (`cancelKaraokeForClosedAccount`). Never fatal:
+ * the account closes either way.
  */
 async function cancelFutureKaraoke(email: string, now: Date): Promise<void> {
-  // Today at the venue. `toISOString()` is UTC, so from 00:00 to 03:00 in
-  // Tuzla this also cancelled yesterday's bookings - nights already sung.
-  const today = istanbulClock(now).date;
-  const { error } = await getDb()
-    .from(TABLES.karaokeReservations)
-    .update({ status: "cancelled", updatedAt: now.toISOString() })
-    .eq("customerEmail", email.trim().toLowerCase())
-    .gte("date", today)
-    .neq("status", "cancelled");
-  if (error)
-    console.error(`[deleteMe] karaoke cancel failed: ${error.message}`);
+  try {
+    const { cancelKaraokeForClosedAccount } = await import("./karaoke-payment");
+    await cancelKaraokeForClosedAccount(email.trim().toLowerCase(), now);
+  } catch (err) {
+    console.error(
+      "[deleteMe] karaoke cancel failed",
+      err instanceof Error ? err.message : "unknown error",
+    );
+  }
+}
+
+/**
+ * The member's own karaoke booking ids, read BEFORE the anonymiser rewrites
+ * the address: their payment payloads are redacted with the orders'
+ * (`redactPaymentPayloads`). Guest bookings that carry the same address are
+ * not the account's and are not touched.
+ */
+async function karaokeIdsOf(email: string): Promise<string[]> {
+  try {
+    const { listMine } = await import("./karaoke");
+    return (await listMine(email)).map((r) => r.id);
+  } catch (err) {
+    console.error(
+      "[deleteMe] karaoke ids not read",
+      err instanceof Error ? err.message : "unknown error",
+    );
+    return [];
+  }
 }
 
 /** `%` and `_` are LIKE wildcards; an address may legitimately contain both. */
@@ -409,6 +475,44 @@ async function redactPaymentPayloads(
 }
 
 /** The Supabase user this row is linked to, or "" when it never was. */
+/**
+ * Asks PayNkolay to delete the cards it stores for this member (docs/
+ * PAYNKOLAY.md §16) before the key that points at them is cleared below.
+ *
+ * Best effort: a POS that cannot be reached must not keep a member from
+ * closing their account. The key is logged on failure so the cards can be
+ * removed by hand - it is a random 11-character value, not personal data.
+ */
+/** Hesap kapanırken POS'taki kart silmenin üst süresi (ms). */
+const SAVED_CARD_DELETE_DEADLINE_MS = 6_000;
+
+async function deleteSavedCardsAtPos(email: string): Promise<void> {
+  let key = "";
+  try {
+    key = await getCardUserKey(email);
+    if (!key) return;
+    const provider = getPaymentProvider();
+    if (!(provider instanceof PaynkolayPaymentProvider)) return;
+    // Hesap kapatma bu uca bağlı kalmaz: POS yavaşsa kartlar silinmemiş
+    // olarak loglanır ve anonimleştirme yine yapılır (uç `maxDuration = 15`).
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      provider.deleteAllSavedCards(key),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("POS card deletion timed out")),
+          SAVED_CARD_DELETE_DEADLINE_MS,
+        );
+      }),
+    ]).finally(() => clearTimeout(timer));
+  } catch (err) {
+    console.error(
+      `[deleteMe] saved cards not deleted at the POS key=${key || "?"}:`,
+      err instanceof Error ? err.message : "unknown error",
+    );
+  }
+}
+
 async function linkedIdentityId(email: string): Promise<string> {
   const { data, error } = await getDb()
     .from(TABLES.customers)
@@ -475,6 +579,8 @@ export async function deleteMe(
 
   const identityId = await linkedIdentityId(customer.email);
   await cancelFutureKaraoke(customer.email, at);
+  const karaokeIds = await karaokeIdsOf(customer.email);
+  await deleteSavedCardsAtPos(customer.email);
   const { error } = await getDb()
     .from(TABLES.customers)
     .update({
@@ -540,10 +646,13 @@ export async function deleteMe(
   const db = getDb();
   const sweeps: Array<PromiseLike<{ error: DbError | null }>> = ANON_SWEEPS.map(
     (sweep) => {
-      const q =
+      let q =
         sweep.op === "delete"
           ? db.from(sweep.table).delete()
           : db.from(sweep.table).update(sweep.patch(anon));
+      for (const [col, value] of Object.entries(sweep.only ?? {})) {
+        q = q.eq(col, value);
+      }
       // `ilike`, not `eq`, where the column is written with whatever case the
       // caller captured - `customerOrdersByEmail` reads orders that way too,
       // and an `eq` sweep would leave `Ayse@…` behind for `ayse@…` to inherit.
@@ -560,10 +669,7 @@ export async function deleteMe(
   }
 
   await purgeAuthAttempts(customer.email);
-  await redactPaymentPayloads(
-    orders.map((o) => o.id),
-    now,
-  );
+  await redactPaymentPayloads([...orders.map((o) => o.id), ...karaokeIds], now);
 
   const identity = await deleteSupabaseIdentity(identityId);
   if (identity === "skipped") logIdentitySkip(identityId);

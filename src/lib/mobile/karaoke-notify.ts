@@ -19,7 +19,7 @@ import type { KaraokeReservation } from "./karaoke-core";
  *
  * It is NOT the member's confirmation mail. `sendKaraokeConfirmationEmail`
  * and the `karaoke-rezervasyon` template are that, and their words are
- * "Saatiniz ayrıldı" - true only once staff have confirmed. Sending it here
+ * "Saatin ayrıldı" - true only once staff have confirmed. Sending it here
  * would promise on their behalf.
  *
  * ## Why the failure is swallowed

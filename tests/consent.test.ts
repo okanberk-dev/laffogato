@@ -86,10 +86,22 @@ describe("consent bootstrap script", () => {
   });
 
   it("is inlined in the document head ahead of the GTM container", () => {
+    // The root layout renders both through site-tags.tsx, which leaves them
+    // out of the checkout document (16 Eki 2026, docs/PAYNKOLAY.md §15.5):
+    // the bootstrap in <head> first, the container after it.
     const layout = readFileSync("src/app/layout.tsx", "utf8");
-    const bootstrap = layout.indexOf("CONSENT_BOOTSTRAP");
-    const gtm = layout.indexOf("<GoogleTagManager");
-    expect(bootstrap).toBeGreaterThan(-1);
+    const head = layout.indexOf("<head>");
+    const bootstrap = layout.indexOf("<ConsentScripts");
+    const gtm = layout.indexOf("<TagManager");
+    expect(head).toBeGreaterThan(-1);
+    expect(bootstrap).toBeGreaterThan(head);
+    expect(bootstrap).toBeLessThan(layout.indexOf("</head>"));
     expect(gtm).toBeGreaterThan(bootstrap);
+    const tags = readFileSync("src/components/laffogato/site-tags.tsx", "utf8");
+    const inScripts = tags.slice(
+      tags.indexOf("export function ConsentScripts"),
+    );
+    expect(inScripts.indexOf("CONSENT_BOOTSTRAP")).toBeGreaterThan(-1);
+    expect(tags).toContain("<GoogleTagManager");
   });
 });

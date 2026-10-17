@@ -68,6 +68,32 @@ describe("POST /orders - what happens before anything is persisted", () => {
   });
 });
 
+describe("a reopened checkout carries the buyer's IP", () => {
+  it("passes the caller's IP to the POS, not an empty string", () => {
+    const from = orders.indexOf("async function replayAppOrder");
+    const to = orders.indexOf("export async function createAppOrder");
+    expect(from).toBeGreaterThan(-1);
+    const replay = orders.slice(from, to);
+    expect(replay).toContain("createAppPaymentSession(order, customer, await clientIp())");
+    expect(replay).not.toContain('createAppPaymentSession(order, customer, "")');
+  });
+
+  it("asks the POS after the reopen budget and before the new session", () => {
+    // PayNkolay takes a second sale on the same reference: a reopen that does
+    // not ask first charges a payment whose return was lost a second time.
+    // After the budget, or every request is an unbudgeted PaymentList call.
+    const from = orders.indexOf("async function replayAppOrder");
+    const to = orders.indexOf("export async function createAppOrder");
+    const replay = orders.slice(from, to);
+    const budget = replay.indexOf('reserveLoginAttempt(\n      "checkout-reopen"');
+    const ask = replay.indexOf("checkPendingOrderPaid(order, getPaymentProvider())");
+    const session = replay.indexOf("createAppPaymentSession(order, customer");
+    expect(budget).toBeGreaterThan(-1);
+    expect(ask).toBeGreaterThan(budget);
+    expect(session).toBeGreaterThan(ask);
+  });
+});
+
 describe("idempotency key storage", () => {
   it("is unique per member and exempts the empty default", () => {
     expect(migrations).toContain(
@@ -101,7 +127,13 @@ describe("a payment that cannot be applied to its order", () => {
   });
 
   it("does not mail 'ödemen alındı' for an order that is cancelled", () => {
-    expect(body).toContain("if (isFirstConfirmation && !unreconciled) {");
+    // Only a confirmation that moved the order to paid mails, once
+    // (order_notice_emails claim); a cancelled, repeated or second charge
+    // never advances it.
+    expect(body).toMatch(
+      /if \(advanced\) \{\s+await notifyOrderPaid\(\{ \.\.\.order, status: "paid", paidAt \}\);/,
+    );
+    expect(body).not.toContain("sendOrderPaidEmail(");
   });
 
   it("writes the unapplied payment to the audit log, not only to stderr", () => {

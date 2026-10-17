@@ -5,9 +5,9 @@ Konum: Postane Mah. Atatürk Cad. No: 28, Tuzla / İstanbul
 İşleten: NEXTGEN YAZILIM EĞİTİM İNŞAAT SANAYİ VE TİCARET LİMİTED ŞİRKETİ
 
 /* SİTE */
-Son güncelleme: 2026/09/26
+Son güncelleme: 2026/10/11
 Dil: Türkçe
 Teknoloji: Next.js, React, TypeScript, Tailwind CSS, PostgreSQL
 Barındırma: Vercel
-Yazı tipleri: Poppins, Inter
+Yazı tipi: Poppins
 Uygulama: L'Affogato (iOS / Android) - site ile tek hesap

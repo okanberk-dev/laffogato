@@ -8,7 +8,8 @@
 > reposu mobil uygulamanın reposu ve tasarımı apple'a uygun, sen de site
 > tasarımını buna uygun olarak güncelle"_. Bu, lafmobil karar 31'i (c)
 > seçeneğiyle kapattı: site uygulamanın **bütün** paletini, iki yazı sesini
-> ve cam malzeme dilini alır. Değerler o gün `lafmobil/src/theme/tokens.ts`
+> ve cam malzeme dilini aldı. Yazıda tek bir ayrışma var: 14 Eki 2026'dan
+> beri site başlıkları Gabarito'yla, gerisini Poppins'le yazar (§2). Değerler o gün `lafmobil/src/theme/tokens.ts`
 > (`porcelain`, DESIGN-GLASS §13) dosyasından okundu. Uygulama değişirse site
 > aynı PR serisinde izler; değer tablosu lafmobil `docs/SITE-PALETTE-SYNC.md`.
 >
@@ -173,36 +174,78 @@ başlığı etiketinin (`.page-hero-kicker`) önünde kısa hâli durur.
 
 ## 2. Tipografi
 
-**İki ses, uygulamanınki** (lafmobil BRAND-IDENTITY §2):
+**İki ses: başlıkta Gabarito, metinde ve kontrolde Poppins** (operatör,
+14 Eki 2026: _"sitede yapay zeka gibi duruyor, yazı tipleri poppins ve
+biennale vs kullan"_).
 
-- **Poppins** (500/600/700) - _gösterim sesi_: başlık, ürün adı, fiyat,
-  düğme, çip. `--display`.
-- **Inter** (değişken) - _okuma sesi_: gövde, açıklama, etiket, form.
-  `--sans`.
+- **Gabarito** (`--headline`) sayfa, bölüm ve kart başlıklarını
+  (`.h-display`, `.h1`-`.h3`, `*-title`) ve gösterim rakamlarını (`.stat-n`,
+  ürün sayfasının fiyatı, ödenecek tutar) yazar. Operatörün adını verdiği
+  **Biennale**'nin (Latinotype) yerine durur: Biennale ücretlidir (web
+  lisansı; tek kesit 29 $'dan, aile Fontspring'de 99,50 $'dan) ve lisansı
+  yok. Gabarito (SIL OFL, Google Fonts) onun en yakın serbest akrabası:
+  geometrik, geniş x-yüksekliği, başlık ve marka için çizilmiş, Türkçe
+  işaretleri temiz. Adaylar sitenin başlıklarıyla çizilip karşılaştırıldı
+  (Urbanist, Outfit, Red Hat Display, Syne, Jost, Kumbh Sans, Sora): Syne'nin
+  Türkçe aksanları bozuk, Sora ve Urbanist Poppins'e fazla yakın. Lisans
+  alınırsa Biennale `layout.tsx`'teki tek yükleyicide ve `--headline`
+  yığınında Gabarito'nun yerine geçer, başka hiçbir yer değişmez.
+- **Poppins** (`--display`; operatör, 11 Eki 2026: _"sitede poppins fontu
+  olsun"_) gövde, açıklama, etiket, düğme, çip, form ve hukuk metnini,
+  ürün adlarını ve liste fiyatlarını yazar. Poppins içinde hiyerarşiyi
+  **ağırlık** taşır:
 
-İkisi de `next/font/google` ile self-host edilir (`--font-display`,
-`--font-text`), Türkçe için `latin-ext` ile. Tarihsel token'lar (`--serif`,
-`--serif-modern`, `--serif-display`, `--script`) `--display`'e, `--mono`
-`--sans`'a çözülür.
+| Ağırlık       | Rol                                                                                                         |
+| ------------- | ----------------------------------------------------------------------------------------------------------- |
+| 300 Light     | Büyük manifesto metni (anasayfa `.home-intro`) - tek yer                                                    |
+| 400 Regular   | Gövde, `.lede`, açıklama, form metni                                                                        |
+| 500 Medium    | Menü bağlantıları, ikincil etiket, küçük resim adı                                                          |
+| 600 SemiBold  | `.h3`, düğme, `.eyebrow`, `.label`, çip                                                                     |
+| 700 Bold      | `.h1`, `.h2`, kart başlığı, fiyat                                                                           |
+| 800 ExtraBold | Gösterim anları: hero başlığı, `.h-display`, büyük rakamlar, manifesto ilk cümlesi, kampanya panosu başlığı |
 
-| Sınıf          | Aile    | Ağırlık | Not                              |
-| -------------- | ------- | ------- | -------------------------------- |
-| `.h-display`   | Poppins | 700     | Negatif harf aralığı (-0.035em)  |
-| `.h1`, `.h2`   | Poppins | 700     |                                  |
-| `.h3`          | Poppins | 600     |                                  |
-| `.lede`, gövde | Inter   | 400     | 16px / 1.55                      |
-| `.eyebrow`     | Inter   | 600     | **Cümle düzeni**, yeşil, 13.5px  |
-| `.label`       | Inter   | 600     | Form alanı başlığı, cümle düzeni |
+Poppins'in altı kesimi (`--font-display`) ve Gabarito'nun üç kesimi
+(600 · 700 · 800, `--font-headline`) `next/font/google` ile self-host edilir,
+Türkçe için `latin-ext` ile. Tarihsel token'ların hepsi (`--sans`,
+`--serif`, `--serif-modern`, `--serif-display`, `--script`, `--mono`)
+`--display`'e çözülür; `--headline`'ın son yedeği de `--display`'dir, eksik
+bir kesim sistem yazısına değil Poppins'e düşer. `tests/brand-theme.test.ts`
+iki sesi ve hangi sınıfın hangisini okuduğunu kilitler, Inter'in bir yazı
+yığınına geri girmesini engeller.
+
+| Sınıf           | Ağırlık | Not                                              |
+| --------------- | ------- | ------------------------------------------------ |
+| `.h-display`    | 800     | Gabarito; negatif harf aralığı (-0.035em)        |
+| `.hero-x-title` | 800     | Gabarito; -0.04em, satır aralığı 0.98            |
+| `.h1`, `.h2`    | 700     | Gabarito                                         |
+| `.h3`           | 600     | Gabarito                                         |
+| `.lede`, gövde  | 400     | 16px / 1.6 - Poppins geniş, biraz daha ara ister |
+| `.eyebrow`      | 600     | **Cümle düzeni**, yeşil, 13.5px                  |
+| `.label`        | 600     | Form alanı başlığı, cümle düzeni                 |
+
+**Uygulamadan ayrışma.** lafmobil iki sesle yazar ama başka bir çiftle
+(Poppins gösterir, Inter okutur - BRAND-IDENTITY §2). Site 11 Eki 2026'da
+tek sese, 14 Eki 2026'da Gabarito + Poppins çiftine operatör kararıyla geçti;
+uygulamanın da izlemesi ayrı bir karar ve lafmobil'de ayrı bir iştir. Palet
+ayrışmadı.
 
 **Büyük harfli, geniş aralıklı etiket dili emekli.** Uygulama etiketleri
 cümle düzeninde yazar; site de öyle. `.eyebrow.caps` yalnız kart baskısında kalır
 (üyelik, seviye, damga kartı) - uygulamanın `eyebrow` rolü.
 
-`.script` bir yazı tipi değil, **başlıktaki vurgu kelimesi**: Poppins,
+`.script` bir yazı tipi değil, **başlıktaki vurgu kelimesi**: başlığın kendi
+sesi (Gabarito),
 `--accent` rengi, koyu zeminde `--accent-on-dark`.
 
-Rakamlar: Inter'de `tabular-nums`. Poppins'in tabular rakamı yok (uygulamada
-da öyle); fiyat sütunları Inter'le hizalanır.
+Rakamlar: Poppins'in (Google kesimi) `tnum` özelliği yok, rakamları
+orantılı. Sitede yerinde sayan bir sayı yok; fiyatlar kutularına göre
+hizalanır. `.tabular` yalnız yazı yüklenirken yedek yazıyı sabitler.
+
+**Ok ve simgeler:** Poppins'te ok (→ ↗) ve simge glifi yok. Etiketin
+ardındaki ok `.arrow` (dış bağlantı için `.arrow.out`) ile **çizilir**: kapı
+oklarıyla aynı çizgi, `currentColor` ile maske - her düğme renginde etiketin
+rengini alır. Markupta `→` kalır (CSS'siz okuyan için), boyanmaz. Diğer
+simgeler (★ ✓) sistem yazısına düşer.
 
 **Başlıkta nokta yok.** `h1`–`h3` ve başlıktaki vurgu kelimesi (`.script`)
 noktayla bitmez: "Kahve hazır, sayfa değil", "Postane, Tuzla" (operatör, 26 Eyl
@@ -274,14 +317,16 @@ radyal yeşil, krem L'Af, pirinç çekirdek. Üstte uygulama kartı ve bülten.
 
 ### 4.1 Sayfa mobilyası
 
-| Parça                          | Nerede                   | Ne yapar                                                     |
-| ------------------------------ | ------------------------ | ------------------------------------------------------------ |
-| `<PageHero>` (`page-hero.tsx`) | Anasayfa dışı her sayfa  | Porselen panel, köşede sayfanın sahne ışığı, L'Af filigranı. |
-| `.section-title`               | Sayfa içi blok başlığı   | Altında tricolore çizgisi olan h2.                           |
-| `.band-cream`                  | Uzun sayfalarda ritim    | Bölümü açık şeride alır.                                     |
-| `.seo-block`                   | Sayfa sonu SSS           | Gruplu liste SSS + rehber çipleri.                           |
-| `.auth-page` / `.auth-card`    | `/uye/*` giriş sayfaları | Porselen üzerinde tek cam kart, başında L'Af.                |
-| `.nf-*`                        | 404 ve hata sınırı       | Harflerin içinden kahve yükselen L'Af (uygulamanın açılışı). |
+| Parça                          | Nerede                   | Ne yapar                                                                      |
+| ------------------------------ | ------------------------ | ----------------------------------------------------------------------------- |
+| `<PageHero>` (`page-hero.tsx`) | Anasayfa dışı her sayfa  | Porselen panel, köşede sayfanın sahne ışığı, L'Af filigranı.                  |
+| `.section-title`               | Sayfa içi blok başlığı   | Altında tricolore çizgisi olan h2.                                            |
+| `.band-cream`                  | Uzun sayfalarda ritim    | Bölümü açık şeride alır.                                                      |
+| `.seo-block`                   | Sayfa sonu SSS           | Gruplu liste SSS + rehber çipleri.                                            |
+| `.auth-page` / `.auth-card`    | `/uye/*` giriş sayfaları | Porselen üzerinde tek cam kart, başında L'Af.                                 |
+| `.nf-*`                        | 404 ve hata sınırı       | Harflerin içinden kahve yükselen L'Af (uygulamanın açılışı).                  |
+| `.home-intro`                  | Anasayfa, hero'nun altı  | Panelin "Hero üst etiket" + "Hero açıklama" metni: ilk cümle 800, devamı 300. |
+| `.hero-x-status`               | Anasayfa hero'su         | Canlı "Şu an açık · Kapanış 02:00"; /ziyaret'in saat satırıyla aynı kaynak.   |
 
 `<PageHero scene="…">` her sayfaya kendi ışığını verir: menü latte, mağaza
 karamel, kampanyalar narenciye, karaoke böğürtlen, hikaye kadife, ziyaret ev
@@ -338,9 +383,13 @@ Kullanım: hero slayt yarısı `object-fit: cover`, hikaye mozaiği
 - Basma: `scale(var(--press-scale))` = 0.97, 120 ms.
 - 404'te kahve harflerin içinden bir kez yükselir, buhar bir kez çıkar; her
   hareket beş saniyede biter (WCAG 2.2.2).
-- Hero slaytı 7 sn'de döner; bir kontrole dokunulduğunda **kalıcı olarak**
-  durur, imleç/odak üzerindeyken ve sekme arka plandayken duraklar,
-  `prefers-reduced-motion` altında hiç başlamaz.
+- Hero slaytı 7 sn'de döner; saati seçili küçük resmin altındaki ilerleme
+  çizgisidir (animasyonu bitince slayt değişir, duraklatınca tam yerinde
+  durur). Bir kontrole dokunulduğunda ya da sahne kaydırıldığında **kalıcı
+  olarak** durur, imleç/odak üzerindeyken ve sekme arka plandayken duraklar,
+  `prefers-reduced-motion` altında hiç başlamaz. Noktalar kaldırıldı: küçük
+  resimler kontroldür.
+- Hero'daki canlı "açık" noktası iki halka atar ve durur (4 sn, WCAG 2.2.2).
 - `.reveal` yalnızca client'ta, yalnız ekranın altındaki öğelere uygulanır;
   JS yoksa hiçbir şey gizlenmez.
 - `prefers-reduced-motion: reduce` altında tüm animasyon ve geçişler durur.
@@ -368,19 +417,21 @@ Kullanım: hero slayt yarısı `object-fit: cover`, hikaye mozaiği
 
 ## 9. Geçmiş
 
-| Tarih       | Karar                                                                                                                                                             |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2 Eyl 2026  | Site paleti uygulamanınkine eşitlendi.                                                                                                                            |
-| 5 Eyl 2026  | Köşk yeniden tasarımı: beyaz zemin, ev yeşili `#143d2b`.                                                                                                          |
-| 6 Eyl 2026  | Referans tasarım: Montserrat, 8px dikdörtgen düğme.                                                                                                               |
-| 7 Eyl 2026  | Tricolore: vurgu bordo `#84233c` / `#4a0f1e` / `#f6e9ec`.                                                                                                         |
-| 23 Eyl 2026 | Uygulama kendi paletine geçti (karar 149); site almadı.                                                                                                           |
-| 25 Eyl 2026 | **Site uygulamayı izler** (karar 31, seçenek c): porselen `#f7f3ed`, yeşil `#1d6d56`, bordo `#9d2543`, pirinç `#e8c877`, Poppins + Inter, cam, kapsül. Logo L'Af. |
+| Tarih       | Karar                                                                                                                                                                                                                                  |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2 Eyl 2026  | Site paleti uygulamanınkine eşitlendi.                                                                                                                                                                                                 |
+| 5 Eyl 2026  | Köşk yeniden tasarımı: beyaz zemin, ev yeşili `#143d2b`.                                                                                                                                                                               |
+| 6 Eyl 2026  | Referans tasarım: Montserrat, 8px dikdörtgen düğme.                                                                                                                                                                                    |
+| 7 Eyl 2026  | Tricolore: vurgu bordo `#84233c` / `#4a0f1e` / `#f6e9ec`.                                                                                                                                                                              |
+| 23 Eyl 2026 | Uygulama kendi paletine geçti (karar 149); site almadı.                                                                                                                                                                                |
+| 25 Eyl 2026 | **Site uygulamayı izler** (karar 31, seçenek c): porselen `#f7f3ed`, yeşil `#1d6d56`, bordo `#9d2543`, pirinç `#e8c877`, Poppins + Inter, cam, kapsül. Logo L'Af.                                                                      |
+| 11 Eki 2026 | **Tek ses Poppins** (operatör): Inter kalktı, gövde de Poppins; 300-800 altı kesim, gösterim anlarında 800. Anasayfa: slayt başına kendi metni, manifesto bandı, canlı açık/kapalı, çizilen oklar. Dök oyunu Cormorant yerine Poppins. |
+| 14 Eki 2026 | **Başlıklar Gabarito** (operatör: "sitede yapay zeka gibi duruyor, yazı tipleri poppins ve biennale vs kullan"): Biennale lisanssız olduğu için en yakın serbest akrabası Gabarito başlıkları ve gösterim rakamlarını yazar (`--headline`); gövde, kontrol, ürün adı ve liste fiyatı Poppins'te kalır. |
 
 Bağlantı önizlemesi (`opengraph-image.tsx`), JSON-LD ikonları
 (`scripts/gen-icons.mjs` → `public/icon-*.png`) ve PayNkolay köprüsü de
-uygulama paletine taşındı. Köşk yeşilinde kalan tek yüzey e-posta
-şablonlarıdır: `#143d2b` bant görsellerine, logo glint GIF'ine (Outlook'un
-gösterdiği ilk kare) ve rozetlere gömülü olduğundan HTML ancak görsellerle
-birlikte taşınabilir. `tests/brand-theme.test.ts` o yüzeyi şimdilik
-`#143d2b` üzerinde tutar.
+uygulama paletine taşındı. E-posta şablonları da 15 Eki 2026'da taşındı:
+zemini gömülü bant görselleri HTML çubuğa, logo çifti ile glint GIF'i tek
+opak karoya döndü, böylece HTML rengi değişebildi; şablonlar artık açık ve
+koyu modda okunur (`src/lib/email/templates/README.md` "Palet").
+`tests/brand-theme.test.ts` mail HTML'ini bu palete kilitler.

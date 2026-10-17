@@ -58,7 +58,7 @@ export function CampaignsPage({
               <PromoBanner
                 eyebrow="Ödül programı"
                 title={`${stampTarget} damgada 1 ${rewardTitle.toLocaleLowerCase("tr-TR")}`}
-                body="Uygulamadan verdiğin her kafe siparişi bir damga kazandırır. Kart dolduğunda ödülün kuponlarına düşer."
+                body="Uygulamadan verdiğin 140 TL ve üzeri kafe siparişi damga kazandırır: 320 TL'ye kadar bir, 640 TL'ye kadar iki damga. Kart dolduğunda ödülün kuponlarına düşer."
                 href="/uye/hesap"
                 cta="Kartımı gör"
               />
@@ -179,8 +179,10 @@ function CardGrid({ title, posts }: { title: string; posts: CampaignPost[] }) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {p.linkLabel || "Ayrıntılar"}
-                    <span aria-hidden="true"> ↗</span>
+                    {p.linkLabel || "Ayrıntılar"}{" "}
+                    <span className="arrow out" aria-hidden="true">
+                      ↗
+                    </span>
                   </a>
                 ) : null}
               </div>

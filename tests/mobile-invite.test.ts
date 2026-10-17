@@ -138,8 +138,55 @@ describe("claimInvite - which orders close the window", () => {
   });
 });
 
+describe("rewardInviteOnFirstPaidOrder - the minimum counts goods only (W1-05)", () => {
+  const flips = () =>
+    queries.filter((q) => q.table === "invites" && q.op === "update").length;
+
+  it("does not let the courier fee lift a basket over ₺150", async () => {
+    answer = () => ({ data: [] });
+    // ₺100 of coffee + ₺55 courier = ₺155 paid, but only ₺100 of goods.
+    await expect(
+      rewardInviteOnFirstPaidOrder("selin@example.com", {
+        kind: "cafe",
+        totalMinor: 15500,
+        shippingMinor: 5500,
+        discountMinor: 0,
+      }),
+    ).resolves.toBe(false);
+    expect(flips()).toBe(0);
+  });
+
+  it("settles on ₺150 of goods, courier on top or not", async () => {
+    answer = () => ({ data: [] });
+    await rewardInviteOnFirstPaidOrder("selin@example.com", {
+      kind: "cafe",
+      totalMinor: 20500,
+      shippingMinor: 5500,
+      discountMinor: 0,
+    });
+    // Reached the guarded flip (nothing pending here, so it returns false).
+    expect(flips()).toBe(1);
+  });
+
+  it("never counts a shop parcel, whatever its size", async () => {
+    await expect(
+      rewardInviteOnFirstPaidOrder("selin@example.com", {
+        kind: "shop",
+        totalMinor: 90000,
+        shippingMinor: 0,
+      }),
+    ).resolves.toBe(false);
+    expect(flips()).toBe(0);
+  });
+});
+
 describe("rewardInviteOnFirstPaidOrder - the flip is reversible", () => {
-  const paidCafeOrder = { kind: "cafe", totalMinor: 30000, discountMinor: 0 };
+  const paidCafeOrder = {
+    kind: "cafe",
+    totalMinor: 30000,
+    shippingMinor: 0,
+    discountMinor: 0,
+  };
 
   it("re-opens the invite when a coupon grant fails, so a retry settles it", async () => {
     answer = (q) => {
@@ -166,7 +213,12 @@ describe("rewardInviteOnFirstPaidOrder - the flip is reversible", () => {
 });
 
 describe("rewardInviteOnFirstPaidOrder - a retry grants only what is missing", () => {
-  const paidCafeOrder = { kind: "cafe", totalMinor: 30000, discountMinor: 0 };
+  const paidCafeOrder = {
+    kind: "cafe",
+    totalMinor: 30000,
+    shippingMinor: 0,
+    discountMinor: 0,
+  };
 
   it("records each coupon on the invite as soon as it exists", async () => {
     answer = (q) => {

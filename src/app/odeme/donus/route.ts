@@ -12,6 +12,12 @@ import {
   appOrderDeepLink,
   type PaymentReturnStatus,
 } from "@/lib/mobile/deep-link";
+import { isKaraokeRef } from "@/lib/mobile/karaoke-ref";
+import {
+  karaokeReturnDestination,
+  settleKaraokeMockReturn,
+  settleKaraokeReturn,
+} from "@/lib/mobile/karaoke-return";
 import { isIssuedCheckoutRef } from "@/lib/mobile/orders";
 import { getPaymentProvider, type PaymentProvider } from "@/lib/payment";
 
@@ -32,7 +38,7 @@ export const dynamic = "force-dynamic";
  * app, not on the web success page: the checkout was opened in an in-app
  * browser, and the deep link `laffogato://siparis/<id>` closes it and shows
  * the order. The app marks its return URL with `app=1`; a provider whose
- * callback URL is fixed (iyzico) cannot carry that, so the order's own
+ * return URL is fixed in its configuration cannot carry that, so the order's own
  * `channel` is the second signal.
  */
 export async function GET(req: NextRequest) {
@@ -48,6 +54,21 @@ export async function GET(req: NextRequest) {
   }
 
   const provider = safeProvider();
+  // A karaoke booking (`krk-`, docs/API-MOBILE.md §7): its own settle and its
+  // own landing page; nothing below is order-shaped enough for it.
+  if (isKaraokeRef(orderId)) {
+    let proved = false;
+    if (provider && status === "success") {
+      const customer = await getActiveCustomer();
+      proved = await settleKaraokeMockReturn({
+        ref: orderId,
+        providerRef,
+        provider,
+        customerEmail: customer?.email ?? null,
+      });
+    }
+    return karaokeRedirect(orderId, base, proved);
+  }
   const [customer, order] = await Promise.all([
     getActiveCustomer(),
     safeGetOrder(orderId),
@@ -143,7 +164,7 @@ async function settledStatus(orderId: string): Promise<PaymentReturnStatus> {
 /**
  * The virtual POS returns the CUSTOMER'S BROWSER here with a form POST.
  *
- * `IYZICO_CALLBACK_URL` used to point at the signed webhook, which answers a
+ * The POS callback once pointed at the signed webhook, which answers a
  * browser with `401 {"error":"invalid_signature"}` - so the last thing a paying
  * customer saw was a JSON error. This is the page they land on instead.
  *
@@ -174,6 +195,7 @@ export async function POST(req: NextRequest) {
     // deployment is missing its POS configuration: send the customer to the
     // page that reads the order's real status rather than asserting "success".
     const orderId = returnedOrderId(params);
+    if (isKaraokeRef(orderId)) return karaokeRedirect(orderId, base);
     if (await isAppOrder(orderId)) {
       return appRedirect(orderId, await settledStatus(orderId));
     }
@@ -182,6 +204,18 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await provider.confirmReturn(params);
+    // The reference is the one the POS confirmed, never the posted field.
+    // Nothing is cancelled on a failure here either (rule 29).
+    if (isKaraokeRef(result.orderId)) {
+      await settleKaraokeReturn(result, provider);
+      // Only a payment the POS confirmed (which a forger cannot produce:
+      // it needs that payment's own REFERENCE_CODE) lets the row speak.
+      return karaokeRedirect(
+        result.orderId,
+        base,
+        result.status === "succeeded",
+      );
+    }
     if (result.status === "succeeded") {
       const applied = await applyPaymentSucceeded({
         orderId: result.orderId,
@@ -233,6 +267,7 @@ export async function POST(req: NextRequest) {
     // order's actual status rather than guessing.
     console.error("[odeme/donus] confirmReturn failed", err);
     const orderId = returnedOrderId(params);
+    if (isKaraokeRef(orderId)) return karaokeRedirect(orderId, base);
     if (await isAppOrder(orderId)) {
       return appRedirect(orderId, await settledStatus(orderId));
     }
@@ -266,6 +301,14 @@ function successRedirect(orderId: string, promo: string, base: string) {
   );
 }
 
+/** A karaoke return: the row decides between the app and the web page. */
+async function karaokeRedirect(ref: string, base: string, verified = false) {
+  return NextResponse.redirect(
+    await karaokeReturnDestination(ref, base, verified),
+    303,
+  );
+}
+
 function appRedirect(orderId: string, status: PaymentReturnStatus) {
   // 303 for the same reason as above: the POS's POST must become a GET.
   return NextResponse.redirect(appOrderDeepLink(orderId, status), 303);
@@ -275,7 +318,7 @@ function appRedirect(orderId: string, status: PaymentReturnStatus) {
  * Whether this return belongs to an app order - the ROW decides.
  *
  * `app=1` on the URL used to be taken as proof, but anyone can type it, and a
- * provider with a fixed callback (iyzico) cannot carry it anyway. The order's
+ * provider with a fixed callback cannot carry it anyway. The order's
  * own `channel` answers both cases. A database hiccup here answers "web" -
  * the customer then lands on the web success page, which still shows the
  * order - rather than an error page.

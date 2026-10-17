@@ -75,14 +75,17 @@ vi.mock("@/lib/db", () => ({
 const sendOrderShippedEmail = vi.fn();
 const sendOrderCancelledEmail = vi.fn();
 const sendOrderRefundedEmail = vi.fn();
+const sendOrderPaidEmail = vi.fn();
 vi.mock("@/lib/email/send", () => ({
   sendOrderShippedEmail,
   sendOrderCancelledEmail,
   sendOrderRefundedEmail,
+  sendOrderPaidEmail,
 }));
 
 const {
   notifyOrderCancelled,
+  notifyOrderPaid,
   notifyOrderRefunded,
   notifyOrderShipped,
   shipmentNoticeKind,
@@ -395,7 +398,131 @@ describe("every trigger calls its notice", () => {
       "notifyOrderRefunded(",
     );
     expect(body(action, "refundOrderAction")).toMatch(
-      /finalizeRefund\(reserved\.order, \{\s*refund: reserved\.refund,\s*viaCard: Boolean\(ref\),/,
+      // A wallet-paid order's refund goes back to the wallet, not a card.
+      /finalizeRefund\(reserved\.order, \{\s*refund: reserved\.refund,[\s\S]*?viaCard: Boolean\(ref\) && ref\?\.provider !== WALLET_PROVIDER,/,
+    );
+  });
+});
+
+/**
+ * "Ödemen alındı" - the customer's one order mail before shipping (operator,
+ * 16 Eki 2026: "sipariş maili ödeme tam alınmadan gitmesin"). Nothing is
+ * mailed while the payment is pending; the paid mail leaves once.
+ */
+describe("the paid notice", () => {
+  beforeEach(() => {
+    sendOrderPaidEmail.mockReset();
+    sendOrderPaidEmail.mockResolvedValue({ ok: true, id: "re_1" });
+  });
+
+  it("is sent once, whichever confirmation gets there first", async () => {
+    const paid = order({ status: "paid", trackingNumber: "" });
+    expect(await notifyOrderPaid(paid)).toBe("sent");
+    expect(await notifyOrderPaid(paid)).toBe("duplicate");
+    expect(sendOrderPaidEmail).toHaveBeenCalledTimes(1);
+    const [data, key] = sendOrderPaidEmail.mock.calls[0];
+    expect(key).toBe("order-ord-1-paid");
+    expect(data).toMatchObject({
+      to: "eda@example.com",
+      orderNo: 1042,
+      totalMinor: 45_000,
+      items: [{ productName: "Sirena Espresso Harmanı", qty: 1 }],
+    });
+  });
+
+  it("goes to an app cafe order too, with the line's detail", async () => {
+    await notifyOrderPaid(
+      cafePickup({
+        status: "paid",
+        items: [
+          {
+            productName: "Latte",
+            detail: "Yulaf sütü",
+            qty: 1,
+            unitPriceMinor: 14_000,
+            status: "pending",
+          },
+        ] as AdminOrder["items"],
+      }),
+    );
+    expect(sendOrderPaidEmail.mock.calls[0][0].items[0].productName).toBe(
+      "Latte (Yulaf sütü)",
+    );
+  });
+
+  it("carries no cargo line for a table order", async () => {
+    await notifyOrderPaid(
+      cafePickup({ status: "paid", fulfillment: "table" as never }),
+    );
+    expect(sendOrderPaidEmail.mock.calls[0][0]).toMatchObject({
+      servedAtTable: true,
+    });
+  });
+
+  it("is retried after a failed delivery", async () => {
+    sendOrderPaidEmail.mockResolvedValueOnce({ ok: false, error: "down" });
+    const paid = order({ status: "paid" });
+    expect(await notifyOrderPaid(paid)).toBe("failed");
+    expect(await notifyOrderPaid(paid)).toBe("sent");
+  });
+
+  it("is not due for a checkout placeholder", async () => {
+    expect(
+      await notifyOrderPaid(order({ customerEmail: "guest@laffogato.local" })),
+    ).toBe("not_due");
+    expect(sendOrderPaidEmail).not.toHaveBeenCalled();
+  });
+
+  it("is the only order mail, sent where an order becomes paid", () => {
+    const store = readFileSync("src/lib/admin/store.ts", "utf8");
+    const pay = store.slice(
+      store.indexOf("export async function applyPaymentSucceeded"),
+      store.indexOf("export async function recordProviderRefund"),
+    );
+    expect(pay).toMatch(/if \(advanced\) \{\s+await notifyOrderPaid\(/);
+    const transition = store.slice(
+      store.indexOf("export async function transitionOrder"),
+      store.indexOf("async function noticeCancelled"),
+    );
+    expect(transition).toContain("notifyOrderPaid(");
+    // No "siparişin alındı" before payment, from the web or the app.
+    const send = readFileSync("src/lib/email/send.ts", "utf8");
+    expect(send).not.toContain("export async function sendOrderPlacedEmail");
+    for (const file of [
+      "src/app/odeme/actions.ts",
+      "src/lib/mobile/orders.ts",
+      "src/lib/admin/store.ts",
+    ]) {
+      const code = readFileSync(file, "utf8");
+      expect(code, file).not.toContain("sendOrderPlacedEmail");
+      expect(code, file).not.toContain("sendOrderPaidEmail(");
+    }
+  });
+
+  it("keeps the contract links on the mail the customer gets", () => {
+    const html = readFileSync(
+      "src/lib/email/templates/odeme-onaylandi.html",
+      "utf8",
+    );
+    for (const slug of [
+      "on-bilgilendirme-formu",
+      "mesafeli-satis-sozlesmesi",
+      "iade-ve-cayma",
+    ]) {
+      expect(html, slug).toContain(`/hukuk/${slug}`);
+    }
+    const text = readFileSync("src/lib/email/text.ts", "utf8");
+    const paidText = text.slice(text.indexOf('"odeme-onaylandi"'));
+    expect(paidText.slice(0, paidText.indexOf("SIGNATURE"))).toContain(
+      "[BELGELER]",
+    );
+  });
+
+  it("does not tell a customer about cancelling an attempt they never paid", () => {
+    const store = readFileSync("src/lib/admin/store.ts", "utf8");
+    const notice = store.slice(store.indexOf("async function noticeCancelled"));
+    expect(notice).toContain(
+      "if (unpaidAttempt && collected !== true) return;",
     );
   });
 });

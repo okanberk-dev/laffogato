@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { grantBarista, revokeBarista } from "@/lib/admin/staff-members";
+import { staffEmailSchema } from "@/lib/admin/staff-schema";
 import {
   createAdminUser,
   deleteAdminUser,
@@ -122,4 +124,61 @@ export async function deleteAdminUserAction(
   });
   revalidatePath("/admin/kullanicilar");
   return { message: `${result.value.email} silindi.` };
+}
+
+// ─── Uygulamadan kasa (barista) ─────────────────────────────────────────
+//
+// A barista is an APP member allowed to scan a member's QR from their own
+// phone (POST /api/mobile/v1/staff/stamp). Handing out the till is handing
+// out stamps, so it sits behind the same `adminUsers` gate as panel accounts.
+
+function staffEmail(formData: FormData): string | null {
+  const parsed = staffEmailSchema.safeParse({
+    email: String(formData.get("email") ?? ""),
+  });
+  return parsed.success ? parsed.data.email : null;
+}
+
+export async function grantBaristaAction(
+  _prev: AdminUserState,
+  formData: FormData,
+): Promise<AdminUserState> {
+  const session = await requireRole("adminUsers");
+  const email = staffEmail(formData);
+  if (!email) return { error: "Geçerli bir e-posta gir." };
+
+  const result = await grantBarista({ email, grantedBy: session.email });
+  if (!result.ok) return { error: result.message };
+
+  await logAudit({
+    action: "create",
+    entity: "staff_member",
+    entityId: result.value.email,
+    payload: { role: result.value.role },
+  });
+  revalidatePath("/admin/kullanicilar");
+  return {
+    message: `${result.value.email} artık uygulamadan kasa yapabilir.`,
+  };
+}
+
+export async function revokeBaristaAction(
+  _prev: AdminUserState,
+  formData: FormData,
+): Promise<AdminUserState> {
+  await requireRole("adminUsers");
+  const email = staffEmail(formData);
+  if (!email) return { error: "Geçerli bir e-posta gir." };
+
+  const result = await revokeBarista(email);
+  if (!result.ok) return { error: result.message };
+
+  await logAudit({
+    action: "delete",
+    entity: "staff_member",
+    entityId: result.value.email,
+    payload: { role: result.value.role },
+  });
+  revalidatePath("/admin/kullanicilar");
+  return { message: `${result.value.email} kasa yetkisi kaldırıldı.` };
 }

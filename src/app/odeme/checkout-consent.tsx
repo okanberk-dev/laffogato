@@ -11,12 +11,16 @@ import Link from "next/link";
  * documents (`CHECKOUT_CONSENT_DOCS`) against it with the time, IP, browser
  * and document revision. That field is therefore rendered only once BOTH
  * boxes are ticked: with one box left empty the form carries no consent at
- * all and `placeOrderAction` refuses the order. `tests/checkout-consent.test.ts`
+ * all and `startCheckoutAction` refuses the order. `tests/checkout-consent.test.ts`
  * renders every combination.
  *
  * No "use client" here on purpose: the module is pure markup plus a predicate,
- * imported by the checkout wizard (a client component) and rendered directly
- * by the test.
+ * imported by the checkout (a client component) and rendered directly by the
+ * test.
+ *
+ * `form`: the one-page checkout keeps the boxes beside the pay button, away
+ * from the order form the server reads; the hidden field names that form so
+ * it still travels with it (and never with the card's own form).
  */
 export interface CheckoutConsentTicks {
   /** Ön Bilgilendirme Formu read and confirmed. */
@@ -39,10 +43,13 @@ export function CheckoutConsent({
   ticks,
   onTick,
   disabled,
+  form,
 }: {
   ticks: CheckoutConsentTicks;
   onTick: (key: keyof CheckoutConsentTicks, ticked: boolean) => void;
   disabled: boolean;
+  /** The id of the form the hidden `legalConsent` belongs to. */
+  form?: string;
 }) {
   return (
     <>
@@ -85,7 +92,7 @@ export function CheckoutConsent({
           </label>
         </div>
         {checkoutConsentGiven(ticks) && (
-          <input type="hidden" name="legalConsent" value="on" />
+          <input type="hidden" name="legalConsent" value="on" form={form} />
         )}
       </div>
       <p className="checkout-consent-note">

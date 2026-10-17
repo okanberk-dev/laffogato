@@ -31,7 +31,22 @@ export type AuthPurpose =
   | "promo-preview"
   | "password-reset"
   | "unsubscribe"
-  | "newsletter-signup";
+  | "newsletter-signup"
+  | "newsletter-signup-ip"
+  | "register-ip"
+  | "password-reset-ip"
+  | "verify-resend"
+  | "admin-login-ip"
+  | "customer-login-ip"
+  | "staff-stamp"
+  | "checkout-reopen"
+  | "card-payment-ip"
+  | "card-payment-order"
+  | "table-lookup"
+  | "checkout-start"
+  | "card-delete"
+  | "karaoke-hold"
+  | "karaoke-guest-ip";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -40,8 +55,35 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // scripted enumeration still hits a wall quickly.
   "promo-preview": 15,
   // Every request costs an e-mail to somebody else's inbox, so this one counts
-  // successes as well as failures - five links per address per five minutes.
-  "password-reset": 5,
+  // successes as well as failures. Keyed by the ADDRESS alone (any IP): keyed
+  // by IP + address, a sender rotating source addresses could mail one member
+  // a reset link five times a minute, indefinitely. Three links per address,
+  // then half an hour.
+  "password-reset": 3,
+  // The mail-sending forms per SENDER, whatever address they target. The
+  // per-address keys stop flooding ONE inbox; these stop one sender from
+  // mailing a list of strangers - every message leaves under our domain and
+  // counts against the mail provider's daily quota, which the order and reset
+  // mails share.
+  "password-reset-ip": 10,
+  "newsletter-signup-ip": 5,
+  // Web sign-up: each one mails a verification link to the typed address and
+  // opens a Supabase identity, and a refused one ("already registered") says
+  // whether an address has an account.
+  "register-ip": 10,
+  // "Doğrulama e-postasını yeniden gönder" for a signed-in, unverified
+  // member: an account registered with a stranger's address could otherwise
+  // re-send to that inbox in a loop.
+  "verify-resend": 3,
+  // Sign-ins from one address across ALL accounts. The per-account keys give
+  // every address five tries at each e-mail, so one address could walk a
+  // leaked e-mail/password list (credential stuffing) or spray one password
+  // over every panel account and never meet a limit - and each refused admin
+  // attempt writes a `login_fail` audit row. Every attempt counts, success
+  // included: clearing on success would let an attacker reset the budget by
+  // signing in to an account of their own between guesses.
+  "admin-login-ip": 20,
+  "customer-login-ip": 30,
   // The one-click unsubscribe route (RFC 8058 POST). Its "failure" is a
   // token that matched nothing - unknown or already spent; a valid opt-out
   // never counts, because the POST comes from the mail provider's shared
@@ -59,12 +101,93 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // is typed. Three per address per window, counted on success too (like
   // password-reset), so the form cannot be used to flood someone's inbox.
   "newsletter-signup": 3,
+  // A barista scanning from the app (POST /api/mobile/v1/staff/stamp). Only a
+  // code that matched nothing counts: that is what typing guesses produces,
+  // while a busy bar's expired or already-spent scans are honest mistakes.
+  // Fifteen misses in five minutes is far past a slow camera and well short
+  // of walking an 8-character code space.
+  "staff-stamp": 15,
+  // Reopening the POS for an app order that already exists (a repeated
+  // `clientOrderId`, or POST /orders/{id}/payment). Not a credential: every
+  // reopen is counted, success or not, because each one is a call to the
+  // payment provider and a `payment_transactions` row. Keyed on the member,
+  // not the IP. A member whose card was refused retries a handful of times;
+  // a script looping on one pending order was an unbounded stream of POS
+  // sessions opened from this merchant account.
+  "checkout-reopen": 8,
+  // The site's own card form (/odeme/paynkolay POST, docs/PAYNKOLAY.md §15).
+  // A merchant page that forwards card numbers to the POS is what card
+  // testers look for: they replay a stolen list through it to learn which
+  // cards are live. Like every purpose here the window is WINDOW_MS (five
+  // minutes, fixed from the first count), then the lockout below.
+  // Per ORDER (reserved before the POS is asked, success or not): a member
+  // whose bank says no retries two or three times; five per window leaves a
+  // pending order useless as a testing slot. Per ADDRESS: only the POS's
+  // refusals and errors count (recordLoginFailure). Counting successes too
+  // locked a whole café Wi-Fi out after ten paying customers.
+  "card-payment-order": 5,
+  "card-payment-ip": 10,
+  // A table code (`GET /api/mobile/v1/tables/{code}`, the `table` order
+  // path) that matched nothing. A real QR always resolves, so only a miss
+  // counts, per address: twenty in five minutes is far past a shaky camera
+  // and far short of walking a 2^50 code space.
+  "table-lookup": 20,
+  // "Siparişi onayla ve öde" on /odeme (startCheckoutAction). Each press may
+  // create an order - a stock and coupon claim, POS lookups for the
+  // member's older unpaid orders - so every press is
+  // counted, success or not. Keyed on the member, not the address, like
+  // checkout-reopen: a declined card, a retry and a price confirmation are
+  // three presses; ten in five minutes is a script.
+  "checkout-start": 10,
+  // Deleting a saved card from /odeme: two POS calls each (list, delete).
+  "card-delete": 10,
+  // A karaoke booking that waits for its payment holds the hour while it
+  // waits (up to ~75 minutes, karaoke-time.ts), and the open-bookings cap of
+  // two says nothing about how often one member makes and abandons them. So
+  // each NEW unpaid hold is counted per member, in a day-long window, and a
+  // paid one clears the count: someone who pays is never limited, someone
+  // who keeps two four-hour blocks on hold without paying gets four of them
+  // a day. Reopening the payment of an existing hold is `checkout-reopen`.
+  "karaoke-hold": 4,
+  // A booking without an account has no verified handle at all, so the
+  // network it comes from is counted too: eight new guest holds per address
+  // a day - a busy café Wi-Fi books far fewer evenings than that.
+  "karaoke-guest-ip": 8,
 };
+
+/**
+ * Counting window per purpose; WINDOW_MS (five minutes) unless listed. A
+ * credential guess is a burst, so five minutes catches it; an abandoned
+ * karaoke hold is a slow cycle, so its window is a day.
+ */
+const WINDOW_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
+  "karaoke-hold": 24 * 60 * 60 * 1000,
+  "karaoke-guest-ip": 24 * 60 * 60 * 1000,
+};
+
+function windowMs(purpose: AuthPurpose): number {
+  return WINDOW_MS_BY_PURPOSE[purpose] ?? WINDOW_MS;
+}
 
 /** Lockout length per purpose; LOCKOUT_MS unless listed. */
 const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
+  "karaoke-hold": 12 * 60 * 60 * 1000,
+  "karaoke-guest-ip": 12 * 60 * 60 * 1000,
   "admin-2fa-account": 15 * 60 * 1000,
   "newsletter-signup": 15 * 60 * 1000,
+  "checkout-reopen": 10 * 60 * 1000,
+  "checkout-start": 10 * 60 * 1000,
+  "card-delete": 10 * 60 * 1000,
+  "card-payment-order": 30 * 60 * 1000,
+  "card-payment-ip": 60 * 60 * 1000,
+  "newsletter-signup-ip": 60 * 60 * 1000,
+  "password-reset": 30 * 60 * 1000,
+  "password-reset-ip": 30 * 60 * 1000,
+  "register-ip": 30 * 60 * 1000,
+  "verify-resend": 15 * 60 * 1000,
+  "admin-login-ip": 15 * 60 * 1000,
+  "customer-login-ip": 15 * 60 * 1000,
+  "table-lookup": 15 * 60 * 1000,
 };
 
 function lockoutMs(purpose: AuthPurpose): number {
@@ -107,8 +230,43 @@ const OPEN: RateLimitStatus = {
   remaining: MAX_FAILS,
 };
 
+/**
+ * The address a budget is kept for. IPv4 as it came; IPv6 cut to its /64.
+ *
+ * A single host is routinely handed a whole /64 (every VPS, most home and
+ * mobile lines), so keying on the full IPv6 address gave an attacker 2^64
+ * fresh budgets for the price of one: the admin login, the 2FA step and the
+ * mail-sending forms could be retried without limit by changing the last
+ * four groups. One /64 is one subscriber, which is what a per-address budget
+ * means to count. IPv4-mapped IPv6 (`::ffff:1.2.3.4`) is read as the IPv4.
+ *
+ * Only the KEY changes: the IP stored as consent evidence (`clientIp()`) is
+ * untouched.
+ */
+export function rateLimitAddress(ip: string): string {
+  const raw = ip.trim().toLowerCase();
+  if (!raw.includes(":")) return raw;
+  // Strip brackets and a zone index ("fe80::1%eth0") before parsing.
+  const addr = raw.replace(/^\[|\]$/g, "").replace(/%.*$/, "");
+  const mapped =
+    /^(?:0{0,4}:){0,5}(?:0{0,4}:)?ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(addr);
+  if (mapped) return mapped[1];
+  const halves = addr.split("::");
+  if (halves.length > 2) return raw;
+  const head = halves[0] ? halves[0].split(":") : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(":") : [];
+  const missing = 8 - head.length - tail.length;
+  if (halves.length === 1 ? missing !== 0 : missing < 1) return raw;
+  const groups = [...head, ...Array(missing).fill("0"), ...tail];
+  if (!groups.every((g) => /^[0-9a-f]{1,4}$/.test(g))) return raw;
+  return `${groups
+    .slice(0, 4)
+    .map((g) => g.padStart(4, "0"))
+    .join(":")}::/64`;
+}
+
 function bucketKey(purpose: AuthPurpose, ip: string, identity: string): string {
-  return `${purpose}::${ip || "unknown"}::${identity.trim().toLowerCase()}`;
+  return `${purpose}::${rateLimitAddress(ip) || "unknown"}::${identity.trim().toLowerCase()}`;
 }
 
 function maxFails(purpose: AuthPurpose): number {
@@ -165,7 +323,7 @@ export async function checkLoginLimit(
 
   // A window that has fully expired is not a partial count any more.
   const started = row.firstFailedAt ? Date.parse(row.firstFailedAt) : 0;
-  const stale = !started || now - started > WINDOW_MS;
+  const stale = !started || now - started > windowMs(purpose);
   return statusFrom(stale ? 0 : row.failedCount, row.lockedUntil, now, purpose);
 }
 
@@ -182,7 +340,7 @@ export async function recordLoginFailure(
   const { data, error } = await sb.rpcRows<AttemptRow>("record_auth_failure", {
     p_key: bucketKey(purpose, ip, identity),
     p_now: new Date(now).toISOString(),
-    p_window_ms: WINDOW_MS,
+    p_window_ms: windowMs(purpose),
     p_max_fails: maxFails(purpose),
     p_lockout_ms: lockoutMs(purpose),
   });
@@ -224,7 +382,7 @@ export async function reserveLoginAttempt(
   }>("reserve_auth_attempt", {
     p_key: bucketKey(purpose, ip, identity),
     p_now: new Date(now).toISOString(),
-    p_window_ms: WINDOW_MS,
+    p_window_ms: windowMs(purpose),
     p_max_fails: maxFails(purpose),
     p_lockout_ms: lockoutMs(purpose),
   });

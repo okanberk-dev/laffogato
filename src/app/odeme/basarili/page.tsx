@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { formatTRY } from "@/components/admin/forms";
 import { getOrder } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
+import { memberMaySeeOrder } from "@/lib/customer/member-order-visibility";
 
 import { ClearCart } from "./clear-cart";
 import { cx } from "@/components/laffogato/cx";
@@ -47,6 +48,10 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
   }).format(new Date(order.createdAt));
 
   const paid = order.status === "paid";
+  // The profile lists paid orders only (memberMaySeeOrder): an order whose
+  // payment is still being confirmed gets no link to a page that is not
+  // there yet.
+  const listed = memberMaySeeOrder(order);
 
   return (
     <div className="order-done">
@@ -162,25 +167,34 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         <div className="order-done-actions">
           {/* The order's own page, not the home page: it is where the status,
               the cargo link and the receipt live from here on. */}
-          <Link
-            href={`/uye/hesap/siparislerim/${order.orderNo}`}
-            className="btn btn-primary"
-          >
-            Siparişi takip et
-            <span className="arrow" aria-hidden>
-              →
-            </span>
-          </Link>
+          {listed ? (
+            <Link
+              href={`/uye/hesap/siparislerim/${order.orderNo}`}
+              className="btn btn-primary"
+            >
+              Siparişi takip et
+              <span className="arrow" aria-hidden>
+                →
+              </span>
+            </Link>
+          ) : null}
           <Link href="/magaza" className="btn btn-ghost">
             Alışverişe devam et
           </Link>
         </div>
 
-        <p className="order-done-foot">
-          Durumunu ve kargo bilgisini{" "}
-          <Link href="/uye/hesap/siparislerim">siparişlerinden</Link>{" "}
-          izleyebilirsin.
-        </p>
+        {listed ? (
+          <p className="order-done-foot">
+            Durumunu ve kargo bilgisini{" "}
+            <Link href="/uye/hesap/siparislerim">siparişlerinden</Link>{" "}
+            izleyebilirsin.
+          </p>
+        ) : (
+          <p className="order-done-foot">
+            Ödemen onaylanınca sipariş siparişlerinde görünür ve onay e-postası
+            gelir.
+          </p>
+        )}
       </div>
     </div>
   );

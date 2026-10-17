@@ -7,7 +7,8 @@
  * carries the same `[FIELD]`s as its HTML twin, so `renderEmail` fills both
  * from one set of values and `assertFilled` guards both.
  *
- * Same voice as the templates: "siz", sentence case, no shouting.
+ * Same voice as the templates: "siz" (the two karaoke messages: "sen"),
+ * sentence case, no shouting.
  */
 
 const SIGNATURE = `-
@@ -127,27 +128,6 @@ siz yapmadıysanız hiçbir şey yapmanıza gerek yok - mevcut şifreniz değiş
 
 ${SIGNATURE}`,
 
-  "siparis-alindi": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
-
-Siparişinizi aldık. Ödemeniz onaylandığı anda hazırlamaya başlıyoruz.
-
-Sipariş No: #[SIPARIS_NO]
-
-[KALEMLER]
-
-Ara toplam: [ARA_TOPLAM]
-Kargo: [KARGO]
-Toplam: [TOPLAM]
-(KDV dâhil · 500,00 ₺ üzeri siparişlerde kargo ücretsiz)
-
-Siparişiniz: [SIPARIS_URL]
-
-Sipariş sırasında onayladığınız belgeler - kalıcı veri saklayıcısı olarak
-saklamanız için:
-[BELGELER]
-
-${SIGNATURE}`,
-
   "odeme-onaylandi": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
 Ödemeniz alındı ve siparişiniz onaylandı - hazırlanmaya başlandı.
@@ -156,11 +136,14 @@ Sipariş No: #[SIPARIS_NO]
 
 [KALEMLER]
 
-Ödenen toplam: [TOPLAM]
-
-[DAMGA_HEDEFI] damgada bir içecek bizden - bu siparişle bir damga daha
-kazandınız.
-
+Ara toplam: [ARA_TOPLAM]
+<!--IF:KARGO_SATIRI-->Kargo: [KARGO]
+<!--/IF:KARGO_SATIRI--><!--IF:INDIRIM_SATIRI-->İndirim: [INDIRIM]
+<!--/IF:INDIRIM_SATIRI-->Ödenen toplam: [TOPLAM]
+<!--IF:DAMGA-->
+Bu siparişle [DAMGA_SAYISI] damga kazandınız; [DAMGA_HEDEFI] damgada bir
+içecek bizden.
+<!--/IF:DAMGA-->
 Sipariş durumu: [SIPARIS_URL]
 
 Sipariş sırasında onayladığınız belgeler - kalıcı veri saklayıcısı olarak
@@ -273,10 +256,14 @@ ${SIGNATURE}
 ${COMMERCIAL_FOOTER}`,
 
   // The redesigned HTML greets without the name; the two halves of one
-  // message say the same thing.
+  // message say the same thing. A booking paid online carries its receipt
+  // and its cancellation terms (KARAOKE_ODENDI); one paid at the venue only
+  // how to cancel (KARAOKE_ODEME_MEKANDA). send.ts sets exactly one of them.
+  // Both karaoke messages speak "sen", like the /karaoke page that took the
+  // booking and the cancellation rule they quote.
   "karaoke-rezervasyon": `Merhaba,
 
-Karaoke saatiniz ayrıldı. Girişte kodunuzu söylemeniz yeterli.
+Karaoke saatin ayrıldı. Girişte kodunu söylemen yeterli.
 
 Rezervasyon kodu: [KARAOKE_KOD]
 Tarih: [KARAOKE_TARIH]
@@ -286,28 +273,48 @@ Kişi: [KARAOKE_KISI]
 Yol tarifi:
 https://www.google.com/maps/search/?api=1&query=40.8165716,29.3032493
 
-Planınız değişirse rezervasyonunuzu uygulamadan iptal edebilir ya da bizi
-arayabilirsiniz: +90 536 429 09 19
+<!--IF:KARAOKE_ODENDI-->Ödenen: [KARAOKE_TUTAR] (KDV dahil).
+
+Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.
+Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.
+
+Belirli bir tarihte sunulan eğlence hizmeti olduğu için cayma hakkı yoktur (MSY m.15/1-g).
+
+Rezervasyon sayfandan görebilir ve iptal edebilirsin:
+[KARAOKE_LINK]
+
+Tüm koşullar:
+https://laffogato.net/hukuk/karaoke-odasi-rezervasyon<!--/IF:KARAOKE_ODENDI--><!--IF:KARAOKE_ODEME_MEKANDA-->Ödemeyi köşkte yaparsın. Planın değişirse rezervasyon saatine 2 saatten
+fazla varken rezervasyon sayfandan iptal edebilirsin.
+
+Rezervasyon sayfan:
+[KARAOKE_LINK]<!--/IF:KARAOKE_ODEME_MEKANDA-->
 
 ${SIGNATURE}`,
 
   // The cancellation twin. Same shape, same greeting without a name: the
-  // member is told what changed, what it cost them (nothing) and how to get
-  // another evening - nothing to confirm, nothing to click.
+  // member is told what changed, what happened to their money (it went back:
+  // KARAOKE_IADE; none was taken: KARAOKE_ODEMESIZ) and how to get another
+  // evening - nothing to confirm, nothing to click.
   "karaoke-iptal": `Merhaba,
 
-Karaoke rezervasyonunuz iptal edildi. Oda serbest bırakıldı; sizden bir şey
-beklenmiyor.
+Karaoke rezervasyonun iptal edildi. Oda serbest bırakıldı.
 
 İptal edilen rezervasyon: [KARAOKE_KOD]
 Tarih: [KARAOKE_TARIH]
 Saat: [KARAOKE_SAAT]
 Kişi: [KARAOKE_KISI]
 
-Ödeme alınmadıysa tahsilat da yapılmaz.
+<!--IF:KARAOKE_IADE-->Ödediğin [KARAOKE_TUTAR] kartına iade edildi; yansıması bankana
+göre birkaç iş günü sürebilir.
 
-Yeni bir saat ayırtmak için: https://laffogato.net/karaoke
-Bir yanlışlık olduğunu düşünüyorsanız bizi arayın: +90 536 429 09 19
+Son durum, rezervasyon sayfanda:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_IADE--><!--IF:KARAOKE_ODEMESIZ-->Bu rezervasyon için senden ödeme alınmadı.
+
+<!--/IF:KARAOKE_ODEMESIZ-->Yeni bir saat ayırtmak için: https://laffogato.net/karaoke
+Bir yanlışlık varsa bizi ara: +90 536 429 09 19
 
 ${SIGNATURE}`,
 

@@ -349,6 +349,32 @@ describe("toReservationJson - allow-list", () => {
       discountMinor: 27_000,
       totalMinor: 153_000,
       createdAt: "2026-08-30T10:00:00.000Z",
+      // Additive (16 Eki 2026): money state, an unpaid hold's deadline, and
+      // the last moment of a free cancel (18:00 Tuzla - 2 h = 13:00Z).
+      paymentStatus: "none",
+      paymentDueAt: "",
+      cancellableUntil: "2026-09-05T13:00:00.000Z",
     });
+  });
+});
+
+describe("validateReservationRequest - which field a 400 is about (L7-21)", () => {
+  const ctx = { today: "2026-08-30", capacity: 8 };
+  const good = { date: "2026-09-05", startHour: 18, hours: 2, guests: 4 };
+
+  it("names the note when the note is what failed", () => {
+    for (const note of ["x".repeat(201), 42]) {
+      const r = validateReservationRequest({ ...good, note }, ctx);
+      expect(r.ok).toBe(false);
+      if (r.ok) return;
+      expect(r.field).toBe("note");
+    }
+  });
+
+  it("names no field for any other refusal", () => {
+    const r = validateReservationRequest({ ...good, startHour: 3 }, ctx);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.field).toBeUndefined();
   });
 });

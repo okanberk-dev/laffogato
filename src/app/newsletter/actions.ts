@@ -41,6 +41,16 @@ export async function subscribeNewsletterAction(
   if (formData.get("consent") !== "on") {
     return { error: "Devam etmek için onay kutusunu işaretle." };
   }
+  // Per sender first: the per-address budget below stops flooding one inbox,
+  // but a script cycling through a list of strangers' addresses never met it
+  // and every request mailed somebody new under our domain.
+  const ip = await clientIp();
+  const perSender = await reserveLoginAttempt("newsletter-signup-ip", ip, "*");
+  if (perSender.blocked) {
+    return {
+      error: `Çok fazla istek geldi. ${Math.ceil(perSender.retryAfterSeconds / 60)} dakika sonra tekrar dene.`,
+    };
+  }
   const limit = await reserveLoginAttempt(
     "newsletter-signup",
     "*",
@@ -51,7 +61,6 @@ export async function subscribeNewsletterAction(
       error: `Bu adres için çok fazla istek geldi. ${Math.ceil(limit.retryAfterSeconds / 60)} dakika sonra tekrar dene.`,
     };
   }
-  const ip = await clientIp();
   const result = await subscribeNewsletter(email, "", "footer", {
     at: new Date().toISOString(),
     ip,

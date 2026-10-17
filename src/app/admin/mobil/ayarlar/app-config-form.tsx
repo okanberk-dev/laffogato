@@ -276,6 +276,11 @@ function OrderingTab({ config }: { config: MobileAppConfig }) {
             label="Gel-al açık"
             defaultChecked={o.pickupEnabled}
           />
+          <Checkbox
+            name="tableEnabled"
+            label="Masaya sipariş açık (masadaki QR ile)"
+            defaultChecked={o.tableEnabled}
+          />
         </div>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Field
@@ -341,7 +346,7 @@ function LoyaltyTab({ config }: { config: MobileAppConfig }) {
         <div className="grid gap-5 sm:grid-cols-2">
           <Field
             label="Damga hedefi"
-            hint={`${L.stampTargetMin}-${L.stampTargetMax}. Ödeme yapılmış her kafe siparişi +1 damga.`}
+            hint={`${L.stampTargetMin}-${L.stampTargetMax}. Ödeme yapılmış uygulama kafe siparişi 140 TL'den itibaren başlayan her 320 TL için +1 damga (kurye ücreti sayılmaz).`}
           >
             <TextInput
               name="stampTarget"

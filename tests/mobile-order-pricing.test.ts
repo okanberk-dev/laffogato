@@ -119,6 +119,56 @@ describe("priceCafeLine", () => {
   });
 });
 
+describe("priceCafeLine - categories that take no customisation (W1-08)", () => {
+  const cheesecake: CafePriceable = {
+    id: "mnu-0050",
+    name: "San Sebastian",
+    priceMinor: 26000,
+    priceMinorL: 0,
+    isActive: true,
+    categoryKey: "dessert",
+  };
+  const loaded = {
+    milk: "oat",
+    syrup: "hazelnut",
+    extraShot: true,
+    sugar: 2,
+    roast: "light",
+    note: "ılık olsun",
+  } as const;
+
+  it("ignores options sent for a dessert, snack or extra: plain item, plain price", () => {
+    for (const categoryKey of ["dessert", "snack", "extras"]) {
+      const r = priceCafeLine({ ...cheesecake, categoryKey }, "single", loaded);
+      expect(r.ok, categoryKey).toBe(true);
+      if (!r.ok) return;
+      expect(r.unitPriceMinor).toBe(26000);
+      expect(r.options).toEqual({
+        milk: "normal",
+        roast: "intense",
+        sugar: 0,
+        syrup: "none",
+        extraShot: false,
+        note: "",
+      });
+      // No nut warning from a hazelnut syrup that was never poured.
+      expect(r.detail).not.toMatch(/fındık|yulaf|shot|şeker/);
+    }
+  });
+
+  it("still prices a drink's options, and a row without a category as a drink", () => {
+    const drink = priceCafeLine(
+      { ...cheesecake, categoryKey: "hot" },
+      "single",
+      loaded,
+    );
+    const legacy = priceCafeLine(affogato, "single", loaded);
+    for (const r of [drink, legacy]) {
+      expect(r.ok && r.options.milk).toBe("oat");
+    }
+  });
+});
+
 describe("fulfillment and shipping", () => {
   it("allows pickup/delivery only for cafe and shipping only for shop", () => {
     expect(fulfillmentAllowed("cafe", "pickup")).toBe(true);

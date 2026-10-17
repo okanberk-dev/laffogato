@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
 
     const result = await createAppOrder(auth.customer, parsed.data);
     if (!result.ok) {
-      const { status, code, message } = result.failure;
-      return apiError(status, code, message);
+      const { status, code, message, extra, headers } = result.failure;
+      return apiError(status, code, message, headers, extra);
     }
     return apiJson(
       {

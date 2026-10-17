@@ -56,6 +56,11 @@ const PATHS = [
   "/karaoke",
   "/kampanyalar",
   "/ziyaret",
+  // NOT YET /masa/* (table QR, 15 Eki 2026): no released app has a screen
+  // for /masa/<code>, so claiming it would land every iPhone with the app on
+  // its not-found screen and keep the guest off the web menu (see above).
+  // It is added together with the lafmobil release that ships the table
+  // screen and Android's pathPrefix "/masa/" (docs/API-MOBILE.md §22).
 ];
 
 export async function GET() {

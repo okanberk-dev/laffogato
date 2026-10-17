@@ -2,26 +2,43 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 
 import {
   applyPaymentSucceeded,
   applyPromoCode,
+  checkPendingOrderPaid,
+  getOrder,
+  isOwnUnpaidWebOrder,
   placeOrder,
+  type AdminOrder,
+  type PlaceOrderFailure,
 } from "@/lib/admin/store";
+import { clientIp, reserveLoginAttempt } from "@/lib/admin/rate-limit";
+import { checkoutCartKey, type CartKeyInput } from "@/lib/checkout/cart-key";
+import { REUSE_HEADROOM_MS, reuseDecision } from "@/lib/checkout/reuse";
+import type {
+  CheckoutQuote,
+  CheckoutStart,
+  SavedCardsChange,
+} from "@/lib/checkout/start";
+import {
+  parseCheckoutFields,
+  parseReuseClaim,
+} from "@/lib/checkout/start-schema";
 import { getActiveCustomer } from "@/lib/customer/auth";
-import { applyCustomerCoupon } from "@/lib/customer/coupons";
-import { sendOrderPlacedEmail } from "@/lib/email/send";
+import {
+  applyCustomerCoupon,
+  CAFE_ONLY_COUPON_MESSAGE,
+  couponAllowedForKind,
+  evaluateCoupon,
+} from "@/lib/customer/coupons";
+import { ensureCardUserKey } from "@/lib/customer/store";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
 import { checkoutConsentVersion } from "@/lib/legal/store";
-import { getCardUserKey } from "@/lib/customer/store";
 import { getPaymentProvider } from "@/lib/payment";
+import { PaynkolayPaymentProvider } from "@/lib/payment/paynkolay";
+import { deleteCheckoutSavedCard } from "@/lib/payment/saved-cards";
 import { SITE } from "@/lib/seo/site";
-import {
-  checkLoginLimit,
-  clientIp,
-  recordLoginFailure,
-} from "@/lib/admin/rate-limit";
 
 export interface PromoPreviewState {
   error?: string;
@@ -39,8 +56,14 @@ export async function previewPromoAction(
   // or a real discount, which is a working oracle for guessing codes. The same
   // counter that guards the login forms bounds it - generously, because a
   // customer mistyping their own coupon is the common case.
+  //
+  // Reserved (counted before the lookup), not checked here and recorded on a
+  // miss: a burst sent in parallel all passed the check before the first miss
+  // was written, so the cap bounded nothing for a script. A hit counts too and
+  // is never cleared - clearing on a valid code would let anyone holding one
+  // public campaign code reset the counter between guesses.
   const ip = await clientIp();
-  const limit = await checkLoginLimit("promo-preview", ip, "");
+  const limit = await reserveLoginAttempt("promo-preview", ip, "");
   if (limit.blocked) {
     return {
       error: `Çok fazla deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
@@ -63,11 +86,35 @@ export async function previewPromoAction(
       customer.email,
       subtotalMinor,
     );
-    if (coupon.ok && coupon.coupon) {
-      const discountMinor = coupon.discountMinor ?? 0;
+    let ok = coupon.ok ? coupon : null;
+    // Claimed by the member's own unpaid web checkout - the one a declined
+    // card left behind. That order gives it back before the next one claims
+    // it (supersedeUnpaidWebOrders), or the retry pays for that very order,
+    // so it is not "already used" for this customer.
+    if (
+      !ok &&
+      coupon.found &&
+      coupon.coupon?.redeemedAt &&
+      (await isOwnUnpaidWebOrder(customer.email, coupon.coupon.redeemedOrderNo))
+    ) {
+      const held = evaluateCoupon(
+        { ...coupon.coupon, redeemedAt: "" },
+        subtotalMinor,
+        Date.now(),
+      );
+      if (!held.ok) return { error: held.error };
+      ok = { ...coupon, ok: true, discountMinor: held.discountMinor };
+    }
+    if (ok?.coupon) {
+      // The web sells shop goods only; a drink coupon would be dropped from
+      // the order (insertOrderRow) after the preview had promised it.
+      if (!couponAllowedForKind(ok.coupon, undefined)) {
+        return { error: CAFE_ONLY_COUPON_MESSAGE };
+      }
+      const discountMinor = ok.discountMinor ?? 0;
       return {
         ok: {
-          code: coupon.coupon.code,
+          code: ok.coupon.code,
           discountMinor,
           finalMinor: Math.max(0, subtotalMinor - discountMinor),
         },
@@ -76,10 +123,7 @@ export async function previewPromoAction(
     if (coupon.found) return { error: coupon.error };
   }
   const result = await applyPromoCode(code, subtotalMinor);
-  if (!result.ok) {
-    await recordLoginFailure("promo-preview", ip, "");
-    return { error: result.error };
-  }
+  if (!result.ok) return { error: result.error };
   return {
     ok: {
       code: result.promo.code,
@@ -151,105 +195,286 @@ async function readLegalConsent(formData: FormData) {
   };
 }
 
-export async function placeOrderAction(formData: FormData) {
+/** The order as created, for the browser to compare with what it showed. */
+function quoteOf(
+  order: AdminOrder,
+  submitted: CartKeyInput,
+  promoDropped: boolean,
+): CheckoutQuote {
+  return {
+    orderId: order.id,
+    // The order's own key: with the code as it was APPLIED, so a code that
+    // was dropped does not make the next press look like a changed basket.
+    cartKey: checkoutCartKey({ ...submitted, promoCode: order.promoCode }),
+    subtotalMinor: order.subtotalMinor,
+    discountMinor: order.discountMinor,
+    shippingMinor: order.shippingMinor,
+    totalMinor: order.totalMinor,
+    promoCode: order.promoCode,
+    promoDropped,
+    lines: order.items.map((it) => ({
+      productId: it.productId,
+      variantId: it.variantId,
+      unitPriceMinor: it.unitPriceMinor,
+      qty: it.qty,
+    })),
+  };
+}
+
+/** A refused basket, said on the checkout itself (fixed copy, our names). */
+function cartRefusal(result: PlaceOrderFailure): CheckoutStart {
+  const name = "productName" in result ? result.productName : "";
+  let message: string;
+  switch (result.reason) {
+    case "out_of_stock":
+      message =
+        result.available > 0
+          ? `${name} için yeterli stok kalmadı (en çok ${result.available} adet). Adedi azaltıp yeniden dene.`
+          : `${name} şu an stokta yok. Sepetten çıkarıp yeniden dene.`;
+      break;
+    case "not_found":
+      message = `${name} artık satışta değil. Sepetten çıkarıp yeniden dene.`;
+      break;
+    case "qty_too_high":
+      message = `${name} için en çok ${result.max} adet sipariş verebilirsin.`;
+      break;
+    case "shop_closed":
+      message = "Mağaza şu an sipariş almıyor. Birazdan yeniden dene.";
+      break;
+    case "empty":
+      message = "Sepetin boş görünüyor. Mağazadan ürün ekleyip yeniden dene.";
+      break;
+  }
+  return { kind: "error", error: { code: "cart", message } };
+}
+
+const UNAVAILABLE: CheckoutStart = {
+  kind: "error",
+  error: {
+    code: "unavailable",
+    message:
+      "Ödeme şu an başlatılamadı ve kartından para çekilmedi. Birazdan yeniden dene.",
+  },
+};
+
+/**
+ * "Siparişi onayla ve öde" on /odeme: creates the order - or reuses the one
+ * an earlier, unpaid attempt created - and answers with what the browser
+ * needs for the next step (docs/PAYNKOLAY.md §15.5).
+ *
+ * The card never comes here. It is typed in the page's native pay form,
+ * which posts straight to /odeme/paynkolay once this answers `card` with the
+ * order's sealed payment payload; this action reads only the separate order
+ * form (`tests/saved-cards.test.ts` keeps card names out of this file).
+ */
+export async function startCheckoutAction(
+  formData: FormData,
+): Promise<CheckoutStart> {
   // Siparişler yalnızca e-postası doğrulanmış hesaplarla verilebilir.
   const customer = await getActiveCustomer();
   if (!customer) {
-    redirect("/uye/giris?next=/odeme");
+    return { kind: "redirect", url: "/uye/giris?next=/odeme" };
   }
   if (!customer.emailVerified) {
-    redirect("/odeme?verify=required");
+    return { kind: "redirect", url: "/odeme?verify=required" };
+  }
+
+  // Every press can create an order: a stock and coupon claim and
+  // POS lookups for the member's older unpaid orders. Counted first, success
+  // or not, per member (rate-limit.ts, "checkout-start").
+  const budget = await reserveLoginAttempt(
+    "checkout-start",
+    "",
+    customer.email,
+  );
+  if (budget.blocked) {
+    const minutes = Math.max(1, Math.ceil(budget.retryAfterSeconds / 60));
+    return {
+      kind: "error",
+      error: {
+        code: "limit",
+        minutes,
+        message: `Çok fazla deneme yapıldı. ${minutes} dakika sonra yeniden dene.`,
+      },
+    };
   }
 
   const items = parseItems(String(formData.get("items") ?? "[]"));
+  if (items.length === 0) return cartRefusal({ ok: false, reason: "empty" });
 
-  if (items.length === 0) {
-    redirect("/?cart=empty");
-  }
-
-  // No confirmation, no contract: the order is never created. The checkbox is
-  // also `required` client-side, so reaching this branch means a tampered or
-  // scripted submit.
+  // No confirmation, no contract: the order is never created. The button is
+  // disabled until both boxes are ticked and the hidden field exists only
+  // then, so reaching this branch means a tampered or scripted submit.
   const legalConsent = await readLegalConsent(formData);
   if (!legalConsent) {
-    redirect("/odeme?error=consent");
+    return {
+      kind: "error",
+      error: {
+        code: "consent",
+        message:
+          "Siparişi tamamlamak için Ön Bilgilendirme Formu'nu ve Mesafeli Satış Sözleşmesi'ni onaylaman gerekiyor.",
+      },
+    };
   }
+
+  const parsed = parseCheckoutFields({
+    customerName: formData.get("customerName"),
+    customerPhone: formData.get("customerPhone"),
+    shippingAddress: formData.get("shippingAddress"),
+    promoCode: formData.get("promoCode"),
+  });
+  if (!parsed.ok) {
+    return {
+      kind: "error",
+      error: { code: "delivery", field: parsed.field, message: parsed.message },
+    };
+  }
+  const fields = parsed.fields;
+  const submitted: CartKeyInput = {
+    items: items.map((it) => ({
+      productId: it.productId,
+      variantId: it.variantId,
+      name: it.name,
+      qty: it.qty,
+    })),
+    customerName: fields.customerName,
+    customerPhone: fields.customerPhone,
+    shippingAddress: fields.shippingAddress,
+    promoCode: fields.promoCode,
+  };
 
   // The provider is resolved BEFORE the order exists. It used to be looked
   // up after placeOrder and the "siparişin alındı" mail, so a misconfigured
   // deployment (PAYMENT_PROVIDER unset or mock in production - rule 17)
   // left a pending order holding stock and a mailed customer behind a 500.
   // The app path already worked this way.
-  const provider = getPaymentProvider();
-
-  const result = await placeOrder({
-    items: items.map((it) => ({
-      productId: it.productId,
-      variantId: it.variantId,
-      name: it.name,
-      priceMinor: Math.round(it.price * 100),
-      qty: it.qty,
-    })),
-    customerName:
-      String(formData.get("customerName") ?? "") || customer.name || undefined,
-    // Doğrulanmış hesabın e-postası yetkilidir (client değeri override edilir).
-    customerEmail: customer.email,
-    customerPhone:
-      String(formData.get("customerPhone") ?? "") ||
-      customer.phone ||
-      undefined,
-    shippingAddress: String(formData.get("shippingAddress") ?? "") || undefined,
-    promoCode: String(formData.get("promoCode") ?? "") || undefined,
-    legalConsent,
-  });
-
-  if (!result.ok) {
-    if (result.reason === "empty") redirect("/?cart=empty");
-    const params = new URLSearchParams({
-      cart: result.reason,
-      item: "productName" in result ? result.productName : "",
-      // `available` doubles as the numeric detail for the notice: the stock
-      // left, or the per-line cap.
-      available:
-        "available" in result
-          ? String(result.available)
-          : "max" in result
-            ? String(result.max)
-            : "",
-    });
-    redirect(`/?${params.toString()}`);
+  let provider: ReturnType<typeof getPaymentProvider>;
+  try {
+    provider = getPaymentProvider();
+  } catch (err) {
+    console.error(
+      "[odeme] payment provider unavailable",
+      err instanceof Error ? err.message : "unknown",
+    );
+    return UNAVAILABLE;
   }
+  const direct =
+    provider instanceof PaynkolayPaymentProvider &&
+    provider.checkoutMode === "direct"
+      ? provider
+      : null;
+
+  // A retry after a decline: the same order, if the browser's claim holds
+  // in every respect (src/lib/checkout/reuse.ts). Nothing is claimed or
+  // minted again; the payload handed back is the one the order got.
+  const claim = parseReuseClaim({
+    reuseOrderId: formData.get("reuseOrderId"),
+    reuseData: formData.get("reuseData"),
+    reuseSignature: formData.get("reuseSignature"),
+    reuseCartKey: formData.get("reuseCartKey"),
+  });
+  if (claim && direct) {
+    const post = direct.readBridgePost(claim.data, claim.signature);
+    const fresh =
+      !!post &&
+      direct.isBridgeFresh(post, new Date(Date.now() + REUSE_HEADROOM_MS));
+    let order: AdminOrder | null = null;
+    if (post && fresh && post.fields.clientRefCode === claim.orderId) {
+      try {
+        order = await getOrder(claim.orderId);
+      } catch (err) {
+        console.error(
+          `[odeme] pending order unreadable order=${claim.orderId}`,
+          err instanceof Error ? err.message : "unknown",
+        );
+      }
+    }
+    const decision = reuseDecision({
+      claim: { orderId: claim.orderId, cartKey: claim.cartKey },
+      payload: post
+        ? {
+            clientRefCode: post.fields.clientRefCode,
+            amount: post.fields.amount,
+          }
+        : null,
+      fresh,
+      order,
+      customerEmail: customer.email,
+      submitted,
+    });
+    if (decision.reuse && order) {
+      // Ask the POS BEFORE the old payload goes out again: the customer may
+      // have paid at the bank and lost the return (a closed tab, a dropped
+      // connection), and a second press must never charge the same order
+      // twice. Paid: it is booked and the customer goes to the success page.
+      // Unpaid: the order is reused as decided. Unknown (the POS could not
+      // be asked): not reused - a new order is made, and the old one is
+      // judged by the sweep, which asks the POS again.
+      const verdict = await checkPendingOrderPaid(order, direct);
+      if (verdict === "paid") {
+        return {
+          kind: "paid",
+          url: `/odeme/basarili?ref=${encodeURIComponent(order.id)}`,
+        };
+      }
+      if (verdict === "unpaid") {
+        return {
+          kind: "card",
+          d: claim.data,
+          s: claim.signature,
+          quote: quoteOf(order, submitted, false),
+        };
+      }
+      console.info(
+        `[odeme] new order instead of reuse order=${claim.orderId} reason=pos_unknown`,
+      );
+    } else {
+      console.info(
+        `[odeme] new order instead of reuse order=${claim.orderId} reason=${decision.reuse ? "unread" : decision.reason}`,
+      );
+    }
+  }
+
+  let result: Awaited<ReturnType<typeof placeOrder>>;
+  try {
+    result = await placeOrder({
+      items: items.map((it) => ({
+        productId: it.productId,
+        variantId: it.variantId,
+        name: it.name,
+        priceMinor: Math.round(it.price * 100),
+        qty: it.qty,
+      })),
+      customerName: fields.customerName,
+      // Doğrulanmış hesabın e-postası yetkilidir (client değeri yok sayılır).
+      customerEmail: customer.email,
+      customerPhone: fields.customerPhone,
+      shippingAddress: fields.shippingAddress,
+      promoCode: fields.promoCode || undefined,
+      legalConsent,
+    });
+  } catch (err) {
+    console.error(
+      "[odeme] placing the order failed",
+      err instanceof Error ? err.message : "unknown",
+    );
+    return UNAVAILABLE;
+  }
+  if (!result.ok) return cartRefusal(result);
 
   revalidatePath("/admin/siparisler");
   revalidatePath("/admin");
   revalidatePath("/");
 
-  // Hand off to the payment provider. The order is `pending_payment`; the
-  // provider's checkout settles it (mock → /odeme/donus auto-confirms in dev,
-  // a real POS → its signed webhook). We redirect the customer to the
-  // provider's `redirectUrl`. The promo-dropped flag rides through the return
-  // URL so the success page can still warn.
   const order = result.order;
 
-  // Best-effort "order received" e-mail (logs in dev when Resend is unset).
-  try {
-    await sendOrderPlacedEmail({
-      to: order.customerEmail,
-      customerName: order.customerName,
-      orderNo: order.orderNo,
-      items: order.items.map((it) => ({
-        productName: it.productName,
-        qty: it.qty,
-        unitPriceMinor: it.unitPriceMinor,
-      })),
-      subtotalMinor: order.subtotalMinor,
-      shippingMinor: order.shippingMinor,
-      totalMinor: order.totalMinor,
-    });
-  } catch (err) {
-    console.error("[email] order placed notification failed", err);
-  }
+  // No "siparişin alındı" mail here: the order is not paid yet, and a
+  // declined card used to leave one such mail per attempt. The customer's
+  // mail goes out once the payment moves the order to paid
+  // (`applyPaymentSucceeded` → `notifyOrderPaid`); the zero-total settle
+  // below goes through the same door.
 
+  const quote = quoteOf(order, submitted, result.promoDropped);
   const promoQuery = result.promoDropped ? "?promo=dropped" : "";
 
   // Nothing to collect: a 100% promo, or a fixed coupon at least as large as
@@ -267,42 +492,107 @@ export async function placeOrderAction(formData: FormData) {
       raw: { source: "zero_total" },
     });
     if (!settled.ok) {
+      // Nothing was charged, but the order is not paid either: saying "paid"
+      // sent the customer to a success page for an order that stays pending
+      // and is then swept. An error instead; the retry has no payload to
+      // reuse (a zero-total order never had one) and makes a new order.
       console.error(
-        "[odeme] settling a zero-total order failed",
+        `[odeme] settling a zero-total order failed order=${order.id}`,
         settled.error,
       );
+      return UNAVAILABLE;
     }
     const promoParam = result.promoDropped ? "&promo=dropped" : "";
-    redirect(
-      `/odeme/basarili?ref=${encodeURIComponent(order.id)}${promoParam}`,
-    );
+    return {
+      kind: "paid",
+      url: `/odeme/basarili?ref=${encodeURIComponent(order.id)}${promoParam}`,
+    };
   }
 
-  const session = await provider.createCheckoutSession({
-    orderId: order.id,
-    amountMinor: order.totalMinor,
-    currency: "TRY",
-    customer: {
-      id: customer.id,
-      email: customer.email,
-      fullName: customer.name,
-      phone: customer.phone || undefined,
-    },
-    billingAddress: { city: "", district: "", line1: order.shippingAddress },
-    shippingAddress: { city: "", district: "", line1: order.shippingAddress },
-    items: order.items.map((it) => ({
-      productId: "",
-      name: it.productName,
-      unitPriceMinor: it.unitPriceMinor,
-      quantity: it.qty,
-    })),
-    successUrl: `${SITE.url}/odeme/donus${promoQuery}`,
-    failureUrl: `${SITE.url}/odeme?error=payment`,
-    buyerIp: legalConsent.ip,
-    // The same saved cards as in the app: one member, one set of cards,
-    // whichever surface they check out from.
-    cardUserKey: (await getCardUserKey(customer.email)) || undefined,
-  });
+  try {
+    const session = await provider.createCheckoutSession({
+      orderId: order.id,
+      amountMinor: order.totalMinor,
+      currency: "TRY",
+      customer: {
+        id: customer.id,
+        email: customer.email,
+        fullName: customer.name,
+        phone: customer.phone || undefined,
+      },
+      billingAddress: { city: "", district: "", line1: order.shippingAddress },
+      shippingAddress: { city: "", district: "", line1: order.shippingAddress },
+      items: order.items.map((it) => ({
+        productId: "",
+        name: it.productName,
+        unitPriceMinor: it.unitPriceMinor,
+        quantity: it.qty,
+      })),
+      successUrl: `${SITE.url}/odeme/donus${promoQuery}`,
+      failureUrl: `${SITE.url}/odeme?error=payment`,
+      buyerIp: legalConsent.ip,
+      // The same saved cards as in the app: one member, one set of cards,
+      // whichever surface they check out from (docs/PAYNKOLAY.md §16). No
+      // key is minted while PayNkolay has not granted card storage.
+      cardUserKey: direct?.cardStorageEnabled
+        ? (await ensureCardUserKey(customer.email)) || undefined
+        : undefined,
+    });
+    if (!direct) {
+      return { kind: "redirect", url: session.redirectUrl, quote };
+    }
+    // The card form posts the payload itself; the bridge URL's host (from
+    // PAYNKOLAY_SUCCESS_URL) is not used, so www and apex both work.
+    const bridge = new URL(session.redirectUrl);
+    const d = bridge.searchParams.get("d") ?? "";
+    const s = bridge.searchParams.get("s") ?? "";
+    if (!d || !s) throw new Error("checkout session carries no payload");
+    return { kind: "card", d, s, quote };
+  } catch (err) {
+    console.error(
+      `[odeme] payment session failed order=${order.id}`,
+      err instanceof Error ? err.message : "unknown",
+    );
+    return UNAVAILABLE;
+  }
+}
 
-  redirect(session.redirectUrl);
+/**
+ * Deletes one of the signed-in member's cards saved at PayNkolay, from the
+ * checkout's list. The member's key is the signed-in account's own
+ * (`deleteCheckoutSavedCard`); the browser only names the card by `tranId`.
+ * Counted per member: each delete is two calls to the POS.
+ */
+export async function deleteSavedCardAction(
+  formData: FormData,
+): Promise<SavedCardsChange> {
+  const customer = await getActiveCustomer();
+  if (!customer || !customer.emailVerified) {
+    return {
+      ok: false,
+      message:
+        "Oturumun kapanmış görünüyor. Sayfayı yenileyip yeniden giriş yap.",
+    };
+  }
+  const tranId = String(formData.get("tranId") ?? "").trim();
+  if (!/^[A-Za-z0-9._:-]{1,64}$/.test(tranId)) {
+    return { ok: false, message: "Silinecek kart bulunamadı." };
+  }
+  const budget = await reserveLoginAttempt("card-delete", "", customer.email);
+  if (budget.blocked) {
+    const minutes = Math.max(1, Math.ceil(budget.retryAfterSeconds / 60));
+    return {
+      ok: false,
+      message: `Çok fazla deneme yapıldı. ${minutes} dakika sonra yeniden dene.`,
+    };
+  }
+  const result = await deleteCheckoutSavedCard(customer.email, tranId);
+  if (result.ok) return { ok: true, cards: result.cards };
+  return {
+    ok: false,
+    message:
+      result.reason === "not_found"
+        ? "Silinecek kart bulunamadı."
+        : "Kart şu an silinemedi. Birazdan yeniden dene.",
+  };
 }

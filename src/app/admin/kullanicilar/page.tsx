@@ -1,9 +1,15 @@
 import { Card, PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
 import { ROLE_LABELS } from "@/lib/admin/roles";
+import { listStaffMembers } from "@/lib/admin/staff-members";
 import { listAdminUsers, MIN_ADMIN_PASSWORD_LENGTH } from "@/lib/admin/users";
 
-import { AdminUserRow, CreateAdminUserForm } from "./user-forms";
+import {
+  AdminUserRow,
+  BaristaRow,
+  CreateAdminUserForm,
+  GrantBaristaForm,
+} from "./user-forms";
 
 export const metadata = { title: "Admin · Kullanıcılar" };
 export const dynamic = "force-dynamic";
@@ -18,7 +24,10 @@ export const dynamic = "force-dynamic";
  */
 export default async function AdminUsersPage() {
   await requireRole("adminUsers");
-  const users = await listAdminUsers();
+  const [users, baristas] = await Promise.all([
+    listAdminUsers(),
+    listStaffMembers(),
+  ]);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
@@ -63,6 +72,43 @@ export default async function AdminUsersPage() {
             hesabı kapatılamaz; ortam değişkenindeki hesaplar bu listede
             görünmez ve acil giriş için durur.
           </p>
+        </Card>
+
+        <Card>
+          <div className="grid gap-4">
+            <div className="grid gap-1">
+              <h2 className="text-base font-semibold">
+                Uygulamadan kasa (barista)
+              </h2>
+              <p className="text-xs leading-relaxed text-[var(--admin-text-mute)]">
+                Barista panele girmez: kendi üye hesabıyla açtığı uygulamadan
+                üyenin QR&apos;ını okutur ve damga verir. Kasadakiyle aynı
+                kurallar geçerli: kod 2 dakika yaşar, bir kod bir kez damga
+                verir, barista kendi koduna damga veremez. Yetki kaldırıldığında
+                bir sonraki okutma reddedilir.
+              </p>
+            </div>
+            <GrantBaristaForm />
+            {baristas.length === 0 ? (
+              <p className="text-sm text-[var(--admin-text-mute)]">
+                Henüz uygulamadan kasa yetkisi verilmiş üye yok.
+              </p>
+            ) : (
+              baristas.map((b) => (
+                <BaristaRow
+                  key={b.email}
+                  barista={{
+                    email: b.email,
+                    name: b.name,
+                    isActive: b.isActive,
+                    grantedBy: b.grantedBy,
+                    grantedAt: b.grantedAt,
+                    updatedAt: b.updatedAt,
+                  }}
+                />
+              ))
+            )}
+          </div>
         </Card>
       </div>
     </main>

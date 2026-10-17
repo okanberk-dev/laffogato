@@ -29,6 +29,7 @@ import {
   type AdminOrderItemStatus,
   type OrderTransition,
 } from "@/lib/admin/store";
+import { creditWalletRefund, WALLET_PROVIDER } from "@/lib/mobile/wallet";
 import { getPaymentProvider } from "@/lib/payment";
 import { parseMoneyInput } from "@/lib/utils/format";
 
@@ -226,7 +227,35 @@ export async function refundOrderAction(
   if (!reserved.ok) return { error: reserved.error };
 
   const ref = await getOrderPaymentRef(id);
-  if (ref) {
+  if (ref?.provider === WALLET_PROVIDER) {
+    // Paid from the member's wallet: the money goes back to the wallet, never
+    // to a card - there is no card transaction behind this order, and the POS
+    // would either refuse the wallet reference or (the mock) "refund" a card
+    // that was never charged. One credit per refund entry, so a retry of this
+    // action cannot credit twice.
+    try {
+      await creditWalletRefund({
+        orderId: id,
+        refundId: reserved.refund.id,
+        amountMinor,
+        title: `İade · Sipariş #${order.orderNo}`,
+      });
+    } catch (err) {
+      console.error("[refund] wallet credit failed", err);
+      try {
+        await releaseRefund(id, reserved.refund.id);
+      } catch (releaseErr) {
+        console.error(
+          `[refund] RESERVED BUT NOT CREDITED order=${id} refund=${reserved.refund.id}`,
+          releaseErr,
+        );
+      }
+      return {
+        error:
+          "Cüzdan iadesi yazılamadı; hiçbir kayıt oluşturulmadı. Birazdan tekrar deneyin.",
+      };
+    }
+  } else if (ref) {
     try {
       // The payment row's own date and amount let the provider skip
       // searching its history for the transaction; rows from before the
@@ -259,7 +288,8 @@ export async function refundOrderAction(
     // refund booked without a POS says nothing about a card.
     await finalizeRefund(reserved.order, {
       refund: reserved.refund,
-      viaCard: Boolean(ref),
+      // A wallet refund went back to the wallet, not to a card.
+      viaCard: Boolean(ref) && ref?.provider !== WALLET_PROVIDER,
     });
   } catch (err) {
     // The money moved and the ledger entry stands; only the status/stamp

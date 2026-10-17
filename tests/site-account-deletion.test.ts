@@ -39,11 +39,16 @@ vi.mock("@/lib/customer/store", () => ({
   verifyCustomerLogin: vi.fn(),
 }));
 vi.mock("@/lib/mobile/me", () => ({ deleteMe }));
+const reserveLoginAttempt = vi.fn();
+vi.mock("@/lib/admin/rate-limit", () => ({
+  clearLoginLimit: vi.fn(),
+  clientIp: vi.fn(async () => "203.0.113.4"),
+  reserveLoginAttempt,
+}));
 
 const { deleteAccountAction } = await import("@/app/uye/actions");
-const { accountClosureNotice, accountClosureParam } = await import(
-  "@/lib/customer/account-closure"
-);
+const { accountClosureNotice, accountClosureParam } =
+  await import("@/lib/customer/account-closure");
 
 function form(fields: Record<string, string>): FormData {
   const fd = new FormData();
@@ -56,6 +61,11 @@ beforeEach(() => {
   getActiveCustomer.mockResolvedValue({ email: "eda@example.com" });
   checkSitePassword.mockResolvedValue("match");
   deleteMe.mockResolvedValue({ ok: true, identity: "deleted" });
+  reserveLoginAttempt.mockResolvedValue({
+    blocked: false,
+    remaining: 4,
+    retryAfterSeconds: 0,
+  });
 });
 
 describe("deleteAccountAction", () => {
@@ -111,6 +121,27 @@ describe("deleteAccountAction", () => {
     expect(deleteMe).not.toHaveBeenCalled();
   });
 
+  it("stops checking passwords once the login budget is spent", async () => {
+    // A session holder could otherwise guess the password here without limit.
+    reserveLoginAttempt.mockResolvedValue({
+      blocked: true,
+      remaining: 0,
+      retryAfterSeconds: 60,
+    });
+    const res = await deleteAccountAction(
+      {},
+      form({ confirmEmail: "eda@example.com", password: "tahmin" }),
+    );
+    expect(res.error).toMatch(/çok fazla başarısız deneme/i);
+    expect(reserveLoginAttempt).toHaveBeenCalledWith(
+      "customer-login",
+      "203.0.113.4",
+      "eda@example.com",
+    );
+    expect(checkSitePassword).not.toHaveBeenCalled();
+    expect(deleteMe).not.toHaveBeenCalled();
+  });
+
   it("lets a social-login account through with no password", async () => {
     // No local passwordHash → "none"; asking for a password would lock the
     // member out of the only self-service route they have.
@@ -147,7 +178,9 @@ describe("the notice the home page shows after a closure", () => {
     expect(accountClosureParam("skipped")).toBe("kapatildi");
     expect(accountClosureParam("failed")).toBe("kapatildi");
     expect(accountClosureParam(undefined)).toBe("kapatildi");
-    expect(accountClosureNotice("silindi")).toContain("Kişisel verilerin silindi");
+    expect(accountClosureNotice("silindi")).toContain(
+      "Kişisel verilerin silindi",
+    );
     expect(accountClosureNotice("kapatildi")).toBe("Hesabın kapatıldı.");
     expect(accountClosureNotice("kapatildi")).not.toMatch(/silindi|anonim/);
   });

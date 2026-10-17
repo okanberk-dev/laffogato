@@ -140,6 +140,15 @@ describe("what the app is told", () => {
   });
 });
 
+/**
+ * iOS writes a subtree as `/masa/*`, Android's intent filter as the prefix
+ * `/masa/`. Both mean "every URL under /masa/", so the comparison strips the
+ * wildcard and the trailing slash on both sides.
+ */
+function sameClaim(path: string): string {
+  return path.replace(/\*$/, "").replace(/\/$/, "");
+}
+
 describe("the paths the app is allowed to intercept", () => {
   const AASA = readFileSync(
     "src/app/.well-known/apple-app-site-association/route.ts",
@@ -182,16 +191,32 @@ describe("the paths the app is allowed to intercept", () => {
     expect(AASA).toContain('"NOT /uye/*"');
   });
 
+  it("does not claim the table QR path before an app can open it", () => {
+    // No released app has a /masa/<code> screen yet; an iPhone with the app
+    // would open its not-found screen instead of the web menu. Flip this
+    // with the lafmobil release that ships the table screen (§22).
+    const claimed = [...AASA.matchAll(/^\s+"(\/[^"]*)",$/gm)].map((m) => m[1]);
+    expect(claimed.filter((p) => p.startsWith("/masa"))).toEqual([]);
+  });
+
+  it("compares iOS wildcards and Android prefixes as the same claim", () => {
+    expect(sameClaim("/masa/*")).toBe("/masa");
+    expect(sameClaim("/masa/")).toBe("/masa");
+    expect(sameClaim("/karaoke")).toBe("/karaoke");
+  });
+
   it("matches what Android claims, since Android has no NOT rule to fall back on", () => {
     const appJson = "../lafmobil/app.json";
     if (!existsSync(appJson)) return; // the app repo is not always checked out
     const config = JSON.parse(readFileSync(appJson, "utf8"));
     const prefixes = new Set<string>(
       config.expo.android.intentFilters[0].data.map(
-        (d: { pathPrefix?: string }) => d.pathPrefix ?? "",
+        (d: { pathPrefix?: string }) => sameClaim(d.pathPrefix ?? ""),
       ),
     );
-    const claimed = [...AASA.matchAll(/^\s+"(\/[^"]*)",$/gm)].map((m) => m[1]);
+    const claimed = [...AASA.matchAll(/^\s+"(\/[^"]*)",$/gm)].map((m) =>
+      sameClaim(m[1]),
+    );
     expect([...prefixes].sort()).toEqual(claimed.sort());
     // And no bare host claim, which would take the whole domain regardless.
     for (const entry of config.expo.android.intentFilters[0].data) {

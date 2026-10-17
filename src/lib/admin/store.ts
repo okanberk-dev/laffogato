@@ -1,4 +1,7 @@
 import "server-only";
+
+import { cache } from "react";
+import { after } from "next/server";
 import { isHandedOver, isStaleShipmentEvent } from "@/lib/mobile/geliver";
 
 import type { DbError } from "@/lib/db";
@@ -29,10 +32,11 @@ import {
 import {
   cancelNoticeDue,
   notifyOrderCancelled,
+  notifyOrderPaid,
   notifyOrderRefunded,
   notifyOrderShipped,
 } from "@/lib/email/order-notices";
-import { sendOrderPaidEmail } from "@/lib/email/send";
+import { normalizeNotifyRoles } from "@/lib/email/staff-order-notice-core";
 import {
   DEFAULT_MOBILE_APP_CONFIG,
   normalizeMobileAppConfig,
@@ -49,6 +53,11 @@ import {
 } from "@/lib/mobile/order-pricing";
 import type { CheckoutConfig } from "@/lib/utils/commerce";
 import { priceLabel } from "@/lib/utils/format";
+import {
+  WALLET_PROVIDER,
+  walletProviderRef,
+  walletSpendFor,
+} from "@/lib/mobile/wallet";
 import { imageVersion } from "./image-bytes";
 import {
   heroImagePath,
@@ -70,6 +79,7 @@ import type {
   ReturnConfirmation,
 } from "@/lib/payment/provider";
 import type { WeeklyHours } from "./days";
+import type { AdminRole } from "./roles";
 import {
   orderChannel,
   type OrderChannel,
@@ -357,6 +367,14 @@ export interface AdminOrder {
    * what makes a retried `POST /orders` return this order instead of a second.
    */
   clientOrderId?: string;
+  /**
+   * Table orders (`fulfillment: "table"`, docs/API-MOBILE.md §3): the code
+   * and name of the table the order was placed at, copied when the order is
+   * written - a table renamed or re-coded later does not rewrite the order.
+   * "" on every other order. Read through `orderTable()`.
+   */
+  tableCode?: string;
+  tableName?: string;
 }
 
 export {
@@ -366,6 +384,7 @@ export {
   orderChannel,
   orderFulfillment,
   orderKind,
+  orderTable,
 } from "./order-channel";
 
 export type { DayOfWeek, OpeningHour, WeeklyHours } from "./days";
@@ -406,6 +425,17 @@ export interface AdminSettings {
   notificationEmail: string;
 
   /**
+   * The staff "yeni sipariş" mail (`src/lib/email/staff-order-notice.ts`),
+   * sent once when an order's payment is confirmed: the switch, the panel
+   * roles whose active accounts receive it (env break-glass accounts by their
+   * env role), and extra addresses, comma or newline separated. The
+   * operations address above is always among the recipients while it is on.
+   */
+  orderNotifyEnabled: boolean;
+  orderNotifyRoles: AdminRole[];
+  orderNotifyEmails: string;
+
+  /**
    * Transactional e-mail sender (Resend). Resend only delivers from a domain
    * verified on the account, so when that domain moves the address has to move
    * with it - from here, not from a deploy. Empty address = fall back to
@@ -429,6 +459,13 @@ export interface AdminSettings {
    * the app or the web. Empty falls back to `email`.
    */
   karaokeNotifyEmail: string;
+  /**
+   * Karaoke bookings are paid online when they are made (PayNkolay, operator
+   * 16 Eki 2026) and confirm themselves once paid. Off: the old flow - a
+   * request the staff confirm, paid at the venue. Applies to new bookings
+   * only: from the web, and from app builds that opt in (`prepay: true`).
+   */
+  karaokePrepay: boolean;
 
   /**
    * Everything else the app is configured with (/admin/mobil/ayarlar,
@@ -575,6 +612,9 @@ function defaultSettings(): AdminSettings {
     seoOgImageUrl: "",
     seoIndexable: true,
     notificationEmail: "",
+    orderNotifyEnabled: true,
+    orderNotifyRoles: ["owner", "manager", "cashier"],
+    orderNotifyEmails: "",
     emailFromName: "L'Affogato",
     emailFromAddress: "",
     emailReplyTo: "",
@@ -584,6 +624,8 @@ function defaultSettings(): AdminSettings {
     karaokeHourlyMinor: 100000,
     karaokeCapacity: 8,
     karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+    // 20261016063311_karaoke_prepay.sql gives the column the same default.
+    karaokePrepay: true,
     // A fresh copy: the constant is frozen and callers may edit sections.
     mobileApp: normalizeMobileAppConfig(DEFAULT_MOBILE_APP_CONFIG),
   };
@@ -1275,16 +1317,86 @@ export async function countOrdersAfter(orderNo: number): Promise<number> {
   return count ?? 0;
 }
 
-export async function listOrders(): Promise<AdminOrder[]> {
+// There is deliberately no "every order, every column" reader any more (WP1).
+// `listOrders()` had five callers and each one wanted a page, five rows or a
+// few columns; reading the whole table with its jsonb was 596 ms and 27 MB
+// per call at 20k orders. Read what the screen needs: `listRecentOrders`,
+// `listOrdersPage`, or a projection like `reportOrders` below.
+
+/**
+ * The newest `limit` orders, whole rows.
+ *
+ * WP1: the dashboard used to read every order, every column,
+ * including the items, refund ledger and consent evidence jsonb - to show
+ * five of them. Measured on 20k orders: 596 ms and 27 MB per dashboard view,
+ * against 1 ms for this (a walk down `orders_orderno_key`).
+ */
+export async function listRecentOrders(limit: number): Promise<AdminOrder[]> {
   await ensureSeed();
   const sb = getDb();
   return rows<AdminOrder>(
     await sb
       .from(TABLES.orders)
       .select("*")
-      .order("orderNo", { ascending: false }),
-    "listOrders",
+      .order("orderNo", { ascending: false })
+      .limit(Math.max(1, Math.trunc(limit))),
+    "listRecentOrders",
   );
+}
+
+/** How many orders `/admin/siparisler` shows per page. */
+export const ORDERS_PAGE_SIZE = 100;
+
+export interface OrdersPage {
+  orders: AdminOrder[];
+  /** Every order in the table, for the "N sipariş" line. */
+  total: number;
+  /**
+   * The `orderNo` to pass as `before` for the next (older) page, or null when
+   * this page reached the oldest order.
+   */
+  nextBefore: number | null;
+}
+
+/**
+ * One page of the order list, newest first, keyed on `orderNo`.
+ *
+ * WP1: the page used to render the whole table into a
+ * client component, so every order's jsonb went over the wire to the
+ * operator's browser and was hydrated there (27 MB of JSON for 20k orders).
+ *
+ * Keyset rather than offset (the query builder has no offset, and a keyset
+ * page does not shift when a new order arrives while the operator is paging):
+ * `before` is the last `orderNo` of the previous page. One row more than the
+ * page is read to learn whether an older page exists.
+ */
+export async function listOrdersPage(input: {
+  before?: number | null;
+  pageSize?: number;
+}): Promise<OrdersPage> {
+  await ensureSeed();
+  const sb = getDb();
+  const size = Math.max(1, Math.trunc(input.pageSize ?? ORDERS_PAGE_SIZE));
+  let q = sb
+    .from(TABLES.orders)
+    .select("*")
+    .order("orderNo", { ascending: false })
+    .limit(size + 1);
+  const before = input.before;
+  if (typeof before === "number" && Number.isFinite(before)) {
+    q = q.lt("orderNo", Math.trunc(before));
+  }
+  const [page, total] = await Promise.all([
+    q.then((r) => rows<AdminOrder>(r, "listOrdersPage")),
+    countRows(TABLES.orders),
+  ]);
+  const orders = page.slice(0, size);
+  return {
+    orders,
+    total,
+    nextBefore:
+      page.length > size ? (orders[orders.length - 1]?.orderNo ?? null) : null,
+  };
 }
 
 export interface CustomerSummary {
@@ -1298,8 +1410,31 @@ export interface CustomerSummary {
   firstOrderAt: string;
 }
 
+/** The order columns the customer roll-up reads. */
+type CustomerSummaryOrder = Pick<
+  AdminOrder,
+  | "customerEmail"
+  | "customerName"
+  | "customerPhone"
+  | "totalMinor"
+  | "refunds"
+  | "createdAt"
+>;
+
 export async function listCustomers(): Promise<CustomerSummary[]> {
-  const orders = await listOrders();
+  // Six columns, not `select *`: the roll-up needs every order (it counts a
+  // lifetime) but none of the items, addresses or consent evidence. WP1,
+  // measured on 20k orders: 596 ms / 27 MB -> 67 ms / 3.4 MB.
+  await ensureSeed();
+  const orders = rows<CustomerSummaryOrder>(
+    await getDb()
+      .from(TABLES.orders)
+      .select(
+        "customerEmail, customerName, customerPhone, totalMinor, refunds, createdAt",
+      )
+      .order("orderNo", { ascending: false }),
+    "listCustomers",
+  );
   const byEmail = new Map<string, CustomerSummary>();
   for (const o of orders) {
     const email = o.customerEmail?.trim().toLowerCase();
@@ -1770,8 +1905,47 @@ interface FinalizeOrderInput {
   fulfillment?: OrderFulfillment;
   scheduledFor?: string;
   deliveryNote?: string;
+  /** Table orders only: the table snapshot (see `AdminOrder.tableCode`). */
+  tableCode?: string;
+  tableName?: string;
   /** How shipping is charged; the shop's settings when omitted. */
   shipping?: ShippingMode;
+  /**
+   * Pay the whole order from the member's wallet (docs/API-MOBILE.md §18).
+   * The row and the spend are written by `wallet_place_order` in one
+   * transaction; a balance that does not cover the total writes neither and
+   * throws {@link WalletDeclinedError}. Ignored on a ₺0 order.
+   */
+  payWithWallet?: boolean;
+  /**
+   * With `payWithWallet`: the total the member agreed to. A different
+   * server total writes nothing and throws {@link WalletTotalChangedError}.
+   */
+  expectedTotalMinor?: number;
+}
+
+/**
+ * A wallet order whose server total is not the one the member agreed to.
+ * Nothing was written or charged, and the claimed discount was handed back:
+ * a wallet payment is taken at once, so it cannot be shown first.
+ */
+export class WalletTotalChangedError extends Error {
+  constructor(readonly totalMinor: number) {
+    super(`wallet order total changed to ${totalMinor}`);
+    this.name = "WalletTotalChangedError";
+  }
+}
+
+/**
+ * The wallet could not cover the order: nothing was written, and whatever
+ * discount the order claimed has been handed back. The caller answers 409
+ * `insufficient_balance`.
+ */
+export class WalletDeclinedError extends Error {
+  constructor(orderId: string) {
+    super(`wallet balance does not cover order ${orderId}`);
+    this.name = "WalletDeclinedError";
+  }
 }
 
 /** Order lines as they are written, from lines resolved against `products`. */
@@ -1913,29 +2087,74 @@ async function insertOrderRow(
     ...(f.scheduledFor !== undefined ? { scheduledFor: f.scheduledFor } : {}),
     ...(f.deliveryNote !== undefined ? { deliveryNote: f.deliveryNote } : {}),
     ...(f.clientOrderId ? { clientOrderId: f.clientOrderId } : {}),
+    ...(f.tableCode
+      ? { tableCode: f.tableCode, tableName: f.tableName ?? "" }
+      : {}),
   };
+  // The discount was claimed before the row existed - deliberately, so it
+  // cannot be double-spent while the customer is on the POS page. If the row
+  // never lands, the claim has to come back: a member's single-use coupon
+  // was otherwise marked redeemed against an order number that does not
+  // exist, and a shared code lost a use nobody ever received.
+  const giveBackDiscount = async () => {
+    if (!promoCode) return;
+    // Never let the compensation replace the error that caused it.
+    try {
+      const returned = f.customerEmail
+        ? await releaseCustomerCoupon(promoCode, f.customerEmail, f.orderNo)
+        : false;
+      if (!returned) await releasePromoUsage(promoCode);
+      else await settleLoyaltyAfterRelease(f.customerEmail, f.orderNo);
+    } catch (releaseErr) {
+      console.error(
+        `[orders] releasing ${promoCode} after a failed order insert failed`,
+        releaseErr,
+      );
+    }
+  };
+
+  if (
+    f.payWithWallet &&
+    f.expectedTotalMinor !== undefined &&
+    order.totalMinor !== f.expectedTotalMinor
+  ) {
+    // Before anything is written: the total is this server's own, from the
+    // claimed discount and the database prices, so there is nothing to race.
+    await giveBackDiscount();
+    throw new WalletTotalChangedError(order.totalMinor);
+  }
+
+  if (f.payWithWallet && order.totalMinor > 0) {
+    // The row and the wallet spend in ONE transaction (the SQL function), so
+    // there is never an order the wallet did not pay for, nor a spend without
+    // its order. The total it debits is this row's own `totalMinor`.
+    let placed: boolean;
+    try {
+      const { data, error, status } = await sb.rpc<boolean | null>(
+        "wallet_place_order",
+        {
+          p_order: order,
+          p_title: `Sipariş #${order.orderNo}`,
+          p_created_at: createdAt,
+        },
+      );
+      if (error) raiseDbError("finalizeOrder.wallet", error, status);
+      placed = data === true;
+    } catch (err) {
+      await giveBackDiscount();
+      throw err;
+    }
+    if (!placed) {
+      await giveBackDiscount();
+      throw new WalletDeclinedError(order.id);
+    }
+    return { order, promoDropped };
+  }
+
   try {
     check(await sb.from(TABLES.orders).insert(order), "finalizeOrder.insert");
   } catch (err) {
-    // The discount was claimed before the row existed - deliberately, so it
-    // cannot be double-spent while the customer is on the POS page. If the row
-    // never lands, the claim has to come back: a member's single-use coupon
-    // was otherwise marked redeemed against an order number that does not
-    // exist, and a shared code lost a use nobody ever received.
-    if (promoCode) {
-      // Never let the compensation replace the error that caused it.
-      try {
-        const returned = f.customerEmail
-          ? await releaseCustomerCoupon(promoCode, f.customerEmail, f.orderNo)
-          : false;
-        if (!returned) await releasePromoUsage(promoCode);
-      } catch (releaseErr) {
-        console.error(
-          `[orders] releasing ${promoCode} after a failed order insert failed`,
-          releaseErr,
-        );
-      }
-    }
+    await giveBackDiscount();
     throw err;
   }
   return { order, promoDropped };
@@ -2038,7 +2257,23 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
 async function settlePendingFromProvider(
   order: AdminOrder,
   provider: PaymentProvider | null,
+  { onAmountMismatch = "unpaid" }: { onAmountMismatch?: PendingVerdict } = {},
 ): Promise<PendingVerdict> {
+  // The wallet first: an order whose spend exists WAS paid - the spend is
+  // written with the row - even if the process died before marking it so.
+  // It is booked now, and never cancelled here whatever the booking says:
+  // cancelling would keep the member's money for an order nobody makes.
+  const wallet = await settleWalletPayment(order.id);
+  if (wallet) {
+    if (!wallet.ok) {
+      console.error(
+        `[orders] wallet payment found but not booked order=${order.id}`,
+        wallet.error,
+      );
+    }
+    return "paid";
+  }
+
   if (!provider?.lookupPayment) return "unpaid";
 
   let found: ReturnConfirmation | null;
@@ -2073,8 +2308,33 @@ async function settlePendingFromProvider(
   // applyPaymentSucceeded has already put it in front of a human. It is
   // cancelled like any unpaid order, so its stock does not stay held while
   // that is sorted out - which is what the sweep always did with it.
-  if (applied.reconcile === "amount_mismatch") return "unpaid";
+  if (applied.reconcile === "amount_mismatch") return onAmountMismatch;
   return "paid";
+}
+
+/**
+ * Asks the POS whether this pending order was already paid, booking the
+ * payment when it was - the check the web checkout runs BEFORE it hands a
+ * customer the old order's payment payload again.
+ *
+ * The scenario it closes: the customer pays at the bank, the browser's
+ * return POST is lost, they press "öde" again and the same order is charged
+ * a second time. `paid` means the money is there and booked (go to the
+ * success page); `unpaid` means the POS knows nothing (the retry may reuse
+ * the order); `unknown` means the POS could not be asked - the caller must
+ * NOT reuse the order then. Short deadline (`POS_LOOKUP_TIMEOUT_MS`).
+ */
+export async function checkPendingOrderPaid(
+  order: AdminOrder,
+  provider: PaymentProvider | null,
+): Promise<PendingVerdict> {
+  // The POS collected a DIFFERENT amount: the sweep may cancel that order, but
+  // a checkout retry must not hand out its payload again (the customer would
+  // be charged on top of the wrong charge). "unknown" makes the caller open a
+  // new order and leaves the mismatch with the human it was put in front of.
+  return settlePendingFromProvider(order, provider, {
+    onAmountMismatch: "unknown",
+  });
 }
 
 /**
@@ -2189,6 +2449,41 @@ export async function supersedeUnpaidWebOrders(
     ),
   );
   return outcomes.filter((o) => o.status === "fulfilled" && o.value).length;
+}
+
+/**
+ * Whether order `orderNo` is the member's own web checkout still waiting
+ * for its payment.
+ *
+ * A single-use coupon is claimed when the order is created, before payment.
+ * After a declined card the customer is back on /odeme with that order
+ * pending, and the promo preview read the claim as "Bu kupon zaten
+ * kullanıldı" - although the next order would release it first
+ * (`supersedeUnpaidWebOrders`) and the retry may even pay for this very
+ * order. The preview asks this before calling the coupon spent.
+ */
+export async function isOwnUnpaidWebOrder(
+  customerEmail: string,
+  orderNo: number,
+): Promise<boolean> {
+  const owner = customerEmail.trim().toLowerCase();
+  if (!owner || !Number.isSafeInteger(orderNo) || orderNo <= 0) return false;
+  await ensureSeed();
+  const found = rows<AdminOrder>(
+    await getDb()
+      .from(TABLES.orders)
+      .select("*")
+      .eq("orderNo", orderNo)
+      .limit(1),
+    "isOwnUnpaidWebOrder",
+  );
+  const order = found[0];
+  return (
+    !!order &&
+    order.status === "pending_payment" &&
+    orderChannel(order) === "web" &&
+    order.customerEmail.trim().toLowerCase() === owner
+  );
 }
 
 export async function placeOrder(
@@ -2387,12 +2682,27 @@ export interface AppOrderInput {
    * POST is recognised instead of placing a second order.
    */
   clientOrderId?: string;
+  /**
+   * Pay from the member's wallet (docs/API-MOBILE.md §18): all of it or
+   * nothing. The caller has already checked that the wallet is enabled.
+   */
+  payWithWallet?: boolean;
+  /** With `payWithWallet`: the total the member agreed to (§18). */
+  expectedTotalMinor?: number;
+  /**
+   * `fulfillment: "table"` only: the ACTIVE table the caller resolved from
+   * the request's code (`resolveActiveTable`). Snapshotted onto the row.
+   */
+  tableCode?: string;
+  tableName?: string;
 }
 
 export type PlaceAppOrderResult =
   | { ok: true; order: AdminOrder; promoDropped: boolean }
   | Exclude<PlaceOrderResult, { ok: true }>
   | { ok: false; reason: "cafe_closed" }
+  | { ok: false; reason: "insufficient_balance" }
+  | { ok: false; reason: "total_changed"; totalMinor: number }
   | { ok: false; reason: "bad_line"; productName: string; message: string }
   | { ok: false; reason: "bad_request"; message: string };
 
@@ -2594,9 +2904,24 @@ export async function placeAppOrder(
       reason: "bad_request",
       message:
         kind === "cafe"
-          ? "Kafe siparişi gel-al ya da kurye ile teslim edilir."
+          ? "Kafe siparişi gel-al, kurye ya da masaya servis ile teslim edilir."
           : "Mağaza siparişi kargo ile gönderilir.",
     };
+  }
+  // The wire schema and the use-case already hold these; the store does not
+  // write a table order it cannot attribute to a table, nor a scheduled one.
+  const tableCode = (input.tableCode ?? "").trim();
+  if (input.fulfillment === "table") {
+    if (!tableCode) {
+      return { ok: false, reason: "bad_request", message: "Masa kodu gerekli." };
+    }
+    if (input.scheduledFor) {
+      return {
+        ok: false,
+        reason: "bad_request",
+        message: "Masaya sipariş planlanamaz; hemen hazırlanır.",
+      };
+    }
   }
   const scheduled = normalizeScheduledFor(input.scheduledFor, new Date());
   if (!scheduled.ok) {
@@ -2621,7 +2946,9 @@ export async function placeAppOrder(
     customerName: input.customerName.trim() || "Üye",
     customerEmail: input.customerEmail.trim().toLowerCase(),
     customerPhone: input.customerPhone.trim(),
-    shippingAddress: input.shippingAddress.trim(),
+    // A table order goes across the room: no address is ever written for it.
+    shippingAddress:
+      input.fulfillment === "table" ? "" : input.shippingAddress.trim(),
     internalNote: "",
     promoCode: input.promoCode,
     legalConsent: input.legalConsent,
@@ -2631,6 +2958,12 @@ export async function placeAppOrder(
     scheduledFor: scheduled.value,
     deliveryNote: input.deliveryNote.trim().slice(0, 500),
     shipping: shippingModeFor(input.fulfillment, settings),
+    ...(input.fulfillment === "table"
+      ? {
+          tableCode,
+          tableName: (input.tableName ?? "").trim().slice(0, 40),
+        }
+      : {}),
   };
 
   if (kind === "cafe") {
@@ -2640,13 +2973,25 @@ export async function placeAppOrder(
     const orderSeq = await nextSeq("ord");
     const orderNo = await nextSeq("orderNo");
     const orderId = slugifyId("ord", orderSeq);
-    const { order, promoDropped } = await insertOrderRow(cafeRes.items, {
-      orderId,
-      orderNo,
-      clientOrderId: input.clientOrderId,
-      ...common,
-    });
-    return { ok: true, order, promoDropped };
+    try {
+      const { order, promoDropped } = await insertOrderRow(cafeRes.items, {
+        orderId,
+        orderNo,
+        clientOrderId: input.clientOrderId,
+        payWithWallet: input.payWithWallet,
+        expectedTotalMinor: input.expectedTotalMinor,
+        ...common,
+      });
+      return { ok: true, order, promoDropped };
+    } catch (err) {
+      if (err instanceof WalletDeclinedError) {
+        return { ok: false, reason: "insufficient_balance" };
+      }
+      if (err instanceof WalletTotalChangedError) {
+        return { ok: false, reason: "total_changed", totalMinor: err.totalMinor };
+      }
+      throw err;
+    }
   }
 
   const resolveRes = await resolveOrderLines(shop.map(toPlaceOrderItem));
@@ -2656,14 +3001,14 @@ export async function placeAppOrder(
   const claimRes = await claimOrderStock(resolved);
   if (!claimRes.ok) return claimRes.result;
 
-  // Same compensation as the web checkout: nothing between the claim and the
-  // insert may leave stock held by an order that does not exist.
-  try {
-    const orderSeq = await nextSeq("ord");
-    const orderNo = await nextSeq("orderNo");
-    const orderId = slugifyId("ord", orderSeq);
-
-    await recordOrderStockMoves(
+  // A wallet order is refused by the balance only at the insert, which is an
+  // everyday outcome rather than a fault. Its stock moves are therefore
+  // written AFTER the row exists: written first, a short balance would leave
+  // "Uygulama siparişi #…" sales in the stock ledger for an order that never
+  // existed. A card order keeps the original order of writes.
+  const walletPay = input.payWithWallet === true;
+  const recordMoves = (orderId: string, orderNo: number) =>
+    recordOrderStockMoves(
       resolved,
       claimRes.stockAfters,
       orderId,
@@ -2671,15 +3016,48 @@ export async function placeAppOrder(
       common.customerEmail,
     );
 
-    const { order, promoDropped } = await insertOrderRow(
+  // Same compensation as the web checkout: nothing between the claim and the
+  // insert may leave stock held by an order that does not exist.
+  let placed: { order: AdminOrder; promoDropped: boolean };
+  try {
+    const orderSeq = await nextSeq("ord");
+    const orderNo = await nextSeq("orderNo");
+    const orderId = slugifyId("ord", orderSeq);
+    if (!walletPay) await recordMoves(orderId, orderNo);
+    placed = await insertOrderRow(
       withShopNotes(shopLineItems(resolved), shop),
-      { orderId, orderNo, clientOrderId: input.clientOrderId, ...common },
+      {
+        orderId,
+        orderNo,
+        clientOrderId: input.clientOrderId,
+        payWithWallet: walletPay,
+        expectedTotalMinor: input.expectedTotalMinor,
+        ...common,
+      },
     );
-    return { ok: true, order, promoDropped };
   } catch (err) {
     await releaseClaimedStock(resolved);
+    if (err instanceof WalletDeclinedError) {
+      return { ok: false, reason: "insufficient_balance" };
+    }
+    if (err instanceof WalletTotalChangedError) {
+      return { ok: false, reason: "total_changed", totalMinor: err.totalMinor };
+    }
     throw err;
   }
+  if (walletPay) {
+    // The order exists and is paid for: a failed audit row must not hand its
+    // stock back. Logged loudly instead, for a human to add the move.
+    try {
+      await recordMoves(placed.order.id, placed.order.orderNo);
+    } catch (err) {
+      console.error(
+        `[orders] stock moves of wallet order ${placed.order.id} were not recorded`,
+        err,
+      );
+    }
+  }
+  return { ok: true, order: placed.order, promoDropped: placed.promoDropped };
 }
 
 // ── Payment application ───────────────────────────────────────────────────
@@ -2767,6 +3145,66 @@ async function hasOtherSucceededPayment(
 }
 
 /**
+ * Books the wallet payment of an order the wallet paid for, through the same
+ * path a card confirmation takes - `paid`, the stamp, the invite, the
+ * "ödemen alındı" e-mail. Null when the wallet did not pay this order.
+ *
+ * The amount is the spend row's, written in the same transaction as the order
+ * from the row's own total, so it always matches. Idempotent like every
+ * confirmation: one `payment_transactions` row per order (`wallet_<id>`).
+ */
+export async function settleWalletPayment(
+  orderId: string,
+): Promise<PaymentApplyResult | null> {
+  const spend = await walletSpendFor(orderId);
+  if (!spend) return null;
+  return applyPaymentSucceeded({
+    orderId,
+    provider: WALLET_PROVIDER,
+    providerRef: walletProviderRef(orderId),
+    amountMinor: spend.amountMinor,
+    currency: "TRY",
+    raw: { source: "wallet" },
+  });
+}
+
+/** How long after `paidAt` a repeated confirmation re-offers the customer's mail. */
+const PAID_NOTICE_REOFFER_MS = 24 * 60 * 60_000;
+
+/** Order states in which a repeated confirmation may re-offer the staff mail. */
+const STAFF_NOTICE_STATES: ReadonlySet<string> = new Set([
+  "paid",
+  "preparing",
+  "shipped",
+  "completed",
+]);
+
+/**
+ * Hands the staff "new order" mail to `after()`: sent once the response is
+ * out, never awaited by the payment and never able to fail it. Outside a
+ * request (a script, a test) there is nothing to run it after, and the mail
+ * is skipped rather than sent from a promise nobody waits for.
+ */
+function scheduleStaffNewOrderNotice(orderId: string, provider: string): void {
+  try {
+    after(async () => {
+      try {
+        // Lazily: the notice module reads this store.
+        const { notifyStaffNewOrder } =
+          await import("@/lib/email/staff-order-notice");
+        await notifyStaffNewOrder(orderId, { provider });
+      } catch (err) {
+        console.error(`[staff-order-notice] order=${orderId}`, err);
+      }
+    });
+  } catch (err) {
+    console.warn(
+      `[staff-order-notice] not scheduled order=${orderId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+/**
  * Records a successful payment and advances the order to `paid`. Idempotent:
  * the unique (provider, providerRef) index makes a duplicate insert a no-op
  * (23505) and the order update is guarded on `pending_payment`. Used by the
@@ -2814,7 +3252,7 @@ export async function applyPaymentSucceeded(input: {
     createdAt: new Date().toISOString(),
   });
   // A clean insert means this is the FIRST confirmation; a 23505 is a duplicate
-  // webhook/return - used below to send the "paid" e-mail exactly once.
+  // webhook/return - used below to tell a second charge from a replay.
   const isFirstConfirmation = !ins.error;
   if (ins.error && ins.error.code !== "23505") {
     return { ok: false, error: ins.error.message };
@@ -2875,6 +3313,34 @@ export async function applyPaymentSucceeded(input: {
       console.warn(
         `[payment] order ${input.orderId} was not pending — loyalty skipped`,
       );
+      // A repeat of the confirmation that already paid it (the same
+      // transaction again: the bank's return after the webhook, a replay):
+      // the staff mail is offered again. The notice's own claim makes this a
+      // no-op once one was sent or is being sent, so it only ever goes out
+      // here if the first attempt reached nobody, and only while the order
+      // is fresh. An order staff settled by hand is not a repeat and is not
+      // re-announced.
+      if (
+        !isFirstConfirmation &&
+        current &&
+        STAFF_NOTICE_STATES.has(current.status)
+      ) {
+        scheduleStaffNewOrderNotice(order.id, input.provider);
+      }
+      // The same for the customer's "ödemen alındı": if the mail of the
+      // confirmation that paid the order did not get out (the provider was
+      // down for both attempts, the claim was released), the bank's return
+      // arriving again is the next chance. The claim in `notifyOrderPaid`
+      // makes this a no-op once one was sent or is being sent. Bounded by
+      // the age of the payment: a replay weeks later is not news.
+      if (
+        !isFirstConfirmation &&
+        current &&
+        STAFF_NOTICE_STATES.has(current.status) &&
+        Date.now() - Date.parse(current.paidAt ?? "") <= PAID_NOTICE_REOFFER_MS
+      ) {
+        await notifyOrderPaid(current);
+      }
     }
   }
 
@@ -2882,34 +3348,19 @@ export async function applyPaymentSucceeded(input: {
   // land is logged, the money stays recorded.
   if (advanced) {
     await awardLoyalty({ ...order, status: "paid", paidAt }, "payment");
+    // The team's "yeni sipariş" mail: after the response, once per order
+    // (the notice claims it; a repeated confirmation below may re-offer it).
+    scheduleStaffNewOrderNotice(order.id, input.provider);
   }
 
-  // No "ödemen alındı" for an order that is cancelled: the customer used to be
-  // told their order was on its way while the row said otherwise.
-  if (isFirstConfirmation && !unreconciled) {
-    // Best-effort payment-confirmed e-mail (logs in dev when Resend is unset).
-    try {
-      if (
-        order.customerEmail &&
-        order.customerEmail !== "guest@laffogato.local"
-      ) {
-        await sendOrderPaidEmail({
-          to: order.customerEmail,
-          customerName: order.customerName,
-          orderNo: order.orderNo,
-          items: order.items.map((it) => ({
-            productName: it.productName,
-            qty: it.qty,
-            unitPriceMinor: it.unitPriceMinor,
-          })),
-          subtotalMinor: order.subtotalMinor,
-          shippingMinor: order.shippingMinor,
-          totalMinor: order.totalMinor,
-        });
-      }
-    } catch (err) {
-      console.error("[email] order paid notification failed", err);
-    }
+  // "Ödemen alındı" - the customer's only order mail before shipping - goes
+  // out when, and only when, THIS confirmation moved the order to paid. Not
+  // for an order the sweep cancelled while the bank was asking (the customer
+  // used to be told it was on its way while the row said otherwise), not for
+  // a repeated or second confirmation, never twice (`notifyOrderPaid` claims
+  // its row first). It never throws into the payment that just landed.
+  if (advanced) {
+    await notifyOrderPaid({ ...order, status: "paid", paidAt });
   }
   return unreconciled ? { ok: true, reconcile: unreconciled } : { ok: true };
 }
@@ -2929,14 +3380,14 @@ export async function applyPaymentSucceeded(input: {
  *
  * The ledger row is keyed on `${providerRef}:refund`, NOT on the bare
  * reference. `payment_txn_provider_ref_key` is (provider, "providerRef") with
- * no status column, and iyzico derives the same `paymentId` for a charge and
- * for its later refund - so the bare reference collided with the succeeded
+ * no status column, and a provider may derive the same reference for a charge
+ * and for its later refund - so the bare reference collided with the succeeded
  * row that is always inserted first, every provider-side refund was mistaken
  * for a duplicate notification, and the order silently stayed `paid` while
  * the money had left. Suffixing the refund gives the two events distinct
  * identities without a migration.
  *
- * Limitation worth naming: iyzico's notification carries no per-refund id, so
+ * Limitation worth naming: a notification that carries no per-refund id means
  * two SEPARATE partial refunds from the provider produce the same suffixed
  * reference and only the first is recorded. Partial refunds issued from the
  * admin panel go through `refundOrder`, which is unaffected.
@@ -2995,10 +3446,15 @@ export async function recordProviderRefund(input: {
     .update({ refunds, status: fullyRefunded ? "refunded" : order.status })
     .eq("id", input.orderId);
   if (upd.error) return { ok: false, error: upd.error.message };
-  // Same rule as the admin path: a fully refunded order keeps nothing, so the
-  // stamp it earned goes back. Without this a member could farm stamps by
-  // ordering and refunding through the provider.
-  if (fullyRefunded) await reverseLoyalty(order, "provider-refund");
+  // Same rule as the admin path: after every refund the order keeps only the
+  // stamps its remaining goods earn (none once fully refunded). Without this
+  // a member could farm stamps by ordering and refunding through the
+  // provider, in full or in parts.
+  await reverseLoyalty(
+    { ...order, refunds, status: fullyRefunded ? "refunded" : order.status },
+    "provider-refund",
+    { full: fullyRefunded },
+  );
   // The provider has already moved the money back to the card it came from.
   await notifyOrderRefunded(
     {
@@ -3192,6 +3648,33 @@ async function releaseOrderInventory(order: AdminOrder): Promise<void> {
         )
       : false;
     if (!returned) await releasePromoUsage(order.promoCode);
+    else await settleLoyaltyAfterRelease(order.customerEmail, order.orderNo);
+  }
+}
+
+/**
+ * A coupon handed back by an order that was never paid is unused again. If
+ * it is a free drink or a milestone gift whose stamps a refund or a cancel
+ * took back while this order held it, the settlement then could not take it
+ * (a held coupon reads as used) and left the debt on the ledger. Settle
+ * again now, or the member keeps a reward for stamps they no longer have.
+ * A no-op when nothing is owed.
+ *
+ * Lazily imported and best-effort, like the other loyalty hooks: the cancel
+ * must go through whatever happens here.
+ */
+async function settleLoyaltyAfterRelease(
+  email: string,
+  orderNo: number,
+): Promise<void> {
+  try {
+    const { settleLoyaltyDebt } = await import("@/lib/mobile/loyalty");
+    await settleLoyaltyDebt(email);
+  } catch (err) {
+    console.error(
+      `[loyalty] settlement after coupon release failed orderNo=${orderNo}`,
+      err,
+    );
   }
 }
 
@@ -3250,12 +3733,21 @@ export async function transitionOrder(
   }
   if (map.to === "cancelled") {
     await releaseOrderInventory(existing);
-    await reverseLoyalty(existing, "cancelled");
-    await noticeCancelled({ ...existing, status: "cancelled" });
+    await reverseLoyalty(existing, "cancelled", { full: true });
+    await noticeCancelled(
+      { ...existing, status: "cancelled" },
+      {
+        unpaidAttempt:
+          existing.status === "pending_payment" && !existing.paidAt,
+      },
+    );
   } else if (settles) {
     // Idempotent on the order id, so a later payment webhook for the same
     // order does not hand out a second stamp.
     await awardLoyalty({ ...existing, status: map.to, paidAt }, "transition");
+    // Settled by hand is paid all the same: the customer's one order mail
+    // goes out now, once (a later POS confirmation finds it claimed).
+    await notifyOrderPaid({ ...existing, status: map.to, paidAt });
   }
   const nextOrder = { ...existing, ...patch, status: map.to };
   // "Kargoya ver" after the tracking number was typed: the parcel has left,
@@ -3271,7 +3763,10 @@ export async function transitionOrder(
  * mail carries: the refund to come, or "no payment on record". A failed
  * lookup says neither rather than guess about somebody's card.
  */
-async function noticeCancelled(order: AdminOrder): Promise<void> {
+async function noticeCancelled(
+  order: AdminOrder,
+  { unpaidAttempt = false }: { unpaidAttempt?: boolean } = {},
+): Promise<void> {
   if (!cancelNoticeDue(order)) return;
   let collected: boolean | null = Boolean(order.paidAt) || null;
   if (collected === null) {
@@ -3284,6 +3779,12 @@ async function noticeCancelled(order: AdminOrder): Promise<void> {
       );
     }
   }
+  // An attempt whose payment never completed was never an order for the
+  // customer: no mail went out for it (orders are mailed once paid,
+  // `notifyOrderPaid`) and it is not in their profile. Cancelling it says
+  // nothing - unless the POS shows money was taken after all, which the
+  // customer must hear about.
+  if (unpaidAttempt && collected !== true) return;
   await notifyOrderCancelled(order, { collected });
 }
 
@@ -3310,16 +3811,23 @@ async function awardLoyalty(order: AdminOrder, why: string): Promise<void> {
 }
 
 /**
- * Gives back the stamp an app order earned, when the order is undone.
+ * Takes back the stamps an app order no longer earns: all of them when the
+ * order is undone (`full`), otherwise the ones its refunds took the goods
+ * below (`onOrderReversed` re-derives the target from `order.refunds`, so the
+ * caller passes the order with the refund it just recorded).
  *
  * Best-effort and lazily imported for the same reasons the earning hook is:
  * loyalty reads orders from this module, and a bookkeeping failure must not
  * block the refund itself.
  */
-async function reverseLoyalty(order: AdminOrder, why: string): Promise<void> {
+async function reverseLoyalty(
+  order: AdminOrder,
+  why: string,
+  opts: { full: boolean },
+): Promise<void> {
   try {
     const { onOrderReversed } = await import("@/lib/mobile/loyalty");
-    await onOrderReversed(order);
+    await onOrderReversed(order, opts);
   } catch (err) {
     console.error(
       `[loyalty] reversal failed order=${order.id} orderNo=${order.orderNo} (${why})`,
@@ -3616,9 +4124,11 @@ export interface RefundNotice {
 }
 
 /**
- * Step 2: the money moved. A fully refunded order becomes `refunded` and
- * gives its stamp back - unless it was cancelled, which already did both and
- * must stay out of the reports.
+ * Step 2: the money moved. A fully refunded order becomes `refunded` - unless
+ * it was cancelled, which already did that and must stay out of the reports.
+ * After EVERY refund, partial ones included, the order's stamps are brought
+ * down to what its remaining goods earn (none once fully refunded or
+ * cancelled; a retry or a cancelled order's refund is a no-op there).
  *
  * With `notice`, the buyer is told first (a shop order only, once per refund
  * entry): the money has moved whatever the bookkeeping below then does.
@@ -3635,7 +4145,13 @@ export async function finalizeRefund(
   const refunded = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
   const fullyRefunded = refunded >= order.totalMinor;
   const wasCancelled = order.status === "cancelled";
-  if (!fullyRefunded || wasCancelled) return order;
+  if (!fullyRefunded || wasCancelled) {
+    // A partial refund keeps the stamps of the goods that were kept; a
+    // cancelled order keeps none (its cancel already took them back).
+    const why = wasCancelled ? "cancelled-refund" : "partial-refund";
+    await reverseLoyalty(order, why, { full: wasCancelled });
+    return order;
+  }
   check(
     await getDb()
       .from(TABLES.orders)
@@ -3643,8 +4159,10 @@ export async function finalizeRefund(
       .eq("id", order.id),
     "finalizeRefund",
   );
-  // A fully refunded order keeps nothing: the stamp it earned goes back too.
-  await reverseLoyalty(order, "refunded");
+  // A fully refunded order keeps nothing: the stamps it earned go back too.
+  await reverseLoyalty({ ...order, status: "refunded" }, "refunded", {
+    full: true,
+  });
   return { ...order, status: "refunded" };
 }
 
@@ -3674,14 +4192,21 @@ export async function refundOrder(
  * can never leave checkout looking open. Commerce and admin must keep calling
  * `getSettings()`, which throws - deciding tax, shipping or whether an order
  * may be placed from fallback values would be a real financial error.
+ *
+ * Memoised per request (`React.cache`, WP1): the home page's metadata and its
+ * body, and the /odeme and /uye layouts and their pages, each asked for the
+ * same row in the same render. Scoped to one request - nothing is shared
+ * between visitors, and outside a render (actions, route handlers) it reads
+ * every time.
  */
-export async function getPublicSettings(): Promise<AdminSettings> {
-  return publicRead(
-    "getPublicSettings",
-    { ...defaultSettings(), isShopOpen: false },
-    () => getSettings(),
-  );
-}
+export const getPublicSettings = cache(
+  async (): Promise<AdminSettings> =>
+    publicRead(
+      "getPublicSettings",
+      { ...defaultSettings(), isShopOpen: false },
+      () => getSettings(),
+    ),
+);
 
 export async function getSettings(): Promise<AdminSettings> {
   await ensureSeed();
@@ -3703,6 +4228,10 @@ export async function getSettings(): Promise<AdminSettings> {
     ...defaultSettings(),
     ...rest,
     mobileApp: normalizeMobileAppConfig(rest.mobileApp),
+    // jsonb from the row: only known roles reach the recipient list.
+    orderNotifyRoles: normalizeNotifyRoles(
+      rest.orderNotifyRoles ?? defaultSettings().orderNotifyRoles,
+    ),
   } as AdminSettings;
 }
 
@@ -3874,14 +4403,19 @@ export async function listShopProducts(): Promise<DesignProduct[]> {
   });
 }
 
-/** Single active product by slug - for the PDP (/magaza/urun/<slug>). */
-export async function getShopProductBySlug(
-  slug: string,
-): Promise<DesignProduct | null> {
-  return publicRead("getShopProductBySlug", null, () =>
-    getShopProductBySlugLive(slug),
-  );
-}
+/**
+ * Single active product by slug - for the PDP (/magaza/urun/<slug>).
+ *
+ * Memoised per request (WP1): the product page's `generateMetadata` and its
+ * body both read the product, which was two identical queries per view.
+ * Display only - checkout re-reads prices and stock with its own query.
+ */
+export const getShopProductBySlug = cache(
+  async (slug: string): Promise<DesignProduct | null> =>
+    publicRead("getShopProductBySlug", null, () =>
+      getShopProductBySlugLive(slug),
+    ),
+);
 
 async function getShopProductBySlugLive(
   slug: string,
@@ -4528,11 +5062,43 @@ const MONTH_SHORT = [
   "Ara",
 ];
 
+/**
+ * The orders the reports read, projected to the columns they use.
+ *
+ * WP1: /admin/raporlar read the whole orders table three times per view (headline,
+ * buckets, top products) - three full reads of every column of every order,
+ * serialised over the instance's single connection. Measured on 20k orders:
+ * ~1.8 s and 3 x 27 MB, against ~0.28 s for the three projections. Only
+ * `topProducts` asks for `items`, the heavy column.
+ */
+async function reportOrders<K extends keyof AdminOrder>(
+  columns: readonly K[],
+  ctx: string,
+): Promise<Pick<AdminOrder, K>[]> {
+  await ensureSeed();
+  return rows<Pick<AdminOrder, K>>(
+    await getDb()
+      .from(TABLES.orders)
+      .select(columns.join(", "))
+      .order("orderNo", { ascending: false }),
+    ctx,
+  );
+}
+
+/** What {@link bucketRevenue} reads from an order. */
+export type RevenueOrder = Pick<
+  AdminOrder,
+  "status" | "createdAt" | "totalMinor" | "refunds"
+>;
+
 export async function revenueBuckets(
   granularity: BucketGranularity,
   count: number,
 ): Promise<RevenueBucket[]> {
-  const orders = await listOrders();
+  const orders = await reportOrders(
+    ["status", "createdAt", "totalMinor", "refunds"],
+    "revenueBuckets",
+  );
   return bucketRevenue(orders, granularity, count, new Date());
 }
 
@@ -4545,7 +5111,7 @@ export async function revenueBuckets(
  * the one before it.
  */
 export function bucketRevenue(
-  orders: AdminOrder[],
+  orders: RevenueOrder[],
   granularity: BucketGranularity,
   count: number,
   now: Date,
@@ -4592,7 +5158,7 @@ export interface TopProductRow {
 }
 
 export async function topProducts(limit = 5): Promise<TopProductRow[]> {
-  const orders = await listOrders();
+  const orders = await reportOrders(["status", "items"], "topProducts");
   const tally = new Map<string, TopProductRow>();
   for (const o of orders) {
     if (!isReportableOrder(o)) continue;
@@ -4625,7 +5191,10 @@ export interface AnalyticsHeadline {
 }
 
 export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
-  const orders = await listOrders();
+  const orders = await reportOrders(
+    ["status", "totalMinor", "refunds"],
+    "analyticsHeadline",
+  );
   const valid = orders.filter(isReportableOrder);
   const totalRevenueMinor = valid.reduce((s, o) => s + o.totalMinor, 0);
   const totalOrders = valid.length;

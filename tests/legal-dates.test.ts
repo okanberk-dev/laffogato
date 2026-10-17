@@ -7,11 +7,14 @@ import { LEGAL_DOCS, findLegalDoc } from "@/lib/legal/documents";
 import { CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED } from "@/lib/legal/meta";
 
 /**
- * Every contract used to print "Son güncelleme: 1 Eylül 2026", including the
- * six whose text changed afterwards. The dates below were measured from the
- * history of content.ts and entity.ts, mapping each hunk to its document:
- * five changed on 5 Sep (hesap-silme was written that day), and
- * sirket-bilgileri on 22 Sep, when its {{CAFE_HOURS}} token moved to 02:00.
+ * Every contract used to print "Son güncelleme: 1 Eylül 2026", then ten of
+ * them carried their own later day (5, 22 and 23 Eylül). On 16 Ekim 2026 the
+ * postal code (34940) entered `{{ADDRESS}}`, which every one of the 25
+ * documents prints, and the payment, loyalty and data sections of most were
+ * rewritten the same day. So the whole set carries one revision again and the
+ * per-document dates are gone. A document whose text changes later gets its
+ * own `updatedAt` back (see `LegalDocSource.updatedAt`), and the second test
+ * below lists it.
  */
 const MONTHS = [
   "Ocak",
@@ -38,20 +41,14 @@ function dayNumber(label: string): number {
 }
 
 describe("legal document dates", () => {
-  it("the measured documents carry the day their text last changed", () => {
-    const expected: Record<string, string> = {
-      "uyelik-sozlesmesi": "5 Eylül 2026",
-      "hesap-silme": "5 Eylül 2026",
-      "odul-programi": "23 Eylül 2026",
-      "mobil-uygulama-kosullari": "5 Eylül 2026",
-      "kafe-hizmet-kosullari": "5 Eylül 2026",
-      "sirket-bilgileri": "22 Eylül 2026",
-      // Karar 177: fA'L's AI reading - the R12 consent and its aydınlatma.
-      "acik-riza-metni": "23 Eylül 2026",
-      "kvkk-aydinlatma-metni": "23 Eylül 2026",
-      "gizlilik-politikasi": "23 Eylül 2026",
-      "veri-saklama-ve-imha-politikasi": "23 Eylül 2026",
-    };
+  it("the revision is the day the set was last rewritten", () => {
+    expect(LEGAL_UPDATED).toBe("16 Ekim 2026");
+  });
+
+  it("a document that changes after the revision carries its own day", () => {
+    // Empty on 16 Ekim 2026: every document changed that day. Add a document
+    // here, with its date, when only it changes later.
+    const expected: Record<string, string> = {};
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);
     }

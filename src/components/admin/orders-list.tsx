@@ -39,6 +39,16 @@ interface Props {
    */
   bulkStatusOptions: Array<[AdminOrderStatus, string]>;
   statusTone: Record<AdminOrderStatus, string>;
+  /**
+   * Every order in the table. The list is paged (WP1), so `orders.length` is
+   * only this page; omitted, the line counts the page as before.
+   */
+  total?: number;
+  /**
+   * Whether to poll for new arrivals. Off on older pages: a new order is
+   * never on them, and "Listeyi yenile" there would not show it.
+   */
+  live?: boolean;
 }
 
 const initialBulkState: BulkOrderActionState = {};
@@ -100,6 +110,8 @@ export function OrdersList({
   statusOptions,
   bulkStatusOptions,
   statusTone,
+  total,
+  live = true,
 }: Props) {
   const selection = useSelection();
   const router = useRouter();
@@ -143,6 +155,7 @@ export function OrdersList({
    */
   useEffect(() => {
     lastCount.current = 0;
+    if (!live) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -170,7 +183,7 @@ export function OrdersList({
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [latestOrderNo]);
+  }, [latestOrderNo, live]);
 
   const refreshNow = useCallback(() => {
     setMarkAfter(latestOrderNo);
@@ -252,7 +265,9 @@ export function OrdersList({
           className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
-          {orders.length} sipariş
+          {total !== undefined && total > orders.length
+            ? `${orders.length} / ${total} sipariş`
+            : `${orders.length} sipariş`}
         </span>
         <button
           type="button"

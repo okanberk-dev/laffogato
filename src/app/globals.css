@@ -106,19 +106,29 @@
   --info: #3442b8;
   --info-fill: #4858d2;
 
-  /* Type - two voices, the app's (lafmobil karar 311, BRAND-IDENTITY §2):
-     Poppins is the DISPLAY voice - anything that is a name, a title, a price
-     or a control label; Inter is the READING voice - sentences, captions,
-     help and legal text, field text. Both load through next/font in
-     layout.tsx. The historical names (--serif, --script, --mono, …) are kept
-     so every call site resolves: the display-ish ones point at Poppins, the
-     eyebrow/numeric one (--mono) at Inter. */
+  /* Type - two voices (operator, 14 Eki 2026: "sitede yapay zeka gibi
+     duruyor, yazı tipleri poppins ve biennale vs kullan"; docs/BRAND.md §2).
+
+     --display is Poppins and does the work: sentences, captions, help,
+     legal and field text, buttons, chips, labels, product names and list
+     prices. Six cuts load through next/font in layout.tsx (300 · 400 · 500
+     · 600 · 700 · 800); 400 reads, 500-600 labels. The historical names
+     (--sans, --serif, --script, --mono, …) all resolve to it so every call
+     site keeps working. Poppins has no arrow or symbol glyphs; those fall
+     through to the system font, and the arrow after a label is drawn
+     instead (.arrow).
+
+     --headline is Gabarito and sets the headlines: page, section and card
+     titles (.h-display, .h1-.h3, *-title) and the display figures (.stat-n,
+     the product page's price, the amount to pay). It stands in for
+     Biennale, which needs a licence (layout.tsx); 600 for card titles, 700
+     for headings, 800 for the display moments. Its fallback is Poppins, so
+     a missing cut degrades to the reading voice, never to the system font. */
   --display:
     var(--font-display), "Poppins", -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", sans-serif;
-  --sans:
-    var(--font-text), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "Helvetica Neue", sans-serif;
+  --headline: var(--font-headline), "Gabarito", var(--display);
+  --sans: var(--display);
   --serif: var(--display);
   --serif-modern: var(--display);
   --serif-display: var(--display);
@@ -198,6 +208,15 @@
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
   --press-scale: 0.97;
+
+  /* Card scheme marks on /odeme (scheme-marks.tsx), drawn locally - the
+     checkout loads no image from anywhere else. The schemes' own colours. */
+  --scheme-visa: #1a1f71;
+  --scheme-mc-red: #eb001b;
+  --scheme-mc-yellow: #f79e1b;
+  --scheme-mc-orange: #ff5f00;
+  --scheme-troy: #1f8fc4;
+  --scheme-amex: #2e77bc;
 }
 
 * {
@@ -217,13 +236,13 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   font-size: 16px;
-  line-height: 1.55;
-  font-feature-settings: "calt", "kern";
-  /* Prices, stamp counts, opening hours and phone numbers all sit in running
-     text on this site; Inter's tabular figures keep them from jittering. The
-     display voice (Poppins) has no tnum, exactly as in the app, so prices set
-     in it align by the box, not by the figure. */
-  font-variant-numeric: tabular-nums;
+  /* Poppins is a wide face with a tall x-height: a little more lead than
+     Inter needed keeps a paragraph of it from reading as a block. */
+  line-height: 1.6;
+  font-feature-settings: "kern";
+  /* No tabular-nums here any more: Poppins (Google's cut) has proportional
+     figures and no tnum, so the property only ever reached the fallback
+     font. Nothing on the site ticks in place; prices align by their box. */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -232,7 +251,9 @@ body {
 }
 
 /* Numeric content (prices, SKUs, time, addresses) - tabular + lining
-   numerals + zero with slash. Apply via .tabular utility or [data-tnum]. */
+   numerals + zero with slash where the face has them. Poppins (Google's
+   cut) has none of the three, so today this only steadies the fallback font
+   while Poppins loads; kept so a face that does have them picks them up. */
 .tabular,
 [data-tnum] {
   font-variant-numeric: tabular-nums lining-nums slashed-zero;
@@ -262,22 +283,28 @@ textarea,
 select {
   font: inherit;
   color: inherit;
+  /* A field's intrinsic width (~20 characters) is measured in the page's
+     face, and Poppins sets wider than Inter did: in a flex or grid row the
+     automatic minimum let a field push its row past its card, and on a
+     phone past the screen (the checkout's promo row, 11 Eki 2026). Zero
+     lets a field give way instead; its preferred width is unchanged. */
+  min-width: 0;
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Type primitives - Poppins for what is named, Inter for what is read
+   Type primitives - one family, Poppins; the weight sets the role
    ───────────────────────────────────────────────────────────── */
 
 /* The section kicker. The app dropped the spaced, all-caps "eyebrow" for a
    quiet semibold line in the house green (DESIGN-GLASS §2.6: `eyebrow` is
    kept only on membership and tier cards, everywhere else `captionStrong`).
-   The site follows: sentence case as written in the markup, 13.5px Inter 600,
-   green on porcelain (5.63:1), mint on the green blocks. */
+   The site follows: sentence case as written in the markup, 13.5px Poppins
+   600, green on porcelain (5.63:1), mint on the green blocks. */
 .eyebrow {
   font-family: var(--sans);
   font-size: 13.5px;
   line-height: 1.3;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
   color: var(--green);
   font-weight: 600;
   font-feature-settings: "tnum", "lnum", "zero";
@@ -334,16 +361,17 @@ select {
 }
 
 /* Headlines: Poppins 700, the app's four heading roles (hero · title ·
-   display · heading) scaled up for a browser window. Tracking tightens with
-   size the way Apple's display type does; never below -0.03em, where
-   Poppins' round letters start to touch. `.script` is the accent-coloured
-   word in a headline ("içilir, sonra kupası yenir"). */
+   display · heading) scaled up for a browser window; the largest, the
+   display role, in ExtraBold 800. Tracking tightens with size the way
+   Apple's display type does; never below -0.035em, where Poppins' round
+   letters start to touch. `.script` is the accent-coloured word in a
+   headline ("içilir, sonra kupası yenir"). */
 .h-display {
-  font-family: var(--display);
-  font-weight: 700;
+  font-family: var(--headline);
+  font-weight: 800;
   font-size: clamp(38px, 5.6vw, 76px);
   line-height: 1.04;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   margin: 0;
   text-wrap: balance;
   font-feature-settings: "lnum", "kern", "liga";
@@ -356,7 +384,7 @@ select {
    (Tailwind generates .h-1, .h-2 ... as height utilities = 4px, 8px, ...).
    The typography classes intentionally use a non-hyphenated form. */
 .h1 {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(34px, 4.6vw, 60px);
   line-height: 1.06;
@@ -370,7 +398,7 @@ select {
 }
 
 .h2 {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(28px, 3.5vw, 46px);
   line-height: 1.08;
@@ -384,7 +412,7 @@ select {
 }
 
 .h3 {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 600;
   font-size: clamp(19px, 1.9vw, 23px);
   line-height: 1.25;
@@ -393,12 +421,12 @@ select {
   font-feature-settings: "lnum", "kern", "liga";
 }
 
-/* The subhead under a headline - Apple's large, calm second line: Inter at
-   18-20px in the secondary ink. */
+/* The subhead under a headline - Apple's large, calm second line: Poppins
+   400 at 16.5-19px in the secondary ink. */
 .lede {
   font-size: clamp(16.5px, 1.3vw, 19px);
-  line-height: 1.55;
-  letter-spacing: -0.011em;
+  line-height: 1.6;
+  letter-spacing: -0.005em;
   color: var(--ink-soft);
   max-width: 56ch;
   margin: 0;
@@ -469,13 +497,41 @@ select {
   -webkit-user-select: none;
   user-select: none;
 }
-.btn .arrow {
-  font-family: var(--sans);
-  transition: transform 0.3s var(--ease-spring);
+/* The arrow after a label ("Menüyü gör →"). Poppins has no arrow glyph, so
+   the "→" in the markup used to borrow Inter's and would now fall to
+   whatever the system has. It is drawn instead, in the stroke the door
+   arrows use (.door-go): the glyph stays in the DOM for a reader without
+   CSS, is pushed out of its box, and currentColor paints the mask - so the
+   arrow takes the label's colour on every button tone. */
+.arrow {
   display: inline-block;
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
+  overflow: hidden;
+  text-indent: 110%;
+  white-space: nowrap;
+  vertical-align: -0.16em;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12h14M13 6.5 18.5 12 13 17.5'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12h14M13 6.5 18.5 12 13 17.5'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+/* "Leaves the site" (maps, carrier tracking): the same stroke, turned
+   north-east, in place of a "↗" glyph Poppins does not have either. */
+.arrow.out {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7M9 7h8v8'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7M9 7h8v8'/%3E%3C/svg%3E");
+}
+.btn .arrow {
+  transition: transform 0.3s var(--ease-spring);
 }
 .btn:hover .arrow {
   transform: translateX(3px);
+}
+.btn:hover .arrow.out {
+  transform: translate(2px, -2px);
 }
 .btn:active {
   transform: scale(var(--press-scale));
@@ -485,6 +541,68 @@ select {
   cursor: not-allowed;
   opacity: 0.45;
   transform: none;
+}
+/* A busy button is not a switched-off one. While its request is out it keeps
+   its fill and its label ink, the way the app's loading button does (lafmobil
+   src/components/ui/button.tsx: "LOADING keeps the live fill"), and the three
+   dots beside the words say it is working - faded to 45 %, "Gönderiliyor…"
+   read as a control that had broken. */
+.btn[aria-busy="true"]:disabled {
+  cursor: progress;
+  opacity: 1;
+}
+
+/* The wait mark (`BusyDots`): three dots in the label's own ink, lighting in
+   turn. Adapted from "hungry-otter-20" by ashish-yadv on Uiverse.io
+   (https://github.com/uiverse-io/galaxy, MIT, (c) 2023 Uiverse.io): sized in
+   em so it follows the type it stands beside, coloured by currentColor so it
+   needs no token of its own, and slowed and softened from the original's
+   0.6 s hop to read as patience rather than urgency. */
+.lf-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  margin-inline-end: 0.5em;
+  vertical-align: middle;
+}
+.btn .lf-dots {
+  margin-inline-end: 0; /* the button's own gap spaces it */
+}
+.lf-dots i {
+  width: 0.34em;
+  height: 0.34em;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  animation: lf-dots 1.2s ease-in-out infinite;
+}
+.lf-dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.lf-dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes lf-dots {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-0.22em);
+  }
+}
+/* Still, not slower: the first dot holds lit, so the row reads as a wait and
+   not as a rule of three identical marks. */
+@media (prefers-reduced-motion: reduce) {
+  .lf-dots i {
+    animation: none;
+  }
+  .lf-dots i:first-child {
+    opacity: 1;
+  }
 }
 
 /* The decided action: the house green, cream label (5.88:1). Bordo is a
@@ -605,7 +723,7 @@ summary:focus-visible,
   font-size: 16px;
 }
 
-/* The text link with a chevron - Apple's "Daha fazla ›". Green, Inter 600. */
+/* The text link with a chevron - Apple's "Daha fazla ›". Green, Poppins 600. */
 .link-more {
   display: inline-flex;
   align-items: center;
@@ -1486,6 +1604,45 @@ summary:focus-visible,
   flex-wrap: wrap;
   gap: 10px;
 }
+
+/* /masa/[code]: the table strip above the view-only menu (table-banner.tsx). */
+.table-banner {
+  padding: clamp(10px, 1.6vw, 20px) 0 0;
+}
+.table-banner-card {
+  border-radius: 24px;
+  border: 1px solid var(--ink-line);
+  background: var(--surface);
+  box-shadow: var(--rim), var(--shadow-glass);
+  padding: clamp(18px, 3vw, 28px) clamp(18px, 3.4vw, 36px);
+  display: grid;
+  gap: 8px;
+}
+.table-banner-kicker {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+}
+.table-banner-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-weight: 700;
+  font-size: clamp(24px, 3.2vw, 34px);
+  line-height: 1.15;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.table-banner-text {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.table-banner-links {
+  margin-top: 8px;
+}
 .store-btn {
   display: inline-flex;
   align-items: center;
@@ -1697,8 +1854,7 @@ summary:focus-visible,
   align-items: center;
   gap: clamp(16px, 3vw, 48px);
   min-height: clamp(540px, 60vw, 740px);
-  padding: clamp(28px, 4vw, 64px) clamp(20px, 4.4vw, 72px)
-    clamp(64px, 6vw, 88px);
+  padding: clamp(28px, 4vw, 64px) clamp(20px, 4.4vw, 72px);
   border-radius: 36px;
   background:
     radial-gradient(
@@ -1744,11 +1900,12 @@ summary:focus-visible,
 .hero-x-title {
   margin: 0;
   display: grid;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(42px, 6vw, 86px);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.035em;
+  /* ExtraBold: the one place a single word has to carry a whole screen. */
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
   color: var(--ink);
   animation: hero-x-copy-in 0.6s var(--ease-spring) both;
 }
@@ -1772,8 +1929,61 @@ summary:focus-visible,
 .hero-x-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
   margin-top: 8px;
+}
+
+/* "Şu an açık · Kapanış 02:00" - live, beside the buttons, opening the visit
+   page. Quiet ink with the state in the dot: the success green when open,
+   quiet ink when closed - never red, the same rule as /ziyaret's line. */
+.hero-x-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-left: 6px;
+  padding: 0 4px;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--ink-mute);
+  border-radius: var(--r-pill);
+}
+.hero-x-status strong {
+  font-weight: 600;
+  color: var(--ink);
+  transition: color 0.2s;
+}
+.hero-x-status:hover strong {
+  color: var(--green);
+}
+.hero-x-status:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.hero-x-status-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--matcha);
+  box-shadow: 0 0 0 4px rgba(29, 109, 86, 0.16);
+  /* Two slow rings and it settles: a live signal, not a blinking one
+     (WCAG 2.2.2 - every motion on the site is over within five seconds). */
+  animation: hero-x-live 2s var(--ease-out) 2;
+}
+.hero-x-status.is-closed .hero-x-status-dot {
+  background: var(--ink-quiet);
+  box-shadow: 0 0 0 4px rgba(135, 125, 116, 0.18);
+  animation: none;
+}
+@keyframes hero-x-live {
+  0% {
+    box-shadow: 0 0 0 0 rgba(29, 109, 86, 0.42);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(29, 109, 86, 0);
+  }
 }
 
 /* Thumbnails: glass tiles; the selected one is opaque white with the
@@ -1850,6 +2060,30 @@ summary:focus-visible,
 .hero-x-thumb.on .hero-x-thumb-name {
   color: var(--ink);
   font-weight: 600;
+}
+/* The autoplay's clock. It runs along the selected thumbnail's foot for
+   --autoplay-ms and its animationend advances the slide, so pausing the
+   animation (pointer or focus in the hero, a hidden tab) pauses the carousel
+   exactly where it stands. Rendered only while autoplay is on. */
+.hero-x-thumb-progress {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 5px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--green);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: hero-x-progress var(--autoplay-ms, 7s) linear forwards;
+}
+.hero-x-frame[data-autoplay="paused"] .hero-x-thumb-progress {
+  animation-play-state: paused;
+}
+@keyframes hero-x-progress {
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* Stage ─────────────────────────────────────────────────────────── */
@@ -1942,41 +2176,10 @@ summary:focus-visible,
   }
 }
 
-/* Page dots: the active one stretches into a capsule, iOS style. */
-.hero-x-dots {
-  position: absolute;
-  left: 50%;
-  bottom: clamp(20px, 2.4vw, 30px);
-  translate: -50% 0;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: var(--r-pill);
-  background: var(--glass-control);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
-}
-.hero-x-dot {
-  width: 8px;
-  height: 8px;
-  padding: 0;
-  border-radius: var(--r-pill);
-  background: rgba(33, 28, 24, 0.22);
-  cursor: pointer;
-  transition:
-    width 0.35s var(--ease-spring),
-    background-color 0.25s;
-}
-.hero-x-dot.on {
-  width: 24px;
-  background: var(--ink);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .hero-x-photo,
-  .hero-x-title {
+  .hero-x-title,
+  .hero-x-status-dot {
     animation: none;
   }
 }
@@ -1986,7 +2189,7 @@ summary:focus-visible,
     grid-template-columns: minmax(0, 1fr);
     min-height: 0;
     gap: 4px;
-    padding: 16px clamp(18px, 5vw, 32px) clamp(64px, 14vw, 88px);
+    padding: 12px clamp(18px, 5vw, 32px) clamp(22px, 5vw, 32px);
     border-radius: 30px;
     background:
       radial-gradient(
@@ -2009,12 +2212,73 @@ summary:focus-visible,
   }
   .hero-x-stage {
     order: 1;
-    --stage: clamp(260px, 78vw, 420px);
+    /* Bounded by the screen's height as well as its width: on a phone the
+       drink, the name and both buttons have to clear the floating tab bar
+       in the first view. */
+    --stage: clamp(210px, min(60vw, 34vh), 400px);
   }
   .hero-x-thumbs {
     width: 100%;
     max-width: 420px;
   }
+  .hero-x-status {
+    margin-left: 0;
+  }
+}
+/* A phone shows each slide's first sentence; the rest is on the menu. */
+@media (max-width: 520px) {
+  .hero-x-text-more {
+    display: none;
+  }
+}
+
+/* Statement band ────────────────────────────────────────────────
+   The brand's own paragraph (the panel's "Hero üst etiket" + "Hero
+   açıklama"), right under the hero, set as a statement: the first sentence
+   in ExtraBold ink, the rest in Light in the secondary ink (7.46:1). Poppins'
+   widest contrast of weight, used once on the page. */
+.home-intro {
+  padding: clamp(56px, 8vw, 120px) 0 clamp(4px, 1vw, 12px);
+}
+.home-intro-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: grid;
+  justify-items: center;
+  gap: clamp(16px, 2vw, 24px);
+  text-align: center;
+}
+.home-intro-kicker {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--green);
+}
+.home-intro-kicker::before {
+  content: "";
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tricolore);
+  box-shadow: 0 0 0 1px rgba(33, 28, 24, 0.1);
+}
+.home-intro-text {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(23px, 2.8vw, 38px);
+  font-weight: 300;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--ink-soft);
+  text-wrap: balance;
+}
+.home-intro-lead {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
 }
 
 /* The SEO block (seo-content.tsx) ──────────────────────────────── */
@@ -2174,7 +2438,7 @@ summary:focus-visible,
 
 .section-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(24px, 2.8vw, 36px);
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -2295,7 +2559,7 @@ summary:focus-visible,
   /* `grid` puts each <span> of the two-line form on its own row. A single
      string has no spans and must wrap normally. */
   display: block;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(34px, 5vw, 66px);
   font-weight: 700;
   line-height: 1.04;
@@ -2410,10 +2674,10 @@ summary:focus-visible,
   color: var(--green-mint);
 }
 .promo-banner-title {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(22px, 2.4vw, 30px);
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 .promo-banner-body {
   font-size: 15px;
@@ -2519,7 +2783,7 @@ summary:focus-visible,
 }
 .campaign-card-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -2587,7 +2851,7 @@ summary:focus-visible,
 }
 .home-doors-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(26px, 3.2vw, 40px);
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -2705,7 +2969,7 @@ summary:focus-visible,
   color: var(--door-kicker);
 }
 .door-title {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(18px, 1.6vw, 21px);
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -2970,6 +3234,10 @@ summary:focus-visible,
   letter-spacing: -0.01em;
   color: var(--ink);
 }
+/* Kept at the right edge even when the card has no price to show. */
+.rail-card-foot .btn {
+  margin-left: auto;
+}
 
 /* Signature block ───────────────────────────────────────────── */
 
@@ -3020,10 +3288,10 @@ summary:focus-visible,
   box-shadow: var(--rim);
 }
 .stat-n {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(26px, 2.6vw, 34px);
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 800;
+  letter-spacing: -0.035em;
   color: var(--green);
   line-height: 1;
 }
@@ -3139,7 +3407,7 @@ summary:focus-visible,
 }
 .loyalty-headline {
   margin-top: 18px;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 19px;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -3263,8 +3531,14 @@ summary:focus-visible,
 .visit-facts {
   margin-top: 22px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  /* Side by side while each card has room for an e-mail address, stacked
+     once it would not (the split column is narrowest around 700-800 px). */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: 12px;
+}
+/* The address runs across the top; today and contact share the row below. */
+.visit-facts > .wide {
+  grid-column: 1 / -1;
 }
 .visit-facts > div {
   padding: 16px 18px;
@@ -3282,6 +3556,41 @@ summary:focus-visible,
   margin: 6px 0 0;
   font-size: 15px;
   line-height: 1.6;
+}
+.visit-fact-body a {
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-color: var(--ink-line-strong);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s;
+}
+.visit-fact-body a:hover {
+  text-decoration-color: currentColor;
+}
+/* The live line under today's hours: green while open, quiet ink when
+   closed - never red (the same rule as the hero's and /ziyaret's). */
+.visit-fact-live {
+  margin: 8px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--green);
+}
+.visit-fact-live.is-closed {
+  color: var(--ink-mute);
+}
+.visit-fact-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--matcha);
+  box-shadow: 0 0 0 3px rgba(29, 109, 86, 0.16);
+}
+.visit-fact-live.is-closed .visit-fact-dot {
+  background: var(--ink-quiet);
+  box-shadow: 0 0 0 3px rgba(135, 125, 116, 0.18);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -3313,7 +3622,10 @@ summary:focus-visible,
 
 .footer-top {
   display: grid;
-  grid-template-columns: 1.1fr 1fr 1.2fr;
+  /* minmax(0, …): a bare `fr` cannot shrink below its content, and the
+     newsletter row (field + "Abone ol") pushed the pair past a tablet's
+     width once the page set in Poppins. */
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.2fr);
   gap: clamp(20px, 3vw, 40px);
   align-items: stretch;
   padding-bottom: clamp(36px, 5vw, 56px);
@@ -3331,7 +3643,7 @@ summary:focus-visible,
 }
 .footer-motto {
   margin: 6px 0 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(22px, 2.2vw, 28px);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -3371,7 +3683,7 @@ summary:focus-visible,
 }
 .footer-card-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.015em;
@@ -3528,7 +3840,7 @@ summary:focus-visible,
 
 @media (max-width: 1100px) {
   .footer-top {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .footer-brand {
     grid-column: 1 / -1;
@@ -3762,7 +4074,7 @@ summary:focus-visible,
   font-family: var(--sans);
   font-size: 13.5px;
   font-weight: 600;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
   color: var(--ink-soft);
   margin-bottom: 8px;
 }
@@ -3782,7 +4094,7 @@ summary:focus-visible,
   margin-bottom: 24px;
 }
 .page-head h1 {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(34px, 4.6vw, 60px);
   line-height: 1.06;
@@ -4378,7 +4690,7 @@ summary:focus-visible,
 }
 .shop-empty-title {
   margin: 0 0 18px;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 26px;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -4462,7 +4774,7 @@ summary:focus-visible,
   margin-top: 22px;
 }
 .shop-featured-now {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 40px;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -4698,7 +5010,7 @@ summary:focus-visible,
   }
   .shop-sheet-title {
     margin: 2px 0 0;
-    font-family: var(--display);
+    font-family: var(--headline);
     font-size: 22px;
     font-weight: 700;
     letter-spacing: -0.02em;
@@ -4899,7 +5211,7 @@ summary:focus-visible,
   color: var(--ink);
 }
 .pour-step-title {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 600;
   font-size: 20px;
   line-height: 1.2;
@@ -5101,7 +5413,7 @@ summary:focus-visible,
 }
 .visit-today-hours {
   margin-top: 4px;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -5132,7 +5444,7 @@ summary:focus-visible,
 }
 .reserve-card-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(22px, 2.6vw, 28px);
   font-weight: 600;
   letter-spacing: -0.015em;
@@ -5611,7 +5923,7 @@ select {
 }
 .cart-drawer-title {
   margin: 2px 0 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -5707,7 +6019,7 @@ select {
 }
 .cart-empty-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -5895,7 +6207,9 @@ select {
 }
 @media (max-width: 900px) {
   .account-shell-body {
-    grid-template-columns: 1fr;
+    /* minmax(0, …): the tab strip scrolls inside the column; a bare 1fr
+       grew to its full width and pushed a 320 px screen sideways. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
   }
   .account-shell-sidebar {
@@ -6433,15 +6747,6 @@ select {
   margin: 0 auto;
   padding: clamp(24px, 4vw, 40px) var(--gutter) clamp(60px, 8vw, 100px);
 }
-.checkout-page-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: clamp(28px, 4vw, 44px);
-  padding-bottom: 22px;
-  border-bottom: 1px solid var(--ink-line);
-}
 /* Order placed ────────────────────────────────────────────────
    The app's confirmation sheet: one glass card, a green check disc (a clock
    while the payment is still pending), the facts as three quiet tiles and
@@ -6495,7 +6800,7 @@ select {
 }
 .order-done-title {
   margin: 10px 0 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(30px, 4.6vw, 42px);
   line-height: 1.08;
@@ -6641,7 +6946,7 @@ select {
 }
 .checkout-gate-title {
   margin: 0 0 10px;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -6664,14 +6969,6 @@ select {
 }
 
 /* The mark and a quiet "secure" capsule - the app's checkout header. */
-.checkout-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.checkout-brand .laf-mark {
-  --laf-h: 30px;
-}
 .checkout-secure {
   display: inline-flex;
   align-items: center;
@@ -6693,120 +6990,7 @@ select {
   stroke-linecap: round;
 }
 
-.checkout-grid {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: clamp(24px, 4vw, 48px);
-  align-items: start;
-}
-@media (max-width: 980px) {
-  .checkout-grid {
-    grid-template-columns: 1fr;
-  }
-}
-.checkout-main {
-  display: grid;
-  gap: 24px;
-}
 
-/* Stepper */
-.checkout-stepper {
-  list-style: none;
-  margin: 0;
-  padding: 18px 22px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  background: #fff;
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-lg);
-}
-@media (max-width: 720px) {
-  .checkout-stepper {
-    grid-template-columns: 1fr;
-  }
-}
-.checkout-stepper-item {
-  display: grid;
-  grid-template-columns: 36px 1fr;
-  gap: 10px;
-  align-items: center;
-  position: relative;
-  opacity: 0.45;
-  transition: opacity 0.25s var(--ease-out);
-}
-.checkout-stepper-item[data-state="active"] {
-  opacity: 1;
-}
-.checkout-stepper-item[data-state="done"] {
-  opacity: 0.85;
-}
-.checkout-stepper-num {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: var(--bg-warm);
-  border: 1px solid var(--ink-line);
-  font-family: var(--display);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-soft);
-  transition:
-    background 0.25s,
-    color 0.25s,
-    border-color 0.25s;
-}
-.checkout-stepper-item[data-state="active"] .checkout-stepper-num {
-  background: var(--bg-espresso);
-  color: var(--bg);
-  border-color: var(--bg-espresso);
-}
-/* Done is decided, and decided is green in the app - the gold read as a
-   reward the customer had not earned yet. */
-.checkout-stepper-item[data-state="done"] .checkout-stepper-num {
-  background: var(--green-mist);
-  color: var(--green);
-  border-color: var(--green-mist);
-}
-.checkout-stepper-label {
-  display: block;
-  font-family: var(--serif-modern);
-  font-weight: 500;
-  font-size: 16px;
-  letter-spacing: -0.005em;
-}
-.checkout-stepper-hint {
-  display: block;
-  font-size: 12px;
-  color: var(--ink-mute);
-  margin-top: 2px;
-}
-
-/* Step card */
-.checkout-step {
-  background: #fff;
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-lg);
-  padding: clamp(24px, 3.5vw, 40px);
-  display: grid;
-  gap: 22px;
-}
-.checkout-step-head {
-  display: grid;
-  gap: 2px;
-}
-.checkout-step-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding-top: 8px;
-  margin-top: 8px;
-  border-top: 1px solid var(--ink-line);
-}
 
 /* Skeleton (mount) */
 .checkout-skeleton {
@@ -6846,371 +7030,21 @@ select {
   margin-bottom: 14px;
 }
 
-/* Cart line items (review step) */
-.checkout-line-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 14px;
-}
-.checkout-line {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 18px;
-  padding: 16px 18px;
-  background: var(--bg-warm);
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-md);
-}
-@media (max-width: 540px) {
-  .checkout-line {
-    grid-template-columns: 1fr;
-    text-align: left;
-  }
-}
-.checkout-line-name {
-  font-family: var(--serif-modern);
-  font-weight: 500;
-  font-size: 16px;
-  letter-spacing: -0.01em;
-}
-.checkout-line-qty {
-  display: inline-flex;
-  align-items: center;
-  background: #fff;
-  border: 1px solid var(--ink-line-strong);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.checkout-line-qty button {
-  padding: 8px 14px;
-  font-family: var(--mono);
-  font-size: 14px;
-  color: var(--ink-soft);
-  background: transparent;
-}
-.checkout-line-qty button:hover {
-  background: var(--bg-warm);
-}
-.checkout-line-qty span {
-  padding: 8px 12px;
-  font-family: var(--mono);
-  font-size: 13px;
-  min-width: 40px;
-  text-align: center;
-  border-left: 1px solid var(--ink-line);
-  border-right: 1px solid var(--ink-line);
-}
-.checkout-line-price {
-  font-family: var(--mono);
-  font-size: 14px;
-  color: var(--ink);
-}
 
-/* Address grid */
-.checkout-address-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-}
-@media (max-width: 720px) {
-  .checkout-address-grid {
-    grid-template-columns: 1fr;
-  }
-}
-.checkout-address-card {
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 18px;
-  background: var(--bg-warm);
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-md);
-  cursor: pointer;
-  transition:
-    border-color 0.18s,
-    box-shadow 0.18s,
-    background 0.18s;
-}
-.checkout-address-card:hover {
-  border-color: var(--ink-line-strong);
-}
-.checkout-address-card[data-active="true"] {
-  background: #fff;
-  border-color: var(--ink);
-  box-shadow: 0 0 0 1px var(--ink);
-}
-.checkout-address-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-.checkout-address-label {
-  font-family: var(--serif-modern);
-  font-weight: 500;
-  font-size: 16px;
-  letter-spacing: -0.005em;
-}
-.checkout-address-default {
-  font-size: 11.5px;
-  font-weight: 600;
-  background: var(--green-mist);
-  color: var(--green-pressed);
-  padding: 3px 9px;
-  border-radius: 999px;
-}
-.checkout-address-body {
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--ink-soft);
-}
-.checkout-address-new {
-  align-items: center;
-  justify-content: center;
-  border-style: dashed;
-  text-align: center;
-}
-.checkout-address-plus {
-  font-family: var(--serif);
-  font-size: 30px;
-  color: var(--ink-mute);
-  line-height: 1;
-}
 
-/* Shipping form */
-.checkout-shipping-form {
-  display: grid;
-  gap: 14px;
-  padding-top: 18px;
-  margin-top: 4px;
-  border-top: 1px dashed var(--ink-line);
-}
-.checkout-guest-note {
-  padding: 14px 16px;
-  background: var(--bg-warm);
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-md);
-}
-.checkout-guest-note p {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--ink-soft);
-  line-height: 1.55;
-}
-.checkout-field-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-@media (max-width: 540px) {
-  .checkout-field-row {
-    grid-template-columns: 1fr;
-  }
-}
-.checkout-field {
-  display: grid;
-  gap: 6px;
-}
-.checkout-field span {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
-}
-.checkout-field input {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--ink-line);
-  background: #fff;
-  font-family: inherit;
-  font-size: 15px;
-  color: var(--ink);
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
-.checkout-field input:focus {
-  outline: none;
-  border-color: var(--ink);
-  box-shadow: 0 0 0 3px rgba(59, 42, 30, 0.06);
-}
 
-/* Payment step */
-.checkout-payment-info {
-  padding: 18px 20px;
-  background: var(--bg-warm);
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-md);
-}
-.checkout-payment-info dl {
-  display: grid;
-  gap: 8px;
-  margin: 10px 0 0;
-}
-.checkout-payment-info dl > div {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 14px;
-  font-size: 14px;
-}
-.checkout-payment-info dt {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-mute);
-  padding-top: 1px;
-}
-.checkout-payment-info dd {
-  margin: 0;
-  color: var(--ink);
-  line-height: 1.55;
-}
-.checkout-payment-card {
-  background:
-    radial-gradient(
-      80% 140% at 100% 0%,
-      rgba(114, 203, 172, 0.24) 0%,
-      rgba(114, 203, 172, 0) 60%
-    ),
-    linear-gradient(135deg, #1d6d56 0%, #0c3b2d 100%);
-  color: #fbf8f4;
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
-}
-.checkout-payment-card-strip {
-  padding: 14px 22px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-.checkout-payment-card-body {
-  padding: 28px 24px 32px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 18px;
-}
-/* Mist on the green (5.30:1). The paragraph used to carry an inline
-   --ink-soft, dark brown on the green card, and could not be read. */
-.checkout-payment-note {
-  margin: 0;
-  max-width: 52ch;
-  font-size: 14px;
-  line-height: 1.65;
-  color: var(--green-mist);
-}
-.checkout-payment-amount {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-.checkout-payment-amount .eyebrow {
-  color: var(--gold-soft);
-}
-.checkout-payment-amount > span:last-child {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: clamp(28px, 4vw, 40px);
-  letter-spacing: -0.02em;
-}
 
-/* Summary sidebar */
-.checkout-summary {
-  position: sticky;
-  top: 24px;
-  align-self: start;
-}
-.checkout-summary-card {
-  background: #fff;
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-lg);
-  padding: 24px;
-  display: grid;
-  gap: 14px;
-}
-.checkout-summary-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--ink-line);
-}
-.checkout-summary-items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 12px;
-  max-height: 280px;
-  overflow-y: auto;
-}
-.checkout-summary-items li {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px dashed var(--ink-line);
-}
-.checkout-summary-items li:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-.checkout-summary-name {
-  font-family: var(--serif-modern);
-  font-weight: 500;
-  font-size: 14px;
-  letter-spacing: -0.005em;
-}
-.checkout-summary-qty {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--ink-mute);
-  margin-top: 4px;
-}
-.checkout-summary-price {
-  font-size: 14px;
-  white-space: nowrap;
-}
-.checkout-summary-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: var(--ink-soft);
-}
-.checkout-summary-total {
-  display: flex;
-  justify-content: space-between;
-  padding-top: 14px;
-  margin-top: 4px;
-  border-top: 1px solid var(--ink-line);
-  font-family: var(--serif);
-  font-size: 22px;
-}
-.checkout-summary-note {
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--ink-mute);
-  line-height: 1.55;
-  margin-top: 4px;
-}
 
 /* Promo block (inside summary) */
 .checkout-promo {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
 }
 /* Codes are printed in capitals, so the typed value is too; the hint is
    not a code and reads in sentence case. */
 .checkout-promo input {
+  width: 100%;
   min-height: 44px;
   padding: 0 14px;
   border-radius: var(--r-pill);
@@ -7235,6 +7069,9 @@ select {
 }
 .checkout-promo button {
   min-height: 44px;
+  /* "Uygula"'s own width, so the pill does not shrink to the dots while a
+     code is being checked. */
+  min-width: 88px;
   padding: 0 18px;
   border-radius: var(--r-pill);
   font-family: var(--display);
@@ -7245,6 +7082,11 @@ select {
   border: 0;
   cursor: pointer;
   transition: transform 0.12s var(--ease-out);
+}
+/* The dots stand alone here (the words are sr-only), so they drop the
+   spacing they keep beside a label and sit in the middle of the pill. */
+.checkout-promo button .lf-dots {
+  margin-inline-end: 0;
 }
 .checkout-promo button:active {
   transform: scale(var(--press-scale));
@@ -7264,12 +7106,6 @@ select {
   color: #15803d;
 }
 
-/* Payment form */
-.checkout-payment-form .checkout-step-actions {
-  border-top: none;
-  padding-top: 0;
-  margin-top: 0;
-}
 
 /* Distance-selling consent - Mesafeli Sözleşmeler Yönetmeliği requires an
    explicit, never pre-ticked confirmation before the order is created: one
@@ -7828,104 +7664,9 @@ select {
 /* ─────────────────────────────────────────────────────────────
    Mobile refinements - checkout, nav, account
    ───────────────────────────────────────────────────────────── */
-
-/* Checkout - mobile order summary moves below */
-@media (max-width: 980px) {
-  .checkout-grid {
-    grid-template-columns: 1fr;
-  }
-  .checkout-summary {
-    position: static;
-    order: 2;
-  }
-  .checkout-main {
-    order: 1;
-  }
-  .checkout-summary-items {
-    max-height: none;
-  }
-}
 @media (max-width: 540px) {
   .checkout-page-wrap {
     padding-top: 16px;
-  }
-  .checkout-page-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    padding-bottom: 18px;
-    margin-bottom: 22px;
-  }
-  .checkout-brand {
-    gap: 10px;
-  }
-  .checkout-stepper {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 14px 16px;
-  }
-  .checkout-stepper-item {
-    grid-template-columns: 28px 1fr;
-    gap: 10px;
-  }
-  .checkout-stepper-num {
-    width: 28px;
-    height: 28px;
-    font-size: 11px;
-  }
-  .checkout-stepper-label {
-    font-size: 14px;
-  }
-  .checkout-stepper-hint {
-    display: none;
-  }
-  .checkout-stepper-item[data-state="active"] .checkout-stepper-hint,
-  .checkout-stepper-item[data-state="done"] .checkout-stepper-hint {
-    display: none;
-  }
-  .checkout-line {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 14px;
-  }
-  .checkout-line-name {
-    font-size: 15px;
-  }
-  .checkout-line-qty {
-    justify-self: start;
-  }
-  .checkout-line-price {
-    justify-self: end;
-    font-size: 14px;
-  }
-  .checkout-step-actions {
-    flex-direction: column-reverse;
-  }
-  .checkout-step-actions .btn-lg {
-    width: 100%;
-    justify-content: center;
-  }
-  .checkout-step-actions .btn-sm {
-    width: 100%;
-    justify-content: center;
-  }
-  .checkout-payment-card-body {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .checkout-payment-amount {
-    align-items: flex-start;
-    width: 100%;
-  }
-  .checkout-payment-info dl > div {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
-  .checkout-summary-card {
-    padding: 18px;
-  }
-  .checkout-summary-total {
-    font-size: 20px;
   }
 }
 
@@ -8196,7 +7937,7 @@ select {
 }
 .nf-title {
   margin: 18px 0 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(36px, 5.4vw, 68px);
   font-weight: 700;
   line-height: 1.04;
@@ -8410,7 +8151,7 @@ select {
   border-color: rgba(59, 42, 30, 0.16);
 }
 .shop-hero-title {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(34px, 5.6vw, 68px);
   line-height: 1.04;
@@ -8840,7 +8581,7 @@ select {
   margin-top: 6px;
 }
 .pdp-title {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(32px, 4.4vw, 52px);
   line-height: 1.05;
@@ -8855,7 +8596,7 @@ select {
   margin-top: 18px;
 }
 .pdp-price {
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 32px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -9454,7 +9195,7 @@ select {
 }
 .search-empty-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -9580,7 +9321,7 @@ select {
 }
 .pour-module-title {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: clamp(26px, 2.8vw, 38px);
   font-weight: 700;
   line-height: 1.1;
@@ -9944,7 +9685,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 }
 .auth-title {
   margin: 0 0 10px;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-weight: 700;
   font-size: clamp(30px, 4.4vw, 38px);
   line-height: 1.08;
@@ -10446,6 +10187,243 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   max-width: 60ch;
 }
 
+/* Guest contact block and the checkout band under the picker (16 Eki 2026):
+   both sit on the light ground, so the summary's on-dark text styles are
+   re-pointed at the ink tokens here. */
+.karaoke-guest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.karaoke-contact .karaoke-link,
+.karaoke-mine .karaoke-link {
+  color: var(--green);
+}
+.karaoke-checkout {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: 26px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--ink-line);
+  background: var(--bg-warm);
+  display: grid;
+  gap: 18px;
+}
+/* MSY m.6/1: the pre-payment information at a readable size - 16px. */
+.karaoke-preinfo {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.karaoke-preinfo h2 {
+  margin: 0 0 10px;
+}
+.karaoke-preinfo ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+}
+/* "Ayrıntılar": the rest of the pre-information, closed by default. Same
+   16px as the box when open; the platform triangle gives way to the FAQ's
+   chevron. */
+.karaoke-preinfo-more {
+  margin-top: 12px;
+}
+.karaoke-preinfo-more summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--green);
+}
+.karaoke-preinfo-more summary::-webkit-details-marker {
+  display: none;
+}
+.karaoke-preinfo-more summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-top: -3px;
+  border-right: 1.75px solid currentColor;
+  border-bottom: 1.75px solid currentColor;
+  rotate: 45deg;
+  transition: rotate 0.25s var(--ease-spring);
+}
+.karaoke-preinfo-more[open] summary::after {
+  margin-top: 3px;
+  rotate: -135deg;
+}
+.karaoke-preinfo-more ul {
+  margin-top: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .karaoke-preinfo-more summary::after {
+    transition: none;
+  }
+}
+/* The seller, always in sight under the box (MSY m.5/1-c), at the box's
+   16px (m.6/1). */
+.karaoke-seller {
+  margin: -6px 0 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.karaoke-consents .karaoke-consent {
+  font-size: 15px;
+  color: var(--ink);
+}
+.karaoke-consents .karaoke-consent:first-child {
+  margin-top: 0;
+}
+.karaoke-checkout .karaoke-error {
+  background: #fff;
+  border-color: var(--rose);
+  color: var(--rose);
+}
+.karaoke-checkout .karaoke-fine {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+.karaoke-pay {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* The booking's own page: "Karaoke rezervasyonlarım" and the guest link. */
+.karaoke-link-page {
+  padding: clamp(32px, 6vw, 72px) 0 0;
+  max-width: 720px;
+}
+.karaoke-link-page .karaoke-mine {
+  margin-top: 20px;
+  padding: 24px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--ink-line);
+  background: var(--surface);
+}
+.karaoke-mine {
+  display: grid;
+  gap: 18px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.karaoke-mine p {
+  margin: 0;
+}
+.karaoke-mine-section + .karaoke-mine-section {
+  margin-top: 22px;
+}
+.karaoke-mine-section h3 {
+  margin: 0 0 8px;
+}
+.karaoke-mine-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.karaoke-mine-code {
+  font-family: var(--headline);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.karaoke-mine-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px 18px;
+}
+.karaoke-mine-grid dt {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-mute);
+}
+.karaoke-mine-grid dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+.karaoke-mine-sub {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-mute);
+}
+.karaoke-mine-rules {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+  border: 1px solid var(--ink-line);
+  font-size: 14px;
+}
+.karaoke-mine-pay {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.karaoke-mine-notice {
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-line);
+  font-size: 14px;
+}
+.karaoke-mine-notice--ok {
+  border-color: var(--matcha);
+  color: var(--matcha);
+}
+.karaoke-mine-notice--warn {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.karaoke-mine-notice--error {
+  border-color: var(--rose);
+  color: var(--rose);
+}
+.karaoke-mine-confirm {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-line);
+}
+.karaoke-mine-confirm h3 {
+  margin: 0;
+}
+.karaoke-mine-outcome {
+  font-weight: 600;
+}
+.karaoke-mine-confirm-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+/* Deliberately quiet (operator, 16 Eki 2026: "iptali zorlaştırabilirsin
+   biraz silinik"): small, muted, at the bottom - but still a real link with
+   a visible underline and AA contrast, so it is findable and accessible. */
+.karaoke-mine-quiet {
+  margin-top: 8px;
+  text-align: right;
+}
+.karaoke-mine-cancel {
+  /* Invisible padding: the link stays small to the eye but is a real tap
+     target (44px high) on a phone. */
+  display: inline-block;
+  padding: 13px 0;
+  font-size: 12.5px;
+  color: var(--ink-mute);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ─────────────────────────────────────────────────────────────
    Account dashboard - first run, stamp card, app block
    ───────────────────────────────────────────────────────────── */
@@ -10594,7 +10572,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 }
 .account-app-title {
   margin-top: 8px;
-  font-family: var(--display);
+  font-family: var(--headline);
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -10708,4 +10686,944 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 }
 .account-delete-link a:hover {
   color: var(--rose);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   One-page checkout (/odeme, checkout.tsx) - 1 Teslimat → 2 Ödeme
+   Its own chrome (no nav, no footer farm), a sticky order summary on the
+   right from 960px, and on a phone a summary bar at the top and the pay
+   bar fixed at the bottom of step 2. Inputs are the site's `.input`
+   (48px, 16px text: no iOS zoom).
+   ────────────────────────────────────────────────────────────── */
+.co-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--glass-chrome);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--ink-line);
+}
+.co-chrome-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  min-height: 64px;
+  padding: 0 var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.co-chrome-brand {
+  display: inline-flex;
+  align-items: center;
+  --laf-h: 30px;
+  margin-right: auto;
+}
+.co-chrome-help {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--ink);
+  text-decoration: none;
+}
+.co-chrome-help-label {
+  font-size: 11.5px;
+  color: var(--ink-mute);
+}
+.co-chrome-body {
+  background: var(--bg);
+  min-height: calc(100vh - 64px);
+}
+.co-chrome-body .checkout-page-wrap {
+  padding-top: clamp(16px, 3vw, 32px);
+}
+.co-chrome-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 20px;
+  padding: 24px var(--gutter) 32px;
+  font-size: 13px;
+  color: var(--ink-mute);
+  border-top: 1px solid var(--ink-line);
+}
+.co-chrome-foot a {
+  color: var(--ink-soft);
+}
+
+.co-layout {
+  /* The step change scrolls here: clear the sticky checkout header. */
+  scroll-margin-top: 80px;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "side" "main";
+}
+.co-layout [hidden] {
+  display: none !important;
+}
+.co-head {
+  grid-area: head;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+.co-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-weight: 700;
+  font-size: clamp(26px, 3.2vw, 36px);
+  line-height: 1.1;
+  color: var(--ink);
+}
+.co-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.co-steps-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-mute);
+  font-size: 14px;
+  font-weight: 600;
+}
+.co-steps-item + .co-steps-item::before {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: var(--ink-line-strong);
+}
+.co-steps-item.is-current {
+  color: var(--ink);
+}
+.co-steps-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+button.co-steps-link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--ink-line-strong);
+}
+.co-step {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-stone);
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.is-current .co-step,
+.co-section-head .co-step {
+  background: var(--green);
+  color: var(--bg-warm);
+}
+.co-step.is-done {
+  background: var(--green-mist);
+  color: var(--green-pressed);
+}
+
+.co-main {
+  grid-area: main;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.co-step2 {
+  display: grid;
+  gap: 16px;
+}
+.co-section {
+  background: var(--surface);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-lg);
+  padding: clamp(18px, 3vw, 28px);
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.co-section-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+}
+.co-section-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-weight: 600;
+  font-size: clamp(19px, 2vw, 22px);
+  color: var(--ink);
+}
+.co-section-title:focus {
+  outline: none;
+}
+.co-section-secure {
+  margin-left: auto;
+}
+
+.co-addresses {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+}
+.co-address {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-height: 48px;
+  padding: 14px 16px;
+  border: 1px solid var(--ink-line-strong);
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.co-address input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--green);
+}
+.co-address.is-active {
+  background: var(--surface);
+  border-color: var(--green);
+  box-shadow: var(--ring);
+}
+.co-address-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.co-address-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.co-address-badge {
+  padding: 1px 8px;
+  border-radius: var(--r-pill);
+  background: var(--green-mist);
+  color: var(--green-pressed);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.co-address-lines {
+  overflow-wrap: anywhere;
+}
+.co-address-new {
+  border-style: dashed;
+  align-items: center;
+}
+.co-address-form {
+  display: grid;
+  gap: 14px;
+}
+.co-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.co-field-row {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.co-field-row-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.co-label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.co-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.co-field .input[aria-invalid="true"] {
+  border-color: var(--accent);
+}
+.co-field-hint,
+.co-quiet {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+}
+.co-field-error {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent-deep);
+}
+.co-ship-method {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--green-mist);
+  font-size: 14px;
+}
+.co-ship-method-name {
+  font-weight: 600;
+  color: var(--ink);
+}
+.co-ship-method-meta {
+  grid-row: 2;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+.co-ship-method-price {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  font-weight: 600;
+  color: var(--green-pressed);
+}
+.co-next {
+  display: flex;
+  justify-content: flex-end;
+}
+.co-delivery-summary {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+.co-delivery-summary-text {
+  margin: 4px 0 2px;
+  font-size: 15px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.co-link {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--green-pressed);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.co-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.co-link-danger {
+  color: var(--accent-deep);
+}
+
+.co-banner {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.co-banner p {
+  margin: 0;
+}
+.co-banner:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.co-banner-title {
+  font-weight: 700;
+}
+.co-banner-safe {
+  font-weight: 600;
+}
+.co-docs {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+.co-docs a {
+  color: var(--ink);
+  text-underline-offset: 3px;
+}
+.co-accepted {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 13px;
+  color: var(--ink-mute);
+}
+.co-schemes {
+  display: inline-flex;
+  gap: 6px;
+}
+.co-scheme {
+  width: 38px;
+  height: 24px;
+  flex: none;
+}
+
+.co-pay {
+  display: grid;
+  gap: 14px;
+}
+.co-methods {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.co-method {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-height: 52px;
+  padding: 8px 14px;
+  border: 1px solid var(--ink-line-strong);
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+}
+.co-method.is-active {
+  background: var(--surface);
+  border-color: var(--green);
+  box-shadow: var(--ring);
+}
+.co-method input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--green);
+}
+.co-method-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.co-method-main {
+  font-weight: 600;
+  color: var(--ink);
+}
+.co-method-meta {
+  font-size: 13px;
+  color: var(--ink-mute);
+}
+.co-method-confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 13px;
+  color: var(--accent-deep);
+}
+.co-pay-form,
+.co-card {
+  display: grid;
+  gap: 14px;
+}
+.co-number {
+  position: relative;
+}
+.co-number .input {
+  padding-right: 58px;
+}
+.co-number-scheme {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  display: flex;
+  pointer-events: none;
+}
+.co-number-scheme .co-scheme {
+  display: none;
+}
+.co-number[data-brand="visa"] .is-visa,
+.co-number[data-brand="mastercard"] .is-mastercard,
+.co-number[data-brand="troy"] .is-troy,
+.co-number[data-brand="amex"] .is-amex {
+  display: block;
+}
+/* A 44px target around a 28px mark. */
+.co-help {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px -8px 0;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.co-help::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--ink-line-strong);
+  background: var(--surface);
+  z-index: -1;
+}
+.co-help-text {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--bg-stone);
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.co-save {
+  display: grid;
+  gap: 4px;
+}
+.co-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.co-check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--green);
+}
+.co-installment {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.co-trust-note {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.co-trust-note svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.co-psp {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-mute);
+}
+
+.co-confirm .checkout-consent {
+  margin: 0;
+  border: 1px solid var(--ink-line);
+  background: var(--bg-warm);
+}
+.co-confirm .checkout-consent input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  margin-top: 0;
+  accent-color: var(--green);
+}
+/* Each row is one 44px-high target: the box, its label, the whole line. */
+.co-confirm .checkout-consent-row {
+  align-items: center;
+  min-height: 44px;
+  gap: 12px;
+}
+.co-confirm .checkout-consent label {
+  padding: 6px 0;
+  line-height: 1.5;
+}
+/* The document links sit inside a sentence; their hit area grows
+   vertically without moving the lines. */
+.co-confirm .checkout-consent a,
+.co-docs a {
+  padding-block: 11px;
+  margin-block: -11px;
+}
+.co-summary .checkout-promo input {
+  font-size: 16px;
+}
+.co-consent:focus {
+  outline: none;
+}
+.co-consent:focus-visible .checkout-consent {
+  box-shadow: var(--ring);
+}
+.co-notice,
+.co-pay-error {
+  margin: 0;
+}
+.co-paybar {
+  display: grid;
+  gap: 10px;
+}
+.co-paybar-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.co-paybar-total strong {
+  font-family: var(--headline);
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--ink);
+}
+.co-pay-btn {
+  width: 100%;
+}
+.co-paybar-hint {
+  margin: 0;
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--ink-mute);
+}
+.co-trust {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-mute);
+}
+
+.co-side {
+  grid-area: side;
+  min-width: 0;
+}
+.co-summary {
+  background: var(--surface);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.co-summary-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 16px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.co-summary-toggle > span:first-child {
+  margin-right: auto;
+}
+.co-summary-count {
+  font-weight: 400;
+  color: var(--ink-mute);
+}
+.co-chevron {
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--ink-soft);
+  border-bottom: 2px solid var(--ink-soft);
+  transform: rotate(45deg) translateY(-3px);
+  transition: transform 0.2s var(--ease-out);
+}
+.co-summary-toggle[aria-expanded="true"] .co-chevron {
+  transform: rotate(-135deg) translateY(-3px);
+}
+.co-summary-title {
+  display: none;
+  margin: 0;
+  padding: 22px 22px 0;
+  font-family: var(--headline);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--ink);
+}
+.co-summary-body {
+  display: none;
+  gap: 16px;
+  padding: 4px 16px 18px;
+}
+.co-summary-body[data-open="true"] {
+  display: grid;
+}
+.co-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.co-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--ink-line-strong);
+}
+.co-line-info,
+.co-line-side {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.co-line-side {
+  justify-items: end;
+  font-weight: 600;
+  color: var(--ink);
+}
+.co-line-side .co-link {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-mute);
+}
+.co-line-name {
+  font-size: 14px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.co-qty {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  border: 1px solid var(--ink-line-strong);
+  border-radius: var(--r-pill);
+}
+.co-qty button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 18px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.co-qty button:disabled {
+  color: var(--ink-quiet);
+  cursor: not-allowed;
+}
+.co-qty span {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 600;
+}
+.co-totals {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.co-totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.co-totals dt,
+.co-totals dd {
+  margin: 0;
+}
+.co-totals-discount dd {
+  color: var(--green-pressed);
+}
+.co-totals-total {
+  padding-top: 10px;
+  border-top: 1px solid var(--ink-line);
+  align-items: baseline;
+}
+.co-totals-total dt {
+  font-weight: 600;
+  color: var(--ink);
+}
+.co-totals-total dt span {
+  font-weight: 400;
+  font-size: 12.5px;
+  color: var(--ink-mute);
+}
+.co-totals-total dd {
+  font-family: var(--headline);
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--ink);
+}
+.co-docs-seller {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+}
+.co-freeship {
+  margin: 0 16px 16px;
+}
+.co-seller {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+  overflow-wrap: anywhere;
+}
+.co-order-form {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .co-docs-seller {
+    display: none;
+  }
+  .co-freeship {
+    margin: 0 22px 22px;
+  }
+  .co-layout {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-areas: "head head" "main side";
+    gap: 24px 32px;
+    align-items: start;
+  }
+  .co-side {
+    position: sticky;
+    top: calc(64px + 16px);
+  }
+  .co-summary-toggle {
+    display: none;
+  }
+  .co-summary-title {
+    display: block;
+  }
+  .co-summary-body,
+  .co-summary-body[data-open="true"] {
+    display: grid;
+    padding: 16px 22px 22px;
+  }
+  .co-lines {
+    max-height: 320px;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 959.98px) {
+  /* Step 2 on a phone: the total and the pay button stay on screen. The
+     bar is fixed; the page is padded for it so it never covers the consent
+     boxes above it. */
+  /* The bar covers the bottom of the screen: whatever scrolls into view
+     (a card field, its error) stops above it. The page's own end is padded
+     once, at the foot below - not here as well. */
+  html:has(.co-layout[data-step="2"]) {
+    scroll-padding-bottom: calc(176px + env(safe-area-inset-bottom));
+  }
+  /* The checkout's own footer links sit below the layout: the fixed bar
+     must not cover them either. */
+  .co-chrome-body:has(.co-layout[data-step="2"]) + .co-chrome-foot {
+    padding-bottom: calc(176px + env(safe-area-inset-bottom));
+  }
+  .co-paybar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 45;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--ink-line);
+    box-shadow: 0 -8px 24px rgba(59, 42, 30, 0.08);
+  }
+  .co-paybar-total strong {
+    font-size: 20px;
+  }
+  .co-next-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 540px) {
+  .co-field-row,
+  .co-field-row-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .co-section-secure {
+    margin-left: 0;
+  }
+  .co-chrome-help-label {
+    display: none;
+  }
+}
+
+/* A 320px phone: the header's three parts must fit one line, so the number
+   gives way to the word (the link's aria-label still carries it). 375px
+   still has room for the number. */
+@media (max-width: 350px) {
+  .co-chrome-inner {
+    gap: 8px;
+  }
+  .co-chrome-secure {
+    padding: 0 8px;
+  }
+  .co-chrome-help-label {
+    display: inline;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .co-chrome-help-number {
+    display: none;
+  }
 }

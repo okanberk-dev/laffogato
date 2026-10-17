@@ -61,8 +61,9 @@ Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" 
 
 | Action                                          | Form dosyası                                          | Alanlar                                                                          |
 | ----------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `placeOrderAction`                              | `src/app/odeme/checkout-wizard.tsx`                   | `items` (JSON), `legalConsent`, `customerName`, `customerPhone`, `shippingAddress`, `promoCode` |
-| `previewPromoAction`                            | `src/app/odeme/checkout-wizard.tsx`                   | `code`, `subtotal`                                                               |
+| `startCheckoutAction` (16 Eki 2026'dan beri) | `src/app/odeme/checkout.tsx` (sipariş formu, kart YOK) | `items` (JSON), `legalConsent`, `customerName`, `customerPhone`, `shippingAddress`, `promoCode`, `reuseOrderId`, `reuseData`, `reuseSignature`, `reuseCartKey` |
+| `previewPromoAction` | `src/app/odeme/checkout.tsx` | `code`, `subtotal` |
+| `POST /odeme/paynkolay` (yerli form, action değil) | `src/app/odeme/card-payment.tsx` | `d`, `s`, `return=checkout`, `cardChoice`, `saveCard` + `CARD_FORM_FIELDS` |
 | `registerAction`                                | `src/app/uye/kayit/register-form.tsx`                 | `email`, `name`, `phone`, `password`, `passwordConfirm`, `acceptedTerms`, `marketing`, `newsletter` |
 | `loginAction`                                   | `src/app/uye/giris/login-form.tsx`                    | `email`, `password`, `next` (gizli; sayfa `?next=` ile açıldıysa - ödemeye/karaoke'ye geri döner) |
 | `requestPasswordResetAction`                    | `src/app/uye/sifremi-unuttum/forgot-form.tsx`         | `email`                                                                          |
@@ -74,7 +75,7 @@ Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" 
 | `toggleWishlistAction`                          | `src/components/laffogato/ui.tsx`, `…/favorilerim/page.tsx` | `productId`, `back` (yalnız site içi yol; dışarısı yok sayılır)            |
 | `updateNotificationsAction`                     | `src/app/uye/hesap/bildirimler/notifications-form.tsx` | `orderUpdates`, `marketing`, `newsletter`                                       |
 | `deleteAccountAction`                           | `src/app/uye/hesap/sil/delete-account-form.tsx`       | `confirmEmail`, `password`                                                       |
-| `bookKaraokeAction`                             | `src/components/laffogato/karaoke-booking.tsx`        | `date`, `startHour`, `hours`, `guests`, `note`                                   |
+| `bookKaraokeAction`                             | `src/components/laffogato/karaoke-booking.tsx`        | `date`, `startHour`, `hours`, `guests`, `note`, `contactName`, `contactEmail`, `contactPhone`, `guestFirstName`, `guestLastName`, `consentPreInfo`, `consentContract`, `consentKvkk` (üç kutu ayrı ve işaretsiz; tests/frontend-form-contract.test.ts) |
 | `subscribeNewsletterAction`                     | `src/components/laffogato/newsletter-form.tsx`        | `email`, `consent`                                                               |
 | `confirmNewsletterAction`                       | `src/app/bulten/onay/page.tsx`                        | `token` (gizli) - bülten onayı bir **düğme**dir, bağlantı değil                   |
 | `unsubscribeNewsletterAction`                   | `src/app/bulten/cikis/page.tsx`                       | `token` (gizli) - çıkış da düğmeyle; sayfa GET'te hiçbir şey harcamaz            |
@@ -115,7 +116,7 @@ yazan `defaultChecked={values.x}` serbesttir.
 
 | Ne                     | Değer                                     | Kim okur/yazar                                                                  |
 | ---------------------- | ----------------------------------------- | ------------------------------------------------------------------------------- |
-| Sepet anahtarı         | `localStorage["laffogato_cart_v1"]`       | `app.tsx`, `product-detail.tsx`, `site-chrome.tsx`, `checkout-wizard.tsx`, `odeme/basarili/clear-cart.tsx` |
+| Sepet anahtarı         | `localStorage["laffogato_cart_v1"]`       | `app.tsx`, `product-detail.tsx`, `site-chrome.tsx`, `odeme/checkout.tsx`, `odeme/basarili/clear-cart.tsx` |
 | Sepet temizleme        | `/odeme/basarili` içindeki `<ClearCart>`  | Server action client state'e dönemez; temizlik başarı sayfasında olur          |
 | Çerez rızası           | `src/lib/consent/cookie.ts`               | `cookie-consent.tsx` - Consent Mode v2 sinyalleri buradan                       |
 
@@ -151,14 +152,12 @@ okumaya devam etmezse müşteri "hiçbir şey olmadı" ekranında kalır.
 
 | Yönlendirme                                           | Kaynak                          | Karşılayan                        |
 | ----------------------------------------------------- | ------------------------------- | --------------------------------- |
-| `/?cart=empty`                                        | `placeOrderAction`              | `src/app/page.tsx` bildirimi      |
-| `/?cart=out_of_stock&item=…&available=…`              | `placeOrderAction`              | `src/app/page.tsx`                |
-| `/?cart=qty_too_high&item=…&available=…`              | `placeOrderAction`              | `src/app/page.tsx`                |
-| `/?cart=shop_closed`, `/?cart=not_found&item=…`       | `placeOrderAction`              | `src/app/page.tsx`                |
-| `/odeme?error=consent`                                | `placeOrderAction`              | `src/app/odeme/page.tsx` (`CHECKOUT_NOTICES`) |
-| `/odeme?error=payment`                                | POS `failureUrl`, `/odeme/donus`, `/odeme/paynkolay` | `src/app/odeme/page.tsx` (`CHECKOUT_NOTICES`) |
-| `/odeme?verify=required`                              | `placeOrderAction`              | Sayfa doğrulama panelini üyenin durumundan zaten gösterir; parametre bilgi amaçlı |
-| `/uye/giris?next=/odeme`                              | `placeOrderAction`              | `src/app/uye/giris/page.tsx`      |
+| `/?cart=empty`, `out_of_stock`, `qty_too_high`, `shop_closed`, `not_found` | Eski `placeOrderAction` (16 Eki 2026'dan beri checkout bunları sayfada, `startCheckoutAction`'ın `error.code === "cart"` yanıtıyla gösterir) | `src/app/page.tsx` bildirimi (eski bağlantılar için duruyor) |
+| `/odeme?error=consent` | Eski bağlantılar (checkout onayı sayfada ister) | `src/lib/checkout/return-codes.ts` (`readCheckoutReturn`) |
+| `/odeme?error=payment` | POS `failureUrl`, `/odeme/donus` | `src/lib/checkout/return-codes.ts` |
+| `/odeme?odeme=<kod>[&alan=][&dk=]` | `/odeme/paynkolay` (`return=checkout`) | `src/lib/checkout/return-codes.ts` - yalnız sabit kodlar |
+| `/odeme?verify=required` | `startCheckoutAction` | Sayfa doğrulama panelini üyenin durumundan zaten gösterir; parametre bilgi amaçlı |
+| `/uye/giris?next=/odeme` | `startCheckoutAction`, `/odeme` kapısı | `src/app/uye/giris/page.tsx` |
 | `/?hesap=silindi\|kapatildi`                          | `deleteAccountAction`           | ana sayfa (`accountClosureNotice`): `silindi` yalnız Supabase giriş kimliği de silindiyse |
 | `/bulten/onay?sonuc=tamam\|gecersiz\|hata`             | `confirmNewsletterAction`       | `src/app/bulten/onay/page.tsx`    |
 | `/bulten/cikis?sonuc=tamam&adres=…`, `?sonuc=gecersiz\|hata` | `unsubscribeNewsletterAction` | `src/app/bulten/cikis/page.tsx` (`adres` maskeli: `a***@alan.com`) |
@@ -188,6 +187,7 @@ uygulama, arama motoru. Yeniden adlandırmak geri alınamaz şekilde kırar.
 | `/hukuk/[slug]`                                         | E-postalar, uygulama (`GET /legal`), sözleşme metinleri    |
 | `/gorsel/**`                                            | Uygulamanın ürün/menü görselleri (`image` alanı)           |
 | `/magaza/urun/[slug]`, `/menu`, `/magaza`, `/rehber/**` | Arama motoru, sitemap, paylaşılan bağlantılar              |
+| `/masa/[code]`                                          | Masalardaki basılı QR kartları (laminasyon - geri çağrılamaz), uygulamanın masa ekranıyla birlikte evrensel bağlantı olacak (`/masa/*`, henüz talep edilmiyor). `noindex`, sitemap'te yok |
 
 ---
 

@@ -29,14 +29,14 @@ interface FormContract {
 
 const CONTRACTS: FormContract[] = [
   {
-    action: "placeOrderAction",
+    // The one-page checkout (16 Eki 2026) replaced placeOrderAction and its
+    // 3-step wizard. Its ORDER form carries no card field - the card goes
+    // from the native pay form to /odeme/paynkolay (contract below).
+    action: "startCheckoutAction",
     actionFile: "src/app/odeme/actions.ts",
     // The hidden `legalConsent` lives in the consent block, which renders it
     // only once both document boxes are ticked (tests/checkout-consent.test.ts).
-    forms: [
-      "src/app/odeme/checkout-wizard.tsx",
-      "src/app/odeme/checkout-consent.tsx",
-    ],
+    forms: ["src/app/odeme/checkout.tsx", "src/app/odeme/checkout-consent.tsx"],
     // `items` is JSON: [{ productId, variantId, name, price, qty }] in lira.
     // The server re-prices every line from the database (resolveOrderLines);
     // the client `price` only raises the "fiyat güncellendi" flag.
@@ -47,13 +47,37 @@ const CONTRACTS: FormContract[] = [
       "customerPhone",
       "shippingAddress",
       "promoCode",
+      // The pending order a declined attempt left, offered back for reuse
+      // (src/lib/checkout/reuse.ts). No personal data, no card.
+      "reuseOrderId",
+      "reuseData",
+      "reuseSignature",
+      "reuseCartKey",
     ],
   },
   {
     action: "previewPromoAction",
     actionFile: "src/app/odeme/actions.ts",
-    forms: ["src/app/odeme/checkout-wizard.tsx"],
+    forms: ["src/app/odeme/checkout.tsx"],
     fields: ["code", "subtotal"],
+  },
+  {
+    // Deleting a saved card from the checkout: the browser names the card
+    // by its `tranId` only; the member's key comes from the session.
+    action: "deleteSavedCardAction",
+    actionFile: "src/app/odeme/actions.ts",
+    forms: ["src/app/odeme/checkout.tsx", "src/app/odeme/card-payment.tsx"],
+    fields: ["tranId"],
+  },
+  {
+    // Not a Server Action: the checkout's NATIVE pay form posts here, and
+    // the route reads it by name all the same. The card's own four fields
+    // are named through CARD_FORM_FIELDS on both sides
+    // (tests/checkout-pay-form.test.ts).
+    action: "POST /odeme/paynkolay",
+    actionFile: "src/app/odeme/paynkolay/route.ts",
+    forms: ["src/app/odeme/card-payment.tsx"],
+    fields: ["d", "s", "return", "cardChoice", "saveCard"],
   },
   {
     action: "registerAction",
@@ -157,7 +181,14 @@ const CONTRACTS: FormContract[] = [
       "contactName",
       "contactEmail",
       "contactPhone",
-      "contactConsent",
+      // A booking without an account types its own name (16 Eki 2026).
+      "guestFirstName",
+      "guestLastName",
+      // Three separate boxes before a paid booking: pre-information
+      // confirmed, contract accepted, privacy notice acknowledged.
+      "consentPreInfo",
+      "consentContract",
+      "consentKvkk",
     ],
   },
   {
@@ -191,9 +222,16 @@ function actionReads(source: string, field: string): boolean {
   return new RegExp(`\\(\\s*["']${field}["']\\s*\\)`).test(source);
 }
 
+/**
+ * An input with that `name`, or - for the checkout's actions that are called
+ * with a FormData built in code, not submitted from a <form> - a
+ * `fd.set("field", …)`.
+ */
 function formSends(source: string, field: string): boolean {
-  return new RegExp(`name=(?:"${field}"|\\{\\s*["']${field}["']\\s*\\})`).test(
-    source,
+  return (
+    new RegExp(`name=(?:"${field}"|\\{\\s*["']${field}["']\\s*\\})`).test(
+      source,
+    ) || new RegExp(`\\bfd\\.set\\(\\s*["']${field}["']`).test(source)
   );
 }
 
@@ -232,7 +270,9 @@ describe("consent boxes a redesign must not pre-tick", () => {
     ["src/app/uye/kayit/register-form.tsx", 'name="marketing"'],
     ["src/app/uye/kayit/register-form.tsx", 'name="newsletter"'],
     ["src/components/laffogato/newsletter-form.tsx", 'name="consent"'],
-    ["src/components/laffogato/karaoke-booking.tsx", 'name="contactConsent"'],
+    ["src/components/laffogato/karaoke-booking.tsx", 'name="consentPreInfo"'],
+    ["src/components/laffogato/karaoke-booking.tsx", 'name="consentContract"'],
+    ["src/components/laffogato/karaoke-booking.tsx", 'name="consentKvkk"'],
   ];
 
   for (const [file, attr] of CONSENT_INPUTS) {
@@ -273,8 +313,12 @@ describe("redirect query strings the pages must keep handling", () => {
 
   it("every /odeme?error= the backend sends has a notice on /odeme", () => {
     // A declined card used to come back as ?durum=basarisiz, which the page
-    // never read: no message at all.
-    const page = read("src/app/odeme/page.tsx");
+    // never read: no message at all. The page reads its query through
+    // readCheckoutReturn (src/lib/checkout/return-codes.ts) since 16 Eki 2026.
+    const page = read("src/lib/checkout/return-codes.ts");
+    expect(read("src/app/odeme/(checkout)/page.tsx")).toContain(
+      "readCheckoutReturn(",
+    );
     const senders = [
       "src/app/odeme/actions.ts",
       "src/app/odeme/donus/route.ts",
@@ -286,9 +330,43 @@ describe("redirect query strings the pages must keep handling", () => {
         reasons.add(m[1]);
       expect(src).not.toContain("/odeme?durum=");
     }
-    expect([...reasons].sort()).toEqual(["consent", "payment"]);
-    for (const reason of reasons) {
-      expect(page, `?error=${reason}`).toMatch(new RegExp(`\\b${reason}:`));
+    // `consent` is still read (an old link, a bookmarked return) although
+    // the one-page checkout answers a missing consent in place.
+    expect(["consent", "payment"]).toEqual(
+      expect.arrayContaining([...reasons]),
+    );
+    expect(reasons.has("payment")).toBe(true);
+    for (const reason of ["consent", "payment"]) {
+      expect(page, `?error=${reason}`).toContain(`case "${reason}":`);
+      expect(page, `?error=${reason}`).toContain(`error === "${reason}"`);
+    }
+  });
+
+  it("every /odeme?odeme= code the payment route sends has a notice", async () => {
+    // The route answers the web checkout's card POST with fixed codes only
+    // (never the POS's own words). The list is pinned here deliberately.
+    const { CHECKOUT_RETURN_CODES, checkoutReturnCopy, readCheckoutReturn } =
+      await import("@/lib/checkout/return-codes");
+    expect([...CHECKOUT_RETURN_CODES].sort()).toEqual([
+      "baslatilamadi",
+      "cok_deneme",
+      "kart_hatali",
+      "kart_secimi",
+      "kart_yok",
+      "reddedildi",
+      "sure_doldu",
+    ]);
+    const route = read("src/app/odeme/paynkolay/route.ts");
+    const sent = new Set(
+      [...route.matchAll(/back\("([a-z_]+)"/g)].map((m) => m[1]),
+    );
+    expect([...sent].sort()).toEqual([...CHECKOUT_RETURN_CODES].sort());
+    for (const code of CHECKOUT_RETURN_CODES) {
+      const ret = readCheckoutReturn({ odeme: code });
+      expect(ret?.reason, code).toBe(code);
+      const copy = checkoutReturnCopy(ret!);
+      expect(copy.title.length, code).toBeGreaterThan(0);
+      expect(copy.reason.length, code).toBeGreaterThan(0);
     }
   });
 
@@ -311,6 +389,8 @@ describe("redirect query strings the pages must keep handling", () => {
     const page = read("src/app/uye/giris/page.tsx");
     expect(page).toMatch(/next\??:\s*string/);
     expect(page).toContain("<LoginForm next={next}");
-    expect(read("src/app/odeme/page.tsx")).toContain("/uye/giris?next=/odeme");
+    expect(read("src/app/odeme/(checkout)/page.tsx")).toContain(
+      "/uye/giris?next=/odeme",
+    );
   });
 });

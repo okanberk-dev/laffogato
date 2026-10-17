@@ -62,3 +62,12 @@ describe("landing paths", () => {
     }
   });
 });
+
+describe("tables", () => {
+  it("is the owner's and the manager's: rotating a code kills a printed card", () => {
+    expect(canAccess("tables", "owner")).toBe(true);
+    expect(canAccess("tables", "manager")).toBe(true);
+    expect(canAccess("tables", "staff")).toBe(false);
+    expect(canAccess("tables", "cashier")).toBe(false);
+  });
+});

@@ -83,7 +83,8 @@ export type AccountSection =
   | "promosyonlar"
   | "bildirimler"
   | "sifre"
-  | "sil";
+  | "sil"
+  | "karaoke";
 
 export interface AccountNavItem {
   key: AccountSection;
@@ -99,6 +100,12 @@ export const ACCOUNT_NAV: AccountNavItem[] = [
     href: "/uye/hesap/siparislerim",
     label: "Siparişlerim",
     hint: "Geçmiş ve takip",
+  },
+  {
+    key: "karaoke",
+    href: "/uye/hesap/karaoke",
+    label: "Karaoke rezervasyonlarım",
+    hint: "Saatlerin ve iptal",
   },
   {
     key: "adreslerim",

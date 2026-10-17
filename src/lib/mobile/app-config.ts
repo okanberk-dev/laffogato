@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { STAMP_MIN_ORDER_MINOR, STAMP_STEP_MINOR } from "./loyalty-core";
 
 /**
  * Mobile app configuration - the business knobs the operator turns at
@@ -41,6 +42,12 @@ export interface MobileAppConfig {
     cafeEnabled: boolean;
     deliveryEnabled: boolean;
     pickupEnabled: boolean;
+    /**
+     * Ordering to a table from its QR (`fulfillment: "table"`, 15 Eki 2026).
+     * false → the app hides the table option; the server answers 400
+     * fulfillment_unavailable. `cafeEnabled` still closes it too.
+     */
+    tableEnabled: boolean;
     /** Courier ETA window shown before an order is placed, in minutes. */
     courierEtaMinutes: [number, number];
     closedMessage: string;
@@ -145,7 +152,17 @@ export interface BootstrapApp {
    * switch for one fact, and the two would drift.
    */
   ordering: MobileAppConfig["ordering"] & { shopEnabled: boolean };
-  loyalty: { stampTarget: number; rewardTitle: string };
+  loyalty: {
+    stampTarget: number;
+    rewardTitle: string;
+    /** Smallest app cafe order that earns a stamp, kuruş (additive, 15 Eki 2026). */
+    stampMinOrderMinor: number;
+    /**
+     * Goods per stamp from the minimum on, kuruş: one stamp per started step
+     * (₺140-₺320 → 1, up to ₺640 → 2 ...). Additive, 15 Eki 2026.
+     */
+    stampStepMinor: number;
+  };
   reminders: MobileAppConfig["reminders"];
   campaignCards: MobileAppConfig["campaignCards"];
   /**
@@ -227,6 +244,7 @@ export const DEFAULT_MOBILE_APP_CONFIG: MobileAppConfig = deepFreeze({
     cafeEnabled: true,
     deliveryEnabled: true,
     pickupEnabled: true,
+    tableEnabled: true,
     courierEtaMinutes: [25, 35],
     closedMessage: "Uygulamadan sipariş şu an kapalı. Köşkte görüşürüz.",
   },
@@ -459,6 +477,7 @@ const configSchema = z.object({
     cafeEnabled: bool(D.ordering.cafeEnabled),
     deliveryEnabled: bool(D.ordering.deliveryEnabled),
     pickupEnabled: bool(D.ordering.pickupEnabled),
+    tableEnabled: bool(D.ordering.tableEnabled),
     courierEtaMinutes: courierEta,
     closedMessage: text(L.closedMessageMax, D.ordering.closedMessage),
   }).catch(() => ({
@@ -590,6 +609,8 @@ export function toBootstrapApp(
     loyalty: {
       stampTarget: cfg.loyalty.stampTarget,
       rewardTitle: cfg.loyalty.rewardTitle,
+      stampMinOrderMinor: STAMP_MIN_ORDER_MINOR,
+      stampStepMinor: STAMP_STEP_MINOR,
     },
     reminders: {
       enabled: cfg.reminders.enabled,

@@ -1,4 +1,3 @@
-import { IyzicoPaymentProvider } from "./iyzico";
 import { MockPaymentProvider } from "./mock";
 import { PaynkolayPaymentProvider } from "./paynkolay";
 import type { PaymentProvider } from "./provider";
@@ -10,6 +9,20 @@ function required(name: string, provider: string): string {
   if (!v)
     throw new Error(`${name} is required when PAYMENT_PROVIDER=${provider}`);
   return v;
+}
+
+/**
+ * `PAYNKOLAY_CHECKOUT_MODE` (docs/PAYNKOLAY.md §15): `direct` = kart sitede
+ * alınır, `hosted` ya da boş = PayNkolay'ın ortak ödeme sayfası. Yazım hatası
+ * sessizce bir moda düşmez; sağlayıcı açılmaz.
+ */
+function paynkolayCheckoutMode(): "hosted" | "direct" {
+  const raw = (process.env.PAYNKOLAY_CHECKOUT_MODE ?? "").trim().toLowerCase();
+  if (raw === "" || raw === "hosted") return "hosted";
+  if (raw === "direct") return "direct";
+  throw new Error(
+    `PAYNKOLAY_CHECKOUT_MODE must be "direct" or "hosted", got "${raw}"`,
+  );
 }
 
 export function getPaymentProvider(): PaymentProvider {
@@ -51,7 +64,7 @@ export function getPaymentProvider(): PaymentProvider {
     case "paynkolay": {
       // Üretim sağlayıcısı (docs/PAYNKOLAY.md). Test ve canlı yalnızca host ve
       // anahtarlarla ayrışıyor, bu yüzden NODE_ENV'e değil PAYNKOLAY_BASE_URL'e
-      // bakılır - iyzico'daki desenin aynısı.
+      // bakılır.
       //
       // `merchantSecretKey` hiçbir isteğe girmez, yalnızca hash hesabına
       // katılır (§7); PAYMENT_WEBHOOK_SECRET burada YOK, çünkü PayNkolay
@@ -69,20 +82,10 @@ export function getPaymentProvider(): PaymentProvider {
         baseUrl: process.env.PAYNKOLAY_BASE_URL,
         successUrl: required("PAYNKOLAY_SUCCESS_URL", "paynkolay"),
         failUrl: required("PAYNKOLAY_FAIL_URL", "paynkolay"),
-      });
-      return cached;
-    }
-    case "iyzico": {
-      // Üretimde kullanılmıyor (PayNkolay seçildi) ama silinmedi: operatör
-      // geri dönmek isterse tek bir env değişkeniyle dönebilsin.
-      // Sandbox and production differ only by base URL and key pair, so the
-      // URL stays configurable rather than switching on NODE_ENV.
-      cached = new IyzicoPaymentProvider({
-        apiKey: required("IYZICO_API_KEY", "iyzico"),
-        secretKey: required("IYZICO_SECRET_KEY", "iyzico"),
-        baseUrl: process.env.IYZICO_BASE_URL,
-        webhookSecret: required("PAYMENT_WEBHOOK_SECRET", "iyzico"),
-        callbackUrl: required("IYZICO_CALLBACK_URL", "iyzico"),
+        checkoutMode: paynkolayCheckoutMode(),
+        cardStorage: ["1", "true", "on"].includes(
+          (process.env.PAYNKOLAY_CARD_STORAGE ?? "").trim().toLowerCase(),
+        ),
       });
       return cached;
     }

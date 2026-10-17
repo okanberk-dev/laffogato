@@ -1,7 +1,9 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 
 import { DegradedAuthNotice } from "@/components/customer/degraded-auth-notice";
 import { LafMark } from "@/components/laffogato/brand-mark";
+import { RESET_TOKEN_COOKIE } from "@/lib/customer/reset-link";
 
 import { ResetPasswordForm } from "./reset-form";
 
@@ -16,7 +18,12 @@ interface PageProps {
 }
 
 export default async function SifreSifirlaPage({ searchParams }: PageProps) {
-  const { token } = await searchParams;
+  // The proxy moves the link's token into a cookie and reloads this page
+  // without it, so analytics never see it in the URL. The query string is
+  // still read in case a request reaches the page without the proxy.
+  const { token: fromQuery } = await searchParams;
+  const token =
+    fromQuery || (await cookies()).get(RESET_TOKEN_COOKIE)?.value || "";
 
   return (
     <div className="auth-page">

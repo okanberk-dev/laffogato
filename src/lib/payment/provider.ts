@@ -34,8 +34,8 @@ export interface CheckoutInput {
   successUrl: string;
   failureUrl: string;
   /**
-   * Buyer's IP as seen by the server. iyzico feeds it into fraud scoring and
-   * rejects an obviously bogus value less often than a missing one; empty when
+   * Buyer's IP as seen by the server. PayNkolay requires it (`cardHolderIP`)
+   * and feeds it into fraud scoring; empty when
    * the request carries no forwarding header (local dev).
    */
   buyerIp?: string;
@@ -58,9 +58,7 @@ export interface CheckoutSession {
 }
 
 export type WebhookEventType =
-  | "payment.succeeded"
-  | "payment.failed"
-  | "payment.refunded";
+  "payment.succeeded" | "payment.failed" | "payment.refunded";
 
 export interface WebhookEvent {
   type: WebhookEventType;
@@ -76,6 +74,29 @@ export interface RefundResult {
   providerRef: string;
   amountMinor: number;
   status: "succeeded" | "pending" | "failed";
+}
+
+/**
+ * A refund the provider DECLINED - or one that was never sent because it
+ * could not be: the transaction is unknown, the amount is partial, the lookup
+ * before it failed. Either way no money moved, and the caller may put things
+ * back the way they were.
+ *
+ * Anything else `refund` throws (a timeout, a dropped connection, an answer
+ * that is not JSON) is an UNKNOWN outcome: the refund may have gone through.
+ * That must never be read as "not refunded" and rolled back, any more than a
+ * POS that could not be asked is read as "not paid" (CLAUDE.md rule 29).
+ */
+export class PaymentRefusedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PaymentRefusedError";
+  }
+}
+
+/** True when `err` is a refund the provider certainly did not make. */
+export function isPaymentRefused(err: unknown): err is PaymentRefusedError {
+  return err instanceof PaymentRefusedError;
 }
 
 /**

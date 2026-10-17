@@ -93,23 +93,66 @@ export async function falReadingsToday(email: string, now: Date = new Date()): P
 }
 
 /**
- * The usage record: the day, whether a cup was seen, the model. Never the
- * photo, never the words - R12 promises exactly this much and no more.
+ * A seat on today's quota, taken BEFORE the photo goes to the model.
+ *
+ * The count used to be read, the model asked, and the row written only after
+ * the answer came back. Two requests from the same member in the same second
+ * both read "2 of 3", both paid for a reading, and both recorded one - the
+ * daily cap held for a patient caller and not for a scripted one (CLAUDE.md
+ * rule 20/30: count first, then do the costly thing).
+ *
+ * So the row is the reservation, and `reserve_fal_reading` takes it in one
+ * statement: an advisory lock on the member and the Istanbul day, a count,
+ * and the insert only under the limit. Ranking an inserted row by id was not
+ * enough - an earlier id can still be uncommitted when a later one ranks
+ * itself, and a real Postgres let a fourth of six parallel requests through
+ * (tests/db-integration-fal-seat.test.ts). `used` is how many seats were
+ * taken before this one.
+ *
+ * A failed reading gives the seat back (`releaseFalReading`), so a model
+ * error never spends a member's turn, as before; a successful one fills the
+ * row in (`completeFalReading`). A process that dies between the two leaves
+ * an empty row that counts - the model may well have been paid for.
  */
-export async function recordFalReading(
+export type FalSeat = { ok: true; id: number; used: number } | { ok: false };
+
+export async function reserveFalReading(
   email: string,
-  cupSeen: boolean,
-  model: string,
+  limit: number,
   now: Date = new Date(),
-): Promise<void> {
-  const { error } = await getDb().from(TABLES.falReadings).insert({
-    customerEmail: owner(email),
-    day: istanbulClock(now).date,
-    createdAt: now.toISOString(),
-    model,
-    cupSeen,
-  });
-  checkErr(error, "recordFalReading");
+): Promise<FalSeat> {
+  const { data, error } = await getDb().rpc<{ id: number | string; used: number | string } | null>(
+    "reserve_fal_reading",
+    {
+      p_email: owner(email),
+      p_day: istanbulClock(now).date,
+      p_limit: limit,
+      p_created_at: now.toISOString(),
+    },
+  );
+  checkErr(error, "reserveFalReading");
+  if (!data) return { ok: false };
+  const id = Number(data.id);
+  const used = Number(data.used);
+  if (!Number.isFinite(id) || !Number.isFinite(used)) {
+    throw new Error("reserveFalReading: the seat came back without an id");
+  }
+  return { ok: true, id, used };
+}
+
+/** Gives a seat back: the reading did not happen, so it does not count. */
+export async function releaseFalReading(id: number): Promise<void> {
+  const { error } = await getDb().from(TABLES.falReadings).delete().eq("id", id);
+  checkErr(error, "releaseFalReading");
+}
+
+/**
+ * The usage record: whether a cup was seen, the model. Never the photo,
+ * never the words - R12 promises exactly this much and no more.
+ */
+export async function completeFalReading(id: number, cupSeen: boolean, model: string): Promise<void> {
+  const { error } = await getDb().from(TABLES.falReadings).update({ cupSeen, model }).eq("id", id);
+  checkErr(error, "completeFalReading");
 }
 
 /** One "Bu yorumu bildir" report, as the table records it. */
@@ -146,7 +189,7 @@ export async function recordFalReport(
   email: string,
   report: { reason: FalReportReason; text: string; model: string },
   now: Date = new Date(),
-): Promise<void> {
+): Promise<number | null> {
   const row: FalReport = {
     customerEmail: owner(email),
     day: istanbulClock(now).date,
@@ -155,8 +198,22 @@ export async function recordFalReport(
     model: report.model,
     createdAt: now.toISOString(),
   };
-  const { error } = await getDb().from(TABLES.falReports).insert(row);
+  const { data, error } = await getDb()
+    .from(TABLES.falReports)
+    .insert(row)
+    .select("id");
   checkErr(error, "recordFalReport");
+  const id = Number((data as { id?: unknown }[] | null)?.[0]?.id);
+  return Number.isFinite(id) ? id : null;
+}
+
+/**
+ * Takes back a report the daily cap turned out not to cover (the route
+ * re-counts after its own insert; see POST /fal/report).
+ */
+export async function withdrawFalReport(id: number): Promise<void> {
+  const { error } = await getDb().from(TABLES.falReports).delete().eq("id", id);
+  checkErr(error, "withdrawFalReport");
 }
 
 /**

@@ -14,6 +14,7 @@ import {
   type InviteSummary,
 } from "@/lib/mobile/me-mapper";
 import { addressInputSchema, mePatchSchema } from "@/lib/mobile/me-schema";
+import { inlineAddressSchema } from "@/lib/mobile/order-schema";
 
 const address: CustomerAddress = {
   id: "adr-1",
@@ -140,6 +141,53 @@ describe("toMeAddress / fromMeAddress", () => {
       city: "İstanbul",
       zip: "",
       isDefault: true,
+      neighbourhood: "Postane Mah.",
+    });
+  });
+
+  // S8-02: the mahalle in its own key, preferred on read.
+  it("round-trips a mahalle typed without 'Mah.'", () => {
+    const input = {
+      title: "Ev",
+      fullName: "Eda Mancuso",
+      phone: "+90 555 000 00 00",
+      city: "İstanbul",
+      district: "Tuzla",
+      neighbourhood: "Postane",
+      line: "Atatürk Cad. No: 28",
+      note: "",
+      isDefault: false,
+    };
+    const stored = fromMeAddress(input);
+    // The folded line stays complete for the site, the order and the courier.
+    expect(stored.line1).toBe("Postane, Atatürk Cad. No: 28");
+    expect(stored.neighbourhood).toBe("Postane");
+    const back = toMeAddress({ id: "adr-9", ...stored });
+    expect(back.neighbourhood).toBe("Postane");
+    expect(back.line).toBe("Atatürk Cad. No: 28");
+  });
+
+  it("round-trips an empty neighbourhood without splitting the line", () => {
+    const stored = fromMeAddress({
+      title: "",
+      fullName: "Eda Mancuso",
+      phone: "05550000000",
+      city: "İstanbul",
+      district: "",
+      neighbourhood: "",
+      line: "Aydıntepe Mah., Sahil Yolu 5",
+      note: "",
+    });
+    const back = toMeAddress({ id: "adr-9", ...stored });
+    expect(back.neighbourhood).toBe("");
+    expect(back.line).toBe("Aydıntepe Mah., Sahil Yolu 5");
+  });
+
+  it("keeps the old split for a row without the key", () => {
+    expect("neighbourhood" in address).toBe(false);
+    expect(toMeAddress(address)).toMatchObject({
+      neighbourhood: "Postane Mah.",
+      line: "Atatürk Cad. No: 28",
     });
   });
 
@@ -163,6 +211,7 @@ describe("toMe", () => {
       "customer",
       "invite",
       "loyalty",
+      "staff",
       "usual",
     ]);
     expect(Object.keys(me.customer).sort()).toEqual(
@@ -198,6 +247,30 @@ describe("toMe", () => {
     // account is closed is not the app's business to render.
     expect(JSON.stringify(me)).not.toContain("isActive");
     expect(JSON.stringify(me)).not.toContain("passwordHash");
+  });
+});
+
+describe("toMe staff", () => {
+  // `/me.staff` (docs/API-MOBILE.md §4, §21): additive, always present, and
+  // only `till` leaves - the app turns its scanner on from this one flag.
+  it("says no till unless the server found an active barista grant", () => {
+    expect(toMe(customer, loyalty, invite).staff).toEqual({ till: false });
+    expect(toMe(customer, loyalty, invite, { till: false }).staff).toEqual({
+      till: false,
+    });
+  });
+
+  it("says till: true for an active barista", () => {
+    expect(toMe(customer, loyalty, invite, { till: true }).staff).toEqual({
+      till: true,
+    });
+  });
+
+  it("copies nothing else that rides along on the flag object", () => {
+    const leaky = { till: true, grantedBy: "patron@laffogato.net" };
+    expect(toMe(customer, loyalty, invite, leaky).staff).toEqual({
+      till: true,
+    });
   });
 });
 
@@ -278,9 +351,55 @@ describe("mePatchSchema", () => {
       false,
     );
     expect(mePatchSchema.safeParse({ birthday: "" }).success).toBe(true);
+    // The shape is not enough: the birthday job looks for a month and a day
+    // the calendar has, and a member saved as 13/45 was never greeted.
+    expect(mePatchSchema.safeParse({ birthday: "1990-13-45" }).success).toBe(false);
+    expect(mePatchSchema.safeParse({ birthday: "1990-02-30" }).success).toBe(false);
+    expect(mePatchSchema.safeParse({ birthday: "1992-02-29" }).success).toBe(true);
+    expect(mePatchSchema.safeParse({ birthday: "1991-02-29" }).success).toBe(false);
     expect(
       mePatchSchema.safeParse({ usual: { menuItemId: "x", size: "XL" } })
         .success,
+    ).toBe(false);
+  });
+});
+
+describe("phone fields are normalised before validation (W1-04)", () => {
+  const addressBody = {
+    title: "Ev",
+    fullName: "Eda Mancuso",
+    city: "İstanbul",
+    line: "Atatürk Cad. No: 28",
+  };
+
+  it("stores a Turkish mobile in one form, whatever the spelling", () => {
+    for (const raw of [
+      "0532 123 45 67",
+      "+90 (532) 123-45-67",
+      "5321234567",
+      "905321234567",
+    ]) {
+      const a = addressInputSchema.safeParse({ ...addressBody, phone: raw });
+      expect(a.success && a.data.phone, raw).toBe("+905321234567");
+      const p = mePatchSchema.safeParse({ phone: raw });
+      expect(p.success && p.data.phone, raw).toBe("+905321234567");
+      const o = inlineAddressSchema.safeParse({
+        ...addressBody,
+        phone: raw,
+      });
+      expect(o.success && o.data.phone, raw).toBe("+905321234567");
+    }
+  });
+
+  it("keeps any other number as typed and refuses nothing it used to accept", () => {
+    for (const raw of ["0216 123 45 67", "+44 20 7946 0958", "1234567"]) {
+      const a = addressInputSchema.safeParse({ ...addressBody, phone: raw });
+      expect(a.success && a.data.phone, raw).toBe(raw);
+    }
+    // Profile phone may still be cleared, and the old floor still holds.
+    expect(mePatchSchema.safeParse({ phone: "" }).success).toBe(true);
+    expect(
+      addressInputSchema.safeParse({ ...addressBody, phone: "12345" }).success,
     ).toBe(false);
   });
 });

@@ -39,3 +39,31 @@ describe("mobile error responses are never cacheable", () => {
     expect(res.headers.get("cache-control")).toBe("public, s-maxage=30");
   });
 });
+
+describe("apiError additive fields", () => {
+  it("carries documented extras next to error and message", async () => {
+    const res = apiError(
+      409,
+      "total_changed",
+      "Sipariş tutarı değişti.",
+      undefined,
+      { totalMinor: 12500 },
+    );
+    expect(await res.json()).toEqual({
+      error: "total_changed",
+      message: "Sipariş tutarı değişti.",
+      totalMinor: 12500,
+    });
+  });
+
+  it("never lets an extra replace error or message", async () => {
+    const res = apiError(400, "invalid_request", "Not çok uzun.", undefined, {
+      error: "x",
+      message: "y",
+    });
+    expect(await res.json()).toEqual({
+      error: "invalid_request",
+      message: "Not çok uzun.",
+    });
+  });
+});

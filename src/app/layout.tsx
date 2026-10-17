@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Poppins } from "next/font/google";
+import { Gabarito, Poppins } from "next/font/google";
 
-import { GoogleTagManager } from "@next/third-parties/google";
-
-import { CookieConsent } from "@/components/laffogato/cookie-consent";
 import { RevealMotion } from "@/components/laffogato/reveal-motion";
-import { CONSENT_COOKIE, CONSENT_VERSION } from "@/lib/consent/cookie";
-import { CONSENT_BOOTSTRAP } from "@/lib/consent/script";
+import {
+  ConsentScripts,
+  CookieBanner,
+  TagManager,
+} from "@/components/laffogato/site-tags";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
 
@@ -15,22 +15,34 @@ import "./globals.css";
 // container id with NEXT_PUBLIC_GTM_ID; empty value disables the integration.
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
 
-// Two voices, the app's (lafmobil BRAND-IDENTITY §2, karar 311): Poppins is
-// the display voice - titles, names, prices, buttons, chips - and Inter the
-// reading voice - sentences, captions, help and legal text, field text. The
-// site followed the app's palette on 25 Eyl 2026 and its type with it, so one
-// brand reads the same on the phone and in the browser. Inter ships as a
-// variable font (every weight from one file); Poppins in the three cuts the
-// app draws (500 / 600 / 700). Turkish via latin-ext on both.
-const displayFont = Poppins({
+// Two voices (operator, 14 Eki 2026: "sitede yapay zeka gibi duruyor, yazı
+// tipleri poppins ve biennale vs kullan"; docs/BRAND.md §2).
+//
+// Poppins reads and works the controls: sentences, captions, help, legal
+// and field text, buttons, chips, labels, product names and list prices
+// (operator, 11 Eki 2026: "sitede poppins fontu olsun"). Six static cuts:
+// 300 for the large statement copy, 400 to read, 500 and 600 for labels and
+// controls, 700 and 800 where a figure or a label must stand out. Turkish
+// via latin-ext.
+const brandFont = Poppins({
   subsets: ["latin", "latin-ext"],
-  weight: ["500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   variable: "--font-display",
   display: "swap",
 });
-const textFont = Inter({
+
+// Gabarito sets the headlines - page, section and card titles and the
+// display figures (`--headline` in globals.css). It stands in for Biennale
+// (Latinotype), the face the operator named: Biennale is sold per licence
+// and none is held, and Gabarito (SIL OFL, on Google Fonts) is its nearest
+// free kin - geometric, a large x-height, built for headlines and brands,
+// with clean Turkish marks. A licensed Biennale replaces it here and in the
+// `--headline` stack and nowhere else. Three cuts: 600 for card titles, 700
+// for headings, 800 for the display moments.
+const headlineFont = Gabarito({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-text",
+  weight: ["600", "700", "800"],
+  variable: "--font-headline",
   display: "swap",
 });
 
@@ -152,16 +164,7 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Marks <html data-consent="set"> before the first paint when the visitor
- * has already answered the cookie banner. The banner is server-rendered (so
- * it paints with the page instead of seconds later), and this is what keeps
- * it from flashing for someone who answered it last week. Same validity test
- * as `readConsent`: the cookie parses and carries the current version.
- */
-const CONSENT_SEEN = `(function(){try{var m=document.cookie.split('; ').find(function(c){return c.indexOf('${CONSENT_COOKIE}=')===0});if(!m)return;var p=JSON.parse(decodeURIComponent(m.slice(${CONSENT_COOKIE.length + 1})));if(p&&p.version===${CONSENT_VERSION})document.documentElement.setAttribute('data-consent','set')}catch(e){}})();`;
-
-const fontVariables = `${displayFont.variable} ${textFont.variable}`;
+const fontVariables = `${brandFont.variable} ${headlineFont.variable}`;
 
 export default function RootLayout({
   children,
@@ -177,20 +180,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script
-          id="consent-seen"
-          dangerouslySetInnerHTML={{ __html: CONSENT_SEEN }}
-        />
-        {/* Consent Mode v2 defaults - must be on the dataLayer before the GTM
-            container initialises, otherwise the first tag fires with no
-            consent signal at all. Everything except strictly-necessary storage
-            starts denied and is only raised by an explicit choice. */}
-        {GTM_ID ? (
-          <script
-            id="consent-bootstrap"
-            dangerouslySetInnerHTML={{ __html: CONSENT_BOOTSTRAP }}
-          />
-        ) : null}
+        {/* The consent scripts, GTM and the cookie banner render in every
+            document but the checkout's (site-tags.tsx): the card is typed
+            on /odeme under a policy that admits no third party. The
+            Consent Mode defaults stay ahead of the GTM container. */}
+        <ConsentScripts withTagManager={!!GTM_ID} />
         {/* next/font self-hosts the fonts - no Google Fonts origin is hit at
             runtime, so preconnect/dns-prefetch hints would be dead weight. */}
         <link
@@ -206,10 +200,10 @@ export default function RootLayout({
           title="LLM full content"
         />
       </head>
-      {GTM_ID ? <GoogleTagManager gtmId={GTM_ID} /> : null}
+      {GTM_ID ? <TagManager gtmId={GTM_ID} /> : null}
       <body>
         {children}
-        <CookieConsent />
+        <CookieBanner />
         <RevealMotion />
       </body>
     </html>
