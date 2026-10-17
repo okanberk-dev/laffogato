@@ -152,4 +152,17 @@ describe("checkout consent: two boxes, both required", () => {
     // The single-box checkout must not come back beside the new one.
     expect(wizard).not.toContain('name="legalConsent"');
   });
+
+  it("points to the KVKK notice as information, not as a third box, in sen", () => {
+    const html = render(NO_CHECKOUT_CONSENT);
+    const note = html.slice(html.indexOf('class="checkout-consent-note"'));
+    expect(note).toContain('href="/hukuk/kvkk-aydinlatma-metni"');
+    // An acknowledgement only: no box, no field for it.
+    expect(checkboxes(html)).toHaveLength(2);
+    expect(html).not.toMatch(/name="[^"]*kvkk/i);
+    // What is recorded with the ticks is still said, in the site's "sen".
+    expect(note).toContain("IP adresi");
+    expect(note).toContain("belge sürümü");
+    expect(note).not.toMatch(/Onaylarınız|siparişinize|verilerinizin/);
+  });
 });

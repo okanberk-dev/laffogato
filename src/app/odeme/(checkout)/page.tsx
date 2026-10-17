@@ -64,8 +64,7 @@ export default async function OdemePage({
       <GatePanel>
         <h1 className="checkout-gate-title">Şu an sipariş alamıyoruz</h1>
         <p className="checkout-gate-lede">
-          Mağaza geçici olarak siparişe kapalı. Sepetin korunuyor - birazdan
-          tekrar denersen kaldığın yerden devam edebilirsin.
+          Sepetin korunuyor; birazdan yeniden dene.
         </p>
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full page load on purpose: the checkout document keeps its own policy (checkout-chrome.tsx) */}
         <a href="/magaza" className="btn btn-primary">
@@ -78,9 +77,7 @@ export default async function OdemePage({
       <GatePanel>
         <h1 className="checkout-gate-title">Sipariş için giriş yap</h1>
         <p className="checkout-gate-lede">
-          Güvenliğin için siparişler yalnızca doğrulanmış hesaplarla
-          verilebilir. Giriş yap ya da hızlıca bir hesap oluştur - e-postanı
-          onayladıktan sonra ödemeye devam edebilirsin.
+          Siparişler doğrulanmış bir hesapla verilir.
         </p>
         <div className="checkout-gate-actions">
           <a href="/uye/giris?next=/odeme" className="btn btn-primary">

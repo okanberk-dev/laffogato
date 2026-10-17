@@ -11413,9 +11413,6 @@ button.co-steps-link {
 .co-section-title:focus {
   outline: none;
 }
-.co-section-secure {
-  margin-left: auto;
-}
 
 .co-addresses {
   display: grid;
@@ -11866,16 +11863,6 @@ button.co-steps-link {
   text-align: center;
   color: var(--ink-mute);
 }
-.co-trust {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 6px 14px;
-  margin: 0;
-  font-size: 12px;
-  color: var(--ink-mute);
-}
 
 .co-side {
   grid-area: side;
@@ -12033,6 +12020,7 @@ button.co-steps-link {
   font-weight: 400;
   font-size: 12.5px;
   color: var(--ink-mute);
+  overflow-wrap: anywhere;
 }
 .co-totals-total dd {
   font-family: var(--headline);
@@ -12050,21 +12038,11 @@ button.co-steps-link {
 .co-freeship {
   margin: 0 16px 16px;
 }
-.co-seller {
-  margin: 0;
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--ink-mute);
-  overflow-wrap: anywhere;
-}
 .co-order-form {
   display: none;
 }
 
 @media (min-width: 960px) {
-  .co-docs-seller {
-    display: none;
-  }
   .co-freeship {
     margin: 0 22px 22px;
   }
@@ -12133,9 +12111,6 @@ button.co-steps-link {
   .co-field-row,
   .co-field-row-3 {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .co-section-secure {
-    margin-left: 0;
   }
   .co-chrome-help-label {
     display: none;

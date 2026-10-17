@@ -3,11 +3,11 @@
  * font or script from anywhere else (its policy would refuse them; src/proxy.ts).
  * Colours come from `--scheme-*` in globals.css :root.
  *
- * Shown where a customer looks for them (Baymard): beside "Güvenli ödeme",
- * inside the number field once the first digits name the scheme, and in the
- * quiet row under the pay button. The row lists the schemes Turkish banks
- * issue - Visa, Mastercard, Troy; American Express is recognised in the
- * number field (its 4-6-5 grouping, 4-digit code) but not advertised.
+ * Shown where a customer looks for them (Baymard): once, as "Kabul edilen
+ * kartlar" above the card form, and inside the number field once the first
+ * digits name the scheme. The row lists the schemes Turkish banks issue -
+ * Visa, Mastercard, Troy; American Express is recognised in the number field
+ * (its 4-6-5 grouping, 4-digit code) but not advertised.
  */
 
 export type SchemeMarkName = "visa" | "mastercard" | "troy" | "amex";

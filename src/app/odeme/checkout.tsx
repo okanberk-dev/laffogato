@@ -75,10 +75,10 @@ import { AcceptedSchemes } from "./scheme-marks";
  * 2. calls `startCheckoutAction` with the ORDER form below - hidden fields
  *    only, no card field can be in it - which creates the order, or reuses
  *    the one a declined attempt left (sessionStorage `PENDING`);
- * 3. compares the server's total with the amount on the button. Equal: the
- *    card form posts itself to /odeme/paynkolay and the bank's 3D page
- *    opens. Different (a price changed, a code could not be applied): the
- *    new amount is shown and the customer presses again.
+ * 3. compares the server's total with the total shown beside the button.
+ *    Equal: the card form posts itself to /odeme/paynkolay and the bank's
+ *    3D page opens. Different (a price changed, a code could not be
+ *    applied): the new amount is shown and the customer presses again.
  *
  * This document must have been LOADED at /odeme: only then does it run
  * under the checkout's policy, with no Google Tag Manager ever in it. A
@@ -928,7 +928,7 @@ function CheckoutForm({
       setPending(record);
     }
     if (q && q.totalMinor !== shownAmount) {
-      // Not the amount on the button: the bank is not asked for it. The
+      // Not the total on screen: the bank is not asked for it. The
       // customer sees the order's real total and decides again.
       adoptQuote(q);
       stop();
@@ -966,12 +966,9 @@ function CheckoutForm({
         <div className="checkout-empty-mark" aria-hidden="true">
           ✻
         </div>
-        <h1 className="h2" style={{ marginBottom: 10 }}>
+        <h1 className="h2" style={{ marginBottom: 24 }}>
           Sepetin <span className="script">boş</span>
         </h1>
-        <p className="lede" style={{ margin: "0 auto 24px" }}>
-          Mağazaya göz at; seçtiklerin burada, tek sayfada ödemeye hazır olur.
-        </p>
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full page load on purpose: the checkout document keeps its own policy (checkout-chrome.tsx) */}
         <a href="/magaza" className="btn btn-primary">
           Mağazaya git <span className="arrow">→</span>
@@ -1005,11 +1002,9 @@ function CheckoutForm({
   ]
     .filter(Boolean)
     .join(" · ");
-  const payLabel = nothingToPay ? (
-    "Siparişi onayla"
-  ) : (
-    <>Siparişi onayla ve öde · {priceLabel(payAmountMinor)}</>
-  );
+  // The total stands right above the button ("Toplam (KDV dahil)"), so the
+  // button only says what pressing it does: order, and pay.
+  const payLabel = nothingToPay ? "Siparişi onayla" : "Siparişi onayla ve öde";
 
   return (
     <div className="co-layout" data-step={step} ref={topRef}>
@@ -1249,9 +1244,6 @@ function CheckoutForm({
                 <dd className="tabular">{priceLabel(totals.totalMinor)}</dd>
               </div>
             </dl>
-            {sellerLine ? (
-              <p className="co-seller">Satıcı: {sellerLine}</p>
-            ) : null}
           </div>
           {/* Outside the collapsible body: on a phone the summary is closed,
               and this is what tells the customer how far free shipping is,
@@ -1502,13 +1494,6 @@ function CheckoutForm({
               <h2 className="co-section-title" id="co-pay-title" tabIndex={-1}>
                 Ödeme
               </h2>
-              <span className="checkout-secure co-section-secure">
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M4.5 7V5.2a3.5 3.5 0 0 1 7 0V7" />
-                  <rect x="3" y="7" width="10" height="7" rx="2" />
-                </svg>
-                Güvenli ödeme
-              </span>
             </header>
 
             {copy ? (
@@ -1542,19 +1527,26 @@ function CheckoutForm({
                 rel="noopener"
               >
                 Mesafeli Satış Sözleşmesi
+              </a>{" "}
+              ·{" "}
+              <a href="/hukuk/iade-ve-cayma" target="_blank" rel="noopener">
+                İptal, iade ve cayma
               </a>
-              {seller.name ? (
+              {/* The seller's one identity line on the page (MSY m.5/1-b, c),
+                  on every screen size, before the card and the pay button. */}
+              {sellerLine ? (
                 <span className="co-docs-seller">
                   <br />
-                  Satıcı: {seller.name}
-                  {seller.mersis ? ` · MERSİS ${seller.mersis}` : ""}
+                  Satıcı: {sellerLine}
                 </span>
               ) : null}
             </p>
-            <div className="co-accepted">
-              <span>Kabul edilen kartlar</span>
-              <AcceptedSchemes className="co-schemes" />
-            </div>
+            {nothingToPay ? null : (
+              <div className="co-accepted">
+                <span>Kabul edilen kartlar</span>
+                <AcceptedSchemes className="co-schemes" />
+              </div>
+            )}
 
             <CardPayment
               ref={cardRef}
@@ -1636,11 +1628,6 @@ function CheckoutForm({
                 </p>
               ) : null}
             </div>
-            <p className="co-trust">
-              <span>3D Secure ile onay</span>
-              <span>SSL/TLS ile şifreli bağlantı</span>
-              <AcceptedSchemes className="co-schemes" />
-            </p>
           </section>
         </div>
       </div>

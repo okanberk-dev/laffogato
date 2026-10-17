@@ -92,18 +92,72 @@ describe("what the summary and the notes must keep saying", () => {
     const summary = checkout.slice(checkout.indexOf('className="co-summary"'));
     const hint = summary.indexOf("co-freeship");
     expect(hint).toBeGreaterThan(-1);
-    // After the body closes, so a closed summary on a phone still shows it.
-    expect(hint).toBeGreaterThan(summary.indexOf('className="co-seller"'));
+    // After the body (whose last part is the totals list) closes, so a
+    // closed summary on a phone still shows it.
+    const totals = summary.indexOf('className="co-totals"');
+    expect(totals).toBeGreaterThan(-1);
+    expect(summary.slice(totals, hint)).toMatch(/<\/dl>\s*<\/div>/);
     // And not a second copy in step 1.
     expect(checkout.match(/checkout-freeship-hint/g)).toHaveLength(1);
   });
 
-  it("the seller is named beside the contract links, from the entity only", () => {
+  it("the seller is named once, in full, beside the contract links, from the entity only", () => {
     const docs = checkout.slice(checkout.indexOf('className="co-docs"'));
-    expect(docs.slice(0, 1400)).toContain("co-docs-seller");
-    expect(docs.slice(0, 1400)).toContain("seller.name");
+    const block = docs.slice(0, docs.indexOf("</p>"));
+    expect(block).toContain("co-docs-seller");
+    expect(block).toContain("Satıcı: {sellerLine}");
+    // The contract links and the withdrawal terms sit in the same block,
+    // before any card field.
+    for (const slug of [
+      "on-bilgilendirme-formu",
+      "mesafeli-satis-sozlesmesi",
+      "iade-ve-cayma",
+    ]) {
+      expect(block).toContain(`href="/hukuk/${slug}"`);
+    }
+    const cardForm = checkout.search(/<CardPayment\s/);
+    expect(cardForm).toBeGreaterThan(-1);
+    expect(checkout.indexOf('className="co-docs"')).toBeLessThan(cardForm);
+    // One identity line on the page: the summary no longer repeats it, and
+    // no screen size hides it (it used to be name + MERSİS on a phone only).
+    expect(checkout.match(/Satıcı:/g)).toHaveLength(1);
+    expect(checkout).not.toContain("co-seller");
+    expect(css).not.toMatch(/\.co-docs-seller \{\s*display: none;/);
+    // Built from the entity fields the page passes, nothing typed here.
+    const line = checkout.slice(
+      checkout.indexOf("const sellerLine = ["),
+      checkout.indexOf('.join(" · ");', checkout.indexOf("const sellerLine")),
+    );
+    for (const field of ["name", "address", "phone", "email", "mersis"]) {
+      expect(line).toContain(`seller.${field}`);
+    }
     const page = readFileSync("src/app/odeme/(checkout)/page.tsx", "utf8");
     expect(page).toContain("name: LEGAL_ENTITY.legalName");
+    expect(page).toContain("address: LEGAL_ADDRESS_LINE");
+  });
+
+  it("says each thing once: the total beside the button, trust marks and 'Güvenli ödeme' once", () => {
+    // The pay bar shows "Toplam (KDV dahil)" right above the button, so
+    // the button no longer repeats the amount.
+    const bar = checkout.slice(checkout.indexOf('className="co-paybar"'));
+    expect(bar.slice(0, 400)).toContain("(KDV dahil)");
+    expect(checkout).toMatch(
+      /const payLabel = nothingToPay \? "Siparişi onayla" : "Siparişi onayla ve öde";/,
+    );
+    // The accepted-cards row is shown once (and not when there is nothing
+    // to pay); the old row under the pay button repeated it with 3D Secure,
+    // which the card form's own note already says.
+    expect(checkout.match(/<AcceptedSchemes/g)).toHaveLength(1);
+    expect(checkout).not.toContain('className="co-trust"');
+    expect(checkout).toMatch(
+      /\{nothingToPay \? null : \(\s*<div className="co-accepted">/,
+    );
+    expect(css).not.toMatch(/\n\.co-trust \{/);
+    // "Güvenli ödeme" is in the checkout's own header on every step.
+    expect(checkout).not.toContain("Güvenli ödeme");
+    expect(css).not.toContain(".co-section-secure");
+    const chrome = readFileSync("src/app/odeme/checkout-chrome.tsx", "utf8");
+    expect(chrome).toContain("Güvenli ödeme");
   });
 });
 
