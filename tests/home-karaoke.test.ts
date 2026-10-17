@@ -14,7 +14,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/app/karaoke/actions", () => ({ bookKaraokeAction: vi.fn() }));
 
 const today = await import("@/components/laffogato/karaoke-today");
-const { HomeKaraokeView } = await import("@/components/laffogato/home-karaoke");
+const { HomeKaraoke } = await import("@/components/laffogato/home-karaoke");
 const { KaraokeBooking } =
   await import("@/components/laffogato/karaoke-booking");
 const { HOME_SLIDES, slideText } = await import("@/components/laffogato/data");
@@ -42,8 +42,8 @@ const DAY = {
   })),
 };
 
-const band = (t: Parameters<typeof HomeKaraokeView>[0]["today"], f = FACTS) =>
-  renderToStaticMarkup(createElement(HomeKaraokeView, { facts: f, today: t }));
+const band = (t: Parameters<typeof HomeKaraoke>[0]["today"], f = FACTS) =>
+  renderToStaticMarkup(createElement(HomeKaraoke, { facts: f, today: t }));
 
 describe("today's free hours", () => {
   it("drops the hours that have started and offers at most three", () => {
@@ -53,6 +53,8 @@ describe("today's free hours", () => {
     if (r.kind !== "open") return;
     expect(r.chips.map((c) => c.label)).toEqual(["20:00", "21:00", "22:00"]);
     expect(r.chips[0].href).toBe("/karaoke?tarih=2026-10-17&saat=20");
+    // The door counts every free hour left (20-23), not just the chips.
+    expect(r.free).toBe(4);
   });
 
   it("an hour that starts right now is no longer offered", () => {
@@ -124,6 +126,17 @@ describe("asking the calendar (after hydration)", () => {
     expect(await today.loadKaraokeToday(offline, at)).toEqual({
       kind: "error",
     });
+  });
+
+  it("asks once per page view, and only where the band is", () => {
+    // One call site: the home page hands the answer to the band and the door.
+    const calls = (src: string) =>
+      [...src.matchAll(/useKaraokeToday\(/g)].length;
+    expect(calls(HOME)).toBe(1);
+    expect(HOME).toContain("useKaraokeToday(!!karaoke)");
+    expect(calls(read("src/components/laffogato/home-karaoke.tsx"))).toBe(0);
+    const hook = read("src/components/laffogato/use-karaoke-today.ts");
+    expect(hook).toMatch(/if \(!enabled\) return;/);
   });
 
   it("never asks during the server render", () => {
@@ -227,11 +240,30 @@ describe("the band", () => {
 
   it("sits right after the hero's statement, before Köşkte bu ay", () => {
     const intro = HOME.indexOf('className="home-intro"');
-    const karaoke = HOME.indexOf("<HomeKaraoke facts={karaoke} />");
+    const karaoke = HOME.indexOf(
+      "<HomeKaraoke facts={karaoke} today={karaokeToday} />",
+    );
     const promo = HOME.indexOf('className="promo-banner promo-banner--art');
     expect(intro).toBeGreaterThan(-1);
     expect(karaoke).toBeGreaterThan(intro);
     expect(promo).toBeGreaterThan(karaoke);
+  });
+
+  it("lets the karaoke door say how many hours are free today", () => {
+    // "Bugün N boş saat" from the same reading as the chips; the room's
+    // facts while it is asked, when it fails, and when nothing is free.
+    const open = today.readKaraokeDay(DAY, 18 * 60 + 30);
+    expect(today.karaokeDoorLine(open, FACTS)).toBe("Bugün 4 boş saat");
+    const facts = "8 kişiye kadar · 24:00’e";
+    expect(today.karaokeDoorLine({ kind: "loading" }, FACTS)).toBe(facts);
+    expect(today.karaokeDoorLine({ kind: "error" }, FACTS)).toBe(facts);
+    expect(
+      today.karaokeDoorLine(today.readKaraokeDay(DAY, 23 * 60 + 10), FACTS),
+    ).toBe(facts);
+    expect(today.karaokeDoorLine({ kind: "loading" }, undefined)).toBe(
+      undefined,
+    );
+    expect(HOME).toContain("karaokeDoorLine(karaokeToday, karaoke)");
   });
 
   it("names a closing hour the way it is read aloud", () => {

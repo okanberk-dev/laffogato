@@ -9,7 +9,6 @@ import {
   type KaraokeToday,
 } from "./karaoke-today";
 import { SCENES } from "./scenes";
-import { useKaraokeToday } from "./use-karaoke-today";
 
 /**
  * The karaoke band on the home page, right under the hero and the panel's
@@ -27,14 +26,11 @@ import { useKaraokeToday } from "./use-karaoke-today";
  * loyalty block further down is the page's one bordo surface. It arrives with
  * the site's `.reveal` and one sheen across the drawing; under
  * `prefers-reduced-motion` nothing moves (globals.css).
+ *
+ * `today` is the page's one reading of the calendar (`useKaraokeToday` in
+ * home-page.tsx), shared with the karaoke door below.
  */
-export function HomeKaraoke({ facts }: { facts: KaraokeFacts }) {
-  const today = useKaraokeToday();
-  return <HomeKaraokeView facts={facts} today={today} />;
-}
-
-/** The band itself, for a given calendar answer (the tests render this). */
-export function HomeKaraokeView({
+export function HomeKaraoke({
   facts,
   today,
 }: {

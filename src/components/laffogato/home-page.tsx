@@ -12,7 +12,7 @@ import { AppStoreLinks } from "./app-links";
 import { HomeHeroSlider } from "./home-hero-slider";
 import { HomeKaraoke } from "./home-karaoke";
 import { Illustration } from "./illustration";
-import { hourToLabel } from "./karaoke-today";
+import { karaokeDoorLine } from "./karaoke-today";
 import { PourModule } from "./pour-module";
 import { MENU, LOCATION, type HomeSlideAction } from "./data";
 import { MenuPhotoNote } from "./menu-photo-note";
@@ -20,6 +20,7 @@ import { ROUTE_PATHS, type Route } from "./route-paths";
 import { MenuPlate } from "./visuals";
 import { MENU_TAG_LABELS, type PageProps } from "./page-shared";
 import { splitLead } from "./split-lead";
+import { useKaraokeToday } from "./use-karaoke-today";
 import { useOpenStatus } from "./use-open-status";
 
 /** What the app does that the site does not - the reasons to install it. */
@@ -161,6 +162,11 @@ export function PageHome({
     navigate(r);
   };
 
+  // Today's karaoke calendar, read once after hydration and only where the
+  // page has the room's facts: the band's chips and the karaoke door's
+  // "Bugün N boş saat" share this one request.
+  const karaokeToday = useKaraokeToday(!!karaoke);
+
   const doors: Array<{
     tone: "green" | "cream" | "brass" | "velvet";
     href: string;
@@ -215,9 +221,7 @@ export function PageHome({
       href: "/karaoke",
       kicker: "Karaoke",
       title: "Üst kat özel oda",
-      sub: karaoke
-        ? `${karaoke.capacity} kişiye kadar · ${hourToLabel(karaoke.closeHour)}`
-        : "8 kişiye kadar · 24:00’e",
+      sub: karaokeDoorLine(karaokeToday, karaoke) ?? "8 kişiye kadar · 24:00’e",
       icon: (
         <>
           <rect x="9" y="3.75" width="6" height="10.5" rx="3" />
@@ -285,7 +289,7 @@ export function PageHome({
 
       {/* The karaoke room, highlighted (operator, 17 Eki 2026): right after
           the hero and the statement, before "Köşkte bu ay". */}
-      {karaoke && <HomeKaraoke facts={karaoke} />}
+      {karaoke && <HomeKaraoke facts={karaoke} today={karaokeToday} />}
 
       {/* The reference's banner board, pointing at /kampanyalar - the offers
           themselves are operator-managed and live there, so this is a door,

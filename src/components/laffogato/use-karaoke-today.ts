@@ -13,11 +13,16 @@ import { loadKaraokeToday, type KaraokeToday } from "./karaoke-today";
  * the same public endpoint the app reads once the page is up. Anything but a
  * good answer is `error`, and the band then shows no hours at all rather
  * than guessing (karaoke-today.ts `loadKaraokeToday`).
+ *
+ * One reading per page view: the home page asks once and hands the answer to
+ * both the band's chips and the karaoke door's "Bugün N boş saat". `enabled`
+ * is false where the page has no karaoke facts (no band, so no request).
  */
-export function useKaraokeToday(): KaraokeToday {
+export function useKaraokeToday(enabled = true): KaraokeToday {
   const [today, setToday] = useState<KaraokeToday>({ kind: "loading" });
 
   useEffect(() => {
+    if (!enabled) return;
     const ctrl = new AbortController();
     loadKaraokeToday(fetch, () => new Date(), ctrl.signal).then(
       setToday,
@@ -25,7 +30,7 @@ export function useKaraokeToday(): KaraokeToday {
       () => {},
     );
     return () => ctrl.abort();
-  }, []);
+  }, [enabled]);
 
   return today;
 }

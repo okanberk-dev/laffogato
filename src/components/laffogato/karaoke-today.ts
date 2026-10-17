@@ -48,7 +48,8 @@ export interface KaraokeChip {
 export type KaraokeToday =
   | { kind: "loading" }
   | { kind: "error" }
-  | { kind: "open"; date: string; chips: KaraokeChip[] }
+  /** `free` counts every free hour left today; `chips` offers the first three. */
+  | { kind: "open"; date: string; free: number; chips: KaraokeChip[] }
   /** Hours are left today but every one is booked. */
   | { kind: "full"; date: string; tomorrowHref: string }
   /** The last hour has started: today is over for the room. */
@@ -72,6 +73,21 @@ export function hourToLabel(hour: number): string {
   const ending =
     h % 10 !== 0 || h === 0 ? ONES_TO[h % 10] : (TENS_TO[h / 10] ?? "e");
   return `${hourLabel(h)}’${ending}`;
+}
+
+/**
+ * The karaoke door's line on the home page: how many hours are still free
+ * today once the calendar has answered, the room's size and closing hour
+ * until then (and when it could not answer, or nothing is free).
+ */
+export function karaokeDoorLine(
+  today: KaraokeToday,
+  facts: KaraokeFacts | undefined,
+): string | undefined {
+  if (today.kind === "open") return `Bugün ${today.free} boş saat`;
+  return facts
+    ? `${facts.capacity} kişiye kadar · ${hourToLabel(facts.closeHour)}`
+    : undefined;
 }
 
 /** The booking page for `date`, with `hour` preselected when given. */
@@ -118,6 +134,7 @@ export function readKaraokeDay(
     return {
       kind: "open",
       date: day.date,
+      free: free.length,
       chips: free.slice(0, MAX_KARAOKE_CHIPS).map((s) => ({
         hour: s.startHour,
         label: hourLabel(s.startHour),
