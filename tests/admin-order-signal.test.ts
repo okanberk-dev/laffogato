@@ -79,6 +79,20 @@ describe("newOrderCountAction", () => {
     expect(countOrdersAfter).toHaveBeenCalledWith(1042);
   });
 
+  it("counts only open orders for the Açık tab, anything else as before", async () => {
+    // The tab shows open orders only: a newer order already completed or
+    // swept must not raise a banner "Listeyi yenile" cannot answer.
+    await expect(newOrderCountAction(1042, "open")).resolves.toBe(2);
+    expect(countOrdersAfter).toHaveBeenLastCalledWith(1042, [
+      "pending_payment",
+      "paid",
+      "preparing",
+      "shipped",
+    ]);
+    await newOrderCountAction(1042, "everything; drop table");
+    expect(countOrdersAfter).toHaveBeenLastCalledWith(1042);
+  });
+
   it("is gated like the badge", async () => {
     getAdminSession.mockResolvedValue(null);
     await expect(newOrderCountAction(1042)).resolves.toBeNull();

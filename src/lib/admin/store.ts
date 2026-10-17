@@ -110,7 +110,7 @@ import {
   manualShippingMode,
   type ManualFulfillment,
 } from "./manual-order-schema";
-import type { OrderListQuery } from "./order-filters";
+import { OPEN_ORDER_STATUSES, type OrderListQuery } from "./order-filters";
 import { ORDER_STATUS_LABELS } from "./order-ui";
 
 /**
@@ -1466,15 +1466,9 @@ export async function restoreCategory(category: AdminCategory): Promise<void> {
 
 // ─── Orders ───────────────────────────────────────────────────────────────
 
-/** The statuses a shift still owes work on. Same set the dashboard counts. */
-const OPEN_ORDER_STATUSES: AdminOrderStatus[] = [
-  "pending_payment",
-  "paid",
-  "preparing",
-];
-
 /**
- * How many orders are still waiting on the counter.
+ * How many orders are still open: the sidebar badge, the same number the
+ * "Açık" tab shows (`OPEN_ORDER_STATUSES`, lib/admin/order-filters.ts).
  *
  * A `head: true` count, not `listOrders().filter(...)`: the sidebar asks for
  * this every minute on every admin page, and paging every order row through
@@ -1486,7 +1480,7 @@ export async function countOpenOrders(): Promise<number> {
   const { count, error, status } = await sb
     .from(TABLES.orders)
     .select("*", { count: "exact", head: true })
-    .in("status", OPEN_ORDER_STATUSES);
+    .in("status", [...OPEN_ORDER_STATUSES]);
   if (error) raiseDbError("countOpenOrders", error, status);
   return count ?? 0;
 }
@@ -1500,15 +1494,21 @@ export async function countOpenOrders(): Promise<number> {
  * for a non-finite argument rather than a count of everything: a broken
  * client must not make the panel shout.
  */
-export async function countOrdersAfter(orderNo: number): Promise<number> {
+export async function countOrdersAfter(
+  orderNo: number,
+  /** Only these statuses (the "Açık" tab's poll); every order when omitted. */
+  statuses?: readonly AdminOrderStatus[],
+): Promise<number> {
   if (!Number.isFinite(orderNo)) return 0;
   const sb = getDb();
-  const { count, error, status } = await sb
+  let q = sb
     .from(TABLES.orders)
     // `gte(n + 1)`, not `gt(n)`: the builder has no `gt`, and the sequence is
     // an integer so the two are the same predicate.
     .select("*", { count: "exact", head: true })
     .gte("orderNo", Math.trunc(orderNo) + 1);
+  if (statuses) q = q.in("status", [...statuses]);
+  const { count, error, status } = await q;
   if (error) raiseDbError("countOrdersAfter", error, status);
   return count ?? 0;
 }
@@ -5315,7 +5315,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     sb
       .from(TABLES.orders)
       .select("*", { count: "exact", head: true })
-      .in("status", ["pending_payment", "paid", "preparing"])
+      .in("status", [...OPEN_ORDER_STATUSES])
       .then((r) => {
         if (r.error)
           throw new Error(`getDashboardStats.pending: ${r.error.message}`);

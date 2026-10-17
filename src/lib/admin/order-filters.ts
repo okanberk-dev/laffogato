@@ -98,8 +98,14 @@ export const ORDER_TABS: ReadonlyArray<{
   { value: "refunded", label: "İade" },
 ];
 
-/** "Açık": everything not finished yet, the parcel with the carrier too. */
-export const OPEN_TAB_STATUSES: readonly AdminOrderStatus[] = [
+/**
+ * An open order: everything not finished yet, the parcel with the carrier
+ * and the coffee waiting at the counter ("Hazır") too. One set for the
+ * "Açık" tab, the sidebar badge and the dashboard's "Aktif sipariş": the
+ * badge counted three statuses and the tab four, so the badge said 5 and
+ * the tab 8 (admin audit ORD-21).
+ */
+export const OPEN_ORDER_STATUSES: readonly AdminOrderStatus[] = [
   "pending_payment",
   "paid",
   "preparing",
@@ -152,12 +158,18 @@ export interface ParsedOrderList {
   query: OrderListQuery;
   sort: SortState;
   page: number;
-  /**
-   * True when anything narrows or reorders the list. The new-order poll and
-   * its sound run only on the plain first page: a new order is never on
-   * page 3 or behind a filter, and "Listeyi yenile" there would not show it.
-   */
+  /** True when anything narrows or reorders the list (its empty state). */
   narrowed: boolean;
+  /**
+   * Where the new-order poll and its sound run: the plain first page
+   * (`all`) and the plain "Açık" tab (`open`), where every new order lands
+   * and a shift works from (admin audit ORD-09). `open` counts open orders
+   * only, so an order closed since the page was drawn raises no banner the
+   * tab cannot show. Off (null) behind a filter, a sort, on page 2 and on
+   * the other tabs: a new order is not there, and "Listeyi yenile" would
+   * not show it.
+   */
+  live: "all" | "open" | null;
 }
 
 /**
@@ -194,7 +206,7 @@ export function parseOrderTab(sp: SearchParamsInput): string | null {
 /** The statuses a tab shows; null for Tümü. */
 export function tabStatuses(tab: string | null): AdminOrderStatus[] | null {
   if (!tab) return null;
-  if (tab === "acik") return [...OPEN_TAB_STATUSES];
+  if (tab === "acik") return [...OPEN_ORDER_STATUSES];
   return [tab as AdminOrderStatus];
 }
 
@@ -240,13 +252,20 @@ export function parseOrderListParams(sp: SearchParamsInput): ParsedOrderList {
     fromIso: values.bas ? istanbulDayStartIso(values.bas) : null,
     beforeIso: values.bit ? istanbulDayStartIso(values.bit, 1) : null,
   };
-  const narrowed =
+  const reshaped =
     Object.keys(values).length > 0 ||
-    tab !== null ||
     sort.key !== ORDER_DEFAULT_SORT.key ||
     sort.dir !== ORDER_DEFAULT_SORT.dir ||
     page > 1;
-  return { values, tab, query, sort, page, narrowed };
+  const narrowed = reshaped || tab !== null;
+  const live = reshaped
+    ? null
+    : tab === null
+      ? "all"
+      : tab === "acik"
+        ? "open"
+        : null;
+  return { values, tab, query, sort, page, narrowed, live };
 }
 
 /** The same query without the tab: what the tab counts are counted over. */

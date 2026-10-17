@@ -213,3 +213,25 @@ describe("customer roll-up and reports read only their columns", () => {
     expect(top).toMatch(/^SELECT "status", "items" FROM "orders"/);
   });
 });
+
+describe("the open-order counts (ORD-09, ORD-21)", () => {
+  it("the badge counts the Açık tab's four statuses", async () => {
+    await store.countOpenOrders();
+    const q = seen.find((s) => /count\(\*\)/i.test(s.text))!;
+    expect(q.text).toMatch(/FROM "orders" WHERE "status"/);
+    expect(q.params.flat()).toEqual(
+      expect.arrayContaining(["pending_payment", "paid", "preparing", "shipped"]),
+    );
+  });
+
+  it("the Açık tab's poll counts new open orders only, the plain list every order", async () => {
+    await store.countOrdersAfter(10_041, ["pending_payment", "paid"]);
+    const open = seen.find((s) => /count\(\*\)/i.test(s.text))!;
+    expect(open.text).toMatch(/"orderNo" >= \$1 AND "status"/);
+    expect(open.params.flat()).toEqual([10_042, "pending_payment", "paid"]);
+    seen.length = 0;
+    await store.countOrdersAfter(10_041);
+    const all = seen.find((s) => /count\(\*\)/i.test(s.text))!;
+    expect(all.text).not.toContain('"status"');
+  });
+});

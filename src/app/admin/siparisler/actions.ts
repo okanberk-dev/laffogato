@@ -37,6 +37,7 @@ import {
   type OrderActor,
   type OrderOpResult,
 } from "@/lib/admin/order-ops";
+import { OPEN_ORDER_STATUSES } from "@/lib/admin/order-filters";
 import { canAccess } from "@/lib/admin/roles";
 import {
   BULK_ORDER_TRANSITIONS,
@@ -615,7 +616,7 @@ async function ordersSignalAllowed(): Promise<boolean> {
   return Boolean(session && canAccess("orders", session.role));
 }
 
-/** Open orders (ödeme bekleniyor · ödendi · hazırlanıyor), for the nav badge. */
+/** Open orders (`OPEN_ORDER_STATUSES`, the "Açık" tab's set), for the nav badge. */
 export async function openOrderCountAction(): Promise<number | null> {
   if (!(await ordersSignalAllowed())) return null;
   try {
@@ -636,10 +637,14 @@ export async function openOrderCountAction(): Promise<number | null> {
  */
 export async function newOrderCountAction(
   sinceOrderNo: number,
+  /** `open`: only open orders (the "Açık" tab's poll); anything else: all. */
+  scope?: string,
 ): Promise<number | null> {
   if (!(await ordersSignalAllowed())) return null;
   try {
-    return await countOrdersAfter(Number(sinceOrderNo));
+    return scope === "open"
+      ? await countOrdersAfter(Number(sinceOrderNo), OPEN_ORDER_STATUSES)
+      : await countOrdersAfter(Number(sinceOrderNo));
   } catch (err) {
     console.error("[admin/siparisler] yeni sipariş sayılamadı", err);
     return null;
