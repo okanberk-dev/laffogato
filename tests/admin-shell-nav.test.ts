@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { createElement, type ReactNode } from "react";
+import { createElement, type FunctionComponent, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -593,7 +593,14 @@ describe("unknown addresses, the skeleton, the way back", () => {
     const AdminError = (await import("@/app/admin/error")).default;
     const inPanel = (el: ReturnType<typeof createElement>) =>
       renderToStaticMarkup(
-        createElement(PanelHomeProvider, { href: "/admin/kasa" }, el),
+        createElement(
+          PanelHomeProvider as FunctionComponent<{
+            href: string;
+            children?: ReactNode;
+          }>,
+          { href: "/admin/kasa" },
+          el,
+        ),
       );
     expect(inPanel(createElement(NotFound))).toMatch(
       /<a href="\/admin\/kasa"[^>]*>Panele dön<\/a>/,
