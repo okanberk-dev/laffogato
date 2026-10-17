@@ -165,11 +165,11 @@ describe("the member's mails, rendered", () => {
     });
     const m = h.sent[0]!;
     expect(m.text).toMatch(/2\.000,00[\s\S]*iade edildi/);
-    expect(m.text).not.toContain("sizden ödeme alınmadı");
+    expect(m.text).not.toContain("senden ödeme alınmadı");
     await send.sendKaraokeCancellationEmail({
       ...BASE,
       payment: { kind: "venue" },
     });
-    expect(h.sent[1]!.text).toContain("sizden ödeme alınmadı");
+    expect(h.sent[1]!.text).toContain("senden ödeme alınmadı");
   });
 });

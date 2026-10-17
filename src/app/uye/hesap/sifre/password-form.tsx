@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 
+import { BusyDots } from "@/components/laffogato/busy-dots";
+
 import { changePasswordAction, type PasswordFormState } from "../../actions";
 
 const initial: PasswordFormState = {};
@@ -62,9 +64,17 @@ export function PasswordForm() {
         type="submit"
         disabled={pending}
         className="btn btn-primary btn-sm"
-        style={{ justifySelf: "start", opacity: pending ? 0.7 : 1 }}
+        style={{ justifySelf: "start" }}
+        aria-busy={pending}
       >
-        {pending ? "Güncelleniyor…" : "Şifreyi güncelle"}
+        {pending ? (
+          <>
+            <BusyDots />
+            Güncelleniyor…
+          </>
+        ) : (
+          "Şifreyi güncelle"
+        )}
       </button>
     </form>
   );

@@ -90,10 +90,10 @@ export function withinFreeCancel(
 /**
  * The cancellation rule in the operator's own words (16 Eki 2026: "2 saat
  * sonrası iptalde ücret iadesi yoktur gibisinden de yaz"). Every place the
- * rule appears prints these two sentences verbatim - the pre-payment box, the
- * booking summary, the reservation page and its cancel step, the late-cancel
- * refusal (web and API) and the confirmation e-mail -
- * tests/karaoke-cancel-copy.test.ts holds each of them to it.
+ * rule appears prints these two sentences verbatim - the pre-payment box
+ * (once: the summary card no longer repeats it), the reservation page and its
+ * cancel step, the late-cancel refusal (web and API) and the confirmation
+ * e-mail - tests/karaoke-prepay-rules.test.ts holds each of them to it.
  */
 export const KARAOKE_REFUND_RULE =
   "Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.";
@@ -109,7 +109,7 @@ export const KARAOKE_BUSINESS_CANCEL =
   "Rezervasyonu biz karşılayamazsak ödediğin tutarın tamamını kartına iade ederiz.";
 
 /** The refusal of a self-cancel inside the last two hours. */
-export const KARAOKE_TOO_LATE_MESSAGE = `Rezervasyon saatine 2 saatten az kaldığı için rezervasyonu artık buradan iptal edemezsin. ${KARAOKE_NO_REFUND_RULE}`;
+export const KARAOKE_TOO_LATE_MESSAGE = `Artık buradan iptal edemezsin. ${KARAOKE_NO_REFUND_RULE}`;
 
 /** `paymentDueAt` for a payment page opened at `issuedAt`. */
 export function paymentDueFrom(issuedAt: Date): string {

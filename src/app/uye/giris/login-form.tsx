@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 
+import { BusyDots } from "@/components/laffogato/busy-dots";
+
 import { loginAction, type LoginFormState } from "../actions";
 
 const initialState: LoginFormState = {};
@@ -48,9 +50,17 @@ export function LoginForm({ next }: { next?: string }) {
         type="submit"
         disabled={pending}
         className="btn btn-primary btn-lg auth-submit"
+        aria-busy={pending}
       >
-        {pending ? "Giriş yapılıyor…" : "Giriş yap"}
-        <span className="arrow">→</span>
+        {pending ? (
+          <>
+            <BusyDots />
+            Giriş yapılıyor…
+          </>
+        ) : (
+          "Giriş yap"
+        )}
+        {!pending && <span className="arrow">→</span>}
       </button>
     </form>
   );

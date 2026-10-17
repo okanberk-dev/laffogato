@@ -15,17 +15,17 @@ export const KARAOKE_RESULT_NOTICES: Record<
 > = {
   "iptal-iade": {
     tone: "ok",
-    text: "Rezervasyonun iptal edildi ve ödediğin tutarın tamamı kartına iade edildi. İadenin hesabına yansıması bankana göre birkaç iş günü sürebilir.",
+    text: "Rezervasyonun iptal edildi, ödediğin tutarın tamamı kartına iade edildi. Yansıması bankana göre birkaç iş günü sürebilir.",
   },
   iptal: { tone: "ok", text: "Rezervasyonun iptal edildi." },
   "gec-iptal": { tone: "error", text: KARAOKE_TOO_LATE_MESSAGE },
   "iade-reddedildi": {
     tone: "error",
-    text: "İade şu an yapılamadı, rezervasyonun iptal edilmedi ve olduğu gibi duruyor. Ekibimize haber gitti; istersen bizi ara.",
+    text: "İade şu an yapılamadı; rezervasyonun olduğu gibi duruyor. Ekibimize haber gitti.",
   },
   "iade-bekleniyor": {
     tone: "warn",
-    text: "İade isteğin bankaya iletildi ama sonucu henüz gelmedi. Ekibimiz kontrol edip sana e-postayla dönecek; tekrar denemene gerek yok.",
+    text: "İade bankaya iletildi, sonucu bekleniyor. Sana e-postayla döneceğiz; yeniden denemene gerek yok.",
   },
   "odeme-sorulamadi": {
     tone: "warn",
@@ -41,7 +41,7 @@ export const KARAOKE_RESULT_NOTICES: Record<
   },
   "odeme-yok": {
     tone: "warn",
-    text: "Bu rezervasyon için yeni bir ödeme sayfası açılamıyor: ya ödendi ya da ödeme süresi doldu. Süresi dolduysa karaoke sayfasından yeniden rezervasyon yapabilirsin.",
+    text: "Yeni ödeme sayfası açılamıyor: rezervasyon ya ödendi ya süresi doldu. Süresi dolduysa yeniden rezervasyon yap.",
   },
   "odeme-acilamadi": {
     tone: "error",
@@ -68,11 +68,11 @@ export const KARAOKE_RETURN_NOTICES: Record<
 > = {
   basarili: {
     tone: "ok",
-    text: "Ödemen alındı, rezervasyonun kesinleşti. Bilgileri e-posta adresine de gönderdik.",
+    text: "Ödemen alındı, rezervasyonun kesinleşti. Bilgiler e-postanda.",
   },
   sonuc: {
     tone: "warn",
-    text: "Ödemenin sonucu aşağıda. Ödeme tamamlanmadıysa kartından para çekilmedi ve rezervasyon kesinleşmedi.",
+    text: "Ödeme tamamlanmadıysa kartından para çekilmedi ve rezervasyon kesinleşmedi.",
   },
 };
 

@@ -11,6 +11,7 @@ import {
   type FormEvent,
 } from "react";
 
+import { BusyDots } from "@/components/laffogato/busy-dots";
 import { cx } from "@/components/laffogato/cx";
 import { checkoutCartKey, textFingerprint } from "@/lib/checkout/cart-key";
 import {
@@ -1164,8 +1165,21 @@ function CheckoutForm({
                 autoCapitalize="characters"
                 disabled={placing}
               />
-              <button type="submit" disabled={promoPending || placing}>
-                {promoPending ? "…" : "Uygula"}
+              <button
+                type="submit"
+                disabled={promoPending || placing}
+                aria-busy={promoPending}
+              >
+                {/* A bare "…" was the whole pending label: nothing a screen
+                    reader could say, and a glyph the eye reads as truncation. */}
+                {promoPending ? (
+                  <>
+                    <BusyDots />
+                    <span className="sr-only">Kod kontrol ediliyor</span>
+                  </>
+                ) : (
+                  "Uygula"
+                )}
               </button>
               {promoRefused && promoState.error ? (
                 <div
@@ -1603,10 +1617,18 @@ function CheckoutForm({
               <button
                 type="submit"
                 disabled={placing || !consentGiven}
+                aria-busy={placing}
                 form={PAY_FORM_ID}
                 className="btn btn-primary btn-lg co-pay-btn"
               >
-                {placing ? busyLabel : payLabel}
+                {placing ? (
+                  <>
+                    <BusyDots />
+                    {busyLabel}
+                  </>
+                ) : (
+                  payLabel
+                )}
               </button>
               {!consentGiven && !placing ? (
                 <p className="co-paybar-hint">

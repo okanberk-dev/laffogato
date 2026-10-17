@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 
+import { BusyDots } from "@/components/laffogato/busy-dots";
+
 import { updateProfileAction, type UpdateProfileState } from "../actions";
 
 const initial: UpdateProfileState = {};
@@ -77,9 +79,17 @@ export function ProfileForm({
         type="submit"
         disabled={pending}
         className="btn btn-primary btn-sm"
-        style={{ justifySelf: "start", opacity: pending ? 0.7 : 1 }}
+        style={{ justifySelf: "start" }}
+        aria-busy={pending}
       >
-        {pending ? "Kaydediliyor…" : "Kaydet"}
+        {pending ? (
+          <>
+            <BusyDots />
+            Kaydediliyor…
+          </>
+        ) : (
+          "Kaydet"
+        )}
       </button>
     </form>
   );

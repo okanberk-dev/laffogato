@@ -6,6 +6,7 @@ import {
   subscribeNewsletterAction,
   type NewsletterFormState,
 } from "@/app/newsletter/actions";
+import { BusyDots } from "./busy-dots";
 
 const initial: NewsletterFormState = {};
 
@@ -36,9 +37,17 @@ export function NewsletterForm() {
              radius so the two read as one control. */
           style={{ whiteSpace: "nowrap" }}
           disabled={pending}
+          aria-busy={pending}
         >
-          {pending ? "Gönderiliyor…" : "Abone ol"}{" "}
-          <span className="arrow">→</span>
+          {pending ? (
+            <>
+              <BusyDots />
+              Gönderiliyor…
+            </>
+          ) : (
+            "Abone ol"
+          )}
+          {!pending && <span className="arrow">→</span>}
         </button>
       </div>
 

@@ -175,9 +175,7 @@ export function KaraokeReservationView({
       {canPay ? (
         <form action={payAction} className="karaoke-mine-pay">
           {fields}
-          <p>
-            Ödemen henüz alınmadı; ödeme tamamlanmadan rezervasyon kesinleşmez.
-          </p>
+          <p>Ödemen alınmadı; ödeyince rezervasyon kesinleşir.</p>
           <button type="submit" className="btn btn-primary">
             Ödemeyi tamamla
           </button>
@@ -210,8 +208,8 @@ export function KaraokeReservationView({
               <p>{KARAOKE_REFUND_RULE}</p>
               <p className="karaoke-mine-outcome">
                 {r.paymentStatus === "paid"
-                  ? `Şimdi iptal edersen ödediğin ${priceLabel(paid)} kartına iade edilir. İadenin hesabına yansıması bankana göre birkaç iş günü sürebilir.`
-                  : "Senden ödeme alınmadığı için iade edilecek bir tutar yok; saat başkasına açılır."}
+                  ? `Şimdi iptal edersen ödediğin ${priceLabel(paid)} kartına iade edilir; yansıması bankana göre birkaç iş günü sürebilir.`
+                  : "Ödeme alınmadığı için iade edilecek tutar yok; saat başkasına açılır."}
               </p>
               <form action={cancelAction} className="karaoke-mine-confirm-row">
                 {fields}
@@ -227,10 +225,7 @@ export function KaraokeReservationView({
           ) : (
             <>
               <p className="karaoke-mine-outcome">{KARAOKE_NO_REFUND_RULE}</p>
-              <p>
-                Rezervasyon saatine 2 saatten az kaldığı için iptal buradan
-                yapılamıyor. Bir sorun varsa bizi ara.
-              </p>
+              <p>Artık buradan iptal edemezsin; sorun varsa bizi ara.</p>
               <Link href={backHref} className="btn btn-primary btn-sm">
                 Geri dön
               </Link>

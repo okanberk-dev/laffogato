@@ -130,12 +130,10 @@ export default async function KaraokeLinkPage({ searchParams }: PageProps) {
             <div className="karaoke-mine">
               <p>
                 {q.odeme === "basarili"
-                  ? "Ödemen alındıysa rezervasyonun kesinleşti ve bilgileri e-posta adresine gönderildi."
-                  : "Rezervasyonunun ayrıntıları ve iptal bağlantısı e-posta adresine gönderilen mesajda."}{" "}
-                Bağlantı yalnız o e-postada geçerlidir ve rezervasyon saatinin
-                sonuna kadar açılır.
+                  ? "Ödemen alındıysa rezervasyonun kesinleşti; ayrıntılar e-postanda."
+                  : "Rezervasyonunun ayrıntıları ve iptal bağlantısı e-postanda."}
               </p>
-              <p>Bir sorun varsa bizi ara: {settings.phone || SITE.phone}.</p>
+              <p>Sorun olursa ara: {settings.phone || SITE.phone}.</p>
               <p style={{ marginTop: 16 }}>
                 <Link href="/karaoke" className="btn btn-primary btn-sm">
                   Karaoke sayfasına git

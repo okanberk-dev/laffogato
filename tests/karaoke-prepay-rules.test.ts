@@ -275,7 +275,7 @@ describe("the booking form", () => {
 
   it("puts the pre-payment box above three separate, unticked boxes and the pay button", () => {
     const html = render();
-    const box = html.indexOf("Ödemeden önce: rezervasyon özeti ve koşullar");
+    const box = html.indexOf(">Ödemeden önce</h2>");
     const boxes = ["consentPreInfo", "consentContract", "consentKvkk"].map(
       (n) => html.indexOf(`name="${n}"`),
     );
@@ -296,9 +296,50 @@ describe("the booking form", () => {
     expect(html).toContain("Aydınlatma Metni");
   });
 
+  it("prints the two rules once, and keeps the seller in sight outside Ayrıntılar", () => {
+    const html = render();
+    // The summary card used to repeat both sentences right above the box.
+    expect(html.split(REFUND)).toHaveLength(2);
+    expect(html.split(NO_REFUND)).toHaveLength(2);
+    const open = html.indexOf("<details");
+    const close = html.indexOf("</details>");
+    expect(open).toBeGreaterThan(html.indexOf(">Ödemeden önce</h2>"));
+    expect(html.slice(open, close)).toContain("<summary>Ayrıntılar</summary>");
+    // Payment and confirmation terms sit behind the disclosure; who sells
+    // stays outside it (MSY m.5/1-c), above the boxes.
+    expect(html.slice(open, close)).toContain("3D Secure");
+    const seller = html.indexOf("Satıcı:");
+    expect(seller).toBeGreaterThan(close);
+    expect(html.slice(seller)).toContain(props.address);
+    expect(seller).toBeLessThan(html.indexOf('name="consentPreInfo"'));
+  });
+
+  it("takes the room size from the setting and speaks sen throughout", () => {
+    const html = render({ capacity: 6 });
+    expect(html).toContain("6 kişilik oda");
+    expect(html).toContain("En fazla 6 kişi");
+    expect(html).not.toContain("sekiz");
+    expect(html).not.toContain("arayın");
+  });
+
   it("asks a visitor to sign in when prepayment is off (no guest request flow)", () => {
     const html = render({ prepay: false });
     expect(html).toContain("Giriş yap ve rezerve et");
     expect(html).not.toContain('name="guestFirstName"');
+  });
+
+  it("names the checkout section only by a heading that is there", () => {
+    // Prepayment off: a verified member books, the box and its heading are
+    // gone, so the section must not point at a missing id.
+    const html = render({
+      prepay: false,
+      isAuthenticated: true,
+      emailVerified: true,
+    });
+    expect(html).toContain('class="karaoke-checkout"');
+    expect(html).not.toContain("karaoke-preinfo-title");
+    const on = render();
+    expect(on).toContain('aria-labelledby="karaoke-preinfo-title"');
+    expect(on).toContain('id="karaoke-preinfo-title"');
   });
 });

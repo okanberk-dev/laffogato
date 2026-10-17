@@ -542,6 +542,68 @@ select {
   opacity: 0.45;
   transform: none;
 }
+/* A busy button is not a switched-off one. While its request is out it keeps
+   its fill and its label ink, the way the app's loading button does (lafmobil
+   src/components/ui/button.tsx: "LOADING keeps the live fill"), and the three
+   dots beside the words say it is working - faded to 45 %, "Gönderiliyor…"
+   read as a control that had broken. */
+.btn[aria-busy="true"]:disabled {
+  cursor: progress;
+  opacity: 1;
+}
+
+/* The wait mark (`BusyDots`): three dots in the label's own ink, lighting in
+   turn. Adapted from "hungry-otter-20" by ashish-yadv on Uiverse.io
+   (https://github.com/uiverse-io/galaxy, MIT, (c) 2023 Uiverse.io): sized in
+   em so it follows the type it stands beside, coloured by currentColor so it
+   needs no token of its own, and slowed and softened from the original's
+   0.6 s hop to read as patience rather than urgency. */
+.lf-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  margin-inline-end: 0.5em;
+  vertical-align: middle;
+}
+.btn .lf-dots {
+  margin-inline-end: 0; /* the button's own gap spaces it */
+}
+.lf-dots i {
+  width: 0.34em;
+  height: 0.34em;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  animation: lf-dots 1.2s ease-in-out infinite;
+}
+.lf-dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.lf-dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes lf-dots {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-0.22em);
+  }
+}
+/* Still, not slower: the first dot holds lit, so the row reads as a wait and
+   not as a rule of three identical marks. */
+@media (prefers-reduced-motion: reduce) {
+  .lf-dots i {
+    animation: none;
+  }
+  .lf-dots i:first-child {
+    opacity: 1;
+  }
+}
 
 /* The decided action: the house green, cream label (5.88:1). Bordo is a
    signature surface, never the button a page is built around. */
@@ -7007,6 +7069,9 @@ select {
 }
 .checkout-promo button {
   min-height: 44px;
+  /* "Uygula"'s own width, so the pill does not shrink to the dots while a
+     code is being checked. */
+  min-width: 88px;
   padding: 0 18px;
   border-radius: var(--r-pill);
   font-family: var(--display);
@@ -7017,6 +7082,11 @@ select {
   border: 0;
   cursor: pointer;
   transition: transform 0.12s var(--ease-out);
+}
+/* The dots stand alone here (the words are sr-only), so they drop the
+   spacing they keep beside a label and sit in the middle of the pill. */
+.checkout-promo button .lf-dots {
+  margin-inline-end: 0;
 }
 .checkout-promo button:active {
   transform: scale(var(--press-scale));
@@ -10130,16 +10200,6 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .karaoke-mine .karaoke-link {
   color: var(--green);
 }
-.karaoke-rules-short {
-  display: grid;
-  gap: 6px;
-  font-size: 13px;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.88);
-}
-.karaoke-rules-short p {
-  margin: 0;
-}
 .karaoke-checkout {
   grid-column: 1 / -1;
   min-width: 0;
@@ -10164,6 +10224,54 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   padding-left: 18px;
   display: grid;
   gap: 8px;
+}
+/* "Ayrıntılar": the rest of the pre-information, closed by default. Same
+   16px as the box when open; the platform triangle gives way to the FAQ's
+   chevron. */
+.karaoke-preinfo-more {
+  margin-top: 12px;
+}
+.karaoke-preinfo-more summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--green);
+}
+.karaoke-preinfo-more summary::-webkit-details-marker {
+  display: none;
+}
+.karaoke-preinfo-more summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-top: -3px;
+  border-right: 1.75px solid currentColor;
+  border-bottom: 1.75px solid currentColor;
+  rotate: 45deg;
+  transition: rotate 0.25s var(--ease-spring);
+}
+.karaoke-preinfo-more[open] summary::after {
+  margin-top: 3px;
+  rotate: -135deg;
+}
+.karaoke-preinfo-more ul {
+  margin-top: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .karaoke-preinfo-more summary::after {
+    transition: none;
+  }
+}
+/* The seller, always in sight under the box (MSY m.5/1-c), at the box's
+   16px (m.6/1). */
+.karaoke-seller {
+  margin: -6px 0 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-soft);
 }
 .karaoke-consents .karaoke-consent {
   font-size: 15px;

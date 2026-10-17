@@ -7,7 +7,8 @@
  * carries the same `[FIELD]`s as its HTML twin, so `renderEmail` fills both
  * from one set of values and `assertFilled` guards both.
  *
- * Same voice as the templates: "siz", sentence case, no shouting.
+ * Same voice as the templates: "siz" (the two karaoke messages: "sen"),
+ * sentence case, no shouting.
  */
 
 const SIGNATURE = `-
@@ -258,9 +259,11 @@ ${COMMERCIAL_FOOTER}`,
   // message say the same thing. A booking paid online carries its receipt
   // and its cancellation terms (KARAOKE_ODENDI); one paid at the venue only
   // how to cancel (KARAOKE_ODEME_MEKANDA). send.ts sets exactly one of them.
+  // Both karaoke messages speak "sen", like the /karaoke page that took the
+  // booking and the cancellation rule they quote.
   "karaoke-rezervasyon": `Merhaba,
 
-Karaoke saatiniz ayrıldı. Girişte kodunuzu söylemeniz yeterli.
+Karaoke saatin ayrıldı. Girişte kodunu söylemen yeterli.
 
 Rezervasyon kodu: [KARAOKE_KOD]
 Tarih: [KARAOKE_TARIH]
@@ -270,24 +273,19 @@ Kişi: [KARAOKE_KISI]
 Yol tarifi:
 https://www.google.com/maps/search/?api=1&query=40.8165716,29.3032493
 
-<!--IF:KARAOKE_ODENDI-->Ödenen tutar: [KARAOKE_TUTAR] (KDV dahil), kartından PayNkolay
-üzerinden tek çekimle alındı.
+<!--IF:KARAOKE_ODENDI-->Ödenen: [KARAOKE_TUTAR] (KDV dahil).
 
 Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.
 Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.
 
 Belirli bir tarihte sunulan eğlence hizmeti olduğu için cayma hakkı yoktur (MSY m.15/1-g).
-Rezervasyonu biz karşılayamazsak ödediğin tutarın tamamını kartına iade ederiz.
 
-Rezervasyonunu görmek ya da iptal etmek için:
+Rezervasyon sayfandan görebilir ve iptal edebilirsin:
 [KARAOKE_LINK]
 
-Koşulların tamamı:
-https://laffogato.net/hukuk/karaoke-odasi-rezervasyon
-
-Sorun olursa bizi ara: +90 536 429 09 19<!--/IF:KARAOKE_ODENDI--><!--IF:KARAOKE_ODEME_MEKANDA-->Ödemeyi köşkte yaparsın. Planın değişirse rezervasyon saatine 2 saatten
-fazla varken rezervasyon sayfandan iptal edebilir ya da bizi arayabilirsin:
-+90 536 429 09 19
+Tüm koşullar:
+https://laffogato.net/hukuk/karaoke-odasi-rezervasyon<!--/IF:KARAOKE_ODENDI--><!--IF:KARAOKE_ODEME_MEKANDA-->Ödemeyi köşkte yaparsın. Planın değişirse rezervasyon saatine 2 saatten
+fazla varken rezervasyon sayfandan iptal edebilirsin.
 
 Rezervasyon sayfan:
 [KARAOKE_LINK]<!--/IF:KARAOKE_ODEME_MEKANDA-->
@@ -300,24 +298,23 @@ ${SIGNATURE}`,
   // evening - nothing to confirm, nothing to click.
   "karaoke-iptal": `Merhaba,
 
-Karaoke rezervasyonunuz iptal edildi. Oda serbest bırakıldı; sizden bir şey
-beklenmiyor.
+Karaoke rezervasyonun iptal edildi. Oda serbest bırakıldı.
 
 İptal edilen rezervasyon: [KARAOKE_KOD]
 Tarih: [KARAOKE_TARIH]
 Saat: [KARAOKE_SAAT]
 Kişi: [KARAOKE_KISI]
 
-<!--IF:KARAOKE_IADE-->Ödediğiniz [KARAOKE_TUTAR] kartınıza iade edildi; tutarın hesabınıza
-yansıması bankanıza göre birkaç iş günü sürebilir.
+<!--IF:KARAOKE_IADE-->Ödediğin [KARAOKE_TUTAR] kartına iade edildi; yansıması bankana
+göre birkaç iş günü sürebilir.
 
-Rezervasyonun son durumu:
+Son durum, rezervasyon sayfanda:
 [KARAOKE_LINK]
 
-<!--/IF:KARAOKE_IADE--><!--IF:KARAOKE_ODEMESIZ-->Bu rezervasyon için sizden ödeme alınmadı.
+<!--/IF:KARAOKE_IADE--><!--IF:KARAOKE_ODEMESIZ-->Bu rezervasyon için senden ödeme alınmadı.
 
 <!--/IF:KARAOKE_ODEMESIZ-->Yeni bir saat ayırtmak için: https://laffogato.net/karaoke
-Bir yanlışlık olduğunu düşünüyorsanız bizi arayın: +90 536 429 09 19
+Bir yanlışlık varsa bizi ara: +90 536 429 09 19
 
 ${SIGNATURE}`,
 

@@ -63,7 +63,6 @@ export default async function KaraokeMinePage() {
         ) : shown.length === 0 ? (
           <EmptyState
             title="Henüz karaoke rezervasyonun yok"
-            hint="Köşkün üst katındaki oda sekiz kişiye kadar."
             cta={
               <Link href="/karaoke" className="btn btn-primary btn-sm">
                 Saat seç →

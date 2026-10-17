@@ -40,7 +40,7 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 - [Hikaye](/hikayemiz): 1897 Bologna'dan 2026 İstanbul'a markanın hikayesi
 - [Ziyaret](/ziyaret): Tuzla lokasyonu, ulaşım, gömülü harita (rezervasyon telefonla)
 - [Kampanyalar](/kampanyalar): Sezon kampanyaları, iş birlikleri ve etkinlikler; damga kartı (uygulamadan verilen 140 TL ve üzeri kafe siparişinde başlayan her 320 TL bir damga) ve arkadaş davet ödülü
-- [Karaoke](/karaoke): Köşkün üst katındaki özel karaoke odası; saati 1.000₺, sekiz kişiye kadar, gün ve saat seçilerek web'den ya da uygulamadan rezerve edilir, talep ekip onaylayınca kesinleşir
+- [Karaoke](/karaoke): Köşkün üst katındaki özel karaoke odası; saati 1.000₺, sekiz kişiye kadar, gün ve saat seçilerek web'den ya da uygulamadan rezerve edilir, kartla ödeme alınınca kesinleşir
 - [Rehber](/rehber): Affogato, espresso çeşitleri, matcha ve yenilebilir fincan üzerine yazılar
 
 ## Uygulama ve Üyelik

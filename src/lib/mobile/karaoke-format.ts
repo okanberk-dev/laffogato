@@ -47,3 +47,23 @@ export function formatReservationTime(
   const pad = (h: number): string => `${String(h).padStart(2, "0")}:00`;
   return `${pad(startHour)} - ${pad(startHour + hours)}`;
 }
+
+// The "-den" ending a number takes follows its LAST spoken word: sıfır, bir,
+// iki, üç, dört, beş, altı, yedi, sekiz, dokuz; then on, yirmi, otuz, kırk,
+// elli, altmış, yetmiş, seksen, doksan.
+// prettier-ignore
+const ONES_FROM = ["dan", "den", "den", "ten", "ten", "ten", "dan", "den", "den", "dan"];
+// prettier-ignore
+const TENS_FROM = ["", "dan", "den", "dan", "tan", "den", "tan", "ten", "den", "dan"];
+
+/**
+ * `20` → "20:00’den", `16` → "16:00’dan", `15` → "15:00’ten": a clock hour
+ * with the ending it takes when read aloud. One fixed "’dan" read "20:00’dan"
+ * for every evening hour.
+ */
+export function hourFromLabel(hour: number): string {
+  const h = Math.abs(Math.trunc(hour)) % 100;
+  const ending =
+    h % 10 !== 0 || h === 0 ? ONES_FROM[h % 10] : TENS_FROM[h / 10];
+  return `${String(h).padStart(2, "0")}:00’${ending}`;
+}
