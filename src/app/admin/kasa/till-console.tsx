@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import {
   Card,
+  Checkbox,
   Field,
   GhostButton,
   PrimaryButton,
@@ -26,6 +27,14 @@ const TABS: { id: Tab; label: string }[] = [
 const STAMP_CHOICES = [1, 2, 3, 4, 5];
 
 /**
+ * The answer when the action itself failed on the way back (a dropped
+ * connection, a crash after the write): the stamps may be in. The server's
+ * own partial answer says the same (`COUNTER_MAYBE_STAMPED`,
+ * lib/mobile/counter.ts).
+ */
+const MAYBE_STAMPED = "Damga verilmiş olabilir, üyenin kartını kontrol et.";
+
+/**
  * The till desk: one action, three ways in (spec §5).
  *
  * The camera, the eight-character code and the member's address all end in the
@@ -38,8 +47,12 @@ export function TillConsole() {
   const [note, setNote] = useState("");
   const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
+  const [repeat, setRepeat] = useState(false);
   const [state, setState] = useState<TillState>({});
   const [pending, startTransition] = useTransition();
+  // A receipt, or an answer that says something may have been given: the
+  // same submit must not go again until "Yeni işlem" (admin audit ORD-13).
+  const settled = Boolean(state.result) || Boolean(state.partial);
 
   /**
    * The last scanned value and how it ended, handed back to the scanner so
@@ -65,29 +78,69 @@ export function TillConsole() {
     scannedRef.current = value;
     setOutcome(null);
     startTransition(async () => {
-      const next = await redeemCounterTokenAction({
-        kind: "token",
-        value,
-        stamps: stampsRef.current,
-        note: noteRef.current,
-      });
+      let next: TillState;
+      try {
+        next = await redeemCounterTokenAction({
+          kind: "token",
+          value,
+          stamps: stampsRef.current,
+          note: noteRef.current,
+        });
+      } catch {
+        // Unanswered: the code may already be burned and the stamps in. A
+        // throw used to open the panel's error page (ORD-12).
+        next = { error: MAYBE_STAMPED, partial: true };
+      }
       setState(next);
-      // A code the server consumed must never be offered again; one that
-      // failed on the way there must be retryable without leaving the tab.
-      setOutcome({ value, redeemed: Boolean(next.result) });
+      // A code the server consumed must never be offered again (a partial
+      // answer consumed it too); one refused before that must be retryable
+      // without leaving the tab.
+      setOutcome({
+        value,
+        redeemed: Boolean(next.result) || Boolean(next.partial),
+      });
       if (next.error) beep(false);
     });
   }, []);
 
-  function submit(kind: string, value: string) {
+  // Set at the click, before `pending` renders: a double Enter is one post.
+  const busy = useRef(false);
+
+  function submit(kind: "code" | "email", value: string) {
+    if (busy.current || pending || settled) return;
+    busy.current = true;
+    const again = kind === "email" && repeat;
     startTransition(async () => {
-      setState(await redeemCounterTokenAction({ kind, value, stamps, note }));
+      let next: TillState;
+      try {
+        next = await redeemCounterTokenAction({
+          kind,
+          value,
+          stamps,
+          note,
+          repeat: again,
+        });
+      } catch {
+        next = { error: MAYBE_STAMPED, partial: true };
+      } finally {
+        busy.current = false;
+      }
+      setState(next);
+      // The box covers one submit; the next stamp is asked about again.
+      setRepeat(false);
+      // Given, or maybe given: the field empties so Enter cannot send it
+      // again. A plain refusal keeps it for the correction.
+      if (next.result || next.partial) {
+        if (kind === "email") setEmail("");
+        else setCode("");
+      }
     });
   }
 
   const clearResult = useCallback(() => {
     setState({});
     setOutcome(null);
+    setRepeat(false);
     scannedRef.current = "";
   }, []);
 
@@ -172,7 +225,7 @@ export function TillConsole() {
                 style={{ fontFamily: "var(--mono), monospace" }}
               />
             </Field>
-            <PrimaryButton type="submit" disabled={pending}>
+            <PrimaryButton type="submit" disabled={pending || settled}>
               {pending ? "Veriliyor…" : "Damga ver"}
             </PrimaryButton>
           </form>
@@ -200,9 +253,18 @@ export function TillConsole() {
                 placeholder="uye@ornek.com"
               />
             </Field>
-            <PrimaryButton type="submit" disabled={pending}>
+            <PrimaryButton type="submit" disabled={pending || settled}>
               {pending ? "Veriliyor…" : "Damga ver"}
             </PrimaryButton>
+            {state.repeat ? (
+              <div className="sm:col-span-2">
+                <Checkbox
+                  label="Tekrar ver: bu üyeye yeni bir damga daha gerekiyor"
+                  checked={repeat}
+                  onChange={(e) => setRepeat(e.target.checked)}
+                />
+              </div>
+            ) : null}
           </form>
         </Card>
       )}
@@ -214,18 +276,24 @@ export function TillConsole() {
           </p>
           <div className="mt-3">
             <GhostButton type="button" onClick={clearResult}>
-              Tamam
+              {state.partial ? "Yeni işlem" : "Tamam"}
             </GhostButton>
           </div>
         </Card>
       )}
 
-      {state.result && <Receipt result={state.result} />}
+      {state.result && <Receipt result={state.result} onNext={clearResult} />}
     </div>
   );
 }
 
-function Receipt({ result }: { result: NonNullable<TillState["result"]> }) {
+function Receipt({
+  result,
+  onNext,
+}: {
+  result: NonNullable<TillState["result"]>;
+  onNext: () => void;
+}) {
   return (
     <Card className="grid gap-3 border-emerald-200 bg-emerald-50/60">
       <p className="text-sm text-emerald-800">
@@ -248,6 +316,11 @@ function Receipt({ result }: { result: NonNullable<TillState["result"]> }) {
           kuponunu alabilir.
         </p>
       )}
+      <div>
+        <GhostButton type="button" onClick={onNext}>
+          Yeni işlem
+        </GhostButton>
+      </div>
     </Card>
   );
 }

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DbUnreachableError } from "@/lib/db/health";
 
@@ -17,10 +17,12 @@ const requireRole = vi.fn();
 const logAudit = vi.fn();
 const redeemCounterToken = vi.fn();
 const getCustomerByEmail = vi.fn();
+const listStamps = vi.fn();
 
 vi.mock("@/lib/admin/auth", () => ({ requireRole }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit }));
 vi.mock("@/lib/customer/store", () => ({ getCustomerByEmail }));
+vi.mock("@/lib/mobile/loyalty", () => ({ listStamps }));
 vi.mock("@/lib/mobile/counter", async () => {
   const actual = await vi.importActual<typeof import("@/lib/mobile/counter")>(
     "@/lib/mobile/counter",
@@ -28,6 +30,7 @@ vi.mock("@/lib/mobile/counter", async () => {
   return {
     MIN_COUNTER_STAMPS: actual.MIN_COUNTER_STAMPS,
     MAX_COUNTER_STAMPS: actual.MAX_COUNTER_STAMPS,
+    COUNTER_MAYBE_STAMPED: actual.COUNTER_MAYBE_STAMPED,
     redeemCounterToken,
   };
 });
@@ -55,6 +58,8 @@ beforeEach(() => {
   redeemCounterToken.mockReset();
   getCustomerByEmail.mockReset();
   getCustomerByEmail.mockResolvedValue({ email: "eda@ornek.com", isActive: true });
+  listStamps.mockReset();
+  listStamps.mockResolvedValue([]);
   granted();
 });
 
@@ -254,5 +259,169 @@ describe("e-posta yolu · üyelik denetimi", () => {
     });
     expect(state.error).toMatch(/ulaşılamıyor/);
     expect(redeemCounterToken).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The e-mail path burns no single-use code (admin audit ORD-13, karar D6):
+ * after the green receipt the address stayed in the field and "Damga ver"
+ * stayed on, so a second press or Enter gave the member another 1-5 stamps.
+ */
+describe("e-posta yolu · tekrar koruması", () => {
+  const T0 = Date.parse("2026-10-17T12:00:00.000Z");
+
+  function lastCounterStamp(ago: number, over: Record<string, unknown> = {}) {
+    listStamps.mockResolvedValue([
+      {
+        id: "stamp-000009",
+        kind: "earn",
+        source: "counter",
+        createdAt: new Date(T0 - ago).toISOString(),
+        ...over,
+      },
+    ]);
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("refuses a second counter stamp inside three minutes, before anything is written", async () => {
+    lastCounterStamp(60_000);
+    const state = await redeemCounterTokenAction({
+      kind: "email",
+      value: "eda@ornek.com",
+      stamps: 2,
+    });
+    expect(state.error).toMatch(/son 3 dakikada/);
+    expect(state.repeat).toBe(true);
+    expect(redeemCounterToken).not.toHaveBeenCalled();
+    expect(listStamps).toHaveBeenCalledWith("eda@ornek.com");
+  });
+
+  it("stamps again when the cashier ticks Tekrar ver", async () => {
+    lastCounterStamp(60_000);
+    const state = await redeemCounterTokenAction({
+      kind: "email",
+      value: "eda@ornek.com",
+      stamps: 1,
+      repeat: true,
+    });
+    expect(state.result).toBeTruthy();
+    expect(listStamps).not.toHaveBeenCalled();
+  });
+
+  it("lets the next visit through once the three minutes are over", async () => {
+    lastCounterStamp(3 * 60_000 + 1);
+    const state = await redeemCounterTokenAction({
+      kind: "email",
+      value: "eda@ornek.com",
+      stamps: 1,
+    });
+    expect(state.result).toBeTruthy();
+  });
+
+  it("counts only counter stamps, not one an app order just earned", async () => {
+    lastCounterStamp(10_000, { source: "order" });
+    const state = await redeemCounterTokenAction({
+      kind: "email",
+      value: "eda@ornek.com",
+      stamps: 1,
+    });
+    expect(state.result).toBeTruthy();
+  });
+
+  it("leaves the QR and the code alone: their token is single-use", async () => {
+    lastCounterStamp(1_000);
+    const state = await redeemCounterTokenAction({
+      kind: "code",
+      value: "K7P42M9X",
+      stamps: 1,
+    });
+    expect(state.result).toBeTruthy();
+    expect(listStamps).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * After the write (admin audit ORD-12, ORD-M02): the audit row was written
+ * with the throwing logAudit outside the try, and the till awaited the
+ * action with no catch, so a failure after the stamps opened the panel's
+ * error page and the cashier stamped again.
+ */
+describe("after the stamps", () => {
+  it("does not throw when the audit row cannot be written", async () => {
+    logAudit.mockRejectedValue(new Error("audit down"));
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const state = await redeemCounterTokenAction({
+      kind: "email",
+      value: "eda@ornek.com",
+      stamps: 1,
+    });
+    // Logged without the member's address (CLAUDE.md rule 9).
+    expect(JSON.stringify(spy.mock.calls)).not.toContain("eda@ornek.com");
+    spy.mockRestore();
+    expect(state.result).toBeTruthy();
+  });
+
+  it("answers 'verilmiş olabilir' when the run stopped after the burn, and logs it", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    redeemCounterToken.mockResolvedValue({
+      ok: false,
+      error: "partial",
+      message: "Damga verilmiş olabilir, üyenin kartını kontrol et.",
+      stampsWritten: 1,
+      stampsAsked: 3,
+      code: "K7P42M9X",
+      memberLabel: "e***@ornek.com",
+      cause: new Error("insert failed"),
+    });
+    const state = await redeemCounterTokenAction({
+      kind: "code",
+      value: "K7P42M9X",
+      stamps: 3,
+    });
+    spy.mockRestore();
+    expect(state).toEqual({
+      error: "Damga verilmiş olabilir, üyenin kartını kontrol et.",
+      partial: true,
+    });
+    expect(state.error).not.toMatch(/Tekrar dene/);
+    expect(logAudit).toHaveBeenCalledWith({
+      action: "update",
+      entity: "counter_token",
+      entityId: "K7P42M9X",
+      payload: { kind: "code", stamps: 1, asked: 3, partial: true },
+    });
+  });
+});
+
+describe("the till screen", () => {
+  const src = readFileSync("src/app/admin/kasa/till-console.tsx", "utf8");
+
+  it("answers a thrown action in place on both paths, never with the error page", async () => {
+    const { COUNTER_MAYBE_STAMPED } = await import("@/lib/mobile/counter");
+    expect(src).toContain(
+      `const MAYBE_STAMPED = "${COUNTER_MAYBE_STAMPED}";`,
+    );
+    expect(src.match(/next = \{ error: MAYBE_STAMPED, partial: true \};/g)).toHaveLength(2);
+  });
+
+  it("retires a scanned code the server may have burned", () => {
+    expect(src).toContain("redeemed: Boolean(next.result) || Boolean(next.partial)");
+  });
+
+  it("keeps Damga ver off after a receipt until Yeni işlem, and empties the field", () => {
+    expect(src).toContain("Boolean(state.result) || Boolean(state.partial)");
+    expect(src.match(/disabled=\{pending \|\| settled\}/g)).toHaveLength(2);
+    expect(src).toContain('if (kind === "email") setEmail("");');
+    expect(src).toContain("Yeni işlem");
+    // The repeat box is offered only after the server's refusal, unticked.
+    expect(src).toContain("{state.repeat ? (");
+    expect(src).toContain("repeat: again");
   });
 });

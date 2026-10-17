@@ -413,6 +413,74 @@ describe("redeemCounterToken · e-posta", () => {
   });
 });
 
+/**
+ * After the burn (admin audit ORD-M02). The code was spent, the stamps go
+ * in one insert at a time, then the balance is read: a throw anywhere in
+ * that stretch reached the till as "Damga verilemedi. Tekrar dene." with
+ * some or all of the stamps written, and the retry answered "already used".
+ */
+describe("redeemCounterToken · yarıda kalan", () => {
+  it("answers partial, with how many inserts answered, when one fails", async () => {
+    const { code } = await issue();
+    addCounterStamp
+      .mockResolvedValueOnce({ id: "stamp-000001" })
+      .mockRejectedValueOnce(new Error("insert failed"));
+    const res = await redeemCounterToken({
+      kind: "code",
+      value: code,
+      stamps: 3,
+      actor: CASHIER,
+    });
+    expect(res).toMatchObject({
+      ok: false,
+      error: "partial",
+      message: "Damga verilmiş olabilir, üyenin kartını kontrol et.",
+      stampsWritten: 1,
+      stampsAsked: 3,
+      code,
+      memberLabel: "e***@ornek.com",
+    });
+    expect(
+      res.ok === false && res.error === "partial" && res.cause,
+    ).toBeInstanceOf(Error);
+    // The code stays spent: the scan cannot be repeated into more stamps.
+    expect(allTokens().find((r) => r.code === code)?.usedAt).not.toBe("");
+  });
+
+  it("answers partial when the stamps are in and the balance read fails", async () => {
+    const { code } = await issue();
+    getLoyalty.mockRejectedValue(new Error("read failed"));
+    const res = await redeemCounterToken({
+      kind: "code",
+      value: code,
+      stamps: 2,
+      actor: CASHIER,
+    });
+    expect(res).toMatchObject({
+      ok: false,
+      error: "partial",
+      stampsWritten: 2,
+    });
+  });
+
+  it("answers partial on the e-mail path too: the first insert may have landed", async () => {
+    addCounterStamp.mockRejectedValue(new Error("connection reset"));
+    const res = await redeemCounterToken({
+      kind: "email",
+      value: MEMBER,
+      stamps: 1,
+      actor: CASHIER,
+    });
+    expect(res).toMatchObject({
+      ok: false,
+      error: "partial",
+      stampsWritten: 0,
+      code: "",
+      memberLabel: MEMBER,
+    });
+  });
+});
+
 describe("stamp count", () => {
   it("is refused outside 1-5, before anything is burned", async () => {
     const { code } = await issue();
