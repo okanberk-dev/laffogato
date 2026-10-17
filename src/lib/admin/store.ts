@@ -518,6 +518,11 @@ export interface AdminSettings {
    * room takes. All in minor units except the capacity.
    */
   courierFeeMinor: number;
+  /**
+   * How long a pickup ("Gel-al") order takes to get ready, in minutes: the
+   * home page's order card says "Gel-al · N dk". Presentation only.
+   */
+  pickupReadyMinutes: number;
   karaokeHourlyMinor: number;
   karaokeCapacity: number;
   /**
@@ -685,6 +690,9 @@ function defaultSettings(): AdminSettings {
     emailFromAddress: "",
     emailReplyTo: "",
     courierFeeMinor: 5500,
+    // 20261017173100_pickup_ready_minutes.sql gives the column the same
+    // default: the 15 the home page's card always said.
+    pickupReadyMinutes: 15,
     // ₺1.000 an hour (operator, 26 Eyl 2026); the live row is set by
     // 20260926090000_karaoke_price_and_notify.sql.
     karaokeHourlyMinor: 100000,

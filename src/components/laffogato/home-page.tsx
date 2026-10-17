@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useRef, Fragment } from "react";
 import Image from "next/image";
 
+import { STAMP_TARGET } from "@/lib/mobile/loyalty-core";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { priceLabel } from "@/lib/utils/format";
 
@@ -23,25 +24,30 @@ import { splitLead } from "./split-lead";
 import { useKaraokeToday } from "./use-karaoke-today";
 import { useOpenStatus } from "./use-open-status";
 
+/** Minutes a pickup takes when the page has no settings (the column default). */
+const DEFAULT_PICKUP_MINUTES = 15;
+
 /** What the app does that the site does not - the reasons to install it. */
-const APP_FEATURES = [
-  {
-    title: "Siparişini ver",
-    body: "gel-al ya da Tuzla içi kurye, kafe menüsünün tamamı.",
-  },
-  {
-    title: "Damga kartın",
-    body: "140 TL'den itibaren başlayan her 320 TL bir damga, altıncı içecek bizden.",
-  },
-  {
-    title: "Kasa kodu",
-    body: "kasada tek okutmayla damga ve ödül.",
-  },
-  {
-    title: "Karaoke ve kampanyalar",
-    body: "odanı ayırt, köşkte olanları ilk sen gör.",
-  },
-];
+function appFeatures(stampTarget: number) {
+  return [
+    {
+      title: "Siparişini ver",
+      body: "gel-al ya da Tuzla içi kurye, kafe menüsünün tamamı.",
+    },
+    {
+      title: "Damga kartın",
+      body: `140 TL'den itibaren başlayan her 320 TL bir damga, ${stampTarget} damgada bir içecek bizden.`,
+    },
+    {
+      title: "Kasa kodu",
+      body: "kasada tek okutmayla damga ve ödül.",
+    },
+    {
+      title: "Karaoke ve kampanyalar",
+      body: "odanı ayırt, köşkte olanları ilk sen gör.",
+    },
+  ];
+}
 
 /** The four figures under the signature block. */
 const SIGNATURE_STATS = [
@@ -58,12 +64,18 @@ export function PageHome({
   visit,
   settings,
   heroImageUrl,
+  homeSlides,
   karaoke,
 }: PageProps) {
   const router = useRouter();
   // Operator-editable at /admin/ayarlar; the phone already reads it from
   // bootstrap, so the web quoting a constant was the odd one out.
   const courierFee = priceLabel(settings?.courierFeeMinor ?? 5500);
+  // The order and rewards shortcuts say what the panel says: Ayarlar →
+  // "Gel-al hazırlık süresi" and the loyalty card's stamp count.
+  const pickupMinutes = settings?.pickupReadyMinutes ?? DEFAULT_PICKUP_MINUTES;
+  // Without settings, the loyalty rule's own default (loyalty-core.ts).
+  const stampTarget = settings?.stampTarget ?? STAMP_TARGET;
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
   const liveMenu = menu ?? MENU;
   const railRef = useRef<HTMLDivElement>(null);
@@ -180,7 +192,7 @@ export function PageHome({
       tone: "green",
       href: "#uygulama",
       kicker: "Sipariş",
-      title: "Gel-al · 15 dk",
+      title: `Gel-al · ${pickupMinutes} dk`,
       sub: `Uygulamadan; Tuzla içi kurye ${courierFee}`,
       icon: (
         <>
@@ -207,7 +219,7 @@ export function PageHome({
       tone: "brass",
       href: "/uye/hesap",
       kicker: "Ödüller",
-      title: "6 damgada 1 içecek",
+      title: `${stampTarget} damgada 1 içecek`,
       sub: "Uygulama ve web’de tek hesap",
       icon: (
         <>
@@ -261,6 +273,7 @@ export function PageHome({
       </h1>
 
       <HomeHeroSlider
+        slides={homeSlides}
         onAction={onSlideAction}
         heroImageUrl={heroImageUrl}
         hours={hours}
@@ -618,7 +631,7 @@ export function PageHome({
               <div className="eyebrow">L’Affogato uygulaması</div>
               <h2 className="h2">Köşk, cebinde</h2>
               <ul className="app-block-list">
-                {APP_FEATURES.map((f) => (
+                {appFeatures(stampTarget).map((f) => (
                   <li key={f.title}>
                     <span className="app-block-tick" aria-hidden="true">
                       <svg viewBox="0 0 12 12" fill="none">

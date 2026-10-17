@@ -118,7 +118,9 @@ describe("how the pages show them", () => {
   it("goes through <Illustration> wherever a page draws one", () => {
     // A bare <img src="/illustrations/…"> could forget the empty alt; only
     // the registry names the files (and the hero slide its cut-out photo,
-    // which has alt text because it is the slide's picture).
+    // which has alt text because it is the slide's picture; the panel's
+    // picker of those pictures, home-hero-core.ts, names the same files and
+    // its form refuses a slide without alt text).
     const offenders: string[] = [];
     const walk = (dir: string) => {
       for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -135,6 +137,7 @@ describe("how the pages show them", () => {
     expect(offenders.sort()).toEqual([
       "src/components/laffogato/data.ts",
       "src/components/laffogato/illustration.tsx",
+      "src/lib/admin/home-hero-core.ts",
       // The karaoke link-preview card reads its drawing's bytes, not an
       // <img>: by a literal path, so the bundler copies that one file into
       // the function rather than all of public/ (tests/og-images.test.ts

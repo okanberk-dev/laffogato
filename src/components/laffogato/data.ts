@@ -1,6 +1,7 @@
 // L'Affogato - content data
 
 import { hourToLabel, type KaraokeFacts } from "./karaoke-today";
+import type { SceneKey } from "./scenes";
 
 export const BRAND = {
   heritage: "Italia, 1897",
@@ -961,14 +962,27 @@ export type HomeSlideAction =
   | "visit"
   | "karaoke";
 
+/**
+ * One of a slide's buttons: a known action code, or a link the panel has
+ * already checked (a same-site path or an https URL; home-hero-core.ts
+ * `safeSlideHref`). Never both.
+ */
+export type HomeSlideButton =
+  | { label: string; action: HomeSlideAction; href?: undefined }
+  | { label: string; href: string; action?: undefined };
+
 export interface HomeSlide {
+  /** The panel row's id; the bundled slides below have none. */
+  id?: string;
   /** Small line above the headline - the product's qualifier, not a label. */
   kicker: string;
-  /** Two lines of display type; the array IS the line break. */
+  /** Two lines of display type; the array IS the line break. A panel slide
+      may leave the second line empty. */
   title: [string, string];
   text: string;
-  primary: { label: string; action: HomeSlideAction };
-  secondary: { label: string; action: HomeSlideAction };
+  /** A panel slide may have one button or none; the bundled ones have two. */
+  primary?: HomeSlideButton;
+  secondary?: HomeSlideButton;
   /** A cut-out product photograph, standing on its own light. */
   photo: string;
   alt: string;
@@ -977,11 +991,16 @@ export interface HomeSlide {
    * (DESIGN-GLASS §6.2): a strawberry matcha glows pink, a matcha green;
    * the karaoke room's microphone stands in the room's berry light.
    */
-  scene: "strawberry" | "matcha" | "pistachio" | "caramel" | "latte" | "berry";
+  scene: SceneKey;
 }
 
 /**
- * The home hero.
+ * The home hero's bundled slides.
+ *
+ * Since 17 Oct 2026 the hero is edited at /admin/anasayfa-hero
+ * (`home_hero_slides`). These four are what the site shows while the panel
+ * has no live slide (an empty table, or the database out of reach), and what
+ * the panel's "Varsayılanları içe aktar" copies in as editable rows.
  *
  * The app's product stage (lafmobil DESIGN-GLASS §4.4, §13): the drink cut
  * out and standing in a pastel halo of its own colour on porcelain, the name

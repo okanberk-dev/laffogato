@@ -61,7 +61,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   const [
     { cart, item, available, hesap },
     { settings, menu, products, appProps },
-  ] = await Promise.all([searchParams, loadAppProps()]);
+  ] = await Promise.all([searchParams, loadAppProps({ withHomeHero: true })]);
 
   // deleteAccountAction lands here; without a word the member could not tell
   // the deletion had gone through. Which sentence depends on whether the

@@ -11,6 +11,7 @@ import {
   listShopProducts,
 } from "@/lib/admin/store";
 import { LOCATION } from "@/components/laffogato/data";
+import { listHomeSlidesForSite } from "@/lib/admin/home-hero";
 import { addressLines } from "@/lib/utils/format";
 import { getSiteContent } from "@/lib/admin/site-content";
 import { getActiveCustomer } from "@/lib/customer/auth";
@@ -33,7 +34,10 @@ export async function loadAppProps({
   // /menu, /ziyaret and /hikayemiz was a query and a client payload for
   // something those pages never show.
   withShopHero = true,
-}: { withShopHero?: boolean } = {}) {
+  // The same for the home page's hero (/admin/anasayfa-hero): only `/`
+  // draws it.
+  withHomeHero = false,
+}: { withShopHero?: boolean; withHomeHero?: boolean } = {}) {
   const [
     products,
     settings,
@@ -43,6 +47,7 @@ export async function loadAppProps({
     press,
     story,
     content,
+    homeHero,
   ] = await Promise.all([
     listShopProducts(),
     getPublicSettings(),
@@ -52,6 +57,7 @@ export async function loadAppProps({
     listActivePress(),
     listActiveStoryEvents(),
     getSiteContent(),
+    withHomeHero ? listHomeSlidesForSite() : Promise.resolve(null),
   ]);
 
   // Computed on the server so it is stable across hydration - and at the
@@ -74,6 +80,9 @@ export async function loadAppProps({
         email: settings.email,
         address: settings.address,
         courierFeeMinor: settings.courierFeeMinor,
+        // The home page's order and rewards shortcuts (presentation only).
+        pickupReadyMinutes: settings.pickupReadyMinutes,
+        stampTarget: settings.mobileApp.loyalty.stampTarget,
       },
       menu,
       wishlist: customer?.wishlist,
@@ -97,7 +106,15 @@ export async function loadAppProps({
         d: e.body,
       })),
       content,
-      heroImageUrl: settings.heroImageUrl || undefined,
+      // The panel's live slides. Undefined while the bundled HOME_SLIDES
+      // stand in (home-hero.ts): the client already ships those, so they
+      // are not sent twice. Only `/` asks.
+      homeSlides: homeHero?.fromPanel ? homeHero.slides : undefined,
+      // "Hero görsel URL" replaces the first BUNDLED slide's photo; a slide
+      // from the panel carries its own picture.
+      heroImageUrl: homeHero?.fromPanel
+        ? undefined
+        : settings.heroImageUrl || undefined,
       visit: {
         addressLines: addressLines(settings.address, LOCATION.address),
         phone: settings.phone,

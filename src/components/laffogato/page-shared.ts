@@ -6,7 +6,13 @@
  * two of them use.
  */
 
-import type { MenuCategory, PRESS as SEED_PRESS, Product, STORY } from "./data";
+import type {
+  HomeSlide,
+  MenuCategory,
+  PRESS as SEED_PRESS,
+  Product,
+  STORY,
+} from "./data";
 import type { KaraokeFacts } from "./karaoke-today";
 import type { Route } from "./route-paths";
 import type { ShopHeroSlide } from "./shop-hero-slider";
@@ -23,12 +29,15 @@ export const MENU_TAG_LABELS: Record<string, string> = {
 /** The props LaffogatoApp (app.tsx) renders every page with. */
 export interface PageProps {
   navigate: (r: Route) => void;
-  /** Operator settings from /admin/ayarlar (contact + courier fee). */
+  /** Operator settings from /admin/ayarlar (contact, courier fee, the home
+      page's pickup time and stamp count). */
   settings?: {
     phone?: string;
     email?: string;
     address?: string;
     courierFeeMinor?: number;
+    pickupReadyMinutes?: number;
+    stampTarget?: number;
   };
   addToCart: (item: CartItem) => void;
   openProduct: (p: Product | null) => void;
@@ -45,6 +54,11 @@ export interface PageProps {
   content?: Record<string, string>;
   /** Ayarlar → "Hero görsel URL"; boşsa tasarımın kendi yüzeyi kullanılır. */
   heroImageUrl?: string;
+  /**
+   * The home hero's slides from /admin/anasayfa-hero. Undefined: the bundled
+   * HOME_SLIDES (data.ts). Only `/` passes it.
+   */
+  homeSlides?: HomeSlide[];
   /** Visit page contact block from admin settings; undefined ise LOCATION seed. */
   visit?: {
     addressLines: string[];

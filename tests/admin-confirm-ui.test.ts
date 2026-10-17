@@ -174,6 +174,37 @@ vi.mock("@/lib/admin/cafe-tables", () => ({
     },
   ]),
 }));
+vi.mock("@/lib/admin/home-hero", () => {
+  const slide = (id: string, sortOrder: number, isActive = true) => ({
+    id,
+    sortOrder,
+    isActive,
+    startsAt: "",
+    endsAt: "",
+    kicker: "Ekim",
+    titleLine1: `Slayt ${id}`,
+    titleLine2: "",
+    body: "x.",
+    image: "/menu/matcha-latte-cut.webp",
+    alt: "Latte",
+    scene: "matcha",
+    primaryLabel: "Kampanyalar",
+    primaryAction: "",
+    primaryHref: "/kampanyalar",
+    secondaryLabel: "",
+    secondaryAction: "",
+    secondaryHref: "",
+    createdAt: STAMP,
+    updatedAt: STAMP,
+  });
+  return {
+    listHomeHeroSlides: vi.fn(async () => [
+      slide("hhero-1", 10),
+      slide("hhero-2", 20, false),
+    ]),
+    homeSlidePhoto: (s: { image: string }) => s.image,
+  };
+});
 vi.mock("@/lib/admin/cafe-table-qr", () => ({
   tableQrSvg: vi.fn(async () => "<svg></svg>"),
 }));
@@ -191,6 +222,12 @@ vi.mock("@/app/admin/mobil/gonderiler/actions", () => ({
 }));
 vi.mock("@/app/admin/magaza-hero/actions", () => ({
   deleteSlideAction: stub(),
+}));
+vi.mock("@/app/admin/anasayfa-hero/actions", () => ({
+  deleteHomeSlideAction: stub(),
+  importDefaultHomeSlidesAction: stub(),
+  moveHomeSlideAction: stub(),
+  toggleHomeSlideAction: stub(),
 }));
 vi.mock("@/app/admin/bulten/actions", () => ({
   deactivateNewsletterAction: stub(),
@@ -292,6 +329,24 @@ describe("list pages", () => {
   ])("%s: Sil asks first", async (path, props) => {
     const html = await renderPage(path, props);
     expectConfirmed(html, "Sil");
+  });
+
+  it("anasayfa slaytları: Sil and the import ask first, reorder is one click", async () => {
+    const html = await renderPage("@/app/admin/anasayfa-hero/page");
+    expectConfirmed(html, "Sil");
+    expectConfirmed(html, "Varsayılanları içe aktar");
+    // ↑ only where there is a row above, ↓ only where there is one below
+    // (the table and its phone cards each draw them).
+    const labels = (re: RegExp) => [...new Set(html.match(re))];
+    expect(labels(/aria-label="Öne al: [^"]+"/g)).toEqual([
+      'aria-label="Öne al: Slayt hhero-2"',
+    ]);
+    expect(labels(/aria-label="Geriye al: [^"]+"/g)).toEqual([
+      'aria-label="Geriye al: Slayt hhero-1"',
+    ]);
+    expect(html).toContain("Yayından kaldır");
+    expect(html).toContain("Yayına al");
+    expect(html).toContain("Sitede 1 slayt dönüyor.");
   });
 
   it("bülten: Pasifleştir and Sil both ask first", async () => {

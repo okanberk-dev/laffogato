@@ -128,6 +128,9 @@ export default async function KaraokePage({ searchParams }: PageProps) {
           unavailable={unavailable}
           capacity={settings.karaokeCapacity}
           hourlyMinor={settings.karaokeHourlyMinor}
+          // The heading's closing hour: the panel's, like the hours the
+          // calendar offers (/admin/mobil/ayarlar → karaoke.closeHour).
+          closeHour={settings.mobileApp.karaoke.closeHour}
           tier={tier}
           tierLabel={
             tier ? TIER_LABELS[tier as keyof typeof TIER_LABELS] : null

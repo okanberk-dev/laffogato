@@ -15,6 +15,7 @@ export const AUDIT_ENTITY_LABELS: Record<AuditEntity, string> = {
   menu_item: "Menü",
   category: "Kategori",
   shop_hero_slide: "Mağaza Hero",
+  home_hero_slide: "Anasayfa slaytı",
   app_hero_slide: "Uygulama slaytı",
   app_announcement: "Uygulama duyurusu",
   app_post: "Uygulama gönderisi",
@@ -139,6 +140,8 @@ export function auditRecordHref(
       return id ? `/admin/promosyon/${seg}/duzenle` : null;
     case "shop_hero_slide":
       return id ? `/admin/magaza-hero/${seg}` : null;
+    case "home_hero_slide":
+      return id ? `/admin/anasayfa-hero/${seg}` : null;
     case "app_hero_slide":
       return id ? `/admin/mobil/slaytlar/${seg}` : null;
     case "app_announcement":

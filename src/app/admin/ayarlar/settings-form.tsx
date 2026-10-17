@@ -195,7 +195,10 @@ function GeneralTab({ settings }: { settings: AdminSettings }) {
           </Field>
           <Field
             label="Hero görsel URL"
-            hint="Opsiyonel. Boş bırakırsan tasarımdaki SVG placeholder kullanılır."
+            // Since the home hero moved to /admin/anasayfa-hero this only
+            // reaches the bundled slides (app-props.ts): say so, or the
+            // operator changes it and sees nothing happen.
+            hint="Opsiyonel. Anasayfa slaytlarında yayında slayt yokken yerleşik ilk slaytın görselini değiştirir. Panelden eklediğin slaytlar kendi görselini kullanır; onları İçerik → Anasayfa slaytları'ndan düzenle."
           >
             <TextInput
               name="heroImageUrl"
@@ -357,6 +360,21 @@ function ShippingTab({ settings }: { settings: AdminSettings }) {
               name="courierFee"
               inputMode="decimal"
               defaultValue={(settings.courierFeeMinor / 100).toFixed(2)}
+            />
+          </Field>
+          <Field
+            label="Gel-al hazırlık süresi (dk)"
+            hint="Anasayfadaki sipariş kartında “Gel-al · 15 dk” diye yazan süre. Yalnız gösterilir; siparişin kendisini etkilemez."
+          >
+            <TextInput
+              name="pickupReadyMinutes"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={180}
+              step={1}
+              defaultValue={String(settings.pickupReadyMinutes)}
+              required
             />
           </Field>
         </div>
