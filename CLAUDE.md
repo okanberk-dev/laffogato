@@ -34,7 +34,9 @@ yapılır.
   iyzico 15 Eki 2026'da koddan kaldırıldı; hukuki metinler 16 Eki 2026'da
   PayNkolay'a çevrildi (`docs/LEGAL-REDLINES-2026-09.md` başındaki durum
   tablosu; `tests/legal-docs.test.ts` metinde iyzico, uzun tire, "kart
-  sunucumuza uğramaz" ve cüzdan / hediye çeki sözü kalmadığını tutar). Metinler
+  sunucumuza uğramaz" ve cüzdan / hediye çeki sözü kalmadığını tutar). Masa ve
+  grup rezervasyonu yok (17 Eki 2026): rezervasyon yalnız karaoke odası için,
+  metinler masa rezervasyonu vaat etmez (aynı test; LEGAL-REDLINES §17). Metinler
   avukat okumasını bekler
 - **Dil:** Arayüz **Türkçe**. Kod, dosya adı, identifier, commit mesajı
   **İngilizce**

@@ -25,7 +25,7 @@ export const KARAOKE_ROOM_DOC: LegalDocSource = {
   slug: "karaoke-odasi-rezervasyon",
   title: "Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi",
   shortTitle: "Karaoke Odası Koşulları",
-  updatedAt: "16 Ekim 2026",
+  updatedAt: "17 Ekim 2026",
   category: "Sipariş",
   summary:
     "{{BRAND}} karaoke odasının web sitesi ve mobil uygulama üzerinden, ödemesi rezervasyon sırasında çevrim içi alınarak ayrılmasına ilişkin ön bilgilendirme ve hizmet sözleşmesidir: bedel, ödeme, rezervasyonun kesinleşmesi, cayma hakkının bulunmaması, iptal ve iade kuralları.",
@@ -43,7 +43,7 @@ export const KARAOKE_ROOM_DOC: LegalDocSource = {
       paragraphs: [
         'İşbu belge; {{ADDRESS}} adresinde mukim, {{TAX_OFFICE}} nezdinde {{TAX_NO}} vergi kimlik numarası ile kayıtlı {{LEGAL_NAME}} (bundan sonra "İşletme") ile {{SITE}} web sitesi veya {{BRAND}} mobil uygulaması üzerinden karaoke odası rezervasyonu yapan üye ya da üye olmadan rezervasyon yapan kişi (bundan sonra "Siz") arasında, karaoke odasının belirli bir gün ve saat aralığında kullanımına ilişkin mesafeli hizmet sözleşmesinin ön bilgilendirme formu ve sözleşme metnidir.',
         "Ön bilgilendirme, Mesafeli Sözleşmeler Yönetmeliği m.5 uyarınca sözleşmenin ayrılmaz parçasıdır. Rezervasyonun özeti ve aşağıdaki temel koşullar ödeme düğmesinin hemen üstünde ayrıca gösterilir; ödemeyi başlatmadan önce ön bilgilendirmeyi okuyup onayladığınızı ve sözleşmeyi kabul ettiğinizi iki ayrı onay kutusuyla, KVKK Aydınlatma Metni'ni okuduğunuzu da üçüncü bir kutuyla teyit edersiniz. Aydınlatma Metni'ni okuduğunuzu belirtmeniz bir bilgilendirmedir, açık rıza değildir.",
-        "Kafede yerinde sunulan yiyecek-içecek hizmeti ve masa rezervasyonu bu belgenin değil Kafe Hizmet ve Rezervasyon Koşulları'nın konusudur. Karaoke odası rezervasyonunun iptal, iade ve gelmeme kuralları yalnız bu belgeyle belirlenir.",
+        "Kafede yerinde sunulan yiyecek-içecek hizmeti bu belgenin değil Kafe Hizmet Koşulları'nın konusudur. Karaoke odası rezervasyonunun iptal, iade ve gelmeme kuralları yalnız bu belgeyle belirlenir.",
       ],
     },
     {

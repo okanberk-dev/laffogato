@@ -54,6 +54,7 @@ geçer; değerleri `src/lib/legal/entity.ts` doldurur.
 | R11 (T1) | Uzun tireler | §13 |
 | Y1 | fA'L yapay zekâ alıcısı: OpenAI yerine Anthropic (17 Eki 2026, metin kodda değişti) | §15 |
 | Y2 | KDV oranı ürüne göre: %1, %10, %20 (17 Eki 2026, metin kodda değişti) | §16 |
+| Y3 | Masa ve grup rezervasyonu kalktı; rezervasyon yalnız karaoke odası (17 Eki 2026, metin kodda değişti) | §17 |
 
 **Ek A** (belgenin sonunda) etkilenen **her cümleyi** belge belge, satır
 numarası ve kodu ile, **birebir** gösterir. Yalnız ad değişikliği (Ö1) ve
@@ -1168,6 +1169,134 @@ dâhildir" doğru kaldı.
 | Y2-3 | Karışık hediye kutusu (kahve ve fincan tek fiyat) varsayılan %20. Kalem kalem ayrılmalı mı? Mağazada bugün "Affogato Seti - İki Kişilik" (200 g kahve, gelato, iki yenilebilir kup, porselen kaşık; tek fiyat) %20'de. Yenilebilir kup kutusu yalnız gıda olduğu için %1'e alındı. Metin artık "gıda dışındaki hediyelik ürünlerde %20; gıda içeren hediye kutu ve setlerinde içindeki ürünlere göre" diyor: setin tek oranı ne olmalı? | Paket içerik oranları. Operatör canlıya almadan önce Hediye kategorisindeki her ürünü kontrol etmeli. |
 | Y2-4 | Metin oranları örnekle sayıyor (%1, %10, %20). Panel her ürüne 0-100 arası oran verebiliyor. "Ürüne göre %1, %10 veya %20" ifadesi, ileride başka bir oran seçilirse yanıltıcı olur mu? | Metin ile panel ayrışabilir. |
 | Y2-5 | Onay sürümü 17 Ekim 2026 oldu. Uygulamanın çevrimdışı kopyası (`lafmobil` `src/data/legal.seed.json`) `npm run legal:export` ile yenilenmeli (§13). | Üye ödeme onayını o kopyayı görerek de verebilir. |
+
+## 17. Y3 - Masa ve grup rezervasyonu kalktı; rezervasyon yalnız karaoke odası (17 Eki 2026)
+
+> **Durum: metin kodda değişti, avukat okuması bekliyor.**
+> Dal `feat/legal-no-table-reservation`. Karaoke odasının ön ödeme, iptal,
+> iade ve cayma kuralları değişmedi.
+
+### 17.1 Neden
+
+Operatör kararı (17 Eki 2026, site #132): kafe masa ve grup rezervasyonu
+almıyor. Rezervasyon yalnız karaoke odası için yapılır; sitede ve uygulamada
+çevrim içi, ön ödemeli. /ziyaret'teki rezervasyon kartı, SSS'teki telefonla
+rezervasyon sorusu ve llms.txt satırı #132'de kalktı. Hukuki metinler ise hâlâ
+telefonla ve e-postayla masa rezervasyonu, masa tutma süresi, grup
+rezervasyonu, minimum harcama, kapora, ücretsiz iptal süreleri ve no-show
+kaydı vaat ediyordu.
+
+### 17.2 Sürüm ve onay
+
+- Ödeme onayındaki iki belge (Ön Bilgilendirme Formu, Mesafeli Satış
+  Sözleşmesi) değişmedi. `LEGAL_UPDATED` zaten 17 Ekim 2026 (§16). Aynı gün
+  yapılan değişiklik bu revizyonun içinde kalır; belgelere ayrı tarih
+  verilmedi (tarih yalnız revizyondan sonraki bir günde değişen belgeye
+  verilir, `tests/legal-dates.test.ts`). Değişen belgelerin "Son güncelleme"
+  satırı zaten 17 Ekim 2026.
+- Karaoke belgesinde tek cümle değişti (§1: masa rezervasyonuna ve eski
+  başlığa atıf). Belgenin kendi sürümü olduğu için `KARAOKE_LEGAL_UPDATED`
+  ve belgenin tarihi 16'dan 17 Ekim 2026'ya taşındı. Bundan sonraki karaoke
+  rezervasyonlarının onayı 17 Ekim 2026'yı kaydeder; önceki rezervasyonların
+  kaydı olduğu gibi kalır. Yeniden onay akışı yok: onay her rezervasyonda
+  ödemeden önce alınır.
+- Üyelik onayı sürüm kaydetmez; ticari ileti onayının metin sürümü
+  (`ticari-elektronik-ileti@17 Ekim 2026`) değişmedi.
+- Uygulamanın çevrimdışı kopyası lafmobil'de `legal:export` ve
+  `scripts/legal-split.js` ile yenilenir (ayrı PR, site PR'ından sonra).
+
+### 17.3 Kafe Hizmet Koşulları: yapı
+
+- Başlık "Kafe Hizmet ve Rezervasyon Koşulları" yerine "Kafe Hizmet
+  Koşulları"; adres `/hukuk/kafe-hizmet-kosullari` aynı. Başlık ayrıca Satış
+  Politikası, Şirket Bilgileri (iki yer), Karaoke belgesi §1 ve
+  `public/llms-full.txt`'te değişti; /hukuk dizini ve uygulama başlığı
+  belgeden okur. Footer bu belgeyi listelemiyor; e-postalarda geçmiyor.
+- Eski §5-§9 (telefon ve e-postayla masa rezervasyonu, masa tutma süresi,
+  grup rezervasyonu, minimum harcama, ön ödeme, iptal, no-show) yerine tek
+  madde: "5. Karaoke Odası Rezervasyonu". İçindeki karaoke cümleleri eski §5
+  ve §8'den aynen geldi, yalnız masa atıfları çıktı: kanallar, 30 dakikalık
+  ön kayıt, ödemeyle kesinleşme, üyeliksiz rezervasyon, talep modu, veri
+  cümlesi, ret ve ayrımcılık yasağı, 2 saat kuralı ve gelmeme, MSY m.15/1-g,
+  işletme iptalinde tam iade (3 gün bildirim, 14 gün iade), tablo satırları.
+- Eski §8 ve §9'daki etkinlik korumaları (süresinde yapılmayan iptalde ve
+  katılmamada yalnız gerçek zararın mahsubu, kalem bazında açıklama, zarar
+  yoksa tam iade, cezai şart yok) etkinlik maddesine (yeni §6) tek paragraf
+  olarak taşındı.
+- Eski §10-§27 artık §6-§23. İç atıflar: §1 "5, 8 ve 9" yerine "5"; "11, 12
+  ve 14" yerine "7, 8 ve 10"; §4 "8. madde" yerine "5. ve 6. maddeler";
+  rehber hayvan atfı "16" yerine "12". Diğer belgeler bu belgenin madde
+  numarasına atıf yapmıyor.
+- Bilerek değişmeyenler: §22 şikâyet ("Hizmete, rezervasyona ...") ve delil
+  ("rezervasyon kayıtları"), §23 sürüm geçişi ("Önceden onaylanmış ve
+  yürürlükteki rezervasyonlara, rezervasyonun onaylandığı tarihte yürürlükte
+  olan sürüm uygulanır"). Üçü karaoke için doğru; sonuncusu bugüne kadar
+  telefonla onaylanmış masa rezervasyonlarını eski metinde tutar. KVKK
+  Aydınlatma Metni'nde karaoke işleme amacının hukuki sebebi ("KVKK m.5/2-c:
+  Rezervasyona ilişkin sözleşmenin kurulması ...") karaoke satırıdır, kaldı.
+
+### 17.4 Değişen cümleler
+
+Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir.
+
+| Belge | Satır | Mevcut | Yeni |
+|---|---|---|---|
+| İptal, İade ve Cayma, istisna örneği | 1462 | "Örnek: köşkte belirli gün ve saate ayrılan masa rezervasyonu veya karaoke odası rezervasyonu, tarihli barista atölyesi ..." | "Örnek: köşkte belirli gün ve saate ayrılan karaoke odası rezervasyonu, tarihli barista atölyesi ..." |
+| İptal, İade ve Cayma, §21 başlığı | 1799 | "21. Rezervasyon, Atölye ve Etkinlik Katılımlarının İptali; Karaoke Odası Rezervasyonu" | "21. Atölye ve Etkinlik Katılımlarının İptali; Karaoke Odası Rezervasyonu" |
+| İptal, İade ve Cayma, §21 | 1802 | "... köşkte masa rezervasyonu, karaoke odası rezervasyonu, barista atölyesi ve tadım etkinliği gibi ..." | "... köşkte karaoke odası rezervasyonu, barista atölyesi ve tadım etkinliği gibi ..." |
+| İptal, İade ve Cayma, §21 | 1809 | "... katılım sağlanmayan rezervasyonlarda ..." | "... katılım sağlanmayan etkinlik kayıtlarında ..." |
+| Satış Politikası | 3360 | "Sitede kafe siparişi, paket servis veya masa rezervasyonu hizmeti sunulmamaktadır. ... Kafe Hizmet ve Rezervasyon Koşulları'nda düzenlenir ..." | "Sitede kafe siparişi veya paket servis hizmeti sunulmamaktadır. ... Kafe Hizmet Koşulları'nda düzenlenir ..." |
+| Ödeme Koşulları | 3746 | "...; masa rezervasyonu, grup rezervasyonu, atölye ve etkinlikler için çevrim içi kapora veya ön ödeme alınmaz." | "...; atölye ve etkinlikler için çevrim içi kapora veya ön ödeme alınmaz." |
+| Gizlilik Politikası | 4989 | "... işletmede yapılan satın alma ve rezervasyon işlemleri, masa/paket sipariş kayıtları ..." | "... işletmede yapılan satın alma işlemleri, masa/paket sipariş kayıtları ..." (masa siparişi QR ile masaya sipariştir, kaldı; karaoke verisi kendi satırında) |
+| KVKK Aydınlatma, ilgili kişi | 5758 | "Kafe ziyaretçisi: ... fiziki işletmeye gelen, masa/rezervasyon talebi ileten, kafe içi ödeme yapan ..." | "Kafe ziyaretçisi: ... fiziki işletmeye gelen, karaoke odası rezervasyonu yapan, kafe içi ödeme yapan ..." |
+| KVKK Aydınlatma, veri kategorisi | 5778 | "... (girişte bildirim levhası bulunan alanlarda), rezervasyon/masa talebi kapsamında ad ve telefon numarası, kafe içi satış fişine ..." | "... (girişte bildirim levhası bulunan alanlarda), kafe içi satış fişine ..." (karaoke verisi: 5785, değişmedi) |
+| KVKK Aydınlatma, toplama yöntemi | 5971 | "Fiziki kanallar: Kafede doldurulan rezervasyon/etkinlik formları, ..." | "Fiziki kanallar: Kafede doldurulan etkinlik formları, ..." |
+| Kullanım Şartları, tanım | 9763 | "... belirli gün ve saat için ayrılması; masa rezervasyonları ise yalnızca telefonla alınır." | "... belirli gün ve saat için ayrılması." |
+| Kullanım Şartları, §15 | 10005 | "Kesinti sırasında iletilen rezervasyon talepleri, teyit edilmedikçe geçerli sayılmaz." | "Kesinti sırasında iletilen karaoke odası rezervasyon talepleri, teyit edilmedikçe geçerli sayılmaz." |
+| Şirket Bilgileri, kafe | 12674 | "Kafe içi hizmet, rezervasyon, grup ziyareti ve işletme kuralları /hukuk/kafe-hizmet-kosullari adresindeki Kafe Hizmet ve Rezervasyon Koşulları belgesinde düzenlenmiştir; ..." | "Kafe içi hizmet ve işletme kuralları /hukuk/kafe-hizmet-kosullari adresindeki Kafe Hizmet Koşulları belgesinde, karaoke odası rezervasyonu /hukuk/karaoke-odasi-rezervasyon adresindeki Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenmiştir; ..." |
+| Şirket Bilgileri, tablo | 12706 | "Rezervasyon ve etkinlik iletişimi" | "Karaoke rezervasyonu ve etkinlik iletişimi" |
+| Şirket Bilgileri, belge listesi | 13057 | "Kafe Hizmet ve Rezervasyon Koşulları" | "Kafe Hizmet Koşulları" |
+| Karaoke belgesi, §1 (`content-karaoke.ts`) | 46 | "Kafede yerinde sunulan yiyecek-içecek hizmeti ve masa rezervasyonu bu belgenin değil Kafe Hizmet ve Rezervasyon Koşulları'nın konusudur." | "Kafede yerinde sunulan yiyecek-içecek hizmeti bu belgenin değil Kafe Hizmet Koşulları'nın konusudur." |
+| Kafe Hizmet, başlık | 14107 | "Kafe Hizmet ve Rezervasyon Koşulları" | "Kafe Hizmet Koşulları" |
+| Kafe Hizmet, özet | 14111 | "... yiyecek-içecek hizmetine, masa rezervasyonuna, karaoke odası rezervasyonuna, ..." | "... yiyecek-içecek hizmetine, karaoke odası rezervasyonuna, ..." |
+| Kafe Hizmet, §1 | 14140 | "İşbu Kafe Hizmet ve Rezervasyon Koşulları ... yiyecek-içecek hizmetine, masa rezervasyonuna, karaoke odası rezervasyonuna, ..." | "İşbu Kafe Hizmet Koşulları ... yiyecek-içecek hizmetine, karaoke odası rezervasyonuna, ..." |
+| Kafe Hizmet, §1 | 14142 | "... yiyecek-içecek hizmeti alan, masa rezervasyonu talebinde bulunan, işletmede düzenlenen ..." | "... yiyecek-içecek hizmeti alan, işletmede düzenlenen ..." |
+| Kafe Hizmet, §1 | 14143 | "... yerinde sunulan hizmete, masa rezervasyonuna, karaoke odası rezervasyonuna, ... bu Koşulların 5, 8 ve 9. maddelerindeki karaoke hükümlerinde ... işbu Koşulların 11, 12 ve 14. maddeleri uygulanır" | "... yerinde sunulan hizmete, karaoke odası rezervasyonuna, ... bu Koşulların 5. maddesindeki karaoke hükümlerinde ... işbu Koşulların 7, 8 ve 10. maddeleri uygulanır" |
+| Kafe Hizmet, §2 | 14155 | "Rezervasyon: Belirli bir tarih ve saat aralığı için, belirli sayıda kişi adına masa tahsis edilmesine yönelik talep ve bu talebin İşletme tarafından onaylanması." | "Rezervasyon: Karaoke odasının belirli bir gün ve saat aralığı için ayrılması." |
+| Kafe Hizmet, §2 | 14156 | "Rezervasyon Onayı: İşletmenin, talebi kabul ettiğini tarih, saat, kişi sayısı ve varsa özel koşulları belirterek elektronik posta, telefon veya (karaoke odası talepleri için) mobil uygulamadaki bildirim kutusu yoluyla bildirdiği teyit." | "Rezervasyon Onayı: Talep olarak iletilen karaoke odası rezervasyonunu İşletmenin kabul ettiğini tarih, saat ve kişi sayısını belirterek elektronik posta ve mobil uygulamadaki bildirim kutusu yoluyla bildirdiği teyit. Çevrim içi ödenen rezervasyon ise ödemenin onaylanmasıyla kendiliğinden kesinleşir." |
+| Kafe Hizmet, §2 | - | Tanımlar: "Masa Tutma Toleransı", "No-Show", "Grup Rezervasyonu", "Minimum Harcama" | Silindi |
+| Kafe Hizmet, §2 | 14158 | "Ön Ödeme (Kapora): Grup rezervasyonu veya özel etkinlik için, rezervasyonun kesinleşmesi amacıyla ..." | "Ön Ödeme (Kapora): Özel etkinlik için, katılımın kesinleşmesi amacıyla ..." |
+| Kafe Hizmet, §3 | 14174 | "İşletme, bu kısıtları rezervasyon aşamasında şeffaf biçimde bildirmeyi ..." | "İşletme, bu kısıtları talep hâlinde şeffaf biçimde bildirmeyi ..." |
+| Kafe Hizmet, §4 | 14237 | "... ilgili tarihe ait onaylı rezervasyonlar için Misafirlere ... bilgi verilir; alınmış ön ödeme varsa 8. maddede düzenlenen esaslara göre iade edilir ..." | "... ilgili tarihe ait karaoke odası rezervasyonları ve etkinlik kayıtları için Misafirlere ... bilgi verilir; alınmış ödeme varsa 5. ve 6. maddelerde düzenlenen esaslara göre iade edilir ..." |
+| Kafe Hizmet, §4 | 14244 | "Geçici kapanışlarda onaylı rezervasyon sahiplerine {{PHONE}} ... bilgi verilir." | "Geçici kapanışlarda karaoke odası rezervasyonu veya etkinlik kaydı bulunan Misafirlere {{PHONE}} ... bilgi verilir." |
+| Kafe Hizmet, §5 başlığı | 14248 | "5. Rezervasyon Talebi, Onayı ve Doğrulanması" | "5. Karaoke Odası Rezervasyonu" |
+| Kafe Hizmet, §5 | 14250 | (yok) | "İşletmede masa ve grup rezervasyonu alınmaz. Rezervasyon yalnızca karaoke odası için yapılır; karaoke odası rezervasyonuna bu madde ile Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi uygulanır." |
+| Kafe Hizmet, §5 | 14251 | "Karaoke odası, masa rezervasyonundan ayrı olarak, {{BRAND}} mobil uygulaması ... iptal, iade ve gelmeme kuralları 8. maddede ve Karaoke Odası ... düzenlenmiştir. Bu Koşulların grup rezervasyonu, minimum harcama ve ön ödeme hükümleri (7. madde) masa rezervasyonlarına ilişkindir ve karaoke odası rezervasyonları bakımından uygulanmaz." | "Karaoke odası, {{BRAND}} mobil uygulaması ... iptal, iade ve gelmeme kuralları bu maddede ve Karaoke Odası ... düzenlenmiştir." (arası aynen) |
+| Kafe Hizmet, §5 | 14253 | "İşletme, doluluk, masa kapasitesi, personel durumu, ..." | "İşletme, doluluk, personel durumu, ..." |
+| Kafe Hizmet, §5 (eski §8) | 14254 | "Karaoke odası rezervasyonunda iptal ve iade kuralı bunlardan ayrıdır ve şudur: ..." | "Karaoke odası rezervasyonunda iptal ve iade kuralı şudur: ..." (2 saat kuralı, gelmeme, MSY m.15/1-g aynen) |
+| Kafe Hizmet, eski §5 | - | "Masa rezervasyonu; {{PHONE}} ... veya {{EMAIL}} ... talep edilebilir ...", "Rezervasyon, talebin İşletme tarafından açıkça onaylanmasıyla kurulur ...", "Rezervasyonlar, onayda belirtilen kişi adına ...", altı adımlı rezervasyon listesi | Silindi (karaoke onayı ve ödemeyle kesinleşme 14251'de zaten var) |
+| Kafe Hizmet, eski §6 | - | Masa tutma toleransı (15 dakika), gecikme, masa kullanım süresi, masa tercihi, bahçe masası (5 paragraf) | Silindi |
+| Kafe Hizmet, eski §7 | - | Grup rezervasyonu (8 kişi), minimum harcama, ön ödeme, kişi sayısı azalması (5 paragraf, 5 madde imi) | Silindi |
+| Kafe Hizmet, eski §8 | - | Masa 2 saat ücretsiz iptal, grup 48 saat, etkinlik atfı, "iptal teyitle hüküm ifade eder", işletme kaynaklı iptalde tüm ön ödemelerin iadesi; tablo: "Standart masa rezervasyonu", "Grup rezervasyonu", "Özel etkinlik / tasting - iptal" | Silindi; karaoke paragrafları ve karaoke, iptal kanalları, işletme kaynaklı iade süresi satırları §5'e taşındı |
+| Kafe Hizmet, eski §9 | - | No-show kaydı, tekrarlanan no-show, mazeret, no-show kayıtlarının saklanması | Silindi; etkinlik cümlesi §6'ya taşındı |
+| Kafe Hizmet, §6 (eski §10) | 14279 | (eski §8 ve §9'da) "Süresinde yapılmayan iptallerde ... gerçek maliyeti ön ödemeden mahsup edilebilir ... cezai şart uygulanmaz." ve "Ön ödeme alınmış grup rezervasyonları ile özel etkinliklerde no-show hâlinde ..." | "Süresinde yapılmayan iptallerde ve etkinliğe katılınmadığında, İşletmenin o kayıt için fiilen yaptığı ve başka şekilde değerlendiremediği hazırlık giderleri ön ödemeden mahsup edilebilir. Mahsup edilen tutar, her hâlükârda İşletmenin fiilen uğradığı zararla sınırlıdır ve talep hâlinde Misafire kalem bazında yazılı olarak açıklanır; kalan tutar iade edilir. Zararın gerçekleşmediği veya belgelenemediği hâllerde ön ödemenin tamamı iade edilir. Götürü nitelikte, zarara bağlı olmayan cezai şart uygulanmaz." |
+| Kafe Hizmet, §8 (eski §12) | 14336 | "Grup rezervasyonu ve özel etkinlik ön ödemeleri ile masa rezervasyonları için çevrim içi ödeme alınmaz." | "Özel etkinlik ön ödemeleri için çevrim içi ödeme alınmaz." |
+| Kafe Hizmet, §12 (eski §16) | 14473 | "... bu talebinizi rezervasyon aşamasında bildirmeniz, uygun masanın ayrılabilmesi için gereklidir." | "... bu talebinizi geldiğinizde personele bildirmeniz, uygun masanın ayrılabilmesi için gereklidir." |
+| Kafe Hizmet, §13 (eski §17) | 14484 | "Mama sandalyesi, bebek bezi değiştirme imkânı gibi talepleriniz rezervasyon aşamasında bildirilmesi hâlinde, mevcut imkânlar ölçüsünde ..." | "Mama sandalyesi, bebek bezi değiştirme imkânı gibi talepleriniz, mevcut imkânlar ölçüsünde ..." |
+| Kafe Hizmet, §20 (eski §24) | 14581 | "... bu hususu rezervasyon aşamasında {{PHONE}} numarasından bildirmeniz rica olunur." | "... bu hususu ziyaretinizden önce {{PHONE}} numarasından bildirmeniz rica olunur." |
+| Kafe Hizmet, §20 | 14583 | "... 16. maddede belirtildiği üzere ..." | "... 12. maddede belirtildiği üzere ..." |
+
+### 17.5 Avukata sorular
+
+| # | Soru | Neden |
+|---|---|---|
+| Y3-1 | Başlık "Kafe Hizmet Koşulları" oldu, adres aynı kaldı. Uygun mu? | Belgede rezervasyon olarak yalnız karaoke kaldı; karaokenin kendi sözleşmesi var. |
+| Y3-2 | Karaoke kuralları hem Kafe Hizmet Koşulları §5'te (özet) hem karaoke sözleşmesinde duruyor; karaoke sözleşmesi §1 "iptal, iade ve gelmeme kuralları yalnız bu belgeyle belirlenir" diyor. §5 bir atfa indirilsin mi? | İki yerde aynı kural, ileride ayrışma riski. |
+| Y3-3 | Etkinlik iptali iki belgede farklı: Kafe Hizmet §6 tablosu 7 gün / 72 saat, İptal, İade ve Cayma §21 48 / 24 saat. Hangisi geçerli? (Bu PR'dan önce de böyleydi.) | Tüketici lehine olan uygulanır; metin tek olmalı. |
+| Y3-4 | Eski §8'deki "iptal ve değişiklik talepleriniz İşletme tarafından teyit edildiği anda hüküm ifade eder" cümlesi kalktı. Karaoke iptalinin zamanı artık yalnız karaoke sözleşmesine bağlı (kendi kendine iptal anında; telefonla iptal). Telefonla iptal için ayrı kural gerekir mi? | 2 saat sınırında telefonla iptalin anı. |
+| Y3-5 | Bugüne kadar telefonla onaylanmış ileri tarihli masa rezervasyonu varsa §23 (sürüm geçişi) onları eski metinde tutar. Operatör bunları tek tek arayıp teyit etmeli mi? | Geçiş dönemi. |
+| Y3-6 | Erişim (§20) ve evcil hayvan (§12) cümleleri "ziyaretinizden önce telefonla bildirin, erişimi en kolay masa ayrılabilir" diyor. Bu bir rezervasyon vaadi sayılır mı? | Rezervasyon yok, ama makul düzenleme kalmalı (5378 s. Kanun). |
+| Y3-7 | KVKK'da "Kafe ziyaretçisi" grubu "karaoke odası rezervasyonu yapan" kişiyi de sayıyor; üyeliksiz karaoke rezervasyonu yapanlar ayrı bir ilgili kişi grubu olarak yazılsın mı? | Veri kategorisi zaten ayrı ("Üye ve üyeliksiz rezervasyon yapan kişi"). |
 
 ## Ek A - Cümle cümle düzeltme listesi
 
