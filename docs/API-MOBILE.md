@@ -186,7 +186,7 @@ tam sha256'sıdır (`"<64 hex>"`), `v` onun ilk 12 hanesi.
 | Adım | Gecikme |
 | --- | --- |
 | Panel kaydeder → site | anında (`revalidatePath`) |
-| Panel kaydeder → `/menu` yanıtı CDN'de | **en çok 300 sn** |
+| Panel kaydeder → `/menu` yanıtı CDN'de | **300 sn** (`s-maxage`); arada istek gelmediyse süresi dolmuş kopya bir kez daha servis edilir: en çok 3900 sn (`stale-while-revalidate=3600`) |
 | Yeni `image` URL'si → uygulama fotoğrafı çizer | anında (yeni URL = önbellek ıskası) |
 
 300 sn'yi panel kısaltamaz: `revalidatePath()` Next'in **sunucu** önbelleğini
@@ -272,8 +272,16 @@ değiştirmez, yalnız fiyatın ne kadarının KDV olduğunu söyler.
   **%20**, mağazada kategoriye göre `beans` ve `pantry` **%1**, `gift`, `gear`,
   `merch` **%20**. Kural ve dayanak: site `src/lib/utils/kdv.ts`.
 - §1 ve §2'de alan **her zaman vardır** ve o anki oranı söyler. Panel bir oranı
-  değiştirince gövde (ve ETag) değişir; uygulama en geç önbellek penceresi
-  kadar sonra görür (§1 "Tazelik penceresi").
+  değiştirince gövde değişir (§1'de `ETag` de; §2 `ETag` göndermez). Yeni
+  gövde CDN'den şu pencerelerle çıkar: `/menu` `s-maxage=300,
+  stale-while-revalidate=3600`, yani 300 sn'den sonraki ilk istek eski kopyayı
+  bir kez daha alıp yenilemeyi başlatır; arada istek gelmezse eski kopya en
+  çok **3900 sn** sonra bir kez daha servis edilebilir. `/shop` `s-maxage=60,
+  stale-while-revalidate=300`: aynı kuralla en çok **360 sn**. Uygulamanın
+  kendi `staleTime`'ı bu pencerelerin üstüne eklenir.
+- Karaoke müsaitliği (§7) CDN'de tutulmaz (`Cache-Control` yok, Vercel
+  varsayılanı `max-age=0`): oran uygulamanın bir sonraki sorgusunda gelir.
+  Sipariş satırının oranı (§3) satış anında sunucuda yazılır, beklemesi yoktur.
 - Varyant fiyatları (§2) ürünün oranındadır.
 - Sipariş satırının oranı (§3) **satış anındaki** orandır ve sonra değişmez.
   Oranlar kaydedilmeden önce verilmiş siparişte ve rezervasyonda `null`
