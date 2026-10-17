@@ -1,5 +1,7 @@
 // L'Affogato - content data
 
+import { hourToLabel, type KaraokeFacts } from "./karaoke-today";
+
 export const BRAND = {
   heritage: "Italia, 1897",
   imported: "Italia → İstanbul, 2026",
@@ -966,9 +968,10 @@ export interface HomeSlide {
   alt: string;
   /**
    * Whose light the drink stands in - the app's scene family for it
-   * (DESIGN-GLASS §6.2): a strawberry matcha glows pink, a matcha green.
+   * (DESIGN-GLASS §6.2): a strawberry matcha glows pink, a matcha green;
+   * the karaoke room's microphone stands in the room's berry light.
    */
-  scene: "strawberry" | "matcha" | "pistachio" | "caramel" | "latte";
+  scene: "strawberry" | "matcha" | "pistachio" | "caramel" | "latte" | "berry";
 }
 
 /**
@@ -1020,7 +1023,43 @@ export const HOME_SLIDES: HomeSlide[] = [
     alt: "Buzlu matcha latte, uzun bardakta",
     scene: "matcha",
   },
+  /*
+   * The one slide that is not a drink (operator's call, 17 Eki 2026: the home
+   * page highlights the karaoke room). Its picture is the microphone alone,
+   * cut out of the room drawing at the drinks' 581 x 942 (the edible-cup mic
+   * with L'Af on its sleeve). The room's size and closing hour are the
+   * panel's: `{kapasite}` and `{kapanis}` are filled by `slideText`.
+   */
+  {
+    kicker: "Akşamları üst katta",
+    title: ["Sahne", "senin"],
+    text: "Gündüz kahve, akşam şarkı. Üst kattaki oda {kapasite} kişiye kadar, gece {kapanis} kadar senin.",
+    primary: { label: "Saatini seç", action: "karaoke" },
+    secondary: { label: "Ziyaret bilgileri", action: "visit" },
+    photo: "/illustrations/karaoke-mic-cut.webp",
+    alt: "Kupa biçiminde çizilmiş karaoke mikrofonu",
+    scene: "berry",
+  },
 ];
+
+/**
+ * A slide's text with the karaoke room's facts filled in. Without them (a
+ * page that did not load the settings) a sentence that would need one is
+ * left out rather than printed with a guessed number.
+ */
+export function slideText(text: string, karaoke?: KaraokeFacts): string {
+  const token = /\{(kapasite|kapanis)\}/;
+  if (!token.test(text)) return text;
+  if (!karaoke) {
+    return (text.match(/[^.]+(?:\.|$)/g) ?? [text])
+      .map((sentence) => sentence.trim())
+      .filter((sentence) => sentence && !token.test(sentence))
+      .join(" ");
+  }
+  return text
+    .replaceAll("{kapasite}", String(karaoke.capacity))
+    .replaceAll("{kapanis}", hourToLabel(karaoke.closeHour));
+}
 
 /**
  * Press quotes: only ones a publication actually gave, entered in /admin/basin

@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
-import { HOME_SLIDES, type HomeSlideAction } from "./data";
+import { HOME_SLIDES, slideText, type HomeSlideAction } from "./data";
+import type { KaraokeFacts } from "./karaoke-today";
 import { isLocalStatic } from "./local-image";
 import { ROUTE_PATHS } from "./route-paths";
 import { SCENES } from "./scenes";
@@ -49,12 +50,15 @@ export function HomeHeroSlider({
   onAction,
   heroImageUrl,
   hours,
+  karaoke,
 }: {
   onAction: (action: HomeSlideAction) => void;
   /** Ayarlar → "Hero görsel URL": overrides the first slide's photograph. */
   heroImageUrl?: string;
   /** Opening-hours rows (the visit block's), for the live open/closed line. */
   hours?: ReadonlyArray<readonly [string, string]>;
+  /** The karaoke room's settings: the karaoke slide's size and hours. */
+  karaoke?: KaraokeFacts;
 }) {
   const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
@@ -89,7 +93,7 @@ export function HomeHeroSlider({
   const slide = HOME_SLIDES[index];
   const photo = (index === 0 && heroImageUrl) || slide.photo;
   const scene = SCENES[slide.scene];
-  const [lead, more] = splitLead(slide.text);
+  const [lead, more] = splitLead(slideText(slide.text, karaoke));
 
   return (
     <section className="hero-x" aria-label="Öne çıkanlar">
@@ -126,6 +130,7 @@ export function HomeHeroSlider({
               "--scene-edge": scene.edge,
               "--scene-floor": scene.floor,
               "--autoplay-ms": `${AUTOPLAY_MS}ms`,
+              "--thumbs": HOME_SLIDES.length,
             } as React.CSSProperties
           }
         >

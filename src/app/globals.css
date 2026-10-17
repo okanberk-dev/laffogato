@@ -1988,14 +1988,16 @@ summary:focus-visible,
 
 /* Thumbnails: glass tiles; the selected one is opaque white with the
    two-tone rim and the lift shadow (the app's selected state, §13.10). */
+/* One column per slide: the slider sets `--thumbs` from HOME_SLIDES (four
+   since the karaoke slide, 17 Eki 2026). */
 .hero-x-thumbs {
   list-style: none;
   margin: clamp(18px, 2.6vw, 36px) 0 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--thumbs, 3), minmax(0, 1fr));
   gap: 10px;
-  width: min(100%, 440px);
+  width: min(100%, 480px);
 }
 .hero-x-thumb {
   position: relative;

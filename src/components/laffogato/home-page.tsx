@@ -259,6 +259,7 @@ export function PageHome({
         onAction={onSlideAction}
         heroImageUrl={heroImageUrl}
         hours={hours}
+        karaoke={karaoke}
       />
 
       {/* The statement - who we are, in one paragraph, set large: the first
