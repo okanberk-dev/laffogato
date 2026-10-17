@@ -15,7 +15,10 @@
  * the folded one.
  */
 export function foldTr(value: string): string {
-  return value.toLocaleLowerCase("tr-TR").replace(/̇/g, "").replace(/ı/g, "i");
+  return value
+    .toLocaleLowerCase("tr-TR")
+    .replace(/\u0307/g, "")
+    .replace(/ı/g, "i");
 }
 
 /** Whether `haystack` contains `needle`, both folded; "" matches all. */
@@ -32,6 +35,11 @@ export function includesTr(haystack: string, needle: string): boolean {
  * (the last FROM letter, it has no partner in TO) before lower() sees the
  * text. lower() is then left with ASCII only: under the "C" collation it
  * folds nothing else, so "ÇAY" would have missed "çay".
+ *
+ * Use it for a substring search (`LIKE '%' || … || '%'`), which reads
+ * every row anyway. An equality lookup keeps plain lower(): the e-mail
+ * indexes are built on lower(...), and a translate() around the column
+ * would skip them.
  */
 export const TR_FOLD_SQL_FROM = "İIıÇŞĞÖÜÂÎÛ\u0307";
 export const TR_FOLD_SQL_TO = "iiiçşğöüâîû";
