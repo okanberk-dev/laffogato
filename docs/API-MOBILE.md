@@ -1626,8 +1626,10 @@ kapatır (yazım hatası fotoğrafı bir alıcıya göndermez).
 
 **Açık/kapalı.** Yalnız `FAL_AI_ENABLED=true` **ve** seçilen sağlayıcının anahtarı
 (`ANTHROPIC_API_KEY` ya da `OPENAI_API_KEY`) birlikte varsa açıktır
-(`/bootstrap.app.fal.ai`). Anahtar tek başına açmaz: R12 metni avukat okumasından ve
-yurt dışı aktarım için standart sözleşmeden geçmeden açılmamalıdır. Seçilen sağlayıcı
+(`/bootstrap.app.fal.ai`). Anahtar tek başına açmaz: R12 metni avukat okumasından
+geçmeden ve yurt dışı aktarım için Kurul'un standart sözleşmesi imzalanıp beş iş günü
+içinde Kurum'a bildirilmeden açılmamalıdır (aktarım her yorumda tekrarlanır, arızi
+değildir; R12 rızası tek başına dayanak olamaz). Seçilen sağlayıcı
 hukuki metinlerin alıcı olarak andığı sağlayıcı değilse (17 Eki 2026'dan beri
 Anthropic, PBC; `fal-core.ts` `FAL_DISCLOSED_PROVIDER`) özellik yine kapalıdır: metinler
 ve R12 sürümü değişmeden OpenAI'ye dönülmez.
@@ -1650,6 +1652,12 @@ Kayıt `feature_consents` satırıdır (üye, özellik, sürüm, zaman) ve rıza
 günü ve andığı alıcı (`2026-10-17-anthropic`). Alıcı değişince sürüm de değişir; eski
 sürümle verilmiş rıza sayılmaz, `GET` `granted: false` döner ve uygulama rızayı yeniden
 sorar. 23 Eyl 2026 rızaları (`2026-09-23`, alıcı OpenAI) bu yüzden artık sayılmaz.
+
+**Rıza sayfası da alıcıyı söyler.** Sunucu üyenin hangi metni gördüğünü bilemez:
+uygulama `POST`'a `GET`'te aldığı `version`'ı yollar. Bu yüzden uygulamanın rıza
+sayfası `version`'ın andığı alıcıyı adlandırır. Başka bir alıcıyı adlandıran sürüm
+(17 Eki 2026 öncesi sayfa OpenAI der) üyelere verildiyse özellik,
+`minSupportedAppVersion` doğru alıcıyı adlandıran ilk sürüme yükseltilmeden açılmaz.
 
 `DELETE /fal/consent` → `{ "granted": false }`; satır silinmez, `revokedAt` yazılır.
 
@@ -1706,9 +1714,9 @@ açılmadan önce gereken uç budur.
 | `reason` | Kapalı liste: `offensive` (Kırıcı ya da uygunsuz) · `promise` (Bir şey vaat ediyor) · `sensitive` (Sağlık, para ya da ilişki hakkında) · `other` (Başka bir sebep). Verilmezse ya da bilinmeyen bir değer gelirse `other` kaydedilir. Serbest metin alınmaz: üye oraya kişisel veri yazabilirdi. |
 | `model` | `POST /fal` yanıtındaki `model`, olduğu gibi. Yoksa ya da model adına benzemiyorsa boş kaydedilir. |
 
-- **Fotoğraf asla.** Gövdedeki başka alanlar yok sayılır. Fotoğraf zaten hiçbir
-  yerde saklanmaz, bildirim bunu değiştirmez; bildirim yapay zekâ hizmet
-  sağlayıcısına da gönderilmez.
+- **Fotoğraf asla.** Gövdedeki başka alanlar yok sayılır. Fotoğraf bizde zaten
+  saklanmaz, bildirim bunu değiştirmez; bildirim yapay zekâ hizmet sağlayıcısına
+  da gönderilmez.
 - **Anahtara ve rızaya bağlı değil (karar).** `FAL_AI_ENABLED` kapalıyken ya da
   üye R12 rızasını geri çektikten sonra da çalışır: ekranda duran bir yapay
   zekâ yorumu bildirilebilir kalmalı. Uygulama bağlantıyı **yalnız** `ai: true`
