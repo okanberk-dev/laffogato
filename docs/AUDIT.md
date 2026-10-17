@@ -756,3 +756,33 @@ Açık:
 | 🟢 | Kurucu unvanının varsayılanı İngilizce ("Founder & Roaster") (CON-25) | Varsayılan `STORY.founder` (`data.ts`, bu turda dokunulmayan dosya) ile eşit olmak zorunda (`mobile-story` testi, API-MOBILE §story); kaydedilmiş satır zaten onu örter. Operatör Site Metinleri'nden Türkçe unvanı yazabilir |
 | 🟢 | Hikaye ve Basın'da satır başına "Kaydet" adını taşımıyor | `SubmitButton`'da `ariaLabel` yok (kabuk kiti); satır adlı `group` içinde |
 | 🟢 | İki ödeme belgesi de panelden yayındayken birini varsayılana döndürmek ya da taslağa almak sürüm etiketini değiştirmeyebilir: daha yeni tarihli öteki belge sürümü taşır, aynı etiket o andan sonra başka bir metin çiftini gösterir | Bilerek reddedilmiyor: hazır metne dönüşe tarih verilemez, iki belge yayındayken hiçbir tarih sürümü ilerletemez ve ret varsayılana dönüşü kalıcı olarak kilitlerdi. Arşiv her metnin gösterildiği aralığı tam tutar (`updatedAt` → `archivedAt`), siparişin onay zamanıyla metin bulunur; kaydetme ve geri yükleme etiketi tekrar kullanamaz (`legal-consent-history`) |
+
+### Sistem: Ayarlar (paket 7a)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Reddedilen kayıt sekmeyi sıfırlıyordu: "Online mağaza açık", "Yeni siparişte e-posta gönder", arama motoru anahtarı ve karaokede online ön ödeme sessizce yeniden AÇIK geliyor, yazılan her şey siliniyordu; operatör hatayı düzeltip kaydedince kapattığı anahtar açık kaydediliyordu (SYS-01, KAR-02) | Her sekme elle gönderir (`useNoResetSubmit` + `withPanelCatch`, `settings-ui.tsx`); başarı toast, ret düğmenin yanında `role="alert"` ve alanın altında (`aria-invalid`, odak ilk hatalı alana) | `admin-settings-form` |
+| 🟡 | Kayıt hataları panelin hata sayfasına düşüyordu: "25.000.000" kargo ücreti integer sütunu taşırıyordu (22003), olay kaydı yazılamayınca kaydı tamamlanmış değişiklik hata gibi görünüyordu (SYS-02). KDV'nin kesirli oran kısmı #130'da kapanmıştı | Kargo, eşik, kurye ve karaoke saati en çok 1.000.000 TL (`MONEY_TOO_LARGE_ERROR`, alanın altında); kapasite ve hazırlık süresi yalnız rakam ("8.5" artık 8 değil); `ok()` `safeAudit` kullanır; istemcide atılan hata "Bir hata oldu…" olur | `admin-settings-actions` |
+| 🟡 | Vergi sekmesi oranın sepete uygulandığını söylüyordu (SYS-03) | #130'dan sonra metin: fiyatlar KDV dahil, oran hiçbir fiyatı ya da toplamı değiştirmez, buradakiler kendi oranı olmayan ürün ve menü kalemlerinin varsayılanı, değişiklik verilmiş siparişin kaydını değiştirmez (karar D28; ürün başına oran ve satış anı kaydı #130'da) | `admin-settings-form` |
+| 🟡 | Mağaza ve arama motoru anahtarının ipucuna dokunmak anahtarı değiştiriyordu (SYS-05) | `Field as="fieldset"` | `admin-settings-form` |
+| 🟡 | Satışı, arama trafiğini ya da e-postayı durduran ayarlar düz "Kaydet"le uygulanıyordu (SYS-06) | Mağazayı kapatmak, siteyi arama motorlarına kapatmak, yeni sipariş e-postasını kapatmak ya da kimsenin almayacağı bir alıcı listesi (`resolveStaffRecipients` ile sayılır) ve Resend'in doğrulanmamış dediği bir alan adındaki yeni gönderen hiçbir şey yazmadan onay sorusu döner; onay aynı formu onaylanan anahtarla yeniden gönderir (karar D26) | `admin-settings-actions` |
+| 🟡 | Kaydedilmemiş değişiklik işareti ve sayfadan çıkış uyarısı yoktu (SYS-07) | Form kendi varsayılanlarıyla (ya da son başarılı kaydıyla) karşılaştırılır: sekmede nokta, telefondaki seçimde "(kaydedilmedi)", satırda "Kaydedilmemiş değişiklik var.", `beforeunload` uyarısı | `admin-settings-form` |
+| 🟡 | Sekmeler sekme değildi: ARIA yok, telefonda dört sekme ekran dışında, adres yok, her bağlantı Genel'e iniyordu (SYS-08, SHE-24, KAR-12'nin `?sekme` kısmı) | `role="tablist"`, ok tuşları, Home / End, tek sekme durağı; `sm` altında seçim kutusu; açık sekme `?sekme=` (sayfa okur, `replaceState` yazar). Test e-postasının düğmesi `?sekme=email` | `admin-settings-form` |
+| 🟡 | Olay kaydı "kim mağazayı kapattı", "eski gönderen neydi" sorusunu cevaplamıyordu; her basış satır yazıyordu; test e-postası `update` olarak yazılıyordu (SYS-12) | Her sekme yalnız değişen anahtarların önce / sonra değerini yazar; değişiklik yoksa ne kayıt ne satır; test e-postası `send_test` | `admin-settings-actions` |
+| 🟢 | Kayıt sonucu 12 px, duyurulmayan bir satırdı ve eski "kaydedildi" düzenlemeden sonra da duruyordu (SYS-18) | Toast + `role="alert"`; form yazılınca eski başarı satırı gider | `admin-settings-form` |
+| 🟢 | Saatler: 14 adsız saat kutusu, yedi aynı "Kapalı" (SYS-19) | Her gün adıyla bir grup, "Pazartesi açılış" gibi adlar, kitin 44 px alanı | `admin-settings-form` |
+| 🟢 | SEO sekmesi bütün sayfaları yönettiğini söylüyordu (SYS-20) | "Ana sayfa başlığı", "Ana sayfa paylaşım görseli"; tarama kapatmanın Google'daki sayfaları kaldırmadığı yazılı | `admin-settings-form` |
+| 🟢 | Jargon ve yanlış metin: env adları, doküman yolu, "siz", gerçek görünen yer tutucu, "anında uygulanır" (uygulama 5 dakikaya kadar önbellekten okur), "üstündeyse" (kod `>=`) (SYS-21) | Sade Türkçe; dağıtım işi "Geliştiriciye ilet" diye; "uygulamaya birkaç dakika içinde yansır"; "bu tutara ulaşınca … 0 yazarsan kapalı" | `admin-settings-form`, `supabase-service-role-visibility` |
+| 🟢 | "Test gönder" yazılan değil kayıtlı göndereni deniyordu, hata İngilizce geliyordu, bant yenilenmiyordu (SYS-23) | Gönderen formu kaydedilmemiş değişiklik taşırken düğme nedeniyle kapalı; Resend retleri Türkçe (`resendErrorText`); test her sonuçta `revalidatePath` | `email-sender`, `admin-settings-actions`, `admin-settings-form` |
+| 🟢 | Genel sunucuda yalnız ad uzunluğunu denetliyordu (SYS-25) | zod: https görsel, geçerli e-posta, uzunluk sınırları (ad 80, slogan 160, telefon 40, adres 500), alan başına mesaj | `admin-settings-actions` |
+| 🟢 | Ayarlar'da `neutral` / `emerald` / `rose` sınıfları, italik başlıklar, gri kayıt satırı (KAR-06, KAR-17, SYS-24 ayarlar kısmı) | Kit `Section`, ton jetonları, servis anahtarı ve e-posta bantları kit tonlarında | `admin-settings-form` |
+
+Karaoke sekmesi ve kaydı ayrı dosyalarda (`karaoke-tab.tsx`, `karaoke-actions.ts`;
+karaoke iade kuralı işi onların üstüne kurulur).
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Panodaki "Ayarlar → E-posta" (SHE-24), karaoke panelindeki "Ayarlar → Karaoke" (KAR-12) ve Olay kaydındaki ayar satırlarının bağlantısı hâlâ `/admin/ayarlar` | `?sekme=` hazır (`settingsTabHref`, kayıt kimliği "email-test" de E-posta'yı açar); bağlantılar kendi dosyalarının PR'larında (7b, karaoke paneli, 7c) |
+| 🟢 | Panel içi bağlantıyla (kenar çubuğu) sayfadan çıkış kaydedilmemiş değişikliği sormuyor; uyarı yalnız sekme kapatma ve yenilemede | İstemci gezinmesini kesmek kabuk gezinme işi |
