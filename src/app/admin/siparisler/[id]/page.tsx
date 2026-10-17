@@ -16,6 +16,7 @@ import {
   orderPaymentState,
   refundableMinor,
 } from "@/lib/admin/order-actions";
+import { orderDetailsRules } from "@/lib/admin/order-details";
 import { orderTimeline } from "@/lib/admin/order-timeline";
 import { canAccess } from "@/lib/admin/roles";
 import {
@@ -152,6 +153,8 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         timeline={orderTimeline(order, audits, notices)}
         notices={notices.filter((n) => n.kind !== "staff-new")}
         customerHref={customerHref}
+        detailsRules={orderDetailsRules(order, session.role)}
+        canSeeEvidence={canAccess("customers", session.role)}
       />
     </main>
   );

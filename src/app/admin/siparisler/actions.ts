@@ -37,6 +37,10 @@ import {
   type OrderActor,
   type OrderOpResult,
 } from "@/lib/admin/order-ops";
+import {
+  orderDetailsChange,
+  orderDetailsRefusal,
+} from "@/lib/admin/order-details";
 import { OPEN_ORDER_STATUSES } from "@/lib/admin/order-filters";
 import { canAccess } from "@/lib/admin/roles";
 import {
@@ -466,36 +470,67 @@ export interface OrderDetailsActionState {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * The order page's customer card. Staff edit name, phone and address on an
+ * open order; the e-mail is an owner or manager change on an open order,
+ * confirmed, because member history is read by it (lib/admin/
+ * order-details.ts, admin audit ORD-16, karar D2). The audit row keeps the
+ * old and new value of every field that changed: it used to say only
+ * "customer_delivery", and the old address existed nowhere afterwards.
+ */
 export async function saveOrderDetailsAction(
   _prev: OrderDetailsActionState,
   formData: FormData,
 ): Promise<OrderDetailsActionState> {
-  await requireRole("orders");
+  const session = await requireRole("orders");
   const id = field(formData, "id");
   if (!id) return { error: "Sipariş ID eksik." };
   const customerName = field(formData, "customerName").trim();
   if (customerName.length < 2) {
     return { error: "Müşteri adı en az 2 karakter olmalı." };
   }
-  const customerEmail = field(formData, "customerEmail").trim();
+  // A form that does not offer the e-mail (staff, a closed order) sends no
+  // field, and the stored address stays: "" would have cleared it.
+  const customerEmail = formData.has("customerEmail")
+    ? field(formData, "customerEmail").trim()
+    : undefined;
   // The manual order form checks the address; this form did not, and a typo
   // here moves the order into another member's history.
   if (customerEmail && !EMAIL_RE.test(customerEmail)) {
     return { error: "Geçerli bir e-posta yaz." };
   }
-  const result = await updateOrderDetails(id, {
+  const input = {
     customerName,
     customerEmail,
     customerPhone: field(formData, "customerPhone"),
     shippingAddress: field(formData, "shippingAddress"),
-  });
-  if (!result) return { error: "Sipariş bulunamadı." };
-  await safeAudit({
-    action: "update",
-    entity: "order",
-    entityId: id,
-    payload: { fields: "customer_delivery" },
-  });
+  };
+  const result = await updateOrderDetails(id, input, (existing) =>
+    orderDetailsRefusal(
+      existing,
+      input,
+      session.role,
+      field(formData, "emailConfirm") === "1",
+    ),
+  );
+  if (!result.ok) {
+    revalidateOrder(id);
+    return { error: result.error };
+  }
+  const change = orderDetailsChange(result.before, result.order);
+  if (change.changed.length > 0) {
+    await safeAudit({
+      action: "update",
+      entity: "order",
+      entityId: id,
+      payload: {
+        fields: "customer_delivery",
+        changed: change.changed,
+        before: change.before,
+        after: change.after,
+      },
+    });
+  }
   revalidateOrder(id);
   return { savedAt: new Date().toISOString() };
 }

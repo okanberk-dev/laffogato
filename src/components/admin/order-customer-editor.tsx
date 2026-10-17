@@ -6,6 +6,10 @@ import {
   saveOrderDetailsAction,
   type OrderDetailsActionState,
 } from "@/app/admin/siparisler/actions";
+import {
+  emailChanges,
+  type OrderDetailsRules,
+} from "@/lib/admin/order-details";
 
 import { Card } from "./forms";
 
@@ -19,6 +23,12 @@ interface Props {
   shippingAddress: string;
   /** The customer's page (`/admin/musteriler/<email>`) when the role may open it. */
   customerHref?: string | null;
+  /**
+   * What this role may change here (`orderDetailsRules`): the e-mail only
+   * for an owner or manager on an open order, behind a confirm; nothing on
+   * a closed order for staff. The server asks the same rule again.
+   */
+  rules: OrderDetailsRules;
 }
 
 export function OrderCustomerEditor({
@@ -28,6 +38,7 @@ export function OrderCustomerEditor({
   customerPhone,
   shippingAddress,
   customerHref = null,
+  rules,
 }: Props) {
   const [state, formAction, pending] = useActionState(
     saveOrderDetailsAction,
@@ -69,13 +80,44 @@ export function OrderCustomerEditor({
             onChange={set("customerName")}
             required
           />
-          <LabeledInput
-            label="E-posta"
-            name="customerEmail"
-            type="email"
-            value={vals.customerEmail}
-            onChange={set("customerEmail")}
-          />
+          {rules.emailEditable ? (
+            <>
+              <LabeledInput
+                label="E-posta"
+                name="customerEmail"
+                type="email"
+                maxLength={160}
+                value={vals.customerEmail}
+                onChange={set("customerEmail")}
+              />
+              {emailChanges(customerEmail, vals.customerEmail) ? (
+                <label className="flex items-start gap-3 rounded-xl bg-[var(--admin-warning-soft)] px-3 py-2.5 text-xs text-[var(--admin-text)]">
+                  <input
+                    type="checkbox"
+                    name="emailConfirm"
+                    value="1"
+                    className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--admin-primary)]"
+                  />
+                  <span>
+                    E-postayı değiştir. Sipariş eski adresin üye geçmişinden
+                    çıkar, yeni adresinkine girer.
+                  </span>
+                </label>
+              ) : null}
+            </>
+          ) : (
+            <div className="grid gap-1">
+              <span className="text-[10px] tracking-[0.18em] text-[var(--admin-text-soft)] uppercase">
+                E-posta
+              </span>
+              <span className="break-all text-[var(--admin-text)]">
+                {customerEmail || "Yok"}
+              </span>
+              <span className="text-xs text-[var(--admin-text-soft)]">
+                {rules.emailReason}
+              </span>
+            </div>
+          )}
           <LabeledInput
             label="Telefon"
             name="customerPhone"
@@ -136,11 +178,21 @@ export function OrderCustomerEditor({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="rounded-full border border-neutral-300 px-3 py-1 text-[11px] text-neutral-600 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+            disabled={!rules.editable}
+            aria-describedby={rules.editable ? undefined : `${orderId}-lock`}
+            className="rounded-full border border-neutral-300 px-3 py-1 text-[11px] text-neutral-600 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] disabled:opacity-50"
           >
             Düzenle
           </button>
         </div>
+        {rules.editable ? null : (
+          <p
+            id={`${orderId}-lock`}
+            className="mb-3 text-xs text-[var(--admin-text-soft)]"
+          >
+            {rules.reason}
+          </p>
+        )}
         <div className="grid gap-2 text-sm">
           <KV k="Ad">{vals.customerName || "-"}</KV>
           <KV k="E-posta">
@@ -186,7 +238,8 @@ export function OrderCustomerEditor({
           </address>
         ) : (
           <p className="text-sm text-neutral-400">
-            Teslimat adresi yok. &quot;Düzenle&quot; ile ekleyebilirsin.
+            Teslimat adresi yok.
+            {rules.editable ? ' "Düzenle" ile ekleyebilirsin.' : ""}
           </p>
         )}
       </Card>

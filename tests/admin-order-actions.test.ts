@@ -999,6 +999,111 @@ describe("resendMailAction", () => {
   });
 });
 
+describe("saveOrderDetailsAction (ORD-16, karar D2)", () => {
+  /** The store as far as the action sees it: the rule asked about `stored`. */
+  function storedAs(over: Record<string, unknown> = {}) {
+    const existing = order({
+      status: "preparing",
+      customerName: "Eda Mancuso",
+      customerPhone: "+90 532 000 00 00",
+      shippingAddress: "Eski adres",
+      ...over,
+    });
+    store.updateOrderDetails.mockImplementation(
+      async (
+        _id: string,
+        input: Record<string, unknown>,
+        refuse?: (o: unknown) => string | null,
+      ) => {
+        const refusal = refuse?.(existing) ?? null;
+        if (refusal) return { ok: false, error: refusal };
+        const clean = Object.fromEntries(
+          Object.entries(input).filter(([, v]) => v !== undefined),
+        );
+        return { ok: true, before: existing, order: { ...existing, ...clean } };
+      },
+    );
+  }
+
+  const edit = (fields: Record<string, string>) =>
+    actions.saveOrderDetailsAction(
+      {},
+      form({
+        id: "ord-1",
+        customerName: "Eda Mancuso",
+        customerPhone: "+90 532 000 00 00",
+        shippingAddress: "Eski adres",
+        ...fields,
+      }),
+    );
+
+  it("lets staff fix the address of an open order, with before and after in the audit", async () => {
+    session.role = "staff";
+    storedAs();
+    const res = await edit({ shippingAddress: "Yeni adres" });
+    expect(res.savedAt).toBeTruthy();
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "update",
+        entityId: "ord-1",
+        payload: {
+          fields: "customer_delivery",
+          changed: ["shippingAddress"],
+          before: { shippingAddress: "Eski adres" },
+          after: { shippingAddress: "Yeni adres" },
+        },
+      }),
+    );
+    // The form offered no e-mail field: the stored one is not touched.
+    expect(store.updateOrderDetails.mock.calls[0][1].customerEmail).toBeUndefined();
+  });
+
+  it("refuses a staff e-mail change and writes no audit row", async () => {
+    session.role = "staff";
+    storedAs();
+    const res = await edit({ customerEmail: "baska@example.com", emailConfirm: "1" });
+    expect(res.error).toMatch(/yalnız sahip ya da yönetici/);
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("refuses staff on a closed order", async () => {
+    session.role = "staff";
+    storedAs({ status: "completed" });
+    const res = await edit({ shippingAddress: "Yeni adres" });
+    expect(res.error).toMatch(/Kapanmış sipariş/);
+  });
+
+  it("wants the owner's confirm, then keeps the old e-mail in full", async () => {
+    storedAs();
+    const unconfirmed = await edit({ customerEmail: "eda.m@example.com" });
+    expect(unconfirmed.error).toMatch(/onayla/);
+    const res = await edit({ customerEmail: "eda.m@example.com", emailConfirm: "1" });
+    expect(res.savedAt).toBeTruthy();
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          changed: ["customerEmail"],
+          before: { customerEmail: "eda@example.com" },
+          after: { customerEmail: "eda.m@example.com" },
+        }),
+      }),
+    );
+  });
+
+  it("refuses the e-mail of a closed order even for the owner", async () => {
+    storedAs({ status: "refunded" });
+    const res = await edit({ customerEmail: "eda.m@example.com", emailConfirm: "1" });
+    expect(res.error).toMatch(/e-postası değişmez/);
+  });
+
+  it("writes no audit row for a save that changed nothing", async () => {
+    storedAs();
+    const res = await edit({ customerEmail: "eda@example.com" });
+    expect(res.savedAt).toBeTruthy();
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+});
+
 describe("createManualOrderAction", () => {
   const fields = {
     items: JSON.stringify([{ productId: "prd-1", qty: 1 }]),

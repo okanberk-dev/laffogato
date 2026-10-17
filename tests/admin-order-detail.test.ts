@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
@@ -26,6 +28,7 @@ const { OrderDetail, PrintableReceipt, maskRef } = await import(
 );
 const { orderActions } = await import("@/lib/admin/order-actions");
 const { orderTimeline } = await import("@/lib/admin/order-timeline");
+const { orderDetailsRules } = await import("@/lib/admin/order-details");
 
 const settings = {
   name: "L'Affogato",
@@ -92,6 +95,8 @@ function detail(o: AdminOrder, role: "owner" | "staff" = "owner") {
       timeline: [],
       notices: [],
       customerHref: null,
+      detailsRules: orderDetailsRules(o, role),
+      canSeeEvidence: role === "owner",
     }),
   );
 }
@@ -214,6 +219,63 @@ describe("the order page", () => {
     const out = detail(order({ fulfillment: "shipping", kind: "shop", status: "cancelled" }));
     expect(out).not.toContain('name="trackingNumber"');
     expect(out).not.toContain("Kargo bilgisini kaydet");
+  });
+});
+
+describe("consent evidence on the page (ORD-29, karar D3)", () => {
+  const consented = () =>
+    order({
+      legalConsent: {
+        acceptedAt: "2026-10-17T08:00:00.000Z",
+        documents: ["mesafeli-satis-sozlesmesi"],
+        version: "2026-10-16",
+        ip: "85.105.12.34",
+        userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)",
+      } as never,
+    });
+
+  it("shows staff that the IP and browser are recorded, not what they are", () => {
+    const out = detail(consented(), "staff");
+    expect(out).not.toContain("85.105.12.34");
+    expect(out).not.toContain("iPhone OS 18_0");
+    expect(out.match(/Kayıtlı/g)?.length).toBe(2);
+    // The rest of the evidence is the shift's to see.
+    expect(out).toContain("/hukuk/mesafeli-satis-sozlesmesi");
+    expect(out).toContain("2026-10-16");
+  });
+
+  it("shows them to the owner, who answers the chargeback", () => {
+    const out = detail(consented(), "owner");
+    expect(out).toContain("85.105.12.34");
+    expect(out).toContain("iPhone OS 18_0");
+  });
+
+  it("the page decides it from the customers section", () => {
+    const page = readFileSync("src/app/admin/siparisler/[id]/page.tsx", "utf8");
+    expect(page).toContain('canSeeEvidence={canAccess("customers", session.role)}');
+    expect(page).toContain("detailsRules={orderDetailsRules(order, session.role)}");
+  });
+});
+
+describe("the customer card (ORD-16, karar D2)", () => {
+  it("staff may not open a closed order's card, and the card says why", () => {
+    const out = detail(order({ status: "completed" }), "staff");
+    expect(out).toMatch(/<button[^>]*disabled=""[^>]*>Düzenle<\/button>/);
+    expect(out).toContain("yalnız sahip ya da yönetici düzeltebilir");
+    expect(out).not.toContain("ile ekleyebilirsin");
+  });
+
+  it("staff open the card of an open order", () => {
+    const out = detail(order({ status: "preparing", shippingAddress: "" }), "staff");
+    expect(out).not.toMatch(/<button[^>]*disabled=""[^>]*>Düzenle<\/button>/);
+    expect(out).toContain("ile ekleyebilirsin");
+  });
+
+  it("offers the e-mail only with a confirm box that starts unticked", () => {
+    const src = readFileSync("src/components/admin/order-customer-editor.tsx", "utf8");
+    expect(src).toContain("rules.emailEditable ? (");
+    expect(src).toContain('name="emailConfirm"');
+    expect(src).not.toMatch(/emailConfirm"[^>]*(defaultChecked|checked)/);
   });
 });
 

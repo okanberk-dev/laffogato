@@ -15,6 +15,7 @@ import {
   refundedMinor,
   type OrderActionMap,
 } from "@/lib/admin/order-actions";
+import type { OrderDetailsRules } from "@/lib/admin/order-details";
 import {
   noticeKindLabel,
   type OrderTimelineItem,
@@ -65,6 +66,13 @@ interface Props {
   notices: OrderNoticeRow[];
   /** `/admin/musteriler/<email>` when the role may open it. */
   customerHref: string | null;
+  /** What the role may change on the customer card (`orderDetailsRules`). */
+  detailsRules: OrderDetailsRules;
+  /**
+   * The consent's IP address and browser string are shown (owner and
+   * manager, `customers`); otherwise they read "Kayıtlı" (karar D3).
+   */
+  canSeeEvidence: boolean;
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -571,6 +579,9 @@ function RefundsSection({ order }: { order: AdminOrder }) {
   );
 }
 
+/** What a role without the customer view sees for the consent's IP and browser. */
+const EVIDENCE_HIDDEN = "Kayıtlı";
+
 /**
  * Distance-selling consent evidence, verbatim.
  *
@@ -580,7 +591,13 @@ function RefundsSection({ order }: { order: AdminOrder }) {
  * Orders placed before the consent box shipped - and admin-entered manual
  * orders - carry no record, which the section says out loud rather than hiding.
  */
-function ConsentSection({ consent }: { consent: AdminOrder["legalConsent"] }) {
+function ConsentSection({
+  consent,
+  canSeeEvidence,
+}: {
+  consent: AdminOrder["legalConsent"];
+  canSeeEvidence: boolean;
+}) {
   const accepted =
     consent && "acceptedAt" in consent && consent.acceptedAt
       ? (consent as OrderLegalConsent)
@@ -620,16 +637,23 @@ function ConsentSection({ consent }: { consent: AdminOrder["legalConsent"] }) {
               ),
             },
             { label: "Belge sürümü", value: accepted.version },
+            // Personal data the shift does not need: the record is kept as
+            // it is (it is the chargeback evidence), only the screen says
+            // "Kayıtlı" to a role without the customer view (ORD-29).
             accepted.ip
-              ? { label: "IP adresi", value: accepted.ip, mono: true }
+              ? canSeeEvidence
+                ? { label: "IP adresi", value: accepted.ip, mono: true }
+                : { label: "IP adresi", value: EVIDENCE_HIDDEN }
               : null,
             accepted.userAgent
               ? {
                   label: "Tarayıcı",
-                  value: (
+                  value: canSeeEvidence ? (
                     <span className="text-xs break-all">
                       {accepted.userAgent}
                     </span>
+                  ) : (
+                    EVIDENCE_HIDDEN
                   ),
                 }
               : null,
@@ -649,6 +673,8 @@ export function OrderDetail({
   timeline,
   notices,
   customerHref,
+  detailsRules,
+  canSeeEvidence,
 }: Props) {
   return (
     <>
@@ -680,12 +706,16 @@ export function OrderDetail({
             customerPhone={order.customerPhone}
             shippingAddress={order.shippingAddress}
             customerHref={customerHref}
+            rules={detailsRules}
           />
           <DeliverySection order={order} />
           <Section title="İç not">
             <OrderNoteForm orderId={order.id} initial={order.internalNote} />
           </Section>
-          <ConsentSection consent={order.legalConsent} />
+          <ConsentSection
+            consent={order.legalConsent}
+            canSeeEvidence={canSeeEvidence}
+          />
         </aside>
       </div>
 

@@ -4779,31 +4779,62 @@ export async function setOrderShipmentStatus(
 
 export interface OrderDetailsInput {
   customerName: string;
-  customerEmail: string;
+  /** Left out: the stored e-mail stays (the form did not offer the field). */
+  customerEmail?: string;
   customerPhone: string;
   shippingAddress: string;
 }
 
-/** Admin edit of an order's customer + delivery fields (no totals change). */
+export type OrderDetailsResult =
+  | { ok: true; before: AdminOrder; order: AdminOrder }
+  | { ok: false; error: string };
+
+/**
+ * Admin edit of an order's customer + delivery fields (no totals change).
+ *
+ * `refuse` is asked about the order as stored and stops the save with its
+ * answer (who may change the e-mail, a closed order: lib/admin/
+ * order-details.ts). The write is conditional on the status and e-mail that
+ * answer was given for, so an order completed or moved in between is
+ * "changed", never overwritten. `before` is the order as it was: the
+ * caller's audit row keeps the old values.
+ */
 export async function updateOrderDetails(
   id: string,
   input: OrderDetailsInput,
-): Promise<AdminOrder | null> {
+  refuse?: (existing: AdminOrder) => string | null,
+): Promise<OrderDetailsResult> {
   await ensureSeed();
   const sb = getDb();
   const existing = await getOrder(id);
-  if (!existing) return null;
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  const refusal = refuse?.(existing) ?? null;
+  if (refusal) return { ok: false, error: refusal };
   const update = {
     customerName: input.customerName.trim().slice(0, 120),
-    customerEmail: input.customerEmail.trim().slice(0, 160),
+    ...(input.customerEmail !== undefined
+      ? { customerEmail: input.customerEmail.trim().slice(0, 160) }
+      : {}),
     customerPhone: input.customerPhone.trim().slice(0, 40),
     shippingAddress: input.shippingAddress.trim().slice(0, 600),
   };
-  check(
-    await sb.from(TABLES.orders).update(update).eq("id", id),
+  const written = rows<{ id: string }>(
+    await sb
+      .from(TABLES.orders)
+      .update(update)
+      .eq("id", id)
+      .eq("status", existing.status)
+      .eq("customerEmail", existing.customerEmail ?? "")
+      .select("id"),
     "updateOrderDetails",
   );
-  return { ...existing, ...update };
+  if (written.length === 0) {
+    return {
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    };
+  }
+  return { ok: true, before: existing, order: { ...existing, ...update } };
 }
 
 /**
