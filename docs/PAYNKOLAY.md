@@ -1020,7 +1020,8 @@ olan üye doğrudan 2. adımda açılır. Sipariş özeti iki adımda da görün
    siparişi açar ya da reddedilen denemenin bıraktığı siparişi yeniden
    kullanır, `createCheckoutSession`'dan `d`/`s`'yi çıkarıp döner. Kart bu
    isteğe hiç girmez (`tests/saved-cards.test.ts`).
-3. Tutar düğmedekiyle aynıysa tarayıcı `d`/`s`'yi kartın **yerli** formuna
+3. Tutar düğmenin üstündeki "Toplam (KDV dahil)" ile aynıysa tarayıcı
+   `d`/`s`'yi kartın **yerli** formuna
    (`<form method="post" action="/odeme/paynkolay">`, kontrolsüz alanlar,
    React state'i yok) yazar ve `form.submit()` eder; yanıt bankanın 3D
    sayfasıdır. Tutar farklıysa (panelde fiyat değişti, kod uygulanamadı)

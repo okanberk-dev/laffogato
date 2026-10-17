@@ -96,13 +96,12 @@ export function CheckoutConsent({
         )}
       </div>
       <p className="checkout-consent-note">
-        Onaylarınız; tarihi, IP adresi, tarayıcı bilgisi ve belge sürümü ile
-        birlikte siparişinize işlenir. Kişisel verilerinizin işlenmesi hakkında
-        bilgi için{" "}
+        Onayların tarih, IP adresi, tarayıcı bilgisi ve belge sürümüyle
+        siparişine kaydedilir. Kişisel verilerinin nasıl işlendiğini{" "}
         <Link href="/hukuk/kvkk-aydinlatma-metni" target="_blank">
           KVKK Aydınlatma Metni
         </Link>
-        .
+        &apos;nde okuyabilirsin.
       </p>
     </>
   );

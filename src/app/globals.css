@@ -6479,18 +6479,11 @@ select {
   box-shadow: var(--rim), var(--shadow-glass);
 }
 .cart-empty-title {
-  margin: 0;
+  margin: 0 0 22px;
   font-family: var(--headline);
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.02em;
-}
-.cart-empty-text {
-  margin: 10px auto 22px;
-  max-width: 280px;
-  font-size: 14.5px;
-  line-height: 1.55;
-  color: var(--ink-mute);
 }
 .cart-drawer-foot {
   padding: 16px 20px 20px;
@@ -6518,13 +6511,6 @@ select {
 }
 .cart-checkout {
   width: 100%;
-}
-.cart-foot-hint {
-  margin: 10px 0 0;
-  font-size: 12.5px;
-  color: var(--ink-mute);
-  text-align: center;
-  line-height: 1.5;
 }
 @media (max-width: 560px) {
   .cart-drawer {
@@ -7310,9 +7296,6 @@ select {
 }
 .order-done-facts {
   margin: 28px 0 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
 }
 .order-done-facts > div {
   padding: 14px 16px;
@@ -7405,20 +7388,6 @@ select {
   text-align: center;
   font-size: 13.5px;
   color: var(--ink-mute);
-}
-.order-done-foot a {
-  color: var(--green);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-@media (max-width: 520px) {
-  .order-done-facts {
-    grid-template-columns: 1fr 1fr;
-  }
-  .order-done-facts > div:last-child {
-    grid-column: 1 / -1;
-  }
 }
 
 /* Signed out, unverified or shop closed: one glass card, like sign-in. */
@@ -11413,9 +11382,6 @@ button.co-steps-link {
 .co-section-title:focus {
   outline: none;
 }
-.co-section-secure {
-  margin-left: auto;
-}
 
 .co-addresses {
   display: grid;
@@ -11610,7 +11576,25 @@ button.co-steps-link {
 }
 .co-docs a {
   color: var(--ink);
+  text-decoration: underline;
   text-underline-offset: 3px;
+}
+/* The documents as items: a padded link inside a sentence that wrapped on
+   a phone reached over the next line, and its tap area covered the link
+   there. Here each link is one 44px box in its own place in the row; the
+   underline, not a dot, tells one from the next when they wrap. */
+.co-docs-links {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.co-docs-links a {
+  display: inline-block;
+  padding-block: 11px;
+  line-height: 22px;
 }
 .co-accepted {
   display: flex;
@@ -11821,8 +11805,7 @@ button.co-steps-link {
 }
 /* The document links sit inside a sentence; their hit area grows
    vertically without moving the lines. */
-.co-confirm .checkout-consent a,
-.co-docs a {
+.co-confirm .checkout-consent a {
   padding-block: 11px;
   margin-block: -11px;
 }
@@ -11864,16 +11847,6 @@ button.co-steps-link {
   margin: 0;
   font-size: 12.5px;
   text-align: center;
-  color: var(--ink-mute);
-}
-.co-trust {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 6px 14px;
-  margin: 0;
-  font-size: 12px;
   color: var(--ink-mute);
 }
 
@@ -12041,30 +12014,20 @@ button.co-steps-link {
   color: var(--ink);
 }
 .co-docs-seller {
-  display: inline-block;
   margin-top: 4px;
   font-size: 12px;
   line-height: 1.5;
   color: var(--ink-mute);
+  overflow-wrap: anywhere;
 }
 .co-freeship {
   margin: 0 16px 16px;
-}
-.co-seller {
-  margin: 0;
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--ink-mute);
-  overflow-wrap: anywhere;
 }
 .co-order-form {
   display: none;
 }
 
 @media (min-width: 960px) {
-  .co-docs-seller {
-    display: none;
-  }
   .co-freeship {
     margin: 0 22px 22px;
   }
@@ -12133,9 +12096,6 @@ button.co-steps-link {
   .co-field-row,
   .co-field-row-3 {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .co-section-secure {
-    margin-left: 0;
   }
   .co-chrome-help-label {
     display: none;
