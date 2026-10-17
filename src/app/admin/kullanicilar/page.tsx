@@ -87,7 +87,7 @@ export default async function AdminUsersPage() {
                   {ROLE_LABELS[role]}
                 </dt>
                 <dd className="text-xs leading-relaxed text-[var(--admin-text-soft)]">
-                  {roleSectionLabels(role).join(" · ")}
+                  {roleSectionLabels(role).join(", ")}
                 </dd>
               </div>
             ))}
