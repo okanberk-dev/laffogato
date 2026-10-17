@@ -1563,7 +1563,7 @@ export function MenuPlate({
   name?: string;
   /** Menu category key - the authoritative signal for which drawing to use. */
   cat?: string;
-  /** Real product photo (transparent PNG/WebP). Falls back to the drawn scene. */
+  /** Product photo (a cutout or an opaque square). Falls back to the drawn scene. */
   image?: string;
 }) {
   const lower = name.toLowerCase();
@@ -1581,9 +1581,9 @@ export function MenuPlate({
           }}
         >
           {isLocalStatic(image) ? (
-            // The site's own photos are 600 px squares of ~150 KB; a card
-            // shows them at ~150 px on a phone. next/image sends the width
-            // the card needs (a few dozen KB) instead of the whole file.
+            // The site's own photos are 900-1024 px squares of up to ~155 KB;
+            // a card shows them at ~150 px on a phone. next/image sends the
+            // width the card needs (a few dozen KB) instead of the whole file.
             <span
               style={{
                 position: "relative",

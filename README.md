@@ -91,10 +91,13 @@ yazılır ve render'da doldurulur. Değeri **bilinmeyen** bir alan (MERSİS, tic
 sicil, KEP, IBAN) boş bırakılır ve o tablo satırı hiç basılmaz - site asla
 uydurma bir sicil numarası yayımlamaz.
 
-**2. Menü görselleri çizimdir, fotoğraf değil.** `menu-visuals.tsx` her içecek
-ve tatlı ailesi için parametrik SVG üretir; kategori bazlı bir yönlendirici
-hangi çizimin kullanılacağına karar verir. Gerçek fotoğraf eklendiğinde
-(`image` alanı) çizimin yerini alır. Telif riski yok, boyut birkaç KB.
+**2. Menü görselleri fotoğraftır, yedeği çizimdir.** Kalemlerin çoğunda
+`public/menu/` altında bir fotoğraf var (`image` alanı); Ağustos'taki üç matcha
+fotoğrafı dışındakiler CC0 ya da Public Domain Mark stok fotoğraflarıdır, atıf
+istemez (kaynaklar `docs/MENU-PHOTOS.md`) ve menü yanlarında "Görseller
+temsilidir" der. Fotoğrafı olmayan kalemde `menu-visuals.tsx` her içecek ve
+tatlı ailesi için parametrik SVG üretir; kategori bazlı bir yönlendirici hangi
+çizimin kullanılacağına karar verir. Telif riski yok, boyut birkaç KB.
 
 **3. Mesafeli satış onayı kanıtla saklanır.** Ödeme adımındaki onay kutusu ön
 işaretli olamaz; sunucu onaysız siparişi reddeder ve onayı - tarih, IP, tarayıcı,

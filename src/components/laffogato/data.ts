@@ -17,7 +17,12 @@ export interface MenuItem {
   priceL?: string;
   tags?: string[];
   hue: string;
-  /** Public path to a real product photo (transparent PNG/WebP). */
+  /**
+   * Public path to a product photo in public/menu/. The three matcha photos
+   * came with the August menu; the rest are representative stock photos
+   * (opaque 900 px squares, sources in docs/MENU-PHOTOS.md), and the menu
+   * says so next to them ("Görseller temsilidir").
+   */
   image?: string;
 }
 
@@ -78,6 +83,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "280₺",
         tags: ["signature"],
         hue: "caramel",
+        image: "/menu/affogato.webp",
       },
       {
         name: "Espresso",
@@ -85,6 +91,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "110₺",
         priceL: "140₺",
         hue: "espresso",
+        image: "/menu/espresso.webp",
       },
       {
         name: "Americano",
@@ -92,6 +99,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "165₺",
         priceL: "185₺",
         hue: "espresso",
+        image: "/menu/americano.webp",
       },
       {
         name: "Latte",
@@ -99,6 +107,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "195₺",
         priceL: "210₺",
         hue: "cream",
+        image: "/menu/caffe-latte.webp",
       },
       {
         name: "Flat White",
@@ -106,6 +115,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "190₺",
         priceL: "200₺",
         hue: "cream",
+        image: "/menu/flat-white.webp",
       },
       {
         name: "Mocha",
@@ -113,6 +123,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "245₺",
         priceL: "265₺",
         hue: "espresso",
+        image: "/menu/mocha.webp",
       },
       {
         name: "Cappuccino",
@@ -120,12 +131,14 @@ export const MENU: Record<string, MenuCategory> = {
         price: "195₺",
         priceL: "210₺",
         hue: "cream",
+        image: "/menu/cappuccino.webp",
       },
       {
         name: "Espresso Macchiato",
         desc: "Espresso üzerine bir dokunuş süt köpüğü.",
         price: "115₺",
         hue: "espresso",
+        image: "/menu/espresso-macchiato.webp",
       },
       {
         name: "İspanyol Latte",
@@ -133,12 +146,14 @@ export const MENU: Record<string, MenuCategory> = {
         price: "250₺",
         priceL: "270₺",
         hue: "caramel",
+        image: "/menu/spanish-latte.webp",
       },
       {
         name: "Cortado",
         desc: "Espresso ve eşit ölçüde ılık süt.",
         price: "200₺",
         hue: "caramel",
+        image: "/menu/cortado.webp",
       },
       {
         name: "Beyaz Çikolatalı Mocha",
@@ -146,6 +161,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "245₺",
         priceL: "265₺",
         hue: "cream",
+        image: "/menu/white-chocolate-mocha.webp",
       },
       {
         name: "Karamel Latte",
@@ -153,6 +169,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "245₺",
         priceL: "265₺",
         hue: "caramel",
+        image: "/menu/caramel-latte.webp",
       },
       {
         name: "Tuzlu Karamel Latte",
@@ -160,6 +177,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "245₺",
         priceL: "265₺",
         hue: "caramel",
+        image: "/menu/salted-caramel-latte.webp",
       },
       {
         name: "Toffeenut Latte",
@@ -168,6 +186,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["nuts"],
         hue: "caramel",
+        image: "/menu/toffee-nut-latte.webp",
       },
       {
         name: "Balkabağı Latte",
@@ -175,6 +194,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "250₺",
         priceL: "270₺",
         hue: "dawn",
+        image: "/menu/pumpkin-latte.webp",
       },
       {
         name: "Türk Kahvesi",
@@ -182,6 +202,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "130₺",
         priceL: "150₺",
         hue: "espresso",
+        image: "/menu/turkish-coffee.webp",
       },
       {
         name: "Filtre Kahve",
@@ -189,6 +210,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "165₺",
         priceL: "185₺",
         hue: "espresso",
+        image: "/menu/filter-coffee.webp",
       },
     ],
   },
@@ -205,6 +227,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "225₺",
         tags: ["iced"],
         hue: "dawn",
+        image: "/menu/iced-chai.webp",
       },
       {
         name: "Buzlu Americano",
@@ -213,6 +236,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "185₺",
         tags: ["iced"],
         hue: "espresso",
+        image: "/menu/iced-americano.webp",
       },
       {
         name: "Buzlu Caffè Latte",
@@ -221,6 +245,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "210₺",
         tags: ["iced"],
         hue: "cream",
+        image: "/menu/iced-caffe-latte.webp",
       },
       {
         name: "Buzlu Caffè Mocha",
@@ -229,6 +254,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "265₺",
         tags: ["iced"],
         hue: "espresso",
+        image: "/menu/iced-mocha.webp",
       },
       {
         name: "Buzlu Beyaz Çikolatalı Mocha",
@@ -237,6 +263,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "265₺",
         tags: ["iced"],
         hue: "cream",
+        image: "/menu/iced-white-mocha.webp",
       },
       {
         name: "Buzlu Tuzlu Karamel Latte",
@@ -245,6 +272,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "caramel",
+        image: "/menu/iced-salted-caramel-latte.webp",
       },
       {
         name: "Buzlu Toffeenut Latte",
@@ -253,6 +281,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced", "nuts"],
         hue: "caramel",
+        image: "/menu/iced-toffee-nut-latte.webp",
       },
       {
         name: "Buzlu Balkabağı Latte",
@@ -261,6 +290,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "dawn",
+        image: "/menu/iced-pumpkin-latte.webp",
       },
       {
         name: "Buzlu İspanyol Latte",
@@ -269,6 +299,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "caramel",
+        image: "/menu/iced-spanish-latte.webp",
       },
       {
         name: "Cold Brew",
@@ -277,6 +308,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "220₺",
         tags: ["iced"],
         hue: "espresso",
+        image: "/menu/cold-brew.webp",
       },
       {
         name: "Çıtır Latte",
@@ -284,6 +316,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "250₺",
         tags: ["iced", "new"],
         hue: "caramel",
+        image: "/menu/crunchy-latte.webp",
       },
     ],
   },
@@ -300,6 +333,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced", "new"],
         hue: "rose",
+        image: "/menu/surprise-drink.webp",
       },
       {
         name: "Cool Lime",
@@ -308,6 +342,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "220₺",
         tags: ["iced"],
         hue: "pistachio",
+        image: "/menu/cool-lime.webp",
       },
       {
         name: "L'Af Limon",
@@ -315,9 +350,22 @@ export const MENU: Record<string, MenuCategory> = {
         price: "180₺",
         tags: ["iced"],
         hue: "gold",
+        image: "/menu/lemonade.webp",
       },
-      { name: "Soda", desc: "Soğuk maden suyu.", price: "80₺", hue: "sky" },
-      { name: "Su", desc: "0,5 lt içme suyu.", price: "60₺", hue: "stone" },
+      {
+        name: "Soda",
+        desc: "Soğuk maden suyu.",
+        price: "80₺",
+        hue: "sky",
+        image: "/menu/soda.webp",
+      },
+      {
+        name: "Su",
+        desc: "0,5 lt içme suyu.",
+        price: "60₺",
+        hue: "stone",
+        image: "/menu/water.webp",
+      },
     ],
   },
   hot: {
@@ -332,6 +380,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "235₺",
         priceL: "250₺",
         hue: "dawn",
+        image: "/menu/chai-latte.webp",
       },
       {
         name: "Sıcak Çikolata",
@@ -339,6 +388,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "230₺",
         priceL: "250₺",
         hue: "espresso",
+        image: "/menu/hot-chocolate.webp",
       },
       {
         name: "Beyaz Sıcak Çikolata",
@@ -346,6 +396,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "245₺",
         priceL: "265₺",
         hue: "cream",
+        image: "/menu/white-hot-chocolate.webp",
       },
       {
         name: "Karamelli Sıcak Çikolata",
@@ -353,6 +404,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "245₺",
         priceL: "265₺",
         hue: "caramel",
+        image: "/menu/caramel-hot-chocolate.webp",
       },
       {
         name: "Salep",
@@ -367,6 +419,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "60₺",
         priceL: "90₺",
         hue: "gold",
+        image: "/menu/turkish-tea.webp",
       },
     ],
   },
@@ -383,6 +436,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "caramel",
+        image: "/menu/frappe.webp",
       },
       {
         name: "Espresso Frappe",
@@ -391,6 +445,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "espresso",
+        image: "/menu/espresso-frappe.webp",
       },
       {
         name: "Mocha Frappe",
@@ -399,6 +454,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "espresso",
+        image: "/menu/mocha-frappe.webp",
       },
       {
         name: "Karamel Frappe",
@@ -407,6 +463,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "caramel",
+        image: "/menu/caramel-frappe.webp",
       },
     ],
   },
@@ -423,6 +480,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "bougainvillea",
+        image: "/menu/blueberry-smoothie.webp",
       },
       {
         name: "Mango",
@@ -431,6 +489,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "gold",
+        image: "/menu/mango-smoothie.webp",
       },
       {
         name: "Elma",
@@ -439,6 +498,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "pistachio",
+        image: "/menu/apple-smoothie.webp",
       },
       {
         name: "Protein Shake",
@@ -446,6 +506,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "270₺",
         tags: ["iced"],
         hue: "warm",
+        image: "/menu/protein-shake.webp",
       },
     ],
   },
@@ -462,6 +523,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "rose",
+        image: "/menu/strawberry-frozen.webp",
       },
       {
         name: "Frambuaz",
@@ -470,6 +532,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "bougainvillea",
+        image: "/menu/raspberry-frozen.webp",
       },
       {
         name: "Çarkıfelek",
@@ -502,6 +565,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "265₺",
         tags: ["iced"],
         hue: "gold",
+        image: "/menu/lemon-iced-tea.webp",
       },
       {
         name: "Şeftalili Soğuk Çay",
@@ -510,6 +574,7 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "265₺",
         tags: ["iced"],
         hue: "dawn",
+        image: "/menu/peach-iced-tea.webp",
       },
     ],
   },
@@ -525,30 +590,35 @@ export const MENU: Record<string, MenuCategory> = {
         price: "160₺",
         tags: ["signature"],
         hue: "caramel",
+        image: "/menu/donostia-cheesecake.webp",
       },
       {
         name: "San Sebastian",
         desc: "Yüksek ateşte pişmiş, ortası akışkan cheesecake.",
         price: "290₺",
         hue: "caramel",
+        image: "/menu/san-sebastian-cheesecake.webp",
       },
       {
         name: "Yaban Mersinli San Sebastian",
         desc: "Yaban mersinli San Sebastian cheesecake.",
         price: "295₺",
         hue: "bougainvillea",
+        image: "/menu/blueberry-san-sebastian.webp",
       },
       {
         name: "L'Af Mango",
         desc: "Mangolu evin özel pastası.",
         price: "270₺",
         hue: "gold",
+        image: "/menu/mango-cake.webp",
       },
       {
         name: "L'Af Kahve",
         desc: "Kahveli evin özel pastası.",
         price: "290₺",
         hue: "espresso",
+        image: "/menu/coffee-cake.webp",
       },
       {
         name: "L'Af Antep Fıstığı",
@@ -556,54 +626,63 @@ export const MENU: Record<string, MenuCategory> = {
         price: "300₺",
         tags: ["nuts"],
         hue: "pistachio",
+        image: "/menu/pistachio-cake.webp",
       },
       {
         name: "Çilek Magnolia",
         desc: "Çilekli magnolia, bisküvi kırığıyla.",
         price: "240₺",
         hue: "rose",
+        image: "/menu/strawberry-magnolia.webp",
       },
       {
         name: "Muz Magnolia",
         desc: "Muzlu magnolia, bisküvi kırığıyla.",
         price: "240₺",
         hue: "gold",
+        image: "/menu/banana-magnolia.webp",
       },
       {
         name: "Lotus Magnolia",
         desc: "Lotus bisküvili magnolia.",
         price: "250₺",
         hue: "caramel",
+        image: "/menu/lotus-magnolia.webp",
       },
       {
         name: "Marlenka",
         desc: "Ballı katmanlı Marlenka dilimi.",
         price: "270₺",
         hue: "gold",
+        image: "/menu/marlenka-honey-cake.webp",
       },
       {
         name: "Klasik Spoonful",
         desc: "Kaşık kaşık kremalı klasik tatlı.",
         price: "220₺",
         hue: "cream",
+        image: "/menu/classic-spoonful.webp",
       },
       {
         name: "Frambuazlı Cheesecake",
         desc: "Frambuaz soslu cheesecake.",
         price: "260₺",
         hue: "bougainvillea",
+        image: "/menu/raspberry-cheesecake.webp",
       },
       {
         name: "Limonlu Cheesecake",
         desc: "Limonlu cheesecake.",
         price: "260₺",
         hue: "gold",
+        image: "/menu/lemon-cheesecake.webp",
       },
       {
         name: "Brownie",
         desc: "Yoğun çikolatalı brownie.",
         price: "280₺",
         hue: "espresso",
+        image: "/menu/brownie.webp",
       },
       {
         name: "Cookie Aşkı (Dondurmalı)",
@@ -611,12 +690,14 @@ export const MENU: Record<string, MenuCategory> = {
         price: "290₺",
         tags: ["signature"],
         hue: "caramel",
+        image: "/menu/cookie-ice-cream.webp",
       },
       {
         name: "Tiramisu",
         desc: "Mascarpone, kedidili ve espresso.",
         price: "280₺",
         hue: "espresso",
+        image: "/menu/tiramisu.webp",
       },
     ],
   },
@@ -631,36 +712,42 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Karabuğday unlu simit.",
         price: "90₺",
         hue: "warm",
+        image: "/menu/simit.webp",
       },
       {
         name: "Rosbeef Sandviç",
         desc: "Rosbif, taze yeşillik ve sos.",
         price: "390₺",
         hue: "warm",
+        image: "/menu/roast-beef-sandwich.webp",
       },
       {
         name: "Hindi Fümeli Sandviç",
         desc: "Hindi füme, kaşar ve taze yeşillik.",
         price: "350₺",
         hue: "warm",
+        image: "/menu/smoked-turkey-sandwich.webp",
       },
       {
         name: "Çıtır Granola Bar (Kenya)",
         desc: "Çıtır granola bar.",
         price: "150₺",
         hue: "caramel",
+        image: "/menu/granola-bar.webp",
       },
       {
         name: "Hindistan Cevizli Bar",
         desc: "Hindistan cevizli bar.",
         price: "90₺",
         hue: "cream",
+        image: "/menu/coconut-bar.webp",
       },
       {
         name: "Kakao Protein Bar",
         desc: "Kakaolu protein bar.",
         price: "90₺",
         hue: "espresso",
+        image: "/menu/cocoa-protein-bar.webp",
       },
       {
         name: "Koska Fındık",
@@ -668,6 +755,7 @@ export const MENU: Record<string, MenuCategory> = {
         price: "90₺",
         tags: ["nuts"],
         hue: "caramel",
+        image: "/menu/hazelnuts.webp",
       },
     ],
   },
@@ -688,12 +776,14 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "İçeceğinize ek espresso shot.",
         price: "50₺",
         hue: "espresso",
+        image: "/menu/extra-shot.webp",
       },
       {
         name: "Alternatif Süt",
         desc: "Yulaf, badem veya laktozsuz süt seçeneği.",
         price: "25₺",
         hue: "cream",
+        image: "/menu/alternative-milk.webp",
         // Almond is one of the three: the warning has to reach whoever picks it.
         tags: ["nuts"],
       },

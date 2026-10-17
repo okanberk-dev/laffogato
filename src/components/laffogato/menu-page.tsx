@@ -8,6 +8,7 @@ import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 
 import { PageHero } from "./page-hero";
 import { MENU } from "./data";
+import { MenuPhotoNote } from "./menu-photo-note";
 import { MenuPlate } from "./visuals";
 import { MENU_TAG_LABELS, type PageProps } from "./page-shared";
 
@@ -247,6 +248,7 @@ export function PageMenu({ menu }: PageProps) {
                   );
                 })}
               </div>
+              <MenuPhotoNote show={items.some((it) => it.image)} />
             </>
           )}
         </div>
